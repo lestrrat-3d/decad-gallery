@@ -44,8 +44,8 @@ func (p Params) validate() error {
 	if p.BoreDiameter < 0 || p.CapChamfer < 0 {
 		return fmt.Errorf("bore diameter and cap chamfer cannot be negative")
 	}
-	if p.CapChamfer > 0 {
-		return fmt.Errorf("cap chamfer is not implemented")
+	if p.CapChamfer > 0 && p.BoreDiameter == 0 {
+		return fmt.Errorf("cap chamfer without a bore requires Decad loft support")
 	}
 	d := derive(p)
 	if d.root <= 0 || d.base <= 0 || d.tip <= d.base {
@@ -104,7 +104,18 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 		return nil, err
 	}
 	if p.BoreDiameter > 0 {
-		return cutThroughBore(ctx, doc, body, p)
+		body, err = cutThroughBore(ctx, doc, body, p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if p.CapChamfer > 0 {
+		selection := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).
+			Or(decad.OuterLoopOf(decad.CapEnd(body)))
+		body, err = body.Chamfer(ctx, selection, units.Millimeters(p.CapChamfer))
+		if err != nil {
+			return nil, fmt.Errorf("chamfer outer cap loops: %w", err)
+		}
 	}
 	return body, nil
 }
