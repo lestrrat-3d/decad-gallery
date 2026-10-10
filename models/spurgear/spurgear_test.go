@@ -1,0 +1,57 @@
+package spurgear_test
+
+import (
+	"math"
+	"strings"
+	"testing"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
+	"github.com/stretchr/testify/require"
+)
+
+func TestDefaultGear(t *testing.T) {
+	doc := decad.New()
+	body, err := spurgear.Build(t.Context(), doc, spurgear.DefaultParams())
+	require.NoError(t, err)
+	require.True(t, body.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	volume, err := body.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, 2218.77, volume.Value.Base(), volume.Bound.Base()+0.02)
+	require.Less(t, volume.Bound.Base(), 0.5)
+	box, err := body.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-8)
+	require.InDelta(t, 10, box.Max.Z, box.Bound.Base()+1e-8)
+	require.Greater(t, box.Max.X, 9.4)
+	require.Less(t, box.Max.X, 9.6)
+	roles := map[string]struct{}{}
+	for _, face := range body.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "fillet(0,") {
+				roles[origin.Role] = struct{}{}
+			}
+		}
+	}
+	require.Len(t, roles, 2*spurgear.DefaultParams().Teeth)
+}
+
+func TestThroughBore(t *testing.T) {
+	base, err := spurgear.Build(t.Context(), decad.New(), spurgear.DefaultParams())
+	require.NoError(t, err)
+	baseVolume, err := base.Volume()
+	require.NoError(t, err)
+	p := spurgear.DefaultParams()
+	p.BoreDiameter = 3
+	doc := decad.New()
+	gear, err := spurgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	withBore, err := gear.Volume()
+	require.NoError(t, err)
+	wantRemoved := math.Pi * math.Pow(p.BoreDiameter/2, 2) * p.Thickness
+	require.InDelta(t, wantRemoved, baseVolume.Value.Base()-withBore.Value.Base(),
+		baseVolume.Bound.Base()+withBore.Bound.Base()+0.02)
+}
