@@ -55,3 +55,29 @@ func TestThroughBore(t *testing.T) {
 	require.InDelta(t, wantRemoved, baseVolume.Value.Base()-withBore.Value.Base(),
 		baseVolume.Bound.Base()+withBore.Bound.Base()+0.02)
 }
+
+func TestBoreAndCapChamfer(t *testing.T) {
+	p := spurgear.DefaultParams()
+	p.BoreDiameter = 3
+	withoutChamfer, err := spurgear.Build(t.Context(), decad.New(), p)
+	require.NoError(t, err)
+	baseVolume, err := withoutChamfer.Volume()
+	require.NoError(t, err)
+
+	p.CapChamfer = 0.1
+	doc := decad.New()
+	gear, err := spurgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	chamferedVolume, err := gear.Volume()
+	require.NoError(t, err)
+	require.Greater(t, baseVolume.Value.Base()-chamferedVolume.Value.Base(),
+		baseVolume.Bound.Base()+chamferedVolume.Bound.Base())
+	for _, cap := range []decad.FeatureRef{decad.CapStart(gear), decad.CapEnd(gear)} {
+		faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(gear)
+		require.NoError(t, err)
+		require.Len(t, faces[0].Loops(), 2)
+		require.Len(t, faces[0].Loops()[1].Edges(), 1, "the bore rim stays sharp")
+	}
+}
