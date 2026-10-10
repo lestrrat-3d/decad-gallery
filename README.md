@@ -5,9 +5,10 @@ This repository collects parametric shapes, patterns, and assemblies built with
 [`models/`](models/README.md). Items may use geometry from other items, so a gear can
 become part of a hand-crank siren or a wind turbine.
 
-The repository will own each item's human-readable construction instructions, Go
-code that builds it with decad, and checks of the resulting geometry. The
-first item is the [spur gear](models/spurgear/README.md).
+The repository owns each item's human-readable construction instructions,
+Decad construction steps, Go code, and geometry checks. The
+[model build pipeline](docs/model-pipeline.md) describes this path. The first
+item is the [spur gear](models/spurgear/README.md).
 
 [`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator)
 is a downstream consumer. It will translate the Go construction into equivalent
@@ -20,6 +21,7 @@ its build pipeline.
 | --- | --- |
 | `models/<name>/` | One shape, pattern, or assembly per directory. |
 | `models/README.md` | Rules for adding items and referring to other items. |
+| `docs/model-pipeline.md` | The specification-to-Decad build workflow. |
 | `AGENTS.md` | Instructions for coding agents working on models. |
 | `.github/` | Issue templates and repository checks. |
 

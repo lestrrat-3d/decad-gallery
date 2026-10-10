@@ -7,6 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,6 +80,9 @@ func TestBoreAndCapChamfer(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, faces[0].Loops(), 2)
 		require.Len(t, faces[0].Loops()[1].Edges(), 1, "the bore rim stays sharp")
+		circle, ok := faces[0].Loops()[1].Edges()[0].Curve().(decad.Circle3)
+		require.True(t, ok)
+		require.InDelta(t, p.BoreDiameter/2, circle.Radius.Base(), 1e-10)
 	}
 }
 
@@ -116,4 +120,68 @@ func TestCapChamferWithoutBore(t *testing.T) {
 		require.Greater(t, plainArea.Value.Base()-chamferedArea.Value.Base(),
 			plainArea.Bound.Base()+chamferedArea.Bound.Base())
 	}
+}
+
+func TestEmbeddedThirtyToothGearWithoutRootFillets(t *testing.T) {
+	p := spurgear.Params{
+		Module: 0.5, Teeth: 30, PressureAngle: 30 * math.Pi / 180,
+		Thickness: 2, Samples: 5, CapChamfer: 0.02,
+	}
+	doc := decad.New()
+	gear, err := spurgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	box, err := gear.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-8)
+	require.InDelta(t, p.Thickness, box.Max.Z, box.Bound.Base()+1e-8)
+	chamferFaces := 0
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "chamferCap(") {
+				chamferFaces++
+				break
+			}
+		}
+	}
+	require.Positive(t, chamferFaces)
+	for _, cap := range []decad.FeatureRef{decad.CapStart(gear), decad.CapEnd(gear)} {
+		faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(gear)
+		require.NoError(t, err)
+		require.Len(t, faces[0].Loops(), 1, "the no-bore cap has one loop")
+	}
+}
+
+func TestEmbeddedSixtyToothGearWithRootFilletsAndBore(t *testing.T) {
+	p := spurgear.Params{
+		Module: 0.5, Teeth: 60, PressureAngle: 20 * math.Pi / 180,
+		Thickness: 2, Samples: 15, BoreDiameter: 3, CapChamfer: 0.02,
+	}
+	doc := decad.New()
+	gear, err := spurgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	chamferFaces := 0
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "chamferCap(") {
+				chamferFaces++
+				break
+			}
+		}
+	}
+	require.Positive(t, chamferFaces)
+	for _, cap := range []decad.FeatureRef{decad.CapStart(gear), decad.CapEnd(gear)} {
+		faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(gear)
+		require.NoError(t, err)
+		require.Len(t, faces[0].Loops(), 2)
+		require.Len(t, faces[0].Loops()[1].Edges(), 1, "the bore rim stays sharp")
+	}
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
 }
