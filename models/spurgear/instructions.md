@@ -42,7 +42,8 @@ right to left, and the left flank from tip to base. When the base radius is
 outside the root radius, extend both flank starts radially to the root circle.
 Connect each tooth's left root contact to the next tooth's right root contact
 with a root-circle arc. The continuous closed outline must have smooth
-fit-spline flanks, not chord replacements. Extrude it by `h` along +Z.
+fit-spline flanks, not chord replacements. Loft matching copies of this
+profile at z=0 and z=`h` to make the straight body.
 
 If the base radius lies inside the root circle, trim the flanks at their
 root-circle intersections without changing the fit-spline shape.

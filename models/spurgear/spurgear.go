@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 // Params holds the dimensions of one spur gear. Angles are radians; lengths are millimeters.
@@ -43,9 +44,6 @@ func (p Params) validate() error {
 	if p.BoreDiameter < 0 || p.CapChamfer < 0 {
 		return fmt.Errorf("bore diameter and cap chamfer cannot be negative")
 	}
-	if p.BoreDiameter > 0 {
-		return fmt.Errorf("through-bore is not implemented")
-	}
 	if p.CapChamfer > 0 {
 		return fmt.Errorf("cap chamfer is not implemented")
 	}
@@ -53,20 +51,15 @@ func (p Params) validate() error {
 	if d.root <= 0 || d.base <= 0 || d.tip <= d.base {
 		return fmt.Errorf("gear radii are invalid")
 	}
+	if p.BoreDiameter >= 2*d.root {
+		return fmt.Errorf("bore diameter must be smaller than the root diameter")
+	}
 	if d.base < d.root {
 		return fmt.Errorf("embedded flanks require root-circle trimming")
 	}
 	radius := filletRadius(p, d)
 	if radius <= 0 || math.IsNaN(radius) || math.IsInf(radius, 0) {
 		return fmt.Errorf("root fillet radius is not positive")
-	}
-	leg := math.Sqrt(d.root*d.root + 2*d.root*radius)
-	if leg >= d.base {
-		return fmt.Errorf("root fillet reaches the involute flank")
-	}
-	gap := 2*math.Pi/float64(p.Teeth) - 2*flankRotation(p, d) - 2*math.Atan2(radius, leg)
-	if gap <= 0 {
-		return fmt.Errorf("adjacent root fillets leave no root arc")
 	}
 	return nil
 }
@@ -94,11 +87,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("create upper gear plane: %w", err)
 	}
-	lowerSketch, lowerProfile, err := buildGearProfile(ctx, world, world.XY(), p, d)
+	lowerSketch, lowerProfile, roots, err := buildGearProfile(ctx, world, world.XY(), p, d)
 	if err != nil {
 		return nil, fmt.Errorf("lower gear profile: %w", err)
 	}
-	upperSketch, upperProfile, err := buildGearProfile(ctx, world, upper, p, d)
+	upperSketch, upperProfile, _, err := buildGearProfile(ctx, world, upper, p, d)
 	if err != nil {
 		return nil, fmt.Errorf("upper gear profile: %w", err)
 	}
@@ -106,25 +99,89 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("loft gear profile: %w", err)
 	}
+	body, err = roundRootCorners(ctx, body, roots, filletRadius(p, d))
+	if err != nil {
+		return nil, err
+	}
+	if p.BoreDiameter > 0 {
+		return cutThroughBore(ctx, doc, body, p)
+	}
 	return body, nil
 }
 
-// rootFillet joins a radial tooth flank to the root circle with a circular arc.
-// sign is -1 on a right flank and +1 on a left flank, toward the root gap.
-func rootFillet(unit point, root, radius, sign float64) (point, point, point) {
-	leg := math.Sqrt(root*root + 2*root*radius)
-	normal := point{-unit.y, unit.x}
-	center := point{leg*unit.x + sign*radius*normal.x, leg*unit.y + sign*radius*normal.y}
-	onRoot := point{root * center.x / (root + radius), root * center.y / (root + radius)}
-	onLine := point{leg * unit.x, leg * unit.y}
-	return center, onRoot, onLine
+func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
+	const margin = 1.0
+	world := sketch.NewWorld()
+	frame, err := r3.NewFrame(r3.NewVec(0, 0, -margin), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	if err != nil {
+		return nil, fmt.Errorf("create bore frame: %w", err)
+	}
+	plane, err := world.CreatePlaneFromFrame(frame)
+	if err != nil {
+		return nil, fmt.Errorf("create bore plane: %w", err)
+	}
+	s, err := world.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("create bore sketch: %w", err)
+	}
+	center := s.CreatePoint(0, 0)
+	s.Fix(center)
+	s.CreateCircle(center, p.BoreDiameter/2)
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, fmt.Errorf("solve bore sketch: %w", err)
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 1 || !profiles[0].Valid {
+		return nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
+	}
+	tool, err := doc.Extrude(s, profiles[0], decad.Distance{
+		D: units.Millimeters(p.Thickness + 2*margin), Dir: decad.Along,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("extrude bore tool: %w", err)
+	}
+	body, err := decad.Cut(ctx, gear, tool)
+	if err != nil {
+		return nil, fmt.Errorf("cut through-bore: %w", err)
+	}
+	return body, nil
+}
+
+func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radius float64) (*decad.Body, error) {
+	axis := r3.NewVec(0, 0, 1)
+	axial, err := decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)
+	if err != nil {
+		return nil, fmt.Errorf("select axial gear edges: %w", err)
+	}
+	var corners []r3.Vec
+	for _, edge := range axial {
+		start := edge.Start().Position().Value
+		for _, root := range roots {
+			if math.Hypot(start.X-root.x, start.Y-root.y) < 1e-8 {
+				corners = append(corners, start)
+				break
+			}
+		}
+	}
+	if len(corners) != len(roots) {
+		return nil, fmt.Errorf("found %d axial root corners; want %d", len(corners), len(roots))
+	}
+	selection := decad.Edges(decad.ParallelTo(axis), decad.EndpointAt(corners[0]))
+	for _, corner := range corners[1:] {
+		selection.Or(decad.ParallelTo(axis), decad.EndpointAt(corner))
+	}
+	rounded, err := body.Fillet(ctx, selection.Exactly(len(corners)), units.Millimeters(radius))
+	if err != nil {
+		return nil, fmt.Errorf("fillet root corners: %w", err)
+	}
+	return rounded, nil
 }
 
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
-	p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, error) {
+	p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
 	s, err := world.CreateSketch(plane)
 	if err != nil {
-		return nil, nil, fmt.Errorf("create gear sketch: %w", err)
+		return nil, nil, nil, fmt.Errorf("create gear sketch: %w", err)
 	}
 	center := s.CreatePoint(0, 0)
 	s.Fix(center)
@@ -133,9 +190,8 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 		s.Fix(pt)
 		return pt
 	}
-	radius := filletRadius(p, d)
-	rotation := flankRotation(p, d)
 	var firstRoot, previousRoot *sketch.Point
+	var roots []point
 	for tooth := range p.Teeth {
 		angle := float64(tooth) * 2 * math.Pi / float64(p.Teeth)
 		left, right := toothFlanks(p, d, angle)
@@ -145,39 +201,33 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 			leftPoints[i] = fixed(left[i])
 			rightPoints[i] = fixed(right[i])
 		}
-		rightUnit := rotate(point{1, 0}, angle-rotation)
-		leftUnit := rotate(point{1, 0}, angle+rotation)
-		rightCenter, rightRootXY, rightLineXY := rootFillet(rightUnit, d.root, radius, -1)
-		leftCenter, leftRootXY, leftLineXY := rootFillet(leftUnit, d.root, radius, +1)
+		rightRootXY := point{right[0].x * d.root / d.base, right[0].y * d.root / d.base}
+		leftRootXY := point{left[0].x * d.root / d.base, left[0].y * d.root / d.base}
 		rightRoot, leftRoot := fixed(rightRootXY), fixed(leftRootXY)
-		rightLine, leftLine := fixed(rightLineXY), fixed(leftLineXY)
+		roots = append(roots, rightRootXY, leftRootXY)
 		if previousRoot != nil {
 			s.CreateArc(center, previousRoot, rightRoot)
 		} else {
 			firstRoot = rightRoot
 		}
-		// Sketch arcs sweep counter-clockwise. Both minor fillet arcs are
-		// recorded opposite to the profile's boundary traversal.
-		s.CreateArc(fixed(rightCenter), rightLine, rightRoot)
-		s.CreateLine(rightLine, rightPoints[0])
+		s.CreateLine(rightRoot, rightPoints[0])
 		if _, err := s.CreateFitSpline(rightPoints...); err != nil {
-			return nil, nil, fmt.Errorf("tooth %d right flank: %w", tooth, err)
+			return nil, nil, nil, fmt.Errorf("tooth %d right flank: %w", tooth, err)
 		}
 		s.CreateArc(center, rightPoints[len(rightPoints)-1], leftPoints[len(leftPoints)-1])
 		if _, err := s.CreateFitSpline(leftPoints...); err != nil {
-			return nil, nil, fmt.Errorf("tooth %d left flank: %w", tooth, err)
+			return nil, nil, nil, fmt.Errorf("tooth %d left flank: %w", tooth, err)
 		}
-		s.CreateLine(leftPoints[0], leftLine)
-		s.CreateArc(fixed(leftCenter), leftRoot, leftLine)
+		s.CreateLine(leftPoints[0], leftRoot)
 		previousRoot = leftRoot
 	}
 	s.CreateArc(center, previousRoot, firstRoot)
 	if _, err := s.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve gear profile: %w", err)
+		return nil, nil, nil, fmt.Errorf("solve gear profile: %w", err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
-		return nil, nil, fmt.Errorf("gear sketch has %d profiles; want one valid region", len(profiles))
+		return nil, nil, nil, fmt.Errorf("gear sketch has %d profiles; want one valid region", len(profiles))
 	}
-	return s, profiles[0], nil
+	return s, profiles[0], roots, nil
 }

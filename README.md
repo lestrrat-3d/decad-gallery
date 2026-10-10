@@ -6,9 +6,8 @@ This repository collects parametric shapes, patterns, and assemblies built with
 become part of a hand-crank siren or a wind turbine.
 
 The repository will own each item's human-readable construction instructions, Go
-code that builds it with decad, and checks of the resulting geometry. The first
-item will establish the concrete build commands and file layout. No model has
-been added yet.
+code that builds it with decad, and checks of the resulting geometry. The
+first item is the [spur gear](models/spurgear/README.md).
 
 [`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator)
 is a downstream consumer. It will translate the Go construction into equivalent
@@ -24,10 +23,9 @@ its build pipeline.
 | `AGENTS.md` | Instructions for coding agents working on models. |
 | `.github/` | Issue templates and repository checks. |
 
-The repository check runs `python3 scripts/check_repository.py`. It currently
-checks the foundation files and requires a README for each item directory.
-Model build and geometry checks will be added when the first model supplies
-an executable build.
+The repository check runs `python3 scripts/check_repository.py`. It checks the
+foundation files and requires a README for each item directory. Run
+`go test ./...` for the model's geometry checks; CI runs both commands.
 
 ## License
 
