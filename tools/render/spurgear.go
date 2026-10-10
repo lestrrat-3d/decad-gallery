@@ -12,6 +12,7 @@ import (
 
 func spurGearHero(ctx context.Context) (solidlens.Scene, error) {
 	params := spurgear.DefaultParams()
+	params.Thickness = 5
 	params.BoreDiameter = 3
 	params.CapChamfer = 0.1
 	body, err := spurgear.Build(ctx, decad.New(), params)
@@ -24,8 +25,8 @@ func spurGearHero(ctx context.Context) (solidlens.Scene, error) {
 	}
 	return solidlens.Scene{
 		Camera: solidlens.Camera{
-			Position: solidlens.Vec{X: 20, Y: -27, Z: 32},
-			Target:   solidlens.Vec{Z: 5},
+			Position: solidlens.Vec{X: 20, Y: -27, Z: 29.5},
+			Target:   solidlens.Vec{Z: 2.5},
 			Up:       solidlens.Vec{Z: 1},
 			FOV:      30,
 		},

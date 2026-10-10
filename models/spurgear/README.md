@@ -23,4 +23,4 @@ root circle, Sketch trims its original fit spline and joins the gear regions
 into one profile. A nonpositive derived fillet radius skips root fillets.
 
 The [model renderer](../../tools/render/README.md) produces this hero image
-from a 17-tooth gear with a 3 mm bore and a 0.1 mm cap chamfer.
+from a 17-tooth, 5 mm thick gear with a 3 mm bore and a 0.1 mm cap chamfer.
