@@ -62,6 +62,22 @@ the same angular profile at the section scale. Corresponding Sketch fit
 splines, arcs, and radial edges form a ruled Decad loft, so each tooth tapers
 toward the shared pitch apex. Both sections must contain one valid region.
 
+For the reference's back-cone construction, one tooth is drawn on a plane
+through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its
+virtual tooth count is the real number `Teeth / cos(γ)`. Do not round that
+count: it sets the involute flank's half-thickness angle
+`π / (2 × virtual tooth count)`. The virtual tooth's base and tip radii are
+`virtual pitch radius × cos(PressureAngle)` and
+`virtual pitch radius + Module`. Its root radius is
+`virtual pitch radius − 1.25 Module − 0.1125 Module`; the last term seats
+the tooth root inside the gear blank for the later join. Use the existing
+spur involute sampler for its two fitted flanks. Connect them with a tip arc,
+a root arc, and radial lines when the base circle lies above the root.
+When the base circle lies below the root, retain the fitted curves and trim
+them at the root circle with Sketch rather than replacing them with chords.
+Center the single tooth at 180° in its local plane, as the reference does;
+this keeps the root-circle seam away from the tooth's trimmed root arc.
+
 When `FaceWidth` is zero, start with
 `sqrt((2r)^2 + (2rMate)^2) / 6`. Bound the result below the apex and the
 toe-section root radius. Reject an explicit width that reaches either limit.

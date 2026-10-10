@@ -23,3 +23,8 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
 5. Extend the build to the bore, root and cap finishes, toe controls,
    spacing, and spiral trace only after step 4 passes on the first real
    eight-tooth body. Check each added branch through the real Decad body.
+6. For the Fusion-derived body, draw one back-cone virtual tooth using the
+   real-valued virtual tooth count from the instructions. Solve its fitted
+   flank and arc profile before asking Decad for the exact apex-to-profile
+   loft. This Sketch profile is an independent gate for the upstream loft
+   handoff; it does not replace that loft with a shrunken section.

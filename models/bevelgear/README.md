@@ -16,6 +16,10 @@ and heel cap areas, the axial bounds, and `Tessellate(VerifyAll)`. The
 [renderer](../../tools/render/README.md) builds the same body for the hero
 image and checks the PNG with its own integration test.
 
+`BuildVirtualToothProfile` also draws one back-cone tooth for the planned
+apex loft. Its Sketch tests cover fractional virtual tooth counts for equal
+and unequal pairs and an embedded 60-tooth flank whose root trim is exact.
+
 The exact apex loft, conical end trims, patterned join, bore, and curved
 tooth branches still require Decad work. The current `Build` rejects those
 options. The Decad/Sketch handoff is in `../decad/.tmp/bevelgear-gallery-handoff.md`
