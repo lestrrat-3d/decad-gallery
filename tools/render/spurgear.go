@@ -31,12 +31,17 @@ func spurGearHero(ctx context.Context) (solidlens.Scene, error) {
 		},
 		Models: []solidlens.Model{{
 			Mesh:     mesh,
-			Material: solidlens.Matte(solidlens.RGB(0.26, 0.64, 0.8)),
+			Material: solidlens.Matte(solidlens.RGB(0.14, 0.4, 0.58)),
+			Edges: solidlens.Edges{
+				Enabled: true,
+				Color:   solidlens.RGB(0.025, 0.07, 0.11),
+				Width:   1.5,
+			},
 		}},
 		DirectionalLights: []solidlens.DirectionalLight{
 			{Direction: solidlens.Vec{X: 0.5, Y: 0.4, Z: -1}, Color: solidlens.RGB(1, 1, 1), Intensity: 1.1},
 			{Direction: solidlens.Vec{X: -0.8, Y: -0.2, Z: -0.4}, Color: solidlens.RGB(0.2, 0.5, 1), Intensity: 0.6},
 		},
-		Background: solidlens.RGB(0.012, 0.025, 0.055),
+		Background: solidlens.RGB(0.88, 0.92, 0.95),
 	}, nil
 }
