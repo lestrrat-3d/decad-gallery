@@ -1,8 +1,15 @@
-# Bevel gear
+# Bevel gear construction in progress
 
-![Eight-tooth bevel gear rendered from its Decad body](images/hero.png)
+The image below renders an eight-tooth, two-section loft used to check the
+Decad model and renderer. It is a visual check. The construction requirements
+come from `fusion360-gear-generator/spec/bevelgear/instructions.md`. Its
+"Create the Gear Bodies" section requires a revolved blank for each member,
+an apex-to-tooth loft or spiral tooth construction, conical end cuts, a tooth
+pattern, a join, a conditional through-bore, and meshing rotation.
 
-`Build(ctx, doc, Params)` constructs one member of a bevel pair in millimeters.
+![Eight-tooth loft geometry check](images/hero.png)
+
+`Build(ctx, doc, Params)` currently constructs a two-section loft in millimeters.
 The first verified case has eight straight involute teeth, an eight-tooth
 mate, a 90° shaft angle, and no bore. Its two Sketch sections use the
 [spur gear profile builder](../spurgear/README.md), and Decad lofts them

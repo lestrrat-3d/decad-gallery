@@ -1,5 +1,15 @@
 # Bevel gear construction instructions
 
+## Source and implementation status
+
+`fusion360-gear-generator/spec/bevelgear/instructions.md` defines the final
+geometry, operation order, and defaults. Images in that repository are visual
+checks. The current gallery `Build` exercises a straight, unbored two-section loft while
+the reference construction is being integrated. The source builds a pair,
+enables the bore by default and resolves a zero bore diameter automatically,
+and defaults the mean spiral angle to 35°. The current gallery parameter
+defaults below describe its test path, not changes to those source rules.
+
 ## Inputs and supported range
 
 `Build(ctx, doc, Params)` builds one member of a meshing bevel pair. The caller
