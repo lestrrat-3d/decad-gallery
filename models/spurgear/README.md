@@ -13,7 +13,6 @@ profiles at the two end planes, then asks decad to fillet the axial root
 corners. The default model uses 15 fit points per flank and has 17 teeth
 and 34 root fillets.
 
-`BoreDiameter` cuts a centered through-bore after the root fillets. With a
-bore, `CapChamfer` chamfers the outer loops of both end caps and leaves the
-bore rims sharp. A cap chamfer without a bore still returns an error because
-decad does not chamfer that loft body. Embedded flanks also return an error.
+`BoreDiameter` cuts a centered through-bore after the root fillets.
+`CapChamfer` chamfers the outer loops of both end caps, with or without a
+bore. When present, the bore rims stay sharp. Embedded flanks return an error.
