@@ -28,6 +28,7 @@ type Params struct {
 	ToothSpacing  float64
 	ToeExtension  float64
 	ToeRadius     float64
+	MateToeRadius float64
 	BaseHeight    float64
 }
 
@@ -63,7 +64,7 @@ func finite(values ...float64) bool {
 func derive(p Params) (dimensions, error) {
 	if !finite(p.Module, p.ShaftAngle, p.FaceWidth, p.PressureAngle,
 		p.BoreDiameter, p.SpiralAngle, p.CutterRadius, p.ToothSpacing,
-		p.ToeExtension, p.ToeRadius, p.BaseHeight) {
+		p.ToeExtension, p.ToeRadius, p.MateToeRadius, p.BaseHeight) {
 		return dimensions{}, fmt.Errorf("gear parameters must be finite")
 	}
 	if p.Module <= 0 || p.Teeth < 3 || p.MateTeeth < 3 || p.Samples < 3 {
@@ -81,7 +82,7 @@ func derive(p Params) (dimensions, error) {
 		return dimensions{}, fmt.Errorf("shaft angle reaches the pitch-cone limit")
 	}
 	if p.FaceWidth < 0 || p.BoreDiameter < 0 || p.CutterRadius < 0 ||
-		p.ToothSpacing < 0 || p.ToeRadius < 0 || p.BaseHeight < 0 {
+		p.ToothSpacing < 0 || p.ToeRadius < 0 || p.MateToeRadius < 0 || p.BaseHeight < 0 {
 		return dimensions{}, fmt.Errorf("length inputs cannot be negative")
 	}
 	if p.SpiralAngle < 0 || p.SpiralAngle >= math.Pi/3 {
@@ -101,7 +102,8 @@ func derive(p Params) (dimensions, error) {
 		return dimensions{}, fmt.Errorf("tooth count is below the pitch-cone minimum")
 	}
 	coneDist := r / math.Sin(gamma)
-	maxWidth := 0.95 * coneDist * (1 - 1.25*p.Module/r)
+	maxWidth := 0.95 * coneDist * math.Min(
+		math.Pow(math.Sin(gamma), 2), math.Pow(math.Sin(otherGamma), 2))
 	if !finite(coneDist, maxWidth) || maxWidth <= 0 {
 		return dimensions{}, fmt.Errorf("pitch cone has no positive face width")
 	}
@@ -115,9 +117,8 @@ func derive(p Params) (dimensions, error) {
 	if !finite(scale, width*math.Cos(gamma)) || scale <= 0 {
 		return dimensions{}, fmt.Errorf("toe section collapses at the pitch apex")
 	}
-	if p.BoreDiameter > 0 || p.SpiralAngle > 0 || p.ToothSpacing > 0 ||
-		p.ToeExtension > 0 || p.ToeRadius > 0 || p.BaseHeight > 0 {
-		return dimensions{}, fmt.Errorf("bore, spiral, spacing, toe, and base-height features are not implemented")
+	if p.BoreDiameter > 0 || p.SpiralAngle > 0 || p.ToothSpacing > 0 {
+		return dimensions{}, fmt.Errorf("bore, spiral, and spacing features are not implemented")
 	}
 	return dimensions{coneAngle: gamma, coneDist: coneDist, width: width,
 		scale: scale, toeZ: width * math.Cos(gamma)}, nil
@@ -131,6 +132,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	d, err := derive(p)
 	if err != nil {
 		return nil, err
+	}
+	if p.BaseHeight > 0 || p.ToeExtension > 0 || p.ToeRadius > 0 || p.MateToeRadius > 0 {
+		return nil, fmt.Errorf("base-height and toe features are not implemented in the two-section body")
 	}
 	world := sketch.NewWorld()
 	toeFrame, err := r3.NewFrame(r3.NewVec(0, 0, d.toeZ),

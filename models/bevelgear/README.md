@@ -19,8 +19,13 @@ image and checks the PNG with its own integration test.
 `BuildVirtualToothProfile` also draws one back-cone tooth for the planned
 apex loft. Its Sketch tests cover fractional virtual tooth counts for equal
 and unequal pairs and an embedded 60-tooth flank whose root trim is exact.
+`BuildBlank` revolves the reference's six-sided axial section. Its focused
+test checks two planar ends, three conical surfaces, and a verified mesh.
+`BuildBoredBlank` cuts the real revolved blank. Its test checks the small
+eight-tooth case and a 31-tooth pair at Module 4. Both produce a verified
+solid with a through-hole in the mesh.
 
-The exact apex loft, conical end trims, patterned join, bore, and curved
-tooth branches still require Decad work. The current `Build` rejects those
-options. The Decad/Sketch handoff is in `../decad/.tmp/bevelgear-gallery-handoff.md`
-from the repository root.
+The exact apex loft, conical tooth end trims, patterned join, final-body
+bore, and curved tooth branches still need integration. The current `Build`
+rejects those options. The Decad/Sketch handoff is in
+`../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.

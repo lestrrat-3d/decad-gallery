@@ -23,6 +23,7 @@ caller can place the returned body in an assembly after construction.
 | `ToothSpacing` | 0 | Nonnegative clearance offset. |
 | `ToeExtension` | 0 | Percentage in `[0, 100]`. |
 | `ToeRadius` | 0 | Zero selects the derived toe radius; otherwise positive. |
+| `MateToeRadius` | 0 | Zero selects the mate's derived toe radius; otherwise positive. |
 | `BaseHeight` | 0 | Zero selects the bounded default; otherwise within its limits. |
 
 The first real build is an eight-tooth member of an equal pair at a 90° shaft
@@ -79,12 +80,52 @@ Center the single tooth at 180° in its local plane, as the reference does;
 this keeps the root-circle seam away from the tooth's trimmed root arc.
 
 When `FaceWidth` is zero, start with
-`sqrt((2r)^2 + (2rMate)^2) / 6`. Bound the result below the apex and the
-toe-section root radius. Reject an explicit width that reaches either limit.
-The full pair construction must use the smaller member's face-width bound,
-so the two tooth bands meet at the same stations. The reference Fusion model's
-toe extension, toe radius, bore, spacing, and spiral rules are source material
-for those later branches; each branch must retain its own geometry check.
+`sqrt((2r)^2 + (2rMate)^2) / 6`. Cap that default at
+`0.95 R × min(sin²γ, sin²γMate)` and reject an explicit width above that
+limit. The bound comes from both members, so their tooth bands meet at the
+same stations. Reject a width that collapses either toe section's root.
+The reference Fusion model's toe extension, toe radius, bore, spacing, and
+spiral rules are source material for those later branches; each branch must
+retain its own geometry check.
+
+## Reference gear blank
+
+The reference's gear blank is a six-sided axial profile revolved around the
+shaft, with the common pitch apex at station zero. Write `d=1.25 Module`.
+The heel pitch point is `(R cos γ, r)` in `(shaft station, radius)` coordinates.
+The dedendum corner is
+`C=(R cos γ + d sin γ, r − d cos γ)`. The heel back face is at station
+`R cos γ + BaseHeight`, with radius `r − BaseHeight / tan γ`. Resolve a zero
+base height by clamping `Module × Teeth / 8` to the minimum and maximum
+above; reject an explicit value outside those bounds.
+
+At Toe Extension zero, the root-element length from the dedendum corner to
+the toe is `FaceWidth × hypot(R, d) / R`. Scale `C` about the apex by
+`1 − root length / hypot(R, d)` to locate the toe root corner. A zero Toe
+Radius resolves to `r − FaceWidth / sin γ`; a nonzero value is explicit.
+The mate resolves its toe radius the same way. For a positive Toe Extension,
+each radius must be below its ceiling
+`(r − d cos γ) × (1 − FaceWidth / R)`. The root-length limit for each
+member is `hypot(R, d) − ToeRadius / sin(γ − atan(d / R))`.
+The pair uses the smaller limit. Reject a positive extension when that limit
+does not exceed the zero-extension length. Otherwise add
+`ToeExtension / 100 × 0.99` of the available length to the zero-extension
+length. Reject a percentage outside `[0, 100]`.
+The toe's inner point lies on the line from the toe root corner in direction
+`(sin γ, −cos γ)` at the requested toe radius. Its shaft station locates
+the toe axis foot. Revolve the closed sequence: toe axis foot, heel axis
+foot, heel back corner, dedendum corner, toe root corner, toe inner point.
+The result has two planar annular ends and three conical faces: heel cone,
+root cone, and toe dish. A through-bore and teeth are later operations on
+this real blank.
+
+For a positive through-bore, the heel radius is
+`r − resolved BaseHeight / tan γ`. The toe root radius is
+`(hypot(R, d) − resolved root length) × sin(γ − atan(d / R))`.
+Reject a bore diameter above `1.9 × min(heel radius, toe root radius)`;
+zero omits the bore. Cut a cylinder along the shaft from before the toe
+to beyond the heel. The cut must leave one solid with two open end faces
+and a `VerifyAll` mesh.
 
 ## Geometry checks
 

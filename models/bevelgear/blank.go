@@ -1,0 +1,127 @@
+package bevelgear
+
+import (
+	"context"
+	"fmt"
+	"math"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/sketch"
+)
+
+type axialPoint struct{ station, radius float64 }
+
+func blankSection(p Params, d dimensions) ([]axialPoint, error) {
+	r := p.Module * float64(p.Teeth) / 2
+	dedendum := 1.25 * p.Module
+	minBase := 1.05 * dedendum * math.Sin(d.coneAngle)
+	maxBase := 0.95 * (r - dedendum*math.Cos(d.coneAngle)) * math.Tan(d.coneAngle)
+	baseHeight := p.BaseHeight
+	if baseHeight == 0 {
+		baseHeight = math.Min(math.Max(p.Module*float64(p.Teeth)/8, minBase), maxBase)
+	} else if baseHeight < minBase || baseHeight > maxBase {
+		return nil, fmt.Errorf("base height %.6g mm is outside [%.6g, %.6g] mm",
+			baseHeight, minBase, maxBase)
+	}
+	heelStation := d.coneDist*math.Cos(d.coneAngle) + baseHeight
+	heelRadius := r - baseHeight/math.Tan(d.coneAngle)
+	ded := axialPoint{
+		station: d.coneDist*math.Cos(d.coneAngle) + dedendum*math.Sin(d.coneAngle),
+		radius:  r - dedendum*math.Cos(d.coneAngle),
+	}
+	mateGamma := p.ShaftAngle - d.coneAngle
+	rMate := p.Module * float64(p.MateTeeth) / 2
+	toeRadius := p.ToeRadius
+	if toeRadius == 0 {
+		toeRadius = r - d.width/math.Sin(d.coneAngle)
+	}
+	mateToeRadius := p.MateToeRadius
+	if mateToeRadius == 0 {
+		mateToeRadius = rMate - d.width/math.Sin(mateGamma)
+	}
+	if toeRadius <= 0 || mateToeRadius <= 0 {
+		return nil, fmt.Errorf("resolved toe radius must be positive for both pair members")
+	}
+	apexToDed := math.Hypot(d.coneDist, dedendum)
+	rootLength := d.width * apexToDed / d.coneDist
+	if p.ToeExtension > 0 {
+		ownCeiling := (r - dedendum*math.Cos(d.coneAngle)) * (1 - d.width/d.coneDist)
+		mateCeiling := (rMate - dedendum*math.Cos(mateGamma)) * (1 - d.width/d.coneDist)
+		if toeRadius >= ownCeiling || mateToeRadius >= mateCeiling {
+			return nil, fmt.Errorf("toe extension requires radii below the two toe-radius ceilings")
+		}
+		rootAngle := d.coneAngle - math.Atan2(dedendum, d.coneDist)
+		mateRootAngle := mateGamma - math.Atan2(dedendum, d.coneDist)
+		ownLimit := apexToDed - toeRadius/math.Sin(rootAngle)
+		mateLimit := apexToDed - mateToeRadius/math.Sin(mateRootAngle)
+		limit := math.Min(ownLimit, mateLimit)
+		if limit <= rootLength {
+			return nil, fmt.Errorf("toe extension has no positive root-length window")
+		}
+		rootLength += p.ToeExtension / 100 * 0.99 * (limit - rootLength)
+	}
+	toeFactor := 1 - rootLength/apexToDed
+	toeRoot := axialPoint{station: toeFactor * ded.station, radius: toeFactor * ded.radius}
+	toeSlide := (toeRoot.radius - toeRadius) / math.Cos(d.coneAngle)
+	toeStation := toeRoot.station + toeSlide*math.Sin(d.coneAngle)
+	section := []axialPoint{
+		{station: toeStation, radius: 0},
+		{station: heelStation, radius: 0},
+		{station: heelStation, radius: heelRadius},
+		ded,
+		toeRoot,
+		{station: toeStation, radius: toeRadius},
+	}
+	for _, point := range section {
+		if !finite(point.station, point.radius) || point.station <= 0 || point.radius < 0 {
+			return nil, fmt.Errorf("revolved blank section has invalid station or radius")
+		}
+	}
+	if heelRadius <= 0 || toeStation >= heelStation || ded.radius <= heelRadius {
+		return nil, fmt.Errorf("revolved blank section crosses an end face or shaft axis")
+	}
+	return section, nil
+}
+
+// BuildBlank revolves the reference's six-sided frustum before teeth or a bore are added.
+// ctx and doc must not be nil.
+func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
+	if ctx == nil || doc == nil {
+		return nil, fmt.Errorf("context and document must not be nil")
+	}
+	d, err := derive(p)
+	if err != nil {
+		return nil, err
+	}
+	section, err := blankSection(p, d)
+	if err != nil {
+		return nil, err
+	}
+	world := sketch.NewWorld()
+	s, err := world.CreateSketch(world.XY())
+	if err != nil {
+		return nil, fmt.Errorf("create blank sketch: %w", err)
+	}
+	points := make([]*sketch.Point, len(section))
+	for i, xy := range section {
+		points[i] = s.CreatePoint(xy.station, xy.radius)
+		s.Fix(points[i])
+	}
+	for i := range points {
+		s.CreateLine(points[i], points[(i+1)%len(points)])
+	}
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, fmt.Errorf("solve blank sketch: %w", err)
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 1 || !profiles[0].Valid {
+		return nil, fmt.Errorf("blank sketch has %d profiles; want one valid region", len(profiles))
+	}
+	body, err := doc.Revolve(s, profiles[0],
+		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 1, V: 0}},
+		decad.FullRevolution{})
+	if err != nil {
+		return nil, fmt.Errorf("revolve blank section: %w", err)
+	}
+	return body, nil
+}

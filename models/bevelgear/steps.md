@@ -28,3 +28,11 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
    flank and arc profile before asking Decad for the exact apex-to-profile
    loft. This Sketch profile is an independent gate for the upstream loft
    handoff; it does not replace that loft with a shrunken section.
+7. Draw the six-sided reference blank in an axial Sketch and revolve it
+   around the shaft. Check its two flat end faces, three conical faces, and
+   `VerifyAll` mesh. This blank is the actual body the patterned teeth must
+   later join and the bore must later cut.
+8. For a positive bore, extrude one centered circular tool past both axial
+   ends and cut the revolved blank. Require the bounded diameter, one solid,
+   lower volume, `VerifyAll`, and mesh Euler characteristic zero, which
+   distinguishes the through-hole from the uncut blank's characteristic two.
