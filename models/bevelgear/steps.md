@@ -49,3 +49,7 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
     build exact conical cutting tools. Check their apex stations,
     half-angles, far caps, and `VerifyAll` meshes before using them to trim
     the point-loft tooth.
+11. Pass the fitted back-cone tooth profile to `Document.LoftFromPoint` with
+    the world origin as apex. Check the 8/8 ordinary, spaced and oblique
+    16/12, and embedded-root 60/60 profiles as real untrimmed solids with an exact
+    apex vertex and `VerifyAll`. Keep the toe and heel trim checks separate.

@@ -22,6 +22,9 @@ and unequal pairs and an embedded 60-tooth flank whose root trim is exact.
 `BuildBackConeToothProfile` places it on the tilted plane and tests the
 half-millimeter tooth-spacing offset without changing the plane's distance
 from the apex.
+`BuildPointTooth` lofts that fitted profile from the exact common apex.
+Its tests build 8/8, spaced and oblique 16/12, and embedded-root 60/60
+teeth; all four have the origin apex and a verified Decad mesh.
 `BuildBlank` revolves the reference's six-sided axial section. Its focused
 test checks two planar ends, three conical surfaces, and a verified mesh.
 `BuildBoredBlank` cuts the real revolved blank. Its test checks the small

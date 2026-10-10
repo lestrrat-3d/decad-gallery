@@ -94,6 +94,15 @@ direction `(0, 0, 1)`. Its normal stays at perpendicular distance `R` from
 the apex when spacing changes. The center moves past the shaft axis by the
 specified offset; the virtual tooth count and radii do not change.
 
+`BuildPointTooth` uses that fitted back-cone profile as the far section of
+`Document.LoftFromPoint`, with the exact common apex at world `(0, 0, 0)`.
+It returns one untrimmed tooth solid. The blank-only base-height and toe
+controls do not change this intermediate tooth; they set the later blank
+and conical trims. A positive bore or spiral angle remains unsupported at
+this stage. The point loft must pass `VerifyAll` and include the exact
+origin vertex. Its current faceted faces do not establish the final
+analytic flank or cone surfaces.
+
 When `FaceWidth` is zero, start with
 `sqrt((2r)^2 + (2rMate)^2) / 6`. Cap that default at
 `0.95 R × min(sin²γ, sin²γMate)` and reject an explicit width above that
