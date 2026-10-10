@@ -29,6 +29,10 @@ eight-tooth case and a 31-tooth pair at Module 4. Both produce a verified
 solid with a through-hole in the mesh.
 `BuildBlankPair` revolves both members around one apex. Its unequal 16/12
 test checks the two shaft directions, each heel station, and verified meshes.
+`BuildToeCone` and `BuildHeelCone` revolve the exact conical cutting tools
+from the blank's toe-root corner and heel-cone line. Their tests check the
+apex stations, cone surfaces, far caps, and verified meshes. The final
+tooth-to-cone cut is still an upstream integration gap.
 
 The exact apex loft, conical tooth end trims, patterned join, final-body
 bore, and curved tooth branches still need integration. The current `Build`

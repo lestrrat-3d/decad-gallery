@@ -109,10 +109,15 @@ func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	if err != nil {
 		return nil, err
 	}
+	return revolveAxialSection(ctx, doc, section, "blank")
+}
+
+func revolveAxialSection(ctx context.Context, doc *decad.Document,
+	section []axialPoint, label string) (*decad.Body, error) {
 	world := sketch.NewWorld()
 	s, err := world.CreateSketch(world.XY())
 	if err != nil {
-		return nil, fmt.Errorf("create blank sketch: %w", err)
+		return nil, fmt.Errorf("create %s sketch: %w", label, err)
 	}
 	points := make([]*sketch.Point, len(section))
 	for i, xy := range section {
@@ -123,17 +128,17 @@ func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 		s.CreateLine(points[i], points[(i+1)%len(points)])
 	}
 	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve blank sketch: %w", err)
+		return nil, fmt.Errorf("solve %s sketch: %w", label, err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
-		return nil, fmt.Errorf("blank sketch has %d profiles; want one valid region", len(profiles))
+		return nil, fmt.Errorf("%s sketch has %d profiles; want one valid region", label, len(profiles))
 	}
 	body, err := doc.Revolve(s, profiles[0],
 		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 1, V: 0}},
 		decad.FullRevolution{})
 	if err != nil {
-		return nil, fmt.Errorf("revolve blank section: %w", err)
+		return nil, fmt.Errorf("revolve %s section: %w", label, err)
 	}
 	return body, nil
 }

@@ -142,6 +142,25 @@ zero omits the bore. Cut a cylinder along the shaft from before the toe
 to beyond the heel. The cut must leave one solid with two open end faces
 and a `VerifyAll` mesh.
 
+## Conical end cutting tools
+
+`BuildToeCone` accepts the same straight-blank inputs as `BuildBlank`. It
+uses the resolved toe-root corner `(s, q)` from that blank. Extend the toe
+dish line to the shaft axis at station `a = s + q tan γ`. Revolve the
+triangle with vertices `(a, 0)`, `(-0.1 R, 0)`, and
+`(-0.1 R, (a + 0.1 R) / tan γ)` around the shaft. This makes the solid
+inside the exact toe cone, with half-angle `90° − γ`. The far cap lies
+past the shared pitch apex so that a later tooth cut has no extra cap
+inside the tooth band. Reject any blank input that cannot resolve a
+positive cone radius or an apex beyond that cap. The cone is a tool; the
+tooth still needs a successful cut and keeper selection before assembly.
+
+`BuildHeelCone` revolves the same solid-cone section with its apex at
+`R / cos γ`, where the blank's heel-cone edge extended meets the shaft.
+Both tools open toward the common pitch apex and end at station `-0.1 R`.
+The heel cone touches the back-cone tooth plane along its center line;
+its tangent split must be verified on the real tooth before assembly.
+
 ## Geometry checks
 
 The first case must produce one solid with `Teeth` tapered teeth, a narrower

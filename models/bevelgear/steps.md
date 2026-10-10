@@ -44,3 +44,8 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
    length, revolve both blanks, and rotate the pinion about world Z through
    the common apex. Check two live solids, the shaft directions and heel
    stations, and a `VerifyAll` mesh for each member.
+10. Extend the blank's toe-dish and heel-cone edges to their shaft-axis
+    apices. Revolve the two triangles specified in the instructions to
+    build exact conical cutting tools. Check their apex stations,
+    half-angles, far caps, and `VerifyAll` meshes before using them to trim
+    the point-loft tooth.
