@@ -44,9 +44,6 @@ func (p Params) validate() error {
 	if p.BoreDiameter < 0 || p.CapChamfer < 0 {
 		return fmt.Errorf("bore diameter and cap chamfer cannot be negative")
 	}
-	if p.CapChamfer > 0 && p.BoreDiameter == 0 {
-		return fmt.Errorf("cap chamfer without a bore requires Decad loft support")
-	}
 	d := derive(p)
 	if d.root <= 0 || d.base <= 0 || d.tip <= d.base {
 		return fmt.Errorf("gear radii are invalid")
