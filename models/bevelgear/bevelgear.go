@@ -117,8 +117,8 @@ func derive(p Params) (dimensions, error) {
 	if !finite(scale, width*math.Cos(gamma)) || scale <= 0 {
 		return dimensions{}, fmt.Errorf("toe section collapses at the pitch apex")
 	}
-	if p.BoreDiameter > 0 || p.SpiralAngle > 0 || p.ToothSpacing > 0 {
-		return dimensions{}, fmt.Errorf("bore, spiral, and spacing features are not implemented")
+	if p.BoreDiameter > 0 || p.SpiralAngle > 0 {
+		return dimensions{}, fmt.Errorf("bore and spiral features are not implemented")
 	}
 	return dimensions{coneAngle: gamma, coneDist: coneDist, width: width,
 		scale: scale, toeZ: width * math.Cos(gamma)}, nil
@@ -133,8 +133,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	if p.BaseHeight > 0 || p.ToeExtension > 0 || p.ToeRadius > 0 || p.MateToeRadius > 0 {
-		return nil, fmt.Errorf("base-height and toe features are not implemented in the two-section body")
+	if p.BaseHeight > 0 || p.ToeExtension > 0 || p.ToeRadius > 0 || p.MateToeRadius > 0 ||
+		p.ToothSpacing > 0 {
+		return nil, fmt.Errorf("base-height, toe, and spacing features are not implemented in the two-section body")
 	}
 	world := sketch.NewWorld()
 	toeFrame, err := r3.NewFrame(r3.NewVec(0, 0, d.toeZ),

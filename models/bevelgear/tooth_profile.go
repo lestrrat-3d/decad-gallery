@@ -6,8 +6,35 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
+
+// BuildBackConeToothProfile places the single virtual tooth on its real back-cone plane.
+// ctx and world must not be nil. The common pitch apex is the world origin.
+func BuildBackConeToothProfile(ctx context.Context, world *sketch.World,
+	p Params) (*sketch.Sketch, *sketch.Profile, error) {
+	if ctx == nil || world == nil {
+		return nil, nil, fmt.Errorf("context and world must not be nil")
+	}
+	d, err := derive(p)
+	if err != nil {
+		return nil, nil, err
+	}
+	angle := d.coneAngle
+	center := r3.NewVec(d.coneDist/math.Cos(angle)+p.ToothSpacing*math.Sin(angle),
+		-p.ToothSpacing*math.Cos(angle), 0)
+	frame, err := r3.NewFrame(center, r3.NewVec(math.Sin(angle), -math.Cos(angle), 0),
+		r3.NewVec(0, 0, 1))
+	if err != nil {
+		return nil, nil, fmt.Errorf("create back-cone frame: %w", err)
+	}
+	plane, err := world.CreatePlaneFromFrame(frame)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create back-cone plane: %w", err)
+	}
+	return BuildVirtualToothProfile(ctx, world, plane, p)
+}
 
 // BuildVirtualToothProfile draws one back-cone tooth. ctx, world, and plane must not be nil.
 // The fitted flanks retain the real-valued virtual tooth count from the pitch cone.

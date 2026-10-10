@@ -19,6 +19,9 @@ image and checks the PNG with its own integration test.
 `BuildVirtualToothProfile` also draws one back-cone tooth for the planned
 apex loft. Its Sketch tests cover fractional virtual tooth counts for equal
 and unequal pairs and an embedded 60-tooth flank whose root trim is exact.
+`BuildBackConeToothProfile` places it on the tilted plane and tests the
+half-millimeter tooth-spacing offset without changing the plane's distance
+from the apex.
 `BuildBlank` revolves the reference's six-sided axial section. Its focused
 test checks two planar ends, three conical surfaces, and a verified mesh.
 `BuildBoredBlank` cuts the real revolved blank. Its test checks the small

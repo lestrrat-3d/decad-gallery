@@ -89,3 +89,25 @@ func TestEmbeddedVirtualToothProfile(t *testing.T) {
 	}
 	require.Equal(t, 2, trimmed)
 }
+
+func TestBackConeToothPlaneWithSpacing(t *testing.T) {
+	for _, spacing := range []float64{0, 0.5} {
+		p := bevelgear.DefaultParams()
+		p.Teeth, p.MateTeeth, p.Samples = 16, 12, 5
+		p.ToothSpacing = spacing
+		world := sketch.NewWorld()
+		s, profile, err := bevelgear.BuildBackConeToothProfile(t.Context(), world, p)
+		require.NoError(t, err)
+		require.True(t, profile.Valid)
+		frame, err := s.Plane().Frame()
+		require.NoError(t, err)
+		gamma := math.Atan2(4, 3)
+		coneDist := 10.0
+		require.InDelta(t, coneDist/math.Cos(gamma)+spacing*math.Sin(gamma), frame.Origin().X, 1e-8)
+		require.InDelta(t, -spacing*math.Cos(gamma), frame.Origin().Y, 1e-8)
+		require.InDelta(t, math.Sin(gamma), frame.U().X, 1e-8)
+		require.InDelta(t, -math.Cos(gamma), frame.U().Y, 1e-8)
+		normal := frame.U().Cross(frame.V())
+		require.InDelta(t, coneDist, math.Abs(normal.Dot(frame.Origin())), 1e-8)
+	}
+}

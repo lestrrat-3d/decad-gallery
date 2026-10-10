@@ -78,6 +78,12 @@ When the base circle lies below the root, retain the fitted curves and trim
 them at the root circle with Sketch rather than replacing them with chords.
 Center the single tooth at 180° in its local plane, as the reference does;
 this keeps the root-circle seam away from the tooth's trimmed root arc.
+Place that plane through the point
+`(R / cos γ + ToothSpacing sin γ, −ToothSpacing cos γ, 0)` relative to the
+apex, with local horizontal direction `(sin γ, −cos γ, 0)` and local vertical
+direction `(0, 0, 1)`. Its normal stays at perpendicular distance `R` from
+the apex when spacing changes. The center moves past the shaft axis by the
+specified offset; the virtual tooth count and radii do not change.
 
 When `FaceWidth` is zero, start with
 `sqrt((2r)^2 + (2rMate)^2) / 6`. Cap that default at
