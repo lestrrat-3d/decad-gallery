@@ -1,0 +1,24 @@
+name: Model request
+description: Suggest a shape, pattern, or assembly for the gallery.
+title: "Model: "
+labels: [model]
+body:
+  - type: textarea
+    id: model
+    attributes:
+      label: Model and use
+      description: Describe the geometry and what it should do.
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Inputs and checks
+      description: List dimensions, adjustable values, and geometry checks.
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: Existing items to reuse
+      description: Name any gallery items this model should use.
