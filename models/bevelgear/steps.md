@@ -27,9 +27,8 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
    real-valued virtual tooth count from the instructions. Place its Sketch
    on the tilted back-cone plane, including any spacing offset, and solve
    the fitted flank and arc profile before asking Decad for the exact
-   apex-to-profile loft. This Sketch profile is an independent gate for the
-   upstream loft handoff; it does not replace that loft with a shrunken
-   section.
+   apex-to-profile loft. The Sketch profile and `BuildPointTooth` use the
+   exact apex loft; they do not replace it with a shrunken section.
 7. Draw the six-sided reference blank in an axial Sketch and revolve it
    around the shaft. Check its two flat end faces, three conical faces, and
    `VerifyAll` mesh. This blank is the actual body the patterned teeth must

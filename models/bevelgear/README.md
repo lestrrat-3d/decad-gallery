@@ -37,7 +37,8 @@ from the blank's toe-root corner and heel-cone line. Their tests check the
 apex stations, cone surfaces, far caps, and verified meshes. The final
 tooth-to-cone cut is still an upstream integration gap.
 
-The exact apex loft, conical tooth end trims, patterned join, final-body
-bore, and curved tooth branches still need integration. The current `Build`
-rejects those options. The Decad/Sketch handoff is in
+The conical tooth end trims, patterned join, final-body bore, and curved
+tooth branches still need integration. The current `Build` uses two full-gear
+sections rather than the verified point tooth and blank, and rejects the
+unimplemented options. The Decad/Sketch handoff is in
 `../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.
