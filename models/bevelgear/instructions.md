@@ -25,6 +25,7 @@ caller can place the returned body in an assembly after construction.
 | `ToeRadius` | 0 | Zero selects the derived toe radius; otherwise positive. |
 | `MateToeRadius` | 0 | Zero selects the mate's derived toe radius; otherwise positive. |
 | `BaseHeight` | 0 | Zero selects the bounded default; otherwise within its limits. |
+| `MateBaseHeight` | 0 | Zero scales the resolved first member's height by the tooth ratio; otherwise within the mate's limits. |
 
 The first real build is an eight-tooth member of an equal pair at a 90° shaft
 angle, with straight teeth, no bore, and no optional offsets. That build must
@@ -51,6 +52,14 @@ For each member, the base-height minimum is `1.05 × 1.25 × Module × sin(γ)`;
 the maximum is `0.95 × (r − 1.25 × Module × cos(γ)) × tan(γ)`. When
 `BaseHeight` is zero, clamp `Module × Teeth / 8` to that interval. Reject an
 explicit height outside it.
+
+`BuildBlankPair` treats `Teeth` as the driving member and `MateTeeth` as the
+pinion. It builds both around the same apex. The pinion is rotated about the
+world Z axis by `ShaftAngle` from the driving member's world X shaft. A zero
+`MateBaseHeight` uses the driving member's resolved base height multiplied by
+`MateTeeth / Teeth`, then clamps it to the mate's own bounds. The pair swaps
+the two toe-radius inputs when building the pinion, so both blanks use the
+same face width and root-element length.
 
 The initial straight-tooth construction uses two sections on the member's
 shaft. The heel section is at the pitch radius `r`. The toe section is nearer

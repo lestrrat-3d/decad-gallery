@@ -14,22 +14,23 @@ import (
 
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
 type Params struct {
-	Module        float64
-	Teeth         int
-	MateTeeth     int
-	ShaftAngle    float64
-	FaceWidth     float64
-	PressureAngle float64
-	Samples       int
-	BoreDiameter  float64
-	SpiralAngle   float64
-	SpiralHand    string
-	CutterRadius  float64
-	ToothSpacing  float64
-	ToeExtension  float64
-	ToeRadius     float64
-	MateToeRadius float64
-	BaseHeight    float64
+	Module         float64
+	Teeth          int
+	MateTeeth      int
+	ShaftAngle     float64
+	FaceWidth      float64
+	PressureAngle  float64
+	Samples        int
+	BoreDiameter   float64
+	SpiralAngle    float64
+	SpiralHand     string
+	CutterRadius   float64
+	ToothSpacing   float64
+	ToeExtension   float64
+	ToeRadius      float64
+	MateToeRadius  float64
+	BaseHeight     float64
+	MateBaseHeight float64
 }
 
 // DefaultParams returns the values from instructions.md.
@@ -64,7 +65,7 @@ func finite(values ...float64) bool {
 func derive(p Params) (dimensions, error) {
 	if !finite(p.Module, p.ShaftAngle, p.FaceWidth, p.PressureAngle,
 		p.BoreDiameter, p.SpiralAngle, p.CutterRadius, p.ToothSpacing,
-		p.ToeExtension, p.ToeRadius, p.MateToeRadius, p.BaseHeight) {
+		p.ToeExtension, p.ToeRadius, p.MateToeRadius, p.BaseHeight, p.MateBaseHeight) {
 		return dimensions{}, fmt.Errorf("gear parameters must be finite")
 	}
 	if p.Module <= 0 || p.Teeth < 3 || p.MateTeeth < 3 || p.Samples < 3 {
@@ -82,7 +83,8 @@ func derive(p Params) (dimensions, error) {
 		return dimensions{}, fmt.Errorf("shaft angle reaches the pitch-cone limit")
 	}
 	if p.FaceWidth < 0 || p.BoreDiameter < 0 || p.CutterRadius < 0 ||
-		p.ToothSpacing < 0 || p.ToeRadius < 0 || p.MateToeRadius < 0 || p.BaseHeight < 0 {
+		p.ToothSpacing < 0 || p.ToeRadius < 0 || p.MateToeRadius < 0 ||
+		p.BaseHeight < 0 || p.MateBaseHeight < 0 {
 		return dimensions{}, fmt.Errorf("length inputs cannot be negative")
 	}
 	if p.SpiralAngle < 0 || p.SpiralAngle >= math.Pi/3 {
@@ -133,8 +135,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	if p.BaseHeight > 0 || p.ToeExtension > 0 || p.ToeRadius > 0 || p.MateToeRadius > 0 ||
-		p.ToothSpacing > 0 {
+	if p.BaseHeight > 0 || p.MateBaseHeight > 0 || p.ToeExtension > 0 ||
+		p.ToeRadius > 0 || p.MateToeRadius > 0 || p.ToothSpacing > 0 {
 		return nil, fmt.Errorf("base-height, toe, and spacing features are not implemented in the two-section body")
 	}
 	world := sketch.NewWorld()

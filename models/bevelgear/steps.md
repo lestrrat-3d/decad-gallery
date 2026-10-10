@@ -38,3 +38,9 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
    ends and cut the revolved blank. Require the bounded diameter, one solid,
    lower volume, `VerifyAll`, and mesh Euler characteristic zero, which
    distinguishes the through-hole from the uncut blank's characteristic two.
+9. For a blank pair, resolve the driving base height first and scale that
+   resolved value by the tooth ratio for the pinion's zero-height default.
+   Swap the tooth counts and toe radii, keep the same face width and root
+   length, revolve both blanks, and rotate the pinion about world Z through
+   the common apex. Check two live solids, the shaft directions and heel
+   stations, and a `VerifyAll` mesh for each member.

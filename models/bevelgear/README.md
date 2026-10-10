@@ -27,6 +27,8 @@ test checks two planar ends, three conical surfaces, and a verified mesh.
 `BuildBoredBlank` cuts the real revolved blank. Its test checks the small
 eight-tooth case and a 31-tooth pair at Module 4. Both produce a verified
 solid with a through-hole in the mesh.
+`BuildBlankPair` revolves both members around one apex. Its unequal 16/12
+test checks the two shaft directions, each heel station, and verified meshes.
 
 The exact apex loft, conical tooth end trims, patterned join, final-body
 bore, and curved tooth branches still need integration. The current `Build`

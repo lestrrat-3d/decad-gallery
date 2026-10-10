@@ -6,22 +6,34 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 type axialPoint struct{ station, radius float64 }
 
-func blankSection(p Params, d dimensions) ([]axialPoint, error) {
+func resolvedBaseHeight(p Params, d dimensions, fallback float64) (float64, error) {
 	r := p.Module * float64(p.Teeth) / 2
 	dedendum := 1.25 * p.Module
 	minBase := 1.05 * dedendum * math.Sin(d.coneAngle)
 	maxBase := 0.95 * (r - dedendum*math.Cos(d.coneAngle)) * math.Tan(d.coneAngle)
 	baseHeight := p.BaseHeight
 	if baseHeight == 0 {
-		baseHeight = math.Min(math.Max(p.Module*float64(p.Teeth)/8, minBase), maxBase)
+		baseHeight = math.Min(math.Max(fallback, minBase), maxBase)
 	} else if baseHeight < minBase || baseHeight > maxBase {
-		return nil, fmt.Errorf("base height %.6g mm is outside [%.6g, %.6g] mm",
+		return 0, fmt.Errorf("base height %.6g mm is outside [%.6g, %.6g] mm",
 			baseHeight, minBase, maxBase)
+	}
+	return baseHeight, nil
+}
+
+func blankSection(p Params, d dimensions) ([]axialPoint, error) {
+	r := p.Module * float64(p.Teeth) / 2
+	dedendum := 1.25 * p.Module
+	baseHeight, err := resolvedBaseHeight(p, d, p.Module*float64(p.Teeth)/8)
+	if err != nil {
+		return nil, err
 	}
 	heelStation := d.coneDist*math.Cos(d.coneAngle) + baseHeight
 	heelRadius := r - baseHeight/math.Tan(d.coneAngle)
@@ -124,4 +136,64 @@ func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 		return nil, fmt.Errorf("revolve blank section: %w", err)
 	}
 	return body, nil
+}
+
+// BlankPair holds the driving blank and its pinion around their common pitch apex.
+type BlankPair struct {
+	Driving *decad.Body
+	Pinion  *decad.Body
+}
+
+// BuildBlankPair revolves both reference blanks and rotates the pinion about the shared apex.
+func BuildBlankPair(ctx context.Context, doc *decad.Document, p Params) (BlankPair, error) {
+	if ctx == nil || doc == nil {
+		return BlankPair{}, fmt.Errorf("context and document must not be nil")
+	}
+	drivingDimensions, err := derive(p)
+	if err != nil {
+		return BlankPair{}, err
+	}
+	drivingBase, err := resolvedBaseHeight(p, drivingDimensions, p.Module*float64(p.Teeth)/8)
+	if err != nil {
+		return BlankPair{}, err
+	}
+	pinionParams := p
+	pinionParams.Teeth, pinionParams.MateTeeth = p.MateTeeth, p.Teeth
+	pinionParams.ToeRadius, pinionParams.MateToeRadius = p.MateToeRadius, p.ToeRadius
+	pinionParams.BaseHeight = p.MateBaseHeight
+	pinionParams.MateBaseHeight = p.BaseHeight
+	pinionParams.FaceWidth = drivingDimensions.width
+	pinionDimensions, err := derive(pinionParams)
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("pinion: %w", err)
+	}
+	pinionBase, err := resolvedBaseHeight(pinionParams, pinionDimensions,
+		drivingBase*float64(p.MateTeeth)/float64(p.Teeth))
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("pinion: %w", err)
+	}
+	pinionParams.BaseHeight = pinionBase
+	if _, err := blankSection(p, drivingDimensions); err != nil {
+		return BlankPair{}, fmt.Errorf("driving: %w", err)
+	}
+	if _, err := blankSection(pinionParams, pinionDimensions); err != nil {
+		return BlankPair{}, fmt.Errorf("pinion: %w", err)
+	}
+	turn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("rotate pinion: %w", err)
+	}
+	driving, err := BuildBlank(ctx, doc, p)
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("build driving blank: %w", err)
+	}
+	pinion, err := BuildBlank(ctx, doc, pinionParams)
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("build pinion blank: %w", err)
+	}
+	pinion, err = pinion.Placed(ctx, turn)
+	if err != nil {
+		return BlankPair{}, fmt.Errorf("place pinion blank: %w", err)
+	}
+	return BlankPair{Driving: driving, Pinion: pinion}, nil
 }
