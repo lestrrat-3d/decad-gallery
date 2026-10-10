@@ -17,3 +17,10 @@ in the output directory and renames it after rendering succeeds.
 Run `go -C tools/render test ./...` to build the actual spur gear and check that
 the output PNG contains it. Animation output can use the same model scene
 builders when an animation preset is added.
+
+The bevel gear has a `bevelgear/hero` preset. Regenerate its image from the
+repository root with:
+
+```sh
+go -C tools/render run . -model bevelgear -shot hero -out ../../models/bevelgear/images/hero.png
+```

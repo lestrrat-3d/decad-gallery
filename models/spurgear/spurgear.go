@@ -116,6 +116,20 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	return body, nil
 }
 
+// BuildProfile draws one involute outline on plane. ctx, world, and plane must not be nil.
+// The caller owns the resulting Sketch profile and may use it in a Decad loft.
+func BuildProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+	p Params) (*sketch.Sketch, *sketch.Profile, error) {
+	if ctx == nil || world == nil || plane == nil {
+		return nil, nil, fmt.Errorf("context, world, and plane must not be nil")
+	}
+	if err := p.validate(); err != nil {
+		return nil, nil, err
+	}
+	s, profile, _, err := buildGearProfile(ctx, world, plane, p, derive(p))
+	return s, profile, err
+}
+
 func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
 	const margin = 1.0
 	world := sketch.NewWorld()
