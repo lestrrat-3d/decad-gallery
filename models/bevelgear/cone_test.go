@@ -125,3 +125,40 @@ func TestEightToothHeelCuttingCone(t *testing.T) {
 	require.True(t, mesh.BoundaryVerified())
 	require.True(t, mesh.VolumeVerified())
 }
+
+func TestSpacedSixteenTwelveHeelConeCrossesToeTooth(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth, p.MateTeeth, p.Samples = 16, 12, 5
+	p.ToothSpacing = 0.5
+	doc := decad.New()
+	tooth, err := bevelgear.BuildPointTooth(t.Context(), doc, p)
+	require.NoError(t, err)
+	toeCone, err := bevelgear.BuildToeCone(t.Context(), doc, p)
+	require.NoError(t, err)
+	toeKeeper, err := decad.Cut(t.Context(), tooth, toeCone)
+	require.NoError(t, err)
+	heelCone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
+	require.NoError(t, err)
+	heelBounds, err := heelCone.Bounds()
+	require.NoError(t, err)
+	var halfAngle float64
+	for _, face := range heelCone.Faces() {
+		if surface, ok := face.Surface().(decad.Cone); ok {
+			halfAngle = surface.HalfAngle.Base()
+		}
+	}
+	require.InDelta(t, 0.75, math.Tan(halfAngle), 1e-8)
+	mesh, err := toeKeeper.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	minScore, maxScore := math.Inf(1), math.Inf(-1)
+	for _, vertex := range mesh.Vertices() {
+		score := vertex.X + math.Hypot(vertex.Y, vertex.Z)/math.Tan(halfAngle)
+		minScore = math.Min(minScore, score)
+		maxScore = math.Max(maxScore, score)
+	}
+	require.Less(t, minScore, heelBounds.Max.X-1)
+	require.Greater(t, maxScore, heelBounds.Max.X+0.02)
+}

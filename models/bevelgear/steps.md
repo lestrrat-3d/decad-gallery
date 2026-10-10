@@ -52,3 +52,10 @@ millimeters. `Build(ctx, doc, Params)` returns one gear body.
     the world origin as apex. Check the 8/8 ordinary, spaced and oblique
     16/12, and embedded-root 60/60 profiles as real untrimmed solids with an exact
     apex vertex and `VerifyAll`. Keep the toe and heel trim checks separate.
+12. Split the point tooth with the blank's toe cone face and keep the
+    largest piece that does not contain the pitch apex. Try the heel cone
+    face on that keeper. Keep the toe result if the heel face does not
+    split it; otherwise select the largest non-apex piece again. For the
+    spaced 16/12 case, check material on both sides of the heel face and
+    verify the chosen tooth, its fitted flank and cone faces, and its join
+    with the blank.

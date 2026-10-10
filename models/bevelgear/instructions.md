@@ -167,8 +167,13 @@ tooth still needs a successful cut and keeper selection before assembly.
 `BuildHeelCone` revolves the same solid-cone section with its apex at
 `R / cos γ`, where the blank's heel-cone edge extended meets the shaft.
 Both tools open toward the common pitch apex and end at station `-0.1 R`.
-The heel cone touches the back-cone tooth plane along its center line;
-its tangent split must be verified on the real tooth before assembly.
+Trim the point tooth with the blank's toe cone face first, then its heel
+cone face. The toe face must split the tooth. A heel face that does not
+intersect the toe keeper leaves it intact. After each split, remove pieces
+that contain the pitch apex and keep the largest remaining piece, as the
+reference does. A solid-cone `Cut` result alone does not identify that
+keeper. Check both sides of a real heel split before choosing one: the
+spaced 16/12 tooth at 90° has material on both sides of its heel cone.
 
 ## Geometry checks
 
