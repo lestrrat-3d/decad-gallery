@@ -19,6 +19,8 @@ def main() -> int:
                 for name in MODEL_FILES:
                     if not (item / name).is_file():
                         missing.append(f"{item.relative_to(ROOT)}/{name}")
+                if not (item / "images/hero.png").is_file():
+                    missing.append(f"{item.relative_to(ROOT)}/images/hero.png")
                 if not any(not path.name.endswith("_test.go") for path in item.glob("*.go")):
                     missing.append(f"{item.relative_to(ROOT)}/*.go")
                 if not any(item.glob("*_test.go")):
