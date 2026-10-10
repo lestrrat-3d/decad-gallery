@@ -7,6 +7,11 @@ source, build entry point, and geometry checks with the item they describe.
 Put reusable build tooling in a shared repository location when the first model
 needs it.
 
+Give each completed item an `images/hero.png` rendered from its Decad body.
+Register its image preset in the [model renderer](../tools/render/README.md)
+and show the image in the item's `README.md`. Add animations through the same
+rendering tool when a model needs motion to explain it.
+
 Follow the [model build pipeline](../docs/model-pipeline.md) when adding an
 item. The instructions own the dimensions and behavior; the steps map them
 to Sketch and Decad operations.

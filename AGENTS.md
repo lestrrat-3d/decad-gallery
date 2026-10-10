@@ -43,3 +43,9 @@
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
+
+## Model images
+
+- Follow `models/README.md` for each completed model's hero image.
+- Build images from the real Decad body with `tools/render/`; do not draw substitute geometry.
+- Add a renderer integration test for each new model preset.

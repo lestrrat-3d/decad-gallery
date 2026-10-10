@@ -1,5 +1,7 @@
 # decad gallery
 
+![Decad spur gear hero image](models/spurgear/images/hero.png)
+
 This repository collects parametric shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each item gets a directory under
 [`models/`](models/README.md). Items may use geometry from other items, so a gear can
@@ -21,6 +23,7 @@ its build pipeline.
 | --- | --- |
 | `models/<name>/` | One shape, pattern, or assembly per directory. |
 | `models/README.md` | Rules for adding items and referring to other items. |
+| `tools/render/` | Builds model images from Decad bodies. |
 | `docs/model-pipeline.md` | The specification-to-Decad build workflow. |
 | `AGENTS.md` | Instructions for coding agents working on models. |
 | `.github/` | Issue templates and repository checks. |

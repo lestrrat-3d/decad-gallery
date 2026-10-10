@@ -1,5 +1,7 @@
 # Spur gear
 
+![The Decad spur gear rendered at an angle](images/hero.png)
+
 This item builds one straight-toothed involute gear. Its source is
 [instructions.md](instructions.md). The [steps](steps.md) map the contract to
 Sketch and Decad operations; `spurgear.go` constructs the model with
@@ -19,3 +21,6 @@ and 34 root fillets.
 bore. When present, the bore rims stay sharp. When a flank begins inside the
 root circle, Sketch trims its original fit spline and joins the gear regions
 into one profile. A nonpositive derived fillet radius skips root fillets.
+
+The [model renderer](../../tools/render/README.md) produces this hero image
+from a 17-tooth, 5 mm thick gear with a 3 mm bore and a 0.1 mm cap chamfer.
