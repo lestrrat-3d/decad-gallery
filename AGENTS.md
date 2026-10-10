@@ -5,6 +5,7 @@
 - Build the pipeline that turns human-readable model specifications into parametric decad Go models.
 - Port the spur gear pipeline from `../fusion360-gear-generator` first.
 - Use `models/spurgear/instructions.md` as the gallery model contract.
+- Follow `docs/model-pipeline.md` to compile instructions into Decad steps, Go code, and geometry checks.
 - Complete the specified spur gear parameter cases and geometry checks before treating the milestone as done.
 - Adapt Fusion-specific steps when the same geometry has a simpler native decad construction.
 - Keep Fusion Python add-in generation downstream of this repository's Go construction.

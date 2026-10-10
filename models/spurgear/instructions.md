@@ -20,7 +20,7 @@ An optional equal-distance cap chamfer has setback `c` in millimeters;
 
 Reject inputs with nonpositive radii, thickness, or module; fewer than three
 teeth or three samples; pressure angle outside `(0, π/2)`; negative bore or
-chamfer; a bore reaching the root circle; or nonpositive root fillet radius.
+chamfer; or a bore reaching the root circle.
 
 ## Tooth flank
 
@@ -48,8 +48,9 @@ profile at z=0 and z=`h` to make the straight body.
 If the base radius lies inside the root circle, trim the flanks at their
 root-circle intersections without changing the fit-spline shape.
 
-Round the two axial root corners of every tooth with the derived fillet
-radius. If `b>0`, cut a centered through-bore of that diameter. If `c>0`,
+Round the two axial root corners of every tooth when the derived fillet
+radius is positive. Skip root fillets when it is zero or negative. If `b>0`,
+cut a centered through-bore of that diameter. If `c>0`,
 chamfer the outer edge of both end caps; leave bore edges sharp.
 
 ## Verification
@@ -57,4 +58,5 @@ chamfer the outer edge of both end caps; leave bore edges sharp.
 Check that the sketch has one valid outer region, the result is one solid,
 all `N` teeth are present, the bounds match the tip radius and thickness,
 and the optional bore and chamfer change the expected surfaces. Exercise
-both an ordinary gear and an embedded-flank gear.
+an ordinary gear and both embedded-flank routes: 30 teeth at 30° with no
+root fillets, and 60 teeth at 20° with native root fillets.

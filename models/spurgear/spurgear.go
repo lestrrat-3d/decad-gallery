@@ -51,12 +51,9 @@ func (p Params) validate() error {
 	if p.BoreDiameter >= 2*d.root {
 		return fmt.Errorf("bore diameter must be smaller than the root diameter")
 	}
-	if d.base < d.root {
-		return fmt.Errorf("embedded flanks require root-circle trimming")
-	}
 	radius := filletRadius(p, d)
-	if radius <= 0 || math.IsNaN(radius) || math.IsInf(radius, 0) {
-		return fmt.Errorf("root fillet radius is not positive")
+	if math.IsNaN(radius) || math.IsInf(radius, 0) {
+		return fmt.Errorf("root fillet radius is not finite")
 	}
 	return nil
 }
@@ -96,9 +93,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("loft gear profile: %w", err)
 	}
-	body, err = roundRootCorners(ctx, body, roots, filletRadius(p, d))
-	if err != nil {
-		return nil, err
+	if radius := filletRadius(p, d); radius > 0 {
+		body, err = roundRootCorners(ctx, body, roots, radius)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if p.BoreDiameter > 0 {
 		body, err = cutThroughBore(ctx, doc, body, p)
@@ -187,6 +186,9 @@ func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radi
 
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
+	if d.base < d.root {
+		return buildEmbeddedGearProfile(ctx, world, plane, p, d)
+	}
 	s, err := world.CreateSketch(plane)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("create gear sketch: %w", err)
@@ -238,4 +240,75 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 		return nil, nil, nil, fmt.Errorf("gear sketch has %d profiles; want one valid region", len(profiles))
 	}
 	return s, profiles[0], roots, nil
+}
+
+func buildEmbeddedGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+	p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
+	s, err := world.CreateSketch(plane)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("create embedded gear sketch: %w", err)
+	}
+	center := s.CreatePoint(0, 0)
+	s.Fix(center)
+	fixed := func(xy point) *sketch.Point {
+		pt := s.CreatePoint(xy.x, xy.y)
+		s.Fix(pt)
+		return pt
+	}
+	for tooth := range p.Teeth {
+		angle := float64(tooth) * 2 * math.Pi / float64(p.Teeth)
+		left, right := toothFlanks(p, d, angle)
+		leftPoints := make([]*sketch.Point, len(left))
+		rightPoints := make([]*sketch.Point, len(right))
+		for i := range left {
+			leftPoints[i] = fixed(left[i])
+			rightPoints[i] = fixed(right[i])
+		}
+		if _, err := s.CreateFitSpline(rightPoints...); err != nil {
+			return nil, nil, nil, fmt.Errorf("tooth %d right flank: %w", tooth, err)
+		}
+		s.CreateArc(center, rightPoints[len(rightPoints)-1], leftPoints[len(leftPoints)-1])
+		if _, err := s.CreateFitSpline(leftPoints...); err != nil {
+			return nil, nil, nil, fmt.Errorf("tooth %d left flank: %w", tooth, err)
+		}
+	}
+	s.CreateCircle(center, d.root)
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, nil, nil, fmt.Errorf("solve embedded gear profile: %w", err)
+	}
+	regions := s.Profiles()
+	indices := make([]int, len(regions))
+	for i, region := range regions {
+		if !region.Valid {
+			return nil, nil, nil, fmt.Errorf("embedded gear region %d is invalid", i)
+		}
+		indices[i] = i
+	}
+	profile, err := s.UnionProfiles(indices...)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("union embedded gear regions: %w", err)
+	}
+	if !profile.Valid || len(profile.Holes) != 0 || len(profile.Outer) != 4*p.Teeth {
+		return nil, nil, nil, fmt.Errorf("embedded gear outline has %d edges and %d holes; want %d edges and no holes",
+			len(profile.Outer), len(profile.Holes), 4*p.Teeth)
+	}
+	roots := make([]point, 0, 2*p.Teeth)
+	for _, edge := range profile.Outer {
+		flank, ok := edge.Entity.(*sketch.FitSpline)
+		if !ok {
+			continue
+		}
+		if !edge.Partial || !edge.TExact {
+			return nil, nil, nil, fmt.Errorf("embedded flank lacks an exact root-circle trim")
+		}
+		x, y := flank.Eval(edge.TStart)
+		if math.Abs(math.Hypot(x, y)-d.root) > 1e-8 {
+			return nil, nil, nil, fmt.Errorf("embedded flank trim misses root circle")
+		}
+		roots = append(roots, point{x, y})
+	}
+	if len(roots) != 2*p.Teeth {
+		return nil, nil, nil, fmt.Errorf("found %d embedded root corners; want %d", len(roots), 2*p.Teeth)
+	}
+	return s, profile, roots, nil
 }

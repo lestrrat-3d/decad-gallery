@@ -1,7 +1,8 @@
 # Spur gear
 
 This item builds one straight-toothed involute gear. Its source is
-[instructions.md](instructions.md); `spurgear.go` constructs the model with
+[instructions.md](instructions.md). The [steps](steps.md) map the contract to
+Sketch and Decad operations; `spurgear.go` constructs the model with
 decad. Dimensions are in millimeters, and the pressure angle is in radians.
 
 The Go package exposes `Build(ctx, doc, Params)`. Its caller supplies a decad
@@ -15,4 +16,6 @@ and 34 root fillets.
 
 `BoreDiameter` cuts a centered through-bore after the root fillets.
 `CapChamfer` chamfers the outer loops of both end caps, with or without a
-bore. When present, the bore rims stay sharp. Embedded flanks return an error.
+bore. When present, the bore rims stay sharp. When a flank begins inside the
+root circle, Sketch trims its original fit spline and joins the gear regions
+into one profile. A nonpositive derived fillet radius skips root fillets.

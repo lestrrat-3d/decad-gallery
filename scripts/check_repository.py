@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Check the repository files and per-model README convention."""
+"""Check repository files and the required artifacts for each model."""
 
 from pathlib import Path
 import sys
 
 
 ROOT = Path(__file__).resolve().parent.parent
-REQUIRED = ("README.md", "AGENTS.md", "LICENSE", "models/README.md")
+REQUIRED = ("README.md", "AGENTS.md", "LICENSE", "models/README.md", "docs/model-pipeline.md")
+MODEL_FILES = ("README.md", "instructions.md", "steps.md")
 
 
 def main() -> int:
@@ -14,8 +15,14 @@ def main() -> int:
     models = ROOT / "models"
     if models.is_dir():
         for item in sorted(models.iterdir()):
-            if item.is_dir() and not (item / "README.md").is_file():
-                missing.append(f"{item.relative_to(ROOT)}/README.md")
+            if item.is_dir():
+                for name in MODEL_FILES:
+                    if not (item / name).is_file():
+                        missing.append(f"{item.relative_to(ROOT)}/{name}")
+                if not any(not path.name.endswith("_test.go") for path in item.glob("*.go")):
+                    missing.append(f"{item.relative_to(ROOT)}/*.go")
+                if not any(item.glob("*_test.go")):
+                    missing.append(f"{item.relative_to(ROOT)}/*_test.go")
 
     if missing:
         for name in missing:
