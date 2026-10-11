@@ -3,7 +3,8 @@
 These steps implement [instructions.md](instructions.md). The canonical
 operation order comes from `fusion360-gear-generator/spec/bevelgear/instructions.md`,
 under "Create the Gear Bodies". Lengths are millimeters. `Build(ctx, doc,
-Params)` currently returns one straight 8/8 member with an optional bore.
+Params)` returns one straight 8/8 member with an optional bore. `BuildPair`
+returns both members placed around their common apex.
 
 1. Validate both tooth counts, the shaft angle, module, face width, and
    optional inputs before adding any body. The current full build accepts
@@ -31,9 +32,9 @@ Params)` currently returns one straight 8/8 member with an optional bore.
 7. When requested, cut the bounded through-bore **after** the tooth pattern
    and Combine-Join. `BuildBoredBlank` separately checks the blank-only
    operation. The final joined body with a 1 mm bore passes `VerifyAll` and
-   has one through-hole. Render that body for the interim hero image.
-8. Build the meshing pinion and driving member around one common apex,
-   apply the source's driving half-tooth-pitch rotation, and add the spiral
-   tooth branch with its changing sections and opposite hands. Verify each
-   new parameter case against the real bodies before enabling it in
-   `Build`.
+   has one through-hole. Use this build for both members of the interim pair.
+8. Build the pinion first. Rotate it about world Z by the shaft angle, then
+   build the driving member and rotate it by half a tooth pitch about its
+   own shaft. Check both bored bodies with `VerifyAll` in the shared
+   document. The spiral branch still needs changing tooth sections and
+   opposite hands; verify those real bodies before enabling it in `BuildPair`.

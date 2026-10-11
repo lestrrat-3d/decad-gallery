@@ -6,8 +6,9 @@
 geometry, operation order, and defaults. Images in that repository are visual
 checks. The current gallery `Build` uses the reference's revolved blank,
 point-to-tooth loft, conical trims, full pattern, and a conditional
-post-join bore for one straight 8/8 member. The source builds a pair,
-enables the bore by default and resolves a zero bore diameter automatically,
+post-join bore for each member of a straight 8/8 pair. `BuildPair` places
+the pinion first and then rotates the driving member by half a tooth pitch.
+The source enables the bore by default and resolves a zero diameter automatically,
 and defaults the mean spiral angle to 35°. The current gallery parameter
 defaults below describe its test path, not changes to those source rules.
 
@@ -16,7 +17,9 @@ defaults below describe its test path, not changes to those source rules.
 `Build(ctx, doc, Params)` builds one member of a meshing bevel pair. The caller
 supplies its tooth count and the mate's tooth count; both members use the same
 module and shaft angle. Lengths are millimeters and angles are radians. A
-caller can place the returned body in an assembly after construction.
+`BuildPair` constructs and places both members for the verified straight 8/8
+case. Its pinion is built first, and both members share the world origin as
+their pitch apex.
 
 | Input | Default | Rule |
 | --- | ---: | --- |
@@ -41,9 +44,11 @@ caller can place the returned body in an assembly after construction.
 The first real `Build` case is an eight-tooth member of an equal pair at
 Module 1 and a 90° shaft angle, with straight teeth, five flank samples,
 and no optional offsets. Both an unbored body and a body with a 1 mm
-post-join bore pass geometry checks. Other full-gear cases return an error
-until their construction passes those checks. The individual blank, tooth,
-cone, and bore helpers have separate tested parameter cases.
+post-join bore pass geometry checks. `BuildPair` places two bored members
+with perpendicular shafts and the source's driving half-tooth-pitch phase.
+Other full-gear cases return an error until their construction passes those
+checks. The individual blank, tooth, cone, and bore helpers have separate
+tested parameter cases.
 
 ## Derived geometry
 
@@ -78,8 +83,9 @@ lofts one fitted back-cone tooth from the common apex, cuts that tooth at
 the toe and heel cones, places eight rotated copies around the shaft, and
 joins each copy to the blank. Decad uses sequential binary `Union` calls
 for the source's Combine-Join operation. If requested, `Build` cuts a
-bounded through-bore from that joined body. Meshing rotation awaits the
-paired assembly.
+bounded through-bore from that joined body. `BuildPair` rotates the pinion
+about world Z by the shaft angle and the driving member about its shaft by
+`π / Teeth`. The default spiral pair remains unimplemented.
 
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its

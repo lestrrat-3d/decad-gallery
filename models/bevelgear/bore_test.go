@@ -76,21 +76,40 @@ func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
 	require.Empty(t, doc.Bodies())
 }
 
-func TestJoinedEightToothThroughBore(t *testing.T) {
+func TestJoinedEightToothPairThroughBore(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.BoreDiameter = 1
 	doc := decad.New()
-	body, err := bevelgear.Build(t.Context(), doc, p)
+	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 	require.NoError(t, err)
-	require.True(t, body.IsSolid())
-	require.Len(t, doc.Bodies(), 1)
-	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1),
-		decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 0, meshEuler(mesh), "the joined gear must have one through-hole")
+	require.Len(t, doc.Bodies(), 2)
+	require.Same(t, pair.Pinion, doc.Bodies()[0], "the source builds the pinion first")
+	require.Same(t, pair.Driving, doc.Bodies()[1])
+	for _, tc := range []struct {
+		name string
+		body *decad.Body
+	}{
+		{name: "pinion", body: pair.Pinion},
+		{name: "driving", body: pair.Driving},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.True(t, tc.body.IsSolid())
+			mesh, err := tc.body.Tessellate(t.Context(), units.Millimeters(0.1),
+				decad.WithVerification(decad.VerifyAll))
+			require.NoError(t, err)
+			require.True(t, mesh.BoundaryVerified())
+			require.True(t, mesh.VolumeVerified())
+			require.Equal(t, 0, meshEuler(mesh), "each member must have one through-hole")
+		})
+	}
+}
+
+func TestBuildPairRejectsUnsupportedCaseBeforeAddingBodies(t *testing.T) {
+	doc := decad.New()
+	_, err := bevelgear.BuildPair(t.Context(), doc, bevelgear.DefaultParams())
+	require.ErrorContains(t, err, "verified 8/8")
+	require.Empty(t, doc.Bodies())
 }
 
 func TestBuildRejectsOversizedBoreBeforeAddingBodies(t *testing.T) {

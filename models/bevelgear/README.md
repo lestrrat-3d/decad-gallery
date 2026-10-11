@@ -1,27 +1,35 @@
 # Bevel gear construction in progress
 
-The image renders the verified straight 8/8 construction: one revolved blank,
-an apex-to-tooth loft, conical toe and heel cuts, eight patterned teeth
-joined into one solid, and a 1 mm through-bore cut after the join. It is an
-interim visual check. The construction rules come from
+The image renders the verified straight 8/8 pair. Each member uses one
+revolved blank, an apex-to-tooth loft, conical toe and heel cuts, eight
+patterned teeth joined into one solid, and a 1 mm through-bore cut after
+the join. The pinion and driving member share a pitch apex and follow the
+source's meshing rotation. It is an interim visual check. The rules come from
 `fusion360-gear-generator/spec/bevelgear/instructions.md`; its default pair
 has 31 teeth per member and spiral teeth, which this image does not yet show.
 
-![Bored straight eight-tooth bevel gear construction check](images/hero.png)
+![Bored straight eight-tooth bevel gear pair construction check](images/hero.png)
 
 `Build(ctx, doc, Params)` currently constructs that straight member in
 millimeters for Module 1, 8/8 teeth, a 90° shaft angle, and the tested profile
 sampling. It supports no bore or a bounded positive through-bore; the 1 mm
-case passes the full geometry check. It rejects other full-gear cases until
-their complete construction is verified. The [instructions](instructions.md)
-define its parameters and invalid cases; the [steps](steps.md) name the
+case passes the full geometry check. `BuildPair` builds and places both
+members for this verified case. Both functions reject other full-gear cases
+until their construction is verified. The [instructions](instructions.md)
+define their parameters and invalid cases; the [steps](steps.md) name the
 Sketch and Decad operations.
 
-Run `go test ./models/bevelgear -run 'TestRealEightToothFullPatternJoin|TestJoinedEightToothThroughBore'`
-to check the real bodies. The tests check one solid, a closed outer shell
-before the bore, a through-hole after it, and `Tessellate(VerifyAll)`. The
-[renderer](../../tools/render/README.md) builds the bored body for the hero
-image and checks the PNG in its integration test.
+Run the real-body checks separately:
+
+```sh
+go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$'
+go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$'
+```
+
+The tests check a closed outer shell before the bore, two placed solids with
+through-holes afterward, and `VerifyAll` for each member. The
+[renderer](../../tools/render/README.md) builds that pair for the hero image
+and checks the PNG in its integration test.
 
 `BuildVirtualToothProfile` also draws one back-cone tooth for the planned
 apex loft. Its Sketch tests cover fractional virtual tooth counts for equal
@@ -51,7 +59,7 @@ trimmed teeth, copied around the shaft in 45° steps, join the blank into one
 closed solid and pass `VerifyAll`. A 1 mm through-bore then cuts that joined
 body, and its mesh has Euler characteristic zero.
 
-The current `Build` still needs the spiral tooth construction, broader
-parameter cases, and both members in one meshing assembly. The
+The current `BuildPair` still needs the spiral tooth construction and broader
+parameter cases. The
 Decad/Sketch handoff is in
 `../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.

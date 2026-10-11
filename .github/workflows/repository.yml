@@ -21,7 +21,22 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check model geometry
-        run: go test -timeout 20m ./...
+        run: go test -skip '^(TestRealEightToothFullPatternJoin|TestJoinedEightToothPairThroughBore)$' ./...
+  bevel-assembly:
+    strategy:
+      matrix:
+        test:
+          - TestRealEightToothFullPatternJoin
+          - TestJoinedEightToothPairThroughBore
+    name: bevel-assembly (${{ matrix.test }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check real bevel assembly
+        run: go test ./models/bevelgear -run '^${{ matrix.test }}$'
   render:
     runs-on: ubuntu-latest
     steps:
@@ -30,4 +45,13 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check model rendering
-        run: go -C tools/render test ./...
+        run: go -C tools/render test -skip '^TestBevelGearHero$' ./...
+  bevel-render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+      - name: Check real bevel rendering
+        run: go -C tools/render test -run '^TestBevelGearHero$' ./...
