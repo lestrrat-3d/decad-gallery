@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -65,6 +66,34 @@ func TestRealEightToothBlankOneToothJoin(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, joinedVolume.Value.Base()-joinedVolume.Bound.Base(),
 		blankVolume.Value.Base()+blankVolume.Bound.Base())
+	mesh, err := joined.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+}
+
+func TestRealEightToothSecondPatternedJoin(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	doc, toeKeeper := buildToeTrimmedTooth(t, p)
+	heelCone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
+	require.NoError(t, err)
+	finalTooth, err := decad.Intersect(t.Context(), toeKeeper, heelCone)
+	require.NoError(t, err)
+	requireAnalyticTrim(t, finalTooth)
+
+	turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(2*math.Pi/float64(p.Teeth)))
+	require.NoError(t, err)
+	secondTooth, err := finalTooth.PlacedCopy(t.Context(), turn)
+	require.NoError(t, err)
+	blank, err := bevelgear.BuildBlank(t.Context(), doc, p)
+	require.NoError(t, err)
+	firstJoin, err := decad.Union(t.Context(), blank, finalTooth)
+	require.NoError(t, err)
+	joined, err := decad.Union(t.Context(), firstJoin, secondTooth)
+	require.NoError(t, err)
+	require.True(t, joined.IsSolid())
 	mesh, err := joined.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
