@@ -1,6 +1,6 @@
 # Bevel gear pair
 
-The image renders the source-default 31/31 spiral pair. Each member has a
+The hero image renders the source-default 31/31 spiral pair. Each member has a
 revolved blank, one curved tooth trimmed at the toe and heel, 31 patterned
 teeth joined to the blank in one Combine-Join, and a 7.75 mm through-bore
 cut after the join. The pinion and driving member share a pitch apex and
@@ -8,6 +8,12 @@ follow the source's meshing rotations. The construction rules come from
 `fusion360-gear-generator/spec/bevelgear/instructions.md`.
 
 ![Source-default bored 31-tooth spiral bevel gear pair](images/hero.png)
+
+## More views
+
+| From above | High oblique angle | Low side angle |
+| --- | --- | --- |
+| ![Both spiral gear members and their meshing tooth bands from above](images/top.png) | ![Both spiral gear members from a high oblique angle](images/high.png) | ![Both bored spiral gear members from a low side angle](images/low.png) |
 
 `Build(ctx, doc, Params)` constructs one source-default 31/31 spiral member
 or one tested straight 8/8 member. `DefaultParams()` selects Module 1, a 90°

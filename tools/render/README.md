@@ -27,3 +27,13 @@ the repository root with:
 ```sh
 go -C tools/render run . -model bevelgear -shot hero -out ../../models/bevelgear/images/hero.png
 ```
+
+The `top`, `high`, and `low` presets use the same source-default pair and
+show its tooth bands from three more angles. Regenerate their README images
+with:
+
+```sh
+go -C tools/render run . -model bevelgear -shot top -out ../../models/bevelgear/images/top.png
+go -C tools/render run . -model bevelgear -shot high -out ../../models/bevelgear/images/high.png
+go -C tools/render run . -model bevelgear -shot low -out ../../models/bevelgear/images/low.png
+```

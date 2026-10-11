@@ -11,6 +11,42 @@ import (
 )
 
 func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: -43, Y: -43, Z: 43},
+		Target:   solidlens.Vec{X: 12, Y: 12},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      35,
+	})
+}
+
+func bevelGearTop(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: 12, Y: 12, Z: 100},
+		Target:   solidlens.Vec{X: 12, Y: 12},
+		Up:       solidlens.Vec{Y: 1},
+		FOV:      42,
+	})
+}
+
+func bevelGearLow(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: -60, Y: -30, Z: 22},
+		Target:   solidlens.Vec{X: 12, Y: 12},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      40,
+	})
+}
+
+func bevelGearHigh(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: -50, Y: -20, Z: 75},
+		Target:   solidlens.Vec{X: 12, Y: 12},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      38,
+	})
+}
+
+func bevelGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Scene, error) {
 	params := bevelgear.DefaultParams()
 	pair, err := bevelgear.BuildPair(ctx, decad.New(), params)
 	if err != nil {
@@ -39,12 +75,7 @@ func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
 		})
 	}
 	return solidlens.Scene{
-		Camera: solidlens.Camera{
-			Position: solidlens.Vec{X: -43, Y: -43, Z: 43},
-			Target:   solidlens.Vec{X: 12, Y: 12},
-			Up:       solidlens.Vec{Z: 1},
-			FOV:      35,
-		},
+		Camera: camera,
 		Models: models,
 		DirectionalLights: []solidlens.DirectionalLight{
 			{Direction: solidlens.Vec{X: 0.5, Y: 0.4, Z: -1}, Color: solidlens.RGB(1, 1, 1), Intensity: 1.1},
