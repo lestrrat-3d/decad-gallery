@@ -17,7 +17,11 @@ type preset struct {
 }
 
 var presets = map[string]preset{
-	"spurgear/hero": {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/hero":   {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/top":    {width: 1600, height: 900, scene: spurGearTop},
+	"spurgear/low":    {width: 1600, height: 900, scene: spurGearLow},
+	"spurgear/back":   {width: 1600, height: 900, scene: spurGearBack},
+	"spurgear/bottom": {width: 1600, height: 900, scene: spurGearBottom},
 }
 
 func main() {
