@@ -11,6 +11,33 @@ import (
 )
 
 func spurGearHero(ctx context.Context) (solidlens.Scene, error) {
+	return spurGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: 20, Y: -27, Z: 29.5},
+		Target:   solidlens.Vec{Z: 2.5},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	})
+}
+
+func spurGearTop(ctx context.Context) (solidlens.Scene, error) {
+	return spurGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{Z: 45},
+		Target:   solidlens.Vec{Z: 2.5},
+		Up:       solidlens.Vec{Y: 1},
+		FOV:      30,
+	})
+}
+
+func spurGearLow(ctx context.Context) (solidlens.Scene, error) {
+	return spurGearView(ctx, solidlens.Camera{
+		Position: solidlens.Vec{X: 22, Y: -25, Z: 10},
+		Target:   solidlens.Vec{Z: 2.5},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	})
+}
+
+func spurGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Scene, error) {
 	params := spurgear.DefaultParams()
 	params.Thickness = 5
 	params.BoreDiameter = 3
@@ -24,12 +51,7 @@ func spurGearHero(ctx context.Context) (solidlens.Scene, error) {
 		return solidlens.Scene{}, fmt.Errorf("tessellate spur gear: %w", err)
 	}
 	return solidlens.Scene{
-		Camera: solidlens.Camera{
-			Position: solidlens.Vec{X: 20, Y: -27, Z: 29.5},
-			Target:   solidlens.Vec{Z: 2.5},
-			Up:       solidlens.Vec{Z: 1},
-			FOV:      30,
-		},
+		Camera: camera,
 		Models: []solidlens.Model{{
 			Mesh:     mesh,
 			Material: solidlens.Matte(solidlens.RGB(0.14, 0.4, 0.58)),
