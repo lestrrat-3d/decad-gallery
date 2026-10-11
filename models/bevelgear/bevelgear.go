@@ -13,23 +13,25 @@ import (
 
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
 type Params struct {
-	Module         float64
-	Teeth          int
-	MateTeeth      int
-	ShaftAngle     float64
-	FaceWidth      float64
-	PressureAngle  float64
-	Samples        int
-	BoreDiameter   float64
-	SpiralAngle    float64
-	SpiralHand     string
-	CutterRadius   float64
-	ToothSpacing   float64
-	ToeExtension   float64
-	ToeRadius      float64
-	MateToeRadius  float64
-	BaseHeight     float64
-	MateBaseHeight float64
+	Module           float64
+	Teeth            int
+	MateTeeth        int
+	ShaftAngle       float64
+	FaceWidth        float64
+	PressureAngle    float64
+	Samples          int
+	EnableBore       bool
+	BoreDiameter     float64
+	MateBoreDiameter float64
+	SpiralAngle      float64
+	SpiralHand       string
+	CutterRadius     float64
+	ToothSpacing     float64
+	ToeExtension     float64
+	ToeRadius        float64
+	MateToeRadius    float64
+	BaseHeight       float64
+	MateBaseHeight   float64
 }
 
 // DefaultParams returns the values from instructions.md.
@@ -41,6 +43,9 @@ func DefaultParams() Params {
 		ShaftAngle:    math.Pi / 2,
 		PressureAngle: 20 * math.Pi / 180,
 		Samples:       15,
+		EnableBore:    true,
+		SpiralAngle:   35 * math.Pi / 180,
+		SpiralHand:    "right",
 	}
 }
 
@@ -118,42 +123,85 @@ func derive(p Params) (dimensions, error) {
 	if !finite(scale, width*math.Cos(gamma)) || scale <= 0 {
 		return dimensions{}, fmt.Errorf("toe section collapses at the pitch apex")
 	}
-	if p.BoreDiameter > 0 || p.SpiralAngle > 0 {
-		return dimensions{}, fmt.Errorf("bore and spiral features are not implemented")
-	}
 	return dimensions{coneAngle: gamma, coneDist: coneDist, width: width,
 		scale: scale, toeZ: width * math.Cos(gamma)}, nil
 }
 
-// Build adds one source-derived straight bevel gear with an optional bore.
+// Build adds one member of a bevel pair in its local shaft frame.
 // ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
-	if !finite(p.BoreDiameter) || p.BoreDiameter < 0 {
-		return nil, fmt.Errorf("bore diameter must be finite and nonnegative")
-	}
-	geometryParams := p
-	geometryParams.BoreDiameter = 0
-	if _, err := derive(geometryParams); err != nil {
+	plan, err := prepareBuild(p)
+	if err != nil {
 		return nil, err
 	}
-	if p.BoreDiameter > 0 {
-		if err := validateBore(p); err != nil {
-			return nil, err
-		}
+	return buildMember(ctx, doc, p, plan, false)
+}
+
+type memberBuildPlan struct {
+	geometry     Params
+	boreDiameter float64
+	spiral       bool
+}
+
+func prepareBuild(p Params) (memberBuildPlan, error) {
+	validationParams := p
+	validationParams.BoreDiameter = 0
+	if _, err := derive(validationParams); err != nil {
+		return memberBuildPlan{}, err
 	}
+	geometryParams := validationParams
+	geometryParams.SpiralAngle = 0
 	if p.BaseHeight > 0 || p.MateBaseHeight > 0 || p.ToeExtension > 0 ||
 		p.ToeRadius > 0 || p.MateToeRadius > 0 || p.ToothSpacing > 0 {
-		return nil, fmt.Errorf("Build does not yet support base-height, toe, or spacing options")
+		return memberBuildPlan{}, fmt.Errorf("Build does not yet support base-height, toe, or spacing options")
 	}
-	if p.Module != 1 || p.Teeth != 8 || p.MateTeeth != 8 ||
+	spiral := p.SpiralAngle > 0
+	if spiral {
+		if err := validateSourceDefaultSpiral(p); err != nil {
+			return memberBuildPlan{}, err
+		}
+	} else if p.Module != 1 || p.Teeth != 8 || p.MateTeeth != 8 ||
 		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 ||
 		p.PressureAngle != 20*math.Pi/180 || p.Samples != 5 {
-		return nil, fmt.Errorf("Build currently supports the verified 8/8, Module 1, 90-degree straight case")
+		return memberBuildPlan{}, fmt.Errorf("Build currently supports the verified 8/8 straight and source-default 31/31 spiral cases")
 	}
+	boreDiameter := 0.0
+	if p.EnableBore {
+		var err error
+		boreDiameter, err = ResolveBoreDiameter(p)
+		if err != nil {
+			return memberBuildPlan{}, err
+		}
+	}
+	return memberBuildPlan{geometry: geometryParams, boreDiameter: boreDiameter, spiral: spiral}, nil
+}
 
+func buildMember(ctx context.Context, doc *decad.Document, p Params,
+	plan memberBuildPlan, pinion bool) (*decad.Body, error) {
+	var joined *decad.Body
+	var err error
+	if plan.spiral {
+		joined, err = buildSpiralMember(ctx, doc, p, plan.geometry, pinion)
+	} else {
+		joined, err = buildStraightMember(ctx, doc, p, plan.geometry)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if plan.boreDiameter == 0 {
+		return joined, nil
+	}
+	joined, err = cutBore(ctx, doc, joined, plan.boreDiameter)
+	if err != nil {
+		return nil, fmt.Errorf("cut joined gear bore: %w", err)
+	}
+	return joined, nil
+}
+
+func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryParams Params) (*decad.Body, error) {
 	blank, err := BuildBlank(ctx, doc, geometryParams)
 	if err != nil {
 		return nil, fmt.Errorf("build reference blank: %w", err)
@@ -198,12 +246,6 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 		joined, err = decad.Union(ctx, joined, instance)
 		if err != nil {
 			return nil, fmt.Errorf("join tooth %d: %w", i+1, err)
-		}
-	}
-	if p.BoreDiameter > 0 {
-		joined, err = cutBore(ctx, doc, joined, p.BoreDiameter)
-		if err != nil {
-			return nil, fmt.Errorf("cut joined gear bore: %w", err)
 		}
 	}
 	return joined, nil

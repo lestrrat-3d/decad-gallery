@@ -21,13 +21,27 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check model geometry
-        run: go test -skip '^(TestRealEightToothFullPatternJoin|TestJoinedEightToothPairThroughBore)$' ./...
+        run: go test -skip '^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair))$' ./...
   bevel-assembly:
     strategy:
       matrix:
-        test:
-          - TestRealEightToothFullPatternJoin
-          - TestJoinedEightToothPairThroughBore
+        include:
+          - test: TestRealEightToothFullPatternJoin
+            timeout: 5m
+          - test: TestJoinedEightToothPairThroughBore
+            timeout: 5m
+          - test: TestSourceDefaultSpiralFirstToothJoin/driving
+            timeout: 5m
+          - test: TestSourceDefaultSpiralFirstToothJoin/pinion
+            timeout: 5m
+          - test: TestSourceDefaultSpiralFullCombine/driving
+            timeout: 5m
+          - test: TestSourceDefaultSpiralFullCombine/pinion
+            timeout: 5m
+          - test: TestSourceDefaultSpiralFullBoredMember/driving
+            timeout: 6m
+          - test: TestSourceDefaultSpiralFullBoredMember/pinion
+            timeout: 6m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +50,16 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check real bevel assembly
-        run: go test ./models/bevelgear -run '^${{ matrix.test }}$'
+        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
+  bevel-pair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check source-default bevel pair
+        run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 10m
   render:
     runs-on: ubuntu-latest
     steps:

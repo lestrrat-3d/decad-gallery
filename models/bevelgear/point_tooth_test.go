@@ -54,13 +54,3 @@ func TestPointToothFromRealBackConeProfile(t *testing.T) {
 		})
 	}
 }
-
-func TestPointToothRejectsUnsupportedFeatures(t *testing.T) {
-	p := bevelgear.DefaultParams()
-	p.Teeth, p.MateTeeth = 8, 8
-	p.BoreDiameter = 1
-	doc := decad.New()
-	_, err := bevelgear.BuildPointTooth(t.Context(), doc, p)
-	require.ErrorContains(t, err, "bore and spiral features are not implemented")
-	require.Empty(t, doc.Bodies())
-}

@@ -19,7 +19,7 @@ func TestSpurGearHero(t *testing.T) {
 
 	file, err := os.Open(output)
 	require.NoError(t, err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	image, err := png.Decode(file)
 	require.NoError(t, err)
 	require.Equal(t, 120, image.Bounds().Dx())
@@ -36,7 +36,7 @@ func TestBevelGearHero(t *testing.T) {
 
 	file, err := os.Open(output)
 	require.NoError(t, err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	image, err := png.Decode(file)
 	require.NoError(t, err)
 	require.Equal(t, 120, image.Bounds().Dx())

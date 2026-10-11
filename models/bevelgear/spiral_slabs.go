@@ -28,13 +28,8 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 	if ctx == nil || doc == nil || tooth == nil {
 		return nil, spiralSliceFrame{}, fmt.Errorf("context, document, and point tooth must not be nil")
 	}
-	if p.Teeth != 31 || p.MateTeeth != 31 || p.Module != 1 ||
-		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 || p.Samples != 15 ||
-		p.PressureAngle != 20*math.Pi/180 || p.ToothSpacing != 0 ||
-		p.ToeExtension != 0 || p.ToeRadius != 0 || p.MateToeRadius != 0 ||
-		p.BaseHeight != 0 || p.MateBaseHeight != 0 || p.CutterRadius != 0 ||
-		p.SpiralAngle != 35*math.Pi/180 || p.SpiralHand != "right" {
-		return nil, spiralSliceFrame{}, fmt.Errorf("spiral slicing currently supports the source-default 31/31 case")
+	if err := validateSourceDefaultSpiral(p); err != nil {
+		return nil, spiralSliceFrame{}, err
 	}
 	straight := p
 	straight.SpiralAngle = 0
@@ -52,7 +47,7 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 	toeMid := toeCone.Add(to3(section[5])).Scale(0.5)
 	heelMid := heelCone.Add(to3(section[2])).Scale(0.5)
 	if heelMid.Len() < toeMid.Len() {
-		toeCone, heelCone = heelCone, toeCone
+		heelCone = toeCone
 		toeMid, heelMid = heelMid, toeMid
 	}
 	coneVec := heelCone.Scale(1 / heelCone.Len())
@@ -137,6 +132,18 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 		return segments, frame, nil
 	}
 	return nil, spiralSliceFrame{}, fmt.Errorf("spiral slicing exhausted both offset signs")
+}
+
+func validateSourceDefaultSpiral(p Params) error {
+	if p.Teeth != 31 || p.MateTeeth != 31 || p.Module != 1 ||
+		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 || p.Samples != 15 ||
+		p.PressureAngle != 20*math.Pi/180 || p.ToothSpacing != 0 ||
+		p.ToeExtension != 0 || p.ToeRadius != 0 || p.MateToeRadius != 0 ||
+		p.BaseHeight != 0 || p.MateBaseHeight != 0 || p.CutterRadius != 0 ||
+		p.SpiralAngle != 35*math.Pi/180 || p.SpiralHand != "right" {
+		return fmt.Errorf("spiral slicing currently supports the source-default 31/31 case")
+	}
+	return nil
 }
 
 func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3.Vec,

@@ -10,8 +10,9 @@ import (
 
 func TestBuildRejectsUnverifiedFullPatternCaseBeforeAddingBodies(t *testing.T) {
 	p := bevelgear.DefaultParams()
+	p.Teeth = 30
 	doc := decad.New()
 	_, err := bevelgear.Build(t.Context(), doc, p)
-	require.ErrorContains(t, err, "verified 8/8")
+	require.ErrorContains(t, err, "source-default 31/31")
 	require.Empty(t, doc.Bodies())
 }

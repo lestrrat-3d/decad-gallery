@@ -12,10 +12,6 @@ import (
 
 func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
 	params := bevelgear.DefaultParams()
-	params.Teeth = 8
-	params.MateTeeth = 8
-	params.Samples = 5
-	params.BoreDiameter = 1
 	pair, err := bevelgear.BuildPair(ctx, decad.New(), params)
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build bevel gear pair: %w", err)
@@ -44,8 +40,8 @@ func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
 	}
 	return solidlens.Scene{
 		Camera: solidlens.Camera{
-			Position: solidlens.Vec{X: -11, Y: -11, Z: 11},
-			Target:   solidlens.Vec{X: 3, Y: 3},
+			Position: solidlens.Vec{X: -43, Y: -43, Z: 43},
+			Target:   solidlens.Vec{X: 12, Y: 12},
 			Up:       solidlens.Vec{Z: 1},
 			FOV:      35,
 		},

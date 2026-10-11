@@ -61,7 +61,8 @@ func TestReferenceBlankBaseHeight(t *testing.T) {
 	body, err := bevelgear.BuildBlank(t.Context(), decad.New(), p)
 	require.NoError(t, err)
 
-	wantHeelArea := math.Pi * math.Pow(4-p.BaseHeight, 2)
+	heelRadius := 4 - p.BaseHeight
+	wantHeelArea := math.Pi * heelRadius * heelRadius
 	foundHeel := false
 	for _, face := range body.Faces() {
 		if _, ok := face.Surface().(decad.Plane); !ok {

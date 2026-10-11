@@ -18,9 +18,8 @@ Run `go -C tools/render test ./...` to build the actual spur gear and check that
 the output PNG contains it. Animation output can use the same model scene
 builders when an animation preset is added.
 
-The `bevelgear/hero` preset currently renders a source-derived straight
-eight-tooth pair, with a post-join 1 mm bore in each member. It does not yet
-show the reference's default 31/31 spiral pair. Regenerate that image from
+The `bevelgear/hero` preset renders the source-default 31/31 spiral pair,
+with a post-join 7.75 mm bore in each member. Regenerate that image from
 the repository root with:
 
 ```sh

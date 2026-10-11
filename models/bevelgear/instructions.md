@@ -4,13 +4,12 @@
 
 `fusion360-gear-generator/spec/bevelgear/instructions.md` defines the final
 geometry, operation order, and defaults. Images in that repository are visual
-checks. The current gallery `Build` uses the reference's revolved blank,
-point-to-tooth loft, conical trims, full pattern, and a conditional
-post-join bore for each member of a straight 8/8 pair. `BuildPair` places
-the pinion first and then rotates the driving member by half a tooth pitch.
-The source enables the bore by default and resolves a zero diameter automatically,
-and defaults the mean spiral angle to 35°. The current gallery parameter
-defaults below describe its test path, not changes to those source rules.
+checks. The gallery `Build` constructs the source-default 31/31 spiral member
+through one Combine-Join and an optional post-join bore. It also constructs
+the verified straight 8/8 member. `BuildPair` builds the pinion first and
+then rotates the driving member by half a tooth pitch.
+The source enables the bore by default and resolves a zero diameter automatically.
+`DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
 
 ## Inputs and supported range
 
@@ -18,8 +17,8 @@ defaults below describe its test path, not changes to those source rules.
 supplies its tooth count and the mate's tooth count; both members use the same
 module and shaft angle. Lengths are millimeters and angles are radians. A
 `BuildPair` constructs and places both members for the verified straight 8/8
-case. Its pinion is built first, and both members share the world origin as
-their pitch apex.
+and source-default spiral 31/31 cases. Its pinion is built first, and both
+members share the world origin as their pitch apex.
 
 | Input | Default | Rule |
 | --- | ---: | --- |
@@ -30,8 +29,10 @@ their pitch apex.
 | `FaceWidth` | 0 | Zero selects the derived width; a positive value is explicit. |
 | `PressureAngle` | 20° | Greater than zero and below 90°. |
 | `Samples` | 15 | At least three fit points per involute flank. |
-| `BoreDiameter` | 0 | Zero omits the bore; a positive value must fit the toe and heel. |
-| `SpiralAngle` | 0 | Zero makes straight teeth; a curved tooth uses `(0, 60°)`. |
+| `EnableBore` | true | False skips both cuts and ignores both diameter inputs. |
+| `BoreDiameter` | 0 | Zero auto-calculates the driving member's bore when enabled. |
+| `MateBoreDiameter` | 0 | Zero auto-calculates the pinion bore when enabled. |
+| `SpiralAngle` | 35° | Zero makes straight teeth; a curved tooth uses `(0, 60°)`. |
 | `SpiralHand` | right | Right or left when `SpiralAngle` is positive. |
 | `CutterRadius` | 0 | Zero selects the mean cone distance; otherwise positive. |
 | `ToothSpacing` | 0 | Nonnegative clearance offset. |
@@ -46,9 +47,28 @@ Module 1 and a 90° shaft angle, with straight teeth, five flank samples,
 and no optional offsets. Both an unbored body and a body with a 1 mm
 post-join bore pass geometry checks. `BuildPair` places two bored members
 with perpendicular shafts and the source's driving half-tooth-pitch phase.
-Other full-gear cases return an error until their construction passes those
-checks. The individual blank, tooth, cone, and bore helpers have separate
-tested parameter cases.
+The source-default spiral pair also passes one 31-tooth Combine-Join and
+an auto-calculated post-join bore for each hand. Other full-gear cases return
+an error until their construction passes those checks. The individual blank,
+tooth, cone, and bore helpers have separate tested parameter cases.
+
+## Source-default pair target
+
+The source-default request has Module 1, a 90° shaft angle, 31 teeth on each
+member, a 35° mean spiral angle, and a right-hand driving trace. The pinion
+uses the opposite hand. Zero face width, base heights, toe radii, cutter
+radius, spacing, and toe extension select the source's derived values. The
+source enables bores for both members by default. Each zero bore-diameter
+input resolves independently to the smaller of that member's pitch diameter
+divided by four and its maximum permitted bore diameter.
+
+`ResolveBoreDiameter` implements that enabled per-member resolution from
+the real blank section. For the default 90° pair it resolves 7.75 mm; for a
+31/31 pair at a 35° shaft angle the heel bound caps the value. Both resolved
+diameters produce a verified through-hole in an isolated real blank and after
+the full 31-tooth join. `BuildPair` validates both bore inputs before building
+either member and cuts each bore after its own pattern joins. The pinion
+places on the second shaft, and the driving member rotates by half a tooth pitch.
 
 ## Derived geometry
 
@@ -81,11 +101,12 @@ same face width and root-element length.
 The current straight-tooth build revolves the six-sided reference blank,
 lofts one fitted back-cone tooth from the common apex, cuts that tooth at
 the toe and heel cones, places eight rotated copies around the shaft, and
-joins each copy to the blank. Decad uses sequential binary `Union` calls
-for the source's Combine-Join operation. If requested, `Build` cuts a
-bounded through-bore from that joined body. `BuildPair` rotates the pinion
-about world Z by the shaft angle and the driving member about its shaft by
-`π / Teeth`. The default spiral pair remains unimplemented.
+joins each copy to the blank with sequential binary `Union` calls. This is
+the verified interim 8/8 construction. The source-default spiral member uses
+one Combine-Join with the blank as target and all 31 patterned teeth as tools.
+Both hands pass `VerifyAll` at 0.1 mm before and after their auto-calculated
+bores. `BuildPair` rotates the pinion about world Z by the shaft angle, then
+rotates the driving member by `π / Teeth` about its shaft.
 
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its
@@ -113,8 +134,8 @@ specified offset; the virtual tooth count and radii do not change.
 `Document.LoftFromPoint`, with the exact common apex at world `(0, 0, 0)`.
 It returns one untrimmed tooth solid. The blank-only base-height and toe
 controls do not change this intermediate tooth; they set the later blank
-and conical trims. A positive bore or spiral angle remains unsupported at
-this stage. The point loft must pass `VerifyAll` and include the exact
+and conical trims. The point loft itself does not cut a bore or curve the
+tooth. It must pass `VerifyAll` and include the exact
 origin vertex. Its current faceted faces do not establish the final
 analytic flank or cone surfaces.
 
@@ -134,7 +155,25 @@ successive `span / 6` offsets toward the apex. The apex scrap is removed;
 the eight remaining solids pass `VerifyAll`. Their root-cone distances feed
 the source's cutter-circle near intersections. The developed azimuth is
 divided by `sin γ` using the **pitch** cone angle, and the pinion trace is
-mirrored. This stage does not yet rotate or crown the slabs.
+mirrored. The private spiral-tooth construction rejects any non-default
+module, tooth counts, shaft angle, face width, pressure angle, sample count,
+spacing, toe controls, base heights, cutter radius, spiral angle, or driving
+hand. The bore diameter does not change this intermediate tooth.
+
+For this source-default case, step G rotates each slab about its shaft by the
+trace angle keyed to the post-slice heel-face centroid. Step H scales seven
+slabs about the root edge of each post-twist heel face; it leaves the
+outermost heel slab full size. Step I reorders the post-crown heel faces and
+lofts the toe-most toe face followed by all eight heel faces. The resulting
+driving and pinion tooth solids each pass `VerifyAll` at 0.1 mm. The real toe
+cone then cuts off each tooth's apex-side tip, and each result passes the
+same verification against the Decad toe-cut branch. The heel `Intersect`
+also passes `VerifyAll` at 0.1 mm for both members against the reviewed
+Decad heel branch. Each trimmed tooth produces 31 placed copies, and every
+copy passes the same check. The first tooth-to-blank `Union` for each member
+passes `VerifyAll` at 0.1 mm. The full patterned Combine-Join and post-join
+bores pass `VerifyAll` for both members. The placed source-default pair passes
+the same check, and the renderer produces its 1600 × 900 PNG.
 
 ## Reference gear blank
 

@@ -33,21 +33,49 @@ func validateBore(p Params) error {
 	if !finite(p.BoreDiameter) || p.BoreDiameter <= 0 {
 		return fmt.Errorf("bore diameter must be finite and positive")
 	}
-	blankParams := p
-	blankParams.BoreDiameter = 0
-	d, err := derive(blankParams)
+	maxBore, err := maximumBoreDiameter(p)
 	if err != nil {
 		return err
 	}
-	section, err := blankSection(blankParams, d)
-	if err != nil {
-		return err
-	}
-	maxBore := 1.9 * math.Min(section[2].radius, section[4].radius)
 	if p.BoreDiameter > maxBore {
 		return fmt.Errorf("bore diameter %.6g exceeds maximum %.6g mm", p.BoreDiameter, maxBore)
 	}
 	return nil
+}
+
+// ResolveBoreDiameter resolves one member's enabled source bore. A zero
+// diameter selects the smaller of one quarter of its pitch diameter and its
+// blank's maximum bore diameter. The caller skips this when bores are disabled.
+func ResolveBoreDiameter(p Params) (float64, error) {
+	if !finite(p.BoreDiameter) || p.BoreDiameter < 0 {
+		return 0, fmt.Errorf("bore diameter must be finite and nonnegative")
+	}
+	maxBore, err := maximumBoreDiameter(p)
+	if err != nil {
+		return 0, err
+	}
+	if p.BoreDiameter > maxBore {
+		return 0, fmt.Errorf("bore diameter %.6g exceeds maximum %.6g mm", p.BoreDiameter, maxBore)
+	}
+	if p.BoreDiameter > 0 {
+		return p.BoreDiameter, nil
+	}
+	return math.Min(p.Module*float64(p.Teeth)/4, maxBore), nil
+}
+
+func maximumBoreDiameter(p Params) (float64, error) {
+	blankParams := p
+	blankParams.BoreDiameter = 0
+	blankParams.SpiralAngle = 0
+	d, err := derive(blankParams)
+	if err != nil {
+		return 0, err
+	}
+	section, err := blankSection(blankParams, d)
+	if err != nil {
+		return 0, err
+	}
+	return 1.9 * math.Min(section[2].radius, section[4].radius), nil
 }
 
 func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diameter float64) (*decad.Body, error) {

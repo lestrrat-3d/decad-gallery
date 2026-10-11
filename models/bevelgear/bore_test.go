@@ -1,6 +1,7 @@
 package bevelgear_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -8,6 +9,59 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSourceDefaultAutoBoreOnRealBlank(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.SpiralAngle = 35 * math.Pi / 180
+	p.SpiralHand = "right"
+	diameter, err := bevelgear.ResolveBoreDiameter(p)
+	require.NoError(t, err)
+	require.InDelta(t, 7.75, diameter, 1e-12)
+
+	p.SpiralAngle = 0
+	p.BoreDiameter = diameter
+	doc := decad.New()
+	body, err := bevelgear.BuildBoredBlank(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, body.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 0, meshEuler(mesh))
+}
+
+func TestSourceObliqueAutoBoreCapOnRealBlank(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.ShaftAngle = 35 * math.Pi / 180
+	p.SpiralAngle = 35 * math.Pi / 180
+	p.SpiralHand = "right"
+	diameter, err := bevelgear.ResolveBoreDiameter(p)
+	require.NoError(t, err)
+	expected := 1.9 * (15.5 - 3.875/math.Tan(17.5*math.Pi/180))
+	require.InDelta(t, expected, diameter, 1e-10)
+	require.Less(t, diameter, 7.75, "the heel bound must cap the source auto bore")
+	oversized := p
+	oversized.BoreDiameter = 7.75
+	_, err = bevelgear.ResolveBoreDiameter(oversized)
+	require.ErrorContains(t, err, "exceeds maximum")
+
+	p.SpiralAngle = 0
+	p.BoreDiameter = diameter
+	doc := decad.New()
+	body, err := bevelgear.BuildBoredBlank(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, body.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 0, meshEuler(mesh))
+}
 
 func TestReferenceBlankThroughBore(t *testing.T) {
 	for _, tc := range []struct {
@@ -79,7 +133,9 @@ func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
 func TestJoinedEightToothPairThroughBore(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	p.SpiralAngle = 0
 	p.BoreDiameter = 1
+	p.MateBoreDiameter = 1
 	doc := decad.New()
 	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 	require.NoError(t, err)
@@ -105,16 +161,51 @@ func TestJoinedEightToothPairThroughBore(t *testing.T) {
 	}
 }
 
-func TestBuildPairRejectsUnsupportedCaseBeforeAddingBodies(t *testing.T) {
+func TestSourceDefaultSpiralPair(t *testing.T) {
 	doc := decad.New()
-	_, err := bevelgear.BuildPair(t.Context(), doc, bevelgear.DefaultParams())
-	require.ErrorContains(t, err, "verified 8/8")
+	pair, err := bevelgear.BuildPair(t.Context(), doc, bevelgear.DefaultParams())
+	require.NoError(t, err)
+	require.Len(t, doc.Bodies(), 2)
+	require.Same(t, pair.Pinion, doc.Bodies()[0], "the source builds the pinion first")
+	require.Same(t, pair.Driving, doc.Bodies()[1])
+	for _, member := range []struct {
+		name string
+		body *decad.Body
+	}{{name: "pinion", body: pair.Pinion}, {name: "driving", body: pair.Driving}} {
+		t.Run(member.name, func(t *testing.T) {
+			require.True(t, member.body.IsSolid())
+			mesh, err := member.body.Tessellate(t.Context(), units.Millimeters(0.1),
+				decad.WithVerification(decad.VerifyAll))
+			require.NoError(t, err)
+			require.True(t, mesh.BoundaryVerified())
+			require.True(t, mesh.VolumeVerified())
+			require.Equal(t, 0, meshEuler(mesh), "each member has a through-bore")
+		})
+	}
+}
+
+func TestBuildPairRejectsUnsupportedCaseBeforeAddingBodies(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth = 30
+	doc := decad.New()
+	_, err := bevelgear.BuildPair(t.Context(), doc, p)
+	require.ErrorContains(t, err, "source-default 31/31")
+	require.Empty(t, doc.Bodies())
+}
+
+func TestBuildPairRejectsOversizedPinionBoreBeforeAddingBodies(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.MateBoreDiameter = 100
+	doc := decad.New()
+	_, err := bevelgear.BuildPair(t.Context(), doc, p)
+	require.ErrorContains(t, err, "exceeds maximum")
 	require.Empty(t, doc.Bodies())
 }
 
 func TestBuildRejectsOversizedBoreBeforeAddingBodies(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	p.SpiralAngle = 0
 	p.BoreDiameter = 10
 	doc := decad.New()
 	_, err := bevelgear.Build(t.Context(), doc, p)

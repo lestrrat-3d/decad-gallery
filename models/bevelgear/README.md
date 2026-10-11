@@ -1,34 +1,34 @@
-# Bevel gear construction in progress
+# Bevel gear pair
 
-The image renders the verified straight 8/8 pair. Each member uses one
-revolved blank, an apex-to-tooth loft, conical toe and heel cuts, eight
-patterned teeth joined into one solid, and a 1 mm through-bore cut after
-the join. The pinion and driving member share a pitch apex and follow the
-source's meshing rotation. It is an interim visual check. The rules come from
-`fusion360-gear-generator/spec/bevelgear/instructions.md`; its default pair
-has 31 teeth per member and spiral teeth, which this image does not yet show.
+The image renders the source-default 31/31 spiral pair. Each member has a
+revolved blank, one curved tooth trimmed at the toe and heel, 31 patterned
+teeth joined to the blank in one Combine-Join, and a 7.75 mm through-bore
+cut after the join. The pinion and driving member share a pitch apex and
+follow the source's meshing rotations. The construction rules come from
+`fusion360-gear-generator/spec/bevelgear/instructions.md`.
 
-![Bored straight eight-tooth bevel gear pair construction check](images/hero.png)
+![Source-default bored 31-tooth spiral bevel gear pair](images/hero.png)
 
-`Build(ctx, doc, Params)` currently constructs that straight member in
-millimeters for Module 1, 8/8 teeth, a 90° shaft angle, and the tested profile
-sampling. It supports no bore or a bounded positive through-bore; the 1 mm
-case passes the full geometry check. `BuildPair` builds and places both
-members for this verified case. Both functions reject other full-gear cases
-until their construction is verified. The [instructions](instructions.md)
-define their parameters and invalid cases; the [steps](steps.md) name the
-Sketch and Decad operations.
+`Build(ctx, doc, Params)` constructs one source-default 31/31 spiral member
+or one tested straight 8/8 member. `DefaultParams()` selects Module 1, a 90°
+shaft angle, 35° spiral teeth, and an auto-calculated bore for each member.
+`BuildPair` builds and places both supported pairs.
+The [instructions](instructions.md) define supported inputs and invalid cases.
+The [steps](steps.md) name the Sketch and Decad operations.
 
 Run the real-body checks separately:
 
 ```sh
-go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$'
-go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$'
+go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
+go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 5m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 5m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 6m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 10m
 ```
 
 The tests check a closed outer shell before the bore, two placed solids with
 through-holes afterward, and `VerifyAll` for each member. The
-[renderer](../../tools/render/README.md) builds that pair for the hero image
+[renderer](../../tools/render/README.md) builds the source-default pair for the hero image
 and checks the PNG in its integration test.
 
 `BuildVirtualToothProfile` also draws one back-cone tooth for the planned
@@ -59,10 +59,15 @@ trimmed teeth, copied around the shaft in 45° steps, join the blank into one
 closed solid and pass `VerifyAll`. A 1 mm through-bore then cuts that joined
 body, and its mesh has Euler characteristic zero.
 
-The default 31/31 spiral tooth now passes its first real stage: eight cuts
-parallel to the parent tooth plane yield eight `VerifyAll` slabs after the
-apex scrap is removed. Their root-cone frame feeds the source's cutter arc
-and pitch-cone twist law; the two hands produce mirrored traces. Slab twist,
-crown, loft, trim, pattern, and the final spiral pair remain to be built.
+For the source-default 31/31 spiral pair, the driving and pinion teeth each
+pass the real slice, cutter trace, twist, crown, nine-face loft, toe cut,
+and heel trim. Each trimmed tooth produces 31 placed copies, and every copy
+passes `VerifyAll` at 0.1 mm against merged Decad heel support. The first
+tooth-to-blank `Union` passes `VerifyAll` for both members. Each full
+31-tooth pattern joins its blank into one solid. Each member passes its
+7.75 mm bore cut and `VerifyAll`. The real `BuildPair(DefaultParams())`
+passes both placed bodies through `VerifyAll`. The renderer produced the
+1600 × 900 hero PNG from that pair. Real blank-only cuts
+also pass for the source-default 90° case and a capped 35° shaft-angle case.
 The Decad/Sketch handoff is in
 `../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.

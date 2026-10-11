@@ -16,7 +16,7 @@ type GearPair struct {
 	Pinion  *decad.Body
 }
 
-// BuildPair builds the verified straight 8/8 pair in source operation order.
+// BuildPair builds the pinion first, then phases the driving gear by half a tooth pitch.
 func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, error) {
 	if ctx == nil || doc == nil {
 		return GearPair{}, fmt.Errorf("context and document must not be nil")
@@ -25,13 +25,18 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	pinionParams.Teeth, pinionParams.MateTeeth = p.MateTeeth, p.Teeth
 	pinionParams.ToeRadius, pinionParams.MateToeRadius = p.MateToeRadius, p.ToeRadius
 	pinionParams.BaseHeight, pinionParams.MateBaseHeight = p.MateBaseHeight, p.BaseHeight
+	pinionParams.BoreDiameter, pinionParams.MateBoreDiameter = p.MateBoreDiameter, p.BoreDiameter
 
-	// Build accepts only the equal 8/8 case today. Check both members before
-	// adding the pinion so an unsupported pair leaves the document empty.
-	if p.Teeth != 8 || p.MateTeeth != 8 {
-		return GearPair{}, fmt.Errorf("BuildPair currently supports the verified 8/8 straight case")
+	// Validate both members before adding either body to the document.
+	_, err := prepareBuild(p)
+	if err != nil {
+		return GearPair{}, fmt.Errorf("validate driving gear: %w", err)
 	}
-	pinion, err := Build(ctx, doc, pinionParams)
+	pinionPlan, err := prepareBuild(pinionParams)
+	if err != nil {
+		return GearPair{}, fmt.Errorf("validate pinion: %w", err)
+	}
+	pinion, err := buildMember(ctx, doc, pinionParams, pinionPlan, true)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("build pinion: %w", err)
 	}

@@ -104,6 +104,8 @@ func TestRealEightToothSecondPatternedJoin(t *testing.T) {
 func TestRealEightToothFullPatternJoin(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	p.SpiralAngle = 0
+	p.EnableBore = false
 	doc := decad.New()
 	joined, err := bevelgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
