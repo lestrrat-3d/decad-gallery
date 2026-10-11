@@ -15,10 +15,10 @@ follow the source's meshing rotations. The construction rules come from
 | --- | --- | --- |
 | ![Both spiral gear members and their meshing tooth bands from above](images/top.png) | ![Both spiral gear members from a high oblique angle](images/high.png) | ![Both bored spiral gear members from a low side angle](images/low.png) |
 
-`Build(ctx, doc, Params)` constructs one source-default 31/31 spiral member
-or one tested straight 8/8 member. `DefaultParams()` selects Module 1, a 90°
-shaft angle, 35° spiral teeth, and an auto-calculated bore for each member.
-`BuildPair` builds and places both supported pairs.
+`Build(ctx, doc, Params)` constructs the source-default 31/31 spiral member
+or a tested straight 8/8 or 16/12 member. `DefaultParams()` selects Module 1,
+a 90° shaft angle, 35° spiral teeth, and an auto-calculated bore for each
+member. `BuildPair` builds and places all three supported pairs.
 The [instructions](instructions.md) define supported inputs and invalid cases.
 The [steps](steps.md) name the Sketch and Decad operations.
 
@@ -30,10 +30,14 @@ go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
+go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
+go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 15m
 ```
 
 The tests check a closed outer shell before the bore, two placed solids with
-through-holes afterward, and `VerifyAll` for each member. The
+through-holes afterward, and `VerifyAll` for each member. The 16/12 case uses
+Module 4, a 90° shaft angle, 15 flank samples, and the source-order tooth
+Combine-Join before each optional bore. The
 [renderer](../../tools/render/README.md) builds the source-default pair for the hero image
 and checks the PNG in its integration test.
 
