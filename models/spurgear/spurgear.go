@@ -106,11 +106,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 		}
 	}
 	if p.CapChamfer > 0 {
-		selection := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).
-			Or(decad.OuterLoopOf(decad.CapEnd(body)))
-		body, err = body.Chamfer(ctx, selection, units.Millimeters(p.CapChamfer))
+		body, err = ChamferOuterCaps(ctx, body, p.CapChamfer)
 		if err != nil {
-			return nil, fmt.Errorf("chamfer outer cap loops: %w", err)
+			return nil, err
 		}
 	}
 	return body, nil
@@ -128,6 +126,18 @@ func BuildProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	}
 	s, profile, _, err := buildGearProfile(ctx, world, plane, p, derive(p))
 	return s, profile, err
+}
+
+// ChamferOuterCaps bevels the outer loops of both gear end caps.
+// ctx and gear must not be nil; distance is in millimeters.
+func ChamferOuterCaps(ctx context.Context, gear *decad.Body, distance float64) (*decad.Body, error) {
+	selection := decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).
+		Or(decad.OuterLoopOf(decad.CapEnd(gear)))
+	body, err := gear.Chamfer(ctx, selection, units.Millimeters(distance))
+	if err != nil {
+		return nil, fmt.Errorf("chamfer outer cap loops: %w", err)
+	}
+	return body, nil
 }
 
 func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
@@ -166,6 +176,12 @@ func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, 
 		return nil, fmt.Errorf("cut through-bore: %w", err)
 	}
 	return body, nil
+}
+
+// CutThroughBore applies the spur bore operation to a completed gear body.
+// ctx, doc, and gear must not be nil.
+func CutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
+	return cutThroughBore(ctx, doc, gear, p)
 }
 
 func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radius float64) (*decad.Body, error) {

@@ -17,13 +17,14 @@ type preset struct {
 }
 
 var presets = map[string]preset{
-	"spurgear/hero":  {width: 1600, height: 900, scene: spurGearHero},
-	"spurgear/top":   {width: 1600, height: 900, scene: spurGearTop},
-	"spurgear/low":   {width: 1600, height: 900, scene: spurGearLow},
-	"bevelgear/hero": {width: 1600, height: 900, scene: bevelGearHero},
-	"bevelgear/top":  {width: 1600, height: 900, scene: bevelGearTop},
-	"bevelgear/low":  {width: 1600, height: 900, scene: bevelGearLow},
-	"bevelgear/high": {width: 1600, height: 900, scene: bevelGearHigh},
+	"spurgear/hero":    {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/top":     {width: 1600, height: 900, scene: spurGearTop},
+	"spurgear/low":     {width: 1600, height: 900, scene: spurGearLow},
+	"bevelgear/hero":   {width: 1600, height: 900, scene: bevelGearHero},
+	"bevelgear/top":    {width: 1600, height: 900, scene: bevelGearTop},
+	"bevelgear/low":    {width: 1600, height: 900, scene: bevelGearLow},
+	"bevelgear/high":   {width: 1600, height: 900, scene: bevelGearHigh},
+	"helicalgear/hero": {width: 1600, height: 900, scene: helicalGearHero},
 }
 
 func main() {
