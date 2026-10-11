@@ -127,6 +127,15 @@ The reference Fusion model's toe extension, toe radius, bore, spacing, and
 spiral rules are source material for those later branches; each branch must
 retain its own geometry check.
 
+The first default-spiral stage uses the same untrimmed point tooth with
+31/31 teeth, a 35° spiral angle, and right hand selected for the driving
+member. Eight sheets parallel to the parent tooth plane split it at
+successive `span / 6` offsets toward the apex. The apex scrap is removed;
+the eight remaining solids pass `VerifyAll`. Their root-cone distances feed
+the source's cutter-circle near intersections. The developed azimuth is
+divided by `sin γ` using the **pitch** cone angle, and the pinion trace is
+mirrored. This stage does not yet rotate or crown the slabs.
+
 ## Reference gear blank
 
 The reference's gear blank is a six-sided axial profile revolved around the

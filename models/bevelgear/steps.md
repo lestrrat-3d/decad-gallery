@@ -38,3 +38,13 @@ returns both members placed around their common apex.
    own shaft. Check both bored bodies with `VerifyAll` in the shared
    document. The spiral branch still needs changing tooth sections and
    opposite hands; verify those real bodies before enabling it in `BuildPair`.
+9. For the source-default 31/31 spiral case, slice the untrimmed point tooth
+   with eight planes parallel to its parent tooth plane. Space the planes
+   by one sixth of the root-edge toe-to-heel span toward the apex. Retry the
+   opposite offset sign if none cuts. Sort the pieces by their solid
+   centroids, remove the apex scrap, and verify the eight remaining slabs.
+10. Intersect the cutter circle with circles just beyond the toe and heel.
+    Choose the intersections nearest the mean root point. Divide their
+    crown-plane azimuth difference by the sine of the pitch-cone angle for
+    the twist magnitude. Mirror the cutter arc for the pinion. The real
+    slab rotations, anchored crown, loft, and conical trim follow this stage.

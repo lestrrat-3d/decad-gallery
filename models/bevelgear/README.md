@@ -59,7 +59,10 @@ trimmed teeth, copied around the shaft in 45° steps, join the blank into one
 closed solid and pass `VerifyAll`. A 1 mm through-bore then cuts that joined
 body, and its mesh has Euler characteristic zero.
 
-The current `BuildPair` still needs the spiral tooth construction and broader
-parameter cases. The
-Decad/Sketch handoff is in
+The default 31/31 spiral tooth now passes its first real stage: eight cuts
+parallel to the parent tooth plane yield eight `VerifyAll` slabs after the
+apex scrap is removed. Their root-cone frame feeds the source's cutter arc
+and pitch-cone twist law; the two hands produce mirrored traces. Slab twist,
+crown, loft, trim, pattern, and the final spiral pair remain to be built.
+The Decad/Sketch handoff is in
 `../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.
