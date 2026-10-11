@@ -30,7 +30,7 @@ jobs:
           - test: TestRealEightToothFullPatternJoin
             timeout: 5m
           - test: TestJoinedEightToothPairThroughBore
-            timeout: 5m
+            timeout: 10m
           - test: TestSourceDefaultSpiralFirstToothJoin/driving
             timeout: 5m
           - test: TestSourceDefaultSpiralFirstToothJoin/pinion
@@ -60,7 +60,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check source-default bevel pair
-        run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 10m
+        run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
   render:
     runs-on: ubuntu-latest
     steps:

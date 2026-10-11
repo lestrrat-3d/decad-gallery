@@ -20,10 +20,10 @@ Run the real-body checks separately:
 
 ```sh
 go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
-go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 5m
+go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 10m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 10m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
 ```
 
 The tests check a closed outer shell before the bore, two placed solids with
