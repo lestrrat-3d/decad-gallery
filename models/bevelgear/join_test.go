@@ -100,3 +100,37 @@ func TestRealEightToothSecondPatternedJoin(t *testing.T) {
 	require.True(t, mesh.BoundaryVerified())
 	require.True(t, mesh.VolumeVerified())
 }
+
+func TestRealEightToothFullPatternJoin(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	doc, toeKeeper := buildToeTrimmedTooth(t, p)
+	heelCone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
+	require.NoError(t, err)
+	finalTooth, err := decad.Intersect(t.Context(), toeKeeper, heelCone)
+	require.NoError(t, err)
+	requireAnalyticTrim(t, finalTooth)
+
+	pattern := make([]*decad.Body, p.Teeth)
+	pattern[0] = finalTooth
+	for i := 1; i < p.Teeth; i++ {
+		turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
+		require.NoError(t, err)
+		pattern[i], err = finalTooth.PlacedCopy(t.Context(), turn)
+		require.NoError(t, err)
+	}
+
+	joined, err := bevelgear.BuildBlank(t.Context(), doc, p)
+	require.NoError(t, err)
+	for i, instance := range pattern {
+		joined, err = decad.Union(t.Context(), joined, instance)
+		require.NoError(t, err, "tooth %d", i+1)
+		require.True(t, joined.IsSolid(), "tooth %d", i+1)
+	}
+	mesh, err := joined.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 2, meshEuler(mesh), "the unbored gear must have one closed outer shell")
+}

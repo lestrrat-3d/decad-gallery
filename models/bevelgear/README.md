@@ -46,10 +46,10 @@ cut and heel trim now pass `VerifyAll` for 8/8 and spaced 16/12 teeth, retain
 cone and fitted flank faces, and select the larger heel piece.
 The real 8/8 blank and one trimmed tooth join into a verified solid. The
 first join test confirms that the tooth seats inside the revolved blank and
-that the joined volume exceeds the blank's certified upper bound. A second
-trimmed tooth copied and rotated by 45° also joins and passes `VerifyAll`.
-Joining the third through eighth patterned teeth still needs upstream Decad
-support.
+that the joined volume exceeds the blank's certified upper bound. All eight
+trimmed teeth, copied around the shaft in 45° steps, join the blank into one
+closed solid and pass `VerifyAll`. The conditional through-bore on that joined
+body still needs upstream Decad support.
 
 The current `Build` still needs the verified trims, patterned join, final-body
 bore, and curved tooth branches. It uses two full-gear
