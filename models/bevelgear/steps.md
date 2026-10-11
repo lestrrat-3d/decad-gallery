@@ -1,61 +1,39 @@
 # Bevel gear Decad construction steps
 
-These steps implement [instructions.md](instructions.md). All lengths are
-millimeters. `Build(ctx, doc, Params)` returns one gear body.
+These steps implement [instructions.md](instructions.md). The canonical
+operation order comes from `fusion360-gear-generator/spec/bevelgear/instructions.md`,
+under "Create the Gear Bodies". Lengths are millimeters. `Build(ctx, doc,
+Params)` currently returns one straight 8/8 member with an optional bore.
 
-1. Validate both tooth counts, the shared shaft angle, and this member's
-   section dimensions. Compute both pitch cone angles and the shared pitch
-   cone distance. Reject every invalid input before adding a body to the
-   document.
-2. Resolve the face width. Set the heel section at z=0 and the toe section
-   at `z = FaceWidth × cos(γ)`. Their pitch radii are `r` and
-   `r × (1 − FaceWidth / R)`. Check that the toe radius and its root circle
-   remain positive.
-3. Ask the spur gear package to build one complete involute outline in
-   each section plane. Scale the toe module by the pitch-radius ratio.
-   Require exactly one valid Sketch region in each section. Reusing that
-   profile builder keeps the flank sampling and embedded-root trim owned
-   by the spur gear model.
-4. Loft matching profile edges with `Document.Loft`. The ruled walls taper
-   every tooth toward the shared pitch apex. Check one solid, the expected
-   section bounds and tooth count, and a `VerifyAll` tessellation before
-   adding optional features.
-5. Extend the build to the bore, root and cap finishes, toe controls,
-   spacing, and spiral trace only after step 4 passes on the first real
-   eight-tooth body. Check each added branch through the real Decad body.
-6. For the Fusion-derived body, draw one back-cone virtual tooth using the
-   real-valued virtual tooth count from the instructions. Place its Sketch
-   on the tilted back-cone plane, including any spacing offset, and solve
-   the fitted flank and arc profile before asking Decad for the exact
-   apex-to-profile loft. The Sketch profile and `BuildPointTooth` use the
-   exact apex loft; they do not replace it with a shrunken section.
-7. Draw the six-sided reference blank in an axial Sketch and revolve it
-   around the shaft. Check its two flat end faces, three conical faces, and
-   `VerifyAll` mesh. This blank is the actual body the patterned teeth must
-   later join and the bore must later cut.
-8. For a positive bore, extrude one centered circular tool past both axial
-   ends and cut the revolved blank. Require the bounded diameter, one solid,
-   lower volume, `VerifyAll`, and mesh Euler characteristic zero, which
-   distinguishes the through-hole from the uncut blank's characteristic two.
-9. For a blank pair, resolve the driving base height first and scale that
-   resolved value by the tooth ratio for the pinion's zero-height default.
-   Swap the tooth counts and toe radii, keep the same face width and root
-   length, revolve both blanks, and rotate the pinion about world Z through
-   the common apex. Check two live solids, the shaft directions and heel
-   stations, and a `VerifyAll` mesh for each member.
-10. Extend the blank's toe-dish and heel-cone edges to their shaft-axis
-    apices. Revolve the two triangles specified in the instructions to
-    build exact conical cutting tools. Check their apex stations,
-    half-angles, far caps, and `VerifyAll` meshes before using them to trim
-    the point-loft tooth.
-11. Pass the fitted back-cone tooth profile to `Document.LoftFromPoint` with
-    the world origin as apex. Check the 8/8 ordinary, spaced and oblique
-    16/12, and embedded-root 60/60 profiles as real untrimmed solids with an exact
-    apex vertex and `VerifyAll`. Keep the toe and heel trim checks separate.
-12. Split the point tooth with the blank's toe cone face and keep the
-    largest piece that does not contain the pitch apex. Try the heel cone
-    face on that keeper. Keep the toe result if the heel face does not
-    split it; otherwise select the largest non-apex piece again. For the
-    spaced 16/12 case, check material on both sides of the heel face and
-    verify the chosen tooth, its fitted flank and cone faces, and its join
-    with the blank.
+1. Validate both tooth counts, the shaft angle, module, face width, and
+   optional inputs before adding any body. The current full build accepts
+   Module 1, 8/8 teeth, a 90° shaft angle, five flank samples, and the
+   default straight controls and an optional bounded bore.
+2. Resolve the shared pitch cone distance, both cone angles, and the face
+   width. Draw the reference's six-sided axial blank profile and revolve
+   it about the shaft. Check its two planar ends, three conical surfaces,
+   and `VerifyAll` mesh.
+3. Draw one fitted involute tooth on the tilted back-cone plane. Keep
+   `Teeth / cos(γ)` as a real number, solve the Sketch profile, and loft
+   it from the exact common apex with `Document.LoftFromPoint`.
+4. Revolve cutting cones from the blank's toe-dish and heel-cone lines.
+   Cut the point tooth with the toe cone first. Intersect that keeper with
+   the heel cone for the verified 8/8 case. The tooth retains fitted flank
+   and conical end faces, and its mesh passes `VerifyAll`.
+5. Make all seven `PlacedCopy` instances before consuming the original
+   tooth in a Boolean. Rotate them around the shaft at successive 45°
+   increments. Join the original and each copy to the revolved blank with
+   sequential Decad `Union` calls. These calls implement the source's
+   patterned Combine-Join.
+6. Check that the joined body is one solid and its unbored mesh has one
+   closed outer shell. `Tessellate(0.1 mm, VerifyAll)` verifies its
+   boundary and volume.
+7. When requested, cut the bounded through-bore **after** the tooth pattern
+   and Combine-Join. `BuildBoredBlank` separately checks the blank-only
+   operation. The final joined body with a 1 mm bore passes `VerifyAll` and
+   has one through-hole. Render that body for the interim hero image.
+8. Build the meshing pinion and driving member around one common apex,
+   apply the source's driving half-tooth-pitch rotation, and add the spiral
+   tooth branch with its changing sections and opposite hands. Verify each
+   new parameter case against the real bodies before enabling it in
+   `Build`.

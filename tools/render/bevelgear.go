@@ -15,20 +15,21 @@ func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
 	params.Teeth = 8
 	params.MateTeeth = 8
 	params.Samples = 5
+	params.BoreDiameter = 1
 	body, err := bevelgear.Build(ctx, decad.New(), params)
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build bevel gear: %w", err)
 	}
-	mesh, err := body.Tessellate(ctx, units.Millimeters(0.02), decad.WithVerification(decad.VerifyAll))
+	mesh, err := body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("tessellate bevel gear: %w", err)
 	}
 	return solidlens.Scene{
 		Camera: solidlens.Camera{
-			Position: solidlens.Vec{X: 12, Y: -17, Z: 16},
-			Target:   solidlens.Vec{Z: 0.5},
+			Position: solidlens.Vec{X: -9, Y: -13, Z: 10},
+			Target:   solidlens.Vec{X: 4},
 			Up:       solidlens.Vec{Z: 1},
-			FOV:      30,
+			FOV:      27,
 		},
 		Models: []solidlens.Model{{
 			Mesh:     mesh,

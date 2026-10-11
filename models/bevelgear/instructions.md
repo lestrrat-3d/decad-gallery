@@ -4,8 +4,9 @@
 
 `fusion360-gear-generator/spec/bevelgear/instructions.md` defines the final
 geometry, operation order, and defaults. Images in that repository are visual
-checks. The current gallery `Build` exercises a straight, unbored two-section loft while
-the reference construction is being integrated. The source builds a pair,
+checks. The current gallery `Build` uses the reference's revolved blank,
+point-to-tooth loft, conical trims, full pattern, and a conditional
+post-join bore for one straight 8/8 member. The source builds a pair,
 enables the bore by default and resolves a zero bore diameter automatically,
 and defaults the mean spiral angle to 35°. The current gallery parameter
 defaults below describe its test path, not changes to those source rules.
@@ -37,11 +38,12 @@ caller can place the returned body in an assembly after construction.
 | `BaseHeight` | 0 | Zero selects the bounded default; otherwise within its limits. |
 | `MateBaseHeight` | 0 | Zero scales the resolved first member's height by the tooth ratio; otherwise within the mate's limits. |
 
-The first real build is an eight-tooth member of an equal pair at a 90° shaft
-angle, with straight teeth, no bore, and no optional offsets. That build must
-pass its geometry checks before more inputs are enabled. A parameter that the
-construction has not yet implemented returns an error; it must not silently
-change the gear or produce substitute geometry.
+The first real `Build` case is an eight-tooth member of an equal pair at
+Module 1 and a 90° shaft angle, with straight teeth, five flank samples,
+and no optional offsets. Both an unbored body and a body with a 1 mm
+post-join bore pass geometry checks. Other full-gear cases return an error
+until their construction passes those checks. The individual blank, tooth,
+cone, and bore helpers have separate tested parameter cases.
 
 ## Derived geometry
 
@@ -71,16 +73,13 @@ world Z axis by `ShaftAngle` from the driving member's world X shaft. A zero
 the two toe-radius inputs when building the pinion, so both blanks use the
 same face width and root-element length.
 
-The initial straight-tooth construction uses two sections on the member's
-shaft. The heel section is at the pitch radius `r`. The toe section is nearer
-the common apex by the face width, so its pitch radius is
-`rToe = r × (1 − FaceWidth / R)`. The section scale is `rToe / r`.
-The heel tooth is an involute with base radius `r cos(PressureAngle)`, root
-radius `r − 1.25 Module`, and tip radius `r + Module`. Its flanks are sampled
-as in the [spur gear instructions](../spurgear/instructions.md). The toe uses
-the same angular profile at the section scale. Corresponding Sketch fit
-splines, arcs, and radial edges form a ruled Decad loft, so each tooth tapers
-toward the shared pitch apex. Both sections must contain one valid region.
+The current straight-tooth build revolves the six-sided reference blank,
+lofts one fitted back-cone tooth from the common apex, cuts that tooth at
+the toe and heel cones, places eight rotated copies around the shaft, and
+joins each copy to the blank. Decad uses sequential binary `Union` calls
+for the source's Combine-Join operation. If requested, `Build` cuts a
+bounded through-bore from that joined body. Meshing rotation awaits the
+paired assembly.
 
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its
@@ -156,10 +155,11 @@ this real blank.
 For a positive through-bore, the heel radius is
 `r − resolved BaseHeight / tan γ`. The toe root radius is
 `(hypot(R, d) − resolved root length) × sin(γ − atan(d / R))`.
-Reject a bore diameter above `1.9 × min(heel radius, toe root radius)`;
-zero omits the bore. Cut a cylinder along the shaft from before the toe
-to beyond the heel. The cut must leave one solid with two open end faces
-and a `VerifyAll` mesh.
+Reject a bore diameter above `1.9 × min(heel radius, toe root radius)`.
+The blank-only `BuildBoredBlank` helper cuts a cylinder along the shaft
+from before the toe to beyond the heel. That isolated test must leave one
+solid with a verified through-hole. `Build` cuts the resolved bore from
+the **joined** patterned body, after Combine-Join.
 
 ## Conical end cutting tools
 
@@ -187,8 +187,9 @@ spaced 16/12 tooth at 90° has material on both sides of its heel cone.
 
 ## Geometry checks
 
-The first case must produce one solid with `Teeth` tapered teeth, a narrower
-toe than heel, and axial bounds equal to the two section stations. Tessellate
-the real Decad body with `VerifyAll`. Later cases must also check unequal
+The first full-gear case must produce one solid with eight tapered teeth
+joined to the reference blank, one closed outer shell before the bore,
+one through-hole after a 1 mm bore, and a `VerifyAll` mesh. Later cases must
+also check unequal
 tooth counts, non-90° shaft angles, both flank/root routes, bore surfaces,
 toe and spacing changes, and right and left spiral traces.

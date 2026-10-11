@@ -17,30 +17,43 @@ func BuildBoredBlank(ctx context.Context, doc *decad.Document, p Params) (*decad
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
+	if err := validateBore(p); err != nil {
+		return nil, err
+	}
+	blankParams := p
+	blankParams.BoreDiameter = 0
+	blank, err := BuildBlank(ctx, doc, blankParams)
+	if err != nil {
+		return nil, err
+	}
+	return cutBore(ctx, doc, blank, p.BoreDiameter)
+}
+
+func validateBore(p Params) error {
 	if !finite(p.BoreDiameter) || p.BoreDiameter <= 0 {
-		return nil, fmt.Errorf("bore diameter must be finite and positive")
+		return fmt.Errorf("bore diameter must be finite and positive")
 	}
 	blankParams := p
 	blankParams.BoreDiameter = 0
 	d, err := derive(blankParams)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	section, err := blankSection(blankParams, d)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	maxBore := 1.9 * math.Min(section[2].radius, section[4].radius)
 	if p.BoreDiameter > maxBore {
-		return nil, fmt.Errorf("bore diameter %.6g exceeds maximum %.6g mm", p.BoreDiameter, maxBore)
+		return fmt.Errorf("bore diameter %.6g exceeds maximum %.6g mm", p.BoreDiameter, maxBore)
 	}
-	blank, err := BuildBlank(ctx, doc, blankParams)
+	return nil
+}
+
+func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diameter float64) (*decad.Body, error) {
+	box, err := target.Bounds()
 	if err != nil {
-		return nil, err
-	}
-	box, err := blank.Bounds()
-	if err != nil {
-		return nil, fmt.Errorf("measure blank bounds: %w", err)
+		return nil, fmt.Errorf("measure bore target bounds: %w", err)
 	}
 	const margin = 1.0
 	world := sketch.NewWorld()
@@ -59,7 +72,7 @@ func BuildBoredBlank(ctx context.Context, doc *decad.Document, p Params) (*decad
 	}
 	center := s.CreatePoint(0, 0)
 	s.Fix(center)
-	s.CreateCircle(center, p.BoreDiameter/2)
+	s.CreateCircle(center, diameter/2)
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, fmt.Errorf("solve bore sketch: %w", err)
 	}
@@ -73,9 +86,9 @@ func BuildBoredBlank(ctx context.Context, doc *decad.Document, p Params) (*decad
 	if err != nil {
 		return nil, fmt.Errorf("extrude bore tool: %w", err)
 	}
-	body, err := decad.Cut(ctx, blank, tool)
+	body, err := decad.Cut(ctx, target, tool)
 	if err != nil {
-		return nil, fmt.Errorf("cut reference blank bore: %w", err)
+		return nil, fmt.Errorf("cut bore: %w", err)
 	}
 	return body, nil
 }

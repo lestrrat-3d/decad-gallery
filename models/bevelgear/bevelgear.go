@@ -7,9 +7,8 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
@@ -126,45 +125,86 @@ func derive(p Params) (dimensions, error) {
 		scale: scale, toeZ: width * math.Cos(gamma)}, nil
 }
 
-// Build adds one straight bevel gear to doc. ctx and doc must not be nil.
+// Build adds one source-derived straight bevel gear with an optional bore.
+// ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
-	d, err := derive(p)
-	if err != nil {
+	if !finite(p.BoreDiameter) || p.BoreDiameter < 0 {
+		return nil, fmt.Errorf("bore diameter must be finite and nonnegative")
+	}
+	geometryParams := p
+	geometryParams.BoreDiameter = 0
+	if _, err := derive(geometryParams); err != nil {
 		return nil, err
+	}
+	if p.BoreDiameter > 0 {
+		if err := validateBore(p); err != nil {
+			return nil, err
+		}
 	}
 	if p.BaseHeight > 0 || p.MateBaseHeight > 0 || p.ToeExtension > 0 ||
 		p.ToeRadius > 0 || p.MateToeRadius > 0 || p.ToothSpacing > 0 {
-		return nil, fmt.Errorf("base-height, toe, and spacing features are not implemented in the two-section body")
+		return nil, fmt.Errorf("Build does not yet support base-height, toe, or spacing options")
 	}
-	world := sketch.NewWorld()
-	toeFrame, err := r3.NewFrame(r3.NewVec(0, 0, d.toeZ),
-		r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	if p.Module != 1 || p.Teeth != 8 || p.MateTeeth != 8 ||
+		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 ||
+		p.PressureAngle != 20*math.Pi/180 || p.Samples != 5 {
+		return nil, fmt.Errorf("Build currently supports the verified 8/8, Module 1, 90-degree straight case")
+	}
+
+	blank, err := BuildBlank(ctx, doc, geometryParams)
 	if err != nil {
-		return nil, fmt.Errorf("create toe frame: %w", err)
+		return nil, fmt.Errorf("build reference blank: %w", err)
 	}
-	toePlane, err := world.CreatePlaneFromFrame(toeFrame)
+	tooth, err := BuildPointTooth(ctx, doc, geometryParams)
 	if err != nil {
-		return nil, fmt.Errorf("create toe plane: %w", err)
+		return nil, fmt.Errorf("loft point tooth: %w", err)
 	}
-	spurParams := spurgear.Params{
-		Module: p.Module, Teeth: p.Teeth, PressureAngle: p.PressureAngle,
-		Thickness: 1, Samples: p.Samples,
-	}
-	heelSketch, heelProfile, err := spurgear.BuildProfile(ctx, world, world.XY(), spurParams)
+	toeCone, err := BuildToeCone(ctx, doc, geometryParams)
 	if err != nil {
-		return nil, fmt.Errorf("build heel profile: %w", err)
+		return nil, fmt.Errorf("build toe cone: %w", err)
 	}
-	spurParams.Module *= d.scale
-	toeSketch, toeProfile, err := spurgear.BuildProfile(ctx, world, toePlane, spurParams)
+	toeKeeper, err := decad.Cut(ctx, tooth, toeCone)
 	if err != nil {
-		return nil, fmt.Errorf("build toe profile: %w", err)
+		return nil, fmt.Errorf("trim tooth at toe: %w", err)
 	}
-	body, err := doc.Loft(ctx, heelSketch, heelProfile, toeSketch, toeProfile)
+	heelCone, err := BuildHeelCone(ctx, doc, geometryParams)
 	if err != nil {
-		return nil, fmt.Errorf("loft tapered teeth: %w", err)
+		return nil, fmt.Errorf("build heel cone: %w", err)
 	}
-	return body, nil
+	trimmedTooth, err := decad.Intersect(ctx, toeKeeper, heelCone)
+	if err != nil {
+		return nil, fmt.Errorf("trim tooth at heel: %w", err)
+	}
+
+	// The first Union consumes its tooth, so place all pattern copies beforehand.
+	pattern := make([]*decad.Body, p.Teeth)
+	pattern[0] = trimmedTooth
+	for i := 1; i < p.Teeth; i++ {
+		turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
+		if err != nil {
+			return nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
+		}
+		pattern[i], err = trimmedTooth.PlacedCopy(ctx, turn)
+		if err != nil {
+			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
+		}
+	}
+
+	joined := blank
+	for i, instance := range pattern {
+		joined, err = decad.Union(ctx, joined, instance)
+		if err != nil {
+			return nil, fmt.Errorf("join tooth %d: %w", i+1, err)
+		}
+	}
+	if p.BoreDiameter > 0 {
+		joined, err = cutBore(ctx, doc, joined, p.BoreDiameter)
+		if err != nil {
+			return nil, fmt.Errorf("cut joined gear bore: %w", err)
+		}
+	}
+	return joined, nil
 }

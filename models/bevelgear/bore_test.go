@@ -75,3 +75,30 @@ func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
 	require.ErrorContains(t, err, "bore diameter")
 	require.Empty(t, doc.Bodies())
 }
+
+func TestJoinedEightToothThroughBore(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	p.BoreDiameter = 1
+	doc := decad.New()
+	body, err := bevelgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, body.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 0, meshEuler(mesh), "the joined gear must have one through-hole")
+}
+
+func TestBuildRejectsOversizedBoreBeforeAddingBodies(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
+	p.BoreDiameter = 10
+	doc := decad.New()
+	_, err := bevelgear.Build(t.Context(), doc, p)
+	require.ErrorContains(t, err, "exceeds maximum")
+	require.Empty(t, doc.Bodies())
+}

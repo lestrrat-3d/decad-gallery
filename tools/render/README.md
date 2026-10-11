@@ -18,8 +18,10 @@ Run `go -C tools/render test ./...` to build the actual spur gear and check that
 the output PNG contains it. Animation output can use the same model scene
 builders when an animation preset is added.
 
-The `bevelgear/hero` preset currently renders the eight-tooth loft geometry
-check. Regenerate that image from the repository root with:
+The `bevelgear/hero` preset currently renders the source-derived straight
+eight-tooth construction check, including the post-join 1 mm bore. It does
+not yet show the reference's default 31/31 spiral pair. Regenerate that image
+from the repository root with:
 
 ```sh
 go -C tools/render run . -model bevelgear -shot hero -out ../../models/bevelgear/images/hero.png
