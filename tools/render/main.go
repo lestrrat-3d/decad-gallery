@@ -17,9 +17,10 @@ type preset struct {
 }
 
 var presets = map[string]preset{
-	"spurgear/hero": {width: 1600, height: 900, scene: spurGearHero},
-	"spurgear/top":  {width: 1600, height: 900, scene: spurGearTop},
-	"spurgear/low":  {width: 1600, height: 900, scene: spurGearLow},
+	"spurgear/hero":  {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/top":   {width: 1600, height: 900, scene: spurGearTop},
+	"spurgear/low":   {width: 1600, height: 900, scene: spurGearLow},
+	"bevelgear/hero": {width: 1600, height: 900, scene: bevelGearHero},
 }
 
 func main() {
@@ -63,8 +64,8 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	if err != nil {
 		return fmt.Errorf("create temporary image: %w", err)
 	}
-	defer os.Remove(file.Name())
-	defer file.Close()
+	defer func() { _ = os.Remove(file.Name()) }()
+	defer func() { _ = file.Close() }()
 	if err := solidlens.RenderPNG(ctx, file, scene, solidlens.Settings{Width: width, Height: height}); err != nil {
 		return fmt.Errorf("render PNG: %w", err)
 	}

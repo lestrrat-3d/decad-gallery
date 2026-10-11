@@ -1,6 +1,9 @@
 package spurgear
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 type point struct {
 	x float64
@@ -42,12 +45,39 @@ func rotate(p point, angle float64) point {
 }
 
 func toothFlanks(p Params, d dimensions, angle float64) ([]point, []point) {
-	rotation := flankRotation(p, d)
-	left := make([]point, p.Samples)
-	right := make([]point, p.Samples)
+	return flankPoints(d.pitch, d.base, d.tip, float64(p.Teeth), p.Samples, angle)
+}
+
+// InvoluteFlanks samples one tooth with a real-valued effective tooth count.
+// Each returned point is an (x, y) coordinate in millimeters.
+func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
+	angle float64) ([][2]float64, [][2]float64, error) {
+	if math.IsNaN(pitch) || math.IsInf(pitch, 0) ||
+		math.IsNaN(base) || math.IsInf(base, 0) ||
+		math.IsNaN(tip) || math.IsInf(tip, 0) ||
+		math.IsNaN(effectiveTeeth) || math.IsInf(effectiveTeeth, 0) ||
+		math.IsNaN(angle) || math.IsInf(angle, 0) ||
+		base <= 0 || pitch <= base || tip <= pitch || effectiveTeeth <= 0 || samples < 3 {
+		return nil, nil, fmt.Errorf("invalid involute radii, tooth count, samples, or angle")
+	}
+	left, right := flankPoints(pitch, base, tip, effectiveTeeth, samples, angle)
+	leftXY := make([][2]float64, len(left))
+	rightXY := make([][2]float64, len(right))
 	for i := range left {
-		radius := d.base + (d.tip-d.base)*float64(i)/float64(p.Samples-1)
-		sample := involutePoint(d.base, radius)
+		leftXY[i] = [2]float64{left[i].x, left[i].y}
+		rightXY[i] = [2]float64{right[i].x, right[i].y}
+	}
+	return leftXY, rightXY, nil
+}
+
+func flankPoints(pitch, base, tip, effectiveTeeth float64, samples int,
+	angle float64) ([]point, []point) {
+	rotation := flankRotation(pitch, base, effectiveTeeth)
+	left := make([]point, samples)
+	right := make([]point, samples)
+	for i := range left {
+		radius := base + (tip-base)*float64(i)/float64(samples-1)
+		sample := involutePoint(base, radius)
 		sample.y = -sample.y
 		sample = rotate(sample, rotation)
 		left[i] = rotate(sample, angle)
@@ -57,7 +87,7 @@ func toothFlanks(p Params, d dimensions, angle float64) ([]point, []point) {
 	return left, right
 }
 
-func flankRotation(p Params, d dimensions) float64 {
-	atPitch := involutePoint(d.base, d.pitch)
-	return math.Pi/(2*float64(p.Teeth)) - math.Atan2(-atPitch.y, atPitch.x)
+func flankRotation(pitch, base, effectiveTeeth float64) float64 {
+	atPitch := involutePoint(base, pitch)
+	return math.Pi/(2*effectiveTeeth) - math.Atan2(-atPitch.y, atPitch.x)
 }

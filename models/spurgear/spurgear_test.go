@@ -52,7 +52,8 @@ func TestThroughBore(t *testing.T) {
 	require.Len(t, doc.Bodies(), 1)
 	withBore, err := gear.Volume()
 	require.NoError(t, err)
-	wantRemoved := math.Pi * math.Pow(p.BoreDiameter/2, 2) * p.Thickness
+	radius := p.BoreDiameter / 2
+	wantRemoved := math.Pi * radius * radius * p.Thickness
 	require.InDelta(t, wantRemoved, baseVolume.Value.Base()-withBore.Value.Base(),
 		baseVolume.Bound.Base()+withBore.Bound.Base()+0.02)
 }

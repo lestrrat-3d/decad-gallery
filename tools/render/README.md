@@ -19,3 +19,11 @@ filename in `models/spurgear/images`.
 Run `go -C tools/render test ./...` to build the actual spur gear and check that
 the output PNG contains it. Animation output can use the same model scene
 builders when an animation preset is added.
+
+The `bevelgear/hero` preset renders the source-default 31/31 spiral pair,
+with a post-join 7.75 mm bore in each member. Regenerate that image from
+the repository root with:
+
+```sh
+go -C tools/render run . -model bevelgear -shot hero -out ../../models/bevelgear/images/hero.png
+```
