@@ -6,7 +6,7 @@
 geometry, operation order, and defaults. Images in that repository are visual
 checks. The gallery `Build` constructs the source-default 31/31 spiral member
 through one Combine-Join and an optional post-join bore. It also constructs
-the verified straight 8/8 member. `BuildPair` builds the pinion first and
+verified straight 8/8 and 16/12 members. `BuildPair` builds the pinion first and
 then rotates the driving member by half a tooth pitch.
 The source enables the bore by default and resolves a zero diameter automatically.
 `DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
@@ -17,7 +17,7 @@ The source enables the bore by default and resolves a zero diameter automaticall
 supplies its tooth count and the mate's tooth count; both members use the same
 module and shaft angle. Lengths are millimeters and angles are radians. A
 `BuildPair` constructs and places both members for the verified straight 8/8
-and source-default spiral 31/31 cases. Its pinion is built first, and both
+and 16/12 cases and the source-default spiral 31/31 case. Its pinion is built first, and both
 members share the world origin as their pitch apex.
 
 | Input | Default | Rule |
@@ -48,9 +48,25 @@ and no optional offsets. Both an unbored body and a body with a 1 mm
 post-join bore pass geometry checks. `BuildPair` places two bored members
 with perpendicular shafts and the source's driving half-tooth-pitch phase.
 The source-default spiral pair also passes one 31-tooth Combine-Join and
-an auto-calculated post-join bore for each hand. Other full-gear cases return
+an auto-calculated post-join bore for each hand. The straight 16/12 pair
+passes the same closed-shell and through-bore checks. Other full-gear cases return
 an error until their construction passes those checks. The individual blank,
 tooth, cone, and bore helpers have separate tested parameter cases.
+
+The source's 16 driving / 12 pinion pair uses Module 4, a 90° shaft angle,
+15 flank samples, and no optional offsets. Its first real gate built the
+smaller straight pinion without a bore.
+The real 12-tooth pinion passes the source-order Combine-Join and 0.1 mm
+`VerifyAll` with merged Decad PR #1421 in 128.11 seconds. Merged Decad
+PR #1424 also builds the 16-tooth driving member in 176.63 seconds. The
+unbored, placed 16/12 pair passes `VerifyAll` for both bodies in 528.89
+seconds. The pinion's source-default automatic bore passes with merged
+Decad PR #1429 in 156.85 seconds and leaves one through-hole. The driving
+member's automatic bore passes with merged Decad PR #1432 in 188.89
+seconds. The source 16/12 pair builds and places both bored members;
+each passes 0.1 mm `VerifyAll` with one through-hole. That full pair test
+takes 491.07 seconds under a 12-minute cap. Other tooth counts, spiral
+angles, and toe controls need their own real-body gates.
 
 ## Source-default pair target
 
