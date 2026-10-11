@@ -163,10 +163,8 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 		if err := validateSourceDefaultSpiral(p); err != nil {
 			return memberBuildPlan{}, err
 		}
-	} else if p.Module != 1 || p.Teeth != 8 || p.MateTeeth != 8 ||
-		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 ||
-		p.PressureAngle != 20*math.Pi/180 || p.Samples != 5 {
-		return memberBuildPlan{}, fmt.Errorf("Build currently supports the verified 8/8 straight and source-default 31/31 spiral cases")
+	} else if !supportedStraightBuild(p) {
+		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 8/8 and 16/12, or source-default 31/31 spiral")
 	}
 	boreDiameter := 0.0
 	if p.EnableBore {
@@ -177,6 +175,17 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 		}
 	}
 	return memberBuildPlan{geometry: geometryParams, boreDiameter: boreDiameter, spiral: spiral}, nil
+}
+
+func supportedStraightBuild(p Params) bool {
+	if p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 || p.PressureAngle != 20*math.Pi/180 {
+		return false
+	}
+	if p.Module == 1 && p.Teeth == 8 && p.MateTeeth == 8 && p.Samples == 5 {
+		return true
+	}
+	return p.Module == 4 && p.Samples == 15 &&
+		((p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16))
 }
 
 func buildMember(ctx context.Context, doc *decad.Document, p Params,
@@ -239,6 +248,13 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 		if err != nil {
 			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
 		}
+	}
+	if p.Teeth != 8 {
+		joined, err := decad.CombineJoin(ctx, blank, pattern...)
+		if err != nil {
+			return nil, fmt.Errorf("join straight tooth pattern: %w", err)
+		}
+		return joined, nil
 	}
 
 	joined := blank

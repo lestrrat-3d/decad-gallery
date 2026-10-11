@@ -21,7 +21,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check model geometry
-        run: go test -skip '^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair))$' ./...
+        run: go test -skip '^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$' ./...
   bevel-assembly:
     strategy:
       fail-fast: false
@@ -43,6 +43,14 @@ jobs:
             timeout: 10m
           - test: TestSourceDefaultSpiralFullBoredMember/pinion
             timeout: 10m
+          - test: TestSourceSixteenTwelveStraightPinion
+            timeout: 5m
+          - test: TestSourceSixteenTwelveStraightDriving
+            timeout: 5m
+          - test: TestSourceSixteenTwelveStraightPinionAutoBore
+            timeout: 5m
+          - test: TestSourceSixteenTwelveStraightDrivingAutoBore
+            timeout: 5m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +69,24 @@ jobs:
           go-version-file: go.mod
       - name: Check source-default bevel pair
         run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
+  bevel-straight-pair:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test: TestSourceSixteenTwelveStraightPair
+            timeout: 15m
+          - test: TestSourceSixteenTwelveStraightPairAutoBore
+            timeout: 15m
+    name: bevel-straight-pair (${{ matrix.test }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check straight bevel pair
+        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   render:
     runs-on: ubuntu-latest
     steps:
