@@ -21,7 +21,10 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check model geometry
-        run: go test -skip '^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$' ./...
+        run: |
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$'
+          helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
+          go test -skip "$bevel_skip|$helical_skip" ./...
   bevel-assembly:
     strategy:
       fail-fast: false
@@ -87,6 +90,36 @@ jobs:
           go-version-file: go.mod
       - name: Check straight bevel pair
         run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
+  helical-assembly:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test: TestSmallHelicalToothAndRootDiscVerifyIndividually
+            timeout: 2m
+          - test: TestSmallRealHelicalGear
+            timeout: 2m
+          - test: TestSmallRealHelicalGearThroughBore
+            timeout: 2m
+          - test: TestSmallRealHelicalGearWithCapChamfer
+            timeout: 10m
+          - test: TestSmallRealHelicalGearWithBoreAndCapChamfer
+            timeout: 10m
+          - test: TestDefaultRealHelicalGear
+            timeout: 5m
+          - test: TestDefaultRealHelicalGearThroughBore
+            timeout: 5m
+          - test: TestDefaultRealHelicalGearWithBoreAndCapChamfer
+            timeout: 10m
+    name: helical-assembly (${{ matrix.test }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check real helical assembly
+        run: go test ./models/helicalgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   render:
     runs-on: ubuntu-latest
     steps:
@@ -95,7 +128,7 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check model rendering
-        run: go -C tools/render test -skip '^TestBevelGearHero$' ./...
+        run: go -C tools/render test -skip '^Test(BevelGearHero|HelicalGearHero)$' ./...
   bevel-render:
     runs-on: ubuntu-latest
     steps:
@@ -105,3 +138,12 @@ jobs:
           go-version-file: tools/render/go.mod
       - name: Check real bevel rendering
         run: go -C tools/render test -run '^TestBevelGearHero$' -timeout 15m ./...
+  helical-render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+      - name: Check real helical rendering
+        run: go -C tools/render test -run '^TestHelicalGearHero$' -timeout 10m ./...
