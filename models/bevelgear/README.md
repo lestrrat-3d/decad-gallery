@@ -44,6 +44,10 @@ from the blank's toe-root corner and heel-cone line. Their tests check the
 apex stations, cone surfaces, far caps, and verified meshes. The ordered toe
 cut and heel trim now pass `VerifyAll` for 8/8 and spaced 16/12 teeth, retain
 cone and fitted flank faces, and select the larger heel piece.
+The real 8/8 blank and one trimmed tooth now join into a verified solid.
+The join test confirms that the tooth seats inside the revolved blank before
+joining and that the joined volume exceeds the blank's certified upper bound.
+Joining a second patterned tooth still needs an upstream Decad fix.
 
 The current `Build` still needs the verified trims, patterned join, final-body
 bore, and curved tooth branches. It uses two full-gear
