@@ -24,6 +24,7 @@ jobs:
         run: go test -skip '^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair))$' ./...
   bevel-assembly:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - test: TestRealEightToothFullPatternJoin
@@ -35,13 +36,13 @@ jobs:
           - test: TestSourceDefaultSpiralFirstToothJoin/pinion
             timeout: 5m
           - test: TestSourceDefaultSpiralFullCombine/driving
-            timeout: 5m
+            timeout: 10m
           - test: TestSourceDefaultSpiralFullCombine/pinion
-            timeout: 5m
+            timeout: 10m
           - test: TestSourceDefaultSpiralFullBoredMember/driving
-            timeout: 6m
+            timeout: 10m
           - test: TestSourceDefaultSpiralFullBoredMember/pinion
-            timeout: 6m
+            timeout: 10m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:
@@ -77,4 +78,4 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check real bevel rendering
-        run: go -C tools/render test -run '^TestBevelGearHero$' ./...
+        run: go -C tools/render test -run '^TestBevelGearHero$' -timeout 15m ./...

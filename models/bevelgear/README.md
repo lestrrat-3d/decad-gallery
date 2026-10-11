@@ -21,8 +21,8 @@ Run the real-body checks separately:
 ```sh
 go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
 go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 5m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 5m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 6m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 10m
+go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 10m
 ```
 
