@@ -7,8 +7,6 @@
 | From above | Low side angle |
 | --- | --- |
 | ![Top face, tooth outline, and centered bore](images/top.png) | ![Tooth flanks and gear thickness from a low angle](images/low.png) |
-| Opposite side | From below |
-| ![Opposite upper angle of the gear](images/back.png) | ![Bottom face, bore, and underside of the teeth](images/bottom.png) |
 
 This item builds one straight-toothed involute gear. Its source is
 [instructions.md](instructions.md). The [steps](steps.md) map the contract to

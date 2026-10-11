@@ -13,8 +13,8 @@ go -C tools/render run . -model spurgear -shot hero -out ../../models/spurgear/i
 `-width` and `-height` override the preset's 1600 × 900 pixel size. Paths given
 to `-out` are relative to `tools/render`. The renderer writes a temporary PNG
 in the output directory and renames it after rendering succeeds.
-For other spur gear angles, use `-shot top`, `-shot low`, `-shot back`, or
-`-shot bottom` with the matching filename in `models/spurgear/images`.
+For other spur gear angles, use `-shot top` or `-shot low` with the matching
+filename in `models/spurgear/images`.
 
 Run `go -C tools/render test ./...` to build the actual spur gear and check that
 the output PNG contains it. Animation output can use the same model scene
