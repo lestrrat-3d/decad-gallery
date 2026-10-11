@@ -41,11 +41,12 @@ solid with a through-hole in the mesh.
 test checks the two shaft directions, each heel station, and verified meshes.
 `BuildToeCone` and `BuildHeelCone` revolve the exact conical cutting tools
 from the blank's toe-root corner and heel-cone line. Their tests check the
-apex stations, cone surfaces, far caps, and verified meshes. The final
-tooth-to-cone cut is still an upstream integration gap.
+apex stations, cone surfaces, far caps, and verified meshes. The ordered toe
+cut and heel trim now pass `VerifyAll` for 8/8 and spaced 16/12 teeth, retain
+cone and fitted flank faces, and select the larger heel piece.
 
-The conical tooth end trims, patterned join, final-body bore, and curved
-tooth branches still need integration. The current `Build` uses two full-gear
+The current `Build` still needs the verified trims, patterned join, final-body
+bore, and curved tooth branches. It uses two full-gear
 sections rather than the verified point tooth and blank, and rejects the
 unimplemented options. The Decad/Sketch handoff is in
 `../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.
