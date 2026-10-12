@@ -21,14 +21,17 @@ The verified +14.5° gear has no straight axial root seam, so its source
 fillet selection is empty. The hero image builds the 17-tooth gear with a
 3 mm bore and 0.1 mm outer-cap chamfers. The bore matches the spur hero's
 diameter on the same Module 1, 17-tooth outline.
-Use `spurgear.Build` for zero twist; this helical `Build` accepts nonzero
-twist angles.
+`Build` also accepts zero twist. The real 8-tooth zero-angle gear passes
+`VerifyAll` at 0.1 mm, both without finishing and with a 1 mm bore and
+0.1 mm outer-cap chamfers.
 
 The focused geometry checks run from the repository worktree:
 
 ```sh
 go test ./models/helicalgear -run '^TestSmallHelicalToothAndRootDiscVerifyIndividually$' -count=1 -timeout 2m
 go test ./models/helicalgear -run '^TestSmallRealHelicalGear$' -count=1 -timeout 2m
+go test ./models/helicalgear -run '^TestSmallRealZeroTwistHelicalGear$' -count=1 -timeout 2m
+go test ./models/helicalgear -run '^TestSmallRealZeroTwistHelicalGearWithBoreAndCapChamfer$' -count=1 -timeout 5m
 go test ./models/helicalgear -run '^TestSmallRealHelicalGearThroughBore$' -count=1 -timeout 2m
 go test ./models/helicalgear -run '^TestSmallRealHelicalGearWithCapChamfer$' -count=1 -timeout 5m
 go test ./models/helicalgear -run '^TestSmallRealHelicalGearWithBoreAndCapChamfer$' -count=1 -timeout 5m

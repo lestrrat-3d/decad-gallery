@@ -9,13 +9,42 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestZeroHelixRejectedBeforeAddingBodies(t *testing.T) {
+func TestSmallRealZeroTwistHelicalGear(t *testing.T) {
 	p := helicalgear.DefaultParams()
+	p.Teeth = 8
+	p.Samples = 5
+	p.Thickness = 2
 	p.HelixAngle = 0
 	doc := decad.New()
-	_, err := helicalgear.Build(t.Context(), doc, p)
-	require.ErrorContains(t, err, "use spurgear.Build")
-	require.Empty(t, doc.Bodies())
+	gear, err := helicalgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+}
+
+func TestSmallRealZeroTwistHelicalGearWithBoreAndCapChamfer(t *testing.T) {
+	p := helicalgear.DefaultParams()
+	p.Teeth = 8
+	p.Samples = 5
+	p.Thickness = 2
+	p.HelixAngle = 0
+	p.BoreDiameter = 1
+	p.CapChamfer = 0.1
+	doc := decad.New()
+	gear, err := helicalgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
 }
 
 func TestSmallRealHelicalGear(t *testing.T) {

@@ -14,10 +14,9 @@ Teeth, PressureAngle, Thickness, Samples, BoreDiameter, and CapChamfer. It
 adds `HelixAngle` in radians. The intended default is Module 1, 17 teeth,
 20° pressure angle, 10 mm thickness, 15 samples, and a +14.5° helix. A
 negative angle reverses the twist. The Fusion source does not impose a
-helix-angle range. This model supports finite, nonzero angles and lets the
-geometry operation report angles it cannot build. A zero angle has spur
-geometry; callers use `spurgear.Build` for that case. The source's helical
-zero-angle construction is outside this gallery's verified helical path.
+helix-angle range. This model accepts any finite angle and lets the geometry
+operation report angles it cannot build. At zero, the upper tooth section
+matches the lower one and the helical loft produces a straight tooth.
 
 The spur input checks reject nonpositive Module or Thickness, fewer than
 three teeth or samples, PressureAngle outside `(0, π/2)`, negative BoreDiameter
@@ -62,3 +61,5 @@ loops and `VerifyAll` against merged Decad `5f6f09763897` in 291.86
 seconds. The verified mesh keeps one through-hole. A gear with nonempty
 root-edge selection still needs a geometry check. The helical build uses
 the source's single-tooth loft and circular pattern.
+The real 8-tooth, 2 mm thick, zero-angle gear also passes `VerifyAll` at
+0.1 mm. Its 1 mm bore and 0.1 mm outer-cap chamfers pass the same check.
