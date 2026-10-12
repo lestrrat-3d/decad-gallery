@@ -164,7 +164,7 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 			return memberBuildPlan{}, err
 		}
 	} else if !supportedStraightBuild(p) {
-		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 8/8 and 16/12, or source-default 31/31 spiral")
+		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 4/4, 8/8, and 16/12, or source-default 31/31 spiral")
 	}
 	boreDiameter := 0.0
 	if p.EnableBore {
@@ -184,8 +184,11 @@ func supportedStraightBuild(p Params) bool {
 	if p.Module == 1 && p.Teeth == 8 && p.MateTeeth == 8 && p.Samples == 5 {
 		return true
 	}
-	return p.Module == 4 && p.Samples == 15 &&
-		((p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16))
+	if p.Module != 4 || p.Samples != 15 {
+		return false
+	}
+	return (p.Teeth == 4 && p.MateTeeth == 4) ||
+		(p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16)
 }
 
 func buildMember(ctx context.Context, doc *decad.Document, p Params,

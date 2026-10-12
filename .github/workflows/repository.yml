@@ -22,7 +22,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           go test -skip "$bevel_skip|$helical_skip" ./...
   bevel-assembly:
@@ -54,6 +54,10 @@ jobs:
             timeout: 5m
           - test: TestSourceSixteenTwelveStraightDrivingAutoBore
             timeout: 10m
+          - test: TestSourceFourFourStraightMember
+            timeout: 5m
+          - test: TestSourceFourFourStraightMemberAutoBore
+            timeout: 5m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:
@@ -80,6 +84,8 @@ jobs:
           - test: TestSourceSixteenTwelveStraightPair
             timeout: 15m
           - test: TestSourceSixteenTwelveStraightPairAutoBore
+            timeout: 18m
+          - test: TestSourceFourFourStraightPairAutoBore
             timeout: 18m
     name: bevel-straight-pair (${{ matrix.test }})
     runs-on: ubuntu-latest

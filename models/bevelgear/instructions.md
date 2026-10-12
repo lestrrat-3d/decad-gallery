@@ -6,7 +6,7 @@
 geometry, operation order, and defaults. Images in that repository are visual
 checks. The gallery `Build` constructs the source-default 31/31 spiral member
 through one Combine-Join and an optional post-join bore. It also constructs
-verified straight 8/8 and 16/12 members. `BuildPair` builds the pinion first and
+verified straight 4/4, 8/8, and 16/12 members. `BuildPair` builds the pinion first and
 then rotates the driving member by half a tooth pitch.
 The source enables the bore by default and resolves a zero diameter automatically.
 `DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
@@ -16,8 +16,8 @@ The source enables the bore by default and resolves a zero diameter automaticall
 `Build(ctx, doc, Params)` builds one member of a meshing bevel pair. The caller
 supplies its tooth count and the mate's tooth count; both members use the same
 module and shaft angle. Lengths are millimeters and angles are radians. A
-`BuildPair` constructs and places both members for the verified straight 8/8
-and 16/12 cases and the source-default spiral 31/31 case. Its pinion is built first, and both
+`BuildPair` constructs and places both members for the verified straight 4/4,
+8/8, and 16/12 cases and the source-default spiral 31/31 case. Its pinion is built first, and both
 members share the world origin as their pitch apex.
 
 | Input | Default | Rule |
@@ -67,6 +67,15 @@ seconds. The source 16/12 pair builds and places both bored members;
 each passes 0.1 mm `VerifyAll` with one through-hole. That full pair test
 takes 491.07 seconds under a 12-minute cap. Other tooth counts, spiral
 angles, and toe controls need their own real-body gates.
+
+The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
+and no optional offsets. Its virtual tooth count is 5.657, the smallest in
+the source's solid table. The unbored member passes the source-order tooth
+Combine-Join and 0.1 mm `VerifyAll` with merged Decad PR #1442. The
+automatically bored member passes the same geometry checks with merged
+Decad PR #1445 and has one through-hole. `BuildPair` places both bored
+members; each passes 0.1 mm `VerifyAll` with one through-hole. That full pair
+test takes 498.33 seconds locally under a 15-minute cap.
 
 ## Source-default pair target
 
