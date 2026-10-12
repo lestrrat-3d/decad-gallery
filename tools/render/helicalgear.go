@@ -12,7 +12,7 @@ import (
 
 func helicalGearHero(ctx context.Context) (solidlens.Scene, error) {
 	params := helicalgear.DefaultParams()
-	params.BoreDiameter = 1
+	params.BoreDiameter = 3
 	params.CapChamfer = 0.1
 	body, err := helicalgear.Build(ctx, decad.New(), params)
 	if err != nil {

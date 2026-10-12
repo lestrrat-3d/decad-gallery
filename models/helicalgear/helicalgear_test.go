@@ -125,7 +125,7 @@ func TestDefaultRealHelicalGearThroughBore(t *testing.T) {
 
 func TestDefaultRealHelicalGearWithBoreAndCapChamfer(t *testing.T) {
 	p := helicalgear.DefaultParams()
-	p.BoreDiameter = 1
+	p.BoreDiameter = 3
 	p.CapChamfer = 0.1
 	doc := decad.New()
 	gear, err := helicalgear.Build(t.Context(), doc, p)
