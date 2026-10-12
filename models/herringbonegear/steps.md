@@ -20,5 +20,4 @@ root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
 
 The source-order eight-tooth and default 17-tooth gears pass step 5 without a
 bore and with 1 mm and 3 mm bores, respectively. Both bored meshes have one
-through-hole. The separate outer-cap Chamfer repair has not yet passed the
-real bored-gear mesh check.
+through-hole. Both also pass with 0.1 mm outer-cap chamfers.

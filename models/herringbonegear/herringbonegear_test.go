@@ -115,6 +115,43 @@ func TestRealHerringboneGearThroughBore(t *testing.T) {
 	}
 }
 
+func TestSmallRealHerringboneGearWithBoreAndCapChamfer(t *testing.T) {
+	p := herringbonegear.DefaultParams()
+	p.Teeth = 8
+	p.Samples = 5
+	p.Thickness = 2
+	p.BoreDiameter = 1
+	p.CapChamfer = 0.1
+	doc := decad.New()
+	gear, err := herringbonegear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 0, meshEuler(mesh), "the chamfered gear has one through-bore")
+}
+
+func TestDefaultRealHerringboneGearWithBoreAndCapChamfer(t *testing.T) {
+	p := herringbonegear.DefaultParams()
+	p.BoreDiameter = 3
+	p.CapChamfer = 0.1
+	doc := decad.New()
+	gear, err := herringbonegear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+	require.Equal(t, 0, meshEuler(mesh), "the chamfered gear has one through-bore")
+}
+
 func meshEuler(mesh *decad.Mesh) int {
 	edges := make(map[[2]int]struct{})
 	triangles := mesh.Triangles()
