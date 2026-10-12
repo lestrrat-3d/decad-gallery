@@ -17,7 +17,7 @@ negative angle reverses the twist. The Fusion source does not impose a
 helix-angle range. This model supports finite, nonzero angles and lets the
 geometry operation report angles it cannot build. A zero angle has spur
 geometry; callers use `spurgear.Build` for that case. The source's helical
-zero-angle fillet sequence awaits Decad support for joined root seams.
+zero-angle construction is outside this gallery's verified helical path.
 
 The spur input checks reject nonpositive Module or Thickness, fewer than
 three teeth or samples, PressureAngle outside `(0, π/2)`, negative BoreDiameter

@@ -17,10 +17,11 @@ passes the source-order Cut and `VerifyAll` against merged Decad
 With merged Decad `5f6f09763897`, the same default gear also passes both
 0.1 mm outer-cap chamfers and `VerifyAll` in 291.86 seconds while keeping
 that through-hole.
-A real nonempty root-fillet case is pending. The hero image builds the
-17-tooth gear with a 1 mm bore and 0.1 mm outer-cap chamfers.
+The verified +14.5° gear has no straight axial root seam, so its source
+fillet selection is empty. The hero image builds the 17-tooth gear with a
+1 mm bore and 0.1 mm outer-cap chamfers.
 Use `spurgear.Build` for zero twist; this helical `Build` accepts nonzero
-twist angles while Decad's joined-root Fillet support is being completed.
+twist angles.
 
 The focused geometry checks run from the repository worktree:
 
