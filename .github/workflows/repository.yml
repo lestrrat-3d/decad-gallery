@@ -8,12 +8,14 @@ on:
 
 jobs:
   structure:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Check repository layout
         run: python3 scripts/check_repository.py
   models:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +29,7 @@ jobs:
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           go test -skip "$bevel_skip|$helical_skip|$herringbone_skip" ./...
   bevel-assembly:
+    if: github.event_name != 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +60,7 @@ jobs:
       - name: Check real bevel assembly
         run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   bevel-pair:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +70,7 @@ jobs:
       - name: Check source-default bevel pair
         run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
   bevel-straight-pair:
+    if: github.event_name != 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +91,7 @@ jobs:
       - name: Check straight bevel pair
         run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   helical-assembly:
+    if: github.event_name != 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -116,6 +122,7 @@ jobs:
       - name: Check real helical assembly
         run: go test ./models/helicalgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   render:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,6 +132,7 @@ jobs:
       - name: Check model rendering
         run: go -C tools/render test -skip '^Test(BevelGearHero|HelicalGearHero|HerringboneGearHero)$' ./...
   herringbone-cap-chamfer:
+    if: github.event_name != 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -143,6 +151,7 @@ jobs:
       - name: Check real herringbone cap chamfers
         run: go test ./models/herringbonegear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   bevel-render:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -152,6 +161,7 @@ jobs:
       - name: Check real bevel rendering
         run: go -C tools/render test -run '^TestBevelGearHero$' -timeout 15m ./...
   helical-render:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +171,7 @@ jobs:
       - name: Check real helical rendering
         run: go -C tools/render test -run '^TestHelicalGearHero$' -timeout 10m ./...
   herringbone-render:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -169,3 +180,40 @@ jobs:
           go-version-file: tools/render/go.mod
       - name: Check real herringbone rendering
         run: go -C tools/render test -run '^TestHerringboneGearHero$' -timeout 10m ./...
+  bevel-first-union-diagnostic:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: golang:1.26.8-bookworm
+      options: --memory=4g --memory-swap=4g
+    env:
+      DECAD_SHA: pending
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install process time reporter
+        run: apt-get update && apt-get install -y --no-install-recommends time
+      - name: Check candidate and run first curved Union
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f /sys/fs/cgroup/memory.max ]]; then
+            memory_limit=$(cat /sys/fs/cgroup/memory.max)
+            swap_limit=$(cat /sys/fs/cgroup/memory.swap.max)
+            memory_peak=/sys/fs/cgroup/memory.peak
+            test "$swap_limit" = 0
+          else
+            memory_limit=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+            swap_limit=$(cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes)
+            memory_peak=/sys/fs/cgroup/memory/memory.max_usage_in_bytes
+            test "$swap_limit" = 4294967296
+          fi
+          test "$memory_limit" = 4294967296
+          trap 'printf "cgroup peak bytes: "; cat "$memory_peak"' EXIT
+          [[ "$DECAD_SHA" =~ ^[[:xdigit:]]{40}$ ]]
+          pinned=$(go list -m -f '{{.Version}}' github.com/lestrrat-3d/decad)
+          candidate=$(go list -m -f '{{.Version}}' "github.com/lestrrat-3d/decad@$DECAD_SHA")
+          test "$pinned" = "$candidate"
+          printf 'Decad candidate: %s (%s)\n' "$DECAD_SHA" "$pinned"
+          /usr/bin/time -v timeout 870s go test ./models/bevelgear \
+            -run '^TestSourceDefaultSpiralFirstToothJoin/driving$' -count=1 -timeout 860s
