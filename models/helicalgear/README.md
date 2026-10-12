@@ -40,7 +40,7 @@ go test ./models/helicalgear -run '^TestDefaultRealHelicalGearThroughBore$' -cou
 go test ./models/helicalgear -run '^TestDefaultRealHelicalGearWithBoreAndCapChamfer$' -count=1 -timeout 10m
 ```
 
-All five small-gear checks pass against merged Decad `dc2d041f1523`. The cap Chamfer
+The five +14.5° small-gear checks pass against merged Decad `dc2d041f1523`. Their cap Chamfer
 checks take about 218 seconds without a bore and 214 seconds with a bore.
 The source-default 17-tooth build, 3 mm bore, and both outer-cap chamfers
 pass against their merged Decad releases. A nonempty root fillet still
