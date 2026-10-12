@@ -247,7 +247,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 		if err != nil {
 			return nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
 		}
-		pattern[i], err = trimmedTooth.PlacedCopy(ctx, turn)
+		pattern[i], err = decad.Copy(ctx, trimmedTooth, decad.WithCopyPlacement(turn))
 		if err != nil {
 			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
 		}

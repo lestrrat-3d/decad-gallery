@@ -41,7 +41,7 @@ func twistSpiralSlabs(ctx context.Context, slabs []*decad.Body,
 		if err != nil {
 			return nil, fmt.Errorf("rotate spiral slab %d: %w", i, err)
 		}
-		placed, err := slab.Placed(ctx, turn)
+		placed, err := decad.Transform(ctx, slab, turn)
 		if err != nil {
 			return nil, fmt.Errorf("place spiral slab %d: %w", i, err)
 		}
