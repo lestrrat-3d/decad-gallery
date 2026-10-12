@@ -41,22 +41,15 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	blank, err := buildRootDisc(ctx, doc, world, p)
+	return Assemble(ctx, doc, p, tooth)
+}
+
+// Assemble joins a completed tooth around a full-thickness root disc and applies
+// the inherited finishing operations. ctx, doc, and tooth must not be nil.
+func Assemble(ctx context.Context, doc *decad.Document, p Params, tooth *decad.Body) (*decad.Body, error) {
+	blank, pattern, err := PreparePattern(ctx, doc, p, tooth)
 	if err != nil {
-		return nil, fmt.Errorf("build root disc: %w", err)
-	}
-	pattern := make([]*decad.Body, p.Teeth)
-	pattern[0] = tooth
-	for i := 1; i < p.Teeth; i++ {
-		turn, err := r3.Rotation(r3.NewVec(0, 0, 1),
-			units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
-		if err != nil {
-			return nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
-		}
-		pattern[i], err = tooth.PlacedCopy(ctx, turn)
-		if err != nil {
-			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
-		}
+		return nil, err
 	}
 	gear := blank
 	for i, instance := range pattern {
@@ -65,7 +58,46 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 			return nil, fmt.Errorf("join tooth %d: %w", i+1, err)
 		}
 	}
-	gear, err = filletRootEdges(ctx, gear, p)
+	return FinishAssembly(ctx, doc, p, gear)
+}
+
+// PreparePattern makes the full-thickness root disc and circular tooth pattern.
+// ctx, doc, and tooth must not be nil. The caller joins the pattern to the disc.
+func PreparePattern(ctx context.Context, doc *decad.Document, p Params, tooth *decad.Body) (*decad.Body, []*decad.Body, error) {
+	if ctx == nil || doc == nil || tooth == nil {
+		return nil, nil, fmt.Errorf("context, document, and tooth must not be nil")
+	}
+	if p.Teeth < 1 {
+		return nil, nil, fmt.Errorf("tooth count must be positive")
+	}
+	world := sketch.NewWorld()
+	blank, err := buildRootDisc(ctx, doc, world, p)
+	if err != nil {
+		return nil, nil, fmt.Errorf("build root disc: %w", err)
+	}
+	pattern := make([]*decad.Body, p.Teeth)
+	pattern[0] = tooth
+	for i := 1; i < p.Teeth; i++ {
+		turn, err := r3.Rotation(r3.NewVec(0, 0, 1),
+			units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
+		if err != nil {
+			return nil, nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
+		}
+		pattern[i], err = tooth.PlacedCopy(ctx, turn)
+		if err != nil {
+			return nil, nil, fmt.Errorf("place tooth %d: %w", i+1, err)
+		}
+	}
+	return blank, pattern, nil
+}
+
+// FinishAssembly applies the inherited root fillet, optional bore, and cap chamfer
+// to a joined gear. ctx, doc, and gear must not be nil.
+func FinishAssembly(ctx context.Context, doc *decad.Document, p Params, gear *decad.Body) (*decad.Body, error) {
+	if ctx == nil || doc == nil || gear == nil {
+		return nil, fmt.Errorf("context, document, and gear must not be nil")
+	}
+	gear, err := filletRootEdges(ctx, gear, p)
 	if err != nil {
 		return nil, err
 	}

@@ -253,7 +253,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 		}
 	}
 	if p.Teeth != 8 {
-		joined, err := decad.CombineJoin(ctx, blank, pattern...)
+		joined, err := decad.Union(ctx, blank, pattern...)
 		if err != nil {
 			return nil, fmt.Errorf("join straight tooth pattern: %w", err)
 		}

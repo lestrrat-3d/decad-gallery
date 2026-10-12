@@ -27,7 +27,7 @@ func buildSpiralMember(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, err
 	}
-	joined, err := decad.CombineJoin(ctx, blank, pattern...)
+	joined, err := decad.Union(ctx, blank, pattern...)
 	if err != nil {
 		return nil, fmt.Errorf("join spiral tooth pattern: %w", err)
 	}

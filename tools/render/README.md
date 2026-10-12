@@ -16,6 +16,13 @@ Regenerate the helical gear hero from the verified 17-tooth model with:
 go -C tools/render run . -model helicalgear -shot hero -out ../../models/helicalgear/images/hero.png
 ```
 
+Regenerate the herringbone gear hero from its verified 17-tooth model with a
+3 mm bore and no cap chamfer:
+
+```sh
+go -C tools/render run . -model herringbonegear -shot hero -out ../../models/herringbonegear/images/hero.png
+```
+
 `-width` and `-height` override the preset's 1600 × 900 pixel size. Paths given
 to `-out` are relative to `tools/render`. The renderer writes a temporary PNG
 in the output directory and renames it after rendering succeeds.
