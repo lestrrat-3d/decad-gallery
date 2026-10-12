@@ -13,7 +13,7 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Params adds a signed top-section twist to the spur gear dimensions.
+// Params adds a top-section twist to the spur gear dimensions.
 // Angles are radians and lengths are millimeters.
 type Params struct {
 	spurgear.Params
@@ -25,16 +25,28 @@ func DefaultParams() Params {
 	return Params{Params: spurgear.DefaultParams(), HelixAngle: 14.5 * math.Pi / 180}
 }
 
+// ValidateHelixAngle accepts a positive twist from 1 through 45 degrees.
+// The angle is in radians.
+func ValidateHelixAngle(angle float64) error {
+	if math.IsNaN(angle) || math.IsInf(angle, 0) {
+		return fmt.Errorf("helix angle must be finite")
+	}
+	if angle == 0 {
+		return fmt.Errorf("zero helix angle is a spur gear; use spurgear.Build")
+	}
+	if angle < math.Pi/180 || angle > math.Pi/4 {
+		return fmt.Errorf("helix angle must be from 1 to 45 degrees")
+	}
+	return nil
+}
+
 // Build adds a helical gear to doc. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
-	if math.IsNaN(p.HelixAngle) || math.IsInf(p.HelixAngle, 0) {
-		return nil, fmt.Errorf("helix angle must be finite")
-	}
-	if p.HelixAngle == 0 {
-		return nil, fmt.Errorf("zero helix angle is a spur gear; use spurgear.Build")
+	if err := ValidateHelixAngle(p.HelixAngle); err != nil {
+		return nil, err
 	}
 	world := sketch.NewWorld()
 	tooth, err := buildTooth(ctx, doc, world, p)

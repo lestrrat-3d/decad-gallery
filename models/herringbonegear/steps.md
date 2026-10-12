@@ -3,8 +3,9 @@
 These steps implement [instructions.md](instructions.md). The tooth section,
 root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
 
-1. Create Sketch tooth profiles on z=0 and z=`Thickness / 2`. Rotate the middle
-   profile by the signed `HelixAngle` while drawing it.
+1. Reject a `HelixAngle` outside +1°–+45°. Create Sketch tooth profiles on
+   z=0 and z=`Thickness / 2`. Rotate the middle profile by `HelixAngle` while
+   drawing it.
 2. Call `Document.Loft` on the two solved profiles. Use `MirroredCopy` across
    the middle Sketch plane, then `Union` the halves. Check that the joined
    tooth is one solid with a closed verified mesh.

@@ -1,16 +1,16 @@
 # Helical gear Decad construction steps
 
 These steps implement [instructions.md](instructions.md). Lengths are
-millimeters, and `HelixAngle` is a signed angle in radians.
+millimeters, and `HelixAngle` is a positive angle in radians.
 
-1. Validate the inherited spur inputs and a finite helix angle. Derive the
+1. Validate the inherited spur inputs and a finite 1°–45° helix angle. Derive the
    spur pitch, base, root, and tip radii. Reject a tooth whose base circle
    lies inside its root circle; this loft uses the ordinary tooth profile.
 2. Draw one closed six-curve tooth profile on the z=0 Sketch plane. Use the
    spur tooth sampler's fitted involute flanks, tip and root arcs, and radial
    flank-to-root lines.
 3. Draw the same profile on the plane at z=`Thickness`, rotating every point
-   by the signed `HelixAngle`. Loft the lower Sketch profile to the upper
+   by `HelixAngle`. Loft the lower Sketch profile to the upper
    one to create one twisted tooth solid.
 4. Draw the root-circle region on the lower plane and extrude it through
    `Thickness`. Copy the twisted tooth around the shaft at tooth-pitch

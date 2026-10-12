@@ -4,7 +4,6 @@ package herringbonegear
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/helicalgear"
@@ -13,7 +12,7 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Params uses the same dimensions and signed helix angle as a helical gear.
+// Params uses the same dimensions and helix angle as a helical gear.
 type Params = helicalgear.Params
 
 // DefaultParams returns the inherited spur dimensions and 14.5-degree twist.
@@ -42,8 +41,8 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
-	if math.IsNaN(p.HelixAngle) || math.IsInf(p.HelixAngle, 0) {
-		return nil, fmt.Errorf("helix angle must be finite")
+	if err := helicalgear.ValidateHelixAngle(p.HelixAngle); err != nil {
+		return nil, err
 	}
 	world := sketch.NewWorld()
 	midpoint := p.Thickness / 2
