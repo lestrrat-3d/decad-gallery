@@ -1,5 +1,11 @@
 # Models
 
+| Model | Image | Description |
+| --- | --- | --- |
+| [Spur gear](spurgear/README.md) | <img src="spurgear/images/hero.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. |
+| [Helical gear](helicalgear/README.md) | <img src="helicalgear/images/hero.png" alt="Bored helical gear" width="240"> | An involute gear with teeth twisted along its axis. |
+| [Bevel gear pair](bevelgear/README.md) | <img src="bevelgear/images/hero.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. |
+
 Put each shape, pattern, or assembly in `models/<name>/`. Give each item a
 `README.md` that names its inputs, build command, output, geometry checks,
 and any other items it uses. Keep `instructions.md`, `steps.md`, Decad Go
