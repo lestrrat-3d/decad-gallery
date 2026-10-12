@@ -41,10 +41,23 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 		return GearPair{}, fmt.Errorf("build pinion: %w", err)
 	}
 	var driving *decad.Body
-	if !drivingPlan.spiral && p == pinionParams {
-		driving, err = pinion.Duplicate(ctx)
-		if err != nil {
-			return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
+	if p == pinionParams {
+		if drivingPlan.spiral {
+			// The equal members share a symmetric tooth profile, blank, trims, and bore.
+			// Reflecting across the shaft's XY plane reverses the spiral hand.
+			plane, frameErr := r3.NewFrame(r3.Vec{}, r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+			if frameErr != nil {
+				return GearPair{}, fmt.Errorf("create spiral mirror plane: %w", frameErr)
+			}
+			driving, err = pinion.MirroredCopy(ctx, decad.MirrorFrame{Frame: plane})
+			if err != nil {
+				return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
+			}
+		} else {
+			driving, err = pinion.Duplicate(ctx)
+			if err != nil {
+				return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
+			}
 		}
 	}
 	pinionTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
