@@ -36,15 +36,22 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("validate pinion: %w", err)
 	}
-	pinion, err := buildMember(ctx, doc, pinionParams, pinionPlan, true)
-	if err != nil {
-		return GearPair{}, fmt.Errorf("build pinion: %w", err)
-	}
-	var driving *decad.Body
-	if !drivingPlan.spiral && p == pinionParams {
-		driving, err = pinion.Duplicate(ctx)
+	var pinion, driving *decad.Body
+	if drivingPlan.spiral && p == pinionParams {
+		pinion, driving, err = buildMatchedSpiralMembers(ctx, doc, p, pinionPlan)
 		if err != nil {
-			return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
+			return GearPair{}, fmt.Errorf("build matched spiral pair: %w", err)
+		}
+	} else {
+		pinion, err = buildMember(ctx, doc, pinionParams, pinionPlan, true)
+		if err != nil {
+			return GearPair{}, fmt.Errorf("build pinion: %w", err)
+		}
+		if !drivingPlan.spiral && p == pinionParams {
+			driving, err = pinion.Duplicate(ctx)
+			if err != nil {
+				return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
+			}
 		}
 	}
 	pinionTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
