@@ -67,11 +67,6 @@ func bevelGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Scen
 		models = append(models, solidlens.Model{
 			Mesh:     mesh,
 			Material: solidlens.Matte(solidlens.RGB(0.17, 0.42, 0.6)),
-			Edges: solidlens.Edges{
-				Enabled: true,
-				Color:   solidlens.RGB(0.025, 0.07, 0.11),
-				Width:   1.5,
-			},
 		})
 	}
 	return solidlens.Scene{

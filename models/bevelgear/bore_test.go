@@ -120,6 +120,30 @@ func meshEuler(mesh *decad.Mesh) int {
 	return len(mesh.Vertices()) - len(edges) + len(triangles)
 }
 
+func meshComponents(mesh *decad.Mesh) int {
+	parent := make([]int, len(mesh.Vertices()))
+	for i := range parent {
+		parent[i] = i
+	}
+	root := func(i int) int {
+		for parent[i] != i {
+			parent[i] = parent[parent[i]]
+			i = parent[i]
+		}
+		return i
+	}
+	for _, triangle := range mesh.Triangles() {
+		first := root(triangle[0])
+		parent[root(triangle[1])] = first
+		parent[root(triangle[2])] = first
+	}
+	components := make(map[int]struct{})
+	for i := range parent {
+		components[root(i)] = struct{}{}
+	}
+	return len(components)
+}
+
 func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth = 8, 8
@@ -179,6 +203,7 @@ func TestSourceDefaultSpiralPair(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, mesh.BoundaryVerified())
 			require.True(t, mesh.VolumeVerified())
+			require.Equal(t, 1, meshComponents(mesh), "teeth and blank share one connected mesh")
 			require.Equal(t, 0, meshEuler(mesh), "each member has a through-bore")
 		})
 	}
