@@ -33,6 +33,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if math.IsNaN(p.HelixAngle) || math.IsInf(p.HelixAngle, 0) {
 		return nil, fmt.Errorf("helix angle must be finite")
 	}
+	if p.HelixAngle == 0 {
+		return nil, fmt.Errorf("zero helix angle is a spur gear; use spurgear.Build")
+	}
 	world := sketch.NewWorld()
 	tooth, err := buildTooth(ctx, doc, world, p)
 	if err != nil {

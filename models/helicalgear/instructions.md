@@ -14,8 +14,10 @@ Teeth, PressureAngle, Thickness, Samples, BoreDiameter, and CapChamfer. It
 adds `HelixAngle` in radians. The intended default is Module 1, 17 teeth,
 20° pressure angle, 10 mm thickness, 15 samples, and a +14.5° helix. A
 negative angle reverses the twist. The Fusion source does not impose a
-helix-angle range, so this model rejects only non-finite angles and lets
-the geometry operation report angles it cannot build.
+helix-angle range. This model supports finite, nonzero angles and lets the
+geometry operation report angles it cannot build. A zero angle has spur
+geometry; callers use `spurgear.Build` for that case. The source's helical
+zero-angle fillet sequence awaits Decad support for joined root seams.
 
 The spur input checks reject nonpositive Module or Thickness, fewer than
 three teeth or samples, PressureAngle outside `(0, π/2)`, negative BoreDiameter

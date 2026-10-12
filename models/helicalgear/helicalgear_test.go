@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestZeroHelixRejectedBeforeAddingBodies(t *testing.T) {
+	p := helicalgear.DefaultParams()
+	p.HelixAngle = 0
+	doc := decad.New()
+	_, err := helicalgear.Build(t.Context(), doc, p)
+	require.ErrorContains(t, err, "use spurgear.Build")
+	require.Empty(t, doc.Bodies())
+}
+
 func TestSmallRealHelicalGear(t *testing.T) {
 	p := helicalgear.DefaultParams()
 	p.Teeth = 8
