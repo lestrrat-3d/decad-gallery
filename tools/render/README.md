@@ -17,7 +17,7 @@ go -C tools/render run . -model helicalgear -shot hero -out ../../models/helical
 ```
 
 Regenerate the herringbone gear hero from its verified 17-tooth model with a
-3 mm bore and no cap chamfer:
+3 mm bore and 0.1 mm outer-cap chamfers:
 
 ```sh
 go -C tools/render run . -model herringbonegear -shot hero -out ../../models/herringbonegear/images/hero.png

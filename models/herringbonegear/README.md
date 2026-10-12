@@ -13,9 +13,9 @@ order. The [steps](steps.md) map them to Sketch and Decad.
 The real eight-tooth, 2 mm thick, +14.5° gear and the source-default 17-tooth
 gear pass `Tessellate(0.1 mm, VerifyAll)` with one source-order variadic `Union`.
 The real eight-tooth gear with a 1 mm bore and the default 17-tooth gear with a
-3 mm bore also pass `VerifyAll`; both meshes have one through-hole. The hero
-renders the default 17-tooth gear with a 3 mm bore and no cap chamfer. Decad's
-approved outer-cap Chamfer repair is still under review.
+3 mm bore also pass `VerifyAll`; both meshes have one through-hole. The same
+bored gears pass with 0.1 mm outer-cap chamfers. The hero renders the default
+17-tooth gear with its 3 mm bore and 0.1 mm cap chamfers.
 
 The mirrored tooth alone passes `VerifyAll` for signed 14.5°, 35°, and 90°
 angles. Its full-height bounds and midpoint centroid check the chevron symmetry.

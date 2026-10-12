@@ -24,7 +24,8 @@ jobs:
         run: |
           bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
-          go test -skip "$bevel_skip|$helical_skip" ./...
+          herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
+          go test -skip "$bevel_skip|$helical_skip|$herringbone_skip" ./...
   bevel-assembly:
     strategy:
       fail-fast: false
@@ -123,6 +124,24 @@ jobs:
           go-version-file: tools/render/go.mod
       - name: Check model rendering
         run: go -C tools/render test -skip '^Test(BevelGearHero|HelicalGearHero|HerringboneGearHero)$' ./...
+  herringbone-cap-chamfer:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test: TestSmallRealHerringboneGearWithBoreAndCapChamfer
+            timeout: 3m
+          - test: TestDefaultRealHerringboneGearWithBoreAndCapChamfer
+            timeout: 10m
+    name: herringbone-cap-chamfer (${{ matrix.test }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check real herringbone cap chamfers
+        run: go test ./models/herringbonegear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   bevel-render:
     runs-on: ubuntu-latest
     steps:
@@ -149,4 +168,4 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check real herringbone rendering
-        run: go -C tools/render test -run '^TestHerringboneGearHero$' -timeout 5m ./...
+        run: go -C tools/render test -run '^TestHerringboneGearHero$' -timeout 10m ./...

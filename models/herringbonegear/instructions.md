@@ -44,6 +44,6 @@ The joined tooth alone passes the same mesh check for signed 14.5°, 35°, and
 90° angles. Its bounds span the full thickness and its centroid lies at the
 mirror plane.
 The same small gear with a 1 mm through-bore and the default gear with a 3 mm
-through-bore pass `VerifyAll` on merged Decad `6ab45eb70643`. Their mesh Euler
-characteristic is zero. The separate approved outer-cap Chamfer repair has not
-passed `VerifyAll` on the bored gear yet.
+through-bore pass `VerifyAll`. Their mesh Euler characteristic is zero. Both
+gears also pass `VerifyAll` and retain Euler characteristic zero with 0.1 mm
+outer-cap chamfers on merged Decad `9dee32fbe599`.

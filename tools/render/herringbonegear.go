@@ -13,6 +13,7 @@ import (
 func herringboneGearHero(ctx context.Context) (solidlens.Scene, error) {
 	params := herringbonegear.DefaultParams()
 	params.BoreDiameter = 3
+	params.CapChamfer = 0.1
 	body, err := herringbonegear.Build(ctx, decad.New(), params)
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build herringbone gear: %w", err)
