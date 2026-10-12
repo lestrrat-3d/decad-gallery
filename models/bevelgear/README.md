@@ -2,7 +2,7 @@
 
 The hero image renders the source-default 31/31 spiral pair. Each member has a
 revolved blank, one curved tooth trimmed at the toe and heel, 31 patterned
-teeth joined to the blank in one Combine-Join, and a 7.75 mm through-bore
+teeth joined to the blank in one variadic `decad.Union`, and a 7.75 mm through-bore
 cut after the join. The pinion and driving member share a pitch apex and
 follow the source's meshing rotations. The construction rules come from
 `fusion360-gear-generator/spec/bevelgear/instructions.md`.
@@ -43,7 +43,7 @@ The tests check a closed outer shell before the bore, two placed solids with
 through-holes afterward, and `VerifyAll` for each member. The pair tests check
 both 16/12 members without rebuilding them in separate member tests. Those
 members use Module 4, a 90° shaft angle, 15 flank samples, and the source-order tooth
-Combine-Join before each optional bore. The 4/4 case checks the smallest
+variadic `decad.Union` before each optional bore. The 4/4 case checks the smallest
 virtual tooth count in the source's solid table and both automatic bores. The
 [renderer](../../tools/render/README.md) builds the source-default pair for the hero image
 and checks the PNG in its integration test.

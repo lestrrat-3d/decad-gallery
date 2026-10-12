@@ -1,13 +1,7 @@
-github.com/lestrrat-3d/decad v0.0.0-20261012024907-3f58520a8507 h1:QIWqvYGSYvZx+LrcfqRw5MlDRaNN08M/hkHzPQwBoNY=
-github.com/lestrrat-3d/decad v0.0.0-20261012024907-3f58520a8507/go.mod h1:UMtKGVrIcQWeyurkZt9YGxzAuBD1jb19LfJJRxxerA4=
-github.com/lestrrat-3d/decad v0.0.0-20261012053441-cddb5599d511 h1:bPfxPGOB0uxu3Z4PUJ3UScTTSrSdWu6guaH7d9vnRVI=
-github.com/lestrrat-3d/decad v0.0.0-20261012053441-cddb5599d511/go.mod h1:UMtKGVrIcQWeyurkZt9YGxzAuBD1jb19LfJJRxxerA4=
-github.com/lestrrat-3d/decad v0.0.0-20261012055708-fefdddba82a5 h1:AWSueREKSIQyGZQ451vHaI1EpWB1r8AKCN/pEdr4+2c=
-github.com/lestrrat-3d/decad v0.0.0-20261012055708-fefdddba82a5/go.mod h1:zldeIP0Gq9gGdJHgNT6wMx0ME7V44EWNR3rxwlR8dy0=
+github.com/lestrrat-3d/decad v0.0.0-20261012081654-6163471c36e1 h1:BYP4NwsDtHXwtwBx5CaN/upD9IBApD7eHIhs+657qHA=
+github.com/lestrrat-3d/decad v0.0.0-20261012081654-6163471c36e1/go.mod h1:zldeIP0Gq9gGdJHgNT6wMx0ME7V44EWNR3rxwlR8dy0=
 github.com/lestrrat-3d/r3 v0.0.0-20261005214828-6011e4189399 h1:qWnfw9VztJPd6Zga5jnOhWXbFDguye8b7RGed7Xvvps=
 github.com/lestrrat-3d/r3 v0.0.0-20261005214828-6011e4189399/go.mod h1:4ZWWwLiR9tf6tOORKYM95+OXLMbdAmHywWdUYsDJfYc=
-github.com/lestrrat-3d/sketch v0.0.0-20261012022919-9e28382e0fa8 h1:48EgH2xZNWTvgCGfP8WbHi0WU6ghZgyXBs2v8O1dORg=
-github.com/lestrrat-3d/sketch v0.0.0-20261012022919-9e28382e0fa8/go.mod h1:yU8fsrfp5gVwwjxD96OCgw/2R25SW4Smuz+U7iBWzT0=
 github.com/lestrrat-3d/sketch v0.0.0-20261012025325-42050c81d30d h1:MbRGmHmVRObMR2/+OMjAL+RmJ6Q4j+hZRmYMjDWZGAE=
 github.com/lestrrat-3d/sketch v0.0.0-20261012025325-42050c81d30d/go.mod h1:yU8fsrfp5gVwwjxD96OCgw/2R25SW4Smuz+U7iBWzT0=
 github.com/lestrrat-3d/solidlens v0.0.0-20261005044356-f626e847eb51 h1:dWnM4czCR3HYrVlUMeoqmVGhZSWwyd1kLrBbVLa50S8=
