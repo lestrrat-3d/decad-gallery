@@ -196,7 +196,7 @@ func BuildBlankPair(ctx context.Context, doc *decad.Document, p Params) (BlankPa
 	if err != nil {
 		return BlankPair{}, fmt.Errorf("build pinion blank: %w", err)
 	}
-	pinion, err = pinion.Placed(ctx, turn)
+	pinion, err = decad.Transform(ctx, pinion, turn)
 	if err != nil {
 		return BlankPair{}, fmt.Errorf("place pinion blank: %w", err)
 	}

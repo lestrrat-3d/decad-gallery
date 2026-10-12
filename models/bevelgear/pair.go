@@ -64,7 +64,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("rotate pinion shaft: %w", err)
 	}
-	pinion, err = pinion.Placed(ctx, pinionTurn)
+	pinion, err = decad.Transform(ctx, pinion, pinionTurn)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}
@@ -78,7 +78,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("rotate driving gear by half a tooth pitch: %w", err)
 	}
-	driving, err = driving.Placed(ctx, drivingTurn)
+	driving, err = decad.Transform(ctx, driving, drivingTurn)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
 	}
