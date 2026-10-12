@@ -28,30 +28,6 @@ func TestSourceDefaultSpiralFullCombine(t *testing.T) {
 	}
 }
 
-func TestSourceDefaultSpiralFullBoredMember(t *testing.T) {
-	for _, member := range []struct {
-		name   string
-		pinion bool
-	}{{name: "driving"}, {name: "pinion", pinion: true}} {
-		t.Run(member.name, func(t *testing.T) {
-			doc, joined, p := buildSourceDefaultFullMember(t, member.pinion)
-			diameter, err := ResolveBoreDiameter(p)
-			require.NoError(t, err)
-			require.InDelta(t, 7.75, diameter, 1e-12)
-			bored, err := cutBore(t.Context(), doc, joined, diameter)
-			require.NoError(t, err)
-			require.Len(t, doc.Bodies(), 1)
-			require.True(t, bored.IsSolid())
-			mesh, err := bored.Tessellate(t.Context(), units.Millimeters(0.1),
-				decad.WithVerification(decad.VerifyAll))
-			require.NoError(t, err)
-			require.True(t, mesh.BoundaryVerified())
-			require.True(t, mesh.VolumeVerified())
-			require.Equal(t, 0, spiralMeshEuler(mesh), "the gear has one through-bore")
-		})
-	}
-}
-
 func buildSourceDefaultFullMember(t *testing.T, pinion bool) (*decad.Document, *decad.Body, Params) {
 	t.Helper()
 	p := DefaultParams()

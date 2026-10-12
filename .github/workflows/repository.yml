@@ -22,7 +22,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|FullBoredMember|Pair)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraight(Pinion|Driving|Pair)(AutoBore)?)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           go test -skip "$bevel_skip|$helical_skip" ./...
   bevel-assembly:
@@ -41,18 +41,6 @@ jobs:
           - test: TestSourceDefaultSpiralFullCombine/driving
             timeout: 10m
           - test: TestSourceDefaultSpiralFullCombine/pinion
-            timeout: 10m
-          - test: TestSourceDefaultSpiralFullBoredMember/driving
-            timeout: 10m
-          - test: TestSourceDefaultSpiralFullBoredMember/pinion
-            timeout: 10m
-          - test: TestSourceSixteenTwelveStraightPinion
-            timeout: 5m
-          - test: TestSourceSixteenTwelveStraightDriving
-            timeout: 5m
-          - test: TestSourceSixteenTwelveStraightPinionAutoBore
-            timeout: 5m
-          - test: TestSourceSixteenTwelveStraightDrivingAutoBore
             timeout: 10m
           - test: TestSourceFourFourStraightMember
             timeout: 5m

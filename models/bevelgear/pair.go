@@ -28,7 +28,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	pinionParams.BoreDiameter, pinionParams.MateBoreDiameter = p.MateBoreDiameter, p.BoreDiameter
 
 	// Validate both members before adding either body to the document.
-	_, err := prepareBuild(p)
+	drivingPlan, err := prepareBuild(p)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("validate driving gear: %w", err)
 	}
@@ -40,6 +40,13 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("build pinion: %w", err)
 	}
+	var driving *decad.Body
+	if !drivingPlan.spiral && p == pinionParams {
+		driving, err = pinion.Duplicate(ctx)
+		if err != nil {
+			return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
+		}
+	}
 	pinionTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
 	if err != nil {
 		return GearPair{}, fmt.Errorf("rotate pinion shaft: %w", err)
@@ -48,9 +55,11 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}
-	driving, err := Build(ctx, doc, p)
-	if err != nil {
-		return GearPair{}, fmt.Errorf("build driving gear: %w", err)
+	if driving == nil {
+		driving, err = buildMember(ctx, doc, p, drivingPlan, false)
+		if err != nil {
+			return GearPair{}, fmt.Errorf("build driving gear: %w", err)
+		}
 	}
 	drivingTurn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(math.Pi/float64(p.Teeth)))
 	if err != nil {

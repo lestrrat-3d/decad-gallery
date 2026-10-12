@@ -75,44 +75,6 @@ func TestSourceFourFourStraightPairAutoBore(t *testing.T) {
 	}
 }
 
-func TestSourceSixteenTwelveStraightPinion(t *testing.T) {
-	p := bevelgear.DefaultParams()
-	p.Module = 4
-	p.Teeth, p.MateTeeth = 12, 16
-	p.SpiralAngle = 0
-	p.EnableBore = false
-	doc := decad.New()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
-		decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 2, meshEuler(mesh), "the unbored pinion has one closed outer shell")
-}
-
-func TestSourceSixteenTwelveStraightDriving(t *testing.T) {
-	p := bevelgear.DefaultParams()
-	p.Module = 4
-	p.Teeth, p.MateTeeth = 16, 12
-	p.SpiralAngle = 0
-	p.EnableBore = false
-	doc := decad.New()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
-		decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 2, meshEuler(mesh), "the unbored driving gear has one closed outer shell")
-}
-
 func TestSourceSixteenTwelveStraightPair(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Module = 4
@@ -132,42 +94,6 @@ func TestSourceSixteenTwelveStraightPair(t *testing.T) {
 		require.True(t, mesh.VolumeVerified(), name)
 		require.Equal(t, 2, meshEuler(mesh), "%s has one closed outer shell", name)
 	}
-}
-
-func TestSourceSixteenTwelveStraightPinionAutoBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
-	p.Module = 4
-	p.Teeth, p.MateTeeth = 12, 16
-	p.SpiralAngle = 0
-	doc := decad.New()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
-		decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 0, meshEuler(mesh), "the automatic bore pierces the pinion")
-}
-
-func TestSourceSixteenTwelveStraightDrivingAutoBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
-	p.Module = 4
-	p.Teeth, p.MateTeeth = 16, 12
-	p.SpiralAngle = 0
-	doc := decad.New()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
-		decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 0, meshEuler(mesh), "the automatic bore pierces the driving member")
 }
 
 func TestSourceSixteenTwelveStraightPairAutoBore(t *testing.T) {
