@@ -21,7 +21,7 @@ func patternSpiralTooth(ctx context.Context, trimmed *decad.Body, teeth int) ([]
 		if err != nil {
 			return nil, fmt.Errorf("rotate spiral tooth %d: %w", i+1, err)
 		}
-		pattern[i], err = trimmed.PlacedCopy(ctx, turn)
+		pattern[i], err = decad.Copy(ctx, trimmed, decad.WithCopyPlacement(turn))
 		if err != nil {
 			return nil, fmt.Errorf("place spiral tooth %d: %w", i+1, err)
 		}

@@ -85,7 +85,7 @@ func TestRealEightToothSecondPatternedJoin(t *testing.T) {
 
 	turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(2*math.Pi/float64(p.Teeth)))
 	require.NoError(t, err)
-	secondTooth, err := finalTooth.PlacedCopy(t.Context(), turn)
+	secondTooth, err := decad.Copy(t.Context(), finalTooth, decad.WithCopyPlacement(turn))
 	require.NoError(t, err)
 	blank, err := bevelgear.BuildBlank(t.Context(), doc, p)
 	require.NoError(t, err)

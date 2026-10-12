@@ -54,7 +54,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 				return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
 			}
 		} else {
-			driving, err = pinion.Duplicate(ctx)
+			driving, err = decad.Copy(ctx, pinion)
 			if err != nil {
 				return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
 			}
