@@ -2,6 +2,12 @@
 
 ![A bored herringbone gear with opposing tooth slopes](images/hero.png)
 
+## More views
+
+| From above | Low side angle |
+| --- | --- |
+| ![Top face, tooth outline, and centered bore](images/top.png) | ![Mirrored tooth slopes meeting at the gear midpoint](images/low.png) |
+
 `Build(ctx, doc, Params)` lofts an involute tooth to a twisted section at the
 body midpoint, mirrors that half, and joins the two halves. It patterns the
 chevron tooth around a full-thickness root disc, then applies the inherited
@@ -17,5 +23,6 @@ The real eight-tooth gear with a 1 mm bore and the default 17-tooth gear with a
 bored gears pass with 0.1 mm outer-cap chamfers. The hero renders the default
 17-tooth gear with its 3 mm bore and 0.1 mm cap chamfers.
 
-The mirrored tooth alone passes `VerifyAll` for signed 14.5°, 35°, and 90°
-angles. Its full-height bounds and midpoint centroid check the chevron symmetry.
+The mirrored tooth alone passes `VerifyAll` for +14.5° and +35° angles. Its
+full-height bounds and midpoint centroid check the chevron symmetry. The
+gallery accepts positive helix angles from 1° through 45°.

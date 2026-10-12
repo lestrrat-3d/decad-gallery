@@ -25,7 +25,11 @@ var presets = map[string]preset{
 	"bevelgear/low":        {width: 1600, height: 900, scene: bevelGearLow},
 	"bevelgear/high":       {width: 1600, height: 900, scene: bevelGearHigh},
 	"helicalgear/hero":     {width: 1600, height: 900, scene: helicalGearHero},
+	"helicalgear/top":      {width: 1600, height: 900, scene: helicalGearTop},
+	"helicalgear/low":      {width: 1600, height: 900, scene: helicalGearLow},
 	"herringbonegear/hero": {width: 1600, height: 900, scene: herringboneGearHero},
+	"herringbonegear/top":  {width: 1600, height: 900, scene: herringboneGearTop},
+	"herringbonegear/low":  {width: 1600, height: 900, scene: herringboneGearLow},
 }
 
 func main() {
@@ -42,6 +46,12 @@ func main() {
 }
 
 func run(ctx context.Context, model, shot, output string, width, height int) error {
+	if shot == "readme" {
+		if width != 0 || height != 0 {
+			return fmt.Errorf("readme output uses fixed image sizes")
+		}
+		return renderReadme(ctx, model, output)
+	}
 	selected, ok := presets[model+"/"+shot]
 	if !ok {
 		return fmt.Errorf("unknown image preset %q for model %q", shot, model)
@@ -62,6 +72,46 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	if err != nil {
 		return fmt.Errorf("build %s/%s scene: %w", model, shot, err)
 	}
+	return renderPNG(ctx, output, scene, width, height)
+}
+
+// renderReadme builds a model once and writes its index image and extra views.
+func renderReadme(ctx context.Context, model, outputDir string) error {
+	if outputDir == "" {
+		return fmt.Errorf("-out is required")
+	}
+	hero, ok := presets[model+"/hero"]
+	if !ok {
+		return fmt.Errorf("unknown model %q", model)
+	}
+	scene, err := hero.scene(ctx)
+	if err != nil {
+		return fmt.Errorf("build %s/hero scene: %w", model, err)
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "index.png"), scene, 480, 270); err != nil {
+		return fmt.Errorf("render %s index image: %w", model, err)
+	}
+	var cameras map[string]solidlens.Camera
+	switch model {
+	case "helicalgear":
+		cameras = helicalCameras
+	case "herringbonegear":
+		cameras = herringboneCameras
+	}
+	for _, shot := range []string{"top", "low"} {
+		camera, ok := cameras[shot]
+		if !ok {
+			continue
+		}
+		scene.Camera = camera
+		if err := renderPNG(ctx, filepath.Join(outputDir, shot+".png"), scene, 1600, 900); err != nil {
+			return fmt.Errorf("render %s/%s image: %w", model, shot, err)
+		}
+	}
+	return nil
+}
+
+func renderPNG(ctx context.Context, output string, scene solidlens.Scene, width, height int) error {
 	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}

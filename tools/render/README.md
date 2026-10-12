@@ -50,3 +50,14 @@ go -C tools/render run . -model bevelgear -shot top -out ../../models/bevelgear/
 go -C tools/render run . -model bevelgear -shot high -out ../../models/bevelgear/images/high.png
 go -C tools/render run . -model bevelgear -shot low -out ../../models/bevelgear/images/low.png
 ```
+
+The `readme` shot builds each model once and writes a 480 × 270 pixel
+`index.png` for `models/README.md`. For helical and herringbone gears it also
+writes 1600 × 900 pixel `top.png` and `low.png` views:
+
+```sh
+go -C tools/render run . -model spurgear -shot readme -out ../../models/spurgear/images
+go -C tools/render run . -model helicalgear -shot readme -out ../../models/helicalgear/images
+go -C tools/render run . -model herringbonegear -shot readme -out ../../models/herringbonegear/images
+go -C tools/render run . -model bevelgear -shot readme -out ../../models/bevelgear/images
+```

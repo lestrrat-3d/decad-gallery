@@ -1,6 +1,7 @@
 package helicalgear_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -8,6 +9,16 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHelixAngleRange(t *testing.T) {
+	for _, degrees := range []float64{1, 14.5, 45} {
+		require.NoError(t, helicalgear.ValidateHelixAngle(degrees*math.Pi/180))
+	}
+	for _, degrees := range []float64{-14.5, 0.9, 45.1} {
+		require.Error(t, helicalgear.ValidateHelixAngle(degrees*math.Pi/180))
+	}
+	require.ErrorContains(t, helicalgear.ValidateHelixAngle(math.NaN()), "finite")
+}
 
 func TestZeroHelixRejectedBeforeAddingBodies(t *testing.T) {
 	p := helicalgear.DefaultParams()

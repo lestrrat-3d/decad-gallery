@@ -11,14 +11,15 @@ lower half is mirrored across that plane and joined to make a chevron.
 `Params` is the [helical parameter set](../helicalgear/instructions.md). It adds
 no herringbone input. The default has Module 1, 17 teeth, 20° pressure angle,
 10 mm thickness, 15 fitted points per flank, and a +14.5° helix angle. Lengths
-are millimeters and angles are radians. A negative angle reverses the chevron
-hand; the full angle rotates the middle section relative to the lower one.
+are millimeters and angles are radians. The full angle rotates the middle
+section relative to the lower one.
 
 The inherited spur checks reject nonpositive module or thickness, fewer than
 three teeth or flank samples, pressure angles outside `(0, π/2)`, negative bore
-diameter or cap chamfer, and a bore reaching the root circle. A nonfinite helix
-angle is invalid. The ordinary six-curve tooth section requires its base circle
-to lie outside the root circle. The source sets no helix-angle magnitude limit.
+diameter or cap chamfer, and a bore reaching the root circle. The inherited
+gallery helix-angle input accepts only finite angles from +1° through +45°.
+The ordinary six-curve tooth section requires its base circle to lie outside
+the root circle. The Fusion source sets no helix-angle range.
 
 ## Required build order
 
@@ -40,9 +41,8 @@ The first real gallery case uses eight teeth, five flank samples, 2 mm
 thickness, and the default +14.5° angle. It and the source-default 17-tooth
 case pass `Tessellate(0.1 mm, VerifyAll)` after one variadic `Union` on merged
 Decad `96cdbfe9610e`.
-The joined tooth alone passes the same mesh check for signed 14.5°, 35°, and
-90° angles. Its bounds span the full thickness and its centroid lies at the
-mirror plane.
+The joined tooth alone passes the same mesh check for +14.5° and +35° angles.
+Its bounds span the full thickness and its centroid lies at the mirror plane.
 The same small gear with a 1 mm through-bore and the default gear with a 3 mm
 through-bore pass `VerifyAll`. Their mesh Euler characteristic is zero. Both
 gears also pass `VerifyAll` and retain Euler characteristic zero with 0.1 mm

@@ -3,7 +3,7 @@
 `fusion360-gear-generator/spec/helicalgear/instructions.md` defines the gear.
 Helical reuses the spur involute dimensions and tooth profile.
 It draws one tooth at zero rotation on the lower plane and the same tooth
-rotated by the signed Helix Angle on the plane one Thickness above it. Decad
+rotated by the Helix Angle on the plane one Thickness above it. Decad
 lofts the lower section to the upper section in that order. The angle is the
 whole twist across Thickness, not an angle calculated from a lead distance.
 
@@ -12,12 +12,13 @@ whole twist across Thickness, not an angle calculated from a lead distance.
 `Params` embeds the [spur dimensions](../spurgear/instructions.md): Module,
 Teeth, PressureAngle, Thickness, Samples, BoreDiameter, and CapChamfer. It
 adds `HelixAngle` in radians. The intended default is Module 1, 17 teeth,
-20° pressure angle, 10 mm thickness, 15 samples, and a +14.5° helix. A
-negative angle reverses the twist. The Fusion source does not impose a
-helix-angle range. This model supports finite, nonzero angles and lets the
-geometry operation report angles it cannot build. A zero angle has spur
-geometry; callers use `spurgear.Build` for that case. The source's helical
-zero-angle construction is outside this gallery's verified helical path.
+20° pressure angle, 10 mm thickness, 15 samples, and a +14.5° helix. This
+gallery accepts a finite, positive `HelixAngle` from 1° through 45° inclusive.
+`Build` rejects angles outside that range before adding bodies. Use
+`spurgear.Build` for zero twist. The Fusion source imposes no angle range;
+the gallery applies this narrower input range. The default +14.5° gear has
+full-body verification; the input range alone does not guarantee that every
+angle builds a valid solid.
 
 The spur input checks reject nonpositive Module or Thickness, fewer than
 three teeth or samples, PressureAngle outside `(0, π/2)`, negative BoreDiameter
@@ -43,7 +44,7 @@ small 8-tooth gear and skips the fillet, as the source requires.
 1. Draw the ordinary spur tooth with two fitted involute flanks, a tip arc,
    a root arc, and two radial flank-to-root lines on the bottom plane.
 2. Draw the same section on the top plane with every point rotated by the
-   signed Helix Angle. Loft bottom to top as one tooth body.
+   Helix Angle. Loft bottom to top as one tooth body.
 3. Extrude the spur root-circle region through Thickness, pattern the tooth
    around the shaft, and join every copy to the root disc.
 4. Search root-cylinder faces for straight axial edges. If any are found,

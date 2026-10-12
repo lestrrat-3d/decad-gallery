@@ -17,13 +17,8 @@ func TestRealMirroredHerringboneTooth(t *testing.T) {
 		thickness, angleDeg float64
 	}{
 		{"small_right", 8, 5, 2, 14.5},
-		{"small_left", 8, 5, 2, -14.5},
 		{"default_right", 17, 15, 10, 14.5},
-		{"default_left", 17, 15, 10, -14.5},
 		{"right_35", 17, 15, 10, 35},
-		{"left_35", 17, 15, 10, -35},
-		{"right_90", 17, 15, 10, 90},
-		{"left_90", 17, 15, 10, -90},
 		{"thick_40", 17, 15, 40, 14.5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -50,6 +45,17 @@ func TestRealMirroredHerringboneTooth(t *testing.T) {
 			require.True(t, mesh.BoundaryVerified())
 			require.True(t, mesh.VolumeVerified())
 		})
+	}
+}
+
+func TestOutOfRangeHelixRejectedBeforeAddingBodies(t *testing.T) {
+	for _, degrees := range []float64{-14.5, 0, 0.9, 45.1, 90} {
+		p := herringbonegear.DefaultParams()
+		p.HelixAngle = degrees * math.Pi / 180
+		doc := decad.New()
+		_, err := herringbonegear.BuildTooth(t.Context(), doc, p)
+		require.Error(t, err)
+		require.Empty(t, doc.Bodies())
 	}
 }
 

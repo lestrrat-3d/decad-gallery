@@ -2,6 +2,12 @@
 
 ![Bored 17-tooth helical gear with twisted involute teeth](images/hero.png)
 
+## More views
+
+| From above | Low side angle |
+| --- | --- |
+| ![Top face, tooth outline, and centered bore](images/top.png) | ![Twisted tooth flanks and gear thickness from a low angle](images/low.png) |
+
 This model uses the [source helical instructions](instructions.md) and the
 gallery's spur involute tooth calculation. The first real 8-tooth, 2 mm
 thick, +14.5° case produces two verified Decad bodies: a lofted tooth and
@@ -21,8 +27,8 @@ The verified +14.5° gear has no straight axial root seam, so its source
 fillet selection is empty. The hero image builds the 17-tooth gear with a
 3 mm bore and 0.1 mm outer-cap chamfers. The bore matches the spur hero's
 diameter on the same Module 1, 17-tooth outline.
-Use `spurgear.Build` for zero twist; this helical `Build` accepts nonzero
-twist angles.
+Use `spurgear.Build` for zero twist. This helical `Build` requires a positive
+twist angle from 1° through 45°.
 
 The focused geometry checks run from the repository worktree:
 
