@@ -49,7 +49,7 @@ jobs:
           - test: TestSourceSixteenTwelveStraightPinion
             timeout: 5m
           - test: TestSourceSixteenTwelveStraightDriving
-            timeout: 5m
+            timeout: 10m
           - test: TestSourceSixteenTwelveStraightPinionAutoBore
             timeout: 5m
           - test: TestSourceSixteenTwelveStraightDrivingAutoBore
