@@ -9,6 +9,9 @@ follow the source's meshing rotations. The construction rules come from
 
 ![Source-default bored 31-tooth spiral bevel gear pair](images/hero.png)
 
+The smooth back face and tooth band meet at a sharp root. The source joins
+them into one solid without a root fillet.
+
 ## More views
 
 | From above | High oblique angle | Low side angle |
