@@ -14,12 +14,13 @@ source-default 17-tooth gear passes all tooth Unions and `VerifyAll` at 0.1 mm
 against merged Decad `228ae52cc75c` in 78.564 seconds. Its real 1 mm bore
 passes the source-order Cut and `VerifyAll` against merged Decad
 `c3059829064f` in 86.889 seconds; the verified mesh has one through-hole.
-With merged Decad `5f6f09763897`, the same default gear also passes both
-0.1 mm outer-cap chamfers and `VerifyAll` in 291.86 seconds while keeping
-that through-hole.
+With merged Decad `eb5b9a50a7fb`, the same default gear passes a 3 mm bore,
+both 0.1 mm outer-cap chamfers, and `VerifyAll` in 292.605 seconds while
+keeping one through-hole.
 The verified +14.5° gear has no straight axial root seam, so its source
 fillet selection is empty. The hero image builds the 17-tooth gear with a
-1 mm bore and 0.1 mm outer-cap chamfers.
+3 mm bore and 0.1 mm outer-cap chamfers. The bore matches the spur hero's
+diameter on the same Module 1, 17-tooth outline.
 Use `spurgear.Build` for zero twist; this helical `Build` accepts nonzero
 twist angles.
 
@@ -38,6 +39,6 @@ go test ./models/helicalgear -run '^TestDefaultRealHelicalGearWithBoreAndCapCham
 
 All five small-gear checks pass against merged Decad `dc2d041f1523`. The cap Chamfer
 checks take about 218 seconds without a bore and 214 seconds with a bore.
-The source-default 17-tooth build, 1 mm bore, and both outer-cap chamfers
+The source-default 17-tooth build, 3 mm bore, and both outer-cap chamfers
 pass against their merged Decad releases. A nonempty root fillet still
 requires a real geometry check.
