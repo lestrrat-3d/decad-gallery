@@ -31,18 +31,18 @@ Run the real-body checks separately:
 go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
 go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 10m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullBoredMember$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
 go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
-go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 15m
+go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 18m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightMember$' -timeout 5m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightMemberAutoBore$' -timeout 5m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightPairAutoBore$' -timeout 18m
 ```
 
 The tests check a closed outer shell before the bore, two placed solids with
-through-holes afterward, and `VerifyAll` for each member. The 16/12 case uses
-Module 4, a 90° shaft angle, 15 flank samples, and the source-order tooth
+through-holes afterward, and `VerifyAll` for each member. The pair tests check
+both 16/12 members without rebuilding them in separate member tests. Those
+members use Module 4, a 90° shaft angle, 15 flank samples, and the source-order tooth
 Combine-Join before each optional bore. The 4/4 case checks the smallest
 virtual tooth count in the source's solid table and both automatic bores. The
 [renderer](../../tools/render/README.md) builds the source-default pair for the hero image
@@ -81,9 +81,9 @@ pass the real slice, cutter trace, twist, crown, nine-face loft, toe cut,
 and heel trim. Each trimmed tooth produces 31 placed copies, and every copy
 passes `VerifyAll` at 0.1 mm against merged Decad heel support. The first
 tooth-to-blank `Union` passes `VerifyAll` for both members. Each full
-31-tooth pattern joins its blank into one solid. Each member passes its
-7.75 mm bore cut and `VerifyAll`. The real `BuildPair(DefaultParams())`
-passes both placed bodies through `VerifyAll`. The renderer produced the
+31-tooth pattern joins its blank into one solid. The real
+`BuildPair(DefaultParams())` cuts both 7.75 mm bores and passes both placed
+bodies through `VerifyAll`. The renderer produced the
 1600 × 900 hero PNG from that pair. Real blank-only cuts
 also pass for the source-default 90° case and a capped 35° shaft-angle case.
 The Decad/Sketch handoff is in
