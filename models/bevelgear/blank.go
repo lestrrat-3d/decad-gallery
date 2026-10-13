@@ -134,7 +134,7 @@ func revolveAxialSection(ctx context.Context, doc *decad.Document,
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("%s sketch has %d profiles; want one valid region", label, len(profiles))
 	}
-	body, err := doc.Revolve(s, profiles[0],
+	body, err := decad.Revolve(ctx, doc, s, profiles[0],
 		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 1, V: 0}},
 		decad.FullRevolution{})
 	if err != nil {
