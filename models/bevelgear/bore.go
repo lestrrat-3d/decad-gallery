@@ -108,7 +108,7 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
 	}
-	tool, err := doc.Extrude(s, profiles[0], decad.Distance{
+	tool, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{
 		D: units.Millimeters(box.Max.X - box.Min.X + 2*margin), Dir: decad.Along,
 	})
 	if err != nil {

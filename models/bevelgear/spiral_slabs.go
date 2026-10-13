@@ -166,7 +166,7 @@ func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3
 	if len(chains) != 1 {
 		return nil, fmt.Errorf("slice sheet has %d chains; want one", len(chains))
 	}
-	return doc.ExtrudeChain(s, chains[0], decad.TwoSided{
+	return decad.Extrude(ctx, doc, s, chains[0], decad.TwoSided{
 		One: decad.DistanceSide{D: units.Millimeters(extent)},
 		Two: decad.DistanceSide{D: units.Millimeters(extent)},
 	})

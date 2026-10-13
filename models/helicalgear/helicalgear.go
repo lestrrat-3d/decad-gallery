@@ -170,7 +170,7 @@ func buildRootDisc(ctx context.Context, doc *decad.Document, world *sketch.World
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("root disc sketch has %d profiles; want one valid region", len(profiles))
 	}
-	body, err := doc.Extrude(s, profiles[0], decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along})
+	body, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("extrude root disc: %w", err)
 	}
