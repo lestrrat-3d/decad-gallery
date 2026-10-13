@@ -99,8 +99,9 @@ jobs:
           test "$pinned" = "$candidate"
           decad_dir=$(go list -m -f '{{.Dir}}' github.com/lestrrat-3d/decad)
           test -f "$decad_dir/boolean.go"
-          if grep -Eq 'tryBevel(OneTooth|TwoTooth|Pattern)Union|spiralPrepare(First|Combined)Union' \
-            "$decad_dir/boolean.go"; then
+          test -f "$decad_dir/boolean_many.go"
+          if grep -Eq 'tryBevel(OneTooth|TwoTooth|Pattern)Union|spiralPrepare(First|Combined)Union|spiralCombineBody' \
+            "$decad_dir/boolean.go" "$decad_dir/boolean_many.go"; then
             printf 'legacy bevel Union dispatch remains in Decad candidate\n' >&2
             exit 1
           fi

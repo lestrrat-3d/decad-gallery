@@ -26,6 +26,8 @@ func testSourceDefaultSpiralPublicUnion(t *testing.T, serial bool) {
 
 	blank, err := BuildBlank(t.Context(), doc, geometry)
 	require.NoError(t, err)
+	blankVolume, err := blank.Volume()
+	require.NoError(t, err)
 	curved, err := buildSpiralTooth(t.Context(), doc, p, false)
 	require.NoError(t, err)
 	trimmed, err := trimSpiralTooth(t.Context(), doc, p, curved)
@@ -49,6 +51,10 @@ func testSourceDefaultSpiralPublicUnion(t *testing.T, serial bool) {
 
 	require.Len(t, doc.Bodies(), 1)
 	require.True(t, joined.IsSolid())
+	joinedVolume, err := joined.Volume()
+	require.NoError(t, err)
+	require.Greater(t, joinedVolume.Value.Base()-blankVolume.Value.Base(),
+		joinedVolume.Bound.Base()+blankVolume.Bound.Base(), "the joined teeth must add certified volume")
 	mesh, err := joined.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
