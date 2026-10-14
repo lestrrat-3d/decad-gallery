@@ -67,7 +67,7 @@ func crownSpiralSlabs(ctx context.Context, slabs []*decad.Body,
 		if err != nil {
 			return nil, fmt.Errorf("root anchor of spiral slab %d: %w", i, err)
 		}
-		scaled, err := slab.ScaledAt(ctx, anchor, units.Scalar(factor))
+		scaled, err := decad.ScaledAt(ctx, slab, anchor, units.Scalar(factor))
 		if err != nil {
 			return nil, fmt.Errorf("crown spiral slab %d at u=%.9g, factor=%.9g: %w", i, u, factor, err)
 		}
