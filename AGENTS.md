@@ -19,6 +19,15 @@
 - Treat this repository's decad construction as the source for downstream ports.
 - Keep Fusion Python add-in code and its packaging in `fusion360-gear-generator`.
 
+## Sketch constraints
+
+- Verify every model Sketch before its geometry is consumed or the build returns.
+- Require `Sketch.Verify(ctx)` to report `sketch.FullyConstrained`, `DOF == 0`, no redundant constraints, and no conflicts.
+- Test this requirement for every parameter branch and every optional sketch, including bore and tool sketches.
+- Anchor each sketch to its intended origin or reference entity.
+- Constrain other geometry with geometric and dimensional constraints. Do not fix every computed point to force `DOF == 0`.
+- Do not treat a successful `Solve`, a valid profile, or `DOF == 0` alone as proof of full constraint.
+
 ## Decad gaps and bugs
 
 - When decad or Sketch lacks a needed feature, stop that model change and follow **Agent coordination**.
