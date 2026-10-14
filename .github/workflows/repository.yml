@@ -73,7 +73,7 @@ jobs:
       image: golang:1.26.8-bookworm
       options: --memory=4g --memory-swap=4g
     env:
-      DECAD_SHA: 22fa4e99339f892c84f388a99363e1c4896a0b6a
+      DECAD_SHA: 1b610b5b79616de42c7a3df7a974b034a5860762
       GATE_TEST: >-
         ${{ inputs.curved_union_gate == 'serial' &&
         'TestSourceDefaultSpiralSerialPublicUnion' ||

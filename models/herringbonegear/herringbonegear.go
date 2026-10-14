@@ -66,7 +66,7 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	if err != nil {
 		return nil, fmt.Errorf("loft half tooth: %w", err)
 	}
-	tooth, err := half.MirroredCopy(ctx, decad.MirrorFrame{Frame: frame})
+	tooth, err := decad.MirroredCopy(ctx, half, decad.MirrorFrame{Frame: frame})
 	if err != nil {
 		return nil, fmt.Errorf("mirror half tooth: %w", err)
 	}

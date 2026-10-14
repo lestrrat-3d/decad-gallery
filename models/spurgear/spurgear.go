@@ -133,7 +133,7 @@ func BuildProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 func ChamferOuterCaps(ctx context.Context, gear *decad.Body, distance float64) (*decad.Body, error) {
 	selection := decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).
 		Or(decad.OuterLoopOf(decad.CapEnd(gear)))
-	body, err := gear.Chamfer(ctx, selection, units.Millimeters(distance))
+	body, err := decad.Chamfer(ctx, gear, selection, units.Millimeters(distance))
 	if err != nil {
 		return nil, fmt.Errorf("chamfer outer cap loops: %w", err)
 	}
@@ -207,7 +207,7 @@ func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radi
 	for _, corner := range corners[1:] {
 		selection.Or(decad.ParallelTo(axis), decad.EndpointAt(corner))
 	}
-	rounded, err := body.Fillet(ctx, selection.Exactly(len(corners)), units.Millimeters(radius))
+	rounded, err := decad.Fillet(ctx, body, selection.Exactly(len(corners)), units.Millimeters(radius))
 	if err != nil {
 		return nil, fmt.Errorf("fillet root corners: %w", err)
 	}

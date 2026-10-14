@@ -49,7 +49,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 			if frameErr != nil {
 				return GearPair{}, fmt.Errorf("create spiral mirror plane: %w", frameErr)
 			}
-			driving, err = pinion.MirroredCopy(ctx, decad.MirrorFrame{Frame: plane})
+			driving, err = decad.MirroredCopy(ctx, pinion, decad.MirrorFrame{Frame: plane})
 			if err != nil {
 				return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
 			}
