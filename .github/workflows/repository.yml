@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      curved_union_gate:
+        description: Run one bounded source-default curved bevel public Union gate
+        type: choice
+        required: true
+        default: none
+        options: [none, serial, variadic]
 
 jobs:
   structure:
@@ -22,7 +29,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           go test -skip "$bevel_skip|$helical_skip|$herringbone_skip" ./...
@@ -56,6 +63,51 @@ jobs:
           go-version-file: go.mod
       - name: Check real bevel assembly
         run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
+  bevel-curved-public-union-gate:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (inputs.curved_union_gate == 'serial' || inputs.curved_union_gate == 'variadic')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: golang:1.26.8-bookworm
+      options: --memory=4g --memory-swap=4g
+    env:
+      DECAD_SHA: 1b610b5b79616de42c7a3df7a974b034a5860762
+      GATE_TEST: >-
+        ${{ inputs.curved_union_gate == 'serial' &&
+        'TestSourceDefaultSpiralSerialPublicUnion' ||
+        'TestSourceDefaultSpiralVariadicPublicUnion' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generic Decad candidate and curved Union
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat /sys/fs/cgroup/memory.max)" = 4294967296
+          test "$(cat /sys/fs/cgroup/memory.swap.max)" = 0
+          report_memory() {
+            printf 'cgroup peak bytes: '
+            cat /sys/fs/cgroup/memory.peak
+            printf 'cgroup memory events:\n'
+            cat /sys/fs/cgroup/memory.events
+          }
+          trap report_memory EXIT
+          [[ "$DECAD_SHA" =~ ^[[:xdigit:]]{40}$ ]]
+          pinned=$(go list -m -f '{{.Version}}' github.com/lestrrat-3d/decad)
+          candidate=$(go list -m -f '{{.Version}}' "github.com/lestrrat-3d/decad@$DECAD_SHA")
+          test "$pinned" = "$candidate"
+          decad_dir=$(go list -m -f '{{.Dir}}' github.com/lestrrat-3d/decad)
+          test -f "$decad_dir/boolean.go"
+          test -f "$decad_dir/boolean_many.go"
+          if grep -Eq 'tryBevel(OneTooth|TwoTooth|Pattern)Union|spiralPrepare(First|Combined)Union|spiralCombineBody' \
+            "$decad_dir/boolean.go" "$decad_dir/boolean_many.go"; then
+            printf 'legacy bevel Union dispatch remains in Decad candidate\n' >&2
+            exit 1
+          fi
+          printf 'Decad generic candidate: %s (%s)\n' "$DECAD_SHA" "$pinned"
+          printf 'Curved Union gate: %s\n' "$GATE_TEST"
+          timeout 540s go test ./models/bevelgear -run "^${GATE_TEST}$" -count=1 -timeout 530s -v
   bevel-pair:
     runs-on: ubuntu-latest
     steps:
