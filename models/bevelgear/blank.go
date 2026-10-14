@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -121,14 +122,16 @@ func revolveAxialSection(ctx context.Context, doc *decad.Document,
 	}
 	points := make([]*sketch.Point, len(section))
 	for i, xy := range section {
-		points[i] = s.CreatePoint(xy.station, xy.radius)
-		s.Fix(points[i])
+		points[i] = sketchcheck.DimensionPoint(s, xy.station, xy.radius)
 	}
 	for i := range points {
 		s.CreateLine(points[i], points[(i+1)%len(points)])
 	}
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, fmt.Errorf("solve %s sketch: %w", label, err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("verify %s sketch: %w", label, err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {

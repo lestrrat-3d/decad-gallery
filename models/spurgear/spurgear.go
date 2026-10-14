@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -179,7 +180,7 @@ func buildBoreProfile(ctx context.Context, world *sketch.World, p Params, margin
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, fmt.Errorf("solve bore sketch: %w", err)
 	}
-	if err := verifySpurSketch(ctx, s); err != nil {
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
 		return nil, nil, fmt.Errorf("verify bore sketch: %w", err)
 	}
 	profiles := s.Profiles()
@@ -227,33 +228,12 @@ func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radi
 
 // dimensionPoint locates a computed involute sample through editable dimensions.
 func dimensionPoint(s *sketch.Sketch, xy point) *sketch.Point {
-	pt := s.CreatePoint(xy.x, xy.y)
-	s.AddConstraint(
-		sketch.NewHorizontalDistance(s.Origin(), pt, xy.x),
-		sketch.NewVerticalDistance(s.Origin(), pt, xy.y),
-	)
-	return pt
+	return sketchcheck.DimensionPoint(s, xy.x, xy.y)
 }
 
 // dimensionArcEnd leaves the radial coordinate to the arc's own radius relation.
 func dimensionArcEnd(s *sketch.Sketch, xy point) *sketch.Point {
-	pt := s.CreatePoint(xy.x, xy.y)
-	if math.Abs(xy.x) >= math.Abs(xy.y) {
-		s.AddConstraint(sketch.NewVerticalDistance(s.Origin(), pt, xy.y))
-	} else {
-		s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), pt, xy.x))
-	}
-	return pt
-}
-
-func verifySpurSketch(ctx context.Context, s *sketch.Sketch) error {
-	report := s.Verify(ctx)
-	if report.Status != sketch.FullyConstrained || report.DOF != 0 ||
-		len(report.Redundant) != 0 || len(report.Conflicts) != 0 {
-		return fmt.Errorf("status %s, DOF %d, %d redundant, %d conflicts",
-			report.Status, report.DOF, len(report.Redundant), len(report.Conflicts))
-	}
-	return report.Check()
+	return sketchcheck.DimensionArcEnd(s, xy.x, xy.y)
 }
 
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
@@ -305,7 +285,7 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, nil, fmt.Errorf("solve gear profile: %w", err)
 	}
-	if err := verifySpurSketch(ctx, s); err != nil {
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
 		return nil, nil, nil, fmt.Errorf("verify gear profile: %w", err)
 	}
 	profiles := s.Profiles()
@@ -348,7 +328,7 @@ func buildEmbeddedGearProfile(ctx context.Context, world *sketch.World, plane *s
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, nil, fmt.Errorf("solve embedded gear profile: %w", err)
 	}
-	if err := verifySpurSketch(ctx, s); err != nil {
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
 		return nil, nil, nil, fmt.Errorf("verify embedded gear profile: %w", err)
 	}
 	regions := s.Profiles()

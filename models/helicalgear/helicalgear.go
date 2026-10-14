@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -160,11 +161,13 @@ func buildRootDisc(ctx context.Context, doc *decad.Document, world *sketch.World
 	if err != nil {
 		return nil, err
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	s.CreateCircle(center, root)
+	circle := s.CreateCircle(s.Origin(), root)
+	s.AddConstraint(sketch.NewRadius(circle, root))
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, fmt.Errorf("solve root disc sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("verify root disc sketch: %w", err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {

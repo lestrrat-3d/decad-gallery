@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/sketch"
 )
 
@@ -57,7 +58,7 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, fmt.Errorf("solve tooth sketch: %w", err)
 	}
-	if err := verifySpurSketch(ctx, s); err != nil {
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
 		return nil, nil, fmt.Errorf("verify tooth sketch: %w", err)
 	}
 	profiles := s.Profiles()
