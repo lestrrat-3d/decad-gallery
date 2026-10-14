@@ -59,7 +59,7 @@ func filletRootEdges(ctx context.Context, gear *decad.Body, p Params) (*decad.Bo
 		}
 		selection.Or(decad.EndpointAt(start), decad.EndpointAt(end))
 	}
-	rounded, err := gear.Fillet(ctx, selection.Exactly(len(roots)), units.Millimeters(radius))
+	rounded, err := decad.Fillet(ctx, gear, selection.Exactly(len(roots)), units.Millimeters(radius))
 	if err != nil {
 		return nil, fmt.Errorf("fillet helical root edges: %w", err)
 	}
