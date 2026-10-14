@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "models/spurgear/instructions.md": "ca001eb01d4ef53a42c32dcc8193a0a8fe1bb064b9556555815514b59aaf39a7",
+    "models/spurgear/steps.md": "c99e0344c22de49aa38680572831b265e630215331507559656ad46b052009b5",
+    "scripts/modelgen/spurgear_prompt.md": "0645b025059500e68f7ce47a8e4568660d0f6dbcf22fcfb167871dd8b959fd8c",
+    "internal/sketchcheck/verify.go": "48d0be76858c3a2b7302e63854295fb4bc4f4deda24f74118e596bd14aff6d0c",
+    "go.mod": "0cf525ab66b06f974c9a19bd21164a9b08e0cf0d8c47fe1db70aff254cca80cb",
+    "go.sum": "10a761e88b7fafd5fda49748669c94c9e083137294935bfb90efe1636527bc03"
+  },
+  "outputs": {
+    "involute.go": "1e20e884837b3082741d591cdbc3318b9c51a114a534ec1be18594d1ba981307",
+    "spurgear.go": "08e9f3b45bbb668c0e4b09238a6c7d91850892f57a3f7f9e051e598bdd3dc0e1",
+    "tooth_section.go": "3046260b37af7872b753042b84597b49553ffd5132ace45ec4e62bb5a640ab0a"
+  }
+}

@@ -1,84 +1,178 @@
 # Spur gear construction instructions
 
+Use this contract to derive [steps.md](steps.md), then generate the Go package
+and tests. This file owns geometry, dimensions, input rules, and case inputs.
+The steps own interfaces, Sketch/Decad calls, and acceptance assertions.
+Existing spur Go files are deliverables, not prerequisites for understanding
+the construction.
+
 ## Inputs
 
-Build one cylindrical gear with straight involute teeth. Inputs are module
-`m` in millimeters, integer tooth count `N`, pressure angle `α` in radians,
-axial thickness `h` in millimeters, and `S` involute samples per flank.
-The default values are `m=1`, `N=17`, `α=20°`, `h=10`, and `S=15`.
-An optional bore has diameter `b` in millimeters; `b=0` omits it.
-An optional equal-distance cap chamfer has setback `c` in millimeters;
-`c=0` omits it.
+Build one cylindrical gear with straight involute teeth. Use millimeters for
+lengths and radians for angles. Place its axis on world +Z, its lower cap at
+z=0, and its upper cap at z=`h`. Center tooth zero on +X.
+
+| Symbol | Parameter | Type | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `m` | `Module` | float64 | 1 | Tooth module |
+| `N` | `Teeth` | int | 17 | Tooth count |
+| `α` | `PressureAngle` | float64 | `20π/180` | Pressure angle |
+| `h` | `Thickness` | float64 | 10 | Axial thickness |
+| `S` | `Samples` | int | 15 | Fit points per flank |
+| `b` | `BoreDiameter` | float64 | 0 | Centered through-bore diameter; zero omits bore |
+| `c` | `CapChamfer` | float64 | 0 | Equal-distance outer cap setback; zero omits chamfer |
+
+Use finite geometric inputs. Do not interpret zero fields as default requests;
+provide defaults through a separate constructor.
 
 ## Derived dimensions
 
-- Pitch radius: `mN/2`.
-- Base radius: `(mN/2) cos α`.
-- Root radius: `(mN - 2.5m)/2`.
-- Tip radius: `(mN + 2m)/2`.
-- Root fillet radius: `0.9 Rroot (π/N - 2(tan α - α))/2`.
+Compute without rounding:
 
-Reject inputs with nonpositive radii, thickness, or module; fewer than three
-teeth or three samples; pressure angle outside `(0, π/2)`; negative bore or
-chamfer; or a bore reaching the root circle.
+| Dimension | Formula |
+| --- | --- |
+| Pitch radius `Rp` | `mN/2` |
+| Base radius `Rb` | `Rp cos α` |
+| Root radius `Rr` | `(mN - 2.5m)/2` |
+| Tip radius `Rt` | `(mN + 2m)/2` |
+| Tooth angular pitch | `2π/N` |
+| Root fillet radius `Rf` | `0.9 Rr (π/N - 2(tan α - α))/2` |
+
+## Input checks and limits
+
+- Reject `m <= 0`, `h <= 0`, `N < 3`, or `S < 3`.
+- Reject `α <= 0` or `α >= π/2`.
+- Reject negative `b` or `c`.
+- Reject `Rr <= 0`, `Rb <= 0`, or `Rt <= Rb`.
+- Reject `b >= 2Rr` or a nonfinite `Rf`.
+- Select filleting only when `Rf > 0`; nonpositive `Rf` is permitted.
+- Return the geometry error when an otherwise admissible input cannot produce
+  the specified profile, fillet, cut, or chamfer. No universal maximum chamfer
+  or successful-build guarantee for the entire numeric range is specified.
+- Select the ordinary branch at `Rb == Rr`. Its radial connectors collapse to
+  zero length; the acceptance cases do not establish engine behavior at equality.
+- Do not promise uniform rejection of nonfinite fields: current numeric guards
+  explicitly check finiteness only for `Rf`. Behavior outside the finite-input
+  contract requires a separate validation change.
 
 ## Tooth flank
 
-Sample `S` radii from base to tip, including both endpoints:
-`rᵢ = Rbase + (Rtip - Rbase)i/(S-1)`. For each radius, let
-`t = tan(acos(Rbase/rᵢ))`. The unrotated involute point is
-`(Rbase(cos t + t sin t), Rbase(sin t - t cos t))`.
-Mirror its Y coordinate to form the left flank's inward spiral.
+Sample the original involute from base to tip, including both endpoints:
 
-At the pitch radius, compute the mirrored involute point `(px, py)`.
-Rotate the left flank by `π/(2N) - atan2(py, px)`, so its pitch crossing is
-`π/(2N)` above +X. Mirror the rotated left flank across X to form the
-right flank. Every tooth is a rigid copy rotated by `2πk/N`.
+1. For `i=0..S-1`, use `rᵢ = Rb + (Rt-Rb)i/(S-1)`.
+2. Set `t = tan(acos(Rb/rᵢ))`.
+3. Compute `I(rᵢ) = (Rb(cos t + t sin t), Rb(sin t - t cos t))`.
+4. Mirror `I` across X by negating its Y coordinate.
+5. Evaluate the same involute at `Rp`, mirror it to `(px,py)`, and compute
+   `β = π/(2N) - atan2(py,px)`.
+6. Rotate each mirrored sample by `β` to make the left flank.
+7. Mirror that rotated sample across X to make the right flank.
+8. Rotate both flanks by `θ = 2πk/N` for tooth `k=0..N-1`.
+
+Use `Rotθ(x,y) = (x cos θ-y sin θ, x sin θ+y cos θ)`. Both arrays run
+base-to-tip. Their pitch crossings before tooth rotation are at `±π/(2N)`.
+Interpolate each full array with one native fit spline. Do not replace splines
+with chords, resample from the root, or alter their shape during trimming.
 
 ## Body
 
-For each tooth, connect the right flank from base to tip, the tip arc from
-right to left, and the left flank from tip to base. When the base radius is
-outside the root radius, extend both flank starts radially to the root circle.
-Connect each tooth's left root contact to the next tooth's right root contact
-with a root-circle arc. The continuous closed outline must have smooth
-fit-spline flanks, not chord replacements. Loft matching copies of this
-profile at z=0 and z=`h` to make the straight body.
+### Ordinary profile
 
-If the base radius lies inside the root circle, trim the flanks at their
-root-circle intersections without changing the fit-spline shape.
+Use this branch when `Rb >= Rr`.
 
-Round the two axial root corners of every tooth when the derived fillet
-radius is positive. Skip root fillets when it is zero or negative. If `b>0`,
-cut a centered through-bore of that diameter. If `c>0`,
-chamfer the outer edge of both end caps; leave bore edges sharp.
+- Scale each flank's base point by `Rr/Rb` to locate its root contact.
+- Traverse each tooth from right root to right base by line, along the right
+  spline to its tip, along the tip-circle arc to the left tip, along the left
+  spline back to its base, and by line to the left root.
+- Join that left root to the next tooth's right root by the short root-circle arc.
+- Close the final left root to tooth zero's right root with the same arc rule.
+- Produce one hole-free outline containing two splines, two radial lines,
+  one tip arc, and one root arc per tooth. Preserve unrounded root corners.
+
+### Embedded profile
+
+Use this branch when `Rb < Rr`.
+
+- Draw all original base-to-tip flanks and each right-to-left tip arc.
+- Add one full root circle at the gear origin.
+- Union all bounded sketch regions into one hole-free outline.
+- Require `4N` boundary curves: two trimmed splines, one tip arc, and one
+  root-circle segment per tooth.
+- Require certified spline trim parameters at the root-circle intersections.
+- Save both actual trimmed root contacts per tooth for fillet selection.
+
+### Feature order
+
+1. Loft identical profiles at z=0 and z=`h` into one straight solid.
+2. If `Rf > 0`, fillet all `2N` axial root edges together with radius `Rf`.
+3. If `b > 0`, extrude a centered circular tool from below z=0 to above z=`h`,
+   then cut it from the gear.
+4. If `c > 0`, chamfer both outer cap loops with setback `c`.
+
+Loft the complete tooth outline; do not extrude, pattern, or join separate tooth
+bodies. Only the bore tool uses extrusion. Keep bore rims sharp during chamfering.
+Require the returned gear body to be one solid. A fresh document contains one
+body afterward; a document with existing bodies must also accept a new gear.
 
 ## Sketch constraints
 
-Anchor the gear axis to each sketch plane's origin. Use driving horizontal
-and vertical dimensions from that origin to locate the involute fit points
-at their derived coordinates, except for the arc endpoints described below.
-Share endpoint points between adjoining curves. Do not fix the sampled points.
+- Use the sketch origin as the gear center; do not add a separately fixed center.
+- Locate computed points with signed horizontal and vertical driving dimensions
+  from that origin. Reuse endpoint objects for adjoining curves.
+- Give every right-flank point both coordinate dimensions. Give each left-flank
+  point both dimensions except its tip, which receives one coordinate dimension.
+- In ordinary profiles, give each right root both dimensions and each left root
+  one dimension. The joining arc supplies the remaining radius relation.
+- For a point receiving one dimension, dimension Y when `abs(x) >= abs(y)`;
+  otherwise dimension X. Its initial coordinates select the intended circle branch.
+- Do not add radius constraints to tip or ordinary root arcs: their centers and
+  fully dimensioned opposite endpoints already determine their radii.
+- Dimension the separate embedded root circle by `Rr` and the bore circle by `b`.
+- Solve, then verify every sketch before reading profiles or returning it.
+  Require `sketch.FullyConstrained`, `DOF == 0`, no redundant constraints, no
+  conflicts, and a successful verification report check.
+- Apply these rules to both end profiles, standalone tooth sections, and bore
+  tools. Do not fix computed points to remove freedom.
 
-Each tip or root arc already relates the radii of its endpoints. Dimension
-only the tangential coordinate of one endpoint and let that arc relation
-determine its radial coordinate; do not add a duplicate radius condition.
-For the embedded-flank route, dimension the separate root circle to the
-derived root radius. Apply the same rules to the standalone tooth section.
-When present, center the bore circle on the sketch origin and dimension its
-diameter to `b`.
+## Reusable constructions
 
-Solve and verify every lower and upper profile, standalone tooth section,
-and bore tool sketch before using its geometry or returning it. Require
-`Sketch.Verify(ctx)` to report `sketch.FullyConstrained`, zero degrees of
-freedom, no redundant constraints, and no conflicts.
+- Expose the whole unfilleted outline on a caller-supplied plane for other lofts.
+- Expose one ordinary tooth at an arbitrary finite signed angle. Close it with
+  the short root arc from its right root to its left root. The six-curve profile
+  traverses this root arc in reverse to close the region.
+- Reject embedded standalone tooth requests; the complete embedded gear profile
+  remains a separate supported route.
+- Expose flank sampling with caller-supplied `pitch`, `base`, `tip`, real-valued
+  `effectiveTeeth`, `samples`, and signed `angle`. Use Tooth flank with those
+  radii and `effectiveTeeth` in place of `N`; never round it.
+- For that sampling API, reject nonfinite scalar inputs, `base <= 0`,
+  `pitch <= base`, `tip <= pitch`, `effectiveTeeth <= 0`, or `samples < 3`.
+- Expose through-bore and outer-cap chamfer operations for assembled gears.
+  Bore callers supply a body spanning z=0 through `h`, a positive diameter, and
+  valid context/document/body arguments. Chamfer callers supply a positive
+  setback and a body whose two cap references identify its outer loops.
+
+## Acceptance cases
+
+Apply these overrides to Inputs defaults. This table owns case inputs; the
+[acceptance tests](steps.md#acceptance-tests) own their detailed assertions.
+
+| Case | Overrides | Required result |
+| --- | --- | --- |
+| Small end-to-end | `N=8`, `h=2`, `S=5` | Both profile sketches verified, one solid, 16 root fillets, verified mesh |
+| Default | None | Ordinary body, 17 teeth, 34 native root fillets |
+| Bore tool | `b=3`; use a 10×10×10 box spanning z=0..10 | Remove a centered cylindrical volume |
+| Bore and chamfer | `b=3`, `c=0.1` | Gear with sharp bore rims and chamfered outer caps |
+| Chamfer only | `c=0.1` | Both cap areas and total volume decrease beyond error bounds |
+| Embedded, no fillet | `m=0.5`, `N=30`, `α=30π/180`, `h=2`, `S=5`, `c=0.02` | Embedded outline, no root fillet, chamfered caps |
+| Embedded, with fillet | `m=0.5`, `N=24`, `α=30π/180`, `h=2`, `S=5` | Embedded outline, 48 native root fillets |
+| Signed tooth section | `N=8`, `h=2`, `S=5`; angles `0`, `±14.5π/180` | Six-curve profiles with the requested rotation |
 
 ## Verification
 
-Check that every sketch meets the constraint requirements, the gear outline
-has one valid outer region, the result is one solid,
-all `N` teeth are present, the bounds match the tip radius and thickness,
-and the optional bore and chamfer change the expected surfaces. Exercise
-an ordinary gear and both embedded-flank routes: 30 teeth at 30° with no
-root fillets, and 24 teeth at 30° with native root fillets. Check the bore
-sketch separately when `b>0` and the tooth section used by the helical gear.
+Run the Small end-to-end case first. Check constraints independently for both
+ordinary end profiles, embedded profiles, bore tools, and signed tooth sections.
+Confirm tooth curves, exact root trims, final topology, cap positions, and
+feature surfaces. An odd tooth count need not reach `±Rt` on both axes.
+Check shared construction through real helical, herringbone, and bevel consumers.
+Render the real Decad body through `tools/render/`.

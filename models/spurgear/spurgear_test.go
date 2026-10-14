@@ -7,10 +7,74 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSmallGeneratedGear(t *testing.T) {
+	p := spurgear.Params{
+		Module: 1, Teeth: 8, PressureAngle: 20 * math.Pi / 180,
+		Thickness: 2, Samples: 5,
+	}
+	world := sketch.NewWorld()
+	frame, err := r3.NewFrame(r3.NewVec(0, 0, p.Thickness), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	upper, err := world.CreatePlaneFromFrame(frame)
+	require.NoError(t, err)
+	for _, plane := range []*sketch.Plane{world.XY(), upper} {
+		s, profile, err := spurgear.BuildProfile(t.Context(), world, plane, p)
+		require.NoError(t, err)
+		require.True(t, profile.Valid)
+		require.Len(t, profile.Holes, 0)
+		report := s.Verify(t.Context())
+		require.Equal(t, sketch.FullyConstrained, report.Status)
+		require.Zero(t, report.DOF)
+		require.Empty(t, report.Redundant)
+		require.Empty(t, report.Conflicts)
+		require.NoError(t, report.Check())
+	}
+
+	doc := decad.New()
+	gear, err := spurgear.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.True(t, gear.IsSolid())
+	require.Len(t, doc.Bodies(), 1)
+	box, err := gear.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-8)
+	require.InDelta(t, p.Thickness, box.Max.Z, box.Bound.Base()+1e-8)
+	require.InDelta(t, 5, box.Max.X, box.Bound.Base()+1e-7)
+	filletRoles := map[string]struct{}{}
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "fillet(") {
+				filletRoles[origin.Role] = struct{}{}
+			}
+		}
+	}
+	require.Len(t, filletRoles, 2*p.Teeth)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
+	require.NoError(t, err)
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+}
+
+func TestBuildAddsGearToExistingDocument(t *testing.T) {
+	p := spurgear.Params{
+		Module: 1, Teeth: 8, PressureAngle: 20 * math.Pi / 180,
+		Thickness: 2, Samples: 5,
+	}
+	doc := decad.New()
+	for range 2 {
+		gear, err := spurgear.Build(t.Context(), doc, p)
+		require.NoError(t, err)
+		require.True(t, gear.IsSolid())
+	}
+	require.Len(t, doc.Bodies(), 2)
+}
 
 func TestDefaultGear(t *testing.T) {
 	doc := decad.New()
