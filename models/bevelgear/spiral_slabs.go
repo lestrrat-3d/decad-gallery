@@ -83,7 +83,7 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 			// The planes move monotonically toward the apex. Only the apex-side
 			// piece can meet the next plane; all heel-side pieces stay whole.
 			inner := pieces[0]
-			cut, err := doc.Split(ctx, inner, sheet)
+			cut, err := decad.Split(ctx, inner, sheet)
 			if errors.Is(err, decad.ErrDegenerate) {
 				if removeErr := doc.Remove(sheet); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove missed slice sheet %d: %w", k, removeErr)
