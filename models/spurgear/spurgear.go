@@ -143,29 +143,11 @@ func ChamferOuterCaps(ctx context.Context, gear *decad.Body, distance float64) (
 func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
 	const margin = 1.0
 	world := sketch.NewWorld()
-	frame, err := r3.NewFrame(r3.NewVec(0, 0, -margin), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	s, profile, err := buildBoreProfile(ctx, world, p, margin)
 	if err != nil {
-		return nil, fmt.Errorf("create bore frame: %w", err)
+		return nil, err
 	}
-	plane, err := world.CreatePlaneFromFrame(frame)
-	if err != nil {
-		return nil, fmt.Errorf("create bore plane: %w", err)
-	}
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, fmt.Errorf("create bore sketch: %w", err)
-	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	s.CreateCircle(center, p.BoreDiameter/2)
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve bore sketch: %w", err)
-	}
-	profiles := s.Profiles()
-	if len(profiles) != 1 || !profiles[0].Valid {
-		return nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
-	}
-	tool, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{
+	tool, err := decad.Extrude(ctx, doc, s, profile, decad.Distance{
 		D: units.Millimeters(p.Thickness + 2*margin), Dir: decad.Along,
 	})
 	if err != nil {
@@ -178,10 +160,39 @@ func cutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, 
 	return body, nil
 }
 
-// CutThroughBore applies the spur bore operation to a completed gear body.
-// ctx, doc, and gear must not be nil.
-func CutThroughBore(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
-	return cutThroughBore(ctx, doc, gear, p)
+func buildBoreProfile(ctx context.Context, world *sketch.World, p Params, margin float64) (*sketch.Sketch, *sketch.Profile, error) {
+	frame, err := r3.NewFrame(r3.NewVec(0, 0, -margin), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	if err != nil {
+		return nil, nil, fmt.Errorf("create bore frame: %w", err)
+	}
+	plane, err := world.CreatePlaneFromFrame(frame)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create bore plane: %w", err)
+	}
+	s, err := world.CreateSketch(plane)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create bore sketch: %w", err)
+	}
+	center := s.Origin()
+	circle := s.CreateCircle(center, p.BoreDiameter/2)
+	s.AddConstraint(sketch.NewDiameter(circle, p.BoreDiameter))
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, nil, fmt.Errorf("solve bore sketch: %w", err)
+	}
+	if err := verifySpurSketch(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("verify bore sketch: %w", err)
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 1 || !profiles[0].Valid {
+		return nil, nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
+	}
+	return s, profiles[0], nil
+}
+
+// CutThroughBore cuts a centered bore through a body spanning z=0 to p.Thickness.
+// ctx, doc, and body must not be nil.
+func CutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body, p Params) (*decad.Body, error) {
+	return cutThroughBore(ctx, doc, body, p)
 }
 
 func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radius float64) (*decad.Body, error) {
@@ -214,6 +225,37 @@ func roundRootCorners(ctx context.Context, body *decad.Body, roots []point, radi
 	return rounded, nil
 }
 
+// dimensionPoint locates a computed involute sample through editable dimensions.
+func dimensionPoint(s *sketch.Sketch, xy point) *sketch.Point {
+	pt := s.CreatePoint(xy.x, xy.y)
+	s.AddConstraint(
+		sketch.NewHorizontalDistance(s.Origin(), pt, xy.x),
+		sketch.NewVerticalDistance(s.Origin(), pt, xy.y),
+	)
+	return pt
+}
+
+// dimensionArcEnd leaves the radial coordinate to the arc's own radius relation.
+func dimensionArcEnd(s *sketch.Sketch, xy point) *sketch.Point {
+	pt := s.CreatePoint(xy.x, xy.y)
+	if math.Abs(xy.x) >= math.Abs(xy.y) {
+		s.AddConstraint(sketch.NewVerticalDistance(s.Origin(), pt, xy.y))
+	} else {
+		s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), pt, xy.x))
+	}
+	return pt
+}
+
+func verifySpurSketch(ctx context.Context, s *sketch.Sketch) error {
+	report := s.Verify(ctx)
+	if report.Status != sketch.FullyConstrained || report.DOF != 0 ||
+		len(report.Redundant) != 0 || len(report.Conflicts) != 0 {
+		return fmt.Errorf("status %s, DOF %d, %d redundant, %d conflicts",
+			report.Status, report.DOF, len(report.Redundant), len(report.Conflicts))
+	}
+	return report.Check()
+}
+
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
 	if d.base < d.root {
@@ -223,13 +265,7 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("create gear sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy point) *sketch.Point {
-		pt := s.CreatePoint(xy.x, xy.y)
-		s.Fix(pt)
-		return pt
-	}
+	center := s.Origin()
 	var firstRoot, previousRoot *sketch.Point
 	var roots []point
 	for tooth := range p.Teeth {
@@ -238,12 +274,16 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 		leftPoints := make([]*sketch.Point, len(left))
 		rightPoints := make([]*sketch.Point, len(right))
 		for i := range left {
-			leftPoints[i] = fixed(left[i])
-			rightPoints[i] = fixed(right[i])
+			if i == len(left)-1 {
+				leftPoints[i] = dimensionArcEnd(s, left[i])
+			} else {
+				leftPoints[i] = dimensionPoint(s, left[i])
+			}
+			rightPoints[i] = dimensionPoint(s, right[i])
 		}
 		rightRootXY := point{right[0].x * d.root / d.base, right[0].y * d.root / d.base}
 		leftRootXY := point{left[0].x * d.root / d.base, left[0].y * d.root / d.base}
-		rightRoot, leftRoot := fixed(rightRootXY), fixed(leftRootXY)
+		rightRoot, leftRoot := dimensionPoint(s, rightRootXY), dimensionArcEnd(s, leftRootXY)
 		roots = append(roots, rightRootXY, leftRootXY)
 		if previousRoot != nil {
 			s.CreateArc(center, previousRoot, rightRoot)
@@ -265,6 +305,9 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, nil, fmt.Errorf("solve gear profile: %w", err)
 	}
+	if err := verifySpurSketch(ctx, s); err != nil {
+		return nil, nil, nil, fmt.Errorf("verify gear profile: %w", err)
+	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, nil, nil, fmt.Errorf("gear sketch has %d profiles; want one valid region", len(profiles))
@@ -278,21 +321,19 @@ func buildEmbeddedGearProfile(ctx context.Context, world *sketch.World, plane *s
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("create embedded gear sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy point) *sketch.Point {
-		pt := s.CreatePoint(xy.x, xy.y)
-		s.Fix(pt)
-		return pt
-	}
+	center := s.Origin()
 	for tooth := range p.Teeth {
 		angle := float64(tooth) * 2 * math.Pi / float64(p.Teeth)
 		left, right := toothFlanks(p, d, angle)
 		leftPoints := make([]*sketch.Point, len(left))
 		rightPoints := make([]*sketch.Point, len(right))
 		for i := range left {
-			leftPoints[i] = fixed(left[i])
-			rightPoints[i] = fixed(right[i])
+			if i == len(left)-1 {
+				leftPoints[i] = dimensionArcEnd(s, left[i])
+			} else {
+				leftPoints[i] = dimensionPoint(s, left[i])
+			}
+			rightPoints[i] = dimensionPoint(s, right[i])
 		}
 		if _, err := s.CreateFitSpline(rightPoints...); err != nil {
 			return nil, nil, nil, fmt.Errorf("tooth %d right flank: %w", tooth, err)
@@ -302,9 +343,13 @@ func buildEmbeddedGearProfile(ctx context.Context, world *sketch.World, plane *s
 			return nil, nil, nil, fmt.Errorf("tooth %d left flank: %w", tooth, err)
 		}
 	}
-	s.CreateCircle(center, d.root)
+	rootCircle := s.CreateCircle(center, d.root)
+	s.AddConstraint(sketch.NewRadius(rootCircle, d.root))
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, nil, fmt.Errorf("solve embedded gear profile: %w", err)
+	}
+	if err := verifySpurSketch(ctx, s); err != nil {
+		return nil, nil, nil, fmt.Errorf("verify embedded gear profile: %w", err)
 	}
 	regions := s.Profiles()
 	indices := make([]int, len(regions))

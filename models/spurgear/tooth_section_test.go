@@ -18,19 +18,31 @@ func TestToothSectionSignedRotation(t *testing.T) {
 	require.NoError(t, err)
 	upper, err := world.CreatePlaneFromFrame(frame)
 	require.NoError(t, err)
-	_, lower, err := spurgear.BuildToothSection(t.Context(), world, world.XY(), p, 0)
+	lowerSketch, lower, err := spurgear.BuildToothSection(t.Context(), world, world.XY(), p, 0)
 	require.NoError(t, err)
+	requireSectionSketchFullyConstrained(t, lowerSketch)
 	require.Len(t, lower.Outer, 6)
 	lx, ly := sectionCentroid(lower)
 	require.Greater(t, lx, 0.0)
 	for _, angle := range []float64{14.5 * math.Pi / 180, -14.5 * math.Pi / 180} {
-		_, top, err := spurgear.BuildToothSection(t.Context(), world, upper, p, angle)
+		topSketch, top, err := spurgear.BuildToothSection(t.Context(), world, upper, p, angle)
 		require.NoError(t, err)
+		requireSectionSketchFullyConstrained(t, topSketch)
 		require.Len(t, top.Outer, 6)
 		x, y := sectionCentroid(top)
 		require.InDelta(t, lx*math.Cos(angle)-ly*math.Sin(angle), x, 1e-6)
 		require.InDelta(t, lx*math.Sin(angle)+ly*math.Cos(angle), y, 1e-6)
 	}
+}
+
+func requireSectionSketchFullyConstrained(t *testing.T, s *sketch.Sketch) {
+	t.Helper()
+	report := s.Verify(t.Context())
+	require.Equal(t, sketch.FullyConstrained, report.Status)
+	require.Zero(t, report.DOF)
+	require.Empty(t, report.Redundant)
+	require.Empty(t, report.Conflicts)
+	require.NoError(t, report.Check())
 }
 
 func sectionCentroid(profile *sketch.Profile) (float64, float64) {

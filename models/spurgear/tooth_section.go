@@ -30,21 +30,20 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	if err != nil {
 		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy point) *sketch.Point {
-		pt := s.CreatePoint(xy.x, xy.y)
-		s.Fix(pt)
-		return pt
-	}
+	center := s.Origin()
 	left, right := toothFlanks(p, d, angle)
 	leftPoints := make([]*sketch.Point, len(left))
 	rightPoints := make([]*sketch.Point, len(right))
 	for i := range left {
-		leftPoints[i], rightPoints[i] = fixed(left[i]), fixed(right[i])
+		if i == len(left)-1 {
+			leftPoints[i] = dimensionArcEnd(s, left[i])
+		} else {
+			leftPoints[i] = dimensionPoint(s, left[i])
+		}
+		rightPoints[i] = dimensionPoint(s, right[i])
 	}
-	rightRoot := fixed(point{right[0].x * d.root / d.base, right[0].y * d.root / d.base})
-	leftRoot := fixed(point{left[0].x * d.root / d.base, left[0].y * d.root / d.base})
+	rightRoot := dimensionPoint(s, point{right[0].x * d.root / d.base, right[0].y * d.root / d.base})
+	leftRoot := dimensionArcEnd(s, point{left[0].x * d.root / d.base, left[0].y * d.root / d.base})
 	s.CreateLine(rightRoot, rightPoints[0])
 	if _, err := s.CreateFitSpline(rightPoints...); err != nil {
 		return nil, nil, fmt.Errorf("draw right flank: %w", err)
@@ -57,6 +56,9 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	s.CreateArc(center, rightRoot, leftRoot)
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, fmt.Errorf("solve tooth sketch: %w", err)
+	}
+	if err := verifySpurSketch(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("verify tooth sketch: %w", err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {

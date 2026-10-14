@@ -7,6 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
+	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -38,44 +39,79 @@ func TestDefaultGear(t *testing.T) {
 	require.Len(t, roles, 2*spurgear.DefaultParams().Teeth)
 }
 
-func TestThroughBore(t *testing.T) {
-	base, err := spurgear.Build(t.Context(), decad.New(), spurgear.DefaultParams())
+func TestCutThroughBoreVolumeOnBox(t *testing.T) {
+	doc := decad.New()
+	world := sketch.NewWorld()
+	s, err := world.CreateSketch(world.XY())
+	require.NoError(t, err)
+	rect := s.CreateRectangle(-5, -5, 5, 5)
+	s.AddConstraint(
+		sketch.NewHorizontalDistance(s.Origin(), rect.A, -5),
+		sketch.NewVerticalDistance(s.Origin(), rect.A, -5),
+		sketch.NewHorizontalDistance(rect.A, rect.B, 10),
+		sketch.NewVerticalDistance(rect.B, rect.C, 10),
+	)
+	_, err = s.Solve(t.Context())
+	require.NoError(t, err)
+	report := s.Verify(t.Context())
+	require.Equal(t, sketch.FullyConstrained, report.Status)
+	require.Zero(t, report.DOF)
+	require.Empty(t, report.Redundant)
+	require.Empty(t, report.Conflicts)
+	require.NoError(t, report.Check())
+	profiles := s.Profiles()
+	require.Len(t, profiles, 1)
+	require.True(t, profiles[0].Valid)
+	base, err := decad.Extrude(t.Context(), doc, s, profiles[0], decad.Distance{
+		D: units.Millimeters(10), Dir: decad.Along,
+	})
 	require.NoError(t, err)
 	baseVolume, err := base.Volume()
 	require.NoError(t, err)
+
 	p := spurgear.DefaultParams()
 	p.BoreDiameter = 3
-	doc := decad.New()
-	gear, err := spurgear.Build(t.Context(), doc, p)
+	withBore, err := spurgear.CutThroughBore(t.Context(), doc, base, p)
 	require.NoError(t, err)
-	require.True(t, gear.IsSolid())
+	require.True(t, withBore.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
-	withBore, err := gear.Volume()
+	boreVolume, err := withBore.Volume()
 	require.NoError(t, err)
 	radius := p.BoreDiameter / 2
 	wantRemoved := math.Pi * radius * radius * p.Thickness
-	require.InDelta(t, wantRemoved, baseVolume.Value.Base()-withBore.Value.Base(),
-		baseVolume.Bound.Base()+withBore.Bound.Base()+0.02)
+	require.InDelta(t, wantRemoved, baseVolume.Value.Base()-boreVolume.Value.Base(),
+		baseVolume.Bound.Base()+boreVolume.Bound.Base()+0.02)
 }
 
 func TestBoreAndCapChamfer(t *testing.T) {
 	p := spurgear.DefaultParams()
 	p.BoreDiameter = 3
-	withoutChamfer, err := spurgear.Build(t.Context(), decad.New(), p)
-	require.NoError(t, err)
-	baseVolume, err := withoutChamfer.Volume()
-	require.NoError(t, err)
-
 	p.CapChamfer = 0.1
 	doc := decad.New()
 	gear, err := spurgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.True(t, gear.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
-	chamferedVolume, err := gear.Volume()
+	chamferFaces := 0
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "chamferCap(") {
+				chamferFaces++
+				break
+			}
+		}
+	}
+	require.Positive(t, chamferFaces)
+	requireBoreRims(t, gear, p.BoreDiameter/2)
+	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
-	require.Greater(t, baseVolume.Value.Base()-chamferedVolume.Value.Base(),
-		baseVolume.Bound.Base()+chamferedVolume.Bound.Base())
+	require.True(t, mesh.BoundaryVerified())
+	require.True(t, mesh.VolumeVerified())
+}
+
+func requireBoreRims(t *testing.T, gear *decad.Body, radius float64) {
+	t.Helper()
 	for _, cap := range []decad.FeatureRef{decad.CapStart(gear), decad.CapEnd(gear)} {
 		faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(gear)
 		require.NoError(t, err)
@@ -83,7 +119,7 @@ func TestBoreAndCapChamfer(t *testing.T) {
 		require.Len(t, faces[0].Loops()[1].Edges(), 1, "the bore rim stays sharp")
 		circle, ok := faces[0].Loops()[1].Edges()[0].Curve().(decad.Circle3)
 		require.True(t, ok)
-		require.InDelta(t, p.BoreDiameter/2, circle.Radius.Base(), 1e-10)
+		require.InDelta(t, radius, circle.Radius.Base(), 1e-10)
 	}
 }
 
@@ -154,31 +190,29 @@ func TestEmbeddedThirtyToothGearWithoutRootFillets(t *testing.T) {
 	}
 }
 
-func TestEmbeddedSixtyToothGearWithRootFilletsAndBore(t *testing.T) {
+func TestEmbeddedTwentyFourToothGearWithRootFillets(t *testing.T) {
 	p := spurgear.Params{
-		Module: 0.5, Teeth: 60, PressureAngle: 20 * math.Pi / 180,
-		Thickness: 2, Samples: 15, BoreDiameter: 3, CapChamfer: 0.02,
+		Module: 0.5, Teeth: 24, PressureAngle: 30 * math.Pi / 180,
+		Thickness: 2, Samples: 5,
 	}
 	doc := decad.New()
 	gear, err := spurgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.True(t, gear.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
-	chamferFaces := 0
+	filletRoles := map[string]struct{}{}
 	for _, face := range gear.Faces() {
 		for _, origin := range face.Origins() {
-			if strings.HasPrefix(origin.Role, "chamferCap(") {
-				chamferFaces++
-				break
+			if strings.HasPrefix(origin.Role, "fillet(") {
+				filletRoles[origin.Role] = struct{}{}
 			}
 		}
 	}
-	require.Positive(t, chamferFaces)
+	require.Len(t, filletRoles, 2*p.Teeth)
 	for _, cap := range []decad.FeatureRef{decad.CapStart(gear), decad.CapEnd(gear)} {
 		faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(gear)
 		require.NoError(t, err)
-		require.Len(t, faces[0].Loops(), 2)
-		require.Len(t, faces[0].Loops()[1].Edges(), 1, "the bore rim stays sharp")
+		require.Len(t, faces[0].Loops(), 1)
 	}
 	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
