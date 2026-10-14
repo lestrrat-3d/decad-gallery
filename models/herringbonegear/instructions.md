@@ -21,6 +21,22 @@ gallery helix-angle input accepts only finite angles from +1° through +45°.
 The ordinary six-curve tooth section requires its base circle to lie outside
 the root circle. The Fusion source sets no helix-angle range.
 
+## Sketch constraints
+
+The lower and rotated middle tooth sections use the
+[spur tooth constraints](../spurgear/instructions.md#sketch-constraints).
+Anchor each section to its plane origin and constrain its fitted flanks and
+shared arc endpoints before lofting. The inherited helical root-disc sketch
+uses an origin-centered circle dimensioned to the root radius. The optional
+spur bore sketch uses an origin-centered circle dimensioned to the requested
+diameter. Do not fix every computed point.
+
+Solve and verify every tooth section, root-disc sketch, and optional bore
+sketch before its geometry is consumed. Require `Sketch.Verify(ctx)` to report
+`sketch.FullyConstrained`, zero degrees of freedom, no redundant constraints,
+and no conflicts. Exercise the optional bore branch in a real herringbone
+build. Mirroring the tooth body creates no additional sketch.
+
 ## Required build order
 
 1. Draw one ordinary spur involute tooth section on the z=0 plane. Draw the

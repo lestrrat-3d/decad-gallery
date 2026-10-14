@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -63,18 +64,16 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	if err != nil {
 		return nil, nil, fmt.Errorf("create virtual tooth sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy [2]float64) *sketch.Point {
-		point := s.CreatePoint(xy[0], xy[1])
-		s.Fix(point)
-		return point
-	}
+	center := s.Origin()
 	leftPoints := make([]*sketch.Point, p.Samples)
 	rightPoints := make([]*sketch.Point, p.Samples)
 	for i := range left {
-		leftPoints[i] = fixed(left[i])
-		rightPoints[i] = fixed(right[i])
+		if i == len(left)-1 {
+			leftPoints[i] = sketchcheck.DimensionArcEnd(s, left[i][0], left[i][1])
+		} else {
+			leftPoints[i] = sketchcheck.DimensionPoint(s, left[i][0], left[i][1])
+		}
+		rightPoints[i] = sketchcheck.DimensionPoint(s, right[i][0], right[i][1])
 	}
 	if _, err := s.CreateFitSpline(rightPoints...); err != nil {
 		return nil, nil, fmt.Errorf("right virtual flank: %w", err)
@@ -85,16 +84,20 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	}
 	embedded := base < root
 	if embedded {
-		s.CreateCircle(center, root)
+		rootCircle := s.CreateCircle(center, root)
+		s.AddConstraint(sketch.NewRadius(rootCircle, root))
 	} else {
-		rightRoot := fixed([2]float64{right[0][0] * root / base, right[0][1] * root / base})
-		leftRoot := fixed([2]float64{left[0][0] * root / base, left[0][1] * root / base})
+		rightRoot := sketchcheck.DimensionPoint(s, right[0][0]*root/base, right[0][1]*root/base)
+		leftRoot := sketchcheck.DimensionArcEnd(s, left[0][0]*root/base, left[0][1]*root/base)
 		s.CreateLine(rightRoot, rightPoints[0])
 		s.CreateLine(leftPoints[0], leftRoot)
 		s.CreateArc(center, rightRoot, leftRoot)
 	}
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, nil, fmt.Errorf("solve virtual tooth sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("verify virtual tooth sketch: %w", err)
 	}
 	profiles := s.Profiles()
 	if embedded {

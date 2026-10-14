@@ -39,6 +39,22 @@ cap and no bore edges. The source-order fillet selector checks the root
 cylinder's straight axial edges before the bore. It finds none on the real
 small 8-tooth gear and skips the fillet, as the source requires.
 
+## Sketch constraints
+
+The lower and rotated upper tooth sections follow the
+[spur sketch constraints](../spurgear/instructions.md#sketch-constraints):
+anchor each section to its plane origin, dimension the fitted flank points,
+and share and constrain the adjoining arc endpoints. Center the root-disc
+circle on the lower plane's origin and dimension its root radius. When a bore
+is requested, center its tool circle on its plane origin and dimension its
+diameter. Do not fix every computed point.
+
+Solve and verify each tooth section, root-disc sketch, and optional bore
+sketch before using its profile. Require `Sketch.Verify(ctx)` to report
+`sketch.FullyConstrained`, zero degrees of freedom, no redundant constraints,
+and no conflicts. Exercise the ordinary tooth, root disc, and optional bore
+branches in real builds.
+
 ## Required build order
 
 1. Draw the ordinary spur tooth with two fitted involute flanks, a tip arc,

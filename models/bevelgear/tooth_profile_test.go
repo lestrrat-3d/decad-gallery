@@ -26,8 +26,9 @@ func TestVirtualToothProfiles(t *testing.T) {
 			p := bevelgear.DefaultParams()
 			p.Teeth, p.MateTeeth, p.Samples = tc.teeth, tc.mateTeeth, 5
 			world := sketch.NewWorld()
-			_, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
+			s, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
 			require.NoError(t, err)
+			requireFullyConstrained(t, s)
 			require.True(t, profile.Valid)
 			require.Empty(t, profile.Holes)
 			require.Len(t, profile.Outer, 6)
@@ -67,8 +68,9 @@ func TestEmbeddedVirtualToothProfile(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Teeth, p.MateTeeth = 60, 60
 	world := sketch.NewWorld()
-	_, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
+	s, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
 	require.NoError(t, err)
+	requireFullyConstrained(t, s)
 	require.True(t, profile.Valid)
 	require.Empty(t, profile.Holes)
 	require.Len(t, profile.Outer, 4)
@@ -98,6 +100,7 @@ func TestBackConeToothPlaneWithSpacing(t *testing.T) {
 		world := sketch.NewWorld()
 		s, profile, err := bevelgear.BuildBackConeToothProfile(t.Context(), world, p)
 		require.NoError(t, err)
+		requireFullyConstrained(t, s)
 		require.True(t, profile.Valid)
 		frame, err := s.Plane().Frame()
 		require.NoError(t, err)
@@ -110,4 +113,14 @@ func TestBackConeToothPlaneWithSpacing(t *testing.T) {
 		normal := frame.U().Cross(frame.V())
 		require.InDelta(t, coneDist, math.Abs(normal.Dot(frame.Origin())), 1e-8)
 	}
+}
+
+func requireFullyConstrained(t *testing.T, s *sketch.Sketch) {
+	t.Helper()
+	report := s.Verify(t.Context())
+	require.Equal(t, sketch.FullyConstrained, report.Status)
+	require.Zero(t, report.DOF)
+	require.Empty(t, report.Redundant)
+	require.Empty(t, report.Conflicts)
+	require.NoError(t, report.Check())
 }

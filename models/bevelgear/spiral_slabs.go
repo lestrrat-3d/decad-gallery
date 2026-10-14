@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -155,12 +156,14 @@ func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3
 	}
 	a := origin.Add(along.Scale(-extent))
 	b := origin.Add(along.Scale(extent))
-	first, second := s.CreatePoint(a.X, a.Y), s.CreatePoint(b.X, b.Y)
-	s.Fix(first)
-	s.Fix(second)
+	first := sketchcheck.DimensionPoint(s, a.X, a.Y)
+	second := sketchcheck.DimensionPoint(s, b.X, b.Y)
 	s.CreateLine(first, second)
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, err
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("verify slice sheet sketch: %w", err)
 	}
 	chains := s.Chains()
 	if len(chains) != 1 {

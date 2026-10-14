@@ -264,6 +264,28 @@ reference does. A solid-cone `Cut` result alone does not identify that
 keeper. Check both sides of a real heel split before choosing one: the
 spaced 16/12 tooth at 90° has material on both sides of its heel cone.
 
+## Sketch constraints
+
+Anchor every axial section to its sketch origin and dimension its shaft
+stations and radii. Use the same rule for the six-sided blank and triangular
+toe and heel cone tools. On the tilted back-cone plane, use that plane's
+origin as the virtual tooth's center. Dimension fitted involute points from
+it and share endpoints between adjoining curves. Each tip or root arc
+relates its endpoint radii, so dimension only the needed tangential
+coordinate of one endpoint. For the embedded-flank route, dimension the
+separate root circle to the derived root radius. Do not fix every computed
+point.
+
+For each spiral slicing sheet, anchor and dimension the two line endpoints
+on its sketch plane before extruding the sheet. When a bore is enabled,
+center its circle on the shaft-normal sketch origin and dimension its
+resolved diameter. Solve and verify every blank, cone, tooth, slicing-sheet,
+and optional bore sketch before using its geometry or returning it. Require
+`Sketch.Verify(ctx)` to report `sketch.FullyConstrained`, zero degrees of
+freedom, no redundant constraints, and no conflicts. Check the ordinary
+and embedded tooth routes, straight and spiral construction, and both bore
+states with their real builders.
+
 ## Geometry checks
 
 The first full-gear case must produce one solid with eight tapered teeth

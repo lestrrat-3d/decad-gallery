@@ -13,13 +13,17 @@ supported pair.
    Module 1 spiral 31/31 case with fifteen samples. Enabled zero bore inputs
    select each member's bounded automatic diameter.
 2. Resolve the shared pitch cone distance, both cone angles, and the face
-   width. Draw the reference's six-sided axial blank profile and revolve
-   it about the shaft. Check its two planar ends, three conical surfaces,
+   width. Draw the reference's six-sided axial blank profile. Dimension its
+   stations and radii from the sketch origin, then solve and verify it before
+   revolving about the shaft. Check its two planar ends, three conical surfaces,
    and `VerifyAll` mesh.
 3. Draw one fitted involute tooth on the tilted back-cone plane. Keep
-   `Teeth / cos(γ)` as a real number, solve the Sketch profile, and loft
+   `Teeth / cos(γ)` as a real number. Anchor the tooth center to the sketch
+   origin; dimension its fit points and arcs for both root routes. Solve and
+   verify the Sketch profile before lofting
    it from the exact common apex with `Document.LoftFromPoint`.
-4. Revolve cutting cones from the blank's toe-dish and heel-cone lines.
+4. Dimension, solve, and verify the triangular axial sections before
+   revolving the cutting cones from the blank's toe-dish and heel-cone lines.
    Cut the point tooth with the toe cone first. Intersect that keeper with
    the heel cone for the verified 8/8 case. The tooth retains fitted flank
    and conical end faces, and its mesh passes `VerifyAll`.
@@ -31,7 +35,9 @@ supported pair.
    closed outer shell. `Tessellate(0.1 mm, VerifyAll)` verifies its
    boundary and volume.
 7. When requested, cut the bounded through-bore **after** the tooth pattern
-   and tooth join. `BuildBoredBlank` separately checks the blank-only
+   and tooth join. Center the bore circle on its shaft-normal sketch origin,
+   dimension its resolved diameter, then solve and verify it before the Cut.
+   `BuildBoredBlank` separately checks the blank-only
    operation. The final joined body with a 1 mm bore passes `VerifyAll` and
    has one through-hole. Use this build for both members of the interim pair.
 8. Build the pinion first. Rotate it about world Z by the shaft angle, then
@@ -40,7 +46,9 @@ supported pair.
    document. The spiral branch uses opposite hands. Both placed members pass
    `VerifyAll` at 0.1 mm.
 9. For the source-default 31/31 spiral case, slice the untrimmed point tooth
-   with eight planes parallel to its parent tooth plane. Space the planes
+   with eight planes parallel to its parent tooth plane. Anchor and dimension
+   each slicing-sheet line on its sketch plane, then solve and verify before
+   extruding. Space the planes
    by one sixth of the root-edge toe-to-heel span toward the apex. Retry the
    opposite offset sign if none cuts. Sort the pieces by their solid
    centroids, remove the apex scrap, and verify the eight remaining slabs.

@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -98,11 +99,13 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 	if err != nil {
 		return nil, fmt.Errorf("create bore sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	s.CreateCircle(center, diameter/2)
+	circle := s.CreateCircle(s.Origin(), diameter/2)
+	s.AddConstraint(sketch.NewDiameter(circle, diameter))
 	if _, err := s.Solve(ctx); err != nil {
 		return nil, fmt.Errorf("solve bore sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("verify bore sketch: %w", err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {

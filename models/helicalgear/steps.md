@@ -10,17 +10,21 @@ millimeters, and `HelixAngle` is a positive angle in radians.
    spur tooth sampler's fitted involute flanks, tip and root arcs, and radial
    flank-to-root lines.
 3. Draw the same profile on the plane at z=`Thickness`, rotating every point
-   by `HelixAngle`. Loft the lower Sketch profile to the upper
-   one to create one twisted tooth solid.
+   by `HelixAngle`. Anchor both sections to their plane origins. Apply the
+   spur tooth's geometric and dimensional constraints to each, then solve
+   and verify both before lofting one twisted tooth solid.
 4. Draw the root-circle region on the lower plane and extrude it through
-   `Thickness`. Copy the twisted tooth around the shaft at tooth-pitch
-   angles, then join each copy to the root disc.
+   `Thickness`. Center its circle on the plane origin, dimension its radius,
+   then solve and verify the sketch before extruding. Copy the twisted tooth
+   around the shaft at tooth-pitch angles, then join each copy to the root disc.
 5. Compute the spur root radius multiplied by `cos(HelixAngle)` and skip
    the fillet if that result is nonpositive. Otherwise search the root
    cylinder for straight axial edges. Fillet the selected edges with that
    radius, or skip the operation when the selector finds none.
 6. When `BoreDiameter` is positive, cut a centered cylinder through the
-   joined gear. When `CapChamfer` is positive, chamfer the outer loop of
+   joined gear using the spur bore sketch, centered and dimensioned to the
+   requested diameter. Solve and verify it before the Cut. When `CapChamfer`
+   is positive, chamfer the outer loop of
    each completed-gear cap. Leave bore rims out of the chamfer selection.
 7. Tessellate the completed body with `VerifyAll`. Check that it is one
    solid and that a requested bore remains a through-hole. The 8-tooth
