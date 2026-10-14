@@ -76,7 +76,7 @@ func buildSpiralTooth(ctx context.Context, doc *decad.Document,
 		return nil, fmt.Errorf("loft spiral tooth: %w", err)
 	}
 	for i, slab := range crowned {
-		if err := doc.Remove(slab); err != nil {
+		if err := decad.Remove(slab); err != nil {
 			return nil, fmt.Errorf("remove spiral slab %d after loft: %w", i, err)
 		}
 	}

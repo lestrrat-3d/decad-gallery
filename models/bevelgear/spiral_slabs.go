@@ -85,13 +85,13 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 			inner := pieces[0]
 			cut, err := decad.Split(ctx, inner, sheet)
 			if errors.Is(err, decad.ErrDegenerate) {
-				if removeErr := doc.Remove(sheet); removeErr != nil {
+				if removeErr := decad.Remove(sheet); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove missed slice sheet %d: %w", k, removeErr)
 				}
 				continue
 			}
 			if err != nil {
-				_ = doc.Remove(sheet)
+				_ = decad.Remove(sheet)
 				return nil, spiralSliceFrame{}, fmt.Errorf("split tooth at plane %d: %w", k, err)
 			}
 			if len(cut) != 2 {
@@ -122,7 +122,7 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 			ranked[i] = rankedSlab{body: piece, distance: centroid.Value.Dot(coneVec)}
 		}
 		sort.Slice(ranked, func(i, j int) bool { return ranked[i].distance < ranked[j].distance })
-		if err := doc.Remove(ranked[0].body); err != nil {
+		if err := decad.Remove(ranked[0].body); err != nil {
 			return nil, spiralSliceFrame{}, fmt.Errorf("remove apex scrap: %w", err)
 		}
 		segments := make([]*decad.Body, 0, len(ranked)-1)
