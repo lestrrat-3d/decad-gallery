@@ -37,3 +37,42 @@ func TestDefaultGearProfileKeepsUnroundedRootCorners(t *testing.T) {
 	require.Equal(t, p.Teeth, rootArcs)
 	require.Equal(t, p.Teeth, tipArcs)
 }
+
+func TestGearProfilesAreFullyConstrained(t *testing.T) {
+	cases := []struct {
+		name string
+		p    Params
+	}{
+		{"ordinary", DefaultParams()},
+		{"embedded", Params{
+			Module: 0.5, Teeth: 30, PressureAngle: 30 * math.Pi / 180,
+			Thickness: 2, Samples: 5,
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			world := sketch.NewWorld()
+			s, _, err := BuildProfile(t.Context(), world, world.XY(), tc.p)
+			require.NoError(t, err)
+			requireSpurSketchFullyConstrained(t, s)
+		})
+	}
+}
+
+func TestBoreProfileIsFullyConstrained(t *testing.T) {
+	p := DefaultParams()
+	p.BoreDiameter = 3
+	s, _, err := buildBoreProfile(t.Context(), sketch.NewWorld(), p, 1)
+	require.NoError(t, err)
+	requireSpurSketchFullyConstrained(t, s)
+}
+
+func requireSpurSketchFullyConstrained(t *testing.T, s *sketch.Sketch) {
+	t.Helper()
+	report := s.Verify(t.Context())
+	require.Equal(t, sketch.FullyConstrained, report.Status)
+	require.Zero(t, report.DOF)
+	require.Empty(t, report.Redundant)
+	require.Empty(t, report.Conflicts)
+	require.NoError(t, report.Check())
+}
