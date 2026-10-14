@@ -10,40 +10,47 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
-	return bevelGearView(ctx, solidlens.Camera{
+var bevelCameras = map[string]solidlens.Camera{
+	"hero": {
 		Position: solidlens.Vec{X: -43, Y: -43, Z: 43},
 		Target:   solidlens.Vec{X: 12, Y: 12},
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      35,
-	})
-}
-
-func bevelGearTop(ctx context.Context) (solidlens.Scene, error) {
-	return bevelGearView(ctx, solidlens.Camera{
+	},
+	"top": {
 		Position: solidlens.Vec{X: 12, Y: 12, Z: 100},
 		Target:   solidlens.Vec{X: 12, Y: 12},
 		Up:       solidlens.Vec{Y: 1},
 		FOV:      42,
-	})
-}
-
-func bevelGearLow(ctx context.Context) (solidlens.Scene, error) {
-	return bevelGearView(ctx, solidlens.Camera{
+	},
+	"low": {
 		Position: solidlens.Vec{X: -60, Y: -30, Z: 22},
 		Target:   solidlens.Vec{X: 12, Y: 12},
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      40,
-	})
-}
-
-func bevelGearHigh(ctx context.Context) (solidlens.Scene, error) {
-	return bevelGearView(ctx, solidlens.Camera{
+	},
+	"high": {
 		Position: solidlens.Vec{X: -50, Y: -20, Z: 75},
 		Target:   solidlens.Vec{X: 12, Y: 12},
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      38,
-	})
+	},
+}
+
+func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, bevelCameras["hero"])
+}
+
+func bevelGearTop(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, bevelCameras["top"])
+}
+
+func bevelGearLow(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, bevelCameras["low"])
+}
+
+func bevelGearHigh(ctx context.Context) (solidlens.Scene, error) {
+	return bevelGearView(ctx, bevelCameras["high"])
 }
 
 func bevelGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Scene, error) {
@@ -67,6 +74,11 @@ func bevelGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Scen
 		models = append(models, solidlens.Model{
 			Mesh:     mesh,
 			Material: solidlens.Matte(solidlens.RGB(0.17, 0.42, 0.6)),
+			Edges: solidlens.Edges{
+				Enabled: true,
+				Color:   solidlens.RGB(0.025, 0.07, 0.11),
+				Width:   1.5,
+			},
 		})
 	}
 	return solidlens.Scene{

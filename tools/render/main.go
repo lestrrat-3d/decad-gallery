@@ -91,14 +91,21 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	if err := renderPNG(ctx, filepath.Join(outputDir, "index.png"), scene, 480, 270); err != nil {
 		return fmt.Errorf("render %s index image: %w", model, err)
 	}
+	if model == "bevelgear" {
+		if err := renderPNG(ctx, filepath.Join(outputDir, "hero.png"), scene, 1600, 900); err != nil {
+			return fmt.Errorf("render %s hero image: %w", model, err)
+		}
+	}
 	var cameras map[string]solidlens.Camera
 	switch model {
+	case "bevelgear":
+		cameras = bevelCameras
 	case "helicalgear":
 		cameras = helicalCameras
 	case "herringbonegear":
 		cameras = herringboneCameras
 	}
-	for _, shot := range []string{"top", "low"} {
+	for _, shot := range []string{"top", "low", "high"} {
 		camera, ok := cameras[shot]
 		if !ok {
 			continue
