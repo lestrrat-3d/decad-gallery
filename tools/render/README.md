@@ -53,7 +53,8 @@ go -C tools/render run . -model bevelgear -shot low -out ../../models/bevelgear/
 
 The `readme` shot builds each model once and writes a 480 × 270 pixel
 `index.png` for `models/README.md`. For helical and herringbone gears it also
-writes 1600 × 900 pixel `top.png` and `low.png` views:
+writes 1600 × 900 pixel `top.png` and `low.png` views. For bevel gears it
+writes `hero.png`, `top.png`, `low.png`, and `high.png` with outlines enabled:
 
 ```sh
 go -C tools/render run . -model spurgear -shot readme -out ../../models/spurgear/images
