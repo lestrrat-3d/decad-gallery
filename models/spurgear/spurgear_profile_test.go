@@ -59,6 +59,40 @@ func TestGearProfilesAreFullyConstrained(t *testing.T) {
 	}
 }
 
+func TestEmbeddedProfilesKeepCertifiedRootTrims(t *testing.T) {
+	for _, teeth := range []int{24, 30} {
+		p := Params{
+			Module: 0.5, Teeth: teeth, PressureAngle: 30 * math.Pi / 180,
+			Thickness: 2, Samples: 5,
+		}
+		d := derive(p)
+		world := sketch.NewWorld()
+		s, profile, roots, err := buildGearProfile(t.Context(), world, world.XY(), p, d)
+		require.NoError(t, err)
+		requireSpurSketchFullyConstrained(t, s)
+		require.True(t, profile.Valid)
+		require.Empty(t, profile.Holes)
+		require.Len(t, profile.Outer, 4*p.Teeth)
+		require.Len(t, roots, 2*p.Teeth)
+		for _, root := range roots {
+			require.InDelta(t, d.root, math.Hypot(root.x, root.y), 1e-8)
+		}
+		trimmed := 0
+		for _, edge := range profile.Outer {
+			flank, ok := edge.Entity.(*sketch.FitSpline)
+			if !ok {
+				continue
+			}
+			require.True(t, edge.Partial)
+			require.True(t, edge.TExact)
+			x, y := flank.Eval(edge.TStart)
+			require.InDelta(t, d.root, math.Hypot(x, y), 1e-8)
+			trimmed++
+		}
+		require.Equal(t, 2*p.Teeth, trimmed)
+	}
+}
+
 func TestBoreProfileIsFullyConstrained(t *testing.T) {
 	p := DefaultParams()
 	p.BoreDiameter = 3

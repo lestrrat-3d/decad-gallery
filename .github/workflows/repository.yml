@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check repository layout
         run: python3 scripts/check_repository.py
+      - name: Check spur generation record
+        run: python3 scripts/modelgen/spurgear.py check
   models:
     runs-on: ubuntu-latest
     steps:
