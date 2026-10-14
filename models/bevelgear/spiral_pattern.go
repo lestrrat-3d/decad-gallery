@@ -17,11 +17,8 @@ func patternSpiralTooth(ctx context.Context, trimmed *decad.Body, teeth int) ([]
 	pattern[0] = trimmed
 	for i := 1; i < teeth; i++ {
 		angle := units.Radians(2 * math.Pi * float64(i) / float64(teeth))
-		turn, err := r3.Rotation(r3.NewVec(1, 0, 0), angle)
-		if err != nil {
-			return nil, fmt.Errorf("rotate spiral tooth %d: %w", i+1, err)
-		}
-		pattern[i], err = decad.Copy(ctx, trimmed, decad.WithCopyPlacement(turn))
+		var err error
+		pattern[i], err = decad.Copy(ctx, trimmed, decad.WithCopyRotation(r3.Vec{}, r3.NewVec(1, 0, 0), angle))
 		if err != nil {
 			return nil, fmt.Errorf("place spiral tooth %d: %w", i+1, err)
 		}
