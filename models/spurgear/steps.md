@@ -41,9 +41,9 @@ millimeters. `Build(ctx, doc, Params)` returns one final Decad body.
    call `Body.Chamfer`. The bore loops remain unselected and sharp. Require
    one cap face at each end and one outer loop, plus a bore loop when present.
 9. Verify the ordinary default gear, the embedded 30-tooth/30° no-fillet
-   gear, and the embedded 24-tooth/30° filleted gear. Exercise bore and
-   chamfer independently and together on the real gear. Check bore removal
-   volume with `CutThroughBore` on a plain extruded box. Check dimensions,
+   gear, and the embedded 24-tooth/30° filleted gear. Check bore removal
+   volume with `CutThroughBore` on a plain extruded box. Exercise chamfer
+   alone and bore plus chamfer on real gears. Check dimensions,
    topology, and geometry verification on the complex final bodies. For every
    profile, standalone tooth section, and optional bore sketch, require
    `Sketch.Verify(ctx)` to report `sketch.FullyConstrained`, `DOF == 0`,

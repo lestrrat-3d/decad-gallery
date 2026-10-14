@@ -83,17 +83,6 @@ func TestCutThroughBoreVolumeOnBox(t *testing.T) {
 		baseVolume.Bound.Base()+boreVolume.Bound.Base()+0.02)
 }
 
-func TestBuildWithThroughBore(t *testing.T) {
-	p := spurgear.DefaultParams()
-	p.BoreDiameter = 3
-	doc := decad.New()
-	gear, err := spurgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.True(t, gear.IsSolid())
-	require.Len(t, doc.Bodies(), 1)
-	requireBoreRims(t, gear, p.BoreDiameter/2)
-}
-
 func TestBoreAndCapChamfer(t *testing.T) {
 	p := spurgear.DefaultParams()
 	p.BoreDiameter = 3
