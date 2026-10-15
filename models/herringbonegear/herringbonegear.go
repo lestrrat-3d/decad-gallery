@@ -44,6 +44,9 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	if err := helicalgear.ValidateHelixAngle(p.HelixAngle); err != nil {
 		return nil, err
 	}
+	if err := p.RejectPlacement("herringbonegear"); err != nil {
+		return nil, err
+	}
 	world := sketch.NewWorld()
 	midpoint := p.Thickness / 2
 	frame, err := r3.NewFrame(r3.NewVec(0, 0, midpoint), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
