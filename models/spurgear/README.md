@@ -17,8 +17,8 @@ The Go package exposes `Build(ctx, doc, Params)`. Its caller supplies a decad
 document and receives one gear body. Set `Params.Placement` (an `r3.Frame`) to anchor the gear: the frame origin is
 the reference point on the gear axis, its U and V axes span the reference
 plane that holds the lower cap, and the gear grows along U×V. Leaving it nil
-places the gear on the world XY plane at the origin. Helical and herringbone
-gears reject a placement. Run `go test ./models/spurgear` to check
+places the gear on the world XY plane at the origin. Helical gears take the
+same placement; herringbone gears reject it. Run `go test ./models/spurgear` to check
 the supported parameter cases.
 
 `Build` draws one closed profile with fit-spline flanks, lofts matching
