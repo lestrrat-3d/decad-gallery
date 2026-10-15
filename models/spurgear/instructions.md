@@ -90,7 +90,9 @@ with chords, resample from the root, or alter their shape during trimming.
 
 Use this branch when `Rb >= Rr`.
 
-- Scale each flank's base point by `Rr/Rb` to locate its root contact.
+- Scale each flank's base point by `Rr/Rb` to locate its root contact. Evaluate
+  each coordinate as `x*Rr/Rb`, multiplying before dividing, not as `x*(Rr/Rb)`.
+  The helical join rejects the one-bit coordinate difference.
 - Traverse each tooth from right root to right base by line, along the right
   spline to its tip, along the tip-circle arc to the left tip, along the left
   spline back to its base, and by line to the left root.

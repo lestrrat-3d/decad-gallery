@@ -117,7 +117,9 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
 1. Call `world.CreateSketch(plane)` and use its origin as center.
 2. Iterate teeth in ascending index. Sample the rotated left/right flank arrays.
 3. Create dimensioned sample points according to Step 2. Create both root
-   points by scaling their base samples according to Ordinary profile.
+   points by scaling their base samples according to Ordinary profile; compute
+   each coordinate as `x*d.root/d.base` (multiply, then divide), never with a
+   precomputed `d.root/d.base` factor. Create the left root before the right root.
 4. Save right root then left root coordinates for each tooth in a `2N`-entry list.
 5. Except on tooth zero, call `s.CreateArc(center,previousLeftRoot,rightRoot)`.
    Save tooth zero's right root for final closure.
