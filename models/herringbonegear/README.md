@@ -13,6 +13,12 @@ body midpoint, mirrors that half, and joins the two halves. It patterns the
 chevron tooth around a full-thickness root disc, then applies the inherited
 helical root fillet and optional spur bore and outer-cap chamfer.
 
+Set `Params.Placement` (an `r3.Frame`) to anchor the gear: the frame origin is the
+reference point on the gear axis, its U and V axes span the reference plane that
+holds the lower cap, and the gear grows along U×V. `Build` constructs the gear at
+the origin and moves the finished body onto the frame, because the tooth Unions
+fail on bodies built at an offset. A nil `Placement` keeps the world XY plane.
+
 The [instructions](instructions.md) define the source parameters and operation
 order. The [steps](steps.md) map them to Sketch and Decad.
 

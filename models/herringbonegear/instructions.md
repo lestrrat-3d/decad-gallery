@@ -37,6 +37,18 @@ sketch before its geometry is consumed. Require `Sketch.Verify(ctx)` to report
 and no conflicts. Exercise the optional bore branch in a real herringbone
 build. Mirroring the tooth body creates no additional sketch.
 
+## Placement
+
+`Params` carries the spur gear's optional `Placement` (`*r3.Frame`). Its origin is
+the reference point on the gear axis, its `U` and `V` axes span the reference plane
+that holds the lower cap, and the gear grows along `U × V`. `Build` constructs the
+whole gear about the local origin and +Z, then moves the finished body with one
+`decad.Transform` from the local frame onto `Placement`. A nil `Placement` leaves
+the gear on the world XY plane at the origin. An invalid frame is rejected before
+any body is added. The tooth Unions fail on bodies built at an offset, so the move
+follows the last boolean. `BuildTooth` works in the local frame and ignores
+`Placement`.
+
 ## Required build order
 
 1. Draw one ordinary spur involute tooth section on the z=0 plane. Draw the

@@ -18,7 +18,11 @@ root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
    When requested, center and dimension the spur bore-tool circle, solve and
    verify its sketch, then apply the Cut. Apply the outer-cap Chamfer when
    requested.
-5. Tessellate the finished gear at 0.1 mm with `VerifyAll`. Check one solid,
+5. When `Placement` is set, reject an invalid frame first. Build steps 1–4 on the
+   local frame, then call `decad.Transform` with `r3.FromFrame(Placement)` on
+   the finished gear. Check the placed gear's volume and bounds against the
+   unplaced gear, for normals of both signs.
+6. Tessellate the finished gear at 0.1 mm with `VerifyAll`. Check one solid,
    one connected closed shell without a bore, or one through-hole with a bore.
    Check the full height and opposite tooth slopes around the middle plane.
 
