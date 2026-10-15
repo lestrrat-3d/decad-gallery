@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 )
@@ -32,6 +33,11 @@ type Params struct {
 	MateToeRadius    float64
 	BaseHeight       float64
 	MateBaseHeight   float64
+
+	// Placement anchors the pair. Its origin is the common pitch apex, its U and V axes span
+	// the plane that holds both shafts, and the driving shaft runs along U. Nil keeps the
+	// world origin, with the shafts in the world XY plane and the driving shaft on +X.
+	Placement *r3.Frame
 }
 
 // DefaultParams returns the values from instructions.md.
@@ -127,8 +133,8 @@ func derive(p Params) (dimensions, error) {
 		scale: scale, toeZ: width * math.Cos(gamma)}, nil
 }
 
-// Build adds one member of a bevel pair in its local shaft frame.
-// ctx and doc must not be nil.
+// Build adds one member of a bevel pair in its local shaft frame, then moves it to
+// Params.Placement. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
@@ -137,7 +143,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	return buildMember(ctx, doc, p, plan, false)
+	member, err := buildMember(ctx, doc, p, plan, false)
+	if err != nil {
+		return nil, err
+	}
+	return placement.Place(ctx, member, p.Placement)
 }
 
 type memberBuildPlan struct {
@@ -147,6 +157,9 @@ type memberBuildPlan struct {
 }
 
 func prepareBuild(p Params) (memberBuildPlan, error) {
+	if p.Placement != nil && !p.Placement.IsValid() {
+		return memberBuildPlan{}, fmt.Errorf("placement frame is not valid")
+	}
 	validationParams := p
 	validationParams.BoreDiameter = 0
 	if _, err := derive(validationParams); err != nil {

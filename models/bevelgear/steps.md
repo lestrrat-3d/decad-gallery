@@ -45,6 +45,11 @@ supported pair.
    own shaft. Check both bored bodies with `VerifyAll` in the shared
    document. The spiral branch uses opposite hands. Both placed members pass
    `VerifyAll` at 0.1 mm.
+   When `Placement` is set, `prepareBuild` rejects an invalid frame first. After the
+   last boolean, `Build` and `BuildPair` call `decad.Transform` with
+   `r3.FromFrame(Placement)` on each returned body. Check a placed member's volume
+   and bounds against the unplaced member, and a placed pair's two bodies in one
+   document.
 9. For the source-default 31/31 spiral case, slice the untrimmed point tooth
    with eight planes parallel to its parent tooth plane. Anchor and dimension
    each slicing-sheet line on its sketch plane, then solve and verify before

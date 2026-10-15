@@ -22,6 +22,11 @@ them into one solid without a root fillet.
 or a tested straight 4/4, 8/8, or 16/12 member. `DefaultParams()` selects Module 1,
 a 90° shaft angle, 35° spiral teeth, and an auto-calculated bore for each
 member. `BuildPair` builds and places all four supported pairs.
+Set `Params.Placement` (an `r3.Frame`) to anchor the pair: the frame origin is the
+common pitch apex, its U and V axes span the plane that holds both shafts, and the
+driving shaft runs along U. The members are built at the world origin and moved onto
+the frame afterwards, because the tooth Unions fail on bodies built at an offset.
+A nil `Placement` keeps the world origin and XY shaft plane.
 The [instructions](instructions.md) define supported inputs and invalid cases.
 The [steps](steps.md) name the Sketch and Decad operations.
 
