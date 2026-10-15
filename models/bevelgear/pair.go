@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 )
@@ -17,6 +18,7 @@ type GearPair struct {
 }
 
 // BuildPair builds the pinion first, then phases the driving gear by half a tooth pitch.
+// It then moves both members with Params.Placement.
 func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, error) {
 	if ctx == nil || doc == nil {
 		return GearPair{}, fmt.Errorf("context and document must not be nil")
@@ -81,6 +83,15 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	driving, err = decad.Transform(ctx, driving, drivingTurn)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
+	}
+	// Both members are built about the world origin; one rigid move per body keeps their mesh.
+	driving, err = placement.Place(ctx, driving, p.Placement)
+	if err != nil {
+		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
+	}
+	pinion, err = placement.Place(ctx, pinion, p.Placement)
+	if err != nil {
+		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}
 	return GearPair{Driving: driving, Pinion: pinion}, nil
 }

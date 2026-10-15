@@ -31,7 +31,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           spur_skip='^TestPlacedEmbeddedGearWithRootFilletsAndBore$'
@@ -75,6 +75,24 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check real bevel assembly
+        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
+  bevel-placement:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test: TestPlacedMemberMatchesWorldMember
+            timeout: 15m
+          - test: TestPlacedPairMovesBothMembers
+            timeout: 20m
+    name: bevel-placement (${{ matrix.test }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check placed bevel gears
         run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
   bevel-curved-public-union-gate:
     if: >-

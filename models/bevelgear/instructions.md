@@ -39,8 +39,24 @@ members share the world origin as their pitch apex.
 | `ToeExtension` | 0 | Percentage in `[0, 100]`. |
 | `ToeRadius` | 0 | Zero selects the derived toe radius; otherwise positive. |
 | `MateToeRadius` | 0 | Zero selects the mate's derived toe radius; otherwise positive. |
+| `Placement` | nil | `*r3.Frame`; see Placement below. Nil keeps the world frame. |
 | `BaseHeight` | 0 | Zero selects the bounded default; otherwise within its limits. |
 | `MateBaseHeight` | 0 | Zero scales the resolved first member's height by the tooth ratio; otherwise within the mate's limits. |
+
+## Placement
+
+`Placement` anchors the pair with a reference point and a reference plane. The
+frame origin is the common pitch apex. The frame's `U` and `V` axes span the plane
+that holds both shafts, and the driving shaft runs along `U`. The pinion shaft
+turns toward `V` by `ShaftAngle`. With no placement the frame is the world
+origin with `U=+X` and `V=+Y`, which is the construction described below.
+
+`Build` and `BuildPair` construct every member about the world origin, then move each
+finished body with one `decad.Transform` from the world frame onto `Placement`
+(`r3.FromFrame`). The tooth Unions and trims fail on bodies built at an offset, so
+the move happens after the last boolean. Reject an invalid frame before adding bodies.
+The lower-level helpers (`BuildBlank`, `BuildPointTooth`, the cones, and the spiral
+stages) ignore `Placement`.
 
 The first real `Build` case is an eight-tooth member of an equal pair at
 Module 1 and a 90° shaft angle, with straight teeth, five flank samples,
