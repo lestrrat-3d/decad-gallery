@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
@@ -42,6 +43,9 @@ func ValidateHelixAngle(angle float64) error {
 }
 
 // Build adds a helical gear to doc. ctx and doc must not be nil.
+// It builds the gear about the local origin and +Z, then moves it to Params.Placement,
+// the reference point and plane. A nil Placement leaves it on the world XY plane.
+// Assemble, PreparePattern, and FinishAssembly work in the local frame and ignore Placement.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
@@ -49,15 +53,21 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err := ValidateHelixAngle(p.HelixAngle); err != nil {
 		return nil, err
 	}
-	if err := p.RejectPlacement("helicalgear"); err != nil {
-		return nil, err
+	if p.Placement != nil && !p.Placement.IsValid() {
+		return nil, fmt.Errorf("placement frame is not valid")
 	}
+	local := p
+	local.Placement = nil
 	world := sketch.NewWorld()
-	tooth, err := buildTooth(ctx, doc, world, p)
+	tooth, err := buildTooth(ctx, doc, world, local)
 	if err != nil {
 		return nil, err
 	}
-	return Assemble(ctx, doc, p, tooth)
+	gear, err := Assemble(ctx, doc, local, tooth)
+	if err != nil {
+		return nil, err
+	}
+	return placement.Place(ctx, gear, p.Placement)
 }
 
 // Assemble joins a completed tooth around a full-thickness root disc and applies
@@ -85,9 +95,6 @@ func PreparePattern(ctx context.Context, doc *decad.Document, p Params, tooth *d
 	}
 	if p.Teeth < 1 {
 		return nil, nil, fmt.Errorf("tooth count must be positive")
-	}
-	if err := p.RejectPlacement("helicalgear"); err != nil {
-		return nil, nil, err
 	}
 	world := sketch.NewWorld()
 	blank, err := buildRootDisc(ctx, doc, world, p)

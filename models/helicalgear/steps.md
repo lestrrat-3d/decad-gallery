@@ -26,7 +26,12 @@ millimeters, and `HelixAngle` is a positive angle in radians.
    requested diameter. Solve and verify it before the Cut. When `CapChamfer`
    is positive, chamfer the outer loop of
    each completed-gear cap. Leave bore rims out of the chamfer selection.
-7. Tessellate the completed body with `VerifyAll`. Check that it is one
+7. When `Placement` is set, validate it before adding bodies. Build steps 1–6
+   on the local frame, then call `decad.Transform` with `r3.FromFrame(Placement)`
+   on the finished gear. Do not build sketches or run booleans on offset planes.
+   Check the placed gear's volume against the unplaced gear, and its bounds
+   along the frame normal and about the reference point, for normals of both signs.
+8. Tessellate the completed body with `VerifyAll`. Check that it is one
    solid and that a requested bore remains a through-hole. The 8-tooth
    case passes with and without a bore and cap chamfers. The source-default
    17-tooth gear passes with a 1 mm bore and both 0.1 mm cap chamfers. A

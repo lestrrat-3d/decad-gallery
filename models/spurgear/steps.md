@@ -280,8 +280,8 @@ Do not infer success from an image or only a non-error return.
 
 | Consumer | Spur API boundary |
 | --- | --- |
-| `helicalgear` | Embeds `Params`; calls `RejectPlacement("helicalgear")` in `Build` and `PreparePattern`; lofts `BuildToothSection` results; uses `CutThroughBore` and `ChamferOuterCaps` after assembly |
-| `herringbonegear` | Calls `RejectPlacement("herringbonegear")` in `BuildTooth`; uses `BuildToothSection` at lower and midpoint planes; calls helical assembly finishing |
+| `helicalgear` | Embeds `Params`; lofts `BuildToothSection` results; uses `CutThroughBore` and `ChamferOuterCaps` after assembly |
+| `herringbonegear` | Uses `BuildToothSection` at lower and midpoint planes; calls helical assembly finishing |
 | `bevelgear` | Uses `InvoluteFlanks` with noninteger virtual tooth count and rotation π on a back-cone plane |
 
 Run `go test ./models/spurgear` as the focused generation gate. Exercise changed

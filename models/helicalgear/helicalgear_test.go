@@ -6,7 +6,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/helicalgear"
-	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -27,17 +26,6 @@ func TestZeroHelixRejectedBeforeAddingBodies(t *testing.T) {
 	doc := decad.New()
 	_, err := helicalgear.Build(t.Context(), doc, p)
 	require.ErrorContains(t, err, "use spurgear.Build")
-	require.Empty(t, doc.Bodies())
-}
-
-func TestPlacementRejectedBeforeAddingBodies(t *testing.T) {
-	frame, err := r3.NewFrame(r3.NewVec(1, 2, 3), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-	require.NoError(t, err)
-	p := helicalgear.DefaultParams()
-	p.Placement = &frame
-	doc := decad.New()
-	_, err = helicalgear.Build(t.Context(), doc, p)
-	require.ErrorContains(t, err, "does not support Placement")
 	require.Empty(t, doc.Bodies())
 }
 

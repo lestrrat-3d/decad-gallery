@@ -7,6 +7,19 @@ rotated by the Helix Angle on the plane one Thickness above it. Decad
 lofts the lower section to the upper section in that order. The angle is the
 whole twist across Thickness, not an angle calculated from a lead distance.
 
+## Placement
+
+`Params` also carries the spur gear's optional `Placement` (`*r3.Frame`). Its
+origin is the reference point on the gear axis, its `U` and `V` axes span the
+reference plane that holds the lower cap, and the gear grows along `U × V`.
+`Build` constructs the whole gear about the local origin and +Z, then moves the
+finished body with one `decad.Transform` from the local frame onto `Placement`.
+A nil `Placement` leaves the gear on the world XY plane at the origin. An
+invalid frame is rejected before any body is added. The tooth Unions fail on
+bodies built at an offset (a 7 mm z offset is enough), so the offset is applied
+after the last boolean. `Assemble`, `PreparePattern`, and `FinishAssembly` work
+in the local frame and ignore `Placement`.
+
 ## Inputs and invalid cases
 
 `Params` embeds the [spur dimensions](../spurgear/instructions.md): Module,
