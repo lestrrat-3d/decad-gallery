@@ -6,21 +6,9 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/herringbonegear"
-	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
-
-func TestPlacementRejectedBeforeAddingBodies(t *testing.T) {
-	frame, err := r3.NewFrame(r3.NewVec(1, 2, 3), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-	require.NoError(t, err)
-	p := herringbonegear.DefaultParams()
-	p.Placement = &frame
-	doc := decad.New()
-	_, err = herringbonegear.Build(t.Context(), doc, p)
-	require.ErrorContains(t, err, "does not support Placement")
-	require.Empty(t, doc.Bodies())
-}
 
 func TestRealMirroredHerringboneTooth(t *testing.T) {
 	for _, tc := range []struct {

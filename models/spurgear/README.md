@@ -18,7 +18,7 @@ document and receives one gear body. Set `Params.Placement` (an `r3.Frame`) to a
 the reference point on the gear axis, its U and V axes span the reference
 plane that holds the lower cap, and the gear grows along U×V. Leaving it nil
 places the gear on the world XY plane at the origin. Helical gears take the
-same placement; herringbone gears reject it. Run `go test ./models/spurgear` to check
+same placement, and so do herringbone and bevel gears. Run `go test ./models/spurgear` to check
 the supported parameter cases.
 
 `Build` draws one closed profile with fit-spline flanks, lofts matching

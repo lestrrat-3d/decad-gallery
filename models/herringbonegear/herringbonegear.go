@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/models/helicalgear"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
@@ -19,12 +20,20 @@ type Params = helicalgear.Params
 func DefaultParams() Params { return helicalgear.DefaultParams() }
 
 // Build adds a herringbone gear to doc. ctx and doc must not be nil.
+// It builds the gear about the local origin and +Z, then moves it to Params.Placement,
+// the reference point and plane. A nil Placement leaves it on the world XY plane.
+// BuildTooth works in the local frame and ignores Placement.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
-	tooth, err := BuildTooth(ctx, doc, p)
+	if p.Placement != nil && !p.Placement.IsValid() {
+		return nil, fmt.Errorf("placement frame is not valid")
+	}
+	local := p
+	local.Placement = nil
+	tooth, err := BuildTooth(ctx, doc, local)
 	if err != nil {
 		return nil, err
 	}
-	blank, pattern, err := helicalgear.PreparePattern(ctx, doc, p, tooth)
+	blank, pattern, err := helicalgear.PreparePattern(ctx, doc, local, tooth)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +41,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("join tooth pattern to root disc: %w", err)
 	}
-	return helicalgear.FinishAssembly(ctx, doc, p, gear)
+	gear, err = helicalgear.FinishAssembly(ctx, doc, local, gear)
+	if err != nil {
+		return nil, err
+	}
+	return placement.Place(ctx, gear, p.Placement)
 }
 
 // BuildTooth lofts one half, mirrors it, and joins both halves into a chevron.
@@ -42,9 +55,6 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
 	if err := helicalgear.ValidateHelixAngle(p.HelixAngle); err != nil {
-		return nil, err
-	}
-	if err := p.RejectPlacement("herringbonegear"); err != nil {
 		return nil, err
 	}
 	world := sketch.NewWorld()
