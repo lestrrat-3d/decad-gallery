@@ -9,8 +9,15 @@ the construction.
 ## Inputs
 
 Build one cylindrical gear with straight involute teeth. Use millimeters for
-lengths and radians for angles. Place its axis on world +Z, its lower cap at
-z=0, and its upper cap at z=`h`. Center tooth zero on +X.
+lengths and radians for angles. Anchor the gear with a reference point and a
+reference plane, given as one `r3.Frame`: its origin is the reference point,
+its `U` and `V` axes span the reference plane, and its normal is `U × V`.
+The gear axis passes through the reference point along the normal. The lower
+cap lies on the reference plane and the upper cap lies `h` above it along the
+normal. Center tooth zero on `U`. All construction below is stated in this
+frame's coordinates (`x` along `U`, `y` along `V`, `z` along the normal). With
+no placement, the frame is the world origin with `U=+X` and `V=+Y`, so the
+axis is world +Z and the caps are at z=0 and z=`h`.
 
 | Symbol | Parameter | Type | Default | Meaning |
 | --- | --- | --- | --- | --- |
@@ -21,9 +28,11 @@ z=0, and its upper cap at z=`h`. Center tooth zero on +X.
 | `S` | `Samples` | int | 15 | Fit points per flank |
 | `b` | `BoreDiameter` | float64 | 0 | Centered through-bore diameter; zero omits bore |
 | `c` | `CapChamfer` | float64 | 0 | Equal-distance outer cap setback; zero omits chamfer |
+| — | `Placement` | `*r3.Frame` | nil | Reference point and plane; nil selects the world XY frame at the origin |
 
 Use finite geometric inputs. Do not interpret zero fields as default requests;
-provide defaults through a separate constructor.
+provide defaults through a separate constructor. A nil `Placement` is the one
+exception: it means the world frame described above.
 
 ## Derived dimensions
 
@@ -43,6 +52,7 @@ Compute without rounding:
 - Reject `m <= 0`, `h <= 0`, `N < 3`, or `S < 3`.
 - Reject `α <= 0` or `α >= π/2`.
 - Reject negative `b` or `c`.
+- Reject a non-nil `Placement` that is not a valid frame.
 - Reject `Rr <= 0`, `Rb <= 0`, or `Rt <= Rb`.
 - Reject `b >= 2Rr` or a nonfinite `Rf`.
 - Select filleting only when `Rf > 0`; nonpositive `Rf` is permitted.
@@ -80,7 +90,9 @@ with chords, resample from the root, or alter their shape during trimming.
 
 Use this branch when `Rb >= Rr`.
 
-- Scale each flank's base point by `Rr/Rb` to locate its root contact.
+- Scale each flank's base point by `Rr/Rb` to locate its root contact. Evaluate
+  each coordinate as `x*Rr/Rb`, multiplying before dividing, not as `x*(Rr/Rb)`.
+  The helical join rejects the one-bit coordinate difference.
 - Traverse each tooth from right root to right base by line, along the right
   spline to its tip, along the tip-circle arc to the left tip, along the left
   spline back to its base, and by line to the left root.
@@ -117,6 +129,8 @@ body afterward; a document with existing bodies must also accept a new gear.
 ## Sketch constraints
 
 - Use the sketch origin as the gear center; do not add a separately fixed center.
+  Every sketch lies on a plane built from the placement frame, so its origin is
+  the reference point (or its offset along the normal).
 - Locate computed points with signed horizontal and vertical driving dimensions
   from that origin. Reuse endpoint objects for adjoining curves.
 - Give every right-flank point both coordinate dimensions. Give each left-flank
@@ -151,6 +165,9 @@ body afterward; a document with existing bodies must also accept a new gear.
   Bore callers supply a body spanning z=0 through `h`, a positive diameter, and
   valid context/document/body arguments. Chamfer callers supply a positive
   setback and a body whose two cap references identify its outer loops.
+- Expose `Params.RejectPlacement(model string) error`. It returns an error
+  naming `model` when `Placement` is non-nil. Gear models that reuse `Params`
+  without placement support call it so a placement is never silently ignored.
 
 ## Acceptance cases
 
@@ -167,10 +184,14 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 | Embedded, no fillet | `m=0.5`, `N=30`, `α=30π/180`, `h=2`, `S=5`, `c=0.02` | Embedded outline, no root fillet, chamfered caps |
 | Embedded, with fillet | `m=0.5`, `N=24`, `α=30π/180`, `h=2`, `S=5` | Embedded outline, 48 native root fillets |
 | Signed tooth section | `N=8`, `h=2`, `S=5`; angles `0`, `±14.5π/180` | Six-curve profiles with the requested rotation |
+| Placed ordinary | Default with `b=3`, `c=0.1`; frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volume as the unplaced gear; bounds follow the frame |
+| Placed embedded | `m=0.5`, `N=60`, `h=2`, `S=15`, `b=3`, `c=0.02`; same frame | Same volume as the unplaced gear; bounds follow the frame; root fillets present |
+| Invalid placement | Default with a zero-value `r3.Frame` | Error naming the placement |
 
 ## Verification
 
-Run the Small end-to-end case first. Check constraints independently for both
+Run the Small end-to-end case first. Check every placed case against the same
+gear built without placement. Check constraints independently for both
 ordinary end profiles, embedded profiles, bore tools, and signed tooth sections.
 Confirm tooth curves, exact root trims, final topology, cap positions, and
 feature surfaces. An odd tooth count need not reach `±Rt` on both axes.

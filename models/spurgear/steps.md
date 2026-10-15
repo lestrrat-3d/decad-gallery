@@ -18,6 +18,7 @@ Generate package `spurgear` at
 | `spurgear_test.go` | Public body and finishing acceptance tests |
 | `spurgear_profile_test.go` | Internal profile, root contact, and constraint tests |
 | `tooth_section_test.go` | Public signed tooth-section tests |
+| `placement_test.go` | Public placed-gear tests |
 
 Declare `Params` using the contract's Inputs table. Expose these signatures:
 
@@ -34,14 +35,26 @@ func CutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body,
     p Params) (*decad.Body, error)
 func ChamferOuterCaps(ctx context.Context, gear *decad.Body,
     distance float64) (*decad.Body, error)
+func (p Params) RejectPlacement(model string) error
 ```
+
+`Params` ends with `Placement *r3.Frame`; nil selects the world frame. Add a
+private `placement(p Params) (r3.Frame, error)` returning `*p.Placement` or
+`r3.NewFrame(r3.NewVec(0,0,0),r3.NewVec(1,0,0),r3.NewVec(0,1,0))`, a private
+`shifted(f r3.Frame, dist float64) (r3.Frame, error)` returning
+`r3.NewFrame(f.Origin().Add(f.N().Scale(dist)),f.U(),f.V())`, and a private
+`toWorld(f r3.Frame, xy point) r3.Vec` returning
+`f.Origin().Add(f.U().Scale(xy.x)).Add(f.V().Scale(xy.y))`.
 
 - Return left and right base-to-tip arrays, respectively, from `InvoluteFlanks`.
 - Return solved, verified sketches and their profiles from both profile APIs.
 - Require nonnil context/document for `Build` and nonnil context/world/plane for
   both profile APIs. Return errors before construction when these guards fail.
 - Apply Input checks and limits through one private parameter validator for
-  `Build`, `BuildProfile`, and `BuildToothSection`.
+  `Build`, `BuildProfile`, and `BuildToothSection`. It rejects a non-nil
+  `Placement` whose `IsValid()` is false.
+- `RejectPlacement` returns `fmt.Errorf("%s does not support Placement", model)`
+  when `p.Placement != nil`, otherwise nil.
 - For `BuildToothSection`, separately reject nonfinite angles and embedded flanks.
 - Validate `InvoluteFlanks` arguments according to Reusable constructions.
 - Treat `CutThroughBore` and `ChamferOuterCaps` as finishing helpers with the
@@ -104,7 +117,9 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
 1. Call `world.CreateSketch(plane)` and use its origin as center.
 2. Iterate teeth in ascending index. Sample the rotated left/right flank arrays.
 3. Create dimensioned sample points according to Step 2. Create both root
-   points by scaling their base samples according to Ordinary profile.
+   points by scaling their base samples according to Ordinary profile; compute
+   each coordinate as `x*d.root/d.base` (multiply, then divide), never with a
+   precomputed `d.root/d.base` factor. Create the left root before the right root.
 4. Save right root then left root coordinates for each tooth in a `2N`-entry list.
 5. Except on tooth zero, call `s.CreateArc(center,previousLeftRoot,rightRoot)`.
    Save tooth zero's right root for final closure.
@@ -157,9 +172,10 @@ Implement `BuildToothSection` after its API guards and ordinary-branch check:
 
 Implement `Build` using `sketch.NewWorld()` and matching end profiles:
 
-1. Use `world.XY()` for z=0.
-2. Create an upper frame with
-   `r3.NewFrame(r3.NewVec(0,0,p.Thickness),r3.NewVec(1,0,0),r3.NewVec(0,1,0))`.
+1. Resolve the placement frame. For the lower plane, use `world.XY()` when
+   `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
+   placement frame.
+2. Create the upper frame with `shifted(placement, p.Thickness)`.
 3. Call `world.CreatePlaneFromFrame(frame)` for the upper plane.
 4. Call `buildGearProfile` on both planes with identical parameters and dimensions.
    Save the lower builder's root coordinates for Step 7.
@@ -175,10 +191,11 @@ already contains bodies; the fresh-document body count is a test assertion.
 
 Skip when the derived fillet radius is nonpositive. Otherwise:
 
-1. Use `axis := r3.NewVec(0,0,1)` and
-   `decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)`.
-2. Read `edge.Start().Position().Value` for each axial edge. Match its XY to
-   a saved root when their Euclidean distance is less than `1e-8`.
+1. Use `axis := placement.N()` and
+   `decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)`. Pass the placement
+   frame into this step.
+2. Read `edge.Start().Position().Value` for each axial edge. Match it to a
+   saved root when `toWorld(placement, root)` is within `1e-8` of it.
 3. Save the full 3D start once per matched edge. Require the number of matches
    to equal the saved root count before constructing the selector.
 4. Start with `decad.Edges(decad.ParallelTo(axis),decad.EndpointAt(corners[0]))`.
@@ -194,8 +211,9 @@ In `Build`, call this operation only when `p.BoreDiameter > 0`. Implement
 `CutThroughBore` and the internal build call through one shared routine:
 
 1. Set a 1 mm tool margin. Create a world and call `buildBoreProfile` with it.
-2. In that helper, create an XY-oriented frame at `(0,0,-margin)`, its plane,
-   and its sketch. Use the frame creation APIs from Step 6.
+2. In that helper, create the frame `shifted(placement, -margin)` from
+   `p`'s placement, its plane, and its sketch. Use the frame creation APIs
+   from Step 6. The tool then spans the placed gear along its normal.
 3. Call `s.CreateCircle(s.Origin(),p.BoreDiameter/2)` and add
    `sketch.NewDiameter(circle,p.BoreDiameter)`.
 4. Solve and verify, require exactly one valid profile, and return sketch/profile.
@@ -236,6 +254,9 @@ Do not infer success from an image or only a non-error return.
 | Chamfer only | Solid; one document body; volume and both cap areas decrease beyond summed respective error bounds |
 | Embedded, no fillet | Solid; one document body; expected z bounds; positive chamfer-face count; one loop on each cap |
 | Embedded, with fillet | Solid; one document body; `2N` distinct roles starting `fillet(`; one loop on each cap |
+| Placed ordinary | Build the gear with and without the frame; volumes agree within summed bounds plus `0.02`; solid; one document body; bounds start at the frame origin along the normal and extend `h`; Y and Z extents are centered on the reference point with half-width within `0.1` of the tip radius |
+| Placed embedded | Same assertions with root fillets, bore, and chamfer |
+| Invalid placement | `Build` with `&r3.Frame{}` returns an error containing `placement` |
 | Signed tooth section | Six curves and full constraints for lower angle zero and upper positive/negative angles; rotated centroid within `1e-6` |
 
 - Inspect cap faces with `decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(body)`.
@@ -259,8 +280,8 @@ Do not infer success from an image or only a non-error return.
 
 | Consumer | Spur API boundary |
 | --- | --- |
-| `helicalgear` | Embeds `Params`; lofts `BuildToothSection` results; uses `CutThroughBore` and `ChamferOuterCaps` after assembly |
-| `herringbonegear` | Uses `BuildToothSection` at lower and midpoint planes; calls helical assembly finishing |
+| `helicalgear` | Embeds `Params`; calls `RejectPlacement("helicalgear")` in `Build` and `PreparePattern`; lofts `BuildToothSection` results; uses `CutThroughBore` and `ChamferOuterCaps` after assembly |
+| `herringbonegear` | Calls `RejectPlacement("herringbonegear")` in `BuildTooth`; uses `BuildToothSection` at lower and midpoint planes; calls helical assembly finishing |
 | `bevelgear` | Uses `InvoluteFlanks` with noninteger virtual tooth count and rotation π on a back-cone plane |
 
 Run `go test ./models/spurgear` as the focused generation gate. Exercise changed

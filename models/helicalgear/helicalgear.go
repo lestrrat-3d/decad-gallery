@@ -49,6 +49,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err := ValidateHelixAngle(p.HelixAngle); err != nil {
 		return nil, err
 	}
+	if err := p.RejectPlacement("helicalgear"); err != nil {
+		return nil, err
+	}
 	world := sketch.NewWorld()
 	tooth, err := buildTooth(ctx, doc, world, p)
 	if err != nil {
@@ -82,6 +85,9 @@ func PreparePattern(ctx context.Context, doc *decad.Document, p Params, tooth *d
 	}
 	if p.Teeth < 1 {
 		return nil, nil, fmt.Errorf("tooth count must be positive")
+	}
+	if err := p.RejectPlacement("helicalgear"); err != nil {
+		return nil, nil, err
 	}
 	world := sketch.NewWorld()
 	blank, err := buildRootDisc(ctx, doc, world, p)
