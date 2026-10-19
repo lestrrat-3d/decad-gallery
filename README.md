@@ -26,7 +26,7 @@ its build pipeline.
 | `tools/render/` | Builds model images from Decad bodies. |
 | `docs/model-pipeline.md` | The specification-to-Decad build workflow. |
 | `AGENTS.md` | Instructions for coding agents working on models. |
-| `.github/` | Issue templates and repository checks. |
+| `.github/` | Repository checks. |
 
 The repository check runs `python3 scripts/check_repository.py`. It checks the
 foundation files and requires a README for each item directory. Run
