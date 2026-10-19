@@ -20,9 +20,8 @@ Create `models/<name>/steps.md` before writing the model code. Map each
 construction requirement to a Sketch or Decad operation, name the intermediate
 profile or body, and state the geometry check at each boundary. Keep the
 sampled curves and exact operations visible. If an operation is missing or
-incorrect, record the smallest real model case and use the Decad/Sketch
-handoff in [AGENTS.md](../AGENTS.md). Do not replace the required geometry
-with a faceted or otherwise approximate substitute.
+incorrect, record the smallest real model case. Do not replace the required
+geometry with a faceted or otherwise approximate substitute.
 
 Make the steps complete enough for an emitter that cannot inspect an existing
 implementation. State the exact operations, dimensions, constraints, profile
