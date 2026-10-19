@@ -172,7 +172,7 @@ the apex when spacing changes. The center moves past the shaft axis by the
 specified offset; the virtual tooth count and radii do not change.
 
 `BuildPointTooth` uses that fitted back-cone profile as the far section of
-`Document.LoftFromPoint`, with the exact common apex at world `(0, 0, 0)`.
+`decad.LoftFromPoint`, with the exact common apex at world `(0, 0, 0)`.
 It returns one untrimmed tooth solid. The blank-only base-height and toe
 controls do not change this intermediate tooth; they set the later blank
 and conical trims. The point loft itself does not cut a bore or curve the

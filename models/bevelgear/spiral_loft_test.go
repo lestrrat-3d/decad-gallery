@@ -37,7 +37,7 @@ func TestSourceDefaultSpiralToothNineFaceLoft(t *testing.T) {
 			faces, err := spiralLoftFaces(t.Context(), crowned, frame)
 			require.NoError(t, err)
 			require.Len(t, faces, 9)
-			curved, err := doc.LoftFaces(t.Context(), faces...)
+			curved, err := decad.LoftFaces(t.Context(), doc, faces...)
 			require.NoError(t, err)
 			require.True(t, curved.IsSolid())
 			mesh, err := curved.Tessellate(t.Context(), units.Millimeters(0.1),

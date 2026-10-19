@@ -71,7 +71,7 @@ func buildSpiralTooth(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, fmt.Errorf("select spiral loft sections: %w", err)
 	}
-	curved, err := doc.LoftFaces(ctx, faces...)
+	curved, err := decad.LoftFaces(ctx, doc, faces...)
 	if err != nil {
 		return nil, fmt.Errorf("loft spiral tooth: %w", err)
 	}

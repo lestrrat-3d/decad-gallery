@@ -55,7 +55,7 @@ private `placement(p Params) (r3.Frame, error)` returning `*p.Placement` or
   `Placement` whose `IsValid()` is false.
 - `RejectPlacement` returns `fmt.Errorf("%s does not support Placement", model)`
   when `p.Placement != nil`, otherwise nil.
-- For `BuildToothSection`, separately reject nonfinite angles and embedded flanks.
+- For `BuildToothSection`, separately reject nonfinite angles and embedded flanks. The embedded-flank error text contains `embedded`.
 - Validate `InvoluteFlanks` arguments according to Reusable constructions.
 - Treat `CutThroughBore` and `ChamferOuterCaps` as finishing helpers with the
   preconditions in Reusable constructions; they do not invoke the gear validator.
@@ -179,7 +179,7 @@ Implement `Build` using `sketch.NewWorld()` and matching end profiles:
 3. Call `world.CreatePlaneFromFrame(frame)` for the upper plane.
 4. Call `buildGearProfile` on both planes with identical parameters and dimensions.
    Save the lower builder's root coordinates for Step 7.
-5. Call `doc.Loft(ctx,lowerSketch,lowerProfile,upperSketch,upperProfile)`.
+5. Call `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)`.
 6. Carry its returned body through Steps 7–9 and return the last body.
 
 Implement `BuildProfile` by calling `buildGearProfile` after its guards and

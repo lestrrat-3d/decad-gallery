@@ -75,7 +75,7 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	if err != nil {
 		return nil, fmt.Errorf("build twisted mid-body section: %w", err)
 	}
-	half, err := doc.Loft(ctx, lowerSketch, lowerProfile, midSketch, midProfile)
+	half, err := decad.Loft(ctx, doc, lowerSketch, lowerProfile, midSketch, midProfile)
 	if err != nil {
 		return nil, fmt.Errorf("loft half tooth: %w", err)
 	}

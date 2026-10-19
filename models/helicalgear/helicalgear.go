@@ -160,7 +160,7 @@ func buildTooth(ctx context.Context, doc *decad.Document, world *sketch.World,
 	if err != nil {
 		return nil, fmt.Errorf("build twisted tooth section: %w", err)
 	}
-	tooth, err := doc.Loft(ctx, lowerSketch, lowerProfile, upperSketch, upperProfile)
+	tooth, err := decad.Loft(ctx, doc, lowerSketch, lowerProfile, upperSketch, upperProfile)
 	if err != nil {
 		return nil, fmt.Errorf("loft helical tooth: %w", err)
 	}

@@ -3,7 +3,7 @@ module github.com/lestrrat-3d/decad-gallery
 go 1.26.8
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261014143206-d6f9b1709ff6
+	github.com/lestrrat-3d/decad v0.0.0-20261019223000-130212d0e1a1
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/sketch v0.0.0-20261019132339-5e0f0e418ad6
 	github.com/lestrrat-3d/units v0.0.0-20261004172310-91d157ffd2a9
