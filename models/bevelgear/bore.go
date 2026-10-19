@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -84,25 +85,9 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 		return nil, fmt.Errorf("measure bore target bounds: %w", err)
 	}
 	const margin = 1.0
-	world := sketch.NewWorld()
-	frame, err := r3.NewFrame(r3.NewVec(box.Min.X-margin, 0, 0),
-		r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+	s, err := boreSketch(ctx, sketch.NewWorld(), box.Min.X-margin, diameter)
 	if err != nil {
-		return nil, fmt.Errorf("create bore frame: %w", err)
-	}
-	plane, err := world.CreatePlaneFromFrame(frame)
-	if err != nil {
-		return nil, fmt.Errorf("create bore plane: %w", err)
-	}
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, fmt.Errorf("create bore sketch: %w", err)
-	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	s.CreateCircle(center, diameter/2)
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve bore sketch: %w", err)
+		return nil, err
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
@@ -119,4 +104,27 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 		return nil, fmt.Errorf("cut bore: %w", err)
 	}
 	return body, nil
+}
+
+// boreSketch draws the bore circle on the plane x = station, whose axes are world Y and Z.
+func boreSketch(ctx context.Context, world *sketch.World, station, diameter float64) (*sketch.Sketch, error) {
+	frame, err := r3.NewFrame(r3.NewVec(station, 0, 0), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+	if err != nil {
+		return nil, fmt.Errorf("create bore frame: %w", err)
+	}
+	plane, err := world.CreatePlaneFromFrame(frame)
+	if err != nil {
+		return nil, fmt.Errorf("create bore plane: %w", err)
+	}
+	s, err := world.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("create bore sketch: %w", err)
+	}
+	center := s.CreatePoint(0, 0)
+	s.Fix(center)
+	s.AddConstraint(sketch.NewDiameter(s.CreateCircle(center, diameter/2), diameter))
+	if err := modelsketch.Verify(ctx, "bore sketch", s); err != nil {
+		return nil, err
+	}
+	return s, nil
 }

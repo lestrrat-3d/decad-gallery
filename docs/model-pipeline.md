@@ -39,7 +39,9 @@ code, and focused geometry tests in the same directory.
 
 Run `go test ./models/<name>` for the affected model. Test the default and
 every distinct construction branch with real Sketch profiles and Decad
-bodies. Apply [Sketch constraints](../AGENTS.md#sketch-constraints). Check
+bodies. Apply [Sketch constraints](../AGENTS.md#sketch-constraints):
+build code calls `modelsketch.Verify` on each Sketch, and tests assert it
+with `sketchassert.FullyConstrained`. Check
 topology, dimensions, and the intended feature surfaces. Use `Tessellate`
 with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the

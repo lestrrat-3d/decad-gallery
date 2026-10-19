@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -114,21 +115,9 @@ func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 
 func revolveAxialSection(ctx context.Context, doc *decad.Document,
 	section []axialPoint, label string) (*decad.Body, error) {
-	world := sketch.NewWorld()
-	s, err := world.CreateSketch(world.XY())
+	s, err := axialSectionSketch(ctx, sketch.NewWorld(), section, label)
 	if err != nil {
-		return nil, fmt.Errorf("create %s sketch: %w", label, err)
-	}
-	points := make([]*sketch.Point, len(section))
-	for i, xy := range section {
-		points[i] = s.CreatePoint(xy.station, xy.radius)
-		s.Fix(points[i])
-	}
-	for i := range points {
-		s.CreateLine(points[i], points[(i+1)%len(points)])
-	}
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve %s sketch: %w", label, err)
+		return nil, err
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
@@ -141,6 +130,29 @@ func revolveAxialSection(ctx context.Context, doc *decad.Document,
 		return nil, fmt.Errorf("revolve %s section: %w", label, err)
 	}
 	return body, nil
+}
+
+func axialSectionSketch(ctx context.Context, world *sketch.World, section []axialPoint,
+	label string) (*sketch.Sketch, error) {
+	s, err := world.CreateSketch(world.XY())
+	if err != nil {
+		return nil, fmt.Errorf("create %s sketch: %w", label, err)
+	}
+	origin := s.CreatePoint(0, 0)
+	s.Fix(origin)
+	points := make([]*sketch.Point, len(section))
+	previous := origin
+	for i, xy := range section {
+		points[i] = modelsketch.PointFrom(s, previous, xy.station, xy.radius)
+		previous = points[i]
+	}
+	for i := range points {
+		s.CreateLine(points[i], points[(i+1)%len(points)])
+	}
+	if err := modelsketch.Verify(ctx, label+" sketch", s); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 // BlankPair holds the driving blank and its pinion around their common pitch apex.

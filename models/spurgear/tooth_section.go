@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/sketch"
 )
 
@@ -30,21 +31,17 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	if err != nil {
 		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy point) *sketch.Point {
-		pt := s.CreatePoint(xy.x, xy.y)
-		s.Fix(pt)
-		return pt
-	}
+	polar := modelsketch.NewPolar(s, s.CreatePoint(0, 0))
+	center := polar.Center()
 	left, right := toothFlanks(p, d, angle)
-	leftPoints := make([]*sketch.Point, len(left))
-	rightPoints := make([]*sketch.Point, len(right))
-	for i := range left {
-		leftPoints[i], rightPoints[i] = fixed(left[i]), fixed(right[i])
+	leftPoints, rightPoints, err := flankSketchPoints(polar, left, right)
+	if err != nil {
+		return nil, nil, fmt.Errorf("place tooth flanks: %w", err)
 	}
-	rightRoot := fixed(point{right[0].x * d.root / d.base, right[0].y * d.root / d.base})
-	leftRoot := fixed(point{left[0].x * d.root / d.base, left[0].y * d.root / d.base})
+	rightRoot, leftRoot, err := rootSketchPoints(polar, left[0], right[0], d)
+	if err != nil {
+		return nil, nil, fmt.Errorf("place tooth roots: %w", err)
+	}
 	s.CreateLine(rightRoot, rightPoints[0])
 	if _, err := s.CreateFitSpline(rightPoints...); err != nil {
 		return nil, nil, fmt.Errorf("draw right flank: %w", err)
@@ -55,8 +52,8 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	}
 	s.CreateLine(leftPoints[0], leftRoot)
 	s.CreateArc(center, rightRoot, leftRoot)
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve tooth sketch: %w", err)
+	if err := modelsketch.Verify(ctx, "tooth sketch", s); err != nil {
+		return nil, nil, err
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {

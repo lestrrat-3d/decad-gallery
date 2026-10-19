@@ -61,3 +61,18 @@ supported pair.
     Both real joins and post-join bores pass `VerifyAll` at 0.1 mm. The
     source-default pair passes the same check after placement. The renderer
     builds that pair and produces its 1600 × 900 hero PNG.
+
+## Sketch constraints
+
+Every sketch is verified by `modelsketch.Verify` before its profile is used.
+It must report `FullyConstrained`, `DOF == 0`, and no redundant or
+conflicting constraints. `sketch_constraints_test.go` checks each one.
+
+- The virtual tooth sketch uses the spur scheme: a fixed center, a fixed
+  +X reference line, and a radius and angle dimension per point. It covers
+  the ordinary and embedded branches.
+- The axial blank sketch fixes an origin point. Each section point is placed
+  by horizontal and vertical offsets from the previous point. A zero offset
+  becomes a horizontal or vertical alignment.
+- The slice sheet sketch places its two end points the same way.
+- The bore sketch fixes its center and dimensions the circle diameter.

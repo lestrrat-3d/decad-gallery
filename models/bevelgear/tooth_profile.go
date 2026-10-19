@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -63,18 +64,18 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	if err != nil {
 		return nil, nil, fmt.Errorf("create virtual tooth sketch: %w", err)
 	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	fixed := func(xy [2]float64) *sketch.Point {
-		point := s.CreatePoint(xy[0], xy[1])
-		s.Fix(point)
-		return point
-	}
+	polar := modelsketch.NewPolar(s, s.CreatePoint(0, 0))
+	center := polar.Center()
 	leftPoints := make([]*sketch.Point, p.Samples)
 	rightPoints := make([]*sketch.Point, p.Samples)
 	for i := range left {
-		leftPoints[i] = fixed(left[i])
-		rightPoints[i] = fixed(right[i])
+		// The left tip point is tied to the right tip point by the tip arc about the center.
+		if leftPoints[i], err = polar.Point(left[i][0], left[i][1], i != len(left)-1); err != nil {
+			return nil, nil, fmt.Errorf("left virtual sample %d: %w", i, err)
+		}
+		if rightPoints[i], err = polar.Point(right[i][0], right[i][1], true); err != nil {
+			return nil, nil, fmt.Errorf("right virtual sample %d: %w", i, err)
+		}
 	}
 	if _, err := s.CreateFitSpline(rightPoints...); err != nil {
 		return nil, nil, fmt.Errorf("right virtual flank: %w", err)
@@ -85,16 +86,23 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	}
 	embedded := base < root
 	if embedded {
-		s.CreateCircle(center, root)
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, root), root))
 	} else {
-		rightRoot := fixed([2]float64{right[0][0] * root / base, right[0][1] * root / base})
-		leftRoot := fixed([2]float64{left[0][0] * root / base, left[0][1] * root / base})
+		// The root arc about the center ties the left root radius to the right root radius.
+		rightRoot, err := polar.Point(right[0][0]*root/base, right[0][1]*root/base, true)
+		if err != nil {
+			return nil, nil, fmt.Errorf("right virtual root: %w", err)
+		}
+		leftRoot, err := polar.Point(left[0][0]*root/base, left[0][1]*root/base, false)
+		if err != nil {
+			return nil, nil, fmt.Errorf("left virtual root: %w", err)
+		}
 		s.CreateLine(rightRoot, rightPoints[0])
 		s.CreateLine(leftPoints[0], leftRoot)
 		s.CreateArc(center, rightRoot, leftRoot)
 	}
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve virtual tooth sketch: %w", err)
+	if err := modelsketch.Verify(ctx, "virtual tooth sketch", s); err != nil {
+		return nil, nil, err
 	}
 	profiles := s.Profiles()
 	if embedded {

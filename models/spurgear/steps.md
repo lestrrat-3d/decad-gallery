@@ -36,3 +36,18 @@ millimeters. `Build(ctx, doc, Params)` returns one final Decad body.
    gear, and the embedded 60-tooth/20° filleted gear. Exercise bore and
    chamfer independently and together. Check dimensions, topology, and
    geometry verification on the complex final body.
+
+## Sketch constraints
+
+Every sketch is verified by `modelsketch.Verify` before its profile is read.
+It must report `FullyConstrained`, `DOF == 0`, and no redundant or
+conflicting constraints. `sketch_constraints_test.go` checks each one.
+
+- The center is fixed at the sketch origin. A fixed construction line along
+  +X is the angle reference.
+- Each flank, tip, and root point has a construction spoke to the center, an
+  angle dimension from the reference, and a radius dimension. The tip arc
+  and the root arc tie the radius of their second end point, so that end
+  point has no radius dimension.
+- The embedded branch dimensions the root circle radius.
+- The bore sketch fixes its center and dimensions the circle diameter.

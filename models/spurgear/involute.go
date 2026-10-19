@@ -3,6 +3,9 @@ package spurgear
 import (
 	"fmt"
 	"math"
+
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
+	"github.com/lestrrat-3d/sketch"
 )
 
 type point struct {
@@ -90,4 +93,35 @@ func flankPoints(pitch, base, tip, effectiveTeeth float64, samples int,
 func flankRotation(pitch, base, effectiveTeeth float64) float64 {
 	atPitch := involutePoint(base, pitch)
 	return math.Pi/(2*effectiveTeeth) - math.Atan2(-atPitch.y, atPitch.x)
+}
+
+// flankSketchPoints places both flank sample lists in the sketch. The left tip point carries no radial
+// dimension because the tip arc about the center already ties it to the right tip point.
+func flankSketchPoints(polar *modelsketch.Polar, left, right []point) ([]*sketch.Point, []*sketch.Point, error) {
+	leftPoints := make([]*sketch.Point, len(left))
+	rightPoints := make([]*sketch.Point, len(right))
+	for i := range left {
+		var err error
+		if leftPoints[i], err = polar.Point(left[i].x, left[i].y, i != len(left)-1); err != nil {
+			return nil, nil, fmt.Errorf("left sample %d: %w", i, err)
+		}
+		if rightPoints[i], err = polar.Point(right[i].x, right[i].y, true); err != nil {
+			return nil, nil, fmt.Errorf("right sample %d: %w", i, err)
+		}
+	}
+	return leftPoints, rightPoints, nil
+}
+
+// rootSketchPoints places the root-circle points below the first flank samples. Only the right root
+// carries a radial dimension; the root arc about the center fixes the left root radius.
+func rootSketchPoints(polar *modelsketch.Polar, left, right point, d dimensions) (*sketch.Point, *sketch.Point, error) {
+	rightRoot, err := polar.Point(right.x*d.root/d.base, right.y*d.root/d.base, true)
+	if err != nil {
+		return nil, nil, fmt.Errorf("right root: %w", err)
+	}
+	leftRoot, err := polar.Point(left.x*d.root/d.base, left.y*d.root/d.base, false)
+	if err != nil {
+		return nil, nil, fmt.Errorf("left root: %w", err)
+	}
+	return rightRoot, leftRoot, nil
 }

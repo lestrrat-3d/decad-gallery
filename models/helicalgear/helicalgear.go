@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -155,16 +156,9 @@ func buildTooth(ctx context.Context, doc *decad.Document, world *sketch.World,
 
 func buildRootDisc(ctx context.Context, doc *decad.Document, world *sketch.World,
 	p Params) (*decad.Body, error) {
-	root := p.Module * (float64(p.Teeth) - 2.5) / 2
-	s, err := world.CreateSketch(world.XY())
+	s, err := rootDiscSketch(ctx, world, p)
 	if err != nil {
 		return nil, err
-	}
-	center := s.CreatePoint(0, 0)
-	s.Fix(center)
-	s.CreateCircle(center, root)
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve root disc sketch: %w", err)
 	}
 	profiles := s.Profiles()
 	if len(profiles) != 1 || !profiles[0].Valid {
@@ -175,4 +169,19 @@ func buildRootDisc(ctx context.Context, doc *decad.Document, world *sketch.World
 		return nil, fmt.Errorf("extrude root disc: %w", err)
 	}
 	return body, nil
+}
+
+func rootDiscSketch(ctx context.Context, world *sketch.World, p Params) (*sketch.Sketch, error) {
+	root := p.Module * (float64(p.Teeth) - 2.5) / 2
+	s, err := world.CreateSketch(world.XY())
+	if err != nil {
+		return nil, err
+	}
+	center := s.CreatePoint(0, 0)
+	s.Fix(center)
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, root), root))
+	if err := modelsketch.Verify(ctx, "root disc sketch", s); err != nil {
+		return nil, err
+	}
+	return s, nil
 }

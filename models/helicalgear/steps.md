@@ -27,3 +27,10 @@ millimeters, and `HelixAngle` is a positive angle in radians.
    case passes with and without a bore and cap chamfers. The source-default
    17-tooth gear passes with a 1 mm bore and both 0.1 mm cap chamfers. A
    case that selects nonempty root-fillet edges still needs a real check.
+
+## Sketch constraints
+
+The tooth sections come from `spurgear.BuildToothSection`, which verifies
+them as described in the spur steps. The root-disc sketch fixes its center
+and dimensions the circle radius. `modelsketch.Verify` requires both to be
+fully constrained, and `sketch_constraints_test.go` checks the root disc.

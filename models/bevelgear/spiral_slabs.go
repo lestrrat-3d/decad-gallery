@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/modelsketch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -148,18 +149,8 @@ func validateSourceDefaultSpiral(p Params) error {
 
 func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3.Vec,
 	extent float64) (*decad.Body, error) {
-	world := sketch.NewWorld()
-	s, err := world.CreateSketch(world.XY())
+	s, err := sliceSheetSketch(ctx, sketch.NewWorld(), origin, along, extent)
 	if err != nil {
-		return nil, err
-	}
-	a := origin.Add(along.Scale(-extent))
-	b := origin.Add(along.Scale(extent))
-	first, second := s.CreatePoint(a.X, a.Y), s.CreatePoint(b.X, b.Y)
-	s.Fix(first)
-	s.Fix(second)
-	s.CreateLine(first, second)
-	if _, err := s.Solve(ctx); err != nil {
 		return nil, err
 	}
 	chains := s.Chains()
@@ -170,4 +161,23 @@ func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3
 		One: decad.DistanceSide{D: units.Millimeters(extent)},
 		Two: decad.DistanceSide{D: units.Millimeters(extent)},
 	})
+}
+
+func sliceSheetSketch(ctx context.Context, world *sketch.World, origin, along r3.Vec,
+	extent float64) (*sketch.Sketch, error) {
+	s, err := world.CreateSketch(world.XY())
+	if err != nil {
+		return nil, err
+	}
+	a := origin.Add(along.Scale(-extent))
+	b := origin.Add(along.Scale(extent))
+	anchor := s.CreatePoint(0, 0)
+	s.Fix(anchor)
+	first := modelsketch.PointFrom(s, anchor, a.X, a.Y)
+	second := modelsketch.PointFrom(s, first, b.X, b.Y)
+	s.CreateLine(first, second)
+	if err := modelsketch.Verify(ctx, "slice sheet sketch", s); err != nil {
+		return nil, err
+	}
+	return s, nil
 }

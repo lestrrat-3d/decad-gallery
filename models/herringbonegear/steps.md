@@ -22,3 +22,10 @@ root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
 The source-order eight-tooth and default 17-tooth gears pass step 5 without a
 bore and with 1 mm and 3 mm bores, respectively. Both bored meshes have one
 through-hole. Both also pass with 0.1 mm outer-cap chamfers.
+
+## Sketch constraints
+
+The lower and middle tooth sections come from `spurgear.BuildToothSection`.
+It verifies them as fully constrained, as described in the spur steps. The
+root disc and bore sketches are the helical and spur ones, which are also
+verified.
