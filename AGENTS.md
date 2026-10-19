@@ -34,18 +34,23 @@
 - When decad or Sketch behaves incorrectly, reduce the failure to a local reproducer and use the same handoff path.
 - State the affected model, expected geometry or behavior, observed result, and smallest reproducing input.
 - Do not hide a decad gap or bug with substitute geometry, ad hoc calculations, or a different modeling engine.
-- Do not modify decad or Sketch itself without authorization for that repository.
+- Do not modify decad or Sketch itself without authorization for that repository. See **Agent coordination**.
 
 ## Agent coordination
 
-- Find the active Decad/Sketch Codex task with `mcp__codex_tui__list_threads`.
-- Read that task's recent status with `mcp__codex_tui__read_thread`.
-- Send model requirements, real reproducers, and gallery test results with `mcp__codex_tui__send_message_to_thread`.
-- Consolidate all known needs for one model into one handoff; include the full downstream build and verification path.
-- Coordinate ownership and status with that task before editing sibling repositories or closing a Decad/Sketch blocker.
-- Recheck merged changes with the gallery's real model before resuming the port.
-- Update the handoff when the other task reports a fix or a new blocker.
-- Ask the user only for a decision the two tasks cannot make from existing authorization.
+- Work in the sibling checkouts `../decad` and `../sketch` directly with Claude Code; no thread messaging tool is involved.
+- Read each repository's `CLAUDE.md` before touching it. Edit only in a worktree at `../<repo>/.worktrees/<branch>`.
+- Check in-flight work first: `git -C ../<repo> worktree list` and `gh pr list -R lestrrat-3d/<repo>`.
+  Do not edit a file another open PR or worktree already changes; build on that branch or wait for its merge.
+- Send model requirements and real reproducers with `gh issue create -R lestrrat-3d/<repo>`.
+  Use the fields of `.github/ISSUE_TEMPLATE/decad-gap.yml`: affected item, needed behavior, current behavior, local reproduction.
+- Consolidate all known needs for one model into one issue; include the full downstream build and verification path.
+- Update that issue when a fix lands or a new blocker appears. Link the gallery PR that needs it.
+- Fix a gap or bug in a sibling repository only when the user authorized changes to that repository.
+  With authorization, open a PR there and merge it after its checks pass.
+- After a sibling PR merges, bump the pin in `go.mod` and `tools/render/go.mod`, then recheck with the gallery's real model.
+  A `go.mod` or `go.sum` change invalidates `models/spurgear/generation.json`; regenerate through `scripts/modelgen/spurgear.py`.
+- Ask the user only for a decision that existing authorization does not cover.
 
 ## Verification
 
