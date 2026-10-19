@@ -28,25 +28,6 @@
 - Constrain other geometry with geometric and dimensional constraints. Do not fix every computed point to force `DOF == 0`.
 - Do not treat a successful `Solve`, a valid profile, or `DOF == 0` alone as proof of full constraint.
 
-## Decad gaps and bugs
-
-- When decad or Sketch lacks a needed feature, stop that model change and follow **Agent coordination**.
-- When decad or Sketch behaves incorrectly, reduce the failure to a local reproducer and use the same handoff path.
-- State the affected model, expected geometry or behavior, observed result, and smallest reproducing input.
-- Do not hide a decad gap or bug with substitute geometry, ad hoc calculations, or a different modeling engine.
-- Do not modify decad or Sketch itself without authorization for that repository.
-
-## Agent coordination
-
-- Find the active Decad/Sketch Codex task with `mcp__codex_tui__list_threads`.
-- Read that task's recent status with `mcp__codex_tui__read_thread`.
-- Send model requirements, real reproducers, and gallery test results with `mcp__codex_tui__send_message_to_thread`.
-- Consolidate all known needs for one model into one handoff; include the full downstream build and verification path.
-- Coordinate ownership and status with that task before editing sibling repositories or closing a Decad/Sketch blocker.
-- Recheck merged changes with the gallery's real model before resuming the port.
-- Update the handoff when the other task reports a fix or a new blocker.
-- Ask the user only for a decision the two tasks cannot make from existing authorization.
-
 ## Verification
 
 - Run `python3 scripts/check_repository.py` after changing repository structure.

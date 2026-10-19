@@ -91,5 +91,3 @@ tooth-to-blank `Union` passes `VerifyAll` for both members. Each full
 bodies through `VerifyAll`. The renderer produced the
 1600 × 900 hero PNG from that pair. Real blank-only cuts
 also pass for the source-default 90° case and a capped 35° shaft-angle case.
-The Decad/Sketch handoff is in
-`../decad/.tmp/bevelgear-gallery-handoff.md` from the repository root.
