@@ -21,7 +21,7 @@ supported pair.
    `Teeth / cos(γ)` as a real number. Anchor the tooth center to the sketch
    origin; dimension its fit points and arcs for both root routes. Solve and
    verify the Sketch profile before lofting
-   it from the exact common apex with `Document.LoftFromPoint`.
+   it from the exact common apex with `decad.LoftFromPoint`.
 4. Dimension, solve, and verify the triangular axial sections before
    revolving the cutting cones from the blank's toe-dish and heel-cone lines.
    Cut the point tooth with the toe cone first. Intersect that keeper with

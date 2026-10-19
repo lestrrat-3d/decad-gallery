@@ -7,7 +7,7 @@ root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
    z=0 and z=`Thickness / 2`. Rotate the middle profile by `HelixAngle` while
    drawing it. Use the spur tooth constraints to anchor, dimension, solve,
    and verify both sections before consuming their profiles.
-2. Call `Document.Loft` on the two verified profiles. Use `MirroredCopy` across
+2. Call `decad.Loft` on the two verified profiles. Use `MirroredCopy` across
    the middle Sketch plane, then `Union` the halves. Check that the joined
    tooth is one solid with a closed verified mesh.
 3. Center and dimension the helical root-disc circle. Solve and verify its
