@@ -4,57 +4,59 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/sketch"
 )
 
-// BuildToothSection builds one ordinary tooth rotated by angle on plane.
+// BuildToothSection draws one ordinary tooth rotated by angle on plane and
+// returns the solved, verified sketch and its six-curve profile. The caller
+// lofts the result; no solid feature is applied.
 func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
-	if ctx == nil || world == nil || plane == nil {
-		return nil, nil, errors.New("spurgear: nil context, world, or plane")
+	if err := profileGuards(ctx, world, plane); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
 	if err := validate(p); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	if !finite(angle) {
-		return nil, nil, fmt.Errorf("spurgear: nonfinite tooth angle %g", angle)
+	if math.IsNaN(angle) || math.IsInf(angle, 0) {
+		return nil, nil, errors.New("spurgear: tooth section: angle must be finite")
 	}
 	d := derive(p)
 	if d.base < d.root {
-		return nil, nil, errors.New("spurgear: tooth section does not support embedded profiles")
+		return nil, nil, errors.New("spurgear: tooth section: embedded profiles are not supported")
 	}
+
 	s, err := world.CreateSketch(plane)
 	if err != nil {
-		return nil, nil, fmt.Errorf("spurgear: create sketch: %w", err)
+		return nil, nil, fmt.Errorf("spurgear: tooth section: create sketch: %w", err)
 	}
 	center := s.Origin()
 	left, right := sampleFlanks(d.pitch, d.base, d.tip, float64(p.Teeth), p.Samples, angle)
-	lp, rp := dimensionFlanks(s, left, right)
-	lrc := rootContact(d, left[0])
-	rrc := rootContact(d, right[0])
-	leftRoot := sketchcheck.DimensionArcEnd(s, lrc.x, lrc.y)
-	rightRoot := sketchcheck.DimensionPoint(s, rrc.x, rrc.y)
-	s.CreateLine(rightRoot, rp[0])
-	if _, err := s.CreateFitSpline(rp...); err != nil {
-		return nil, nil, fmt.Errorf("spurgear: tooth section right flank: %w", err)
+	rightPts, leftPts := flankPoints(s, left, right)
+	leftRoot, rightRoot, _, _ := rootPoints(s, left, right, d)
+
+	s.CreateLine(rightRoot, rightPts[0])
+	if _, err := s.CreateFitSpline(rightPts...); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: right flank spline: %w", err)
 	}
-	s.CreateArc(center, rp[p.Samples-1], lp[p.Samples-1])
-	if _, err := s.CreateFitSpline(lp...); err != nil {
-		return nil, nil, fmt.Errorf("spurgear: tooth section left flank: %w", err)
+	s.CreateArc(center, rightPts[len(rightPts)-1], leftPts[len(leftPts)-1])
+	if _, err := s.CreateFitSpline(leftPts...); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: left flank spline: %w", err)
 	}
-	s.CreateLine(lp[0], leftRoot)
+	s.CreateLine(leftPts[0], leftRoot)
 	s.CreateArc(center, rightRoot, leftRoot)
-	if err := solveVerify(ctx, s, "spurgear tooth section"); err != nil {
-		return nil, nil, err
+
+	if err := solveAndVerify(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	profile, err := onlyProfile(s)
+	profile, err := singleProfile(s)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	if len(profile.Outer) != 6 {
-		return nil, nil, fmt.Errorf("spurgear: tooth section curves: got %d, want 6", len(profile.Outer))
+	if got := len(profile.Outer); got != 6 {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: outer curves: got %d, want 6", got)
 	}
 	return s, profile, nil
 }
