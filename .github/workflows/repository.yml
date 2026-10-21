@@ -31,7 +31,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           spur_skip='^TestPlacedEmbeddedGearWithRootFilletsAndBore$'
@@ -156,6 +156,8 @@ jobs:
           - test: TestSourceSixteenTwelveStraightPair
             timeout: 15m
           - test: TestSourceSixteenTwelveStraightPairAutoBore
+            timeout: 18m
+          - test: TestSourceThirtyTwoSixteenStraightPair
             timeout: 18m
           - test: TestSourceFourFourStraightPairAutoBore
             timeout: 18m

@@ -177,7 +177,7 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 			return memberBuildPlan{}, err
 		}
 	} else if !supportedStraightBuild(p) {
-		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 4/4, 8/8, and 16/12, or source-default 31/31 spiral")
+		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 4/4, 8/8, 16/12, and 32/16, or source-default 31/31 spiral")
 	}
 	boreDiameter := 0.0
 	if p.EnableBore {
@@ -201,7 +201,8 @@ func supportedStraightBuild(p Params) bool {
 		return false
 	}
 	return (p.Teeth == 4 && p.MateTeeth == 4) ||
-		(p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16)
+		(p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16) ||
+		(p.Teeth == 32 && p.MateTeeth == 16) || (p.Teeth == 16 && p.MateTeeth == 32)
 }
 
 func buildMember(ctx context.Context, doc *decad.Document, p Params,
@@ -239,7 +240,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 	if err != nil {
 		return nil, fmt.Errorf("build toe cone: %w", err)
 	}
-	toeKeeper, err := decad.Cut(ctx, tooth, toeCone)
+	toeKeeper, err := decad.Cut(ctx, tooth, toeCone, decad.WithMatchingFaces())
 	if err != nil {
 		return nil, fmt.Errorf("trim tooth at toe: %w", err)
 	}
@@ -247,7 +248,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 	if err != nil {
 		return nil, fmt.Errorf("build heel cone: %w", err)
 	}
-	trimmedTooth, err := decad.Intersect(ctx, toeKeeper, heelCone)
+	trimmedTooth, err := decad.Intersect(ctx, toeKeeper, heelCone, decad.WithMatchingFaces())
 	if err != nil {
 		return nil, fmt.Errorf("trim tooth at heel: %w", err)
 	}
