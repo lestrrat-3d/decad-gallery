@@ -17,19 +17,22 @@ type preset struct {
 }
 
 var presets = map[string]preset{
-	"spurgear/hero":        {width: 1600, height: 900, scene: spurGearHero},
-	"spurgear/top":         {width: 1600, height: 900, scene: spurGearTop},
-	"spurgear/low":         {width: 1600, height: 900, scene: spurGearLow},
-	"bevelgear/hero":       {width: 1600, height: 900, scene: bevelGearHero},
-	"bevelgear/top":        {width: 1600, height: 900, scene: bevelGearTop},
-	"bevelgear/low":        {width: 1600, height: 900, scene: bevelGearLow},
-	"bevelgear/high":       {width: 1600, height: 900, scene: bevelGearHigh},
-	"helicalgear/hero":     {width: 1600, height: 900, scene: helicalGearHero},
-	"helicalgear/top":      {width: 1600, height: 900, scene: helicalGearTop},
-	"helicalgear/low":      {width: 1600, height: 900, scene: helicalGearLow},
-	"herringbonegear/hero": {width: 1600, height: 900, scene: herringboneGearHero},
-	"herringbonegear/top":  {width: 1600, height: 900, scene: herringboneGearTop},
-	"herringbonegear/low":  {width: 1600, height: 900, scene: herringboneGearLow},
+	"spurgear/hero":           {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/top":            {width: 1600, height: 900, scene: spurGearTop},
+	"spurgear/low":            {width: 1600, height: 900, scene: spurGearLow},
+	"bevelgear/hero":          {width: 1600, height: 900, scene: bevelGearHero},
+	"bevelgear/top":           {width: 1600, height: 900, scene: bevelGearTop},
+	"bevelgear/low":           {width: 1600, height: 900, scene: bevelGearLow},
+	"bevelgear/high":          {width: 1600, height: 900, scene: bevelGearHigh},
+	"bevelgear/straight-top":  {width: 1600, height: 900, scene: bevelGearStraightTop},
+	"bevelgear/straight-low":  {width: 1600, height: 900, scene: bevelGearStraightLow},
+	"bevelgear/straight-high": {width: 1600, height: 900, scene: bevelGearStraightHigh},
+	"helicalgear/hero":        {width: 1600, height: 900, scene: helicalGearHero},
+	"helicalgear/top":         {width: 1600, height: 900, scene: helicalGearTop},
+	"helicalgear/low":         {width: 1600, height: 900, scene: helicalGearLow},
+	"herringbonegear/hero":    {width: 1600, height: 900, scene: herringboneGearHero},
+	"herringbonegear/top":     {width: 1600, height: 900, scene: herringboneGearTop},
+	"herringbonegear/low":     {width: 1600, height: 900, scene: herringboneGearLow},
 }
 
 func main() {
@@ -80,6 +83,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	if outputDir == "" {
 		return fmt.Errorf("-out is required")
 	}
+	if model == "bevelgear" {
+		return renderBevelReadme(ctx, outputDir)
+	}
 	hero, ok := presets[model+"/hero"]
 	if !ok {
 		return fmt.Errorf("unknown model %q", model)
@@ -91,15 +97,8 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	if err := renderPNG(ctx, filepath.Join(outputDir, "index.png"), scene, 480, 270); err != nil {
 		return fmt.Errorf("render %s index image: %w", model, err)
 	}
-	if model == "bevelgear" {
-		if err := renderPNG(ctx, filepath.Join(outputDir, "hero.png"), scene, 1600, 900); err != nil {
-			return fmt.Errorf("render %s hero image: %w", model, err)
-		}
-	}
 	var cameras map[string]solidlens.Camera
 	switch model {
-	case "bevelgear":
-		cameras = bevelCameras
 	case "helicalgear":
 		cameras = helicalCameras
 	case "herringbonegear":
