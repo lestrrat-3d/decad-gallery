@@ -96,6 +96,27 @@ func TestSourceSixteenTwelveStraightPair(t *testing.T) {
 	}
 }
 
+func TestSourceThirtyTwoSixteenStraightPair(t *testing.T) {
+	p := bevelgear.DefaultParams()
+	p.Module = 4
+	p.Teeth, p.MateTeeth = 32, 16
+	p.SpiralAngle = 0
+	p.EnableBore = false
+	doc := decad.New()
+	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.Len(t, doc.Bodies(), 2)
+	for name, gear := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
+		require.True(t, gear.IsSolid(), name)
+		mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
+			decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err, name)
+		require.True(t, mesh.BoundaryVerified(), name)
+		require.True(t, mesh.VolumeVerified(), name)
+		require.Equal(t, 2, meshEuler(mesh), "%s has one closed outer shell", name)
+	}
+}
+
 func TestSourceSixteenTwelveStraightPairAutoBore(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Module = 4

@@ -39,6 +39,7 @@ go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
 go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
 go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 18m
+go test ./models/bevelgear -run '^TestSourceThirtyTwoSixteenStraightPair$' -timeout 18m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightMember$' -timeout 5m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightMemberAutoBore$' -timeout 5m
 go test ./models/bevelgear -run '^TestSourceFourFourStraightPairAutoBore$' -timeout 18m
