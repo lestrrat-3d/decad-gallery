@@ -8,6 +8,7 @@ checks. The gallery `Build` constructs the source-default 31/31 spiral member
 through one Combine-Join and an optional post-join bore. It also constructs
 verified straight 4/4, 8/8, and 16/12 members. `BuildPair` builds the pinion first and
 then rotates the driving member by half a tooth pitch.
+A pinion with an odd tooth count first turns by one tooth width about its own shaft.
 The source enables the bore by default and resolves a zero diameter automatically.
 `DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
 
@@ -148,6 +149,18 @@ one Combine-Join with the blank as target and all 31 patterned teeth as tools.
 Both hands pass `VerifyAll` at 0.1 mm before and after their auto-calculated
 bores. `BuildPair` rotates the pinion about world Z by the shaft angle, then
 rotates the driving member by `π / Teeth` about its shaft.
+When `MateTeeth` is odd, the pinion first turns by `π / MateTeeth` about its own shaft,
+so a driving gap faces a pinion tooth.
+
+This odd-count pinion turn is a gallery addition. The source's `_pinionMeshPhase` ships
+at `_PINION_MESH_PHASE_TEETH = 0.0`, so the source applies no pinion rotation. Without the
+turn, the 31/31 spiral pair here puts a driving gap against a pinion gap, and the flanks on
+both sides cross at the contact line in `images/hero.png`. A mesh check on the real pair
+counted about 840 pinion surface points inside the driving gear at that phase. With the
+turn it counted 129 points, each less than 0.011 mm deep, which is flush contact. The even
+pairs (4/4, 8/8, 16/12) need no pinion turn. The Go spiral build may place its first tooth
+differently from the Fusion build, which could explain why the source default works there.
+That has not been checked.
 
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its

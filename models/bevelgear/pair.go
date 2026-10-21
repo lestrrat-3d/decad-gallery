@@ -18,6 +18,7 @@ type GearPair struct {
 }
 
 // BuildPair builds the pinion first, then phases the driving gear by half a tooth pitch.
+// A pinion with an odd tooth count is also turned by one tooth width about its shaft.
 // It then moves both members with Params.Placement.
 func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, error) {
 	if ctx == nil || doc == nil {
@@ -60,6 +61,19 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 			if err != nil {
 				return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
 			}
+		}
+	}
+	// Both members are built with a tooth centred on the angle toward the mate, and the pinion's mesh point sits half
+	// a turn around its shaft from that angle. An odd pinion tooth count puts a gap there instead of a tooth, so the
+	// pinion turns by one tooth width to keep the driving gear's gap opposite a pinion tooth.
+	if p.MateTeeth%2 == 1 {
+		pinionPhase, phaseErr := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(math.Pi/float64(p.MateTeeth)))
+		if phaseErr != nil {
+			return GearPair{}, fmt.Errorf("rotate pinion by one tooth: %w", phaseErr)
+		}
+		pinion, err = decad.Transform(ctx, pinion, pinionPhase)
+		if err != nil {
+			return GearPair{}, fmt.Errorf("phase pinion: %w", err)
 		}
 	}
 	pinionTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
