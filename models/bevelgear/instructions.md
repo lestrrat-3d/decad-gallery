@@ -152,6 +152,16 @@ rotates the driving member by `π / Teeth` about its shaft.
 When `MateTeeth` is odd, the pinion first turns by `π / MateTeeth` about its own shaft,
 so a driving gap faces a pinion tooth.
 
+This odd-count pinion turn is a gallery addition. The source's `_pinionMeshPhase` ships
+at `_PINION_MESH_PHASE_TEETH = 0.0`, so the source applies no pinion rotation. Without the
+turn, the 31/31 spiral pair here puts a driving gap against a pinion gap, and the flanks on
+both sides cross at the contact line in `images/hero.png`. A mesh check on the real pair
+counted about 840 pinion surface points inside the driving gear at that phase. With the
+turn it counted 129 points, each less than 0.011 mm deep, which is flush contact. The even
+pairs (4/4, 8/8, 16/12) need no pinion turn. The Go spiral build may place its first tooth
+differently from the Fusion build, which could explain why the source default works there.
+That has not been checked.
+
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its
 virtual tooth count is the real number `Teeth / cos(γ)`. Do not round that
