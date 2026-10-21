@@ -88,8 +88,8 @@ func TestPlacedPairMovesBothMembers(t *testing.T) {
 		require.InDelta(t, memberVolume.Value.Base(), volume.Value.Base(),
 			memberVolume.Bound.Base()+volume.Bound.Base()+0.02)
 	}
-	// The driving shaft runs along the frame's U axis (+Y) from the apex at y=-5. The driving
-	// member is not phased, so its extent along that shaft matches the unplaced member.
+	// The driving shaft runs along the frame's U axis (+Y) from the apex at y=-5. Turning the
+	// member about that shaft for its half-pitch phase keeps its extent along it.
 	box, err := pair.Driving.Bounds()
 	require.NoError(t, err)
 	tol := memberBox.Bound.Base() + box.Bound.Base() + 1e-8
