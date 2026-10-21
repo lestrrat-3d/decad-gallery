@@ -7,7 +7,7 @@ geometry, operation order, and defaults. Images in that repository are visual
 checks. The gallery `Build` constructs the source-default 31/31 spiral member
 through one Combine-Join and an optional post-join bore. It also constructs
 verified straight 4/4, 8/8, and 16/12 members. `BuildPair` builds the pinion first and
-then rotates the driving member by half a tooth pitch.
+then rotates the pinion by half a tooth pitch (one tooth width).
 The source enables the bore by default and resolves a zero diameter automatically.
 `DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
 
@@ -62,7 +62,7 @@ The first real `Build` case is an eight-tooth member of an equal pair at
 Module 1 and a 90° shaft angle, with straight teeth, five flank samples,
 and no optional offsets. Both an unbored body and a body with a 1 mm
 post-join bore pass geometry checks. `BuildPair` places two bored members
-with perpendicular shafts and the source's driving half-tooth-pitch phase.
+with perpendicular shafts and the pinion's half-tooth-pitch phase.
 The source-default spiral pair also passes one 31-tooth Combine-Join and
 an auto-calculated post-join bore for each hand. The straight 16/12 pair
 passes the same closed-shell and through-bore checks. Other full-gear cases return
@@ -109,7 +109,7 @@ the real blank section. For the default 90° pair it resolves 7.75 mm; for a
 diameters produce a verified through-hole in an isolated real blank and after
 the full 31-tooth join. `BuildPair` validates both bore inputs before building
 either member and cuts each bore after its own pattern joins. The pinion
-places on the second shaft, and the driving member rotates by half a tooth pitch.
+places on the second shaft, and the pinion rotates by half a tooth pitch.
 
 ## Derived geometry
 
@@ -146,8 +146,8 @@ joins each copy to the blank with sequential binary `Union` calls. This is
 the verified interim 8/8 construction. The source-default spiral member uses
 one Combine-Join with the blank as target and all 31 patterned teeth as tools.
 Both hands pass `VerifyAll` at 0.1 mm before and after their auto-calculated
-bores. `BuildPair` rotates the pinion about world Z by the shaft angle, then
-rotates the driving member by `π / Teeth` about its shaft.
+bores. `BuildPair` rotates the pinion by `π / MateTeeth` about its own shaft, then
+about world Z by the shaft angle. The driving member is not phased.
 
 For the reference's back-cone construction, one tooth is drawn on a plane
 through the back-cone line. Its virtual pitch radius is `r / cos(γ)` and its

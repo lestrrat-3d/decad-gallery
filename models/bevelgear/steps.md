@@ -40,9 +40,9 @@ supported pair.
    `BuildBoredBlank` separately checks the blank-only
    operation. The final joined body with a 1 mm bore passes `VerifyAll` and
    has one through-hole. Use this build for both members of the interim pair.
-8. Build the pinion first. Rotate it about world Z by the shaft angle, then
-   build the driving member and rotate it by half a tooth pitch about its
-   own shaft. Check both bored bodies with `VerifyAll` in the shared
+8. Build the pinion first. Rotate it by half a tooth pitch about its own
+   shaft, then about world Z by the shaft angle. Build the driving member
+   without a phase turn. Check both bored bodies with `VerifyAll` in the shared
    document. The spiral branch uses opposite hands. Both placed members pass
    `VerifyAll` at 0.1 mm.
    When `Placement` is set, `prepareBuild` rejects an invalid frame first. After the
