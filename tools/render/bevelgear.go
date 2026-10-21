@@ -100,7 +100,7 @@ func bevelSpiralView(ctx context.Context, shot string) (solidlens.Scene, error) 
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	return bevelScene(bevelSpiralCameras[shot], spiral.models(spiralColor, 1, r3.Vec{})), nil
+	return bevelViewScene(bevelSpiralCameras[shot], spiral.models(spiralColor, 1, r3.Vec{})), nil
 }
 
 func bevelStraightView(ctx context.Context, shot string) (solidlens.Scene, error) {
@@ -109,7 +109,7 @@ func bevelStraightView(ctx context.Context, shot string) (solidlens.Scene, error
 		return solidlens.Scene{}, err
 	}
 	straightMin, straightMax := straight.bounds(1)
-	return bevelScene(straightCamera(shot, straightMin, straightMax), straight.models(straightColor, 1, r3.Vec{})), nil
+	return bevelViewScene(straightCamera(shot, straightMin, straightMax), straight.models(straightColor, 1, r3.Vec{})), nil
 }
 
 // renderBevelReadme builds each pair once and writes every bevel gear README image.
@@ -132,12 +132,12 @@ func renderBevelReadme(ctx context.Context, outputDir string) error {
 	}{
 		{"index.png", hero, 480, 270},
 		{"hero.png", hero, 1600, 900},
-		{"top.png", bevelScene(bevelSpiralCameras["top"], spiral), 1600, 900},
-		{"low.png", bevelScene(bevelSpiralCameras["low"], spiral), 1600, 900},
-		{"high.png", bevelScene(bevelSpiralCameras["high"], spiral), 1600, 900},
-		{"straight-top.png", bevelScene(straightCamera("top", straightMin, straightMax), straight), 1600, 900},
-		{"straight-low.png", bevelScene(straightCamera("low", straightMin, straightMax), straight), 1600, 900},
-		{"straight-high.png", bevelScene(straightCamera("high", straightMin, straightMax), straight), 1600, 900},
+		{"top.png", bevelViewScene(bevelSpiralCameras["top"], spiral), bevelViewWidth, bevelViewHeight},
+		{"low.png", bevelViewScene(bevelSpiralCameras["low"], spiral), bevelViewWidth, bevelViewHeight},
+		{"high.png", bevelViewScene(bevelSpiralCameras["high"], spiral), bevelViewWidth, bevelViewHeight},
+		{"straight-top.png", bevelViewScene(straightCamera("top", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
+		{"straight-low.png", bevelViewScene(straightCamera("low", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
+		{"straight-high.png", bevelViewScene(straightCamera("high", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
 	}
 	for _, image := range images {
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
@@ -192,7 +192,104 @@ func (p bevelPairs) heroScene() solidlens.Scene {
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      29,
 	}
-	return bevelScene(camera, models)
+	return bevelScene(centerHorizontally(camera, models), models)
+}
+
+// bevelViewWidth and bevelViewHeight are the pixel size of each README "More views" image.
+const (
+	bevelViewWidth  = 1200
+	bevelViewHeight = 1000
+)
+
+// bevelViewMargin is the share of each image dimension left empty on both sides of a view's models.
+const bevelViewMargin = 0.06
+
+// bevelViewScene frames the models in the middle of a bevelViewWidth by bevelViewHeight image.
+func bevelViewScene(camera solidlens.Camera, models []solidlens.Model) solidlens.Scene {
+	return bevelScene(fitCamera(camera, models, float64(bevelViewWidth)/bevelViewHeight, bevelViewMargin), models)
+}
+
+// fitCamera slides the camera parallel to the image plane until the models' projected extents are centered,
+// then narrows or widens its field of view until the extents leave margin of the image free on every side.
+// The camera keeps its viewing direction and distance.
+func fitCamera(camera solidlens.Camera, models []solidlens.Model, aspect, margin float64) solidlens.Camera {
+	position, target := r3.Vec(camera.Position), r3.Vec(camera.Target)
+	forward, ok := target.Sub(position).Normalize()
+	if !ok {
+		return camera
+	}
+	right, ok := forward.Cross(r3.Vec(camera.Up)).Normalize()
+	if !ok {
+		return camera
+	}
+	up := right.Cross(forward)
+	var vertices []r3.Vec
+	for _, model := range models {
+		vertices = append(vertices, model.Mesh.Vertices()...)
+	}
+	var halfX, halfY float64
+	for range 20 {
+		minX, maxX := math.Inf(1), math.Inf(-1)
+		minY, maxY := math.Inf(1), math.Inf(-1)
+		var depthSum float64
+		for _, v := range vertices {
+			d := v.Sub(position)
+			depth := d.Dot(forward)
+			x, y := d.Dot(right)/depth, d.Dot(up)/depth
+			minX, maxX = math.Min(minX, x), math.Max(maxX, x)
+			minY, maxY = math.Min(minY, y), math.Max(maxY, y)
+			depthSum += depth
+		}
+		meanDepth := depthSum / float64(len(vertices))
+		shiftX := (minX + maxX) / 2 * meanDepth
+		shiftY := (minY + maxY) / 2 * meanDepth
+		shift := right.Scale(shiftX).Add(up.Scale(shiftY))
+		position, target = position.Add(shift), target.Add(shift)
+		halfX, halfY = (maxX-minX)/2, (maxY-minY)/2
+	}
+	// The vertical field of view FOV satisfies tan(FOV/2) = half the image height in image-plane units.
+	tanHalf := math.Max(halfX/aspect, halfY) / (1 - 2*margin)
+	camera.Position, camera.Target = solidlens.Vec(position), solidlens.Vec(target)
+	camera.FOV = 2 * math.Atan(tanHalf) * 180 / math.Pi
+	return camera
+}
+
+// centerHorizontally slides the camera sideways, parallel to the image plane, until the leftmost and
+// rightmost model vertices sit the same distance from the image's left and right edges.
+func centerHorizontally(camera solidlens.Camera, models []solidlens.Model) solidlens.Camera {
+	position, target := r3.Vec(camera.Position), r3.Vec(camera.Target)
+	forward, ok := target.Sub(position).Normalize()
+	if !ok {
+		return camera
+	}
+	right, ok := forward.Cross(r3.Vec(camera.Up)).Normalize()
+	if !ok {
+		return camera
+	}
+	var vertices []r3.Vec
+	for _, model := range models {
+		vertices = append(vertices, model.Mesh.Vertices()...)
+	}
+	for range 20 {
+		left, rightmost := math.Inf(1), math.Inf(-1)
+		var leftDepth, rightDepth float64
+		for _, v := range vertices {
+			d := v.Sub(position)
+			depth := d.Dot(forward)
+			x := d.Dot(right) / depth
+			if x < left {
+				left, leftDepth = x, depth
+			}
+			if x > rightmost {
+				rightmost, rightDepth = x, depth
+			}
+		}
+		shift := (left + rightmost) / 2 * (leftDepth + rightDepth) / 2
+		position = position.Add(right.Scale(shift))
+		target = target.Add(right.Scale(shift))
+	}
+	camera.Position, camera.Target = solidlens.Vec(position), solidlens.Vec(target)
+	return camera
 }
 
 // buildSpiralBevelPair builds the source-default bored 31/31 spiral pair.
