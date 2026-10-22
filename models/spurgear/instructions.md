@@ -47,6 +47,36 @@ Compute without rounding:
 | Tooth angular pitch | `2π/N` |
 | Root fillet radius `Rf` | `0.9 Rr (π/N - 2(tan α - α))/2` |
 
+## Parameter table
+
+The gear's inputs and derived dimensions are named entries of the document's
+parameter table, so a generator can read their names and expressions. Every
+feature value that follows is read from this table, not computed in place.
+
+| Name | Unit | Definition |
+| --- | --- | --- |
+| `module` | mm | input `m` |
+| `teeth` | none | input `N` |
+| `pressure_angle` | rad | input `α` |
+| `thickness` | mm | input `h` |
+| `samples` | none | input `S` |
+| `bore_diameter` | mm | input `b` |
+| `cap_chamfer` | mm | input `c` |
+| `tool_margin` | mm | `1` |
+| `pitch_radius` | mm | `module * teeth / 2` |
+| `base_radius` | mm | `pitch_radius * cos(pressure_angle)` |
+| `root_radius` | mm | `(module * teeth - 2.5 * module) / 2` |
+| `tip_radius` | mm | `(module * teeth + 2 * module) / 2` |
+| `involute_angle` | none | `tan(pressure_angle) - deg(pressure_angle) * pi / 180` |
+| `fillet_radius` | mm | `0.9 * root_radius * (pi / teeth - 2 * involute_angle) / 2` |
+| `bore_tool_length` | mm | `thickness + 2 * tool_margin` |
+
+The definitions are written as string literals, one call each, so that the
+names and expressions can be read from the source. The root-disc circle radius
+is bound to `root_radius` and the bore circle diameter to `bore_diameter`. The
+tooth count, the extrusion distances, the fillet radius, the bore tool length
+and the chamfer setback are read from the table.
+
 ## Input checks and limits
 
 - Reject `m <= 0`, `h <= 0`, `N < 3`, or `S < 3`.
