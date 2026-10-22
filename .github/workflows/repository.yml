@@ -208,7 +208,7 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check model rendering
-        run: go -C tools/render test -skip '^Test(BevelGearHero|HelicalGearHero|HerringboneGearHero)$' ./...
+        run: go -C tools/render test -skip '^Test(BevelGearHero|BevelGearStraightHigh|HelicalGearHero|HerringboneGearHero)$' ./...
   herringbone-cap-chamfer:
     strategy:
       fail-fast: false
@@ -235,7 +235,7 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check real bevel rendering
-        run: go -C tools/render test -run '^TestBevelGearHero$' -timeout 15m ./...
+        run: go -C tools/render test -run '^TestBevelGear(Hero|StraightHigh)$' -timeout 25m ./...
   helical-render:
     runs-on: ubuntu-latest
     steps:

@@ -7,13 +7,13 @@ replace github.com/lestrrat-3d/decad-gallery => ../..
 require (
 	github.com/lestrrat-3d/decad v0.0.0-20261022063850-83e2de46a39e
 	github.com/lestrrat-3d/decad-gallery v0.0.0
-	github.com/lestrrat-3d/solidlens v0.0.0-20261005044356-f626e847eb51
+	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
+	github.com/lestrrat-3d/solidlens v0.0.0-20261022063122-3bdc1f67bdc3
 	github.com/lestrrat-3d/units v0.0.0-20261004172310-91d157ffd2a9
 	github.com/stretchr/testify v1.12.1
 )
 
 require (
-	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1 // indirect
 	github.com/lestrrat-3d/sketch v0.0.0-20261021075729-f07b327dcf5a // indirect
 	github.com/lestrrat-go/3mf v0.0.0-20261005042850-6101195a51c8 // indirect
 	github.com/lestrrat-go/option/v3 v3.0.0-alpha1 // indirect
