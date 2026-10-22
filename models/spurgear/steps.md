@@ -13,7 +13,7 @@ Generate package `spurgear` at
 | File | Responsibility |
 | --- | --- |
 | `involute.go` | Dimension derivation, planar rotation, involute sampling |
-| `spurgear.go` | Parameters, profiles, root disc, one tooth loft, pattern and join, embedded loft, root fillet, bore, cap chamfer |
+| `spurgear.go` | Parameters, profiles, root disc, one tooth loft, pattern and join for both branches, root fillet, bore, cap chamfer |
 | `tooth_section.go` | Reusable ordinary tooth section |
 | `spurgear_test.go` | Public body and finishing acceptance tests |
 | `spurgear_profile_test.go` | Internal profile, root contact, and constraint tests |
@@ -74,7 +74,13 @@ func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Pl
     p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error)
 func buildBoreProfile(ctx context.Context, world *sketch.World, p Params,
     margin float64) (*sketch.Sketch, *sketch.Profile, error)
+func filletRoots(ctx context.Context, body *decad.Body, frame r3.Frame, roots []point,
+    radius float64) (*decad.Body, error)
+func filletRadius(p Params, d dimensions) float64
 ```
+
+`filletRoots` is the ordinary-branch root-matching fillet of Step 7. The embedded
+fillet is a separate private helper.
 
 Return actual root contact coordinates from `buildGearProfile`, including exact
 trim contacts in the embedded branch. Keep the bore sketch separately inspectable
@@ -155,6 +161,28 @@ applies native solid fillets after lofting.
 Use native trim parameters, not polyline endpoints or reconstructed intersections.
 If certified trimming fails, follow AGENTS.md Agent coordination with the real case.
 
+## Step 4b — build an embedded tooth
+
+Implement an internal `buildEmbeddedTooth(ctx,world,plane,p,d)` for the embedded
+branch, with its closing-radius helper:
+
+1. Compute `Rc` from the Embedded tooth rule in `instructions.md`. Evaluate
+   the half-angle `h(r)` with the Tooth flank formulas: rotate the mirrored
+   involute point at radius `r` by the same `beta` as the sampler and take
+   `math.Atan2` of the rotated point. Bisect `[d.base,d.root]` for `Rq` with a
+   fixed 200 iterations. Return an error naming the root circle when no `Rc`
+   exists.
+2. Sample the flanks from `Rc` to `d.tip` with the same involute and `beta` as
+   `sampleFlanks`, at angle 0, with `p.Samples` samples.
+3. Create every right point with both coordinate dimensions. Create every left
+   point with both dimensions except the first and the last, which receive one
+   coordinate dimension through `sketchcheck.DimensionArcEnd`.
+4. Create, in order: the right fit spline, the arc `s.CreateArc(center,rightTip,
+   leftTip)`, the left fit spline, and `s.CreateArc(center,rightFirst,leftFirst)`.
+   Reuse the same point objects at every junction.
+5. Solve and verify, require one valid profile and exactly four outer curves,
+   and return sketch and profile.
+
 ## Step 5 — build a standalone tooth
 
 Implement `BuildToothSection` after its API guards and ordinary-branch check:
@@ -201,9 +229,12 @@ Ordinary branch (`d.base >= d.root`):
 
 Embedded branch (`d.base < d.root`):
 
-4. Call `buildGearProfile` on both planes with identical parameters and
-   dimensions. Save the lower builder's root coordinates for Step 7.
-5. Call `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)`.
+4. Build the root disc as in the ordinary branch.
+5. Call `buildEmbeddedTooth` on both planes, and loft the two sections into one
+   tooth body.
+6. Pattern and join exactly as in the ordinary branch (`decad.PatternCopies`
+   once, then one `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)`).
+   Return no saved root list.
 
 Carry the returned body through Steps 7–9 and return the last body.
 
@@ -215,7 +246,10 @@ already contains bodies; the fresh-document body count is a test assertion.
 
 ## Step 7 — fillet root edges
 
-Skip when the derived fillet radius is nonpositive. Otherwise:
+Skip when the derived fillet radius is nonpositive. Embedded branch: select
+`decad.Edges(decad.ParallelTo(axis),decad.Concave()).Exactly(2*p.Teeth)` and call
+`decad.Fillet(ctx,body,selection,units.Millimeters(radius))`; the steps below
+are the ordinary branch only. Ordinary branch:
 
 1. Use `axis := placement.N()` and
    `decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)`. Pass the placement

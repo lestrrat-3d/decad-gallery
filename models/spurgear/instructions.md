@@ -124,6 +124,29 @@ Use this branch when `Rb < Rr`.
 - Require certified spline trim parameters at the root-circle intersections.
 - Save both actual trimmed root contacts per tooth for fillet selection.
 
+### Embedded tooth
+
+Use this branch when `Rb < Rr`. The gear is one root disc and one natural tooth
+repeated `N` times, as in the ordinary branch, but the tooth flanks cross the
+root circle instead of ending on it.
+
+- Let `h(r)` be the angle between the tooth axis and the left flank where the
+  flank meets radius `r`, for `Rb <= r <= Rr`. Adjacent teeth stay apart at
+  radius `r` only while `h(r) < π/N`.
+- Choose the closing radius `Rc`. If `h(Rb) < π/N`, use `Rc = Rb`. Otherwise
+  find `Rq` in `[Rb, Rr)` with `h(Rq) = π/N` (`h` falls as `r` grows) and use
+  `Rc = (Rq + Rr)/2`, so the closing arc lies strictly inside the root disc and
+  clear of the neighbouring teeth. If `h(Rr) >= π/N`, no closing radius exists:
+  return an error that names the root circle.
+- The tooth section has four curves: the right flank spline from radius `Rc`
+  to the tip, the tip arc, the left flank spline from the tip back to radius
+  `Rc`, and an arc about the gear axis at radius `Rc` that closes it. The flank
+  samples run linearly in radius from `Rc` to `Rt`, using the same involute
+  and rotation as the ordinary tooth. Nothing is scaled to the root circle.
+- Each flank crosses the root circle once. The tooth, its copies, and the root
+  disc are joined in one union; the join cuts the flanks at the root circle.
+- The root fillet corners are the `2N` concave axial edges of the joined body.
+
 ### Feature order
 
 Ordinary gear (`Rb >= Rr`):
@@ -139,9 +162,12 @@ Ordinary gear (`Rb >= Rr`):
 
 Embedded gear (`Rb < Rr`):
 
-1. Loft identical complete-outline profiles at z=0 and z=`h` into one straight
-   solid; do not build a disc or separate teeth.
-2. Steps 3 to 5 of the ordinary order apply unchanged.
+1. Extrude the root disc, and loft the embedded tooth between its two
+   identical sections.
+2. Pattern the tooth `N` times about the gear axis, then join the disc and all
+   `N` teeth in one union into one straight solid.
+3. If `Rf > 0`, fillet the `2N` concave axial edges together with radius `Rf`.
+4. Steps 4 and 5 of the ordinary order apply unchanged.
 
 The root disc and the bore tool use extrusion. Keep bore rims sharp during
 chamfering. Require the returned gear body to be one solid. A fresh document
@@ -157,6 +183,8 @@ document with existing bodies must also accept a new gear.
   from that origin. Reuse endpoint objects for adjoining curves.
 - Give every right-flank point both coordinate dimensions. Give each left-flank
   point both dimensions except its tip, which receives one coordinate dimension.
+  In an embedded tooth section, the left flank's first point (on the closing
+  arc) also receives only one coordinate dimension.
 - In ordinary profiles, give each right root both dimensions and each left root
   one dimension. The joining arc supplies the remaining radius relation.
 - For a point receiving one dimension, dimension Y when `abs(x) >= abs(y)`;
@@ -205,8 +233,8 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 | Bore tool | `b=3`; use a 10×10×10 box spanning z=0..10 | Remove a centered cylindrical volume |
 | Bore and chamfer | `b=3`, `c=0.1` | Gear with sharp bore rims and chamfered outer caps |
 | Chamfer only | `c=0.1` | Both cap areas and total volume decrease beyond error bounds |
-| Embedded, no fillet | `m=0.5`, `N=30`, `α=30π/180`, `h=2`, `S=5`, `c=0.02` | Embedded outline, no root fillet, chamfered caps |
-| Embedded, with fillet | `m=0.5`, `N=24`, `α=30π/180`, `h=2`, `S=5` | Embedded outline, 48 native root fillets |
+| Embedded, no fillet | `m=0.5`, `N=30`, `α=30π/180`, `h=2`, `S=5`, `c=0.02` | Embedded tooth join, no root fillet, chamfered caps |
+| Embedded, with fillet | `m=0.5`, `N=24`, `α=30π/180`, `h=2`, `S=5` | Embedded tooth join, 48 native root fillets |
 | Signed tooth section | `N=8`, `h=2`, `S=5`; angles `0`, `±14.5π/180` | Six-curve profiles with the requested rotation |
 | Placed ordinary | Default with `b=3`, `c=0.1`; frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volume as the unplaced gear; bounds follow the frame |
 | Placed embedded | `m=0.5`, `N=60`, `h=2`, `S=15`, `b=3`, `c=0.02`; same frame | Same volume as the unplaced gear; bounds follow the frame; root fillets present |
