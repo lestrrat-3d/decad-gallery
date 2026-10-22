@@ -88,15 +88,16 @@ with chords, resample from the root, or alter their shape during trimming.
 
 ### Ordinary construction
 
-Use this branch when `Rb >= Rr`. The gear is one root disc and `N` identical
-teeth, each drawn at its own angle, joined into one solid.
+Use this branch when `Rb >= Rr`. The gear is one root disc and one tooth
+repeated `N` times about the gear axis, joined into one solid.
 
 - Root disc: a circle of radius `Rr` about the gear axis, extruded from the
   lower cap plane to the upper cap plane.
-- Tooth `k` (`k=0..N-1`) is drawn on each cap plane at angle `2πk/N` as the
-  six-curve tooth section described below, and the two identical sections are
-  lofted into one straight tooth solid. Draw each tooth at its angle in its own
-  sketch; do not copy, rotate or pattern a finished tooth solid.
+- Tooth zero is drawn on each cap plane at angle 0 as the six-curve tooth
+  section described below, and the two identical sections are lofted into one
+  straight tooth solid. Repeat that one tooth solid `N` times with a circular
+  pattern about the gear axis through the placement origin; do not draw a
+  separate sketch for any other tooth.
 - Scale each flank's base point by `Rr/Rb` to locate its root contact. Evaluate
   each coordinate as `x*Rr/Rb`, multiplying before dividing, not as `x*(Rr/Rb)`.
   The helical join rejects the one-bit coordinate difference.
@@ -127,9 +128,10 @@ Use this branch when `Rb < Rr`.
 
 Ordinary gear (`Rb >= Rr`):
 
-1. Extrude the root disc, and loft each of the `N` teeth between its two
-   identical sections.
-2. Join the disc and all `N` teeth in one union into one straight solid.
+1. Extrude the root disc, and loft tooth zero between its two identical
+   sections.
+2. Pattern tooth zero `N` times about the gear axis, then join the disc and all
+   `N` teeth in one union into one straight solid.
 3. If `Rf > 0`, fillet all `2N` axial root edges together with radius `Rf`.
 4. If `b > 0`, extrude a centered circular tool from below z=0 to above z=`h`,
    then cut it from the gear.

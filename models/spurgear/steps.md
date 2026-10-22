@@ -13,7 +13,7 @@ Generate package `spurgear` at
 | File | Responsibility |
 | --- | --- |
 | `involute.go` | Dimension derivation, planar rotation, involute sampling |
-| `spurgear.go` | Parameters, profiles, root disc, tooth lofts and join, embedded loft, root fillet, bore, cap chamfer |
+| `spurgear.go` | Parameters, profiles, root disc, one tooth loft, pattern and join, embedded loft, root fillet, bore, cap chamfer |
 | `tooth_section.go` | Reusable ordinary tooth section |
 | `spurgear_test.go` | Public body and finishing acceptance tests |
 | `spurgear_profile_test.go` | Internal profile, root contact, and constraint tests |
@@ -185,17 +185,17 @@ Ordinary branch (`d.base >= d.root`):
    Solve and verify the sketch, require one valid profile, and call
    `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: units.Millimeters(p.Thickness),
    Dir: decad.Along})`.
-5. For each tooth `k` in ascending order, take `angle := toothAngle(p,k)`. Build
-   the tooth section on the lower plane with `angle` and on the upper plane with
-   the same `angle` (the Step 5 construction, without re-validating `p`). Call
+5. Build the tooth section on the lower plane with angle 0 and on the upper plane
+   with angle 0 (the Step 5 construction, without re-validating `p`). Call
    `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)` and keep
-   the returned tooth body. Wrap errors with the tooth index.
-6. Call `decad.Union(ctx,disc,teeth...)` once, with the disc first and the teeth in
-   ascending index. Do not chain `Union(gear,next)` tooth by tooth: each chained
-   union widens the result's error bounds and decad refuses it after a few teeth.
-   Require the returned body to be solid.
+   the returned tooth body.
+6. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
+   Axis: frame.N(), Count: p.Teeth})` for the other `N-1` teeth. Call
+   `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)` once, with the
+   disc first and the tooth before its copies. Do not draw, rotate, or loft any other
+   tooth, and do not chain `Union(gear,next)`. Require the returned body to be solid.
 7. Save the root contacts for Step 7. For each tooth `k` in ascending order, rotate
-   by `angle` the root coordinates of the unrotated right flank's first sample and
+   by `toothAngle(p,k)` the root coordinates of the unrotated right flank's first sample and
    of the left flank's first sample (scaled by `d.root/d.base` as in Step 3), and
    append right then left. The list has `2N` entries.
 
