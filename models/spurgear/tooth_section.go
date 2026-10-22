@@ -10,8 +10,8 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// BuildToothSection builds one ordinary tooth, rotated by angle, as a solved
-// and verified six-curve profile on plane. Embedded flanks are rejected.
+// BuildToothSection builds one ordinary tooth, rotated by angle, as a closed
+// six-curve profile on plane. Embedded flanks are rejected.
 func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
 	if ctx == nil {
@@ -24,10 +24,10 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 		return nil, nil, errors.New("spurgear: tooth section: nil plane")
 	}
 	if err := validate(p); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
 	if math.IsNaN(angle) || math.IsInf(angle, 0) {
-		return nil, nil, fmt.Errorf("spurgear: tooth section: nonfinite angle %v", angle)
+		return nil, nil, fmt.Errorf("spurgear: tooth section: nonfinite angle %g", angle)
 	}
 	d := derive(p)
 	if d.base < d.root {
@@ -40,70 +40,72 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	}
 	center := s.Origin()
 	left, right := sampleFlanks(d.pitch, d.base, d.tip, float64(p.Teeth), p.Samples, angle)
-	t, err := drawTooth(s, left, right, d, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
-	}
-	s.CreateArc(center, t.rightRoot, t.leftRoot)
+	rp, lp := dimensionFlanks(s, left, right)
+	leftRoot, rightRoot := rootPoints(s, d, left[0], right[0])
 
-	if err := solveAndVerify(ctx, s); err != nil {
-		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
+	s.CreateLine(rightRoot, rp[0])
+	rs, err := s.CreateFitSpline(rp...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: right flank spline: %w", err)
 	}
-	profile, err := singleProfile(s)
+	_ = rs
+	s.CreateArc(center, rp[len(rp)-1], lp[len(lp)-1])
+	if _, err := s.CreateFitSpline(lp...); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: left flank spline: %w", err)
+	}
+	s.CreateLine(lp[0], leftRoot)
+	s.CreateArc(center, rightRoot, leftRoot)
+
+	profile, err := solveSingleProfile(ctx, s)
 	if err != nil {
 		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	if got := len(profile.Outer); got != 6 {
-		return nil, nil, fmt.Errorf("spurgear: tooth section: got %d outer curves, want 6", got)
+	if n := len(profile.Outer); n != 6 {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: got %d outer curves, want 6", n)
 	}
 	return s, profile, nil
 }
 
-// toothPoints are the sketch points shared with a tooth's neighboring curves.
-type toothPoints struct {
-	rightRoot, leftRoot *sketch.Point
-	rightRootXY         point
-	leftRootXY          point
-}
-
-// drawTooth creates the dimensioned points, radial lines, splines, and tip
-// arc of one ordinary tooth. When prevLeftRoot is non-nil the short root arc
-// from it to this tooth's right root is drawn first. The caller closes the
-// remaining root arcs.
-func drawTooth(s *sketch.Sketch, left, right []point, d dimensions,
-	prevLeftRoot *sketch.Point) (toothPoints, error) {
-	n := len(right)
-	rightPts := make([]*sketch.Point, n)
-	leftPts := make([]*sketch.Point, n)
-	for i := 0; i < n; i++ {
-		rightPts[i] = sketchcheck.DimensionPoint(s, right[i].x, right[i].y)
+// dimensionFlanks creates the dimensioned flank points. The left tip gets a
+// single coordinate dimension; every other flank point gets both.
+func dimensionFlanks(s *sketch.Sketch, left, right []point) (rp, lp []*sketch.Point) {
+	rp = make([]*sketch.Point, len(right))
+	lp = make([]*sketch.Point, len(left))
+	for i, q := range right {
+		rp[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
 	}
-	for i := 0; i < n; i++ {
-		if i == n-1 {
-			leftPts[i] = sketchcheck.DimensionArcEnd(s, left[i].x, left[i].y)
+	for i, q := range left {
+		if i == len(left)-1 {
+			lp[i] = sketchcheck.DimensionArcEnd(s, q.x, q.y)
 		} else {
-			leftPts[i] = sketchcheck.DimensionPoint(s, left[i].x, left[i].y)
+			lp[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
 		}
 	}
-	// Multiply before dividing; the root coordinates must not use a
-	// precomputed d.root/d.base factor.
-	var t toothPoints
-	t.leftRootXY = point{left[0].x * d.root / d.base, left[0].y * d.root / d.base}
-	t.rightRootXY = point{right[0].x * d.root / d.base, right[0].y * d.root / d.base}
-	t.leftRoot = sketchcheck.DimensionArcEnd(s, t.leftRootXY.x, t.leftRootXY.y)
-	t.rightRoot = sketchcheck.DimensionPoint(s, t.rightRootXY.x, t.rightRootXY.y)
+	return rp, lp
+}
 
-	if prevLeftRoot != nil {
-		s.CreateArc(s.Origin(), prevLeftRoot, t.rightRoot)
+// rootPoints scales the base samples to the root radius (multiply, then
+// divide) and creates the left root before the right root.
+func rootPoints(s *sketch.Sketch, d dimensions, leftBase, rightBase point) (leftRoot, rightRoot *sketch.Point) {
+	leftRoot = sketchcheck.DimensionArcEnd(s, leftBase.x*d.root/d.base, leftBase.y*d.root/d.base)
+	rightRoot = sketchcheck.DimensionPoint(s, rightBase.x*d.root/d.base, rightBase.y*d.root/d.base)
+	return leftRoot, rightRoot
+}
+
+// solveSingleProfile solves and verifies s, then requires exactly one valid profile.
+func solveSingleProfile(ctx context.Context, s *sketch.Sketch) (*sketch.Profile, error) {
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, fmt.Errorf("solve: %w", err)
 	}
-	s.CreateLine(t.rightRoot, rightPts[0])
-	if _, err := s.CreateFitSpline(rightPts...); err != nil {
-		return t, fmt.Errorf("right flank spline: %w", err)
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("verify: %w", err)
 	}
-	s.CreateArc(s.Origin(), rightPts[n-1], leftPts[n-1])
-	if _, err := s.CreateFitSpline(leftPts...); err != nil {
-		return t, fmt.Errorf("left flank spline: %w", err)
+	profiles := s.Profiles()
+	if len(profiles) != 1 {
+		return nil, fmt.Errorf("got %d profiles, want 1", len(profiles))
 	}
-	s.CreateLine(leftPts[0], t.leftRoot)
-	return t, nil
+	if !profiles[0].Valid {
+		return nil, errors.New("profile is invalid")
+	}
+	return profiles[0], nil
 }
