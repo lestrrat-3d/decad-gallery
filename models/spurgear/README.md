@@ -21,10 +21,13 @@ places the gear on the world XY plane at the origin. Helical gears take the
 same placement, and so do herringbone and bevel gears. Run `go test ./models/spurgear` to check
 the supported parameter cases.
 
-`Build` draws one closed profile with fit-spline flanks, lofts matching
-profiles at the two end planes, then asks decad to fillet the axial root
-corners. The default model uses 15 fit points per flank and has 17 teeth
-and 34 root fillets.
+For an ordinary gear, `Build` extrudes a root disc, draws each of the `N` teeth
+at its own angle with fit-spline flanks and lofts it between the two end planes,
+and joins the disc and the teeth in one union. It then asks decad to fillet the
+axial root corners. For a gear whose flanks begin inside the root circle, `Build`
+draws one closed outline of all teeth and lofts it between the two end planes.
+The default model uses 15 fit points per flank and has 17 teeth and 34 root
+fillets.
 
 `BoreDiameter` cuts a centered through-bore after the root fillets.
 `CapChamfer` chamfers the outer loops of both end caps, with or without a

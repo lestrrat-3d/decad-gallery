@@ -73,6 +73,7 @@ parameter cases and the consuming model checks.
 
 [`models/spurgear/instructions.md`](../models/spurgear/instructions.md) is
 the construction contract. Its [steps](../models/spurgear/steps.md) map both
-ordinary and embedded involute flanks through the Sketch profile, loft,
-root fillet, bore, and cap chamfer operations. `spurgear.Build` is the
+ordinary involute flanks through a root disc, one lofted tooth per angle, a
+union, root fillet, bore, and cap chamfer, and embedded flanks through one
+lofted outline of all teeth. `spurgear.Build` is the
 reusable Go entry point, and the package tests exercise the resulting bodies.

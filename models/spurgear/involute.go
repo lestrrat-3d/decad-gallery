@@ -11,7 +11,7 @@ type point struct{ x, y float64 }
 // dimensions holds the derived radii of a gear.
 type dimensions struct{ pitch, base, root, tip float64 }
 
-// derive computes the pitch, base, root, and tip radii without rounding.
+// derive computes the gear radii without rounding.
 func derive(p Params) dimensions {
 	n := float64(p.Teeth)
 	pitch := p.Module * n / 2
@@ -24,77 +24,78 @@ func derive(p Params) dimensions {
 }
 
 // filletRadius returns the root fillet radius Rf.
-func filletRadius(p Params) float64 {
-	d := derive(p)
+func filletRadius(p Params, d dimensions) float64 {
 	n := float64(p.Teeth)
 	a := p.PressureAngle
 	return 0.9 * d.root * (math.Pi/n - 2*(math.Tan(a)-a)) / 2
 }
 
+// toothAngle returns the rotation of tooth k.
+func toothAngle(p Params, k int) float64 {
+	return 2 * math.Pi * float64(k) / float64(p.Teeth)
+}
+
 // rotate rotates (x, y) by theta about the origin.
-func rotate(x, y, theta float64) (float64, float64) {
+func rotate(x, y, theta float64) point {
 	s, c := math.Sincos(theta)
-	return x*c - y*s, x*s + y*c
+	return point{x*c - y*s, x*s + y*c}
 }
 
 // involutePoint evaluates the original involute at radius r.
-func involutePoint(base, r float64) (float64, float64) {
+func involutePoint(base, r float64) point {
 	t := math.Tan(math.Acos(base / r))
-	return base * (math.Cos(t) + t*math.Sin(t)), base * (math.Sin(t) - t*math.Cos(t))
+	return point{base * (math.Cos(t) + t*math.Sin(t)), base * (math.Sin(t) - t*math.Cos(t))}
 }
 
-// sampleFlanks samples the left and right flanks, both running base to tip,
-// rotated by angle. effectiveTeeth may be non-integer.
-func sampleFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
-	angle float64) (left, right []point) {
-	px, py := involutePoint(base, pitch)
-	py = -py
+// sampleFlanks returns the left and right flank samples, base to tip, rotated
+// by angle. effectiveTeeth replaces the tooth count and is never rounded.
+func sampleFlanks(pitch, base, tip, effectiveTeeth float64, samples int, angle float64) (left, right []point) {
+	ip := involutePoint(base, pitch)
+	px, py := ip.x, -ip.y
 	beta := math.Pi/(2*effectiveTeeth) - math.Atan2(py, px)
 
 	left = make([]point, samples)
 	right = make([]point, samples)
-	for i := range samples {
+	for i := 0; i < samples; i++ {
 		r := base + (tip-base)*float64(i)/float64(samples-1)
-		x, y := involutePoint(base, r)
-		y = -y
-		lx, ly := rotate(x, y, beta)
-		rx, ry := lx, -ly
-		lx, ly = rotate(lx, ly, angle)
-		rx, ry = rotate(rx, ry, angle)
-		left[i] = point{lx, ly}
-		right[i] = point{rx, ry}
+		s := involutePoint(base, r)
+		l := rotate(s.x, -s.y, beta)
+		rt := point{l.x, -l.y}
+		left[i] = rotate(l.x, l.y, angle)
+		right[i] = rotate(rt.x, rt.y, angle)
 	}
 	return left, right
 }
 
-// InvoluteFlanks samples the left and right involute flanks, each running from
-// base to tip, for a possibly non-integer effective tooth count, rotated by angle.
+// InvoluteFlanks samples the left and right involute flanks of one tooth,
+// base to tip, rotated by angle. The returned arrays are left then right.
 func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
 	angle float64) ([][2]float64, [][2]float64, error) {
 	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, nil, fmt.Errorf("spurgear: involute flanks: nonfinite scalar input")
+			return nil, nil, fmt.Errorf("spurgear: nonfinite flank input %v", v)
 		}
 	}
 	switch {
 	case base <= 0:
-		return nil, nil, fmt.Errorf("spurgear: involute flanks: base radius %g must be positive", base)
+		return nil, nil, fmt.Errorf("spurgear: base radius must be positive, got %v", base)
 	case pitch <= base:
-		return nil, nil, fmt.Errorf("spurgear: involute flanks: pitch radius %g must exceed base radius %g", pitch, base)
+		return nil, nil, fmt.Errorf("spurgear: pitch radius %v must exceed base radius %v", pitch, base)
 	case tip <= pitch:
-		return nil, nil, fmt.Errorf("spurgear: involute flanks: tip radius %g must exceed pitch radius %g", tip, pitch)
+		return nil, nil, fmt.Errorf("spurgear: tip radius %v must exceed pitch radius %v", tip, pitch)
 	case effectiveTeeth <= 0:
-		return nil, nil, fmt.Errorf("spurgear: involute flanks: effective teeth %g must be positive", effectiveTeeth)
+		return nil, nil, fmt.Errorf("spurgear: effective teeth must be positive, got %v", effectiveTeeth)
 	case samples < 3:
-		return nil, nil, fmt.Errorf("spurgear: involute flanks: samples %d must be at least 3", samples)
+		return nil, nil, fmt.Errorf("spurgear: samples must be at least 3, got %d", samples)
 	}
-	l, r := sampleFlanks(pitch, base, tip, effectiveTeeth, samples, angle)
-	toPairs := func(ps []point) [][2]float64 {
-		out := make([][2]float64, len(ps))
-		for i, q := range ps {
-			out[i] = [2]float64{q.x, q.y}
-		}
-		return out
+	left, right := sampleFlanks(pitch, base, tip, effectiveTeeth, samples, angle)
+	return pairs(left), pairs(right), nil
+}
+
+func pairs(pts []point) [][2]float64 {
+	out := make([][2]float64, len(pts))
+	for i, p := range pts {
+		out[i] = [2]float64{p.x, p.y}
 	}
-	return toPairs(l), toPairs(r), nil
+	return out
 }
