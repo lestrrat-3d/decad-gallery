@@ -63,9 +63,10 @@ The `readme` shot builds each model once and writes a 480 × 270 pixel
 writes 1600 × 900 pixel `top.png` and `low.png` views. For bevel gears it
 writes a 1600 × 900 pixel `hero.png` and six 1200 × 1000 pixel views (`top.png`, `low.png`,
 `high.png`, `straight-top.png`, `straight-low.png`, and `straight-high.png`) with outlines
-enabled. The hero camera is shifted sideways until the left and right margins match. Each
-view's camera is shifted and its field of view is set so the gears sit in the middle of the
-image with a 6% margin on every side:
+enabled. The hero camera is shifted sideways until the left and right margins match. The hero
+scene sets the edge tolerance to 0.12 mm for every image size, so the 480 × 270 pixel index
+draws the same outlines as the hero. Each view's camera is shifted and its field of view is set
+so the gears sit in the middle of the image with a 6% margin on every side:
 
 ```sh
 go -C tools/render run . -model spurgear -shot readme -out ../../models/spurgear/images

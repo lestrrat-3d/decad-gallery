@@ -63,6 +63,11 @@ func straightCamera(shot string, low, high r3.Vec) solidlens.Camera {
 // bevelHeroGap is the clear distance along X between the two pairs in the hero scene.
 const bevelHeroGap = 30.0
 
+// bevelHeroEdgeTolerance is the Edges.Tolerance of the hero scene in millimetres. It is about half a
+// pixel at the 1600 by 900 hero size. Left at its default, SolidLens would scale it to the image, and
+// the 480 by 270 index image would get 0.40 mm, which breaks the straight teeth's outline into dashes.
+const bevelHeroEdgeTolerance = 0.12
+
 func bevelGearHero(ctx context.Context) (solidlens.Scene, error) {
 	pairs, err := buildBevelPairs(ctx)
 	if err != nil {
@@ -181,6 +186,9 @@ func (p bevelPairs) heroScene() solidlens.Scene {
 	offset := r3.NewVec(spiralMax.X-straightMin.X+bevelHeroGap, spiralMin.Y-straightMin.Y, 0)
 	models := p.spiral.models(spiralColor, bevelSpiralScale, r3.Vec{})
 	models = append(models, p.straight.models(straightColor, 1, offset)...)
+	for i := range models {
+		models[i].Edges.Tolerance = bevelHeroEdgeTolerance
+	}
 	low := r3.NewVec(spiralMin.X, spiralMin.Y, math.Min(spiralMin.Z, straightMin.Z+offset.Z))
 	high := r3.NewVec(straightMax.X+offset.X, math.Max(spiralMax.Y, straightMax.Y+offset.Y),
 		math.Max(spiralMax.Z, straightMax.Z+offset.Z))
