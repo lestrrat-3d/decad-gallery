@@ -13,7 +13,7 @@ Generate package `spurgear` at
 | File | Responsibility |
 | --- | --- |
 | `involute.go` | Dimension derivation, planar rotation, involute sampling |
-| `spurgear.go` | Parameters, profiles, loft, root fillet, bore, cap chamfer |
+| `spurgear.go` | Parameters, profiles, root disc, tooth lofts and join, embedded loft, root fillet, bore, cap chamfer |
 | `tooth_section.go` | Reusable ordinary tooth section |
 | `spurgear_test.go` | Public body and finishing acceptance tests |
 | `spurgear_profile_test.go` | Internal profile, root contact, and constraint tests |
@@ -168,22 +168,48 @@ Implement `BuildToothSection` after its API guards and ordinary-branch check:
 - Solve and verify. Require one valid profile and exactly six outer curves.
 - Return sketch/profile for the caller's loft; apply no solid features.
 
-## Step 6 — loft the gear
+## Step 6 — build the gear
 
-Implement `Build` using `sketch.NewWorld()` and matching end profiles:
+Implement `Build` using `sketch.NewWorld()`. Both branches start the same way:
 
 1. Resolve the placement frame. For the lower plane, use `world.XY()` when
    `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
    placement frame.
 2. Create the upper frame with `shifted(placement, p.Thickness)`.
 3. Call `world.CreatePlaneFromFrame(frame)` for the upper plane.
-4. Call `buildGearProfile` on both planes with identical parameters and dimensions.
-   Save the lower builder's root coordinates for Step 7.
+
+Ordinary branch (`d.base >= d.root`):
+
+4. Build the root disc. Create a sketch on the lower plane, call
+   `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`.
+   Solve and verify the sketch, require one valid profile, and call
+   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: units.Millimeters(p.Thickness),
+   Dir: decad.Along})`.
+5. For each tooth `k` in ascending order, take `angle := toothAngle(p,k)`. Build
+   the tooth section on the lower plane with `angle` and on the upper plane with
+   the same `angle` (the Step 5 construction, without re-validating `p`). Call
+   `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)` and keep
+   the returned tooth body. Wrap errors with the tooth index.
+6. Call `decad.Union(ctx,disc,teeth...)` once, with the disc first and the teeth in
+   ascending index. Do not chain `Union(gear,next)` tooth by tooth: each chained
+   union widens the result's error bounds and decad refuses it after a few teeth.
+   Require the returned body to be solid.
+7. Save the root contacts for Step 7. For each tooth `k` in ascending order, rotate
+   by `angle` the root coordinates of the unrotated right flank's first sample and
+   of the left flank's first sample (scaled by `d.root/d.base` as in Step 3), and
+   append right then left. The list has `2N` entries.
+
+Embedded branch (`d.base < d.root`):
+
+4. Call `buildGearProfile` on both planes with identical parameters and
+   dimensions. Save the lower builder's root coordinates for Step 7.
 5. Call `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)`.
-6. Carry its returned body through Steps 7–9 and return the last body.
+
+Carry the returned body through Steps 7–9 and return the last body.
 
 Implement `BuildProfile` by calling `buildGearProfile` after its guards and
-discarding the root list. This API returns an unfilleted planar profile.
+discarding the root list. This API returns an unfilleted planar profile of the
+whole gear for both branches; `Build` uses it only in the embedded branch.
 Require the returned body to be solid. Do not reject a document because it
 already contains bodies; the fresh-document body count is a test assertion.
 
@@ -195,7 +221,9 @@ Skip when the derived fillet radius is nonpositive. Otherwise:
    `decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)`. Pass the placement
    frame into this step.
 2. Read `edge.Start().Position().Value` for each axial edge. Match it to a
-   saved root when `toWorld(placement, root)` is within `1e-8` of it.
+   saved root when `toWorld(placement, root)` is within `1e-6` of it. After the
+   ordinary join, a corner vertex holds either the line's recorded end or the
+   circle fragment's computed end, and the two differ by rounding.
 3. Save the full 3D start once per matched edge. Require the number of matches
    to equal the saved root count before constructing the selector.
 4. Start with `decad.Edges(decad.ParallelTo(axis),decad.EndpointAt(corners[0]))`.
@@ -241,13 +269,14 @@ Do not infer success from an image or only a non-error return.
 
 | Test | Assertions |
 | --- | --- |
-| Small end-to-end | Both end profiles fully constrained; complete `Build` solid; one document body; expected z bounds; `2N` fillet roles; verified mesh |
+| Small end-to-end | Root-disc and tooth sketches fully constrained; complete `Build` solid; one document body; expected z bounds; `2N` fillet roles; verified mesh |
 | Reused document | Build the Small end-to-end gear twice into one document; both calls return solid bodies and the document contains two bodies |
 | Default body | `IsSolid()`; one `doc.Bodies()` entry; volume `2218.77` within `Volume().Bound.Base()+0.02`; volume bound below `0.5` |
 | Default dimensions | z bounds 0 and thickness within `Bounds().Bound.Base()+1e-8`; max X strictly between `9.4` and `9.6` |
 | Default fillets | Exactly `2N` distinct face origin roles starting with `fillet(0,` |
 | Ordinary outline | `2N` saved roots at root radius within `1e-7`; `N` root arcs and `N` tip arcs; no other arc radius |
-| Profile constraints | Independently call `Verify` on ordinary and embedded sketches; assert all Sketch constraints report fields and `report.Check()` |
+| Profile constraints | Independently call `Verify` on the root-disc, ordinary tooth, whole-outline and embedded sketches; assert all Sketch constraints report fields and `report.Check()` |
+| Outline equivalence | Default `Build` without bore or chamfer against a loft of the `BuildProfile` outlines on both planes followed by the same root fillet: volumes agree within summed bounds plus `0.02` |
 | Bore constraints | Inspect the separate bore sketch with the same report assertions |
 | Bore tool | Removed box volume equals `π(b/2)²h` within both volume bounds plus `0.02`; final solid and one document body |
 | Bore and chamfer | Solid; one document body; positive face-role count for `chamferCap(`; sharp bore rims on both caps |

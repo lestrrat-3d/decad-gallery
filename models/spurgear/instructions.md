@@ -86,20 +86,30 @@ with chords, resample from the root, or alter their shape during trimming.
 
 ## Body
 
-### Ordinary profile
+### Ordinary construction
 
-Use this branch when `Rb >= Rr`.
+Use this branch when `Rb >= Rr`. The gear is one root disc and `N` identical
+teeth, each drawn at its own angle, joined into one solid.
 
+- Root disc: a circle of radius `Rr` about the gear axis, extruded from the
+  lower cap plane to the upper cap plane.
+- Tooth `k` (`k=0..N-1`) is drawn on each cap plane at angle `2πk/N` as the
+  six-curve tooth section described below, and the two identical sections are
+  lofted into one straight tooth solid. Draw each tooth at its angle in its own
+  sketch; do not copy, rotate or pattern a finished tooth solid.
 - Scale each flank's base point by `Rr/Rb` to locate its root contact. Evaluate
   each coordinate as `x*Rr/Rb`, multiplying before dividing, not as `x*(Rr/Rb)`.
   The helical join rejects the one-bit coordinate difference.
-- Traverse each tooth from right root to right base by line, along the right
-  spline to its tip, along the tip-circle arc to the left tip, along the left
-  spline back to its base, and by line to the left root.
-- Join that left root to the next tooth's right root by the short root-circle arc.
-- Close the final left root to tooth zero's right root with the same arc rule.
-- Produce one hole-free outline containing two splines, two radial lines,
-  one tip arc, and one root arc per tooth. Preserve unrounded root corners.
+- Traverse each tooth section from right root to right base by line, along the
+  right spline to its tip, along the tip-circle arc to the left tip, along the
+  left spline back to its base, by line to the left root, and by the short
+  root-circle arc back to the right root.
+- Each tooth section has two splines, two radial lines, one tip arc and one
+  root arc, and the root arc lies on the root-disc circle. Preserve unrounded
+  root corners.
+- The whole-gear outline of the same teeth (the root arc of each tooth joined
+  to the next tooth's right root, one outline for all `N` teeth) remains
+  available to callers as a plane profile; the ordinary gear build does not use it.
 
 ### Embedded profile
 
@@ -115,16 +125,26 @@ Use this branch when `Rb < Rr`.
 
 ### Feature order
 
-1. Loft identical profiles at z=0 and z=`h` into one straight solid.
-2. If `Rf > 0`, fillet all `2N` axial root edges together with radius `Rf`.
-3. If `b > 0`, extrude a centered circular tool from below z=0 to above z=`h`,
-   then cut it from the gear.
-4. If `c > 0`, chamfer both outer cap loops with setback `c`.
+Ordinary gear (`Rb >= Rr`):
 
-Loft the complete tooth outline; do not extrude, pattern, or join separate tooth
-bodies. Only the bore tool uses extrusion. Keep bore rims sharp during chamfering.
-Require the returned gear body to be one solid. A fresh document contains one
-body afterward; a document with existing bodies must also accept a new gear.
+1. Extrude the root disc, and loft each of the `N` teeth between its two
+   identical sections.
+2. Join the disc and all `N` teeth in one union into one straight solid.
+3. If `Rf > 0`, fillet all `2N` axial root edges together with radius `Rf`.
+4. If `b > 0`, extrude a centered circular tool from below z=0 to above z=`h`,
+   then cut it from the gear.
+5. If `c > 0`, chamfer both outer cap loops with setback `c`.
+
+Embedded gear (`Rb < Rr`):
+
+1. Loft identical complete-outline profiles at z=0 and z=`h` into one straight
+   solid; do not build a disc or separate teeth.
+2. Steps 3 to 5 of the ordinary order apply unchanged.
+
+The root disc and the bore tool use extrusion. Keep bore rims sharp during
+chamfering. Require the returned gear body to be one solid. A fresh document
+contains one body afterward (the disc and teeth are consumed by the join); a
+document with existing bodies must also accept a new gear.
 
 ## Sketch constraints
 
@@ -141,11 +161,13 @@ body afterward; a document with existing bodies must also accept a new gear.
   otherwise dimension X. Its initial coordinates select the intended circle branch.
 - Do not add radius constraints to tip or ordinary root arcs: their centers and
   fully dimensioned opposite endpoints already determine their radii.
-- Dimension the separate embedded root circle by `Rr` and the bore circle by `b`.
+- Dimension the root-disc circle and the separate embedded root circle by `Rr`
+  and the bore circle by `b`.
 - Solve, then verify every sketch before reading profiles or returning it.
   Require `sketch.FullyConstrained`, `DOF == 0`, no redundant constraints, no
   conflicts, and a successful verification report check.
-- Apply these rules to both end profiles, standalone tooth sections, and bore
+- Apply these rules to the root-disc sketch, every tooth section on both cap
+  planes, both embedded end profiles, standalone tooth sections, and bore
   tools. Do not fix computed points to remove freedom.
 
 ## Reusable constructions
@@ -176,7 +198,7 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 
 | Case | Overrides | Required result |
 | --- | --- | --- |
-| Small end-to-end | `N=8`, `h=2`, `S=5` | Both profile sketches verified, one solid, 16 root fillets, verified mesh |
+| Small end-to-end | `N=8`, `h=2`, `S=5` | Root-disc and tooth sketches verified, one solid, 16 root fillets, verified mesh |
 | Default | None | Ordinary body, 17 teeth, 34 native root fillets |
 | Bore tool | `b=3`; use a 10×10×10 box spanning z=0..10 | Remove a centered cylindrical volume |
 | Bore and chamfer | `b=3`, `c=0.1` | Gear with sharp bore rims and chamfered outer caps |
@@ -191,8 +213,9 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 ## Verification
 
 Run the Small end-to-end case first. Check every placed case against the same
-gear built without placement. Check constraints independently for both
-ordinary end profiles, embedded profiles, bore tools, and signed tooth sections.
+gear built without placement. Check constraints independently for the
+root disc, the ordinary tooth sections on both cap planes, the whole-gear outline,
+embedded profiles, bore tools, and signed tooth sections.
 Confirm tooth curves, exact root trims, final topology, cap positions, and
 feature surfaces. An odd tooth count need not reach `±Rt` on both axes.
 Check shared construction through real helical, herringbone, and bevel consumers.

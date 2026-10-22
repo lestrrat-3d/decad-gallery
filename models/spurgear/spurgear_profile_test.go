@@ -4,6 +4,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/stretchr/testify/require"
 )
@@ -109,4 +111,37 @@ func requireSpurSketchFullyConstrained(t *testing.T, s *sketch.Sketch) {
 	require.Empty(t, report.Redundant)
 	require.Empty(t, report.Conflicts)
 	require.NoError(t, report.Check())
+}
+
+// The ordinary gear built from a root disc and N lofted teeth must enclose the
+// same volume as a loft of the whole-gear outlines, filleted the same way.
+func TestOrdinaryJoinMatchesOutlineLoft(t *testing.T) {
+	p := DefaultParams()
+	d := derive(p)
+	ctx := t.Context()
+
+	gear, err := Build(ctx, decad.New(), p)
+	require.NoError(t, err)
+
+	world := sketch.NewWorld()
+	upperFrame, err := r3.NewFrame(r3.NewVec(0, 0, p.Thickness), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	upperPlane, err := world.CreatePlaneFromFrame(upperFrame)
+	require.NoError(t, err)
+	lowerSketch, lowerProfile, roots, err := buildGearProfile(ctx, world, world.XY(), p, d)
+	require.NoError(t, err)
+	upperSketch, upperProfile, _, err := buildGearProfile(ctx, world, upperPlane, p, d)
+	require.NoError(t, err)
+	reference, err := decad.Loft(ctx, decad.New(), lowerSketch, lowerProfile, upperSketch, upperProfile)
+	require.NoError(t, err)
+	frame, err := placement(p)
+	require.NoError(t, err)
+	reference, err = filletRoots(ctx, reference, frame, roots, filletRadius(p, d))
+	require.NoError(t, err)
+
+	got, err := gear.Volume()
+	require.NoError(t, err)
+	want, err := reference.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, want.Value.Base(), got.Value.Base(), got.Bound.Base()+want.Bound.Base()+0.02)
 }
