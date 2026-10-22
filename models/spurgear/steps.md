@@ -68,7 +68,7 @@ Preserve these package-private names so existing independent tests compile:
 
 ```go
 type point struct { x, y float64 }
-type dimensions struct { pitch, base, root, tip float64 }
+type dimensions struct { pitch, base, root, tip, fillet float64 }
 func derive(p Params) dimensions
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error)
@@ -86,10 +86,44 @@ Return actual root contact coordinates from `buildGearProfile`, including exact
 trim contacts in the embedded branch. Keep the bore sketch separately inspectable
 through `buildBoreProfile`. Other private helper names are implementation choices.
 
+## Step 0 — parameter table
+
+Implement a private `defineParameters(t *param.Table, p Params) error`
+(`github.com/lestrrat-3d/sketch/param`). It writes the Parameter table of
+`instructions.md` with exactly these calls, in this order, each with string
+literals only, no concatenation, no loops and no variables for names or
+expressions. Check every error and wrap it with the parameter name:
+
+```go
+t.SetValue("module", units.Millimeters(p.Module))
+t.SetNumber("teeth", float64(p.Teeth))
+t.SetValue("pressure_angle", units.Radians(p.PressureAngle))
+t.SetValue("thickness", units.Millimeters(p.Thickness))
+t.SetNumber("samples", float64(p.Samples))
+t.SetValue("bore_diameter", units.Millimeters(p.BoreDiameter))
+t.SetValue("cap_chamfer", units.Millimeters(p.CapChamfer))
+t.SetExpr("tool_margin", "1", units.Millimeter)
+t.SetExpr("pitch_radius", "module * teeth / 2", units.Millimeter)
+t.SetExpr("base_radius", "pitch_radius * cos(pressure_angle)", units.Millimeter)
+t.SetExpr("root_radius", "(module * teeth - 2.5 * module) / 2", units.Millimeter)
+t.SetExpr("tip_radius", "(module * teeth + 2 * module) / 2", units.Millimeter)
+t.SetExpr("involute_angle", "tan(pressure_angle) - deg(pressure_angle) * pi / 180", units.One)
+t.SetExpr("fillet_radius", "0.9 * root_radius * (pi / teeth - 2 * involute_angle) / 2", units.Millimeter)
+t.SetExpr("bore_tool_length", "thickness + 2 * tool_margin", units.Millimeter)
+```
+
+Implement `readDimensions(doc *decad.Document) (dimensions, error)` that reads
+`pitch_radius`, `base_radius`, `root_radius`, `tip_radius` and `fillet_radius`
+with `doc.Param(name)` and keeps each `Value.Base()` in `dimensions`
+(`pitch`, `base`, `root`, `tip`, `fillet`). `build`-side code reads counts with
+`doc.ParamInt("teeth")` and `doc.ParamInt("samples")`.
+
 ## Step 1 — derive points
 
-- Implement `derive` with Derived dimensions and a private `filletRadius` with
-  that section's `Rf` expression.
+- Implement `derive(p Params) dimensions` on a scratch document: `decad.New()`,
+  `defineParameters(doc.Params(), p)`, then `readDimensions(doc)`. It returns a
+  zero `dimensions` when either call fails. Implement `filletRadius(p, d)` as
+  returning `d.fillet`.
 - Implement Tooth flank using `math` functions. Convert counts before division;
   preserve both endpoint samples and the stated mirror/rotation order.
 - Use one internal sampler accepting real-valued effective teeth. Whole-gear
@@ -198,7 +232,10 @@ Implement `BuildToothSection` after its API guards and ordinary-branch check:
 
 ## Step 6 — build the gear
 
-Implement `Build` using `sketch.NewWorld()`. Both branches start the same way:
+Implement `Build` using `sketch.NewWorld()`. After `validate`, create the
+world and call `defineParameters` on both `doc.Params()` and `world.Params()`
+(a sketch only binds to its world's table), then `readDimensions(doc)`, and read
+the tooth count with `doc.ParamInt("teeth")`. Both branches then start the same way:
 
 1. Resolve the placement frame. For the lower plane, use `world.XY()` when
    `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
@@ -209,16 +246,17 @@ Implement `Build` using `sketch.NewWorld()`. Both branches start the same way:
 Ordinary branch (`d.base >= d.root`):
 
 4. Build the root disc. Create a sketch on the lower plane, call
-   `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`.
+   `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`;
+   bind that radius with `s.Bind(radius,world.Params(),"root_radius")`.
    Solve and verify the sketch, require one valid profile, and call
-   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: units.Millimeters(p.Thickness),
-   Dir: decad.Along})`.
+   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
+   Dir: decad.Along})` with `thickness` from `doc.Param("thickness")`.
 5. Build the tooth section on the lower plane with angle 0 and on the upper plane
    with angle 0 (the Step 5 construction, without re-validating `p`). Call
    `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)` and keep
    the returned tooth body.
 6. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
-   Axis: frame.N(), Count: p.Teeth})` for the other `N-1` teeth. Call
+   Axis: frame.N(), Count: teeth})` for the other `N-1` teeth. Call
    `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)` once, with the
    disc first and the tooth before its copies. Do not draw, rotate, or loft any other
    tooth, and do not chain `Union(gear,next)`. Require the returned body to be solid.
@@ -246,9 +284,12 @@ already contains bodies; the fresh-document body count is a test assertion.
 
 ## Step 7 — fillet root edges
 
-Skip when the derived fillet radius is nonpositive. Embedded branch: select
-`decad.Edges(decad.ParallelTo(axis),decad.Concave()).Exactly(2*p.Teeth)` and call
-`decad.Fillet(ctx,body,selection,units.Millimeters(radius))`; the steps below
+Skip when the derived fillet radius is nonpositive. `radius` is the
+`units.Value` from `doc.Param("fillet_radius")`, and `teeth` the count from
+`doc.ParamInt("teeth")`. The private `filletRoots` keeps its float signature for
+the existing tests and wraps its `radius` with `units.Millimeters`. Embedded branch: select
+`decad.Edges(decad.ParallelTo(axis),decad.Concave()).Exactly(2*teeth)` and call
+`decad.Fillet(ctx,body,selection,radius)`; the steps below
 are the ordinary branch only. Ordinary branch:
 
 1. Use `axis := placement.N()` and
@@ -262,7 +303,7 @@ are the ordinary branch only. Ordinary branch:
    to equal the saved root count before constructing the selector.
 4. Start with `decad.Edges(decad.ParallelTo(axis),decad.EndpointAt(corners[0]))`.
    Add each remaining conjunction with `.Or(decad.ParallelTo(axis),decad.EndpointAt(corner))`.
-5. Call `decad.Fillet(ctx,body,selection.Exactly(len(corners)),units.Millimeters(radius))`.
+5. Call `decad.Fillet(ctx,body,selection.Exactly(len(corners)),radius)`.
 
 Use the returned body. Selecting every axial edge also selects flank joints;
 include only edges matched to saved root contacts.
@@ -272,15 +313,19 @@ include only edges matched to saved root contacts.
 In `Build`, call this operation only when `p.BoreDiameter > 0`. Implement
 `CutThroughBore` and the internal build call through one shared routine:
 
-1. Set a 1 mm tool margin. Create a world and call `buildBoreProfile` with it.
+1. Set a 1 mm tool margin (the `tool_margin` entry's value). Create a world and call `buildBoreProfile` with it.
 2. In that helper, create the frame `shifted(placement, -margin)` from
    `p`'s placement, its plane, and its sketch. Use the frame creation APIs
    from Step 6. The tool then spans the placed gear along its normal.
 3. Call `s.CreateCircle(s.Origin(),p.BoreDiameter/2)` and add
-   `sketch.NewDiameter(circle,p.BoreDiameter)`.
+   `sketch.NewDiameter(circle,p.BoreDiameter)`, then bind that diameter with
+   `s.Bind(diameter,world.Params(),"bore_diameter")`. `buildBoreProfile` keeps its
+   signature, so it calls `defineParameters(world.Params(), p)` first.
 4. Solve and verify, require exactly one valid profile, and return sketch/profile.
-5. Call `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: units.Millimeters(
-   p.Thickness+2*margin),Dir: decad.Along})` to produce the tool.
+5. Call `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: length,Dir: decad.Along})`
+   to produce the tool, with `length` from `doc.Param("bore_tool_length")`.
+   `CutThroughBore` calls `defineParameters(doc.Params(), p)` first, so other
+   models can call it with a document that has not defined the table.
 6. Call `decad.Cut(ctx,gear,tool)` and return its body.
 
 ## Step 9 — chamfer outer caps
@@ -289,7 +334,10 @@ In `Build`, call `ChamferOuterCaps` only when `p.CapChamfer > 0`:
 
 1. Select `decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).Or(
    decad.OuterLoopOf(decad.CapEnd(gear)))`.
-2. Call `decad.Chamfer(ctx,gear,selection,units.Millimeters(distance))`.
+2. Call `decad.Chamfer(ctx,gear,selection,setback)`, where `setback` is
+   `doc.Param("cap_chamfer")` when called from `Build`. The exported
+   `ChamferOuterCaps` keeps its float signature and wraps `distance` with
+   `units.Millimeters`; both share one private routine taking the `units.Value`.
 3. Return its body or a contextual error.
 
 Use cap references and outer-loop selectors rather than face indices or every
