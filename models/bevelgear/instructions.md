@@ -111,8 +111,11 @@ next overshoot (0.5, 0.37, 0.81, 0.62, 0.45 module) and the other join order. Th
 2.5, 25/25 teeth, tooth spacing 0.05, toe extension 20 and toe radius 2 pass 0.1 mm
 `VerifyAll` as pairs or members. A 14.5° pressure angle, a 20° spiral angle and the lone
 cutter-30 member build as a solid whose mesh cannot be verified at 0.1 mm. Spiral members
-with unequal tooth counts, a shaft angle other than 90°, another module or another sample
-count are still refused.
+take any module and tooth counts, and shaft angles of 60° and 120°. Modules 0.5 and 2, the
+31/25 and 40/20 driving members, the 25/31 member and both shaft angles pass `VerifyAll`; the
+31/25, 60° and module-2 pairs pass it for both bodies. The 20-tooth member of a 40/20 pair
+builds with the straight member's volume but its mesh cannot be verified at 0.1 mm. Only a
+sample count other than 15 is refused.
 
 The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
 and no optional offsets. Its virtual tooth count is 5.657, the smallest in
