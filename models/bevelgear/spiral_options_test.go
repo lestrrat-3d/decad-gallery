@@ -69,3 +69,73 @@ func TestSpiralPairCutterRadius(t *testing.T) {
 		require.True(t, mesh.VolumeVerified(), name)
 	}
 }
+
+// Left hand, face width and base height change the tooth trace and the blank. Each member and pair builds a verified
+// closed shell, and a narrower face moves the toe end toward the heel.
+func TestSpiralHandWidthAndBaseHeight(t *testing.T) {
+	t.Parallel()
+	spiral := func() bevelgear.Params {
+		p := bevelgear.DefaultParams()
+		p.EnableBore = false
+		return p
+	}
+	var base memberResult
+	t.Run("default", func(t *testing.T) {
+		base = buildSpiralMemberFor(t, spiral())
+	})
+	t.Run("members", func(t *testing.T) {
+		t.Run("left_hand", func(t *testing.T) {
+			t.Parallel()
+			p := spiral()
+			p.SpiralHand = "left"
+			got := buildSpiralMemberFor(t, p)
+			require.InDelta(t, base.xmin, got.xmin, 0.01)
+			require.InDelta(t, base.xmax, got.xmax, 1e-6)
+		})
+		t.Run("base_height_2", func(t *testing.T) {
+			t.Parallel()
+			p := spiral()
+			p.BaseHeight = 2
+			got := buildSpiralMemberFor(t, p)
+			require.InDelta(t, base.xmax-(31.0/8-2), got.xmax, 1e-6,
+				"a base height of 2 instead of the default 31/8 lowers the heel end by 31/8 - 2")
+			require.Less(t, got.volume, base.volume)
+		})
+		t.Run("face_width_6", func(t *testing.T) {
+			t.Parallel()
+			p := spiral()
+			p.FaceWidth = 6
+			got := buildSpiralMemberFor(t, p)
+			require.InDelta(t, base.xmax, got.xmax, 1e-6, "the heel stays put")
+			require.Greater(t, got.xmin, base.xmin, "a narrower face ends the toe closer to the heel")
+			require.Less(t, got.volume, base.volume)
+		})
+	})
+}
+
+func TestSpiralPairHandWidthAndBaseHeight(t *testing.T) {
+	t.Parallel()
+	for name, mod := range map[string]func(p *bevelgear.Params){
+		"left_hand":    func(p *bevelgear.Params) { p.SpiralHand = "left" },
+		"face_width_6": func(p *bevelgear.Params) { p.FaceWidth = 6 },
+		"base_heights": func(p *bevelgear.Params) { p.BaseHeight, p.MateBaseHeight = 2, 2.5 },
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			p := bevelgear.DefaultParams()
+			p.EnableBore = false
+			mod(&p)
+			doc := decad.New()
+			pair, err := bevelgear.BuildPair(t.Context(), doc, p)
+			require.NoError(t, err)
+			require.Len(t, doc.Bodies(), 2)
+			for member, body := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
+				require.True(t, body.IsSolid(), member)
+				mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+				require.NoError(t, err, member)
+				require.True(t, mesh.BoundaryVerified(), member)
+				require.True(t, mesh.VolumeVerified(), member)
+			}
+		})
+	}
+}
