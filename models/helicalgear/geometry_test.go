@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSmallHelicalToothVerifies(t *testing.T) {
+// The root disc is the spur pipeline's own and is verified by the spurgear tests.
+func TestSmallHelicalToothAndRootDiscVerifyIndividually(t *testing.T) {
 	p := DefaultParams()
 	p.Teeth, p.Samples, p.Thickness = 8, 5, 2
 	doc := decad.New()
