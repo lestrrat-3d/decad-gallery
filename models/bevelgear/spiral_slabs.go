@@ -137,11 +137,10 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 
 func validateSourceDefaultSpiral(p Params) error {
 	if p.Teeth != 31 || p.MateTeeth != 31 || p.Module != 1 ||
-		p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 || p.Samples != 15 ||
+		p.ShaftAngle != math.Pi/2 || p.Samples != 15 ||
 		p.PressureAngle != 20*math.Pi/180 || p.ToothSpacing != 0 ||
 		p.ToeExtension != 0 || p.ToeRadius != 0 || p.MateToeRadius != 0 ||
-		p.BaseHeight != 0 || p.MateBaseHeight != 0 ||
-		p.SpiralAngle != 35*math.Pi/180 || p.SpiralHand != "right" {
+		p.SpiralAngle != 35*math.Pi/180 || (p.SpiralHand != "right" && p.SpiralHand != "left") {
 		return fmt.Errorf("spiral slicing currently supports the source-default 31/31 case")
 	}
 	return nil
