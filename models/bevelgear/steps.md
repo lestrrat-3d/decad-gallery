@@ -51,8 +51,8 @@ supported pair.
    and bounds against the unplaced member, and a placed pair's two bodies in one
    document.
 9. For a spiral case, slice the untrimmed point tooth
-   with eight planes parallel to its parent tooth plane. Make each sheet four cone
-   distances long. Anchor and dimension
+   with eight planes parallel to its parent tooth plane. Make each sheet two cone
+   distances long, or four if decad reports the sheet ends inside the section. Anchor and dimension
    each slicing-sheet line on its sketch plane, then solve and verify before
    extruding. Space the planes
    by one sixth of the root-edge toe-to-heel span toward the apex. Retry the

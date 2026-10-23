@@ -77,14 +77,27 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 		pieces := []*decad.Body{tooth}
 		for k := 1; k <= 8; k++ {
 			location := parent.Add(normal.Scale(sign * float64(k) * frame.span / 6))
-			sheet, err := spiralSliceSheet(ctx, doc, location, u, 4*d.coneDist)
-			if err != nil {
-				return nil, spiralSliceFrame{}, fmt.Errorf("slice plane %d: %w", k, err)
-			}
-			// The planes move monotonically toward the apex. Only the apex-side
-			// piece can meet the next plane; all heel-side pieces stay whole.
+			// A sheet two cone distances long covers the section unless the pitch cone is steep;
+			// decad then reports that the finite sheet ends inside the section, and a longer sheet is cut.
 			inner := pieces[0]
-			cut, err := decad.Split(ctx, inner, sheet)
+			var cut []*decad.Body
+			var sheet *decad.Body
+			var err error
+			for _, reach := range []float64{2, 4} {
+				sheet, err = spiralSliceSheet(ctx, doc, location, u, reach*d.coneDist)
+				if err != nil {
+					return nil, spiralSliceFrame{}, fmt.Errorf("slice plane %d: %w", k, err)
+				}
+				// The planes move monotonically toward the apex. Only the apex-side
+				// piece can meet the next plane; all heel-side pieces stay whole.
+				cut, err = decad.Split(ctx, inner, sheet)
+				if !errors.Is(err, decad.ErrUnsupported) {
+					break
+				}
+				if removeErr := decad.Remove(sheet); removeErr != nil {
+					return nil, spiralSliceFrame{}, fmt.Errorf("remove short slice sheet %d: %w", k, removeErr)
+				}
+			}
 			if errors.Is(err, decad.ErrDegenerate) {
 				if removeErr := decad.Remove(sheet); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove missed slice sheet %d: %w", k, removeErr)
