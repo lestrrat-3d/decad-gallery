@@ -95,6 +95,15 @@ each passes 0.1 mm `VerifyAll` with one through-hole. That full pair test
 takes 491.07 seconds under a 12-minute cap. Other tooth counts, spiral
 angles, and toe controls need their own real-body gates.
 
+Straight members at a 90° shaft angle build with any tooth count and every
+option the Fusion add-in offers: base height, toe extension, toe radius, tooth
+spacing, face width and pressure angle. `TestStraightOptionsBuildMembers`
+builds an 8-tooth member with each option and a 20-tooth member, and each
+passes 0.1 mm `VerifyAll` with one closed shell and moves the geometry as the
+option says. `Build` refuses a straight member at any other shaft angle:
+Decad refuses the one-by-one tooth join there. The spiral path still builds
+only the source-default case.
+
 The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
 and no optional offsets. Its virtual tooth count is 5.657, the smallest in
 the source's solid table. The unbored member passes the source-order tooth

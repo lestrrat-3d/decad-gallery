@@ -31,7 +31,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiral(FirstToothJoin|FullCombine|Pair|SerialPublicUnion|VariadicPublicUnion)|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|StraightOptionsBuildMembers|StraightPairMateOptions|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           spur_skip='^TestPlacedEmbeddedGearWithRootFilletsAndBore$'
@@ -67,6 +67,10 @@ jobs:
             timeout: 5m
           - test: TestSourceFourFourStraightMemberAutoBore
             timeout: 5m
+          - test: TestStraightOptionsBuildMembers
+            timeout: 10m
+          - test: TestStraightPairMateOptions
+            timeout: 10m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:

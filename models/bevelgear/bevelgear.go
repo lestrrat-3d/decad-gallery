@@ -216,17 +216,13 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 	}
 	geometryParams := validationParams
 	geometryParams.SpiralAngle = 0
-	if p.BaseHeight > 0 || p.MateBaseHeight > 0 || p.ToeExtension > 0 ||
-		p.ToeRadius > 0 || p.MateToeRadius > 0 || p.ToothSpacing > 0 {
-		return memberBuildPlan{}, fmt.Errorf("Build does not yet support base-height, toe, or spacing options")
-	}
 	spiral := p.SpiralAngle > 0
 	if spiral {
 		if err := validateSourceDefaultSpiral(p); err != nil {
 			return memberBuildPlan{}, err
 		}
-	} else if !supportedStraightBuild(p) {
-		return memberBuildPlan{}, fmt.Errorf("Build currently supports straight 4/4, 8/8, 16/12, and 32/16, or source-default 31/31 spiral")
+	} else if p.ShaftAngle != math.Pi/2 {
+		return memberBuildPlan{}, fmt.Errorf("straight Build supports only a 90° shaft angle, got %v rad", p.ShaftAngle)
 	}
 	boreDiameter := 0.0
 	if p.EnableBore {
@@ -237,21 +233,6 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 		}
 	}
 	return memberBuildPlan{geometry: geometryParams, boreDiameter: boreDiameter, spiral: spiral}, nil
-}
-
-func supportedStraightBuild(p Params) bool {
-	if p.ShaftAngle != math.Pi/2 || p.FaceWidth != 0 || p.PressureAngle != 20*math.Pi/180 {
-		return false
-	}
-	if p.Module == 1 && p.Teeth == 8 && p.MateTeeth == 8 && p.Samples == 5 {
-		return true
-	}
-	if p.Module != 4 || p.Samples != 15 {
-		return false
-	}
-	return (p.Teeth == 4 && p.MateTeeth == 4) ||
-		(p.Teeth == 16 && p.MateTeeth == 12) || (p.Teeth == 12 && p.MateTeeth == 16) ||
-		(p.Teeth == 32 && p.MateTeeth == 16) || (p.Teeth == 16 && p.MateTeeth == 32)
 }
 
 func buildMember(ctx context.Context, doc *decad.Document, p Params,
