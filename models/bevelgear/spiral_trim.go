@@ -11,16 +11,23 @@ import (
 // surfaces that bound the source's straight tooth.
 func trimSpiralTooth(ctx context.Context, doc *decad.Document,
 	p Params, curved *decad.Body) (*decad.Body, error) {
+	return trimSpiralToothBy(ctx, doc, p, curved, 0)
+}
+
+// trimSpiralToothBy cuts the curved tooth with the toe cone shrunk and the heel cone grown by
+// overshoot millimeters along the shaft, so the tooth ends just outside the blank's toe and heel caps.
+func trimSpiralToothBy(ctx context.Context, doc *decad.Document,
+	p Params, curved *decad.Body, overshoot float64) (*decad.Body, error) {
 	if ctx == nil || doc == nil || curved == nil {
 		return nil, fmt.Errorf("spiral trim needs a context, document and curved tooth")
 	}
-	if err := validateSourceDefaultSpiral(p); err != nil {
+	if err := validateSpiralBuild(p); err != nil {
 		return nil, err
 	}
 	geometry := p
 	geometry.SpiralAngle = 0
 	geometry.BoreDiameter = 0
-	toeCone, err := BuildToeCone(ctx, doc, geometry)
+	toeCone, err := buildShiftedEndCone(ctx, doc, geometry, false, -overshoot)
 	if err != nil {
 		return nil, fmt.Errorf("build spiral toe cone: %w", err)
 	}
@@ -28,7 +35,7 @@ func trimSpiralTooth(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, fmt.Errorf("trim spiral tooth at toe: %w", err)
 	}
-	heelCone, err := BuildHeelCone(ctx, doc, geometry)
+	heelCone, err := buildShiftedEndCone(ctx, doc, geometry, true, overshoot)
 	if err != nil {
 		return nil, fmt.Errorf("build spiral heel cone: %w", err)
 	}

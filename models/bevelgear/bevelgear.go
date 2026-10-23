@@ -218,7 +218,7 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 	geometryParams.SpiralAngle = 0
 	spiral := p.SpiralAngle > 0
 	if spiral {
-		if err := validateSourceDefaultSpiral(p); err != nil {
+		if err := validateSpiralBuild(p); err != nil {
 			return memberBuildPlan{}, err
 		}
 	}

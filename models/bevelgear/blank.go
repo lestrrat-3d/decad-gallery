@@ -205,3 +205,63 @@ func BuildBlankPair(ctx context.Context, doc *decad.Document, p Params) (BlankPa
 	}
 	return BlankPair{Driving: driving, Pinion: pinion}, nil
 }
+
+// serialEnds holds the two bodies the serial spiral route needs besides the teeth.
+type serialEnds struct{ blank, region *decad.Body }
+
+// buildSerialEnds revolves the extended blank and the trim region of the serial spiral route. The
+// extended blank runs past both end planes and both cap cones, and its corners on the root cone continue
+// that cone, so no face of it lies on a face of the region. The region is bounded only by the two end
+// planes, the toe and heel cap cones and an outer radius no operand reaches; intersecting a member with
+// it leaves the planes and cones as the member's end faces. unit is the length of one module.
+func buildSerialEnds(ctx context.Context, doc *decad.Document, p Params, unit float64) (serialEnds, error) {
+	d, err := derive(p)
+	if err != nil {
+		return serialEnds{}, err
+	}
+	section, err := blankSection(p, d)
+	if err != nil {
+		return serialEnds{}, err
+	}
+	toeBack, heelBack, heelEdge, ded, toeRoot, toeEdge :=
+		section[0], section[1], section[2], section[3], section[4], section[5]
+	slopeToe := (toeEdge.radius - toeRoot.radius) / (toeEdge.station - toeRoot.station)
+	slopeHeel := (heelEdge.radius - ded.radius) / (heelEdge.station - ded.station)
+	interceptToe := toeEdge.radius - slopeToe*toeEdge.station
+	interceptHeel := heelEdge.radius - slopeHeel*heelEdge.station
+	rootLength := math.Hypot(ded.station-toeRoot.station, ded.radius-toeRoot.radius)
+	rootUnit := [2]float64{(ded.station - toeRoot.station) / rootLength, (ded.radius - toeRoot.radius) / rootLength}
+	past := unit
+	heelCorner := axialPoint{station: heelBack.station + past}
+	heelCorner.radius = slopeHeel*heelCorner.station + interceptHeel + past
+	toeCorner := axialPoint{station: toeBack.station - past}
+	toeCorner.radius = slopeToe*toeCorner.station + interceptToe - past
+	if toeCorner.radius <= 0 {
+		toeCorner.radius = 0.5 * (slopeToe*toeCorner.station + interceptToe)
+	}
+	bigSection := []axialPoint{
+		{station: toeBack.station - past, radius: 0},
+		{station: heelBack.station + past, radius: 0},
+		heelCorner,
+		{station: ded.station + 1.5*past*rootUnit[0], radius: ded.radius + 1.5*past*rootUnit[1]},
+		{station: toeRoot.station - 1.5*past*rootUnit[0], radius: toeRoot.radius - 1.5*past*rootUnit[1]},
+		toeCorner,
+	}
+	blank, err := revolveAxialSection(ctx, doc, bigSection, "extended blank")
+	if err != nil {
+		return serialEnds{}, err
+	}
+	reach := 2.5 * (ded.radius + 3*unit)
+	region, err := revolveAxialSection(ctx, doc, []axialPoint{
+		{station: toeBack.station, radius: 0},
+		{station: heelBack.station, radius: 0},
+		heelEdge,
+		{station: (reach - interceptHeel) / slopeHeel, radius: reach},
+		{station: (reach - interceptToe) / slopeToe, radius: reach},
+		toeEdge,
+	}, "cap region")
+	if err != nil {
+		return serialEnds{}, err
+	}
+	return serialEnds{blank: blank, region: region}, nil
+}
