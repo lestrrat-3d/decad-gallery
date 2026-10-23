@@ -101,7 +101,9 @@ width, pressure angle and shaft angle. `TestStraightOptionsBuildMembers` builds
 an 8-tooth member with each option and a 20-tooth member, and
 `TestStraightShaftAnglesBuildMembers` builds members at 60° and 120°. Each
 passes 0.1 mm `VerifyAll` with one closed shell and moves the geometry as the
-option says. The spiral path still builds only the source-default case.
+option says. The spiral path builds the source-default case and, with a cutter
+radius of 30, the same 31/31 pair (`TestSpiralCutterRadiusBuildsMember`,
+`TestSpiralPairCutterRadius`); every other spiral option is still refused.
 
 The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
 and no optional offsets. Its virtual tooth count is 5.657, the smallest in
@@ -229,8 +231,7 @@ the source's cutter-circle near intersections. The developed azimuth is
 divided by `sin γ` using the **pitch** cone angle, and the pinion trace is
 mirrored. The private spiral-tooth construction rejects any non-default
 module, tooth counts, shaft angle, face width, pressure angle, sample count,
-spacing, toe controls, base heights, cutter radius, spiral angle, or driving
-hand. The bore diameter does not change this intermediate tooth.
+spacing, toe controls, base heights, spiral angle, or driving hand. The bore diameter does not change this intermediate tooth.
 
 For this source-default case, step G rotates each slab about its shaft by the
 trace angle keyed to the post-slice heel-face centroid. Step H scales seven
