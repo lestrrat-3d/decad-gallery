@@ -3,7 +3,7 @@
 These steps implement [instructions.md](instructions.md). The canonical
 operation order comes from `fusion360-gear-generator/spec/bevelgear/instructions.md`,
 under "Create the Gear Bodies". Lengths are millimeters. `Build(ctx, doc,
-Params)` returns one straight 8/8 member or one source-default 31/31 spiral
+Params)` returns one straight 8/8 member or one spiral
 member, each with an optional bore. `BuildPair` places both members of either
 supported pair.
 
@@ -50,8 +50,9 @@ supported pair.
    `r3.FromFrame(Placement)` on each returned body. Check a placed member's volume
    and bounds against the unplaced member, and a placed pair's two bodies in one
    document.
-9. For the source-default 31/31 spiral case, slice the untrimmed point tooth
-   with eight planes parallel to its parent tooth plane. Anchor and dimension
+9. For a spiral case, slice the untrimmed point tooth
+   with eight planes parallel to its parent tooth plane. Make each sheet two cone
+   distances long, or four if decad reports the sheet ends inside the section. Anchor and dimension
    each slicing-sheet line on its sketch plane, then solve and verify before
    extruding. Space the planes
    by one sixth of the root-edge toe-to-heel span toward the apex. Retry the

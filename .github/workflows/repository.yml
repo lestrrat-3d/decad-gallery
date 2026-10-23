@@ -24,7 +24,7 @@ jobs:
           go-version-file: go.mod
       - name: Check model geometry
         run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiralPair|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|StraightOptionsBuildMembers|StraightPairMateOptions|StraightShaftAnglesBuildMembers|StraightPairShaftAngle|SpiralCutterRadiusBuildsMember|SpiralPairCutterRadius|SpiralHandWidthAndBaseHeight|SpiralPairHandWidthAndBaseHeight|SpiralSerialRouteBuildsMembers|SpiralSerialRouteBuildsUnverifiedMembers|SpiralSerialPair|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
+          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiralPair|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|StraightOptionsBuildMembers|StraightPairMateOptions|StraightShaftAnglesBuildMembers|StraightPairShaftAngle|SpiralCutterRadiusBuildsMember|SpiralPairCutterRadius|SpiralHandWidthAndBaseHeight|SpiralPairHandWidthAndBaseHeight|SpiralSerialRouteBuildsMembers|SpiralSerialRouteBuildsUnverifiedMembers|SpiralSerialPair|SpiralInputsMembers|SpiralInputsUnverifiedMember|SpiralInputsPair|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
           helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
           herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
           spur_skip='^TestPlacedEmbeddedGearWithRootFilletsAndBore$'
@@ -84,6 +84,28 @@ jobs:
             timeout: 30m
           - test: TestSpiralSerialPair
             timeout: 20m
+          - test: TestSpiralInputsMembers/module_2
+            timeout: 20m
+          - test: TestSpiralInputsMembers/module_0_5
+            timeout: 20m
+          - test: TestSpiralInputsMembers/teeth_31_25
+            timeout: 20m
+          - test: TestSpiralInputsMembers/teeth_25_31
+            timeout: 20m
+          - test: TestSpiralInputsMembers/teeth_40_20
+            timeout: 20m
+          - test: TestSpiralInputsMembers/shaft_60
+            timeout: 20m
+          - test: TestSpiralInputsMembers/shaft_120
+            timeout: 20m
+          - test: TestSpiralInputsUnverifiedMember
+            timeout: 20m
+          - test: TestSpiralInputsPair/teeth_31_25
+            timeout: 30m
+          - test: TestSpiralInputsPair/shaft_60
+            timeout: 30m
+          - test: TestSpiralInputsPair/module_2
+            timeout: 30m
     name: bevel-assembly (${{ matrix.test }})
     runs-on: ubuntu-latest
     steps:

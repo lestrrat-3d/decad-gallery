@@ -77,14 +77,27 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 		pieces := []*decad.Body{tooth}
 		for k := 1; k <= 8; k++ {
 			location := parent.Add(normal.Scale(sign * float64(k) * frame.span / 6))
-			sheet, err := spiralSliceSheet(ctx, doc, location, u, 2*d.coneDist)
-			if err != nil {
-				return nil, spiralSliceFrame{}, fmt.Errorf("slice plane %d: %w", k, err)
-			}
-			// The planes move monotonically toward the apex. Only the apex-side
-			// piece can meet the next plane; all heel-side pieces stay whole.
+			// A sheet two cone distances long covers the section unless the pitch cone is steep;
+			// decad then reports that the finite sheet ends inside the section, and a longer sheet is cut.
 			inner := pieces[0]
-			cut, err := decad.Split(ctx, inner, sheet)
+			var cut []*decad.Body
+			var sheet *decad.Body
+			var err error
+			for _, reach := range []float64{2, 4} {
+				sheet, err = spiralSliceSheet(ctx, doc, location, u, reach*d.coneDist)
+				if err != nil {
+					return nil, spiralSliceFrame{}, fmt.Errorf("slice plane %d: %w", k, err)
+				}
+				// The planes move monotonically toward the apex. Only the apex-side
+				// piece can meet the next plane; all heel-side pieces stay whole.
+				cut, err = decad.Split(ctx, inner, sheet)
+				if !errors.Is(err, decad.ErrUnsupported) {
+					break
+				}
+				if removeErr := decad.Remove(sheet); removeErr != nil {
+					return nil, spiralSliceFrame{}, fmt.Errorf("remove short slice sheet %d: %w", k, removeErr)
+				}
+			}
 			if errors.Is(err, decad.ErrDegenerate) {
 				if removeErr := decad.Remove(sheet); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove missed slice sheet %d: %w", k, removeErr)
@@ -135,20 +148,18 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 	return nil, spiralSliceFrame{}, fmt.Errorf("spiral slicing exhausted both offset signs")
 }
 
-// validateSpiralBuild accepts the spiral members the serial join builds: equal tooth counts at module 1,
-// a 90° shaft and 15 samples, with any pressure angle, spiral angle, hand, cutter radius, face width,
+// validateSpiralBuild accepts the spiral members the serial join builds: any tooth counts, module and
+// shaft angle with 15 samples, any pressure angle, spiral angle, hand, cutter radius, face width,
 // base height, tooth spacing, toe extension and toe radius. Decad takes the serial join only with a
 // document made with decad.WithChainTolerance.
 func validateSpiralBuild(p Params) error {
-	if p.Teeth != p.MateTeeth || p.Module != 1 || p.ShaftAngle != math.Pi/2 || p.Samples != 15 ||
-		(p.SpiralHand != "right" && p.SpiralHand != "left") {
+	if p.Samples != 15 || (p.SpiralHand != "right" && p.SpiralHand != "left") {
 		return errSpiralUnsupported
 	}
 	return nil
 }
 
-var errSpiralUnsupported = fmt.Errorf("spiral slicing currently supports the source-default 31/31 case " +
-	"and equal tooth counts at module 1 with a 90° shaft and 15 samples")
+var errSpiralUnsupported = fmt.Errorf("spiral slicing supports 15 flank samples and a right or left hand")
 
 func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3.Vec,
 	extent float64) (*decad.Body, error) {
