@@ -105,7 +105,13 @@ option says. The spiral path builds the source-default 31/31 pair and, for it, a
 radius of 30, left hand, a face width of 6 and base heights of 2 and 2.5
 (`TestSpiralCutterRadiusBuildsMember`, `TestSpiralPairCutterRadius`,
 `TestSpiralHandWidthAndBaseHeight`, `TestSpiralPairHandWidthAndBaseHeight`).
-Every other spiral option is still refused.
+Other spiral members with equal tooth counts at Module 1 build through the serial join:
+the 31/31 member itself, 25/25 teeth, tooth spacing 0.05, toe extension 20 and toe radius 2
+pass 0.1 mm `VerifyAll`, and a 14.5° pressure angle and a 20° spiral angle build
+as a solid whose mesh cannot be verified (`TestSpiralSerialRouteBuildsMembers`,
+`TestSpiralSerialRouteBuildsUnverifiedMembers`, `TestSpiralSerialPair`). The serial join needs a
+document made with `decad.WithChainTolerance`. Spiral members with unequal tooth counts, a shaft angle
+other than 90°, another module or another sample count are still refused.
 
 The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
 and no optional offsets. Its virtual tooth count is 5.657, the smallest in

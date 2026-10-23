@@ -58,3 +58,22 @@ func buildEndCone(ctx context.Context, doc *decad.Document, d dimensions,
 	}
 	return revolveAxialSection(ctx, doc, section, label)
 }
+
+// buildShiftedEndCone revolves the toe or heel cutting cone moved by shift along the shaft. A positive
+// shift moves the apex away from the toe and heel, so the heel cone grows and the toe cone grows too.
+func buildShiftedEndCone(ctx context.Context, doc *decad.Document, p Params, heel bool,
+	shift float64) (*decad.Body, error) {
+	d, err := derive(p)
+	if err != nil {
+		return nil, err
+	}
+	blank, err := blankSection(p, d)
+	if err != nil {
+		return nil, err
+	}
+	if heel {
+		return buildEndCone(ctx, doc, d, d.coneDist/math.Cos(d.coneAngle)+shift, "heel cone")
+	}
+	toeRoot := blank[4]
+	return buildEndCone(ctx, doc, d, toeRoot.station+toeRoot.radius*math.Tan(d.coneAngle)+shift, "toe cone")
+}

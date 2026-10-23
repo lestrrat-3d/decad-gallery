@@ -28,8 +28,21 @@ The 32/16 straight-tooth pair:
 | --- | --- | --- |
 | ![Both straight-tooth gear members from above](images/straight-top.png) | ![Both bored straight-tooth gear members from a high oblique angle](images/straight-high.png) | ![Both bored straight-tooth gear members from a low side angle](images/straight-low.png) |
 
-`Build(ctx, doc, Params)` constructs the source-default 31/31 spiral member
-or a tested straight 4/4, 8/8, 16/12, or 32/16 member. `DefaultParams()` selects Module 1,
+`Build(ctx, doc, Params)` constructs a straight member with any tooth count and option,
+the source-default 31/31 spiral member with a cutter radius, hand, face width and base
+heights, or a spiral member with equal tooth counts at Module 1 with any tooth spacing,
+toe extension, toe radius, pressure angle and spiral angle. The last group is built by
+a serial join of overshooting teeth that decad trims once with a region bounded by the end
+planes and cap cones, so its document must be made with a chain tolerance:
+
+```go
+doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
+```
+
+Without it decad refuses the serial joins. A 14.5° pressure angle and a 20° spiral angle build as
+a solid whose mesh `VerifyAll` cannot verify at 0.1 mm, because the flanks cross the end cones
+at a very shallow angle. The build tries a short list of tooth overshoots and two join orders,
+so a member can take several builds of about a minute each. `DefaultParams()` selects Module 1,
 a 90° shaft angle, 35° spiral teeth, and an auto-calculated bore for each
 member. `BuildPair` builds and places all four supported pairs.
 Set `Params.Placement` (an `r3.Frame`) to anchor the pair: the frame origin is the
