@@ -3,9 +3,9 @@
 The hero image renders two pairs side by side: the source-default 31/31 spiral pair on
 the left and a 32/16 straight-tooth pair at Module 4 on the right. The renderer enlarges
 the Module 1 spiral pair fourfold so both pairs have the same pitch diameter. Each spiral
-member has a revolved blank, one curved tooth trimmed at the toe and heel, 31 patterned
-teeth joined to the blank in one variadic `decad.Union`, and a 7.75 mm through-bore
-cut after the join. The pinion and driving member share a pitch apex and
+member has a revolved blank extended past its caps, one curved tooth trimmed past the toe and
+heel, 31 patterned teeth joined to the blank, a single trim to the caps, and a 7.75 mm
+through-bore cut after the join. The pinion and driving member share a pitch apex and
 follow the source's meshing rotations. The construction rules come from
 `fusion360-gear-generator/spec/bevelgear/instructions.md`.
 
@@ -29,11 +29,11 @@ The 32/16 straight-tooth pair:
 | ![Both straight-tooth gear members from above](images/straight-top.png) | ![Both bored straight-tooth gear members from a high oblique angle](images/straight-high.png) | ![Both bored straight-tooth gear members from a low side angle](images/straight-low.png) |
 
 `Build(ctx, doc, Params)` constructs a straight member with any tooth count and option,
-the source-default 31/31 spiral member with a cutter radius, hand, face width and base
-heights, or a spiral member with equal tooth counts at Module 1 with any tooth spacing,
-toe extension, toe radius, pressure angle and spiral angle. The last group is built by
-a serial join of overshooting teeth that decad trims once with a region bounded by the end
-planes and cap cones, so its document must be made with a chain tolerance:
+or a spiral member with equal tooth counts at Module 1 and any cutter radius, hand, face
+width, base height, tooth spacing, toe extension, toe radius, pressure angle and spiral
+angle. A spiral member is built by a serial join of overshooting teeth that decad trims
+once with a region bounded by the end planes and cap cones, so its document must be made
+with a chain tolerance:
 
 ```go
 doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
@@ -58,7 +58,6 @@ Run the real-body checks separately:
 ```sh
 go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
 go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 10m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralFullCombine$' -timeout 10m
 go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
 go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
 go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 18m

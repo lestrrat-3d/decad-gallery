@@ -8,35 +8,10 @@ import (
 	"github.com/lestrrat-3d/decad"
 )
 
-// buildSpiralMember builds the blank and the curved tooth, then joins them. The 31/31 members the
-// source-order Combine-Join builds keep that route; every other member takes the serial route below.
-// The bore is cut by buildMember afterward.
+// buildSpiralMember builds a spiral member through the serial route. The bore is cut by buildMember afterward.
 func buildSpiralMember(ctx context.Context, doc *decad.Document,
 	p, geometry Params, pinion bool) (*decad.Body, error) {
-	if validateSourceDefaultSpiral(p) != nil {
-		return buildSpiralMemberSerial(ctx, doc, p, geometry, pinion)
-	}
-	blank, err := BuildBlank(ctx, doc, geometry)
-	if err != nil {
-		return nil, fmt.Errorf("build spiral blank: %w", err)
-	}
-	curved, err := buildSpiralTooth(ctx, doc, p, pinion)
-	if err != nil {
-		return nil, err
-	}
-	trimmed, err := trimSpiralTooth(ctx, doc, p, curved)
-	if err != nil {
-		return nil, fmt.Errorf("trim spiral tooth: %w", err)
-	}
-	pattern, err := patternSpiralTooth(ctx, trimmed, p.Teeth)
-	if err != nil {
-		return nil, err
-	}
-	joined, err := decad.Union(ctx, blank, pattern...)
-	if err != nil {
-		return nil, fmt.Errorf("join spiral tooth pattern: %w", err)
-	}
-	return joined, nil
+	return buildSpiralMemberSerial(ctx, doc, p, geometry, pinion)
 }
 
 // spiralOvershoots lists, in modules, how far the serial route's teeth end past the blank's toe and heel
