@@ -2,7 +2,6 @@ package bevelgear
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/sketch/param"
@@ -32,13 +31,6 @@ func defineParameters(t *param.Table, p Params, faceWidthAuto bool) error {
 	if err := t.SetNumber("mate_teeth", float64(p.MateTeeth)); err != nil {
 		return fmt.Errorf("parameter %s: %w", "mate_teeth", err)
 	}
-	// pitch_span is hypot(2 * pitch_radius, 2 * mate_pitch_radius). The expression
-	// builtin hypot sums squares and differs from math.Hypot in the last bit, which
-	// the spiral tooth join does not tolerate, so the span is evaluated here.
-	span := math.Hypot(p.Module*float64(p.Teeth), p.Module*float64(p.MateTeeth))
-	if err := t.SetValue("pitch_span", units.Millimeters(span)); err != nil {
-		return fmt.Errorf("parameter pitch_span: %w", err)
-	}
 	faceWidth := "default_face_width"
 	if !faceWidthAuto {
 		faceWidth = "face_width_input"
@@ -46,6 +38,7 @@ func defineParameters(t *param.Table, p Params, faceWidthAuto bool) error {
 	for _, e := range []struct{ name, expr, unit string }{
 		{"pitch_radius", "module * teeth / 2", "mm"},
 		{"mate_pitch_radius", "module * mate_teeth / 2", "mm"},
+		{"pitch_span", "hypot(2 * pitch_radius, 2 * mate_pitch_radius)", "mm"},
 		{"cone_angle", "atan2(sin(shaft_angle) * pitch_radius, mate_pitch_radius + cos(shaft_angle) * pitch_radius)", "rad"},
 		{"mate_cone_angle", "shaft_angle - cone_angle", "rad"},
 		{"cone_distance", "pitch_radius / sin(cone_angle)", "mm"},
