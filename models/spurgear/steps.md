@@ -13,7 +13,7 @@ Generate package `spurgear` at
 | File | Responsibility |
 | --- | --- |
 | `involute.go` | Dimension derivation, planar rotation, involute sampling |
-| `spurgear.go` | Parameters, profiles, root disc, one tooth loft, pattern and join for both branches, root fillet, bore, cap chamfer |
+| `spurgear.go` | Parameters, profiles, root disc, one tooth extrusion, pattern and join for both branches, root fillet, bore, cap chamfer |
 | `tooth_section.go` | Reusable ordinary tooth section |
 | `spurgear_test.go` | Public body and finishing acceptance tests |
 | `spurgear_profile_test.go` | Internal profile, root contact, and constraint tests |
@@ -228,7 +228,7 @@ Implement `BuildToothSection` after its API guards and ordinary-branch check:
 - Close with `s.CreateArc(center,rightRoot,leftRoot)`. The bounded region uses
   this short arc in reverse; do not use the complementary long root arc.
 - Solve and verify. Require one valid profile and exactly six outer curves.
-- Return sketch/profile for the caller's loft; apply no solid features.
+- Return sketch/profile for the caller's extrusion; apply no solid features.
 
 ## Step 6 — build the gear
 
@@ -240,37 +240,36 @@ the tooth count with `doc.ParamInt("teeth")`. Both branches then start the same 
 1. Resolve the placement frame. For the lower plane, use `world.XY()` when
    `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
    placement frame.
-2. Create the upper frame with `shifted(placement, p.Thickness)`.
-3. Call `world.CreatePlaneFromFrame(frame)` for the upper plane.
 
 Ordinary branch (`d.base >= d.root`):
 
-4. Build the root disc. Create a sketch on the lower plane, call
+2. Build the root disc. Create a sketch on the lower plane, call
    `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`;
    bind that radius with `s.Bind(radius,world.Params(),"root_radius")`.
    Solve and verify the sketch, require one valid profile, and call
    `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
    Dir: decad.Along})` with `thickness` from `doc.Param("thickness")`.
-5. Build the tooth section on the lower plane with angle 0 and on the upper plane
-   with angle 0 (the Step 5 construction, without re-validating `p`). Call
-   `decad.Loft(ctx,doc,lowerSketch,lowerProfile,upperSketch,upperProfile)` and keep
-   the returned tooth body.
-6. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
+3. Build the tooth section once, on the lower plane with angle 0 (the Step 5
+   construction, without re-validating `p`). Call
+   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
+   Dir: decad.Along})` on it, as for the root disc, and keep the returned tooth
+   body. Draw no section on the upper plane.
+4. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
    Axis: frame.N(), Count: teeth})` for the other `N-1` teeth. Call
    `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)` once, with the
-   disc first and the tooth before its copies. Do not draw, rotate, or loft any other
+   disc first and the tooth before its copies. Do not draw, rotate, or extrude any other
    tooth, and do not chain `Union(gear,next)`. Require the returned body to be solid.
-7. Save the root contacts for Step 7. For each tooth `k` in ascending order, rotate
+5. Save the root contacts for Step 7. For each tooth `k` in ascending order, rotate
    by `toothAngle(p,k)` the root coordinates of the unrotated right flank's first sample and
    of the left flank's first sample (scaled by `d.root/d.base` as in Step 3), and
    append right then left. The list has `2N` entries.
 
 Embedded branch (`d.base < d.root`):
 
-4. Build the root disc as in the ordinary branch.
-5. Call `buildEmbeddedTooth` on both planes, and loft the two sections into one
-   tooth body.
-6. Pattern and join exactly as in the ordinary branch (`decad.PatternCopies`
+2. Build the root disc as in the ordinary branch.
+3. Call `buildEmbeddedTooth` once, on the lower plane, and extrude its profile
+   through `thickness` as in the ordinary branch into one tooth body.
+4. Pattern and join exactly as in the ordinary branch (`decad.PatternCopies`
    once, then one `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)`).
    Return no saved root list.
 

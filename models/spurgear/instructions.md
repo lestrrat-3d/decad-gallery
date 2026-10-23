@@ -123,11 +123,11 @@ repeated `N` times about the gear axis, joined into one solid.
 
 - Root disc: a circle of radius `Rr` about the gear axis, extruded from the
   lower cap plane to the upper cap plane.
-- Tooth zero is drawn on each cap plane at angle 0 as the six-curve tooth
-  section described below, and the two identical sections are lofted into one
-  straight tooth solid. Repeat that one tooth solid `N` times with a circular
-  pattern about the gear axis through the placement origin; do not draw a
-  separate sketch for any other tooth.
+- Tooth zero is drawn once, on the lower cap plane at angle 0, as the six-curve
+  tooth section described below, and extruded from the lower cap plane to the
+  upper cap plane into one straight tooth solid. Repeat that one tooth solid
+  `N` times with a circular pattern about the gear axis through the placement
+  origin; do not draw a separate sketch for any other tooth.
 - Scale each flank's base point by `Rr/Rb` to locate its root contact. Evaluate
   each coordinate as `x*Rr/Rb`, multiplying before dividing, not as `x*(Rr/Rb)`.
   The helical join rejects the one-bit coordinate difference.
@@ -181,8 +181,7 @@ root circle instead of ending on it.
 
 Ordinary gear (`Rb >= Rr`):
 
-1. Extrude the root disc, and loft tooth zero between its two identical
-   sections.
+1. Extrude the root disc, and extrude tooth zero from its one section.
 2. Pattern tooth zero `N` times about the gear axis, then join the disc and all
    `N` teeth in one union into one straight solid.
 3. If `Rf > 0`, fillet all `2N` axial root edges together with radius `Rf`.
@@ -192,8 +191,8 @@ Ordinary gear (`Rb >= Rr`):
 
 Embedded gear (`Rb < Rr`):
 
-1. Extrude the root disc, and loft the embedded tooth between its two
-   identical sections.
+1. Extrude the root disc, and extrude the embedded tooth from its one
+   section.
 2. Pattern the tooth `N` times about the gear axis, then join the disc and all
    `N` teeth in one union into one straight solid.
 3. If `Rf > 0`, fillet the `2N` concave axial edges together with radius `Rf`.
