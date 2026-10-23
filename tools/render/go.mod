@@ -5,7 +5,7 @@ go 1.26.8
 replace github.com/lestrrat-3d/decad-gallery => ../..
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261023122944-72ce40af741c
+	github.com/lestrrat-3d/decad v0.0.0-20261023124852-134691dcbca3
 	github.com/lestrrat-3d/decad-gallery v0.0.0
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/solidlens v0.0.0-20261022225707-3480259b5cbc
