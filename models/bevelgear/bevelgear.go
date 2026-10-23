@@ -221,8 +221,6 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 		if err := validateSourceDefaultSpiral(p); err != nil {
 			return memberBuildPlan{}, err
 		}
-	} else if p.ShaftAngle != math.Pi/2 {
-		return memberBuildPlan{}, fmt.Errorf("straight Build supports only a 90° shaft angle, got %v rad", p.ShaftAngle)
 	}
 	boreDiameter := 0.0
 	if p.EnableBore {
