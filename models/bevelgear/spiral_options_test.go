@@ -11,11 +11,28 @@ import (
 
 func buildSpiralMemberFor(t *testing.T, p bevelgear.Params) memberResult {
 	t.Helper()
-	doc := decad.New()
+	return buildSpiralMemberChecked(t, p, true)
+}
+
+// buildSpiralMemberChecked builds a spiral member in a chain-tolerance document. A member whose flanks cross
+// the end cones at a shallow angle builds with a volume bound under 15 percent but its mesh cannot be
+// verified at 0.1 mm, so verify is false for it.
+func buildSpiralMemberChecked(t *testing.T, p bevelgear.Params, verify bool) memberResult {
+	t.Helper()
+	doc := chainDocument()
 	gear, err := bevelgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 1)
 	require.True(t, gear.IsSolid())
+	if !verify {
+		volume, err := gear.Volume()
+		require.NoError(t, err)
+		require.Less(t, volume.Bound.Base(), 0.15*volume.Value.Base())
+		box, err := gear.Bounds()
+		require.NoError(t, err)
+		return memberResult{volume: volume.Value.Base(), bound: volume.Bound.Base(),
+			xmin: box.Min.X, xmax: box.Max.X, ymax: box.Max.Y}
+	}
 	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
 	require.True(t, mesh.BoundaryVerified())
@@ -29,7 +46,8 @@ func buildSpiralMemberFor(t *testing.T, p bevelgear.Params) memberResult {
 		xmin: box.Min.X, xmax: box.Max.X, ymax: box.Max.Y}
 }
 
-// A spiral cutter radius other than the mean cone distance changes the tooth curve, not the blank.
+// A spiral cutter radius other than the mean cone distance changes the tooth curve, not the blank. The lone
+// member builds but its mesh cannot be verified at 0.1 mm, while the pair below verifies.
 func TestSpiralCutterRadiusBuildsMember(t *testing.T) {
 	t.Parallel()
 	spiral := func() bevelgear.Params {
@@ -44,7 +62,7 @@ func TestSpiralCutterRadiusBuildsMember(t *testing.T) {
 	t.Run("cutter_30", func(t *testing.T) {
 		p := spiral()
 		p.CutterRadius = 30
-		got := buildSpiralMemberFor(t, p)
+		got := buildSpiralMemberChecked(t, p, false)
 		require.InDelta(t, base.xmax, got.xmax, 1e-6)
 		require.InDelta(t, base.xmin, got.xmin, 0.01, "the toe edge shifts by the trace, not by a cone")
 		require.NotEqual(t, base.volume, got.volume, "a different cutter circle moves the flanks")
@@ -57,7 +75,7 @@ func TestSpiralPairCutterRadius(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.EnableBore = false
 	p.CutterRadius = 30
-	doc := decad.New()
+	doc := chainDocument()
 	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 2)
@@ -125,7 +143,7 @@ func TestSpiralPairHandWidthAndBaseHeight(t *testing.T) {
 			p := bevelgear.DefaultParams()
 			p.EnableBore = false
 			mod(&p)
-			doc := decad.New()
+			doc := chainDocument()
 			pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 			require.NoError(t, err)
 			require.Len(t, doc.Bodies(), 2)

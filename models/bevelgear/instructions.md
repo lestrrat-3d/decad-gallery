@@ -14,9 +14,8 @@ document's `Bindings()` lists the ones the build reads.
 
 `fusion360-gear-generator/spec/bevelgear/instructions.md` defines the final
 geometry, operation order, and defaults. Images in that repository are visual
-checks. The gallery `Build` constructs the source-default 31/31 spiral member
-through one Combine-Join and an optional post-join bore. It also constructs
-verified straight 4/4, 8/8, and 16/12 members. `BuildPair` builds the pinion first and
+checks. The gallery `Build` constructs a spiral member by the serial join below, with an
+optional post-join bore. It also constructs straight members of any tooth count. `BuildPair` builds the pinion first and
 then rotates the driving member by half a tooth pitch.
 A pinion with an odd tooth count first turns by one tooth width about its own shaft.
 The source enables the bore by default and resolves a zero diameter automatically.
@@ -101,17 +100,19 @@ width, pressure angle and shaft angle. `TestStraightOptionsBuildMembers` builds
 an 8-tooth member with each option and a 20-tooth member, and
 `TestStraightShaftAnglesBuildMembers` builds members at 60° and 120°. Each
 passes 0.1 mm `VerifyAll` with one closed shell and moves the geometry as the
-option says. The spiral path builds the source-default 31/31 pair and, for it, a cutter
-radius of 30, left hand, a face width of 6 and base heights of 2 and 2.5
-(`TestSpiralCutterRadiusBuildsMember`, `TestSpiralPairCutterRadius`,
-`TestSpiralHandWidthAndBaseHeight`, `TestSpiralPairHandWidthAndBaseHeight`).
-Other spiral members with equal tooth counts at Module 1 build through the serial join:
-the 31/31 member itself, 25/25 teeth, tooth spacing 0.05, toe extension 20 and toe radius 2
-pass 0.1 mm `VerifyAll`, and a 14.5° pressure angle and a 20° spiral angle build
-as a solid whose mesh cannot be verified (`TestSpiralSerialRouteBuildsMembers`,
-`TestSpiralSerialRouteBuildsUnverifiedMembers`, `TestSpiralSerialPair`). The serial join needs a
-document made with `decad.WithChainTolerance`. Spiral members with unequal tooth counts, a shaft angle
-other than 90°, another module or another sample count are still refused.
+option says. Every spiral member is built by the serial join: an extended blank (past both end
+planes and cap cones, with its root-cone corners continued), teeth trimmed past the caps
+by 0.5 module, the teeth joined one at a time or first with each other, and one
+`Intersect` with the region bounded by the end planes, the cap cones and an outer radius.
+Its contacts are all transversal, and decad's chained held-mesh bound needs a document
+made with `decad.WithChainTolerance`. A boolean that decad refuses is built again with the
+next overshoot (0.5, 0.37, 0.81, 0.62, 0.45 module) and the other join order. The
+31/31 member, a cutter radius of 30, left hand, a face width of 6, base heights of 2 and
+2.5, 25/25 teeth, tooth spacing 0.05, toe extension 20 and toe radius 2 pass 0.1 mm
+`VerifyAll` as pairs or members. A 14.5° pressure angle, a 20° spiral angle and the lone
+cutter-30 member build as a solid whose mesh cannot be verified at 0.1 mm. Spiral members
+with unequal tooth counts, a shaft angle other than 90°, another module or another sample
+count are still refused.
 
 The straight 4/4 pair uses Module 4, a 90° shaft angle, 15 flank samples,
 and no optional offsets. Its virtual tooth count is 5.657, the smallest in
@@ -172,8 +173,8 @@ The current straight-tooth build revolves the six-sided reference blank,
 lofts one fitted back-cone tooth from the common apex, cuts that tooth at
 the toe and heel cones, places eight rotated copies around the shaft, and
 joins each copy to the blank with sequential binary `Union` calls. This is
-the verified interim 8/8 construction. The source-default spiral member uses
-one Combine-Join with the blank as target and all 31 patterned teeth as tools.
+the verified interim 8/8 construction. A spiral member uses the serial join of
+the next section.
 Both hands pass `VerifyAll` at 0.1 mm before and after their auto-calculated
 bores. `BuildPair` rotates the pinion about world Z by the shaft angle, then
 rotates the driving member by `π / Teeth` about its shaft.

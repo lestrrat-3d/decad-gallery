@@ -186,7 +186,7 @@ func TestJoinedEightToothPairThroughBore(t *testing.T) {
 }
 
 func TestSourceDefaultSpiralPair(t *testing.T) {
-	doc := decad.New()
+	doc := chainDocument()
 	pair, err := bevelgear.BuildPair(t.Context(), doc, bevelgear.DefaultParams())
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 2)
