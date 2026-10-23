@@ -39,6 +39,9 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err != nil {
 		return GearPair{}, fmt.Errorf("validate pinion: %w", err)
 	}
+	if err := recordParameters(doc, p); err != nil {
+		return GearPair{}, err
+	}
 	pinion, err := buildMember(ctx, doc, pinionParams, pinionPlan, true)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("build pinion: %w", err)

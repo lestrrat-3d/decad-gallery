@@ -4,15 +4,15 @@ These steps implement [instructions.md](instructions.md). The tooth section,
 root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
 
 1. Reject a `HelixAngle` outside +1°–+45°. Create Sketch tooth profiles on
-   z=0 and z=`Thickness / 2`. Rotate the middle profile by `HelixAngle` while
+   z=0 and the plane at `helix_plane_offset`, which is `thickness / 2`. Rotate the middle profile by `HelixAngle` while
    drawing it. Use the spur tooth constraints to anchor, dimension, solve,
    and verify both sections before consuming their profiles.
 2. Call `decad.Loft` on the two verified profiles. Use `MirroredCopy` across
    the middle Sketch plane, then `Union` the halves. Check that the joined
    tooth is one solid with a closed verified mesh.
 3. Center and dimension the helical root-disc circle. Solve and verify its
-   sketch, then extrude it through `Thickness`. Make `Teeth - 1` rigid copies
-   of the joined tooth at successive pitch angles. Pass the original and all
+   sketch, then extrude it through `Thickness`. Make `Teeth - 1` copies
+   of the joined tooth with `decad.PatternCopies`. Pass the original and all
    copies to one variadic `Union` with the disc as target.
 4. Use the helical root-edge selector and its cosine-scaled fillet radius.
    When requested, center and dimension the spur bore-tool circle, solve and

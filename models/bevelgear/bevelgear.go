@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/sketch/param"
 	"github.com/lestrrat-3d/units"
 )
 
@@ -61,6 +62,9 @@ type dimensions struct {
 	width     float64
 	scale     float64
 	toeZ      float64
+
+	pitchRadius, matePitchRadius, mateConeAngle, dedendum            float64
+	virtualPitch, virtualBase, virtualTip, virtualRoot, virtualTeeth float64
 }
 
 func finite(values ...float64) bool {
@@ -106,31 +110,73 @@ func derive(p Params) (dimensions, error) {
 	if p.SpiralAngle > 0 && p.SpiralHand != "right" && p.SpiralHand != "left" {
 		return dimensions{}, fmt.Errorf("spiral hand must be right or left")
 	}
-	r := p.Module * float64(p.Teeth) / 2
-	rMate := p.Module * float64(p.MateTeeth) / 2
-	gamma := math.Atan2(math.Sin(p.ShaftAngle)*r, rMate+math.Cos(p.ShaftAngle)*r)
-	otherGamma := p.ShaftAngle - gamma
+	t := param.New()
+	if err := defineParameters(t, p, p.FaceWidth == 0); err != nil {
+		return dimensions{}, fmt.Errorf("define parameters: %w", err)
+	}
+	read := func(name string) (float64, error) {
+		v, err := t.GetValue(name)
+		if err != nil {
+			return 0, fmt.Errorf("read parameter %s: %w", name, err)
+		}
+		return v.Base(), nil
+	}
+	gamma, err := read("cone_angle")
+	if err != nil {
+		return dimensions{}, err
+	}
+	otherGamma, err := read("mate_cone_angle")
+	if err != nil {
+		return dimensions{}, err
+	}
 	if float64(p.Teeth) < 5.27*math.Cos(gamma) || float64(p.MateTeeth) < 5.27*math.Cos(otherGamma) {
 		return dimensions{}, fmt.Errorf("tooth count is below the pitch-cone minimum")
 	}
-	coneDist := r / math.Sin(gamma)
-	maxWidth := 0.95 * coneDist * math.Min(
-		math.Pow(math.Sin(gamma), 2), math.Pow(math.Sin(otherGamma), 2))
+	coneDist, err := read("cone_distance")
+	if err != nil {
+		return dimensions{}, err
+	}
+	maxWidth, err := read("max_face_width")
+	if err != nil {
+		return dimensions{}, err
+	}
 	if !finite(coneDist, maxWidth) || maxWidth <= 0 {
 		return dimensions{}, fmt.Errorf("pitch cone has no positive face width")
 	}
-	width := p.FaceWidth
-	if width == 0 {
-		width = math.Min(math.Hypot(2*r, 2*rMate)/6, maxWidth)
-	} else if width > maxWidth {
-		return dimensions{}, fmt.Errorf("face width %.6g exceeds maximum %.6g mm", width, maxWidth)
+	if p.FaceWidth > maxWidth {
+		return dimensions{}, fmt.Errorf("face width %.6g exceeds maximum %.6g mm", p.FaceWidth, maxWidth)
 	}
-	scale := 1 - width/coneDist
-	if !finite(scale, width*math.Cos(gamma)) || scale <= 0 {
+	width, err := read("face_width")
+	if err != nil {
+		return dimensions{}, err
+	}
+	scale, err := read("toe_scale")
+	if err != nil {
+		return dimensions{}, err
+	}
+	toeZ, err := read("toe_height")
+	if err != nil {
+		return dimensions{}, err
+	}
+	if !finite(scale, toeZ) || scale <= 0 {
 		return dimensions{}, fmt.Errorf("toe section collapses at the pitch apex")
 	}
-	return dimensions{coneAngle: gamma, coneDist: coneDist, width: width,
-		scale: scale, toeZ: width * math.Cos(gamma)}, nil
+	d := dimensions{coneAngle: gamma, coneDist: coneDist, width: width, scale: scale, toeZ: toeZ}
+	for _, e := range []struct {
+		name string
+		dst  *float64
+	}{
+		{"pitch_radius", &d.pitchRadius}, {"mate_pitch_radius", &d.matePitchRadius},
+		{"mate_cone_angle", &d.mateConeAngle}, {"dedendum", &d.dedendum},
+		{"virtual_pitch_radius", &d.virtualPitch}, {"virtual_base_radius", &d.virtualBase},
+		{"virtual_tip_radius", &d.virtualTip}, {"virtual_root_radius", &d.virtualRoot},
+		{"virtual_teeth", &d.virtualTeeth},
+	} {
+		if *e.dst, err = read(e.name); err != nil {
+			return dimensions{}, err
+		}
+	}
+	return d, nil
 }
 
 // Build adds one member of a bevel pair in its local shaft frame, then moves it to
@@ -141,6 +187,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	}
 	plan, err := prepareBuild(p)
 	if err != nil {
+		return nil, err
+	}
+	if err := recordParameters(doc, p); err != nil {
 		return nil, err
 	}
 	member, err := buildMember(ctx, doc, p, plan, false)

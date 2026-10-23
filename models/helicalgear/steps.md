@@ -3,21 +3,24 @@
 These steps implement [instructions.md](instructions.md). Lengths are
 millimeters, and `HelixAngle` is a positive angle in radians.
 
-1. Validate the inherited spur inputs and a finite 1°–45° helix angle. Derive the
-   spur pitch, base, root, and tip radii. Reject a tooth whose base circle
+1. Validate the inherited spur inputs and a finite 1°–45° helix angle. Define the
+   spur parameters plus `helix_angle`, `helix_plane_offset` and
+   `helical_fillet_radius` in `doc.Params()`, and read the pitch, base, root and
+   tip radii from them. Reject a tooth whose base circle
    lies inside its root circle; this loft uses the ordinary tooth profile.
 2. Draw one closed six-curve tooth profile on the z=0 Sketch plane. Use the
    spur tooth sampler's fitted involute flanks, tip and root arcs, and radial
    flank-to-root lines.
-3. Draw the same profile on the plane at z=`Thickness`, rotating every point
+3. Draw the same profile on the plane at `helix_plane_offset`, rotating every point
    by `HelixAngle`. Anchor both sections to their plane origins. Apply the
    spur tooth's geometric and dimensional constraints to each, then solve
    and verify both before lofting one twisted tooth solid.
 4. Draw the root-circle region on the lower plane and extrude it through
    `Thickness`. Center its circle on the plane origin, dimension its radius,
-   then solve and verify the sketch before extruding. Copy the twisted tooth
-   around the shaft at tooth-pitch angles, then join each copy to the root disc.
-5. Compute the spur root radius multiplied by `cos(HelixAngle)` and skip
+   then solve and verify the sketch before extruding. Pattern the twisted tooth
+   around the shaft with `decad.PatternCopies`, then join the tooth and its
+   copies to the root disc with one `decad.Union`.
+5. Read `helical_fillet_radius` (the spur fillet radius multiplied by `cos(HelixAngle)`) and skip
    the fillet if that result is nonpositive. Otherwise search the root
    cylinder for straight axial edges. Fillet the selected edges with that
    radius, or skip the operation when the selector finds none.

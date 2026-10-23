@@ -1,5 +1,15 @@
 # Bevel gear construction instructions
 
+## Parameters
+
+`Build` and `BuildPair` define the driving member's inputs and derived
+dimensions in `doc.Params()` (`defineParameters`): `pitch_radius`,
+`mate_pitch_radius`, `cone_angle`, `mate_cone_angle`, `cone_distance`,
+`max_face_width`, `default_face_width`, `face_width`, `toe_scale`,
+`toe_height`, `dedendum` and the virtual back-cone radii and tooth count.
+Every derived dimension the geometry uses is read from that table, and the
+document's `Bindings()` lists the ones the build reads.
+
 ## Source and implementation status
 
 `fusion360-gear-generator/spec/bevelgear/instructions.md` defines the final
