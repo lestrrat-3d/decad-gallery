@@ -95,14 +95,27 @@ func TestStraightOptionsBuildMembers(t *testing.T) {
 	})
 }
 
-func TestStraightBuildRejectsOtherShaftAngles(t *testing.T) {
+// A member at a shaft angle other than 90 degrees builds a verified closed shell. For equal tooth counts the pitch
+// cone half angle is half the shaft angle, so the heel of the 60 degree member sits at 8 cos 30 degrees plus the
+// base height 1, and the heel moves toward the apex as the shaft angle opens.
+func TestStraightShaftAnglesBuildMembers(t *testing.T) {
 	t.Parallel()
-	p := optionBase()
-	p.ShaftAngle = math.Pi / 3
-	doc := decad.New()
-	_, err := bevelgear.Build(t.Context(), doc, p)
-	require.ErrorContains(t, err, "90° shaft angle")
-	require.Empty(t, doc.Bodies())
+	t.Run("angles", func(t *testing.T) {
+		for name, angle := range map[string]float64{"60": math.Pi / 3, "120": 2 * math.Pi / 3} {
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				p := optionBase()
+				p.ShaftAngle = angle
+				r := buildStraightMemberFor(t, p)
+				switch name {
+				case "60":
+					require.InDelta(t, 8*math.Cos(math.Pi/6)+1, r.xmax, 1e-3)
+				case "120":
+					require.Less(t, r.xmax, 5.0)
+				}
+			})
+		}
+	})
 }
 
 // The pair takes the driving member's options and the mate's options separately, and each member's
@@ -129,4 +142,28 @@ func TestStraightPairMateOptions(t *testing.T) {
 	require.NoError(t, err)
 	require.InDelta(t, 6, drivingBox.Max.X, 1e-6, "the driving base height 2 ends its shaft at x = 6")
 	require.InDelta(t, 6.5, pinionBox.Max.Y, 1e-6, "the mate base height 2.5 ends the pinion shaft at y = 6.5")
+}
+
+// The pinion's shaft turns by the shaft angle, so its axis leaves the driving shaft at 60 degrees.
+func TestStraightPairShaftAngle(t *testing.T) {
+	t.Parallel()
+	p := optionBase()
+	p.ShaftAngle = math.Pi / 3
+	doc := decad.New()
+	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.Len(t, doc.Bodies(), 2)
+	for name, body := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
+		require.True(t, body.IsSolid(), name)
+		mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err, name)
+		require.True(t, mesh.BoundaryVerified(), name)
+		require.True(t, mesh.VolumeVerified(), name)
+	}
+	drivingBox, err := pair.Driving.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 8*math.Cos(math.Pi/6)+1, drivingBox.Max.X, 1e-3, "the driving heel is at 8 cos 30 degrees plus 1")
+	pinionBox, err := pair.Pinion.Bounds()
+	require.NoError(t, err)
+	require.Greater(t, pinionBox.Max.Y, 7.0, "the pinion shaft leaves the driving shaft at 60 degrees")
 }
