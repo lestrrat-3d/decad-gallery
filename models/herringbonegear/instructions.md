@@ -21,6 +21,14 @@ gallery helix-angle input accepts only finite angles from +1° through +45°.
 The ordinary six-curve tooth section requires its base circle to lie outside
 the root circle. The Fusion source sets no helix-angle range.
 
+## Parameters
+
+`Build` runs the helical variant of the spur pipeline with one change: the
+parameter `helix_plane_offset` is `thickness / 2`, so the twisted section, the
+mirror plane and the loft all read the mid-body height from the table. The
+other helical parameters (`helix_angle`, `helical_fillet_radius`) and every
+spur parameter are unchanged and appear in `doc.Bindings()` when read.
+
 ## Sketch constraints
 
 The lower and rotated middle tooth sections use the

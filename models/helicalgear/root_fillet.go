@@ -6,18 +6,24 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/units"
+	"github.com/lestrrat-3d/r3"
 )
 
 // filletRootEdges follows the source's root-cylinder face and axial-edge
 // selection. A gear with no matching root edge skips the fillet.
-func filletRootEdges(ctx context.Context, gear *decad.Body, p Params) (*decad.Body, error) {
-	root := p.Module * (float64(p.Teeth) - 2.5) / 2
-	angle := math.Pi/float64(p.Teeth) - 2*(math.Tan(p.PressureAngle)-p.PressureAngle)
-	radius := 0.9 * root * angle / 2 * math.Cos(p.HelixAngle)
-	if radius <= 0 {
+func filletRootEdges(ctx context.Context, doc *decad.Document, gear *decad.Body, _ r3.Frame) (*decad.Body, error) {
+	rootValue, err := doc.Param("root_radius")
+	if err != nil {
+		return nil, fmt.Errorf("read root radius: %w", err)
+	}
+	radius, err := doc.Param("helical_fillet_radius")
+	if err != nil {
+		return nil, fmt.Errorf("read helical fillet radius: %w", err)
+	}
+	if radius.Base() <= 0 {
 		return gear, nil
 	}
+	root := rootValue.Base()
 
 	const rootRadiusTolerance = 0.001 // The source's 0.0001 cm, converted to millimeters.
 	var roots []*decad.Edge
@@ -59,7 +65,7 @@ func filletRootEdges(ctx context.Context, gear *decad.Body, p Params) (*decad.Bo
 		}
 		selection.Or(decad.EndpointAt(start), decad.EndpointAt(end))
 	}
-	rounded, err := decad.Fillet(ctx, gear, selection.Exactly(len(roots)), units.Millimeters(radius))
+	rounded, err := decad.Fillet(ctx, gear, selection.Exactly(len(roots)), radius)
 	if err != nil {
 		return nil, fmt.Errorf("fillet helical root edges: %w", err)
 	}

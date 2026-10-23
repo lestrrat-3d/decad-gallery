@@ -15,8 +15,8 @@ import (
 type axialPoint struct{ station, radius float64 }
 
 func resolvedBaseHeight(p Params, d dimensions, fallback float64) (float64, error) {
-	r := p.Module * float64(p.Teeth) / 2
-	dedendum := 1.25 * p.Module
+	r := d.pitchRadius
+	dedendum := d.dedendum
 	minBase := 1.05 * dedendum * math.Sin(d.coneAngle)
 	maxBase := 0.95 * (r - dedendum*math.Cos(d.coneAngle)) * math.Tan(d.coneAngle)
 	baseHeight := p.BaseHeight
@@ -30,8 +30,8 @@ func resolvedBaseHeight(p Params, d dimensions, fallback float64) (float64, erro
 }
 
 func blankSection(p Params, d dimensions) ([]axialPoint, error) {
-	r := p.Module * float64(p.Teeth) / 2
-	dedendum := 1.25 * p.Module
+	r := d.pitchRadius
+	dedendum := d.dedendum
 	baseHeight, err := resolvedBaseHeight(p, d, p.Module*float64(p.Teeth)/8)
 	if err != nil {
 		return nil, err
@@ -42,8 +42,8 @@ func blankSection(p Params, d dimensions) ([]axialPoint, error) {
 		station: d.coneDist*math.Cos(d.coneAngle) + dedendum*math.Sin(d.coneAngle),
 		radius:  r - dedendum*math.Cos(d.coneAngle),
 	}
-	mateGamma := p.ShaftAngle - d.coneAngle
-	rMate := p.Module * float64(p.MateTeeth) / 2
+	mateGamma := d.mateConeAngle
+	rMate := d.matePitchRadius
 	toeRadius := p.ToeRadius
 	if toeRadius == 0 {
 		toeRadius = r - d.width/math.Sin(d.coneAngle)

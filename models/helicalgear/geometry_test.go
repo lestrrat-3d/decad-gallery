@@ -4,22 +4,19 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
+// The root disc is the spur pipeline's own and is verified by the spurgear tests.
 func TestSmallHelicalToothAndRootDiscVerifyIndividually(t *testing.T) {
 	p := DefaultParams()
 	p.Teeth, p.Samples, p.Thickness = 8, 5, 2
 	doc := decad.New()
-	world := sketch.NewWorld()
-	tooth, err := buildTooth(t.Context(), doc, world, p)
+	tooth, err := BuildTooth(t.Context(), doc, p)
 	require.NoError(t, err)
-	blank, err := buildRootDisc(t.Context(), doc, world, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 2)
-	for _, body := range []*decad.Body{tooth, blank} {
+	require.Len(t, doc.Bodies(), 1)
+	for _, body := range []*decad.Body{tooth} {
 		require.True(t, body.IsSolid())
 		mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1),
 			decad.WithVerification(decad.VerifyAll))

@@ -52,6 +52,22 @@ cap and no bore edges. The source-order fillet selector checks the root
 cylinder's straight axial edges before the bore. It finds none on the real
 small 8-tooth gear and skips the fillet, as the source requires.
 
+## Parameters
+
+`Build` runs the spur pipeline (`spurgear.Variant`), so every spur parameter
+lives in `doc.Params()` and the sketch world's table, and each value the build
+reads is a derived parameter. Helical adds three, defined after the spur ones:
+
+| Name | Definition |
+| --- | --- |
+| `helix_angle` | the `HelixAngle` input, in radians |
+| `helix_plane_offset` | `thickness`, the distance from the lower cap to the twisted section |
+| `helical_fillet_radius` | `fillet_radius * cos(helix_angle)` |
+
+The twisted section's plane, the root-disc and tooth radii, the fillet radius,
+the bore tool and the cap chamfer are all read back with `doc.Param`, so
+`doc.Bindings()` lists them.
+
 ## Sketch constraints
 
 The lower and rotated upper tooth sections follow the

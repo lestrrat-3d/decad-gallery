@@ -48,14 +48,11 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	if err != nil {
 		return nil, nil, err
 	}
-	pitch := p.Module * float64(p.Teeth) / (2 * math.Cos(d.coneAngle))
-	base := pitch * math.Cos(p.PressureAngle)
-	tip := pitch + p.Module
-	root := pitch - (1.25+0.1125)*p.Module
+	pitch, base, tip, root := d.virtualPitch, d.virtualBase, d.virtualTip, d.virtualRoot
 	if !finite(pitch, base, tip, root) || root <= 0 {
 		return nil, nil, fmt.Errorf("virtual tooth radii are invalid")
 	}
-	virtualTeeth := float64(p.Teeth) / math.Cos(d.coneAngle)
+	virtualTeeth := d.virtualTeeth
 	left, right, err := spurgear.InvoluteFlanks(pitch, base, tip, virtualTeeth, p.Samples, math.Pi)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sample virtual involute: %w", err)

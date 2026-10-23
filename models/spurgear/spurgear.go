@@ -118,47 +118,33 @@ func singleProfile(s *sketch.Sketch, stage string) (*sketch.Profile, error) {
 
 // Build constructs the gear in doc and returns its body.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
-	if ctx == nil {
-		return nil, fmt.Errorf("spurgear: nil context")
+	return Variant{}.Build(ctx, doc, p)
+}
+
+// Build constructs the gear in doc with the variant's changes to the spur
+// pipeline and returns its body.
+func (v Variant) Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
+	if v.LocalBuild {
+		return v.buildLocal(ctx, doc, p)
 	}
-	if doc == nil {
-		return nil, fmt.Errorf("spurgear: nil document")
-	}
-	if err := validate(p); err != nil {
+	r, err := v.begin(ctx, doc, p)
+	if err != nil {
 		return nil, err
 	}
-	world := sketch.NewWorld()
-	if err := defineParameters(doc.Params(), p); err != nil {
-		return nil, fmt.Errorf("spurgear: define document parameters: %w", err)
-	}
-	if err := defineParameters(world.Params(), p); err != nil {
-		return nil, fmt.Errorf("spurgear: define world parameters: %w", err)
-	}
-	d, err := readDimensions(doc)
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: %w", err)
-	}
-	teeth, err := doc.ParamInt("teeth")
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: read teeth: %w", err)
-	}
-	thickness, err := doc.Param("thickness")
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: read thickness: %w", err)
-	}
-	frame, err := placement(p)
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: placement: %w", err)
-	}
-	lower := world.XY()
-	if p.Placement != nil {
-		lower, err = world.CreatePlaneFromFrame(frame)
-		if err != nil {
-			return nil, fmt.Errorf("spurgear: placement plane: %w", err)
-		}
-	}
-	extent := decad.Distance{D: thickness, Dir: decad.Along}
+	return v.assemble(ctx, r)
+}
 
+// assemble builds the tooth, disc, pattern and finishing of one prepared run.
+func (v Variant) assemble(ctx context.Context, r *run) (*decad.Body, error) {
+	doc, p := r.doc, r.p
+	d, frame, lower, extent := r.d, r.frame, r.lower, r.extent
+	world, teeth := r.world, r.teeth
+	// Tooth zero.
+	embedded := d.base < d.root
+	tooth, err := v.tooth(ctx, r)
+	if err != nil {
+		return nil, err
+	}
 	// Root disc.
 	ds, err := world.CreateSketch(lower)
 	if err != nil {
@@ -182,22 +168,6 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 		return nil, fmt.Errorf("spurgear: extrude root disc: %w", err)
 	}
 
-	// Tooth zero.
-	embedded := d.base < d.root
-	var ts *sketch.Sketch
-	var tprof *sketch.Profile
-	if embedded {
-		ts, tprof, err = buildEmbeddedTooth(ctx, world, lower, p, d)
-	} else {
-		ts, tprof, err = buildToothSection(ctx, world, lower, p, d, 0)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: tooth section: %w", err)
-	}
-	tooth, err := decad.Extrude(ctx, doc, ts, tprof, extent)
-	if err != nil {
-		return nil, fmt.Errorf("spurgear: extrude tooth: %w", err)
-	}
 	copies, err := decad.PatternCopies(ctx, tooth, decad.CircularPattern{
 		Center: frame.Origin(), Axis: frame.N(), Count: teeth,
 	})
@@ -212,28 +182,14 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 		return nil, fmt.Errorf("spurgear: joined gear is not a solid")
 	}
 
-	var roots []point
-	if !embedded {
-		left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(teeth), p.Samples, 0)
-		for k := 0; k < teeth; k++ {
-			a := toothAngle(p, k)
-			rr := rootContact(right[0], d)
-			lr := rootContact(left[0], d)
-			roots = append(roots, rotate(rr.x, rr.y, a), rotate(lr.x, lr.y, a))
-		}
-	}
-
 	// Step 7: root fillet.
-	if d.fillet > 0 {
-		fr, err := doc.Param("fillet_radius")
+	if v.RootFillet != nil {
+		body, err = v.RootFillet(ctx, doc, body, frame)
 		if err != nil {
-			return nil, fmt.Errorf("spurgear: read fillet radius: %w", err)
+			return nil, err
 		}
-		if embedded {
-			body, err = filletEmbedded(ctx, body, frame, teeth, fr)
-		} else {
-			body, err = filletRootsValue(ctx, body, frame, roots, fr)
-		}
+	} else if d.fillet > 0 {
+		body, err = filletSpurRoots(ctx, doc, body, r, embedded)
 		if err != nil {
 			return nil, err
 		}
