@@ -24,8 +24,9 @@ doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
 
 ## What differs from the Fusion add-in
 
-- The rotor discs are not chamfered. Decad cannot offset a rim made only of fit splines exactly. The
-  housing, the output plate and the pin ends take `ChamferSize`.
+- A disc rim's chamfer is not exact. Decad cannot offset a rim made only of fit splines exactly, so it cuts the
+  bevel with a lofted cutter whose offset curves are fit splines through points of the exact offset. The
+  chamfered disc is held as a mesh, and its bevel matches the ideal one within 0.2 % of `ChamferSize`.
 - With `DiscGap = 0` the two cam sections are separated by a 0.25 mm relief and joined by a bridge cylinder
   on the drive axis, because decad does not decide a union of bodies that share a face.
 - Each lobe is drawn as three fit splines, one per curvature sign, because decad certifies a spline only
@@ -40,9 +41,10 @@ doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
 
 ## Checks
 
-`go test ./models/cycloidal` builds the default drive, a two-disc drive and nine option variants
+`go test ./models/cycloidal` builds the default drive, a two-disc drive and twelve option variants
 (solid cam, pin overrides, 12 and 24 pins, five output pins, 20 pins with two discs, a placement frame,
-a thin housing, larger clearances). Every body passes 0.1 mm `VerifyAll`, every sketch is fully
+a thin housing, larger clearances, and four with chamfered discs). It checks the chamfered disc's volume against the
+removed wedge. Every body passes 0.1 mm `VerifyAll`, every sketch is fully
 constrained, and the rotor clears the casing, the cam and the output pins at the home pose.
 
 The [model renderer](../../tools/render/README.md) produces the images from the two-disc drive.

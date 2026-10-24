@@ -109,9 +109,8 @@ cylinder over the gap and disc 1, which overlap through the gap. The input bore 
 about the drive axis. Each pin has diameter `D_pin` and runs from the top of the plate down to the lower
 face of disc 1, through every disc's output holes. Pin `k` is at angle `2πk/M`.
 
-**Chamfers.** `ChamferSize` chamfers the outer circles of the housing's two end faces, the outer circle of
-both plate faces and the ends of every pin. The rotor discs are not chamfered: the outer loop of a cap is
-made only of fit splines, and decad cannot offset a chain of free-form edges exactly.
+**Chamfers.** `ChamferSize` chamfers the outer loop of both faces of every rotor disc, the outer circles of
+the housing's two end faces, the outer circle of both plate faces and the ends of every pin.
 
 ## Result
 

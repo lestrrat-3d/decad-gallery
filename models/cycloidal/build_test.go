@@ -99,6 +99,10 @@ func TestBuildOptions(t *testing.T) {
 		{"output_pins_5", func(p *cycloidal.Params) { p.OutputPinCount = 5 }},
 		{"two_discs_pins_20", func(p *cycloidal.Params) { p.DiscCount, p.PinCount, p.DiscGap = 2, 20, 1 }},
 		{"two_discs_gap_0", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0 }},
+		{"two_discs_chamfered", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap, p.ChamferSize = 2, 0, 0.5 }},
+		{"pins_12_chamfered", func(p *cycloidal.Params) { p.PinCount, p.ChamferSize = 12, 0.5 }},
+		{"pins_20_chamfered", func(p *cycloidal.Params) { p.PinCount, p.ChamferSize = 20, 0.5 }},
+		{"clearances_chamfered", func(p *cycloidal.Params) { p.DiskClearance, p.BearingClearance, p.ChamferSize = 0.5, 0.4, 0.5 }},
 		{"placement", func(p *cycloidal.Params) { p.Placement = &placed }},
 		{"thin_housing", func(p *cycloidal.Params) { p.HousingWall, p.BaseThickness, p.OutputPlateThickness = 1, 2, 2 }},
 		{"clearances", func(p *cycloidal.Params) { p.DiskClearance, p.BearingClearance = 0.5, 0.4 }},
@@ -123,7 +127,7 @@ func TestBuildOptions(t *testing.T) {
 	}
 }
 
-// ChamferSize chamfers the housing, the output plate and the pins, and leaves the rotor discs sharp.
+// ChamferSize chamfers the rotor discs, the housing, the output plate and the pins, and leaves the cam sharp.
 func TestBuildChamfers(t *testing.T) {
 	t.Parallel()
 	volumes := func(chamfer float64) map[string]float64 {
@@ -143,9 +147,8 @@ func TestBuildChamfers(t *testing.T) {
 		return out
 	}
 	sharp, chamfered := volumes(0), volumes(0.5)
-	require.InDelta(t, sharp["Cycloidal Disk 1"], chamfered["Cycloidal Disk 1"], 1e-6, "discs are not chamfered")
 	require.InDelta(t, sharp["Eccentric Cam"], chamfered["Eccentric Cam"], 1e-6, "the cam is not chamfered")
-	for _, name := range []string{"Housing", "Output Plate", "Output Pin 1"} {
+	for _, name := range []string{"Cycloidal Disk 1", "Housing", "Output Plate", "Output Pin 1"} {
 		require.Less(t, chamfered[name], sharp[name]-1e-3, name)
 	}
 }
