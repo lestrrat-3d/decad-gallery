@@ -26,6 +26,7 @@ func TestSpiralInputsMembers(t *testing.T) {
 		{"teeth_31_25", func(p *bevelgear.Params) { p.Teeth, p.MateTeeth = 31, 25 }, 3508.6},
 		{"teeth_25_31", func(p *bevelgear.Params) { p.Teeth, p.MateTeeth = 25, 31 }, 2325.9},
 		{"teeth_40_20", func(p *bevelgear.Params) { p.Teeth, p.MateTeeth = 40, 20 }, 5960.8},
+		{"teeth_20_40", func(p *bevelgear.Params) { p.Teeth, p.MateTeeth = 20, 40 }, 1113.8},
 		{"shaft_60", func(p *bevelgear.Params) { p.ShaftAngle = 60 * degrees }, 4459.3},
 		{"shaft_120", func(p *bevelgear.Params) { p.ShaftAngle = 120 * degrees }, 3455.7},
 	}
@@ -41,25 +42,6 @@ func TestSpiralInputsMembers(t *testing.T) {
 			require.InDelta(t, tc.volume, got.volume, 2*got.bound, "the volume bound of the serial unions is wide")
 		})
 	}
-}
-
-// The 20-tooth member of a 40/20 pair has a pitch cone so narrow that its flanks cross the end cones at a
-// very shallow angle. It builds as a solid with the volume of the straight member less its spiral trim, but
-// its mesh cannot be verified at 0.1 mm.
-func TestSpiralInputsUnverifiedMember(t *testing.T) {
-	t.Parallel()
-	const straight = 1135.5
-	p := serialSpiral()
-	p.Teeth, p.MateTeeth = 20, 40
-	doc := chainDocument()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	volume, err := gear.Volume()
-	require.NoError(t, err)
-	require.InDelta(t, straight, volume.Value.Base(), 0.05*straight)
-	require.Less(t, volume.Bound.Base(), 0.5*volume.Value.Base())
 }
 
 // A pair of other modules, tooth counts and shaft angles builds both members with opposite hands.
