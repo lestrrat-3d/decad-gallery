@@ -26,7 +26,8 @@ doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
 
 - The rotor discs are not chamfered. Decad cannot offset a rim made only of fit splines exactly. The
   housing, the output plate and the pin ends take `ChamferSize`.
-- A two-disc drive needs `DiscGap > 0`, because the cam sections join through the gap.
+- With `DiscGap = 0` the two cam sections are separated by a 0.25 mm relief and joined by a bridge cylinder
+  on the drive axis, because decad does not decide a union of bodies that share a face.
 - Each lobe is drawn as three fit splines, one per curvature sign, because decad certifies a spline only
   when its curvature has one sign. A drive with many lobes is sampled coarser when decad's work ceiling
   refuses the finest sampling.

@@ -13,6 +13,13 @@ func TestDefaultParamsAreValid(t *testing.T) {
 	require.NoError(t, cycloidal.Validate(cycloidal.DefaultParams()))
 }
 
+// Two discs with no gap are valid, as in the add-in.
+func TestTwoDiscsWithoutGapAreValid(t *testing.T) {
+	p := cycloidal.DefaultParams()
+	p.DiscCount, p.DiscGap = 2, 0
+	require.Empty(t, cycloidal.Problems(p))
+}
+
 func TestProblems(t *testing.T) {
 	cases := []struct {
 		name string

@@ -15,7 +15,7 @@ Params)` returns a `Drive`.
 4. Pick the one region with `1 + M` holes and `Extrude` it by `disc_thickness`. If decad refuses the
    build as unsupported, repeat steps 2 to 4 with 8°, 12° and 20° sampling.
 5. Build the cam: per disc a circle of diameter `center_bearing_diameter` on that disc's center, extruded
-   over the disc and gap (disc 0) or the gap and disc (disc 1), joined by `Union` for two discs. Cut the
+   over the disc and gap (disc 0) or the gap and disc (disc 1), joined by `Union` for two discs. With `disc_gap = 0`, stop the sections 0.25 mm short of the plane between the discs and add a bridge cylinder on the drive axis that reaches 0.2 mm into each. Cut the
    input bore as a cylinder that starts a plane gap below the cam and ends one above.
 6. Sweep the casing contour for one pin pitch as the instructions describe and mirror it about the pin. Draw the cavity sketch: `N` copies of the pitch, three fit splines each,
    thinned by a stride of 3. Extrude the region inside the contour from one plane gap above the base
