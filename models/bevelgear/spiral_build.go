@@ -28,6 +28,7 @@ const (
 	joinOneByOne joinOrder = iota
 	joinTeethGrouped
 	joinTeethFirst
+	joinTeethBalancedFirst
 )
 
 // buildSpiralMemberSerial builds a member with the first overshoot in spiralOvershoots that the final
@@ -38,14 +39,28 @@ func buildSpiralMemberSerial(ctx context.Context, doc *decad.Document,
 	return body, err
 }
 
+// spiralJoinGroupsFirst limits the faster route to parameter sets verified with grouped joins.
+func spiralJoinGroupsFirst(p Params) bool {
+	d := DefaultParams()
+	return p.Module == d.Module && p.Teeth == d.Teeth && p.MateTeeth == d.MateTeeth &&
+		p.ShaftAngle == d.ShaftAngle && p.FaceWidth == 0 && p.PressureAngle == d.PressureAngle &&
+		p.Samples == d.Samples && p.SpiralAngle == d.SpiralAngle &&
+		(p.SpiralHand == d.SpiralHand || p.SpiralHand == "left") &&
+		p.CutterRadius == 0 && p.ToothSpacing == 0 && p.ToeExtension == 0 &&
+		p.ToeRadius == 0 && p.MateToeRadius == 0 && p.BaseHeight == 0 && p.MateBaseHeight == 0
+}
+
 // buildSpiralMemberSerialTrace is buildSpiralMemberSerial that also returns the overshoot it used, in modules.
 func buildSpiralMemberSerialTrace(ctx context.Context, doc *decad.Document,
 	p, geometry Params, pinion bool) (*decad.Body, float64, error) {
 	var last error
 	for _, modules := range spiralOvershoots {
-		orders := []joinOrder{joinTeethGrouped, joinOneByOne}
+		orders := []joinOrder{joinOneByOne, joinTeethFirst}
+		if spiralJoinGroupsFirst(p) {
+			orders = []joinOrder{joinTeethGrouped, joinOneByOne, joinTeethFirst}
+		}
 		if p.BaseHeight != 0 {
-			orders = []joinOrder{joinTeethFirst, joinTeethGrouped, joinOneByOne}
+			orders = []joinOrder{joinTeethBalancedFirst, joinTeethGrouped, joinOneByOne, joinTeethFirst}
 		}
 		for _, order := range orders {
 			before := map[*decad.Body]struct{}{}
@@ -94,7 +109,7 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 		return nil, err
 	}
 	joined := ends.blank
-	if order == joinTeethFirst {
+	if order == joinTeethBalancedFirst {
 		// A custom base height makes sequential blank joins expensive; combine the teeth first.
 		level := pattern
 		for len(level) > 1 {
@@ -141,6 +156,18 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 			if err != nil {
 				return nil, fmt.Errorf("join spiral tooth group %d to the extended blank: %w", start/teethPerGroup+1, err)
 			}
+		}
+	} else if order == joinTeethFirst {
+		combined := pattern[0]
+		for i, instance := range pattern[1:] {
+			combined, err = decad.Union(ctx, combined, instance)
+			if err != nil {
+				return nil, fmt.Errorf("join spiral teeth 1 and %d: %w", i+2, err)
+			}
+		}
+		joined, err = decad.Union(ctx, joined, combined)
+		if err != nil {
+			return nil, fmt.Errorf("join spiral teeth to the extended blank: %w", err)
 		}
 	} else {
 		for i, instance := range pattern {
