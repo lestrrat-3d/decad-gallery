@@ -5,16 +5,16 @@ go 1.26.8
 replace github.com/lestrrat-3d/decad-gallery => ../..
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261024090746-955cb8f713dc
+	github.com/lestrrat-3d/decad v0.0.0-20261024093731-942b86bff21c
 	github.com/lestrrat-3d/decad-gallery v0.0.0
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/solidlens v0.0.0-20261023230054-b07d99a923ed
-	github.com/lestrrat-3d/units v0.0.0-20261004172310-91d157ffd2a9
+	github.com/lestrrat-3d/units v0.0.0-20261004210137-572d4a3c7f0a
 	github.com/stretchr/testify v1.12.1
 )
 
 require (
-	github.com/lestrrat-3d/sketch v0.0.0-20261023130309-cdca83beee96 // indirect
+	github.com/lestrrat-3d/sketch v0.0.0-20261024043619-e616ba6dda03 // indirect
 	github.com/lestrrat-go/3mf v0.0.0-20261005042850-6101195a51c8 // indirect
 	github.com/lestrrat-go/option/v3 v3.0.0-alpha1 // indirect
 	github.com/lestrrat-go/stl v0.0.0-20260904080308-f2792ffa3582 // indirect
