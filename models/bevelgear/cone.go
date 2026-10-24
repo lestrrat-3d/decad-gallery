@@ -14,6 +14,11 @@ func BuildToeCone(ctx context.Context, doc *decad.Document, p Params) (*decad.Bo
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
+	return buildToeConeIn(ctx, doc, nil, p)
+}
+
+// buildToeConeIn is BuildToeCone with its sketch placed in c; a nil c leaves it in the root container.
+func buildToeConeIn(ctx context.Context, doc *decad.Document, c *decad.Container, p Params) (*decad.Body, error) {
 	d, err := derive(p)
 	if err != nil {
 		return nil, err
@@ -24,7 +29,7 @@ func BuildToeCone(ctx context.Context, doc *decad.Document, p Params) (*decad.Bo
 	}
 	toeRoot := blank[4]
 	apexStation := toeRoot.station + toeRoot.radius*math.Tan(d.coneAngle)
-	return buildEndCone(ctx, doc, d, apexStation, "toe cone")
+	return buildEndCone(ctx, doc, c, d, apexStation, "toe cone")
 }
 
 // BuildHeelCone revolves the exact cone inside the blank's heel-cone surface.
@@ -33,6 +38,11 @@ func BuildHeelCone(ctx context.Context, doc *decad.Document, p Params) (*decad.B
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
+	return buildHeelConeIn(ctx, doc, nil, p)
+}
+
+// buildHeelConeIn is BuildHeelCone with its sketch placed in c; a nil c leaves it in the root container.
+func buildHeelConeIn(ctx context.Context, doc *decad.Document, c *decad.Container, p Params) (*decad.Body, error) {
 	d, err := derive(p)
 	if err != nil {
 		return nil, err
@@ -41,10 +51,10 @@ func BuildHeelCone(ctx context.Context, doc *decad.Document, p Params) (*decad.B
 		return nil, err
 	}
 	apexStation := d.coneDist / math.Cos(d.coneAngle)
-	return buildEndCone(ctx, doc, d, apexStation, "heel cone")
+	return buildEndCone(ctx, doc, c, d, apexStation, "heel cone")
 }
 
-func buildEndCone(ctx context.Context, doc *decad.Document, d dimensions,
+func buildEndCone(ctx context.Context, doc *decad.Document, c *decad.Container, d dimensions,
 	apexStation float64, label string) (*decad.Body, error) {
 	farStation := -0.1 * d.coneDist
 	farRadius := (apexStation - farStation) / math.Tan(d.coneAngle)
@@ -56,7 +66,7 @@ func buildEndCone(ctx context.Context, doc *decad.Document, d dimensions,
 		{station: farStation, radius: farRadius},
 		{station: apexStation, radius: 0},
 	}
-	return revolveAxialSection(ctx, doc, section, label)
+	return revolveAxialSectionIn(ctx, doc, c, section, label)
 }
 
 // buildShiftedEndCone revolves the toe or heel cutting cone moved by shift along the shaft. A positive
@@ -72,8 +82,8 @@ func buildShiftedEndCone(ctx context.Context, doc *decad.Document, p Params, hee
 		return nil, err
 	}
 	if heel {
-		return buildEndCone(ctx, doc, d, d.coneDist/math.Cos(d.coneAngle)+shift, "heel cone")
+		return buildEndCone(ctx, doc, nil, d, d.coneDist/math.Cos(d.coneAngle)+shift, "heel cone")
 	}
 	toeRoot := blank[4]
-	return buildEndCone(ctx, doc, d, toeRoot.station+toeRoot.radius*math.Tan(d.coneAngle)+shift, "toe cone")
+	return buildEndCone(ctx, doc, nil, d, toeRoot.station+toeRoot.radius*math.Tan(d.coneAngle)+shift, "toe cone")
 }

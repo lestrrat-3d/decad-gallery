@@ -20,6 +20,11 @@ type GearPair struct {
 // BuildPair builds the pinion first, then phases the driving gear by half a tooth pitch.
 // A pinion with an odd tooth count is also turned by one tooth width about its shaft.
 // It then moves both members with Params.Placement.
+//
+// The pair is a container named "Pair" in the document's root, holding a container "Driving Gear" and a container
+// "Pinion Gear". A straight member draws its blank, tooth, cone and bore sketches in its own container, so its
+// bodies are there too. A spiral member is built in the root container and moved to its own when it is done.
+// A document that already holds a "Pair" gets "Pair 2" for the next.
 func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, error) {
 	if ctx == nil || doc == nil {
 		return GearPair{}, fmt.Errorf("context and document must not be nil")
@@ -42,28 +47,26 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	if err := recordParameters(doc, p); err != nil {
 		return GearPair{}, err
 	}
-	pinion, err := buildMember(ctx, doc, pinionParams, pinionPlan, true)
+	containers, err := newPairContainers(doc)
+	if err != nil {
+		return GearPair{}, err
+	}
+	pinion, err := buildMember(ctx, doc, containers.pinion, pinionParams, pinionPlan, true)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("build pinion: %w", err)
 	}
 	var driving *decad.Body
-	if p == pinionParams {
-		if drivingPlan.spiral {
-			// The equal members share a symmetric tooth profile, blank, trims, and bore.
-			// Reflecting across the shaft's XY plane reverses the spiral hand.
-			plane, frameErr := r3.NewFrame(r3.Vec{}, r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-			if frameErr != nil {
-				return GearPair{}, fmt.Errorf("create spiral mirror plane: %w", frameErr)
-			}
-			driving, err = decad.MirroredCopy(ctx, pinion, decad.MirrorFrame{Frame: plane})
-			if err != nil {
-				return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
-			}
-		} else {
-			driving, err = decad.Copy(ctx, pinion)
-			if err != nil {
-				return GearPair{}, fmt.Errorf("copy identical straight driving gear: %w", err)
-			}
+	if p == pinionParams && drivingPlan.spiral {
+		// The equal spiral members share a symmetric tooth profile, blank, trims, and bore.
+		// Reflecting across the shaft's XY plane reverses the spiral hand. Straight members are built one by one, so
+		// each draws its own sketches in its own container.
+		plane, frameErr := r3.NewFrame(r3.Vec{}, r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+		if frameErr != nil {
+			return GearPair{}, fmt.Errorf("create spiral mirror plane: %w", frameErr)
+		}
+		driving, err = decad.MirroredCopy(ctx, pinion, decad.MirrorFrame{Frame: plane})
+		if err != nil {
+			return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
 		}
 	}
 	// Both members are built with a tooth centred on the angle toward the mate, and the pinion's mesh point sits half
@@ -88,7 +91,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}
 	if driving == nil {
-		driving, err = buildMember(ctx, doc, p, drivingPlan, false)
+		driving, err = buildMember(ctx, doc, containers.driving, p, drivingPlan, false)
 		if err != nil {
 			return GearPair{}, fmt.Errorf("build driving gear: %w", err)
 		}
@@ -109,6 +112,12 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 	pinion, err = placement.Place(ctx, pinion, p.Placement)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
+	}
+	if driving, err = moveBody(doc, driving, containers.driving); err != nil {
+		return GearPair{}, err
+	}
+	if pinion, err = moveBody(doc, pinion, containers.pinion); err != nil {
+		return GearPair{}, err
 	}
 	return GearPair{Driving: driving, Pinion: pinion}, nil
 }

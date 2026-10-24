@@ -84,6 +84,10 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 	if err != nil {
 		return nil, fmt.Errorf("measure bore target bounds: %w", err)
 	}
+	owner, err := doc.ContainerOf(target)
+	if err != nil {
+		return nil, fmt.Errorf("find bore target container: %w", err)
+	}
 	const margin = 1.0
 	world := sketch.NewWorld()
 	frame, err := r3.NewFrame(r3.NewVec(box.Min.X-margin, 0, 0),
@@ -95,9 +99,15 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 	if err != nil {
 		return nil, fmt.Errorf("create bore plane: %w", err)
 	}
+	if err := addPlane(owner, plane); err != nil {
+		return nil, err
+	}
 	s, err := world.CreateSketch(plane)
 	if err != nil {
 		return nil, fmt.Errorf("create bore sketch: %w", err)
+	}
+	if err := addSketch(owner, s); err != nil {
+		return nil, err
 	}
 	circle := s.CreateCircle(s.Origin(), diameter/2)
 	s.AddConstraint(sketch.NewDiameter(circle, diameter))

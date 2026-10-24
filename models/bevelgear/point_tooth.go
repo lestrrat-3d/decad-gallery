@@ -15,8 +15,13 @@ func BuildPointTooth(ctx context.Context, doc *decad.Document, p Params) (*decad
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
+	return buildPointToothIn(ctx, doc, nil, p)
+}
+
+// buildPointToothIn is BuildPointTooth with its sketch and plane placed in c; a nil c leaves them in the root.
+func buildPointToothIn(ctx context.Context, doc *decad.Document, c *decad.Container, p Params) (*decad.Body, error) {
 	world := sketch.NewWorld()
-	s, profile, err := BuildBackConeToothProfile(ctx, world, p)
+	s, profile, err := buildBackConeToothProfile(ctx, world, c, p)
 	if err != nil {
 		return nil, fmt.Errorf("build back-cone tooth profile: %w", err)
 	}

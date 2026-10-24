@@ -79,6 +79,8 @@ func TestSpiralPairCutterRadius(t *testing.T) {
 	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 2)
+	require.Equal(t, "Pair/Driving Gear", containerPath(t, doc, pair.Driving))
+	require.Equal(t, "Pair/Pinion Gear", containerPath(t, doc, pair.Pinion))
 	for name, body := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
 		require.True(t, body.IsSolid(), name)
 		mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
