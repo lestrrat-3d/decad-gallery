@@ -4,10 +4,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
-  structure:
+  repository:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,185 +17,16 @@ jobs:
         run: python3 scripts/check_repository.py
       - name: Check spur generation record
         run: python3 scripts/modelgen/spurgear.py check
-  models:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Check model geometry
-        run: |
-          bevel_skip='^Test(RealEightToothFullPatternJoin|JoinedEightToothPairThroughBore|SourceDefaultSpiralPair|SourceFourFourStraight(Member|Pair)(AutoBore)?|SourceSixteenTwelveStraightPair(AutoBore)?|SourceThirtyTwoSixteenStraightPair|StraightOptionsBuildMembers|StraightPairMateOptions|StraightShaftAnglesBuildMembers|StraightPairShaftAngle|SpiralCutterRadiusBuildsMember|SpiralPairCutterRadius|SpiralHandWidthAndBaseHeight|SpiralPairHandWidthAndBaseHeight|SpiralSerialRouteBuildsMembers|SpiralSerialRouteBuildsUnverifiedMembers|SpiralSerialPair|SpiralInputsMembers|SpiralInputsPair|PlacedMemberMatchesWorldMember|PlacedPairMovesBothMembers)$'
-          helical_skip='^Test(SmallHelicalToothAndRootDiscVerifyIndividually|SmallRealHelicalGear(ThroughBore|WithCapChamfer|WithBoreAndCapChamfer)?|DefaultRealHelicalGear(ThroughBore|WithBoreAndCapChamfer)?)$'
-          herringbone_skip='^Test(Small|Default)RealHerringboneGearWithBoreAndCapChamfer$'
-          spur_skip='^TestPlacedEmbeddedGearWithRootFilletsAndBore$'
-          go test -skip "$bevel_skip|$helical_skip|$herringbone_skip|$spur_skip" ./...
-  spur-placement:
-    name: spur-placement (TestPlacedEmbeddedGearWithRootFilletsAndBore)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check placed embedded spur gear
-        run: go test ./models/spurgear -run '^TestPlacedEmbeddedGearWithRootFilletsAndBore$' -timeout 20m
-  bevel-assembly:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - test: TestRealEightToothFullPatternJoin
-            timeout: 5m
-          - test: TestJoinedEightToothPairThroughBore
-            timeout: 10m
-          - test: TestSourceFourFourStraightMember
-            timeout: 5m
-          - test: TestSourceFourFourStraightMemberAutoBore
-            timeout: 5m
-          - test: TestStraightOptionsBuildMembers
-            timeout: 10m
-          - test: TestStraightPairMateOptions
-            timeout: 10m
-          - test: TestStraightShaftAnglesBuildMembers
-            timeout: 10m
-          - test: TestStraightPairShaftAngle
-            timeout: 10m
-          - test: TestSpiralCutterRadiusBuildsMember
-            timeout: 20m
-          - test: TestSpiralPairCutterRadius
-            timeout: 20m
-          - test: TestSpiralHandWidthAndBaseHeight
-            timeout: 20m
-          - test: TestSpiralPairHandWidthAndBaseHeight
-            timeout: 20m
-          - test: TestSpiralSerialRouteBuildsMembers/default_serial
-            timeout: 20m
-          - test: TestSpiralSerialRouteBuildsMembers/options/teeth_25_25
-            timeout: 20m
-          - test: TestSpiralSerialRouteBuildsMembers/options/toe_extension
-            timeout: 20m
-          - test: TestSpiralSerialRouteBuildsMembers/options/toe_radius
-            timeout: 30m
-          - test: TestSpiralSerialRouteBuildsMembers/options/tooth_spacing
-            timeout: 30m
-          - test: TestSpiralSerialRouteBuildsUnverifiedMembers/pressure_angle_14_5
-            timeout: 30m
-          - test: TestSpiralSerialRouteBuildsUnverifiedMembers/spiral_angle_20
-            timeout: 30m
-          - test: TestSpiralSerialPair
-            timeout: 20m
-          - test: TestSpiralInputsMembers/module_2
-            timeout: 20m
-          - test: TestSpiralInputsMembers/module_0_5
-            timeout: 20m
-          - test: TestSpiralInputsMembers/teeth_31_25
-            timeout: 20m
-          - test: TestSpiralInputsMembers/teeth_25_31
-            timeout: 20m
-          - test: TestSpiralInputsMembers/teeth_40_20
-            timeout: 20m
-          - test: TestSpiralInputsMembers/teeth_20_40
-            timeout: 20m
-          - test: TestSpiralInputsMembers/shaft_60
-            timeout: 20m
-          - test: TestSpiralInputsMembers/shaft_120
-            timeout: 20m
-          - test: TestSpiralInputsPair/teeth_31_25
-            timeout: 30m
-          - test: TestSpiralInputsPair/shaft_60
-            timeout: 30m
-          - test: TestSpiralInputsPair/module_2
-            timeout: 30m
-    name: bevel-assembly (${{ matrix.test }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check real bevel assembly
-        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
-  bevel-placement:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - test: TestPlacedMemberMatchesWorldMember
-            timeout: 15m
-          - test: TestPlacedPairMovesBothMembers
-            timeout: 20m
-    name: bevel-placement (${{ matrix.test }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check placed bevel gears
-        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
-  bevel-pair:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check source-default bevel pair
-        run: go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 20m
-  bevel-straight-pair:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - test: TestSourceSixteenTwelveStraightPair
-            timeout: 15m
-          - test: TestSourceSixteenTwelveStraightPairAutoBore
-            timeout: 18m
-          - test: TestSourceThirtyTwoSixteenStraightPair
-            timeout: 18m
-          - test: TestSourceFourFourStraightPairAutoBore
-            timeout: 18m
-    name: bevel-straight-pair (${{ matrix.test }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check straight bevel pair
-        run: go test ./models/bevelgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
-  helical-assembly:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - test: TestSmallHelicalToothAndRootDiscVerifyIndividually
-            timeout: 2m
-          - test: TestSmallRealHelicalGear
-            timeout: 2m
-          - test: TestSmallRealHelicalGearThroughBore
-            timeout: 2m
-          - test: TestSmallRealHelicalGearWithCapChamfer
-            timeout: 10m
-          - test: TestSmallRealHelicalGearWithBoreAndCapChamfer
-            timeout: 10m
-          - test: TestDefaultRealHelicalGear
-            timeout: 5m
-          - test: TestDefaultRealHelicalGearThroughBore
-            timeout: 5m
-          - test: TestDefaultRealHelicalGearWithBoreAndCapChamfer
-            timeout: 10m
-    name: helical-assembly (${{ matrix.test }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Check real helical assembly
-        run: go test ./models/helicalgear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
+      - name: Check model regressions
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: python3 scripts/ci/run_tests.py models pr
+      - name: Check full model suite
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python3 scripts/ci/run_tests.py models full
+
   render:
     runs-on: ubuntu-latest
     steps:
@@ -201,50 +34,36 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
-      - name: Check model rendering
-        run: go -C tools/render test -skip '^Test(BevelGearHero|BevelGearStraightHigh|HelicalGearHero|HerringboneGearHero)$' ./...
-  herringbone-cap-chamfer:
+      - name: Check fast model rendering
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: go -C tools/render test -skip '^Test(BevelGearHero|BevelGearStraightHigh)$' -timeout 5m ./...
+      - name: Check all model rendering
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: go -C tools/render test -timeout 60m ./...
+
+  bevel:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - test: TestSmallRealHerringboneGearWithBoreAndCapChamfer
-            timeout: 3m
-          - test: TestDefaultRealHerringboneGearWithBoreAndCapChamfer
-            timeout: 10m
-    name: herringbone-cap-chamfer (${{ matrix.test }})
+          - shard: a
+          - shard: b
+          - shard: c
+          - shard: d
+          - shard: e
+          - shard: f
+          - shard: g
+          - shard: h
+    name: bevel-${{ matrix.shard }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Check real herringbone cap chamfers
-        run: go test ./models/herringbonegear -run '^${{ matrix.test }}$' -timeout ${{ matrix.timeout }}
-  bevel-render:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: tools/render/go.mod
-      - name: Check real bevel rendering
-        run: go -C tools/render test -run '^TestBevelGear(Hero|StraightHigh)$' -timeout 25m ./...
-  helical-render:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: tools/render/go.mod
-      - name: Check real helical rendering
-        run: go -C tools/render test -run '^TestHelicalGearHero$' -timeout 10m ./...
-  herringbone-render:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: tools/render/go.mod
-      - name: Check real herringbone rendering
-        run: go -C tools/render test -run '^TestHerringboneGearHero$' -timeout 10m ./...
+      - name: Check representative bevel geometry
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.shard }}
+      - name: Check full bevel coverage shard
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
