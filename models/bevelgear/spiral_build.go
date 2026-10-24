@@ -45,8 +45,11 @@ func spiralJoinGroupsFirst(p Params) bool {
 	d := DefaultParams()
 	defaultTeeth := p.Teeth == d.Teeth && p.MateTeeth == d.MateTeeth
 	twentyFiveTeeth := p.Teeth == 25 && p.MateTeeth == 25
+	twentyFiveThirtyOneTeeth := p.Teeth == 25 && p.MateTeeth == 31
+	thirtyOneTwentyFiveTeeth := p.Teeth == 31 && p.MateTeeth == 25
 	verifiedShaftAngle := p.ShaftAngle == d.ShaftAngle || p.ShaftAngle == 60*math.Pi/180
-	return p.Module == d.Module && (defaultTeeth || twentyFiveTeeth) &&
+	return p.Module == d.Module &&
+		(defaultTeeth || twentyFiveTeeth || twentyFiveThirtyOneTeeth || thirtyOneTwentyFiveTeeth) &&
 		verifiedShaftAngle && p.FaceWidth == 0 && p.PressureAngle == d.PressureAngle &&
 		p.Samples == d.Samples && p.SpiralAngle == d.SpiralAngle &&
 		(p.SpiralHand == d.SpiralHand || p.SpiralHand == "left") &&
