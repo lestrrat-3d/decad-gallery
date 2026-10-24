@@ -294,20 +294,9 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, p, geometryPa
 			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
 		}
 	}
-	if p.Teeth != 8 {
-		joined, err := decad.Union(ctx, blank, pattern...)
-		if err != nil {
-			return nil, fmt.Errorf("join straight tooth pattern: %w", err)
-		}
-		return joined, nil
-	}
-
-	joined := blank
-	for i, instance := range pattern {
-		joined, err = decad.Union(ctx, joined, instance)
-		if err != nil {
-			return nil, fmt.Errorf("join tooth %d: %w", i+1, err)
-		}
+	joined, err := decad.Union(ctx, blank, pattern...)
+	if err != nil {
+		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
 	}
 	return joined, nil
 }
