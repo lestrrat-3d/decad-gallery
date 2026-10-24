@@ -38,9 +38,8 @@ type Params struct {
 	HousingWall          float64
 	BaseThickness        float64
 	OutputPlateThickness float64
-	// ChamferSize is a 45° chamfer on the outer rims of the housing and output plate and on the pin ends; zero
-	// leaves them sharp. The rotor discs are never chamfered, because decad cannot chamfer a rim made only of
-	// fit splines.
+	// ChamferSize is a 45° chamfer on the outer rims of the rotor discs, the housing and the output plate and on
+	// the pin ends; zero leaves them sharp.
 	ChamferSize float64
 	// Placement is the reference point and plane; nil selects the world XY frame at the origin. The first
 	// disc's lower face lies on the plane and the stack grows along its normal.

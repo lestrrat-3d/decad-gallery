@@ -43,9 +43,8 @@ func (d Drive) Named() []NamedBody {
 	return out
 }
 
-// Build constructs the drive in doc. ChamferSize chamfers the housing, the output plate and the pin ends, but
-// not the rotor discs: the outer loop of a disc cap is made only of fit splines, and decad cannot offset a
-// chain of free-form edges exactly, so it refuses that chamfer.
+// Build constructs the drive in doc. ChamferSize chamfers the rotor discs, the housing, the output plate and
+// the pin ends.
 func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 	r, err := begin(ctx, doc, p)
 	if err != nil {
@@ -53,7 +52,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 	}
 	var drive Drive
 	for index := range p.DiscCount {
-		disc, err := r.buildDisc(ctx, index)
+		disc, err := r.chamferedDisc(ctx, index)
 		if err != nil {
 			return Drive{}, err
 		}
@@ -116,4 +115,13 @@ func (r *run) chamferedBy(ctx context.Context, body *decad.Body, what string, se
 func (r *run) housingOuterCircles() decad.EdgeSelector {
 	longer := math.Pi * (r.d.housingOuter + r.d.housingInner) / 2
 	return decad.Edges(decad.Circular(), decad.LongerThan(units.Millimeters(longer))).Exactly(2)
+}
+
+// chamferedDisc builds rotor disc index and chamfers both outer rims of it.
+func (r *run) chamferedDisc(ctx context.Context, index int) (*decad.Body, error) {
+	disc, err := r.buildDisc(ctx, index)
+	if err != nil {
+		return nil, err
+	}
+	return r.chamfered(ctx, disc, fmt.Sprintf("disc %d", index+1))
 }

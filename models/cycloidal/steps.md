@@ -28,5 +28,5 @@ Params)` returns a `Drive`.
    `output_plate_thickness`. Draw `M` pin circles at the same centers, extrude each two-sided, up through
    the plate and down to the lower face of disc 1, and order the pins by angle.
 9. When `ChamferSize > 0`, `Chamfer` the outer circle edges of the housing's end faces, the outer
-   loop of both plate faces and both end loops of each pin. Leave the discs sharp.
+   loop of both faces of each disc, the outer loop of both plate faces and both end loops of each pin.
 10. Check each body is a solid and passes `Tessellate(0.1 mm, VerifyAll)`.
