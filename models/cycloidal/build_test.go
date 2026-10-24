@@ -1,6 +1,7 @@
 package cycloidal_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -97,6 +98,7 @@ func TestBuildOptions(t *testing.T) {
 		{"pins_24", func(p *cycloidal.Params) { p.PinCount = 24 }},
 		{"output_pins_5", func(p *cycloidal.Params) { p.OutputPinCount = 5 }},
 		{"two_discs_pins_20", func(p *cycloidal.Params) { p.DiscCount, p.PinCount, p.DiscGap = 2, 20, 1 }},
+		{"two_discs_gap_0", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0 }},
 		{"placement", func(p *cycloidal.Params) { p.Placement = &placed }},
 		{"thin_housing", func(p *cycloidal.Params) { p.HousingWall, p.BaseThickness, p.OutputPlateThickness = 1, 2, 2 }},
 		{"clearances", func(p *cycloidal.Params) { p.DiskClearance, p.BearingClearance = 0.5, 0.4 }},
@@ -146,4 +148,31 @@ func TestBuildChamfers(t *testing.T) {
 	for _, name := range []string{"Housing", "Output Plate", "Output Pin 1"} {
 		require.Less(t, chamfered[name], sharp[name]-1e-3, name)
 	}
+}
+
+// Two discs with no gap touch each other, and the cam still clears both.
+func TestTwoDiscsWithoutGap(t *testing.T) {
+	p := cycloidal.DefaultParams()
+	p.ChamferSize, p.DiscCount, p.DiscGap = 0, 2, 0
+	require.Empty(t, cycloidal.Problems(p))
+	drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+	require.NoError(t, err)
+	for i, disc := range drive.Discs {
+		require.Zero(t, overlap(t, disc, drive.Cam), "the cam clears disc %d", i+1)
+		require.Zero(t, overlap(t, disc, drive.Housing), "the casing clears disc %d", i+1)
+	}
+	box, err := drive.Cam.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 2*p.DiscThickness, box.Max.Z-box.Min.Z, 1e-6)
+	volume, err := drive.Cam.Volume()
+	require.NoError(t, err)
+	// Two cylinders of the cam diameter, less the input bore, less the 0.25 mm relief between the sections
+	// everywhere but in the bridge, which is a cylinder halfway between the bore and the largest circle about
+	// the axis that fits inside both sections.
+	bore, cam := p.InputShaftDiameter/2, p.CenterBearingDiameter/2
+	bridge := (cam - p.Eccentricity + bore) / 2
+	section := math.Pi * (cam*cam - bore*bore)
+	relief := 0.25 * (section - math.Pi*(bridge*bridge-bore*bore))
+	want := 2*section*p.DiscThickness - relief
+	require.InDelta(t, want, volume.Value.Base(), 1e-3*want)
 }

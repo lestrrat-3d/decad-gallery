@@ -46,13 +46,15 @@ and an overridden value. Every other derived name is an expression.
 
 ## Validity
 
-`Problems(p)` returns every failing check, in the add-in's order and with its wording, and `Validate`
-wraps them in `ErrInvalid`: two discs need even `N` and `M`; `E < Rr < R sin(π/N)`; `D_pin > 0`;
-`D_hole < 2 Rop sin(π/M)`; `E < R/N`; `Rop < Rv`; the no-undercut guard `Rr_eff < ρ_min`, with the
-bound `E*` found by 40 bisection steps; `ISD < CBD`; `E + ISD/2 < CBD/2`; and
-`(CBD + clearance)/2 < Rop - D_hole/2`. The gallery adds the count floors (`N >= 4`, `M >= 3`), the
-sign checks on every length, and one more rule: two discs need `DiscGap > 0`, because the cam sections
-join through the gap.
+`Problems(p)` returns every failing check of the add-in's `evaluate_problems`, in its order and with its
+wording, and `Validate` wraps them in `ErrInvalid`: two discs need even `N` and `M`; `E < Rr < R sin(π/N)`;
+`D_pin > 0`; `D_hole < 2 Rop sin(π/M)`; `E < R/N`; `Rop < Rv`; the no-undercut guard `Rr_eff < ρ_min`,
+with the bound `E*` found by 40 bisection steps from 1e-9 mm, as the add-in does; `ISD < CBD`;
+`E + ISD/2 < CBD/2`; and `(CBD + clearance)/2 < Rop - D_hole/2`. The gallery accepts and refuses exactly
+what the add-in does, with one addition: it first checks the input ranges the add-in's spec lists but does
+not enforce, because the build cannot take them: `N >= 4`, `M >= 3`, a disc count of 1 or 2, finite
+values, lengths above zero, and the optional lengths (pin, output pin and shaft diameters, clearances,
+gap and chamfer) not below zero. Two discs with no gap are valid.
 
 ## Geometry
 

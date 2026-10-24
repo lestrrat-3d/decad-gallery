@@ -84,9 +84,12 @@ func undercuts(p Params, e float64) bool {
 }
 
 // undercutBound returns the largest eccentricity not above p's that does not undercut, found by 40 bisection
-// steps. It is zero when none does.
+// steps from 1e-9 mm, as the add-in does. It is zero when even 1e-9 mm undercuts.
 func undercutBound(p Params) float64 {
-	lo, hi := 0.0, p.Eccentricity
+	lo, hi := 1e-9, p.Eccentricity
+	if undercuts(p, lo) {
+		return 0
+	}
 	for range 40 {
 		mid := (lo + hi) / 2
 		if undercuts(p, mid) {
@@ -156,9 +159,6 @@ func Problems(p Params) []string {
 		add("Two discs require an even Pin Count and an even Output Pin Count (currently N=%d, M=%d).",
 			p.PinCount, p.OutputPinCount)
 	}
-	if p.DiscCount == 2 && p.DiscGap == 0 {
-		add("Two discs require a Disc Gap greater than 0 (the cam sections join through the gap).")
-	}
 	if !(e < d.pinRadius && d.pinRadius < r*math.Sin(math.Pi/n)) {
 		if p.PinDiameter == 0 {
 			add("Pin geometry out of range — increase Pin Circle Diameter above %.2f mm or reduce Eccentricity below %.2f mm.",
@@ -187,7 +187,7 @@ func Problems(p Params) []string {
 		add("Output Pin Circle too large — set Output Pin Circle Diameter below %.2f mm (currently %.2f).",
 			2*d.rootRadius, 2*rop)
 	}
-	if d.rootRadius > 0 && undercuts(p, e) {
+	if undercuts(p, e) {
 		if bound := undercutBound(p); bound > 0 {
 			add("Eccentricity too large — the rotor profile undercuts/self-intersects. Reduce Eccentricity below %.2f mm.", bound)
 		} else {
