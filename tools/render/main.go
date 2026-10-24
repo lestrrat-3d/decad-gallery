@@ -27,6 +27,7 @@ var presets = map[string]preset{
 	"bevelgear/straight-top":  {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightTop},
 	"bevelgear/straight-low":  {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightLow},
 	"bevelgear/straight-high": {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightHigh},
+	"cycloidal/hero":          {width: 1600, height: 900, scene: cycloidalHero},
 	"helicalgear/hero":        {width: 1600, height: 900, scene: helicalGearHero},
 	"helicalgear/top":         {width: 1600, height: 900, scene: helicalGearTop},
 	"helicalgear/low":         {width: 1600, height: 900, scene: helicalGearLow},
@@ -85,6 +86,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "bevelgear" {
 		return renderBevelReadme(ctx, outputDir)
+	}
+	if model == "cycloidal" {
+		return renderCycloidalReadme(ctx, outputDir)
 	}
 	hero, ok := presets[model+"/hero"]
 	if !ok {
