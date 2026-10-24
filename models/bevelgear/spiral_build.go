@@ -26,6 +26,7 @@ type joinOrder int
 
 const (
 	joinOneByOne joinOrder = iota
+	joinTeethGrouped
 	joinTeethFirst
 )
 
@@ -42,7 +43,11 @@ func buildSpiralMemberSerialTrace(ctx context.Context, doc *decad.Document,
 	p, geometry Params, pinion bool) (*decad.Body, float64, error) {
 	var last error
 	for _, modules := range spiralOvershoots {
-		for _, order := range []joinOrder{joinOneByOne, joinTeethFirst} {
+		orders := []joinOrder{joinTeethGrouped, joinOneByOne}
+		if p.BaseHeight != 0 {
+			orders = []joinOrder{joinTeethFirst, joinTeethGrouped, joinOneByOne}
+		}
+		for _, order := range orders {
 			before := map[*decad.Body]struct{}{}
 			for _, body := range doc.Bodies() {
 				before[body] = struct{}{}
@@ -90,17 +95,52 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 	}
 	joined := ends.blank
 	if order == joinTeethFirst {
-		// The teeth are disjoint, so joining them first is trivial and each keeps its own bound.
-		combined := pattern[0]
-		for i, instance := range pattern[1:] {
-			combined, err = decad.Union(ctx, combined, instance)
-			if err != nil {
-				return nil, fmt.Errorf("join spiral teeth 1 and %d: %w", i+2, err)
+		// A custom base height makes sequential blank joins expensive; combine the teeth first.
+		level := pattern
+		for len(level) > 1 {
+			next := make([]*decad.Body, 0, (len(level)+1)/2)
+			for i := 0; i < len(level); i += 2 {
+				if i+1 == len(level) {
+					next = append(next, level[i])
+					continue
+				}
+				combined, unionErr := decad.Union(ctx, level[i], level[i+1])
+				if unionErr != nil {
+					return nil, fmt.Errorf("join spiral tooth group at %d: %w", i+1, unionErr)
+				}
+				next = append(next, combined)
 			}
+			level = next
 		}
-		joined, err = decad.Union(ctx, joined, combined)
+		joined, err = decad.Union(ctx, joined, level[0])
 		if err != nil {
 			return nil, fmt.Errorf("join spiral teeth to the extended blank: %w", err)
+		}
+	} else if order == joinTeethGrouped {
+		// Small disjoint groups limit repeated work while keeping each blank join local.
+		const teethPerGroup = 4
+		for start := 0; start < len(pattern); start += teethPerGroup {
+			end := min(start+teethPerGroup, len(pattern))
+			level := pattern[start:end]
+			for len(level) > 1 {
+				next := make([]*decad.Body, 0, (len(level)+1)/2)
+				for i := 0; i < len(level); i += 2 {
+					if i+1 == len(level) {
+						next = append(next, level[i])
+						continue
+					}
+					combined, unionErr := decad.Union(ctx, level[i], level[i+1])
+					if unionErr != nil {
+						return nil, fmt.Errorf("join spiral tooth group at %d: %w", start+i+1, unionErr)
+					}
+					next = append(next, combined)
+				}
+				level = next
+			}
+			joined, err = decad.Union(ctx, joined, level[0])
+			if err != nil {
+				return nil, fmt.Errorf("join spiral tooth group %d to the extended blank: %w", start/teethPerGroup+1, err)
+			}
 		}
 	} else {
 		for i, instance := range pattern {
