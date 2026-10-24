@@ -94,3 +94,29 @@ func TestHerringboneGearHero(t *testing.T) {
 	require.Equal(t, 68, image.Bounds().Dy())
 	require.NotEqual(t, image.At(0, 0), image.At(60, 34), "the real gear should be visible against the background")
 }
+
+func TestCycloidalHero(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "hero.png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "cycloidal", "-shot", "hero",
+		"-out", output, "-width", "160", "-height", "90")
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+
+	file, err := os.Open(output)
+	require.NoError(t, err)
+	defer func() { _ = file.Close() }()
+	image, err := png.Decode(file)
+	require.NoError(t, err)
+	require.Equal(t, 160, image.Bounds().Dx())
+	require.Equal(t, 90, image.Bounds().Dy())
+	background := image.At(0, 0)
+	visible := 0
+	for y := range image.Bounds().Dy() {
+		for x := range image.Bounds().Dx() {
+			if image.At(x, y) != background {
+				visible++
+			}
+		}
+	}
+	require.Greater(t, visible, 300, "the real drive should be visible against the background")
+}

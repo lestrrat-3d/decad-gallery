@@ -5,6 +5,7 @@
 | [Spur gear](spurgear/README.md) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. |
 | [Helical gear](helicalgear/README.md) | <img src="helicalgear/images/index.png" alt="Bored helical gear" width="240"> | An involute gear with teeth twisted along its axis. |
 | [Herringbone gear](herringbonegear/README.md) | <img src="herringbonegear/images/index.png" alt="Bored herringbone gear" width="240"> | An involute gear with mirrored tooth slopes that meet at its midpoint. |
+| [Cycloidal drive](cycloidal/README.md) | <img src="cycloidal/images/index.png" alt="Exploded cycloidal drive" width="240"> | A cycloidal speed reducer with one or two lobed discs, a pinless housing, and an output plate. |
 | [Bevel gear pair](bevelgear/README.md) | <img src="bevelgear/images/index.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. |
 
 The index images are 480 × 270 pixels. Each model README uses a 1600 × 900
