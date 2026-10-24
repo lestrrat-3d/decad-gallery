@@ -134,7 +134,10 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 		}
 	} else if order == joinTeethGrouped {
 		// Small disjoint groups limit repeated work while keeping each blank join local.
-		const teethPerGroup = 4
+		teethPerGroup := 4
+		if spiralJoinGroupsFirst(p) && p.ToothSpacing == 0 && p.ToeExtension == 0 && p.ToeRadius == 0 {
+			teethPerGroup = 16
+		}
 		for start := 0; start < len(pattern); start += teethPerGroup {
 			end := min(start+teethPerGroup, len(pattern))
 			level := pattern[start:end]
