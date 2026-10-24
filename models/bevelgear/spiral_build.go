@@ -42,7 +42,9 @@ func buildSpiralMemberSerial(ctx context.Context, doc *decad.Document,
 // spiralJoinGroupsFirst limits the faster route to parameter sets verified with grouped joins.
 func spiralJoinGroupsFirst(p Params) bool {
 	d := DefaultParams()
-	return p.Module == d.Module && p.Teeth == d.Teeth && p.MateTeeth == d.MateTeeth &&
+	defaultTeeth := p.Teeth == d.Teeth && p.MateTeeth == d.MateTeeth
+	twentyFiveTeeth := p.Teeth == 25 && p.MateTeeth == 25
+	return p.Module == d.Module && (defaultTeeth || twentyFiveTeeth) &&
 		p.ShaftAngle == d.ShaftAngle && p.FaceWidth == 0 && p.PressureAngle == d.PressureAngle &&
 		p.Samples == d.Samples && p.SpiralAngle == d.SpiralAngle &&
 		(p.SpiralHand == d.SpiralHand || p.SpiralHand == "left") &&
