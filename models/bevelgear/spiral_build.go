@@ -46,7 +46,7 @@ func spiralJoinGroupsFirst(p Params) bool {
 		p.ShaftAngle == d.ShaftAngle && p.FaceWidth == 0 && p.PressureAngle == d.PressureAngle &&
 		p.Samples == d.Samples && p.SpiralAngle == d.SpiralAngle &&
 		(p.SpiralHand == d.SpiralHand || p.SpiralHand == "left") &&
-		p.CutterRadius == 0 && p.ToothSpacing == 0 && p.ToeExtension == 0 &&
+		p.ToothSpacing == 0 && p.ToeExtension == 0 &&
 		p.ToeRadius == 0 && p.MateToeRadius == 0 && p.BaseHeight == 0 && p.MateBaseHeight == 0
 }
 
