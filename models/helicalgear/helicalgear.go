@@ -41,8 +41,8 @@ func ValidateHelixAngle(angle float64) error {
 
 // Build adds a helical gear to doc. ctx and doc must not be nil.
 // The spur pipeline builds it about the local origin and +Z, then moves it onto
-// Params.Placement, the reference point and plane; a nil Placement leaves it on
-// the world XY plane. Only the tooth, which is
+// Params.Placement, the reference point and plane, because the tooth Unions fail on
+// bodies built at an offset; a nil Placement leaves it on the world XY plane. Only the tooth, which is
 // lofted between the lower section and the twisted section one Thickness above,
 // and the root fillet, whose radius is scaled by cos(HelixAngle), differ from spur.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {

@@ -10,6 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The real-body checks cover the 8-tooth, 2 mm thick, +14.5° gear and the source-default
+// 17-tooth gear. Each passes Tessellate(0.1 mm, VerifyAll) with one source-order variadic
+// Union, with a 1 mm and 3 mm bore respectively (one through-hole in the mesh), and with
+// 0.1 mm outer-cap chamfers. The mirrored tooth alone passes VerifyAll at +14.5° and +35°;
+// its full-height bounds and midpoint centroid check the chevron symmetry.
+
 func TestRealMirroredHerringboneTooth(t *testing.T) {
 	for _, tc := range []struct {
 		name                string

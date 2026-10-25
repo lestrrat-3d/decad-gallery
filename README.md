@@ -12,6 +12,12 @@ Decad construction steps, Go code, and geometry checks. The
 [model build pipeline](docs/model-pipeline.md) describes this path. The first
 item is the [spur gear](models/spurgear/README.md).
 
+Every item directory holds two specification files. `instructions.md` states the
+inputs and defaults, units, derived values, geometric construction, feature order,
+valid parameter range, and representative cases. `steps.md` maps each construction
+requirement to a Sketch or Decad operation and names the geometry check at each
+boundary.
+
 [`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator)
 is a downstream consumer. It will translate the Go construction into equivalent
 Python code for Fusion add-ins. This repository owns the decad construction and

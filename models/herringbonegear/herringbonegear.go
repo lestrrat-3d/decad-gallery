@@ -24,8 +24,8 @@ func variant(p Params) spurgear.Variant {
 
 // Build adds a herringbone gear to doc. ctx and doc must not be nil.
 // The spur pipeline builds it about the local origin and +Z, then moves it onto
-// Params.Placement, the reference point and plane; a nil Placement leaves it on
-// the world XY plane.
+// Params.Placement, the reference point and plane, because the tooth Unions fail on
+// bodies built at an offset; a nil Placement leaves it on the world XY plane.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")

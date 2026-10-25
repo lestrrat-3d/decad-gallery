@@ -8,48 +8,15 @@
 | --- | --- |
 | ![Top face, tooth outline, and centered bore](images/top.png) | ![Twisted tooth flanks and gear thickness from a low angle](images/low.png) |
 
-This model uses the [source helical instructions](instructions.md) and the
-gallery's spur involute tooth calculation. The first real 8-tooth, 2 mm
-thick, +14.5° case produces two verified Decad bodies: a lofted tooth and
-an extruded root disc. With merged Decad `dc2d041f1523`, all eight tooth
-Unions, the optional 1 mm bore Cut, and both outer cap Chamfers pass
-`VerifyAll` at 0.1 mm. On the bored gear, each cap selector returns 1,072
-outer edges and no bore edges. The source-order root-fillet selector finds
-no matching axial root edges on the small gear and skips that step. The
-source-default 17-tooth gear passes all tooth Unions and `VerifyAll` at 0.1 mm
-against merged Decad `228ae52cc75c` in 78.564 seconds. Its real 1 mm bore
-passes the source-order Cut and `VerifyAll` against merged Decad
-`c3059829064f` in 86.889 seconds; the verified mesh has one through-hole.
-With merged Decad `eb5b9a50a7fb`, the same default gear passes a 3 mm bore,
-both 0.1 mm outer-cap chamfers, and `VerifyAll` in 292.605 seconds while
-keeping one through-hole.
-The verified +14.5° gear has no straight axial root seam, so its source
-fillet selection is empty. The hero image builds the 17-tooth gear with a
+This model follows the Fusion add-in's helical instructions and the
+gallery's spur involute tooth calculation. The hero image builds the 17-tooth gear with a
 3 mm bore and 0.1 mm outer-cap chamfers. The bore matches the spur hero's
 diameter on the same Module 1, 17-tooth outline.
+
 Set `Params.Placement` (an `r3.Frame`) to anchor the gear: the frame origin is the
 reference point on the gear axis, its U and V axes span the reference plane that
-holds the lower cap, and the gear grows along U×V. `Build` constructs the gear at
-the origin and moves the finished body onto the frame, because the tooth Unions
-fail on bodies built at an offset. A nil `Placement` keeps the world XY plane.
+holds the lower cap, and the gear grows along U×V. A nil `Placement` keeps the world XY plane.
 Use `spurgear.Build` for zero twist. This helical `Build` requires a positive
 twist angle from 1° through 45°.
 
-The focused geometry checks run from the repository worktree:
-
-```sh
-go test ./models/helicalgear -run '^TestSmallHelicalToothAndRootDiscVerifyIndividually$' -count=1 -timeout 2m
-go test ./models/helicalgear -run '^TestSmallRealHelicalGear$' -count=1 -timeout 2m
-go test ./models/helicalgear -run '^TestSmallRealHelicalGearThroughBore$' -count=1 -timeout 2m
-go test ./models/helicalgear -run '^TestSmallRealHelicalGearWithCapChamfer$' -count=1 -timeout 5m
-go test ./models/helicalgear -run '^TestSmallRealHelicalGearWithBoreAndCapChamfer$' -count=1 -timeout 5m
-go test ./models/helicalgear -run '^TestDefaultRealHelicalGear$' -count=1 -timeout 5m
-go test ./models/helicalgear -run '^TestDefaultRealHelicalGearThroughBore$' -count=1 -timeout 5m
-go test ./models/helicalgear -run '^TestDefaultRealHelicalGearWithBoreAndCapChamfer$' -count=1 -timeout 10m
-```
-
-All five small-gear checks pass against merged Decad `dc2d041f1523`. The cap Chamfer
-checks take about 218 seconds without a bore and 214 seconds with a bore.
-The source-default 17-tooth build, 3 mm bore, and both outer-cap chamfers
-pass against their merged Decad releases. A nonempty root fillet still
-requires a real geometry check.
+Run `go test ./models/helicalgear` to check the supported parameter cases.

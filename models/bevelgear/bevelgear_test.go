@@ -9,6 +9,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The real-body checks are slow, so run them one at a time:
+//
+//	go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
+//	go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 10m
+//	go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
+//	go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
+//	go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 18m
+//	go test ./models/bevelgear -run '^TestSourceThirtyTwoSixteenStraightPair$' -timeout 18m
+//	go test ./models/bevelgear -run '^TestSourceFourFourStraightMember$' -timeout 5m
+//	go test ./models/bevelgear -run '^TestSourceFourFourStraightMemberAutoBore$' -timeout 5m
+//	go test ./models/bevelgear -run '^TestSourceFourFourStraightPairAutoBore$' -timeout 18m
+//
+// They check a closed outer shell before the bore, two placed solids with through-holes
+// afterward, and VerifyAll for each member. The pair tests check both 16/12 members
+// (Module 4, 90° shaft angle, 15 flank samples, the source-order tooth variadic
+// decad.Union before each optional bore) without rebuilding them in separate member
+// tests. The 4/4 case is the smallest virtual tooth count in the source's solid table
+// and covers both automatic bores. The source-default 31/31 spiral pair patterns 31
+// trimmed teeth per member, joins each to its blank, cuts both 7.75 mm bores, and
+// passes both placed bodies through VerifyAll at 0.1 mm.
+
 func TestBuildRejectsUnverifiedFullPatternCaseBeforeAddingBodies(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Samples = 14
