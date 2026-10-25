@@ -68,6 +68,7 @@ BEVEL_TESTS = {
 
 MODEL_PR_TESTS = [
     "TestDefaultParamsAreValid",
+    "TestPatternedLoopClosesOnSharedPoints",
     "TestProblems",
     "TestUndercutBound",
     "TestParameterTableMatchesResolve",
