@@ -55,13 +55,14 @@ func (r *run) buildDiscSampled(ctx context.Context, index int, turnLimit float64
 	if err := drawPatternedLoop(s, bore.Center, lobe, d.lobes); err != nil {
 		return nil, fmt.Errorf("cycloidal: disc %d lobes: %w", index+1, err)
 	}
-	for j := range p.OutputPinCount {
-		angle := phi + 2*math.Pi*float64(j)/float64(p.OutputPinCount)
-		x := cx + d.outputRadius*math.Cos(angle)
-		y := d.outputRadius * math.Sin(angle)
-		if _, err := r.circleAt(s, x, y, d.outputHoleDiameter, "output_hole_diameter"); err != nil {
-			return nil, fmt.Errorf("cycloidal: disc %d output hole %d: %w", index+1, j+1, err)
-		}
+	// One output hole at the disc's clocking angle, repeated about the disc center.
+	hole, err := r.circleAt(s, cx+d.outputRadius*math.Cos(phi), d.outputRadius*math.Sin(phi),
+		d.outputHoleDiameter, "output_hole_diameter")
+	if err != nil {
+		return nil, fmt.Errorf("cycloidal: disc %d output hole: %w", index+1, err)
+	}
+	if _, err := s.CreatePatternCircular([]sketch.Entity{hole}, bore.Center, p.OutputPinCount); err != nil {
+		return nil, fmt.Errorf("cycloidal: disc %d output holes: %w", index+1, err)
 	}
 	if err := solveAndVerify(ctx, s, fmt.Sprintf("cycloidal: disc %d", index+1)); err != nil {
 		return nil, err

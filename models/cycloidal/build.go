@@ -90,19 +90,20 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 		r.housingOuterCircles()); err != nil {
 		return Drive{}, err
 	}
-	plate, pins, err := r.buildOutput(ctx)
+	plate, pin, err := r.buildOutput(ctx)
 	if err != nil {
 		return Drive{}, err
 	}
 	if drive.OutputPlate, err = r.chamfered(ctx, plate, "output plate"); err != nil {
 		return Drive{}, err
 	}
-	for i := range pins {
-		if pins[i], err = r.chamfered(ctx, pins[i], "output pin"); err != nil {
-			return Drive{}, err
-		}
+	// One pin is chamfered and repeated, so the M pins come from one chamfer and one pattern.
+	if pin, err = r.chamfered(ctx, pin, "output pin"); err != nil {
+		return Drive{}, err
 	}
-	drive.OutputPins = pins
+	if drive.OutputPins, err = r.patternPins(ctx, pin); err != nil {
+		return Drive{}, err
+	}
 	return drive, nil
 }
 

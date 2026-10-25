@@ -83,14 +83,17 @@ with 8°, 12° and then 20° sampling.
 **Rotor disc.** One sketch on the disc's plane holds the closed outer loop of all lobes, the center
 bore of diameter `CenterBearingDiameter + BearingClearance` centered on the disc center, and the `M`
 output holes of diameter `D_hole` on the circle of radius `Rop` about the disc center, the first at the
-disc's clocking angle. One region of that sketch, with `1 + M` holes, is extruded by `DiscThickness`.
+disc's clocking angle. The sketch draws one hole and repeats it with a circular pattern about the disc center. One region of that sketch, with `1 + M` holes, is extruded by `DiscThickness`.
 Disc `d` starts at `d (DiscThickness + DiscGap)`.
 
 **Casing contour.** The casing's inner wall is the disc's swept envelope pushed out by `c`. As the cam
 turns by θ the disc center orbits the drive axis at `E` and the disc turns by `-θ/L`. For every
 direction in one pin pitch `[-π/N, π/N]`, 81 of them, the contour takes the largest distance from the
 drive axis at which any traced profile crosses that direction, measured on the segment between
-neighboring profile points (720 cam angles, 2000 profile steps). The result is mirrored about the pin
+neighboring profile points (2000 profile steps). The cam turning by `2π/N` turns the whole picture by one pin
+pitch, so the sweep covers one pitch's share of the cam turn, 360 cam angles per turn rounded up to a
+multiple of `N`, and folds every profile segment into the pitch it lands in. The profile's chord error, not
+the cam steps, limits the contour, at 0.002 mm for the default drive. The result is mirrored about the pin
 and repeated `N` times. Its lowest point is the pin surface `R - Rr` and its highest is
 `R - Rr + 2E`. The add-in bins the sweep by radius instead, which leaves a jagged contour that decad's
 curvature certificate refuses.
@@ -109,7 +112,9 @@ cylinder over the gap and disc 1, which overlap through the gap. The input bore 
 
 **Output.** The plate lies one plane gap above the stack, with `M` sockets on the circle of radius `Rop`
 about the drive axis. Each pin has diameter `D_pin` and runs from the top of the plate down to the lower
-face of disc 1, through every disc's output holes. Pin `k` is at angle `2πk/M`.
+face of disc 1, through every disc's output holes. Pin `k` is at angle `2πk/M`. The plate sketch draws one
+socket and repeats it with a circular pattern about the drive axis. The build extrudes and chamfers one pin
+and repeats the finished pin with a circular pattern of bodies about the drive axis.
 
 **Chamfers.** `ChamferSize` chamfers the outer loop of both faces of every rotor disc, the outer circles of
 the housing's two end faces, the outer circle of both plate faces and the ends of every pin.
