@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/sketch"
 )
 
 // outputPinCenter returns the center of output pin j on the output pin circle about the drive axis.
@@ -15,10 +15,10 @@ func (r *run) outputPinCenter(j int) point {
 	return point{r.d.outputRadius * math.Cos(angle), r.d.outputRadius * math.Sin(angle)}
 }
 
-// buildOutput builds the output plate above the disc stack, with a socket for each pin, and the M output pins.
-// Each pin runs from the top of the plate down to the bottom of the first disc, through every disc's output
+// buildOutput builds the output plate above the disc stack, with a socket for each pin, and output pin 1.
+// The pin runs from the top of the plate down to the bottom of the first disc, through every disc's output
 // holes.
-func (r *run) buildOutput(ctx context.Context) (*decad.Body, []*decad.Body, error) {
+func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error) {
 	p := r.p
 	plateHeight := float64(p.DiscCount)*p.DiscThickness + float64(p.DiscCount-1)*p.DiscGap + planeGap
 	plane, err := r.planeAt(plateHeight)
@@ -33,11 +33,8 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, []*decad.Body, erro
 	if _, err := r.circleAt(ps, 0, 0, r.d.outputPlateDiameter, "output_plate_diameter"); err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: output plate circle: %w", err)
 	}
-	for j := range p.OutputPinCount {
-		c := r.outputPinCenter(j)
-		if _, err := r.circleAt(ps, c.x, c.y, r.d.outputPinDiameter, "resolved_output_pin_diameter"); err != nil {
-			return nil, nil, fmt.Errorf("cycloidal: output plate socket %d: %w", j+1, err)
-		}
+	if err := r.patternPinCircle(ps); err != nil {
+		return nil, nil, fmt.Errorf("cycloidal: output plate sockets: %w", err)
 	}
 	if err := solveAndVerify(ctx, ps, "cycloidal: output plate"); err != nil {
 		return nil, nil, err
@@ -54,56 +51,65 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, []*decad.Body, erro
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: extrude output plate: %w", err)
 	}
-	// The pins: one circle per pin, each extruded from the plate's lower face up through the plate and down to
-	// the first disc's lower face.
+	// The pin: one circle, extruded from the plate's lower face up through the plate and down to the first
+	// disc's lower face. patternPins repeats the finished pin.
 	pins, err := r.world.CreateSketch(plane)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: output pin sketch: %w", err)
 	}
-	for j := range p.OutputPinCount {
-		c := r.outputPinCenter(j)
-		if _, err := r.circleAt(pins, c.x, c.y, r.d.outputPinDiameter, "resolved_output_pin_diameter"); err != nil {
-			return nil, nil, fmt.Errorf("cycloidal: output pin %d circle: %w", j+1, err)
-		}
+	c := r.outputPinCenter(0)
+	if _, err := r.circleAt(pins, c.x, c.y, r.d.outputPinDiameter, "resolved_output_pin_diameter"); err != nil {
+		return nil, nil, fmt.Errorf("cycloidal: output pin circle: %w", err)
 	}
-	if err := solveAndVerify(ctx, pins, "cycloidal: output pins"); err != nil {
+	if err := solveAndVerify(ctx, pins, "cycloidal: output pin"); err != nil {
 		return nil, nil, err
 	}
 	height, err := r.doc.Param("output_plate_height")
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: read output plate height: %w", err)
 	}
-	var bodies []*decad.Body
+	var seed *sketch.Profile
 	for _, profile := range pins.Profiles() {
-		if !profile.Valid || len(profile.Holes) != 0 {
-			return nil, nil, fmt.Errorf("cycloidal: output pins: unexpected region")
+		if !profile.Valid || len(profile.Holes) != 0 || seed != nil {
+			return nil, nil, fmt.Errorf("cycloidal: output pin: unexpected region")
 		}
-		body, err := decad.Extrude(ctx, r.doc, pins, profile, decad.TwoSided{
-			One: decad.DistanceSide{D: thickness},
-			Two: decad.DistanceSide{D: height},
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("cycloidal: extrude output pin: %w", err)
-		}
-		bodies = append(bodies, body)
+		seed = profile
 	}
-	if len(bodies) != p.OutputPinCount {
-		return nil, nil, fmt.Errorf("cycloidal: got %d output pins, want %d", len(bodies), p.OutputPinCount)
+	if seed == nil {
+		return nil, nil, fmt.Errorf("cycloidal: output pin: no region")
 	}
-	// Order the pins by their angle about the drive axis, so pin k is the one at angle 2πk/M.
-	angles := make(map[*decad.Body]float64, len(bodies))
-	for _, body := range bodies {
-		c, err := body.Centroid()
-		if err != nil {
-			return nil, nil, fmt.Errorf("cycloidal: measure output pin: %w", err)
-		}
-		offset := c.Value.Sub(r.frame.Origin())
-		angle := math.Atan2(offset.Dot(r.frame.V()), offset.Dot(r.frame.U()))
-		if angle < -1e-9 {
-			angle += 2 * math.Pi
-		}
-		angles[body] = angle
+	pin, err := decad.Extrude(ctx, r.doc, pins, seed, decad.TwoSided{
+		One: decad.DistanceSide{D: thickness},
+		Two: decad.DistanceSide{D: height},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("cycloidal: extrude output pin: %w", err)
 	}
-	sort.Slice(bodies, func(i, j int) bool { return angles[bodies[i]] < angles[bodies[j]] })
-	return plate, bodies, nil
+	return plate, pin, nil
+}
+
+// patternPinCircle makes the output pin circles of one sketch: pin 0's circle on +X, repeated by a circular
+// pattern about the sketch origin, the drive axis. The seed keeps the dimensions, so the copies follow it.
+func (r *run) patternPinCircle(s *sketch.Sketch) error {
+	c := r.outputPinCenter(0)
+	seed, err := r.circleAt(s, c.x, c.y, r.d.outputPinDiameter, "resolved_output_pin_diameter")
+	if err != nil {
+		return err
+	}
+	if _, err := s.CreatePatternCircular([]sketch.Entity{seed}, s.Origin(), r.p.OutputPinCount); err != nil {
+		return fmt.Errorf("pattern: %w", err)
+	}
+	return nil
+}
+
+// patternPins returns the M output pins, pin k at angle 2πk/M about the drive axis: pin, then its copies from a
+// circular pattern about the placement's axis.
+func (r *run) patternPins(ctx context.Context, pin *decad.Body) ([]*decad.Body, error) {
+	copies, err := decad.PatternCopies(ctx, pin, decad.CircularPattern{
+		Center: r.frame.Origin(), Axis: r.frame.N(), Count: r.p.OutputPinCount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("cycloidal: pattern output pins: %w", err)
+	}
+	return append([]*decad.Body{pin}, copies...), nil
 }

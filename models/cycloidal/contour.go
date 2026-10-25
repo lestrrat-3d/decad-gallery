@@ -5,8 +5,10 @@ import "math"
 const (
 	// contourPoints is the number of points one pin pitch of the contour is sampled at, ends included.
 	contourPoints = 81
-	// contourCamSteps is the number of cam angles the envelope sweep samples over one turn of the cam.
-	contourCamSteps = 720
+	// contourCamSteps is the number of cam angles the envelope sweep samples over one turn of the cam. The sweep
+	// samples one pin pitch's share of them, ceil(contourCamSteps / N), because the cam turning by 2π/N only
+	// turns the whole picture by one pin pitch.
+	contourCamSteps = 360
 	// contourCurveSteps is the number of points of the rotor profile the sweep traces at each cam angle.
 	contourCurveSteps = 2000
 )
@@ -20,11 +22,16 @@ const (
 func housingContour(p Params, d dimensions) []point {
 	n := float64(p.PinCount)
 	half := math.Pi / n
+	pitch := 2 * half
 	reach := make([]float64, contourPoints)
 	hit := make([]bool, contourPoints)
 	trace := make([]point, contourCurveSteps+1)
-	for i := range contourCamSteps {
-		theta := 2 * math.Pi * float64(i) / contourCamSteps
+	// The cam at angle θ+2π/N is the cam at θ turned by one pin pitch about the drive axis, as the disc turns by
+	// -θ/L = -θ/(N-1) and L+1 = N. So the sweep over a whole turn of the cam is the sweep over one pitch's worth
+	// of cam angles, with every profile segment folded into the pitch it lands in.
+	camSteps := (contourCamSteps + p.PinCount - 1) / p.PinCount
+	for i := range camSteps {
+		theta := pitch * float64(i) / float64(camSteps)
 		cx, cy := p.Eccentricity*math.Cos(theta), p.Eccentricity*math.Sin(theta)
 		phi := -theta / float64(d.lobes)
 		for j := range trace {
@@ -38,27 +45,35 @@ func housingContour(p Params, d dimensions) []point {
 			} else if alpha-beta > math.Pi {
 				beta += 2 * math.Pi
 			}
-			lo, hi := math.Min(alpha, beta), math.Max(alpha, beta)
-			if hi < -half || lo > half || hi == lo {
-				continue
-			}
-			first := max(int(math.Ceil((lo+half)/(2*half)*(contourPoints-1))), 0)
-			last := min(int(math.Floor((hi+half)/(2*half)*(contourPoints-1))), contourPoints-1)
-			for k := first; k <= last; k++ {
-				target := -half + 2*half*float64(k)/(contourPoints-1)
-				// The point of segment ab on the ray at angle target.
-				s, c := math.Sincos(target)
-				den := (b.x-a.x)*s - (b.y-a.y)*c
-				if den == 0 {
+			// The pitch the segment lies in, and its two neighbors for a segment across a pitch boundary.
+			home := math.Round((alpha + beta) / 2 / pitch)
+			for m := home - 1; m <= home+1; m++ {
+				shift := m * pitch
+				lo, hi := math.Min(alpha, beta)-shift, math.Max(alpha, beta)-shift
+				if hi < -half || lo > half || hi == lo {
 					continue
 				}
-				u := (a.y*c - a.x*s) / den
-				if u < 0 || u > 1 {
-					continue
-				}
-				r := (a.x+u*(b.x-a.x))*c + (a.y+u*(b.y-a.y))*s
-				if !hit[k] || r > reach[k] {
-					reach[k], hit[k] = r, true
+				sn, cs := math.Sincos(-shift)
+				ra := point{a.x*cs - a.y*sn, a.x*sn + a.y*cs}
+				rb := point{b.x*cs - b.y*sn, b.x*sn + b.y*cs}
+				first := max(int(math.Ceil((lo+half)/pitch*(contourPoints-1))), 0)
+				last := min(int(math.Floor((hi+half)/pitch*(contourPoints-1))), contourPoints-1)
+				for k := first; k <= last; k++ {
+					target := -half + pitch*float64(k)/(contourPoints-1)
+					// The point of segment ab on the ray at angle target.
+					s, c := math.Sincos(target)
+					den := (rb.x-ra.x)*s - (rb.y-ra.y)*c
+					if den == 0 {
+						continue
+					}
+					u := (ra.y*c - ra.x*s) / den
+					if u < 0 || u > 1 {
+						continue
+					}
+					r := (ra.x+u*(rb.x-ra.x))*c + (ra.y+u*(rb.y-ra.y))*s
+					if !hit[k] || r > reach[k] {
+						reach[k], hit[k] = r, true
+					}
 				}
 			}
 		}

@@ -28,12 +28,20 @@ func TestCamAndOutput(t *testing.T) {
 			cam, err := r.buildCam(t.Context())
 			require.NoError(t, err)
 			verifyBody(t, "cam", cam)
-			plate, pins, err := r.buildOutput(t.Context())
+			plate, pin, err := r.buildOutput(t.Context())
 			require.NoError(t, err)
 			verifyBody(t, "plate", plate)
+			pins, err := r.patternPins(t.Context(), pin)
+			require.NoError(t, err)
 			require.Len(t, pins, p.OutputPinCount)
-			for _, pin := range pins {
+			for k, pin := range pins {
 				verifyBody(t, "pin", pin)
+				// Pin k stands at angle 2πk/M on the output pin circle.
+				c, err := pin.Centroid()
+				require.NoError(t, err)
+				want := r.outputPinCenter(k)
+				require.InDelta(t, want.x, c.Value.X, 1e-6)
+				require.InDelta(t, want.y, c.Value.Y, 1e-6)
 			}
 			box, err := cam.Bounds()
 			require.NoError(t, err)
