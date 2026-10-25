@@ -3,9 +3,9 @@
 ![Decad spur gear hero image](models/spurgear/images/hero.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
-[decad](https://github.com/lestrrat-3d/decad). Each model is a real solid body with adjustable
-dimensions: you change the tooth count, thickness, bore or other inputs, and the model rebuilds. Items may
-use geometry from other items, so a gear can become part of a hand-crank siren or a wind turbine.
+[decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
+inputs such as tooth count, thickness, and bore. Items may use geometry from other items, so a gear can
+become part of a hand-crank siren or a wind turbine.
 
 ## Models
 
