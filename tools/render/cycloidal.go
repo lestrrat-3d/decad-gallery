@@ -13,7 +13,7 @@ import (
 )
 
 // cycloidalLayout is the exploded layout of the default two-disc drive: each part moves along a staircase,
-// 55 mm along X and 45 mm along Z per step, so no part hides another.
+// 44 mm along X and 22 mm along Z per step, so the parts sit close together and every part stays visible.
 var cycloidalLayout = map[string]int{
 	cycloidal.HousingName:     -2,
 	cycloidal.DiscName(0):     -1,
@@ -23,7 +23,7 @@ var cycloidalLayout = map[string]int{
 }
 
 // cycloidalStep is the offset of one layout step.
-var cycloidalStep = r3.NewVec(55, 0, 45)
+var cycloidalStep = r3.NewVec(44, 0, 22)
 
 var cycloidalColors = map[string]solidlens.Color{
 	cycloidal.HousingName:     solidlens.RGB(0.38, 0.45, 0.52),
