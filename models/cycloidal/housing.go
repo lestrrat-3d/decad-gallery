@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
 
@@ -144,36 +141,13 @@ func (r *run) buildCavity(ctx context.Context, stride int) (*decad.Body, error) 
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: casing sketch: %w", err)
 	}
-	runs := splitAtInflections(housingContour(p, d))
-	pitch := 2 * math.Pi / float64(p.PinCount)
-	rotate := func(q point, k int) point {
-		s, c := math.Sincos(float64(k) * pitch)
-		return point{q.x*c - q.y*s, q.x*s + q.y*c}
+	// One pin pitch of the contour, patterned about the drive axis.
+	pitch := make([][]point, 0)
+	for _, run := range splitAtInflections(housingContour(p, d)) {
+		pitch = append(pitch, thinned(run, stride))
 	}
-	var first, shared *sketch.Point
-	for k := range p.PinCount {
-		for i, run := range runs {
-			run = thinned(run, stride)
-			points := make([]*sketch.Point, len(run))
-			for j, q := range run {
-				switch {
-				case j == 0 && shared != nil:
-					points[j] = shared
-				case i == len(runs)-1 && j == len(run)-1 && k == p.PinCount-1:
-					points[j] = first
-				default:
-					q = rotate(q, k)
-					points[j] = sketchcheck.DimensionPoint(cs, q.x, q.y)
-				}
-			}
-			if first == nil {
-				first = points[0]
-			}
-			shared = points[len(points)-1]
-			if _, err := cs.CreateFitSpline(points...); err != nil {
-				return nil, fmt.Errorf("cycloidal: casing pitch %d part %d spline: %w", k+1, i+1, err)
-			}
-		}
+	if err := drawPatternedLoop(cs, cs.Origin(), pitch, p.PinCount); err != nil {
+		return nil, fmt.Errorf("cycloidal: casing pitches: %w", err)
 	}
 	if err := solveAndVerify(ctx, cs, "cycloidal: casing"); err != nil {
 		return nil, err

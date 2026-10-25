@@ -14,7 +14,7 @@ require (
 )
 
 require (
-	github.com/lestrrat-3d/sketch v0.0.0-20261024123506-8e7da692d5d8 // indirect
+	github.com/lestrrat-3d/sketch v0.0.0-20261025081052-c5a4c1dbb01a // indirect
 	github.com/lestrrat-go/3mf v0.0.0-20261005042850-6101195a51c8 // indirect
 	github.com/lestrrat-go/option/v3 v3.0.0-alpha1 // indirect
 	github.com/lestrrat-go/stl v0.0.0-20260904080308-f2792ffa3582 // indirect

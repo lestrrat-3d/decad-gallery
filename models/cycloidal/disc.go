@@ -7,7 +7,6 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/sketch"
 )
 
@@ -37,34 +36,24 @@ func (r *run) buildDiscSampled(ctx context.Context, index int, turnLimit float64
 		return nil, fmt.Errorf("cycloidal: disc %d sketch: %w", index+1, err)
 	}
 	cx, phi := r.discGeometry(index)
-	segments := lobeSegments(p, d, turnLimit)
-	span := 2 * math.Pi / float64(d.lobes)
-	var first, shared *sketch.Point
-	for k := range d.lobes {
-		for i, segment := range segments {
-			points := make([]*sketch.Point, len(segment))
-			for j, t := range segment {
-				switch {
-				case j == 0 && shared != nil:
-					points[j] = shared
-				case i == len(segments)-1 && j == len(segment)-1 && k == d.lobes-1:
-					points[j] = first
-				default:
-					q := discPoint(p, d, t+float64(k)*span, cx, 0, phi)
-					points[j] = sketchcheck.DimensionPoint(s, q.x, q.y)
-				}
-			}
-			if first == nil {
-				first = points[0]
-			}
-			shared = points[len(points)-1]
-			if _, err := s.CreateFitSpline(points...); err != nil {
-				return nil, fmt.Errorf("cycloidal: disc %d lobe %d part %d spline: %w", index+1, k+1, i+1, err)
-			}
-		}
-	}
-	if _, err := r.circleAt(s, cx, 0, p.CenterBearingDiameter+p.BearingClearance, "disc_bore_diameter"); err != nil {
+	bore, err := r.circleAt(s, cx, 0, p.CenterBearingDiameter+p.BearingClearance, "disc_bore_diameter")
+	if err != nil {
 		return nil, fmt.Errorf("cycloidal: disc %d center bore: %w", index+1, err)
+	}
+	// One lobe, valley to valley, patterned about the disc center. The profile runs clockwise as its curve
+	// parameter grows, and the pattern turns counterclockwise, so the lobe is drawn from its last point back to
+	// its first.
+	segments := lobeSegments(p, d, turnLimit)
+	lobe := make([][]point, len(segments))
+	for i, segment := range segments {
+		run := make([]point, len(segment))
+		for j, t := range segment {
+			run[len(segment)-1-j] = discPoint(p, d, t, cx, 0, phi)
+		}
+		lobe[len(segments)-1-i] = run
+	}
+	if err := drawPatternedLoop(s, bore.Center, lobe, d.lobes); err != nil {
+		return nil, fmt.Errorf("cycloidal: disc %d lobes: %w", index+1, err)
 	}
 	for j := range p.OutputPinCount {
 		angle := phi + 2*math.Pi*float64(j)/float64(p.OutputPinCount)

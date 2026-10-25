@@ -74,7 +74,9 @@ on the root circle of radius `Rv`.
 **Sampling.** One lobe is traced at 2000 steps and thinned so consecutive points turn by 5°. Each lobe
 has two inflections where the curvature changes sign. Decad certifies a fit spline only when its
 curvature has one sign, so each lobe is drawn as one fit spline per sign, three per lobe, sharing the
-points at the cuts. Decad certifies a body by work proportional to its spline pieces times their
+points at the cuts. The sketch draws one lobe and repeats it with a circular pattern about the disc center,
+which closes the ring on shared valley points; the Fusion add-in does the same because its cost grows with
+the cube of the points in a sketch. Decad certifies a body by work proportional to its spline pieces times their
 points. When a build with 5° sampling exceeds that ceiling, as 23 lobes do, the disc is built again
 with 8°, 12° and then 20° sampling.
 
@@ -94,8 +96,8 @@ and repeated `N` times. Its lowest point is the pin surface `R - Rr` and its hig
 curvature certificate refuses.
 
 **Housing.** One outer cylinder of diameter `2 (R - Rr + 2E + wall)` runs from the underside of the base,
-`1 mm + BaseThickness` below disc 1, to the top of the stack. A cavity bounded by the contour (`N` pitches,
-each split at its inflections into three fit splines through every third sampled point, and through every
+`1 mm + BaseThickness` below disc 1, to the top of the stack. A cavity bounded by the contour (one pitch drawn once and repeated `N` times with a circular pattern about the drive axis,
+split at its inflections into three fit splines through every third sampled point, and through every
 second, fourth, sixth or single point when decad refuses) is cut from one plane gap above the base to past
 the top. That leaves the casing wall and a base floor. A cylinder of diameter `2 (R - Rr - wall)` is then
 cut through the floor. No two bodies share a face, which decad does not decide.
