@@ -117,6 +117,18 @@ func singleProfile(s *sketch.Sketch, stage string) (*sketch.Profile, error) {
 }
 
 // Build constructs the gear in doc and returns its body.
+//
+// It extrudes a root disc and one tooth section with fit-spline flanks, repeats that
+// tooth N times with a circular pattern about the gear axis, and joins the disc and the
+// teeth in one union. For a gear whose flanks begin inside the root circle, the tooth is
+// the natural involute tooth closed by an arc just inside the root circle, and its flanks
+// cross the root circle in the union. Sketch trims the original fit spline there and
+// joins the gear regions into one profile. Build then asks decad to fillet the axial root
+// corners; a nonpositive derived fillet radius skips the fillets. The default model uses
+// 15 fit points per flank and has 17 teeth and 34 root fillets.
+//
+// BoreDiameter cuts a centered through-bore after the root fillets. CapChamfer chamfers
+// the outer loops of both end caps, with or without a bore; the bore rims stay sharp.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	return Variant{}.Build(ctx, doc, p)
 }

@@ -28,89 +28,18 @@ The 32/16 straight-tooth pair:
 | --- | --- | --- |
 | ![Both straight-tooth gear members from above](images/straight-top.png) | ![Both bored straight-tooth gear members from a high oblique angle](images/straight-high.png) | ![Both bored straight-tooth gear members from a low side angle](images/straight-low.png) |
 
-`Build(ctx, doc, Params)` constructs a straight member with any tooth count and option,
-or a spiral member with equal tooth counts at Module 1 and any cutter radius, hand, face
-width, base height, tooth spacing, toe extension, toe radius, pressure angle and spiral
-angle. A spiral member is built by a serial join of overshooting teeth that decad trims
-once with a region bounded by the end planes and cap cones, so its document must be made
-with a chain tolerance:
+`Build(ctx, doc, Params)` constructs one gear member. A straight member takes any tooth
+count and option. A spiral member takes equal tooth counts at Module 1 and any cutter
+radius, hand, face width, base height, tooth spacing, toe extension, toe radius, pressure
+angle and spiral angle. `DefaultParams()` selects Module 1, a 90° shaft angle, 35° spiral
+teeth, and an auto-calculated bore for each member. `BuildPair` builds and places all four
+supported pairs.
 
-```go
-doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
-```
+Set `Params.Placement` (an `r3.Frame`) to anchor the pair. The frame origin is the common
+pitch apex, its U and V axes span the plane that holds both shafts, and the driving shaft
+runs along U. A nil `Placement` keeps the world origin and XY shaft plane.
 
-Without it decad refuses the serial joins. A 14.5° pressure angle and a 20° spiral angle build as
-a solid whose mesh `VerifyAll` cannot verify at 0.1 mm, because the flanks cross the end cones
-at a very shallow angle. The build tries a short list of tooth overshoots and two join orders,
-so a member can take several builds of about a minute each. `DefaultParams()` selects Module 1,
-a 90° shaft angle, 35° spiral teeth, and an auto-calculated bore for each
-member. `BuildPair` builds and places all four supported pairs.
-Set `Params.Placement` (an `r3.Frame`) to anchor the pair: the frame origin is the
-common pitch apex, its U and V axes span the plane that holds both shafts, and the
-driving shaft runs along U. The members are built at the world origin and moved onto
-the frame afterwards, because the tooth Unions fail on bodies built at an offset.
-A nil `Placement` keeps the world origin and XY shaft plane.
 The [instructions](instructions.md) define supported inputs and invalid cases.
-The [steps](steps.md) name the Sketch and Decad operations.
-
-Run the real-body checks separately:
-
-```sh
-go test ./models/bevelgear -run '^TestRealEightToothFullPatternJoin$' -timeout 5m
-go test ./models/bevelgear -run '^TestJoinedEightToothPairThroughBore$' -timeout 10m
-go test ./models/bevelgear -run '^TestSourceDefaultSpiralPair$' -timeout 15m
-go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPair$' -timeout 15m
-go test ./models/bevelgear -run '^TestSourceSixteenTwelveStraightPairAutoBore$' -timeout 18m
-go test ./models/bevelgear -run '^TestSourceThirtyTwoSixteenStraightPair$' -timeout 18m
-go test ./models/bevelgear -run '^TestSourceFourFourStraightMember$' -timeout 5m
-go test ./models/bevelgear -run '^TestSourceFourFourStraightMemberAutoBore$' -timeout 5m
-go test ./models/bevelgear -run '^TestSourceFourFourStraightPairAutoBore$' -timeout 18m
-```
-
-The tests check a closed outer shell before the bore, two placed solids with
-through-holes afterward, and `VerifyAll` for each member. The pair tests check
-both 16/12 members without rebuilding them in separate member tests. Those
-members use Module 4, a 90° shaft angle, 15 flank samples, and the source-order tooth
-variadic `decad.Union` before each optional bore. The 4/4 case checks the smallest
-virtual tooth count in the source's solid table and both automatic bores. The
-[renderer](../../tools/render/README.md) builds the source-default pair and the 32/16 straight pair for the hero
-image and checks the PNG in its integration test.
-
-`BuildVirtualToothProfile` also draws one back-cone tooth for the planned
-apex loft. Its Sketch tests cover fractional virtual tooth counts for equal
-and unequal pairs and an embedded 60-tooth flank whose root trim is exact.
-`BuildBackConeToothProfile` places it on the tilted plane and tests the
-half-millimeter tooth-spacing offset without changing the plane's distance
-from the apex.
-`BuildPointTooth` lofts that fitted profile from the exact common apex.
-Its tests build 8/8, spaced and oblique 16/12, and embedded-root 60/60
-teeth; all four have the origin apex and a verified Decad mesh.
-`BuildBlank` revolves the reference's six-sided axial section. Its focused
-test checks two planar ends, three conical surfaces, and a verified mesh.
-`BuildBoredBlank` cuts the real revolved blank. Its test checks the small
-eight-tooth case and a 31-tooth pair at Module 4. Both produce a verified
-solid with a through-hole in the mesh.
-`BuildBlankPair` revolves both members around one apex. Its unequal 16/12
-test checks the two shaft directions, each heel station, and verified meshes.
-`BuildToeCone` and `BuildHeelCone` revolve the exact conical cutting tools
-from the blank's toe-root corner and heel-cone line. Their tests check the
-apex stations, cone surfaces, far caps, and verified meshes. The ordered toe
-cut and heel trim now pass `VerifyAll` for 8/8 and spaced 16/12 teeth, retain
-cone and fitted flank faces, and select the larger heel piece.
-The real 8/8 blank and one trimmed tooth join into a verified solid. The
-first join test confirms that the tooth seats inside the revolved blank and
-that the joined volume exceeds the blank's certified upper bound. All eight
-trimmed teeth, copied around the shaft in 45° steps, join the blank into one
-closed solid and pass `VerifyAll`. A 1 mm through-bore then cuts that joined
-body, and its mesh has Euler characteristic zero.
-
-For the source-default 31/31 spiral pair, the driving and pinion teeth each
-pass the real slice, cutter trace, twist, crown, nine-face loft, toe cut,
-and heel trim. Each trimmed tooth produces 31 placed copies, and every copy
-passes `VerifyAll` at 0.1 mm against merged Decad heel support. The first
-tooth-to-blank `Union` passes `VerifyAll` for both members. Each full
-31-tooth pattern joins its blank into one solid. The real
-`BuildPair(DefaultParams())` cuts both 7.75 mm bores and passes both placed
-bodies through `VerifyAll`. The renderer produced the
-1600 × 900 hero PNG from that pair. Real blank-only cuts
-also pass for the source-default 90° case and a capped 35° shaft-angle case.
+The [steps](steps.md) name the Sketch and Decad operations. The
+[renderer](../../tools/render/README.md) builds the source-default pair and the 32/16
+straight pair for the hero image.

@@ -181,6 +181,21 @@ func derive(p Params) (dimensions, error) {
 
 // Build adds one member of a bevel pair in its local shaft frame, then moves it to
 // Params.Placement. ctx and doc must not be nil.
+//
+// The member is built at the world origin and moved afterwards, because the tooth
+// Unions fail on bodies built at an offset.
+//
+// A spiral member is built by a serial join of overshooting teeth that decad trims once
+// with a region bounded by the end planes and cap cones. Decad refuses those serial joins
+// unless doc was made with a chain tolerance:
+//
+//	doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
+//
+// A 14.5° pressure angle with a 20° spiral angle builds a solid whose mesh VerifyAll cannot
+// verify at 0.1 mm, because the flanks cross the end cones at a very shallow angle. When
+// decad refuses a boolean, the build retries with the next tooth overshoot and the other
+// join order (see spiralOvershoots), so a spiral member can take several builds of about
+// a minute each.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
