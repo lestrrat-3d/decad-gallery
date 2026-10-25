@@ -5,9 +5,8 @@
 This item builds a cycloidal speed reducer with Decad: one or two lobed rotor discs on an eccentric cam,
 a pinless housing whose inner wall is the discs' swept contour, and an output plate whose pins pass
 through holes in the discs. The image shows the two-disc drive pulled apart along a staircase. Its
-source is [instructions.md](instructions.md), which follows the Fusion add-in's
-`fusion360-gear-generator/spec/cycloidal`. The [steps](steps.md) map the contract to Sketch and Decad
-operations. Dimensions are in millimeters.
+source is `instructions.md`, which follows the Fusion add-in's
+`fusion360-gear-generator/spec/cycloidal`. Dimensions are in millimeters.
 
 The Go package exposes `Build(ctx, doc, Params)`. It returns a `Drive` whose bodies carry the add-in's
 names, and `Drive.Named` lists them in order. `DefaultParams()` is the add-in's default: 16 pins on a

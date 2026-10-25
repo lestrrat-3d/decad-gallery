@@ -39,7 +39,5 @@ Set `Params.Placement` (an `r3.Frame`) to anchor the pair. The frame origin is t
 pitch apex, its U and V axes span the plane that holds both shafts, and the driving shaft
 runs along U. A nil `Placement` keeps the world origin and XY shaft plane.
 
-The [instructions](instructions.md) define supported inputs and invalid cases.
-The [steps](steps.md) name the Sketch and Decad operations. The
-[renderer](../../tools/render/README.md) builds the source-default pair and the 32/16
+The [renderer](../../tools/render/README.md) builds the source-default pair and the 32/16
 straight pair for the hero image.

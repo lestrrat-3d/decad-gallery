@@ -8,7 +8,7 @@
 | --- | --- |
 | ![Top face, tooth outline, and centered bore](images/top.png) | ![Twisted tooth flanks and gear thickness from a low angle](images/low.png) |
 
-This model uses the [source helical instructions](instructions.md) and the
+This model follows the Fusion add-in's helical instructions and the
 gallery's spur involute tooth calculation. The hero image builds the 17-tooth gear with a
 3 mm bore and 0.1 mm outer-cap chamfers. The bore matches the spur hero's
 diameter on the same Module 1, 17-tooth outline.

@@ -8,10 +8,8 @@
 | --- | --- |
 | ![Top face, tooth outline, and centered bore](images/top.png) | ![Tooth flanks and gear thickness from a low angle](images/low.png) |
 
-This item builds one straight-toothed involute gear. Its source is
-[instructions.md](instructions.md). The [steps](steps.md) map the contract to
-Sketch and Decad operations; `spurgear.go` constructs the model with
-decad. Dimensions are in millimeters, and the pressure angle is in radians.
+This item builds one straight-toothed involute gear; `spurgear.go` constructs
+the model with decad. Dimensions are in millimeters, and the pressure angle is in radians.
 
 The Go package exposes `Build(ctx, doc, Params)`. Its caller supplies a decad
 document and receives one gear body. Set `Params.Placement` (an `r3.Frame`) to anchor the gear: the frame origin is
