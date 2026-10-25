@@ -34,9 +34,13 @@ type Params struct {
 	BaseHeight       float64
 	MateBaseHeight   float64
 
-	// Placement anchors the pair. Its origin is the common pitch apex, its U and V axes span
-	// the plane that holds both shafts, and the driving shaft runs along U. Nil keeps the
-	// world origin, with the shafts in the world XY plane and the driving shaft on +X.
+	// Placement is the Target Plane and Center Point of the Fusion add-in. Its origin is the
+	// centre of the driving gear's back face, which lies flat on the plane through the origin
+	// spanned by U and V. The gear grows toward the normal U×V, so the pitch apex lies
+	// ahead of the origin along the normal by the driving gear's heel station. The driving
+	// shaft runs from the apex down to the origin, and the pinion shaft turns away from it
+	// toward U by the shaft angle. Nil keeps the build frame: apex at the world origin, shafts
+	// in the world XY plane and the driving shaft on +X.
 	Placement *r3.Frame
 }
 
@@ -210,7 +214,35 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	return placement.Place(ctx, member, p.Placement)
+	apex, err := apexFrame(p)
+	if err != nil {
+		return nil, err
+	}
+	return placement.Place(ctx, member, apex)
+}
+
+// apexFrame turns Params.Placement into the frame that carries the build frame onto the world: the
+// build apex lands on the target plane's normal at the driving heel station, the build X axis (the
+// driving shaft) lands on the negated normal, and the build Y axis lands on U. Nil gives nil.
+func apexFrame(p Params) (*r3.Frame, error) {
+	if p.Placement == nil {
+		return nil, nil
+	}
+	d, err := derive(p)
+	if err != nil {
+		return nil, err
+	}
+	heel, err := heelStation(p, d)
+	if err != nil {
+		return nil, err
+	}
+	n := p.Placement.N()
+	apex := p.Placement.Origin().Add(n.Scale(heel))
+	f, err := r3.NewFrame(apex, n.Scale(-1), p.Placement.U())
+	if err != nil {
+		return nil, fmt.Errorf("placement frame: %w", err)
+	}
+	return &f, nil
 }
 
 type memberBuildPlan struct {

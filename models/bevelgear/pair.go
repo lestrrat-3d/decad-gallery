@@ -164,11 +164,15 @@ func placePair(ctx context.Context, doc *decad.Document, p Params, containers pa
 		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
 	}
 	// Both members are built about the world origin; one rigid move per body keeps their mesh.
-	driving, err = placement.Place(ctx, driving, p.Placement)
+	apex, err := apexFrame(p)
+	if err != nil {
+		return GearPair{}, err
+	}
+	driving, err = placement.Place(ctx, driving, apex)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
 	}
-	pinion, err = placement.Place(ctx, pinion, p.Placement)
+	pinion, err = placement.Place(ctx, pinion, apex)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}

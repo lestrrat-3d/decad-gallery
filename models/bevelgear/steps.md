@@ -47,7 +47,8 @@ supported pair.
    `VerifyAll` at 0.1 mm.
    When `Placement` is set, `prepareBuild` rejects an invalid frame first. After the
    last boolean, `Build` and `BuildPair` call `decad.Transform` with
-   `r3.FromFrame(Placement)` on each returned body. Check a placed member's volume
+   `r3.FromFrame` of the apex frame on each returned body. The apex frame has the apex at the origin plus the
+   normal times the driving heel station, the build X axis on the negated normal, and the build Y axis on U. Check a placed member's volume
    and bounds against the unplaced member, and a placed pair's two bodies in one
    document.
 9. For a spiral case, slice the untrimmed point tooth
