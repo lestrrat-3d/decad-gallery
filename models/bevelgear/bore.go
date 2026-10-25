@@ -27,7 +27,7 @@ func BuildBoredBlank(ctx context.Context, doc *decad.Document, p Params) (*decad
 	if err != nil {
 		return nil, err
 	}
-	return cutBore(ctx, doc, blank, p.BoreDiameter)
+	return cutBore(ctx, doc, blank, localShaft, p.BoreDiameter)
 }
 
 func validateBore(p Params) error {
@@ -79,15 +79,30 @@ func maximumBoreDiameter(p Params) (float64, error) {
 	return 1.9 * math.Min(section[2].radius, section[4].radius), nil
 }
 
-func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diameter float64) (*decad.Body, error) {
+// cutBore cuts a through-bore of the given diameter about the shaft of f out of target.
+func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, f shaftFrame,
+	diameter float64) (*decad.Body, error) {
 	box, err := target.Bounds()
 	if err != nil {
 		return nil, fmt.Errorf("measure bore target bounds: %w", err)
 	}
+	// The bore starts margin before the target's first point along the shaft and runs past its last.
+	cos, sin := f.unit()
+	low, high := math.Inf(1), math.Inf(-1)
+	for _, x := range []float64{box.Min.X, box.Max.X} {
+		for _, y := range []float64{box.Min.Y, box.Max.Y} {
+			station := x*cos + y*sin
+			low, high = math.Min(low, station), math.Max(high, station)
+		}
+	}
+	owner, err := doc.ContainerOf(target)
+	if err != nil {
+		return nil, fmt.Errorf("find bore target container: %w", err)
+	}
 	const margin = 1.0
 	world := sketch.NewWorld()
-	frame, err := r3.NewFrame(r3.NewVec(box.Min.X-margin, 0, 0),
-		r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+	frame, err := r3.NewFrame(r3.NewVec((low-margin)*cos, (low-margin)*sin, 0),
+		f.vec(r3.NewVec(0, 1, 0)), r3.NewVec(0, 0, 1))
 	if err != nil {
 		return nil, fmt.Errorf("create bore frame: %w", err)
 	}
@@ -95,9 +110,15 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 	if err != nil {
 		return nil, fmt.Errorf("create bore plane: %w", err)
 	}
+	if err := addPlane(owner, plane); err != nil {
+		return nil, err
+	}
 	s, err := world.CreateSketch(plane)
 	if err != nil {
 		return nil, fmt.Errorf("create bore sketch: %w", err)
+	}
+	if err := addSketch(owner, s); err != nil {
+		return nil, err
 	}
 	circle := s.CreateCircle(s.Origin(), diameter/2)
 	s.AddConstraint(sketch.NewDiameter(circle, diameter))
@@ -112,7 +133,7 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, diame
 		return nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
 	}
 	tool, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{
-		D: units.Millimeters(box.Max.X - box.Min.X + 2*margin), Dir: decad.Along,
+		D: units.Millimeters(high - low + 2*margin), Dir: decad.Along,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("extrude bore tool: %w", err)

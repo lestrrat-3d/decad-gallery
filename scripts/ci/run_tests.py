@@ -7,8 +7,14 @@ import sys
 
 BEVEL_TESTS = {
     "pr": {
-        "a": ["TestRealEightToothFullPatternJoin"],
-        "b": ["TestSourceFourFourStraightPairAutoBore"],
+        "a": [
+            "TestRealEightToothFullPatternJoin",
+            "TestBlankPairSharesOneSketch",
+            "TestSecondPairGetsOwnContainers",
+            "TestShaftSectionIsExactOnItsAxis",
+            "TestLocalShaftKeepsItsSection",
+        ],
+        "b": ["TestSourceFourFourStraightPairAutoBore", "TestStraightPairBuildsMembersInTheirContainers"],
         "c": ["TestStraightOptionsBuildMembers"],
         "d": ["TestSpiralInputsMembers/module_0_5"],
         "e": ["TestSpiralSerialPair"],
@@ -23,6 +29,11 @@ BEVEL_TESTS = {
             "TestSourceFourFourStraightMember",
             "TestSourceFourFourStraightMemberAutoBore",
             "TestSourceFourFourStraightPairAutoBore",
+            "TestBlankPairSharesOneSketch",
+            "TestSecondPairGetsOwnContainers",
+            "TestStraightPairBuildsMembersInTheirContainers",
+            "TestShaftSectionIsExactOnItsAxis",
+            "TestLocalShaftKeepsItsSection",
         ],
         "b": [
             "TestSourceSixteenTwelveStraightPair",

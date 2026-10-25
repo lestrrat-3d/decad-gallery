@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
@@ -18,15 +19,37 @@ func BuildBackConeToothProfile(ctx context.Context, world *sketch.World,
 	if ctx == nil || world == nil {
 		return nil, nil, fmt.Errorf("context and world must not be nil")
 	}
+	return buildBackConeToothProfile(ctx, world, nil, localShaft, p)
+}
+
+// buildBackConeToothProfile is BuildBackConeToothProfile on the shaft of f, with its plane and sketch placed in
+// c; a nil c leaves them in the document's root container.
+func buildBackConeToothProfile(ctx context.Context, world *sketch.World, c *decad.Container, f shaftFrame,
+	p Params) (*sketch.Sketch, *sketch.Profile, error) {
 	d, err := derive(p)
 	if err != nil {
 		return nil, nil, err
 	}
 	angle := d.coneAngle
-	center := r3.NewVec(d.coneDist/math.Cos(angle)+p.ToothSpacing*math.Sin(angle),
-		-p.ToothSpacing*math.Cos(angle), 0)
-	frame, err := r3.NewFrame(center, r3.NewVec(math.Sin(angle), -math.Cos(angle), 0),
-		r3.NewVec(0, 0, 1))
+	// The plane is tangent to the heel cone along the tooth's centre line. On a general shaft the heel cone is
+	// snapped to the grid, so the plane follows the snapped cone and the two stay tangent exactly.
+	heelApex, heelSlope := d.coneDist/math.Cos(angle), r3.NewVec(math.Sin(angle), -math.Cos(angle), 0)
+	if !f.local() {
+		section, err := endConeSection(d, heelApex, "heel cone")
+		if err != nil {
+			return nil, nil, err
+		}
+		snapped, err := f.snap(section)
+		if err != nil {
+			return nil, nil, err
+		}
+		farStation, farRadius := snapped[0].station, snapped[1].radius
+		heelApex = snapped[2].station
+		length := math.Hypot(farRadius, heelApex-farStation)
+		heelSlope = r3.NewVec((heelApex-farStation)/length, -farRadius/length, 0)
+	}
+	center := r3.NewVec(heelApex+p.ToothSpacing*heelSlope.X, p.ToothSpacing*heelSlope.Y, 0)
+	frame, err := r3.NewFrame(f.vec(center), f.vec(heelSlope), r3.NewVec(0, 0, 1))
 	if err != nil {
 		return nil, nil, fmt.Errorf("create back-cone frame: %w", err)
 	}
@@ -34,7 +57,10 @@ func BuildBackConeToothProfile(ctx context.Context, world *sketch.World,
 	if err != nil {
 		return nil, nil, fmt.Errorf("create back-cone plane: %w", err)
 	}
-	return BuildVirtualToothProfile(ctx, world, plane, p)
+	if err := addPlane(c, plane); err != nil {
+		return nil, nil, err
+	}
+	return buildVirtualToothProfile(ctx, world, c, plane, p)
 }
 
 // BuildVirtualToothProfile draws one back-cone tooth. ctx, world, and plane must not be nil.
@@ -44,6 +70,13 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	if ctx == nil || world == nil || plane == nil {
 		return nil, nil, fmt.Errorf("context, world, and plane must not be nil")
 	}
+	return buildVirtualToothProfile(ctx, world, nil, plane, p)
+}
+
+// buildVirtualToothProfile is BuildVirtualToothProfile with its sketch placed in c; a nil c leaves it in the
+// document's root container.
+func buildVirtualToothProfile(ctx context.Context, world *sketch.World, c *decad.Container, plane *sketch.Plane,
+	p Params) (*sketch.Sketch, *sketch.Profile, error) {
 	d, err := derive(p)
 	if err != nil {
 		return nil, nil, err
@@ -60,6 +93,9 @@ func BuildVirtualToothProfile(ctx context.Context, world *sketch.World, plane *s
 	s, err := world.CreateSketch(plane)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create virtual tooth sketch: %w", err)
+	}
+	if err := addSketch(c, s); err != nil {
+		return nil, nil, err
 	}
 	center := s.Origin()
 	leftPoints := make([]*sketch.Point, p.Samples)

@@ -7,9 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
-	"github.com/lestrrat-3d/units"
 )
 
 type axialPoint struct{ station, radius float64 }
@@ -113,16 +111,50 @@ func BuildBlank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	return revolveAxialSection(ctx, doc, section, "blank")
 }
 
+// blankSectionOf derives p and returns its blank's axial section.
+func blankSectionOf(p Params) ([]axialPoint, error) {
+	d, err := derive(p)
+	if err != nil {
+		return nil, err
+	}
+	return blankSection(p, d)
+}
+
+// revolveBlankIn revolves the reference blank of p from a sketch placed in c; a nil c leaves it in the root.
+// The blank's shaft is that of f.
+func revolveBlankIn(ctx context.Context, doc *decad.Document, c *decad.Container, f shaftFrame,
+	p Params) (*decad.Body, error) {
+	section, err := blankSectionOf(p)
+	if err != nil {
+		return nil, err
+	}
+	return revolveAxialSectionIn(ctx, doc, c, f, section, "blank")
+}
+
 func revolveAxialSection(ctx context.Context, doc *decad.Document,
 	section []axialPoint, label string) (*decad.Body, error) {
+	return revolveAxialSectionIn(ctx, doc, nil, localShaft, section, label)
+}
+
+// revolveAxialSectionIn revolves section about the shaft of f from a sketch placed in c; a nil c leaves the
+// sketch in the document's root container.
+func revolveAxialSectionIn(ctx context.Context, doc *decad.Document, c *decad.Container, f shaftFrame,
+	section []axialPoint, label string) (*decad.Body, error) {
+	xy, err := f.sectionXY(section)
+	if err != nil {
+		return nil, fmt.Errorf("place %s section: %w", label, err)
+	}
 	world := sketch.NewWorld()
 	s, err := world.CreateSketch(world.XY())
 	if err != nil {
 		return nil, fmt.Errorf("create %s sketch: %w", label, err)
 	}
-	points := make([]*sketch.Point, len(section))
-	for i, xy := range section {
-		points[i] = sketchcheck.DimensionPoint(s, xy.station, xy.radius)
+	if err := addSketch(c, s); err != nil {
+		return nil, err
+	}
+	points := make([]*sketch.Point, len(xy))
+	for i, point := range xy {
+		points[i] = sketchcheck.DimensionPoint(s, point[0], point[1])
 	}
 	for i := range points {
 		s.CreateLine(points[i], points[(i+1)%len(points)])
@@ -137,13 +169,104 @@ func revolveAxialSection(ctx context.Context, doc *decad.Document,
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("%s sketch has %d profiles; want one valid region", label, len(profiles))
 	}
-	body, err := decad.Revolve(ctx, doc, s, profiles[0],
-		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 1, V: 0}},
-		decad.FullRevolution{})
+	body, err := decad.Revolve(ctx, doc, s, profiles[0], f.sketchAxis(), decad.FullRevolution{})
 	if err != nil {
 		return nil, fmt.Errorf("revolve %s section: %w", label, err)
 	}
 	return body, nil
+}
+
+// revolveSharedBlanks revolves both members' blanks from one sketch in c, which holds the common apex at the
+// origin, both shaft axes as construction lines, and both axial sections around the apex. The driving section
+// lies on the +X axis; the pinion section lies on the shaft of pinion and revolves about it. Each blank is a
+// revolve of its own profile. The bodies land in c.
+func revolveSharedBlanks(ctx context.Context, doc *decad.Document, c *decad.Container,
+	driving, pinion []axialPoint, f shaftFrame) (*decad.Body, *decad.Body, error) {
+	world := sketch.NewWorld()
+	s, err := world.CreateSketch(world.XY())
+	if err != nil {
+		return nil, nil, fmt.Errorf("create blank pair sketch: %w", err)
+	}
+	if err := addSketch(c, s); err != nil {
+		return nil, nil, err
+	}
+	reach := 0.0
+	for _, section := range [][]axialPoint{driving, pinion} {
+		for _, point := range section {
+			reach = math.Max(reach, point.station)
+		}
+	}
+	// Each shaft axis runs from the apex, the sketch origin, past its member's heel.
+	for _, shaft := range []shaftFrame{localShaft, f} {
+		end := sketchcheck.DimensionPoint(s, reach*shaft.cos, reach*shaft.sin)
+		axis := s.CreateLine(s.Origin(), end)
+		axis.SetConstruction(true)
+	}
+	draw := func(section []axialPoint, shaft shaftFrame) ([]*sketch.Line, error) {
+		xy, err := shaft.sectionXY(section)
+		if err != nil {
+			return nil, err
+		}
+		points := make([]*sketch.Point, len(xy))
+		for i, point := range xy {
+			points[i] = sketchcheck.DimensionPoint(s, point[0], point[1])
+		}
+		lines := make([]*sketch.Line, len(points))
+		for i := range points {
+			lines[i] = s.CreateLine(points[i], points[(i+1)%len(points)])
+		}
+		return lines, nil
+	}
+	drivingLines, err := draw(driving, localShaft)
+	if err != nil {
+		return nil, nil, fmt.Errorf("place driving blank section: %w", err)
+	}
+	pinionLines, err := draw(pinion, f)
+	if err != nil {
+		return nil, nil, fmt.Errorf("place pinion blank section: %w", err)
+	}
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, nil, fmt.Errorf("solve blank pair sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("verify blank pair sketch: %w", err)
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 2 {
+		return nil, nil, fmt.Errorf("blank pair sketch has %d profiles; want one per member", len(profiles))
+	}
+	revolve := func(own []*sketch.Line, axis decad.SketchLine, label string) (*decad.Body, error) {
+		for _, profile := range profiles {
+			if !profile.Valid || !profileUses(profile, own[0]) {
+				continue
+			}
+			body, err := decad.Revolve(ctx, doc, s, profile, axis, decad.FullRevolution{})
+			if err != nil {
+				return nil, fmt.Errorf("revolve %s blank: %w", label, err)
+			}
+			return body, nil
+		}
+		return nil, fmt.Errorf("blank pair sketch has no valid %s profile", label)
+	}
+	drivingBody, err := revolve(drivingLines, localShaft.sketchAxis(), "driving")
+	if err != nil {
+		return nil, nil, err
+	}
+	pinionBody, err := revolve(pinionLines, f.sketchAxis(), "pinion")
+	if err != nil {
+		return nil, nil, err
+	}
+	return drivingBody, pinionBody, nil
+}
+
+// profileUses reports whether line is on the outer boundary of profile.
+func profileUses(profile *sketch.Profile, line *sketch.Line) bool {
+	for _, entity := range profile.Entities {
+		if entity == sketch.Entity(line) {
+			return true
+		}
+	}
+	return false
 }
 
 // BlankPair holds the driving blank and its pinion around their common pitch apex.
@@ -152,7 +275,8 @@ type BlankPair struct {
 	Pinion  *decad.Body
 }
 
-// BuildBlankPair revolves both reference blanks and rotates the pinion about the shared apex.
+// BuildBlankPair revolves both reference blanks from one sketch around the shared apex, the pinion's section
+// rotated by the shaft angle, and puts each blank in the container of its member.
 func BuildBlankPair(ctx context.Context, doc *decad.Document, p Params) (BlankPair, error) {
 	if ctx == nil || doc == nil {
 		return BlankPair{}, fmt.Errorf("context and document must not be nil")
@@ -181,27 +305,27 @@ func BuildBlankPair(ctx context.Context, doc *decad.Document, p Params) (BlankPa
 		return BlankPair{}, fmt.Errorf("pinion: %w", err)
 	}
 	pinionParams.BaseHeight = pinionBase
-	if _, err := blankSection(p, drivingDimensions); err != nil {
+	drivingSection, err := blankSection(p, drivingDimensions)
+	if err != nil {
 		return BlankPair{}, fmt.Errorf("driving: %w", err)
 	}
-	if _, err := blankSection(pinionParams, pinionDimensions); err != nil {
+	pinionSection, err := blankSection(pinionParams, pinionDimensions)
+	if err != nil {
 		return BlankPair{}, fmt.Errorf("pinion: %w", err)
 	}
-	turn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(p.ShaftAngle))
+	containers, err := newPairContainers(doc)
 	if err != nil {
-		return BlankPair{}, fmt.Errorf("rotate pinion: %w", err)
+		return BlankPair{}, err
 	}
-	driving, err := BuildBlank(ctx, doc, p)
+	driving, pinion, err := revolveSharedBlanks(ctx, doc, containers.pair, drivingSection, pinionSection, newShaftFrame(p.ShaftAngle))
 	if err != nil {
-		return BlankPair{}, fmt.Errorf("build driving blank: %w", err)
+		return BlankPair{}, err
 	}
-	pinion, err := BuildBlank(ctx, doc, pinionParams)
-	if err != nil {
-		return BlankPair{}, fmt.Errorf("build pinion blank: %w", err)
+	if driving, err = moveBody(doc, driving, containers.driving); err != nil {
+		return BlankPair{}, err
 	}
-	pinion, err = decad.Transform(ctx, pinion, turn)
-	if err != nil {
-		return BlankPair{}, fmt.Errorf("place pinion blank: %w", err)
+	if pinion, err = moveBody(doc, pinion, containers.pinion); err != nil {
+		return BlankPair{}, err
 	}
 	return BlankPair{Driving: driving, Pinion: pinion}, nil
 }
