@@ -54,7 +54,7 @@ func TestBlankPairSharesOneSketch(t *testing.T) {
 		}, 335.847817576, 169.656265650},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			tc.mod(&p)
 			doc := decad.New()
 			pair, err := bevelgear.BuildBlankPair(t.Context(), doc, p)
@@ -78,7 +78,7 @@ func TestBlankPairSharesOneSketch(t *testing.T) {
 
 // A second pair in one document gets its own containers.
 func TestSecondPairGetsOwnContainers(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	doc := decad.New()
 	_, err := bevelgear.BuildBlankPair(t.Context(), doc, p)
 	require.NoError(t, err)
@@ -90,7 +90,7 @@ func TestSecondPairGetsOwnContainers(t *testing.T) {
 // A straight pair revolves both blanks from one sketch in "Pair". Each member draws its tooth, cone and bore
 // sketches in its own container, and the member lands there. Each member has the volume it had before.
 func TestStraightPairBuildsMembersInTheirContainers(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 4, 4
 	p.SpiralAngle = 0

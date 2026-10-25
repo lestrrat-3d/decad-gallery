@@ -302,8 +302,9 @@ func centerHorizontally(camera solidlens.Camera, models []solidlens.Model) solid
 
 // buildSpiralBevelPair builds the source-default bored 31/31 spiral pair.
 func buildSpiralBevelPair(ctx context.Context) (bevelPairMesh, error) {
-	pair, err := bevelgear.BuildPair(ctx, decad.New(decad.WithChainTolerance(units.Millimeters(0.1))),
-		bevelgear.DefaultParams())
+	params := bevelgear.DefaultParams()
+	params.SpiralAngle = 35 * math.Pi / 180
+	pair, err := bevelgear.BuildPair(ctx, decad.New(decad.WithChainTolerance(units.Millimeters(0.1))), params)
 	if err != nil {
 		return bevelPairMesh{}, fmt.Errorf("build spiral bevel gear pair: %w", err)
 	}
@@ -316,7 +317,6 @@ func buildStraightBevelPair(ctx context.Context) (bevelPairMesh, error) {
 	params.Module = 4
 	params.Teeth, params.MateTeeth = 32, 16
 	params.Samples = 15
-	params.SpiralAngle = 0
 	pair, err := bevelgear.BuildPair(ctx, decad.New(), params)
 	if err != nil {
 		return bevelPairMesh{}, fmt.Errorf("build straight bevel gear pair: %w", err)

@@ -11,7 +11,7 @@ import (
 )
 
 func TestSourceDefaultAutoBoreOnRealBlank(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.SpiralAngle = 35 * math.Pi / 180
 	p.SpiralHand = "right"
 	diameter, err := bevelgear.ResolveBoreDiameter(p)
@@ -34,7 +34,7 @@ func TestSourceDefaultAutoBoreOnRealBlank(t *testing.T) {
 }
 
 func TestSourceObliqueAutoBoreCapOnRealBlank(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.ShaftAngle = 35 * math.Pi / 180
 	p.SpiralAngle = 35 * math.Pi / 180
 	p.SpiralHand = "right"
@@ -74,7 +74,7 @@ func TestReferenceBlankThroughBore(t *testing.T) {
 		{name: "reference default pair", module: 4, teeth: 31, bore: 10},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			p.Module, p.Teeth, p.MateTeeth, p.Samples = tc.module, tc.teeth, tc.teeth, 5
 			plain, err := bevelgear.BuildBlank(t.Context(), decad.New(), p)
 			require.NoError(t, err)
@@ -145,7 +145,7 @@ func meshComponents(mesh *decad.Mesh) int {
 }
 
 func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 8, 8
 	p.BoreDiameter = 10
 	doc := decad.New()
@@ -155,7 +155,7 @@ func TestReferenceBlankRejectsOversizedBore(t *testing.T) {
 }
 
 func TestJoinedEightToothPairThroughBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.SpiralAngle = 0
 	p.BoreDiameter = 1
@@ -187,7 +187,7 @@ func TestJoinedEightToothPairThroughBore(t *testing.T) {
 
 func TestSourceDefaultSpiralPair(t *testing.T) {
 	doc := chainDocument()
-	pair, err := bevelgear.BuildPair(t.Context(), doc, bevelgear.DefaultParams())
+	pair, err := bevelgear.BuildPair(t.Context(), doc, spiralDefaults())
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 2)
 	require.Same(t, pair.Pinion, doc.Bodies()[0], "the source builds the pinion first")
@@ -210,7 +210,7 @@ func TestSourceDefaultSpiralPair(t *testing.T) {
 }
 
 func TestBuildPairRejectsUnsupportedCaseBeforeAddingBodies(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Samples = 14
 	doc := decad.New()
 	_, err := bevelgear.BuildPair(t.Context(), doc, p)
@@ -219,7 +219,7 @@ func TestBuildPairRejectsUnsupportedCaseBeforeAddingBodies(t *testing.T) {
 }
 
 func TestBuildPairRejectsOversizedPinionBoreBeforeAddingBodies(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.MateBoreDiameter = 100
 	doc := decad.New()
 	_, err := bevelgear.BuildPair(t.Context(), doc, p)
@@ -228,7 +228,7 @@ func TestBuildPairRejectsOversizedPinionBoreBeforeAddingBodies(t *testing.T) {
 }
 
 func TestBuildRejectsOversizedBoreBeforeAddingBodies(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.SpiralAngle = 0
 	p.BoreDiameter = 10

@@ -52,7 +52,7 @@ func TestRealToeAndHeelTrimKeepLargerAnalyticTooth(t *testing.T) {
 		{name: "sixteen twelve spaced", teeth: 16, mateTeeth: 12, spacing: 0.5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			p.Teeth, p.MateTeeth, p.Samples = tc.teeth, tc.mateTeeth, 5
 			p.ToothSpacing = tc.spacing
 

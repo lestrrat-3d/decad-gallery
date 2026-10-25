@@ -12,7 +12,7 @@ import (
 )
 
 func TestRealEightToothBlankOneToothJoin(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	doc := decad.New()
 	blank, err := bevelgear.BuildBlank(t.Context(), doc, p)
@@ -74,7 +74,7 @@ func TestRealEightToothBlankOneToothJoin(t *testing.T) {
 }
 
 func TestRealEightToothSecondPatternedJoin(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	doc, toeKeeper := buildToeTrimmedTooth(t, p)
 	heelCone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
@@ -102,7 +102,7 @@ func TestRealEightToothSecondPatternedJoin(t *testing.T) {
 }
 
 func TestRealEightToothFullPatternJoin(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.SpiralAngle = 0
 	p.EnableBore = false

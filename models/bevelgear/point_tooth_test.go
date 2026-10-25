@@ -23,7 +23,7 @@ func TestPointToothFromRealBackConeProfile(t *testing.T) {
 		{name: "sixty embedded", teeth: 60, mateTeeth: 60},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			p.Teeth, p.MateTeeth, p.Samples = tc.teeth, tc.mateTeeth, 5
 			p.ToothSpacing = tc.spacing
 			if tc.shaftAngle > 0 {

@@ -31,7 +31,7 @@ import (
 // passes both placed bodies through VerifyAll at 0.1 mm.
 
 func TestBuildRejectsUnverifiedFullPatternCaseBeforeAddingBodies(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Samples = 14
 	doc := decad.New()
 	_, err := bevelgear.Build(t.Context(), doc, p)
@@ -40,7 +40,7 @@ func TestBuildRejectsUnverifiedFullPatternCaseBeforeAddingBodies(t *testing.T) {
 }
 
 func TestSourceFourFourStraightMember(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 4, 4
 	p.SpiralAngle = 0
@@ -59,7 +59,7 @@ func TestSourceFourFourStraightMember(t *testing.T) {
 }
 
 func TestSourceFourFourStraightMemberAutoBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 4, 4
 	p.SpiralAngle = 0
@@ -77,7 +77,7 @@ func TestSourceFourFourStraightMemberAutoBore(t *testing.T) {
 }
 
 func TestSourceFourFourStraightPairAutoBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 4, 4
 	p.SpiralAngle = 0
@@ -97,7 +97,7 @@ func TestSourceFourFourStraightPairAutoBore(t *testing.T) {
 }
 
 func TestSourceSixteenTwelveStraightPair(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 16, 12
 	p.SpiralAngle = 0
@@ -118,7 +118,7 @@ func TestSourceSixteenTwelveStraightPair(t *testing.T) {
 }
 
 func TestSourceThirtyTwoSixteenStraightPair(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 32, 16
 	p.SpiralAngle = 0
@@ -139,7 +139,7 @@ func TestSourceThirtyTwoSixteenStraightPair(t *testing.T) {
 }
 
 func TestSourceSixteenTwelveStraightPairAutoBore(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Module = 4
 	p.Teeth, p.MateTeeth = 16, 12
 	p.SpiralAngle = 0

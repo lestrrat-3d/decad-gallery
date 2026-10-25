@@ -11,7 +11,7 @@ import (
 )
 
 func TestEightToothToeCuttingCone(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	doc := decad.New()
 	cone, err := bevelgear.BuildToeCone(t.Context(), doc, p)
@@ -61,7 +61,7 @@ func TestEightToothToeCuttingCone(t *testing.T) {
 }
 
 func TestToeCuttingConeFollowsExtension(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 8, 8
 	p.ToeRadius, p.MateToeRadius = 1, 1
 	plain, err := bevelgear.BuildToeCone(t.Context(), decad.New(), p)
@@ -85,7 +85,7 @@ func TestToeCuttingConeFollowsExtension(t *testing.T) {
 }
 
 func TestEightToothHeelCuttingCone(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	doc := decad.New()
 	cone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
@@ -127,7 +127,7 @@ func TestEightToothHeelCuttingCone(t *testing.T) {
 }
 
 func TestSpacedSixteenTwelveHeelConeCrossesToeTooth(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 16, 12, 5
 	p.ToothSpacing = 0.5
 	doc := decad.New()

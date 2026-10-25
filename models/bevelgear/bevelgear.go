@@ -54,7 +54,6 @@ func DefaultParams() Params {
 		PressureAngle: 20 * math.Pi / 180,
 		Samples:       15,
 		EnableBore:    true,
-		SpiralAngle:   35 * math.Pi / 180,
 		SpiralHand:    "right",
 	}
 }
