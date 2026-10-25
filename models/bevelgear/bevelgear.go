@@ -10,7 +10,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch/param"
-	"github.com/lestrrat-3d/units"
 )
 
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
@@ -304,19 +303,13 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 		return nil, fmt.Errorf("trim tooth at heel: %w", err)
 	}
 
-	// The first Union consumes its tooth, so place all pattern copies beforehand.
-	pattern := make([]*decad.Body, p.Teeth)
-	pattern[0] = trimmedTooth
-	for i := 1; i < p.Teeth; i++ {
-		turn, err := r3.Rotation(f.axis(), units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
-		if err != nil {
-			return nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
-		}
-		pattern[i], err = decad.Copy(ctx, trimmedTooth, decad.WithCopyPlacement(turn))
-		if err != nil {
-			return nil, fmt.Errorf("place tooth %d: %w", i+1, err)
-		}
+	copies, err := decad.PatternCopies(ctx, trimmedTooth, decad.CircularPattern{
+		Center: r3.Vec{}, Axis: f.axis(), Count: p.Teeth,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("pattern teeth: %w", err)
 	}
+	pattern := append([]*decad.Body{trimmedTooth}, copies...)
 	joined, err := decad.Union(ctx, blank, pattern...)
 	if err != nil {
 		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
