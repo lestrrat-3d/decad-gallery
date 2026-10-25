@@ -134,38 +134,11 @@ func buildVirtualToothProfile(ctx context.Context, world *sketch.World, c *decad
 	}
 	profiles := s.Profiles()
 	if embedded {
-		var regions []string
-		for _, profile := range profiles {
-			var edges []string
-			for _, edge := range profile.Outer {
-				edges = append(edges, fmt.Sprintf("%T(partial=%t exact=%t)", edge.Entity, edge.Partial, edge.TExact))
-			}
-			regions = append(regions, fmt.Sprintf("valid=%t outer=%d holes=%d edges=%v",
-				profile.Valid, len(profile.Outer), len(profile.Holes), edges))
-			if !profile.Valid || len(profile.Holes) != 0 || len(profile.Outer) != 4 {
-				continue
-			}
-			trimmed := 0
-			for _, edge := range profile.Outer {
-				flank, ok := edge.Entity.(*sketch.FitSpline)
-				if !ok {
-					continue
-				}
-				if !edge.Partial || !edge.TExact {
-					return nil, nil, fmt.Errorf("embedded virtual flank lacks exact root trim")
-				}
-				x, y := flank.Eval(edge.TStart)
-				if math.Abs(math.Hypot(x, y)-root) > 1e-8 {
-					return nil, nil, fmt.Errorf("embedded virtual flank trim misses root circle")
-				}
-				trimmed++
-			}
-			if trimmed == 2 {
-				return s, profile, nil
-			}
+		profile, err := selectEmbeddedToothProfile(profiles, root)
+		if err != nil {
+			return nil, nil, err
 		}
-		return nil, nil, fmt.Errorf("found no valid embedded virtual tooth among %d regions: %v",
-			len(profiles), regions)
+		return s, profile, nil
 	}
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, nil, fmt.Errorf("virtual tooth sketch has %d profiles; want one valid region", len(profiles))
@@ -175,4 +148,41 @@ func buildVirtualToothProfile(ctx context.Context, world *sketch.World, c *decad
 			len(profiles[0].Outer), len(profiles[0].Holes))
 	}
 	return s, profiles[0], nil
+}
+
+// selectEmbeddedToothProfile returns the one valid region without holes that two flank splines
+// trimmed at the root circle, the tip arc and the root arc bound. The checks on decad's trim
+// data live here so that a port reads its own kernel's region data instead.
+func selectEmbeddedToothProfile(profiles []*sketch.Profile, root float64) (*sketch.Profile, error) {
+	var regions []string
+	for _, profile := range profiles {
+		var edges []string
+		for _, edge := range profile.Outer {
+			edges = append(edges, fmt.Sprintf("%T(partial=%t exact=%t)", edge.Entity, edge.Partial, edge.TExact))
+		}
+		regions = append(regions, fmt.Sprintf("valid=%t outer=%d holes=%d edges=%v",
+			profile.Valid, len(profile.Outer), len(profile.Holes), edges))
+		if !profile.Valid || len(profile.Holes) != 0 || len(profile.Outer) != 4 {
+			continue
+		}
+		trimmed := 0
+		for _, edge := range profile.Outer {
+			flank, ok := edge.Entity.(*sketch.FitSpline)
+			if !ok {
+				continue
+			}
+			if !edge.Partial || !edge.TExact {
+				return nil, fmt.Errorf("embedded virtual flank lacks exact root trim")
+			}
+			x, y := flank.Eval(edge.TStart)
+			if math.Abs(math.Hypot(x, y)-root) > 1e-8 {
+				return nil, fmt.Errorf("embedded virtual flank trim misses root circle")
+			}
+			trimmed++
+		}
+		if trimmed == 2 {
+			return profile, nil
+		}
+	}
+	return nil, fmt.Errorf("found no valid embedded virtual tooth among %d regions: %v", len(profiles), regions)
 }
