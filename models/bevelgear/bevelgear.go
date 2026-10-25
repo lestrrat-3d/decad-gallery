@@ -192,7 +192,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err := recordParameters(doc, p); err != nil {
 		return nil, err
 	}
-	member, err := buildMember(ctx, doc, nil, p, plan, false)
+	member, err := buildMember(ctx, doc, nil, localShaft, nil, p, plan, false)
 	if err != nil {
 		return nil, err
 	}
@@ -234,15 +234,17 @@ func prepareBuild(p Params) (memberBuildPlan, error) {
 }
 
 // buildMember builds one member. A straight member draws its sketches in c, a nil c meaning the document's root
-// container, and its bodies land there. A spiral member builds in the root container.
-func buildMember(ctx context.Context, doc *decad.Document, c *decad.Container, p Params,
-	plan memberBuildPlan, pinion bool) (*decad.Body, error) {
+// container, and its bodies land there. Its shaft is that of f, and a non-nil blank replaces the blank it would
+// revolve itself; the blank must lie in c and revolve about that shaft. A spiral member builds in the root
+// container about +X, and f and blank must be localShaft and nil.
+func buildMember(ctx context.Context, doc *decad.Document, c *decad.Container, f shaftFrame, blank *decad.Body,
+	p Params, plan memberBuildPlan, pinion bool) (*decad.Body, error) {
 	var joined *decad.Body
 	var err error
 	if plan.spiral {
 		joined, err = buildSpiralMember(ctx, doc, p, plan.geometry, pinion)
 	} else {
-		joined, err = buildStraightMember(ctx, doc, c, p, plan.geometry)
+		joined, err = buildStraightMember(ctx, doc, c, f, blank, p, plan.geometry)
 	}
 	if err != nil {
 		return nil, err
@@ -250,24 +252,27 @@ func buildMember(ctx context.Context, doc *decad.Document, c *decad.Container, p
 	if plan.boreDiameter == 0 {
 		return joined, nil
 	}
-	joined, err = cutBore(ctx, doc, joined, plan.boreDiameter)
+	joined, err = cutBore(ctx, doc, joined, f, plan.boreDiameter)
 	if err != nil {
 		return nil, fmt.Errorf("cut joined gear bore: %w", err)
 	}
 	return joined, nil
 }
 
-func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Container,
-	p, geometryParams Params) (*decad.Body, error) {
-	blank, err := revolveBlankIn(ctx, doc, c, geometryParams)
-	if err != nil {
-		return nil, fmt.Errorf("build reference blank: %w", err)
+func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Container, f shaftFrame,
+	blank *decad.Body, p, geometryParams Params) (*decad.Body, error) {
+	var err error
+	if blank == nil {
+		blank, err = revolveBlankIn(ctx, doc, c, f, geometryParams)
+		if err != nil {
+			return nil, fmt.Errorf("build reference blank: %w", err)
+		}
 	}
-	tooth, err := buildPointToothIn(ctx, doc, c, geometryParams)
+	tooth, err := buildPointToothIn(ctx, doc, c, f, geometryParams)
 	if err != nil {
 		return nil, fmt.Errorf("loft point tooth: %w", err)
 	}
-	toeCone, err := buildToeConeIn(ctx, doc, c, geometryParams)
+	toeCone, err := buildToeConeIn(ctx, doc, c, f, geometryParams)
 	if err != nil {
 		return nil, fmt.Errorf("build toe cone: %w", err)
 	}
@@ -275,7 +280,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 	if err != nil {
 		return nil, fmt.Errorf("trim tooth at toe: %w", err)
 	}
-	heelCone, err := buildHeelConeIn(ctx, doc, c, geometryParams)
+	heelCone, err := buildHeelConeIn(ctx, doc, c, f, geometryParams)
 	if err != nil {
 		return nil, fmt.Errorf("build heel cone: %w", err)
 	}
@@ -288,7 +293,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 	pattern := make([]*decad.Body, p.Teeth)
 	pattern[0] = trimmedTooth
 	for i := 1; i < p.Teeth; i++ {
-		turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
+		turn, err := r3.Rotation(f.axis(), units.Radians(2*math.Pi*float64(i)/float64(p.Teeth)))
 		if err != nil {
 			return nil, fmt.Errorf("rotate tooth %d: %w", i+1, err)
 		}

@@ -19,22 +19,37 @@ func BuildBackConeToothProfile(ctx context.Context, world *sketch.World,
 	if ctx == nil || world == nil {
 		return nil, nil, fmt.Errorf("context and world must not be nil")
 	}
-	return buildBackConeToothProfile(ctx, world, nil, p)
+	return buildBackConeToothProfile(ctx, world, nil, localShaft, p)
 }
 
-// buildBackConeToothProfile is BuildBackConeToothProfile with its plane and sketch placed in c; a nil c leaves
-// them in the document's root container.
-func buildBackConeToothProfile(ctx context.Context, world *sketch.World, c *decad.Container,
+// buildBackConeToothProfile is BuildBackConeToothProfile on the shaft of f, with its plane and sketch placed in
+// c; a nil c leaves them in the document's root container.
+func buildBackConeToothProfile(ctx context.Context, world *sketch.World, c *decad.Container, f shaftFrame,
 	p Params) (*sketch.Sketch, *sketch.Profile, error) {
 	d, err := derive(p)
 	if err != nil {
 		return nil, nil, err
 	}
 	angle := d.coneAngle
-	center := r3.NewVec(d.coneDist/math.Cos(angle)+p.ToothSpacing*math.Sin(angle),
-		-p.ToothSpacing*math.Cos(angle), 0)
-	frame, err := r3.NewFrame(center, r3.NewVec(math.Sin(angle), -math.Cos(angle), 0),
-		r3.NewVec(0, 0, 1))
+	// The plane is tangent to the heel cone along the tooth's centre line. On a general shaft the heel cone is
+	// snapped to the grid, so the plane follows the snapped cone and the two stay tangent exactly.
+	heelApex, heelSlope := d.coneDist/math.Cos(angle), r3.NewVec(math.Sin(angle), -math.Cos(angle), 0)
+	if !f.local() {
+		section, err := endConeSection(d, heelApex, "heel cone")
+		if err != nil {
+			return nil, nil, err
+		}
+		snapped, err := f.snap(section)
+		if err != nil {
+			return nil, nil, err
+		}
+		farStation, farRadius := snapped[0].station, snapped[1].radius
+		heelApex = snapped[2].station
+		length := math.Hypot(farRadius, heelApex-farStation)
+		heelSlope = r3.NewVec((heelApex-farStation)/length, -farRadius/length, 0)
+	}
+	center := r3.NewVec(heelApex+p.ToothSpacing*heelSlope.X, p.ToothSpacing*heelSlope.Y, 0)
+	frame, err := r3.NewFrame(f.vec(center), f.vec(heelSlope), r3.NewVec(0, 0, 1))
 	if err != nil {
 		return nil, nil, fmt.Errorf("create back-cone frame: %w", err)
 	}

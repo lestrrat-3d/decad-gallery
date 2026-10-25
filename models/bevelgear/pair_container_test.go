@@ -38,7 +38,8 @@ func volumeOf(t *testing.T, body *decad.Body) (float64, float64) {
 }
 
 // The blank pair draws both blanks in one sketch. The volumes are what each blank had when it was revolved from
-// a sketch of its own and the pinion was rotated about the apex.
+// a sketch of its own and the pinion was rotated about the apex. The pinion's section sits on the grid its
+// shaft needs (shaft.go), which moves a volume by about 2e-8 of itself.
 func TestBlankPairSharesOneSketch(t *testing.T) {
 	for _, tc := range []struct {
 		name                        string
@@ -69,8 +70,8 @@ func TestBlankPairSharesOneSketch(t *testing.T) {
 
 			driving, drivingBound := volumeOf(t, pair.Driving)
 			pinion, pinionBound := volumeOf(t, pair.Pinion)
-			require.InDelta(t, tc.drivingVolume, driving, 1e-6+drivingBound)
-			require.InDelta(t, tc.pinionVolume, pinion, 1e-6+pinionBound)
+			require.InDelta(t, tc.drivingVolume, driving, 1e-7*tc.drivingVolume+drivingBound)
+			require.InDelta(t, tc.pinionVolume, pinion, 1e-7*tc.pinionVolume+pinionBound)
 		})
 	}
 }
@@ -86,8 +87,8 @@ func TestSecondPairGetsOwnContainers(t *testing.T) {
 	require.Equal(t, []string{"Pair", "Pair 2"}, children(doc.Root()))
 }
 
-// A straight pair builds each member in its own container: the member's blank, tooth, cones and bore are drawn
-// there, and the member lands there. Each member has the volume it had before the containers.
+// A straight pair revolves both blanks from one sketch in "Pair". Each member draws its tooth, cone and bore
+// sketches in its own container, and the member lands there. Each member has the volume it had before.
 func TestStraightPairBuildsMembersInTheirContainers(t *testing.T) {
 	p := bevelgear.DefaultParams()
 	p.Module = 4
@@ -104,10 +105,11 @@ func TestStraightPairBuildsMembersInTheirContainers(t *testing.T) {
 	require.Equal(t, "Pair/Pinion Gear", containerPath(t, doc, pair.Pinion))
 	require.Empty(t, doc.Root().Bodies())
 	require.Empty(t, pairContainer.Bodies())
+	require.Len(t, pairContainer.Sketches(), 1, "both blanks are revolved from one shared sketch")
 	for _, member := range pairContainer.Children() {
 		require.Len(t, member.Bodies(), 1, member.Name())
-		// blank, tooth, toe cone, heel cone and bore
-		require.Len(t, member.Sketches(), 5, member.Name())
+		// tooth, toe cone, heel cone and bore; the blank is in the shared sketch of "Pair"
+		require.Len(t, member.Sketches(), 4, member.Name())
 	}
 
 	for name, body := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {

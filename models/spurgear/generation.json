@@ -4,8 +4,8 @@
     "models/spurgear/steps.md": "d45d5dd21cd7f3badd5c72709cd5a577304804ec82c5b935eef19779cdc5b42f",
     "scripts/modelgen/spurgear_prompt.md": "0645b025059500e68f7ce47a8e4568660d0f6dbcf22fcfb167871dd8b959fd8c",
     "internal/sketchcheck/verify.go": "48d0be76858c3a2b7302e63854295fb4bc4f4deda24f74118e596bd14aff6d0c",
-    "go.mod": "766fbd0339ccb8e2bcf897109634565c68066033b3ad1b81d07205e835dd86d8",
-    "go.sum": "d632eac59974667f551d75bf60742750904159e53c014f0585151c129f5e957c"
+    "go.mod": "579647b1f65d74b2ade5d71f349e923ea802cfab1a5a4854e3b3653760f0729f",
+    "go.sum": "198e2ca19fb06bf98ca2a87982770b6e1ecc3c0d9270d689a2b996a8b0ed82ce"
   },
   "outputs": {
     "involute.go": "cfbb8551e93801b8364933f310c0b2e3da18a33a2422129a8f79c9fd58d09b67",
