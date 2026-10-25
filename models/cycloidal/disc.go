@@ -61,7 +61,7 @@ func (r *run) buildDiscSampled(ctx context.Context, index int, turnLimit float64
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: disc %d output hole: %w", index+1, err)
 	}
-	if _, err := s.CreatePatternCircular([]sketch.Entity{hole}, bore.Center, p.OutputPinCount); err != nil {
+	if _, err := sketch.CreatePatternCircular(s, []sketch.Entity{hole}, bore.Center, p.OutputPinCount); err != nil {
 		return nil, fmt.Errorf("cycloidal: disc %d output holes: %w", index+1, err)
 	}
 	if err := solveAndVerify(ctx, s, fmt.Sprintf("cycloidal: disc %d", index+1)); err != nil {
