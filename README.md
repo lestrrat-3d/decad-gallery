@@ -1,6 +1,6 @@
 # decad gallery
 
-![Decad spur gear hero image](models/spurgear/images/hero.png)
+![A spur gear, helical gear, herringbone gear, cycloidal drive, and bevel gear pairs rendered side by side](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from

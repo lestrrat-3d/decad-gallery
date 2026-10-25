@@ -84,3 +84,12 @@ both rotor discs, the eccentric cam, and the output plate with its pins. The `re
 ```sh
 go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloidal/images
 ```
+
+The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
+scenes of the spur, helical, herringbone, cycloidal and bevel gear models one after another, places each at
+its own size on a 1600 × 900 pixel canvas, and keeps only the pixels that differ from the background where
+the tiles overlap. Building all five models takes about six minutes:
+
+```sh
+go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+```
