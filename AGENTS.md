@@ -36,6 +36,6 @@
 
 ## Model images
 
-- Follow `models/README.md` for each completed model's hero image.
+- Follow `docs/adding-models.md` for each completed model's hero image.
 - Build images from the real Decad body with `tools/render/`; do not draw substitute geometry.
 - Add a renderer integration test for each new model preset.

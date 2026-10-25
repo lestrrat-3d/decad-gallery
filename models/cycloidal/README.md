@@ -2,26 +2,26 @@
 
 ![The default two-disc cycloidal drive, exploded: housing, two rotor discs, eccentric cam, and output plate with pins](images/hero.png)
 
-This item builds a cycloidal speed reducer with Decad: one or two lobed rotor discs on an eccentric cam,
-a pinless housing whose inner wall is the discs' swept contour, and an output plate whose pins pass
-through holes in the discs. The image shows the two-disc drive pulled apart along a staircase. Its
-source is `instructions.md`, which follows the Fusion add-in's
-`fusion360-gear-generator/spec/cycloidal`. Dimensions are in millimeters.
+A cycloidal speed reducer: one or two lobed discs ride on an eccentric cam, a housing with no pins has an
+inner wall shaped like the path the discs sweep, and an output plate carries pins that pass through holes in
+the discs. The image pulls the two-disc drive apart along a staircase: housing, two discs, cam, and output
+plate with its pins.
 
-The Go package exposes `Build(ctx, doc, Params)`. It returns a `Drive` whose bodies carry the add-in's
-names, and `Drive.Named` lists them in order. `DefaultParams()` is the add-in's default: 16 pins on a
-90 mm pin circle, 1.5 mm eccentricity, one 8 mm disc and six 50 mm output pins. `Params` carries
-every dialog input of the add-in, and `Placement` (an `r3.Frame`) replaces its plane and anchor point:
-the frame origin is a point on the drive axis and the first disc's lower face lies on its plane.
+The default drive has 16 pin positions on a 90 mm circle, so each disc has 15 lobes. It has 1.5 mm of
+eccentricity, one 8 mm disc, and six output pins on a 50 mm circle.
 
-`Problems` and `Validate` apply the add-in's validity table, with its wording, before anything is built.
+You can vary:
 
-## Checks
+- The number of pin positions and the pin circle diameter.
+- The eccentricity, the clearances, and the pin diameters.
+- One or two discs, their thickness, and the gap between them.
+- The cam diameter and the input shaft bore, or a solid cam.
+- The number and circle of the output pins.
+- The housing wall, base and output plate thickness.
+- A chamfer on the housing, output plate, pin ends and discs.
+- The position and orientation of the drive in space.
 
-`go test ./models/cycloidal` builds the default drive, a two-disc drive and twelve option variants
-(solid cam, pin overrides, 12 and 24 pins, five output pins, 20 pins with two discs, a placement frame,
-a thin housing, larger clearances, and four with chamfered discs). It checks the chamfered disc's volume against the
-removed wedge. Every body passes 0.1 mm `VerifyAll`, every sketch is fully
-constrained, and the rotor clears the casing, the cam and the output pins at the home pose.
+The model follows the Fusion 360 add-in's cycloidal drive. Dimensions are in millimeters.
 
-The [model renderer](../../tools/render/README.md) produces the images from the two-disc drive.
+For how to build this drive from Go and how it differs from the add-in, see the
+[developer notes](../../docs/models/cycloidal.md).
