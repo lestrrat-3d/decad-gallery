@@ -18,10 +18,11 @@ func smallEightParams() bevelgear.Params {
 	return p
 }
 
-// sideFrame maps local X to +Y, local Y to +Z, and local Z to +X, with the apex at (10, -5, 7).
+// sideFrame is a target plane at y=-5 with its normal on +Y, the centre point at x=10, z=7, and the
+// pinion leaning toward +Z.
 func sideFrame(t *testing.T) *r3.Frame {
 	t.Helper()
-	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 0, 1), r3.NewVec(1, 0, 0))
 	require.NoError(t, err)
 	return &f
 }
@@ -48,12 +49,14 @@ func TestPlacedMemberMatchesWorldMember(t *testing.T) {
 	box, err := gear.Bounds()
 	require.NoError(t, err)
 	tol := worldBox.Bound.Base() + box.Bound.Base() + 1e-8
-	require.InDelta(t, worldBox.Min.Z+10, box.Min.X, tol)
-	require.InDelta(t, worldBox.Max.Z+10, box.Max.X, tol)
-	require.InDelta(t, worldBox.Min.X-5, box.Min.Y, tol)
-	require.InDelta(t, worldBox.Max.X-5, box.Max.Y, tol)
-	require.InDelta(t, worldBox.Min.Y+7, box.Min.Z, tol)
-	require.InDelta(t, worldBox.Max.Y+7, box.Max.Z, tol)
+	// The back face is the member's far station, so it lands flat on the plane y=-5 and the
+	// gear stands toward +Y with its axis through x=10, z=7.
+	require.InDelta(t, -5, box.Min.Y, tol)
+	require.InDelta(t, -5+worldBox.Max.X-worldBox.Min.X, box.Max.Y, tol)
+	require.InDelta(t, 10-worldBox.Max.Z, box.Min.X, tol)
+	require.InDelta(t, 10-worldBox.Min.Z, box.Max.X, tol)
+	require.InDelta(t, 7+worldBox.Min.Y, box.Min.Z, tol)
+	require.InDelta(t, 7+worldBox.Max.Y, box.Max.Z, tol)
 }
 
 func TestInvalidPlacementIsRejectedBeforeAddingBodies(t *testing.T) {
@@ -88,11 +91,16 @@ func TestPlacedPairMovesBothMembers(t *testing.T) {
 		require.InDelta(t, memberVolume.Value.Base(), volume.Value.Base(),
 			memberVolume.Bound.Base()+volume.Bound.Base()+0.02)
 	}
-	// The driving shaft runs along the frame's U axis (+Y) from the apex at y=-5. Turning the
-	// member about that shaft for its half-pitch phase keeps its extent along it.
+	// The driving gear stands on the plane y=-5 along its normal. Turning the member about its
+	// shaft for its half-pitch phase keeps its extent along the shaft.
 	box, err := pair.Driving.Bounds()
 	require.NoError(t, err)
 	tol := memberBox.Bound.Base() + box.Bound.Base() + 1e-8
-	require.InDelta(t, memberBox.Min.X-5, box.Min.Y, tol)
-	require.InDelta(t, memberBox.Max.X-5, box.Max.Y, tol)
+	require.InDelta(t, -5, box.Min.Y, tol)
+	require.InDelta(t, -5+memberBox.Max.X-memberBox.Min.X, box.Max.Y, tol)
+	// At a 90° shaft angle the pinion shaft runs along U (+Z) from the apex.
+	pinionBox, err := pair.Pinion.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 7, (box.Min.Z+box.Max.Z)/2, 0.01)
+	require.Greater(t, (pinionBox.Min.Z+pinionBox.Max.Z)/2, 7+1.0)
 }

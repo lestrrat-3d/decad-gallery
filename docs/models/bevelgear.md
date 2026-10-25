@@ -16,9 +16,10 @@ for each member. `BuildPair` builds and places all four supported pairs. The doc
 needs a chain tolerance for spiral members; the doc comment on `Build` in `bevelgear.go` explains why
 and how long a spiral build takes.
 
-Set `Params.Placement` (an `r3.Frame`) to anchor the pair. The frame origin is the common pitch apex, its
-U and V axes span the plane that holds both shafts, and the driving shaft runs along U. A nil `Placement`
-keeps the world origin and XY shaft plane.
+Set `Params.Placement` (an `r3.Frame`) to stand the pair on a target plane, as the Fusion add-in does. The
+frame origin is the centre of the driving gear's back face, which sits flat on the plane spanned by U and V.
+The gear grows toward the normal U×V, the apex lies above the origin on that normal, and the pinion shaft
+turns toward U. A nil `Placement` keeps the world origin and XY shaft plane.
 
 ## How a spiral member is built
 

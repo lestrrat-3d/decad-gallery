@@ -49,21 +49,25 @@ members share the world origin as their pitch apex.
 | `ToeExtension` | 0 | Percentage in `[0, 100]`. |
 | `ToeRadius` | 0 | Zero selects the derived toe radius; otherwise positive. |
 | `MateToeRadius` | 0 | Zero selects the mate's derived toe radius; otherwise positive. |
-| `Placement` | nil | `*r3.Frame`; see Placement below. Nil keeps the world frame. |
+| `Placement` | nil | `*r3.Frame`; see Placement below. Nil keeps the build frame. |
 | `BaseHeight` | 0 | Zero selects the bounded default; otherwise within its limits. |
 | `MateBaseHeight` | 0 | Zero scales the resolved first member's height by the tooth ratio; otherwise within the mate's limits. |
 
 ## Placement
 
-`Placement` anchors the pair with a reference point and a reference plane. The
-frame origin is the common pitch apex. The frame's `U` and `V` axes span the plane
-that holds both shafts, and the driving shaft runs along `U`. The pinion shaft
-turns toward `V` by `ShaftAngle`. With no placement the frame is the world
-origin with `U=+X` and `V=+Y`, which is the construction described below.
+`Placement` is the add-in's Target Plane and Center Point. The frame origin is the centre of
+the driving gear's back face, and the plane through the origin spanned by `U` and `V` is the
+plane the back face sits flat against. The gear grows toward the normal `U×V`, so the common
+pitch apex lies on the normal through the origin at the driving gear's heel station
+(`R cos γ_g` plus the resolved driving base height). The driving shaft runs from the apex
+down to the origin. The pinion shaft is the driving shaft turned about the apex by `ShaftAngle`
+toward `U`, which is the add-in's greater-X side of the sketch that holds both shafts. With no
+placement the apex is the world origin, the shafts lie in the world XY plane, and the driving
+shaft is `+X`, which is the construction described below.
 
 `Build` and `BuildPair` construct every member about the world origin, then move each
-finished body with one `decad.Transform` from the world frame onto `Placement`
-(`r3.FromFrame`). The tooth Unions and trims fail on bodies built at an offset, so
+finished body with one `decad.Transform` from the build frame onto the apex frame
+(`r3.FromFrame`) that `Placement` and the heel station give. The tooth Unions and trims fail on bodies built at an offset, so
 the move happens after the last boolean. Reject an invalid frame before adding bodies.
 The lower-level helpers (`BuildBlank`, `BuildPointTooth`, the cones, and the spiral
 stages) ignore `Placement`.

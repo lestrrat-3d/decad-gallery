@@ -27,6 +27,15 @@ func resolvedBaseHeight(p Params, d dimensions, fallback float64) (float64, erro
 	return baseHeight, nil
 }
 
+// heelStation is the distance from the pitch apex to the back face along the member's shaft.
+func heelStation(p Params, d dimensions) (float64, error) {
+	baseHeight, err := resolvedBaseHeight(p, d, p.Module*float64(p.Teeth)/8)
+	if err != nil {
+		return 0, err
+	}
+	return d.coneDist*math.Cos(d.coneAngle) + baseHeight, nil
+}
+
 func blankSection(p Params, d dimensions) ([]axialPoint, error) {
 	r := d.pitchRadius
 	dedendum := d.dedendum
