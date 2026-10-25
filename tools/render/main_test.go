@@ -120,3 +120,37 @@ func TestCycloidalHero(t *testing.T) {
 	}
 	require.Greater(t, visible, 300, "the real drive should be visible against the background")
 }
+
+func TestGalleryHero(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "gallery.png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "gallery", "-shot", "hero",
+		"-out", output, "-width", "320", "-height", "180")
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+
+	file, err := os.Open(output)
+	require.NoError(t, err)
+	defer func() { _ = file.Close() }()
+	image, err := png.Decode(file)
+	require.NoError(t, err)
+	require.Equal(t, 320, image.Bounds().Dx())
+	require.Equal(t, 180, image.Bounds().Dy())
+	background := image.At(0, 0)
+	for _, quadrant := range []struct {
+		name string
+		x, y int
+	}{
+		{"spur gear", 64, 50}, {"helical gear", 160, 50}, {"herringbone gear", 256, 50},
+		{"cycloidal drive", 100, 150}, {"bevel gears", 260, 130},
+	} {
+		visible := 0
+		for dy := -20; dy <= 20; dy++ {
+			for dx := -20; dx <= 20; dx++ {
+				if image.At(quadrant.x+dx, quadrant.y+dy) != background {
+					visible++
+				}
+			}
+		}
+		require.Positive(t, visible, "the %s should be visible against the background", quadrant.name)
+	}
+}

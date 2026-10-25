@@ -56,6 +56,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderReadme(ctx, model, output)
 	}
+	if model == "gallery" && shot == "hero" {
+		if width == 0 {
+			width = galleryWidth
+		}
+		if height == 0 {
+			height = width * galleryHeight / galleryWidth
+		}
+		return renderGallery(ctx, output, width, height)
+	}
 	selected, ok := presets[model+"/"+shot]
 	if !ok {
 		return fmt.Errorf("unknown image preset %q for model %q", shot, model)

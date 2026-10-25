@@ -1,42 +1,29 @@
 # decad gallery
 
-![Decad spur gear hero image](models/spurgear/images/hero.png)
+![A spur gear, helical gear, herringbone gear, cycloidal drive, and bevel gear pairs rendered side by side](docs/images/gallery.png)
 
-This repository collects parametric shapes, patterns, and assemblies built with
-[decad](https://github.com/lestrrat-3d/decad). Each item gets a directory under
-[`models/`](models/README.md). Items may use geometry from other items, so a gear can
+A gallery of parametric 3D shapes, patterns, and assemblies built with
+[decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
+inputs such as tooth count, thickness, and bore. Items may use geometry from other items, so a gear can
 become part of a hand-crank siren or a wind turbine.
 
-The repository owns each item's human-readable construction instructions,
-Decad construction steps, Go code, and geometry checks. The
-[model build pipeline](docs/model-pipeline.md) describes this path. The first
-item is the [spur gear](models/spurgear/README.md).
+## Models
 
-Every item directory holds two specification files. `instructions.md` states the
-inputs and defaults, units, derived values, geometric construction, feature order,
-valid parameter range, and representative cases. `steps.md` maps each construction
-requirement to a Sketch or Decad operation and names the geometry check at each
-boundary.
+The [models](models/) are the spur gear, helical gear, herringbone gear, cycloidal drive, and bevel gear
+pair. Each model's page shows rendered images and lists the inputs you can change.
 
-[`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator)
-is a downstream consumer. It will translate the Go construction into equivalent
-Python code for Fusion add-ins. This repository owns the decad construction and
-its build pipeline.
+Every model directory holds two specification files. `instructions.md` states the inputs and defaults,
+units, derived values, geometric construction, feature order, valid parameter range, and representative
+cases. `steps.md` maps each construction requirement to a Sketch or Decad operation and names the geometry
+check at each boundary.
 
-## Repository layout
+## For developers
 
-| Path | Purpose |
-| --- | --- |
-| `models/<name>/` | One shape, pattern, or assembly per directory. |
-| `models/README.md` | Rules for adding items and referring to other items. |
-| `tools/render/` | Builds model images from Decad bodies. |
-| `docs/model-pipeline.md` | The specification-to-Decad build workflow. |
-| `AGENTS.md` | Instructions for coding agents working on models. |
-| `.github/` | Repository checks. |
+The [docs](docs/) explain how the models are built, how to add one, and how the images are rendered. The
+[repository layout and checks](docs/repository.md) page lists what lives where.
 
-The repository check runs `python3 scripts/check_repository.py`. It checks the
-foundation files and requires a README for each item directory. Run
-`go test ./...` for the model's geometry checks; CI runs both commands.
+[`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator) translates the Go
+construction into Python code for Fusion add-ins.
 
 ## License
 
