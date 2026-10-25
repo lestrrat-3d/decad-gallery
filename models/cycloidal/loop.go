@@ -40,7 +40,7 @@ func drawPatternedLoop(s *sketch.Sketch, center *sketch.Point, repeat [][]point,
 		}
 		splines = append(splines, spline)
 	}
-	if _, err := s.CreatePatternCircularRing(splines, center, n, start, end); err != nil {
+	if _, err := sketch.CreatePatternCircularRing(s, splines, center, n, start, end); err != nil {
 		return fmt.Errorf("pattern the repeat %d times: %w", n, err)
 	}
 	return nil

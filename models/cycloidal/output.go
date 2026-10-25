@@ -96,7 +96,7 @@ func (r *run) patternPinCircle(s *sketch.Sketch) error {
 	if err != nil {
 		return err
 	}
-	if _, err := s.CreatePatternCircular([]sketch.Entity{seed}, s.Origin(), r.p.OutputPinCount); err != nil {
+	if _, err := sketch.CreatePatternCircular(s, []sketch.Entity{seed}, s.Origin(), r.p.OutputPinCount); err != nil {
 		return fmt.Errorf("pattern: %w", err)
 	}
 	return nil
