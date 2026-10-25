@@ -51,7 +51,7 @@ func buildSpiralMemberChecked(t *testing.T, p bevelgear.Params, verify bool) mem
 func TestSpiralCutterRadiusBuildsMember(t *testing.T) {
 	t.Parallel()
 	spiral := func() bevelgear.Params {
-		p := bevelgear.DefaultParams()
+		p := spiralDefaults()
 		p.EnableBore = false
 		return p
 	}
@@ -72,7 +72,7 @@ func TestSpiralCutterRadiusBuildsMember(t *testing.T) {
 // The pair mirrors the identical pinion for the driving gear, so one cutter radius serves both members.
 func TestSpiralPairCutterRadius(t *testing.T) {
 	t.Parallel()
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.EnableBore = false
 	p.CutterRadius = 30
 	doc := chainDocument()
@@ -95,7 +95,7 @@ func TestSpiralPairCutterRadius(t *testing.T) {
 func TestSpiralHandWidthAndBaseHeight(t *testing.T) {
 	t.Parallel()
 	spiral := func() bevelgear.Params {
-		p := bevelgear.DefaultParams()
+		p := spiralDefaults()
 		p.EnableBore = false
 		return p
 	}
@@ -142,7 +142,7 @@ func TestSpiralPairHandWidthAndBaseHeight(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			p.EnableBore = false
 			mod(&p)
 			doc := chainDocument()

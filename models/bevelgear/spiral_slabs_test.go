@@ -11,7 +11,7 @@ import (
 )
 
 func TestSourceDefaultSpiralToothEightParallelSlices(t *testing.T) {
-	p := DefaultParams()
+	p := spiralDefaults()
 	p.SpiralAngle = 35 * math.Pi / 180
 	p.SpiralHand = "right"
 	doc := decad.New()

@@ -11,8 +11,8 @@ The `models/bevelgear` package builds the pairs that the
 `Build(ctx, doc, Params)` constructs one gear member. A straight member takes any tooth count and
 option. A spiral member takes equal tooth counts at Module 1 and any cutter radius, hand, face width,
 base height, tooth spacing, toe extension, toe radius, pressure angle and spiral angle.
-`DefaultParams()` selects Module 1, a 90° shaft angle, 35° spiral teeth, and an auto-calculated bore
-for each member. `BuildPair` builds and places all four supported pairs. The document passed to `Build`
+`DefaultParams()` selects Module 1, a 90° shaft angle, straight teeth, and an auto-calculated bore
+for each member. Set `SpiralAngle` to 35° for the source's spiral pair. `BuildPair` builds and places all four supported pairs. The document passed to `Build`
 needs a chain tolerance for spiral members; the doc comment on `Build` in `bevelgear.go` explains why
 and how long a spiral build takes.
 

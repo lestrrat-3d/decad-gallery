@@ -11,7 +11,7 @@ import (
 )
 
 func TestEightToothReferenceBlank(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	doc := decad.New()
 	body, err := bevelgear.BuildBlank(t.Context(), doc, p)
@@ -55,7 +55,7 @@ func TestEightToothReferenceBlank(t *testing.T) {
 }
 
 func TestReferenceBlankBaseHeight(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 8, 8
 	p.BaseHeight = 1.5
 	body, err := bevelgear.BuildBlank(t.Context(), decad.New(), p)
@@ -84,7 +84,7 @@ func TestReferenceBlankBaseHeight(t *testing.T) {
 }
 
 func TestReferenceBlankToeControls(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 8, 8
 	p.ToeRadius, p.MateToeRadius = 1, 1
 	plain, err := bevelgear.BuildBlank(t.Context(), decad.New(), p)
@@ -135,7 +135,7 @@ func TestReferenceBlankToeControls(t *testing.T) {
 }
 
 func TestUnequalReferenceBlankPair(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 16, 12
 	p.BaseHeight = 3
 	doc := decad.New()
@@ -198,7 +198,7 @@ func TestUnequalReferenceBlankPair(t *testing.T) {
 }
 
 func TestObliqueReferenceBlankPair(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 16, 12
 	p.ShaftAngle = 70 * math.Pi / 180
 	doc := decad.New()

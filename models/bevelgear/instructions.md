@@ -19,7 +19,8 @@ optional post-join bore. It also constructs straight members of any tooth count.
 then rotates the driving member by half a tooth pitch.
 A pinion with an odd tooth count first turns by one tooth width about its own shaft.
 The source enables the bore by default and resolves a zero diameter automatically.
-`DefaultParams()` also selects the source's 35° mean spiral angle and both enabled bores.
+`DefaultParams()` selects straight teeth and both enabled bores. The source's 35° mean spiral angle is set
+explicitly for the spiral pair.
 
 ## Inputs and supported range
 
@@ -42,7 +43,7 @@ members share the world origin as their pitch apex.
 | `EnableBore` | true | False skips both cuts and ignores both diameter inputs. |
 | `BoreDiameter` | 0 | Zero auto-calculates the driving member's bore when enabled. |
 | `MateBoreDiameter` | 0 | Zero auto-calculates the pinion bore when enabled. |
-| `SpiralAngle` | 35° | Zero makes straight teeth; a curved tooth uses `(0, 60°)`. |
+| `SpiralAngle` | 0 | Zero makes straight teeth; a curved tooth uses `(0, 60°)`. |
 | `SpiralHand` | right | Right or left when `SpiralAngle` is positive. |
 | `CutterRadius` | 0 | Zero selects the mean cone distance; otherwise positive. |
 | `ToothSpacing` | 0 | Nonnegative clearance offset. |

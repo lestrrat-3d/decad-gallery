@@ -38,7 +38,7 @@ func verifySerialMember(t *testing.T, doc *decad.Document, gear *decad.Body) ser
 }
 
 func serialSpiral() bevelgear.Params {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.EnableBore = false
 	return p
 }

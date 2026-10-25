@@ -40,6 +40,9 @@ func buildSpiralMemberSerial(ctx context.Context, doc *decad.Document,
 	return body, err
 }
 
+// verifiedSpiralAngle is the source's 35° mean spiral angle, the one the grouped joins are verified at.
+const verifiedSpiralAngle = 35 * math.Pi / 180
+
 // spiralJoinGroupsFirst limits the faster route to parameter sets verified with grouped joins.
 func spiralJoinGroupsFirst(p Params) bool {
 	d := DefaultParams()
@@ -50,8 +53,8 @@ func spiralJoinGroupsFirst(p Params) bool {
 	return p.Module == d.Module &&
 		(defaultTeeth || twentyFiveTeeth || thirtyOneTwentyFiveTeeth) &&
 		verifiedShaftAngle && p.FaceWidth == 0 && p.PressureAngle == d.PressureAngle &&
-		p.Samples == d.Samples && p.SpiralAngle == d.SpiralAngle &&
-		(p.SpiralHand == d.SpiralHand || p.SpiralHand == "left") &&
+		p.Samples == d.Samples && p.SpiralAngle == verifiedSpiralAngle &&
+		(p.SpiralHand == "right" || p.SpiralHand == "left") &&
 		p.MateToeRadius == 0 && p.BaseHeight == 0 && p.MateBaseHeight == 0
 }
 

@@ -15,7 +15,7 @@ func TestSourceDefaultSpiralToothFullPattern(t *testing.T) {
 		pinion bool
 	}{{name: "driving"}, {name: "pinion", pinion: true}} {
 		t.Run(member.name, func(t *testing.T) {
-			p := DefaultParams()
+			p := spiralDefaults()
 			p.SpiralAngle = 35 * math.Pi / 180
 			p.SpiralHand = "right"
 			doc := decad.New()

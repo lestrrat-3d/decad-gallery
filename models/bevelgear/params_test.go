@@ -10,7 +10,7 @@ import (
 )
 
 func TestBevelGearReadsDerivedParameters(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.SpiralAngle, p.EnableBore = 0, false
 	doc := decad.New()

@@ -11,7 +11,7 @@ import (
 
 // smallEightParams is the smallest verified straight member: 8/8, module 1, five samples.
 func smallEightParams() bevelgear.Params {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth, p.Samples = 8, 8, 5
 	p.SpiralAngle = 0
 	p.EnableBore = false

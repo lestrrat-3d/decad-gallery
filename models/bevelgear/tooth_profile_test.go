@@ -23,7 +23,7 @@ func TestVirtualToothProfiles(t *testing.T) {
 			wantCount: 16 / 0.6, wantGamma: math.Atan2(4, 3)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := bevelgear.DefaultParams()
+			p := spiralDefaults()
 			p.Teeth, p.MateTeeth, p.Samples = tc.teeth, tc.mateTeeth, 5
 			world := sketch.NewWorld()
 			s, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
@@ -65,7 +65,7 @@ func TestVirtualToothProfiles(t *testing.T) {
 }
 
 func TestEmbeddedVirtualToothProfile(t *testing.T) {
-	p := bevelgear.DefaultParams()
+	p := spiralDefaults()
 	p.Teeth, p.MateTeeth = 60, 60
 	world := sketch.NewWorld()
 	s, profile, err := bevelgear.BuildVirtualToothProfile(t.Context(), world, world.XY(), p)
@@ -94,7 +94,7 @@ func TestEmbeddedVirtualToothProfile(t *testing.T) {
 
 func TestBackConeToothPlaneWithSpacing(t *testing.T) {
 	for _, spacing := range []float64{0, 0.5} {
-		p := bevelgear.DefaultParams()
+		p := spiralDefaults()
 		p.Teeth, p.MateTeeth, p.Samples = 16, 12, 5
 		p.ToothSpacing = spacing
 		world := sketch.NewWorld()
