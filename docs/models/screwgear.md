@@ -60,4 +60,4 @@ The package needs the decad revision `v0.0.0-20261027045205-cfe5a7e9e746` or lat
 twisted sweeps at any angle and off the axis, twisted-tool cuts and chained cuts (decad pull requests 2629 to 2634).
 
 The [renderer](../rendering.md) builds the screw gear from `DefaultParams()` with `NewDocument()` to produce the
-images on the gallery page. Its `section` shot draws the plane sections with solidlens `RenderSection`. The `models/screwgear/images` files come from `tools/render`.
+images on the gallery page. Its `cutaway` shot cuts the bodies open with solidlens `Model.Clip`. The `models/screwgear/images` files come from `tools/render`.
