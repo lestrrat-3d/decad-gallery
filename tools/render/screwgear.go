@@ -41,6 +41,12 @@ var screwGearCameras = map[string]solidlens.Camera{
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      30,
 	},
+	"cutaway": {
+		Position: solidlens.Vec{X: 90, Y: -300, Z: 130},
+		Target:   solidlens.Vec{},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	},
 }
 
 // screwGearColors are ribbon A, ribbon B and the cage.
@@ -108,11 +114,34 @@ func (p pointCloud) Vertices() []r3.Vec { return p }
 
 func (p pointCloud) Triangles() [][3]int { return nil }
 
+// screwGearCutaway cuts all three bodies open along the plane through the sleeve's axis and the reference
+// direction ê, the world XZ plane when the mechanism is unplaced. The half toward negative Y is removed, which is the
+// side the cutaway camera looks from, so the view shows the inside of the sleeve and the ribbons passing through its
+// bores. The cut faces are flat, in a lighter shade of each body's colour.
+func screwGearCutaway(models []solidlens.Model) []solidlens.Model {
+	out := make([]solidlens.Model, len(models))
+	for i, model := range models {
+		capColor := screwGearColors[i]
+		model.Clip = &solidlens.ClipPlane{
+			Normal: solidlens.Vec{Y: -1},
+			Cap: &solidlens.Material{
+				Color: solidlens.RGB(capColor.R+(1-capColor.R)*0.35, capColor.G+(1-capColor.G)*0.35, capColor.B+(1-capColor.B)*0.35),
+				Unlit: true,
+			},
+		}
+		out[i] = model
+	}
+	return out
+}
+
 func screwGearView(shot string) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
 		models, err := screwGearModels(ctx)
 		if err != nil {
 			return solidlens.Scene{}, err
+		}
+		if shot == "cutaway" {
+			models = screwGearCutaway(models)
 		}
 		return screwGearScene(screwGearCameras[shot], models, 16.0/9), nil
 	}
@@ -142,5 +171,9 @@ func renderScrewGearReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render screwgear %s: %w", image.name, err)
 		}
 	}
-	return renderScrewGearSectionImages(ctx, mechanism, outputDir)
+	cutaway := screwGearScene(screwGearCameras["cutaway"], screwGearCutaway(models), 16.0/9)
+	if err := renderPNG(ctx, filepath.Join(outputDir, "cutaway.png"), cutaway, 1600, 900); err != nil {
+		return fmt.Errorf("render screwgear cutaway.png: %w", err)
+	}
+	return nil
 }
