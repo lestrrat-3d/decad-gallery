@@ -6,12 +6,16 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 )
 
 // Mechanism is the three bodies Build adds to a document.
 type Mechanism struct {
 	GearA, GearB, Cage *decad.Body
+
+	// pair is the placement: its origin is the centre C, U is ê, V is k̂ and the normal is n̂.
+	pair r3.Frame
 }
 
 // chainTolerance is the coarsest bound decad may carry where a bore or window cut meets a
@@ -40,7 +44,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Mechanism, erro
 	if err != nil {
 		return nil, err
 	}
-	var m Mechanism
+	m := Mechanism{pair: pf.frame}
 	for i, dst := range []**decad.Body{&m.GearA, &m.GearB} {
 		body, err := pf.gears[i].ribbonBody(ctx, doc)
 		if err != nil {

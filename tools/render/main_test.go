@@ -144,6 +144,45 @@ func TestScrewGearReadme(t *testing.T) {
 	}
 }
 
+// TestScrewGearSections renders the three plane sections of the real ribbon pair and checks each shows both
+// gears (blue and orange fills) and no red overlap, since the default pair does not interpenetrate.
+func TestScrewGearSections(t *testing.T) {
+	dir := t.TempDir()
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "screwgear", "-shot", "section", "-out", dir)
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+	for _, name := range []string{"section-below.png", "section-mid.png", "section-above.png"} {
+		file, err := os.Open(filepath.Join(dir, name))
+		require.NoError(t, err)
+		img, err := png.Decode(file)
+		require.NoError(t, file.Close())
+		require.NoError(t, err)
+		require.Equal(t, 1200, img.Bounds().Dx())
+		require.Equal(t, 900, img.Bounds().Dy())
+		var blue, orange, red int
+		for y := range 900 {
+			for x := range 1200 {
+				r, g, b, _ := img.At(x, y).RGBA()
+				r, g, b = r>>8, g>>8, b>>8
+				switch {
+				case r > 200 && g < 90 && b < 90:
+					// The legend's overlap swatch, in the top left corner, is red too.
+					if x >= 130 || y >= 130 {
+						red++
+					}
+				case b > r+40 && b > g:
+					blue++
+				case r > b+40 && r > g:
+					orange++
+				}
+			}
+		}
+		require.Greater(t, blue, 2000, "%s: gear A's section should be filled", name)
+		require.Greater(t, orange, 2000, "%s: gear B's section should be filled", name)
+		require.Zero(t, red, "%s: the ribbons should not overlap", name)
+	}
+}
+
 // requireMechanismImage checks the PNG size and that its centre column holds the sleeve and ribbons: the
 // pixels across the middle third of the image must include several colours besides the background.
 func requireMechanismImage(t *testing.T, path string, width, height int) {

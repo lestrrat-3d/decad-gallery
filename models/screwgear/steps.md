@@ -230,6 +230,10 @@ Run `go test ./models/screwgear`. The tests named here read the values of "Accep
 | `TestBuildPlacementMovesTheWholeMechanism` | Placed cage bounds and volume |
 | `TestBuildBoresFollowTheRibbonSurface` | `DistanceToPoint` from the cage to ribbon points at all four crossings: 0.19 ± 0.03 mm, and 0.48 ± 0.05 mm at the roof face |
 | `TestBuildBranches` | No roof allowance, `Σ = 100°`, and mounting angles of ±5° each build with both windows cut |
+| `TestSectionPairCutsBothRibbons` | `Mechanism.SectionPair` at −0.4, 0 and +0.4 mm: both ribbons give outlines on the plane, with positive area and an off-surface bound under 0.05 mm |
+| `TestSectionPairOnePlaneOutsideGearAReadsEmpty` | A plane 1.0 mm toward gear B gives gear A no loop, and `Clearance` is nil |
+| `TestSectionPairFollowsThePlacement` | A placed mechanism's section plane moves with the placement and its outline points stay on it |
+| `TestSectionPairClearanceOfTheDefaultPair` | `SectionOutline.Clearance` on five planes from −0.4 to +0.4 mm: no overlap, proven lower bound above 0.55 mm, closest points on the plane |
 | `TestBuildRejectsInvalidParams` | `Clearance = 0` fails with `clearance`; a nil context fails |
 
 The default build takes about 40 s. The build tests use 16 teeth in place of 68, which takes about 15 s. `TestBuildBoresFollowTheRibbonSurface` states that decad reports a

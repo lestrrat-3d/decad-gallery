@@ -111,6 +111,10 @@ MODEL_PR_TESTS = [
     "TestWindowSearchAtTheDefaults",
     "TestWindowSearchKeepsCollarWallToTheFlankingBores",
     "TestWindowSearchRoomRefusesTheBandWithNoWidth",
+    "TestSectionPairCutsBothRibbons",
+    "TestSectionPairOnePlaneOutsideGearAReadsEmpty",
+    "TestSectionPairFollowsThePlacement",
+    "TestSectionPairClearanceOfTheDefaultPair",
 ]
 
 BEVEL_FULL_TESTS = [

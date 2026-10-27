@@ -96,6 +96,16 @@ go -C tools/render run . -model screwgear -shot hero -out ../../models/screwgear
 go -C tools/render run . -model screwgear -shot readme -out ../../models/screwgear/images
 ```
 
+The `section` shot builds the default mechanism once and writes three 1200 × 900 pixel plane sections of the two
+ribbons, `section-below.png`, `section-mid.png` and `section-above.png`, for planes −0.4 mm, 0 and +0.4 mm from the
+mid-plane between the gear axes. It reads each outline with `Body.SectionOutline` at a 0.1 mm chord tolerance, draws
+gear A in blue and gear B in orange with solidlens `RenderSection`, paints any overlap red, and puts the least gap
+from `SectionOutline.Clearance` and its proven part in the caption:
+
+```sh
+go -C tools/render run . -model screwgear -shot section -out ../../models/screwgear/images
+```
+
 The `gallery/hero` preset does not include the screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero

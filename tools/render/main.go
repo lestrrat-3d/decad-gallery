@@ -59,6 +59,12 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderReadme(ctx, model, output)
 	}
+	if model == "screwgear" && shot == "section" {
+		if width != 0 || height != 0 {
+			return fmt.Errorf("section output uses fixed image sizes")
+		}
+		return renderScrewGearSections(ctx, output)
+	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {
 			width = galleryWidth

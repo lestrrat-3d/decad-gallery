@@ -345,3 +345,10 @@ The pair frame at the defaults: gear A's origin is (0, 0, −6.925) and gear B's
   checks (see [steps.md](steps.md)).
 - A placed mechanism's cage volume agrees with the unplaced one to within the reported bound plus 50 mm³, and its
   bounds are the unplaced bounds moved onto the frame.
+
+### Section check
+
+Cut both ribbons with planes parallel to the mid-plane between the gear axes, at −0.4, 0 and +0.4 mm from it along
+`n̂`. On each plane the two section outlines do not overlap, and the proven least gap between them is at least
+0.55 mm for the default inputs. A plane 1 mm toward gear B cuts only gear B, because gear A's crests reach 0.575 mm
+across the mid-plane.
