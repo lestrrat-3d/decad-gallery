@@ -17,6 +17,9 @@ type preset struct {
 }
 
 var presets = map[string]preset{
+	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
+	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
+	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
 	"spurgear/hero":           {width: 1600, height: 900, scene: spurGearHero},
 	"spurgear/top":            {width: 1600, height: 900, scene: spurGearTop},
 	"spurgear/low":            {width: 1600, height: 900, scene: spurGearLow},
@@ -98,6 +101,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "cycloidal" {
 		return renderCycloidalReadme(ctx, outputDir)
+	}
+	if model == "screwgear" {
+		return renderScrewGearReadme(ctx, outputDir)
 	}
 	hero, ok := presets[model+"/hero"]
 	if !ok {
