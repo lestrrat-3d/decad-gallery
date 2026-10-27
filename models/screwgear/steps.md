@@ -20,11 +20,8 @@ These were measured against the decad branches the gallery builds with. They dec
 | The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))`. `Build` needs a document made by it |
 | `decad.Verify` with clearances took 108 s on the 16-tooth model, found no interference, measured 0.548 ± 0.027 mm between the ribbons, and left both ribbon-versus-cage pairs undecided | Clearance checks use `DistanceToPoint` on the cage, not `decad.Verify` |
 
-These capabilities are on local decad branches (`loft-sections-twisted` and `loft-sections-long`,
-`twist-sweep-angles`, `twist-sweep-offaxis` and `twist-sweep-cut`, and `chained-cuts`) merged into the
-`feat-screwgear-decad` worktree. They are not upstream yet. The gallery `go.mod` carries a local `replace`
-directive for `github.com/lestrrat-3d/decad` that points at that worktree. Replace it with a pinned upstream
-version before merging.
+These capabilities landed in decad in pull requests 2629 to 2634. The gallery `go.mod` pins decad at
+`v0.0.0-20261027045205-cfe5a7e9e746` or later, the first revision that has all of them.
 
 ## Package and API
 

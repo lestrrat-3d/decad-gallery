@@ -44,10 +44,8 @@ The tests do not run `decad.Verify` with clearances between the bodies. That cal
 model, found no interference, measured 0.548 ± 0.027 mm between the two ribbons, and left both ribbon-versus-cage
 pairs undecided.
 
-The package depends on decad capabilities that are on local branches and not upstream yet: long twisted lofts,
-twisted sweeps at any angle, twisted-tool cuts, and chained cuts. The gallery `go.mod` has a local `replace` for
-`github.com/lestrrat-3d/decad` that points at the `feat-screwgear-decad` worktree. Replace it with a pinned
-version before merging.
+The package needs the decad revision `v0.0.0-20261027045205-cfe5a7e9e746` or later, which has long twisted lofts,
+twisted sweeps at any angle and off the axis, twisted-tool cuts and chained cuts (decad pull requests 2629 to 2634).
 
 The [renderer](../rendering.md) builds the screw gear from `DefaultParams()` with `NewDocument()` to produce the
 images on the gallery page. The `models/screwgear/images` files come from `tools/render`.
