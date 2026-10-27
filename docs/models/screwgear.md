@@ -40,6 +40,18 @@ about 40 s, and the build cases use 16 teeth, which takes about 15 s each. A lon
 - the default build's volumes and bounds, a placed build, and three build branches;
 - the distance from the cage to each ribbon at the bores' crossings, measured with `DistanceToPoint`.
 
+`Mechanism.SectionPair(ctx, height, tol)` cuts both ribbons with the plane `Mechanism.MidPlane(height)`, which is
+parallel to the mid-plane between the gear axes and `height` millimeters from it along `n̂`. It returns each ribbon's
+`decad.SectionOutline`, read from the body's verified mesh at chord tolerance `tol`, and `Clearance`, the
+`decad.SectionOutline.Clearance` between the two outlines: the least distance, the closest pair of points, whether
+the outlines overlap, and `Lower()`, the part of the distance decad proves. `Clearance` is nil when a ribbon misses
+the plane, as a gear does 1 mm from the mid-plane, where gear A's teeth end. On the default pair, the planes from
+−0.4 mm to +0.4 mm read a least gap of 0.64 to 0.75 mm, proven to at least 0.60 mm, with no overlap. Each section
+takes about 30 ms once the mechanism is built.
+
+The section tests hold the proven lower bound above 0.55 mm on five planes of the 16-tooth build, check every
+outline point lies on the plane, and check a plane 1 mm toward gear B reads empty for gear A.
+
 The tests do not run `decad.Verify` with clearances between the bodies. That call took 108 s on the 16-tooth
 model, found no interference, measured 0.548 ± 0.027 mm between the two ribbons, and left both ribbon-versus-cage
 pairs undecided.
@@ -48,4 +60,4 @@ The package needs the decad revision `v0.0.0-20261027045205-cfe5a7e9e746` or lat
 twisted sweeps at any angle and off the axis, twisted-tool cuts and chained cuts (decad pull requests 2629 to 2634).
 
 The [renderer](../rendering.md) builds the screw gear from `DefaultParams()` with `NewDocument()` to produce the
-images on the gallery page. The `models/screwgear/images` files come from `tools/render`.
+images on the gallery page. Its `section` shot draws the plane sections with solidlens `RenderSection`. The `models/screwgear/images` files come from `tools/render`.

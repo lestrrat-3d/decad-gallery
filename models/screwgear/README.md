@@ -8,6 +8,16 @@
 | --- | --- |
 | ![Top view of the sleeve with the two ribbons crossing in its hollow](images/top.png) | ![Sleeve windows and twisted bores from a low angle](images/low.png) |
 
+## How the teeth mesh
+
+Each image cuts both ribbons with a plane parallel to the mid-plane between their axes. Gear A is blue and
+gear B is orange, and any overlap would show in red. The teeth of the two ribbons alternate along the plane and
+stay apart. Each caption gives the least gap between the two outlines and the part of it that is proven.
+
+| 0.4 mm toward gear A | At the mid-plane | 0.4 mm toward gear B |
+| --- | --- | --- |
+| ![Plane section 0.4 mm below the mid-plane](images/section-below.png) | ![Plane section at the mid-plane](images/section-mid.png) | ![Plane section 0.4 mm above the mid-plane](images/section-above.png) |
+
 A pair of gears that move by a screw motion: each gear turns about its own axis while it slides along that
 axis. Each gear is a flat ribbon with a wavy toothed edge, twisted along its length into a helix. The two axes
 cross at 80° by default. A thick-walled sleeve holds the pair. Each ribbon passes through the sleeve's wall twice,
