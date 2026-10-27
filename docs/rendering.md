@@ -85,6 +85,19 @@ both rotor discs, the eccentric cam, and the output plate with its pins. The `re
 go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloidal/images
 ```
 
+The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies
+as separate meshes: ribbon A in blue, ribbon B in orange and the sleeve in grey, each with outlines. The camera frames
+the sleeve and the 70 mm of ribbon around it, so the 178.5 mm ribbons run off the image edges. The `hero`, `top` and
+`low` presets write one image each; the `readme` shot writes `index.png`, `hero.png`, `top.png` and `low.png` from one
+build. The ribbons are meshed at 0.1 mm and the sleeve at 0.2 mm, the finest chord Decad accepts for it:
+
+```sh
+go -C tools/render run . -model screwgear -shot hero -out ../../models/screwgear/images/hero.png
+go -C tools/render run . -model screwgear -shot readme -out ../../models/screwgear/images
+```
+
+The `gallery/hero` preset does not include the screw gear.
+
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spur, helical, herringbone, cycloidal and bevel gear models one after another, places each at
 its own size on a 1600 × 900 pixel canvas, and keeps only the pixels that differ from the background where

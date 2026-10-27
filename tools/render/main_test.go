@@ -121,6 +121,52 @@ func TestCycloidalHero(t *testing.T) {
 	require.Greater(t, visible, 300, "the real drive should be visible against the background")
 }
 
+// TestScrewGearHero builds the real screw gear once (about 40 s) for the single hero preset.
+func TestScrewGearHero(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "hero.png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "screwgear", "-shot", "hero",
+		"-out", output, "-width", "160", "-height", "90")
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+	requireMechanismImage(t, output, 160, 90)
+}
+
+// TestScrewGearReadme shares one real build across the index, hero, top and low images, so the top and low
+// presets are checked without two more 40 s builds.
+func TestScrewGearReadme(t *testing.T) {
+	dir := t.TempDir()
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "screwgear", "-shot", "readme", "-out", dir)
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+	requireMechanismImage(t, filepath.Join(dir, "index.png"), 480, 270)
+	for _, name := range []string{"hero.png", "top.png", "low.png"} {
+		requireMechanismImage(t, filepath.Join(dir, name), 1600, 900)
+	}
+}
+
+// requireMechanismImage checks the PNG size and that its centre column holds the sleeve and ribbons: the
+// pixels across the middle third of the image must include several colours besides the background.
+func requireMechanismImage(t *testing.T, path string, width, height int) {
+	t.Helper()
+	file, err := os.Open(path)
+	require.NoError(t, err)
+	defer func() { _ = file.Close() }()
+	image, err := png.Decode(file)
+	require.NoError(t, err)
+	require.Equal(t, width, image.Bounds().Dx())
+	require.Equal(t, height, image.Bounds().Dy())
+	background := image.At(0, 0)
+	visible := 0
+	for y := height / 3; y < 2*height/3; y++ {
+		for x := range width {
+			if image.At(x, y) != background {
+				visible++
+			}
+		}
+	}
+	require.Greater(t, visible, width*height/20, "%s: the real mechanism should be visible against the background", path)
+}
+
 func TestGalleryHero(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "gallery.png")
 	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "gallery", "-shot", "hero",
