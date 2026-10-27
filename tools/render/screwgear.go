@@ -57,6 +57,11 @@ func screwGearModels(ctx context.Context) ([]solidlens.Model, error) {
 	if err != nil {
 		return nil, fmt.Errorf("build screw gear: %w", err)
 	}
+	return screwGearMeshes(ctx, mechanism)
+}
+
+// screwGearMeshes tessellates the three bodies of a built mechanism into solidlens models.
+func screwGearMeshes(ctx context.Context, mechanism *screwgear.Mechanism) ([]solidlens.Model, error) {
 	var models []solidlens.Model
 	bodies := []*decad.Body{mechanism.GearA, mechanism.GearB, mechanism.Cage}
 	tolerances := []float64{screwGearRibbonTolerance, screwGearRibbonTolerance, screwGearCageTolerance}
@@ -115,7 +120,11 @@ func screwGearView(shot string) func(context.Context) (solidlens.Scene, error) {
 
 // renderScrewGearReadme builds the mechanism once and writes index.png, hero.png, top.png and low.png.
 func renderScrewGearReadme(ctx context.Context, outputDir string) error {
-	models, err := screwGearModels(ctx)
+	mechanism, err := screwgear.Build(ctx, screwgear.NewDocument(), screwgear.DefaultParams())
+	if err != nil {
+		return fmt.Errorf("build screw gear: %w", err)
+	}
+	models, err := screwGearMeshes(ctx, mechanism)
 	if err != nil {
 		return err
 	}
@@ -133,5 +142,5 @@ func renderScrewGearReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render screwgear %s: %w", image.name, err)
 		}
 	}
-	return nil
+	return renderScrewGearSectionImages(ctx, mechanism, outputDir)
 }

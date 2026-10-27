@@ -131,8 +131,9 @@ func TestScrewGearHero(t *testing.T) {
 	requireMechanismImage(t, output, 160, 90)
 }
 
-// TestScrewGearReadme shares one real build across the index, hero, top and low images, so the top and low
-// presets are checked without two more 40 s builds.
+// TestScrewGearReadme shares one real build across the index, hero, top and low images and the three plane
+// sections, so the top, low and section presets are checked without more 40 s builds (the CI render job stops
+// the package at five minutes).
 func TestScrewGearReadme(t *testing.T) {
 	dir := t.TempDir()
 	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "screwgear", "-shot", "readme", "-out", dir)
@@ -142,15 +143,13 @@ func TestScrewGearReadme(t *testing.T) {
 	for _, name := range []string{"hero.png", "top.png", "low.png"} {
 		requireMechanismImage(t, filepath.Join(dir, name), 1600, 900)
 	}
+	requireSectionImages(t, dir)
 }
 
-// TestScrewGearSections renders the three plane sections of the real ribbon pair and checks each shows both
-// gears (blue and orange fills) and no red overlap, since the default pair does not interpenetrate.
-func TestScrewGearSections(t *testing.T) {
-	dir := t.TempDir()
-	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "screwgear", "-shot", "section", "-out", dir)
-	result, err := cmd.CombinedOutput()
-	require.NoError(t, err, string(result))
+// requireSectionImages checks the three plane sections of the real ribbon pair each show both gears (blue and
+// orange fills) and no red overlap, since the default pair does not interpenetrate.
+func requireSectionImages(t *testing.T, dir string) {
+	t.Helper()
 	for _, name := range []string{"section-below.png", "section-mid.png", "section-above.png"} {
 		file, err := os.Open(filepath.Join(dir, name))
 		require.NoError(t, err)

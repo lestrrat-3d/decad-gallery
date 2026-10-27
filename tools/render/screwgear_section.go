@@ -48,6 +48,11 @@ func renderScrewGearSections(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return fmt.Errorf("build screw gear: %w", err)
 	}
+	return renderScrewGearSectionImages(ctx, mechanism, outputDir)
+}
+
+// renderScrewGearSectionImages writes the plane sections of an already built mechanism into outputDir.
+func renderScrewGearSectionImages(ctx context.Context, mechanism *screwgear.Mechanism, outputDir string) error {
 	for _, shot := range screwGearSectionHeights {
 		section, err := mechanism.SectionPair(ctx, shot.height, screwGearSectionTolerance)
 		if err != nil {
