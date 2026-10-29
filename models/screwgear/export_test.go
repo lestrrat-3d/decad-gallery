@@ -1,6 +1,9 @@
 package screwgear
 
 import (
+	"context"
+
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -93,3 +96,13 @@ func WindowsForTest(p Params) ([2]WindowForTest, error) {
 
 // WindowFacingsForTest is the two directions the windows face.
 func WindowFacingsForTest(p Params) [2]r3.Vec { return windowFacings(p) }
+
+// RibbonForTest lofts gear gi's ribbon in the gear's own frame, unplaced, and returns the body,
+// the sections it was lofted through and the station step between them.
+func RibbonForTest(ctx context.Context, doc *decad.Document, p Params, gi int) (*decad.Body, []decad.LoftSection, float64, error) {
+	pf, err := newPairFrame(p)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	return pf.gears[gi].ribbonLoft(ctx, doc)
+}
