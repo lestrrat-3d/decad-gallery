@@ -13,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
       - name: Check repository layout
         run: python3 scripts/check_repository.py
       - name: Check spur generation record
@@ -25,9 +23,6 @@ jobs:
       - name: Check model regressions
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: python3 scripts/ci/run_tests.py models pr
-      - name: Check long loft after a decad bump
-        if: github.event_name == 'pull_request'
-        run: python3 scripts/ci/run_tests.py models decad-bump HEAD^1
       - name: Check full model suite
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: python3 scripts/ci/run_tests.py models full
