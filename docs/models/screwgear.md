@@ -38,6 +38,9 @@ about 40 s, and the build cases use 16 teeth, which takes about 15 s each. A lon
 - the pair frame and the roof side of each bore;
 - the wall separation of 5.310 mm and the window search numbers at the defaults;
 - the default build's volumes and bounds, a placed build, and three build branches;
+- the default 68-tooth ribbon as one verified loft: 681 sections lofted as one solid, its volume against the
+  denoted solid, its verified mesh and mesh volume, and a rigid copy (about 12 s and 1.3 GB, run only by the full
+  model suite, not by pull request checks);
 - the distance from the cage to each ribbon at the bores' crossings, measured with `DistanceToPoint`.
 
 `Mechanism.SectionPair(ctx, height, tol)` cuts both ribbons with the plane `Mechanism.MidPlane(height)`, which is

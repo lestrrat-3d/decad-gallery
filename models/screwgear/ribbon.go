@@ -80,11 +80,21 @@ func solveAndVerify(ctx context.Context, s *sketch.Sketch, stage string) error {
 	return nil
 }
 
-// ribbonBody lofts the gear's whole ribbon through one section per tenth of a pitch, then
-// moves it from the gear's own frame onto the gear's place in the pair frame.
+// ribbonBody lofts the gear's whole ribbon, then moves it from the gear's own frame onto the
+// gear's place in the pair frame.
+func (g gear) ribbonBody(ctx context.Context, doc *decad.Document) (*decad.Body, error) {
+	body, _, _, err := g.ribbonLoft(ctx, doc)
+	if err != nil {
+		return nil, err
+	}
+	return g.place(ctx, body)
+}
+
+// ribbonLoft lofts the gear's whole ribbon in the gear's own frame through one section per
+// tenth of a pitch. It returns the body, the sections and the station step between them.
 // The ribbon runs the length of ToothCount pitches centred on the crossing station, then
 // advanced by the gear's tooth phase along its own axis.
-func (g gear) ribbonBody(ctx context.Context, doc *decad.Document) (*decad.Body, error) {
+func (g gear) ribbonLoft(ctx context.Context, doc *decad.Document) (*decad.Body, []decad.LoftSection, float64, error) {
 	p := g.p
 	w := sketch.NewWorld()
 	count := p.ToothCount*sectionsPerTooth + 1
@@ -94,15 +104,15 @@ func (g gear) ribbonBody(ctx context.Context, doc *decad.Document) (*decad.Body,
 	for i := range sections {
 		sec, err := g.section(ctx, w, first+float64(i)*step)
 		if err != nil {
-			return nil, err
+			return nil, nil, 0, err
 		}
 		sections[i] = sec
 	}
 	body, err := decad.LoftSections(ctx, doc, sections...)
 	if err != nil {
-		return nil, fmt.Errorf("loft ribbon: %w", err)
+		return nil, nil, 0, fmt.Errorf("loft ribbon: %w", err)
 	}
-	return g.place(ctx, body)
+	return body, sections, step, nil
 }
 
 // place moves a body built in the gear's own frame onto the gear's axis in the pair frame.
