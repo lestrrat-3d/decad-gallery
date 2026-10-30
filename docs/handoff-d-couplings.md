@@ -1,10 +1,18 @@
 # Decad D-coupling construction failures
 
-## Current gallery status
+## Gallery verification approach
 
-The real default gallery consumer passes on published Decad `c5375fa37f6866b5a641b8679d4103422e979092`
-and Sketch `6dfdb462bc53`. The gallery does not require the additional D-only loft optimization in Decad PR2881.
-Both production gallery module files now pin that published Decad version; no local replace is committed.
+Initial integration passed the real default gallery consumer on published Decad
+`c5375fa37f6866b5a641b8679d4103422e979092` and Sketch `6dfdb462bc53`.
+The gallery did not require the additional D-only loft optimization in Decad PR2881.
+Both production gallery module files now pin Decad `dfe706cff5aa3f809ac3081f4d69c0be30c842ba`,
+the tested head merged through PR2887. No local Decad replace is committed.
+
+Decad PR2884 subsequently merged at `2dd142b189a4f490d907d3fd17cf0d930555c07d`, with all required CI checks
+passing. It generalizes exact loft through-bores to admitted closed line-and-circular-arc loops. Square,
+hexagonal, keyed polygon, keyed round bore and rounded-slot regressions pass. Unsupported curve families
+or failed admission checks use the general Boolean path. This gallery consumer uses the public history
+and bounded checks below on its existing published dependency.
 
 The input shaft uses one combined flat-cut tool. Bore checks follow the actual OperationHistory to the D cutter,
 then read its circle-prism and rectangle-prism inputs with Body.Section at1e-6mm. The derived tool and final
@@ -12,7 +20,8 @@ gear contours use SectionOutline at0.01mm, with OffSurface below0.01mm, unchange
 and a90degree relative-rotation interference control. Journal checks prove the flat tools miss the slice and
 verify actual output roundness. Nominal0.1mm fit clearances are unchanged.
 
-Whole-gear exact Body.Section remains unsupported for its53-input tooth/root Union; this is not claimed as fixed.
+Whole-gear exact Body.Section was unsupported for its53-input tooth/root Union during initial integration.
+The gallery checks do not require or claim whole-gear exact sections.
 The mesh-read refusal below the held bound was correct. A bounded D profile is not silently treated as exact.
 The original reports and integration attempts below record the diagnosis.
 
@@ -47,8 +56,8 @@ Keep gallery changes in this worktree with the gallery session; perform dependen
 
 Gallery worktree:
 `/home/lestrrat/dev/src/github.com/lestrrat-3d/decad-gallery/.worktrees/feat-pedal-spindle`.
-Current published gallery PR119 remains at `a3963644028bfd5299d9081f78a1f8ccfff279e2`.
-The D-coupling changes are uncommitted candidates in that worktree.
+At the initial handoff, published gallery PR119 was at `a3963644028bfd5299d9081f78a1f8ccfff279e2`.
+The D-coupling changes were uncommitted candidates in that worktree.
 The initial failures used `github.com/lestrrat-3d/decad v0.0.0-20261027054635-bacba52e1142`.
 
 ## Passing smallest real connection
