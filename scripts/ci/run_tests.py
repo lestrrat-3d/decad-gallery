@@ -68,6 +68,7 @@ BEVEL_TESTS = {
 
 MODEL_PR_TESTS = [
     "TestBearing608Envelope",
+    "TestBearing605Envelope",
     "TestBearingPlacedAndRepeated",
     "TestBearingCustomDimensions",
     "TestBearingRejectsInvalidInputs",

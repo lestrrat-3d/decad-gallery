@@ -15,6 +15,10 @@ func bearing608Hero(ctx context.Context) (solidlens.Scene, error) {
 	return bearingEnvelopeScene(ctx, ballbearing.DefaultParams())
 }
 
+func bearing605Hero(ctx context.Context) (solidlens.Scene, error) {
+	return bearingEnvelopeScene(ctx, ballbearing.Params605ZZ())
+}
+
 func bearingEnvelopeScene(ctx context.Context, params ballbearing.Params) (solidlens.Scene, error) {
 	m, err := ballbearing.Build(ctx, decad.New(), params)
 	if err != nil {
@@ -45,6 +49,13 @@ func renderBearingReadme(ctx context.Context, outputDir string) error {
 		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
 			return err
 		}
+	}
+	other, err := bearing605Hero(ctx)
+	if err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "605zz.png"), other, 1600, 900); err != nil {
+		return err
 	}
 	return nil
 }
