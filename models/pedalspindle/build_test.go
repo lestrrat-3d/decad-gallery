@@ -140,22 +140,7 @@ func requireDimensions(t *testing.T, doc *decad.Document, a *pedalspindle.Assemb
 			if item.name == "crank" || (item.name == "treadle" && want.Sub(a.State.Toe).Len() < 1e-6) {
 				radius = 2.6
 			}
-			found := 0
-			for _, face := range partByName(t, a, item.name).Faces() {
-				if face.Surface().Kind() != decad.KindPlane {
-					continue
-				}
-				for _, loop := range face.Loops() {
-					for _, edge := range loop.Edges() {
-						c, ok := edge.Curve().(decad.Circle3)
-						if ok && math.Hypot(c.Center.X-want.X, c.Center.Z-want.Z) < 1e-6 {
-							require.InDelta(t, radius, c.Radius.Base(), 1e-6, "%s stock pivot radius", item.name)
-							found++
-						}
-					}
-				}
-			}
-			require.Equal(t, 2, found, "%s pivot must appear on both caps", item.name)
+			requirePivotBoreCaps(t, partByName(t, a, item.name), want, radius)
 		}
 	}
 	spindle := partByName(t, a, "spindle")
@@ -168,6 +153,61 @@ func requireDimensions(t *testing.T, doc *decad.Document, a *pedalspindle.Assemb
 	wantVolume := math.Pi * (6.25*275 + 25.0/3*(6.25+2.5*.3+.3*.3)) * scale
 	wantVolume -= circularCapArea(2.5, 1.75) * 34 * scale
 	require.InDelta(t, wantVolume, volume.Value.Base(), volume.Bound.Base()+1e-5, "exact cylindrical shaft and conical tip")
+}
+
+func requirePivotBoreCaps(t *testing.T, body *decad.Body, centre r3.Vec, radius float64) {
+	t.Helper()
+	box, err := body.Bounds()
+	require.NoError(t, err)
+	found := 0
+	for _, face := range body.Faces() {
+		c, ok := face.Surface().(decad.Cylinder)
+		if !ok || math.Hypot(c.Origin.X-centre.X, c.Origin.Z-centre.Z) >= 1e-6 {
+			continue
+		}
+		found++
+		require.InDelta(t, radius, c.Radius.Base(), 1e-6, "stock pivot radius")
+		require.InDelta(t, 1, math.Abs(c.Axis.Y), 1e-6, "pivot axis")
+		require.Equal(t, 2, len(face.Loops()), "through cylinder has two rims")
+		ends := map[int]struct{}{}
+		for _, loop := range face.Loops() {
+			edges := loop.Edges()
+			require.Equal(t, 1, len(edges), "each full circular rim is one closed edge")
+			edge := edges[0]
+			start, end := edge.Start().Position().Value, edge.End().Position().Value
+			require.InDelta(t, 0, start.Sub(end).Len(), 1e-6, "closed rim")
+			require.InDelta(t, radius, math.Hypot(start.X-centre.X, start.Z-centre.Z), .01)
+			capY := box.Min.Y
+			cap := 0
+			if math.Abs(start.Y-box.Max.Y) < math.Abs(start.Y-capY) {
+				capY, cap = box.Max.Y, 1
+			}
+			require.InDelta(t, capY, start.Y, 1e-6, "rim reaches the body cap")
+			ends[cap] = struct{}{}
+			// Boolean-built rims may be FacetedCurve even when their carrier is a native cylinder.
+			// Check the displacement certificate instead of requiring one curve representation.
+			switch curve := edge.Curve().(type) {
+			case decad.Circle3:
+				require.InDelta(t, radius, curve.Radius.Base(), 1e-6)
+				require.InDelta(t, 0, math.Hypot(curve.Center.X-centre.X, curve.Center.Z-centre.Z), 1e-6)
+			case decad.FacetedCurve:
+				require.True(t, curve.Bound.Base() >= 0 && curve.Bound.Base() <= .01,
+					"rim displacement bound %g", curve.Bound.Base())
+			default:
+				t.Fatalf("unexpected pivot rim type %T", curve)
+			}
+			caps := 0
+			for _, adjacent := range edge.Faces() {
+				plane, ok := adjacent.Surface().(decad.Plane)
+				if ok && math.Abs(plane.Frame.N().Y) > 1-1e-6 && math.Abs(plane.Frame.Origin().Y-capY) < 1e-6 {
+					caps++
+				}
+			}
+			require.Equal(t, 1, caps, "rim joins the cylinder to its planar cap")
+		}
+		require.Equal(t, 2, len(ends), "pivot reaches both different caps")
+	}
+	require.Equal(t, 1, found, "one native cylindrical pivot bore")
 }
 
 // Check the imported bearing bodies after the actual spindle consumer placed them.

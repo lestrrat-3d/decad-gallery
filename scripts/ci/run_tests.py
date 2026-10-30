@@ -67,6 +67,7 @@ BEVEL_TESTS = {
 }
 
 MODEL_PR_TESTS = [
+    "TestSpinningWheel.*",
     "TestPedalSpindleDefault",
     "TestPedalSpindleVariants",
     "TestPedalSpindleMotion",
@@ -162,6 +163,7 @@ def run_models(mode: str) -> None:
                 "./models/spurgear",
                 "./models/pedalspindle",
                 "./models/ballbearing",
+                "./models/spinningwheel",
                 "-run",
                 pattern,
                 "-timeout",

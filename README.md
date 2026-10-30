@@ -10,7 +10,8 @@ become part of a hand-crank siren or a wind turbine.
 ## Models
 
 The [models](models/) include spur, helical, herringbone, bevel and screw gears, a cycloidal drive,
-and a [pedal yarn spindle](models/pedalspindle/) that reuses the spur gears.
+a [treadle spinning wheel](models/spinningwheel/) with a flyer and bobbin,
+and a [geared quill spindle](models/pedalspindle/) that reuses the spur gears.
 Each model's page shows rendered images and lists the inputs you can change.
 
 Every model directory holds two specification files. `instructions.md` states the inputs and defaults,

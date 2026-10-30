@@ -17,6 +17,8 @@ type preset struct {
 }
 
 var presets = map[string]preset{
+	"spinningwheel/hero":      {width: 1600, height: 900, scene: spinningWheelView("hero")},
+	"spinningwheel/rear":      {width: 1600, height: 900, scene: spinningWheelView("rear")},
 	"pedalspindle/hero":       {width: 1600, height: 900, scene: pedalSpindleView("hero")},
 	"pedalspindle/guarded":    {width: 1600, height: 900, scene: pedalSpindleView("guarded")},
 	"pedalspindle/drive":      {width: 1600, height: 900, scene: pedalSpindleView("drive")},
@@ -65,6 +67,14 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderReadme(ctx, model, output)
 	}
+	if model == "spinningwheel" {
+		switch shot {
+		case "front-back", "flyer", "brake", "whorl":
+			return runSpinningWheelSheet(ctx, shot, output, width, height)
+		case "animation":
+			return runSpinningWheelAnimation(ctx, output, width, height)
+		}
+	}
 	if model == "pedalspindle" && isPedalSpindleSheet(shot) {
 		return runPedalSpindleSheet(ctx, shot, output, width, height)
 	}
@@ -107,6 +117,9 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 func renderReadme(ctx context.Context, model, outputDir string) error {
 	if outputDir == "" {
 		return fmt.Errorf("-out is required")
+	}
+	if model == "spinningwheel" {
+		return renderSpinningWheelReadme(ctx, outputDir)
 	}
 	if model == "bevelgear" {
 		return renderBevelReadme(ctx, outputDir)

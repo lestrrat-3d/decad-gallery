@@ -2,6 +2,7 @@
 
 | Model | Image | Description |
 | --- | --- | --- |
+| [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. |
 | [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | A purchased bearing's nominal bore, outside diameter and width for fitting an assembly. |
 | [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. |
 | [Helical gear](helicalgear/) | <img src="helicalgear/images/index.png" alt="Bored helical gear" width="240"> | An involute gear with teeth twisted along its axis. |

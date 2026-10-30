@@ -9,8 +9,8 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// BuildToothSection builds one ordinary tooth at a finite signed angle.
-// ctx, world, and plane must not be nil.
+// BuildToothSection returns one ordinary tooth on plane, rotated by angle.
+// The context, world, and plane must not be nil.
 func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
 	if ctx == nil || world == nil || plane == nil {
@@ -19,7 +19,7 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	if err := validate(p); err != nil {
 		return nil, nil, err
 	}
-	if math.IsNaN(angle) || math.IsInf(angle, 0) {
+	if !finite(angle) {
 		return nil, nil, fmt.Errorf("tooth section angle must be finite")
 	}
 	d := derive(p)
@@ -44,18 +44,43 @@ func flankPoints(s *sketch.Sketch, left, right []point, embedded bool) ([]*sketc
 	return l, r
 }
 
+func solveVerified(ctx context.Context, s *sketch.Sketch) error {
+	if _, err := s.Solve(ctx); err != nil {
+		return fmt.Errorf("solve sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return fmt.Errorf("verify sketch: %w", err)
+	}
+	return nil
+}
+
+func oneProfile(s *sketch.Sketch, curves int) (*sketch.Profile, error) {
+	profiles := s.Profiles()
+	if len(profiles) != 1 {
+		return nil, fmt.Errorf("profile count %d, expected 1", len(profiles))
+	}
+	profile := profiles[0]
+	if !profile.Valid || len(profile.Holes) != 0 {
+		return nil, fmt.Errorf("expected one valid hole-free profile")
+	}
+	if len(profile.Outer) != curves {
+		return nil, fmt.Errorf("profile curve count %d, expected %d", len(profile.Outer), curves)
+	}
+	return profile, nil
+}
+
 func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
 	s, err := world.CreateSketch(plane)
 	if err != nil {
-		return nil, nil, fmt.Errorf("tooth sketch: %w", err)
+		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
 	}
 	left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), p.Samples, angle)
 	l, r := flankPoints(s, left, right, false)
 	lc, rc := rootContact(left[0], d), rootContact(right[0], d)
-	leftRoot := sketchcheck.DimensionArcEnd(s, lc.x, lc.y)
-	rightRoot := sketchcheck.DimensionPoint(s, rc.x, rc.y)
-	s.CreateLine(rightRoot, r[0])
+	lroot := sketchcheck.DimensionArcEnd(s, lc.x, lc.y)
+	rroot := sketchcheck.DimensionPoint(s, rc.x, rc.y)
+	s.CreateLine(rroot, r[0])
 	if _, err := s.CreateFitSpline(r...); err != nil {
 		return nil, nil, fmt.Errorf("tooth 0 right flank: %w", err)
 	}
@@ -63,9 +88,12 @@ func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 	if _, err := s.CreateFitSpline(l...); err != nil {
 		return nil, nil, fmt.Errorf("tooth 0 left flank: %w", err)
 	}
-	s.CreateLine(l[0], leftRoot)
-	s.CreateArc(s.Origin(), rightRoot, leftRoot)
-	profile, err := solvedProfile(ctx, s, 6)
+	s.CreateLine(l[0], lroot)
+	s.CreateArc(s.Origin(), rroot, lroot)
+	if err := solveVerified(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("tooth section: %w", err)
+	}
+	profile, err := oneProfile(s, 6)
 	if err != nil {
 		return nil, nil, fmt.Errorf("tooth section: %w", err)
 	}
@@ -73,28 +101,27 @@ func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 }
 
 func embeddedClosingRadius(p Params, d dimensions) (float64, error) {
-	pc := involute(d.base, d.pitch)
-	beta := math.Pi/(2*float64(p.Teeth)) - math.Atan2(-pc.y, pc.x)
+	beta := flankBeta(d.pitch, d.base, float64(p.Teeth))
 	halfAngle := func(radius float64) float64 {
 		v := involute(d.base, radius)
-		v = rotate(v.x, -v.y, beta)
-		return math.Atan2(v.y, v.x)
+		l := rotate(v.x, -v.y, beta)
+		return math.Atan2(l.y, l.x)
 	}
 	limit := math.Pi / float64(p.Teeth)
+	if halfAngle(d.root) >= limit {
+		return 0, fmt.Errorf("embedded tooth cannot close inside the root circle")
+	}
 	if halfAngle(d.base) < limit {
 		return d.base, nil
-	}
-	if halfAngle(d.root) >= limit {
-		return 0, fmt.Errorf("embedded tooth has no closing radius inside the root circle")
 	}
 	lo, hi := d.base, d.root
 	for range 200 {
 		mid := (lo + hi) / 2
 		if halfAngle(mid) >= limit {
 			lo = mid
-			continue
+		} else {
+			hi = mid
 		}
-		hi = mid
 	}
 	return ((lo+hi)/2 + d.root) / 2, nil
 }
@@ -107,7 +134,7 @@ func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.
 	}
 	s, err := world.CreateSketch(plane)
 	if err != nil {
-		return nil, nil, fmt.Errorf("embedded tooth sketch: %w", err)
+		return nil, nil, fmt.Errorf("create embedded tooth sketch: %w", err)
 	}
 	left, right := sampleFlanks(d.pitch, d.base, radius, d.tip, float64(p.Teeth), p.Samples, 0)
 	l, r := flankPoints(s, left, right, true)
@@ -119,7 +146,10 @@ func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.
 		return nil, nil, fmt.Errorf("embedded tooth 0 left flank: %w", err)
 	}
 	s.CreateArc(s.Origin(), r[0], l[0])
-	profile, err := solvedProfile(ctx, s, 4)
+	if err := solveVerified(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("embedded tooth section: %w", err)
+	}
+	profile, err := oneProfile(s, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("embedded tooth section: %w", err)
 	}
