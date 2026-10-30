@@ -67,6 +67,10 @@ BEVEL_TESTS = {
 }
 
 MODEL_PR_TESTS = [
+    "TestBearing608Envelope",
+    "TestBearingPlacedAndRepeated",
+    "TestBearingCustomDimensions",
+    "TestBearingRejectsInvalidInputs",
     "TestDefaultParamsAreValid",
     "TestPatternedLoopClosesOnSharedPoints",
     "TestProblems",
@@ -147,6 +151,7 @@ def run_models(mode: str) -> None:
                 "./models/herringbonegear",
                 "./models/screwgear",
                 "./models/spurgear",
+                "./models/ballbearing",
                 "-run",
                 pattern,
                 "-timeout",

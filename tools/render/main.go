@@ -17,6 +17,7 @@ type preset struct {
 }
 
 var presets = map[string]preset{
+	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
@@ -105,6 +106,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
+	}
+	if model == "ballbearing" {
+		return renderBearingReadme(ctx, outputDir)
 	}
 	hero, ok := presets[model+"/hero"]
 	if !ok {
