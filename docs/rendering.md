@@ -109,6 +109,17 @@ go -C tools/render run . -model screwgear -shot section -out ../../models/screwg
 
 The `gallery/hero` preset does not include the screw gear.
 
+The `pedalspindle/hero` preset shows the real quill-spindle assembly with its gear cover removed.
+`pedalspindle/guarded` fits the cover; `pedalspindle/drive` hides the frame and treadle to show the
+flywheel, gears, shafts and crank. The `readme` shot builds once and writes `index.png` at 480 × 270
+and `hero.png`, `guarded.png` and `drive.png` at 1600 × 900:
+
+```sh
+go -C tools/render run . -model pedalspindle -shot readme -out ../../models/pedalspindle/images
+```
+
+The `gallery/hero` preset does not include the pedal spindle.
+
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spur, helical, herringbone, cycloidal and bevel gear models one after another, places each at
 its own size on a 1600 × 900 pixel canvas, and keeps only the pixels that differ from the background where

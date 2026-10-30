@@ -67,6 +67,10 @@ BEVEL_TESTS = {
 }
 
 MODEL_PR_TESTS = [
+    "TestPedalSpindleDefault",
+    "TestPedalSpindleVariants",
+    "TestPedalSpindleMotion",
+    "TestPedalSpindleRejectsInvalidParams",
     "TestDefaultParamsAreValid",
     "TestPatternedLoopClosesOnSharedPoints",
     "TestProblems",
@@ -146,6 +150,7 @@ def run_models(mode: str) -> None:
                 "./models/herringbonegear",
                 "./models/screwgear",
                 "./models/spurgear",
+                "./models/pedalspindle",
                 "-run",
                 pattern,
                 "-timeout",

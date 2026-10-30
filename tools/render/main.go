@@ -17,6 +17,9 @@ type preset struct {
 }
 
 var presets = map[string]preset{
+	"pedalspindle/hero":       {width: 1600, height: 900, scene: pedalSpindleView("hero")},
+	"pedalspindle/guarded":    {width: 1600, height: 900, scene: pedalSpindleView("guarded")},
+	"pedalspindle/drive":      {width: 1600, height: 900, scene: pedalSpindleView("drive")},
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
@@ -110,6 +113,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
+	}
+	if model == "pedalspindle" {
+		return renderPedalSpindleReadme(ctx, outputDir)
 	}
 	hero, ok := presets[model+"/hero"]
 	if !ok {

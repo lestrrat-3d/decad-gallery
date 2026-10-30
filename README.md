@@ -9,8 +9,9 @@ become part of a hand-crank siren or a wind turbine.
 
 ## Models
 
-The [models](models/) are the spur gear, helical gear, herringbone gear, cycloidal drive, and bevel gear
-pair. Each model's page shows rendered images and lists the inputs you can change.
+The [models](models/) include spur, helical, herringbone, bevel and screw gears, a cycloidal drive,
+and a [pedal yarn spindle](models/pedalspindle/) that reuses the spur gears.
+Each model's page shows rendered images and lists the inputs you can change.
 
 Every model directory holds two specification files. `instructions.md` states the inputs and defaults,
 units, derived values, geometric construction, feature order, valid parameter range, and representative
