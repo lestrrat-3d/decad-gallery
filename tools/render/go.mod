@@ -8,7 +8,7 @@ require (
 	github.com/lestrrat-3d/decad v0.0.0-20261027054635-bacba52e1142
 	github.com/lestrrat-3d/decad-gallery v0.0.0
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
-	github.com/lestrrat-3d/solidlens v0.0.0-20261027053015-4cbf04b16efd
+	github.com/lestrrat-3d/solidlens v0.0.0-20261027082300-745784c976c7
 	github.com/lestrrat-3d/units v0.0.0-20261004210137-572d4a3c7f0a
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/image v0.47.0

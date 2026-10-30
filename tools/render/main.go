@@ -23,6 +23,7 @@ var presets = map[string]preset{
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
+	"screwgear/cutaway":       {width: 1600, height: 900, scene: screwGearView("cutaway")},
 	"spurgear/hero":           {width: 1600, height: 900, scene: spurGearHero},
 	"spurgear/top":            {width: 1600, height: 900, scene: spurGearTop},
 	"spurgear/low":            {width: 1600, height: 900, scene: spurGearLow},
@@ -64,12 +65,6 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	}
 	if model == "pedalspindle" && isPedalSpindleSheet(shot) {
 		return runPedalSpindleSheet(ctx, shot, output, width, height)
-	}
-	if model == "screwgear" && shot == "section" {
-		if width != 0 || height != 0 {
-			return fmt.Errorf("section output uses fixed image sizes")
-		}
-		return renderScrewGearSections(ctx, output)
 	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {

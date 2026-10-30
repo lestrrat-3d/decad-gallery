@@ -119,6 +119,7 @@ MODEL_PR_TESTS = [
     "TestSectionPairOnePlaneOutsideGearAReadsEmpty",
     "TestSectionPairFollowsThePlacement",
     "TestSectionPairClearanceOfTheDefaultPair",
+    "TestRibbonDefaultIsOneVerifiedLoft",
 ]
 
 BEVEL_FULL_TESTS = [

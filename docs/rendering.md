@@ -88,8 +88,8 @@ go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloid
 The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies
 as separate meshes: ribbon A in blue, ribbon B in orange and the sleeve in grey, each with outlines. The camera frames
 the sleeve and the 70 mm of ribbon around it, so the 178.5 mm ribbons run off the image edges. The `hero`, `top` and
-`low` presets write one image each; the `readme` shot writes `index.png`, `hero.png`, `top.png`, `low.png` and the
-three section images from one build. The ribbons are meshed at 0.1 mm and the sleeve at 0.2 mm, the finest chord
+`low` presets write one image each; the `readme` shot writes `index.png`, `hero.png`, `top.png`, `low.png` and
+`cutaway.png` from one build. The ribbons are meshed at 0.1 mm and the sleeve at 0.2 mm, the finest chord
 Decad accepts for it:
 
 ```sh
@@ -97,14 +97,14 @@ go -C tools/render run . -model screwgear -shot hero -out ../../models/screwgear
 go -C tools/render run . -model screwgear -shot readme -out ../../models/screwgear/images
 ```
 
-The `section` shot builds the default mechanism once and writes three 1200 × 900 pixel plane sections of the two
-ribbons, `section-below.png`, `section-mid.png` and `section-above.png`, for planes −0.4 mm, 0 and +0.4 mm from the
-mid-plane between the gear axes. It reads each outline with `Body.SectionOutline` at a 0.1 mm chord tolerance, draws
-gear A in blue and gear B in orange with solidlens `RenderSection`, paints any overlap red, and puts the least gap
-from `SectionOutline.Clearance` and its proven part in the caption:
+The `cutaway` preset cuts all three bodies open along the world XZ plane, which holds the sleeve's axis and the
+reference direction ê, and removes the half toward negative Y. The camera looks from that side, so the view shows the
+inside of the sleeve and the two ribbons meshing in its hollow. It sets solidlens `Model.Clip` on each model, with a
+lighter, unlit `Cap` material in each body's colour so the cut faces read as flat solid faces. The `readme` shot also
+writes `cutaway.png`, and the preset can be rendered on its own:
 
 ```sh
-go -C tools/render run . -model screwgear -shot section -out ../../models/screwgear/images
+go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwgear/images/cutaway.png
 ```
 
 The `gallery/hero` preset does not include the screw gear.
