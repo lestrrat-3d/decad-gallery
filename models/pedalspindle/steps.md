@@ -45,6 +45,14 @@ Use positive extrusion length; select the larger Y coordinate as the starting pl
 Use rotated XZ frames for spokes, crank, treadle and footman.
 The footman's U points from Q to P; its holes are at local (0,0) and (320*Scale,0).
 The treadle's U uses the solved PedalAngle; its heel hole is at local Origin.
+For the stepped treadle, create the eight shared-endpoint lines in the order specified in the contract.
+Add Horizontal to edges0,2,4,6 and Vertical to edges1,3,5,7.
+Anchor point0 from Origin with horizontal and vertical distances -18*Scale.
+Dimension horizontal edges0,2,4 by36*Scale,194*Scale,-194*Scale.
+Dimension vertical edges1,3,5 by6*Scale,24*Scale,6*Scale.
+Add the22mm heel bore at Origin and5.2mm toe bore at(200*Scale,0).
+Solve and fully verify before selecting the sole two-hole profile and extruding70*Scale toward-Y.
+This is one sketch and one body; do not construct overlapping replacement rectangles or use booleans.
 Build the bearing board and guard front as holed rectangles in local XZ coordinates.
 Their hole centers come from shaft centers minus each rectangle's frame origin.
 All other guard members are ordinary boxes.
@@ -105,3 +113,7 @@ Place footman at Y[-129,-121]*Scale, in front of the input shaft's front end at 
 Keep treadle at Y[-210,-140]*Scale; bridge gaps with the pins specified in the contract.
 At scale0.8 the two7mm shaft bearings still fit inside the14.4mm board; no bearing is scaled.
 Increase footman width/end lengths and treadle thickness as specified so14mm pivot bores have material around them.
+Use608-2RS for the two heel bearings and an8mm through-shaft. Keep the heel bore22mm at every scale.
+Construct both heel brackets, two collar envelopes and two inner-ring spacers exactly from the part table.
+The spacers use stock outer diameter12mm; the collar OD16 scales. All six added support pieces use ordinary verified sections.
+The former single heel bracket is replaced by two brackets; the complete assembly has48 parts and44 sketches.

@@ -16,10 +16,12 @@ func TestPedalSpindleDefault(t *testing.T) {
 	doc := decad.New()
 	a, err := pedalspindle.Build(t.Context(), doc, pedalspindle.DefaultParams())
 	require.NoError(t, err)
+	requireHeelSupport(t, a, 1)
 	require.Equal(t, len(a.Parts), len(doc.Bodies()), "the document must contain only assembled parts")
 	requireAssembly(t, a, 1)
 	requireDimensions(t, a, 1)
 	requireStockBearings(t, a, 1)
+	requireReturnEnergy(t, a)
 	requireGearMesh(t, a)
 }
 
@@ -31,6 +33,7 @@ func TestPedalSpindleVariants(t *testing.T) {
 			requireAssembly(t, a, p.Scale)
 			requireDimensions(t, a, p.Scale)
 			requireStockBearings(t, a, p.Scale)
+			requireHeelSupport(t, a, p.Scale)
 		})
 	}
 }
@@ -45,8 +48,8 @@ func stringScale(scale float64) string {
 // Failure reports contain names and scalar values rather than body or mesh graphs.
 func requireAssembly(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 	t.Helper()
-	require.Equal(t, 43, len(a.Parts))
-	require.Equal(t, 39, len(a.Sketches))
+	require.Equal(t, 48, len(a.Parts))
+	require.Equal(t, 44, len(a.Sketches))
 	names := map[string]struct{}{}
 	for _, part := range a.Parts {
 		_, duplicate := names[part.Name]
@@ -138,6 +141,9 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 	} {
 		for _, want := range item.centers {
 			radius := 7.0
+			if item.name == "treadle" {
+				radius = 11
+			}
 			if item.name == "crank" || (item.name == "treadle" && want.Sub(a.State.Toe).Len() < 1e-6) {
 				radius = 2.6
 			}
@@ -184,8 +190,8 @@ func requireStockBearings(t *testing.T, a *pedalspindle.Assembly, scale float64)
 		{"intermediate-bearing-rear", a.State.Intermediate, 8, 22, 18*scale - 7, 18 * scale},
 		{"output-bearing-front", a.State.Output, 5, 14, 0, 5},
 		{"output-bearing-rear", a.State.Output, 5, 14, 18*scale - 5, 18 * scale},
-		{"heel-bearing-front", a.State.Heel, 5, 14, -210 * scale, -210*scale + 5},
-		{"heel-bearing-rear", a.State.Heel, 5, 14, -140*scale - 5, -140 * scale},
+		{"heel-bearing-front", a.State.Heel, 8, 22, -210 * scale, -210*scale + 7},
+		{"heel-bearing-rear", a.State.Heel, 8, 22, -140*scale - 7, -140 * scale},
 		{"footman-bearing-crank", a.State.CrankPin, 5, 14, -125*scale - 2.5, -125*scale + 2.5},
 		{"footman-bearing-toe", a.State.Toe, 5, 14, -125*scale - 2.5, -125*scale + 2.5},
 	} {

@@ -21,7 +21,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle"}
+var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle", "heel-support"}
 
 func isPedalSpindleSheet(shot string) bool {
 	for _, name := range pedalSpindleSheetShots {
@@ -109,6 +109,23 @@ func renderPedalSpindleSheet(ctx context.Context, meshes []pedalSpindleMesh, sho
 }
 
 func pedalSpindlePanels(ctx context.Context, meshes []pedalSpindleMesh, shot string) ([]spindlePanel, int, error) {
+	if shot == "heel-support" {
+		var models []solidlens.Model
+		for _, mesh := range meshes {
+			switch mesh.name {
+			case "treadle", "heel-pin", "heel-bracket-front", "heel-bracket-rear", "heel-bearing-front", "heel-bearing-rear",
+				"heel-collar-front", "heel-collar-rear", "heel-spacer-front", "heel-spacer-rear":
+				models = append(models, mesh.model)
+			}
+		}
+		target := solidlens.Vec{X: -230, Y: -175, Z: 60}
+		oblique := solidlens.Camera{Position: solidlens.Vec{X: -700, Y: -800, Z: 440}, Target: target, Up: solidlens.Vec{Z: 1}, FOV: 30}
+		end := solidlens.Camera{Position: solidlens.Vec{X: -1600, Y: -175, Z: 60}, Target: target, Up: solidlens.Vec{Z: 1}, FOV: 30}
+		return []spindlePanel{
+			{"Heel: two base-mounted supports", "Two 608 bearings carry the treadle on an 8 mm through-shaft", bevelScene(oblique, models)},
+			{"End view: shaft retention and pedal clearance", "Outer collars retain the shaft; inner spacers limit pedal end play", bevelScene(end, models)},
+		}, 2, nil
+	}
 	if shot == "cycle" {
 		return pedalSpindleCycle(ctx, meshes)
 	}
@@ -241,7 +258,8 @@ func cyclePlacement(name string, base, state pedalspindle.State, delta float64) 
 		return r3.Vec{}, 0, state.CrankPin.Sub(base.CrankPin), true
 	case "toe-pin", "footman-bearing-toe":
 		return r3.Vec{}, 0, state.Toe.Sub(base.Toe), true
-	case "heel-pin", "heel-bracket", "input-shaft", "flywheel-rim", "flywheel-hub",
+	case "heel-pin", "heel-bracket-front", "heel-bracket-rear", "heel-collar-front", "heel-collar-rear",
+		"heel-spacer-front", "heel-spacer-rear", "input-shaft", "flywheel-rim", "flywheel-hub",
 		"input-bearing-front", "input-bearing-rear", "heel-bearing-front", "heel-bearing-rear":
 		return r3.Vec{}, 0, r3.Vec{}, true
 	default:

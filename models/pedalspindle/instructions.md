@@ -32,7 +32,7 @@ Coordinates include scale. Use Y = -125 for the three linkage point coordinates.
 `Sketches` contains every sketch created by this package, including revolve and holed sections.
 Imported gears verify their own sketches through their existing Build entry point.
 Import bearing envelopes from models/ballbearing. Append each returned bearing Sketch to Assembly.Sketches.
-Build returns43 parts, including10 bearing envelopes, and39 recorded sketches.
+Build returns48 parts, including10 bearing envelopes, and44 recorded sketches.
 
 ## Drive and layout
 
@@ -91,13 +91,15 @@ Do not fuse touching assembled parts. Gears and hubs are distinct parts on commo
 | input-hub, intermediate-pinion-hub, intermediate-gear-hub, output-hub | Annuli OD24, stock ID8.2 for input/intermediate and stock ID5.2 for output. Y[-44,-52] for first pair and [-74,-82] for second pair. | steel |
 | crank | Rectangle in XZ extending -9 to34 along crank direction, width18, thickness8 at Y[-113,-105]. Stock holes diameter8.2 at origin and5.2 at radius25. | drive |
 | crank-pin | Cylinder stock diameter5 at P, Y[-132,-105]. | steel |
-| treadle | Rectangle in its rotating XZ frame from heel coordinate (-12,-12) to (212,12), Y[-210,-140]. Stock through bores diameter14 at heel and5.2 at toe. | pedal |
+| treadle | Stepped outline in its rotating XZ frame: (-18,-18),(18,-18),(18,-12),(212,-12),(212,12),(18,12),(18,18),(-18,18). Y[-210,-140]. Stock through bores diameter22 at heel and5.2 at toe. | pedal |
 | footman | Rectangle along Q-to-P, length320 plus12 at each end, width24, Y[-129,-121]. Stock through bores diameter14 at Q and P. | pedal |
-| heel-pin | Cylinder stock diameter5 at H, Y[-215,-135]. | steel |
+| heel-pin | Through-shaft stock diameter8 at H, Y[-230,-120]. | steel |
 | toe-pin | Cylinder stock diameter5 at Q, Y[-215,-118]. | steel |
-| heel-bearing-front, heel-bearing-rear | Stock605ZZ envelopes at H. Front spans Y[-210*Scale,-210*Scale+5]; rear spans Y[-140*Scale-5,-140*Scale], actual millimeters. | bearing |
+| heel-bearing-front, heel-bearing-rear | Stock608-2RS envelopes at H. Front spans Y[-210*Scale,-210*Scale+7]; rear spans Y[-140*Scale-7,-140*Scale], actual millimeters. | bearing |
 | footman-bearing-crank, footman-bearing-toe | Stock605ZZ envelopes centered at P and Q, spanning Y[-125*Scale-2.5,-125*Scale+2.5], actual millimeters. | bearing |
-| heel-bracket | Rectangle X[-244,-216], Z[18,76], Y[-140,-132], stock hole diameter5.2 at H. | frame |
+| heel-bracket-front, heel-bracket-rear | Rectangles X[-250,-210], Z[18,84], Y[-222,-214] and[-136,-128], stock holes diameter8.2 at H. Both attach to the base. | frame |
+| heel-collar-front, heel-collar-rear | Commercial clamping-collar envelopes at H, OD16, stock ID8.2, Y[-228,-222] and[-128,-122]. Abut the outside bracket faces. | steel |
+| heel-spacer-front, heel-spacer-rear | Inner-ring spacer envelopes at H, stock OD12 and ID8.2, Y[-214,-210.1] and[-139.9,-136]. Leave total0.2*Scale axial end play at the heel bearings. | steel |
 | guard-front | Plate X[-175,100], Z[295,520], Y[-94,-90], stock holes diameter8.8 at input/intermediate and5.8 at output. | guard |
 | guard-left, guard-right | Boxes X[-179,-175] and [100,104], Y[-94,0], Z[291,524]. | guard |
 | guard-bottom, guard-top | Boxes X[-175,100], Y[-94,0], Z[291,295] and [520,524]. | guard |
@@ -105,12 +107,31 @@ Do not fuse touching assembled parts. Gears and hubs are distinct parts on commo
 Annular clamping-hub envelopes identify the required commercial torque-transmitting parts.
 Shafts have0.1 radial nominal clearance in gear/hub bores. Bearing IDs equal nominal stock shaft diameters.
 Nominal housing bores equal bearing ODs. Fit tolerances and retainers require the fabrication process to be specified.
-Use four608-2RS bearings and six605ZZ bearings. The frame holds the two bearings for each rotating shaft.
+Use six608-2RS bearings and four605ZZ bearings. The frame holds the two bearings for each rotating shaft.
 Two heel bearings let the treadle rock about its frame-fixed pin. Two footman bearings rotate about the moving crank/toe pins.
-The toe pin crosses the treadle and footman; the heel pin crosses the treadle and heel bracket.
+The toe pin crosses the treadle and footman. The heel through-shaft crosses the treadle and both base brackets.
+The two heel collars prevent shaft withdrawal; purchase actual clamping collars and detail their screws before fabrication.
+The two spacers limit pedal end play. Match their contact faces to the actual bearing inner rings, avoiding the seals.
+The enlarged heel carries the22mm bearing seats; the24mm pedal blade keeps its existing toe/base clearance.
+The supported hinge defines the pedal's arc. Do not add straight vertical guides.
 The footman passes in front of the input shaft, with5*Scale axial clearance throughout rotation.
 The treadle ends11*Scale in front of the footman. Pins bridge these axial gaps.
-Provide shaft collars or circlips during prototype assembly. The image omits their detailed retention hardware.
+Provide shaft collars or circlips on the drive shafts during prototype assembly.
+The heel collar/spacer envelopes are included; clamp screws and drive-shaft retention hardware remain omitted.
+
+## Return-stroke screening
+
+Specify the nominal-scale flywheel rim as steel, density7800kg/m3; its existing dimensions give about2.56kg.
+Specify the treadle and footman as timber at600kg/m3 for the energy calculation; crank and pins use steel density7800.
+Treat moving bearing envelopes as solid steel for conservative potential-energy estimates.
+Check the actual nominal assembly with a60rpm entry speed and a30rpm minimum retained speed.
+Use only the rim's inertia as stored kinetic energy; omit other rotating inertia from the available budget.
+Budget the sum of each moving part's full-cycle gravitational potential range,5N residual downward foot force
+at150mm from the heel, and0.05Nm combined load/friction torque referred to the crank over a full revolution.
+Require available kinetic energy between60 and30rpm to exceed that conservative budget by at least25 percent.
+These are explicit screening assumptions, not measured loads or a rated operating envelope.
+Keep the crank/footman return; do not add a spring if this screening passes. A hand start and eased foot pressure remain required.
+Scaled variants receive geometry checks; the energy acceptance applies only to Scale=1.
 
 ## Sketch and body rules
 
@@ -131,6 +152,9 @@ solid topology, VerifyAll tessellation, flywheel radius, spindle tip height/leng
 Check the four-bar closure, full rotation, base clearance and constant 9:1 ratio over a full crank turn.
 Check actual meshing gear sections for overlap at several tooth phases and both stages.
 Check actual linkage bodies against the shaft, supports, guard and each other throughout a full turn.
+Check both heel brackets,8mm shaft,608 bearing seats, collar abutments, spacer gaps and through-shaft engagement.
+Check all eight stepped treadle vertices and its bores through actual placed geometry.
+Run the nominal return-energy screening against actual Decad volumes, centroids and rim inertia.
 Reject positive overlap between independently moving parts; allow only the named flywheel spoke/rim/hub joints.
 Include the upper crank position that previously put the footman through the input shaft.
 
@@ -141,6 +165,8 @@ Include guarded.png and drive.png at1600x900, plus a renderer integration test f
 Also render front/rear hero and drive pairs as `hero-pair.png` and `drive-pair.png` at2000x1100,
 and isolate each actual meshing pair in front and oblique views in `mesh-pairs.png` at2000x1400.
 Drive-only views omit all bearing envelopes along with their hidden supports and linkage.
+Also omit all heel collars and spacers in drive-only views so no isolated heel hardware remains.
+Render the real treadle and complete heel support in oblique and end-on views in heel-support.png at2000x1100.
 Use blue for input, gold for both compound intermediate gears and orange for output.
 Render the actual crank, footman, treadle and flywheel at0,90,180,270 degrees in `cycle.png` at2000x1000.
 Use rigid copies of real bodies placed from Motion, not redrawn geometry. Label the poses and gear planes.

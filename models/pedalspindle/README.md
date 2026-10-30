@@ -27,7 +27,7 @@ Purple marks A and B stay fixed. Green marks C and D move with the crank and ped
 | Mark | Center position | Relative motion | Bearings |
 | --- | --- | --- | --- |
 | A | The shaft axis stays fixed to the frame. | The input shaft, crank and flywheel turn. | Two 608-2RS bearings. |
-| B | The heel pin stays fixed to the base bracket. | The treadle rocks about the heel pin. | Two 605ZZ bearings. |
+| B | Two base brackets hold the 8 mm heel shaft. | The treadle rocks about the shaft. | Two 608-2RS bearings. |
 | C | The center moves around A. | The footman pivots on the moving crank pin. | One 605ZZ bearing. |
 | D | The center moves with the treadle toe. | The footman pivots relative to the treadle. | One 605ZZ bearing. |
 
@@ -42,7 +42,32 @@ The crank makes a full turn; the treadle only rocks. The drawing hides the frame
 There is no one-way clutch or ratchet. The operator starts the flywheel in the intended direction
 and keeps its momentum with the pedal. It can stall or reverse if that momentum is lost at dead center.
 This design permits reverse rotation for plying; it does not mechanically enforce one-way rotation.
-The required flywheel mass and starting effort still need a physical trial.
+The flywheel rim is specified as steel, about 2.56 kg at scale 1. A return-energy screening is described below.
+Starting effort and the assumed operating loads still need a physical trial.
+
+## Heel support and pedal return
+
+![Oblique and end views of the complete heel support](images/heel-support.png)
+
+Two brackets support the 8 mm heel shaft on opposite sides of the pedal. Two 608-2RS bearings sit in the
+enlarged heel. Outer clamping collars retain the shaft; inner-ring spacers leave 0.2 mm total pedal end play
+at scale 1. Match spacer contact faces to the purchased bearing inner rings so they do not rub the seals.
+The bearing seats and stepped heel keep material around the 22 mm bearings at both scale endpoints.
+The brackets still require base fasteners, and the commercial collars require their actual clamp screws.
+
+The hinge controls sideways motion while allowing the pedal to rock. No vertical slide guides are fitted:
+the toe follows an arc, rising 50.6 mm and moving 2.4 mm horizontally at scale 1.
+The crank and connecting rod provide the return stroke. Ease foot pressure as the flywheel lifts the pedal.
+
+The nominal-scale return check uses the actual rim inertia at a steel density of 7800 kg/m³.
+It budgets the moving parts' gravitational lift, 5 N residual foot pressure at 150 mm from the heel,
+and 0.05 Nm combined load and friction torque referred to the crank. It compares rim energy between
+60 and 30 rpm against a conservative full-cycle budget, with a required 25% margin.
+Timber parts use 600 kg/m³; crank, pins and moving bearing envelopes use 7800 kg/m³.
+The check excludes other rotating inertia from the available energy. A lightweight printed rim fails this load case.
+The default check gives 0.800 J available against a 0.604 J budget, a 32.5% surplus under those assumptions.
+These are screening assumptions, not measured loads. Scaled variants need their own energy assessment.
+No return spring is fitted; the geometry animation still prescribes motion and does not simulate these forces.
 
 ## Which gears mesh
 
@@ -100,9 +125,9 @@ distance at scale 1; this clearance scales with the model.
 ## Bearings, guard and prototype hardware
 
 The assembly imports its bearing envelopes from [ballbearing](../ballbearing/).
-Four 608-2RS bearings support the 8 mm input and intermediate shafts, two per shaft.
-Six 605ZZ bearings support the 5 mm spindle and linkage: two on the spindle, two at the heel,
-and one at each footman end. The same purchased sizes are used at every frame scale.
+Six 608-2RS bearings support the 8 mm input, intermediate and heel shafts, two per shaft.
+Four 605ZZ bearings support the 5 mm spindle and footman: two on the spindle and one at each footman end.
+The same purchased sizes are used at every frame scale.
 
 The frame holds the shaft bearings' outer rings while their inner rings turn with the shafts.
 At the heel, the pin is fixed and the treadle rocks on its bearings. At the footman ends,
@@ -117,10 +142,11 @@ The spindle point needs a removable cap when stored.
 
 Use purchased clamping hubs to connect the round-bore gears and flywheel to their shafts, and fit
 axial collars or circlips. The model includes hub and bearing envelopes but omits clamp screws,
-mounting fasteners, threads and detailed shaft retention. The frame joints also need fastening
+mounting fasteners, threads and drive-shaft retention. Heel collar and spacer envelopes are included.
+The frame joints also need fastening
 details before fabrication. This is a mechanical prototype design, not a tested manufacturing release.
 
-Physical trials must establish pedal effort, flywheel mass, vibration, bearing friction, gear wear,
+Physical trials must validate the specified rim mass, assumed return loads, pedal effort, vibration, bearing friction, gear wear,
 noise, yarn capacity and guarding. The geometry checks establish dimensions, linkage closure,
 sketch constraints and solid geometry; they do not measure those operating properties.
 

@@ -1,4 +1,4 @@
-// Package pedalspindle constructs a foot-powered quill spindle assembly.
+// Package pedalspindle constructs a treadle-powered quill spindle assembly.
 package pedalspindle
 
 import (
@@ -8,29 +8,27 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Params sets the frame scale and the input crank pose in radians.
+// Params selects frame scale and crank pose in radians.
 type Params struct {
 	Scale      float64
 	CrankAngle float64
 }
 
-// DefaultParams returns unit scale and a crank angle of pi/3.
-func DefaultParams() Params {
-	return Params{Scale: 1, CrankAngle: math.Pi / 3}
-}
+// DefaultParams returns nominal size at a pi/3 crank angle.
+func DefaultParams() Params { return Params{Scale: 1, CrankAngle: math.Pi / 3} }
 
-// Validate rejects a nonfinite angle or a scale outside [0.8, 1.2].
+// Validate rejects nonfinite inputs and scales outside [0.8,1.2].
 func (p Params) Validate() error {
 	if math.IsNaN(p.Scale) || math.IsInf(p.Scale, 0) || p.Scale < 0.8 || p.Scale > 1.2 {
-		return fmt.Errorf("pedalspindle: Scale must be finite and in [0.8, 1.2]")
+		return fmt.Errorf("pedalspindle: scale %g must be finite and in [0.8,1.2]", p.Scale)
 	}
 	if math.IsNaN(p.CrankAngle) || math.IsInf(p.CrankAngle, 0) {
-		return fmt.Errorf("pedalspindle: CrankAngle must be finite")
+		return fmt.Errorf("pedalspindle: crank angle %g must be finite", p.CrankAngle)
 	}
 	return nil
 }
 
-// State describes shaft centers, linkage points and gear angles for one pose.
+// State contains scaled shaft/linkage centers and the solved angular pose.
 type State struct {
 	Input, Intermediate, Output                 r3.Vec
 	Heel, CrankPin, Toe                         r3.Vec
@@ -38,7 +36,7 @@ type State struct {
 	Ratio, CenterDistance                       float64
 }
 
-// Motion solves the lower four-bar intersection and the two gear phases.
+// Motion solves the lower four-bar intersection without adding geometry.
 func Motion(p Params) (State, error) {
 	if err := p.Validate(); err != nil {
 		return State{}, err

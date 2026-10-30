@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/pedalspindle"
@@ -85,7 +86,7 @@ func pedalSpindlePartVisible(mesh pedalSpindleMesh, shot string) bool {
 	case "frame", "pedal", "bearing":
 		return false
 	}
-	return mesh.name != "heel-pin" && mesh.name != "toe-pin"
+	return !strings.HasPrefix(mesh.name, "heel-") && mesh.name != "toe-pin"
 }
 
 func pedalSpindleView(shot string) func(context.Context) (solidlens.Scene, error) {

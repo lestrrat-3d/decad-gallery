@@ -133,7 +133,7 @@ func renderPedalSpindleAnimation(ctx context.Context, meshes []pedalSpindleMesh,
 				return projectAnimationPoint(cameras[panel], v, panelWidth, panelHeight).Add(origin)
 			}
 			a := point(r3.NewVec(state.Input.X, -116, state.Input.Z))
-			b := point(r3.NewVec(state.Heel.X, -215, state.Heel.Z))
+			b := point(r3.NewVec(state.Heel.X, -230, state.Heel.Z))
 			if panel == 1 {
 				dashedAnimationLine(indexed, a, b, colors[1])
 			}
@@ -177,7 +177,7 @@ func animationModels(posed, source []pedalSpindleMesh, frameVisible bool) []soli
 			model.Material = solidlens.Matte(solidlens.RGB(.68, .10, .06))
 		case "treadle":
 			model.Material = solidlens.Matte(solidlens.RGB(.86, .43, .08))
-		case "heel-bracket":
+		case "heel-bracket-front", "heel-bracket-rear":
 			model.Material = solidlens.Matte(solidlens.RGB(.36, .39, .42))
 		case "flywheel-spoke-0":
 			model.Material = solidlens.Matte(solidlens.RGB(.12, .53, .72))
@@ -186,7 +186,7 @@ func animationModels(posed, source []pedalSpindleMesh, frameVisible bool) []soli
 	}
 	if frameVisible {
 		for _, mesh := range source {
-			if mesh.group != "frame" || mesh.name == "heel-bracket" {
+			if mesh.group != "frame" || mesh.name == "heel-bracket-front" || mesh.name == "heel-bracket-rear" {
 				continue
 			}
 			model := mesh.model

@@ -57,13 +57,14 @@ go -C tools/render test -run '^TestPedalSpindle' -timeout 5m
 | 17-tooth Module 3 pinions | 2 | Import the same construction; the default pressure angle is 20 degrees. |
 | Input and intermediate shafts | 2 | 8 mm steel stock, cut to the contract lengths. |
 | Quill spindle | 1 | Turn and polish 5 mm steel stock with the specified conical end. |
-| 608-2RS bearings | 4 | Two per 8 mm shaft, using the imported 8 × 22 × 7 mm envelopes. |
-| 605ZZ bearings | 6 | Two for the 5 mm quill, two at the heel, one at each footman end, using 5 × 14 × 5 mm envelopes. |
+| 608-2RS bearings | 6 | Two each on the 8 mm input, intermediate and heel shafts, using 8 × 22 × 7 mm envelopes. |
+| 605ZZ bearings | 4 | Two for the 5 mm quill and one at each footman end, using 5 × 14 × 5 mm envelopes. |
 | Gear clamping hubs | 4 | Use commercial hubs; the modeled rings describe space claims only. |
-| Flywheel | 1 assembly | Rim, hub and four spokes; select mass and fastening after an inertia trial. |
-| Crank and pins | 1 crank, 3 pins | Use 5 mm pins, 14 mm pivot-bearing seats and the specified 5.2 mm attachment bores. |
+| Flywheel | 1 assembly | Use a steel rim at 7800 kg/m³; nominal rim mass is about 2.56 kg. Detail its spoke joints. |
+| Crank and pins | 1 crank, 3 pins | Use an 8 mm heel shaft and 5 mm moving pins; bearing seats are 22 mm at heel and 14 mm at footman ends. |
 | Footman and treadle | 1 each | Use 320 mm and 200 mm pivot spacing respectively. |
-| Base, two legs, bearing board, heel bracket | 5 | Cut plate or timber to the contract; detail bolts and joints before fabrication. |
+| Base, two legs, bearing board, two heel brackets | 6 | Cut plate or timber to the contract; detail bolts and joints before fabrication. |
+| Heel collars and spacers | 4 | Two external shaft-clamping collars and two inner-ring spacers limit axial movement. |
 | Gear cover | 5 panels | Fit the front and four sides with removable fasteners. |
 | Shaft retention and frame fasteners | To be detailed | Select collars, circlips and bolts after the material and fastening trial. |
 
@@ -71,7 +72,7 @@ The base, linkage and gears have no material assignment in the CAD model.
 Frame scaling changes the frame, gear module/thickness, axial lengths and linkage spacing.
 Purchased bearing sizes, shaft diameters, bearing seats and mating bores keep their stock dimensions.
 The construction imports `models/ballbearing` and records all ten returned bearing sketches for verification.
-The 43-part assembly contains 39 recorded sketches, including those imported bearing sections.
+The 48-part assembly contains 44 recorded sketches, including those imported bearing sections.
 
 The frame holds the shaft bearings' outer rings; their inner rings turn with the shafts.
 At the fixed heel pin, the treadle moves with the outer bearing rings. At the footman ends, the rod
@@ -100,7 +101,16 @@ These sampled checks do not prove continuous clearance between samples.
 
 The 0.3 mm center-distance allowance changes the operating pressure angle slightly. Section checks sample
 tooth phases for both stages; they do not replace a loaded mesh trial, lubrication choice or backlash measurement.
-The model does not calculate forces, foot effort, flywheel inertia or fatigue life.
+The default assembly check reads the real rim's mass properties and moving parts' volumes and centroids.
+At scale1 it compares rim kinetic energy between60 and30rpm with a conservative return-energy budget.
+The budget sums each moving part's full-cycle potential-energy range,5N residual downward foot force
+at150mm from the heel, and0.05Nm combined load/friction torque over a full crank revolution.
+It requires at least25% margin and checks that a1200kg/m³ printed rim fails the same load case.
+Steel density is7800kg/m³ and timber density is600kg/m³; moving bearing envelopes count as solid steel.
+The calculation omits other rotating inertia from the available energy. These assumptions are not measured loads.
+Only the nominal scale receives this energy acceptance; scale variants receive geometry checks.
+The nominal result is0.800J available versus0.604J budget, a factor of1.325.
+The model does not calculate contact forces, actual foot effort or fatigue life.
 The flywheel must carry the crank over dead center and back-drive the pedal on its return stroke.
 The mechanism has no one-way clutch; losing momentum can stall or reverse it.
 The animation prescribes crank angle and does not establish pedal effort or flywheel mass.

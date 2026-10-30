@@ -7,6 +7,10 @@ import (
 )
 
 func TestPedalSpindleDriveOmitsUnsupportedBearings(t *testing.T) {
+	for _, name := range []string{"heel-pin", "heel-collar-front", "heel-collar-rear", "heel-spacer-front", "heel-spacer-rear"} {
+		require.False(t, pedalSpindlePartVisible(pedalSpindleMesh{name: name, group: "steel"}, "drive"),
+			"%s must leave with the hidden heel support", name)
+	}
 	for _, name := range []string{
 		"input-bearing-front", "input-bearing-rear",
 		"intermediate-bearing-front", "intermediate-bearing-rear",
