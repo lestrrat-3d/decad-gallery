@@ -62,6 +62,9 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderReadme(ctx, model, output)
 	}
+	if model == "pedalspindle" && isPedalSpindleSheet(shot) {
+		return runPedalSpindleSheet(ctx, shot, output, width, height)
+	}
 	if model == "screwgear" && shot == "section" {
 		if width != 0 || height != 0 {
 			return fmt.Errorf("section output uses fixed image sizes")

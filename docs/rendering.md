@@ -118,6 +118,12 @@ and `hero.png`, `guarded.png` and `drive.png` at 1600 × 900:
 go -C tools/render run . -model pedalspindle -shot readme -out ../../models/pedalspindle/images
 ```
 
+The same build also writes four labeled sheets. `hero-pair` and `drive-pair` put front and rear views
+side by side at 2000 × 1100. `mesh-pairs` isolates each of the two meshing pairs in front and oblique
+views at 2000 × 1400. `cycle` copies the actual linkage and flywheel bodies into four poses solved by
+`pedalspindle.Motion`, at 2000 × 1000. No replacement geometry is drawn.
+Each sheet name also works with `-shot` for regenerating only that image.
+
 The `gallery/hero` preset does not include the pedal spindle.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero

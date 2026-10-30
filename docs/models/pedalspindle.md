@@ -11,6 +11,11 @@ The package `models/pedalspindle` exports `DefaultParams`, `Params.Validate`, `M
 the package's verified `Sketches`, and the calculated linkage `State`.
 Build uses the supplied document. Geometry remains separate at part interfaces.
 
+The renderer colors the input blue, the compound intermediate gears gold and the output orange.
+Its paired views show both sides of the assembly and drive. Each gear-pair sheet isolates the actual
+placed bodies without exploding or separating their teeth. The four-pose sheet copies the actual
+crank, treadle, footman and flywheel into poses calculated by `Motion`; the gear train is hidden there.
+
 `Scale` accepts finite values from 0.8 through 1.2; `CrankAngle` accepts any finite radians.
 Angles are reduced modulo one turn before calculating a pose. Returned angles describe the pose,
 not an accumulated revolution count. Motion calculates linkage positions without creating bodies.
@@ -70,6 +75,8 @@ Analytic checks sample a full revolution for linkage closure, pedal clearance, a
 The 0.3 mm center-distance allowance changes the operating pressure angle slightly. Section checks sample
 tooth phases for both stages; they do not replace a loaded mesh trial, lubrication choice or backlash measurement.
 The model does not calculate forces, foot effort, flywheel inertia or fatigue life.
+The flywheel must carry the crank over dead center and back-drive the pedal on its return stroke.
+The mechanism has no one-way clutch; losing momentum can stall or reverse it.
 The cover encloses gears only. Physical access testing must determine the remaining guard design.
 
 The construction uses no Fusion-specific features. Downstream Fusion code belongs in

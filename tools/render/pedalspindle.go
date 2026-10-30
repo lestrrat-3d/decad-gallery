@@ -14,6 +14,7 @@ import (
 type pedalSpindleMesh struct {
 	name  string
 	group string
+	body  *decad.Body
 	model solidlens.Model
 }
 
@@ -38,8 +39,15 @@ func pedalSpindleModels(ctx context.Context) ([]pedalSpindleMesh, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tessellate pedal spindle %s: %w", part.Name, err)
 		}
-		models = append(models, pedalSpindleMesh{name: part.Name, group: part.Group, model: solidlens.Model{
-			Mesh: mesh, Material: solidlens.Matte(colors[part.Group]),
+		color := colors[part.Group]
+		switch part.Name {
+		case "input-gear":
+			color = colors["drive"]
+		case "intermediate-pinion", "intermediate-gear":
+			color = solidlens.RGB(0.90, 0.61, 0.16)
+		}
+		models = append(models, pedalSpindleMesh{name: part.Name, group: part.Group, body: part.Body, model: solidlens.Model{
+			Mesh: mesh, Material: solidlens.Matte(color),
 			Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(0.04, 0.06, 0.08), Width: 1},
 		}})
 	}
@@ -97,6 +105,12 @@ func renderPedalSpindleReadme(ctx context.Context, outputDir string) error {
 			if err := renderPNG(ctx, filepath.Join(outputDir, "index.png"), scene, 480, 270); err != nil {
 				return fmt.Errorf("render pedal spindle index: %w", err)
 			}
+		}
+	}
+	for _, shot := range pedalSpindleSheetShots {
+		width, height := pedalSpindleSheetSize(shot)
+		if err := renderPedalSpindleSheet(ctx, meshes, shot, filepath.Join(outputDir, shot+".png"), width, height); err != nil {
+			return err
 		}
 	}
 	return nil

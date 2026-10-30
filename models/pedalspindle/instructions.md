@@ -120,6 +120,12 @@ Render real Decad bodies with tools/render. Register `pedalspindle/hero` with th
 `pedalspindle/guarded` with the guard fitted, and `pedalspindle/drive` as a closer gear/linkage view.
 The README must label the removed guard. Produce hero.png at1600x900 and index.png at480x270.
 Include guarded.png and drive.png at1600x900, plus a renderer integration test for every preset.
+Also render front/rear hero and drive pairs as `hero-pair.png` and `drive-pair.png` at2000x1100,
+and isolate each actual meshing pair in front and oblique views in `mesh-pairs.png` at2000x1400.
+Use blue for input, gold for both compound intermediate gears and orange for output.
+Render the actual crank, footman, treadle and flywheel at0,90,180,270 degrees in `cycle.png` at2000x1000.
+Use rigid copies of real bodies placed from Motion, not redrawn geometry. Label the poses and gear planes.
+Explain that flywheel momentum carries the return stroke; no ratchet or clutch enforces direction.
 Physical testing must settle pedal effort, flywheel inertia, bearing friction, vibration, gear noise,
 guard reach protection, fastening, and usable yarn capacity before manufacturing.
 
