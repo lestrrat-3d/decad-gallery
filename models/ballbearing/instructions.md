@@ -7,6 +7,10 @@ The first preset is 608-2RS, with bore8, outside diameter22 and width7, all in m
 Use [JTEKT's 608 2RS catalogue](https://www.jtekt.co.jp/products/bearing/en/p/detail/?pno=608+2RS)
 as the source for these three dimensions. The catalogue identifies contact seals on both sides.
 
+The second purchased-part preset is 605ZZ, with bore 5, outside diameter 14 and width 5 mm.
+Use [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529)
+as its dimension source. Both presets use the same exact annulus construction.
+
 This model represents the occupied annular envelope. It does not model individual rings, balls,
 seals, cage, corner relief, lubrication or manufacturing tolerances. It is not bearing manufacturing geometry
 or a load/life calculation. Keep the nominal bore, outside diameter and width exact.
@@ -19,6 +23,8 @@ Expose `Params` with BoreDiameter, OuterDiameter, Width float64 in millimeters a
 Nil Placement selects local XY at Origin, extruding along +Z. A supplied Placement maps the lower
 cap center to its Origin, the local XY axes to U,V and the bearing axis to N.
 Expose `DefaultParams() Params`, returning the 608-2RS dimensions, and `Params.Validate() error`.
+Expose `Params605ZZ() Params`, returning BoreDiameter 5, OuterDiameter 14, Width 5 and nil Placement.
+Return a fresh Params value on each call so callers can place bearings independently.
 Expose `Build(ctx context.Context, doc *decad.Document, p Params) (*Model,error)`.
 `Model` exposes `Body *decad.Body` and `Sketch *sketch.Sketch`.
 The returned Sketch is the actual local section consumed by the extrusion, even when the body is placed.
@@ -54,4 +60,6 @@ Check repeated builds preserve each previously returned body and leave exactly o
 
 Register ballbearing/hero in tools/render. Generate a1600x900 hero and480x270 index from the real body.
 The README must explicitly identify the image as a mounting envelope, not an internal bearing model.
+Register ballbearing/605zz and produce images/605zz.png at 1600x900 from Params605ZZ through Build.
+Check the 605ZZ catalogue dimensions, annular volume, bore and real rendered output separately.
 Add the model to models/README.md and run scripts/check_repository.py.

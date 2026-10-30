@@ -40,3 +40,28 @@ func TestBearing608Rendering(t *testing.T) {
 		require.Greater(t, foreground, shot.width*shot.height/10, "real bearing envelope must be visible")
 	}
 }
+
+func TestBearing605Rendering(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "605zz.png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "ballbearing", "-shot", "605zz",
+		"-out", output, "-width", "160", "-height", "90")
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, "%s", result)
+	file, err := os.Open(output)
+	require.NoError(t, err)
+	defer func() { _ = file.Close() }()
+	img, err := png.Decode(file)
+	require.NoError(t, err)
+	require.Equal(t, 160, img.Bounds().Dx())
+	require.Equal(t, 90, img.Bounds().Dy())
+	background := img.At(0, 0)
+	foreground := 0
+	for y := range 90 {
+		for x := range 160 {
+			if img.At(x, y) != background {
+				foreground++
+			}
+		}
+	}
+	require.Greater(t, foreground, 1440, "the real 605ZZ envelope must be visible")
+}

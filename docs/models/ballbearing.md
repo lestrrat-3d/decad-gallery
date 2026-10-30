@@ -10,6 +10,10 @@ These dimensions are listed in [JTEKT's 608 2RS catalogue](https://www.jtekt.co.
 `Params` exposes `BoreDiameter`, `OuterDiameter`, `Width` and an optional `Placement` frame.
 The placement origin is the center of the lower axial face; its normal gives the bearing axis.
 
+`Params605ZZ()` returns a 5 mm bore, 14 mm outside diameter and 5 mm width from
+[EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
+Both presets use the same `Build` entry point, and callers supply placement independently.
+
 `Build(ctx, doc, params)` returns a `Model` with `Body` and the actual `Sketch` consumed by extrusion.
 The sketch remains in its local XY plane when the body is placed. It contains two origin-centered
 diameter-constrained circles, and Build verifies its full constraint before using the annular profile.
@@ -36,10 +40,11 @@ go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballb
 ```
 
 The hero preset uses 1600 × 900 pixels; the index uses 480 × 270 pixels.
+The readme shot also writes `605zz.png` at 1600 × 900; `-shot 605zz` renders it separately.
 Run the renderer integration check with:
 
 ```sh
-go -C tools/render test -run '^TestBearing608Rendering$'
+go -C tools/render test -run '^TestBearing(608|605)Rendering$'
 ```
 
 ## Verification

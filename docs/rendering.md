@@ -13,6 +13,9 @@ The `readme` shot writes a 1600 × 900 hero and 480 × 270 index:
 go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballbearing/images
 ```
 
+`ballbearing/605zz` renders the 5 × 14 × 5 mm 605ZZ envelope through the same builder.
+The readme shot also writes `605zz.png` at 1600 × 900.
+
 From the repository root, regenerate the spur gear hero image with:
 
 ```sh

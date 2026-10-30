@@ -28,3 +28,10 @@ If Placement is nonnil, call r3.FromFrame(*p.Placement), then decad.Transform(ct
 Require the final body solid and return &Model{Body:body,Sketch:s}.
 The completed transformation replaces the unplaced body; no prototype is left in doc.
 Keep all construction state local, return contextual wrapped errors, and do not copy another model's source.
+
+## 4. Add the 605ZZ preset
+
+For this emission, output only a new presets.go file in package ballbearing.
+Implement `Params605ZZ() Params` returning a struct literal with BoreDiameter5, OuterDiameter14,
+Width5 and nil Placement. Do not duplicate or modify Build, Model, Params, validation or the default608 preset.
+The parent supplies the existing public Params/Build API; the emitted preset only selects dimensions.
