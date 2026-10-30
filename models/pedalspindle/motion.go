@@ -1,3 +1,4 @@
+// Package pedalspindle constructs a foot-powered quill spindle assembly.
 package pedalspindle
 
 import (
@@ -7,40 +8,37 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Params selects the frame scale and crank pose in radians.
+// Params sets the frame scale and the input crank pose in radians.
 type Params struct {
 	Scale      float64
 	CrankAngle float64
 }
 
-// DefaultParams returns the full-size spindle with its crank at sixty degrees.
+// DefaultParams returns unit scale and a crank angle of pi/3.
 func DefaultParams() Params {
 	return Params{Scale: 1, CrankAngle: math.Pi / 3}
 }
 
-// Validate checks the supported scale range and finite crank angle.
+// Validate rejects a nonfinite angle or a scale outside [0.8, 1.2].
 func (p Params) Validate() error {
 	if math.IsNaN(p.Scale) || math.IsInf(p.Scale, 0) || p.Scale < 0.8 || p.Scale > 1.2 {
-		return fmt.Errorf("pedalspindle: scale must be finite and in [0.8, 1.2], got %g", p.Scale)
+		return fmt.Errorf("pedalspindle: Scale must be finite and in [0.8, 1.2]")
 	}
 	if math.IsNaN(p.CrankAngle) || math.IsInf(p.CrankAngle, 0) {
-		return fmt.Errorf("pedalspindle: crank angle must be finite, got %g", p.CrankAngle)
+		return fmt.Errorf("pedalspindle: CrankAngle must be finite")
 	}
 	return nil
 }
 
-// State contains the scaled shaft centers and solved crank-rocker pose.
+// State describes shaft centers, linkage points and gear angles for one pose.
 type State struct {
-	Input, Intermediate, Output r3.Vec
-	Heel, CrankPin, Toe         r3.Vec
-	PedalAngle                  float64
-	IntermediateAngle           float64
-	SpindleAngle                float64
-	Ratio                       float64
-	CenterDistance              float64
+	Input, Intermediate, Output                 r3.Vec
+	Heel, CrankPin, Toe                         r3.Vec
+	PedalAngle, IntermediateAngle, SpindleAngle float64
+	Ratio, CenterDistance                       float64
 }
 
-// Motion solves the lower circle intersection of the treadle linkage.
+// Motion solves the lower four-bar intersection and the two gear phases.
 func Motion(p Params) (State, error) {
 	if err := p.Validate(); err != nil {
 		return State{}, err
@@ -61,9 +59,9 @@ func Motion(p Params) (State, error) {
 		Input:        r3.NewVec(-90*s, 0, 380*s),
 		Intermediate: r3.NewVec(12.3*s, 0, 380*s),
 		Output:       r3.NewVec(12.3*s, 0, 482.3*s),
-		Heel:         r3.NewVec(-230*s, -101*s, 60*s),
-		CrankPin:     r3.NewVec(px*s, -101*s, pz*s),
-		Toe:          r3.NewVec((-230+200*math.Cos(psi))*s, -101*s, (60+200*math.Sin(psi))*s),
+		Heel:         r3.NewVec(-230*s, -125*s, 60*s),
+		CrankPin:     r3.NewVec(px*s, -125*s, pz*s),
+		Toe:          r3.NewVec((-230+200*math.Cos(psi))*s, -125*s, (60+200*math.Sin(psi))*s),
 		PedalAngle:   psi, IntermediateAngle: b, SpindleAngle: c,
 		Ratio: 9, CenterDistance: 102.3 * s,
 	}, nil

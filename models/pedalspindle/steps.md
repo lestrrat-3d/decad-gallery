@@ -10,7 +10,7 @@ Validate context and document at Build entry. Validate parameters before creatin
 Reduce the crank angle modulo 2*pi before every motion or phase calculation to prevent overflow.
 Solve the four-bar circle intersection in unscaled coordinates, then multiply vector coordinates
 and CenterDistance by Scale. Leave angles and Ratio unchanged. Store all six motion coordinates
-at Y=-101*Scale, except Input/Intermediate/Output which have Y=0.
+at Y=-125*Scale, except Input/Intermediate/Output which have Y=0.
 Keep build state local; the package has no mutable globals.
 
 ## 2. Sketch builders
@@ -101,5 +101,7 @@ Create each bearing frame with U=+X,V=+Z,N=-Y, at its actual scaled X/Z center a
 Pass actual millimeter coordinates to this frame; do not scale them again in the bearing builder.
 Leave all bearing dimensions unchanged. Append its Body as group bearing and append its Sketch.
 Follow the part table exactly for all ten names, centers and axial spans.
+Place footman at Y[-129,-121]*Scale, in front of the input shaft's front end at -116*Scale.
+Keep treadle at Y[-210,-140]*Scale; bridge gaps with the pins specified in the contract.
 At scale0.8 the two7mm shaft bearings still fit inside the14.4mm board; no bearing is scaled.
 Increase footman width/end lengths and treadle thickness as specified so14mm pivot bores have material around them.

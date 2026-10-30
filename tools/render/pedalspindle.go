@@ -57,13 +57,7 @@ func pedalSpindleModels(ctx context.Context) ([]pedalSpindleMesh, error) {
 func pedalSpindleScene(meshes []pedalSpindleMesh, shot string) solidlens.Scene {
 	var models []solidlens.Model
 	for _, mesh := range meshes {
-		if mesh.group == "guard" && shot != "guarded" {
-			continue
-		}
-		if shot == "drive" && (mesh.group == "frame" || mesh.group == "pedal") {
-			continue
-		}
-		if shot == "drive" && (mesh.name == "heel-pin" || mesh.name == "toe-pin") {
+		if !pedalSpindlePartVisible(mesh, shot) {
 			continue
 		}
 		models = append(models, mesh.model)
@@ -78,6 +72,20 @@ func pedalSpindleScene(meshes []pedalSpindleMesh, shot string) solidlens.Scene {
 		camera.Target = solidlens.Vec{X: -50, Y: -30, Z: 390}
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, 0.06), models)
+}
+
+func pedalSpindlePartVisible(mesh pedalSpindleMesh, shot string) bool {
+	if mesh.group == "guard" && shot != "guarded" {
+		return false
+	}
+	if shot != "drive" {
+		return true
+	}
+	switch mesh.group {
+	case "frame", "pedal", "bearing":
+		return false
+	}
+	return mesh.name != "heel-pin" && mesh.name != "toe-pin"
 }
 
 func pedalSpindleView(shot string) func(context.Context) (solidlens.Scene, error) {

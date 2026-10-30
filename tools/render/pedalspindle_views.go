@@ -149,9 +149,15 @@ func pedalSpindlePanels(ctx context.Context, meshes []pedalSpindleMesh, shot str
 	rear := front
 	rear.Camera.Position.Y = 1400
 	rear.Camera.Position.X = -820
+	frontCaption := "Blue input; gold compound shaft; orange output"
+	rearCaption := "Both gold gears share one intermediate shaft"
+	if shot == "drive-pair" {
+		frontCaption += "; supports and bearings omitted"
+		rearCaption += "; supports and bearings omitted"
+	}
 	return []spindlePanel{
-		{"Front: spindle and crank side", "Blue input; gold compound shaft; orange output", front},
-		{"Rear: flywheel side", "Both gold gears share one intermediate shaft", rear},
+		{"Front: spindle and crank side", frontCaption, front},
+		{"Rear: flywheel side", rearCaption, rear},
 	}, 2, nil
 }
 

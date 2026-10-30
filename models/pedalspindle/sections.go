@@ -18,65 +18,72 @@ type construction struct {
 	assembly *Assembly
 }
 
-type circularHole struct {
-	x, y, diameter float64
-}
+type hole struct{ x, y, diameter float64 }
 
-func newSection() (*sketch.Sketch, error) {
+func (c *construction) section(name string, axial bool) (*sketch.Sketch, error) {
 	w := sketch.NewWorld()
-	return w.CreateSketch(w.XY())
+	plane := w.XY()
+	if axial {
+		plane = w.XZ()
+	}
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("pedalspindle: %s: create sketch: %w", name, err)
+	}
+	c.assembly.Sketches = append(c.assembly.Sketches, s)
+	return s, nil
 }
 
-func addHole(s *sketch.Sketch, hole circularHole) {
-	center := s.Origin()
-	if hole.x != 0 || hole.y != 0 {
-		center = sketchcheck.DimensionPoint(s, hole.x, hole.y)
+func (c *construction) profile(name string, s *sketch.Sketch, holes int) (*sketch.Profile, error) {
+	if _, err := s.Solve(c.ctx); err != nil {
+		return nil, fmt.Errorf("pedalspindle: %s: solve sketch: %w", name, err)
 	}
-	c := s.CreateCircle(center, hole.diameter/2)
-	s.AddConstraint(sketch.NewDiameter(c, hole.diameter))
-}
-
-func (b *construction) sectionProfile(s *sketch.Sketch, holes int) (*sketch.Profile, error) {
-	if _, err := s.Solve(b.ctx); err != nil {
-		return nil, fmt.Errorf("solve section: %w", err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(b.ctx, s); err != nil {
-		return nil, fmt.Errorf("verify section: %w", err)
+	if err := sketchcheck.VerifyFullyConstrained(c.ctx, s); err != nil {
+		return nil, fmt.Errorf("pedalspindle: %s: verify sketch: %w", name, err)
 	}
 	var selected *sketch.Profile
-	for _, profile := range s.Profiles() {
-		if !profile.Valid || len(profile.Holes) != holes {
+	for _, p := range s.Profiles() {
+		if !p.Valid || len(p.Holes) != holes {
 			continue
 		}
 		if selected != nil {
-			return nil, fmt.Errorf("select section: multiple valid profiles with %d holes", holes)
+			return nil, fmt.Errorf("pedalspindle: %s: multiple valid profiles with %d holes", name, holes)
 		}
-		selected = profile
+		selected = p
 	}
 	if selected == nil {
-		return nil, fmt.Errorf("select section: no valid profile with %d holes", holes)
+		return nil, fmt.Errorf("pedalspindle: %s: no valid profile with %d holes", name, holes)
 	}
-	b.assembly.Sketches = append(b.assembly.Sketches, s)
 	return selected, nil
 }
 
-func (b *construction) extrude(s *sketch.Sketch, holes int, length float64) (*decad.Body, error) {
-	profile, err := b.sectionProfile(s, holes)
+func addHoles(s *sketch.Sketch, holes []hole) {
+	for _, h := range holes {
+		center := s.Origin()
+		if h.x != 0 || h.y != 0 {
+			center = sketchcheck.DimensionPoint(s, h.x, h.y)
+		}
+		circle := s.CreateCircle(center, h.diameter/2)
+		s.AddConstraint(sketch.NewDiameter(circle, h.diameter))
+	}
+}
+
+func (c *construction) extrude(name string, s *sketch.Sketch, holes int, length float64) (*decad.Body, error) {
+	p, err := c.profile(name, s, holes)
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, profile,
-		decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	b, err := decad.Extrude(c.ctx, c.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
 	if err != nil {
-		return nil, fmt.Errorf("extrude section: %w", err)
+		return nil, fmt.Errorf("pedalspindle: %s: extrude section: %w", name, err)
 	}
-	return body, nil
+	return b, nil
 }
 
-func (b *construction) rectangle(x1, y1, x2, y2, length float64, holes []circularHole) (*decad.Body, error) {
-	s, err := newSection()
+func (c *construction) rectangle(name string, x1, y1, x2, y2, length float64, holes []hole) (*decad.Body, error) {
+	s, err := c.section(name, false)
 	if err != nil {
-		return nil, fmt.Errorf("create rectangle sketch: %w", err)
+		return nil, err
 	}
 	r := s.CreateRectangle(x1, y1, x2, y2)
 	s.AddConstraint(
@@ -85,122 +92,139 @@ func (b *construction) rectangle(x1, y1, x2, y2, length float64, holes []circula
 		sketch.NewHorizontalDistance(r.A, r.B, x2-x1),
 		sketch.NewVerticalDistance(r.B, r.C, y2-y1),
 	)
-	for _, hole := range holes {
-		addHole(s, hole)
-	}
-	return b.extrude(s, len(holes), length)
+	addHoles(s, holes)
+	return c.extrude(name, s, len(holes), length)
 }
 
-func (b *construction) ring(outerRadius, innerDiameter, length float64) (*decad.Body, error) {
-	s, err := newSection()
+func (c *construction) round(name string, radius, bore, length float64) (*decad.Body, error) {
+	s, err := c.section(name, false)
 	if err != nil {
-		return nil, fmt.Errorf("create circular sketch: %w", err)
+		return nil, err
 	}
-	outer := s.CreateCircle(s.Origin(), outerRadius)
-	s.AddConstraint(sketch.NewRadius(outer, outerRadius))
+	outer := s.CreateCircle(s.Origin(), radius)
+	s.AddConstraint(sketch.NewRadius(outer, radius))
 	holes := 0
-	if innerDiameter > 0 {
-		addHole(s, circularHole{diameter: innerDiameter})
+	if bore > 0 {
+		addHoles(s, []hole{{diameter: bore}})
 		holes = 1
 	}
-	return b.extrude(s, holes, length)
+	return c.extrude(name, s, holes, length)
 }
 
 func xzFrame(origin r3.Vec, angle float64) (r3.Frame, error) {
-	c, s := math.Cos(angle), math.Sin(angle)
-	return r3.NewFrame(origin, r3.NewVec(c, 0, s), r3.NewVec(-s, 0, c))
+	return r3.NewFrame(origin, r3.NewVec(math.Cos(angle), 0, math.Sin(angle)),
+		r3.NewVec(-math.Sin(angle), 0, math.Cos(angle)))
 }
 
-func (b *construction) place(body *decad.Body, frame r3.Frame) (*decad.Body, error) {
+func (c *construction) place(name string, body *decad.Body, frame r3.Frame) (*decad.Body, error) {
 	t, err := r3.FromFrame(frame)
 	if err != nil {
-		return nil, fmt.Errorf("create placement transform: %w", err)
+		return nil, fmt.Errorf("pedalspindle: %s: create transform: %w", name, err)
 	}
-	placed, err := decad.Transform(b.ctx, body, t)
+	body, err = decad.Transform(c.ctx, body, t)
 	if err != nil {
-		return nil, fmt.Errorf("transform body: %w", err)
+		return nil, fmt.Errorf("pedalspindle: %s: transform body: %w", name, err)
 	}
-	return placed, nil
+	return body, nil
 }
 
-func (b *construction) appendPart(name, group string, body *decad.Body, err error, frame r3.Frame) error {
-	if err != nil {
-		return fmt.Errorf("pedalspindle: %s: %w", name, err)
+func (c *construction) append(name, group string, body *decad.Body) error {
+	if !body.IsSolid() {
+		return fmt.Errorf("pedalspindle: %s: body is not solid", name)
 	}
-	placed, err := b.place(body, frame)
-	if err != nil {
-		return fmt.Errorf("pedalspindle: %s: %w", name, err)
+	for _, p := range c.assembly.Parts {
+		if p.Name == name {
+			return fmt.Errorf("pedalspindle: %s: duplicate part name", name)
+		}
 	}
-	if !placed.IsSolid() {
-		return fmt.Errorf("pedalspindle: %s: placed body is not solid", name)
-	}
-	b.assembly.Parts = append(b.assembly.Parts, Part{Name: name, Group: group, Body: placed})
+	c.assembly.Parts = append(c.assembly.Parts, Part{Name: name, Group: group, Body: body})
 	return nil
 }
 
-func (b *construction) box(name, group string, x1, x2, y1, y2, z1, z2 float64) error {
-	frame, err := r3.NewFrame(r3.NewVec(x1, y1, z1), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+func (c *construction) box(name, group string, x1, x2, y1, y2, z1, z2, scale float64) error {
+	b, err := c.rectangle(name, 0, 0, (x2-x1)*scale, (y2-y1)*scale, (z2-z1)*scale, nil)
+	if err != nil {
+		return err
+	}
+	f, err := r3.NewFrame(r3.NewVec(x1*scale, y1*scale, z1*scale), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	if err != nil {
 		return fmt.Errorf("pedalspindle: %s: create box frame: %w", name, err)
 	}
-	body, err := b.rectangle(0, 0, x2-x1, y2-y1, z2-z1, nil)
-	return b.appendPart(name, group, body, err, frame)
+	b, err = c.place(name, b, f)
+	if err != nil {
+		return err
+	}
+	return c.append(name, group, b)
 }
 
-func (b *construction) xzRectangle(name, group string, origin r3.Vec, angle,
-	x1, y1, x2, y2, length float64, holes []circularHole) error {
-	frame, err := xzFrame(origin, angle)
+func (c *construction) plate(name, group string, origin r3.Vec, angle, x1, z1, x2, z2, depth float64,
+	holes []hole) error {
+	b, err := c.rectangle(name, x1, z1, x2, z2, depth, holes)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: %s: create rectangle frame: %w", name, err)
+		return err
 	}
-	body, err := b.rectangle(x1, y1, x2, y2, length, holes)
-	return b.appendPart(name, group, body, err, frame)
+	f, err := xzFrame(origin, angle)
+	if err != nil {
+		return fmt.Errorf("pedalspindle: %s: create plate frame: %w", name, err)
+	}
+	b, err = c.place(name, b, f)
+	if err != nil {
+		return err
+	}
+	return c.append(name, group, b)
 }
 
-func (b *construction) xzRing(name, group string, center r3.Vec, backY, outerRadius,
-	innerDiameter, length float64) error {
-	frame, err := xzFrame(r3.NewVec(center.X, backY, center.Z), 0)
+func (c *construction) cylinder(name, group string, center r3.Vec, y, radius, bore, length float64) error {
+	b, err := c.round(name, radius, bore, length)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: %s: create circular frame: %w", name, err)
+		return err
 	}
-	body, err := b.ring(outerRadius, innerDiameter, length)
-	return b.appendPart(name, group, body, err, frame)
+	f, err := xzFrame(r3.NewVec(center.X, y, center.Z), 0)
+	if err != nil {
+		return fmt.Errorf("pedalspindle: %s: create cylinder frame: %w", name, err)
+	}
+	b, err = c.place(name, b, f)
+	if err != nil {
+		return err
+	}
+	return c.append(name, group, b)
 }
 
-func (b *construction) spindle(scale float64, center r3.Vec) error {
-	w := sketch.NewWorld()
-	s, err := w.CreateSketch(w.XZ())
+func (c *construction) spindle(center r3.Vec, scale float64) error {
+	const name = "spindle"
+	s, err := c.section(name, true)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: spindle: create axial sketch: %w", err)
+		return err
 	}
-	points := []*sketch.Point{
-		s.Origin(), s.CreatePoint(2.5, 0), s.CreatePoint(2.5, 275*scale),
-		s.CreatePoint(0.3, 300*scale), s.CreatePoint(0, 300*scale),
-	}
-	lines := make([]*sketch.Line, len(points))
-	for i, point := range points {
-		lines[i] = s.CreateLine(point, points[(i+1)%len(points)])
-	}
-	s.AddConstraint(
-		sketch.NewHorizontal(lines[0]), sketch.NewVertical(lines[1]),
-		sketch.NewHorizontal(lines[3]), sketch.NewVertical(lines[4]),
-		sketch.NewHorizontalDistance(points[0], points[1], 2.5),
-		sketch.NewVerticalDistance(points[1], points[2], 275*scale),
-		sketch.NewHorizontalDistance(points[0], points[3], 0.3),
-		sketch.NewVerticalDistance(points[0], points[3], 300*scale),
-	)
-	profile, err := b.sectionProfile(s, 0)
+	p0 := s.Origin()
+	p1 := s.CreatePoint(2.5, 0)
+	p2 := s.CreatePoint(2.5, 275*scale)
+	p3 := s.CreatePoint(0.3, 300*scale)
+	p4 := s.CreatePoint(0, 300*scale)
+	l0 := s.CreateLine(p0, p1)
+	l1 := s.CreateLine(p1, p2)
+	s.CreateLine(p2, p3)
+	l3 := s.CreateLine(p3, p4)
+	l4 := s.CreateLine(p4, p0)
+	s.AddConstraint(sketch.NewHorizontal(l0), sketch.NewVertical(l1), sketch.NewHorizontal(l3), sketch.NewVertical(l4),
+		sketch.NewHorizontalDistance(p0, p1, 2.5), sketch.NewVerticalDistance(p1, p2, 275*scale),
+		sketch.NewHorizontalDistance(p0, p3, 0.3), sketch.NewVerticalDistance(p0, p3, 300*scale))
+	p, err := c.profile(name, s, 0)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: spindle: %w", err)
+		return err
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, profile,
-		decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.NewVec(0, 0, 1)}, decad.FullRevolution{})
+	b, err := decad.Revolve(c.ctx, c.doc, s, p, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.NewVec(0, 0, 1)},
+		decad.FullRevolution{})
 	if err != nil {
-		return fmt.Errorf("pedalspindle: spindle: revolve axial profile: %w", err)
+		return fmt.Errorf("pedalspindle: %s: revolve section: %w", name, err)
 	}
-	frame, err := xzFrame(r3.NewVec(center.X, 30*scale, center.Z), 0)
+	f, err := xzFrame(r3.NewVec(center.X, 30*scale, center.Z), 0)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: spindle: create axial frame: %w", err)
+		return fmt.Errorf("pedalspindle: %s: create spindle frame: %w", name, err)
 	}
-	return b.appendPart("spindle", "steel", body, nil, frame)
+	b, err = c.place(name, b, f)
+	if err != nil {
+		return err
+	}
+	return c.append(name, "steel", b)
 }

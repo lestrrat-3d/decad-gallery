@@ -26,7 +26,7 @@ Expose `DefaultParams() Params`, `Params.Validate() error`, `Motion(Params) (Sta
 and `Build(context.Context, *decad.Document, Params) (*Assembly, error)`.
 `State` exposes `Input`, `Intermediate`, `Output`, `Heel`, `CrankPin`, `Toe` as `r3.Vec`,
 `PedalAngle`, `IntermediateAngle`, `SpindleAngle`, `Ratio`, and `CenterDistance` as float64.
-Coordinates include scale. Use Y = -101 for the three linkage point coordinates.
+Coordinates include scale. Use Y = -125 for the three linkage point coordinates.
 `Part` exposes `Name`, `Group` strings and `Body *decad.Body`.
 `Assembly` exposes `Parts []Part`, `Sketches []*sketch.Sketch`, and `State State`.
 `Sketches` contains every sketch created by this package, including revolve and holed sections.
@@ -90,14 +90,14 @@ Do not fuse touching assembled parts. Gears and hubs are distinct parts on commo
 | flywheel-spoke-0 through -3 | Four radial rectangular bars, radial extent[15,137], tangential width12, Y[39,49], at input, angles a+k*pi/2. Overlap rim and hub; separate assembly solids. | drive |
 | input-hub, intermediate-pinion-hub, intermediate-gear-hub, output-hub | Annuli OD24, stock ID8.2 for input/intermediate and stock ID5.2 for output. Y[-44,-52] for first pair and [-74,-82] for second pair. | steel |
 | crank | Rectangle in XZ extending -9 to34 along crank direction, width18, thickness8 at Y[-113,-105]. Stock holes diameter8.2 at origin and5.2 at radius25. | drive |
-| crank-pin | Cylinder stock diameter5 at P, Y[-116,-94]. | steel |
-| treadle | Rectangle in its rotating XZ frame from heel coordinate (-12,-12) to (212,12), Y[-210,-120]. Stock through bores diameter14 at heel and5.2 at toe. | pedal |
-| footman | Rectangle along Q-to-P, length320 plus12 at each end, width24, Y[-105,-97]. Stock through bores diameter14 at Q and P. | pedal |
-| heel-pin | Cylinder stock diameter5 at H, Y[-215,-115]. | steel |
-| toe-pin | Cylinder stock diameter5 at Q, Y[-215,-94]. | steel |
-| heel-bearing-front, heel-bearing-rear | Stock605ZZ envelopes at H. Front spans Y[-210*Scale,-210*Scale+5]; rear spans Y[-120*Scale-5,-120*Scale], actual millimeters. | bearing |
-| footman-bearing-crank, footman-bearing-toe | Stock605ZZ envelopes centered at P and Q, spanning Y[-101*Scale-2.5,-101*Scale+2.5], actual millimeters. | bearing |
-| heel-bracket | Rectangle X[-244,-216], Z[18,76], Y[-120,-112], stock hole diameter5.2 at H. | frame |
+| crank-pin | Cylinder stock diameter5 at P, Y[-132,-105]. | steel |
+| treadle | Rectangle in its rotating XZ frame from heel coordinate (-12,-12) to (212,12), Y[-210,-140]. Stock through bores diameter14 at heel and5.2 at toe. | pedal |
+| footman | Rectangle along Q-to-P, length320 plus12 at each end, width24, Y[-129,-121]. Stock through bores diameter14 at Q and P. | pedal |
+| heel-pin | Cylinder stock diameter5 at H, Y[-215,-135]. | steel |
+| toe-pin | Cylinder stock diameter5 at Q, Y[-215,-118]. | steel |
+| heel-bearing-front, heel-bearing-rear | Stock605ZZ envelopes at H. Front spans Y[-210*Scale,-210*Scale+5]; rear spans Y[-140*Scale-5,-140*Scale], actual millimeters. | bearing |
+| footman-bearing-crank, footman-bearing-toe | Stock605ZZ envelopes centered at P and Q, spanning Y[-125*Scale-2.5,-125*Scale+2.5], actual millimeters. | bearing |
+| heel-bracket | Rectangle X[-244,-216], Z[18,76], Y[-140,-132], stock hole diameter5.2 at H. | frame |
 | guard-front | Plate X[-175,100], Z[295,520], Y[-94,-90], stock holes diameter8.8 at input/intermediate and5.8 at output. | guard |
 | guard-left, guard-right | Boxes X[-179,-175] and [100,104], Y[-94,0], Z[291,524]. | guard |
 | guard-bottom, guard-top | Boxes X[-175,100], Y[-94,0], Z[291,295] and [520,524]. | guard |
@@ -107,7 +107,9 @@ Shafts have0.1 radial nominal clearance in gear/hub bores. Bearing IDs equal nom
 Nominal housing bores equal bearing ODs. Fit tolerances and retainers require the fabrication process to be specified.
 Use four608-2RS bearings and six605ZZ bearings. The frame holds the two bearings for each rotating shaft.
 Two heel bearings let the treadle rock about its frame-fixed pin. Two footman bearings rotate about the moving crank/toe pins.
-The toe pin crosses the treadle and rear-offset footman; the heel pin crosses the treadle and heel bracket.
+The toe pin crosses the treadle and footman; the heel pin crosses the treadle and heel bracket.
+The footman passes in front of the input shaft, with5*Scale axial clearance throughout rotation.
+The treadle ends11*Scale in front of the footman. Pins bridge these axial gaps.
 Provide shaft collars or circlips during prototype assembly. The image omits their detailed retention hardware.
 
 ## Sketch and body rules
@@ -128,6 +130,9 @@ Check unique names, gear thickness/placement and bores through the consuming ass
 solid topology, VerifyAll tessellation, flywheel radius, spindle tip height/length, and scaled bounds.
 Check the four-bar closure, full rotation, base clearance and constant 9:1 ratio over a full crank turn.
 Check actual meshing gear sections for overlap at several tooth phases and both stages.
+Check actual linkage bodies against the shaft, supports, guard and each other throughout a full turn.
+Reject positive overlap between independently moving parts; allow only the named flywheel spoke/rim/hub joints.
+Include the upper crank position that previously put the footman through the input shaft.
 
 Render real Decad bodies with tools/render. Register `pedalspindle/hero` with the guard removed,
 `pedalspindle/guarded` with the guard fitted, and `pedalspindle/drive` as a closer gear/linkage view.
@@ -135,6 +140,7 @@ The README must label the removed guard. Produce hero.png at1600x900 and index.p
 Include guarded.png and drive.png at1600x900, plus a renderer integration test for every preset.
 Also render front/rear hero and drive pairs as `hero-pair.png` and `drive-pair.png` at2000x1100,
 and isolate each actual meshing pair in front and oblique views in `mesh-pairs.png` at2000x1400.
+Drive-only views omit all bearing envelopes along with their hidden supports and linkage.
 Use blue for input, gold for both compound intermediate gears and orange for output.
 Render the actual crank, footman, treadle and flywheel at0,90,180,270 degrees in `cycle.png` at2000x1000.
 Use rigid copies of real bodies placed from Motion, not redrawn geometry. Label the poses and gear planes.

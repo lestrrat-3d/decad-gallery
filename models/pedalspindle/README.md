@@ -48,6 +48,13 @@ The required flywheel mass and starting effort still need a physical trial.
 
 ![Front and rear views of the drive with the frame removed](images/drive-pair.png)
 
+The drive-only views omit the support frame, treadle, footman and bearing envelopes together.
+The complete assembly views include the bearings in their housings.
+
+The footman runs in front of the input shaft end, with 5 mm of axial clearance at the default scale.
+Longer crank and toe pins connect it to the crank and treadle across their axial gaps.
+The oblique animation view shows this separation.
+
 The two large gears do not mesh with one another. They occupy two planes, 30 mm apart along Y.
 The blue 51-tooth input gear meshes with the small gold 17-tooth pinion behind the large gold gear.
 That small pinion and the large gold 51-tooth gear clamp to the same intermediate shaft and turn together.

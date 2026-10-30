@@ -16,8 +16,10 @@ Its paired views show both sides of the assembly and drive. Each gear-pair sheet
 placed bodies without exploding or separating their teeth. The four-pose sheet copies the actual
 crank, treadle, footman and flywheel into poses calculated by `Motion`; the gear train is hidden there.
 The `animation` shot writes a 48-frame looping GIF with one constant camera per view.
-The left view includes the fixed grey frame; the right exposes the linkage and marks the fixed A/B centers.
+The left view includes the fixed grey frame; the right exposes the linkage at an oblique angle.
+Both views mark the fixed A/B centers.
 Moving C/D centers follow the actual crank and toe pins. Only the joint annotations and reference line are drawn in 2D.
+Drive-only views omit bearing envelopes together with the supports and linkage removed from that view.
 
 `Scale` accepts finite values from 0.8 through 1.2; `CrankAngle` accepts any finite radians.
 Angles are reduced modulo one turn before calculating a pose. Returned angles describe the pose,
@@ -89,6 +91,12 @@ They verify every owned sketch has FullyConstrained status, zero DOF, no redunda
 They tessellate each part with VerifyAll and check the actual placed gear sections, bores and dimensions.
 Scale endpoints and another crank quadrant exercise the same construction at different dimensions and poses.
 Analytic checks sample a full revolution for linkage closure, pedal clearance, and rotation ratios.
+Collision checks sample the real linkage solids every five degrees at scales0.8,1 and1.2.
+Each candidate pair with positive axial overlap is checked using real XZ sections.
+Nominal bearing seats share circular boundaries; their analytic diameters and centers are checked separately.
+An additional Decad interference check covers the footman and input shaft at90 degrees.
+The footman runs5*Scale millimeters in front of the shaft end; its pins bridge the gaps to crank and treadle.
+These sampled checks do not prove continuous clearance between samples.
 
 The 0.3 mm center-distance allowance changes the operating pressure angle slightly. Section checks sample
 tooth phases for both stages; they do not replace a loaded mesh trial, lubrication choice or backlash measurement.

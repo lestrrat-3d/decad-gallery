@@ -12,76 +12,65 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Part identifies one separate solid in the spindle assembly.
+// Part names an independently removable solid and its rendering group.
 type Part struct {
 	Name, Group string
 	Body        *decad.Body
 }
 
-// Assembly contains the placed parts, recorded sketches, and solved pose.
+// Assembly records the placed parts, every owned sketch and the solved pose.
 type Assembly struct {
 	Parts    []Part
 	Sketches []*sketch.Sketch
 	State    State
 }
 
-// Build constructs the complete spindle assembly. ctx and doc must not be nil.
-func Build(ctx context.Context, doc *decad.Document, params Params) (*Assembly, error) {
+// Build adds the 43 assembly parts to doc. ctx and doc must not be nil.
+func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("pedalspindle: context must not be nil")
 	}
 	if doc == nil {
 		return nil, fmt.Errorf("pedalspindle: document must not be nil")
 	}
-	if err := params.Validate(); err != nil {
-		return nil, err
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("pedalspindle: build context: %w", err)
-	}
-	state, err := Motion(params)
+	state, err := Motion(p)
 	if err != nil {
 		return nil, err
 	}
-	assembly := &Assembly{State: state}
-	b := construction{ctx: ctx, doc: doc, assembly: assembly}
-	s := params.Scale
-	a := math.Mod(params.CrankAngle, 2*math.Pi)
-	if err := b.frame(s); err != nil {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("pedalspindle: before creating parts: %w", err)
+	}
+	assembly := &Assembly{State: state, Parts: make([]Part, 0, 43), Sketches: make([]*sketch.Sketch, 0, 39)}
+	c := &construction{ctx: ctx, doc: doc, assembly: assembly}
+	if err := c.frame(p.Scale); err != nil {
 		return nil, err
 	}
-	if err := b.shafts(s); err != nil {
+	if err := c.bearings(p.Scale, state); err != nil {
 		return nil, err
 	}
-	if err := b.gears(s, a); err != nil {
+	if err := c.drive(p, state); err != nil {
 		return nil, err
 	}
-	if err := b.flywheel(s, a); err != nil {
+	if err := c.gears(p, state); err != nil {
 		return nil, err
 	}
-	if err := b.hubs(s); err != nil {
-		return nil, err
-	}
-	if err := b.linkage(s, a); err != nil {
-		return nil, err
-	}
-	if err := b.bearings(s); err != nil {
+	if err := c.linkage(p, state); err != nil {
 		return nil, err
 	}
 	if len(assembly.Parts) != 43 || len(assembly.Sketches) != 39 {
-		return nil, fmt.Errorf("pedalspindle: assembly has %d parts and %d sketches; expected 43 and 39",
+		return nil, fmt.Errorf("pedalspindle: assembly has %d parts and %d sketches, want 43 and 39",
 			len(assembly.Parts), len(assembly.Sketches))
 	}
 	for _, part := range assembly.Parts {
 		if !part.Body.IsSolid() {
-			return nil, fmt.Errorf("pedalspindle: %s: completed body is not solid", part.Name)
+			return nil, fmt.Errorf("pedalspindle: %s: final body is not solid", part.Name)
 		}
 	}
 	return assembly, nil
 }
 
-func (b *construction) frame(s float64) error {
-	boxes := []struct {
+func (c *construction) frame(s float64) error {
+	for _, b := range []struct {
 		name, group            string
 		x1, x2, y1, y2, z1, z2 float64
 	}{
@@ -92,198 +81,178 @@ func (b *construction) frame(s float64) error {
 		{"guard-right", "guard", 100, 104, -94, 0, 291, 524},
 		{"guard-bottom", "guard", -175, 100, -94, 0, 291, 295},
 		{"guard-top", "guard", -175, 100, -94, 0, 520, 524},
-	}
-	for _, box := range boxes {
-		if err := b.box(box.name, box.group, box.x1*s, box.x2*s,
-			box.y1*s, box.y2*s, box.z1*s, box.z2*s); err != nil {
+	} {
+		if err := c.box(b.name, b.group, b.x1, b.x2, b.y1, b.y2, b.z1, b.z2, s); err != nil {
 			return err
 		}
 	}
-	state := b.assembly.State
-	boardHoles := []circularHole{
-		{state.Input.X + 185*s, state.Input.Z - 290*s, 22},
-		{state.Intermediate.X + 185*s, state.Intermediate.Z - 290*s, 22},
-		{state.Output.X + 185*s, state.Output.Z - 290*s, 14},
-	}
-	if err := b.xzRectangle("bearing-board", "frame", r3.NewVec(-185*s, 18*s, 290*s),
-		0, 0, 0, 295*s, 235*s, 18*s, boardHoles); err != nil {
+	if err := c.plate("bearing-board", "frame", r3.NewVec(-185*s, 18*s, 290*s), 0,
+		0, 0, 295*s, 235*s, 18*s, []hole{{95 * s, 90 * s, 22}, {197.3 * s, 90 * s, 22}, {197.3 * s, 192.3 * s, 14}}); err != nil {
 		return err
 	}
-	guardHoles := []circularHole{
-		{state.Input.X + 175*s, state.Input.Z - 295*s, 8.8},
-		{state.Intermediate.X + 175*s, state.Intermediate.Z - 295*s, 8.8},
-		{state.Output.X + 175*s, state.Output.Z - 295*s, 5.8},
-	}
-	if err := b.xzRectangle("guard-front", "guard", r3.NewVec(-175*s, -90*s, 295*s),
-		0, 0, 0, 275*s, 225*s, 4*s, guardHoles); err != nil {
+	if err := c.plate("guard-front", "guard", r3.NewVec(-175*s, -90*s, 295*s), 0,
+		0, 0, 275*s, 225*s, 4*s, []hole{{85 * s, 85 * s, 8.8}, {187.3 * s, 85 * s, 8.8}, {187.3 * s, 187.3 * s, 5.8}}); err != nil {
 		return err
 	}
-	return b.xzRectangle("heel-bracket", "frame", r3.NewVec(-244*s, -112*s, 18*s),
-		0, 0, 0, 28*s, 58*s, 8*s, []circularHole{{14 * s, 42 * s, 5.2}})
+	return c.plate("heel-bracket", "frame", r3.NewVec(-244*s, -132*s, 18*s), 0,
+		0, 0, 28*s, 58*s, 8*s, []hole{{14 * s, 42 * s, 5.2}})
 }
 
-func (b *construction) shafts(s float64) error {
-	state := b.assembly.State
-	if err := b.xzRing("input-shaft", "steel", state.Input, 65*s, 4, 0, 181*s); err != nil {
-		return err
+func (c *construction) bearings(s float64, state State) error {
+	for _, spec := range []struct {
+		name   string
+		center r3.Vec
+		y      float64
+		small  bool
+	}{
+		{"input-bearing-front", state.Input, 7, false},
+		{"input-bearing-rear", state.Input, 18 * s, false},
+		{"intermediate-bearing-front", state.Intermediate, 7, false},
+		{"intermediate-bearing-rear", state.Intermediate, 18 * s, false},
+		{"output-bearing-front", state.Output, 5, true},
+		{"output-bearing-rear", state.Output, 18 * s, true},
+		{"heel-bearing-front", state.Heel, -210*s + 5, true},
+		{"heel-bearing-rear", state.Heel, -140 * s, true},
+		{"footman-bearing-crank", state.CrankPin, -125*s + 2.5, true},
+		{"footman-bearing-toe", state.Toe, -125*s + 2.5, true},
+	} {
+		p := ballbearing.DefaultParams()
+		if spec.small {
+			p = ballbearing.Params605ZZ()
+		}
+		f, err := xzFrame(r3.NewVec(spec.center.X, spec.y, spec.center.Z), 0)
+		if err != nil {
+			return fmt.Errorf("pedalspindle: %s: create bearing frame: %w", spec.name, err)
+		}
+		p.Placement = &f
+		model, err := ballbearing.Build(c.ctx, c.doc, p)
+		if err != nil {
+			return fmt.Errorf("pedalspindle: %s: build bearing: %w", spec.name, err)
+		}
+		c.assembly.Sketches = append(c.assembly.Sketches, model.Sketch)
+		if err := c.append(spec.name, "bearing", model.Body); err != nil {
+			return err
+		}
 	}
-	if err := b.xzRing("intermediate-shaft", "steel", state.Intermediate, 26*s, 4, 0, 109*s); err != nil {
-		return err
-	}
-	return b.spindle(s, state.Output)
+	return nil
 }
 
-func (b *construction) gears(s, a float64) error {
-	params := spurgear.Params{
-		Module: 3 * s, Teeth: 51, PressureAngle: 20 * math.Pi / 180,
-		Thickness: 12 * s, Samples: 15, BoreDiameter: 8.2, CapChamfer: 0,
+func (c *construction) drive(p Params, state State) error {
+	s := p.Scale
+	for _, spec := range []struct {
+		name, group             string
+		center                  r3.Vec
+		y, radius, bore, length float64
+	}{
+		{"input-shaft", "steel", state.Input, 65 * s, 4, 0, 181 * s},
+		{"intermediate-shaft", "steel", state.Intermediate, 26 * s, 4, 0, 109 * s},
+		{"flywheel-rim", "drive", state.Input, 53 * s, 155 * s, 270 * s, 18 * s},
+		{"flywheel-hub", "drive", state.Input, 53 * s, 17 * s, 8.2, 18 * s},
+		{"input-hub", "steel", state.Input, -44 * s, 12 * s, 8.2, 8 * s},
+		{"intermediate-pinion-hub", "steel", state.Intermediate, -44 * s, 12 * s, 8.2, 8 * s},
+		{"intermediate-gear-hub", "steel", state.Intermediate, -74 * s, 12 * s, 8.2, 8 * s},
+		{"output-hub", "steel", state.Output, -74 * s, 12 * s, 5.2, 8 * s},
+	} {
+		if err := c.cylinder(spec.name, spec.group, spec.center, spec.y, spec.radius, spec.bore, spec.length); err != nil {
+			return err
+		}
 	}
-	large, err := spurgear.Build(b.ctx, b.doc, params)
+	if err := c.spindle(state.Output, s); err != nil {
+		return err
+	}
+	a := math.Mod(p.CrankAngle, 2*math.Pi)
+	for k := 0; k < 4; k++ {
+		name := fmt.Sprintf("flywheel-spoke-%d", k)
+		if err := c.plate(name, "drive", r3.NewVec(state.Input.X, 49*s, state.Input.Z), a+float64(k)*math.Pi/2,
+			15*s, -6*s, 137*s, 6*s, 10*s, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *construction) gears(p Params, state State) error {
+	s := p.Scale
+	params := spurgear.DefaultParams()
+	params.Module = 3 * s
+	params.Thickness = 12 * s
+	params.PressureAngle = 20 * math.Pi / 180
+	params.Samples = 15
+	params.CapChamfer = 0
+	params.Teeth, params.BoreDiameter = 51, 8.2
+	large, err := spurgear.Build(c.ctx, c.doc, params)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: input/intermediate gear prototype: %w", err)
+		return fmt.Errorf("pedalspindle: input-gear: build 51-tooth prototype: %w", err)
+	}
+	input, err := decad.Copy(c.ctx, large)
+	if err != nil {
+		return fmt.Errorf("pedalspindle: input-gear: copy 51-tooth prototype: %w", err)
 	}
 	params.Teeth = 17
-	intermediatePinion, err := spurgear.Build(b.ctx, b.doc, params)
+	small, err := spurgear.Build(c.ctx, c.doc, params)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: intermediate pinion prototype: %w", err)
+		return fmt.Errorf("pedalspindle: intermediate-pinion: build 17-tooth prototype: %w", err)
 	}
 	params.BoreDiameter = 5.2
-	outputPinion, err := spurgear.Build(b.ctx, b.doc, params)
+	output, err := spurgear.Build(c.ctx, c.doc, params)
 	if err != nil {
-		return fmt.Errorf("pedalspindle: output pinion prototype: %w", err)
+		return fmt.Errorf("pedalspindle: output-pinion: build 17-tooth prototype: %w", err)
 	}
-	inputGear, err := decad.Copy(b.ctx, large)
-	if err != nil {
-		return fmt.Errorf("pedalspindle: input-gear: copy large prototype: %w", err)
-	}
-	state := b.assembly.State
-	placements := []struct {
+	a := math.Mod(p.CrankAngle, 2*math.Pi)
+	for _, spec := range []struct {
 		name     string
 		body     *decad.Body
 		center   r3.Vec
 		y, angle float64
 	}{
-		{"input-gear", inputGear, state.Input, -30 * s, a},
-		{"intermediate-pinion", intermediatePinion, state.Intermediate, -30 * s, state.IntermediateAngle},
+		{"input-gear", input, state.Input, -30 * s, a},
+		{"intermediate-pinion", small, state.Intermediate, -30 * s, state.IntermediateAngle},
 		{"intermediate-gear", large, state.Intermediate, -60 * s, state.IntermediateAngle},
-		{"output-pinion", outputPinion, state.Output, -60 * s, state.SpindleAngle},
-	}
-	for _, gear := range placements {
-		frame, err := xzFrame(r3.NewVec(gear.center.X, gear.y, gear.center.Z), gear.angle)
+		{"output-pinion", output, state.Output, -60 * s, state.SpindleAngle},
+	} {
+		f, err := xzFrame(r3.NewVec(spec.center.X, spec.y, spec.center.Z), spec.angle)
 		if err != nil {
-			return fmt.Errorf("pedalspindle: %s: create gear frame: %w", gear.name, err)
+			return fmt.Errorf("pedalspindle: %s: create gear frame: %w", spec.name, err)
 		}
-		if err := b.appendPart(gear.name, "gear", gear.body, nil, frame); err != nil {
+		b, err := c.place(spec.name, spec.body, f)
+		if err != nil {
+			return err
+		}
+		if err := c.append(spec.name, "gear", b); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (b *construction) flywheel(s, angle float64) error {
-	center := b.assembly.State.Input
-	if err := b.xzRing("flywheel-rim", "drive", center, 53*s, 155*s, 270*s, 18*s); err != nil {
+func (c *construction) linkage(p Params, state State) error {
+	s := p.Scale
+	a := math.Mod(p.CrankAngle, 2*math.Pi)
+	if err := c.plate("crank", "drive", r3.NewVec(state.Input.X, -105*s, state.Input.Z), a,
+		-9*s, -9*s, 34*s, 9*s, 8*s, []hole{{0, 0, 8.2}, {25 * s, 0, 5.2}}); err != nil {
 		return err
 	}
-	if err := b.xzRing("flywheel-hub", "drive", center, 53*s, 17*s, 8.2, 18*s); err != nil {
+	if err := c.plate("treadle", "pedal", r3.NewVec(state.Heel.X, -140*s, state.Heel.Z), state.PedalAngle,
+		-12*s, -12*s, 212*s, 12*s, 70*s, []hole{{0, 0, 14}, {200 * s, 0, 5.2}}); err != nil {
 		return err
 	}
-	for i := range 4 {
-		name := fmt.Sprintf("flywheel-spoke-%d", i)
-		if err := b.xzRectangle(name, "drive", r3.NewVec(center.X, 49*s, center.Z),
-			angle+float64(i)*math.Pi/2, 15*s, -6*s, 137*s, 6*s, 10*s, nil); err != nil {
-			return err
-		}
+	angle := math.Atan2(state.CrankPin.Z-state.Toe.Z, state.CrankPin.X-state.Toe.X)
+	if err := c.plate("footman", "pedal", r3.NewVec(state.Toe.X, -121*s, state.Toe.Z), angle,
+		-12*s, -12*s, 332*s, 12*s, 8*s, []hole{{0, 0, 14}, {320 * s, 0, 14}}); err != nil {
+		return err
 	}
-	return nil
-}
-
-func (b *construction) hubs(s float64) error {
-	state := b.assembly.State
-	parts := []struct {
-		name    string
-		center  r3.Vec
-		y, bore float64
+	for _, spec := range []struct {
+		name      string
+		center    r3.Vec
+		y, length float64
 	}{
-		{"input-hub", state.Input, -44 * s, 8.2},
-		{"intermediate-pinion-hub", state.Intermediate, -44 * s, 8.2},
-		{"intermediate-gear-hub", state.Intermediate, -74 * s, 8.2},
-		{"output-hub", state.Output, -74 * s, 5.2},
-	}
-	for _, part := range parts {
-		if err := b.xzRing(part.name, "steel", part.center, part.y, 12*s, part.bore, 8*s); err != nil {
+		{"crank-pin", state.CrankPin, -105 * s, 27 * s},
+		{"heel-pin", state.Heel, -135 * s, 80 * s},
+		{"toe-pin", state.Toe, -118 * s, 97 * s},
+	} {
+		if err := c.cylinder(spec.name, "steel", spec.center, spec.y, 2.5, 0, spec.length); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (b *construction) linkage(s, angle float64) error {
-	state := b.assembly.State
-	if err := b.xzRectangle("crank", "drive", r3.NewVec(state.Input.X, -105*s, state.Input.Z),
-		angle, -9*s, -9*s, 34*s, 9*s, 8*s,
-		[]circularHole{{0, 0, 8.2}, {25 * s, 0, 5.2}}); err != nil {
-		return err
-	}
-	if err := b.xzRing("crank-pin", "steel", state.CrankPin, -94*s, 2.5, 0, 22*s); err != nil {
-		return err
-	}
-	if err := b.xzRectangle("treadle", "pedal", r3.NewVec(state.Heel.X, -120*s, state.Heel.Z),
-		state.PedalAngle, -12*s, -12*s, 212*s, 12*s, 90*s,
-		[]circularHole{{0, 0, 14}, {200 * s, 0, 5.2}}); err != nil {
-		return err
-	}
-	rodAngle := math.Atan2(state.CrankPin.Z-state.Toe.Z, state.CrankPin.X-state.Toe.X)
-	if err := b.xzRectangle("footman", "pedal", r3.NewVec(state.Toe.X, -97*s, state.Toe.Z),
-		rodAngle, -12*s, -12*s, 332*s, 12*s, 8*s,
-		[]circularHole{{0, 0, 14}, {320 * s, 0, 14}}); err != nil {
-		return err
-	}
-	if err := b.xzRing("heel-pin", "steel", state.Heel, -115*s, 2.5, 0, 100*s); err != nil {
-		return err
-	}
-	return b.xzRing("toe-pin", "steel", state.Toe, -94*s, 2.5, 0, 121*s)
-}
-
-func (b *construction) bearings(s float64) error {
-	state := b.assembly.State
-	parts := []struct {
-		name   string
-		center r3.Vec
-		backY  float64
-		is608  bool
-	}{
-		{"input-bearing-front", state.Input, 7, true},
-		{"input-bearing-rear", state.Input, 18 * s, true},
-		{"intermediate-bearing-front", state.Intermediate, 7, true},
-		{"intermediate-bearing-rear", state.Intermediate, 18 * s, true},
-		{"output-bearing-front", state.Output, 5, false},
-		{"output-bearing-rear", state.Output, 18 * s, false},
-		{"heel-bearing-front", state.Heel, -210*s + 5, false},
-		{"heel-bearing-rear", state.Heel, -120 * s, false},
-		{"footman-bearing-crank", state.CrankPin, -101*s + 2.5, false},
-		{"footman-bearing-toe", state.Toe, -101*s + 2.5, false},
-	}
-	for _, part := range parts {
-		frame, err := xzFrame(r3.NewVec(part.center.X, part.backY, part.center.Z), 0)
-		if err != nil {
-			return fmt.Errorf("pedalspindle: %s: create bearing frame: %w", part.name, err)
-		}
-		params := ballbearing.Params605ZZ()
-		if part.is608 {
-			params = ballbearing.DefaultParams()
-		}
-		params.Placement = &frame
-		bearing, err := ballbearing.Build(b.ctx, b.doc, params)
-		if err != nil {
-			return fmt.Errorf("pedalspindle: %s: build purchased bearing: %w", part.name, err)
-		}
-		if !bearing.Body.IsSolid() {
-			return fmt.Errorf("pedalspindle: %s: imported bearing body is not solid", part.name)
-		}
-		b.assembly.Parts = append(b.assembly.Parts,
-			Part{Name: part.name, Group: "bearing", Body: bearing.Body})
-		b.assembly.Sketches = append(b.assembly.Sketches, bearing.Sketch)
 	}
 	return nil
 }

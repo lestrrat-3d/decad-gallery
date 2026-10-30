@@ -185,9 +185,9 @@ func requireStockBearings(t *testing.T, a *pedalspindle.Assembly, scale float64)
 		{"output-bearing-front", a.State.Output, 5, 14, 0, 5},
 		{"output-bearing-rear", a.State.Output, 5, 14, 18*scale - 5, 18 * scale},
 		{"heel-bearing-front", a.State.Heel, 5, 14, -210 * scale, -210*scale + 5},
-		{"heel-bearing-rear", a.State.Heel, 5, 14, -120*scale - 5, -120 * scale},
-		{"footman-bearing-crank", a.State.CrankPin, 5, 14, -101*scale - 2.5, -101*scale + 2.5},
-		{"footman-bearing-toe", a.State.Toe, 5, 14, -101*scale - 2.5, -101*scale + 2.5},
+		{"heel-bearing-rear", a.State.Heel, 5, 14, -140*scale - 5, -140 * scale},
+		{"footman-bearing-crank", a.State.CrankPin, 5, 14, -125*scale - 2.5, -125*scale + 2.5},
+		{"footman-bearing-toe", a.State.Toe, 5, 14, -125*scale - 2.5, -125*scale + 2.5},
 	} {
 		body := partByName(t, a, item.name)
 		box, err := body.Bounds()

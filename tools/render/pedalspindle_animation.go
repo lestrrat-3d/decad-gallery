@@ -65,6 +65,9 @@ func renderPedalSpindleAnimation(ctx context.Context, meshes []pedalSpindleMesh,
 		models := animationModels(first, meshes, panel == 0)
 		camera := solidlens.Camera{Position: solidlens.Vec{X: -90, Y: -2000, Z: 280},
 			Target: solidlens.Vec{X: -90, Z: 280}, Up: solidlens.Vec{Z: 1}, FOV: 25}
+		if panel == 1 {
+			camera.Position = solidlens.Vec{X: 450, Y: -1800, Z: 520}
+		}
 		// Fit once. Every frame uses these same cameras, so fixed objects cannot drift.
 		cameras[panel] = fitCamera(camera, models, float64(panelWidth)/float64(panelHeight), .09)
 	}
@@ -123,7 +126,7 @@ func renderPedalSpindleAnimation(ctx context.Context, meshes []pedalSpindleMesh,
 		}
 		text(20, 28, "Crank-rocker: fixed frame and moving links", colors[1])
 		text(20, 64, "Frame stays fixed; gear train omitted", colors[1])
-		text(panelWidth+20, 64, "Frame hidden; dashed A-B is a fixed reference", colors[1])
+		text(panelWidth+20, 64, "Oblique linkage; dashed A-B is a fixed reference", colors[1])
 		for panel := range 2 {
 			origin := image.Pt(panel*panelWidth, 90)
 			point := func(v r3.Vec) image.Point {
@@ -134,7 +137,7 @@ func renderPedalSpindleAnimation(ctx context.Context, meshes []pedalSpindleMesh,
 			if panel == 1 {
 				dashedAnimationLine(indexed, a, b, colors[1])
 			}
-			c := point(r3.NewVec(state.CrankPin.X, -116, state.CrankPin.Z))
+			c := point(r3.NewVec(state.CrankPin.X, -132, state.CrankPin.Z))
 			d := point(r3.NewVec(state.Toe.X, -215, state.Toe.Z))
 			for _, mark := range []struct {
 				name string
