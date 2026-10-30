@@ -186,7 +186,7 @@ func animationModels(posed, source []pedalSpindleMesh, frameVisible bool) []soli
 	}
 	if frameVisible {
 		for _, mesh := range source {
-			if mesh.group != "frame" || mesh.name == "heel-bracket-front" || mesh.name == "heel-bracket-rear" {
+			if !pedalSpindleFramePart(mesh) {
 				continue
 			}
 			model := mesh.model

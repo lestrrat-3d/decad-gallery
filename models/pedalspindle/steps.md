@@ -56,6 +56,8 @@ This is one sketch and one body; do not construct overlapping replacement rectan
 Build the bearing board and guard front as holed rectangles in local XZ coordinates.
 Their hole centers come from shaft centers minus each rectangle's frame origin.
 All other guard members are ordinary boxes.
+The bearing board has seven holes: three shaft bearing seats and four stock6.6 tie-bolt clearances.
+The guard front has three shaft clearance holes only. No guard member locates a bearing.
 
 ## 4. Build the spindle
 
@@ -109,14 +111,17 @@ Create each bearing frame with U=+X,V=+Z,N=-Y, at its actual scaled X/Z center a
 Pass actual millimeter coordinates to this frame; do not scale them again in the bearing builder.
 Leave all bearing dimensions unchanged. Append its Body as group bearing and append its Sketch.
 Follow the part table exactly for all ten names, centers and axial spans.
+Move the three front shaft bearings to the front portal frame, flush with its front face at Y=-95*Scale.
+Their actual back faces are -95*Scale+7 for608 and -95*Scale+5 for605; do not scale their widths.
+Keep the three rear bearings flush with the bearing board's rear face at18*Scale.
 Place footman at Y[-129,-121]*Scale, in front of the input shaft's front end at -116*Scale.
 Keep treadle at Y[-210,-140]*Scale; bridge gaps with the pins specified in the contract.
-At scale0.8 the two7mm shaft bearings still fit inside the14.4mm board; no bearing is scaled.
+At scale0.8 each7mm front bearing fits inside the9.6mm portal plate and each rear bearing fits the14.4mm board.
 Increase footman width/end lengths and treadle thickness as specified so14mm pivot bores have material around them.
 Use608-2RS for the two heel bearings and an8mm through-shaft. Keep the heel bore22mm at every scale.
 Construct both heel brackets, two collar envelopes and two inner-ring spacers exactly from the part table.
 The spacers use stock outer diameter12mm; the collar OD16 scales. All six added support pieces use ordinary verified sections.
-The former single heel bracket is replaced by two brackets; the complete assembly has48 parts.
+The former single heel bracket is replaced by two brackets.
 
 ## 8. Positive D couplings
 
@@ -133,13 +138,52 @@ Do not replace D outlines with polygons or approximate circular arcs.
 
 Cut shaft flats before world placement with verified rectangular prisms in the shaft's local XY section.
 For8mm shafts remove X>3, for5mm spindle remove X>1.75. Extend each tool to X=radius+1 and Y=±(radius+1).
-Input local cylinder starts at world Y=65*Scale and extends toward-Y. Build both rectangular cap tools:
-local Z[85*Scale,181*Scale+1] for the front flat and Z[-1,35*Scale] for the rear flat.
-Union those two disjoint tools first, then cut the unchanged cylinder once with the combined tool.
+Input local cylinder starts at world Y=65*Scale and extends181*Scale toward-Y. Build three rectangular cap tools:
+local Z[169*Scale,181*Scale+1] for the crank flat, [85*Scale,148*Scale] for the gear flat,
+and [-1,35*Scale] for the rear flywheel flat. The round front journal lies between the first two flats.
+Union all three disjoint tools first, then cut the unchanged cylinder once with the combined tool.
 Do not chain two cuts on the input shaft: the first cut's mesh bound prevents the second cut.
-Place the completed shaft at phase a. This preserves the same final dimensions and four total shaft-tool sketches.
-Intermediate starts at world Y=26*Scale: remove local Z[46*Scale,109*Scale+1], then place at phase b.
+Place the completed shaft at phase a. The five total shaft-flat tools each own one verified rectangle sketch.
+Intermediate starts at world Y=26*Scale and extends126*Scale toward-Y: remove local Z[46*Scale,109*Scale],
+then place at phase b. Stop that tool inside the shaft to preserve its front bearing journal.
 Spindle starts at world Y=30*Scale: cut local Z[80*Scale,114*Scale] after its exact revolve, then place at phase c.
-These four flat tools add four rectangle sketches. Radial cut coordinates never scale; axial endpoints scale.
+These five flat tools add five rectangle sketches. Radial cut coordinates never scale; axial endpoints scale.
 Record and fully verify every tool sketch, including offset planes, before consuming its geometry.
-All tools are consumed by their cuts; leave only48 assembly parts, with58 recorded sketches.
+All tools are consumed by their cuts; leave only61 assembly parts, with72 recorded sketches.
+
+## 9. Permanent frame independent of the cover
+
+Build `front-bearing-frame` as one verified sketch and one extrusion, not as overlapping bars.
+Use the eight outer XZ vertices in the contract, scaled before drawing. Add Horizontal to edges0,2,4,6
+and Vertical to edges1,3,5,7. Anchor vertex0 from Origin with horizontal distance -175*Scale
+and vertical distance18*Scale. Dimension horizontal edges0,2,4 by20*Scale,235*Scale,20*Scale.
+Dimension vertical edges1,3,5 by280*Scale,-280*Scale,492*Scale. The two bottom feet remain separate
+below Z=298*Scale and meet the base at Z=18*Scale.
+
+Add the two rectangular window loops using CreateRectangle and the same anchored rectangle constraints
+as step2. Add three stock bearing circles at the actual shaft centers and four stock6.6 circles at
+the frame corner centers from the contract. Fully verify the complete sketch before selecting its sole
+profile with nine holes. Extrude12*Scale, then place its back face at Y=-83*Scale with U=+X,V=+Z,N=-Y.
+
+For each of the four corners, build its standoff as its own verified annulus sketch and extrusion.
+The standoff OD is20*Scale, its ID is stock6.6, and its extrusion length is83*Scale.
+Place its back face at Y=0. It abuts the front frame at Y=-83*Scale and rear board at Y=0.
+The matching holes in the bearing board use the same actual X/Z centers; all through-hole diameters stay6.6.
+
+Each tie-bolt is one exact stepped revolve with its own verified six-point axial sketch:
+(0,0),(3,0),(3,125*Scale),(6,125*Scale),(6,125*Scale+4.2),(0,125*Scale+4.2).
+Reuse Origin for point0. Constrain edges0,2,4 Horizontal and edges1,3,5 Vertical.
+Dimension point1's X=3, point2's Y=125*Scale, point3's X=6, and point4's Y minus point3's Y=4.2.
+Revolve fully about local +Z, then place its local origin at the corner and world Y=30*Scale,
+with local +Z pointing toward-Y. The stock head abuts the frame front face at -95*Scale;
+the shank spans both plates and the standoff, with its rear end at30*Scale.
+
+Build each rear nut as its own annulus sketch with stock OD12/ID6 and stock extrusion length5.5.
+Place its back face at actual Y=18*Scale+5.5 so its front face abuts the rear board at18*Scale.
+The cylindrical heads and nuts are mounting envelopes; do not invent threads or hex details.
+Use frame-standoff-0..3 in group frame and frame-bolt-0..3/frame-nut-0..3 in group steel.
+These thirteen new parts add thirteen sketches; the additional input flat adds one more sketch.
+
+Keep the guard separate from these load paths. Its front plane and side extents follow the revised table.
+Removing group guard must remove no frame member, bearing or frame fastener, and must not change any placement.
+Guard attachments must use separate hardware from the four structural through-bolts.

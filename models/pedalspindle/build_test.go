@@ -49,8 +49,8 @@ func stringScale(scale float64) string {
 // Failure reports contain names and scalar values rather than body or mesh graphs.
 func requireAssembly(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 	t.Helper()
-	require.Equal(t, 48, len(a.Parts))
-	require.Equal(t, 58, len(a.Sketches))
+	require.Equal(t, 61, len(a.Parts))
+	require.Equal(t, 72, len(a.Sketches))
 	names := map[string]struct{}{}
 	for _, part := range a.Parts {
 		_, duplicate := names[part.Name]
@@ -71,6 +71,7 @@ func requireAssembly(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 		require.Len(t, report.Conflicts, 0, "sketch %d", i)
 		require.NoError(t, report.Check(), "sketch %d", i)
 	}
+	requirePermanentFrame(t, a, scale)
 }
 
 func partByName(t *testing.T, a *pedalspindle.Assembly, name string) *decad.Body {
@@ -177,11 +178,11 @@ func requireStockBearings(t *testing.T, doc *decad.Document, a *pedalspindle.Ass
 		center                 r3.Vec
 		bore, outer, low, high float64
 	}{
-		{"input-bearing-front", a.State.Input, 8, 22, 0, 7},
+		{"input-bearing-front", a.State.Input, 8, 22, -95 * scale, -95*scale + 7},
 		{"input-bearing-rear", a.State.Input, 8, 22, 18*scale - 7, 18 * scale},
-		{"intermediate-bearing-front", a.State.Intermediate, 8, 22, 0, 7},
+		{"intermediate-bearing-front", a.State.Intermediate, 8, 22, -95 * scale, -95*scale + 7},
 		{"intermediate-bearing-rear", a.State.Intermediate, 8, 22, 18*scale - 7, 18 * scale},
-		{"output-bearing-front", a.State.Output, 5, 14, 0, 5},
+		{"output-bearing-front", a.State.Output, 5, 14, -95 * scale, -95*scale + 5},
 		{"output-bearing-rear", a.State.Output, 5, 14, 18*scale - 5, 18 * scale},
 		{"heel-bearing-front", a.State.Heel, 8, 22, -210 * scale, -210*scale + 7},
 		{"heel-bearing-rear", a.State.Heel, 8, 22, -140*scale - 7, -140 * scale},
@@ -213,7 +214,6 @@ func requireStockBearings(t *testing.T, doc *decad.Document, a *pedalspindle.Ass
 		}
 		require.Equal(t, 2, caps, "%s cap count", item.name)
 	}
-	board := partByName(t, a, "bearing-board")
 	for _, shaft := range []struct {
 		name   string
 		center r3.Vec
@@ -223,32 +223,23 @@ func requireStockBearings(t *testing.T, doc *decad.Document, a *pedalspindle.Ass
 		{"intermediate-shaft", a.State.Intermediate, 11},
 		{"spindle", a.State.Output, 7},
 	} {
-		found := 0
-		for _, face := range board.Faces() {
-			if face.Surface().Kind() != decad.KindPlane {
-				continue
-			}
-			for _, loop := range face.Loops() {
-				for _, edge := range loop.Edges() {
-					c, ok := edge.Curve().(decad.Circle3)
-					if ok && math.Hypot(c.Center.X-shaft.center.X, c.Center.Z-shaft.center.Z) < 1e-6 {
-						require.InDelta(t, shaft.radius, c.Radius.Base(), 1e-6, "%s stock housing bore", shaft.name)
-						found++
-					}
-				}
-			}
+		for _, housing := range []string{"bearing-board", "front-bearing-frame"} {
+			requireHousingBore(t, partByName(t, a, housing), shaft.center, shaft.radius, housing+" / "+shaft.name)
 		}
-		require.Equal(t, 2, found, "%s housing bore must pass through board", shaft.name)
 		radius := 4.0
+		width := 7.0
 		backY := 65 * scale
 		if shaft.name == "intermediate-shaft" {
 			backY = 26 * scale
 		}
 		if shaft.name == "spindle" {
 			radius = 2.5
+			width = 5
 			backY = 30 * scale
 		}
-		requireRoundJournal(t, doc.OperationHistory(), partByName(t, a, shaft.name), shaft.center, 9*scale, radius, backY-9*scale)
+		for _, y := range []float64{-95*scale + width/2, 18*scale - width/2} {
+			requireRoundJournal(t, doc.OperationHistory(), partByName(t, a, shaft.name), shaft.center, y, radius, backY-y)
+		}
 	}
 }
 

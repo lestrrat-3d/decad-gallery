@@ -12,6 +12,23 @@ both gears on the intermediate shaft are gold; the output pinion is orange.
 The brown treadle and connecting rod move the blue crank. The steel spindle projects toward the operator.
 Every image is rendered from the real assembly bodies.
 
+## Permanent frame and removable cover
+
+![The drivetrain on its permanent frame, with an isolated view of the bearing supports](images/frame-support.png)
+
+A permanent front portal and rear bearing board hold the three shafts. The portal has integral legs
+that reach the base. Four standoffs and M6 through-bolts clamp it to the rear board; their nuts remain
+on the flywheel side. Two windows expose the transmission for inspection.
+
+Each shaft has one bearing in the front portal and one in the rear board, with the gears between them.
+At scale 1, the bearing centers are 106 mm apart on the input and intermediate shafts and 108 mm apart
+on the spindle. The shaft regions inside both bearing supports remain round.
+
+The five cover panels are separate from this frame. Their shaft holes provide clearance and carry no bearings.
+Removing the cover leaves the frame, its bolts, the bearings, gears and shafts in place.
+The right panel hides the gears to show their supports; it keeps every displayed body at its assembled position.
+Cover attachments must use separate hardware from the four structural through-bolts.
+
 ## Why the gears rotate while the pedal rocks
 
 The treadle and footman form a crank-rocker linkage. The crank pin travels in a complete circle,
@@ -37,7 +54,7 @@ it does not simulate foot force, flywheel inertia or self-starting. Its camera s
 ![Four positions through one continuous counterclockwise crank revolution](images/cycle.png)
 
 The four panels follow the same real crank, footman, treadle and flywheel through 0, 90, 180 and 270 degrees.
-The crank makes a full turn; the treadle only rocks. The drawing hides the frame and gears to expose the linkage.
+The crank makes a full turn; the treadle only rocks. The permanent frame stays fixed and the gears are hidden.
 
 There is no one-way clutch or ratchet. The operator starts the flywheel in the intended direction
 and keeps its momentum with the pedal. It can stall or reverse if that momentum is lost at dead center.
@@ -156,10 +173,11 @@ choose whether to show it. The flywheel and treadle linkage remain exposed in th
 The spindle point needs a removable cap when stored.
 
 The matching D profiles connect the gears, crank and flywheel hub to their shafts. Fit axial collars or circlips
-to stop the gears sliding along their shafts. The model includes collar and bearing envelopes but omits clamp screws,
-mounting fasteners, threads and drive-shaft retention. Heel collar and spacer envelopes are included.
-The frame joints also need fastening
-details before fabrication. This is a mechanical prototype design, not a tested manufacturing release.
+to stop the gears sliding along their shafts. The model includes collar and bearing envelopes and the four
+frame through-bolts with their rear nuts. The bolt heads and nuts are cylindrical mounting envelopes.
+Clamp screws, threads, base and heel-bracket fasteners, cover attachments and complete drive-shaft retention
+still need detailing. Heel collar and spacer envelopes are included.
+This is a mechanical prototype design, not a tested manufacturing release.
 
 Physical trials must validate the specified rim mass, assumed return loads, pedal effort, vibration, bearing friction, gear wear,
 noise, yarn capacity and guarding. The geometry checks establish dimensions, linkage closure,

@@ -189,7 +189,7 @@ func requireToolMissesDepth(t *testing.T, history *decad.OperationHistory, tool 
 	require.NoError(t, err)
 	require.Equal(t, decad.OperationUnion, op.Kind(), "a flat tool must not intersect the bearing journal")
 	inputs := op.Inputs()
-	require.Equal(t, 2, len(inputs))
+	require.GreaterOrEqual(t, len(inputs), 2)
 	for _, input := range inputs {
 		requireToolMissesDepth(t, history, input.Body, z, depth+1)
 	}

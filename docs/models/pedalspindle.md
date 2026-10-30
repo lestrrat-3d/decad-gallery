@@ -20,6 +20,8 @@ The left view includes the fixed grey frame; the right exposes the linkage at an
 Both views mark the fixed A/B centers.
 Moving C/D centers follow the actual crank and toe pins. Only the joint annotations and reference line are drawn in 2D.
 Drive-only views omit bearing envelopes together with the supports and linkage removed from that view.
+They also omit the frame's bolts and nuts. The frame-support sheet shows the permanent portal, rear board,
+four standoffs, through-bolts, bearings and shafts with the cover removed; its second panel hides the gears.
 
 `Scale` accepts finite values from 0.8 through 1.2; `CrankAngle` accepts any finite radians.
 Angles are reduced modulo one turn before calculating a pose. Returned angles describe the pose,
@@ -63,16 +65,25 @@ go -C tools/render test -run '^TestPedalSpindle' -timeout 5m
 | Flywheel | 1 assembly | Use a steel rim at 7800 kg/m³; nominal rim mass is about 2.56 kg. Detail its spoke joints. |
 | Crank and pins | 1 crank, 3 pins | Use an 8 mm heel shaft and 5 mm moving pins; bearing seats are 22 mm at heel and 14 mm at footman ends. |
 | Footman and treadle | 1 each | Use 320 mm and 200 mm pivot spacing respectively. |
-| Base, two legs, bearing board, two heel brackets | 6 | Cut plate or timber to the contract; detail bolts and joints before fabrication. |
+| Base, two rear legs, rear bearing board, front portal, two heel brackets | 7 | The portal has integral front feet and two windows. Cut its entire outline as one plate. |
+| Frame standoffs | 4 | OD20 scales; stock6.6 holes align with both bearing supports. |
+| M6 frame through-bolts and rear nuts | 4 each | The stepped bolt and nut envelopes clamp the permanent frame independently of the guard. |
 | Heel collars and spacers | 4 | Two external shaft-clamping collars and two inner-ring spacers limit axial movement. |
 | Gear cover | 5 panels | Fit the front and four sides with removable fasteners. |
-| Shaft retention and frame fasteners | To be detailed | Select collars, circlips and bolts after the material and fastening trial. |
+| Shaft retention, base and cover fasteners | To be detailed | Select collars, circlips and separate base/cover hardware after the fabrication trial. |
 
 The base, linkage and gears have no material assignment in the CAD model.
 Frame scaling changes the frame, gear module/thickness, axial lengths and linkage spacing.
 Purchased bearing sizes, shaft diameters, bearing seats and mating bores keep their stock dimensions.
 The construction imports `models/ballbearing` and records all ten returned bearing sketches for verification.
-The 48-part assembly contains 58 recorded sketches, including those imported bearing sections and D-profile tools.
+The 61-part assembly contains 72 recorded sketches, including those imported bearing sections and D-profile tools.
+
+The three front shaft bearings seat in the permanent portal at Y=-95*Scale; the three rear bearings seat
+against the rear board's back face at Y=18*Scale. Their widths remain stock. Nominal center spans are106mm
+for the8mm shafts and108mm for the spindle. Both gear stages lie between the supports.
+Four standoffs span Y[-83,0]*Scale; four M6 through-bolts and rear nuts clamp the two supports together.
+The portal's feet meet the base. Removing the guard requires no bearing support or frame fastener to be removed.
+The guard has shaft clearance holes only and uses separate attachment hardware.
 
 The frame holds the shaft bearings' outer rings; their inner rings turn with the shafts.
 At the fixed heel pin, the treadle moves with the outer bearing rings. At the footman ends, the rod
@@ -81,7 +92,8 @@ these internal rings. Bearing IDs and housing bores are nominal; final fit toler
 on the fabrication process and still need detailing.
 
 The gears, input crank and flywheel hub use matching shaft/bore flats to transmit torque.
-The input shaft has front and rear flats; the intermediate shaft has one front flat covering both gears.
+The input shaft has separate crank, gear and flywheel flats, with two fully round bearing journals between them.
+The intermediate shaft has a flat covering both gears and a round journal at each support.
 The output shaft has a short flat behind the guard. Bearing journals and the winding surface remain round.
 The four round-bore retaining-collar envelopes identify axial hardware, separate from positive torque transfer.
 Their clamp details and complete axial retention must be specified before fabrication.
@@ -99,6 +111,9 @@ OffSurface bound below 0.01 mm. These bounded readings do not claim the whole mu
 Assembly clearance must have a positive certified lower bound; turning only the shaft 90 degrees must create
 interference. Four paired rigid rotations per connection preserve clearance and the shared phase.
 Journal checks prove the actual flat tools miss that depth and check circularity on the placed shaft's bounded contour.
+They read both actual bearing-center slices for every shaft. Portal checks verify the feet, two windows,
+all seven bores and all four bolt/standoff/nut paths. The guard-removal regression removes the five guard bodies
+and requires every remaining part to retain its identity and exact bounds.
 The upper-position shaft/footman regression checks their conservative body bounds: the nominal axial gap is
 5 mm and its certified lower bound must exceed 4.9 mm.
 Scale endpoints and another crank quadrant exercise the same construction at different dimensions and poses.
@@ -106,7 +121,7 @@ Analytic checks sample a full revolution for linkage closure, pedal clearance, a
 Collision checks sample the real linkage solids every five degrees at scales0.8,1 and1.2.
 Each candidate pair with positive axial overlap is checked using real XZ sections.
 Nominal bearing seats share circular boundaries; their analytic diameters and centers are checked separately.
-An additional Decad interference check covers the footman and input shaft at90 degrees.
+An additional conservative-bounds check proves separation of the footman and input shaft at90 degrees.
 The footman runs5*Scale millimeters in front of the shaft end; its pins bridge the gaps to crank and treadle.
 These sampled checks do not prove continuous clearance between samples.
 

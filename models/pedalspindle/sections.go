@@ -16,181 +16,209 @@ type builder struct {
 	ctx      context.Context
 	doc      *decad.Document
 	assembly *Assembly
+	scale    float64
+	err      error
+	reported bool
 }
 
 type hole struct{ x, y, diameter float64 }
 
-func (b *builder) sketch(name string, axial bool) (*sketch.Sketch, error) {
+func (b *builder) section(axial bool, offset float64) *sketch.Sketch {
+	if b.err != nil {
+		return nil
+	}
 	w := sketch.NewWorld()
 	plane := w.XY()
 	if axial {
 		plane = w.XZ()
 	}
+	if offset != 0 {
+		plane, b.err = w.CreateOffsetPlane(plane, offset)
+		if b.err != nil {
+			b.err = fmt.Errorf("create offset plane: %w", b.err)
+			return nil
+		}
+	}
 	s, err := w.CreateSketch(plane)
 	if err != nil {
-		return nil, fmt.Errorf("%s: create sketch: %w", name, err)
+		b.err = fmt.Errorf("create section: %w", err)
+		return nil
 	}
 	b.assembly.Sketches = append(b.assembly.Sketches, s)
-	return s, nil
+	return s
 }
 
-func (b *builder) profile(name string, s *sketch.Sketch, holes int) (*sketch.Profile, error) {
-	if _, err := s.Solve(b.ctx); err != nil {
-		return nil, fmt.Errorf("%s: solve: %w", name, err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(b.ctx, s); err != nil {
-		return nil, fmt.Errorf("%s: verify: %w", name, err)
-	}
-	var selected *sketch.Profile
-	for _, p := range s.Profiles() {
-		if !p.Valid || len(p.Holes) != holes {
-			continue
-		}
-		if selected != nil {
-			return nil, fmt.Errorf("%s: multiple valid profiles with %d holes", name, holes)
-		}
-		selected = p
-	}
-	if selected == nil {
-		return nil, fmt.Errorf("%s: no valid profile with %d holes", name, holes)
-	}
-	return selected, nil
+func rectangle(s *sketch.Sketch, x0, y0, x1, y1 float64) {
+	r := s.CreateRectangle(x0, y0, x1, y1)
+	s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), r.A, x0),
+		sketch.NewVerticalDistance(s.Origin(), r.A, y0),
+		sketch.NewHorizontalDistance(r.A, r.B, x1-x0), sketch.NewVerticalDistance(r.B, r.C, y1-y0))
 }
 
-func addHoles(s *sketch.Sketch, holes []hole) {
-	for _, h := range holes {
-		center := s.Origin()
+func holes(s *sketch.Sketch, list []hole) {
+	for _, h := range list {
+		p := s.Origin()
 		if h.x != 0 || h.y != 0 {
-			center = sketchcheck.DimensionPoint(s, h.x, h.y)
+			p = s.CreatePoint(h.x, h.y)
+			s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), p, h.x), sketch.NewVerticalDistance(s.Origin(), p, h.y))
 		}
-		c := s.CreateCircle(center, h.diameter/2)
+		c := s.CreateCircle(p, h.diameter/2)
 		s.AddConstraint(sketch.NewDiameter(c, h.diameter))
 	}
 }
 
-func (b *builder) extrude(name string, s *sketch.Sketch, holes int, length float64) (*decad.Body, error) {
-	p, err := b.profile(name, s, holes)
-	if err != nil {
-		return nil, err
+func (b *builder) profile(s *sketch.Sketch, holeCount int) *sketch.Profile {
+	if b.err != nil {
+		return nil
+	}
+	if _, err := s.Solve(b.ctx); err != nil {
+		b.err = fmt.Errorf("solve section: %w", err)
+		return nil
+	}
+	if err := sketchcheck.VerifyFullyConstrained(b.ctx, s); err != nil {
+		b.err = fmt.Errorf("verify section: %w", err)
+		return nil
+	}
+	var selected *sketch.Profile
+	for _, p := range s.Profiles() {
+		if !p.Valid || len(p.Holes) != holeCount {
+			continue
+		}
+		if selected != nil {
+			b.err = fmt.Errorf("select section: multiple valid profiles with %d holes", holeCount)
+			return nil
+		}
+		selected = p
+	}
+	if selected == nil {
+		b.err = fmt.Errorf("select section: no valid profile with %d holes", holeCount)
+	}
+	return selected
+}
+
+func (b *builder) extrude(s *sketch.Sketch, n int, length float64) *decad.Body {
+	p := b.profile(s, n)
+	if b.err != nil {
+		return nil
 	}
 	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
 	if err != nil {
-		return nil, fmt.Errorf("%s: extrude: %w", name, err)
+		b.err = fmt.Errorf("extrude section: %w", err)
 	}
-	return body, nil
+	return body
 }
 
-func (b *builder) rectangle(name string, x0, y0, x1, y1, length float64, holes []hole) (*decad.Body, error) {
-	s, err := b.sketch(name, false)
-	if err != nil {
-		return nil, err
+func (b *builder) rect(x0, y0, x1, y1, length, offset float64, hs ...hole) *decad.Body {
+	s := b.section(false, offset)
+	if b.err != nil {
+		return nil
 	}
-	r := s.CreateRectangle(x0, y0, x1, y1)
-	s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), r.A, x0), sketch.NewVerticalDistance(s.Origin(), r.A, y0),
-		sketch.NewHorizontalDistance(r.A, r.B, x1-x0), sketch.NewVerticalDistance(r.B, r.C, y1-y0))
-	addHoles(s, holes)
-	return b.extrude(name, s, len(holes), length)
+	rectangle(s, x0, y0, x1, y1)
+	holes(s, hs)
+	return b.extrude(s, len(hs), length)
 }
 
-func (b *builder) disc(name string, radius, diameter, length float64) (*decad.Body, error) {
-	s, err := b.sketch(name, false)
-	if err != nil {
-		return nil, err
+func (b *builder) disc(radius, bore, length, offset float64) *decad.Body {
+	s := b.section(false, offset)
+	if b.err != nil {
+		return nil
 	}
 	c := s.CreateCircle(s.Origin(), radius)
 	s.AddConstraint(sketch.NewRadius(c, radius))
-	holes := 0
-	if diameter > 0 {
-		addHoles(s, []hole{{diameter: diameter}})
-		holes = 1
+	n := 0
+	if bore > 0 {
+		holes(s, []hole{{0, 0, bore}})
+		n = 1
 	}
-	return b.extrude(name, s, holes, length)
+	return b.extrude(s, n, length)
 }
 
-func (b *builder) transform(name string, body *decad.Body, origin, u, v r3.Vec) (*decad.Body, error) {
-	f, err := r3.NewFrame(origin, u, v)
-	if err != nil {
-		return nil, fmt.Errorf("%s: frame: %w", name, err)
+func (b *builder) place(body *decad.Body, x, y, z, t float64) *decad.Body {
+	if b.err != nil {
+		return nil
 	}
-	t, err := r3.FromFrame(f)
+	f, err := r3.NewFrame(r3.NewVec(x, y, z), r3.NewVec(math.Cos(t), 0, math.Sin(t)), r3.NewVec(-math.Sin(t), 0, math.Cos(t)))
 	if err != nil {
-		return nil, fmt.Errorf("%s: placement: %w", name, err)
+		b.err = fmt.Errorf("create placement frame: %w", err)
+		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, t)
+	xf, err := r3.FromFrame(f)
 	if err != nil {
-		return nil, fmt.Errorf("%s: transform: %w", name, err)
+		b.err = fmt.Errorf("create placement transform: %w", err)
+		return nil
 	}
-	return body, nil
+	placed, err := decad.Transform(b.ctx, body, xf)
+	if err != nil {
+		b.err = fmt.Errorf("transform body: %w", err)
+	}
+	return placed
 }
 
-func (b *builder) place(name string, body *decad.Body, center r3.Vec, y, angle float64) (*decad.Body, error) {
-	return b.transform(name, body, r3.NewVec(center.X, y, center.Z),
-		r3.NewVec(math.Cos(angle), 0, math.Sin(angle)), r3.NewVec(-math.Sin(angle), 0, math.Cos(angle)))
-}
-
-func (b *builder) part(name, group string, body *decad.Body) error {
+func (b *builder) add(name, group string, body *decad.Body) {
+	if b.err != nil {
+		if !b.reported {
+			b.err = fmt.Errorf("pedalspindle: %s: %w", name, b.err)
+			b.reported = true
+		}
+		return
+	}
 	if body == nil || !body.IsSolid() {
-		return fmt.Errorf("%s: body is not solid", name)
+		b.err = fmt.Errorf("pedalspindle: %s: body is not solid", name)
+		b.reported = true
+		return
 	}
 	b.assembly.Parts = append(b.assembly.Parts, Part{Name: name, Group: group, Body: body})
-	return nil
 }
 
-func (b *builder) treadle(scale float64) (*decad.Body, error) {
-	const name = "treadle"
-	s, err := b.sketch(name, false)
-	if err != nil {
-		return nil, err
-	}
-	xy := [][2]float64{{-18, -18}, {18, -18}, {18, -12}, {212, -12}, {212, 12}, {18, 12}, {18, 18}, {-18, 18}}
-	points := make([]*sketch.Point, len(xy))
-	for i, p := range xy {
-		points[i] = s.CreatePoint(p[0]*scale, p[1]*scale)
-	}
-	lines := make([]*sketch.Line, len(xy))
-	for i := range points {
-		lines[i] = s.CreateLine(points[i], points[(i+1)%len(points)])
-		if i%2 == 0 {
-			s.AddConstraint(sketch.NewHorizontal(lines[i]))
+func (b *builder) box(name, group string, x0, x1, y0, y1, z0, z1 float64) {
+	s := b.scale
+	body := b.rect(x0*s, z0*s, x1*s, z1*s, (y1-y0)*s, 0)
+	b.add(name, group, b.place(body, 0, y1*s, 0, 0))
+}
+
+func (b *builder) ring(name, group string, x, z, y0, y1, od, id, t float64) {
+	body := b.disc(od/2, id, y1-y0, 0)
+	b.add(name, group, b.place(body, x, y1, z, t))
+}
+
+func polygon(s *sketch.Sketch, coords [][2]float64, origin bool) ([]*sketch.Point, []*sketch.Line) {
+	ps := make([]*sketch.Point, len(coords))
+	ls := make([]*sketch.Line, len(coords))
+	for i, p := range coords {
+		if i == 0 && origin {
+			ps[i] = s.Origin()
 		} else {
-			s.AddConstraint(sketch.NewVertical(lines[i]))
+			ps[i] = s.CreatePoint(p[0], p[1])
 		}
 	}
-	s.AddConstraint(sketch.NewHorizontalDistance(s.Origin(), points[0], -18*scale),
-		sketch.NewVerticalDistance(s.Origin(), points[0], -18*scale),
-		sketch.NewHorizontalDistance(points[0], points[1], 36*scale),
-		sketch.NewHorizontalDistance(points[2], points[3], 194*scale),
-		sketch.NewHorizontalDistance(points[4], points[5], -194*scale),
-		sketch.NewVerticalDistance(points[1], points[2], 6*scale),
-		sketch.NewVerticalDistance(points[3], points[4], 24*scale),
-		sketch.NewVerticalDistance(points[5], points[6], 6*scale))
-	addHoles(s, []hole{{diameter: 22}, {x: 200 * scale, diameter: 5.2}})
-	return b.extrude(name, s, 2, 70*scale)
+	for i := range ps {
+		ls[i] = s.CreateLine(ps[i], ps[(i+1)%len(ps)])
+	}
+	return ps, ls
 }
 
-func (b *builder) spindle(scale float64) (*decad.Body, error) {
-	const name = "spindle"
-	s, err := b.sketch(name, true)
+func (b *builder) revolve(s *sketch.Sketch) *decad.Body {
+	p := b.profile(s, 0)
+	if b.err != nil {
+		return nil
+	}
+	body, err := decad.Revolve(b.ctx, b.doc, s, p, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.NewVec(0, 0, 1)}, decad.FullRevolution{})
 	if err != nil {
-		return nil, err
+		b.err = fmt.Errorf("revolve section: %w", err)
 	}
-	p := []*sketch.Point{s.Origin(), s.CreatePoint(2.5, 0), s.CreatePoint(2.5, 275*scale),
-		s.CreatePoint(0.3, 300*scale), s.CreatePoint(0, 300*scale)}
-	l := make([]*sketch.Line, len(p))
-	for i := range p {
-		l[i] = s.CreateLine(p[i], p[(i+1)%len(p)])
+	return body
+}
+
+func (b *builder) spindle() *decad.Body {
+	s := b.section(true, 0)
+	if b.err != nil {
+		return nil
 	}
-	s.AddConstraint(sketch.NewHorizontal(l[0]), sketch.NewHorizontal(l[3]), sketch.NewVertical(l[1]),
-		sketch.NewVertical(l[4]), sketch.NewHorizontalDistance(p[0], p[1], 2.5),
-		sketch.NewVerticalDistance(p[1], p[2], 275*scale),
-		sketch.NewHorizontalDistance(p[0], p[3], 0.3), sketch.NewVerticalDistance(p[0], p[3], 300*scale))
-	profile, err := b.profile(name, s, 0)
-	if err != nil {
-		return nil, err
-	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, profile, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.NewVec(0, 0, 1)}, decad.FullRevolution{})
-	if err != nil {
-		return nil, fmt.Errorf("%s: revolve: %w", name, err)
-	}
-	return body, nil
+	k := b.scale
+	ps, ls := polygon(s, [][2]float64{{0, 0}, {2.5, 0}, {2.5, 275 * k}, {.3, 300 * k}, {0, 300 * k}}, true)
+	s.AddConstraint(sketch.NewHorizontal(ls[0]), sketch.NewVertical(ls[1]), sketch.NewHorizontal(ls[3]),
+		sketch.NewVertical(ls[4]), sketch.NewHorizontalDistance(ps[0], ps[1], 2.5),
+		sketch.NewVerticalDistance(ps[1], ps[2], 275*k), sketch.NewHorizontalDistance(ps[0], ps[3], .3),
+		sketch.NewVerticalDistance(ps[0], ps[3], 300*k))
+	return b.revolve(s)
 }

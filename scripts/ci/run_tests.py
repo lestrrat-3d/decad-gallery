@@ -74,6 +74,7 @@ MODEL_PR_TESTS = [
     "TestPedalSpindleFootmanClearsInputShaft",
     "TestPedalSpindleLinkageSweep",
     "TestPedalSpindlePositiveCouplings",
+    "TestPedalSpindleFrameStaysWithGuardRemoved",
     "TestBearing608Envelope",
     "TestBearing605Envelope",
     "TestBearingPlacedAndRepeated",

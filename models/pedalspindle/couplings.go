@@ -2,91 +2,100 @@ package pedalspindle
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 )
 
-func (b *builder) localOffset(name string, body *decad.Body, z float64) (*decad.Body, error) {
-	return b.transform(name, body, r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-}
-
-func (b *builder) capTool(name string, radius, flat, z0, z1 float64) (*decad.Body, error) {
-	body, err := b.rectangle(name, flat, -radius-1, radius+1, radius+1, z1-z0, nil)
-	if err != nil {
-		return nil, err
+func (b *builder) cut(target, tool *decad.Body) *decad.Body {
+	if b.err != nil {
+		return nil
 	}
-	return b.localOffset(name, body, z0)
-}
-
-func (b *builder) cut(name string, target, tool *decad.Body) (*decad.Body, error) {
 	body, err := decad.Cut(b.ctx, target, tool)
 	if err != nil {
-		return nil, fmt.Errorf("%s: cut: %w", name, err)
+		b.err = fmt.Errorf("cut body: %w", err)
 	}
-	return body, nil
+	return body
 }
 
-func (b *builder) dBore(name string, target *decad.Body, radius, flat, thickness float64) (*decad.Body, error) {
-	cylinder, err := b.disc(name+"-bore-circle", radius, 0, thickness+2)
-	if err != nil {
-		return nil, err
+func (b *builder) copy(body *decad.Body) *decad.Body {
+	if b.err != nil {
+		return nil
 	}
-	cylinder, err = b.localOffset(name+"-bore-circle", cylinder, -1)
+	c, err := decad.Copy(b.ctx, body)
 	if err != nil {
-		return nil, err
+		b.err = fmt.Errorf("copy body: %w", err)
 	}
-	cap, err := b.capTool(name+"-bore-cap", radius, flat, -2, thickness+2)
-	if err != nil {
-		return nil, err
-	}
-	tool, err := b.cut(name+"-bore-tool", cylinder, cap)
-	if err != nil {
-		return nil, err
-	}
-	return b.cut(name+"-bore", target, tool)
+	return c
 }
 
-func (b *builder) inputShaft(scale float64) (*decad.Body, error) {
-	body, err := b.disc("input-shaft", 4, 0, 181*scale)
-	if err != nil {
-		return nil, err
-	}
-	front, err := b.capTool("input-shaft-front-flat", 4, 3, 85*scale, 181*scale+1)
-	if err != nil {
-		return nil, err
-	}
-	rear, err := b.capTool("input-shaft-rear-flat", 4, 3, -1, 35*scale)
-	if err != nil {
-		return nil, err
-	}
-	tool, err := decad.Union(b.ctx, front, rear)
-	if err != nil {
-		return nil, fmt.Errorf("input-shaft: union flat tools: %w", err)
-	}
-	return b.cut("input-shaft-flats", body, tool)
+func (b *builder) dBore(target *decad.Body, radius, flat, thickness float64) *decad.Body {
+	tool := b.disc(radius, 0, thickness+2, -1)
+	cap := b.rect(flat, -radius-1, radius+1, radius+1, thickness+4, -2)
+	tool = b.cut(tool, cap)
+	return b.cut(target, tool)
 }
 
-func (b *builder) intermediateShaft(scale float64) (*decad.Body, error) {
-	body, err := b.disc("intermediate-shaft", 4, 0, 109*scale)
-	if err != nil {
-		return nil, err
+func (b *builder) flats(target *decad.Body, radius, flat float64, spans [][2]float64) *decad.Body {
+	if b.err != nil {
+		return nil
 	}
-	tool, err := b.capTool("intermediate-shaft-flat", 4, 3, 46*scale, 109*scale+1)
-	if err != nil {
-		return nil, err
+	tools := make([]*decad.Body, 0, len(spans))
+	for _, span := range spans {
+		tools = append(tools, b.rect(flat, -radius-1, radius+1, radius+1, span[1]-span[0], span[0]))
+		if b.err != nil {
+			return nil
+		}
 	}
-	return b.cut("intermediate-shaft-flat", body, tool)
+	tool := tools[0]
+	if len(tools) > 1 {
+		var err error
+		tool, err = decad.Union(b.ctx, tool, tools[1:]...)
+		if err != nil {
+			b.err = fmt.Errorf("union shaft flat tools: %w", err)
+			return nil
+		}
+	}
+	return b.cut(target, tool)
 }
 
-func (b *builder) flatSpindle(scale float64) (*decad.Body, error) {
-	body, err := b.spindle(scale)
-	if err != nil {
-		return nil, err
+func (b *builder) gears(a, phaseB, phaseC float64) {
+	if b.err != nil {
+		return
 	}
-	tool, err := b.capTool("spindle-flat", 2.5, 1.75, 80*scale, 114*scale)
+	s := b.scale
+	p := spurgear.DefaultParams()
+	p.Module = 3 * s
+	p.Thickness = 12 * s
+	p.PressureAngle = 20 * math.Pi / 180
+	p.Samples = 15
+	p.CapChamfer = 0
+	p.BoreDiameter = 0
+	p.Teeth = 51
+	large, err := spurgear.Build(b.ctx, b.doc, p)
 	if err != nil {
-		return nil, err
+		b.err = fmt.Errorf("construct 51-tooth gear: %w", err)
+		b.add("intermediate-gear", "gear", nil)
+		return
 	}
-	return b.cut("spindle-flat", body, tool)
+	large = b.dBore(large, 4.1, 3.1, 12*s)
+	input := b.copy(large)
+	b.add("input-gear", "gear", b.place(input, -90*s, -30*s, 380*s, a))
+	b.add("intermediate-gear", "gear", b.place(large, 12.3*s, -60*s, 380*s, phaseB))
+	if b.err != nil {
+		return
+	}
+	p.Teeth = 17
+	small, err := spurgear.Build(b.ctx, b.doc, p)
+	if err != nil {
+		b.err = fmt.Errorf("construct 17-tooth gear: %w", err)
+		b.add("output-pinion", "gear", nil)
+		return
+	}
+	intermediate := b.copy(small)
+	intermediate = b.dBore(intermediate, 4.1, 3.1, 12*s)
+	small = b.dBore(small, 2.6, 1.85, 12*s)
+	b.add("intermediate-pinion", "gear", b.place(intermediate, 12.3*s, -30*s, 380*s, phaseB))
+	b.add("output-pinion", "gear", b.place(small, 12.3*s, -60*s, 482.3*s, phaseC))
 }

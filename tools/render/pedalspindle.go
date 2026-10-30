@@ -86,7 +86,11 @@ func pedalSpindlePartVisible(mesh pedalSpindleMesh, shot string) bool {
 	case "frame", "pedal", "bearing":
 		return false
 	}
-	return !strings.HasPrefix(mesh.name, "heel-") && mesh.name != "toe-pin"
+	return !strings.HasPrefix(mesh.name, "heel-") && !strings.HasPrefix(mesh.name, "frame-") && mesh.name != "toe-pin"
+}
+
+func pedalSpindleFramePart(mesh pedalSpindleMesh) bool {
+	return !strings.HasPrefix(mesh.name, "heel-") && (mesh.group == "frame" || strings.HasPrefix(mesh.name, "frame-"))
 }
 
 func pedalSpindleView(shot string) func(context.Context) (solidlens.Scene, error) {

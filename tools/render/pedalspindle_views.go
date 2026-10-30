@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/png"
 	"math"
+	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/pedalspindle"
@@ -21,7 +22,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle", "heel-support", "coupling"}
+var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle", "heel-support", "coupling", "frame-support"}
 
 func isPedalSpindleSheet(shot string) bool {
 	for _, name := range pedalSpindleSheetShots {
@@ -111,6 +112,38 @@ func renderPedalSpindleSheet(ctx context.Context, meshes []pedalSpindleMesh, sho
 }
 
 func pedalSpindlePanels(ctx context.Context, meshes []pedalSpindleMesh, shot string) ([]spindlePanel, int, error) {
+	if shot == "frame-support" {
+		var complete, supports []solidlens.Model
+		for _, mesh := range meshes {
+			if strings.HasPrefix(mesh.name, "heel-") {
+				continue
+			}
+			fixed := mesh.group == "frame" || strings.HasPrefix(mesh.name, "frame-")
+			switch mesh.name {
+			case "input-shaft", "intermediate-shaft", "spindle", "input-bearing-front", "input-bearing-rear",
+				"intermediate-bearing-front", "intermediate-bearing-rear", "output-bearing-front", "output-bearing-rear":
+				fixed = true
+			}
+			if fixed {
+				supports = append(supports, mesh.model)
+				complete = append(complete, mesh.model)
+				continue
+			}
+			switch mesh.name {
+			case "input-gear", "intermediate-pinion", "intermediate-gear", "output-pinion", "input-hub",
+				"intermediate-pinion-hub", "intermediate-gear-hub", "output-hub":
+				complete = append(complete, mesh.model)
+			}
+		}
+		front := solidlens.Camera{Position: solidlens.Vec{X: 650, Y: -1050, Z: 680},
+			Target: solidlens.Vec{X: -40, Y: -30, Z: 270}, Up: solidlens.Vec{Z: 1}, FOV: 30}
+		detail := front
+		detail.Position.X = -650
+		return []spindlePanel{
+			{"Cover removed: permanent frame carries the drivetrain", "Front portal and rear board stay clamped by four M6 through-bolts", bevelScene(front, complete)},
+			{"Bearing supports: gears hidden for clarity", "Two frame-mounted bearings per shaft; integral portal feet meet the base", bevelScene(detail, supports)},
+		}, 2, nil
+	}
 	if shot == "coupling" {
 		var gear, assembled []solidlens.Model
 		for _, mesh := range meshes {
@@ -222,6 +255,11 @@ func pedalSpindleCycle(ctx context.Context, meshes []pedalSpindleMesh) ([]spindl
 		var models []solidlens.Model
 		for _, mesh := range posed {
 			models = append(models, mesh.model)
+		}
+		for _, mesh := range meshes {
+			if pedalSpindleFramePart(mesh) {
+				models = append(models, mesh.model)
+			}
 		}
 		camera := solidlens.Camera{Position: solidlens.Vec{X: -90, Y: -2000, Z: 300},
 			Target: solidlens.Vec{X: -90, Z: 300}, Up: solidlens.Vec{Z: 1}, FOV: 25}
