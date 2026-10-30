@@ -21,7 +21,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle", "heel-support"}
+var pedalSpindleSheetShots = []string{"hero-pair", "drive-pair", "mesh-pairs", "cycle", "heel-support", "coupling"}
 
 func isPedalSpindleSheet(shot string) bool {
 	for _, name := range pedalSpindleSheetShots {
@@ -89,7 +89,9 @@ func renderPedalSpindleSheet(ctx context.Context, meshes []pedalSpindleMesh, sho
 	pw, ph := width/columns, height/rows
 	for i, panel := range panels {
 		origin := image.Pt((i%columns)*pw, (i/columns)*ph)
-		panel.scene.Camera = fitCamera(panel.scene.Camera, panel.scene.Models, float64(pw)/float64(ph-100), .08)
+		if shot != "coupling" {
+			panel.scene.Camera = fitCamera(panel.scene.Camera, panel.scene.Models, float64(pw)/float64(ph-100), .08)
+		}
 		var buffer bytes.Buffer
 		if err := solidlens.RenderPNG(ctx, &buffer, panel.scene, solidlens.Settings{Width: pw, Height: ph - 100}); err != nil {
 			return fmt.Errorf("render %s panel %d: %w", shot, i, err)
@@ -109,6 +111,26 @@ func renderPedalSpindleSheet(ctx context.Context, meshes []pedalSpindleMesh, sho
 }
 
 func pedalSpindlePanels(ctx context.Context, meshes []pedalSpindleMesh, shot string) ([]spindlePanel, int, error) {
+	if shot == "coupling" {
+		var gear, assembled []solidlens.Model
+		for _, mesh := range meshes {
+			if mesh.name == "input-gear" {
+				gear = append(gear, mesh.model)
+				assembled = append(assembled, mesh.model)
+			}
+			if mesh.name == "input-shaft" {
+				assembled = append(assembled, mesh.model)
+			}
+		}
+		target := solidlens.Vec{X: -90, Y: -36, Z: 380}
+		front := solidlens.Camera{Position: solidlens.Vec{X: -90, Y: -1000, Z: 380}, Target: target, Up: solidlens.Vec{Z: 1}, FOV: 2}
+		oblique := solidlens.Camera{Position: solidlens.Vec{X: 500, Y: -1100, Z: 650},
+			Target: solidlens.Vec{X: -90, Y: -70, Z: 380}, Up: solidlens.Vec{Z: 1}, FOV: 5}
+		return []spindlePanel{
+			{"Input gear: actual D bore", "The flat transmits torque; outer teeth are cropped in this close-up", bevelScene(front, gear)},
+			{"Assembled shaft and gear", "The shaft has a matching flat; its bearing journal stays round", bevelScene(oblique, assembled)},
+		}, 2, nil
+	}
 	if shot == "heel-support" {
 		var models []solidlens.Model
 		for _, mesh := range meshes {
@@ -246,7 +268,7 @@ func pedalSpindlePose(ctx context.Context, meshes []pedalSpindleMesh, base, stat
 
 func cyclePlacement(name string, base, state pedalspindle.State, delta float64) (r3.Vec, float64, r3.Vec, bool) {
 	switch name {
-	case "crank", "flywheel-spoke-0", "flywheel-spoke-1", "flywheel-spoke-2", "flywheel-spoke-3":
+	case "crank", "input-shaft", "flywheel-hub", "flywheel-spoke-0", "flywheel-spoke-1", "flywheel-spoke-2", "flywheel-spoke-3":
 		return base.Input, delta, r3.Vec{}, true
 	case "treadle":
 		return base.Heel, state.PedalAngle - base.PedalAngle, r3.Vec{}, true
@@ -259,7 +281,7 @@ func cyclePlacement(name string, base, state pedalspindle.State, delta float64) 
 	case "toe-pin", "footman-bearing-toe":
 		return r3.Vec{}, 0, state.Toe.Sub(base.Toe), true
 	case "heel-pin", "heel-bracket-front", "heel-bracket-rear", "heel-collar-front", "heel-collar-rear",
-		"heel-spacer-front", "heel-spacer-rear", "input-shaft", "flywheel-rim", "flywheel-hub",
+		"heel-spacer-front", "heel-spacer-rear", "flywheel-rim",
 		"input-bearing-front", "input-bearing-rear", "heel-bearing-front", "heel-bearing-rear":
 		return r3.Vec{}, 0, r3.Vec{}, true
 	default:

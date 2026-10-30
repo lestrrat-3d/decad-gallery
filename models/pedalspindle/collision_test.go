@@ -17,15 +17,17 @@ func TestPedalSpindleFootmanClearsInputShaft(t *testing.T) {
 	p.CrankAngle = math.Pi / 2
 	a, err := pedalspindle.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	for _, part := range a.Parts {
-		if part.Name != "input-shaft" && part.Name != "footman" {
-			require.NoError(t, decad.Remove(part.Body))
-		}
-	}
-	report, err := doc.Verify(t.Context(), decad.WithClearances())
+	shaftBounds, err := partByName(t, a, "input-shaft").Bounds()
 	require.NoError(t, err)
-	require.Equal(t, 0, len(report.Interferences), "footman must clear input shaft at the upper crank position")
-	require.True(t, report.Passed(), "collision verification must resolve the pair; status %v", report.Status)
+	rodBounds, err := partByName(t, a, "footman").Bounds()
+	require.NoError(t, err)
+	// Disjoint conservative boxes prove separation of the entire real solids.
+	// WithClearances additionally asks for a closest-distance measurement that
+	// Decad cannot currently supply for this faceted shaft/analytic rod pair.
+	gap := shaftBounds.Min.Y - rodBounds.Max.Y
+	bound := shaftBounds.Bound.Base() + rodBounds.Bound.Base()
+	require.InDelta(t, 5.0, gap, bound+1e-9, "nominal axial gap at the upper crank position")
+	require.Greater(t, gap-bound, 4.9, "certified axial separation must exclude solid intersection")
 }
 
 // Sample real placed solids every five degrees. Shared axial faces are allowed;
@@ -44,11 +46,19 @@ func TestPedalSpindleLinkageSweep(t *testing.T) {
 			require.NoError(t, err)
 			parts := make([]pedalspindle.Part, len(a.Parts))
 			moving := make([]bool, len(a.Parts))
+			copied := make([]bool, len(a.Parts))
 			for i, part := range a.Parts {
 				parts[i] = part
 				center, angle, offset, moves := linkagePlacement(part.Name, a.State, state, pose.CrankAngle-p.CrankAngle)
 				moving[i] = moves
-				if !moves {
+				// Pose the input D shaft with the crank. It is an obstacle for this
+				// linkage sweep; gear-to-shaft relative motion is tested separately.
+				if part.Name == "input-shaft" || part.Name == "flywheel-hub" {
+					center, angle, offset = a.State.Input, pose.CrankAngle-p.CrankAngle, r3.Vec{}
+					copied[i] = true
+				}
+				copied[i] = copied[i] || moves
+				if !copied[i] {
 					continue
 				}
 				rotation, err := r3.RotationAround(center, r3.NewVec(0, -1, 0), units.Radians(angle))
@@ -69,7 +79,7 @@ func TestPedalSpindleLinkageSweep(t *testing.T) {
 				}
 			}
 			for i, part := range parts {
-				if moving[i] {
+				if copied[i] {
 					require.NoError(t, decad.Remove(part.Body))
 				}
 			}

@@ -65,6 +65,7 @@ func TestPedalSpindleSheets(t *testing.T) {
 		{"mesh-pairs", 2000, 1400, 2, 2},
 		{"cycle", 2000, 1000, 4, 1},
 		{"heel-support", 2000, 1100, 2, 1},
+		{"coupling", 2000, 1100, 2, 1},
 	} {
 		t.Run(shot.name, func(t *testing.T) {
 			file, err := os.Open(filepath.Join(dir, shot.name+".png"))

@@ -74,12 +74,12 @@ The final tip is at Y=-270*Scale. Preserve the exact conical taper; do not facet
 
 ## 5. Reuse the spur gears
 
-Call `spurgear.Build` for 51 and 17 teeth using the declared module, bore, thickness and samples.
+Call `spurgear.Build` for51 and17 teeth using the declared module, thickness and samples, with BoreDiameter=0.
 Build locally at Origin; never run the tooth booleans on a translated or rotated gear.
-Three prototypes produce four distinct transformed bodies, named by the part table.
-The51-tooth prototype has stock8.2 bore; the intermediate17-tooth has stock8.2 and output17-tooth has stock5.2.
-Decad Transform retires its input. Copy the large prototype for input-gear and transform that copy.
-Transform the original large prototype for intermediate-gear, and each small original for its single occurrence.
+Two solid prototypes produce three D-bore variants and four distinct transformed bodies.
+Cut the large prototype with the8.2 D tool, copy for input, and consume the original for intermediate-gear.
+Copy the solid17-tooth prototype for its8.2 D bore and cut the5.2 D bore in the original for output.
+Perform all D-bore cuts before world placement, then apply the declared shaft/gear phase.
 This leaves four placed gear bodies and no unused prototype bodies in the document.
 To rotate a prototype through angle t about world Y after placement, use the XZ U/V frame in step3.
 The clockwise/anticlockwise sense is defined by that frame's normal, -Y.
@@ -116,4 +116,30 @@ Increase footman width/end lengths and treadle thickness as specified so14mm piv
 Use608-2RS for the two heel bearings and an8mm through-shaft. Keep the heel bore22mm at every scale.
 Construct both heel brackets, two collar envelopes and two inner-ring spacers exactly from the part table.
 The spacers use stock outer diameter12mm; the collar OD16 scales. All six added support pieces use ordinary verified sections.
-The former single heel bracket is replaced by two brackets; the complete assembly has48 parts and44 sketches.
+The former single heel bracket is replaced by two brackets; the complete assembly has48 parts.
+
+## 8. Positive D couplings
+
+Preserve the exported API. Emit a separate couplings.go if needed for this construction.
+Construct each D-bore tool locally: verified circle of the declared bore radius, on XY at Z=-1,
+extruded through Z=thickness+1. Cut off its +X cap with a verified rectangular prism:
+X[flat,radius+1],Y[-radius-1,radius+1],Z[-2,thickness+2].
+Use the resulting exact D prism with decad.Cut to bore the real local gear, crank or flywheel hub.
+Use the8.2 D tool for the51-tooth prototype, intermediate17-tooth, crank and flywheel hub;
+use the5.2 D tool for the output17-tooth. Each D tool adds one circle and one rectangle sketch.
+Build crank's local rectangle with only its round pin hole, then cut its D bore.
+Build flywheel-hub as a solid disc before cutting its D bore. Place both at phase a.
+Do not replace D outlines with polygons or approximate circular arcs.
+
+Cut shaft flats before world placement with verified rectangular prisms in the shaft's local XY section.
+For8mm shafts remove X>3, for5mm spindle remove X>1.75. Extend each tool to X=radius+1 and Y=±(radius+1).
+Input local cylinder starts at world Y=65*Scale and extends toward-Y. Build both rectangular cap tools:
+local Z[85*Scale,181*Scale+1] for the front flat and Z[-1,35*Scale] for the rear flat.
+Union those two disjoint tools first, then cut the unchanged cylinder once with the combined tool.
+Do not chain two cuts on the input shaft: the first cut's mesh bound prevents the second cut.
+Place the completed shaft at phase a. This preserves the same final dimensions and four total shaft-tool sketches.
+Intermediate starts at world Y=26*Scale: remove local Z[46*Scale,109*Scale+1], then place at phase b.
+Spindle starts at world Y=30*Scale: cut local Z[80*Scale,114*Scale] after its exact revolve, then place at phase c.
+These four flat tools add four rectangle sketches. Radial cut coordinates never scale; axial endpoints scale.
+Record and fully verify every tool sketch, including offset planes, before consuming its geometry.
+All tools are consumed by their cuts; leave only48 assembly parts, with58 recorded sketches.

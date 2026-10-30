@@ -32,7 +32,7 @@ Coordinates include scale. Use Y = -125 for the three linkage point coordinates.
 `Sketches` contains every sketch created by this package, including revolve and holed sections.
 Imported gears verify their own sketches through their existing Build entry point.
 Import bearing envelopes from models/ballbearing. Append each returned bearing Sketch to Assembly.Sketches.
-Build returns48 parts, including10 bearing envelopes, and44 recorded sketches.
+Build returns48 parts, including10 bearing envelopes, and58 recorded sketches.
 
 ## Drive and layout
 
@@ -40,11 +40,13 @@ Use X horizontal, Z vertical, and negative Y toward the operator. All rotating s
 The input center is (-90,0,380). The intermediate is (12.3,0,380).
 The output is (12.3,0,482.3). Nominal center distance is 102; add 0.3 for tooth clearance.
 Use Module 3, pressure angle 20 degrees, 15 flank samples, 12 thickness and no cap chamfer.
-Use stock8.2 bores for the input gear and both intermediate gears, and stock5.2 for the output pinion.
+Use stock D-shaped bores for positive shaft drive: radius4.1 with flat at local X=3.1 for input/intermediate,
+and radius2.6 with flat at local X=1.85 for output. The flat removes the circle's +X cap.
 The 51-tooth input and 17-tooth intermediate pinion occupy Y = -30 to -42.
 The 51-tooth intermediate gear and 17-tooth output pinion occupy Y = -60 to -72.
-Build three gear prototypes:51 teeth/bore8.2,17 teeth/bore8.2 and17 teeth/bore5.2.
-Copy the51-tooth prototype for its first occurrence; consume the originals for the remaining occurrences.
+Build two solid imported gear prototypes with BoreDiameter=0:51 teeth and17 teeth.
+Cut the large prototype's D bore before copying it for input; consume its original for intermediate-gear.
+Copy the solid17-tooth prototype for the8.2 D bore; cut the5.2 D bore into the original for output.
 Leave only assembled parts in the document; do not leave unused prototypes at the origin.
 Each pair's tooth-zero direction is local +X before rotation.
 
@@ -81,15 +83,15 @@ Do not fuse touching assembled parts. Gears and hubs are distinct parts on commo
 | input-bearing-front, input-bearing-rear | Stock608-2RS envelopes, bore8/OD22/width7, at input. Front spans Y[0,7]; rear spans Y[18*Scale-7,18*Scale], in actual millimeters. | bearing |
 | intermediate-bearing-front, intermediate-bearing-rear | Same two stock608-2RS envelopes at intermediate. | bearing |
 | output-bearing-front, output-bearing-rear | Stock605ZZ envelopes, bore5/OD14/width5, at output. Front spans Y[0,5]; rear spans Y[18*Scale-5,18*Scale], actual millimeters. | bearing |
-| input-shaft | Cylinder stock diameter8, Y[-116,65], at input. | steel |
-| intermediate-shaft | Cylinder stock diameter8, Y[-83,26], at intermediate. | steel |
-| spindle | Revolved axial section: stock radius2.5 from Y=30 to -245, taper to stock radius0.3 at Y=-270, close to axis. At output center. | steel |
+| input-shaft | Stock diameter8, Y[-116,65], at input. Flat at local X=3 on Y[-116,-20] and[30,65]; phase a. Keep the intervening journal round. | steel |
+| intermediate-shaft | Stock diameter8, Y[-83,26], at intermediate. Flat at local X=3 on Y[-83,-20]; phase b. Keep the remaining journal round. | steel |
+| spindle | Revolved axial section: stock radius2.5 from Y=30 to -245, taper to stock radius0.3 at Y=-270, close to axis. Flat at local X=1.75 on Y[-84,-50], phase c. Keep bearing journals and winding surface round. | steel |
 | input-gear, intermediate-pinion, intermediate-gear, output-pinion | Imported spur gears in the positions and phases above. | gear |
 | flywheel-rim | Annulus OD310, ID270, Y[35,53], at input. | drive |
-| flywheel-hub | Annulus OD34, stock ID8.2, Y[35,53], at input. | drive |
+| flywheel-hub | OD34, stock D bore radius4.1/flat X=3.1, Y[35,53], at input, phase a. | drive |
 | flywheel-spoke-0 through -3 | Four radial rectangular bars, radial extent[15,137], tangential width12, Y[39,49], at input, angles a+k*pi/2. Overlap rim and hub; separate assembly solids. | drive |
 | input-hub, intermediate-pinion-hub, intermediate-gear-hub, output-hub | Annuli OD24, stock ID8.2 for input/intermediate and stock ID5.2 for output. Y[-44,-52] for first pair and [-74,-82] for second pair. | steel |
-| crank | Rectangle in XZ extending -9 to34 along crank direction, width18, thickness8 at Y[-113,-105]. Stock holes diameter8.2 at origin and5.2 at radius25. | drive |
+| crank | Rectangle in XZ extending -9 to34 along crank direction, width18, thickness8 at Y[-113,-105]. Stock D bore radius4.1/flat X=3.1 at origin; round5.2 pin hole at radius25. | drive |
 | crank-pin | Cylinder stock diameter5 at P, Y[-132,-105]. | steel |
 | treadle | Stepped outline in its rotating XZ frame: (-18,-18),(18,-18),(18,-12),(212,-12),(212,12),(18,12),(18,18),(-18,18). Y[-210,-140]. Stock through bores diameter22 at heel and5.2 at toe. | pedal |
 | footman | Rectangle along Q-to-P, length320 plus12 at each end, width24, Y[-129,-121]. Stock through bores diameter14 at Q and P. | pedal |
@@ -104,8 +106,13 @@ Do not fuse touching assembled parts. Gears and hubs are distinct parts on commo
 | guard-left, guard-right | Boxes X[-179,-175] and [100,104], Y[-94,0], Z[291,524]. | guard |
 | guard-bottom, guard-top | Boxes X[-175,100], Y[-94,0], Z[291,295] and [520,524]. | guard |
 
-Annular clamping-hub envelopes identify the required commercial torque-transmitting parts.
-Shafts have0.1 radial nominal clearance in gear/hub bores. Bearing IDs equal nominal stock shaft diameters.
+Matching shaft/gear D profiles transmit torque directly. The input crank and flywheel hub use the same positive connection.
+The four round-bore hub envelopes represent axial retaining collars; their clamp details remain to be selected.
+D bores have0.1 radial and flat-face nominal clearance. Flat offsets and diameters are stock dimensions and never scale.
+The shaft flat's +X direction rotates with its shaft phase. Both intermediate gears share phase b and the same D shaft.
+Only exposed drive regions have flats; bearing journals remain round at their full nominal8mm or5mm diameters.
+The heel shaft and three moving linkage pins require no positive rotary coupling and remain round.
+Bearing IDs equal nominal stock shaft diameters.
 Nominal housing bores equal bearing ODs. Fit tolerances and retainers require the fabrication process to be specified.
 Use six608-2RS bearings and four605ZZ bearings. The frame holds the two bearings for each rotating shaft.
 Two heel bearings let the treadle rock about its frame-fixed pin. Two footman bearings rotate about the moving crank/toe pins.
@@ -151,6 +158,9 @@ Check unique names, gear thickness/placement and bores through the consuming ass
 solid topology, VerifyAll tessellation, flywheel radius, spindle tip height/length, and scaled bounds.
 Check the four-bar closure, full rotation, base clearance and constant 9:1 ratio over a full crank turn.
 Check actual meshing gear sections for overlap at several tooth phases and both stages.
+Check the actual D-shaped bores and local shaft flats, including their end positions and round bearing journals.
+For every positive connection, section the assembled bodies and require clearance; rotate only the shaft90deg and require overlap.
+Check paired rigid rotation at several angles preserves the positive coupling and keeps the gear phases aligned.
 Check actual linkage bodies against the shaft, supports, guard and each other throughout a full turn.
 Check both heel brackets,8mm shaft,608 bearing seats, collar abutments, spacer gaps and through-shaft engagement.
 Check all eight stepped treadle vertices and its bores through actual placed geometry.
@@ -166,6 +176,10 @@ Also render front/rear hero and drive pairs as `hero-pair.png` and `drive-pair.p
 and isolate each actual meshing pair in front and oblique views in `mesh-pairs.png` at2000x1400.
 Drive-only views omit all bearing envelopes along with their hidden supports and linkage.
 Also omit all heel collars and spacers in drive-only views so no isolated heel hardware remains.
+Render coupling.png at2000x1100 with the actual input gear's D bore alone in a front close-up,
+and the actual shaft and gear together in an oblique close-up at their assembled positions.
+Crop the outer teeth deliberately, label that crop, and keep the bore/shaft large enough to see their flats.
+Hide only nonselected bodies; do not draw substitute coupling geometry or move the gear off the shaft.
 Render the real treadle and complete heel support in oblique and end-on views in heel-support.png at2000x1100.
 Use blue for input, gold for both compound intermediate gears and orange for output.
 Render the actual crank, footman, treadle and flywheel at0,90,180,270 degrees in `cycle.png` at2000x1000.

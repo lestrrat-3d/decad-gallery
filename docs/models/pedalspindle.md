@@ -59,7 +59,7 @@ go -C tools/render test -run '^TestPedalSpindle' -timeout 5m
 | Quill spindle | 1 | Turn and polish 5 mm steel stock with the specified conical end. |
 | 608-2RS bearings | 6 | Two each on the 8 mm input, intermediate and heel shafts, using 8 × 22 × 7 mm envelopes. |
 | 605ZZ bearings | 4 | Two for the 5 mm quill and one at each footman end, using 5 × 14 × 5 mm envelopes. |
-| Gear clamping hubs | 4 | Use commercial hubs; the modeled rings describe space claims only. |
+| Gear retaining collars | 4 | The former hub envelopes identify axial retainers; D profiles transmit shaft torque. |
 | Flywheel | 1 assembly | Use a steel rim at 7800 kg/m³; nominal rim mass is about 2.56 kg. Detail its spoke joints. |
 | Crank and pins | 1 crank, 3 pins | Use an 8 mm heel shaft and 5 mm moving pins; bearing seats are 22 mm at heel and 14 mm at footman ends. |
 | Footman and treadle | 1 each | Use 320 mm and 200 mm pivot spacing respectively. |
@@ -72,7 +72,7 @@ The base, linkage and gears have no material assignment in the CAD model.
 Frame scaling changes the frame, gear module/thickness, axial lengths and linkage spacing.
 Purchased bearing sizes, shaft diameters, bearing seats and mating bores keep their stock dimensions.
 The construction imports `models/ballbearing` and records all ten returned bearing sketches for verification.
-The 48-part assembly contains 44 recorded sketches, including those imported bearing sections.
+The 48-part assembly contains 58 recorded sketches, including those imported bearing sections and D-profile tools.
 
 The frame holds the shaft bearings' outer rings; their inner rings turn with the shafts.
 At the fixed heel pin, the treadle moves with the outer bearing rings. At the footman ends, the rod
@@ -80,9 +80,11 @@ moves with the outer rings while the inner rings follow the crank/toe pins. CAD 
 these internal rings. Bearing IDs and housing bores are nominal; final fit tolerances and retention depend
 on the fabrication process and still need detailing.
 
-The round gear bores intentionally clear the shafts. A commercial hub must attach both to the shaft
-and to the gear; merely sliding the modeled ring onto the shaft does not transmit torque.
-Hub attachment holes and clamp details depend on the purchased hub and must be added before fabrication.
+The gears, input crank and flywheel hub use matching shaft/bore flats to transmit torque.
+The input shaft has front and rear flats; the intermediate shaft has one front flat covering both gears.
+The output shaft has a short flat behind the guard. Bearing journals and the winding surface remain round.
+The four round-bore retaining-collar envelopes identify axial hardware, separate from positive torque transfer.
+Their clamp details and complete axial retention must be specified before fabrication.
 Flywheel spokes overlap the hub and rim as assembled envelopes; their joints need the same treatment.
 
 ## Verification boundaries
@@ -90,6 +92,15 @@ Flywheel spokes overlap the hub and rim as assembled envelopes; their joints nee
 The geometry checks build the default assembly first and consume its imported spur gears after placement.
 They verify every owned sketch has FullyConstrained status, zero DOF, no redundancy and no conflicts.
 They tessellate each part with VerifyAll and check the actual placed gear sections, bores and dimensions.
+Coupling checks follow public OperationHistory through placement and copying to the actual recorded D-bore Cut.
+They read the cutter's original circle and rectangle sections analytically, checking radius and flat dimensions
+at 1e-6 mm. The derived D tool and final bore contours are read with SectionOutline at 0.01 mm, with a reported
+OffSurface bound below 0.01 mm. These bounded readings do not claim the whole multi-tooth gear is exact.
+Assembly clearance must have a positive certified lower bound; turning only the shaft 90 degrees must create
+interference. Four paired rigid rotations per connection preserve clearance and the shared phase.
+Journal checks prove the actual flat tools miss that depth and check circularity on the placed shaft's bounded contour.
+The upper-position shaft/footman regression checks their conservative body bounds: the nominal axial gap is
+5 mm and its certified lower bound must exceed 4.9 mm.
 Scale endpoints and another crank quadrant exercise the same construction at different dimensions and poses.
 Analytic checks sample a full revolution for linkage closure, pedal clearance, and rotation ratios.
 Collision checks sample the real linkage solids every five degrees at scales0.8,1 and1.2.

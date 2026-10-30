@@ -82,7 +82,7 @@ The oblique animation view shows this separation.
 
 The two large gears do not mesh with one another. They occupy two planes, 30 mm apart along Y.
 The blue 51-tooth input gear meshes with the small gold 17-tooth pinion behind the large gold gear.
-That small pinion and the large gold 51-tooth gear clamp to the same intermediate shaft and turn together.
+That small pinion and the large gold 51-tooth gear engage the same D-shaped intermediate shaft and turn together.
 The large gold gear then meshes with the orange 17-tooth spindle pinion above it.
 
 ![Each real gear pair isolated in a front and oblique view](images/mesh-pairs.png)
@@ -90,6 +90,21 @@ The large gold gear then meshes with the orange 17-tooth spindle pinion above it
 Each row isolates one meshing pair without moving its parts. The oblique views show the tooth thickness
 and shared axial span. The first pair triples speed and reverses direction; the second triples it again
 and reverses it back. The spindle therefore turns nine times per input revolution in the input direction.
+
+## How the shaft drives the gear
+
+![Close-ups of the actual D bore and assembled input coupling](images/coupling.png)
+
+The input and intermediate shafts have a flat machined into their exposed drive regions.
+Each gear has a matching D-shaped bore. The flat faces prevent the shaft from spinning freely inside the gear.
+The input crank and flywheel hub use the same positive connection. The output pinion engages a shorter flat
+on the 5 mm spindle, behind the front guard. The spindle's yarn-winding surface stays round.
+Both intermediate gears share one flat and the same angular phase.
+
+The bearing journals remain fully round at their nominal 8 mm or 5 mm diameters.
+The heel shaft and moving linkage pins also remain round because those joints must pivot freely.
+The D bores provide 0.1 mm nominal radial and flat-face clearance; fabrication must set the final fit and backlash.
+The small ring-shaped hub envelopes now identify axial retaining collars. Their clamp hardware still needs detailing.
 
 ## Spin, then wind
 
@@ -140,8 +155,8 @@ The removable cover encloses the gear stages. The cover is included in every bui
 choose whether to show it. The flywheel and treadle linkage remain exposed in this concept.
 The spindle point needs a removable cap when stored.
 
-Use purchased clamping hubs to connect the round-bore gears and flywheel to their shafts, and fit
-axial collars or circlips. The model includes hub and bearing envelopes but omits clamp screws,
+The matching D profiles connect the gears, crank and flywheel hub to their shafts. Fit axial collars or circlips
+to stop the gears sliding along their shafts. The model includes collar and bearing envelopes but omits clamp screws,
 mounting fasteners, threads and drive-shaft retention. Heel collar and spacer envelopes are included.
 The frame joints also need fastening
 details before fabrication. This is a mechanical prototype design, not a tested manufacturing release.
