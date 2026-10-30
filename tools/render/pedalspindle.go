@@ -25,13 +25,13 @@ func pedalSpindleModels(ctx context.Context) ([]pedalSpindleMesh, error) {
 		return nil, fmt.Errorf("build pedal spindle: %w", err)
 	}
 	colors := map[string]solidlens.Color{
-		"frame": solidlens.RGB(0.56, 0.44, 0.28),
-		"drive": solidlens.RGB(0.08, 0.32, 0.48),
-		"gear":  solidlens.RGB(0.85, 0.39, 0.08),
-		"steel": solidlens.RGB(0.48, 0.56, 0.62),
-		"bush":  solidlens.RGB(0.68, 0.56, 0.23),
-		"pedal": solidlens.RGB(0.48, 0.25, 0.10),
-		"guard": solidlens.RGB(0.68, 0.75, 0.80),
+		"frame":   solidlens.RGB(0.56, 0.44, 0.28),
+		"drive":   solidlens.RGB(0.08, 0.32, 0.48),
+		"gear":    solidlens.RGB(0.85, 0.39, 0.08),
+		"steel":   solidlens.RGB(0.48, 0.56, 0.62),
+		"bearing": solidlens.RGB(0.58, 0.60, 0.63),
+		"pedal":   solidlens.RGB(0.48, 0.25, 0.10),
+		"guard":   solidlens.RGB(0.68, 0.75, 0.80),
 	}
 	models := make([]pedalSpindleMesh, 0, len(a.Parts))
 	for _, part := range a.Parts {
@@ -113,5 +113,5 @@ func renderPedalSpindleReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
-	return nil
+	return renderPedalSpindleAnimation(ctx, meshes, filepath.Join(outputDir, "linkage.gif"), 1200, 820)
 }

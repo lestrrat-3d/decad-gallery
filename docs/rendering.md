@@ -6,6 +6,16 @@ This separate Go module builds gallery models with Decad and renders their
 tessellated meshes with SolidLens. Each image preset names a model and a shot.
 Add a scene builder and a preset entry in `main.go` for another model or shot.
 
+The `ballbearing/hero` preset renders the 608-2RS nominal mounting envelope from its Decad body.
+The `readme` shot writes a 1600 × 900 hero and 480 × 270 index:
+
+```sh
+go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballbearing/images
+```
+
+`ballbearing/605zz` renders the 5 × 14 × 5 mm 605ZZ envelope through the same builder.
+The readme shot also writes `605zz.png` at 1600 × 900.
+
 From the repository root, regenerate the spur gear hero image with:
 
 ```sh
@@ -123,6 +133,15 @@ side by side at 2000 × 1100. `mesh-pairs` isolates each of the two meshing pair
 views at 2000 × 1400. `cycle` copies the actual linkage and flywheel bodies into four poses solved by
 `pedalspindle.Motion`, at 2000 × 1000. No replacement geometry is drawn.
 Each sheet name also works with `-shot` for regenerating only that image.
+
+`pedalspindle/animation` writes `linkage.gif`: 48 frames at 8 centiseconds per frame, looping indefinitely.
+It places rigid copies of the real bodies with `pedalspindle.Motion`, holds each camera constant,
+and marks the fixed shaft/heel centers and moving crank/toe centers. The default size is 1200 × 820.
+The readme shot also writes this GIF using the same model build. Render just the animation with:
+
+```sh
+go -C tools/render run . -model pedalspindle -shot animation -out ../../models/pedalspindle/images/linkage.gif
+```
 
 The `gallery/hero` preset does not include the pedal spindle.
 

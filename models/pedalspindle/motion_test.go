@@ -25,9 +25,9 @@ func TestPedalSpindleMotion(t *testing.T) {
 			require.Equal(t, 9.0, s.Ratio)
 			// Evaluate all four treadle corners against the top of the real base.
 			for _, x := range []float64{-12, 212} {
-				for _, z := range []float64{-8, 8} {
+				for _, z := range []float64{-12, 12} {
 					height := s.Heel.Z + scale*(x*math.Sin(s.PedalAngle)+z*math.Cos(s.PedalAngle))
-					require.Greater(t, height-18*scale, 12.9*scale, "phase %d clearance", i)
+					require.Greater(t, height-18*scale, 8.9*scale, "phase %d clearance", i)
 				}
 			}
 			// Phase changes away from the wrap point must carry -3 and +9 rotations.

@@ -5,7 +5,7 @@
 A foot treadle turns a 310 mm flywheel and two 51/17 spur gear pairs. The horizontal quill turns
 nine times per complete pedal cycle. Both hands can draft the fibre. This model imports the
 involute gears from [spurgear](../spurgear/) and constructs the frame, four-bar linkage, flywheel,
-spindle, bushes and removable gear cover with Decad.
+spindle, stock bearing envelopes and removable gear cover with Decad.
 
 The hero views have the gear cover removed to expose the transmission. The input gear is blue;
 both gears on the intermediate shaft are gold; the output pinion is orange.
@@ -18,6 +18,21 @@ The treadle and footman form a crank-rocker linkage. The crank pin travels in a 
 while the treadle pivots back and forth at its heel. On the powered part of the stroke, the footman
 turns the crank and accelerates the flywheel. The flywheel then turns the crank through dead center
 and lifts the treadle for the next stroke. The treadle's return does not reverse the crank.
+
+![Animated crank-rocker with a fixed frame and marked joint centers](images/linkage.gif)
+
+The grey frame stays still in the left view. The right view removes frame panels to expose the linkage.
+Purple marks A and B stay fixed. Green marks C and D move with the crank and pedal.
+
+| Mark | Center position | Relative motion | Bearings |
+| --- | --- | --- | --- |
+| A | The shaft axis stays fixed to the frame. | The input shaft, crank and flywheel turn. | Two 608-2RS bearings. |
+| B | The heel pin stays fixed to the base bracket. | The treadle rocks about the heel pin. | Two 605ZZ bearings. |
+| C | The center moves around A. | The footman pivots on the moving crank pin. | One 605ZZ bearing. |
+| D | The center moves with the treadle toe. | The footman pivots relative to the treadle. | One 605ZZ bearing. |
+
+The animation prescribes a counterclockwise crank rotation. It shows how the parts connect and move;
+it does not simulate foot force, flywheel inertia or self-starting. Its camera stays fixed in every frame.
 
 ![Four positions through one continuous counterclockwise crank revolution](images/cycle.png)
 
@@ -67,13 +82,25 @@ These speeds follow from the tooth counts. They are not measurements of a built 
 
 At the default scale, the base measures 420 × 350 mm. The spindle axis is 482.3 mm above the base
 bottom, and the flywheel reaches 535 mm. The treadle rocks through approximately 14.5 degrees.
-The lowest treadle corner stays at least 12.9 mm above the base across a complete crank turn.
+The lowest treadle corner stays at least 8.9 mm above the base across a complete crank turn.
 
-`Scale` changes every length together from 0.8 to 1.2. `CrankAngle` selects an assembled pose in radians.
+`Scale` changes frame and gear dimensions and axial shaft lengths from 0.8 to 1.2.
+Stock bearing dimensions, 8 mm and 5 mm shaft diameters and their mating bores stay fixed.
+`CrankAngle` selects an assembled pose in radians.
 The tooth counts and 9:1 ratio stay fixed. The two gear pairs each have 0.3 mm additional center
 distance at scale 1; this clearance scales with the model.
 
-## Guard and prototype hardware
+## Bearings, guard and prototype hardware
+
+The assembly imports its bearing envelopes from [ballbearing](../ballbearing/).
+Four 608-2RS bearings support the 8 mm input and intermediate shafts, two per shaft.
+Six 605ZZ bearings support the 5 mm spindle and linkage: two on the spindle, two at the heel,
+and one at each footman end. The same purchased sizes are used at every frame scale.
+
+The frame holds the shaft bearings' outer rings while their inner rings turn with the shafts.
+At the heel, the pin is fixed and the treadle rocks on its bearings. At the footman ends,
+the bearings allow the red rod to turn relative to the moving pins.
+The CAD annuli represent complete mounting envelopes, so they do not show separate ring rotation.
 
 ![Pedal spindle with its gear cover fitted](images/guarded.png)
 
@@ -82,7 +109,7 @@ choose whether to show it. The flywheel and treadle linkage remain exposed in th
 The spindle point needs a removable cap when stored.
 
 Use purchased clamping hubs to connect the round-bore gears and flywheel to their shafts, and fit
-axial collars or circlips. The model includes hub and bush envelopes but omits clamp screws,
+axial collars or circlips. The model includes hub and bearing envelopes but omits clamp screws,
 mounting fasteners, threads and detailed shaft retention. The frame joints also need fastening
 details before fabrication. This is a mechanical prototype design, not a tested manufacturing release.
 

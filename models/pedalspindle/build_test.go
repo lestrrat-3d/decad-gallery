@@ -19,6 +19,7 @@ func TestPedalSpindleDefault(t *testing.T) {
 	require.Equal(t, len(a.Parts), len(doc.Bodies()), "the document must contain only assembled parts")
 	requireAssembly(t, a, 1)
 	requireDimensions(t, a, 1)
+	requireStockBearings(t, a, 1)
 	requireGearMesh(t, a)
 }
 
@@ -29,6 +30,7 @@ func TestPedalSpindleVariants(t *testing.T) {
 			require.NoError(t, err)
 			requireAssembly(t, a, p.Scale)
 			requireDimensions(t, a, p.Scale)
+			requireStockBearings(t, a, p.Scale)
 		})
 	}
 }
@@ -43,8 +45,8 @@ func stringScale(scale float64) string {
 // Failure reports contain names and scalar values rather than body or mesh graphs.
 func requireAssembly(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 	t.Helper()
-	require.Equal(t, 36, len(a.Parts))
-	require.Equal(t, 32, len(a.Sketches))
+	require.Equal(t, 43, len(a.Parts))
+	require.Equal(t, 39, len(a.Sketches))
 	names := map[string]struct{}{}
 	for _, part := range a.Parts {
 		_, duplicate := names[part.Name]
@@ -86,7 +88,6 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 	}{
 		{"base", r3.NewVec(-270, -240, 0), r3.NewVec(150, 110, 18)},
 		{"flywheel-rim", r3.NewVec(-245, 35, 225), r3.NewVec(65, 53, 535)},
-		{"spindle", r3.NewVec(7.3, -270, 477.3), r3.NewVec(17.3, 30, 487.3)},
 	} {
 		b, err := partByName(t, a, item.name).Bounds()
 		require.NoError(t, err)
@@ -102,6 +103,10 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 		{"intermediate-gear", 12.3, 380, -60}, {"output-pinion", 12.3, 482.3, -60},
 	} {
 		body := partByName(t, a, item.name)
+		boreRadius := 4.1
+		if item.name == "output-pinion" {
+			boreRadius = 2.6
+		}
 		box, err := body.Bounds()
 		require.NoError(t, err)
 		require.InDelta(t, (item.y-12)*scale, box.Min.Y, box.Bound.Base()+1e-6, "%s thickness", item.name)
@@ -115,7 +120,7 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 			require.Equal(t, 1, len(bore.Edges()), "%s bore rim", item.name)
 			circle, ok := bore.Edges()[0].Curve().(decad.Circle3)
 			require.True(t, ok, "%s has a circular bore", item.name)
-			require.InDelta(t, 5.1*scale, circle.Radius.Base(), 1e-6, "%s bore radius", item.name)
+			require.InDelta(t, boreRadius, circle.Radius.Base(), 1e-6, "%s stock bore radius", item.name)
 			require.InDelta(t, item.x*scale, circle.Center.X, 1e-6, "%s bore center X", item.name)
 			require.InDelta(t, item.z*scale, circle.Center.Z, 1e-6, "%s bore center Z", item.name)
 			caps++
@@ -132,6 +137,10 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 		{"crank", []r3.Vec{a.State.CrankPin}},
 	} {
 		for _, want := range item.centers {
+			radius := 7.0
+			if item.name == "crank" || (item.name == "treadle" && want.Sub(a.State.Toe).Len() < 1e-6) {
+				radius = 2.6
+			}
 			found := 0
 			for _, face := range partByName(t, a, item.name).Faces() {
 				if face.Surface().Kind() != decad.KindPlane {
@@ -141,7 +150,7 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 					for _, edge := range loop.Edges() {
 						c, ok := edge.Curve().(decad.Circle3)
 						if ok && math.Hypot(c.Center.X-want.X, c.Center.Z-want.Z) < 1e-6 {
-							require.InDelta(t, 4.2*scale, c.Radius.Base(), 1e-6, "%s pivot radius", item.name)
+							require.InDelta(t, radius, c.Radius.Base(), 1e-6, "%s stock pivot radius", item.name)
 							found++
 						}
 					}
@@ -151,10 +160,93 @@ func requireDimensions(t *testing.T, a *pedalspindle.Assembly, scale float64) {
 		}
 	}
 	spindle := partByName(t, a, "spindle")
+	box, err := spindle.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 0, box.Min.Sub(r3.NewVec(12.3*scale-2.5, -270*scale, 482.3*scale-2.5)).Len(), box.Bound.Base()+1e-6)
+	require.InDelta(t, 0, box.Max.Sub(r3.NewVec(12.3*scale+2.5, 30*scale, 482.3*scale+2.5)).Len(), box.Bound.Base()+1e-6)
 	volume, err := spindle.Volume()
 	require.NoError(t, err)
-	wantVolume := math.Pi * (25*275 + 25.0/3*(25+5*.6+.6*.6)) * scale * scale * scale
+	wantVolume := math.Pi * (6.25*275 + 25.0/3*(6.25+2.5*.3+.3*.3)) * scale
 	require.InDelta(t, wantVolume, volume.Value.Base(), volume.Bound.Base()+1e-5, "exact cylindrical shaft and conical tip")
+}
+
+// Check the imported bearing bodies after the actual spindle consumer placed them.
+func requireStockBearings(t *testing.T, a *pedalspindle.Assembly, scale float64) {
+	t.Helper()
+	for _, item := range []struct {
+		name                   string
+		center                 r3.Vec
+		bore, outer, low, high float64
+	}{
+		{"input-bearing-front", a.State.Input, 8, 22, 0, 7},
+		{"input-bearing-rear", a.State.Input, 8, 22, 18*scale - 7, 18 * scale},
+		{"intermediate-bearing-front", a.State.Intermediate, 8, 22, 0, 7},
+		{"intermediate-bearing-rear", a.State.Intermediate, 8, 22, 18*scale - 7, 18 * scale},
+		{"output-bearing-front", a.State.Output, 5, 14, 0, 5},
+		{"output-bearing-rear", a.State.Output, 5, 14, 18*scale - 5, 18 * scale},
+		{"heel-bearing-front", a.State.Heel, 5, 14, -210 * scale, -210*scale + 5},
+		{"heel-bearing-rear", a.State.Heel, 5, 14, -120*scale - 5, -120 * scale},
+		{"footman-bearing-crank", a.State.CrankPin, 5, 14, -101*scale - 2.5, -101*scale + 2.5},
+		{"footman-bearing-toe", a.State.Toe, 5, 14, -101*scale - 2.5, -101*scale + 2.5},
+	} {
+		body := partByName(t, a, item.name)
+		box, err := body.Bounds()
+		require.NoError(t, err)
+		wantMin := r3.NewVec(item.center.X-item.outer/2, item.low, item.center.Z-item.outer/2)
+		wantMax := r3.NewVec(item.center.X+item.outer/2, item.high, item.center.Z+item.outer/2)
+		require.InDelta(t, 0, box.Min.Sub(wantMin).Len(), box.Bound.Base()+1e-6, "%s stock bounds", item.name)
+		require.InDelta(t, 0, box.Max.Sub(wantMax).Len(), box.Bound.Base()+1e-6, "%s stock bounds", item.name)
+		volume, err := body.Volume()
+		require.NoError(t, err)
+		wantVolume := math.Pi * (item.outer*item.outer - item.bore*item.bore) / 4 * (item.high - item.low)
+		require.InDelta(t, wantVolume, volume.Value.Base(), volume.Bound.Base()+1e-6, "%s envelope volume", item.name)
+		caps := 0
+		for _, face := range body.Faces() {
+			if face.Surface().Kind() != decad.KindPlane {
+				continue
+			}
+			require.Equal(t, 2, len(face.Loops()), "%s annular cap", item.name)
+			circle, ok := face.Loops()[1].Edges()[0].Curve().(decad.Circle3)
+			require.True(t, ok)
+			require.InDelta(t, item.bore/2, circle.Radius.Base(), 1e-6, "%s stock bore", item.name)
+			require.InDelta(t, 1, math.Abs(circle.Axis.Y), 1e-6, "%s bearing axis", item.name)
+			caps++
+		}
+		require.Equal(t, 2, caps, "%s cap count", item.name)
+	}
+	board := partByName(t, a, "bearing-board")
+	for _, shaft := range []struct {
+		name   string
+		center r3.Vec
+		radius float64
+	}{
+		{"input-shaft", a.State.Input, 11},
+		{"intermediate-shaft", a.State.Intermediate, 11},
+		{"spindle", a.State.Output, 7},
+	} {
+		found := 0
+		for _, face := range board.Faces() {
+			if face.Surface().Kind() != decad.KindPlane {
+				continue
+			}
+			for _, loop := range face.Loops() {
+				for _, edge := range loop.Edges() {
+					c, ok := edge.Curve().(decad.Circle3)
+					if ok && math.Hypot(c.Center.X-shaft.center.X, c.Center.Z-shaft.center.Z) < 1e-6 {
+						require.InDelta(t, shaft.radius, c.Radius.Base(), 1e-6, "%s stock housing bore", shaft.name)
+						found++
+					}
+				}
+			}
+		}
+		require.Equal(t, 2, found, "%s housing bore must pass through board", shaft.name)
+		if shaft.name != "spindle" {
+			box, err := partByName(t, a, shaft.name).Bounds()
+			require.NoError(t, err)
+			require.InDelta(t, shaft.center.X-4, box.Min.X, box.Bound.Base()+1e-6, "%s stock8mm shaft", shaft.name)
+			require.InDelta(t, shaft.center.X+4, box.Max.X, box.Bound.Base()+1e-6, "%s stock8mm shaft", shaft.name)
+		}
+	}
 }
 
 // Sample one full input-tooth period. The second stage traverses three periods.

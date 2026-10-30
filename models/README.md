@@ -2,6 +2,7 @@
 
 | Model | Image | Description |
 | --- | --- | --- |
+| [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | A purchased bearing's nominal bore, outside diameter and width for fitting an assembly. |
 | [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. |
 | [Helical gear](helicalgear/) | <img src="helicalgear/images/index.png" alt="Bored helical gear" width="240"> | An involute gear with teeth twisted along its axis. |
 | [Herringbone gear](herringbonegear/) | <img src="herringbonegear/images/index.png" alt="Bored herringbone gear" width="240"> | An involute gear with mirrored tooth slopes that meet at its midpoint. |

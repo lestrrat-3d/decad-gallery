@@ -170,35 +170,13 @@ func pedalSpindleCycle(ctx context.Context, meshes []pedalSpindleMesh) ([]spindl
 		if err != nil {
 			return nil, 0, err
 		}
+		posed, err := pedalSpindlePose(ctx, meshes, base, state, p.CrankAngle-baseParams.CrankAngle)
+		if err != nil {
+			return nil, 0, err
+		}
 		var models []solidlens.Model
-		for _, mesh := range meshes {
-			center, angle, offset, keep := cyclePlacement(mesh.name, base, state, p.CrankAngle-baseParams.CrankAngle)
-			if !keep {
-				continue
-			}
-			rotation, err := r3.RotationAround(center, r3.NewVec(0, -1, 0), units.Radians(angle))
-			if err != nil {
-				return nil, 0, err
-			}
-			translation, err := r3.Translation(offset)
-			if err != nil {
-				return nil, 0, err
-			}
-			xf, err := rotation.Then(translation)
-			if err != nil {
-				return nil, 0, err
-			}
-			body, err := decad.Copy(ctx, mesh.body, decad.WithCopyPlacement(xf))
-			if err != nil {
-				return nil, 0, fmt.Errorf("cycle %d %s: %w", i, mesh.name, err)
-			}
-			triangles, err := body.Tessellate(ctx, units.Millimeters(.15), decad.WithVerification(decad.VerifyNone))
-			if err != nil {
-				return nil, 0, err
-			}
-			model := mesh.model
-			model.Mesh = triangles
-			models = append(models, model)
+		for _, mesh := range posed {
+			models = append(models, mesh.model)
 		}
 		camera := solidlens.Camera{Position: solidlens.Vec{X: -90, Y: -2000, Z: 300},
 			Target: solidlens.Vec{X: -90, Z: 300}, Up: solidlens.Vec{Z: 1}, FOV: 25}
@@ -206,6 +184,41 @@ func pedalSpindleCycle(ctx context.Context, meshes []pedalSpindleMesh) ([]spindl
 			fmt.Sprintf("Toe height %.1f mm; treadle only rocks", state.Toe.Z), bevelScene(camera, models)})
 	}
 	return panels, 4, nil
+}
+
+// pedalSpindlePose places the real linkage and bearing bodies without redrawing their geometry.
+func pedalSpindlePose(ctx context.Context, meshes []pedalSpindleMesh, base, state pedalspindle.State, delta float64) ([]pedalSpindleMesh, error) {
+	var posed []pedalSpindleMesh
+	for _, mesh := range meshes {
+		center, angle, offset, keep := cyclePlacement(mesh.name, base, state, delta)
+		if !keep {
+			continue
+		}
+		rotation, err := r3.RotationAround(center, r3.NewVec(0, -1, 0), units.Radians(angle))
+		if err != nil {
+			return nil, err
+		}
+		translation, err := r3.Translation(offset)
+		if err != nil {
+			return nil, err
+		}
+		xf, err := rotation.Then(translation)
+		if err != nil {
+			return nil, err
+		}
+		body, err := decad.Copy(ctx, mesh.body, decad.WithCopyPlacement(xf))
+		if err != nil {
+			return nil, fmt.Errorf("pose %s: %w", mesh.name, err)
+		}
+		triangles, err := body.Tessellate(ctx, units.Millimeters(.15), decad.WithVerification(decad.VerifyNone))
+		if err != nil {
+			return nil, err
+		}
+		mesh.body = body
+		mesh.model.Mesh = triangles
+		posed = append(posed, mesh)
+	}
+	return posed, nil
 }
 
 func cyclePlacement(name string, base, state pedalspindle.State, delta float64) (r3.Vec, float64, r3.Vec, bool) {
@@ -218,11 +231,12 @@ func cyclePlacement(name string, base, state pedalspindle.State, delta float64) 
 		oldAngle := math.Atan2(base.CrankPin.Z-base.Toe.Z, base.CrankPin.X-base.Toe.X)
 		newAngle := math.Atan2(state.CrankPin.Z-state.Toe.Z, state.CrankPin.X-state.Toe.X)
 		return base.Toe, newAngle - oldAngle, state.Toe.Sub(base.Toe), true
-	case "crank-pin":
+	case "crank-pin", "footman-bearing-crank":
 		return r3.Vec{}, 0, state.CrankPin.Sub(base.CrankPin), true
-	case "toe-pin":
+	case "toe-pin", "footman-bearing-toe":
 		return r3.Vec{}, 0, state.Toe.Sub(base.Toe), true
-	case "heel-pin", "heel-bracket", "input-shaft", "flywheel-rim", "flywheel-hub":
+	case "heel-pin", "heel-bracket", "input-shaft", "flywheel-rim", "flywheel-hub",
+		"input-bearing-front", "input-bearing-rear", "heel-bearing-front", "heel-bearing-rear":
 		return r3.Vec{}, 0, r3.Vec{}, true
 	default:
 		return r3.Vec{}, 0, r3.Vec{}, false

@@ -29,6 +29,7 @@ Record each created sketch in Assembly.Sketches. Do not use Fix constraints.
 
 Extrude with `decad.Extrude(ctx,doc,s,profile,decad.Distance{D:units.Millimeters(length),Dir:decad.Along})`.
 Apply scale while drawing local sections and choosing extrusion lengths.
+For stock diameters passed to a scaling helper, divide their input by Scale so the final diameter stays stock.
 Use ordinary rectangle and circle helpers for all repeated shape types.
 Each body has its own local section, so no sketch is partially consumed or reused after mutation.
 
@@ -38,7 +39,7 @@ Place local XY extrusions with `r3.NewFrame`, `r3.FromFrame`, then `decad.Transf
 For a rectangle in the world XZ plane, local U is (cos(t),0,sin(t)),
 V is (-sin(t),0,cos(t)), and N is -Y. Its frame origin is the required back Y face.
 For world axis-aligned boxes, use the XY plane and translate to the required lower corner or center.
-Build bearings, shafts, flywheel rings and hubs as local annular or circular extrusions,
+Build shafts, flywheel rings and hubs as local annular or circular extrusions,
 then orient their extrusion axes toward -Y with U=+X and V=+Z.
 Use positive extrusion length; select the larger Y coordinate as the starting plane.
 Use rotated XZ frames for spokes, crank, treadle and footman.
@@ -50,8 +51,8 @@ All other guard members are ordinary boxes.
 
 ## 4. Build the spindle
 
-Create a local axial polygon in the world XZ plane with points (0,0), (5,0), (5,275),
-(0.6,300), (0,300), closing to the first point. Apply Scale.
+Create a local axial polygon in the world XZ plane with points (0,0), (2.5,0), (2.5,275*Scale),
+(0.3,300*Scale), (0,300*Scale), closing to the first point. Only axial coordinates scale.
 The local vertical coordinate becomes length along the spindle axis.
 Reuse the sketch Origin for the first point. Add Horizontal to the first and fourth lines,
 Vertical to the second and fifth lines. Dimension the first radial length, second axial length,
@@ -67,10 +68,10 @@ The final tip is at Y=-270*Scale. Preserve the exact conical taper; do not facet
 
 Call `spurgear.Build` for 51 and 17 teeth using the declared module, bore, thickness and samples.
 Build locally at Origin; never run the tooth booleans on a translated or rotated gear.
-Two prototypes produce four distinct transformed bodies, named by the part table.
-Decad Transform retires its input. For the input gear and intermediate pinion, call
-`decad.Copy(ctx, prototype)` and transform that copy. For the second occurrence of each prototype
-(intermediate gear and output pinion), transform the original prototype after its first copy exists.
+Three prototypes produce four distinct transformed bodies, named by the part table.
+The51-tooth prototype has stock8.2 bore; the intermediate17-tooth has stock8.2 and output17-tooth has stock5.2.
+Decad Transform retires its input. Copy the large prototype for input-gear and transform that copy.
+Transform the original large prototype for intermediate-gear, and each small original for its single occurrence.
 This leaves four placed gear bodies and no unused prototype bodies in the document.
 To rotate a prototype through angle t about world Y after placement, use the XZ U/V frame in step3.
 The clockwise/anticlockwise sense is defined by that frame's normal, -Y.
@@ -89,3 +90,16 @@ revolve, gear construction and transformation.
 Test the first real default assembly before adding parameter variants or renderer presets.
 Use bounded failure reports with part names, dimensions and sketch reports only.
 Geometry tests must exercise imported gears after placement in this assembly.
+
+## 7. Import the purchased bearings
+
+Use models/ballbearing.DefaultParams() for608-2RS and Params605ZZ() for605ZZ.
+Its public Params has BoreDiameter, OuterDiameter, Width float64 and Placement *r3.Frame.
+Build(ctx,doc,p) returns *Model with Body *decad.Body and Sketch *sketch.Sketch, verifies the local
+annulus sketch and returns one placed body. Do not draw a bearing annulus in this package.
+Create each bearing frame with U=+X,V=+Z,N=-Y, at its actual scaled X/Z center and larger Y endpoint.
+Pass actual millimeter coordinates to this frame; do not scale them again in the bearing builder.
+Leave all bearing dimensions unchanged. Append its Body as group bearing and append its Sketch.
+Follow the part table exactly for all ten names, centers and axial spans.
+At scale0.8 the two7mm shaft bearings still fit inside the14.4mm board; no bearing is scaled.
+Increase footman width/end lengths and treadle thickness as specified so14mm pivot bores have material around them.

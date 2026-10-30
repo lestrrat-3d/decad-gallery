@@ -15,6 +15,9 @@ The renderer colors the input blue, the compound intermediate gears gold and the
 Its paired views show both sides of the assembly and drive. Each gear-pair sheet isolates the actual
 placed bodies without exploding or separating their teeth. The four-pose sheet copies the actual
 crank, treadle, footman and flywheel into poses calculated by `Motion`; the gear train is hidden there.
+The `animation` shot writes a 48-frame looping GIF with one constant camera per view.
+The left view includes the fixed grey frame; the right exposes the linkage and marks the fixed A/B centers.
+Moving C/D centers follow the actual crank and toe pins. Only the joint annotations and reference line are drawn in 2D.
 
 `Scale` accepts finite values from 0.8 through 1.2; `CrankAngle` accepts any finite radians.
 Angles are reduced modulo one turn before calculating a pose. Returned angles describe the pose,
@@ -32,6 +35,12 @@ Build and render all documented views from the actual bodies:
 go -C tools/render run . -model pedalspindle -shot readme -out ../../models/pedalspindle/images
 ```
 
+Render the animation alone with:
+
+```sh
+go -C tools/render run . -model pedalspindle -shot animation -out ../../models/pedalspindle/images/linkage.gif
+```
+
 Run renderer integration checks:
 
 ```sh
@@ -44,20 +53,29 @@ go -C tools/render test -run '^TestPedalSpindle' -timeout 5m
 | --- | --- | --- |
 | 51-tooth Module 3 gears | 2 | Import `spurgear.Build`; machine or print the generated profiles for fit trials. |
 | 17-tooth Module 3 pinions | 2 | Import the same construction; the default pressure angle is 20 degrees. |
-| Input and intermediate shafts | 2 | 10 mm steel stock, cut to the contract lengths. |
-| Quill spindle | 1 | Turn and polish 10 mm steel stock with the specified conical end. |
-| Bushes | 3 | Plain bushes with 16 mm OD and 10.2 mm ID for geometric fit trials. |
+| Input and intermediate shafts | 2 | 8 mm steel stock, cut to the contract lengths. |
+| Quill spindle | 1 | Turn and polish 5 mm steel stock with the specified conical end. |
+| 608-2RS bearings | 4 | Two per 8 mm shaft, using the imported 8 × 22 × 7 mm envelopes. |
+| 605ZZ bearings | 6 | Two for the 5 mm quill, two at the heel, one at each footman end, using 5 × 14 × 5 mm envelopes. |
 | Gear clamping hubs | 4 | Use commercial hubs; the modeled rings describe space claims only. |
 | Flywheel | 1 assembly | Rim, hub and four spokes; select mass and fastening after an inertia trial. |
-| Crank and pins | 1 crank, 3 pins | Fit an 8 mm pin in each 8.4 mm linkage hole. |
+| Crank and pins | 1 crank, 3 pins | Use 5 mm pins, 14 mm pivot-bearing seats and the specified 5.2 mm attachment bores. |
 | Footman and treadle | 1 each | Use 320 mm and 200 mm pivot spacing respectively. |
 | Base, two legs, bearing board, heel bracket | 5 | Cut plate or timber to the contract; detail bolts and joints before fabrication. |
 | Gear cover | 5 panels | Fit the front and four sides with removable fasteners. |
 | Shaft retention and frame fasteners | To be detailed | Select collars, circlips and bolts after the material and fastening trial. |
 
-The base, linkage and gears have no material assignment in the CAD model. In particular,
-uniform scaling also changes stock shaft and bush diameters. A scaled assembly needs matching hardware;
-the scale parameter does not promise compatibility with the default purchased parts.
+The base, linkage and gears have no material assignment in the CAD model.
+Frame scaling changes the frame, gear module/thickness, axial lengths and linkage spacing.
+Purchased bearing sizes, shaft diameters, bearing seats and mating bores keep their stock dimensions.
+The construction imports `models/ballbearing` and records all ten returned bearing sketches for verification.
+The 43-part assembly contains 39 recorded sketches, including those imported bearing sections.
+
+The frame holds the shaft bearings' outer rings; their inner rings turn with the shafts.
+At the fixed heel pin, the treadle moves with the outer bearing rings. At the footman ends, the rod
+moves with the outer rings while the inner rings follow the crank/toe pins. CAD envelopes do not distinguish
+these internal rings. Bearing IDs and housing bores are nominal; final fit tolerances and retention depend
+on the fabrication process and still need detailing.
 
 The round gear bores intentionally clear the shafts. A commercial hub must attach both to the shaft
 and to the gear; merely sliding the modeled ring onto the shaft does not transmit torque.
@@ -77,6 +95,7 @@ tooth phases for both stages; they do not replace a loaded mesh trial, lubricati
 The model does not calculate forces, foot effort, flywheel inertia or fatigue life.
 The flywheel must carry the crank over dead center and back-drive the pedal on its return stroke.
 The mechanism has no one-way clutch; losing momentum can stall or reverse it.
+The animation prescribes crank angle and does not establish pedal effort or flywheel mass.
 The cover encloses gears only. Physical access testing must determine the remaining guard design.
 
 The construction uses no Fusion-specific features. Downstream Fusion code belongs in
