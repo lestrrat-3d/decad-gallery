@@ -67,6 +67,7 @@ BEVEL_TESTS = {
 }
 
 MODEL_PR_TESTS = [
+    "TestSpinningWheel.*",
     "TestBearing608Envelope",
     "TestBearing605Envelope",
     "TestBearingPlacedAndRepeated",
@@ -153,6 +154,7 @@ def run_models(mode: str) -> None:
                 "./models/screwgear",
                 "./models/spurgear",
                 "./models/ballbearing",
+                "./models/spinningwheel",
                 "-run",
                 pattern,
                 "-timeout",
