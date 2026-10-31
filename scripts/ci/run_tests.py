@@ -68,14 +68,6 @@ BEVEL_TESTS = {
 
 MODEL_PR_TESTS = [
     "TestSpinningWheel.*",
-    "TestPedalSpindleDefault",
-    "TestPedalSpindleVariants",
-    "TestPedalSpindleMotion",
-    "TestPedalSpindleRejectsInvalidParams",
-    "TestPedalSpindleFootmanClearsInputShaft",
-    "TestPedalSpindleLinkageSweep",
-    "TestPedalSpindlePositiveCouplings",
-    "TestPedalSpindleFrameStaysWithGuardRemoved",
     "TestBearing608Envelope",
     "TestBearing605Envelope",
     "TestBearingPlacedAndRepeated",
@@ -161,7 +153,6 @@ def run_models(mode: str) -> None:
                 "./models/herringbonegear",
                 "./models/screwgear",
                 "./models/spurgear",
-                "./models/pedalspindle",
                 "./models/ballbearing",
                 "./models/spinningwheel",
                 "-run",

@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/gif"
 	"math"
+	"os"
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
@@ -105,7 +106,7 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 		animation.Delay = append(animation.Delay, 8)
 		animation.Disposal = append(animation.Disposal, gif.DisposalNone)
 	}
-	return writeSpindleGIF(out, animation)
+	return writeWheelGIF(out, animation)
 }
 
 func annotateWheelPivots(canvas draw.Image, camera solidlens.Camera, state spinningwheel.State, width, height int, face font.Face) {
@@ -152,4 +153,59 @@ func runSpinningWheelAnimation(ctx context.Context, out string, width, height in
 		return err
 	}
 	return renderSpinningWheelAnimation(ctx, meshes, base, out, width, height, 96)
+}
+
+func projectAnimationPoint(camera solidlens.Camera, p r3.Vec, width, height int) image.Point {
+	forward, _ := r3.Vec(camera.Target).Sub(r3.Vec(camera.Position)).Normalize()
+	right, _ := forward.Cross(r3.Vec(camera.Up)).Normalize()
+	up := right.Cross(forward)
+	d := p.Sub(r3.Vec(camera.Position))
+	focal := float64(height) / (2 * math.Tan(camera.FOV*math.Pi/360))
+	return image.Pt(int(math.Round(float64(width)/2+focal*d.Dot(right)/d.Dot(forward))),
+		int(math.Round(float64(height)/2-focal*d.Dot(up)/d.Dot(forward))))
+}
+
+func animationMarker(dst draw.Image, p image.Point, radius int, c color.Color) {
+	for y := -radius; y <= radius; y++ {
+		for x := -radius; x <= radius; x++ {
+			d2 := x*x + y*y
+			if (d2 <= radius*radius && d2 >= (radius-2)*(radius-2)) || x == 0 || y == 0 {
+				dst.Set(p.X+x, p.Y+y, c)
+			}
+		}
+	}
+}
+
+func dashedAnimationLine(dst draw.Image, a, b image.Point, c color.Color) {
+	dx, dy := float64(b.X-a.X), float64(b.Y-a.Y)
+	steps := int(math.Hypot(dx, dy))
+	for i := 0; i <= steps; i++ {
+		if i%12 >= 6 {
+			continue
+		}
+		u := float64(i) / float64(steps)
+		dst.Set(a.X+int(math.Round(u*dx)), a.Y+int(math.Round(u*dy)), c)
+	}
+}
+
+func writeWheelGIF(output string, animation *gif.GIF) error {
+	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+		return err
+	}
+	file, err := os.CreateTemp(filepath.Dir(output), ".animation-*.gif")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(file.Name()) }()
+	defer func() { _ = file.Close() }()
+	if err := gif.EncodeAll(file, animation); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(file.Name(), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), output)
 }

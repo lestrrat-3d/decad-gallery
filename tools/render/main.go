@@ -19,9 +19,6 @@ type preset struct {
 var presets = map[string]preset{
 	"spinningwheel/hero":      {width: 1600, height: 900, scene: spinningWheelView("hero")},
 	"spinningwheel/rear":      {width: 1600, height: 900, scene: spinningWheelView("rear")},
-	"pedalspindle/hero":       {width: 1600, height: 900, scene: pedalSpindleView("hero")},
-	"pedalspindle/guarded":    {width: 1600, height: 900, scene: pedalSpindleView("guarded")},
-	"pedalspindle/drive":      {width: 1600, height: 900, scene: pedalSpindleView("drive")},
 	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
 	"ballbearing/605zz":       {width: 1600, height: 900, scene: bearing605Hero},
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
@@ -75,12 +72,6 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 			return runSpinningWheelAnimation(ctx, output, width, height)
 		}
 	}
-	if model == "pedalspindle" && isPedalSpindleSheet(shot) {
-		return runPedalSpindleSheet(ctx, shot, output, width, height)
-	}
-	if model == "pedalspindle" && shot == "animation" {
-		return runPedalSpindleAnimation(ctx, output, width, height)
-	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {
 			width = galleryWidth
@@ -129,9 +120,6 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
-	}
-	if model == "pedalspindle" {
-		return renderPedalSpindleReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)

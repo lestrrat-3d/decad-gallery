@@ -16,11 +16,6 @@ sketches. The whorl retains eight native conical faces, exact D-bore material an
 Every body passes VerifyAll; the whorl also passes at0.01 mm chord tolerance for its bore close-up.
 The renderer integration passes and all actual model images plus the96-frame GIF are generated.
 The required fresh spur emission uses the merged native revision. All focused spur checks pass and its record matches.
-The old pedalspindle consumer's crank pivot check originally required `Circle3` cap rims.
-Decad's public contract permits bounded `FacetedCurve` rims after a Boolean cut.
-The check now requires the native cylindrical wall, stock radius and axis, two closed rims on opposite caps,
-rim displacement certificates within 0.01 mm, and adjacency to both planar caps.
-The old consumer's default and both scale variants pass with that check.
 The blocker descriptions below are historical captures, not current repair instructions.
 
 ## Scope

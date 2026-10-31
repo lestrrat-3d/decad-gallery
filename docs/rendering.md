@@ -119,32 +119,6 @@ go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwg
 
 The `gallery/hero` preset does not include the screw gear.
 
-The `pedalspindle/hero` preset shows the real quill-spindle assembly with its gear cover removed.
-`pedalspindle/guarded` fits the cover; `pedalspindle/drive` hides the frame and treadle to show the
-flywheel, gears, shafts and crank. The `readme` shot builds once and writes `index.png` at 480 × 270
-and `hero.png`, `guarded.png` and `drive.png` at 1600 × 900:
-
-```sh
-go -C tools/render run . -model pedalspindle -shot readme -out ../../models/pedalspindle/images
-```
-
-The same build also writes four labeled sheets. `hero-pair` and `drive-pair` put front and rear views
-side by side at 2000 × 1100. `mesh-pairs` isolates each of the two meshing pairs in front and oblique
-views at 2000 × 1400. `cycle` copies the actual linkage and flywheel bodies into four poses solved by
-`pedalspindle.Motion`, at 2000 × 1000. No replacement geometry is drawn.
-Each sheet name also works with `-shot` for regenerating only that image.
-
-`pedalspindle/animation` writes `linkage.gif`: 48 frames at 8 centiseconds per frame, looping indefinitely.
-It places rigid copies of the real bodies with `pedalspindle.Motion`, holds each camera constant,
-and marks the fixed shaft/heel centers and moving crank/toe centers. The default size is 1200 × 820.
-The readme shot also writes this GIF using the same model build. Render just the animation with:
-
-```sh
-go -C tools/render run . -model pedalspindle -shot animation -out ../../models/pedalspindle/images/linkage.gif
-```
-
-The `gallery/hero` preset does not include the pedal spindle.
-
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spur, helical, herringbone, cycloidal and bevel gear models one after another, places each at
 its own size on a 1600 × 900 pixel canvas, and keeps only the pixels that differ from the background where

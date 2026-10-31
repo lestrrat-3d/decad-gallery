@@ -22,8 +22,7 @@ Use [Ashford's Traditional specifications](https://www.ashford.co.nz/product/tra
 for the 560 mm wheel, 690 mm orifice height, 10 mm orifice, and 7/9/12/17 ratios.
 Other dimensions below define this gallery design; they are not Ashford manufacturing drawings.
 
-The old pedalspindle model is a quill spindle and remains a separate item.
-Do not reuse its geared head or guards. Reuse the ballbearing construction by import.
+Reuse the ballbearing construction by import.
 
 ## API and parameters
 

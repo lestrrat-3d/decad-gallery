@@ -12,8 +12,7 @@ The wheel has a 560 mm outside diameter and a 690 mm orifice height at default s
 Four whorl grooves provide 7:1, 9:1, 12:1 and 17:1 flyer-to-wheel speed ratios.
 The six-spoke wheel has a nominal 580 mm hub height. The hinged head puts the orifice at 690 mm at default tension.
 The dimensions of this gallery frame and head define a new design rather than a copy of
-the manufacturer's production drawings. The earlier [geared quill spindle](../pedalspindle/)
-is a separate mechanism.
+the manufacturer's production drawings.
 
 ## Front and back
 
