@@ -14,7 +14,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
-	"github.com/lestrrat-3d/units"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -25,31 +24,16 @@ func spinningWheelPose(meshes []wheelMesh, base, state spinningwheel.State, whee
 	posed := make([]wheelMesh, len(meshes))
 	for i, mesh := range meshes {
 		posed[i] = mesh
-		var center, offset r3.Vec
-		var angle float64
-		switch mesh.part.Motion {
-		case "fixed":
+		if mesh.part.Motion == "fixed" {
 			continue
-		case "wheel":
-			center, angle = base.Wheel, wheelDelta
-		case "flyer":
-			center, angle = base.Flyer, state.FlyerAngle-base.FlyerAngle
-		case "bobbin":
-			center, angle = base.Flyer, state.BobbinAngle-base.BobbinAngle
-		case "treadle":
-			center, angle = base.Heel, state.PedalAngle-base.PedalAngle
-		case "footman":
-			center, angle, offset = base.Toe, state.RodAngle-base.RodAngle, state.Toe.Sub(base.Toe)
-		default:
-			return nil, fmt.Errorf("unknown motion %q for %s", mesh.part.Motion, mesh.part.Name)
 		}
-		xf, err := r3.RotationAround(center, r3.NewVec(0, -1, 0), units.Radians(angle))
+		xf, err := spinningwheel.PoseTransform(base, state, mesh.part.Motion, wheelDelta)
 		if err != nil {
 			return nil, err
 		}
 		vertices := mesh.model.Mesh.Vertices()
 		for j, v := range vertices {
-			vertices[j] = xf.Apply(v).Add(offset)
+			vertices[j] = xf.Apply(v)
 		}
 		triangles, err := solidlens.NewMesh(vertices, mesh.model.Mesh.Triangles())
 		if err != nil {
@@ -107,7 +91,7 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 			panels[i].scene = scene
 		}
 		panels[0].title = "Grey frame stays fixed; the treadle rocks."
-		panels[0].caption = fmt.Sprintf("Wheel %03.0f deg. A/B fixed axes; C/D moving pins.", p.WheelAngle*180/math.Pi)
+		panels[0].caption = fmt.Sprintf("Wheel %03.0f deg. A/B fixed axes; C/D joints; S gimbal.", p.WheelAngle*180/math.Pi)
 		panels[1].title = "Red flyer: 7 turns. Orange bobbin marker: 6 turns."
 		panels[1].caption = "Prescribed take-up: 195 mm/turn. Forces are not simulated."
 		canvas, err := wheelPanelCanvas(ctx, panels, width, height, face)
@@ -125,7 +109,7 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 }
 
 func annotateWheelPivots(canvas draw.Image, camera solidlens.Camera, state spinningwheel.State, width, height int, face font.Face) {
-	// Project all axes and joints into the footman's plane. The shaft axes extend through that plane.
+	// These are the actual three-dimensional joint positions. The heel and wheel axes are perpendicular.
 	wheelAxis := state.Wheel
 	wheelAxis.Y = state.CrankPin.Y
 	position := func(p r3.Vec) image.Point {
@@ -134,12 +118,15 @@ func annotateWheelPivots(canvas draw.Image, camera solidlens.Camera, state spinn
 	fixedColor := color.RGBA{R: 15, G: 80, B: 210, A: 255}
 	movingColor := color.RGBA{R: 0, G: 140, B: 65, A: 255}
 	dashedAnimationLine(canvas, position(wheelAxis), position(state.Heel), fixedColor)
+	dashedAnimationLine(canvas, position(wheelAxis.Add(r3.Vec{Y: -35})), position(wheelAxis.Add(r3.Vec{Y: 35})), fixedColor)
+	dashedAnimationLine(canvas, position(state.Heel.Add(r3.Vec{X: -55})), position(state.Heel.Add(r3.Vec{X: 55})), fixedColor)
 	for _, mark := range []struct {
 		name  string
 		point r3.Vec
 		ink   color.Color
 	}{
 		{"C", state.CrankPin, movingColor}, {"D", state.Toe, movingColor},
+		{"S", state.RodHead, movingColor},
 		{"A", wheelAxis, fixedColor}, {"B", state.Heel, fixedColor},
 	} {
 		p := position(mark.point)

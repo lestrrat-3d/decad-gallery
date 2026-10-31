@@ -2,6 +2,10 @@
 
 ## Approved construction
 
+The reference-layout audit later moved this one-piece whorl in front of the flyer and changed its bore to D16.2.
+The current construction dimensions are in `models/spinningwheel/instructions.md`.
+The rejected carrier dimensions below record the earlier D8.2 alternative; they are historical.
+
 On2026-10-31 the user chose the one-piece D-bored whorl after reviewing the4–8engineering-day estimate.
 Resume the generic Decad extension and require the actual whorl and full default assembly to pass.
 Do not substitute a bonded carrier or faceted groove walls.

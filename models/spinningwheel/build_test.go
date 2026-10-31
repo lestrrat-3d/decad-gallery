@@ -60,6 +60,9 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 		names[p.Name] = struct{}{}
 		require.True(t, p.Body.IsSolid(), "%s", p.Name)
 		chord := .12
+		if p.Motion == "gimbal" || p.Motion == "footman" {
+			chord = .01
+		}
 		if p.Name == "flyer-drive-whorl" {
 			chord = .01
 		}
@@ -67,7 +70,7 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 		require.NoError(t, err, "part %s", p.Name)
 		require.True(t, mesh.BoundaryVerified(), "part %s boundary", p.Name)
 		require.True(t, mesh.VolumeVerified(), "part %s volume", p.Name)
-		meshes[p.Name] = surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles()}
+		meshes[p.Name] = surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()}
 	}
 	for i, s := range a.Sketches {
 		r := s.Verify(t.Context())
@@ -78,7 +81,8 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 		require.NoError(t, r.Check(), "sketch %d", i)
 	}
 	requireWheelFeatures(t, a, p, meshes)
-	requireLinkageFrameClearances(t, a, p)
+	requireHeadAdjustment(t, a, p)
+	requireLinkageFrameClearances(t, a, p, meshes)
 	requireFlyerSweptClearances(t, a)
 	requireDriveBandFrameClearances(t, a)
 	coils := 0
@@ -87,6 +91,6 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 			coils++
 		}
 	}
-	require.Equal(t, 1, coils, "the brake spring must come from native Coil")
+	require.Equal(t, 2, coils, "both brake springs must come from native Coil")
 	t.Logf("verified %d final bodies and %d sketches", len(a.Parts), len(a.Sketches))
 }

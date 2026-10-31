@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
+	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,12 +20,17 @@ func TestSpinningWheelMotion(t *testing.T) {
 				p.WheelAngle = float64(i) * math.Pi / 180
 				s, err := spinningwheel.Motion(p)
 				require.NoError(t, err)
-				// Axis points use Y0; linkage points use Y=-105*Scale.
+				// The heel rotates about X; the rear crank rotates about Y.
 				require.InDelta(t, 25*scale, math.Hypot(s.CrankPin.X-s.Wheel.X, s.CrankPin.Z-s.Wheel.Z), 1e-8)
-				require.InDelta(t, 200*scale, s.Toe.Sub(s.Heel).Len(), 1e-8)
-				require.InDelta(t, 370*scale, s.Toe.Sub(s.CrankPin).Len(), 1e-8)
+				wantToe := s.PedalFrame.ToWorld(r3.Vec{X: 220 * scale, Y: 450 * scale, Z: 20 * scale})
+				require.InDelta(t, 0, wantToe.Sub(s.Toe).Len(), 1e-8)
+				require.InDelta(t, 486*scale, s.Toe.Sub(s.RodHead).Len(), 1e-8)
+				require.InDelta(t, 32*scale, s.RodHead.Sub(s.CrankPin).Len(), 1e-8)
+				require.InDelta(t, 0, s.RodFrame.V().Sub(s.GimbalFrame.V()).Len(), 1e-10, "cross bearings stay aligned")
+				require.InDelta(t, 1, s.PedalFrame.U().X, 1e-10, "heel axis stays along X")
+				require.InDelta(t, -1, s.GimbalFrame.N().Y, 1e-10, "upper crank bearing stays along Y")
 				require.Greater(t, s.Toe.Z, 39*scale)
-				require.Less(t, s.Toe.Z, 90*scale)
+				require.Less(t, s.Toe.Z, 140*scale)
 				if !math.IsNaN(last) {
 					require.Less(t, math.Abs(s.PedalAngle-last), .01, "no branch jumps")
 				}
@@ -51,7 +57,7 @@ func TestSpinningWheelAdjustments(t *testing.T) {
 				originalBand = s.BrakeLength
 			}
 			require.InDelta(t, originalBand, s.BrakeLength, 1e-9, "adjuster trades tail lengths")
-			require.InDelta(t, 25*scale+float64(i), s.SpringLength, 1e-9)
+			require.InDelta(t, 25*scale+float64(i)/2, s.SpringLength, 1e-9)
 		}
 		p.DriveTension = 0
 		lo, err := spinningwheel.Motion(p)
@@ -59,12 +65,12 @@ func TestSpinningWheelAdjustments(t *testing.T) {
 		p.DriveTension = 12
 		hi, err := spinningwheel.Motion(p)
 		require.NoError(t, err)
-		require.Greater(t, hi.BeltLength, lo.BeltLength, "carriage must tension the drive band")
+		require.Greater(t, hi.BeltLength, lo.BeltLength, "hinged head must tension the drive band")
 		for i, ratio := range []int{7, 9, 12, 17} {
 			p.Ratio = ratio
 			s, err := spinningwheel.Motion(p)
 			require.NoError(t, err)
-			require.InDelta(t, float64(24-8*i)*scale, s.HeadShift, 1e-9, "selected groove aligns with Y0")
+			require.InDelta(t, float64(278-8*i)*scale, s.HeadShift, 1e-9, "selected groove aligns with Y0")
 		}
 	}
 }

@@ -44,11 +44,11 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 			oblique := solidlens.Camera{Position: centre.Add(solidlens.Vec{X: -240, Y: 400, Z: 220}), Target: centre, Up: solidlens.Vec{Z: 1}, FOV: 30}
 			boreTarget := centre
 			boreTarget.Y = box.Max.Y
-			bore := solidlens.Camera{Position: boreTarget.Add(solidlens.Vec{Y: 470}), Target: boreTarget, Up: solidlens.Vec{Z: 1}, FOV: 2}
+			bore := solidlens.Camera{Position: boreTarget.Add(solidlens.Vec{Y: 470}), Target: boreTarget, Up: solidlens.Vec{Z: 1}, FOV: 2.8}
 			models := []solidlens.Model{mesh.model}
 			return []wheelPanel{
 				{bevelScene(oblique, models), "One-piece whorl: four V grooves", "The grooves give 7:1, 9:1, 12:1 and 17:1 speed ratios."},
-				{bevelScene(bore, models), "Actual D-shaped through-bore", "The flat mates with the 8 mm shaft; this close-up crops the rim."},
+				{bevelScene(bore, models), "Actual D-shaped through-bore", "The flat mates with the 16 mm hollow shaft; this close-up crops the rim."},
 			}, nil
 		}
 		return nil, fmt.Errorf("whorl sheet needs the actual flyer-drive-whorl body")
@@ -57,6 +57,11 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 			{spinningWheelScene(meshes, "hero"), "Operator side: treadle, wheel and flyer", "The open frame carries both sides of the wheel axle."},
 			{spinningWheelScene(meshes, "rear"), "Rear: drive band and adjustable mother-of-all", "The single band drives the keyed flyer whorl; the bobbin turns independently."},
 		}, nil
+	case "layout":
+		return []wheelPanel{
+			{spinningWheelScene(meshes, "top"), "Top: treadle length runs toward the operator", "The operator is at the bottom. The heel shaft crosses the frame."},
+			{spinningWheelScene(meshes, "side"), "Side: wheel edge, treadle and rear footman", "The operator is to the left. The gimbal permits perpendicular pivot axes."},
+		}, nil
 	case "flyer":
 		return []wheelPanel{
 			{spinningWheelScene(meshes, "flyer"), "Flyer and bobbin: two different rotations", "Red flyer guides yarn; teal yarn pack turns with the bobbin."},
@@ -64,7 +69,7 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 		}, nil
 	case "brake":
 		return []wheelPanel{
-			{spinningWheelScene(meshes, "brake"), "Scotch tension: band around the bobbin's rear flange", "The stationary spring and adjusting screw pull the two brake-band tails."},
+			{spinningWheelScene(meshes, "brake"), "Scotch tension: band around the bobbin's rear flange", "Both tails run forward to two springs and the front adjusting screw."},
 			{spinningWheelScene(meshes, "flyer"), "Flyer arms stop before the brake band", "The bobbin brake creates drag; it does not lock the bobbin to the flyer."},
 		}, nil
 	}

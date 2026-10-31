@@ -7,4 +7,5 @@ Use the Decad repository's worktree, validation, PR, and CI-watch rules.
 Report the PR and checks. Do not create a GitHub issue or comment for this handoff.
 
 The existing Decad session opened [PR2929](https://github.com/lestrrat-3d/decad/pull/2929)
-with only the workflow deletion. Its CI is running as of 2026-10-31; leave the PR unmerged.
+with only the workflow deletion. Its CI passed and the user merged it.
+Sketch PR auto-merge is removed; dependent-module syncing remains enabled.

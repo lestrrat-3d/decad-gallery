@@ -5,6 +5,10 @@ the measurements and source hashes below capture reproductions, not new design r
 
 ## Integration status on2026-10-31
 
+This section records the initial accepted assembly at Gallery commit71c2e50.
+The later reference-layout correction is inventoried in `docs/spinning-wheel-reference-audit.md`.
+Its repeated-placement repair is recorded in `docs/handoff-spinning-wheel-head-placement.md`.
+
 The approved one-piece repair merged in [Decad PR2928](https://github.com/lestrrat-3d/decad/pull/2928).
 All native CI checks passed. Both Gallery modules pin `v0.0.0-20261030221427-96bc82a990de`.
 Against that production version, all five Gallery assembly cases pass, each with 142 final bodies and 155 fully constrained

@@ -69,7 +69,7 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	}
 	if model == "spinningwheel" {
 		switch shot {
-		case "front-back", "flyer", "brake", "whorl":
+		case "front-back", "layout", "flyer", "brake", "whorl":
 			return runSpinningWheelSheet(ctx, shot, output, width, height)
 		case "animation":
 			return runSpinningWheelAnimation(ctx, output, width, height)

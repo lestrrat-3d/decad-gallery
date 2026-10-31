@@ -42,7 +42,7 @@ func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State,
 			color = solidlens.RGB(.86, .69, .42)
 		case "treadle":
 			color = solidlens.RGB(.49, .27, .12)
-		case "footman":
+		case "footman", "gimbal":
 			color = solidlens.RGB(.75, .37, .13)
 		}
 		n := part.Name
@@ -78,31 +78,36 @@ func spinningWheelScene(meshes []wheelMesh, shot string) solidlens.Scene {
 	for _, mesh := range meshes {
 		if shot == "flyer" || shot == "brake" || shot == "orifice" {
 			box, err := mesh.part.Body.Bounds()
-			if err != nil || box.Max.X > -130 || box.Max.Z < 610-1e-6 || box.Min.Z < 575 {
+			if err != nil || box.Max.X > -25 || box.Min.Z < 520 {
 				continue
 			}
 		}
 		model := mesh.model
 		if shot == "orifice" && strings.Contains(mesh.part.Name, "shaft") {
 			// Clip the actual shaft mesh along its axis to expose the blind bore and radial outlet.
-			model.Clip = &solidlens.ClipPlane{Origin: solidlens.Vec{X: -246}, Normal: solidlens.Vec{X: 1}}
+			model.Clip = &solidlens.ClipPlane{Origin: solidlens.Vec{X: -140}, Normal: solidlens.Vec{X: 1}}
 		}
 		models = append(models, model)
 	}
 	camera := solidlens.Camera{Position: solidlens.Vec{X: 1000, Y: -1600, Z: 1050},
-		Target: solidlens.Vec{X: 30, Y: -40, Z: 370}, Up: solidlens.Vec{Z: 1}, FOV: 32}
+		Target: solidlens.Vec{X: 30, Y: 20, Z: 430}, Up: solidlens.Vec{Z: 1}, FOV: 32}
 	switch shot {
 	case "rear":
 		camera.Position = solidlens.Vec{X: -900, Y: 1600, Z: 1000}
+	case "side":
+		camera.Position = solidlens.Vec{X: 1600, Y: 0, Z: 430}
+	case "top":
+		camera.Position = solidlens.Vec{X: 30, Y: 20, Z: 2000}
+		camera.Up = solidlens.Vec{Y: 1}
 	case "flyer":
 		camera.Position = solidlens.Vec{X: -850, Y: -1100, Z: 1000}
-		camera.Target = solidlens.Vec{X: -246, Y: -115, Z: 690}
+		camera.Target = solidlens.Vec{X: -140, Y: 110, Z: 650}
 	case "brake":
 		camera.Position = solidlens.Vec{X: 250, Y: 800, Z: 940}
-		camera.Target = solidlens.Vec{X: -246, Y: -60, Z: 670}
+		camera.Target = solidlens.Vec{X: -140, Y: 90, Z: 640}
 	case "orifice":
 		camera.Position = solidlens.Vec{X: 300, Y: -1000, Z: 940}
-		camera.Target = solidlens.Vec{X: -246, Y: -180, Z: 690}
+		camera.Target = solidlens.Vec{X: -140, Y: 50, Z: 690}
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models)
 }
@@ -129,7 +134,7 @@ func renderSpinningWheelReadme(ctx context.Context, out string) error {
 	if err := renderPNG(ctx, filepath.Join(out, "index.png"), scene, 480, 270); err != nil {
 		return err
 	}
-	for _, shot := range []string{"front-back", "flyer", "brake", "whorl"} {
+	for _, shot := range []string{"front-back", "layout", "flyer", "brake", "whorl"} {
 		if err := renderSpinningWheelSheet(ctx, meshes, shot, filepath.Join(out, shot+".png"), 2000, 1100); err != nil {
 			return err
 		}

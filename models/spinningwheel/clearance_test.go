@@ -59,93 +59,84 @@ func requireDriveBandFrameClearances(t *testing.T, a *spinningwheel.Assembly) {
 	require.Equal(t, 4, checked, "both exact wraps and both straight spans must be checked")
 }
 
-func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p spinningwheel.Params) {
+func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p spinningwheel.Params, meshes map[string]surfaceTriangles) {
 	t.Helper()
-	var fixed []spinningwheel.Part
+	type namedShape struct {
+		part  spinningwheel.Part
+		shape collisionShape
+	}
+	var fixed, moving []namedShape
+	type bandKey struct {
+		name   string
+		lo, hi float64
+	}
+	bands := map[bandKey]collisionShape{}
 	for _, part := range a.Parts {
-		if part.Motion == "fixed" && (part.Group == "frame" || part.Group == "adjustment" || part.Group == "head-frame") {
-			fixed = append(fixed, part)
+		switch part.Motion {
+		case "wheel", "treadle", "gimbal", "footman":
+			moving = append(moving, namedShape{part, nativeCollisionShape(part.Body, meshes[part.Name])})
+		case "fixed":
+			if part.Group == "frame" || part.Group == "adjustment" || part.Group == "hinge" {
+				fixed = append(fixed, namedShape{part, nativeCollisionShape(part.Body, meshes[part.Name])})
+			}
 		}
 	}
 	for i := range 72 {
+		posed := make(map[string]collisionShape, len(moving))
 		pose := p
 		pose.WheelAngle = float64(i) * math.Pi / 36
 		state, err := spinningwheel.Motion(pose)
 		require.NoError(t, err)
-		for _, part := range a.Parts {
-			if part.Name != "wheel-crank" && part.Name != "crank-pin" && part.Name != "toe-pin" &&
-				part.Name != "footman" && part.Name != "treadle" && !strings.HasPrefix(part.Name, "linkage-") {
-				continue
-			}
-			var center, offset r3.Vec
-			var angle float64
-			switch part.Motion {
-			case "wheel":
-				center, angle = a.State.Wheel, pose.WheelAngle-p.WheelAngle
-			case "treadle":
-				center, angle = a.State.Heel, state.PedalAngle-a.State.PedalAngle
-			case "footman":
-				center, angle, offset = a.State.Toe, state.RodAngle-a.State.RodAngle, state.Toe.Sub(a.State.Toe)
-			default:
-				continue
-			}
-			xf, err := r3.RotationAround(center, r3.Vec{Y: -1}, units.Radians(angle))
+		for _, item := range moving {
+			xf, err := spinningwheel.PoseTransform(a.State, state, item.part.Motion, pose.WheelAngle-p.WheelAngle)
 			require.NoError(t, err)
-			translation, err := r3.Translation(offset)
-			require.NoError(t, err)
-			xf, err = xf.Then(translation)
-			require.NoError(t, err)
-			body, err := decad.Copy(t.Context(), part.Body, decad.WithCopyPlacement(xf))
-			require.NoError(t, err)
-			box, err := body.Bounds()
-			require.NoError(t, err)
+			shape := item.shape.placed(xf)
+			posed[item.part.Name] = shape
 			for _, obstacle := range fixed {
-				other, err := obstacle.Body.Bounds()
-				require.NoError(t, err)
-				if boxesSeparate(box.Min, box.Max, other.Min, other.Max, box.Bound.Base()+other.Bound.Base()+1e-7) {
+				if shape.separates(obstacle.shape) {
 					continue
 				}
-				// These members have constant sections through Y. Check that fact before a section replaces the box screen.
-				requireYPrism(t, body, part.Name)
-				requireYPrism(t, obstacle.Body, obstacle.Name)
-				yMin, yMax := math.Max(box.Min.Y, other.Min.Y), math.Min(box.Max.Y, other.Max.Y)
-				require.Greater(t, yMax-yMin, 1e-6, "%s/%s needs an interior section", part.Name, obstacle.Name)
-				plane, err := r3.NewFrame(r3.Vec{Y: (yMin + yMax) / 2}, r3.Vec{X: 1}, r3.Vec{Z: 1})
-				require.NoError(t, err)
-				movingSection, err := body.SectionOutline(t.Context(), plane, units.Millimeters(.025))
-				require.NoError(t, err)
-				fixedSection, err := obstacle.Body.SectionOutline(t.Context(), plane, units.Millimeters(.025))
-				require.NoError(t, err)
-				gap, err := movingSection.Clearance(fixedSection)
-				require.NoError(t, err)
-				require.False(t, gap.Overlaps, "%s overlaps %s at%d degrees", part.Name, obstacle.Name, i*5)
-				require.Greater(t, gap.Lower().Base(), 1e-6, "%s must clear %s at%d degrees", part.Name, obstacle.Name, i*5)
+				// An L-shaped base has empty space inside its convex enclosure. Read its actual constant section in this Y band.
+				lo := math.Max(shape.lo.Y-shape.bound, obstacle.shape.lo.Y-obstacle.shape.bound)
+				hi := math.Min(shape.hi.Y+shape.bound, obstacle.shape.hi.Y+obstacle.shape.bound)
+				key := bandKey{obstacle.part.Name, lo, hi}
+				band, known := bands[key]
+				if !known {
+					if sliced, ok := nativeInvariantYBand(t, obstacle.part.Body, obstacle.shape, lo, hi); ok {
+						band = sliced
+						bands[key] = band
+						known = true
+					}
+				}
+				if known && shape.separates(band) {
+					continue
+				}
+				// A convex enclosure fills a bearing hole. Validate the actual native through-bore before exempting its shaft.
+				if nativeShaftPassage(obstacle.part, shape, p.Scale) {
+					continue
+				}
+				gap, clear := shape.meshSeparation(obstacle.shape)
+				if clear {
+					continue
+				}
+				t.Fatalf("%s cannot be proved clear of %s at %d degrees; bounded mesh gap %g mm", item.part.Name, obstacle.part.Name, i*5, gap)
 			}
-			require.NoError(t, decad.Remove(body))
 		}
-	}
-}
-
-// Side planes and cylinders run along Y; every transverse plane is an end cap.
-// This excludes varying sections before using one plane to check the whole overlapping width.
-func requireYPrism(t *testing.T, body *decad.Body, name string) {
-	t.Helper()
-	box, err := body.Bounds()
-	require.NoError(t, err)
-	for i, face := range body.Faces() {
-		switch surface := face.Surface().(type) {
-		case decad.Plane:
-			n := surface.Frame.N()
-			if math.Abs(n.Y) < 1e-10 {
+		for _, rod := range moving {
+			if rod.part.Motion != "footman" {
 				continue
 			}
-			require.InDelta(t, 1, math.Abs(n.Y), 1e-10, "%s face%d must be transverse", name, i)
-			y := surface.Frame.Origin().Y
-			require.Less(t, math.Min(math.Abs(y-box.Min.Y), math.Abs(y-box.Max.Y)), box.Bound.Base()+1e-6, "%s face%d must be an end cap", name, i)
-		case decad.Cylinder:
-			require.InDelta(t, 1, math.Abs(surface.Axis.Y), 1e-10, "%s face%d cylinder must run along Y", name, i)
-		default:
-			t.Fatalf("%s face%d has unsupported section-invariance kind%d", name, i, face.Surface().Kind())
+			for _, fork := range moving {
+				if fork.part.Motion != "gimbal" || fork.part.Group != "gimbal" {
+					continue
+				}
+				a, b := posed[rod.part.Name], posed[fork.part.Name]
+				if a.separates(b) {
+					continue
+				}
+				gap, clear := a.meshSeparation(b)
+				require.True(t, clear, "%s must clear %s at %d degrees; mesh gap %g", rod.part.Name, fork.part.Name, i*5, gap)
+			}
 		}
 	}
 }
@@ -156,11 +147,11 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 	t.Helper()
 	sweptMembers := 0
 	for _, part := range a.Parts {
-		if part.Motion != "flyer" || (part.Group != "flyer" && part.Group != "whorl" && !strings.Contains(part.Name, "guide")) {
+		if part.Motion != "flyer" || (part.Group != "flyer" && part.Group != "whorl" && part.Group != "guide" && !strings.Contains(part.Name, "guide")) {
 			continue
 		}
 		sweptMembers++
-		body, err := decad.Copy(t.Context(), part.Body, decad.WithCopyRotation(a.State.Flyer, r3.Vec{Y: -1}, units.Radians(-a.State.FlyerAngle)))
+		body, err := decad.Copy(t.Context(), part.Body, decad.WithCopyRotation(a.State.Flyer, r3.Vec{Y: -1}, units.Radians(-a.State.FlyerAngle-a.State.HeadTilt)))
 		require.NoError(t, err)
 		box, err := body.Bounds()
 		require.NoError(t, err)
@@ -201,7 +192,7 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 				continue
 			}
 			switch obstacle.Group {
-			case "frame", "head-frame", "adjustment", "fastener", "brake-band", "spring", "brake", "knob", "thread-envelope":
+			case "frame", "head-frame", "adjustment", "fastener", "brake-band", "spring", "brake", "brake-guide", "hinge", "knob", "thread-envelope":
 			default:
 				continue
 			}
@@ -212,5 +203,5 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 		}
 		require.NoError(t, decad.Remove(body))
 	}
-	require.Equal(t, 23, sweptMembers, "crossbar, two arms, whorl, nine guides, nine stems and front stalk need swept checks")
+	require.Equal(t, 31, sweptMembers, "crossbar, two arms, whorl, thirteen hooks, thirteen stems and front stalk need swept checks")
 }
