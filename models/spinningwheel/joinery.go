@@ -70,10 +70,13 @@ func (b *builder) headBore(radius, length float64, origin, axis r3.Vec) *decad.B
 	return b.tiltBody(b.cylinder(radius, length, axisFrame(origin, axis)))
 }
 
+// railStock is the rail's socket tool. Its edges follow the rail's lines (slope -90/520) but run
+// 52 past the rail's ends at X -280 and 240, so the tool crosses each leg's end cap instead of sharing
+// its plane; the part of the tool inside a leg, and so the cut socket, is unchanged.
 func (b *builder) railStock(y float64) *decad.Body {
 	s := b.p.Scale
 	sk := b.section(false)
-	polygon(sk, scaled(s, point2{-280, 465}, point2{240, 375}, point2{240, 410}, point2{-280, 500}))
+	polygon(sk, scaled(s, point2{-332, 474}, point2{292, 366}, point2{292, 401}, point2{-332, 509}))
 	return b.extrude(sk, 0, 30*s, frame(r3.Vec{Y: y * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 }
 
@@ -81,13 +84,13 @@ func (b *builder) frameJoinery() {
 	s := b.p.Scale
 	// XZ profiles extrude toward -Y, so their origins name the rear faces.
 	b.machine("head-leg", b.railStock(-55), b.railStock(85))
-	b.machine("front-wheel-leg", b.railStock(-55), b.box(200*s, 240*s, -55*s, -25*s, 535*s, 610*s))
-	b.machine("rear-wheel-leg", b.railStock(85), b.box(200*s, 240*s, 25*s, 55*s, 535*s, 610*s))
+	b.machine("front-wheel-leg", b.railStock(-55), b.box(190*s, 250*s, -55*s, -25*s, 535*s, 610*s))
+	b.machine("rear-wheel-leg", b.railStock(85), b.box(190*s, 250*s, 25*s, 55*s, 535*s, 610*s))
 
 	var wedgeTools []*decad.Body
 	for _, x := range []float64{-180, -120} {
 		wedgeTools = append(wedgeTools,
-			b.box(x*s-5.1, x*s+5.1, -70*s-5.1, -70*s+5.1, 525*s-8, 525*s))
+			b.box(x*s-5.1, x*s+5.1, -70*s-5.1, -70*s+5.1, 525*s-8, 525*s+5))
 	}
 	b.machine("front-head-wedge", wedgeTools...)
 
@@ -104,7 +107,7 @@ func (b *builder) frameJoinery() {
 			b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (q + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1}))
 	}
 	b.machine("mother-base", basePilots...)
-	b.machine("mother-jack-arm", b.headStock(-167*s, -118*s, -330*s, -20*s, 555*s, 570*s))
+	b.machine("mother-jack-arm", b.headStock(-167*s, -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
 	barTools = append(barTools, b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s))
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {

@@ -205,12 +205,15 @@ holds PR 3023), the default build reaches 664 operations, 2 Coil operations and 
 "cut boolean: two operand facets overlap in one plane" (`.tmp/native-default-combo.log`, modfile `.tmp/combo.mod`).
 That is the coplanar Cut owned by the native `feat-head-leg-generic-cut` worker. The chain-tolerance choice widens the
 proven bounds of `treadle-flex-connector` (0.17 to 0.50 mm3) and `gimbal-bridge` (0.52 to 0.54 mm3).
-Isolation of the `head-leg` stop: the same combined Decad without a chain tolerance passes `head-leg` and stops at
-`yarn-front-guide` after 505 operations (`.tmp/native-default-combo-nochain.log`). With 0.05 mm the build stops at
-`yarn-leader` after 519 operations (held bound 0.0972 mm exceeds 0.05; `.tmp/native-default-combo-0.05.log`). With
-0.10 and 0.12 mm the leader passes and `head-leg` refuses its coplanar facets (`.tmp/native-default-combo-0.12.log`).
-So the leader needs about 0.1 mm and the head-leg Cut breaks at that tolerance. The head-leg Cut must tolerate a
-document chain tolerance of 0.1 mm; that is native `feat-head-leg-generic-cut` territory.
+Correction (Opus diagnosis, `.tmp/chainprobe/`): the chain tolerance does not cause the `head-leg` refusal. It fails
+the same way with no option, at 0.1 mm and on the production pin; the 505- and 519-operation runs stopped in `yarn()`
+before `finishJoinery`, so they never reached it. Flush tools sharing a host face plane (rail tool X=-280 wall and the
+leg end cap) are the cause. `joinery.go` now extends the tools past those faces: `railStock` runs 52 past each end,
+the wheel-leg cap boxes widen to X 190..250, the wedge pocket tops reach `525*s+5` and the jack-arm tool Z spans
+`555*s-5..570*s+5`. Closed-form volumes match within Decad's proven bound for head-leg, both wheel legs, the wedge and
+the jack arm. The default build now reaches 738 operations and stops at `mother-upper-bar`
+("every parity ray was ambiguous"; `.tmp/native-default-joinery.log`). The chain tolerance must stay at least
+0.0972 mm for the leader, so `NewDocument` keeps 0.1 mm.
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 
