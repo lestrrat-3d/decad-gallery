@@ -37,7 +37,7 @@ func (b *builder) driveWheel() {
 		})
 	}
 	b.part("wheel-axle", "shaft", "wheel", func() *decad.Body {
-		body := b.cylinder(4, 152*s+2, wf(92*s+2))
+		body := b.cylinder(4, 146*s+3.2, wf(86*s+3.2))
 		hubPocket := b.panel(2.8, -1, 5, 1, 24*s, wf(12*s))
 		crankPocket := b.panel(2.8, -1, 5, 1, 6*s, wf(85*s))
 		body = b.cut(body, hubPocket)
