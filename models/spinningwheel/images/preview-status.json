@@ -1,17 +1,9 @@
 {
   "status": "Work in progress. Joint cuts, retention and collision verification remain pending.",
-  "built_parts": 154,
-  "rendered_parts": 154,
+  "built_parts": 156,
+  "rendered_parts": 156,
   "joint_cuts_pending": true,
   "omitted": [
-    {
-      "part": "mother-hinge-1-moving-leaf",
-      "reason": "spinning wheel mother-hinge-1-moving-leaf: cut solid: decad: not supported by the current evaluator: cut's target holds its mesh, where this pair meets, only within a bound of 0.001666081177842386 mm, coarser than this pair's chord tolerance 0.0005240570882159307 mm; a boolean takes no tolerance, so the chain cannot continue through that geometry: place the new contact away from the earlier booleans' rims, reshape the construction with fewer booleans over that region, or draw the pair so the analytic prism path admits it (agent-docs/api-design.md §8, \"The chain depth\")"
-    },
-    {
-      "part": "mother-hinge-2-moving-leaf",
-      "reason": "spinning wheel mother-hinge-2-moving-leaf: cut solid: decad: not supported by the current evaluator: cut's target holds its mesh, where this pair meets, only within a bound of 0.0016660811778438508 mm, coarser than this pair's chord tolerance 0.0005240570882159352 mm; a boolean takes no tolerance, so the chain cannot continue through that geometry: place the new contact away from the earlier booleans' rims, reshape the construction with fewer booleans over that region, or draw the pair so the analytic prism path admits it (agent-docs/api-design.md §8, \"The chain depth\")"
-    },
     {
       "part": "yarn-hook-1",
       "reason": "spinning wheel yarn-hook-1: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"

@@ -181,15 +181,15 @@ This is scratch consumer evidence. Publication still needs the minimal tracked t
 ## Current status
 
 The actual full default build now consumes published Decad
-`v0.0.0-20261102052910-ad0caeffc8ee`, without native overlays or a local replace.
-It passes the axle, gimbal and connector, then stops at `mother-hinge-1-moving-leaf` after 225 public operations
-and 92 live bodies. The held target bound is 0.001666081177842386 mm; the pair chord is 0.0005240570882159307 mm.
-The original log is `.tmp/spinningwheel-published-3006-strict-default.log`.
-The hinge's preceding Union records a geometry-changing shrink without an authenticated source certificate.
-Keep the strict source-ancestry and warning gates; the native repair must prove that altered source geometry.
+`v0.0.0-20261102075503-1214b6aa02c8`, without native overlays or a local replace.
+It passes the axle, gimbal, connector and both moving hinges, then stops at `yarn-hook-1` after 412 public operations
+and 144 live bodies. The requested Revolve mesh exceeds the 65,536-facet limit.
+The original log is `.tmp/spinningwheel-published-3007-strict-default.log`; the run takes 7.82 seconds.
+The hook's two-body Union is separate from the mapped three-input brake-band Union repair.
+The strict run has not constructed the actual brake assembly, which follows yarn construction.
 
 The user explicitly requested an intermediate PR/image update before the remaining fixes.
-The separate `BuildPreview` path now renders 154 completed native parts, omits 19 named failures,
+The separate `BuildPreview` path now renders 156 completed native parts, omits 17 named failures,
 and leaves assembly-wide joint cuts pending. Every image is labeled and the omissions are recorded in
 `models/spinningwheel/images/preview-status.json`. This preview does not accept the final assembly or motion gates.
 
@@ -203,9 +203,34 @@ Neither the snapshot nor the selected callback proof accepts the full assembly.
 Both Gallery modules select that published version through `scripts/update_decad.py`.
 The resolver now uses direct VCS lookup for `main` because the normal proxy returned the older revision after merge.
 Immutable version downloads still use the caller's normal proxy. All five focused updater tests pass.
-Fresh model generation after the final module update, full assembly checks, motion and images remain pending.
+Fresh spur generation for this module update passes. Repeat it after any later module update.
+Full assembly checks, motion verification and final images remain pending.
 Keep Gallery PR119 open with auto-merge disabled until the user explicitly confirms the merge.
 Keep Actions PR creation disabled as the user requested; do not bypass it with another credential.
+
+### Published hinge component
+
+Decad PR3007 merged as `1214b6aa02c8e4ca370e1eb4e980797ff1d49d28` after 23 successful and three skipped checks
+at reviewed head `ca959ff866f4545a23c3b02943d059bbd844e9bd`. The generic route authenticates the original Union
+adjustment, proves leaf/bore separation, reconstructs the adjusted circular prism, and commits one public Cut.
+It preserves the original ordered target/tool history and truthful `HistoryUnknown` face coverage.
+The private Union's additional adjustment is authenticated before mapping its public warning to the target.
+
+The unchanged actual default hinge constructor passes the published module's 0.12 mm `VerifyAll` consumer,
+with boundary and volume verification, one lump and one connected triangle component.
+Its volume is 1229.5208933664676 plus or minus 2.4929269997522501 cubic millimetres.
+The published-consumer log is `.tmp/spinningwheel-published-3007-hinge-gate.log`.
+The test overlay adds only a Gallery test file; it does not replace SDK code or construction.
+
+An independent exact-rational calculation uses the captured leaf, knuckle and bore records, their exact signed-axis
+placements, the original shrink and the later translation. Full-domain monotone circle/rectangle integration bounds
+the adjusted source volume by [1229.5678589975644, 1229.5692320782232] cubic millimetres, wholly inside the native
+measurement interval. The source records have zero section and axial errors.
+The root verifier checks three constructor hashes, eight artifact hashes, the clean reviewed source, and two observer
+patches containing only print statements. Its result is `.tmp/hinge-binding-independently-verified.json`.
+
+This accepts the selected hinge consumer and its published integration. The complete assembly, other parameter cases,
+joint machining, retention, all-pair interference and motion checks remain pending.
 
 ### Gimbal publication candidate
 

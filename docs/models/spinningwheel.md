@@ -23,7 +23,7 @@ Preview construction skips assembly-wide joint machining and does not establish 
 Failed tools are excluded from the registered part list drawn by the renderer.
 See [the preview renderer](../rendering.md) for the regeneration command.
 
-The strict build and final geometry checks still stop at an unsupported hinge construction.
+The strict build and final geometry checks now pass both hinges and stop at the first yarn hook's Revolve mesh limit.
 Animation regeneration, finer connector refinement and full moving-clearance verification remain pending.
 The sections below describe the intended complete model and its checks, not a claim that those checks pass today.
 
