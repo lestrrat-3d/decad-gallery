@@ -178,8 +178,9 @@ func (b *builder) treadleJoinery() {
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s),
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
 		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s, 0))
+	// The half-lap stock runs 5 past the block's side and bottom faces, so it never shares their planes.
 	b.machine("treadle-connector-block",
-		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s, 0),
+		b.localStock(f, 160*s, 220*s, 438*s-5, 462*s+5, -12*s-5, 0),
 		b.cylinder(3.2, 10*s, axisFrame(f.ToWorld(r3.Vec{X: 220 * s, Y: 450 * s, Z: 3 * s}), f.N())))
 	r := b.a.State.RodFrame
 	b.machine("footman", b.cylinder(3.2, 14*s, axisFrame(r.ToWorld(r3.Vec{X: 19 * s}), r.U())))
@@ -210,10 +211,11 @@ func (b *builder) guideSeats() {
 		b.machine(fmt.Sprintf("flyer-arm-%d", side+1), tools...)
 	}
 	var crossbarTools []*decad.Body
-	for _, xr := range [][2]float64{{-74, -56}, {56, 74}} {
+	// Each socket runs 5 past the crossbar's end and both its faces, so it never shares their planes.
+	for _, xr := range [][2]float64{{-74*s - 5, -56 * s}, {56 * s, 74*s + 5}} {
 		// Both the timber sockets and guide seat use the flyer's actual phase.
 		crossbarTools = append(crossbarTools,
-			b.tiltBody(b.panel(xr[0]*s, -10*s, xr[1]*s, 10*s, 10*s, b.headFrame(-210*s, a))))
+			b.tiltBody(b.panel(xr[0], -10*s, xr[1], 10*s, 10*s+10, b.headFrame(-210*s+5, a))))
 	}
 	crossbarTools = append(crossbarTools, b.tiltBody(b.cylinder(1, 7*s,
 		axisFrame(b.headPoint(58*s, -221*s, 12*s, a), r3.Vec{Y: 1}))))
@@ -293,7 +295,9 @@ func (b *builder) collarScrews() {
 			return
 		}
 		motion := b.a.Parts[i].Motion
-		b.machine(seat.name, b.cylinder(1, seat.outer,
+		// The tapped hole's tool runs 5 past the collar's outer surface; ending at that radius, its end
+		// disk would lie tangent to the outer cylinder.
+		b.machine(seat.name, b.cylinder(1, seat.outer+5,
 			axisFrame(seat.centre, seat.radial)))
 		b.part(seat.name+"-setscrew", "fastener", motion, func() *decad.Body {
 			return b.cylinder(1, math.Sqrt(seat.outer*seat.outer-1)-seat.inner,

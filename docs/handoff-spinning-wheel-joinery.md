@@ -220,6 +220,14 @@ box, each socket). Bar volume 225797.283 to 218289.828 mm3; closed form removes 
 5.34 bound. The treadle key tool starts 5 mm earlier (length `110*s+10`) so it no longer sits flush with the treadle
 ends; its volume is not yet proven. The default build reaches 819 operations and stops at `treadle-connector-block`
 (chord-tolerance Cut refusal; `.tmp/native-default-bartreadle.log`, probes in `.tmp/barprobe/`).
+Update 2026-11-03 (Build returns): three more joinery edits (connector-block half-lap stock 5 mm past the block faces,
+flyer-crossbar arm sockets 5 mm past the ends, set-screw tools `seat.outer+5` on all 17 collars) plus the proven treadle
+key tool (removes 40156.931 vs closed form 40167.714, inside 34.37) make `Build()` return on the default parameters:
+973 public operations, 190 parts, 345 sketches, all Verify-clean. Each removed volume matches its closed form inside the
+proven bound (`.tmp/joinprobe/`). `TestSpinningWheelNativeDefault` then fails its per-part 0.12 mm tessellation check:
+`yarn-leader` (held bound 0.2423 mm), `brake-band` (0.2713), `brake-spring-left/right` (2.075) refuse 0.12 mm
+(`.tmp/native-default-joinprobe.log`, `.tmp/joinprobe/survey.log`). That needs a public `Body.Refine` or a Decad decision
+on those held bounds. Raising the 0.12 mm request would loosen the check, so it was not changed.
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 
