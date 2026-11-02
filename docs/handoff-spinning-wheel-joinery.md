@@ -228,6 +228,13 @@ proven bound (`.tmp/joinprobe/`). `TestSpinningWheelNativeDefault` then fails it
 `yarn-leader` (held bound 0.2423 mm), `brake-band` (0.2713), `brake-spring-left/right` (2.075) refuse 0.12 mm
 (`.tmp/native-default-joinprobe.log`, `.tmp/joinprobe/survey.log`). That needs a public `Body.Refine` or a Decad decision
 on those held bounds. Raising the 0.12 mm request would loosen the check, so it was not changed.
+Mesh-bound survey (Opus, `.tmp/meshprobe/run2.log` to `run5.log`): Decad has no public way to tighten a held mesh;
+`WithChainTolerance` does not change the bounds (leader 0.2423 at 0.05, 0.1 and 1 mm); `Body.Refine` does not exist.
+Gallery reshapes do not help: leader fold orders give 0.158 at best; spring eyes reach 1.527 and 2.075 because the leg
+meets the eye tangentially; band right-eye joint is 0.269 whatever the order; a uniform 0.5x chord leaves the band at
+0.1233 and makes the leader 0.33. The fix needs contact-local meshing and `Body.Refine`. Revolve operands (springs, band
+eyes) belong to `decad-1c` stages S3-S5; extruded cylinders and composite sweeps (leader, band cord) and `Body.Refine`
+have no owner yet and need a new Decad worktree (suggested `feat-body-refine`), likely several PRs.
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 
