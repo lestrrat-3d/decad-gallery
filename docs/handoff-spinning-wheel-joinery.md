@@ -192,6 +192,12 @@ Tried and reverted 2026-11-03: a balanced-tree union fold (and applying it to th
 only swaps the error for another kernel limit (`.tmp/survey3-20261103.log`, `.tmp/survey4-20261103.log`): spring
 "revolve facet contact audit exceeds its fixed work ceiling", brake band "faceted body carries no face boundaries",
 leader "every parity ray was ambiguous". No Gallery reshape clears these; they need the kernel fixes.
+With Decad PR 3022's retry ladder (worktree modfile `.tmp/refine-3022.mod`) and `9c63c96`, all 12 yarn hooks build
+(167 parts, `.tmp/survey-3022.log`). `yarn-front-guide` and `yarn-leader` are the chain-depth gate (held operand
+bound 0.0228 / 0.0303 mm vs chord 0.00044 / 0.0039 mm), not a facet-ladder problem. A swept round wire cannot
+replace the cylinder unions: corners need `WithMitredJoins`, which accepts line profiles only
+(`.tmp/survey-mitre.log`), so a round wire would change the solid. Open: a kernel decision on the chain-depth gate
+or a different construction for the stem/stalk and the leader spans.
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 
