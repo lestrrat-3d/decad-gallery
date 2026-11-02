@@ -178,6 +178,8 @@ func (b *builder) treadleJoinery() {
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s),
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
 		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s, 0))
+	// The glued rail never touches the heel shaft or its key, so it gets a clearance bore along the shaft.
+	b.machine("treadle-actuating-rail", b.cylinder(5.2, 560*s, frame(f.ToWorld(r3.Vec{X: -290 * s}), f.V(), f.N())))
 	// The half-lap stock runs 5 past the block's side and bottom faces, so it never shares their planes.
 	b.machine("treadle-connector-block",
 		b.localStock(f, 160*s, 220*s, 438*s-5, 462*s+5, -12*s-5, 0),
