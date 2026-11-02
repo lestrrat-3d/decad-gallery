@@ -182,6 +182,13 @@ This is scratch consumer evidence. Publication still needs the minimal tracked t
 
 The actual full default build now consumes published Decad
 `v0.0.0-20261102112448-9b312f272126`, without native overlays or a local replace.
+Update 2026-11-02: the moving leaf is now built as co-directional prisms in the knuckle's shaft frame, with the
+M3 passage cut last by a tool that clears both leaf faces. The solid is unchanged. Against Decad main `4bfa9b5`,
+the default build and scales 0.8 and 1.2 pass the hinge and reach `yarn-hook-1` after 418 public operations
+(more than 65536 revolve facets). Scale 1.2 stops earlier at the footman Cut. Logs:
+`.tmp/spinningwheel-leaf-reshape.log` and `.tmp/spinningwheel-scales-reshape.log`.
+The paragraph below records the state before that reshape.
+
 The unchanged `TestSpinningWheelNativeDefault` stops at `mother-hinge-1-moving-leaf` after 225 public operations
 and 92 live bodies. The held mesh bound is 0.001666081177842386 mm; the pair requires 0.0005240570882159307 mm.
 The log is `.tmp/spinningwheel-native-3014.log`; the run takes 4.94 seconds.

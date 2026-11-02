@@ -232,11 +232,14 @@ func (b *builder) hinge(index int, q float64) {
 	})
 	b.tilt = true
 	b.part(prefix+"moving-leaf", "hinge", "fixed", func() *decad.Body {
-		leaf := b.panel(-169*s, q+16*s, -158*s, q+31*s, 3*s,
-			frame(r3.Vec{Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}), hole{-162 * s, q + 23.5*s, 1.6})
-		knuckle := b.cylinder(5, 15*s, shaftFrame(-172*s, q+31*s, 555*s, 0))
-		body := b.union(leaf, knuckle)
-		return b.cut(body, b.cylinder(2.7, 15*s, shaftFrame(-172*s, q+31*s, 555*s, 0)))
+		// Leaf, knuckle and pin bore share one shaft-frame plane so their caps stay
+		// co-directional prisms. The screw hole is cut last by a tool that clears both leaf faces.
+		axis := shaftFrame(-172*s, q+31*s, 555*s, 0)
+		leaf := b.panel(3*s, 0, 14*s, 3*s, 15*s, axis)
+		knuckle := b.cylinder(5, 15*s, axis)
+		body := b.cut(b.union(leaf, knuckle), b.cylinder(2.7, 15*s, axis))
+		screw := b.cylinder(1.6, 3*s+2, frame(r3.Vec{X: -162 * s, Y: q + 23.5*s, Z: 555*s - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+		return b.cut(body, screw)
 	})
 	b.part(prefix+"moving-mount", "fastener", "fixed", func() *decad.Body {
 		return b.revolve([]point2{{0, 0}, {3, 0}, {3, 1.5}, {1.5, 1.5},
