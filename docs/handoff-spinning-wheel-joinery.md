@@ -181,17 +181,24 @@ This is scratch consumer evidence. Publication still needs the minimal tracked t
 ## Current status
 
 The actual full default build now consumes published Decad
-`v0.0.0-20261102075503-1214b6aa02c8`, without native overlays or a local replace.
-It passes the axle, gimbal, connector and both moving hinges, then stops at `yarn-hook-1` after 412 public operations
-and 144 live bodies. The requested Revolve mesh exceeds the 65,536-facet limit.
-The original log is `.tmp/spinningwheel-published-3007-strict-default.log`; the run takes 7.82 seconds.
-The hook's two-body Union is separate from the mapped three-input brake-band Union repair.
-The strict run has not constructed the actual brake assembly, which follows yarn construction.
+`v0.0.0-20261102112448-9b312f272126`, without native overlays or a local replace.
+The unchanged `TestSpinningWheelNativeDefault` stops at `mother-hinge-1-moving-leaf` after 225 public operations
+and 92 live bodies. The held mesh bound is 0.001666081177842386 mm; the pair requires 0.0005240570882159307 mm.
+The log is `.tmp/spinningwheel-native-3014.log`; the run takes 4.94 seconds.
+Decad PR3010 removed the earlier hinge and brake-takeup retry routes, and PR3012 removed brake-specific budget gates.
+Generic replacements for both default consumers remain required, in addition to the scaled hinge and mapped band.
+The strict run has not reached yarn, brake construction or final assembly joint cuts.
+
+At the previous pin, `1214b6aa02c8`, the default build passed both moving hinges and reached `yarn-hook-1`
+after 412 public operations and 144 live bodies. That historical run is
+`.tmp/spinningwheel-published-3007-strict-default.log`. The hook's Revolve exceeds the 65,536-facet limit.
+Its two-body Union remains separate from the mapped three-input brake-band Union repair.
 
 The user explicitly requested an intermediate PR/image update before the remaining fixes.
-The separate `BuildPreview` path now renders 156 completed native parts, omits 17 named failures,
-and leaves assembly-wide joint cuts pending. Every image is labeled and the omissions are recorded in
-`models/spinningwheel/images/preview-status.json`. This preview does not accept the final assembly or motion gates.
+The committed `BuildPreview` images were rendered at `1214b6aa02c8`: 156 native parts, 17 named failures,
+and assembly-wide joint cuts pending. Every image is labeled and the omissions and rendered module version are
+recorded in `models/spinningwheel/images/preview-status.json`. The images have not been regenerated with the new pin.
+This historical preview does not accept current-module construction, the final assembly or motion gates.
 
 The earlier operation-92 gimbal failure log and frozen caller are in `.tmp/gimbal-bridge-producer/`.
 `verification.json` records 159 caller files matching the worktree and 5874 resolved source/evidence hashes.
@@ -203,15 +210,19 @@ Neither the snapshot nor the selected callback proof accepts the full assembly.
 Both Gallery modules select that published version through `scripts/update_decad.py`.
 The resolver now uses direct VCS lookup for `main` because the normal proxy returned the older revision after merge.
 Immutable version downloads still use the caller's normal proxy. All five focused updater tests pass.
-Fresh spur generation for this module update passes. Repeat it after any later module update.
+Fresh spur emission for this module update is recorded in bundle `20261102T121717426817Z`.
+The smallest real case passes in 0.214 seconds; the focused spur package passes in 53.074 seconds.
+The generation record matches the staged candidate and current dependency manifests.
+The real helical consumer and spur hero renderer also pass; both Go modules pass lint.
+Repeat fresh emission after any later module update.
 Full assembly checks, motion verification and final images remain pending.
 Keep Gallery PR119 open with auto-merge disabled until the user explicitly confirms the merge.
 Keep Actions PR creation disabled as the user requested; do not bypass it with another credential.
 
-### Published hinge component
+### Historical hinge component at the previous pin
 
 Decad PR3007 merged as `1214b6aa02c8e4ca370e1eb4e980797ff1d49d28` after 23 successful and three skipped checks
-at reviewed head `ca959ff866f4545a23c3b02943d059bbd844e9bd`. The generic route authenticates the original Union
+at reviewed head `ca959ff866f4545a23c3b02943d059bbd844e9bd`. The former route authenticates the original Union
 adjustment, proves leaf/bore separation, reconstructs the adjusted circular prism, and commits one public Cut.
 It preserves the original ordered target/tool history and truthful `HistoryUnknown` face coverage.
 The private Union's additional adjustment is authenticated before mapping its public warning to the target.
@@ -229,8 +240,9 @@ measurement interval. The source records have zero section and axial errors.
 The root verifier checks three constructor hashes, eight artifact hashes, the clean reviewed source, and two observer
 patches containing only print statements. Its result is `.tmp/hinge-binding-independently-verified.json`.
 
-This accepts the selected hinge consumer and its published integration. The complete assembly, other parameter cases,
-joint machining, retention, all-pair interference and motion checks remain pending.
+This accepted only the selected hinge consumer at `1214b6aa02c8`; PR3010 subsequently removed that route.
+It is not acceptance of the current module. The complete assembly, other parameter cases, joint machining,
+retention, all-pair interference and motion checks remain pending.
 
 ### Gimbal publication candidate
 

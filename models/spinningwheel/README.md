@@ -4,6 +4,9 @@
 
 This is a work-in-progress native preview. Some parts and joint cuts remain unfinished.
 The [preview status](images/preview-status.json) lists every omitted part and its construction error.
+These images were rendered with Decad `1214b6aa02c8`. The current dependency is `9b312f272126`,
+which removed the earlier hinge and brake-takeup workarounds. The current full build stops at the moving hinge;
+these images do not demonstrate a successful build with the current dependency.
 Fits, shaft retention and moving clearances still need verification.
 
 This wheel follows the flyer-and-bobbin arrangement in
@@ -20,7 +23,7 @@ the manufacturer's production drawings.
 
 ## Front and back
 
-![Operator and rear views of the current native preview](images/front-back.png)
+![Operator and rear views of the earlier native preview](images/front-back.png)
 
 Two splayed uprights carry the wheel axle. The front wheel leg and single head leg carry the treadle shaft.
 The head's maiden posts carry the flyer. The open frame carries these parts independently

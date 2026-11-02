@@ -5,80 +5,10 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/sketch/param"
-	"github.com/lestrrat-3d/units"
 )
 
 type point struct{ x, y float64 }
 type dimensions struct{ pitch, base, root, tip, fillet float64 }
-
-func defineParameters(t *param.Table, p Params) error {
-	if err := t.SetValue("module", units.Millimeters(p.Module)); err != nil {
-		return fmt.Errorf("module: %w", err)
-	}
-	if err := t.SetNumber("teeth", float64(p.Teeth)); err != nil {
-		return fmt.Errorf("teeth: %w", err)
-	}
-	if err := t.SetValue("pressure_angle", units.Radians(p.PressureAngle)); err != nil {
-		return fmt.Errorf("pressure_angle: %w", err)
-	}
-	if err := t.SetValue("thickness", units.Millimeters(p.Thickness)); err != nil {
-		return fmt.Errorf("thickness: %w", err)
-	}
-	if err := t.SetNumber("samples", float64(p.Samples)); err != nil {
-		return fmt.Errorf("samples: %w", err)
-	}
-	if err := t.SetValue("bore_diameter", units.Millimeters(p.BoreDiameter)); err != nil {
-		return fmt.Errorf("bore_diameter: %w", err)
-	}
-	if err := t.SetValue("cap_chamfer", units.Millimeters(p.CapChamfer)); err != nil {
-		return fmt.Errorf("cap_chamfer: %w", err)
-	}
-	if err := t.SetExpr("tool_margin", "1", units.Millimeter); err != nil {
-		return fmt.Errorf("tool_margin: %w", err)
-	}
-	if err := t.SetExpr("pitch_radius", "module * teeth / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("pitch_radius: %w", err)
-	}
-	if err := t.SetExpr("base_radius", "pitch_radius * cos(pressure_angle)", units.Millimeter); err != nil {
-		return fmt.Errorf("base_radius: %w", err)
-	}
-	if err := t.SetExpr("root_radius", "(module * teeth - 2.5 * module) / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("root_radius: %w", err)
-	}
-	if err := t.SetExpr("tip_radius", "(module * teeth + 2 * module) / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("tip_radius: %w", err)
-	}
-	if err := t.SetExpr("involute_angle", "tan(pressure_angle) - deg(pressure_angle) * pi / 180", units.One); err != nil {
-		return fmt.Errorf("involute_angle: %w", err)
-	}
-	if err := t.SetExpr("fillet_radius", "0.9 * root_radius * (pi / teeth - 2 * involute_angle) / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("fillet_radius: %w", err)
-	}
-	if err := t.SetExpr("bore_tool_length", "thickness + 2 * tool_margin", units.Millimeter); err != nil {
-		return fmt.Errorf("bore_tool_length: %w", err)
-	}
-	return nil
-}
-
-func readDimensions(doc *decad.Document) (dimensions, error) {
-	var d dimensions
-	entries := []struct {
-		name string
-		dest *float64
-	}{
-		{"pitch_radius", &d.pitch}, {"base_radius", &d.base}, {"root_radius", &d.root},
-		{"tip_radius", &d.tip}, {"fillet_radius", &d.fillet},
-	}
-	for _, entry := range entries {
-		v, err := doc.Param(entry.name)
-		if err != nil {
-			return dimensions{}, fmt.Errorf("%s: %w", entry.name, err)
-		}
-		*entry.dest = v.Base()
-	}
-	return d, nil
-}
 
 func derive(p Params) dimensions {
 	doc := decad.New()
@@ -92,10 +22,10 @@ func derive(p Params) dimensions {
 	return d
 }
 
-func filletRadius(_ Params, d dimensions) float64 { return d.fillet }
+func filletRadius(p Params, d dimensions) float64 { return d.fillet }
 
 func rotate(x, y, theta float64) point {
-	c, s := math.Cos(theta), math.Sin(theta)
+	s, c := math.Sincos(theta)
 	return point{x*c - y*s, x*s + y*c}
 }
 
@@ -107,43 +37,38 @@ func toothAngle(p Params, k int) float64 { return 2 * math.Pi * float64(k) / flo
 
 func involute(base, radius float64) point {
 	t := math.Tan(math.Acos(base / radius))
-	return point{base * (math.Cos(t) + t*math.Sin(t)), base * (math.Sin(t) - t*math.Cos(t))}
-}
-
-func flankBeta(pitch, base, teeth float64) float64 {
-	p := involute(base, pitch)
-	return math.Pi/(2*teeth) - math.Atan2(-p.y, p.x)
+	s, c := math.Sincos(t)
+	return point{base * (c + t*s), base * (s - t*c)}
 }
 
 func sampleFlanks(pitch, base, start, tip, teeth float64, samples int, angle float64) ([]point, []point) {
+	p := involute(base, pitch)
+	beta := math.Pi/(2*teeth) - math.Atan2(-p.y, p.x)
 	left, right := make([]point, samples), make([]point, samples)
-	beta := flankBeta(pitch, base, teeth)
 	for i := range samples {
 		r := start + (tip-start)*float64(i)/float64(samples-1)
-		p := involute(base, r)
-		l := rotate(p.x, -p.y, beta)
-		left[i] = rotate(l.x, l.y, angle)
-		right[i] = rotate(l.x, -l.y, angle)
+		ip := involute(base, r)
+		lp := rotate(ip.x, -ip.y, beta)
+		left[i] = rotate(lp.x, lp.y, angle)
+		right[i] = rotate(lp.x, -lp.y, angle)
 	}
 	return left, right
 }
 
-// InvoluteFlanks returns left and right base-to-tip fit points at the supplied angle.
 func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
 	angle float64) ([][2]float64, [][2]float64, error) {
-	for _, value := range []float64{pitch, base, tip, effectiveTeeth, angle} {
-		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return nil, nil, fmt.Errorf("involute inputs must be finite")
+	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return nil, nil, fmt.Errorf("involute arguments must be finite")
 		}
 	}
 	if base <= 0 || pitch <= base || tip <= pitch || effectiveTeeth <= 0 || samples < 3 {
-		return nil, nil, fmt.Errorf("invalid involute radii, effective teeth, or sample count")
+		return nil, nil, fmt.Errorf("invalid involute radii, effective teeth, or samples")
 	}
-	left, right := sampleFlanks(pitch, base, base, tip, effectiveTeeth, samples, angle)
-	l, r := make([][2]float64, samples), make([][2]float64, samples)
+	l, r := sampleFlanks(pitch, base, base, tip, effectiveTeeth, samples, angle)
+	left, right := make([][2]float64, samples), make([][2]float64, samples)
 	for i := range samples {
-		l[i] = [2]float64{left[i].x, left[i].y}
-		r[i] = [2]float64{right[i].x, right[i].y}
+		left[i], right[i] = [2]float64{l[i].x, l[i].y}, [2]float64{r[i].x, r[i].y}
 	}
-	return l, r, nil
+	return left, right, nil
 }

@@ -1,5 +1,6 @@
 {
   "status": "Work in progress. Joint cuts, retention and collision verification remain pending.",
+  "rendered_decad_version": "v0.0.0-20261102075503-1214b6aa02c8",
   "built_parts": 156,
   "rendered_parts": 156,
   "joint_cuts_pending": true,
