@@ -180,6 +180,17 @@ This is scratch consumer evidence. Publication still needs the minimal tracked t
 
 ## Current status
 
+Update 2026-11-03: PR119 head `cd32ff6` is open. CI `render` and `repository` fail only at `yarn-hook-1`
+(`.tmp/gh-failed-41466224838.txt`). Decad main is still `4bfa9b56d`; the default build still stops at
+`yarn-hook-1` after 418 operations (`.tmp/native-default-20261103.log`). The connector test still requests 0.05 mm
+below the held 0.0758 mm bound (`.tmp/connector-default-20261103.log`); public `Body.Refine` does not exist yet.
+A `BuildPreview` survey (`.tmp/survey2-20261103.log`) builds 155 parts and fails 18: 12 yarn hooks and the front guide
+(revolve facet limit), `yarn-leader`, both brake springs and `brake-takeup-screw` (chain-depth refusal, "reshape with
+fewer booleans"), and `brake-band` (composite-sweep work ceiling). `builder.union` now retries a three-body refusal
+as a pairwise fold; that cleared the "three or more bodies" refusals but exposed the chain-depth ones.
+Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
+(composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
+
 The actual full default build now consumes published Decad
 `v0.0.0-20261102112448-9b312f272126`, without native overlays or a local replace.
 Update 2026-11-02: the moving leaf is now built as co-directional prisms in the knuckle's shaft frame, with the
