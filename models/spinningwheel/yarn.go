@@ -47,7 +47,7 @@ func (b *builder) yarn() {
 				axis = activeAxis
 			}
 			b.part(fmt.Sprintf("yarn-hook-%d", index), "guide", "flyer", func() *decad.Body {
-				return b.yarnHook(r3.Vec{X: x * s, Y: y * s, Z: 22 * s}, axis, 7*s, false)
+				return b.yarnHook(r3.Vec{X: x * s, Y: y * s, Z: 22 * s}, axis, 10*s, false)
 			})
 		}
 	}

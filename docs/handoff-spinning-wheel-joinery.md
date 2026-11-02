@@ -192,7 +192,8 @@ The footman tie bolt now sits `10*Scale+2` mm inside the rod end, so scales 0.8,
 A diagnostic build without `yarn()` (frame, drive, adjustment, head, brake) stops at `brake-band`: first the
 three-body Union refusal, then, with the cord and eyes joined two at a time, the composite sweep facet-pair audit
 ceiling (429 operations). That sweep is the separate native brake-band work.
-The hook stem bottom is Z=7*Scale in `yarn.go` while `instructions.md` says 10*Scale; this is unresolved.
+The hook stem bottom now follows `instructions.md` (Z=10*Scale, the arm's mounting face); it was 7*Scale.
+This is not yet exercised, because the build still stops at `yarn-hook-1`.
 The paragraph below records the state before that reshape.
 
 The unchanged `TestSpinningWheelNativeDefault` stops at `mother-hinge-1-moving-leaf` after 225 public operations
