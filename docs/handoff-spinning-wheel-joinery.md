@@ -187,6 +187,12 @@ M3 passage cut last by a tool that clears both leaf faces. The solid is unchange
 the default build and scales 0.8 and 1.2 pass the hinge and reach `yarn-hook-1` after 418 public operations
 (more than 65536 revolve facets). Scale 1.2 stops earlier at the footman Cut. Logs:
 `.tmp/spinningwheel-leaf-reshape.log` and `.tmp/spinningwheel-scales-reshape.log`.
+The footman tie bolt now sits `10*Scale+2` mm inside the rod end, so scales 0.8, 1 and 1.2 all reach
+`yarn-hook-1` after 418 operations; the default solid is unchanged. The yarn hook's facet limit is native work.
+A diagnostic build without `yarn()` (frame, drive, adjustment, head, brake) stops at `brake-band`: first the
+three-body Union refusal, then, with the cord and eyes joined two at a time, the composite sweep facet-pair audit
+ceiling (429 operations). That sweep is the separate native brake-band work.
+The hook stem bottom is Z=7*Scale in `yarn.go` while `instructions.md` says 10*Scale; this is unresolved.
 The paragraph below records the state before that reshape.
 
 The unchanged `TestSpinningWheelNativeDefault` stops at `mother-hinge-1-moving-leaf` after 225 public operations

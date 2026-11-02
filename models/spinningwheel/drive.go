@@ -151,17 +151,20 @@ func (b *builder) driveFootman() {
 	s := b.p.Scale
 	r := b.a.State.RodFrame
 	point := r.ToWorld
+	// The tie bolt sits 2 mm inside the rod end at every scale; a fixed 12 mm offset
+	// lands on the end face at Scale 1.2 and breaks out of the rod above 1.09.
+	boltOffset := 10*s + 2
 	sectionFrame := func(v float64) r3.Frame {
 		return frame(point(r3.Vec{Y: v}), r.U(), r.N())
 	}
 	b.part("footman", "footman", "footman", func() *decad.Body {
 		body := b.panel(20*s, -5*s, 476*s, 5*s, 20*s, sectionFrame(10*s), hole{26 * s, 0, 2.2})
 		return b.cut(body, b.cylinder(1.1, 20*s,
-			frame(point(r3.Vec{X: 486*s - 12, Y: 10 * s}), r.U(), r.N())))
+			frame(point(r3.Vec{X: 486*s - boltOffset, Y: 10 * s}), r.U(), r.N())))
 	})
 	b.part("footman-head-boss", "footman", "footman", func() *decad.Body {
 		return b.panel(460*s, -10*s, 498*s, 10*s, 24*s, sectionFrame(12*s),
-			hole{486 * s, 0, 7}, hole{486*s - 12, 0, 1.1})
+			hole{486 * s, 0, 7}, hole{486*s - boltOffset, 0, 1.1})
 	})
 	centre := b.a.State.RodHead
 	axial := func(v float64) r3.Frame { return axisFrame(centre.Add(r.V().Scale(v)), r.V()) }
@@ -176,10 +179,10 @@ func (b *builder) driveFootman() {
 	for i, start := range []float64{-12 * s, 12*s + 2} {
 		b.part(fmt.Sprintf("footman-cross-retainer-%d", i+1), "retainer", "footman", func() *decad.Body {
 			f := frame(centre.Add(r.V().Scale(start)), r.U(), r.N())
-			return b.panel(-18*s, -10*s, 12*s, 10*s, 2, f, hole{0, 0, 5}, hole{-12, 0, 1.1})
+			return b.panel(-18*s, -10*s, 12*s, 10*s, 2, f, hole{0, 0, 5}, hole{-boltOffset, 0, 1.1})
 		})
 	}
-	boltCentre := centre.Sub(r.U().Scale(12))
+	boltCentre := centre.Sub(r.U().Scale(boltOffset))
 	b.part("footman-retainer-bolt", "fastener", "footman", func() *decad.Body {
 		return b.revolve([]point2{{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 24*s + 7}, {0, 24*s + 7}},
 			axisFrame(boltCentre.Sub(r.V().Scale(12*s+3)), r.V()))
