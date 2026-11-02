@@ -188,6 +188,10 @@ A `BuildPreview` survey (`.tmp/survey2-20261103.log`) builds 155 parts and fails
 (revolve facet limit), `yarn-leader`, both brake springs and `brake-takeup-screw` (chain-depth refusal, "reshape with
 fewer booleans"), and `brake-band` (composite-sweep work ceiling). `builder.union` now retries a three-body refusal
 as a pairwise fold; that cleared the "three or more bodies" refusals but exposed the chain-depth ones.
+Tried and reverted 2026-11-03: a balanced-tree union fold (and applying it to the leader's chain-depth refusal)
+only swaps the error for another kernel limit (`.tmp/survey3-20261103.log`, `.tmp/survey4-20261103.log`): spring
+"revolve facet contact audit exceeds its fixed work ceiling", brake band "faceted body carries no face boundaries",
+leader "every parity ray was ambiguous". No Gallery reshape clears these; they need the kernel fixes.
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 
