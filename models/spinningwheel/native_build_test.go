@@ -14,13 +14,26 @@ import (
 func TestSpinningWheelNativeDefault(t *testing.T) {
 	doc := decad.New()
 	a, err := spinningwheel.Build(t.Context(), doc, spinningwheel.DefaultParams())
+	if err != nil {
+		operations := doc.OperationHistory().Operations()
+		coils := 0
+		for _, operation := range operations {
+			if operation.Kind() == decad.OperationCoil {
+				coils++
+			}
+		}
+		t.Logf("Build failed after %d public operations, %d Coil operations, and %d live bodies",
+			len(operations), coils, len(doc.Bodies()))
+	}
 	require.NoError(t, err)
 	require.Equal(t, len(a.Parts), len(doc.Bodies()))
+	requirePartHomes(t, a)
 	for _, part := range a.Parts {
 		mesh, err := part.Body.Tessellate(t.Context(), units.Millimeters(.12), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, "%s", part.Name)
 		require.True(t, mesh.BoundaryVerified(), "%s", part.Name)
 		require.True(t, mesh.VolumeVerified(), "%s", part.Name)
+		require.Equal(t, 1, meshComponents(len(mesh.Vertices()), mesh.Triangles()), "%s must be one connected physical part", part.Name)
 	}
 	for i, s := range a.Sketches {
 		r := s.Verify(t.Context())

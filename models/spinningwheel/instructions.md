@@ -10,9 +10,16 @@ This router is non-authoritative; the linked sections own the dimensions.
 - Flyer, bobbin and bearings: hollow tube, posts, seats and shaft retention.
 - Yarn route: open hooks and illustrative leader.
 - Scotch brake: front controls, two springs and conserved cord length.
+- Manufactured joints and mounted parts: final physical parts, fits and retention in mounting.md.
 - Verification and images: acceptance boundaries.
 
 ## Purpose
+
+[mounting.md](mounting.md) owns manufactured joints, occupied-volume corrections and hardware retention.
+Apply it to the stock dimensions below before returning final parts. It replaces the earlier D hub couplings,
+separate overlapping wire/hinge fragments and unmachined timber intersections with assembled physical parts.
+steps.md maps these rules to construction. Its referenced mounting.md is part of every emission input bundle.
+[parts.md](parts.md) owns stable identifiers shared across partial emitters and downstream consumers.
 
 Build an open Saxony wheel with a flyer, independently rotating bobbin, hollow yarn orifice,
 single drive band, Scotch bobbin brake, and crank-driven treadle.
@@ -46,6 +53,17 @@ Part exposes Name,Group,Motion string and Body *decad.Body.
 Motion is fixed, wheel, flyer, bobbin, treadle, gimbal or footman; it names the rigid motion for animations.
 All parts have unique names, exact native solid bodies, and no leftover tool/prototype bodies.
 All consumed sketches, including imported bearings and cut tools, are returned and verified.
+
+### Work-in-progress preview API
+
+Expose BuildPreview(ctx,doc,Params)(*Preview,error) for staged visual review.
+Preview contains Assembly *Assembly and Issues []PreviewIssue; each issue has Part and Reason strings.
+Use the same independent native part constructors and solved pose as Build.
+Record a failed part and continue the other independent parts. Never register a failed constructor's tools as parts.
+Skip assembly-wide joint cuts in this preview and identify that omission in renderer output.
+Do not change dimensions, replace failed geometry, relax Sketch constraints or change strict Build failure behavior.
+The renderer must label preview images, report omitted construction/mesh parts, and draw only registered completed parts.
+Preview output does not certify fits, retention, non-overlap or motion clearances.
 
 Head part IDs and role groups are a stable contract for renderer selection and geometry checks:
 - flyer-shaft: Group shaft, Motion flyer; the completed hollow shaft, outlet and flats.

@@ -48,7 +48,7 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 			models := []solidlens.Model{mesh.model}
 			return []wheelPanel{
 				{bevelScene(oblique, models), "One-piece whorl: four V grooves", "The grooves give 7:1, 9:1, 12:1 and 17:1 speed ratios."},
-				{bevelScene(bore, models), "Actual D-shaped through-bore", "The flat mates with the 16 mm hollow shaft; this close-up crops the rim."},
+				{bevelScene(bore, models), "Actual keyed through-bore", "The removable key transmits torque from the 16 mm hollow shaft; this close-up crops the rim."},
 			}, nil
 		}
 		return nil, fmt.Errorf("whorl sheet needs the actual flyer-drive-whorl body")

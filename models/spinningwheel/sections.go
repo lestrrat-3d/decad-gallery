@@ -246,12 +246,6 @@ func (b *builder) annulus(inner, outer, length float64, f r3.Frame) *decad.Body 
 	return m.Body
 }
 
-func (b *builder) dTool(radius, flat, length float64, f r3.Frame) *decad.Body {
-	s := b.section(false)
-	dOutline(s, radius, flat)
-	return b.extrude(s, 0, length, f)
-}
-
 func (b *builder) dAnnulus(inner, flat, outer, length float64, f r3.Frame) *decad.Body {
 	s := b.section(false)
 	circle(s, 0, 0, outer)

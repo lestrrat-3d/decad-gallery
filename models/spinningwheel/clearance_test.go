@@ -73,7 +73,7 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 	bands := map[bandKey]collisionShape{}
 	for _, part := range a.Parts {
 		switch part.Motion {
-		case "wheel", "treadle", "gimbal", "footman":
+		case "wheel", "treadle", "gimbal", "footman", "compliant":
 			moving = append(moving, namedShape{part, nativeCollisionShape(part.Body, meshes[part.Name])})
 		case "fixed":
 			if part.Group == "frame" || part.Group == "adjustment" || part.Group == "hinge" {
@@ -88,9 +88,19 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 		state, err := spinningwheel.Motion(pose)
 		require.NoError(t, err)
 		for _, item := range moving {
-			xf, err := spinningwheel.PoseTransform(a.State, state, item.part.Motion, pose.WheelAngle-p.WheelAngle)
-			require.NoError(t, err)
-			shape := item.shape.placed(xf)
+			var shape collisionShape
+			if item.part.Motion == "compliant" {
+				connector, err := spinningwheel.BuildConnector(t.Context(), decad.New(), pose)
+				require.NoError(t, err)
+				mesh, err := connector.Body.Tessellate(t.Context(), units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+				require.NoError(t, err)
+				require.True(t, mesh.BoundaryVerified() && mesh.VolumeVerified(), "connector at %d degrees", i*5)
+				shape = nativeCollisionShape(connector.Body, surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()})
+			} else {
+				xf, err := spinningwheel.PoseTransform(a.State, state, item.part.Motion, pose.WheelAngle-p.WheelAngle)
+				require.NoError(t, err)
+				shape = item.shape.placed(xf)
+			}
 			posed[item.part.Name] = shape
 			for _, obstacle := range fixed {
 				if shape.separates(obstacle.shape) {
@@ -203,5 +213,5 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 		}
 		require.NoError(t, decad.Remove(body))
 	}
-	require.Equal(t, 31, sweptMembers, "crossbar, two arms, whorl, thirteen hooks, thirteen stems and front stalk need swept checks")
+	require.Equal(t, 17, sweptMembers, "crossbar, two arms, whorl and thirteen formed guides need swept checks")
 }

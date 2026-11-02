@@ -2,6 +2,10 @@
 
 ![Open Saxony spinning wheel](images/hero.png)
 
+This is a work-in-progress native preview. Some parts and joint cuts remain unfinished.
+The [preview status](images/preview-status.json) lists every omitted part and its construction error.
+Fits, shaft retention and moving clearances still need verification.
+
 This wheel follows the flyer-and-bobbin arrangement in
 [George Weil's labelled spinning wheel](https://www.georgeweil.com/blog/how-does-a-spinning-wheel-work/).
 A foot treadle turns the large wheel through a crank and footman. A single drive band turns
@@ -16,7 +20,7 @@ the manufacturer's production drawings.
 
 ## Front and back
 
-![Operator and rear views of the actual assembly](images/front-back.png)
+![Operator and rear views of the current native preview](images/front-back.png)
 
 Two splayed uprights carry the wheel axle. The front wheel leg and single head leg carry the treadle shaft.
 The head's maiden posts carry the flyer. The open frame carries these parts independently
@@ -41,30 +45,26 @@ makes that difference visible.
 
 ![Scotch brake and spring](images/brake.png)
 
-The brake cord wraps the bobbin's rear flange. Both tails run forward below the flyer to two extension springs
+The intended brake cord wraps the bobbin's rear flange. The current preview omits the band and both springs.
+Both tails will run forward below the flyer to two extension springs
 and an accessible adjusting screw. Turning the screw extends both springs while preserving cord length.
 
-The drive whorl, wheel hub and crank use matching D-shaped shaft connections.
-The whorl is one piece, between the front maiden and flyer crossbar, with all four grooves and a D16.2 bore.
+The drive whorl, wheel hub, crank and treadle rail use removable keys in otherwise round shafts.
+The whorl is one piece, between the front maiden and flyer crossbar, with all four grooves and a keyed 16.2 mm bore.
 Bearing journals stay circular. The 10 mm yarn orifice requires a 16 mm front journal and
 a plain nylon sleeve; the smaller rear journal uses a 608 bearing.
 
-![One-piece whorl and its D-shaped through-bore](images/whorl.png)
+![One-piece whorl and its keyed through-bore](images/whorl.png)
 
 ## Motion
 
-![Actual model bodies moving with their fixed frame](images/motion.gif)
-
-The animation uses the same native bodies as the still images. The frame stays fixed,
-the treadle rocks, and the footman's bearing centres follow the solved spatial linkage.
-Blue A/B marks identify the perpendicular fixed axes. Green C/D/S marks follow the moving joints, and the frame is grey.
-One wheel turn gives seven flyer turns and six bobbin turns in this illustrative animation.
-Their difference winds about 195 mm of yarn at the displayed 31 mm winding radius.
-The ordinary model default prescribes 100 mm of feed per wheel turn instead.
+The refreshed animation remains pending while connector refinement and swept clearances are completed.
+The still images show one solved pose. The frame stays fixed while the treadle rocks and the footman's
+bearing centres follow the spatial linkage. The model default prescribes 100 mm of yarn feed per wheel turn.
 
 The wheel can turn in either direction after a hand start. Flywheel inertia carries it
 through the crank's dead centres and raises the pedal. Side slides and a pedal return spring
-are unnecessary for this rocking treadle. The animation prescribes motion; it does not
+are unnecessary for this rocking treadle. The model prescribes motion; it does not
 calculate foot force, bearing load, inertia, belt traction or brake friction.
 
 ## Parts and adjustment
@@ -72,12 +72,13 @@ calculate foot force, bearing load, inertia, belt traction or brake friction.
 The assembly reuses the [bearing envelopes](../ballbearing/) for seven 608-2RS bearings
 and three 605ZZ bearings. A custom 16.2 x 26 x 20 mm sleeve carries the front flyer journal.
 Other hardware includes 8 mm shafts, 5 mm linkage pins, M6 post/clamp fasteners,
-an M8 drive-tension screw and an M4 brake-adjusting screw. Threads and custom split-clamp shaft
-collars are mounting envelopes; their internal fasteners are not manufacturing models.
+an M8 drive-tension screw and an M4 brake-adjusting screw. Each shaft collar has a radial M2 grub screw.
+Bolted end plates retain the gimbal and footman bearings. Screw threads are represented by mounting envelopes.
 
-The rear maiden unbolts from its foot for bobbin changes. Remove the whorl and rear support,
-release the rear bobbin collar, and slide the bobbin off the rear shaft.
-The drive band must be slackened first. Leave the modeled 0.2 mm shoulder gaps for bobbin rotation.
+The rear maiden and its glued foot remove together for bobbin changes. Slacken the drive band and release the brake cord.
+Remove the outer rear-flyer collar, unbolt the maiden foot, and slide the post-and-foot unit rearward off the shaft.
+Remove the remaining rear-support collar and bobbin retaining collar, then slide the bobbin off the rear shaft.
+Leave the modeled 0.2 mm shoulder gaps for bobbin rotation.
 Physical brake setting, belt preload, balance, wood joints and shaft retention need checking
 on a prototype before using the wheel to spin yarn.
 

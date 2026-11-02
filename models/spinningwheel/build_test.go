@@ -51,6 +51,7 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 	}
 	require.NoError(t, err)
 	requireOnePieceWhorl(t, a, p)
+	requirePartHomes(t, a)
 	require.Equal(t, len(a.Parts), len(doc.Bodies()), "only final assembly bodies may remain live")
 	names := make(map[string]struct{})
 	meshes := make(map[string]surfaceTriangles)
@@ -70,6 +71,7 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 		require.NoError(t, err, "part %s", p.Name)
 		require.True(t, mesh.BoundaryVerified(), "part %s boundary", p.Name)
 		require.True(t, mesh.VolumeVerified(), "part %s volume", p.Name)
+		require.Equal(t, 1, meshComponents(len(mesh.Vertices()), mesh.Triangles()), "%s must be connected", p.Name)
 		meshes[p.Name] = surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()}
 	}
 	for i, s := range a.Sketches {
@@ -80,6 +82,9 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 		require.Zero(t, len(r.Conflicts), "sketch %d", i)
 		require.NoError(t, r.Check(), "sketch %d", i)
 	}
+	requireBrakeCaptivity(t, a, p, meshes)
+	requireGeometricPartHomes(t, a, meshes)
+	requireNoMaterialOverlap(t, doc, a)
 	requireWheelFeatures(t, a, p, meshes)
 	requireHeadAdjustment(t, a, p)
 	requireLinkageFrameClearances(t, a, p, meshes)

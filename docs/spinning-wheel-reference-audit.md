@@ -41,7 +41,8 @@ The photographs establish arrangement, not manufacturing dimensions.
 
 ## Deliberate construction choices
 
-Keep purchased 608-2RS and 605ZZ mounting envelopes, D-shaped positive couplings and removable bearing supports.
+Keep purchased 608-2RS and 605ZZ mounting envelopes and removable bearing supports.
+Use the removable parallel keys and fitted joints specified by `models/spinningwheel/mounting.md`.
 Use straight timber sections and a rectangular flyer rather than copying decorative turnings.
 Use a front M4 screw for brake take-up rather than an unmodeled friction peg.
 Use a 605-based upper gimbal and an ideal compliant lower connector; do not force skew pivots through a plain bearing.
@@ -71,8 +72,12 @@ Moving the crank10nominalmm rearward preserves the solved crank-pin centre while
 
 ## Verified correction results
 
-The corrected default has181finalbodies and198verifiedsketches.
-The default and all four specified scale/ratio/adjustment cases pass final-solid, joint-fit and clearance checks.
+These results describe the earlier assembly committed as `84493de`, before the mounting and fitted-joint repairs.
+They do not verify the pending construction; [the joinery handoff](handoff-spinning-wheel-joinery.md#current-status)
+records the latest real consumer result.
+
+That earlier default has181finalbodies and198verifiedsketches.
+The earlier default and all four specified scale/ratio/adjustment cases passed final-solid, joint-fit and clearance checks.
 Each case checks72solved poses against the fixed frame, including the offset rear rail and crank hardware.
 The renderer checks ten actual moving-body joint locations at four phases, including both gimbal axes and both clamps.
 These checks establish the modeled interfaces; the prototype still needs force, traction and flexible-connector checks.

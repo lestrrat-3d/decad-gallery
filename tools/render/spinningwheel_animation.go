@@ -12,19 +12,38 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
+	"github.com/lestrrat-3d/units"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
 
 // Rigidly transform vertices tessellated from the actual Decad bodies.
 // No replacement linkage or flyer geometry is drawn for the animation.
-func spinningWheelPose(meshes []wheelMesh, base, state spinningwheel.State, wheelDelta float64) ([]wheelMesh, error) {
+func spinningWheelPose(ctx context.Context, meshes []wheelMesh, base spinningwheel.State, p spinningwheel.Params, wheelDelta float64) ([]wheelMesh, error) {
+	state, err := spinningwheel.Motion(p)
+	if err != nil {
+		return nil, err
+	}
 	posed := make([]wheelMesh, len(meshes))
 	for i, mesh := range meshes {
 		posed[i] = mesh
+		if mesh.part.Motion == "compliant" {
+			connector, err := spinningwheel.BuildConnector(ctx, decad.New(), p)
+			if err != nil {
+				return nil, fmt.Errorf("build posed connector: %w", err)
+			}
+			triangles, err := connector.Body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
+			if err != nil {
+				return nil, fmt.Errorf("verify posed connector: %w", err)
+			}
+			posed[i].part.Body = connector.Body
+			posed[i].model.Mesh = triangles
+			continue
+		}
 		if mesh.part.Motion == "fixed" {
 			continue
 		}
@@ -72,7 +91,7 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 		if err != nil {
 			return err
 		}
-		posed, err := spinningWheelPose(meshes, base, state, p.WheelAngle-math.Pi/3)
+		posed, err := spinningWheelPose(ctx, meshes, base, p, p.WheelAngle-math.Pi/3)
 		if err != nil {
 			return err
 		}

@@ -88,14 +88,14 @@ func requireOnePieceWhorl(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 		land := []float64{3, 2, 2, 1}[i] * p.Scale
 		outerVolume += math.Pi * lip * lip * land
 	}
-	const radius, flat = 8.1, 6.1
-	capArea := radius*radius*math.Acos(flat/radius) - flat*math.Sqrt(radius*radius-flat*flat)
-	dArea := math.Pi*radius*radius - capArea
-	want := outerVolume - dArea*32*p.Scale
+	const radius, halfWidth, extent = 8.1, 1.6, 8.8
+	boreArea := math.Pi*radius*radius + 2*halfWidth*extent -
+		halfWidth*math.Sqrt(radius*radius-halfWidth*halfWidth) - radius*radius*math.Asin(halfWidth/radius)
+	want := outerVolume - boreArea*32*p.Scale
 	volume, err := body.Volume()
 	require.NoError(t, err)
 	require.Less(t, volume.Bound.Base(), 1e-5*want, "whorl volume must have a tight bound")
-	require.InDelta(t, want, volume.Value.Base(), volume.Bound.Base()+1e-5, "one-piece rim minus its constant D through-bore")
+	require.InDelta(t, want, volume.Value.Base(), volume.Bound.Base()+1e-5, "one-piece rim minus its constant keyed through-bore")
 }
 
 func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwheel.Params, meshes map[string]surfaceTriangles) {
@@ -116,18 +116,18 @@ func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 		require.False(t, shaft.contains(headPoint(0, -227*s, z)), "radial outlet must open atZ%g", z)
 	}
 	require.True(t, shaft.contains(headPoint(3.5, -227*s, 6.5)), "port must preserve nearby tube wall")
-	require.False(t, shaft.contains(headPoint(6.5, -215*s, 0)), "front positive coupling needs its D flat")
-	require.True(t, shaft.contains(headPoint(5.5, -215*s, 0)), "front D shaft needs material behind its flat")
-	require.False(t, shaft.contains(headPoint(6.5, -270*s, 0)), "front whorl coupling needs its D flat")
-	require.True(t, shaft.contains(headPoint(5.5, -270*s, 0)), "D tube must preserve material outside the yarn bore")
+	for _, y := range []float64{-215, -270} {
+		require.False(t, shaft.contains(headPoint(7.5, y*s, 0)), "key seat must open atY%g", y)
+		require.True(t, shaft.contains(headPoint(6.5, y*s, 0)), "key seat must preserve tube wall atY%g", y)
+	}
 	require.True(t, shaft.contains(headPoint(3.5, -48*s+3.5, 0)), "rear bearing journal must remain round")
 	require.True(t, shaft.contains(headPoint(7.5, -300*s, 0)), "front sleeve journal must remain round")
 	whorl, exists := meshes["flyer-drive-whorl"]
 	require.True(t, exists)
-	require.True(t, whorl.contains(headPoint(6.5, -266*s, 0)), "D bore's flat must leave torque-transmitting material")
-	require.False(t, whorl.contains(headPoint(5.5, -266*s, 0)), "D bore must remain open")
-	// A quarter-turn error would put shaft material into the whorl's flat.
-	require.True(t, shaft.contains(headPoint(0, -270*s, -7.5)), "the noncircular interface must prevent free relative rotation")
+	require.False(t, whorl.contains(headPoint(8.5, -266*s, 0)), "whorl keyway must receive the removable key")
+	require.True(t, meshes["flyer-whorl-key"].contains(headPoint(8.5, -266*s, 0)), "key must project beyond the round journal")
+	require.True(t, whorl.contains(headPoint(8.5, -266*s, 2)), "hub material must flank the keyway")
+	require.True(t, whorl.contains(headPoint(0, -266*s, 8.5)), "a quarter-turned key must interfere with the hub")
 	bobbin, exists := meshes["bobbin"]
 	require.True(t, exists)
 	for _, x := range []float64{0, 4, 5.75} {
@@ -139,9 +139,14 @@ func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 	for _, x := range []float64{-260, 220} {
 		require.True(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: x * s, Y: 3.7})), "heel journal must stay round")
 	}
-	require.False(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 3.5})), "heel shaft needs a positive flat")
-	require.True(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 2.5})), "heel shaft preserves material behind its flat")
-	require.True(t, meshes["treadle-heel-rail"].contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 3.5})), "heel rail must have the matching flat")
+	require.False(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 3.5})), "heel shaft must receive its key")
+	require.True(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 2.5})), "heel shaft preserves material behind its key seat")
+	rail := meshes["treadle-heel-rail"]
+	require.True(t, rail.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 4.6, Z: -1.4})), "half-lapped heel rail must flank its keyway")
+	keyPoint := st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 4.5, Z: -.5})
+	require.False(t, rail.contains(keyPoint), "heel rail must clear the installed key")
+	require.True(t, meshes["heel-key"].contains(keyPoint), "key must occupy its passage")
+	require.True(t, rail.contains(st.PedalFrame.ToWorld(r3.Vec{X: -100 * s, Z: 4.5})), "a quarter-turned key must interfere with the heel rail")
 	requireBoreCaps(t, wheelPart(t, a, "footman-head-boss"), st.RodHead, st.RodFrame.V(), 7)
 	stock608, stock605 := 0, 0
 	for _, part := range a.Parts {
@@ -189,22 +194,22 @@ func requireHeadAdjustment(t *testing.T, a *spinningwheel.Assembly, p spinningwh
 	require.InDelta(t, 540*p.Scale, tip.Min.Z, tip.Bound.Base()+1e-6, "pointed jack must touch rather than penetrate its fixed shelf")
 	base := wheelPart(t, a, "mother-base")
 	for _, x := range []float64{-180, -120} {
-		location, err := base.LocatePoint(t.Context(), r3.Vec{X: x * p.Scale, Y: -60 * p.Scale, Z: 532 * p.Scale}, units.Millimeters(.025))
+		location, err := base.LocatePoint(t.Context(), r3.Vec{X: x * p.Scale, Y: -70 * p.Scale, Z: 532 * p.Scale}, units.Millimeters(.025))
 		require.NoError(t, err)
 		require.True(t, location == decad.PointOutside, "alignment bolt must pass through the real slot at all ratios, got %s", location)
 	}
-	length := 0.0
-	bound := 0.0
+	cords := 0
 	for _, part := range a.Parts {
 		if part.Group != "brake-band" {
 			continue
 		}
-		v, err := part.Body.Volume()
-		require.NoError(t, err)
-		length += v.Value.Base() / (math.Pi * .6 * .6)
-		bound += v.Bound.Base() / (math.Pi * .6 * .6)
+		cords++
+		require.Equal(t, "brake-band", part.Name, "main cord and its spliced eyes must be one physical part")
 	}
-	require.InDelta(t, a.State.BrakeLength, length, bound+1e-6, "the actual native brake cord preserves length")
+	require.Equal(t, 1, cords)
+	radius := 42*p.Scale + .6*math.Sqrt(5)
+	wantLength := math.Pi*radius + 612*p.Scale - 36.8 + 14.6*math.Pi
+	require.InDelta(t, wantLength, a.State.BrakeLength, 1e-9, "nominal centreline length includes both terminal eyes")
 }
 
 func requireBoreCaps(t *testing.T, body *decad.Body, centre, axis r3.Vec, radius float64) {

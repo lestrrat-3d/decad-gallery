@@ -3,6 +3,7 @@
 [instructions.md](../../models/spinningwheel/instructions.md) owns the dimensions and behavior.
 [steps.md](../../models/spinningwheel/steps.md) maps those dimensions to verified Sketch profiles
 and native Decad operations. The [model page](../../models/spinningwheel/) explains operation.
+[mounting.md](../../models/spinningwheel/mounting.md) owns the final fitted joints, hardware retention and part grouping.
 
 ## Reference
 
@@ -14,12 +15,26 @@ give the 560 mm wheel, 690 mm orifice height, 10 mm orifice and 7/9/12/17 ratios
 describes the single drive band, bobbin brake and leader routing.
 Frame dimensions, stock-bearing choices, shaft connections, alignment slots and hinged jack are this gallery design.
 
+## Current preview
+
+The static images are work-in-progress previews of completed native parts.
+[preview-status.json](../../models/spinningwheel/images/preview-status.json) lists the omitted parts and errors.
+Preview construction skips assembly-wide joint machining and does not establish retention or collision checks.
+Failed tools are excluded from the registered part list drawn by the renderer.
+See [the preview renderer](../rendering.md) for the regeneration command.
+
+The strict build and final geometry checks still stop at an unsupported hinge construction.
+Animation regeneration, finer connector refinement and full moving-clearance verification remain pending.
+The sections below describe the intended complete model and its checks, not a claim that those checks pass today.
+
 ## API and build
 
 Import `github.com/lestrrat-3d/decad-gallery/models/spinningwheel`.
 `Build(ctx, doc, params)` returns an assembly of named solid parts, its real constrained
 sketches, and the motion state. `Motion(params)` computes the mechanism pose without creating bodies.
 Both functions use the caller's parameters and keep construction state local.
+`BuildPreview(ctx, doc, params)` additionally returns completed parts and named failures for visual review.
+It uses the same part constructors, keeps strict `Build` unchanged, and omits final joint cuts.
 
 | Parameter | Default | Accepted values |
 | --- | --- | --- |
@@ -61,9 +76,9 @@ go -C tools/render test -run '^TestSpinningWheel' -timeout 5m
 
 ## Geometry and motion
 
-Every final body comes from the native Decad model. Belt wraps are exact partial tori;
-the two straight spans are circular extrusions tangent to both pulley pitch circles.
-Each physical cord is represented by adjoining solid spans whose end caps share a seam.
+Every final body comes from the native Decad model. Drive-band wraps are exact partial tori;
+the two straight spans are circular extrusions tangent to both pulley pitch circles, with adjoining end caps.
+The brake cord is one swept solid with captive terminal eyes, and the yarn leader is one continuous Union body.
 The V-wall slope and the stock cord radius determine pitch radius, including the cord offset.
 The spring uses native Coil. No rendered guide, belt or linkage replaces a failed native body.
 
@@ -75,7 +90,8 @@ The front plain sleeve uses the same parametric annulus constructor with its own
 The motion model solves one continuous branch of the spatial crank, upper gimbal, footman and treadle linkage.
 The treadle rotates about X; the wheel rotates about Y. The diagonal actuating rail reaches behind the wheel.
 The gimbal's first 605 stays coaxial with the crank pin. Two more 605 envelopes share a perpendicular cross-pin.
-The lower connection represents an ideal compliant joint. Its two anchored legs follow their attached wood parts.
+The lower connection is one compliant body with two anchored legs. The renderer and clearance tests rebuild
+that actual component at each solved pose through `BuildConnector`, rather than moving it as a rigid part.
 The model does not calculate that connector's strain, fatigue or stiffness.
 The flyer turns Ratio times per wheel revolution. At winding radius R, bobbin angle is
 `(Ratio - YarnFeedPerTurn/(2*pi*R))*WheelAngle`. This explicitly keeps the bobbin independent.
@@ -87,8 +103,16 @@ The pivot marks and dashed reference line are annotations over the rendered mode
 
 The default integration test tessellates every final solid with `VerifyAll` and verifies every
 consumed sketch. Material probes check the axial orifice, blind end wall, radial outlet,
-round journals, D flats and the bobbin's clearance around its inner-race spacer.
+round journals, removable shaft keys and the bobbin's clearance around its inner-race spacer.
 The purchased bearing checks read the actual placed widths, diameters and annular volumes.
+Each part must have one connected final mesh and a declared mount with a support path to the three grounded legs.
+The geometric support check removes declared connections whose actual boundary gap exceeds the mount clearance
+after charging both verified mesh bounds. It then requires a path to a grounded leg through the remaining connections.
+A touching group with only a distant frame reference fails this check. Nearby surfaces alone do not prove retention;
+the material, joint and clearance checks inspect the actual bodies separately.
+The brake checks read the rivets' native circles, check their shanks and retaining heads, and probe material around
+the spring and cord eyes. Closed-mesh topology checks require two eye openings in each spring and in the cord.
+The spring mounts allow the specified 0.2 mm radial free play between each eye and its pin.
 
 The linkage screen places meshes of the real moving parts in 72 solved poses and checks their clearance from the frame.
 It uses separated boxes first, then projections on native face normals and crossed edge directions.
@@ -98,8 +122,9 @@ The triangle check also rejects a component contained inside another solid.
 The only bore exemptions require an actual native coaxial through-cylinder and prove the moving part fits inside it.
 The flyer screen encloses each actual arm, crossbar, whorl and guide in a full-turn swept cylinder.
 It checks frame/brake separation and radial gaps around the independently turning bobbin.
-These tests cover those named interfaces. They do not claim full three-dimensional contact detection
-for every pair of fasteners, bearing races and structural joints.
+The default geometry test also requires zero material interferences and no unresolved pair diagnostics
+from the native document verifier across all final parts. An unsupported contact result fails that check.
+The motion screens cover the named moving interfaces, rather than every possible part pair at every angle.
 
 The model does not calculate friction, spring rate, balance, wood strength or bearing life.
 Nominal fits and mounting envelopes do not supply manufacturing allowances for a chosen material or printer.

@@ -3,13 +3,28 @@
 ## Emission
 
 Follow instructions.md as geometry authority. Emit only Go construction under the supplied output directory.
+Read mounting.md as the authority for final machined parts, new helpers, mounting metadata and retention.
+Read parts.md for the stable identifier API. Do not invent alternatives for those names.
+Dimensions below describe stock before that final machining where mounting.md changes an older recipe.
 Read no existing target implementation. Read the declared sibling helper source and upstream public APIs as needed.
 Compile all dimensions, placements, feature order, motions and checks from the contract; report missing facts.
 Use contextual errors and per-call state. Never repair emitted geometry by hand.
 
+## Preview orchestration
+
+Build and BuildPreview share input validation, Motion and the same ordered initial part constructors.
+Keep strict Build's first-error behavior and final finishJoinery call.
+For BuildPreview only, record each failed part, clear that part's construction error and continue independent parts.
+Append only fully completed native solids to Assembly.Parts. Leave failed tools outside that registered list.
+Do not call finishJoinery in preview mode. Return the assembly and named issue list without claiming final joints or clearances.
+The renderer labels this mode and records meshing omissions too; it never draws every raw Document body indiscriminately.
+These are orchestration rules, not changes to the geometric construction below.
+
 ## Common geometry API
 
-Retain the supplied sections.go and placement.go implementations unchanged. They own these declarations:
+Retain the supplied sections.go and placement.go implementations unchanged except for removing unused builder.dTool.
+Keyed couplings replaced its final callers. Keep dOutline and dAnnulus for the jack and brake knobs.
+These shared files own the following declarations:
 - point2{x,y float64}, hole{x,y,r float64}.
 - builder.section(axial bool)*sketch.Sketch creates and records XY or XZ sketches.
 - builder.profile(s,holes) solves, fully verifies and selects one valid profile with the specified hole count.
@@ -17,7 +32,7 @@ Retain the supplied sections.go and placement.go implementations unchanged. They
 - builder.panel(x0,z0,x1,z1,length,frame,holes...) creates a rectangular prism with primary circular holes.
 - builder.box(x0,x1,y0,y1,z0,z1) creates a world-axis-aligned box.
 - builder.cylinder(radius,length,frame), annulus(inner,outer,length,frame).
-- builder.dTool(radius,flat,length,frame), dAnnulus(inner,flat,outer,length,frame).
+- builder.dAnnulus(inner,flat,outer,length,frame).
 - builder.cut(host,tool), union(parts...), flatShaft(body,caps...).
 - builder.span(start,end,radius) makes an exact circular cylinder between endpoints.
 - builder.revolve(profile []point2,frame) revolves an XZ radial/axial section about local+Z, then places it.
@@ -29,6 +44,12 @@ Retain the supplied sections.go and placement.go implementations unchanged. They
 - axisFrame(origin,axis) maps its normal to axis.
 
 All body-returning helpers return *decad.Body. All listed builder helpers use the builder's context and document.
+New coupling helpers: keyedOutline(s *sketch.Sketch,radius,halfwidth,extent float64);
+builder.keyTool(radius,halfwidth,extent,length float64,f r3.Frame)*decad.Body;
+builder.keyedAnnulus(radius,halfwidth,extent,outer,length float64,f r3.Frame)*decad.Body.
+connector.go owns builder.flexConnector()*decad.Body and exported Connector/BuildConnector from mounting.md.
+joinery.go owns builder.finishJoinery(); assembly.go calls it with tilt=false after the raw brake parts.
+Assembly also exposes Mounts []Mount with the exact Mount fields from mounting.md.
 Do not make a second annulus constructor. annulus delegates to models/ballbearing.Build and records its real sketch.
 Reuse internal/sketchcheck.VerifyFullyConstrained. Every consumed sketch must report FullyConstrained,
 DOF0, no redundant constraints and no conflicts before its profile is used.
@@ -65,9 +86,14 @@ front-bench-rail,rear-bench-rail. Hinge parts use Group hinge and prefix mother-
 - head.go owns headPoint and all flyer/shaft/whorl/bobbin/post/bearing/retainer geometry.
 - yarn.go owns the leader, thirteen open hooks, stems and front stalk.
 - brake.go owns both springs, the band, routing eyes/supports, front control rail and M4 hardware.
+- brake_cord.go owns builder.brakeCord(left,right,leftEnd,rightEnd,z,radius,phase float64)*decad.Body.
+  brake.go calls it for the band and exposes builder.brakeEye(radius,wire float64,centre,u,v r3.Vec)*decad.Body
+  and builder.brakeRotate(body *decad.Body,centre r3.Vec,phase float64)*decad.Body as sibling helpers.
 
 Build first validates context/document/parameters without mutation. Compute physical State.
 Call frame(), drive(), adjustment(), then set tilt=true and call head(), yarn(), brake(). Reset tilt afterwards.
+Call finishJoinery before returning. It replaces Part.Body handles after cuts and returns one Mount per final physical Part.
+Do not return stock tools or separate fragments of a final formed/welded component.
 adjustment() must set tilt=false for base, fixed hinge leaves/knuckles/pins and alignment clamps;
 set tilt=true for the upper bar, jack/insert/knob, moving leaves and maiden feet/bolts. Restore false before return.
 part(name,group,motion string,create func()*decad.Body) records current name and checks construction errors and solidity.
@@ -182,6 +208,17 @@ insert occupies exactly[-334*Scale,-334*Scale+4]. Add a1 mm front retaining plat
 11x11 stock around the screw axis, with stock4.4 passage, to close the otherwise open nut pocket.
 The knob and end eye follow the screw's axial travel and keyed rotational phase from pitch0.7.
 Fixed left spring stem ends atY=-310*Scale. Both spring fronts clear the wood for all travel settings.
+
+For brakeCord, mounting.md owns the exact path centers, oriented axes, endpoints, radius and terminal placements.
+Use decad.NewPath with LineTo and ArcAround{Center,Axis,End}; never turn an explicit center into a rounded through point.
+left/right are reference worldX coordinates, leftEnd/rightEnd include HeadShift, z is reference worldZ,
+radius is Rb, and phase is the take-up screw's radians. Build the main Sweep in canonical coordinates first.
+Use builder.section(false), circle at(0,0) with stock radius0.6, builder.profile(s,0), then native Sweep.
+Check contextual NewPath/Sweep errors and stop on failure. Return all sketches through the existing builder helpers.
+Place the main cord at frame Origin(left,leftEnd+8.4,z), U=worldX,V=-worldZ.
+Build each stock radius2.4/wire0.6 terminal with brakeEye using U=worldY,V=worldZ,
+at(left,leftEnd+6,z) and(right,rightEnd+6,z). Rotate the right eye with brakeRotate about its centre by phase.
+Return one native Union of the main Sweep and both eyes. Do not create Parts or apply the common head tilt inside brakeCord.
 
 ## Verification boundary
 

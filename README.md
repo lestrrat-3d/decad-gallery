@@ -22,6 +22,7 @@ check at each boundary.
 
 The [docs](docs/) explain how the models are built, how to add one, and how the images are rendered. The
 [repository layout and checks](docs/repository.md) page lists what lives where.
+The [dependency updater](docs/dependency-updates.md) keeps the root and renderer Decad versions together.
 
 [`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator) translates the Go
 construction into Python code for Fusion add-ins.

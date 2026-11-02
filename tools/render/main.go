@@ -58,6 +58,9 @@ func main() {
 }
 
 func run(ctx context.Context, model, shot, output string, width, height int) error {
+	if model == "spinningwheel-preview" {
+		return renderSpinningWheelPreview(ctx, shot, output, width, height)
+	}
 	if shot == "readme" {
 		if width != 0 || height != 0 {
 			return fmt.Errorf("readme output uses fixed image sizes")

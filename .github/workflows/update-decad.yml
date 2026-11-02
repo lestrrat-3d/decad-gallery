@@ -1,0 +1,58 @@
+name: Update Decad modules
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [decad-main-updated]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-decad-modules
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Resolve Decad main and update both modules
+        run: |
+          mkdir -p .tmp
+          python3 scripts/update_decad.py > .tmp/decad-update.json
+      - name: Open or update the combined dependency pull request
+        id: update
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          branch: chore-update-decad
+          title: update Decad modules
+          commit-message: update Decad modules
+          draft: true
+          body: |
+            - Keep the root and renderer modules on one published Decad main revision.
+            - Require fresh spur-model emission and existing geometry checks before merging.
+          add-paths: |
+            go.mod
+            go.sum
+            tools/render/go.mod
+            tools/render/go.sum
+      - name: Run checks on the generated pull request head
+        if: steps.update.outputs.pull-request-operation == 'created' || steps.update.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATE_BRANCH: ${{ steps.update.outputs.pull-request-branch }}
+        run: gh workflow run repository.yml --ref "$UPDATE_BRANCH"

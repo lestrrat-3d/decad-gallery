@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,12 +73,29 @@ func requireWheelAnimationJoints(t *testing.T, meshes []wheelMesh, base spinning
 		p.WheelAngle = angle
 		state, err := spinningwheel.Motion(p)
 		require.NoError(t, err)
-		posed, err := spinningWheelPose(meshes, base, state, angle-math.Pi/3)
+		posed, err := spinningWheelPose(t.Context(), meshes, base, p, angle-math.Pi/3)
 		require.NoError(t, err)
 		checked := 0
 		for i, mesh := range posed {
 			if mesh.part.Motion == "fixed" {
 				require.True(t, meshes[i].model.Mesh == mesh.model.Mesh, "%s stays fixed", mesh.part.Name)
+				continue
+			}
+			if mesh.part.Motion == "compliant" {
+				require.True(t, mesh.model.Mesh != meshes[i].model.Mesh, "the connector must be rebuilt at each pose")
+				for _, end := range []struct{ centre, direction r3.Vec }{
+					{state.Toe.Sub(state.PedalFrame.N().Scale(12 * p.Scale)), state.PedalFrame.N()},
+					{state.Toe.Add(state.RodFrame.U().Scale(26 * p.Scale)), state.RodFrame.U()},
+				} {
+					hole, err := mesh.part.Body.LocatePoint(t.Context(), end.centre, units.Millimeters(.025))
+					require.NoError(t, err)
+					require.True(t, hole == decad.PointOutside, "connector clamp passage at %g must remain open", angle)
+					rubber, err := mesh.part.Body.LocatePoint(t.Context(), end.centre.Add(end.direction.Scale(2.6)), units.Millimeters(.025))
+					require.NoError(t, err)
+					require.True(t, rubber == decad.PointInside, "connector needs material around both clamp passages at %g", angle)
+				}
+				checked++
+				continue
 			}
 			var want r3.Vec
 			switch mesh.part.Name {
@@ -90,59 +108,54 @@ func requireWheelAnimationJoints(t *testing.T, meshes []wheelMesh, base spinning
 			case "footman-cross-605-2":
 				want = state.RodHead.Add(state.RodFrame.V().Scale(12*p.Scale - 2.5))
 			case "treadle":
-				want = state.PedalFrame.ToWorld(r3.Vec{X: 60 * p.Scale, Y: 105 * p.Scale})
+				want = state.PedalFrame.ToWorld(base.PedalFrame.ToLocal(wheelMeshCentre(t, meshes[i])))
 			case "wheel-spoke-1":
 				want = state.Wheel.Add(r3.Vec{X: 142.5 * p.Scale * math.Cos(angle), Z: 142.5 * p.Scale * math.Sin(angle)})
-			case "flyer-arm-1":
-				phase := state.FlyerAngle + state.HeadTilt
-				want = state.Flyer.Add(r3.Vec{X: -65 * p.Scale * math.Cos(phase), Y: -152.5*p.Scale + state.HeadShift, Z: -65 * p.Scale * math.Sin(phase)})
-			case "bobbin-witness-bar":
-				phase := state.BobbinAngle + state.HeadTilt
-				want = state.Flyer.Add(r3.Vec{X: -31 * p.Scale * math.Sin(phase), Y: -134*p.Scale + state.HeadShift, Z: 31 * p.Scale * math.Cos(phase)})
-			default:
-				if mesh.part.Motion == "treadle" && wheelPlainCylinder(mesh.part.Body, 2, 30*p.Scale+4) {
-					want = state.Toe.Sub(state.PedalFrame.N().Scale(12 * p.Scale))
-				} else if mesh.part.Motion == "footman" && wheelPlainCylinder(mesh.part.Body, 2, 24*p.Scale+4) {
-					want = state.Toe.Add(state.RodFrame.U().Scale(26 * p.Scale))
-				} else {
-					continue
+			case "flyer-arm-1", "bobbin-witness-bar":
+				phase := state.FlyerAngle - base.FlyerAngle
+				if mesh.part.Motion == "bobbin" {
+					phase = state.BobbinAngle - base.BobbinAngle
 				}
+				d := wheelMeshCentre(t, meshes[i]).Sub(base.Flyer)
+				want = base.Flyer.Add(r3.Vec{X: d.X*math.Cos(phase) - d.Z*math.Sin(phase), Y: d.Y,
+					Z: d.X*math.Sin(phase) + d.Z*math.Cos(phase)})
+			case "treadle-lower-clamp-pin", "footman-upper-clamp-pin":
+				face, axis := 12*p.Scale, state.PedalFrame.U()
+				centre := state.Toe.Sub(state.PedalFrame.N().Scale(12 * p.Scale))
+				if mesh.part.Motion == "footman" {
+					face, axis = 10*p.Scale, state.RodFrame.V()
+					centre = state.Toe.Add(state.RodFrame.U().Scale(26 * p.Scale))
+				}
+				// Integrate the one-piece bolt's two cylindrical sections independently.
+				head, shank := 3.5*3.5*2, 2.0*2*(2*face+2.2)
+				offset := (head*(-face-1) + shank*1.1) / (head + shank)
+				want = centre.Add(axis.Scale(offset))
+			default:
+				continue
 			}
 			checked++
-			// An odd-sided circle mesh can have an off-centre bounding box. Its uniform solid centroid stays centred.
-			vertices := mesh.model.Mesh.Vertices()
-			anchor := vertices[0]
-			var moment r3.Vec
-			volume6 := 0.0
-			for _, triangle := range mesh.model.Mesh.Triangles() {
-				a, b, c := vertices[triangle[0]].Sub(anchor), vertices[triangle[1]].Sub(anchor), vertices[triangle[2]].Sub(anchor)
-				weight := a.Dot(b.Cross(c))
-				volume6 += weight
-				moment = moment.Add(a.Add(b).Add(c).Scale(weight))
-			}
-			require.Greater(t, math.Abs(volume6), 1e-6, "%s needs a closed occupied mesh", mesh.part.Name)
-			centre := anchor.Add(moment.Scale(1 / (4 * volume6)))
+			centre := wheelMeshCentre(t, mesh)
 			require.InDelta(t, want.X, centre.X, 1e-4, "%s X at %g", mesh.part.Name, angle)
 			require.InDelta(t, want.Y, centre.Y, 1e-4, "%s Y at %g", mesh.part.Name, angle)
 			require.InDelta(t, want.Z, centre.Z, 1e-4, "%s Z at %g", mesh.part.Name, angle)
 		}
-		require.Equal(t, 10, checked, "all motion groups and both connector ends must follow their actual joint geometry")
+		require.Equal(t, 11, checked, "all motion groups, both clamps and the flexible body must follow their actual joints")
 	}
 }
 
-func wheelPlainCylinder(body *decad.Body, radius, length float64) bool {
-	found := false
-	for _, face := range body.Faces() {
-		if c, ok := face.Surface().(decad.Cylinder); ok {
-			if math.Abs(c.Radius.Base()-radius) > 1e-8 {
-				return false
-			}
-			found = true
-		}
+func wheelMeshCentre(t *testing.T, mesh wheelMesh) r3.Vec {
+	t.Helper()
+	vertices := mesh.model.Mesh.Vertices()
+	require.Greater(t, len(vertices), 0)
+	anchor := vertices[0]
+	var moment r3.Vec
+	volume6 := 0.0
+	for _, triangle := range mesh.model.Mesh.Triangles() {
+		a, b, c := vertices[triangle[0]].Sub(anchor), vertices[triangle[1]].Sub(anchor), vertices[triangle[2]].Sub(anchor)
+		weight := a.Dot(b.Cross(c))
+		volume6 += weight
+		moment = moment.Add(a.Add(b).Add(c).Scale(weight))
 	}
-	if !found {
-		return false
-	}
-	v, err := body.Volume()
-	return err == nil && math.Abs(v.Value.Base()-math.Pi*radius*radius*length) <= v.Bound.Base()+1e-6
+	require.Greater(t, math.Abs(volume6), 1e-6, "%s needs a closed occupied mesh", mesh.part.Name)
+	return anchor.Add(moment.Scale(1 / (4 * volume6)))
 }

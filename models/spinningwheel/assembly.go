@@ -15,31 +15,53 @@ type Part struct {
 	Body                *decad.Body
 }
 
+type Mount struct {
+	Part, Kind          string
+	Supports, Fasteners []string
+	Clearance           float64
+}
+
 type Assembly struct {
 	Parts    []Part
 	Sketches []*sketch.Sketch
 	State    State
+	Mounts   []Mount
 }
 
 type builder struct {
-	ctx  context.Context
-	doc  *decad.Document
-	p    Params
-	a    Assembly
-	err  error
-	name string
-	tilt bool
+	ctx     context.Context
+	doc     *decad.Document
+	p       Params
+	a       Assembly
+	err     error
+	name    string
+	tilt    bool
+	preview *Preview
 }
 
+// Build constructs the physical assembly. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error) {
+	b, err := newAssemblyBuilder(ctx, doc, p)
+	if err != nil {
+		return nil, err
+	}
+	b.buildInitialParts()
+	b.finishJoinery()
+	if b.err != nil {
+		return nil, b.err
+	}
+	return &b.a, nil
+}
+
+func newAssemblyBuilder(ctx context.Context, doc *decad.Document, p Params) (*builder, error) {
 	if ctx == nil {
-		return nil, fmt.Errorf("build spinning wheel: context must not be nil")
+		return nil, fmt.Errorf("build spinning wheel: nil context")
 	}
 	if doc == nil {
-		return nil, fmt.Errorf("build spinning wheel: document must not be nil")
+		return nil, fmt.Errorf("build spinning wheel: nil document")
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build spinning wheel: %w", err)
 	}
 	if err := p.Validate(); err != nil {
 		return nil, fmt.Errorf("build spinning wheel: %w", err)
@@ -48,7 +70,10 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	if err != nil {
 		return nil, fmt.Errorf("build spinning wheel motion: %w", err)
 	}
-	b := builder{ctx: ctx, doc: doc, p: p, a: Assembly{State: state}}
+	return &builder{ctx: ctx, doc: doc, p: p, a: Assembly{State: state}}, nil
+}
+
+func (b *builder) buildInitialParts() {
 	b.frame()
 	b.drive()
 	b.adjustment()
@@ -57,10 +82,6 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	b.yarn()
 	b.brake()
 	b.tilt = false
-	if b.err != nil {
-		return nil, b.err
-	}
-	return &b.a, nil
 }
 
 func (b *builder) fail(operation string, err error) {
@@ -70,17 +91,16 @@ func (b *builder) fail(operation string, err error) {
 }
 
 func (b *builder) part(name, group, motion string, create func() *decad.Body) {
+	if b.preview != nil {
+		defer b.recordPreviewFailure(name)
+	}
 	if b.err != nil {
 		return
 	}
 	b.name = name
-	if err := b.ctx.Err(); err != nil {
-		b.fail("create part", err)
-		return
-	}
-	for _, existing := range b.a.Parts {
-		if existing.Name == name {
-			b.fail("create part", fmt.Errorf("duplicate part name"))
+	for _, part := range b.a.Parts {
+		if part.Name == name {
+			b.fail("record part", fmt.Errorf("duplicate name %q", name))
 			return
 		}
 	}
@@ -88,21 +108,29 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 	if b.err != nil {
 		return
 	}
-	if body == nil || !body.IsSolid() {
-		b.fail("create part", fmt.Errorf("construction did not return a solid"))
+	if b.tilt {
+		body = b.tiltBody(body)
+	}
+	if b.err != nil {
 		return
 	}
-	if b.tilt {
-		xf, err := r3.RotationAround(b.a.State.HeadPivot, r3.Vec{Y: -1}, units.Radians(b.a.State.HeadTilt))
-		if err != nil {
-			b.fail("create head tilt", err)
-			return
-		}
-		body, err = decad.Transform(b.ctx, body, xf)
-		if err != nil {
-			b.fail("apply head tilt", err)
-			return
-		}
+	if body == nil || !body.IsSolid() {
+		b.fail("record part", fmt.Errorf("construction did not return a solid"))
+		return
 	}
 	b.a.Parts = append(b.a.Parts, Part{Name: name, Group: group, Motion: motion, Body: body})
+}
+
+func (b *builder) tiltBody(body *decad.Body) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	xf, err := r3.RotationAround(b.a.State.HeadPivot, r3.Vec{Y: -1}, units.Radians(b.a.State.HeadTilt))
+	if err != nil {
+		b.fail("create head tilt", err)
+		return nil
+	}
+	body, err = decad.Transform(b.ctx, body, xf)
+	b.fail("apply head tilt", err)
+	return body
 }

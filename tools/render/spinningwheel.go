@@ -22,6 +22,10 @@ func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State,
 	if err != nil {
 		return nil, spinningwheel.State{}, err
 	}
+	return spinningWheelMeshes(ctx, a, nil)
+}
+
+func spinningWheelMeshes(ctx context.Context, a *spinningwheel.Assembly, issues *[]spinningwheel.PreviewIssue) ([]wheelMesh, spinningwheel.State, error) {
 	meshes := make([]wheelMesh, 0, len(a.Parts))
 	for _, part := range a.Parts {
 		chord := .12
@@ -30,6 +34,10 @@ func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State,
 		}
 		mesh, err := part.Body.Tessellate(ctx, units.Millimeters(chord), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
+			if issues != nil {
+				*issues = append(*issues, spinningwheel.PreviewIssue{Part: part.Name, Reason: err.Error()})
+				continue
+			}
 			return nil, a.State, fmt.Errorf("tessellate spinning wheel %s: %w", part.Name, err)
 		}
 		color := solidlens.RGB(.65, .43, .23)
@@ -44,6 +52,8 @@ func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State,
 			color = solidlens.RGB(.49, .27, .12)
 		case "footman", "gimbal":
 			color = solidlens.RGB(.75, .37, .13)
+		case "compliant":
+			color = solidlens.RGB(.18, .20, .22)
 		}
 		n := part.Name
 		switch {
@@ -61,7 +71,9 @@ func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State,
 			color = solidlens.RGB(.77, .04, .08)
 		case part.Group == "bush" || strings.Contains(n, "bush"):
 			color = solidlens.RGB(.9, .9, .84)
-		case part.Group == "guide" || part.Group == "yarn-guide" || strings.Contains(n, "shaft") || strings.Contains(n, "bearing") || strings.Contains(n, "collar") ||
+		case part.Group == "guide" || part.Group == "yarn-guide" || part.Group == "key" || part.Group == "retainer" ||
+			part.Group == "fastener" || part.Group == "hinge" || strings.Contains(n, "insert") ||
+			strings.Contains(n, "shaft") || strings.Contains(n, "bearing") || strings.Contains(n, "collar") ||
 			strings.Contains(n, "pin") || strings.Contains(n, "spacer") || strings.Contains(n, "screw") ||
 			strings.Contains(n, "bolt") || strings.Contains(n, "nut") || strings.Contains(n, "spring") ||
 			strings.Contains(n, "eye") || strings.Contains(n, "stem"):
