@@ -18,7 +18,7 @@ type wheelMesh struct {
 }
 
 func spinningWheelModels(ctx context.Context) ([]wheelMesh, spinningwheel.State, error) {
-	a, err := spinningwheel.Build(ctx, decad.New(), spinningwheel.DefaultParams())
+	a, err := spinningwheel.Build(ctx, spinningwheel.NewDocument(), spinningwheel.DefaultParams())
 	if err != nil {
 		return nil, spinningwheel.State{}, err
 	}

@@ -12,7 +12,7 @@ import (
 
 // Keep the first real producer/consumer boundary separate from dimensional and clearance assertions.
 func TestSpinningWheelNativeDefault(t *testing.T) {
-	doc := decad.New()
+	doc := spinningwheel.NewDocument()
 	a, err := spinningwheel.Build(t.Context(), doc, spinningwheel.DefaultParams())
 	if err != nil {
 		operations := doc.OperationHistory().Operations()

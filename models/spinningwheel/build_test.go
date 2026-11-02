@@ -38,7 +38,7 @@ func TestSpinningWheelVariants(t *testing.T) {
 
 func checkSpinningWheel(t *testing.T, p spinningwheel.Params) {
 	t.Helper()
-	doc := decad.New()
+	doc := spinningwheel.NewDocument()
 	a, err := spinningwheel.Build(t.Context(), doc, p)
 	if err != nil {
 		bodies := doc.Bodies()

@@ -32,7 +32,7 @@ func spinningWheelPose(ctx context.Context, meshes []wheelMesh, base spinningwhe
 	for i, mesh := range meshes {
 		posed[i] = mesh
 		if mesh.part.Motion == "compliant" {
-			connector, err := spinningwheel.BuildConnector(ctx, decad.New(), p)
+			connector, err := spinningwheel.BuildConnector(ctx, spinningwheel.NewDocument(), p)
 			if err != nil {
 				return nil, fmt.Errorf("build posed connector: %w", err)
 			}

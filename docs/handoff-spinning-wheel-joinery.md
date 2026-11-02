@@ -198,6 +198,13 @@ bound 0.0228 / 0.0303 mm vs chord 0.00044 / 0.0039 mm), not a facet-ladder probl
 replace the cylinder unions: corners need `WithMitredJoins`, which accepts line profiles only
 (`.tmp/survey-mitre.log`), so a round wire would change the solid. Open: a kernel decision on the chain-depth gate
 or a different construction for the stem/stalk and the leader spans.
+Update 2026-11-03 (later): an Opus advisor recommended `decad.WithChainTolerance(0.1 mm)` for the chain-depth parts,
+the published option screwgear already uses. `spinningwheel.NewDocument` now applies it; the tests and render tools use
+it. Against a throwaway Decad worktree `chore-gallery-combo` (PR 3022 `7b525c4c2` merged with main `b7f9e525b`, which
+holds PR 3023), the default build reaches 664 operations, 2 Coil operations and 174 bodies, and stops at `head-leg`:
+"cut boolean: two operand facets overlap in one plane" (`.tmp/native-default-combo.log`, modfile `.tmp/combo.mod`).
+That is the coplanar Cut owned by the native `feat-head-leg-generic-cut` worker. The chain-tolerance choice widens the
+proven bounds of `treadle-flex-connector` (0.17 to 0.50 mm3) and `gimbal-bridge` (0.52 to 0.54 mm3).
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 

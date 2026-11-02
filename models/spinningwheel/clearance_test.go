@@ -90,7 +90,7 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 		for _, item := range moving {
 			var shape collisionShape
 			if item.part.Motion == "compliant" {
-				connector, err := spinningwheel.BuildConnector(t.Context(), decad.New(), pose)
+				connector, err := spinningwheel.BuildConnector(t.Context(), spinningwheel.NewDocument(), pose)
 				require.NoError(t, err)
 				mesh, err := connector.Body.Tessellate(t.Context(), units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
 				require.NoError(t, err)

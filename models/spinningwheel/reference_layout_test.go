@@ -13,7 +13,7 @@ import (
 )
 
 func TestSpinningWheelReferenceLayout(t *testing.T) {
-	a, err := spinningwheel.Build(t.Context(), decad.New(), spinningwheel.DefaultParams())
+	a, err := spinningwheel.Build(t.Context(), spinningwheel.NewDocument(), spinningwheel.DefaultParams())
 	require.NoError(t, err)
 	spokes := 0
 	for _, part := range a.Parts {
@@ -53,7 +53,7 @@ func TestSpinningWheelReferenceLayout(t *testing.T) {
 
 func TestSpinningWheelRearRailClearance(t *testing.T) {
 	p := spinningwheel.DefaultParams()
-	a, err := spinningwheel.Build(t.Context(), decad.New(), p)
+	a, err := spinningwheel.Build(t.Context(), spinningwheel.NewDocument(), p)
 	require.NoError(t, err)
 	pose := p
 	pose.WheelAngle = 3 * math.Pi / 2

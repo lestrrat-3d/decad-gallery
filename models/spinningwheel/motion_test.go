@@ -4,7 +4,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -87,7 +86,7 @@ func TestSpinningWheelRejectsInvalidParams(t *testing.T) {
 	} {
 		p := valid
 		change(&p)
-		d := decad.New()
+		d := spinningwheel.NewDocument()
 		_, err := spinningwheel.Build(t.Context(), d, p)
 		require.Error(t, err)
 		require.Zero(t, len(d.Bodies()))

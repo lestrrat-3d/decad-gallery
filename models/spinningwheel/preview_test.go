@@ -10,7 +10,7 @@ import (
 )
 
 func TestPreviewContinuesWithoutPublishingFailedPart(t *testing.T) {
-	doc := decad.New()
+	doc := NewDocument()
 	b, err := newAssemblyBuilder(t.Context(), doc, DefaultParams())
 	require.NoError(t, err)
 	preview := &Preview{Assembly: &b.a}
@@ -38,7 +38,7 @@ func TestPreviewContinuesWithoutPublishingFailedPart(t *testing.T) {
 }
 
 func TestStrictPartFailureStillStopsConstruction(t *testing.T) {
-	b, err := newAssemblyBuilder(t.Context(), decad.New(), DefaultParams())
+	b, err := newAssemblyBuilder(t.Context(), NewDocument(), DefaultParams())
 	require.NoError(t, err)
 	cause := errors.New("deliberate source refusal")
 	b.part("failed", "frame", "fixed", func() *decad.Body {

@@ -13,7 +13,7 @@ import (
 
 func TestSpinningWheelConnectorDefault(t *testing.T) {
 	p := spinningwheel.DefaultParams()
-	doc := decad.New()
+	doc := spinningwheel.NewDocument()
 	connector, err := spinningwheel.BuildConnector(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(doc.Bodies()), "only the one-piece connector may remain live")

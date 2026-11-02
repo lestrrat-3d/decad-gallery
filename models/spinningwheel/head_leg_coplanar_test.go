@@ -54,7 +54,7 @@ func (c *headLegStopContext) Err() error {
 
 func newHeadLegConsumer(t *testing.T) (*builder, *headLegStopContext) {
 	t.Helper()
-	doc := decad.New()
+	doc := NewDocument()
 	b, err := newAssemblyBuilder(t.Context(), doc, DefaultParams())
 	require.NoError(t, err)
 	b.frame()

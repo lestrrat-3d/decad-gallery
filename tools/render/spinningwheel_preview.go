@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/solidlens"
 	"golang.org/x/image/font"
@@ -40,7 +39,7 @@ func renderSpinningWheelPreview(ctx context.Context, shot, output string, width,
 	if shot == "readme" && (width != 0 || height != 0) {
 		return fmt.Errorf("readme output uses fixed image sizes")
 	}
-	preview, err := spinningwheel.BuildPreview(ctx, decad.New(), spinningwheel.DefaultParams())
+	preview, err := spinningwheel.BuildPreview(ctx, spinningwheel.NewDocument(), spinningwheel.DefaultParams())
 	if err != nil {
 		return err
 	}
