@@ -219,6 +219,25 @@ Full assembly checks, motion verification and final images remain pending.
 Keep Gallery PR119 open with auto-merge disabled until the user explicitly confirms the merge.
 Keep Actions PR creation disabled as the user requested; do not bypass it with another credential.
 
+### Tagged head-leg consumer
+
+`models/spinningwheel/head_leg_coplanar_test.go` calls the real `frame()` and `frameJoinery()` methods.
+Its context stops later joinery only after the head-leg result has been registered.
+The test checks the public Cut's original inputs, roles, output, destination and consumption of both operands.
+It then copies the result to a separate body identity and applies 0.12 mm `VerifyAll`.
+
+The first real run passes against the native `feat-head-leg-generic-cut` worktree with the `coplanar_test` tag,
+a temporary module file and no source overlays. Cut uses 31,907,096 work, 734,759 records and 168,759,624 bytes.
+The independent bounded verification uses 3,523 work, 529 records and 9,856 bytes.
+Both stages pass at their exact measured limits; reducing any one resource limit by one refuses.
+The six refusal cases preserve the public document, and a refused Cut preserves both operand destinations.
+The focused log is `.tmp/head-leg-tagged-real-limits.log`.
+
+Decad's `coplanar-consumer` CI job must consume this checked-in test at its exact Gallery commit.
+The current published SDK pin lacks the tagged helper APIs, so the test is excluded from ordinary Gallery builds.
+The native default provider remains disabled. This tagged prerequisite test does not accept default SDK admission,
+the complete assembly or the remaining collision and motion gates.
+
 ### Historical hinge component at the previous pin
 
 Decad PR3007 merged as `1214b6aa02c8e4ca370e1eb4e980797ff1d49d28` after 23 successful and three skipped checks
