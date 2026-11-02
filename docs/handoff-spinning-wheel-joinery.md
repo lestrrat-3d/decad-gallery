@@ -214,6 +214,12 @@ the wheel-leg cap boxes widen to X 190..250, the wedge pocket tops reach `525*s+
 the jack arm. The default build now reaches 738 operations and stops at `mother-upper-bar`
 ("every parity ray was ambiguous"; `.tmp/native-default-joinery.log`). The chain tolerance must stay at least
 0.0972 mm for the leader, so `NewDocument` keeps 0.1 mm.
+Update 2026-11-03 (bar and treadle): the `mother-upper-bar` tool Union breaks because socket 8 shares X planes with
+socket 6 and Y planes with socket 7. `joinery.go` now cuts the bar in seven passes (stock and bore per hinge, the seat
+box, each socket). Bar volume 225797.283 to 218289.828 mm3; closed form removes 7509.927, difference -2.47 inside the
+5.34 bound. The treadle key tool starts 5 mm earlier (length `110*s+10`) so it no longer sits flush with the treadle
+ends; its volume is not yet proven. The default build reaches 819 operations and stops at `treadle-connector-block`
+(chord-tolerance Cut refusal; `.tmp/native-default-bartreadle.log`, probes in `.tmp/barprobe/`).
 Kernel owners: `decad-1c` (yarn hook, Decad PR 3022 holds S1/S2 only; S3-S5 pending) and `decad-4b`
 (composite-sweep Union, branch `fix-composite-sweep-union`, no edits yet). Both will message the PR to test.
 

@@ -95,34 +95,39 @@ func (b *builder) frameJoinery() {
 	b.machine("front-head-wedge", wedgeTools...)
 
 	var basePilots []*decad.Body
-	var barTools []*decad.Body
+	// mother-upper-bar is machined one seat per pass. Fused, the four foot-insert sockets share their
+	// X, Y and Z planes pairwise, and Decad's inside test finds every axis ray ambiguous. The hinge
+	// stock and the sockets run 5 past the bar face they open, so no pass leaves a flush face.
+	var barPasses [][]*decad.Body
 	for _, q := range []float64{-300, -90} {
 		for _, interval := range [][2]float64{{0, 15}, {32, 47}} {
 			y := (q+(interval[0]+interval[1])/2)*s + b.a.State.HeadShift
 			basePilots = append(basePilots, b.cylinder(1.5, 8*s,
 				axisFrame(r3.Vec{X: -183 * s, Y: y, Z: 532 * s}, r3.Vec{Z: 1})))
 		}
-		barTools = append(barTools,
-			b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s, 558*s),
-			b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (q + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1}))
+		barPasses = append(barPasses, []*decad.Body{
+			b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s),
+			b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (q + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1})})
 	}
 	b.machine("mother-base", basePilots...)
 	b.machine("mother-jack-arm", b.headStock(-167*s, -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
-	barTools = append(barTools, b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s))
+	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s)})
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footName := fmt.Sprintf("maiden-foot-%d", i+1)
 		b.machine(footName, b.headStock(-160*s, -120*s, post[0]*s, post[1]*s, 575*s, 585*s))
 		for _, x := range []float64{-150, -130} {
 			y := post[0]*s - 6.2
-			barTools = append(barTools, b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s))
+			barPasses = append(barPasses, []*decad.Body{b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s+5)})
 			if i == 1 {
 				rearCrossbarTools = append(rearCrossbarTools,
 					b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s))
 			}
 		}
 	}
-	b.machine("mother-upper-bar", barTools...)
+	for _, tools := range barPasses {
+		b.machine("mother-upper-bar", tools...)
+	}
 	rearCrossbarTools = append(rearCrossbarTools,
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
 		b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (-90 + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1}))
@@ -165,10 +170,10 @@ func (b *builder) treadleJoinery() {
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
 		b.diagonalStock(-12, 0))
 	// The keyed shaft runs along PedalFrame.U; radial +X is PedalFrame.V.
-	keyFrame := frame(f.ToWorld(r3.Vec{X: 5 * s}), f.V(), f.N())
+	keyFrame := frame(f.ToWorld(r3.Vec{X: 5*s - 5}), f.V(), f.N())
 	b.machine("treadle",
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s, 0),
-		b.diagonalStock(-12, 0), b.keyTool(4.1, 1.1, 4.9, 110*s, keyFrame))
+		b.diagonalStock(-12, 0), b.keyTool(4.1, 1.1, 4.9, 110*s+10, keyFrame))
 	b.machine("treadle-actuating-rail",
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s),
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
