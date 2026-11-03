@@ -341,6 +341,20 @@ func (b *builder) whorlLift() lift {
 	return b.tilted(b.liftOf(b.headFrame(0, b.whorlStart())))
 }
 
+// bandGap is the designed gap between a straight band span and the wraps and pulley flanks it meets.
+const bandGap = 0.01
+
+// bandSpan is the straight band from tangent point a to c, bandGap thinner than the wire and bandGap short of each
+// wrap.
+func (b *builder) bandSpan(a, c r3.Vec) *decad.Body {
+	d, ok := c.Sub(a).Normalize()
+	if !ok {
+		b.fail("construct band span", fmt.Errorf("span ends coincide"))
+		return nil
+	}
+	return b.span(a.Add(d.Scale(bandGap)), c.Sub(d.Scale(bandGap)), 1-bandGap)
+}
+
 // liftWrap is a band wrap of the given pitch radius and wire radius, turned angle from l's local +X about its
 // local Z, in the plane at local level z.
 func (b *builder) liftWrap(l lift, z, radius, wire, angle float64) *decad.Body {
@@ -374,10 +388,12 @@ func (b *builder) driveBand() {
 	b.part("drive-band-flyer-wrap", "drive-band", "fixed", func() *decad.Body {
 		return b.liftWrap(b.whorlLift(), state.HeadShift, state.FlyerPitch, 1, 2*math.Acos(q))
 	})
+	// Each straight span is a designed gap smaller than the wraps and grooves it meets: radius bandGap less than the
+	// wire and each end bandGap short of its wrap, so no tangent contact is left for Verify to decide.
 	b.part("drive-band-span-1", "drive-band", "fixed", func() *decad.Body {
-		return b.span(wheelPlus, flyerPlus, 1)
+		return b.bandSpan(wheelPlus, flyerPlus)
 	})
 	b.part("drive-band-span-2", "drive-band", "fixed", func() *decad.Body {
-		return b.span(wheelMinus, flyerMinus, 1)
+		return b.bandSpan(wheelMinus, flyerMinus)
 	})
 }

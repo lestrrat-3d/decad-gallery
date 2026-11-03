@@ -1828,3 +1828,8 @@ These were checked against the Gallery options above; each needs a Decad reader 
   the pass's Union needs no gap shift. Focused check (`.tmp/focus-pilot.log`): both moving mounts/upper bar and
   moving mount 2/rear crossbar clear; upper bar 218287.5621±0.42 vs 218287.5657±0.49 mm^3, crossbar
   28234.2427±0.49 vs 28234.2402±0.43. The moving leaves against their mounts and the bar stay.
+- Designed band gap (coordinator decision, option A): the straight spans have wire radius 0.99 and stop 0.01 short
+  of each wrap (`bandGap`), and the band mounts take clearance 0.01; spec line added. Each span loses 18.4 of
+  919.4 mm^3. Focused check (`.tmp/focus-gap1.log`): the 4 flyer-side pairs clear at 0.01; the 4 wheel-side pairs
+  (wheel wrap/spans, spans/rim) need 0.03 (0.02 still fails, 0.03, 0.04 and 0.05 clear;
+  `.tmp/focus-gap2.log` to `focus-gap5.log`). Kept at 0.01 pending the decision to widen.
