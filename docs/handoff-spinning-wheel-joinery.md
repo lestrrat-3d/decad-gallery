@@ -1928,3 +1928,30 @@ Batch at `e34a0c2` (Decad `2c7f038`, #3095 to #3098):
 | Scale 1.2 only | large-nine | bobbin/bobbin-front-bearing, bobbin/bobbin-yarn-pack, flyer-shaft against bobbin-rear-removable-collar, flyer-crossbar and rear-flyer-front-thrust-spacer, footman-cross-605-1/footman-cross-spacer, gimbal-bridge/gimbal-cross-spacer-2, mother-jack-screw/mother-base, rear-maiden/rear-flyer-bearing, wheel-axle/wheel-crank-key, brake-insert-retaining-plate/brake-control-rail | Not yet sorted: each needs a focused probe |
 | Wheel or treadle pose | twelve (and small-seventeen) | footman-cross-605-2/footman-cross-retainer-2, heel-pin/heel-collar-1/2-setscrew, brake-takeup-screw/brake-control-rail | Not yet sorted |
 | Scale 0.8 laps | small-seven | treadle-heel-rail/treadle, treadle-heel-rail/treadle-actuating-rail, maiden-foot-2-insert-1/mother-upper-bar | Not yet sorted |
+
+## Update 2026-11-04: second variant batch
+
+Batch at `270e99f` (Decad `35cb19b`, through #3100):
+
+- `fbfc78d`: the heel rail's diagonal lap is cut before its treadle lap (no gap shift at Scale 0.8).
+- `dc85660`: `requireBoreCaps` accepts a faceted rim within 0.005 mm around the exact radius 7 bore cylinder.
+- `435458c`: each leg's rail socket stands a designed 0.01 off both sloping rail faces (spec line added).
+- `b8ba079`: cross bearing 1's inner face, the bridge's right cheek, the axle's crank pocket and the rear maiden's
+  bearing seat take their lengths so their shared faces land on one float.
+- `0904b5d`: the control rail's thickness is taken between its shifted faces, so its front meets the insert plate.
+- `7233634`: the connector block's length runs to the lower clamp nut's level.
+- `b1f475b`: the base pilots and the fixed mounts take their axes from one helper (`hingeBrackets`).
+- Volume and bounds: every geometry commit compared all five builds with the previous dump; all 975 parts agree
+  within bounds, except the legs, which lose the 0.01 socket clearance (rear wheel leg 11.2 mm^3 at Scale 1).
+- Default: `TestSpinningWheelDefault` passes at `270e99f`, with 0 undecided pairs.
+- Variants: `small-seven` 22, `large-nine` 16, `twelve` 9, `small-seventeen` 22, no overlap (`.tmp/vp17-*.log`).
+- Upper bar trace at Scale 0.8: the crossbar seat pass raises `embedding_reach_applied` (displacement 2.7e-4 mm).
+  Hinge 2's pilot ends 1*Scale past the seat floor. Running that pilot 5 past the floor removed the later
+  `chain_allowance_applied` and cleared 3 foot-insert pairs at small-seven, but the seat warning stayed and the
+  default gained 8 undecided upper-bar pairs, so it was reverted. Cutting the seat first moved the warnings to
+  the hinge and foot-socket passes and made things worse.
+- Tried and reverted, no pair cleared at large-nine: the crossbar's top taken as 26*Scale+194*Scale (the shaft
+  shoulder's number), and the witness bar 0.001 off the pack's outer radius.
+- Open: `brake-takeup-screw/brake-control-rail` (twelve, small-seventeen) is the take-up clevis flush on the rail's
+  rear face at full travel, across two lifts. It needs a designed gap in `brakeShift` (spec change) or a Decad
+  reader.
