@@ -565,7 +565,8 @@ func (b *builder) mountInventory() {
 	}
 	add("bobbin", "independent-bearing-journals", refs("bobbin-front-bearing", "bobbin-rear-bearing", "flyer-shaft"), refs("bobbin-rear-removable-collar"), 0.2)
 	add("bobbin-yarn-pack", "wound-pack", refs("bobbin"), nil, 0)
-	add("bobbin-witness-bar", "bonded-curved-label", refs("bobbin-yarn-pack"), nil, 0)
+	// The bar stands a designed 0.01 off the yarn pack.
+	add("bobbin-witness-bar", "bonded-curved-label", refs("bobbin-yarn-pack"), nil, 0.01)
 	for i := 1; i <= 12; i++ {
 		arm := "flyer-arm-1"
 		if i > 6 {
@@ -577,7 +578,8 @@ func (b *builder) mountInventory() {
 	add("yarn-leader", "process-yarn-with-free-input-end", refs("flyer-shaft", "yarn-front-guide", "yarn-hook-9", "bobbin-yarn-pack"), nil, 0)
 
 	add("brake-rear-crossbar", "glued-top-seat", refs("mother-upper-bar"), nil, 0)
-	add("brake-front-upright", "glued-face", refs("mother-jack-arm"), nil, 0)
+	// The upright stands a designed 0.01 above the jack arm and the upper bar.
+	add("brake-front-upright", "glued-face", refs("mother-jack-arm"), nil, 0.01)
 	add("brake-control-rail", "glued-face", refs("brake-front-upright"), nil, 0)
 	add("brake-insert", "captured-square-insert", refs("brake-control-rail"), refs("brake-insert-retaining-plate"), 0.1)
 	add("brake-insert-retaining-plate", "screwed-insert-retainer", refs("brake-control-rail"), refs("brake-insert-mount-1", "brake-insert-mount-2"), 0)
