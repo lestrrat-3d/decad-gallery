@@ -93,14 +93,23 @@ func (b *builder) railStock(y float64) *decad.Body {
 	return b.extrude(sk, 0, 30*s, frame(r3.Vec{Y: y * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 }
 
+// capStock is a bearing cap's socket tool in the cap's own section plane, so the cap lies in the tool that opened
+// its socket: the cap's section widened 10 along X, over the cap's Y span from (y0)*Scale run front more toward -Y
+// and back more toward +Y.
+func (b *builder) capStock(y0, front, back float64) *decad.Body {
+	s := b.p.Scale
+	return b.panel(190*s, 535*s, 250*s, 610*s, 30*s+front+back,
+		frame(r3.Vec{Y: (y0+30)*s + back}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+}
+
 func (b *builder) frameJoinery() {
 	s := b.p.Scale
 	// XZ profiles extrude toward -Y, so their origins name the rear faces.
 	b.machine("head-leg", b.railStock(-55), b.railStock(85))
 	// Each cap socket runs 5 past the leg's top corner on the side away from the rails, which it opens; flush
 	// with that corner, the Cut needed Decad's gap shift. The leg has no material there, so the socket is the same.
-	b.machine("front-wheel-leg", b.railStock(-55), b.box(190*s, 250*s, -55*s, -25*s+5, 535*s, 610*s))
-	b.machine("rear-wheel-leg", b.railStock(85), b.box(190*s, 250*s, 25*s-5, 55*s, 535*s, 610*s))
+	b.machine("front-wheel-leg", b.railStock(-55), b.capStock(-55, 0, 5))
+	b.machine("rear-wheel-leg", b.railStock(85), b.capStock(25, 5, 0))
 
 	var wedgeTools []*decad.Body
 	for _, x := range []float64{-180, -120} {

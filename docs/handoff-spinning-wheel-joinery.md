@@ -1791,3 +1791,6 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   in the boss's rod-lift sketch. 50 to 48 (`.tmp/lift-boss.log`): both cross 605s/boss clear.
 - Gimbal bridge bore: cut after the bridge Union by a tool on the crank 605's wheel lift, 5 past both plate
   faces. 48 to 47 (`.tmp/lift-bridge.log`): bridge/crank 605 clears.
+- Bearing cap sockets: each wheel leg's cap socket is now the cap's own XZ section (`capStock`), widened 10 along
+  X and run 5 past the leg corner, so the cap lies in the tool that opened its socket. 47 to 45
+  (`.tmp/lift-caps.log`): both cap/leg pairs clear; the legs match within bounds.
