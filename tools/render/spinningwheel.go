@@ -139,17 +139,29 @@ func renderSpinningWheelReadme(ctx context.Context, out string) error {
 	if err != nil {
 		return err
 	}
-	scene := spinningWheelScene(meshes, "hero")
-	if err := renderPNG(ctx, filepath.Join(out, "hero.png"), scene, 1600, 900); err != nil {
+	if err := renderSpinningWheelReadmeStills(ctx, meshes, out, 1600, 900); err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(out, "index.png"), scene, 480, 270); err != nil {
+	return renderSpinningWheelAnimation(ctx, meshes, base, filepath.Join(out, "motion.gif"), 1200, 800, 96)
+}
+
+// renderSpinningWheelReadmeStills writes the hero, index, rear and five paired stills. The width and
+// height size the hero and rear images; sheets use a 2000 by 1100 canvas scaled with them.
+func renderSpinningWheelReadmeStills(ctx context.Context, meshes []wheelMesh, out string, width, height int) error {
+	hero := spinningWheelScene(meshes, "hero")
+	if err := renderPNG(ctx, filepath.Join(out, "hero.png"), hero, width, height); err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(out, "index.png"), hero, 480, 270); err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(out, "rear.png"), spinningWheelScene(meshes, "rear"), width, height); err != nil {
 		return err
 	}
 	for _, shot := range []string{"front-back", "layout", "flyer", "brake", "whorl"} {
-		if err := renderSpinningWheelSheet(ctx, meshes, shot, filepath.Join(out, shot+".png"), 2000, 1100); err != nil {
+		if err := renderSpinningWheelSheet(ctx, meshes, shot, filepath.Join(out, shot+".png"), width*5/4, height*11/9); err != nil {
 			return err
 		}
 	}
-	return renderSpinningWheelAnimation(ctx, meshes, base, filepath.Join(out, "motion.gif"), 1200, 800, 96)
+	return nil
 }

@@ -32,6 +32,11 @@ func TestSpinningWheelRendering(t *testing.T) {
 		require.NoError(t, renderSpinningWheelSheet(t.Context(), meshes, shot, path, 1280, 720))
 		requireWheelImage(t, path, 1280, 720)
 	}
+	require.NoError(t, renderSpinningWheelReadmeStills(t.Context(), meshes, out, 640, 360))
+	for _, name := range []string{"hero", "index", "rear", "front-back", "layout", "flyer", "brake", "whorl"} {
+		_, err := os.Stat(filepath.Join(out, name+".png"))
+		require.NoError(t, err, name)
+	}
 	path := filepath.Join(out, "motion.gif")
 	require.NoError(t, renderSpinningWheelAnimation(t.Context(), meshes, base, path, 900, 600, 4))
 	f, err := os.Open(path)
