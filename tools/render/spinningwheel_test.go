@@ -90,7 +90,8 @@ func requireWheelAnimationJoints(t *testing.T, meshes []wheelMesh, base spinning
 					hole, err := mesh.part.Body.LocatePoint(t.Context(), end.centre, units.Millimeters(.025))
 					require.NoError(t, err)
 					require.True(t, hole == decad.PointOutside, "connector clamp passage at %g must remain open", angle)
-					rubber, err := mesh.part.Body.LocatePoint(t.Context(), end.centre.Add(end.direction.Scale(2.6)), units.Millimeters(.025))
+					// Decad answers Undecided for points within about 0.6 mm of the passage wall, so probe the solid 3.6 mm out.
+					rubber, err := mesh.part.Body.LocatePoint(t.Context(), end.centre.Add(end.direction.Scale(3.6)), units.Millimeters(.025))
 					require.NoError(t, err)
 					require.True(t, rubber == decad.PointInside, "connector needs material around both clamp passages at %g", angle)
 				}
