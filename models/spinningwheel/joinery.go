@@ -94,6 +94,7 @@ func (b *builder) frameJoinery() {
 	}
 	b.machine("front-head-wedge", wedgeTools...)
 
+	// The pilots run 5 past the base top face they open, so they never end flush with it.
 	var basePilots []*decad.Body
 	// mother-upper-bar is machined one seat per pass. Fused, the four foot-insert sockets share their
 	// X, Y and Z planes pairwise, and Decad's inside test finds every axis ray ambiguous. The hinge
@@ -102,7 +103,7 @@ func (b *builder) frameJoinery() {
 	for _, q := range []float64{-300, -90} {
 		for _, interval := range [][2]float64{{0, 15}, {32, 47}} {
 			y := (q+(interval[0]+interval[1])/2)*s + b.a.State.HeadShift
-			basePilots = append(basePilots, b.cylinder(1.5, 8*s,
+			basePilots = append(basePilots, b.cylinder(1.5, 8*s+5,
 				axisFrame(r3.Vec{X: -183 * s, Y: y, Z: 532 * s}, r3.Vec{Z: 1})))
 		}
 		barPasses = append(barPasses, []*decad.Body{

@@ -103,7 +103,7 @@ func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 	// The rear wedge is the 90 mm wide band between the rail's top line and z=525, 30 mm thick, all scaled.
 	wedge, err := wheelPart(t, a, "rear-head-wedge").Volume()
 	require.NoError(t, err)
-	wantWedge := 90 * (525 - (500 - (-150+280)*90/520.0)) * 30 * math.Pow(p.Scale, 3)
+	wantWedge := 90 * (525 - (500 - (-150+280)*90/520.0)) * 30 * p.Scale * p.Scale * p.Scale
 	require.InDelta(t, wantWedge, wedge.Value.Base(), wedge.Bound.Base()+1e-6*wantWedge, "wedge volume")
 	s, st := p.Scale, a.State
 	headPoint := func(x, y, z float64) r3.Vec {

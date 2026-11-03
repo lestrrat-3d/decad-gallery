@@ -1602,3 +1602,11 @@ The parent confirmed that every retained byte matches the currently staged brake
 Both candidates were copied unchanged after the candidate native API compiled.
 The current real default assembly result is recorded in Current status above.
 Keep production pins and old frozen input unchanged until accepting the published native repair.
+
+## Update 2026-11-03: workaround removal test
+
+- The default build passes without the pairwise three-body Union fallback and the yarn stem/stalk reorder, but
+  the `small-seven` variant then fails at `yarn-front-guide` ("Union of three or more bodies needs a certified
+  prism ... join them two at a time"). Both stay, so the removal is reverted.
+- The `mother-base` pilots now run 5 mm past the base top face (Decad cannot decide a pair of faces that end
+  flush at rounded scaled coordinates).
