@@ -37,7 +37,7 @@ func (b *builder) driveWheel() {
 		})
 	}
 	b.part("wheel-axle", "shaft", "wheel", func() *decad.Body {
-		body := b.cylinder(4, 146*s+3.2, wf(86*s+3.2))
+		body := b.cylinder(4, 146*s+3.2, shaftFrame(w.X, 86*s+3.2, w.Z, 0))
 		hubPocket := b.panel(2.8, -1, 5, 1, 24*s, wf(12*s))
 		crankPocket := b.panel(2.8, -1, 5, 1, 6*s, wf(85*s))
 		body = b.cut(body, hubPocket)
@@ -68,11 +68,11 @@ func (b *builder) driveWheel() {
 		{"wheel-hub-rear-spacer", "spacer", 4, 6, 15 * s, 45*s - 7},
 	} {
 		b.part(ring.name, ring.group, "wheel", func() *decad.Body {
-			return b.annulus(ring.inner, ring.outer, ring.y1-ring.y0, wf(ring.y1))
+			return b.annulus(ring.inner, ring.outer, ring.y1-ring.y0, shaftFrame(w.X, ring.y1, w.Z, 0))
 		})
 	}
 	c := b.a.State.CrankPin
-	cf := func(y float64) r3.Frame { return shaftFrame(c.X, y, c.Z, a) }
+	cf := func(y float64) r3.Frame { return shaftFrame(c.X, y, c.Z, 0) }
 	b.part("wheel-crank-pin", "pin", "wheel", func() *decad.Body {
 		return b.cylinder(2.5, 34*s+7, cf(112*s+3.5))
 	})

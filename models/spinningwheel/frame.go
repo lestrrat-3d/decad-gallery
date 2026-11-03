@@ -82,13 +82,13 @@ func (b *builder) frame() {
 	for i, interval := range [][2]float64{{-55*s - 3, -55 * s}, {55 * s, 55*s + 3}} {
 		b.part([]string{"wheel-axle-front-collar", "wheel-axle-rear-collar"}[i], "collar", "wheel", func() *decad.Body {
 			return b.annulus(4, 6, interval[1]-interval[0],
-				shaftFrame(220*s, interval[1], 580*s, b.p.WheelAngle))
+				shaftFrame(220*s, interval[1], 580*s, 0))
 		})
 	}
 	for i, interval := range [][2]float64{{-55 * s, -45 * s}, {45 * s, 55 * s}} {
 		b.part([]string{"wheel-axle-front-thrust-spacer", "wheel-axle-rear-thrust-spacer"}[i], "spacer", "wheel", func() *decad.Body {
 			return b.annulus(4, 6, interval[1]-interval[0],
-				shaftFrame(220*s, interval[1], 580*s, b.p.WheelAngle))
+				shaftFrame(220*s, interval[1], 580*s, 0))
 		})
 	}
 }
