@@ -31,8 +31,9 @@ func (b *builder) brake() {
 		return b.localStock(hl, x-27*s, x+22*s, -338*s+shift, -330*s+shift, 570*s, 590*s)
 	})
 	b.liftedPart("brake-control-rail", "frame", "fixed", func() *decad.Body {
+		// The thickness is taken between the shifted faces, so the front face lands on the insert plate's front.
 		return b.liftPanel(hl, frame(r3.Vec{Y: -325*s + shift}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
-			x-55*s, 590*s, x+55*s, 610*s, 13*s, hole{right, z, 2.1})
+			x-55*s, 590*s, x+55*s, 610*s, (-325*s+shift)-front, hole{right, z, 2.1})
 	})
 
 	b.part("brake-band", "brake-band", "fixed", func() *decad.Body {
