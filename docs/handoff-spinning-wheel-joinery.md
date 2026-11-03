@@ -1664,3 +1664,9 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   because the thinner hook stems (`2bf3a02`) left a 0.1 mm gap in their r=1 seats.
 - Hook stems (`2bf3a02`, coordinator request): ordinary hook stems are r=0.9. In their r=1 arm seats that 0.09 mm
   gap fails the default's geometric support check for all 12 hooks (bonded seat, clearance 0).
+- Hook seats: the arm seat tools are bored to the stem radius 0.9 (`hookStemRadius`), so the bonded stems meet
+  their seats again. Default count 174 (`.tmp/lift-hookseat.log`); the 12 hook/arm pairs are undecided again, as
+  at baseline. `small-seven` now passes the per-part 0.12 mm mesh check and the support check, then stops at 6
+  overlaps (`.tmp/hookseat-small-seven.log`): the four hinge fixed brackets against the upper bar (24.4 mm^3 each)
+  and two maiden-foot-1 bolts against the brake control rail (5.3 mm^3 each). The geometry of those parts matches
+  the baseline within its certified bounds, so these are existing small-seven layout overlaps, not lift changes.

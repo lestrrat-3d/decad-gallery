@@ -227,7 +227,7 @@ func (b *builder) guideSeats() {
 			attachment := (r3.Vec{X: x * s, Y: y * s, Z: 22 * s}).Add(e.Scale(4))
 			// The seat runs along the flyer's +Z, local +Y, from flyer point (x, y, 6s).
 			tools = append(tools, b.liftCylinder(fl, frame(r3.Vec{X: attachment.X, Y: 6 * s, Z: -attachment.Y},
-				r3.Vec{Z: 1}, r3.Vec{X: 1}), 1, 5*s))
+				r3.Vec{Z: 1}, r3.Vec{X: 1}), hookStemRadius, 5*s))
 		}
 		b.machine(fmt.Sprintf("flyer-arm-%d", side+1), tools...)
 	}

@@ -293,6 +293,7 @@ The round wire follows centre+4*(cos(t)*e+sin(t)*f), t from -150 to150 degrees;
 the60-degree opening is opposite e, above the bottom attachment. This keeps the lower stem attached at t0.
 The lower stem endpoint has the sameX/Y as centre+4*e at Z=10*Scale, on the arm's mounting face.
 The lower stem is a radius0.9 round rod, thinner than the wire, so the stem/wire union never meets tangentially.
+Its bonded arm seat is bored to the same radius0.9.
 Add a front routing guide at X58*Scale,Y=-224*Scale,Z22*Scale.
 Its incoming unit direction is normalize((58,3,0)), and its axis bisects that direction and +Y.
 The routing hook is now well behind the front maiden and whorl; retain its clearance through a full rotation.

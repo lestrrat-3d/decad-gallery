@@ -105,6 +105,9 @@ func (b *builder) yarn() {
 	})
 }
 
+// hookStemRadius is an ordinary hook's stem radius; its arm seat is bored to the same radius (guideSeats).
+const hookStemRadius = 0.9
+
 func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *decad.Body {
 	if b.err != nil {
 		return nil
@@ -130,7 +133,7 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 	))
 	// An ordinary hook's stem is thinner than its wire: at equal radii the stem/torus Union crosses nearly
 	// tangentially and its held bound exceeds the 0.12 mm check. The front guide's stem keeps diameter 2.
-	stemRadius := 0.9
+	stemRadius := hookStemRadius
 	if front {
 		stemRadius = 1
 	}
