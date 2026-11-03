@@ -213,8 +213,8 @@ func requireHeadAdjustment(t *testing.T, a *spinningwheel.Assembly, p spinningwh
 	}
 	require.Equal(t, 1, cords)
 	radius := 42*p.Scale + .6*math.Sqrt(5) + .05
-	// Below Scale 1 both tails shorten by the springs' shift, max(0, 15-15*Scale).
-	wantLength := math.Pi*radius + 612*p.Scale - 36.8 + 14.6*math.Pi - 2*math.Max(0, 15-15*p.Scale)
+	// Both tails shorten by the springs' shift, max(0, 15-15*Scale)+0.01.
+	wantLength := math.Pi*radius + 612*p.Scale - 36.8 + 14.6*math.Pi - 2*(math.Max(0, 15-15*p.Scale)+.01)
 	require.InDelta(t, wantLength, a.State.BrakeLength, 1e-9, "nominal centreline length includes both terminal eyes")
 }
 

@@ -330,7 +330,8 @@ All following geometry is in the reference head pose and receives the common hea
 Stock brake cord radius0.6 wraps the upper semicircle at rear bobbin plane localY=-69*Scale,
 pitch Rb=42*Scale+0.6*sqrt(5)+0.05 stock; the 0.05 is a designed clearance over the bobbin. Tails at X=headX+-Rb descend to Z600*Scale.
 At that level they turn forward along -Y to leftY=-285*Scale+S+BrakeTravel/2 and rightY=-285*Scale+S-BrakeTravel/2,
-where the shift S=max(0,15-15*Scale) stock keeps the take-up clevis behind the control rail at full travel.
+where the shift S=max(0,15-15*Scale)+0.01 stock keeps the take-up clevis a designed 0.01 behind the control rail
+at full travel.
 Band centreline length pi*Rb+612*Scale-2*S stays constant over BrakeTravel. Do not confuse spring extension with cord stretch.
 Two native six-turn Coil springs run along+Y, wire radius0.4 and centreline radius2.1 stock.
 Left spring endpoints areY[-310*Scale+S,-285*Scale+S+BrakeTravel/2];

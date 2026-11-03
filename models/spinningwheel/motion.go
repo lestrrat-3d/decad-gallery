@@ -227,7 +227,9 @@ func brakePitch(scale float64) float64 { return 42*scale + 0.6*math.Sqrt(5) + 0.
 // brakeShift moves both brake springs, their screw and anchor ends and the cord tails toward +Y below Scale 1.
 // The take-up clevis reaches 9 stock mm in front of its spring's front end, so at full BrakeTravel 6 it must start
 // 15 stock mm behind the control rail's rear face at -325*Scale; -310*Scale gives only 15*Scale there.
-func brakeShift(scale float64) float64 { return max(0, 15-15*scale) }
+// The stock 0.01 more is a designed gap: at full travel the clevis then stands 0.01 behind the rail's rear face,
+// which it meets on another lift.
+func brakeShift(scale float64) float64 { return max(0, 15-15*scale) + 0.01 }
 
 // PoseTransform maps a rigid part from base to state. Compliant parts must be rebuilt at the target pose.
 func PoseTransform(base, state State, motion string, wheelDelta float64) (r3.Transform, error) {
