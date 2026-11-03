@@ -255,7 +255,6 @@ func heelAt(x, y, z float64) r3.Frame {
 
 func (b *builder) driveTreadle() {
 	s := b.p.Scale
-	p := b.a.State.PedalFrame
 	l := b.treadleLift()
 	h := b.heelLift()
 	b.part("treadle", "treadle", "treadle", func() *decad.Body {
@@ -267,13 +266,10 @@ func (b *builder) driveTreadle() {
 		keyedOutline(section, 4.1, 1.1, 4.9)
 		return b.liftExtrude(section, 1, 426*s, l)
 	})
-	// The diagonal rail keeps its own frame along (330, 450): its sockets share that frame (diagonalStock).
+	// The diagonal rail is sketched on the treadle lift in the frame its lap tools use (diagonalAt), so their
+	// side faces share exact numbers.
 	b.part("treadle-actuating-rail", "treadle", "treadle", func() *decad.Body {
-		length := math.Hypot(330, 450) * s
-		u := p.U().Scale(330).Add(p.V().Scale(450)).Scale(s / length)
-		v := p.N().Cross(u)
-		f := frame(p.ToWorld(r3.Vec{X: -160 * s, Z: -12 * s}), u, v)
-		return b.panel(0, -12*s, length, 12*s, 24*s, f)
+		return b.liftPanel(l, b.diagonalAt(-12*s), 0, -12*s, math.Hypot(330, 450)*s, 12*s, 24*s)
 	})
 	b.part("treadle-rear-crossarm", "treadle", "treadle", func() *decad.Body {
 		return b.liftPanel(l, level(0, 0, -12*s), 160*s, 438*s, 220*s, 462*s, 12*s)

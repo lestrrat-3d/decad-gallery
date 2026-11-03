@@ -200,12 +200,15 @@ func (b *builder) frameJoinery() {
 // further out so it never ends flush with the host face it opens.
 func (b *builder) diagonalStock(z0, z1, pad0, pad1 float64) *decad.Body {
 	s := b.p.Scale
-	f := b.a.State.PedalFrame
+	return b.liftPanel(b.treadleLift(), b.diagonalAt(z0*s-pad0), 0, -12*s, math.Hypot(330, 450)*s, 12*s,
+		(z1-z0)*s+pad0+pad1)
+}
+
+// diagonalAt is the diagonal rail's sketch frame on the treadle lift at local level z: it starts at local X
+// -160*Scale and runs along local (330, 450).
+func (b *builder) diagonalAt(z float64) r3.Frame {
 	u, _ := (r3.Vec{X: 330, Y: 450}).Normalize()
-	v := r3.Vec{X: -u.Y, Y: u.X}
-	return b.panel(0, -12*s, math.Hypot(330, 450)*s, 12*s, (z1-z0)*s+pad0+pad1,
-		frame(f.ToWorld(r3.Vec{X: -160 * s, Z: z0*s - pad0}),
-			f.U().Scale(u.X).Add(f.V().Scale(u.Y)), f.U().Scale(v.X).Add(f.V().Scale(v.Y))))
+	return frame(r3.Vec{X: -160 * b.p.Scale, Z: z}, u, r3.Vec{X: -u.Y, Y: u.X})
 }
 
 func (b *builder) treadleJoinery() {
