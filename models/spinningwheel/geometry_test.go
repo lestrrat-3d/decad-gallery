@@ -218,25 +218,48 @@ func requireHeadAdjustment(t *testing.T, a *spinningwheel.Assembly, p spinningwh
 	require.InDelta(t, wantLength, a.State.BrakeLength, 1e-9, "nominal centreline length includes both terminal eyes")
 }
 
+// requireBoreCaps requires an exact bore cylinder of the radius on the axis through centre, and a rim of it on
+// two planar caps. A rim is an exact Circle3 on that axis, or a FacetedCurve within 0.005 mm of the bore
+// cylinder: a bore cut by a tool on another lift than its host (the footman boss's, on the cross bearings'
+// gimbal lift) leaves the Cut's faceted path, where Decad correctly refuses to call the rim a circle (rule E12);
+// the cylinder face itself stays exact.
 func requireBoreCaps(t *testing.T, body *decad.Body, centre, axis r3.Vec, radius float64) {
 	t.Helper()
-	found := 0
+	onAxis := func(p r3.Vec) bool {
+		delta := p.Sub(centre)
+		return delta.Sub(axis.Scale(delta.Dot(axis))).Len() < 1e-6
+	}
+	isBore := func(face *decad.Face) bool {
+		c, ok := face.Surface().(decad.Cylinder)
+		return ok && onAxis(c.Origin) && c.Axis.Cross(axis).Len() < 1e-6 && math.Abs(c.Radius.Base()-radius) < 1e-6
+	}
+	bores, found := 0, 0
 	for _, face := range body.Faces() {
+		if isBore(face) {
+			bores++
+		}
 		if face.Surface().Kind() != decad.KindPlane {
 			continue
 		}
+		rim := false
 		for _, loop := range face.Loops() {
 			for _, edge := range loop.Edges() {
-				c, ok := edge.Curve().(decad.Circle3)
-				if !ok {
-					continue
-				}
-				delta := c.Center.Sub(centre)
-				if delta.Sub(axis.Scale(delta.Dot(axis))).Len() < 1e-6 && math.Abs(c.Radius.Base()-radius) < 1e-6 {
-					found++
+				switch c := edge.Curve().(type) {
+				case decad.Circle3:
+					rim = rim || onAxis(c.Center) && math.Abs(c.Radius.Base()-radius) < 1e-6
+				case decad.FacetedCurve:
+					if c.Bound.Base() <= 0.005 {
+						for _, other := range edge.Faces() {
+							rim = rim || isBore(other)
+						}
+					}
 				}
 			}
 		}
+		if rim {
+			found++
+		}
 	}
+	require.Positive(t, bores, "real pivot bore must be an exact cylinder")
 	require.Equal(t, 2, found, "real pivot bore must reach both caps")
 }
