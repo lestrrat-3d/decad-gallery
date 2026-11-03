@@ -203,16 +203,19 @@ func (b *builder) adjustment() {
 	})
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footY := post[0]*s - 6.2 + shift
+		// The foot and its inserts stand a designed 0.01 above the upper bar's top face and socket floors: at Scale
+		// 0.8 the bar's held mesh cannot decide a flush face. The foot's top stays at the bolt heads' 585*Scale.
+		footBottom := 570*s + 0.01
 		b.liftedPart(fmt.Sprintf("maiden-foot-%d", i+1), "frame", "fixed", func() *decad.Body {
-			return b.liftPanel(hl, level(0, 0, 570*s), -175*s, post[0]*s-12+shift, -105*s, post[1]*s+2+shift, 15*s,
-				hole{-150 * s, footY, 3.3}, hole{-130 * s, footY, 3.3})
+			return b.liftPanel(hl, level(0, 0, footBottom), -175*s, post[0]*s-12+shift, -105*s, post[1]*s+2+shift,
+				585*s-footBottom, hole{-150 * s, footY, 3.3}, hole{-130 * s, footY, 3.3})
 		})
 		for j, x := range []float64{-150, -130} {
 			b.liftedPart(fmt.Sprintf("maiden-foot-%d-bolt-%d", i+1, j+1), "fastener", "fixed", func() *decad.Body {
 				return b.verticalBolt(hl, x*s, footY, 560*s, 585*s, 4.2)
 			})
 			b.liftedPart(fmt.Sprintf("maiden-foot-%d-insert-%d", i+1, j+1), "insert", "fixed", func() *decad.Body {
-				return b.liftPanel(hl, frame(r3.Vec{X: x * s, Y: footY, Z: 570*s - 8}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+				return b.liftPanel(hl, frame(r3.Vec{X: x * s, Y: footY, Z: footBottom - 8}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
 					-5, -5, 5, 5, 8, hole{0, 0, 3})
 			})
 		}

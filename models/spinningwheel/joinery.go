@@ -312,7 +312,8 @@ func (b *builder) brakeSeats() {
 	// The front maiden foot's bolt heads (stock height 4.2 above 585*Scale) reach the rail's bottom face at
 	// 590*Scale below Scale 0.84. There the rail gets a stock radius6 head relief, 5 below its bottom face up to
 	// the head tops; above that scale the heads stay clear and the rail is uncut.
-	if top := 585*s + 4.2; top > 590*s {
+	// The relief runs a designed 0.01 past the head tops, which ride another Boolean chain.
+	if top := 585*s + 4.2 + 0.01; top > 590*s {
 		for _, x := range []float64{-150 * s, -130 * s} {
 			controlTools = append(controlTools,
 				b.headBore(6, top-(590*s-5), r3.Vec{X: x, Y: -314*s - 6.2, Z: 590*s - 5}, r3.Vec{Z: 1}))
