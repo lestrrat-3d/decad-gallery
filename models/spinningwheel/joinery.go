@@ -134,17 +134,20 @@ func (b *builder) frameJoinery() {
 	// mother-upper-bar is machined one seat per pass. Fused, the four foot-insert sockets share their
 	// X, Y and Z planes pairwise, and Decad's inside test finds every axis ray ambiguous. The hinge
 	// stock and the sockets run 5 past the bar face they open, so no pass leaves a flush face.
+	// The box passes are cut before the round pilots: a box Cut on the bar after a pilot met the pilot's held
+	// facets and needed a held-mesh repair (embedding reach, chain allowance) at Scale 0.8.
 	var barPasses [][]*decad.Body
+	var barPilots []*decad.Body
 	for _, q := range []float64{-300, -90} {
 		for _, interval := range b.hingeBrackets(q*s + b.a.State.HeadShift) {
 			y := (interval[0] + interval[1]) / 2
 			basePilots = append(basePilots, b.cylinder(1.5, 8*s+5,
 				axisFrame(r3.Vec{X: -183 * s, Y: y, Z: 532 * s}, r3.Vec{Z: 1})))
 		}
-		barPasses = append(barPasses, []*decad.Body{
-			b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s),
-			// The screw pilot starts 5 below the leaf pocket's ceiling it opens, not flush with it.
-			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5)})
+		barPasses = append(barPasses, []*decad.Body{b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s)})
+		// The screw pilot starts 5 below the leaf pocket's ceiling it opens, not flush with it.
+		barPilots = append(barPilots,
+			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5))
 	}
 	// Each alignment clamp's shank has its own bore tool through the base, radius 3 on the clamp's axis; it lies
 	// in the alignment slot, 0.3 inside its walls, so it removes nothing but records the shank's seat.
@@ -168,7 +171,7 @@ func (b *builder) frameJoinery() {
 			}
 		}
 	}
-	for _, tools := range barPasses {
+	for _, tools := range append(barPasses, barPilots) {
 		b.machine("mother-upper-bar", tools...)
 	}
 	rearCrossbarTools = append(rearCrossbarTools,
