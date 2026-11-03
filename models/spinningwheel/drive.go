@@ -198,14 +198,15 @@ func (b *builder) driveFootman() {
 	// between them cannot be decided. Its spacer is crossGap shorter.
 	// Bearing 1's inner face is taken back from the spacer's length, (12*Scale-5) minus a length less than twice
 	// it, which rounds to nothing: the spacer's far face then lands on that face exactly.
-	spacerLength := (12*s - 5) - (-12*s + 5 + crossGap)
-	for i, v := range [][2]float64{{-12*s + crossGap, (12*s - 5) - spacerLength}, {12*s - 5, 12 * s}} {
+	// Bearing 2 sits crossGap off retainer 2 the same way, and the spacer is crossGap shorter again.
+	spacerLength := (12*s - 5 - crossGap) - (-12*s + 5 + crossGap)
+	for i, v := range [][2]float64{{-12*s + crossGap, (12*s - 5 - crossGap) - spacerLength}, {12*s - 5 - crossGap, 12*s - crossGap}} {
 		b.part(fmt.Sprintf("footman-cross-605-%d", i+1), "bearing", "footman", func() *decad.Body {
 			return b.liftAnnulus(gl, crossAt(32*s, v[1]), 2.5, 7, v[1]-v[0])
 		})
 	}
 	b.part("footman-cross-spacer", "spacer", "footman", func() *decad.Body {
-		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, spacerLength)
+		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5-crossGap), 2.5, 4, spacerLength)
 	})
 	for i, v := range [][2]float64{{-12*s - 2, -12 * s}, {12 * s, 12*s + 2}} {
 		b.part(fmt.Sprintf("footman-cross-retainer-%d", i+1), "retainer", "footman", func() *decad.Body {

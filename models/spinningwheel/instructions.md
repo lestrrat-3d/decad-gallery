@@ -118,9 +118,9 @@ Bridge, cheeks, crank605, cross-pin and its collars use Motion gimbal; rigid ove
 Footman long timber uses RodFrame coordinates u[20,476],v[-10,10],w[-4,4], scaled.
 Its upper boss is u[460,498],v[-12,12],w[-10,10], scaled, with a stock14 bore along v at u486,w0.
 The16*Scale overlap joins the wood parts below the bearing seat; the long timber never obstructs that seat.
-Two stock605ZZ sit in that boss: v[-12*Scale+0.01,-12*Scale+5.01] and[12*Scale-5,12*Scale].
-The first sits a designed 0.01 off its retaining ring, which rides another frame.
-An8 OD,5 ID spacer fills v[-12*Scale+5.01,12*Scale-5].
+Two stock605ZZ sit in that boss: v[-12*Scale+0.01,-12*Scale+5.01] and[12*Scale-5.01,12*Scale-0.01].
+Each sits a designed 0.01 off its retaining ring, which rides another frame.
+An8 OD,5 ID spacer fills v[-12*Scale+5.01,12*Scale-5.01].
 Stock ID10,OD18,width2 outer-race retaining rings lie0.2 outside the boss faces.
 These parts use Motion footman. The boss bore axis coincides with the gimbal cross-pin throughout rotation.
 The lower wood end stops20*Scale above D. Model the compliant connector as two adjoining cylinders, the lower radius3 and the upper radius2.9,
