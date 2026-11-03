@@ -240,7 +240,9 @@ func (b *builder) heelLift() lift {
 }
 
 // heelAt is the treadle lift's plane normal to the heel axis at local X x.
-func heelAt(x, y, z float64) r3.Frame { return frame(r3.Vec{X: x, Y: y, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1}) }
+func heelAt(x, y, z float64) r3.Frame {
+	return frame(r3.Vec{X: x, Y: y, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+}
 
 func (b *builder) driveTreadle() {
 	s := b.p.Scale
