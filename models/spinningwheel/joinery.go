@@ -278,9 +278,12 @@ func (b *builder) collarScrews() {
 		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1),
 			centre: r3.Vec{X: x, Y: -190 * s, Z: 60 * s}, radial: st.PedalFrame.V().Scale(-1), inner: 4, outer: 6})
 	}
+	gl := b.gimbalLift()
 	for i, v := range []float64{-27*s - 1.7, 27*s + 1.7} {
+		// The cross-pin setscrews point along the gimbal's local -X, back toward the crank pin.
+		hole := frame(r3.Vec{X: 32 * s, Y: v}, r3.Vec{Z: 1}, r3.Vec{Y: 1})
 		seats = append(seats, collarSeat{name: fmt.Sprintf("gimbal-cross-pin-collar-%d", i+1),
-			centre: st.RodHead.Add(st.GimbalFrame.V().Scale(v)), radial: st.GimbalFrame.U().Scale(-1), inner: 2.5, outer: 4.5})
+			inner: 2.5, outer: 4.5, l: gl, hole: &hole})
 	}
 	hx, err := r3.RotationAround(st.HeadPivot, r3.Vec{Y: -1}, units.Radians(st.HeadTilt))
 	if err != nil {

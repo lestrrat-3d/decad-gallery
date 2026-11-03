@@ -104,59 +104,61 @@ func (b *builder) driveWheel() {
 	}
 }
 
+// gimbalLift carries the gimbal group in GimbalFrame: local X runs radially from the crank pin to the cross
+// pin, local Y along the cross pin and local Z along the crank pin toward -Y.
+func (b *builder) gimbalLift() lift { return b.liftOf(b.a.State.GimbalFrame) }
+
+// crossAt is the gimbal lift's plane through local (x, v, 0), normal to the cross pin, whose extrusion runs
+// toward local -Y from v. The bridge cheeks and every ring on the cross pin share its axes, so their flush
+// faces differ only by exact plane offsets.
+func crossAt(x, v float64) r3.Frame { return frame(r3.Vec{X: x, Y: v}, r3.Vec{X: 1}, r3.Vec{Z: 1}) }
+
 func (b *builder) driveGimbal() {
 	s := b.p.Scale
-	g := b.a.State.GimbalFrame
-	point := g.ToWorld
-	wn := func(w float64) r3.Frame {
-		return frame(point(r3.Vec{Z: w}), g.U(), g.V())
-	}
-	vn := func(v float64) r3.Frame {
-		return frame(point(r3.Vec{Y: v}), g.U(), g.N())
-	}
+	l := b.gimbalLift()
 	b.part("gimbal-bridge", "gimbal", "gimbal", func() *decad.Body {
-		bridge := b.panel(-11*s, -22*s, 10*s, 22*s, 5, wn(-2.5),
+		bridge := b.liftPanel(l, level(0, 0, -2.5), -11*s, -22*s, 10*s, 22*s, 5,
 			hole{0, 0, 7}, hole{0, -9, 1.1}, hole{0, 9, 1.1})
-		left := b.panel(8*s, -9*s, 46*s, 9*s, 7*s, vn(-20*s), hole{32 * s, 0, 2.6})
-		right := b.panel(8*s, -9*s, 46*s, 9*s, 7*s, vn(27*s), hole{32 * s, 0, 2.6})
+		left := b.liftPanel(l, crossAt(0, -20*s), 8*s, -9*s, 46*s, 9*s, 7*s, hole{32 * s, 0, 2.6})
+		right := b.liftPanel(l, crossAt(0, 27*s), 8*s, -9*s, 46*s, 9*s, 7*s, hole{32 * s, 0, 2.6})
 		return b.union(bridge, left, right)
 	})
+	// The crank bearing is round, so it rides its journal's lift: the crank pin's, local (25s, 0) of the wheel.
 	b.part("gimbal-crank-605", "bearing", "gimbal", func() *decad.Body {
-		return b.annulus(2.5, 7, 5, wn(-2.5))
+		y := b.a.State.CrankPin.Y
+		return b.liftAnnulus(b.wheelLift(), wheelAt(25*s, 0, y+2.5), 2.5, 7, (y+2.5)-(y-2.5))
 	})
 	for i, start := range []float64{-4.5, 2.5} {
 		b.part(fmt.Sprintf("gimbal-crank-retainer-%d", i+1), "retainer", "gimbal", func() *decad.Body {
-			section := b.section(false)
+			section := b.sectionOn(level(0, 0, start))
 			circle(section, 0, 0, 11)
 			circle(section, 0, 0, 5)
 			circle(section, 0, -9, 1.1)
 			circle(section, 0, 9, 1.1)
-			return b.extrude(section, 3, 2, wn(start))
+			return b.liftExtrude(section, 3, 2, l)
 		})
 	}
 	for i, v := range []float64{-9, 9} {
-		boltFrame := frame(point(r3.Vec{Y: v, Z: -5.5}), g.U(), g.V())
 		b.part(fmt.Sprintf("gimbal-retainer-bolt-%d", i+1), "fastener", "gimbal", func() *decad.Body {
-			return b.revolve([]point2{{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 12}, {0, 12}}, boltFrame)
+			return b.liftRevolve(l, zAxis(0, v, -5.5), []point2{{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 12}, {0, 12}})
 		})
 		b.part(fmt.Sprintf("gimbal-retainer-nut-%d", i+1), "fastener", "gimbal", func() *decad.Body {
-			return b.annulus(1, 2, 2, frame(point(r3.Vec{Y: v, Z: 4.5}), g.U(), g.V()))
+			return b.liftAnnulus(l, level(0, v, 4.5), 1, 2, 2)
 		})
 	}
-	axis := g.V()
-	centre := b.a.State.RodHead
-	axial := func(v float64) r3.Frame { return axisFrame(centre.Add(axis.Scale(v)), axis) }
+	// The cross pin's axis is local Y through local (32s, 0, 0), RodHead.
+	x := 32 * s
 	b.part("gimbal-cross-pin", "pin", "gimbal", func() *decad.Body {
-		return b.cylinder(2.5, 60*s+6, axial(-30*s-3))
+		return b.liftCylinder(l, crossAt(x, 30*s+3), 2.5, 60*s+6)
 	})
-	for i, start := range []float64{-27*s - 3.2, 27*s + 0.2} {
+	for i, v := range [][2]float64{{-27*s - 3.2, -27*s - 0.2}, {27*s + 0.2, 27*s + 3.2}} {
 		b.part(fmt.Sprintf("gimbal-cross-pin-collar-%d", i+1), "collar", "gimbal", func() *decad.Body {
-			return b.annulus(2.5, 4.5, 3, axial(start))
+			return b.liftAnnulus(l, crossAt(x, v[1]), 2.5, 4.5, v[1]-v[0])
 		})
 	}
-	for i, start := range []float64{-20 * s, 12 * s} {
+	for i, v := range [][2]float64{{-20 * s, -12 * s}, {12 * s, 20 * s}} {
 		b.part(fmt.Sprintf("gimbal-cross-spacer-%d", i+1), "spacer", "gimbal", func() *decad.Body {
-			return b.annulus(2.5, 4, 8*s, axial(start))
+			return b.liftAnnulus(l, crossAt(x, v[1]), 2.5, 4, v[1]-v[0])
 		})
 	}
 }

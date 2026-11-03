@@ -1633,3 +1633,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 - Wheel: 211 to 210 (`.tmp/lift-wheel.log`, pairs in `.tmp/lift-probe-wheel.log`). Cleared: crank/pin spacer and
   both hub spacers. The bearing caps now take their bore from a wheel-lift tool, so cap/bearing is lost to the
   gap above. The spokes keep their own frames: they already share exact frames with their socket tools.
+- Gimbal: 210 to 202 (`.tmp/lift-gimbal.log`, `.tmp/lift-probe-gimbal.log`). Cleared: crank 605 against the crank
+  pin and its spacer (the 605 rides the crank pin's wheel lift), both cross-pin collars and spacers, and retainer 2
+  against both nuts. The bridge keeps its sketch bore: a wheel-lift bore tool would only meet the gap above. The
+  bridge's union of a plate and two cheeks in different plane orientations still blocks bridge/retainer and
+  bridge/spacer.
