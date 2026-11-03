@@ -28,7 +28,9 @@ func (b *builder) brake() {
 		return b.localStock(hl, x-55*s, x+55*s, -80*s+shift, -60*s+shift, 565*s, 580*s)
 	})
 	b.liftedPart("brake-front-upright", "frame", "fixed", func() *decad.Body {
-		return b.localStock(hl, x-27*s, x+22*s, -338*s+shift, -330*s+shift, 570*s, 590*s)
+		// The upright stands a designed 0.01 above the upper bar's top face: at Scale 0.8 the bar's held mesh
+		// sits within that of the face, so a flush glued face cannot be decided.
+		return b.localStock(hl, x-27*s, x+22*s, -338*s+shift, -330*s+shift, 570*s+0.01, 590*s)
 	})
 	b.liftedPart("brake-control-rail", "frame", "fixed", func() *decad.Body {
 		// The thickness is taken between the shifted faces, so the front face lands on the insert plate's front.

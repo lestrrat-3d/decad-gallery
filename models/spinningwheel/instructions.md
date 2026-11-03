@@ -343,7 +343,8 @@ coil pitch=(SpringLength-0.8)/6. Add small radius0.4 axial/radial bridges joinin
 The left front endpoint is fixed. The right front endpoint advances towards the operator by BrakeTravel.
 
 A front control rail spans X[headX-55,headX+55], referenceY[-338,-325]+HeadShift/Scale,Z[590,610], scaled.
-An upright X[headX-27,headX+22],Y[-335,-325]+HeadShift/Scale,Z[570,590] joins it to the jack arm.
+An upright X[headX-27,headX+22],Y[-335,-325]+HeadShift/Scale,Z[570,590] joins it to the jack arm; it stands
+a designed stock 0.01 above the upper bar.
 At rear localY[-80,-60], a crossbar X[headX-55,headX+55],Z[565,580] joins the maiden bar above the hinge pin.
 Two radius0.8 anchor stems reach the spring/cord datums from these timbers.
 Rear routing eyes have stock ID3,OD5,width1.2, centred at each (tailX,-69*Scale,600*Scale).
