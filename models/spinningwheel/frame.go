@@ -294,11 +294,18 @@ func (b *builder) verticalBolt(l lift, x, y, z0, z1, headHeight float64) *decad.
 		[]point2{{0, 0}, {3, 0}, {3, length}, {6, length}, {6, length + headHeight}, {0, length + headHeight}})
 }
 
+// hingeBrackets is the Y span of each fixed bracket of the hinge at q (shifted). The base pilots take their
+// mounts' axes from the same spans, so a pilot and its mount share one axis float.
+func (b *builder) hingeBrackets(q float64) [][2]float64 {
+	s := b.p.Scale
+	return [][2]float64{{q, q + 15*s}, {q + 32*s, q + 47*s}}
+}
+
 func (b *builder) hinge(index int, q float64) {
 	s := b.p.Scale
 	prefix := fmt.Sprintf("mother-hinge-%d-", index)
 	b.tilt = false
-	for j, interval := range [][2]float64{{q, q + 15*s}, {q + 32*s, q + 47*s}} {
+	for j, interval := range b.hingeBrackets(q) {
 		middle := (interval[0] + interval[1]) / 2
 		b.part(fmt.Sprintf("%sfixed-bracket-%d", prefix, j+1), "hinge", "fixed", func() *decad.Body {
 			return b.fixedBracket(interval[0], interval[1], middle)

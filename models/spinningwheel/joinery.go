@@ -136,8 +136,8 @@ func (b *builder) frameJoinery() {
 	// stock and the sockets run 5 past the bar face they open, so no pass leaves a flush face.
 	var barPasses [][]*decad.Body
 	for _, q := range []float64{-300, -90} {
-		for _, interval := range [][2]float64{{0, 15}, {32, 47}} {
-			y := (q+(interval[0]+interval[1])/2)*s + b.a.State.HeadShift
+		for _, interval := range b.hingeBrackets(q*s + b.a.State.HeadShift) {
+			y := (interval[0] + interval[1]) / 2
 			basePilots = append(basePilots, b.cylinder(1.5, 8*s+5,
 				axisFrame(r3.Vec{X: -183 * s, Y: y, Z: 532 * s}, r3.Vec{Z: 1})))
 		}
