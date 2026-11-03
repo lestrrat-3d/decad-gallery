@@ -68,13 +68,16 @@ func (b *builder) head() {
 		for i, ratio := range []float64{17, 12, 9, 7} {
 			root := b.a.State.WheelPitch/ratio - math.Sqrt(5)
 			outer := root + 6*s
-			centre := float64(4+8*i) * s
-			start := float64(8*i-1) * s
+			// Every axial station is an integer multiple of s, so one groove's end and the next groove's
+			// start are the same float. Computed as centre+3*s versus (8i-1)*s they differ by an ulp at
+			// s=0.8, which folds the outer run and keeps Decad off its exact revolved-bore route.
+			z := func(k int) float64 { return float64(k) * s }
+			start := z(8*i - 1)
 			if i == 0 {
 				start = 0
 			}
-			profile = append(profile, point2{outer, start}, point2{outer, centre - 3*s},
-				point2{root, centre}, point2{outer, centre + 3*s})
+			profile = append(profile, point2{outer, start}, point2{outer, z(8*i + 1)},
+				point2{root, z(8*i + 4)}, point2{outer, z(8*i + 7)})
 			if i == 3 {
 				profile = append(profile, point2{outer, 32 * s})
 			}
