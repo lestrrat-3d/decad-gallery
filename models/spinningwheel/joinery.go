@@ -116,7 +116,7 @@ func (b *builder) frameJoinery() {
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footName := fmt.Sprintf("maiden-foot-%d", i+1)
-		b.machine(footName, b.headStock(-160*s, -120*s, post[0]*s, post[1]*s, 575*s, 585*s))
+		b.machine(footName, b.headStock(-160*s, -120*s, post[0]*s, post[1]*s, 575*s, 585*s+5))
 		for _, x := range []float64{-150, -130} {
 			y := post[0]*s - 6.2
 			barPasses = append(barPasses, []*decad.Body{b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s+5)})
@@ -154,13 +154,15 @@ func (b *builder) frameJoinery() {
 	b.machine("wheel-rim", rimTools...)
 }
 
-func (b *builder) diagonalStock(z0, z1 float64) *decad.Body {
+// diagonalStock is the diagonal rail's lap tool between local z0 and z1 (scaled); pad0 and pad1 run it that many mm
+// further out so it never ends flush with the host face it opens.
+func (b *builder) diagonalStock(z0, z1, pad0, pad1 float64) *decad.Body {
 	s := b.p.Scale
 	f := b.a.State.PedalFrame
 	u, _ := (r3.Vec{X: 330, Y: 450}).Normalize()
 	v := r3.Vec{X: -u.Y, Y: u.X}
-	return b.panel(0, -12*s, math.Hypot(330, 450)*s, 12*s, (z1-z0)*s,
-		frame(f.ToWorld(r3.Vec{X: -160 * s, Z: z0 * s}),
+	return b.panel(0, -12*s, math.Hypot(330, 450)*s, 12*s, (z1-z0)*s+pad0+pad1,
+		frame(f.ToWorld(r3.Vec{X: -160 * s, Z: z0*s - pad0}),
 			f.U().Scale(u.X).Add(f.V().Scale(u.Y)), f.U().Scale(v.X).Add(f.V().Scale(v.Y))))
 }
 
@@ -168,17 +170,17 @@ func (b *builder) treadleJoinery() {
 	s := b.p.Scale
 	f := b.a.State.PedalFrame
 	b.machine("treadle-heel-rail",
-		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
-		b.diagonalStock(-12, 0))
+		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
+		b.diagonalStock(-12, 0, 5, 0))
 	// The keyed shaft runs along PedalFrame.U; radial +X is PedalFrame.V.
 	keyFrame := frame(f.ToWorld(r3.Vec{X: 5*s - 5}), f.V(), f.N())
 	b.machine("treadle",
-		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s, 0),
-		b.diagonalStock(-12, 0), b.keyTool(4.1, 1.1, 4.9, 110*s+10, keyFrame))
+		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s-5, 0),
+		b.diagonalStock(-12, 0, 5, 0), b.keyTool(4.1, 1.1, 4.9, 110*s+10, keyFrame))
 	b.machine("treadle-actuating-rail",
-		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s),
-		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s),
-		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s, 0))
+		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s+5),
+		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
+		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s-5, 0))
 	// The glued rail never touches the heel shaft or its key, so it gets a clearance bore along the shaft.
 	b.machine("treadle-actuating-rail", b.cylinder(5.2, 560*s, frame(f.ToWorld(r3.Vec{X: -290 * s}), f.V(), f.N())))
 	// The half-lap stock runs 5 past the block's side and bottom faces, so it never shares their planes.
