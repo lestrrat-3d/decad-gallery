@@ -1813,3 +1813,4 @@ These were checked against the Gallery options above; each needs a Decad reader 
 | Planar face against a revolve shoulder (prism with a non-circular hole) | flyer-shaft/flyer-crossbar |
 | Half-lap intersection reasoning (A ∩ B lies in a tool) | treadle/treadle-actuating-rail, treadle-heel-rail/treadle, treadle-heel-rail/treadle-actuating-rail |
 | Two lifts with one shared axis but different radial axes (gimbal and rod frames) | footman-cross-605-1/footman-cross-retainer-1 |
+- Decad pin `afb86835c` (#3086, Refine results and Cut-tool meridians): 45 to 34 (`.tmp/lift-pin8.log`).
