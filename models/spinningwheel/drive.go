@@ -346,18 +346,23 @@ func (b *builder) whorlLift() lift {
 	return b.tilted(b.liftOf(b.headFrame(0, b.whorlStart())))
 }
 
-// bandGap is the designed gap between a straight band span and the wraps and pulley flanks it meets.
-const bandGap = 0.01
+// bandGap and wheelBandGap are the designed gaps between a straight band span and the wraps and pulley flanks it
+// meets: bandGap at the whorl, wheelBandGap at the wheel, whose large rim and wrap need the wider gap before Verify
+// can decide them. A span is wheelBandGap thinner than the wire.
+const (
+	bandGap      = 0.01
+	wheelBandGap = 0.03
+)
 
-// bandSpan is the straight band from tangent point a to c, bandGap thinner than the wire and bandGap short of each
-// wrap.
+// bandSpan is the straight band from the wheel tangent point a to the whorl tangent point c, wheelBandGap thinner
+// than the wire, wheelBandGap short of the wheel wrap and bandGap short of the whorl wrap.
 func (b *builder) bandSpan(a, c r3.Vec) *decad.Body {
 	d, ok := c.Sub(a).Normalize()
 	if !ok {
 		b.fail("construct band span", fmt.Errorf("span ends coincide"))
 		return nil
 	}
-	return b.span(a.Add(d.Scale(bandGap)), c.Sub(d.Scale(bandGap)), 1-bandGap)
+	return b.span(a.Add(d.Scale(wheelBandGap)), c.Sub(d.Scale(bandGap)), 1-wheelBandGap)
 }
 
 // liftWrap is a band wrap of the given pitch radius and wire radius, turned angle from l's local +X about its

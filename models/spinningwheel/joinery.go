@@ -512,7 +512,7 @@ func (b *builder) mountInventory() {
 		add(clamp[0]+"-nut", "threaded-cross-clamp-nut", refs(clamp[0]+"-pin", clamp[1]), nil, 0)
 	}
 	for _, name := range []string{"drive-band-wheel-wrap", "drive-band-flyer-wrap", "drive-band-span-1", "drive-band-span-2"} {
-		add(name, "single-drive-band-tangent-cap-seams", refs("wheel-rim", "flyer-drive-whorl"), nil, bandGap)
+		add(name, "single-drive-band-tangent-cap-seams", refs("wheel-rim", "flyer-drive-whorl"), nil, wheelBandGap)
 	}
 
 	add("front-maiden-bush", "press-fit-sleeve", refs("front-maiden"), refs("front-sleeve-retainer"), 0)

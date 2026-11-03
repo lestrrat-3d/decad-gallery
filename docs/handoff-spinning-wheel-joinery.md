@@ -1836,3 +1836,7 @@ These were checked against the Gallery options above; each needs a Decad reader 
 - Footman cross bearing 1 (designed gap): it sits 0.01 off retainer 1, its spacer is 0.01 shorter, and its mount
   takes clearance 0.01; spec lines amended. Focused check of the cross-pin stack (`.tmp/focus-cross.log`): no
   undecided pair remains among the two 605s, their spacer, both retainers, the boss, the cross pin and its spacers.
+- Wheel-side band gap widened (coordinator decision): spans are radius 0.97, 0.03 short of the wheel wrap and 0.01
+  short of the whorl wrap; band mounts take clearance 0.03; spec line updated. Focused check
+  (`.tmp/focus-gapw.log`): no undecided pair among the band, rim and whorl. Each span is 864.9 of the original
+  919.4 mm^3.

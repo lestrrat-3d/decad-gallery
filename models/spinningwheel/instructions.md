@@ -190,8 +190,9 @@ lip plane (nextCentreY-3*Scale), then step radially down at that plane. End land
 This assigns total cylindrical-land lengths[3,2,2,1]*Scale to ratios[7,9,12,17].
 Use stock D16.2 bore/flat6.1 and stock16 shaft flat6 over localY[-283,-249]*Scale.
 FlyerAngle=Ratio*WheelAngle. Open band gives the same rotational sense.
-The band's two straight spans are a designed 0.01 gap clear of the wraps and pulley flanks: their wire radius is
-0.99 and each end stops 0.01 short of its wrap, so no tangent contact is left between band pieces and pulleys.
+The band's two straight spans are a designed gap clear of the wraps and pulley flanks: their wire radius is 0.97,
+each stops 0.03 short of the wheel wrap and 0.01 short of the whorl wrap, so no tangent contact is left between band
+pieces and pulleys.
 
 Define alignment shift A=HeadShift-278*Scale, ranging -24*Scale..0.
 The fixed main base is X[-195,-105],Y[-75,280]+A/Scale,Z[525,540], scaled.
