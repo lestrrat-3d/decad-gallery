@@ -91,7 +91,8 @@ func (b *builder) head() {
 		wl := b.whorlLift()
 		body := b.liftRevolve(wl, zAxis(0, 0, 250*s), profile)
 		key := b.sectionOn(level(0, 0, 250*s))
-		turnedKeyedOutline(key, 8.1, 1.6, 8.8, math.Remainder(b.a.State.FlyerAngle-b.whorlStart(), 2*math.Pi))
+		err := turnedKeyedOutline(key, 8.1, 1.6, 8.8, math.Remainder(b.a.State.FlyerAngle-b.whorlStart(), 2*math.Pi))
+		b.fail("turn whorl keyway", err)
 		return b.cut(body, b.liftExtrude(key, 0, 32*s, wl))
 	})
 

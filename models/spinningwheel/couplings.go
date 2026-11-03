@@ -37,9 +37,9 @@ func keyedOutline(s *sketch.Sketch, radius, halfwidth, extent float64) {
 // turnedKeyedOutline is keyedOutline with its key axis turned angle radians counterclockwise from the
 // sketch's +X. A construction line from the origin, horizontal, references the angle; a second one from the
 // origin carries the key axis out to the key's outer face.
-func turnedKeyedOutline(s *sketch.Sketch, radius, halfwidth, extent, angle float64) {
+func turnedKeyedOutline(s *sketch.Sketch, radius, halfwidth, extent, angle float64) error {
 	if s == nil {
-		return
+		return nil
 	}
 	c, sn := math.Cos(angle), math.Sin(angle)
 	turn := func(x, y float64) *sketch.Point { return s.CreatePoint(c*x-sn*y, sn*x+c*y) }
@@ -72,7 +72,7 @@ func turnedKeyedOutline(s *sketch.Sketch, radius, halfwidth, extent, angle float
 		sketch.NewDistancePointLine(lower, axis, halfwidth),
 		sketch.NewPointOnLine(tip, outer),
 	)
-	turnAngle.SetValue(units.Radians(angle))
+	return turnAngle.SetValue(units.Radians(angle))
 }
 
 // liftKeyTool is the keyway tool of a keyedOutline, sketched on f, a plane of l's local coordinates, and placed
