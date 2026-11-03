@@ -214,9 +214,11 @@ func (b *builder) diagonalAt(z float64) r3.Frame {
 func (b *builder) treadleJoinery() {
 	s := b.p.Scale
 	f := b.treadleLift()
+	// The diagonal lap is cut first: cut after the treadle lap, whose floor it meets at local level 0, it needed
+	// a gap shift at Scale 0.8.
 	b.machine("treadle-heel-rail",
-		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
-		b.diagonalStock(-12, 0, 5, 0))
+		b.diagonalStock(-12, 0, 5, 0),
+		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5))
 	// The keyed shaft runs along the treadle's local X; radial +X of the key section is local Y.
 	b.machine("treadle",
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s-5, 0),
