@@ -128,9 +128,15 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 		b.headPoint(centre.X, centre.Y, centre.Z, angle),
 		headDirection(e, angle), headDirection(axis.Scale(-1), angle),
 	))
+	// An ordinary hook's stem is thinner than its wire: at equal radii the stem/torus Union crosses nearly
+	// tangentially and its held bound exceeds the 0.12 mm check. The front guide's stem keeps diameter 2.
+	stemRadius := 0.9
+	if front {
+		stemRadius = 1
+	}
 	stem := b.span(
 		b.headPoint(bottom.X, bottom.Y, bottom.Z, angle),
-		b.headPoint(attachment.X, attachment.Y, attachment.Z, angle), 1,
+		b.headPoint(attachment.X, attachment.Y, attachment.Z, angle), stemRadius,
 	)
 	if !front {
 		return b.union(hook, stem)
