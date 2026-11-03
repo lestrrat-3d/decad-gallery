@@ -1867,3 +1867,10 @@ These were checked against the Gallery options above; each needs a Decad reader 
   builds. Screw volume 648.287±0.25 vs 648.525±1.52 mm^3. Focused check (`.tmp/focus-take9.log`): screw/knob and
   screw/insert stay undecided (the D-flat against the knob's D bore, and the round shaft in the insert's bore on
   another lift), so they still need a Decad reader.
+- Footman boss socket: cut by the rod's own section stock on the rod's plane (the same material leaves the boss),
+  and the bearing bore is a separate pass. Focused check (`.tmp/focus-boss2.log`): boss/footman clears and the
+  footman stack has no undecided pair; boss 11331.337±2.29 vs 11331.090±1.25 mm^3.
+- Tried and reverted, no pair cleared: fixed-bracket screw holes ending at the bracket top (the 4 fixed
+  mount/bracket pairs stay); the moving leaf and knuckle as one prism (the 4 moving leaf pairs stay: the knuckle is
+  tangent to the board edge, and the mount head sits flush on the leaf's screw-hole face); the treadle lap tools as
+  separate passes (the laps need intersection reasoning).

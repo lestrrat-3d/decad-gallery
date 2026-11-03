@@ -175,8 +175,11 @@ func (b *builder) frameJoinery() {
 	b.machine("brake-rear-crossbar", rearCrossbarTools...)
 	// The rod socket runs 5 past the boss's end face it opens.
 	// The bearing bore runs 5 past both boss faces on the cross pin's gimbal lift, the lift of the bearings in it.
-	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s-5, 476*s, -10*s, 10*s, -5*s, 5*s),
-		b.liftCylinder(b.gimbalLift(), crossAt(32*s, 12*s+5), 7, 24*s+10))
+	// The rod socket is the rod's own section stock on the rod's plane (it removes the same material from the
+	// boss), so the rod lies in the tool that opened its socket. The bearing bore is a separate pass on the bearings'
+	// gimbal lift.
+	b.machine("footman-head-boss", b.liftPanel(b.footmanLift(), crossAt(0, 10*s), 20*s, -5*s, 476*s, 5*s, 20*s))
+	b.machine("footman-head-boss", b.liftCylinder(b.gimbalLift(), crossAt(32*s, 12*s+5), 7, 24*s+10))
 
 	// The radial spoke blanks seat in the hub and the rim rather than sharing material.
 	var hubTools, rimTools []*decad.Body
