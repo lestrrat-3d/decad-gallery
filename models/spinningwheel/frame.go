@@ -146,7 +146,7 @@ func (b *builder) adjustment() {
 	})
 	for i, x := range []float64{-180, -120} {
 		b.part(fmt.Sprintf("mother-alignment-clamp-%d", i+1), "fastener", "fixed", func() *decad.Body {
-			return b.verticalBolt(x*s, -70*s, 515*s, 540*s, 3)
+			return b.verticalBolt(lift{xf: r3.Identity()}, x*s, -70*s, 515*s, 540*s, 3)
 		})
 		b.part(fmt.Sprintf("mother-alignment-insert-%d", i+1), "insert", "fixed", func() *decad.Body {
 			return b.panel(-5, -5, 5, 5, 8,
@@ -203,12 +203,12 @@ func (b *builder) adjustment() {
 				hole{-150 * s, footY, 3.3}, hole{-130 * s, footY, 3.3})
 		})
 		for j, x := range []float64{-150, -130} {
-			b.part(fmt.Sprintf("maiden-foot-%d-bolt-%d", i+1, j+1), "fastener", "fixed", func() *decad.Body {
-				return b.verticalBolt(x*s, footY, 560*s, 585*s, 4.2)
+			b.liftedPart(fmt.Sprintf("maiden-foot-%d-bolt-%d", i+1, j+1), "fastener", "fixed", func() *decad.Body {
+				return b.verticalBolt(hl, x*s, footY, 560*s, 585*s, 4.2)
 			})
-			b.part(fmt.Sprintf("maiden-foot-%d-insert-%d", i+1, j+1), "insert", "fixed", func() *decad.Body {
-				return b.panel(-5, -5, 5, 5, 8,
-					frame(r3.Vec{X: x * s, Y: footY, Z: 570*s - 8}, r3.Vec{X: 1}, r3.Vec{Y: 1}), hole{0, 0, 3})
+			b.liftedPart(fmt.Sprintf("maiden-foot-%d-insert-%d", i+1, j+1), "insert", "fixed", func() *decad.Body {
+				return b.liftPanel(hl, frame(r3.Vec{X: x * s, Y: footY, Z: 570*s - 8}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+					-5, -5, 5, 5, 8, hole{0, 0, 3})
 			})
 		}
 	}
@@ -279,9 +279,9 @@ func (b *builder) alignmentSlot(section *sketch.Sketch, x, y0, y1 float64) {
 	)
 }
 
-func (b *builder) verticalBolt(x, y, z0, z1, headHeight float64) *decad.Body {
+func (b *builder) verticalBolt(l lift, x, y, z0, z1, headHeight float64) *decad.Body {
 	length := z1 - z0
-	return b.liftRevolve(lift{xf: r3.Identity()}, frame(r3.Vec{X: x, Y: y, Z: z0}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
+	return b.liftRevolve(l, frame(r3.Vec{X: x, Y: y, Z: z0}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
 		[]point2{{0, 0}, {3, 0}, {3, length}, {6, length}, {6, length + headHeight}, {0, length + headHeight}})
 }
 

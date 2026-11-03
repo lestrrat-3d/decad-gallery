@@ -22,16 +22,17 @@ func (b *builder) brake() {
 	rightStart, rightEnd := -310*s+d+shift-travel, -285*s+d+shift-travel/2
 
 	hl := b.headLift()
-	b.part("brake-rear-crossbar", "frame", "fixed", func() *decad.Body {
-		return b.box(x-55*s, x+55*s, -80*s+shift, -60*s+shift, 565*s, 580*s)
+	// The timbers are sketched in untilted head coordinates on the head lift, like the parts they meet, so a head
+	// tilt cannot round their placements apart.
+	b.liftedPart("brake-rear-crossbar", "frame", "fixed", func() *decad.Body {
+		return b.localStock(hl, x-55*s, x+55*s, -80*s+shift, -60*s+shift, 565*s, 580*s)
 	})
-	b.part("brake-front-upright", "frame", "fixed", func() *decad.Body {
-		return b.box(x-27*s, x+22*s, -338*s+shift, -330*s+shift, 570*s, 590*s)
+	b.liftedPart("brake-front-upright", "frame", "fixed", func() *decad.Body {
+		return b.localStock(hl, x-27*s, x+22*s, -338*s+shift, -330*s+shift, 570*s, 590*s)
 	})
-	b.part("brake-control-rail", "frame", "fixed", func() *decad.Body {
-		return b.panel(x-55*s, 590*s, x+55*s, 610*s, 13*s,
-			frame(r3.Vec{Y: -325*s + shift}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
-			hole{right, z, 2.1})
+	b.liftedPart("brake-control-rail", "frame", "fixed", func() *decad.Body {
+		return b.liftPanel(hl, frame(r3.Vec{Y: -325*s + shift}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
+			x-55*s, 590*s, x+55*s, 610*s, 13*s, hole{right, z, 2.1})
 	})
 
 	b.part("brake-band", "brake-band", "fixed", func() *decad.Body {
@@ -110,10 +111,9 @@ func (b *builder) brake() {
 		return b.liftPanel(hl, frame(r3.Vec{X: right, Y: front, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
 			-4, -4, 4, 4, 4, hole{0, 0, 2})
 	})
-	b.part("brake-insert-retaining-plate", "retainer", "fixed", func() *decad.Body {
-		return b.panel(-8, -8, 8, 8, 1,
-			frame(r3.Vec{X: right, Y: front - 1, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
-			hole{0, 0, 2.2}, hole{-6, 0, 1.1}, hole{6, 0, 1.1})
+	b.liftedPart("brake-insert-retaining-plate", "retainer", "fixed", func() *decad.Body {
+		return b.liftPanel(hl, frame(r3.Vec{X: right, Y: front - 1, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
+			-8, -8, 8, 8, 1, hole{0, 0, 2.2}, hole{-6, 0, 1.1}, hole{6, 0, 1.1})
 	})
 	for i, offset := range []float64{-6, 6} {
 		// The mount screws turn about +Y on the head lift, on the axes of their rail pilots.
