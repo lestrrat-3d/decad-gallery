@@ -135,6 +135,11 @@ func (b *builder) frameJoinery() {
 			// The screw pilot starts 5 below the leaf pocket's ceiling it opens, not flush with it.
 			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5)})
 	}
+	// Each alignment clamp's shank has its own bore tool through the base, radius 3 on the clamp's axis; it lies
+	// in the alignment slot, 0.3 inside its walls, so it removes nothing but records the shank's seat.
+	for _, x := range []float64{-180, -120} {
+		basePilots = append(basePilots, b.liftCylinder(lift{xf: r3.Identity()}, level(x*s, -70*s, 525*s-5), 3, 15*s+10))
+	}
 	b.machine("mother-base", basePilots...)
 	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
 	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s)})

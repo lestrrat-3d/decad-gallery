@@ -255,9 +255,8 @@ func (b *builder) alignmentSlot(section *sketch.Sketch, x, y0, y1 float64) {
 
 func (b *builder) verticalBolt(x, y, z0, z1, headHeight float64) *decad.Body {
 	length := z1 - z0
-	return b.revolve([]point2{{0, 0}, {3, 0}, {3, length}, {6, length},
-		{6, length + headHeight}, {0, length + headHeight}},
-		frame(r3.Vec{X: x, Y: y, Z: z0}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+	return b.liftRevolve(lift{xf: r3.Identity()}, frame(r3.Vec{X: x, Y: y, Z: z0}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
+		[]point2{{0, 0}, {3, 0}, {3, length}, {6, length}, {6, length + headHeight}, {0, length + headHeight}})
 }
 
 func (b *builder) hinge(index int, q float64) {

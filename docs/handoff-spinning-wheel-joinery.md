@@ -1840,3 +1840,7 @@ These were checked against the Gallery options above; each needs a Decad reader 
   short of the whorl wrap; band mounts take clearance 0.03; spec line updated. Focused check
   (`.tmp/focus-gapw.log`): no undecided pair among the band, rim and whorl. Each span is 864.9 of the original
   919.4 mm^3.
+- Alignment clamps: the base gets a radius 3 bore tool on each clamp's axis (5 past both base faces), which lies in
+  the alignment slot 0.3 inside its walls and removes nothing, so the clamp's shank has a Cut-tool seat to read;
+  the clamp bolts revolve on the same untilted lift. Focused check (`.tmp/focus-clamp.log`): both clamp/base pairs
+  clear; base 526601.8485±8.95 vs 526602.1810±5.7 mm^3.
