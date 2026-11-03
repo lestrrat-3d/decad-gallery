@@ -272,7 +272,8 @@ Place the rear collar atY[-30*Scale+0.2,-30*Scale+3.2]. The rear shaft is at lea
 Front sleeve retainer is stock20 OD,16 ID,2 wide, at Y[-314*Scale-2.2,-314*Scale-0.2].
 Whorl axial retention uses two stock20 OD,16 ID,2 wide collars:
 frontY[-282*Scale-2.2,-282*Scale-0.2], rearY[-250*Scale+0.2,-250*Scale+2.2].
-Crossbar localX[-74,74],Z[-16,16],Y[-220,-210], scaled; stock D16.2 bore/flat6.1.
+Crossbar localX[-74,74],Z[-16,16],Y[-220,-210], scaled, stopping a designed stock 0.01 short of the shaft
+shoulder at Y-220*Scale; stock D16.2 bore/flat6.1.
 Two arms localX[-74,-56] and[56,74],Z[-10,10],Y[-220,-85], scaled.
 Crossbar/arm overlaps are rigid joints. Arms end before the stationary bobbin brake plane.
 

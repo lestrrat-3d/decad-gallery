@@ -106,7 +106,8 @@ func (b *builder) head() {
 		section := b.sectionOn(level(0, 0, 210*s))
 		rectangle(section, -74*s, -16*s, 74*s, 16*s)
 		keyedOutline(section, 8.1, 1.6, 8.8)
-		return b.liftExtrude(section, 1, 10*s, fl)
+		// The crossbar stops a designed 0.01 short of the shaft shoulder at -220*Scale; the shaft rides another lift.
+		return b.liftExtrude(section, 1, 10*s-0.01, fl)
 	})
 	for i, bounds := range [][2]float64{{-74, -56}, {56, 74}} {
 		name := "flyer-arm-1"
