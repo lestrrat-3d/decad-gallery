@@ -212,7 +212,8 @@ Drill stock6.6 vertical passages in the front supporting wedge for the two fixed
 
 The tilting maiden bar is reference X[-167,-118],Y[-330,-20]+HeadShift/Scale,Z[555,570], scaled.
 Its narrow width clears the lower drive span. Do not restore broad plates across that span.
-A front jack arm is X[-172,-35],Y[-342,-318]+HeadShift/Scale,Z[555,570], scaled.
+A front jack arm is X[-172,-35],Y[-342,-318]+HeadShift/Scale,Z[555,570], scaled; its socket around the maiden
+bar is a designed stock 0.03 larger than the bar.
 It overlaps the maiden bar. Its vertical stock8.6 screw passage is at X=-50*Scale,Y=-330*Scale+HeadShift.
 An8 mm thick stock square M8 insert OD16 has a16.2 square pocket opening below that arm, at referenceZ555*Scale.
 The square walls prevent rotation; use a centered stock8 thread envelope through the insert.

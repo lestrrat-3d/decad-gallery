@@ -159,7 +159,9 @@ func (b *builder) frameJoinery() {
 		basePilots = append(basePilots, b.liftCylinder(lift{xf: r3.Identity()}, level(x*s, -70*s, 525*s-5), 3, 15*s+10))
 	}
 	b.machine("mother-base", basePilots...)
-	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
+	// The arm's socket is a designed 0.03 larger than the bar on the three faces the arm wraps, more than the
+	// bar's held mesh bound.
+	b.machine("mother-jack-arm", b.headStock(b.boardEdge()-0.03, -118*s+0.03, -330*s-0.03, -20*s, 555*s-5, 570*s+5))
 	// The rear crossbar's seat is a designed 0.01 larger than the crossbar on its floor and both walls.
 	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s-0.01, -60*s+0.01, 565*s-0.01, 580*s)})
 	var rearCrossbarTools []*decad.Body
@@ -469,7 +471,7 @@ func (b *builder) mountInventory() {
 		movingScrews = append(movingScrews, screw)
 	}
 	add("mother-upper-bar", "screwed-hinge-and-jack-support", append(refs("mother-jack-screw"), hingeLeaves...), movingScrews, 0)
-	add("mother-jack-arm", "glued-socket", refs("mother-upper-bar"), nil, 0)
+	add("mother-jack-arm", "glued-socket", refs("mother-upper-bar"), nil, 0.03)
 	add("mother-jack-square-insert", "captured-square-insert", refs("mother-jack-arm"), nil, 0.1)
 	add("mother-jack-screw", "threaded-jack-and-point-contact", refs("mother-jack-square-insert", "mother-base"), nil, 0)
 	add("mother-jack-knob", "bonded-keyed", refs("mother-jack-screw"), nil, 0.1)
