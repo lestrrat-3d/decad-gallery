@@ -285,7 +285,8 @@ Front608 Y[-194*Scale-7,-194*Scale], rear608Y[-74*Scale,-74*Scale+7].
 Rear flange V brake groove centreY=-69*Scale, root42*Scale, lip planes+-1.5*Scale, outer45*Scale.
 Yarn pack annulus barrel radius17*Scale to31*Scale,Y[-190,-78]*Scale; optional visual winding marker.
 The witness bar has local X width4,Z thickness4,Y length8 nominal mm, centred atY=-134*Scale,Z31*Scale,X0,
-overlapping the pack by2*Scale. It is a colored winding marker, not a torque-coupling part.
+overlapping the pack by2*Scale; the built bar is a stock 0.2 shell standing a designed stock 0.01 off the pack.
+It is a colored winding marker, not a torque-coupling part.
 BobbinAngle=(Ratio-YarnFeedPerTurn/(2*pi*31*Scale))*WheelAngle.
 This prescribes an example feed for animation. It does not calculate friction, spring force, yarn strength or traction.
 Flyer and bobbin must never be rigidly coupled. Relative turns wind yarn onto the bobbin.

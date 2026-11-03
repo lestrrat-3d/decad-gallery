@@ -166,7 +166,8 @@ func (b *builder) head() {
 		radius := 31*s - 0.35
 		half := math.Asin(2 * s / radius)
 		section := b.section(true)
-		rectangle(section, radius, 0, radius+0.2, 8*s)
+		// The bar stands a designed stock 0.01 off the pack's outer radius: the two ride different lifts.
+		rectangle(section, radius+0.01, 0, radius+0.21, 8*s)
 		profile := b.profile(section, 0)
 		if b.err != nil {
 			return nil
