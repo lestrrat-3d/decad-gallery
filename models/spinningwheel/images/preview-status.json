@@ -1,77 +1,8 @@
 {
   "status": "Work in progress. Joint cuts, retention and collision verification remain pending.",
-  "rendered_decad_version": "v0.0.0-20261102075503-1214b6aa02c8",
-  "built_parts": 156,
-  "rendered_parts": 156,
+  "rendered_decad_version": "v0.0.0-20261103190012-ee1ee0377743",
+  "built_parts": 195,
+  "rendered_parts": 195,
   "joint_cuts_pending": true,
-  "omitted": [
-    {
-      "part": "yarn-hook-1",
-      "reason": "spinning wheel yarn-hook-1: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-2",
-      "reason": "spinning wheel yarn-hook-2: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-3",
-      "reason": "spinning wheel yarn-hook-3: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-4",
-      "reason": "spinning wheel yarn-hook-4: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-5",
-      "reason": "spinning wheel yarn-hook-5: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-6",
-      "reason": "spinning wheel yarn-hook-6: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-7",
-      "reason": "spinning wheel yarn-hook-7: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-8",
-      "reason": "spinning wheel yarn-hook-8: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-9",
-      "reason": "spinning wheel yarn-hook-9: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-10",
-      "reason": "spinning wheel yarn-hook-10: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-11",
-      "reason": "spinning wheel yarn-hook-11: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-hook-12",
-      "reason": "spinning wheel yarn-hook-12: union solids: decad: not supported by the current evaluator: this chord tolerance asks for more than 65536 facets in one revolve mesh"
-    },
-    {
-      "part": "yarn-front-guide",
-      "reason": "spinning wheel yarn-front-guide: union solids: decad: not supported by the current evaluator: Union of three or more bodies needs a certified prism, axial or copied-tooth set; join them two at a time"
-    },
-    {
-      "part": "yarn-leader",
-      "reason": "spinning wheel yarn-leader: union solids: decad: not supported by the current evaluator: union's first operand holds its mesh, where this pair meets, only within a bound of 0.03027291672052993 mm, coarser than this pair's chord tolerance 0.003883895500868262 mm; a boolean takes no tolerance, so the chain cannot continue through that geometry: place the new contact away from the earlier booleans' rims, reshape the construction with fewer booleans over that region, or draw the pair so the analytic prism path admits it (agent-docs/api-design.md §8, \"The chain depth\")"
-    },
-    {
-      "part": "brake-band",
-      "reason": "spinning wheel brake-band: union solids: decad: not supported by the current evaluator: Union of three or more bodies needs a certified prism, axial or copied-tooth set; join them two at a time"
-    },
-    {
-      "part": "brake-spring-left",
-      "reason": "spinning wheel brake-spring-left: union solids: decad: not supported by the current evaluator: Union of three or more bodies needs a certified prism, axial or copied-tooth set; join them two at a time"
-    },
-    {
-      "part": "brake-spring-right",
-      "reason": "spinning wheel brake-spring-right: union solids: decad: not supported by the current evaluator: Union of three or more bodies needs a certified prism, axial or copied-tooth set; join them two at a time"
-    }
-  ]
+  "omitted": []
 }
