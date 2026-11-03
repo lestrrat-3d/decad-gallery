@@ -1752,3 +1752,4 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   (`.tmp/zz_whorl_probe_test.go.txt`). 99 to 98 (`.tmp/lift-whorl.log`): wrap/whorl clears; all part volumes
   match the previous build within bounds.
 - Decad pin `194293242` (#3077 slab separator): 98 to 92 (`.tmp/lift-pin6.log`): hooks 1 to 6 against arm 1 clear. Native default passes.
+- Decad pin `d2a5bfc36` (#3081): 92 to 83 (`.tmp/lift-pin7.log`). Native default passes.
