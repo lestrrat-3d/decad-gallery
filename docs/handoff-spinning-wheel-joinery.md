@@ -1862,3 +1862,4 @@ These were checked against the Gallery options above; each needs a Decad reader 
   retaining ring (`rear-flyer-bearing-ring`) holds the rear face; spec line added. The end-face probe finds
   material on all four faces. Focused check (`.tmp/focus-rb.log`): no undecided pair among the maiden, bearing,
   ring, thrust spacers, collars, shaft and foot.
+- Batch at `4f7bb70` (default, Decad `afb86835c`): 25 to 19 (`.tmp/lift-batch10.log`). Native and connector defaults pass.
