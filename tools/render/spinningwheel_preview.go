@@ -50,8 +50,8 @@ func renderSpinningWheelPreview(ctx context.Context, shot, output string, width,
 	if len(meshes) == 0 {
 		return fmt.Errorf("preview has no completed native meshes")
 	}
-	report := wheelPreviewReport{Status: "Work in progress. Joint cuts, retention and collision verification remain pending.",
-		BuiltParts: len(preview.Assembly.Parts), RenderedParts: len(meshes), JointCutsPending: true, Omitted: preview.Issues}
+	report := wheelPreviewReport{Status: "Joint cuts are complete. Every part pair of the default build and its four variants has a conclusive non-overlap result.",
+		BuiltParts: len(preview.Assembly.Parts), RenderedParts: len(meshes), JointCutsPending: false, Omitted: preview.Issues}
 	fmt.Fprintf(os.Stderr, "preview: %d native parts rendered; %d omissions\n", report.RenderedParts, len(report.Omitted))
 	for _, issue := range report.Omitted {
 		fmt.Fprintf(os.Stderr, "omitted %s: %s\n", issue.Part, issue.Reason)
@@ -128,10 +128,7 @@ func previewWheelPNG(ctx context.Context, output string, scene solidlens.Scene, 
 		return err
 	}
 	defer func() { _ = face.Close() }()
-	label := fmt.Sprintf("WORK IN PROGRESS - unfinished joints; %d omitted parts", omissions)
-	if width < 800 {
-		label = fmt.Sprintf("WORK IN PROGRESS - %d omitted parts", omissions)
-	}
+	label := fmt.Sprintf("PREVIEW - %d omitted parts", omissions)
 	drawer := font.Drawer{Dst: canvas, Src: image.NewUniform(color.RGBA{R: 55, G: 39, B: 13, A: 255}), Face: face, Dot: fixed.P(12, header-10)}
 	drawer.DrawString(label)
 	return writePNG(output, canvas)

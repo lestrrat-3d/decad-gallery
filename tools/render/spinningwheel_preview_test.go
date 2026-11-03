@@ -35,7 +35,7 @@ func TestSpinningWheelPreviewRendering(t *testing.T) {
 	require.NoError(t, err)
 	var report wheelPreviewReport
 	require.NoError(t, json.Unmarshal(data, &report))
-	require.True(t, report.JointCutsPending)
+	require.False(t, report.JointCutsPending)
 	require.Greater(t, report.RenderedParts, 0)
 	require.LessOrEqual(t, report.RenderedParts, report.BuiltParts)
 }

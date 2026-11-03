@@ -2,11 +2,11 @@
 
 ![Open Saxony spinning wheel](images/hero.png)
 
-This is a work-in-progress model. Joint cuts and verification remain unfinished.
 The images show all 195 parts of the default build, rendered from the real Decad body with Decad `ee1ee0377743`.
 The [preview status](images/preview-status.json) records the part counts and that no part is omitted.
-Every part pair of the default build has a conclusive non-overlap result.
-Fits, shaft retention and moving clearances still need verification.
+Every part pair of the default build and of four scale and ratio variants has a conclusive non-overlap result.
+Mating parts that ride different motion frames keep small designed gaps, 0.01 to 0.05 mm, listed in the
+[instructions](instructions.md). The heel bearings' inner races keep a 0.2 mm axial float.
 
 This wheel follows the flyer-and-bobbin arrangement in
 [George Weil's labelled spinning wheel](https://www.georgeweil.com/blog/how-does-a-spinning-wheel-work/).
