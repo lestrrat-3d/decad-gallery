@@ -124,7 +124,7 @@ func (b *builder) frameJoinery() {
 			b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (q + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1})})
 	}
 	b.machine("mother-base", basePilots...)
-	b.machine("mother-jack-arm", b.headStock(-167*s, -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
+	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
 	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s)})
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {

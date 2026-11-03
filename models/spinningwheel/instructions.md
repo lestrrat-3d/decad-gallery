@@ -221,7 +221,8 @@ the moving knuckle spans[q+16*Scale,q+31*Scale]. All receive HeadShift.
 Use stock5 bore,10 outside diameter; pin5 stock spans[q-Scale,q+48*Scale].
 Fixed brackets X[-190,-175],Z[540,555], at the fixed knuckle Y spans join the base to the knuckles.
 Moving leaves X[-169,-158],Z[555,558], at the moving knuckle span join the upper board.
-The upper board stays5*Scale away from the pin axis, and leaves3*Scale away; at minimum scale the latter
+The upper board stays max(5*Scale,5) away from the pin axis, so it never crosses the stock5 knuckles below Scale1,
+and leaves3*Scale away; at minimum scale the latter
 is2.4 mm, so add a stock2.7 radius circular relief along Y through each moving leaf before placement.
 This relief must leave the leaf joined to its moving knuckle but clear of the stock2.5 pin.
 Only moving knuckles/leaves receive HeadTilt; all share the same axis and translation.

@@ -139,7 +139,7 @@ func (b *builder) adjustment() {
 				holes = append(holes, hole{x * s, front*s - 6.2 + shift, 3.3})
 			}
 		}
-		return b.liftPanel(hl, level(0, 0, 555*s), -167*s, -330*s+shift, -118*s, -20*s+shift, 15*s, holes...)
+		return b.liftPanel(hl, level(0, 0, 555*s), b.boardEdge(), -330*s+shift, -118*s, -20*s+shift, 15*s, holes...)
 	})
 	b.liftedPart("mother-jack-arm", "adjustment", "fixed", func() *decad.Body {
 		body := b.liftPanel(hl, level(0, 0, 555*s), -172*s, -342*s+shift, -35*s, -318*s+shift, 15*s,
@@ -183,6 +183,13 @@ func (b *builder) adjustment() {
 		}
 	}
 	b.tilt = false
+}
+
+// boardEdge is the upper board's hinge-side X: 5*Scale from the hinge axis, but never inside the stock radius5
+// knuckles, which do not scale. Below Scale 1 the edge recedes to touch the knuckles instead of crossing them.
+func (b *builder) boardEdge() float64 {
+	s := b.p.Scale
+	return -172*s + max(5*s, 5)
 }
 
 func (b *builder) alignmentSlot(section *sketch.Sketch, x, y0, y1 float64) {

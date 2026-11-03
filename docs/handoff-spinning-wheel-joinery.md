@@ -1680,3 +1680,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   and at Scale 1.2 the rounded tool left a paper-thin disk of that face as separate pieces (3 components). They
   now start 5 before the face. A rail-only probe at large-nine (`zz_rail_probe_test.go`, untracked) shows one
   component for every tool subset and volume 48933.9938 vs 48933.9909 mm^3 before.
+- Upper board vs fixed knuckles (coordinator request): the board's hinge edge sat 5*Scale from the hinge axis,
+  but the knuckles are stock radius 5, so below Scale 1 each fixed knuckle crossed the board (24.4 mm^3 at 0.8).
+  The edge is now max(5*Scale, 5) from the axis (`boardEdge`), also for the jack arm's board socket. Default and
+  `twelve` are unchanged within bounds; at `small-seven` the board loses 2850 mm^3 and the jack arm keeps
+  115 mm^3 more (`.tmp/var-geom-fix12-cmp.txt`).
