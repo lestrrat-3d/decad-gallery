@@ -1701,3 +1701,5 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   at `small-seven` only the brake band, both front pins, both springs, the left anchor and the take-up screw move,
   by 3 mm (`.tmp/var-geom-clevis-cmp.txt`). Variants (`.tmp/var-clevis-*.log`): default 131, `small-seven` 160,
   `small-seventeen` 159, `large-nine` 153 undecided, and none has an overlap.
+- Decad pin `97439529f` (newest main): 131 to 112 (`.tmp/lift-pin2.log`, `.tmp/lift-probe-pin2.log`; remaining
+  pairs by group in `.tmp/pairs-by-group.txt`). Native and connector defaults pass.
