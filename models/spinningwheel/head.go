@@ -125,8 +125,10 @@ func (b *builder) head() {
 	b.liftedPart("rear-maiden", "frame", "fixed", func() *decad.Body {
 		// The bore is stock radius9 with the bearing's radius11 seat cut from the bearing's front face out past the
 		// maiden's rear face, leaving a shoulder on the outer race's front face.
+		// The seat's length is taken between the shifted planes, so its shoulder lands on the bearing's front face.
+		shift := b.a.State.HeadShift
 		body := b.liftPanel(hl, b.headAt(-30*s), -20*s, -115*s, 20*s, 25*s, 24*s, hole{r: 9})
-		return b.cut(body, b.liftCylinder(hl, b.headAt(-30*s+5), 11, (-30*s+5)-(-48*s)))
+		return b.cut(body, b.liftCylinder(hl, b.headAt(-30*s+5), 11, (-30*s+5+shift)-(-48*s+shift)))
 	})
 	b.fixedRing("front-maiden-bush", "bush", "fixed", 8.1, 13, -300*s-10, -300*s+10)
 	b.fixedRing("rear-flyer-bearing", "bearing", "fixed", 4, 11, -48*s, -48*s+7)

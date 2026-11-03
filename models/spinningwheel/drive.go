@@ -55,7 +55,8 @@ func (b *builder) driveWheel() {
 	b.part("wheel-axle", "shaft", "wheel", func() *decad.Body {
 		body := b.liftCylinder(l, at(86*s+3.2), 4, 146*s+3.2)
 		hubPocket := b.liftPanel(l, at(12*s), 2.8, -1, 5, 1, 24*s)
-		crankPocket := b.liftPanel(l, at(85*s), 2.8, -1, 5, 1, 6*s)
+		// The crank pocket's length is taken between the crank key's faces, so its floor lands on the key's 79*Scale.
+		crankPocket := b.liftPanel(l, at(85*s), 2.8, -1, 5, 1, 85*s-79*s)
 		body = b.cut(body, hubPocket)
 		return b.cut(body, crankPocket)
 	})
@@ -121,7 +122,8 @@ func (b *builder) driveGimbal() {
 		bridge := b.liftPanel(l, level(0, 0, -2.5), -11*s, -22*s, 10*s, 22*s, 5,
 			hole{0, -9, 1.1}, hole{0, 9, 1.1})
 		left := b.liftPanel(l, crossAt(0, -20*s), 8*s, -9*s, 46*s, 9*s, 7*s, hole{32 * s, 0, 2.6})
-		right := b.liftPanel(l, crossAt(0, 27*s), 8*s, -9*s, 46*s, 9*s, 7*s, hole{32 * s, 0, 2.6})
+		// The right cheek's length is taken between its faces, so its inner face lands on cross spacer 2's 20*Scale.
+		right := b.liftPanel(l, crossAt(0, 27*s), 8*s, -9*s, 46*s, 9*s, 27*s-20*s, hole{32 * s, 0, 2.6})
 		// The crank bearing's bore is cut by a tool on the bearing's own wheel lift, 5 past both plate faces.
 		y := b.a.State.CrankPin.Y
 		return b.cut(b.union(bridge, left, right), b.liftCylinder(b.wheelLift(), wheelAt(25*s, 0, y+2.5+5), 7, 15))
@@ -194,13 +196,16 @@ func (b *builder) driveFootman() {
 	gl := b.gimbalLift()
 	// Bearing 1 sits crossGap off its retainer, a designed gap: the two sit on different lifts, so a flush face
 	// between them cannot be decided. Its spacer is crossGap shorter.
-	for i, v := range [][2]float64{{-12*s + crossGap, -12*s + 5 + crossGap}, {12*s - 5, 12 * s}} {
+	// Bearing 1's inner face is taken back from the spacer's length, (12*Scale-5) minus a length less than twice
+	// it, which rounds to nothing: the spacer's far face then lands on that face exactly.
+	spacerLength := (12*s - 5) - (-12*s + 5 + crossGap)
+	for i, v := range [][2]float64{{-12*s + crossGap, (12*s - 5) - spacerLength}, {12*s - 5, 12 * s}} {
 		b.part(fmt.Sprintf("footman-cross-605-%d", i+1), "bearing", "footman", func() *decad.Body {
 			return b.liftAnnulus(gl, crossAt(32*s, v[1]), 2.5, 7, v[1]-v[0])
 		})
 	}
 	b.part("footman-cross-spacer", "spacer", "footman", func() *decad.Body {
-		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, (12*s-5)-(-12*s+5+crossGap))
+		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, spacerLength)
 	})
 	for i, v := range [][2]float64{{-12*s - 2, -12 * s}, {12 * s, 12*s + 2}} {
 		b.part(fmt.Sprintf("footman-cross-retainer-%d", i+1), "retainer", "footman", func() *decad.Body {
