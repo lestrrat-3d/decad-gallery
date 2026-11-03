@@ -1759,3 +1759,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   at default, `small-seven`, `large-nine`, `twelve` and `small-seventeen`; its volume moves 0.02 mm^3, within
   bounds. Default stays 83 (`.tmp/lift-guide.log`); `small-seventeen` builds and stops only at 106 undecided pairs
   (`.tmp/guide-small-seventeen.log`).
+- Exact axis lines (coordinator group 1): the flyer shaft's revolve now rides the fixed head lift with its rings,
+  sleeves and bearings (its port and flats stay cut by flyer-lift tools), so their axes are one exact line. The
+  brake insert mount screws and the hinge moving mounts are revolved on the head lift on their pilots' axes with
+  the pilots' own numbers. 83 to 69 (`.tmp/lift-axes.log`): all 14 flyer-shaft ring/bearing/sleeve pairs clear;
+  the mount pairs do not. Volumes match within bounds.

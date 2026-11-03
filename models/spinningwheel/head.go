@@ -41,8 +41,11 @@ func (b *builder) head() {
 	// The shaft and its tools are placed on the flyer lift before they are cut, so the cuts stay readable.
 	// The shaft starts at head Y -26s, local level 26s.
 	b.liftedPart("flyer-shaft", "shaft", "flyer", func() *decad.Body {
+		// The shaft's revolve is round, so it rides the fixed head lift with its rings and bearings, on one
+		// exact axis line; only its port and flats are cut by tools on the flyer lift.
 		z := 26 * s
-		body := b.liftRevolve(fl, zAxis(0, 0, z), []point2{
+		o := b.headAt(-z).Origin()
+		body := b.liftRevolve(b.headLift(), frame(o, r3.Vec{X: 1}, r3.Vec{Y: -1}), []point2{
 			{0, 0}, {4, 0}, {4, 179 * s}, {8, 179 * s},
 			{8, 194 * s}, {10, 194 * s}, {10, 196 * s}, {8, 196 * s},
 			{8, 309 * s}, {5, 309 * s}, {5, 182 * s}, {0, 182 * s},

@@ -112,11 +112,10 @@ func (b *builder) brake() {
 			hole{0, 0, 2.2}, hole{-6, 0, 1.1}, hole{6, 0, 1.1})
 	})
 	for i, offset := range []float64{-6, 6} {
-		b.part(fmt.Sprintf("brake-insert-mount-%d", i+1), "fastener", "fixed", func() *decad.Body {
-			return b.revolve([]point2{
-				{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 9}, {0, 9},
-			}, frame(r3.Vec{X: right + offset, Y: front - 2, Z: z},
-				r3.Vec{X: 1}, r3.Vec{Z: -1}))
+		// The mount screws turn about +Y on the head lift, on the axes of their rail pilots.
+		b.liftedPart(fmt.Sprintf("brake-insert-mount-%d", i+1), "fastener", "fixed", func() *decad.Body {
+			return b.liftRevolve(hl, frame(r3.Vec{X: right + offset, Y: front - 2, Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+				[]point2{{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 9}, {0, 9}})
 		})
 	}
 }

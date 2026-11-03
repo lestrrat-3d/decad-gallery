@@ -121,7 +121,7 @@ func (b *builder) frameJoinery() {
 		}
 		barPasses = append(barPasses, []*decad.Body{
 			b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s),
-			b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (q + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1})})
+			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s), 1.5, 8*s)})
 	}
 	b.machine("mother-base", basePilots...)
 	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
@@ -144,7 +144,7 @@ func (b *builder) frameJoinery() {
 	}
 	rearCrossbarTools = append(rearCrossbarTools,
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
-		b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (-90 + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1}))
+		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s), 1.5, 8*s))
 	rb := 42*s + 0.6*math.Sqrt(5)
 	eyeY, eyeZ0, eyeZ1 := b.routingEyeStem()
 	for _, x := range []float64{-140*s - rb, -140*s + rb} {

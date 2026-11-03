@@ -254,10 +254,10 @@ func (b *builder) hinge(index int, q float64) {
 		screw := b.cylinder(1.6, 3*s+2, frame(r3.Vec{X: -162 * s, Y: q + 23.5*s, Z: 555*s - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
 		return b.cut(body, screw)
 	})
-	b.part(prefix+"moving-mount", "fastener", "fixed", func() *decad.Body {
-		return b.revolve([]point2{{0, 0}, {3, 0}, {3, 1.5}, {1.5, 1.5},
-			{1.5, 11*s + 1.5}, {0, 11*s + 1.5}},
-			frame(r3.Vec{X: -162 * s, Y: q + 23.5*s, Z: 555*s - 1.5}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+	// The moving mount turns about +Z on the head lift, on the axis of its upper-board pilot (frameJoinery).
+	b.liftedPart(prefix+"moving-mount", "fastener", "fixed", func() *decad.Body {
+		return b.liftRevolve(b.headLift(), frame(r3.Vec{X: -162 * s, Y: q + 23.5*s, Z: 555*s - 1.5}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
+			[]point2{{0, 0}, {3, 0}, {3, 1.5}, {1.5, 1.5}, {1.5, 11*s + 1.5}, {0, 11*s + 1.5}})
 	})
 	b.tilt = false
 }
