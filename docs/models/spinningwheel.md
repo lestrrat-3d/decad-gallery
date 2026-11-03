@@ -17,14 +17,12 @@ Frame dimensions, stock-bearing choices, shaft connections, alignment slots and 
 
 ## Current preview
 
-The static images are work-in-progress previews of completed native parts.
-[preview-status.json](../../models/spinningwheel/images/preview-status.json) lists the omitted parts and errors.
-Preview construction skips assembly-wide joint machining and does not establish retention or collision checks.
-Failed tools are excluded from the registered part list drawn by the renderer.
+The static images and the animation are rendered from the real default Build body: 195 parts, none omitted.
+[preview-status.json](../../models/spinningwheel/images/preview-status.json) records the part counts.
+Joint cuts, retention and collision checks remain unfinished; 19 part pairs still lack a conclusive
+non-overlap result, so the images do not show a verified assembly.
 See [the preview renderer](../rendering.md) for the regeneration command.
 
-The strict build and final geometry checks now pass both hinges and stop at the first yarn hook's Revolve mesh limit.
-Animation regeneration, finer connector refinement and full moving-clearance verification remain pending.
 The sections below describe the intended complete model and its checks, not a claim that those checks pass today.
 
 ## API and build

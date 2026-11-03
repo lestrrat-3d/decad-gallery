@@ -2,11 +2,10 @@
 
 ![Open Saxony spinning wheel](images/hero.png)
 
-This is a work-in-progress native preview. Some parts and joint cuts remain unfinished.
-The [preview status](images/preview-status.json) lists every omitted part and its construction error.
-These images were rendered with Decad `1214b6aa02c8` and have not been regenerated. The current
-dependency is `6b6bc39762e2`. With it the default build returns 195 parts, but 19 part pairs still lack a
-conclusive non-overlap result, so these images do not show a verified assembly.
+This is a work-in-progress model. Joint cuts and verification remain unfinished.
+The images show all 195 parts of the default build, rendered from the real Decad body with Decad `ee1ee0377743`.
+The [preview status](images/preview-status.json) records the part counts and that no part is omitted.
+19 part pairs still lack a conclusive non-overlap result, so the images do not show a verified assembly.
 Fits, shaft retention and moving clearances still need verification.
 
 This wheel follows the flyer-and-bobbin arrangement in
@@ -23,7 +22,7 @@ the manufacturer's production drawings.
 
 ## Front and back
 
-![Operator and rear views of the earlier native preview](images/front-back.png)
+![Operator and rear views](images/front-back.png)
 
 Two splayed uprights carry the wheel axle. The front wheel leg and single head leg carry the treadle shaft.
 The head's maiden posts carry the flyer. The open frame carries these parts independently
@@ -44,12 +43,12 @@ The [reference inventory](../../docs/spinning-wheel-reference-audit.md) records 
 The leader enters the 10 mm axial orifice, exits a 6 mm radial port, passes through open guide hooks,
 and reaches the bobbin. The flyer guides rotate around the bobbin. The bobbin's two 608 bearings
 let it turn at a different speed from the flyer shaft. An orange marker on the teal yarn pack
-makes that difference visible. The flyer image omits the yarn hooks, front guide and leader.
+makes that difference visible.
 
 ![Scotch brake and spring](images/brake.png)
 
-The intended brake cord wraps the bobbin's rear flange. The current preview omits the band, both springs, the yarn hooks, the front guide and the leader.
-Both tails will run forward below the flyer to two extension springs
+The brake cord wraps the bobbin's rear flange.
+Both tails run forward below the flyer to two extension springs
 and an accessible adjusting screw. Turning the screw extends both springs while preserving cord length.
 
 The drive whorl, wheel hub, crank and treadle rail use removable keys in otherwise round shafts.
@@ -61,7 +60,10 @@ a plain nylon sleeve; the smaller rear journal uses a 608 bearing.
 
 ## Motion
 
-The refreshed animation remains pending while connector refinement and swept clearances are completed.
+![Wheel turn animation](images/motion.gif)
+
+The animation shows one wheel turn in 96 frames. It prescribes 195 mm of yarn feed per wheel turn,
+so the flyer makes 7 turns while the bobbin makes 6.
 The still images show one solved pose. The frame stays fixed while the treadle rocks and the footman's
 bearing centres follow the spatial linkage. The model default prescribes 100 mm of yarn feed per wheel turn.
 
