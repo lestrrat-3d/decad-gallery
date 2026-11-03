@@ -144,10 +144,14 @@ func (b *builder) frameJoinery() {
 			basePilots = append(basePilots, b.cylinder(1.5, 8*s+5,
 				axisFrame(r3.Vec{X: -183 * s, Y: y, Z: 532 * s}, r3.Vec{Z: 1})))
 		}
-		barPasses = append(barPasses, []*decad.Body{b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s)})
+		// The leaf pocket is a designed 0.01 larger than the leaf on every face it shares with it, and the screw
+		// pilot a designed 0.01 wider and deeper than the screw: leaf and screw ride the head lift through Booleans
+		// whose held meshes cannot decide a flush face at Scale 0.8.
+		barPasses = append(barPasses, []*decad.Body{b.headStock(-169*s-0.01, -158*s+0.01, (q+16)*s-0.01, (q+31)*s+0.01,
+			555*s-5, 558*s+0.01)})
 		// The screw pilot starts 5 below the leaf pocket's ceiling it opens, not flush with it.
 		barPilots = append(barPilots,
-			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5))
+			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.51, 8*s+5+0.01))
 	}
 	// Each alignment clamp's shank has its own bore tool through the base, radius 3 on the clamp's axis; it lies
 	// in the alignment slot, 0.3 inside its walls, so it removes nothing but records the shank's seat.
@@ -176,7 +180,7 @@ func (b *builder) frameJoinery() {
 	}
 	rearCrossbarTools = append(rearCrossbarTools,
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
-		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5))
+		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.51, 8*s+5+0.01))
 	rb := brakePitch(s)
 	eyeY, eyeZ0, eyeZ1 := b.routingEyeStem()
 	for _, x := range []float64{-140*s - rb, -140*s + rb} {
