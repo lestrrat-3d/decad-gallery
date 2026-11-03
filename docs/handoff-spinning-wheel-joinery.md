@@ -1644,3 +1644,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   bolt/rod. The rod's tie-bolt passage now runs 5 past both rod faces; flush on one lift, Decad refused the Cut.
   Retainer/boss stays undecided although both share the lift and touch flush; the boss Cut's history is not read.
   `driveClamp` now takes a lift, so the treadle clamp moved onto the pedal lift in the same change.
+- Treadle: 193 to 188 (`.tmp/lift-treadle.log`, `.tmp/lift-probe-treadle.log`). The pedal parts ride PedalFrame; the
+  heel pin, collars, spacers and the leg-held heel bearings ride an exactly orthonormal heel-axis lift, and only
+  the pin's keyway and key turn with the pedal. Cleared: both heel bearings against the pin, clamp nut/block and
+  the rear crossarm against the block and the diagonal rail. The diagonal rail keeps its own frame along
+  (330, 450), shared with its lap tools; the half laps still need intersection reasoning the walk lacks.

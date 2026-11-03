@@ -82,10 +82,10 @@ func (b *builder) frame() {
 			return b.liftAnnulus(wl, wheelAt(0, 0, y0+7), 4, 11, 7)
 		})
 	}
+	hl := b.heelLift()
 	for i, x := range []float64{-260, 220} {
 		b.part(fmt.Sprintf("heel-bearing-%d", i+1), "bearing", "fixed", func() *decad.Body {
-			return b.annulus(4, 11, 7,
-				frame(r3.Vec{X: x*s - 3.5, Y: -190 * s, Z: 60 * s}, r3.Vec{Y: 1}, r3.Vec{Z: 1}))
+			return b.liftAnnulus(hl, level(0, 0, x*s-3.5), 4, 11, 7)
 		})
 	}
 	for i, interval := range [][2]float64{{-55*s - 3, -55 * s}, {55 * s, 55*s + 3}} {

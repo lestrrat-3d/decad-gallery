@@ -226,55 +226,71 @@ func (b *builder) driveClamp(name, motion string, l lift, centre, u, axis r3.Vec
 	})
 }
 
+// treadleLift carries the treadle group in PedalFrame: local X runs along the heel axis (world X), local Y
+// along the treadle toward the toe and local Z out of the treadle face.
+func (b *builder) treadleLift() lift { return b.liftOf(b.a.State.PedalFrame) }
+
+// heelLift carries the round heel-axis parts. Its axes are signed world axes, local X world Y, local Y world Z
+// and local Z world X, so it is exactly orthonormal like the leg-held heel bearings it shares with. The heel
+// pin, its collars and its spacers are round, so they take this pose instead of the pedal's; only the key and
+// the pin's keyway turn with the treadle. A body at local level x starts at world X x.
+func (b *builder) heelLift() lift {
+	s := b.p.Scale
+	return b.liftOf(frame(r3.Vec{Y: -190 * s, Z: 60 * s}, r3.Vec{Y: 1}, r3.Vec{Z: 1}))
+}
+
+// heelAt is the treadle lift's plane normal to the heel axis at local X x.
+func heelAt(x, y, z float64) r3.Frame { return frame(r3.Vec{X: x, Y: y, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1}) }
+
 func (b *builder) driveTreadle() {
 	s := b.p.Scale
 	p := b.a.State.PedalFrame
-	point := p.ToWorld
-	xy := func(z float64) r3.Frame { return frame(point(r3.Vec{Z: z}), p.U(), p.V()) }
-	yz := func(x float64) r3.Frame { return frame(point(r3.Vec{X: x}), p.V(), p.N()) }
+	l := b.treadleLift()
+	h := b.heelLift()
 	b.part("treadle", "treadle", "treadle", func() *decad.Body {
-		return b.panel(5*s, -30*s, 115*s, 240*s, 24*s, xy(-12*s))
+		return b.liftPanel(l, level(0, 0, -12*s), 5*s, -30*s, 115*s, 240*s, 24*s)
 	})
 	b.part("treadle-heel-rail", "treadle", "treadle", func() *decad.Body {
-		section := b.section(false)
+		section := b.sectionOn(heelAt(-233*s, 0, 0))
 		rectangle(section, -12*s, -12*s, 12*s, 12*s)
 		keyedOutline(section, 4.1, 1.1, 4.9)
-		return b.extrude(section, 1, 426*s, yz(-233*s))
+		return b.liftExtrude(section, 1, 426*s, l)
 	})
+	// The diagonal rail keeps its own frame along (330, 450): its sockets share that frame (diagonalStock).
 	b.part("treadle-actuating-rail", "treadle", "treadle", func() *decad.Body {
 		length := math.Hypot(330, 450) * s
 		u := p.U().Scale(330).Add(p.V().Scale(450)).Scale(s / length)
 		v := p.N().Cross(u)
-		f := frame(point(r3.Vec{X: -160 * s, Z: -12 * s}), u, v)
+		f := frame(p.ToWorld(r3.Vec{X: -160 * s, Z: -12 * s}), u, v)
 		return b.panel(0, -12*s, length, 12*s, 24*s, f)
 	})
 	b.part("treadle-rear-crossarm", "treadle", "treadle", func() *decad.Body {
-		return b.panel(160*s, 438*s, 220*s, 462*s, 12*s, xy(-12*s))
+		return b.liftPanel(l, level(0, 0, -12*s), 160*s, 438*s, 220*s, 462*s, 12*s)
 	})
 	b.part("treadle-connector-block", "treadle", "treadle", func() *decad.Body {
-		return b.panel(438*s, -12*s, 462*s, 12*s, 24*s, yz(208*s), hole{450 * s, 8 * s, 2.2})
+		return b.liftPanel(l, heelAt(208*s, 0, 0), 438*s, -12*s, 462*s, 12*s, 24*s, hole{450 * s, 8 * s, 2.2})
 	})
 	b.part("heel-pin", "shaft", "treadle", func() *decad.Body {
-		body := b.cylinder(4, 526*s, yz(-283*s))
-		return b.cut(body, b.panel(2.8, -1, 5, 1, 400*s, yz(-220*s)))
+		body := b.liftCylinder(h, level(0, 0, -283*s), 4, 526*s)
+		return b.cut(body, b.liftPanel(l, heelAt(-220*s, 0, 0), 2.8, -1, 5, 1, 400*s))
 	})
 	b.part("heel-key", "key", "treadle", func() *decad.Body {
-		return b.panel(2.8, -1, 4.8, 1, 400*s, yz(-220*s))
+		return b.liftPanel(l, heelAt(-220*s, 0, 0), 2.8, -1, 4.8, 1, 400*s)
 	})
 	for i, start := range []float64{-260*s - 6.7, 220*s + 3.7} {
 		b.part(fmt.Sprintf("heel-collar-%d", i+1), "collar", "treadle", func() *decad.Body {
-			return b.annulus(4, 6, 3, yz(start))
+			return b.liftAnnulus(h, level(0, 0, start), 4, 6, 3)
 		})
 	}
 	for i, interval := range [][2]float64{
 		{-260*s + 3.7, -233*s - 0.2}, {193*s + 0.2, 220*s - 3.7},
 	} {
 		b.part(fmt.Sprintf("heel-spacer-%d", i+1), "spacer", "treadle", func() *decad.Body {
-			return b.annulus(4, 5.5, interval[1]-interval[0], yz(interval[0]))
+			return b.liftAnnulus(h, level(0, 0, interval[0]), 4, 5.5, interval[1]-interval[0])
 		})
 	}
-	// The toe lies at PedalFrame local (220s, 450s, 20s); the clamp centre 12s below it, its axis along local X.
-	b.driveClamp("treadle-lower-clamp", "treadle", b.liftOf(p), r3.Vec{X: 220 * s, Y: 450 * s, Z: 8 * s},
+	// The toe lies at local (220s, 450s, 20s); the clamp centre 12s below it, its axis along local X.
+	b.driveClamp("treadle-lower-clamp", "treadle", l, r3.Vec{X: 220 * s, Y: 450 * s, Z: 8 * s},
 		r3.Vec{Y: 1}, r3.Vec{X: 1}, 12*s)
 }
 

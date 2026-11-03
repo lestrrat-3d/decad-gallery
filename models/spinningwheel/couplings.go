@@ -39,6 +39,13 @@ func (b *builder) keyTool(radius, halfwidth, extent, length float64, f r3.Frame)
 	return b.extrude(s, 0, length, f)
 }
 
+// liftKeyTool is keyTool sketched on f, a plane of l's local coordinates, and placed by l.
+func (b *builder) liftKeyTool(l lift, f r3.Frame, radius, halfwidth, extent, length float64) *decad.Body {
+	s := b.sectionOn(f)
+	keyedOutline(s, radius, halfwidth, extent)
+	return b.liftExtrude(s, 0, length, l)
+}
+
 func (b *builder) keyedAnnulus(l lift, f r3.Frame, radius, halfwidth, extent, outer, length float64) *decad.Body {
 	s := b.sectionOn(f)
 	circle(s, 0, 0, outer)

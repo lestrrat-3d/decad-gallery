@@ -56,9 +56,9 @@ func (b *builder) machine(name string, tools ...*decad.Body) {
 	b.a.Parts[i].Body = body
 }
 
-func (b *builder) localStock(f r3.Frame, x0, x1, y0, y1, z0, z1 float64) *decad.Body {
-	return b.panel(x0, y0, x1, y1, z1-z0,
-		frame(f.ToWorld(r3.Vec{Z: z0}), f.U(), f.V()))
+// localStock is a box of l's local coordinates, sketched at level z0.
+func (b *builder) localStock(l lift, x0, x1, y0, y1, z0, z1 float64) *decad.Body {
+	return b.liftPanel(l, level(0, 0, z0), x0, y0, x1, y1, z1-z0)
 }
 
 func (b *builder) headStock(x0, x1, y0, y1, z0, z1 float64) *decad.Body {
@@ -140,7 +140,7 @@ func (b *builder) frameJoinery() {
 			b.headBore(0.85, eyeZ-576*s, r3.Vec{X: x, Y: eyeY, Z: 576 * s}, r3.Vec{Z: 1}))
 	}
 	b.machine("brake-rear-crossbar", rearCrossbarTools...)
-	b.machine("footman-head-boss", b.liftPanel(b.footmanLift(), level(0, 0, -5*s), 460*s, -10*s, 476*s, 10*s, 10*s))
+	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s, 476*s, -10*s, 10*s, -5*s, 5*s))
 
 	// The radial spoke blanks seat in the hub and the rim rather than sharing material.
 	var hubTools, rimTools []*decad.Body
@@ -168,25 +168,24 @@ func (b *builder) diagonalStock(z0, z1, pad0, pad1 float64) *decad.Body {
 
 func (b *builder) treadleJoinery() {
 	s := b.p.Scale
-	f := b.a.State.PedalFrame
+	f := b.treadleLift()
 	b.machine("treadle-heel-rail",
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
 		b.diagonalStock(-12, 0, 5, 0))
-	// The keyed shaft runs along PedalFrame.U; radial +X is PedalFrame.V.
-	keyFrame := frame(f.ToWorld(r3.Vec{X: 5*s - 5}), f.V(), f.N())
+	// The keyed shaft runs along the treadle's local X; radial +X of the key section is local Y.
 	b.machine("treadle",
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s-5, 0),
-		b.diagonalStock(-12, 0, 5, 0), b.keyTool(4.1, 1.1, 4.9, 110*s+10, keyFrame))
+		b.diagonalStock(-12, 0, 5, 0), b.liftKeyTool(f, heelAt(5*s-5, 0, 0), 4.1, 1.1, 4.9, 110*s+10))
 	b.machine("treadle-actuating-rail",
 		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s+5),
 		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
 		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s-5, 0))
 	// The glued rail never touches the heel shaft or its key, so it gets a clearance bore along the shaft.
-	b.machine("treadle-actuating-rail", b.cylinder(5.2, 560*s, frame(f.ToWorld(r3.Vec{X: -290 * s}), f.V(), f.N())))
+	b.machine("treadle-actuating-rail", b.liftCylinder(f, heelAt(-290*s, 0, 0), 5.2, 560*s))
 	// The half-lap stock runs 5 past the block's side and bottom faces, so it never shares their planes.
 	b.machine("treadle-connector-block",
 		b.localStock(f, 160*s, 220*s, 438*s-5, 462*s+5, -12*s-5, 0),
-		b.cylinder(3.2, 10*s, axisFrame(f.ToWorld(r3.Vec{X: 220 * s, Y: 450 * s, Z: 3 * s}), f.N())))
+		b.liftCylinder(f, level(220*s, 450*s, 3*s), 3.2, 10*s))
 	// The flexure bore runs along the rod's local X from 19s.
 	b.machine("footman", b.liftCylinder(b.footmanLift(), frame(r3.Vec{X: 19 * s}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), 3.2, 14*s))
 	if i := b.partIndex("footman"); i >= 0 && b.err == nil {
@@ -274,9 +273,11 @@ func (b *builder) collarScrews() {
 	wheel("wheel-crank-rear-collar", 0, 86*s+1.7, 4, 6)
 	wheel("wheel-crank-pin-collar-1", 25*s, 78*s-1.7, 2.5, 4.5)
 	wheel("wheel-crank-pin-collar-2", 25*s, 105*s+4.2, 2.5, 4.5)
+	tl := b.treadleLift()
 	for i, x := range []float64{-260*s - 5.2, 220*s + 5.2} {
-		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1),
-			centre: r3.Vec{X: x, Y: -190 * s, Z: 60 * s}, radial: st.PedalFrame.V().Scale(-1), inner: 4, outer: 6})
+		// The heel setscrews point along the treadle's local -Y, away from the toe.
+		hole := frame(r3.Vec{X: x}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1), inner: 4, outer: 6, l: tl, hole: &hole})
 	}
 	gl := b.gimbalLift()
 	for i, v := range []float64{-27*s - 1.7, 27*s + 1.7} {
