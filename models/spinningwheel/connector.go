@@ -53,6 +53,6 @@ func (b *builder) flexConnector() *decad.Body {
 	upperAxis := state.RodFrame.V()
 	body = b.cut(body, b.cylinder(2.2, 24*s+4,
 		axisFrame(lowerCentre.Sub(lowerAxis.Scale(12*s+2)), lowerAxis)))
-	return b.cut(body, b.cylinder(2.2, 20*s+4,
-		axisFrame(upperCentre.Sub(upperAxis.Scale(10*s+2)), upperAxis)))
+	return b.refine(b.cut(body, b.cylinder(2.2, 20*s+4,
+		axisFrame(upperCentre.Sub(upperAxis.Scale(10*s+2)), upperAxis))), 0.01)
 }

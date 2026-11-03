@@ -69,5 +69,5 @@ func (b *builder) brakeCord(left, right, leftEnd, rightEnd, z, radius, phase flo
 		return nil
 	}
 	rightEye = b.brakeRotate(rightEye, rightCentre, phase)
-	return b.union(cord, leftEye, rightEye)
+	return b.refine(b.union(cord, leftEye, rightEye), 0.12)
 }

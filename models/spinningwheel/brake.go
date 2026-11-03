@@ -156,7 +156,7 @@ func (b *builder) brakeSpring(x, y0, y1, z, phase float64) *decad.Body {
 	rearEye := b.brakeEye(2.1, 0.4, rear, r3.Vec{X: 1}, r3.Vec{Y: 1})
 	frontLeg := b.span(front.Add(r3.Vec{X: 2.1}), r3.Vec{X: x + 2.1, Y: y0 + 0.4, Z: z}, 0.4)
 	rearLeg := b.span(r3.Vec{X: x + 2.1, Y: y1 - 0.4, Z: z}, rear.Add(r3.Vec{X: 2.1}), 0.4)
-	return b.brakeRotate(b.union(coil, frontLeg, rearLeg, frontEye, rearEye), front, phase)
+	return b.brakeRotate(b.refine(b.union(coil, frontLeg, rearLeg, frontEye, rearEye), 0.12), front, phase)
 }
 
 func (b *builder) brakeClevis(centre r3.Vec) *decad.Body {

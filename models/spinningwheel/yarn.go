@@ -6,7 +6,30 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 )
+
+// refineHeld refines body only when it holds a mesh coarser than bound.
+func (b *builder) refineHeld(body *decad.Body, bound float64) *decad.Body {
+	if b.err != nil || body == nil {
+		return body
+	}
+	if _, err := body.Tessellate(b.ctx, units.Millimeters(bound)); err == nil {
+		return body
+	}
+	return b.refine(body, bound)
+}
+
+// refine certifies a held Union mesh's surface bound before the head tilt
+// places it (decad.Refine; refining after placement is refused).
+func (b *builder) refine(body *decad.Body, bound float64) *decad.Body {
+	if b.err != nil || body == nil {
+		return body
+	}
+	refined, err := decad.Refine(b.ctx, body, units.Millimeters(bound))
+	b.fail("refine held mesh", err)
+	return refined
+}
 
 func (b *builder) yarn() {
 	s := b.p.Scale
@@ -73,7 +96,12 @@ func (b *builder) yarn() {
 				b.headPoint(c.X, c.Y, c.Z, angle), 0.35,
 			))
 		}
-		return b.union(spans...)
+		// Refine each held step so the next Union reads its surface bound.
+		u := spans[0]
+		for _, sp := range spans[1:] {
+			u = b.refineHeld(b.union(u, sp), chainTolerance)
+		}
+		return b.refine(u, 0.12)
 	})
 }
 

@@ -186,6 +186,10 @@ func (b *builder) treadleJoinery() {
 		b.cylinder(3.2, 10*s, axisFrame(f.ToWorld(r3.Vec{X: 220 * s, Y: 450 * s, Z: 3 * s}), f.N())))
 	r := b.a.State.RodFrame
 	b.machine("footman", b.cylinder(3.2, 14*s, axisFrame(r.ToWorld(r3.Vec{X: 19 * s}), r.U())))
+	if i := b.partIndex("footman"); i >= 0 && b.err == nil {
+		b.name = "footman"
+		b.a.Parts[i].Body = b.refine(b.a.Parts[i].Body, 0.01)
+	}
 }
 
 func (b *builder) guideSeats() {
