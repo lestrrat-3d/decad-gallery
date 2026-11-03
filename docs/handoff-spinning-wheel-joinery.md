@@ -1889,3 +1889,4 @@ These were checked against the Gallery options above; each needs a Decad reader 
   3.65 mm^3 (648.287 to 644.641) and keeps its bounds. Focused check (`.tmp/focus-tk10.log`): no undecided pair
   among the take-up screw, knob, insert, right front pin and control rail (screw/insert was undecided before).
 - Decad pin `fbdc213` (#3094) decides the 4 fixed-bracket/fixed-mount pairs: 15 to 11 (`.tmp/lift-pin11.log`). Variants: `small-seven` 53, `large-nine` 57, `twelve` 39, `small-seventeen` 52, no overlap.
+- Decad pin `64676b0` (#3095) decides the 4 moving-leaf pairs: 11 to 7 (`.tmp/lift-pin12.log`). Variants: `small-seven` 53, `large-nine` 55, `twelve` 37, `small-seventeen` 52, no overlap.
