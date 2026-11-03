@@ -69,12 +69,12 @@ func (b *builder) yarn() {
 			if x > 0 && y == -160 {
 				axis = activeAxis
 			}
-			b.part(fmt.Sprintf("yarn-hook-%d", index), "guide", "flyer", func() *decad.Body {
+			b.liftedPart(fmt.Sprintf("yarn-hook-%d", index), "guide", "flyer", func() *decad.Body {
 				return b.yarnHook(r3.Vec{X: x * s, Y: y * s, Z: 22 * s}, axis, 10*s, false)
 			})
 		}
 	}
-	b.part("yarn-front-guide", "guide", "flyer", func() *decad.Body {
+	b.liftedPart("yarn-front-guide", "guide", "flyer", func() *decad.Body {
 		return b.yarnHook(r3.Vec{X: 58 * s, Y: -224 * s, Z: 22 * s}, frontAxis, 12*s, true)
 	})
 
@@ -123,31 +123,37 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 		b.fail("construct yarn guide", fmt.Errorf("guide axis is parallel to attachment direction"))
 		return nil
 	}
-	angle := b.a.State.FlyerAngle
+	// Every piece is placed on the flyer lift before the Union, so Verify reads the stem and the ring apart
+	// from the arm or crossbar seat that shares the lift. The flyer point (x, y, z) lies at local (x, z, -y).
+	fl := b.flyerLift()
+	local := func(v r3.Vec) r3.Vec { return r3.Vec{X: v.X, Y: v.Z, Z: -v.Y} }
 	attachment := centre.Add(e.Scale(4))
 	bottom := r3.Vec{X: attachment.X, Y: attachment.Y, Z: stemZ}
 	hook := b.torus(4, 1, -5*math.Pi/6, 5*math.Pi/3, r3.Vec{})
-	hook = b.place(hook, frame(
-		b.headPoint(centre.X, centre.Y, centre.Z, angle),
-		headDirection(e, angle), headDirection(axis.Scale(-1), angle),
-	))
+	ringFrame, err := r3.FromFrame(frame(local(centre), local(e), local(axis.Scale(-1))))
+	if err != nil {
+		b.fail("place yarn guide ring", err)
+		return nil
+	}
+	ringLift, err := ringFrame.Then(fl.xf)
+	if err != nil {
+		b.fail("place yarn guide ring", err)
+		return nil
+	}
+	hook = b.lifted(hook, lift{xf: ringLift})
 	// An ordinary hook's stem is thinner than its wire: at equal radii the stem/torus Union crosses nearly
 	// tangentially and its held bound exceeds the 0.12 mm check. The front guide's stem keeps diameter 2.
 	stemRadius := hookStemRadius
 	if front {
 		stemRadius = 1
 	}
-	stem := b.span(
-		b.headPoint(bottom.X, bottom.Y, bottom.Z, angle),
-		b.headPoint(attachment.X, attachment.Y, attachment.Z, angle), stemRadius,
-	)
+	// The stem rises along the flyer's +Z, local +Y.
+	stem := b.liftCylinder(fl, frame(local(bottom), r3.Vec{Z: 1}, r3.Vec{X: 1}), stemRadius, attachment.Z-stemZ)
 	if !front {
 		return b.union(hook, stem)
 	}
-	stalk := b.span(
-		b.headPoint(bottom.X, bottom.Y, bottom.Z, angle),
-		b.headPoint(58*b.p.Scale, -215*b.p.Scale, 12*b.p.Scale, angle), 1,
-	)
+	// The stalk runs along the flyer's +Y, local -Z, into the crossbar.
+	stalk := b.liftCylinder(fl, frame(local(bottom), r3.Vec{Y: 1}, r3.Vec{X: 1}), 1, -215*b.p.Scale-bottom.Y)
 	// Join the two plain cylinders first (exact prism route), then make the hook
 	// the only mesh boolean over its contact, so no boolean runs on a held result.
 	return b.union(hook, b.union(stem, stalk))

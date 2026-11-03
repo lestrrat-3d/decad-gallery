@@ -1726,3 +1726,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   arm, and no leaf test separates the partial-revolve ring from the arm prism, although their boxes are 7 mm apart.
   A box test for leaf pairs in Decad's history walk would unblock these; moving lifts alone does not.
 - Decad pin `e2f4d61a7`: 111 to 109 (`.tmp/lift-pin5.log`). Native default and `TestSpinningWheelRearRailClearance` pass.
+- Yarn hooks and front guide (coordinator request): the ring, stem and stalk are placed on the flyer lift before
+  their Union, so no Transform follows it, and each arm or crossbar seat is now its stem's or stalk's own stock
+  (the cut material is unchanged). 109 to 102 (`.tmp/lift-hooks.log`): hooks 7 to 12 against arm 2 and the
+  front guide against the crossbar clear. Hooks 1 to 6 against arm 1 stay undecided. Hook and arm volumes match
+  the previous build within bounds (`.tmp/lift-geom-hooks-cmp.txt`).

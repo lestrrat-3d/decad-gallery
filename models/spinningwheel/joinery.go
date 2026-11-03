@@ -225,9 +225,10 @@ func (b *builder) guideSeats() {
 			down := r3.Vec{Z: -1}
 			e, _ := down.Sub(axis.Scale(down.Dot(axis))).Normalize()
 			attachment := (r3.Vec{X: x * s, Y: y * s, Z: 22 * s}).Add(e.Scale(4))
-			// The seat runs along the flyer's +Z, local +Y, from flyer point (x, y, 6s).
+			// The seat is the stem's own stock run 4s deeper: it runs along the flyer's +Z, local +Y, from flyer
+			// point (x, y, 6s) to the stem's top, so the stem lies in the tool that opened its seat.
 			tools = append(tools, b.liftCylinder(fl, frame(r3.Vec{X: attachment.X, Y: 6 * s, Z: -attachment.Y},
-				r3.Vec{Z: 1}, r3.Vec{X: 1}), hookStemRadius, 5*s))
+				r3.Vec{Z: 1}, r3.Vec{X: 1}), hookStemRadius, attachment.Z-6*s))
 		}
 		b.machine(fmt.Sprintf("flyer-arm-%d", side+1), tools...)
 	}
@@ -238,9 +239,10 @@ func (b *builder) guideSeats() {
 		crossbarTools = append(crossbarTools,
 			b.liftPanel(fl, level(0, 0, 85*s), xr[0], -10*s, xr[1], 10*s, 135*s+5))
 	}
-	// The front guide's seat runs along world +Y, local -Z, from flyer point (58s, -221s, 12s).
-	crossbarTools = append(crossbarTools, b.liftCylinder(fl, frame(r3.Vec{X: 58 * s, Y: 12 * s, Z: 221 * s},
-		r3.Vec{Y: 1}, r3.Vec{X: 1}), 1, 7*s))
+	// The front guide's seat is its stalk's own stock run 1s deeper: along world +Y, local -Z, from the stalk's
+	// start at flyer point (58s, -224s, 12s) to -214s, so the stalk lies in the tool that opened its seat.
+	crossbarTools = append(crossbarTools, b.liftCylinder(fl, frame(r3.Vec{X: 58 * s, Y: 12 * s, Z: 224 * s},
+		r3.Vec{Y: 1}, r3.Vec{X: 1}), 1, -214*s-(-224*s)))
 	b.machine("flyer-crossbar", crossbarTools...)
 }
 
