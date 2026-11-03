@@ -72,7 +72,7 @@ func polygonRadii(poly []r3.Vec, cx, cz float64) radialSpan {
 		area += math.Abs(cross)
 	}
 	// A real polygon whose edges all turn the same way around the axis encloses it. A zero-area sliver cannot.
-	if !(positive && negative) && area > 1e-9 {
+	if (!positive || !negative) && area > 1e-9 {
 		span.lo = 0
 	}
 	return span

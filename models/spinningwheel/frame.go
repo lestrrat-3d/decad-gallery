@@ -322,7 +322,9 @@ func (b *builder) hinge(index int, q float64) {
 		// Leaf, knuckle and pin bore share one plane so their caps stay co-directional prisms, and every piece is
 		// placed on the head lift before its Boolean. The pin bore and the screw hole run past the faces they open.
 		hl := b.headLift()
-		plane := func(y float64) r3.Frame { return frame(r3.Vec{X: -172 * s, Y: y, Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}) }
+		plane := func(y float64) r3.Frame {
+			return frame(r3.Vec{X: -172 * s, Y: y, Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+		}
 		leaf := b.liftPanel(hl, plane(q+31*s), 3*s, 0, 14*s, 3*s, 15*s)
 		knuckle := b.liftCylinder(hl, plane(q+31*s), 5, 15*s)
 		body := b.cut(b.union(leaf, knuckle), b.liftCylinder(hl, plane(q+31*s+5), 2.7, 15*s+10))
