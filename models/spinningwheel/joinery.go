@@ -132,7 +132,8 @@ func (b *builder) frameJoinery() {
 		}
 		barPasses = append(barPasses, []*decad.Body{
 			b.headStock(-169*s, -158*s, (q+16)*s, (q+31)*s, 555*s-5, 558*s),
-			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s), 1.5, 8*s)})
+			// The screw pilot starts 5 below the leaf pocket's ceiling it opens, not flush with it.
+			b.liftCylinder(b.headLift(), level(-162*s, q*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5)})
 	}
 	b.machine("mother-base", basePilots...)
 	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
@@ -155,7 +156,7 @@ func (b *builder) frameJoinery() {
 	}
 	rearCrossbarTools = append(rearCrossbarTools,
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
-		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s), 1.5, 8*s))
+		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5))
 	rb := 42*s + 0.6*math.Sqrt(5)
 	eyeY, eyeZ0, eyeZ1 := b.routingEyeStem()
 	for _, x := range []float64{-140*s - rb, -140*s + rb} {

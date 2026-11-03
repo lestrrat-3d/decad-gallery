@@ -1821,3 +1821,10 @@ These were checked against the Gallery options above; each needs a Decad reader 
 - Jack screw: its knob flat now runs 5 past the screw's top face, so the Cut needs no gap shift. Focused check
   (`.tmp/focus-jack.log`): 3 to 1 undecided among jack screw, knob, insert and base; the screw keeps its volume
   within bounds. Screw/knob stays (D-flat contact).
+- Take-up screw flat: tried and reverted. Running the knob flat past the shaft's front face (5 or 1 mm) makes Decad
+  refuse the Cut ("a brep edge must bound exactly two distinct faces"), with shaft and flat on one lift; that
+  Cut needs a Decad fix before take-up screw/knob and screw/insert can clear.
+- Upper-board screw pilots: each pilot now starts 5 below the leaf pocket's ceiling instead of flush with it, so
+  the pass's Union needs no gap shift. Focused check (`.tmp/focus-pilot.log`): both moving mounts/upper bar and
+  moving mount 2/rear crossbar clear; upper bar 218287.5621±0.42 vs 218287.5657±0.49 mm^3, crossbar
+  28234.2427±0.49 vs 28234.2402±0.43. The moving leaves against their mounts and the bar stay.
