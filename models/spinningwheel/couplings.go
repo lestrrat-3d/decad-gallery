@@ -39,9 +39,9 @@ func (b *builder) keyTool(radius, halfwidth, extent, length float64, f r3.Frame)
 	return b.extrude(s, 0, length, f)
 }
 
-func (b *builder) keyedAnnulus(radius, halfwidth, extent, outer, length float64, f r3.Frame) *decad.Body {
-	s := b.section(false)
+func (b *builder) keyedAnnulus(l lift, f r3.Frame, radius, halfwidth, extent, outer, length float64) *decad.Body {
+	s := b.sectionOn(f)
 	circle(s, 0, 0, outer)
 	keyedOutline(s, radius, halfwidth, extent)
-	return b.extrude(s, 1, length, f)
+	return b.liftExtrude(s, 1, length, l)
 }

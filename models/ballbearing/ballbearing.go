@@ -15,11 +15,17 @@ import (
 
 // Params specifies nominal dimensions in millimeters and an optional placement.
 // A nil Placement selects the local XY plane with extrusion along +Z.
+//
+// A non-nil Lift moves the finished body instead, and Placement is then read in
+// Lift's local coordinates: the section is sketched on the Placement plane and
+// Lift is the body's only transform. Envelopes and other bodies that share one
+// Lift share one exact placement, so a verifier can compare their faces exactly.
 type Params struct {
 	BoreDiameter  float64
 	OuterDiameter float64
 	Width         float64
 	Placement     *r3.Frame
+	Lift          *r3.Transform
 }
 
 // DefaultParams returns the nominal 608-2RS mounting dimensions.
@@ -48,6 +54,9 @@ func (p Params) Validate() error {
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return fmt.Errorf("ballbearing: Placement must be a valid frame")
 	}
+	if p.Lift != nil && !p.Lift.IsValid() {
+		return fmt.Errorf("ballbearing: Lift must be a valid transform")
+	}
 	return nil
 }
 
@@ -59,7 +68,8 @@ type Model struct {
 
 // Build adds one annular mounting envelope to doc. ctx and doc must not be nil.
 // A supplied placement maps the lower cap center to its origin and the bearing
-// axis to its normal. Sketch always refers to the actual local extrusion section.
+// axis to its normal; with a Lift, Lift then carries that local placement to the
+// world. Sketch always refers to the actual local extrusion section.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("ballbearing: context must not be nil")
@@ -75,7 +85,14 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	}
 
 	world := sketch.NewWorld()
-	s, err := world.CreateSketch(world.XY())
+	plane := world.XY()
+	if p.Lift != nil && p.Placement != nil {
+		var err error
+		if plane, err = world.CreatePlaneFromFrame(*p.Placement); err != nil {
+			return nil, fmt.Errorf("ballbearing: create section plane: %w", err)
+		}
+	}
+	s, err := world.CreateSketch(plane)
 	if err != nil {
 		return nil, fmt.Errorf("ballbearing: create section sketch: %w", err)
 	}
@@ -111,9 +128,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ballbearing: extrude annular section: %w", err)
 	}
-	if p.Placement != nil {
-		transform, err := r3.FromFrame(*p.Placement)
-		if err != nil {
+	if p.Lift != nil || p.Placement != nil {
+		var transform r3.Transform
+		if p.Lift != nil {
+			transform = *p.Lift
+		} else if transform, err = r3.FromFrame(*p.Placement); err != nil {
 			return nil, fmt.Errorf("ballbearing: create placement transform: %w", err)
 		}
 		body, err = decad.Transform(ctx, body, transform)

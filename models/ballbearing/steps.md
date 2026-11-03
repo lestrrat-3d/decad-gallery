@@ -7,7 +7,7 @@ Emit one cohesive model construction file, not tests or renderer code.
 
 Implement Params, DefaultParams, Validate and Model exactly as specified.
 DefaultParams returns BoreDiameter8, OuterDiameter22 and Width7, Placement nil.
-Use math.IsNaN/IsInf, positive checks, ordered diameters and Placement.IsValid.
+Use math.IsNaN/IsInf, positive checks, ordered diameters, Placement.IsValid and Lift.IsValid.
 Build validates ctx/doc and params, then ctx.Err before creating the sketch or document geometry.
 
 ## 2. Build and verify the section
@@ -24,7 +24,9 @@ Fail on a missing or ambiguous annulus; do not pass the inner disc to extrusion.
 Call decad.Extrude(ctx,doc,s,profile,
 decad.Distance{D:units.Millimeters(p.Width),Dir:decad.Along}).
 The result locally spans Z0..Width, is centered on Z, and has an open bore.
-If Placement is nonnil, call r3.FromFrame(*p.Placement), then decad.Transform(ctx,body,transform).
+If Lift is nonnil, sketch on world.CreatePlaneFromFrame(*p.Placement) when Placement is nonnil,
+then call decad.Transform(ctx,body,*p.Lift) once.
+Otherwise, if Placement is nonnil, call r3.FromFrame(*p.Placement), then decad.Transform(ctx,body,transform).
 Require the final body solid and return &Model{Body:body,Sketch:s}.
 The completed transformation replaces the unplaced body; no prototype is left in doc.
 Keep all construction state local, return contextual wrapped errors, and do not copy another model's source.

@@ -252,30 +252,35 @@ type collarSeat struct {
 	name           string
 	centre, radial r3.Vec
 	inner, outer   float64
+	// hole, when set, is the tapped hole's start on the collar's axis in l's local coordinates, its
+	// normal the radial direction; the setscrew then starts on the same frame, raised by inner.
+	l    lift
+	hole *r3.Frame
 }
 
 func (b *builder) collarScrews() {
 	s := b.p.Scale
 	st := b.a.State
-	wa := math.Remainder(b.p.WheelAngle, 2*math.Pi)
-	wr := r3.Vec{X: -math.Cos(wa), Z: -math.Sin(wa)}
 	var seats []collarSeat
-	wheel := func(name string, x, y, z, inner, outer float64) {
-		seats = append(seats, collarSeat{name, r3.Vec{X: x, Y: y, Z: z}, wr, inner, outer})
+	wl := b.wheelLift()
+	// The wheel's setscrews point along local -X, from the axle away from the crank pin.
+	wheel := func(name string, x, y, inner, outer float64) {
+		hole := frame(r3.Vec{X: x, Z: -y}, r3.Vec{Z: 1}, r3.Vec{Y: 1})
+		seats = append(seats, collarSeat{name: name, inner: inner, outer: outer, l: wl, hole: &hole})
 	}
-	wheel("wheel-axle-front-collar", 220*s, -55*s-1.5, 580*s, 4, 6)
-	wheel("wheel-axle-rear-collar", 220*s, 55*s+1.5, 580*s, 4, 6)
-	wheel("wheel-crank-front-collar", 220*s, 78*s-1.7, 580*s, 4, 6)
-	wheel("wheel-crank-rear-collar", 220*s, 86*s+1.7, 580*s, 4, 6)
-	wheel("wheel-crank-pin-collar-1", st.CrankPin.X, 78*s-1.7, st.CrankPin.Z, 2.5, 4.5)
-	wheel("wheel-crank-pin-collar-2", st.CrankPin.X, 105*s+4.2, st.CrankPin.Z, 2.5, 4.5)
+	wheel("wheel-axle-front-collar", 0, -55*s-1.5, 4, 6)
+	wheel("wheel-axle-rear-collar", 0, 55*s+1.5, 4, 6)
+	wheel("wheel-crank-front-collar", 0, 78*s-1.7, 4, 6)
+	wheel("wheel-crank-rear-collar", 0, 86*s+1.7, 4, 6)
+	wheel("wheel-crank-pin-collar-1", 25*s, 78*s-1.7, 2.5, 4.5)
+	wheel("wheel-crank-pin-collar-2", 25*s, 105*s+4.2, 2.5, 4.5)
 	for i, x := range []float64{-260*s - 5.2, 220*s + 5.2} {
-		seats = append(seats, collarSeat{fmt.Sprintf("heel-collar-%d", i+1),
-			r3.Vec{X: x, Y: -190 * s, Z: 60 * s}, st.PedalFrame.V().Scale(-1), 4, 6})
+		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1),
+			centre: r3.Vec{X: x, Y: -190 * s, Z: 60 * s}, radial: st.PedalFrame.V().Scale(-1), inner: 4, outer: 6})
 	}
 	for i, v := range []float64{-27*s - 1.7, 27*s + 1.7} {
-		seats = append(seats, collarSeat{fmt.Sprintf("gimbal-cross-pin-collar-%d", i+1),
-			st.RodHead.Add(st.GimbalFrame.V().Scale(v)), st.GimbalFrame.U().Scale(-1), 2.5, 4.5})
+		seats = append(seats, collarSeat{name: fmt.Sprintf("gimbal-cross-pin-collar-%d", i+1),
+			centre: st.RodHead.Add(st.GimbalFrame.V().Scale(v)), radial: st.GimbalFrame.U().Scale(-1), inner: 2.5, outer: 4.5})
 	}
 	hx, err := r3.RotationAround(st.HeadPivot, r3.Vec{Y: -1}, units.Radians(st.HeadTilt))
 	if err != nil {
@@ -295,8 +300,8 @@ func (b *builder) collarScrews() {
 		{"crossbar-rear-collar", -210*s + 2.2, 8, 10},
 		{"bobbin-rear-removable-collar", -74*s + 8.7, 4, 6},
 	} {
-		seats = append(seats, collarSeat{item.name,
-			hx.Apply(r3.Vec{X: -140 * s, Y: item.y + st.HeadShift, Z: 690 * s}), fr, item.in, item.outer})
+		seats = append(seats, collarSeat{name: item.name,
+			centre: hx.Apply(r3.Vec{X: -140 * s, Y: item.y + st.HeadShift, Z: 690 * s}), radial: fr, inner: item.in, outer: item.outer})
 	}
 	for _, seat := range seats {
 		i := b.partIndex(seat.name)
@@ -304,13 +309,20 @@ func (b *builder) collarScrews() {
 			return
 		}
 		motion := b.a.Parts[i].Motion
+		screw := math.Sqrt(seat.outer*seat.outer-1) - seat.inner
 		// The tapped hole's tool runs 5 past the collar's outer surface; ending at that radius, its end
 		// disk would lie tangent to the outer cylinder.
+		if seat.hole != nil {
+			b.machine(seat.name, b.liftCylinder(seat.l, *seat.hole, 1, seat.outer+5))
+			b.part(seat.name+"-setscrew", "fastener", motion, func() *decad.Body {
+				return b.liftCylinder(seat.l, raise(*seat.hole, seat.inner), 1, screw)
+			})
+			continue
+		}
 		b.machine(seat.name, b.cylinder(1, seat.outer+5,
 			axisFrame(seat.centre, seat.radial)))
 		b.part(seat.name+"-setscrew", "fastener", motion, func() *decad.Body {
-			return b.cylinder(1, math.Sqrt(seat.outer*seat.outer-1)-seat.inner,
-				axisFrame(seat.centre.Add(seat.radial.Scale(seat.inner)), seat.radial))
+			return b.cylinder(1, screw, axisFrame(seat.centre.Add(seat.radial.Scale(seat.inner)), seat.radial))
 		})
 	}
 }

@@ -17,19 +17,34 @@ func (b *builder) drive() {
 	b.driveBand()
 }
 
+// wheelLift carries the wheel group at the wheel's own angle. Local Z runs along the axle toward -Y, so a
+// body whose extrusion starts at world Y y starts at local level -y; local X runs from the axle to the crank
+// pin, which sits at local (25s, 0). The axle, its rings and the fixed wheel bearings are round, so they take
+// this pose too and every mating face of the wheel axis shares one exact placement.
+func (b *builder) wheelLift() lift {
+	w := b.a.State.Wheel
+	return b.liftOf(shaftFrame(w.X, 0, w.Z, b.p.WheelAngle))
+}
+
+// wheelAt is the wheel lift's plane through local (x, y) whose extrusion starts at world Y y0 toward -Y.
+func wheelAt(x, y, y0 float64) r3.Frame { return level(x, y, -y0) }
+
 func (b *builder) driveWheel() {
 	s := b.p.Scale
 	a := math.Remainder(b.p.WheelAngle, 2*math.Pi)
 	w := b.a.State.Wheel
-	wf := func(y float64) r3.Frame { return shaftFrame(w.X, y, w.Z, a) }
+	l := b.wheelLift()
+	at := func(y float64) r3.Frame { return wheelAt(0, 0, y) }
 	b.part("wheel-rim", "wheel", "wheel", func() *decad.Body {
-		return b.revolve(scaled(s,
+		// The section's height h lies at world Y 10s-h.
+		return b.liftRevolve(l, zAxis(0, 0, -10*s), scaled(s,
 			point2{255, 0}, point2{280, 0}, point2{280, 7}, point2{274, 10},
-			point2{280, 13}, point2{280, 20}, point2{255, 20}), wf(10*s))
+			point2{280, 13}, point2{280, 20}, point2{255, 20}))
 	})
 	b.part("wheel-hub", "wheel", "wheel", func() *decad.Body {
-		return b.keyedAnnulus(4.1, 1.1, 4.9, 30*s, 30*s, wf(15*s))
+		return b.keyedAnnulus(l, at(15*s), 4.1, 1.1, 4.9, 30*s, 30*s)
 	})
+	// Each spoke shares its exact frame with its hub and rim socket tools (frameJoinery).
 	for i := range 6 {
 		b.part(fmt.Sprintf("wheel-spoke-%d", i+1), "wheel", "wheel", func() *decad.Body {
 			return b.panel(25*s, -9*s, 260*s, 9*s, 12*s,
@@ -37,9 +52,9 @@ func (b *builder) driveWheel() {
 		})
 	}
 	b.part("wheel-axle", "shaft", "wheel", func() *decad.Body {
-		body := b.cylinder(4, 146*s+3.2, shaftFrame(w.X, 86*s+3.2, w.Z, 0))
-		hubPocket := b.panel(2.8, -1, 5, 1, 24*s, wf(12*s))
-		crankPocket := b.panel(2.8, -1, 5, 1, 6*s, wf(85*s))
+		body := b.liftCylinder(l, at(86*s+3.2), 4, 146*s+3.2)
+		hubPocket := b.liftPanel(l, at(12*s), 2.8, -1, 5, 1, 24*s)
+		crankPocket := b.liftPanel(l, at(85*s), 2.8, -1, 5, 1, 6*s)
 		body = b.cut(body, hubPocket)
 		return b.cut(body, crankPocket)
 	})
@@ -48,15 +63,15 @@ func (b *builder) driveWheel() {
 		y0, y1 float64
 	}{{"wheel-hub-key", -12 * s, 12 * s}, {"wheel-crank-key", 79 * s, 85 * s}} {
 		b.part(key.name, "key", "wheel", func() *decad.Body {
-			return b.panel(2.8, -1, 4.8, 1, key.y1-key.y0, wf(key.y1))
+			return b.liftPanel(l, at(key.y1), 2.8, -1, 4.8, 1, key.y1-key.y0)
 		})
 	}
 	b.part("wheel-crank", "crank", "wheel", func() *decad.Body {
-		section := b.section(false)
+		section := b.sectionOn(at(86 * s))
 		rectangle(section, -9*s, -9*s, 34*s, 9*s)
 		keyedOutline(section, 4.1, 1.1, 4.9)
 		circle(section, 25*s, 0, 2.6)
-		return b.extrude(section, 2, 8*s, wf(86*s))
+		return b.liftExtrude(section, 2, 8*s, l)
 	})
 	for _, ring := range []struct {
 		name, group          string
@@ -68,13 +83,12 @@ func (b *builder) driveWheel() {
 		{"wheel-hub-rear-spacer", "spacer", 4, 6, 15 * s, 45*s - 7},
 	} {
 		b.part(ring.name, ring.group, "wheel", func() *decad.Body {
-			return b.annulus(ring.inner, ring.outer, ring.y1-ring.y0, shaftFrame(w.X, ring.y1, w.Z, 0))
+			return b.liftAnnulus(l, at(ring.y1), ring.inner, ring.outer, ring.y1-ring.y0)
 		})
 	}
-	c := b.a.State.CrankPin
-	cf := func(y float64) r3.Frame { return shaftFrame(c.X, y, c.Z, 0) }
+	cf := func(y float64) r3.Frame { return wheelAt(25*s, 0, y) }
 	b.part("wheel-crank-pin", "pin", "wheel", func() *decad.Body {
-		return b.cylinder(2.5, 34*s+7, cf(112*s+3.5))
+		return b.liftCylinder(l, cf(112*s+3.5), 2.5, 34*s+7)
 	})
 	for _, ring := range []struct {
 		name, group   string
@@ -85,7 +99,7 @@ func (b *builder) driveWheel() {
 		{"wheel-crank-pin-spacer", "spacer", 4, 86 * s, 105*s - 2.5},
 	} {
 		b.part(ring.name, ring.group, "wheel", func() *decad.Body {
-			return b.annulus(2.5, ring.outer, ring.y1-ring.y0, cf(ring.y1))
+			return b.liftAnnulus(l, cf(ring.y1), 2.5, ring.outer, ring.y1-ring.y0)
 		})
 	}
 }

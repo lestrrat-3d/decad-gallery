@@ -66,16 +66,20 @@ func (b *builder) frame() {
 			return b.cut(body, b.union(tools...))
 		})
 	}
+	// The round wheel-axis parts ride the wheel lift; each cap's bearing bore is cut by a tool on that
+	// lift, running 5 past both cap faces, so the bore and the bearing share one exact placement.
+	wl := b.wheelLift()
 	for i, y0 := range []float64{-55, 25} {
 		name := []string{"front-wheel-bearing-cap", "rear-wheel-bearing-cap"}[i]
 		b.part(name, "frame", "fixed", func() *decad.Body {
-			return b.panel(200*s, 535*s, 240*s, 610*s, 30*s,
-				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}), hole{220 * s, 580 * s, 11})
+			body := b.panel(200*s, 535*s, 240*s, 610*s, 30*s,
+				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+			return b.cut(body, b.liftCylinder(wl, wheelAt(0, 0, (y0+30)*s+5), 11, 30*s+10))
 		})
 	}
 	for i, y0 := range []float64{-45 * s, 45*s - 7} {
 		b.part(fmt.Sprintf("wheel-bearing-%d", i+1), "bearing", "fixed", func() *decad.Body {
-			return b.annulus(4, 11, 7, shaftFrame(220*s, y0+7, 580*s, 0))
+			return b.liftAnnulus(wl, wheelAt(0, 0, y0+7), 4, 11, 7)
 		})
 	}
 	for i, x := range []float64{-260, 220} {
@@ -86,14 +90,12 @@ func (b *builder) frame() {
 	}
 	for i, interval := range [][2]float64{{-55*s - 3, -55 * s}, {55 * s, 55*s + 3}} {
 		b.part([]string{"wheel-axle-front-collar", "wheel-axle-rear-collar"}[i], "collar", "wheel", func() *decad.Body {
-			return b.annulus(4, 6, interval[1]-interval[0],
-				shaftFrame(220*s, interval[1], 580*s, 0))
+			return b.liftAnnulus(wl, wheelAt(0, 0, interval[1]), 4, 6, interval[1]-interval[0])
 		})
 	}
 	for i, interval := range [][2]float64{{-55 * s, -45 * s}, {45 * s, 55 * s}} {
 		b.part([]string{"wheel-axle-front-thrust-spacer", "wheel-axle-rear-thrust-spacer"}[i], "spacer", "wheel", func() *decad.Body {
-			return b.annulus(4, 6, interval[1]-interval[0],
-				shaftFrame(220*s, interval[1], 580*s, 0))
+			return b.liftAnnulus(wl, wheelAt(0, 0, interval[1]), 4, 6, interval[1]-interval[0])
 		})
 	}
 }

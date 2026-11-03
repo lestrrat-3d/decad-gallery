@@ -38,6 +38,99 @@ func (b *builder) section(axial bool) *sketch.Sketch {
 	return s
 }
 
+// sectionOn starts a sketch on f, a plane in a lift's local coordinates.
+// f's axes must be signed coordinate axes, so the lift alone rotates the body.
+func (b *builder) sectionOn(f r3.Frame) *sketch.Sketch {
+	if b.err != nil {
+		return nil
+	}
+	if err := b.ctx.Err(); err != nil {
+		b.fail("create section", err)
+		return nil
+	}
+	w := sketch.NewWorld()
+	plane, err := w.CreatePlaneFromFrame(f)
+	if err != nil {
+		b.fail("create section plane", err)
+		return nil
+	}
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		b.fail("create section", err)
+		return nil
+	}
+	b.a.Sketches = append(b.a.Sketches, s)
+	return s
+}
+
+// liftExtrude extrudes s along its plane's normal and places the body by l alone.
+func (b *builder) liftExtrude(s *sketch.Sketch, holes int, length float64, l lift) *decad.Body {
+	p := b.profile(s, holes)
+	if b.err != nil {
+		return nil
+	}
+	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	if err != nil {
+		b.fail("extrude section", err)
+		return nil
+	}
+	return b.lifted(body, l)
+}
+
+func (b *builder) liftPanel(l lift, f r3.Frame, x0, y0, x1, y1, length float64, holes ...hole) *decad.Body {
+	s := b.sectionOn(f)
+	rectangle(s, x0, y0, x1, y1)
+	for _, h := range holes {
+		circle(s, h.x, h.y, h.r)
+	}
+	return b.liftExtrude(s, len(holes), length, l)
+}
+
+func (b *builder) liftCylinder(l lift, f r3.Frame, radius, length float64) *decad.Body {
+	s := b.sectionOn(f)
+	circle(s, 0, 0, radius)
+	return b.liftExtrude(s, 0, length, l)
+}
+
+func (b *builder) liftAnnulus(l lift, f r3.Frame, inner, outer, length float64) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	m, err := ballbearing.Build(b.ctx, b.doc, ballbearing.Params{
+		BoreDiameter: 2 * inner, OuterDiameter: 2 * outer, Width: length, Placement: &f, Lift: &l.xf,
+	})
+	if err != nil {
+		b.fail("build annular envelope", err)
+		return nil
+	}
+	b.a.Sketches = append(b.a.Sketches, m.Sketch)
+	return m.Body
+}
+
+// zAxis is the plane through local (x, y, z) that holds the local Z axis there: a liftRevolve
+// section on it turns about local Z, with height 0 at level z.
+func zAxis(x, y, z float64) r3.Frame {
+	return frame(r3.Vec{X: x, Y: y, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+}
+
+// liftRevolve turns xy, given as (radius, height) pairs on plane f, fully about f's V axis
+// through f's origin, and places the body by l.
+func (b *builder) liftRevolve(l lift, f r3.Frame, xy []point2) *decad.Body {
+	s := b.sectionOn(f)
+	polygon(s, xy)
+	p := b.profile(s, 0)
+	if b.err != nil {
+		return nil
+	}
+	body, err := decad.Revolve(b.ctx, b.doc, s, p,
+		decad.ConstructionAxis{Origin: f.Origin(), Dir: f.V()}, decad.FullRevolution{})
+	if err != nil {
+		b.fail("revolve axial section", err)
+		return nil
+	}
+	return b.lifted(body, l)
+}
+
 func (b *builder) profile(s *sketch.Sketch, holes int) *sketch.Profile {
 	if b.err != nil {
 		return nil

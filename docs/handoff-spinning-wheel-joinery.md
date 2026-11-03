@@ -1610,3 +1610,26 @@ Keep production pins and old frozen input unchanged until accepting the publishe
   prism ... join them two at a time"). Both stay, so the removal is reverted.
 - The `mother-base` pilots now run 5 mm past the base top face (Decad cannot decide a pair of faces that end
   flush at rounded scaled coordinates).
+
+## Update 2026-11-03: one lift per rigid group
+
+The work follows Gallery A of `.tmp/decision-mating-faces.md`. The baseline at `acbd712` (Decad `ca62f147a`) has
+211 undecided pairs (`.tmp/lift-probe-base.log` lists all of them).
+Each group gets one `lift` (`placement.go`); its parts are sketched on axis-aligned local planes and moved by
+that one transform. Every group change is checked against the baseline by the volume and bounds of each part
+in the default, `small-seven` and `twelve` builds, within the parts' own certified measurement bounds
+(`.tmp/compare_geom.py`, logs `.tmp/lift-geom-<group>-cmp.txt`).
+
+Round parts take the pose of the part they mate with, not their own motion's angle: the axle, its rings and the
+fixed wheel bearings ride the wheel lift, and so on. Their geometry is unchanged, so `Part.Motion` and
+`PoseTransform` stay as they were; only the placement record differs from the motion's frame.
+
+Decad gap found on the way: a prism inside a prism whose circle equals its own is not proven within
+(`prismcells.SectionWithin` refuses coincident circles). A setscrew in its own hole tool and a bearing in a bore
+cut by a tool of its own radius therefore stay undecided even on one exact lift; with a 0.1 mm larger tool the
+same pairs are decided (`zz_internal_probe_test.go` probe, untracked). This blocks rule (d) bore cuts and rule (e)
+setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut's tool cylinder.
+
+- Wheel: 211 to 210 (`.tmp/lift-wheel.log`, pairs in `.tmp/lift-probe-wheel.log`). Cleared: crank/pin spacer and
+  both hub spacers. The bearing caps now take their bore from a wheel-lift tool, so cap/bearing is lost to the
+  gap above. The spokes keep their own frames: they already share exact frames with their socket tools.
