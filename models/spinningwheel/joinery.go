@@ -44,7 +44,12 @@ func (b *builder) machine(name string, tools ...*decad.Body) {
 		return
 	}
 	b.name = name
-	body := b.cut(b.a.Parts[i].Body, b.union(tools...))
+	// Each tool is cut on its own: a Union of the tools first can carry a gap-shift warning, and no exact proof
+	// reads through such a mesh.
+	body := b.a.Parts[i].Body
+	for _, tool := range tools {
+		body = b.cut(body, tool)
+	}
 	if b.err != nil {
 		return
 	}
@@ -155,8 +160,9 @@ func (b *builder) frameJoinery() {
 			y := post[0]*s - 6.2
 			barPasses = append(barPasses, []*decad.Body{b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s+5)})
 			if i == 1 {
+				// The socket runs 5 up into the crossbar's notch, so its top never lies in the notch floor.
 				rearCrossbarTools = append(rearCrossbarTools,
-					b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s))
+					b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s+5))
 			}
 		}
 	}
