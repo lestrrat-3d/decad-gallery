@@ -1888,3 +1888,4 @@ These were checked against the Gallery options above; each needs a Decad reader 
   shaft is now a designed 0.01 under the insert's radius 2 bore (radius 1.99; spec line added): the screw loses
   3.65 mm^3 (648.287 to 644.641) and keeps its bounds. Focused check (`.tmp/focus-tk10.log`): no undecided pair
   among the take-up screw, knob, insert, right front pin and control rail (screw/insert was undecided before).
+- Decad pin `fbdc213` (#3094) decides the 4 fixed-bracket/fixed-mount pairs: 15 to 11 (`.tmp/lift-pin11.log`). Variants: `small-seven` 53, `large-nine` 57, `twelve` 39, `small-seventeen` 52, no overlap.
