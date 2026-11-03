@@ -1703,3 +1703,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   `small-seventeen` 159, `large-nine` 153 undecided, and none has an overlap.
 - Decad pin `97439529f` (newest main): 131 to 112 (`.tmp/lift-pin2.log`, `.tmp/lift-probe-pin2.log`; remaining
   pairs by group in `.tmp/pairs-by-group.txt`). Native and connector defaults pass.
+- Decad pin `5abd0eb3b` (identical-circle within, Cut-tool cylinder read): 112 to 112, the same pair list as
+  `97439529f` (`.tmp/lift-pin3.log`, `.tmp/lift-probe-pin3.log`, groups in `.tmp/pairs-by-group-pin3.txt`). Both
+  cap/wheel-bearing pairs were already decided at `97439529f`. Cutting each wheel leg's cap socket with the
+  cap's own XZ section, which builds the same leg, did not clear cap/leg, so that change is not kept.
+  `small-seventeen` has 140 undecided pairs and no overlap (`.tmp/pin3-small-seventeen.log`).
