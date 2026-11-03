@@ -105,7 +105,8 @@ func requireWheelAnimationJoints(t *testing.T, meshes []wheelMesh, base spinning
 			case "gimbal-cross-pin":
 				want = state.RodHead
 			case "footman-cross-605-1":
-				want = state.RodHead.Add(state.RodFrame.V().Scale(-12*p.Scale + 2.5))
+				// Bearing 1 sits the 0.01 mm designed crossGap off its retainer (see models/spinningwheel drive.go).
+				want = state.RodHead.Add(state.RodFrame.V().Scale(-12*p.Scale + 2.5 + 0.01))
 			case "footman-cross-605-2":
 				want = state.RodHead.Add(state.RodFrame.V().Scale(12*p.Scale - 2.5))
 			case "treadle":
