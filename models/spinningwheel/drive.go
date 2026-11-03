@@ -280,7 +280,10 @@ func (b *builder) driveTreadle() {
 		return b.liftPanel(l, level(0, 0, -12*s), 160*s, 438*s, 220*s, 462*s, 12*s)
 	})
 	b.part("treadle-connector-block", "treadle", "treadle", func() *decad.Body {
-		return b.liftPanel(l, heelAt(208*s, 0, 0), 438*s, -12*s, 462*s, 12*s, 24*s, hole{450 * s, 8 * s, 2.2})
+		// The block's length is taken up to the lower clamp nut's level, the clamp centre plus its face offset
+		// (driveClamp), so the nut sits on the block's face exactly.
+		return b.liftPanel(l, heelAt(208*s, 0, 0), 438*s, -12*s, 462*s, 12*s, (220*s+12*s)-208*s,
+			hole{450 * s, 8 * s, 2.2})
 	})
 	b.part("heel-pin", "shaft", "treadle", func() *decad.Body {
 		body := b.liftCylinder(h, level(0, 0, -283*s), 4, 526*s)
