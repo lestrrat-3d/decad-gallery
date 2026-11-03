@@ -1602,9 +1602,3 @@ The parent confirmed that every retained byte matches the currently staged brake
 Both candidates were copied unchanged after the candidate native API compiled.
 The current real default assembly result is recorded in Current status above.
 Keep production pins and old frozen input unchanged until accepting the published native repair.
-
-## Update 2026-11-03: workarounds removed after Decad advances
-
-- With Decad `44d9dbae2` the pairwise three-body Union fallback (`7bbed07`) and the yarn stem/stalk reorder
-  (`9c63c96`) are no longer needed. `TestSpinningWheelNativeDefault` passes without them (190 parts, log
-  `.tmp/revert-try.log`), so both are reverted.
