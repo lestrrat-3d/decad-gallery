@@ -1955,3 +1955,22 @@ Batch at `270e99f` (Decad `35cb19b`, through #3100):
 - Open: `brake-takeup-screw/brake-control-rail` (twelve, small-seventeen) is the take-up clevis flush on the rail's
   rear face at full travel, across two lifts. It needs a designed gap in `brakeShift` (spec change) or a Decad
   reader.
+
+## Update 2026-11-04: designed gaps and the upper bar fold
+
+Batch at `1ab5d6a` (Decad `ee1ee03`, through #3103):
+
+- Designed 0.01 gaps (coordinator decisions, spec lines added): take-up clevis behind the control rail
+  (`brakeShift`), crossbar short of the shaft shoulder, witness bar off the yarn pack, front bobbin counterbore,
+  brake front upright above the upper bar and jack arm, cross bearing 2 off retainer 2 (spacer shorter), heel
+  setscrew tips off the heel pin. The upright and witness bar mounts take clearance 0.01.
+- Exact numbers: the fixed mount shank is 555*Scale-532*Scale, so the head lands on the bracket top.
+- Upper bar fold: the bar's box passes (leaf pockets, crossbar seat, foot sockets) are now cut before its two
+  round screw pilots. The `embedding_reach_applied` and `chain_allowance_applied` warnings are gone from the
+  bar at Scale 0.8 and the default is unchanged; the remaining bar pairs at 0.8 stay undecided as flush faces.
+- The jack screw 0.01 above its shelf was tried and reverted: `requireHeadAdjustment` requires the point to touch
+  the shelf (`mother-jack-screw/mother-base` at Scale 1.2 stays). Its intersection with the base is empty and
+  its lowest point is exactly the shelf level 648 at Scale 1.2, so there is no real overlap.
+- Volume and bounds: every change was compared on all five builds; only the gapped parts moved or changed, by
+  the expected 0.01 slabs.
+- Variants: `small-seven` 17, `large-nine` 6, `twelve` 4, `small-seventeen` 19, no overlap.
