@@ -1751,3 +1751,4 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   analytic value with a bound below 6e-11 mm^3, and every head sketch is fully constrained
   (`.tmp/zz_whorl_probe_test.go.txt`). 99 to 98 (`.tmp/lift-whorl.log`): wrap/whorl clears; all part volumes
   match the previous build within bounds.
+- Decad pin `194293242` (#3077 slab separator): 98 to 92 (`.tmp/lift-pin6.log`): hooks 1 to 6 against arm 1 clear. Native default passes.
