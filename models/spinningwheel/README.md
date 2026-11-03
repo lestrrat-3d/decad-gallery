@@ -24,6 +24,10 @@ the manufacturer's production drawings.
 
 ![Operator and rear views](images/front-back.png)
 
+![Rear of the wheel](images/rear.png)
+
+The rear view shows the drive band running from the wheel rim to the flyer whorl, the bobbin and the mother-of-all.
+
 Two splayed uprights carry the wheel axle. The front wheel leg and single head leg carry the treadle shaft.
 The head's maiden posts carry the flyer. The open frame carries these parts independently
 of any removable cover. The vertical jack tilts the mother-of-all to adjust drive-band tension.
