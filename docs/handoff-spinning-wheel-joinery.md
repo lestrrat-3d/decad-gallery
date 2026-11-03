@@ -1675,3 +1675,4 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   and plate/rail stayed undecided, and upright/jack arm and upright/upper bar were lost.
 - Bobbin: 174 to 174 (`.tmp/lift-bobbin.log`). The bobbin and yarn pack ride the fixed head lift with their
   bearings, so a coaxial revolve proof (decision step 4) can compare them; nothing clears before that lands.
+- Decad pin `a074763c5`: 174 to 133 at `3b8f8a0` plus the pin (`.tmp/lift-pin.log`, `.tmp/lift-probe-pin.log`).
