@@ -400,7 +400,8 @@ func (b *builder) mountInventory() {
 	add("front-wheel-bearing-cap", "glued-socket", refs("front-wheel-leg"), nil, 0)
 	add("rear-wheel-bearing-cap", "glued-socket", refs("rear-wheel-leg"), nil, 0)
 	for i, cap := range []string{"front-wheel-bearing-cap", "rear-wheel-bearing-cap"} {
-		add(fmt.Sprintf("wheel-bearing-%d", i+1), "press-fit", refs(cap), nil, 0)
+		add(fmt.Sprintf("wheel-bearing-%d", i+1), "press-fit", refs(cap), refs(fmt.Sprintf("wheel-bearing-%d-ring", i+1)), 0)
+		add(fmt.Sprintf("wheel-bearing-%d-ring", i+1), "press-fit", refs(cap), nil, 0)
 	}
 	for i, leg := range []string{"head-leg", "front-wheel-leg"} {
 		add(fmt.Sprintf("heel-bearing-%d", i+1), "press-fit", refs(leg), nil, 0)

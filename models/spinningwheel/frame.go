@@ -74,12 +74,28 @@ func (b *builder) frame() {
 		b.part(name, "frame", "fixed", func() *decad.Body {
 			body := b.panel(200*s, 535*s, 240*s, 610*s, 30*s,
 				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
-			return b.cut(body, b.liftCylinder(wl, wheelAt(0, 0, (y0+30)*s+5), 11, 30*s+10))
+			// The bore is stepped: the bearing's stock radius11 seat runs from its outboard face out past the
+			// cap's inboard face, and a radius9 bore through the rest leaves a shoulder on the outer race.
+			seat0, seat1 := -45*s, (y0+30)*s+5
+			if i == 1 {
+				seat0, seat1 = 25*s-5, 45*s
+			}
+			return b.cut(body, b.union(
+				b.liftCylinder(wl, wheelAt(0, 0, (y0+30)*s+5), 9, 30*s+10),
+				b.liftCylinder(wl, wheelAt(0, 0, seat1), 11, seat1-seat0)))
 		})
 	}
 	for i, y0 := range []float64{-45 * s, 45*s - 7} {
 		b.part(fmt.Sprintf("wheel-bearing-%d", i+1), "bearing", "fixed", func() *decad.Body {
 			return b.liftAnnulus(wl, wheelAt(0, 0, y0+7), 4, 11, 7)
+		})
+		// A stock retaining ring in the seat holds the outer race's inboard face against the shoulder.
+		ring := [2]float64{y0 + 7, y0 + 8}
+		if i == 1 {
+			ring = [2]float64{y0 - 1, y0}
+		}
+		b.part(fmt.Sprintf("wheel-bearing-%d-ring", i+1), "retainer", "fixed", func() *decad.Body {
+			return b.liftAnnulus(wl, wheelAt(0, 0, ring[1]), 9, 11, ring[1]-ring[0])
 		})
 	}
 	hl := b.heelLift()

@@ -168,6 +168,8 @@ at Y[-85,-55] and[55,85]. Two wedges at those same Y spans support the head base
 their X[-195,-105], upperZ525, lowerZ=500-(X+280)*90/520. Their lower surfaces touch the rails.
 Separate wheel bearing caps X[200,240],Y[-55,-25] and[25,55],Z[550,610], stock22 bores at wheel centre.
 Stock608 bearings span Y[-45*Scale,-45*Scale+7] and [45*Scale-7,45*Scale]. Add shaft collars outside posts.
+Each cap bore steps to stock radius9 outboard of its bearing, a shoulder on the outer race's outboard face, and a
+stock ID18,OD22,width1 retaining ring in the seat holds the outer race's inboard face.
 Those stock12 OD,8 ID,3 wide collars spanY[-55*Scale-3,-55*Scale] and[55*Scale,55*Scale+3].
 Stock12 OD,8 ID thrust spacers spanY[-55,-45]*Scale and[45,55]*Scale.
 No gear enclosure carries a bearing. The wheel is supported on both sides.

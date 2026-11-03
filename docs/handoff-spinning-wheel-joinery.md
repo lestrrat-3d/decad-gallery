@@ -1844,3 +1844,9 @@ These were checked against the Gallery options above; each needs a Decad reader 
   the alignment slot 0.3 inside its walls and removes nothing, so the clamp's shank has a Cut-tool seat to read;
   the clamp bolts revolve on the same untilted lift. Focused check (`.tmp/focus-clamp.log`): both clamp/base pairs
   clear; base 526601.8485±8.95 vs 526602.1810±5.7 mm^3.
+- Wheel bearing retention (coordinator decision): each cap bore steps to radius 9 outboard of its 608, a shoulder on
+  the outer race's outboard face, and a new 1 mm retaining ring (radius 9 to 11, `wheel-bearing-N-ring`,
+  press-fit in the cap) holds the inboard face; spec lines added. Each cap gains 1256.6 mm^3 (the shoulder ring of
+  material). An end-face probe at 0.15 mm past each race face (`zz_bearing_probe_test.go`, untracked) now finds
+  material on all four faces of both bearings (outer faces were empty). Focused check (`.tmp/focus-wb.log`): no
+  undecided pair among caps, bearings, rings, spacers, axle and legs.
