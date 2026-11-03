@@ -1743,3 +1743,11 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 - Hooks 1 to 6 against arm 1: a probe with one real hook against arm 1 or arm 2 (`zz_hook_probe_test.go`,
   untracked) decides arm 2 but not arm 1. Both arms share the flyer lift and the hook geometry is mirrored, so
   the difference is likely where the world-axis boxes of the rotated ring and arm fall at this flyer angle.
+- Flyer wrap and whorl (coordinator decision, Gallery route): the whorl revolve and the flyer wrap ride
+  `whorlLift`, whose local +X after the head tilt is the wrap's start ray. The keyway is sketched in the whorl's
+  own plane with `turnedKeyedOutline` (the key axis turned onto the flyer's angle by an angle dimension from a
+  horizontal construction line), so the revolve and its keyway Cut share one placement and the Cut stays
+  exact. At scales 0.8, 1 and 1.2 and ratios 7, 9, 12 and 17 the whorl keeps 8 cones and its volume equals the
+  analytic value with a bound below 6e-11 mm^3, and every head sketch is fully constrained
+  (`.tmp/zz_whorl_probe_test.go.txt`). 99 to 98 (`.tmp/lift-whorl.log`): wrap/whorl clears; all part volumes
+  match the previous build within bounds.

@@ -324,6 +324,20 @@ func (b *builder) rimLift() lift {
 	return b.liftOf(shaftFrame(w.X, 0, w.Z, math.Atan2(t.plus.Z, t.plus.X)))
 }
 
+// whorlStart is the flyer wrap's start angle about the flyer axis in the untilted head, the angle the head
+// tilt turns onto the wrap's world start ray.
+func (b *builder) whorlStart() float64 {
+	t := b.bandTangents()
+	tilt := b.headLift().xf.ApplyDir(r3.Vec{X: 1})
+	return math.Atan2(t.minus.Z, t.minus.X) - math.Atan2(tilt.Z, tilt.X)
+}
+
+// whorlLift does for the whorl and the band's flyer wrap what rimLift does on the wheel, on the tilted head: its
+// local +X, after the head tilt, is the flyer wrap's start ray. Local Z and levels are the flyer lift's.
+func (b *builder) whorlLift() lift {
+	return b.tilted(b.liftOf(b.headFrame(0, b.whorlStart())))
+}
+
 // liftWrap is a band wrap of the given pitch radius and wire radius, turned angle from l's local +X about its
 // local Z, in the plane at local level z.
 func (b *builder) liftWrap(l lift, z, radius, wire, angle float64) *decad.Body {
@@ -353,10 +367,9 @@ func (b *builder) driveBand() {
 	b.part("drive-band-wheel-wrap", "drive-band", "fixed", func() *decad.Body {
 		return b.liftWrap(b.rimLift(), 0, state.WheelPitch, 1, 2*math.Pi-2*math.Acos(q))
 	})
-	// The flyer wrap keeps its own frame: the whorl's keyway cut needs the whorl on the flyer lift, whose local +X
-	// is not the wrap's start ray.
+	// The band runs in the world plane Y 0, local level HeadShift of the whorl lift.
 	b.part("drive-band-flyer-wrap", "drive-band", "fixed", func() *decad.Body {
-		return b.torus(state.FlyerPitch, 1, math.Atan2(minus.Z, minus.X), 2*math.Acos(q), state.Flyer)
+		return b.liftWrap(b.whorlLift(), state.HeadShift, state.FlyerPitch, 1, 2*math.Acos(q))
 	})
 	b.part("drive-band-span-1", "drive-band", "fixed", func() *decad.Body {
 		return b.span(wheelPlus, flyerPlus, 1)

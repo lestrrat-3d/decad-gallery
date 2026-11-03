@@ -86,9 +86,13 @@ func (b *builder) head() {
 			}
 		}
 		profile = append(profile, point2{0, 32 * s})
-		// The whorl starts at head Y -250s, local level 250s.
-		body := b.liftRevolve(fl, zAxis(0, 0, 250*s), profile)
-		return b.cut(body, b.liftKeyTool(fl, level(0, 0, 250*s), 8.1, 1.6, 8.8, 32*s))
+		// The whorl starts at head Y -250s, local level 250s. It rides the flyer wrap's lift, and its keyway is
+		// sketched turned onto the flyer's angle in the same plane, so revolve and keyway share one placement.
+		wl := b.whorlLift()
+		body := b.liftRevolve(wl, zAxis(0, 0, 250*s), profile)
+		key := b.sectionOn(level(0, 0, 250*s))
+		turnedKeyedOutline(key, 8.1, 1.6, 8.8, math.Remainder(b.a.State.FlyerAngle-b.whorlStart(), 2*math.Pi))
+		return b.cut(body, b.liftExtrude(key, 0, 32*s, wl))
 	})
 
 	b.liftedPart("flyer-crossbar", "flyer", "flyer", func() *decad.Body {
