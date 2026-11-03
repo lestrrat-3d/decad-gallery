@@ -153,7 +153,8 @@ Two stock608 bearings have axis X and centres(-260,-190,60)*Scale and(220,-190,6
 each leg's heel bore is stock radius9 outboard of its bearing, a shoulder on the outer race, with the radius11 seat
 cut from the inboard side and a stock ID18,OD22,width1 retaining ring on the outer race's inboard face;
 their stock7 widths are centred on those X coordinates. They seat in the two structural leg bores.
-Stock12 OD,8 ID,3 wide collars lie0.2 outside each bearing pair's outer width face.
+Stock12 OD,8 ID,3 wide collars lie0.2 outside each bearing pair's outer width face; their setscrew tips stand a
+designed stock 0.01 off the heel pin.
 Stock11 OD,8 ID spacers fill from each bearing's inner face to the heel-rail end, with0.2 end gaps.
 Keep the heel shaft axially captured while permitting its rotation; do not put fixed collars across the moving rail.
 

@@ -325,6 +325,8 @@ type collarSeat struct {
 	// normal the radial direction; the setscrew then starts on the same frame, raised by inner.
 	l    lift
 	hole *r3.Frame
+	// gap is a designed gap between the setscrew's tip and the shaft surface.
+	gap float64
 }
 
 func (b *builder) collarScrews() {
@@ -344,9 +346,11 @@ func (b *builder) collarScrews() {
 	wheel("wheel-crank-pin-collar-2", 25*s, 105*s+4.2, 2.5, 4.5)
 	tl := b.treadleLift()
 	for i, x := range []float64{-260*s - 5.2, 220*s + 5.2} {
-		// The heel setscrews point along the treadle's local -Y, away from the toe.
+		// The heel setscrews point along the treadle's local -Y, away from the toe. Their tips stand a designed
+		// 0.01 off the heel pin, which rides the heel lift rather than the treadle pose.
 		hole := frame(r3.Vec{X: x}, r3.Vec{X: 1}, r3.Vec{Z: 1})
-		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1), inner: 4, outer: 6, l: tl, hole: &hole})
+		seats = append(seats, collarSeat{name: fmt.Sprintf("heel-collar-%d", i+1), inner: 4, outer: 6, l: tl, hole: &hole,
+			gap: 0.01})
 	}
 	gl := b.gimbalLift()
 	for i, v := range []float64{-27*s - 1.7, 27*s + 1.7} {
@@ -384,7 +388,7 @@ func (b *builder) collarScrews() {
 		if seat.hole != nil {
 			b.machine(seat.name, b.liftCylinder(seat.l, *seat.hole, 1, seat.outer+5))
 			b.part(seat.name+"-setscrew", "fastener", motion, func() *decad.Body {
-				return b.liftCylinder(seat.l, raise(*seat.hole, seat.inner), 1, screw)
+				return b.liftCylinder(seat.l, raise(*seat.hole, seat.inner+seat.gap), 1, screw-seat.gap)
 			})
 			continue
 		}
