@@ -3,7 +3,6 @@ package spinningwheel
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -275,18 +274,6 @@ func (b *builder) union(parts ...*decad.Body) *decad.Body {
 		return parts[0]
 	}
 	body, err := decad.Union(b.ctx, parts[0], parts[1:]...)
-	if err != nil && len(parts) > 2 && strings.Contains(err.Error(), "join them two at a time") {
-		// Decad refuses a three-or-more-body Union outside certified prism, axial or
-		// copied-tooth sets and says to join the bodies two at a time. The result is
-		// the same solid, so retry as a left-to-right pair fold.
-		body, err = parts[0], nil
-		for _, next := range parts[1:] {
-			body, err = decad.Union(b.ctx, body, next)
-			if err != nil {
-				break
-			}
-		}
-	}
 	b.fail("union solids", err)
 	return body
 }

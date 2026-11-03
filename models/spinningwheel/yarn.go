@@ -139,7 +139,5 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 		b.headPoint(bottom.X, bottom.Y, bottom.Z, angle),
 		b.headPoint(58*b.p.Scale, -215*b.p.Scale, 12*b.p.Scale, angle), 1,
 	)
-	// Join the two plain cylinders first (exact prism route), then make the hook
-	// the only mesh boolean over its contact, so no boolean runs on a held result.
-	return b.union(hook, b.union(stem, stalk))
+	return b.union(hook, stem, stalk)
 }
