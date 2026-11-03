@@ -1874,3 +1874,7 @@ These were checked against the Gallery options above; each needs a Decad reader 
   mount/bracket pairs stay); the moving leaf and knuckle as one prism (the 4 moving leaf pairs stay: the knuckle is
   tangent to the board edge, and the mount head sits flush on the leaf's screw-hole face); the treadle lap tools as
   separate passes (the laps need intersection reasoning).
+- Footman boss socket, reverted: with the rod-stock socket the boss's held mesh bound is 0.0107 mm (0.028 with
+  separate passes), above the footman group's 0.01 mm tessellation check, and Refine cannot bring it back under
+  0.01 (`.tmp/lift-batch12.log`, `.tmp/focus-boss3.log`, `.tmp/focus-boss4.log`). The boss is back to the box
+  socket; boss/footman stays undecided.
