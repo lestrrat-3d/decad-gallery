@@ -1794,3 +1794,22 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 - Bearing cap sockets: each wheel leg's cap socket is now the cap's own XZ section (`capStock`), widened 10 along
   X and run 5 past the leg corner, so the cap lies in the tool that opened its socket. 47 to 45
   (`.tmp/lift-caps.log`): both cap/leg pairs clear; the legs match within bounds.
+- Tried and reverted, no pair cleared: the jack screw's revolve on the head lift (coaxial with its square insert,
+  flat cut on the phased lift) and the take-up screw's shaft on the head lift (coaxial with the brake insert).
+
+### Remaining 45 default pairs need Decad readers
+
+These were checked against the Gallery options above; each needs a Decad reader first. Count 45 at `05db653`
+(`.tmp/lift-probe-caps.log`).
+
+| Reader needed | Pairs |
+|---|---|
+| Refine result (a held mesh with no Boolean history) | footman-head-boss/footman, footman-upper-clamp-pin/footman, footman-upper-clamp-nut/footman, bobbin/brake-band, bobbin-yarn-pack/yarn-leader (2 + 1 refined Union results) |
+| Straight span against a wrap, whorl or rim: a tangent band, not a body of revolution about the pulley axis | drive-band-wheel-wrap/span-1, wheel-wrap/span-2, flyer-wrap/span-1, flyer-wrap/span-2, span-1/flyer-drive-whorl, span-2/flyer-drive-whorl, span-1/wheel-rim, span-2/wheel-rim |
+| Partial revolve on its own angle against a coaxial prism whose axis differs only by the translation's rounding | bobbin-yarn-pack/bobbin-witness-bar |
+| Revolved fastener against a Cut whose tool cylinder is its seat or bore (meridian strip read from a Cut's tool, not only its sketch holes) | mother-hinge-1/2-fixed-mount-1/2 against their fixed brackets (4) and mother-base (4), mother-alignment-clamp-1/2/mother-base, mother-hinge-1/2-moving-mount/mother-upper-bar, mother-hinge-2-moving-mount/brake-rear-crossbar, brake-insert-mount-1/2/brake-control-rail, brake-front-pin-left/brake-left-anchor, brake-front-pin-right/brake-takeup-screw |
+| Cylinder tangent to a planar side face (not an end cap) | mother-hinge-1/2-moving-leaf/mother-upper-bar (knuckle against the board edge) |
+| Revolve against a Cut prism and a D-flat or square mate (point or flat contact, no shared circle) | mother-hinge-1/2-moving-leaf/moving-mount, mother-jack-screw/mother-base (cone point on the shelf), mother-jack-screw/mother-jack-knob, mother-jack-square-insert/mother-jack-screw, brake-takeup-screw/brake-takeup-knob, brake-takeup-screw/brake-insert |
+| Planar face against a revolve shoulder (prism with a non-circular hole) | flyer-shaft/flyer-crossbar |
+| Half-lap intersection reasoning (A ∩ B lies in a tool) | treadle/treadle-actuating-rail, treadle-heel-rail/treadle, treadle-heel-rail/treadle-actuating-rail |
+| Two lifts with one shared axis but different radial axes (gimbal and rod frames) | footman-cross-605-1/footman-cross-retainer-1 |
