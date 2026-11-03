@@ -180,6 +180,12 @@ This is scratch consumer evidence. Publication still needs the minimal tracked t
 
 ## Current status
 
+Update 2026-11-03 (Gallery `46bce3e`, Decad `6b6bc39`): the default `Build` returns 195 parts and 364 sketches,
+the native and connector defaults pass, and `TestSpinningWheelDefault` stops at 19 undecided pairs, with no
+overlap. The model code equals `bf934d4`'s, where the variants stop at undecided pairs only: `small-seven` 59,
+`large-nine` 62, `twelve` 49, `small-seventeen` 58 (`.tmp/lift-batch11.log`). The remaining 19 and the reader each needs are in
+"Update 2026-11-03: remaining default pairs" below. The older entries in this section describe earlier pins.
+
 Update 2026-11-03: PR119 head `cd32ff6` is open. CI `render` and `repository` fail only at `yarn-hook-1`
 (`.tmp/gh-failed-41466224838.txt`). Decad main is still `4bfa9b56d`; the default build still stops at
 `yarn-hook-1` after 418 operations (`.tmp/native-default-20261103.log`). The connector test still requests 0.05 mm
