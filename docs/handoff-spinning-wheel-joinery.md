@@ -1768,3 +1768,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   and the take-up screw's shaft end no longer finish flush with a face they meet (5 past the boss end and the leg
   corner; the shaft ends 1 inside the clevis wall). The solids match within bounds. 69 to 64
   (`.tmp/lift-gap1.log`): both cross retainers/boss, both bench rails/legs and heel bearing 2/leg clear.
+- Fixed hinge brackets (coordinator group 2): each bracket and its knuckle are one prism along Y (rectangle joined
+  to the radius 5 knuckle circle, with the 2.7 pin bore), cut by a screw hole run 5 past both faces; no Union.
+  Volumes match within bounds at Scale 1 and 1.2. Below Scale 0.9 the whole bore now also removes the bracket
+  corner that reached 0.3 mm into it, so `small-seven` brackets lose 2.5 mm^3 (spec line added). 64 to 52
+  (`.tmp/lift-bracket.log`): all 12 fixed-bracket pairs clear.

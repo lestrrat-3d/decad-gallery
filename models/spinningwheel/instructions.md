@@ -221,6 +221,8 @@ For each start q, fixed knuckles span[q,q+15*Scale] and[q+32*Scale,q+47*Scale];
 the moving knuckle spans[q+16*Scale,q+31*Scale]. All receive HeadShift.
 Use stock5 bore,10 outside diameter; pin5 stock spans[q-Scale,q+48*Scale].
 Fixed brackets X[-190,-175],Z[540,555], at the fixed knuckle Y spans join the base to the knuckles.
+Each fixed bracket and its knuckle are one prism along Y; the knuckle's stock5 bore stays whole, which below
+Scale0.9 also clears the bracket corner from the pin.
 Moving leaves X[-169,-158],Z[555,558], at the moving knuckle span join the upper board.
 The upper board stays max(5*Scale,5) away from the pin axis, so it never crosses the stock5 knuckles below Scale1,
 and leaves3*Scale away; at minimum scale the latter

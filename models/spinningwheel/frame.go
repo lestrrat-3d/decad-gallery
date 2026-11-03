@@ -192,6 +192,45 @@ func (b *builder) boardEdge() float64 {
 	return -172*s + max(5*s, 5)
 }
 
+// fixedBracket is a fixed hinge bracket: one prism along Y whose section is the bracket's rectangle joined to
+// its stock radius5 knuckle, with the knuckle's radius2.7 pin bore, cut by a vertical screw hole that runs 5
+// past both bracket faces. One prism needs no Union, so Verify reads the bracket's faces directly.
+func (b *builder) fixedBracket(y0, y1, middle float64) *decad.Body {
+	s := b.p.Scale
+	sk := b.sectionOn(frame(r3.Vec{Y: y1}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+	if sk == nil {
+		return nil
+	}
+	cx, cz, r := -172*s, 555*s, 5.0
+	d := math.Sqrt(r*r - 9*s*s)
+	centre := sk.CreatePoint(cx, cz)
+	a := sk.CreatePoint(-190*s, 540*s)
+	bb := sk.CreatePoint(-175*s, 540*s)
+	c := sk.CreatePoint(-175*s, cz-d)
+	dd := sk.CreatePoint(cx-r, cz)
+	e := sk.CreatePoint(-190*s, cz)
+	arc := sk.CreateArc(centre, c, dd)
+	ab, bc := sk.CreateLine(a, bb), sk.CreateLine(bb, c)
+	de, ea := sk.CreateLine(dd, e), sk.CreateLine(e, a)
+	bore := sk.CreateCircle(centre, 2.7)
+	sk.AddConstraint(
+		sketch.NewHorizontalDistance(sk.Origin(), centre, cx),
+		sketch.NewVerticalDistance(sk.Origin(), centre, cz),
+		sketch.NewHorizontalDistance(sk.Origin(), a, -190*s),
+		sketch.NewVerticalDistance(sk.Origin(), a, 540*s),
+		sketch.NewHorizontal(ab),
+		sketch.NewHorizontalDistance(a, bb, 15*s),
+		sketch.NewVertical(bc),
+		sketch.NewRadius(arc, r),
+		sketch.NewHorizontalPoints(centre, dd),
+		sketch.NewHorizontal(de),
+		sketch.NewVertical(ea),
+		sketch.NewRadius(bore, 2.7),
+	)
+	body := b.liftExtrude(sk, 1, y1-y0, lift{xf: r3.Identity()})
+	return b.cut(body, b.liftCylinder(lift{xf: r3.Identity()}, level(-183*s, middle, 540*s-5), 1.6, 15*s+10))
+}
+
 func (b *builder) alignmentSlot(section *sketch.Sketch, x, y0, y1 float64) {
 	if b.err != nil {
 		return
@@ -224,10 +263,7 @@ func (b *builder) hinge(index int, q float64) {
 	for j, interval := range [][2]float64{{q, q + 15*s}, {q + 32*s, q + 47*s}} {
 		middle := (interval[0] + interval[1]) / 2
 		b.part(fmt.Sprintf("%sfixed-bracket-%d", prefix, j+1), "hinge", "fixed", func() *decad.Body {
-			bracket := b.panel(-190*s, interval[0], -175*s, interval[1], 15*s,
-				frame(r3.Vec{Z: 540 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}), hole{-183 * s, middle, 1.6})
-			knuckle := b.annulus(2.7, 5, interval[1]-interval[0], shaftFrame(-172*s, interval[1], 555*s, 0))
-			return b.union(bracket, knuckle)
+			return b.fixedBracket(interval[0], interval[1], middle)
 		})
 		b.part(fmt.Sprintf("%sfixed-mount-%d", prefix, j+1), "fastener", "fixed", func() *decad.Body {
 			return b.revolve([]point2{{0, 0}, {1.5, 0}, {1.5, 23 * s}, {3, 23 * s},
