@@ -1649,3 +1649,9 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   the pin's keyway and key turn with the pedal. Cleared: both heel bearings against the pin, clamp nut/block and
   the rear crossarm against the block and the diagonal rail. The diagonal rail keeps its own frame along
   (330, 450), shared with its lap tools; the half laps still need intersection reasoning the walk lacks.
+- Fixed head: 188 to 182 (`.tmp/lift-fixedhead.log`, `.tmp/lift-probe-fixedhead.log`). `headLift` is the head tilt
+  alone, with the untilted world as local coordinates; the upper bar, jack arm, jack insert, maiden feet,
+  maidens, the fixed head rings and every `headStock`/`headBore` tool ride it. Each maiden foot socket is now
+  cut by the maiden's own section (`maidenStock`), which removes the same material as the old box. Cleared: both
+  maidens in their feet, jack arm/foot 1, jack insert/jack arm, foot 2/rear crossbar and upright/jack arm.
+  Revolved fasteners, the jack screw and knob, and the hinge leaves keep their own frames and the post tilt.

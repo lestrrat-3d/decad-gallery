@@ -131,25 +131,25 @@ func (b *builder) adjustment() {
 		b.hinge(i+1, q)
 	}
 	b.tilt = true
-	b.part("mother-upper-bar", "frame", "fixed", func() *decad.Body {
+	hl := b.headLift()
+	b.liftedPart("mother-upper-bar", "frame", "fixed", func() *decad.Body {
 		var holes []hole
 		for _, front := range []float64{-314, -54} {
 			for _, x := range []float64{-150, -130} {
 				holes = append(holes, hole{x * s, front*s - 6.2 + shift, 3.3})
 			}
 		}
-		return b.panel(-167*s, -330*s+shift, -118*s, -20*s+shift, 15*s,
-			frame(r3.Vec{Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}), holes...)
+		return b.liftPanel(hl, level(0, 0, 555*s), -167*s, -330*s+shift, -118*s, -20*s+shift, 15*s, holes...)
 	})
-	b.part("mother-jack-arm", "adjustment", "fixed", func() *decad.Body {
-		body := b.panel(-172*s, -342*s+shift, -35*s, -318*s+shift, 15*s,
-			frame(r3.Vec{Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}), hole{-50 * s, -330*s + shift, 4.3})
-		return b.cut(body, b.box(-50*s-8.1, -50*s+8.1,
+	b.liftedPart("mother-jack-arm", "adjustment", "fixed", func() *decad.Body {
+		body := b.liftPanel(hl, level(0, 0, 555*s), -172*s, -342*s+shift, -35*s, -318*s+shift, 15*s,
+			hole{-50 * s, -330*s + shift, 4.3})
+		return b.cut(body, b.localStock(hl, -50*s-8.1, -50*s+8.1,
 			-330*s+shift-8.1, -330*s+shift+8.1, 555*s, 555*s+8))
 	})
-	b.part("mother-jack-square-insert", "insert", "fixed", func() *decad.Body {
-		return b.panel(-8, -8, 8, 8, 8,
-			frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}), hole{0, 0, 4})
+	b.liftedPart("mother-jack-square-insert", "insert", "fixed", func() *decad.Body {
+		x, y := -50*s, -330*s+shift
+		return b.liftPanel(hl, level(0, 0, 555*s), x-8, y-8, x+8, y+8, 8, hole{x, y, 4})
 	})
 	theta := b.a.State.HeadTilt
 	h := (15*s + 122*s*math.Sin(theta)) / math.Cos(theta)
@@ -168,9 +168,8 @@ func (b *builder) adjustment() {
 	})
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footY := post[0]*s - 6.2 + shift
-		b.part(fmt.Sprintf("maiden-foot-%d", i+1), "frame", "fixed", func() *decad.Body {
-			return b.panel(-175*s, post[0]*s-12+shift, -105*s, post[1]*s+2+shift, 15*s,
-				frame(r3.Vec{Z: 570 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+		b.liftedPart(fmt.Sprintf("maiden-foot-%d", i+1), "frame", "fixed", func() *decad.Body {
+			return b.liftPanel(hl, level(0, 0, 570*s), -175*s, post[0]*s-12+shift, -105*s, post[1]*s+2+shift, 15*s,
 				hole{-150 * s, footY, 3.3}, hole{-130 * s, footY, 3.3})
 		})
 		for j, x := range []float64{-150, -130} {

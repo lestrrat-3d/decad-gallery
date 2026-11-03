@@ -31,6 +31,14 @@ func (b *builder) headRing(name, group, motion string, inner, outer, y0, y1, ang
 	})
 }
 
+// fixedRing is a round ring on the flyer axis, on the head lift, from head Y y0 to y1.
+func (b *builder) fixedRing(name, group, motion string, inner, outer, y0, y1 float64) {
+	hl := b.headLift()
+	b.liftedPart(name, group, motion, func() *decad.Body {
+		return b.liftAnnulus(hl, b.headAt(y1), inner, outer, y1-y0)
+	})
+}
+
 func (b *builder) head() {
 	s := b.p.Scale
 	a := b.a.State.FlyerAngle
@@ -104,14 +112,15 @@ func (b *builder) head() {
 		})
 	}
 
-	b.part("front-maiden", "frame", "fixed", func() *decad.Body {
-		return b.panel(-20*s, -115*s, 20*s, 25*s, 28*s, b.headFrame(-286*s, 0), hole{r: 13})
+	hl := b.headLift()
+	b.liftedPart("front-maiden", "frame", "fixed", func() *decad.Body {
+		return b.liftPanel(hl, b.headAt(-286*s), -20*s, -115*s, 20*s, 25*s, 28*s, hole{r: 13})
 	})
-	b.part("rear-maiden", "frame", "fixed", func() *decad.Body {
-		return b.panel(-20*s, -115*s, 20*s, 25*s, 24*s, b.headFrame(-30*s, 0), hole{r: 11})
+	b.liftedPart("rear-maiden", "frame", "fixed", func() *decad.Body {
+		return b.liftPanel(hl, b.headAt(-30*s), -20*s, -115*s, 20*s, 25*s, 24*s, hole{r: 11})
 	})
-	b.headRing("front-maiden-bush", "bush", "fixed", 8.1, 13, -300*s-10, -300*s+10, 0)
-	b.headRing("rear-flyer-bearing", "bearing", "fixed", 4, 11, -48*s, -48*s+7, 0)
+	b.fixedRing("front-maiden-bush", "bush", "fixed", 8.1, 13, -300*s-10, -300*s+10)
+	b.fixedRing("rear-flyer-bearing", "bearing", "fixed", 4, 11, -48*s, -48*s+7)
 	b.headRing("rear-flyer-front-collar", "collar", "flyer", 4, 6, -54*s-3.2, -54*s-0.2, a)
 	b.headRing("rear-flyer-front-thrust-spacer", "spacer", "flyer", 4, 6, -54*s-0.2, -48*s, a)
 	b.headRing("rear-flyer-rear-thrust-spacer", "spacer", "flyer", 4, 6, -48*s+7, -30*s, a)
@@ -129,8 +138,8 @@ func (b *builder) head() {
 			{11, 140 * s}, {11, 130 * s}, {6, 130 * s}, {6, 10 * s}, {11, 10 * s},
 		}, b.headFrame(-64*s, ba))
 	})
-	b.headRing("bobbin-front-bearing", "bearing", "fixed", 4, 11, -194*s-7, -194*s, 0)
-	b.headRing("bobbin-rear-bearing", "bearing", "fixed", 4, 11, -74*s, -74*s+7, 0)
+	b.fixedRing("bobbin-front-bearing", "bearing", "fixed", 4, 11, -194*s-7, -194*s)
+	b.fixedRing("bobbin-rear-bearing", "bearing", "fixed", 4, 11, -74*s, -74*s+7)
 	b.headRing("bobbin-inner-race-sleeve", "spacer", "flyer", 4, 5.5, -194*s, -74*s, a)
 	b.headRing("bobbin-front-thrust-sleeve", "spacer", "flyer", 4, 6, -205*s+0.2, -194*s-7-0.2, a)
 	b.headRing("bobbin-rear-removable-collar", "collar", "flyer", 4, 6, -74*s+7.2, -74*s+10.2, a)

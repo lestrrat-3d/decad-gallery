@@ -121,6 +121,14 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 	b.a.Parts = append(b.a.Parts, Part{Name: name, Group: group, Motion: motion, Body: body})
 }
 
+// liftedPart records a part whose create already places it on a head lift, so part must not tilt it again.
+func (b *builder) liftedPart(name, group, motion string, create func() *decad.Body) {
+	tilt := b.tilt
+	b.tilt = false
+	b.part(name, group, motion, create)
+	b.tilt = tilt
+}
+
 func (b *builder) tiltBody(body *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil

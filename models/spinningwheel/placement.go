@@ -46,6 +46,17 @@ func (b *builder) tilted(l lift) lift {
 	return lift{xf: xf}
 }
 
+// headLift carries the tilting head frame. Its local coordinates are the head's untilted world coordinates and
+// the lift is the head tilt alone, so every fixed head part shares it.
+func (b *builder) headLift() lift { return b.tilted(lift{xf: r3.Identity()}) }
+
+// headAt is the head lift's plane on the flyer axis whose extrusion starts at head Y y (before HeadShift) and
+// runs toward -Y; its axes are those of the untilted flyer frame at angle 0.
+func (b *builder) headAt(y float64) r3.Frame {
+	s := b.p.Scale
+	return frame(r3.Vec{X: -140 * s, Y: y + b.a.State.HeadShift, Z: 690 * s}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+}
+
 // level is the local plane through (x, y, z) with the lift's own axes, so a
 // body sketched on it extrudes along the lift's local Z.
 func level(x, y, z float64) r3.Frame {

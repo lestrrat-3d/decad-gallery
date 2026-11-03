@@ -61,13 +61,27 @@ func (b *builder) localStock(l lift, x0, x1, y0, y1, z0, z1 float64) *decad.Body
 	return b.liftPanel(l, level(0, 0, z0), x0, y0, x1, y1, z1-z0)
 }
 
+// headStock is a box of the head lift, its Y range given before HeadShift.
 func (b *builder) headStock(x0, x1, y0, y1, z0, z1 float64) *decad.Body {
-	return b.tiltBody(b.box(x0, x1, y0+b.a.State.HeadShift, y1+b.a.State.HeadShift, z0, z1))
+	return b.localStock(b.headLift(), x0, x1, y0+b.a.State.HeadShift, y1+b.a.State.HeadShift, z0, z1)
 }
 
+// headBore is a cylinder of the head lift from origin (Y before HeadShift) along +Z or +Y.
 func (b *builder) headBore(radius, length float64, origin, axis r3.Vec) *decad.Body {
 	origin.Y += b.a.State.HeadShift
-	return b.tiltBody(b.cylinder(radius, length, axisFrame(origin, axis)))
+	f := level(origin.X, origin.Y, origin.Z)
+	if axis != (r3.Vec{Z: 1}) {
+		f = frame(origin, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	}
+	return b.liftCylinder(b.headLift(), f, radius, length)
+}
+
+// maidenStock is a maiden's own section without its bore, the tool that cuts the maiden's foot socket: the
+// maiden then lies in the tool that opened the socket. It reaches past the foot's top face by the maiden's
+// height, and its other faces are the socket's walls and floor.
+func (b *builder) maidenStock(y, length float64) *decad.Body {
+	s := b.p.Scale
+	return b.liftPanel(b.headLift(), b.headAt(y), -20*s, -115*s, 20*s, 25*s, length)
 }
 
 // railStock is the rail's socket tool. Its edges follow the rail's lines (slope -90/520) but run
@@ -116,7 +130,7 @@ func (b *builder) frameJoinery() {
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footName := fmt.Sprintf("maiden-foot-%d", i+1)
-		b.machine(footName, b.headStock(-160*s, -120*s, post[0]*s, post[1]*s, 575*s, 585*s+5))
+		b.machine(footName, b.maidenStock([]float64{-286 * s, -30 * s}[i], []float64{28 * s, 24 * s}[i]))
 		for _, x := range []float64{-150, -130} {
 			y := post[0]*s - 6.2
 			barPasses = append(barPasses, []*decad.Body{b.headStock(x*s-5.1, x*s+5.1, y-5.1, y+5.1, 570*s-8, 570*s+5)})
