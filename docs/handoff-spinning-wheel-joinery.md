@@ -1974,3 +1974,22 @@ Batch at `1ab5d6a` (Decad `ee1ee03`, through #3103):
 - Volume and bounds: every change was compared on all five builds; only the gapped parts moved or changed, by
   the expected 0.01 slabs.
 - Variants: `small-seven` 17, `large-nine` 6, `twelve` 4, `small-seventeen` 19, no overlap.
+
+## Update 2026-11-04: zero undecided pairs in all five builds
+
+Batch at `ace7ea2` (Decad `ee1ee03`):
+
+- Designed gaps (spec lines added): board edge 0.01 off the hinge knuckles; leaf pockets and the bar and crossbar
+  screw pilots 0.01 larger than leaf and screw; rear crossbar seat 0.01 larger; maiden feet and their inserts
+  0.03 above the bar and the head relief 0.01 above the bolt heads; jack arm socket 0.03 larger than the bar;
+  front guide stalk seat 0.03 wider (0.02 fails at Scale 0.8); yarn leader 0.01 off the pack. Gaps against the
+  upper bar must exceed its held mesh bound (about 0.011 mm at Scale 1, 0.013 at 1.2): 0.01 broke the twelve
+  foot and jack arm pairs, 0.03 decides them.
+- The crossbar's guide seat is cut before its arm sockets (no chain allowance), and the jack apex is raised 1e-9
+  so the exact tilted apex is never below the shelf's float.
+- Mount clearances follow every gap that a support path crosses.
+- Volume and bounds: every changed part lost or moved by its designed slab; all other parts agree within bounds.
+- Undecided pairs: default 0, `small-seven` 0, `large-nine` 0, `twelve` 0, `small-seventeen` 0 (`.tmp/vp21-*.log`).
+  `TestSpinningWheelDefault` passes. `TestSpinningWheelVariants` now fails later, in
+  `requireFlyerSweptClearances` (clearance_test.go:181): `decad.Copy` with the un-tilting rotation refuses a part
+  with "placed bore no longer has an exact shared axis" in all four variants.
