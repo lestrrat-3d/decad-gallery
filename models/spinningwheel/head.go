@@ -28,8 +28,11 @@ func (b *builder) headFrame(y, angle float64) r3.Frame {
 // fixedRing is a round ring on the flyer axis, on the head lift, from head Y y0 to y1.
 func (b *builder) fixedRing(name, group, motion string, inner, outer, y0, y1 float64) {
 	hl := b.headLift()
+	// The length is taken between the shifted ends, the planes' own Y values: neighbouring rings that share an end
+	// then meet at exactly one level.
+	shift := b.a.State.HeadShift
 	b.liftedPart(name, group, motion, func() *decad.Body {
-		return b.liftAnnulus(hl, b.headAt(y1), inner, outer, y1-y0)
+		return b.liftAnnulus(hl, b.headAt(y1), inner, outer, (y1+shift)-(y0+shift))
 	})
 }
 

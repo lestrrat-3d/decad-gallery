@@ -1781,3 +1781,6 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   sketched in the insert's own plane orientation. 52 to 51 (`.tmp/lift-g45.log`, measured with the next item):
   insert/rail clears. Footman 605-1/retainer-1 (gimbal vs rod lift) and bridge/crank 605 (gimbal vs wheel lift)
   stay: each part already shares its lift with its other mates.
+- Flush ring stacks (coordinator group 5): a head ring's length is now taken between its shifted ends, the
+  planes' own Y values, so two rings that share an end meet at one exact level. 51 to 50 (`.tmp/lift-g45.log`):
+  rear-flyer front thrust spacer/front collar clears. Volumes match within bounds.
