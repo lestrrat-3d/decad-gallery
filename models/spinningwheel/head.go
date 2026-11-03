@@ -25,12 +25,6 @@ func (b *builder) headFrame(y, angle float64) r3.Frame {
 	return shaftFrame(-140*s, y+b.a.State.HeadShift, 690*s, math.Remainder(angle, 2*math.Pi))
 }
 
-func (b *builder) headRing(name, group, motion string, inner, outer, y0, y1, angle float64) {
-	b.part(name, group, motion, func() *decad.Body {
-		return b.annulus(inner, outer, y1-y0, b.headFrame(y1, angle))
-	})
-}
-
 // fixedRing is a round ring on the flyer axis, on the head lift, from head Y y0 to y1.
 func (b *builder) fixedRing(name, group, motion string, inner, outer, y0, y1 float64) {
 	hl := b.headLift()
@@ -132,20 +126,23 @@ func (b *builder) head() {
 	b.fixedRing("whorl-rear-collar", "collar", "flyer", 8, 10, -250*s+0.2, -250*s+4.2)
 	b.fixedRing("crossbar-rear-collar", "collar", "flyer", 8, 10, -210*s+0.2, -210*s+4.2)
 
-	b.part("bobbin", "bobbin", "bobbin", func() *decad.Body {
-		return b.revolve([]point2{
+	// The bobbin and its yarn pack are round, so they ride the fixed head lift with their bearings. The bobbin
+	// turns about the flyer axis, from head Y -64s toward -Y.
+	b.liftedPart("bobbin", "bobbin", "bobbin", func() *decad.Body {
+		o := b.headAt(-64 * s).Origin()
+		return b.liftRevolve(hl, frame(o, r3.Vec{X: 1}, r3.Vec{Y: -1}), []point2{
 			{11, 0}, {45 * s, 0}, {45 * s, 3.5 * s}, {42 * s, 5 * s},
 			{45 * s, 6.5 * s}, {45 * s, 10 * s}, {17 * s, 10 * s},
 			{17 * s, 130 * s}, {45 * s, 130 * s}, {45 * s, 140 * s},
 			{11, 140 * s}, {11, 130 * s}, {6, 130 * s}, {6, 10 * s}, {11, 10 * s},
-		}, b.headFrame(-64*s, ba))
+		})
 	})
 	b.fixedRing("bobbin-front-bearing", "bearing", "fixed", 4, 11, -194*s-7, -194*s)
 	b.fixedRing("bobbin-rear-bearing", "bearing", "fixed", 4, 11, -74*s, -74*s+7)
 	b.fixedRing("bobbin-inner-race-sleeve", "spacer", "flyer", 4, 5.5, -194*s, -74*s)
 	b.fixedRing("bobbin-front-thrust-sleeve", "spacer", "flyer", 4, 6, -205*s+0.2, -194*s-7-0.2)
 	b.fixedRing("bobbin-rear-removable-collar", "collar", "flyer", 4, 6, -74*s+7.2, -74*s+10.2)
-	b.headRing("bobbin-yarn-pack", "yarn-pack", "bobbin", 17*s, 31*s-0.35, -190*s, -78*s, ba)
+	b.fixedRing("bobbin-yarn-pack", "yarn-pack", "bobbin", 17*s, 31*s-0.35, -190*s, -78*s)
 	b.part("bobbin-witness-bar", "marker", "bobbin", func() *decad.Body {
 		radius := 31*s - 0.35
 		half := math.Asin(2 * s / radius)

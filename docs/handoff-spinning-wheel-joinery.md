@@ -1670,3 +1670,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   overlaps (`.tmp/hookseat-small-seven.log`): the four hinge fixed brackets against the upper bar (24.4 mm^3 each)
   and two maiden-foot-1 bolts against the brake control rail (5.3 mm^3 each). The geometry of those parts matches
   the baseline within its certified bounds, so these are existing small-seven layout overlaps, not lift changes.
+- Brake: tried and reverted, 174 to 176 (`.tmp/lift-brake.log`, `.tmp/lift-probe-brake.log`). Crossbar, upright,
+  rail, insert, plate and the insert socket rode the head lift on planes normal to Y. Upright/rail, insert/rail
+  and plate/rail stayed undecided, and upright/jack arm and upright/upper bar were lost.
+- Bobbin: 174 to 174 (`.tmp/lift-bobbin.log`). The bobbin and yarn pack ride the fixed head lift with their
+  bearings, so a coaxial revolve proof (decision step 4) can compare them; nothing clears before that lands.
