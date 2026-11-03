@@ -1863,3 +1863,7 @@ These were checked against the Gallery options above; each needs a Decad reader 
   material on all four faces. Focused check (`.tmp/focus-rb.log`): no undecided pair among the maiden, bearing,
   ring, thrust spacers, collars, shaft and foot.
 - Batch at `4f7bb70` (default, Decad `afb86835c`): 25 to 19 (`.tmp/lift-batch10.log`). Native and connector defaults pass.
+- Decad pin `6b6bc39` (#3092): the take-up screw's knob flat now runs 5 past the shaft's front face and the Cut
+  builds. Screw volume 648.287±0.25 vs 648.525±1.52 mm^3. Focused check (`.tmp/focus-take9.log`): screw/knob and
+  screw/insert stay undecided (the D-flat against the knob's D bore, and the round shaft in the insert's bore on
+  another lift), so they still need a Decad reader.
