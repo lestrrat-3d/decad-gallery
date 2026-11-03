@@ -45,7 +45,9 @@ func (b *builder) flexConnector() *decad.Body {
 	state := b.a.State
 	d := state.Toe
 	lower := b.span(d.Sub(state.PedalFrame.N().Scale(16*s)), d, 3)
-	upper := b.span(d, d.Add(state.RodFrame.U().Scale(32*s)), 3)
+	// The upper leg is a hair thinner than the lower one: at equal radii the two cylinders meet tangentially at
+	// the elbow, which some poses' Union cannot decide.
+	upper := b.span(d, d.Add(state.RodFrame.U().Scale(32*s)), 2.9)
 	body := b.union(lower, upper)
 	lowerCentre := d.Sub(state.PedalFrame.N().Scale(12 * s))
 	upperCentre := d.Add(state.RodFrame.U().Scale(26 * s))

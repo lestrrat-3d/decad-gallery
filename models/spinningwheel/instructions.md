@@ -122,7 +122,8 @@ Two stock605ZZ sit in that boss: v[-12*Scale,-12*Scale+5] and[12*Scale-5,12*Scal
 An8 OD,5 ID spacer fills v[-12*Scale+5,12*Scale-5].
 Stock ID10,OD18,width2 outer-race retaining rings lie0.2 outside the boss faces.
 These parts use Motion footman. The boss bore axis coincides with the gimbal cross-pin throughout rotation.
-The lower wood end stops20*Scale above D. Model the compliant connector as two adjoining radius3 cylinders:
+The lower wood end stops20*Scale above D. Model the compliant connector as two adjoining cylinders, the lower radius3 and the upper radius2.9,
+so the elbow never meets tangentially:
 from D-16*Scale*PedalFrame.N to D (Motion treadle) and D to D+32*Scale*RodFrame.U (Motion footman).
 They denote an ideal flexible joint, not a plain bearing forced onto skew axes.
 The lower8*Scale of the lower leg overlaps the rail block; the last12*Scale of the upper leg overlaps the rod timber.

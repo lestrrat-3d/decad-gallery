@@ -1709,3 +1709,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   cap's own XZ section, which builds the same leg, did not clear cap/leg, so that change is not kept.
   `small-seventeen` has 140 undecided pairs and no overlap (`.tmp/pin3-small-seventeen.log`).
 - Decad pin `d83c308bf`: 112 to 112, same pair list (`.tmp/lift-pin4.log`). Native default passes.
+- Flexible connector (coordinator request): the two radius 3 legs met tangentially at the toe elbow, and pose 54
+  (WheelAngle 270 degrees) failed its Union. The upper leg is now radius 2.9. All 72 poses (5 degree steps) build
+  and tessellate at 0.05 mm, and `TestSpinningWheelConnectorDefault` passes (`.tmp/conn-poses.log`). The default
+  connector loses 56 mm^3 of 1183 and its bounds move 0.1 mm (`.tmp/lift-geom-conn-cmp.txt`). The default count
+  stays 112 (`.tmp/lift-conn.log`).
