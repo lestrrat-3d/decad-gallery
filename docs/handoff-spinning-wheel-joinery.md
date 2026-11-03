@@ -1,14 +1,59 @@
-# Spinning-wheel joinery Boolean refusal
+# Spinning-wheel joinery
 
-Navigation only; the linked sections own their facts.
-- Current consumer → [Current status](#current-status).
-- Actual mother-base mesh → [Latest actual mother-base consumer](#latest-actual-mother-base-consumer).
-- Current native extraction → [Current-main real mother component](#current-main-real-mother-component).
-- Latest private query evidence → [Latest private source-query result](#latest-private-source-query-result).
-- Private Cut integration → [Latest private Cut integration](#latest-private-cut-integration).
-- Native CI repair → [Native publication CI](#native-publication-ci).
-- Standing authorization → [Scope](#scope).
-- Earlier failures and candidate proofs → historical sections below.
+## Current status
+
+As of 2026-11-04, PR119 (`feat-pedal-spindle`) is at `0d013d3` and its CI is green: 17 of 17 checks, including
+the default build, the four variants (`small-seven`, `large-nine`, `twelve`, `small-seventeen`), the renderer and
+the repository check. The pinned Decad is `ee1ee0377743`.
+
+- Verify gives a conclusive non-overlap result for every final part pair in all five builds: 0 undecided pairs,
+  0 overlaps.
+- Every model Sketch verifies fully constrained on every branch.
+- The images are six stills plus `index.png` and a 96-frame `motion.gif`, rendered from the full default build
+  with no omitted part (`models/spinningwheel/images/preview-status.json`).
+
+### Designed gaps
+
+Parts that meet across two motion frames (lifts) keep a small designed gap, because a flush face across two
+inexact lifts cannot be decided. Each gap is specified in `models/spinningwheel/instructions.md` and built in the
+named file.
+
+| Gap | Where | Code |
+|---|---|---|
+| 0.01 cross bearings off their retainers, spacer shorter | footman cross pin | `drive.go` (`crossGap`) |
+| 0.01 heel setscrew tips off the heel pin | heel collars | `joinery.go` (`collarScrews`) |
+| 0.01 leg sockets wider than the sloping rails | frame rails | `joinery.go` (`railStock`) |
+| 0.97 drive band span radius, 0.03 / 0.01 short of the wraps | drive band | `drive.go` (`bandSpan`) |
+| 0.01 board edge off the hinge knuckles | upper board | `frame.go` (`boardEdge`) |
+| 0.01 leaf pockets and screw pilots larger | upper board, rear crossbar | `joinery.go` |
+| 0.03 jack arm socket larger than the bar | jack arm | `joinery.go` |
+| 0.03 maiden feet and inserts above the bar; head relief 0.01 above the bolt heads | maiden feet, control rail | `frame.go`, `joinery.go` |
+| 0.01 rear crossbar seat larger | upper board | `joinery.go` |
+| 0.01 brake front upright above the bar and jack arm | brake | `brake.go` |
+| 0.01 take-up clevis behind the control rail | brake | `motion.go` (`brakeShift`) |
+| 0.05 brake band pitch over the bobbin | brake band | `motion.go` (`brakePitch`) |
+| 0.01 take-up shaft under its insert bore (radius 1.99) | brake | `brake.go` |
+| 0.01 flyer crossbar short of the shaft shoulder | flyer | `head.go` |
+| 0.03 front guide stalk seat wider than the stalk | flyer crossbar | `joinery.go` (`guideSeats`) |
+| 0.01 front bobbin counterbore deeper | bobbin | `head.go` |
+| 0.01 witness bar off the yarn pack | bobbin | `head.go` |
+| 0.01 yarn leader off the yarn pack | yarn | `yarn.go` |
+
+Gaps against the upper bar must exceed its held mesh bound (about 0.011 mm at Scale 1, 0.013 at Scale 1.2), so
+those are 0.03. The jack screw's apex is raised 1e-9 so that rounding never puts it below the shelf; it still
+touches the shelf within the test's tolerance. Mount clearances (`mountInventory`) follow every gap that a support
+path crosses.
+
+### Known limits
+
+- The heel bearings' inner races keep a 0.2 mm axial float to the heel spacers and collars (spec line 158).
+- Physical fits, brake setting, belt preload and wood joints still need a prototype; the model prescribes motion
+  and does not calculate forces.
+
+## Historical record
+
+Every section below was written during earlier work and records history, not the current state. The Scope
+section's merge hold stands until the user lifts it.
 
 ## Scope
 
@@ -178,7 +223,7 @@ Gallery independently reads the log and preserves `.tmp/spinningwheel-brake-anal
 SHA256 `c9b8435b9cd99b866eee3942fbb362f01d8d57eed5c505bf0f7dce198902375d`.
 This is scratch consumer evidence. Publication still needs the minimal tracked test extension and its fresh checks.
 
-## Current status
+## Status on 2026-11-02 (historical)
 
 Update 2026-11-03 (Gallery `46bce3e`, Decad `6b6bc39`): the default `Build` returns 195 parts and 364 sketches,
 the native and connector defaults pass, and `TestSpinningWheelDefault` stops at 19 undecided pairs, with no
