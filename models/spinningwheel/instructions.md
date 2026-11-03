@@ -312,11 +312,12 @@ The axial incoming yarn remains on the rotation axis. Clear the crossbar, tube w
 All following geometry is in the reference head pose and receives the common head tilt.
 Stock brake cord radius0.6 wraps the upper semicircle at rear bobbin plane localY=-69*Scale,
 pitch Rb=42*Scale+0.6*sqrt(5). Tails at X=headX+-Rb descend to Z600*Scale.
-At that level they turn forward along -Y to leftY=-285*Scale+BrakeTravel/2 and rightY=-285*Scale-BrakeTravel/2.
-Band centreline length pi*Rb+612*Scale stays constant. Do not confuse spring extension with cord stretch.
+At that level they turn forward along -Y to leftY=-285*Scale+S+BrakeTravel/2 and rightY=-285*Scale+S-BrakeTravel/2,
+where the shift S=max(0,15-15*Scale) stock keeps the take-up clevis behind the control rail at full travel.
+Band centreline length pi*Rb+612*Scale-2*S stays constant over BrakeTravel. Do not confuse spring extension with cord stretch.
 Two native six-turn Coil springs run along+Y, wire radius0.4 and centreline radius2.1 stock.
-Left spring endpoints areY[-310*Scale,-285*Scale+BrakeTravel/2];
-right endpointsY[-310*Scale-BrakeTravel,-285*Scale-BrakeTravel/2], at each tail's X,Z600*Scale.
+Left spring endpoints areY[-310*Scale+S,-285*Scale+S+BrakeTravel/2];
+right endpointsY[-310*Scale+S-BrakeTravel,-285*Scale+S-BrakeTravel/2], at each tail's X,Z600*Scale.
 Each spring has length25*Scale+BrakeTravel/2. Keep0.4 at each axial end for attachment links;
 coil pitch=(SpringLength-0.8)/6. Add small radius0.4 axial/radial bridges joining coil ends to the endpoint axes.
 The left front endpoint is fixed. The right front endpoint advances towards the operator by BrakeTravel.
@@ -330,14 +331,14 @@ Their axes bisect the incoming -Z and outgoing -Y directions; attach them with v
 They guide the cord's right-angle bends below the flyer. Keep cords out of the wood and eye walls.
 
 Use stockM4 horizontal take-up screw axis+Y at the right tailX,Z600*Scale, through the front control rail.
-Its reference Y range is[-350*Scale-BrakeTravel,-310*Scale-BrakeTravel-2].
-End eye centreY=-310*Scale-BrakeTravel, stock OD5,ID2.6,width1.2,axisX.
+Its reference Y range is[-350*Scale-BrakeTravel,-310*Scale+S-BrakeTravel-2].
+End eye centreY=-310*Scale+S-BrakeTravel, stock OD5,ID2.6,width1.2,axisX.
 Knob OD20*Scale,height5 stock occupiesY[-348*Scale-BrakeTravel,-348*Scale-BrakeTravel+5].
 Flatten the stock4 screw only there at radial1.3; knob has D4.2 bore/flat1.4.
 An8x8x4 stock square M4 insert fits an8.2 square pocket at Y[-334*Scale,-334*Scale+4],
 centred on the screw axis and open from the front of its supporting rail. Draw the stock4.2 through-passage first.
 Use thread envelopes, not cut threads. The keyed knob turns the screw; the square insert prevents nut rotation.
-The front left spring has a fixed stem from the control rail rear face to its endpointY=-310*Scale.
+The front left spring has a fixed stem from the control rail rear face to its endpointY=-310*Scale+S.
 No stationary cord, spring, routing eye or control may cross the rotating flyer-arm swept volume.
 
 ## Verification and images

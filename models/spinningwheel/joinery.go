@@ -253,7 +253,7 @@ func (b *builder) brakeSeats() {
 	var controlTools []*decad.Body
 	controlTools = append(controlTools,
 		b.headStock(x1-4.1, x1+4.1, yf-1, yf+4, 600*s-4.1, 600*s+4.1),
-		b.headBore(0.85, -310*s-3-(-325*s-6), r3.Vec{X: x0, Y: -325*s - 6, Z: 600 * s}, r3.Vec{Y: 1}))
+		b.headBore(0.85, -310*s+brakeShift(s)-3-(-325*s-6), r3.Vec{X: x0, Y: -325*s - 6, Z: 600 * s}, r3.Vec{Y: 1}))
 	// The mount pilots run 5 past the rail's front face they open; starting flush with it, the rounded tool
 	// left a paper-thin disk of the face as a separate piece at Scale 1.2.
 	for _, x := range []float64{x1 - 6, x1 + 6} {

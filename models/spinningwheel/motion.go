@@ -216,9 +216,14 @@ func Motion(p Params) (State, error) {
 	state.BeltLength = state.WheelPitch*(2*math.Pi-2*alpha) + state.FlyerPitch*2*alpha +
 		2*math.Sqrt(distance*distance-difference*difference)
 	brakePitch := 42*scale + 0.6*math.Sqrt(5)
-	state.BrakeLength = math.Pi*brakePitch + 612*scale - 36.8 + 14.6*math.Pi
+	state.BrakeLength = math.Pi*brakePitch + 612*scale - 36.8 + 14.6*math.Pi - 2*brakeShift(scale)
 	return state, nil
 }
+
+// brakeShift moves both brake springs, their screw and anchor ends and the cord tails toward +Y below Scale 1.
+// The take-up clevis reaches 9 stock mm in front of its spring's front end, so at full BrakeTravel 6 it must start
+// 15 stock mm behind the control rail's rear face at -325*Scale; -310*Scale gives only 15*Scale there.
+func brakeShift(scale float64) float64 { return max(0, 15-15*scale) }
 
 // PoseTransform maps a rigid part from base to state. Compliant parts must be rebuilt at the target pose.
 func PoseTransform(base, state State, motion string, wheelDelta float64) (r3.Transform, error) {

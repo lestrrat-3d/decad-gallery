@@ -16,8 +16,10 @@ func (b *builder) brake() {
 	left, right := x-radius, x+radius
 	front := -338*s + shift
 	phase := 2 * math.Pi * travel / 0.7
-	leftStart, leftEnd := -310*s+shift, -285*s+shift+travel/2
-	rightStart, rightEnd := -310*s+shift-travel, -285*s+shift-travel/2
+	// brakeShift keeps the take-up clevis behind the control rail at full travel below Scale 1.
+	d := brakeShift(s)
+	leftStart, leftEnd := -310*s+d+shift, -285*s+d+shift+travel/2
+	rightStart, rightEnd := -310*s+d+shift-travel, -285*s+d+shift-travel/2
 
 	b.part("brake-rear-crossbar", "frame", "fixed", func() *decad.Body {
 		return b.box(x-55*s, x+55*s, -80*s+shift, -60*s+shift, 565*s, 580*s)

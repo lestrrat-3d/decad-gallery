@@ -12,7 +12,7 @@ func (b *builder) brakeCord(left, right, leftEnd, rightEnd, z, radius, phase flo
 
 	scale := b.p.Scale
 	travel := b.p.BrakeTravel
-	h := 216*scale - 13.4 - travel/2
+	h := 216*scale - 13.4 - travel/2 - brakeShift(scale)
 	path, err := decad.NewPath(r3.Vec{},
 		decad.LineTo{End: r3.Vec{Z: h}},
 		decad.ArcAround{

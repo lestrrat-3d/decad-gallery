@@ -1693,3 +1693,11 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   overlap; `large-nine` connected, 153 undecided, no overlap; `small-seventeen` stops at one overlap,
   `brake-takeup-screw` / `brake-control-rail` 84.5 mm^3. The screw's clevis reaches 15*Scale-BrakeTravel-9 behind
   the rail's rear face, which is below zero at Scale 0.8 with travel 6; that needs a design decision.
+- Take-up clevis vs control rail (coordinator decision, option 2): the clevis reaches 9 stock mm in front of its
+  spring's front end, which sat at -310*Scale-BrakeTravel, only 15*Scale behind the rail's rear face. Below
+  Scale 1 both springs, their front pins, the left anchor, the screw's rear end and the cord tails now move
+  S=max(0,15-15*Scale) toward +Y (`brakeShift`), and the cord's two tails shorten by S, so BrakeLength is
+  pi*Rb+612*Scale-36.8+14.6*pi-2*S and still constant over BrakeTravel. Default and `twelve` are unchanged;
+  at `small-seven` only the brake band, both front pins, both springs, the left anchor and the take-up screw move,
+  by 3 mm (`.tmp/var-geom-clevis-cmp.txt`). Variants (`.tmp/var-clevis-*.log`): default 131, `small-seven` 160,
+  `small-seventeen` 159, `large-nine` 153 undecided, and none has an overlap.
