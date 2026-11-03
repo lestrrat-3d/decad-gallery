@@ -123,10 +123,15 @@ func (b *builder) head() {
 		return b.liftPanel(hl, b.headAt(-286*s), -20*s, -115*s, 20*s, 25*s, 28*s, hole{r: 13})
 	})
 	b.liftedPart("rear-maiden", "frame", "fixed", func() *decad.Body {
-		return b.liftPanel(hl, b.headAt(-30*s), -20*s, -115*s, 20*s, 25*s, 24*s, hole{r: 11})
+		// The bore is stock radius9 with the bearing's radius11 seat cut from the bearing's front face out past the
+		// maiden's rear face, leaving a shoulder on the outer race's front face.
+		body := b.liftPanel(hl, b.headAt(-30*s), -20*s, -115*s, 20*s, 25*s, 24*s, hole{r: 9})
+		return b.cut(body, b.liftCylinder(hl, b.headAt(-30*s+5), 11, (-30*s+5)-(-48*s)))
 	})
 	b.fixedRing("front-maiden-bush", "bush", "fixed", 8.1, 13, -300*s-10, -300*s+10)
 	b.fixedRing("rear-flyer-bearing", "bearing", "fixed", 4, 11, -48*s, -48*s+7)
+	// A stock retaining ring in the seat holds the outer race's rear face.
+	b.fixedRing("rear-flyer-bearing-ring", "retainer", "fixed", 9, 11, -48*s+7, -48*s+8)
 	// The flyer's rings are round, so they ride the fixed head lift with the bearings they bear on.
 	b.fixedRing("rear-flyer-front-collar", "collar", "flyer", 4, 6, -54*s-3.2, -54*s-0.2)
 	b.fixedRing("rear-flyer-front-thrust-spacer", "spacer", "flyer", 4, 6, -54*s-0.2, -48*s)

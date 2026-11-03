@@ -527,7 +527,9 @@ func (b *builder) mountInventory() {
 	}
 
 	add("front-maiden-bush", "press-fit-sleeve", refs("front-maiden"), refs("front-sleeve-retainer"), 0)
-	add("rear-flyer-bearing", "press-fit-bearing", refs("rear-maiden"), refs("rear-flyer-front-collar", "rear-flyer-rear-collar"), 0)
+	add("rear-flyer-bearing", "press-fit-bearing", refs("rear-maiden"),
+		refs("rear-flyer-front-collar", "rear-flyer-rear-collar", "rear-flyer-bearing-ring"), 0)
+	add("rear-flyer-bearing-ring", "press-fit", refs("rear-maiden"), nil, 0)
 	add("flyer-shaft", "sleeve-and-bearing-journals", refs("front-maiden-bush", "rear-flyer-bearing"),
 		refs("front-sleeve-retainer", "rear-flyer-front-collar", "rear-flyer-rear-collar"), 0.1)
 	add("flyer-whorl-key", "removable-parallel-key", refs("flyer-shaft", "flyer-drive-whorl"), nil, 0.1)

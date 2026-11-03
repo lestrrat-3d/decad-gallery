@@ -1857,3 +1857,8 @@ These were checked against the Gallery options above; each needs a Decad reader 
   the inner-race faces stay uncovered at 0.15 mm because the heel spacer and collar sit 0.2 mm off them by design.
   Focused check (`.tmp/focus-hb.log`): no undecided pair among the legs, bearings, rings, heel pin, spacers,
   collars, heel rail and bench rails.
+- Rear flyer bearing retention: the rear maiden's bore is drawn at radius 9 and the bearing's radius 11 seat is cut
+  on the head lift from the bearing's front face out past the maiden's rear face, leaving a shoulder; a new
+  retaining ring (`rear-flyer-bearing-ring`) holds the rear face; spec line added. The end-face probe finds
+  material on all four faces. Focused check (`.tmp/focus-rb.log`): no undecided pair among the maiden, bearing,
+  ring, thrust spacers, collars, shaft and foot.

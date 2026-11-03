@@ -260,6 +260,8 @@ Front plain nylon bush ID16.2,OD26,width20 stock, centred Y=-300*Scale. This is 
 not a purchased ball bearing. Reuse ballbearing.Build's custom annulus construction, identify group bush.
 Rear maiden X=headX+-20*Scale,Y[-54,-30]*Scale,Z[585,715]*Scale, stock22 bore.
 Rear stock608 spansY[-48*Scale,-48*Scale+7]. Add axial collars/retainers clear of rotating U arms.
+The rear maiden's bore is stock radius9 in front of that bearing, a shoulder on its outer race, with the radius11
+seat cut from the rear and a stock ID18,OD22,width1 retaining ring on the outer race's rear face.
 Rear flyer stock12 OD,8 ID,3 wide front collar spansY[-54*Scale-3.2,-54*Scale-0.2].
 Its stock12 OD,8 ID thrust spacer spansY[-54*Scale-0.2,-48*Scale].
 The rear thrust spacer spansY[-48*Scale+7,-30*Scale].
