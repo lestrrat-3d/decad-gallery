@@ -88,13 +88,15 @@ func (b *builder) maidenStock(y, length float64) *decad.Body {
 	return b.liftPanel(b.headLift(), b.headAt(y), -20*s, -115*s, 20*s, 25*s, length)
 }
 
-// railStock is the rail's socket tool. Its edges follow the rail's lines (slope -90/520) but run
-// 52 past the rail's ends at X -280 and 240, so the tool crosses each leg's end cap instead of sharing
-// its plane; the part of the tool inside a leg, and so the cut socket, is unchanged.
+// railStock is the rail's socket tool. Its edges run parallel to the rail's lines (slope -90/520), a designed
+// 0.01 outside them: on the rail's own lines the scaled tool vertices fell up to 1.7e-11 inside the rail's edge at
+// Scale 0.8, so the rail poked out of its socket by rounding. They run 52 past the rail's ends at X -280 and 240,
+// so the tool crosses each leg's end cap instead of sharing its plane.
 func (b *builder) railStock(y float64) *decad.Body {
 	s := b.p.Scale
+	d := 0.01 * math.Hypot(520, 90) / 520
 	sk := b.section(false)
-	polygon(sk, scaled(s, point2{-332, 474}, point2{292, 366}, point2{292, 401}, point2{-332, 509}))
+	polygon(sk, []point2{{-332 * s, 474*s - d}, {292 * s, 366*s - d}, {292 * s, 401*s + d}, {-332 * s, 509*s + d}})
 	return b.extrude(sk, 0, 30*s, frame(r3.Vec{Y: y * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 }
 

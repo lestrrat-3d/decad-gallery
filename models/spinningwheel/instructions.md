@@ -166,7 +166,8 @@ Front wheel leg: YZ polygon(-230,0),(-190,0),(-25,550),(-65,550), along X[200,24
 Rear wheel leg: YZ polygon(190,0),(230,0),(65,550),(25,550), along X[200,240].
 Head leg and front wheel leg have stock22 heel-bearing bores along X at (Y,Z)=(-190*Scale,60*Scale).
 Two sloping rails use XZ polygon(-280,465),(240,375),(240,410),(-280,500),
-at Y[-85,-55] and[55,85]. Two wedges at those same Y spans support the head base:
+at Y[-85,-55] and[55,85]; each leg socket is a designed stock 0.01 wider than its rail on both sloping faces.
+Two wedges at those same Y spans support the head base:
 their X[-195,-105], upperZ525, lowerZ=500-(X+280)*90/520. Their lower surfaces touch the rails.
 Separate wheel bearing caps X[200,240],Y[-55,-25] and[25,55],Z[550,610], stock22 bores at wheel centre.
 Stock608 bearings span Y[-45*Scale,-45*Scale+7] and [45*Scale-7,45*Scale]. Add shaft collars outside posts.
