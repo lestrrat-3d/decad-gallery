@@ -1890,3 +1890,41 @@ These were checked against the Gallery options above; each needs a Decad reader 
   among the take-up screw, knob, insert, right front pin and control rail (screw/insert was undecided before).
 - Decad pin `fbdc213` (#3094) decides the 4 fixed-bracket/fixed-mount pairs: 15 to 11 (`.tmp/lift-pin11.log`). Variants: `small-seven` 53, `large-nine` 57, `twelve` 39, `small-seventeen` 52, no overlap.
 - Decad pin `64676b0` (#3095) decides the 4 moving-leaf pairs: 11 to 7 (`.tmp/lift-pin12.log`). Variants: `small-seven` 53, `large-nine` 55, `twelve` 37, `small-seventeen` 52, no overlap.
+
+## Update 2026-11-04: variant pairs
+
+Batch at `e34a0c2` (Decad `2c7f038`, #3095 to #3098):
+
+- `machine()` cuts each tool on its own instead of cutting one Union of the tools; the Union carried a gap-shift
+  warning that no proof reads through. The rear crossbar's insert sockets now run 5 up into its notch, since the
+  sequential Cut refused a socket top lying in the notch floor at Scale 1.2.
+- The diagonal treadle rail and its lap tools share one sketch frame on the treadle lift (`diagonalAt`).
+- The brake rear crossbar, front upright, control rail, insert retaining plate and the front maiden foot bolts and
+  inserts are sketched on the head lift, like the parts they meet.
+- The jack screw's square insert is bored by the screw's own turned stock on the screw's lift (`jackScrewStock`).
+- The brake band pitch is 0.05 stock over the cord's tangent pitch (`brakePitch`; spec line updated): at the
+  tangent pitch the stored cord and bobbin overlapped by about 8e-15 mm.
+- The yarn leader's spans are sketched on the head lift before their Union.
+- Volume and bounds against `8a5b70f`, all five builds (`.tmp/geom-base.txt`, `.tmp/geom-new2.txt`): 916 of 975
+  parts agree within their bounds. The other 59 are the brake parts placed from the band pitch: each moves 0.05
+  along X with its volume unchanged, and the band gains 0.177 mm^3 (pi*0.05 more centreline).
+- Default: 0 undecided (`.tmp/lift-probe-pin15.log`). `TestSpinningWheelDefault` still fails, later in the test:
+  `requireBoreCaps` finds no exact radius 7 circle on the boss's end faces. The boss's bore rims are
+  `FacetedCurve` edges since `9f5dbaf` put the bore tool on the gimbal lift; the test never reached this check
+  while undecided pairs remained (`.tmp/faces-boss-base.log`).
+- Variants: `small-seven` 40, `large-nine` 31, `twelve` 9, `small-seventeen` 38, no overlap (`.tmp/vp15-*.log`).
+- Tried and reverted, no pair cleared: the witness bar sketched on the head lift (it also made the default
+  witness pair undecided), and the base thickness, bracket width and fixed-mount shank taken between exact face
+  positions (those faces already sit at the same exact numbers at Scale 0.8).
+
+### Variant pairs by cause
+
+| Cause | Variants | Pairs | Fix |
+|---|---|---|---|
+| Head tilt at any scale | all 4 | bobbin-yarn-pack/bobbin-witness-bar | Decad: the partial revolve and coaxial annulus reader (#3097) on a rotated lift |
+| Head tilt at any scale | small-seven, twelve, small-seventeen | mother-hinge-1/2-fixed-bracket-1/2/mother-upper-bar (4) | Decad: separation of an untilted box from a box on a rotated lift |
+| Scale other than 1 | small-seven, large-nine, small-seventeen | fixed brackets against mother-base (4) and their fixed mounts (4), mother-hinge-1-fixed-mount-2/mother-base, front/rear bench rails against front-wheel-leg, rear-wheel-leg and head-leg (4), mother-hinge-1/2-moving-mount/mother-upper-bar and moving-leaf-1/mother-upper-bar, mother-hinge-2-moving-mount/brake-rear-crossbar, treadle-lower-clamp-nut/treadle-connector-block, yarn-front-guide/flyer-crossbar | Decad: the readers that decide these at Scale 1 refuse at 0.8 and 1.2 although the shared faces carry the same exact numbers (checked for bracket/base at 0.8) |
+| Scale 0.8 with the head tilted | small-seven, small-seventeen | mother-upper-bar against brake-rear-crossbar, brake-front-upright, mother-jack-arm, maiden-foot-1/2 and the foot inserts; maiden-foot-1-bolt-1/2/brake-control-rail; moving leaves against their mounts and moving-leaf-2/upper bar; bobbin-yarn-pack/yarn-leader | Unknown: the upper bar, control rail and moving leaves carry `chain_allowance_applied` at 0.8. Settle which pass raises it (the rail's head relief below Scale 0.84 is one candidate) before choosing a Gallery or Decad fix |
+| Scale 1.2 only | large-nine | bobbin/bobbin-front-bearing, bobbin/bobbin-yarn-pack, flyer-shaft against bobbin-rear-removable-collar, flyer-crossbar and rear-flyer-front-thrust-spacer, footman-cross-605-1/footman-cross-spacer, gimbal-bridge/gimbal-cross-spacer-2, mother-jack-screw/mother-base, rear-maiden/rear-flyer-bearing, wheel-axle/wheel-crank-key, brake-insert-retaining-plate/brake-control-rail | Not yet sorted: each needs a focused probe |
+| Wheel or treadle pose | twelve (and small-seventeen) | footman-cross-605-2/footman-cross-retainer-2, heel-pin/heel-collar-1/2-setscrew, brake-takeup-screw/brake-control-rail | Not yet sorted |
+| Scale 0.8 laps | small-seven | treadle-heel-rail/treadle, treadle-heel-rail/treadle-actuating-rail, maiden-foot-2-insert-1/mother-upper-bar | Not yet sorted |
