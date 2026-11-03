@@ -311,8 +311,11 @@ func (b *builder) hinge(index int, q float64) {
 			return b.fixedBracket(interval[0], interval[1], middle)
 		})
 		b.part(fmt.Sprintf("%sfixed-mount-%d", prefix, j+1), "fastener", "fixed", func() *decad.Body {
-			return b.revolve([]point2{{0, 0}, {1.5, 0}, {1.5, 23 * s}, {3, 23 * s},
-				{3, 23*s + 1.5}, {0, 23*s + 1.5}},
+			// The shank length is taken between the mount's start and the bracket's top face, a difference that
+			// rounds to nothing, so the head lands on that face at every scale.
+			shank := 555*s - 532*s
+			return b.revolve([]point2{{0, 0}, {1.5, 0}, {1.5, shank}, {3, shank},
+				{3, shank + 1.5}, {0, shank + 1.5}},
 				frame(r3.Vec{X: -183 * s, Y: middle, Z: 532 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
 		})
 	}
