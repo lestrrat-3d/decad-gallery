@@ -47,8 +47,23 @@ func requireDriveBandFrameClearances(t *testing.T, a *spinningwheel.Assembly) {
 				require.NoError(t, err)
 				outline = &read
 			}
+			if obstacle.Group == "spring" {
+				// A brake spring is a faceted Coil body: its evaluator box bound is several millimetres and the
+				// evaluator refuses a belt-plane section finer than its 0.0889 mm mesh bound. Do not coarsen the
+				// section tolerance. Test the verified mesh's own tight box against the belt body instead, which
+				// charges only the mesh bound. A spring the mesh box cannot separate still fails the section test below.
+				mesh := tessellateForSweep(t, obstacle.Body, .09)
+				meshLo, meshHi := mesh.vertices[0], mesh.vertices[0]
+				for _, v := range mesh.vertices {
+					meshLo = r3.Vec{X: math.Min(meshLo.X, v.X), Y: math.Min(meshLo.Y, v.Y), Z: math.Min(meshLo.Z, v.Z)}
+					meshHi = r3.Vec{X: math.Max(meshHi.X, v.X), Y: math.Max(meshHi.Y, v.Y), Z: math.Max(meshHi.Z, v.Z)}
+				}
+				if boxesSeparate(box.Min, box.Max, meshLo, meshHi, .5+box.Bound.Base()+mesh.bound) {
+					continue
+				}
+			}
 			section, err := obstacle.Body.SectionOutline(t.Context(), plane, units.Millimeters(.05))
-			require.NoError(t, err)
+			require.NoError(t, err, "section of %s (group %s) in the belt plane", obstacle.Name, obstacle.Group)
 			require.Greater(t, len(section.Loops), 0, "%s needs a real section where its box meets the belt", obstacle.Name)
 			gap, err := outline.Clearance(section)
 			require.NoError(t, err)
@@ -156,6 +171,7 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 	t.Helper()
 	sweptMembers := 0
+	sweepMeshes := map[string]surfaceTriangles{}
 	for _, part := range a.Parts {
 		if part.Motion != "flyer" || (part.Group != "flyer" && part.Group != "whorl" && part.Group != "guide" && !strings.Contains(part.Name, "guide")) {
 			continue
@@ -208,8 +224,23 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 			}
 			other, err := obstacle.Body.Bounds()
 			require.NoError(t, err)
-			require.True(t, boxesSeparate(lo, hi, other.Min, other.Max, box.Bound.Base()+other.Bound.Base()+1e-7),
-				"swept bounds cannot prove %s clear of %s", part.Name, obstacle.Name)
+			if boxesSeparate(lo, hi, other.Min, other.Max, box.Bound.Base()+other.Bound.Base()+1e-7) {
+				continue
+			}
+			// The swept box is a coarse screen: an L-shaped or tall obstacle overlaps it without touching the
+			// member. Decide such pairs on the real meshes, per slab along the flyer axis, for every angle.
+			for _, body := range []*decad.Body{part.Body, obstacle.Body} {
+				name := part.Name
+				if body == obstacle.Body {
+					name = obstacle.Name
+				}
+				if _, ok := sweepMeshes[name]; !ok {
+					sweepMeshes[name] = tessellateForSweep(t, body, .05)
+				}
+			}
+			gap, why := sweptMeshClearance(t, sweepMeshes[part.Name], sweepMeshes[obstacle.Name], a.State.Flyer.X, a.State.Flyer.Z)
+			require.Empty(t, why, "swept volume of %s cannot be proved clear of %s", part.Name, obstacle.Name)
+			t.Logf("%s sweeps clear of %s: smallest radial slab gap %.3f mm beyond both mesh bounds", part.Name, obstacle.Name, gap)
 		}
 		require.NoError(t, decad.Remove(body))
 	}
