@@ -51,20 +51,39 @@ func requireDriveBandFrameClearances(t *testing.T, a *spinningwheel.Assembly) {
 				// A brake spring is a faceted Coil body: its evaluator box bound is several millimetres and the
 				// evaluator refuses a belt-plane section finer than its 0.0889 mm mesh bound. Do not coarsen the
 				// section tolerance. Test the verified mesh's own tight box against the belt body instead, which
-				// charges only the mesh bound. A spring the mesh box cannot separate still fails the section test below.
-				mesh := tessellateForSweep(t, obstacle.Body, .09)
-				meshLo, meshHi := mesh.vertices[0], mesh.vertices[0]
-				for _, v := range mesh.vertices {
-					meshLo = r3.Vec{X: math.Min(meshLo.X, v.X), Y: math.Min(meshLo.Y, v.Y), Z: math.Min(meshLo.Z, v.Z)}
-					meshHi = r3.Vec{X: math.Max(meshHi.X, v.X), Y: math.Max(meshHi.Y, v.Y), Z: math.Max(meshHi.Z, v.Z)}
-				}
-				if boxesSeparate(box.Min, box.Max, meshLo, meshHi, .5+box.Bound.Base()+mesh.bound) {
+				// charges only the mesh bound. A spring the mesh box cannot separate is decided by the mesh boundary gap.
+				if gap := meshBoxGap(t, box, obstacle.Body, .09); gap > 0 {
+					t.Logf("%s clears %s by %.3f mm beyond both bounds (tight mesh box)", band.Name, obstacle.Name, gap)
 					continue
 				}
+				// The spring overlaps the belt box, so compare the full verified meshes instead of a section.
+				beltMesh := tessellateForSweep(t, band.Body, .05)
+				springMesh := tessellateForSweep(t, obstacle.Body, .09)
+				meshGap, clear := nativeCollisionShape(band.Body, beltMesh).meshSeparationBy(nativeCollisionShape(obstacle.Body, springMesh), .5)
+				require.True(t, clear, "%s must clear %s by 0.5 mm; mesh boundary gap lower bound %g", band.Name, obstacle.Name, meshGap)
+				t.Logf("%s clears %s: mesh boundary gap lower bound %.3f mm beyond both bounds", band.Name, obstacle.Name, meshGap)
+				continue
 			}
 			section, err := obstacle.Body.SectionOutline(t.Context(), plane, units.Millimeters(.05))
 			require.NoError(t, err, "section of %s (group %s) in the belt plane", obstacle.Name, obstacle.Group)
-			require.Greater(t, len(section.Loops), 0, "%s needs a real section where its box meets the belt", obstacle.Name)
+			if len(section.Loops) == 0 {
+				// The belt is a strap of finite width, so a solid can meet its box without crossing the Y = 0 plane.
+				// A tight verified-mesh box that clears the belt box proves it clear outright.
+				if gap := meshBoxGap(t, box, obstacle.Body, .05); gap > 0 {
+					t.Logf("%s clears %s by %.3f mm beyond both bounds (tight mesh box)", band.Name, obstacle.Name, gap)
+					continue
+				}
+				// Otherwise the two overlap in Y. Compare the full verified meshes: their boundary gap must exceed
+				// 0.5 mm after both mesh bounds, and neither solid may lie inside the other.
+				beltMesh := tessellateForSweep(t, band.Body, .05)
+				obstacleMesh := tessellateForSweep(t, obstacle.Body, .05)
+				belt := nativeCollisionShape(band.Body, beltMesh)
+				solid := nativeCollisionShape(obstacle.Body, obstacleMesh)
+				meshGap, clear := belt.meshSeparationBy(solid, .5)
+				require.True(t, clear, "%s must clear %s by 0.5 mm; mesh boundary gap lower bound %g", band.Name, obstacle.Name, meshGap)
+				t.Logf("%s clears %s: mesh boundary gap lower bound %.3f mm beyond both bounds (no belt-plane section)", band.Name, obstacle.Name, meshGap)
+				continue
+			}
 			gap, err := outline.Clearance(section)
 			require.NoError(t, err)
 			require.False(t, gap.Overlaps, "%s crosses %s in the belt plane", band.Name, obstacle.Name)
@@ -246,4 +265,19 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 		}
 	}
 	require.Equal(t, 17, sweptMembers, "crossbar, two arms, whorl and thirteen formed guides need swept checks")
+}
+
+// meshBoxGap returns how far the tight box of the body's verified mesh lies from the belt box beyond the 0.5 mm
+// limit and both bounds. A value above zero proves separation; it is not positive otherwise.
+func meshBoxGap(t *testing.T, belt decad.Box, body *decad.Body, chord float64) float64 {
+	t.Helper()
+	mesh := tessellateForSweep(t, body, chord)
+	lo, hi := mesh.vertices[0], mesh.vertices[0]
+	for _, v := range mesh.vertices {
+		lo = r3.Vec{X: math.Min(lo.X, v.X), Y: math.Min(lo.Y, v.Y), Z: math.Min(lo.Z, v.Z)}
+		hi = r3.Vec{X: math.Max(hi.X, v.X), Y: math.Max(hi.Y, v.Y), Z: math.Max(hi.Z, v.Z)}
+	}
+	need := .5 + belt.Bound.Base() + mesh.bound
+	gap := math.Max(math.Max(lo.X-belt.Max.X, belt.Min.X-hi.X), math.Max(math.Max(lo.Y-belt.Max.Y, belt.Min.Y-hi.Y), math.Max(lo.Z-belt.Max.Z, belt.Min.Z-hi.Z)))
+	return gap - need
 }

@@ -44,6 +44,11 @@ func TestSpinningWheelMeshSeparation(t *testing.T) {
 
 // Boundary separation alone does not exclude containment. Test vertices of every possible component as well.
 func (s collisionShape) meshSeparation(other collisionShape) (float64, bool) {
+	return s.meshSeparationBy(other, 0)
+}
+
+// meshSeparationBy is meshSeparation requiring the boundary gap to exceed limit millimetres after both bounds.
+func (s collisionShape) meshSeparationBy(other collisionShape, limit float64) (float64, bool) {
 	a, err := meshgap.New(s.points, s.triangles, s.bound)
 	if err != nil {
 		return 0, false
@@ -52,7 +57,7 @@ func (s collisionShape) meshSeparation(other collisionShape) (float64, bool) {
 	if err != nil {
 		return 0, false
 	}
-	gap, clear, err := a.Exceeds(b, 0)
+	gap, clear, err := a.Exceeds(b, limit)
 	if err != nil || !clear {
 		return gap, false
 	}
