@@ -153,7 +153,9 @@ func (b *builder) head() {
 			{11, 0}, {45 * s, 0}, {45 * s, 3.5 * s}, {42 * s, 5 * s},
 			{45 * s, 6.5 * s}, {45 * s, 10 * s}, {17 * s, 10 * s},
 			{17 * s, 130 * s}, {45 * s, 130 * s}, {45 * s, 140 * s},
-			{11, 140 * s}, {11, 130 * s}, {6, 130 * s}, {6, 10 * s}, {11, 10 * s},
+			// The front counterbore runs a designed 0.01 deeper than the front bearing: one revolve frame cannot
+			// land both shoulders on their bearings' faces exactly.
+			{11, 140 * s}, {11, 130*s - 0.01}, {6, 130*s - 0.01}, {6, 10 * s}, {11, 10 * s},
 		})
 	})
 	b.fixedRing("bobbin-front-bearing", "bearing", "fixed", 4, 11, -194*s-7, -194*s)

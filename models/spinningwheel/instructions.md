@@ -280,7 +280,7 @@ Crossbar/arm overlaps are rigid joints. Arms end before the stationary bobbin br
 Bobbin independently rotates on stock8 rear shaft with two608 bearings. One exact revolved wooden body:
 front flange localY[-204,-194], radius45; barrelY[-194,-74],radius17;
 rear flangeY[-74,-64],radius45, scaled. Barrel passage12 stock clears the11 OD inner-race spacer.
-Each flange has stock22 bearing counterbore, depth10*Scale.
+Each flange has stock22 bearing counterbore, depth10*Scale; the front one is a designed stock 0.01 deeper.
 Front608 Y[-194*Scale-7,-194*Scale], rear608Y[-74*Scale,-74*Scale+7].
 Rear flange V brake groove centreY=-69*Scale, root42*Scale, lip planes+-1.5*Scale, outer45*Scale.
 Yarn pack annulus barrel radius17*Scale to31*Scale,Y[-190,-78]*Scale; optional visual winding marker.
