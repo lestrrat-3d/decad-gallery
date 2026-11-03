@@ -35,7 +35,9 @@ func (b *builder) yarn() {
 	s := b.p.Scale
 	angle := b.a.State.FlyerAngle
 	p := r3.Vec{X: 58 * s, Z: 22 * s}
-	radius := 31 * s
+	// The leader's last span ends on the circle R=31*Scale plus a designed 0.01, so the radius0.35 leader stands
+	// 0.01 off the pack's outer radius 31*Scale-0.35 instead of touching it tangentially across two lifts.
+	radius := 31*s + 0.01
 	distanceSquared := p.Dot(p)
 	tangent := p.Scale(radius * radius / distanceSquared).Sub(
 		r3.Vec{X: -p.Z, Z: p.X}.Scale(radius * math.Sqrt(distanceSquared-radius*radius) / distanceSquared),

@@ -328,7 +328,7 @@ the stem ending 0.5 below the wire's centreline so the two equal round bars neve
 inside the front crossbar, whose stalk seat is a designed stock 0.03 wider than the stalk.
 Both yarn strands clear the hoop walls.
 Final strand goes from selected guide to a tangent point on yarn pack radius31*Scale, in the sameY=-160 plane.
-For P=(58,22)*Scale and R=31*Scale, tangent point T=(R²/|P|²)P
+For P=(58,22)*Scale and R=31*Scale+0.01 (a designed stock 0.01 off the pack), tangent point T=(R²/|P|²)P
 minus (R*sqrt(|P|²-R²)/|P|²)*perp(P). Rotate all outward leader segments with flyer.
 The axial incoming yarn remains on the rotation axis. Clear the crossbar, tube wall, arms and stock6 guide openings.
 
