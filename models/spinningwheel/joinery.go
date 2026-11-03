@@ -146,11 +146,10 @@ func (b *builder) frameJoinery() {
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
 		b.headBore(1.5, 8*s, r3.Vec{X: -162 * s, Y: (-90 + 23.5) * s, Z: 558 * s}, r3.Vec{Z: 1}))
 	rb := 42*s + 0.6*math.Sqrt(5)
-	eyeY := -69*s - 5 + 5/math.Sqrt(2) + math.Sqrt(2)
-	eyeZ := 600*s + 5 - 5/math.Sqrt(2) - math.Sqrt(2)
+	eyeY, eyeZ0, eyeZ1 := b.routingEyeStem()
 	for _, x := range []float64{-140*s - rb, -140*s + rb} {
 		rearCrossbarTools = append(rearCrossbarTools,
-			b.headBore(0.85, eyeZ-576*s, r3.Vec{X: x, Y: eyeY, Z: 576 * s}, r3.Vec{Z: 1}))
+			b.liftCylinder(b.headLift(), level(x, eyeY, eyeZ0), 0.85, eyeZ1-eyeZ0))
 	}
 	b.machine("brake-rear-crossbar", rearCrossbarTools...)
 	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s, 476*s, -10*s, 10*s, -5*s, 5*s))
@@ -252,10 +251,12 @@ func (b *builder) brakeSeats() {
 	x0, x1 := -140*s-r, -140*s+r
 	yf := -338 * s
 	// The left anchor terminates six stock millimetres inside the control rail.
+	anchor0, anchor1 := b.anchorStem()
 	var controlTools []*decad.Body
 	controlTools = append(controlTools,
 		b.headStock(x1-4.1, x1+4.1, yf-1, yf+4, 600*s-4.1, 600*s+4.1),
-		b.headBore(0.85, -310*s+brakeShift(s)-3-(-325*s-6), r3.Vec{X: x0, Y: -325*s - 6, Z: 600 * s}, r3.Vec{Y: 1}))
+		b.liftCylinder(b.headLift(), frame(r3.Vec{X: x0, Y: anchor0, Z: 600 * s}, r3.Vec{Z: 1}, r3.Vec{X: 1}),
+			0.85, anchor1-anchor0))
 	// The mount pilots run 5 past the rail's front face they open; starting flush with it, the rounded tool
 	// left a paper-thin disk of the face as a separate piece at Scale 1.2.
 	for _, x := range []float64{x1 - 6, x1 + 6} {

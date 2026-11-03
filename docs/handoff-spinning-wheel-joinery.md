@@ -1731,3 +1731,15 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   (the cut material is unchanged). 109 to 102 (`.tmp/lift-hooks.log`): hooks 7 to 12 against arm 2 and the
   front guide against the crossbar clear. Hooks 1 to 6 against arm 1 stay undecided. Hook and arm volumes match
   the previous build within bounds (`.tmp/lift-geom-hooks-cmp.txt`).
+- Flyer wrap on the whorl's lift (coordinator request): tried again at `e2f4d61a7` and reverted. With the whorl
+  revolve on the wrap's lift and the keyway tool on the flyer lift, the whorl Cut still goes to a mesh and fails
+  the whorl's tight volume check (`.tmp/lift-wrap.log`), and wrap/whorl stays undecided.
+- Brake eyes, anchor, take-up screw and knob, front pins (coordinator request): every piece is placed on the head
+  lift, or for the screw side on the head lift turned by the screw's phase (`brakeTurn`), before its Union or
+  Cut, so no Transform follows a Boolean. The eye and anchor stems use the same numbers as their bores
+  (`routingEyeStem`, `anchorStem`), and the clevis pin hole now runs 5 past both cheek faces; flush, the turned
+  Cut was refused. 102 to 99 (`.tmp/lift-brake3.log`): both routing eyes/rear crossbar and anchor/rail clear.
+  Volumes match the previous build within bounds (`.tmp/lift-geom-brake3-cmp.txt`).
+- Hooks 1 to 6 against arm 1: a probe with one real hook against arm 1 or arm 2 (`zz_hook_probe_test.go`,
+  untracked) decides arm 2 but not arm 1. Both arms share the flyer lift and the hook geometry is mirrored, so
+  the difference is likely where the world-axis boxes of the rotated ring and arm fall at this flyer angle.

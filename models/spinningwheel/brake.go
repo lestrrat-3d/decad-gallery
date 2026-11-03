@@ -21,6 +21,7 @@ func (b *builder) brake() {
 	leftStart, leftEnd := -310*s+d+shift, -285*s+d+shift+travel/2
 	rightStart, rightEnd := -310*s+d+shift-travel, -285*s+d+shift-travel/2
 
+	hl := b.headLift()
 	b.part("brake-rear-crossbar", "frame", "fixed", func() *decad.Body {
 		return b.box(x-55*s, x+55*s, -80*s+shift, -60*s+shift, 565*s, 580*s)
 	})
@@ -47,32 +48,35 @@ func (b *builder) brake() {
 		b.part("brake-spring-"+side.name, "spring", "fixed", func() *decad.Body {
 			return b.brakeSpring(side.x, side.start, side.end, z, side.phase)
 		})
-		b.part("brake-routing-eye-"+side.name, "brake-guide", "fixed", func() *decad.Body {
+		// Each piece is placed on the head lift before the Union, so Verify reads the stem against the crossbar
+		// bore that shares its lift and numbers (routingEyeStem).
+		b.liftedPart("brake-routing-eye-"+side.name, "brake-guide", "fixed", func() *decad.Body {
 			centre := r3.Vec{
 				X: side.x, Y: -69*s + shift - 5 + 5/math.Sqrt(2),
 				Z: z + 5 - 5/math.Sqrt(2),
 			}
 			axis := r3.Vec{Y: -1, Z: -1}
 			axis, _ = axis.Normalize()
-			eye := b.annulus(1.5, 2.5, 1.2, axisFrame(centre.Sub(axis.Scale(0.6)), axis))
-			attachment := centre.Add(r3.Vec{Y: math.Sqrt(2), Z: -math.Sqrt(2)})
-			root := r3.Vec{X: side.x, Y: attachment.Y, Z: 576 * s}
-			return b.union(eye, b.span(root, attachment, 0.8))
+			eye := b.lifted(b.annulus(1.5, 2.5, 1.2, axisFrame(centre.Sub(axis.Scale(0.6)), axis)), hl)
+			y, z0, z1 := b.routingEyeStem()
+			return b.union(eye, b.liftCylinder(hl, level(side.x, y, z0), 0.8, z1-z0))
 		})
-		b.part("brake-front-pin-"+side.name, "fastener", "fixed", func() *decad.Body {
+		b.liftedPart("brake-front-pin-"+side.name, "fastener", "fixed", func() *decad.Body {
 			centre := r3.Vec{X: side.x, Y: side.start - 3, Z: z}
-			pin := b.revolve([]point2{
-				{0, 0}, {2.3, 0}, {2.3, 1}, {1.5, 1},
-				{1.5, 7}, {2.3, 7}, {2.3, 8}, {0, 8},
-			}, frame(centre.Add(r3.Vec{Z: -4}), r3.Vec{X: 1}, r3.Vec{Y: 1}))
-			return b.brakeRotate(pin, centre, side.phase)
+			return b.liftRevolve(b.brakeTurn(centre, side.phase),
+				frame(centre.Add(r3.Vec{Z: -4}), r3.Vec{X: 1}, r3.Vec{Z: 1}), []point2{
+					{0, 0}, {2.3, 0}, {2.3, 1}, {1.5, 1},
+					{1.5, 7}, {2.3, 7}, {2.3, 8}, {0, 8},
+				})
 		})
 		if i == 0 {
-			b.part("brake-left-anchor", "anchor", "fixed", func() *decad.Body {
+			b.liftedPart("brake-left-anchor", "anchor", "fixed", func() *decad.Body {
 				centre := r3.Vec{X: left, Y: leftStart - 3, Z: z}
-				clevis := b.brakeClevis(centre)
-				stem := b.span(r3.Vec{X: left, Y: -325*s + shift - 6, Z: z},
-					r3.Vec{X: left, Y: centre.Y - 5, Z: z}, 0.8)
+				clevis := b.brakeClevisOn(hl, centre)
+				// The stem runs along +Y from the control rail's blind bore (anchorStem), its tool's numbers.
+				y0, _ := b.anchorStem()
+				stem := b.liftCylinder(hl, frame(r3.Vec{X: left, Y: y0, Z: z}, r3.Vec{Z: 1}, r3.Vec{X: 1}),
+					0.8, centre.Y-5-y0)
 				return b.union(clevis, stem)
 			})
 		}
@@ -81,17 +85,21 @@ func (b *builder) brake() {
 	shaftFront := -350*s + shift - travel
 	knobFront := -348*s + shift - travel
 	axisOrigin := r3.Vec{X: right, Y: rightStart - 3, Z: z}
-	b.part("brake-takeup-screw", "adjustment", "fixed", func() *decad.Body {
-		shaft := b.cylinder(2, rightStart-6-shaftFront,
-			frame(r3.Vec{X: right, Y: shaftFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}))
-		flat := b.box(right+1.3, right+3, shaftFront, knobFront+5, z-3, z+3)
+	// The screw, its clevis, its knob and the right front pin share one lift: the head lift turned by the
+	// screw's phase about its own axis, every piece placed before its Boolean.
+	tl := b.brakeTurn(axisOrigin, phase)
+	b.liftedPart("brake-takeup-screw", "adjustment", "fixed", func() *decad.Body {
+		shaft := b.liftCylinder(tl, frame(r3.Vec{X: right, Y: shaftFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
+			2, rightStart-6-shaftFront)
+		flat := b.localStock(tl, right+1.3, right+3, shaftFront, knobFront+5, z-3, z+3)
 		shaft = b.cut(shaft, flat)
-		return b.brakeRotate(b.union(shaft, b.brakeClevis(axisOrigin)), axisOrigin, phase)
+		return b.union(shaft, b.brakeClevisOn(tl, axisOrigin))
 	})
-	b.part("brake-takeup-knob", "adjustment", "fixed", func() *decad.Body {
-		knob := b.dAnnulus(2.1, 1.4, 10*s, 5,
-			frame(r3.Vec{X: right, Y: knobFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}))
-		return b.brakeRotate(knob, axisOrigin, phase)
+	b.liftedPart("brake-takeup-knob", "adjustment", "fixed", func() *decad.Body {
+		section := b.sectionOn(frame(r3.Vec{X: right, Y: knobFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}))
+		circle(section, 0, 0, 10*s)
+		dOutline(section, 2.1, 1.4)
+		return b.liftExtrude(section, 1, 5, tl)
 	})
 	b.part("brake-insert", "insert", "fixed", func() *decad.Body {
 		return b.panel(-4, -4, 4, 4, 4,
@@ -161,9 +169,46 @@ func (b *builder) brakeSpring(x, y0, y1, z, phase float64) *decad.Body {
 	return b.brakeRotate(b.refine(b.union(coil, frontLeg, rearLeg, frontEye, rearEye), 0.12), front, phase)
 }
 
-func (b *builder) brakeClevis(centre r3.Vec) *decad.Body {
-	blank := b.box(-3.5, 3.5, -6, 2.8, -3, 3)
-	slot := b.box(-4, 4, -3, 3.8, -0.8, 0.8)
-	pin := b.cylinder(1.6, 6, frame(r3.Vec{Z: -3}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
-	return b.place(b.cut(blank, b.union(slot, pin)), frame(centre, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+// brakeClevis is a clevis about centre on l, its blank, slot and pin hole placed before they are cut.
+func (b *builder) brakeClevisOn(l lift, c r3.Vec) *decad.Body {
+	blank := b.localStock(l, c.X-3.5, c.X+3.5, c.Y-6, c.Y+2.8, c.Z-3, c.Z+3)
+	slot := b.localStock(l, c.X-4, c.X+4, c.Y-3, c.Y+3.8, c.Z-0.8, c.Z+0.8)
+	// The pin hole runs 5 past both cheek faces it opens.
+	pin := b.liftCylinder(l, level(c.X, c.Y, c.Z-3-5), 1.6, 6+10)
+	return b.cut(blank, b.union(slot, pin))
+}
+
+// brakeTurn is the head lift turned by phase about the Y axis through centre, the lift of a part that a
+// threaded brake adjuster rotates.
+func (b *builder) brakeTurn(centre r3.Vec, phase float64) lift {
+	hl := b.headLift()
+	if b.err != nil || phase == 0 {
+		return hl
+	}
+	xf, err := r3.RotationAround(centre, r3.Vec{Y: 1}, units.Radians(math.Remainder(phase, 2*math.Pi)))
+	if err != nil {
+		b.fail("create brake phase", err)
+		return lift{}
+	}
+	if xf, err = xf.Then(hl.xf); err != nil {
+		b.fail("compose brake phase", err)
+		return lift{}
+	}
+	return lift{xf: xf}
+}
+
+// routingEyeStem is a routing eye's vertical stem on the head lift: its Y, and its Z from the rear crossbar's
+// top to the eye. The crossbar's stem bores use the same numbers.
+func (b *builder) routingEyeStem() (float64, float64, float64) {
+	s := b.p.Scale
+	return -69*s + b.a.State.HeadShift - 5 + 5/math.Sqrt(2) + math.Sqrt(2), 576 * s,
+		600*s + 5 - 5/math.Sqrt(2) - math.Sqrt(2)
+}
+
+// anchorStem is the left anchor stem's span along +Y on the head lift: from 6 inside the control rail's rear
+// face to the bore's blind end 3 in front of the left spring. The rail's bore uses the same numbers.
+func (b *builder) anchorStem() (float64, float64) {
+	s := b.p.Scale
+	shift := b.a.State.HeadShift
+	return -325*s + shift - 6, -310*s + brakeShift(s) + shift - 3
 }
