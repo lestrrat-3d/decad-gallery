@@ -33,13 +33,8 @@ func keyedOutline(s *sketch.Sketch, radius, halfwidth, extent float64) {
 	)
 }
 
-func (b *builder) keyTool(radius, halfwidth, extent, length float64, f r3.Frame) *decad.Body {
-	s := b.section(false)
-	keyedOutline(s, radius, halfwidth, extent)
-	return b.extrude(s, 0, length, f)
-}
-
-// liftKeyTool is keyTool sketched on f, a plane of l's local coordinates, and placed by l.
+// liftKeyTool is the keyway tool of a keyedOutline, sketched on f, a plane of l's local coordinates, and placed
+// by l.
 func (b *builder) liftKeyTool(l lift, f r3.Frame, radius, halfwidth, extent, length float64) *decad.Body {
 	s := b.sectionOn(f)
 	keyedOutline(s, radius, halfwidth, extent)
