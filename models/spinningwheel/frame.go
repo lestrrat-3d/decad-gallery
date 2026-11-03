@@ -44,12 +44,17 @@ func (b *builder) frame() {
 				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 		})
 		b.part([]string{"front-head-wedge", "rear-head-wedge"}[i], "frame", "fixed", func() *decad.Body {
+			// The wedge is the box above the bench rail's top line: the box minus a prism of the rail's own
+			// section in the rail's own frame, so Verify can prove the pair apart from the Cut history.
 			section := b.section(false)
-			lower := func(x float64) float64 { return 500 - (x+280)*90/520 }
-			polygon(section, scaled(s, point2{-195, lower(-195)}, point2{-105, lower(-105)},
-				point2{-105, 525}, point2{-195, 525}))
-			body := b.extrude(section, 0, 30*s,
+			polygon(section, scaled(s, point2{-195, 455}, point2{-105, 455}, point2{-105, 525}, point2{-195, 525}))
+			blank := b.extrude(section, 0, 30*s,
 				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+			railSection := b.section(false)
+			polygon(railSection, scaled(s, point2{-280, 465}, point2{240, 375}, point2{240, 410}, point2{-280, 500}))
+			railTool := b.extrude(railSection, 0, 30*s,
+				frame(r3.Vec{Y: (y0 + 30) * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+			body := b.cut(blank, railTool)
 			if i != 0 {
 				return body
 			}
