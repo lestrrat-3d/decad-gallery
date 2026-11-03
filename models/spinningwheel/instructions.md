@@ -227,15 +227,17 @@ The jack slides at its shelf contact as the upper board tilts. Model its thread 
 Two hinges share axis X=-172*Scale,Z555*Scale, parallel to Y, at reference starts Y=-300*Scale and -90*Scale.
 For each start q, fixed knuckles span[q,q+15*Scale] and[q+32*Scale,q+47*Scale];
 the moving knuckle spans[q+16*Scale,q+31*Scale]. All receive HeadShift.
-Use stock5 bore,10 outside diameter; pin5 stock spans[q-Scale,q+48*Scale].
+Use stock5.4 bore, 10 outside diameter knuckles; pin5 stock spans[q-2,q+47*Scale+3.2].
 Fixed brackets X[-190,-175],Z[540,555], at the fixed knuckle Y spans join the base to the knuckles.
-Each fixed bracket and its knuckle are one prism along Y; the knuckle's stock5 bore stays whole, which below
+Each fixed bracket and its knuckle are one prism along Y; the knuckle's stock5.4 bore stays whole, which below
 Scale0.9 also clears the bracket corner from the pin.
+A vertical stock3.2 screw passage at X=-183*Scale, centred on the bracket's Y interval, is cut last by a tool
+that runs 5 past both bracket faces.
 Moving leaves X[-169,-158],Z[555,558], at the moving knuckle span join the upper board.
 The upper board stays max(5*Scale,5) away from the pin axis, so it never crosses the stock5 knuckles below Scale1,
-and leaves3*Scale away; at minimum scale the latter
-is2.4 mm, so add a stock2.7 radius circular relief along Y through each moving leaf before placement.
-This relief must leave the leaf joined to its moving knuckle but clear of the stock2.5 pin.
+and leaves3*Scale away. At minimum scale the leaf edge is 2.4 mm from the axis, so the leaf and its
+radius5 knuckle are joined first and the stock2.7 pin bore is then cut through both. The bore clears the stock
+2.5 pin and leaves the leaf joined to its knuckle.
 Only moving knuckles/leaves receive HeadTilt; all share the same axis and translation.
 Pins and both sets of knuckles are separate named native bodies. This is a real revolute hinge, not an annotation.
 

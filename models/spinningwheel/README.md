@@ -4,9 +4,9 @@
 
 This is a work-in-progress native preview. Some parts and joint cuts remain unfinished.
 The [preview status](images/preview-status.json) lists every omitted part and its construction error.
-These images were rendered with Decad `1214b6aa02c8`. The current dependency is `9b312f272126`,
-which removed the earlier hinge and brake-takeup workarounds. The current full build stops at the moving hinge;
-these images do not demonstrate a successful build with the current dependency.
+These images were rendered with Decad `1214b6aa02c8` and have not been regenerated. The current
+dependency is `6b6bc39762e2`. With it the default build returns 195 parts, but 19 part pairs still lack a
+conclusive non-overlap result, so these images do not show a verified assembly.
 Fits, shaft retention and moving clearances still need verification.
 
 This wheel follows the flyer-and-bobbin arrangement in
@@ -44,11 +44,11 @@ The [reference inventory](../../docs/spinning-wheel-reference-audit.md) records 
 The leader enters the 10 mm axial orifice, exits a 6 mm radial port, passes through open guide hooks,
 and reaches the bobbin. The flyer guides rotate around the bobbin. The bobbin's two 608 bearings
 let it turn at a different speed from the flyer shaft. An orange marker on the teal yarn pack
-makes that difference visible.
+makes that difference visible. The flyer image omits the yarn hooks, front guide and leader.
 
 ![Scotch brake and spring](images/brake.png)
 
-The intended brake cord wraps the bobbin's rear flange. The current preview omits the band and both springs.
+The intended brake cord wraps the bobbin's rear flange. The current preview omits the band, both springs, the yarn hooks, the front guide and the leader.
 Both tails will run forward below the flyer to two extension springs
 and an accessible adjusting screw. Turning the screw extends both springs while preserving cord length.
 
