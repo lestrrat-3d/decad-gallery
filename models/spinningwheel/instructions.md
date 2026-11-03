@@ -351,6 +351,7 @@ A front control rail spans X[headX-55,headX+55], referenceY[-338,-325]+HeadShift
 An upright X[headX-27,headX+22],Y[-335,-325]+HeadShift/Scale,Z[570,590] joins it to the jack arm; it stands
 a designed stock 0.01 above the upper bar.
 At rear localY[-80,-60], a crossbar X[headX-55,headX+55],Z[565,580] joins the maiden bar above the hinge pin.
+Its seat in the maiden bar is a designed stock 0.01 larger on its floor and both walls.
 Two radius0.8 anchor stems reach the spring/cord datums from these timbers.
 Rear routing eyes have stock ID3,OD5,width1.2, centred at each (tailX,-69*Scale,600*Scale).
 Their axes bisect the incoming -Z and outgoing -Y directions; attach them with vertical stems to the rear crossbar.

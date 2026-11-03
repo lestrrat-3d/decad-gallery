@@ -160,7 +160,8 @@ func (b *builder) frameJoinery() {
 	}
 	b.machine("mother-base", basePilots...)
 	b.machine("mother-jack-arm", b.headStock(b.boardEdge(), -118*s, -330*s, -20*s, 555*s-5, 570*s+5))
-	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s, -60*s, 565*s, 580*s)})
+	// The rear crossbar's seat is a designed 0.01 larger than the crossbar on its floor and both walls.
+	barPasses = append(barPasses, []*decad.Body{b.headStock(-195*s, -85*s, -80*s-0.01, -60*s+0.01, 565*s-0.01, 580*s)})
 	var rearCrossbarTools []*decad.Body
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footName := fmt.Sprintf("maiden-foot-%d", i+1)
@@ -584,7 +585,8 @@ func (b *builder) mountInventory() {
 	add("yarn-front-guide", "bonded-thread-envelope-stalk-seat", refs("flyer-crossbar"), nil, 0)
 	add("yarn-leader", "process-yarn-with-free-input-end", refs("flyer-shaft", "yarn-front-guide", "yarn-hook-9", "bobbin-yarn-pack"), nil, 0)
 
-	add("brake-rear-crossbar", "glued-top-seat", refs("mother-upper-bar"), nil, 0)
+	// The crossbar stands a designed 0.01 off its seat.
+	add("brake-rear-crossbar", "glued-top-seat", refs("mother-upper-bar"), nil, 0.01)
 	// The upright stands a designed 0.01 above the jack arm and the upper bar.
 	add("brake-front-upright", "glued-face", refs("mother-jack-arm"), nil, 0.01)
 	add("brake-control-rail", "glued-face", refs("brake-front-upright"), nil, 0)
