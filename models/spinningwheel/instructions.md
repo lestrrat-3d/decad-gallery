@@ -247,7 +247,7 @@ Only moving knuckles/leaves receive HeadTilt; all share the same axis and transl
 Pins and both sets of knuckles are separate named native bodies. This is a real revolute hinge, not an annotation.
 
 Maiden feet span reference X=headX+-35*Scale, Y[postFront*Scale-12,postBack*Scale+2], Z[570,585]*Scale; each
-foot and its two square inserts stand a designed stock 0.01 above the maiden bar.
+foot and its two square inserts stand a designed stock 0.03 above the maiden bar.
 Each foot has two stock6.6 holes at X=headX+-10*Scale,Y=postFront*Scale-6; matching holes pass through the maiden bar.
 StockM6 bolts span referenceZ[560,585]*Scale, with stock12 OD,height4.2 heads above585*Scale.
 Where the front foot's heads reach above the control rail's Z590*Scale bottom (below Scale0.84), relieve the rail

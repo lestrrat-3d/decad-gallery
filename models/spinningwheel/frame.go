@@ -203,9 +203,10 @@ func (b *builder) adjustment() {
 	})
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footY := post[0]*s - 6.2 + shift
-		// The foot and its inserts stand a designed 0.01 above the upper bar's top face and socket floors: at Scale
-		// 0.8 the bar's held mesh cannot decide a flush face. The foot's top stays at the bolt heads' 585*Scale.
-		footBottom := 570*s + 0.01
+		// The foot and its inserts stand a designed 0.03 above the upper bar's top face and socket floors, more than
+		// the bar's held mesh bound (up to 0.013 at Scale 1.2): on the tilted head that mesh cannot decide a flush
+		// face, nor a gap inside its bound. The foot's top stays at the bolt heads' 585*Scale.
+		footBottom := 570*s + 0.03
 		b.liftedPart(fmt.Sprintf("maiden-foot-%d", i+1), "frame", "fixed", func() *decad.Body {
 			return b.liftPanel(hl, level(0, 0, footBottom), -175*s, post[0]*s-12+shift, -105*s, post[1]*s+2+shift,
 				585*s-footBottom, hole{-150 * s, footY, 3.3}, hole{-130 * s, footY, 3.3})
