@@ -173,10 +173,6 @@ func (b *builder) adjustment() {
 		return b.cut(body, b.localStock(hl, -50*s-8.1, -50*s+8.1,
 			-330*s+shift-8.1, -330*s+shift+8.1, 555*s, 555*s+8))
 	})
-	b.liftedPart("mother-jack-square-insert", "insert", "fixed", func() *decad.Body {
-		x, y := -50*s, -330*s+shift
-		return b.liftPanel(hl, level(0, 0, 555*s), x-8, y-8, x+8, y+8, 8, hole{x, y, 4})
-	})
 	theta := b.a.State.HeadTilt
 	h := (15*s + 122*s*math.Sin(theta)) / math.Cos(theta)
 	phase := math.Remainder(2*math.Pi*(h-15*s)/1.25, 2*math.Pi)
@@ -185,8 +181,15 @@ func (b *builder) adjustment() {
 	// The jack screw and its knob share one lift, the screw's phased axis frame then the head tilt, and every
 	// piece is placed on it before its Boolean.
 	jl := b.tilted(b.liftOf(axis))
+	b.liftedPart("mother-jack-square-insert", "insert", "fixed", func() *decad.Body {
+		x, y := -50*s, -330*s+shift
+		body := b.liftPanel(hl, level(0, 0, 555*s), x-8, y-8, x+8, y+8, 8)
+		// The thread bore is cut by the screw's own turned stock on the screw's lift (jackScrewStock), so the screw
+		// lies in the tool that opened the bore. The stock's cone ends below the insert and its top lies far above.
+		return b.cut(body, b.jackScrewStock(jl))
+	})
 	b.liftedPart("mother-jack-screw", "adjustment", "fixed", func() *decad.Body {
-		body := b.liftRevolve(jl, zAxis(0, 0, 0), []point2{{0, 0}, {4, 4}, {4, 58 * s}, {0, 58 * s}})
+		body := b.jackScrewStock(jl)
 		// The knob flat runs 5 past the screw's top face it opens.
 		return b.cut(body, b.localStock(jl, 3, 5, -5, 5, 42*s, 58*s+5))
 	})
@@ -277,6 +280,12 @@ func (b *builder) alignmentSlot(section *sketch.Sketch, x, y0, y1 float64) {
 		sketch.NewVerticalDistance(slot.C1, slot.C2, y1-y0),
 		sketch.NewRadius(slot.A1, 3.3),
 	)
+}
+
+// jackScrewStock is the jack screw's turned stock on its lift: a radius4 rod 58*Scale long with a cone point.
+func (b *builder) jackScrewStock(jl lift) *decad.Body {
+	s := b.p.Scale
+	return b.liftRevolve(jl, zAxis(0, 0, 0), []point2{{0, 0}, {4, 4}, {4, 58 * s}, {0, 58 * s}})
 }
 
 func (b *builder) verticalBolt(l lift, x, y, z0, z1, headHeight float64) *decad.Body {
