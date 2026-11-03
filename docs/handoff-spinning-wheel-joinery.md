@@ -1655,3 +1655,12 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   cut by the maiden's own section (`maidenStock`), which removes the same material as the old box. Cleared: both
   maidens in their feet, jack arm/foot 1, jack insert/jack arm, foot 2/rear crossbar and upright/jack arm.
   Revolved fasteners, the jack screw and knob, and the hinge leaves keep their own frames and the post tilt.
+- Flyer: 182 to 162 by the pair probe (`.tmp/lift-probe-flyer.log`); `TestSpinningWheelDefault` stops earlier at the
+  hook support check (`.tmp/lift-flyer.log`, see the hook note below). The shaft, keys, whorl, crossbar, arms and
+  their seat tools ride `flyerLift`, placed before every Cut; the flyer's round collars, spacers and sleeves ride
+  the fixed head lift; the flyer setscrews and their holes ride the flyer lift. Each crossbar socket is now its
+  arm's own stock, run 5 past the crossbar's end and far face. Cleared: both thrust spacers/rear bearing, both
+  bobbin bearings/inner race sleeve, both arms/crossbar, both keys/shaft. The 12 hook/arm pairs cleared only
+  because the thinner hook stems (`2bf3a02`) left a 0.1 mm gap in their r=1 seats.
+- Hook stems (`2bf3a02`, coordinator request): ordinary hook stems are r=0.9. In their r=1 arm seats that 0.09 mm
+  gap fails the default's geometric support check for all 12 hooks (bonded seat, clearance 0).

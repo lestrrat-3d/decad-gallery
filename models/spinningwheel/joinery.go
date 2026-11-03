@@ -7,7 +7,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 )
 
 func (b *builder) finishJoinery() {
@@ -210,7 +209,7 @@ func (b *builder) treadleJoinery() {
 
 func (b *builder) guideSeats() {
 	s := b.p.Scale
-	a := b.a.State.FlyerAngle
+	fl := b.flyerLift()
 	p := r3.Vec{X: 58 * s, Z: 22 * s}
 	r := 31 * s
 	q := p.Dot(p)
@@ -226,21 +225,22 @@ func (b *builder) guideSeats() {
 			down := r3.Vec{Z: -1}
 			e, _ := down.Sub(axis.Scale(down.Dot(axis))).Normalize()
 			attachment := (r3.Vec{X: x * s, Y: y * s, Z: 22 * s}).Add(e.Scale(4))
-			start := b.headPoint(attachment.X, attachment.Y, 6*s, a)
-			tools = append(tools, b.tiltBody(b.cylinder(1, 5*s,
-				axisFrame(start, headDirection(r3.Vec{Z: 1}, a)))))
+			// The seat runs along the flyer's +Z, local +Y, from flyer point (x, y, 6s).
+			tools = append(tools, b.liftCylinder(fl, frame(r3.Vec{X: attachment.X, Y: 6 * s, Z: -attachment.Y},
+				r3.Vec{Z: 1}, r3.Vec{X: 1}), 1, 5*s))
 		}
 		b.machine(fmt.Sprintf("flyer-arm-%d", side+1), tools...)
 	}
 	var crossbarTools []*decad.Body
-	// Each socket runs 5 past the crossbar's end and both its faces, so it never shares their planes.
+	// Each socket is its arm's own stock, run 5 past the crossbar's end and its far face, so the arm lies in
+	// the tool that opened its socket and no tool face is flush with a crossbar face.
 	for _, xr := range [][2]float64{{-74*s - 5, -56 * s}, {56 * s, 74*s + 5}} {
-		// Both the timber sockets and guide seat use the flyer's actual phase.
 		crossbarTools = append(crossbarTools,
-			b.tiltBody(b.panel(xr[0], -10*s, xr[1], 10*s, 10*s+10, b.headFrame(-210*s+5, a))))
+			b.liftPanel(fl, level(0, 0, 85*s), xr[0], -10*s, xr[1], 10*s, 135*s+5))
 	}
-	crossbarTools = append(crossbarTools, b.tiltBody(b.cylinder(1, 7*s,
-		axisFrame(b.headPoint(58*s, -221*s, 12*s, a), r3.Vec{Y: 1}))))
+	// The front guide's seat runs along world +Y, local -Z, from flyer point (58s, -221s, 12s).
+	crossbarTools = append(crossbarTools, b.liftCylinder(fl, frame(r3.Vec{X: 58 * s, Y: 12 * s, Z: 221 * s},
+		r3.Vec{Y: 1}, r3.Vec{X: 1}), 1, 7*s))
 	b.machine("flyer-crossbar", crossbarTools...)
 }
 
@@ -273,7 +273,6 @@ type collarSeat struct {
 
 func (b *builder) collarScrews() {
 	s := b.p.Scale
-	st := b.a.State
 	var seats []collarSeat
 	wl := b.wheelLift()
 	// The wheel's setscrews point along local -X, from the axle away from the crank pin.
@@ -300,12 +299,8 @@ func (b *builder) collarScrews() {
 		seats = append(seats, collarSeat{name: fmt.Sprintf("gimbal-cross-pin-collar-%d", i+1),
 			inner: 2.5, outer: 4.5, l: gl, hole: &hole})
 	}
-	hx, err := r3.RotationAround(st.HeadPivot, r3.Vec{Y: -1}, units.Radians(st.HeadTilt))
-	if err != nil {
-		b.fail("create collar head tilt", err)
-		return
-	}
-	fr := hx.ApplyDir(headDirection(r3.Vec{X: -1}, st.FlyerAngle))
+	// The flyer's setscrews turn with the flyer, so their holes ride the flyer lift along its local -X.
+	fl := b.flyerLift()
 	for _, item := range []struct {
 		name         string
 		y, in, outer float64
@@ -318,8 +313,8 @@ func (b *builder) collarScrews() {
 		{"crossbar-rear-collar", -210*s + 2.2, 8, 10},
 		{"bobbin-rear-removable-collar", -74*s + 8.7, 4, 6},
 	} {
-		seats = append(seats, collarSeat{name: item.name,
-			centre: hx.Apply(r3.Vec{X: -140 * s, Y: item.y + st.HeadShift, Z: 690 * s}), radial: fr, inner: item.in, outer: item.outer})
+		hole := frame(r3.Vec{Z: -item.y}, r3.Vec{Z: 1}, r3.Vec{Y: 1})
+		seats = append(seats, collarSeat{name: item.name, inner: item.in, outer: item.outer, l: fl, hole: &hole})
 	}
 	for _, seat := range seats {
 		i := b.partIndex(seat.name)

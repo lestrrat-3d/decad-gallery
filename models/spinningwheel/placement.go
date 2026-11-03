@@ -57,6 +57,13 @@ func (b *builder) headAt(y float64) r3.Frame {
 	return frame(r3.Vec{X: -140 * s, Y: y + b.a.State.HeadShift, Z: 690 * s}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 }
 
+// flyerLift carries the flyer at its own angle on the tilted head. Local Z runs along the flyer axis toward
+// -Y, so a body whose extrusion starts at head Y y starts at local level -y; local X and Y are the flyer's
+// radial axes, and the flyer point (x, y, z) of headPoint lies at local (x, z, -y).
+func (b *builder) flyerLift() lift {
+	return b.tilted(b.liftOf(b.headFrame(0, b.a.State.FlyerAngle)))
+}
+
 // level is the local plane through (x, y, z) with the lift's own axes, so a
 // body sketched on it extrudes along the lift's local Z.
 func level(x, y, z float64) r3.Frame {
