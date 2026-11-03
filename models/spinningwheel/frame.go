@@ -176,7 +176,9 @@ func (b *builder) adjustment() {
 	theta := b.a.State.HeadTilt
 	h := (15*s + 122*s*math.Sin(theta)) / math.Cos(theta)
 	phase := math.Remainder(2*math.Pi*(h-15*s)/1.25, 2*math.Pi)
-	axis := frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555*s - h},
+	// The axis is raised 1e-9 so the exact tilted apex lies on or above the shelf's float: computed at 555*Scale-h
+	// it fell 1.1e-13 below it at Scale 1.2. The touch check's tolerance is the mesh bound, far above 1e-9.
+	axis := frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555*s - h + 1e-9},
 		r3.Vec{X: math.Cos(phase), Y: math.Sin(phase)}, r3.Vec{X: -math.Sin(phase), Y: math.Cos(phase)})
 	// The jack screw and its knob share one lift, the screw's phased axis frame then the head tilt, and every
 	// piece is placed on it before its Boolean.
