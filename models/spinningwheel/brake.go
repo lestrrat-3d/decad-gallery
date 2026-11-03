@@ -102,10 +102,10 @@ func (b *builder) brake() {
 		dOutline(section, 2.1, 1.4)
 		return b.liftExtrude(section, 1, 5, tl)
 	})
-	b.part("brake-insert", "insert", "fixed", func() *decad.Body {
-		return b.panel(-4, -4, 4, 4, 4,
-			frame(r3.Vec{X: right, Y: front, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
-			hole{0, 0, 2})
+	// The insert rides the head lift in the same plane orientation as its socket tool (brakeSeats).
+	b.liftedPart("brake-insert", "insert", "fixed", func() *decad.Body {
+		return b.liftPanel(hl, frame(r3.Vec{X: right, Y: front, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
+			-4, -4, 4, 4, 4, hole{0, 0, 2})
 	})
 	b.part("brake-insert-retaining-plate", "retainer", "fixed", func() *decad.Body {
 		return b.panel(-8, -8, 8, 8, 1,

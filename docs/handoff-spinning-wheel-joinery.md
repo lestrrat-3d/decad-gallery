@@ -1777,3 +1777,7 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   every piece on their lift before Cut and Union (the leaf's pin bore runs 5 past both knuckle faces). Volumes
   match within bounds. 52 to 52 (`.tmp/lift-xform.log`): nothing clears yet; their mates are revolves and
   prisms on other lifts.
+- Prisms on different lifts (coordinator group 4): the brake insert rides the head lift, and its rail socket is
+  sketched in the insert's own plane orientation. 52 to 51 (`.tmp/lift-g45.log`, measured with the next item):
+  insert/rail clears. Footman 605-1/retainer-1 (gimbal vs rod lift) and bridge/crank 605 (gimbal vs wheel lift)
+  stay: each part already shares its lift with its other mates.

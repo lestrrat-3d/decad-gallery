@@ -256,8 +256,10 @@ func (b *builder) brakeSeats() {
 	// The left anchor terminates six stock millimetres inside the control rail.
 	anchor0, anchor1 := b.anchorStem()
 	var controlTools []*decad.Body
+	// The insert's socket is sketched in the insert's own plane orientation, 1 in front of the rail's front face.
 	controlTools = append(controlTools,
-		b.headStock(x1-4.1, x1+4.1, yf-1, yf+4, 600*s-4.1, 600*s+4.1),
+		b.liftPanel(b.headLift(), frame(r3.Vec{X: x1, Y: yf + b.a.State.HeadShift - 1, Z: 600 * s}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
+			-4.1, -4.1, 4.1, 4.1, 5),
 		b.liftCylinder(b.headLift(), frame(r3.Vec{X: x0, Y: anchor0, Z: 600 * s}, r3.Vec{Z: 1}, r3.Vec{X: 1}),
 			0.85, anchor1-anchor0))
 	// The mount pilots run 5 past the rail's front face they open; starting flush with it, the rounded tool
