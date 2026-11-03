@@ -177,8 +177,10 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 			continue
 		}
 		sweptMembers++
-		body, err := decad.Copy(t.Context(), part.Body, decad.WithCopyRotation(a.State.Flyer, r3.Vec{Y: -1}, units.Radians(-a.State.FlyerAngle-a.State.HeadTilt)))
-		require.NoError(t, err)
+		// The member sweeps a solid of revolution about the vertical axis through State.Flyer, whatever the head
+		// tilt and flyer phase it is posed at. Rotating the posed body about that axis cannot change the swept
+		// volume, so the posed body is used as built; re-posing it with Copy would break its exact bore axes.
+		body := part.Body
 		box, err := body.Bounds()
 		require.NoError(t, err)
 		radial := math.Hypot(math.Max(math.Abs(box.Min.X-a.State.Flyer.X), math.Abs(box.Max.X-a.State.Flyer.X)),
@@ -242,7 +244,6 @@ func requireFlyerSweptClearances(t *testing.T, a *spinningwheel.Assembly) {
 			require.Empty(t, why, "swept volume of %s cannot be proved clear of %s", part.Name, obstacle.Name)
 			t.Logf("%s sweeps clear of %s: smallest radial slab gap %.3f mm beyond both mesh bounds", part.Name, obstacle.Name, gap)
 		}
-		require.NoError(t, decad.Remove(body))
 	}
 	require.Equal(t, 17, sweptMembers, "crossbar, two arms, whorl and thirteen formed guides need swept checks")
 }
