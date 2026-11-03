@@ -215,10 +215,14 @@ func Motion(p Params) (State, error) {
 	alpha := math.Acos(difference / distance)
 	state.BeltLength = state.WheelPitch*(2*math.Pi-2*alpha) + state.FlyerPitch*2*alpha +
 		2*math.Sqrt(distance*distance-difference*difference)
-	brakePitch := 42*scale + 0.6*math.Sqrt(5)
-	state.BrakeLength = math.Pi*brakePitch + 612*scale - 36.8 + 14.6*math.Pi - 2*brakeShift(scale)
+	state.BrakeLength = math.Pi*brakePitch(scale) + 612*scale - 36.8 + 14.6*math.Pi - 2*brakeShift(scale)
 	return state, nil
 }
+
+// brakePitch is the brake band's path radius Rb about the bobbin axis. The stock 0.05 above the cord's tangent
+// pitch 42*Scale+0.6*sqrt(5) is a designed clearance: at the tangent pitch the stored cord and bobbin solids
+// overlap by rounding, which no exact proof can decide.
+func brakePitch(scale float64) float64 { return 42*scale + 0.6*math.Sqrt(5) + 0.05 }
 
 // brakeShift moves both brake springs, their screw and anchor ends and the cord tails toward +Y below Scale 1.
 // The take-up clevis reaches 9 stock mm in front of its spring's front end, so at full BrakeTravel 6 it must start

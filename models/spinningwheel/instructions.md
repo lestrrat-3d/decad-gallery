@@ -327,7 +327,7 @@ The axial incoming yarn remains on the rotation axis. Clear the crossbar, tube w
 
 All following geometry is in the reference head pose and receives the common head tilt.
 Stock brake cord radius0.6 wraps the upper semicircle at rear bobbin plane localY=-69*Scale,
-pitch Rb=42*Scale+0.6*sqrt(5). Tails at X=headX+-Rb descend to Z600*Scale.
+pitch Rb=42*Scale+0.6*sqrt(5)+0.05 stock; the 0.05 is a designed clearance over the bobbin. Tails at X=headX+-Rb descend to Z600*Scale.
 At that level they turn forward along -Y to leftY=-285*Scale+S+BrakeTravel/2 and rightY=-285*Scale+S-BrakeTravel/2,
 where the shift S=max(0,15-15*Scale) stock keeps the take-up clevis behind the control rail at full travel.
 Band centreline length pi*Rb+612*Scale-2*S stays constant over BrakeTravel. Do not confuse spring extension with cord stretch.

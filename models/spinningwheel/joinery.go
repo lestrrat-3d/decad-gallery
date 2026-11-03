@@ -172,7 +172,7 @@ func (b *builder) frameJoinery() {
 	rearCrossbarTools = append(rearCrossbarTools,
 		b.headStock(-175*s, -105*s, -54*s-12, -30*s+2, 570*s, 585*s),
 		b.liftCylinder(b.headLift(), level(-162*s, -90*s+b.a.State.HeadShift+23.5*s, 558*s-5), 1.5, 8*s+5))
-	rb := 42*s + 0.6*math.Sqrt(5)
+	rb := brakePitch(s)
 	eyeY, eyeZ0, eyeZ1 := b.routingEyeStem()
 	for _, x := range []float64{-140*s - rb, -140*s + rb} {
 		rearCrossbarTools = append(rearCrossbarTools,
@@ -280,7 +280,7 @@ func (b *builder) guideSeats() {
 
 func (b *builder) brakeSeats() {
 	s := b.p.Scale
-	r := 42*s + 0.6*math.Sqrt(5)
+	r := brakePitch(s)
 	x0, x1 := -140*s-r, -140*s+r
 	yf := -338 * s
 	// The left anchor terminates six stock millimetres inside the control rail.

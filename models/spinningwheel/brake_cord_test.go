@@ -20,7 +20,7 @@ func readBrakeCord(t *testing.T, p Params) brakeCordReading {
 	require.NoError(t, err)
 	s, travel, shift := p.Scale, p.BrakeTravel, b.a.State.HeadShift
 	x, z := -140*s, 600*s
-	radius := 42*s + 0.6*math.Sqrt(5)
+	radius := brakePitch(s)
 	d := brakeShift(s)
 	leftEnd := -285*s + d + shift + travel/2
 	rightEnd := -285*s + d + shift - travel/2

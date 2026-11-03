@@ -12,7 +12,7 @@ import (
 func (b *builder) brake() {
 	s, travel, shift := b.p.Scale, b.p.BrakeTravel, b.a.State.HeadShift
 	x, z := -140*s, 600*s
-	radius := 42*s + 0.6*math.Sqrt(5)
+	radius := brakePitch(s)
 	left, right := x-radius, x+radius
 	front := -338*s + shift
 	phase := 2 * math.Pi * travel / 0.7
