@@ -1784,3 +1784,8 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 - Flush ring stacks (coordinator group 5): a head ring's length is now taken between its shifted ends, the
   planes' own Y values, so two rings that share an end meet at one exact level. 51 to 50 (`.tmp/lift-g45.log`):
   rear-flyer front thrust spacer/front collar clears. Volumes match within bounds.
+
+## Update 2026-11-03: remaining default pairs
+
+- Footman boss bearing bore: cut by a tool on the cross bearings' gimbal lift (5 past both boss faces), not drawn
+  in the boss's rod-lift sketch. 50 to 48 (`.tmp/lift-boss.log`): both cross 605s/boss clear.

@@ -181,8 +181,9 @@ func (b *builder) driveFootman() {
 		return b.cut(body, b.liftCylinder(l, crossAt(head-boltOffset, 10*s+5), 1.1, 20*s+10))
 	})
 	b.part("footman-head-boss", "footman", "footman", func() *decad.Body {
-		return b.liftPanel(l, crossAt(0, 12*s), 460*s, -10*s, 498*s, 10*s, 24*s,
-			hole{head, 0, 7}, hole{head - boltOffset, 0, 1.1})
+		// The bearing bore is cut by a tool on the cross bearings' own gimbal lift (frameJoinery), so the bore and
+		// the bearings share one exact cylinder.
+		return b.liftPanel(l, crossAt(0, 12*s), 460*s, -10*s, 498*s, 10*s, 24*s, hole{head - boltOffset, 0, 1.1})
 	})
 	// The cross bearings and their spacer are round, so they ride the cross pin's own lift, the gimbal's.
 	gl := b.gimbalLift()
