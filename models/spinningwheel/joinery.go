@@ -105,10 +105,14 @@ func (b *builder) capStock(y0, front, back float64) *decad.Body {
 func (b *builder) frameJoinery() {
 	s := b.p.Scale
 	// XZ profiles extrude toward -Y, so their origins name the rear faces.
-	b.machine("head-leg", b.railStock(-55), b.railStock(85))
+	// Each heel bearing's radius11 seat runs from its outboard face out past the leg's inboard face.
+	hl := b.heelLift()
+	b.machine("head-leg", b.railStock(-55), b.railStock(85),
+		b.liftCylinder(hl, level(0, 0, -260*s-3.5), 11, (-240*s+5)-(-260*s-3.5)))
 	// Each cap socket runs 5 past the leg's top corner on the side away from the rails, which it opens; flush
 	// with that corner, the Cut needed Decad's gap shift. The leg has no material there, so the socket is the same.
-	b.machine("front-wheel-leg", b.railStock(-55), b.capStock(-55, 0, 5))
+	b.machine("front-wheel-leg", b.railStock(-55), b.capStock(-55, 0, 5),
+		b.liftCylinder(hl, level(0, 0, 200*s-5), 11, (220*s+3.5)-(200*s-5)))
 	b.machine("rear-wheel-leg", b.railStock(85), b.capStock(25, 5, 0))
 
 	var wedgeTools []*decad.Body
@@ -404,7 +408,8 @@ func (b *builder) mountInventory() {
 		add(fmt.Sprintf("wheel-bearing-%d-ring", i+1), "press-fit", refs(cap), nil, 0)
 	}
 	for i, leg := range []string{"head-leg", "front-wheel-leg"} {
-		add(fmt.Sprintf("heel-bearing-%d", i+1), "press-fit", refs(leg), nil, 0)
+		add(fmt.Sprintf("heel-bearing-%d-ring", i+1), "press-fit", refs(leg), nil, 0)
+		add(fmt.Sprintf("heel-bearing-%d", i+1), "press-fit", refs(leg), refs(fmt.Sprintf("heel-bearing-%d-ring", i+1)), 0)
 	}
 	add("mother-base", "bolted-sliding-alignment", refs("front-head-wedge", "rear-head-wedge"),
 		refs("mother-alignment-clamp-1", "mother-alignment-clamp-2", "mother-alignment-insert-1", "mother-alignment-insert-2"), 0.3)

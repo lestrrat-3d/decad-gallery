@@ -150,6 +150,8 @@ Board, heel rail and diagonal rail are separate named rigid wood joints, Motion 
 An8 mm stock rotating heel shaft spans X[-283,243]*Scale at Y=-190*Scale,Z60*Scale.
 Cut its stock flat at local radial coordinate3 over X[-234,194]*Scale only; journals stay round.
 Two stock608 bearings have axis X and centres(-260,-190,60)*Scale and(220,-190,60)*Scale;
+each leg's heel bore is stock radius9 outboard of its bearing, a shoulder on the outer race, with the radius11 seat
+cut from the inboard side and a stock ID18,OD22,width1 retaining ring on the outer race's inboard face;
 their stock7 widths are centred on those X coordinates. They seat in the two structural leg bores.
 Stock12 OD,8 ID,3 wide collars lie0.2 outside each bearing pair's outer width face.
 Stock11 OD,8 ID spacers fill from each bearing's inner face to the heel-rail end, with0.2 end gaps.

@@ -1850,3 +1850,10 @@ These were checked against the Gallery options above; each needs a Decad reader 
   material). An end-face probe at 0.15 mm past each race face (`zz_bearing_probe_test.go`, untracked) now finds
   material on all four faces of both bearings (outer faces were empty). Focused check (`.tmp/focus-wb.log`): no
   undecided pair among caps, bearings, rings, spacers, axle and legs.
+- Heel bearing retention: each leg's heel bore is drawn at radius 9 and the bearing's radius 11 seat is cut on the
+  heel lift from the bearing's outboard face out past the leg's inboard face, leaving a shoulder; a new retaining
+  ring (`heel-bearing-N-ring`) holds the inboard face; spec line added. Each leg gains the shoulder material
+  (front wheel leg +2069.5 mm^3). The end-face probe now finds material on both outer-race faces of both bearings;
+  the inner-race faces stay uncovered at 0.15 mm because the heel spacer and collar sit 0.2 mm off them by design.
+  Focused check (`.tmp/focus-hb.log`): no undecided pair among the legs, bearings, rings, heel pin, spacers,
+  collars, heel rail and bench rails.

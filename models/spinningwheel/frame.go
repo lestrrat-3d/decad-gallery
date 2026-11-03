@@ -27,8 +27,10 @@ func (b *builder) frame() {
 			section := b.section(false)
 			polygon(section, scaled(s, leg.outline...))
 			holes := 0
+			// The heel bore is drawn at stock radius9; the bearing's radius11 seat is cut from the inboard side
+			// (frameJoinery), leaving a shoulder on the outer race's outboard face.
 			if leg.heel {
-				circle(section, -190*s, 60*s, 11)
+				circle(section, -190*s, 60*s, 9)
 				holes = 1
 			}
 			return b.extrude(section, holes, (leg.x1-leg.x0)*s,
@@ -102,6 +104,14 @@ func (b *builder) frame() {
 	for i, x := range []float64{-260, 220} {
 		b.part(fmt.Sprintf("heel-bearing-%d", i+1), "bearing", "fixed", func() *decad.Body {
 			return b.liftAnnulus(hl, level(0, 0, x*s-3.5), 4, 11, 7)
+		})
+		// A stock retaining ring in the seat holds the outer race's inboard face.
+		ring := x*s + 3.5
+		if i == 1 {
+			ring = x*s - 3.5 - 1
+		}
+		b.part(fmt.Sprintf("heel-bearing-%d-ring", i+1), "retainer", "fixed", func() *decad.Body {
+			return b.liftAnnulus(hl, level(0, 0, ring), 9, 11, 1)
 		})
 	}
 	for i, interval := range [][2]float64{{-55*s - 3, -55 * s}, {55 * s, 55*s + 3}} {
