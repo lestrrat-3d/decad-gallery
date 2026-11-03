@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 )
 
 func (b *builder) drive() {
@@ -37,7 +38,7 @@ func (b *builder) driveWheel() {
 	at := func(y float64) r3.Frame { return wheelAt(0, 0, y) }
 	b.part("wheel-rim", "wheel", "wheel", func() *decad.Body {
 		// The section's height h lies at world Y 10s-h.
-		return b.liftRevolve(l, zAxis(0, 0, -10*s), scaled(s,
+		return b.liftRevolve(b.rimLift(), zAxis(0, 0, -10*s), scaled(s,
 			point2{255, 0}, point2{280, 0}, point2{280, 7}, point2{274, 10},
 			point2{280, 13}, point2{280, 20}, point2{255, 20}))
 	})
@@ -296,7 +297,14 @@ func (b *builder) driveTreadle() {
 		r3.Vec{Y: 1}, r3.Vec{X: 1}, 12*s)
 }
 
-func (b *builder) driveBand() {
+// bandTangents is the drive band's geometry: the unit directions from each pulley centre to the band's two
+// tangent points, and the cosine q of the wrap's half gap.
+type bandTangents struct {
+	plus, minus r3.Vec
+	q           float64
+}
+
+func (b *builder) bandTangents() bandTangents {
 	state := b.a.State
 	delta := state.Flyer.Sub(state.Wheel)
 	d := delta.Len()
@@ -304,19 +312,51 @@ func (b *builder) driveBand() {
 	v := r3.Vec{X: -u.Z, Z: u.X}
 	q := (state.WheelPitch - state.FlyerPitch) / d
 	k := math.Sqrt(1 - q*q)
-	plus := u.Scale(q).Add(v.Scale(k))
-	minus := u.Scale(q).Sub(v.Scale(k))
+	return bandTangents{plus: u.Scale(q).Add(v.Scale(k)), minus: u.Scale(q).Sub(v.Scale(k)), q: q}
+}
+
+// rimLift carries the wheel rim and the band's wheel wrap. It turns the wheel lift's axes about the axle so its
+// local +X is the wrap's start ray: the wrap is a revolve from its section plane, and sharing the rim's lift lets
+// Verify compare the wrap's disc with the rim's meridian. The rim is round, so its pose does not matter.
+func (b *builder) rimLift() lift {
+	w := b.a.State.Wheel
+	t := b.bandTangents()
+	return b.liftOf(shaftFrame(w.X, 0, w.Z, math.Atan2(t.plus.Z, t.plus.X)))
+}
+
+// liftWrap is a band wrap of the given pitch radius and wire radius, turned angle from l's local +X about its
+// local Z, in the plane at local level z.
+func (b *builder) liftWrap(l lift, z, radius, wire, angle float64) *decad.Body {
+	s := b.sectionOn(zAxis(0, 0, z))
+	circle(s, radius, 0, wire)
+	p := b.profile(s, 0)
+	if b.err != nil {
+		return nil
+	}
+	body, err := decad.Revolve(b.ctx, b.doc, s, p, decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
+		decad.AngleExtent{A: units.Radians(angle), Dir: decad.Along})
+	if err != nil {
+		b.fail("revolve band wrap", err)
+		return nil
+	}
+	return b.lifted(body, l)
+}
+
+func (b *builder) driveBand() {
+	state := b.a.State
+	t := b.bandTangents()
+	plus, minus, q := t.plus, t.minus, t.q
 	wheelPlus := state.Wheel.Add(plus.Scale(state.WheelPitch))
 	wheelMinus := state.Wheel.Add(minus.Scale(state.WheelPitch))
 	flyerPlus := state.Flyer.Add(plus.Scale(state.FlyerPitch))
 	flyerMinus := state.Flyer.Add(minus.Scale(state.FlyerPitch))
 	b.part("drive-band-wheel-wrap", "drive-band", "fixed", func() *decad.Body {
-		return b.torus(state.WheelPitch, 1, math.Atan2(plus.Z, plus.X),
-			2*math.Pi-2*math.Acos(q), state.Wheel)
+		return b.liftWrap(b.rimLift(), 0, state.WheelPitch, 1, 2*math.Pi-2*math.Acos(q))
 	})
+	// The flyer wrap keeps its own frame: the whorl's keyway cut needs the whorl on the flyer lift, whose local +X
+	// is not the wrap's start ray.
 	b.part("drive-band-flyer-wrap", "drive-band", "fixed", func() *decad.Body {
-		return b.torus(state.FlyerPitch, 1, math.Atan2(minus.Z, minus.X),
-			2*math.Acos(q), state.Flyer)
+		return b.torus(state.FlyerPitch, 1, math.Atan2(minus.Z, minus.X), 2*math.Acos(q), state.Flyer)
 	})
 	b.part("drive-band-span-1", "drive-band", "fixed", func() *decad.Body {
 		return b.span(wheelPlus, flyerPlus, 1)

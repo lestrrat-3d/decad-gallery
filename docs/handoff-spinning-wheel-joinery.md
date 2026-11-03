@@ -1714,3 +1714,14 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   and tessellate at 0.05 mm, and `TestSpinningWheelConnectorDefault` passes (`.tmp/conn-poses.log`). The default
   connector loses 56 mm^3 of 1183 and its bounds move 0.1 mm (`.tmp/lift-geom-conn-cmp.txt`). The default count
   stays 112 (`.tmp/lift-conn.log`).
+- Drive band wraps (coordinator request): the wheel wrap and the rim share `rimLift`, the wheel lift turned so its
+  local +X is the wrap's start ray, and the wrap is a revolve from that plane. 112 to 111 (`.tmp/lift-band2.log`):
+  wheel wrap/rim clears. The same move for the flyer wrap put the whorl's revolve on a lift other than its keyway
+  tool's, so the whorl Cut went to a mesh and failed the whorl's tight volume check (`.tmp/lift-band.log`); the
+  flyer wrap keeps its own frame. Clearing wrap/whorl needs the keyway outline turned in the whorl's sketch, or a
+  meridian proof between revolves on lifts that share only their axis.
+- Hooks, front guide, routing eyes, left anchor, take-up screw: each is a Union of a stem with a ring, eye or
+  clevis. A probe (`zz_hook_probe_test.go`, untracked) with hook, arm and seat all on the flyer lift, the seat being
+  the stem's own stock, decides stem/arm but not hook/arm: the history walk needs every Union operand to miss the
+  arm, and no leaf test separates the partial-revolve ring from the arm prism, although their boxes are 7 mm apart.
+  A box test for leaf pairs in Decad's history walk would unblock these; moving lifts alone does not.
