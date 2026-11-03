@@ -285,9 +285,13 @@ func (b *builder) guideSeats() {
 	}
 	// The front guide's seat is its stalk's own stock run 1s deeper: along world +Y, local -Z, from the stalk's
 	// start at flyer point (58s, -224s, 12s) to -214s, so the stalk lies in the tool that opened its seat.
+	// The seat is a designed 0.03 wider than the stalk, the smallest that decides at Scale 0.8 (0.02 fails): the
+	// guide is a held Union whose bound reaches 0.048 mm there.
 	crossbarTools = append(crossbarTools, b.liftCylinder(fl, frame(r3.Vec{X: 58 * s, Y: 12 * s, Z: 224 * s},
-		r3.Vec{Y: 1}, r3.Vec{X: 1}), 1, -214*s-(-224*s)))
-	b.machine("flyer-crossbar", crossbarTools...)
+		r3.Vec{Y: 1}, r3.Vec{X: 1}), 1.03, -214*s-(-224*s)))
+	// The guide seat is cut first, into the sketched crossbar: cut after the arm sockets, its Cut needed a chain
+	// allowance near the socket's top face.
+	b.machine("flyer-crossbar", append(crossbarTools[len(crossbarTools)-1:], crossbarTools[:len(crossbarTools)-1]...)...)
 }
 
 func (b *builder) brakeSeats() {
