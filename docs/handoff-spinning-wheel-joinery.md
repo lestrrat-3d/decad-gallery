@@ -1685,3 +1685,11 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   The edge is now max(5*Scale, 5) from the axis (`boardEdge`), also for the jack arm's board socket. Default and
   `twelve` are unchanged within bounds; at `small-seven` the board loses 2850 mm^3 and the jack arm keeps
   115 mm^3 more (`.tmp/var-geom-fix12-cmp.txt`).
+- Foot bolt heads vs control rail (coordinator request): the front foot's stock 4.2 bolt heads reach above the rail
+  bottom at 590*Scale below Scale 0.84 (5.27 mm^3 each at 0.8). The rail now gets stock radius 6 head pockets
+  there, from 5 below its bottom face to the head tops; above that scale nothing changes. At `small-seven` the
+  rail loses 10.5 mm^3; default and `twelve` are unchanged within bounds.
+- Variants after these fixes (`.tmp/var-fix12-*.log`): default 131 undecided; `small-seven` 160 undecided, no
+  overlap; `large-nine` connected, 153 undecided, no overlap; `small-seventeen` stops at one overlap,
+  `brake-takeup-screw` / `brake-control-rail` 84.5 mm^3. The screw's clevis reaches 15*Scale-BrakeTravel-9 behind
+  the rail's rear face, which is below zero at Scale 0.8 with travel 6; that needs a design decision.

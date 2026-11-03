@@ -231,6 +231,8 @@ Pins and both sets of knuckles are separate named native bodies. This is a real 
 Maiden feet span reference X=headX+-35*Scale, Y[postFront*Scale-12,postBack*Scale+2], Z[570,585]*Scale.
 Each foot has two stock6.6 holes at X=headX+-10*Scale,Y=postFront*Scale-6; matching holes pass through the maiden bar.
 StockM6 bolts span referenceZ[560,585]*Scale, with stock12 OD,height4.2 heads above585*Scale.
+Where the front foot's heads reach above the control rail's Z590*Scale bottom (below Scale0.84), relieve the rail
+with stock12 diameter head pockets up to the head tops.
 Feet and posts are rigid wooden joints. Rear support unbolts for bobbin removal.
 Keep tall post geometry outside the bolt holes; do not send mounting bolts through bearing bores.
 
