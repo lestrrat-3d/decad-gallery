@@ -588,8 +588,9 @@ func (b *builder) mountInventory() {
 		}
 		add(fmt.Sprintf("yarn-hook-%d", i), "bonded-thread-envelope-seat", refs(arm), nil, 0)
 	}
-	add("yarn-front-guide", "bonded-thread-envelope-stalk-seat", refs("flyer-crossbar"), nil, 0)
-	add("yarn-leader", "process-yarn-with-free-input-end", refs("flyer-shaft", "yarn-front-guide", "yarn-hook-9", "bobbin-yarn-pack"), nil, 0)
+	// The stalk stands a designed 0.03 off its seat.
+	add("yarn-front-guide", "bonded-thread-envelope-stalk-seat", refs("flyer-crossbar"), nil, 0.03)
+	add("yarn-leader", "process-yarn-with-free-input-end", refs("flyer-shaft", "yarn-front-guide", "yarn-hook-9", "bobbin-yarn-pack"), nil, 0.01)
 
 	// The crossbar stands a designed 0.01 off its seat.
 	add("brake-rear-crossbar", "glued-top-seat", refs("mother-upper-bar"), nil, 0.01)
