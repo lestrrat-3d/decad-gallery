@@ -161,7 +161,8 @@ func (b *builder) adjustment() {
 	jl := b.tilted(b.liftOf(axis))
 	b.liftedPart("mother-jack-screw", "adjustment", "fixed", func() *decad.Body {
 		body := b.liftRevolve(jl, zAxis(0, 0, 0), []point2{{0, 0}, {4, 4}, {4, 58 * s}, {0, 58 * s}})
-		return b.cut(body, b.localStock(jl, 3, 5, -5, 5, 42*s, 58*s))
+		// The knob flat runs 5 past the screw's top face it opens.
+		return b.cut(body, b.localStock(jl, 3, 5, -5, 5, 42*s, 58*s+5))
 	})
 	b.liftedPart("mother-jack-knob", "adjustment", "fixed", func() *decad.Body {
 		knob := b.sectionOn(level(0, 0, 42*s))

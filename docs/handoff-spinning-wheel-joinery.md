@@ -1814,3 +1814,10 @@ These were checked against the Gallery options above; each needs a Decad reader 
 | Half-lap intersection reasoning (A ∩ B lies in a tool) | treadle/treadle-actuating-rail, treadle-heel-rail/treadle, treadle-heel-rail/treadle-actuating-rail |
 | Two lifts with one shared axis but different radial axes (gimbal and rod frames) | footman-cross-605-1/footman-cross-retainer-1 |
 - Decad pin `afb86835c` (#3086, Refine results and Cut-tool meridians): 45 to 34 (`.tmp/lift-pin8.log`).
+- Measurement from here: a focused probe (`zz_focus_probe_test.go`, untracked; `.tmp/focus.sh`) builds the default,
+  removes every part but the touched ones and verifies those; the full default runs once per batch.
+- Fixed mounts on their hole tools' numbers: tried and reverted; the 4 fixed-mount/bracket pairs stay (the screw
+  head sits inside the Cut-tool strip's levels, which run 5 past the bracket's top face).
+- Jack screw: its knob flat now runs 5 past the screw's top face, so the Cut needs no gap shift. Focused check
+  (`.tmp/focus-jack.log`): 3 to 1 undecided among jack screw, knob, insert and base; the screw keeps its volume
+  within bounds. Screw/knob stays (D-flat contact).
