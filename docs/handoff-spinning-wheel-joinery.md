@@ -1725,3 +1725,4 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   the stem's own stock, decides stem/arm but not hook/arm: the history walk needs every Union operand to miss the
   arm, and no leaf test separates the partial-revolve ring from the arm prism, although their boxes are 7 mm apart.
   A box test for leaf pairs in Decad's history walk would unblock these; moving lifts alone does not.
+- Decad pin `e2f4d61a7`: 111 to 109 (`.tmp/lift-pin5.log`). Native default and `TestSpinningWheelRearRailClearance` pass.
