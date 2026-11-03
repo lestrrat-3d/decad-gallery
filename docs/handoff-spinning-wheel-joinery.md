@@ -1753,3 +1753,9 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   match the previous build within bounds.
 - Decad pin `194293242` (#3077 slab separator): 98 to 92 (`.tmp/lift-pin6.log`): hooks 1 to 6 against arm 1 clear. Native default passes.
 - Decad pin `d2a5bfc36` (#3081): 92 to 83 (`.tmp/lift-pin7.log`). Native default passes.
+- Front guide at `small-seventeen` (coordinator request): the guide's stem has the wire's radius 1 (spec
+  diameter 2) and ended on the wire's centreline, where two equal round bars meet tangentially; at Scale 0.8 the
+  Union refused. The stem now stops 0.5 below that centreline (spec line amended, diameter kept). The guide builds
+  at default, `small-seven`, `large-nine`, `twelve` and `small-seventeen`; its volume moves 0.02 mm^3, within
+  bounds. Default stays 83 (`.tmp/lift-guide.log`); `small-seventeen` builds and stops only at 106 undecided pairs
+  (`.tmp/guide-small-seventeen.log`).

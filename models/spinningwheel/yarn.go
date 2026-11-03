@@ -147,8 +147,13 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 	if front {
 		stemRadius = 1
 	}
-	// The stem rises along the flyer's +Z, local +Y.
-	stem := b.liftCylinder(fl, frame(local(bottom), r3.Vec{Z: 1}, r3.Vec{X: 1}), stemRadius, attachment.Z-stemZ)
+	// The stem rises along the flyer's +Z, local +Y. The front guide's stem has the wire's own radius, so it stops
+	// 0.5 below the wire's centreline: two equal round bars that meet at that centreline touch tangentially there.
+	stemTop := attachment.Z
+	if front {
+		stemTop -= 0.5
+	}
+	stem := b.liftCylinder(fl, frame(local(bottom), r3.Vec{Z: 1}, r3.Vec{X: 1}), stemRadius, stemTop-stemZ)
 	if !front {
 		return b.union(hook, stem)
 	}

@@ -302,6 +302,7 @@ Add a front routing guide at X58*Scale,Y=-224*Scale,Z22*Scale.
 Its incoming unit direction is normalize((58,3,0)), and its axis bisects that direction and +Y.
 The routing hook is now well behind the front maiden and whorl; retain its clearance through a full rotation.
 Attach its bottom via a diameter2 vertical stem to Z12*Scale and a horizontal stalk toY=-215*Scale,
+the stem ending 0.5 below the wire's centreline so the two equal round bars never meet tangentially,
 inside the front crossbar. Both yarn strands clear the hoop walls.
 Final strand goes from selected guide to a tangent point on yarn pack radius31*Scale, in the sameY=-160 plane.
 For P=(58,22)*Scale and R=31*Scale, tangent point T=(R²/|P|²)P
