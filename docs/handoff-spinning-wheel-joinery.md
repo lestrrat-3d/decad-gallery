@@ -1884,3 +1884,7 @@ These were checked against the Gallery options above; each needs a Decad reader 
   separate passes), above the footman group's 0.01 mm tessellation check, and Refine cannot bring it back under
   0.01 (`.tmp/lift-batch12.log`, `.tmp/focus-boss3.log`, `.tmp/focus-boss4.log`). The boss is back to the box
   socket; boss/footman stays undecided.
+- Decad pin `0b4a0b6` (#3093) decides jack screw/knob, take-up screw/knob and flyer shaft/crossbar. The take-up
+  shaft is now a designed 0.01 under the insert's radius 2 bore (radius 1.99; spec line added): the screw loses
+  3.65 mm^3 (648.287 to 644.641) and keeps its bounds. Focused check (`.tmp/focus-tk10.log`): no undecided pair
+  among the take-up screw, knob, insert, right front pin and control rail (screw/insert was undecided before).

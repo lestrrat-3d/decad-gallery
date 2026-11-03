@@ -90,8 +90,10 @@ func (b *builder) brake() {
 	tl := b.brakeTurn(axisOrigin, phase)
 	b.liftedPart("brake-takeup-screw", "adjustment", "fixed", func() *decad.Body {
 		// The shaft ends 1 inside the clevis's front wall, not flush with the clevis slot's front face.
+		// The shaft is a designed 0.01 under the insert's radius2 bore: the two ride different lifts, and a zero
+		// radial margin between them cannot be decided.
 		shaft := b.liftCylinder(tl, frame(r3.Vec{X: right, Y: shaftFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
-			2, rightStart-7-shaftFront)
+			2-0.01, rightStart-7-shaftFront)
 		// The knob flat runs 5 past the shaft's front face it opens.
 		flat := b.localStock(tl, right+1.3, right+3, shaftFront-5, knobFront+5, z-3, z+3)
 		shaft = b.cut(shaft, flat)

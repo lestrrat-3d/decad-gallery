@@ -347,6 +347,7 @@ Their axes bisect the incoming -Z and outgoing -Y directions; attach them with v
 They guide the cord's right-angle bends below the flyer. Keep cords out of the wood and eye walls.
 
 Use stockM4 horizontal take-up screw axis+Y at the right tailX,Z600*Scale, through the front control rail.
+Its thread envelope is radius1.99, a designed 0.01 radial clearance in the insert's stock4 thread bore.
 Its reference Y range is[-350*Scale-BrakeTravel,-310*Scale+S-BrakeTravel-2].
 End eye centreY=-310*Scale+S-BrakeTravel, stock OD5,ID2.6,width1.2,axisX.
 Knob OD20*Scale,height5 stock occupiesY[-348*Scale-BrakeTravel,-348*Scale-BrakeTravel+5].
