@@ -163,60 +163,66 @@ func (b *builder) driveGimbal() {
 	}
 }
 
+// footmanLift carries the footman group in RodFrame: local X runs from the toe up the rod, local Y along the
+// cross pin and local Z across the rod. RodHead lies at local (486s, 0, 0).
+func (b *builder) footmanLift() lift { return b.liftOf(b.a.State.RodFrame) }
+
 func (b *builder) driveFootman() {
 	s := b.p.Scale
-	r := b.a.State.RodFrame
-	point := r.ToWorld
+	l := b.footmanLift()
 	// The tie bolt sits 2 mm inside the rod end at every scale; a fixed 12 mm offset
 	// lands on the end face at Scale 1.2 and breaks out of the rod above 1.09.
 	boltOffset := 10*s + 2
-	sectionFrame := func(v float64) r3.Frame {
-		return frame(point(r3.Vec{Y: v}), r.U(), r.N())
-	}
+	head := 486 * s
 	b.part("footman", "footman", "footman", func() *decad.Body {
-		body := b.panel(20*s, -5*s, 476*s, 5*s, 20*s, sectionFrame(10*s), hole{26 * s, 0, 2.2})
-		return b.cut(body, b.cylinder(1.1, 20*s,
-			frame(point(r3.Vec{X: 486*s - boltOffset, Y: 10 * s}), r.U(), r.N())))
+		body := b.liftPanel(l, crossAt(0, 10*s), 20*s, -5*s, 476*s, 5*s, 20*s, hole{26 * s, 0, 2.2})
+		// The tie-bolt passage runs 5 past both rod faces it opens.
+		return b.cut(body, b.liftCylinder(l, crossAt(head-boltOffset, 10*s+5), 1.1, 20*s+10))
 	})
 	b.part("footman-head-boss", "footman", "footman", func() *decad.Body {
-		return b.panel(460*s, -10*s, 498*s, 10*s, 24*s, sectionFrame(12*s),
-			hole{486 * s, 0, 7}, hole{486*s - boltOffset, 0, 1.1})
+		return b.liftPanel(l, crossAt(0, 12*s), 460*s, -10*s, 498*s, 10*s, 24*s,
+			hole{head, 0, 7}, hole{head - boltOffset, 0, 1.1})
 	})
-	centre := b.a.State.RodHead
-	axial := func(v float64) r3.Frame { return axisFrame(centre.Add(r.V().Scale(v)), r.V()) }
-	for i, start := range []float64{-12 * s, 12*s - 5} {
+	// The cross bearings and their spacer are round, so they ride the cross pin's own lift, the gimbal's.
+	gl := b.gimbalLift()
+	for i, v := range [][2]float64{{-12 * s, -12*s + 5}, {12*s - 5, 12 * s}} {
 		b.part(fmt.Sprintf("footman-cross-605-%d", i+1), "bearing", "footman", func() *decad.Body {
-			return b.annulus(2.5, 7, 5, axial(start))
+			return b.liftAnnulus(gl, crossAt(32*s, v[1]), 2.5, 7, v[1]-v[0])
 		})
 	}
 	b.part("footman-cross-spacer", "spacer", "footman", func() *decad.Body {
-		return b.annulus(2.5, 4, 24*s-10, axial(-12*s+5))
+		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, (12*s-5)-(-12*s+5))
 	})
-	for i, start := range []float64{-12 * s, 12*s + 2} {
+	for i, v := range [][2]float64{{-12*s - 2, -12 * s}, {12 * s, 12*s + 2}} {
 		b.part(fmt.Sprintf("footman-cross-retainer-%d", i+1), "retainer", "footman", func() *decad.Body {
-			f := frame(centre.Add(r.V().Scale(start)), r.U(), r.N())
-			return b.panel(-18*s, -10*s, 12*s, 10*s, 2, f, hole{0, 0, 5}, hole{-boltOffset, 0, 1.1})
+			return b.liftPanel(l, crossAt(head, v[1]), -18*s, -10*s, 12*s, 10*s, v[1]-v[0],
+				hole{0, 0, 5}, hole{-boltOffset, 0, 1.1})
 		})
 	}
-	boltCentre := centre.Sub(r.U().Scale(boltOffset))
+	bolt := head - boltOffset
 	b.part("footman-retainer-bolt", "fastener", "footman", func() *decad.Body {
-		return b.revolve([]point2{{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 24*s + 7}, {0, 24*s + 7}},
-			axisFrame(boltCentre.Sub(r.V().Scale(12*s+3)), r.V()))
+		// The bolt turns about local Y, its head under retainer 1.
+		return b.liftRevolve(l, frame(r3.Vec{X: bolt, Y: -12*s - 3}, r3.Vec{X: 1}, r3.Vec{Y: 1}), []point2{
+			{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 24*s + 7}, {0, 24*s + 7}})
 	})
 	b.part("footman-retainer-nut", "fastener", "footman", func() *decad.Body {
-		return b.annulus(1, 2, 2, axisFrame(boltCentre.Add(r.V().Scale(12*s+2)), r.V()))
+		return b.liftAnnulus(l, crossAt(bolt, 12*s+4), 1, 2, (12*s+4)-(12*s+2))
 	})
-	b.driveClamp("footman-upper-clamp", "footman", b.a.State.Toe.Add(r.U().Scale(26*s)), r.V(), 10*s)
+	// The upper clamp sits 26s up the rod from the toe, its axis along the cross pin.
+	b.driveClamp("footman-upper-clamp", "footman", l, r3.Vec{X: 26 * s}, r3.Vec{X: 1}, r3.Vec{Y: 1}, 10*s)
 }
 
-func (b *builder) driveClamp(name, motion string, centre, axis r3.Vec, face float64) {
+// driveClamp builds a cross clamp's headed pin and nut on l. centre is the clamp centre, axis the clamp axis
+// and u a direction normal to it, all signed axes in l's local coordinates; face is the distance from the
+// centre to each clamped face.
+func (b *builder) driveClamp(name, motion string, l lift, centre, u, axis r3.Vec, face float64) {
 	b.part(name+"-pin", "fastener", motion, func() *decad.Body {
-		return b.revolve([]point2{
+		return b.liftRevolve(l, frame(centre.Sub(axis.Scale(face+2)), u, axis), []point2{
 			{0, 0}, {3.5, 0}, {3.5, 2}, {2, 2}, {2, 2*face + 4.2}, {0, 2*face + 4.2},
-		}, axisFrame(centre.Sub(axis.Scale(face+2)), axis))
+		})
 	})
 	b.part(name+"-nut", "fastener", motion, func() *decad.Body {
-		return b.annulus(2, 3.5, 2, axisFrame(centre.Add(axis.Scale(face)), axis))
+		return b.liftAnnulus(l, frame(centre.Add(axis.Scale(face)), u, axis.Cross(u)), 2, 3.5, 2)
 	})
 }
 
@@ -267,7 +273,9 @@ func (b *builder) driveTreadle() {
 			return b.annulus(4, 5.5, interval[1]-interval[0], yz(interval[0]))
 		})
 	}
-	b.driveClamp("treadle-lower-clamp", "treadle", b.a.State.Toe.Sub(p.N().Scale(12*s)), p.U(), 12*s)
+	// The toe lies at PedalFrame local (220s, 450s, 20s); the clamp centre 12s below it, its axis along local X.
+	b.driveClamp("treadle-lower-clamp", "treadle", b.liftOf(p), r3.Vec{X: 220 * s, Y: 450 * s, Z: 8 * s},
+		r3.Vec{Y: 1}, r3.Vec{X: 1}, 12*s)
 }
 
 func (b *builder) driveBand() {

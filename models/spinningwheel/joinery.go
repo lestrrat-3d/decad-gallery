@@ -140,7 +140,7 @@ func (b *builder) frameJoinery() {
 			b.headBore(0.85, eyeZ-576*s, r3.Vec{X: x, Y: eyeY, Z: 576 * s}, r3.Vec{Z: 1}))
 	}
 	b.machine("brake-rear-crossbar", rearCrossbarTools...)
-	b.machine("footman-head-boss", b.localStock(b.a.State.RodFrame, 460*s, 476*s, -10*s, 10*s, -5*s, 5*s))
+	b.machine("footman-head-boss", b.liftPanel(b.footmanLift(), level(0, 0, -5*s), 460*s, -10*s, 476*s, 10*s, 10*s))
 
 	// The radial spoke blanks seat in the hub and the rim rather than sharing material.
 	var hubTools, rimTools []*decad.Body
@@ -187,8 +187,8 @@ func (b *builder) treadleJoinery() {
 	b.machine("treadle-connector-block",
 		b.localStock(f, 160*s, 220*s, 438*s-5, 462*s+5, -12*s-5, 0),
 		b.cylinder(3.2, 10*s, axisFrame(f.ToWorld(r3.Vec{X: 220 * s, Y: 450 * s, Z: 3 * s}), f.N())))
-	r := b.a.State.RodFrame
-	b.machine("footman", b.cylinder(3.2, 14*s, axisFrame(r.ToWorld(r3.Vec{X: 19 * s}), r.U())))
+	// The flexure bore runs along the rod's local X from 19s.
+	b.machine("footman", b.liftCylinder(b.footmanLift(), frame(r3.Vec{X: 19 * s}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), 3.2, 14*s))
 	if i := b.partIndex("footman"); i >= 0 && b.err == nil {
 		b.name = "footman"
 		b.a.Parts[i].Body = b.refine(b.a.Parts[i].Body, 0.01)

@@ -1638,3 +1638,9 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   against both nuts. The bridge keeps its sketch bore: a wheel-lift bore tool would only meet the gap above. The
   bridge's union of a plate and two cheeks in different plane orientations still blocks bridge/retainer and
   bridge/spacer.
+- Footman: 202 to 193 (`.tmp/lift-footman.log`, `.tmp/lift-probe-footman.log`). The cross 605s and their spacer
+  ride the cross pin's gimbal lift; boss, rod, retainers, bolt, nut and clamp ride RodFrame. Cleared: cross pin
+  against both 605s and the spacer, both 605s against the footman and gimbal spacers, retainer 2/nut and
+  bolt/rod. The rod's tie-bolt passage now runs 5 past both rod faces; flush on one lift, Decad refused the Cut.
+  Retainer/boss stays undecided although both share the lift and touch flush; the boss Cut's history is not read.
+  `driveClamp` now takes a lift, so the treadle clamp moved onto the pedal lift in the same change.
