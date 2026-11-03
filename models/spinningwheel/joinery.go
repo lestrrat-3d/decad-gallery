@@ -97,8 +97,10 @@ func (b *builder) frameJoinery() {
 	s := b.p.Scale
 	// XZ profiles extrude toward -Y, so their origins name the rear faces.
 	b.machine("head-leg", b.railStock(-55), b.railStock(85))
-	b.machine("front-wheel-leg", b.railStock(-55), b.box(190*s, 250*s, -55*s, -25*s, 535*s, 610*s))
-	b.machine("rear-wheel-leg", b.railStock(85), b.box(190*s, 250*s, 25*s, 55*s, 535*s, 610*s))
+	// Each cap socket runs 5 past the leg's top corner on the side away from the rails, which it opens; flush
+	// with that corner, the Cut needed Decad's gap shift. The leg has no material there, so the socket is the same.
+	b.machine("front-wheel-leg", b.railStock(-55), b.box(190*s, 250*s, -55*s, -25*s+5, 535*s, 610*s))
+	b.machine("rear-wheel-leg", b.railStock(85), b.box(190*s, 250*s, 25*s-5, 55*s, 535*s, 610*s))
 
 	var wedgeTools []*decad.Body
 	for _, x := range []float64{-180, -120} {
@@ -152,7 +154,8 @@ func (b *builder) frameJoinery() {
 			b.liftCylinder(b.headLift(), level(x, eyeY, eyeZ0), 0.85, eyeZ1-eyeZ0))
 	}
 	b.machine("brake-rear-crossbar", rearCrossbarTools...)
-	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s, 476*s, -10*s, 10*s, -5*s, 5*s))
+	// The rod socket runs 5 past the boss's end face it opens.
+	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s-5, 476*s, -10*s, 10*s, -5*s, 5*s))
 
 	// The radial spoke blanks seat in the hub and the rim rather than sharing material.
 	var hubTools, rimTools []*decad.Body

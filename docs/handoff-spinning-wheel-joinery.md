@@ -1764,3 +1764,7 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   brake insert mount screws and the hinge moving mounts are revolved on the head lift on their pilots' axes with
   the pilots' own numbers. 83 to 69 (`.tmp/lift-axes.log`): all 14 flyer-shaft ring/bearing/sleeve pairs clear;
   the mount pairs do not. Volumes match within bounds.
+- Gap-shift joins, first pass (coordinator group 2): the footman boss's rod socket, both wheel-leg cap sockets
+  and the take-up screw's shaft end no longer finish flush with a face they meet (5 past the boss end and the leg
+  corner; the shaft ends 1 inside the clevis wall). The solids match within bounds. 69 to 64
+  (`.tmp/lift-gap1.log`): both cross retainers/boss, both bench rails/legs and heel bearing 2/leg clear.

@@ -89,8 +89,9 @@ func (b *builder) brake() {
 	// screw's phase about its own axis, every piece placed before its Boolean.
 	tl := b.brakeTurn(axisOrigin, phase)
 	b.liftedPart("brake-takeup-screw", "adjustment", "fixed", func() *decad.Body {
+		// The shaft ends 1 inside the clevis's front wall, not flush with the clevis slot's front face.
 		shaft := b.liftCylinder(tl, frame(r3.Vec{X: right, Y: shaftFront, Z: z}, r3.Vec{X: 1}, r3.Vec{Z: -1}),
-			2, rightStart-6-shaftFront)
+			2, rightStart-7-shaftFront)
 		flat := b.localStock(tl, right+1.3, right+3, shaftFront, knobFront+5, z-3, z+3)
 		shaft = b.cut(shaft, flat)
 		return b.union(shaft, b.brakeClevisOn(tl, axisOrigin))
