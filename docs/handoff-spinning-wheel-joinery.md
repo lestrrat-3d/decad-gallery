@@ -1789,3 +1789,5 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 
 - Footman boss bearing bore: cut by a tool on the cross bearings' gimbal lift (5 past both boss faces), not drawn
   in the boss's rod-lift sketch. 50 to 48 (`.tmp/lift-boss.log`): both cross 605s/boss clear.
+- Gimbal bridge bore: cut after the bridge Union by a tool on the crank 605's wheel lift, 5 past both plate
+  faces. 48 to 47 (`.tmp/lift-bridge.log`): bridge/crank 605 clears.
