@@ -1773,3 +1773,7 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
   Volumes match within bounds at Scale 1 and 1.2. Below Scale 0.9 the whole bore now also removes the bracket
   corner that reached 0.3 mm into it, so `small-seven` brackets lose 2.5 mm^3 (spec line added). 64 to 52
   (`.tmp/lift-bracket.log`): all 12 fixed-bracket pairs clear.
+- Transforms of Booleans (coordinator group 3): the hinge moving leaves and the jack screw and knob now place
+  every piece on their lift before Cut and Union (the leaf's pin bore runs 5 past both knuckle faces). Volumes
+  match within bounds. 52 to 52 (`.tmp/lift-xform.log`): nothing clears yet; their mates are revolves and
+  prisms on other lifts.

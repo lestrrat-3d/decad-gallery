@@ -156,15 +156,18 @@ func (b *builder) adjustment() {
 	phase := math.Remainder(2*math.Pi*(h-15*s)/1.25, 2*math.Pi)
 	axis := frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555*s - h},
 		r3.Vec{X: math.Cos(phase), Y: math.Sin(phase)}, r3.Vec{X: -math.Sin(phase), Y: math.Cos(phase)})
-	b.part("mother-jack-screw", "adjustment", "fixed", func() *decad.Body {
-		body := b.revolve([]point2{{0, 0}, {4, 4}, {4, 58 * s}, {0, 58 * s}},
-			frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
-		body = b.cut(body, b.box(3, 5, -5, 5, 42*s, 58*s))
-		return b.place(body, axis)
+	// The jack screw and its knob share one lift, the screw's phased axis frame then the head tilt, and every
+	// piece is placed on it before its Boolean.
+	jl := b.tilted(b.liftOf(axis))
+	b.liftedPart("mother-jack-screw", "adjustment", "fixed", func() *decad.Body {
+		body := b.liftRevolve(jl, zAxis(0, 0, 0), []point2{{0, 0}, {4, 4}, {4, 58 * s}, {0, 58 * s}})
+		return b.cut(body, b.localStock(jl, 3, 5, -5, 5, 42*s, 58*s))
 	})
-	b.part("mother-jack-knob", "adjustment", "fixed", func() *decad.Body {
-		knobFrame := frame(axis.ToWorld(r3.Vec{Z: 42 * s}), axis.U(), axis.V())
-		return b.dAnnulus(4.1, 3.1, 12*s, 10*s, knobFrame)
+	b.liftedPart("mother-jack-knob", "adjustment", "fixed", func() *decad.Body {
+		knob := b.sectionOn(level(0, 0, 42*s))
+		circle(knob, 0, 0, 12*s)
+		dOutline(knob, 4.1, 3.1)
+		return b.liftExtrude(knob, 1, 10*s, jl)
 	})
 	for i, post := range [][2]float64{{-314, -286}, {-54, -30}} {
 		footY := post[0]*s - 6.2 + shift
@@ -280,14 +283,15 @@ func (b *builder) hinge(index int, q float64) {
 		return b.annulus(2.5, 4, 3, shaftFrame(-172*s, q+47*s+3, 555*s, 0))
 	})
 	b.tilt = true
-	b.part(prefix+"moving-leaf", "hinge", "fixed", func() *decad.Body {
-		// Leaf, knuckle and pin bore share one shaft-frame plane so their caps stay
-		// co-directional prisms. The screw hole is cut last by a tool that clears both leaf faces.
-		axis := shaftFrame(-172*s, q+31*s, 555*s, 0)
-		leaf := b.panel(3*s, 0, 14*s, 3*s, 15*s, axis)
-		knuckle := b.cylinder(5, 15*s, axis)
-		body := b.cut(b.union(leaf, knuckle), b.cylinder(2.7, 15*s, axis))
-		screw := b.cylinder(1.6, 3*s+2, frame(r3.Vec{X: -162 * s, Y: q + 23.5*s, Z: 555*s - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+	b.liftedPart(prefix+"moving-leaf", "hinge", "fixed", func() *decad.Body {
+		// Leaf, knuckle and pin bore share one plane so their caps stay co-directional prisms, and every piece is
+		// placed on the head lift before its Boolean. The pin bore and the screw hole run past the faces they open.
+		hl := b.headLift()
+		plane := func(y float64) r3.Frame { return frame(r3.Vec{X: -172 * s, Y: y, Z: 555 * s}, r3.Vec{X: 1}, r3.Vec{Z: 1}) }
+		leaf := b.liftPanel(hl, plane(q+31*s), 3*s, 0, 14*s, 3*s, 15*s)
+		knuckle := b.liftCylinder(hl, plane(q+31*s), 5, 15*s)
+		body := b.cut(b.union(leaf, knuckle), b.liftCylinder(hl, plane(q+31*s+5), 2.7, 15*s+10))
+		screw := b.liftCylinder(hl, level(-162*s, q+23.5*s, 555*s-1), 1.6, 3*s+2)
 		return b.cut(body, screw)
 	})
 	// The moving mount turns about +Z on the head lift, on the axis of its upper-board pilot (frameJoinery).

@@ -340,13 +340,6 @@ func (b *builder) annulus(inner, outer, length float64, f r3.Frame) *decad.Body 
 	return m.Body
 }
 
-func (b *builder) dAnnulus(inner, flat, outer, length float64, f r3.Frame) *decad.Body {
-	s := b.section(false)
-	circle(s, 0, 0, outer)
-	dOutline(s, inner, flat)
-	return b.extrude(s, 1, length, f)
-}
-
 func (b *builder) cut(host, tool *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil
