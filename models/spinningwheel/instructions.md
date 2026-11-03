@@ -217,7 +217,8 @@ It overlaps the maiden bar. Its vertical stock8.6 screw passage is at X=-50*Scal
 An8 mm thick stock square M8 insert OD16 has a16.2 square pocket opening below that arm, at referenceZ555*Scale.
 The square walls prevent rotation; use a centered stock8 thread envelope through the insert.
 Let theta=HeadTilt and h=(15*Scale+122*Scale*sin(theta))/cos(theta).
-The jack's reference axis is +Z at that passage, tip B=555*Scale-h, constant total length58*Scale.
+The jack's reference axis is +Z at that passage, tip B=555*Scale-h+0.01 (a designed stock 0.01 above the shelf),
+constant total length58*Scale.
 Use a conical point, radius0 at axial0 and stock radius4 at axial4 stock, then a round8 mm shaft.
 After the common head tilt the conical point touches the fixed shelf's Z540*Scale plane without cap penetration.
 Its D-flat3 knob zone is axial[42,52]*Scale measured from B; knob clearance radius4.1 and flat3.1.

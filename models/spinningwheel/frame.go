@@ -176,7 +176,9 @@ func (b *builder) adjustment() {
 	theta := b.a.State.HeadTilt
 	h := (15*s + 122*s*math.Sin(theta)) / math.Cos(theta)
 	phase := math.Remainder(2*math.Pi*(h-15*s)/1.25, 2*math.Pi)
-	axis := frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555*s - h},
+	// The screw stands a designed 0.01 above the shelf it bears on: its cone point on the base, across two lifts,
+	// cannot be decided at zero gap.
+	axis := frame(r3.Vec{X: -50 * s, Y: -330*s + shift, Z: 555*s - h + 0.01},
 		r3.Vec{X: math.Cos(phase), Y: math.Sin(phase)}, r3.Vec{X: -math.Sin(phase), Y: math.Cos(phase)})
 	// The jack screw and its knob share one lift, the screw's phased axis frame then the head tilt, and every
 	// piece is placed on it before its Boolean.
