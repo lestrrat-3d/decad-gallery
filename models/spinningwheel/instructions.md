@@ -236,7 +236,8 @@ Scale0.9 also clears the bracket corner from the pin.
 A vertical stock3.2 screw passage at X=-183*Scale, centred on the bracket's Y interval, is cut last by a tool
 that runs 5 past both bracket faces.
 Moving leaves X[-169,-158],Z[555,558], at the moving knuckle span join the upper board.
-The upper board stays max(5*Scale,5) away from the pin axis, so it never crosses the stock5 knuckles below Scale1,
+The upper board stays max(5*Scale,5)+0.01 stock away from the pin axis, so it never crosses the stock5 knuckles
+below Scale1 and stands a designed 0.01 off them,
 and leaves3*Scale away. At minimum scale the leaf edge is 2.4 mm from the axis, so the leaf and its
 radius5 knuckle are joined first and the stock2.7 pin bore is then cut through both. The bore clears the stock
 2.5 pin and leaves the leaf joined to its knuckle.

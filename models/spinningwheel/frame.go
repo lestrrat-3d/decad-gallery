@@ -219,10 +219,11 @@ func (b *builder) adjustment() {
 }
 
 // boardEdge is the upper board's hinge-side X: 5*Scale from the hinge axis, but never inside the stock radius5
-// knuckles, which do not scale. Below Scale 1 the edge recedes to touch the knuckles instead of crossing them.
+// knuckles, which do not scale. Below Scale 1 the edge recedes to the knuckles instead of crossing them, and it
+// stands a designed 0.01 off them: the knuckles stay untilted while the board tilts with the head.
 func (b *builder) boardEdge() float64 {
 	s := b.p.Scale
-	return -172*s + max(5*s, 5)
+	return -172*s + max(5*s, 5) + 0.01
 }
 
 // fixedBracket is a fixed hinge bracket: one prism along Y whose section is the bracket's rectangle joined to
