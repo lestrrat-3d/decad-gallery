@@ -481,8 +481,12 @@ func (b *builder) mountInventory() {
 		refs("gimbal-cross-pin-collar-1", "gimbal-cross-pin-collar-2"), 0.1)
 	for i := 1; i <= 2; i++ {
 		bearing := fmt.Sprintf("footman-cross-605-%d", i)
+		clearance := 0.0
+		if i == 1 {
+			clearance = crossGap
+		}
 		add(bearing, "press-fit-and-journal", refs("footman-head-boss", "gimbal-cross-pin"),
-			refs("footman-cross-retainer-1", "footman-cross-retainer-2"), 0)
+			refs("footman-cross-retainer-1", "footman-cross-retainer-2"), clearance)
 		add(fmt.Sprintf("gimbal-cross-spacer-%d", i), "captive-inner-race-spacer", refs("gimbal-cross-pin", "gimbal-bridge", bearing), nil, 0)
 		add(fmt.Sprintf("footman-cross-retainer-%d", i), "bolted-bearing-end-plate", refs("footman-head-boss"), refs("footman-retainer-bolt"), 0)
 	}

@@ -166,6 +166,9 @@ func (b *builder) driveGimbal() {
 	}
 }
 
+// crossGap is the designed gap between footman cross bearing 1 and its retainer.
+const crossGap = 0.01
+
 // footmanLift carries the footman group in RodFrame: local X runs from the toe up the rod, local Y along the
 // cross pin and local Z across the rod. RodHead lies at local (486s, 0, 0).
 func (b *builder) footmanLift() lift { return b.liftOf(b.a.State.RodFrame) }
@@ -189,13 +192,15 @@ func (b *builder) driveFootman() {
 	})
 	// The cross bearings and their spacer are round, so they ride the cross pin's own lift, the gimbal's.
 	gl := b.gimbalLift()
-	for i, v := range [][2]float64{{-12 * s, -12*s + 5}, {12*s - 5, 12 * s}} {
+	// Bearing 1 sits crossGap off its retainer, a designed gap: the two sit on different lifts, so a flush face
+	// between them cannot be decided. Its spacer is crossGap shorter.
+	for i, v := range [][2]float64{{-12*s + crossGap, -12*s + 5 + crossGap}, {12*s - 5, 12 * s}} {
 		b.part(fmt.Sprintf("footman-cross-605-%d", i+1), "bearing", "footman", func() *decad.Body {
 			return b.liftAnnulus(gl, crossAt(32*s, v[1]), 2.5, 7, v[1]-v[0])
 		})
 	}
 	b.part("footman-cross-spacer", "spacer", "footman", func() *decad.Body {
-		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, (12*s-5)-(-12*s+5))
+		return b.liftAnnulus(gl, crossAt(32*s, 12*s-5), 2.5, 4, (12*s-5)-(-12*s+5+crossGap))
 	})
 	for i, v := range [][2]float64{{-12*s - 2, -12 * s}, {12 * s, 12*s + 2}} {
 		b.part(fmt.Sprintf("footman-cross-retainer-%d", i+1), "retainer", "footman", func() *decad.Body {

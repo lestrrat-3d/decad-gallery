@@ -1833,3 +1833,6 @@ These were checked against the Gallery options above; each needs a Decad reader 
   919.4 mm^3. Focused check (`.tmp/focus-gap1.log`): the 4 flyer-side pairs clear at 0.01; the 4 wheel-side pairs
   (wheel wrap/spans, spans/rim) need 0.03 (0.02 still fails, 0.03, 0.04 and 0.05 clear;
   `.tmp/focus-gap2.log` to `focus-gap5.log`). Kept at 0.01 pending the decision to widen.
+- Footman cross bearing 1 (designed gap): it sits 0.01 off retainer 1, its spacer is 0.01 shorter, and its mount
+  takes clearance 0.01; spec lines amended. Focused check of the cross-pin stack (`.tmp/focus-cross.log`): no
+  undecided pair remains among the two 605s, their spacer, both retainers, the boss, the cross pin and its spacers.
