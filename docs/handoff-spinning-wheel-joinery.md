@@ -1676,3 +1676,7 @@ setscrews until Decad accepts identical circles, or the coaxial walk reads a Cut
 - Bobbin: 174 to 174 (`.tmp/lift-bobbin.log`). The bobbin and yarn pack ride the fixed head lift with their
   bearings, so a coaxial revolve proof (decision step 4) can compare them; nothing clears before that lands.
 - Decad pin `a074763c5`: 174 to 133 at `3b8f8a0` plus the pin (`.tmp/lift-pin.log`, `.tmp/lift-probe-pin.log`).
+- Large-nine control rail (coordinator request): the two mount pilots started flush with the rail's front face,
+  and at Scale 1.2 the rounded tool left a paper-thin disk of that face as separate pieces (3 components). They
+  now start 5 before the face. A rail-only probe at large-nine (`zz_rail_probe_test.go`, untracked) shows one
+  component for every tool subset and volume 48933.9938 vs 48933.9909 mm^3 before.
