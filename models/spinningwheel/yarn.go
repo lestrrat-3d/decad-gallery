@@ -87,14 +87,16 @@ func (b *builder) yarn() {
 		{X: 58 * s, Y: -160 * s, Z: 22 * s},
 		{X: tangent.X, Y: -160 * s, Z: tangent.Z},
 	}
-	b.part("yarn-leader", "yarn", "flyer", func() *decad.Body {
+	// Each span is sketched in untilted head coordinates on the head lift before the Union, so the leader shares
+	// the lift of the bobbin parts it passes at every head tilt.
+	hl := b.headLift()
+	b.liftedPart("yarn-leader", "yarn", "flyer", func() *decad.Body {
 		spans := make([]*decad.Body, 0, len(waypoints)-1)
 		for i := 0; i < len(waypoints)-1; i++ {
-			a, c := waypoints[i], waypoints[i+1]
-			spans = append(spans, b.span(
-				b.headPoint(a.X, a.Y, a.Z, angle),
-				b.headPoint(c.X, c.Y, c.Z, angle), 0.35,
-			))
+			a := b.headPoint(waypoints[i].X, waypoints[i].Y, waypoints[i].Z, angle)
+			c := b.headPoint(waypoints[i+1].X, waypoints[i+1].Y, waypoints[i+1].Z, angle)
+			d := c.Sub(a)
+			spans = append(spans, b.liftCylinder(hl, axisFrame(a, d), 0.35, d.Len()))
 		}
 		// Refine each held step so the next Union reads its surface bound.
 		u := spans[0]
