@@ -142,6 +142,10 @@ func renderSpinningWheelReadme(ctx context.Context, out string) error {
 	if err := renderSpinningWheelReadmeStills(ctx, meshes, out, 1600, 900); err != nil {
 		return err
 	}
+	if err := renderSpinningWheelOrbit(ctx, meshes, filepath.Join(out, "orbit.gif"), wheelOrbitWidth, wheelOrbitHeight,
+		wheelOrbitFrames); err != nil {
+		return err
+	}
 	return renderSpinningWheelAnimation(ctx, meshes, base, filepath.Join(out, "motion.gif"), 1200, 800, 96)
 }
 
