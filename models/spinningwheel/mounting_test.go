@@ -1,6 +1,7 @@
 package spinningwheel_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -135,14 +136,38 @@ func requirePartHomes(t *testing.T, a *spinningwheel.Assembly) {
 	}
 }
 
-func requireGeometricPartHomes(t *testing.T, a *spinningwheel.Assembly, meshes map[string]surfaceTriangles) {
+// partHomesResult is the outcome of geometricPartHomes. It is plain data so the check can run on a
+// goroutine beside other checks and be reported from the test goroutine.
+type partHomesResult struct {
+	logs        []string
+	err         error
+	unsupported int
+}
+
+func requirePartHomesResult(t *testing.T, result partHomesResult) {
 	t.Helper()
+	for _, line := range result.logs {
+		t.Log(line)
+	}
+	require.NoError(t, result.err)
+	// Nearby surfaces alone do not prove retention. The declared joint types and
+	// actual material probes are checked separately, as is every part's overlap.
+	require.Zero(t, result.unsupported, "parts must have a support path after rejecting provably distant connections")
+}
+
+// geometricPartHomes reads only the assembly's mounts and the meshes. It never touches a Body or a
+// testing.T, so it may run concurrently with requireNoMaterialOverlap.
+func geometricPartHomes(a *spinningwheel.Assembly, meshes map[string]surfaceTriangles) partHomesResult {
 	geometry := make(map[string]meshgap.Mesh, len(a.Parts))
 	for _, part := range a.Parts {
 		mesh, present := meshes[part.Name]
-		require.True(t, present, "missing verified mesh for %s", part.Name)
+		if !present {
+			return partHomesResult{err: fmt.Errorf("missing verified mesh for %s", part.Name)}
+		}
 		prepared, err := meshgap.New(mesh.vertices, mesh.triangles, mesh.bound)
-		require.NoError(t, err, "prepare mount geometry for %s", part.Name)
+		if err != nil {
+			return partHomesResult{err: fmt.Errorf("prepare mount geometry for %s: %w", part.Name, err)}
+		}
 		geometry[part.Name] = prepared
 	}
 	mounts := make([]meshgap.Mount, 0, len(a.Mounts))
@@ -155,22 +180,23 @@ func requireGeometricPartHomes(t *testing.T, a *spinningwheel.Assembly, meshes m
 		})
 	}
 	reached, nearest, err := meshgap.Reachable(mounts, geometry)
-	require.NoError(t, err)
-	unsupported := 0
+	if err != nil {
+		return partHomesResult{err: err}
+	}
+	var result partHomesResult
 	for _, part := range a.Parts {
 		if _, present := reached[part.Name]; present {
 			continue
 		}
-		if unsupported < 10 {
+		if result.unsupported < 10 {
 			closest := nearest[part.Name]
-			t.Logf("%s has no geometric support path; nearest declared candidate %s has lower gap %g mm",
-				part.Name, closest.Part, closest.LowerGap)
+			result.logs = append(result.logs, fmt.Sprintf(
+				"%s has no geometric support path; nearest declared candidate %s has lower gap %g mm",
+				part.Name, closest.Part, closest.LowerGap))
 		}
-		unsupported++
+		result.unsupported++
 	}
-	// Nearby surfaces alone do not prove retention. The declared joint types and
-	// actual material probes are checked separately, as is every part's overlap.
-	require.Zero(t, unsupported, "parts must have a support path after rejecting provably distant connections")
+	return result
 }
 
 func requireNoMaterialOverlap(t *testing.T, doc *decad.Document, a *spinningwheel.Assembly) {

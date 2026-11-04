@@ -124,8 +124,11 @@ func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
 		require.NoError(t, r.Check(), "sketch %d", i)
 	}
 	requireBrakeCaptivity(t, a, p, meshes)
-	requireGeometricPartHomes(t, a, meshes)
+	// The part-home check reads only the meshes, so it runs while Verify works on the document.
+	homes := make(chan partHomesResult, 1)
+	go func() { homes <- geometricPartHomes(a, meshes) }()
 	requireNoMaterialOverlap(t, doc, a)
+	requirePartHomesResult(t, <-homes)
 	requireWheelFeatures(t, a, p, meshes)
 	requireHeadAdjustment(t, a, p)
 	requireFlyerSweptClearances(t, a)
