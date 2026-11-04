@@ -15,8 +15,7 @@ type point struct{ x, y float64 }
 // dimensions holds the derived radii read from the parameter table.
 type dimensions struct{ pitch, base, root, tip, fillet float64 }
 
-// defineParameters writes the spur gear parameter table. Names and expressions
-// are string literals so a generator can read them from the source.
+// defineParameters writes the gear's inputs and derived dimensions to t.
 func defineParameters(t *param.Table, p Params) error {
 	if err := t.SetValue("module", units.Millimeters(p.Module)); err != nil {
 		return fmt.Errorf("parameter module: %w", err)
@@ -66,7 +65,7 @@ func defineParameters(t *param.Table, p Params) error {
 	return nil
 }
 
-// readDimensions reads the derived radii from the document's parameter table.
+// readDimensions reads the derived radii from doc's parameter table.
 func readDimensions(doc *decad.Document) (dimensions, error) {
 	var d dimensions
 	targets := []struct {
@@ -89,8 +88,8 @@ func readDimensions(doc *decad.Document) (dimensions, error) {
 	return d, nil
 }
 
-// derive computes the gear dimensions on a scratch document. It returns zero
-// dimensions when the parameter table cannot be defined or read.
+// derive computes the dimensions of p on a scratch document. It returns the
+// zero value when the parameter table cannot be evaluated.
 func derive(p Params) dimensions {
 	doc := decad.New()
 	if err := defineParameters(doc.Params(), p); err != nil {
@@ -104,19 +103,17 @@ func derive(p Params) dimensions {
 }
 
 // filletRadius returns the root fillet radius of d.
-func filletRadius(p Params, d dimensions) float64 { return d.fillet }
+func filletRadius(_ Params, d dimensions) float64 { return d.fillet }
 
-// rotate applies the planar rotation by theta about the origin.
+// rotate turns (x, y) counterclockwise by theta.
 func rotate(x, y, theta float64) point {
 	c, s := math.Cos(theta), math.Sin(theta)
-	return point{x*c - y*s, x*s + y*c}
+	return point{x: x*c - y*s, y: x*s + y*c}
 }
 
-// rootContact scales a base point to the root circle. Each coordinate is
-// multiplied before it is divided so the result matches the sketch corners
-// bit for bit.
+// rootContact scales a base-circle point onto the root circle.
 func rootContact(basePoint point, d dimensions) point {
-	return point{basePoint.x * d.root / d.base, basePoint.y * d.root / d.base}
+	return point{x: basePoint.x * d.root / d.base, y: basePoint.y * d.root / d.base}
 }
 
 // toothAngle returns the rotation of tooth k.
@@ -124,72 +121,47 @@ func toothAngle(p Params, k int) float64 {
 	return 2 * math.Pi * float64(k) / float64(p.Teeth)
 }
 
-// mirroredInvolute returns the original involute point at radius r, mirrored
-// across X.
-func mirroredInvolute(base, r float64) point {
+// involutePoint evaluates the original involute of the base circle at radius r.
+func involutePoint(base, r float64) point {
 	ratio := base / r
 	if ratio > 1 {
 		ratio = 1
 	}
 	t := math.Tan(math.Acos(ratio))
-	x := base * (math.Cos(t) + t*math.Sin(t))
-	y := base * (math.Sin(t) - t*math.Cos(t))
-	return point{x, -y}
+	return point{
+		x: base * (math.Cos(t) + t*math.Sin(t)),
+		y: base * (math.Sin(t) - t*math.Cos(t)),
+	}
 }
 
-// flankRotation returns the rotation that puts the pitch crossing of the
-// mirrored involute at pi/(2*teeth).
-func flankRotation(pitch, base, teeth float64) float64 {
-	m := mirroredInvolute(base, pitch)
-	return math.Pi/(2*teeth) - math.Atan2(m.y, m.x)
+// flankShift returns the rotation that puts the left flank's pitch crossing at
+// pi/(2*teeth).
+func flankShift(pitch, base, teeth float64) float64 {
+	ip := involutePoint(base, pitch)
+	return math.Pi/(2*teeth) - math.Atan2(-ip.y, ip.x)
 }
 
-// sampleFlanks samples the left and right flanks from radius start to tip,
-// both included, and rotates both by angle. Both arrays run base to tip. It
-// returns the left array and then the right array.
+// sampleFlanks samples both flanks of one tooth from radius start to tip. It
+// returns the left array and then the right array, each running base to tip.
 func sampleFlanks(pitch, base, start, tip, teeth float64, samples int, angle float64) ([]point, []point) {
-	beta := flankRotation(pitch, base, teeth)
+	beta := flankShift(pitch, base, teeth)
 	left := make([]point, samples)
 	right := make([]point, samples)
 	for i := 0; i < samples; i++ {
 		r := start + (tip-start)*float64(i)/float64(samples-1)
-		m := mirroredInvolute(base, r)
-		l := rotate(m.x, m.y, beta)
-		rt := point{l.x, -l.y}
+		ip := involutePoint(base, r)
+		l := rotate(ip.x, -ip.y, beta)
 		left[i] = rotate(l.x, l.y, angle)
-		right[i] = rotate(rt.x, rt.y, angle)
+		right[i] = rotate(l.x, -l.y, angle)
 	}
 	return left, right
 }
 
-// InvoluteFlanks samples the left and right involute flanks of one tooth from
-// the base radius to the tip radius, rotated by angle. effectiveTeeth may be
-// non-integer. Both arrays run base to tip; the left array is returned first.
-func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
-	angle float64) ([][2]float64, [][2]float64, error) {
-	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, nil, fmt.Errorf("spurgear: involute flanks require finite inputs")
-		}
-	}
-	switch {
-	case base <= 0:
-		return nil, nil, fmt.Errorf("spurgear: base radius %g must be positive", base)
-	case pitch <= base:
-		return nil, nil, fmt.Errorf("spurgear: pitch radius %g must exceed base radius %g", pitch, base)
-	case tip <= pitch:
-		return nil, nil, fmt.Errorf("spurgear: tip radius %g must exceed pitch radius %g", tip, pitch)
-	case effectiveTeeth <= 0:
-		return nil, nil, fmt.Errorf("spurgear: effective tooth count %g must be positive", effectiveTeeth)
-	case samples < 3:
-		return nil, nil, fmt.Errorf("spurgear: samples %d must be at least 3", samples)
-	}
-	left, right := sampleFlanks(pitch, base, base, tip, effectiveTeeth, samples, angle)
-	l := make([][2]float64, len(left))
-	r := make([][2]float64, len(right))
-	for i := range left {
-		l[i] = [2]float64{left[i].x, left[i].y}
-		r[i] = [2]float64{right[i].x, right[i].y}
-	}
-	return l, r, nil
+// flankHalfAngle returns the angle between the tooth axis and the left flank at
+// radius r.
+func flankHalfAngle(pitch, base, teeth, r float64) float64 {
+	beta := flankShift(pitch, base, teeth)
+	ip := involutePoint(base, r)
+	l := rotate(ip.x, -ip.y, beta)
+	return math.Atan2(l.y, l.x)
 }
