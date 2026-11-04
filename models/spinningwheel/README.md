@@ -66,7 +66,9 @@ a plain nylon sleeve; the smaller rear journal uses a 608 bearing.
 
 ![Wheel turn animation](images/motion.gif)
 
-The animation shows one wheel turn in 96 frames. It prescribes 195 mm of yarn feed per wheel turn,
+The animation shows one wheel turn in 96 frames. The left panel views the wheel from the side opposite
+the still images (turned 180 degrees about the vertical axis) to show the treadle, footman, crank and connector.
+It prescribes 195 mm of yarn feed per wheel turn,
 so the flyer makes 7 turns while the bobbin makes 6.
 The still images show one solved pose. The frame stays fixed while the treadle rocks and the footman's
 bearing centres follow the spatial linkage. The model default prescribes 100 mm of yarn feed per wheel turn.

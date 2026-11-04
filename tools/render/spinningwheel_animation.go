@@ -64,6 +64,18 @@ func spinningWheelPose(ctx context.Context, meshes []wheelMesh, base spinningwhe
 	return posed, nil
 }
 
+// wheelTurnAxis is the vertical axis (X, Y) through the model about which the left panel is turned.
+var wheelTurnAxis = [2]float64{30, 20}
+
+// turnCameraHalf turns the camera 180 degrees about the vertical axis through axis.
+// The left panel then views the wheel from the opposite side, where the treadle, footman,
+// crank and connector are in front of the frame.
+func turnCameraHalf(camera solidlens.Camera, axis [2]float64) solidlens.Camera {
+	camera.Position.X, camera.Position.Y = 2*axis[0]-camera.Position.X, 2*axis[1]-camera.Position.Y
+	camera.Target.X, camera.Target.Y = 2*axis[0]-camera.Target.X, 2*axis[1]-camera.Target.Y
+	return camera
+}
+
 func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base spinningwheel.State, out string, width, height, frames int) error {
 	if filepath.Ext(out) != ".gif" {
 		return fmt.Errorf("animation requires a .gif output path")
@@ -79,6 +91,9 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 	var cameras [2]solidlens.Camera
 	for i, shot := range []string{"hero", "flyer"} {
 		scene := spinningWheelScene(meshes, shot)
+		if shot == "hero" {
+			scene.Camera = turnCameraHalf(scene.Camera, wheelTurnAxis)
+		}
 		cameras[i] = fitCamera(scene.Camera, scene.Models, float64(width/2)/float64(height-110), .14)
 	}
 	animation := &gif.GIF{LoopCount: 0, Config: image.Config{ColorModel: color.Palette(palette.Plan9), Width: width, Height: height}}
