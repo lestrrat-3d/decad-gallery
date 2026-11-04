@@ -1,8 +1,6 @@
 # Treadle spinning wheel
 
-![Open Saxony spinning wheel turning slowly on a turntable](images/orbit.gif)
-
-The still hero image is [images/hero.png](images/hero.png).
+![Open Saxony spinning wheel](images/hero.png)
 
 The images show all 206 parts of the default build, rendered from the real Decad body with Decad `c79783bd2ca2`.
 The [preview status](images/preview-status.json) records the part counts and that no part is omitted.

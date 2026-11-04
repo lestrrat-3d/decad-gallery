@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"image/gif"
 	"image/png"
 	"math"
@@ -12,7 +11,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -50,34 +48,6 @@ func TestSpinningWheelRendering(t *testing.T) {
 	require.Equal(t, 900, animation.Config.Width)
 	require.Equal(t, 600, animation.Config.Height)
 	requireWheelAnimationJoints(t, meshes, base)
-	requireWheelOrbit(t, meshes, filepath.Join(out, "orbit.gif"))
-}
-
-func requireWheelOrbit(t *testing.T, meshes []wheelMesh, path string) {
-	t.Helper()
-	require.NoError(t, renderSpinningWheelOrbit(t.Context(), meshes, path, 320, 180, 4))
-	f, err := os.Open(path)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
-	orbit, err := gif.DecodeAll(f)
-	require.NoError(t, err)
-	require.Equal(t, 4, len(orbit.Image))
-	require.Equal(t, 0, orbit.LoopCount, "the turntable loops forever")
-	require.Equal(t, 320, orbit.Config.Width)
-	require.Equal(t, 180, orbit.Config.Height)
-	require.False(t, bytes.Equal(orbit.Image[0].Pix, orbit.Image[2].Pix), "the camera must move between frames")
-	require.False(t, bytes.Equal(orbit.Image[0].Pix, orbit.Image[3].Pix), "the camera must move between frames")
-
-	// A turn of 360 degrees returns the first camera. The distance to the target and the elevation stay fixed.
-	hero := spinningWheelScene(meshes, "hero")
-	rig := newWheelOrbitRig(meshes, hero, 320.0/180, 4)
-	first, _ := rig.camera(0)
-	closed, _ := rig.camera(2 * math.Pi)
-	quarter, _ := rig.camera(math.Pi / 2)
-	require.InDelta(t, 0, r3.Vec(first.Position).Sub(r3.Vec(closed.Position)).Len(), 1e-6)
-	look := func(c solidlens.Camera) r3.Vec { return r3.Vec(c.Position).Sub(r3.Vec(c.Target)) }
-	require.InDelta(t, look(first).Len(), look(quarter).Len(), 1e-6)
-	require.InDelta(t, look(first).Z, look(quarter).Z, 1e-6, "the elevation stays fixed")
 }
 
 func requireWheelImage(t *testing.T, path string, width, height int) {

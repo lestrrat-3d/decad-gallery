@@ -73,8 +73,6 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 			return runSpinningWheelSheet(ctx, shot, output, width, height)
 		case "animation":
 			return runSpinningWheelAnimation(ctx, output, width, height)
-		case "orbit":
-			return runSpinningWheelOrbit(ctx, output, width, height)
 		}
 	}
 	if model == "gallery" && shot == "hero" {
