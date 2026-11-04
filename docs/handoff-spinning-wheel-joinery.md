@@ -12,6 +12,17 @@ the repository check. The pinned Decad is `ee1ee0377743`.
 - The images are six stills plus `index.png` and a 96-frame `motion.gif`, rendered from the full default build
   with no omitted part (`models/spinningwheel/images/preview-status.json`).
 
+### Treadle ladder frame
+
+The treadle no longer has a diagonal rail or half-laps. It is a ladder frame of axis-aligned boxes on one lift:
+`treadle-bar-left` and `treadle-bar-right` carry the uncut footboard `treadle`, and the 30x30 `treadle-heel-rail`
+and the `treadle-rear-crossarm` pass through glued mortises in both bars (`treadleJoinery`). Four through-bolts
+(`treadle-board-bolt-1..4`) hold the board and one bolt (`treadle-block-bolt`) holds `treadle-connector-block` to
+the crossarm; all are built with `driveClamp`. The faces meet flush on the treadle lift, so no new designed gap
+was needed. `diagonalStock`, `diagonalAt` and `liftKeyTool` are gone. The joint table, `mounting.md` and the
+`TestSpinningWheelRearRailClearance` probe follow the new parts. The images still show the old treadle until they
+are re-rendered.
+
 ### Designed gaps
 
 Parts that meet across two motion frames (lifts) keep a small designed gap, because a flush face across two
