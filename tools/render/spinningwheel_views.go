@@ -44,11 +44,11 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 			oblique := solidlens.Camera{Position: centre.Add(solidlens.Vec{X: -240, Y: 400, Z: 220}), Target: centre, Up: solidlens.Vec{Z: 1}, FOV: 30}
 			boreTarget := centre
 			boreTarget.Y = box.Max.Y
-			bore := solidlens.Camera{Position: boreTarget.Add(solidlens.Vec{Y: 470}), Target: boreTarget, Up: solidlens.Vec{Z: 1}, FOV: 2.8}
-			models := []solidlens.Model{mesh.model}
+			bore := solidlens.Camera{Position: boreTarget.Add(solidlens.Vec{X: -25, Y: 300, Z: 35}), Target: boreTarget, Up: solidlens.Vec{Z: 1}, FOV: 6}
+			models := []solidlens.Model{whorlOutlined(mesh.model)}
 			return []wheelPanel{
-				{bevelScene(oblique, models), "One-piece whorl: four V grooves", "The grooves give 7:1, 9:1, 12:1 and 17:1 speed ratios."},
-				{bevelScene(bore, models), "Actual keyed through-bore", "The removable key transmits torque from the 16 mm hollow shaft; this close-up crops the rim."},
+				{whorlScene(oblique, models), "One-piece whorl: four V grooves", "The grooves give 7:1, 9:1, 12:1 and 17:1 speed ratios."},
+				{whorlScene(bore, models), "Actual keyed through-bore", "The removable key transmits torque from the 16 mm hollow shaft; this close-up crops the rim."},
 			}, nil
 		}
 		return nil, fmt.Errorf("whorl sheet needs the actual flyer-drive-whorl body")
@@ -74,6 +74,27 @@ func spinningWheelPanels(meshes []wheelMesh, shot string) ([]wheelPanel, error) 
 		}, nil
 	}
 	return nil, fmt.Errorf("unknown spinning wheel sheet %q", shot)
+}
+
+// whorlOutlined lightens the whorl body and draws heavy dark edges so grooves, steps, the key slot and
+// the bore rim read on the whorl sheet. The mesh is unchanged.
+func whorlOutlined(model solidlens.Model) solidlens.Model {
+	model.Material = solidlens.Matte(solidlens.RGB(.78, .56, .32))
+	model.Edges = solidlens.Edges{Enabled: true, Color: solidlens.RGB(.05, .03, .02), Width: 2.2, Tolerance: .05}
+	return model
+}
+
+// whorlScene lights the whorl from the camera side so the flat +Y faces are not left in shade.
+func whorlScene(camera solidlens.Camera, models []solidlens.Model) solidlens.Scene {
+	return solidlens.Scene{
+		Camera: camera,
+		Models: models,
+		DirectionalLights: []solidlens.DirectionalLight{
+			{Direction: solidlens.Vec{X: .35, Y: -1, Z: -.55}, Color: solidlens.RGB(1, 1, 1), Intensity: .8},
+			{Direction: solidlens.Vec{X: -.7, Y: -.5, Z: .2}, Color: solidlens.RGB(.6, .75, 1), Intensity: .5},
+		},
+		Background: solidlens.RGB(.88, .92, .95),
+	}
 }
 
 func wheelPanelCanvas(ctx context.Context, panels []wheelPanel, width, height int, face font.Face) (*image.RGBA, error) {
