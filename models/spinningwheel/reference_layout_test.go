@@ -59,14 +59,17 @@ func TestSpinningWheelRearRailClearance(t *testing.T) {
 	require.NoError(t, err)
 	xf, err := spinningwheel.PoseTransform(a.State, state, "treadle", pose.WheelAngle-p.WheelAngle)
 	require.NoError(t, err)
-	rail, err := decad.Copy(t.Context(), wheelPart(t, a, "treadle-actuating-rail"), decad.WithCopyPlacement(xf))
-	require.NoError(t, err)
-	defer func() { require.NoError(t, decad.Remove(rail)) }()
 	probe := r3.Vec{X: 201, Y: 219, Z: 34}
 	legLocation, err := wheelPart(t, a, "rear-wheel-leg").LocatePoint(t.Context(), probe, units.Millimeters(.02))
 	require.NoError(t, err)
 	require.True(t, legLocation == decad.PointInside, "probe must be inside the structural leg, got %s", legLocation)
-	railLocation, err := rail.LocatePoint(t.Context(), probe, units.Millimeters(.02))
-	require.NoError(t, err)
-	require.True(t, railLocation == decad.PointOutside, "the actuating rail must clear the leg's interior, got %s", railLocation)
+	// The crossarm and the connector block are the treadle parts nearest the leg; the bars lie far left of it.
+	for _, name := range []string{"treadle-rear-crossarm", "treadle-connector-block"} {
+		timber, err := decad.Copy(t.Context(), wheelPart(t, a, name), decad.WithCopyPlacement(xf))
+		require.NoError(t, err)
+		location, err := timber.LocatePoint(t.Context(), probe, units.Millimeters(.02))
+		require.NoError(t, err)
+		require.True(t, location == decad.PointOutside, "%s must clear the leg's interior, got %s", name, location)
+		require.NoError(t, decad.Remove(timber))
+	}
 }

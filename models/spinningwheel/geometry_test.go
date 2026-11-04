@@ -147,7 +147,7 @@ func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 	require.False(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 3.5})), "heel shaft must receive its key")
 	require.True(t, heel.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 2.5})), "heel shaft preserves material behind its key seat")
 	rail := meshes["treadle-heel-rail"]
-	require.True(t, rail.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 4.6, Z: -1.4})), "half-lapped heel rail must flank its keyway")
+	require.True(t, rail.contains(st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 4.6, Z: -1.4})), "heel rail must flank its keyway")
 	keyPoint := st.PedalFrame.ToWorld(r3.Vec{X: 60 * s, Y: 4.5, Z: -.5})
 	require.False(t, rail.contains(keyPoint), "heel rail must clear the installed key")
 	require.True(t, meshes["heel-key"].contains(keyPoint), "key must occupy its passage")
