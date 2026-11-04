@@ -73,8 +73,7 @@ Moving the crank10nominalmm rearward preserves the solved crank-pin centre while
 ## Verified correction results
 
 These results describe the earlier assembly committed as `84493de`, before the mounting and fitted-joint repairs.
-They do not verify the pending construction; [the joinery handoff](handoff-spinning-wheel-joinery.md#current-status)
-records the latest real consumer result.
+They do not verify the current construction; `TestSpinningWheelDefault` and `TestSpinningWheelVariants` do.
 
 That earlier default has181finalbodies and198verifiedsketches.
 The earlier default and all four specified scale/ratio/adjustment cases passed final-solid, joint-fit and clearance checks.

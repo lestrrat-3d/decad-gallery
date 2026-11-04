@@ -57,8 +57,8 @@ The feed yarn has a deliberate free input end; it is process material, not a loo
 
 ## Acceptance
 
-Complete the real default assembly through the remaining generic native repairs in
-[the joinery handoff](handoff-spinning-wheel-joinery.md).
+Complete the real default assembly through generic native repairs, checked by `TestSpinningWheelDefault`
+and `TestSpinningWheelVariants`.
 Do not substitute drawn joints or weaken mesh verification.
 Emit construction changes from updated instructions and steps with fresh emitters.
 Give every returned part a named parent and a mount type, with no unexplained exceptions.
