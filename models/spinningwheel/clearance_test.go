@@ -1,8 +1,11 @@
 package spinningwheel_test
 
 import (
+	"context"
+	"errors"
 	"math"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -93,6 +96,52 @@ func requireDriveBandFrameClearances(t *testing.T, a *spinningwheel.Assembly) {
 	require.Equal(t, 4, checked, "both exact wraps and both straight spans must be checked")
 }
 
+// connectorShapesByPose rebuilds the connector at each of the count wheel angles on four goroutines.
+// Each pose builds in its own document and nothing is shared between goroutines, so the work is race free.
+// Only four builds are live at once, which bounds peak memory.
+func connectorShapesByPose(t *testing.T, p spinningwheel.Params, count int) []collisionShape {
+	t.Helper()
+	shapes := make([]collisionShape, count)
+	errs := make([]error, count)
+	next := make(chan int)
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				shapes[i], errs[i] = connectorShapeAt(t.Context(), p, i)
+			}
+		}()
+	}
+	for i := range count {
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+	for i, err := range errs {
+		require.NoError(t, err, "connector at %d degrees", i*5)
+	}
+	return shapes
+}
+
+func connectorShapeAt(ctx context.Context, p spinningwheel.Params, i int) (collisionShape, error) {
+	pose := p
+	pose.WheelAngle = float64(i) * math.Pi / 36
+	connector, err := spinningwheel.BuildConnector(ctx, spinningwheel.NewDocument(), pose)
+	if err != nil {
+		return collisionShape{}, err
+	}
+	mesh, err := connector.Body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+	if err != nil {
+		return collisionShape{}, err
+	}
+	if !mesh.BoundaryVerified() || !mesh.VolumeVerified() {
+		return collisionShape{}, errors.New("connector mesh boundary or volume not verified")
+	}
+	return nativeCollisionShape(connector.Body, surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()}), nil
+}
+
 func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p spinningwheel.Params, meshes map[string]surfaceTriangles) {
 	t.Helper()
 	type namedShape struct {
@@ -115,6 +164,14 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 			}
 		}
 	}
+	hasCompliant := false
+	for _, item := range moving {
+		hasCompliant = hasCompliant || item.part.Motion == "compliant"
+	}
+	var connectors []collisionShape
+	if hasCompliant {
+		connectors = connectorShapesByPose(t, p, 72)
+	}
 	for i := range 72 {
 		posed := make(map[string]collisionShape, len(moving))
 		pose := p
@@ -124,12 +181,7 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 		for _, item := range moving {
 			var shape collisionShape
 			if item.part.Motion == "compliant" {
-				connector, err := spinningwheel.BuildConnector(t.Context(), spinningwheel.NewDocument(), pose)
-				require.NoError(t, err)
-				mesh, err := connector.Body.Tessellate(t.Context(), units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
-				require.NoError(t, err)
-				require.True(t, mesh.BoundaryVerified() && mesh.VolumeVerified(), "connector at %d degrees", i*5)
-				shape = nativeCollisionShape(connector.Body, surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()})
+				shape = connectors[i]
 			} else {
 				xf, err := spinningwheel.PoseTransform(a.State, state, item.part.Motion, pose.WheelAngle-p.WheelAngle)
 				require.NoError(t, err)
