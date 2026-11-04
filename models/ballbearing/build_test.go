@@ -91,6 +91,50 @@ func TestBearingPlacedAndRepeated(t *testing.T) {
 	}
 }
 
+// A lifted envelope is the same solid as one placed by the composed frame, but its only transform is the lift.
+func TestBearingLifted(t *testing.T) {
+	doc := decad.New()
+	lift, err := r3.RotationAround(r3.NewVec(3, 0, 0), r3.NewVec(0, 1, 0), units.Radians(.3))
+	require.NoError(t, err)
+	local, err := r3.NewFrame(r3.NewVec(2, -1, 5), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	p := ballbearing.DefaultParams()
+	p.Placement, p.Lift = &local, &lift
+	lifted, err := ballbearing.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	localTransform, err := r3.FromFrame(local)
+	require.NoError(t, err)
+	composed, err := localTransform.Then(lift)
+	require.NoError(t, err)
+	placement, err := r3.NewFrame(composed.Translation(), composed.Basis().EX, composed.Basis().EY)
+	require.NoError(t, err)
+	p.Placement, p.Lift = &placement, nil
+	placed, err := ballbearing.Build(t.Context(), doc, p)
+	require.NoError(t, err)
+	a, err := lifted.Body.Bounds()
+	require.NoError(t, err)
+	b, err := placed.Body.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 0, a.Min.Sub(b.Min).Len(), 1e-9)
+	require.InDelta(t, 0, a.Max.Sub(b.Max).Len(), 1e-9)
+	va, err := lifted.Body.Volume()
+	require.NoError(t, err)
+	vb, err := placed.Body.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, vb.Value.Base(), va.Value.Base(), 1e-9)
+	requireBore(t, lifted.Body, 4, lift.ApplyDir(r3.NewVec(0, 0, 1)))
+	report := lifted.Sketch.Verify(t.Context())
+	require.True(t, report.Status == sketch.FullyConstrained, "status %s", report.Status)
+	require.Zero(t, report.DOF)
+	frame, err := lifted.Sketch.Plane().Frame()
+	require.NoError(t, err)
+	require.Equal(t, local.Origin(), frame.Origin(), "the section lies on the local placement plane")
+	invalid := ballbearing.DefaultParams()
+	invalid.Lift = &r3.Transform{}
+	_, err = ballbearing.Build(t.Context(), decad.New(), invalid)
+	require.Error(t, err)
+}
+
 func TestBearingCustomDimensions(t *testing.T) {
 	p := ballbearing.Params{BoreDiameter: 12, OuterDiameter: 26, Width: 6}
 	m, err := ballbearing.Build(t.Context(), decad.New(), p)

@@ -22,6 +22,9 @@ Package: `models/ballbearing`.
 Expose `Params` with BoreDiameter, OuterDiameter, Width float64 in millimeters and Placement *r3.Frame.
 Nil Placement selects local XY at Origin, extruding along +Z. A supplied Placement maps the lower
 cap center to its Origin, the local XY axes to U,V and the bearing axis to N.
+Expose an optional `Lift *r3.Transform`. A non-nil Lift reads Placement in Lift's local coordinates:
+the section is sketched on the Placement plane and Lift is the body's only transform.
+Bodies sharing one Lift then share one exact placement for interference proofs.
 Expose `DefaultParams() Params`, returning the 608-2RS dimensions, and `Params.Validate() error`.
 Expose `Params605ZZ() Params`, returning BoreDiameter 5, OuterDiameter 14, Width 5 and nil Placement.
 Return a fresh Params value on each call so callers can place bearings independently.
@@ -33,7 +36,7 @@ Build must add exactly one final bearing body to doc, preserving other existing 
 ## Validation
 
 Reject nil ctx/doc at the public boundary. Reject nonfinite or nonpositive dimensions.
-Reject OuterDiameter<=BoreDiameter and an invalid nonnil placement frame.
+Reject OuterDiameter<=BoreDiameter, an invalid nonnil placement frame and an invalid nonnil Lift.
 Perform validation and check ctx.Err before adding any geometry to doc.
 The zero Params value is invalid; callers use DefaultParams or supply all three dimensions.
 
@@ -44,7 +47,8 @@ The zero Params value is invalid; callers use DefaultParams or supply all three 
 3. Solve and require FullyConstrained, DOF0, no redundancy and no conflicts before consuming a profile.
 4. Select exactly one valid annular profile with one hole. Do not select the inner disc.
 5. Extrude that profile by Width in +Z, producing an exact cylindrical through-bore.
-6. Transform the completed body to Placement if supplied. The transform retires its local input.
+6. Transform the completed body to Placement if supplied, or by Lift alone when Lift is set.
+   The transform retires its local input.
 7. Require Body.IsSolid before returning the body and its actual Sketch.
 
 Return contextual errors naming the failed creation, solve, verification, selection, extrusion or placement.

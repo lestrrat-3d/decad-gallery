@@ -9,6 +9,8 @@ It is intended for positioning the bearing in a consuming assembly and checking 
 These dimensions are listed in [JTEKT's 608 2RS catalogue](https://www.jtekt.co.jp/products/bearing/en/p/detail/?pno=608+2RS).
 `Params` exposes `BoreDiameter`, `OuterDiameter`, `Width` and an optional `Placement` frame.
 The placement origin is the center of the lower axial face; its normal gives the bearing axis.
+An optional `Lift` transform moves the body instead, with `Placement` read in its local coordinates.
+Assemblies give every body of one rigid group the same lift, so Decad can prove their contacts exactly.
 
 `Params605ZZ()` returns a 5 mm bore, 14 mm outside diameter and 5 mm width from
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).

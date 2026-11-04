@@ -6,6 +6,18 @@ This separate Go module builds gallery models with Decad and renders their
 tessellated meshes with SolidLens. Each image preset names a model and a shot.
 Add a scene builder and a preset entry in `main.go` for another model or shot.
 
+The spinning wheel also has an explicit work-in-progress mode:
+
+```sh
+go -C tools/render run . -model spinningwheel-preview -shot readme -out ../../models/spinningwheel/images
+```
+
+It draws completed native parts using the same constructors and pose as the strict model.
+It records failed construction or meshing in `preview-status.json`, leaves assembly-wide joint cuts pending,
+and labels every static image. Failed tools are excluded. It writes the hero, index, and five paired views.
+The ordinary `spinningwheel` preset still requires the complete assembly. Preview mode does not regenerate
+the animation or establish retention, clearance or interference checks.
+
 The `ballbearing/hero` preset renders the 608-2RS nominal mounting envelope from its Decad body.
 The `readme` shot writes a 1600 × 900 hero and 480 × 270 index:
 
@@ -120,9 +132,10 @@ go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwg
 The `gallery/hero` preset does not include the screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
-scenes of the spur, helical, herringbone, cycloidal and bevel gear models one after another, places each at
-its own size on a 1600 × 900 pixel canvas, and keeps only the pixels that differ from the background where
-the tiles overlap. Building all five models takes about six minutes:
+scenes of the spinning wheel and the spur, helical, herringbone, cycloidal and bevel gear models one after
+another, places each at its own size on a 1600 × 900 pixel canvas (the wheel on the left, the gears on the
+right), and keeps only the pixels that differ from the background where the tiles overlap. Building all six
+models takes about six minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png

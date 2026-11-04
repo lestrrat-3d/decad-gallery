@@ -86,6 +86,72 @@ Return actual root contact coordinates from `buildGearProfile`, including exact
 trim contacts in the embedded branch. Keep the bore sketch separately inspectable
 through `buildBoreProfile`. Other private helper names are implementation choices.
 
+## Existing variant pipeline dependencies
+
+`variant.go` is a handwritten dependency in this package. Do not regenerate it.
+It declares `Variant` with these fields: `Define func(*param.Table) error`,
+`Tooth func(context.Context, ToothInput) (*decad.Body, error)`, `LocalBuild bool`,
+and `RootFillet func(context.Context,*decad.Document,*decad.Body,r3.Frame) (*decad.Body,error)`.
+It also declares the per-build state `run` with fields `doc *decad.Document`,
+`world *sketch.World`, `p Params`, `d dimensions`, `frame r3.Frame`,
+`lower *sketch.Plane`, `extent decad.Distance`, and `teeth int`.
+Do not duplicate these types or the existing methods and functions below:
+
+```go
+func (v Variant) begin(ctx context.Context, doc *decad.Document, p Params) (*run, error)
+func (v Variant) tooth(ctx context.Context, r *run) (*decad.Body, error)
+func (v Variant) buildLocal(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error)
+func filletSpurRoots(ctx context.Context, doc *decad.Document, body *decad.Body,
+    r *run, embedded bool) (*decad.Body, error)
+```
+
+`begin` validates inputs, defines the spur and optional variant parameters on
+both tables, reads dimensions, teeth and thickness, resolves placement, and
+creates the lower sketch plane. `tooth` calls the optional `Tooth` builder;
+otherwise it builds and extrudes the ordinary or embedded tooth using Step 5
+or Step 4b. `buildLocal` calls `begin` without placement, then the emitted
+`assemble`, then places the finished body. `filletSpurRoots` computes the
+ordinary root contacts and calls the emitted helpers below, or dispatches to
+the embedded helper. Preserve these emitted dependency interfaces:
+
+```go
+func (v Variant) Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error)
+func (v Variant) assemble(ctx context.Context, r *run) (*decad.Body, error)
+func validate(p Params) error
+func rotate(x, y, theta float64) point
+func rootContact(basePoint point, d dimensions) point
+func toothAngle(p Params, k int) float64
+func sampleFlanks(pitch, base, start, tip, teeth float64, samples int, angle float64) ([]point, []point)
+func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+    p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error)
+func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+    p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, error)
+func filletRootsValue(ctx context.Context, body *decad.Body, frame r3.Frame,
+    roots []point, radius units.Value) (*decad.Body, error)
+func filletEmbedded(ctx context.Context, body *decad.Body, frame r3.Frame,
+    teeth int, radius units.Value) (*decad.Body, error)
+```
+
+`rotate` applies the planar rotation from Tooth flank. `rootContact` returns
+the base point scaled to the root circle, computing each coordinate as
+`coordinate*d.root/d.base` in that order. `filletRootsValue` implements the
+ordinary Step 7 with its supplied length; the float `filletRoots` wrapper
+converts its radius with `units.Millimeters`. `filletEmbedded` implements
+the embedded Step 7 selector with the supplied length.
+`toothAngle` returns `2*pi*k/p.Teeth`. `sampleFlanks` implements Tooth flank
+with samples ranging from `start` to `tip`, returning left then right arrays.
+The two private section builders implement Steps 5 and 4b respectively.
+
+`Build` delegates to `Variant{}.Build`. The method delegates to `buildLocal`
+when `LocalBuild` is true; otherwise it calls `begin` and then `assemble`.
+`assemble` consumes the prepared `run`: call `v.tooth` once, extrude the root
+disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
+binding and sketch verification for the root disc. When `RootFillet` is nonnil,
+call it with the joined body and frame; otherwise call `filletSpurRoots` only
+when the derived radius is positive. Apply Steps 8 and 9 after that, using the
+same shared bore and cap-chamfer helpers as the public finishing APIs.
+Return the final solid. Keep all per-build state in `run` and local variables.
+
 ## Step 0 — parameter table
 
 Implement a private `defineParameters(t *param.Table, p Params) error`
@@ -232,10 +298,10 @@ Implement `BuildToothSection` after its API guards and ordinary-branch check:
 
 ## Step 6 — build the gear
 
-Implement `Build` using `sketch.NewWorld()`. After `validate`, create the
-world and call `defineParameters` on both `doc.Params()` and `world.Params()`
-(a sketch only binds to its world's table), then `readDimensions(doc)`, and read
-the tooth count with `doc.ParamInt("teeth")`. Both branches then start the same way:
+Implement the shared build through Existing variant pipeline dependencies.
+Its `begin` supplies the world, parameter tables, dimensions, tooth count,
+placement frame and lower plane. Its `tooth` supplies tooth zero using the
+appropriate section from the branches below. Both branches use these operations:
 
 1. Resolve the placement frame. For the lower plane, use `world.XY()` when
    `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
@@ -277,7 +343,7 @@ Carry the returned body through Steps 7–9 and return the last body.
 
 Implement `BuildProfile` by calling `buildGearProfile` after its guards and
 discarding the root list. This API returns an unfilleted planar profile of the
-whole gear for both branches; `Build` uses it only in the embedded branch.
+whole gear for both branches.
 Require the returned body to be solid. Do not reject a document because it
 already contains bodies; the fresh-document body count is a test assertion.
 
