@@ -61,17 +61,50 @@ func (s collisionShape) meshSeparationBy(other collisionShape, limit float64) (f
 	if err != nil || !clear {
 		return gap, false
 	}
-	for _, p := range s.points {
+	// Exceeds proved the surfaces apart by a margin, so no connected component of one mesh crosses the other.
+	// Each component is then wholly inside or wholly outside, and one vertex per component decides it.
+	for _, p := range componentRepresentatives(s) {
 		if meshContains(other, p) {
 			return 0, false
 		}
 	}
-	for _, p := range other.points {
+	for _, p := range componentRepresentatives(other) {
 		if meshContains(s, p) {
 			return 0, false
 		}
 	}
 	return gap, true
+}
+
+// componentRepresentatives returns one vertex of each connected component of the triangle mesh.
+// Vertices that no triangle uses are their own components, so none is skipped.
+func componentRepresentatives(s collisionShape) []r3.Vec {
+	parent := make([]int, len(s.points))
+	for i := range parent {
+		parent[i] = i
+	}
+	root := func(i int) int {
+		for parent[i] != i {
+			parent[i] = parent[parent[i]]
+			i = parent[i]
+		}
+		return i
+	}
+	for _, f := range s.triangles {
+		parent[root(f[1])] = root(f[0])
+		parent[root(f[2])] = root(f[0])
+	}
+	seen := make(map[int]struct{})
+	var reps []r3.Vec
+	for i, p := range s.points {
+		r := root(i)
+		if _, ok := seen[r]; ok {
+			continue
+		}
+		seen[r] = struct{}{}
+		reps = append(reps, p)
+	}
+	return reps
 }
 
 func meshContains(s collisionShape, p r3.Vec) bool {
