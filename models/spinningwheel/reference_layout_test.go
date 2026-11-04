@@ -13,8 +13,7 @@ import (
 )
 
 func TestSpinningWheelReferenceLayout(t *testing.T) {
-	a, err := spinningwheel.Build(t.Context(), spinningwheel.NewDocument(), spinningwheel.DefaultParams())
-	require.NoError(t, err)
+	a := sharedDefaultAssembly(t)
 	spokes := 0
 	for _, part := range a.Parts {
 		if strings.HasPrefix(part.Name, "wheel-spoke-") {
@@ -53,8 +52,7 @@ func TestSpinningWheelReferenceLayout(t *testing.T) {
 
 func TestSpinningWheelRearRailClearance(t *testing.T) {
 	p := spinningwheel.DefaultParams()
-	a, err := spinningwheel.Build(t.Context(), spinningwheel.NewDocument(), p)
-	require.NoError(t, err)
+	a := sharedDefaultAssembly(t)
 	pose := p
 	pose.WheelAngle = 3 * math.Pi / 2
 	state, err := spinningwheel.Motion(pose)

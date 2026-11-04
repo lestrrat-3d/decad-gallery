@@ -1,6 +1,7 @@
 package spinningwheel_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -43,16 +44,29 @@ func requireConnectorPose(t *testing.T, p spinningwheel.Params) (volume, bound f
 // rebuild, its verification and its Sketches on their own. The pose is rigid, so the volume
 // must stay constant within the held bounds across all 72 poses.
 func TestSpinningWheelConnectorPoses(t *testing.T) {
-	p := spinningwheel.DefaultParams()
-	var base, baseBound float64
-	for i := range 72 {
-		p.WheelAngle = float64(i) * math.Pi / 36
-		volume, bound := requireConnectorPose(t, p)
-		if i == 0 {
-			base, baseBound = volume, bound
-			continue
+	const poses = 72
+	volumes := make([]float64, poses)
+	bounds := make([]float64, poses)
+	// Each pose is a parallel subtest with its own document. At most four run at once, which bounds
+	// peak memory. The group subtest returns only after every pose has finished.
+	slots := make(chan struct{}, 4)
+	t.Run("poses", func(t *testing.T) {
+		for i := range poses {
+			t.Run(fmt.Sprintf("%d", i*5), func(t *testing.T) {
+				t.Parallel()
+				slots <- struct{}{}
+				defer func() { <-slots }()
+				p := spinningwheel.DefaultParams()
+				p.WheelAngle = float64(i) * math.Pi / 36
+				volumes[i], bounds[i] = requireConnectorPose(t, p)
+			})
 		}
-		require.InDelta(t, base, volume, baseBound+bound+1e-9, "connector volume at %d degrees", i*5)
+	})
+	if t.Failed() {
+		return
+	}
+	for i := 1; i < poses; i++ {
+		require.InDelta(t, volumes[0], volumes[i], bounds[0]+bounds[i]+1e-9, "connector volume at %d degrees", i*5)
 	}
 }
 
