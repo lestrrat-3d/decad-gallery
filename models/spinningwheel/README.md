@@ -4,7 +4,7 @@
 
 The still hero image is [images/hero.png](images/hero.png).
 
-The images show all 195 parts of the default build, rendered from the real Decad body with Decad `80d8956c9a0f`.
+The images show all 206 parts of the default build, rendered from the real Decad body with Decad `c79783bd2ca2`.
 The [preview status](images/preview-status.json) records the part counts and that no part is omitted.
 Every part pair of the default build and of four scale and ratio variants has a conclusive non-overlap result.
 Mating parts that ride different motion frames keep small designed gaps, 0.01 to 0.05 mm, listed in the

@@ -17,7 +17,7 @@ Frame dimensions, stock-bearing choices, shaft connections, alignment slots and 
 
 ## Current preview
 
-The static images and the animation are rendered from the real default Build body: 195 parts, none omitted.
+The static images and the animation are rendered from the real default Build body: 206 parts, none omitted.
 [preview-status.json](../../models/spinningwheel/images/preview-status.json) records the part counts.
 Joint cuts, retention and collision checks remain unfinished; 19 part pairs still lack a conclusive
 non-overlap result, so the images do not show a verified assembly.
