@@ -26,7 +26,8 @@ Numeric suffixes are one-based. The parent emitter may correct identifiers again
 - gimbal-cross-pin, gimbal-cross-pin-collar-1/2, gimbal-cross-spacer-1/2.
 - footman, footman-head-boss, footman-cross-605-1/2, footman-cross-spacer, footman-cross-retainer-1/2.
 - footman-retainer-bolt, footman-retainer-nut.
-- treadle, treadle-heel-rail, treadle-actuating-rail, treadle-rear-crossarm, treadle-connector-block.
+- treadle, treadle-heel-rail, treadle-bar-left/right, treadle-rear-crossarm, treadle-connector-block.
+- treadle-board-bolt-1/2/3/4-pin/nut, treadle-block-bolt-pin/nut.
 - heel-pin, heel-key, heel-collar-1/2, heel-spacer-1/2, treadle-flex-connector.
 - treadle-lower-clamp-pin/nut, footman-upper-clamp-pin/nut.
 - drive-band-wheel-wrap, drive-band-flyer-wrap, drive-band-span-1/2.

@@ -86,7 +86,7 @@ Those envelopes do not represent separate inner/outer race rotations, seals or b
 The front plain sleeve uses the same parametric annulus constructor with its own dimensions.
 
 The motion model solves one continuous branch of the spatial crank, upper gimbal, footman and treadle linkage.
-The treadle rotates about X; the wheel rotates about Y. The diagonal actuating rail reaches behind the wheel.
+The treadle rotates about X; the wheel rotates about Y. The treadle bars and rear crossarm reach behind the wheel.
 The gimbal's first 605 stays coaxial with the crank pin. Two more 605 envelopes share a perpendicular cross-pin.
 The lower connection is one compliant body with two anchored legs. The renderer and clearance tests rebuild
 that actual component at each solved pose through `BuildConnector`, rather than moving it as a rigid part.

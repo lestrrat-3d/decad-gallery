@@ -25,7 +25,7 @@ The photographs establish arrangement, not manufacturing dimensions.
 | Mother-of-all | Three broad stacked plates slide horizontally; there is no hinge. | Replace them with a narrow hinged upper board, base, alignment slots and vertical jack. |
 | Footman | A flat four-bar has parallel pin axes and runs on the operator side. | Move it behind the wheel; use an upper two-axis gimbal and a compliant lower connector. |
 | Treadle | A sideways board rocks about an axis parallel to the wheel axle. | Put a fore-and-aft footboard on a cross-machine rocker shaft, with support at both ends. |
-| Treadle connector | A long lateral toe pin directly joins the sideways board to the rod. | Add the diagonal actuating rail and short flexible connector shown in the reference arrangement. |
+| Treadle connector | A long lateral toe pin directly joins the sideways board to the rod. | Add a ladder frame of two bars and a rear crossarm, and the short flexible connector shown in the reference arrangement. |
 | Supporting frame | Vertical posts stand on separate feet, with a high horizontal bench behind the wheel. | Use one head leg, a splayed wheel-support pair, two sloping rails and a shared treadle shaft. |
 
 ## Eight correction groups
@@ -63,8 +63,8 @@ The first native assembly exposed repeated-placement bookkeeping in Decad's exac
 [Decad PR2932](https://github.com/lestrrat-3d/decad/pull/2932) repaired it generally and passed required CI.
 The current pinned dependency includes that repair.
 
-The straight diagonal actuator's mesh intersected the rear leg near the bottom of the stroke.
-The corrected path stops the diagonal left of that leg and reaches the lower connector through a rear crossarm.
+A straight diagonal actuator's mesh intersected the rear leg near the bottom of the stroke.
+The treadle now has two straight bars left of that leg and reaches the lower connector through a rear crossarm.
 This preserves the solved joint positions and gives the moving timber room around the support.
 The clearance checks charge verified mesh displacement and also reject containment, rather than accepting surface gaps alone.
 The Scale0.8 case also found insufficient clearance between the crank's front collar and the splayed rear leg.

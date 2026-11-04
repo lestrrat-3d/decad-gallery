@@ -59,8 +59,8 @@ Use a single combined flat-cut tool for all shaft D zones, and add no tolerant/f
 
 ## Ownership and assembly
 
-Stable new linkage IDs: treadle (footboard), treadle-heel-rail, treadle-actuating-rail,
-treadle-rear-crossarm, treadle-connector-block,
+Stable new linkage IDs: treadle (footboard), treadle-heel-rail, treadle-bar-left/right,
+treadle-rear-crossarm, treadle-connector-block, treadle-board-bolt-1..4, treadle-block-bolt,
 heel-pin, heel-bearing-1/2, gimbal-crank-605, gimbal-bridge, gimbal-cheek-1/2,
 gimbal-cross-pin, footman (long timber), footman-head-boss, footman-cross-605-1/2,
 treadle-connector-lower/upper. Other names must be descriptive and unique.
@@ -138,11 +138,11 @@ The lower compliant connector has separate ideal bend legs following the treadle
 Model its actual clamp passages and pins; label it as compliant, without a claimed stiffness.
 
 Build heel rail from a YZ rectangle/D-hole section extruded along local+X; rotate all treadle parts with PedalFrame.
-For the diagonal rail, use a constrained rectangle in an orthonormal frame along its local centreline.
-Join board, rail and diagonal by intended rigid wood overlaps; return separate named final parts.
+Build each bar, the board and the crossarm from a constrained rectangle on the treadle lift.
+Join the board, bars, rail and crossarm by mortises and flush faces on that one lift; return separate named final parts.
 Return the rear crossarm and connector block as separate timbers too; use no Union for these wood joints.
 Make the connector block with a primary YZ rectangle and stock4.4 circle at local(Y,Z)=(450*Scale,8*Scale),
-extruded along localX[208,232]*Scale. The lower clamp tool cuts only the compliant leg, not the other timbers.
+extruded along localX[208,232]*Scale (block Z[-27,12]*Scale). The lower clamp tool cuts only the compliant leg, not the other timbers.
 The two heel608 envelopes belong to the two frame legs. They stay fixed while the D shaft and rail rotate.
 Keep shaft journals, bearing clearances and axial collars consistent with the stock widths.
 The single head leg and splayed wheel legs are YZ primary profiles extruded along X;

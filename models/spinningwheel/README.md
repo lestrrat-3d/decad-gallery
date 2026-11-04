@@ -36,7 +36,7 @@ Moving its base along the flyer axis selects a whorl groove while keeping both p
 ![Top and side views of the actual arrangement](images/layout.png)
 
 The footboard extends fore and aft toward the operator. Its hinge shaft crosses the frame,
-perpendicular to the wheel axle. A diagonal actuating rail reaches the footman behind the wheel.
+perpendicular to the wheel axle. Two bars carry the footboard, and a crossarm behind the wheel reaches the footman.
 An upper gimbal has two rolling axes; a lower compliant connector joins the rocking rail to the footman.
 The [reference inventory](../../docs/spinning-wheel-reference-audit.md) records all corrected arrangements.
 

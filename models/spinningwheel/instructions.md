@@ -83,7 +83,7 @@ Wheel centre (220,0,580)*Scale; radius280*Scale; inner rim radius255*Scale.
 Crank pin C=(220+25*cos(a),105,580+25*sin(a))*Scale, a=WheelAngle.
 The treadle axis runs along world X through Y=-190*Scale,Z60*Scale. Heel=(60,-190,60)*Scale.
 PedalFrame has origin(0,-190,60)*Scale, U=(1,0,0), V=(0,cos(psi),sin(psi)), N=U.Cross(V).
-Its local XY plane carries the footboard and diagonal actuating rail. Positive psi raises their rear edges.
+Its local XY plane carries the treadle ladder frame. Positive psi raises its rear edges.
 The lower compliant-joint centre D=Toe is PedalFrame applied to (220,450,20)*Scale.
 For each candidate psi, W0=normalize((D.X-C.X,0,D.Z-C.Z)), V0=(-W0.Z,0,W0.X).
 The upper gimbal cross-pin centre S=RodHead=C+32*Scale*W0.
@@ -135,18 +135,19 @@ Add stock7 OD,2 high button heads and7 OD,4 ID,2 wide nut envelopes0.2 outside e
 Lower faces are at+-12*Scale along its pin axis; upper faces at+-10*Scale. Heads/nuts follow their wood's Motion.
 Do not claim flexure strain, torque or fatigue verification.
 
-In PedalFrame coordinates, the footboard is x[5,115],y[-30,240],z[-12,12], scaled.
-The rotating heel rail is x[-233,193],y[-12,12],z[-12,12], scaled, with stock D8.2/flat3.1 bore along X.
-The diagonal actuating rail is a width24,thickness24 scaled prism joining local(-160,0,0) to(170,450,0),
-with square ends perpendicular to its centreline. It stays left of the rear wheel leg throughout the stroke.
-An offset rear crossarm spans localX[160,220],Y[438,462],Z[-12,0], scaled.
-A full-thickness clamp block spans localX[208,232],Y[438,462],Z[-12,12], scaled, below D.
-Return three separately named rigid timbers: treadle-actuating-rail (diagonal), treadle-rear-crossarm,
-and treadle-connector-block. Their overlaps denote glued/lapped wood joints, as with the wheel spokes.
-Do not Union them. The lower clamp passage belongs only to treadle-connector-block.
-The half-height crossarm stays below the lower connector's X-directed clamp pin and both of its fasteners.
-Do not run the diagonal straight through the splayed leg to reach D.
-Board, heel rail and diagonal rail are separate named rigid wood joints, Motion treadle.
+In PedalFrame coordinates, all scaled: the rotating heel rail is x[-233,193],y[-15,15],z[-15,15],
+with stock D8.2/flat3.1 bore along X. Bars treadle-bar-left x[8,32] and treadle-bar-right x[88,112]
+span y[-45,520],z[-27,27]. The heel rail passes through a mortise in each bar, cut with the rail's own section.
+The rear crossarm x[-8,232],y[462,492],z[-15,15] passes through both bars the same way.
+The footboard treadle x[5,115],y[-30,240],z[27,51] lies uncut on both bars' top faces.
+Four headed bolts at (x,y)=(20,60),(20,200),(100,60),(100,200) clamp board to bar: axis -Z, centre z12, face39.
+The connector block x[208,232],y[438,462],z[-27,12] is glued to the crossarm's front face, with one bolt
+along +Y at (x,z)=(220,-6), centre y465, face27. Build each bolt like the lower clamp, in stock4.4 holes.
+Return separately named rigid timbers, Motion treadle; do not Union them; nothing is half-lapped.
+The names are treadle (footboard), treadle-heel-rail, treadle-bar-left, treadle-bar-right,
+treadle-rear-crossarm and treadle-connector-block; the bolts are treadle-board-bolt-1..4 and treadle-block-bolt,
+each with a -pin and a -nut part. The lower clamp passage belongs only to treadle-connector-block.
+All parts pass left of or behind the rear leg.
 An8 mm stock rotating heel shaft spans X[-283,243]*Scale at Y=-190*Scale,Z60*Scale.
 Cut its stock flat at local radial coordinate3 over X[-234,194]*Scale only; journals stay round.
 Two stock608 bearings have axis X and centres(-260,-190,60)*Scale and(220,-190,60)*Scale;

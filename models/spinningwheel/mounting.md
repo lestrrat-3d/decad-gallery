@@ -38,7 +38,7 @@ These wheel parts move with wheel. Key IDs are wheel-hub-key and wheel-crank-key
 Heel shaft keeps its original ends and diameter8, with no D flat.
 Heel key/pocket spans localX[-220,180]*Scale. Its radial coordinates are PedalFrame.V and PedalFrame.N.
 The heel rail has the corresponding keyed8.2 through-bore. Key ID is heel-key, Motion treadle.
-The footboard receives that same keyed passage where the shaft crosses it.
+The footboard lies above the heel rail and receives no passage.
 
 Flyer tube keeps its10mm orifice,6mm radial outlet and stock16/8 outer steps.
 Replace its D flats with the stock16 key pockets over localY[-281,-251]*Scale and[-219,-211]*Scale.
@@ -151,16 +151,14 @@ Cut the rear brake crossbar's stock envelope out of the upper bar, making its5*S
 Cut the rear maiden foot's stock envelope out of that crossbar, plus its two M6 insert seats.
 Move the front brake upright to localY[-338,-330]*Scale, clearing the maiden foot and bolt heads.
 
-## Treadle half-laps
+## Treadle ladder frame
 
-Work in PedalFrame. Keep the heel rail's lower half inside the footboard's footprint, and the board's upper half.
-Cut heel-rail upper-half stock Z[0,12]*Scale by the board footprint; cut board lower half by heel-rail stock.
-At heel-rail/diagonal intersection, keep heel-rail upper half and diagonal lower half.
-At board/diagonal intersection, keep board upper half and diagonal lower half.
-Use unperforated half-thickness tools with the original stock centreline/width, then bore the board's keyed shaft passage.
-Cut the rear crossarm's full stock envelope out of the diagonal's end; its upper half remains connected.
-Cut the same crossarm stock out of the connector block; its upper half/right side remain connected.
-Do not delete a whole overlap that severs the board or a rail into two disconnected pieces.
+Work in PedalFrame, on one lift. Nothing is half-lapped; no timber is cut by a lap.
+The heel rail x[-233,193] passes through a mortise in each bar, cut with the rail's own 30x30 section;
+the rear crossarm passes through both bars the same way. Each mortise tool runs 5 past the bar's faces.
+The footboard lies uncut on both bars' top faces and is held by four through-bolts (stock4.4 holes cut 5 past each face,
+after the mortises). The connector block is glued to the crossarm's front face and held by one bolt along +Y.
+Do not delete a whole overlap that severs a bar or the rail into two disconnected pieces.
 
 ## Flyer and guide seats
 
