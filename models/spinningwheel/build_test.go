@@ -44,7 +44,20 @@ func TestSpinningWheelVariants(t *testing.T) {
 	}
 }
 
+// checkSpinningWheel runs every wheel check. With linkage it runs two subtests, each with its own Build,
+// so CI can give them separate jobs: "verify" runs everything except the linkage frame clearances, and
+// "linkage" runs only requireLinkageFrameClearances. Without linkage it runs the verify checks inline.
 func checkSpinningWheel(t *testing.T, p spinningwheel.Params, linkage bool) {
+	t.Helper()
+	if !linkage {
+		verifySpinningWheel(t, p)
+		return
+	}
+	t.Run("verify", func(t *testing.T) { verifySpinningWheel(t, p) })
+	t.Run("linkage", func(t *testing.T) { linkageSpinningWheel(t, p) })
+}
+
+func buildSpinningWheel(t *testing.T, p spinningwheel.Params) (*decad.Document, *spinningwheel.Assembly) {
 	t.Helper()
 	doc := spinningwheel.NewDocument()
 	a, err := spinningwheel.Build(t.Context(), doc, p)
@@ -58,9 +71,12 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params, linkage bool) {
 		}
 	}
 	require.NoError(t, err)
-	requireOnePieceWhorl(t, a, p)
-	requirePartHomes(t, a)
-	require.Equal(t, len(a.Parts), len(doc.Bodies()), "only final assembly bodies may remain live")
+	return doc, a
+}
+
+// tessellateParts meshes every final part with full verification and returns the meshes by part name.
+func tessellateParts(t *testing.T, a *spinningwheel.Assembly) map[string]surfaceTriangles {
+	t.Helper()
 	names := make(map[string]struct{})
 	meshes := make(map[string]surfaceTriangles)
 	for _, p := range a.Parts {
@@ -82,6 +98,23 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params, linkage bool) {
 		require.Equal(t, 1, meshComponents(len(mesh.Vertices()), mesh.Triangles()), "%s must be connected", p.Name)
 		meshes[p.Name] = surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()}
 	}
+	return meshes
+}
+
+func linkageSpinningWheel(t *testing.T, p spinningwheel.Params) {
+	t.Helper()
+	_, a := buildSpinningWheel(t, p)
+	meshes := tessellateParts(t, a)
+	requireLinkageFrameClearances(t, a, p, meshes)
+}
+
+func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
+	t.Helper()
+	doc, a := buildSpinningWheel(t, p)
+	requireOnePieceWhorl(t, a, p)
+	requirePartHomes(t, a)
+	require.Equal(t, len(a.Parts), len(doc.Bodies()), "only final assembly bodies may remain live")
+	meshes := tessellateParts(t, a)
 	for i, s := range a.Sketches {
 		r := s.Verify(t.Context())
 		require.True(t, r.Status == sketch.FullyConstrained, "sketch %d status %s", i, r.Status)
@@ -95,9 +128,6 @@ func checkSpinningWheel(t *testing.T, p spinningwheel.Params, linkage bool) {
 	requireNoMaterialOverlap(t, doc, a)
 	requireWheelFeatures(t, a, p, meshes)
 	requireHeadAdjustment(t, a, p)
-	if linkage {
-		requireLinkageFrameClearances(t, a, p, meshes)
-	}
 	requireFlyerSweptClearances(t, a)
 	requireDriveBandFrameClearances(t, a)
 	coils := 0

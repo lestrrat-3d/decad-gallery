@@ -142,11 +142,25 @@ def run_bevel(mode: str, shard: str) -> None:
 
 # The spinning wheel builds roughly 190 solids and verifies every pair, so each case gets its own job and
 # its own time limit. "rest" holds every other spinning wheel test.
+#
+# Which job runs which check. checkSpinningWheel (models/spinningwheel/build_test.go) runs two subtests
+# for the cases that check the linkage, each with its own Build:
+#   <case>-verify   everything except requireLinkageFrameClearances: Build, part checks, Sketch
+#                   verification, requireNoMaterialOverlap, brake captivity, wheel features, head
+#                   adjustment, flyer sweep and drive band checks.
+#   <case>-linkage  Build, then requireLinkageFrameClearances only.
+# The default, small-seven and large-nine cases are split this way, so the two jobs of one case together
+# run exactly the checks the unsplit test ran. The twelve and small-seventeen cases skip the linkage check
+# on purpose (it repeats a scale already checked), so one job runs all of their verify checks.
+# "native" runs the native and connector default builds. "rest" runs every other TestSpinningWheel test.
 WHEEL_CASES = {
-    "default": "^TestSpinningWheelDefault$",
+    "default-verify": "^TestSpinningWheelDefault$/^verify$",
+    "default-linkage": "^TestSpinningWheelDefault$/^linkage$",
     "native": "^(TestSpinningWheelNativeDefault|TestSpinningWheelConnectorDefault)$",
-    "small-seven": "^TestSpinningWheelVariants$/^small-seven$",
-    "large-nine": "^TestSpinningWheelVariants$/^large-nine$",
+    "small-seven-verify": "^TestSpinningWheelVariants$/^small-seven$/^verify$",
+    "small-seven-linkage": "^TestSpinningWheelVariants$/^small-seven$/^linkage$",
+    "large-nine-verify": "^TestSpinningWheelVariants$/^large-nine$/^verify$",
+    "large-nine-linkage": "^TestSpinningWheelVariants$/^large-nine$/^linkage$",
     "twelve": "^TestSpinningWheelVariants$/^twelve$",
     "small-seventeen": "^TestSpinningWheelVariants$/^small-seventeen$",
 }

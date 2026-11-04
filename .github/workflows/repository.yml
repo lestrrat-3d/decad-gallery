@@ -53,7 +53,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        case: [default, native, small-seven, large-nine, twelve, small-seventeen, rest]
+        case:
+          - default-verify
+          - default-linkage
+          - native
+          - small-seven-verify
+          - small-seven-linkage
+          - large-nine-verify
+          - large-nine-linkage
+          - twelve
+          - small-seventeen
+          - rest
     name: wheel-${{ matrix.case }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
