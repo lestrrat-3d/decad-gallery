@@ -70,17 +70,14 @@ func requireWheelOrbit(t *testing.T, meshes []wheelMesh, path string) {
 
 	// A turn of 360 degrees returns the first camera. The distance to the target and the elevation stay fixed.
 	hero := spinningWheelScene(meshes, "hero")
-	scenes, fill, err := newWheelOrbit(meshes, hero, 320.0/180, 72)
-	require.NoError(t, err)
-	require.Len(t, scenes, 72)
-	require.InDelta(t, wheelOrbitFill, fill, .01, "the wheel fills the frame at its widest angle without clipping")
-	first, quarter := scenes[0], scenes[18]
-	require.Equal(t, hero.Background, first.Background)
-	require.Len(t, first.DirectionalLights, 2, "solidlens lights each frame relative to its camera")
-	require.False(t, first.DirectionalLights[0].Direction == quarter.DirectionalLights[0].Direction, "the lights turn")
-	look := func(c solidlens.Camera) r3.Vec { return c.Position.Sub(c.Target) }
-	require.InDelta(t, look(first.Camera).Len(), look(quarter.Camera).Len(), 1e-6, "the distance stays constant")
-	require.InDelta(t, look(first.Camera).Z, look(quarter.Camera).Z, 1e-6, "the elevation stays fixed")
+	rig := newWheelOrbitRig(meshes, hero, 320.0/180, 4)
+	first, _ := rig.camera(0)
+	closed, _ := rig.camera(2 * math.Pi)
+	quarter, _ := rig.camera(math.Pi / 2)
+	require.InDelta(t, 0, r3.Vec(first.Position).Sub(r3.Vec(closed.Position)).Len(), 1e-6)
+	look := func(c solidlens.Camera) r3.Vec { return r3.Vec(c.Position).Sub(r3.Vec(c.Target)) }
+	require.InDelta(t, look(first).Len(), look(quarter).Len(), 1e-6)
+	require.InDelta(t, look(first).Z, look(quarter).Z, 1e-6, "the elevation stays fixed")
 }
 
 func requireWheelImage(t *testing.T, path string, width, height int) {

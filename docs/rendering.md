@@ -16,13 +16,9 @@ It draws completed native parts using the same constructors and pose as the stri
 It records failed construction or meshing in `preview-status.json`, leaves assembly-wide joint cuts pending,
 and labels every static image. Failed tools are excluded. It writes the hero, index, and five paired views.
 The `spinningwheel` model also has an `orbit` preset: a 72-frame, 960 × 540 pixel turntable GIF of the complete,
-static default build. It uses the hero scene's models, materials, edges and background. solidlens places the camera:
-`BoundsOf` and `FitOrbit` give an orbit at the hero yaw and pitch, and `Turntable` turns it 5° per frame about the
-vertical axis through the model centre. The lights follow the camera (`CameraLights`), and `RenderGIF` shares one
-palette across the frames, loops forever, and uses 60 ms per frame. `FitOrbit` frames the bounding sphere, which
-leaves a flat wheel small, so the renderer rescales the one constant distance and shifts each frame's camera
-sideways and up until the largest projected extent over the turn fills 88 percent of the frame height or width
-without clipping. The `readme` shot writes it as
+static default build. The camera turns 5° per frame about the vertical axis through the model centre, keeps the hero
+elevation, and keeps one fixed distance. That distance makes the largest projected extent over the whole turn fill
+88 percent of the frame height or width, and the view is re-centred at each angle, so the wheel never clips. The lights turn with the camera, and the GIF loops forever at 60 ms per frame. The `readme` shot writes it as
 `orbit.gif` beside the hero, index, rear and sheet images and `motion.gif`:
 
 ```sh
