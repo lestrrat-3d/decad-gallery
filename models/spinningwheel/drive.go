@@ -259,31 +259,43 @@ func heelAt(x, y, z float64) r3.Frame {
 	return frame(r3.Vec{X: x, Y: y, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 }
 
+// treadleBars are the two bars of the treadle ladder frame, in PedalFrame x.
+var treadleBars = []struct {
+	name   string
+	x0, x1 float64
+}{{"treadle-bar-left", 8, 32}, {"treadle-bar-right", 88, 112}}
+
+// treadleBolts are the four through-bolts that hold the footboard to the bars, by footboard (x, y).
+var treadleBolts = [][2]float64{{20, 60}, {20, 200}, {100, 60}, {100, 200}}
+
+// driveTreadle builds the treadle as a ladder frame of axis-aligned boxes, all on one lift: two bars carry the
+// footboard on their top faces and the heel rail and the rear crossarm pass through them (joinery cuts the
+// mortises), and the connector block is glued to the crossarm's front face.
 func (b *builder) driveTreadle() {
 	s := b.p.Scale
 	l := b.treadleLift()
 	h := b.heelLift()
 	b.part("treadle", "treadle", "treadle", func() *decad.Body {
-		return b.liftPanel(l, level(0, 0, -12*s), 5*s, -30*s, 115*s, 240*s, 24*s)
+		return b.liftPanel(l, level(0, 0, 27*s), 5*s, -30*s, 115*s, 240*s, 24*s)
 	})
 	b.part("treadle-heel-rail", "treadle", "treadle", func() *decad.Body {
 		section := b.sectionOn(heelAt(-233*s, 0, 0))
-		rectangle(section, -12*s, -12*s, 12*s, 12*s)
+		rectangle(section, -15*s, -15*s, 15*s, 15*s)
 		keyedOutline(section, 4.1, 1.1, 4.9)
 		return b.liftExtrude(section, 1, 426*s, l)
 	})
-	// The diagonal rail is sketched on the treadle lift in the frame its lap tools use (diagonalAt), so their
-	// side faces share exact numbers.
-	b.part("treadle-actuating-rail", "treadle", "treadle", func() *decad.Body {
-		return b.liftPanel(l, b.diagonalAt(-12*s), 0, -12*s, math.Hypot(330, 450)*s, 12*s, 24*s)
-	})
+	for _, bar := range treadleBars {
+		b.part(bar.name, "treadle", "treadle", func() *decad.Body {
+			return b.liftPanel(l, level(0, 0, -27*s), bar.x0*s, -45*s, bar.x1*s, 520*s, 54*s)
+		})
+	}
 	b.part("treadle-rear-crossarm", "treadle", "treadle", func() *decad.Body {
-		return b.liftPanel(l, level(0, 0, -12*s), 160*s, 438*s, 220*s, 462*s, 12*s)
+		return b.liftPanel(l, level(0, 0, -15*s), -8*s, 462*s, 232*s, 492*s, 30*s)
 	})
 	b.part("treadle-connector-block", "treadle", "treadle", func() *decad.Body {
 		// The block's length is taken up to the lower clamp nut's level, the clamp centre plus its face offset
 		// (driveClamp), so the nut sits on the block's face exactly.
-		return b.liftPanel(l, heelAt(208*s, 0, 0), 438*s, -12*s, 462*s, 12*s, (220*s+12*s)-208*s,
+		return b.liftPanel(l, heelAt(208*s, 0, 0), 438*s, -27*s, 462*s, 12*s, (220*s+12*s)-208*s,
 			hole{450 * s, 8 * s, 2.2})
 	})
 	b.part("heel-pin", "shaft", "treadle", func() *decad.Body {
@@ -308,6 +320,16 @@ func (b *builder) driveTreadle() {
 	// The toe lies at local (220s, 450s, 20s); the clamp centre 12s below it, its axis along local X.
 	b.driveClamp("treadle-lower-clamp", "treadle", l, r3.Vec{X: 220 * s, Y: 450 * s, Z: 8 * s},
 		r3.Vec{Y: 1}, r3.Vec{X: 1}, 12*s)
+	// Each footboard bolt runs down through the board and a bar, its head on the board: the stack spans local Z
+	// -27s to 51s, so the clamp centre is 12s and the face offset 39s.
+	for i, at := range treadleBolts {
+		b.driveClamp(fmt.Sprintf("treadle-board-bolt-%d", i+1), "treadle", l, r3.Vec{X: at[0] * s, Y: at[1] * s, Z: 12 * s},
+			r3.Vec{X: 1}, r3.Vec{Z: -1}, 39*s)
+	}
+	// The block bolt runs along +Y through the block and the crossarm, its head on the block's front face: the
+	// stack spans local Y 438s to 492s.
+	b.driveClamp("treadle-block-bolt", "treadle", l, r3.Vec{X: 220 * s, Y: 465 * s, Z: -6 * s},
+		r3.Vec{X: 1}, r3.Vec{Y: 1}, 27*s)
 }
 
 // bandTangents is the drive band's geometry: the unit directions from each pulley centre to the band's two

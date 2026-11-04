@@ -208,42 +208,36 @@ func (b *builder) frameJoinery() {
 	b.machine("wheel-rim", rimTools...)
 }
 
-// diagonalStock is the diagonal rail's lap tool between local z0 and z1 (scaled); pad0 and pad1 run it that many mm
-// further out so it never ends flush with the host face it opens.
-func (b *builder) diagonalStock(z0, z1, pad0, pad1 float64) *decad.Body {
-	s := b.p.Scale
-	return b.liftPanel(b.treadleLift(), b.diagonalAt(z0*s-pad0), 0, -12*s, math.Hypot(330, 450)*s, 12*s,
-		(z1-z0)*s+pad0+pad1)
-}
-
-// diagonalAt is the diagonal rail's sketch frame on the treadle lift at local level z: it starts at local X
-// -160*Scale and runs along local (330, 450).
-func (b *builder) diagonalAt(z float64) r3.Frame {
-	u, _ := (r3.Vec{X: 330, Y: 450}).Normalize()
-	return frame(r3.Vec{X: -160 * b.p.Scale, Z: z}, u, r3.Vec{X: -u.Y, Y: u.X})
-}
-
+// treadleJoinery cuts the treadle ladder frame's mortises and bolt holes. Every tool runs 5 past the faces it
+// opens. The heel rail and the rear crossarm pass through both bars, each mortise cut with the passing timber's own
+// section; the bolt holes follow the mortises.
 func (b *builder) treadleJoinery() {
 	s := b.p.Scale
 	f := b.treadleLift()
-	// The diagonal lap is cut first: cut after the treadle lap, whose floor it meets at local level 0, it needed
-	// a gap shift at Scale 0.8.
-	b.machine("treadle-heel-rail",
-		b.diagonalStock(-12, 0, 5, 0),
-		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5))
-	// The keyed shaft runs along the treadle's local X; radial +X of the key section is local Y.
-	b.machine("treadle",
-		b.localStock(f, -233*s, 193*s, -12*s, 12*s, -12*s-5, 0),
-		b.diagonalStock(-12, 0, 5, 0), b.liftKeyTool(f, heelAt(5*s-5, 0, 0), 4.1, 1.1, 4.9, 110*s+10))
-	b.machine("treadle-actuating-rail",
-		b.localStock(f, -233*s, 193*s, -12*s, 12*s, 0, 12*s+5),
-		b.localStock(f, 5*s, 115*s, -30*s, 240*s, 0, 12*s+5),
-		b.localStock(f, 160*s, 220*s, 438*s, 462*s, -12*s-5, 0))
-	// The glued rail never touches the heel shaft or its key, so it gets a clearance bore along the shaft.
-	b.machine("treadle-actuating-rail", b.liftCylinder(f, heelAt(-290*s, 0, 0), 5.2, 560*s))
-	// The half-lap stock runs 5 past the block's side and bottom faces, so it never shares their planes.
-	b.machine("treadle-connector-block",
-		b.localStock(f, 160*s, 220*s, 438*s-5, 462*s+5, -12*s-5, 0),
+	for _, bar := range treadleBars {
+		tools := []*decad.Body{
+			b.localStock(f, bar.x0*s-5, bar.x1*s+5, -15*s, 15*s, -15*s, 15*s),
+			b.localStock(f, bar.x0*s-5, bar.x1*s+5, 462*s, 492*s, -15*s, 15*s),
+		}
+		for _, at := range treadleBolts {
+			if at[0] > bar.x0 && at[0] < bar.x1 {
+				tools = append(tools, b.liftCylinder(f, level(at[0]*s, at[1]*s, -27*s-5), 2.2, 54*s+10))
+			}
+		}
+		b.machine(bar.name, tools...)
+	}
+	var boardHoles []*decad.Body
+	for _, at := range treadleBolts {
+		boardHoles = append(boardHoles, b.liftCylinder(f, level(at[0]*s, at[1]*s, 27*s-5), 2.2, 24*s+10))
+	}
+	b.machine("treadle", boardHoles...)
+	// The block bolt's holes run along local +Y through the block (438s to 462s) and the crossarm (462s to 492s).
+	boltAt := func(y0, y1 float64) *decad.Body {
+		return b.liftCylinder(f, frame(r3.Vec{X: 220 * s, Y: y0, Z: -6 * s}, r3.Vec{Z: 1}, r3.Vec{X: 1}), 2.2, y1-y0)
+	}
+	b.machine("treadle-rear-crossarm", boltAt(462*s-5, 492*s+5))
+	// The flexure bore opens in the block's top, which the lower leg overlaps.
+	b.machine("treadle-connector-block", boltAt(438*s-5, 462*s+5),
 		b.liftCylinder(f, level(220*s, 450*s, 3*s), 3.2, 10*s))
 	// The flexure bore runs along the rod's local X from 19s.
 	b.machine("footman", b.liftCylinder(b.footmanLift(), frame(r3.Vec{X: 19 * s}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), 3.2, 14*s))
@@ -537,12 +531,33 @@ func (b *builder) mountInventory() {
 	add("footman-retainer-bolt", "headed-tie-bolt", refs("footman-head-boss", "footman", "footman-cross-retainer-1", "footman-cross-retainer-2"), refs("footman-retainer-nut"), 0.1)
 	add("footman-retainer-nut", "threaded-tie-nut", refs("footman-retainer-bolt"), nil, 0)
 	add("heel-pin", "bearing-journal", refs("heel-bearing-1", "heel-bearing-2"), refs("heel-collar-1", "heel-collar-2"), 0)
-	add("heel-key", "removable-parallel-key", refs("heel-pin", "treadle-heel-rail", "treadle"), nil, 0.1)
-	add("treadle-heel-rail", "keyed-and-glued-half-lap", refs("heel-pin", "heel-key", "treadle"), refs("heel-collar-1", "heel-collar-2"), 0.1)
-	add("treadle", "keyed-and-glued-half-laps", refs("heel-pin", "heel-key", "treadle-heel-rail", "treadle-actuating-rail"), nil, 0.1)
-	add("treadle-actuating-rail", "glued-half-laps", refs("treadle", "treadle-heel-rail", "treadle-rear-crossarm"), nil, 0)
-	add("treadle-rear-crossarm", "glued-half-laps", refs("treadle-actuating-rail", "treadle-connector-block"), nil, 0)
-	add("treadle-connector-block", "glued-half-lap", refs("treadle-rear-crossarm"), nil, 0)
+	add("heel-key", "removable-parallel-key", refs("heel-pin", "treadle-heel-rail"), nil, 0.1)
+	add("treadle-heel-rail", "keyed-through-bars", refs("heel-pin", "heel-key"), refs("heel-collar-1", "heel-collar-2"), 0.1)
+	// The ladder frame's timbers pass through or lie on one another, glued; the bolts hold the board and the block.
+	var boardBolts []string
+	barBolts := make(map[string][]string)
+	for i := 1; i <= len(treadleBolts); i++ {
+		bolt := fmt.Sprintf("treadle-board-bolt-%d", i)
+		boardBolts = append(boardBolts, bolt+"-pin", bolt+"-nut")
+		bar := "treadle-bar-left"
+		if treadleBolts[i-1][0] > treadleBars[0].x1 {
+			bar = "treadle-bar-right"
+		}
+		barBolts[bar] = append(barBolts[bar], bolt+"-pin", bolt+"-nut")
+		add(bolt+"-pin", "headed-through-bolt", refs("treadle", bar), refs(bolt+"-nut"), 0.2)
+		add(bolt+"-nut", "threaded-through-bolt-nut", refs(bolt+"-pin", bar), nil, 0)
+	}
+	add("treadle", "bolted-deck", refs("treadle-bar-left", "treadle-bar-right"), boardBolts, 0)
+	for _, bar := range treadleBars {
+		add(bar.name, "glued-through-mortise", refs("treadle-heel-rail", "treadle-rear-crossarm"), barBolts[bar.name], 0)
+	}
+	add("treadle-rear-crossarm", "glued-through-mortise", refs("treadle-bar-left", "treadle-bar-right"),
+		refs("treadle-block-bolt-pin", "treadle-block-bolt-nut"), 0)
+	add("treadle-connector-block", "glued-and-bolted-face", refs("treadle-rear-crossarm"),
+		refs("treadle-block-bolt-pin", "treadle-block-bolt-nut"), 0)
+	add("treadle-block-bolt-pin", "headed-through-bolt", refs("treadle-connector-block", "treadle-rear-crossarm"),
+		refs("treadle-block-bolt-nut"), 0.2)
+	add("treadle-block-bolt-nut", "threaded-through-bolt-nut", refs("treadle-block-bolt-pin", "treadle-rear-crossarm"), nil, 0)
 	for i := 1; i <= 2; i++ {
 		add(fmt.Sprintf("heel-spacer-%d", i), "captive-inner-race-spacer", refs("heel-pin", fmt.Sprintf("heel-bearing-%d", i), "treadle-heel-rail"), nil, 0.2)
 	}
