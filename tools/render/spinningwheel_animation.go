@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"image"
@@ -223,6 +224,15 @@ func dashedAnimationLine(dst draw.Image, a, b image.Point, c color.Color) {
 }
 
 func writeWheelGIF(output string, animation *gif.GIF) error {
+	var buffer bytes.Buffer
+	if err := gif.EncodeAll(&buffer, animation); err != nil {
+		return err
+	}
+	return writeWheelFile(output, buffer.Bytes())
+}
+
+// writeWheelFile writes data to output through a temporary file, so a failed write leaves no partial file.
+func writeWheelFile(output string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
 		return err
 	}
@@ -232,7 +242,7 @@ func writeWheelGIF(output string, animation *gif.GIF) error {
 	}
 	defer func() { _ = os.Remove(file.Name()) }()
 	defer func() { _ = file.Close() }()
-	if err := gif.EncodeAll(file, animation); err != nil {
+	if _, err := file.Write(data); err != nil {
 		return err
 	}
 	if err := file.Close(); err != nil {
