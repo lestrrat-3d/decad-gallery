@@ -7,9 +7,9 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	gearplacement "github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/sketch/param"
-	"github.com/lestrrat-3d/units"
 )
 
 // Params adds a top-section twist to the spur gear dimensions.
@@ -40,19 +40,47 @@ func ValidateHelixAngle(angle float64) error {
 }
 
 // Build adds a helical gear to doc. ctx and doc must not be nil.
-// The spur pipeline builds it about the local origin and +Z, then moves it onto
-// Params.Placement, the reference point and plane, because the tooth Unions fail on
-// bodies built at an offset; a nil Placement leaves it on the world XY plane. Only the tooth, which is
-// lofted between the lower section and the twisted section one Thickness above,
-// and the root fillet, whose radius is scaled by cos(HelixAngle), differ from spur.
+// The whole toothed outline is lofted to the same outline turned by HelixAngle one Thickness above it, and the
+// 2N root seams are rounded with the spur root fillet radius scaled by cos(HelixAngle); see BuildFilletedLoft.
+// BoreDiameter then cuts a centered through-bore and CapChamfer chamfers the outer cap loops. The gear is built
+// about the local origin and +Z and moved onto Params.Placement, the reference point and plane, with one Transform;
+// a nil Placement leaves it on the world XY plane.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
 		return nil, fmt.Errorf("context and document must not be nil")
 	}
-	if err := ValidateHelixAngle(p.HelixAngle); err != nil {
+	if p.Placement != nil && !p.Placement.IsValid() {
+		return nil, fmt.Errorf("invalid placement frame")
+	}
+	body, err := BuildFilletedLoft(ctx, doc, p, "thickness")
+	if err != nil {
 		return nil, err
 	}
-	return Variant(p, "thickness", LoftTooth).Build(ctx, doc, p.Params)
+	body, err = Finish(ctx, doc, body, p)
+	if err != nil {
+		return nil, err
+	}
+	return gearplacement.Place(ctx, body, p.Placement)
+}
+
+// Finish cuts the through-bore and chamfers the outer cap loops of a gear built about the local origin, as
+// Params.BoreDiameter and Params.CapChamfer ask. The bore tool reads the document's spur parameters, which
+// BuildFilletedLoft has defined.
+func Finish(ctx context.Context, doc *decad.Document, gear *decad.Body, p Params) (*decad.Body, error) {
+	var err error
+	local := p.Params
+	local.Placement = nil
+	if local.BoreDiameter > 0 {
+		if gear, err = spurgear.CutThroughBore(ctx, doc, gear, local); err != nil {
+			return nil, err
+		}
+	}
+	if local.CapChamfer > 0 {
+		if gear, err = spurgear.ChamferOuterCaps(ctx, gear, local.CapChamfer); err != nil {
+			return nil, err
+		}
+	}
+	return gear, nil
 }
 
 // BuildTooth lofts tooth zero alone, without the root disc or the pattern. ctx and doc must not be nil.
@@ -66,26 +94,15 @@ func BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body
 	return Variant(p, "thickness", LoftTooth).BuildTooth(ctx, doc, p.Params)
 }
 
-// Variant returns the spur pipeline changes of a helical gear. planeOffset is the
+// Variant returns the spur pipeline changes of a helical tooth, which BuildTooth uses. The gear itself is
+// built by BuildFilletedLoft and takes no part in the spur pipeline. planeOffset is the
 // parameter expression for the distance from the lower cap to the twisted section,
 // and tooth builds tooth zero. Herringbone gears pass half the thickness.
 func Variant(p Params, planeOffset string, tooth func(context.Context, spurgear.ToothInput) (*decad.Body, error)) spurgear.Variant {
 	return spurgear.Variant{
-		Define: func(t *param.Table) error {
-			if err := t.SetValue("helix_angle", units.Radians(p.HelixAngle)); err != nil {
-				return fmt.Errorf("parameter helix_angle: %w", err)
-			}
-			if err := t.SetExpr("helix_plane_offset", planeOffset, units.Millimeter); err != nil {
-				return fmt.Errorf("parameter helix_plane_offset: %w", err)
-			}
-			if err := t.SetExpr("helical_fillet_radius", "fillet_radius * cos(helix_angle)", units.Millimeter); err != nil {
-				return fmt.Errorf("parameter helical_fillet_radius: %w", err)
-			}
-			return nil
-		},
+		Define:     func(t *param.Table) error { return defineHelical(t, p, planeOffset) },
 		Tooth:      tooth,
 		LocalBuild: true,
-		RootFillet: filletRootEdges,
 	}
 }
 
