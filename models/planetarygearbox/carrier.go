@@ -76,23 +76,9 @@ func (r *run) extrudeDisc(ctx context.Context, c disc) (*decad.Body, error) {
 	return body, nil
 }
 
-// addShaftSection draws the shaft cross-section on s about its origin: a circle of the shaft diameter, or with a
-// nonzero ShaftFlat a D, a circle cut by a line ShaftFlat inside its +X edge, so the flat faces the sun's tooth
-// zero. A shaft, its sun's bore and its carrier's hole all use it, so each fits the others. The D has two
-// curves, a long arc about the origin and the line that closes it. The line's upper end is dimensioned from the
-// origin and its lower end by one coordinate, so the arc's radius relation fixes the rest.
+// addShaftSection draws the round shaft cross-section on s about its origin.
 func (r *run) addShaftSection(s *sketch.Sketch) error {
-	if r.p.ShaftFlat == 0 {
-		return r.addCircle(s, r.d.shaft, "shaft_diameter")
-	}
-	radius := r.d.shaft / 2
-	flat := radius - r.p.ShaftFlat
-	half := math.Sqrt(radius*radius - flat*flat)
-	upper := sketchcheck.DimensionPoint(s, flat, half)
-	lower := sketchcheck.DimensionArcEnd(s, flat, -half)
-	s.CreateArc(s.Origin(), upper, lower)
-	s.CreateLine(lower, upper)
-	return nil
+	return r.addCircle(s, r.d.shaft, "shaft_diameter")
 }
 
 // dimensionOnArc creates a point at (x, y) on an arc's circle and fixes one of its coordinates from the sketch
@@ -151,10 +137,7 @@ func (r *run) extrudePlate(ctx context.Context) (*decad.Body, error) {
 		s.CreateLine(start[k], end[k])
 		s.CreateArc(centers[next], end[k], start[next])
 	}
-	if err := r.addShaftSection(s); err != nil {
-		return nil, fmt.Errorf("carrier plate: %w", err)
-	}
-	profile, err := profileWithHoles(ctx, s, 1, "carrier plate")
+	profile, err := profileWithHoles(ctx, s, 0, "carrier plate")
 	if err != nil {
 		return nil, err
 	}
@@ -211,13 +194,22 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("carrier: join plate, pins and collars: %w", err)
 	}
+	// The shaft hole is cut last, so the plate keeps a tooth the full plate thickness where the shaft has its
+	// groove.
+	tool, err := r.extrudeKeyTool(ctx, "carrier shaft hole", -1, p.CarrierThickness+2)
+	if err != nil {
+		return nil, err
+	}
+	if carrier, err = decad.Cut(ctx, carrier, tool); err != nil {
+		return nil, fmt.Errorf("carrier: cut shaft hole: %w", err)
+	}
 	if !carrier.IsSolid() {
 		return nil, errors.New("carrier: result is not a solid")
 	}
 	return carrier, nil
 }
 
-// extrudeShaft extrudes the shaft cross-section from z up length.
+// extrudeShaft extrudes the round shaft cross-section from z up length.
 func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
 	plane, err := r.planeAt(z)
 	if err != nil {
@@ -230,21 +222,11 @@ func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) 
 	if err := r.addShaftSection(s); err != nil {
 		return nil, fmt.Errorf("%s: %w", what, err)
 	}
-	want := 2
-	if r.p.ShaftFlat == 0 {
-		want = 1
+	profile, err := profileWithHoles(ctx, s, 0, what)
+	if err != nil {
+		return nil, err
 	}
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("%s: solve: %w", what, err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return nil, fmt.Errorf("%s: verify: %w", what, err)
-	}
-	profiles := s.Profiles()
-	if len(profiles) != 1 || !profiles[0].Valid || len(profiles[0].Outer) != want {
-		return nil, fmt.Errorf("%s: expected one valid %d-curve profile, got %d profiles", what, want, len(profiles))
-	}
-	body, err := decad.Extrude(ctx, r.doc, s, profiles[0],
+	body, err := decad.Extrude(ctx, r.doc, s, profile,
 		decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
@@ -252,31 +234,127 @@ func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) 
 	return body, nil
 }
 
-// buildShaft builds a separate shaft about the local origin: the shaft section from z=bottom to z=top and,
-// when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights. A
-// collar sits between a bearing's inner race and the part next to it and takes the place of a washer. It lies
-// strictly inside the rod's length, so the union crosses the rod's faces instead of sharing them.
-func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64) (*decad.Body, error) {
-	rod, err := r.extrudeShaft(ctx, what, bottom, top-bottom)
+// extrudeKeyBox extrudes the keyway groove's box from z=bottom to z=top: KeyWidth wide about the X axis, from
+// KeyDepth inside the shaft's +X edge to a millimeter beyond it.
+func (r *run) extrudeKeyBox(ctx context.Context, what string, bottom, top float64) (*decad.Body, error) {
+	plane, err := r.planeAt(bottom)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", what, err)
+	}
+	s, err := r.world.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("%s: sketch: %w", what, err)
+	}
+	x0 := r.d.shaft/2 - r.p.KeyDepth
+	x1 := r.d.shaft/2 + 1
+	half := r.p.KeyWidth / 2
+	box := s.CreateRectangle(x0, -half, x1, half)
+	s.AddConstraint(
+		sketch.NewHorizontalDistance(s.Origin(), box.A, x0),
+		sketch.NewVerticalDistance(s.Origin(), box.A, -half),
+		sketch.NewHorizontalDistance(box.A, box.B, x1-x0),
+		sketch.NewVerticalDistance(box.B, box.C, 2*half),
+	)
+	profile, err := profileWithHoles(ctx, s, 0, what)
 	if err != nil {
 		return nil, err
 	}
-	if collarTop <= collarBottom {
-		return rod, nil
+	body, err := decad.Extrude(ctx, r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(top - bottom), Dir: decad.Along})
+	if err != nil {
+		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}
-	collar, err := r.extrudeDisc(ctx, disc{
-		what: what + " collar", z: collarBottom, length: collarTop - collarBottom,
-		diameter: r.d.collar, expr: "shaft_collar_diameter",
-	})
+	return body, nil
+}
+
+// keyCut cuts the keyway groove between z=keyBottom and z=keyTop out of body, which is the shaft or, for a
+// bore, a tool shaped like the shaft. With KeyDepth zero it returns body unchanged.
+func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, keyBottom, keyTop float64) (*decad.Body, error) {
+	if r.p.KeyDepth == 0 {
+		return body, nil
+	}
+	box, err := r.extrudeKeyBox(ctx, what+" keyway", keyBottom, keyTop)
 	if err != nil {
 		return nil, err
 	}
-	shaft, err := decad.Union(ctx, rod, collar)
+	cut, err := decad.Cut(ctx, body, box)
 	if err != nil {
-		return nil, fmt.Errorf("%s: join rod and collar: %w", what, err)
+		return nil, fmt.Errorf("%s: cut keyway: %w", what, err)
 	}
-	if !shaft.IsSolid() {
+	if !cut.IsSolid() {
 		return nil, fmt.Errorf("%s: result is not a solid", what)
 	}
-	return shaft, nil
+	return cut, nil
+}
+
+// extrudeKeyTool extrudes the tool that cuts a bore to fit a shaft, from z up length: the shaft's round section
+// less the keyway groove, as one outline, so what the tool leaves in the part is the bore's tooth. The outline
+// is a long arc about the origin, from the groove's upper wall round to its lower wall, and three lines that
+// run in along the lower wall, across the groove floor and out along the upper wall. With KeyDepth zero the
+// tool is the round shaft.
+func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
+	if r.p.KeyDepth == 0 {
+		return r.extrudeShaft(ctx, what, z, length)
+	}
+	plane, err := r.planeAt(z)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", what, err)
+	}
+	s, err := r.world.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("%s: sketch: %w", what, err)
+	}
+	radius := r.d.shaft / 2
+	half := r.p.KeyWidth / 2
+	floor := radius - r.p.KeyDepth
+	wall := math.Sqrt(radius*radius - half*half)
+	// The upper wall's rim point is fully dimensioned. The lower one is fixed by the arc's radius and its y
+	// coordinate, which changes along the arc there because the point lies near the +X end of the circle.
+	upper := sketchcheck.DimensionPoint(s, wall, half)
+	lower := dimensionOnArc(s, wall, -half, -math.Asin(half/radius))
+	floorUpper := sketchcheck.DimensionPoint(s, floor, half)
+	floorLower := sketchcheck.DimensionPoint(s, floor, -half)
+	s.CreateArc(s.Origin(), upper, lower)
+	s.CreateLine(lower, floorLower)
+	s.CreateLine(floorLower, floorUpper)
+	s.CreateLine(floorUpper, upper)
+	profile, err := profileWithHoles(ctx, s, 0, what)
+	if err != nil {
+		return nil, err
+	}
+	body, err := decad.Extrude(ctx, r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	if err != nil {
+		return nil, fmt.Errorf("%s: extrude: %w", what, err)
+	}
+	return body, nil
+}
+
+// buildShaft builds a separate shaft about the local origin: a full round cylinder from z=bottom to z=top with,
+// when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights, and a
+// keyway groove between keyBottom and keyTop. A collar sits between a bearing's inner race and the part next to
+// it and takes the place of a washer. The shaft is round where a bearing sits, so the groove lies only where a
+// sun or carrier sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the
+// union crosses the rod's faces instead of sharing them.
+func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop, keyBottom, keyTop float64) (*decad.Body, error) {
+	shaft, err := r.extrudeShaft(ctx, what, bottom, top-bottom)
+	if err != nil {
+		return nil, err
+	}
+	if collarTop > collarBottom {
+		collar, err := r.extrudeDisc(ctx, disc{
+			what: what + " collar", z: collarBottom, length: collarTop - collarBottom,
+			diameter: r.d.collar, expr: "shaft_collar_diameter",
+		})
+		if err != nil {
+			return nil, err
+		}
+		if shaft, err = decad.Union(ctx, shaft, collar); err != nil {
+			return nil, fmt.Errorf("%s: join rod and collar: %w", what, err)
+		}
+		if !shaft.IsSolid() {
+			return nil, fmt.Errorf("%s: result is not a solid", what)
+		}
+	}
+	return r.keyCut(ctx, what, shaft, keyBottom, keyTop)
 }

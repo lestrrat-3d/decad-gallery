@@ -116,7 +116,7 @@ shaft, the carrier, the link shaft and the output shaft. It also writes three 12
 gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
 `planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
 `part-planet`, `part-bearing`, `part-carrier`, `part-input-shaft`, `part-link-shaft` and `part-output-shaft` presets
-render one of them alone. The shafts are seen from almost level with them so the flat and the collar show, and the
+render one of them alone. The shafts are seen from almost level with them so the groove and the collar show, and the
 carrier from below so the pins and their collars show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
 whole two-stage gearbox apart along its axis with nothing cut; the `planetarygearbox/exploded` preset renders it alone.
 

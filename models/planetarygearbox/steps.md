@@ -31,7 +31,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
    holes and extrude it `L` upward. `decad.Cut` the tool from it. Check: one solid.
 2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j` and `BoreDiameter = ds` (8, the bearing bore)
-   when `Sf = 0`, otherwise no bore. With a flat, extrude the shaft section (see below) from `z = -1` up `T + 2` and
+   when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
@@ -45,23 +45,30 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      Dimension each pin center from the origin and each edge's end point from the origin. Each arc's other end is
      fixed by the arc's equal-radius relation and one coordinate: x where the direction from the center is
      closer to vertical, otherwise y, so the coordinate always changes as the point moves round the arc (the
-     shared `DimensionArcEnd` picks by position and can pick the free one). The shaft section is drawn in the same
-     sketch about the origin as a hole. Require one valid profile with one hole.
+     shared `DimensionArcEnd` picks by position and can pick the free one). The plate has no hole yet. Require one
+     valid profile with `2n` outer curves.
    - Pin: circle of diameter `dp` centered at `(a, 0)` on the plane `z = -(T + g)`, extruded `T + g + Tc/2`.
    - Pin collar, when `g > 0`: circle of diameter `ds + 2 × collar margin` at `(a, 0)` on the plane `z = -g`,
      extruded `g + Tc/2`. `decad.Union` the pin and its collar once.
    - `decad.PatternCopies` the joined pin with a `CircularPattern` about the origin and +Z, count `n`, then
      `decad.Union` the plate with the pin and its copies. A union of every pin and collar separately is
      refused by decad (the chain is too deep), and so is a union of separate hub and arm bodies.
+   - Shaft hole: `decad.Cut` the key tool, extruded from `z = -1` up `Tc + 2`, from the carrier. The plate keeps a
+     tooth its full thickness where the shaft has its groove.
    - Check: one solid, nothing above the plate.
-6. **Shafts**, separate bodies. `buildShaft(bottom, top, collarBottom, collarTop)`: the shaft section extruded
-   from `bottom` to `top`, and when `collarTop > collarBottom` a round collar of diameter `ds + 2 × collar margin`
-   from `collarBottom` to `collarTop`, strictly inside the rod's length, joined to the rod with one union.
-   - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, no collar. Posed with its bottom on a carrier's
+6. **Shafts**, separate bodies. `buildShaft(bottom, top, collarBottom, collarTop, keyBottom, keyTop)`: a round rod
+   from `bottom` to `top`, when `collarTop > collarBottom` a round collar of diameter `ds + 2 × collar margin`
+   from `collarBottom` to `collarTop`, strictly inside the rod's length, joined to the rod with one union, and
+   then the keyway box cut out between `keyBottom` and `keyTop`. The box is `Sw` wide about the X axis and runs
+   from `Sf` inside the rod's +X edge to 1 mm beyond it, as a rectangle sketch with its corner dimensioned from
+   the origin, its width and its height. Collars stop `0.5` short of the part they face, so no collar face
+   shares a plane with the groove's end.
+   - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, no collar, groove along its whole length. Posed with its bottom on a carrier's
      lower face.
-   - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc` to `Tc + g + Tv`. Posed with its
-     bottom on the last carrier's lower face.
-   - Input shaft: `bottom = -(g + Tv + Wb + Li)`, `top = T`, collar from `-(g + Tv)` to `0`.
+   - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc + 0.5` to `Tc + g + Tv`, groove from
+     `-1` to `Tc`. Posed with its bottom on the last carrier's lower face.
+   - Input shaft: `bottom = -(g + Tv + Wb + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, groove from `0` to
+     `T + 1`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
    - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `lip_bore_diameter`
      at the origin; the four bolt-hole circles as for the ring. For each spoke `k`, with spoke angle
@@ -75,11 +82,14 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
    - `decad.Union` the frame and the boss. Check: one solid.
 
-**Shaft section.** A circle of diameter `ds` when `Sf = 0`. Otherwise a D: with radius `R = ds/2`, flat line
-`x = R - Sf` and half-chord `h = sqrt(R² - (R - Sf)²)`, two curves, a long arc about the origin from
-`(R - Sf, +h)` counterclockwise to `(R - Sf, -h)` and the line between them. Dimension the upper point
-from the origin and the lower point by one coordinate, so the arc's radius relation fixes the rest; require
-one valid profile with two outer curves. The input shaft, the shafts, the carrier's hole and the sun bore tool use it.
+**Shaft section.** A circle of diameter `ds`, the section of every rod. **Key tool.** The section of the sun bore
+tool and of the carrier's hole tool: one outline, the circle less the groove, extruded once so the tool is not
+itself a boolean result (decad refuses a chain of cuts that deep). With `R = ds/2`, half width `h = Sw/2`, floor
+`x = R - Sf` and wall `w = sqrt(R² - h²)`, the outline is a long arc about the origin from `(w, +h)`
+counterclockwise round to `(w, -h)`, then lines to `(R - Sf, -h)`, to `(R - Sf, +h)` and back to `(w, +h)`.
+Dimension the upper rim point and both floor points from the origin and the lower rim point by its y
+coordinate, so the arc's radius relation fixes the rest; require one valid profile with four outer curves.
+With `Sf = 0` the tool is the round section.
 
 Each circle sketch is solved and checked with `sketchcheck.VerifyFullyConstrained` before extruding, and must
 yield exactly one valid profile. The sketch is anchored by its origin; a center away from it gets
@@ -118,17 +128,17 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   its top is at `T`; the planet's volume is the plain gear's with the lip bore minus
   `π/4 (pocket² - lip²) Wb`, within the summed volume bounds plus 1.
 - Carrier: with `LocatePoint`, at mid-plate height the plate is inside at radius 12 and 15 and 60 degrees (between
-  two pins) and outside at radius 20 on that line; a pin boss is inside and the D hole open at the axis and at
+  two pins) and outside at radius 20 on that line; a pin boss is inside and the shaft hole open at the axis and at
   `(-2.5, 0)`; a pin is inside below the plate and the point 6 mm beside it outside; the plate is solid at
   `(6, 0)`. Nothing stands above the plate.
 - Mesh: for every planet, the outline vertices of the planet taken at the mid-height of the sun, and of the ring,
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are
   straight prisms, so cap vertices stand for every height.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
-- Shaft flats: with `LocatePoint` at `x = 3.5`, mid-height of the sun, the input shaft is outside and the sun inside
-  at `(3.5, 0)`, and the reverse at `(-3.5, 0)`, `(0, 3.5)` and `(0, -3.5)`; the shaft's volume equals a round rod's
-  less the flat's circular segment plus the collar's extra volume, within the volume bound plus 0.5; in the
-  two-stage case the link shaft and the second sun relate the same way.
+- Shaft keys: with `LocatePoint` at `x = 3.5`, mid-height of the sun, the input shaft is outside and the sun inside
+  at `(3.5, 0)`, and the reverse at `(-3.5, 0)`, `(0, 3.5)` and `(0, -3.5)`; at `(3.5, 0)` under the front bearing the
+  shaft is inside; the shaft's volume equals a round rod's plus the collar's less the groove's, within the volume
+  bound plus 0.5; in the two-stage case the link shaft's groove and the second sun's tooth relate the same way.
 - Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
   below the front boss and ends at `T`, and `LocatePoint` finds it inside and the sun outside at the axis; at
   each bolt angle the ring and both covers are outside (hole) at the bolt circle and inside beside it; a cover

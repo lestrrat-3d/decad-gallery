@@ -17,8 +17,9 @@ display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets 
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing and has a collar against it. Every shaft is
-as wide as the bearing bore, 8 mm, with a flat `Params.ShaftFlat` deep on its +X side; the sun's bore is cut with the
-same D section, so each shaft drives its sun. `Params.Ratio` returns the reduction with the ring held.
+as wide as the bearing bore, 8 mm, with a keyway groove `Params.KeyDepth` deep and `Params.KeyWidth` wide on its +X side where a sun or carrier sits, and
+round where a bearing sits; the sun's bore and the carrier's hole are cut with a tool of the shaft's section less the
+groove, so each keeps a tooth and each shaft drives them. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
 `Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.
@@ -30,9 +31,9 @@ start on the frame's plane.
 
 The sun and planets come from `spurgear.Build`. A planet is built with the lip bore, then a bearing pocket is cut from
 its upper face. Each planet's bearing is `ballbearing.Build` with `Params608ZZ()`, kept as its own body in
-`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses with the shaft's D as a hole, extruded once.
+`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once, and the keyed shaft hole is cut last.
 One pin joined to its collar is patterned and unioned to the plate in a single step, because decad refuses a union
-of every pin and collar separately. `buildShaft` joins a D rod and an optional round collar. A cover is one extruded frame (a rim
+of every pin and collar separately. `buildShaft` joins a round rod and an optional collar, then cuts the groove. A cover is one extruded frame (a rim
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section, so no boolean cuts them. The ring is a cylinder with the tooth spaces cut out by a 71-tooth
 spur gear whose root circle is the ring's tip circle and whose tip circle is the ring's root circle (`ringTool` in

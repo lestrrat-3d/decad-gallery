@@ -33,18 +33,19 @@ carrier), the link shaft, the second stage, the ring, the rear cover and its bea
 
 The input shaft and the first sun turn together. The planets roll inside the fixed ring, so each planet turns on its
 own bearing while the carrier carries it around the sun. The first carrier turns at 13 ÷ 84 of the sun's speed and
-drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The flat on
-each shaft shows its turning: the input shaft's flat sweeps round, and the output shaft's flat creeps. The readout
+drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The keyway
+groove on each shaft shows its turning: the input shaft's groove sweeps round, and the output shaft's creeps. The readout
 below the panels gives both angles. The animation plays forward and then back, so it has no jump where it repeats. A one-way loop would need the
 input to turn 7,056 times, because the output shaft only comes back to its starting angle after that many turns of
 the input. It moves the real tessellated bodies rigidly; it is not a force simulation.
 
 ## How the input and the output connect
 
-Every shaft is a separate part, 8 mm across, the bore of a 608ZZ, with a 1 mm flat along one side (a D). The sun's bore
-and the carrier's hole are the same D, so a shaft turns them without slipping. The input shaft and the output shaft each
+Every shaft is a separate part, 8 mm across, the bore of a 608ZZ. It is a full round cylinder where a bearing sits and
+has a keyway, a groove 1.2 mm deep and 2.5 mm wide, where a sun or a carrier sits. The sun's bore and the carrier's
+hole each have a tooth in that groove, so a shaft turns them without slipping. The input shaft and the output shaft each
 have a round collar, 10.4 mm across, next to their bearing. It stands in for the washer a metal build would use, so
-the sun or the carrier does not rub on the bearing and the cover.
+the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces.
 
 - **Input.** The input shaft enters through the front cover's 608ZZ and fills the first sun's bore. It sticks out
   12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
@@ -56,7 +57,7 @@ the sun or the carrier does not rub on the bearing and the cover.
 Each pin of the carrier has a thin collar under the plate too, so the planets' bearings stay clear of the plate.
 
 The model does not show a set screw, the screws in the four bolt holes that join the covers and the ring, or the
-coupling to a motor. The flats are where a coupling or a set screw would grip.
+coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
 
 ## Parts
 

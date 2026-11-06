@@ -36,10 +36,12 @@ type Params struct {
 	CoverThickness float64
 	// BoltHoleDiameter is the diameter of the four clearance holes that join the covers and the ring.
 	BoltHoleDiameter float64
-	// ShaftFlat is the depth of the flat on each shaft, the input shaft and every carrier's stub. A flat turns the
-	// shaft into a D, and the sun bore it fills is the same D, so the shaft carries torque into the sun. Zero
-	// leaves round shafts and round bores.
-	ShaftFlat float64
+	// KeyDepth is the depth of the keyway groove cut along each shaft where a sun or a carrier sits on it. The sun
+	// and the carrier have a matching tooth in their bore, so the shaft carries torque into them. The shaft is a
+	// full round cylinder where a bearing sits. Zero leaves round shafts and round bores.
+	KeyDepth float64
+	// KeyWidth is the width of the keyway groove.
+	KeyWidth float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
 	// BearingClearance is the radial clearance between a planet's 608ZZ bearing and its pocket.
@@ -75,7 +77,8 @@ func DefaultParams() Params {
 		StageGap:          0.5,
 		CoverThickness:    3,
 		BoltHoleDiameter:  3.4,
-		ShaftFlat:         1,
+		KeyDepth:          1.2,
+		KeyWidth:          2.5,
 		InputShaftLength:  12,
 		BearingClearance:  0.1,
 		CarrierWall:       3,
@@ -100,6 +103,9 @@ func planetBearing() ballbearing.Params { return ballbearing.Params608ZZ() }
 const (
 	lipWidth     = 2
 	lipThickness = 1
+	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
+	// face off the plane where the keyway groove ends, and gives the printed parts a little play.
+	collarClearance = 0.5
 	// boltRimMargin is the material kept between a bolt hole and the edge of the ring or cover rim.
 	boltRimMargin = 1.5
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin
@@ -159,7 +165,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "CoverThickness": p.CoverThickness,
-		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "ShaftFlat": p.ShaftFlat,
+		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "KeyDepth": p.KeyDepth, "KeyWidth": p.KeyWidth,
 		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength,
 	} {
@@ -179,7 +185,8 @@ func (p Params) Validate() error {
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
-		{"shaft flat", p.ShaftFlat, p.ShaftFlat >= 0 && p.ShaftFlat <= planetBearing().BoreDiameter/4},
+		{"key depth", p.KeyDepth, p.KeyDepth >= 0 && p.KeyDepth <= planetBearing().BoreDiameter/4},
+		{"key width", p.KeyWidth, p.KeyWidth > 0 && p.KeyWidth <= planetBearing().BoreDiameter/2},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= 0},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},

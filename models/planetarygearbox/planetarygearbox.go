@@ -188,13 +188,13 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	var link *decad.Body
 	if p.Stages > 1 {
 		linkTop := p.GearThickness + p.CarrierThickness + p.StageGap
-		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, 0, 0); err != nil {
+		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, 0, 0, -1, linkTop+1); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
-	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness,
-		p.CarrierThickness+p.StageGap+p.CoverThickness)
+	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness+collarClearance,
+		p.CarrierThickness+p.StageGap+p.CoverThickness, -1, p.CarrierThickness)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}

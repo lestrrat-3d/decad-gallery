@@ -312,7 +312,7 @@ var planetaryPartCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its flat and its collar.
+// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its keyway and its collar.
 var planetaryPartSideCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 22},
 	Target:   solidlens.Vec{},
