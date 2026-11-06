@@ -1,24 +1,20 @@
 # Herringbone gear Decad construction steps
 
-These steps implement [instructions.md](instructions.md). The tooth section,
-root disc, fillet, bore, and cap chamfer reuse the helical and spur packages.
+These steps implement [instructions.md](instructions.md). The whole-outline loft, root fillet,
+bore, and cap chamfer reuse the helical and spur packages.
 
-1. Reject a `HelixAngle` outside +1°–+45°. Create Sketch tooth profiles on
-   z=0 and the plane at `helix_plane_offset`, which is `thickness / 2`. Rotate the middle profile by `HelixAngle` while
-   drawing it. Use the spur tooth constraints to anchor, dimension, solve,
-   and verify both sections before consuming their profiles.
-2. Call `decad.Loft` on the two verified profiles. Use `MirroredCopy` across
-   the middle Sketch plane, then `Union` the halves. Check that the joined
-   tooth is one solid with a closed verified mesh.
-3. Center and dimension the helical root-disc circle. Solve and verify its
-   sketch, then extrude it through `Thickness`. Make `Teeth - 1` copies
-   of the joined tooth with `decad.PatternCopies`. Pass the original and all
-   copies to one variadic `Union` with the disc as target.
-4. Use the helical root-edge selector and its cosine-scaled fillet radius.
-   When requested, center and dimension the spur bore-tool circle, solve and
-   verify its sketch, then apply the Cut. Apply the outer-cap Chamfer when
-   requested.
-5. When `Placement` is set, reject an invalid frame first. Build steps 1–4 on the
+1. Reject a `HelixAngle` outside +1°–+45°. Call `helicalgear.BuildFilletedLoft` with the plane offset
+   `thickness / 2`. It draws the whole toothed outline on z=0 and the same outline turned by `HelixAngle` on the
+   plane at `helix_plane_offset`, anchors, dimensions, solves and verifies both with the spur builder, lofts them
+   and rounds the `2N` root seams with `helical_fillet_radius`.
+2. Mirror the filleted half across the middle plane at `helix_plane_offset` with `decad.MirroredCopy`, then
+   `decad.Union` the halves. Check that the joined gear is one solid with a closed verified mesh. There is
+   no root disc, tooth pattern or per-tooth union.
+3. When requested, cut the centered spur bore with `spurgear.CutThroughBore` (center and dimension its tool
+   circle, solve and verify its sketch, then apply the Cut). Apply the outer-cap chamfer with
+   `spurgear.ChamferOuterCaps` when requested. Both go through `helicalgear.Finish`.
+4. Build steps 1-3 on the local frame.
+5. When `Placement` is set, reject an invalid frame first. Build steps 1–3 on the
    local frame, then call `decad.Transform` with `r3.FromFrame(Placement)` on
    the finished gear. Check the placed gear's volume and bounds against the
    unplaced gear, for normals of both signs.

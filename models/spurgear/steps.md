@@ -27,6 +27,9 @@ func DefaultParams() Params
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error)
 func BuildProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params) (*sketch.Sketch, *sketch.Profile, error)
+func BuildTwistedProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+    p Params, twist float64) (*sketch.Sketch, *sketch.Profile, [][2]float64, error)
+func DefineParameters(t *param.Table, p Params) error
 func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error)
 func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
@@ -51,7 +54,7 @@ private `placement(p Params) (r3.Frame, error)` returning `*p.Placement` or
 - Require nonnil context/document for `Build` and nonnil context/world/plane for
   both profile APIs. Return errors before construction when these guards fail.
 - Apply Input checks and limits through one private parameter validator for
-  `Build`, `BuildProfile`, and `BuildToothSection`. It rejects a non-nil
+  `Build`, `BuildProfile`, `BuildTwistedProfile`, and `BuildToothSection`. It rejects a non-nil
   `Placement` whose `IsValid()` is false.
 - `RejectPlacement` returns `fmt.Errorf("%s does not support Placement", model)`
   when `p.Placement != nil`, otherwise nil.
@@ -72,6 +75,8 @@ type dimensions struct { pitch, base, root, tip, fillet, backlash float64 }
 func derive(p Params) dimensions
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error)
+func buildGearProfileTwisted(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+    p Params, d dimensions, twist float64) (*sketch.Sketch, *sketch.Profile, []point, error)
 func buildBoreProfile(ctx context.Context, world *sketch.World, p Params,
     margin float64) (*sketch.Sketch, *sketch.Profile, error)
 func filletRoots(ctx context.Context, body *decad.Body, frame r3.Frame, roots []point,
@@ -347,9 +352,13 @@ Embedded branch (`d.base < d.root`):
 
 Carry the returned body through Steps 7–9 and return the last body.
 
-Implement `BuildProfile` by calling `buildGearProfile` after its guards and
+Implement `buildGearProfileTwisted` as `buildGearProfile` with every tooth's angle `toothAngle(p,k)+twist`
+in both the ordinary and the embedded outline; `buildGearProfile` calls it with `twist = 0`. Implement
+`BuildProfile` by calling `buildGearProfile` after its guards and
 discarding the root list. This API returns an unfilleted planar profile of the
-whole gear for both branches.
+whole gear for both branches. Implement `BuildTwistedProfile` with the same guards plus a finite `twist`, by
+calling `buildGearProfileTwisted`, and return the root list as `[][2]float64` in the order the profile builder
+saved it. Implement `DefineParameters` as a thin exported wrapper of `defineParameters`.
 Require the returned body to be solid. Do not reject a document because it
 already contains bodies; the fresh-document body count is a test assertion.
 
@@ -430,6 +439,7 @@ Do not infer success from an image or only a non-error return.
 | Default fillets | Exactly `2N` distinct face origin roles starting with `fillet(0,` |
 | Ordinary outline | `2N` saved roots at root radius within `1e-7`; `N` root arcs and `N` tip arcs; no other arc radius |
 | Profile constraints | Independently call `Verify` on the root-disc, ordinary tooth, whole-outline and embedded sketches; assert all Sketch constraints report fields and `report.Check()` |
+| Twisted outline | `BuildTwistedProfile` for `N=8`, `S=5` at twists `0` and `0.2`: solve and verify as for the other outlines; require 16 contacts, each with `abs(hypot(x,y)-root) <= 1e-7`; require the `0.2` contacts to equal the `0` contacts turned by `0.2` within `1e-9`. Repeat for the embedded case `m=0.5`, `N=24`, `α=30π/180` with 48 contacts and tolerance `1e-8` |
 | Outline equivalence | Default `Build` without bore or chamfer against a loft of the `BuildProfile` outlines on both planes followed by the same root fillet: volumes agree within summed bounds plus `0.02` |
 | Bore constraints | Inspect the separate bore sketch with the same report assertions |
 | Bore tool | Removed box volume equals `π(b/2)²h` within both volume bounds plus `0.02`; final solid and one document body |

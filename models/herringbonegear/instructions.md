@@ -59,27 +59,17 @@ follows the last boolean. `BuildTooth` works in the local frame and ignores
 
 ## Required build order
 
-1. Draw one ordinary spur involute tooth section on the z=0 plane. Draw the
-   same section rotated by `HelixAngle` on the plane at `Thickness / 2`.
-2. Loft the lower section to the middle section. Mirror that solid across the
-   middle plane and join the two halves into one tooth.
-3. Extrude the root-circle region across the full thickness. Circular-pattern
-   the completed tooth around the shaft, including the original tooth. Join
-   the pattern to the disc in one Combine-Join.
-4. Apply the inherited helical root-fillet selection. Its radius is the spur
-   root-fillet radius multiplied by `cos(HelixAngle)`. Skip it when the radius
-   is nonpositive or no straight axial root edges match.
-5. Cut a centered through-bore when `BoreDiameter` is positive. Chamfer only
+1. Draw the whole ordinary spur outline on the z=0 plane. Draw the same outline rotated by `HelixAngle` on the
+   plane at `Thickness / 2`.
+2. Loft the lower outline to the middle outline and round the `2N` root seams with the spur root-fillet radius
+   multiplied by `cos(HelixAngle)` (the helical root fillet). Skip the fillet when the radius is nonpositive.
+3. Mirror that half across the middle plane and join the two halves with one union. There is no root disc and
+   no tooth pattern.
+4. Cut a centered through-bore when `BoreDiameter` is positive. Chamfer only
    the completed gear's outer cap edges when `CapChamfer` is positive; leave
    bore rims sharp.
 
-The first real gallery case uses eight teeth, five flank samples, 2 mm
-thickness, and the default +14.5° angle. It and the source-default 17-tooth
-case pass `Tessellate(0.1 mm, VerifyAll)` after one variadic `Union` on merged
-Decad `96cdbfe9610e`.
-The joined tooth alone passes the same mesh check for +14.5° and +35° angles.
-Its bounds span the full thickness and its centroid lies at the mirror plane.
-The same small gear with a 1 mm through-bore and the default gear with a 3 mm
-through-bore pass `VerifyAll`. Their mesh Euler characteristic is zero. Both
-gears also pass `VerifyAll` and retain Euler characteristic zero with 0.1 mm
-outer-cap chamfers on merged Decad `9dee32fbe599`.
+The first real gallery cases are eight teeth, five flank samples and 2 mm thickness, and the default 17-tooth
+gear, both with the default +14.5° angle. Each builds one solid with `2N` fillet roles that passes
+`Tessellate(0.1 mm, VerifyAll)`. `BuildTooth` still builds one chevron tooth for callers that pattern teeth
+themselves; the joined tooth alone passes the same mesh check for +14.5° and +35° angles.

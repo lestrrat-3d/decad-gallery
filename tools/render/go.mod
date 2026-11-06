@@ -5,7 +5,7 @@ go 1.27.3
 replace github.com/lestrrat-3d/decad-gallery => ../..
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261106091829-d2f8dc80c284
+	github.com/lestrrat-3d/decad v0.0.0-20261106103434-0bafd1af09cf
 	github.com/lestrrat-3d/decad-gallery v0.0.0
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/solidlens v0.0.0-20261104053514-77287d451905
@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/lestrrat-3d/sketch v0.0.0-20261105110104-473f570ada8a // indirect
+	github.com/lestrrat-3d/sketch v0.0.0-20261106060024-fe873315de3d // indirect
 	github.com/lestrrat-go/3mf v0.0.0-20261005042850-6101195a51c8 // indirect
 	github.com/lestrrat-go/option/v3 v3.0.0-alpha1 // indirect
 	github.com/lestrrat-go/stl v0.0.0-20260904080308-f2792ffa3582 // indirect

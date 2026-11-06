@@ -240,6 +240,14 @@ document with existing bodies must also accept a new gear.
 ## Reusable constructions
 
 - Expose the whole unfilleted outline on a caller-supplied plane for other lofts.
+- Expose the same outline with every tooth turned by an extra finite `twist` about the sketch
+  origin, in sketch coordinates and not by turning the plane, together with its `2N` root contacts: the
+  right root then the left root of each tooth in ascending tooth order, as `[2]float64` sketch
+  coordinates. `twist = 0` is the outline above. It serves both branches. A caller that lofts an
+  untwisted outline to a twisted one on a plane above it pairs each root contact with the same
+  contact turned by `twist`, which is the edge the loft draws from one to the other.
+- Expose `DefineParameters(t, p)`, which writes the Parameter table of `p` into `t`, so a model that
+  builds its gears without `Build` still records them. It does not validate `p`.
 - Expose one ordinary tooth at an arbitrary finite signed angle. Close it with
   the short root arc from its right root to its left root. The six-curve profile
   traverses this root arc in reverse to close the region.
@@ -274,6 +282,7 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 | Chamfer only | `c=0.1` | Both cap areas and total volume decrease beyond error bounds |
 | Embedded, no fillet | `m=0.5`, `N=30`, `α=30π/180`, `h=2`, `S=5`, `c=0.02` | Embedded tooth join, no root fillet, chamfered caps |
 | Embedded, with fillet | `m=0.5`, `N=24`, `α=30π/180`, `h=2`, `S=5` | Embedded tooth join, 48 native root fillets |
+| Twisted outline | `N=8`, `S=5`; twists `0` and `0.2` | Each profile valid and fully constrained with 16 root contacts; every contact on the root circle within `1e-7`; the `0.2` contacts equal the `0` contacts turned by `0.2` within `1e-9`; the same for the embedded case `m=0.5`, `N=24`, `α=30π/180` within `1e-8`, whose contacts are the trimmed root-circle points |
 | Signed tooth section | `N=8`, `h=2`, `S=5`; angles `0`, `±14.5π/180` | Six-curve profiles with the requested rotation |
 | Placed ordinary | Default with `b=3`, `c=0.1`; frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volume as the unplaced gear; bounds follow the frame |
 | Placed embedded | `m=0.5`, `N=60`, `h=2`, `S=15`, `b=3`, `c=0.02`; same frame | Same volume as the unplaced gear; bounds follow the frame; root fillets present |
