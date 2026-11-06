@@ -41,11 +41,11 @@ func bounds(t *testing.T, b *decad.Body) decad.Box {
 func TestDefaultGearbox(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
-	require.Len(t, doc.Bodies(), 14)
+	require.Len(t, doc.Bodies(), 15)
 	require.Len(t, box.Stages, 1)
 	require.Len(t, box.Stages[0].Planets, 3)
 	require.Len(t, box.Stages[0].Bearings, 3)
-	require.Len(t, box.Named(), 14)
+	require.Len(t, box.Named(), 15)
 	for _, nb := range box.Named() {
 		require.True(t, nb.Body.IsSolid(), nb.Name)
 		v, err := nb.Body.Volume()
@@ -74,14 +74,18 @@ func TestDefaultGearbox(t *testing.T) {
 		require.InDelta(t, p.GearThickness, b.Max.Z-b.Min.Z, 1e-6)
 	}
 
-	// The carrier's arms sit above the gears; its pins reach down to the gears' lower face and
-	// its stub is the output shaft.
+	// The carrier's plate sits above the gears and its pins reach down to the gears' lower face. Nothing
+	// stands above the plate, so the carrier prints plate-down.
 	carrier := bounds(t, stage.Carrier)
 	require.InDelta(t, 0, carrier.Min.Z, 1e-6)
-	// The stub is the output shaft: it ends OutputShaftLength beyond the rear cover's bearing boss.
-	require.InDelta(t, rearBossTop(p, 1)+p.OutputShaftLength, carrier.Max.Z, 1e-6)
-	// The arms reach the far side of the pin bosses and no further: orbit radius plus boss radius.
+	require.InDelta(t, p.GearThickness+p.StageGap+p.CarrierThickness, carrier.Max.Z, 1e-6)
+	// The plate reaches the far side of the pin bosses and no further: orbit radius plus boss radius.
 	require.InDelta(t, 21+7, carrier.Max.X, 5e-3)
+	// The output shaft is a separate body. It starts at the carrier's lower face and ends OutputShaftLength
+	// beyond the rear cover's bearing boss.
+	output := bounds(t, stage.Shaft)
+	require.InDelta(t, p.GearThickness+p.StageGap, output.Min.Z, 1e-6)
+	require.InDelta(t, rearBossTop(p, 1)+p.OutputShaftLength, output.Max.Z, 1e-6)
 }
 
 // penetration counts the vertices of either body that lie inside the other, beyond a small
@@ -215,26 +219,39 @@ func TestBearingsSitInPlanetPockets(t *testing.T) {
 	}
 }
 
-// TestCarrierHasNoDisc checks that material is only along the arms: it is present on an arm's axis and
-// absent between two arms at the same radius, and the carrier weighs less than a plate that reaches
-// as far as the arms.
-func TestCarrierHasNoDisc(t *testing.T) {
+// TestCarrierIsATriangle checks that the carrier's plate is the solid triangle between the pin bosses with
+// the shaft's D hole in the middle, and that its pins and their collars stand on one face. Points are probed
+// 1.5 mm or more from a surface where the body is thick, because point location is undecided closer than
+// about 0.15 mm.
+func TestCarrierIsATriangle(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	_, box := defaultGearbox(t)
 	carrier := box.Stages[0].Carrier
-	z := p.GearThickness + p.StageGap + p.CarrierThickness/2
-	for _, c := range []struct {
-		angle float64
-		want  decad.PointLocation
-	}{{0, decad.PointInside}, {2 * math.Pi / 3, decad.PointInside}, {math.Pi / 3, decad.PointOutside}} {
-		point := r3.NewVec(15*math.Cos(c.angle), 15*math.Sin(c.angle), z)
+	locate := func(point r3.Vec) decad.PointLocation {
 		loc, err := carrier.LocatePoint(t.Context(), point, units.Millimeters(0.02))
 		require.NoError(t, err)
-		require.Equal(t, c.want, loc, "angle %v", c.angle)
+		return loc
 	}
-	volume, bound := volume(t, carrier)
-	plate := math.Pi * 28 * 28 * p.CarrierThickness
-	require.Less(t, volume+bound, plate)
+	plate := p.GearThickness + p.StageGap + p.CarrierThickness/2
+	at := func(radius, angle, z float64) r3.Vec {
+		return r3.NewVec(radius*math.Cos(angle), radius*math.Sin(angle), z)
+	}
+	// Between two pins, at 60 degrees, the plate is solid from the hole out to the tangent edge, 10.5 mm
+	// (half the pin spacing's height) plus the 7 mm boss radius = 17.5 mm from the axis.
+	require.Equal(t, decad.PointInside, locate(at(12, math.Pi/3, plate)), "solid between the pins")
+	require.Equal(t, decad.PointInside, locate(at(15, math.Pi/3, plate)), "solid out to the edge")
+	require.Equal(t, decad.PointOutside, locate(at(20, math.Pi/3, plate)), "nothing past the tangent edge")
+	require.Equal(t, decad.PointInside, locate(at(21, 0, plate)), "a pin boss")
+	require.Equal(t, decad.PointOutside, locate(at(0, 0, plate)), "the D hole")
+	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-2.5, 0, plate)), "the hole is open on the round side")
+	require.Equal(t, decad.PointInside, locate(r3.NewVec(6, 0, plate)), "the plate is solid just outside the hole")
+	// A pin stands below the plate.
+	require.Equal(t, decad.PointInside, locate(at(21, 0, 4)), "pin")
+	require.Equal(t, decad.PointOutside, locate(at(21+6, 0, 4)), "beside the pin")
+	// The carrier weighs more than the plain triangle's pins and less than a disc that reaches its pins.
+	v, bound := volume(t, carrier)
+	disc := math.Pi * 28 * 28 * p.CarrierThickness
+	require.Less(t, v-bound, disc+3*math.Pi*16*(p.GearThickness+p.StageGap+p.CarrierThickness/2))
 }
 
 // rearBossTop is the height of the rear cover's bearing boss top for a gearbox of the given stages.
@@ -274,9 +291,9 @@ func TestHousing(t *testing.T) {
 	shaft := bounds(t, box.InputShaft)
 	require.InDelta(t, front.Min.Z-p.InputShaftLength, shaft.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness, shaft.Max.Z, 1e-6)
-	// An 8 mm shaft with a 1 mm flat is 7 mm across in X and 8 mm in Y.
-	require.InDelta(t, 7, shaft.Max.X-shaft.Min.X, 1e-6)
-	require.InDelta(t, 8, shaft.Max.Y-shaft.Min.Y, 1e-6)
+	// The collar next to the front bearing is 10.4 mm across, wider than the 8 mm shaft with its 1 mm flat.
+	require.InDelta(t, 10.4, shaft.Max.X-shaft.Min.X, 1e-6)
+	require.InDelta(t, 10.4, shaft.Max.Y-shaft.Min.Y, 1e-6)
 	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(0, 0, 4)))
 	require.Equal(t, decad.PointOutside, locate(box.Stages[0].Sun, r3.NewVec(0, 0, 4)), "the shaft's place is the sun's bore")
 
@@ -350,7 +367,11 @@ func TestShaftFlats(t *testing.T) {
 	b := bounds(t, box.InputShaft)
 	length := b.Max.Z - b.Min.Z
 	v, bound := volume(t, box.InputShaft)
-	require.InDelta(t, (math.Pi*radius*radius-segment)*length, v, bound+0.5)
+	// A D rod, plus a round collar 10.4 mm across that fills the space between the front bearing's inner race
+	// and the sun, 3.5 mm tall.
+	d := math.Pi*radius*radius - segment
+	collar := (math.Pi*5.2*5.2 - d) * (p.StageGap + p.CoverThickness)
+	require.InDelta(t, d*length+collar, v, bound+0.5)
 }
 
 func TestPhaseAngles(t *testing.T) {
@@ -370,7 +391,7 @@ func TestTwoStages(t *testing.T) {
 	doc := decad.New()
 	box, err := planetarygearbox.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 22)
+	require.Len(t, doc.Bodies(), 24)
 	require.Len(t, box.Stages, 2)
 	require.InDelta(t, (1+71.0/13)*(1+71.0/13), p.Ratio(), 1e-9)
 	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
@@ -384,11 +405,13 @@ func TestTwoStages(t *testing.T) {
 		require.InDelta(t, float64(k)*pitch, bounds(t, stage.Sun).Min.Z, 1e-6)
 		require.InDelta(t, float64(k)*pitch, bounds(t, stage.Planets[0]).Min.Z, 1e-6)
 	}
-	// The first carrier's stub ends flush with the top of the second sun.
-	require.InDelta(t, pitch+p.GearThickness, bounds(t, box.Stages[0].Carrier).Max.Z, 1e-6)
-	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Carrier).Max.Z, 1e-6)
-	// The second sun's bore is the same D as the first carrier's stub, flat on +X. Point location is undecided
-	// inside the carrier's thin stub, so only the sun is probed: material at the flat, none on the round side.
+	// The link shaft starts at the first carrier's lower face and ends flush with the top of the second sun.
+	link := bounds(t, box.Stages[0].Shaft)
+	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
+	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
+	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Shaft).Max.Z, 1e-6)
+	// The second sun's bore is the same D as the link shaft, flat on +X. Point location is undecided inside the
+	// thin shaft, so only the sun is probed: material at the flat, none on the round side.
 	secondSun := box.Stages[1].Sun
 	locate := func(point r3.Vec) decad.PointLocation {
 		loc, err := secondSun.LocatePoint(t.Context(), point, units.Millimeters(0.02))
@@ -398,8 +421,6 @@ func TestTwoStages(t *testing.T) {
 	mid := pitch + p.GearThickness/2
 	require.Equal(t, decad.PointInside, locate(r3.NewVec(3.5, 0, mid)), "the second sun's D bore leaves material at the flat")
 	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-3.5, 0, mid)), "the second sun's bore is round opposite the flat")
-	carrierBox := bounds(t, box.Stages[0].Carrier)
-	require.InDelta(t, pitch+p.GearThickness, carrierBox.Max.Z, 1e-6)
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))

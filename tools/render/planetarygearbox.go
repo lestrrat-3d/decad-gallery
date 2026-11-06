@@ -7,6 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
 )
@@ -65,10 +66,93 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 				planetaryBody{planetarygearbox.PlanetName(k, i), planet, planetaryPlanetColor, false},
 				planetaryBody{planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor, false})
 		}
-		out = append(out, planetaryBody{planetarygearbox.CarrierName(k), stage.Carrier, planetaryCarrierColor, false})
+		out = append(out,
+			planetaryBody{planetarygearbox.CarrierName(k), stage.Carrier, planetaryCarrierColor, false},
+			planetaryBody{planetarygearbox.ShaftName(k, len(box.Stages)), stage.Shaft, planetaryShaftColor, false})
 	}
 	return out
 }
+
+// The exploded view pulls the gearbox apart along its axis. Each stage rises planetaryExplodedStep over the one
+// below, and inside a stage the planets' bearings, the carrier and the shaft each rise a little more, so every
+// part sits clear of the ones it joins. The ring floats above the last stage, the rear cover and its bearing above
+// that, and the output shaft above them all; the front cover, its bearing and the input shaft hang below the first
+// stage.
+const (
+	planetaryExplodedStep    = 48
+	planetaryExplodedBearing = 14
+	planetaryExplodedCarrier = 24
+	planetaryExplodedShaft   = 36
+	planetaryExplodedRing    = 64
+)
+
+// planetaryExplodedLifts returns how far the exploded view raises each body of box.
+func planetaryExplodedLifts(box planetarygearbox.Gearbox) map[*decad.Body]float64 {
+	lifts := map[*decad.Body]float64{
+		box.InputShaft:   -34,
+		box.FrontBearing: -24,
+		box.FrontCover:   -12,
+	}
+	top := 0.0
+	for k, stage := range box.Stages {
+		base := float64(k) * planetaryExplodedStep
+		top = base
+		lifts[stage.Sun] = base
+		for i, planet := range stage.Planets {
+			lifts[planet] = base
+			lifts[stage.Bearings[i]] = base + planetaryExplodedBearing
+		}
+		lifts[stage.Carrier] = base + planetaryExplodedCarrier
+		lifts[stage.Shaft] = base + planetaryExplodedShaft
+	}
+	// The output shaft passes through the ring and both rear parts, so it rises above them all to stay visible.
+	lifts[box.Stages[len(box.Stages)-1].Shaft] = top + planetaryExplodedRing + 56
+	lifts[box.Ring] = top + planetaryExplodedRing
+	lifts[box.RearCover] = top + planetaryExplodedRing + 28
+	lifts[box.RearBearing] = top + planetaryExplodedRing + 42
+	return lifts
+}
+
+// planetaryExplodedCamera looks at the exploded gearbox from the front and above; fitCamera frames it.
+var planetaryExplodedCamera = solidlens.Camera{
+	Position: solidlens.Vec{X: 230, Y: -420, Z: 190},
+	Target:   solidlens.Vec{Z: 66},
+	Up:       solidlens.Vec{Z: 1},
+	FOV:      35,
+}
+
+// planetaryExplodedScene draws the whole two-stage gearbox pulled apart along its axis, with nothing cut.
+func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, width, height int) (solidlens.Scene, error) {
+	lifts := planetaryExplodedLifts(box)
+	var models []solidlens.Model
+	for _, body := range planetaryBodies(box) {
+		mesh, err := planetaryMesh(ctx, body)
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		model := planetaryModel(mesh, body, false)
+		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: r3.NewVec(0, 0, lifts[body.body])}
+		models = append(models, model)
+	}
+	return bevelScene(fitCamera(planetaryExplodedCamera, models, float64(width)/float64(height), bevelViewMargin), models), nil
+}
+
+func init() {
+	presets["planetarygearbox/exploded"] = preset{width: planetaryExplodedWidth, height: planetaryExplodedHeight,
+		scene: func(ctx context.Context) (solidlens.Scene, error) {
+			box, _, err := buildPlanetaryGearbox(ctx, 2)
+			if err != nil {
+				return solidlens.Scene{}, err
+			}
+			return planetaryExplodedScene(ctx, box, planetaryExplodedWidth, planetaryExplodedHeight)
+		}}
+}
+
+// The exploded view is taller than wide, so it has its own image size.
+const (
+	planetaryExplodedWidth  = 900
+	planetaryExplodedHeight = 1200
+)
 
 // planetaryMesh tessellates body for drawing.
 func planetaryMesh(ctx context.Context, body planetaryBody) (solidlens.TriangleSource, error) {
@@ -185,22 +269,33 @@ type planetaryPart struct {
 	// body picks the part from a two-stage gearbox.
 	body  func(planetarygearbox.Gearbox) *decad.Body
 	color solidlens.Color
-	// side looks at the part from almost level with it, so a carrier shows its pins and its stub shaft.
-	side bool
+	// view picks the camera: the default looks from the front and above, side from almost level with the
+	// part so a shaft shows its collar, and below from under the part so a carrier shows its pins.
+	view partView
 }
+
+// partView is a camera choice for a part image.
+type partView int
+
+const (
+	frontView partView = iota
+	sideView
+	belowView
+)
 
 // planetaryParts lists the unique parts of a gearbox: the ring, one cover (the front cover is the rear one
 // turned over), the sun, one planet, one 608ZZ bearing (the planets and the covers use the same part), the
-// input shaft, a carrier whose stub shaft drives the next stage, and the last carrier with its output shaft.
+// carrier, and the three shafts: the input shaft, a link shaft and the output shaft.
 var planetaryParts = []planetaryPart{
-	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, false},
-	{"cover", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCover }, planetaryCoverColor, false},
-	{"sun", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Sun }, planetarySunColor, false},
-	{"planet", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Planets[0] }, planetaryPlanetColor, false},
-	{"bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Bearings[0] }, planetaryBearingColor, false},
-	{"input-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.InputShaft }, planetaryShaftColor, true},
-	{"linking-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Carrier }, planetaryCarrierColor, true},
-	{"output-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Carrier }, planetaryCarrierColor, true},
+	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, frontView},
+	{"cover", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCover }, planetaryCoverColor, frontView},
+	{"sun", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Sun }, planetarySunColor, frontView},
+	{"planet", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Planets[0] }, planetaryPlanetColor, frontView},
+	{"bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Bearings[0] }, planetaryBearingColor, frontView},
+	{"carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Carrier }, planetaryCarrierColor, belowView},
+	{"input-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.InputShaft }, planetaryShaftColor, sideView},
+	{"link-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Shaft }, planetaryShaftColor, sideView},
+	{"output-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Shaft }, planetaryShaftColor, sideView},
 }
 
 func init() {
@@ -217,10 +312,18 @@ var planetaryPartCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartSideCamera looks at a long part from almost level with it, so a carrier shows its pins below the
-// arms and its stub shaft above them.
+// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its flat and its collar.
 var planetaryPartSideCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 22},
+	Target:   solidlens.Vec{},
+	Up:       solidlens.Vec{Z: 1},
+	FOV:      35,
+}
+
+// planetaryPartBelowCamera looks at a part from under its lower face, so a carrier shows its pins and their
+// collars standing on the plate's underside.
+var planetaryPartBelowCamera = solidlens.Camera{
+	Position: solidlens.Vec{X: 70, Y: -150, Z: -90},
 	Target:   solidlens.Vec{},
 	Up:       solidlens.Vec{Z: 1},
 	FOV:      35,
@@ -235,8 +338,11 @@ func planetaryPartScene(ctx context.Context, box planetarygearbox.Gearbox, part 
 	}
 	models := []solidlens.Model{planetaryModel(mesh, body, false)}
 	camera := planetaryPartCamera
-	if part.side {
+	switch part.view {
+	case sideView:
 		camera = planetaryPartSideCamera
+	case belowView:
+		camera = planetaryPartBelowCamera
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
 }
@@ -290,6 +396,14 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 		if err := renderPNG(ctx, name, scene, 1200, 675); err != nil {
 			return fmt.Errorf("render planetary gearbox assembled %s: %w", view.shot, err)
 		}
+	}
+	exploded, err := planetaryExplodedScene(ctx, box, planetaryExplodedWidth, planetaryExplodedHeight)
+	if err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryExplodedWidth,
+		planetaryExplodedHeight); err != nil {
+		return fmt.Errorf("render planetary gearbox exploded view: %w", err)
 	}
 	return renderPlanetaryMotion(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth, planetaryMotionHeight,
 		planetaryMotionFrames)

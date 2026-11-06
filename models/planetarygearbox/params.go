@@ -105,6 +105,10 @@ const (
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin
 	// is not tangent to the arm edges.
 	armMargin = 1
+	// collarMargin is how far a shaft collar reaches past the shaft on each side. A collar is the printed
+	// stand-in for a washer: it spans the gap between a bearing and the part that would rub on it, and it
+	// must stay narrower than the bearing's inner race (a 608 inner race is about 11 mm across).
+	collarMargin = 1.2
 	// coverSpokes is the number of spokes joining a cover's rim to its bearing hub.
 	coverSpokes = 3
 )
@@ -114,7 +118,7 @@ type dims struct {
 	orbit, planetRoot, planetTip float64
 	ringTip, ringRoot, ringOuter float64
 	pin, pocket, lip             float64
-	hub, boss, arm               float64
+	boss, arm, collar            float64
 	shaft, coverBoss, coverHub   float64
 	boltCircle, rimInner         float64
 	stagePitch, ringLength       float64
@@ -136,7 +140,7 @@ func derive(p Params) dims {
 	d.pocket = b.OuterDiameter + 2*p.BearingClearance
 	d.lip = b.OuterDiameter - 2*lipWidth
 	d.shaft = b.BoreDiameter
-	d.hub = d.shaft + 2*p.CarrierWall
+	d.collar = d.shaft + 2*collarMargin
 	d.coverBoss = d.pocket + 2*p.CarrierWall
 	d.coverHub = d.coverBoss + 2*p.CarrierWall
 	d.boss = d.pin + 2*p.CarrierWall
@@ -250,7 +254,7 @@ func (p Params) validateFit(d dims) error {
 			d.coverHub, d.rimInner)
 	}
 	if d.orbit+d.boss/2 >= d.ringTip-m/2 {
-		return fmt.Errorf("carrier arms reach radius %v, past the ring's tip radius %v", d.orbit+d.boss/2, d.ringTip)
+		return fmt.Errorf("the carrier reaches radius %v, past the ring's tip radius %v", d.orbit+d.boss/2, d.ringTip)
 	}
 	return nil
 }

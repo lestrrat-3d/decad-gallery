@@ -202,11 +202,12 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	return cover, nil
 }
 
-// buildInputShaft builds the input shaft about the local origin: a cylinder of the shaft diameter that
-// starts InputShaftLength below the front cover's bearing boss and ends flush with the top of the first
-// sun, so it fills the sun's bore.
+// buildInputShaft builds the input shaft about the local origin: a D-shaped rod that starts InputShaftLength
+// below the front cover's bearing boss and ends flush with the top of the first sun, so it fills the sun's
+// bore. A collar between the front bearing's inner race and the sun's lower face keeps the sun off the cover.
 func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	start := -(p.StageGap + p.CoverThickness + planetBearing().Width + p.InputShaftLength)
-	return r.extrudeShaft(ctx, "input shaft", start, p.GearThickness-start)
+	inner := -(p.StageGap + p.CoverThickness)
+	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, 0)
 }

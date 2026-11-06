@@ -70,6 +70,14 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 		require.InDelta(t, restCarrier[i].X*sin+restCarrier[i].Y*cos, turnedCarrier[i].Y, 1e-9)
 	}
 
+	// The output shaft is a separate body that turns with the last carrier.
+	shaftIndex := byName[planetarygearbox.OutputShaftName]
+	restShaft, turnedShaft := movers[shaftIndex].mesh.Vertices(), posed[shaftIndex].Mesh.Vertices()
+	for _, i := range []int{0, len(restShaft) / 2, len(restShaft) - 1} {
+		require.InDelta(t, restShaft[i].X*cos-restShaft[i].Y*sin, turnedShaft[i].X, 1e-9)
+		require.InDelta(t, restShaft[i].X*sin+restShaft[i].Y*cos, turnedShaft[i].Y, 1e-9)
+	}
+
 	output := filepath.Join(t.TempDir(), "motion.gif")
 	require.NoError(t, renderPlanetaryMotion(t.Context(), output, 480, 160, 3))
 	file, err := os.Open(output)
@@ -77,7 +85,8 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 	defer func() { _ = file.Close() }()
 	animation, err := gif.DecodeAll(file)
 	require.NoError(t, err)
-	require.Len(t, animation.Image, 3)
+	// Three input angles play forward and then back without repeating the ends: 0, 1, 2, 1.
+	require.Len(t, animation.Image, 4)
 	require.Equal(t, 480, animation.Image[0].Bounds().Dx())
 	require.Equal(t, 160, animation.Image[0].Bounds().Dy())
 	require.Zero(t, animation.LoopCount, "the animation loops forever")

@@ -19,12 +19,15 @@ type Stage struct {
 	Sun     *decad.Body
 	Planets []*decad.Body
 	// Bearings holds one 608ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
-	// bearing; the sun and the stub shaft turn with the carrier that drives them and need none.
+	// bearing; the sun and the shafts turn with the carrier that drives them and need none.
 	Bearings []*decad.Body
-	// Carrier is the hub with its arms, the planet pins and the stub shaft in one solid. The stub of a
-	// carrier before the last passes through the next stage's sun; the last carrier's stub is
-	// the output shaft.
+	// Carrier is the triangular plate with the planet pins and their collars in one solid, and a D hole through
+	// its middle. It prints plate-down, because everything stands on one face.
 	Carrier *decad.Body
+	// Shaft is a separate D-shaped rod through the carrier's hole. For every stage but the last it is the link
+	// shaft that also fills the next stage's sun bore; for the last stage it is the output shaft, which passes
+	// through the rear cover's bearing and carries a collar against it.
+	Shaft *decad.Body
 }
 
 // Gearbox holds the bodies of a built gearbox.
@@ -53,6 +56,7 @@ const (
 	FrontBearingName = "Front Bearing"
 	RearBearingName  = "Rear Bearing"
 	InputShaftName   = "Input Shaft"
+	OutputShaftName  = "Output Shaft"
 )
 
 // SunName is the name of the sun of stage index (0-based).
@@ -64,6 +68,15 @@ func PlanetName(stage, index int) string { return fmt.Sprintf("Planet Gear %d.%d
 // BearingName is the name of the bearing in planet index of stage (both 0-based).
 func BearingName(stage, index int) string {
 	return fmt.Sprintf("Planet Bearing %d.%d", stage+1, index+1)
+}
+
+// ShaftName is the name of the shaft of stage index (0-based) in a gearbox of stages stages: the link shaft to the
+// next sun, or for the last stage the output shaft.
+func ShaftName(stage, stages int) string {
+	if stage == stages-1 {
+		return OutputShaftName
+	}
+	return fmt.Sprintf("Link Shaft %d", stage+1)
 }
 
 // CarrierName is the name of the carrier of stage index (0-based).
@@ -83,6 +96,7 @@ func (g Gearbox) Named() []NamedBody {
 			out = append(out, NamedBody{BearingName(k, i), stage.Bearings[i]})
 		}
 		out = append(out, NamedBody{CarrierName(k), stage.Carrier})
+		out = append(out, NamedBody{ShaftName(k, len(g.Stages)), stage.Shaft})
 	}
 	return out
 }
@@ -163,23 +177,30 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
-	var middle *decad.Body
+	carrier, err := r.buildCarrier(ctx)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
+	// A link shaft runs from a carrier's lower face through its D hole, across the gap and through the next
+	// sun's bore, ending level with the sun's top. The output shaft starts at the last carrier's lower face and
+	// rises through the rear cover's bearing, ending OutputShaftLength beyond the bearing boss. Its collar fills
+	// the space between the carrier's upper face and the bearing's inner race.
+	var link *decad.Body
 	if p.Stages > 1 {
-		stubTop := p.CarrierThickness + p.StageGap + p.GearThickness
-		if middle, err = r.buildCarrier(ctx, stubTop); err != nil {
+		linkTop := p.GearThickness + p.CarrierThickness + p.StageGap
+		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, 0, 0); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
-	// The output shaft is the last carrier's stub. It rises through the rear cover's bearing and ends
-	// OutputShaftLength beyond the bearing boss.
-	last, err := r.buildCarrier(ctx, p.CarrierThickness+p.StageGap+p.CoverThickness+planetBearing().Width+
-		p.OutputShaftLength)
+	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
+	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness,
+		p.CarrierThickness+p.StageGap+p.CoverThickness)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
 
 	// Collect every pose first: each master's last instance retires the master.
-	var sunMoves, planetMoves, bearingMoves, middleMoves, lastMoves []r3.Transform
+	var sunMoves, planetMoves, bearingMoves, carrierMoves, linkMoves, outputMoves []r3.Transform
 	for k := range p.Stages {
 		z := float64(k) * d.stagePitch
 		m, err := pose(r.frame, 0, 0, 0, z)
@@ -205,10 +226,11 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 		if err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: carrier pose: %w", err)
 		}
+		carrierMoves = append(carrierMoves, m)
 		if k == p.Stages-1 {
-			lastMoves = append(lastMoves, m)
+			outputMoves = append(outputMoves, m)
 		} else {
-			middleMoves = append(middleMoves, m)
+			linkMoves = append(linkMoves, m)
 		}
 	}
 	suns, err := instances(ctx, sun, sunMoves)
@@ -223,23 +245,28 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: bearings: %w", err)
 	}
-	var middles []*decad.Body
-	if middle != nil {
-		if middles, err = instances(ctx, middle, middleMoves); err != nil {
-			return Gearbox{}, fmt.Errorf("planetarygearbox: carriers: %w", err)
+	carriers, err := instances(ctx, carrier, carrierMoves)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: carriers: %w", err)
+	}
+	var links []*decad.Body
+	if link != nil {
+		if links, err = instances(ctx, link, linkMoves); err != nil {
+			return Gearbox{}, fmt.Errorf("planetarygearbox: link shafts: %w", err)
 		}
 	}
-	lasts, err := instances(ctx, last, lastMoves)
+	outputs, err := instances(ctx, output, outputMoves)
 	if err != nil {
-		return Gearbox{}, fmt.Errorf("planetarygearbox: output carrier: %w", err)
+		return Gearbox{}, fmt.Errorf("planetarygearbox: output shaft: %w", err)
 	}
-	carriers := append(middles, lasts...)
+	shafts := append(links, outputs...)
 	for k := range p.Stages {
 		box.Stages = append(box.Stages, Stage{
 			Sun:      suns[k],
 			Planets:  planets[k*p.PlanetCount : (k+1)*p.PlanetCount],
 			Bearings: bearings[k*p.PlanetCount : (k+1)*p.PlanetCount],
 			Carrier:  carriers[k],
+			Shaft:    shafts[k],
 		})
 	}
 	return box, nil

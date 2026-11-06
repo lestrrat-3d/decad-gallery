@@ -10,7 +10,7 @@ Build a compact planetary gearbox. A fixed internal ring gear is the housing. In
 a sun gear drives `n` planet gears that roll inside the ring, and the planets' pins ride on a
 carrier. The sun is the input and the carrier is the output. A stage count above one stacks
 identical stages in the same ring: each carrier drives the next stage's sun through a
-shared stub shaft, and the last carrier ends in the output shaft.
+link shaft, and the last carrier drives the output shaft.
 
 Every part that turns on another part rides on a purchased 608ZZ bearing. The planets turn on
 their pins, so each planet holds one bearing in a pocket and the bearing's inner race sits on
@@ -22,14 +22,21 @@ The housing is the ring gear and two end covers. The covers are open frames, a r
 bearing hub, so they use little material. Four bolts through the covers and the ring hold the
 housing together; the bolts themselves are not modeled, only their clearance holes.
 
-The input and the output connect as follows. The input shaft is an 8 mm rod: it passes through the
-front cover's bearing and fills the first sun's bore. The first carrier's stub shaft is also 8 mm
-and fills the next sun's bore, which is how stages link. The last carrier's stub passes through
-the rear cover's bearing and is the output shaft. Every shaft is 8 mm because the 608ZZ bore is 8
-mm. Each shaft is a D: a cylinder with one flat, `Sf` deep, on its +X side. The sun's bore is the same D, so
-the input shaft turns the first sun, and each carrier's stub turns the next sun, without slipping. The flat
-also lets a coupling grip the input and output shaft ends. The contract does not model the coupling, a set
-screw or the motor.
+The input and the output connect as follows. The shafts are separate bodies from the carriers, so each part
+prints in its own best orientation. The input shaft is an 8 mm rod: it passes through the front cover's bearing
+and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
+how stages link. The output shaft runs through the last carrier's hole and the rear cover's bearing. Every shaft
+is 8 mm because the 608ZZ bore is 8 mm. Each shaft is a D: a cylinder with one flat, `Sf` deep, on its +X
+side. The sun's bore and the carrier's hole are the same D, so the input shaft turns the first sun, and each
+link or output shaft turns its carrier and, for a link shaft, the next sun, without slipping. The flat also lets a
+coupling grip the input and output shaft ends. The contract does not model the coupling, a set screw or the
+motor.
+
+The input shaft and the output shaft each carry a collar, a round bulge wider than the shaft, between its
+bearing's inner race and the part beside it: the first sun for the input shaft and the last carrier for the
+output shaft. A collar is the printed stand-in for a washer. It keeps the turning part clear of the
+bearing and the cover. Each planet pin carries a collar of the same size under the carrier plate, so the planet's
+bearing is clear of the plate too.
 
 Lengths are millimeters and angles are radians. The gearbox is anchored by one `r3.Frame`:
 its origin is a point on the gearbox axis, `U × V` is the axis direction, and the first
@@ -47,14 +54,14 @@ origin, so the axis is world +Z.
 | `K` | `Stages` | int | 1 | Stacked stages in the one ring |
 | `S` | `Samples` | int | 15 | Fit points per tooth flank |
 | `T` | `GearThickness` | float64 | 8 | Axial thickness of the gears of a stage |
-| `Tc` | `CarrierThickness` | float64 | 3 | Axial thickness of a carrier's hub and arms |
+| `Tc` | `CarrierThickness` | float64 | 3 | Axial thickness of a carrier's plate |
 | `g` | `StageGap` | float64 | 0.5 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
 | `db'` | `BoltHoleDiameter` | float64 | 3.4 | Diameter of the four clearance holes through the ring and the covers |
 | `Sf` | `ShaftFlat` | float64 | 1 | Depth of the flat on each shaft and in each sun bore; zero leaves round shafts and round bores |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.1 | Radial clearance between a planet's bearing and its pocket |
-| `wc` | `CarrierWall` | float64 | 3 | Carrier material around the shaft and around each planet pin |
+| `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
 | `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
 | `j` | `Backlash` | float64 | 0.05 | Tooth thinning of the sun and planets at the pitch circle; the ring's tooth spaces are widened by the same amount |
@@ -112,9 +119,8 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
-- Reject a stub shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`), carrier
-  arms that reach past the ring's tip radius minus `m/2` (`a + boss/2 >= ring tip radius - m/2`), and
-  arms so wide that neighbouring arms overlap on the hub.
+- Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
+  reaches past the ring's tip radius minus `m/2` (`a + boss/2 >= ring tip radius - m/2`).
 - Reject a non-nil `Placement` that is not a valid frame.
 
 ## Gears
@@ -178,24 +184,27 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - Bearing `i` of stage `k`: a 608ZZ envelope on the planet's axis, from `kP + T - Wb` to `kP + T`,
   so it fills the pocket and its upper face is level with the planet's. Its bore is the pin's
   diameter. Bearings are separate bodies.
-- Carrier `k`'s hub and arms lie in `[kP + T + g, kP + T + g + Tc]`. `n` pins of diameter `dp` hang
-  from the arm ends at the planet centers down to `z = kP`, and pass through the bearings and the
-  lip bores.
-- Stub shaft of carrier `k`: a D-shaped rod of the shaft cross-section on the axis from the carrier's
-  midplane up. For `k < K - 1` it ends at the top of sun `k + 1`, `(k + 1) P + T`, and
-  passes through that sun's bore. For the last carrier it is the output shaft and ends `Lo` above the
-  rear cover's boss, at `K P + Tv + Wb + Lo`.
+- Carrier `k`'s plate lies in `[kP + T + g, kP + T + g + Tc]`. `n` pins of diameter `dp` hang from the
+  plate at the planet centers down to `z = kP`, and pass through the bearings and the lip bores. Each pin has
+  a collar of the shaft collar diameter and height `g` that fills the gap between the planet's top and the
+  plate. Nothing stands above the plate.
+- Shaft of stage `k`: a D-shaped rod of the shaft cross-section on the axis, starting at the carrier's lower
+  face `kP + T + g` and passing through the plate's D hole. For `k < K - 1` it is the link shaft and ends at the top
+  of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore. For the last stage it is the output shaft
+  and ends `Lo` above the rear cover's boss, at `K P + Tv + Wb + Lo`; a collar fills `[K P - g, K P + Tv]`, from
+  the last carrier's upper face to the rear bearing's inner face.
 - The ring spans `[-g, K P]`.
 - The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wb, -g - Tv]`; the rear cover's
   frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wb]`. The front bearing fills
   `[-g - Tv - Wb, -g - Tv]` and the rear bearing `[K P + Tv, K P + Tv + Wb]`.
-- The input shaft spans `[-g - Tv - Wb - Li, T]`.
+- The input shaft spans `[-g - Tv - Wb - Li, T]`; a collar fills `[-g - Tv, 0]`, from the front bearing's inner
+  face to the first sun's lower face.
 
-Each carrier, with its pins and stub, is one solid body. A carrier is a hub of the hub
-diameter on the axis with `n` arms. Arm `i` runs from the hub along the direction of planet `i`
-to a round boss of the boss diameter centered on that planet's pin, and is the arm width wide.
-Hub, arms and bosses are one outline extruded `Tc`; no plate fills the space between the arms. The
-pins hang from the arm ends down to `z = kP` and the stub shaft rises from the hub.
+Each carrier, with its pins and their collars, is one solid body and the shafts are separate bodies. A carrier's
+plate is the convex hull of the `n` pin bosses, a rounded polygon: a boss circle of the boss diameter around
+each pin and a straight line tangent to the circles of neighbouring pins on the outside. The plate is solid
+between the pins, so it takes the sideways load the planets put on their pins. The shaft section is a hole
+through its middle. The plate is extruded `Tc`, and the pins and their collars stand on one face.
 
 ## Parameter table
 
@@ -206,7 +215,8 @@ parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_
 `bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
 `bearing_clearance`, `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
-`pocket_diameter`, `lip_bore_diameter`, `hub_diameter`, `boss_diameter`, `arm_width`, `arm_margin`,
+`pocket_diameter`, `lip_bore_diameter`, `shaft_collar_diameter`, `collar_margin`, `boss_diameter`, `arm_width`,
+`arm_margin`,
 `shaft_diameter`, `cover_boss_diameter`, `cover_hub_diameter`, `bolt_circle_radius`,
 `stage_pitch`, `ring_length`. The spur gear builds
 write their own entries (`teeth`, `thickness`, `bore_diameter` and others) into the same
@@ -223,22 +233,22 @@ verify their own sketches.
 
 | Case | Overrides | Required result |
 | --- | --- | --- |
-| Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, all solids; ratio 1 + 71/13 |
-| Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers; the first carrier's stub fills the second sun's bore |
-| Shaft flats | Default | The input shaft has a flat on +X and the first sun's bore has the matching D: at the flat the shaft is absent and the sun present, elsewhere in the bore the shaft is present and the sun absent; the shaft's volume is a round rod's less the flat's segment; in a two-stage gearbox the first carrier's stub fills the second sun's D bore the same way |
+| Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, all solids; ratio 1 + 71/13 |
+| Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
+| Shaft flats | Default | The input shaft has a flat on +X and the first sun's bore has the matching D: at the flat the shaft is absent and the sun present, elsewhere in the bore the shaft is present and the sun absent; the shaft's volume is a round rod's less the flat's segment; in a two-stage gearbox the link shaft fills the second sun's D bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the bearing is 22 mm across, 7 mm wide and level with the planet's upper face; the planet weighs the plain gear with the lip bore minus the pocket's ring |
-| Carrier | Default | Material lies along an arm and not between two arms at the same radius; the carrier weighs less than a plate that reaches as far as the arms |
+| Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft's D hole is open in the middle; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |
 | Phase | Default with one planet turned half a tooth about its own axis | The same check finds vertices inside the sun and the ring |
 | Placed | Default with frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volumes as the unplaced box; bounds follow the frame |
-| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; arms that reach the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; an invalid placement | An error naming the failing rule |
+| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; an invalid placement | An error naming the failing rule |
 
 ## Verification
 
 Build the Default case first. Check every sketch's constraint status, each body's
-solidity, bounds and volume, the meshing phase, and the stub and pin fit. Check the Two
+solidity, bounds and volume, the meshing phase, and the shaft and pin fit. Check the Two
 stages case once the Default passes. Render the real body through `tools/render/`: the hero shows
 the assembled two-stage gearbox with the ring and both covers cut open along the XZ plane, three more images show
 it assembled and uncut from the output end, the input end and the side, and an animation shows the two-stage

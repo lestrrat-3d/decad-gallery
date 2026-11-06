@@ -22,11 +22,12 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-// planetaryMotionFrames is the frame count of the motion animation. Each frame turns the input by half the sun's
-// tooth pitch, so the sun's teeth never seem to run backward, and 56 frames are exactly a third of a turn of the
-// first carrier: the first stage looks the same again at the end. The second stage and the output shaft are not
-// back where they started, so the animation jumps when it repeats.
-const planetaryMotionFrames = 56
+// planetaryMotionFrames is the number of input angles the animation turns through, counting the rest pose. Each
+// frame turns the input by half the sun's tooth pitch, so the sun's teeth never seem to run backward. The
+// animation plays them forward and then back, so its last frame leads straight into its first and the motion
+// has no jump. A seamless one-way loop is out of reach: the output shaft comes back to where it started only
+// after the input has turned 84 times with one stage and 7,056 times with two.
+const planetaryMotionFrames = 40
 
 // planetaryMotionDelay is the time of one frame in hundredths of a second.
 const planetaryMotionDelay = 5
@@ -80,7 +81,7 @@ func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planet
 				switch body.body {
 				case stage.Sun:
 					move = func(input float64) (r3.Transform, error) { return about(sunAngle(input)) }
-				case stage.Carrier:
+				case stage.Carrier, stage.Shaft:
 					move = func(input float64) (r3.Transform, error) { return about(carrierAngle(input)) }
 				}
 				for i := range stage.Planets {
@@ -157,7 +158,7 @@ func planetaryMotionPanels() []planetaryMotionPanel {
 // renderPlanetaryMotion writes an animation of the two-stage gearbox as its input turns, from three cameras: the
 // cutaway of the hero, the input end and the output end. Both shafts carry their flat, so the turning of the
 // input and the much slower turning of the output show. The first frame is the gearbox at rest, and a caption
-// strip below the panels reads the input and output angles.
+// strip below the panels reads the input and output angles. The frames play forward and back.
 func renderPlanetaryMotion(ctx context.Context, output string, width, height, frames int) error {
 	box, p, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
@@ -178,6 +179,14 @@ func renderPlanetaryMotion(ctx context.Context, output string, width, height, fr
 		cameras[i] = fitCamera(panel.camera, rest, float64(panelWidth)/float64(panelHeight), bevelViewMargin)
 	}
 	step := math.Pi / float64(p.SunTeeth)
+	// The frames play forward and then back, not repeating the rest pose or the farthest pose.
+	var order []int
+	for frame := range frames {
+		order = append(order, frame)
+	}
+	for frame := frames - 2; frame > 0; frame-- {
+		order = append(order, frame)
+	}
 	ratio := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth)
 	background := solidlens.RGB(.94, .96, .98).NRGBA()
 	face := basicfont.Face7x13
@@ -221,7 +230,8 @@ func renderPlanetaryMotion(ctx context.Context, output string, width, height, fr
 	colors = append(colors, color.RGBA{})
 	nearest := make(map[color.RGBA]uint8)
 	var full []*image.Paletted
-	for _, img := range rendered {
+	for _, index := range order {
+		img := rendered[index]
 		indexed := image.NewPaletted(img.Bounds(), colors)
 		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
 			for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {

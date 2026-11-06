@@ -4,12 +4,12 @@
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by
 an open-frame cover. A small sun gear turns three planet gears that roll around it inside the ring. Each planet turns
-on a 608ZZ bearing pressed into a pocket in the gear and rides on a pin of the carrier, a three-armed spider that turns
-slowly. The sun is the input and the carrier is the output.
+on a 608ZZ bearing pressed into a pocket in the gear and rides on a pin of the carrier, a solid triangular plate that
+turns slowly. The sun is the input and the carrier is the output.
 
 The default gearbox has a 13-tooth sun, three 29-tooth planets and a 71-tooth ring. One stage slows the output to
-1 ÷ 6.46 of the input speed (1 + 71 ÷ 13). The image shows two stages in the same ring: the first carrier's stub shaft
-drives the second sun, so two stages slow the output to 1 ÷ 41.8. The ring and both covers are cut open along a
+1 ÷ 6.46 of the input speed (1 + 71 ÷ 13). The image shows two stages in the same ring: a link shaft joins the first
+carrier to the second sun, so two stages slow the output to 1 ÷ 41.8. The ring and both covers are cut open along a
 plane through the axis; every other part is shown whole.
 
 ## Assembled
@@ -20,6 +20,13 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 | --- | --- | --- |
 | <img src="images/assembled-output.png" alt="Assembled two-stage gearbox seen from the output end" width="320"> | <img src="images/assembled-input.png" alt="Assembled two-stage gearbox seen from the input end" width="320"> | <img src="images/assembled-side.png" alt="Assembled two-stage gearbox seen from the side" width="320"> |
 
+## Exploded
+
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: input shaft, front bearing and cover, two stages of sun, planets, bearings and carrier with a link shaft between them, the ring, the rear cover and bearing, and the output shaft" width="450">
+
+From the bottom: the input shaft, the front bearing and cover, the first stage (sun and planets, their bearings, the
+carrier), the link shaft, the second stage, the ring, the rear cover and its bearing, and the output shaft.
+
 ## How it moves
 
 ![The two-stage gearbox turning, seen cut open, from the input end and from the output end, with the input and output shaft angles read out underneath](images/motion.gif)
@@ -28,20 +35,25 @@ The input shaft and the first sun turn together. The planets roll inside the fix
 own bearing while the carrier carries it around the sun. The first carrier turns at 13 ÷ 84 of the sun's speed and
 drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The flat on
 each shaft shows its turning: the input shaft's flat sweeps round, and the output shaft's flat creeps. The readout
-below the panels gives both angles. The animation runs 56 frames and repeats from the start, so the second stage and
-the output shaft jump back when it does. It moves the real tessellated bodies rigidly; it is not a force simulation.
+below the panels gives both angles. The animation plays forward and then back, so it has no jump where it repeats. A one-way loop would need the
+input to turn 7,056 times, because the output shaft only comes back to its starting angle after that many turns of
+the input. It moves the real tessellated bodies rigidly; it is not a force simulation.
 
 ## How the input and the output connect
 
-Every shaft is 8 mm across, the bore of a 608ZZ, with a 1 mm flat along one side (a D). The sun's bore is the same D, so
-the shaft turns the sun without slipping.
+Every shaft is a separate part, 8 mm across, the bore of a 608ZZ, with a 1 mm flat along one side (a D). The sun's bore
+and the carrier's hole are the same D, so a shaft turns them without slipping. The input shaft and the output shaft each
+have a round collar, 10.4 mm across, next to their bearing. It stands in for the washer a metal build would use, so
+the sun or the carrier does not rub on the bearing and the cover.
 
 - **Input.** The input shaft enters through the front cover's 608ZZ and fills the first sun's bore. It sticks out
   12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
-- **Between stages.** The first carrier's stub shaft fills the second sun's bore, so the second sun turns with the
-  first carrier.
-- **Output.** The last carrier's stub shaft passes through the rear cover's 608ZZ and sticks out 12 mm beyond its
-  boss. It is the output shaft.
+- **Between stages.** A link shaft runs through the first carrier's hole and fills the second sun's bore, so the
+  second sun turns with the first carrier.
+- **Output.** The output shaft runs through the last carrier's hole and the rear cover's 608ZZ and sticks out 12 mm
+  beyond its boss.
+
+Each pin of the carrier has a thin collar under the plate too, so the planets' bearings stay clear of the plate.
 
 The model does not show a set screw, the screws in the four bolt holes that join the covers and the ring, or the
 coupling to a motor. The flats are where a coupling or a set screw would grip.
@@ -49,11 +61,12 @@ coupling to a motor. The flats are where a coupling or a set screw would grip.
 ## Parts
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
-shaft and, in every stage, one sun, three planets, three planet bearings and one carrier. The bearing is a purchased
-608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. The front cover is the rear
-cover turned over. A stage's carrier is the linking carrier when another stage follows it, because its stub shaft
-drives that stage's sun. The last stage's carrier is the output carrier, and its shaft is the output. The default
-one-stage gearbox has only the output carrier.
+shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
+purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. The front cover is
+the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
+follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
+part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on
+end or lying down.
 
 | Image | Name |
 | --- | --- |
@@ -63,8 +76,9 @@ one-stage gearbox has only the output carrier.
 | <img src="images/parts/planet.png" alt="Planet gear" width="240"> | Planet gear |
 | <img src="images/parts/bearing.png" alt="608ZZ bearing" width="240"> | Bearing (608ZZ) |
 | <img src="images/parts/input-shaft.png" alt="Input shaft" width="240"> | Input shaft |
-| <img src="images/parts/linking-carrier.png" alt="Linking carrier" width="240"> | Linking carrier |
-| <img src="images/parts/output-carrier.png" alt="Output carrier" width="240"> | Output carrier |
+| <img src="images/parts/carrier.png" alt="Carrier" width="240"> | Carrier |
+| <img src="images/parts/link-shaft.png" alt="Link shaft" width="240"> | Link shaft |
+| <img src="images/parts/output-shaft.png" alt="Output shaft" width="240"> | Output shaft |
 
 You can vary:
 
