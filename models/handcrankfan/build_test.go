@@ -19,7 +19,8 @@ func partNames(blades int) []string {
 	names := []string{
 		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox", "driving-gear", "crank-shaft", "crank-arm",
 		"crank-pin", "crank-grip", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
-		"drive-shaft", "drive-gear", "crank-gear",
+		"drive-shaft", "drive-gear", "crank-gear", "bearing-crank-post", "bearing-drive-post", "bearing-crank-wall",
+		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
 	}
 	for k := 1; k <= blades; k++ {
 		names = append(names, fmt.Sprintf("fan-blade-%d", k), fmt.Sprintf("fan-bolt-%d", k))
@@ -36,6 +37,9 @@ func isRotor(name string) bool {
 func isFinished(name string) bool {
 	switch name {
 	case "handle", "gearbox", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt":
+		return true
+	}
+	if strings.HasPrefix(name, "bearing-") {
 		return true
 	}
 	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-")
@@ -76,7 +80,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	for i, s := range a.Sketches {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 	}
-	// The crank shaft's faceted hexagonal stub is below Decad's minimum mesh bound at 0.1 mm.
+	// The crank shaft's grooved end is checked at 0.2 mm.
 	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
 		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "crank-gear": 0.1} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(tolerance), decad.WithVerification(decad.VerifyAll))
@@ -277,26 +281,27 @@ func requireGrip(t *testing.T, parts map[string]handcrankfan.Part) {
 func requireNoOverlap(t *testing.T, doc *decad.Document, parts map[string]handcrankfan.Part) {
 	names := map[*decad.Body]string{}
 	for name, part := range parts {
-		if isFinished(name) {
-			names[part.Body] = name
-		} else if name == "fan-shaft" || name == "drive-gear" || name == "crank-gear" {
-			require.NoError(t, decad.Remove(part.Body))
-		}
+		names[part.Body] = name
+	}
+	// Two parts are checked when both are finished parts, or when one is a shaft or a bearing: a shaft has to slide
+	// through every gear's spline bore and every bearing, so a shaft that shares material with any part, or is
+	// undecided against it, means a groove and its tooth are out of line. The gears that mesh at their teeth are only
+	// checked against the shafts and bearings.
+	checked := func(a, b *decad.Body) bool {
+		x, y := names[a], names[b]
+		holder := func(name string) bool { return strings.HasSuffix(name, "-shaft") || strings.HasPrefix(name, "bearing-") }
+		return isFinished(x) && isFinished(y) || holder(x) || holder(y)
 	}
 	report, err := doc.Verify(t.Context())
 	require.NoError(t, err)
 	for _, pair := range report.Interferences {
-		_, a := names[pair.A]
-		_, b := names[pair.B]
-		require.False(t, a && b, "%s and %s share material", names[pair.A], names[pair.B])
+		require.False(t, checked(pair.A, pair.B), "%s and %s share material", names[pair.A], names[pair.B])
 	}
 	for _, d := range report.Diagnostics {
 		if d.Pair == nil {
 			continue
 		}
-		_, a := names[d.Pair.A]
-		_, b := names[d.Pair.B]
-		require.False(t, a && b, "%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)
+		require.False(t, checked(d.Pair.A, d.Pair.B), "%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)
 	}
 }
 
@@ -336,13 +341,19 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	require.Less(t, span["crank-grip"][1], span["crank-pin"][0], "the pin is outside the handle")
 	bom, err := set.BOM(t.Context())
 	require.NoError(t, err)
-	screws := 0
+	screws, bearings := 0, 0
 	for _, row := range bom.Rows {
-		if row.Kind == parts.Purchased {
+		if row.Kind != parts.Purchased {
+			continue
+		}
+		if row.Spec == "608-2RS ball bearing" {
+			bearings += row.Quantity
+		} else {
 			screws += row.Quantity
 		}
 	}
 	require.Equal(t, 2+1+a.Params.Blades, screws, "two grip screws, the pin screw and one screw for each blade")
+	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 
 // requireSweepClearance proves a hand on the crank handle cannot meet a blade. The crank's arm, pin and handle sweep

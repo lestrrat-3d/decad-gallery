@@ -125,20 +125,21 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 // floor. Each shaft turns in a square bearing block built out from a wall, which makes a long bearing without a boss or
 // a sleeve. Printed floor down, every wall, the post and the blocks are vertical, so nothing needs support.
 const (
-	wallThick   = 9.8
-	crankWallX  = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
-	fanWallY    = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
-	boxTop      = 181.0 // the bores' tops are at 174.2, so the walls keep about 7 above them
-	boxBackY    = 11.0  // nothing but the floor lies behind the shafts
-	boxLeftX    = -20.0
-	boxFloor    = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick
-	cavityFloor = boxFloor + 5
-	blockHalf   = 11.0                                // the bearing blocks and the post are 22 wide and as tall as the tray
-	fanBlock    = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
-	crankBlock  = 14.0                                // and the crank block this far from the crank-side wall's outer face
-	fanGap      = fanBlock + 6                        // from the fan-side wall's outer face to the hub
-	crankFace   = crankWallX + wallThick + crankBlock // the crank block's end face, X 48
-	gripX       = 7.0                                 // the grip's centre, under the tray
+	wallThick    = 9.8
+	crankWallX   = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
+	fanWallY     = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
+	boxTop       = 186.0 // the drive shaft's bearing seat tops out at 181.1, so the walls keep about 5 above it
+	boxBackY     = 15.0  // nothing but the floor lies behind the shafts
+	boxLeftX     = -20.0
+	boxFloor     = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick
+	cavityFloor  = boxFloor + 5
+	blockHalf    = 15.0                                // the bearing blocks and the post are 30 wide and as tall as the tray
+	fanBlock     = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
+	crankBlock   = 14.0                                // and the crank block this far from the crank-side wall's outer face
+	fanGap       = fanBlock + 6                        // from the fan-side wall's outer face to the hub
+	crankFace    = crankWallX + wallThick + crankBlock // the crank block's end face, X 48
+	fanBlockFace = -fanWallY + wallThick + fanBlock    // the fan block's end face, 70 behind the apex
+	gripX        = 7.0                                 // the grip's centre, under the tray
 )
 
 // gearbox builds a rounded block minus a cavity, which leaves the floor, the fan-side wall and the crank-side wall,
@@ -171,13 +172,20 @@ func (b *builder) gearbox() {
 			return nil
 		}
 		body = b.union(body, fanPad, crankPad)
-		// The shafts go in through the post from the left. The drive shaft ends in a pocket in the crank-side wall, and
-		// the crank shaft goes through the wall and its block.
-		body = b.cut(body, b.cylinder(alongX(boxLeftX-1), 4.2, postFace-boxLeftX+1.5))
-		body = b.cut(body, b.cylinder(alongCrank(boxLeftX-1), 4.2, postFace-boxLeftX+1.5))
-		body = b.cut(body, b.cylinder(alongX(crankWallX-0.1), 4.2, driveShaftEnd+0.4-crankWallX+0.1))
-		body = b.cut(body, b.cylinder(alongCrank(crankWallX-1), 4.2, crankFace-crankWallX+2))
-		body = b.cut(body, b.cylinder(alongMinusY(-30), 3.2, 74))
+		// A 608 bearing sits where each shaft crosses a wall. The shafts go in through the post from the left. The drive
+		// shaft ends in the crank-side wall's bearing, and the crank shaft goes through that wall and its block. The seats
+		// open at the post's outer face and the block ends and in the walls' inner faces, so each bearing drops in
+		// along its shaft.
+		for _, a := range []shaftAxis{crankSpline, driveSpline} {
+			body = b.seat(body, a, boxLeftX-1, boxLeftX+seatDepth, boxLeftX+7, postFace+1)
+			body = b.seat(body, a, crankWallX-1, crankWallX+seatDepth, crankWallX+seatDepth-0.1, crankWallX+seatDepth+reliefDepth-0.1)
+		}
+		body = b.hole(body, crankSpline, shaftHole, crankWallX+9.3, crankFace-8.5)
+		body = b.seat(body, crankSpline, crankFace-seatDepth, crankFace+1, crankFace-seatDepth-reliefDepth+0.1, crankFace-seatDepth+0.1)
+		// The fan shaft's two bearings are measured behind the apex.
+		body = b.seat(body, fanSpline, -fanWallY-1, -fanWallY+seatDepth, -fanWallY+seatDepth-0.1, -fanWallY+seatDepth+reliefDepth-0.1)
+		body = b.hole(body, fanSpline, shaftHole, -fanWallY+9.3, fanBlockFace-8.5)
+		body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
 		for _, dx := range []float64{-gripScrewX, gripScrewX} {
 			body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: -28, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
 		}

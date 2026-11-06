@@ -18,7 +18,7 @@ const (
 	hubBack   = -(fanWallY - wallThick) + fanGap
 	hubMid    = hubBack + hubLength/2
 
-	boreRadius   = 3.0  // the fan shaft's radius
+	fanTip       = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
 	studRadius   = 3.0  // the blade's root stud
 	studStart    = 6.0  // radius of the stud's inner end
 	studEnd      = 16.0 // radius of its outer end, inside the blade's root
@@ -82,7 +82,12 @@ func beta(r, pitch float64) float64 {
 // fan builds the fan shaft, the hub, the blades and the blade bolts.
 func (b *builder) fan() {
 	b.part("fan-shaft", "shaft", "fan", func() *decad.Body {
-		return b.cylinder(alongMinusY(-22), 3, hubBack+hubLength+4-22)
+		shaft := b.cylinder(alongMinusY(-fanTip), shaftRadius, hubBack+hubLength+4-fanTip)
+		// One set of grooves passes through the pinion and one through the hub, with the round shaft between them for the
+		// bearings. The collar sits between the front bearing and the hub.
+		shaft = b.grooves(shaft, fanSpline, fanTip-1, 36.5)
+		shaft = b.grooves(shaft, fanSpline, hubBack-1, hubBack+hubLength+5)
+		return b.union(shaft, b.cylinder(alongMinusY(-(fanBlockFace-0.2)), 6, hubBack-0.1-(fanBlockFace-0.2)))
 	})
 	b.part("fan-hub", "rotor", "fan", b.hub)
 	var blades, bolts []*decad.Body
@@ -138,12 +143,12 @@ func (b *builder) hub() *decad.Body {
 	n := b.p.Blades
 	s := b.section(frame(r3.Vec{Y: -hubBack, Z: axisHeight}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 	circle(s, 0, 0, hubRadius)
-	circle(s, 0, 0, boreRadius)
 	for k := 0; k < n; k++ {
 		theta := 2 * math.Pi * float64(k) / float64(n)
 		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), holeRadius)
 	}
-	hub := b.roundCaps(b.extrude(s, n+1, hubLength), 1)
+	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
+	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2)
 	front := -(hubBack + hubLength)
 	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		socketRadius, hubRadius+1-socketStart)

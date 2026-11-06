@@ -93,10 +93,14 @@ type fanMesh struct {
 func handCrankFanMeshes(ctx context.Context, a *handcrankfan.Assembly) ([]fanMesh, error) {
 	meshes := make([]fanMesh, 0, len(a.Parts))
 	for _, part := range a.Parts {
-		// The crank shaft's faceted D stub is below Decad's minimum mesh bound at 0.1 mm.
+		// The crank shaft's grooved end is meshed at 0.2 mm, as the tests check it, and the pinion's spline bore holds its
+		// mesh to 0.103 mm.
 		tolerance := .1
-		if part.Name == "crank-shaft" {
+		switch part.Name {
+		case "crank-shaft":
 			tolerance = .2
+		case "pinion", "driving-gear":
+			tolerance = .12
 		}
 		mesh, err := part.Body.Tessellate(ctx, units.Millimeters(tolerance), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
@@ -114,6 +118,8 @@ func handCrankFanMeshes(ctx context.Context, a *handcrankfan.Assembly) ([]fanMes
 			color = solidlens.RGB(.30, .68, .85)
 		case "hardware":
 			color = solidlens.RGB(.88, .90, .92)
+		case "bearing":
+			color = solidlens.RGB(.72, .76, .80)
 		case "arm", "pin":
 			color = solidlens.RGB(.70, .22, .12)
 		case "grip":

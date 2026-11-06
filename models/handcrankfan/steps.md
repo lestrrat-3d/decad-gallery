@@ -46,60 +46,69 @@ shank and Decad cannot decide a touching pair.
 The gearbox is one tray. The floor's underside is 1.2 under the crank gear's tip and 5 thick, which puts it at Z 101.4.
 
 1. Block: `roundedPrism` on the frame origin `(-20, 0, 0)`, U = +Y, V = +Z (normal +X): the outline (-46,101.4),
-   (11,101.4), (11,181), (-46,181) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
+   (15,101.4), (15,186), (-46,186) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
    `NewDistancePointLine` from the origin. Extrude 54, then `decad.Fillet` the outer loops of both end caps with
    radius 2.
-2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,106.4), (12,106.4), (12,182), (-36.2,182)
+2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,106.4), (16,106.4), (16,187), (-36.2,187)
    with the first corner rounded with radius 3, extruded 46, so it runs through both ends. Sketch's `CreateFillet`
    cannot round the inside corner of an L section while keeping the sketch fully constrained, so the tray is made as a
    block minus a cavity.
-3. Post: a panel on the frame origin `(-22, 0, 0)`, (-11..11, 105.4..183), extruded 11.8. `Cut` it from the cavity, which
-   leaves a post 22 wide on the block's left end up to X -10.2. Then `Cut` the cavity from the block. Building the post
+3. Post: a panel on the frame origin `(-22, 0, 0)`, (-15..15, 105.4..188), extruded 11.8. `Cut` it from the cavity, which
+   leaves a post 30 wide on the block's left end up to X -10.2. Then `Cut` the cavity from the block. Building the post
    by `Union` after the cut fails in Decad.
 4. Bearing blocks: fan block `roundedPrism` on the frame origin `(0, -45, 0)`, U = +X, V = +Z (normal -Y): the outline
-   (-11,101.4), (11,101.4), (11,181), (-11,181) with four corners of radius 3, extruded 25, with its end cap rounded
+   (-15,101.4), (15,101.4), (15,186), (-15,186) with four corners of radius 3, extruded 25, with its end cap rounded
    with radius 2. Crank block: `roundedPrism` on the frame origin `(33, 0, 0)`, U = +Y, V = +Z (normal +X): the same
    outline in (Y, Z), extruded 15, with its end cap rounded with radius 2. Each starts 1 inside its wall, so the `Union`
    shares no face. `Union` the body, the fan block and the crank block.
-5. `Cut` a cylinder of radius 4.2 on `alongX(-21)` and one on `alongCrank(-21)`, each 11.7 long (the shafts' holes through
-   the post), one of radius 4.2 on `alongX(24.1)`, 6.5 long (the drive shaft's pocket), one of radius 4.2 on
-   `alongCrank(23.2)`, 26 long (through the wall and its block), one of radius 3.2 (`alongMinusY(-30)`, length 74) and two
-   of radius 1.2 on the planes Z = 100.4, length 8, at (X -2, Y -28) and (X 16, Y -28). Name `gearbox`, group `housing`,
-   motion `fixed`.
+5. Seats and holes, by `b.seat(host, axis, pocketFrom, pocketTo, reliefFrom, reliefTo)`, which `Cut`s a cylinder of radius
+   11.1 between the first two stations along the shaft and one of radius 9.5 between the last two. Stations run along
+   the crank and drive shafts by X and along the fan shaft by the distance behind the apex. On the drive axis and the
+   crank axis: the post's seat from -21 to -12.6 with its relief from -13 to -9.2, and the crank-side wall's seat from
+   23.2 to 31.6 with its relief from 31.5 to 33.6. On the crank axis also a cylinder of radius 4.2 from 33.5 to 39.5
+   (`b.hole`) and the block's seat from 40.6 to 49 with its relief from 38.6 to 40.7. On the fan axis the wall's seat
+   from 35.2 to 43.6 with its relief from 43.5 to 45.6, a hole of radius 4.2 from 45.5 to 61.5, and the block's seat
+   from 62.6 to 71 with its relief from 60.6 to 62.7. Two cylinders of radius 1.2 on the planes Z = 100.4, length 8, at
+   (X -2, Y -28) and (X 16, Y -28). Name `gearbox`, group `housing`, motion `fixed`.
 
-The walls are 9.8 thick and each shaft also turns in a square block or the post, so each shaft has a long flat-walled
-bearing and nothing round sticks out of the housing. A boss or a sleeve would be a horizontal cylinder that needs
-support when printed; a block as tall as the tray stands on the floor and needs none. Each wall's inner face is 0.2
+The walls are 9.8 thick and each shaft crosses a wall in a bearing seat, so nothing round sticks out of the housing. A
+boss or a sleeve would be a horizontal cylinder that needs support when printed; a block as tall as the tray stands on
+the floor and needs none. The drive shaft's bearing in the post sits at Z 170 and its seat tops out at 181.1, so the
+tray is 186 tall. Each wall's inner face is 0.2
 from its bevel gear's back face, so the gears need no spacer.
 
 ## 4. Bevel pair, spur pair and crank
 
-`bevelgear.BuildPair` with `Module 2`, `Teeth 32`, `MateTeeth 16`, `SpiralAngle 0`, `BoreDiameter 8`,
-`MateBoreDiameter 6` and `Placement` frame origin `(24, 0, 170)`, U = -Y, V = +Z.
+`bevelgear.BuildPair` with `Module 2`, `Teeth 32`, `MateTeeth 16`, `SpiralAngle 0`, `EnableBore` false and `Placement`
+frame origin `(24, 0, 170)`, U = -Y, V = +Z. `doc.MoveBody` then moves both bodies to the document's root container,
+because Decad cuts only within one container, and each gets its spline bore by `b.splineCut`.
 The pair's driving body is `driving-gear` and its pinion body is `pinion`.
 
-- `driving-gear` (motion `drive`) and `pinion` (motion `fan`) are the pair's bodies.
+- `driving-gear` (motion `drive`) and `pinion` (motion `fan`) are the pair's bodies with their spline bores.
+- Splines, in `bearings.go`: `shaftAxis` has a point, a direction and two perpendicular axes, and `spokeFrame(t, k)` is the
+  plane at station t whose U axis points at angle 90° + 120° k. `b.grooves(shaft, axis, from, to)` `Cut`s three boxes
+  (U 2.9 to 5.4, V -1 to 1) along the shaft. `b.splineCut(host, axis, from, length)` makes the tool by a cylinder of
+  radius 4.0 minus three boxes (U 3.0 to 5.0, V -0.9 to 0.9, each running 1 past both ends) and `Cut`s it from the host.
+- `bearing-*` (motion `fixed`, group `bearing`): `models/ballbearing` with bore 8, outside diameter 22 and width 7,
+  placed by `spokeFrame` at the start station of each of the seven sites in the instructions' table.
 - `alongCrank(x)`: origin `(x, 0, 129.6)`, U = +Y, V = +Z, normal +X. `alongPin(x)`: origin `(x, 0, 184.6)`, U = +Y,
   V = +Z, normal +X. Coordinates are `(y, z - 129.6)` and `(y, z - 184.6)`.
 - `drive-gear` (motion `drive`) and `crank-gear` (motion `crank`): `spurgear.Variant{RootFillet: identity}.Build` with
-  `Module 2`, `Teeth 20`, `Thickness 6`, `BoreDiameter 8` and a `Placement` frame origin `(-9.2, 0, z)`, U = +Y, V = +Z,
+  `Module 2`, `Teeth 20`, `Thickness 6`, no bore and a `Placement` frame origin `(-9.2, 0, z)`, U = +Y, V = +Z,
   with z = 170 for the drive gear and 129.6 for the crank gear. Decad cannot fillet the roots of a module-2
-  gear, so the variant leaves them sharp. The drive gear is then turned by half a tooth, pi / 20, about its axis.
+  gear, so the variant leaves them sharp. The drive gear is then turned by half a tooth, pi / 20, about its axis, and each gear gets its spline bore.
   `decad.Intersect` of the two gears is empty, which is the proof that they do not collide.
-- `drive-shaft` (motion `drive`): a cylinder of radius 4 on `alongX(-22.8)`, extruded 52.8, and a collar, a cylinder of
-  radius 6 on `alongX(-23.8)`, extruded 3.5. `Union` them; the shaft starts 1 inside the collar.
-- `crank-shaft`: a cylinder of radius 4 on `alongCrank(-22.8)`, extruded 80.6. `Cut` a ring, a cylinder of radius 6 on
-  `alongCrank(51.5)`, extruded 7, minus a hexagon of 7.2 across flats on `alongCrank(51)`, extruded 8. That leaves the
-  six flats and the round shaft's corners (the stub; a hexagon with its corners on the shaft cannot be unioned, because
-  Decad refuses lines of contact, and there is no slot or screw hole, because the stub is a tight fit in the arm). Then
-  `Union` the collar, a cylinder of radius 6 on
-  `alongCrank(-23.8)`, extruded 3.5. Cutting after the union with the collar fails in Decad.
+- `drive-shaft` (motion `drive`): a cylinder of radius 3.9 on `alongX(-22.8)` to X 31.3, `Cut` by the three grooves from
+  X -10 to 32.3, then `Union` with the collar, a cylinder of radius 6 on `alongX(-23.8)`, extruded 4. The shaft starts 1
+  inside the collar.
+- `crank-shaft`: a cylinder of radius 3.9 on `alongCrank(-22.8)`, extruded 80.6, `Cut` by the three grooves from X -10 to 59,
+  then `Union` with the collar, a cylinder of radius 6 on `alongCrank(-23.8)`, extruded 4. There is no slot or screw
+  hole, because the arm is a tight fit on the splines. Cutting after the union with the collar fails in Decad.
 - `crank-arm`: on `alongCrank(52)`, a stadium: an arc of radius 10 about the origin and an equal arc about (0, 55),
   `NewEqualRadius`, with four `NewTangent` lines, plus a circle of radius 1.2 at the pin end, extruded 8; the
   profile selection requires one hole. `decad.Fillet` the outer loops of both caps with radius 1.5. Equal end
-  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a hexagon of 7.4 across flats
-  (0.1 larger than the stub on every flat) on `alongCrank(51)`, extruded 7, and one of 7.13 across flats on
-  `alongPin(54)`, extruded 7.
+  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a spline bore on `alongCrank(51)`, extruded 7, and a hexagon of 7.13
+  across flats (0.1 larger than the pin's stub on every flat) on `alongPin(54)`, extruded 7.
 - `crank-pin`: a hexagon of 6.93 across flats (8 across corners) on `alongPin(54.2)`, extruded 6.3; a shank of radius 4.5 on
   `alongPin(60.1)` to X 107; a head of radius 5.8 on `alongPin(106.6)`, extruded 3. `Union` the three left to right,
   then `Cut` a box on `alongPin(56)`, (-2.15..2.15, -2.5..4.5), extruded 1.9, and a cylinder of radius 1.2 on
@@ -111,16 +120,16 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
   repository's rule against fixing every computed point has no better answer for a profile whose segments are
   all slanted.
 - `crank-pin-bolt`: a screw body with its bearing face centre at (51.9, 0, 184.6), pointing +X, nut corners on Z,
-  length 10, nut near face 4.2 from the bearing face, shank radius 1.0. The shaft to the arm has no screw: the hexagonal
-  stub is a tight fit in the arm's hexagonal bore.
+  length 10, nut near face 4.2 from the bearing face, shank radius 1.0. The shaft to the arm has no screw: it is a tight fit
+  on the splines.
 
 ## 5. Fan
 
-- `fan-shaft`: circle radius 3 on `alongMinusY(-22)`, extruded 78.
+- `fan-shaft`: circle radius 3.9 on `alongMinusY(-26)`, extruded 74, `Cut` by the grooves from 25 to 36.5 and from 75 to 101
+  behind the apex, then `Union` with the collar, a circle of radius 6 on `alongMinusY(-69.8)`, extruded 6.1.
 - `onY(y)`: origin `(9.5, y, 170)`, U = +X, V = +Z, normal -Y. Coordinates are measured from blade 1's bolt line.
-- Hub: one sketch on the frame origin `(0, -76, 170)`, U = +X, V = +Z: circle radius 14, a concentric circle
-  radius 3, and `Blades` circles of radius 1.15 at `(9.5 cos th_k, 9.5 sin th_k)`, `th_k = 2 pi k / Blades`, each
-  centre dimensioned from the origin by a horizontal and a vertical distance. Extrude 20 toward -Y.
+- Hub: one sketch on the frame origin `(0, -76, 170)`, U = +X, V = +Z: circle radius 14 and `Blades` circles of radius 1.15 at `(9.5 cos th_k, 9.5 sin th_k)`, `th_k = 2 pi k / Blades`, each
+  centre dimensioned from the origin by a horizontal and a vertical distance. Extrude 20 toward -Y, round the end caps with radius 1, and `Cut` the spline bore from 75 to 97 behind the apex.
 - Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
   `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}`, and every tool running 1 mm past the face it
   opens:
@@ -161,9 +170,9 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
 ## 6. Parts set and exploded view
 
 `Assembly.Set(doc)`: `parts.NewSet(doc)`, then `Add` each part (`Manufactured` PLA, or `Purchased` steel with a `Spec`
-for the hardware group) and `Join` each joint as a `PinInBore` with `Axis` in posed coordinates: the crank axis
+for the hardware and bearing groups) and `Join` each joint as a `PinInBore` with `Axis` in posed coordinates: the crank axis
 through `State.Crank` along X, the drive axis through the apex along X, the pin axis through
-`State.Crank + 55 * ArmDirection` along X, the fan axis along -Y, each blade's radial line, each blade bolt's line
+`State.Crank + 55 * ArmDirection` along X, the fan axis along -Y, each shaft's axis for its bearings (each shaft in each bearing turns, each bearing is fixed in the gearbox), each blade's radial line, each blade bolt's line
 parallel to the fan axis at 9.5 along the blade, and each grip screw's vertical line at X -2 or X 16, Y -28. The pin screw's joint with the arm has `Pull` (-1, 0, 0).
 
 `Assembly.Explode`: `Set.Explode` with `WithExplodeGround("gearbox")` and `WithExplodeStages`, each stage `ClearAll` along a
@@ -171,7 +180,8 @@ direction. Decad plans from boxes, which makes nested parts jump over each other
 the lifts come from a search over the order of the pinion, the grip screws and the three gears and over the directions
 of the driving gear and the pinion, scored on no overlap and the shortest largest move. The order is: `arm` (+X, the
 default clearing), `handle`, `pin` (+X), `pin screw` (-X), `drive shaft` and `crank shaft` (-X), `pinion`
-(-X), `grip screws` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `grip` (-Z).
+(-X), `grip screws` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `crank block bearing` (+X), `wall bearings` and
+`post bearings` (-X), `fan wall bearing` (+Y), `fan block bearing` (-Y) and `grip` (-Z).
 
 ## 7. Pose
 
@@ -186,8 +196,7 @@ about the line along -Y by `-2*CrankAngle`.
 - the parameter and `Motion` checks (no build);
 - part names, solids, and no leftover tool bodies;
 - every Sketch fully constrained;
-- `Tessellate` with `VerifyAll` for the handle, gearbox, crank shaft (at 0.2 mm, because Decad's minimum mesh bound
-  refuses its hexagonal stub at 0.1 mm), crank arm, pin, handle, hub, blade 1 and bolt 1;
+- `Tessellate` with `VerifyAll` for the handle, gearbox, crank shaft (at 0.2 mm), crank arm, pin, handle, hub, blade 1 and bolt 1;
 - the orientation rules by bounds;
 - the blade pitch from the blade mesh: leading edge upstream and chord angle within 0.5° of `beta(r)` at four
   radii, and the thickness ratio against the table (`LocatePoint` leaves too many points inside lofted bodies
@@ -199,8 +208,8 @@ about the line along -Y by `-2*CrankAngle`.
 - the gear back faces at X = 24 and Y = -36 after undoing the pose, which retires the gears;
 - the parts set and its explosion at the default pose: the arm, handle and pin in order along X with gaps, the main parts
   moving, the shafts and the pinion sliding to the left and the gears lifting, no two parts sharing space, and the bill of
-  materials counting the screws;
+  materials counting the screws and the seven bearings;
 - no overlap or undecided pair among the finished parts from `doc.Verify` (the rotor, the handle and its screws,
-  the gearbox, and the crank's shaft, arm, pin, handle and screws, and the drive shaft), after removing the fan shaft and
-  the spur gears;
+  the gearbox, the bearings, and the crank's shaft, arm, pin, handle and screws, and the drive shaft), and none between
+  a shaft or a bearing and any other part, which proves each groove lines up with its tooth;
 - blades 2 to N and bolts 2 to N as copies of the first, which retires the bodies it turns and so runs last.

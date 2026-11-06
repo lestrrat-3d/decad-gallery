@@ -12,8 +12,6 @@ const (
 	gearModule  = 2
 	drivingHeel = 24
 	pinionHeel  = 36
-	crankBore   = 8
-	fanBore     = 6
 )
 
 // drive builds the bevel pair, the crank parts and the pinion. The gears sit against the gearbox walls: each wall's
@@ -25,7 +23,7 @@ func (b *builder) drive() {
 	b.name = "bevel pair"
 	gp := bevelgear.DefaultParams()
 	gp.Module, gp.Teeth, gp.MateTeeth, gp.SpiralAngle = gearModule, 32, 16, 0
-	gp.BoreDiameter, gp.MateBoreDiameter = crankBore, fanBore
+	gp.EnableBore = false // the spline bores are cut below
 	placement := frame(r3.Vec{X: drivingHeel, Z: axisHeight}, r3.Vec{Y: -1}, r3.Vec{Z: 1})
 	gp.Placement = &placement
 	pair, err := bevelgear.BuildPair(b.ctx, b.doc, gp)
@@ -34,10 +32,17 @@ func (b *builder) drive() {
 		return
 	}
 
-	b.part("driving-gear", "gear", "drive", func() *decad.Body { return pair.Driving })
+	// The pair's bodies sit in the pair's own containers, and Decad cuts only within one container, so they move to the root.
+	b.fail("move the gears to the root", b.doc.MoveBody(pair.Driving, b.doc.Root()))
+	b.fail("move the gears to the root", b.doc.MoveBody(pair.Pinion, b.doc.Root()))
+	b.part("driving-gear", "gear", "drive", func() *decad.Body { return b.splineCut(pair.Driving, driveSpline, -5, 30) })
 	b.part("drive-gear", "gear", "drive", func() *decad.Body { return b.spurGear(axisHeight, true) })
-	b.part("drive-shaft", "shaft", "drive", func() *decad.Body { return b.shaftWithCollar(axisHeight, driveShaftEnd, nil) })
+	b.part("drive-shaft", "shaft", "drive", func() *decad.Body {
+		return b.shaftWithCollar(axisHeight, driveShaftEnd, func(shaft *decad.Body) *decad.Body {
+			return b.grooves(shaft, driveSpline, -10, driveShaftEnd+1)
+		})
+	})
 	b.crank()
 
-	b.part("pinion", "gear", "fan", func() *decad.Body { return pair.Pinion })
+	b.part("pinion", "gear", "fan", func() *decad.Body { return b.splineCut(pair.Pinion, fanSpline, -2, 40) })
 }

@@ -20,7 +20,6 @@ const (
 	gripCounterbore = 3.8  // depth of the pin head's counterbore at the handle's outer end
 	pinHeadStart    = handleStart + handleLength - gripCounterbore + 0.2
 	stubFlats       = 6.9282 // the pin's hexagonal stub is 8 across corners
-	shaftFlats      = 7.2    // the shaft's stub is its 8 mm round shaft with six flats, 7.2 across
 )
 
 // alongPin is the plane at x whose normal is +X and whose coordinates are (y, z - pin height).
@@ -52,9 +51,8 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 // from the bare shaft before the collar joins it, because Decad refuses to cut after the union.
 func (b *builder) crankShaft() *decad.Body {
 	return b.shaftWithCollar(crankHeight, crankFace+9.8, func(shaft *decad.Body) *decad.Body {
-		// A ring outside a hexagon, cut from the end, leaves the round shaft's 8 mm corners and six flats between them.
-		ring := b.cut(b.cylinder(alongCrank(crankFace+3.5), 6, 7), b.hexagon(alongCrank(crankFace+3), shaftFlats, 8))
-		return b.cut(shaft, ring)
+		// The grooves run from the crank gear to the end, so the gear and the arm slide on over the round shaft.
+		return b.grooves(shaft, crankSpline, -10, crankFace+11)
 	})
 }
 
@@ -78,7 +76,7 @@ func (b *builder) crankArm() *decad.Body {
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
 	// The shaft's hexagonal stub is a tight fit in this bore: the bore is 0.1 larger than the stub on every flat, the gap every joint
 	// of the model keeps before it is tightened, and the printed bore is made to grip the stub.
-	arm = b.cut(arm, b.hexagon(alongCrank(crankFace+3), shaftFlats+0.2, 7))
+	arm = b.splineCut(arm, crankSpline, crankFace+3, 7)
 	return b.cut(arm, b.hexagon(alongPin(crankFace+6), stubFlats+0.2, 7))
 }
 

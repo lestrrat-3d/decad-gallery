@@ -57,6 +57,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	b := &builder{ctx: ctx, doc: doc, p: p, a: Assembly{State: state, Params: p}}
 	b.handle()
 	b.gearbox()
+	b.bearings()
 	b.drive()
 	b.fan()
 	if b.err != nil {

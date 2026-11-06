@@ -24,6 +24,9 @@ func (a *Assembly) Set(doc *decad.Document) (*parts.Set, error) {
 	set := parts.NewSet(doc)
 	for _, part := range a.Parts {
 		p := parts.Part{Name: part.Name, Kind: parts.Manufactured, Body: part.Body, Material: parts.Material{Name: "PLA"}}
+		if part.Group == "bearing" {
+			p.Kind, p.Material, p.Spec = parts.Purchased, parts.Material{Name: "steel"}, "608-2RS ball bearing"
+		}
 		if part.Group == "hardware" {
 			p.Kind, p.Material = parts.Purchased, parts.Material{Name: "steel"}
 			for prefix, spec := range hardwareSpec {
@@ -59,9 +62,19 @@ func (a *Assembly) joints() []parts.Joint {
 	add := func(name string, a, b string, axis parts.Axis, motion parts.Motion) {
 		js = append(js, parts.Joint{Name: name, Kind: parts.PinInBore, A: a, B: b, Axis: &axis, Motion: motion})
 	}
-	add("crank shaft in the gearbox", "crank-shaft", "gearbox", crank, parts.Turns)
+	// Each shaft turns in its bearings, and each bearing is held in the gearbox.
+	for _, site := range bearingSites {
+		shaft, axis := "crank-shaft", crank
+		switch site.axis {
+		case driveSpline:
+			shaft, axis = "drive-shaft", drive
+		case fanSpline:
+			shaft, axis = "fan-shaft", fan
+		}
+		add(shaft+" in "+site.name, shaft, site.name, axis, parts.Turns)
+		add(site.name+" in the gearbox", site.name, "gearbox", axis, parts.Fixed)
+	}
 	add("crank shaft in the crank gear", "crank-shaft", "crank-gear", crank, parts.Fixed)
-	add("drive shaft in the gearbox", "drive-shaft", "gearbox", drive, parts.Turns)
 	add("drive shaft in the drive gear", "drive-shaft", "drive-gear", drive, parts.Fixed)
 	add("drive shaft in the driving gear", "drive-shaft", "driving-gear", drive, parts.Fixed)
 	add("crank shaft in the arm", "crank-shaft", "crank-arm", crank, parts.Fixed)
@@ -72,7 +85,6 @@ func (a *Assembly) joints() []parts.Joint {
 	add("handle on the pin", "crank-pin", "crank-grip", pin, parts.Turns)
 	add("pin screw in the pin", "crank-pin-bolt", "crank-pin", pin, parts.Fixed)
 	add("fan shaft in the pinion", "fan-shaft", "pinion", fan, parts.Fixed)
-	add("fan shaft in the wall", "fan-shaft", "gearbox", fan, parts.Turns)
 	add("hub on the fan shaft", "fan-shaft", "fan-hub", fan, parts.Fixed)
 	for i, dx := range []float64{-gripScrewX, gripScrewX} {
 		add(fmt.Sprintf("grip screw %d in the floor", i+1), fmt.Sprintf("handle-bolt-%d", i+1), "gearbox", vertical(dx), parts.Fixed)
@@ -115,6 +127,11 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		stage("crank gear", up, "crank-gear"),
 		stage("drive gear", up, "drive-gear"),
 		stage("driving gear", up, "driving-gear"),
+		stage("crank block bearing", along, "bearing-crank-block"),
+		stage("wall bearings", left, "bearing-crank-wall", "bearing-drive-wall"),
+		stage("post bearings", left, "bearing-crank-post", "bearing-drive-post"),
+		stage("fan wall bearing", r3.Vec{Y: 1}, "bearing-fan-wall"),
+		stage("fan block bearing", r3.Vec{Y: -1}, "bearing-fan-block"),
 		stage("grip", r3.Vec{Z: -1}, "handle"),
 	))
 }

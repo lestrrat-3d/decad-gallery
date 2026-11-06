@@ -25,19 +25,19 @@ const (
 
 	postFace = boxLeftX + wallThick // the left post's inner face, X -10.2
 	gearX    = postFace + 1         // the spur gears' faces nearest the post
-	collarX  = boxLeftX - 0.3       // the shafts' collars end here, 0.3 clear of the post
-	collarT  = 3.5
+	collarX  = boxLeftX + 0.2       // the shafts' collars end here, 0.1 clear of the post bearing's face
+	collarT  = 4
 
-	driveShaftEnd = crankWallX + 6 - 0.2 // the drive shaft ends in a pocket 6 deep in the right wall
+	driveShaftEnd = crankWallX + 7.1 // the drive shaft ends in the crank-side wall's bearing, 0.2 short of its far face
 )
 
-// shaftWithCollar builds a round shaft of radius 4 from the collar at the left of the post to X end, with a collar of
+// shaftWithCollar builds a round shaft of radius 3.9 from the collar at the left of the post to X end, with a collar of
 // radius 6 at its left end. cut runs on the bare shaft first, because Decad refuses to cut after a union with the
 // collar.
 func (b *builder) shaftWithCollar(z, end float64, cut func(shaft *decad.Body) *decad.Body) *decad.Body {
 	f := frame(r3.Vec{X: collarX - collarT, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	// The shaft starts 1 inside the collar so the union has no shared face.
-	shaft := b.cylinder(frame(r3.Vec{X: collarX - collarT + 1, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), 4, end-(collarX-collarT+1))
+	shaft := b.cylinder(frame(r3.Vec{X: collarX - collarT + 1, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), shaftRadius, end-(collarX-collarT+1))
 	if cut != nil {
 		shaft = cut(shaft)
 	}
@@ -54,7 +54,7 @@ func (b *builder) spurGear(z float64, turned bool) *decad.Body {
 	}
 	f := frame(r3.Vec{X: gearX, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	gp := spurgear.DefaultParams()
-	gp.Module, gp.Teeth, gp.Thickness, gp.BoreDiameter, gp.Placement = spurModule, spurTeeth, spurThick, crankBore, &f
+	gp.Module, gp.Teeth, gp.Thickness, gp.BoreDiameter, gp.Placement = spurModule, spurTeeth, spurThick, 0, &f
 	// Decad cannot fillet the roots of a module-2 spur gear ("loft fillets consume section segment"), so the roots
 	// stay sharp.
 	sharp := spurgear.Variant{RootFillet: func(_ context.Context, _ *decad.Document, gear *decad.Body, _ r3.Frame) (*decad.Body, error) {
@@ -65,5 +65,6 @@ func (b *builder) spurGear(z float64, turned bool) *decad.Body {
 	if turned {
 		body = b.turn(body, r3.Vec{X: gearX, Z: z}, r3.Vec{X: 1}, math.Pi/spurTeeth)
 	}
-	return body
+	// The spline bore is cut last, after the half-tooth turn, so that its teeth line up with the shaft's grooves.
+	return b.splineCut(body, shaftAxis{r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}}, gearX-1, spurThick+2)
 }
