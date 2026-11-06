@@ -29,8 +29,14 @@ type Stage struct {
 
 // Gearbox holds the bodies of a built gearbox.
 type Gearbox struct {
-	Ring   *decad.Body
-	Stages []Stage
+	// Ring is the fixed internal gear. FrontCover and RearCover close its two ends, each with a 608ZZ bearing in
+	// a boss; the input shaft turns in the front one and the last carrier's shaft in the rear one.
+	Ring                      *decad.Body
+	FrontCover, RearCover     *decad.Body
+	FrontBearing, RearBearing *decad.Body
+	// InputShaft passes through the front bearing into the first sun's bore.
+	InputShaft *decad.Body
+	Stages     []Stage
 }
 
 // NamedBody is a body with its display name.
@@ -39,8 +45,15 @@ type NamedBody struct {
 	Body *decad.Body
 }
 
-// Names of the bodies.
-const RingName = "Ring Gear"
+// Names of the bodies that are not part of a stage.
+const (
+	RingName         = "Ring Gear"
+	FrontCoverName   = "Front Cover"
+	RearCoverName    = "Rear Cover"
+	FrontBearingName = "Front Bearing"
+	RearBearingName  = "Rear Bearing"
+	InputShaftName   = "Input Shaft"
+)
 
 // SunName is the name of the sun of stage index (0-based).
 func SunName(stage int) string { return fmt.Sprintf("Sun Gear %d", stage+1) }
@@ -59,7 +72,10 @@ func CarrierName(stage int) string { return fmt.Sprintf("Carrier %d", stage+1) }
 // Named lists every body of the gearbox with its name: the ring, then each stage's sun,
 // planets and carrier.
 func (g Gearbox) Named() []NamedBody {
-	out := []NamedBody{{RingName, g.Ring}}
+	out := []NamedBody{
+		{RingName, g.Ring}, {FrontCoverName, g.FrontCover}, {RearCoverName, g.RearCover},
+		{FrontBearingName, g.FrontBearing}, {RearBearingName, g.RearBearing}, {InputShaftName, g.InputShaft},
+	}
 	for k, stage := range g.Stages {
 		out = append(out, NamedBody{SunName(k), stage.Sun})
 		for i, planet := range stage.Planets {
@@ -131,6 +147,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: place ring: %w", err)
 	}
 
+	if err := r.buildHousing(ctx, &box); err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
+
 	sun, err := r.buildSun(ctx)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
@@ -150,7 +170,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
-	last, err := r.buildCarrier(ctx, p.CarrierThickness+p.OutputShaftLength)
+	// The output shaft is the last carrier's stub. It rises through the rear cover's bearing and ends
+	// OutputShaftLength beyond the bearing boss.
+	last, err := r.buildCarrier(ctx, p.CarrierThickness+p.StageGap+p.CoverThickness+planetBearing().Width+
+		p.OutputShaftLength)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
@@ -220,4 +243,60 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 		})
 	}
 	return box, nil
+}
+
+// buildHousing builds the front and rear covers, their bearings and the input shaft, and places them in box.
+// The covers sit against the ring's two ends; each is built once and the front one is turned over so its
+// bearing boss faces away from the ring.
+func (r *run) buildHousing(ctx context.Context, box *Gearbox) error {
+	p, d := r.p, r.d
+	width := planetBearing().Width
+	cover, err := r.buildCover(ctx)
+	if err != nil {
+		return err
+	}
+	front, err := poseFlipped(r.frame, -p.StageGap)
+	if err != nil {
+		return fmt.Errorf("front cover pose: %w", err)
+	}
+	rear, err := pose(r.frame, 0, 0, 0, d.ringLength-p.StageGap)
+	if err != nil {
+		return fmt.Errorf("rear cover pose: %w", err)
+	}
+	covers, err := instances(ctx, cover, []r3.Transform{front, rear})
+	if err != nil {
+		return fmt.Errorf("covers: %w", err)
+	}
+	box.FrontCover, box.RearCover = covers[0], covers[1]
+
+	bearing, err := r.buildBearing(ctx)
+	if err != nil {
+		return err
+	}
+	frontBearing, err := pose(r.frame, 0, 0, 0, -(p.StageGap + p.CoverThickness + width))
+	if err != nil {
+		return fmt.Errorf("front bearing pose: %w", err)
+	}
+	rearBearing, err := pose(r.frame, 0, 0, 0, d.ringLength-p.StageGap+p.CoverThickness)
+	if err != nil {
+		return fmt.Errorf("rear bearing pose: %w", err)
+	}
+	bearings, err := instances(ctx, bearing, []r3.Transform{frontBearing, rearBearing})
+	if err != nil {
+		return fmt.Errorf("cover bearings: %w", err)
+	}
+	box.FrontBearing, box.RearBearing = bearings[0], bearings[1]
+
+	shaft, err := r.buildInputShaft(ctx)
+	if err != nil {
+		return err
+	}
+	place, err := pose(r.frame, 0, 0, 0, 0)
+	if err != nil {
+		return fmt.Errorf("input shaft pose: %w", err)
+	}
+	if box.InputShaft, err = decad.Transform(ctx, shaft, place); err != nil {
+		return fmt.Errorf("place input shaft: %w", err)
+	}
+	return nil
 }

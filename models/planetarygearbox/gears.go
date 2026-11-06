@@ -18,7 +18,7 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	sun, err := spurgear.Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.SunTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: p.ShaftDiameter, Backlash: p.Backlash,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: r.d.shaft, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: %w", err)
@@ -109,10 +109,7 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 			return nil, fmt.Errorf("turn ring tooth spaces: %w", err)
 		}
 	}
-	blank, err := r.extrudeDisc(ctx, disc{
-		what: "ring blank", z: ringMargin, length: d.ringLength, diameter: 2 * d.ringOuter,
-		expr: "2 * ring_outer_radius",
-	})
+	blank, err := r.extrudeRingBlank(ctx)
 	if err != nil {
 		return nil, err
 	}

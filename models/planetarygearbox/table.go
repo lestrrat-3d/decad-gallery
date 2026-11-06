@@ -20,12 +20,15 @@ func defineParameters(t *param.Table, p Params) error {
 		{"gear_thickness", units.Millimeters(p.GearThickness)},
 		{"carrier_thickness", units.Millimeters(p.CarrierThickness)},
 		{"stage_gap", units.Millimeters(p.StageGap)},
-		{"shaft_diameter", units.Millimeters(p.ShaftDiameter)},
+		{"cover_thickness", units.Millimeters(p.CoverThickness)},
+		{"bolt_hole_diameter", units.Millimeters(p.BoltHoleDiameter)},
+		{"input_shaft_length", units.Millimeters(p.InputShaftLength)},
 		{"bearing_bore_diameter", units.Millimeters(planetBearing().BoreDiameter)},
 		{"bearing_outer_diameter", units.Millimeters(planetBearing().OuterDiameter)},
 		{"bearing_width", units.Millimeters(planetBearing().Width)},
 		{"bearing_clearance", units.Millimeters(p.BearingClearance)},
 		{"lip_width", units.Millimeters(lipWidth)},
+		{"arm_margin", units.Millimeters(armMargin)},
 		{"carrier_wall", units.Millimeters(p.CarrierWall)},
 		{"ring_wall", units.Millimeters(p.RingWall)},
 		{"tooth_backlash", units.Millimeters(p.Backlash)},
@@ -53,11 +56,15 @@ func defineParameters(t *param.Table, p Params) error {
 		{"ring_root_radius", "module * ring_teeth / 2 + 1.25 * module"},
 		{"ring_outer_radius", "ring_root_radius + ring_wall"},
 		{"pin_diameter", "bearing_bore_diameter"},
+		{"shaft_diameter", "bearing_bore_diameter"},
+		{"cover_boss_diameter", "pocket_diameter + 2 * carrier_wall"},
+		{"cover_hub_diameter", "cover_boss_diameter + 2 * carrier_wall"},
+		{"bolt_circle_radius", "(ring_root_radius + ring_outer_radius) / 2"},
 		{"pocket_diameter", "bearing_outer_diameter + 2 * bearing_clearance"},
 		{"lip_bore_diameter", "bearing_outer_diameter - 2 * lip_width"},
 		{"hub_diameter", "shaft_diameter + 2 * carrier_wall"},
 		{"boss_diameter", "pin_diameter + 2 * carrier_wall"},
-		{"arm_width", "pin_diameter"},
+		{"arm_width", "pin_diameter + 2 * arm_margin"},
 		{"stage_pitch", "gear_thickness + carrier_thickness + 2 * stage_gap"},
 		{"ring_length", "stage_count * stage_pitch + stage_gap"},
 	} {
@@ -80,6 +87,10 @@ func readDims(doc *decad.Document, p Params) (dims, error) {
 		{"ring_root_radius", &d.ringRoot},
 		{"ring_outer_radius", &d.ringOuter},
 		{"pin_diameter", &d.pin},
+		{"shaft_diameter", &d.shaft},
+		{"cover_boss_diameter", &d.coverBoss},
+		{"cover_hub_diameter", &d.coverHub},
+		{"bolt_circle_radius", &d.boltCircle},
 		{"pocket_diameter", &d.pocket},
 		{"lip_bore_diameter", &d.lip},
 		{"hub_diameter", &d.hub},
@@ -96,6 +107,7 @@ func readDims(doc *decad.Document, p Params) (dims, error) {
 	}
 	d.planetRoot = (p.Module*float64(p.PlanetTeeth) - 2.5*p.Module) / 2
 	d.planetTip = (p.Module*float64(p.PlanetTeeth) + 2*p.Module) / 2
+	d.rimInner = d.boltCircle - p.BoltHoleDiameter/2 - boltRimMargin
 	if want := derive(p); !closeTo(d.orbit, want.orbit) || !closeTo(d.ringLength, want.ringLength) {
 		return dims{}, fmt.Errorf("parameter table disagrees with the inputs: orbit %v vs %v", d.orbit, want.orbit)
 	}

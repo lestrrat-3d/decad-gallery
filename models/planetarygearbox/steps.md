@@ -26,15 +26,18 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
 1. **Ring.** `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
    `root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + 1.25 * module` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
-   by that rotation about +Z. Sketch a circle of diameter `2 * ring_outer_radius` on the plane z=1 and extrude it
-   `L` upward. `decad.Cut` the tool from it. Check: one solid.
-2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `BoreDiameter = ds`, `Backlash = j`.
+   by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
+   and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
+   circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
+   holes and extrude it `L` upward. `decad.Cut` the tool from it. Check: one solid.
+2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `BoreDiameter = ds` (8, the bearing bore), `Backlash = j`.
 3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
    `decad.Cut` it from the planet. Check: one solid.
 4. **Bearing.** `ballbearing.Build` with `ballbearing.Params608ZZ()`, nil placement: the annulus from z=0 to `Wb`.
 5. **Carrier**, once per distinct stub top. A multi-stage gearbox needs a middle carrier (stub top
-   `Tc + g + T` above the plate bottom) and a last carrier (stub top `Tc + Lo`). A single stage needs only the last.
+   `Tc + g + T` above the arms' lower face) and a last carrier (stub top `Tc + g + Tv + Wb + Lo`). A single
+   stage needs only the last.
    - Spider: one sketch on z=0 holding the hub and all `n` arms as a single closed outline of `4n` curves,
      extruded `Tc`. With half the arm width `h`, hub radius `Rh`, boss radius `Rb` and orbit radius `a`,
      arm `i` points along `φᵢ`. It contributes, counterclockwise, a line along its lower edge from the
@@ -56,6 +59,20 @@ Each circle sketch is solved and checked with `sketchcheck.VerifyFullyConstraine
 yield exactly one valid profile. The sketch is anchored by its origin; a center away from it gets
 `sketchcheck.DimensionPoint`.
 
+6. **Cover.** One extruded frame, then a bearing boss, joined by one union.
+   - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `lip_bore_diameter`
+     at the origin; the four bolt-hole circles as for the ring. For each spoke `k`, with spoke angle
+     `ψ = π/6 + 2πk/3`, half spoke width `h`, hub radius `Rh = cover hub diameter / 2` and rim radius
+     `Rr = cover rim inner radius`: a window between spoke `k` and spoke `k + 1` bounded by a line along spoke
+     `k`'s upper edge from the hub circle to the rim circle, an arc of the rim circle (about the origin)
+     to spoke `k + 1`'s lower edge, a line back to the hub circle, and an arc of the hub circle back to the
+     start. Dimension the start and rim-start points from the origin and the other two arc ends by one
+     coordinate each. Require one valid profile with `3 + 1 + 4` holes and extrude it `Tv`.
+   - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
+     `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
+   - `decad.Union` the frame and the boss. Check: one solid.
+7. **Input shaft.** One circle of diameter `ds` on the plane `z = -(g + Tv + Wb + Li)`, extruded up to `z = T`.
+
 ## 3. Placing the parts
 
 Compose each pose as `turn about +Z`, then `translate`, then the placement frame (`r3.FromFrame`, or the identity
@@ -67,10 +84,14 @@ for a nil placement). For every stage `k` with `z = k P`:
 - Bearing `i` of stage `k`: translate `(a cos φᵢ, a sin φᵢ, z + T - Wb)`.
 - Carrier `k`: translate `(0, 0, z + T + g)`; the last stage takes the last carrier and the rest the middle one.
 - Ring: translate `(0, 0, -1 - g)`, which puts its blank's z=1 start at `-g`.
+- Rear cover: translate `(0, 0, K P)`. Front cover: turn over about the X axis by `π`, then translate `(0, 0, -g)`.
+- Rear bearing: translate `(0, 0, K P + Tv)`. Front bearing: translate `(0, 0, -(g + Tv + Wb))`.
+- Input shaft: no motion.
 
 For each part, `decad.Copy` with `WithCopyPlacement` makes every instance but the last, and `decad.Transform` moves
-the master itself into the last, so no stray master remains. The document then holds exactly `1 + K (2 + 2n)`
-bodies.
+the master itself into the last, so no stray master remains. The document then holds exactly `6 + K (2 + 2n)`
+bodies: the ring, two covers, two cover bearings and the input shaft, and per stage a sun, `n` planets, `n`
+bearings and a carrier.
 
 ## 4. Acceptance checks
 
@@ -89,7 +110,11 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are
   straight prisms, so cap vertices stand for every height.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
-- Two stages: 17 bodies, stage offsets by `P`, the first carrier's top equal to the second sun's top, and the
+- Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
+  below the front boss and ends at `T`, and `LocatePoint` finds it inside and the sun outside at the axis; at
+  each bolt angle the ring and both covers are outside (hole) at the bolt circle and inside beside it; a cover
+  has material on a spoke and none in a window and weighs less than a disc; points are 1.5 mm or more from any surface.
+- Two stages: 22 bodies, stage offsets by `P`, the first carrier's top equal to the second sun's top, and the
   second stage's planets mesh as the first's do.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.
 - Backlash: a gearbox with `j = 0.2` has a smaller sun, planet and ring volume than the default beyond the volume bounds.

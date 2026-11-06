@@ -7,107 +7,130 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
-	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
 )
 
-// The hero image pulls the default two-stage gearbox apart along its axis: each stage rises by
-// planetaryStageLift over the one below, each carrier lifts planetaryCarrierLift off its planets, each
-// bearing lifts planetaryBearingLift out of its planet, and the ring floats planetaryRingLift above
-// the stack's first stage.
-const (
-	planetaryStageLift   = 30
-	planetaryCarrierLift = 17
-	planetaryBearingLift = 14
-	planetaryRingLift    = 78
-)
-
 var (
 	planetaryRingColor    = solidlens.RGB(0.38, 0.45, 0.52)
+	planetaryCoverColor   = solidlens.RGB(0.5, 0.42, 0.55)
 	planetarySunColor     = solidlens.RGB(0.72, 0.4, 0.14)
 	planetaryPlanetColor  = solidlens.RGB(0.17, 0.42, 0.6)
 	planetaryBearingColor = solidlens.RGB(0.62, 0.64, 0.68)
+	planetaryShaftColor   = solidlens.RGB(0.45, 0.47, 0.5)
 	planetaryCarrierColor = solidlens.RGB(0.55, 0.62, 0.3)
 )
 
-// buildPlanetaryGearbox builds the default gearbox with two stages, the layout of every image.
-func buildPlanetaryGearbox(ctx context.Context) (planetarygearbox.Gearbox, error) {
+// planetaryEdges outlines every part.
+var planetaryEdges = solidlens.Edges{
+	Enabled: true,
+	Color:   solidlens.RGB(0.025, 0.07, 0.11),
+	Width:   1.5,
+}
+
+// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count.
+func buildPlanetaryGearbox(ctx context.Context, stages int) (planetarygearbox.Gearbox, planetarygearbox.Params, error) {
 	params := planetarygearbox.DefaultParams()
-	params.Stages = 2
+	params.Stages = stages
 	box, err := planetarygearbox.Build(ctx, decad.New(), params)
 	if err != nil {
-		return planetarygearbox.Gearbox{}, fmt.Errorf("build planetary gearbox: %w", err)
+		return planetarygearbox.Gearbox{}, params, fmt.Errorf("build planetary gearbox: %w", err)
 	}
-	return box, nil
+	return box, params, nil
 }
 
-// planetaryModels returns one model per body of box, moved to the exploded layout.
-func planetaryModels(ctx context.Context, box planetarygearbox.Gearbox) ([]solidlens.Model, error) {
-	var models []solidlens.Model
-	add := func(name string, body *decad.Body, color solidlens.Color, lift float64) error {
-		mesh, err := body.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
-		if err != nil {
-			return fmt.Errorf("tessellate %s: %w", name, err)
-		}
-		models = append(models, solidlens.Model{
-			Mesh:     placedMesh{TriangleSource: mesh, scale: 1, offset: r3.NewVec(0, 0, lift)},
-			Material: solidlens.Matte(color),
-			Edges: solidlens.Edges{
-				Enabled: true,
-				Color:   solidlens.RGB(0.025, 0.07, 0.11),
-				Width:   1.5,
-			},
-		})
-		return nil
-	}
-	if err := add(planetarygearbox.RingName, box.Ring, planetaryRingColor, planetaryRingLift); err != nil {
-		return nil, err
+// planetaryBody is one body of the assembled gearbox as the images draw it.
+type planetaryBody struct {
+	name  string
+	body  *decad.Body
+	color solidlens.Color
+	// housing marks the ring and the covers, which the cutaway views cut open.
+	housing bool
+}
+
+// planetaryBodies lists every body of box with its colour. The ring and the two covers are the housing.
+func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
+	out := []planetaryBody{
+		{planetarygearbox.RingName, box.Ring, planetaryRingColor, true},
+		{planetarygearbox.FrontCoverName, box.FrontCover, planetaryCoverColor, true},
+		{planetarygearbox.RearCoverName, box.RearCover, planetaryCoverColor, true},
+		{planetarygearbox.FrontBearingName, box.FrontBearing, planetaryBearingColor, false},
+		{planetarygearbox.RearBearingName, box.RearBearing, planetaryBearingColor, false},
+		{planetarygearbox.InputShaftName, box.InputShaft, planetaryShaftColor, false},
 	}
 	for k, stage := range box.Stages {
-		lift := float64(k) * planetaryStageLift
-		if err := add(planetarygearbox.SunName(k), stage.Sun, planetarySunColor, lift); err != nil {
-			return nil, err
-		}
+		out = append(out, planetaryBody{planetarygearbox.SunName(k), stage.Sun, planetarySunColor, false})
 		for i, planet := range stage.Planets {
-			if err := add(planetarygearbox.PlanetName(k, i), planet, planetaryPlanetColor, lift); err != nil {
-				return nil, err
-			}
-			if err := add(planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor,
-				lift+planetaryBearingLift); err != nil {
-				return nil, err
-			}
+			out = append(out,
+				planetaryBody{planetarygearbox.PlanetName(k, i), planet, planetaryPlanetColor, false},
+				planetaryBody{planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor, false})
 		}
-		if err := add(planetarygearbox.CarrierName(k), stage.Carrier, planetaryCarrierColor,
-			lift+planetaryCarrierLift); err != nil {
-			return nil, err
-		}
+		out = append(out, planetaryBody{planetarygearbox.CarrierName(k), stage.Carrier, planetaryCarrierColor, false})
 	}
-	return models, nil
+	return out
 }
 
-// planetaryHeroCamera looks at the stack from the front and above; fitCamera centers it.
+// planetaryMesh tessellates body for drawing.
+func planetaryMesh(ctx context.Context, body planetaryBody) (solidlens.TriangleSource, error) {
+	mesh, err := body.body.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
+	if err != nil {
+		return nil, fmt.Errorf("tessellate %s: %w", body.name, err)
+	}
+	return mesh, nil
+}
+
+// planetaryCut cuts a model open along the plane through the axis that holds the X axis, removing the half
+// toward negative Y, which is the side the cutaway cameras look from. The cut face is the body's colour,
+// lightened and unlit, so it reads as a flat cut.
+func planetaryCut(model solidlens.Model, color solidlens.Color) solidlens.Model {
+	model.Clip = &solidlens.ClipPlane{
+		Normal: solidlens.Vec{Y: -1},
+		Cap: &solidlens.Material{
+			Color: solidlens.RGB(color.R+(1-color.R)*0.35, color.G+(1-color.G)*0.35, color.B+(1-color.B)*0.35),
+			Unlit: true,
+		},
+	}
+	return model
+}
+
+// planetaryModel returns the model of one body. cut cuts the housing open.
+func planetaryModel(mesh solidlens.TriangleSource, body planetaryBody, cut bool) solidlens.Model {
+	model := solidlens.Model{Mesh: mesh, Material: solidlens.Matte(body.color), Edges: planetaryEdges}
+	if cut && body.housing {
+		model = planetaryCut(model, body.color)
+	}
+	return model
+}
+
+// planetaryHeroCamera looks at the assembled gearbox from the cut side, in front and above; fitCamera
+// frames it.
 var planetaryHeroCamera = solidlens.Camera{
-	Position: solidlens.Vec{X: 90, Y: -340, Z: 120},
-	Target:   solidlens.Vec{Z: 50},
+	Position: solidlens.Vec{X: 60, Y: -300, Z: 130},
+	Target:   solidlens.Vec{Z: 8},
 	Up:       solidlens.Vec{Z: 1},
 	FOV:      35,
 }
 
+// planetaryHeroScene draws the assembled two-stage gearbox with the ring and both covers cut open, so the
+// planets, the carriers, the shafts and the bearings show inside.
+func planetaryHeroScene(ctx context.Context, box planetarygearbox.Gearbox) (solidlens.Scene, error) {
+	var models []solidlens.Model
+	for _, body := range planetaryBodies(box) {
+		mesh, err := planetaryMesh(ctx, body)
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		models = append(models, planetaryModel(mesh, body, true))
+	}
+	return bevelScene(fitCamera(planetaryHeroCamera, models, 16.0/9, bevelViewMargin), models), nil
+}
+
 func planetaryGearboxHero(ctx context.Context) (solidlens.Scene, error) {
-	box, err := buildPlanetaryGearbox(ctx)
+	box, _, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
 	return planetaryHeroScene(ctx, box)
-}
-
-func planetaryHeroScene(ctx context.Context, box planetarygearbox.Gearbox) (solidlens.Scene, error) {
-	models, err := planetaryModels(ctx, box)
-	if err != nil {
-		return solidlens.Scene{}, err
-	}
-	return bevelScene(fitCamera(planetaryHeroCamera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
 // planetaryPart is one unique part of the gearbox, as the README's parts table lists it.
@@ -121,15 +144,24 @@ type planetaryPart struct {
 	side bool
 }
 
-// planetaryParts lists the unique parts of a gearbox: the ring, the sun, one planet, one 608ZZ bearing, a
-// carrier whose stub shaft drives the next stage, and the last carrier with its output shaft.
+// planetaryParts lists the unique parts of a gearbox: the ring, one cover (the front cover is the rear one
+// turned over), the sun, one planet, one 608ZZ bearing (the planets and the covers use the same part), the
+// input shaft, a carrier whose stub shaft drives the next stage, and the last carrier with its output shaft.
 var planetaryParts = []planetaryPart{
 	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, false},
+	{"cover", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCover }, planetaryCoverColor, false},
 	{"sun", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Sun }, planetarySunColor, false},
 	{"planet", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Planets[0] }, planetaryPlanetColor, false},
 	{"bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Bearings[0] }, planetaryBearingColor, false},
+	{"input-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.InputShaft }, planetaryShaftColor, true},
 	{"linking-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Carrier }, planetaryCarrierColor, true},
 	{"output-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Carrier }, planetaryCarrierColor, true},
+}
+
+func init() {
+	for _, part := range planetaryParts {
+		presets["planetarygearbox/part-"+part.shot] = preset{width: 480, height: 270, scene: planetaryPartPreset(part)}
+	}
 }
 
 // planetaryPartCamera looks at one part from the front and above; fitCamera frames it.
@@ -140,8 +172,8 @@ var planetaryPartCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartSideCamera looks at a carrier from almost level with its plate, so the pins show
-// below it and the stub shaft above it.
+// planetaryPartSideCamera looks at a long part from almost level with it, so a carrier shows its pins below the
+// arms and its stub shaft above them.
 var planetaryPartSideCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 22},
 	Target:   solidlens.Vec{},
@@ -151,19 +183,12 @@ var planetaryPartSideCamera = solidlens.Camera{
 
 // planetaryPartScene shows one part of box alone, in place, framed in the middle of the image.
 func planetaryPartScene(ctx context.Context, box planetarygearbox.Gearbox, part planetaryPart) (solidlens.Scene, error) {
-	mesh, err := part.body(box).Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
+	body := planetaryBody{name: part.shot, body: part.body(box), color: part.color}
+	mesh, err := planetaryMesh(ctx, body)
 	if err != nil {
-		return solidlens.Scene{}, fmt.Errorf("tessellate %s: %w", part.shot, err)
+		return solidlens.Scene{}, err
 	}
-	models := []solidlens.Model{{
-		Mesh:     placedMesh{TriangleSource: mesh, scale: 1},
-		Material: solidlens.Matte(part.color),
-		Edges: solidlens.Edges{
-			Enabled: true,
-			Color:   solidlens.RGB(0.025, 0.07, 0.11),
-			Width:   1.5,
-		},
-	}}
+	models := []solidlens.Model{planetaryModel(mesh, body, false)}
 	camera := planetaryPartCamera
 	if part.side {
 		camera = planetaryPartSideCamera
@@ -174,7 +199,7 @@ func planetaryPartScene(ctx context.Context, box planetarygearbox.Gearbox, part 
 // planetaryPartPreset builds a part preset that builds the two-stage gearbox for that one part.
 func planetaryPartPreset(part planetaryPart) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
-		box, err := buildPlanetaryGearbox(ctx)
+		box, _, err := buildPlanetaryGearbox(ctx, 2)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
@@ -182,10 +207,10 @@ func planetaryPartPreset(part planetaryPart) func(context.Context) (solidlens.Sc
 	}
 }
 
-// renderPlanetaryGearboxReadme writes the index image, the hero and one image per unique part from one
-// build. The part images go in the parts directory beside them.
+// renderPlanetaryGearboxReadme writes the index image, the hero, one image per unique part and the motion
+// animation. The part images go in the parts directory beside them.
 func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
-	box, err := buildPlanetaryGearbox(ctx)
+	box, _, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
 		return err
 	}
@@ -211,5 +236,5 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox part %s: %w", part.shot, err)
 		}
 	}
-	return nil
+	return renderPlanetaryMotion(ctx, filepath.Join(outputDir, "motion.gif"), 640, 360, planetaryMotionFrames)
 }

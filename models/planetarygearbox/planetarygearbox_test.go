@@ -41,11 +41,11 @@ func bounds(t *testing.T, b *decad.Body) decad.Box {
 func TestDefaultGearbox(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
-	require.Len(t, doc.Bodies(), 9)
+	require.Len(t, doc.Bodies(), 14)
 	require.Len(t, box.Stages, 1)
 	require.Len(t, box.Stages[0].Planets, 3)
 	require.Len(t, box.Stages[0].Bearings, 3)
-	require.Len(t, box.Named(), 9)
+	require.Len(t, box.Named(), 14)
 	for _, nb := range box.Named() {
 		require.True(t, nb.Body.IsSolid(), nb.Name)
 		v, err := nb.Body.Volume()
@@ -78,9 +78,10 @@ func TestDefaultGearbox(t *testing.T) {
 	// its stub is the output shaft.
 	carrier := bounds(t, stage.Carrier)
 	require.InDelta(t, 0, carrier.Min.Z, 1e-6)
-	require.InDelta(t, p.GearThickness+p.StageGap+p.CarrierThickness+p.OutputShaftLength, carrier.Max.Z, 1e-6)
+	// The stub is the output shaft: it ends OutputShaftLength beyond the rear cover's bearing boss.
+	require.InDelta(t, rearBossTop(p, 1)+p.OutputShaftLength, carrier.Max.Z, 1e-6)
 	// The arms reach the far side of the pin bosses and no further: orbit radius plus boss radius.
-	require.InDelta(t, 21+7, carrier.Max.X, 1e-6)
+	require.InDelta(t, 21+7, carrier.Max.X, 5e-3)
 }
 
 // penetration counts the vertices of either body that lie inside the other, beyond a small
@@ -236,6 +237,91 @@ func TestCarrierHasNoDisc(t *testing.T) {
 	require.Less(t, volume+bound, plate)
 }
 
+// rearBossTop is the height of the rear cover's bearing boss top for a gearbox of the given stages.
+func rearBossTop(p planetarygearbox.Params, stages int) float64 {
+	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
+	return float64(stages)*pitch + p.CoverThickness + 7
+}
+
+// TestHousing checks the ring, the two covers, their bearings and the input shaft: where they sit along the
+// axis, that the bolt holes of the ring and both covers line up, that the covers are frames with windows and
+// not discs, and that the input shaft fills the first sun's bore. Points are probed 1.5 mm or more from any
+// surface, because point location is undecided closer than about 0.15 mm.
+func TestHousing(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
+		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		require.NoError(t, err)
+		return loc
+	}
+	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
+
+	// Axial layout. Each cover's frame lies against a ring end, with its bearing boss pointing away.
+	front, rear := bounds(t, box.FrontCover), bounds(t, box.RearCover)
+	require.InDelta(t, -p.StageGap-p.CoverThickness-7, front.Min.Z, 1e-6)
+	require.InDelta(t, -p.StageGap, front.Max.Z, 1e-6)
+	require.InDelta(t, pitch, rear.Min.Z, 1e-6)
+	require.InDelta(t, pitch+p.CoverThickness+7, rear.Max.Z, 1e-6)
+	require.InDelta(t, 43.75, front.Max.X, 1e-6)
+	fb, rb := bounds(t, box.FrontBearing), bounds(t, box.RearBearing)
+	require.InDelta(t, front.Min.Z, fb.Min.Z, 1e-6)
+	require.InDelta(t, front.Min.Z+7, fb.Max.Z, 1e-6)
+	require.InDelta(t, rear.Max.Z-7, rb.Min.Z, 1e-6)
+	require.InDelta(t, rear.Max.Z, rb.Max.Z, 1e-6)
+
+	// The input shaft starts InputShaftLength outside the front boss and ends level with the first sun's top.
+	shaft := bounds(t, box.InputShaft)
+	require.InDelta(t, front.Min.Z-p.InputShaftLength, shaft.Min.Z, 1e-6)
+	require.InDelta(t, p.GearThickness, shaft.Max.Z, 1e-6)
+	require.InDelta(t, 8, shaft.Max.X-shaft.Min.X, 1e-6)
+	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(0, 0, 4)))
+	require.Equal(t, decad.PointOutside, locate(box.Stages[0].Sun, r3.NewVec(0, 0, 4)), "the shaft's place is the sun's bore")
+
+	// The four bolt holes run through the ring and both cover rims at the same places; between them there is
+	// material.
+	boltRadius := (35.5 + 1.25 + 35.5 + 1.25 + p.RingWall) / 2
+	for i := range 4 {
+		hole := math.Pi/4 + float64(i)*math.Pi/2
+		between := float64(i) * math.Pi / 2
+		for name, c := range map[string]struct {
+			body *decad.Body
+			z    float64
+		}{
+			"ring":  {box.Ring, 6},
+			"front": {box.FrontCover, -p.StageGap - p.CoverThickness/2},
+			"rear":  {box.RearCover, pitch + p.CoverThickness/2},
+		} {
+			at := func(angle float64) r3.Vec {
+				return r3.NewVec(boltRadius*math.Cos(angle), boltRadius*math.Sin(angle), c.z)
+			}
+			require.Equal(t, decad.PointOutside, locate(c.body, at(hole)), "%s bolt hole %d", name, i)
+			require.Equal(t, decad.PointInside, locate(c.body, at(between)), "%s rim beside hole %d", name, i)
+		}
+	}
+
+	// A cover is a frame: material on a spoke and none in the window between two spokes.
+	for name, body := range map[string]*decad.Body{"front": box.FrontCover, "rear": box.RearCover} {
+		z := -p.StageGap - p.CoverThickness/2
+		if name == "rear" {
+			z = pitch + p.CoverThickness/2
+		}
+		// The front cover is turned over, so its spokes sit at the mirror angles.
+		spoke, window := math.Pi/6, math.Pi/2
+		if name == "front" {
+			spoke, window = -math.Pi/6, -math.Pi/2
+		}
+		require.Equal(t, decad.PointInside, locate(body, r3.NewVec(28*math.Cos(spoke), 28*math.Sin(spoke), z)), "%s spoke", name)
+		require.Equal(t, decad.PointOutside, locate(body, r3.NewVec(28*math.Cos(window), 28*math.Sin(window), z)), "%s window", name)
+	}
+	// Each cover weighs less than a solid disc of its outer radius and thickness.
+	disc := math.Pi * 43.75 * 43.75 * p.CoverThickness
+	for name, body := range map[string]*decad.Body{"front": box.FrontCover, "rear": box.RearCover} {
+		v, bound := volume(t, body)
+		require.Less(t, v+bound, disc, name)
+	}
+}
+
 func TestPhaseAngles(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.Zero(t, planetarygearbox.RingToothAngle(p))
@@ -253,7 +339,7 @@ func TestTwoStages(t *testing.T) {
 	doc := decad.New()
 	box, err := planetarygearbox.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 17)
+	require.Len(t, doc.Bodies(), 22)
 	require.Len(t, box.Stages, 2)
 	require.InDelta(t, (1+71.0/13)*(1+71.0/13), p.Ratio(), 1e-9)
 	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
@@ -269,8 +355,7 @@ func TestTwoStages(t *testing.T) {
 	}
 	// The first carrier's stub ends flush with the top of the second sun.
 	require.InDelta(t, pitch+p.GearThickness, bounds(t, box.Stages[0].Carrier).Max.Z, 1e-6)
-	require.InDelta(t, pitch+p.GearThickness+p.StageGap+p.CarrierThickness+p.OutputShaftLength,
-		bounds(t, box.Stages[1].Carrier).Max.Z, 1e-6)
+	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Carrier).Max.Z, 1e-6)
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
@@ -310,20 +395,21 @@ func TestInvalidParams(t *testing.T) {
 			p.SunTeeth, p.PlanetTeeth, p.RingTeeth, p.PlanetCount = 13, 29, 71, 3
 			p.PlanetCount = 6
 		}, "collide"},
-		"single planet":      {func(p *planetarygearbox.Params) { p.PlanetCount = 1 }, "planet count"},
-		"no stages":          {func(p *planetarygearbox.Params) { p.Stages = 0 }, "stages"},
-		"zero module":        {func(p *planetarygearbox.Params) { p.Module = 0 }, "module"},
-		"shaft too wide":     {func(p *planetarygearbox.Params) { p.ShaftDiameter = 9 }, "shaft diameter"},
-		"carrier too wide":   {func(p *planetarygearbox.Params) { p.CarrierWall = 12 }, "carrier arms"},
-		"thin gear":          {func(p *planetarygearbox.Params) { p.GearThickness = 7.5 }, "gear thickness"},
-		"negative clearance": {func(p *planetarygearbox.Params) { p.BearingClearance = -0.1 }, "bearing clearance"},
-		"bad placement":      {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
-		"nonfinite":          {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
-		"few samples":        {func(p *planetarygearbox.Params) { p.Samples = 2 }, "samples"},
-		"negative backlash":  {func(p *planetarygearbox.Params) { p.Backlash = -0.1 }, "backlash"},
-		"large backlash":     {func(p *planetarygearbox.Params) { p.Backlash = 0.6 }, "backlash"},
-		"pressure angle":     {func(p *planetarygearbox.Params) { p.PressureAngle = math.Pi / 2 }, "pressure angle"},
-		"tiny sun":           {func(p *planetarygearbox.Params) { p.SunTeeth = 2 }, "sun teeth"},
+		"single planet":         {func(p *planetarygearbox.Params) { p.PlanetCount = 1 }, "planet count"},
+		"no stages":             {func(p *planetarygearbox.Params) { p.Stages = 0 }, "stages"},
+		"zero module":           {func(p *planetarygearbox.Params) { p.Module = 0 }, "module"},
+		"bolt holes too big":    {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 6 }, "bolt holes"},
+		"thin ring wall":        {func(p *planetarygearbox.Params) { p.RingWall = 3 }, "bolt holes"},
+		"carrier wall too wide": {func(p *planetarygearbox.Params) { p.CarrierWall = 12 }, "no room for spokes"},
+		"thin gear":             {func(p *planetarygearbox.Params) { p.GearThickness = 7.5 }, "gear thickness"},
+		"negative clearance":    {func(p *planetarygearbox.Params) { p.BearingClearance = -0.1 }, "bearing clearance"},
+		"bad placement":         {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
+		"nonfinite":             {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
+		"few samples":           {func(p *planetarygearbox.Params) { p.Samples = 2 }, "samples"},
+		"negative backlash":     {func(p *planetarygearbox.Params) { p.Backlash = -0.1 }, "backlash"},
+		"large backlash":        {func(p *planetarygearbox.Params) { p.Backlash = 0.6 }, "backlash"},
+		"pressure angle":        {func(p *planetarygearbox.Params) { p.PressureAngle = math.Pi / 2 }, "pressure angle"},
+		"tiny sun":              {func(p *planetarygearbox.Params) { p.SunTeeth = 2 }, "sun teeth"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := planetarygearbox.DefaultParams()

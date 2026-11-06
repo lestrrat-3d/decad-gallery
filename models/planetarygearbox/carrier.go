@@ -23,15 +23,24 @@ type disc struct {
 	expr     string // expression bound to the diameter
 }
 
-// extrudeDisc sketches one circle on the plane at disc.z and extrudes it up disc.length.
-func (r *run) extrudeDisc(ctx context.Context, c disc) (*decad.Body, error) {
-	frame, err := r3.NewFrame(r3.NewVec(0, 0, c.z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+// planeAt returns the sketch plane parallel to XY at height z, with its origin on the axis.
+func (r *run) planeAt(z float64) (*sketch.Plane, error) {
+	frame, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	if err != nil {
-		return nil, fmt.Errorf("%s: frame: %w", c.what, err)
+		return nil, fmt.Errorf("plane frame: %w", err)
 	}
 	plane, err := r.world.CreatePlaneFromFrame(frame)
 	if err != nil {
-		return nil, fmt.Errorf("%s: plane: %w", c.what, err)
+		return nil, fmt.Errorf("plane: %w", err)
+	}
+	return plane, nil
+}
+
+// extrudeDisc sketches one circle on the plane at disc.z and extrudes it up disc.length.
+func (r *run) extrudeDisc(ctx context.Context, c disc) (*decad.Body, error) {
+	plane, err := r.planeAt(c.z)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", c.what, err)
 	}
 	s, err := r.world.CreateSketch(plane)
 	if err != nil {
@@ -175,7 +184,7 @@ func (r *run) buildCarrier(ctx context.Context, stubTop float64) (*decad.Body, e
 	}
 	stub, err := r.extrudeDisc(ctx, disc{
 		what: "carrier stub shaft", z: p.CarrierThickness / 2, length: stubTop - p.CarrierThickness/2,
-		diameter: p.ShaftDiameter, expr: "shaft_diameter",
+		diameter: d.shaft, expr: "shaft_diameter",
 	})
 	if err != nil {
 		return nil, err
