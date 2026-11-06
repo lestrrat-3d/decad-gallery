@@ -55,8 +55,8 @@ func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planet
 	}
 	for _, body := range planetaryBodies(box) {
 		var move func(float64) (r3.Transform, error)
-		switch {
-		case body.name == planetarygearbox.InputShaftName:
+		switch body.name {
+		case planetarygearbox.InputShaftName:
 			move = about
 		default:
 			for k, stage := range box.Stages {
