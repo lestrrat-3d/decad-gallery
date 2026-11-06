@@ -88,17 +88,19 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
   `decad.Intersect` of the two gears is empty, which is the proof that they do not collide.
 - `drive-shaft` (motion `drive`): a cylinder of radius 4 on `alongX(-22.8)`, extruded 52.8, and a collar, a cylinder of
   radius 6 on `alongX(-23.8)`, extruded 3.5. `Union` them; the shaft starts 1 inside the collar.
-- `crank-shaft`: a cylinder of radius 4 on `alongCrank(-22.8)`, extruded 76.7. `Union` a hexagon of 6 across flats on
-  `alongCrank(50.9)`, extruded 6.9 (the stub; it starts 1 inside the round shaft, and there is no slot or screw hole,
-  because the stub is a tight fit in the arm). Then `Union` the collar, a cylinder of radius 6 on
-  `alongCrank(-23.8)`, extruded 3.5. Doing the stub after the union with the collar fails in Decad.
+- `crank-shaft`: a cylinder of radius 4 on `alongCrank(-22.8)`, extruded 80.6. `Cut` a ring, a cylinder of radius 6 on
+  `alongCrank(51.5)`, extruded 7, minus a hexagon of 7.2 across flats on `alongCrank(51)`, extruded 8. That leaves the
+  six flats and the round shaft's corners (the stub; a hexagon with its corners on the shaft cannot be unioned, because
+  Decad refuses lines of contact, and there is no slot or screw hole, because the stub is a tight fit in the arm). Then
+  `Union` the collar, a cylinder of radius 6 on
+  `alongCrank(-23.8)`, extruded 3.5. Cutting after the union with the collar fails in Decad.
 - `crank-arm`: on `alongCrank(52)`, a stadium: an arc of radius 10 about the origin and an equal arc about (0, 55),
   `NewEqualRadius`, with four `NewTangent` lines, plus a circle of radius 1.2 at the pin end, extruded 8; the
   profile selection requires one hole. `decad.Fillet` the outer loops of both caps with radius 1.5. Equal end
-  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a hexagon of 6.2 across flats
-  (0.1 larger than the stub on every flat) on `alongCrank(51)`, extruded 7, and one of 6.2 across flats on
+  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a hexagon of 7.4 across flats
+  (0.1 larger than the stub on every flat) on `alongCrank(51)`, extruded 7, and one of 7.13 across flats on
   `alongPin(54)`, extruded 7.
-- `crank-pin`: a hexagon of 6 across flats on `alongPin(54.2)`, extruded 6.3; a shank of radius 4.5 on
+- `crank-pin`: a hexagon of 6.93 across flats (8 across corners) on `alongPin(54.2)`, extruded 6.3; a shank of radius 4.5 on
   `alongPin(60.1)` to X 107; a head of radius 5.8 on `alongPin(106.6)`, extruded 3. `Union` the three left to right,
   then `Cut` a box on `alongPin(56)`, (-2.15..2.15, -2.5..4.5), extruded 1.9, and a cylinder of radius 1.2 on
   `alongPin(53)`, extruded 10.

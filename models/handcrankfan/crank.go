@@ -19,7 +19,8 @@ const (
 	handleLength    = 50.0 // a handle for the thumb, index and middle fingers
 	gripCounterbore = 3.8  // depth of the pin head's counterbore at the handle's outer end
 	pinHeadStart    = handleStart + handleLength - gripCounterbore + 0.2
-	stubFlats       = 6.0 // the hexagonal stubs of the shaft and the pin are 6 across flats
+	stubFlats       = 6.9282 // the pin's hexagonal stub is 8 across corners
+	shaftFlats      = 7.2    // the shaft's stub is its 8 mm round shaft with six flats, 7.2 across
 )
 
 // alongPin is the plane at x whose normal is +X and whose coordinates are (y, z - pin height).
@@ -47,12 +48,13 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 
 // crankShaft builds the crank shaft: a round shaft with a collar at its left end, outside the tray's left post, that
 // slides in from the left through the post, the crank gear, the crank-side wall and its bearing block to a
-// hexagonal stub for the arm. The collar and the arm, which sits against the block's end, hold it. The hexagon joins
-// the bare shaft before the collar does, as the collar's own union is the last one Decad accepts.
+// hexagonal stub for the arm. The collar and the arm, which sits against the block's end, hold it. The flats are cut
+// from the bare shaft before the collar joins it, because Decad refuses to cut after the union.
 func (b *builder) crankShaft() *decad.Body {
-	return b.shaftWithCollar(crankHeight, crankFace+3.9, func(shaft *decad.Body) *decad.Body {
-		// The hexagon starts 1 inside the round shaft, so the union has no shared face.
-		return b.union(shaft, b.hexagon(alongCrank(crankFace+2.9), stubFlats, 6.9))
+	return b.shaftWithCollar(crankHeight, crankFace+9.8, func(shaft *decad.Body) *decad.Body {
+		// A ring outside a hexagon, cut from the end, leaves the round shaft's 8 mm corners and six flats between them.
+		ring := b.cut(b.cylinder(alongCrank(crankFace+3.5), 6, 7), b.hexagon(alongCrank(crankFace+3), shaftFlats, 8))
+		return b.cut(shaft, ring)
 	})
 }
 
@@ -76,7 +78,7 @@ func (b *builder) crankArm() *decad.Body {
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
 	// The shaft's hexagonal stub is a tight fit in this bore: the bore is 0.1 larger than the stub on every flat, the gap every joint
 	// of the model keeps before it is tightened, and the printed bore is made to grip the stub.
-	arm = b.cut(arm, b.hexagon(alongCrank(crankFace+3), stubFlats+0.2, 7))
+	arm = b.cut(arm, b.hexagon(alongCrank(crankFace+3), shaftFlats+0.2, 7))
 	return b.cut(arm, b.hexagon(alongPin(crankFace+6), stubFlats+0.2, 7))
 }
 

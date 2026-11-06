@@ -143,18 +143,18 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
   segment").
 - `crank-shaft`: a round shaft of radius 4 on the crank axis, X [-23.8, 57.8], with a collar of radius 6 at its left end
   (X [-23.8, -20.3], 0.3 clear of the post). It slides in from the left through the post, the crank gear, the
-  crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. A hexagon 6 across
-  flats at X [50.9, 57.8], starting 1 inside the round shaft, makes the stub. It is a tight fit in the arm's hexagonal
-  bore and needs no screw. Six faces share the torque, where a round shaft with one flat puts it all on that flat. The
-  hexagon joins the bare shaft before the collar does.
+  crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. Six flats, 7.2
+  across, cut into the shaft's end at X [51.5, 57.8] make the stub: a hexagon whose six corners are the 8 mm round
+  shaft. It is a tight fit in the arm's hexagonal bore and needs no screw. Six faces share the torque, where a round
+  shaft with one flat puts it all on that flat. The flats are cut from the bare shaft before the collar joins it.
 - `crank-arm`: a stadium 20 wide, X [52, 60], with the axis and the pin 55 apart (end radius 10, so the arm
-  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at the pin end. A hexagonal bore (6.2
-  across flats) at X [51, 58] opens on the inner face for the shaft stub, and a hexagonal pocket (6.2 across flats)
+  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at the pin end. A hexagonal bore (7.4
+  across flats) at X [51, 58] opens on the inner face for the shaft stub, and a hexagonal pocket (7.13 across flats)
   at X [54, 61] opens on the outer face for the pin stub. The bores are 0.1 larger than the stub on every flat, the gap
   every joint of the model keeps before it is tightened; the printed bore is made to grip the stub, so the arm is
   pressed on and all six faces carry the torque. The pin pocket leaves a 2 mm floor with the screw
   hole.
-- `crank-pin`: a hexagonal stub (6 across flats) at X [54.2, 60.5] with a nut
+- `crank-pin`: a hexagonal stub (8 across corners, 6.93 across flats) at X [54.2, 60.5] with a nut
   slot at X [56, 57.9] and a screw hole of diameter 2.4 from X 53, a round shank of radius 4.5 from X 60.1 (the
   shoulder, 0.1 clear of the arm) to X 107, and a head of radius 5.8 at X [106.6, 109.6]. The pin is 55 from the
   crank axis. The handle slides on over the stub, so nothing on the pin is wider than the handle's bore except
