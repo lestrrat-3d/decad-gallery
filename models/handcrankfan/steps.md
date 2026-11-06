@@ -13,7 +13,7 @@ There are no placement transforms before the Booleans.
 - `alongMinusY(y)`: origin `(0, y, 170)`, U = +X, V = +Z, normal -Y. Coordinates are `(x, z-170)`.
 
 - Blade frame: sections on world-XY planes at Z = r (radius) with the sketch origin on the stacking line,
-  placed by `r3.FromFrame(NewFrame((0, -66, 170), U = +Z, V = -Y))`, so the local Z becomes +X, local X the
+  placed by `r3.FromFrame(NewFrame((0, -86, 170), U = +Z, V = -Y))`, so the local Z becomes +X, local X the
   blade's direction of motion and local Y downstream (-Y). A local point `(u, v)` of a section at angle `beta`
   for chord position `xi` (mm from the leading edge) and offset `eta` toward the suction side is
   `(xiP - xi)(cos beta, -sin beta) + (eta - etaP)(-sin beta, -cos beta)`, with `xiP = c/2` and
@@ -43,10 +43,10 @@ shank and Decad cannot decide a touching pair.
 ## 3. Gearbox
 
 1. Block: `roundedPrism` on the frame origin `(-20, 0, 0)`, U = +Y, V = +Z (normal +X): the outline (-46,128),
-   (20,128), (20,186), (-46,186) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
+   (11,128), (11,181), (-46,181) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
    `NewDistancePointLine` from the origin. Extrude 54, then `decad.Fillet` the outer loops of both end caps with
    radius 2.
-2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,134), (21,134), (21,187), (-36.2,187)
+2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,134), (12,134), (12,182), (-36.2,182)
    with the first corner rounded with radius 3, extruded 45.2. `decad.Fillet` the outer loop of its end cap with
    radius 2.
 3. `Cut` the cavity from the block. Sketch's `CreateFillet` cannot round the inside corner of an L section while
@@ -94,17 +94,17 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
 
 ## 5. Fan
 
-- `fan-shaft`: circle radius 3 on `alongMinusY(-22)`, extruded 58.
+- `fan-shaft`: circle radius 3 on `alongMinusY(-22)`, extruded 78.
 - `onY(y)`: origin `(9.5, y, 170)`, U = +X, V = +Z, normal -Y. Coordinates are measured from blade 1's bolt line.
-- Hub: one sketch on the frame origin `(0, -56, 170)`, U = +X, V = +Z: circle radius 14, a concentric circle
+- Hub: one sketch on the frame origin `(0, -76, 170)`, U = +X, V = +Z: circle radius 14, a concentric circle
   radius 3, and `Blades` circles of radius 1.15 at `(9.5 cos th_k, 9.5 sin th_k)`, `th_k = 2 pi k / Blades`, each
   centre dimensioned from the origin by a horizontal and a vertical distance. Extrude 20 toward -Y.
 - Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
   `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}`, and every tool running 1 mm past the face it
   opens:
-  - socket: circle radius 3.15 on the frame origin `(5.6, -66, 170)`, U = +Y, V = +Z (normal +X), extruded 9.4;
-  - counterbore: circle radius 2.15 on `onY(-73.8)`, extruded 3.2;
-  - nut trap: a regular hexagon of 4.3 across flats on `onY(-55)`, extruded 5. It is a `CreatePolygon` of six
+  - socket: circle radius 3.15 on the frame origin `(5.6, -86, 170)`, U = +Y, V = +Z (normal +X), extruded 9.4;
+  - counterbore: circle radius 2.15 on `onY(-93.8)`, extruded 3.2;
+  - nut trap: a regular hexagon of 4.3 across flats on `onY(-75)`, extruded 5. It is a `CreatePolygon` of six
     sides, grounded by `NewCoincident(centre, origin)`, turned by `NewHorizontal(side 1)` so the corners lie on
     U, and sized by `NewDistance(centre, vertex 0, 4.3 / sqrt 3)`.
 
@@ -124,7 +124,7 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
      circle of radius 1.15 on the frame origin `(0, -5, 9.5)`, U = +Z, V = +X, extruded 10 (the bolt hole). The
      cut happens before the union, so the faceted loft never takes part in it.
   4. `Union` the loft and the stud: they overlap in volume and share no face.
-  5. `decad.Transform` by `r3.FromFrame(NewFrame((0, -66, 170), U = +Z, V = -Y))`, so the local Z becomes +X,
+  5. `decad.Transform` by `r3.FromFrame(NewFrame((0, -86, 170), U = +Z, V = -Y))`, so the local Z becomes +X,
      local X the direction of motion and local Y downstream (-Y).
   6. `decad.PatternCopies` with the hub's pattern gives blades 2..N. `Transform` retires its input, so blade 1 is
      not turned again.
@@ -167,6 +167,8 @@ along -X by `CrankAngle`, and each `fan` part about the line along -Y by `2*Cran
   radii, and the thickness ratio against the table (`LocatePoint` leaves too many points inside lofted bodies
   undecided to check a mirror point);
 - the hub empty at a socket and a nut trap;
+- the crank's reach against the blades: the arm, pin and handle reach 65 from the crank axis and every blade vertex the
+  crank can reach stays at Y -80 or farther, 15 clear;
 - the grip's mesh rings at Z 26, 85 and 114 against the table, and the 15° rake;
 - the gear back faces at X = 24 and Y = -36 after undoing the pose, which retires the gears;
 - the parts set and its explosion: the arm, handle and pin in order along X with gaps, the driving gear sliding off to the

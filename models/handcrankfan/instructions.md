@@ -104,14 +104,14 @@ pinion heel is `Module*32/2 + Module*16/8`.
 - Gearbox, one part, `gearbox`: a block minus a cavity, with rounded edges and nothing that sticks out. Each
   shaft turns in a hole through a flat wall about 10 thick, so a printed shaft has a long bearing and the housing has
   no boss or sleeve. Printed floor down, every wall is vertical and the housing needs no support.
-  - Block: the outline Y [-46, 20], Z [128, 186] with four corners of radius 3, on the plane X -20, extruded
+  - Block: the outline Y [-46, 11], Z [128, 181] with four corners of radius 3, on the plane X -20, extruded
     54 toward +X, with both end faces rounded with radius 2.
-  - Cavity: the outline Y [-36.2, 21], Z [134, 187] with the corner at (Y -36.2, Z 134) rounded with radius 3,
+  - Cavity: the outline Y [-36.2, 12], Z [134, 182] with the corner at (Y -36.2, Z 134) rounded with radius 3,
     on the plane X -21, extruded 45.2 toward +X, with its end face (X 24.2) rounded with radius 2. Each wall's inner
     face is 0.2 from its gear's back face, so a gear needs no spacer. Cutting the cavity leaves three plates:
-    - floor plate: X [-20, 34], Y [-46, 20], Z [128, 134];
-    - front plate: X [-20, 34], Y [-46, -36.2], Z [128, 186];
-    - right plate: X [24.2, 34], Y [-46, 20], Z [128, 186].
+    - floor plate: X [-20, 34], Y [-46, 11], Z [128, 134];
+    - front plate: X [-20, 34], Y [-46, -36.2], Z [128, 181];
+    - right plate: X [24.2, 34], Y [-46, 11], Z [128, 181].
   - A bore of diameter 8.4 on the crank axis through the right plate, a bore of diameter 6.4 on the fan axis through
     the front plate, and two holes of diameter 2.4 through the floor at X -2 and X 16, Y -28, for the grip screws.
 
@@ -150,14 +150,15 @@ parts whose faces touch.
 ### Fan parts, motion `fan`
 
 - `pinion`: the pinion bevel gear.
-- `fan-shaft`: a cylinder of radius 3 on the fan axis, Y [-80, -22].
-- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-76, -56], mid plane Y -66. It has a bore
+- `fan-shaft`: a cylinder of radius 3 on the fan axis, Y [-100, -22].
+- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is 30 in front of the front plate's outer face, so the blades
+  stay clear of the crank's reach (see the verification below). It has a bore
   of radius 3 and, for each blade k at angle `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning
   toward +Z):
   - a radial socket of radius 3.15 on the hub's mid plane, from r 5.6 outward through the hub surface;
   - a bolt hole of radius 1.15 parallel to the fan axis at r 9.5, through the hub;
-  - a head counterbore of radius 2.15 in the front face, 2.2 deep (floor at Y -73.8);
-  - a hex nut trap of 4.3 across flats in the back face, 4.0 deep (floor at Y -60), with its corners on the
+  - a head counterbore of radius 2.15 in the front face, 2.2 deep (floor at Y -93.8);
+  - a hex nut trap of 4.3 across flats in the back face, 4.0 deep (floor at Y -80), with its corners on the
     radial line.
 - `fan-blade-1` .. `fan-blade-N`, group `blade`: one blade each, with N = `Blades`. A blade is a smooth loft
   through the ten sections of the table below, stacked on its radial line through the hub's mid plane. The loft
@@ -242,6 +243,9 @@ The gearbox and handle do not move.
   `doc.Verify`. The finished parts are the hub, the blades and the bolts of the rotor, the handle and its screws,
   the gearbox, and the crank's shaft, arm, pin, handle and screws. That proves each stud fits its socket and each
   bolt its holes and pockets. The gear pair and the fan shaft are left out because they touch.
+- A hand on the crank handle cannot meet a blade. The arm, pin and handle reach 65 from the crank axis, so they
+  sweep as far as Y -65 toward the fan. Every blade vertex whose distance from the fan axis is at least the arm's
+  inner X (the part of the blade the crank can reach) has Y of at most -80, 15 clear of that reach.
 - The bolts lie inside the hub's front and back faces. Blades 2 to N and bolts 2 to N are copies of the first,
   turned by `2 pi (k-1) / Blades`.
 - The exploded view puts the arm, the handle and the pin in that order along the crank axis, slides the driving gear

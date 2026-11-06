@@ -126,7 +126,9 @@ const (
 	crankWallX  = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
 	fanWallY    = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
 	boxFloor    = 128.0
-	boxTop      = 186.0
+	boxTop      = 181.0 // the bores' tops are at 174.2, so the walls keep about 7 above them
+	boxBackY    = 11.0  // nothing but the floor and the crank-side wall lies behind the crank axis
+	fanGap      = 30.0  // from the fan-side wall's outer face to the hub: the blades must clear the crank's reach
 	boxLeftX    = -20.0
 	cavityFloor = 134.0
 	crankFace   = crankWallX + wallThick // outer face of the crank-side wall, X 34
@@ -139,11 +141,11 @@ func (b *builder) gearbox() {
 	b.part("gearbox", "housing", "fixed", func() *decad.Body {
 		// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
 		block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
-			[]point2{{fanWallY - wallThick, boxFloor}, {20, boxFloor}, {20, boxTop}, {fanWallY - wallThick, boxTop}},
+			[]point2{{fanWallY - wallThick, boxFloor}, {boxBackY, boxFloor}, {boxBackY, boxTop}, {fanWallY - wallThick, boxTop}},
 			[]float64{3, 3, 3, 3}, crankWallX+wallThick-boxLeftX)
 		block = b.roundCaps(block, 2)
 		cavity := b.roundedPrism(frame(r3.Vec{X: boxLeftX - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
-			[]point2{{fanWallY, cavityFloor}, {21, cavityFloor}, {21, boxTop + 1}, {fanWallY, boxTop + 1}},
+			[]point2{{fanWallY, cavityFloor}, {boxBackY + 1, cavityFloor}, {boxBackY + 1, boxTop + 1}, {fanWallY, boxTop + 1}},
 			[]float64{3, 0, 0, 0}, crankWallX-boxLeftX+1)
 		cavity = b.roundEnd(cavity, 2)
 		body := b.cut(block, cavity)
