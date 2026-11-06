@@ -28,6 +28,7 @@ axis is world +Z and the caps are at z=0 and z=`h`.
 | `S` | `Samples` | int | 15 | Fit points per flank |
 | `b` | `BoreDiameter` | float64 | 0 | Centered through-bore diameter; zero omits bore |
 | `c` | `CapChamfer` | float64 | 0 | Equal-distance outer cap setback; zero omits chamfer |
+| `j` | `Backlash` | float64 | 0.05 | Circumferential tooth thinning at the pitch circle; zero keeps the full half-pitch tooth; negative thickens the tooth |
 | — | `Placement` | `*r3.Frame` | nil | Reference point and plane; nil selects the world XY frame at the origin |
 
 Use finite geometric inputs. Do not interpret zero fields as default requests;
@@ -45,6 +46,8 @@ Compute without rounding:
 | Root radius `Rr` | `(mN - 2.5m)/2` |
 | Tip radius `Rt` | `(mN + 2m)/2` |
 | Tooth angular pitch | `2π/N` |
+| Tooth thickness at the pitch circle | `πm/2 - j` |
+| Flank thinning angle `δ` | `j/(2Rp) = j/(mN)` |
 | Root fillet radius `Rf` | `0.9 Rr (π/N - 2(tan α - α))/2` |
 
 ## Parameter table
@@ -62,6 +65,7 @@ feature value that follows is read from this table, not computed in place.
 | `samples` | none | input `S` |
 | `bore_diameter` | mm | input `b` |
 | `cap_chamfer` | mm | input `c` |
+| `backlash` | mm | input `j` |
 | `tool_margin` | mm | `1` |
 | `pitch_radius` | mm | `module * teeth / 2` |
 | `base_radius` | mm | `pitch_radius * cos(pressure_angle)` |
@@ -82,6 +86,7 @@ and the chamfer setback are read from the table.
 - Reject `m <= 0`, `h <= 0`, `N < 3`, or `S < 3`.
 - Reject `α <= 0` or `α >= π/2`.
 - Reject negative `b` or `c`.
+- Reject a nonfinite `j` or `|j| > m/2`.
 - Reject a non-nil `Placement` that is not a valid frame.
 - Reject `Rr <= 0`, `Rb <= 0`, or `Rt <= Rb`.
 - Reject `b >= 2Rr` or a nonfinite `Rf`.
@@ -104,13 +109,16 @@ Sample the original involute from base to tip, including both endpoints:
 3. Compute `I(rᵢ) = (Rb(cos t + t sin t), Rb(sin t - t cos t))`.
 4. Mirror `I` across X by negating its Y coordinate.
 5. Evaluate the same involute at `Rp`, mirror it to `(px,py)`, and compute
-   `β = π/(2N) - atan2(py,px)`.
+   `β = π/(2N) - δ - atan2(py,px)`, where `δ = j/(2Rp)`.
 6. Rotate each mirrored sample by `β` to make the left flank.
 7. Mirror that rotated sample across X to make the right flank.
 8. Rotate both flanks by `θ = 2πk/N` for tooth `k=0..N-1`.
 
 Use `Rotθ(x,y) = (x cos θ-y sin θ, x sin θ+y cos θ)`. Both arrays run
-base-to-tip. Their pitch crossings before tooth rotation are at `±π/(2N)`.
+base-to-tip. Their pitch crossings before tooth rotation are at `±(π/(2N) - δ)`, so
+`j > 0` thins every tooth by `j` of arc at the pitch circle and opens `j` of
+backlash against a mating gear thinned the same way. The embedded tooth's `h(r)`
+uses the same `β`.
 Interpolate each full array with one native fit spline. Do not replace splines
 with chords, resample from the root, or alter their shape during trimming.
 
@@ -239,7 +247,7 @@ document with existing bodies must also accept a new gear.
   remains a separate supported route.
 - Expose flank sampling with caller-supplied `pitch`, `base`, `tip`, real-valued
   `effectiveTeeth`, `samples`, and signed `angle`. Use Tooth flank with those
-  radii and `effectiveTeeth` in place of `N`; never round it.
+  radii and `effectiveTeeth` in place of `N`; never round it. It applies no backlash (`j = 0`).
 - For that sampling API, reject nonfinite scalar inputs, `base <= 0`,
   `pitch <= base`, `tip <= pitch`, `effectiveTeeth <= 0`, or `samples < 3`.
 - Expose through-bore and outer-cap chamfer operations for assembled gears.
@@ -258,7 +266,9 @@ Apply these overrides to Inputs defaults. This table owns case inputs; the
 | Case | Overrides | Required result |
 | --- | --- | --- |
 | Small end-to-end | `N=8`, `h=2`, `S=5` | Root-disc and tooth sketches verified, one solid, 16 root fillets, verified mesh |
-| Default | None | Ordinary body, 17 teeth, 34 native root fillets |
+| Default | None | Ordinary body, 17 teeth, 34 native root fillets, `j = 0.05` |
+| Backlash | `N=17`, `h=2`, `j=0` and `j=0.2` | The tooth section's flank crosses the pitch circle at angles `±(π/(2N) - δ)`, and the `j=0.2` gear has less volume than the `j=0` gear |
+| Invalid backlash | `j = m` and `j = NaN` | Error naming backlash |
 | Bore tool | `b=3`; use a 10×10×10 box spanning z=0..10 | Remove a centered cylindrical volume |
 | Bore and chamfer | `b=3`, `c=0.1` | Gear with sharp bore rims and chamfered outer caps |
 | Chamfer only | `c=0.1` | Both cap areas and total volume decrease beyond error bounds |

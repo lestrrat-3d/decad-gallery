@@ -168,7 +168,7 @@ func filletSpurRoots(ctx context.Context, doc *decad.Document, body *decad.Body,
 		return filletEmbedded(ctx, body, r.frame, r.teeth, radius)
 	}
 	var roots []point
-	left, right := sampleFlanks(r.d.pitch, r.d.base, r.d.base, r.d.tip, float64(r.teeth), r.p.Samples, 0)
+	left, right := sampleFlanks(r.d.pitch, r.d.base, r.d.base, r.d.tip, float64(r.teeth), r.d.backlash, r.p.Samples, 0)
 	for k := 0; k < r.teeth; k++ {
 		a := toothAngle(r.p, k)
 		rr := rootContact(right[0], r.d)
