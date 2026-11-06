@@ -163,9 +163,10 @@ go -C tools/render run . -model handcrankfan -shot readme -out ../../models/hand
 ```
 
 The `animation` shot writes `motion.gif`: 72 frames of one crank turn, 1000 × 560, in two panels. The left panel
-shows the crank side and the right panel the gears from above and behind. It builds the fan once and meshes each part
-from its real body. Each frame turns the crank parts about the crank axis by the crank angle and the fan parts about
-the fan axis by twice that, so the fan turns twice and the loop has no jump. The 5° step keeps the 32-tooth gear's
+shows the crank side and the right panel the spur and bevel gears from above and behind, with the cover and the crank arm
+left out. It builds the fan once and meshes each part
+from its real body. Each frame turns the crank parts about the crank axis by the crank angle, the drive shaft and its gears the other
+way round, and the fan parts about the fan axis by twice the crank angle, so the fan turns twice and the loop has no jump. The 5° step keeps the 32-tooth gear's
 11.25° tooth pitch from seeming to run backward. `-frames` shortens it, which the test uses:
 
 ```sh

@@ -11,7 +11,7 @@ import (
 )
 
 // Grip dimensions in mm. The grip is an oval loft raked 15° with its base toward the operator. Its top centre is
-// at X 7, Y -28, 0.1 below the gearbox floor so that the two parts do not touch before the screws are tightened.
+// at X 2, Y -28, 0.1 below the gearbox floor so that the two parts do not touch before the screws are tightened.
 const (
 	gripRake      = 15 * math.Pi / 180
 	gripMid       = 68.0 // height of the section centres' local origin
@@ -48,7 +48,7 @@ func (b *builder) handle() {
 			return nil
 		}
 		// The sections are drawn about the centre of the grip's mid height, so each sees the origin along rays.
-		xf, err := r3.Translation(r3.Vec{X: 7, Y: -28 - (gripFloor-gripMid)*math.Tan(gripRake)})
+		xf, err := r3.Translation(r3.Vec{X: gripX, Y: -28 - (gripFloor-gripMid)*math.Tan(gripRake)})
 		if err != nil {
 			b.fail("create grip placement", err)
 			return nil
@@ -58,14 +58,14 @@ func (b *builder) handle() {
 			return nil
 		}
 		for _, dx := range []float64{-gripScrewX, gripScrewX} {
-			pilot := b.cylinder(frame(r3.Vec{X: 7 + dx, Y: -28, Z: gripPilotLow}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 0.9, 13)
+			pilot := b.cylinder(frame(r3.Vec{X: gripX + dx, Y: -28, Z: gripPilotLow}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 0.9, 13)
 			loft = b.cut(loft, pilot)
 		}
 		return loft
 	})
 	for i, dx := range []float64{-gripScrewX, gripScrewX} {
 		b.part(fmt.Sprintf("handle-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
-			return b.screw(r3.Vec{X: 7 + dx, Y: -28, Z: gripFloor + 6.1}, r3.Vec{Z: -1}, r3.Vec{X: 1}, 16, 0, 0.8)
+			return b.screw(r3.Vec{X: gripX + dx, Y: -28, Z: gripFloor + 6.1}, r3.Vec{Z: -1}, r3.Vec{X: 1}, 16, 0, 0.8)
 		})
 	}
 }
@@ -119,43 +119,55 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 	return decad.LoftSection{}
 }
 
-// Gearbox walls in mm. The crank shaft and the fan shaft each turn in a hole through a flat wall about 10 thick, so the
-// housing is a tray with no part that sticks out. Printed floor down it needs no support: every wall is vertical.
+// Gearbox dimensions in mm. The gearbox is an L-shaped tray: a floor and a fan-side wall, open at the top, the back
+// and the left, so the gears drop in from above. The crank-side wall belongs to the gear case, which bolts on its
+// right end. The fan shaft turns in a hole through the fan-side wall and a square bearing block in front of it.
+// Printed floor down, every wall and the block are vertical, so nothing needs support.
 const (
 	wallThick   = 9.8
-	crankWallX  = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
+	crankWallX  = 24.2  // inner face of the gear case's plate, 0.2 from the driving gear's back face at X 24
+	trayEndX    = 24.0  // the tray's right end face, 0.2 clear of the plate
 	fanWallY    = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
 	boxFloor    = 128.0
 	boxTop      = 181.0 // the bores' tops are at 174.2, so the walls keep about 7 above them
-	boxBackY    = 11.0  // nothing but the floor and the crank-side wall lies behind the crank axis
-	fanGap      = 30.0  // from the fan-side wall's outer face to the hub: the blades must clear the crank's reach
+	boxBackY    = 11.0  // nothing but the floor lies behind the crank axis
 	boxLeftX    = -20.0
 	cavityFloor = 134.0
-	crankFace   = crankWallX + wallThick // outer face of the crank-side wall, X 34
+	blockHalf   = 11.0 // the fan bearing block is 22 wide
+	blockLength = 14.0 // and sticks out this far from the fan-side wall's outer face
+	fanGap      = blockLength + 6
+	gripX       = 2.0 // the grip's centre, under the tray
 )
 
-// gearbox builds a rounded block minus a cavity, which leaves the floor, the fan-side wall and the crank-side wall,
-// then bores the two shaft holes and the two screw holes through it. The cavity is open at the top, the back and the
-// left, so the gears drop in from above and the shafts slide in through the walls.
+// gearbox builds the L-shaped tray with its fan bearing block, then bores the fan shaft's hole, the two grip screw
+// holes and the pilot holes that take the screws holding the gear case.
 func (b *builder) gearbox() {
 	b.part("gearbox", "housing", "fixed", func() *decad.Body {
 		// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
 		block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 			[]point2{{fanWallY - wallThick, boxFloor}, {boxBackY, boxFloor}, {boxBackY, boxTop}, {fanWallY - wallThick, boxTop}},
-			[]float64{3, 3, 3, 3}, crankWallX+wallThick-boxLeftX)
+			[]float64{3, 3, 3, 3}, trayEndX-boxLeftX)
 		block = b.roundCaps(block, 2)
+		// The cavity runs through both ends, leaving the floor and the fan-side wall.
 		cavity := b.roundedPrism(frame(r3.Vec{X: boxLeftX - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 			[]point2{{fanWallY, cavityFloor}, {boxBackY + 1, cavityFloor}, {boxBackY + 1, boxTop + 1}, {fanWallY, boxTop + 1}},
-			[]float64{3, 0, 0, 0}, crankWallX-boxLeftX+1)
-		cavity = b.roundEnd(cavity, 2)
+			[]float64{3, 0, 0, 0}, trayEndX-boxLeftX+2)
 		body := b.cut(block, cavity)
+		// The bearing block starts 1 inside the wall so the union has no shared face.
+		pad := b.roundedPrism(frame(r3.Vec{Y: fanWallY - wallThick + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}),
+			[]point2{{-blockHalf, boxFloor}, {blockHalf, boxFloor}, {blockHalf, boxTop}, {-blockHalf, boxTop}},
+			[]float64{3, 3, 3, 3}, blockLength+1)
+		pad = b.roundEnd(pad, 2)
 		if b.err != nil {
 			return nil
 		}
-		body = b.cut(body, b.cylinder(alongX(20), 4.2, 38))
+		body = b.union(body, pad)
 		body = b.cut(body, b.cylinder(alongMinusY(-30), 3.2, 74))
 		for _, dx := range []float64{-gripScrewX, gripScrewX} {
-			body = b.cut(body, b.cylinder(frame(r3.Vec{X: 7 + dx, Y: -28, Z: 127}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
+			body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: -28, Z: 127}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
+		}
+		for _, at := range caseScrews {
+			body = b.cut(body, b.cylinder(frame(r3.Vec{X: trayEndX - 9, Y: at.u, Z: at.v}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), 0.9, 10))
 		}
 		return body
 	})

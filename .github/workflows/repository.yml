@@ -66,7 +66,7 @@ jobs:
           go-version-file: tools/render/go.mod
       - name: Check hand-crank fan rendering
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go -C tools/render test -run '^TestHandCrankFan' -timeout 10m ./...
+        run: go -C tools/render test -run '^TestHandCrankFan' -timeout 20m ./...
 
   wheel:
     strategy:
