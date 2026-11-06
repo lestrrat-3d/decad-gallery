@@ -56,7 +56,7 @@ func (a *Assembly) joints() []parts.Joint {
 	pin := parts.Axis{Point: a.State.Crank.Add(a.State.ArmDirection.Scale(crankThrow)), Dir: r3.Vec{X: 1}}
 	fan := parts.Axis{Point: apex, Dir: fanAxis}
 	vertical := func(dx float64) parts.Axis {
-		return parts.Axis{Point: r3.Vec{X: gripX + dx, Y: -28, Z: axisHeight}, Dir: r3.Vec{Z: 1}}
+		return parts.Axis{Point: r3.Vec{X: gripX + dx, Y: gripY, Z: axisHeight}, Dir: r3.Vec{Z: 1}}
 	}
 	var js []parts.Joint
 	add := func(name string, a, b string, axis parts.Axis, motion parts.Motion) {

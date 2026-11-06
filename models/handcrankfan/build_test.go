@@ -117,7 +117,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		require.Less(t, b.Max.X, box["crank-pin"].Max.X, "%s is left of the crank", name)
 	}
 	require.Greater(t, box["crank-grip"].Min.X, box["gearbox"].Max.X, "the crank handle is outside the crank bearing block")
-	require.Greater(t, box["crank-shaft"].Max.X, 57.0, "the crank shaft leaves the cover toward +X")
+	require.Greater(t, box["crank-shaft"].Max.X, 54.0, "the crank shaft leaves the cover toward +X")
 	require.InDelta(t, 0, (box["fan-shaft"].Min.X+box["fan-shaft"].Max.X)/2, tol, "the fan shaft lies on X = 0")
 	rotorFront := math.Inf(1)
 	for name, b := range box {
@@ -267,7 +267,7 @@ func requireGrip(t *testing.T, parts map[string]handcrankfan.Part) {
 		require.InDelta(t, want.length, hi.Y-lo.Y, 0.3, "grip length at Z %g", want.z)
 		// The grip hangs from the lowered floor: its heights are the table's minus 26.6.
 		rake := (want.z + 26.6 - 128) * math.Tan(15*math.Pi/180)
-		require.InDelta(t, -28+rake, (lo.Y+hi.Y)/2, 0.5, "the grip is raked toward the operator at Z %g", want.z)
+		require.InDelta(t, -23.5+rake, (lo.Y+hi.Y)/2, 0.5, "the grip is raked toward the operator at Z %g", want.z)
 	}
 	pin, grip := bounds(t, parts["crank-pin"]), bounds(t, parts["crank-grip"])
 	require.Less(t, pin.Max.X, grip.Max.X-0.5, "the pin head sits inside the handle's counterbore")
@@ -437,9 +437,9 @@ func requireGearPlacement(t *testing.T, p handcrankfan.Params, parts map[string]
 		return box
 	}
 	driving := back(parts["driving-gear"].Body, r3.Vec{X: 1}, state.CrankAngle)
-	require.InDelta(t, 24, driving.Max.X, 0.05)
+	require.InDelta(t, 21, driving.Max.X, 0.05)
 	pinion := back(parts["pinion"].Body, r3.Vec{Y: -1}, state.FanAngle)
-	require.InDelta(t, -36, pinion.Min.Y, 0.05)
+	require.InDelta(t, -31.5, pinion.Min.Y, 0.05)
 }
 
 func TestHandCrankFanDefault(t *testing.T) {

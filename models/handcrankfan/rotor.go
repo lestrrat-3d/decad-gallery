@@ -85,7 +85,7 @@ func (b *builder) fan() {
 		shaft := b.cylinder(alongMinusY(-fanTip), shaftRadius, hubBack+hubLength+4-fanTip)
 		// One set of grooves passes through the pinion and one through the hub, with the round shaft between them for the
 		// bearings. The collar sits between the front bearing and the hub.
-		shaft = b.grooves(shaft, fanSpline, fanTip-1, 36.5)
+		shaft = b.grooves(shaft, fanSpline, fanTip-1, -fanWallY+0.3)
 		shaft = b.grooves(shaft, fanSpline, hubBack-1, hubBack+hubLength+5)
 		return b.union(shaft, b.cylinder(alongMinusY(-(fanBlockFace-0.2)), 6, hubBack-0.1-(fanBlockFace-0.2)))
 	})

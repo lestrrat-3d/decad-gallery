@@ -27,8 +27,8 @@ corners are rounded. The rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). Each shaft is 8 mm
 with three grooves, and each gear, the crank arm and the fan hub have a bore with three teeth that sit in them, so six
-faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post on its left end, 54 mm
-wide, 88 mm tall and 61 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and
+faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post on its left end and a back wall, 51 mm
+wide, 88 mm tall and 80 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and
 both shafts slide in through the post and carry a collar outside it. A bearing sits in a seat in the post, in the crank-side wall,
 in the crank block and in the fan wall and block, so there is no boss or sleeve and the tray prints floor down without
 support: each seat is a teardrop, so its roof is never flatter than 45°. The hub's blade sockets are teardrops too, for

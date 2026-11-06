@@ -6,12 +6,12 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Bevel pair: Module 2, 32 driving teeth and 16 pinion teeth. The heel distances are the pair's:
-// the driving heel is Module*16/2 + Module*32/8 and the pinion heel is Module*32/2 + Module*16/8.
+// Bevel pair: Module 2, 28 driving teeth and 14 pinion teeth. The heel distances are the pair's:
+// the driving heel is Module*14/2 + Module*28/8 and the pinion heel is Module*28/2 + Module*14/8.
 const (
 	gearModule  = 2
-	drivingHeel = 24
-	pinionHeel  = 36
+	drivingHeel = 21
+	pinionHeel  = 31.5
 )
 
 // drive builds the bevel pair, the crank parts and the pinion. The gears sit against the gearbox walls: each wall's
@@ -22,7 +22,7 @@ func (b *builder) drive() {
 	}
 	b.name = "bevel pair"
 	gp := bevelgear.DefaultParams()
-	gp.Module, gp.Teeth, gp.MateTeeth, gp.SpiralAngle = gearModule, 32, 16, 0
+	gp.Module, gp.Teeth, gp.MateTeeth, gp.SpiralAngle = gearModule, 28, 14, 0
 	gp.EnableBore = false // the spline bores are cut below
 	placement := frame(r3.Vec{X: drivingHeel, Z: axisHeight}, r3.Vec{Y: -1}, r3.Vec{Z: 1})
 	gp.Placement = &placement
