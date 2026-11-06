@@ -24,5 +24,12 @@ Catalogue bearings should keep their specified dimensions rather than scaling wi
 It calls the same construction through `Build`; no bearing geometry is copied.
 The default preset and hero image continue to show the 608-2RS envelope.
 
+## 608ZZ preset
+
+`Params608ZZ()` selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
+a 608-2RS has a rubber seal, and both have the same outline, so this is the same envelope as the default and
+has no image of its own. Use it where a design calls for a 608ZZ by name, such as the
+[planetary gearbox](../planetarygearbox/), which presses one into each planet gear.
+
 The [developer guide](../../docs/models/ballbearing.md) documents construction and checks.
 The [instructions](instructions.md) own the nominal geometry; the [steps](steps.md) map it to Decad.

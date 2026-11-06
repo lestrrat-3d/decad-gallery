@@ -23,7 +23,10 @@ start on the frame's plane.
 
 ## How it is built
 
-The sun and planets come from `spurgear.Build`. The ring is a cylinder with the tooth spaces cut out by a 71-tooth
+The sun and planets come from `spurgear.Build`. A planet is built with the lip bore, then a bearing pocket is cut from
+its upper face. Each planet's bearing is `ballbearing.Build` with `Params608ZZ()`, kept as its own body in
+`Stage.Bearings`. The carrier's hub and arms are one 12-curve outline extruded once; its pins and stub shaft are
+unioned to it, because decad refuses a union of separate hub and arm bodies. The ring is a cylinder with the tooth spaces cut out by a 71-tooth
 spur gear whose root circle is the ring's tip circle and whose tip circle is the ring's root circle (`ringTool` in
 `gears.go`). `phase.go` turns each planet, and the ring tool, so their teeth enter the sun's and the ring's gaps.
 Each distinct part is built once at the origin and copied into place, because the spur union fails on gears built

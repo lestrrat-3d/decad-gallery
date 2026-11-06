@@ -108,11 +108,12 @@ go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloid
 ```
 
 The `planetarygearbox/hero` preset renders the default gearbox with two stages pulled apart along its axis: the ring
-floats above the stack, and each stage rises over the one below with its carrier lifted off its three planets. The
+floats above the stack, and each stage rises over the one below with its carrier lifted off its three planets and
+each bearing lifted out of its planet. The
 `readme` shot writes the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes
-one 480 × 270 pixel image of each unique part in `images/parts/`: the ring, the sun, one planet, the linking carrier
-and the output carrier. The `planetarygearbox/part-ring`, `part-sun`, `part-planet`, `part-linking-carrier` and
-`part-output-carrier` presets render one of them alone. The carriers are seen from almost level with their plates so
+one 480 × 270 pixel image of each unique part in `images/parts/`: the ring, the sun, one planet, one bearing, the
+linking carrier and the output carrier. The `planetarygearbox/part-ring`, `part-sun`, `part-planet`, `part-bearing`,
+`part-linking-carrier` and `part-output-carrier` presets render one of them alone. The carriers are seen from almost level with their plates so
 the pins and the stub shaft show.
 
 ```sh

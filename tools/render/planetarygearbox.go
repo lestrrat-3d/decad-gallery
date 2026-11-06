@@ -13,11 +13,13 @@ import (
 )
 
 // The hero image pulls the default two-stage gearbox apart along its axis: each stage rises by
-// planetaryStageLift over the one below, each carrier lifts planetaryCarrierLift off its planets,
-// and the ring floats planetaryRingLift above the stack's first stage.
+// planetaryStageLift over the one below, each carrier lifts planetaryCarrierLift off its planets, each
+// bearing lifts planetaryBearingLift out of its planet, and the ring floats planetaryRingLift above
+// the stack's first stage.
 const (
 	planetaryStageLift   = 30
 	planetaryCarrierLift = 17
+	planetaryBearingLift = 14
 	planetaryRingLift    = 78
 )
 
@@ -25,6 +27,7 @@ var (
 	planetaryRingColor    = solidlens.RGB(0.38, 0.45, 0.52)
 	planetarySunColor     = solidlens.RGB(0.72, 0.4, 0.14)
 	planetaryPlanetColor  = solidlens.RGB(0.17, 0.42, 0.6)
+	planetaryBearingColor = solidlens.RGB(0.62, 0.64, 0.68)
 	planetaryCarrierColor = solidlens.RGB(0.55, 0.62, 0.3)
 )
 
@@ -68,6 +71,10 @@ func planetaryModels(ctx context.Context, box planetarygearbox.Gearbox) ([]solid
 		}
 		for i, planet := range stage.Planets {
 			if err := add(planetarygearbox.PlanetName(k, i), planet, planetaryPlanetColor, lift); err != nil {
+				return nil, err
+			}
+			if err := add(planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor,
+				lift+planetaryBearingLift); err != nil {
 				return nil, err
 			}
 		}
@@ -114,12 +121,13 @@ type planetaryPart struct {
 	side bool
 }
 
-// planetaryParts lists the unique parts of a gearbox: the ring, the sun, one planet, a carrier whose
-// stub shaft drives the next stage, and the last carrier with its output shaft.
+// planetaryParts lists the unique parts of a gearbox: the ring, the sun, one planet, one 608ZZ bearing, a
+// carrier whose stub shaft drives the next stage, and the last carrier with its output shaft.
 var planetaryParts = []planetaryPart{
 	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, false},
 	{"sun", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Sun }, planetarySunColor, false},
 	{"planet", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Planets[0] }, planetaryPlanetColor, false},
+	{"bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Bearings[0] }, planetaryBearingColor, false},
 	{"linking-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Carrier }, planetaryCarrierColor, true},
 	{"output-carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Carrier }, planetaryCarrierColor, true},
 }

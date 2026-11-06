@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -34,10 +35,10 @@ type Params struct {
 	// ShaftDiameter is the diameter of the sun bore, the stub shafts and the
 	// output shaft.
 	ShaftDiameter float64
-	// PinDiameter is the diameter of a planet pin.
-	PinDiameter float64
-	// PinClearance is the radial clearance between a planet bore and its pin.
-	PinClearance float64
+	// BearingClearance is the radial clearance between a planet's 608ZZ bearing and its pocket.
+	BearingClearance float64
+	// CarrierWall is the width of carrier material around the shaft and around each planet pin.
+	CarrierWall float64
 	// RingWall is the radial wall of the ring behind the tooth roots.
 	RingWall float64
 	// Backlash is how much each tooth of the sun and the planets is thinned at the pitch
@@ -66,8 +67,8 @@ func DefaultParams() Params {
 		CarrierThickness:  3,
 		StageGap:          0.5,
 		ShaftDiameter:     5,
-		PinDiameter:       4,
-		PinClearance:      0.1,
+		BearingClearance:  0.1,
+		CarrierWall:       3,
 		RingWall:          4,
 		Backlash:          0.05,
 		OutputShaftLength: 10,
@@ -81,11 +82,22 @@ func (p Params) Ratio() float64 {
 	return math.Pow(stage, float64(p.Stages))
 }
 
+// planetBearing is the purchased bearing each planet turns on.
+func planetBearing() ballbearing.Params { return ballbearing.Params608ZZ() }
+
+// lipWidth is the radial width of the lip that holds a bearing in its pocket: the lip bore is this much
+// smaller than the bearing's outside radius. lipThickness is the axial thickness of that lip.
+const (
+	lipWidth     = 2
+	lipThickness = 1
+)
+
 // dims are the derived dimensions in millimeters.
 type dims struct {
 	orbit, planetRoot, planetTip float64
 	ringTip, ringRoot, ringOuter float64
-	carrier, planetBore          float64
+	pin, pocket, lip             float64
+	hub, boss, arm               float64
 	stagePitch, ringLength       float64
 }
 
@@ -98,11 +110,16 @@ func derive(p Params) dims {
 		planetTip:  (m*float64(p.PlanetTeeth) + 2*m) / 2,
 		ringTip:    m*float64(p.RingTeeth)/2 - m,
 		ringRoot:   m*float64(p.RingTeeth)/2 + 1.25*m,
-		planetBore: p.PinDiameter + 2*p.PinClearance,
 		stagePitch: p.GearThickness + p.CarrierThickness + 2*p.StageGap,
 	}
+	b := planetBearing()
+	d.pin = b.BoreDiameter
+	d.pocket = b.OuterDiameter + 2*p.BearingClearance
+	d.lip = b.OuterDiameter - 2*lipWidth
+	d.hub = p.ShaftDiameter + 2*p.CarrierWall
+	d.boss = d.pin + 2*p.CarrierWall
+	d.arm = d.pin
 	d.ringOuter = d.ringRoot + p.RingWall
-	d.carrier = d.ringTip - m/2
 	d.ringLength = float64(p.Stages)*d.stagePitch + p.StageGap
 	return d
 }
@@ -114,7 +131,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "ShaftDiameter": p.ShaftDiameter,
-		"PinDiameter": p.PinDiameter, "PinClearance": p.PinClearance, "RingWall": p.RingWall, "Backlash": p.Backlash,
+		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength,
 	} {
 		if !finite(v) {
@@ -131,8 +148,8 @@ func (p Params) Validate() error {
 		{"carrier thickness", p.CarrierThickness, p.CarrierThickness > 0},
 		{"stage gap", p.StageGap, p.StageGap >= 0},
 		{"shaft diameter", p.ShaftDiameter, p.ShaftDiameter > 0},
-		{"pin diameter", p.PinDiameter, p.PinDiameter > 0},
-		{"pin clearance", p.PinClearance, p.PinClearance >= 0},
+		{"bearing clearance", p.BearingClearance, p.BearingClearance >= 0},
+		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
 		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
 		{"output shaft length", p.OutputShaftLength, p.OutputShaftLength > 0},
@@ -183,15 +200,20 @@ func (p Params) validateFit(d dims) error {
 	if p.ShaftDiameter/2 > sunRoot-m {
 		return fmt.Errorf("shaft diameter %v leaves less than one module of wall under the sun root", p.ShaftDiameter)
 	}
-	if d.planetBore/2 > d.planetRoot-m {
-		return fmt.Errorf("planet bore diameter %v leaves less than one module of wall under the planet root", d.planetBore)
+	b := planetBearing()
+	if p.GearThickness-b.Width < lipThickness {
+		return fmt.Errorf("gear thickness %v leaves less than %v for the lip behind a %v wide bearing",
+			p.GearThickness, float64(lipThickness), b.Width)
 	}
-	if p.ShaftDiameter/2+p.PinDiameter/2 >= d.orbit {
-		return fmt.Errorf("shaft diameter %v and pin diameter %v do not fit within orbit radius %v",
-			p.ShaftDiameter, p.PinDiameter, d.orbit)
+	if d.pocket/2 > d.planetRoot-m {
+		return fmt.Errorf("bearing pocket diameter %v leaves less than one module of wall under the planet root", d.pocket)
 	}
-	if d.orbit+p.PinDiameter/2 >= d.carrier {
-		return fmt.Errorf("carrier radius %v does not cover the pins at orbit radius %v", d.carrier, d.orbit)
+	if p.ShaftDiameter/2+d.boss/2 >= d.orbit {
+		return fmt.Errorf("shaft diameter %v and planet pin boss %v do not fit within orbit radius %v",
+			p.ShaftDiameter, d.boss, d.orbit)
+	}
+	if d.orbit+d.boss/2 >= d.ringTip-m/2 {
+		return fmt.Errorf("carrier arms reach radius %v, past the ring's tip radius %v", d.orbit+d.boss/2, d.ringTip)
 	}
 	return nil
 }

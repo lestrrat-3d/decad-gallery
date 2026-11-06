@@ -18,7 +18,10 @@ import (
 type Stage struct {
 	Sun     *decad.Body
 	Planets []*decad.Body
-	// Carrier is the plate, the planet pins and the stub shaft in one solid. The stub of a
+	// Bearings holds one 608ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
+	// bearing; the sun and the stub shaft turn with the carrier that drives them and need none.
+	Bearings []*decad.Body
+	// Carrier is the hub with its arms, the planet pins and the stub shaft in one solid. The stub of a
 	// carrier before the last passes through the next stage's sun; the last carrier's stub is
 	// the output shaft.
 	Carrier *decad.Body
@@ -45,6 +48,11 @@ func SunName(stage int) string { return fmt.Sprintf("Sun Gear %d", stage+1) }
 // PlanetName is the name of planet index of stage (both 0-based).
 func PlanetName(stage, index int) string { return fmt.Sprintf("Planet Gear %d.%d", stage+1, index+1) }
 
+// BearingName is the name of the bearing in planet index of stage (both 0-based).
+func BearingName(stage, index int) string {
+	return fmt.Sprintf("Planet Bearing %d.%d", stage+1, index+1)
+}
+
 // CarrierName is the name of the carrier of stage index (0-based).
 func CarrierName(stage int) string { return fmt.Sprintf("Carrier %d", stage+1) }
 
@@ -56,6 +64,7 @@ func (g Gearbox) Named() []NamedBody {
 		out = append(out, NamedBody{SunName(k), stage.Sun})
 		for i, planet := range stage.Planets {
 			out = append(out, NamedBody{PlanetName(k, i), planet})
+			out = append(out, NamedBody{BearingName(k, i), stage.Bearings[i]})
 		}
 		out = append(out, NamedBody{CarrierName(k), stage.Carrier})
 	}
@@ -130,6 +139,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
+	bearing, err := r.buildBearing(ctx)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
 	var middle *decad.Body
 	if p.Stages > 1 {
 		stubTop := p.CarrierThickness + p.StageGap + p.GearThickness
@@ -143,7 +156,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	}
 
 	// Collect every pose first: each master's last instance retires the master.
-	var sunMoves, planetMoves, middleMoves, lastMoves []r3.Transform
+	var sunMoves, planetMoves, bearingMoves, middleMoves, lastMoves []r3.Transform
 	for k := range p.Stages {
 		z := float64(k) * d.stagePitch
 		m, err := pose(r.frame, 0, 0, 0, z)
@@ -158,6 +171,12 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 				return Gearbox{}, fmt.Errorf("planetarygearbox: planet pose: %w", err)
 			}
 			planetMoves = append(planetMoves, m)
+			m, err = pose(r.frame, 0, d.orbit*math.Cos(phi), d.orbit*math.Sin(phi),
+				z+p.GearThickness-planetBearing().Width)
+			if err != nil {
+				return Gearbox{}, fmt.Errorf("planetarygearbox: bearing pose: %w", err)
+			}
+			bearingMoves = append(bearingMoves, m)
 		}
 		m, err = pose(r.frame, 0, 0, 0, z+p.GearThickness+p.StageGap)
 		if err != nil {
@@ -177,6 +196,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: planets: %w", err)
 	}
+	bearings, err := instances(ctx, bearing, bearingMoves)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: bearings: %w", err)
+	}
 	var middles []*decad.Body
 	if middle != nil {
 		if middles, err = instances(ctx, middle, middleMoves); err != nil {
@@ -190,9 +213,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	carriers := append(middles, lasts...)
 	for k := range p.Stages {
 		box.Stages = append(box.Stages, Stage{
-			Sun:     suns[k],
-			Planets: planets[k*p.PlanetCount : (k+1)*p.PlanetCount],
-			Carrier: carriers[k],
+			Sun:      suns[k],
+			Planets:  planets[k*p.PlanetCount : (k+1)*p.PlanetCount],
+			Bearings: bearings[k*p.PlanetCount : (k+1)*p.PlanetCount],
+			Carrier:  carriers[k],
 		})
 	}
 	return box, nil

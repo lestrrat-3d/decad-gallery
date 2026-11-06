@@ -2,9 +2,11 @@ package planetarygearbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch/param"
@@ -24,17 +26,43 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	return sun, nil
 }
 
-// buildPlanet builds a planet gear about the local origin, from z=0 to the gear thickness.
+// buildPlanet builds a planet gear about the local origin, from z=0 to the gear thickness. It has a
+// pocket for its bearing open on the upper face, deep as the bearing is wide, and a lip below the pocket
+// whose bore is smaller than the bearing so the bearing cannot fall out.
 func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
-	p := r.p
+	p, d := r.p, r.d
 	planet, err := spurgear.Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.PlanetTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: r.d.planetBore, Backlash: p.Backlash,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: d.lip, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("planet gear: %w", err)
 	}
-	return planet, nil
+	// The pocket tool starts at the top of the lip and reaches one millimeter past the upper face.
+	tool, err := r.extrudeDisc(ctx, disc{
+		what: "planet bearing pocket", z: p.GearThickness - planetBearing().Width,
+		length: planetBearing().Width + 1, diameter: d.pocket, expr: "pocket_diameter",
+	})
+	if err != nil {
+		return nil, err
+	}
+	pocketed, err := decad.Cut(ctx, planet, tool)
+	if err != nil {
+		return nil, fmt.Errorf("planet gear: cut bearing pocket: %w", err)
+	}
+	if !pocketed.IsSolid() {
+		return nil, errors.New("planet gear: result is not a solid")
+	}
+	return pocketed, nil
+}
+
+// buildBearing builds a 608ZZ bearing about the local origin, from z=0 to its width.
+func (r *run) buildBearing(ctx context.Context) (*decad.Body, error) {
+	model, err := ballbearing.Build(ctx, r.doc, planetBearing())
+	if err != nil {
+		return nil, fmt.Errorf("planet bearing: %w", err)
+	}
+	return model.Body, nil
 }
 
 // ringTool is the spur pipeline with the ring's radii: the external gear whose teeth are the
