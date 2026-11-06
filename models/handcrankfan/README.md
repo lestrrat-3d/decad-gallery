@@ -27,22 +27,27 @@ corners are rounded. The rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). Each shaft is 8 mm
 with three grooves, and each gear, the crank arm and the fan hub have a bore with three teeth that sit in them, so six
-faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post on its left end and a back wall, 51 mm
+faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post across its left end and a back wall, 51 mm
 wide, 88 mm tall and 80 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and
 both shafts slide in through the post and carry a collar outside it. A bearing sits in a seat in the post, in the crank-side wall,
-in the crank block and in the fan wall and block, so there is no boss or sleeve and the tray prints floor down without
-support: each seat is a teardrop, so its roof is never flatter than 45°. The hub's blade sockets are teardrops too, for
-printing the hub front face down.
+in the crank block and in the fan wall and block, so there is no boss or sleeve. The tray prints in two halves that
+meet on the plane through the crank shaft and the drive shaft, so each of those seats is an open half-trough in each half and
+no bore lies on its side. A half prints with its flat face up, the front half on the fan block and the back half on the
+back wall. The fan shaft is vertical in the front half, and the one seat that opens onto the bed has a 45° cone for a
+ceiling. Four M2 screws and nuts, in ears on the outside, hold the halves together. The hub's blade sockets are plain
+6 mm holes, small enough to print on their side.
 
 ## Parts
 
 Each part is shown once, from the real model, in place at the default pose. A fan has one of each part except
-the grip screws, the bearings, and the blades with their bolts, which are repeated as the names say. The bought parts are
+the gearbox screws, the grip screws, the bearings, and the blades with their bolts, which are repeated as the names say. The bought parts are
 the screws, the nuts and the bearings. Everything else is printed.
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/gearbox.png" alt="Gearbox" width="240"> | Gearbox |
+| <img src="images/parts/gearbox-front.png" alt="Gearbox, front half" width="240"> | Gearbox, front half |
+| <img src="images/parts/gearbox-back.png" alt="Gearbox, back half" width="240"> | Gearbox, back half |
+| <img src="images/parts/gearbox-screw.png" alt="Gearbox screw and nut, M2 x 12 (four)" width="240"> | Gearbox screw and nut, M2 x 12 (four) |
 | <img src="images/parts/grip.png" alt="Grip" width="240"> | Grip |
 | <img src="images/parts/grip-screw.png" alt="Grip screw, M2 x 16 (two)" width="240"> | Grip screw, M2 x 16 (two) |
 | <img src="images/parts/crank-gear.png" alt="Crank gear" width="240"> | Crank gear |

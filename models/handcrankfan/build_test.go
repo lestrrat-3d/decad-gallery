@@ -17,7 +17,7 @@ import (
 
 func partNames(blades int) []string {
 	names := []string{
-		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox", "driving-gear", "crank-shaft", "crank-arm",
+		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox-front", "gearbox-back", "gearbox-bolt-1", "gearbox-bolt-2", "gearbox-bolt-3", "gearbox-bolt-4", "driving-gear", "crank-shaft", "crank-arm",
 		"crank-pin", "crank-grip", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
 		"drive-shaft", "drive-gear", "crank-gear", "bearing-crank-post", "bearing-drive-post", "bearing-crank-wall",
 		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
@@ -36,13 +36,13 @@ func isRotor(name string) bool {
 // parts. The bevel pair and the spur pair, which mesh at their teeth, are left out.
 func isFinished(name string) bool {
 	switch name {
-	case "handle", "gearbox", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt":
+	case "handle", "gearbox-front", "gearbox-back", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt":
 		return true
 	}
 	if strings.HasPrefix(name, "bearing-") {
 		return true
 	}
-	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-")
+	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "gearbox-bolt-")
 }
 
 func buildFan(t *testing.T, p handcrankfan.Params) (*decad.Document, map[string]handcrankfan.Part, *handcrankfan.Assembly) {
@@ -81,7 +81,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 	}
 	// The crank shaft's grooved end is checked at 0.2 mm.
-	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
+	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox-front": 0.1, "gearbox-back": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
 		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "crank-gear": 0.1} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(tolerance), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
@@ -116,7 +116,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		}
 		require.Less(t, b.Max.X, box["crank-pin"].Max.X, "%s is left of the crank", name)
 	}
-	require.Greater(t, box["crank-grip"].Min.X, box["gearbox"].Max.X, "the crank handle is outside the crank bearing block")
+	require.Greater(t, box["crank-grip"].Min.X, box["gearbox-front"].Max.X, "the crank handle is outside the crank bearing block")
 	require.Greater(t, box["crank-shaft"].Max.X, 54.0, "the crank shaft leaves the cover toward +X")
 	require.InDelta(t, 0, (box["fan-shaft"].Min.X+box["fan-shaft"].Max.X)/2, tol, "the fan shaft lies on X = 0")
 	rotorFront := math.Inf(1)
@@ -137,7 +137,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	require.InDelta(t, -76, box["fan-hub"].Max.Y, tol, "the hub back face")
 	// Handheld: the grip hangs under the gearbox floor, is long enough for a hand, and has no stand around it.
 	require.InDelta(t, 101.4, box["handle"].Max.Z, tol, "the grip starts at the gearbox floor")
-	require.InDelta(t, 101.4, box["gearbox"].Min.Z, tol, "the floor is where the grip ends")
+	require.InDelta(t, 101.4-8, box["gearbox-front"].Min.Z, tol, "the ears hang 8 below the floor, beside the grip")
 	require.Greater(t, box["handle"].Max.Z-box["handle"].Min.Z, 100.0, "the grip is long enough for a hand")
 	for name, b := range box {
 		require.GreaterOrEqual(t, b.Min.Z, box["handle"].Min.Z-tol, "%s hangs below the grip end", name)
@@ -316,13 +316,13 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	require.NoError(t, err)
 	layout, err := a.Explode(t.Context(), set)
 	require.NoError(t, err)
-	require.Equal(t, "gearbox", layout.Ground)
+	require.Equal(t, "gearbox-front", layout.Ground)
 	require.Empty(t, layout.Overlaps, "no pair of parts shares space when exploded")
 	span := map[string][2]float64{}
 	for _, part := range layout.Parts {
 		box := bounds(t, built[part.Name])
 		span[part.Name] = [2]float64{box.Min.X + part.Offset.X, box.Max.X + part.Offset.X}
-		if part.Name == "gearbox" {
+		if part.Name == "gearbox-front" {
 			require.Zero(t, part.Offset.Len(), "the gearbox is the ground")
 		} else {
 			require.GreaterOrEqual(t, part.Depth, 1, "%s is joined to the gearbox", part.Name)
@@ -354,7 +354,7 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 2+1+a.Params.Blades, screws, "two grip screws, the pin screw and one screw for each blade")
+	require.Equal(t, 4+2+1+a.Params.Blades, screws, "four ear screws, two grip screws, the pin screw and one screw for each blade")
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 

@@ -95,12 +95,14 @@ var (
 	partFace   = r3.Vec{X: -.8, Y: -.5, Z: .35} // from the left, which shows the face of a gear on the X axis
 	partSide   = r3.Vec{X: .8, Y: -.4, Z: .3}   // from the right, which shows the face of the crank arm
 	partRotor  = r3.Vec{X: .4, Y: -.85, Z: .35} // from the front, along the fan axis
-	partCavity = r3.Vec{X: .6, Y: .5, Z: .6}    // from behind and above, into the tray's open back and top
+	partCavity = r3.Vec{X: .6, Y: .5, Z: .6}    // from behind and above, onto the front half's split face
 	partPinion = r3.Vec{X: .4, Y: -.8, Z: .4}
 )
 
 var handCrankFanParts = []handCrankFanPart{
-	{"gearbox", "gearbox", partCavity},
+	{"gearbox-front", "gearbox-front", partCavity},
+	{"gearbox-back", "gearbox-back", partFront},
+	{"gearbox-screw", "gearbox-bolt-1", partFront},
 	{"grip", "handle", partFront},
 	{"grip-screw", "handle-bolt-1", partFront},
 	{"crank-gear", "crank-gear", partFace},

@@ -119,78 +119,150 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 	return decad.LoftSection{}
 }
 
-// Gearbox dimensions in mm. The gearbox is one tray: a floor, a fan-side wall and a crank-side wall, with a post on its
-// left end and a back wall, open at the top, so the gears drop in from above. The floor is low enough for the crank gear
-// to sit above it, so the spur pair lives in the tray, left of the bevel gear, and the grip hangs from the lowered
-// floor. Each shaft turns in a square bearing block built out from a wall, which makes a long bearing without a boss or
-// a sleeve. Printed floor down, every wall, the post and the blocks are vertical, so nothing needs support.
+// Gearbox dimensions in mm. The gearbox is a tray: a floor, a fan-side wall, a crank-side wall, a back wall and a post
+// on its left end, open at the top, so the gears drop in from above. The floor is low enough for the crank gear to sit
+// above it, so the spur pair lives in the tray, left of the bevel gear, and the grip hangs from the lowered floor. Each
+// shaft turns in a square bearing block built out from a wall, which makes a long bearing without a boss or a sleeve.
+//
+// It prints in two halves, split along the plane Y = 0 that holds the crank shaft and the drive shaft. Each of their
+// bearing seats is cut across the split, so each half holds half of it as an open trough, and no bore lies on its side.
+// A half prints with the split face up: the front half on its fan block, the back half on the back wall. The fan shaft
+// runs along Y, so its seats are vertical holes in the front half. Four ears with M2 screws and nuts hold the halves
+// together.
 const (
 	wallThick    = 9.8
 	crankWallX   = drivingHeel + 0.2 // inner face of the crank-side wall, 0.2 from the driving gear's back face
 	fanWallY     = -pinionHeel - 0.2 // inner face of the fan-side wall, 0.2 from the pinion's back face
-	backWallY    = 29.2              // inner face of the back wall, 0.4 beyond the driving gear's reach
-	boxTop       = 190.0             // the drive shaft's bearing seat is a teardrop whose point is at 185.7, so the walls keep about 4 above it
+	backWallY    = 29.2              // inner face of the back wall, 0.3 beyond the driving gear's reach
+	boxTop       = 190.0             // the top of every wall
 	boxBackY     = backWallY + wallThick
 	boxLeftX     = -20.0
 	boxFloor     = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick
 	cavityFloor  = boxFloor + 5
-	blockHalf    = 15.0                                // the bearing blocks and the post are 30 wide and as tall as the tray
+	blockHalf    = 15.0                                // the bearing blocks are 30 wide at their ends and as tall as the tray
 	fanBlock     = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
 	crankBlock   = 14.0                                // and the crank block this far from the crank-side wall's outer face
 	fanGap       = fanBlock + 10.5                     // from the fan-side wall's outer face to the hub
-	crankFace    = crankWallX + wallThick + crankBlock // the crank block's end face, X 48
-	fanBlockFace = -fanWallY + wallThick + fanBlock    // the fan block's end face, 70 behind the apex
+	crankFace    = crankWallX + wallThick + crankBlock // the crank block's end face, X 45
+	fanBlockFace = -fanWallY + wallThick + fanBlock    // the fan block's end face, 65.5 behind the apex
 	gripY        = fanWallY + 8.2                      // the grip's centre sits this far behind the fan-side wall's inner face
 	gripX        = 7.0                                 // the grip's centre, under the tray
+
+	splitGap = 0.1 // each half stops this far from the split plane
+	earHalf  = 8.0 // an ear reaches this far to each side of the split plane
+	earLen   = 8.0 // and sticks out this far from the tray
+	earBolt  = 12.0
+	earHole  = 1.3 // the ear screw's clearance hole, diameter 2.6
 )
 
-// gearbox builds a rounded block minus a cavity, which leaves the floor, the fan-side wall and the crank-side wall,
-// joins the two bearing blocks, then bores the shaft holes and the two screw holes through it. The cavity
-// is open at the top and the back, and at both ends until the post closes the left one.
+// gearboxEars are the four ears: two under the floor and two on the tops of the post and the crank-side wall, which
+// leaves the grip, the crank's collar and the arm clear.
+var gearboxEars = [...]struct{ x0, x1, z0, z1 float64 }{
+	{-19, -11, boxFloor - earLen, boxFloor + 1},
+	{24.8, 31, boxFloor - earLen, boxFloor + 1},
+	{-19, -11, boxTop - 1, boxTop + earLen},
+	{22, 30, boxTop - 1, boxTop + earLen},
+}
+
+// earAxis is the line of ear i's screw: its hole runs along Y through the ear's middle.
+func earAxis(i int) (x, z float64) {
+	e := gearboxEars[i]
+	if i < 2 {
+		return (e.x0 + e.x1) / 2, e.z0 + earLen/2
+	}
+	return (e.x0 + e.x1) / 2, e.z1 - earLen/2
+}
+
+// gearbox builds the housing as one body, cuts it across the split plane into two halves and adds the screws that
+// hold them together.
 func (b *builder) gearbox() {
-	b.part("gearbox", "housing", "fixed", func() *decad.Body {
-		// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
-		block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
-			[]point2{{fanWallY - wallThick, boxFloor}, {boxBackY, boxFloor}, {boxBackY, boxTop}, {fanWallY - wallThick, boxTop}},
-			[]float64{3, 3, 3, 3}, crankWallX+wallThick-boxLeftX)
-		block = b.roundCaps(block, 2)
-		cavity := b.roundedPrism(frame(r3.Vec{X: boxLeftX - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
-			[]point2{{fanWallY, cavityFloor}, {backWallY, cavityFloor}, {backWallY, boxTop + 1}, {fanWallY, boxTop + 1}},
-			[]float64{3, 3, 0, 0}, crankWallX-boxLeftX+1)
-		cavity = b.roundEnd(cavity, 2)
-		// The post is the part of the block the cavity leaves: a notch in the cavity, on the left end, 22 wide.
-		notch := b.panel(frame(r3.Vec{X: boxLeftX - 2}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), -blockHalf, cavityFloor-1, backWallY+1, boxTop+2,
-			postFace-boxLeftX+2)
-		cavity = b.cut(cavity, notch)
-		body := b.cut(block, cavity)
-		// Each bearing block starts inside the tray so the union has no shared face.
-		square := []point2{{-blockHalf, boxFloor}, {blockHalf, boxFloor}, {blockHalf, boxTop}, {-blockHalf, boxTop}}
-		radii := []float64{3, 3, 3, 3}
-		fanPad := b.roundedPrism(frame(r3.Vec{Y: fanWallY - wallThick + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}), square, radii, fanBlock+1)
-		fanPad = b.roundEnd(fanPad, 2)
-		crankPad := b.roundedPrism(frame(r3.Vec{X: crankWallX + wallThick - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), square, radii, crankBlock+1)
-		crankPad = b.roundEnd(crankPad, 2)
+	var back *decad.Body
+	b.part("gearbox-front", "housing", "fixed", func() *decad.Body {
+		body := b.housing()
 		if b.err != nil {
 			return nil
 		}
-		body = b.union(body, fanPad, crankPad)
-		// A 608 bearing sits where each shaft crosses a wall. The shafts go in through the post from the left. The drive
-		// shaft ends in the crank-side wall's bearing, and the crank shaft goes through that wall and its block. The seats
-		// open at the post's outer face and the block ends and in the walls' inner faces, so each bearing drops in
-		// along its shaft.
-		for _, a := range []shaftAxis{crankSpline, driveSpline} {
-			body = b.seat(body, a, boxLeftX-1, boxLeftX+seatDepth, boxLeftX+7, postFace+1)
-			body = b.seat(body, a, crankWallX-1, crankWallX+seatDepth, crankWallX+seatDepth-0.1, crankWallX+seatDepth+reliefDepth-0.1)
+		other, err := decad.Copy(b.ctx, body)
+		b.fail("copy the housing", err)
+		if b.err != nil {
+			return nil
 		}
-		body = b.hole(body, crankSpline, shaftHole, crankWallX+9.3, crankFace-8.5)
-		body = b.seat(body, crankSpline, crankFace-seatDepth, crankFace+1, crankFace-seatDepth-reliefDepth+0.1, crankFace-seatDepth+0.1)
-		// The fan shaft's two bearings are measured behind the apex.
-		body = b.seat(body, fanSpline, -fanWallY-1, -fanWallY+seatDepth, -fanWallY+seatDepth-0.1, -fanWallY+seatDepth+reliefDepth-0.1)
-		body = b.hole(body, fanSpline, shaftHole, -fanWallY+9.3, fanBlockFace-8.5)
-		body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
-		for _, dx := range []float64{-gripScrewX, gripScrewX} {
-			body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
-		}
-		return body
+		// The front half keeps Y <= -0.1 and the back half Y >= 0.1.
+		front := b.cut(body, b.panel(frame(r3.Vec{Y: 100}, r3.Vec{X: 1}, r3.Vec{Z: 1}), -60, 60, 80, 230, 100+splitGap))
+		back = b.cut(other, b.panel(frame(r3.Vec{Y: -100}, r3.Vec{Z: 1}, r3.Vec{X: 1}), 60, -60, 230, 80, 100+splitGap))
+		return front
 	})
+	b.part("gearbox-back", "housing", "fixed", func() *decad.Body { return back })
+	for i := range gearboxEars {
+		b.part(fmt.Sprintf("gearbox-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
+			x, z := earAxis(i)
+			return b.screw(r3.Vec{X: x, Y: -earHalf + counterboreDepth - hardwareGap, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1},
+				earBolt, 2*earHalf-trapDepth+0.2-counterboreDepth+hardwareGap, 1.0)
+		})
+	}
+}
+
+// housing builds the whole tray before it is split: a rounded block minus a cavity, the two bearing blocks, the ears,
+// the seats and holes for the bearings and the shafts, and the holes for the grip screws and the ear screws.
+func (b *builder) housing() *decad.Body {
+	// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
+	block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
+		[]point2{{fanWallY - wallThick, boxFloor}, {boxBackY, boxFloor}, {boxBackY, boxTop}, {fanWallY - wallThick, boxTop}},
+		[]float64{3, 3, 3, 3}, crankWallX+wallThick-boxLeftX)
+	block = b.roundCaps(block, 2)
+	cavity := b.roundedPrism(frame(r3.Vec{X: boxLeftX - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
+		[]point2{{fanWallY, cavityFloor}, {backWallY, cavityFloor}, {backWallY, boxTop + 1}, {fanWallY, boxTop + 1}},
+		[]float64{3, 3, 0, 0}, crankWallX-boxLeftX+1)
+	cavity = b.roundEnd(cavity, 2)
+	// The post is the part of the block the cavity leaves: a notch in the cavity, on the left end, across its whole
+	// width, so the post closes the end of the tray.
+	notch := b.panel(frame(r3.Vec{X: boxLeftX - 2}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), fanWallY-1, cavityFloor-1, backWallY+1, boxTop+2,
+		postFace-boxLeftX+2)
+	cavity = b.cut(cavity, notch)
+	body := b.cut(block, cavity)
+	// Each bearing block starts inside the tray so the union has no shared face. Both are trapezoids seen from above: they
+	// widen toward their wall at 45° or less, so the half that prints on them never overhangs.
+	wallOuterX, wallOuterY := crankWallX+wallThick, fanWallY-wallThick
+	tall := boxTop - boxFloor
+	crankPad := b.polygonPrism(frame(r3.Vec{Z: boxFloor}, r3.Vec{X: 1}, r3.Vec{Y: 1}), []point2{
+		{wallOuterX - 1, -(blockHalf + crankBlock + 1)}, {crankFace, -blockHalf}, {crankFace, blockHalf}, {wallOuterX - 1, blockHalf + crankBlock + 1},
+	}, tall)
+	fanPad := b.polygonPrism(frame(r3.Vec{Z: boxFloor}, r3.Vec{X: 1}, r3.Vec{Y: 1}), []point2{
+		{boxLeftX + 1, wallOuterY + 1}, {wallOuterX - 1, wallOuterY + 1}, {blockHalf, -fanBlockFace}, {-blockHalf, -fanBlockFace},
+	}, tall)
+	if b.err != nil {
+		return nil
+	}
+	parts := []*decad.Body{body, fanPad, crankPad}
+	for _, e := range gearboxEars {
+		parts = append(parts, b.panel(frame(r3.Vec{X: e.x0}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), -earHalf, e.z0, earHalf, e.z1, e.x1-e.x0))
+	}
+	body = b.union(parts...)
+	// A 608 bearing sits where each shaft crosses a wall. The shafts go in through the post from the left. The drive
+	// shaft ends in the crank-side wall's bearing, and the crank shaft goes through that wall and its block. The seats
+	// open at the post's outer face and the block ends and in the walls' inner faces, so each bearing drops in along its
+	// shaft. The crank and drive shafts' seats are cut across the split plane.
+	for _, a := range []shaftAxis{crankSpline, driveSpline} {
+		body = b.seat(body, a, boxLeftX-1, boxLeftX+seatDepth, boxLeftX+7, postFace+1)
+		body = b.seat(body, a, crankWallX-1, crankWallX+seatDepth, crankWallX+seatDepth-0.1, crankWallX+seatDepth+reliefDepth-0.1)
+	}
+	body = b.hole(body, crankSpline, shaftHole, crankWallX+9.3, crankFace-8.5)
+	body = b.seat(body, crankSpline, crankFace-seatDepth, crankFace+1, crankFace-seatDepth-reliefDepth+0.1, crankFace-seatDepth+0.1)
+	// The fan shaft's two bearings are measured behind the apex. They are vertical holes in the front half: the wall's
+	// seat opens upward and the block's opens downward on the bed, with a 45° cone for a ceiling.
+	body = b.seat(body, fanSpline, -fanWallY-1, -fanWallY+seatDepth, -fanWallY+seatDepth-0.1, -fanWallY+seatDepth+reliefDepth-0.1)
+	body = b.hole(body, fanSpline, shaftHole, -fanWallY+9.3, fanBlockFace-seatDepth-(reliefRadius-shaftHole)+1)
+	body = b.funnelSeat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1)
+	for _, dx := range []float64{-gripScrewX, gripScrewX} {
+		body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
+	}
+	// Each ear has a hole, a counterbore for the screw's head on the front side and a hex trap for its nut on the back side.
+	// The Y axis is vertical when a half prints, so all three are vertical holes.
+	for i := range gearboxEars {
+		x, z := earAxis(i)
+		body = b.cut(body, b.cylinder(frame(r3.Vec{X: x, Y: -earHalf - 1, Z: z}, r3.Vec{Z: 1}, r3.Vec{X: 1}), earHole, 2*earHalf+2))
+		body = b.cut(body, b.cylinder(frame(r3.Vec{X: x, Y: -earHalf - 1, Z: z}, r3.Vec{Z: 1}, r3.Vec{X: 1}), counterboreRadius, 1+counterboreDepth))
+		body = b.cut(body, b.hexagon(frame(r3.Vec{X: x, Y: earHalf + 1, Z: z}, r3.Vec{Z: -1}, r3.Vec{X: 1}), trapFlats, 1+trapDepth))
+	}
+	return body
 }

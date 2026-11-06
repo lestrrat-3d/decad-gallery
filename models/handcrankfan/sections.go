@@ -245,27 +245,20 @@ func (b *builder) roundedPrism(f r3.Frame, xy []point2, radii []float64, length 
 	return b.extrude(s, 0, length)
 }
 
-// teardrop draws a round bore of radius r with a pointed top: the circle plus a cap of two lines tangent to it at 45°
-// from the +U axis that meet at the point on U, r*sqrt(2) from the origin. A bore printed lying down has no flat roof
-// to bridge, because no part of the roof is flatter than 45°.
-func teardrop(s *sketch.Sketch, r float64) {
-	if s == nil {
-		return
-	}
-	k := r / math.Sqrt2
-	start := sketchcheck.DimensionArcEnd(s, k, k)
-	end := sketchcheck.DimensionArcEnd(s, k, -k)
-	tip := sketchcheck.DimensionPoint(s, r*math.Sqrt2, 0)
-	// The arc runs counterclockwise the long way round, away from the point.
-	s.AddConstraint(sketch.NewRadius(s.CreateArc(s.Origin(), start, end), r))
-	s.CreateLine(end, tip)
-	s.CreateLine(tip, start)
-}
-
-// teardropPrism extrudes a teardrop bore along f's normal; the point is on f's U axis.
-func (b *builder) teardropPrism(f r3.Frame, r, length float64) *decad.Body {
+// polygonPrism extrudes the closed polygon through pts along f's normal. Every vertex is dimensioned from the origin,
+// as the crank handle's profile is, because the edges are slanted.
+func (b *builder) polygonPrism(f r3.Frame, pts []point2, length float64) *decad.Body {
 	s := b.section(f)
-	teardrop(s, r)
+	if s == nil {
+		return nil
+	}
+	points := make([]*sketch.Point, len(pts))
+	for i, p := range pts {
+		points[i] = sketchcheck.DimensionPoint(s, p.u, p.v)
+	}
+	for i := range points {
+		s.CreateLine(points[i], points[(i+1)%len(points)])
+	}
 	return b.extrude(s, 0, length)
 }
 

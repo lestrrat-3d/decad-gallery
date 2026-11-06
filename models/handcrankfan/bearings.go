@@ -6,6 +6,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 )
 
 // Shaft, bearing and spline dimensions in mm. Every shaft is 7.8 across, which is an 8 mm shaft with the model's usual 0.1
@@ -64,18 +65,32 @@ func (b *builder) splineCut(host *decad.Body, a shaftAxis, from, length float64)
 	return b.cut(host, tool)
 }
 
-// hole cuts a hole of radius r about the shaft's axis from host between t0 and t1. The housing prints floor down, so
-// these holes lie on their sides, and each has a teardrop's pointed top (spokeFrame's U axis points up) that prints
-// without support.
+// hole cuts a round hole of radius r about the shaft's axis from host between t0 and t1.
 func (b *builder) hole(host *decad.Body, a shaftAxis, r, t0, t1 float64) *decad.Body {
-	return b.cut(host, b.teardropPrism(a.spokeFrame(t0, 0), r, t1-t0))
+	return b.cut(host, b.cylinder(a.spokeFrame(t0, 0), r, t1-t0))
 }
 
-// seatPair cuts a bearing seat into host: the round pocket between t0 and t1 and a relief bore from r0 to r1 that
-// frees the inner ring where the pocket's floor is.
+// seat cuts a bearing seat into host: the round pocket between pocket0 and pocket1 and a relief bore between relief0
+// and relief1 that frees the inner ring where the pocket's floor is.
 func (b *builder) seat(host *decad.Body, a shaftAxis, pocket0, pocket1, relief0, relief1 float64) *decad.Body {
 	host = b.hole(host, a, seatRadius, pocket0, pocket1)
 	return b.hole(host, a, reliefRadius, relief0, relief1)
+}
+
+// funnelSeat cuts a bearing seat whose relief is a 45° cone that narrows toward smaller t, from the seat's floor at
+// floor to the plain hole. The seat opens toward larger t, at mouth. Printed with the mouth down, the pocket's walls
+// are vertical, the ledge for the bearing is 1.6 wide and the cone is no flatter than 45°, so the seat needs no
+// support.
+func (b *builder) funnelSeat(host *decad.Body, a shaftAxis, floor, mouth float64) *decad.Body {
+	host = b.hole(host, a, seatRadius, floor, mouth)
+	cone := b.cylinder(a.spokeFrame(floor-(reliefRadius-shaftHole)-0.1, 0), reliefRadius, reliefRadius-shaftHole+0.2)
+	if b.err != nil || cone == nil {
+		return nil
+	}
+	chamfered, err := decad.Chamfer(b.ctx, cone, decad.Edges(decad.OuterLoopOf(decad.CapStart(cone))),
+		units.Millimeters(reliefRadius-shaftHole))
+	b.fail("chamfer relief cone", err)
+	return b.cut(host, chamfered)
 }
 
 // bearing builds the 608-2RS envelope that sits on the shaft from t to t + 7.
