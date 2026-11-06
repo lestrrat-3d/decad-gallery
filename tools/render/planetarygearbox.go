@@ -133,6 +133,51 @@ func planetaryGearboxHero(ctx context.Context) (solidlens.Scene, error) {
 	return planetaryHeroScene(ctx, box)
 }
 
+// planetaryView is a named camera for the assembled gearbox. The gearbox axis is +Z, the input shaft sticks out of
+// the bottom and the output shaft out of the top.
+type planetaryView struct {
+	// shot is the preset suffix and the image file name.
+	shot   string
+	camera solidlens.Camera
+}
+
+// planetaryViews are the cameras of the assembled, uncut gearbox: obliquely at the output end from above, at the
+// input end from below, and from the side, where both shaft ends show.
+var planetaryViews = []planetaryView{
+	{"output", solidlens.Camera{Position: solidlens.Vec{X: 150, Y: -250, Z: 240}, Target: solidlens.Vec{Z: 18},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+	{"input", solidlens.Camera{Position: solidlens.Vec{X: -150, Y: -250, Z: -190}, Target: solidlens.Vec{Z: 8},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+	{"side", solidlens.Camera{Position: solidlens.Vec{X: 40, Y: -340, Z: 40}, Target: solidlens.Vec{Z: 12},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+}
+
+// planetaryAssembledScene draws the whole two-stage gearbox with nothing cut, from view.
+func planetaryAssembledScene(ctx context.Context, box planetarygearbox.Gearbox, view planetaryView) (solidlens.Scene, error) {
+	var models []solidlens.Model
+	for _, body := range planetaryBodies(box) {
+		mesh, err := planetaryMesh(ctx, body)
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		models = append(models, planetaryModel(mesh, body, false))
+	}
+	return bevelScene(fitCamera(view.camera, models, 16.0/9, bevelViewMargin), models), nil
+}
+
+func init() {
+	for _, view := range planetaryViews {
+		presets["planetarygearbox/assembled-"+view.shot] = preset{width: 1200, height: 675,
+			scene: func(ctx context.Context) (solidlens.Scene, error) {
+				box, _, err := buildPlanetaryGearbox(ctx, 2)
+				if err != nil {
+					return solidlens.Scene{}, err
+				}
+				return planetaryAssembledScene(ctx, box, view)
+			}}
+	}
+}
+
 // planetaryPart is one unique part of the gearbox, as the README's parts table lists it.
 type planetaryPart struct {
 	// shot is the preset suffix and the image file name.
@@ -207,8 +252,8 @@ func planetaryPartPreset(part planetaryPart) func(context.Context) (solidlens.Sc
 	}
 }
 
-// renderPlanetaryGearboxReadme writes the index image, the hero, one image per unique part and the motion
-// animation. The part images go in the parts directory beside them.
+// renderPlanetaryGearboxReadme writes the index image, the hero, the assembled views, one image per unique part and
+// the motion animation. The part images go in the parts directory beside them.
 func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	box, _, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
@@ -236,5 +281,16 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox part %s: %w", part.shot, err)
 		}
 	}
-	return renderPlanetaryMotion(ctx, filepath.Join(outputDir, "motion.gif"), 640, 360, planetaryMotionFrames)
+	for _, view := range planetaryViews {
+		scene, err := planetaryAssembledScene(ctx, box, view)
+		if err != nil {
+			return err
+		}
+		name := filepath.Join(outputDir, "assembled-"+view.shot+".png")
+		if err := renderPNG(ctx, name, scene, 1200, 675); err != nil {
+			return fmt.Errorf("render planetary gearbox assembled %s: %w", view.shot, err)
+		}
+	}
+	return renderPlanetaryMotion(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth, planetaryMotionHeight,
+		planetaryMotionFrames)
 }

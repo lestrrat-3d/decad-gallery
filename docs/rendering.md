@@ -112,16 +112,21 @@ are cut open with solidlens `Model.Clip` along the plane through the axis that h
 toward negative Y, and the camera looks from that side; every other part is drawn whole. The `readme` shot writes
 the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes one 480 × 270 pixel
 image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
-shaft, the linking carrier and the output carrier. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
+shaft, the linking carrier and the output carrier. It also writes three 1200 × 675 pixel views of the whole two-stage
+gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
+`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
 `part-planet`, `part-bearing`, `part-input-shaft`, `part-linking-carrier` and `part-output-carrier` presets render one
 of them alone. The carriers and the shaft are seen from almost level with them so the pins and the stub show.
 
-The `motion` shot writes `images/motion.gif`, 640 × 360 pixels and 48 frames, of the default one-stage gearbox with the
-same cutaway. Each frame moves the tessellated bodies rigidly: the input shaft and sun turn by the input angle, the
-carrier by Zs/(Zs+Zr) of it, and each planet is carried around with its carrier while turning by -Zr/Zp of the
-carrier's angle about its own axis. The animation covers a third of a carrier turn, after which the planets have
-swapped places and the loop closes. All frames share one 255-color palette made from the colors the frames use most.
-The `readme` shot writes it too.
+The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 56 frames, of the two-stage gearbox in three
+panels: the hero's cutaway, the input end from below and the output end from above, with a caption strip that reads
+the input and output shaft angles. Each frame moves the tessellated bodies rigidly: the input shaft and first sun
+turn by the input angle, each carrier by Zs/(Zs+Zr) of its sun's angle, the next sun with the carrier before it, and
+each planet is carried around with its carrier while turning by -Zr/Zp of the carrier's angle about its own axis.
+Each frame turns the input by half the sun's tooth pitch, so the sun's teeth do not seem to run backward; 56 frames
+are a third of a turn of the first carrier. All frames share one 255-color palette made from the colors the frames
+use most, and each frame after the first stores only the box around the pixels that changed. The `readme` shot
+writes it too.
 
 ```sh
 go -C tools/render run . -model planetarygearbox -shot readme -out ../../models/planetarygearbox/images

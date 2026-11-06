@@ -78,10 +78,10 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	}
 	if model == "planetarygearbox" && shot == "motion" {
 		if width == 0 {
-			width = 640
+			width = planetaryMotionWidth
 		}
 		if height == 0 {
-			height = 360
+			height = planetaryMotionHeight
 		}
 		return renderPlanetaryMotion(ctx, output, width, height, planetaryMotionFrames)
 	}

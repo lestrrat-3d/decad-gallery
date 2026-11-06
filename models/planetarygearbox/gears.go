@@ -16,14 +16,30 @@ import (
 // buildSun builds the sun gear about the local origin, from z=0 to the gear thickness.
 func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	p := r.p
+	// A D-shaped bore is cut after the gear is built; a round one is the spur gear's own bore.
+	bore := r.d.shaft
+	if p.ShaftFlat > 0 {
+		bore = 0
+	}
 	sun, err := spurgear.Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.SunTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: r.d.shaft, Backlash: p.Backlash,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: bore, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: %w", err)
 	}
-	return sun, nil
+	if p.ShaftFlat == 0 {
+		return sun, nil
+	}
+	tool, err := r.extrudeShaft(ctx, "sun bore tool", -1, p.GearThickness+2)
+	if err != nil {
+		return nil, err
+	}
+	bored, err := decad.Cut(ctx, sun, tool)
+	if err != nil {
+		return nil, fmt.Errorf("sun gear: cut D bore: %w", err)
+	}
+	return bored, nil
 }
 
 // buildPlanet builds a planet gear about the local origin, from z=0 to the gear thickness. It has a

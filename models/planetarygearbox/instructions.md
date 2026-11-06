@@ -26,8 +26,10 @@ The input and the output connect as follows. The input shaft is an 8 mm rod: it 
 front cover's bearing and fills the first sun's bore. The first carrier's stub shaft is also 8 mm
 and fills the next sun's bore, which is how stages link. The last carrier's stub passes through
 the rear cover's bearing and is the output shaft. Every shaft is 8 mm because the 608ZZ bore is 8
-mm. The shafts are plain cylinders; the contract does not model the key, flat or set screw that
-would lock a shaft to its sun, or the coupling to a motor.
+mm. Each shaft is a D: a cylinder with one flat, `Sf` deep, on its +X side. The sun's bore is the same D, so
+the input shaft turns the first sun, and each carrier's stub turns the next sun, without slipping. The flat
+also lets a coupling grip the input and output shaft ends. The contract does not model the coupling, a set
+screw or the motor.
 
 Lengths are millimeters and angles are radians. The gearbox is anchored by one `r3.Frame`:
 its origin is a point on the gearbox axis, `U × V` is the axis direction, and the first
@@ -49,6 +51,7 @@ origin, so the axis is world +Z.
 | `g` | `StageGap` | float64 | 0.5 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
 | `db'` | `BoltHoleDiameter` | float64 | 3.4 | Diameter of the four clearance holes through the ring and the covers |
+| `Sf` | `ShaftFlat` | float64 | 1 | Depth of the flat on each shaft and in each sun bore; zero leaves round shafts and round bores |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.1 | Radial clearance between a planet's bearing and its pocket |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around the shaft and around each planet pin |
@@ -105,6 +108,7 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
   `2 a sin(π/n)` must be at least the planet tip diameter plus `m/4`.
 - Reject a sun bore (`ds`) that leaves less than `m` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
+- Reject `Sf < 0` or `Sf > db/4`.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
@@ -118,7 +122,9 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 All three gears are involute spur gears of one module and pressure angle, built by
 `models/spurgear`. Do not copy its geometry.
 
-- Sun: `Zs` teeth, thickness `T`, centered bore of diameter `ds`, spur backlash `j`.
+- Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's cross-section: a circle
+  of diameter `ds` cut by the line `Sf` inside its +X edge (a round bore when `Sf = 0`). The D bore is cut after
+  the gear is built, with a tool of that section.
 - Planet: `Zp` teeth, thickness `T`, centered bore of the lip bore diameter, spur backlash `j`.
   A bearing pocket of the pocket diameter is then cut from the planet's upper face, `Wb` deep,
   which leaves a lip `T - Wb` thick under it with the lip bore through it. The lip bore is
@@ -160,7 +166,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
   from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
 - Bearing: a 608ZZ envelope fills the boss pocket and rests on the frame.
-- Input shaft: a cylinder of diameter `ds` on the axis from `Li` below the front boss to level with the
+- Input shaft: a D-shaped rod of the shaft cross-section on the axis from `Li` below the front boss to level with the
   first sun's top. It passes through the front bearing's bore and fills the first sun's bore.
 
 ## Axial layout
@@ -175,7 +181,7 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - Carrier `k`'s hub and arms lie in `[kP + T + g, kP + T + g + Tc]`. `n` pins of diameter `dp` hang
   from the arm ends at the planet centers down to `z = kP`, and pass through the bearings and the
   lip bores.
-- Stub shaft of carrier `k`: a cylinder of diameter `ds` on the axis from the carrier's
+- Stub shaft of carrier `k`: a D-shaped rod of the shaft cross-section on the axis from the carrier's
   midplane up. For `k < K - 1` it ends at the top of sun `k + 1`, `(k + 1) P + T`, and
   passes through that sun's bore. For the last carrier it is the output shaft and ends `Lo` above the
   rear cover's boss, at `K P + Tv + Wb + Lo`.
@@ -196,6 +202,7 @@ pins hang from the arm ends down to `z = kP` and the stub shaft rises from the h
 The gearbox records its inputs and derived dimensions as named entries of the document's
 parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_teeth`,
 `planet_count`, `stage_count`, `tooth_backlash`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
+`cover_thickness`, `bolt_hole_diameter`, `input_shaft_length`, `shaft_flat_depth`,
 `bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
 `bearing_clearance`, `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
@@ -218,6 +225,7 @@ verify their own sketches.
 | --- | --- | --- |
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, all solids; ratio 1 + 71/13 |
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers; the first carrier's stub fills the second sun's bore |
+| Shaft flats | Default | The input shaft has a flat on +X and the first sun's bore has the matching D: at the flat the shaft is absent and the sun present, elsewhere in the bore the shaft is present and the sun absent; the shaft's volume is a round rod's less the flat's segment; in a two-stage gearbox the first carrier's stub fills the second sun's D bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the bearing is 22 mm across, 7 mm wide and level with the planet's upper face; the planet weighs the plain gear with the lip bore minus the pocket's ring |
 | Carrier | Default | Material lies along an arm and not between two arms at the same radius; the carrier weighs less than a plate that reaches as far as the arms |
@@ -232,6 +240,7 @@ verify their own sketches.
 Build the Default case first. Check every sketch's constraint status, each body's
 solidity, bounds and volume, the meshing phase, and the stub and pin fit. Check the Two
 stages case once the Default passes. Render the real body through `tools/render/`: the hero shows
-the assembled two-stage gearbox with the ring and both covers cut open along the XZ plane, and an
-animation shows the one-stage gearbox turning, its parts moved rigidly with the kinematic angles
-(carrier `Zs/(Zs+Zr)` of the sun's, planet `1 - Zr/Zp` of the carrier's).
+the assembled two-stage gearbox with the ring and both covers cut open along the XZ plane, three more images show
+it assembled and uncut from the output end, the input end and the side, and an animation shows the two-stage
+gearbox turning from three cameras, its parts moved rigidly with the kinematic angles (carrier `Zs/(Zs+Zr)` of
+its sun's, planet `1 - Zr/Zp` of its carrier's).

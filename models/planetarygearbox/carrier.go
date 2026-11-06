@@ -182,10 +182,7 @@ func (r *run) buildCarrier(ctx context.Context, stubTop float64) (*decad.Body, e
 	if err != nil {
 		return nil, fmt.Errorf("carrier pins: pattern: %w", err)
 	}
-	stub, err := r.extrudeDisc(ctx, disc{
-		what: "carrier stub shaft", z: p.CarrierThickness / 2, length: stubTop - p.CarrierThickness/2,
-		diameter: d.shaft, expr: "shaft_diameter",
-	})
+	stub, err := r.extrudeShaft(ctx, "carrier stub shaft", p.CarrierThickness/2, stubTop-p.CarrierThickness/2)
 	if err != nil {
 		return nil, err
 	}
@@ -198,4 +195,46 @@ func (r *run) buildCarrier(ctx context.Context, stubTop float64) (*decad.Body, e
 		return nil, errors.New("carrier: result is not a solid")
 	}
 	return carrier, nil
+}
+
+// extrudeShaft extrudes a shaft cross-section from z up length. With a nonzero flat it is a D: a circle of the
+// shaft diameter cut by a line ShaftFlat inside its +X edge, so the flat faces the sun's tooth zero. The sun bore
+// tool is the same section, so a shaft and its bore match. The section has two curves, a long arc about the
+// origin and the line that closes it, and is anchored by dimensioning the line's upper end from the origin; its
+// lower end lies on the arc, so the arc's radius relation fixes the rest.
+func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
+	if r.p.ShaftFlat == 0 {
+		return r.extrudeDisc(ctx, disc{what: what, z: z, length: length, diameter: r.d.shaft, expr: "shaft_diameter"})
+	}
+	radius := r.d.shaft / 2
+	flat := radius - r.p.ShaftFlat
+	half := math.Sqrt(radius*radius - flat*flat)
+	plane, err := r.planeAt(z)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", what, err)
+	}
+	s, err := r.world.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("%s: sketch: %w", what, err)
+	}
+	upper := sketchcheck.DimensionPoint(s, flat, half)
+	lower := sketchcheck.DimensionArcEnd(s, flat, -half)
+	s.CreateArc(s.Origin(), upper, lower)
+	s.CreateLine(lower, upper)
+	if _, err := s.Solve(ctx); err != nil {
+		return nil, fmt.Errorf("%s: solve: %w", what, err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, fmt.Errorf("%s: verify: %w", what, err)
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 1 || !profiles[0].Valid || len(profiles[0].Outer) != 2 {
+		return nil, fmt.Errorf("%s: expected one valid 2-curve profile, got %d profiles", what, len(profiles))
+	}
+	body, err := decad.Extrude(ctx, r.doc, s, profiles[0],
+		decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	if err != nil {
+		return nil, fmt.Errorf("%s: extrude: %w", what, err)
+	}
+	return body, nil
 }

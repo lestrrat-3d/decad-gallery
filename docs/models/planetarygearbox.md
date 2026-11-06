@@ -16,7 +16,8 @@ display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets 
 
 Set `Params.Stages` to stack more stages in the same ring. Each carrier's stub shaft runs through the next stage's
 sun bore, and the last carrier's stub runs through the rear cover's bearing and is the output shaft. Every shaft is
-as wide as the bearing bore, 8 mm. `Params.Ratio` returns the reduction with the ring held.
+as wide as the bearing bore, 8 mm, with a flat `Params.ShaftFlat` deep on its +X side; the sun's bore is cut with the
+same D section, so each shaft drives its sun. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
 `Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.
@@ -47,5 +48,5 @@ Run `go test ./models/planetarygearbox`; it takes about 90 seconds. The tests bu
 placed gearboxes, and check that no planet vertex lies inside the sun or the ring and that a planet turned half a
 tooth does. The sketches are checked for full constraint inside the build.
 
-The [renderer](../rendering.md) draws the hero from a two-stage gearbox with the ring and covers cut open, and the
-animation from a one-stage gearbox.
+The [renderer](../rendering.md) draws the hero from a two-stage gearbox with the ring and covers cut open, three
+assembled views of it, and an animation of it turning.

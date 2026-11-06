@@ -36,6 +36,10 @@ type Params struct {
 	CoverThickness float64
 	// BoltHoleDiameter is the diameter of the four clearance holes that join the covers and the ring.
 	BoltHoleDiameter float64
+	// ShaftFlat is the depth of the flat on each shaft, the input shaft and every carrier's stub. A flat turns the
+	// shaft into a D, and the sun bore it fills is the same D, so the shaft carries torque into the sun. Zero
+	// leaves round shafts and round bores.
+	ShaftFlat float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
 	// BearingClearance is the radial clearance between a planet's 608ZZ bearing and its pocket.
@@ -71,6 +75,7 @@ func DefaultParams() Params {
 		StageGap:          0.5,
 		CoverThickness:    3,
 		BoltHoleDiameter:  3.4,
+		ShaftFlat:         1,
 		InputShaftLength:  12,
 		BearingClearance:  0.1,
 		CarrierWall:       3,
@@ -150,7 +155,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "CoverThickness": p.CoverThickness,
-		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength,
+		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "ShaftFlat": p.ShaftFlat,
 		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength,
 	} {
@@ -170,6 +175,7 @@ func (p Params) Validate() error {
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
+		{"shaft flat", p.ShaftFlat, p.ShaftFlat >= 0 && p.ShaftFlat <= planetBearing().BoreDiameter/4},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= 0},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},

@@ -206,9 +206,7 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 // starts InputShaftLength below the front cover's bearing boss and ends flush with the top of the first
 // sun, so it fills the sun's bore.
 func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
-	p, d := r.p, r.d
+	p := r.p
 	start := -(p.StageGap + p.CoverThickness + planetBearing().Width + p.InputShaftLength)
-	return r.extrudeDisc(ctx, disc{
-		what: "input shaft", z: start, length: p.GearThickness - start, diameter: d.shaft, expr: "shaft_diameter",
-	})
+	return r.extrudeShaft(ctx, "input shaft", start, p.GearThickness-start)
 }

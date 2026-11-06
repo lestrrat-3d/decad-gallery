@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/gif"
 	"image/png"
 	"math"
@@ -16,15 +17,29 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
 )
 
-// planetaryMotionFrames is the frame count of the motion animation. The default one-stage gearbox looks the
-// same again after its carrier turns a third of a turn, because the three planets then swap places and every
-// tooth count divides evenly, so the animation covers exactly that and loops without a jump.
-const planetaryMotionFrames = 48
+// planetaryMotionFrames is the frame count of the motion animation. Each frame turns the input by half the sun's
+// tooth pitch, so the sun's teeth never seem to run backward, and 56 frames are exactly a third of a turn of the
+// first carrier: the first stage looks the same again at the end. The second stage and the output shaft are not
+// back where they started, so the animation jumps when it repeats.
+const planetaryMotionFrames = 56
 
 // planetaryMotionDelay is the time of one frame in hundredths of a second.
 const planetaryMotionDelay = 5
+
+// planetaryMotionWidth and planetaryMotionHeight are the size of the animation: three panels side by side with a
+// caption strip above and below them.
+const (
+	planetaryMotionWidth  = 960
+	planetaryMotionHeight = 320
+)
+
+// planetaryCaptionHeight is the height of each of the two caption strips.
+const planetaryCaptionHeight = 18
 
 // planetaryMover moves one body of the gearbox for an input angle. A nil move leaves the body where it is.
 type planetaryMover struct {
@@ -96,9 +111,9 @@ func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planet
 	return movers, nil
 }
 
-// planetaryPoseModels returns the models of movers for one input angle. Fixed bodies keep their meshes; a
+// planetaryPoseModels returns the models of movers for one input angle, with the housing cut open when cut is set. Fixed bodies keep their meshes; a
 // moving body's vertices are moved rigidly, so every frame draws the real tessellated bodies.
-func planetaryPoseModels(movers []planetaryMover, input float64) ([]solidlens.Model, error) {
+func planetaryPoseModels(movers []planetaryMover, input float64, cut bool) ([]solidlens.Model, error) {
 	models := make([]solidlens.Model, len(movers))
 	for i, mover := range movers {
 		mesh := mover.mesh
@@ -117,15 +132,34 @@ func planetaryPoseModels(movers []planetaryMover, input float64) ([]solidlens.Mo
 			}
 			mesh = moved
 		}
-		models[i] = planetaryModel(mesh, mover.body, true)
+		models[i] = planetaryModel(mesh, mover.body, cut)
 	}
 	return models, nil
 }
 
-// renderPlanetaryMotion writes an animation of the default one-stage gearbox, ring and covers cut open, as its
-// input turns. The first frame is the assembled gearbox at rest.
+// planetaryMotionPanel is one camera of the animation and its caption.
+type planetaryMotionPanel struct {
+	caption string
+	camera  solidlens.Camera
+	cut     bool
+}
+
+// planetaryMotionPanels are the animation's three views: the hero's cutaway, the input end seen from below and the
+// output end seen from above.
+func planetaryMotionPanels() []planetaryMotionPanel {
+	return []planetaryMotionPanel{
+		{"Cutaway", planetaryHeroCamera, true},
+		{"Input end", planetaryViews[1].camera, false},
+		{"Output end", planetaryViews[0].camera, false},
+	}
+}
+
+// renderPlanetaryMotion writes an animation of the two-stage gearbox as its input turns, from three cameras: the
+// cutaway of the hero, the input end and the output end. Both shafts carry their flat, so the turning of the
+// input and the much slower turning of the output show. The first frame is the gearbox at rest, and a caption
+// strip below the panels reads the input and output angles.
 func renderPlanetaryMotion(ctx context.Context, output string, width, height, frames int) error {
-	box, p, err := buildPlanetaryGearbox(ctx, 1)
+	box, p, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
 		return err
 	}
@@ -133,39 +167,60 @@ func renderPlanetaryMotion(ctx context.Context, output string, width, height, fr
 	if err != nil {
 		return err
 	}
-	rest, err := planetaryPoseModels(movers, 0)
-	if err != nil {
-		return err
+	panels := planetaryMotionPanels()
+	panelWidth, panelHeight := width/len(panels), height-2*planetaryCaptionHeight
+	cameras := make([]solidlens.Camera, len(panels))
+	for i, panel := range panels {
+		rest, err := planetaryPoseModels(movers, 0, panel.cut)
+		if err != nil {
+			return err
+		}
+		cameras[i] = fitCamera(panel.camera, rest, float64(panelWidth)/float64(panelHeight), bevelViewMargin)
 	}
-	camera := fitCamera(planetaryHeroCamera, rest, float64(width)/float64(height), bevelViewMargin)
-	// A third of a carrier turn is (Zs+Zr)/Zs sun turns per carrier turn, three times over.
-	input := 2 * math.Pi / float64(p.PlanetCount) * float64(p.SunTeeth+p.RingTeeth) / float64(p.SunTeeth)
+	step := math.Pi / float64(p.SunTeeth)
+	ratio := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth)
+	background := solidlens.RGB(.94, .96, .98).NRGBA()
+	face := basicfont.Face7x13
 	var rendered []image.Image
 	for frame := range frames {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		models, err := planetaryPoseModels(movers, input*float64(frame)/float64(frames))
-		if err != nil {
-			return err
+		input := step * float64(frame)
+		canvas := image.NewRGBA(image.Rect(0, 0, width, height))
+		draw.Draw(canvas, canvas.Bounds(), image.NewUniform(background), image.Point{}, draw.Src)
+		for i, panel := range panels {
+			models, err := planetaryPoseModels(movers, input, panel.cut)
+			if err != nil {
+				return err
+			}
+			var buffer bytes.Buffer
+			scene := bevelScene(cameras[i], models)
+			if err := solidlens.RenderPNG(ctx, &buffer, scene, solidlens.Settings{Width: panelWidth, Height: panelHeight}); err != nil {
+				return fmt.Errorf("render frame %d panel %d: %w", frame, i, err)
+			}
+			img, err := png.Decode(&buffer)
+			if err != nil {
+				return fmt.Errorf("decode frame %d panel %d: %w", frame, i, err)
+			}
+			at := image.Rect(i*panelWidth, planetaryCaptionHeight, (i+1)*panelWidth, planetaryCaptionHeight+panelHeight)
+			draw.Draw(canvas, at, img, image.Point{}, draw.Src)
+			caption(canvas, face, panel.caption, i*panelWidth+6, planetaryCaptionHeight-5)
 		}
-		var buffer bytes.Buffer
-		scene := bevelScene(camera, models)
-		if err := solidlens.RenderPNG(ctx, &buffer, scene, solidlens.Settings{Width: width, Height: height}); err != nil {
-			return fmt.Errorf("render frame %d: %w", frame, err)
-		}
-		img, err := png.Decode(&buffer)
-		if err != nil {
-			return fmt.Errorf("decode frame %d: %w", frame, err)
-		}
-		rendered = append(rendered, img)
+		output := input * math.Pow(ratio, float64(len(box.Stages)))
+		caption(canvas, face, fmt.Sprintf("Input shaft %5.0f deg    Output shaft %5.1f deg    (%.1f to 1)",
+			math.Mod(input*180/math.Pi, 3600), output*180/math.Pi, p.Ratio()), 6, height-6)
+		rendered = append(rendered, canvas)
 	}
 	// One palette serves every frame, so colors do not flicker between frames. It holds the colors the frames
 	// use most, and each pixel takes its nearest entry without dithering, which keeps flat areas flat and the
-	// file small.
+	// file small. The last entry is transparent: after the first frame each frame stores only the box around the
+	// pixels that changed, with unchanged pixels inside it transparent, and keeps the frame before it underneath.
 	colors := adaptivePalette(rendered, 255)
+	clear := uint8(len(colors))
+	colors = append(colors, color.RGBA{})
 	nearest := make(map[color.RGBA]uint8)
-	animation := &gif.GIF{LoopCount: 0}
+	var full []*image.Paletted
 	for _, img := range rendered {
 		indexed := image.NewPaletted(img.Bounds(), colors)
 		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
@@ -179,11 +234,58 @@ func renderPlanetaryMotion(ctx context.Context, output string, width, height, fr
 				indexed.SetColorIndex(x, y, index)
 			}
 		}
-		animation.Image = append(animation.Image, indexed)
+		full = append(full, indexed)
+	}
+	animation := &gif.GIF{LoopCount: 0}
+	for i, indexed := range full {
+		frame := indexed
+		if i > 0 {
+			frame = changedBox(full[i-1], indexed, clear)
+		}
+		animation.Image = append(animation.Image, frame)
 		animation.Delay = append(animation.Delay, planetaryMotionDelay)
 		animation.Disposal = append(animation.Disposal, gif.DisposalNone)
 	}
+	animation.Config = image.Config{ColorModel: colors, Width: width, Height: height}
 	return writeWheelGIF(output, animation)
+}
+
+// changedBox returns the part of next inside the smallest box around the pixels that differ from before, with the
+// pixels in the box that do not differ set to the transparent palette index clear. A frame that did not change
+// at all becomes one transparent pixel.
+func changedBox(before, next *image.Paletted, clear uint8) *image.Paletted {
+	bounds := next.Bounds()
+	box := image.Rectangle{Min: bounds.Max, Max: bounds.Min}
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if before.ColorIndexAt(x, y) == next.ColorIndexAt(x, y) {
+				continue
+			}
+			box.Min.X, box.Min.Y = min(box.Min.X, x), min(box.Min.Y, y)
+			box.Max.X, box.Max.Y = max(box.Max.X, x+1), max(box.Max.Y, y+1)
+		}
+	}
+	if box.Empty() {
+		box = image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Min.X+1, bounds.Min.Y+1)
+	}
+	out := image.NewPaletted(box, next.Palette)
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			if before.ColorIndexAt(x, y) == next.ColorIndexAt(x, y) {
+				out.SetColorIndex(x, y, clear)
+				continue
+			}
+			out.SetColorIndex(x, y, next.ColorIndexAt(x, y))
+		}
+	}
+	return out
+}
+
+// caption draws text with its baseline at (x, y).
+func caption(canvas draw.Image, face font.Face, text string, x, y int) {
+	drawer := font.Drawer{Dst: canvas, Src: image.NewUniform(color.RGBA{R: 26, G: 38, B: 46, A: 255}), Face: face,
+		Dot: fixed.P(x, y)}
+	drawer.DrawString(text)
 }
 
 // adaptivePalette returns the size colors that the images use most, found by grouping colors into buckets of

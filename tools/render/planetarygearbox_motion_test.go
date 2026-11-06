@@ -13,17 +13,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPlanetaryGearboxMotion builds the real one-stage gearbox once and checks the animation's kinematics:
-// after the animation's input angle the carrier has turned a third of a turn, so planet 0 has been carried
+// TestPlanetaryGearboxMotion builds the real two-stage gearbox once and checks the animation's kinematics:
+// at an input angle that turns the first carrier a third of a turn, so planet 0 has been carried
 // to where planet 1 started; the fixed ring and the covers have not moved; the input shaft has turned by the
 // input angle. It then renders three small frames into a looping GIF.
 func TestPlanetaryGearboxMotion(t *testing.T) {
-	box, params, err := buildPlanetaryGearbox(t.Context(), 1)
+	box, params, err := buildPlanetaryGearbox(t.Context(), 2)
 	require.NoError(t, err)
 	movers, err := planetaryMovers(t.Context(), box, params)
 	require.NoError(t, err)
 	input := 2 * math.Pi / float64(params.PlanetCount) * float64(params.SunTeeth+params.RingTeeth) / float64(params.SunTeeth)
-	posed, err := planetaryPoseModels(movers, input)
+	posed, err := planetaryPoseModels(movers, input, true)
 	require.NoError(t, err)
 	require.Len(t, posed, len(movers))
 
@@ -60,16 +60,26 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 		require.InDelta(t, rest[i].Z, turned[i].Z, 1e-9)
 	}
 
+	// The last carrier, which carries the output shaft, turns by the input angle times the stage ratio squared.
+	last := byName[planetarygearbox.CarrierName(1)]
+	restCarrier, turnedCarrier := movers[last].mesh.Vertices(), posed[last].Mesh.Vertices()
+	q := float64(params.SunTeeth) / float64(params.SunTeeth+params.RingTeeth)
+	sin, cos = math.Sincos(input * q * q)
+	for _, i := range []int{0, len(restCarrier) / 2, len(restCarrier) - 1} {
+		require.InDelta(t, restCarrier[i].X*cos-restCarrier[i].Y*sin, turnedCarrier[i].X, 1e-9)
+		require.InDelta(t, restCarrier[i].X*sin+restCarrier[i].Y*cos, turnedCarrier[i].Y, 1e-9)
+	}
+
 	output := filepath.Join(t.TempDir(), "motion.gif")
-	require.NoError(t, renderPlanetaryMotion(t.Context(), output, 160, 90, 3))
+	require.NoError(t, renderPlanetaryMotion(t.Context(), output, 480, 160, 3))
 	file, err := os.Open(output)
 	require.NoError(t, err)
 	defer func() { _ = file.Close() }()
 	animation, err := gif.DecodeAll(file)
 	require.NoError(t, err)
 	require.Len(t, animation.Image, 3)
-	require.Equal(t, 160, animation.Image[0].Bounds().Dx())
-	require.Equal(t, 90, animation.Image[0].Bounds().Dy())
+	require.Equal(t, 480, animation.Image[0].Bounds().Dx())
+	require.Equal(t, 160, animation.Image[0].Bounds().Dy())
 	require.Zero(t, animation.LoopCount, "the animation loops forever")
 	require.NotEqual(t, animation.Image[0].Pix, animation.Image[2].Pix, "the frames differ")
 }

@@ -30,7 +30,9 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
    holes and extrude it `L` upward. `decad.Cut` the tool from it. Check: one solid.
-2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `BoreDiameter = ds` (8, the bearing bore), `Backlash = j`.
+2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j` and `BoreDiameter = ds` (8, the bearing bore)
+   when `Sf = 0`, otherwise no bore. With a flat, extrude the shaft section (see below) from `z = -1` up `T + 2` and
+   `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
    `decad.Cut` it from the planet. Check: one solid.
@@ -51,7 +53,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      bodies is refused by decad (coincident or crossing faces); draw the one outline.
    - Pin: circle of diameter `dp` centered at `(a, 0)` on the plane `z = -(T + g)`, extruded `T + g + Tc/2`.
      `decad.PatternCopies` with a `CircularPattern` about the origin and +Z, count `n`.
-   - Stub: circle of diameter `ds` at the origin of the plane `z = Tc/2`, extruded `stubTop - Tc/2`.
+   - Stub: the shaft section on the plane `z = Tc/2`, extruded `stubTop - Tc/2`.
    - `decad.Union` the spider, pins and stub. Pins and stub reach into the spider, so the union overlaps.
    - Check: one solid.
 
@@ -71,7 +73,13 @@ yield exactly one valid profile. The sketch is anchored by its origin; a center 
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
      `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
    - `decad.Union` the frame and the boss. Check: one solid.
-7. **Input shaft.** One circle of diameter `ds` on the plane `z = -(g + Tv + Wb + Li)`, extruded up to `z = T`.
+7. **Input shaft.** The shaft section on the plane `z = -(g + Tv + Wb + Li)`, extruded up to `z = T`.
+
+**Shaft section.** A circle of diameter `ds` when `Sf = 0`. Otherwise a D: with radius `R = ds/2`, flat line
+`x = R - Sf` and half-chord `h = sqrt(R² - (R - Sf)²)`, two curves, a long arc about the origin from
+`(R - Sf, +h)` counterclockwise to `(R - Sf, -h)` and the line between them. Dimension the upper point
+from the origin and the lower point by one coordinate, so the arc's radius relation fixes the rest; require
+one valid profile with two outer curves. The input shaft, every carrier stub and the sun bore tool use it.
 
 ## 3. Placing the parts
 
@@ -110,6 +118,10 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are
   straight prisms, so cap vertices stand for every height.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
+- Shaft flats: with `LocatePoint` at `x = 3.5`, mid-height of the sun, the input shaft is outside and the sun inside
+  at `(3.5, 0)`, and the reverse at `(-3.5, 0)`, `(0, 3.5)` and `(0, -3.5)`; the shaft's volume equals a round rod's
+  less the flat's circular segment within the volume bound plus 0.5; in the two-stage case the first carrier's stub
+  and the second sun relate the same way.
 - Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
   below the front boss and ends at `T`, and `LocatePoint` finds it inside and the sun outside at the axis; at
   each bolt angle the ring and both covers are outside (hole) at the bolt circle and inside beside it; a cover

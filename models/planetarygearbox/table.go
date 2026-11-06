@@ -23,6 +23,7 @@ func defineParameters(t *param.Table, p Params) error {
 		{"cover_thickness", units.Millimeters(p.CoverThickness)},
 		{"bolt_hole_diameter", units.Millimeters(p.BoltHoleDiameter)},
 		{"input_shaft_length", units.Millimeters(p.InputShaftLength)},
+		{"shaft_flat_depth", units.Millimeters(p.ShaftFlat)},
 		{"bearing_bore_diameter", units.Millimeters(planetBearing().BoreDiameter)},
 		{"bearing_outer_diameter", units.Millimeters(planetBearing().OuterDiameter)},
 		{"bearing_width", units.Millimeters(planetBearing().Width)},

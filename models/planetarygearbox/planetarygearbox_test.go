@@ -274,7 +274,9 @@ func TestHousing(t *testing.T) {
 	shaft := bounds(t, box.InputShaft)
 	require.InDelta(t, front.Min.Z-p.InputShaftLength, shaft.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness, shaft.Max.Z, 1e-6)
-	require.InDelta(t, 8, shaft.Max.X-shaft.Min.X, 1e-6)
+	// An 8 mm shaft with a 1 mm flat is 7 mm across in X and 8 mm in Y.
+	require.InDelta(t, 7, shaft.Max.X-shaft.Min.X, 1e-6)
+	require.InDelta(t, 8, shaft.Max.Y-shaft.Min.Y, 1e-6)
 	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(0, 0, 4)))
 	require.Equal(t, decad.PointOutside, locate(box.Stages[0].Sun, r3.NewVec(0, 0, 4)), "the shaft's place is the sun's bore")
 
@@ -322,6 +324,35 @@ func TestHousing(t *testing.T) {
 	}
 }
 
+// TestShaftFlats checks that the input shaft is a D, with its flat on the +X side, and that the first sun's bore
+// is the same D: at the flat the shaft is absent and the sun has material, everywhere else in the bore the
+// shaft is present and the sun is not. The shaft weighs a round rod less the flat's circular segment.
+func TestShaftFlats(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	sun := box.Stages[0].Sun
+	locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
+		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		require.NoError(t, err)
+		return loc
+	}
+	// The flat lies 1 mm inside the +X edge of an 8 mm shaft. At x=3.5 there is 0.5 mm to the flat and to the
+	// circle, so the point is far enough from both surfaces to be decided.
+	flat := r3.NewVec(3.5, 0, 4)
+	require.Equal(t, decad.PointOutside, locate(box.InputShaft, flat), "the shaft has a flat on +X")
+	require.Equal(t, decad.PointInside, locate(sun, flat), "the sun's D bore leaves material at the flat")
+	for _, round := range []r3.Vec{r3.NewVec(-3.5, 0, 4), r3.NewVec(0, 3.5, 4), r3.NewVec(0, -3.5, 4)} {
+		require.Equal(t, decad.PointInside, locate(box.InputShaft, round), "shaft at %v", round)
+		require.Equal(t, decad.PointOutside, locate(sun, round), "sun bore at %v", round)
+	}
+	radius, depth := 4.0, p.ShaftFlat
+	segment := radius*radius*math.Acos((radius-depth)/radius) - (radius-depth)*math.Sqrt(2*radius*depth-depth*depth)
+	b := bounds(t, box.InputShaft)
+	length := b.Max.Z - b.Min.Z
+	v, bound := volume(t, box.InputShaft)
+	require.InDelta(t, (math.Pi*radius*radius-segment)*length, v, bound+0.5)
+}
+
 func TestPhaseAngles(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.Zero(t, planetarygearbox.RingToothAngle(p))
@@ -356,6 +387,19 @@ func TestTwoStages(t *testing.T) {
 	// The first carrier's stub ends flush with the top of the second sun.
 	require.InDelta(t, pitch+p.GearThickness, bounds(t, box.Stages[0].Carrier).Max.Z, 1e-6)
 	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Carrier).Max.Z, 1e-6)
+	// The second sun's bore is the same D as the first carrier's stub, flat on +X. Point location is undecided
+	// inside the carrier's thin stub, so only the sun is probed: material at the flat, none on the round side.
+	secondSun := box.Stages[1].Sun
+	locate := func(point r3.Vec) decad.PointLocation {
+		loc, err := secondSun.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		require.NoError(t, err)
+		return loc
+	}
+	mid := pitch + p.GearThickness/2
+	require.Equal(t, decad.PointInside, locate(r3.NewVec(3.5, 0, mid)), "the second sun's D bore leaves material at the flat")
+	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-3.5, 0, mid)), "the second sun's bore is round opposite the flat")
+	carrierBox := bounds(t, box.Stages[0].Carrier)
+	require.InDelta(t, pitch+p.GearThickness, carrierBox.Max.Z, 1e-6)
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
@@ -402,6 +446,7 @@ func TestInvalidParams(t *testing.T) {
 		"thin ring wall":        {func(p *planetarygearbox.Params) { p.RingWall = 3 }, "bolt holes"},
 		"carrier wall too wide": {func(p *planetarygearbox.Params) { p.CarrierWall = 12 }, "no room for spokes"},
 		"thin gear":             {func(p *planetarygearbox.Params) { p.GearThickness = 7.5 }, "gear thickness"},
+		"flat too deep":         {func(p *planetarygearbox.Params) { p.ShaftFlat = 3 }, "shaft flat"},
 		"negative clearance":    {func(p *planetarygearbox.Params) { p.BearingClearance = -0.1 }, "bearing clearance"},
 		"bad placement":         {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
 		"nonfinite":             {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
