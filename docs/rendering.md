@@ -107,6 +107,14 @@ both rotor discs, the eccentric cam, and the output plate with its pins. The `re
 go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloidal/images
 ```
 
+The `planetarygearbox/hero` preset renders the default gearbox with two stages pulled apart along its axis: the ring
+floats above the stack, and each stage rises over the one below with its carrier lifted off its three planets. The
+`readme` shot writes the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build:
+
+```sh
+go -C tools/render run . -model planetarygearbox -shot readme -out ../../models/planetarygearbox/images
+```
+
 The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies
 as separate meshes: ribbon A in blue, ribbon B in orange and the sleeve in grey, each with outlines. The camera frames
 the sleeve and the 70 mm of ribbon around it, so the 178.5 mm ribbons run off the image edges. The `hero`, `top` and
