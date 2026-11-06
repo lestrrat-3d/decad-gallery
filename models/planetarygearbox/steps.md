@@ -35,7 +35,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
-   `decad.Cut` it from the planet. Check: one solid.
+   `decad.Cut` it from the planet. Then chamfer the pocket's entrance (see **Seat chamfer** below). Check: one solid.
 4. **Bearing.** `ballbearing.Build` with `ballbearing.Params608ZZ()`, nil placement: the annulus from z=0 to `Wb`.
 5. **Carrier**, built once; every stage uses the same one.
    - Plate: one sketch on z=0, extruded `Tc`. The outline is the convex hull of the `n` pin bosses: for pin `k`
@@ -83,7 +83,13 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      coordinate each. Require one valid profile with `3 + 1 + 4` holes and extrude it `Tv`.
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
      `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
-   - `decad.Union` the frame and the boss. Check: one solid.
+   - `decad.Union` the frame and the boss, then chamfer the boss pocket's entrance (see **Seat chamfer** below).
+     Check: one solid.
+
+**Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wb` (cover)
+by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so find the rim by its radius and height
+among the body's edges, then select it with `decad.Edges(decad.Circular(), decad.EndpointAt(its start))` asserted
+`Exactly(1)`. Chamfer the planet and the cover as built, before they are copied.
 
 **Shaft section.** A circle of diameter `ds`, the section of every rod. **Key tool.** The section of the sun bore tool and of the carrier's hole tool: one outline, the circle less the three
 grooves, extruded once so the tool is not itself a boolean result (decad refuses a chain of cuts that deep). With
@@ -138,6 +144,8 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
 - Mesh: for every planet, the outline vertices of the planet taken at the mid-height of the sun, and of the ring,
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are
   straight prisms, so cap vertices stand for every height.
+- Seat chamfer: a planet and a cover each weigh `π (2 r) Sc² / 2` less than the `Sc = 0` ones, with `r` the pocket
+  radius, within the summed volume bounds plus 1, and stay solid.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
 - Shaft keys: with `LocatePoint` at radius 3.5, mid-height of the sun, the input shaft is outside and the sun inside
   at 0°, 120° and 240°, and the reverse at 60°, 180° and 300°; at `(3.5, 0)` under the front bearing the

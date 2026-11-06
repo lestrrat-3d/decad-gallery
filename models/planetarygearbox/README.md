@@ -64,7 +64,8 @@ coupling to a motor. The input and output shafts' round ends, and the groove, ar
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
 shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
-purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. The front cover is
+purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. Each bearing pocket, in the planets and in the covers, has a 0.5 mm chamfer on its entrance so the bearing can be
+pressed into the tight printed seat. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
 part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on
@@ -89,7 +90,7 @@ You can vary:
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
-- The carrier wall, the bearing pocket clearance, the ring wall and the bolt hole size.
+- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size.
 - Backlash.
 - The position and orientation of the gearbox in space.
 

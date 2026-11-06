@@ -208,7 +208,9 @@ func TestBearingsSitInPlanetPockets(t *testing.T) {
 		}
 
 		planetVolume, planetBound := volume(t, planet)
-		require.InDelta(t, plainVolume-pocket, planetVolume, plainBound+planetBound+1, "planet %d volume", i)
+		// The pocket's entrance is chamfered, which removes a ring of triangular section.
+		entrance := math.Pi * (22 + 2*p.BearingClearance) * p.SeatChamfer * p.SeatChamfer / 2
+		require.InDelta(t, plainVolume-pocket-entrance, planetVolume, plainBound+planetBound+1, "planet %d volume", i)
 
 		// The bearing is the 608ZZ envelope, 8 mm bore, 22 mm outside and 7 mm wide, centered on the
 		// planet, with its upper face level with the planet's.
@@ -495,6 +497,7 @@ func TestInvalidParams(t *testing.T) {
 		"thin gear":             {func(p *planetarygearbox.Params) { p.GearThickness = 7.5 }, "gear thickness"},
 		"key too deep":          {func(p *planetarygearbox.Params) { p.KeyDepth = 3 }, "key depth"},
 		"key too wide":          {func(p *planetarygearbox.Params) { p.KeyWidth = 5 }, "key width"},
+		"seat chamfer too big":  {func(p *planetarygearbox.Params) { p.SeatChamfer = 2 }, "seat chamfer"},
 		"negative clearance":    {func(p *planetarygearbox.Params) { p.BearingClearance = -0.1 }, "bearing clearance"},
 		"bad placement":         {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
 		"nonfinite":             {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
@@ -515,4 +518,30 @@ func TestInvalidParams(t *testing.T) {
 	require.Error(t, err)
 	_, err = planetarygearbox.Build(t.Context(), nil, planetarygearbox.DefaultParams())
 	require.Error(t, err)
+}
+
+// TestSeatChamfer checks that the entrance of each bearing seat, the planet's pocket and the covers' boss pocket,
+// is chamfered: the body loses about a ring of triangular section, the setback squared over two times the
+// pocket's circumference, against the same gearbox with no chamfer.
+func TestSeatChamfer(t *testing.T) {
+	sharp := planetarygearbox.DefaultParams()
+	sharp.SeatChamfer = 0
+	_, plain := func() (*decad.Document, planetarygearbox.Gearbox) {
+		doc := decad.New()
+		box, err := planetarygearbox.Build(t.Context(), doc, sharp)
+		require.NoError(t, err)
+		return doc, box
+	}()
+	_, chamfered := defaultGearbox(t)
+	p := planetarygearbox.DefaultParams()
+	ring := math.Pi * (22 + 2*p.BearingClearance) * p.SeatChamfer * p.SeatChamfer / 2
+	for name, pair := range map[string][2]*decad.Body{
+		"planet": {plain.Stages[0].Planets[0], chamfered.Stages[0].Planets[0]},
+		"cover":  {plain.RearCover, chamfered.RearCover},
+	} {
+		before, bound := volume(t, pair[0])
+		after, afterBound := volume(t, pair[1])
+		require.InDelta(t, ring, before-after, bound+afterBound+1, name)
+		require.True(t, pair[1].IsSolid(), name)
+	}
 }

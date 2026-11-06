@@ -70,7 +70,7 @@ func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	if !pocketed.IsSolid() {
 		return nil, errors.New("planet gear: result is not a solid")
 	}
-	return pocketed, nil
+	return r.chamferSeat(ctx, pocketed, "planet bearing pocket", p.GearThickness)
 }
 
 // buildBearing builds a 608ZZ bearing about the local origin, from z=0 to its width.

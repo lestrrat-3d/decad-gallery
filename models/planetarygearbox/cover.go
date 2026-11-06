@@ -8,6 +8,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
@@ -199,7 +200,7 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if !cover.IsSolid() {
 		return nil, errors.New("cover: result is not a solid")
 	}
-	return cover, nil
+	return r.chamferSeat(ctx, cover, "cover bearing pocket", p.CoverThickness+planetBearing().Width)
 }
 
 // buildInputShaft builds the input shaft about the local origin: a D-shaped rod that starts InputShaftLength
@@ -212,4 +213,40 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	inner := -(p.StageGap + p.CoverThickness)
 	// The groove runs from the sun's lower face to past the shaft's top, through the sun.
 	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance, span{0, p.GearThickness + 1})
+}
+
+// chamferSeat chamfers the entrance of a bearing seat by SeatChamfer, so a bearing can be pressed into the tight
+// printed pocket. The entrance is the pocket's circular rim in the plane z. A boolean moves a circle's seam, so
+// the rim is found by its radius and height and selected by its stored start point. It returns body unchanged
+// when SeatChamfer is zero.
+func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z float64) (*decad.Body, error) {
+	if r.p.SeatChamfer == 0 {
+		return body, nil
+	}
+	size, err := r.doc.Param("seat_chamfer")
+	if err != nil {
+		return nil, fmt.Errorf("%s: read chamfer size: %w", what, err)
+	}
+	var seam *r3.Vec
+	for _, e := range body.Edges() {
+		at := e.Start().Position().Value
+		if math.Abs(at.Z-z) < 1e-6 && math.Abs(math.Hypot(at.X, at.Y)-r.d.pocket/2) < 1e-3 {
+			if seam != nil {
+				return nil, fmt.Errorf("%s: more than one edge starts on the pocket's rim", what)
+			}
+			seam = &at
+		}
+	}
+	if seam == nil {
+		return nil, fmt.Errorf("%s: no edge starts on the pocket's rim", what)
+	}
+	rim := decad.Edges(decad.Circular(), decad.EndpointAt(*seam)).Exactly(1)
+	out, err := decad.Chamfer(ctx, body, rim, size)
+	if err != nil {
+		return nil, fmt.Errorf("%s: chamfer entrance: %w", what, err)
+	}
+	if !out.IsSolid() {
+		return nil, fmt.Errorf("%s: chamfered result is not a solid", what)
+	}
+	return out, nil
 }

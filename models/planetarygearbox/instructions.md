@@ -63,6 +63,7 @@ origin, so the axis is world +Z.
 | `Sw` | `KeyWidth` | float64 | 2 | Width of each keyway groove |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.1 | Radial clearance between a planet's bearing and its pocket |
+| `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
 | `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
@@ -120,6 +121,7 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 - Reject `Sf < 0` or `Sf > db/4`.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
+- Reject a seat chamfer outside `[0, 1]`.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
   reaches past the ring's tip radius minus `m/2` (`a + boss/2 >= ring tip radius - m/2`).
@@ -136,7 +138,9 @@ All three gears are involute spur gears of one module and pressure angle, built 
 - Planet: `Zp` teeth, thickness `T`, centered bore of the lip bore diameter, spur backlash `j`.
   A bearing pocket of the pocket diameter is then cut from the planet's upper face, `Wb` deep,
   which leaves a lip `T - Wb` thick under it with the lip bore through it. The lip bore is
-  smaller than the bearing's outside diameter, so the bearing cannot leave through the lower face.
+  smaller than the bearing's outside diameter, so the bearing cannot leave through the lower face. The pocket's
+  entrance on the upper face is chamfered by `Sc`, so the bearing can be pressed into the tight printed seat, as the
+  [ball bearing README](../ballbearing/README.md) advises.
 - Ring: an outer cylinder of radius `a_out` and length `L`, with four bolt holes of diameter `db'`
   through it at the bolt circle radius and at the angles `π/4 + iπ/2`, from which the tooth spaces are
   cut. The holes are inner loops of the cylinder's one section. The cut tool is an external `Zr`-tooth spur gear of length `L` whose root radius is
@@ -173,6 +177,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - Boss: a ring of the cover boss diameter around a pocket of the pocket diameter, `Wb` tall, standing on
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
   from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
+- The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
 - Bearing: a 608ZZ envelope fills the boss pocket and rests on the frame.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
   sun's top. It passes through the front bearing's bore and fills the first sun's bore. Its keyway groove runs
@@ -223,7 +228,7 @@ parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_
 `bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
 `bearing_clearance`, `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
-`pocket_diameter`, `lip_bore_diameter`, `shaft_collar_diameter`, `collar_margin`, `boss_diameter`, `arm_width`,
+`pocket_diameter`, `seat_chamfer`, `lip_bore_diameter`, `shaft_collar_diameter`, `collar_margin`, `boss_diameter`, `arm_width`,
 `arm_margin`,
 `shaft_diameter`, `cover_boss_diameter`, `cover_hub_diameter`, `bolt_circle_radius`,
 `stage_pitch`, `ring_length`. The spur gear builds
@@ -246,6 +251,7 @@ verify their own sketches.
 | Shaft keys | Default | The input shaft has three keyway grooves, at 0°, 120° and 240°, where the first sun sits and the sun's bore has the matching teeth: in a groove the shaft is absent and the sun present, at 60°, 180° and 300° and elsewhere in the bore the shaft is present and the sun absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the three grooves'; in a two-stage gearbox the link shaft fills the second sun's keyed bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the bearing is 22 mm across, 7 mm wide and level with the planet's upper face; the planet weighs the plain gear with the lip bore minus the pocket's ring |
+| Seat chamfer | Default and `Sc = 0` | A planet and a cover each weigh less than the `Sc = 0` ones by a ring of triangular section, `Sc²/2` times the pocket's circumference, within the volume bounds plus 1; every body stays one solid |
 | Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with teeth where the grooves go; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |

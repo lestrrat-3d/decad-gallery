@@ -25,6 +25,7 @@ func defineParameters(t *param.Table, p Params) error {
 		{"input_shaft_length", units.Millimeters(p.InputShaftLength)},
 		{"key_depth", units.Millimeters(p.KeyDepth)},
 		{"key_width", units.Millimeters(p.KeyWidth)},
+		{"seat_chamfer", units.Millimeters(p.SeatChamfer)},
 		{"bearing_bore_diameter", units.Millimeters(planetBearing().BoreDiameter)},
 		{"bearing_outer_diameter", units.Millimeters(planetBearing().OuterDiameter)},
 		{"bearing_width", units.Millimeters(planetBearing().Width)},

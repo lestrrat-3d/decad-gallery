@@ -42,6 +42,9 @@ type Params struct {
 	KeyDepth float64
 	// KeyWidth is the width of each keyway groove.
 	KeyWidth float64
+	// SeatChamfer is the setback of the chamfer on the entrance of each bearing seat, the planets' pockets and the
+	// covers' boss pockets, so a bearing can be pressed into a tight printed seat. Zero leaves the entrance sharp.
+	SeatChamfer float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
 	// BearingClearance is the radial clearance between a planet's 608ZZ bearing and its pocket.
@@ -79,6 +82,7 @@ func DefaultParams() Params {
 		BoltHoleDiameter:  3.4,
 		KeyDepth:          1.1,
 		KeyWidth:          2,
+		SeatChamfer:       0.5,
 		InputShaftLength:  12,
 		BearingClearance:  0.1,
 		CarrierWall:       3,
@@ -167,7 +171,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "CoverThickness": p.CoverThickness,
-		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "KeyDepth": p.KeyDepth, "KeyWidth": p.KeyWidth,
+		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "KeyDepth": p.KeyDepth, "KeyWidth": p.KeyWidth, "SeatChamfer": p.SeatChamfer,
 		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength,
 	} {
@@ -188,6 +192,7 @@ func (p Params) Validate() error {
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
 		{"key depth", p.KeyDepth, p.KeyDepth >= 0 && p.KeyDepth <= planetBearing().BoreDiameter/4},
+		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"key width", p.KeyWidth, p.KeyWidth > 0 && p.KeyWidth <= planetBearing().BoreDiameter/2},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= 0},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
