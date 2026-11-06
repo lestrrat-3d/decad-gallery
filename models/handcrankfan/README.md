@@ -33,6 +33,33 @@ both shafts slide in through the post and carry a collar outside it. A bearing s
 in the crank block and in the fan wall and block, so there is no boss or sleeve and the tray prints floor down without
 support.
 
+## Parts
+
+Each part is shown once, from the real model, in place at the default pose. A fan has one of each part except
+the grip screws, the bearings, and the blades with their bolts, which are repeated as the names say. The bought parts are
+the screws, the nuts and the bearings. Everything else is printed.
+
+| Image | Name |
+| --- | --- |
+| <img src="images/parts/gearbox.png" alt="Gearbox" width="240"> | Gearbox |
+| <img src="images/parts/grip.png" alt="Grip" width="240"> | Grip |
+| <img src="images/parts/grip-screw.png" alt="Grip screw, M2 x 16 (two)" width="240"> | Grip screw, M2 x 16 (two) |
+| <img src="images/parts/crank-gear.png" alt="Crank gear" width="240"> | Crank gear |
+| <img src="images/parts/drive-gear.png" alt="Drive gear" width="240"> | Drive gear |
+| <img src="images/parts/driving-gear.png" alt="Driving bevel gear" width="240"> | Driving bevel gear |
+| <img src="images/parts/pinion.png" alt="Pinion bevel gear" width="240"> | Pinion bevel gear |
+| <img src="images/parts/crank-shaft.png" alt="Crank shaft" width="240"> | Crank shaft |
+| <img src="images/parts/drive-shaft.png" alt="Drive shaft" width="240"> | Drive shaft |
+| <img src="images/parts/fan-shaft.png" alt="Fan shaft" width="240"> | Fan shaft |
+| <img src="images/parts/bearing.png" alt="Ball bearing, 608-2RS (seven)" width="240"> | Ball bearing, 608-2RS (seven) |
+| <img src="images/parts/crank-arm.png" alt="Crank arm" width="240"> | Crank arm |
+| <img src="images/parts/crank-pin.png" alt="Crank pin" width="240"> | Crank pin |
+| <img src="images/parts/crank-pin-screw.png" alt="Crank pin screw and nut, M2 x 10" width="240"> | Crank pin screw and nut, M2 x 10 |
+| <img src="images/parts/crank-handle.png" alt="Crank handle" width="240"> | Crank handle |
+| <img src="images/parts/fan-hub.png" alt="Fan hub" width="240"> | Fan hub |
+| <img src="images/parts/fan-blade.png" alt="Fan blade (one for each blade)" width="240"> | Fan blade (one for each blade) |
+| <img src="images/parts/fan-bolt.png" alt="Blade bolt and nut, M2 x 16 (one for each blade)" width="240"> | Blade bolt and nut, M2 x 16 (one for each blade) |
+
 You can vary:
 
 - The crank angle, which also sets the fan angle at twice that value.

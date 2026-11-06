@@ -21,6 +21,12 @@ func TestHandCrankFanRendering(t *testing.T) {
 		width, height int
 	}{
 		{"hero.png", 1600, 900}, {"index.png", 480, 270}, {"exploded.png", 1600, 900},
+		{"parts/gearbox.png", 480, 270}, {"parts/grip.png", 480, 270}, {"parts/grip-screw.png", 480, 270},
+		{"parts/crank-gear.png", 480, 270}, {"parts/drive-gear.png", 480, 270}, {"parts/driving-gear.png", 480, 270},
+		{"parts/pinion.png", 480, 270}, {"parts/crank-shaft.png", 480, 270}, {"parts/drive-shaft.png", 480, 270},
+		{"parts/fan-shaft.png", 480, 270}, {"parts/bearing.png", 480, 270}, {"parts/crank-arm.png", 480, 270},
+		{"parts/crank-pin.png", 480, 270}, {"parts/crank-pin-screw.png", 480, 270}, {"parts/crank-handle.png", 480, 270},
+		{"parts/fan-hub.png", 480, 270}, {"parts/fan-blade.png", 480, 270}, {"parts/fan-bolt.png", 480, 270},
 	} {
 		file, err := os.Open(filepath.Join(dir, shot.name))
 		require.NoError(t, err)
@@ -38,7 +44,12 @@ func TestHandCrankFanRendering(t *testing.T) {
 				}
 			}
 		}
-		require.Greater(t, foreground, shot.width*shot.height/20, "the real fan must be visible")
+		minimum := shot.width * shot.height / 20
+		if shot.height == 270 && filepath.Dir(shot.name) == "parts" {
+			// A screw or a bolt is a thin part: it only needs to show against the background.
+			minimum = 300
+		}
+		require.Greater(t, foreground, minimum, "%s: the real part must be visible", shot.name)
 	}
 }
 
