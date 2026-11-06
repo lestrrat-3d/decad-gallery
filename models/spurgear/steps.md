@@ -68,7 +68,7 @@ Preserve these package-private names so existing independent tests compile:
 
 ```go
 type point struct { x, y float64 }
-type dimensions struct { pitch, base, root, tip, fillet float64 }
+type dimensions struct { pitch, base, root, tip, fillet, backlash float64 }
 func derive(p Params) dimensions
 func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error)
@@ -121,7 +121,7 @@ func validate(p Params) error
 func rotate(x, y, theta float64) point
 func rootContact(basePoint point, d dimensions) point
 func toothAngle(p Params, k int) float64
-func sampleFlanks(pitch, base, start, tip, teeth float64, samples int, angle float64) ([]point, []point)
+func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int, angle float64) ([]point, []point)
 func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
     p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error)
 func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.Plane,
@@ -139,7 +139,9 @@ ordinary Step 7 with its supplied length; the float `filletRoots` wrapper
 converts its radius with `units.Millimeters`. `filletEmbedded` implements
 the embedded Step 7 selector with the supplied length.
 `toothAngle` returns `2*pi*k/p.Teeth`. `sampleFlanks` implements Tooth flank
-with samples ranging from `start` to `tip`, returning left then right arrays.
+with samples ranging from `start` to `tip`, returning left then right arrays. Its
+`backlash` is `j`, and it computes `δ = backlash/(2*pitch)` for the flank rotation.
+Whole-gear and tooth sampling pass `d.backlash`; `InvoluteFlanks` passes `0`.
 The two private section builders implement Steps 5 and 4b respectively.
 
 `Build` delegates to `Variant{}.Build`. The method delegates to `buildLocal`
@@ -168,6 +170,7 @@ t.SetValue("thickness", units.Millimeters(p.Thickness))
 t.SetNumber("samples", float64(p.Samples))
 t.SetValue("bore_diameter", units.Millimeters(p.BoreDiameter))
 t.SetValue("cap_chamfer", units.Millimeters(p.CapChamfer))
+t.SetValue("backlash", units.Millimeters(p.Backlash))
 t.SetExpr("tool_margin", "1", units.Millimeter)
 t.SetExpr("pitch_radius", "module * teeth / 2", units.Millimeter)
 t.SetExpr("base_radius", "pitch_radius * cos(pressure_angle)", units.Millimeter)
@@ -179,9 +182,9 @@ t.SetExpr("bore_tool_length", "thickness + 2 * tool_margin", units.Millimeter)
 ```
 
 Implement `readDimensions(doc *decad.Document) (dimensions, error)` that reads
-`pitch_radius`, `base_radius`, `root_radius`, `tip_radius` and `fillet_radius`
-with `doc.Param(name)` and keeps each `Value.Base()` in `dimensions`
-(`pitch`, `base`, `root`, `tip`, `fillet`). `build`-side code reads counts with
+`pitch_radius`, `base_radius`, `root_radius`, `tip_radius`, `fillet_radius` and
+`backlash` with `doc.Param(name)` and keeps each `Value.Base()` in `dimensions`
+(`pitch`, `base`, `root`, `tip`, `fillet`, `backlash`). `build`-side code reads counts with
 `doc.ParamInt("teeth")` and `doc.ParamInt("samples")`.
 
 ## Step 1 — derive points
@@ -192,8 +195,11 @@ with `doc.Param(name)` and keeps each `Value.Base()` in `dimensions`
   returning `d.fillet`.
 - Implement Tooth flank using `math` functions. Convert counts before division;
   preserve both endpoint samples and the stated mirror/rotation order.
-- Use one internal sampler accepting real-valued effective teeth. Whole-gear
-  sampling supplies `float64(p.Teeth)`; `InvoluteFlanks` exports `[2]float64` pairs.
+- Use one internal sampler accepting real-valued effective teeth and the backlash.
+  Whole-gear sampling supplies `float64(p.Teeth)` and `d.backlash`;
+  `InvoluteFlanks` supplies zero backlash and exports `[2]float64` pairs.
+- The embedded closing radius search uses the same flank rotation, so it includes
+  the backlash.
 - Retain all original samples even when the root circle intersects a flank.
 
 ## Step 2 — constrain sketch points
@@ -418,7 +424,8 @@ Do not infer success from an image or only a non-error return.
 | --- | --- |
 | Small end-to-end | Root-disc and tooth sketches fully constrained; complete `Build` solid; one document body; expected z bounds; `2N` fillet roles; verified mesh |
 | Reused document | Build the Small end-to-end gear twice into one document; both calls return solid bodies and the document contains two bodies |
-| Default body | `IsSolid()`; one `doc.Bodies()` entry; volume `2218.77` within `Volume().Bound.Base()+0.02`; volume bound below `0.5` |
+| Default body | `IsSolid()`; one `doc.Bodies()` entry; volume `2199.93` within `Volume().Bound.Base()+0.02`; volume bound below `0.5` |
+| Backlash | For `N=17`, `h=2`, `j=0` and `j=0.2`: call `BuildToothSection` at angle 0 and interpolate each `profile.Outer` edge's `Polyline` where its radius crosses the pitch radius; require two crossings at angles `±(π/(2N) - δ)` within `2e-3` rad; `Build` the gear and require the `j=0.2` volume below the `j=0` volume beyond summed bounds plus `1` |
 | Default dimensions | z bounds 0 and thickness within `Bounds().Bound.Base()+1e-8`; max X strictly between `9.4` and `9.6` |
 | Default fillets | Exactly `2N` distinct face origin roles starting with `fillet(0,` |
 | Ordinary outline | `2N` saved roots at root radius within `1e-7`; `N` root arcs and `N` tip arcs; no other arc radius |
@@ -432,6 +439,7 @@ Do not infer success from an image or only a non-error return.
 | Embedded, with fillet | Solid; one document body; `2N` distinct roles starting `fillet(`; one loop on each cap |
 | Placed ordinary | Build the gear with and without the frame; volumes agree within summed bounds plus `0.02`; solid; one document body; bounds start at the frame origin along the normal and extend `h`; Y and Z extents are centered on the reference point with half-width within `0.1` of the tip radius |
 | Placed embedded | Same assertions with root fillets, bore, and chamfer |
+| Invalid backlash | `Build` with `j=m` and with `j=NaN` returns an error containing `backlash` |
 | Invalid placement | `Build` with `&r3.Frame{}` returns an error containing `placement` |
 | Signed tooth section | Six curves and full constraints for lower angle zero and upper positive/negative angles; rotated centroid within `1e-6` |
 

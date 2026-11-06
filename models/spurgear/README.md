@@ -17,6 +17,7 @@ You can vary:
 - Module, tooth count, pressure angle and thickness.
 - A centered through-bore.
 - A chamfer on the outer edge of both end faces.
+- Backlash: how much each tooth is thinned at the pitch circle, 0.05 mm by default, so a meshing pair has 0.1 mm of play.
 - The position and orientation of the gear in space.
 
 Dimensions are in millimeters, and the pressure angle is in radians. The tooth roots are filleted.

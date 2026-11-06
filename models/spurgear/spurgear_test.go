@@ -84,7 +84,7 @@ func TestDefaultGear(t *testing.T) {
 	require.Len(t, doc.Bodies(), 1)
 	volume, err := body.Volume()
 	require.NoError(t, err)
-	require.InDelta(t, 2218.77, volume.Value.Base(), volume.Bound.Base()+0.02)
+	require.InDelta(t, 2199.93, volume.Value.Base(), volume.Bound.Base()+0.02)
 	require.Less(t, volume.Bound.Base(), 0.5)
 	box, err := body.Bounds()
 	require.NoError(t, err)
