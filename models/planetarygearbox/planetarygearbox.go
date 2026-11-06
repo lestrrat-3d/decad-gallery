@@ -188,13 +188,23 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	var link *decad.Body
 	if p.Stages > 1 {
 		linkTop := p.GearThickness + p.CarrierThickness + p.StageGap
-		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, 0, 0, -1, linkTop+1); err != nil {
+		// A collar in the gap between the carrier's upper face and the next sun keeps both off each other, with
+		// collarClearance/2 of play either side. The grooves stop at the carrier and start at the sun, so the
+		// collar is whole. A gap too thin for a collar leaves a plain rod with one groove.
+		collarBottom, collarTop := 0.0, 0.0
+		grooves := []span{{-1, linkTop + 1}}
+		if p.StageGap > collarClearance {
+			collarBottom = p.CarrierThickness + collarClearance/2
+			collarTop = p.CarrierThickness + p.StageGap - collarClearance/2
+			grooves = []span{{-1, p.CarrierThickness}, {p.CarrierThickness + p.StageGap, linkTop + 1}}
+		}
+		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, collarBottom, collarTop, grooves...); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
 	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness+collarClearance,
-		p.CarrierThickness+p.StageGap+p.CoverThickness, -1, p.CarrierThickness)
+		p.CarrierThickness+p.StageGap+p.CoverThickness, span{-1, p.CarrierThickness})
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}

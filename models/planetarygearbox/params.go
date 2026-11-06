@@ -74,7 +74,7 @@ func DefaultParams() Params {
 		Samples:           15,
 		GearThickness:     8,
 		CarrierThickness:  3,
-		StageGap:          0.5,
+		StageGap:          1,
 		CoverThickness:    3,
 		BoltHoleDiameter:  3.4,
 		KeyDepth:          1.1,

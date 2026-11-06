@@ -423,6 +423,18 @@ func TestTwoStages(t *testing.T) {
 	link := bounds(t, box.Stages[0].Shaft)
 	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
+	// A collar in the gap between the first carrier and the second sun is 10.4 mm across. It stops 0.25 mm short
+	// of both, and the grooves are cut away above and below it, so it is whole where a groove would run.
+	require.InDelta(t, 10.4, link.Max.X-link.Min.X, 2e-3)
+	linkShaft := box.Stages[0].Shaft
+	collarMid := p.GearThickness + p.StageGap + p.CarrierThickness + p.StageGap/2
+	locateLink := func(point r3.Vec) decad.PointLocation {
+		loc, err := linkShaft.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		require.NoError(t, err)
+		return loc
+	}
+	require.Equal(t, decad.PointInside, locateLink(r3.NewVec(3.5, 0, collarMid)), "the collar is whole over the groove")
+	require.Equal(t, decad.PointOutside, locateLink(r3.NewVec(3.5, 0, collarMid+p.StageGap)), "no collar above it")
 	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Shaft).Max.Z, 1e-6)
 	// The second sun's bore has the tooth for the link shaft's groove on +X. Point location is undecided inside
 	// the thin shaft, so only the sun is probed: material at the tooth, none on the round side.

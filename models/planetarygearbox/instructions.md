@@ -35,7 +35,7 @@ motor.
 
 The input shaft and the output shaft each carry a collar, a round bulge wider than the shaft, between its
 bearing's inner race and the part beside it: the first sun for the input shaft and the last carrier for the
-output shaft. A collar is the printed stand-in for a washer. It keeps the turning part clear of the
+output shaft. A link shaft carries one too, in the gap between a carrier's upper face and the next sun. A collar is the printed stand-in for a washer. It keeps the turning part clear of the
 bearing and the cover. Each planet pin carries a collar of the same size under the carrier plate, so the planet's
 bearing is clear of the plate too.
 
@@ -56,7 +56,7 @@ origin, so the axis is world +Z.
 | `S` | `Samples` | int | 15 | Fit points per tooth flank |
 | `T` | `GearThickness` | float64 | 8 | Axial thickness of the gears of a stage |
 | `Tc` | `CarrierThickness` | float64 | 3 | Axial thickness of a carrier's plate |
-| `g` | `StageGap` | float64 | 0.5 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends |
+| `g` | `StageGap` | float64 | 1 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
 | `db'` | `BoltHoleDiameter` | float64 | 3.4 | Diameter of the four clearance holes through the ring and the covers |
 | `Sf` | `KeyDepth` | float64 | 1.1 | Depth of the three keyway grooves on each shaft; zero leaves round shafts and round bores |
@@ -196,8 +196,11 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
   of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore. For the last stage it is the output shaft
   and ends `Lo` above the rear cover's boss, at `K P + Tv + Wb + Lo`; a collar fills
   `[K P + collar clearance, K P + Tv]` from just above the last carrier's upper face to the rear bearing's inner face.
-  The keyway groove runs from the carrier's lower face to its upper face. A link shaft's groove runs its whole
-  length.
+  The output shaft's keyway grooves run from the carrier's lower face to its upper face. A link shaft's grooves run
+  from the carrier's lower face to its upper face and from the next sun's lower face to the shaft's top, and its
+  collar of the shaft collar diameter fills the gap between them, `[Tc + 0.25, Tc + g - 0.25]` above the carrier's
+  lower face, 0.25 mm short of each. A gap of 0.5 mm or less is too thin for a collar, and the link shaft is then a
+  plain rod with grooves along its whole length.
 - The ring spans `[-g, K P]`.
 - The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wb, -g - Tv]`; the rear cover's
   frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wb]`. The front bearing fills

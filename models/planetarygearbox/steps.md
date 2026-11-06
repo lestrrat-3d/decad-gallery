@@ -64,7 +64,9 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    from the origin, its width and its height. `decad.PatternCopies` with a `CircularPattern` about +Z, count 3,
    makes the other two, `decad.Union` joins the three into one tool, and one `decad.Cut` removes it. Collars stop `0.5` short of the part they face, so no collar face
    shares a plane with a groove's end.
-   - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, no collar, groove along its whole length. Posed with its bottom on a carrier's
+   - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, collar from `Tc + 0.25` to `Tc + g - 0.25` and grooves
+     from `-1` to `Tc` and from `Tc + g` to `top + 1`, so the collar is whole. When `g <= 0.5` it has no collar and
+     one groove from `-1` to `top + 1`. The grooves of every span join into one tool and take one cut. Posed with its bottom on a carrier's
      lower face.
    - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc + 0.5` to `Tc + g + Tv`, groove from
      `-1` to `Tc`. Posed with its bottom on the last carrier's lower face.

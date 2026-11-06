@@ -267,27 +267,37 @@ func (r *run) extrudeKeyBox(ctx context.Context, what string, bottom, top float6
 	return body, nil
 }
 
-// keyCut cuts the keyway groove between z=keyBottom and z=keyTop out of body, which is the shaft or, for a
-// bore, a tool shaped like the shaft. With KeyDepth zero it returns body unchanged.
-func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, keyBottom, keyTop float64) (*decad.Body, error) {
+// span is a range of heights, from lo up to hi.
+type span struct{ lo, hi float64 }
+
+// keyCut cuts the three keyway grooves over each of the spans out of body, which is the shaft or, for a bore, a
+// tool shaped like the shaft. With KeyDepth zero it returns body unchanged. The grooves of every span join into
+// one tool, so the body takes one cut however many spans there are.
+func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, spans ...span) (*decad.Body, error) {
 	if r.p.KeyDepth == 0 {
 		return body, nil
 	}
-	box, err := r.extrudeKeyBox(ctx, what+" keyway", keyBottom, keyTop)
-	if err != nil {
-		return nil, err
+	var tools []*decad.Body
+	for _, sp := range spans {
+		box, err := r.extrudeKeyBox(ctx, what+" keyway", sp.lo, sp.hi)
+		if err != nil {
+			return nil, err
+		}
+		// The other grooves are copies of the first, spread evenly round the axis.
+		copies, err := decad.PatternCopies(ctx, box, decad.CircularPattern{
+			Center: r3.NewVec(0, 0, 0), Axis: r3.NewVec(0, 0, 1), Count: keyCount,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("%s: pattern keyways: %w", what, err)
+		}
+		tools = append(tools, box)
+		tools = append(tools, copies...)
 	}
-	// The other grooves are copies of the first, spread evenly round the axis, and join it into one tool.
-	copies, err := decad.PatternCopies(ctx, box, decad.CircularPattern{
-		Center: r3.NewVec(0, 0, 0), Axis: r3.NewVec(0, 0, 1), Count: keyCount,
-	})
+	tool, err := decad.Union(ctx, tools[0], tools[1:]...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: pattern keyways: %w", what, err)
-	}
-	if box, err = decad.Union(ctx, box, copies...); err != nil {
 		return nil, fmt.Errorf("%s: join keyways: %w", what, err)
 	}
-	cut, err := decad.Cut(ctx, body, box)
+	cut, err := decad.Cut(ctx, body, tool)
 	if err != nil {
 		return nil, fmt.Errorf("%s: cut keyway: %w", what, err)
 	}
@@ -366,11 +376,11 @@ func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64
 
 // buildShaft builds a separate shaft about the local origin: a full round cylinder from z=bottom to z=top with,
 // when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights, and a
-// keyway groove between keyBottom and keyTop. A collar sits between a bearing's inner race and the part next to
+// keyway grooves over each of the grooves' spans. A collar sits between a bearing's inner race and the part next to
 // it and takes the place of a washer. The shaft is round where a bearing sits, so the groove lies only where a
 // sun or carrier sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the
 // union crosses the rod's faces instead of sharing them.
-func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop, keyBottom, keyTop float64) (*decad.Body, error) {
+func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64, grooves ...span) (*decad.Body, error) {
 	shaft, err := r.extrudeShaft(ctx, what, bottom, top-bottom)
 	if err != nil {
 		return nil, err
@@ -390,5 +400,5 @@ func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBo
 			return nil, fmt.Errorf("%s: result is not a solid", what)
 		}
 	}
-	return r.keyCut(ctx, what, shaft, keyBottom, keyTop)
+	return r.keyCut(ctx, what, shaft, grooves...)
 }

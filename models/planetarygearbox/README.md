@@ -45,7 +45,8 @@ Every shaft is a separate part, 8 mm across, the bore of a 608ZZ. It is a full r
 has three keyway grooves, 1.1 mm deep and 2 mm wide and 120° apart, where a sun or a carrier sits, like the hand crank fan's shafts. The sun's bore and the carrier's
 hole each have a tooth in each groove, so a shaft turns them without slipping. The input shaft and the output shaft each
 have a round collar, 10.4 mm across, next to their bearing. It stands in for the washer a metal build would use, so
-the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces.
+the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces. Each link shaft has a collar too, in the 1 mm gap between its carrier and
+the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of play either side.
 
 - **Input.** The input shaft enters through the front cover's 608ZZ and fills the first sun's bore. It sticks out
   12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
@@ -54,7 +55,7 @@ the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 m
 - **Output.** The output shaft runs through the last carrier's hole and the rear cover's 608ZZ and sticks out 12 mm
   beyond its boss.
 
-Each pin of the carrier has a thin collar under the plate too, so the planets' bearings stay clear of the plate.
+Each pin of the carrier has a 1 mm collar under the plate too, so the planets' bearings stay clear of the plate.
 
 The model does not show a set screw, the screws in the four bolt holes that join the covers and the ring, or the
 coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
