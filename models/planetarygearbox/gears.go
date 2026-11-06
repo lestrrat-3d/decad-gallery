@@ -16,7 +16,7 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	sun, err := spurgear.Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.SunTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: p.ShaftDiameter,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: p.ShaftDiameter, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: %w", err)
@@ -29,7 +29,7 @@ func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	planet, err := spurgear.Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.PlanetTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: r.d.planetBore,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: r.d.planetBore, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("planet gear: %w", err)
@@ -66,6 +66,8 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 	tool, err := ringTool().Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.RingTeeth, PressureAngle: p.PressureAngle,
 		Thickness: d.ringLength + 2*ringMargin, Samples: p.Samples,
+		// A negative backlash thickens the tool's teeth, which widens the ring's tooth spaces.
+		Backlash: -p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ring tooth spaces: %w", err)

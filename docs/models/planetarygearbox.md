@@ -16,6 +16,8 @@ Set `Params.Stages` to stack more stages in the same ring. Each carrier's stub s
 sun bore, and the last carrier's stub is the output shaft. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
+`Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.
+
 `Placement` (an `r3.Frame`) anchors the gearbox. The frame origin is a point on its axis and the first stage's gears
 start on the frame's plane.
 

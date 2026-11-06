@@ -24,6 +24,7 @@ func defineParameters(t *param.Table, p Params) error {
 		{"pin_diameter", units.Millimeters(p.PinDiameter)},
 		{"pin_clearance", units.Millimeters(p.PinClearance)},
 		{"ring_wall", units.Millimeters(p.RingWall)},
+		{"tooth_backlash", units.Millimeters(p.Backlash)},
 		{"output_shaft_length", units.Millimeters(p.OutputShaftLength)},
 	}
 	for _, v := range values {

@@ -130,6 +130,37 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 	require.Positive(t, penetration(t, turned, box.Ring))
 }
 
+func volume(t *testing.T, b *decad.Body) (float64, float64) {
+	t.Helper()
+	v, err := b.Volume()
+	require.NoError(t, err)
+	return v.Value.Base(), v.Bound.Base()
+}
+
+// TestBacklashRemovesMaterial checks that more backlash thins the sun and planet teeth and widens
+// the ring's tooth spaces, so each of those bodies has less volume, and that the planets still
+// mesh without penetration.
+func TestBacklashRemovesMaterial(t *testing.T) {
+	_, base := defaultGearbox(t)
+	p := planetarygearbox.DefaultParams()
+	p.Backlash = 0.2
+	loose, err := planetarygearbox.Build(t.Context(), decad.New(), p)
+	require.NoError(t, err)
+	for name, pair := range map[string][2]*decad.Body{
+		"sun":    {base.Stages[0].Sun, loose.Stages[0].Sun},
+		"planet": {base.Stages[0].Planets[0], loose.Stages[0].Planets[0]},
+		"ring":   {base.Ring, loose.Ring},
+	} {
+		tight, tightBound := volume(t, pair[0])
+		looseVolume, looseBound := volume(t, pair[1])
+		require.Greater(t, tight-looseVolume, tightBound+looseBound, name)
+	}
+	for i, planet := range loose.Stages[0].Planets {
+		require.Zero(t, penetration(t, planet, loose.Stages[0].Sun), "planet %d inside the sun", i)
+		require.Zero(t, penetration(t, planet, loose.Ring), "planet %d inside the ring", i)
+	}
+}
+
 func TestPhaseAngles(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.Zero(t, planetarygearbox.RingToothAngle(p))
@@ -204,16 +235,18 @@ func TestInvalidParams(t *testing.T) {
 			p.SunTeeth, p.PlanetTeeth, p.RingTeeth, p.PlanetCount = 13, 29, 71, 3
 			p.PlanetCount = 6
 		}, "collide"},
-		"single planet":  {func(p *planetarygearbox.Params) { p.PlanetCount = 1 }, "planet count"},
-		"no stages":      {func(p *planetarygearbox.Params) { p.Stages = 0 }, "stages"},
-		"zero module":    {func(p *planetarygearbox.Params) { p.Module = 0 }, "module"},
-		"shaft too wide": {func(p *planetarygearbox.Params) { p.ShaftDiameter = 9 }, "shaft diameter"},
-		"pin too wide":   {func(p *planetarygearbox.Params) { p.PinDiameter = 26 }, "planet bore"},
-		"bad placement":  {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
-		"nonfinite":      {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
-		"few samples":    {func(p *planetarygearbox.Params) { p.Samples = 2 }, "samples"},
-		"pressure angle": {func(p *planetarygearbox.Params) { p.PressureAngle = math.Pi / 2 }, "pressure angle"},
-		"tiny sun":       {func(p *planetarygearbox.Params) { p.SunTeeth = 2 }, "sun teeth"},
+		"single planet":     {func(p *planetarygearbox.Params) { p.PlanetCount = 1 }, "planet count"},
+		"no stages":         {func(p *planetarygearbox.Params) { p.Stages = 0 }, "stages"},
+		"zero module":       {func(p *planetarygearbox.Params) { p.Module = 0 }, "module"},
+		"shaft too wide":    {func(p *planetarygearbox.Params) { p.ShaftDiameter = 9 }, "shaft diameter"},
+		"pin too wide":      {func(p *planetarygearbox.Params) { p.PinDiameter = 26 }, "planet bore"},
+		"bad placement":     {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},
+		"nonfinite":         {func(p *planetarygearbox.Params) { p.GearThickness = math.NaN() }, "finite"},
+		"few samples":       {func(p *planetarygearbox.Params) { p.Samples = 2 }, "samples"},
+		"negative backlash": {func(p *planetarygearbox.Params) { p.Backlash = -0.1 }, "backlash"},
+		"large backlash":    {func(p *planetarygearbox.Params) { p.Backlash = 0.6 }, "backlash"},
+		"pressure angle":    {func(p *planetarygearbox.Params) { p.PressureAngle = math.Pi / 2 }, "pressure angle"},
+		"tiny sun":          {func(p *planetarygearbox.Params) { p.SunTeeth = 2 }, "sun teeth"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := planetarygearbox.DefaultParams()

@@ -35,6 +35,7 @@ origin, so the axis is world +Z.
 | `cp` | `PinClearance` | float64 | 0.1 | Radial clearance between a planet bore and its pin |
 | `w` | `RingWall` | float64 | 4 | Radial wall of the ring behind the tooth roots |
 | `Lo` | `OutputShaftLength` | float64 | 10 | Output shaft length above the last carrier plate |
+| `j` | `Backlash` | float64 | 0.05 | Tooth thinning of the sun and planets at the pitch circle; the ring's tooth spaces are widened by the same amount |
 | — | `Placement` | `*r3.Frame` | nil | Reference point and plane |
 
 Use finite inputs. Zero fields are not default requests; `DefaultParams` supplies the defaults.
@@ -62,6 +63,7 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 
 ## Input checks and limits
 
+- Reject `j < 0` or `j > m/2`.
 - Reject `m <= 0`, `T <= 0`, `Tc <= 0`, `g < 0`, `ds <= 0`, `dp <= 0`, `cp < 0`, `w <= 0`,
   `Lo <= 0`, `Samples < 3` or a nonfinite length.
 - Reject `α` outside `(0, π/2)`, `n < 2` and `K < 1`.
@@ -82,13 +84,15 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 All three gears are involute spur gears of one module and pressure angle, built by
 `models/spurgear`. Do not copy its geometry.
 
-- Sun: `Zs` teeth, thickness `T`, centered bore of diameter `ds`.
-- Planet: `Zp` teeth, thickness `T`, centered bore of diameter `dp + 2 cp`.
+- Sun: `Zs` teeth, thickness `T`, centered bore of diameter `ds`, spur backlash `j`.
+- Planet: `Zp` teeth, thickness `T`, centered bore of diameter `dp + 2 cp`, spur backlash `j`.
 - Ring: an outer cylinder of radius `a_out` and length `L`, from which the tooth spaces are
   cut. The cut tool is an external `Zr`-tooth spur gear of length `L` whose root radius is
   the ring tip radius and whose tip radius is the ring root radius. Its teeth are the
   ring's tooth spaces, because the space of an internal gear at its pitch circle is the
-  tooth of the mating external gear. The tool has no root fillet.
+  tooth of the mating external gear. The tool has no root fillet. Its spur backlash is `-j`, which thickens its teeth by `j` of arc
+  at the pitch circle and so widens the ring's tooth spaces by `j`. A sun-planet pair and a
+  planet-ring pair each have `2j` of circumferential play at the pitch circle.
 
 ## Meshing phase
 
@@ -123,7 +127,7 @@ Each carrier, with its pins and stub, is one solid body.
 
 The gearbox records its inputs and derived dimensions as named entries of the document's
 parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_teeth`,
-`planet_count`, `stage_count`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
+`planet_count`, `stage_count`, `tooth_backlash`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
 `shaft_diameter`, `pin_diameter`, `pin_clearance`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`,
 `carrier_radius`, `planet_bore_diameter`, `stage_pitch`, `ring_length`. The spur gear builds
@@ -144,9 +148,10 @@ verify their own sketches.
 | Default | None | 1 ring, 1 sun, 3 planets, 1 carrier, all solids; ratio 1 + 71/13 |
 | Two stages | `K = 2` | 1 ring, 2 suns, 6 planets, 2 carriers; the first carrier's stub fills the second sun's bore |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
+| Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |
 | Phase | Default with one planet turned half a tooth about its own axis | The same check finds vertices inside the sun and the ring |
 | Placed | Default with frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volumes as the unplaced box; bounds follow the frame |
-| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; an oversized bore; an invalid placement | An error naming the failing rule |
+| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; an oversized bore; `j` below 0 or above `m/2`; an invalid placement | An error naming the failing rule |
 
 ## Verification
 
