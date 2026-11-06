@@ -150,7 +150,8 @@ func (b *builder) hub() *decad.Body {
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
 	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2)
 	front := -(hubBack + hubLength)
-	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
+	// The hub prints front face down, so a socket lies on its side: its point is toward the back face, which is up.
+	socket := b.teardropPrism(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		socketRadius, hubRadius+1-socketStart)
 	counterbore := b.cylinder(onY(front+counterboreDepth), counterboreRadius, counterboreDepth+1)
 	trap := b.hexagon(onY(-hubBack+1), trapFlats, trapDepth+1)

@@ -64,9 +64,11 @@ func (b *builder) splineCut(host *decad.Body, a shaftAxis, from, length float64)
 	return b.cut(host, tool)
 }
 
-// hole cuts a round hole of radius r about the shaft's axis from host between t0 and t1.
+// hole cuts a hole of radius r about the shaft's axis from host between t0 and t1. The housing prints floor down, so
+// these holes lie on their sides, and each has a teardrop's pointed top (spokeFrame's U axis points up) that prints
+// without support.
 func (b *builder) hole(host *decad.Body, a shaftAxis, r, t0, t1 float64) *decad.Body {
-	return b.cut(host, b.cylinder(a.spokeFrame(t0, 0), r, t1-t0))
+	return b.cut(host, b.teardropPrism(a.spokeFrame(t0, 0), r, t1-t0))
 }
 
 // seatPair cuts a bearing seat into host: the round pocket between t0 and t1 and a relief bore from r0 to r1 that

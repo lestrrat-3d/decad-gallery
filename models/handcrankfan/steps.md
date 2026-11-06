@@ -46,35 +46,40 @@ shank and Decad cannot decide a touching pair.
 The gearbox is one tray. The floor's underside is 1.2 under the crank gear's tip and 5 thick, which puts it at Z 101.4.
 
 1. Block: `roundedPrism` on the frame origin `(-20, 0, 0)`, U = +Y, V = +Z (normal +X): the outline (-46,101.4),
-   (15,101.4), (15,186), (-46,186) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
+   (15,101.4), (15,190), (-46,190) with four corners of radius 3 from `sketch.CreateFillet`, each line placed by
    `NewDistancePointLine` from the origin. Extrude 54, then `decad.Fillet` the outer loops of both end caps with
    radius 2.
-2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,106.4), (16,106.4), (16,187), (-36.2,187)
+2. Cavity: `roundedPrism` on the frame origin `(-21, 0, 0)`: the outline (-36.2,106.4), (16,106.4), (16,191), (-36.2,191)
    with the first corner rounded with radius 3, extruded 46, so it runs through both ends. Sketch's `CreateFillet`
    cannot round the inside corner of an L section while keeping the sketch fully constrained, so the tray is made as a
    block minus a cavity.
-3. Post: a panel on the frame origin `(-22, 0, 0)`, (-15..15, 105.4..188), extruded 11.8. `Cut` it from the cavity, which
+3. Post: a panel on the frame origin `(-22, 0, 0)`, (-15..15, 105.4..192), extruded 11.8. `Cut` it from the cavity, which
    leaves a post 30 wide on the block's left end up to X -10.2. Then `Cut` the cavity from the block. Building the post
    by `Union` after the cut fails in Decad.
 4. Bearing blocks: fan block `roundedPrism` on the frame origin `(0, -45, 0)`, U = +X, V = +Z (normal -Y): the outline
-   (-15,101.4), (15,101.4), (15,186), (-15,186) with four corners of radius 3, extruded 25, with its end cap rounded
+   (-15,101.4), (15,101.4), (15,190), (-15,190) with four corners of radius 3, extruded 25, with its end cap rounded
    with radius 2. Crank block: `roundedPrism` on the frame origin `(33, 0, 0)`, U = +Y, V = +Z (normal +X): the same
    outline in (Y, Z), extruded 15, with its end cap rounded with radius 2. Each starts 1 inside its wall, so the `Union`
    shares no face. `Union` the body, the fan block and the crank block.
-5. Seats and holes, by `b.seat(host, axis, pocketFrom, pocketTo, reliefFrom, reliefTo)`, which `Cut`s a cylinder of radius
-   11.1 between the first two stations along the shaft and one of radius 9.5 between the last two. Stations run along
+5. Seats and holes, by `b.seat(host, axis, pocketFrom, pocketTo, reliefFrom, reliefTo)`, which `Cut`s a teardrop prism of radius
+   11.1 between the first two stations along the shaft and one of radius 9.5 between the last two. `teardrop` draws the
+   circle's long arc from (r/sqrt 2, r/sqrt 2) to (r/sqrt 2, -r/sqrt 2) about the origin, each end made by
+   `DimensionArcEnd`, and two lines from those ends to the point (r sqrt 2, 0), made by `DimensionPoint`, in the frame
+   `spokeFrame(t, 0)` whose U axis points up. Every bore of the housing lies on its side when the tray prints floor
+   down, and the point is its 45° roof. Stations run along
    the crank and drive shafts by X and along the fan shaft by the distance behind the apex. On the drive axis and the
    crank axis: the post's seat from -21 to -12.6 with its relief from -13 to -9.2, and the crank-side wall's seat from
-   23.2 to 31.6 with its relief from 31.5 to 33.6. On the crank axis also a cylinder of radius 4.2 from 33.5 to 39.5
+   23.2 to 31.6 with its relief from 31.5 to 33.6. On the crank axis also a teardrop of radius 4.2 from 33.5 to 39.5
    (`b.hole`) and the block's seat from 40.6 to 49 with its relief from 38.6 to 40.7. On the fan axis the wall's seat
-   from 35.2 to 43.6 with its relief from 43.5 to 45.6, a hole of radius 4.2 from 45.5 to 61.5, and the block's seat
+   from 35.2 to 43.6 with its relief from 43.5 to 45.6, a teardrop hole of radius 4.2 from 45.5 to 61.5, and the block's seat
    from 62.6 to 71 with its relief from 60.6 to 62.7. Two cylinders of radius 1.2 on the planes Z = 100.4, length 8, at
    (X -2, Y -28) and (X 16, Y -28). Name `gearbox`, group `housing`, motion `fixed`.
 
 The walls are 9.8 thick and each shaft crosses a wall in a bearing seat, so nothing round sticks out of the housing. A
-boss or a sleeve would be a horizontal cylinder that needs support when printed; a block as tall as the tray stands on
-the floor and needs none. The drive shaft's bearing in the post sits at Z 170 and its seat tops out at 181.1, so the
-tray is 186 tall. Each wall's inner face is 0.2
+boss or a sleeve would be a horizontal cylinder that needs support when printed, and the teardrop roofs of the
+seats need none; a block as tall as the tray stands on
+the floor and needs none. The drive shaft's bearing in the post sits at Z 170 and its seat is a teardrop whose point is at 185.7, so the
+tray is 190 tall. Each wall's inner face is 0.2
 from its bevel gear's back face, so the gears need no spacer.
 
 ## 4. Bevel pair, spur pair and crank
@@ -133,7 +138,8 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
 - Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
   `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}`, and every tool running 1 mm past the face it
   opens:
-  - socket: circle radius 3.15 on the frame origin `(5.6, -86, 170)`, U = +Y, V = +Z (normal +X), extruded 9.4;
+  - socket: a teardrop of radius 3.15 (`teardropPrism`) on the frame origin `(5.6, -86, 170)`, U = +Y, V = +Z (normal
+    +X), extruded 9.4, so its point is toward +Y, the back face, which is up when the hub prints front face down;
   - counterbore: circle radius 2.15 on `onY(-93.8)`, extruded 3.2;
   - nut trap: a regular hexagon of 4.3 across flats on `onY(-75)`, extruded 5. It is a `CreatePolygon` of six
     sides, grounded by `NewCoincident(centre, origin)`, turned by `NewHorizontal(side 1)` so the corners lie on

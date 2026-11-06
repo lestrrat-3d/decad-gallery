@@ -289,7 +289,9 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, parts map[string]handcr
 	// checked against the shafts and bearings.
 	checked := func(a, b *decad.Body) bool {
 		x, y := names[a], names[b]
-		holder := func(name string) bool { return strings.HasSuffix(name, "-shaft") || strings.HasPrefix(name, "bearing-") }
+		holder := func(name string) bool {
+			return strings.HasSuffix(name, "-shaft") || strings.HasPrefix(name, "bearing-")
+		}
 		return isFinished(x) && isFinished(y) || holder(x) || holder(y)
 	}
 	report, err := doc.Verify(t.Context())

@@ -128,7 +128,7 @@ const (
 	wallThick    = 9.8
 	crankWallX   = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
 	fanWallY     = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
-	boxTop       = 186.0 // the drive shaft's bearing seat tops out at 181.1, so the walls keep about 5 above it
+	boxTop       = 190.0 // the drive shaft's bearing seat is a teardrop whose point is at 185.7, so the walls keep about 4 above it
 	boxBackY     = 15.0  // nothing but the floor lies behind the shafts
 	boxLeftX     = -20.0
 	boxFloor     = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick

@@ -100,11 +100,6 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 	b.a.Parts = append(b.a.Parts, Part{Name: name, Group: group, Motion: motion, Body: body})
 }
 
-// alongX is the plane at x whose normal is +X and whose coordinates are (y, z - axisHeight).
-func alongX(x float64) r3.Frame {
-	return frame(r3.Vec{X: x, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-}
-
 // alongCrank is the plane at x whose normal is +X and whose coordinates are (y, z - crankHeight).
 func alongCrank(x float64) r3.Frame {
 	return frame(r3.Vec{X: x, Z: crankHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1})

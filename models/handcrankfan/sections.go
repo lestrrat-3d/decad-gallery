@@ -245,6 +245,30 @@ func (b *builder) roundedPrism(f r3.Frame, xy []point2, radii []float64, length 
 	return b.extrude(s, 0, length)
 }
 
+// teardrop draws a round bore of radius r with a pointed top: the circle plus a cap of two lines tangent to it at 45°
+// from the +U axis that meet at the point on U, r*sqrt(2) from the origin. A bore printed lying down has no flat roof
+// to bridge, because no part of the roof is flatter than 45°.
+func teardrop(s *sketch.Sketch, r float64) {
+	if s == nil {
+		return
+	}
+	k := r / math.Sqrt2
+	start := sketchcheck.DimensionArcEnd(s, k, k)
+	end := sketchcheck.DimensionArcEnd(s, k, -k)
+	tip := sketchcheck.DimensionPoint(s, r*math.Sqrt2, 0)
+	// The arc runs counterclockwise the long way round, away from the point.
+	s.AddConstraint(sketch.NewRadius(s.CreateArc(s.Origin(), start, end), r))
+	s.CreateLine(end, tip)
+	s.CreateLine(tip, start)
+}
+
+// teardropPrism extrudes a teardrop bore along f's normal; the point is on f's U axis.
+func (b *builder) teardropPrism(f r3.Frame, r, length float64) *decad.Body {
+	s := b.section(f)
+	teardrop(s, r)
+	return b.extrude(s, 0, length)
+}
+
 // hexagon extrudes a regular hexagon of the given width across flats along f's normal, with its corners on f's U axis.
 func (b *builder) hexagon(f r3.Frame, flats, length float64) *decad.Body {
 	s := b.section(f)

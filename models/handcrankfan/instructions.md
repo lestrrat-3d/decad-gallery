@@ -118,24 +118,28 @@ pinion heel is `Module*32/2 + Module*16/8`.
   Its floor sits low enough for the crank gear to turn above it, so the spur pair lives in the tray and the grip hangs
   from the lowered floor. A bearing sits wherever a shaft crosses a wall (see Shafts, bearings and splines), so it has
   no boss or sleeve. Printed floor down, every wall, the post and the blocks are vertical, so it needs no support.
-  - Block: the outline Y [-46, 15], Z [101.4, 186] with four corners of radius 3, on the plane X -20, extruded
+  - Block: the outline Y [-46, 15], Z [101.4, 190] with four corners of radius 3, on the plane X -20, extruded
     54 toward +X (to X 34), with both end faces rounded with radius 2. The floor is 5 thick: its underside is 1.2 under
     the crank gear's tip (Z 107.6 minus 1.2, minus 5).
   - Cavity: the outline Y [-36.2, 16], Z [106.4, 187] with the corner at (Y -36.2, Z 106.4) rounded with radius 3, on the
     plane X -21, extruded 46 toward +X, so it runs through both ends, less a notch 30 wide (Y [-15, 15]) at its left end
     up to X -10.2. It leaves the floor, the fan-side wall (X [-20, 34], Y [-46, -36.2]), the crank-side wall (X [24.2, 34],
-    Y [-46, 15]) and the left post (X [-20, -10.2], Y [-15, 15]), all Z [101.4, 186] except the floor. Y -36.2 is 0.2 from
+    Y [-46, 15]) and the left post (X [-20, -10.2], Y [-15, 15]), all Z [101.4, 190] except the floor. Y -36.2 is 0.2 from
     the pinion's back face and X 24.2 is 0.2 from the driving gear's back face.
-  - Fan bearing block: a rounded square 30 wide (X [-15, 15]) and as tall as the tray (Z [101.4, 186]), corners of radius
+  - Fan bearing block: a rounded square 30 wide (X [-15, 15]) and as tall as the tray (Z [101.4, 190]), corners of radius
     3, from 1 inside the fan-side wall to Y -70, with its end face rounded with radius 2.
-  - Crank bearing block: the same square (Y [-15, 15], Z [101.4, 186]) from 1 inside the crank-side wall to X 48, 14
+  - Crank bearing block: the same square (Y [-15, 15], Z [101.4, 190]) from 1 inside the crank-side wall to X 48, 14
     long beyond the wall, with its end face rounded with radius 2.
-  - Seats: a bearing seat is a round pocket of radius 11.1 and 7.4 deep, with a relief bore of radius 9.5 and 2.1 deep
+  - Seats: a bearing seat is a pocket of radius 11.1 and 7.4 deep, with a relief bore of radius 9.5 and 2.1 deep
     behind its floor, so the floor holds only the bearing's outer ring. There is one in the post's outer face (X -20) on
     each of the drive axis (Z 170) and the crank axis (Z 129.6), one in the crank-side wall's inner face (X 24.2) on
     each of them, one in the crank block's end (X 48) on the crank axis, and one in the fan-side wall's inner face
     (Y -36.2) and one in the fan block's end (Y -70) on the fan axis. The crank axis and the fan axis each have a hole of
-    radius 4.2 between their two seats. The drive shaft's seat in the crank-side wall is blind.
+    radius 4.2 between their two seats. The drive shaft's seat in the crank-side wall is blind. Every seat, relief
+    and hole is a teardrop: the round bore plus a pointed cap of two lines tangent to it at 45° from the vertical, with
+    the point `r * sqrt(2)` above the axis, so the point of the drive axis's seats is at Z 185.7. The tray prints floor
+    down, so these bores lie on their sides, and the 45° roof needs no support. A bearing sits in the seat's round
+    part, held by the lower three quarters of its wall.
   - Two holes of diameter 2.4 through the floor at X -2 and X 16, Y -28, for the grip screws.
 
 ### Shafts, bearings and splines
@@ -231,7 +235,8 @@ The drive parts turn about the drive shaft's axis, along X through the apex, the
   lower than the fan axis, so the blades stay clear of its reach without a long shaft. It has a spline bore
   and, for each blade k at angle `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning
   toward +Z):
-  - a radial socket of radius 3.15 on the hub's mid plane, from r 5.6 outward through the hub surface;
+  - a radial socket of radius 3.15 on the hub's mid plane, from r 5.6 outward through the hub surface, a teardrop
+    whose point is toward the back face (+Y), which is up when the hub prints front face down, so it needs no support;
   - a bolt hole of radius 1.15 parallel to the fan axis at r 9.5, through the hub;
   - a head counterbore of radius 2.15 in the front face, 2.2 deep (floor at Y -93.8);
   - a hex nut trap of 4.3 across flats in the back face, 4.0 deep (floor at Y -80), with its corners on the
