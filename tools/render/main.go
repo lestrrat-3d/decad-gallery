@@ -19,6 +19,8 @@ type preset struct {
 var presets = map[string]preset{
 	"spinningwheel/hero":                    {width: 1600, height: 900, scene: spinningWheelView("hero")},
 	"spinningwheel/rear":                    {width: 1600, height: 900, scene: spinningWheelView("rear")},
+	"handcrankfan/hero":                     {width: 1600, height: 900, scene: handCrankFanHero},
+	"handcrankfan/exploded":                 {width: 1600, height: 900, scene: handCrankFanExploded},
 	"ballbearing/hero":                      {width: 1600, height: 900, scene: bearing608Hero},
 	"ballbearing/605zz":                     {width: 1600, height: 900, scene: bearing605Hero},
 	"screwgear/hero":                        {width: 1600, height: 900, scene: screwGearView("hero")},
@@ -132,6 +134,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
+	}
+	if model == "handcrankfan" {
+		return renderHandCrankFanReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)

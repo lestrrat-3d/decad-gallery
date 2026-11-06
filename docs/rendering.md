@@ -152,3 +152,12 @@ models takes about six minutes plus the wheel build:
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
 ```
+
+The `handcrankfan/hero` preset builds the default fan once and renders it from the operator's side, with each part
+coloured by its group. The `handcrankfan/exploded` preset renders the same fan pulled apart by Decad's `parts.Set.Explode`, with the
+offsets it computes from the model's joints. The `readme` shot writes `hero.png` (1600 × 900), `index.png` (480 × 270) and `exploded.png`
+(1600 × 900):
+
+```sh
+go -C tools/render run . -model handcrankfan -shot readme -out ../../models/handcrankfan/images
+```
