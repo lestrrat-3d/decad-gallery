@@ -21,17 +21,18 @@ type galleryTile struct {
 	area  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel on the left, three involute gears in a row above the cycloidal drive
-// and the bevel gear pairs on the right. The wheel tile is a full 16:9 scene whose empty margins extend past
-// the canvas edge and under the gear tiles; renderGallery draws only the pixels that differ from the
-// background, so overlapping margins do not hide neighbours.
+// galleryTiles puts the spinning wheel on the left, three involute gears across the top, and the planetary
+// gearbox, cycloidal drive and bevel gear pairs along the bottom. The wheel tile is a full 16:9 scene whose
+// empty margins extend past the canvas edge and under the gear tiles; renderGallery draws only the pixels
+// that differ from the background, so overlapping margins do not hide neighbours.
 var galleryTiles = []galleryTile{
 	{spinningWheelView("hero"), image.Rect(-480, 0, 1120, 900)},
 	{spurGearHero, image.Rect(555, 100, 1125, 421)},
 	{helicalGearHero, image.Rect(835, 100, 1405, 421)},
 	{herringboneGearHero, image.Rect(1115, 100, 1685, 421)},
-	{cycloidalHero, image.Rect(640, 480, 1120, 750)},
-	{bevelGearHero, image.Rect(1120, 480, 1600, 750)},
+	{planetaryGearboxHero, image.Rect(600, 470, 1060, 730)},
+	{cycloidalHero, image.Rect(1030, 500, 1300, 670)},
+	{bevelGearHero, image.Rect(1300, 500, 1600, 670)},
 }
 
 const (

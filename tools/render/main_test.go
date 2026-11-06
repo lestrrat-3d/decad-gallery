@@ -294,7 +294,8 @@ func TestGalleryHero(t *testing.T) {
 		x, y int
 	}{
 		{"spinning wheel", 70, 120}, {"spur gear", 168, 54}, {"helical gear", 224, 54},
-		{"herringbone gear", 280, 56}, {"cycloidal drive", 172, 120}, {"bevel gears", 272, 122},
+		{"herringbone gear", 280, 56}, {"planetary gearbox", 166, 120},
+		{"cycloidal drive", 232, 117}, {"bevel gears", 290, 117},
 	} {
 		visible := 0
 		for dy := -20; dy <= 20; dy++ {
