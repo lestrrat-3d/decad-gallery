@@ -143,17 +143,18 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
   segment").
 - `crank-shaft`: a round shaft of radius 4 on the crank axis, X [-23.8, 57.8], with a collar of radius 6 at its left end
   (X [-23.8, -20.3], 0.3 clear of the post). It slides in from the left through the post, the crank gear, the
-  crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. A flat 3 below
-  the axis (toward -Z) at X [51.5, 57.8] makes the D-shaped stub, which is a tight fit in the arm's D bore and needs no
-  screw. The flat is cut from the bare shaft before the collar joins it, because Decad refuses to cut after the union.
+  crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. A hexagon 6 across
+  flats at X [50.9, 57.8], starting 1 inside the round shaft, makes the stub. It is a tight fit in the arm's hexagonal
+  bore and needs no screw. Six faces share the torque, where a round shaft with one flat puts it all on that flat. The
+  hexagon joins the bare shaft before the collar does.
 - `crank-arm`: a stadium 20 wide, X [52, 60], with the axis and the pin 55 apart (end radius 10, so the arm
-  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at the pin end. A D bore (radius
-  4.1, flat 3.1 toward -Z) at X [51, 58] opens on the inner face for the shaft stub, and a D pocket (radius 4.15,
-  flat 3.15 toward +Z) at X [54, 61] opens on the outer face for the pin stub. The shaft's bore is 0.1 larger than the
-  stub all round, the gap every joint of the model keeps before it is tightened; the printed bore is made to grip the
-  stub, so the arm is pressed on and the D flat carries the torque. The pin pocket leaves a 2 mm floor with the screw
+  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at the pin end. A hexagonal bore (6.2
+  across flats) at X [51, 58] opens on the inner face for the shaft stub, and a hexagonal pocket (6.2 across flats)
+  at X [54, 61] opens on the outer face for the pin stub. The bores are 0.1 larger than the stub on every flat, the gap
+  every joint of the model keeps before it is tightened; the printed bore is made to grip the stub, so the arm is
+  pressed on and all six faces carry the torque. The pin pocket leaves a 2 mm floor with the screw
   hole.
-- `crank-pin`: a D-shaped stub (radius 4, flat 3 toward +Z, away from the shaft) at X [54.2, 60.5] with a nut
+- `crank-pin`: a hexagonal stub (6 across flats) at X [54.2, 60.5] with a nut
   slot at X [56, 57.9] and a screw hole of diameter 2.4 from X 53, a round shank of radius 4.5 from X 60.1 (the
   shoulder, 0.1 clear of the arm) to X 107, and a head of radius 5.8 at X [106.6, 109.6]. The pin is 55 from the
   crank axis. The handle slides on over the stub, so nothing on the pin is wider than the handle's bore except
@@ -166,7 +167,7 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
   and cylinders, with chamfers of 0.5 to 1.5 on its corners: Decad cannot decide a handle with rounded corners
   against its pin.
 - `crank-pin-bolt`, group `hardware`: an M2 x 10 screw with a nut, one plain body. Its head is on the arm's inner face
-  and it runs up the pin axis through the pin stub; the nut sits in the pin's slot. Together with the D stub it holds the
+  and it runs up the pin axis through the pin stub; the nut sits in the pin's slot. Together with the hexagonal stub it holds the
   pin to the arm, so nothing is loose, and the handle spins on the pin, held by the pin head. The shaft to the arm needs
   no screw: it is a tight fit.
 

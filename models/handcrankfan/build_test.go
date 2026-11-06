@@ -76,7 +76,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	for i, s := range a.Sketches {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 	}
-	// The crank shaft's faceted D stub is below Decad's minimum mesh bound at 0.1 mm.
+	// The crank shaft's faceted hexagonal stub is below Decad's minimum mesh bound at 0.1 mm.
 	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
 		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "crank-gear": 0.1} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(tolerance), decad.WithVerification(decad.VerifyAll))

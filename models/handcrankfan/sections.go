@@ -245,32 +245,6 @@ func (b *builder) roundedPrism(f r3.Frame, xy []point2, radii []float64, length 
 	return b.extrude(s, 0, length)
 }
 
-// dShape draws the part of a circle of radius r about the origin that lies on one side of a chord at distance flat:
-// below the origin for side -1 and above it for side +1.
-func dShape(s *sketch.Sketch, r, flat float64, side int) {
-	if s == nil {
-		return
-	}
-	h := math.Sqrt(r*r - flat*flat)
-	fv := float64(side) * flat
-	var p1, p2 *sketch.Point
-	if side < 0 {
-		p1, p2 = s.CreatePoint(-h, fv), s.CreatePoint(h, fv)
-	} else {
-		p1, p2 = s.CreatePoint(h, fv), s.CreatePoint(-h, fv)
-	}
-	arc := s.CreateArc(s.Origin(), p2, p1)
-	line := s.CreateLine(p1, p2)
-	s.AddConstraint(sketch.NewRadius(arc, r), sketch.NewHorizontal(line), sketch.NewDistancePointLine(s.Origin(), line, flat))
-}
-
-// dPrism extrudes a D shape along f's normal.
-func (b *builder) dPrism(f r3.Frame, r, flat float64, side int, length float64) *decad.Body {
-	s := b.section(f)
-	dShape(s, r, flat, side)
-	return b.extrude(s, 0, length)
-}
-
 // hexagon extrudes a regular hexagon of the given width across flats along f's normal, with its corners on f's U axis.
 func (b *builder) hexagon(f r3.Frame, flats, length float64) *decad.Body {
 	s := b.section(f)

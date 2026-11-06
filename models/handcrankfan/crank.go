@@ -7,8 +7,8 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Crank dimensions in mm. The arm, the pin and the shaft meet in D-shaped stubs, each clamped by one M2 x 10 screw
-// and nut. Every joint keeps a gap of 0.1 to 0.2 mm, as the joint looks just before it is tightened, because
+// Crank dimensions in mm. The arm, the pin and the shaft meet in hexagonal stubs, which pass the torque through six
+// faces, and the pin's stub is also clamped by one M2 x 10 screw and nut. Every joint keeps a gap of 0.1 to 0.2 mm, as the joint looks just before it is tightened, because
 // Decad cannot decide a pair of parts whose faces touch.
 const (
 	crankThrow      = 55.0 // distance from the crank axis to the pin
@@ -19,6 +19,7 @@ const (
 	handleLength    = 50.0 // a handle for the thumb, index and middle fingers
 	gripCounterbore = 3.8  // depth of the pin head's counterbore at the handle's outer end
 	pinHeadStart    = handleStart + handleLength - gripCounterbore + 0.2
+	stubFlats       = 6.0 // the hexagonal stubs of the shaft and the pin are 6 across flats
 )
 
 // alongPin is the plane at x whose normal is +X and whose coordinates are (y, z - pin height).
@@ -45,16 +46,17 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 }
 
 // crankShaft builds the crank shaft: a round shaft with a collar at its left end, outside the tray's left post, that
-// slides in from the left through the post, the crank gear, the crank-side wall and its bearing block to a D-shaped
-// stub for the arm. The collar and the arm, which sits against the block's end, hold it. The stub's flat, nut slot and
-// screw hole are cut from the bare shaft before the collar joins it, because Decad refuses to cut them after the union.
+// slides in from the left through the post, the crank gear, the crank-side wall and its bearing block to a
+// hexagonal stub for the arm. The collar and the arm, which sits against the block's end, hold it. The hexagon joins
+// the bare shaft before the collar does, as the collar's own union is the last one Decad accepts.
 func (b *builder) crankShaft() *decad.Body {
-	return b.shaftWithCollar(crankHeight, crankFace+9.8, func(shaft *decad.Body) *decad.Body {
-		return b.cut(shaft, b.panel(alongCrank(crankFace+3.5), -5, -5, 5, -3, 7))
+	return b.shaftWithCollar(crankHeight, crankFace+3.9, func(shaft *decad.Body) *decad.Body {
+		// The hexagon starts 1 inside the round shaft, so the union has no shared face.
+		return b.union(shaft, b.hexagon(alongCrank(crankFace+2.9), stubFlats, 6.9))
 	})
 }
 
-// crankArm builds a stadium 20 wide with rounded faces, a screw hole at each end, and a D pocket for the shaft
+// crankArm builds a stadium 20 wide with rounded faces, a screw hole at each end, and a hexagonal pocket for the shaft
 // stub from the inner face and one for the pin stub from the outer face.
 func (b *builder) crankArm() *decad.Body {
 	s := b.section(alongCrank(armStart))
@@ -72,17 +74,17 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, 1.2), 1.2))
 	}
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
-	// The shaft's D stub is a tight fit in this bore: the bore is 0.1 larger than the stub all round, the gap every joint
+	// The shaft's hexagonal stub is a tight fit in this bore: the bore is 0.1 larger than the stub on every flat, the gap every joint
 	// of the model keeps before it is tightened, and the printed bore is made to grip the stub.
-	arm = b.cut(arm, b.dPrism(alongCrank(crankFace+3), 4.1, 3.1, -1, 7))
-	return b.cut(arm, b.dPrism(alongPin(crankFace+6), 4.15, 3.15, 1, 7))
+	arm = b.cut(arm, b.hexagon(alongCrank(crankFace+3), stubFlats+0.2, 7))
+	return b.cut(arm, b.hexagon(alongPin(crankFace+6), stubFlats+0.2, 7))
 }
 
-// crankPin builds the pin: a D-shaped stub with a nut slot and screw hole, a round shank for the handle and a head
+// crankPin builds the pin: a hexagonal stub with a nut slot and screw hole, a round shank for the handle and a head
 // that sits in the handle's counterbore. The handle slides on over the stub, so nothing on the pin is wider than its
 // bore except the head.
 func (b *builder) crankPin() *decad.Body {
-	stub := b.dPrism(alongPin(crankFace+6.2), 4, 3, 1, 6.3)
+	stub := b.hexagon(alongPin(crankFace+6.2), stubFlats, 6.3)
 	shank := b.cylinder(alongPin(crankFace+12.1), 4.5, pinHeadStart+0.4-(crankFace+12.1))
 	head := b.cylinder(alongPin(pinHeadStart), 5.8, 3)
 	pin := b.union(stub, shank, head)

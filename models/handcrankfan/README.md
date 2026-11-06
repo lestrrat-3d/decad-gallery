@@ -21,7 +21,7 @@ Each blade is a separate part with a round stud that slides into a socket in the
 hold it, so a damaged blade comes off and is replaced. Everything else is meant to be 3D-printed.
 The grip hangs under the gearbox. It is an oval of about 35 to 38 mm, raked like a pistol grip, with a flared base
 and a palm swell, and two M2 screws hold it. The grip starts below the lowered floor, and the crank sits at the height of the gearbox's lower half, 40 mm below the fan. The crank handle is a small 50 mm barrel, 16 mm thick, for the thumb, index and middle fingers. It spins on a headed pin, so it
-neither slides off nor wobbles, and the arm sits on the shaft's D-shaped end in a tight-fit bore, with one more M2 screw holding the pin. Outside
+neither slides off nor wobbles, and the arm sits on the shaft's hexagonal end in a tight-fit bore, with one more M2 screw holding the pin. Outside
 corners are rounded. The rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). The gears sit on plain shafts
