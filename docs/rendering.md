@@ -141,13 +141,13 @@ writes `cutaway.png`, and the preset can be rendered on its own:
 go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwgear/images/cutaway.png
 ```
 
-The `gallery/hero` preset does not include the screw gear.
+The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
-scenes of the spinning wheel and the spur, helical, herringbone, cycloidal and bevel gear models one after
-another, places each at its own size on a 1600 × 900 pixel canvas (the wheel on the left, the gears on the
-right), and keeps only the pixels that differ from the background where the tiles overlap. Building all six
-models takes about six minutes plus the wheel build:
+scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
+drive and the bevel gear pair one after another. It places each at its own size on a 1600 × 900 pixel canvas
+(the wheel on the left, the gears on the right), and keeps only the pixels that differ from the background
+where the tiles overlap. Building all seven models takes about six minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
