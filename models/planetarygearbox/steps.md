@@ -23,13 +23,13 @@ Every sketch circle's diameter is bound to a table name with `Sketch.Bind`.
 
 Build each distinct part once about the local origin and +Z. A gear union fails on gears built at an offset.
 
-1. **Ring.** `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore. `Define` replaces
+1. **Ring.** `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
    `root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + 1.25 * module` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
    by that rotation about +Z. Sketch a circle of diameter `2 * ring_outer_radius` on the plane z=1 and extrude it
    `L` upward. `decad.Cut` the tool from it. Check: one solid.
-2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `BoreDiameter = ds`.
-3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = dp + 2 cp`.
+2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `BoreDiameter = ds`, `Backlash = j`.
+3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = dp + 2 cp`, `Backlash = j`.
 4. **Carrier**, once per distinct stub top. A multi-stage gearbox needs a middle carrier (stub top
    `Tc + g + T` above the plate bottom) and a last carrier (stub top `Tc + Lo`). A single stage needs only the last.
    - Plate: circle of diameter `2 * carrier_radius` at the origin of the plane z=0, extruded `Tc`.
@@ -70,4 +70,5 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
 - Two stages: 11 bodies, stage offsets by `P`, the first carrier's top equal to the second sun's top, and the
   second stage's planets mesh as the first's do.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.
+- Backlash: a gearbox with `j = 0.2` has a smaller sun, planet and ring volume than the default beyond the volume bounds.
 - Invalid: every listed input error names its rule.

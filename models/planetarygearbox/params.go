@@ -40,6 +40,10 @@ type Params struct {
 	PinClearance float64
 	// RingWall is the radial wall of the ring behind the tooth roots.
 	RingWall float64
+	// Backlash is how much each tooth of the sun and the planets is thinned at the pitch
+	// circle. The ring's tooth spaces are widened by the same amount, so a sun-planet pair and
+	// a planet-ring pair each have twice Backlash of play.
+	Backlash float64
 	// OutputShaftLength is the length of the output shaft above the last carrier plate.
 	OutputShaftLength float64
 	// Placement is the reference point and plane. Nil selects the world XY frame
@@ -65,6 +69,7 @@ func DefaultParams() Params {
 		PinDiameter:       4,
 		PinClearance:      0.1,
 		RingWall:          4,
+		Backlash:          0.05,
 		OutputShaftLength: 10,
 	}
 }
@@ -109,7 +114,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "ShaftDiameter": p.ShaftDiameter,
-		"PinDiameter": p.PinDiameter, "PinClearance": p.PinClearance, "RingWall": p.RingWall,
+		"PinDiameter": p.PinDiameter, "PinClearance": p.PinClearance, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength,
 	} {
 		if !finite(v) {
@@ -129,6 +134,7 @@ func (p Params) Validate() error {
 		{"pin diameter", p.PinDiameter, p.PinDiameter > 0},
 		{"pin clearance", p.PinClearance, p.PinClearance >= 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
+		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
 		{"output shaft length", p.OutputShaftLength, p.OutputShaftLength > 0},
 	} {
 		if !c.ok {

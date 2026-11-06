@@ -17,10 +17,11 @@ You can vary:
 - Module and pressure angle.
 - Gear and carrier thickness, and the gaps between them.
 - The shaft, pin and output shaft sizes, and the ring wall.
+- Backlash.
 - The position and orientation of the gearbox in space.
 
 The ring must have as many teeth as the sun plus twice the planets, and the sun and ring teeth together must divide
 by the planet count so the planets sit at equal angles. Dimensions are in millimeters, and the pressure angle is in
-radians. The gears mesh with no backlash.
+radians. Each pair of meshing gears has 0.1 mm of backlash by default, set by how much each tooth is thinned.
 
 For how to build this gearbox from Go, see the [developer notes](../../docs/models/planetarygearbox.md).
