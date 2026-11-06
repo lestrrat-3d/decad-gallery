@@ -5,6 +5,8 @@ faces you and blows air toward you.
 
 ![Hand-crank fan seen from the operator's side](images/hero.png)
 
+![One crank turn: the crank side on the left and the gears on the right, with the fan turning twice](images/motion.gif)
+
 ![The fan exploded by Decad along its joints: grip and its screws, gearbox, crank shaft, arm, handle and pin, and the fan shaft, hub, blades and bolts](images/exploded.png)
 
 A straight-tooth bevel gear pair turns the crank's rotation through 90° and doubles its speed: one forward
@@ -21,8 +23,8 @@ neither slides off nor wobbles, and the arm is clamped to the shaft and the pin 
 corners are rounded. The rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/). The gears sit on plain shafts with no keys or retaining
-hardware. The gearbox is a tray with thick flat walls and no boss or sleeve, so it prints floor down without
-support.
+hardware. The gearbox is a slim tray with flat walls about 10 mm thick and no boss or sleeve, so it prints floor down
+without support.
 
 You can vary:
 

@@ -119,16 +119,17 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 	return decad.LoftSection{}
 }
 
-// Gearbox walls in mm. The crank shaft and the fan shaft each turn in a hole through a flat wall about 16 thick, so the
+// Gearbox walls in mm. The crank shaft and the fan shaft each turn in a hole through a flat wall about 10 thick, so the
 // housing is a tray with no part that sticks out. Printed floor down it needs no support: every wall is vertical.
 const (
-	wallThick   = 15.8
+	wallThick   = 9.8
 	crankWallX  = 24.2  // inner face of the crank-side wall, 0.2 from the driving gear's back face at X 24
 	fanWallY    = -36.2 // inner face of the fan-side wall, 0.2 from the pinion's back face at Y -36
 	boxFloor    = 128.0
-	boxTop      = 194.0
+	boxTop      = 186.0
 	boxLeftX    = -20.0
 	cavityFloor = 134.0
+	crankFace   = crankWallX + wallThick // outer face of the crank-side wall, X 34
 )
 
 // gearbox builds a rounded block minus a cavity, which leaves the floor, the fan-side wall and the crank-side wall,

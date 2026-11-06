@@ -14,8 +14,8 @@ const (
 	crankThrow      = 55.0 // distance from the crank axis to the pin
 	armRadius       = 10.0 // the arm is a stadium 20 wide
 	armThick        = 8.0
-	armStart        = 44.0 // X of the arm's inner face
-	handleStart     = 52.2
+	armStart        = crankFace + 4 // X of the arm's inner face
+	handleStart     = crankFace + 12.2
 	handleLength    = 50.0 // a handle for the thumb, index and middle fingers
 	gripCounterbore = 3.8  // depth of the pin head's counterbore at the handle's outer end
 	pinHeadStart    = handleStart + handleLength - gripCounterbore + 0.2
@@ -34,10 +34,10 @@ func (b *builder) crank() {
 	b.part("crank-grip", "grip", "crank", b.crankGrip)
 	x, z := r3.Vec{X: 1}, r3.Vec{Z: 1}
 	b.part("crank-arm-bolt", "hardware", "crank", func() *decad.Body {
-		return b.screw(r3.Vec{X: 52.1, Z: axisHeight}, x.Scale(-1), z, 10, 66.1-62.0, 1)
+		return b.screw(r3.Vec{X: crankFace + 12.1, Z: axisHeight}, x.Scale(-1), z, 10, 66.1-62.0, 1)
 	})
 	b.part("crank-pin-bolt", "hardware", "crank", func() *decad.Body {
-		return b.screw(r3.Vec{X: 43.9, Z: axisHeight + crankThrow}, x, z, 10, 62.1-57.9, 1)
+		return b.screw(r3.Vec{X: crankFace + 3.9, Z: axisHeight + crankThrow}, x, z, 10, 62.1-57.9, 1)
 	})
 }
 
@@ -49,13 +49,13 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 // crankShaft builds the shaft with a collar and a D-shaped stub. The stub gets its nut slot and screw hole before it
 // joins the core, because Decad refuses to cut the slot after the union.
 func (b *builder) crankShaft() *decad.Body {
-	stub := b.dPrism(alongX(43.5), 4, 3, -1, 6.3)
-	stub = b.cut(stub, b.slot(alongX(46.2), -4.5, 2.5))
-	stub = b.cut(stub, b.cylinder(alongX(43), 1.2, 7.5))
-	round := b.cylinder(alongX(14), 4, 29)
-	collar := b.cylinder(alongX(40.3), 6, 3.5)
+	stub := b.dPrism(alongX(crankFace+3.5), 4, 3, -1, 6.3)
+	stub = b.cut(stub, b.slot(alongX(crankFace+6.2), -4.5, 2.5))
+	stub = b.cut(stub, b.cylinder(alongX(crankFace+3), 1.2, 7.5))
+	round := b.cylinder(alongX(14), 4, crankFace+3-14)
+	collar := b.cylinder(alongX(crankFace+0.3), 6, 3.5)
 	core := b.union(round, collar)
-	core = b.cut(core, b.cylinder(alongX(41), 1.2, 3))
+	core = b.cut(core, b.cylinder(alongX(crankFace+1), 1.2, 3))
 	return b.union(core, stub)
 }
 
@@ -78,20 +78,20 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, 1.2), 1.2))
 	}
 	arm := b.roundCaps(b.extrude(s, 2, armThick), 1.5)
-	arm = b.cut(arm, b.dPrism(alongX(43), 4.15, 3.15, -1, 7))
-	return b.cut(arm, b.dPrism(alongPin(46), 4.15, 3.15, 1, 7))
+	arm = b.cut(arm, b.dPrism(alongX(crankFace+3), 4.15, 3.15, -1, 7))
+	return b.cut(arm, b.dPrism(alongPin(crankFace+6), 4.15, 3.15, 1, 7))
 }
 
 // crankPin builds the pin: a D-shaped stub with a nut slot and screw hole, a round shank for the handle and a head
 // that sits in the handle's counterbore. The handle slides on over the stub, so nothing on the pin is wider than its
 // bore except the head.
 func (b *builder) crankPin() *decad.Body {
-	stub := b.dPrism(alongPin(46.2), 4, 3, 1, 6.3)
-	shank := b.cylinder(alongPin(52.1), 4.5, pinHeadStart+0.4-52.1)
+	stub := b.dPrism(alongPin(crankFace+6.2), 4, 3, 1, 6.3)
+	shank := b.cylinder(alongPin(crankFace+12.1), 4.5, pinHeadStart+0.4-(crankFace+12.1))
 	head := b.cylinder(alongPin(pinHeadStart), 5.8, 3)
 	pin := b.union(stub, shank, head)
-	pin = b.cut(pin, b.slot(alongPin(48), -2.5, 4.5))
-	return b.cut(pin, b.cylinder(alongPin(45), 1.2, 10))
+	pin = b.cut(pin, b.slot(alongPin(crankFace+8), -2.5, 4.5))
+	return b.cut(pin, b.cylinder(alongPin(crankFace+5), 1.2, 10))
 }
 
 // handleProfile is the crank handle's meridian: (distance along the pin from the inner end, radius). A small barrel

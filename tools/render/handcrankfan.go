@@ -43,40 +43,16 @@ func handCrankFanScene(ctx context.Context, exploded bool) (solidlens.Scene, err
 			offsets[p.Name] = p.Offset
 		}
 	}
-	models := make([]solidlens.Model, 0, len(a.Parts))
-	for _, part := range a.Parts {
-		// The crank shaft's faceted D stub is below Decad's minimum mesh bound at 0.1 mm.
-		tolerance := .1
-		if part.Name == "crank-shaft" {
-			tolerance = .2
-		}
-		mesh, err := part.Body.Tessellate(ctx, units.Millimeters(tolerance), decad.WithVerification(decad.VerifyNone))
-		if err != nil {
-			return solidlens.Scene{}, fmt.Errorf("mesh hand-crank fan %s: %w", part.Name, err)
-		}
-		color := solidlens.RGB(.55, .58, .62)
-		switch part.Group {
-		case "stand", "housing":
-			color = solidlens.RGB(.42, .47, .55)
-		case "gear":
-			color = solidlens.RGB(.80, .62, .20)
-		case "rotor":
-			color = solidlens.RGB(.16, .52, .70)
-		case "blade":
-			color = solidlens.RGB(.30, .68, .85)
-		case "hardware":
-			color = solidlens.RGB(.88, .90, .92)
-		case "arm", "pin":
-			color = solidlens.RGB(.70, .22, .12)
-		case "grip":
-			color = solidlens.RGB(.12, .12, .14)
-		}
-		var source solidlens.TriangleSource = mesh
+	meshes, err := handCrankFanMeshes(ctx, a)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	models := make([]solidlens.Model, len(meshes))
+	for i, mesh := range meshes {
+		models[i] = mesh.model
 		if exploded {
-			source = placedMesh{TriangleSource: mesh, scale: 1, offset: offsets[part.Name]}
+			models[i].Mesh = placedMesh{TriangleSource: mesh.model.Mesh, scale: 1, offset: offsets[mesh.part.Name]}
 		}
-		models = append(models, solidlens.Model{Mesh: source, Material: solidlens.Matte(color),
-			Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1}})
 	}
 	camera := solidlens.Camera{Position: solidlens.Vec{X: 330, Y: -560, Z: 330},
 		Target: solidlens.Vec{X: 20, Y: -40, Z: 120}, Up: solidlens.Vec{Z: 1}, FOV: 35}
@@ -105,4 +81,46 @@ func renderHandCrankFanReadme(ctx context.Context, outputDir string) error {
 		}
 	}
 	return nil
+}
+
+// fanMesh is one part of the fan with its mesh, colour and outlines.
+type fanMesh struct {
+	part  handcrankfan.Part
+	model solidlens.Model
+}
+
+// handCrankFanMeshes meshes every part of the assembly from its real Decad body.
+func handCrankFanMeshes(ctx context.Context, a *handcrankfan.Assembly) ([]fanMesh, error) {
+	meshes := make([]fanMesh, 0, len(a.Parts))
+	for _, part := range a.Parts {
+		// The crank shaft's faceted D stub is below Decad's minimum mesh bound at 0.1 mm.
+		tolerance := .1
+		if part.Name == "crank-shaft" {
+			tolerance = .2
+		}
+		mesh, err := part.Body.Tessellate(ctx, units.Millimeters(tolerance), decad.WithVerification(decad.VerifyNone))
+		if err != nil {
+			return nil, fmt.Errorf("mesh hand-crank fan %s: %w", part.Name, err)
+		}
+		color := solidlens.RGB(.55, .58, .62)
+		switch part.Group {
+		case "stand", "housing":
+			color = solidlens.RGB(.42, .47, .55)
+		case "gear":
+			color = solidlens.RGB(.80, .62, .20)
+		case "rotor":
+			color = solidlens.RGB(.16, .52, .70)
+		case "blade":
+			color = solidlens.RGB(.30, .68, .85)
+		case "hardware":
+			color = solidlens.RGB(.88, .90, .92)
+		case "arm", "pin":
+			color = solidlens.RGB(.70, .22, .12)
+		case "grip":
+			color = solidlens.RGB(.12, .12, .14)
+		}
+		meshes = append(meshes, fanMesh{part: part, model: solidlens.Model{Mesh: mesh, Material: solidlens.Matte(color),
+			Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1}}})
+	}
+	return meshes, nil
 }

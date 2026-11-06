@@ -37,7 +37,7 @@ Expose `DefaultParams`, `Params.Validate`, `Motion(Params) (State, error)`,
 ## Orientation rules
 
 - The crank is on the right. The crank shaft lies on the line through the apex along X and leaves the gearbox
-  toward +X. The crank shaft ends beyond the wall at X 49.8, and the crank pin and grip have larger X than every fixed part.
+  toward +X. The crank shaft ends beyond the wall at X 43.8, and the crank pin and grip have larger X than every fixed part.
 - The fan faces the operator. The fan shaft lies on the line through the apex along Y and runs toward -Y. The
   rotor has smaller Y than every other part except the fan shaft, and its blades blow air toward -Y.
 
@@ -102,36 +102,36 @@ pinion heel is `Module*32/2 + Module*16/8`.
   Y -28 with its head 2.0 high on the floor's top face (0.1 above it) and a shank of radius 0.8, which is the
   thread root, down into the pilot. They cut their own thread in the printed pilot. Each is one plain body.
 - Gearbox, one part, `gearbox`: a block minus a cavity, with rounded edges and nothing that sticks out. Each
-  shaft turns in a hole through a flat wall about 16 thick, so a printed shaft has a long bearing and the housing has
+  shaft turns in a hole through a flat wall about 10 thick, so a printed shaft has a long bearing and the housing has
   no boss or sleeve. Printed floor down, every wall is vertical and the housing needs no support.
-  - Block: the outline Y [-52, 20], Z [128, 194] with four corners of radius 3, on the plane X -20, extruded
-    60 toward +X, with both end faces rounded with radius 2.
-  - Cavity: the outline Y [-36.2, 21], Z [134, 195] with the corner at (Y -36.2, Z 134) rounded with radius 3,
+  - Block: the outline Y [-46, 20], Z [128, 186] with four corners of radius 3, on the plane X -20, extruded
+    54 toward +X, with both end faces rounded with radius 2.
+  - Cavity: the outline Y [-36.2, 21], Z [134, 187] with the corner at (Y -36.2, Z 134) rounded with radius 3,
     on the plane X -21, extruded 45.2 toward +X, with its end face (X 24.2) rounded with radius 2. Each wall's inner
     face is 0.2 from its gear's back face, so a gear needs no spacer. Cutting the cavity leaves three plates:
-    - floor plate: X [-20, 40], Y [-52, 20], Z [128, 134];
-    - front plate: X [-20, 40], Y [-52, -36.2], Z [128, 194];
-    - right plate: X [24.2, 40], Y [-52, 20], Z [128, 194].
+    - floor plate: X [-20, 34], Y [-46, 20], Z [128, 134];
+    - front plate: X [-20, 34], Y [-46, -36.2], Z [128, 186];
+    - right plate: X [24.2, 34], Y [-46, 20], Z [128, 186].
   - A bore of diameter 8.4 on the crank axis through the right plate, a bore of diameter 6.4 on the fan axis through
     the front plate, and two holes of diameter 2.4 through the floor at X -2 and X 16, Y -28, for the grip screws.
 
 ### Crank parts, motion `crank`
 
 - `driving-gear`: the driving bevel gear.
-- `crank-shaft`: a round shaft of radius 4 on the crank axis, X [14, 43], a collar of radius 6 at X [40.3, 43.8]
+- `crank-shaft`: a round shaft of radius 4 on the crank axis, X [14, 37], a collar of radius 6 at X [34.3, 37.8]
   (0.3 from the wall's outer face) and a D-shaped stub, a circle of radius 4 with a flat 3 below the axis (toward -Z),
-  X [43.5, 49.8]. A nut slot 4.3 wide and 1.9 deep at X [46.2, 48.1], open at the flat, and a screw hole of diameter
-  2.4 along the axis from X 43 to the stub end, join the stub. The hole continues into the shaft to X 41.
-- `crank-arm`: a stadium 20 wide, X [44, 52], with the axis and the pin 55 apart (end radius 10, so the arm
+  X [37.5, 43.8]. A nut slot 4.3 wide and 1.9 deep at X [40.2, 42.1], open at the flat, and a screw hole of diameter
+  2.4 along the axis from X 37 to the stub end, join the stub. The hole continues into the shaft to X 35.
+- `crank-arm`: a stadium 20 wide, X [38, 46], with the axis and the pin 55 apart (end radius 10, so the arm
   is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at each end. A D pocket (radius
-  4.15, flat 3.15 toward -Z) at X [43, 50] opens on the inner face for the shaft stub, and one (flat toward +Z)
-  at X [46, 53] opens on the outer face for the pin stub. Each pocket leaves a 2 mm floor with the screw hole.
-- `crank-pin`: a D-shaped stub (radius 4, flat 3 toward +Z, away from the shaft) at X [46.2, 52.5] with a nut
-  slot at X [48, 49.9] and a screw hole of diameter 2.4 from X 45, a round shank of radius 4.5 from X 52.1 (the
-  shoulder, 0.1 clear of the arm) to X 99, and a head of radius 5.8 at X [98.6, 101.6]. The pin is 55 from the
+  4.15, flat 3.15 toward -Z) at X [37, 44] opens on the inner face for the shaft stub, and one (flat toward +Z)
+  at X [40, 47] opens on the outer face for the pin stub. Each pocket leaves a 2 mm floor with the screw hole.
+- `crank-pin`: a D-shaped stub (radius 4, flat 3 toward +Z, away from the shaft) at X [40.2, 46.5] with a nut
+  slot at X [42, 43.9] and a screw hole of diameter 2.4 from X 39, a round shank of radius 4.5 from X 46.1 (the
+  shoulder, 0.1 clear of the arm) to X 93, and a head of radius 5.8 at X [92.6, 95.6]. The pin is 55 from the
   crank axis. The handle slides on over the stub, so nothing on the pin is wider than the handle's bore except
   the head.
-- `crank-grip`: the crank handle, a small revolved barrel X [52.2, 102.2], 50 long, for the thumb, index and middle
+- `crank-grip`: the crank handle, a small revolved barrel X [46.2, 96.2], 50 long, for the thumb, index and middle
   fingers. Its outer diameter is 14.4 at the inner end, 15.6 at 8 from it, 16 at 22, 14.5 at 36 (the waist), 16 at
   43, 18.6 at 48.8 (the flare) and 16.6 at the outer end. This is inside MIL-STD-1472G's light-load handle (10 to 16
   mm thick, 25 to 75 mm long). It has a bore of diameter 9.4 (0.4 clearance on the shank, so it spins freely and tilts
@@ -150,14 +150,14 @@ parts whose faces touch.
 ### Fan parts, motion `fan`
 
 - `pinion`: the pinion bevel gear.
-- `fan-shaft`: a cylinder of radius 3 on the fan axis, Y [-86, -22].
-- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-82, -62], mid plane Y -72. It has a bore
+- `fan-shaft`: a cylinder of radius 3 on the fan axis, Y [-80, -22].
+- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-76, -56], mid plane Y -66. It has a bore
   of radius 3 and, for each blade k at angle `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning
   toward +Z):
   - a radial socket of radius 3.15 on the hub's mid plane, from r 5.6 outward through the hub surface;
   - a bolt hole of radius 1.15 parallel to the fan axis at r 9.5, through the hub;
-  - a head counterbore of radius 2.15 in the front face, 2.2 deep (floor at Y -79.8);
-  - a hex nut trap of 4.3 across flats in the back face, 4.0 deep (floor at Y -66), with its corners on the
+  - a head counterbore of radius 2.15 in the front face, 2.2 deep (floor at Y -73.8);
+  - a hex nut trap of 4.3 across flats in the back face, 4.0 deep (floor at Y -60), with its corners on the
     radial line.
 - `fan-blade-1` .. `fan-blade-N`, group `blade`: one blade each, with N = `Blades`. A blade is a smooth loft
   through the ten sections of the table below, stacked on its radial line through the hub's mid plane. The loft

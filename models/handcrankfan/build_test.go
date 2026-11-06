@@ -107,7 +107,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		require.Less(t, b.Max.X, box["crank-pin"].Max.X, "%s is left of the crank", name)
 	}
 	require.Greater(t, box["crank-grip"].Max.X, box["gearbox"].Max.X, "the grip reaches further right than the gearbox")
-	require.Greater(t, box["crank-shaft"].Max.X, 40.0, "the crank shaft leaves the wall toward +X")
+	require.Greater(t, box["crank-shaft"].Max.X, 34.0, "the crank shaft leaves the wall toward +X")
 	require.InDelta(t, 0, (box["fan-shaft"].Min.X+box["fan-shaft"].Max.X)/2, tol, "the fan shaft lies on X = 0")
 	rotorFront := math.Inf(1)
 	for name, b := range box {
@@ -123,8 +123,8 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		}
 		require.Greater(t, b.Min.Y, rotorFront, "%s is in front of the rotor", name)
 	}
-	require.InDelta(t, -82, box["fan-hub"].Min.Y, tol, "the hub front face")
-	require.InDelta(t, -62, box["fan-hub"].Max.Y, tol, "the hub back face")
+	require.InDelta(t, -76, box["fan-hub"].Min.Y, tol, "the hub front face")
+	require.InDelta(t, -56, box["fan-hub"].Max.Y, tol, "the hub back face")
 	// Handheld: the grip hangs under the gearbox floor, is long enough for a hand, and has no stand around it.
 	require.InDelta(t, 128, box["handle"].Max.Z, tol, "the grip starts at the gearbox floor")
 	require.InDelta(t, 128, box["gearbox"].Min.Z, tol, "the floor is where the grip ends")
@@ -132,11 +132,11 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	for name, b := range box {
 		require.GreaterOrEqual(t, b.Min.Z, box["handle"].Min.Z-tol, "%s hangs below the grip end", name)
 	}
-	require.InDelta(t, -86, box["fan-shaft"].Min.Y, tol)
+	require.InDelta(t, -80, box["fan-shaft"].Min.Y, tol)
 	for k := 1; k <= p.Blades; k++ {
 		bolt := box[fmt.Sprintf("fan-bolt-%d", k)]
-		require.Greater(t, bolt.Min.Y, -82.0, "bolt %d is inside the hub's front face", k)
-		require.Less(t, bolt.Max.Y, -62.0, "bolt %d is inside the hub's back face", k)
+		require.Greater(t, bolt.Min.Y, -76.0, "bolt %d is inside the hub's front face", k)
+		require.Less(t, bolt.Max.Y, -56.0, "bolt %d is inside the hub's back face", k)
 	}
 }
 
@@ -191,7 +191,7 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 	for _, r := range []float64{30, 40, 50, 60} {
 		x, ring := meshRing(verts, r)
 		require.NotEmpty(t, ring, "ring near radius %g", r)
-		stack := r3.Vec{X: x, Y: -72, Z: 170}
+		stack := r3.Vec{X: x, Y: -66, Z: 170}
 		te1 := farthest(ring, stack, nil)
 		le := farthest(ring, te1, nil)
 		te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
@@ -232,10 +232,10 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.NoError(t, err, name)
 		return loc
 	}
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -72, Z: 170}), "the socket is empty")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -66, Z: 170}), "the socket is empty")
 	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.5, Y: -112, Z: 170}), "the nut trap is empty")
-	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -77, Z: 175}), "the hub between two blades is solid")
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -72.2, Z: 170.3}), "the socket is empty past the bolt")
+	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -71, Z: 175}), "the hub between two blades is solid")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -66.2, Z: 170.3}), "the socket is empty past the bolt")
 }
 
 // requireGrip measures the grip's mesh rings at three heights: they are ovals of the table's width and length,

@@ -58,7 +58,11 @@ func main() {
 	output := flag.String("out", "", "PNG output path (required)")
 	width := flag.Int("width", 0, "override preset width in pixels")
 	height := flag.Int("height", 0, "override preset height in pixels")
+	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
 	flag.Parse()
+	if *frames > 0 {
+		fanAnimationFrames = *frames
+	}
 	if err := run(context.Background(), *name, *shot, *output, *width, *height); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -82,6 +86,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		case "animation":
 			return runSpinningWheelAnimation(ctx, output, width, height)
 		}
+	}
+	if model == "handcrankfan" && shot == "animation" {
+		if width == 0 {
+			width = 1000
+		}
+		if height == 0 {
+			height = 560
+		}
+		return renderHandCrankFanAnimation(ctx, output, width, height, fanAnimationFrames)
 	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {

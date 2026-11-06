@@ -15,7 +15,7 @@ import (
 const (
 	hubRadius = 14.0
 	hubLength = 20.0
-	hubBack   = 62.0
+	hubBack   = -(fanWallY - wallThick) + 10 // 10 in front of the fan-side wall's outer face
 	hubMid    = hubBack + hubLength/2
 
 	boreRadius   = 3.0  // the fan shaft's radius
