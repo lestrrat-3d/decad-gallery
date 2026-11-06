@@ -49,17 +49,22 @@ func (a *Assembly) Set(doc *decad.Document) (*parts.Set, error) {
 // that goes in and B the part it goes into.
 func (a *Assembly) joints() []parts.Joint {
 	apex := a.State.Apex
-	crank := parts.Axis{Point: apex, Dir: r3.Vec{X: 1}}
-	pin := parts.Axis{Point: apex.Add(a.State.ArmDirection.Scale(crankThrow)), Dir: r3.Vec{X: 1}}
+	crank := parts.Axis{Point: a.State.Crank, Dir: r3.Vec{X: 1}}
+	drive := parts.Axis{Point: apex, Dir: r3.Vec{X: 1}}
+	pin := parts.Axis{Point: a.State.Crank.Add(a.State.ArmDirection.Scale(crankThrow)), Dir: r3.Vec{X: 1}}
 	fan := parts.Axis{Point: apex, Dir: fanAxis}
 	vertical := func(dx float64) parts.Axis {
-		return parts.Axis{Point: r3.Vec{X: 7 + dx, Y: -28, Z: axisHeight}, Dir: r3.Vec{Z: 1}}
+		return parts.Axis{Point: r3.Vec{X: gripX + dx, Y: -28, Z: axisHeight}, Dir: r3.Vec{Z: 1}}
 	}
 	var js []parts.Joint
 	add := func(name string, a, b string, axis parts.Axis, motion parts.Motion) {
 		js = append(js, parts.Joint{Name: name, Kind: parts.PinInBore, A: a, B: b, Axis: &axis, Motion: motion})
 	}
-	add("crank shaft in the wall", "crank-shaft", "gearbox", crank, parts.Turns)
+	add("crank shaft in the gearbox", "crank-shaft", "gearbox", crank, parts.Turns)
+	add("crank shaft in the crank gear", "crank-shaft", "crank-gear", crank, parts.Fixed)
+	add("drive shaft in the gearbox", "drive-shaft", "gearbox", drive, parts.Turns)
+	add("drive shaft in the drive gear", "drive-shaft", "drive-gear", drive, parts.Fixed)
+	add("drive shaft in the driving gear", "drive-shaft", "driving-gear", drive, parts.Fixed)
 	add("crank shaft in the arm", "crank-shaft", "crank-arm", crank, parts.Fixed)
 	add("arm screw in the arm", "crank-arm-bolt", "crank-arm", crank, parts.Fixed)
 	add("pin in the arm", "crank-pin", "crank-arm", pin, parts.Fixed)
@@ -69,7 +74,6 @@ func (a *Assembly) joints() []parts.Joint {
 	add("handle on the pin", "crank-pin", "crank-grip", pin, parts.Turns)
 	add("arm screw in the shaft", "crank-arm-bolt", "crank-shaft", crank, parts.Fixed)
 	add("pin screw in the pin", "crank-pin-bolt", "crank-pin", pin, parts.Fixed)
-	add("crank shaft in the driving gear", "crank-shaft", "driving-gear", crank, parts.Fixed)
 	add("fan shaft in the pinion", "fan-shaft", "pinion", fan, parts.Fixed)
 	add("fan shaft in the wall", "fan-shaft", "gearbox", fan, parts.Turns)
 	add("hub on the fan shaft", "fan-shaft", "fan-hub", fan, parts.Fixed)
@@ -91,22 +95,30 @@ func (a *Assembly) joints() []parts.Joint {
 }
 
 // Explode pulls the assembly apart with parts.Set.Explode, which reads each part's pull direction from its joint.
-// set must be this assembly's Set. The gearbox stays put. The crank comes apart in an order that keeps each part
-// clear of the next: the shaft, the arm and the pin screw first, then the handle, which slides onto the pin's stub
-// end and so goes between the arm and the pin, then the pin, then the arm screw. Once the shafts are out, the
-// driving gear slides off to the left along its shaft's axis and the pinion lifts out of the open top. The grip screws
-// then lift out of the open top and the grip drops, and the fan side comes off along the fan axis.
+// set must be this assembly's Set. The gearbox stays put. The crank comes apart along +X first: the arm and the pin
+// screw, then the handle, which slides onto the pin's stub end and so goes between the arm and the pin, then the pin
+// and the arm screw. Both shafts then slide out to the left, through the post. The pinion slides off to the left, the
+// grip screws, the crank gear, the drive gear and the driving gear lift out of the open top in that order, and the grip
+// drops. The fan side comes off along the fan axis. The order and the directions of the lifts are the result of a search
+// that leaves no two parts sharing space and keeps the largest move shortest.
 func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
-	along := r3.Vec{X: 1}
+	along, left, up := r3.Vec{X: 1}, r3.Vec{X: -1}, r3.Vec{Z: 1}
+	stage := func(name string, direction r3.Vec, names ...string) parts.Stage {
+		return parts.Stage{Name: name, Parts: names, Clear: parts.ClearAll, Direction: direction}
+	}
 	return set.Explode(ctx, parts.WithExplodeGround("gearbox"), parts.WithExplodeStages(
-		parts.Stage{Name: "arm", Parts: []string{"crank-shaft", "crank-arm", "crank-pin-bolt"}},
-		parts.Stage{Name: "handle", Parts: []string{"crank-grip"}, Clear: parts.ClearAll, Direction: along},
-		parts.Stage{Name: "pin", Parts: []string{"crank-pin"}, Clear: parts.ClearAll, Direction: along},
-		parts.Stage{Name: "arm screw", Parts: []string{"crank-arm-bolt"}, Clear: parts.ClearAll, Direction: along},
-		parts.Stage{Name: "driving gear", Parts: []string{"driving-gear"}, Clear: parts.ClearAll, Direction: r3.Vec{X: -1}},
-		parts.Stage{Name: "pinion", Parts: []string{"pinion"}, Clear: parts.ClearAll, Direction: r3.Vec{Z: 1}},
-		parts.Stage{Name: "grip screws", Parts: []string{"handle-bolt-1", "handle-bolt-2"}, Clear: parts.ClearAll,
-			Direction: r3.Vec{Z: 1}},
-		parts.Stage{Name: "grip", Parts: []string{"handle"}, Clear: parts.ClearAll, Direction: r3.Vec{Z: -1}},
+		parts.Stage{Name: "arm", Parts: []string{"crank-arm"}, Direction: along},
+		stage("handle", along, "crank-grip"),
+		stage("pin", along, "crank-pin"),
+		stage("arm screw", along, "crank-arm-bolt"),
+		stage("pin screw", left, "crank-pin-bolt"),
+		stage("drive shaft", left, "drive-shaft"),
+		stage("crank shaft", left, "crank-shaft"),
+		stage("pinion", left, "pinion"),
+		stage("grip screws", up, "handle-bolt-1", "handle-bolt-2"),
+		stage("crank gear", up, "crank-gear"),
+		stage("drive gear", up, "drive-gear"),
+		stage("driving gear", up, "driving-gear"),
+		stage("grip", r3.Vec{Z: -1}, "handle"),
 	))
 }

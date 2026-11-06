@@ -3,12 +3,13 @@
 ## Purpose
 
 Build a handheld fan. The operator holds the grip in the left hand and turns the crank on the fan's right side with
-the right hand. The crank turns a straight-tooth bevel gear
-pair, the pair turns the fan shaft at twice the crank speed, and the rotor blows air toward the
-operator. The blades are shaped like small wind turbine blades and bolt to the hub one by one, so a damaged blade
+the right hand. The crank shaft sits 40.4 below the fan's axis, so the crank handle swings clear of the blades. A pair
+of equal spur gears inside the gearbox carries the crank's turn up to the drive shaft, a straight-tooth bevel gear pair turns the fan
+shaft at twice that speed, and the rotor blows air toward the operator. The blades are shaped like small wind turbine blades and bolt to the hub one by one, so a damaged blade
 can be swapped. The whole fan is meant to be 3D-printed; the only bought parts are M2 bolts and nuts. The right-hand crank and the operator-facing rotor are the two orientation rules of this model.
 
-The bevel pair is the `models/bevelgear` construction, imported and not copied.
+The bevel pair is the `models/bevelgear` construction and the spur gears are the `models/spurgear` construction,
+imported and not copied.
 
 ## API and parameters
 
@@ -30,25 +31,33 @@ Expose `DefaultParams`, `Params.Validate`, `Motion(Params) (State, error)`,
 `NewDocument` returns `decad.New` with `decad.WithChainTolerance(0.05 mm)` applied before the caller's options.
 `Build` needs a document made by it: the joints between the hub and the lofted blades need that tolerance.
 
-`State` holds `CrankAngle`, `FanAngle`, `Apex` (r3.Vec) and `ArmDirection` (r3.Vec). `Ratio` is the constant 2.
+`State` holds `CrankAngle`, `FanAngle`, `Apex` (r3.Vec), `Crank` (r3.Vec) and `ArmDirection` (r3.Vec). `Ratio` is the constant 2.
 `Assembly` holds `Parts []Part`, `Sketches []*sketch.Sketch` and `State`.
-`Part` holds `Name`, `Group`, `Motion` and `Body`. `Motion` is `fixed`, `crank` or `fan`.
+`Part` holds `Name`, `Group`, `Motion` and `Body`. `Motion` is `fixed`, `crank`, `drive` or `fan`.
 
 ## Orientation rules
 
-- The crank is on the right. The crank shaft lies on the line through the apex along X and leaves the gearbox
-  toward +X. The crank shaft ends beyond the bearing block at X 57.8, and the crank pin and grip have larger X than every fixed part.
+- The crank is on the right. The crank shaft lies on a line along X at Y 0, Z 129.6, 40.4 below the drive shaft, and
+  leaves the gearbox toward +X. It ends beyond the crank bearing block at X 57.8, and the crank pin and grip have larger X than every
+  fixed part.
 - The fan faces the operator. The fan shaft lies on the line through the apex along Y and runs toward -Y. The
-  rotor has smaller Y than every other part except the fan shaft, and its blades blow air toward -Y.
+  rotor has smaller Y than every other part except the fan shaft and the grip's raked base, and its blades blow air
+  toward -Y.
+- The crank handle never meets a blade. The arm, the pin and the handle reach 65 from the crank axis. Turned through a
+  full turn about the crank axis, none of their vertices comes within 15 of the disc the blades sweep.
 
 ## Crank turn and fan turn
 
-A forward crank turn is clockwise as seen from the right, a rotation about the -X axis.
-`CrankAngle` is the forward turn, measured from the arm pointing straight up: the arm points along
-`(0, sin CrankAngle, cos CrankAngle)`.
+The crank shaft turns 40.4 below the drive shaft, and a pair of equal spur gears joins them. The pair turns the drive
+shaft the opposite way at the same speed, and the bevel pair turns the fan shaft at twice that speed.
 
-The bevel pair has a 90° shaft angle. With the crank's outward direction +X and the fan's outward direction -Y,
-the two angular velocities satisfy ω_fan = Ratio · ω_crank along -Y. The forward crank turn therefore turns the
+A forward crank turn is counter-clockwise as seen from the right, a rotation about the +X axis. `CrankAngle` is
+the forward turn, measured from the arm pointing straight up: the arm points along
+`(0, -sin CrankAngle, cos CrankAngle)`. The default is 3 pi / 4, the arm pointing down and toward the operator. The
+drive shaft and the bevel gear on it turn about -X by `CrankAngle`.
+
+The bevel pair has a 90° shaft angle. With the drive shaft's outward direction +X and the fan's outward direction -Y,
+the two angular velocities satisfy ω_fan = Ratio · ω_drive along -Y. The forward crank turn therefore turns the
 fan about -Y by `Ratio * CrankAngle`: counter-clockwise as the operator sees it.
 
 A blade at +X moves toward +Z while the fan turns forward. At radius r its chord, from trailing edge to leading
@@ -68,7 +77,7 @@ it, so the angle is flow plus attack, not flow minus attack. The sections are NA
 
 ## Dimensions
 
-The apex is the point where the crank axis meets the fan axis: `(0, 0, 170)`.
+The apex is the point where the drive shaft's axis meets the fan axis: `(0, 0, 170)`. The crank axis is 40.4 below it.
 
 ### Bevel pair
 
@@ -83,8 +92,9 @@ pinion heel is `Module*32/2 + Module*16/8`.
 ### Fixed parts
 
 - Handle, `handle`: an oval grip held in the left hand, a smooth loft through 14 oval sections, raked 15° like a
-  pistol grip with its base toward the operator (-Y). It spans Z [8, 127.9], so its top is 0.1 below the gearbox
-  floor, and the centre of its top is at X 7, Y -28. Section `z`, width `W` (along X) and length `L` (along Y), in
+  pistol grip with its base toward the operator (-Y). It spans Z [-18.6, 101.3], so its top is 0.1 below the
+  gearbox floor (Z 101.4), and the centre of its top is at X 7, Y -28. The table's `z` below is the height the
+  loft is drawn at; the finished grip is 26.6 lower. Section `z`, width `W` (along X) and length `L` (along Y), in
   mm, centred on `X 0, Y (z - 68) tan 15°` before the loft is placed:
 
   | z | 8 | 9 | 11 | 14 | 18 | 26 | 45 | 65 | 85 | 100 | 114 | 122 | 126 | 127.9 |
@@ -96,38 +106,46 @@ pinion heel is `Module*32/2 + Module*16/8`.
   gearbox is the narrowest part. The grip is 35 to 38 mm across when measured round, inside the 30 to 50 mm range
   for a power grip, and the hand zone is about 108 mm long. There are no finger grooves, which make pressure
   points for other hand sizes. Each section is a fit spline through 25 points that leaves a 2° gap at the back,
-  closed by two short lines, as the blade sections are. Two pilot holes of diameter 1.8 run from Z 116 up through the
-  top, at X -2 and X 16 on Y -28.
+  closed by two short lines, as the blade sections are. Two pilot holes of diameter 1.8 run from the table's Z 116 (89.4 on the
+  finished grip) up through the top, at X -2 and X 16 on Y -28.
 - `handle-bolt-1`, `handle-bolt-2`, group `hardware`: two M2 x 16 screws, one at each pilot. Each stands on
   Y -28 with its head 2.0 high on the floor's top face (0.1 above it) and a shank of radius 0.8, which is the
   thread root, down into the pilot. They cut their own thread in the printed pilot. Each is one plain body.
-- Gearbox, one part, `gearbox`: a block minus a cavity, with rounded edges, and two square bearing blocks. Each
-  shaft turns in a hole through a flat wall about 10 thick and the bearing block built out from it, so a printed shaft
-  has a bearing 24 to 34 long and the housing has no boss or sleeve. Printed floor down, every wall and both blocks are
-  vertical, so the housing needs no support. A horizontal cylinder would need it.
-  - Block: the outline Y [-46, 11], Z [128, 181] with four corners of radius 3, on the plane X -20, extruded
-    54 toward +X, with both end faces rounded with radius 2.
-  - Cavity: the outline Y [-36.2, 12], Z [134, 182] with the corner at (Y -36.2, Z 134) rounded with radius 3,
-    on the plane X -21, extruded 45.2 toward +X, with its end face (X 24.2) rounded with radius 2. Each wall's inner
-    face is 0.2 from its gear's back face, so a gear needs no spacer. Cutting the cavity leaves three plates:
-    - floor plate: X [-20, 34], Y [-46, 11], Z [128, 134];
-    - front plate: X [-20, 34], Y [-46, -36.2], Z [128, 181];
-    - right plate: X [24.2, 34], Y [-46, 11], Z [128, 181].
-  - Fan bearing block: a rounded square 22 wide (X [-11, 11]) and as tall as the box (Z [128, 181]), corners of radius
-    3, from 1 inside the front plate to Y -70, with its end face rounded with radius 2. It is 24 long beyond the plate.
-  - Crank bearing block: the same square (Y [-11, 11], Z [128, 181]) from 1 inside the right plate to X 48, 14 long
-    beyond the plate, with its end face rounded with radius 2.
-  - A bore of diameter 8.4 on the crank axis through the right plate and its block, a bore of diameter 6.4 on the fan
-    axis through the front plate and its block, and two holes of diameter 2.4 through the floor at X -2 and X 16,
-    Y -28, for the grip screws.
+- Gearbox, one part, `gearbox`: one tray with rounded edges, open at the top and the back, and three square blocks.
+  Its floor sits low enough for the crank gear to turn above it, so the spur pair lives in the tray and the grip hangs
+  from the lowered floor. It has no boss or sleeve. Printed floor down, every wall, the post and the blocks are
+  vertical, so it needs no support.
+  - Block: the outline Y [-46, 11], Z [101.4, 181] with four corners of radius 3, on the plane X -20, extruded
+    54 toward +X (to X 34), with both end faces rounded with radius 2. The floor is 5 thick: its underside is 1.2 under
+    the crank gear's tip (Z 107.6 minus 1.2, minus 5).
+  - Cavity: the outline Y [-36.2, 12], Z [106.4, 182] with the corner at (Y -36.2, Z 106.4) rounded with radius 3, on the
+    plane X -21, extruded 46 toward +X, so it runs through both ends, less a notch 22 wide (Y [-11, 11]) at its left end
+    up to X -10.2. It leaves the floor, the fan-side wall (X [-20, 34], Y [-46, -36.2]), the crank-side wall (X [24.2, 34],
+    Y [-46, 11]) and the left post (X [-20, -10.2], Y [-11, 11]), all Z [101.4, 181] except the floor. Y -36.2 is 0.2 from
+    the pinion's back face and X 24.2 is 0.2 from the driving gear's back face.
+  - Fan bearing block: a rounded square 22 wide (X [-11, 11]) and as tall as the tray (Z [101.4, 181]), corners of radius
+    3, from 1 inside the fan-side wall to Y -70, with its end face rounded with radius 2. Its bore and the wall's make a
+    bearing 33.8 long for the fan shaft.
+  - Crank bearing block: the same square (Y [-11, 11], Z [101.4, 181]) from 1 inside the crank-side wall to X 48, 14
+    long beyond the wall, with its end face rounded with radius 2.
+  - Holes: a bore of diameter 6.4 on the fan axis through the wall and its block; a bore of diameter 8.4 on the drive
+    axis (Z 170) and one on the crank axis (Z 129.6) through the post; a pocket of diameter 8.4, 6 deep, in the
+    crank-side wall for the drive shaft's end; a bore of diameter 8.4 on the crank axis through the crank-side wall and
+    its block; and two holes of diameter 2.4 through the floor at X -2 and X 16, Y -28, for the grip screws.
 
 ### Crank parts, motion `crank`
 
-- `driving-gear`: the driving bevel gear.
-- `crank-shaft`: a round shaft of radius 4 on the crank axis, X [14, 51], a collar of radius 6 at X [48.3, 51.8]
-  (0.3 from the bearing block's end face) and a D-shaped stub, a circle of radius 4 with a flat 3 below the axis (toward -Z),
-  X [51.5, 57.8]. A nut slot 4.3 wide and 1.9 deep at X [54.2, 56.1], open at the flat, and a screw hole of diameter
-  2.4 along the axis from X 51 to the stub end, join the stub. The hole continues into the shaft to X 49.
+The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
+
+- `crank-gear`: a spur gear of Module 2, 20 teeth, 6 thick, bore 8, on the crank axis at X [-9.2, -3.2], 1 clear of
+  the post. Its tip radius is 22. Its roots are sharp, because Decad cannot fillet them ("loft fillets consume section
+  segment").
+- `crank-shaft`: a round shaft of radius 4 on the crank axis, X [-23.8, 57.8], with a collar of radius 6 at its left end
+  (X [-23.8, -20.3], 0.3 clear of the post). It slides in from the left through the post, the crank gear, the
+  crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. A flat 3 below
+  the axis (toward -Z) at X [51.5, 57.8] makes the D-shaped stub, with a nut slot 4.3 wide and 1.9 deep at X [54.2, 56.1],
+  open at the flat, and a screw hole of diameter 2.4 along the axis from X 49 to the end. They are cut from the bare shaft
+  before the collar joins it, because Decad refuses to cut them after the union.
 - `crank-arm`: a stadium 20 wide, X [52, 60], with the axis and the pin 55 apart (end radius 10, so the arm
   is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at each end. A D pocket (radius
   4.15, flat 3.15 toward -Z) at X [51, 58] opens on the inner face for the shaft stub, and one (flat toward +Z)
@@ -153,12 +171,25 @@ pinion heel is `Module*32/2 + Module*16/8`.
 Each joint just before it is tightened keeps a gap of 0.1 to 0.2 mm, because Decad cannot decide a pair of
 parts whose faces touch.
 
+### Drive parts, motion `drive`
+
+The drive parts turn about the drive shaft's axis, along X through the apex, the other way round from the crank.
+
+- `driving-gear`: the driving bevel gear.
+- `drive-gear`: a spur gear like the crank gear, on the drive axis at X [-9.2, -3.2], turned half a tooth about its axis so
+  that its tooth meets the crank gear's gap on the line between the two axes. The centre distance is 40.4, so the
+  teeth have 0.4 of backlash, and the two gears' solids do not intersect. Its tip radius of 22 leaves 3.2 to the
+  pinion's back face in Y.
+- `drive-shaft`: a round shaft of radius 4 on the drive axis, X [-23.8, 30], with a collar of radius 6 at its left end
+  like the crank shaft's. It slides in from the left through the post, the drive gear and the bevel gear, and ends in the
+  crank-side wall's pocket.
+
 ### Fan parts, motion `fan`
 
 - `pinion`: the pinion bevel gear.
 - `fan-shaft`: a cylinder of radius 3 on the fan axis, Y [-100, -22].
-- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is 6 in front of the fan bearing block's end (Y -70), which keeps
-  the blades at least 15 clear of the crank's reach (see the verification below). It has a bore
+- `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is 6 in front of the bearing block's end (Y -70). The crank is
+  lower than the fan axis, so the blades stay clear of its reach without a long shaft. It has a bore
   of radius 3 and, for each blade k at angle `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning
   toward +Z):
   - a radial socket of radius 3.15 on the hub's mid plane, from r 5.6 outward through the hub surface;
@@ -202,35 +233,38 @@ a printed fit and may need a drill or a test print first.
 ## Parts set and exploded view
 
 `Assembly.Set(doc)` returns a `parts.Set` (Decad's `parts` package) over the build's document. The printed parts
-are `Manufactured` in PLA, and the screws and nuts (`handle-bolt-*`, `crank-arm-bolt`, `crank-pin-bolt`,
-`fan-bolt-*`) are `Purchased` steel, grouped by `Spec` for the bill of materials: M2 x 16 self-tapping screws for the
-grip, M2 x 10 screws with nuts for the crank and M2 x 16 screws with nuts for the blades. Every joint is a
-`PinInBore`, with its axis stated in the posed coordinates, because the faceted bores cannot state it:
+are `Manufactured` in PLA, and the screws and nuts (`handle-bolt-*`, `crank-arm-bolt`, `crank-pin-bolt`, `fan-bolt-*`)
+are `Purchased` steel, grouped by `Spec` for the bill of materials: M2 x 16 self-tapping screws for the grip, M2 x 10
+screws with nuts for the crank and M2 x 16 screws with nuts for the blades. Every joint is a `PinInBore`, with its axis
+stated in the posed coordinates, because the faceted bores cannot state it:
 
-- the crank shaft in the wall (turns), in the arm and in the driving gear, the arm screw in the arm and the shaft,
+- the crank shaft in the gearbox (turns), in the crank gear and in the arm, the arm screw in the arm and the shaft,
   the pin and the pin screw in the arm and in each other, and the handle on the pin (turns);
+- the drive shaft in the gearbox (turns), in the drive gear and in the driving gear;
 - the fan shaft in the wall (turns), in the pinion and in the hub, each blade's stud in the hub, and each blade bolt
   in the hub and in its blade;
 - each grip screw in the floor and in the grip.
 
 `Assembly.Explode(ctx, set)` runs `Set.Explode` with the gearbox as the ground. The pin screw's joint declares a pull
-toward the shaft, because its head is on the arm's inner face. The stages run in this order:
+toward the shaft, because its head is on the arm's inner face. Decad plans the explosion from boxes, which makes nested
+parts jump over each other, so the order and the directions of the lifts are the result of a search that leaves no two
+parts sharing space at the default pose and keeps the largest move shortest. The stages run in this order:
 
-1. the shaft, the arm and the pin screw;
-2. the handle, then the pin, then the arm screw, each along +X: the handle slides over the pin's stub end, so along
-   the crank axis the arm, the handle and the pin follow in that order with gaps between them;
-3. the driving gear, which slides off to the left along its own axis;
-4. the pinion, which lifts out of the open top;
-5. the two grip screws, which lift out of the open top, and then the grip, which drops.
+1. the arm (+X), the handle, the pin and the arm screw (+X): the handle slides over the pin's stub end, so along the
+   crank axis the arm, the handle and the pin follow in that order with gaps between them; the pin screw goes toward -X;
+2. the drive shaft and the crank shaft, which slide out to the left through the post;
+3. the pinion, which slides off to the left;
+4. the two grip screws, the crank gear, the drive gear and the driving gear, which lift out of the open top in that order;
+5. the grip, which drops.
 
-The fan shaft, the hub, the blades and the blade bolts come off along the fan axis in the last stage. After the
-explosion no two parts share space.
+The fan shaft, the hub, the blades and the blade bolts come off along the fan axis in the last stage. The explosion is
+checked at the default pose only: Decad's boxes depend on the crank angle.
 
 ## Pose
 
-Build every part at `CrankAngle = 0`. Then turn each `crank` part about the line through the apex along -X by
-`CrankAngle`, and each `fan` part about the line through the apex along -Y by `Ratio*CrankAngle`.
-The gearbox and handle do not move.
+Build every part at `CrankAngle = 0`. Then turn each `crank` part about the line along +X through `State.Crank` by
+`CrankAngle`, each `drive` part about the line through the apex along -X by `CrankAngle`, and each `fan` part about
+the line through the apex along -Y by `Ratio*CrankAngle`. The gearbox and the handle do not move.
 
 ## Verification
 
@@ -239,7 +273,8 @@ The gearbox and handle do not move.
 - Every sketch passes `Sketch.Verify` as fully constrained: DOF 0, no redundant constraint, no conflict.
 - The crank is on the right and the fan faces the operator, by the bounds rules above.
 - The grip hangs under the gearbox floor, is longer than 100, and no part reaches below its lower end. Its rings at
-  Z 26, 85 and 114 have the widths and lengths of the table, and their centres follow the 15° rake.
+  Z -0.6, 58.4 and 87.4 (the table's 26, 85 and 114, 26.6 lower) have the widths and lengths of the table, and their
+  centres follow the 15° rake.
 - The blade pitch pushes air toward -Y. In the mesh of `fan-blade-1` with the pose undone, at radii near 30, 40,
   50 and 60, the chord runs from the midpoint of the trailing edge to the leading edge. The leading edge has a
   larger Y than the trailing edge, and the chord angle `atan2(dY, dZ)` lies within 0.5° of `beta(r)`.
@@ -247,15 +282,17 @@ The gearbox and handle do not move.
   of the thickness ratio of the table at those radii, and is at least 0.9 near r 15.
 - The hub is empty at a socket and at a nut trap. No two of the finished parts overlap or are undecided in
   `doc.Verify`. The finished parts are the hub, the blades and the bolts of the rotor, the handle and its screws,
-  the gearbox, and the crank's shaft, arm, pin, handle and screws. That proves each stud fits its socket and each
-  bolt its holes and pockets. The gear pair and the fan shaft are left out because they touch.
-- A hand on the crank handle cannot meet a blade. The arm, pin and handle reach 65 from the crank axis, so they
-  sweep as far as Y -65 toward the fan. Every blade vertex whose distance from the fan axis is at least the arm's
-  inner X (the part of the blade the crank can reach) has Y of at most -80, 15 clear of that reach.
+  the gearbox, and the crank's shaft, arm, pin, handle and screws, and the drive shaft. That proves each stud fits its
+  socket and each bolt its holes and pockets. The bevel pair, the spur pair and the fan shaft are left out because they
+  touch.
+- A hand on the crank handle cannot meet a blade. Every vertex of the arm, the pin and the handle is turned through a
+  full turn about the crank axis in steps of 3°, and none comes within 15 of the blades' disc, taken as the Y range of
+  the blades and the largest distance of a blade vertex from the fan axis.
 - The bolts lie inside the hub's front and back faces. Blades 2 to N and bolts 2 to N are copies of the first,
   turned by `2 pi (k-1) / Blades`.
-- The exploded view puts the arm, the handle and the pin in that order along the crank axis, slides the driving gear
-  to the left, lifts the pinion, and leaves no two parts sharing space.
+- The exploded view, checked at the default pose, puts the arm, the handle and the pin in that order along the crank
+  axis, slides the shafts and the pinion to the left, lifts the three gears, and leaves no two parts sharing space. The
+  bill of materials counts 2 + 2 screws and one for each blade.
 - The crank and fan parts turn by the angles above.
-- The gears mesh at the default pose: the driving gear's back face lies at X = 24 and the pinion's at Y = -36.
-- No two parts overlap except the meshing gear pair, which touches at its teeth.
+- The bevel gears mesh at the default pose: the driving gear's back face lies at X = 24 and the pinion's at Y = -36.
+- No two parts overlap except the meshing gear pairs, which touch at their teeth.

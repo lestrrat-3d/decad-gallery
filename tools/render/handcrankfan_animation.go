@@ -10,6 +10,7 @@ import (
 	"image/gif"
 	"math"
 	"path/filepath"
+	"strings"
 
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/r3"
@@ -53,7 +54,7 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 	var box, upper []solidlens.Model
 	for _, mesh := range meshes {
 		switch mesh.part.Name {
-		case "gearbox", "driving-gear", "pinion":
+		case "gearbox", "driving-gear", "pinion", "drive-gear", "crank-gear":
 			box = append(box, mesh.model)
 		}
 		if mesh.part.Name != "handle" {
@@ -72,10 +73,10 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 			}
 		}
 	}
-	crankSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: 700, Y: -260, Z: 250},
-		Target: solidlens.Vec{X: 20, Y: -45, Z: 175}, Up: solidlens.Vec{Z: 1}, FOV: 30}, upper, aspect, .04)
-	gearSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: -300, Y: 380, Z: 560},
-		Target: solidlens.Vec{X: 5, Y: -10, Z: 168}, Up: solidlens.Vec{Z: 1}, FOV: 30}, box, aspect, .12)
+	crankSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: 700, Y: -260, Z: 200},
+		Target: solidlens.Vec{X: 30, Y: -30, Z: 125}, Up: solidlens.Vec{Z: 1}, FOV: 30}, upper, aspect, .04)
+	gearSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: -330, Y: 380, Z: 520},
+		Target: solidlens.Vec{X: 5, Y: -10, Z: 145}, Up: solidlens.Vec{Z: 1}, FOV: 30}, box, aspect, .1)
 
 	animation := &gif.GIF{LoopCount: 0, Config: image.Config{ColorModel: color.Palette(palette.Plan9), Width: width, Height: height}}
 	for frame := range frames {
@@ -88,14 +89,22 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 			return err
 		}
 		panels := make([]wheelPanel, 2)
-		for i, camera := range []solidlens.Camera{crankSide, gearSide} {
-			panels[i].scene = bevelScene(camera, posed)
+		// The gear panel leaves out the crank arm, pin and handle, so the gears show.
+		var open []solidlens.Model
+		for i, mesh := range meshes {
+			name := mesh.part.Name
+			if strings.HasPrefix(name, "crank-arm") || strings.HasPrefix(name, "crank-pin") || name == "crank-grip" {
+				continue
+			}
+			open = append(open, posed[i])
 		}
+		panels[0].scene = bevelScene(crankSide, posed)
+		panels[1].scene = bevelScene(gearSide, open)
 		crank := math.Mod(turn*180/math.Pi, 360)
 		panels[0].title = "Crank side: one turn of the arm"
 		panels[0].caption = fmt.Sprintf("Crank %03.0f deg. The fan turns twice as fast.", crank)
-		panels[1].title = "Gears: the 32-tooth gear drives the 16-tooth pinion"
-		panels[1].caption = fmt.Sprintf("Gear %03.0f deg, pinion and fan %03.0f deg.", crank, math.Mod(2*crank, 360))
+		panels[1].title = "Gears from above and behind, crank arm removed"
+		panels[1].caption = fmt.Sprintf("Crank gear %03.0f deg, drive gear %03.0f deg, fan %03.0f deg.", crank, math.Mod(360-crank, 360), math.Mod(2*crank, 360))
 		canvas, err := wheelPanelCanvas(ctx, panels, width, height, face)
 		if err != nil {
 			return err
@@ -109,12 +118,17 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 	return writeWheelGIF(out, animation)
 }
 
-// handCrankFanPose turns the crank parts about the crank axis through the apex by turn, and the fan parts about the
-// fan axis by twice that, from the pose the meshes were built at. The fixed parts stay.
+// handCrankFanPose turns the crank parts about the crank axis by turn, the drive shaft and its gears the other way round
+// about the bevel shaft's axis, and the fan parts about the fan axis by twice that, from the pose the meshes were built
+// at. The fixed parts stay.
 func handCrankFanPose(meshes []fanMesh, state handcrankfan.State, turn float64) ([]solidlens.Model, error) {
-	crank, err := r3.RotationAround(state.Apex, r3.Vec{X: -1}, units.Radians(turn))
+	crank, err := r3.RotationAround(state.Crank, r3.Vec{X: 1}, units.Radians(turn))
 	if err != nil {
 		return nil, fmt.Errorf("turn the crank: %w", err)
+	}
+	drive, err := r3.RotationAround(state.Apex, r3.Vec{X: -1}, units.Radians(turn))
+	if err != nil {
+		return nil, fmt.Errorf("turn the drive shaft: %w", err)
 	}
 	fan, err := r3.RotationAround(state.Apex, r3.Vec{Y: -1}, units.Radians(handcrankfan.Ratio*turn))
 	if err != nil {
@@ -127,6 +141,8 @@ func handCrankFanPose(meshes []fanMesh, state handcrankfan.State, turn float64) 
 		switch mesh.part.Motion {
 		case "crank":
 			xf = crank
+		case "drive":
+			xf = drive
 		case "fan":
 			xf = fan
 		default:
