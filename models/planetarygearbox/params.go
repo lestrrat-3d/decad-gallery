@@ -36,11 +36,11 @@ type Params struct {
 	CoverThickness float64
 	// BoltHoleDiameter is the diameter of the four clearance holes that join the covers and the ring.
 	BoltHoleDiameter float64
-	// KeyDepth is the depth of the keyway groove cut along each shaft where a sun or a carrier sits on it. The sun
+	// KeyDepth is the depth of the three keyway grooves cut along each shaft where a sun or a carrier sits on it. The sun
 	// and the carrier have a matching tooth in their bore, so the shaft carries torque into them. The shaft is a
 	// full round cylinder where a bearing sits. Zero leaves round shafts and round bores.
 	KeyDepth float64
-	// KeyWidth is the width of the keyway groove.
+	// KeyWidth is the width of each keyway groove.
 	KeyWidth float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
@@ -77,8 +77,8 @@ func DefaultParams() Params {
 		StageGap:          0.5,
 		CoverThickness:    3,
 		BoltHoleDiameter:  3.4,
-		KeyDepth:          1.2,
-		KeyWidth:          2.5,
+		KeyDepth:          1.1,
+		KeyWidth:          2,
 		InputShaftLength:  12,
 		BearingClearance:  0.1,
 		CarrierWall:       3,
@@ -106,6 +106,8 @@ const (
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
 	// face off the plane where the keyway groove ends, and gives the printed parts a little play.
 	collarClearance = 0.5
+	// keyCount is the number of keyway grooves on a shaft, spread evenly round it.
+	keyCount = 3
 	// boltRimMargin is the material kept between a bolt hole and the edge of the ring or cover rim.
 	boltRimMargin = 1.5
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin

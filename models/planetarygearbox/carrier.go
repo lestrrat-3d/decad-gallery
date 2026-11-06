@@ -277,6 +277,16 @@ func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, keyBott
 	if err != nil {
 		return nil, err
 	}
+	// The other grooves are copies of the first, spread evenly round the axis, and join it into one tool.
+	copies, err := decad.PatternCopies(ctx, box, decad.CircularPattern{
+		Center: r3.NewVec(0, 0, 0), Axis: r3.NewVec(0, 0, 1), Count: keyCount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: pattern keyways: %w", what, err)
+	}
+	if box, err = decad.Union(ctx, box, copies...); err != nil {
+		return nil, fmt.Errorf("%s: join keyways: %w", what, err)
+	}
 	cut, err := decad.Cut(ctx, body, box)
 	if err != nil {
 		return nil, fmt.Errorf("%s: cut keyway: %w", what, err)
@@ -308,16 +318,40 @@ func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64
 	half := r.p.KeyWidth / 2
 	floor := radius - r.p.KeyDepth
 	wall := math.Sqrt(radius*radius - half*half)
-	// The upper wall's rim point is fully dimensioned. The lower one is fixed by the arc's radius and its y
-	// coordinate, which changes along the arc there because the point lies near the +X end of the circle.
-	upper := sketchcheck.DimensionPoint(s, wall, half)
-	lower := dimensionOnArc(s, wall, -half, -math.Asin(half/radius))
-	floorUpper := sketchcheck.DimensionPoint(s, floor, half)
-	floorLower := sketchcheck.DimensionPoint(s, floor, -half)
-	s.CreateArc(s.Origin(), upper, lower)
-	s.CreateLine(lower, floorLower)
-	s.CreateLine(floorLower, floorUpper)
-	s.CreateLine(floorUpper, upper)
+	// Groove k lies at angle k*2pi/keyCount. Going counterclockwise the outline meets its lower wall first: a
+	// line in from the rim to the floor, across the floor, and out along the upper wall, then an arc of the
+	// circle to the next groove's lower wall. Each arc's start (the upper rim point) is fully dimensioned and its
+	// end (the next lower rim point) by the one coordinate that changes along the arc there.
+	rotate := func(angle, x, y float64) (float64, float64) {
+		sin, cos := math.Sincos(angle)
+		return x*cos - y*sin, x*sin + y*cos
+	}
+	spread := math.Asin(half / radius)
+	upper := make([]*sketch.Point, keyCount)
+	lower := make([]*sketch.Point, keyCount)
+	floorUpper := make([]*sketch.Point, keyCount)
+	floorLower := make([]*sketch.Point, keyCount)
+	for k := range keyCount {
+		angle := 2 * math.Pi * float64(k) / keyCount
+		x, y := rotate(angle, wall, half)
+		upper[k] = sketchcheck.DimensionPoint(s, x, y)
+		x, y = rotate(angle, floor, half)
+		floorUpper[k] = sketchcheck.DimensionPoint(s, x, y)
+		x, y = rotate(angle, floor, -half)
+		floorLower[k] = sketchcheck.DimensionPoint(s, x, y)
+	}
+	for k := range keyCount {
+		angle := 2 * math.Pi * float64(k) / keyCount
+		x, y := rotate(angle, wall, -half)
+		lower[k] = dimensionOnArc(s, x, y, angle-spread)
+	}
+	for k := range keyCount {
+		next := (k + 1) % keyCount
+		s.CreateArc(s.Origin(), upper[k], lower[next])
+		s.CreateLine(lower[k], floorLower[k])
+		s.CreateLine(floorLower[k], floorUpper[k])
+		s.CreateLine(floorUpper[k], upper[k])
+	}
 	profile, err := profileWithHoles(ctx, s, 0, what)
 	if err != nil {
 		return nil, err

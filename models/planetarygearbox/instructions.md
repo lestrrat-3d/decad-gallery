@@ -26,9 +26,9 @@ The input and the output connect as follows. The shafts are separate bodies from
 prints in its own best orientation. The input shaft is an 8 mm rod: it passes through the front cover's bearing
 and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
 how stages link. The output shaft runs through the last carrier's hole and the rear cover's bearing. Every shaft
-is 8 mm because the 608ZZ bore is 8 mm. Each shaft is a round cylinder with a keyway, a groove `Sf` deep and `Sw` wide on its +X
+is 8 mm because the 608ZZ bore is 8 mm. Each shaft is a round cylinder with three keyway grooves, each `Sf` deep and `Sw` wide, spread 120° apart with the first on the +X
 side, cut only where a sun or a carrier sits on it. Where a bearing sits the shaft is a full cylinder. The sun's bore
-and the carrier's hole have a tooth that fills the groove, so the input shaft turns the first sun, and each link or
+and the carrier's hole have a tooth that fills each groove, so the input shaft turns the first sun, and each link or
 output shaft turns its carrier and, for a link shaft, the next sun, without slipping. The groove also lets a
 coupling grip the input and output shaft ends. The contract does not model the coupling, a set screw or the
 motor.
@@ -59,8 +59,8 @@ origin, so the axis is world +Z.
 | `g` | `StageGap` | float64 | 0.5 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
 | `db'` | `BoltHoleDiameter` | float64 | 3.4 | Diameter of the four clearance holes through the ring and the covers |
-| `Sf` | `KeyDepth` | float64 | 1.2 | Depth of the keyway groove on each shaft; zero leaves round shafts and round bores |
-| `Sw` | `KeyWidth` | float64 | 2.5 | Width of the keyway groove |
+| `Sf` | `KeyDepth` | float64 | 1.1 | Depth of the three keyway grooves on each shaft; zero leaves round shafts and round bores |
+| `Sw` | `KeyWidth` | float64 | 2 | Width of each keyway groove |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.1 | Radial clearance between a planet's bearing and its pocket |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
@@ -131,8 +131,8 @@ All three gears are involute spur gears of one module and pressure angle, built 
 `models/spurgear`. Do not copy its geometry.
 
 - Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's size: a circle of
-  diameter `ds` with a tooth that fills the keyway groove (a round bore when `Sf = 0`). The keyed bore is cut
-  after the gear is built, with a tool of the shaft's section less the groove.
+  diameter `ds` with three teeth that fill the keyway grooves (a round bore when `Sf = 0`). The keyed bore is cut
+  after the gear is built, with a tool of the shaft's section less the grooves.
 - Planet: `Zp` teeth, thickness `T`, centered bore of the lip bore diameter, spur backlash `j`.
   A bearing pocket of the pocket diameter is then cut from the planet's upper face, `Wb` deep,
   which leaves a lip `T - Wb` thick under it with the lip bore through it. The lip bore is
@@ -240,10 +240,10 @@ verify their own sketches.
 | --- | --- | --- |
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, all solids; ratio 1 + 71/13 |
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
-| Shaft keys | Default | The input shaft has a keyway groove on +X where the first sun sits and the sun's bore has the matching tooth: in the groove the shaft is absent and the sun present, elsewhere in the bore the shaft is present and the sun absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the groove's; in a two-stage gearbox the link shaft fills the second sun's keyed bore the same way |
+| Shaft keys | Default | The input shaft has three keyway grooves, at 0°, 120° and 240°, where the first sun sits and the sun's bore has the matching teeth: in a groove the shaft is absent and the sun present, at 60°, 180° and 300° and elsewhere in the bore the shaft is present and the sun absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the three grooves'; in a two-stage gearbox the link shaft fills the second sun's keyed bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the bearing is 22 mm across, 7 mm wide and level with the planet's upper face; the planet weighs the plain gear with the lip bore minus the pocket's ring |
-| Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with a tooth where the groove goes; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
+| Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with teeth where the grooves go; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |
 | Phase | Default with one planet turned half a tooth about its own axis | The same check finds vertices inside the sun and the ring |

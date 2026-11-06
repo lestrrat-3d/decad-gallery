@@ -341,7 +341,7 @@ func TestHousing(t *testing.T) {
 	}
 }
 
-// TestShaftKeys checks that the input shaft has a keyway groove on its +X side where the first sun sits and is a
+// TestShaftKeys checks that the input shaft has three keyway grooves, 120 degrees apart, where the first sun sits and is a
 // full round cylinder where the bearing sits, and that the sun's bore has the matching tooth: in the groove the
 // shaft is absent and the sun has material, elsewhere in the bore the shaft is present and the sun is not.
 func TestShaftKeys(t *testing.T) {
@@ -353,18 +353,27 @@ func TestShaftKeys(t *testing.T) {
 		require.NoError(t, err)
 		return loc
 	}
-	// The groove is 1.2 mm deep and 2.5 mm wide on the +X edge of an 8 mm shaft. The point (3.5, 0) is 0.7 mm
+	// Each groove is 1.1 mm deep and 2 mm wide on an 8 mm shaft. The point at radius 3.5 is 0.6 mm
 	// inside the groove's floor and 0.5 mm inside the circle, far enough from both surfaces to be decided.
-	key := r3.NewVec(3.5, 0, p.GearThickness/2)
-	require.Equal(t, decad.PointOutside, locate(box.InputShaft, key), "the shaft has a groove on +X")
-	require.Equal(t, decad.PointInside, locate(sun, key), "the sun's bore keeps a tooth in the groove")
-	for _, round := range []r3.Vec{r3.NewVec(-3.5, 0, 4), r3.NewVec(0, 3.5, 4), r3.NewVec(0, -3.5, 4)} {
-		require.Equal(t, decad.PointInside, locate(box.InputShaft, round), "shaft at %v", round)
-		require.Equal(t, decad.PointOutside, locate(sun, round), "sun bore at %v", round)
+	// Each groove is centered on an angle 120 degrees from the next, and the shaft is round between them.
+	at := func(degrees, z float64) r3.Vec {
+		sin, cos := math.Sincos(degrees * math.Pi / 180)
+		return r3.NewVec(3.5*cos, 3.5*sin, z)
+	}
+	for _, degrees := range []float64{0, 120, 240} {
+		key := at(degrees, p.GearThickness/2)
+		require.Equal(t, decad.PointOutside, locate(box.InputShaft, key), "the shaft has a groove at %v degrees", degrees)
+		require.Equal(t, decad.PointInside, locate(sun, key), "the sun's bore keeps a tooth at %v degrees", degrees)
+	}
+	for _, degrees := range []float64{60, 180, 300} {
+		round := at(degrees, 4)
+		require.Equal(t, decad.PointInside, locate(box.InputShaft, round), "shaft at %v degrees", degrees)
+		require.Equal(t, decad.PointOutside, locate(sun, round), "sun bore at %v degrees", degrees)
 	}
 	// Under the front bearing the shaft is a full cylinder, key side included.
 	bearingZ := -(p.StageGap + p.CoverThickness + 3.5)
 	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(3.5, 0, bearingZ)), "round where the bearing sits")
+	const keyCount = 3
 	b := bounds(t, box.InputShaft)
 	length := b.Max.Z - b.Min.Z
 	v, bound := volume(t, box.InputShaft)
@@ -376,7 +385,7 @@ func TestShaftKeys(t *testing.T) {
 	groove := 2 * (half*math.Sqrt(radius*radius-half*half)/2 + radius*radius/2*math.Asin(half/radius) - floor*half)
 	collar := (math.Pi*5.2*5.2 - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5)
 	grooveLength := p.GearThickness
-	require.InDelta(t, math.Pi*radius*radius*length+collar-groove*grooveLength, v, bound+0.5)
+	require.InDelta(t, math.Pi*radius*radius*length+collar-keyCount*groove*grooveLength, v, bound+0.5)
 }
 
 func TestPhaseAngles(t *testing.T) {
