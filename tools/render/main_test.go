@@ -148,6 +148,33 @@ func TestPlanetaryGearboxHero(t *testing.T) {
 	require.Greater(t, visible, 300, "the real gearbox should be visible against the background")
 }
 
+// TestPlanetaryGearboxPartPreset builds the real two-stage gearbox once and renders its output carrier alone.
+func TestPlanetaryGearboxPartPreset(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "part.png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "planetarygearbox", "-shot", "part-output-carrier",
+		"-out", output, "-width", "160", "-height", "90")
+	result, err := cmd.CombinedOutput()
+	require.NoError(t, err, string(result))
+
+	file, err := os.Open(output)
+	require.NoError(t, err)
+	defer func() { _ = file.Close() }()
+	image, err := png.Decode(file)
+	require.NoError(t, err)
+	require.Equal(t, 160, image.Bounds().Dx())
+	require.Equal(t, 90, image.Bounds().Dy())
+	background := image.At(0, 0)
+	visible := 0
+	for y := range image.Bounds().Dy() {
+		for x := range image.Bounds().Dx() {
+			if image.At(x, y) != background {
+				visible++
+			}
+		}
+	}
+	require.Greater(t, visible, 300, "the real carrier should be visible against the background")
+}
+
 // TestScrewGearHero builds the real screw gear once (about 40 s) for the single hero preset.
 func TestScrewGearHero(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "hero.png")

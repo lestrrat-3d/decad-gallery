@@ -10,6 +10,21 @@ The default gearbox has a 13-tooth sun, three 29-tooth planets and a 71-tooth ri
 1 ÷ 5.46 of the input speed (1 + 71 ÷ 13). The image shows two stages in the same ring, pulled apart: the first
 carrier's stub shaft drives the second sun, so two stages slow the output to 1 ÷ 29.8.
 
+## Parts
+
+Each part is shown once, from the real model. A gearbox has one ring and, in every stage, one sun, three planets and
+one carrier. A stage's carrier is the linking carrier when another stage follows it, because its stub shaft drives
+that stage's sun. The last stage's carrier is the output carrier, and its shaft is the output. The default one-stage
+gearbox has only the output carrier.
+
+| Image | Name |
+| --- | --- |
+| <img src="images/parts/ring.png" alt="Ring gear" width="240"> | Ring gear |
+| <img src="images/parts/sun.png" alt="Sun gear" width="240"> | Sun gear |
+| <img src="images/parts/planet.png" alt="Planet gear" width="240"> | Planet gear |
+| <img src="images/parts/linking-carrier.png" alt="Linking carrier" width="240"> | Linking carrier |
+| <img src="images/parts/output-carrier.png" alt="Output carrier" width="240"> | Output carrier |
+
 You can vary:
 
 - The number of stacked stages in the one ring.
