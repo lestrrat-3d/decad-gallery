@@ -11,8 +11,9 @@ faces you and blows air toward you.
 
 The crank shaft sits 40 mm below the fan's axis, so the crank handle swings clear of the blades. A pair of
 equal spur gears inside the gearbox carries its turn up to the drive shaft, and a straight-tooth bevel gear pair turns that through 90°
-and doubles its speed: one forward crank turn (counter-clockwise, seen from the right) turns the four-blade rotor
-twice, counter-clockwise as the operator sees it. Each blade is shaped like a small wind turbine blade: a thick round root, a widest section near
+and doubles its speed: one forward crank turn (clockwise, seen from the right) turns the four-blade rotor
+twice, clockwise as the operator sees it. The spur pair reverses the turn, so the blades are mirrored to push air
+toward the operator. Each blade is shaped like a small wind turbine blade: a thick round root, a widest section near
 the hub, and a taper to a thin tip, with the angle falling from the root to the tip. Its concave face leads the
 motion and faces the operator.
 
@@ -20,7 +21,7 @@ Each blade is a separate part with a round stud that slides into a socket in the
 hold it, so a damaged blade comes off and is replaced. Everything else is meant to be 3D-printed.
 The grip hangs under the gearbox. It is an oval of about 35 to 38 mm, raked like a pistol grip, with a flared base
 and a palm swell, and two M2 screws hold it. The grip starts below the lowered floor, and the crank sits at the height of the gearbox's lower half, 40 mm below the fan. The crank handle is a small 50 mm barrel, 16 mm thick, for the thumb, index and middle fingers. It spins on a headed pin, so it
-neither slides off nor wobbles, and the arm is clamped to the shaft and the pin by two more M2 screws. Outside
+neither slides off nor wobbles, and the arm sits on the shaft's D-shaped end in a tight-fit bore, with one more M2 screw holding the pin. Outside
 corners are rounded. The rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). The gears sit on plain shafts

@@ -34,7 +34,7 @@ func TestMotion(t *testing.T) {
 	p := handcrankfan.DefaultParams()
 	s, err := handcrankfan.Motion(p)
 	require.NoError(t, err)
-	require.InDelta(t, 2*p.CrankAngle, s.FanAngle, 1e-12, "the fan turns twice per crank turn")
+	require.InDelta(t, -2*p.CrankAngle, s.FanAngle, 1e-12, "the fan turns twice per crank turn, the other way round")
 	require.InDelta(t, 170, s.Apex.Z, 0)
 	// 5π/4 points the arm down and toward the operator (-Y).
 	require.InDelta(t, -math.Sqrt2/2, s.ArmDirection.Y, 1e-12)

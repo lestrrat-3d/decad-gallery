@@ -89,14 +89,15 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
 - `drive-shaft` (motion `drive`): a cylinder of radius 4 on `alongX(-22.8)`, extruded 52.8, and a collar, a cylinder of
   radius 6 on `alongX(-23.8)`, extruded 3.5. `Union` them; the shaft starts 1 inside the collar.
 - `crank-shaft`: a cylinder of radius 4 on `alongCrank(-22.8)`, extruded 80.6. `Cut` a box on `alongCrank(51.5)`,
-  (-5..5, -5..-3), extruded 7 (the flat), a box on `alongCrank(54.2)`, (-2.15..2.15, -4.5..2.5), extruded 1.9 (the nut
-  slot), and a cylinder of radius 1.2 on `alongCrank(49)`, extruded 10. Then `Union` the collar, a cylinder of radius 6 on
+  (-5..5, -5..-3), extruded 7 (the flat, which makes the D stub; there is no slot or screw hole, because the stub is a
+  tight fit in the arm). Then `Union` the collar, a cylinder of radius 6 on
   `alongCrank(-23.8)`, extruded 3.5. Cutting after the union with the collar fails in Decad.
 - `crank-arm`: on `alongCrank(52)`, a stadium: an arc of radius 10 about the origin and an equal arc about (0, 55),
-  `NewEqualRadius`, with four `NewTangent` lines, plus circles of radius 1.2 at both centres, extruded 8; the
-  profile selection requires two holes. `decad.Fillet` the outer loops of both caps with radius 1.5. Equal end
-  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a D pocket of radius 4.15 and flat 3.15
-  (toward -Z) on `alongCrank(51)`, extruded 7, and one (toward +Z) on `alongPin(54)`, extruded 7.
+  `NewEqualRadius`, with four `NewTangent` lines, plus a circle of radius 1.2 at the pin end, extruded 8; the
+  profile selection requires one hole. `decad.Fillet` the outer loops of both caps with radius 1.5. Equal end
+  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a D bore of radius 4.1 and flat 3.1
+  (toward -Z, 0.1 larger than the stub all round) on `alongCrank(51)`, extruded 7, and a D pocket of radius 4.15 and
+  flat 3.15 (toward +Z) on `alongPin(54)`, extruded 7.
 - `crank-pin`: a D prism of radius 4 and flat 3 (toward +Z) on `alongPin(54.2)`, extruded 6.3; a shank of radius 4.5 on
   `alongPin(60.1)` to X 107; a head of radius 5.8 on `alongPin(106.6)`, extruded 3. `Union` the three left to right,
   then `Cut` a box on `alongPin(56)`, (-2.15..2.15, -2.5..4.5), extruded 1.9, and a cylinder of radius 1.2 on
@@ -107,9 +108,9 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`.
   it a full turn about the pin axis. The sloped sections need every vertex dimensioned from the origin; the
   repository's rule against fixing every computed point has no better answer for a profile whose segments are
   all slanted.
-- `crank-arm-bolt`: a screw body with its bearing face centre at (60.1, 0, 129.6), pointing -X, nut corners on Z,
-  length 10, nut near face 4.1 from the bearing face, shank radius 1.0. `crank-pin-bolt`: bearing face centre at
-  (51.9, 0, 184.6), pointing +X, length 10, nut near face 4.2 from the bearing face.
+- `crank-pin-bolt`: a screw body with its bearing face centre at (51.9, 0, 184.6), pointing +X, nut corners on Z,
+  length 10, nut near face 4.2 from the bearing face, shank radius 1.0. The shaft to the arm has no screw: the D stub
+  is a tight fit in the arm's D bore.
 
 ## 5. Fan
 
@@ -167,14 +168,14 @@ parallel to the fan axis at 9.5 along the blade, and each grip screw's vertical 
 direction. Decad plans from boxes, which makes nested parts jump over each other, so the order and the directions of
 the lifts come from a search over the order of the pinion, the grip screws and the three gears and over the directions
 of the driving gear and the pinion, scored on no overlap and the shortest largest move. The order is: `arm` (+X, the
-default clearing), `handle`, `pin`, `arm screw` (+X), `pin screw` (-X), `drive shaft` and `crank shaft` (-X), `pinion`
+default clearing), `handle`, `pin` (+X), `pin screw` (-X), `drive shaft` and `crank shaft` (-X), `pinion`
 (-X), `grip screws` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `grip` (-Z).
 
 ## 7. Pose
 
-Each part is built at crank angle 0. Each `crank` part is then rotated about the line through `State.Crank` along +X
-by `CrankAngle`, each `drive` part about the line through `(0, 0, 170)` along -X by `CrankAngle`, and each `fan` part
-about the line along -Y by `2*CrankAngle`.
+Each part is built at crank angle 0. Each `crank` part is then rotated about the line through `State.Crank` along -X
+by `CrankAngle`, each `drive` part about the line through `(0, 0, 170)` along +X by `CrankAngle`, and each `fan` part
+about the line along -Y by `-2*CrankAngle`.
 
 ## 8. Checks
 

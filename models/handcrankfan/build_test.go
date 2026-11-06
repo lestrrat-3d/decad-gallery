@@ -18,7 +18,7 @@ import (
 func partNames(blades int) []string {
 	names := []string{
 		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox", "driving-gear", "crank-shaft", "crank-arm",
-		"crank-pin", "crank-grip", "crank-arm-bolt", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
+		"crank-pin", "crank-grip", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
 		"drive-shaft", "drive-gear", "crank-gear",
 	}
 	for k := 1; k <= blades; k++ {
@@ -35,8 +35,7 @@ func isRotor(name string) bool {
 // parts. The bevel pair and the spur pair, which mesh at their teeth, are left out.
 func isFinished(name string) bool {
 	switch name {
-	case "handle", "gearbox", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-arm-bolt",
-		"crank-pin-bolt":
+	case "handle", "gearbox", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt":
 		return true
 	}
 	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-")
@@ -205,7 +204,8 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		mid := te1.Add(te2).Scale(0.5)
 		require.Greater(t, le.Y-mid.Y, 0.0, "the leading edge is upstream at radius %g", r)
 		angle := math.Atan2(le.Y-mid.Y, le.Z-mid.Z)
-		require.InDelta(t, handcrankfan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
+		// The blades are mirrored, so the leading edge leads toward -Z and the chord angle is pi minus beta.
+		require.InDelta(t, math.Pi-handcrankfan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
 		requireThickness(t, handcrankfan.ThicknessRatio(x), angle, ring, 0.03, x)
 	}
 	// The root is nearly round.
@@ -342,7 +342,7 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 2+2+a.Params.Blades, screws, "two grip screws, two crank screws and one screw for each blade")
+	require.Equal(t, 2+1+a.Params.Blades, screws, "two grip screws, the pin screw and one screw for each blade")
 }
 
 // requireSweepClearance proves a hand on the crank handle cannot meet a blade. The crank's arm, pin and handle sweep
@@ -423,7 +423,7 @@ func requireGearPlacement(t *testing.T, p handcrankfan.Params, parts map[string]
 		require.NoError(t, decad.Remove(moved))
 		return box
 	}
-	driving := back(parts["driving-gear"].Body, r3.Vec{X: -1}, state.CrankAngle)
+	driving := back(parts["driving-gear"].Body, r3.Vec{X: 1}, state.CrankAngle)
 	require.InDelta(t, 24, driving.Max.X, 0.05)
 	pinion := back(parts["pinion"].Body, r3.Vec{Y: -1}, state.FanAngle)
 	require.InDelta(t, -36, pinion.Min.Y, 0.05)

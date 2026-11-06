@@ -15,7 +15,7 @@ pulls it apart with `Set.Explode`. They need Decad's `parts` package, which the 
 
 | Parameter | Default | Accepted values |
 | --- | --- | --- |
-| CrankAngle | 3π/4 | Any finite radians; forward is counter-clockwise seen from the right |
+| CrankAngle | 5π/4 | Any finite radians; forward is clockwise seen from the right |
 | BladePitch | 25° | 10° through 40°, the blade angle at 75 % of the radius; it turns each whole blade |
 | Blades | 4 | 3 or 4 |
 

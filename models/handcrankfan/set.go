@@ -13,7 +13,6 @@ import (
 // hardware is the bought part each hardware group member is, which the bill of materials counts.
 var hardwareSpec = map[string]string{
 	"handle-bolt": "M2 x 16 screw, self-tapping",
-	"crank-arm":   "M2 x 10 screw and M2 nut",
 	"crank-pin":   "M2 x 10 screw and M2 nut",
 	"fan-bolt":    "M2 x 16 screw and M2 nut",
 }
@@ -66,13 +65,11 @@ func (a *Assembly) joints() []parts.Joint {
 	add("drive shaft in the drive gear", "drive-shaft", "drive-gear", drive, parts.Fixed)
 	add("drive shaft in the driving gear", "drive-shaft", "driving-gear", drive, parts.Fixed)
 	add("crank shaft in the arm", "crank-shaft", "crank-arm", crank, parts.Fixed)
-	add("arm screw in the arm", "crank-arm-bolt", "crank-arm", crank, parts.Fixed)
 	add("pin in the arm", "crank-pin", "crank-arm", pin, parts.Fixed)
 	add("pin screw in the arm", "crank-pin-bolt", "crank-arm", pin, parts.Fixed)
 	// The pin screw's head is on the arm's inner face, so it comes out toward the shaft.
 	js[len(js)-1].Pull = r3.Vec{X: -1}
 	add("handle on the pin", "crank-pin", "crank-grip", pin, parts.Turns)
-	add("arm screw in the shaft", "crank-arm-bolt", "crank-shaft", crank, parts.Fixed)
 	add("pin screw in the pin", "crank-pin-bolt", "crank-pin", pin, parts.Fixed)
 	add("fan shaft in the pinion", "fan-shaft", "pinion", fan, parts.Fixed)
 	add("fan shaft in the wall", "fan-shaft", "gearbox", fan, parts.Turns)
@@ -97,7 +94,7 @@ func (a *Assembly) joints() []parts.Joint {
 // Explode pulls the assembly apart with parts.Set.Explode, which reads each part's pull direction from its joint.
 // set must be this assembly's Set. The gearbox stays put. The crank comes apart along +X first: the arm and the pin
 // screw, then the handle, which slides onto the pin's stub end and so goes between the arm and the pin, then the pin
-// and the arm screw. Both shafts then slide out to the left, through the post. The pinion slides off to the left, the
+// and the pin screw. Both shafts then slide out to the left, through the post. The pinion slides off to the left, the
 // grip screws, the crank gear, the drive gear and the driving gear lift out of the open top in that order, and the grip
 // drops. The fan side comes off along the fan axis. The order and the directions of the lifts are the result of a search
 // that leaves no two parts sharing space and keeps the largest move shortest.
@@ -110,7 +107,6 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		parts.Stage{Name: "arm", Parts: []string{"crank-arm"}, Direction: along},
 		stage("handle", along, "crank-grip"),
 		stage("pin", along, "crank-pin"),
-		stage("arm screw", along, "crank-arm-bolt"),
 		stage("pin screw", left, "crank-pin-bolt"),
 		stage("drive shaft", left, "drive-shaft"),
 		stage("crank shaft", left, "crank-shaft"),

@@ -104,7 +104,7 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 		panels[0].title = "Crank side: one turn of the arm"
 		panels[0].caption = fmt.Sprintf("Crank %03.0f deg. The fan turns twice as fast.", crank)
 		panels[1].title = "Gears from above and behind, crank arm removed"
-		panels[1].caption = fmt.Sprintf("Crank gear %03.0f deg, drive gear %03.0f deg, fan %03.0f deg.", crank, math.Mod(360-crank, 360), math.Mod(2*crank, 360))
+		panels[1].caption = fmt.Sprintf("Crank gear %03.0f deg, drive gear %03.0f deg the other way, fan %03.0f deg.", crank, crank, math.Mod(2*crank, 360))
 		canvas, err := wheelPanelCanvas(ctx, panels, width, height, face)
 		if err != nil {
 			return err
@@ -122,15 +122,15 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 // about the bevel shaft's axis, and the fan parts about the fan axis by twice that, from the pose the meshes were built
 // at. The fixed parts stay.
 func handCrankFanPose(meshes []fanMesh, state handcrankfan.State, turn float64) ([]solidlens.Model, error) {
-	crank, err := r3.RotationAround(state.Crank, r3.Vec{X: 1}, units.Radians(turn))
+	crank, err := r3.RotationAround(state.Crank, r3.Vec{X: -1}, units.Radians(turn))
 	if err != nil {
 		return nil, fmt.Errorf("turn the crank: %w", err)
 	}
-	drive, err := r3.RotationAround(state.Apex, r3.Vec{X: -1}, units.Radians(turn))
+	drive, err := r3.RotationAround(state.Apex, r3.Vec{X: 1}, units.Radians(turn))
 	if err != nil {
 		return nil, fmt.Errorf("turn the drive shaft: %w", err)
 	}
-	fan, err := r3.RotationAround(state.Apex, r3.Vec{Y: -1}, units.Radians(handcrankfan.Ratio*turn))
+	fan, err := r3.RotationAround(state.Apex, r3.Vec{Y: -1}, units.Radians(-handcrankfan.Ratio*turn))
 	if err != nil {
 		return nil, fmt.Errorf("turn the fan: %w", err)
 	}

@@ -36,10 +36,11 @@ type builder struct {
 }
 
 var (
-	// The crank shaft turns about +X by the crank angle, the drive shaft about -X by the same angle (the spur pair
-	// reverses the turn) and the fan about -Y by twice that.
-	crankAxis = r3.Vec{X: 1}
-	driveAxis = r3.Vec{X: -1}
+	// The crank shaft turns about -X by the crank angle (clockwise seen from the right), the drive shaft about +X by the
+	// same angle (the spur pair reverses the turn) and the fan about -Y by minus twice that, so the fan turns the way
+	// its mirrored blades push air toward the operator.
+	crankAxis = r3.Vec{X: -1}
+	driveAxis = r3.Vec{X: 1}
 	fanAxis   = r3.Vec{Y: -1}
 )
 

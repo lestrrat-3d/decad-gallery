@@ -179,7 +179,7 @@ func (b *builder) blades() []*decad.Body {
 		return nil
 	}
 	if turn := b.p.BladePitch - refPitch; math.Abs(turn) > 1e-12 {
-		xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(-turn))
+		xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(turn))
 		if err != nil {
 			b.fail("create pitch rotation", err)
 			return nil
@@ -282,6 +282,11 @@ func (b *builder) bladeSection(w *sketch.World, st station) decad.LoftSection {
 	}
 	b.a.Sketches = append(b.a.Sketches, sk)
 	pts := sectionPoints(st, beta(st.r, refPitch))
+	// The blades are mirrored: the spur pair reverses the crank's turn, so the fan turns the other way round and its
+	// blades must lead with the other face.
+	for i := range pts {
+		pts[i][0] = -pts[i][0]
+	}
 	fit := make([]*sketch.Point, len(pts))
 	for i, p := range pts {
 		fit[i] = sketchcheck.DimensionPoint(sk, p[0], p[1])

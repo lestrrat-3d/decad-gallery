@@ -51,18 +51,19 @@ Expose `DefaultParams`, `Params.Validate`, `Motion(Params) (State, error)`,
 The crank shaft turns 40.4 below the drive shaft, and a pair of equal spur gears joins them. The pair turns the drive
 shaft the opposite way at the same speed, and the bevel pair turns the fan shaft at twice that speed.
 
-A forward crank turn is counter-clockwise as seen from the right, a rotation about the +X axis. `CrankAngle` is
+A forward crank turn is clockwise as seen from the right, a rotation about the -X axis. `CrankAngle` is
 the forward turn, measured from the arm pointing straight up: the arm points along
-`(0, -sin CrankAngle, cos CrankAngle)`. The default is 3 pi / 4, the arm pointing down and toward the operator. The
-drive shaft and the bevel gear on it turn about -X by `CrankAngle`.
+`(0, sin CrankAngle, cos CrankAngle)`. The default is 5 pi / 4, the arm pointing down and toward the operator. The
+drive shaft and the bevel gear on it turn about +X by `CrankAngle`, the other way round.
 
 The bevel pair has a 90° shaft angle. With the drive shaft's outward direction +X and the fan's outward direction -Y,
 the two angular velocities satisfy ω_fan = Ratio · ω_drive along -Y. The forward crank turn therefore turns the
-fan about -Y by `Ratio * CrankAngle`: counter-clockwise as the operator sees it.
-
-A blade at +X moves toward +Z while the fan turns forward. At radius r its chord, from trailing edge to leading
-edge, runs along `(0, sin beta(r), cos beta(r))`, with
-`beta(r) = alphaD + atan(tan(p0 - alphaD) * 48 / max(r, 21.5)) + (BladePitch - p0)`, `alphaD = 5°` and
+fan about -Y by `-Ratio * CrankAngle`: clockwise as the operator sees it. The spur pair has reversed the turn, so
+the blades are mirrored. The text below describes the unmirrored blade, which moves toward +Z at +X while the fan
+turns about -Y. The built blade has every section's X coordinate negated and its pitch turn reversed, so it moves toward
+-Z at +X while the fan turns forward and pushes air the same way. At radius r the unmirrored chord, from trailing edge
+to leading edge, runs along `(0, sin beta(r), cos beta(r))` and the built blade's along `(0, sin beta(r), -cos beta(r))`,
+with `beta(r) = alphaD + atan(tan(p0 - alphaD) * 48 / max(r, 21.5)) + (BladePitch - p0)`, `alphaD = 5°` and
 `p0 = 25°`. The leading edge therefore leads the motion and sits upstream (+Y). The concave pressure face leads
 the motion and also faces -Y, so it pushes air toward the operator. A blade at the other angles is the same blade
 turned about the fan axis.
@@ -143,13 +144,15 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
 - `crank-shaft`: a round shaft of radius 4 on the crank axis, X [-23.8, 57.8], with a collar of radius 6 at its left end
   (X [-23.8, -20.3], 0.3 clear of the post). It slides in from the left through the post, the crank gear, the
   crank-side wall and its block, and the collar and the arm, which sits against the block's end, hold it. A flat 3 below
-  the axis (toward -Z) at X [51.5, 57.8] makes the D-shaped stub, with a nut slot 4.3 wide and 1.9 deep at X [54.2, 56.1],
-  open at the flat, and a screw hole of diameter 2.4 along the axis from X 49 to the end. They are cut from the bare shaft
-  before the collar joins it, because Decad refuses to cut them after the union.
+  the axis (toward -Z) at X [51.5, 57.8] makes the D-shaped stub, which is a tight fit in the arm's D bore and needs no
+  screw. The flat is cut from the bare shaft before the collar joins it, because Decad refuses to cut after the union.
 - `crank-arm`: a stadium 20 wide, X [52, 60], with the axis and the pin 55 apart (end radius 10, so the arm
-  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at each end. A D pocket (radius
-  4.15, flat 3.15 toward -Z) at X [51, 58] opens on the inner face for the shaft stub, and one (flat toward +Z)
-  at X [54, 61] opens on the outer face for the pin stub. Each pocket leaves a 2 mm floor with the screw hole.
+  is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.4 at the pin end. A D bore (radius
+  4.1, flat 3.1 toward -Z) at X [51, 58] opens on the inner face for the shaft stub, and a D pocket (radius 4.15,
+  flat 3.15 toward +Z) at X [54, 61] opens on the outer face for the pin stub. The shaft's bore is 0.1 larger than the
+  stub all round, the gap every joint of the model keeps before it is tightened; the printed bore is made to grip the
+  stub, so the arm is pressed on and the D flat carries the torque. The pin pocket leaves a 2 mm floor with the screw
+  hole.
 - `crank-pin`: a D-shaped stub (radius 4, flat 3 toward +Z, away from the shaft) at X [54.2, 60.5] with a nut
   slot at X [56, 57.9] and a screw hole of diameter 2.4 from X 53, a round shank of radius 4.5 from X 60.1 (the
   shoulder, 0.1 clear of the arm) to X 107, and a head of radius 5.8 at X [106.6, 109.6]. The pin is 55 from the
@@ -162,11 +165,10 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 129.6, along X.
   at most 0.5°) and a counterbore of diameter 12.8, 3.8 deep, at the outer end for the pin head. It is made of cones
   and cylinders, with chamfers of 0.5 to 1.5 on its corners: Decad cannot decide a handle with rounded corners
   against its pin.
-- `crank-arm-bolt` and `crank-pin-bolt`, group `hardware`: M2 x 10 screws with nuts, each one plain body. The
-  arm bolt has its head on the arm's outer face and runs down the crank axis through the shaft stub; the nut sits
-  in the shaft's slot. The pin bolt has its head on the arm's inner face and runs up the pin axis through the pin
-  stub; the nut sits in the pin's slot. Together with the D stubs they hold the arm to the shaft and the pin to the
-  arm, so nothing is loose, and the handle spins on the pin, held by the pin head.
+- `crank-pin-bolt`, group `hardware`: an M2 x 10 screw with a nut, one plain body. Its head is on the arm's inner face
+  and it runs up the pin axis through the pin stub; the nut sits in the pin's slot. Together with the D stub it holds the
+  pin to the arm, so nothing is loose, and the handle spins on the pin, held by the pin head. The shaft to the arm needs
+  no screw: it is a tight fit.
 
 Each joint just before it is tightened keeps a gap of 0.1 to 0.2 mm, because Decad cannot decide a pair of
 parts whose faces touch.
@@ -233,13 +235,12 @@ a printed fit and may need a drill or a test print first.
 ## Parts set and exploded view
 
 `Assembly.Set(doc)` returns a `parts.Set` (Decad's `parts` package) over the build's document. The printed parts
-are `Manufactured` in PLA, and the screws and nuts (`handle-bolt-*`, `crank-arm-bolt`, `crank-pin-bolt`, `fan-bolt-*`)
+are `Manufactured` in PLA, and the screws and nuts (`handle-bolt-*`, `crank-pin-bolt`, `fan-bolt-*`)
 are `Purchased` steel, grouped by `Spec` for the bill of materials: M2 x 16 self-tapping screws for the grip, M2 x 10
 screws with nuts for the crank and M2 x 16 screws with nuts for the blades. Every joint is a `PinInBore`, with its axis
 stated in the posed coordinates, because the faceted bores cannot state it:
 
-- the crank shaft in the gearbox (turns), in the crank gear and in the arm, the arm screw in the arm and the shaft,
-  the pin and the pin screw in the arm and in each other, and the handle on the pin (turns);
+- the crank shaft in the gearbox (turns), in the crank gear and in the arm, the pin and the pin screw in the arm and in each other, and the handle on the pin (turns);
 - the drive shaft in the gearbox (turns), in the drive gear and in the driving gear;
 - the fan shaft in the wall (turns), in the pinion and in the hub, each blade's stud in the hub, and each blade bolt
   in the hub and in its blade;
@@ -250,7 +251,7 @@ toward the shaft, because its head is on the arm's inner face. Decad plans the e
 parts jump over each other, so the order and the directions of the lifts are the result of a search that leaves no two
 parts sharing space at the default pose and keeps the largest move shortest. The stages run in this order:
 
-1. the arm (+X), the handle, the pin and the arm screw (+X): the handle slides over the pin's stub end, so along the
+1. the arm (+X), the handle and the pin (+X): the handle slides over the pin's stub end, so along the
    crank axis the arm, the handle and the pin follow in that order with gaps between them; the pin screw goes toward -X;
 2. the drive shaft and the crank shaft, which slide out to the left through the post;
 3. the pinion, which slides off to the left;
@@ -262,9 +263,9 @@ checked at the default pose only: Decad's boxes depend on the crank angle.
 
 ## Pose
 
-Build every part at `CrankAngle = 0`. Then turn each `crank` part about the line along +X through `State.Crank` by
-`CrankAngle`, each `drive` part about the line through the apex along -X by `CrankAngle`, and each `fan` part about
-the line through the apex along -Y by `Ratio*CrankAngle`. The gearbox and the handle do not move.
+Build every part at `CrankAngle = 0`. Then turn each `crank` part about the line along -X through `State.Crank` by
+`CrankAngle`, each `drive` part about the line through the apex along +X by `CrankAngle`, and each `fan` part about
+the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox and the handle do not move.
 
 ## Verification
 
@@ -292,7 +293,7 @@ the line through the apex along -Y by `Ratio*CrankAngle`. The gearbox and the ha
   turned by `2 pi (k-1) / Blades`.
 - The exploded view, checked at the default pose, puts the arm, the handle and the pin in that order along the crank
   axis, slides the shafts and the pinion to the left, lifts the three gears, and leaves no two parts sharing space. The
-  bill of materials counts 2 + 2 screws and one for each blade.
+  bill of materials counts 2 + 1 screws and one for each blade.
 - The crank and fan parts turn by the angles above.
 - The bevel gears mesh at the default pose: the driving gear's back face lies at X = 24 and the pinion's at Y = -36.
 - No two parts overlap except the meshing gear pairs, which touch at their teeth.

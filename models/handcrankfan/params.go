@@ -13,7 +13,7 @@ const Ratio = 2
 
 // Params selects the crank pose and the rotor. Angles are radians.
 type Params struct {
-	// CrankAngle is the forward (counterclockwise seen from the right) turn from the arm pointing up.
+	// CrankAngle is the forward (clockwise seen from the right) turn from the arm pointing up.
 	CrankAngle float64
 	// BladePitch turns each whole blade about its radial line; it is the blade angle at 48 mm and lies in [10°, 40°].
 	BladePitch float64
@@ -23,7 +23,7 @@ type Params struct {
 
 // DefaultParams returns the arm pointing down and toward the operator, a 25° pitch and four blades.
 func DefaultParams() Params {
-	return Params{CrankAngle: 3 * math.Pi / 4, BladePitch: 25 * math.Pi / 180, Blades: 4}
+	return Params{CrankAngle: 5 * math.Pi / 4, BladePitch: 25 * math.Pi / 180, Blades: 4}
 }
 
 // Validate rejects a non-finite angle, a pitch outside [10°, 40°] and a blade count other than 3 or 4.
@@ -67,9 +67,9 @@ func Motion(p Params) (State, error) {
 	}
 	return State{
 		CrankAngle:   p.CrankAngle,
-		FanAngle:     Ratio * p.CrankAngle,
+		FanAngle:     -Ratio * p.CrankAngle,
 		Apex:         r3.Vec{Z: axisHeight},
 		Crank:        r3.Vec{Z: crankHeight},
-		ArmDirection: r3.Vec{Y: -math.Sin(p.CrankAngle), Z: math.Cos(p.CrankAngle)},
+		ArmDirection: r3.Vec{Y: math.Sin(p.CrankAngle), Z: math.Cos(p.CrankAngle)},
 	}, nil
 }
