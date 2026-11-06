@@ -23,6 +23,7 @@ The body spans 0 to Width along local +Z, and Build leaves one final body in the
 
 The model does not change the nominal dimensions for a shaft fit or housing fit. Those allowances belong
 to the consuming assembly and depend on its materials, machining process and loading.
+For 3D-printed bearing-seat guidance, see the [model README](../../models/ballbearing/README.md).
 The annulus includes the volume occupied by rings, balls, cage and closures; no internal geometry is asserted.
 Its volume is therefore the envelope volume rather than the steel volume of a physical bearing.
 Do not use that volume to calculate bearing mass or inertia.

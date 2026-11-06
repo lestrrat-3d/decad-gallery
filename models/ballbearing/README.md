@@ -10,6 +10,8 @@ The dimensions come from [JTEKT's 608 2RS catalogue](https://www.jtekt.co.jp/pro
 The rendered annulus is the occupied envelope. It does not depict separate races, balls, seals or cage.
 Use the purchased bearing as the rolling component. The model does not establish running clearance,
 shaft or housing fits, bearing life, load capacity or fastening details.
+For a tight-fitting bearing seat in a 3D-printed part, chamfer the hole entrance so the bearing can
+be pressed in.
 
 `DefaultParams` selects 608-2RS dimensions. `BoreDiameter`, `OuterDiameter` and `Width` allow other
 nominal sizes. `Placement` positions the lower-face center and bearing axis in an assembly.
