@@ -26,6 +26,10 @@ Expose an optional `Lift *r3.Transform`. A non-nil Lift reads Placement in Lift'
 the section is sketched on the Placement plane and Lift is the body's only transform.
 Bodies sharing one Lift then share one exact placement for interference proofs.
 Expose `DefaultParams() Params`, returning the 608-2RS dimensions, and `Params.Validate() error`.
+Expose `Params608ZZ() Params`, returning BoreDiameter 8, OuterDiameter 22, Width 7 and nil Placement, the
+default 608-2RS envelope under the name of the shielded 608ZZ, which has the same outline. Return a fresh
+Params value on each call. It needs no image of its own.
+
 Expose `Params605ZZ() Params`, returning BoreDiameter 5, OuterDiameter 14, Width 5 and nil Placement.
 Return a fresh Params value on each call so callers can place bearings independently.
 Expose `Build(ctx context.Context, doc *decad.Document, p Params) (*Model,error)`.

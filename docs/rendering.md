@@ -107,16 +107,33 @@ both rotor discs, the eccentric cam, and the output plate with its pins. The `re
 go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloidal/images
 ```
 
-The `planetarygearbox/hero` preset renders the default gearbox with two stages pulled apart along its axis: the ring
-floats above the stack, and each stage rises over the one below with its carrier lifted off its three planets. The
-`readme` shot writes the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes
-one 480 × 270 pixel image of each unique part in `images/parts/`: the ring, the sun, one planet, the linking carrier
-and the output carrier. The `planetarygearbox/part-ring`, `part-sun`, `part-planet`, `part-linking-carrier` and
-`part-output-carrier` presets render one of them alone. The carriers are seen from almost level with their plates so
-the pins and the stub shaft show.
+The `planetarygearbox/hero` preset renders the default two-stage gearbox fully assembled. The ring and both covers
+are cut open with solidlens `Model.Clip` along the plane through the axis that holds the X axis, removing the half
+toward negative Y, and the camera looks from that side; every other part is drawn whole. The `readme` shot writes
+the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes one 480 × 270 pixel
+image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
+shaft, the carrier, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
+gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
+`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
+`part-planet`, `part-bearing`, `part-carrier`, `part-input-shaft`, `part-link-shaft` and `part-output-shaft` presets
+render one of them alone. The shafts are seen from almost level with them so the groove and the collar show, and the
+carrier from below so the pins and their collars show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
+whole two-stage gearbox apart along its axis with nothing cut; the `planetarygearbox/exploded` preset renders it alone.
+
+The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 78 frames, of the two-stage gearbox in three
+panels: the hero's cutaway, the input end from below and the output end from above, with a caption strip that reads
+the input and output shaft angles. Each frame moves the tessellated bodies rigidly: the input shaft and first sun
+turn by the input angle, each carrier by Zs/(Zs+Zr) of its sun's angle, the next sun with the carrier before it, and
+each planet is carried around with its carrier while turning by -Zr/Zp of the carrier's angle about its own axis.
+Each frame turns the input by half the sun's tooth pitch, so the sun's teeth do not seem to run backward. The 40
+input angles play forward and then back, so there is no jump where the animation repeats; a one-way loop would need
+the input to turn 7,056 times. All frames share one 255-color palette made from the colors the frames
+use most, and each frame after the first stores only the box around the pixels that changed. The `readme` shot
+writes it too.
 
 ```sh
 go -C tools/render run . -model planetarygearbox -shot readme -out ../../models/planetarygearbox/images
+go -C tools/render run . -model planetarygearbox -shot motion -out ../../models/planetarygearbox/images/motion.gif
 ```
 
 The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies

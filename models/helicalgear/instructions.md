@@ -2,9 +2,9 @@
 
 `fusion360-gear-generator/spec/helicalgear/instructions.md` defines the gear.
 Helical reuses the spur involute dimensions and tooth profile.
-It draws one tooth at zero rotation on the lower plane and the same tooth
-rotated by the Helix Angle on the plane one Thickness above it. Decad
-lofts the lower section to the upper section in that order. The angle is the
+It draws the whole toothed outline of the gear at zero rotation on the lower plane and the same
+outline rotated by the Helix Angle on the plane one Thickness above it. Decad
+lofts the lower outline to the upper one in that order, and then rounds the root seams. The angle is the
 whole twist across Thickness, not an angle calculated from a lead distance.
 
 ## Placement
@@ -15,10 +15,8 @@ reference plane that holds the lower cap, and the gear grows along `U × V`.
 `Build` constructs the whole gear about the local origin and +Z, then moves the
 finished body with one `decad.Transform` from the local frame onto `Placement`.
 A nil `Placement` leaves the gear on the world XY plane at the origin. An
-invalid frame is rejected before any body is added. The tooth Unions fail on
-bodies built at an offset (a 7 mm z offset is enough), so the offset is applied
-after the last boolean. `Assemble`, `PreparePattern`, and `FinishAssembly` work
-in the local frame and ignore `Placement`.
+invalid frame is rejected before any body is added. The bore and the chamfer are
+cut in the local frame, so the offset is applied after the last boolean.
 
 ## Inputs and invalid cases
 
@@ -40,23 +38,16 @@ rejects the embedded profile case where the base circle lies inside the
 root circle. The Fusion helical loft selects the ordinary six-curve tooth
 profile only; it has no embedded branch.
 
-`Build` joins the tooth pattern, cuts an optional bore, and calls the shared
-spur outer-cap chamfer. The ordinary 8-tooth, Module 1, 2 mm thick, +14.5°
-case builds the real lower and upper tooth sketches, their Decad loft, and
-the extruded root disc. Each body passes `Tessellate(0.1 mm, VerifyAll)`
-separately. Against merged Decad `dc2d041f1523`, all eight tooth Unions,
-the source-order 1 mm bore Cut, and both outer cap Chamfers pass the real
-gallery checks at 0.1 mm. The completed bored gear has two planar cap faces.
-Each `OuterLoopOf(CapStart/End(gear))` selector returns 1,072 edges on its
-cap and no bore edges. The source-order fillet selector checks the root
-cylinder's straight axial edges before the bore. It finds none on the real
-small 8-tooth gear and skips the fillet, as the source requires.
+`Build` lofts the whole outline, rounds the 2N root seams, cuts an optional bore and calls the
+shared spur outer-cap chamfer. The ordinary 8-tooth, Module 1, 2 mm thick, +14.5° case and the
+17-tooth source-default case build one solid with 16 and 34 root fillets, and the loft passes
+`Tessellate(0.1 mm, VerifyAll)`. The loft has no root disc, no tooth pattern and no tooth union.
 
 ## Parameters
 
-`Build` runs the spur pipeline (`spurgear.Variant`), so every spur parameter
-lives in `doc.Params()` and the sketch world's table, and each value the build
-reads is a derived parameter. Helical adds three, defined after the spur ones:
+`Build` writes the spur parameter table with `spurgear.DefineParameters` into `doc.Params()` and the sketch
+world's table, and each value the build reads is a derived parameter. Helical adds three, defined after
+the spur ones:
 
 | Name | Definition |
 | --- | --- |
@@ -64,47 +55,36 @@ reads is a derived parameter. Helical adds three, defined after the spur ones:
 | `helix_plane_offset` | `thickness`, the distance from the lower cap to the twisted section |
 | `helical_fillet_radius` | `fillet_radius * cos(helix_angle)` |
 
-The twisted section's plane, the root-disc and tooth radii, the fillet radius,
-the bore tool and the cap chamfer are all read back with `doc.Param`, so
-`doc.Bindings()` lists them.
+The twisted section's plane, the fillet radius, the bore tool and the cap chamfer are all read back with
+`doc.Param`, so `doc.Bindings()` lists them.
 
 ## Sketch constraints
 
-The lower and rotated upper tooth sections follow the
-[spur sketch constraints](../spurgear/instructions.md#sketch-constraints):
-anchor each section to its plane origin, dimension the fitted flank points,
-and share and constrain the adjoining arc endpoints. Center the root-disc
-circle on the lower plane's origin and dimension its root radius. When a bore
-is requested, center its tool circle on its plane origin and dimension its
-diameter. Do not fix every computed point.
+The lower and rotated upper outlines come from `spurgear.BuildTwistedProfile`, which follows the
+[spur sketch constraints](../spurgear/instructions.md#sketch-constraints): anchor each outline to its plane
+origin, dimension the fitted flank points, and share and constrain the adjoining arc endpoints. The upper
+outline has every flank turned by the Helix Angle in sketch coordinates; its plane is not turned. When a bore
+is requested, center its tool circle on its plane origin and dimension its diameter. Do not fix every
+computed point.
 
-Solve and verify each tooth section, root-disc sketch, and optional bore
-sketch before using its profile. Require `Sketch.Verify(ctx)` to report
-`sketch.FullyConstrained`, zero degrees of freedom, no redundant constraints,
-and no conflicts. Exercise the ordinary tooth, root disc, and optional bore
-branches in real builds.
+Solve and verify each outline and the optional bore sketch before using its profile. Require
+`Sketch.Verify(ctx)` to report `sketch.FullyConstrained`, zero degrees of freedom, no redundant constraints,
+and no conflicts.
 
 ## Required build order
 
-1. Draw the ordinary spur tooth with two fitted involute flanks, a tip arc,
-   a root arc, and two radial flank-to-root lines on the bottom plane.
-2. Draw the same section on the top plane with every point rotated by the
-   Helix Angle. Loft bottom to top as one tooth body.
-3. Extrude the spur root-circle region through Thickness, pattern the tooth
-   around the shaft, and join every copy to the root disc.
-4. Search root-cylinder faces for straight axial edges. If any are found,
-   apply the spur root fillet radius multiplied by `cos(HelixAngle)`; the
-   source skips this step when no edge matches. Cut an optional centered bore,
-   then chamfer the completed gear's cap edges without selecting bore edges.
-5. Verify one closed Decad solid and its mesh, bounds, tooth count, twist
-   direction, and optional bore and chamfer before rendering an image.
+1. Draw the whole ordinary spur outline on the bottom plane with `spurgear.BuildTwistedProfile` at twist 0. It
+   returns the profile and the `2N` root contacts, the right and left root of each tooth.
+2. Draw the same outline on the plane `helix_plane_offset` above, with every flank turned by the Helix Angle
+   (twist `HelixAngle`) and its own `2N` root contacts. Loft bottom to top as one body with `decad.Loft`.
+3. Select the `2N` root seams: for each root contact, the edge with one end at the lower contact at z=0 and
+   the other at the matching turned contact at `helix_plane_offset`. Combine the clauses with `Or` and
+   require exactly `2N` edges. Fillet them with `helical_fillet_radius` (the spur fillet radius times
+   `cos(HelixAngle)`), or skip the fillet when that radius is not positive.
+4. Cut an optional centered through-bore, then chamfer the completed gear's outer cap edges without
+   selecting bore edges.
+5. Verify one closed Decad solid and its mesh, bounds, tooth count, twist direction, the `2N` fillet roles,
+   and the optional bore and chamfer before rendering an image.
 
-The real small gear completes steps 1 through 5. The source-default 17-tooth
-gear completes the tooth pattern and passes `VerifyAll` at 0.1 mm against
-merged Decad `228ae52cc75c`. Its optional 1 mm bore also passes the
-source-order Cut and `VerifyAll` against merged Decad `c3059829064f`. A
-completed-gear cap Chamfer on that bored 17-tooth gear passes both outer
-loops and `VerifyAll` against merged Decad `5f6f09763897` in 291.86
-seconds. The verified mesh keeps one through-hole. A gear with nonempty
-root-edge selection still needs a geometry check. The helical build uses
-the source's single-tooth loft and circular pattern.
+`BuildTooth` still lofts one tooth section alone, as the earlier pipeline did, for callers that pattern
+teeth themselves.

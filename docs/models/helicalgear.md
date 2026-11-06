@@ -8,7 +8,9 @@ reuses the spur involute tooth calculation from [`models/spurgear`](spurgear.md)
 ## Using the package
 
 `Build(ctx, doc, Params)` takes a decad document and adds one gear body to it. The helix angle is the
-whole twist across the thickness. `Build` requires a twist angle from 1° through 45°; use
+whole twist across the thickness. The gear is one loft of the whole toothed outline to the same outline turned by
+the helix angle, and its root seams are rounded with the spur fillet radius times the cosine of the helix angle.
+`BuildFilletedLoft` and `Finish` are the two halves of `Build`, which `herringbonegear` reuses. `Build` requires a twist angle from 1° through 45°; use
 `spurgear.Build` for zero twist.
 
 Set `Params.Placement` (an `r3.Frame`) to anchor the gear. The frame origin is the reference point on the

@@ -2,6 +2,7 @@ package helicalgear_test
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -58,6 +59,7 @@ func TestSmallRealHelicalGear(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, gear.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
+	require.Equal(t, 2*p.Teeth, filletRoles(gear), "every root seam is rounded")
 	box, err := gear.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-8)
@@ -126,10 +128,15 @@ func TestSmallRealHelicalGearWithCapChamfer(t *testing.T) {
 
 func TestDefaultRealHelicalGear(t *testing.T) {
 	doc := decad.New()
-	gear, err := helicalgear.Build(t.Context(), doc, helicalgear.DefaultParams())
+	p := helicalgear.DefaultParams()
+	gear, err := helicalgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 1)
 	require.True(t, gear.IsSolid())
+	require.Equal(t, 2*p.Teeth, filletRoles(gear), "every root seam is rounded")
+	volume, err := gear.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, 2175.076, volume.Value.Base(), volume.Bound.Base()+0.05)
 	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
@@ -183,4 +190,17 @@ func helicalMeshEuler(mesh *decad.Mesh) int {
 		}
 	}
 	return len(mesh.Vertices()) - len(edges) + len(triangles)
+}
+
+// filletRoles counts the distinct root fillets of gear by their face origin roles.
+func filletRoles(gear *decad.Body) int {
+	roles := map[string]struct{}{}
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "fillet(") {
+				roles[origin.Role] = struct{}{}
+			}
+		}
+	}
+	return len(roles)
 }

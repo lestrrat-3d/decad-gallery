@@ -10,6 +10,8 @@ The dimensions come from [JTEKT's 608 2RS catalogue](https://www.jtekt.co.jp/pro
 The rendered annulus is the occupied envelope. It does not depict separate races, balls, seals or cage.
 Use the purchased bearing as the rolling component. The model does not establish running clearance,
 shaft or housing fits, bearing life, load capacity or fastening details.
+For a tight-fitting bearing seat in a 3D-printed part, chamfer the hole entrance so the bearing can
+be pressed in.
 
 `DefaultParams` selects 608-2RS dimensions. `BoreDiameter`, `OuterDiameter` and `Width` allow other
 nominal sizes. `Placement` positions the lower-face center and bearing axis in an assembly.
@@ -23,6 +25,13 @@ Catalogue bearings should keep their specified dimensions rather than scaling wi
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
 It calls the same construction through `Build`; no bearing geometry is copied.
 The default preset and hero image continue to show the 608-2RS envelope.
+
+## 608ZZ preset
+
+`Params608ZZ()` selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
+a 608-2RS has a rubber seal, and both have the same outline, so this is the same envelope as the default and
+has no image of its own. Use it where a design calls for a 608ZZ by name, such as the
+[planetary gearbox](../planetarygearbox/), which presses one into each planet gear.
 
 The [developer guide](../../docs/models/ballbearing.md) documents construction and checks.
 The [instructions](instructions.md) own the nominal geometry; the [steps](steps.md) map it to Decad.

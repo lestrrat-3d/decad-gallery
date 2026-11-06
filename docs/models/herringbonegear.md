@@ -7,9 +7,9 @@ The `models/herringbonegear` package builds the gear that the
 
 ## Using the package
 
-`Build(ctx, doc, Params)` lofts an involute tooth to a twisted section at the body midpoint, mirrors
-that half, and joins the two halves. It patterns the chevron tooth around a full-thickness root disc,
-then applies the inherited helical root fillet and the optional spur bore and outer-cap chamfer. The
+`Build(ctx, doc, Params)` lofts the whole toothed outline to a twisted copy of it at the body midpoint, rounds
+the root seams with the helical root fillet, mirrors that half, and joins the two halves. It then applies the optional
+spur bore and outer-cap chamfer. The
 gallery accepts positive helix angles from 1° through 45°.
 
 Set `Params.Placement` (an `r3.Frame`) to anchor the gear. The frame origin is the reference point on the

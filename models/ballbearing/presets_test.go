@@ -35,3 +35,18 @@ func TestBearing605Envelope(t *testing.T) {
 	require.True(t, mesh.BoundaryVerified())
 	require.True(t, mesh.VolumeVerified())
 }
+
+func TestBearing608ZZPreset(t *testing.T) {
+	p := ballbearing.Params608ZZ()
+	require.Equal(t, ballbearing.DefaultParams(), p)
+	require.Nil(t, p.Placement)
+	m, err := ballbearing.Build(t.Context(), decad.New(), p)
+	require.NoError(t, err)
+	volume, err := m.Body.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, math.Pi*(121-16)*7, volume.Value.Base(), volume.Bound.Base()+1e-6)
+	// Each call returns an independent value.
+	q := ballbearing.Params608ZZ()
+	q.Width = 9
+	require.InDelta(t, 7, ballbearing.Params608ZZ().Width, 0)
+}

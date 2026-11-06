@@ -12,6 +12,8 @@ The placement origin is the center of the lower axial face; its normal gives the
 An optional `Lift` transform moves the body instead, with `Placement` read in its local coordinates.
 Assemblies give every body of one rigid group the same lift, so Decad can prove their contacts exactly.
 
+`Params608ZZ()` returns the same 8 mm bore, 22 mm outside diameter and 7 mm width as `DefaultParams()`, under the
+name of the shielded 608ZZ.
 `Params605ZZ()` returns a 5 mm bore, 14 mm outside diameter and 5 mm width from
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
 Both presets use the same `Build` entry point, and callers supply placement independently.
@@ -23,6 +25,7 @@ The body spans 0 to Width along local +Z, and Build leaves one final body in the
 
 The model does not change the nominal dimensions for a shaft fit or housing fit. Those allowances belong
 to the consuming assembly and depend on its materials, machining process and loading.
+For 3D-printed bearing-seat guidance, see the [model README](../../models/ballbearing/README.md).
 The annulus includes the volume occupied by rings, balls, cage and closures; no internal geometry is asserted.
 Its volume is therefore the envelope volume rather than the steel volume of a physical bearing.
 Do not use that volume to calculate bearing mass or inertia.

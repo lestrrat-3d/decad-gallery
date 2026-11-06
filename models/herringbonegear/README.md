@@ -20,4 +20,6 @@ You can vary:
 - A chamfer on the outer edge of both end faces.
 - The position and orientation of the gear in space.
 
+The tooth roots are filleted, and teeth thinned slightly (0.05 mm by default) leave a little backlash against a mate.
+
 For how to build this gear from Go, see the [developer notes](../../docs/models/herringbonegear.md).

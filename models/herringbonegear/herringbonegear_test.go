@@ -2,6 +2,7 @@ package herringbonegear_test
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -75,6 +76,7 @@ func TestSmallRealHerringboneGear(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, gear.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
+	require.Equal(t, 2*p.Teeth, filletRoles(gear), "every root seam of the half is rounded")
 	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
@@ -89,6 +91,10 @@ func TestDefaultRealHerringboneGear(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, gear.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
+	require.Equal(t, 2*p.Teeth, filletRoles(gear), "every root seam of the half is rounded")
+	volume, err := gear.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, 2173.725, volume.Value.Base(), volume.Bound.Base()+0.05)
 	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
 		decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
@@ -177,4 +183,17 @@ func meshEuler(mesh *decad.Mesh) int {
 		}
 	}
 	return len(mesh.Vertices()) - len(edges) + len(triangles)
+}
+
+// filletRoles counts the distinct root fillets of gear by their face origin roles.
+func filletRoles(gear *decad.Body) int {
+	roles := map[string]struct{}{}
+	for _, face := range gear.Faces() {
+		for _, origin := range face.Origins() {
+			if strings.HasPrefix(origin.Role, "fillet(") {
+				roles[origin.Role] = struct{}{}
+			}
+		}
+	}
+	return len(roles)
 }

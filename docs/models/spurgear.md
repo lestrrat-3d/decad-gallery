@@ -13,6 +13,12 @@ Module 1, 17 teeth, a 20° pressure angle, 10 mm thickness, 15 fit points per fl
 
 `Backlash` thins every tooth by that arc length at the pitch circle, so two gears built with it have twice that much play between them. Zero gives the full half-pitch tooth. A negative value thickens the tooth, which is how an internal gear's tooth-space tool gets its clearance. `InvoluteFlanks` takes no backlash. The helical and herringbone packages embed `Params`, so they take it too.
 
+`BuildProfile` draws the whole unfilleted outline of the gear on a plane. `BuildTwistedProfile` draws it with every
+tooth turned by an extra angle about the origin and also returns the `2N` root contacts, so a caller can loft an
+outline to a turned copy and fillet the seams between the matching contacts, as the helical and herringbone
+packages do. `DefineParameters` writes the spur parameter table into a table of the caller's choice, for a model that
+builds its gears without `Build`.
+
 `BoreDiameter` cuts a centered through-bore. `CapChamfer` chamfers the outer loops of both end caps,
 with or without a bore, and leaves the bore rims sharp.
 

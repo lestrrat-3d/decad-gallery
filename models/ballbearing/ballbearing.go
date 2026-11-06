@@ -1,4 +1,5 @@
 // Package ballbearing constructs nominal mounting envelopes for purchased bearings.
+// See models/ballbearing/README.md for mounting guidance.
 package ballbearing
 
 import (
