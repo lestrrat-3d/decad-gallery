@@ -12,7 +12,7 @@ import (
 // axisHeight is the height of the apex above the table, in mm.
 const axisHeight = 170
 
-// Part is one solid of the assembly. Motion is fixed, crank, drive or fan.
+// Part is one solid of the assembly. Motion is fixed, crank or fan.
 type Part struct {
 	Name, Group, Motion string
 	Body                *decad.Body
@@ -36,10 +36,7 @@ type builder struct {
 }
 
 var (
-	// The crank shaft turns about +X by the crank angle, the drive shaft about -X by the same angle (the spur pair
-	// reverses the turn) and the fan about -Y by twice that.
-	crankAxis = r3.Vec{X: 1}
-	driveAxis = r3.Vec{X: -1}
+	crankAxis = r3.Vec{X: -1}
 	fanAxis   = r3.Vec{Y: -1}
 )
 
@@ -56,10 +53,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	b := &builder{ctx: ctx, doc: doc, p: p, a: Assembly{State: state, Params: p}}
 	b.handle()
 	b.gearbox()
-	b.gearCase()
-	b.gearCover()
 	b.drive()
-	b.gearBolts()
 	b.fan()
 	if b.err != nil {
 		return nil, b.err
@@ -85,9 +79,7 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 	}
 	switch motion {
 	case "crank":
-		body = b.turn(body, b.a.State.Crank, crankAxis, b.a.State.CrankAngle)
-	case "drive":
-		body = b.turn(body, b.a.State.Apex, driveAxis, b.a.State.CrankAngle)
+		body = b.turn(body, b.a.State.Apex, crankAxis, b.a.State.CrankAngle)
 	case "fan":
 		body = b.turn(body, b.a.State.Apex, fanAxis, b.a.State.FanAngle)
 	}
@@ -104,11 +96,6 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 // alongX is the plane at x whose normal is +X and whose coordinates are (y, z - axisHeight).
 func alongX(x float64) r3.Frame {
 	return frame(r3.Vec{X: x, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-}
-
-// alongCrank is the plane at x whose normal is +X and whose coordinates are (y, z - crankHeight).
-func alongCrank(x float64) r3.Frame {
-	return frame(r3.Vec{X: x, Z: crankHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 }
 
 // alongMinusY is the plane at y whose normal is -Y and whose coordinates are (x, z - axisHeight).

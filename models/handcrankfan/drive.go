@@ -34,9 +34,7 @@ func (b *builder) drive() {
 		return
 	}
 
-	b.part("driving-gear", "gear", "drive", func() *decad.Body { return pair.Driving })
-	b.part("drive-gear", "gear", "drive", func() *decad.Body { return b.spurGear(axisHeight, true) })
-	b.part("drive-shaft", "shaft", "drive", func() *decad.Body { return b.cylinder(alongX(14), 4, driveShaftEnd-14) })
+	b.part("driving-gear", "gear", "crank", func() *decad.Body { return pair.Driving })
 	b.crank()
 
 	b.part("pinion", "gear", "fan", func() *decad.Body { return pair.Pinion })

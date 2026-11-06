@@ -23,22 +23,21 @@ const (
 
 // alongPin is the plane at x whose normal is +X and whose coordinates are (y, z - pin height).
 func alongPin(x float64) r3.Frame {
-	return frame(r3.Vec{X: x, Z: crankHeight + crankThrow}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	return frame(r3.Vec{X: x, Z: axisHeight + crankThrow}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 }
 
-// crank builds the crank shaft, the arm, the pin, the handle and the two screws of the crank.
+// crank builds the shaft, the arm, the pin, the handle and the two screws of the crank.
 func (b *builder) crank() {
-	b.part("crank-gear", "gear", "crank", func() *decad.Body { return b.spurGear(crankHeight, false) })
 	b.part("crank-shaft", "shaft", "crank", b.crankShaft)
 	b.part("crank-arm", "arm", "crank", b.crankArm)
 	b.part("crank-pin", "pin", "crank", b.crankPin)
 	b.part("crank-grip", "grip", "crank", b.crankGrip)
 	x, z := r3.Vec{X: 1}, r3.Vec{Z: 1}
 	b.part("crank-arm-bolt", "hardware", "crank", func() *decad.Body {
-		return b.screw(r3.Vec{X: crankFace + 12.1, Z: crankHeight}, x.Scale(-1), z, 10, 66.1-62.0, 1)
+		return b.screw(r3.Vec{X: crankFace + 12.1, Z: axisHeight}, x.Scale(-1), z, 10, 66.1-62.0, 1)
 	})
 	b.part("crank-pin-bolt", "hardware", "crank", func() *decad.Body {
-		return b.screw(r3.Vec{X: crankFace + 3.9, Z: crankHeight + crankThrow}, x, z, 10, 62.1-57.9, 1)
+		return b.screw(r3.Vec{X: crankFace + 3.9, Z: axisHeight + crankThrow}, x, z, 10, 62.1-57.9, 1)
 	})
 }
 
@@ -47,21 +46,23 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 	return b.panel(f, -2.15, v0, 2.15, v1, 1.9)
 }
 
-// crankShaft builds the crank shaft: a round shaft from the gear case's plate, through the crank gear, the cover and
-// its bearing block, to a D-shaped stub for the arm. It has no collar, because the cover must slide over it; the
-// crank gear between the plate and the cover holds it in place. The stub is cut from the round shaft: a union of a
-// round shaft and a D stub of the same radius shares a cylinder, which Decad refuses.
+// crankShaft builds the shaft with a collar and a D-shaped stub. The stub gets its nut slot and screw hole before it
+// joins the core, because Decad refuses to cut the slot after the union.
 func (b *builder) crankShaft() *decad.Body {
-	shaft := b.cylinder(alongCrank(crankShaftStart), 4, crankFace+9.8-crankShaftStart)
-	shaft = b.cut(shaft, b.panel(alongCrank(crankFace+3.5), -5, -5, 5, -3, 7))
-	shaft = b.cut(shaft, b.slot(alongCrank(crankFace+6.2), -4.5, 2.5))
-	return b.cut(shaft, b.cylinder(alongCrank(crankFace+1), 1.2, 10))
+	stub := b.dPrism(alongX(crankFace+3.5), 4, 3, -1, 6.3)
+	stub = b.cut(stub, b.slot(alongX(crankFace+6.2), -4.5, 2.5))
+	stub = b.cut(stub, b.cylinder(alongX(crankFace+3), 1.2, 7.5))
+	round := b.cylinder(alongX(14), 4, crankFace+3-14)
+	collar := b.cylinder(alongX(crankFace+0.3), 6, 3.5)
+	core := b.union(round, collar)
+	core = b.cut(core, b.cylinder(alongX(crankFace+1), 1.2, 3))
+	return b.union(core, stub)
 }
 
 // crankArm builds a stadium 20 wide with rounded faces, a screw hole at each end, and a D pocket for the shaft
 // stub from the inner face and one for the pin stub from the outer face.
 func (b *builder) crankArm() *decad.Body {
-	s := b.section(alongCrank(armStart))
+	s := b.section(alongX(armStart))
 	if s != nil {
 		top := s.CreatePoint(0, crankThrow)
 		s.AddConstraint(sketch.NewVerticalPoints(s.Origin(), top), sketch.NewVerticalDistance(s.Origin(), top, crankThrow))
@@ -77,7 +78,7 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, 1.2), 1.2))
 	}
 	arm := b.roundCaps(b.extrude(s, 2, armThick), 1.5)
-	arm = b.cut(arm, b.dPrism(alongCrank(crankFace+3), 4.15, 3.15, -1, 7))
+	arm = b.cut(arm, b.dPrism(alongX(crankFace+3), 4.15, 3.15, -1, 7))
 	return b.cut(arm, b.dPrism(alongPin(crankFace+6), 4.15, 3.15, 1, 7))
 }
 
@@ -105,7 +106,7 @@ var handleProfile = [...][2]float64{
 // crankGrip builds the handle by revolving its meridian about the pin axis. Every vertex of the meridian is
 // dimensioned from the sketch origin, which sits on the axis at the inner end.
 func (b *builder) crankGrip() *decad.Body {
-	s := b.section(frame(r3.Vec{X: handleStart, Z: crankHeight + crankThrow}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
+	s := b.section(frame(r3.Vec{X: handleStart, Z: axisHeight + crankThrow}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 	if s != nil {
 		points := make([]*sketch.Point, len(handleProfile))
 		for i, p := range handleProfile {
@@ -116,5 +117,5 @@ func (b *builder) crankGrip() *decad.Body {
 		}
 	}
 	return b.revolve(s, decad.ConstructionAxis{
-		Origin: r3.Vec{X: handleStart, Z: crankHeight + crankThrow}, Dir: r3.Vec{X: 1}})
+		Origin: r3.Vec{X: handleStart, Z: axisHeight + crankThrow}, Dir: r3.Vec{X: 1}})
 }

@@ -19,9 +19,6 @@ func partNames(blades int) []string {
 	names := []string{
 		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox", "driving-gear", "crank-shaft", "crank-arm",
 		"crank-pin", "crank-grip", "crank-arm-bolt", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
-		"gear-case", "gear-cover", "drive-shaft", "drive-gear", "crank-gear",
-		"case-bolt-1", "case-bolt-2", "case-bolt-3", "case-bolt-4", "case-bolt-5",
-		"cover-bolt-1", "cover-bolt-2", "cover-bolt-3", "cover-bolt-4",
 	}
 	for k := 1; k <= blades; k++ {
 		names = append(names, fmt.Sprintf("fan-blade-%d", k), fmt.Sprintf("fan-bolt-%d", k))
@@ -34,15 +31,13 @@ func isRotor(name string) bool {
 }
 
 // isFinished reports whether the part is checked for overlap: the rotor, the handle, the gearbox and the crank's own
-// parts. The bevel pair and the spur pair, which mesh at their teeth, are left out.
+// parts. The gear pair, which meshes at its teeth, is left out.
 func isFinished(name string) bool {
 	switch name {
-	case "handle", "gearbox", "gear-case", "gear-cover", "crank-shaft", "crank-arm", "crank-pin", "crank-grip",
-		"crank-arm-bolt", "crank-pin-bolt":
+	case "handle", "gearbox", "crank-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-arm-bolt", "crank-pin-bolt":
 		return true
 	}
-	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "case-bolt-") ||
-		strings.HasPrefix(name, "cover-bolt-")
+	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-")
 }
 
 func buildFan(t *testing.T, p handcrankfan.Params) (*decad.Document, map[string]handcrankfan.Part, *handcrankfan.Assembly) {
@@ -82,8 +77,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	}
 	// The crank shaft's faceted D stub is below Decad's minimum mesh bound at 0.1 mm.
 	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
-		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "gear-case": 0.1,
-		"gear-cover": 0.1, "crank-gear": 0.1} {
+		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(tolerance), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)
@@ -93,12 +87,8 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	t.Run("pitch", func(t *testing.T) { requirePitch(t, p, parts) })
 	t.Run("joint", func(t *testing.T) { requireJoint(t, p, parts) })
 	t.Run("grip", func(t *testing.T) { requireGrip(t, parts) })
-	t.Run("sweep", func(t *testing.T) { requireSweepClearance(t, parts, a.State, p.Blades) })
-	// Decad plans the explosion from axis-aligned boxes, and the arm's box depends on the crank angle, so the stage order
-	// is searched and checked at the default pose only.
-	if p.CrankAngle == handcrankfan.DefaultParams().CrankAngle {
-		t.Run("explode", func(t *testing.T) { requireExplode(t, doc, a, parts) })
-	}
+	t.Run("sweep", func(t *testing.T) { requireSweepClearance(t, parts, p.Blades) })
+	t.Run("explode", func(t *testing.T) { requireExplode(t, doc, a, parts) })
 	t.Run("gears", func(t *testing.T) { requireGearPlacement(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, parts) })
 	t.Run("copies", func(t *testing.T) { requireIdenticalBlades(t, p, parts) })
@@ -117,8 +107,10 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		}
 		require.Less(t, b.Max.X, box["crank-pin"].Max.X, "%s is left of the crank", name)
 	}
-	require.Greater(t, box["crank-grip"].Min.X, box["gear-cover"].Max.X, "the crank handle is outside the gear case")
-	require.Greater(t, box["crank-shaft"].Max.X, 57.0, "the crank shaft leaves the cover toward +X")
+	require.Greater(t, box["crank-grip"].Max.X, box["gearbox"].Max.X, "the grip reaches further right than the gearbox")
+	require.Greater(t, box["crank-shaft"].Max.X, 48.0, "the crank shaft leaves the bearing block toward +X")
+	require.InDelta(t, 48, box["gearbox"].Max.X, tol, "the crank bearing block ends at X 48")
+	require.InDelta(t, -70, box["gearbox"].Min.Y, tol, "the fan bearing block ends at Y -70")
 	require.InDelta(t, 0, (box["fan-shaft"].Min.X+box["fan-shaft"].Max.X)/2, tol, "the fan shaft lies on X = 0")
 	rotorFront := math.Inf(1)
 	for name, b := range box {
@@ -134,8 +126,8 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 		}
 		require.Greater(t, b.Min.Y, rotorFront, "%s is in front of the rotor", name)
 	}
-	require.InDelta(t, -86, box["fan-hub"].Min.Y, tol, "the hub front face")
-	require.InDelta(t, -66, box["fan-hub"].Max.Y, tol, "the hub back face")
+	require.InDelta(t, -96, box["fan-hub"].Min.Y, tol, "the hub front face")
+	require.InDelta(t, -76, box["fan-hub"].Max.Y, tol, "the hub back face")
 	// Handheld: the grip hangs under the gearbox floor, is long enough for a hand, and has no stand around it.
 	require.InDelta(t, 128, box["handle"].Max.Z, tol, "the grip starts at the gearbox floor")
 	require.InDelta(t, 128, box["gearbox"].Min.Z, tol, "the floor is where the grip ends")
@@ -143,11 +135,11 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	for name, b := range box {
 		require.GreaterOrEqual(t, b.Min.Z, box["handle"].Min.Z-tol, "%s hangs below the grip end", name)
 	}
-	require.InDelta(t, -90, box["fan-shaft"].Min.Y, tol)
+	require.InDelta(t, -100, box["fan-shaft"].Min.Y, tol)
 	for k := 1; k <= p.Blades; k++ {
 		bolt := box[fmt.Sprintf("fan-bolt-%d", k)]
-		require.Greater(t, bolt.Min.Y, -86.0, "bolt %d is inside the hub's front face", k)
-		require.Less(t, bolt.Max.Y, -66.0, "bolt %d is inside the hub's back face", k)
+		require.Greater(t, bolt.Min.Y, -96.0, "bolt %d is inside the hub's front face", k)
+		require.Less(t, bolt.Max.Y, -76.0, "bolt %d is inside the hub's back face", k)
 	}
 }
 
@@ -202,7 +194,7 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 	for _, r := range []float64{30, 40, 50, 60} {
 		x, ring := meshRing(verts, r)
 		require.NotEmpty(t, ring, "ring near radius %g", r)
-		stack := r3.Vec{X: x, Y: -76, Z: 170}
+		stack := r3.Vec{X: x, Y: -86, Z: 170}
 		te1 := farthest(ring, stack, nil)
 		le := farthest(ring, te1, nil)
 		te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
@@ -243,10 +235,10 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.NoError(t, err, name)
 		return loc
 	}
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -76, Z: 170}), "the socket is empty")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -86, Z: 170}), "the socket is empty")
 	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.5, Y: -112, Z: 170}), "the nut trap is empty")
-	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -81, Z: 175}), "the hub between two blades is solid")
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -76.2, Z: 170.3}), "the socket is empty past the bolt")
+	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -91, Z: 175}), "the hub between two blades is solid")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -86.2, Z: 170.3}), "the socket is empty past the bolt")
 }
 
 // requireGrip measures the grip's mesh rings at three heights: they are ovals of the table's width and length,
@@ -304,9 +296,8 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, parts map[string]handcr
 }
 
 // requireExplode builds the parts set and explodes it with Decad. The handle slides over the pin's stub end, so
-// along the crank axis the arm, the handle and the pin must follow in that order with gaps between them. The main
-// parts all move: the gear case and its cover to the right, the gears, the shafts and the crank. The driving gear leaves
-// to the left and the pinion up, and no pair of parts may still share space when the parts are apart.
+// along the crank axis the arm, the handle and the pin must follow in that order with gaps between them. The driving
+// gear leaves to the left and the pinion up, and no pair of parts may still share space when the parts are apart.
 func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly, built map[string]handcrankfan.Part) {
 	set, err := a.Set(doc)
 	require.NoError(t, err)
@@ -322,10 +313,6 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			require.Zero(t, part.Offset.Len(), "the gearbox is the ground")
 		} else {
 			require.GreaterOrEqual(t, part.Depth, 1, "%s is joined to the gearbox", part.Name)
-		}
-		switch part.Name {
-		case "gear-case", "gear-cover", "drive-gear", "crank-gear", "drive-shaft", "crank-arm", "crank-pin", "crank-grip",
-			"driving-gear", "pinion", "handle", "fan-hub":
 			require.Greater(t, part.Offset.Len(), 0.0, "%s moves", part.Name)
 		}
 		switch part.Name {
@@ -346,42 +333,39 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 2+2+5+4+a.Params.Blades, screws,
-		"two grip screws, two crank screws, five case screws, four cover screws and one screw for each blade")
+	require.Equal(t, 2+2+a.Params.Blades, screws, "two grip screws, two crank screws and one screw for each blade")
 }
 
 // requireSweepClearance proves a hand on the crank handle cannot meet a blade. The crank's arm, pin and handle sweep
-// a ring about the crank axis, which sits well below the fan axis, and the blades sweep a disc about the fan axis.
-// Every vertex of the crank parts is turned about the crank axis through a full turn, and none may come within a hand's
-// width of the blades' disc.
-func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, state handcrankfan.State, blades int) {
+// everything within their reach of the crank axis, and the blades sweep a disc about the fan axis. Where the crank
+// parts lie inside the disc's radius, every blade must stay at least a hand's width behind the crank's reach along Y.
+func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, blades int) {
 	vertices := func(name string) []r3.Vec {
 		mesh, err := built[name].Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyNone))
 		require.NoError(t, err, name)
 		return mesh.Vertices()
 	}
 	const hand = 15.0
-	front, back, disc := math.Inf(1), math.Inf(-1), 0.0
-	for k := 1; k <= blades; k++ {
-		for _, v := range vertices(fmt.Sprintf("fan-blade-%d", k)) {
-			front, back = math.Min(front, v.Y), math.Max(back, v.Y)
-			disc = math.Max(disc, math.Hypot(v.X, v.Z-state.Apex.Z))
-		}
-	}
-	closest := math.Inf(1)
+	reach, innerX := 0.0, math.Inf(1)
 	for _, name := range []string{"crank-arm", "crank-pin", "crank-grip"} {
 		for _, v := range vertices(name) {
-			radius := math.Hypot(v.Y-state.Crank.Y, v.Z-state.Crank.Z)
-			phase := math.Atan2(v.Z-state.Crank.Z, v.Y-state.Crank.Y)
-			for turn := 0.0; turn < 2*math.Pi; turn += 3 * math.Pi / 180 {
-				y, z := state.Crank.Y+radius*math.Cos(phase+turn), state.Crank.Z+radius*math.Sin(phase+turn)
-				along := math.Max(math.Max(front-y, y-back), 0)
-				across := math.Max(math.Hypot(v.X, z-state.Apex.Z)-disc, 0)
-				closest = math.Min(closest, math.Hypot(along, across))
+			reach = math.Max(reach, math.Hypot(v.Y, v.Z-170))
+			innerX = math.Min(innerX, v.X)
+		}
+	}
+	disc, bladeFront := 0.0, math.Inf(-1)
+	for k := 1; k <= blades; k++ {
+		for _, v := range vertices(fmt.Sprintf("fan-blade-%d", k)) {
+			radius := math.Hypot(v.X, v.Z-170)
+			disc = math.Max(disc, radius)
+			if radius >= innerX {
+				bladeFront = math.Max(bladeFront, v.Y)
 			}
 		}
 	}
-	require.GreaterOrEqual(t, closest, hand, "a crank part comes within %.1f of the blades' disc", closest)
+	require.Greater(t, disc, innerX, "the blades reach the crank's X range, so the clearance applies")
+	require.LessOrEqual(t, bladeFront, -reach-hand,
+		"the crank reaches %.1f from its axis toward the fan and the blades come as near as Y %.1f", reach, bladeFront)
 }
 
 // requireIdenticalBlades turns every blade and bolt back to the first one's place and compares their bounds.
