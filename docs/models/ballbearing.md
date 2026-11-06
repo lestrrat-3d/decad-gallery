@@ -12,6 +12,8 @@ The placement origin is the center of the lower axial face; its normal gives the
 An optional `Lift` transform moves the body instead, with `Placement` read in its local coordinates.
 Assemblies give every body of one rigid group the same lift, so Decad can prove their contacts exactly.
 
+`Params608ZZ()` returns the same 8 mm bore, 22 mm outside diameter and 7 mm width as `DefaultParams()`, under the
+name of the shielded 608ZZ.
 `Params605ZZ()` returns a 5 mm bore, 14 mm outside diameter and 5 mm width from
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
 Both presets use the same `Build` entry point, and callers supply placement independently.

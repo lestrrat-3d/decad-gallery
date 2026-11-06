@@ -3,6 +3,7 @@ package planetarygearbox
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
@@ -30,6 +31,28 @@ func pose(frame r3.Transform, angle, x, y, z float64) (r3.Transform, error) {
 		return r3.Transform{}, fmt.Errorf("rotation: %w", err)
 	}
 	move, err := r3.Translation(r3.NewVec(x, y, z))
+	if err != nil {
+		return r3.Transform{}, fmt.Errorf("translation: %w", err)
+	}
+	local, err := turn.Then(move)
+	if err != nil {
+		return r3.Transform{}, fmt.Errorf("compose pose: %w", err)
+	}
+	placed, err := local.Then(frame)
+	if err != nil {
+		return r3.Transform{}, fmt.Errorf("compose placement: %w", err)
+	}
+	return placed, nil
+}
+
+// poseFlipped turns a body over about the local X axis, so its +Z face looks down, then moves it to height z
+// and onto the placement frame.
+func poseFlipped(frame r3.Transform, z float64) (r3.Transform, error) {
+	turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(math.Pi))
+	if err != nil {
+		return r3.Transform{}, fmt.Errorf("rotation: %w", err)
+	}
+	move, err := r3.Translation(r3.NewVec(0, 0, z))
 	if err != nil {
 		return r3.Transform{}, fmt.Errorf("translation: %w", err)
 	}

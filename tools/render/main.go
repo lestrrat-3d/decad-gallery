@@ -17,37 +17,32 @@ type preset struct {
 }
 
 var presets = map[string]preset{
-	"spinningwheel/hero":                    {width: 1600, height: 900, scene: spinningWheelView("hero")},
-	"spinningwheel/rear":                    {width: 1600, height: 900, scene: spinningWheelView("rear")},
-	"ballbearing/hero":                      {width: 1600, height: 900, scene: bearing608Hero},
-	"ballbearing/605zz":                     {width: 1600, height: 900, scene: bearing605Hero},
-	"screwgear/hero":                        {width: 1600, height: 900, scene: screwGearView("hero")},
-	"screwgear/top":                         {width: 1600, height: 900, scene: screwGearView("top")},
-	"screwgear/low":                         {width: 1600, height: 900, scene: screwGearView("low")},
-	"screwgear/cutaway":                     {width: 1600, height: 900, scene: screwGearView("cutaway")},
-	"spurgear/hero":                         {width: 1600, height: 900, scene: spurGearHero},
-	"spurgear/top":                          {width: 1600, height: 900, scene: spurGearTop},
-	"spurgear/low":                          {width: 1600, height: 900, scene: spurGearLow},
-	"bevelgear/hero":                        {width: 1600, height: 900, scene: bevelGearHero},
-	"bevelgear/top":                         {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearTop},
-	"bevelgear/low":                         {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearLow},
-	"bevelgear/high":                        {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearHigh},
-	"bevelgear/straight-top":                {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightTop},
-	"bevelgear/straight-low":                {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightLow},
-	"bevelgear/straight-high":               {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightHigh},
-	"cycloidal/hero":                        {width: 1600, height: 900, scene: cycloidalHero},
-	"planetarygearbox/hero":                 {width: 1600, height: 900, scene: planetaryGearboxHero},
-	"planetarygearbox/part-ring":            {width: 480, height: 270, scene: planetaryPartPreset(planetaryParts[0])},
-	"planetarygearbox/part-sun":             {width: 480, height: 270, scene: planetaryPartPreset(planetaryParts[1])},
-	"planetarygearbox/part-planet":          {width: 480, height: 270, scene: planetaryPartPreset(planetaryParts[2])},
-	"planetarygearbox/part-linking-carrier": {width: 480, height: 270, scene: planetaryPartPreset(planetaryParts[3])},
-	"planetarygearbox/part-output-carrier":  {width: 480, height: 270, scene: planetaryPartPreset(planetaryParts[4])},
-	"helicalgear/hero":                      {width: 1600, height: 900, scene: helicalGearHero},
-	"helicalgear/top":                       {width: 1600, height: 900, scene: helicalGearTop},
-	"helicalgear/low":                       {width: 1600, height: 900, scene: helicalGearLow},
-	"herringbonegear/hero":                  {width: 1600, height: 900, scene: herringboneGearHero},
-	"herringbonegear/top":                   {width: 1600, height: 900, scene: herringboneGearTop},
-	"herringbonegear/low":                   {width: 1600, height: 900, scene: herringboneGearLow},
+	"spinningwheel/hero":      {width: 1600, height: 900, scene: spinningWheelView("hero")},
+	"spinningwheel/rear":      {width: 1600, height: 900, scene: spinningWheelView("rear")},
+	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
+	"ballbearing/605zz":       {width: 1600, height: 900, scene: bearing605Hero},
+	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
+	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
+	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
+	"screwgear/cutaway":       {width: 1600, height: 900, scene: screwGearView("cutaway")},
+	"spurgear/hero":           {width: 1600, height: 900, scene: spurGearHero},
+	"spurgear/top":            {width: 1600, height: 900, scene: spurGearTop},
+	"spurgear/low":            {width: 1600, height: 900, scene: spurGearLow},
+	"bevelgear/hero":          {width: 1600, height: 900, scene: bevelGearHero},
+	"bevelgear/top":           {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearTop},
+	"bevelgear/low":           {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearLow},
+	"bevelgear/high":          {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearHigh},
+	"bevelgear/straight-top":  {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightTop},
+	"bevelgear/straight-low":  {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightLow},
+	"bevelgear/straight-high": {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightHigh},
+	"cycloidal/hero":          {width: 1600, height: 900, scene: cycloidalHero},
+	"planetarygearbox/hero":   {width: 1600, height: 900, scene: planetaryGearboxHero},
+	"helicalgear/hero":        {width: 1600, height: 900, scene: helicalGearHero},
+	"helicalgear/top":         {width: 1600, height: 900, scene: helicalGearTop},
+	"helicalgear/low":         {width: 1600, height: 900, scene: helicalGearLow},
+	"herringbonegear/hero":    {width: 1600, height: 900, scene: herringboneGearHero},
+	"herringbonegear/top":     {width: 1600, height: 900, scene: herringboneGearTop},
+	"herringbonegear/low":     {width: 1600, height: 900, scene: herringboneGearLow},
 }
 
 func main() {
@@ -80,6 +75,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		case "animation":
 			return runSpinningWheelAnimation(ctx, output, width, height)
 		}
+	}
+	if model == "planetarygearbox" && shot == "motion" {
+		if width == 0 {
+			width = planetaryMotionWidth
+		}
+		if height == 0 {
+			height = planetaryMotionHeight
+		}
+		return renderPlanetaryMotion(ctx, output, width, height, planetaryMotionFrames)
 	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {
