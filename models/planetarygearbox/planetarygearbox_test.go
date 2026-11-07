@@ -560,6 +560,30 @@ func TestHousing(t *testing.T) {
 		}
 		require.Equal(t, decad.PointInside, locate(body, r3.NewVec(28*math.Cos(spoke), 28*math.Sin(spoke), z)), "%s spoke", name)
 		require.Equal(t, decad.PointOutside, locate(body, r3.NewVec(28*math.Cos(window), 28*math.Sin(window), z)), "%s window", name)
+		// The rim's inner radius is the bolt circle radius (the cover's outer radius less half the ring wall)
+		// less the head pocket radius (the head's radius plus 0.1 mm) and 1.5 mm of material. Each of the
+		// three windows reaches out to that radius and no further.
+		coverOuter := bounds(t, body).Max.X
+		rimInner := coverOuter - p.RingWall/2 - (m2bolt.HeadDiameter/2 + 0.1) - 1.5
+		sectionZ := bounds(t, body).Min.Z + 0.5
+		if name == "front" {
+			sectionZ = bounds(t, body).Max.Z - 0.5
+		}
+		plane, err := r3.NewFrame(r3.NewVec(0, 0, sectionZ), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+		require.NoError(t, err)
+		section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
+		require.NoError(t, err)
+		windows := 0
+		for _, loop := range section.Loops {
+			reach := 0.0
+			for _, point := range loop {
+				reach = math.Max(reach, math.Hypot(point.X, point.Y))
+			}
+			if math.Abs(reach-rimInner) < 0.05 {
+				windows++
+			}
+		}
+		require.Equal(t, 3, windows, "%s windows reaching the rim's inner radius %v", name, rimInner)
 	}
 	// Each cover weighs less than a solid disc of its outer radius and thickness.
 	disc := math.Pi * 43.75 * 43.75 * p.CoverThickness

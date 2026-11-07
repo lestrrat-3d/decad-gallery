@@ -87,6 +87,7 @@ func TestFastenerFitRules(t *testing.T) {
 		want string
 	}{
 		"hole narrower than the shank": {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 1.5 }, "shank"},
+		"hole under the M2 clearance":  {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 2.3 }, "clearance hole"},
 		"cover too thin for the head":  {func(p *planetarygearbox.Params) { p.CoverThickness = 2.5 }, "bolt head"},
 	} {
 		t.Run(name, func(t *testing.T) {

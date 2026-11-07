@@ -23,7 +23,7 @@ Every sketch circle's diameter is bound to a table name with `Sketch.Bind`.
 
 Build each distinct part once about the local origin and +Z. A gear union fails on gears built at an offset.
 
-1. **Ring.** (Bolt holes `db'` are 2.4 mm for 0.1 mm radial clearance around the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
+1. **Ring.** (Bolt holes `db'` are 2.4 mm, 0.2 mm radially wider than the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
 	`root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + module + c` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
    by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
