@@ -49,9 +49,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
-      - name: Check spinning wheel rendering
+      - name: Check spinning wheel motion
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go -C tools/render test -run '^TestSpinningWheel' -timeout 30m ./...
+        run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
   wheel:
     strategy:
