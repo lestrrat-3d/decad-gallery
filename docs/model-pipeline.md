@@ -84,11 +84,11 @@ mates with a fixed nominal part. When two fixed nominal parts mate, record the
 interface as a nominal exception; do not alter either part or claim that it
 meets a clearance class.
 
-Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal
-only**, or **Mixed**. Use **Adjustable** when the model's custom fits can be
-changed to provide clearance. Use **Nominal only** when the model preserves
-fixed standard or purchased dimensions. Use **Mixed** when a model combines
-adjustable custom fits with fixed nominal components.
+Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal**,
+or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to
+provide clearance. Use **Nominal** when the model preserves fixed standard or
+purchased dimensions. Use **Mixed** when a model combines adjustable custom
+fits with fixed nominal components.
 
 Start with the smallest real case, using the generated candidate staged in
 the actual package. If it fails at a Sketch or Decad boundary, stop adding

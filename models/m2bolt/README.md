@@ -9,6 +9,8 @@ It follows the ISO 4762 dimension drawing: a 3.8 mm head with a chamfered top ed
 The thread is not modeled. The shank is a plain 2 mm cylinder, so the model gives the screw's envelope for
 fitting holes and parts. It does not set thread length, tolerance or strength class.
 
+**Clearance adjustment:** Nominal. Adjust custom mating geometry to provide fit clearance.
+
 `DefaultParams` selects an M2x10 screw. `Length` sets the length from the head's underside to the tip and
 must be one of `StandardLengths()`. `Placement` positions the underside center and the screw axis in an
 assembly; the head lies along the frame's normal.

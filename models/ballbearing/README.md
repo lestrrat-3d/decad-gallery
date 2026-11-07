@@ -7,6 +7,8 @@ This model gives a purchased 608-2RS bearing's nominal mounting envelope: an 8 m
 the bearing, check shaft alignment and reserve housing space.
 The dimensions come from [JTEKT's 608 2RS catalogue](https://www.jtekt.co.jp/products/bearing/en/p/detail/?pno=608+2RS).
 
+**Clearance adjustment:** Nominal. Keep the purchased bearing dimensions and adjust custom mating geometry.
+
 The rendered annulus is the occupied envelope. It does not depict separate races, balls, seals or cage.
 Use the purchased bearing as the rolling component. The model does not establish running clearance,
 shaft or housing fits, bearing life, load capacity or fastening details.
