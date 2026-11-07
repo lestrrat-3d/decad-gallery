@@ -1,14 +1,13 @@
 package spinningwheel_test
 
 import (
+	"context"
 	"math"
-	"testing"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
-	"github.com/stretchr/testify/require"
 )
 
 // A separating projection proves the complete solids disjoint after charging both verified mesh bounds.
@@ -22,10 +21,9 @@ type collisionShape struct {
 
 // Faces transverse to Y must lie outside the relevant band. Every remaining wall must run along Y.
 // Thus one real section encloses the complete obstacle over that band, including concave outlines.
-func nativeInvariantYBand(t *testing.T, body *decad.Body, whole collisionShape, lo, hi float64) (collisionShape, bool) {
-	t.Helper()
+func nativeInvariantYBand(ctx context.Context, body *decad.Body, whole collisionShape, lo, hi float64) (collisionShape, bool, error) {
 	if hi-lo < 1e-8 {
-		return collisionShape{}, false
+		return collisionShape{}, false, nil
 	}
 	for _, face := range body.Faces() {
 		minY, maxY := math.Inf(1), math.Inf(-1)
@@ -42,7 +40,7 @@ func nativeInvariantYBand(t *testing.T, body *decad.Body, whole collisionShape, 
 			case decad.Arc3:
 				centre, axis, radius = c.Center, c.Axis, c.Radius.Base()
 			default:
-				return collisionShape{}, false
+				return collisionShape{}, false, nil
 			}
 			if radius > 0 {
 				span := radius * math.Sqrt(math.Max(0, 1-axis.Y*axis.Y))
@@ -55,20 +53,24 @@ func nativeInvariantYBand(t *testing.T, body *decad.Body, whole collisionShape, 
 		switch surface := face.Surface().(type) {
 		case decad.Plane:
 			if math.Abs(surface.Frame.N().Y) > 1e-10 {
-				return collisionShape{}, false
+				return collisionShape{}, false, nil
 			}
 		case decad.Cylinder:
 			if math.Abs(surface.Axis.Y) < 1-1e-10 {
-				return collisionShape{}, false
+				return collisionShape{}, false, nil
 			}
 		default:
-			return collisionShape{}, false
+			return collisionShape{}, false, nil
 		}
 	}
 	plane, err := r3.NewFrame(r3.Vec{Y: (lo + hi) / 2}, r3.Vec{X: 1}, r3.Vec{Z: 1})
-	require.NoError(t, err)
-	section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(.025))
-	require.NoError(t, err)
+	if err != nil {
+		return collisionShape{}, false, err
+	}
+	section, err := body.SectionOutline(ctx, plane, units.Millimeters(.025))
+	if err != nil {
+		return collisionShape{}, false, err
+	}
 	s := collisionShape{bound: whole.bound + section.OffSurface.Base(), normals: []r3.Vec{{X: 1}, {Y: 1}, {Z: 1}}, edges: []r3.Vec{{Y: 1}}}
 	for _, loop := range section.Loops {
 		for i, p := range loop {
@@ -76,7 +78,7 @@ func nativeInvariantYBand(t *testing.T, body *decad.Body, whole collisionShape, 
 			s.edges = appendDirection(s.edges, loop[(i+1)%len(loop)].Sub(p))
 		}
 	}
-	return s.placed(r3.Identity()), true
+	return s.placed(r3.Identity()), true, nil
 }
 
 func appendDirection(directions []r3.Vec, direction r3.Vec) []r3.Vec {

@@ -2,6 +2,7 @@ package spinningwheel_test
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -49,11 +50,33 @@ func (s collisionShape) meshSeparation(other collisionShape) (float64, bool) {
 
 // meshSeparationBy is meshSeparation requiring the boundary gap to exceed limit millimetres after both bounds.
 func (s collisionShape) meshSeparationBy(other collisionShape, limit float64) (float64, bool) {
-	a, err := meshgap.New(s.points, s.triangles, s.bound)
+	return prepareShape(s).separationBy(prepareShape(other), limit)
+}
+
+// preparedShape is a collision shape whose meshgap.Mesh is built on first use and then reused.
+// sync.OnceValues makes the build safe when several goroutines share one shape, and copies share the result.
+type preparedShape struct {
+	collisionShape
+	mesh func() (meshgap.Mesh, error)
+}
+
+func prepareShape(s collisionShape) preparedShape {
+	return preparedShape{collisionShape: s, mesh: sync.OnceValues(func() (meshgap.Mesh, error) {
+		return meshgap.New(s.points, s.triangles, s.bound)
+	})}
+}
+
+func (s preparedShape) separation(other preparedShape) (float64, bool) {
+	return s.separationBy(other, 0)
+}
+
+// separationBy is meshSeparationBy on shapes whose meshes may already be built.
+func (s preparedShape) separationBy(other preparedShape, limit float64) (float64, bool) {
+	a, err := s.mesh()
 	if err != nil {
 		return 0, false
 	}
-	b, err := meshgap.New(other.points, other.triangles, other.bound)
+	b, err := other.mesh()
 	if err != nil {
 		return 0, false
 	}
@@ -63,13 +86,13 @@ func (s collisionShape) meshSeparationBy(other collisionShape, limit float64) (f
 	}
 	// Exceeds proved the surfaces apart by a margin, so no connected component of one mesh crosses the other.
 	// Each component is then wholly inside or wholly outside, and one vertex per component decides it.
-	for _, p := range componentRepresentatives(s) {
-		if meshContains(other, p) {
+	for _, p := range componentRepresentatives(s.collisionShape) {
+		if meshContains(other.collisionShape, p) {
 			return 0, false
 		}
 	}
-	for _, p := range componentRepresentatives(other) {
-		if meshContains(s, p) {
+	for _, p := range componentRepresentatives(other.collisionShape) {
+		if meshContains(s.collisionShape, p) {
 			return 0, false
 		}
 	}
