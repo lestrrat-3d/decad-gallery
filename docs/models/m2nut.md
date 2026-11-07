@@ -26,7 +26,6 @@ bolt-and-nut interface is a nominal-only exception and has no modeled clearance.
 ```sh
 go test ./models/m2nut
 go -C tools/render run . -model m2nut -shot readme -out ../../models/m2nut/images
-go -C tools/render test -run '^TestM2NutRendering$'
 ```
 
 The readme shot writes `hero.png`, `index.png`, `top.png`, `side.png`, `low.png` and `withbolt.png`.

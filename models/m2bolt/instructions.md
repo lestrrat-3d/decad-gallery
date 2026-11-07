@@ -70,5 +70,5 @@ rest is held by horizontal, vertical and angle constraints and by dimensions bet
 Check the default build's bounds, its volume against an independent integration of the section, its face
 kinds, `VerifyAll` tessellation and the full constraint of both sketches.
 Check every standard length, a length between them, a placed bolt, invalid inputs and the unchanged document.
-Register `m2bolt/hero` in `tools/render`, with a renderer integration test.
+Register `m2bolt/hero` in `tools/render`.
 Add the model to `models/README.md` and run `scripts/check_repository.py`.

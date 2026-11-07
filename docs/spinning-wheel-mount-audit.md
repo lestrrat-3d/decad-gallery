@@ -64,5 +64,5 @@ Emit construction changes from updated instructions and steps with fresh emitter
 Give every returned part a named parent and a mount type, with no unexplained exceptions.
 Check the actual seat, bore, fastener, captive-loop or glue-joint geometry for each mount.
 Verify that mating parts occupy separate material volumes, including moving and fixed parts.
-Repeat the real default and parameter branches, then the full-turn pose checks and renderer integration.
+Repeat the real default and parameter branches, then the full-turn pose checks and image rendering.
 Regenerate all actual-body images and the animation after the corrected assembly passes.

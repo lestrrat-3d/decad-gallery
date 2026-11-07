@@ -23,7 +23,6 @@ The thread is not modeled, so the shank is the nominal 2 mm diameter along its w
 ```sh
 go test ./models/m2bolt
 go -C tools/render run . -model m2bolt -shot readme -out ../../models/m2bolt/images
-go -C tools/render test -run '^TestM2BoltRendering$'
 ```
 
 The readme shot writes `hero.png`, `index.png`, `head.png`, `side.png`, `underside.png` and `lengths.png`.

@@ -60,9 +60,7 @@ in the output directory and renames it after rendering succeeds.
 For other spur gear angles, use `-shot top` or `-shot low` with the matching
 filename in `models/spurgear/images`.
 
-Run `go -C tools/render test ./...` to build the actual spur gear and check that
-the output PNG contains it. Animation output can use the same model scene
-builders when an animation preset is added.
+Animation output can use the same model scene builders when an animation preset is added.
 
 The `bevelgear/hero` preset renders the 31/31 spiral pair at 35°, with a
 post-join 7.75 mm bore in each member, beside a bored 32/16 straight-tooth pair at
