@@ -18,6 +18,9 @@ the bore and the chamfers faceted, so the model does not use it.
 The thread is not modeled. The standards give the corner width and thickness as limits; the model uses the exact
 hexagon corner and the maximum thickness.
 
+The nominal 2 mm nut bore matches the nominal 2 mm bolt shank. This threadless
+bolt-and-nut interface is a nominal-only exception and has no modeled clearance.
+
 ## Build and images
 
 ```sh

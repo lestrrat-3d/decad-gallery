@@ -8,6 +8,8 @@ This model is the M2 hex nut that pairs with the [M2 bolt](../m2bolt/). It follo
 The thread is not modeled. The bore is the nominal 2 mm, the same as the bolt's shank.
 The hexagon uses its exact corners, 4.619 mm across, where the standards give a smaller minimum.
 
+**Clearance adjustment:** Nominal. Adjust custom mating geometry to provide fit clearance.
+
 `DefaultParams` selects the nut in its local frame, with the lower face on the XY plane. `Placement`
 positions the lower-face center and the nut's axis in an assembly.
 
