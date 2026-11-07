@@ -47,11 +47,12 @@ func outlinePerimeter(p Params, d dimensions) float64 {
 // A 45° chamfer c on a rim of perimeter P removes P·c²/2 - π·c³/3 of volume, because the section of a parallel
 // outline loses P·s - π·s² of area at inset s. Both rims of the disc are chamfered.
 func TestChamferedDiscVolume(t *testing.T) {
-	volume := func(chamfer float64) (*run, float64, float64) {
+	volume := func() (*run, float64, float64, float64) {
 		p := DefaultParams()
-		p.ChamferSize = chamfer
 		doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
 		r, err := begin(t.Context(), doc, p)
+		require.NoError(t, err)
+		sharp, err := r.buildDisc(t.Context(), 0)
 		require.NoError(t, err)
 		body, err := r.chamferedDisc(t.Context(), 0)
 		require.NoError(t, err)
@@ -61,10 +62,11 @@ func TestChamferedDiscVolume(t *testing.T) {
 		require.True(t, mesh.VolumeVerified())
 		v, err := body.Volume()
 		require.NoError(t, err)
-		return r, v.Value.Base(), v.Bound.Base()
+		sharpVolume, err := sharp.Volume()
+		require.NoError(t, err)
+		return r, sharpVolume.Value.Base(), v.Value.Base(), v.Bound.Base()
 	}
-	_, sharp, _ := volume(0)
-	r, chamfered, bound := volume(0.5)
+	r, sharp, chamfered, bound := volume()
 	c := r.p.ChamferSize
 	want := 2 * (outlinePerimeter(r.p, r.d)*c*c/2 - math.Pi*c*c*c/3)
 	// Decad's volume bound is the tolerance: the outline is a fit spline, and the mesh is only certified to it.

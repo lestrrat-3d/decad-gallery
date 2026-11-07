@@ -167,6 +167,7 @@ func Problems(p Params) []string {
 		{"Bearing Clearance", p.BearingClearance, 2 * MinClearance, true},
 		{"Output Pin Clearance", p.OutputPinClearance, MinClearance, true},
 		{"Disc Gap", p.DiscGap, MinClearance, p.DiscCount == 2},
+		{"Chamfer Size", p.ChamferSize, MinChamferSize, true},
 	} {
 		if f.applies && f.value < f.least {
 			add("%s must be at least %.2f mm (currently %.2f mm).", f.name, f.least, f.value)

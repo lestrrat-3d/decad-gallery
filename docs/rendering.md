@@ -104,9 +104,11 @@ go -C tools/render run . -model herringbonegear -shot readme -out ../../models/h
 go -C tools/render run . -model bevelgear -shot readme -out ../../models/bevelgear/images
 ```
 
-The `cycloidal/hero` preset renders the default two-disc drive pulled apart along a staircase: the housing,
-both rotor discs, the eccentric cam, and the output plate with its pins. The `readme` shot writes its
-480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png`:
+The `cycloidal/hero` preset renders the assembled two-disc drive. The `cycloidal/exploded` preset pulls the
+housing, both rotor discs, cam, plate and pins apart along a staircase. The `readme` shot writes the
+480 × 270 pixel `index.png`, the 1600 × 900 pixel `hero.png` and `exploded.png`, three 1200 × 675 pixel
+assembled views (`assembled-output.png`, `assembled-input.png`, `assembled-side.png`), and a 480 × 270 pixel
+image in `parts/` for every named body:
 
 ```sh
 go -C tools/render run . -model cycloidal -shot readme -out ../../models/cycloidal/images
