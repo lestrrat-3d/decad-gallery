@@ -51,8 +51,11 @@ func (d Drive) Named() []NamedBody {
 //     cuts the bevel with a lofted cutter whose offset curves are fit splines through points of the exact
 //     offset. The chamfered disc is held as a mesh, and its bevel matches the ideal one within 0.2 % of
 //     ChamferSize.
-//   - With DiscGap = 0 the two cam sections are separated by a 0.25 mm relief and joined by a bridge
-//     cylinder on the drive axis, because decad does not decide a union of bodies that share a face.
+//   - A two-disc cam is two sections flush with the discs' faces, joined by a bridge cylinder on the drive axis
+//     across DiscGap, so each section clears the other disc axially by DiscGap. The add-in's second section
+//     reaches the first disc's top face, which leaves no clearance.
+//   - Every moving fit has at least the Regular clearance of docs/model-pipeline.md (MinClearance), and each
+//     output pin sits in its plate socket with the Tight clearance of 0.2 mm. The add-in allows zero.
 //   - Each lobe is drawn as three fit splines, one per curvature sign, because decad certifies a spline
 //     only when its curvature has one sign. A drive with many lobes is sampled coarser when decad's work
 //     ceiling refuses the finest sampling.

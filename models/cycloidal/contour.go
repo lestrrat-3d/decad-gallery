@@ -79,11 +79,42 @@ func housingContour(p Params, d dimensions) []point {
 		}
 	}
 	// The envelope is symmetric about the pin, so each point takes the mean of itself and its mirror image.
-	out := make([]point, contourPoints)
-	for k := range out {
+	envelope := make([]point, contourPoints)
+	for k := range envelope {
 		angle := -half + 2*half*float64(k)/(contourPoints-1)
-		r := p.DiskClearance + (reach[k]+reach[contourPoints-1-k])/2
-		out[k] = point{r * math.Cos(angle), r * math.Sin(angle)}
+		r := (reach[k] + reach[contourPoints-1-k]) / 2
+		envelope[k] = point{r * math.Cos(angle), r * math.Sin(angle)}
+	}
+	return offsetOutward(envelope, p.DiskClearance, half)
+}
+
+// normalWindow is the number of points each side of a point that fix the envelope normal there.
+const normalWindow = 4
+
+// offsetOutward moves each point of the envelope by distance along the envelope's outward normal, so the contour
+// stands distance away from the envelope measured across it, not along a ray from the drive axis; a ray crosses
+// a sloped flank at a steeper angle than the normal and would leave less than distance. The first and last points
+// lie on the pitch boundaries, where the mirror image of the neighboring pitch makes the envelope perpendicular
+// to the ray, so they move along the ray. half is the half pitch angle.
+func offsetOutward(envelope []point, distance, half float64) []point {
+	last := len(envelope) - 1
+	out := make([]point, len(envelope))
+	for k, e := range envelope {
+		var tangent point
+		switch k {
+		case 0:
+			tangent = point{-math.Sin(-half), math.Cos(-half)}
+		case last:
+			tangent = point{-math.Sin(half), math.Cos(half)}
+		default:
+			// A wider window than the neighbors keeps the sampling noise of the envelope out of the normal,
+			// which would otherwise turn into curvature noise in the contour.
+			w := min(normalWindow, k, last-k)
+			tangent = point{envelope[k+w].x - envelope[k-w].x, envelope[k+w].y - envelope[k-w].y}
+		}
+		length := math.Hypot(tangent.x, tangent.y)
+		// The tangent runs counterclockwise about the drive axis, so its right-hand normal points outward.
+		out[k] = point{e.x + distance*tangent.y/length, e.y - distance*tangent.x/length}
 	}
 	return out
 }
