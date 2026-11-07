@@ -92,9 +92,9 @@ roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
-| Bolt head | Round, in the cover's outer face | 4.2 mm wide, 2 mm deep, 1 mm of cover under it |
+| Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
 | Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
-| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.4 mm across flats, 2.0 mm high |
+| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.2 mm across flats, 1.8 mm high |
 
 ## Parts
 

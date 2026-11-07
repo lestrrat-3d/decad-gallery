@@ -16,6 +16,8 @@ import (
 const (
 	// fastenerClearance is the radial gap between an M2 bolt head or nut and its printed pocket.
 	fastenerClearance = 0.1
+	// minBoltHoleDiameter is the smallest bolt hole: the M2 clearance hole.
+	minBoltHoleDiameter = 2.4
 	// coverFloor is the cover material kept under a bolt head's pocket.
 	coverFloor = 1
 	// pocketMargin is the material kept between a fastener pocket and the ring's tooth roots or outer wall.
@@ -31,7 +33,8 @@ const (
 )
 
 // FrontBoltName is the name of front bolt i (0-based). Four bolts hold each cover to the ring, each head sunk flush
-// in the cover's outer face and each screwed into a nut sunk flush in the ring's end face.
+// in the cover's outer face and each screwed into a nut held in a closed cavity inside the ring's wall,
+// nutRoof behind the ring's end face.
 func FrontBoltName(i int) string { return fmt.Sprintf("Front Bolt %d", i+1) }
 
 // RearBoltName is the name of rear bolt i (0-based).
