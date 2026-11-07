@@ -92,6 +92,24 @@ jobs:
       - name: Check spinning wheel
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
 
+  fan:
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - default
+          - variants
+    name: fan-${{ matrix.case }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check hand-crank fan
+        run: python3 scripts/ci/run_tests.py fan ${{ matrix.case }}
+
   bevel:
     strategy:
       fail-fast: false
