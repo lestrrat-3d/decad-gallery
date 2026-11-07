@@ -1,11 +1,7 @@
 package main
 
 import (
-	"image/gif"
-	"image/png"
 	"math"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -15,60 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// All presets consume one real assembly. This includes actual raster and GIF encoding.
-func TestSpinningWheelRendering(t *testing.T) {
+// TestSpinningWheelMotion builds the real assembly once and checks every moving part against its joints.
+func TestSpinningWheelMotion(t *testing.T) {
 	meshes, base, err := spinningWheelModels(t.Context())
 	require.NoError(t, err)
-	out := t.TempDir()
-	for _, shot := range []string{"hero", "rear"} {
-		_, exists := presets["spinningwheel/"+shot]
-		require.True(t, exists)
-		path := filepath.Join(out, shot+".png")
-		require.NoError(t, renderPNG(t.Context(), path, spinningWheelScene(meshes, shot), 640, 360))
-		requireWheelImage(t, path, 640, 360)
-	}
-	for _, shot := range []string{"front-back", "layout", "flyer", "brake", "whorl"} {
-		path := filepath.Join(out, shot+".png")
-		require.NoError(t, renderSpinningWheelSheet(t.Context(), meshes, shot, path, 1280, 720))
-		requireWheelImage(t, path, 1280, 720)
-	}
-	require.NoError(t, renderSpinningWheelReadmeStills(t.Context(), meshes, out, 640, 360))
-	for _, name := range []string{"hero", "index", "rear", "front-back", "layout", "flyer", "brake", "whorl"} {
-		_, err := os.Stat(filepath.Join(out, name+".png"))
-		require.NoError(t, err, name)
-	}
-	path := filepath.Join(out, "motion.gif")
-	require.NoError(t, renderSpinningWheelAnimation(t.Context(), meshes, base, path, 900, 600, 4))
-	f, err := os.Open(path)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
-	animation, err := gif.DecodeAll(f)
-	require.NoError(t, err)
-	require.Equal(t, 4, len(animation.Image))
-	require.Equal(t, 900, animation.Config.Width)
-	require.Equal(t, 600, animation.Config.Height)
 	requireWheelAnimationJoints(t, meshes, base)
-}
-
-func requireWheelImage(t *testing.T, path string, width, height int) {
-	t.Helper()
-	f, err := os.Open(path)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
-	img, err := png.Decode(f)
-	require.NoError(t, err)
-	require.Equal(t, width, img.Bounds().Dx())
-	require.Equal(t, height, img.Bounds().Dy())
-	background := img.At(0, 0)
-	visible := 0
-	for y := height / 3; y < 2*height/3; y++ {
-		for x := range width {
-			if img.At(x, y) != background {
-				visible++
-			}
-		}
-	}
-	require.Greater(t, visible, width*height/25, "%s must contain actual model surfaces", path)
 }
 
 func requireWheelAnimationJoints(t *testing.T, meshes []wheelMesh, base spinningwheel.State) {

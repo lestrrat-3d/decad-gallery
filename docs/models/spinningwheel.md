@@ -69,7 +69,7 @@ The `layout` sheet shows top and side views of the pedal, perpendicular pivot ax
 The `readme` preset shares one build across all images.
 
 ```sh
-go -C tools/render test -run '^TestSpinningWheel' -timeout 5m
+go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 5m
 ```
 
 ## Geometry and motion
