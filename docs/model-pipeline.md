@@ -96,6 +96,21 @@ cases and hand off the blocker. Resume only when the gallery's real build
 passes against the upstream fix. Once the first case passes, run the other
 parameter cases and the consuming model checks.
 
+### Surface edge finishing
+
+Chamfer every qualifying convex boundary edge on a large planar surface:
+
+- A planar surface is large when its net area is at least 400 mm². Combine
+  connected coplanar faces when measuring area.
+- An edge run is long when its arc length is at least 20 mm. Combine tangent-
+  continuous boundary pieces when measuring length, and include circular rims.
+- Measure the surface and edge runs before adding any edge finishing. Ignore
+  internal seams between coplanar faces.
+- Use a 0.5 mm equal-setback chamfer, producing a 45° chamfer where the faces
+  meet at a right angle.
+- Document and test any smaller chamfer or retained sharp edge required by
+  functional geometry, nominal dimensions, fit clearances, or minimum material.
+
 ### Gear train clearances
 
 These rules apply to spur and helical gears that share a plane and have
