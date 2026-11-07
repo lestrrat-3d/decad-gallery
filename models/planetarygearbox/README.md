@@ -57,12 +57,30 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 
 Each pin of the carrier has a 1 mm collar under the plate too, so the planets' bearings stay clear of the plate.
 
-Eight M2 bolts and eight M2 nuts (`models/m2bolt`, `models/m2nut`) join the housing. Each cover is held by four bolts of
-the shortest standard length, 6 mm, so the bolt length does not depend on the stage count. A bolt's head is sunk in a
-pocket in the cover's outer face and ends level with it. Its nut is sunk in a hex pocket in the ring's end face and ends
-level with it. The bolt's tip stays inside the ring's bolt hole, past the nut.
-
 The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
+
+## How the housing is bolted
+
+Eight M2 bolts and eight M2 nuts ([`models/m2bolt`](../m2bolt), [`models/m2nut`](../m2nut)) hold the covers to the
+ring, four bolts and four nuts per cover. Every bolt head and every nut lies flush with the face it is sunk in. The
+section is cut along the plane through the axis and one bolt of each cover, in the one-stage gearbox.
+
+<img src="images/fasteners-section.png" alt="Section through one bolt at each end of the housing" width="800">
+
+Each bolt is 6 mm long. It runs from a cover into the end of the ring and never along the whole housing, so the bolt
+length stays the same for any number of stages. The front and rear bolts share each hole from opposite ends and their
+tips do not meet. The exploded view shows how one rear bolt goes in.
+
+<img src="images/fasteners-exploded.png" alt="Rear cover, nut and bolt pulled apart along one bolt" width="800">
+
+To assemble, press each nut into its ring pocket, set the cover on the ring end, and drive each bolt in from the
+cover's outer face.
+
+| Part | Pocket | Size |
+| --- | --- | --- |
+| Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
+| Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
+| Nut | Hex, in the ring's end face | 4.2 mm across flats, 1.6 mm deep |
 
 ## Parts
 
