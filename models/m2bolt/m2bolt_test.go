@@ -65,12 +65,12 @@ func TestM2BoltDefault(t *testing.T) {
 	tol := box.Bound.Base() + 1e-8
 	require.InDelta(t, -m2bolt.HeadDiameter/2, box.Min.X, tol)
 	require.InDelta(t, m2bolt.HeadDiameter/2, box.Max.X, tol)
-	require.InDelta(t, -8, box.Min.Z, tol)
+	require.InDelta(t, -10, box.Min.Z, tol)
 	require.InDelta(t, m2bolt.HeadHeight, box.Max.Z, tol)
 
 	volume, err := m.Body.Volume()
 	require.NoError(t, err)
-	require.InDelta(t, expectedVolume(8), volume.Value.Base(), volume.Bound.Base()+0.01)
+	require.InDelta(t, expectedVolume(10), volume.Value.Base(), volume.Bound.Base()+0.01)
 
 	counts := map[decad.SurfaceKind]int{}
 	for _, face := range m.Body.Faces() {
@@ -92,7 +92,7 @@ func TestM2BoltDefault(t *testing.T) {
 }
 
 func TestM2BoltLengths(t *testing.T) {
-	for _, length := range []float64{m2bolt.MinLength, 5, 12.5, 30, m2bolt.MaxLength} {
+	for _, length := range m2bolt.StandardLengths() {
 		m, err := m2bolt.Build(t.Context(), decad.New(), m2bolt.Params{Length: length})
 		require.NoError(t, err, "length %g", length)
 		box, err := m.Body.Bounds()
@@ -110,16 +110,16 @@ func TestM2BoltPlacement(t *testing.T) {
 	doc := decad.New()
 	first, err := m2bolt.Build(t.Context(), doc, m2bolt.DefaultParams())
 	require.NoError(t, err)
-	// +Z of the bolt frame maps to world +X: the head sits at x in [10, 12] and the shank runs to x = 2.
+	// +Z of the bolt frame maps to world +X: the head sits at x in [10, 12] and the shank runs to x = 0.
 	frame, err := r3.NewFrame(r3.NewVec(10, 5, 0), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
 	require.NoError(t, err)
-	placed, err := m2bolt.Build(t.Context(), doc, m2bolt.Params{Length: 8, Placement: &frame})
+	placed, err := m2bolt.Build(t.Context(), doc, m2bolt.Params{Length: 10, Placement: &frame})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(doc.Bodies()))
 	box, err := placed.Body.Bounds()
 	require.NoError(t, err)
 	tol := box.Bound.Base() + 1e-8
-	require.InDelta(t, 2, box.Min.X, tol)
+	require.InDelta(t, 0, box.Min.X, tol)
 	require.InDelta(t, 12, box.Max.X, tol)
 	require.InDelta(t, 5-1.9, box.Min.Y, tol)
 	require.InDelta(t, 5+1.9, box.Max.Y, tol)
@@ -135,11 +135,12 @@ func TestM2BoltRejectsInvalidInputs(t *testing.T) {
 	}{
 		{"zero", m2bolt.Params{}},
 		{"negative", m2bolt.Params{Length: -8}},
-		{"too-short", m2bolt.Params{Length: m2bolt.MinLength - .1}},
-		{"too-long", m2bolt.Params{Length: m2bolt.MaxLength + .1}},
+		{"between-standard-lengths", m2bolt.Params{Length: 8}},
+		{"too-short", m2bolt.Params{Length: 5.9}},
+		{"too-long", m2bolt.Params{Length: 25.1}},
 		{"nan", m2bolt.Params{Length: math.NaN()}},
 		{"inf", m2bolt.Params{Length: math.Inf(1)}},
-		{"invalid-frame", m2bolt.Params{Length: 8, Placement: &r3.Frame{}}},
+		{"invalid-frame", m2bolt.Params{Length: 10, Placement: &r3.Frame{}}},
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			doc := decad.New()

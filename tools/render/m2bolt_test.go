@@ -11,8 +11,15 @@ import (
 )
 
 func TestM2BoltRendering(t *testing.T) {
-	output := filepath.Join(t.TempDir(), "hero.png")
-	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "m2bolt", "-shot", "hero",
+	for _, shot := range []string{"hero", "head", "side", "underside", "lengths"} {
+		t.Run(shot, func(t *testing.T) { requireM2BoltShot(t, shot) })
+	}
+}
+
+func requireM2BoltShot(t *testing.T, shot string) {
+	t.Helper()
+	output := filepath.Join(t.TempDir(), shot+".png")
+	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "m2bolt", "-shot", shot,
 		"-out", output, "-width", "160", "-height", "90")
 	result, err := cmd.CombinedOutput()
 	require.NoError(t, err, "%s", result)

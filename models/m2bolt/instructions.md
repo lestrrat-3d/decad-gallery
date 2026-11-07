@@ -20,7 +20,7 @@ All dimensions are in millimeters.
 | `r` | underhead fillet radius | 0.1 |
 | `u` | radial and axial size of the tip chamfer | 0.25 |
 | (118°) | included angle of the drill point under the socket | 118° |
-| `l` | length, underside of the head to the tip | caller's choice, default 8 |
+| `l` | length, underside of the head to the tip | 6, 10, 16, 18, 20 or 25; default 10 |
 
 The thread is not modeled. The shank is a plain cylinder of the nominal diameter `ds`. The model gives
 the screw's envelope for fitting parts and holes; it is not manufacturing geometry, and it does not
@@ -32,9 +32,9 @@ Package: `models/m2bolt`.
 Expose `Params` with `Length float64` in millimeters and `Placement *r3.Frame`.
 A nil Placement selects the local frame: the origin is the center of the head's underside, the head lies
 along +Z and the shank along -Z. A supplied Placement maps that local frame onto it.
-Expose `DefaultParams() Params`, returning Length 8 and nil Placement.
+Expose `DefaultParams() Params`, returning Length 10 and nil Placement.
 Expose `Params.Validate() error`.
-Expose the dimensions above as exported constants, plus `MinLength` (3), `MaxLength` (100),
+Expose the dimensions above as exported constants, plus `StandardLengths()`,
 `PilotDepth` (0.1) and `DrillPointBaseRadius` (0.7), documented in the code.
 Expose `Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)`.
 `Model` exposes `Body *decad.Body` and the sketches `Profile` and `Socket`.
@@ -42,8 +42,8 @@ Build adds exactly one body to doc.
 
 ## Validation
 
-Reject nil ctx and doc at the public boundary. Reject a nonfinite Length, a Length outside
-`[MinLength, MaxLength]` and an invalid Placement. Validate and check ctx.Err before adding geometry.
+Reject nil ctx and doc at the public boundary. Reject a nonfinite Length, a Length that is not one of
+`StandardLengths()` and an invalid Placement. Validate and check ctx.Err before adding geometry.
 The zero Params value is invalid.
 
 ## Geometry and constraints
@@ -69,6 +69,6 @@ rest is held by horizontal, vertical and angle constraints and by dimensions bet
 
 Check the default build's bounds, its volume against an independent integration of the section, its face
 kinds, `VerifyAll` tessellation and the full constraint of both sketches.
-Check lengths from `MinLength` to `MaxLength`, a placed bolt, invalid inputs and the unchanged document.
+Check every standard length, a length between them, a placed bolt, invalid inputs and the unchanged document.
 Register `m2bolt/hero` in `tools/render`, with a renderer integration test.
 Add the model to `models/README.md` and run `scripts/check_repository.py`.

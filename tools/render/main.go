@@ -22,6 +22,10 @@ var presets = map[string]preset{
 	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
 	"ballbearing/605zz":       {width: 1600, height: 900, scene: bearing605Hero},
 	"m2bolt/hero":             {width: 1600, height: 900, scene: m2BoltHero},
+	"m2bolt/head":             {width: 1600, height: 900, scene: m2BoltViewScene("head")},
+	"m2bolt/side":             {width: 1600, height: 900, scene: m2BoltViewScene("side")},
+	"m2bolt/underside":        {width: 1600, height: 900, scene: m2BoltViewScene("underside")},
+	"m2bolt/lengths":          {width: 1600, height: 900, scene: m2BoltViewScene("lengths")},
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
@@ -124,6 +128,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
+	}
+	if model == "m2bolt" {
+		return renderM2BoltReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)

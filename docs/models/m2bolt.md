@@ -4,7 +4,7 @@ The model in `models/m2bolt` constructs an M2 socket head cap screw with a confi
 
 ## Construction and API
 
-`Params` exposes `Length` and an optional `Placement` frame. `DefaultParams()` returns length 8.
+`Params` exposes `Length` and an optional `Placement` frame. `DefaultParams()` returns length 10. `Length` must be one of `StandardLengths()`: 6, 10, 16, 18, 20 or 25 mm.
 The other dimensions are exported constants taken from ISO 4762 and JIS B 1176.
 The local frame puts the center of the head's underside at the origin, the head along +Z and the shank along -Z.
 
@@ -22,12 +22,14 @@ The thread is not modeled, so the shank is the nominal 2 mm diameter along its w
 
 ```sh
 go test ./models/m2bolt
-go -C tools/render run . -model m2bolt -shot hero -out ../../models/m2bolt/images/hero.png
 go -C tools/render run . -model m2bolt -shot readme -out ../../models/m2bolt/images
 go -C tools/render test -run '^TestM2BoltRendering$'
 ```
 
+The readme shot writes `hero.png`, `index.png`, `head.png`, `side.png`, `underside.png` and `lengths.png`.
+`-shot` also takes `hero`, `head`, `side`, `underside` or `lengths` alone.
+
 ## Verification
 
 Tests check the default bolt's bounds, volume (against an integral of the section), face kinds, mesh
-verification and sketches. They also check lengths across the range, placement and invalid inputs.
+verification and sketches. They also check every standard length, placement and invalid inputs.

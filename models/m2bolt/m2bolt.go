@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -39,16 +40,17 @@ const (
 	DrillPointBaseRadius = 0.7
 	// PilotDepth is how far the round pilot well runs below the socket floor before the drill point starts.
 	PilotDepth = 0.1
-	// MinLength is the shortest accepted shank length.
-	MinLength = 3.0
-	// MaxLength is the longest accepted shank length.
-	MaxLength = 100.0
 
 	// socketCutterRise is how far the socket cutter extends above the head's top face.
 	socketCutterRise = 0.5
 )
 
-// Params specifies the bolt. Length is the nominal length l in millimeters, measured from the
+// StandardLengths returns the nominal lengths in millimeters that Build accepts, in ascending order.
+func StandardLengths() []float64 {
+	return []float64{6, 10, 16, 18, 20, 25}
+}
+
+// Params specifies the bolt. Length is the nominal length l in millimeters, one of StandardLengths, measured from the
 // underside of the head to the tip. A nil Placement selects the local frame, whose origin is the
 // center of the head's underside and whose +Z points from the underside to the head. The shank
 // extends along -Z.
@@ -57,18 +59,18 @@ type Params struct {
 	Placement *r3.Frame
 }
 
-// DefaultParams returns an M2x8 bolt.
+// DefaultParams returns an M2x10 bolt.
 func DefaultParams() Params {
-	return Params{Length: 8}
+	return Params{Length: 10}
 }
 
-// Validate rejects a nonfinite Length, one outside [MinLength, MaxLength], and an invalid Placement.
+// Validate rejects a nonfinite Length, one that is not a standard length, and an invalid Placement.
 func (p Params) Validate() error {
 	if math.IsNaN(p.Length) || math.IsInf(p.Length, 0) {
 		return fmt.Errorf("m2bolt: Length must be finite")
 	}
-	if p.Length < MinLength || p.Length > MaxLength {
-		return fmt.Errorf("m2bolt: Length must be between %g and %g mm", MinLength, MaxLength)
+	if !slices.Contains(StandardLengths(), p.Length) {
+		return fmt.Errorf("m2bolt: Length must be one of %v mm", StandardLengths())
 	}
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return fmt.Errorf("m2bolt: Placement must be a valid frame")
