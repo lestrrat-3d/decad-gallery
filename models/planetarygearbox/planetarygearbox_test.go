@@ -6,12 +6,33 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
+	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/sketch/param"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	gearRootModuleClearanceFactor = 0.25
+	minimumLooseGearClearance     = 0.5
+	gearRootMeasurementMargin     = 0.02
+	minimumFastenerGapBound       = 0.05
+	gearRotationSamples           = 4
+)
+
+func minimumGearRootClearance(module float64) float64 {
+	return math.Max(gearRootModuleClearanceFactor*module, minimumLooseGearClearance)
+}
+
+func maximumBearingClearanceAtRootWall(p planetarygearbox.Params) float64 {
+	rootDepth := p.Module + minimumGearRootClearance(p.Module) + gearRootMeasurementMargin
+	planetRoot := p.Module*float64(p.PlanetTeeth)/2 - rootDepth
+	return planetRoot - p.Module - ballbearing.Params608ZZ().OuterDiameter/2
+}
 
 var (
 	defaultOnce sync.Once
@@ -53,19 +74,29 @@ func TestDefaultGearbox(t *testing.T) {
 		require.Positive(t, v.Value.Base(), nb.Name)
 	}
 	require.InDelta(t, 1+71.0/13, p.Ratio(), 1e-12)
+	rootClearance := minimumGearRootClearance(p.Module)
+	planetRoot, err := doc.Param("root_radius")
+	require.NoError(t, err)
+	require.InDelta(t, p.Module*float64(p.PlanetTeeth)/2-p.Module-rootClearance-gearRootMeasurementMargin,
+		planetRoot.Base(), 1e-9)
+	ringRoot, err := doc.Param("ring_root_radius")
+	require.NoError(t, err)
+	require.InDelta(t, p.Module*float64(p.RingTeeth)/2+p.Module+rootClearance, ringRoot.Base(), 1e-9)
 
 	// The ring spans the gap below the first stage to one stage pitch, with its outer wall
 	// at the ring root radius plus the wall.
 	ring := bounds(t, box.Ring)
 	require.InDelta(t, -p.StageGap, ring.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness+p.CarrierThickness+2*p.StageGap, ring.Max.Z, 1e-6)
-	require.InDelta(t, 35.5+1.25+p.RingWall, ring.Max.X, 1e-3)
+	require.InDelta(t, 35.5+p.Module+minimumGearRootClearance(p.Module)+
+		p.RingWall, ring.Max.X, 1e-3)
 
 	stage := box.Stages[0]
 	sun := bounds(t, stage.Sun)
 	require.InDelta(t, 0, sun.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness, sun.Max.Z, 1e-6)
-	require.InDelta(t, 7.5, sun.Max.X, 1e-2)
+	sunTipRadius := p.Module*float64(p.SunTeeth)/2 + p.Module - gearRootMeasurementMargin
+	require.InDelta(t, sunTipRadius, sun.Max.X, 1e-2)
 	for i, planet := range stage.Planets {
 		b := bounds(t, planet)
 		phi := planetarygearbox.PlanetOrbitAngle(p, i)
@@ -80,7 +111,7 @@ func TestDefaultGearbox(t *testing.T) {
 	require.InDelta(t, 0, carrier.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness+p.StageGap+p.CarrierThickness, carrier.Max.Z, 1e-6)
 	// The plate reaches the far side of the pin bosses and no further: orbit radius plus boss radius.
-	require.InDelta(t, 21+7, carrier.Max.X, 5e-3)
+	require.InDelta(t, 21+(7.5+2*p.CarrierWall)/2, carrier.Max.X, 5e-3)
 	// The output shaft is a separate body. It starts at the carrier's lower face and ends OutputShaftLength
 	// beyond the rear cover's bearing boss.
 	output := bounds(t, stage.Shaft)
@@ -93,6 +124,112 @@ func TestDefaultGearbox(t *testing.T) {
 func penetration(t *testing.T, a, b *decad.Body) int {
 	t.Helper()
 	return inside(t, a, b) + inside(t, b, a)
+}
+
+func requireSectionClearance(t *testing.T, a, b *decad.Body, z, minimum float64) {
+	t.Helper()
+	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	outlineA, err := a.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
+	require.NoError(t, err)
+	outlineB, err := b.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
+	require.NoError(t, err)
+	clearance, err := outlineA.Clearance(outlineB)
+	require.NoError(t, err)
+	require.False(t, clearance.Overlaps)
+	require.GreaterOrEqual(t, clearance.Lower().Base(), minimum,
+		"section gap %v ± %v mm, closest points %v and %v", clearance.Distance.Value.Base(),
+		clearance.Distance.Bound.Base(), clearance.A, clearance.B)
+}
+
+type radialSpan struct {
+	min, max, bound float64
+}
+
+func sectionRadialSpan(t *testing.T, body *decad.Body, center r3.Vec, z, targetRadius float64) radialSpan {
+	t.Helper()
+	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
+	require.NoError(t, err)
+	require.NotEmpty(t, section.Loops)
+
+	var selected radialSpan
+	bestScore := math.Inf(1)
+	for _, loop := range section.Loops {
+		current := radialSpan{min: math.Inf(1), bound: section.OffSurface.Base()}
+		for i, point := range loop {
+			next := loop[(i+1)%len(loop)]
+			x0, y0 := point.X-center.X, point.Y-center.Y
+			x1, y1 := next.X-center.X, next.Y-center.Y
+			dx, dy := x1-x0, y1-y0
+			lengthSquared := dx*dx + dy*dy
+			fraction := 0.0
+			if lengthSquared > 0 {
+				fraction = math.Max(0, math.Min(1, -(x0*dx+y0*dy)/lengthSquared))
+			}
+			closest := math.Hypot(x0+fraction*dx, y0+fraction*dy)
+			current.min = math.Min(current.min, closest)
+			current.max = math.Max(current.max, math.Hypot(x0, y0))
+		}
+		score := math.Abs((current.min+current.max)/2 - targetRadius)
+		if targetRadius == 0 {
+			score = -current.max
+		}
+		if score < bestScore {
+			selected, bestScore = current, score
+		}
+	}
+	return selected
+}
+
+func TestPartClearances(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	stage := box.Stages[0]
+	planetBearing := stage.Bearings[0]
+	bearingBounds := bounds(t, planetBearing)
+	bearingMid := (bearingBounds.Min.Z + bearingBounds.Max.Z) / 2
+	const minimum = 0.2
+
+	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, minimum)
+	requireSectionClearance(t, stage.Carrier, stage.Shaft,
+		p.GearThickness+p.StageGap+p.CarrierThickness/2, minimum)
+	requireSectionClearance(t, planetBearing, stage.Planets[0], bearingMid, minimum)
+	requireSectionClearance(t, planetBearing, stage.Carrier, bearingMid, minimum)
+	frontFace := -p.StageGap - p.CoverThickness
+	requireSectionClearance(t, box.Bolts[0], box.FrontCover,
+		frontFace+m2bolt.HeadHeight/2, minimumFastenerGapBound)
+	requireSectionClearance(t, box.Bolts[0], box.Ring, 0, minimumFastenerGapBound)
+	nut := bounds(t, box.Nuts[0])
+	requireSectionClearance(t, box.Nuts[0], box.Ring, (nut.Min.Z+nut.Max.Z)/2, minimumFastenerGapBound)
+
+	frontBearing := bounds(t, box.FrontBearing)
+	requireSectionClearance(t, box.InputShaft, box.FrontBearing,
+		(frontBearing.Min.Z+frontBearing.Max.Z)/2, minimum)
+	requireSectionClearance(t, box.FrontBearing, box.FrontCover,
+		(frontBearing.Min.Z+frontBearing.Max.Z)/2, minimum)
+	rearBearing := bounds(t, box.RearBearing)
+	rearBearingMid := (rearBearing.Min.Z + rearBearing.Max.Z) / 2
+	requireSectionClearance(t, stage.Shaft, box.RearBearing, rearBearingMid, minimum)
+	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, minimum)
+
+	branchParams := p
+	branchParams.KeyDepth = 0
+	branchParams.StageGap = 0.75
+	branchParams.BearingClearance = 0.5
+	branchParams.SeatChamfer = 0
+	branch, err := planetarygearbox.Build(t.Context(), decad.New(), branchParams)
+	require.NoError(t, err)
+	branchBearing := branch.Stages[0].Bearings[0]
+	branchBearingBounds := bounds(t, branchBearing)
+	branchBearingMid := (branchBearingBounds.Min.Z + branchBearingBounds.Max.Z) / 2
+	requireSectionClearance(t, branchBearing, branch.Stages[0].Planets[0], branchBearingMid, minimum)
+	requireSectionClearance(t, branchBearing, branch.Stages[0].Carrier, branchBearingMid, minimum)
+	requireSectionClearance(t, branch.Stages[0].Carrier, branch.Stages[0].Shaft,
+		p.GearThickness+branchParams.StageGap+p.CarrierThickness/2, minimum)
+	require.InDelta(t, 0.5, p.GearThickness+branchParams.StageGap-branchBearingBounds.Max.Z,
+		1e-6, "minimum stage gap above the planet bearing")
 }
 
 // inside counts the outline vertices of a, taken at mid-height of b, that lie inside b. The gears
@@ -123,6 +260,69 @@ func TestPlanetsMeshWithSunAndRing(t *testing.T) {
 	for i, planet := range box.Stages[0].Planets {
 		require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "planet %d inside the sun", i)
 		require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", i)
+	}
+}
+
+func TestGearTipRootClearance(t *testing.T) {
+	for _, module := range []float64{0.5, 1, 2, 4} {
+		p := planetarygearbox.DefaultParams()
+		p.Module = module
+		minimum := minimumGearRootClearance(module)
+		rootDepth := module + minimum
+		orbit := module * float64(p.SunTeeth+p.PlanetTeeth) / 2
+		ringRoot := module*float64(p.RingTeeth)/2 + rootDepth
+		ringTip := module*float64(p.RingTeeth)/2 - module
+		sunPitch := module * float64(p.SunTeeth) / 2
+		planetPitch := module * float64(p.PlanetTeeth) / 2
+		sunTip := sunPitch + module - gearRootMeasurementMargin
+		planetTip := planetPitch + module - gearRootMeasurementMargin
+		sunRoot := sunPitch - rootDepth
+		planetRoot := planetPitch - rootDepth - gearRootMeasurementMargin
+
+		require.GreaterOrEqual(t, orbit-sunRoot-planetTip, minimum, "sun root to planet tip")
+		require.GreaterOrEqual(t, orbit-planetRoot-sunTip, minimum, "planet root to sun tip")
+		require.GreaterOrEqual(t, ringRoot-orbit-planetTip, minimum, "ring root to planet tip")
+		require.GreaterOrEqual(t, ringTip-orbit-planetRoot, minimum, "ring tip to planet root")
+		planetCenterSpacing := 2 * orbit * math.Sin(math.Pi/float64(p.PlanetCount))
+		require.GreaterOrEqual(t, planetCenterSpacing-2*planetTip, minimumLooseGearClearance,
+			"non-meshing planet tips")
+	}
+
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	z := p.GearThickness / 2
+	orbit := p.Module * float64(p.SunTeeth+p.PlanetTeeth) / 2
+	minimum := minimumGearRootClearance(p.Module)
+	ring := sectionRadialSpan(t, box.Ring, r3.Vec{}, z, p.Module*float64(p.RingTeeth)/2)
+	toothPitch := 2 * math.Pi / float64(p.SunTeeth)
+
+	for sample := range gearRotationSamples + 1 {
+		sunAngle := toothPitch * float64(sample) / gearRotationSamples
+		carrierAngle := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth) * sunAngle
+		planetRelativeAngle := -float64(p.RingTeeth) / float64(p.PlanetTeeth) * carrierAngle
+		sun, err := decad.Copy(t.Context(), box.Stages[0].Sun, decad.WithCopyRotation(
+			r3.Vec{}, r3.NewVec(0, 0, 1), units.Radians(sunAngle)))
+		require.NoError(t, err)
+		planet, err := decad.Copy(t.Context(), box.Stages[0].Planets[0], decad.WithCopyRotation(
+			r3.NewVec(orbit, 0, 0), r3.NewVec(0, 0, 1), units.Radians(planetRelativeAngle)))
+		require.NoError(t, err)
+		carrierTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(carrierAngle))
+		require.NoError(t, err)
+		planet, err = decad.Transform(t.Context(), planet, carrierTurn)
+		require.NoError(t, err)
+		planetCenter := r3.NewVec(orbit*math.Cos(carrierAngle), orbit*math.Sin(carrierAngle), 0)
+		sunSpan := sectionRadialSpan(t, sun, r3.Vec{}, z, 0)
+		planetSpan := sectionRadialSpan(t, planet, planetCenter, z, 0)
+
+		for name, measured := range map[string]float64{
+			"sun root to planet tip":  orbit - (sunSpan.min + sunSpan.bound) - (planetSpan.max + planetSpan.bound),
+			"planet root to sun tip":  orbit - (planetSpan.min + planetSpan.bound) - (sunSpan.max + sunSpan.bound),
+			"ring root to planet tip": (ring.max - ring.bound) - orbit - (planetSpan.max + planetSpan.bound),
+			"ring tip to planet root": (ring.min - ring.bound) - orbit + (planetSpan.min - planetSpan.bound),
+		} {
+			require.GreaterOrEqual(t, measured, minimum,
+				"sample %d at %.6g radians, %s measured tip-to-root clearance", sample, sunAngle, name)
+		}
 	}
 }
 
@@ -176,16 +376,36 @@ func TestBacklashRemovesMaterial(t *testing.T) {
 // undecided closer than that to a thin wall.
 func TestBearingsSitInPlanetPockets(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
-	_, box := defaultGearbox(t)
+	doc, box := defaultGearbox(t)
 	stage := box.Stages[0]
+	bearingWidth, err := doc.Param("bearing_width")
+	require.NoError(t, err)
+	bearingLift, err := doc.Param("planet_bearing_lift")
+	require.NoError(t, err)
 
-	plain, err := spurgear.Build(t.Context(), decad.New(), spurgear.Params{
+	rootClearance := minimumGearRootClearance(p.Module)
+	plain, err := (spurgear.Variant{Define: func(table *param.Table) error {
+		if err := table.SetValue("gear_root_clearance", units.Millimeters(rootClearance)); err != nil {
+			return err
+		}
+		if err := table.SetValue("gear_root_margin", units.Millimeters(gearRootMeasurementMargin)); err != nil {
+			return err
+		}
+		if err := table.SetValue("gear_tip_measurement_margin", units.Millimeters(gearRootMeasurementMargin)); err != nil {
+			return err
+		}
+		if err := table.SetExpr("root_radius", "pitch_radius - module - gear_root_clearance - gear_root_margin", units.Millimeter); err != nil {
+			return err
+		}
+		return table.SetExpr("tip_radius", "pitch_radius + module - gear_tip_measurement_margin", units.Millimeter)
+	}}).Build(t.Context(), decad.New(), spurgear.Params{
 		Module: p.Module, Teeth: p.PlanetTeeth, PressureAngle: p.PressureAngle, Thickness: p.GearThickness,
 		Samples: p.Samples, BoreDiameter: 18, Backlash: p.Backlash,
 	})
 	require.NoError(t, err)
 	plainVolume, plainBound := volume(t, plain)
-	pocket := math.Pi / 4 * (22.2*22.2 - 18*18) * 7
+	pocketDiameter := 22 + 2*p.BearingClearance
+	pocket := math.Pi / 4 * (pocketDiameter*pocketDiameter - 18*18) * 7
 
 	for i, planet := range stage.Planets {
 		phi := planetarygearbox.PlanetOrbitAngle(p, i)
@@ -213,11 +433,12 @@ func TestBearingsSitInPlanetPockets(t *testing.T) {
 		require.InDelta(t, plainVolume-pocket-entrance, planetVolume, plainBound+planetBound+1, "planet %d volume", i)
 
 		// The bearing is the 608ZZ envelope, 8 mm bore, 22 mm outside and 7 mm wide, centered on the
-		// planet, with its upper face level with the planet's.
+		// planet, raised above the pocket floor by 0.25 mm.
 		b := bounds(t, stage.Bearings[i])
 		require.InDelta(t, 22, b.Max.X-b.Min.X, 0.05, "bearing %d outside diameter", i)
-		require.InDelta(t, 7, b.Max.Z-b.Min.Z, 1e-6, "bearing %d width", i)
-		require.InDelta(t, p.GearThickness, b.Max.Z, 1e-6, "bearing %d top", i)
+		require.InDelta(t, bearingWidth.Base(), b.Max.Z-b.Min.Z, 1e-6, "bearing %d width", i)
+		require.InDelta(t, p.GearThickness-bearingWidth.Base()+bearingLift.Base(), b.Min.Z, 1e-6, "bearing %d bottom", i)
+		require.InDelta(t, p.GearThickness+bearingLift.Base(), b.Max.Z, 1e-6, "bearing %d top", i)
 	}
 }
 
@@ -268,7 +489,7 @@ func rearBossTop(p planetarygearbox.Params, stages int) float64 {
 // surface, because point location is undecided closer than about 0.15 mm.
 func TestHousing(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
-	_, box := defaultGearbox(t)
+	doc, box := defaultGearbox(t)
 	locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
 		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
 		require.NoError(t, err)
@@ -282,7 +503,9 @@ func TestHousing(t *testing.T) {
 	require.InDelta(t, -p.StageGap, front.Max.Z, 1e-6)
 	require.InDelta(t, pitch, rear.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.CoverThickness+7, rear.Max.Z, 1e-6)
-	require.InDelta(t, 43.75, front.Max.X, 1e-6)
+	frontCoverOuterRadius := p.Module*float64(p.RingTeeth)/2 + p.Module +
+		minimumGearRootClearance(p.Module) + p.RingWall
+	require.InDelta(t, frontCoverOuterRadius, front.Max.X, 1e-6)
 	fb, rb := bounds(t, box.FrontBearing), bounds(t, box.RearBearing)
 	require.InDelta(t, front.Min.Z, fb.Min.Z, 1e-6)
 	require.InDelta(t, front.Min.Z+7, fb.Max.Z, 1e-6)
@@ -293,9 +516,11 @@ func TestHousing(t *testing.T) {
 	shaft := bounds(t, box.InputShaft)
 	require.InDelta(t, front.Min.Z-p.InputShaftLength, shaft.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness, shaft.Max.Z, 1e-6)
-	// The collar next to the front bearing is 10.4 mm across, wider than the 8 mm shaft, which has its keyway cut above the collar.
-	require.InDelta(t, 10.4, shaft.Max.X-shaft.Min.X, 2e-3)
-	require.InDelta(t, 10.4, shaft.Max.Y-shaft.Min.Y, 2e-3)
+	// The collar next to the front bearing is wider than the shaft, which has its keyway cut above the collar.
+	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
+	require.NoError(t, err)
+	require.InDelta(t, shaftCollarDiameter.Base(), shaft.Max.X-shaft.Min.X, 2e-3)
+	require.InDelta(t, shaftCollarDiameter.Base(), shaft.Max.Y-shaft.Min.Y, 2e-3)
 	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(0, 0, 4)))
 	require.Equal(t, decad.PointOutside, locate(box.Stages[0].Sun, r3.NewVec(0, 0, 4)), "the shaft's place is the sun's bore")
 
@@ -349,33 +574,33 @@ func TestHousing(t *testing.T) {
 // shaft is absent and the sun has material, elsewhere in the bore the shaft is present and the sun is not.
 func TestShaftKeys(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
-	_, box := defaultGearbox(t)
+	doc, box := defaultGearbox(t)
 	sun := box.Stages[0].Sun
 	locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
 		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
 		require.NoError(t, err)
 		return loc
 	}
-	// Each groove is 1.1 mm deep and 2 mm wide on an 8 mm shaft. The point at radius 3.5 is 0.6 mm
-	// inside the groove's floor and 0.5 mm inside the circle, far enough from both surfaces to be decided.
+	// Each groove is 1.1 mm deep and 2 mm wide on the 7.5 mm shaft. The point at radius 3 lies in the groove
+	// and inside the round section, far enough from both surfaces to be decided.
 	// Each groove is centered on an angle 120 degrees from the next, and the shaft is round between them.
-	at := func(degrees, z float64) r3.Vec {
+	at := func(radius, degrees, z float64) r3.Vec {
 		sin, cos := math.Sincos(degrees * math.Pi / 180)
-		return r3.NewVec(3.5*cos, 3.5*sin, z)
+		return r3.NewVec(radius*cos, radius*sin, z)
 	}
 	for _, degrees := range []float64{0, 120, 240} {
-		key := at(degrees, p.GearThickness/2)
+		key := at(3.5, degrees, p.GearThickness/2)
 		require.Equal(t, decad.PointOutside, locate(box.InputShaft, key), "the shaft has a groove at %v degrees", degrees)
 		require.Equal(t, decad.PointInside, locate(sun, key), "the sun's bore keeps a tooth at %v degrees", degrees)
 	}
 	for _, degrees := range []float64{60, 180, 300} {
-		round := at(degrees, 4)
+		round := at(2, degrees, 4)
 		require.Equal(t, decad.PointInside, locate(box.InputShaft, round), "shaft at %v degrees", degrees)
 		require.Equal(t, decad.PointOutside, locate(sun, round), "sun bore at %v degrees", degrees)
 	}
 	// Under the front bearing the shaft is a full cylinder, key side included.
 	bearingZ := -(p.StageGap + p.CoverThickness + 3.5)
-	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(3.5, 0, bearingZ)), "round where the bearing sits")
+	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(2, 0, bearingZ)), "round where the bearing sits")
 	const keyCount = 3
 	b := bounds(t, box.InputShaft)
 	length := b.Max.Z - b.Min.Z
@@ -383,10 +608,15 @@ func TestShaftKeys(t *testing.T) {
 	// A round rod and a round collar 10.4 mm across in the space between the front bearing's inner race and the
 	// sun, less the groove: the circle's part inside the groove's width, from the floor out, over the groove's
 	// length.
-	radius, depth, half := 4.0, p.KeyDepth, p.KeyWidth/2
+	shaftDiameter, err := doc.Param("shaft_diameter")
+	require.NoError(t, err)
+	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
+	require.NoError(t, err)
+	radius, depth, half := shaftDiameter.Base()/2, p.KeyDepth, p.KeyWidth/2
 	floor := radius - depth
 	groove := 2 * (half*math.Sqrt(radius*radius-half*half)/2 + radius*radius/2*math.Asin(half/radius) - floor*half)
-	collar := (math.Pi*5.2*5.2 - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5)
+	collarRadius := shaftCollarDiameter.Base() / 2
+	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5)
 	grooveLength := p.GearThickness
 	require.InDelta(t, math.Pi*radius*radius*length+collar-keyCount*groove*grooveLength, v, bound+0.5)
 }
@@ -426,9 +656,11 @@ func TestTwoStages(t *testing.T) {
 	link := bounds(t, box.Stages[0].Shaft)
 	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
-	// A collar in the gap between the first carrier and the second sun is 10.4 mm across. It stops 0.25 mm short
+	// A collar in the gap between the first carrier and the second sun stops 0.25 mm short
 	// of both, and the grooves are cut away above and below it, so it is whole where a groove would run.
-	require.InDelta(t, 10.4, link.Max.X-link.Min.X, 2e-3)
+	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
+	require.NoError(t, err)
+	require.InDelta(t, shaftCollarDiameter.Base(), link.Max.X-link.Min.X, 2e-3)
 	linkShaft := box.Stages[0].Shaft
 	collarMid := p.GearThickness + p.StageGap + p.CarrierThickness + p.StageGap/2
 	locateLink := func(point r3.Vec) decad.PointLocation {
@@ -496,6 +728,7 @@ func TestInvalidParams(t *testing.T) {
 		"thin ring wall":        {func(p *planetarygearbox.Params) { p.RingWall = 3 }, "bolt holes"},
 		"carrier wall too wide": {func(p *planetarygearbox.Params) { p.CarrierWall = 12 }, "no room for spokes"},
 		"thin gear":             {func(p *planetarygearbox.Params) { p.GearThickness = 7.5 }, "gear thickness"},
+		"stage gap too short":   {func(p *planetarygearbox.Params) { p.StageGap = 0.5 }, "stage gap"},
 		"key too deep":          {func(p *planetarygearbox.Params) { p.KeyDepth = 3 }, "key depth"},
 		"key too wide":          {func(p *planetarygearbox.Params) { p.KeyWidth = 5 }, "key width"},
 		"seat chamfer too big":  {func(p *planetarygearbox.Params) { p.SeatChamfer = 2 }, "seat chamfer"},
@@ -532,7 +765,7 @@ func TestClearanceLimits(t *testing.T) {
 
 	t.Run("bearing pocket allows exactly one module of root wall", func(t *testing.T) {
 		p := planetarygearbox.DefaultParams()
-		p.BearingClearance = 1.25
+		p.BearingClearance = maximumBearingClearanceAtRootWall(p)
 		require.NoError(t, p.Validate())
 		p.BearingClearance += 0.01
 		require.ErrorContains(t, p.Validate(), "bearing pocket")
@@ -542,9 +775,9 @@ func TestClearanceLimits(t *testing.T) {
 		p := planetarygearbox.DefaultParams()
 		p.BoltHoleDiameter = 3.4
 		p.RingWall = 13
-		p.CarrierWall = 8.99
+		p.CarrierWall = 9.24
 		require.NoError(t, p.Validate())
-		p.CarrierWall = 9
+		p.CarrierWall = 9.25
 		require.ErrorContains(t, p.Validate(), "carrier radius")
 	})
 }

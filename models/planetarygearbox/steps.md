@@ -23,8 +23,8 @@ Every sketch circle's diameter is bound to a table name with `Sketch.Bind`.
 
 Build each distinct part once about the local origin and +Z. A gear union fails on gears built at an offset.
 
-1. **Ring.** (Bolt holes `db'` = 2.4, the M2 clearance hole.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
-   `root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + 1.25 * module` and `fillet_radius` by
+1. **Ring.** (Bolt holes `db'` are 2.4 mm for 0.1 mm radial clearance around the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
+	`root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + module + c` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
    by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
@@ -33,10 +33,10 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Check: one solid.
-2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j` and `BoreDiameter = ds` (8, the bearing bore)
+2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (8, 0.25 mm larger radially than the 7.5 mm shaft)
    when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
-3. **Planet.** `spurgear.Build` with `Teeth = Zp`, `Thickness = T`, `BoreDiameter = lip bore diameter`,
+3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
    `decad.Cut` it from the planet. Then chamfer the pocket's entrance (see **Seat chamfer** below). Check: one solid.
 4. **Bearing.** `ballbearing.Build` with `ballbearing.Params608ZZ()`, nil placement: the annulus from z=0 to `Wb`.
@@ -50,9 +50,10 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      closer to vertical, otherwise y, so the coordinate always changes as the point moves round the arc (the
      shared `DimensionArcEnd` picks by position and can pick the free one). The plate has no hole yet. Require one
      valid profile with `2n` outer curves.
-   - Pin: circle of diameter `dp` centered at `(a, 0)` on the plane `z = -(T + g)`, extruded `T + g + Tc/2`.
-   - Pin collar, when `g > 0`: circle of diameter `ds + 2 × collar margin` at `(a, 0)` on the plane `z = -g`,
-     extruded `g + Tc/2`. `decad.Union` the pin and its collar once.
+   - Pin: circle of diameter `dp = bearing_bore_diameter - 0.5` centered at `(a, 0)` on the plane `z = -(T + g)`, extruded `T + g + Tc/2`.
+   - Pin collar, when `g >= 0.75`: circle of diameter `shaft_collar_diameter` at `(a, 0)` on the plane
+     `z = -g + 0.5`, extruded `g - 0.5 + Tc/2`. This leaves 0.25 mm between the bearing and collar.
+     `decad.Union` the pin and its collar once.
    - `decad.PatternCopies` the joined pin with a `CircularPattern` about the origin and +Z, count `n`, then
      `decad.Union` the plate with the pin and its copies. A union of every pin and collar separately is
      refused by decad (the chain is too deep), and so is a union of separate hub and arm bodies.
@@ -71,7 +72,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      from `-1` to `Tc` and from `Tc + g` to `top + 1`, so the collar is whole. When `g <= 0.5` it has no collar and
      one groove from `-1` to `top + 1`. The grooves of every span join into one tool and take one cut. Posed with its bottom on a carrier's
      lower face.
-   - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc + 0.5` to `Tc + g + Tv`, groove from
+   - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc + 0.5` to `Tc + g + Tv - 0.25`, groove from
      `-1` to `Tc`. Posed with its bottom on the last carrier's lower face.
    - Input shaft: `bottom = -(g + Tv + Wb + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, groove from `0` to
      `T + 1`.
@@ -103,9 +104,11 @@ by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so 
 among the body's edges, then select it with `decad.Edges(decad.Circular(), decad.EndpointAt(its start))` asserted
 `Exactly(1)`. Chamfer the planet and the cover as built, before they are copied.
 
-**Shaft section.** A circle of diameter `ds`, the section of every rod. **Key tool.** The section of the sun bore tool and of the carrier's hole tool: one outline, the circle less the three
-grooves, extruded once so the tool is not itself a boolean result (decad refuses a chain of cuts that deep). With
-`R = ds/2`, half width `h = Sw/2`, floor `x = R - Sf` and wall `w = sqrt(R² - h²)`, groove `k` lies at angle
+**Shaft section.** A circle of diameter `shaft_diameter = bearing_bore_diameter - 0.5`, the section of every rod.
+**Key tool.** The section of the sun bore and carrier hole: one outline with 0.25 mm around the round shaft and
+normal to each key face, extruded once so the tool is not itself a boolean result. With
+`R = shaft_diameter/2 + 0.25`, half width `h = (Sw - 0.5)/2`, floor `x = R - Sf` and wall
+`w = sqrt(R² - h²)`, groove `k` lies at angle
 `2πk/3`. Going counterclockwise the outline passes, for each groove, a line in along its lower wall from the rim
 point `(w, -h)` to `(R - Sf, -h)`, a line across the floor to `(R - Sf, +h)` and a line out along its upper wall to
 `(w, +h)`, all turned by the groove's angle, and then an arc about the origin to the next groove's lower rim
@@ -125,7 +128,7 @@ for a nil placement). For every stage `k` with `z = k P`:
 - Sun `k`: translate `(0, 0, z)`.
 - Planet `i` of stage `k`: turn by `PlanetToothAngle(p, i)`, translate
   `(a cos φᵢ, a sin φᵢ, z)`.
-- Bearing `i` of stage `k`: translate `(a cos φᵢ, a sin φᵢ, z + T - Wb)`.
+- Bearing `i` of stage `k`: translate `(a cos φᵢ, a sin φᵢ, z + T - Wb + 0.25)`.
 - Carrier `k`: translate `(0, 0, z + T + g)`.
 - Shaft of stage `k`: translate `(0, 0, z + T + g)`; stage `K - 1` takes the output shaft and the rest the link shaft.
 - Ring: translate `(0, 0, -1 - g)`, which puts its blank's z=1 start at `-g`.

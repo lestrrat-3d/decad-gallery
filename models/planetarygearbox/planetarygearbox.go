@@ -217,7 +217,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
 	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness+collarClearance,
-		p.CarrierThickness+p.StageGap+p.CoverThickness, span{-1, p.CarrierThickness})
+		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, span{-1, p.CarrierThickness})
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
@@ -239,7 +239,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			}
 			planetMoves = append(planetMoves, m)
 			m, err = pose(r.frame, 0, d.orbit*math.Cos(phi), d.orbit*math.Sin(phi),
-				z+p.GearThickness-planetBearing().Width)
+				z+p.GearThickness-planetBearing().Width+planetBearingLift)
 			if err != nil {
 				return Gearbox{}, fmt.Errorf("planetarygearbox: bearing pose: %w", err)
 			}

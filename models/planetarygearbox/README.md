@@ -4,7 +4,7 @@
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by
 an open-frame cover. A small sun gear turns three planet gears that roll around it inside the ring. Each planet turns
-on a 608ZZ bearing pressed into a pocket in the gear and rides on a pin of the carrier, a solid triangular plate that
+on a 608ZZ bearing with 0.25 mm radial clearance in its pocket and rides on a pin of the carrier, a solid triangular plate that
 turns slowly. The sun is the input and the carrier is the output.
 
 The default gearbox has a 13-tooth sun, three 29-tooth planets and a 71-tooth ring. One stage slows the output to
@@ -41,10 +41,10 @@ the input. It moves the real tessellated bodies rigidly; it is not a force simul
 
 ## How the input and the output connect
 
-Every shaft is a separate part, 8 mm across, the bore of a 608ZZ. It is a full round cylinder where a bearing sits and
+Every shaft is a separate part, 7.5 mm across, with 0.25 mm radial clearance in the 8 mm bore of a 608ZZ. It is a full round cylinder where a bearing sits and
 has three keyway grooves, 1.1 mm deep and 2 mm wide and 120° apart, where a sun or a carrier sits, like the hand crank fan's shafts. The sun's bore and the carrier's
 hole each have a tooth in each groove, so a shaft turns them without slipping. The input shaft and the output shaft each
-have a round collar, 10.4 mm across, next to their bearing. It stands in for the washer a metal build would use, so
+have a round collar, 9.9 mm across, next to their bearing. It stands in for the washer a metal build would use, so
 the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces. Each link shaft has a collar too, in the 1 mm gap between its carrier and
 the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of play either side.
 
@@ -55,7 +55,7 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 - **Output.** The output shaft runs through the last carrier's hole and the rear cover's 608ZZ and sticks out 12 mm
   beyond its boss.
 
-Each pin of the carrier has a 1 mm collar under the plate too, so the planets' bearings stay clear of the plate.
+Each pin of the carrier has a collar that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate.
 
 The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
 
@@ -92,16 +92,15 @@ roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
-| Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
+| Bolt head | Round, in the cover's outer face | 4.2 mm wide, 2 mm deep, 1 mm of cover under it |
 | Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
-| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.2 mm across flats, 1.8 mm high |
+| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.4 mm across flats, 2.0 mm high |
 
 ## Parts
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
 shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
-purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. Each bearing pocket, in the planets and in the covers, has a 0.5 mm chamfer on its entrance so the bearing can be
-pressed into the tight printed seat. The front cover is
+purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 7.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.25 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
 part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on
@@ -126,12 +125,12 @@ You can vary:
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
-- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size (2.4 mm, the M2 clearance hole).
+- The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.4 mm, the M2 clearance hole).
 - Backlash.
 - The position and orientation of the gearbox in space.
 
 The ring must have as many teeth as the sun plus twice the planets, and the sun and ring teeth together must divide
 by the planet count so the planets sit at equal angles. Dimensions are in millimeters, and the pressure angle is in
-radians. Each pair of meshing gears has 0.1 mm of backlash by default, set by how much each tooth is thinned.
+radians. Each pair of meshing gears has 0.1 mm of backlash by default, set by how much each tooth is thinned. The tip-to-root clearance is at least `max(0.25 × module, 0.5 mm)`.
 
 For how to build this gearbox from Go, see the [developer notes](../../docs/models/planetarygearbox.md).

@@ -85,7 +85,7 @@ func DefaultParams() Params {
 		KeyWidth:          2,
 		SeatChamfer:       0.5,
 		InputShaftLength:  12,
-		BearingClearance:  0.1,
+		BearingClearance:  0.25,
 		CarrierWall:       3,
 		RingWall:          7,
 		Backlash:          0.05,
@@ -103,11 +103,32 @@ func (p Params) Ratio() float64 {
 // planetBearing is the purchased bearing each planet turns on.
 func planetBearing() ballbearing.Params { return ballbearing.Params608ZZ() }
 
+const (
+	gearRootModuleClearanceFactor = 0.25
+	looseGearClearance            = 0.5
+	gearRootMeasurementMargin     = 0.02
+)
+
+// gearRootClearance returns the minimum clearance required between a gear root and a mating tip.
+func gearRootClearance(module float64) float64 {
+	return math.Max(gearRootModuleClearanceFactor*module, looseGearClearance)
+}
+
+func gearRootDepth(module float64) float64 { return module + gearRootClearance(module) }
+
 // lipWidth is the radial width of the lip that holds a bearing in its pocket: the lip bore is this much
 // smaller than the bearing's outside radius. lipThickness is the axial thickness of that lip.
 const (
 	lipWidth     = 2
 	lipThickness = 1
+	// fitClearance is the smallest surface gap used by adjustable gearbox fits.
+	fitClearance = 0.25
+	// planetBearingLift raises each planet bearing above its pocket floor.
+	planetBearingLift = fitClearance
+	// pinCollarClearance keeps each carrier pin collar above the planet bearing's inner race.
+	pinCollarClearance = fitClearance
+	// pinCollarThickness keeps a printable pin collar between the bearing and the carrier plate.
+	pinCollarThickness = fitClearance
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
 	// face off the plane where the keyway groove ends, and gives the printed parts a little play.
 	collarClearance = 0.5
@@ -132,7 +153,8 @@ type dims struct {
 	ringTip, ringRoot, ringOuter float64
 	pin, pocket, lip             float64
 	boss, arm, collar            float64
-	shaft, coverBoss, coverHub   float64
+	shaft, shaftBore             float64
+	coverBoss, coverHub          float64
 	boltCircle, rimInner         float64
 	stagePitch, ringLength       float64
 }
@@ -142,17 +164,18 @@ func derive(p Params) dims {
 	m := p.Module
 	d := dims{
 		orbit:      m * float64(p.SunTeeth+p.PlanetTeeth) / 2,
-		planetRoot: (m*float64(p.PlanetTeeth) - 2.5*m) / 2,
-		planetTip:  (m*float64(p.PlanetTeeth) + 2*m) / 2,
+		planetRoot: m*float64(p.PlanetTeeth)/2 - gearRootDepth(m) - gearRootMeasurementMargin,
+		planetTip:  (m*float64(p.PlanetTeeth)+2*m)/2 - gearRootMeasurementMargin,
 		ringTip:    m*float64(p.RingTeeth)/2 - m,
-		ringRoot:   m*float64(p.RingTeeth)/2 + 1.25*m,
+		ringRoot:   m*float64(p.RingTeeth)/2 + gearRootDepth(m),
 		stagePitch: p.GearThickness + p.CarrierThickness + 2*p.StageGap,
 	}
 	b := planetBearing()
-	d.pin = b.BoreDiameter
+	d.pin = b.BoreDiameter - 2*fitClearance
 	d.pocket = b.OuterDiameter + 2*p.BearingClearance
 	d.lip = b.OuterDiameter - 2*lipWidth
-	d.shaft = b.BoreDiameter
+	d.shaft = b.BoreDiameter - 2*fitClearance
+	d.shaftBore = d.shaft + 2*fitClearance
 	d.collar = d.shaft + 2*collarMargin
 	d.coverBoss = d.pocket + 2*p.CarrierWall
 	d.coverHub = d.coverBoss + 2*p.CarrierWall
@@ -188,14 +211,14 @@ func (p Params) Validate() error {
 		{"module", p.Module, p.Module > 0},
 		{"gear thickness", p.GearThickness, p.GearThickness > 0},
 		{"carrier thickness", p.CarrierThickness, p.CarrierThickness > 0},
-		{"stage gap", p.StageGap, p.StageGap >= 0},
+		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinCollarClearance+pinCollarThickness},
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
 		{"key depth", p.KeyDepth, p.KeyDepth >= 0 && p.KeyDepth <= planetBearing().BoreDiameter/4},
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"key width", p.KeyWidth, p.KeyWidth > 0 && p.KeyWidth <= planetBearing().BoreDiameter/2},
-		{"bearing clearance", p.BearingClearance, p.BearingClearance >= 0},
+		{"bearing clearance", p.BearingClearance, p.BearingClearance >= fitClearance},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
 		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
@@ -233,19 +256,22 @@ func (p Params) Validate() error {
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return errors.New("invalid placement frame")
 	}
+	if p.KeyDepth > 0 && p.KeyWidth <= 2*fitClearance {
+		return fmt.Errorf("key width %v must exceed %v for the shaft clearance", p.KeyWidth, 2*fitClearance)
+	}
 	return p.validateFit(derive(p))
 }
 
 // validateFit checks that the parts fit around each other.
 func (p Params) validateFit(d dims) error {
 	m := p.Module
-	if chord := 2 * d.orbit * math.Sin(math.Pi/float64(p.PlanetCount)); chord < 2*d.planetTip+m/4 {
+	if chord := 2 * d.orbit * math.Sin(math.Pi/float64(p.PlanetCount)); chord < 2*d.planetTip+looseGearClearance {
 		return fmt.Errorf("neighbouring planet centers are %v apart; tips need %v for at least %v clearance",
-			chord, 2*d.planetTip+m/4, m/4)
+			chord, 2*d.planetTip+looseGearClearance, looseGearClearance)
 	}
-	sunRoot := (m*float64(p.SunTeeth) - 2.5*m) / 2
-	if d.shaft/2 > sunRoot-m {
-		return fmt.Errorf("the %v mm shaft leaves less than one module of wall under the sun root", d.shaft)
+	sunRoot := m*float64(p.SunTeeth)/2 - gearRootDepth(m)
+	if d.shaftBore/2 > sunRoot-m {
+		return fmt.Errorf("the %v mm shaft bore leaves less than one module of wall under the sun root", d.shaftBore)
 	}
 	b := planetBearing()
 	if p.GearThickness-b.Width < lipThickness {
@@ -264,8 +290,9 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("bolt holes of diameter %v do not fit the ring wall %v with %v of material either side",
 			p.BoltHoleDiameter, p.RingWall, boltRimMargin)
 	}
-	if p.BoltHoleDiameter < m2bolt.ShankDiameter {
-		return fmt.Errorf("bolt hole diameter %v is smaller than the M2 bolt shank %v", p.BoltHoleDiameter, m2bolt.ShankDiameter)
+	if p.BoltHoleDiameter < m2bolt.ShankDiameter+2*fastenerClearance {
+		return fmt.Errorf("bolt hole diameter %v leaves less than %v clearance around the M2 bolt shank %v",
+			p.BoltHoleDiameter, fastenerClearance, m2bolt.ShankDiameter)
 	}
 	if p.CoverThickness < m2bolt.HeadHeight+coverFloor {
 		return fmt.Errorf("cover thickness %v leaves less than %v under a %v tall bolt head",
@@ -283,9 +310,9 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("the cover's bearing hub of diameter %v leaves no room for spokes inside the rim at radius %v",
 			d.coverHub, d.rimInner)
 	}
-	if d.orbit+d.boss/2 >= d.ringTip-m/2 {
+	if d.orbit+d.boss/2 >= d.ringTip-looseGearClearance {
 		return fmt.Errorf("carrier radius %v does not leave more than %v clearance from ring tip radius %v",
-			d.orbit+d.boss/2, m/2, d.ringTip)
+			d.orbit+d.boss/2, looseGearClearance, d.ringTip)
 	}
 	return nil
 }
