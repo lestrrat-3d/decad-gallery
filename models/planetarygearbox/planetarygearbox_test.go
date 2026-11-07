@@ -485,10 +485,10 @@ func TestInvalidParams(t *testing.T) {
 	}{
 		"ring not sun plus two planets": {func(p *planetarygearbox.Params) { p.RingTeeth = 72 }, "ring teeth"},
 		"planets cannot be spaced":      {func(p *planetarygearbox.Params) { p.PlanetCount = 5 }, "planet count"},
-		"planets collide": {func(p *planetarygearbox.Params) {
+		"planets have too little clearance": {func(p *planetarygearbox.Params) {
 			p.SunTeeth, p.PlanetTeeth, p.RingTeeth, p.PlanetCount = 13, 29, 71, 3
 			p.PlanetCount = 6
-		}, "collide"},
+		}, "clearance"},
 		"single planet":         {func(p *planetarygearbox.Params) { p.PlanetCount = 1 }, "planet count"},
 		"no stages":             {func(p *planetarygearbox.Params) { p.Stages = 0 }, "stages"},
 		"zero module":           {func(p *planetarygearbox.Params) { p.Module = 0 }, "module"},
@@ -519,6 +519,34 @@ func TestInvalidParams(t *testing.T) {
 	require.Error(t, err)
 	_, err = planetarygearbox.Build(t.Context(), nil, planetarygearbox.DefaultParams())
 	require.Error(t, err)
+}
+
+func TestClearanceLimits(t *testing.T) {
+	t.Run("bolt holes allow exactly 1.5 mm of ring material", func(t *testing.T) {
+		p := planetarygearbox.DefaultParams()
+		p.BoltHoleDiameter = 4
+		require.NoError(t, p.Validate())
+		p.BoltHoleDiameter += 0.01
+		require.ErrorContains(t, p.Validate(), "bolt holes")
+	})
+
+	t.Run("bearing pocket allows exactly one module of root wall", func(t *testing.T) {
+		p := planetarygearbox.DefaultParams()
+		p.BearingClearance = 1.25
+		require.NoError(t, p.Validate())
+		p.BearingClearance += 0.01
+		require.ErrorContains(t, p.Validate(), "bearing pocket")
+	})
+
+	t.Run("carrier must stay more than half a module inside the ring tip", func(t *testing.T) {
+		p := planetarygearbox.DefaultParams()
+		p.BoltHoleDiameter = 3.4
+		p.RingWall = 13
+		p.CarrierWall = 8.99
+		require.NoError(t, p.Validate())
+		p.CarrierWall = 9
+		require.ErrorContains(t, p.Validate(), "carrier radius")
+	})
 }
 
 // TestSeatChamfer checks that the entrance of each bearing seat, the planet's pocket and the covers' boss pocket,

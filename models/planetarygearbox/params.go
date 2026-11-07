@@ -240,8 +240,8 @@ func (p Params) Validate() error {
 func (p Params) validateFit(d dims) error {
 	m := p.Module
 	if chord := 2 * d.orbit * math.Sin(math.Pi/float64(p.PlanetCount)); chord < 2*d.planetTip+m/4 {
-		return fmt.Errorf("neighbouring planets collide: centers are %v apart, tips need %v",
-			chord, 2*d.planetTip+m/4)
+		return fmt.Errorf("neighbouring planet centers are %v apart; tips need %v for at least %v clearance",
+			chord, 2*d.planetTip+m/4, m/4)
 	}
 	sunRoot := (m*float64(p.SunTeeth) - 2.5*m) / 2
 	if d.shaft/2 > sunRoot-m {
@@ -284,7 +284,8 @@ func (p Params) validateFit(d dims) error {
 			d.coverHub, d.rimInner)
 	}
 	if d.orbit+d.boss/2 >= d.ringTip-m/2 {
-		return fmt.Errorf("the carrier reaches radius %v, past the ring's tip radius %v", d.orbit+d.boss/2, d.ringTip)
+		return fmt.Errorf("carrier radius %v does not leave more than %v clearance from ring tip radius %v",
+			d.orbit+d.boss/2, m/2, d.ringTip)
 	}
 	return nil
 }

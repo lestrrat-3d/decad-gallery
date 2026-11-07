@@ -121,8 +121,8 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 - Reject `Zr != Zs + 2 Zp`. The three gears share axis and module only then.
 - Reject `(Zs + Zr) mod n != 0`. Only then can the planets sit at equal angles and all
   mesh with one sun and one ring at once.
-- Reject neighbouring planets that collide: the distance between adjacent planet centers
-  `2 a sin(π/n)` must be at least the planet tip diameter plus `m/4`.
+- Reject neighbouring planets unless their centers are at least the planet tip diameter plus `m/4` apart:
+  `2 a sin(π/n) >= planet tip diameter + m/4`.
 - Reject a sun bore (`ds`) that leaves less than `m` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
 - Reject `Sf < 0` or `Sf > db/4`.
@@ -133,7 +133,7 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 - Reject a seat chamfer outside `[0, 1]`.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
-  reaches past the ring's tip radius minus `m/2` (`a + boss/2 >= ring tip radius - m/2`).
+  leaves no more than `m/2` between its edge and the ring tip radius (`a + boss/2 >= ring tip radius - m/2`).
 - Reject a non-nil `Placement` that is not a valid frame.
 
 ## Gears
