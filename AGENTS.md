@@ -1,14 +1,11 @@
 # Agent instructions
 
-## Active goal
+## Repository purpose
 
-- Build the pipeline that turns human-readable model specifications into parametric decad Go models.
-- Port the spur gear pipeline from `../fusion360-gear-generator` first.
-- Use `models/spurgear/instructions.md` as the gallery model contract.
-- Follow `docs/model-pipeline.md` to compile instructions into Decad steps, Go code, and geometry checks.
-- Complete the specified spur gear parameter cases and geometry checks before treating the milestone as done.
-- Adapt Fusion-specific steps when the same geometry has a simpler native decad construction.
-- Keep Fusion Python add-in generation downstream of this repository's Go construction.
+- Maintain and grow a gallery of parametric Decad models for mechanical parts and assemblies,
+  including gears, mechanisms, and standard hardware.
+- Follow `docs/model-pipeline.md` when adding or changing models.
+- Keep construction specifications, Decad Go code, and geometry checks aligned.
 
 ## Repository ownership
 
@@ -36,6 +33,8 @@
 
 ## Model images
 
-- Follow `docs/adding-models.md` for each completed model's hero image.
-- Build images from the real Decad body with `tools/render/`; do not draw substitute geometry.
+- For every new model, update the root `README.md` overview and gallery hero image.
+- Add every new model to `models/README.md` with its description and index image.
+- Follow `docs/adding-models.md` for the model's hero and index images.
+- Build images from real Decad bodies with `tools/render/`; do not draw substitute geometry.
 - Add a renderer integration test for each new model preset.
