@@ -200,6 +200,10 @@ BandLength=Rw*wheelWrap+Rf*flyerWrap+2*sqrt(d*d-(Rw-Rf)^2).
 For Scotch springs create native Coil about local+Z from a fully constrained offset circle;
 then place so local+Z maps+Y, local+X maps+X, local+Y maps-Z.
 Six full turns put both end points at radial+2.1*X. Bridge those endpoints to the corresponding centreline datums.
+Build the left spring once: Coil, two legs, two eyes, one Union, then Refine to 0.12.
+Both springs have the same length, so the right spring is a Copy of that refined body moved by
+(2*Rb, -BrakeTravel, 0), taken before the left spring's head tilt. Turn the copy by the right phase about Y
+through its front eye centre.
 Use both springs and the two complementary tail lengths; the contract's conserved length excludes spring wire length.
 Rear routing eyes bisect the cord directions. Their stems/posts join the rear support bar.
 The front rail contains the M4 through-passage in its primary XZ profile.

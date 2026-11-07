@@ -41,6 +41,10 @@ func (b *builder) brake() {
 	b.part("brake-band", "brake-band", "fixed", func() *decad.Body {
 		return b.brakeCord(left, right, leftEnd, rightEnd, z, radius, phase)
 	})
+	// Both springs have length 25*Scale+BrakeTravel/2, so the right spring is a Copy of the left spring's
+	// refined body moved by the springs' offset, then turned by its phase. The copy is taken inside the
+	// left part, because part's head tilt retires the body the left part returns.
+	var rightSpring *decad.Body
 	for i, side := range []struct {
 		name          string
 		x, start, end float64
@@ -50,7 +54,16 @@ func (b *builder) brake() {
 		{"right", right, rightStart, rightEnd, phase},
 	} {
 		b.part("brake-spring-"+side.name, "spring", "fixed", func() *decad.Body {
-			return b.brakeSpring(side.x, side.start, side.end, z, side.phase)
+			if i == 0 {
+				spring := b.brakeSpring(side.x, side.start, side.end, z)
+				rightSpring = b.brakeSpringCopy(spring, r3.Vec{X: right - left, Y: rightStart - leftStart})
+				return spring
+			}
+			if rightSpring == nil {
+				b.fail("copy brake spring", fmt.Errorf("the left spring was not built"))
+				return nil
+			}
+			return b.brakeRotate(rightSpring, r3.Vec{X: side.x, Y: side.start - 3, Z: z}, side.phase)
 		})
 		// Each piece is placed on the head lift before the Union, so Verify reads the stem against the crossbar
 		// bore that shares its lift and numbers (routingEyeStem).
@@ -154,7 +167,9 @@ func (b *builder) brakeRotate(body *decad.Body, centre r3.Vec, phase float64) *d
 	return body
 }
 
-func (b *builder) brakeSpring(x, y0, y1, z, phase float64) *decad.Body {
+// brakeSpring is the refined brake spring between y0 and y1 at x, z, before any phase turn: a native Coil
+// joined to its two legs and end eyes.
+func (b *builder) brakeSpring(x, y0, y1, z float64) *decad.Body {
 	s := b.section(true)
 	circle(s, 2.1, 0, 0.4)
 	profile := b.profile(s, 0)
@@ -172,7 +187,22 @@ func (b *builder) brakeSpring(x, y0, y1, z, phase float64) *decad.Body {
 	rearEye := b.brakeEye(2.1, 0.4, rear, r3.Vec{X: 1}, r3.Vec{Y: 1})
 	frontLeg := b.span(front.Add(r3.Vec{X: 2.1}), r3.Vec{X: x + 2.1, Y: y0 + 0.4, Z: z}, 0.4)
 	rearLeg := b.span(r3.Vec{X: x + 2.1, Y: y1 - 0.4, Z: z}, rear.Add(r3.Vec{X: 2.1}), 0.4)
-	return b.brakeRotate(b.refine(b.union(coil, frontLeg, rearLeg, frontEye, rearEye), 0.12), front, phase)
+	return b.refine(b.union(coil, frontLeg, rearLeg, frontEye, rearEye), 0.12)
+}
+
+// brakeSpringCopy is a copy of spring moved by offset. spring stays live for its own part.
+func (b *builder) brakeSpringCopy(spring *decad.Body, offset r3.Vec) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	move, err := r3.Translation(offset)
+	if err != nil {
+		b.fail("create brake spring offset", err)
+		return nil
+	}
+	copied, err := decad.Copy(b.ctx, spring, decad.WithCopyPlacement(move))
+	b.fail("copy brake spring", err)
+	return copied
 }
 
 // brakeClevis is a clevis about centre on l, its blank, slot and pin hole placed before they are cut.
