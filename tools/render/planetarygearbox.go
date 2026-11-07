@@ -397,16 +397,15 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox assembled %s: %w", view.shot, err)
 		}
 	}
-	for _, shot := range []struct {
-		name  string
-		scene func(context.Context) (solidlens.Scene, error)
-	}{{"fasteners-section.png", planetaryFastenerSection}, {"fasteners-exploded.png", planetaryFastenerExploded}} {
-		scene, err := shot.scene(ctx)
-		if err != nil {
-			return err
-		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, 1600, 900); err != nil {
-			return fmt.Errorf("render planetary gearbox %s: %w", shot.name, err)
+	section, fastenerExploded, err := planetaryFastenerScenes(ctx)
+	if err != nil {
+		return err
+	}
+	for name, scene := range map[string]solidlens.Scene{
+		"fasteners-section.png": section, "fasteners-exploded.png": fastenerExploded,
+	} {
+		if err := renderPNG(ctx, filepath.Join(outputDir, name), scene, 1600, 900); err != nil {
+			return fmt.Errorf("render planetary gearbox %s: %w", name, err)
 		}
 	}
 	exploded, err := planetaryExplodedScene(ctx, box, planetaryExplodedWidth, planetaryExplodedHeight)

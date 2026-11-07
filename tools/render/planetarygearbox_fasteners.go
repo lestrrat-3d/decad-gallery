@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 )
@@ -62,13 +63,24 @@ func planetaryFastenerCamera(radius, z, distance, lift float64) solidlens.Camera
 	}
 }
 
-// planetaryFastenerSection draws the one-stage housing cut through the first bolt of each cover: both bolts, both
-// nuts, both covers and the ring, in place.
-func planetaryFastenerSection(ctx context.Context) (solidlens.Scene, error) {
+// planetaryFastenerScenes builds the one-stage gearbox once and returns the section and the exploded scenes.
+func planetaryFastenerScenes(ctx context.Context) (section, exploded solidlens.Scene, err error) {
 	box, _, err := buildPlanetaryGearbox(ctx, 1)
 	if err != nil {
-		return solidlens.Scene{}, err
+		return solidlens.Scene{}, solidlens.Scene{}, err
 	}
+	if section, err = planetaryFastenerSection(ctx, box); err != nil {
+		return solidlens.Scene{}, solidlens.Scene{}, err
+	}
+	if exploded, err = planetaryFastenerExploded(ctx, box); err != nil {
+		return solidlens.Scene{}, solidlens.Scene{}, err
+	}
+	return section, exploded, nil
+}
+
+// planetaryFastenerSection draws the one-stage housing cut through the first bolt of each cover: both bolts, both
+// nuts, both covers and the ring, in place.
+func planetaryFastenerSection(ctx context.Context, box planetarygearbox.Gearbox) (solidlens.Scene, error) {
 	parts := []planetaryFastenerPart{
 		{"ring", box.Ring, planetaryRingColor, 0},
 		{"front cover", box.FrontCover, planetaryCoverColor, 0},
@@ -83,11 +95,7 @@ func planetaryFastenerSection(ctx context.Context) (solidlens.Scene, error) {
 
 // planetaryFastenerExploded pulls the rear end of the housing apart along the first bolt's axis, in the order
 // they go together: the ring, its nut, the cover and the bolt.
-func planetaryFastenerExploded(ctx context.Context) (solidlens.Scene, error) {
-	box, _, err := buildPlanetaryGearbox(ctx, 1)
-	if err != nil {
-		return solidlens.Scene{}, err
-	}
+func planetaryFastenerExploded(ctx context.Context, box planetarygearbox.Gearbox) (solidlens.Scene, error) {
 	parts := []planetaryFastenerPart{
 		{"ring", box.Ring, planetaryRingColor, 0},
 		{"rear nut", box.Nuts[4], planetaryNutColor, 8},
@@ -98,6 +106,14 @@ func planetaryFastenerExploded(ctx context.Context) (solidlens.Scene, error) {
 }
 
 func init() {
-	presets["planetarygearbox/fasteners-section"] = preset{width: 1600, height: 900, scene: planetaryFastenerSection}
-	presets["planetarygearbox/fasteners-exploded"] = preset{width: 1600, height: 900, scene: planetaryFastenerExploded}
+	presets["planetarygearbox/fasteners-section"] = preset{width: 1600, height: 900,
+		scene: func(ctx context.Context) (solidlens.Scene, error) {
+			section, _, err := planetaryFastenerScenes(ctx)
+			return section, err
+		}}
+	presets["planetarygearbox/fasteners-exploded"] = preset{width: 1600, height: 900,
+		scene: func(ctx context.Context) (solidlens.Scene, error) {
+			_, exploded, err := planetaryFastenerScenes(ctx)
+			return exploded, err
+		}}
 }

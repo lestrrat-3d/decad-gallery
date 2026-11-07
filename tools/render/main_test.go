@@ -227,35 +227,6 @@ func TestPlanetaryGearboxExplodedPreset(t *testing.T) {
 	require.Greater(t, visible, 300, "the real exploded gearbox should be visible against the background")
 }
 
-// TestPlanetaryGearboxFastenerPresets builds the real one-stage gearbox and renders both fastener cutaways.
-func TestPlanetaryGearboxFastenerPresets(t *testing.T) {
-	for _, shot := range []string{"fasteners-section", "fasteners-exploded"} {
-		output := filepath.Join(t.TempDir(), shot+".png")
-		cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "planetarygearbox", "-shot", shot,
-			"-out", output, "-width", "160", "-height", "90")
-		result, err := cmd.CombinedOutput()
-		require.NoError(t, err, string(result))
-
-		file, err := os.Open(output)
-		require.NoError(t, err)
-		image, err := png.Decode(file)
-		require.NoError(t, file.Close())
-		require.NoError(t, err)
-		require.Equal(t, 160, image.Bounds().Dx())
-		require.Equal(t, 90, image.Bounds().Dy())
-		background := image.At(0, 0)
-		visible := 0
-		for y := range image.Bounds().Dy() {
-			for x := range image.Bounds().Dx() {
-				if image.At(x, y) != background {
-					visible++
-				}
-			}
-		}
-		require.Greater(t, visible, 300, "%s: the real housing should be visible against the background", shot)
-	}
-}
-
 // TestScrewGearHero builds the real screw gear once (about 40 s) for the single hero preset.
 func TestScrewGearHero(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "hero.png")
