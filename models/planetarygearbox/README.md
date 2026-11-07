@@ -74,9 +74,21 @@ tips do not meet. The exploded view lifts the nut out of its cavity to show wher
 
 <img src="images/fasteners-exploded.png" alt="Rear cover, nut and bolt pulled apart along one bolt" width="800">
 
-To print the ring, pause the print just below the roof of each nut cavity, drop a nut in with its flats in the cavity's
-walls, and resume. The roof then covers the nut. To assemble, set the cover on the ring end and drive each bolt in from
-the cover's outer face through the ring's 1 mm roof into the nut.
+### Printing the ring: insert the nuts by hand
+
+The nuts are not pressed in afterwards. Each nut sits in a cavity the ring walls close on every side except the bolt
+hole, so the nuts have to go in while the ring prints. Print the ring standing on its front face, and stop the printer
+twice:
+
+1. At 2.8 mm above the bed, the front cavities are open at the top. Drop a nut into each of the four, with a flat of the
+   nut against the cavity's flats, then resume.
+2. At `L - 1` mm above the bed, where `L` is the ring length (with the default dimensions 14 mm for one stage and `13 K + 1` mm for `K` stages),
+   the rear cavities are open at the top. Drop a nut into each of the four, then resume.
+
+The next layers print the 1 mm roofs over the nuts. After that the ring holds all eight nuts by itself.
+
+To assemble, set each cover on its ring end and drive each bolt in from the cover's outer face, through the ring's 1 mm
+roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
