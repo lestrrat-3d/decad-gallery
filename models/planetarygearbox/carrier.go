@@ -171,10 +171,11 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	}
 	// One pin with its collar is joined once and patterned, so the carrier needs two unions however many
 	// planets it has, not one per pin and collar.
-	if p.StageGap > 0 {
+	if p.StageGap >= planetBearingLift+pinCollarClearance+pinCollarThickness {
 		collar, err := r.extrudeDisc(ctx, disc{
-			what: "carrier pin collar", z: -p.StageGap, length: p.StageGap + p.CarrierThickness/2,
-			x: d.orbit, diameter: d.collar, expr: "shaft_collar_diameter",
+			what: "carrier pin collar", z: -p.StageGap + planetBearingLift + pinCollarClearance,
+			length: p.StageGap - planetBearingLift - pinCollarClearance + p.CarrierThickness/2,
+			x:      d.orbit, diameter: d.collar, expr: "shaft_collar_diameter",
 		})
 		if err != nil {
 			return nil, err
@@ -307,14 +308,16 @@ func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, spans .
 	return cut, nil
 }
 
-// extrudeKeyTool extrudes the tool that cuts a bore to fit a shaft, from z up length: the shaft's round section
-// less the keyway groove, as one outline, so what the tool leaves in the part is the bore's tooth. The outline
+// extrudeKeyTool extrudes a bore tool with fitClearance around the shaft, from z up length. Its round arc is
+// fitClearance outside the shaft and its key teeth have the same clearance on their sides and floors. The outline
 // is a long arc about the origin, from the groove's upper wall round to its lower wall, and three lines that
 // run in along the lower wall, across the groove floor and out along the upper wall. With KeyDepth zero the
 // tool is the round shaft.
 func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
 	if r.p.KeyDepth == 0 {
-		return r.extrudeShaft(ctx, what, z, length)
+		return r.extrudeDisc(ctx, disc{
+			what: what, z: z, length: length, diameter: r.d.shaftBore, expr: "shaft_bore_diameter",
+		})
 	}
 	plane, err := r.planeAt(z)
 	if err != nil {
@@ -324,8 +327,8 @@ func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64
 	if err != nil {
 		return nil, fmt.Errorf("%s: sketch: %w", what, err)
 	}
-	radius := r.d.shaft / 2
-	half := r.p.KeyWidth / 2
+	radius := r.d.shaft/2 + fitClearance
+	half := (r.p.KeyWidth - 2*fitClearance) / 2
 	floor := radius - r.p.KeyDepth
 	wall := math.Sqrt(radius*radius - half*half)
 	// Groove k lies at angle k*2pi/keyCount. Going counterclockwise the outline meets its lower wall first: a

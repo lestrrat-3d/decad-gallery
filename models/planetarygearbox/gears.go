@@ -13,15 +13,36 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
+func externalGearWithRootClearance(module, rootMargin float64) spurgear.Variant {
+	return spurgear.Variant{Define: func(t *param.Table) error {
+		if err := t.SetValue("gear_root_clearance", units.Millimeters(gearRootClearance(module))); err != nil {
+			return fmt.Errorf("define gear root clearance: %w", err)
+		}
+		if err := t.SetValue("gear_root_margin", units.Millimeters(rootMargin)); err != nil {
+			return fmt.Errorf("define gear root margin: %w", err)
+		}
+		if err := t.SetValue("gear_tip_measurement_margin", units.Millimeters(gearRootMeasurementMargin)); err != nil {
+			return fmt.Errorf("define gear tip measurement margin: %w", err)
+		}
+		if err := t.SetExpr("root_radius", "pitch_radius - module - gear_root_clearance - gear_root_margin", units.Millimeter); err != nil {
+			return fmt.Errorf("define gear root radius: %w", err)
+		}
+		if err := t.SetExpr("tip_radius", "pitch_radius + module - gear_tip_measurement_margin", units.Millimeter); err != nil {
+			return fmt.Errorf("define gear tip radius: %w", err)
+		}
+		return nil
+	}}
+}
+
 // buildSun builds the sun gear about the local origin, from z=0 to the gear thickness.
 func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	// A keyed bore is cut after the gear is built; a round one is the spur gear's own bore.
-	bore := r.d.shaft
+	bore := r.d.shaftBore
 	if p.KeyDepth > 0 {
 		bore = 0
 	}
-	sun, err := spurgear.Build(ctx, r.doc, spurgear.Params{
+	sun, err := externalGearWithRootClearance(p.Module, 0).Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.SunTeeth, PressureAngle: p.PressureAngle,
 		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: bore, Backlash: p.Backlash,
 	})
@@ -48,7 +69,7 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 // whose bore is smaller than the bearing so the bearing cannot fall out.
 func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
-	planet, err := spurgear.Build(ctx, r.doc, spurgear.Params{
+	planet, err := externalGearWithRootClearance(p.Module, gearRootMeasurementMargin).Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.PlanetTeeth, PressureAngle: p.PressureAngle,
 		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: d.lip, Backlash: p.Backlash,
 	})
@@ -85,11 +106,14 @@ func (r *run) buildBearing(ctx context.Context) (*decad.Body, error) {
 // ringTool is the spur pipeline with the ring's radii: the external gear whose teeth are the
 // ring's tooth spaces. Its root circle is the ring's tip circle and its tip circle is the ring's
 // root circle. It has no root fillet.
-func ringTool() spurgear.Variant {
+func ringTool(module float64) spurgear.Variant {
 	return spurgear.Variant{Define: func(t *param.Table) error {
+		if err := t.SetValue("gear_root_clearance", units.Millimeters(gearRootClearance(module))); err != nil {
+			return fmt.Errorf("define gear root clearance: %w", err)
+		}
 		for _, e := range []struct{ name, expr string }{
 			{"root_radius", "pitch_radius - module"},
-			{"tip_radius", "pitch_radius + 1.25 * module"},
+			{"tip_radius", "pitch_radius + module + gear_root_clearance"},
 			{"fillet_radius", "0"},
 		} {
 			if err := t.SetExpr(e.name, e.expr, units.Millimeter); err != nil {
@@ -108,7 +132,7 @@ const ringMargin = 1
 // turned to the planets' phase.
 func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
-	tool, err := ringTool().Build(ctx, r.doc, spurgear.Params{
+	tool, err := ringTool(p.Module).Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.RingTeeth, PressureAngle: p.PressureAngle,
 		Thickness: d.ringLength + 2*ringMargin, Samples: p.Samples,
 		// A negative backlash thickens the tool's teeth, which widens the ring's tooth spaces.

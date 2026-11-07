@@ -17,7 +17,7 @@ display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets 
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing and has a collar against it. Every shaft is
-as wide as the bearing bore, 8 mm, with three keyway grooves, 120° apart, each `Params.KeyDepth` deep and `Params.KeyWidth` wide, where a sun or carrier sits, and
+7.5 mm, with 0.25 mm radial clearance in the nominal 8 mm bearing bore. Each shaft has three keyway grooves, 120° apart, each `Params.KeyDepth` deep and `Params.KeyWidth` wide, where a sun or carrier sits, and
 round where a bearing sits; the sun's bore and the carrier's hole are cut with a tool of the shaft's section less the
 grooves, so each keeps three teeth and each shaft drives them. `Params.SeatChamfer` chamfers the entrance of each bearing pocket, in the planets and the covers, with
 `decad.Chamfer` on the rim found by its radius and height. `Params.Ratio` returns the reduction with the ring held.
