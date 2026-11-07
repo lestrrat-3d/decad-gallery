@@ -50,3 +50,9 @@
 - Follow `docs/adding-models.md` for the model's hero and index images.
 - Build images from real Decad bodies with `tools/render/`; do not draw substitute geometry.
 - Add a renderer integration test for each new model preset.
+- Regenerate images in the same change as any geometry change; never leave stale images behind.
+- A geometry change includes edits to a model's construction, parameters, defaults, or a reused item or decad version that alters its shape.
+- Regenerate the changed model's images in its `images/` directory and check its `README.md` still matches them.
+- Regenerate the index image that `models/README.md` shows for the changed model, and check its row still matches.
+- Regenerate `docs/images/gallery.png` when a changed model appears in it (`gallery/hero` preset in `docs/rendering.md`), and check the root `README.md` still matches.
+- A change to a reused item regenerates the images of every model that consumes it.
