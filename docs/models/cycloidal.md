@@ -29,4 +29,10 @@ a thin housing, larger clearances, and four with chamfered discs). It checks the
 against the removed wedge. Every body passes 0.1 mm `VerifyAll`, every sketch is fully constrained, and
 the rotor clears the casing, the cam and the output pins at the home pose.
 
+`TestMeasuredFits` sections the placed bodies and requires the proven lower bound of every moving fit to reach
+the Regular fit of 0.35 mm, and of the pins in the plate to reach the Tight fit of 0.2 mm. It runs one and two
+discs, 12 and 20 pins, a solid cam, five output pins, the smallest clearances `Problems` accepts, and larger ones.
+The clearance inputs have minimums of 0.4 mm (0.8 mm diametral for the bearing), which is the fit plus the 0.05 mm
+margin for the mesh bound.
+
 The [renderer](../rendering.md) produces the page's images from the two-disc drive.

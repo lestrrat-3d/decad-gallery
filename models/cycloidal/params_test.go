@@ -13,10 +13,12 @@ func TestDefaultParamsAreValid(t *testing.T) {
 	require.NoError(t, cycloidal.Validate(cycloidal.DefaultParams()))
 }
 
-// Two discs with no gap are valid, as in the add-in.
-func TestTwoDiscsWithoutGapAreValid(t *testing.T) {
+// A one-disc drive ignores DiscGap, and a two-disc drive accepts the smallest gap.
+func TestDiscGapLimit(t *testing.T) {
 	p := cycloidal.DefaultParams()
-	p.DiscCount, p.DiscGap = 2, 0
+	p.DiscGap = 0
+	require.Empty(t, cycloidal.Problems(p))
+	p.DiscCount, p.DiscGap = 2, cycloidal.MinClearance
 	require.Empty(t, cycloidal.Problems(p))
 }
 
@@ -51,6 +53,14 @@ func TestProblems(t *testing.T) {
 		{"pin count floor", func(p *cycloidal.Params) { p.PinCount = 3 }, "Pin Count must be at least 4"},
 		{"disc count", func(p *cycloidal.Params) { p.DiscCount = 3 }, "Disc Count must be 1 or 2"},
 		{"negative clearance", func(p *cycloidal.Params) { p.DiskClearance = -1 }, "Disk Clearance must not be negative"},
+		{"disk clearance below the fit", func(p *cycloidal.Params) { p.DiskClearance = 0.35 },
+			"Disk Clearance must be at least 0.40 mm"},
+		{"bearing clearance below the fit", func(p *cycloidal.Params) { p.BearingClearance = 0.7 },
+			"Bearing Clearance must be at least 0.80 mm"},
+		{"output pin clearance below the fit", func(p *cycloidal.Params) { p.OutputPinClearance = 0 },
+			"Output Pin Clearance must be at least 0.40 mm"},
+		{"touching discs", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0 },
+			"Disc Gap must be at least 0.40 mm"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -63,11 +73,11 @@ func TestProblems(t *testing.T) {
 	}
 }
 
-// The undercut bound is the binding eccentricity limit, about 2.5 mm for the defaults.
+// The undercut bound is the binding eccentricity limit, about 2.4 mm for the defaults.
 func TestUndercutBound(t *testing.T) {
 	p := cycloidal.DefaultParams()
 	p.Eccentricity = 2.7
 	problems := cycloidal.Problems(p)
 	require.Len(t, problems, 1)
-	require.Contains(t, problems[0], "undercuts/self-intersects. Reduce Eccentricity below 2.5")
+	require.Contains(t, problems[0], "undercuts/self-intersects. Reduce Eccentricity below 2.4")
 }

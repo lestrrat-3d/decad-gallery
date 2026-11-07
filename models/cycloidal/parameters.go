@@ -37,6 +37,8 @@ func defineParameters(t *param.Table, p Params) error {
 	record("output_pin_circle_diameter", t.SetValue("output_pin_circle_diameter", mm(p.OutputPinCircleDiameter)))
 	record("output_pin_count", t.SetNumber("output_pin_count", float64(p.OutputPinCount)))
 	record("output_pin_diameter", t.SetValue("output_pin_diameter", mm(p.OutputPinDiameter)))
+	record("output_pin_clearance", t.SetValue("output_pin_clearance", mm(p.OutputPinClearance)))
+	record("socket_clearance", t.SetValue("socket_clearance", mm(socketClearance)))
 	record("wall", t.SetValue("wall", mm(p.HousingWall)))
 	record("base_thickness", t.SetValue("base_thickness", mm(p.BaseThickness)))
 	record("output_plate_thickness", t.SetValue("output_plate_thickness", mm(p.OutputPlateThickness)))
@@ -56,9 +58,11 @@ func defineParameters(t *param.Table, p Params) error {
 	record("disc_bore_diameter", t.SetExpr("disc_bore_diameter",
 		"center_bearing_diameter + bearing_clearance", units.Millimeter))
 	record("resolved_output_pin_diameter", t.SetExpr("resolved_output_pin_diameter",
-		"output_hole_diameter - 2 * eccentricity", units.Millimeter))
+		"output_hole_diameter - 2 * eccentricity - 2 * output_pin_clearance", units.Millimeter))
+	record("output_socket_diameter", t.SetExpr("output_socket_diameter",
+		"resolved_output_pin_diameter + 2 * socket_clearance", units.Millimeter))
 	record("output_plate_diameter", t.SetExpr("output_plate_diameter",
-		"output_pin_circle_diameter + resolved_output_pin_diameter + 2 * wall", units.Millimeter))
+		"output_pin_circle_diameter + output_socket_diameter + 2 * wall", units.Millimeter))
 	record("plane_gap", t.SetValue("plane_gap", mm(planeGap)))
 	record("disc_pitch", t.SetExpr("disc_pitch", "disc_thickness + disc_gap", units.Millimeter))
 	record("stack_height", t.SetExpr("stack_height",

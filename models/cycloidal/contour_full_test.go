@@ -59,11 +59,11 @@ func housingContourSweep(p Params, d dimensions, camSteps, curveSteps int) []poi
 		}
 	}
 	// The envelope is symmetric about the pin, so each point takes the mean of itself and its mirror image.
-	out := make([]point, contourPoints)
-	for k := range out {
+	envelope := make([]point, contourPoints)
+	for k := range envelope {
 		angle := -half + 2*half*float64(k)/(contourPoints-1)
-		r := p.DiskClearance + (reach[k]+reach[contourPoints-1-k])/2
-		out[k] = point{r * math.Cos(angle), r * math.Sin(angle)}
+		r := (reach[k] + reach[contourPoints-1-k]) / 2
+		envelope[k] = point{r * math.Cos(angle), r * math.Sin(angle)}
 	}
-	return out
+	return offsetOutward(envelope, p.DiskClearance, half)
 }

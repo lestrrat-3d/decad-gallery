@@ -13,7 +13,7 @@ eccentricity, one 8 mm disc, and six output pins on a 50 mm circle.
 You can vary:
 
 - The number of pin positions and the pin circle diameter.
-- The eccentricity, the clearances, and the pin diameters.
+- The eccentricity, the pin diameters, and the clearances. Each moving fit has at least 0.4 mm of clearance.
 - One or two discs, their thickness, and the gap between them.
 - The cam diameter and the input shaft bore, or a solid cam.
 - The number and circle of the output pins.

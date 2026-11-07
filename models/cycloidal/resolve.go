@@ -13,7 +13,8 @@ type dimensions struct {
 	rootRadius                    float64 // Rv = R - Rr_eff - E
 	pinCircleRadius, outputRadius float64 // R, Rop
 	outputPinDiameter             float64 // D_pin
-	outputHoleDiameter            float64 // D_pin + 2E
+	outputHoleDiameter            float64 // D_pin + 2E + 2 c_pin
+	outputSocketDiameter          float64 // D_pin + 2 socketClearance
 	housingInner, housingOuter    float64
 	outputPlateDiameter           float64
 	lobes                         int
@@ -38,10 +39,11 @@ func resolve(p Params) dimensions {
 	} else {
 		d.outputPinDiameter = d.outputRadius*math.Sin(math.Pi/m) - p.Eccentricity
 	}
-	d.outputHoleDiameter = d.outputPinDiameter + 2*p.Eccentricity
+	d.outputHoleDiameter = d.outputPinDiameter + 2*p.Eccentricity + 2*p.OutputPinClearance
+	d.outputSocketDiameter = d.outputPinDiameter + 2*socketClearance
 	d.housingInner = 2 * (d.pinCircleRadius - d.pinRadius - p.HousingWall)
 	d.housingOuter = 2 * (d.pinCircleRadius - d.pinRadius + 2*p.Eccentricity + p.HousingWall)
-	d.outputPlateDiameter = p.OutputPinCircleDiameter + d.outputPinDiameter + 2*p.HousingWall
+	d.outputPlateDiameter = p.OutputPinCircleDiameter + d.outputSocketDiameter + 2*p.HousingWall
 	return d
 }
 
@@ -136,6 +138,7 @@ func Problems(p Params) []string {
 		{"Input Shaft Diameter", p.InputShaftDiameter, true},
 		{"Bearing Clearance", p.BearingClearance, true},
 		{"Output Pin Diameter", p.OutputPinDiameter, true},
+		{"Output Pin Clearance", p.OutputPinClearance, true},
 		{"Chamfer Size", p.ChamferSize, true},
 	} {
 		switch {
@@ -155,6 +158,20 @@ func Problems(p Params) []string {
 	r, rop, e := d.pinCircleRadius, d.outputRadius, p.Eccentricity
 	dhole, dpin := d.outputHoleDiameter, d.outputPinDiameter
 	cbd, isd, clr := p.CenterBearingDiameter, p.InputShaftDiameter, p.BearingClearance
+	for _, f := range []struct {
+		name         string
+		value, least float64
+		applies      bool
+	}{
+		{"Disk Clearance", p.DiskClearance, MinClearance, true},
+		{"Bearing Clearance", p.BearingClearance, 2 * MinClearance, true},
+		{"Output Pin Clearance", p.OutputPinClearance, MinClearance, true},
+		{"Disc Gap", p.DiscGap, MinClearance, p.DiscCount == 2},
+	} {
+		if f.applies && f.value < f.least {
+			add("%s must be at least %.2f mm (currently %.2f mm).", f.name, f.least, f.value)
+		}
+	}
 	if p.DiscCount == 2 && (p.PinCount%2 != 0 || p.OutputPinCount%2 != 0) {
 		add("Two discs require an even Pin Count and an even Output Pin Count (currently N=%d, M=%d).",
 			p.PinCount, p.OutputPinCount)
