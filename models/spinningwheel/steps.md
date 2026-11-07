@@ -189,6 +189,8 @@ Construct each in a canonical plane with native torus helper, then rigidly orien
 Keep the opening opposite the bottom attachment. Stems meet the t0 point of the actual wire.
 Use the instruction-defined oblique axes at the front and active hooks; actual yarn strands pass through their openings.
 Do not keep closed annular guide bodies or change only their captions.
+Build the first ordinary hook once; the other ten ordinary hooks are exact lift-local copies of it
+(the active and front hooks are built directly).
 
 Drive band: u=normalize(Flyer-Wheel),v=(-u.Z,0,u.X),q=(Rw-Rf)/d,k=sqrt(1-q*q).
 nPlus=q*u+k*v,nMinus=q*u-k*v. Tangencies are axis+pitch*n.
