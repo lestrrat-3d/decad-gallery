@@ -94,6 +94,11 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	t.Run("joint", func(t *testing.T) { requireJoint(t, p, parts) })
 	t.Run("grip", func(t *testing.T) { requireGrip(t, parts) })
 	t.Run("sweep", func(t *testing.T) { requireSweepClearance(t, parts, a.State, p.Blades) })
+	// Fits, fasteners and gear mesh are measured at the default parameters only: the other parameters turn parts
+	// rigidly about their own axes or repeat identical sockets.
+	if p == handcrankfan.DefaultParams() {
+		t.Run("mesh", func(t *testing.T) { requireSpurMesh(t, p, parts) })
+	}
 	// Decad plans the explosion from axis-aligned boxes, and the arm's box depends on the crank angle, so the stage order
 	// is searched and checked at the default pose only.
 	if p.CrankAngle == handcrankfan.DefaultParams().CrankAngle {

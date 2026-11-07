@@ -137,7 +137,7 @@ const (
 	boxTop       = 190.0             // the top of every wall
 	boxBackY     = backWallY + wallThick
 	boxLeftX     = -20.0
-	boxFloor     = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick
+	boxFloor     = 101.4 // the floor's underside; the crank gear's tip stays 1.62 above the cavity floor
 	cavityFloor  = boxFloor + 5
 	blockHalf    = 15.0                                // the bearing blocks are 30 wide and as tall as the tray
 	fanBlock     = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
