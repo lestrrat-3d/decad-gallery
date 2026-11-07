@@ -53,5 +53,5 @@ Every face stays exact: six flats, two bearing faces, two cones and the bore.
 Check the default build's bounds, its volume against an independent integral of the chamfers, its face kinds,
 `VerifyAll` tessellation and the full constraint of all three sketches.
 Check that the bore equals the M2 bolt's shank diameter, a placed nut and invalid inputs.
-Register `m2nut/hero`, `top`, `side`, `low` and `withbolt` in `tools/render`, with a renderer integration test.
+Register `m2nut/hero`, `top`, `side`, `low` and `withbolt` in `tools/render`.
 Add the model to `models/README.md` and run `scripts/check_repository.py`.

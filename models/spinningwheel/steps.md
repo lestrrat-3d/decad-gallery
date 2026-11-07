@@ -223,6 +223,6 @@ Return one native Union of the main Sweep and both eyes. Do not create Parts or 
 ## Verification boundary
 
 Emit no tests or substitute drawings. Parent first builds and VerifyAll tessellates every real default solid,
-then runs parameter branches, physical joint/clearance checks and renderer integration.
+then runs parameter branches, physical joint/clearance checks and image rendering.
 Return all real consumed sketches for independent constraint verification.
 If a native geometry operation fails, report the smallest real producer case; do not relax tolerances or change dimensions.
