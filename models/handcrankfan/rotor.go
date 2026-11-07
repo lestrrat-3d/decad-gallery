@@ -27,16 +27,14 @@ const (
 )
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
-// from the axis: the head sits in a counterbore on the front face and the nut in a hex trap in the back face.
+// from the axis: the head sits in a pocket in the front face and the nut in a cavity the hub encloses. The constants
+// below are the old hardware's; the sites not yet converted still use them.
 const (
 	boltAt            = 9.5
-	holeRadius        = 1.15 // clearance hole, diameter 2.3
 	headRadius        = 1.9
 	headHeight        = 2.0
 	counterboreRadius = 2.15
 	counterboreDepth  = 2.2
-	shankRadius       = 1.0
-	boltLength        = 16.0
 	nutFlats          = 4.0
 	nutHeight         = 1.6
 	trapFlats         = 4.3
@@ -90,7 +88,7 @@ func (b *builder) fan() {
 		return b.union(shaft, b.cylinder(alongMinusY(-(fanBlockFace+0.1)), 6, hubBack-tightFit-(fanBlockFace+0.1)))
 	})
 	b.part("fan-hub", "rotor", "fan", b.hub)
-	var blades, bolts []*decad.Body
+	var blades []*decad.Body
 	b.part("fan-blade-1", "blade", "fan", func() *decad.Body {
 		blades = b.blades()
 		if len(blades) == 0 {
@@ -101,21 +99,27 @@ func (b *builder) fan() {
 	for k := 1; k < b.p.Blades; k++ {
 		b.part(fmt.Sprintf("fan-blade-%d", k+1), "blade", "fan", func() *decad.Body { return blades[k] })
 	}
-	b.part("fan-bolt-1", "hardware", "fan", func() *decad.Body {
-		bolts = b.bolts()
-		if len(bolts) == 0 {
-			return nil
-		}
-		return bolts[0]
-	})
-	for k := 1; k < b.p.Blades; k++ {
-		b.part(fmt.Sprintf("fan-bolt-%d", k+1), "hardware", "fan", func() *decad.Body { return bolts[k] })
+	// Each nut follows its bolt in the part list. The blade-1 bodies are built once and copied about the fan axis.
+	sites, err := bladeSites(b.p.Blades)
+	b.fail("place blade fasteners", err)
+	var bolts, nuts []*decad.Body
+	for k := 0; k < b.p.Blades && b.err == nil; k++ {
+		b.part(sites[k].bolt, "hardware", "fan", func() *decad.Body {
+			if k == 0 {
+				bolts, nuts = b.ring(b.placeBolt(sites[0])), b.ring(b.placeNut(sites[0]))
+			}
+			if len(bolts) == 0 {
+				return nil
+			}
+			return bolts[k]
+		})
+		b.part(sites[k].nut, "hardware", "fan", func() *decad.Body {
+			if len(nuts) == 0 {
+				return nil
+			}
+			return nuts[k]
+		})
 	}
-}
-
-// onY is the plane at y whose normal is -Y and whose coordinates are measured from the bolt line of blade 1.
-func onY(y float64) r3.Frame {
-	return frame(r3.Vec{X: boltAt, Y: y, Z: axisHeight}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 }
 
 // ring returns body and its copies about the fan axis, one for each blade.
@@ -137,28 +141,29 @@ func (b *builder) ring(body *decad.Body) []*decad.Body {
 	return out
 }
 
-// hub builds the disc with the shaft bore and one bolt hole for each blade, then cuts a socket, a head counterbore
-// and a nut trap for each blade. The tools run past the faces they open, so none shares a face with the hub.
+// hub builds the disc with the shaft bore and one bolt hole for each blade, then cuts a socket, a head pocket and a
+// nut cavity for each blade. The tools run past the faces they open, so none shares a face with the hub.
 func (b *builder) hub() *decad.Body {
 	n := b.p.Blades
 	s := b.section(frame(r3.Vec{Y: -hubBack, Z: axisHeight}, r3.Vec{X: 1}, r3.Vec{Z: 1}))
 	circle(s, 0, 0, hubRadius)
 	for k := 0; k < n; k++ {
 		theta := 2 * math.Pi * float64(k) / float64(n)
-		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), holeRadius)
+		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), boltHole)
 	}
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
 	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, tightFit)
-	front := -(hubBack + hubLength)
 	// The socket is a plain round hole. It is 6.3 across, small enough to print on its side without support.
 	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		socketRadius, hubRadius+1-socketStart)
-	counterbore := b.cylinder(onY(front+counterboreDepth), counterboreRadius, counterboreDepth+1)
-	trap := b.hexagon(onY(-hubBack+1), trapFlats, trapDepth+1)
-	for _, tool := range []*decad.Body{socket, counterbore, trap} {
-		for _, copy := range b.ring(tool) {
-			hub = b.cut(hub, copy)
-		}
+	for _, copy := range b.ring(socket) {
+		hub = b.cut(hub, copy)
+	}
+	// The head pocket and the nut cavity of each blade's bolt; the bolt holes are in the sketch.
+	sites, err := bladeSites(n)
+	b.fail("place blade fasteners", err)
+	for _, site := range sites {
+		hub = b.fastenerCuts(hub, site, true, false, true)
 	}
 	return hub
 }
@@ -197,7 +202,7 @@ func (b *builder) blades() []*decad.Body {
 	}
 	// Local Z is the blade's radial line, local X the direction of motion and local Y downstream.
 	stud := b.cylinder(frame(r3.Vec{Z: studStart}, r3.Vec{X: 1}, r3.Vec{Y: 1}), studRadius, studEnd-studStart)
-	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), holeRadius, 10))
+	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), boltHole, 10))
 	blade := b.union(loft, stud)
 	if b.err != nil {
 		return nil
@@ -213,17 +218,6 @@ func (b *builder) blades() []*decad.Body {
 		return nil
 	}
 	return b.ring(blade)
-}
-
-// bolts builds one bolt with its nut as a single plain body (no thread) for each blade, sitting hardwareGap clear
-// of its seats.
-func (b *builder) bolts() []*decad.Body {
-	front := -(hubBack + hubLength)
-	seat := front + counterboreDepth - hardwareGap
-	head := b.cylinder(onY(seat), headRadius, headHeight)
-	shank := b.cylinder(onY(seat+boltLength), shankRadius, boltLength+0.8)
-	nut := b.hexagon(onY(-hubBack-trapDepth+nutHeight+hardwareGap), nutFlats, nutHeight)
-	return b.ring(b.union(head, shank, nut))
 }
 
 func camberLine(x, m float64) float64 {

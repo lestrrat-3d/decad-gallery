@@ -24,13 +24,14 @@ func partNames(blades int) []string {
 		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
 	}
 	for k := 1; k <= blades; k++ {
-		names = append(names, fmt.Sprintf("fan-blade-%d", k), fmt.Sprintf("fan-bolt-%d", k))
+		names = append(names, fmt.Sprintf("fan-blade-%d", k), fmt.Sprintf("fan-bolt-%d", k), fmt.Sprintf("fan-nut-%d", k))
 	}
 	return names
 }
 
 func isRotor(name string) bool {
-	return name == "fan-hub" || strings.HasPrefix(name, "fan-blade-") || strings.HasPrefix(name, "fan-bolt-")
+	return name == "fan-hub" || strings.HasPrefix(name, "fan-blade-") || strings.HasPrefix(name, "fan-bolt-") ||
+		strings.HasPrefix(name, "fan-nut-")
 }
 
 // isFinished reports whether the part is checked for overlap: the rotor, the handle, the gearbox and the crank's own
@@ -97,6 +98,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	// Fits, fasteners and gear mesh are measured at the default parameters only: the other parameters turn parts
 	// rigidly about their own axes or repeat identical sockets.
 	if p == handcrankfan.DefaultParams() {
+		t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts, isFanFastener) })
 		t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 		t.Run("mesh", func(t *testing.T) { requireSpurMesh(t, p, parts) })
 	}
@@ -106,7 +108,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 		t.Run("explode", func(t *testing.T) { requireExplode(t, doc, a, parts) })
 	}
 	t.Run("gears", func(t *testing.T) { requireGearPlacement(t, p, parts) })
-	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, parts) })
+	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
 	t.Run("copies", func(t *testing.T) { requireIdenticalBlades(t, p, parts) })
 }
 
@@ -153,7 +155,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	require.InDelta(t, -100, box["fan-shaft"].Min.Y, tol)
 	for k := 1; k <= p.Blades; k++ {
 		bolt := box[fmt.Sprintf("fan-bolt-%d", k)]
-		require.Greater(t, bolt.Min.Y, -96.0, "bolt %d is inside the hub's front face", k)
+		require.GreaterOrEqual(t, bolt.Min.Y, -96.0-0.01, "bolt %d's head is flush with the hub's front face", k)
 		require.Less(t, bolt.Max.Y, -76.0, "bolt %d is inside the hub's back face", k)
 	}
 }
@@ -252,7 +254,8 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		return loc
 	}
 	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -86, Z: 170}), "the socket is empty")
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.5, Y: -112, Z: 170}), "the nut trap is empty")
+	// The nut cavity, its roof and the head pocket sit within 0.5 mm of the hub's faces, where the faceted hub gives no
+	// decided point location. The fasteners subtest proves them with section loops.
 	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -91, Z: 175}), "the hub between two blades is solid")
 	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -86.2, Z: 170.3}), "the socket is empty past the bolt")
 }
@@ -286,7 +289,7 @@ func requireGrip(t *testing.T, parts map[string]handcrankfan.Part) {
 // shaft and screws their pockets and holes. The gear pair, which meshes at its teeth, and the fan shaft, which
 // touches its neighbours, are not parts of the check: the gear check has already retired the gears, and this check
 // removes the shaft, so it must run after the checks that use them.
-func requireNoOverlap(t *testing.T, doc *decad.Document, parts map[string]handcrankfan.Part) {
+func requireNoOverlap(t *testing.T, doc *decad.Document, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	names := map[*decad.Body]string{}
 	for name, part := range parts {
 		names[part.Body] = name
@@ -295,8 +298,23 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, parts map[string]handcr
 	// through every gear's spline bore and every bearing, so a shaft that shares material with any part, or is
 	// undecided against it, means a groove and its tooth are out of line. The gears that mesh at their teeth are only
 	// checked against the shafts and bearings.
+	// The fasteners subtest proves a bolt against its head host and its own nut, so those pairs are not checked here.
+	// A fastener counts once its nut is a part.
+	proven := map[[2]string]struct{}{}
+	fasteners, err := handcrankfan.Fasteners(p)
+	require.NoError(t, err)
+	for _, f := range fasteners {
+		if _, ok := parts[f.Nut]; !ok {
+			continue
+		}
+		proven[[2]string{f.Bolt, f.HeadHost}], proven[[2]string{f.HeadHost, f.Bolt}] = struct{}{}, struct{}{}
+		proven[[2]string{f.Bolt, f.Nut}], proven[[2]string{f.Nut, f.Bolt}] = struct{}{}, struct{}{}
+	}
 	checked := func(a, b *decad.Body) bool {
 		x, y := names[a], names[b]
+		if _, ok := proven[[2]string{x, y}]; ok {
+			return false
+		}
 		holder := func(name string) bool {
 			return strings.HasSuffix(name, "-shaft") || strings.HasPrefix(name, "bearing-")
 		}
@@ -325,9 +343,21 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	layout, err := a.Explode(t.Context(), set)
 	require.NoError(t, err)
 	require.Equal(t, "gearbox-base", layout.Ground)
-	require.Empty(t, layout.Overlaps, "no pair of parts shares space when exploded")
+	// Overlaps comes from axis-aligned boxes, and a captive nut always sits in its host's box. Those pairs are exempt;
+	// the fasteners subtest proves the nut and its host share no material.
+	captive := map[string]string{"fan-nut-1": "fan-hub", "fan-nut-2": "fan-hub", "fan-nut-3": "fan-hub", "fan-nut-4": "fan-hub"}
+	var overlaps [][2]string
+	for _, pair := range layout.Overlaps {
+		if captive[pair[0]] == pair[1] || captive[pair[1]] == pair[0] {
+			continue
+		}
+		overlaps = append(overlaps, pair)
+	}
+	require.Empty(t, overlaps, "no pair of parts shares space when exploded")
 	span := map[string][2]float64{}
+	offset := map[string]r3.Vec{}
 	for _, part := range layout.Parts {
+		offset[part.Name] = part.Offset
 		box := bounds(t, built[part.Name])
 		span[part.Name] = [2]float64{box.Min.X + part.Offset.X, box.Max.X + part.Offset.X}
 		if part.Name == "gearbox-base" {
@@ -349,20 +379,28 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	}
 	require.Less(t, span["crank-arm"][1], span["crank-grip"][0], "the handle is outside the arm")
 	require.Less(t, span["crank-grip"][1], span["crank-pin"][0], "the pin is outside the handle")
+	for k := 1; k <= a.Params.Blades; k++ {
+		nut := fmt.Sprintf("fan-nut-%d", k)
+		require.InDelta(t, 0, offset[nut].Sub(offset["fan-hub"]).Len(), 1e-9, "%s moves with the hub", nut)
+	}
 	bom, err := set.BOM(t.Context())
 	require.NoError(t, err)
-	screws, bearings := 0, 0
+	screws, nuts, bearings := 0, 0, 0
 	for _, row := range bom.Rows {
 		if row.Kind != parts.Purchased {
 			continue
 		}
-		if row.Spec == "608-2RS ball bearing" {
+		switch row.Spec {
+		case "608-2RS ball bearing":
 			bearings += row.Quantity
-		} else {
+		case "M2 hex nut":
+			nuts += row.Quantity
+		default:
 			screws += row.Quantity
 		}
 	}
 	require.Equal(t, 8+2+1+a.Params.Blades, screws, "four ear bolts, four wall screws, two grip screws, the pin screw and one screw for each blade")
+	require.Equal(t, a.Params.Blades, nuts, "one nut for each blade bolt")
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 
@@ -405,7 +443,7 @@ func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, sta
 func requireIdenticalBlades(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	state, err := handcrankfan.Motion(p)
 	require.NoError(t, err)
-	for _, kind := range []string{"fan-blade-", "fan-bolt-"} {
+	for _, kind := range []string{"fan-blade-", "fan-bolt-", "fan-nut-"} {
 		var first decad.Box
 		for k := 1; k <= p.Blades; k++ {
 			back := state.FanAngle + 2*math.Pi*float64(k-1)/float64(p.Blades)

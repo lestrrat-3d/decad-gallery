@@ -4,19 +4,20 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
 )
 
-// hardware is the bought part each hardware group member is, which the bill of materials counts.
+// hardwareSpec is the bought part each hardware group member is, which the bill of materials counts, for the members
+// fastenerSpec does not yet name. The blade bolts and nuts come from fastenerSpec.
 var hardwareSpec = map[string]string{
 	"handle-bolt":   "M2 x 16 screw, self-tapping",
 	"gearbox-bolt":  "M2 x 12 screw and M2 nut",
 	"gearbox-screw": "M2 x 16 screw, self-tapping",
 	"crank-pin":     "M2 x 10 screw and M2 nut",
-	"fan-bolt":      "M2 x 16 screw and M2 nut",
 }
 
 // Set returns the assembly as a parts.Set over doc, which must be the document Build used: every part with its
@@ -35,6 +36,9 @@ func (a *Assembly) Set(doc *decad.Document) (*parts.Set, error) {
 				if len(part.Name) >= len(prefix) && part.Name[:len(prefix)] == prefix {
 					p.Spec = spec
 				}
+			}
+			if strings.HasPrefix(part.Name, "fan-") {
+				p.Spec = fastenerSpec(part.Name)
 			}
 		}
 		if err := set.Add(p); err != nil {
@@ -114,10 +118,12 @@ func (a *Assembly) joints() []parts.Joint {
 		radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
 		stud := parts.Axis{Point: apex, Dir: radial}
 		bolt := parts.Axis{Point: apex.Add(radial.Scale(boltAt)), Dir: fanAxis}
-		blade, screw := fmt.Sprintf("fan-blade-%d", k+1), fmt.Sprintf("fan-bolt-%d", k+1)
+		blade, screw, nut := fmt.Sprintf("fan-blade-%d", k+1), fmt.Sprintf("fan-bolt-%d", k+1), fmt.Sprintf("fan-nut-%d", k+1)
 		add(fmt.Sprintf("blade %d stud in the hub", k+1), blade, "fan-hub", stud, parts.Fixed)
 		add(fmt.Sprintf("bolt %d in the hub", k+1), screw, "fan-hub", bolt, parts.Fixed)
 		add(fmt.Sprintf("bolt %d in the blade", k+1), screw, blade, bolt, parts.Fixed)
+		add(fmt.Sprintf("nut %d in the hub", k+1), nut, "fan-hub", bolt, parts.Fixed)
+		add(fmt.Sprintf("bolt %d in the nut", k+1), screw, nut, bolt, parts.Fixed)
 	}
 	return js
 }
@@ -134,6 +140,13 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 	stage := func(name string, direction r3.Vec, names ...string) parts.Stage {
 		return parts.Stage{Name: name, Parts: names, Clear: parts.ClearAll, Direction: direction}
 	}
+	var bolts, blades, nuts []string
+	for k := 1; k <= a.Params.Blades; k++ {
+		bolts = append(bolts, fmt.Sprintf("fan-bolt-%d", k))
+		blades = append(blades, fmt.Sprintf("fan-blade-%d", k))
+		nuts = append(nuts, fmt.Sprintf("fan-nut-%d", k))
+	}
+	front := r3.Vec{Y: -1}
 	return set.Explode(ctx, parts.WithExplodeGround("gearbox-base"), parts.WithExplodeStages(
 		stage("ear bolts", r3.Vec{Y: -1}, "gearbox-bolt-1", "gearbox-bolt-2", "gearbox-bolt-3", "gearbox-bolt-4"),
 		stage("post screws", left, "gearbox-screw-1", "gearbox-screw-2"),
@@ -154,6 +167,11 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		stage("post bearings", left, "bearing-crank-post", "bearing-drive-post"),
 		stage("fan wall bearing", r3.Vec{Y: 1}, "bearing-fan-wall"),
 		stage("fan block bearing", r3.Vec{Y: -1}, "bearing-fan-block"),
+		stage("blade bolts", front, bolts...),
+		parts.Stage{Name: "blades", Parts: blades, Clear: parts.ClearAll},
+		parts.Stage{Name: "hub", Parts: append([]string{"fan-hub"}, nuts...), Clear: parts.ClearAll, Direction: front,
+			Together: true},
+		stage("fan shaft", front, "fan-shaft"),
 		stage("post", left, "gearbox-post"),
 		stage("crank-side wall", along, "gearbox-crank-wall"),
 		stage("fan-side wall", left, "gearbox-fan-wall"),

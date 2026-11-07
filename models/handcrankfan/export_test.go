@@ -1,6 +1,10 @@
 package handcrankfan
 
-import "github.com/lestrrat-3d/r3"
+import (
+	"fmt"
+
+	"github.com/lestrrat-3d/r3"
+)
 
 // Beta exposes the blade angle for the external tests.
 var Beta = beta
@@ -40,4 +44,37 @@ func PoseVector(p Params, motion string, v r3.Vec) (r3.Vec, error) {
 		return r3.Vec{}, err
 	}
 	return xf.ApplyDir(v), nil
+}
+
+// Fastener is one bolt and its nut in posed coordinates.
+type Fastener struct {
+	Bolt, Nut, HeadHost, NutHost string
+	Head, Dir, Corner            r3.Vec  // posed head top centre, unit shank direction, unit corner direction
+	Length                       float64 // under the head
+	CavityNear, CavityFar        float64 // from Head along Dir
+}
+
+// Fasteners returns every fastener of a build with p, posed as Build poses it (blade sites patterned).
+func Fasteners(p Params) ([]Fastener, error) {
+	state, err := Motion(p)
+	if err != nil {
+		return nil, err
+	}
+	blades, err := bladeSites(p.Blades)
+	if err != nil {
+		return nil, err
+	}
+	var out []Fastener
+	for _, s := range append(blades, fastenerSites()[1:]...) {
+		xf, err := motionTransform(state, s.motion)
+		if err != nil {
+			return nil, fmt.Errorf("pose %s: %w", s.bolt, err)
+		}
+		out = append(out, Fastener{
+			Bolt: s.bolt, Nut: s.nut, HeadHost: s.headHost, NutHost: s.nutHost,
+			Head: xf.Apply(s.head), Dir: xf.ApplyDir(s.dir), Corner: xf.ApplyDir(s.corner),
+			Length: s.length, CavityNear: s.cavity, CavityFar: s.cavity + nutCavityHeight,
+		})
+	}
+	return out, nil
 }
