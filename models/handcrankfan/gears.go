@@ -15,7 +15,7 @@ import (
 // pair of equal 20-tooth spur gears, side by side in the tray left of the bevel gear, joins them: the crank turns the
 // drive shaft at the same speed and the other way round, and the bevel pair doubles it. Both shafts run in a post on
 // the tray's left end and in the right wall, and each has a collar outside the post, so the shaft slides in from the
-// left and the collar and the crank arm hold it. Fits.go lists the clearance class of every joint.
+// left and the collar and the crank arm hold it. Fits.go names the clearance classes.
 const (
 	spurTeeth   = 20
 	spurModule  = 2
@@ -23,17 +23,16 @@ const (
 	centerDist  = spurModule * spurTeeth // half the pitch diameter sum: the pitch circles touch, 40 apart
 	crankHeight = axisHeight - centerDist
 
-	spurBacklash      = 0.15                                                 // each tooth is thinned this much at the pitch circle, so the pair keeps about 0.3 of play
-	gearRootClearance = 0.5                                                  // max(0.25*spurModule, 0.5): a tip clears its mate's root by this much
-	gearRootMargin    = 0.02                                                 // measurement margin: the root goes this much deeper and the tip this much lower
-	gearTip           = spurModule*spurTeeth/2 + spurModule - gearRootMargin // the spur gears' lowered tip radius, 21.98
+	spurBacklash      = 0.15 // each tooth is thinned this much at the pitch circle, so the pair keeps about 0.3 of play
+	gearRootClearance = 0.5  // max(0.25*spurModule, 0.5): a tip clears its mate's root by this much
+	gearRootMargin    = 0.02 // measurement margin: the root goes this much deeper and the tip this much lower
 
-	postFace = boxLeftX + wallThick // the left post's inner face, X -10.2
-	gearX    = postFace + 1         // the spur gears' faces nearest the post
-	collarX  = boxLeftX + 0.2       // the shafts' collars end here, 0.1 clear of the post bearing's face
+	postFace = boxLeftX + wallThick                 // the left post's inner face, X -10.2
+	gearX    = postFace + 1                         // the spur gears' faces nearest the post
+	collarX  = boxLeftX + bearingSetback - tightFit // the shafts' collars end here, tightFit clear of the post bearing's face
 	collarT  = 4
 
-	driveShaftEnd = crankWallX + 7.1 // the drive shaft ends in the crank-side wall's bearing, 0.2 short of its far face
+	driveShaftEnd = crankWallX + 7.1 // the drive shaft ends in the crank-side wall's bearing, 0.05 short of its far face
 )
 
 // shaftWithCollar builds a round shaft of radius 3.9 from the collar at the left of the post to X end, with a collar of
@@ -67,7 +66,7 @@ func (b *builder) spurGear(z float64, turned bool) *decad.Body {
 		body = b.turn(body, r3.Vec{X: gearX, Z: z}, r3.Vec{X: 1}, math.Pi/spurTeeth)
 	}
 	// The spline bore is cut last, after the half-tooth turn, so that its teeth line up with the shaft's grooves.
-	return b.splineCut(body, shaftAxis{r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}}, gearX-1, spurThick+2)
+	return b.splineCut(body, shaftAxis{r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}}, gearX-1, spurThick+2, tightFit)
 }
 
 // spurRootClearance deepens the root so a tip clears its mate's root by gearRootClearance plus the margin at center

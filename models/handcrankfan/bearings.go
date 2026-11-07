@@ -9,23 +9,21 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Shaft, bearing and spline dimensions in mm. Every shaft is 7.8 across, which is an 8 mm shaft with the model's usual 0.1
-// clearance, so it turns in a 608-2RS bearing (8 bore, 22 outside diameter, 7 wide). Each bearing sits in a round seat
-// 0.1 larger than its outside, 7.4 deep, behind a relief bore that frees the inner ring. Three grooves along the shaft
-// take three teeth in a gear's bore, so six faces carry the torque and the round shaft still slides through every bore.
+// Shaft, bearing and spline dimensions in mm. Every shaft is 7.5 across, a Tight fit (0.25) inside the 4.0 radius bore of
+// a 608-2RS bearing (8 bore, 22 outside diameter, 7 wide). Each bearing sits in a round seat 0.25 larger than its
+// outside radius, 7.4 deep, behind a relief bore that frees the inner ring. Three grooves along the shaft take three
+// teeth in a gear's bore, so six faces carry the torque and the round shaft still slides through every bore.
 const (
-	shaftRadius  = 3.9
-	seatRadius   = 11.1
+	shaftRadius  = splineBore - tightFit
+	seatRadius   = 11 + tightFit
 	seatDepth    = 7.4
 	reliefRadius = 9.5
 	reliefDepth  = 2.1
 	shaftHole    = 4.2 // the plain hole between two bearings
 
-	splineBore = 4.0 // a spline bore is 0.1 larger than the shaft
+	splineBore = 4.0 // the spur bores' radius, the reference the shaft is sized from
 	grooveFlor = 2.9 // radius of a groove's floor
 	grooveHalf = 1.0 // half the width of a groove
-	toothTip   = 3.0 // radius of a tooth's tip, 0.1 above the groove floor
-	toothHalf  = 0.9 // half the width of a tooth, 0.1 less than the groove's
 )
 
 // shaftAxis is one shaft's line. at(t) is the point t along it, and e1 and e2 span the plane across it.
@@ -56,11 +54,14 @@ func (b *builder) grooves(shaft *decad.Body, a shaftAxis, from, to float64) *dec
 	return shaft
 }
 
-// splineCut cuts a spline bore, a round bore with three teeth, from host between t = from and t = from + length.
-func (b *builder) splineCut(host *decad.Body, a shaftAxis, from, length float64) *decad.Body {
-	tool := b.cylinder(a.spokeFrame(from, 0), splineBore, length)
+// splineCut cuts a spline bore, a round bore with three teeth, from host between t = from and t = from + length. The
+// bore is clearance larger than the shaft, and each tooth clears its groove by clearance on the floor and on each side.
+func (b *builder) splineCut(host *decad.Body, a shaftAxis, from, length, clearance float64) *decad.Body {
+	bore := shaftRadius + clearance
+	tool := b.cylinder(a.spokeFrame(from, 0), bore, length)
 	for k := range 3 {
-		tool = b.cut(tool, b.panel(a.spokeFrame(from-1, k), toothTip, -toothHalf, splineBore+1, toothHalf, length+2))
+		tool = b.cut(tool, b.panel(a.spokeFrame(from-1, k), grooveFlor+clearance, -(grooveHalf-clearance), bore+1,
+			grooveHalf-clearance, length+2))
 	}
 	return b.cut(host, tool)
 }
@@ -121,16 +122,20 @@ type bearingSite struct {
 	holder string // the gearbox piece whose seat holds it
 }
 
+// bearingSetback is how far a bearing's open-side face sits inside its seat's mouth: the seat is seatDepth deep, the
+// bearing 7 wide and the floor gap tightFit.
+const bearingSetback = seatDepth - 7 - tightFit
+
 // bearingSites are the seven bearings: one in the post for each of the crank and drive shafts, one in the crank-side
 // wall for each of them, one in the crank block, and two for the fan shaft.
 var bearingSites = [...]bearingSite{
-	{"bearing-crank-post", crankSpline, boxLeftX + 0.3, "gearbox-post"},
-	{"bearing-drive-post", driveSpline, boxLeftX + 0.3, "gearbox-post"},
-	{"bearing-crank-wall", crankSpline, crankWallX + 0.3, "gearbox-crank-wall"},
-	{"bearing-drive-wall", driveSpline, crankWallX + 0.3, "gearbox-crank-wall"},
-	{"bearing-crank-block", crankSpline, crankFace - 7.3, "gearbox-crank-wall"},
-	{"bearing-fan-wall", fanSpline, -fanWallY + 0.3, "gearbox-fan-wall"},
-	{"bearing-fan-block", fanSpline, fanBlockFace - 7.3, "gearbox-fan-wall"},
+	{"bearing-crank-post", crankSpline, boxLeftX + bearingSetback, "gearbox-post"},
+	{"bearing-drive-post", driveSpline, boxLeftX + bearingSetback, "gearbox-post"},
+	{"bearing-crank-wall", crankSpline, crankWallX + bearingSetback, "gearbox-crank-wall"},
+	{"bearing-drive-wall", driveSpline, crankWallX + bearingSetback, "gearbox-crank-wall"},
+	{"bearing-crank-block", crankSpline, crankFace - 7 - bearingSetback, "gearbox-crank-wall"},
+	{"bearing-fan-wall", fanSpline, -fanWallY + bearingSetback, "gearbox-fan-wall"},
+	{"bearing-fan-block", fanSpline, fanBlockFace - 7 - bearingSetback, "gearbox-fan-wall"},
 }
 
 // bearings builds the purchased bearings.

@@ -11,12 +11,12 @@ import (
 )
 
 // Grip dimensions in mm. The grip is an oval loft raked 15° with its base toward the operator. Its top centre is
-// at X 7, Y -23.5, 0.1 below the gearbox floor so that the two parts do not touch before the screws are tightened.
+// at X 7, Y -23.5, a Tight fit (0.25) below the gearbox floor.
 const (
 	gripRake      = 15 * math.Pi / 180
-	gripMid       = 68.0           // height of the section centres' local origin
-	gripDrop      = boxFloor - 128 // the grip hangs from the lowered floor, so it is built 128 - boxFloor higher than it sits
-	gripScrewX    = 9.0            // the two screws sit this far to each side of the grip's centre
+	gripMid       = 68.0                        // height of the section centres' local origin
+	gripDrop      = boxFloor - tightFit - 127.9 // the grip hangs from the lowered floor, so its top, built at 127.9, sits tightFit under it
+	gripScrewX    = 9.0                         // the two screws sit this far to each side of the grip's centre
 	gripPilotLow  = 116.0
 	gripFitPoints = 25
 	gripFitGap    = 2 * math.Pi / 180 // the back of each section is closed by two short lines
@@ -131,9 +131,9 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 // screws and nuts straddle the seams and hold the pieces together.
 const (
 	wallThick    = 9.8
-	crankWallX   = drivingHeel + 0.2 // inner face of the crank-side wall, 0.2 from the driving gear's back face
-	fanWallY     = -pinionHeel - 0.2 // inner face of the fan-side wall, 0.2 from the pinion's back face
-	backWallY    = 29.2              // inner face of the back wall, 0.3 beyond the driving gear's reach
+	crankWallX   = drivingHeel + 0.4 // inner face of the crank-side wall, 0.4 from the driving gear's back face
+	fanWallY     = -pinionHeel - 0.4 // inner face of the fan-side wall, 0.4 from the pinion's back face
+	backWallY    = 29.4              // inner face of the back wall, 0.5 beyond the driving gear's reach
 	boxTop       = 190.0             // the top of every wall
 	boxBackY     = backWallY + wallThick
 	boxLeftX     = -20.0
@@ -141,16 +141,16 @@ const (
 	cavityFloor  = boxFloor + 5
 	blockHalf    = 15.0                                // the bearing blocks are 30 wide and as tall as the tray
 	fanBlock     = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
-	crankBlock   = 14.0                                // and the crank block this far from the crank-side wall's outer face
-	fanGap       = fanBlock + 10.5                     // from the fan-side wall's outer face to the hub
+	crankBlock   = 13.8                                // and the crank block this far from the crank-side wall's outer face
+	fanGap       = fanBlock + 10.3                     // from the fan-side wall's outer face to the hub
 	crankFace    = crankWallX + wallThick + crankBlock // the crank block's end face, X 45
 	fanBlockFace = -fanWallY + wallThick + fanBlock    // the fan block's end face, 65.5 behind the apex
-	gripY        = fanWallY + 8.2                      // the grip's centre sits this far behind the fan-side wall's inner face
+	gripY        = -23.5                               // the grip's centre, 8.4 behind the fan-side wall's inner face
 	gripX        = 7.0                                 // the grip's centre, under the tray
 
-	splitGap = 0.1 // each piece stops this far from its seam
-	earHalf  = 8.0 // an ear reaches this far to each side of its seam
-	earLen   = 8.0 // and sticks out this far from the tray
+	splitGap = tightFit / 2 // each piece stops this far from its seam, so two pieces are tightFit apart
+	earHalf  = 8.0          // an ear reaches this far to each side of its seam
+	earLen   = 8.0          // and sticks out this far from the tray
 	earBolt  = 12.0
 	earHole  = 1.3 // the ear screw's clearance hole, diameter 2.6
 
@@ -203,7 +203,7 @@ func (e gearboxEar) centre() r3.Vec {
 // on the wall's outer face for a screw head, so these seams need ears.
 var gearboxEars = [...]gearboxEar{
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, false, "gearbox-fan-wall", "gearbox-post"},
-	{r3.Vec{Y: 1}, fanWallY, 24.8, 31, false, "gearbox-fan-wall", "gearbox-crank-wall"},
+	{r3.Vec{Y: 1}, fanWallY, 25, 31.2, false, "gearbox-fan-wall", "gearbox-crank-wall"},
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, true, "gearbox-fan-wall", "gearbox-post"},
 	{r3.Vec{Y: 1}, fanWallY, 22, 30, true, "gearbox-fan-wall", "gearbox-crank-wall"},
 }

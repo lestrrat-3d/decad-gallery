@@ -7,6 +7,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 // axisHeight is the height of the apex above the table, in mm.
@@ -82,22 +83,39 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 	if b.err != nil {
 		return
 	}
-	switch motion {
-	case "crank":
-		body = b.turn(body, b.a.State.Crank, crankAxis, b.a.State.CrankAngle)
-	case "drive":
-		body = b.turn(body, b.a.State.Apex, driveAxis, b.a.State.CrankAngle)
-	case "fan":
-		body = b.turn(body, b.a.State.Apex, fanAxis, b.a.State.FanAngle)
-	}
-	if b.err != nil {
-		return
+	if motion != "fixed" {
+		xf, err := motionTransform(b.a.State, motion)
+		b.fail("create pose", err)
+		if b.err != nil {
+			return
+		}
+		body, err = decad.Transform(b.ctx, body, xf)
+		b.fail("pose body", err)
+		if b.err != nil {
+			return
+		}
 	}
 	if body == nil || !body.IsSolid() {
 		b.fail("record part", fmt.Errorf("construction did not return a solid"))
 		return
 	}
 	b.a.Parts = append(b.a.Parts, Part{Name: name, Group: group, Motion: motion, Body: body})
+}
+
+// motionTransform is the pose of a part of the given motion (fixed, crank, drive or fan) in state s. builder.part and
+// the tests pose through it, so both see the same placement.
+func motionTransform(s State, motion string) (r3.Transform, error) {
+	switch motion {
+	case "fixed":
+		return r3.Identity(), nil
+	case "crank":
+		return r3.RotationAround(s.Crank, crankAxis, units.Radians(s.CrankAngle))
+	case "drive":
+		return r3.RotationAround(s.Apex, driveAxis, units.Radians(s.CrankAngle))
+	case "fan":
+		return r3.RotationAround(s.Apex, fanAxis, units.Radians(s.FanAngle))
+	}
+	return r3.Transform{}, fmt.Errorf("unknown motion %q", motion)
 }
 
 // alongCrank is the plane at x whose normal is +X and whose coordinates are (y, z - crankHeight).

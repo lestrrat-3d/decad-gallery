@@ -97,6 +97,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	// Fits, fasteners and gear mesh are measured at the default parameters only: the other parameters turn parts
 	// rigidly about their own axes or repeat identical sockets.
 	if p == handcrankfan.DefaultParams() {
+		t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 		t.Run("mesh", func(t *testing.T) { requireSpurMesh(t, p, parts) })
 	}
 	// Decad plans the explosion from axis-aligned boxes, and the arm's box depends on the crank angle, so the stage order
@@ -142,7 +143,7 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	require.InDelta(t, -96, box["fan-hub"].Min.Y, tol, "the hub front face")
 	require.InDelta(t, -76, box["fan-hub"].Max.Y, tol, "the hub back face")
 	// Handheld: the grip hangs under the gearbox floor, is long enough for a hand, and has no stand around it.
-	require.InDelta(t, 101.4, box["handle"].Max.Z, tol, "the grip starts at the gearbox floor")
+	require.InDelta(t, 101.15, box["handle"].Max.Z, tol, "the grip starts just under the gearbox floor")
 	require.InDelta(t, 101.4, box["gearbox-base"].Min.Z, tol, "the floor is where the grip ends")
 	require.InDelta(t, 101.4-8, box["gearbox-fan-wall"].Min.Z, tol, "the fan-side wall's ears hang 8 below the floor, beside the grip")
 	require.Greater(t, box["handle"].Max.Z-box["handle"].Min.Z, 100.0, "the grip is long enough for a hand")
@@ -261,7 +262,7 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 func requireGrip(t *testing.T, parts map[string]handcrankfan.Part) {
 	mesh, err := parts["handle"].Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
 	require.NoError(t, err)
-	for _, want := range []struct{ z, width, length float64 }{{26 - 26.6, 31, 39}, {85 - 26.6, 34, 42.5}, {114 - 26.6, 31, 38}} {
+	for _, want := range []struct{ z, width, length float64 }{{26 - 26.75, 31, 39}, {85 - 26.75, 34, 42.5}, {114 - 26.75, 31, 38}} {
 		lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
 		for _, v := range mesh.Vertices() {
 			if math.Abs(v.Z-want.z) > 1e-6 {
@@ -272,12 +273,12 @@ func requireGrip(t *testing.T, parts map[string]handcrankfan.Part) {
 		}
 		require.InDelta(t, want.width, hi.X-lo.X, 0.3, "grip width at Z %g", want.z)
 		require.InDelta(t, want.length, hi.Y-lo.Y, 0.3, "grip length at Z %g", want.z)
-		// The grip hangs from the lowered floor: its heights are the table's minus 26.6.
-		rake := (want.z + 26.6 - 128) * math.Tan(15*math.Pi/180)
+		// The grip hangs from the lowered floor: its heights are the table's minus 26.75.
+		rake := (want.z + 26.75 - 128) * math.Tan(15*math.Pi/180)
 		require.InDelta(t, -23.5+rake, (lo.Y+hi.Y)/2, 0.5, "the grip is raked toward the operator at Z %g", want.z)
 	}
 	pin, grip := bounds(t, parts["crank-pin"]), bounds(t, parts["crank-grip"])
-	require.Less(t, pin.Max.X, grip.Max.X-0.5, "the pin head sits inside the handle's counterbore")
+	require.Less(t, pin.Max.X, grip.Max.X-0.3, "the pin head sits inside the handle's counterbore")
 }
 
 // requireNoOverlap checks every pair among the finished parts: no shared material and no undecided pair. It proves

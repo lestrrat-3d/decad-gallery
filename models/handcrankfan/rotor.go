@@ -18,12 +18,12 @@ const (
 	hubBack   = -(fanWallY - wallThick) + fanGap
 	hubMid    = hubBack + hubLength/2
 
-	fanTip       = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
-	studRadius   = 3.0  // the blade's root stud
-	studStart    = 6.0  // radius of the stud's inner end
-	studEnd      = 16.0 // radius of its outer end, inside the blade's root
-	socketRadius = 3.15 // 0.15 sliding clearance around the stud
-	socketStart  = 5.6  // radius of the socket floor
+	fanTip       = 26.0                    // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
+	studRadius   = 3.0                     // the blade's root stud
+	studStart    = 6.0                     // radius of the stud's inner end
+	studEnd      = 16.0                    // radius of its outer end, inside the blade's root
+	socketRadius = studRadius + regularFit // a Regular fit around the stud
+	socketStart  = 5.6                     // radius of the socket floor
 )
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
@@ -60,7 +60,7 @@ const (
 type station struct{ r, chord, ratio, camber, ellipse float64 }
 
 var stations = [...]station{
-	{14.3, 8.0, 1.00, 0.000, 1.00},
+	{14.4, 8.0, 1.00, 0.000, 1.00},
 	{16.3, 8.0, 1.00, 0.000, 1.00},
 	{19.0, 11.5, 0.60, 0.010, 0.60},
 	{21.5, 15.5, 0.38, 0.025, 0.25},
@@ -87,7 +87,7 @@ func (b *builder) fan() {
 		// bearings. The collar sits between the front bearing and the hub.
 		shaft = b.grooves(shaft, fanSpline, fanTip-1, -fanWallY+0.3)
 		shaft = b.grooves(shaft, fanSpline, hubBack-1, hubBack+hubLength+5)
-		return b.union(shaft, b.cylinder(alongMinusY(-(fanBlockFace-0.2)), 6, hubBack-0.1-(fanBlockFace-0.2)))
+		return b.union(shaft, b.cylinder(alongMinusY(-(fanBlockFace+0.1)), 6, hubBack-tightFit-(fanBlockFace+0.1)))
 	})
 	b.part("fan-hub", "rotor", "fan", b.hub)
 	var blades, bolts []*decad.Body
@@ -148,7 +148,7 @@ func (b *builder) hub() *decad.Body {
 		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), holeRadius)
 	}
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
-	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2)
+	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, tightFit)
 	front := -(hubBack + hubLength)
 	// The socket is a plain round hole. It is 6.3 across, small enough to print on its side without support.
 	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),

@@ -8,17 +8,16 @@ import (
 )
 
 // Crank dimensions in mm. The arm, the pin and the shaft meet in hexagonal stubs, which pass the torque through six
-// faces, and the pin's stub is also clamped by one M2 x 10 screw and nut. Every joint keeps a gap of 0.1 to 0.2 mm, as the joint looks just before it is tightened, because
-// Decad cannot decide a pair of parts whose faces touch.
+// faces, and the pin's stub is also clamped by one M2 x 10 screw and nut. Every joint keeps a gap of its fit class (fits.go).
 const (
 	crankThrow      = 55.0 // distance from the crank axis to the pin
 	armRadius       = 10.0 // the arm is a stadium 20 wide
 	armThick        = 8.0
 	armStart        = crankFace + 4 // X of the arm's inner face
-	handleStart     = crankFace + 12.2
+	handleStart     = crankFace + 12 + regularFit
 	handleLength    = 50.0 // a handle for the thumb, index and middle fingers
 	gripCounterbore = 3.8  // depth of the pin head's counterbore at the handle's outer end
-	pinHeadStart    = handleStart + handleLength - gripCounterbore + 0.2
+	pinHeadStart    = handleStart + handleLength - gripCounterbore + regularFit
 	stubFlats       = 6.9282 // the pin's hexagonal stub is 8 across corners
 )
 
@@ -50,7 +49,7 @@ func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
 // hexagonal stub for the arm. The collar and the arm, which sits against the block's end, hold it. The flats are cut
 // from the bare shaft before the collar joins it, because Decad refuses to cut after the union.
 func (b *builder) crankShaft() *decad.Body {
-	return b.shaftWithCollar(crankHeight, crankFace+9.8, func(shaft *decad.Body) *decad.Body {
+	return b.shaftWithCollar(crankHeight, crankFace+10-tightFit, func(shaft *decad.Body) *decad.Body {
 		// The grooves run from the crank gear to the end, so the gear and the arm slide on over the round shaft.
 		return b.grooves(shaft, crankSpline, -10, crankFace+11)
 	})
@@ -74,18 +73,18 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, 1.2), 1.2))
 	}
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
-	// The shaft's hexagonal stub is a tight fit in this bore: the bore is 0.1 larger than the stub on every flat, the gap every joint
-	// of the model keeps before it is tightened, and the printed bore is made to grip the stub.
-	arm = b.splineCut(arm, crankSpline, crankFace+3, 7)
-	return b.cut(arm, b.hexagon(alongPin(crankFace+6), stubFlats+0.2, 7))
+	// The shaft's splined end is a Tight fit in this bore and the bore's floor stands tightFit from the shaft's end. The
+	// pin's stub has the same gap on every flat and at its end.
+	arm = b.splineCut(arm, crankSpline, crankFace+3, 7, tightFit)
+	return b.cut(arm, b.hexagon(alongPin(crankFace+7), stubFlats+2*tightFit, 6))
 }
 
 // crankPin builds the pin: a hexagonal stub with a nut slot and screw hole, a round shank for the handle and a head
 // that sits in the handle's counterbore. The handle slides on over the stub, so nothing on the pin is wider than its
 // bore except the head.
 func (b *builder) crankPin() *decad.Body {
-	stub := b.hexagon(alongPin(crankFace+6.2), stubFlats, 6.3)
-	shank := b.cylinder(alongPin(crankFace+12.1), 4.5, pinHeadStart+0.4-(crankFace+12.1))
+	stub := b.hexagon(alongPin(crankFace+7+tightFit), stubFlats, 5.3)
+	shank := b.cylinder(alongPin(crankFace+12+tightFit), 4.5, pinHeadStart+0.4-(crankFace+12+tightFit))
 	head := b.cylinder(alongPin(pinHeadStart), 5.8, 3)
 	pin := b.union(stub, shank, head)
 	pin = b.cut(pin, b.slot(alongPin(crankFace+8), -2.5, 4.5))
@@ -97,8 +96,8 @@ func (b *builder) crankPin() *decad.Body {
 // cut by a small chamfer, because a chamfered handle is made of cones and cylinders that Decad can decide against
 // the pin, and a handle with fillets is not.
 var handleProfile = [...][2]float64{
-	{0.5, 4.7}, {46.2, 4.7}, {46.2, 6.4}, {49.5, 6.4}, {50, 6.9}, {50, 8.3}, {48.8, 9.3},
-	{43, 8}, {36, 7.25}, {22, 8}, {8, 7.8}, {1.2, 7.2}, {0, 6}, {0, 5.2},
+	{0.5, 4.9}, {46.2, 4.9}, {46.2, 6.4}, {49.5, 6.4}, {50, 6.9}, {50, 8.3}, {48.8, 9.3},
+	{43, 8}, {36, 7.25}, {22, 8}, {8, 7.8}, {1.2, 7.2}, {0, 6}, {0, 5.4},
 }
 
 // crankGrip builds the handle by revolving its meridian about the pin axis. Every vertex of the meridian is
