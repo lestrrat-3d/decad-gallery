@@ -64,6 +64,20 @@ func (b *builder) flyerLift() lift {
 	return b.tilted(b.liftOf(b.headFrame(0, b.a.State.FlyerAngle)))
 }
 
+// flyerLocal is the flyer lift's local point for the flyer point v: flyer point (x, y, z) lies at local (x, z, -y).
+func flyerLocal(v r3.Vec) r3.Vec { return r3.Vec{X: v.X, Y: v.Z, Z: -v.Y} }
+
+// copyOnLift copies body by the lift-local move from -> to (decad.WithCopyLiftTranslation). The copy's
+// pieces keep l exactly, so Verify reads them against seats sketched on l.
+func (b *builder) copyOnLift(body *decad.Body, l lift, from, to r3.Vec) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	copied, err := decad.Copy(b.ctx, body, decad.WithCopyLiftTranslation(l.xf, from, to))
+	b.fail("copy on group lift", err)
+	return copied
+}
+
 // level is the local plane through (x, y, z) with the lift's own axes, so a
 // body sketched on it extrudes along the lift's local Z.
 func level(x, y, z float64) r3.Frame {

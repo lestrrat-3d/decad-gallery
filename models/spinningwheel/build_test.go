@@ -1,6 +1,7 @@
 package spinningwheel_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -134,6 +135,7 @@ func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
 	requireFlyerSweptClearances(t, a)
 	requireDriveBandFrameClearances(t, a)
 	requireBrakeSpringsFromOneCoil(t, doc, a)
+	requireYarnHooksFromOneMaster(t, doc, a)
 	t.Logf("verified %d final bodies and %d sketches", len(a.Parts), len(a.Sketches))
 }
 
@@ -166,6 +168,34 @@ func requireBrakeSpringsFromOneCoil(t *testing.T, doc *decad.Document, a *spinni
 		_, ok := found[coil]
 		require.True(t, ok, "%s must come from the build's native Coil", name)
 		require.Equal(t, test.copied, copied, "%s copy step", name)
+	}
+}
+
+// requireYarnHooksFromOneMaster checks that the first ordinary yarn hook and the active hook are built
+// directly and each of the other ten ordinary hooks is a Copy of the first, and that exactly ten Copy
+// operations take yarn-hook-1 as their source.
+func requireYarnHooksFromOneMaster(t *testing.T, doc *decad.Document, a *spinningwheel.Assembly) {
+	t.Helper()
+	history := doc.OperationHistory()
+	master := wheelPart(t, a, "yarn-hook-1")
+	copies := 0
+	for _, op := range history.Operations() {
+		if op.Kind() == decad.OperationCopy && len(op.Inputs()) == 1 && op.Inputs()[0].Body == master {
+			copies++
+		}
+	}
+	require.Equal(t, 10, copies, "ten yarn hook copies")
+	for i := 1; i <= 12; i++ {
+		name := fmt.Sprintf("yarn-hook-%d", i)
+		op, err := history.Producer(wheelPart(t, a, name))
+		require.NoError(t, err, name)
+		if i == 1 || i == 9 {
+			require.NotEqual(t, decad.OperationCopy, op.Kind(), "%s is built directly", name)
+			continue
+		}
+		require.Equal(t, decad.OperationCopy, op.Kind(), "%s must be a copy", name)
+		require.Len(t, op.Inputs(), 1, name)
+		require.Same(t, master, op.Inputs()[0].Body, "%s must copy yarn-hook-1", name)
 	}
 }
 
