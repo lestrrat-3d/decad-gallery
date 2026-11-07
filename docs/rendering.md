@@ -32,6 +32,9 @@ The readme shot also writes `605zz.png` at 1600 × 900.
 The `head`, `side`, `underside` and `lengths` presets show other angles and all six standard lengths.
 The `readme` shot writes all of them.
 
+`m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
+The `readme` shot writes all of them.
+
 From the repository root, regenerate the spur gear hero image with:
 
 ```sh
