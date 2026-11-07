@@ -63,6 +63,21 @@ with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the
 repository layout check after a push.
 
+### Part clearances
+
+Choose the clearance for each distinct part fit by its intended feel:
+
+| Fit | Intended feel | Minimum surface-to-surface clearance |
+|---|---|---:|
+| Tight | Not intended to be removable | 0.2 mm |
+| Regular | Some leeway, but not loose | 0.35 mm |
+| Loose | Loose fit | 0.5 mm |
+
+Do not use zero-clearance or overlapping fits between separate parts. Measure
+the placed parts in the assembled geometry and require the proven lower bound
+to meet the selected minimum. Include geometry and measurement uncertainty in
+that bound. Check every parameter case that changes the fit.
+
 Start with the smallest real case, using the generated candidate staged in
 the actual package. If it fails at a Sketch or Decad boundary, stop adding
 cases and hand off the blocker. Resume only when the gallery's real build

@@ -30,6 +30,7 @@
 
 ## Verification
 
+- Apply [Part clearances](docs/model-pipeline.md#part-clearances) to every modeled part fit.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
