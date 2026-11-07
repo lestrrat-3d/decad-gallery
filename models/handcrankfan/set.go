@@ -12,10 +12,11 @@ import (
 
 // hardware is the bought part each hardware group member is, which the bill of materials counts.
 var hardwareSpec = map[string]string{
-	"handle-bolt":  "M2 x 16 screw, self-tapping",
-	"gearbox-bolt": "M2 x 12 screw and M2 nut",
-	"crank-pin":    "M2 x 10 screw and M2 nut",
-	"fan-bolt":     "M2 x 16 screw and M2 nut",
+	"handle-bolt":   "M2 x 16 screw, self-tapping",
+	"gearbox-bolt":  "M2 x 12 screw and M2 nut",
+	"gearbox-screw": "M2 x 16 screw, self-tapping",
+	"crank-pin":     "M2 x 10 screw and M2 nut",
+	"fan-bolt":      "M2 x 16 screw and M2 nut",
 }
 
 // Set returns the assembly as a parts.Set over doc, which must be the document Build used: every part with its
@@ -100,6 +101,14 @@ func (a *Assembly) joints() []parts.Joint {
 		js[len(js)-1].Pull = e.dir.Scale(-1)
 		add(fmt.Sprintf("ear screw %d in %s", i+1, e.nut), screw, e.nut, axis, parts.Fixed)
 	}
+	// Each wall screw's head is in the post's or the crank-side wall's outer face, and it screws into the base.
+	for i, w := range wallScrews {
+		axis := parts.Axis{Point: w.at(w.seam), Dir: w.dir}
+		screw := fmt.Sprintf("gearbox-screw-%d", i+1)
+		add(fmt.Sprintf("wall screw %d in %s", i+1, w.head), screw, w.head, axis, parts.Fixed)
+		js[len(js)-1].Pull = w.dir.Scale(-1)
+		add(fmt.Sprintf("wall screw %d in %s", i+1, w.recv), screw, w.recv, axis, parts.Fixed)
+	}
 	for k := 0; k < a.Params.Blades; k++ {
 		theta := a.State.FanAngle + 2*math.Pi*float64(k)/float64(a.Params.Blades)
 		radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
@@ -114,7 +123,7 @@ func (a *Assembly) joints() []parts.Joint {
 }
 
 // Explode pulls the assembly apart with parts.Set.Explode, which reads each part's pull direction from its joint.
-// set must be this assembly's Set. The base of the gearbox stays put. The eight ear screws come out on their heads' sides first, then the post and the fan-side wall go toward -X and the crank-side wall toward +X. The crank comes apart along +X first: the arm and the pin
+// set must be this assembly's Set. The base of the gearbox stays put. The four ear bolts come out toward -Y and the four wall screws on their heads' sides first, then the post and the fan-side wall go toward -X and the crank-side wall toward +X. The crank comes apart along +X first: the arm and the pin
 // screw, then the handle, which slides onto the pin's stub end and so goes between the arm and the pin, then the pin
 // and the pin screw. Both shafts then slide out to the left, through the post. The pinion slides off to the left, the
 // grip screws, the crank gear, the drive gear and the driving gear lift out of the open top in that order, and the grip
@@ -126,10 +135,9 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		return parts.Stage{Name: name, Parts: names, Clear: parts.ClearAll, Direction: direction}
 	}
 	return set.Explode(ctx, parts.WithExplodeGround("gearbox-base"), parts.WithExplodeStages(
-		stage("fan-side ear screws", r3.Vec{Y: -1}, "gearbox-bolt-1", "gearbox-bolt-2", "gearbox-bolt-3", "gearbox-bolt-4"),
-		stage("post ear screws", left, "gearbox-bolt-5", "gearbox-bolt-6"),
-		stage("crank-side lower ear screw", left, "gearbox-bolt-7"),
-		stage("crank-side upper ear screw", along, "gearbox-bolt-8"),
+		stage("ear bolts", r3.Vec{Y: -1}, "gearbox-bolt-1", "gearbox-bolt-2", "gearbox-bolt-3", "gearbox-bolt-4"),
+		stage("post screws", left, "gearbox-screw-1", "gearbox-screw-2"),
+		stage("crank-side wall screws", along, "gearbox-screw-3", "gearbox-screw-4"),
 		parts.Stage{Name: "arm", Parts: []string{"crank-arm"}, Direction: along},
 		stage("handle", along, "crank-grip"),
 		stage("pin", along, "crank-pin"),

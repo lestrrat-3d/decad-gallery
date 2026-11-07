@@ -115,7 +115,7 @@ pinion heel is `Module*28/2 + Module*14/8`.
   Y -23.5 with its head 2.0 high on the floor's top face (0.1 above it) and a shank of radius 0.8, which is the
   thread root, down into the pilot. They cut their own thread in the printed pilot. Each is one plain body.
 - Gearbox, four parts: a tray with rounded edges, a back wall, a post across its whole left end, open at the top, three
-  bearing blocks and eight ears, cut at the walls. Its floor sits low enough for the crank gear to turn above it, so
+  bearing blocks and four ears, cut at the walls. Its floor sits low enough for the crank gear to turn above it, so
   the spur pair lives in the tray and the grip hangs from the lowered floor. A bearing sits wherever a shaft crosses a
   wall (see Shafts, bearings and splines), so it has no boss or sleeve. The solid is built whole, then copied and cut
   into `gearbox-base`, `gearbox-post`, `gearbox-crank-wall` and `gearbox-fan-wall`, each 0.1 short of its seams:
@@ -142,14 +142,16 @@ pinion heel is `Module*28/2 + Module*14/8`.
     3, from 1 inside the fan-side wall to Y -65.5, with its end face rounded with radius 2.
   - Crank bearing block: the same square (Y [-15, 15], Z [101.4, 190]) from 1 inside the crank-side wall to X 45, 14
     long beyond the wall, with its end face rounded with radius 2.
-  - Ears: boxes 16 long along their screw and 8 wide that stick out 8 from the tray, each straddling a seam. The
-    fan-side wall's seam has four, at X [-19, -11] and X [24.8, 31] (the two outer ones clear of the grip), each pair
-    under the floor and on the top of the wall: the screws run along Y. The post's seam (X -10.2) has two, at Y [4, 12]
-    under the floor and Y [30.1, 38.1] on the back wall's top, and the crank-side wall's seam (X 21.2) has two, at Y [14, 22]
-    under the floor and Y [30.1, 38.1] on the back wall's top: those screws run along X. Each has a hole of diameter 2.6, a
-    counterbore of radius 2.15 and 2.2 deep for the screw's head on one side of the seam, and a hex trap of 4.3 across
-    flats and 4.0 deep for the nut on the other, whose corners lie on Z. The heads are on the fan-side wall's, the
-    post's and the crank-side wall's upper ear, and on the base's side for the crank-side wall's lower ear.
+  - Ears: four boxes 16 long along Y and 8 wide that stick out 8 from the tray, each straddling the fan-side wall's seam
+    (Y -31.7): at X [-19, -11] and X [24.8, 31], one pair under the floor (the outer pair clear of the grip) and one
+    pair on the top of the wall. The fan block leaves no room for a screw head on the wall's outer face, so these need
+    ears. Each has a hole of diameter 2.6 along Y, a counterbore of radius 2.15 and 2.2 deep for the bolt's head on the
+    fan-side wall's side, and a hex trap of 4.3 across flats and 4.0 deep for the nut on the other side, whose corners
+    lie on Z.
+  - Wall screws: the post and the crank-side wall need no ears. Each has two round recesses of radius 2.15 and 2.2 deep
+    for screw heads in its outer face (X -20, and X 31), at Y 34.1 (the middle of the back wall) and Z 112 and 185,
+    with a hole of diameter 2.6 through the wall to the seam, and in the end of the base's back wall (X -10.2, and
+    X 21.2) a pilot of diameter 1.8 and 9.5 deep along the same line.
   - Seats: a bearing seat is a pocket of radius 11.1 and 7.4 deep, with a relief behind its floor, so the floor holds
     only the bearing's outer ring. There is one in the post's outer face (X -20) on each of the drive axis (Z 170) and the
     crank axis (Z 129.6), one in the crank-side wall's inner face (X 21.2) on each of them, one in the crank block's end
@@ -159,9 +161,12 @@ pinion heel is `Module*28/2 + Module*14/8`.
     radius 9.5 and 2.1 deep for the post's seats and the blocks' seats, and a 45° cone from radius 9.5 down to radius 4.2
     for the seats in the walls' inner faces, which open onto the bed: their ledge for the bearing is 1.6 wide.
   - Two holes of diameter 2.4 through the floor at X -2 and X 16, Y -23.5, for the grip screws.
-- `gearbox-bolt-1` .. `gearbox-bolt-8`, group `hardware`: eight M2 x 12 screws with nuts, one plain body each, one in each
+- `gearbox-bolt-1` .. `gearbox-bolt-4`, group `hardware`: four M2 x 12 screws with nuts, one plain body each, one in each
   ear. The head sits 0.1 above its counterbore's floor, the shank runs through the ear, and the nut sits 0.2 above its
-  trap's floor, so a screw joins the two pieces on either side of its seam.
+  trap's floor, so a bolt joins the fan-side wall to the post or the crank-side wall.
+- `gearbox-screw-1` .. `gearbox-screw-4`, group `hardware`: four M2 x 16 self-tapping screws, one plain body each, with a
+  head 2.0 high 0.1 above its recess's floor and a shank of radius 0.8, which is the thread root, down into the pilot, as the
+  grip's screws are. Two join the post to the base and two the crank-side wall.
 
 ### Shafts, bearings and splines
 
@@ -300,7 +305,7 @@ a printed fit and may need a drill or a test print first.
 `Assembly.Set(doc)` returns a `parts.Set` (Decad's `parts` package) over the build's document. The printed parts
 are `Manufactured` in PLA, and the screws and nuts (`handle-bolt-*`, `crank-pin-bolt`, `fan-bolt-*`) and the
 bearings are `Purchased` steel, grouped by `Spec` for the bill of materials: M2 x 16 self-tapping screws for the grip,
-M2 x 10 screws with nuts for the crank, M2 x 12 screws with nuts for the gearbox, M2 x 16 screws with nuts for the blades and seven 608-2RS ball bearings. Every joint is a `PinInBore`, with its axis
+M2 x 10 screws with nuts for the crank, M2 x 12 screws with nuts for the gearbox's ears, M2 x 16 self-tapping screws for its walls, M2 x 16 screws with nuts for the blades and seven 608-2RS ball bearings. Every joint is a `PinInBore`, with its axis
 stated in the posed coordinates, because the faceted bores cannot state it:
 
 - each shaft in each of its bearings (turns) and each bearing in the gearbox;
@@ -308,14 +313,14 @@ stated in the posed coordinates, because the faceted bores cannot state it:
 - the drive shaft in the drive gear and in the driving gear;
 - the fan shaft in the pinion and in the hub, each blade's stud in the hub, and each blade bolt
   in the hub and in its blade;
-- each grip screw in the floor and in the grip, and each ear screw in the two pieces it joins.
+- each grip screw in the floor and in the grip, and each ear bolt and each wall screw in the two pieces it joins.
 
 `Assembly.Explode(ctx, set)` runs `Set.Explode` with the gearbox's base as the ground. The pin screw's joint declares a pull
 toward the shaft, because its head is on the arm's inner face. Decad plans the explosion from boxes, which makes nested
 parts jump over each other, so the order and the directions of the lifts are the result of a search that leaves no two
 parts sharing space at the default pose and keeps the largest move shortest. The stages run in this order:
 
-1. the eight ear screws, each toward its head's side;
+1. the four ear bolts (-Y), then the two screws of the post (-X) and the two of the crank-side wall (+X);
 2. the arm (+X), the handle and the pin (+X): the handle slides over the pin's stub end, so along the
    crank axis the arm, the handle and the pin follow in that order with gaps between them; the pin screw goes toward -X;
 3. the drive shaft and the crank shaft, which slide out to the left through the post;
@@ -333,7 +338,7 @@ checked at the default pose only: Decad's boxes depend on the crank angle.
 
 Build every part at `CrankAngle = 0`. Then turn each `crank` part about the line along -X through `State.Crank` by
 `CrankAngle`, each `drive` part about the line through the apex along +X by `CrankAngle`, and each `fan` part about
-the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, the ear screws and the handle do not move.
+the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, their bolts and screws and the handle do not move.
 
 ## Verification
 

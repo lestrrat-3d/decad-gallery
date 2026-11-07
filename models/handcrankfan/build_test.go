@@ -18,7 +18,7 @@ import (
 func partNames(blades int) []string {
 	names := []string{
 		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "gearbox-bolt-1", "gearbox-bolt-2",
-		"gearbox-bolt-3", "gearbox-bolt-4", "gearbox-bolt-5", "gearbox-bolt-6", "gearbox-bolt-7", "gearbox-bolt-8", "driving-gear", "crank-shaft", "crank-arm",
+		"gearbox-bolt-3", "gearbox-bolt-4", "gearbox-screw-1", "gearbox-screw-2", "gearbox-screw-3", "gearbox-screw-4", "driving-gear", "crank-shaft", "crank-arm",
 		"crank-pin", "crank-grip", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
 		"drive-shaft", "drive-gear", "crank-gear", "bearing-crank-post", "bearing-drive-post", "bearing-crank-wall",
 		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
@@ -43,7 +43,7 @@ func isFinished(name string) bool {
 	if strings.HasPrefix(name, "bearing-") {
 		return true
 	}
-	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "gearbox-bolt-")
+	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "gearbox-bolt-") || strings.HasPrefix(name, "gearbox-screw-")
 }
 
 func buildFan(t *testing.T, p handcrankfan.Params) (*decad.Document, map[string]handcrankfan.Part, *handcrankfan.Assembly) {
@@ -138,7 +138,8 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	require.InDelta(t, -76, box["fan-hub"].Max.Y, tol, "the hub back face")
 	// Handheld: the grip hangs under the gearbox floor, is long enough for a hand, and has no stand around it.
 	require.InDelta(t, 101.4, box["handle"].Max.Z, tol, "the grip starts at the gearbox floor")
-	require.InDelta(t, 101.4-8, box["gearbox-base"].Min.Z, tol, "the ears hang 8 below the floor, beside the grip")
+	require.InDelta(t, 101.4, box["gearbox-base"].Min.Z, tol, "the floor is where the grip ends")
+	require.InDelta(t, 101.4-8, box["gearbox-fan-wall"].Min.Z, tol, "the fan-side wall's ears hang 8 below the floor, beside the grip")
 	require.Greater(t, box["handle"].Max.Z-box["handle"].Min.Z, 100.0, "the grip is long enough for a hand")
 	for name, b := range box {
 		require.GreaterOrEqual(t, b.Min.Z, box["handle"].Min.Z-tol, "%s hangs below the grip end", name)
@@ -355,7 +356,7 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 8+2+1+a.Params.Blades, screws, "eight ear screws, two grip screws, the pin screw and one screw for each blade")
+	require.Equal(t, 8+2+1+a.Params.Blades, screws, "four ear bolts, four wall screws, two grip screws, the pin screw and one screw for each blade")
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 

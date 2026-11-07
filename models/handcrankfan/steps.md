@@ -63,7 +63,7 @@ thick, which puts it at Z 101.4.
    corners of radius 3, extruded 25, with its end cap rounded with radius 2. Crank block: on the frame origin `(30, 0, 0)`,
    U = +Y, V = +Z (normal +X): the same outline in (Y, Z), extruded 15, with its end cap rounded with radius 2. Each ear is a
    panel on the frame origin at the seam minus 8 along its screw, 16 long, over its range across the screw and its Z range
-   (under the floor, Z 93.4 to 102.4, or on the top, Z 189 to 198). `Union` the body, the two blocks and the eight ears.
+   (under the floor, Z 93.4 to 102.4, or on the top, Z 189 to 198). `Union` the body, the two blocks and the four ears.
 5. Seats and holes, by `b.seat(host, axis, pocketFrom, pocketTo, reliefFrom, reliefTo)`, which `Cut`s a cylinder of radius
    11.1 between the first two stations along the shaft and one of radius 9.5 between the last two. Stations run along
    the crank and drive shafts by X and along the fan shaft by the distance behind the apex. The post's seat on the drive
@@ -75,13 +75,16 @@ thick, which puts it at Z 101.4.
    35.7 and the block's seat from 37.6 to 46 with its relief from 35.6 to 37.7. On the fan axis a hole of radius 4.2 runs
    from 44.3 to 56.2 and the block's seat from 58.1 to 66.5 with its relief from 56.1 to 58.2. Two cylinders of radius 1.2 on
    the planes Z = 100.4, length 8, at (X -2, Y -23.5) and (X 16, Y -23.5). Each ear gets a through hole of radius 1.3, a
-   counterbore of radius 2.15 and a hexagon trap of 4.3 across flats, along its screw, with the trap's corners on Z.
+   counterbore of radius 2.15 and a hexagon trap of 4.3 across flats, along its bolt, with the trap's corners on Z. Each of the four
+   wall screws gets a counterbore of radius 2.15 in the wall's outer face, a hole of radius 1.3 through the wall and a pilot of
+   radius 0.9 and 9.5 deep into the base's back wall end, along X at Y 34.1 and Z 112 or 185.
 6. Cut: `decad.Copy` the finished solid three times. Each piece is a copy with `Cut` slabs removed (`b.slab`): the fan-side wall
    is the original less everything at Y >= -31.8, the post a copy less Y <= -31.6 and X >= -10.3, the crank-side wall a copy
    less Y <= -31.6 and X <= 21.3, and the base a copy less Y <= -31.6, X <= -10.1 and X >= 21.1. They are `gearbox-fan-wall`,
    `gearbox-post`, `gearbox-crank-wall` and `gearbox-base`, group `housing`, motion `fixed`.
-7. `gearbox-bolt-1` .. `gearbox-bolt-8`: a screw body each (below) with its head's bearing face 0.1 short of its counterbore,
+7. `gearbox-bolt-1` .. `gearbox-bolt-4`: a screw body each (below) with its head's bearing face 0.1 short of its counterbore,
    pointing from the head to the nut, nut corners on Z, length 12, shank radius 1.0, at the ears' hole axes.
+   `gearbox-screw-1` .. `gearbox-screw-4`: the same screw body with no nut, length 16, shank radius 0.8, at the wall screws' axes.
 
 The walls are 9.8 thick and each shaft crosses a wall in a bearing seat, so nothing round sticks out of the housing. A
 boss or a sleeve would be a horizontal cylinder that needs support when printed. Cutting the tray at the walls lets each
@@ -190,7 +193,7 @@ parallel to the fan axis at 9.5 along the blade, and each grip screw's vertical 
 `Assembly.Explode`: `Set.Explode` with `WithExplodeGround("gearbox-base")` and `WithExplodeStages`, each stage `ClearAll` along a
 direction. Decad plans from boxes, which makes nested parts jump over each other, so the order and the directions of
 the lifts come from a search over the order of the pinion, the grip screws and the three gears and over the directions
-of the driving gear and the pinion, scored on no overlap and the shortest largest move. The order is: three stages of ear screws (the fan-side wall's toward -Y, the post's and the crank-side wall's lower one toward -X, the crank-side wall's upper one toward +X), `arm` (+X, the
+of the driving gear and the pinion, scored on no overlap and the shortest largest move. The order is: `ear bolts` (-Y), `post screws` (-X) and `crank-side wall screws` (+X), `arm` (+X, the
 default clearing), `handle`, `pin` (+X), `pin screw` (-X), `drive shaft` and `crank shaft` (-X), `pinion`
 (-X), `grip screws` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `crank block bearing` (+X), `wall bearings` and
 `post bearings` (-X), `fan wall bearing` (+Y), `fan block bearing` (-Y), `post` (-X), `crank-side wall` (+X), `fan-side wall` (-X) and `grip` (-Z).

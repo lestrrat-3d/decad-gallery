@@ -153,6 +153,10 @@ const (
 	earLen   = 8.0 // and sticks out this far from the tray
 	earBolt  = 12.0
 	earHole  = 1.3 // the ear screw's clearance hole, diameter 2.6
+
+	wallScrewLength = 16.0 // an M2 x 16 self-tapping screw, as the grip's
+	pilotRadius     = 0.9  // and its pilot, the grip screws' too
+	pilotDepth      = 9.5
 )
 
 // gearboxEar is one ear: a box that straddles a seam and carries one M2 screw along dir, from its head to its nut.
@@ -194,19 +198,38 @@ func (e gearboxEar) centre() r3.Vec {
 	return r3.Vec{X: lat, Y: e.seam, Z: z}
 }
 
-// gearboxEars are the eight ears. The fan-side wall's four sit on its seam with the post and the crank-side wall, at the
-// corners, with the bottom two clear of the grip. The post's two and the crank-side wall's two sit behind the shafts, one
-// under the floor and one on the back wall's top, clear of the grip, the gears and the crank.
+// gearboxEars are the four ears. They sit on the fan-side wall's seams with the post and the crank-side wall, at the
+// corners, two under the floor and two on the wall tops, the lower two clear of the grip. The fan block leaves no room
+// on the wall's outer face for a screw head, so these seams need ears.
 var gearboxEars = [...]gearboxEar{
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, false, "gearbox-fan-wall", "gearbox-post"},
 	{r3.Vec{Y: 1}, fanWallY, 24.8, 31, false, "gearbox-fan-wall", "gearbox-crank-wall"},
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, true, "gearbox-fan-wall", "gearbox-post"},
 	{r3.Vec{Y: 1}, fanWallY, 22, 30, true, "gearbox-fan-wall", "gearbox-crank-wall"},
-	{r3.Vec{X: 1}, postFace, 4, 12, false, "gearbox-post", "gearbox-base"},
-	{r3.Vec{X: 1}, postFace, 30.1, 38.1, true, "gearbox-post", "gearbox-base"},
-	{r3.Vec{X: 1}, crankWallX, 14, 22, false, "gearbox-base", "gearbox-crank-wall"},
-	{r3.Vec{X: -1}, crankWallX, 30.1, 38.1, true, "gearbox-crank-wall", "gearbox-base"},
 }
+
+// wallScrew is one M2 x 16 self-tapping screw that joins the post or the crank-side wall to the base. Its head sits in
+// a round recess in the wall's outer face, at face along dir; it passes through the wall and screws into the end of the
+// base's back wall at seam. No ear is needed, because that end is 9.8 thick.
+type wallScrew struct {
+	dir        r3.Vec
+	face, seam float64
+	z          float64
+	head, recv string
+}
+
+// wallScrewY is where the screws meet the back wall, in its middle.
+const wallScrewY = (backWallY + boxBackY) / 2
+
+var wallScrews = [...]wallScrew{
+	{r3.Vec{X: 1}, boxLeftX, postFace, 112, "gearbox-post", "gearbox-base"},
+	{r3.Vec{X: 1}, boxLeftX, postFace, 185, "gearbox-post", "gearbox-base"},
+	{r3.Vec{X: -1}, crankWallX + wallThick, crankWallX, 112, "gearbox-crank-wall", "gearbox-base"},
+	{r3.Vec{X: -1}, crankWallX + wallThick, crankWallX, 185, "gearbox-crank-wall", "gearbox-base"},
+}
+
+// at is the point on the screw's line where its coordinate along dir is x.
+func (w wallScrew) at(x float64) r3.Vec { return r3.Vec{X: x, Y: wallScrewY, Z: w.z} }
 
 // slab removes the box that covers the coordinate range [lo, hi] along X (axis 0) or Y (axis 1) and everything else
 // in the tray's range.
@@ -248,6 +271,11 @@ func (b *builder) gearbox() {
 		b.part(fmt.Sprintf("gearbox-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
 			c := e.centre().Add(e.dir.Scale(-earHalf + counterboreDepth - hardwareGap))
 			return b.screw(c, e.dir, r3.Vec{Z: 1}, earBolt, 2*earHalf-trapDepth+0.2-counterboreDepth+hardwareGap, 1.0)
+		})
+	}
+	for i, w := range wallScrews {
+		b.part(fmt.Sprintf("gearbox-screw-%d", i+1), "hardware", "fixed", func() *decad.Body {
+			return b.screw(w.at(w.face+w.dir.X*(counterboreDepth-hardwareGap)), w.dir, r3.Vec{Z: 1}, wallScrewLength, 0, 0.8)
 		})
 	}
 }
@@ -306,6 +334,15 @@ func (b *builder) housing() *decad.Body {
 	body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
 	for _, dx := range []float64{-gripScrewX, gripScrewX} {
 		body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
+	}
+	// Each wall screw has a recess for its head in the wall's outer face, a clearance hole through the wall and a pilot in the
+	// end of the base's back wall.
+	for _, w := range wallScrews {
+		d, up := w.dir, r3.Vec{Z: 1}
+		out := frame(w.at(w.face-d.X), up, d.Cross(up))
+		body = b.cut(body, b.cylinder(out, counterboreRadius, 1+counterboreDepth))
+		body = b.cut(body, b.cylinder(out, earHole, 1+wallThick))
+		body = b.cut(body, b.cylinder(frame(w.at(w.seam-d.X*0.5), up, d.Cross(up)), pilotRadius, 0.5+pilotDepth))
 	}
 	// Each ear has a hole, a counterbore for the screw's head on one side and a hex trap for its nut on the other. The
 	// head and the nut sit on either side of the seam, so the screw joins the two pieces. The corners of the trap lie on Z.

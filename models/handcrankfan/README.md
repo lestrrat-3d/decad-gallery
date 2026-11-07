@@ -33,8 +33,9 @@ both shafts slide in through the post and carry a collar outside it. A bearing s
 in the crank block and in the fan wall and block, so there is no boss or sleeve. The tray prints as four pieces cut at its walls: the base, which is the floor and the back wall, the post, the
 crank-side wall with its block, and the fan-side wall with its block, which holds the fan shaft. Each piece prints with
 its shaft axes vertical, so no bore lies on its side: the post on its inner face, and the two walls on the face that meets
-the base with their blocks pointing up. The seats that open onto the bed have a 45° cone for a ceiling. Eight M2 screws
-and nuts, in ears on the outside, join the pieces at the seams. The hub's blade sockets are plain 6 mm holes, small enough to
+the base with their blocks pointing up. The seats that open onto the bed have a 45° cone for a ceiling. Four M2 screws go
+through the post and the crank-side wall into the base's back wall, and four M2 bolts and nuts, in ears on the outside,
+join the fan-side wall to the post and the crank-side wall. The hub's blade sockets are plain 6 mm holes, small enough to
 print on their side.
 
 ## Parts
@@ -49,7 +50,8 @@ the screws, the nuts and the bearings. Everything else is printed.
 | <img src="images/parts/gearbox-post.png" alt="Gearbox post" width="240"> | Gearbox post |
 | <img src="images/parts/gearbox-crank-wall.png" alt="Gearbox crank-side wall" width="240"> | Gearbox crank-side wall |
 | <img src="images/parts/gearbox-fan-wall.png" alt="Gearbox fan-side wall" width="240"> | Gearbox fan-side wall, which holds the fan shaft |
-| <img src="images/parts/gearbox-screw.png" alt="Gearbox screw and nut, M2 x 12 (eight)" width="240"> | Gearbox screw and nut, M2 x 12 (eight) |
+| <img src="images/parts/gearbox-bolt.png" alt="Gearbox bolt and nut, M2 x 12 (four)" width="240"> | Gearbox bolt and nut, M2 x 12 (four) |
+| <img src="images/parts/gearbox-screw.png" alt="Gearbox screw, M2 x 16 (four)" width="240"> | Gearbox screw, M2 x 16 (four) |
 | <img src="images/parts/grip.png" alt="Grip" width="240"> | Grip |
 | <img src="images/parts/grip-screw.png" alt="Grip screw, M2 x 16 (two)" width="240"> | Grip screw, M2 x 16 (two) |
 | <img src="images/parts/crank-gear.png" alt="Crank gear" width="240"> | Crank gear |

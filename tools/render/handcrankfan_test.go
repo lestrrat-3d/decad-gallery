@@ -23,7 +23,7 @@ func TestHandCrankFanRendering(t *testing.T) {
 		{"hero.png", 1600, 900}, {"index.png", 480, 270}, {"exploded.png", 1600, 900},
 		{"parts/gearbox-base.png", 480, 270}, {"parts/gearbox-post.png", 480, 270},
 		{"parts/gearbox-crank-wall.png", 480, 270}, {"parts/gearbox-fan-wall.png", 480, 270},
-		{"parts/gearbox-screw.png", 480, 270}, {"parts/grip.png", 480, 270}, {"parts/grip-screw.png", 480, 270},
+		{"parts/gearbox-bolt.png", 480, 270}, {"parts/gearbox-screw.png", 480, 270}, {"parts/grip.png", 480, 270}, {"parts/grip-screw.png", 480, 270},
 		{"parts/crank-gear.png", 480, 270}, {"parts/drive-gear.png", 480, 270}, {"parts/driving-gear.png", 480, 270},
 		{"parts/pinion.png", 480, 270}, {"parts/crank-shaft.png", 480, 270}, {"parts/drive-shaft.png", 480, 270},
 		{"parts/fan-shaft.png", 480, 270}, {"parts/bearing.png", 480, 270}, {"parts/crank-arm.png", 480, 270},
