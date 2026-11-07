@@ -96,6 +96,28 @@ cases and hand off the blocker. Resume only when the gallery's real build
 passes against the upstream fix. Once the first case passes, run the other
 parameter cases and the consuming model checks.
 
+### Gear train clearances
+
+These rules apply to spur and helical gears that share a plane and have
+parallel axes. A helical gear uses its normal module in place of `m`.
+
+For two meshing gears, set the center distance to half the sum of the pitch
+diameters. The tip circle of each gear must then clear the root circle of its
+mate by at least `max(0.25·m, 0.5 mm)`. A standard tooth with a `1.25·m`
+dedendum gives exactly `0.25·m`, so a gear of module 1 needs a deeper root to
+reach 0.5 mm. Deepen the root; do not widen the center distance, which also
+adds backlash.
+
+Two gears in the same plane that do not mesh keep their tip circles at least
+0.5 mm apart, the Loose fit in [Part clearances](#part-clearances).
+
+Set backlash with the gear's backlash parameter. Backlash does not count
+toward the tip-to-root clearance.
+
+Measure the tip-to-root clearance on the placed gears at several rotation
+angles across one tooth pitch, for every module and tooth-count case the model
+builds.
+
 ## Spur gear example
 
 [`models/spurgear/instructions.md`](../models/spurgear/instructions.md) is
