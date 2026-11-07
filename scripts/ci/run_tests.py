@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Run the fast pull request or complete scheduled geometry test set."""
 
+import json
+import re
 import subprocess
 import sys
 
@@ -129,14 +131,55 @@ BEVEL_FULL_TESTS = [
 ]
 
 
+def run_pattern(tests: list[str]) -> str:
+    """Build a go test -run pattern that selects exactly the named tests and subtests.
+
+    Go splits a -run pattern on "/" and "|" only outside parentheses, so each test is one top-level
+    alternative and each "/"-separated level is anchored on its own.
+    """
+    return "|".join(
+        "/".join("^" + re.escape(part) + "$" for part in test.split("/"))
+        for test in tests
+    )
+
+
+def finished_tests(lines) -> dict[str, str]:
+    """Read go test -json lines, echo their output, and return each test's final action."""
+    finished: dict[str, str] = {}
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            sys.stdout.write(line)
+            continue
+        if "Output" in event:
+            sys.stdout.write(event["Output"])
+        test = event.get("Test")
+        if test and event.get("Action") in {"pass", "fail", "skip"}:
+            finished[test] = event["Action"]
+    sys.stdout.flush()
+    return finished
+
+
+def go_test(args: list[str], expected: list[str] = ()) -> None:
+    """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
+    command = ["go", "test", "-json", *args]
+    print("+", " ".join(command), flush=True)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True)
+    finished = finished_tests(proc.stdout)
+    if proc.wait() != 0:
+        raise SystemExit(proc.returncode)
+    if not any(action != "skip" for action in finished.values()):
+        raise SystemExit("go test ran no tests; check the -run pattern")
+    missing = [name for name in expected if finished.get(name) not in {"pass", "fail"}]
+    if missing:
+        raise SystemExit("go test did not run: " + ", ".join(missing))
+
+
 def run_bevel(mode: str, shard: str) -> None:
     tests = BEVEL_TESTS[mode][shard]
-    pattern = "^(" + "|".join(tests) + ")$"
     timeout = "15m" if mode == "pr" else "60m"
-    subprocess.run(
-        ["go", "test", "./models/bevelgear", "-run", pattern, "-timeout", timeout],
-        check=True,
-    )
+    go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests)
 
 
 # The spinning wheel builds roughly 190 solids and verifies every pair, so each case gets its own job and
@@ -167,21 +210,18 @@ WHEEL_HEAVY = "^(TestSpinningWheelDefault|TestSpinningWheelNativeDefault|TestSpi
 
 
 def run_wheel(case: str) -> None:
-    command = ["go", "test", "./models/spinningwheel", "-timeout", "40m", "-count=1"]
+    command = ["./models/spinningwheel", "-timeout", "40m", "-count=1"]
     if case == "rest":
         command += ["-run", "^TestSpinningWheel", "-skip", WHEEL_HEAVY]
     else:
         command += ["-run", WHEEL_CASES[case]]
-    subprocess.run(command, check=True)
+    go_test(command)
 
 
 def run_models(mode: str) -> None:
     if mode == "pr":
-        pattern = "^(" + "|".join(MODEL_PR_TESTS) + ")$"
-        subprocess.run(
+        go_test(
             [
-                "go",
-                "test",
                 "./models/cycloidal",
                 "./models/helicalgear",
                 "./models/herringbonegear",
@@ -189,11 +229,11 @@ def run_models(mode: str) -> None:
                 "./models/spurgear",
                 "./models/ballbearing",
                 "-run",
-                pattern,
+                run_pattern(MODEL_PR_TESTS),
                 "-timeout",
                 "5m",
             ],
-            check=True,
+            MODEL_PR_TESTS,
         )
         return
 
