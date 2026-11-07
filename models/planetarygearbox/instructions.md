@@ -22,9 +22,10 @@ The housing is the ring gear and two end covers. The covers are open frames, a r
 bearing hub, so they use little material. Eight M2 bolts and eight M2 nuts hold the housing together, four
 bolts per cover, built from `models/m2bolt` and `models/m2nut`. Each cover's four bolts have 6 mm length (the shortest
 standard length), so the bolt length does not depend on the stage count. A bolt's head sits in a round pocket in the
-cover's outer face and ends level with that face. Its nut sits in a hex pocket in the ring's end face and ends level
-with that face. The bolt passes through the cover's remaining 1 mm and the nut, and its tip stays inside the ring's
-bolt hole. This follows the repository rule that bolt heads and nuts lie flush (see `AGENTS.md`, Fasteners).
+cover's outer face and ends level with that face. Its nut sits in a closed hex cavity in the ring wall, 1 mm behind the
+ring's end face, so the ring holds the nut and it cannot fall out; the bolt hole is the cavity's only opening. The nut
+is dropped in during a print pause. The bolt passes through the cover's remaining 1 mm, the ring's 1 mm roof and the nut,
+and its tip stays inside the ring's bolt hole. This follows the repository fastener rules (see `AGENTS.md`, Fasteners).
 
 The input and the output connect as follows. The shafts are separate bodies from the carriers, so each part
 prints in its own best orientation. The input shaft is an 8 mm rod: it passes through the front cover's bearing
@@ -91,7 +92,7 @@ A nil `Placement` is the one exception.
 | Bolt circle radius | (ring root radius + ring outer radius) / 2 |
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
 | Head pocket diameter | `m2bolt.HeadDiameter + 0.2` (depth `m2bolt.HeadHeight`) |
-| Nut pocket width across flats | `m2nut.AcrossFlats + 0.2` (depth `m2nut.Thickness`) |
+| Nut cavity width across flats | `m2nut.AcrossFlats + 0.2` (height `m2nut.Thickness + 0.2`, starting 1 mm behind the ring's end face) |
 | Cover boss diameter | pocket diameter `+ 2 wc` |
 | Cover hub diameter | cover boss diameter `+ 2 wc` |
 | Bearing bore, outside diameter, width `db`, `Db`, `Wb` | 8, 22, 7 (the 608ZZ, from `ballbearing.Params608ZZ`) |
@@ -128,7 +129,7 @@ root radius leaves `m/4` over the planet tip circle, as the sun-planet pair has.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `db'` below the M2 shank diameter, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
-  leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut at each end.
+  leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut cavity at each end.
 - Reject a seat chamfer outside `[0, 1]`.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
@@ -255,7 +256,7 @@ verify their own sketches.
 | Case | Overrides | Required result |
 | --- | --- | --- |
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, 8 bolts, 8 nuts, all solids; ratio 1 + 71/13 |
-| Fasteners | Default | Every bolt head ends level with its cover's outer face, every nut is level with the ring's end face, and no bolt or nut overlaps the cover or ring it passes through |
+| Fasteners | Default | Every bolt head ends level with its cover's outer face, every nut sits in its cavity 1 mm behind the ring's end face, and no bolt or nut overlaps the cover or ring it passes through |
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
 | Shaft keys | Default | The input shaft has three keyway grooves, at 0°, 120° and 240°, where the first sun sits and the sun's bore has the matching teeth: in a groove the shaft is absent and the sun present, at 60°, 180° and 300° and elsewhere in the bore the shaft is present and the sun absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the three grooves'; in a two-stage gearbox the link shaft fills the second sun's keyed bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |

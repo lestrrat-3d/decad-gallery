@@ -23,8 +23,11 @@ const (
 	// fastenerLength is the bolt length: the shortest standard M2 length. Each bolt holds one cover to the ring,
 	// so its length does not depend on the number of stages.
 	fastenerLength = 6.0
-	// fastenerStock is the pocket tool's reach beyond a face, so no tool face lies in a body face.
+	// fastenerStock is the head pocket tool's reach beyond a face, so no tool face lies in a body face.
 	fastenerStock = 1.0
+	// nutRoof is the ring material between a ring end face and the cavity that holds a nut. The bolt hole runs
+	// through it, and it keeps the nut from falling out of the ring.
+	nutRoof = 1.0
 )
 
 // FrontBoltName is the name of front bolt i (0-based). Four bolts hold each cover to the ring, each head sunk flush
@@ -43,8 +46,11 @@ func RearNutName(i int) string { return fmt.Sprintf("Rear Nut %d", i+1) }
 // headPocketDiameter is the diameter of the pocket that sinks a bolt head in a cover.
 func headPocketDiameter() float64 { return m2bolt.HeadDiameter + 2*fastenerClearance }
 
-// nutPocketFlats is the across-flats width of the pocket that sinks a nut in the ring.
+// nutPocketFlats is the across-flats width of the cavity that holds a nut in the ring.
 func nutPocketFlats() float64 { return m2nut.AcrossFlats + 2*fastenerClearance }
+
+// nutCavityHeight is the axial height of the cavity that holds a nut: the nut's thickness and the clearance at each face.
+func nutCavityHeight() float64 { return m2nut.Thickness + 2*fastenerClearance }
 
 // cutHeadPockets cuts the cover's four head pockets into the +Z (outer) face of the frame so the
 // bolt head ends level with the face.
@@ -92,11 +98,10 @@ func (r *run) cutHeadPockets(ctx context.Context, cover *decad.Body) (*decad.Bod
 	return cover, nil
 }
 
-// buildNutTool builds the cutter for one nut pocket about the local origin: a hexagon of the pocket's
-// across-flats width with its flats parallel to X, from fastenerStock below the origin to the nut's thickness
-// above it.
+// buildNutTool builds the cutter for one nut cavity about the local origin: a hexagon of the cavity's
+// across-flats width with its flats parallel to X, from the origin up the cavity height.
 func (r *run) buildNutTool(ctx context.Context) (*decad.Body, error) {
-	plane, err := r.planeAt(-fastenerStock)
+	plane, err := r.planeAt(0)
 	if err != nil {
 		return nil, fmt.Errorf("nut pocket: %w", err)
 	}
@@ -119,7 +124,7 @@ func (r *run) buildNutTool(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	tool, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(fastenerStock + m2nut.Thickness), Dir: decad.Along})
+		decad.Distance{D: units.Millimeters(nutCavityHeight()), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("nut pocket: extrude: %w", err)
 	}
@@ -139,39 +144,40 @@ func (r *run) fastenerSites() []fastenerSite {
 	return sites
 }
 
-// cutNutPockets sinks a hexagonal pocket for a nut in each end face of the ring blank, at the four bolt angles.
-// The blank is the ring's outer cylinder in construction coordinates, from ringMargin up the ring length. A nut's
-// flats face the bolt circle's radius, so the pocket keeps the most wall. The pockets are cut before the tooth
-// spaces, because the cuts then run on a plain cylinder.
+// cutNutPockets cuts a closed hexagonal cavity for a nut inside each end of the ring blank, at the four bolt
+// angles. The blank is the ring's outer cylinder in construction coordinates, from ringMargin up the ring length.
+// A cavity starts nutRoof inside the end face, so the bolt hole is its only opening and the nut cannot fall out of
+// the ring. The nut goes in while the ring prints, with a pause under the cavity's roof. A nut's flats face the bolt
+// circle's radius, so the cavity keeps the most wall. The cavities are cut before the tooth spaces, because the
+// cuts then run on a plain cylinder.
 func (r *run) cutNutPockets(ctx context.Context, blank *decad.Body) (*decad.Body, error) {
 	tool, err := r.buildNutTool(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// The tool spans [z-1, z+1.6]. The front pocket needs [front, front+1.6]; the rear one needs [end-1.6, end+1].
-	front := float64(ringMargin)
-	rear := front + r.d.ringLength - m2nut.Thickness + fastenerStock
+	front := float64(ringMargin) + nutRoof
+	rear := float64(ringMargin) + r.d.ringLength - nutRoof - nutCavityHeight()
 	var moves []r3.Transform
 	for _, z := range []float64{front, rear} {
 		for _, s := range r.fastenerSites() {
 			m, err := pose(r3.Identity(), nutAngle(s), s.x, s.y, z)
 			if err != nil {
-				return nil, fmt.Errorf("nut pocket pose: %w", err)
+				return nil, fmt.Errorf("nut cavity pose: %w", err)
 			}
 			moves = append(moves, m)
 		}
 	}
 	tools, err := instances(ctx, tool, moves)
 	if err != nil {
-		return nil, fmt.Errorf("nut pockets: %w", err)
+		return nil, fmt.Errorf("nut cavities: %w", err)
 	}
 	for i, t := range tools {
 		if blank, err = decad.Cut(ctx, blank, t); err != nil {
-			return nil, fmt.Errorf("cut nut pocket %d: %w", i, err)
+			return nil, fmt.Errorf("cut nut cavity %d: %w", i, err)
 		}
 	}
 	if !blank.IsSolid() {
-		return nil, fmt.Errorf("ring blank with nut pockets is not a solid")
+		return nil, fmt.Errorf("ring blank with nut cavities is not a solid")
 	}
 	return blank, nil
 }
@@ -179,14 +185,16 @@ func (r *run) cutNutPockets(ctx context.Context, blank *decad.Body) (*decad.Body
 // nutAngle is the turn that puts a nut's flats toward the bolt circle's radius; its corners lie on X at zero turn.
 func nutAngle(s fastenerSite) float64 { return s.angle - math.Pi/2 }
 
-// buildFasteners builds the eight M2 bolts and nuts. Each bolt's head ends level with its cover's outer face and
-// each nut ends level with the ring's end face, so nothing stands proud. The bolt tip stays inside the ring's bolt
-// hole beyond the nut.
+// buildFasteners builds the eight M2 bolts and nuts. Each bolt's head ends level with its cover's outer face, so
+// nothing stands proud, and each nut sits in its closed cavity in the ring. The bolt tip stays inside the ring's
+// bolt hole beyond the nut.
 func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 	p, d := r.p, r.d
 	ringEnd := d.ringLength - p.StageGap
 	sites := r.fastenerSites()
-	frontZ := -p.StageGap
+	// A nut rests in its cavity with the clearance below it.
+	frontNutZ := -p.StageGap + nutRoof + fastenerClearance
+	rearNutZ := ringEnd - nutRoof - fastenerClearance - m2nut.Thickness
 	var err error
 
 	bolt, err := m2bolt.Build(ctx, r.doc, m2bolt.Params{Length: fastenerLength})
@@ -216,7 +224,7 @@ func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 		}
 		boltMoves = append(boltMoves, m)
 	}
-	for _, z := range []float64{frontZ, ringEnd - m2nut.Thickness} {
+	for _, z := range []float64{frontNutZ, rearNutZ} {
 		for _, s := range sites {
 			m, err := pose(r.frame, nutAngle(s), s.x, s.y, z)
 			if err != nil {

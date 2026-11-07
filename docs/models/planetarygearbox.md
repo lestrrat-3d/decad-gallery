@@ -37,7 +37,7 @@ One pin joined to its collar is patterned and unioned to the plate in a single s
 of every pin and collar separately. `buildShaft` joins a round rod and an optional collar, then cuts the three grooves. A cover is one extruded frame (a rim
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section. A cover then has four round pockets cut for the M2 bolt heads,
-and the ring blank has eight hex pockets cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built
+and the ring blank has eight closed hex cavities cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built
 once by `models/m2bolt` and `models/m2nut` and copied into place (`fasteners.go`). The ring is a cylinder with the tooth spaces cut out by a 71-tooth
 spur gear whose root circle is the ring's tip circle and whose tip circle is the ring's root circle (`ringTool` in
 `gears.go`). `phase.go` turns each planet, and the ring tool, so their teeth enter the sun's and the ring's gaps.

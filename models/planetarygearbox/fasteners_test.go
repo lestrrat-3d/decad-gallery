@@ -11,7 +11,7 @@ import (
 )
 
 // TestFastenersSitFlush checks that four M2 bolts and four nuts join each cover to the ring, that every bolt head
-// ends level with its cover's outer face, and that every nut ends level with the ring's end face.
+// ends level with its cover's outer face, and that every nut sits inside the ring, 1 mm from its end face.
 func TestFastenersSitFlush(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	_, box := defaultGearbox(t)
@@ -32,15 +32,16 @@ func TestFastenersSitFlush(t *testing.T) {
 		require.InDelta(t, rearFace, b.Max.Z, 2e-3, "rear bolt %d head is flush", i)
 		require.InDelta(t, rearFace-m2bolt.HeadHeight-6, b.Min.Z, 2e-3, "rear bolt %d tip", i)
 	}
+	// A nut sits in a closed cavity one millimeter inside the ring's end face, so the ring itself holds it.
 	for i, nut := range box.Nuts {
 		require.True(t, nut.IsSolid(), "nut %d", i)
 		b := bounds(t, nut)
 		require.InDelta(t, m2nut.Thickness, b.Max.Z-b.Min.Z, 2e-3, "nut %d thickness", i)
 		if i < 4 {
-			require.InDelta(t, -p.StageGap, b.Min.Z, 2e-3, "front nut %d is flush with the ring", i)
+			require.InDelta(t, -p.StageGap+1.1, b.Min.Z, 2e-3, "front nut %d is inside the ring", i)
 			continue
 		}
-		require.InDelta(t, ringEnd, b.Max.Z, 2e-3, "rear nut %d is flush with the ring", i)
+		require.InDelta(t, ringEnd-1.1, b.Max.Z, 2e-3, "rear nut %d is inside the ring", i)
 	}
 }
 
@@ -62,7 +63,7 @@ func overlapVolume(t *testing.T, a, b *decad.Body) float64 {
 }
 
 // TestFastenersFitTheirPockets checks that no bolt or nut occupies material of the parts it joins: each bolt runs
-// through its cover's hole and head pocket and the ring's hole, and each nut sits in a ring pocket.
+// through its cover's hole and head pocket and the ring's hole, and each nut sits in a ring cavity.
 func TestFastenersFitTheirPockets(t *testing.T) {
 	// The overlap checks copy bodies into their document, so they use a gearbox of their own.
 	box, err := planetarygearbox.Build(t.Context(), decad.New(), planetarygearbox.DefaultParams())

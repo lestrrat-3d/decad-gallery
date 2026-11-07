@@ -29,10 +29,10 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
-   holes and extrude it `L` upward. Cut eight hex nut pockets from the blank (`cutNutPockets`): one tool, a hexagon
-   of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, spanning 1 mm below to
-   `m2nut.Thickness` above its plane, copied to the four bolt angles on the front face and, shifted up, on the rear face, so
-   each pocket is `m2nut.Thickness` deep. `decad.Cut` the tooth-space tool from it. Check: one solid.
+   holes and extrude it `L` upward. Cut eight closed hex nut cavities from the blank (`cutNutPockets`): one tool, a hexagon
+   of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, extruded `m2nut.Thickness + 2c` up from its
+   plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
+   cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Check: one solid.
 2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j` and `BoreDiameter = ds` (8, the bearing bore)
    when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
@@ -94,8 +94,8 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
 
    **Fasteners** (`buildFasteners`). Build `m2bolt.Build` with `Length = 6` and `m2nut.Build` once each, and copy
    them into place. A front bolt is turned over about X so its shank points into the ring, with its head's underside
-   on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits on a
-   ring end face with its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
+   on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits in its
+   cavity with `c` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
    is measured from the head pocket's edge, not the hole's.
 
 **Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wb` (cover)
@@ -168,7 +168,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   each bolt angle the ring and both covers are inside beside the bolt hole; a cover
   has material on a spoke and none in a window and weighs less than a disc; points are 1.5 mm or more from any surface.
 - Fasteners: 8 bolts and 8 nuts, all solids. A front bolt's head ends level with the front cover's outer face and a
-  rear bolt's with the rear cover's. Each nut is `m2nut.Thickness` thick and level with the ring's end face. A bolt's tip
+  rear bolt's with the rear cover's. Each nut sits `1 + c` mm behind the ring's end face. A bolt's tip
   is `HeadHeight + 6` from the cover's outer face. No bolt overlaps its cover or the ring and no nut overlaps the ring
   (volume of the intersection of copies). A hole narrower than the bolt shank, a cover thinner than head height plus
   1 mm, and pockets that leave less than 1 mm of ring wall are rejected.

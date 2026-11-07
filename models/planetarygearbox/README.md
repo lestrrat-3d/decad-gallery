@@ -62,25 +62,27 @@ The model does not show a set screw or the coupling to a motor. The input and ou
 ## How the housing is bolted
 
 Eight M2 bolts and eight M2 nuts ([`models/m2bolt`](../m2bolt), [`models/m2nut`](../m2nut)) hold the covers to the
-ring, four bolts and four nuts per cover. Every bolt head and every nut lies flush with the face it is sunk in. The
-section is cut along the plane through the axis and one bolt of each cover, in the one-stage gearbox.
+ring, four bolts and four nuts per cover. Each bolt head lies flush with its cover's outer face. Each nut sits in a
+closed cavity inside the ring wall, so the ring holds the nut and it cannot fall out. The section is cut along the plane
+through the axis and one bolt of each cover, in the one-stage gearbox.
 
 <img src="images/fasteners-section.png" alt="Section through one bolt at each end of the housing" width="800">
 
 Each bolt is 6 mm long. It runs from a cover into the end of the ring and never along the whole housing, so the bolt
 length stays the same for any number of stages. The front and rear bolts share each hole from opposite ends and their
-tips do not meet. The exploded view shows how one rear bolt goes in.
+tips do not meet. The exploded view lifts the nut out of its cavity to show where it sits.
 
 <img src="images/fasteners-exploded.png" alt="Rear cover, nut and bolt pulled apart along one bolt" width="800">
 
-To assemble, press each nut into its ring pocket, set the cover on the ring end, and drive each bolt in from the
-cover's outer face.
+To print the ring, pause the print just below the roof of each nut cavity, drop a nut in with its flats in the cavity's
+walls, and resume. The roof then covers the nut. To assemble, set the cover on the ring end and drive each bolt in from
+the cover's outer face through the ring's 1 mm roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
 | Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
 | Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
-| Nut | Hex, in the ring's end face | 4.2 mm across flats, 1.6 mm deep |
+| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.2 mm across flats, 1.8 mm high |
 
 ## Parts
 

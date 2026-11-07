@@ -7,7 +7,6 @@ import (
 
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -277,8 +276,8 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("bolt head and nut pockets of radius %v do not fit the ring wall %v with %v of material either side",
 			reach, p.RingWall, float64(pocketMargin))
 	}
-	if d.ringLength < 2*m2nut.Thickness+2*pocketMargin {
-		return fmt.Errorf("ring length %v is too short for a nut in each end", d.ringLength)
+	if d.ringLength < 2*(nutRoof+nutCavityHeight())+2*pocketMargin {
+		return fmt.Errorf("ring length %v is too short for a nut cavity at each end", d.ringLength)
 	}
 	if d.coverHub/2 >= d.rimInner-d.arm {
 		return fmt.Errorf("the cover's bearing hub of diameter %v leaves no room for spokes inside the rim at radius %v",
