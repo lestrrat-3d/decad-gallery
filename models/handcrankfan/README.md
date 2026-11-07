@@ -30,12 +30,12 @@ with three grooves, and each gear, the crank arm and the fan hub have a bore wit
 faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post across its left end and a back wall, 51 mm
 wide, 88 mm tall and 80 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and
 both shafts slide in through the post and carry a collar outside it. A bearing sits in a seat in the post, in the crank-side wall,
-in the crank block and in the fan wall and block, so there is no boss or sleeve. The tray prints in two halves that
-meet on the plane through the crank shaft and the drive shaft, so each of those seats is an open half-trough in each half and
-no bore lies on its side. A half prints with its flat face up, the front half on the fan block and the back half on the
-back wall. The fan shaft is vertical in the front half, and the one seat that opens onto the bed has a 45° cone for a
-ceiling. Four M2 screws and nuts, in ears on the outside, hold the halves together. The hub's blade sockets are plain
-6 mm holes, small enough to print on their side.
+in the crank block and in the fan wall and block, so there is no boss or sleeve. The tray prints as four pieces cut at its walls: the base, which is the floor and the back wall, the post, the
+crank-side wall with its block, and the fan-side wall with its block, which holds the fan shaft. Each piece prints with
+its shaft axes vertical, so no bore lies on its side: the post on its inner face, and the two walls on the face that meets
+the base with their blocks pointing up. The seats that open onto the bed have a 45° cone for a ceiling. Eight M2 screws
+and nuts, in ears on the outside, join the pieces at the seams. The hub's blade sockets are plain 6 mm holes, small enough to
+print on their side.
 
 ## Parts
 
@@ -45,9 +45,11 @@ the screws, the nuts and the bearings. Everything else is printed.
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/gearbox-front.png" alt="Gearbox, front half" width="240"> | Gearbox, front half |
-| <img src="images/parts/gearbox-back.png" alt="Gearbox, back half" width="240"> | Gearbox, back half |
-| <img src="images/parts/gearbox-screw.png" alt="Gearbox screw and nut, M2 x 12 (four)" width="240"> | Gearbox screw and nut, M2 x 12 (four) |
+| <img src="images/parts/gearbox-base.png" alt="Gearbox base" width="240"> | Gearbox base |
+| <img src="images/parts/gearbox-post.png" alt="Gearbox post" width="240"> | Gearbox post |
+| <img src="images/parts/gearbox-crank-wall.png" alt="Gearbox crank-side wall" width="240"> | Gearbox crank-side wall |
+| <img src="images/parts/gearbox-fan-wall.png" alt="Gearbox fan-side wall" width="240"> | Gearbox fan-side wall, which holds the fan shaft |
+| <img src="images/parts/gearbox-screw.png" alt="Gearbox screw and nut, M2 x 12 (eight)" width="240"> | Gearbox screw and nut, M2 x 12 (eight) |
 | <img src="images/parts/grip.png" alt="Grip" width="240"> | Grip |
 | <img src="images/parts/grip-screw.png" alt="Grip screw, M2 x 16 (two)" width="240"> | Grip screw, M2 x 16 (two) |
 | <img src="images/parts/crank-gear.png" alt="Crank gear" width="240"> | Crank gear |

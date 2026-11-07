@@ -245,23 +245,6 @@ func (b *builder) roundedPrism(f r3.Frame, xy []point2, radii []float64, length 
 	return b.extrude(s, 0, length)
 }
 
-// polygonPrism extrudes the closed polygon through pts along f's normal. Every vertex is dimensioned from the origin,
-// as the crank handle's profile is, because the edges are slanted.
-func (b *builder) polygonPrism(f r3.Frame, pts []point2, length float64) *decad.Body {
-	s := b.section(f)
-	if s == nil {
-		return nil
-	}
-	points := make([]*sketch.Point, len(pts))
-	for i, p := range pts {
-		points[i] = sketchcheck.DimensionPoint(s, p.u, p.v)
-	}
-	for i := range points {
-		s.CreateLine(points[i], points[(i+1)%len(points)])
-	}
-	return b.extrude(s, 0, length)
-}
-
 // hexagon extrudes a regular hexagon of the given width across flats along f's normal, with its corners on f's U axis.
 func (b *builder) hexagon(f r3.Frame, flats, length float64) *decad.Body {
 	s := b.section(f)

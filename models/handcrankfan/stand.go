@@ -124,11 +124,11 @@ func (b *builder) gripSection(w *sketch.World, st gripStation) decad.LoftSection
 // above it, so the spur pair lives in the tray, left of the bevel gear, and the grip hangs from the lowered floor. Each
 // shaft turns in a square bearing block built out from a wall, which makes a long bearing without a boss or a sleeve.
 //
-// It prints in two halves, split along the plane Y = 0 that holds the crank shaft and the drive shaft. Each of their
-// bearing seats is cut across the split, so each half holds half of it as an open trough, and no bore lies on its side.
-// A half prints with the split face up: the front half on its fan block, the back half on the back wall. The fan shaft
-// runs along Y, so its seats are vertical holes in the front half. Four ears with M2 screws and nuts hold the halves
-// together.
+// It prints as four pieces cut at the walls: the base (the floor and the back wall between the post and the crank-side
+// wall), the post, the crank-side wall with its block, and the fan-side wall with its block, which holds the fan shaft.
+// Every bearing seat is a vertical hole in the piece that holds it: the post prints on its inner face, and the two
+// walls print on the face that meets the base. A seat that opens onto the bed has a 45° cone for a ceiling. Ears with M2
+// screws and nuts straddle the seams and hold the pieces together.
 const (
 	wallThick    = 9.8
 	crankWallX   = drivingHeel + 0.2 // inner face of the crank-side wall, 0.2 from the driving gear's back face
@@ -139,7 +139,7 @@ const (
 	boxLeftX     = -20.0
 	boxFloor     = crankHeight - gearTip - 1.2 - 5 // the floor's underside: 1.2 under the crank gear, and 5 thick
 	cavityFloor  = boxFloor + 5
-	blockHalf    = 15.0                                // the bearing blocks are 30 wide at their ends and as tall as the tray
+	blockHalf    = 15.0                                // the bearing blocks are 30 wide and as tall as the tray
 	fanBlock     = 24.0                                // the fan block sticks out this far from the fan-side wall's outer face
 	crankBlock   = 14.0                                // and the crank block this far from the crank-side wall's outer face
 	fanGap       = fanBlock + 10.5                     // from the fan-side wall's outer face to the hub
@@ -148,62 +148,112 @@ const (
 	gripY        = fanWallY + 8.2                      // the grip's centre sits this far behind the fan-side wall's inner face
 	gripX        = 7.0                                 // the grip's centre, under the tray
 
-	splitGap = 0.1 // each half stops this far from the split plane
-	earHalf  = 8.0 // an ear reaches this far to each side of the split plane
+	splitGap = 0.1 // each piece stops this far from its seam
+	earHalf  = 8.0 // an ear reaches this far to each side of its seam
 	earLen   = 8.0 // and sticks out this far from the tray
 	earBolt  = 12.0
 	earHole  = 1.3 // the ear screw's clearance hole, diameter 2.6
 )
 
-// gearboxEars are the four ears: two under the floor and two on the tops of the post and the crank-side wall, which
-// leaves the grip, the crank's collar and the arm clear.
-var gearboxEars = [...]struct{ x0, x1, z0, z1 float64 }{
-	{-19, -11, boxFloor - earLen, boxFloor + 1},
-	{24.8, 31, boxFloor - earLen, boxFloor + 1},
-	{-19, -11, boxTop - 1, boxTop + earLen},
-	{22, 30, boxTop - 1, boxTop + earLen},
+// gearboxEar is one ear: a box that straddles a seam and carries one M2 screw along dir, from its head to its nut.
+// axis is the seam's coordinate along dir, lat0 and lat1 are the box's range across it (Y for an ear on a seam across
+// X, X for one on a seam across Y), and the ear hangs under the floor or sits on a wall's top. head and nut name the
+// pieces on the head's side and the nut's side.
+type gearboxEar struct {
+	dir        r3.Vec
+	seam       float64
+	lat0, lat1 float64
+	top        bool
+	head, nut  string
 }
 
-// earAxis is the line of ear i's screw: its hole runs along Y through the ear's middle.
-func earAxis(i int) (x, z float64) {
-	e := gearboxEars[i]
-	if i < 2 {
-		return (e.x0 + e.x1) / 2, e.z0 + earLen/2
+func (e gearboxEar) z0() float64 {
+	if e.top {
+		return boxTop - 1
 	}
-	return (e.x0 + e.x1) / 2, e.z1 - earLen/2
+	return boxFloor - earLen
 }
 
-// gearbox builds the housing as one body, cuts it across the split plane into two halves and adds the screws that
-// hold them together.
+func (e gearboxEar) z1() float64 {
+	if e.top {
+		return boxTop + earLen
+	}
+	return boxFloor + 1
+}
+
+// centre is the point on the screw's line at the seam.
+func (e gearboxEar) centre() r3.Vec {
+	z := e.z0() + earLen/2
+	if e.top {
+		z = e.z1() - earLen/2
+	}
+	lat := (e.lat0 + e.lat1) / 2
+	if e.dir.X != 0 {
+		return r3.Vec{X: e.seam, Y: lat, Z: z}
+	}
+	return r3.Vec{X: lat, Y: e.seam, Z: z}
+}
+
+// gearboxEars are the eight ears. The fan-side wall's four sit on its seam with the post and the crank-side wall, at the
+// corners, with the bottom two clear of the grip. The post's two and the crank-side wall's two sit behind the shafts, one
+// under the floor and one on the back wall's top, clear of the grip, the gears and the crank.
+var gearboxEars = [...]gearboxEar{
+	{r3.Vec{Y: 1}, fanWallY, -19, -11, false, "gearbox-fan-wall", "gearbox-post"},
+	{r3.Vec{Y: 1}, fanWallY, 24.8, 31, false, "gearbox-fan-wall", "gearbox-crank-wall"},
+	{r3.Vec{Y: 1}, fanWallY, -19, -11, true, "gearbox-fan-wall", "gearbox-post"},
+	{r3.Vec{Y: 1}, fanWallY, 22, 30, true, "gearbox-fan-wall", "gearbox-crank-wall"},
+	{r3.Vec{X: 1}, postFace, 4, 12, false, "gearbox-post", "gearbox-base"},
+	{r3.Vec{X: 1}, postFace, 30.1, 38.1, true, "gearbox-post", "gearbox-base"},
+	{r3.Vec{X: 1}, crankWallX, 14, 22, false, "gearbox-base", "gearbox-crank-wall"},
+	{r3.Vec{X: -1}, crankWallX, 30.1, 38.1, true, "gearbox-crank-wall", "gearbox-base"},
+}
+
+// slab removes the box that covers the coordinate range [lo, hi] along X (axis 0) or Y (axis 1) and everything else
+// in the tray's range.
+func (b *builder) slab(host *decad.Body, axis int, lo, hi float64) *decad.Body {
+	if axis == 0 {
+		return b.cut(host, b.panel(frame(r3.Vec{X: lo}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), -100, 50, 100, 260, hi-lo))
+	}
+	return b.cut(host, b.panel(frame(r3.Vec{Y: lo}, r3.Vec{Z: 1}, r3.Vec{X: 1}), 50, -100, 260, 100, hi-lo))
+}
+
+// gearbox builds the housing as one body, cuts it at the walls into four pieces and adds the screws that hold them
+// together.
 func (b *builder) gearbox() {
-	var back *decad.Body
-	b.part("gearbox-front", "housing", "fixed", func() *decad.Body {
-		body := b.housing()
+	var base, post, crank *decad.Body
+	b.part("gearbox-fan-wall", "housing", "fixed", func() *decad.Body {
+		whole := b.housing()
 		if b.err != nil {
 			return nil
 		}
-		other, err := decad.Copy(b.ctx, body)
-		b.fail("copy the housing", err)
+		var copies [3]*decad.Body
+		for i := range copies {
+			c, err := decad.Copy(b.ctx, whole)
+			b.fail("copy the housing", err)
+			copies[i] = c
+		}
 		if b.err != nil {
 			return nil
 		}
-		// The front half keeps Y <= -0.1 and the back half Y >= 0.1.
-		front := b.cut(body, b.panel(frame(r3.Vec{Y: 100}, r3.Vec{X: 1}, r3.Vec{Z: 1}), -60, 60, 80, 230, 100+splitGap))
-		back = b.cut(other, b.panel(frame(r3.Vec{Y: -100}, r3.Vec{Z: 1}, r3.Vec{X: 1}), 60, -60, 230, 80, 100+splitGap))
-		return front
+		// The fan-side wall keeps Y <= its seam. The others keep Y >= the seam, and each keeps its range along X.
+		base = b.slab(b.slab(b.slab(copies[0], 1, -100, fanWallY+splitGap), 0, -100, postFace+splitGap), 0, crankWallX-splitGap, 100)
+		post = b.slab(b.slab(copies[1], 1, -100, fanWallY+splitGap), 0, postFace-splitGap, 100)
+		crank = b.slab(b.slab(copies[2], 1, -100, fanWallY+splitGap), 0, -100, crankWallX+splitGap)
+		return b.slab(whole, 1, fanWallY-splitGap, 100)
 	})
-	b.part("gearbox-back", "housing", "fixed", func() *decad.Body { return back })
-	for i := range gearboxEars {
+	b.part("gearbox-post", "housing", "fixed", func() *decad.Body { return post })
+	b.part("gearbox-crank-wall", "housing", "fixed", func() *decad.Body { return crank })
+	b.part("gearbox-base", "housing", "fixed", func() *decad.Body { return base })
+	for i, e := range gearboxEars {
 		b.part(fmt.Sprintf("gearbox-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
-			x, z := earAxis(i)
-			return b.screw(r3.Vec{X: x, Y: -earHalf + counterboreDepth - hardwareGap, Z: z}, r3.Vec{Y: 1}, r3.Vec{Z: 1},
-				earBolt, 2*earHalf-trapDepth+0.2-counterboreDepth+hardwareGap, 1.0)
+			c := e.centre().Add(e.dir.Scale(-earHalf + counterboreDepth - hardwareGap))
+			return b.screw(c, e.dir, r3.Vec{Z: 1}, earBolt, 2*earHalf-trapDepth+0.2-counterboreDepth+hardwareGap, 1.0)
 		})
 	}
 }
 
-// housing builds the whole tray before it is split: a rounded block minus a cavity, the two bearing blocks, the ears,
-// the seats and holes for the bearings and the shafts, and the holes for the grip screws and the ear screws.
+// housing builds the whole tray before it is cut: a rounded block minus a cavity, the two bearing blocks, the ears, the
+// seats and holes for the bearings and the shafts, and the holes for the grip screws and the ear screws.
 func (b *builder) housing() *decad.Body {
 	// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
 	block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
@@ -212,57 +262,59 @@ func (b *builder) housing() *decad.Body {
 	block = b.roundCaps(block, 2)
 	cavity := b.roundedPrism(frame(r3.Vec{X: boxLeftX - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		[]point2{{fanWallY, cavityFloor}, {backWallY, cavityFloor}, {backWallY, boxTop + 1}, {fanWallY, boxTop + 1}},
-		[]float64{3, 3, 0, 0}, crankWallX-boxLeftX+1)
-	cavity = b.roundEnd(cavity, 2)
-	// The post is the part of the block the cavity leaves: a notch in the cavity, on the left end, across its whole
+		[]float64{0, 3, 0, 0}, crankWallX-boxLeftX+1)
+	// The cavity's corners that meet a seam stay sharp: a fillet there would leave a thin sliver in the piece beside the
+	// seam. The post is the part of the block the cavity leaves: a notch in the cavity, on the left end, across its whole
 	// width, so the post closes the end of the tray.
 	notch := b.panel(frame(r3.Vec{X: boxLeftX - 2}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), fanWallY-1, cavityFloor-1, backWallY+1, boxTop+2,
 		postFace-boxLeftX+2)
 	cavity = b.cut(cavity, notch)
 	body := b.cut(block, cavity)
-	// Each bearing block starts inside the tray so the union has no shared face. Both are trapezoids seen from above: they
-	// widen toward their wall at 45° or less, so the half that prints on them never overhangs.
-	wallOuterX, wallOuterY := crankWallX+wallThick, fanWallY-wallThick
-	tall := boxTop - boxFloor
-	crankPad := b.polygonPrism(frame(r3.Vec{Z: boxFloor}, r3.Vec{X: 1}, r3.Vec{Y: 1}), []point2{
-		{wallOuterX - 1, -(blockHalf + crankBlock + 1)}, {crankFace, -blockHalf}, {crankFace, blockHalf}, {wallOuterX - 1, blockHalf + crankBlock + 1},
-	}, tall)
-	fanPad := b.polygonPrism(frame(r3.Vec{Z: boxFloor}, r3.Vec{X: 1}, r3.Vec{Y: 1}), []point2{
-		{boxLeftX + 1, wallOuterY + 1}, {wallOuterX - 1, wallOuterY + 1}, {blockHalf, -fanBlockFace}, {-blockHalf, -fanBlockFace},
-	}, tall)
+	// Each bearing block starts inside the tray so the union has no shared face.
+	square := []point2{{-blockHalf, boxFloor}, {blockHalf, boxFloor}, {blockHalf, boxTop}, {-blockHalf, boxTop}}
+	radii := []float64{3, 3, 3, 3}
+	fanPad := b.roundedPrism(frame(r3.Vec{Y: fanWallY - wallThick + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}), square, radii, fanBlock+1)
+	fanPad = b.roundEnd(fanPad, 2)
+	crankPad := b.roundedPrism(frame(r3.Vec{X: crankWallX + wallThick - 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), square, radii, crankBlock+1)
+	crankPad = b.roundEnd(crankPad, 2)
 	if b.err != nil {
 		return nil
 	}
 	parts := []*decad.Body{body, fanPad, crankPad}
 	for _, e := range gearboxEars {
-		parts = append(parts, b.panel(frame(r3.Vec{X: e.x0}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), -earHalf, e.z0, earHalf, e.z1, e.x1-e.x0))
+		if e.dir.X != 0 {
+			parts = append(parts, b.panel(frame(r3.Vec{X: e.seam - earHalf}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), e.lat0, e.z0(), e.lat1, e.z1(), 2*earHalf))
+		} else {
+			parts = append(parts, b.panel(frame(r3.Vec{Y: e.seam - earHalf}, r3.Vec{Z: 1}, r3.Vec{X: 1}), e.z0(), e.lat0, e.z1(), e.lat1, 2*earHalf))
+		}
 	}
 	body = b.union(parts...)
 	// A 608 bearing sits where each shaft crosses a wall. The shafts go in through the post from the left. The drive
-	// shaft ends in the crank-side wall's bearing, and the crank shaft goes through that wall and its block. The seats
-	// open at the post's outer face and the block ends and in the walls' inner faces, so each bearing drops in along its
-	// shaft. The crank and drive shafts' seats are cut across the split plane.
+	// shaft ends in the crank-side wall's bearing, and the crank shaft goes through that wall and its block. The post's
+	// seats open at its outer face and print upward. The walls' seats open at the face that meets the base, which is the
+	// bed, so each has a cone for a ceiling, and the blocks' seats open upward.
 	for _, a := range []shaftAxis{crankSpline, driveSpline} {
 		body = b.seat(body, a, boxLeftX-1, boxLeftX+seatDepth, boxLeftX+7, postFace+1)
-		body = b.seat(body, a, crankWallX-1, crankWallX+seatDepth, crankWallX+seatDepth-0.1, crankWallX+seatDepth+reliefDepth-0.1)
+		body = b.funnelSeat(body, a, crankWallX+seatDepth, crankWallX-1)
 	}
-	body = b.hole(body, crankSpline, shaftHole, crankWallX+9.3, crankFace-8.5)
+	cone := reliefRadius - shaftHole
+	body = b.hole(body, crankSpline, shaftHole, crankWallX+seatDepth+cone-0.1, crankFace-seatDepth-reliefDepth+0.2)
 	body = b.seat(body, crankSpline, crankFace-seatDepth, crankFace+1, crankFace-seatDepth-reliefDepth+0.1, crankFace-seatDepth+0.1)
-	// The fan shaft's two bearings are measured behind the apex. They are vertical holes in the front half: the wall's
-	// seat opens upward and the block's opens downward on the bed, with a 45° cone for a ceiling.
-	body = b.seat(body, fanSpline, -fanWallY-1, -fanWallY+seatDepth, -fanWallY+seatDepth-0.1, -fanWallY+seatDepth+reliefDepth-0.1)
-	body = b.hole(body, fanSpline, shaftHole, -fanWallY+9.3, fanBlockFace-seatDepth-(reliefRadius-shaftHole)+1)
-	body = b.funnelSeat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1)
+	// The fan shaft's two bearings are measured behind the apex.
+	body = b.funnelSeat(body, fanSpline, -fanWallY+seatDepth, -fanWallY-1)
+	body = b.hole(body, fanSpline, shaftHole, -fanWallY+seatDepth+cone-0.1, fanBlockFace-seatDepth-reliefDepth+0.2)
+	body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
 	for _, dx := range []float64{-gripScrewX, gripScrewX} {
 		body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
 	}
-	// Each ear has a hole, a counterbore for the screw's head on the front side and a hex trap for its nut on the back side.
-	// The Y axis is vertical when a half prints, so all three are vertical holes.
-	for i := range gearboxEars {
-		x, z := earAxis(i)
-		body = b.cut(body, b.cylinder(frame(r3.Vec{X: x, Y: -earHalf - 1, Z: z}, r3.Vec{Z: 1}, r3.Vec{X: 1}), earHole, 2*earHalf+2))
-		body = b.cut(body, b.cylinder(frame(r3.Vec{X: x, Y: -earHalf - 1, Z: z}, r3.Vec{Z: 1}, r3.Vec{X: 1}), counterboreRadius, 1+counterboreDepth))
-		body = b.cut(body, b.hexagon(frame(r3.Vec{X: x, Y: earHalf + 1, Z: z}, r3.Vec{Z: -1}, r3.Vec{X: 1}), trapFlats, 1+trapDepth))
+	// Each ear has a hole, a counterbore for the screw's head on one side and a hex trap for its nut on the other. The
+	// head and the nut sit on either side of the seam, so the screw joins the two pieces. The corners of the trap lie on Z.
+	for _, e := range gearboxEars {
+		c, d, up := e.centre(), e.dir, r3.Vec{Z: 1}
+		through := frame(c.Add(d.Scale(-earHalf-1)), up, d.Cross(up))
+		body = b.cut(body, b.cylinder(through, earHole, 2*earHalf+2))
+		body = b.cut(body, b.cylinder(through, counterboreRadius, 1+counterboreDepth))
+		body = b.cut(body, b.hexagon(frame(c.Add(d.Scale(earHalf+1)), up, d.Scale(-1).Cross(up)), trapFlats, 1+trapDepth))
 	}
 	return body
 }

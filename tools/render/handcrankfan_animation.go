@@ -54,7 +54,7 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 	var box, upper []solidlens.Model
 	for _, mesh := range meshes {
 		switch mesh.part.Name {
-		case "gearbox-front", "gearbox-back", "driving-gear", "pinion", "drive-gear", "crank-gear":
+		case "gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "driving-gear", "pinion", "drive-gear", "crank-gear":
 			box = append(box, mesh.model)
 		}
 		if mesh.part.Name != "handle" {

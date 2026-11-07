@@ -77,18 +77,22 @@ func (b *builder) seat(host *decad.Body, a shaftAxis, pocket0, pocket1, relief0,
 	return b.hole(host, a, reliefRadius, relief0, relief1)
 }
 
-// funnelSeat cuts a bearing seat whose relief is a 45° cone that narrows toward smaller t, from the seat's floor at
-// floor to the plain hole. The seat opens toward larger t, at mouth. Printed with the mouth down, the pocket's walls
-// are vertical, the ledge for the bearing is 1.6 wide and the cone is no flatter than 45°, so the seat needs no
-// support.
+// funnelSeat cuts a bearing seat between floor and mouth whose relief is a 45° cone from the seat's floor down to the
+// plain hole, away from the mouth. A piece that prints with the mouth on the bed has vertical pocket walls, a ledge
+// 1.6 wide for the bearing and a cone no flatter than 45° for a ceiling, so the seat needs no support.
 func (b *builder) funnelSeat(host *decad.Body, a shaftAxis, floor, mouth float64) *decad.Body {
-	host = b.hole(host, a, seatRadius, floor, mouth)
-	cone := b.cylinder(a.spokeFrame(floor-(reliefRadius-shaftHole)-0.1, 0), reliefRadius, reliefRadius-shaftHole+0.2)
+	host = b.hole(host, a, seatRadius, math.Min(floor, mouth), math.Max(floor, mouth))
+	depth := reliefRadius - shaftHole
+	from, narrow := floor-0.1, decad.CapEnd
+	if mouth > floor {
+		// The cone narrows toward smaller t, so its narrow end is the start cap.
+		from, narrow = floor-depth-0.1, decad.CapStart
+	}
+	cone := b.cylinder(a.spokeFrame(from, 0), reliefRadius, depth+0.2)
 	if b.err != nil || cone == nil {
 		return nil
 	}
-	chamfered, err := decad.Chamfer(b.ctx, cone, decad.Edges(decad.OuterLoopOf(decad.CapStart(cone))),
-		units.Millimeters(reliefRadius-shaftHole))
+	chamfered, err := decad.Chamfer(b.ctx, cone, decad.Edges(decad.OuterLoopOf(narrow(cone))), units.Millimeters(depth))
 	b.fail("chamfer relief cone", err)
 	return b.cut(host, chamfered)
 }
@@ -111,21 +115,22 @@ func (b *builder) bearing(a shaftAxis, t float64) *decad.Body {
 
 // bearingSite is one bearing: its part name, the shaft it carries and where it starts along that shaft.
 type bearingSite struct {
-	name string
-	axis shaftAxis
-	at   float64
+	name   string
+	axis   shaftAxis
+	at     float64
+	holder string // the gearbox piece whose seat holds it
 }
 
 // bearingSites are the seven bearings: one in the post for each of the crank and drive shafts, one in the crank-side
 // wall for each of them, one in the crank block, and two for the fan shaft.
 var bearingSites = [...]bearingSite{
-	{"bearing-crank-post", crankSpline, boxLeftX + 0.3},
-	{"bearing-drive-post", driveSpline, boxLeftX + 0.3},
-	{"bearing-crank-wall", crankSpline, crankWallX + 0.3},
-	{"bearing-drive-wall", driveSpline, crankWallX + 0.3},
-	{"bearing-crank-block", crankSpline, crankFace - 7.3},
-	{"bearing-fan-wall", fanSpline, -fanWallY + 0.3},
-	{"bearing-fan-block", fanSpline, fanBlockFace - 7.3},
+	{"bearing-crank-post", crankSpline, boxLeftX + 0.3, "gearbox-post"},
+	{"bearing-drive-post", driveSpline, boxLeftX + 0.3, "gearbox-post"},
+	{"bearing-crank-wall", crankSpline, crankWallX + 0.3, "gearbox-crank-wall"},
+	{"bearing-drive-wall", driveSpline, crankWallX + 0.3, "gearbox-crank-wall"},
+	{"bearing-crank-block", crankSpline, crankFace - 7.3, "gearbox-crank-wall"},
+	{"bearing-fan-wall", fanSpline, -fanWallY + 0.3, "gearbox-fan-wall"},
+	{"bearing-fan-block", fanSpline, fanBlockFace - 7.3, "gearbox-fan-wall"},
 }
 
 // bearings builds the purchased bearings.
