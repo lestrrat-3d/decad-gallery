@@ -121,7 +121,9 @@ the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build
 image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
 shaft, the carrier, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
 gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
-`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
+`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/fasteners-section` and `fasteners-exploded` presets cut a one-stage housing along the plane through
+the first bolt of each cover and draw its bolts, nuts, covers and ring in place and pulled apart along the bolt.
+The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
 `part-planet`, `part-bearing`, `part-carrier`, `part-input-shaft`, `part-link-shaft` and `part-output-shaft` presets
 render one of them alone. The shafts are seen from almost level with them so the groove and the collar show, and the
 carrier from below so the pins and their collars show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the

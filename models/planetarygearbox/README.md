@@ -57,8 +57,44 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 
 Each pin of the carrier has a 1 mm collar under the plate too, so the planets' bearings stay clear of the plate.
 
-The model does not show a set screw, the screws in the four bolt holes that join the covers and the ring, or the
-coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
+The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
+
+## How the housing is bolted
+
+Eight M2 bolts and eight M2 nuts ([`models/m2bolt`](../m2bolt), [`models/m2nut`](../m2nut)) hold the covers to the
+ring, four bolts and four nuts per cover. Each bolt head lies flush with its cover's outer face. Each nut sits in a
+closed cavity inside the ring wall, so the ring holds the nut and it cannot fall out. The section is cut along the plane
+through the axis and one bolt of each cover, in the one-stage gearbox.
+
+<img src="images/fasteners-section.png" alt="Section through one bolt at each end of the housing" width="800">
+
+Each bolt is 6 mm long. It runs from a cover into the end of the ring and never along the whole housing, so the bolt
+length stays the same for any number of stages. The front and rear bolts share each hole from opposite ends and their
+tips do not meet. The exploded view lifts the nut out of its cavity to show where it sits.
+
+<img src="images/fasteners-exploded.png" alt="Rear cover, nut and bolt pulled apart along one bolt" width="800">
+
+### Printing the ring: insert the nuts by hand
+
+The nuts are not pressed in afterwards. Each nut sits in a cavity the ring walls close on every side except the bolt
+hole, so the nuts have to go in while the ring prints. Print the ring standing on its front face, and stop the printer
+twice:
+
+1. At 2.8 mm above the bed, the front cavities are open at the top. Drop a nut into each of the four, with a flat of the
+   nut against the cavity's flats, then resume.
+2. At `L - 1` mm above the bed, where `L` is the ring length (with the default dimensions 14 mm for one stage and `13 K + 1` mm for `K` stages),
+   the rear cavities are open at the top. Drop a nut into each of the four, then resume.
+
+The next layers print the 1 mm roofs over the nuts. After that the ring holds all eight nuts by itself.
+
+To assemble, set each cover on its ring end and drive each bolt in from the cover's outer face, through the ring's 1 mm
+roof into the nut.
+
+| Part | Pocket | Size |
+| --- | --- | --- |
+| Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
+| Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
+| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.2 mm across flats, 1.8 mm high |
 
 ## Parts
 
@@ -90,7 +126,7 @@ You can vary:
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
-- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size.
+- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size (2.4 mm, the M2 clearance hole).
 - Backlash.
 - The position and orientation of the gearbox in space.
 

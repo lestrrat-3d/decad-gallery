@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
+	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -79,7 +80,7 @@ func DefaultParams() Params {
 		CarrierThickness:  3,
 		StageGap:          1,
 		CoverThickness:    3,
-		BoltHoleDiameter:  3.4,
+		BoltHoleDiameter:  2.4,
 		KeyDepth:          1.1,
 		KeyWidth:          2,
 		SeatChamfer:       0.5,
@@ -159,7 +160,7 @@ func derive(p Params) dims {
 	d.arm = d.pin + 2*armMargin
 	d.ringOuter = d.ringRoot + p.RingWall
 	d.boltCircle = (d.ringRoot + d.ringOuter) / 2
-	d.rimInner = d.boltCircle - p.BoltHoleDiameter/2 - boltRimMargin
+	d.rimInner = d.boltCircle - headPocketDiameter()/2 - boltRimMargin
 	d.ringLength = float64(p.Stages)*d.stagePitch + p.StageGap
 	return d
 }
@@ -262,6 +263,21 @@ func (p Params) validateFit(d dims) error {
 		d.boltCircle+p.BoltHoleDiameter/2 > d.ringOuter-boltRimMargin {
 		return fmt.Errorf("bolt holes of diameter %v do not fit the ring wall %v with %v of material either side",
 			p.BoltHoleDiameter, p.RingWall, boltRimMargin)
+	}
+	if p.BoltHoleDiameter < m2bolt.ShankDiameter {
+		return fmt.Errorf("bolt hole diameter %v is smaller than the M2 bolt shank %v", p.BoltHoleDiameter, m2bolt.ShankDiameter)
+	}
+	if p.CoverThickness < m2bolt.HeadHeight+coverFloor {
+		return fmt.Errorf("cover thickness %v leaves less than %v under a %v tall bolt head",
+			p.CoverThickness, float64(coverFloor), m2bolt.HeadHeight)
+	}
+	if reach := math.Max(nutPocketFlats(), headPocketDiameter()) / 2; d.boltCircle-reach < d.ringRoot+pocketMargin ||
+		d.boltCircle+reach > d.ringOuter-pocketMargin {
+		return fmt.Errorf("bolt head and nut pockets of radius %v do not fit the ring wall %v with %v of material either side",
+			reach, p.RingWall, float64(pocketMargin))
+	}
+	if d.ringLength < 2*(nutRoof+nutCavityHeight())+2*pocketMargin {
+		return fmt.Errorf("ring length %v is too short for a nut cavity at each end", d.ringLength)
 	}
 	if d.coverHub/2 >= d.rimInner-d.arm {
 		return fmt.Errorf("the cover's bearing hub of diameter %v leaves no room for spokes inside the rim at radius %v",
