@@ -130,6 +130,9 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
+	if blank, err = r.cutNutPockets(ctx, blank); err != nil {
+		return nil, err
+	}
 	ring, err := decad.Cut(ctx, blank, tool)
 	if err != nil {
 		return nil, fmt.Errorf("cut ring tooth spaces: %w", err)

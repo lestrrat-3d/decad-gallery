@@ -48,11 +48,16 @@ func pose(frame r3.Transform, angle, x, y, z float64) (r3.Transform, error) {
 // poseFlipped turns a body over about the local X axis, so its +Z face looks down, then moves it to height z
 // and onto the placement frame.
 func poseFlipped(frame r3.Transform, z float64) (r3.Transform, error) {
+	return poseFlippedAt(frame, 0, 0, z)
+}
+
+// poseFlippedAt turns a body over about the local X axis and then moves it to (x, y, z) and onto the placement frame.
+func poseFlippedAt(frame r3.Transform, x, y, z float64) (r3.Transform, error) {
 	turn, err := r3.Rotation(r3.NewVec(1, 0, 0), units.Radians(math.Pi))
 	if err != nil {
 		return r3.Transform{}, fmt.Errorf("rotation: %w", err)
 	}
-	move, err := r3.Translation(r3.NewVec(0, 0, z))
+	move, err := r3.Translation(r3.NewVec(x, y, z))
 	if err != nil {
 		return r3.Transform{}, fmt.Errorf("translation: %w", err)
 	}

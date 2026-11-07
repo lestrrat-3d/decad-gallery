@@ -23,13 +23,16 @@ Every sketch circle's diameter is bound to a table name with `Sketch.Bind`.
 
 Build each distinct part once about the local origin and +Z. A gear union fails on gears built at an offset.
 
-1. **Ring.** `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
+1. **Ring.** (Bolt holes `db'` = 2.4, the M2 clearance hole.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
    `root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + 1.25 * module` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
    by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
-   holes and extrude it `L` upward. `decad.Cut` the tool from it. Check: one solid.
+   holes and extrude it `L` upward. Cut eight hex nut pockets from the blank (`cutNutPockets`): one tool, a hexagon
+   of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, spanning 1 mm below to
+   `m2nut.Thickness` above its plane, copied to the four bolt angles on the front face and, shifted up, on the rear face, so
+   each pocket is `m2nut.Thickness` deep. `decad.Cut` the tooth-space tool from it. Check: one solid.
 2. **Sun.** `spurgear.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j` and `BoreDiameter = ds` (8, the bearing bore)
    when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
@@ -83,8 +86,17 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      coordinate each. Require one valid profile with `3 + 1 + 4` holes and extrude it `Tv`.
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
      `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
-   - `decad.Union` the frame and the boss, then chamfer the boss pocket's entrance (see **Seat chamfer** below).
-     Check: one solid.
+   - `decad.Union` the frame and the boss.
+   - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.1`) on the
+     plane `z = Tv - m2bolt.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
+     the cover's +Z face, so the pocket is as deep as the head is tall.
+   - Chamfer the boss pocket's entrance (see **Seat chamfer** below). Check: one solid.
+
+   **Fasteners** (`buildFasteners`). Build `m2bolt.Build` with `Length = 6` and `m2nut.Build` once each, and copy
+   them into place. A front bolt is turned over about X so its shank points into the ring, with its head's underside
+   on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits on a
+   ring end face with its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
+   is measured from the head pocket's edge, not the hole's.
 
 **Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wb` (cover)
 by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so find the rim by its radius and height
@@ -153,9 +165,14 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   bound plus 0.5; in the two-stage case the link shaft's grooves and the second sun's teeth relate the same way.
 - Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
   below the front boss and ends at `T`, and `LocatePoint` finds it inside and the sun outside at the axis; at
-  each bolt angle the ring and both covers are outside (hole) at the bolt circle and inside beside it; a cover
+  each bolt angle the ring and both covers are inside beside the bolt hole; a cover
   has material on a spoke and none in a window and weighs less than a disc; points are 1.5 mm or more from any surface.
-- Two stages: 24 bodies, stage offsets by `P`, the link shaft's top equal to the second sun's top, the output shaft
+- Fasteners: 8 bolts and 8 nuts, all solids. A front bolt's head ends level with the front cover's outer face and a
+  rear bolt's with the rear cover's. Each nut is `m2nut.Thickness` thick and level with the ring's end face. A bolt's tip
+  is `HeadHeight + 6` from the cover's outer face. No bolt overlaps its cover or the ring and no nut overlaps the ring
+  (volume of the intersection of copies). A hole narrower than the bolt shank, a cover thinner than head height plus
+  1 mm, and pockets that leave less than 1 mm of ring wall are rejected.
+- Two stages: 40 bodies, stage offsets by `P`, the link shaft's top equal to the second sun's top, the output shaft
   `Lo` beyond the rear boss, and the second stage's planets mesh as the first's do.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.
 - Backlash: a gearbox with `j = 0.2` has a smaller sun, planet and ring volume than the default beyond the volume bounds.

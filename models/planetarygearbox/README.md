@@ -57,8 +57,12 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 
 Each pin of the carrier has a 1 mm collar under the plate too, so the planets' bearings stay clear of the plate.
 
-The model does not show a set screw, the screws in the four bolt holes that join the covers and the ring, or the
-coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
+Eight M2 bolts and eight M2 nuts (`models/m2bolt`, `models/m2nut`) join the housing. Each cover is held by four bolts of
+the shortest standard length, 6 mm, so the bolt length does not depend on the stage count. A bolt's head is sunk in a
+pocket in the cover's outer face and ends level with it. Its nut is sunk in a hex pocket in the ring's end face and ends
+level with it. The bolt's tip stays inside the ring's bolt hole, past the nut.
+
+The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
 
 ## Parts
 
@@ -90,7 +94,7 @@ You can vary:
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
-- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size.
+- The carrier wall, the bearing pocket clearance and entrance chamfer, the ring wall and the bolt hole size (2.4 mm, the M2 clearance hole).
 - Backlash.
 - The position and orientation of the gearbox in space.
 

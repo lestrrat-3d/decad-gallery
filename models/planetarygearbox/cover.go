@@ -200,6 +200,9 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if !cover.IsSolid() {
 		return nil, errors.New("cover: result is not a solid")
 	}
+	if cover, err = r.cutHeadPockets(ctx, cover); err != nil {
+		return nil, err
+	}
 	return r.chamferSeat(ctx, cover, "cover bearing pocket", p.CoverThickness+planetBearing().Width)
 }
 
