@@ -10,5 +10,6 @@
 | [Cycloidal drive](cycloidal/) | <img src="cycloidal/images/index.png" alt="Exploded cycloidal drive" width="240"> | A cycloidal speed reducer with one or two lobed discs, a pinless housing, and an output plate. |
 | [Bevel gear pair](bevelgear/) | <img src="bevelgear/images/index.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. |
 | [Screw gear](screwgear/) | <img src="screwgear/images/index.png" alt="Two twisted ribbon gears in a sleeve" width="240"> | Two twisted toothed ribbons that run through a windowed sleeve and move one another one tooth for one tooth. |
+| [M2 bolt](m2bolt/) | <img src="m2bolt/images/index.png" alt="M2 socket head cap screw" width="240"> | An M2 socket head cap screw with a hex socket and a length you choose. |
 
 To add a model, see [adding a model](../docs/adding-models.md).

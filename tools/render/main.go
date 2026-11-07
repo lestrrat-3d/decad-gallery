@@ -21,6 +21,7 @@ var presets = map[string]preset{
 	"spinningwheel/rear":      {width: 1600, height: 900, scene: spinningWheelView("rear")},
 	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
 	"ballbearing/605zz":       {width: 1600, height: 900, scene: bearing605Hero},
+	"m2bolt/hero":             {width: 1600, height: 900, scene: m2BoltHero},
 	"screwgear/hero":          {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":           {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":           {width: 1600, height: 900, scene: screwGearView("low")},
