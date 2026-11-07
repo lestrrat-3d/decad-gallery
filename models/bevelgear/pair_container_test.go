@@ -6,7 +6,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,35 +84,4 @@ func TestSecondPairGetsOwnContainers(t *testing.T) {
 	_, err = bevelgear.BuildBlankPair(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Equal(t, []string{"Pair", "Pair 2"}, children(doc.Root()))
-}
-
-// A straight pair revolves both blanks from one sketch in "Pair". Each member draws its tooth, cone and bore
-// sketches in its own container, and the member lands there. Each member has the volume it had before.
-func TestStraightPairBuildsMembersInTheirContainers(t *testing.T) {
-	p := spiralDefaults()
-	p.Module = 4
-	p.Teeth, p.MateTeeth = 4, 4
-	p.SpiralAngle = 0
-	doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
-	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
-	require.NoError(t, err)
-
-	require.Equal(t, []string{"Pair"}, children(doc.Root()))
-	pairContainer := doc.Root().Children()[0]
-	require.Equal(t, []string{"Driving Gear", "Pinion Gear"}, children(pairContainer))
-	require.Equal(t, "Pair/Driving Gear", containerPath(t, doc, pair.Driving))
-	require.Equal(t, "Pair/Pinion Gear", containerPath(t, doc, pair.Pinion))
-	require.Empty(t, doc.Root().Bodies())
-	require.Empty(t, pairContainer.Bodies())
-	require.Len(t, pairContainer.Sketches(), 1, "both blanks are revolved from one shared sketch")
-	for _, member := range pairContainer.Children() {
-		require.Len(t, member.Bodies(), 1, member.Name())
-		// tooth, toe cone, heel cone and bore; the blank is in the shared sketch of "Pair"
-		require.Len(t, member.Sketches(), 4, member.Name())
-	}
-
-	for name, body := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
-		volume, bound := volumeOf(t, body)
-		require.InDelta(t, 583.199708659, volume, 1e-6+bound, name)
-	}
 }

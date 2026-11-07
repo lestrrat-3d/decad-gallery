@@ -76,6 +76,10 @@ func TestSourceFourFourStraightMemberAutoBore(t *testing.T) {
 	require.Equal(t, 0, meshEuler(mesh), "the automatic bore pierces the member")
 }
 
+// The 4/4 pair is the smallest straight pair with both automatic bores, so one build checks both the
+// members and where the pair puts them. Both blanks revolve from one sketch in "Pair". Each member draws its
+// tooth, cone and bore sketches in its own container, lands there, keeps the volume it had before, and is a
+// verified solid with one through-hole.
 func TestSourceFourFourStraightPairAutoBore(t *testing.T) {
 	p := spiralDefaults()
 	p.Module = 4
@@ -85,7 +89,24 @@ func TestSourceFourFourStraightPairAutoBore(t *testing.T) {
 	pair, err := bevelgear.BuildPair(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 2)
+
+	require.Equal(t, []string{"Pair"}, children(doc.Root()))
+	pairContainer := doc.Root().Children()[0]
+	require.Equal(t, []string{"Driving Gear", "Pinion Gear"}, children(pairContainer))
+	require.Equal(t, "Pair/Driving Gear", containerPath(t, doc, pair.Driving))
+	require.Equal(t, "Pair/Pinion Gear", containerPath(t, doc, pair.Pinion))
+	require.Empty(t, doc.Root().Bodies())
+	require.Empty(t, pairContainer.Bodies())
+	require.Len(t, pairContainer.Sketches(), 1, "both blanks are revolved from one shared sketch")
+	for _, member := range pairContainer.Children() {
+		require.Len(t, member.Bodies(), 1, member.Name())
+		// tooth, toe cone, heel cone and bore; the blank is in the shared sketch of "Pair"
+		require.Len(t, member.Sketches(), 4, member.Name())
+	}
+
 	for name, gear := range map[string]*decad.Body{"driving": pair.Driving, "pinion": pair.Pinion} {
+		volume, bound := volumeOf(t, gear)
+		require.InDelta(t, 583.199708659, volume, 1e-6+bound, name)
 		require.True(t, gear.IsSolid(), name)
 		mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1),
 			decad.WithVerification(decad.VerifyAll))
