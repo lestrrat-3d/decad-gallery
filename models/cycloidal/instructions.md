@@ -16,21 +16,21 @@ parameter-table names `defineParameters` registers.
 | `PinCircleDiameter` | `pin_circle_diameter` | 90 | `2R`, the pitch circle. |
 | `PinDiameter` | `pin_diameter` | 0 | Ring-pin diameter. 0 derives `Rr`. |
 | `Eccentricity` | `eccentricity` | 1.5 | `E`. |
-| `DiskClearance` | `disk_clearance` | 0.4 | `c`, backlash cut into the profile, and the gap between the rotor and the casing. At least 0.4. |
+| `DiskClearance` | `disk_clearance` | 0.55 | `c`, backlash cut into the profile, and the gap between the rotor and the casing. At least 0.55. |
 | `DiscCount` | `disc_count` | 1 | 1, or 2 discs 180° apart. |
 | `DiscThickness` | `disc_thickness` | 8 | Axial thickness of each disc. |
-| `DiscGap` | `disc_gap` | 0.5 | Gap between disc 1 and disc 2. At least 0.4 for two discs; a one-disc drive ignores it. |
+| `DiscGap` | `disc_gap` | 0.55 | Gap between disc 1 and disc 2. At least 0.55 for two discs; a one-disc drive ignores it. |
 | `CenterBearingDiameter` | `center_bearing_diameter` | 30 | Cam outer diameter, and the disc center bore before clearance. |
 | `InputShaftDiameter` | `input_shaft_diameter` | 8 | Bore through the cam. 0 leaves the cam solid. |
-| `BearingClearance` | `bearing_clearance` | 0.8 | Diametral clearance of the disc bore over the cam. At least 0.8. |
+| `BearingClearance` | `bearing_clearance` | 1.1 | Diametral clearance of the disc bore over the cam. At least 1.1. |
 | `OutputPinCircleDiameter` | `output_pin_circle_diameter` | 50 | `2Rop`. |
 | `OutputPinCount` | `output_pin_count` | 6 | `M`. |
 | `OutputPinDiameter` | `output_pin_diameter` | 0 | Output-pin diameter. 0 derives it. |
-| `OutputPinClearance` | `output_pin_clearance` | 0.4 | Radial gap between an output pin and its disc hole at the pin's farthest offset. At least 0.4. |
+| `OutputPinClearance` | `output_pin_clearance` | 0.55 | Radial gap between an output pin and its disc hole at the pin's farthest offset. At least 0.55. |
 | `HousingWall` | `wall` | 3 | Minimum radial wall of the casing. |
 | `BaseThickness` | `base_thickness` | 5 | Axial thickness of the housing base. |
 | `OutputPlateThickness` | `output_plate_thickness` | 5 | Axial thickness of the output plate. |
-| `ChamferSize` | `chamfer_size` | 0.5 | 45° chamfer on the housing and plate rims and on the pin ends. 0 is none. |
+| `ChamferSize` | `chamfer_size` | 0.5 | 45° chamfer on outer rims of the discs, housing, cam and plate, and both pin ends. It must be at least 0.5 mm per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing). |
 | `Placement` | | nil | Frame whose origin is a point on the drive axis and whose plane holds disc 1's lower face. The stack grows along its normal. |
 
 The add-in's Target Plane, Anchor Point and Parent Component selections become `Placement`. The
@@ -55,22 +55,23 @@ with the bound `E*` found by 40 bisection steps from 1e-9 mm, as the add-in does
 `E + ISD/2 < CBD/2`; and `(CBD + clearance)/2 < Rop - D_hole/2`. The gallery accepts and refuses exactly
 what the add-in does, with one addition: it first checks the input ranges the add-in's spec lists but does
 not enforce, because the build cannot take them: `N >= 4`, `M >= 3`, a disc count of 1 or 2, finite
-values, lengths above zero, and the optional lengths (pin, output pin and shaft diameters, clearances,
-gap and chamfer) not below zero. It then adds the clearance minimums below. The add-in allows smaller clearances
+values, lengths above zero, and optional lengths (pin, output pin and shaft diameters, clearances and gap)
+not below zero. `ChamferSize` must be at least 0.5 mm per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing).
+It then adds the clearance minimums below. The add-in allows smaller clearances
 and two touching discs; the gallery refuses them.
 
 ## Fits
 
 The moving custom parts keep the Regular fit of [Part clearances](../../docs/model-pipeline.md#part-clearances),
-0.35 mm, and the output pins keep the Tight fit, 0.2 mm. Each minimum is the fit plus 0.05 mm, which covers the mesh
-bound of the section readings that prove the gap. `Problems` refuses a smaller value.
+0.35 mm, and the output pins keep the Tight fit, 0.2 mm. The regular-fit inputs add 0.2 mm for held chamfer-mesh
+bounds and section uncertainty. `Problems` refuses a smaller value.
 
 | Fit | Input | Minimum |
 | --- | --- | ---: |
-| Rotor to casing | `DiskClearance` | 0.4 |
-| Disc bore to cam, radial | `BearingClearance / 2` | 0.4 |
-| Output pin to disc hole | `OutputPinClearance` | 0.4 |
-| Disc to disc, along the axis | `DiscGap` (two discs) | 0.4 |
+| Rotor to casing | `DiskClearance` | 0.55 |
+| Disc bore to cam, radial | `BearingClearance / 2` | 0.55 |
+| Output pin to disc hole | `OutputPinClearance` | 0.55 |
+| Disc to disc, along the axis | `DiscGap` (two discs) | 0.55 |
 | Output pin to plate socket, radial | fixed | 0.25 |
 
 The disc, housing base and output plate stand one plane gap (1 mm) apart along the axis.
@@ -137,7 +138,8 @@ socket and repeats it with a circular pattern about the drive axis. The build ex
 and repeats the finished pin with a circular pattern of bodies about the drive axis.
 
 **Chamfers.** `ChamferSize` chamfers the outer loop of both faces of every rotor disc, the outer circles of
-the housing's two end faces, the outer circle of both plate faces and the ends of every pin.
+the housing's two end faces, every convex outer rim of each cam section, the outer circle of both plate faces and both
+ends of every pin. Bore and hole rims are concave, so they do not qualify as convex boundary edges.
 
 ## Result
 

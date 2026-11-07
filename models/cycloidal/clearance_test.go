@@ -1,6 +1,7 @@
 package cycloidal_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -16,7 +17,13 @@ func sectionGap(t *testing.T, a, b *decad.Body, height float64) float64 {
 	t.Helper()
 	plane, err := r3.NewFrame(r3.NewVec(0, 0, height), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
-	tol := units.Millimeters(0.01)
+	tolMM := 0.01
+	for _, body := range []*decad.Body{a, b} {
+		bounds, err := body.Bounds()
+		require.NoError(t, err)
+		tolMM = math.Max(tolMM, bounds.Bound.Base()+0.001)
+	}
+	tol := units.Millimeters(tolMM)
 	first, err := a.SectionOutline(t.Context(), plane, tol)
 	require.NoError(t, err)
 	second, err := b.SectionOutline(t.Context(), plane, tol)
@@ -55,14 +62,13 @@ func TestMeasuredFits(t *testing.T) {
 			p.OutputPinClearance, p.DiscGap = cycloidal.MinClearance, cycloidal.MinClearance
 		}},
 		{"larger_clearances", func(p *cycloidal.Params) {
-			p.DiskClearance, p.BearingClearance, p.OutputPinClearance = 0.5, 1, 0.5
+			p.DiskClearance, p.BearingClearance, p.OutputPinClearance = 0.6, 1.2, 0.6
 		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			p := cycloidal.DefaultParams()
-			p.ChamferSize = 0
 			tc.mod(&p)
 			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
 			require.NoError(t, err)
