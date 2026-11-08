@@ -73,7 +73,7 @@ origin, so the axis is world +Z.
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
 | `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
-| `j` | `Backlash` | float64 | 0.05 | Tooth thinning of the sun and planets at the pitch circle; the ring's tooth spaces are widened by the same amount |
+| `j` | `Backlash` | float64 | 0.15 | Tooth thinning of the sun and planets at the pitch circle; the ring's tooth spaces are widened by the same amount |
 | — | `Placement` | `*r3.Frame` | nil | Reference point and plane |
 
 Use finite inputs. Zero fields are not default requests; `DefaultParams` supplies the defaults.

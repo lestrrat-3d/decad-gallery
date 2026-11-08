@@ -138,6 +138,6 @@ You can vary:
 
 The ring must have as many teeth as the sun plus twice the planets, and the sun and ring teeth together must divide
 by the planet count so the planets sit at equal angles. Dimensions are in millimeters, and the pressure angle is in
-radians. Each pair of meshing gears has 0.1 mm of backlash by default, set by how much each tooth is thinned. The tip-to-root clearance is at least `max(0.25 × module, 0.5 mm)`.
+radians. Each pair of meshing gears has 0.3 mm of backlash by default, set by how much each tooth is thinned. The tip-to-root clearance is at least `max(0.25 × module, 0.5 mm)`.
 
 For how to build this gearbox from Go, see the [developer notes](../../docs/models/planetarygearbox.md).
