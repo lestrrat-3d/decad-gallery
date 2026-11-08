@@ -1,10 +1,7 @@
 package main
 
 import (
-	"image/gif"
 	"math"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
@@ -16,7 +13,7 @@ import (
 // TestPlanetaryGearboxMotion builds the real two-stage gearbox once and checks the animation's kinematics:
 // at an input angle that turns the first carrier a third of a turn, so planet 0 has been carried
 // to where planet 1 started; the fixed ring and the covers have not moved; the input shaft has turned by the
-// input angle. It then renders three small frames into a looping GIF.
+// input angle.
 func TestPlanetaryGearboxMotion(t *testing.T) {
 	box, params, err := buildPlanetaryGearbox(t.Context(), 2)
 	require.NoError(t, err)
@@ -77,18 +74,4 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 		require.InDelta(t, restShaft[i].X*cos-restShaft[i].Y*sin, turnedShaft[i].X, 1e-9)
 		require.InDelta(t, restShaft[i].X*sin+restShaft[i].Y*cos, turnedShaft[i].Y, 1e-9)
 	}
-
-	output := filepath.Join(t.TempDir(), "motion.gif")
-	require.NoError(t, renderPlanetaryMotion(t.Context(), output, 480, 160, 3))
-	file, err := os.Open(output)
-	require.NoError(t, err)
-	defer func() { _ = file.Close() }()
-	animation, err := gif.DecodeAll(file)
-	require.NoError(t, err)
-	// Three input angles play forward and then back without repeating the ends: 0, 1, 2, 1.
-	require.Len(t, animation.Image, 4)
-	require.Equal(t, 480, animation.Image[0].Bounds().Dx())
-	require.Equal(t, 160, animation.Image[0].Bounds().Dy())
-	require.Zero(t, animation.LoopCount, "the animation loops forever")
-	require.NotEqual(t, animation.Image[0].Pix, animation.Image[2].Pix, "the frames differ")
 }

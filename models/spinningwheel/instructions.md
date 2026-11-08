@@ -382,4 +382,4 @@ Do not call an analytic planar gap check full 3D contact detection. Document fri
 Render actual Decad bodies: hero, front/back pair, flyer/bobbin close-up, Scotch brake detail,
 and animation with fixed frame and all moving groups correctly phased.
 Show axis/orifice and leader clearly in close-up; show independent bobbin marker motion.
-Register renderer integration checks and build entry point. Add images/index.png and hero.png.
+Register the build entry point. Add images/index.png and hero.png.

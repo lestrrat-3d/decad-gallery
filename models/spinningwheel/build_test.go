@@ -1,6 +1,7 @@
 package spinningwheel_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -133,12 +134,98 @@ func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
 	requireHeadAdjustment(t, a, p)
 	requireFlyerSweptClearances(t, a)
 	requireDriveBandFrameClearances(t, a)
+	requireBrakeSpringsFromOneCoil(t, doc, a)
+	requireYarnHooksFromOneMaster(t, doc, a)
+	t.Logf("verified %d final bodies and %d sketches", len(a.Parts), len(a.Sketches))
+}
+
+// requireBrakeSpringsFromOneCoil checks that the build runs one native Coil and that both brake springs
+// come from it: the left spring through its Union and Refine, the right spring through a Copy of the left
+// spring's refined body.
+func requireBrakeSpringsFromOneCoil(t *testing.T, doc *decad.Document, a *spinningwheel.Assembly) {
+	t.Helper()
+	history := doc.OperationHistory()
+	var coil *decad.Operation
 	coils := 0
-	for _, op := range doc.OperationHistory().Operations() {
-		if op.Kind() == decad.OperationCoil {
-			coils++
+	for _, op := range history.Operations() {
+		if op.Kind() != decad.OperationCoil {
+			continue
+		}
+		coil = op
+		coils++
+	}
+	require.Equal(t, 1, coils, "the left brake spring must be the only native Coil")
+	for _, test := range []struct {
+		side   string
+		copied bool
+	}{
+		{"left", false},
+		{"right", true},
+	} {
+		name := "brake-spring-" + test.side
+		found, copied := brakeSpringAncestry(t, history, wheelPart(t, a, name))
+		require.Equal(t, 1, len(found), "%s must come from exactly one Coil", name)
+		_, ok := found[coil]
+		require.True(t, ok, "%s must come from the build's native Coil", name)
+		require.Equal(t, test.copied, copied, "%s copy step", name)
+	}
+}
+
+// requireYarnHooksFromOneMaster checks that the first ordinary yarn hook and the active hook are built
+// directly and each of the other ten ordinary hooks is a Copy of the first, and that exactly ten Copy
+// operations take yarn-hook-1 as their source.
+func requireYarnHooksFromOneMaster(t *testing.T, doc *decad.Document, a *spinningwheel.Assembly) {
+	t.Helper()
+	history := doc.OperationHistory()
+	master := wheelPart(t, a, "yarn-hook-1")
+	copies := 0
+	for _, op := range history.Operations() {
+		if op.Kind() == decad.OperationCopy && len(op.Inputs()) == 1 && op.Inputs()[0].Body == master {
+			copies++
 		}
 	}
-	require.Equal(t, 2, coils, "both brake springs must come from native Coil")
-	t.Logf("verified %d final bodies and %d sketches", len(a.Parts), len(a.Sketches))
+	require.Equal(t, 10, copies, "ten yarn hook copies")
+	for i := 1; i <= 12; i++ {
+		name := fmt.Sprintf("yarn-hook-%d", i)
+		op, err := history.Producer(wheelPart(t, a, name))
+		require.NoError(t, err, name)
+		if i == 1 || i == 9 {
+			require.NotEqual(t, decad.OperationCopy, op.Kind(), "%s is built directly", name)
+			continue
+		}
+		require.Equal(t, decad.OperationCopy, op.Kind(), "%s must be a copy", name)
+		require.Len(t, op.Inputs(), 1, name)
+		require.Same(t, master, op.Inputs()[0].Body, "%s must copy yarn-hook-1", name)
+	}
+}
+
+// brakeSpringAncestry follows body's producers back through every input. It returns the Coil operations it
+// reaches and whether a Copy lies on the way.
+func brakeSpringAncestry(t *testing.T, history *decad.OperationHistory, body *decad.Body) (map[*decad.Operation]struct{}, bool) {
+	t.Helper()
+	coils := make(map[*decad.Operation]struct{})
+	copied := false
+	seen := make(map[*decad.Body]struct{})
+	pending := []*decad.Body{body}
+	for len(pending) > 0 {
+		current := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		if _, ok := seen[current]; ok {
+			continue
+		}
+		seen[current] = struct{}{}
+		op, err := history.Producer(current)
+		require.NoError(t, err, "every brake spring ancestor needs a recorded producer")
+		if op.Kind() == decad.OperationCoil {
+			coils[op] = struct{}{}
+			continue
+		}
+		if op.Kind() == decad.OperationCopy {
+			copied = true
+		}
+		for _, input := range op.Inputs() {
+			pending = append(pending, input.Body)
+		}
+	}
+	return coils, copied
 }

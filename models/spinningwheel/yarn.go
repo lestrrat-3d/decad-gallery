@@ -63,16 +63,33 @@ func (b *builder) yarn() {
 		return
 	}
 
+	// Ordinary hooks differ only by position, so ten are exact lift copies of the first. The copy moves every
+	// piece by exactly the lift-local offset, so each copied stem still lies in the seat tool that guideSeats cut
+	// on the same lift. The active hook has its own axis and is built directly.
+	var master *decad.Body
+	var masterCentre r3.Vec
 	index := 0
 	for _, x := range []float64{-58, 58} {
 		for _, y := range []float64{-190, -172, -160, -142, -124, -106} {
 			index++
-			axis := r3.Vec{Y: 1}
+			centre := r3.Vec{X: x * s, Y: y * s, Z: 22 * s}
+			name := fmt.Sprintf("yarn-hook-%d", index)
 			if x > 0 && y == -160 {
-				axis = activeAxis
+				b.liftedPart(name, "guide", "flyer", func() *decad.Body {
+					return b.yarnHook(centre, activeAxis, 10*s, false)
+				})
+				continue
 			}
-			b.liftedPart(fmt.Sprintf("yarn-hook-%d", index), "guide", "flyer", func() *decad.Body {
-				return b.yarnHook(r3.Vec{X: x * s, Y: y * s, Z: 22 * s}, axis, 10*s, false)
+			if master == nil {
+				b.liftedPart(name, "guide", "flyer", func() *decad.Body {
+					master = b.yarnHook(centre, r3.Vec{Y: 1}, 10*s, false)
+					masterCentre = centre
+					return master
+				})
+				continue
+			}
+			b.liftedPart(name, "guide", "flyer", func() *decad.Body {
+				return b.copyOnLift(master, b.flyerLift(), flyerLocal(masterCentre), flyerLocal(centre))
 			})
 		}
 	}
@@ -130,7 +147,7 @@ func (b *builder) yarnHook(centre, axis r3.Vec, stemZ float64, front bool) *deca
 	// Every piece is placed on the flyer lift before the Union, so Verify reads the stem and the ring apart
 	// from the arm or crossbar seat that shares the lift. The flyer point (x, y, z) lies at local (x, z, -y).
 	fl := b.flyerLift()
-	local := func(v r3.Vec) r3.Vec { return r3.Vec{X: v.X, Y: v.Z, Z: -v.Y} }
+	local := flyerLocal
 	attachment := centre.Add(e.Scale(4))
 	bottom := r3.Vec{X: attachment.X, Y: attachment.Y, Z: stemZ}
 	hook := b.torus(4, 1, -5*math.Pi/6, 5*math.Pi/3, r3.Vec{})

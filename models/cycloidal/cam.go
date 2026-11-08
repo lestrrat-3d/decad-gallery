@@ -27,28 +27,15 @@ func regionWithHoles(s *sketch.Sketch, holes int, stage string) (*sketch.Profile
 }
 
 // buildCam builds the eccentric cam. Each disc has a section whose outer circle is centered on that disc's
-// center, so a two-disc cam is two cylinders 2E apart. The first section reaches up to the second disc's lower
-// face and the second starts at the top of the first disc, so the sections overlap through the gap and join
-// into one body; the input bore on the drive axis is cut through the whole cam last.
+// center and whose ends are flush with that disc's faces, so a two-disc cam is two cylinders 2E apart. Each
+// section clears the other disc by DiscGap along the axis. A bridge cylinder on the drive axis joins the two
+// sections through the gap; the input bore on the drive axis is cut through the whole cam last.
 func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	var sections []*decad.Body
 	for index := range p.DiscCount {
-		bottom, top := 0.0, p.DiscThickness+p.DiscGap
-		if p.DiscCount == 1 {
-			top = p.DiscThickness
-		}
-		if index == 1 {
-			bottom, top = p.DiscThickness, 2*p.DiscThickness+p.DiscGap
-		}
-		if p.DiscCount == 2 && p.DiscGap == 0 {
-			// The sections stop short of the plane between the discs; the bridge joins them.
-			if index == 0 {
-				top -= camSeparation / 2
-			} else {
-				bottom += camSeparation / 2
-			}
-		}
+		bottom := r.discHeight(index)
+		top := bottom + p.DiscThickness
 		plane, err := r.planeAt(bottom)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: cam section %d plane: %w", index+1, err)
@@ -78,14 +65,11 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 	}
 	cam := sections[0]
 	if len(sections) > 1 {
-		if p.DiscGap == 0 {
-			bridge, err := r.buildCamBridge(ctx)
-			if err != nil {
-				return nil, err
-			}
-			sections = append(sections, bridge)
+		bridge, err := r.buildCamBridge(ctx)
+		if err != nil {
+			return nil, err
 		}
-		var err error
+		sections = append(sections, bridge)
 		cam, err = decad.Union(ctx, sections[0], sections[1:]...)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: join cam sections: %w", err)
@@ -125,24 +109,17 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 	return bored, nil
 }
 
-// With no gap between the discs, the two cam sections stop camSeparation apart, centered on the plane between the
-// discs, and a bridge reaches camOverlap into each. Decad decides a union only when the bodies interpenetrate
-// deeper than its 0.1 mm chord tolerance, so the overlap is above that, and the separation keeps the sections'
-// end faces from touching within it.
-const (
-	camSeparation = 0.25
-	camOverlap    = 0.2
-)
+// The bridge reaches camOverlap into each cam section. Decad decides a union only when the bodies interpenetrate
+// deeper than its 0.1 mm chord tolerance, so the overlap is above that.
+const camOverlap = 0.2
 
-// buildCamBridge builds the cylinder that joins the two cam sections when the discs touch. With no gap the
-// sections only share the plane between the discs, and decad does not decide a union of bodies that share a
-// face. The bridge is centered on the drive axis, straddles that plane, and reaches into both sections, so each
+// buildCamBridge builds the cylinder that joins the two cam sections across the gap between the discs. The
+// bridge is centered on the drive axis, spans the gap, and reaches camOverlap into both sections, so each
 // union has a volume in common. Its radius is halfway between the input bore and the largest circle about the
 // axis that fits inside both sections, so a bore cut afterwards leaves material around it.
 func (r *run) buildCamBridge(ctx context.Context) (*decad.Body, error) {
 	p := r.p
-	half := camSeparation/2 + camOverlap
-	plane, err := r.planeAt(p.DiscThickness - half)
+	plane, err := r.planeAt(p.DiscThickness - camOverlap)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: cam bridge plane: %w", err)
 	}
@@ -162,7 +139,7 @@ func (r *run) buildCamBridge(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	bridge, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(2 * half), Dir: decad.Along})
+		decad.Distance{D: units.Millimeters(p.DiscGap + 2*camOverlap), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude cam bridge: %w", err)
 	}

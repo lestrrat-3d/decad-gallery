@@ -63,11 +63,60 @@ with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the
 repository layout check after a push.
 
+### Part clearances
+
+Choose the clearance for each distinct part fit by its intended feel:
+
+| Fit | Intended feel | Minimum surface-to-surface clearance |
+|---|---|---:|
+| Tight | Not intended to be removable | 0.2 mm |
+| Regular | Some leeway, but not loose | 0.35 mm |
+| Loose | Loose fit | 0.5 mm |
+
+Do not use zero-clearance or overlapping fits between separate parts. Measure
+the placed parts in the assembled geometry and require the proven lower bound
+to meet the selected minimum. Include geometry and measurement uncertainty in
+that bound. Check every parameter case that changes the fit.
+
+Keep purchased and standard components, such as bolts, nuts, and bearings, at
+their nominal dimensions. Put the selected clearance in custom geometry that
+mates with a fixed nominal part. When two fixed nominal parts mate, record the
+interface as a nominal exception; do not alter either part or claim that it
+meets a clearance class.
+
+Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal**,
+or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to
+provide clearance. Use **Nominal** when the model preserves fixed standard or
+purchased dimensions. Use **Mixed** when a model combines adjustable custom
+fits with fixed nominal components.
+
 Start with the smallest real case, using the generated candidate staged in
 the actual package. If it fails at a Sketch or Decad boundary, stop adding
 cases and hand off the blocker. Resume only when the gallery's real build
 passes against the upstream fix. Once the first case passes, run the other
 parameter cases and the consuming model checks.
+
+### Gear train clearances
+
+These rules apply to spur and helical gears that share a plane and have
+parallel axes. A helical gear uses its normal module in place of `m`.
+
+For two meshing gears, set the center distance to half the sum of the pitch
+diameters. The tip circle of each gear must then clear the root circle of its
+mate by at least `max(0.25·m, 0.5 mm)`. A standard tooth with a `1.25·m`
+dedendum gives exactly `0.25·m`, so a gear of module 1 needs a deeper root to
+reach 0.5 mm. Deepen the root; do not widen the center distance, which also
+adds backlash.
+
+Two gears in the same plane that do not mesh keep their tip circles at least
+0.5 mm apart, the Loose fit in [Part clearances](#part-clearances).
+
+Set backlash with the gear's backlash parameter. Backlash does not count
+toward the tip-to-root clearance.
+
+Measure the tip-to-root clearance on the placed gears at several rotation
+angles across one tooth pitch, for every module and tooth-count case the model
+builds.
 
 ## Spur gear example
 

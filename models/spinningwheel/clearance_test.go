@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"math"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -142,25 +144,159 @@ func connectorShapeAt(ctx context.Context, p spinningwheel.Params, i int) (colli
 	return nativeCollisionShape(connector.Body, surfaceTriangles{vertices: mesh.Vertices(), triangles: mesh.Triangles(), bound: mesh.Bound().Base()}), nil
 }
 
+type namedShape struct {
+	part  spinningwheel.Part
+	shape preparedShape // fixed: mesh built once for all poses; moving: unposed shape, never meshed
+}
+
+type bandKey struct {
+	name   string
+	lo, hi float64
+}
+
+type linkageFailureKind int
+
+const (
+	linkageOK      linkageFailureKind = iota
+	linkageError                      // Motion, PoseTransform or band section error
+	linkageFrame                      // moving part vs fixed obstacle
+	linkageRodFork                    // footman rod vs gimbal fork
+)
+
+// linkageFailure is the first failed check at one pose. It keeps only names, the angle, the gap and the error,
+// so the report stays small.
+type linkageFailure struct {
+	kind    linkageFailureKind
+	err     error
+	a, b    string
+	degrees int
+	gap     float64
+}
+
+// report fails the test with exactly the assertion the serial loop used. Call it on the test goroutine.
+func (f linkageFailure) report(t *testing.T) {
+	t.Helper()
+	switch f.kind {
+	case linkageError:
+		require.NoError(t, f.err)
+	case linkageFrame:
+		t.Fatalf("%s cannot be proved clear of %s at %d degrees; bounded mesh gap %g mm", f.a, f.b, f.degrees, f.gap)
+	case linkageRodFork:
+		require.True(t, false, "%s must clear %s at %d degrees; mesh gap %g", f.a, f.b, f.degrees, f.gap)
+	}
+}
+
+// linkageCheck holds the read-only inputs of the pose loop and the shared band cache.
+type linkageCheck struct {
+	ctx        context.Context
+	a          *spinningwheel.Assembly
+	p          spinningwheel.Params
+	fixed      []namedShape
+	moving     []namedShape
+	connectors []collisionShape
+	mu         sync.Mutex
+	bands      map[bandKey]collisionShape
+}
+
+// band memoizes a pure function of (obstacle, lo, hi), so which worker fills the cache cannot change a result.
+func (c *linkageCheck) band(obstacle namedShape, lo, hi float64) (collisionShape, bool, error) {
+	key := bandKey{obstacle.part.Name, lo, hi}
+	c.mu.Lock()
+	band, known := c.bands[key]
+	c.mu.Unlock()
+	if known {
+		return band, true, nil
+	}
+	band, ok, err := nativeInvariantYBand(c.ctx, obstacle.part.Body, obstacle.shape.collisionShape, lo, hi)
+	if err != nil || !ok {
+		return collisionShape{}, false, err
+	}
+	c.mu.Lock()
+	c.bands[key] = band
+	c.mu.Unlock()
+	return band, true, nil
+}
+
+// pose runs every check for pose i in the serial order and returns the first failure.
+func (c *linkageCheck) pose(i int) linkageFailure {
+	pose := c.p
+	pose.WheelAngle = float64(i) * math.Pi / 36
+	state, err := spinningwheel.Motion(pose)
+	if err != nil {
+		return linkageFailure{kind: linkageError, err: err}
+	}
+	posed := make(map[string]preparedShape, len(c.moving))
+	for _, item := range c.moving {
+		var shape collisionShape
+		if item.part.Motion == "compliant" {
+			shape = c.connectors[i]
+		} else {
+			xf, err := spinningwheel.PoseTransform(c.a.State, state, item.part.Motion, pose.WheelAngle-c.p.WheelAngle)
+			if err != nil {
+				return linkageFailure{kind: linkageError, err: err}
+			}
+			shape = item.shape.placed(xf)
+		}
+		// One mesh per moving part per pose, reused by every obstacle and the rod/fork check.
+		prepared := prepareShape(shape)
+		posed[item.part.Name] = prepared
+		for _, obstacle := range c.fixed {
+			if shape.separates(obstacle.shape.collisionShape) {
+				continue
+			}
+			// An L-shaped base has empty space inside its convex enclosure. Read its actual constant section in this Y band.
+			lo := math.Max(shape.lo.Y-shape.bound, obstacle.shape.lo.Y-obstacle.shape.bound)
+			hi := math.Min(shape.hi.Y+shape.bound, obstacle.shape.hi.Y+obstacle.shape.bound)
+			band, known, err := c.band(obstacle, lo, hi)
+			if err != nil {
+				return linkageFailure{kind: linkageError, err: err}
+			}
+			if known && shape.separates(band) {
+				continue
+			}
+			// A convex enclosure fills a bearing hole. Validate the actual native through-bore before exempting its shaft.
+			if nativeShaftPassage(obstacle.part, shape, c.p.Scale) {
+				continue
+			}
+			gap, clear := prepared.separation(obstacle.shape)
+			if clear {
+				continue
+			}
+			return linkageFailure{kind: linkageFrame, a: item.part.Name, b: obstacle.part.Name, degrees: i * 5, gap: gap}
+		}
+	}
+	for _, rod := range c.moving {
+		if rod.part.Motion != "footman" {
+			continue
+		}
+		for _, fork := range c.moving {
+			if fork.part.Motion != "gimbal" || fork.part.Group != "gimbal" {
+				continue
+			}
+			ra, fb := posed[rod.part.Name], posed[fork.part.Name]
+			if ra.separates(fb.collisionShape) {
+				continue
+			}
+			gap, clear := ra.separation(fb)
+			if clear {
+				continue
+			}
+			return linkageFailure{kind: linkageRodFork, a: rod.part.Name, b: fork.part.Name, degrees: i * 5, gap: gap}
+		}
+	}
+	return linkageFailure{}
+}
+
 func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p spinningwheel.Params, meshes map[string]surfaceTriangles) {
 	t.Helper()
-	type namedShape struct {
-		part  spinningwheel.Part
-		shape collisionShape
-	}
 	var fixed, moving []namedShape
-	type bandKey struct {
-		name   string
-		lo, hi float64
-	}
-	bands := map[bandKey]collisionShape{}
 	for _, part := range a.Parts {
 		switch part.Motion {
 		case "wheel", "treadle", "gimbal", "footman", "compliant":
-			moving = append(moving, namedShape{part, nativeCollisionShape(part.Body, meshes[part.Name])})
+			moving = append(moving, namedShape{part, prepareShape(nativeCollisionShape(part.Body, meshes[part.Name]))})
 		case "fixed":
 			if part.Group == "frame" || part.Group == "adjustment" || part.Group == "hinge" {
-				fixed = append(fixed, namedShape{part, nativeCollisionShape(part.Body, meshes[part.Name])})
+				fixed = append(fixed, namedShape{part, prepareShape(nativeCollisionShape(part.Body, meshes[part.Name]))})
 			}
 		}
 	}
@@ -172,69 +308,52 @@ func requireLinkageFrameClearances(t *testing.T, a *spinningwheel.Assembly, p sp
 	if hasCompliant {
 		connectors = connectorShapesByPose(t, p, 72)
 	}
-	for i := range 72 {
-		posed := make(map[string]collisionShape, len(moving))
-		pose := p
-		pose.WheelAngle = float64(i) * math.Pi / 36
-		state, err := spinningwheel.Motion(pose)
-		require.NoError(t, err)
-		for _, item := range moving {
-			var shape collisionShape
-			if item.part.Motion == "compliant" {
-				shape = connectors[i]
-			} else {
-				xf, err := spinningwheel.PoseTransform(a.State, state, item.part.Motion, pose.WheelAngle-p.WheelAngle)
-				require.NoError(t, err)
-				shape = item.shape.placed(xf)
-			}
-			posed[item.part.Name] = shape
-			for _, obstacle := range fixed {
-				if shape.separates(obstacle.shape) {
-					continue
-				}
-				// An L-shaped base has empty space inside its convex enclosure. Read its actual constant section in this Y band.
-				lo := math.Max(shape.lo.Y-shape.bound, obstacle.shape.lo.Y-obstacle.shape.bound)
-				hi := math.Min(shape.hi.Y+shape.bound, obstacle.shape.hi.Y+obstacle.shape.bound)
-				key := bandKey{obstacle.part.Name, lo, hi}
-				band, known := bands[key]
-				if !known {
-					if sliced, ok := nativeInvariantYBand(t, obstacle.part.Body, obstacle.shape, lo, hi); ok {
-						band = sliced
-						bands[key] = band
-						known = true
-					}
-				}
-				if known && shape.separates(band) {
-					continue
-				}
-				// A convex enclosure fills a bearing hole. Validate the actual native through-bore before exempting its shaft.
-				if nativeShaftPassage(obstacle.part, shape, p.Scale) {
-					continue
-				}
-				gap, clear := shape.meshSeparation(obstacle.shape)
-				if clear {
-					continue
-				}
-				t.Fatalf("%s cannot be proved clear of %s at %d degrees; bounded mesh gap %g mm", item.part.Name, obstacle.part.Name, i*5, gap)
-			}
-		}
-		for _, rod := range moving {
-			if rod.part.Motion != "footman" {
-				continue
-			}
-			for _, fork := range moving {
-				if fork.part.Motion != "gimbal" || fork.part.Group != "gimbal" {
-					continue
-				}
-				a, b := posed[rod.part.Name], posed[fork.part.Name]
-				if a.separates(b) {
-					continue
-				}
-				gap, clear := a.meshSeparation(b)
-				require.True(t, clear, "%s must clear %s at %d degrees; mesh gap %g", rod.part.Name, fork.part.Name, i*5, gap)
-			}
+	check := &linkageCheck{ctx: t.Context(), a: a, p: p, fixed: fixed, moving: moving, connectors: connectors,
+		bands: map[bandKey]collisionShape{}}
+	failures := runLinkagePoses(72, min(runtime.GOMAXPROCS(0), 4), check.pose)
+	// The serial loop stopped at the first failure in pose order, so report the lowest failing pose.
+	for _, f := range failures {
+		if f.kind != linkageOK {
+			f.report(t)
 		}
 	}
+}
+
+// runLinkagePoses runs check for every pose on workers goroutines and returns one result per pose.
+// A pose is skipped only when a lower pose already failed, so the lowest failing pose is always computed.
+func runLinkagePoses(poses, workers int, check func(int) linkageFailure) []linkageFailure {
+	failures := make([]linkageFailure, poses)
+	var lowest atomic.Int64 // lowest failing pose so far; later poses cannot change the report and are skipped
+	lowest.Store(int64(poses))
+	next := make(chan int)
+	var wg sync.WaitGroup
+	// Each live pose holds its posed meshes, so the pool size caps peak memory as well as CPU.
+	for range workers {
+		wg.Go(func() {
+			for i := range next {
+				if int64(i) > lowest.Load() {
+					continue
+				}
+				f := check(i)
+				if f.kind == linkageOK {
+					continue
+				}
+				failures[i] = f
+				for {
+					cur := lowest.Load()
+					if int64(i) >= cur || lowest.CompareAndSwap(cur, int64(i)) {
+						break
+					}
+				}
+			}
+		})
+	}
+	for i := range poses {
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+	return failures
 }
 
 // A cylinder enclosing the actual unrotated member bounds proves clearance

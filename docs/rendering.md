@@ -28,6 +28,13 @@ go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballb
 `ballbearing/605zz` renders the 5 × 14 × 5 mm 605ZZ envelope through the same builder.
 The readme shot also writes `605zz.png` at 1600 × 900.
 
+`m2bolt/hero` renders the default M2x10 bolt lying on its side with its head toward the camera.
+The `head`, `side`, `underside` and `lengths` presets show other angles and all six standard lengths.
+The `readme` shot writes all of them.
+
+`m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
+The `readme` shot writes all of them.
+
 From the repository root, regenerate the spur gear hero image with:
 
 ```sh
@@ -53,9 +60,7 @@ in the output directory and renames it after rendering succeeds.
 For other spur gear angles, use `-shot top` or `-shot low` with the matching
 filename in `models/spurgear/images`.
 
-Run `go -C tools/render test ./...` to build the actual spur gear and check that
-the output PNG contains it. Animation output can use the same model scene
-builders when an animation preset is added.
+Animation output can use the same model scene builders when an animation preset is added.
 
 The `bevelgear/hero` preset renders the 31/31 spiral pair at 35°, with a
 post-join 7.75 mm bore in each member, beside a bored 32/16 straight-tooth pair at
@@ -114,7 +119,9 @@ the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build
 image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
 shaft, the carrier, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
 gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
-`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
+`planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/fasteners-section` and `fasteners-exploded` presets cut a one-stage housing along the plane through
+the first bolt of each cover and draw its bolts, nuts, covers and ring in place and pulled apart along the bolt.
+The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
 `part-planet`, `part-bearing`, `part-carrier`, `part-input-shaft`, `part-link-shaft` and `part-output-shaft` presets
 render one of them alone. The shafts are seen from almost level with them so the groove and the collar show, and the
 carrier from below so the pins and their collars show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
@@ -158,13 +165,13 @@ writes `cutaway.png`, and the preset can be rendered on its own:
 go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwgear/images/cutaway.png
 ```
 
-The `gallery/hero` preset does not include the screw gear.
+The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
-scenes of the spinning wheel and the spur, helical, herringbone, cycloidal and bevel gear models one after
-another, places each at its own size on a 1600 × 900 pixel canvas (the wheel on the left, the gears on the
-right), and keeps only the pixels that differ from the background where the tiles overlap. Building all six
-models takes about six minutes plus the wheel build:
+scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
+drive and the bevel gear pair one after another. It places each at its own size on a 1600 × 900 pixel canvas
+(the wheel on the left, the gears on the right), and keeps only the pixels that differ from the background
+where the tiles overlap. Building all seven models takes about six minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png

@@ -189,6 +189,8 @@ Construct each in a canonical plane with native torus helper, then rigidly orien
 Keep the opening opposite the bottom attachment. Stems meet the t0 point of the actual wire.
 Use the instruction-defined oblique axes at the front and active hooks; actual yarn strands pass through their openings.
 Do not keep closed annular guide bodies or change only their captions.
+Build the first ordinary hook once; the other ten ordinary hooks are exact lift-local copies of it
+(the active and front hooks are built directly).
 
 Drive band: u=normalize(Flyer-Wheel),v=(-u.Z,0,u.X),q=(Rw-Rf)/d,k=sqrt(1-q*q).
 nPlus=q*u+k*v,nMinus=q*u-k*v. Tangencies are axis+pitch*n.
@@ -200,6 +202,10 @@ BandLength=Rw*wheelWrap+Rf*flyerWrap+2*sqrt(d*d-(Rw-Rf)^2).
 For Scotch springs create native Coil about local+Z from a fully constrained offset circle;
 then place so local+Z maps+Y, local+X maps+X, local+Y maps-Z.
 Six full turns put both end points at radial+2.1*X. Bridge those endpoints to the corresponding centreline datums.
+Build the left spring once: Coil, two legs, two eyes, one Union, then Refine to 0.12.
+Both springs have the same length, so the right spring is a Copy of that refined body moved by
+(2*Rb, -BrakeTravel, 0), taken before the left spring's head tilt. Turn the copy by the right phase about Y
+through its front eye centre.
 Use both springs and the two complementary tail lengths; the contract's conserved length excludes spring wire length.
 Rear routing eyes bisect the cord directions. Their stems/posts join the rear support bar.
 The front rail contains the M4 through-passage in its primary XZ profile.
@@ -223,6 +229,6 @@ Return one native Union of the main Sweep and both eyes. Do not create Parts or 
 ## Verification boundary
 
 Emit no tests or substitute drawings. Parent first builds and VerifyAll tessellates every real default solid,
-then runs parameter branches, physical joint/clearance checks and renderer integration.
+then runs parameter branches, physical joint/clearance checks and image rendering.
 Return all real consumed sketches for independent constraint verification.
 If a native geometry operation fails, report the smallest real producer case; do not relax tolerances or change dimensions.

@@ -46,11 +46,6 @@ go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballb
 
 The hero preset uses 1600 × 900 pixels; the index uses 480 × 270 pixels.
 The readme shot also writes `605zz.png` at 1600 × 900; `-shot 605zz` renders it separately.
-Run the renderer integration check with:
-
-```sh
-go -C tools/render test -run '^TestBearing(608|605)Rendering$'
-```
 
 ## Verification
 

@@ -92,7 +92,7 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error)
 // pattern about the sketch origin, the drive axis. The seed keeps the dimensions, so the copies follow it.
 func (r *run) patternPinCircle(s *sketch.Sketch) error {
 	c := r.outputPinCenter(0)
-	seed, err := r.circleAt(s, c.x, c.y, r.d.outputPinDiameter, "resolved_output_pin_diameter")
+	seed, err := r.circleAt(s, c.x, c.y, r.d.outputSocketDiameter, "output_socket_diameter")
 	if err != nil {
 		return err
 	}

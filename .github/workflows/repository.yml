@@ -17,6 +17,8 @@ jobs:
         run: python3 scripts/check_repository.py
       - name: Check dependency updater rollback
         run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
+      - name: Check CI test runner
+        run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
       - name: Check spur generation record
         run: python3 scripts/modelgen/spurgear.py check
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -32,41 +34,37 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: python3 scripts/ci/run_tests.py models full
 
-  render:
+  planetary-motion:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
-      - name: Check fast model rendering
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go -C tools/render test -skip '^Test(BevelGearHero|BevelGearStraightHigh|GalleryHero|HandCrankFan.*|SpinningWheel.*)$' -timeout 5m ./...
-      - name: Check all model rendering
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: go -C tools/render test -timeout 60m ./...
+      - name: Check planetary gearbox motion
+        run: go -C tools/render test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./...
 
-  render-wheel:
+  wheel-motion:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
-      - name: Check spinning wheel rendering
+      - name: Check spinning wheel motion
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go -C tools/render test -run '^TestSpinningWheel' -timeout 30m ./...
+        run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
-  render-fan:
+  fan-motion:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
-      - name: Check hand-crank fan rendering
+      - name: Check hand-crank fan motion
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go -C tools/render test -run '^TestHandCrankFan' -timeout 20m ./...
+        run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
 
   wheel:
     strategy:

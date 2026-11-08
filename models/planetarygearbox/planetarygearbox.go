@@ -40,6 +40,9 @@ type Gearbox struct {
 	// InputShaft passes through the front bearing into the first sun's bore.
 	InputShaft *decad.Body
 	Stages     []Stage
+	// Bolts holds the eight M2 bolts, four per cover, front cover's first. Each head is sunk flush in its cover's
+	// outer face. Nuts holds the matching eight M2 nuts, each sunk flush in an end face of the ring.
+	Bolts, Nuts []*decad.Body
 }
 
 // NamedBody is a body with its display name.
@@ -88,6 +91,13 @@ func (g Gearbox) Named() []NamedBody {
 	out := []NamedBody{
 		{RingName, g.Ring}, {FrontCoverName, g.FrontCover}, {RearCoverName, g.RearCover},
 		{FrontBearingName, g.FrontBearing}, {RearBearingName, g.RearBearing}, {InputShaftName, g.InputShaft},
+	}
+	for i := range g.Bolts {
+		bolt, nut := FrontBoltName(i), FrontNutName(i)
+		if half := len(g.Bolts) / 2; i >= half {
+			bolt, nut = RearBoltName(i-half), RearNutName(i-half)
+		}
+		out = append(out, NamedBody{bolt, g.Bolts[i]}, NamedBody{nut, g.Nuts[i]})
 	}
 	for k, stage := range g.Stages {
 		out = append(out, NamedBody{SunName(k), stage.Sun})
@@ -164,6 +174,9 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err := r.buildHousing(ctx, &box); err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
+	if err := r.buildFasteners(ctx, &box); err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
 
 	sun, err := r.buildSun(ctx)
 	if err != nil {
@@ -204,7 +217,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
 	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness+collarClearance,
-		p.CarrierThickness+p.StageGap+p.CoverThickness, span{-1, p.CarrierThickness})
+		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, span{-1, p.CarrierThickness})
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
@@ -226,7 +239,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			}
 			planetMoves = append(planetMoves, m)
 			m, err = pose(r.frame, 0, d.orbit*math.Cos(phi), d.orbit*math.Sin(phi),
-				z+p.GearThickness-planetBearing().Width)
+				z+p.GearThickness-planetBearing().Width+planetBearingLift)
 			if err != nil {
 				return Gearbox{}, fmt.Errorf("planetarygearbox: bearing pose: %w", err)
 			}

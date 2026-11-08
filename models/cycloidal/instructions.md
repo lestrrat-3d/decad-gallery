@@ -16,16 +16,17 @@ parameter-table names `defineParameters` registers.
 | `PinCircleDiameter` | `pin_circle_diameter` | 90 | `2R`, the pitch circle. |
 | `PinDiameter` | `pin_diameter` | 0 | Ring-pin diameter. 0 derives `Rr`. |
 | `Eccentricity` | `eccentricity` | 1.5 | `E`. |
-| `DiskClearance` | `disk_clearance` | 0.3 | `c`, backlash cut into the profile. |
+| `DiskClearance` | `disk_clearance` | 0.4 | `c`, backlash cut into the profile, and the gap between the rotor and the casing. At least 0.4. |
 | `DiscCount` | `disc_count` | 1 | 1, or 2 discs 180° apart. |
 | `DiscThickness` | `disc_thickness` | 8 | Axial thickness of each disc. |
-| `DiscGap` | `disc_gap` | 0.5 | Gap between disc 1 and disc 2. |
+| `DiscGap` | `disc_gap` | 0.5 | Gap between disc 1 and disc 2. At least 0.4 for two discs; a one-disc drive ignores it. |
 | `CenterBearingDiameter` | `center_bearing_diameter` | 30 | Cam outer diameter, and the disc center bore before clearance. |
 | `InputShaftDiameter` | `input_shaft_diameter` | 8 | Bore through the cam. 0 leaves the cam solid. |
-| `BearingClearance` | `bearing_clearance` | 0.2 | Diametral clearance of the disc bore over the cam. |
+| `BearingClearance` | `bearing_clearance` | 0.8 | Diametral clearance of the disc bore over the cam. At least 0.8. |
 | `OutputPinCircleDiameter` | `output_pin_circle_diameter` | 50 | `2Rop`. |
 | `OutputPinCount` | `output_pin_count` | 6 | `M`. |
 | `OutputPinDiameter` | `output_pin_diameter` | 0 | Output-pin diameter. 0 derives it. |
+| `OutputPinClearance` | `output_pin_clearance` | 0.4 | Radial gap between an output pin and its disc hole at the pin's farthest offset. At least 0.4. |
 | `HousingWall` | `wall` | 3 | Minimum radial wall of the casing. |
 | `BaseThickness` | `base_thickness` | 5 | Axial thickness of the housing base. |
 | `OutputPlateThickness` | `output_plate_thickness` | 5 | Axial thickness of the output plate. |
@@ -39,8 +40,9 @@ per-field status text boxes are dialog furniture and have no gallery counterpart
 
 `Rr = PinDiameter / 2` when `PinDiameter > 0`, else `(E + R sin(π/N)) / 2`. `Rr_eff = Rr + c`.
 `Rv = R - Rr_eff - E`. `D_pin = OutputPinDiameter` when it is positive, else `Rop sin(π/M) - E`.
-`D_hole = D_pin + 2E`. The housing outer diameter is `2 (R - Rr + 2E + wall)`, its base inner diameter
-is `2 (R - Rr - wall)`, and the output plate diameter is `2 Rop + D_pin + 2 wall`.
+`D_hole = D_pin + 2E + 2 c_pin`, where `c_pin` is `OutputPinClearance`. `D_socket = D_pin + 2 × 0.25` is the
+plate socket that holds a pin. The housing outer diameter is `2 (R - Rr + 2E + wall)`, its base inner diameter
+is `2 (R - Rr - wall)`, and the output plate diameter is `2 Rop + D_socket + 2 wall`.
 `Rr` and `D_hole` are numeric snapshots in the parameter table because they choose between a derived
 and an overridden value. Every other derived name is an expression.
 
@@ -54,7 +56,24 @@ with the bound `E*` found by 40 bisection steps from 1e-9 mm, as the add-in does
 what the add-in does, with one addition: it first checks the input ranges the add-in's spec lists but does
 not enforce, because the build cannot take them: `N >= 4`, `M >= 3`, a disc count of 1 or 2, finite
 values, lengths above zero, and the optional lengths (pin, output pin and shaft diameters, clearances,
-gap and chamfer) not below zero. Two discs with no gap are valid.
+gap and chamfer) not below zero. It then adds the clearance minimums below. The add-in allows smaller clearances
+and two touching discs; the gallery refuses them.
+
+## Fits
+
+The moving custom parts keep the Regular fit of [Part clearances](../../docs/model-pipeline.md#part-clearances),
+0.35 mm, and the output pins keep the Tight fit, 0.2 mm. Each minimum is the fit plus 0.05 mm, which covers the mesh
+bound of the section readings that prove the gap. `Problems` refuses a smaller value.
+
+| Fit | Input | Minimum |
+| --- | --- | ---: |
+| Rotor to casing | `DiskClearance` | 0.4 |
+| Disc bore to cam, radial | `BearingClearance / 2` | 0.4 |
+| Output pin to disc hole | `OutputPinClearance` | 0.4 |
+| Disc to disc, along the axis | `DiscGap` (two discs) | 0.4 |
+| Output pin to plate socket, radial | fixed | 0.25 |
+
+The disc, housing base and output plate stand one plane gap (1 mm) apart along the axis.
 
 ## Geometry
 
@@ -86,7 +105,7 @@ output holes of diameter `D_hole` on the circle of radius `Rop` about the disc c
 disc's clocking angle. The sketch draws one hole and repeats it with a circular pattern about the disc center. One region of that sketch, with `1 + M` holes, is extruded by `DiscThickness`.
 Disc `d` starts at `d (DiscThickness + DiscGap)`.
 
-**Casing contour.** The casing's inner wall is the disc's swept envelope pushed out by `c`. As the cam
+**Casing contour.** The casing's inner wall is the disc's swept envelope pushed out by `c`, measured across the envelope, not along a ray from the drive axis. As the cam
 turns by θ the disc center orbits the drive axis at `E` and the disc turns by `-θ/L`. For every
 direction in one pin pitch `[-π/N, π/N]`, 81 of them, the contour takes the largest distance from the
 drive axis at which any traced profile crosses that direction, measured on the segment between
@@ -95,7 +114,7 @@ pitch, so the sweep covers one pitch's share of the cam turn, 360 cam angles per
 multiple of `N`, and folds every profile segment into the pitch it lands in. The profile's chord error, not
 the cam steps, limits the contour, at 0.002 mm for the default drive. The result is mirrored about the pin
 and repeated `N` times. Its lowest point is the pin surface `R - Rr` and its highest is
-`R - Rr + 2E`. The add-in bins the sweep by radius instead, which leaves a jagged contour that decad's
+`R - Rr + 2E`, before the push by `c`. The add-in bins the sweep by radius instead, which leaves a jagged contour that decad's
 curvature certificate refuses.
 
 **Housing.** One outer cylinder of diameter `2 (R - Rr + 2E + wall)` runs from the underside of the base,
@@ -106,12 +125,13 @@ the top. That leaves the casing wall and a base floor. A cylinder of diameter `2
 cut through the floor. No two bodies share a face, which decad does not decide.
 
 **Cam.** Section `d` is a cylinder of diameter `CenterBearingDiameter` centered on disc `d`'s center. A
-one-disc cam is one cylinder over the disc. A two-disc cam joins a cylinder over disc 0 and the gap and a
-cylinder over the gap and disc 1, which overlap through the gap. The input bore of diameter
+one-disc cam is one cylinder over the disc. A two-disc cam joins a cylinder over disc 0 and a cylinder over
+disc 1, each flush with its disc's faces, by a bridge cylinder on the drive axis across the gap that reaches
+0.2 mm into each. Each section clears the other disc by `DiscGap`. The input bore of diameter
 `InputShaftDiameter` on the drive axis is cut through the whole cam when it is positive.
 
 **Output.** The plate lies one plane gap above the stack, with `M` sockets on the circle of radius `Rop`
-about the drive axis. Each pin has diameter `D_pin` and runs from the top of the plate down to the lower
+about the drive axis, of diameter `D_socket`. Each pin has diameter `D_pin` and runs from the top of the plate down to the lower
 face of disc 1, through every disc's output holes. Pin `k` is at angle `2πk/M`. The plate sketch draws one
 socket and repeats it with a circular pattern about the drive axis. The build extrudes and chamfers one pin
 and repeats the finished pin with a circular pattern of bodies about the drive axis.
@@ -131,3 +151,5 @@ the grouping is only the order of `Named`. The document needs `decad.WithChainTo
 Every body passes 0.1 mm `VerifyAll`. Every sketch is fully constrained: points are dimensioned from the
 sketch origin, which is the drive axis, and circle diameters are bound to the parameter table. At the home
 pose the rotor clears the casing, the cam and the output pins, and the housing clears the cam and the plate.
+Sections of the placed bodies prove each gap in the Fits table, with the mesh bound subtracted, for one and two
+discs, 12, 20 and 24 pins, a solid cam, five output pins and the smallest accepted clearances.
