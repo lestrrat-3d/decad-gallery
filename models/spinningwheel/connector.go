@@ -37,6 +37,9 @@ func BuildConnector(ctx context.Context, doc *decad.Document, p Params) (*Connec
 	if b.err != nil {
 		return nil, fmt.Errorf("build connector: %w", b.err)
 	}
+	if err := placeConnector(doc, body); err != nil {
+		return nil, fmt.Errorf("build connector: %w", err)
+	}
 	return &Connector{Body: body, Sketches: b.a.Sketches}, nil
 }
 

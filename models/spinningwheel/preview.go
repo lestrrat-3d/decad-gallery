@@ -31,6 +31,9 @@ func BuildPreview(ctx context.Context, doc *decad.Document, p Params) (*Preview,
 	preview := &Preview{Assembly: &b.a}
 	b.preview = preview
 	b.buildInitialParts()
+	if b.err == nil {
+		b.placeParts()
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
