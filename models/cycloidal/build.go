@@ -110,7 +110,45 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 	if drive.OutputPins, err = r.patternPins(ctx, pin); err != nil {
 		return Drive{}, err
 	}
+	if err := placeInContainers(doc, drive); err != nil {
+		return Drive{}, err
+	}
 	return drive, nil
+}
+
+// Container names, one per kind of body, as docs/model-pipeline.md#body-containers requires.
+const (
+	DiscsContainerName      = "Cycloidal Discs"
+	HousingContainerName    = "Housing"
+	CamContainerName        = "Eccentric Cam"
+	PlateContainerName      = "Output Plate"
+	OutputPinsContainerName = "Output Pins"
+)
+
+// placeInContainers moves each finished body into the container for its kind under the document root.
+func placeInContainers(doc *decad.Document, d Drive) error {
+	groups := []struct {
+		name   string
+		bodies []*decad.Body
+	}{
+		{DiscsContainerName, d.Discs},
+		{HousingContainerName, []*decad.Body{d.Housing}},
+		{CamContainerName, []*decad.Body{d.Cam}},
+		{PlateContainerName, []*decad.Body{d.OutputPlate}},
+		{OutputPinsContainerName, d.OutputPins},
+	}
+	for _, g := range groups {
+		c, err := doc.Root().ChildNamed(g.name)
+		if err != nil {
+			return fmt.Errorf("cycloidal: container %q: %w", g.name, err)
+		}
+		for _, b := range g.bodies {
+			if err := doc.MoveBody(b, c); err != nil {
+				return fmt.Errorf("cycloidal: move body into %q: %w", g.name, err)
+			}
+		}
+	}
+	return nil
 }
 
 // chamfered chamfers the outer loops of both end caps of body by Params.ChamferSize.
