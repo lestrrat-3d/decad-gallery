@@ -84,9 +84,11 @@ func (f handCrankFan) scene(ctx context.Context, exploded bool) (solidlens.Scene
 }
 
 // handCrankFanPart is one unique part of the fan, as the README's parts table lists it: the image's name, the part of
-// the assembly to show, and the direction to look at it from. Blades, bolts and bearings are shown once.
+// the assembly to show, the parts drawn with it, and the direction to look at it from. Blades, bolts and bearings are
+// shown once. A bolt row names its nut in with, so the image shows the pair as they are fitted.
 type handCrankFanPart struct {
 	shot, part string
+	with       []string
 	from       r3.Vec
 }
 
@@ -100,29 +102,29 @@ var (
 )
 
 var handCrankFanParts = []handCrankFanPart{
-	{"gearbox-base", "gearbox-base", partCavity},
-	{"gearbox-post", "gearbox-post", partFace},
-	{"gearbox-crank-wall", "gearbox-crank-wall", partCavity},
-	{"gearbox-fan-wall", "gearbox-fan-wall", partCavity},
-	{"gearbox-bolt", "gearbox-bolt-1", partFront},
-	{"gearbox-screw", "gearbox-screw-1", partFront},
-	{"grip", "handle", partFront},
-	{"grip-screw", "handle-bolt-1", partFront},
-	{"crank-gear", "crank-gear", partFace},
-	{"drive-gear", "drive-gear", partFace},
-	{"driving-gear", "driving-gear", partFace},
-	{"pinion", "pinion", partPinion},
-	{"crank-shaft", "crank-shaft", partFront},
-	{"drive-shaft", "drive-shaft", partFront},
-	{"fan-shaft", "fan-shaft", partFront},
-	{"bearing", "bearing-crank-post", partFace},
-	{"crank-arm", "crank-arm", partSide},
-	{"crank-pin", "crank-pin", partFront},
-	{"crank-pin-screw", "crank-pin-bolt", partFront},
-	{"crank-handle", "crank-grip", partFront},
-	{"fan-hub", "fan-hub", partRotor},
-	{"fan-blade", "fan-blade-1", partRotor},
-	{"fan-bolt", "fan-bolt-1", partRotor},
+	{"gearbox-base", "gearbox-base", nil, partCavity},
+	{"gearbox-post", "gearbox-post", nil, partFace},
+	{"gearbox-crank-wall", "gearbox-crank-wall", nil, partCavity},
+	{"gearbox-fan-wall", "gearbox-fan-wall", nil, partCavity},
+	{"gearbox-bolt", "gearbox-bolt-1", []string{"gearbox-nut-1"}, partFront},
+	{"gearbox-screw", "gearbox-screw-1", []string{"gearbox-screw-nut-1"}, partFront},
+	{"grip", "handle", nil, partFront},
+	{"grip-screw", "handle-bolt-1", []string{"handle-nut-1"}, partFront},
+	{"crank-gear", "crank-gear", nil, partFace},
+	{"drive-gear", "drive-gear", nil, partFace},
+	{"driving-gear", "driving-gear", nil, partFace},
+	{"pinion", "pinion", nil, partPinion},
+	{"crank-shaft", "crank-shaft", nil, partFront},
+	{"drive-shaft", "drive-shaft", nil, partFront},
+	{"fan-shaft", "fan-shaft", nil, partFront},
+	{"bearing", "bearing-crank-post", nil, partFace},
+	{"crank-arm", "crank-arm", nil, partSide},
+	{"crank-pin", "crank-pin", nil, partFront},
+	{"crank-pin-screw", "crank-pin-bolt", []string{"crank-pin-nut"}, partFront},
+	{"crank-handle", "crank-grip", nil, partFront},
+	{"fan-hub", "fan-hub", nil, partRotor},
+	{"fan-blade", "fan-blade-1", nil, partRotor},
+	{"fan-bolt", "fan-bolt-1", []string{"fan-nut-1"}, partRotor},
 }
 
 func init() {
@@ -131,29 +133,41 @@ func init() {
 	}
 }
 
-// partScene shows one part of the fan alone, in place, framed in the middle of the image.
+// partScene shows one part of the fan, with the parts named in its with field, in place, framed in the middle of the image.
 func (f handCrankFan) partScene(ctx context.Context, part handCrankFanPart) (solidlens.Scene, error) {
-	for _, p := range f.a.Parts {
-		if p.Name != part.part {
-			continue
+	var models []solidlens.Model
+	for _, name := range append([]string{part.part}, part.with...) {
+		found := false
+		for _, p := range f.a.Parts {
+			if p.Name != name {
+				continue
+			}
+			mesh, err := handCrankFanMesh(ctx, p)
+			if err != nil {
+				return solidlens.Scene{}, err
+			}
+			models = append(models, mesh.model)
+			found = true
+			break
 		}
-		mesh, err := handCrankFanMesh(ctx, p)
-		if err != nil {
-			return solidlens.Scene{}, err
+		if !found {
+			return solidlens.Scene{}, fmt.Errorf("hand-crank fan has no part %q", name)
 		}
-		models := []solidlens.Model{mesh.model}
-		low, high := models[0].Mesh.Vertices()[0], models[0].Mesh.Vertices()[0]
-		for _, v := range models[0].Mesh.Vertices() {
+	}
+	// The camera frames the part and the parts drawn with it together.
+	first := models[0].Mesh.Vertices()[0]
+	low, high := first, first
+	for _, model := range models {
+		for _, v := range model.Mesh.Vertices() {
 			low = r3.Vec{X: math.Min(low.X, v.X), Y: math.Min(low.Y, v.Y), Z: math.Min(low.Z, v.Z)}
 			high = r3.Vec{X: math.Max(high.X, v.X), Y: math.Max(high.Y, v.Y), Z: math.Max(high.Z, v.Z)}
 		}
-		centre := low.Add(high).Scale(.5)
-		direction, _ := part.from.Normalize()
-		camera := solidlens.Camera{Position: solidlens.Vec(centre.Add(direction.Scale(3 * high.Sub(low).Len()))),
-			Target: solidlens.Vec(centre), Up: solidlens.Vec{Z: 1}, FOV: 35}
-		return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
 	}
-	return solidlens.Scene{}, fmt.Errorf("hand-crank fan has no part %q", part.part)
+	centre := low.Add(high).Scale(.5)
+	direction, _ := part.from.Normalize()
+	camera := solidlens.Camera{Position: solidlens.Vec(centre.Add(direction.Scale(3 * high.Sub(low).Len()))),
+		Target: solidlens.Vec(centre), Up: solidlens.Vec{Z: 1}, FOV: 35}
+	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // handCrankFanPartPreset builds the fan for that one part.

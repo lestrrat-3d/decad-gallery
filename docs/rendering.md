@@ -169,9 +169,9 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive and the bevel gear pair one after another. It places each at its own size on a 1600 × 900 pixel canvas
-(the wheel on the left, the gears on the right), and keeps only the pixels that differ from the background
-where the tiles overlap. Building all seven models takes about six minutes plus the wheel build:
+drive, the bevel gear pair and the hand-crank fan one after another. It places each at its own size on a
+1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right), and keeps only the pixels that differ from the background
+where the tiles overlap. Building all eight models takes about six minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
@@ -182,7 +182,9 @@ coloured by its group. The `handcrankfan/exploded` preset renders the same fan p
 offsets it computes from the model's joints. The `readme` shot builds the fan once and writes `hero.png` (1600 × 900),
 `index.png` (480 × 270) and `exploded.png` (1600 × 900). It also writes one 480 × 270 pixel image of each unique part in
 `images/parts/`, which the README's parts table shows: the gearbox, the grip, a grip screw, the three gears and the
-pinion, the three shafts, a bearing, the crank arm, pin, pin screw and handle, the hub, a blade and a blade bolt. The
+pinion, the three shafts, a bearing, the crank arm, pin, pin bolt and handle, the hub, a blade and a blade bolt. The
+bolt images (`gearbox-bolt`, `gearbox-screw`, `grip-screw`, `crank-pin-screw` and `fan-bolt`) draw the bolt with its nut,
+which the part row names in its `with` field. The
 `handcrankfan/part-gearbox`, `part-grip`, `part-grip-screw`, `part-crank-gear`, `part-drive-gear`, `part-driving-gear`,
 `part-pinion`, `part-crank-shaft`, `part-drive-shaft`, `part-fan-shaft`, `part-bearing`, `part-crank-arm`,
 `part-crank-pin`, `part-crank-pin-screw`, `part-crank-handle`, `part-fan-hub`, `part-fan-blade` and `part-fan-bolt`
@@ -196,7 +198,7 @@ The `animation` shot writes `motion.gif`: 72 frames of one crank turn, 1000 × 5
 shows the crank side and the right panel the spur and bevel gears from above and behind, with the crank arm left out. It builds the fan once and meshes each part
 from its real body. Each frame turns the crank parts about the crank axis by the crank angle, the drive shaft and its gears the other
 way round, and the fan parts about the fan axis by twice the crank angle, so the fan turns twice and the loop has no jump. The 5° step keeps the 32-tooth gear's
-11.25° tooth pitch from seeming to run backward. `-frames` shortens it, which the test uses:
+11.25° tooth pitch from seeming to run backward. `-frames` shortens it, which `TestHandCrankFanMotion` uses:
 
 ```sh
 go -C tools/render run . -model handcrankfan -shot animation -out ../../models/handcrankfan/images/motion.gif
