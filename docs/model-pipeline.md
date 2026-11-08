@@ -63,6 +63,29 @@ with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the
 repository layout check after a push.
 
+### Body containers
+
+This rule applies to every model that builds more than one body, across the whole
+gallery. Put similar bodies in one `decad.Container` whose name says what they
+are, such as `Planet Gears`, `Bolts`, `Nuts`, or `Housing`. Create the container
+with `NewChild` on the document root or on a parent container.
+
+- Group bodies of the same kind: the same part reused, or parts with the same role.
+- Give a container one plural name per kind. Do not name containers `Group 1` or
+  after construction steps.
+- Keep a single body in a container only when it is the one member of a named
+  kind, such as `Housing`; nest kinds that belong to one unit, as a pair holds a
+  driving and a driven gear.
+- Sibling names are unique, and `NewChild` rejects a duplicate. Use
+  `Container.ChildNamed` for one container shared by many bodies of a kind
+  (all planets in `Planet Gears`). Use `Container.NewUniqueChild` for a unit that
+  can repeat (`Pair`, `Pair 2`). Do not write a per-model helper.
+- Move each body into its container with `Document.MoveBody`.
+- Test each multi-body model: assert the container names and that every body
+  sits in the container for its kind, for each parameter branch that changes the
+  body set. Require `doc.VerifyContainers().Err()` to be nil, which fails on a
+  body left directly in the root and on a container with no body in or below it.
+
 ### Part clearances
 
 Choose the clearance for each distinct part fit by its intended feel:
@@ -95,6 +118,21 @@ the actual package. If it fails at a Sketch or Decad boundary, stop adding
 cases and hand off the blocker. Resume only when the gallery's real build
 passes against the upstream fix. Once the first case passes, run the other
 parameter cases and the consuming model checks.
+
+### Surface edge finishing
+
+Chamfer every qualifying convex boundary edge on a large planar surface:
+
+- A planar surface is large when its net area is at least 400 mm². Combine
+  connected coplanar faces when measuring area.
+- An edge run is long when its arc length is at least 20 mm. Combine tangent-
+  continuous boundary pieces when measuring length, and include circular rims.
+- Measure the surface and edge runs before adding any edge finishing. Ignore
+  internal seams between coplanar faces.
+- Use a 0.5 mm equal-setback chamfer, producing a 45° chamfer where the faces
+  meet at a right angle.
+- Document and test any smaller chamfer or retained sharp edge required by
+  functional geometry, nominal dimensions, fit clearances, or minimum material.
 
 ### Gear train clearances
 

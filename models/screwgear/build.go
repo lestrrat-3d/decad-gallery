@@ -18,6 +18,12 @@ type Mechanism struct {
 	pair r3.Frame
 }
 
+// Container names for the bodies Build adds, one per kind.
+const (
+	gearsContainerName  = "Gears"
+	sleeveContainerName = "Sleeve"
+)
+
 // chainTolerance is the coarsest bound decad may carry where a bore or window cut meets a
 // face an earlier cut left held to 0.052 mm. Six chained cuts on one curved tube need it, and
 // every bound the cage carries stays proven.
@@ -55,12 +61,26 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Mechanism, erro
 	if m.Cage, err = buildSleeve(ctx, doc, newSleeve(pf)); err != nil {
 		return nil, fmt.Errorf("screwgear: sleeve: %w", err)
 	}
-	for _, body := range []**decad.Body{&m.GearA, &m.GearB, &m.Cage} {
-		placed, err := placement.Place(ctx, *body, &pf.frame)
+	gears, err := doc.Root().ChildNamed(gearsContainerName)
+	if err != nil {
+		return nil, fmt.Errorf("screwgear: %w", err)
+	}
+	sleeve, err := doc.Root().ChildNamed(sleeveContainerName)
+	if err != nil {
+		return nil, fmt.Errorf("screwgear: %w", err)
+	}
+	for _, part := range []struct {
+		body **decad.Body
+		in   *decad.Container
+	}{{&m.GearA, gears}, {&m.GearB, gears}, {&m.Cage, sleeve}} {
+		placed, err := placement.Place(ctx, *part.body, &pf.frame)
 		if err != nil {
 			return nil, fmt.Errorf("screwgear: %w", err)
 		}
-		*body = placed
+		if err := doc.MoveBody(placed, part.in); err != nil {
+			return nil, fmt.Errorf("screwgear: place body in container %q: %w", part.in.Name(), err)
+		}
+		*part.body = placed
 	}
 	return &m, nil
 }

@@ -54,13 +54,17 @@ func TestProblems(t *testing.T) {
 		{"disc count", func(p *cycloidal.Params) { p.DiscCount = 3 }, "Disc Count must be 1 or 2"},
 		{"negative clearance", func(p *cycloidal.Params) { p.DiskClearance = -1 }, "Disk Clearance must not be negative"},
 		{"disk clearance below the fit", func(p *cycloidal.Params) { p.DiskClearance = 0.35 },
-			"Disk Clearance must be at least 0.40 mm"},
+			"Disk Clearance must be at least 0.55 mm"},
 		{"bearing clearance below the fit", func(p *cycloidal.Params) { p.BearingClearance = 0.7 },
-			"Bearing Clearance must be at least 0.80 mm"},
+			"Bearing Clearance must be at least 1.10 mm"},
 		{"output pin clearance below the fit", func(p *cycloidal.Params) { p.OutputPinClearance = 0 },
-			"Output Pin Clearance must be at least 0.40 mm"},
+			"Output Pin Clearance must be at least 0.55 mm"},
+		{"zero chamfer", func(p *cycloidal.Params) { p.ChamferSize = 0 },
+			"Chamfer Size must be at least 0.50 mm"},
+		{"chamfer below the edge finish minimum", func(p *cycloidal.Params) { p.ChamferSize = 0.49 },
+			"Chamfer Size must be at least 0.50 mm"},
 		{"touching discs", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0 },
-			"Disc Gap must be at least 0.40 mm"},
+			"Disc Gap must be at least 0.55 mm"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

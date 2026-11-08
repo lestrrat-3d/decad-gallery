@@ -183,9 +183,15 @@ func derive(p Params) dims {
 	d.arm = d.pin + 2*armMargin
 	d.ringOuter = d.ringRoot + p.RingWall
 	d.boltCircle = (d.ringRoot + d.ringOuter) / 2
-	d.rimInner = d.boltCircle - headPocketDiameter()/2 - boltRimMargin
+	d.rimInner = rimInnerRadius(d.boltCircle)
 	d.ringLength = float64(p.Stages)*d.stagePitch + p.StageGap
 	return d
+}
+
+// rimInnerRadius is the inner radius of a cover's rim: the bolt circle radius less the head pocket radius and
+// the material kept around the pocket.
+func rimInnerRadius(boltCircle float64) float64 {
+	return boltCircle - headPocketDiameter()/2 - boltRimMargin
 }
 
 func finite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
@@ -290,9 +296,9 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("bolt holes of diameter %v do not fit the ring wall %v with %v of material either side",
 			p.BoltHoleDiameter, p.RingWall, boltRimMargin)
 	}
-	if p.BoltHoleDiameter < m2bolt.ShankDiameter+2*fastenerClearance {
-		return fmt.Errorf("bolt hole diameter %v leaves less than %v clearance around the M2 bolt shank %v",
-			p.BoltHoleDiameter, fastenerClearance, m2bolt.ShankDiameter)
+	if p.BoltHoleDiameter < minBoltHoleDiameter {
+		return fmt.Errorf("bolt hole diameter %v is under the %v clearance hole for the M2 bolt shank %v",
+			p.BoltHoleDiameter, minBoltHoleDiameter, m2bolt.ShankDiameter)
 	}
 	if p.CoverThickness < m2bolt.HeadHeight+coverFloor {
 		return fmt.Errorf("cover thickness %v leaves less than %v under a %v tall bolt head",

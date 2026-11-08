@@ -292,6 +292,9 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			Shaft:    shafts[k],
 		})
 	}
+	if err := moveBodies(r.doc, box); err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
 	return box, nil
 }
 

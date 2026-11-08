@@ -120,7 +120,7 @@ func readDims(doc *decad.Document, p Params) (dims, error) {
 	}
 	d.planetRoot = p.Module*float64(p.PlanetTeeth)/2 - gearRootDepth(p.Module) - gearRootMeasurementMargin
 	d.planetTip = (p.Module*float64(p.PlanetTeeth)+2*p.Module)/2 - gearRootMeasurementMargin
-	d.rimInner = d.boltCircle - p.BoltHoleDiameter/2 - boltRimMargin
+	d.rimInner = rimInnerRadius(d.boltCircle)
 	if want := derive(p); !closeTo(d.orbit, want.orbit) || !closeTo(d.ringLength, want.ringLength) {
 		return dims{}, fmt.Errorf("parameter table disagrees with the inputs: orbit %v vs %v", d.orbit, want.orbit)
 	}

@@ -66,6 +66,7 @@ func TestBlankPairSharesOneSketch(t *testing.T) {
 			require.Equal(t, "Pair/Driving Gear", containerPath(t, doc, pair.Driving))
 			require.Equal(t, "Pair/Pinion Gear", containerPath(t, doc, pair.Pinion))
 			require.Empty(t, pairContainer.Bodies())
+			require.NoError(t, doc.VerifyContainers().Err(), "no body in the root, no empty container")
 
 			driving, drivingBound := volumeOf(t, pair.Driving)
 			pinion, pinionBound := volumeOf(t, pair.Pinion)

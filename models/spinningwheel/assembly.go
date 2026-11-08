@@ -47,6 +47,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	}
 	b.buildInitialParts()
 	b.finishJoinery()
+	b.placeParts()
 	if b.err != nil {
 		return nil, b.err
 	}

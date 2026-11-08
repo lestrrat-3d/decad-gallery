@@ -12,21 +12,24 @@ const (
 	regularFit = 0.35
 	// tightFit is the Tight fit of docs/model-pipeline.md, for a pin that is not meant to be removed.
 	tightFit = 0.2
-	// measurementMargin covers the mesh bound of the section readings that prove a gap, about 0.02 mm for each
-	// part, and the fit splines' deviation from the exact curves. A gap of regularFit + measurementMargin
-	// is proven at least regularFit.
-	measurementMargin = 0.05
+	// regularMeasurementMargin covers held chamfer-mesh bounds and section measurement uncertainty.
+	regularMeasurementMargin = 0.2
+	// tightMeasurementMargin covers section measurement uncertainty for the exact pin and plate surfaces.
+	tightMeasurementMargin = 0.05
 )
 
 // MinClearance is the smallest nominal gap, in millimeters, that Problems accepts between moving custom parts:
 // the Regular fit plus the margin that lets a measurement prove the Regular fit. It applies to the disc and casing
 // (DiskClearance), the disc bore and cam (BearingClearance, diametral, so twice this), the output pins and disc
 // holes (OutputPinClearance), and the two discs (DiscGap).
-const MinClearance = regularFit + measurementMargin
+const MinClearance = regularFit + regularMeasurementMargin
+
+// MinChamferSize is the minimum outer-edge chamfer required by Surface edge finishing.
+const MinChamferSize = 0.5
 
 // socketClearance is the radial gap, in millimeters, between an output pin and its socket in the output plate:
 // the Tight fit plus the measurement margin.
-const socketClearance = tightFit + measurementMargin
+const socketClearance = tightFit + tightMeasurementMargin
 
 // Params describes one cycloidal drive. Lengths are millimeters. A diameter of zero where the field says
 // "auto" selects the mean of the size's theoretical bounds.
@@ -64,8 +67,8 @@ type Params struct {
 	HousingWall          float64
 	BaseThickness        float64
 	OutputPlateThickness float64
-	// ChamferSize is a 45° chamfer on the outer rims of the rotor discs, the housing and the output plate and on
-	// the pin ends; zero leaves them sharp.
+	// ChamferSize is a 45° chamfer on the outer rims of the rotor discs, housing, cam and output plate, and on
+	// the pin ends. It must be at least MinChamferSize.
 	ChamferSize float64
 	// Placement is the reference point and plane; nil selects the world XY frame at the origin. The first
 	// disc's lower face lies on the plane and the stack grows along its normal.
@@ -81,7 +84,7 @@ func DefaultParams() Params {
 		DiskClearance:           MinClearance,
 		DiscCount:               1,
 		DiscThickness:           8,
-		DiscGap:                 0.5,
+		DiscGap:                 MinClearance,
 		CenterBearingDiameter:   30,
 		InputShaftDiameter:      8,
 		BearingClearance:        2 * MinClearance,
@@ -91,7 +94,7 @@ func DefaultParams() Params {
 		HousingWall:             3,
 		BaseThickness:           5,
 		OutputPlateThickness:    5,
-		ChamferSize:             0.5,
+		ChamferSize:             MinChamferSize,
 	}
 }
 

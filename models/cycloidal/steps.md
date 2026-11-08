@@ -34,8 +34,10 @@ Params)` returns a `Drive`.
    `output_plate_thickness`. Draw pin 1's circle at its socket, extrude it two-sided, up through
    the plate and down to the lower face of disc 1, and chamfer it. `PatternCopies` repeats that pin `M` times
    about the drive axis, so pin `k` is at angle `2πk/M`.
-9. When `ChamferSize > 0`, `Chamfer` the outer circle edges of the housing's end faces, the outer
-   loop of both faces of each disc, the outer loop of both plate faces and both end loops of each pin.
+9. Apply `ChamferSize` to the outer circle edges of the housing's end faces, both outer end rims of the cam,
+   the outer loop of both faces of each disc, the outer loop of both plate faces and both end loops of each pin.
+   Require `ChamferSize` to be at least 0.5 mm per
+   [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing).
 10. Check each body is a solid and passes `Tessellate(0.1 mm, VerifyAll)`.
 11. Section each pair of moving parts in the plane through the middle of the disc or plate, and check that the
     gap, less the mesh bound of both sections, is at least 0.35 mm (0.2 mm for the pins in the plate).

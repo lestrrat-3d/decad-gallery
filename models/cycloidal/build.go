@@ -43,8 +43,7 @@ func (d Drive) Named() []NamedBody {
 	return out
 }
 
-// Build constructs the drive in doc. ChamferSize chamfers the rotor discs, the housing, the output plate and
-// the pin ends.
+// Build constructs the drive in doc. ChamferSize chamfers the rotor discs, housing, cam, output plate and pin ends.
 //
 // Differences from the Fusion add-in:
 //   - A disc rim's chamfer is not exact. Decad cannot offset a rim made only of fit splines exactly, so it
@@ -82,7 +81,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 		}
 		drive.Discs = append(drive.Discs, disc)
 	}
-	if drive.Cam, err = r.buildCam(ctx); err != nil {
+	cam, err := r.buildCam(ctx)
+	if err != nil {
+		return Drive{}, err
+	}
+	if drive.Cam, err = r.chamferedBy(ctx, cam, "cam", r.camOuterCircles()); err != nil {
 		return Drive{}, err
 	}
 	housing, err := r.buildHousing(ctx)
@@ -107,22 +110,56 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
 	if drive.OutputPins, err = r.patternPins(ctx, pin); err != nil {
 		return Drive{}, err
 	}
+	if err := placeInContainers(doc, drive); err != nil {
+		return Drive{}, err
+	}
 	return drive, nil
 }
 
-// chamfered chamfers the outer loops of both end caps of body by Params.ChamferSize; it returns body unchanged
-// when ChamferSize is zero.
+// Container names, one per kind of body, as docs/model-pipeline.md#body-containers requires.
+const (
+	DiscsContainerName      = "Cycloidal Discs"
+	HousingContainerName    = "Housing"
+	CamContainerName        = "Eccentric Cam"
+	PlateContainerName      = "Output Plate"
+	OutputPinsContainerName = "Output Pins"
+)
+
+// placeInContainers moves each finished body into the container for its kind under the document root.
+func placeInContainers(doc *decad.Document, d Drive) error {
+	groups := []struct {
+		name   string
+		bodies []*decad.Body
+	}{
+		{DiscsContainerName, d.Discs},
+		{HousingContainerName, []*decad.Body{d.Housing}},
+		{CamContainerName, []*decad.Body{d.Cam}},
+		{PlateContainerName, []*decad.Body{d.OutputPlate}},
+		{OutputPinsContainerName, d.OutputPins},
+	}
+	for _, g := range groups {
+		c, err := doc.Root().ChildNamed(g.name)
+		if err != nil {
+			return fmt.Errorf("cycloidal: container %q: %w", g.name, err)
+		}
+		for _, b := range g.bodies {
+			if err := doc.MoveBody(b, c); err != nil {
+				return fmt.Errorf("cycloidal: move body into %q: %w", g.name, err)
+			}
+		}
+	}
+	return nil
+}
+
+// chamfered chamfers the outer loops of both end caps of body by Params.ChamferSize.
 func (r *run) chamfered(ctx context.Context, body *decad.Body, what string) (*decad.Body, error) {
 	return r.chamferedBy(ctx, body, what,
 		decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body))))
 }
 
-// chamferedBy chamfers the edges sel selects by Params.ChamferSize, or returns body unchanged when it is zero.
-// The housing comes out of booleans, which leave no cap provenance, so it names its two outer circles instead.
+// chamferedBy chamfers the edges sel selects by Params.ChamferSize. The housing comes out of booleans, which leave
+// no cap provenance, so it names its two outer circles instead.
 func (r *run) chamferedBy(ctx context.Context, body *decad.Body, what string, sel decad.EdgeSelector) (*decad.Body, error) {
-	if r.p.ChamferSize == 0 {
-		return body, nil
-	}
 	size, err := r.doc.Param("chamfer_size")
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: read chamfer size: %w", err)
@@ -140,6 +177,12 @@ func (r *run) chamferedBy(ctx context.Context, body *decad.Body, what string, se
 func (r *run) housingOuterCircles() decad.EdgeSelector {
 	longer := math.Pi * (r.d.housingOuter + r.d.housingInner) / 2
 	return decad.Edges(decad.Circular(), decad.LongerThan(units.Millimeters(longer))).Exactly(2)
+}
+
+// camOuterCircles selects each convex edge where a cam section's outer wall meets an end face.
+func (r *run) camOuterCircles() decad.EdgeSelector {
+	longer := math.Pi * (r.p.CenterBearingDiameter + r.p.InputShaftDiameter) / 2
+	return decad.Edges(decad.Convex(), decad.Circular(), decad.LongerThan(units.Millimeters(longer))).Exactly(2 * r.p.DiscCount)
 }
 
 // chamferedDisc builds rotor disc index and chamfers both outer rims of it.

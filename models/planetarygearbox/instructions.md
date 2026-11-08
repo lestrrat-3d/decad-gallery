@@ -63,7 +63,7 @@ origin, so the axis is world +Z.
 | `Tc` | `CarrierThickness` | float64 | 3 | Axial thickness of a carrier's plate |
 | `g` | `StageGap` | float64 | 1 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends; at least 0.75 |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
-| `db'` | `BoltHoleDiameter` | float64 | 2.4 | Diameter of the four clearance holes; 0.1 mm radially wider than the M2 shank |
+| `db'` | `BoltHoleDiameter` | float64 | 2.4 | Diameter of the four clearance holes; the default 2.4 is 0.2 mm radially wider than the M2 shank |
 | `Sf` | `KeyDepth` | float64 | 1.1 | Depth of the three keyway grooves on each shaft; zero leaves round shafts and round bores |
 | `Sw` | `KeyWidth` | float64 | 2 | Width of each keyway groove |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
@@ -196,7 +196,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
   from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
-- Bearing: a 608ZZ envelope has 0.25 mm radial clearance in the boss pocket and sits 1 mm above its floor.
+- Bearing: a 608ZZ envelope has 0.25 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
   sun's top. It has 0.25 mm radial clearance in the front bearing and sun bores. Its keyway groove runs
   from the sun's lower face to the top.

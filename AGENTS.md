@@ -25,6 +25,11 @@
 - Constrain other geometry with geometric and dimensional constraints. Do not fix every computed point to force `DOF == 0`.
 - Do not treat a successful `Solve`, a valid profile, or `DOF == 0` alone as proof of full constraint.
 
+## Body containers
+
+- Group similar bodies of every multi-body assembly in named containers. Apply
+  [Body containers](docs/model-pipeline.md#body-containers) to every model in the gallery.
+
 ## Fasteners
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
@@ -39,6 +44,7 @@
 ## Verification
 
 - Apply [Part clearances](docs/model-pipeline.md#part-clearances) to every modeled part fit.
+- Apply [Surface edge finishing](docs/model-pipeline.md#surface-edge-finishing) to every modeled part.
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
