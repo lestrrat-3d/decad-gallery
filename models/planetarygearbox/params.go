@@ -92,7 +92,7 @@ func DefaultParams() Params {
 		BearingClearance:  0.25,
 		CarrierWall:       3,
 		RingWall:          7,
-		Backlash:          0.05,
+		Backlash:          0.15,
 		OutputShaftLength: 12,
 	}
 }
