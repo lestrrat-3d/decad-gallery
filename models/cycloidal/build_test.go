@@ -1,6 +1,7 @@
 package cycloidal_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -51,10 +52,18 @@ func TestBuildTwoDiscDrive(t *testing.T) {
 	}
 }
 
-// overlap returns the volume the two bodies share, zero when they only touch or are apart.
+// overlap returns the volume the two bodies share, zero when they only touch or are apart. It intersects copies
+// moved to the document root, because a boolean needs both operands in one container and the drive's bodies sit
+// in one container per kind.
 func overlap(t *testing.T, a, b *decad.Body) float64 {
 	t.Helper()
-	both, err := decad.Intersect(t.Context(), a, b)
+	ca, err := decad.Copy(t.Context(), a)
+	require.NoError(t, err)
+	cb, err := decad.Copy(t.Context(), b)
+	require.NoError(t, err)
+	require.NoError(t, a.Document().MoveBody(ca, a.Document().Root()))
+	require.NoError(t, a.Document().MoveBody(cb, a.Document().Root()))
+	both, err := decad.Intersect(t.Context(), ca, cb)
 	if err != nil {
 		require.ErrorContains(t, err, "the intersect result is empty")
 		return 0
@@ -176,4 +185,43 @@ func TestTwoDiscCam(t *testing.T) {
 	chamferLoss := float64(2*p.DiscCount) * math.Pi * (cam*chamfer*chamfer - chamfer*chamfer*chamfer/3)
 	want := math.Pi*((cam*cam-bore*bore)*2*p.DiscThickness+(bridge*bridge-bore*bore)*p.DiscGap) - chamferLoss
 	require.InDelta(t, want, volume.Value.Base(), 1e-3*want)
+}
+
+func TestBuildContainers(t *testing.T) {
+	for _, discs := range []int{1, 2} {
+		t.Run(fmt.Sprintf("discs=%d", discs), func(t *testing.T) {
+			doc := chainDocument()
+			p := cycloidal.DefaultParams()
+			if discs == 2 {
+				p.DiscCount, p.DiscGap = 2, cycloidal.MinClearance
+			}
+			drive, err := cycloidal.Build(t.Context(), doc, p)
+			require.NoError(t, err)
+			require.NoError(t, doc.VerifyContainers().Err())
+
+			var names []string
+			for _, c := range doc.Root().Children() {
+				names = append(names, c.Name())
+			}
+			require.ElementsMatch(t, []string{
+				cycloidal.DiscsContainerName, cycloidal.HousingContainerName, cycloidal.CamContainerName,
+				cycloidal.PlateContainerName, cycloidal.OutputPinsContainerName,
+			}, names)
+			require.Empty(t, doc.Root().Bodies())
+
+			want := map[string][]*decad.Body{
+				cycloidal.DiscsContainerName:      drive.Discs,
+				cycloidal.HousingContainerName:    {drive.Housing},
+				cycloidal.CamContainerName:        {drive.Cam},
+				cycloidal.PlateContainerName:      {drive.OutputPlate},
+				cycloidal.OutputPinsContainerName: drive.OutputPins,
+			}
+			for name, bodies := range want {
+				c, err := doc.Root().ChildNamed(name)
+				require.NoError(t, err)
+				require.ElementsMatch(t, bodies, c.Bodies(), name)
+			}
+			require.Len(t, drive.Discs, discs)
+		})
+	}
 }
