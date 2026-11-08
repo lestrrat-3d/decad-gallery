@@ -63,6 +63,29 @@ with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the
 repository layout check after a push.
 
+### Body containers
+
+This rule applies to every model that builds more than one body, across the whole
+gallery. Put similar bodies in one `decad.Container` whose name says what they
+are, such as `Planet Gears`, `Bolts`, `Nuts`, or `Housing`. Create the container
+with `NewChild` on the document root or on a parent container.
+
+- Group bodies of the same kind: the same part reused, or parts with the same role.
+- Give a container one plural name per kind. Do not name containers `Group 1` or
+  after construction steps.
+- Keep a single body in a container only when it is the one member of a named
+  kind, such as `Housing`; nest kinds that belong to one unit, as a pair holds a
+  driving and a driven gear.
+- Sibling names are unique, and `NewChild` rejects a duplicate. Use
+  `Container.ChildNamed` for one container shared by many bodies of a kind
+  (all planets in `Planet Gears`). Use `Container.NewUniqueChild` for a unit that
+  can repeat (`Pair`, `Pair 2`). Do not write a per-model helper.
+- Move each body into its container with `Document.MoveBody`.
+- Test each multi-body model: assert the container names and that every body
+  sits in the container for its kind, for each parameter branch that changes the
+  body set. Require `doc.VerifyContainers().Err()` to be nil, which fails on a
+  body left directly in the root and on a container with no body in or below it.
+
 ### Part clearances
 
 Choose the clearance for each distinct part fit by its intended feel:
