@@ -19,6 +19,8 @@ type preset struct {
 var presets = map[string]preset{
 	"spinningwheel/hero":      {width: 1600, height: 900, scene: spinningWheelView("hero")},
 	"spinningwheel/rear":      {width: 1600, height: 900, scene: spinningWheelView("rear")},
+	"handcrankfan/hero":       {width: 1600, height: 900, scene: handCrankFanHero},
+	"handcrankfan/exploded":   {width: 1600, height: 900, scene: handCrankFanExploded},
 	"ballbearing/hero":        {width: 1600, height: 900, scene: bearing608Hero},
 	"ballbearing/605zz":       {width: 1600, height: 900, scene: bearing605Hero},
 	"m2nut/hero":              {width: 1600, height: 900, scene: m2NutHero},
@@ -62,7 +64,11 @@ func main() {
 	output := flag.String("out", "", "PNG output path (required)")
 	width := flag.Int("width", 0, "override preset width in pixels")
 	height := flag.Int("height", 0, "override preset height in pixels")
+	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
 	flag.Parse()
+	if *frames > 0 {
+		fanAnimationFrames = *frames
+	}
 	if err := run(context.Background(), *name, *shot, *output, *width, *height); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -86,6 +92,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		case "animation":
 			return runSpinningWheelAnimation(ctx, output, width, height)
 		}
+	}
+	if model == "handcrankfan" && shot == "animation" {
+		if width == 0 {
+			width = 1000
+		}
+		if height == 0 {
+			height = 560
+		}
+		return renderHandCrankFanAnimation(ctx, output, width, height, fanAnimationFrames)
 	}
 	if model == "planetarygearbox" && shot == "motion" {
 		if width == 0 {
@@ -147,6 +162,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "screwgear" {
 		return renderScrewGearReadme(ctx, outputDir)
+	}
+	if model == "handcrankfan" {
+		return renderHandCrankFanReadme(ctx, outputDir)
 	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)

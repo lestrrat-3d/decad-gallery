@@ -55,6 +55,17 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
+  fan-motion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+      - name: Check hand-crank fan motion
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
+
   wheel:
     strategy:
       fail-fast: false
@@ -80,6 +91,24 @@ jobs:
           go-version-file: go.mod
       - name: Check spinning wheel
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
+
+  fan:
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - default
+          - variants
+    name: fan-${{ matrix.case }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check hand-crank fan
+        run: python3 scripts/ci/run_tests.py fan ${{ matrix.case }}
 
   bevel:
     strategy:

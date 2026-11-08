@@ -1,0 +1,180 @@
+package handcrankfan
+
+import (
+	"context"
+	"fmt"
+	"math"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad/parts"
+	"github.com/lestrrat-3d/r3"
+)
+
+// Set returns the assembly as a parts.Set over doc, which must be the document Build used: every part with its
+// material (the printed parts are PLA and the screws and nuts are bought) and the joints between them. The set feeds
+// parts.Set.Explode, the bill of materials and the connection diagram.
+func (a *Assembly) Set(doc *decad.Document) (*parts.Set, error) {
+	set := parts.NewSet(doc)
+	for _, part := range a.Parts {
+		p := parts.Part{Name: part.Name, Kind: parts.Manufactured, Body: part.Body, Material: parts.Material{Name: "PLA"}}
+		if part.Group == "bearing" {
+			p.Kind, p.Material, p.Spec = parts.Purchased, parts.Material{Name: "steel"}, "608-2RS ball bearing"
+		}
+		if part.Group == "hardware" {
+			p.Kind, p.Material = parts.Purchased, parts.Material{Name: "steel"}
+			p.Spec = fastenerSpec(part.Name)
+		}
+		if err := set.Add(p); err != nil {
+			return nil, fmt.Errorf("add %s to the parts set: %w", part.Name, err)
+		}
+	}
+	for _, j := range a.joints() {
+		if err := set.Join(j); err != nil {
+			return nil, fmt.Errorf("join %s: %w", j.Name, err)
+		}
+	}
+	return set, nil
+}
+
+// joints are the connections of the posed assembly, with each axis stated in the posed coordinates. A is the part
+// that goes in and B the part it goes into.
+func (a *Assembly) joints() []parts.Joint {
+	apex := a.State.Apex
+	crank := parts.Axis{Point: a.State.Crank, Dir: r3.Vec{X: 1}}
+	drive := parts.Axis{Point: apex, Dir: r3.Vec{X: 1}}
+	pin := parts.Axis{Point: a.State.Crank.Add(a.State.ArmDirection.Scale(crankThrow)), Dir: r3.Vec{X: 1}}
+	fan := parts.Axis{Point: apex, Dir: fanAxis}
+	vertical := func(dx float64) parts.Axis {
+		return parts.Axis{Point: r3.Vec{X: gripX + dx, Y: gripY, Z: axisHeight}, Dir: r3.Vec{Z: 1}}
+	}
+	var js []parts.Joint
+	add := func(name string, a, b string, axis parts.Axis, motion parts.Motion) {
+		js = append(js, parts.Joint{Name: name, Kind: parts.PinInBore, A: a, B: b, Axis: &axis, Motion: motion})
+	}
+	// A captive nut is held by its part and threaded on its bolt, so it joins both along the bolt's line.
+	nutJoints := func(bolt, nut, host string, axis parts.Axis) {
+		add(nut+" in "+host, nut, host, axis, parts.Fixed)
+		add(bolt+" in "+nut, bolt, nut, axis, parts.Fixed)
+	}
+	// Each shaft turns in its bearings, and each bearing is held in the gearbox.
+	for _, site := range bearingSites {
+		shaft, axis := "crank-shaft", crank
+		switch site.axis {
+		case driveSpline:
+			shaft, axis = "drive-shaft", drive
+		case fanSpline:
+			shaft, axis = "fan-shaft", fan
+		}
+		add(shaft+" in "+site.name, shaft, site.name, axis, parts.Turns)
+		add(site.name+" in the gearbox", site.name, site.holder, axis, parts.Fixed)
+	}
+	add("crank shaft in the crank gear", "crank-shaft", "crank-gear", crank, parts.Fixed)
+	add("drive shaft in the drive gear", "drive-shaft", "drive-gear", drive, parts.Fixed)
+	add("drive shaft in the driving gear", "drive-shaft", "driving-gear", drive, parts.Fixed)
+	add("crank shaft in the arm", "crank-shaft", "crank-arm", crank, parts.Fixed)
+	add("pin in the arm", "crank-pin", "crank-arm", pin, parts.Fixed)
+	add("pin bolt in the arm", "crank-pin-bolt", "crank-arm", pin, parts.Fixed)
+	// The pin bolt's head is on the arm's inner face, so it comes out toward the shaft.
+	js[len(js)-1].Pull = r3.Vec{X: -1}
+	add("handle on the pin", "crank-pin", "crank-grip", pin, parts.Turns)
+	nutJoints("crank-pin-bolt", "crank-pin-nut", "crank-pin", pin)
+	add("fan shaft in the pinion", "fan-shaft", "pinion", fan, parts.Fixed)
+	add("hub on the fan shaft", "fan-shaft", "fan-hub", fan, parts.Fixed)
+	for i, dx := range []float64{-gripScrewX, gripScrewX} {
+		bolt, nut := fmt.Sprintf("handle-bolt-%d", i+1), fmt.Sprintf("handle-nut-%d", i+1)
+		add(fmt.Sprintf("grip bolt %d in the floor", i+1), bolt, "gearbox-base", vertical(dx), parts.Fixed)
+		add(fmt.Sprintf("grip bolt %d in the grip", i+1), bolt, "handle", vertical(dx), parts.Fixed)
+		nutJoints(bolt, nut, "handle", vertical(dx))
+	}
+	// Each ear bolt holds two pieces of the gearbox together: its head is on one and its nut on the other, and it comes
+	// out on the head's side.
+	for i, e := range gearboxEars {
+		axis := parts.Axis{Point: e.centre(), Dir: e.dir}
+		bolt, nut := fmt.Sprintf("gearbox-bolt-%d", i+1), fmt.Sprintf("gearbox-nut-%d", i+1)
+		add(fmt.Sprintf("ear bolt %d in %s", i+1, e.head), bolt, e.head, axis, parts.Fixed)
+		js[len(js)-1].Pull = e.dir.Scale(-1)
+		add(fmt.Sprintf("ear bolt %d in %s", i+1, e.nut), bolt, e.nut, axis, parts.Fixed)
+		nutJoints(bolt, nut, e.nut, axis)
+	}
+	// Each wall bolt's head is in the post's or the crank-side wall's outer face, and it passes into the base, whose nut
+	// has no joint: a ground piece's captive nut does not leave it.
+	for i, w := range wallScrews {
+		axis := parts.Axis{Point: w.at(w.seam), Dir: w.dir}
+		bolt := fmt.Sprintf("gearbox-screw-%d", i+1)
+		add(fmt.Sprintf("wall bolt %d in %s", i+1, w.head), bolt, w.head, axis, parts.Fixed)
+		js[len(js)-1].Pull = w.dir.Scale(-1)
+		add(fmt.Sprintf("wall bolt %d in %s", i+1, w.recv), bolt, w.recv, axis, parts.Fixed)
+	}
+	for k := 0; k < a.Params.Blades; k++ {
+		theta := a.State.FanAngle + 2*math.Pi*float64(k)/float64(a.Params.Blades)
+		radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
+		stud := parts.Axis{Point: apex, Dir: radial}
+		bolt := parts.Axis{Point: apex.Add(radial.Scale(boltAt)), Dir: fanAxis}
+		blade, screw, nut := fmt.Sprintf("fan-blade-%d", k+1), fmt.Sprintf("fan-bolt-%d", k+1), fmt.Sprintf("fan-nut-%d", k+1)
+		add(fmt.Sprintf("blade %d stud in the hub", k+1), blade, "fan-hub", stud, parts.Fixed)
+		add(fmt.Sprintf("bolt %d in the hub", k+1), screw, "fan-hub", bolt, parts.Fixed)
+		add(fmt.Sprintf("bolt %d in the blade", k+1), screw, blade, bolt, parts.Fixed)
+		add(fmt.Sprintf("nut %d in the hub", k+1), nut, "fan-hub", bolt, parts.Fixed)
+		add(fmt.Sprintf("bolt %d in the nut", k+1), screw, nut, bolt, parts.Fixed)
+	}
+	return js
+}
+
+// Explode pulls the assembly apart with parts.Set.Explode, which reads each part's pull direction from its joint.
+// set must be this assembly's Set. The base of the gearbox stays put. The four ear bolts come out toward -Y and the
+// four wall bolts on their heads' sides first, then the post and the fan-side wall go toward -X and the crank-side wall
+// toward +X. The crank comes apart along +X first: the arm and the pin bolt, then the handle, which slides onto the
+// pin's stub end and so goes between the arm and the pin, then the pin. Both shafts then slide out to the left, through
+// the post. The pinion slides off to the left, the grip bolts, the crank gear, the drive gear and the driving gear lift
+// out of the open top in that order, and the grip drops. The fan side comes off along the fan axis: the blade bolts,
+// the blades, then the hub with its nuts. A captive nut leaves with its part, and the base's own nuts stay where they
+// are. The order and the directions of the lifts are the result of a search that leaves no two parts sharing space and
+// keeps the largest move shortest.
+func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
+	along, left, up := r3.Vec{X: 1}, r3.Vec{X: -1}, r3.Vec{Z: 1}
+	stage := func(name string, direction r3.Vec, names ...string) parts.Stage {
+		return parts.Stage{Name: name, Parts: names, Clear: parts.ClearAll, Direction: direction}
+	}
+	// A joined nut leaves with its host.
+	together := func(name string, direction r3.Vec, names ...string) parts.Stage {
+		st := stage(name, direction, names...)
+		st.Together = true
+		return st
+	}
+	var bolts, blades, nuts []string
+	for k := 1; k <= a.Params.Blades; k++ {
+		bolts = append(bolts, fmt.Sprintf("fan-bolt-%d", k))
+		blades = append(blades, fmt.Sprintf("fan-blade-%d", k))
+		nuts = append(nuts, fmt.Sprintf("fan-nut-%d", k))
+	}
+	front := r3.Vec{Y: -1}
+	return set.Explode(ctx, parts.WithExplodeGround("gearbox-base"), parts.WithExplodeStages(
+		stage("ear bolts", r3.Vec{Y: -1}, "gearbox-bolt-1", "gearbox-bolt-2", "gearbox-bolt-3", "gearbox-bolt-4"),
+		stage("post bolts", left, "gearbox-screw-1", "gearbox-screw-2"),
+		stage("crank-side wall bolts", along, "gearbox-screw-3", "gearbox-screw-4"),
+		parts.Stage{Name: "arm", Parts: []string{"crank-arm"}, Direction: along},
+		stage("handle", along, "crank-grip"),
+		together("pin", along, "crank-pin", "crank-pin-nut"),
+		stage("pin bolt", left, "crank-pin-bolt"),
+		stage("drive shaft", left, "drive-shaft"),
+		stage("crank shaft", left, "crank-shaft"),
+		stage("pinion", left, "pinion"),
+		stage("grip bolts", up, "handle-bolt-1", "handle-bolt-2"),
+		stage("crank gear", up, "crank-gear"),
+		stage("drive gear", up, "drive-gear"),
+		stage("driving gear", up, "driving-gear"),
+		stage("crank block bearing", along, "bearing-crank-block"),
+		stage("wall bearings", left, "bearing-crank-wall", "bearing-drive-wall"),
+		stage("post bearings", left, "bearing-crank-post", "bearing-drive-post"),
+		stage("fan wall bearing", r3.Vec{Y: 1}, "bearing-fan-wall"),
+		stage("fan block bearing", r3.Vec{Y: -1}, "bearing-fan-block"),
+		stage("blade bolts", front, bolts...),
+		parts.Stage{Name: "blades", Parts: blades, Clear: parts.ClearAll},
+		together("hub", front, append([]string{"fan-hub"}, nuts...)...),
+		stage("fan shaft", front, "fan-shaft"),
+		together("post", left, "gearbox-post", "gearbox-nut-1", "gearbox-nut-3"),
+		together("crank-side wall", along, "gearbox-crank-wall", "gearbox-nut-2", "gearbox-nut-4"),
+		stage("fan-side wall", left, "gearbox-fan-wall"),
+		together("grip", r3.Vec{Z: -1}, "handle", "handle-nut-1", "handle-nut-2"),
+	))
+}
