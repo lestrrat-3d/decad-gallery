@@ -664,6 +664,7 @@ func TestTwoStages(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 40)
 	require.Len(t, box.Stages, 2)
+	requireContainers(t, doc, box)
 	require.InDelta(t, (1+71.0/13)*(1+71.0/13), p.Ratio(), 1e-9)
 	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
 
