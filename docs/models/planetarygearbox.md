@@ -23,6 +23,16 @@ grooves, so each keeps three teeth and each shaft drives them. `Params.SeatChamf
 `decad.Chamfer` on the rim found by its radius and height. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
+`NewDocument()` returns a decad document with `decad.WithChainTolerance` set to 0.1 mm, and `Build` needs a document made
+with it while the ring has mounting ears. A plain `decad.New()` document fails at the chamfer of the ring's end faces,
+because the chamfer meets tooth-space facets held to about 0.0034 mm. With `EarCount = 0` a plain document works.
+
+`EarCount` (default 3) and `EarBoreDiameter` (default 4 mm) set the mounting ears on the ring. The ears are spread
+evenly, the first on +Y, and each runs the whole ring length with a bore parallel to the axis. The model adds no
+bolt, head pocket or nut cavity for an ear; the bore is only a hole of the size you give. `Validate` rejects a negative
+count, a bore that is not positive when there are ears, ears too close to each other, and an ear count that puts an ear
+over one of the housing's bolt sites, such as 8.
+
 `Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.
 
 `Placement` (an `r3.Frame`) anchors the gearbox. The frame origin is a point on its axis and the first stage's gears
@@ -38,7 +48,7 @@ of every pin and collar separately. `buildShaft` joins a round rod and an option
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section. A cover then has four round pockets cut for the M2 bolt heads,
 and the ring blank has eight closed hex cavities cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built
-once by `models/m2bolt` and `models/m2nut` and copied into place (`fasteners.go`). The ring is a cylinder with the tooth spaces cut out by a 71-tooth
+once by `models/m2bolt` and `models/m2nut` and copied into place (`fasteners.go`). The ring is a cylinder, with three mounting ears when `EarCount` is above zero, and has the tooth spaces cut out by a 71-tooth
 spur gear whose root circle is the ring's tip circle and whose tip circle is the ring's root circle (`ringTool` in
 `gears.go`). `phase.go` turns each planet, and the ring tool, so their teeth enter the sun's and the ring's gaps.
 Each distinct part is built once at the origin and copied into place, because the spur union fails on gears built

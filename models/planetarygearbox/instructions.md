@@ -27,6 +27,10 @@ ring's end face, so the ring holds the nut and it cannot fall out; the bolt hole
 is dropped in during a print pause. The bolt passes through the cover's remaining 1 mm, the ring's 1 mm roof and the nut,
 and its tip stays inside the ring's bolt hole. This follows the repository fastener rules (see `AGENTS.md`, Fasteners).
 
+The ring carries mounting ears so the gearbox can be fixed in place. The ears are tabs on the ring's outside, each with a
+bore through it parallel to the gearbox axis. The bore diameter is an input, because the model does not know what the
+user passes through it: a bolt, a pin or a shaft. The model adds no bolt, head pocket or nut cavity for an ear.
+
 The input and the output connect as follows. The shafts are separate bodies from the carriers, so each part
 prints in its own best orientation. The input shaft is a 7.5 mm rod: it passes through the front cover's bearing
 and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
@@ -73,6 +77,8 @@ origin, so the axis is world +Z.
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
 | `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
+| `Ne` | `EarCount` | int | 3 | Mounting ears on the ring; zero leaves the ring a plain cylinder |
+| `de` | `EarBoreDiameter` | float64 | 4 | Diameter of the bore through each ear; positive when there are ears |
 | `j` | `Backlash` | float64 | 0.15 | Tooth thinning of the sun and planets at the pitch circle; the ring's tooth spaces are widened by the same amount |
 | — | `Placement` | `*r3.Frame` | nil | Reference point and plane |
 
@@ -96,6 +102,8 @@ A nil `Placement` is the one exception.
 | Shaft and pin diameter | 608ZZ bore `- 0.5` (0.25 mm radial clearance) |
 | Shaft bore diameter | Shaft diameter `+ 0.5` (0.25 mm radial clearance) |
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
+| Ear half width `we` | `de / 2 + 3` |
+| Ear bore center radius `Re` | ring outer radius `+ we` |
 | Bolt circle radius | (ring root radius + ring outer radius) / 2 |
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
 | Head pocket diameter | `m2bolt.HeadDiameter + 0.2` (depth `m2bolt.HeadHeight`) |
@@ -140,6 +148,10 @@ the same gap normal to their circular and key faces.
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
   leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut cavity at each end.
+- Reject `Ne < 0`, a nonfinite `de`, and `de <= 0` when `Ne > 0`.
+- Reject ears whose bore centers are closer than `2 we + 1` (`2 Re sin(π/Ne) < 2 we + 1`), and an ear that lies over a bolt
+  site: an ear at angle `θ` and a bolt angle `β` with `cos(θ - β) > 0` and `bolt circle radius × |sin(θ - β)|` below
+  `we` plus the larger pocket radius plus 1.
 - Reject a seat chamfer outside `[0, 1]`.
 - Reject an edge chamfer outside `[0.5, 1]`.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
@@ -169,6 +181,13 @@ All three gears are involute spur gears of one module and pressure angle, built 
   tooth of the mating external gear. The tool has no root fillet. Its spur backlash is `-j`, which thickens its teeth by `j` of arc
   at the pitch circle and so widens the ring's tooth spaces by `j`. A sun-planet pair and a
   planet-ring pair each have `2j` of circumferential play at the pitch circle.
+- Mounting ears: with `Ne > 0` the ring blank's outline is not a circle but one closed loop of arcs of the ring's outer
+  radius between the ears and, for each ear, two straight edges and a half circle of radius `we` round its bore. Ear `i`
+  lies at angle `π/2 + 2πi/Ne`, so the first ear is on +Y. Its axis is the line from the origin to the bore's center at
+  radius `Re`. Its straight edges run parallel to the axis, `we` either side of it, from the outer circle to the half
+  circle's ends. Its bore is a hole of the section, `de` across, centered at `Re` on the axis. Every ear runs the whole
+  ring length, so its faces lie in the ring's two end planes. The bore clears the covers' outer wall, which has the
+  ring's outer radius, by 3 mm. With `Ne = 0` the outline is the circle.
 
 ## Meshing phase
 
@@ -240,12 +259,19 @@ each pin and a straight line tangent to the circles of neighbouring pins on the 
 between the pins, so it takes the sideways load the planets put on their pins. The shaft section is a hole
 through its middle. The plate is extruded `Tc`, and the pins and their collars stand on one face.
 
+## Document
+
+The ring is cut for its nut cavities and tooth spaces and then chamfered round the ears, and the chamfer meets facets of
+the tooth-space cut that the evaluator holds to about 0.0034 mm. A plain `decad.New` document refuses that chamfer. The
+package therefore exposes `NewDocument`, which sets `decad.WithChainTolerance` to 0.1 mm. `Build` needs a document made
+with it when `Ne > 0`. With `Ne = 0` a plain document works.
+
 ## Parameter table
 
 The gearbox records its inputs and derived dimensions as named entries of the document's
 parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_teeth`,
 `planet_count`, `stage_count`, `tooth_backlash`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
-`cover_thickness`, `bolt_hole_diameter`, `input_shaft_length`, `key_depth`, `key_width`,
+`cover_thickness`, `bolt_hole_diameter`, `ear_count`, `ear_bore_diameter`, `ear_wall`, `input_shaft_length`, `key_depth`, `key_width`,
 `bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
 `bearing_clearance`, `gear_root_clearance`, `gear_root_margin`, `gear_tip_measurement_margin`,
 `shaft_fit_clearance`, `planet_bearing_lift`,
@@ -273,7 +299,7 @@ at least 20 mm. In this model the large flat faces are the ring's two end faces,
 both faces of each carrier plate. The sun, the planets, the shafts and the bearing boss end are smaller than 400 mm²,
 and the bearings, bolts and nuts keep their nominal dimensions.
 
-- Chamfer by `Ec`: the outer boundary of each of those faces, the three window loops of each cover on both of its faces,
+- Chamfer by `Ec`: the outer boundary of each of those faces (the ring's includes its ears), the three window loops of each cover on both of its faces,
   and the cover lip's edge on the inner face. The bearing rests on the other side of the lip, so no seat shrinks.
 - Keep sharp: the ring's tooth edges, because they are the gear flanks and take the root clearance; each carrier's
   shaft hole, a keyed fit with the shaft; each bolt hole, head pocket and nut cavity, whose edges are shorter than 20 mm;
@@ -297,7 +323,8 @@ and the bearings, bolts and nuts keep their nominal dimensions.
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |
 | Phase | Default with one planet turned half a tooth about its own axis | The same check finds vertices inside the sun and the ring |
 | Placed | Default with frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volumes as the unplaced box; bounds follow the frame |
-| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; an invalid placement | An error naming the failing rule |
+| Ears | Default; `Ne = 2`, `de = 6`; `Ne = 0` | The default ring has three ears at 90°, 210° and 330° that run the ring's whole length: the section has no material in a bore or beyond an ear's tip or side, and material in the ear's wall and between the wall and the ring; the bore clears the covers' outer wall by at least 3 mm; the ring's bounds follow the ears. `Ne = 2`, `de = 6` gives two larger ears on the Y axis. `Ne = 0` gives the plain cylinder with the earlier rim bevel and builds in a plain document. Every ear sketch is fully constrained |
+| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; a negative ear count; ears without a bore; ears over the bolt sites; ears too close together; an invalid placement | An error naming the failing rule |
 
 ## Verification
 

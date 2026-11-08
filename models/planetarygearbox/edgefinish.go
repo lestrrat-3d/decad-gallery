@@ -25,6 +25,14 @@ const edgeFinishTol = 1e-6
 // it does not touch. The selection must pick exactly the edges of the kept loops, or the build fails.
 func (r *run) finishFaceEdges(ctx context.Context, body *decad.Body, what string, z float64,
 	keep func(loop *decad.Loop, edges []*decad.Edge) bool) (*decad.Body, error) {
+	return r.finishFacesEdges(ctx, body, what, []float64{z}, keep)
+}
+
+// finishFacesEdges is finishFaceEdges over the large flat faces in several planes, chamfered in one operation. The
+// evaluator cannot chamfer a body again after a chamfer of a face's whole outline, so faces that need it are
+// finished together.
+func (r *run) finishFacesEdges(ctx context.Context, body *decad.Body, what string, zs []float64,
+	keep func(loop *decad.Loop, edges []*decad.Edge) bool) (*decad.Body, error) {
 	size, err := r.doc.Param("edge_chamfer")
 	if err != nil {
 		return nil, fmt.Errorf("%s: read edge chamfer: %w", what, err)
@@ -37,7 +45,11 @@ func (r *run) finishFaceEdges(ctx context.Context, body *decad.Body, what string
 			continue
 		}
 		origin, normal := plane.Frame.Origin(), plane.Frame.N()
-		if math.Abs(math.Abs(normal.Z)-1) > 1e-9 || math.Abs(origin.Z-z) > edgeFinishTol {
+		if math.Abs(math.Abs(normal.Z)-1) > 1e-9 {
+			continue
+		}
+		z, ok := planeHeight(zs, origin.Z)
+		if !ok {
 			continue
 		}
 		area, err := f.Area()
@@ -67,16 +79,26 @@ func (r *run) finishFaceEdges(ctx context.Context, body *decad.Body, what string
 		}
 	}
 	if query == nil {
-		return nil, fmt.Errorf("%s: no loop to chamfer in the plane z=%g", what, z)
+		return nil, fmt.Errorf("%s: no loop to chamfer in the planes z=%g", what, zs)
 	}
 	out, err := decad.Chamfer(ctx, body, query.Exactly(count), size)
 	if err != nil {
-		return nil, fmt.Errorf("%s: chamfer %d edges in the plane z=%g: %w", what, count, z, err)
+		return nil, fmt.Errorf("%s: chamfer %d edges in the planes z=%g: %w", what, count, zs, err)
 	}
 	if !out.IsSolid() {
 		return nil, fmt.Errorf("%s: chamfered result is not a solid", what)
 	}
 	return out, nil
+}
+
+// planeHeight returns the height in zs that z matches, within edgeFinishTol.
+func planeHeight(zs []float64, z float64) (float64, bool) {
+	for _, want := range zs {
+		if math.Abs(z-want) <= edgeFinishTol {
+			return want, true
+		}
+	}
+	return 0, false
 }
 
 // edgePredicates names one edge by its start point and its kind: a circle or arc, or a line along its direction.

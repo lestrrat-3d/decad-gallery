@@ -76,7 +76,7 @@ func profileWithHoles(ctx context.Context, s *sketch.Sketch, holes int, what str
 }
 
 // extrudeRingBlank extrudes the ring's outer cylinder from z=ringMargin up the ring length, with the four
-// bolt holes as inner loops of its section.
+// bolt holes and the bore of each mounting ear as inner loops of its section.
 func (r *run) extrudeRingBlank(ctx context.Context) (*decad.Body, error) {
 	d := r.d
 	plane, err := r.planeAt(ringMargin)
@@ -87,13 +87,13 @@ func (r *run) extrudeRingBlank(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ring blank: sketch: %w", err)
 	}
-	if err := r.addCircle(s, 2*d.ringOuter, "2 * ring_outer_radius"); err != nil {
+	if err := r.addRingOutline(s); err != nil {
 		return nil, fmt.Errorf("ring blank: %w", err)
 	}
 	if err := r.addBoltHoles(s); err != nil {
 		return nil, fmt.Errorf("ring blank: %w", err)
 	}
-	profile, err := profileWithHoles(ctx, s, 4, "ring blank")
+	profile, err := profileWithHoles(ctx, s, 4+r.p.EarCount, "ring blank")
 	if err != nil {
 		return nil, err
 	}

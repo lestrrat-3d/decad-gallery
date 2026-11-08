@@ -64,7 +64,18 @@ The model does not show a set screw or the coupling to a motor. The input and ou
 Every large flat face of the ring, the covers and the carriers has its outer edge chamfered by 0.5 mm at 45°, so the
 printed parts have no sharp rims to chip or cut. That covers both end faces of the ring, both faces of each cover
 including the edges of its three windows, and both faces of each carrier plate. The ring's teeth, the shaft holes, the
-bolt holes and the bearing seats keep their shapes, so the gears mesh and the parts fit as before.
+bolt holes and the bearing seats keep their shapes, so the gears mesh and the parts fit as before. The chamfer on the ring
+follows the mounting ears too.
+
+## Mounting the gearbox
+
+The ring has three mounting ears, spaced 120° apart, to fix the gearbox in place. Each ear is a tab on the ring's outside,
+as long as the ring, with a 4 mm bore parallel to the gearbox axis. The bore is a plain hole: the model adds no bolt,
+head pocket or nut cavity, so you choose what passes through it. The bore's edge is 3 mm from the covers' outer edge, so a
+fastener head up to 10 mm across lies beside the covers and not on them. Set the bore diameter and the number of ears
+with `EarBoreDiameter` and `EarCount`. `EarCount = 0` leaves the ring a plain cylinder.
+
+The ring is the fixed part of a planetary gearbox, so the ears carry the whole reaction torque of the output.
 
 ## How the housing is bolted
 
@@ -133,6 +144,7 @@ You can vary:
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
 - The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.4 mm, the M2 clearance hole).
+- The number of mounting ears on the ring (three by default, zero for none) and the diameter of their bore (4 mm).
 - Backlash.
 - The position and orientation of the gearbox in space.
 

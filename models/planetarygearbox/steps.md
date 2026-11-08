@@ -26,13 +26,14 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
 1. **Ring.** (Bolt holes `db'` are 2.4 mm, 0.2 mm radially wider than the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
 	`root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + module + c` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
-   by that rotation about +Z. Sketch the blank on the plane z=1: a circle of diameter `2 * ring_outer_radius`
+   by that rotation about +Z. Sketch the blank on the plane z=1: the outline (a circle of diameter `2 * ring_outer_radius`, or with
+   `EarCount > 0` the ear outline described under "Mounting ears" below)
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
-   circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with four
+   circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with `4 + EarCount`
    holes and extrude it `L` upward. Cut eight closed hex nut cavities from the blank (`cutNutPockets`): one tool, a hexagon
    of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
-   cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Check: one solid.
+   cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
 2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (8, 0.25 mm larger radially than the 7.5 mm shaft)
    when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
@@ -104,12 +105,25 @@ by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so 
 among the body's edges, then select it with `decad.Edges(decad.Circular(), decad.EndpointAt(its start))` asserted
 `Exactly(1)`. Chamfer the planet and the cover as built, before they are copied.
 
+**Mounting ears.** With `EarCount > 0`, replace the blank's circle by one closed loop (`addRingOutline`). For ear `i` at angle
+`a = π/2 + 2πi/EarCount`, with `we = EarBoreDiameter/2 + earWall` (`earWall` = 3) and `Re = ring_outer_radius + we`, create:
+a construction line `axis` from the origin to the bore's center point; a bore circle at that point; a construction line `across`
+between the half circle's two ends; two lines from those ends to the outer circle; and a half-circle arc centered on the bore,
+counter-clockwise from the clockwise end to the counter-clockwise end. Between ear `i` and ear `i+1` add an arc centered on the
+origin, counter-clockwise from ear `i`'s counter-clockwise root to ear `i+1`'s clockwise root. Constrain with relations:
+`Distance(origin, bore center) = Re` (bound to `ring_outer_radius + ear_bore_diameter / 2 + ear_wall`); the first axis `Vertical`,
+each later axis `Angle` of `360/EarCount` degrees from the one before; the bore `Diameter` (bound to `ear_bore_diameter`); the half
+circle `Radius = we` (bound to `ear_bore_diameter / 2 + ear_wall`); `Perpendicular(axis, across)` and `PointOnLine(bore center,
+across)`; both straight edges `Parallel` to the axis; each outer arc `Radius = ring_outer_radius`. Place each initial point from
+the angle `a`. The sketch must report fully constrained with DOF 0. Ear bores are inner loops of the section.
+
 **Edge finishing.** After a ring, a cover or a carrier is complete, chamfer the boundary loops it keeps by `edge_chamfer`
 (see Edge finishing in `instructions.md`). For each plane `z`, find the body's planar faces whose plane normal is along Z
 at that height and whose area is at least 400 mm², then take the kept loops of those faces. Select their edges with
 `decad.Edges(...).Or(...)`, each edge named by `decad.EndpointAt(its start)` plus `decad.Circular()` for a circle or arc, or
-`decad.ParallelTo(its direction)` for a line, asserted `Exactly(count)`, and make one `decad.Chamfer` call per plane. Ring:
-the outer loop at `z = ringMargin` and at `z = ringMargin + ring length`. Cover (after the seat chamfer): at `z = 0` the
+`decad.ParallelTo(its direction)` for a line, asserted `Exactly(count)`, and make one `decad.Chamfer` call per plane. Ring
+(`finishFacesEdges`, one `decad.Chamfer` call for both planes, after the tooth-space cut): the outer loop at `z = ringMargin`
+and at `z = ringMargin + ring length`, ears included. Cover (after the seat chamfer): at `z = 0` the
 outer loop, every loop of more than one edge and the single-circle loop of radius `lip_bore_diameter / 2`; at `z = Tv` the
 outer loop and every loop of more than one edge. Carrier (after the shaft hole is cut): the outer loop at `z = 0` and at
 `z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
