@@ -73,7 +73,7 @@ var (
 func defaultGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
 	t.Helper()
 	defaultOnce.Do(func() {
-		defaultDoc = decad.New()
+		defaultDoc = planetarygearbox.NewDocument()
 		defaultBox, defaultErr = planetarygearbox.Build(t.Context(), defaultDoc, planetarygearbox.DefaultParams())
 	})
 	require.NoError(t, defaultErr)
@@ -116,8 +116,15 @@ func TestDefaultGearbox(t *testing.T) {
 	ring := bounds(t, box.Ring)
 	require.InDelta(t, -p.StageGap, ring.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness+p.CarrierThickness+2*p.StageGap, ring.Max.Z, 1e-6)
-	require.InDelta(t, 35.5+p.Module+minimumGearRootClearance(p.Module)+
-		p.RingWall, ring.Max.X, 1e-3)
+	// The ring's outer wall is at the ring root radius plus the wall. The three mounting ears stand beyond it, the
+	// first on +Y and the others 120 degrees on, so the ring reaches an ear's tip along +Y and the tip of the
+	// ears at 330 degrees along +X.
+	outer := 35.5 + p.Module + minimumGearRootClearance(p.Module) + p.RingWall
+	earHalf := p.EarBoreDiameter/2 + 3
+	earCenter := outer + earHalf
+	require.InDelta(t, earCenter+earHalf, ring.Max.Y, 0.05)
+	require.InDelta(t, earCenter*math.Cos(math.Pi/6)+earHalf, ring.Max.X, 0.05)
+	require.InDelta(t, -outer, ring.Min.Y, 0.05)
 
 	stage := box.Stages[0]
 	sun := bounds(t, stage.Sun)
@@ -269,7 +276,7 @@ func TestPartClearances(t *testing.T) {
 	branchParams.StageGap = 0.75
 	branchParams.BearingClearance = 0.5
 	branchParams.SeatChamfer = 0
-	branch, err := planetarygearbox.Build(t.Context(), decad.New(), branchParams)
+	branch, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), branchParams)
 	require.NoError(t, err)
 	branchBearing := branch.Stages[0].Bearings[0]
 	branchBearingBounds := bounds(t, branchBearing)
@@ -402,7 +409,7 @@ func TestBacklashRemovesMaterial(t *testing.T) {
 	_, base := defaultGearbox(t)
 	p := planetarygearbox.DefaultParams()
 	p.Backlash = 0.2
-	loose, err := planetarygearbox.Build(t.Context(), decad.New(), p)
+	loose, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
 	require.NoError(t, err)
 	for name, pair := range map[string][2]*decad.Body{
 		"sun":    {base.Stages[0].Sun, loose.Stages[0].Sun},
@@ -714,7 +721,7 @@ func TestPhaseAngles(t *testing.T) {
 func TestTwoStages(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	p.Stages = 2
-	doc := decad.New()
+	doc := planetarygearbox.NewDocument()
 	box, err := planetarygearbox.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	require.Len(t, doc.Bodies(), 40)
@@ -772,7 +779,7 @@ func TestPlacedGearbox(t *testing.T) {
 	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
 	require.NoError(t, err)
 	p.Placement = &f
-	box, err := planetarygearbox.Build(t.Context(), decad.New(), p)
+	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
 	require.NoError(t, err)
 	_, world := defaultGearbox(t)
 	// U=+Y, V=+Z, so the axis is +X: the reference plane is x=10.
@@ -820,11 +827,17 @@ func TestInvalidParams(t *testing.T) {
 		"large backlash":        {func(p *planetarygearbox.Params) { p.Backlash = 0.6 }, "backlash"},
 		"pressure angle":        {func(p *planetarygearbox.Params) { p.PressureAngle = math.Pi / 2 }, "pressure angle"},
 		"tiny sun":              {func(p *planetarygearbox.Params) { p.SunTeeth = 2 }, "sun teeth"},
+		"negative ear count":    {func(p *planetarygearbox.Params) { p.EarCount = -1 }, "ear count"},
+		"ears without a bore":   {func(p *planetarygearbox.Params) { p.EarBoreDiameter = 0 }, "ear bore diameter"},
+		"negative ear bore":     {func(p *planetarygearbox.Params) { p.EarBoreDiameter = -4 }, "ear bore diameter"},
+		"nonfinite ear bore":    {func(p *planetarygearbox.Params) { p.EarBoreDiameter = math.Inf(1) }, "finite"},
+		"ears over the bolts":   {func(p *planetarygearbox.Params) { p.EarCount = 8 }, "bolt site"},
+		"ears too close":        {func(p *planetarygearbox.Params) { p.EarCount, p.EarBoreDiameter = 20, 20 }, "neighbouring ear"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := planetarygearbox.DefaultParams()
 			tc.edit(&p)
-			_, err := planetarygearbox.Build(t.Context(), decad.New(), p)
+			_, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
 			require.ErrorContains(t, err, tc.want)
 		})
 	}
@@ -869,7 +882,7 @@ func TestSeatChamfer(t *testing.T) {
 	sharp := planetarygearbox.DefaultParams()
 	sharp.SeatChamfer = 0
 	_, plain := func() (*decad.Document, planetarygearbox.Gearbox) {
-		doc := decad.New()
+		doc := planetarygearbox.NewDocument()
 		box, err := planetarygearbox.Build(t.Context(), doc, sharp)
 		require.NoError(t, err)
 		return doc, box

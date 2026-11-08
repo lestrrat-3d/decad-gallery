@@ -43,6 +43,8 @@ func defineParameters(t *param.Table, p Params) error {
 		{"ring_wall", units.Millimeters(p.RingWall)},
 		{"tooth_backlash", units.Millimeters(p.Backlash)},
 		{"output_shaft_length", units.Millimeters(p.OutputShaftLength)},
+		{"ear_bore_diameter", units.Millimeters(p.EarBoreDiameter)},
+		{"ear_wall", units.Millimeters(earWall)},
 	}
 	for _, v := range values {
 		if err := t.SetValue(v.name, v.value); err != nil {
@@ -54,7 +56,7 @@ func defineParameters(t *param.Table, p Params) error {
 		value int
 	}{
 		{"sun_teeth", p.SunTeeth}, {"planet_teeth", p.PlanetTeeth}, {"ring_teeth", p.RingTeeth},
-		{"planet_count", p.PlanetCount}, {"stage_count", p.Stages},
+		{"planet_count", p.PlanetCount}, {"stage_count", p.Stages}, {"ear_count", p.EarCount},
 	} {
 		if err := t.SetNumber(v.name, float64(v.value)); err != nil {
 			return fmt.Errorf("define parameter %s: %w", v.name, err)

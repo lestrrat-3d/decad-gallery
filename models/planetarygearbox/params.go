@@ -63,6 +63,12 @@ type Params struct {
 	Backlash float64
 	// OutputShaftLength is how far the output shaft reaches out of the rear cover's bearing boss.
 	OutputShaftLength float64
+	// EarCount is the number of mounting ears on the ring. Zero leaves the ring a plain cylinder.
+	EarCount int
+	// EarBoreDiameter is the diameter of the through hole in each ear, parallel to the gearbox axis. The ear is
+	// sized from it, so a larger bore makes a larger ear. The model adds no fastener, head pocket or nut cavity:
+	// the user chooses what passes through the ear.
+	EarBoreDiameter float64
 	// Placement is the reference point and plane. Nil selects the world XY frame
 	// at the origin.
 	Placement *r3.Frame
@@ -94,6 +100,8 @@ func DefaultParams() Params {
 		RingWall:          7,
 		Backlash:          0.15,
 		OutputShaftLength: 12,
+		EarCount:          3,
+		EarBoreDiameter:   4,
 	}
 }
 
@@ -208,7 +216,7 @@ func (p Params) Validate() error {
 		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "KeyDepth": p.KeyDepth, "KeyWidth": p.KeyWidth, "SeatChamfer": p.SeatChamfer,
 		"EdgeChamfer":      p.EdgeChamfer,
 		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
-		"OutputShaftLength": p.OutputShaftLength,
+		"OutputShaftLength": p.OutputShaftLength, "EarBoreDiameter": p.EarBoreDiameter,
 	} {
 		if !finite(v) {
 			return fmt.Errorf("%s must be finite, got %v", name, v)
@@ -235,6 +243,8 @@ func (p Params) Validate() error {
 		{"ring wall", p.RingWall, p.RingWall > 0},
 		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
 		{"output shaft length", p.OutputShaftLength, p.OutputShaftLength > 0},
+		{"ear count", float64(p.EarCount), p.EarCount >= 0},
+		{"ear bore diameter", p.EarBoreDiameter, p.EarBoreDiameter >= 0 && (p.EarCount == 0 || p.EarBoreDiameter > 0)},
 	} {
 		if !c.ok {
 			return fmt.Errorf("%s %v is out of range", c.name, c.v)
@@ -271,7 +281,38 @@ func (p Params) Validate() error {
 	if p.KeyDepth > 0 && p.KeyWidth <= 2*fitClearance {
 		return fmt.Errorf("key width %v must exceed %v for the shaft clearance", p.KeyWidth, 2*fitClearance)
 	}
-	return p.validateFit(derive(p))
+	if err := p.validateFit(derive(p)); err != nil {
+		return err
+	}
+	return p.validateEars(derive(p))
+}
+
+// validateEars checks that the ears clear each other and the ring's bolt sites.
+func (p Params) validateEars(d dims) error {
+	if p.EarCount == 0 {
+		return nil
+	}
+	half := earHalfWidth(p.EarBoreDiameter)
+	radius := earCenterRadius(d.ringOuter, p.EarBoreDiameter)
+	if p.EarCount > 1 {
+		// Neighbouring ears are closest at their half circles, whose centers are a chord apart.
+		if chord := 2 * radius * math.Sin(math.Pi/float64(p.EarCount)); chord < 2*half+earGap {
+			return fmt.Errorf("neighbouring ear bores are %v apart; the ears need %v for at least %v between them",
+				chord, 2*half+earGap, float64(earGap))
+		}
+	}
+	// A bolt site is clear of an ear when its pockets stay beyond the ear's side edge, or the ear lies on the
+	// far side of the axis.
+	reach := math.Max(nutPocketFlats(), headPocketDiameter())/2 + pocketMargin
+	for i := range p.EarCount {
+		for _, b := range boltAngles() {
+			delta := earAngle(i, p.EarCount) - b
+			if math.Cos(delta) > 0 && d.boltCircle*math.Abs(math.Sin(delta)) < half+reach {
+				return fmt.Errorf("ear %d lies over a bolt site: turn the ears off the bolt angles by using another ear count", i+1)
+			}
+		}
+	}
+	return nil
 }
 
 // validateFit checks that the parts fit around each other.

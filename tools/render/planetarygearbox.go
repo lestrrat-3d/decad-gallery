@@ -33,7 +33,7 @@ var planetaryEdges = solidlens.Edges{
 func buildPlanetaryGearbox(ctx context.Context, stages int) (planetarygearbox.Gearbox, planetarygearbox.Params, error) {
 	params := planetarygearbox.DefaultParams()
 	params.Stages = stages
-	box, err := planetarygearbox.Build(ctx, decad.New(), params)
+	box, err := planetarygearbox.Build(ctx, planetarygearbox.NewDocument(), params)
 	if err != nil {
 		return planetarygearbox.Gearbox{}, params, fmt.Errorf("build planetary gearbox: %w", err)
 	}

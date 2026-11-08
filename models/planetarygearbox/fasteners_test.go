@@ -66,7 +66,7 @@ func overlapVolume(t *testing.T, a, b *decad.Body) float64 {
 // through its cover's hole and head pocket and the ring's hole, and each nut sits in a ring cavity.
 func TestFastenersFitTheirPockets(t *testing.T) {
 	// The overlap checks copy bodies into their document, so they use a gearbox of their own.
-	box, err := planetarygearbox.Build(t.Context(), decad.New(), planetarygearbox.DefaultParams())
+	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), planetarygearbox.DefaultParams())
 	require.NoError(t, err)
 	for i, bolt := range box.Bolts {
 		cover := box.FrontCover
@@ -93,7 +93,7 @@ func TestFastenerFitRules(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := planetarygearbox.DefaultParams()
 			c.edit(&p)
-			_, err := planetarygearbox.Build(t.Context(), decad.New(), p)
+			_, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
 			require.ErrorContains(t, err, c.want)
 		})
 	}

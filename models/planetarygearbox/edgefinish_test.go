@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -105,8 +106,8 @@ func TestEdgeFinishing(t *testing.T) {
 	require.GreaterOrEqual(t, p.EdgeChamfer, planetarygearbox.MinEdgeChamfer)
 	_, box := defaultGearbox(t)
 
-	requireOuterEdgesChamfered(t, "ring", box.Ring, 2)
-	requireRimSetback(t, "ring", box.Ring, p.EdgeChamfer)
+	// The ring is held as a mesh once the mounting ears are in, so its bevels are measured on section outlines.
+	requireRingBevel(t, box.Ring, p)
 	for name, cover := range map[string]*decad.Body{"front cover": box.FrontCover, "rear cover": box.RearCover} {
 		requireOuterEdgesChamfered(t, name, cover, 2)
 		requireRimSetback(t, name, cover, p.EdgeChamfer)
@@ -125,4 +126,62 @@ func TestEdgeChamferLimits(t *testing.T) {
 	require.ErrorContains(t, p.Validate(), "edge chamfer")
 	p.EdgeChamfer = 1
 	require.NoError(t, p.Validate())
+}
+
+// outerOutline returns the largest loop of the section outline of body in the plane z, which is its outer boundary.
+func outerOutline(t *testing.T, body *decad.Body, z float64) []r3.Vec {
+	t.Helper()
+	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	section := sectionOutline(t, body, plane)
+	require.NotEmpty(t, section.Loops)
+	var best []r3.Vec
+	bestReach := 0.0
+	for _, loop := range section.Loops {
+		reach := 0.0
+		for _, v := range loop {
+			reach = math.Max(reach, math.Hypot(v.X, v.Y))
+		}
+		if reach > bestReach {
+			best, bestReach = loop, reach
+		}
+	}
+	return best
+}
+
+// distanceToLoop is the distance from the point (x, y) to the closed polyline loop.
+func distanceToLoop(loop []r3.Vec, x, y float64) float64 {
+	best := math.Inf(1)
+	for i, a := range loop {
+		b := loop[(i+1)%len(loop)]
+		dx, dy := b.X-a.X, b.Y-a.Y
+		fraction := 0.0
+		if length := dx*dx + dy*dy; length > 0 {
+			fraction = math.Max(0, math.Min(1, ((x-a.X)*dx+(y-a.Y)*dy)/length))
+		}
+		best = math.Min(best, math.Hypot(x-a.X-fraction*dx, y-a.Y-fraction*dy))
+	}
+	return best
+}
+
+// requireRingBevel checks that the ring's outer boundary, ears included, steps in by a 45° bevel of EdgeChamfer at
+// both end faces. A section a short way t inside an end face sits EdgeChamfer-t inside the boundary at mid-length.
+func requireRingBevel(t *testing.T, ring *decad.Body, p planetarygearbox.Params) {
+	t.Helper()
+	gearLength := float64(p.Stages)*(p.GearThickness+p.CarrierThickness+2*p.StageGap) + p.StageGap
+	first, last := -p.StageGap, gearLength-p.StageGap
+	full := outerOutline(t, ring, (first+last)/2)
+	for _, depth := range []float64{0.1, p.EdgeChamfer / 2} {
+		for _, z := range []float64{first + depth, last - depth} {
+			section := outerOutline(t, ring, z)
+			inset := p.EdgeChamfer - depth
+			for _, v := range section {
+				// A point of the bevel is inset by exactly the step, except at the reflex corner where an ear's side
+				// meets the outer wall: the bevel faces meet there along a mitre, up to sqrt(2) times the step in.
+				got := distanceToLoop(full, v.X, v.Y)
+				require.GreaterOrEqual(t, got, inset-locateTolerance, "ring: bevel at z=%v is too shallow", z)
+				require.LessOrEqual(t, got, math.Sqrt2*inset+locateTolerance, "ring: bevel at z=%v is too deep", z)
+			}
+		}
+	}
 }
