@@ -14,9 +14,6 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// bearingsContainerName names the container that holds every envelope body.
-const bearingsContainerName = "Bearings"
-
 // Params specifies nominal dimensions in millimeters and an optional placement.
 // A nil Placement selects the local XY plane with extrusion along +Z.
 //
@@ -146,13 +143,6 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	}
 	if !body.IsSolid() {
 		return nil, fmt.Errorf("ballbearing: verify envelope body: body is not solid")
-	}
-	bearings, err := doc.Root().ChildNamed(bearingsContainerName)
-	if err != nil {
-		return nil, fmt.Errorf("ballbearing: create %q container: %w", bearingsContainerName, err)
-	}
-	if err := doc.MoveBody(body, bearings); err != nil {
-		return nil, fmt.Errorf("ballbearing: place envelope body in %q: %w", bearingsContainerName, err)
 	}
 	return &Model{Body: body, Sketch: s}, nil
 }
