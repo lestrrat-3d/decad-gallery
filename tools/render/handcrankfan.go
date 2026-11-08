@@ -49,6 +49,53 @@ func buildHandCrankFan(ctx context.Context) (handCrankFan, error) {
 
 // scene shows the whole fan from the operator's side, or pulled apart along its joints.
 func (f handCrankFan) scene(ctx context.Context, exploded bool) (solidlens.Scene, error) {
+	camera := handCrankFanHeroCamera
+	if exploded {
+		camera = handCrankFanExplodedCamera
+	}
+	return f.sceneFrom(ctx, exploded, camera)
+}
+
+// handCrankFanHeroCamera looks at the fan from the operator's side, in front, to the right and above.
+var handCrankFanHeroCamera = solidlens.Camera{Position: solidlens.Vec{X: 330, Y: -560, Z: 330},
+	Target: solidlens.Vec{X: 20, Y: -40, Z: 120}, Up: solidlens.Vec{Z: 1}, FOV: 35}
+
+var handCrankFanExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: 440, Y: -620, Z: 560},
+	Target: solidlens.Vec{X: 60, Y: -60, Z: 120}, Up: solidlens.Vec{Z: 1}, FOV: 35}
+
+// handCrankFanView is a named camera for the whole assembled fan. The rotor faces -Y, the crank is at +X and Z is up.
+type handCrankFanView struct {
+	// shot is the preset suffix and the image file name.
+	shot   string
+	camera solidlens.Camera
+}
+
+// handCrankFanViews are the finished fan from other angles: the crank side, the rear and the underside, where the
+// grip bolts show.
+var handCrankFanViews = []handCrankFanView{
+	{"crank", solidlens.Camera{Position: solidlens.Vec{X: 600, Y: -150, Z: 150}, Target: solidlens.Vec{X: 20, Y: -40, Z: 100},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+	{"rear", solidlens.Camera{Position: solidlens.Vec{X: -300, Y: 500, Z: 400}, Target: solidlens.Vec{X: 20, Y: -40, Z: 100},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+	{"below", solidlens.Camera{Position: solidlens.Vec{X: 250, Y: -350, Z: -300}, Target: solidlens.Vec{X: 20, Y: -40, Z: 80},
+		Up: solidlens.Vec{Z: 1}, FOV: 35}},
+}
+
+func init() {
+	for _, view := range handCrankFanViews {
+		presets["handcrankfan/view-"+view.shot] = preset{width: 1200, height: 675,
+			scene: func(ctx context.Context) (solidlens.Scene, error) {
+				fan, err := buildHandCrankFan(ctx)
+				if err != nil {
+					return solidlens.Scene{}, err
+				}
+				return fan.sceneFrom(ctx, false, view.camera)
+			}}
+	}
+}
+
+// sceneFrom draws the whole fan, or the fan pulled apart along its joints, from camera.
+func (f handCrankFan) sceneFrom(ctx context.Context, exploded bool, camera solidlens.Camera) (solidlens.Scene, error) {
 	offsets := map[string]r3.Vec{}
 	if exploded {
 		set, err := f.a.Set(f.doc)
@@ -73,12 +120,6 @@ func (f handCrankFan) scene(ctx context.Context, exploded bool) (solidlens.Scene
 		if exploded {
 			models[i].Mesh = placedMesh{TriangleSource: mesh.model.Mesh, scale: 1, offset: offsets[mesh.part.Name]}
 		}
-	}
-	camera := solidlens.Camera{Position: solidlens.Vec{X: 330, Y: -560, Z: 330},
-		Target: solidlens.Vec{X: 20, Y: -40, Z: 120}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	if exploded {
-		camera = solidlens.Camera{Position: solidlens.Vec{X: 440, Y: -620, Z: 560},
-			Target: solidlens.Vec{X: 60, Y: -60, Z: 120}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
 }
@@ -201,6 +242,15 @@ func renderHandCrankFanReadme(ctx context.Context, outputDir string) error {
 		}
 		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
 			return err
+		}
+	}
+	for _, view := range handCrankFanViews {
+		scene, err := fan.sceneFrom(ctx, false, view.camera)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, "view-"+view.shot+".png"), scene, 1200, 675); err != nil {
+			return fmt.Errorf("render hand-crank fan view %s: %w", view.shot, err)
 		}
 	}
 	for _, part := range handCrankFanParts {

@@ -179,8 +179,10 @@ go -C tools/render run . -model gallery -shot hero -out ../../docs/images/galler
 
 The `handcrankfan/hero` preset builds the default fan once and renders it from the operator's side, with each part
 coloured by its group. The `handcrankfan/exploded` preset renders the same fan pulled apart by Decad's `parts.Set.Explode`, with the
-offsets it computes from the model's joints. The `readme` shot builds the fan once and writes `hero.png` (1600 × 900),
-`index.png` (480 × 270) and `exploded.png` (1600 × 900). It also writes one 480 × 270 pixel image of each unique part in
+offsets it computes from the model's joints. The `handcrankfan/view-crank`, `view-rear` and `view-below` presets render
+the whole fan from the crank side, from behind and above, and from below (1200 × 675); `TestHandCrankFanView` renders
+one of them. The `readme` shot builds the fan once and writes `hero.png` (1600 × 900),
+`index.png` (480 × 270), `exploded.png` (1600 × 900) and the three views. It also writes one 480 × 270 pixel image of each unique part in
 `images/parts/`, which the README's parts table shows: the gearbox, the grip, a grip screw, the three gears and the
 pinion, the three shafts, a bearing, the crank arm, pin, pin bolt and handle, the hub, a blade and a blade bolt. The
 bolt images (`gearbox-bolt`, `gearbox-screw`, `grip-screw`, `crank-pin-screw` and `fan-bolt`) draw the bolt with its nut,

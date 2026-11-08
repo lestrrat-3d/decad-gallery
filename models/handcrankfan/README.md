@@ -7,6 +7,12 @@ faces you and blows air toward you.
 
 ![One crank turn: the crank side on the left and the gears, with the crank arm removed, on the right](images/motion.gif)
 
+The finished fan from three more angles: the crank side, from behind and above, and from below.
+
+| | | |
+| --- | --- | --- |
+| <img src="images/view-crank.png" alt="Hand-crank fan seen from the crank side, with the crank arm and handle on the gearbox and the grip below" width="320"> | <img src="images/view-rear.png" alt="Hand-crank fan seen from behind and above: the open back of the gearbox with the bevel gears, the two shaft collars on its left face with small flush bolt heads at the corners, and the grip below" width="320"> | <img src="images/view-below.png" alt="Hand-crank fan seen from below: the grip, the gearbox's underside with its bolt heads, the crank handle and the four-blade rotor" width="320"> |
+
 ![The fan exploded by Decad along its joints: grip and its bolts, gearbox, spur and bevel gears, shafts, arm, handle and pin, and the fan shaft, hub, blades, bolts and nuts](images/exploded.png)
 
 The crank shaft sits 40 mm below the fan's axis, so the crank handle swings clear of the blades. A pair of
