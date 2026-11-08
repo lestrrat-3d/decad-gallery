@@ -3,6 +3,7 @@ package handcrankfan
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -16,8 +17,7 @@ const (
 	gripRake      = 15 * math.Pi / 180
 	gripMid       = 68.0                        // height of the section centres' local origin
 	gripDrop      = boxFloor - tightFit - 127.9 // the grip hangs from the lowered floor, so its top, built at 127.9, sits tightFit under it
-	gripScrewX    = 9.0                         // the two screws sit this far to each side of the grip's centre
-	gripPilotLow  = 116.0
+	gripScrewX    = 9.0                         // the two bolts sit this far to each side of the grip's centre
 	gripFitPoints = 25
 	gripFitGap    = 2 * math.Pi / 180 // the back of each section is closed by two short lines
 )
@@ -31,7 +31,8 @@ var gripStations = [...]gripStation{
 }
 
 // handle builds the grip held in the left hand: an oval loft with a flared base, a palm swell and a flared top, and
-// two M2 x 16 screws that hold it to the gearbox floor. The screws cut their own thread in two pilot holes.
+// two M2 x 10 bolts that hold it to the gearbox floor. Each bolt's head sinks into the floor and its nut sits in a
+// cavity in the grip.
 func (b *builder) handle() {
 	b.part("handle", "handle", "fixed", func() *decad.Body {
 		w := sketch.NewWorld()
@@ -57,16 +58,13 @@ func (b *builder) handle() {
 			b.fail("place grip", err)
 			return nil
 		}
-		for _, dx := range []float64{-gripScrewX, gripScrewX} {
-			pilot := b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: gripPilotLow + gripDrop}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 0.9, 13)
-			loft = b.cut(loft, pilot)
+		for _, s := range sitesNamed("handle-bolt-") {
+			loft = b.fastenerCuts(loft, s, false, true, true)
 		}
 		return loft
 	})
-	for i, dx := range []float64{-gripScrewX, gripScrewX} {
-		b.part(fmt.Sprintf("handle-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
-			return b.screw(r3.Vec{X: gripX + dx, Y: gripY, Z: cavityFloor + 0.1}, r3.Vec{Z: -1}, r3.Vec{X: 1}, 16, 0, 0.8)
-		})
+	for _, s := range sitesNamed("handle-bolt-") {
+		b.hardware(s)
 	}
 }
 
@@ -151,12 +149,6 @@ const (
 	splitGap = tightFit / 2 // each piece stops this far from its seam, so two pieces are tightFit apart
 	earHalf  = 8.0          // an ear reaches this far to each side of its seam
 	earLen   = 8.0          // and sticks out this far from the tray
-	earBolt  = 12.0
-	earHole  = 1.3 // the ear screw's clearance hole, diameter 2.6
-
-	wallScrewLength = 16.0 // an M2 x 16 self-tapping screw, as the grip's
-	pilotRadius     = 0.9  // and its pilot, the grip screws' too
-	pilotDepth      = 9.5
 )
 
 // gearboxEar is one ear: a box that straddles a seam and carries one M2 screw along dir, from its head to its nut.
@@ -208,9 +200,9 @@ var gearboxEars = [...]gearboxEar{
 	{r3.Vec{Y: 1}, fanWallY, 22, 30, true, "gearbox-fan-wall", "gearbox-crank-wall"},
 }
 
-// wallScrew is one M2 x 16 self-tapping screw that joins the post or the crank-side wall to the base. Its head sits in
-// a round recess in the wall's outer face, at face along dir; it passes through the wall and screws into the end of the
-// base's back wall at seam. No ear is needed, because that end is 9.8 thick.
+// wallScrew is one M2 x 16 bolt that joins the post or the crank-side wall to the base. Its head sits in a pocket in the
+// wall's outer face, at face along dir; it passes through the wall and into a nut cavity in the end of the base's back
+// wall at seam. No ear is needed, because that end is 9.8 thick.
 type wallScrew struct {
 	dir        r3.Vec
 	face, seam float64
@@ -267,21 +259,13 @@ func (b *builder) gearbox() {
 	b.part("gearbox-post", "housing", "fixed", func() *decad.Body { return post })
 	b.part("gearbox-crank-wall", "housing", "fixed", func() *decad.Body { return crank })
 	b.part("gearbox-base", "housing", "fixed", func() *decad.Body { return base })
-	for i, e := range gearboxEars {
-		b.part(fmt.Sprintf("gearbox-bolt-%d", i+1), "hardware", "fixed", func() *decad.Body {
-			c := e.centre().Add(e.dir.Scale(-earHalf + counterboreDepth - hardwareGap))
-			return b.screw(c, e.dir, r3.Vec{Z: 1}, earBolt, 2*earHalf-trapDepth+0.2-counterboreDepth+hardwareGap, 1.0)
-		})
-	}
-	for i, w := range wallScrews {
-		b.part(fmt.Sprintf("gearbox-screw-%d", i+1), "hardware", "fixed", func() *decad.Body {
-			return b.screw(w.at(w.face+w.dir.X*(counterboreDepth-hardwareGap)), w.dir, r3.Vec{Z: 1}, wallScrewLength, 0, 0.8)
-		})
+	for _, s := range sitesNamed("gearbox-") {
+		b.hardware(s)
 	}
 }
 
 // housing builds the whole tray before it is cut: a rounded block minus a cavity, the two bearing blocks, the ears, the
-// seats and holes for the bearings and the shafts, and the holes for the grip screws and the ear screws.
+// seats and holes for the bearings and the shafts, and the pockets, holes and cavities for the bolts and nuts.
 func (b *builder) housing() *decad.Body {
 	// The block is a rounded outline in (Y, Z) extruded along +X, with its two end faces rounded too.
 	block := b.roundedPrism(frame(r3.Vec{X: boxLeftX}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
@@ -332,26 +316,16 @@ func (b *builder) housing() *decad.Body {
 	body = b.funnelSeat(body, fanSpline, -fanWallY+seatDepth, -fanWallY-1)
 	body = b.hole(body, fanSpline, shaftHole, -fanWallY+seatDepth+cone-0.1, fanBlockFace-seatDepth-reliefDepth+0.2)
 	body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
-	for _, dx := range []float64{-gripScrewX, gripScrewX} {
-		body = b.cut(body, b.cylinder(frame(r3.Vec{X: gripX + dx, Y: gripY, Z: boxFloor - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.2, 8))
-	}
-	// Each wall screw has a recess for its head in the wall's outer face, a clearance hole through the wall and a pilot in the
-	// end of the base's back wall.
-	for _, w := range wallScrews {
-		d, up := w.dir, r3.Vec{Z: 1}
-		out := frame(w.at(w.face-d.X), up, d.Cross(up))
-		body = b.cut(body, b.cylinder(out, counterboreRadius, 1+counterboreDepth))
-		body = b.cut(body, b.cylinder(out, earHole, 1+wallThick))
-		body = b.cut(body, b.cylinder(frame(w.at(w.seam-d.X*0.5), up, d.Cross(up)), pilotRadius, 0.5+pilotDepth))
-	}
-	// Each ear has a hole, a counterbore for the screw's head on one side and a hex trap for its nut on the other. The
-	// head and the nut sit on either side of the seam, so the screw joins the two pieces. The corners of the trap lie on Z.
-	for _, e := range gearboxEars {
-		c, d, up := e.centre(), e.dir, r3.Vec{Z: 1}
-		through := frame(c.Add(d.Scale(-earHalf-1)), up, d.Cross(up))
-		body = b.cut(body, b.cylinder(through, earHole, 2*earHalf+2))
-		body = b.cut(body, b.cylinder(through, counterboreRadius, 1+counterboreDepth))
-		body = b.cut(body, b.hexagon(frame(c.Add(d.Scale(earHalf+1)), up, d.Scale(-1).Cross(up)), trapFlats, 1+trapDepth))
+	// Every bolt of the housing has its head pocket, its clearance hole and its nut cavity cut from the whole tray. The
+	// cavities are in the piece that holds the nut, and the head pockets are in the piece that holds the head. The grip's
+	// bolts have only the pocket and the hole here: their cavity is in the grip.
+	for _, site := range fastenerSites() {
+		switch {
+		case strings.HasPrefix(site.bolt, "gearbox-"):
+			body = b.fastenerCuts(body, site, true, true, true)
+		case strings.HasPrefix(site.bolt, "handle-bolt-"):
+			body = b.fastenerCuts(body, site, true, true, false)
+		}
 	}
 	return body
 }

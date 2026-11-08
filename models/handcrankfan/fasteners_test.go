@@ -1,7 +1,7 @@
 package handcrankfan_test
 
 import (
-	"strings"
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -41,6 +41,9 @@ func along(box decad.Box, d r3.Vec) (lo, hi float64) {
 	return box.Min.Z, box.Max.Z
 }
 
+// headPocketMid is the distance from the head top to the middle of the head pocket.
+const headPocketMid = m2bolt.HeadHeight / 2
+
 // acrossPlane is the plane at distance t from the head across the shaft, with the corner direction as its U axis.
 func acrossPlane(t *testing.T, f handcrankfan.Fastener, d float64) r3.Frame {
 	return frameAt(t, f.Head.Add(f.Dir.Scale(d)), f.Corner, f.Dir.Cross(f.Corner))
@@ -70,10 +73,10 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 	return crossings%2 == 1
 }
 
-// requireFasteners proves for each fastener whose bolt name only accepts: the head ends flush with its part's face, the nut
-// sits inside the cavity its part encloses, the bolt's tip stays in the part, and no fastener shares material with the
-// parts it passes through.
-func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, parts map[string]handcrankfan.Part, only func(name string) bool) {
+// requireFasteners proves for each fastener: the head ends flush with its part's face, the nut sits inside the cavity
+// its part encloses, the part keeps 1 mm of material round the pocket and the cavity, the bolt's tip stays in the part,
+// and no fastener shares material with the parts it passes through.
+func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	all, err := handcrankfan.Fasteners(p)
 	require.NoError(t, err)
 	require.Len(t, all, 11+p.Blades)
@@ -83,9 +86,6 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		HeldChord:        units.Millimeters(0.01),
 	}
 	for _, f := range all {
-		if !only(f.Bolt) {
-			continue
-		}
 		bolt, nut := parts[f.Bolt].Body, parts[f.Nut].Body
 		headHost, nutHost := parts[f.HeadHost].Body, parts[f.NutHost].Body
 		host := func(f handcrankfan.Fastener, body *decad.Body, d float64) sectionAt {
@@ -105,6 +105,17 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		require.False(t, under.contains(r3.Vec{}), "%s: the head pocket is empty", f.Bolt)
 		require.False(t, over.contains(f.Corner.Scale(2.6)), "%s: nothing stands proud of the face", f.Bolt)
 
+		// The part keeps 1 mm of material round the pocket, measured at the section across its middle. The test samples
+		// 0.05 short of the millimetre.
+		const material = 0.95
+		pocket := host(f, headHost, headPocketMid)
+		for k := range 12 {
+			angle := float64(k) * math.Pi / 6
+			ring := f.Corner.Scale(math.Cos(angle)).Add(f.Dir.Cross(f.Corner).Scale(math.Sin(angle)))
+			require.True(t, pocket.contains(ring.Scale(m2bolt.HeadDiameter/2+0.1+material)),
+				"%s: the part keeps 1 mm round the head pocket at %d degrees", f.Bolt, k*30)
+		}
+
 		// The nut floats in its cavity, and the part encloses the cavity on every side but the bolt hole.
 		nutBox := bounds(t, parts[f.Nut])
 		lo, hi := along(nutBox, f.Dir)
@@ -121,6 +132,20 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		require.True(t, wall.contains(f.Corner.Scale(3.0)), "%s: the cavity's corner wall is solid", f.Nut)
 		require.True(t, wall.contains(flat.Scale(2.6)), "%s: the cavity's flat wall is solid", f.Nut)
 		require.False(t, wall.contains(f.Corner.Scale(2.1)), "%s: the cavity has the nut's room", f.Nut)
+		// Round the cavity the part keeps 1 mm beyond each corner and each flat.
+		corner, side := (m2nut.AcrossFlats+0.2)/math.Sqrt(3), (m2nut.AcrossFlats+0.2)/2
+		for k := range 6 {
+			angle := float64(k) * math.Pi / 3
+			for _, reach := range []struct {
+				name     string
+				radius   float64
+				rotation float64
+			}{{"corner", corner, 0}, {"flat", side, math.Pi / 6}} {
+				ring := f.Corner.Scale(math.Cos(angle + reach.rotation)).Add(flat.Scale(math.Sin(angle + reach.rotation)))
+				require.True(t, wall.contains(ring.Scale(reach.radius+material)),
+					"%s: the part keeps 1 mm round the cavity's %s %d", f.Nut, reach.name, k)
+			}
+		}
 		for name, d := range map[string]float64{"roof": f.CavityFar + 0.5, "floor": f.CavityNear - 0.5} {
 			layer := host(f, nutHost, d)
 			require.True(t, layer.contains(f.Corner.Scale(1.6)), "%s: the %s of the cavity is solid", f.Nut, name)
@@ -160,6 +185,3 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		gap("shank in the nut host's hole", bolt, nutHost, f.CavityFar+0.3)
 	}
 }
-
-// isFanFastener reports whether the bolt is one of the blade bolts, the only sites converted so far.
-func isFanFastener(name string) bool { return strings.HasPrefix(name, "fan-bolt-") }

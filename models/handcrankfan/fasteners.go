@@ -93,6 +93,23 @@ func fastenerSites() []fastenerSite {
 	})
 }
 
+// sitesNamed returns the sites whose bolt name starts with prefix, in table order.
+func sitesNamed(prefix string) []fastenerSite {
+	var out []fastenerSite
+	for _, s := range fastenerSites() {
+		if strings.HasPrefix(s.bolt, prefix) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// hardware adds s's bolt and then its nut to the assembly, each posed by the site's motion.
+func (b *builder) hardware(s fastenerSite) {
+	b.part(s.bolt, "hardware", s.motion, func() *decad.Body { return b.placeBolt(s) })
+	b.part(s.nut, "hardware", s.motion, func() *decad.Body { return b.placeNut(s) })
+}
+
 // bladeSites returns the blade sites of an assembly with n blades, blade 1 first, at crank angle 0.
 func bladeSites(n int) ([]fastenerSite, error) {
 	first := fastenerSites()[0]

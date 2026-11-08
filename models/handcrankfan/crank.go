@@ -8,7 +8,7 @@ import (
 )
 
 // Crank dimensions in mm. The arm, the pin and the shaft meet in hexagonal stubs, which pass the torque through six
-// faces, and the pin's stub is also clamped by one M2 x 10 screw and nut. Every joint keeps a gap of its fit class (fits.go).
+// faces, and the pin's stub is also clamped by one M2 x 10 bolt and nut. Every joint keeps a gap of its fit class (fits.go).
 const (
 	crankThrow      = 55.0 // distance from the crank axis to the pin
 	armRadius       = 10.0 // the arm is a stadium 20 wide
@@ -26,22 +26,14 @@ func alongPin(x float64) r3.Frame {
 	return frame(r3.Vec{X: x, Z: crankHeight + crankThrow}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 }
 
-// crank builds the crank gear, the crank shaft, the arm, the pin, the handle and the pin's screw.
+// crank builds the crank gear, the crank shaft, the arm, the pin, the handle and the pin's bolt and nut.
 func (b *builder) crank() {
 	b.part("crank-gear", "gear", "crank", func() *decad.Body { return b.spurGear(crankHeight, false) })
 	b.part("crank-shaft", "shaft", "crank", b.crankShaft)
 	b.part("crank-arm", "arm", "crank", b.crankArm)
 	b.part("crank-pin", "pin", "crank", b.crankPin)
 	b.part("crank-grip", "grip", "crank", b.crankGrip)
-	x, z := r3.Vec{X: 1}, r3.Vec{Z: 1}
-	b.part("crank-pin-bolt", "hardware", "crank", func() *decad.Body {
-		return b.screw(r3.Vec{X: crankFace + 3.9, Z: crankHeight + crankThrow}, x, z, 10, 62.1-57.9, 1)
-	})
-}
-
-// slot is a nut slot: a box on f from u0, v0 to u1, v1, 1.9 deep.
-func (b *builder) slot(f r3.Frame, v0, v1 float64) *decad.Body {
-	return b.panel(f, -2.15, v0, 2.15, v1, 1.9)
+	b.hardware(sitesNamed("crank-pin-bolt")[0])
 }
 
 // crankShaft builds the crank shaft: a round shaft with a collar at its left end, outside the tray's left post, that
@@ -55,7 +47,7 @@ func (b *builder) crankShaft() *decad.Body {
 	})
 }
 
-// crankArm builds a stadium 20 wide with rounded faces, a screw hole at each end, and a hexagonal pocket for the shaft
+// crankArm builds a stadium 20 wide with rounded faces, a bolt hole at the pin end, and a hexagonal pocket for the shaft
 // stub from the inner face and one for the pin stub from the outer face.
 func (b *builder) crankArm() *decad.Body {
 	s := b.section(alongCrank(armStart))
@@ -70,16 +62,17 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(bottomArc, armRadius), sketch.NewEqualRadius(bottomArc, topArc),
 			sketch.NewTangent(right, bottomArc), sketch.NewTangent(right, topArc),
 			sketch.NewTangent(left, bottomArc), sketch.NewTangent(left, topArc))
-		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, 1.2), 1.2))
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, boltHole), boltHole))
 	}
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
 	// The shaft's splined end is a Tight fit in this bore and the bore's floor stands tightFit from the shaft's end. The
 	// pin's stub has the same gap on every flat and at its end.
 	arm = b.splineCut(arm, crankSpline, crankFace+3, 7, tightFit)
-	return b.cut(arm, b.hexagon(alongPin(crankFace+7), stubFlats+2*tightFit, 6))
+	arm = b.cut(arm, b.hexagon(alongPin(crankFace+7), stubFlats+2*tightFit, 6))
+	return b.fastenerCuts(arm, sitesNamed("crank-pin-bolt")[0], true, false, false)
 }
 
-// crankPin builds the pin: a hexagonal stub with a nut slot and screw hole, a round shank for the handle and a head
+// crankPin builds the pin: a hexagonal stub with a bolt hole and a cavity for the bolt's nut, a round shank for the handle and a head
 // that sits in the handle's counterbore. The handle slides on over the stub, so nothing on the pin is wider than its
 // bore except the head.
 func (b *builder) crankPin() *decad.Body {
@@ -87,8 +80,7 @@ func (b *builder) crankPin() *decad.Body {
 	shank := b.cylinder(alongPin(crankFace+12+tightFit), 4.5, pinHeadStart+0.4-(crankFace+12+tightFit))
 	head := b.cylinder(alongPin(pinHeadStart), 5.8, 3)
 	pin := b.union(stub, shank, head)
-	pin = b.cut(pin, b.slot(alongPin(crankFace+8), -2.5, 4.5))
-	return b.cut(pin, b.cylinder(alongPin(crankFace+5), 1.2, 10))
+	return b.fastenerCuts(pin, sitesNamed("crank-pin-bolt")[0], false, true, true)
 }
 
 // handleProfile is the crank handle's meridian: (distance along the pin from the inner end, radius). A small barrel

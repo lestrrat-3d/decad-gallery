@@ -264,18 +264,3 @@ func (b *builder) hexagon(f r3.Frame, flats, length float64) *decad.Body {
 	)
 	return b.extrude(s, 0, length)
 }
-
-// screw builds an M2 socket head cap screw and its nut as one plain body with no thread. bearing is the centre of
-// the head's bearing face, dir runs toward the tip, u is a unit vector perpendicular to dir that the nut's corners lie
-// on, length is the length under the head, nutAt is the distance from the bearing face to the nut's near face (0 for
-// no nut) and shank is the shank radius.
-func (b *builder) screw(bearing, dir, u r3.Vec, length, nutAt, shank float64) *decad.Body {
-	at := func(t float64) r3.Frame { return frame(bearing.Add(dir.Scale(t)), u, dir.Cross(u)) }
-	head := b.cylinder(at(-headHeight), headRadius, headHeight)
-	body := b.cylinder(at(-0.8), shank, length+0.8)
-	parts := []*decad.Body{head, body}
-	if nutAt > 0 {
-		parts = append(parts, b.hexagon(at(nutAt), nutFlats, nutHeight))
-	}
-	return b.union(parts...)
-}

@@ -17,9 +17,12 @@ import (
 
 func partNames(blades int) []string {
 	names := []string{
-		"handle", "handle-bolt-1", "handle-bolt-2", "gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "gearbox-bolt-1", "gearbox-bolt-2",
-		"gearbox-bolt-3", "gearbox-bolt-4", "gearbox-screw-1", "gearbox-screw-2", "gearbox-screw-3", "gearbox-screw-4", "driving-gear", "crank-shaft", "crank-arm",
-		"crank-pin", "crank-grip", "crank-pin-bolt", "pinion", "fan-shaft", "fan-hub",
+		"handle", "handle-bolt-1", "handle-nut-1", "handle-bolt-2", "handle-nut-2",
+		"gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "gearbox-bolt-1", "gearbox-nut-1",
+		"gearbox-bolt-2", "gearbox-nut-2", "gearbox-bolt-3", "gearbox-nut-3", "gearbox-bolt-4", "gearbox-nut-4",
+		"gearbox-screw-1", "gearbox-screw-nut-1", "gearbox-screw-2", "gearbox-screw-nut-2",
+		"gearbox-screw-3", "gearbox-screw-nut-3", "gearbox-screw-4", "gearbox-screw-nut-4", "driving-gear", "crank-shaft", "crank-arm",
+		"crank-pin", "crank-grip", "crank-pin-bolt", "crank-pin-nut", "pinion", "fan-shaft", "fan-hub",
 		"drive-shaft", "drive-gear", "crank-gear", "bearing-crank-post", "bearing-drive-post", "bearing-crank-wall",
 		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
 	}
@@ -38,13 +41,14 @@ func isRotor(name string) bool {
 // parts. The bevel pair and the spur pair, which mesh at their teeth, are left out.
 func isFinished(name string) bool {
 	switch name {
-	case "handle", "gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt":
+	case "handle", "gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "crank-shaft", "drive-shaft", "crank-arm", "crank-pin", "crank-grip", "crank-pin-bolt", "crank-pin-nut":
 		return true
 	}
 	if strings.HasPrefix(name, "bearing-") {
 		return true
 	}
-	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "gearbox-bolt-") || strings.HasPrefix(name, "gearbox-screw-")
+	return isRotor(name) || strings.HasPrefix(name, "handle-bolt-") || strings.HasPrefix(name, "handle-nut-") ||
+		strings.HasPrefix(name, "gearbox-bolt-") || strings.HasPrefix(name, "gearbox-nut-") || strings.HasPrefix(name, "gearbox-screw-")
 }
 
 func buildFan(t *testing.T, p handcrankfan.Params) (*decad.Document, map[string]handcrankfan.Part, *handcrankfan.Assembly) {
@@ -84,7 +88,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	}
 	// The crank shaft's grooved end is checked at 0.2 mm.
 	for name, tolerance := range map[string]float64{"handle": 0.1, "gearbox-base": 0.1, "gearbox-post": 0.1, "gearbox-crank-wall": 0.1, "gearbox-fan-wall": 0.1, "crank-arm": 0.1, "crank-shaft": 0.2,
-		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "crank-gear": 0.1} {
+		"crank-pin": 0.1, "crank-grip": 0.1, "fan-hub": 0.1, "fan-blade-1": 0.1, "fan-bolt-1": 0.1, "crank-gear": 0.1, "gearbox-nut-1": 0.1, "handle-nut-1": 0.1} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(tolerance), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)
@@ -98,7 +102,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	// Fits, fasteners and gear mesh are measured at the default parameters only: the other parameters turn parts
 	// rigidly about their own axes or repeat identical sockets.
 	if p == handcrankfan.DefaultParams() {
-		t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts, isFanFastener) })
+		t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
 		t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 		t.Run("mesh", func(t *testing.T) { requireSpurMesh(t, p, parts) })
 	}
@@ -345,7 +349,12 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	require.Equal(t, "gearbox-base", layout.Ground)
 	// Overlaps comes from axis-aligned boxes, and a captive nut always sits in its host's box. Those pairs are exempt;
 	// the fasteners subtest proves the nut and its host share no material.
-	captive := map[string]string{"fan-nut-1": "fan-hub", "fan-nut-2": "fan-hub", "fan-nut-3": "fan-hub", "fan-nut-4": "fan-hub"}
+	fasteners, err := handcrankfan.Fasteners(a.Params)
+	require.NoError(t, err)
+	captive := map[string]string{}
+	for _, f := range fasteners {
+		captive[f.Nut] = f.NutHost
+	}
 	var overlaps [][2]string
 	for _, pair := range layout.Overlaps {
 		if captive[pair[0]] == pair[1] || captive[pair[1]] == pair[0] {
@@ -360,9 +369,13 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 		offset[part.Name] = part.Offset
 		box := bounds(t, built[part.Name])
 		span[part.Name] = [2]float64{box.Min.X + part.Offset.X, box.Max.X + part.Offset.X}
-		if part.Name == "gearbox-base" {
+		switch {
+		case part.Name == "gearbox-base":
 			require.Zero(t, part.Offset.Len(), "the gearbox is the ground")
-		} else {
+		case strings.HasPrefix(part.Name, "gearbox-screw-nut-"):
+			// A captive nut in the ground piece has no joint and stays in its cavity.
+			require.Zero(t, part.Offset.Len(), "%s stays in the base", part.Name)
+		default:
 			require.GreaterOrEqual(t, part.Depth, 1, "%s is joined to the gearbox", part.Name)
 		}
 		switch part.Name {
@@ -379,9 +392,11 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	}
 	require.Less(t, span["crank-arm"][1], span["crank-grip"][0], "the handle is outside the arm")
 	require.Less(t, span["crank-grip"][1], span["crank-pin"][0], "the pin is outside the handle")
-	for k := 1; k <= a.Params.Blades; k++ {
-		nut := fmt.Sprintf("fan-nut-%d", k)
-		require.InDelta(t, 0, offset[nut].Sub(offset["fan-hub"]).Len(), 1e-9, "%s moves with the hub", nut)
+	for _, f := range fasteners {
+		if strings.HasPrefix(f.Nut, "gearbox-screw-nut-") {
+			continue
+		}
+		require.InDelta(t, 0, offset[f.Nut].Sub(offset[f.NutHost]).Len(), 1e-9, "%s moves with %s", f.Nut, f.NutHost)
 	}
 	bom, err := set.BOM(t.Context())
 	require.NoError(t, err)
@@ -399,8 +414,8 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 8+2+1+a.Params.Blades, screws, "four ear bolts, four wall screws, two grip screws, the pin screw and one screw for each blade")
-	require.Equal(t, a.Params.Blades, nuts, "one nut for each blade bolt")
+	require.Equal(t, 11+a.Params.Blades, screws, "four ear bolts, four wall bolts, two grip bolts, the pin bolt and one for each blade")
+	require.Equal(t, 11+a.Params.Blades, nuts, "one nut for each bolt")
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 

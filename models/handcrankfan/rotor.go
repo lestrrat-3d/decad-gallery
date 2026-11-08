@@ -27,20 +27,8 @@ const (
 )
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
-// from the axis: the head sits in a pocket in the front face and the nut in a cavity the hub encloses. The constants
-// below are the old hardware's; the sites not yet converted still use them.
-const (
-	boltAt            = 9.5
-	headRadius        = 1.9
-	headHeight        = 2.0
-	counterboreRadius = 2.15
-	counterboreDepth  = 2.2
-	nutFlats          = 4.0
-	nutHeight         = 1.6
-	trapFlats         = 4.3
-	trapDepth         = 4.0
-	hardwareGap       = 0.1 // the modelled bolt sits just clear of its seats, as it does before it is tightened
-)
+// from the axis: the head sits in a pocket in the front face and the nut in a cavity the hub encloses.
+const boltAt = 9.5
 
 // Blade section constants.
 const (
