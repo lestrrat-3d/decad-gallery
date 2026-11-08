@@ -69,6 +69,7 @@ origin, so the axis is world +Z.
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.25 | Radial clearance between a 608ZZ bearing and its custom pocket |
 | `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
+| `Ec` | `EdgeChamfer` | float64 | 0.5 | Setback of the 45° chamfer on the edges of the large flat faces of the ring, the covers and the carriers; at least 0.5 |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
 | `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
@@ -140,6 +141,7 @@ the same gap normal to their circular and key faces.
 - Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
   leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut cavity at each end.
 - Reject a seat chamfer outside `[0, 1]`.
+- Reject an edge chamfer outside `[0.5, 1]`.
 - Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
   leaves no more than 0.5 mm between its edge and the ring tip radius (`a + boss/2 >= ring tip radius - 0.5`).
@@ -249,7 +251,7 @@ parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_
 `shaft_fit_clearance`, `planet_bearing_lift`,
 `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
-`pocket_diameter`, `seat_chamfer`, `lip_bore_diameter`, `shaft_collar_diameter`, `shaft_bore_diameter`,
+`pocket_diameter`, `seat_chamfer`, `edge_chamfer`, `lip_bore_diameter`, `shaft_collar_diameter`, `shaft_bore_diameter`,
 `collar_margin`, `boss_diameter`, `arm_width`,
 `arm_margin`,
 `shaft_diameter`, `cover_boss_diameter`, `cover_hub_diameter`, `bolt_circle_radius`,
@@ -264,6 +266,19 @@ dimension every circle's center from that origin and its diameter by a bound par
 solve and verify each sketch is fully constrained before extruding. The spur gear builds
 verify their own sketches.
 
+## Edge finishing
+
+Surface edge finishing chamfers every convex boundary edge of a flat face of at least 400 mm² (net area) along a run of
+at least 20 mm. In this model the large flat faces are the ring's two end faces, both faces of each cover's frame and
+both faces of each carrier plate. The sun, the planets, the shafts and the bearing boss end are smaller than 400 mm²,
+and the bearings, bolts and nuts keep their nominal dimensions.
+
+- Chamfer by `Ec`: the outer boundary of each of those faces, the three window loops of each cover on both of its faces,
+  and the cover lip's edge on the inner face. The bearing rests on the other side of the lip, so no seat shrinks.
+- Keep sharp: the ring's tooth edges, because they are the gear flanks and take the root clearance; each carrier's
+  shaft hole, a keyed fit with the shaft; each bolt hole, head pocket and nut cavity, whose edges are shorter than 20 mm;
+  the pocket and boss edges, which are not convex edges of the face.
+
 ## Acceptance cases
 
 | Case | Overrides | Required result |
@@ -275,6 +290,7 @@ verify their own sketches.
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the 22 mm × 7 mm bearing clears the pocket by 0.25 mm radially and is lifted by 0.25 mm axially; the planet weighs the plain gear with the lip bore minus the pocket's ring |
 | Seat chamfer | Default and `Sc = 0` | A planet and a cover each weigh less than the `Sc = 0` ones by a ring of triangular section, `Sc²/2` times the pocket's circumference, within the volume bounds plus 1; every body stays one solid |
+| Edge finishing | Default | Per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing): every flat face of at least 400 mm² on the ring, the covers and the carriers has a 45° bevel of `Ec` along its whole outer boundary; the covers' windows and the cover lip's inner edge are bevelled too, and the ring's rims sit `Ec` inside its outer radius. The ring's tooth edges, the shaft holes and the bolt holes stay sharp (see Edge finishing) |
 | Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with teeth where the grooves go; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Gear roots | Module 0.5, 1 and 2; default placed gear bodies | Root and tip circles leave `max(0.25 m, 0.5 mm)` at the sun-planet and planet-ring meshes; the built model's root parameters match the same radii |

@@ -1,7 +1,9 @@
 package planetarygearbox_test
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"testing"
 
@@ -15,6 +17,32 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
+
+// locateTolerance is the tolerance point queries ask of the chamfered ring, covers and carriers. They are held as
+// meshes whose bound is up to about 0.05 mm, and a query cannot ask for less than the body's bound.
+const locateTolerance = 0.06
+
+// sectionOutline returns the outline of body in the plane. It asks for 0.01 mm and, for a body held as a mesh
+// whose own bound is larger, for that bound, so the clearances computed from it carry the real uncertainty.
+func sectionOutline(t *testing.T, body *decad.Body, plane r3.Frame) decad.SectionOutline {
+	t.Helper()
+	tolerance := 0.01
+	for range 2 {
+		outline, err := body.SectionOutline(t.Context(), plane, units.Millimeters(tolerance))
+		if err == nil {
+			return outline
+		}
+		const marker = "minimum mesh bound "
+		message := err.Error()
+		at := strings.Index(message, marker)
+		require.GreaterOrEqual(t, at, 0, "section outline: %v", err)
+		var bound float64
+		_, scanErr := fmt.Sscanf(message[at+len(marker):], "%f", &bound)
+		require.NoError(t, scanErr)
+		tolerance = math.Ceil(bound*1e4) / 1e4
+	}
+	panic("section outline: tolerance retry failed")
+}
 
 const (
 	gearRootModuleClearanceFactor = 0.25
@@ -130,16 +158,39 @@ func requireSectionClearance(t *testing.T, a, b *decad.Body, z, minimum float64)
 	t.Helper()
 	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
-	outlineA, err := a.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
-	require.NoError(t, err)
-	outlineB, err := b.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
-	require.NoError(t, err)
+	outlineA := sectionOutline(t, a, plane)
+	outlineB := sectionOutline(t, b, plane)
 	clearance, err := outlineA.Clearance(outlineB)
 	require.NoError(t, err)
 	require.False(t, clearance.Overlaps)
 	require.GreaterOrEqual(t, clearance.Lower().Base(), minimum,
 		"section gap %v ± %v mm, closest points %v and %v", clearance.Distance.Value.Base(),
 		clearance.Distance.Bound.Base(), clearance.A, clearance.B)
+}
+
+// sectionLocate classifies point against the outline of body in the plane through the point, by counting the
+// outline loops that surround it.
+func sectionLocate(t *testing.T, body *decad.Body, point r3.Vec) decad.PointLocation {
+	t.Helper()
+	plane, err := r3.NewFrame(r3.NewVec(0, 0, point.Z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	section := sectionOutline(t, body, plane)
+	crossings := 0
+	for _, loop := range section.Loops {
+		for i, a := range loop {
+			b := loop[(i+1)%len(loop)]
+			if (a.Y > point.Y) == (b.Y > point.Y) {
+				continue
+			}
+			if point.X < a.X+(point.Y-a.Y)/(b.Y-a.Y)*(b.X-a.X) {
+				crossings++
+			}
+		}
+	}
+	if crossings%2 == 1 {
+		return decad.PointInside
+	}
+	return decad.PointOutside
 }
 
 type radialSpan struct {
@@ -150,8 +201,7 @@ func sectionRadialSpan(t *testing.T, body *decad.Body, center r3.Vec, z, targetR
 	t.Helper()
 	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
-	section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
-	require.NoError(t, err)
+	section := sectionOutline(t, body, plane)
 	require.NotEmpty(t, section.Loops)
 
 	var selected radialSpan
@@ -413,7 +463,7 @@ func TestBearingsSitInPlanetPockets(t *testing.T) {
 			return r3.NewVec(21*math.Cos(phi)+radius*math.Cos(angle), 21*math.Sin(phi)+radius*math.Sin(angle), z)
 		}
 		locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
-			loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+			loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(locateTolerance))
 			require.NoError(t, err)
 			return loc
 		}
@@ -451,7 +501,7 @@ func TestCarrierIsATriangle(t *testing.T) {
 	_, box := defaultGearbox(t)
 	carrier := box.Stages[0].Carrier
 	locate := func(point r3.Vec) decad.PointLocation {
-		loc, err := carrier.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		loc, err := carrier.LocatePoint(t.Context(), point, units.Millimeters(locateTolerance))
 		require.NoError(t, err)
 		return loc
 	}
@@ -491,9 +541,15 @@ func TestHousing(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
 	locate := func(b *decad.Body, point r3.Vec) decad.PointLocation {
-		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(0.02))
+		loc, err := b.LocatePoint(t.Context(), point, units.Millimeters(locateTolerance))
 		require.NoError(t, err)
-		return loc
+		if loc != decad.PointUndecided {
+			return loc
+		}
+		// The chamfered covers are held as meshes and point location leaves their interior undecided, so the
+		// section through the point decides it. Every probe is 1.5 mm or more from a surface, far outside the
+		// section's bound.
+		return sectionLocate(t, b, point)
 	}
 	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
 
@@ -571,8 +627,7 @@ func TestHousing(t *testing.T) {
 		}
 		plane, err := r3.NewFrame(r3.NewVec(0, 0, sectionZ), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 		require.NoError(t, err)
-		section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(0.01))
-		require.NoError(t, err)
+		section := sectionOutline(t, body, plane)
 		windows := 0
 		for _, loop := range section.Loops {
 			reach := 0.0
