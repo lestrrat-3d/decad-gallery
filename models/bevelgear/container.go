@@ -15,43 +15,24 @@ const (
 )
 
 // pairContainers groups one pair: a container for the pair and one inside it for each member. A
-// document that already holds a container of that name gets "name 2", "name 3" and so on, because
-// sibling names are unique.
+// document that already holds a container of that name gets "name 2", "name 3" and so on
+// (decad's NewUniqueChild), because sibling names are unique.
 type pairContainers struct{ pair, driving, pinion *decad.Container }
 
 func newPairContainers(doc *decad.Document) (pairContainers, error) {
-	pair, err := uniqueChild(doc.Root(), pairContainerName)
+	pair, err := doc.Root().NewUniqueChild(pairContainerName)
 	if err != nil {
 		return pairContainers{}, err
 	}
-	driving, err := uniqueChild(pair, drivingContainerName)
+	driving, err := pair.NewUniqueChild(drivingContainerName)
 	if err != nil {
 		return pairContainers{}, err
 	}
-	pinion, err := uniqueChild(pair, pinionContainerName)
+	pinion, err := pair.NewUniqueChild(pinionContainerName)
 	if err != nil {
 		return pairContainers{}, err
 	}
 	return pairContainers{pair: pair, driving: driving, pinion: pinion}, nil
-}
-
-func uniqueChild(parent *decad.Container, name string) (*decad.Container, error) {
-	taken := map[string]struct{}{}
-	for _, child := range parent.Children() {
-		taken[child.Name()] = struct{}{}
-	}
-	candidate := name
-	for n := 2; ; n++ {
-		if _, ok := taken[candidate]; !ok {
-			break
-		}
-		candidate = fmt.Sprintf("%s %d", name, n)
-	}
-	child, err := parent.NewChild(candidate)
-	if err != nil {
-		return nil, fmt.Errorf("create container %q: %w", candidate, err)
-	}
-	return child, nil
 }
 
 // addSketch places s in c. A nil c leaves s in the document's root container.
