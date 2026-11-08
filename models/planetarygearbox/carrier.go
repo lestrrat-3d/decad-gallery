@@ -207,6 +207,12 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	if !carrier.IsSolid() {
 		return nil, errors.New("carrier: result is not a solid")
 	}
+	// The plate's outline loses its edge on both flat faces.
+	for _, z := range []float64{0, p.CarrierThickness} {
+		if carrier, err = r.finishFaceEdges(ctx, carrier, "carrier", z, outerLoop); err != nil {
+			return nil, err
+		}
+	}
 	return carrier, nil
 }
 

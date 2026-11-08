@@ -203,7 +203,21 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if cover, err = r.cutHeadPockets(ctx, cover); err != nil {
 		return nil, err
 	}
-	return r.chamferSeat(ctx, cover, "cover bearing pocket", p.CoverThickness+planetBearing().Width)
+	if cover, err = r.chamferSeat(ctx, cover, "cover bearing pocket", p.CoverThickness+planetBearing().Width); err != nil {
+		return nil, err
+	}
+	// Both flat faces lose their outer rim. The inner face also loses the bearing lip's edge: the bearing rests
+	// on the other side of the lip, so no bearing seat shrinks.
+	lip := func(loop *decad.Loop, edges []*decad.Edge) bool {
+		return loop.IsOuter() || len(edges) > 1 || (len(edges) == 1 && math.Abs(radiusAbout(edges[0])-d.lip/2) < 1e-3)
+	}
+	if cover, err = r.finishFaceEdges(ctx, cover, "cover inner face", 0, lip); err != nil {
+		return nil, err
+	}
+	if cover, err = r.finishFaceEdges(ctx, cover, "cover outer face", p.CoverThickness, windowsAndRim); err != nil {
+		return nil, err
+	}
+	return cover, nil
 }
 
 // buildInputShaft builds the input shaft about the local origin: a D-shaped rod that starts InputShaftLength

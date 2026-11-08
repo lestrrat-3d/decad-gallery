@@ -59,6 +59,13 @@ Each pin of the carrier has a collar that starts 0.25 mm above the bearing's top
 
 The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
 
+## Edge finishing
+
+Every large flat face of the ring, the covers and the carriers has its outer edge chamfered by 0.5 mm at 45°, so the
+printed parts have no sharp rims to chip or cut. That covers both end faces of the ring, both faces of each cover
+including the edges of its three windows, and both faces of each carrier plate. The ring's teeth, the shaft holes, the
+bolt holes and the bearing seats keep their shapes, so the gears mesh and the parts fit as before.
+
 ## How the housing is bolted
 
 Eight M2 bolts and eight M2 nuts ([`models/m2bolt`](../m2bolt), [`models/m2nut`](../m2nut)) hold the covers to the

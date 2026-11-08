@@ -164,6 +164,13 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 	if !ring.IsSolid() {
 		return nil, fmt.Errorf("ring is not a solid")
 	}
+	// The outer rim of each end face is chamfered. The tooth spaces and the bolt holes keep their sharp edges: the
+	// teeth are gear geometry, and the holes are shorter than the edge finishing length.
+	for _, z := range []float64{ringMargin, ringMargin + d.ringLength} {
+		if ring, err = r.finishFaceEdges(ctx, ring, "ring", z, outerLoop); err != nil {
+			return nil, err
+		}
+	}
 	return ring, nil
 }
 

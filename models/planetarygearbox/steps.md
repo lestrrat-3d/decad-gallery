@@ -104,6 +104,16 @@ by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so 
 among the body's edges, then select it with `decad.Edges(decad.Circular(), decad.EndpointAt(its start))` asserted
 `Exactly(1)`. Chamfer the planet and the cover as built, before they are copied.
 
+**Edge finishing.** After a ring, a cover or a carrier is complete, chamfer the boundary loops it keeps by `edge_chamfer`
+(see Edge finishing in `instructions.md`). For each plane `z`, find the body's planar faces whose plane normal is along Z
+at that height and whose area is at least 400 mm², then take the kept loops of those faces. Select their edges with
+`decad.Edges(...).Or(...)`, each edge named by `decad.EndpointAt(its start)` plus `decad.Circular()` for a circle or arc, or
+`decad.ParallelTo(its direction)` for a line, asserted `Exactly(count)`, and make one `decad.Chamfer` call per plane. Ring:
+the outer loop at `z = ringMargin` and at `z = ringMargin + ring length`. Cover (after the seat chamfer): at `z = 0` the
+outer loop, every loop of more than one edge and the single-circle loop of radius `lip_bore_diameter / 2`; at `z = Tv` the
+outer loop and every loop of more than one edge. Carrier (after the shaft hole is cut): the outer loop at `z = 0` and at
+`z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
+
 **Shaft section.** A circle of diameter `shaft_diameter = bearing_bore_diameter - 0.5`, the section of every rod.
 **Key tool.** The section of the sun bore and carrier hole: one outline with 0.25 mm around the round shaft and
 normal to each key face, extruded once so the tool is not itself a boolean result. With
@@ -161,6 +171,9 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   straight prisms, so cap vertices stand for every height.
 - Seat chamfer: a planet and a cover each weigh `π (2 r) Sc² / 2` less than the `Sc = 0` ones, with `r` the pocket
   radius, within the summed volume bounds plus 1, and stay solid.
+- Edge finishing: the ring, both covers and each carrier have at least two large flat faces whose whole outer boundary
+  has a 45° bevel beside it (a plane tilted 45° or a cone of 45° half angle); the circular outer edges of the ring and
+  the covers lie `Ec` inside the widest cylinder; an edge chamfer below 0.5 or above 1 is rejected.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
 - Shaft keys: with `LocatePoint` at radius 3.5, mid-height of the sun, the input shaft is outside and the sun inside
   at 0°, 120° and 240°, and the reverse at 60°, 180° and 300°; at `(3.5, 0)` under the front bearing the
