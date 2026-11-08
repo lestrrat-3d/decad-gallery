@@ -80,7 +80,7 @@ with `NewChild` on the document root or on a parent container.
   `Container.ChildNamed` for one container shared by many bodies of a kind
   (all planets in `Planet Gears`). Use `Container.NewUniqueChild` for a unit that
   can repeat (`Pair`, `Pair 2`). Do not write a per-model helper.
-- Move each body into its container with `Document.MoveBody`.
+- Move each body into its container with `Container.AddBody`.
 - Test each multi-body model: assert the container names and that every body
   sits in the container for its kind, for each parameter branch that changes the
   body set. Require `doc.VerifyContainers().Err()` to be nil, which fails on a

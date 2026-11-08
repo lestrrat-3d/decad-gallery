@@ -62,7 +62,7 @@ func (b *builder) placeParts() {
 			b.fail("create container", err)
 			return
 		}
-		b.fail("place part", b.doc.MoveBody(part.Body, container))
+		b.fail("place part", container.AddBody(part.Body))
 	}
 }
 
@@ -72,7 +72,7 @@ func placeConnector(doc *decad.Document, body *decad.Body) error {
 	if err != nil {
 		return fmt.Errorf("create container %q: %w", connectorContainerName, err)
 	}
-	if err := doc.MoveBody(body, container); err != nil {
+	if err := container.AddBody(body); err != nil {
 		return fmt.Errorf("place connector in container %q: %w", connectorContainerName, err)
 	}
 	return nil

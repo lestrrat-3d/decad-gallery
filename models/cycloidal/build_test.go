@@ -61,8 +61,8 @@ func overlap(t *testing.T, a, b *decad.Body) float64 {
 	require.NoError(t, err)
 	cb, err := decad.Copy(t.Context(), b)
 	require.NoError(t, err)
-	require.NoError(t, a.Document().MoveBody(ca, a.Document().Root()))
-	require.NoError(t, a.Document().MoveBody(cb, a.Document().Root()))
+	require.NoError(t, a.Document().Root().AddBody(ca))
+	require.NoError(t, a.Document().Root().AddBody(cb))
 	both, err := decad.Intersect(t.Context(), ca, cb)
 	if err != nil {
 		require.ErrorContains(t, err, "the intersect result is empty")
