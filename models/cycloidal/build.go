@@ -143,7 +143,7 @@ func placeInContainers(doc *decad.Document, d Drive) error {
 			return fmt.Errorf("cycloidal: container %q: %w", g.name, err)
 		}
 		for _, b := range g.bodies {
-			if err := doc.MoveBody(b, c); err != nil {
+			if err := c.AddBody(b); err != nil {
 				return fmt.Errorf("cycloidal: move body into %q: %w", g.name, err)
 			}
 		}

@@ -89,7 +89,7 @@ gear's back face, so the gears need no spacer.
 ## 4. Bevel pair, spur pair and crank
 
 `bevelgear.BuildPair` with `Module 2`, `Teeth 28`, `MateTeeth 14`, `SpiralAngle 0`, `EnableBore` false and `Placement`
-frame origin `(21, 0, 170)`, U = -Y, V = +Z. `doc.MoveBody` then moves both bodies to the document's root container,
+frame origin `(21, 0, 170)`, U = -Y, V = +Z. `doc.Root().AddBody` then moves both bodies to the document's root container,
 because Decad cuts only within one container, and each gets its spline bore by `b.splineCut`.
 The pair's driving body is `driving-gear` and its pinion body is `pinion`. The pair has no `Backlash` parameter and its
 mesh is not measured (see the instructions' Open non-compliance: the bevel mesh).

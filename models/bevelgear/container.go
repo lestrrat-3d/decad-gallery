@@ -62,7 +62,7 @@ func moveBody(doc *decad.Document, body *decad.Body, c *decad.Container) (*decad
 	if c == nil {
 		return body, nil
 	}
-	if err := doc.MoveBody(body, c); err != nil {
+	if err := c.AddBody(body); err != nil {
 		return nil, fmt.Errorf("place body in container %q: %w", c.Name(), err)
 	}
 	return body, nil

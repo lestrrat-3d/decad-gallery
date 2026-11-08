@@ -28,7 +28,7 @@ func moveBodies(doc *decad.Document, box Gearbox) error {
 			return fmt.Errorf("container %q: %w", name, err)
 		}
 		for _, b := range bodies {
-			if err := doc.MoveBody(b, c); err != nil {
+			if err := c.AddBody(b); err != nil {
 				return fmt.Errorf("place body in container %q: %w", name, err)
 			}
 		}

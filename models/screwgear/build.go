@@ -77,7 +77,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Mechanism, erro
 		if err != nil {
 			return nil, fmt.Errorf("screwgear: %w", err)
 		}
-		if err := doc.MoveBody(placed, part.in); err != nil {
+		if err := part.in.AddBody(placed); err != nil {
 			return nil, fmt.Errorf("screwgear: place body in container %q: %w", part.in.Name(), err)
 		}
 		*part.body = placed
