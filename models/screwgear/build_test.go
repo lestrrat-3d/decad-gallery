@@ -28,7 +28,26 @@ func build(t *testing.T, p screwgear.Params) (*screwgear.Mechanism, *decad.Docum
 	for name, b := range map[string]*decad.Body{"gear A": m.GearA, "gear B": m.GearB, "cage": m.Cage} {
 		require.True(t, b.IsSolid(), name)
 	}
+	requireContainers(t, doc, m)
 	return m, doc
+}
+
+// requireContainers checks that the gears sit in "Gears" and the sleeve in "Sleeve", and that
+// no body is left in the root.
+func requireContainers(t *testing.T, doc *decad.Document, m *screwgear.Mechanism) {
+	t.Helper()
+	var names []string
+	for _, c := range doc.Root().Children() {
+		names = append(names, c.Name())
+	}
+	require.ElementsMatch(t, []string{"Gears", "Sleeve"}, names)
+	gears, err := doc.Root().ChildNamed("Gears")
+	require.NoError(t, err)
+	sleeve, err := doc.Root().ChildNamed("Sleeve")
+	require.NoError(t, err)
+	require.ElementsMatch(t, []*decad.Body{m.GearA, m.GearB}, gears.Bodies())
+	require.Equal(t, []*decad.Body{m.Cage}, sleeve.Bodies())
+	require.NoError(t, doc.VerifyContainers().Err())
 }
 
 // ribbonVolume integrates, without decad, the section area of a ribbon over its length.
