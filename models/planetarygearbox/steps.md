@@ -34,13 +34,13 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
-2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (8, 0.25 mm larger radially than the 7.5 mm shaft)
+2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5, 0.25 mm larger radially than the 4.5 mm shaft)
    when `Sf = 0`, otherwise no bore. With a keyway, extrude the key tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
    `decad.Cut` it from the planet. Then chamfer the pocket's entrance (see **Seat chamfer** below). Check: one solid.
-4. **Bearing.** `ballbearing.Build` with `ballbearing.Params608ZZ()`, nil placement: the annulus from z=0 to `Wb`.
+4. **Bearing.** `ballbearing.Build` with `ballbearing.Params605ZZ()`, nil placement: the annulus from z=0 to `Wb`.
 5. **Carrier**, built once; every stage uses the same one.
    - Plate: one sketch on z=0, extruded `Tc`. The outline is the convex hull of the `n` pin bosses: for pin `k`
      at `a (cos φₖ, sin φₖ)` and boss radius `Rb`, edge `k` runs from pin `k` to pin `k+1` with outward normal at
@@ -173,7 +173,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   x is `a + boss/2`, its top is the plate's top and its bottom is the pins' ends; the output shaft starts at the
   carrier's lower face and ends `Lo` beyond the rear boss.
 - Bearings: for each planet, points on three radii, three heights and three angles inside the bearing's
-  annulus are inside the bearing body and outside the planet; the bearing is 22 mm across, `Wb` wide and
+  annulus are inside the bearing body and outside the planet; the bearing is 14 mm across, `Wb` wide and
   its top is at `T`; the planet's volume is the plain gear's with the lip bore minus
   `π/4 (pocket² - lip²) Wb`, within the summed volume bounds plus 1.
 - Carrier: with `LocatePoint`, at mid-plate height the plate is inside at radius 12 and 15 and 60 degrees (between

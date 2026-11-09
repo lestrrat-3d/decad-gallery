@@ -51,7 +51,7 @@ type Params struct {
 	EdgeChamfer float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
-	// BearingClearance is the radial clearance between a planet's 608ZZ bearing and its pocket.
+	// BearingClearance is the radial clearance between a planet's 605ZZ bearing and its pocket.
 	BearingClearance float64
 	// CarrierWall is the width of carrier material around the shaft and around each planet pin.
 	CarrierWall float64
@@ -113,7 +113,7 @@ func (p Params) Ratio() float64 {
 }
 
 // planetBearing is the purchased bearing each planet turns on.
-func planetBearing() ballbearing.Params { return ballbearing.Params608ZZ() }
+func planetBearing() ballbearing.Params { return ballbearing.Params605ZZ() }
 
 const (
 	gearRootModuleClearanceFactor = 0.25
@@ -153,7 +153,7 @@ const (
 	armMargin = 1
 	// collarMargin is how far a shaft collar reaches past the shaft on each side. A collar is the printed
 	// stand-in for a washer: it spans the gap between a bearing and the part that would rub on it, and it
-	// must stay narrower than the bearing's inner race (a 608 inner race is about 11 mm across).
+	// must stay narrower than the bearing's inner race (a 605 inner race is about 8 mm across).
 	collarMargin = 1.2
 	// coverSpokes is the number of spokes joining a cover's rim to its bearing hub.
 	coverSpokes = 3

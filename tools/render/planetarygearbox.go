@@ -284,7 +284,7 @@ const (
 )
 
 // planetaryParts lists the unique parts of a gearbox: the ring, one cover (the front cover is the rear one
-// turned over), the sun, one planet, one 608ZZ bearing (the planets and the covers use the same part), the
+// turned over), the sun, one planet, one 605ZZ bearing (the planets and the covers use the same part), the
 // carrier, and the three shafts: the input shaft, a link shaft and the output shaft.
 var planetaryParts = []planetaryPart{
 	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, frontView},

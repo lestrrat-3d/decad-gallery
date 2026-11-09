@@ -18,7 +18,7 @@ import (
 type Stage struct {
 	Sun     *decad.Body
 	Planets []*decad.Body
-	// Bearings holds one 608ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
+	// Bearings holds one 605ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
 	// bearing; the sun and the shafts turn with the carrier that drives them and need none.
 	Bearings []*decad.Body
 	// Carrier is the triangular plate with the planet pins and their collars in one solid, and a D hole through
@@ -32,7 +32,7 @@ type Stage struct {
 
 // Gearbox holds the bodies of a built gearbox.
 type Gearbox struct {
-	// Ring is the fixed internal gear. FrontCover and RearCover close its two ends, each with a 608ZZ bearing in
+	// Ring is the fixed internal gear. FrontCover and RearCover close its two ends, each with a 605ZZ bearing in
 	// a boss; the input shaft turns in the front one and the last carrier's shaft in the rear one.
 	Ring                      *decad.Body
 	FrontCover, RearCover     *decad.Body
