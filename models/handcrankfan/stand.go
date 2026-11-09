@@ -241,9 +241,18 @@ func (b *builder) gearbox() {
 		if b.err != nil {
 			return nil
 		}
-		var copies [3]*decad.Body
+		shared, err := decad.Copy(b.ctx, whole)
+		b.fail("copy the housing", err)
+		if b.err != nil {
+			return nil
+		}
+		shared = b.slab(shared, 1, -100, fanWallY+splitGap)
+		if b.err != nil {
+			return nil
+		}
+		var copies [2]*decad.Body
 		for i := range copies {
-			c, err := decad.Copy(b.ctx, whole)
+			c, err := decad.Copy(b.ctx, shared)
 			b.fail("copy the housing", err)
 			copies[i] = c
 		}
@@ -251,9 +260,9 @@ func (b *builder) gearbox() {
 			return nil
 		}
 		// The fan-side wall keeps Y <= its seam. The others keep Y >= the seam, and each keeps its range along X.
-		base = b.slab(b.slab(b.slab(copies[0], 1, -100, fanWallY+splitGap), 0, -100, postFace+splitGap), 0, crankWallX-splitGap, 100)
-		post = b.slab(b.slab(copies[1], 1, -100, fanWallY+splitGap), 0, postFace-splitGap, 100)
-		crank = b.slab(b.slab(copies[2], 1, -100, fanWallY+splitGap), 0, -100, crankWallX+splitGap)
+		base = b.slab(b.slab(shared, 0, -100, postFace+splitGap), 0, crankWallX-splitGap, 100)
+		post = b.slab(copies[0], 0, postFace-splitGap, 100)
+		crank = b.slab(copies[1], 0, -100, crankWallX+splitGap)
 		return b.slab(whole, 1, fanWallY-splitGap, 100)
 	})
 	b.part("gearbox-post", "housing", "fixed", func() *decad.Body { return post })
