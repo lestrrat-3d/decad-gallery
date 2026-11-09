@@ -4,7 +4,7 @@
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by
 an open-frame cover. A small sun gear turns three planet gears that roll around it inside the ring. Each planet turns
-on a 605ZZ bearing with 0.25 mm radial clearance in its pocket and rides on a pin of the carrier, a solid triangular plate that
+on a 605ZZ bearing with 0.1 mm radial clearance in its pocket and rides on a pin of the carrier, a solid triangular plate that
 turns slowly. The sun is the input and the carrier is the output.
 
 The default gearbox has a 13-tooth sun, three 29-tooth planets and a 71-tooth ring. One stage slows the output to
@@ -118,7 +118,7 @@ roof into the nut.
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
 shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
-purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 4.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.25 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
+purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 4.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.1 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
 part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on

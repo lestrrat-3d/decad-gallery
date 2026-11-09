@@ -95,7 +95,7 @@ func DefaultParams() Params {
 		SeatChamfer:       0.5,
 		EdgeChamfer:       MinEdgeChamfer,
 		InputShaftLength:  12,
-		BearingClearance:  0.25,
+		BearingClearance:  seatClearance,
 		CarrierWall:       3,
 		RingWall:          7,
 		Backlash:          0.15,
@@ -133,6 +133,8 @@ func gearRootDepth(module float64) float64 { return module + gearRootClearance(m
 const (
 	lipWidth     = 2
 	lipThickness = 1
+	// seatClearance is the radial clearance between a purchased bearing and the bore that holds it fixed.
+	seatClearance = 0.1
 	// fitClearance is the smallest surface gap used by adjustable gearbox fits.
 	fitClearance = 0.25
 	// planetBearingLift raises each planet bearing above its pocket floor.
@@ -238,7 +240,7 @@ func (p Params) Validate() error {
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"edge chamfer", p.EdgeChamfer, p.EdgeChamfer >= MinEdgeChamfer && p.EdgeChamfer <= 1},
 		{"key width", p.KeyWidth, p.KeyWidth > 0 && p.KeyWidth <= planetBearing().BoreDiameter/2},
-		{"bearing clearance", p.BearingClearance, p.BearingClearance >= fitClearance},
+		{"bearing clearance", p.BearingClearance, p.BearingClearance >= seatClearance},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
 		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
