@@ -4,7 +4,7 @@
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by
 an open-frame cover. A small sun gear turns three planet gears that roll around it inside the ring. Each planet turns
-on a 608ZZ bearing with 0.25 mm radial clearance in its pocket and rides on a pin of the carrier, a solid triangular plate that
+on a 605ZZ bearing with 0.25 mm radial clearance in its pocket and rides on a pin of the carrier, a solid triangular plate that
 turns slowly. The sun is the input and the carrier is the output.
 
 The default gearbox has a 13-tooth sun, three 29-tooth planets and a 71-tooth ring. One stage slows the output to
@@ -41,18 +41,18 @@ the input. It moves the real tessellated bodies rigidly; it is not a force simul
 
 ## How the input and the output connect
 
-Every shaft is a separate part, 7.5 mm across, with 0.25 mm radial clearance in the 8 mm bore of a 608ZZ. It is a full round cylinder where a bearing sits and
+Every shaft is a separate part, 4.5 mm across, with 0.25 mm radial clearance in the 5 mm bore of a 605ZZ. It is a full round cylinder where a bearing sits and
 has three keyway grooves, 1.1 mm deep and 2 mm wide and 120° apart, where a sun or a carrier sits, like the hand crank fan's shafts. The sun's bore and the carrier's
 hole each have a tooth in each groove, so a shaft turns them without slipping. The input shaft and the output shaft each
 have a round collar, 9.9 mm across, next to their bearing. It stands in for the washer a metal build would use, so
 the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces. Each link shaft has a collar too, in the 1 mm gap between its carrier and
 the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of play either side.
 
-- **Input.** The input shaft enters through the front cover's 608ZZ and fills the first sun's bore. It sticks out
+- **Input.** The input shaft enters through the front cover's 605ZZ and fills the first sun's bore. It sticks out
   12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
 - **Between stages.** A link shaft runs through the first carrier's hole and fills the second sun's bore, so the
   second sun turns with the first carrier.
-- **Output.** The output shaft runs through the last carrier's hole and the rear cover's 608ZZ and sticks out 12 mm
+- **Output.** The output shaft runs through the last carrier's hole and the rear cover's 605ZZ and sticks out 12 mm
   beyond its boss.
 
 Each pin of the carrier has a collar that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate.
@@ -118,7 +118,7 @@ roof into the nut.
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
 shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
-purchased 608ZZ, drawn as its 8 × 22 × 7 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 7.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.25 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
+purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 4.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.25 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
 part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on
@@ -130,7 +130,7 @@ end or lying down.
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover (front and rear) |
 | <img src="images/parts/sun.png" alt="Sun gear" width="240"> | Sun gear |
 | <img src="images/parts/planet.png" alt="Planet gear" width="240"> | Planet gear |
-| <img src="images/parts/bearing.png" alt="608ZZ bearing" width="240"> | Bearing (608ZZ) |
+| <img src="images/parts/bearing.png" alt="605ZZ bearing" width="240"> | Bearing (605ZZ) |
 | <img src="images/parts/input-shaft.png" alt="Input shaft" width="240"> | Input shaft |
 | <img src="images/parts/carrier.png" alt="Carrier" width="240"> | Carrier |
 | <img src="images/parts/link-shaft.png" alt="Link shaft" width="240"> | Link shaft |
