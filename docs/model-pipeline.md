@@ -96,7 +96,8 @@ Choose the clearance for each distinct part fit by its intended feel:
 | Regular | Some leeway, but not loose | 0.35 mm |
 | Loose | Loose fit | 0.5 mm |
 
-Do not use zero-clearance or overlapping fits between separate parts. Measure
+Do not use zero-clearance or overlapping fits between separate parts, except a
+fixed bearing seat (below). Measure
 the placed parts in the assembled geometry and require the proven lower bound
 to meet the selected minimum. Include geometry and measurement uncertainty in
 that bound. Check every parameter case that changes the fit.
@@ -107,10 +108,10 @@ mates with a fixed nominal part. When two fixed nominal parts mate, record the
 interface as a nominal exception; do not alter either part or claim that it
 meets a clearance class.
 
-A bore or pocket that holds a purchased bearing fixed takes 0.1 mm of radial
-clearance, not the 0.2 mm Tight minimum. The bearing is a nominal part and the
-seat grips its outer race. A shaft or pin that turns in a bearing bore keeps its
-fit class.
+A bore or pocket that holds a purchased bearing fixed takes no clearance: its
+diameter equals the bearing's outside diameter, and the 0.2 mm Tight minimum does
+not apply. The bearing is a nominal part and the seat grips its outer race. A
+shaft or pin that turns in a bearing bore keeps its fit class.
 
 Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal**,
 or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to
