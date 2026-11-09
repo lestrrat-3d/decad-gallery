@@ -175,19 +175,6 @@ func requireSectionClearance(t *testing.T, a, b *decad.Body, z, minimum float64)
 		clearance.Distance.Bound.Base(), clearance.A, clearance.B)
 }
 
-// requireSectionSeat checks that a bearing sits in its seat with no clearance: the two outlines touch, so the gap
-// is zero within the measurement's uncertainty. The outlines are meshes, so the touching circles may overlap by
-// the chord error, which is why Overlaps is not required to be false here.
-func requireSectionSeat(t *testing.T, a, b *decad.Body, z float64) {
-	t.Helper()
-	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-	require.NoError(t, err)
-	clearance, err := sectionOutline(t, a, plane).Clearance(sectionOutline(t, b, plane))
-	require.NoError(t, err)
-	gap, bound := clearance.Distance.Value.Base(), clearance.Distance.Bound.Base()
-	require.LessOrEqual(t, gap, bound, "the seat leaves a gap of %v ± %v mm", gap, bound)
-}
-
 // sectionLocate classifies point against the outline of body in the plane through the point, by counting the
 // outline loops that surround it.
 func sectionLocate(t *testing.T, body *decad.Body, point r3.Vec) decad.PointLocation {
@@ -261,11 +248,14 @@ func TestPartClearances(t *testing.T) {
 	bearingBounds := bounds(t, planetBearing)
 	bearingMid := (bearingBounds.Min.Z + bearingBounds.Max.Z) / 2
 	const minimum = 0.2
+	// A bearing seat is designed at 0.05 mm radial clearance (docs/model-pipeline.md "Part clearances"). The
+	// section measurement's uncertainty reaches 0.024 mm on the meshed covers, so the proven bound is about 0.026 mm.
+	const seatMinimum = 0.02
 
 	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, minimum)
 	requireSectionClearance(t, stage.Carrier, stage.Shaft,
 		p.GearThickness+p.StageGap+p.CarrierThickness/2, minimum)
-	requireSectionSeat(t, planetBearing, stage.Planets[0], bearingMid)
+	requireSectionClearance(t, planetBearing, stage.Planets[0], bearingMid, seatMinimum)
 	requireSectionClearance(t, planetBearing, stage.Carrier, bearingMid, minimum)
 	frontFace := -p.StageGap - p.CoverThickness
 	requireSectionClearance(t, box.Bolts[0], box.FrontCover,
@@ -277,11 +267,12 @@ func TestPartClearances(t *testing.T) {
 	frontBearing := bounds(t, box.FrontBearing)
 	requireSectionClearance(t, box.InputShaft, box.FrontBearing,
 		(frontBearing.Min.Z+frontBearing.Max.Z)/2, minimum)
-	requireSectionSeat(t, box.FrontBearing, box.FrontCover, (frontBearing.Min.Z+frontBearing.Max.Z)/2)
+	requireSectionClearance(t, box.FrontBearing, box.FrontCover,
+		(frontBearing.Min.Z+frontBearing.Max.Z)/2, seatMinimum)
 	rearBearing := bounds(t, box.RearBearing)
 	rearBearingMid := (rearBearing.Min.Z + rearBearing.Max.Z) / 2
 	requireSectionClearance(t, stage.Shaft, box.RearBearing, rearBearingMid, minimum)
-	requireSectionSeat(t, box.RearBearing, box.RearCover, rearBearingMid)
+	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, seatMinimum)
 
 	branchParams := p
 	branchParams.KeyDepth = 0

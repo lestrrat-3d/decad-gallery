@@ -133,8 +133,8 @@ func gearRootDepth(module float64) float64 { return module + gearRootClearance(m
 const (
 	lipWidth     = 2
 	lipThickness = 1
-	// seatClearance is the radial clearance between a purchased bearing and the bore that holds it fixed: none.
-	seatClearance = 0
+	// seatClearance is the radial clearance between a purchased bearing and the bore that holds it fixed.
+	seatClearance = 0.05
 	// fitClearance is the smallest surface gap used by adjustable gearbox fits.
 	fitClearance = 0.25
 	// planetBearingLift raises each planet bearing above its pocket floor.
