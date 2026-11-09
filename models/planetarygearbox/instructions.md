@@ -71,7 +71,7 @@ origin, so the axis is world +Z.
 | `Sf` | `KeyDepth` | float64 | 1.1 | Depth of the three keyway grooves on each shaft; zero leaves round shafts and round bores |
 | `Sw` | `KeyWidth` | float64 | 2 | Width of each keyway groove |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
-| `cb` | `BearingClearance` | float64 | 0.25 | Radial clearance between a 605ZZ bearing and its custom pocket |
+| `cb` | `BearingClearance` | float64 | 0.1 | Radial clearance between a 605ZZ bearing and its custom pocket |
 | `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
 | `Ec` | `EdgeChamfer` | float64 | 0.5 | Setback of the 45° chamfer on the edges of the large flat faces of the ring, the covers and the carriers; at least 0.5 |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
@@ -131,7 +131,7 @@ the same gap normal to their circular and key faces.
 ## Input checks and limits
 
 - Reject `j < 0` or `j > m/2`.
-- Reject `m <= 0`, `T <= 0`, `Tc <= 0`, `g < 0.75`, `Tv <= 0`, `db' < 2.4`, `Li <= 0`, `cb < 0.25`, `wc <= 0`,
+- Reject `m <= 0`, `T <= 0`, `Tc <= 0`, `g < 0.75`, `Tv <= 0`, `db' < 2.4`, `Li <= 0`, `cb < 0.1`, `wc <= 0`,
   `w <= 0`, `Lo <= 0`, `Samples < 3` or a nonfinite length.
 - Reject `α` outside `(0, π/2)`, `n < 2` and `K < 1`.
 - Keep the placed tip-to-root clearance in every mesh at `max(0.25 m, 0.5 mm)` or greater.
@@ -217,7 +217,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
   from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
-- Bearing: a 605ZZ envelope has 0.25 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
+- Bearing: a 605ZZ envelope has 0.1 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
   sun's top. It has 0.25 mm radial clearance in the front bearing and sun bores. Its keyway groove runs
   from the sun's lower face to the top.
@@ -314,7 +314,7 @@ and the bearings, bolts and nuts keep their nominal dimensions.
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
 | Shaft keys | Default | The input shaft has three keyway grooves, at 0°, 120° and 240°, where the first sun sits and the sun's bore has the matching teeth: in a groove the shaft is absent and the sun present, at 60°, 180° and 300° and elsewhere in the bore the shaft is present and the sun absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the three grooves'; in a two-stage gearbox the link shaft fills the second sun's keyed bore the same way |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
-| Bearings | Default | Each pocket is empty where its bearing sits; the 14 mm × 5 mm bearing clears the pocket by 0.25 mm radially and is lifted by 0.25 mm axially; the planet weighs the plain gear with the lip bore minus the pocket's ring |
+| Bearings | Default | Each pocket is empty where its bearing sits; the 14 mm × 5 mm bearing clears the pocket by 0.1 mm radially and is lifted by 0.25 mm axially; the planet weighs the plain gear with the lip bore minus the pocket's ring |
 | Seat chamfer | Default and `Sc = 0` | A planet and a cover each weigh less than the `Sc = 0` ones by a ring of triangular section, `Sc²/2` times the pocket's circumference, within the volume bounds plus 1; every body stays one solid |
 | Edge finishing | Default | Per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing): every flat face of at least 400 mm² on the ring, the covers and the carriers has a 45° bevel of `Ec` along its whole outer boundary; the covers' windows and the cover lip's inner edge are bevelled too, and the ring's rims sit `Ec` inside its outer radius. The ring's tooth edges, the shaft holes and the bolt holes stay sharp (see Edge finishing) |
 | Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with teeth where the grooves go; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |

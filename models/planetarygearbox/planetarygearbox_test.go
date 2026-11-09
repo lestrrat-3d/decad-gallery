@@ -248,11 +248,14 @@ func TestPartClearances(t *testing.T) {
 	bearingBounds := bounds(t, planetBearing)
 	bearingMid := (bearingBounds.Min.Z + bearingBounds.Max.Z) / 2
 	const minimum = 0.2
+	// A bearing seat is designed at 0.1 mm radial clearance (docs/model-pipeline.md "Part clearances"). The
+	// section measurement's uncertainty reaches 0.024 mm on the meshed covers, so the proven bound is about 0.075 mm.
+	const seatMinimum = 0.07
 
 	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, minimum)
 	requireSectionClearance(t, stage.Carrier, stage.Shaft,
 		p.GearThickness+p.StageGap+p.CarrierThickness/2, minimum)
-	requireSectionClearance(t, planetBearing, stage.Planets[0], bearingMid, minimum)
+	requireSectionClearance(t, planetBearing, stage.Planets[0], bearingMid, seatMinimum)
 	requireSectionClearance(t, planetBearing, stage.Carrier, bearingMid, minimum)
 	frontFace := -p.StageGap - p.CoverThickness
 	requireSectionClearance(t, box.Bolts[0], box.FrontCover,
@@ -265,11 +268,11 @@ func TestPartClearances(t *testing.T) {
 	requireSectionClearance(t, box.InputShaft, box.FrontBearing,
 		(frontBearing.Min.Z+frontBearing.Max.Z)/2, minimum)
 	requireSectionClearance(t, box.FrontBearing, box.FrontCover,
-		(frontBearing.Min.Z+frontBearing.Max.Z)/2, minimum)
+		(frontBearing.Min.Z+frontBearing.Max.Z)/2, seatMinimum)
 	rearBearing := bounds(t, box.RearBearing)
 	rearBearingMid := (rearBearing.Min.Z + rearBearing.Max.Z) / 2
 	requireSectionClearance(t, stage.Shaft, box.RearBearing, rearBearingMid, minimum)
-	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, minimum)
+	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, seatMinimum)
 
 	branchParams := p
 	branchParams.KeyDepth = 0

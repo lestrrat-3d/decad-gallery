@@ -107,6 +107,11 @@ mates with a fixed nominal part. When two fixed nominal parts mate, record the
 interface as a nominal exception; do not alter either part or claim that it
 meets a clearance class.
 
+A bore or pocket that holds a purchased bearing fixed takes 0.1 mm of radial
+clearance, not the 0.2 mm Tight minimum. The bearing is a nominal part and the
+seat grips its outer race. A shaft or pin that turns in a bearing bore keeps its
+fit class.
+
 Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal**,
 or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to
 provide clearance. Use **Nominal** when the model preserves fixed standard or
