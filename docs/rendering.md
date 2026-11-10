@@ -171,12 +171,30 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair and the hand-crank fan one after another. It places each at its own size on a
+drive, the bevel gear pair, the hand-crank fan and the hand-crank siren one after another. It places each at its own size on a
 1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right), and keeps only the pixels that differ from the background
-where the tiles overlap. Building all eight models takes about six minutes plus the wheel build:
+where the tiles overlap. Building all nine models takes about six minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+```
+
+The `handcranksiren/hero` preset builds the default siren once and renders it from the front, left and above (camera at (-250, -650, 330)), with each
+part coloured by its group. Operator forward is -X and the crank is on the right (+Y). The `handcranksiren/view-rear`,
+`view-side` and `view-top` presets render the whole siren from behind the operator, from the right and from above, with
+forward at the top (1200 × 675), and `TestHandCrankSirenView` renders one of them. The `handcranksiren/cutaway` preset
+clips the drum, stator, collector and horn by the plane Z = 84 with the top half removed, so the rotor, vanes, ports,
+collector cavity and horn bore show. The `handcranksiren/exploded` preset pulls the parts apart by fixed offsets, seen
+from behind the operator, on the left and above (camera at (650, -450, 330)): the collector and its nuts and the throat bolts by -135 in Y, the horn and the throat
+nuts by -135 in Y and -60 in X, the stator -95, the rotor -65, the grip and its bolts -45, the drum and its bolts and
+the collector bolts -35, the front bearings +20, the plane-2 gears +40, the plane-1 gears +60, the frame and the gearbox nuts +85, the rear bearings +110,
+the rear plate and its bolts +135, the crank arm +165, the crank handle +195 and the crank pin +235 (the shafts lift
+160 in Z and the front bolts move -25 in Y). The `readme` shot builds the siren once and writes `hero.png`,
+`index.png` (480 × 270), `exploded.png`, `cutaway.png`, `view-rear.png`, `view-side.png`, `view-top.png` and one
+480 × 270 image per unique part (26) in `parts/`:
+
+```sh
+go -C tools/render run . -model handcranksiren -shot readme -out ../../models/handcranksiren/images
 ```
 
 The `handcrankfan/hero` preset builds the default fan once and renders it from the operator's side, with each part

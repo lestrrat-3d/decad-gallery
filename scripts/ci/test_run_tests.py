@@ -28,6 +28,11 @@ class FanCasesTest(unittest.TestCase):
         self.assertEqual(set(run_tests.FAN_CASES), {"default", "variants"})
 
 
+class SirenCasesTest(unittest.TestCase):
+    def test_siren_cases(self):
+        self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
+
+
 class FinishedTestsTest(unittest.TestCase):
     def test_summary(self):
         lines = [
