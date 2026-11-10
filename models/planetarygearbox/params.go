@@ -143,6 +143,11 @@ const (
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
 	// face off the plane where the flat ends, and gives the printed parts a little play.
 	collarClearance = 0.5
+	// pegClearance is the radial and axial gap between a carrier pin's peg and its socket in the carrier plate. It is
+	// a press fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the pin stays in the plate.
+	pegClearance = 0.05
+	// pegOverlap is how far a pin's rod and peg reach into its collar, so the unions cross faces.
+	pegOverlap = 0.05
 	// boltRimMargin is the material kept between a bolt hole and the edge of the ring or cover rim.
 	boltRimMargin = 1.5
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin
@@ -226,7 +231,7 @@ func (p Params) Validate() error {
 	}{
 		{"module", p.Module, p.Module > 0},
 		{"gear thickness", p.GearThickness, p.GearThickness > 0},
-		{"carrier thickness", p.CarrierThickness, p.CarrierThickness > 0},
+		{"carrier thickness", p.CarrierThickness, p.CarrierThickness >= 2},
 		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinCollarClearance+pinCollarThickness},
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},

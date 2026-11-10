@@ -51,23 +51,27 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      closer to vertical, otherwise y, so the coordinate always changes as the point moves round the arc (the
      shared `DimensionArcEnd` picks by position and can pick the free one). The plate has no hole yet. Require one
      valid profile with `2n` outer curves.
-   - Pin: circle of diameter `dp = bearing_bore_diameter - 0.5` centered at `(a, 0)` on the plane `z = -(T + g)`, extruded `T + g + Tc/2`.
-   - Pin collar, when `g >= 0.75`: circle of diameter `shaft_collar_diameter` at `(a, 0)` on the plane
-     `z = -g + 0.5`, extruded `g - 0.5 + Tc/2`. This leaves 0.25 mm between the bearing and collar.
-     `decad.Union` the pin and its collar once.
-   - `decad.PatternCopies` the joined pin with a `CircularPattern` about the origin and +Z, count `n`, then
-     `decad.Union` the plate with the pin and its copies. A union of every pin and collar separately is
-     refused by decad (the chain is too deep), and so is a union of separate hub and arm bodies.
+   - Socket tool: one D section of radius `dp/2 + 0.05` centered at `(a, 0)` with its flat `Sf` inside the rim, on
+     the plane `z = -1`, extruded `Tc/2 + 1`. `decad.PatternCopies` it with a `CircularPattern` about the origin and
+     +Z, count `n`, `decad.Union` the copies and `decad.Cut` the result from the plate. With `Sf = 0` the section is
+     round.
    - Shaft hole: `decad.Cut` the D tool, extruded from `z = -1` up `Tc + 2`, from the carrier. The plate keeps a
      tooth its full thickness where the shaft has its flat.
    - Check: one solid, nothing above the plate.
+   - Pin, a separate body built about its own axis in the carrier frame, with `dp = bearing_bore_diameter - 0.5` and
+     the peg clearance `0.05`: a rod of diameter `dp` on the axis from `z = -(T + g)` up to `collarBottom + 0.05`,
+     a collar of diameter `shaft_collar_diameter` from `collarBottom = -g + 0.5` to `collarTop = -0.05`, and a D
+     peg of radius `dp/2` with its flat `Sf` inside the rim from `collarTop - 0.05` up to `Tc/2 - 0.05`, joined
+     with one `decad.Union`. This leaves 0.25 mm between the bearing and the collar. Pose pin `i` of stage `k` at
+     `(a cos φᵢ, a sin φᵢ, kP + T + g)` turned by `φᵢ`, so its flat faces the same way as its socket. Check: one
+     solid.
 6. **Shafts**, separate bodies. `buildShaft(bottom, top, collarBottom, collarTop, flatBottom, flatTop)`: a round rod
    from `bottom` to `top`, when `collarTop > collarBottom` a round collar of diameter `ds + 2 × collar margin`
    from `collarBottom` to `collarTop`, strictly inside the rod's length, joined to the rod with one union, and
    then the flat's box cut out between `flatBottom` and `flatTop`. The box is `ds + 2` wide about the X axis and
    runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a rectangle sketch with its corner dimensioned
-   from the origin, its width and its height. `decad.PatternCopies` with a `CircularPattern` about +Z, count 3,
-   and one `decad.Cut` removes it. Collars stop `0.5` short of the part they face, so no collar face
+   from the origin, its width and its height.
+   `decad.Cut` removes it. Collars stop `0.5` short of the part they face, so no collar face
    shares a plane with the flat's end.
    - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, collar from `Tc + 0.25` to `Tc + g - 0.25` and flats
      from `-1` to `Tc` and from `Tc + g` to `top + 1`, so the collar is whole. When `g <= 0.5` it has no collar and
@@ -167,7 +171,7 @@ bearings, a carrier and a shaft.
 The tests in `planetarygearbox_test.go` implement the acceptance cases:
 
 - Default: bodies, solidity, volumes, ring and sun and planet and carrier bounds. The carrier's largest
-  x is `a + boss/2`, its top is the plate's top and its bottom is the pins' ends; the output shaft starts at the
+  x is `a + boss/2`, its top is the plate's top and its bottom is its lower face; the output shaft starts at the
   carrier's lower face and ends `Lo` beyond the rear boss.
 - Bearings: for each planet, points on three radii, three heights and three angles inside the bearing's
   annulus are inside the bearing body and outside the planet; the bearing is 14 mm across, `Wb` wide and
@@ -175,7 +179,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   `π/4 (pocket² - lip²) Wb`, within the summed volume bounds plus 1.
 - Carrier: with `LocatePoint`, at mid-plate height the plate is inside at radius 12 and 15 and 60 degrees (between
   two pins) and outside at radius 20 on that line; a pin boss is inside and the shaft hole open at the axis and at
-  `(-2.5, 0)`; a pin is inside below the plate and the point 6 mm beside it outside; the plate is solid at
+  `(-2.5, 0)`; a pin socket is empty and the plate beside it is solid at a quarter of the plate's height; the plate is solid at
   `(6, 0)`. Nothing stands above the plate.
 - Mesh: for every planet, the outline vertices of the planet taken at the mid-height of the sun, and of the ring,
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are

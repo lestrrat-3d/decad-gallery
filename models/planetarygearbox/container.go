@@ -14,6 +14,7 @@ const (
 	PlanetGearsContainerName    = "Planet Gears"
 	PlanetBearingsContainerName = "Planet Bearings"
 	CarriersContainerName       = "Carriers"
+	CarrierPinsContainerName    = "Carrier Pins"
 	ShaftsContainerName         = "Shafts"
 	BoltsContainerName          = "Bolts"
 	NutsContainerName           = "Nuts"
@@ -57,6 +58,9 @@ func moveBodies(doc *decad.Document, box Gearbox) error {
 			return err
 		}
 		if err := move(PlanetBearingsContainerName, s.Bearings...); err != nil {
+			return err
+		}
+		if err := move(CarrierPinsContainerName, s.Pins...); err != nil {
 			return err
 		}
 		if err := move(CarriersContainerName, s.Carrier); err != nil {

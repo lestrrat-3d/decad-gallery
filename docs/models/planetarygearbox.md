@@ -42,9 +42,8 @@ start on the frame's plane.
 
 The sun and planets come from `spurgear.Build`. A planet is built with the lip bore, then a bearing pocket is cut from
 its upper face. Each planet's bearing is `ballbearing.Build` with `Params605ZZ()`, kept as its own body in
-`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once, and the keyed shaft hole is cut last.
-One pin joined to its collar is patterned and unioned to the plate in a single step, because decad refuses a union
-of every pin and collar separately. `buildShaft` joins a round rod and an optional collar, then cuts the flat. A cover is one extruded frame (a rim
+`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once. A pattern of one D socket tool is cut from it, then the shaft hole. Each pin is its own body, `buildPin`: a rod, a collar and a D peg joined in one union, built once and posed for every planet in `Stage.Pins`.
+`buildShaft` joins a round rod and an optional collar, then cuts the flat. A cover is one extruded frame (a rim
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section. A cover then has four round pockets cut for the M2 bolt heads,
 and the ring blank has eight closed hex cavities cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built

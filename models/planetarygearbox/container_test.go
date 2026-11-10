@@ -24,6 +24,7 @@ func requireContainers(t *testing.T, doc *decad.Document, box planetarygearbox.G
 		add(planetarygearbox.SunGearsContainerName, s.Sun)
 		add(planetarygearbox.PlanetGearsContainerName, s.Planets...)
 		add(planetarygearbox.PlanetBearingsContainerName, s.Bearings...)
+		add(planetarygearbox.CarrierPinsContainerName, s.Pins...)
 		add(planetarygearbox.CarriersContainerName, s.Carrier)
 		add(planetarygearbox.ShaftsContainerName, s.Shaft)
 	}
@@ -37,7 +38,7 @@ func requireContainers(t *testing.T, doc *decad.Document, box planetarygearbox.G
 		planetarygearbox.BoltsContainerName, planetarygearbox.NutsContainerName,
 		planetarygearbox.ShaftsContainerName, planetarygearbox.SunGearsContainerName,
 		planetarygearbox.PlanetGearsContainerName, planetarygearbox.PlanetBearingsContainerName,
-		planetarygearbox.CarriersContainerName,
+		planetarygearbox.CarriersContainerName, planetarygearbox.CarrierPinsContainerName,
 	}, names)
 
 	total := 0

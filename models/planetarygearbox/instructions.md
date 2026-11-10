@@ -45,7 +45,7 @@ motor.
 The input shaft and the output shaft each carry a collar, a round bulge wider than the shaft, between its
 bearing's inner race and the part beside it: the first sun for the input shaft and the last carrier for the
 output shaft. A link shaft carries one too, in the gap between a carrier's upper face and the next sun. A collar is the printed stand-in for a washer. It keeps the turning part clear of the
-bearing and the cover. Each planet pin carries a collar of the same size under the carrier plate, so the planet's
+bearing and the cover. Each carrier pin carries a collar of the same size under the carrier plate, so the planet's
 bearing is clear of the plate too.
 
 Lengths are millimeters and angles are radians. The gearbox is anchored by one `r3.Frame`:
@@ -143,6 +143,7 @@ the same gap normal to their circular and flat faces.
 - Reject a sun bore (`ds + 0.5`) that leaves less than `m` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
 - Reject `Sf < 0` or `Sf > db/4`.
+- Reject `Tc < 2`, so a pin socket leaves 1 mm of plate above it.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
@@ -231,9 +232,13 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
   `kP + T + 0.25`. Its lower face clears the pocket floor by 0.25 mm, its upper face extends
   0.25 mm above the planet, and its 5 mm bore clears the 4.5 mm pin by 0.25 mm radially.
   Bearings are separate bodies.
-- Carrier `k`'s plate lies in `[kP + T + g, kP + T + g + Tc]`. `n` pins of diameter `dp` hang from the
-  plate at the planet centers down to `z = kP`, and pass through the bearings and the lip bores. Each pin has
-  a collar of the shaft collar diameter that starts 0.25 mm above the bearing's inner race and joins the plate.
+- Carrier `k`'s plate lies in `[kP + T + g, kP + T + g + Tc]`. Each planet has a separate pin of diameter `dp` on
+  the planet's axis, from `z = kP`, through the bearing and the lip bore, up to the plate's lower face. Its collar of
+  the shaft collar diameter starts 0.25 mm above the bearing's inner race and ends 0.05 mm below the plate's face.
+  A D-shaped peg of the same diameter `dp`, with a flat `Sf` deep on the pin's outer side, rises from the collar
+  into a socket in the plate's lower face, `Tc/2` deep, and stops 0.05 mm below the socket's ceiling. The socket
+  is the peg's D outline grown by 0.05 mm radially. The pin is a press fit in the plate, and the gap is the
+  exception to the 0.2 mm Tight minimum in Part clearances.
   Nothing stands above the plate.
 - Shaft of stage `k`: a round rod of diameter `ds` on the axis, starting at the carrier's lower
   face `kP + T + g` and passing through the plate's shaft hole. For `k < K - 1` it is the link shaft and ends at the top
@@ -252,11 +257,11 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - The input shaft spans `[-g - Tv - Wb - Li, T]`; a collar fills `[-g - Tv, -0.5]`, from the front bearing's inner
   face to 0.5 mm short of the first sun's lower face. That 0.5 mm is the collar clearance.
 
-Each carrier, with its pins and their collars, is one solid body and the shafts are separate bodies. A carrier's
-plate is the convex hull of the `n` pin bosses, a rounded polygon: a boss circle of the boss diameter around
-each pin and a straight line tangent to the circles of neighbouring pins on the outside. The plate is solid
+Each carrier is one solid body, a plate with a socket for each pin, and each pin is its own body, as are the shafts.
+A carrier's plate is the convex hull of the `n` pin bosses, a rounded polygon: a boss circle of the boss diameter
+around each pin and a straight line tangent to the circles of neighbouring pins on the outside. The plate is solid
 between the pins, so it takes the sideways load the planets put on their pins. The shaft section is a hole
-through its middle. The plate is extruded `Tc`, and the pins and their collars stand on one face.
+through its middle. The plate is extruded `Tc`; it needs `Tc >= 2` so the socket leaves 1 mm of plate above it.
 
 ## Document
 
@@ -316,7 +321,8 @@ and the bearings, bolts and nuts keep their nominal dimensions.
 | Bearings | Default | Each pocket is empty where its bearing sits; the 14 mm × 5 mm bearing clears the pocket by 0.05 mm radially and is lifted by 0.25 mm axially; the planet weighs the plain gear with the lip bore minus the pocket's ring |
 | Seat chamfer | Default and `Sc = 0` | A planet and a cover each weigh less than the `Sc = 0` ones by a ring of triangular section, `Sc²/2` times the pocket's circumference, within the volume bounds plus 1; every body stays one solid |
 | Edge finishing | Default | Per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing): every flat face of at least 400 mm² on the ring, the covers and the carriers has a 45° bevel of `Ec` along its whole outer boundary; the covers' windows and the cover lip's inner edge are bevelled too, and the ring's rims sit `Ec` inside its outer radius. The ring's tooth edges, the shaft holes and the bolt holes stay sharp (see Edge finishing) |
-| Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with a tooth where the flat goes; a pin stands below the plate; nothing stands above the plate, so the carrier's top is the plate's top |
+| Carrier pins | Default | Each planet has its own pin body, starting at the gears' lower face, with a collar and a D peg; the peg has 0.05 mm of radial clearance in its socket, proven to about 0.026 mm; the pin's volume is the rod's, the collar's and the D peg's |
+| Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the shaft hole is open in the middle with a tooth where the flat goes; a socket for each pin is open in the lower face and closed above; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Gear roots | Module 0.5, 1 and 2; default placed gear bodies | Root and tip circles leave `max(0.25 m, 0.5 mm)` at the sun-planet and planet-ring meshes; the built model's root parameters match the same radii |
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |

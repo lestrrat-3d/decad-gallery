@@ -55,7 +55,7 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 - **Output.** The output shaft runs through the last carrier's hole and the rear cover's 605ZZ and sticks out 12 mm
   beyond its boss.
 
-Each pin of the carrier has a collar that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate.
+Each pin of the carrier is a separate part, shaped thin, fat, thin: a 4.5 mm rod that carries the planet bearing, a 6.9 mm collar under the carrier plate and a short D-shaped peg that presses into a D socket in the plate. The collar starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate. The peg and its socket have 0.05 mm of clearance all round, a press fit, so the pin stays in the plate once pushed in.
 
 The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the flat, are where a coupling or a set screw would grip.
 
@@ -116,11 +116,11 @@ roof into the nut.
 ## Parts
 
 Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
-shaft and, in every stage, one sun, three planets, three planet bearings, one carrier and one shaft. The bearing is a
+shaft and, in every stage, one sun, three planets, three planet bearings, three carrier pins, one carrier and one shaft. The bearing is a
 purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 4.5 mm, with 0.25 mm radial clearance in the bearing bore. Planet and cover bearing pockets have 0.05 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
-part is shaped to print on its own, without supports: the carrier plate down with its pins up, the shafts standing on
+part is shaped to print on its own, without supports: the carrier plate down, the pins standing on their rods, the shafts standing on
 end or lying down.
 
 | Image | Name |
@@ -132,6 +132,7 @@ end or lying down.
 | <img src="images/parts/bearing.png" alt="605ZZ bearing" width="240"> | Bearing (605ZZ) |
 | <img src="images/parts/input-shaft.png" alt="Input shaft" width="240"> | Input shaft |
 | <img src="images/parts/carrier.png" alt="Carrier" width="240"> | Carrier |
+| <img src="images/parts/carrier-pin.png" alt="Carrier pin" width="240"> | Carrier pin |
 | <img src="images/parts/link-shaft.png" alt="Link shaft" width="240"> | Link shaft |
 | <img src="images/parts/output-shaft.png" alt="Output shaft" width="240"> | Output shaft |
 

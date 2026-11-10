@@ -21,8 +21,11 @@ type Stage struct {
 	// Bearings holds one 605ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
 	// bearing; the sun and the shafts turn with the carrier that drives them and need none.
 	Bearings []*decad.Body
-	// Carrier is the triangular plate with the planet pins and their collars in one solid, and a D hole through
-	// its middle. It prints plate-down, because everything stands on one face.
+	// Pins holds one carrier pin per planet. Each is a separate part: a rod that carries the planet bearing, a collar
+	// under the carrier plate and a D-shaped peg that presses into the plate's socket.
+	Pins []*decad.Body
+	// Carrier is the triangular plate with a D-shaped socket for each pin and a D hole through its middle. It prints
+	// plate-down.
 	Carrier *decad.Body
 	// Shaft is a separate D-shaped rod through the carrier's hole. For every stage but the last it is the link
 	// shaft that also fills the next stage's sun bore; for the last stage it is the output shaft, which passes
@@ -85,6 +88,9 @@ func ShaftName(stage, stages int) string {
 // CarrierName is the name of the carrier of stage index (0-based).
 func CarrierName(stage int) string { return fmt.Sprintf("Carrier %d", stage+1) }
 
+// PinName is the name of the carrier pin index of stage (both 0-based).
+func PinName(stage, index int) string { return fmt.Sprintf("Carrier Pin %d.%d", stage+1, index+1) }
+
 // Named lists every body of the gearbox with its name: the ring, then each stage's sun,
 // planets and carrier.
 func (g Gearbox) Named() []NamedBody {
@@ -104,6 +110,9 @@ func (g Gearbox) Named() []NamedBody {
 		for i, planet := range stage.Planets {
 			out = append(out, NamedBody{PlanetName(k, i), planet})
 			out = append(out, NamedBody{BearingName(k, i), stage.Bearings[i]})
+		}
+		for i, pin := range stage.Pins {
+			out = append(out, NamedBody{PinName(k, i), pin})
 		}
 		out = append(out, NamedBody{CarrierName(k), stage.Carrier})
 		out = append(out, NamedBody{ShaftName(k, len(g.Stages)), stage.Shaft})
@@ -190,6 +199,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
+	pin, err := r.buildPin(ctx)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
 	carrier, err := r.buildCarrier(ctx)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
@@ -223,7 +236,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	}
 
 	// Collect every pose first: each master's last instance retires the master.
-	var sunMoves, planetMoves, bearingMoves, carrierMoves, linkMoves, outputMoves []r3.Transform
+	var sunMoves, planetMoves, bearingMoves, pinMoves, carrierMoves, linkMoves, outputMoves []r3.Transform
 	for k := range p.Stages {
 		z := float64(k) * d.stagePitch
 		m, err := pose(r.frame, 0, 0, 0, z)
@@ -244,6 +257,12 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 				return Gearbox{}, fmt.Errorf("planetarygearbox: bearing pose: %w", err)
 			}
 			bearingMoves = append(bearingMoves, m)
+			// The pin turns with its orbit angle, so its flat faces the same way as its socket.
+			m, err = pose(r.frame, phi, d.orbit*math.Cos(phi), d.orbit*math.Sin(phi), z+p.GearThickness+p.StageGap)
+			if err != nil {
+				return Gearbox{}, fmt.Errorf("planetarygearbox: pin pose: %w", err)
+			}
+			pinMoves = append(pinMoves, m)
 		}
 		m, err = pose(r.frame, 0, 0, 0, z+p.GearThickness+p.StageGap)
 		if err != nil {
@@ -268,6 +287,10 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: bearings: %w", err)
 	}
+	pins, err := instances(ctx, pin, pinMoves)
+	if err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: pins: %w", err)
+	}
 	carriers, err := instances(ctx, carrier, carrierMoves)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: carriers: %w", err)
@@ -288,6 +311,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			Sun:      suns[k],
 			Planets:  planets[k*p.PlanetCount : (k+1)*p.PlanetCount],
 			Bearings: bearings[k*p.PlanetCount : (k+1)*p.PlanetCount],
+			Pins:     pins[k*p.PlanetCount : (k+1)*p.PlanetCount],
 			Carrier:  carriers[k],
 			Shaft:    shafts[k],
 		})
