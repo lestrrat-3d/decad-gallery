@@ -36,11 +36,11 @@ type sirenView struct {
 
 var (
 	// The hero looks from the front-left above, with the horn mouth toward the camera and the grip and crank behind.
-	handCrankSirenHeroCamera = solidlens.Camera{Position: solidlens.Vec{X: -600, Y: -380, Z: 330},
+	handCrankSirenHeroCamera = solidlens.Camera{Position: solidlens.Vec{X: -250, Y: -650, Z: 330},
 		Target: solidlens.Vec{X: -20, Y: -20, Z: 80}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 	handCrankSirenCutawayCamera = solidlens.Camera{Position: solidlens.Vec{X: -380, Y: -420, Z: 560},
 		Target: solidlens.Vec{X: -40, Y: -40, Z: 84}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: -760, Y: -330, Z: 300},
+	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: 650, Y: -450, Z: 330},
 		Target: solidlens.Vec{X: -20, Y: 20, Z: 90}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 )
 
@@ -234,7 +234,7 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"gearbox-bolt", "gearbox-front-bolt-1", []string{"gearbox-front-nut-1"}, sirenSide},
 	{"drum-bolt", "drum-bolt-1", []string{"drum-nut-1"}, sirenSide},
 	{"collector-bolt", "collector-bolt-1", []string{"collector-nut-1"}, sirenSide},
-	{"throat-bolt", "throat-bolt-1", []string{"throat-nut-1"}, sirenSide},
+	{"throat-bolt", "throat-bolt-1", []string{"throat-nut-1"}, sirenFace},
 	{"grip-bolt", "grip-bolt-1", []string{"grip-nut-1"}, sirenSide},
 	{"crank-pin-bolt", "crank-pin-bolt", []string{"crank-pin-nut"}, sirenSide},
 }
