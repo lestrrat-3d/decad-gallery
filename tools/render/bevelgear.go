@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -167,15 +168,33 @@ type bevelPairs struct {
 }
 
 func buildBevelPairs(ctx context.Context) (bevelPairs, error) {
-	spiral, err := buildSpiralBevelPair(ctx)
-	if err != nil {
+	return buildBevelPairsWith(ctx, buildSpiralBevelPair, buildStraightBevelPair)
+}
+
+func buildBevelPairsWith(ctx context.Context, buildSpiral, buildStraight func(context.Context) (bevelPairMesh, error)) (bevelPairs, error) {
+	buildCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type result struct {
+		pair bevelPairMesh
+		err  error
+	}
+	spiralDone := make(chan result, 1)
+	go func() {
+		pair, err := buildSpiral(buildCtx)
+		if err != nil {
+			cancel()
+		}
+		spiralDone <- result{pair, err}
+	}()
+	straight, straightErr := buildStraight(buildCtx)
+	if straightErr != nil {
+		cancel()
+	}
+	spiral := <-spiralDone
+	if err := errors.Join(spiral.err, straightErr); err != nil {
 		return bevelPairs{}, err
 	}
-	straight, err := buildStraightBevelPair(ctx)
-	if err != nil {
-		return bevelPairs{}, err
-	}
-	return bevelPairs{spiral: spiral, straight: straight}, nil
+	return bevelPairs{spiral: spiral.pair, straight: straight}, nil
 }
 
 // heroScene shows the spiral pair enlarged to the straight pair's size, with the straight pair
