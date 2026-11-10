@@ -81,6 +81,51 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 	require.NoError(t, err)
 	movers, err := planetaryMovers(t.Context(), box, params)
 	require.NoError(t, err)
+	uncutA, err := planetaryPanelMovers(movers, false)
+	require.NoError(t, err)
+	uncutB, err := planetaryPanelMovers(movers, false)
+	require.NoError(t, err)
+	cut, err := planetaryPanelMovers(movers, true)
+	require.NoError(t, err)
+	restModels, err := planetaryPoseModels(uncutA, 0, false)
+	require.NoError(t, err)
+	later, err := planetaryPoseModels(uncutA, 0.2, false)
+	require.NoError(t, err)
+	housingCount := 0
+	for i, mover := range movers {
+		if cut[i].mesh != mover.mesh {
+			t.Fatalf("cut panel changed mesh for %s", mover.body.name)
+		}
+		if !mover.body.housing || mover.move != nil {
+			if uncutA[i].mesh != mover.mesh || uncutB[i].mesh != mover.mesh {
+				t.Fatalf("uncut panel changed non-housing mesh for %s", mover.body.name)
+			}
+			continue
+		}
+		housingCount++
+		meshA, ok := uncutA[i].mesh.(*solidlens.Mesh)
+		require.True(t, ok, "%s uses a reusable mesh", mover.body.name)
+		meshB, ok := uncutB[i].mesh.(*solidlens.Mesh)
+		require.True(t, ok, "%s uses a reusable mesh", mover.body.name)
+		if meshA == meshB || restModels[i].Mesh != meshA || later[i].Mesh != meshA {
+			t.Fatalf("panel mesh reuse differs for %s", mover.body.name)
+		}
+		vertices, copyVertices := mover.mesh.Vertices(), meshA.Vertices()
+		triangles, copyTriangles := mover.mesh.Triangles(), meshA.Triangles()
+		require.Equal(t, len(vertices), len(copyVertices), "%s vertex count", mover.body.name)
+		require.Equal(t, len(triangles), len(copyTriangles), "%s triangle count", mover.body.name)
+		for j := range vertices {
+			if vertices[j] != copyVertices[j] {
+				t.Fatalf("%s vertex %d changed", mover.body.name, j)
+			}
+		}
+		for j := range triangles {
+			if triangles[j] != copyTriangles[j] {
+				t.Fatalf("%s triangle %d changed", mover.body.name, j)
+			}
+		}
+	}
+	require.Equal(t, 3, housingCount)
 	input := 2 * math.Pi / float64(params.PlanetCount) * float64(params.SunTeeth+params.RingTeeth) / float64(params.SunTeeth)
 	posed, err := planetaryPoseModels(movers, input, true)
 	require.NoError(t, err)
