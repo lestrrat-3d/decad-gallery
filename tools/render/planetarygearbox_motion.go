@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -174,6 +175,43 @@ func planetaryMotionPanels() []planetaryMotionPanel {
 	}
 }
 
+// renderPlanetaryPanels runs at most two independent panel renders at a time.
+func renderPlanetaryPanels(ctx context.Context, count int, render func(context.Context, int) (image.Image, error)) ([]image.Image, error) {
+	images := make([]image.Image, count)
+	for start := 0; start < count; start += 2 {
+		batchCtx, cancel := context.WithCancel(ctx)
+		type result struct {
+			image image.Image
+			err   error
+		}
+		done := make(chan result, 1)
+		go func(index int) {
+			img, err := render(batchCtx, index)
+			if err != nil {
+				cancel()
+			}
+			done <- result{img, err}
+		}(start)
+		var second result
+		if start+1 < count {
+			second.image, second.err = render(batchCtx, start+1)
+			if second.err != nil {
+				cancel()
+			}
+		}
+		first := <-done
+		cancel()
+		if err := errors.Join(first.err, second.err); err != nil {
+			return nil, err
+		}
+		images[start] = first.image
+		if start+1 < count {
+			images[start+1] = second.image
+		}
+	}
+	return images, nil
+}
+
 // renderPlanetaryMotion writes an animation of the two-stage gearbox as its input turns, from three cameras: the
 // cutaway of the hero, the input end and the output end. Both shafts carry their keyway, so the turning of the
 // input and the much slower turning of the output show. The first frame is the gearbox at rest, and a caption
@@ -227,22 +265,29 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 		input := step * float64(frame)
 		canvas := image.NewRGBA(image.Rect(0, 0, width, height))
 		draw.Draw(canvas, canvas.Bounds(), image.NewUniform(background), image.Point{}, draw.Src)
-		for i, panel := range panels {
+		images, err := renderPlanetaryPanels(ctx, len(panels), func(ctx context.Context, i int) (image.Image, error) {
+			panel := panels[i]
 			models, err := planetaryPoseModels(panelMovers[i], input, panel.cut)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			var buffer bytes.Buffer
 			scene := bevelScene(cameras[i], models)
 			if err := solidlens.RenderPNG(ctx, &buffer, scene, solidlens.Settings{Width: panelWidth, Height: panelHeight}); err != nil {
-				return fmt.Errorf("render frame %d panel %d: %w", frame, i, err)
+				return nil, fmt.Errorf("render frame %d panel %d: %w", frame, i, err)
 			}
 			img, err := png.Decode(&buffer)
 			if err != nil {
-				return fmt.Errorf("decode frame %d panel %d: %w", frame, i, err)
+				return nil, fmt.Errorf("decode frame %d panel %d: %w", frame, i, err)
 			}
+			return img, nil
+		})
+		if err != nil {
+			return err
+		}
+		for i, panel := range panels {
 			at := image.Rect(i*panelWidth, planetaryCaptionHeight, (i+1)*panelWidth, planetaryCaptionHeight+panelHeight)
-			draw.Draw(canvas, at, img, image.Point{}, draw.Src)
+			draw.Draw(canvas, at, images[i], image.Point{}, draw.Src)
 			caption(canvas, face, panel.caption, i*panelWidth+6, planetaryCaptionHeight-5)
 		}
 		output := input * math.Pow(ratio, float64(len(box.Stages)))
