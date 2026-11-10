@@ -26,7 +26,7 @@ jobs:
           go-version-file: go.mod
       - name: Check mesh geometry helpers
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: go test ./internal/meshgap -timeout 5m
+        run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener -timeout 5m
       - name: Check model regressions
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: python3 scripts/ci/run_tests.py models pr
@@ -109,6 +109,24 @@ jobs:
           go-version-file: go.mod
       - name: Check hand-crank fan
         run: python3 scripts/ci/run_tests.py fan ${{ matrix.case }}
+
+  siren:
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - default
+          - variants
+    name: siren-${{ matrix.case }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check hand-crank siren
+        run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
 
   bevel:
     strategy:
