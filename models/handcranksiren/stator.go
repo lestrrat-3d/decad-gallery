@@ -10,12 +10,12 @@ const (
 	statorPort   = -32.65 // the stator's port tool starts here and runs 5, through the disc
 )
 
-// stator builds the stator: a chamfered disc with the same ports, and a hole for each horn bolt.
+// stator builds the stator: a chamfered disc with the same ports, and a hole for each collector bolt.
 func (b *builder) stator() *decad.Body {
 	disc := b.cylinder(faceOnR(statorFront), statorRadius, statorThick)
 	disc = b.discChamfer(disc)
 	disc = b.portsCut(disc, statorPort)
-	for _, site := range sitesNamed("horn-bolt") {
+	for _, site := range sitesNamed("collector-bolt") {
 		disc = b.fastenerCuts(disc, site, false, true, false)
 	}
 	return disc

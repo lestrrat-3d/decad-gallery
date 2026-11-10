@@ -8,7 +8,7 @@ import (
 
 // Container names, one per kind of body.
 const (
-	HousingContainerName   = "Housing" // gearbox-front, gearbox-frame, gearbox-rear, drum
+	HousingContainerName   = "Housing" // gearbox-front, gearbox-frame, gearbox-rear, drum, collector
 	StatorContainerName    = "Stator"
 	RotorContainerName     = "Rotor"
 	HornContainerName      = "Horn"

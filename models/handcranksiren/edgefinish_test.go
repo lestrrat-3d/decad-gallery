@@ -12,19 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// largeFaces returns the planar faces of body that face along Y, lie at one of the offsets and have at least
-// LargeFaceArea of net area. A chamfer is cut into the body, so a face is measured after it.
-func largeFaces(t *testing.T, body *decad.Body, offsets ...float64) []*decad.Face {
+// largeFaces returns the planar faces of body that face along normal (a signed unit axis), lie at one of the offsets
+// along it and have at least LargeFaceArea of net area. A chamfer is cut into the body, so a face is measured after it.
+func largeFaces(t *testing.T, body *decad.Body, normal r3.Vec, offsets ...float64) []*decad.Face {
 	t.Helper()
 	var out []*decad.Face
 	for _, f := range body.Faces() {
 		plane, ok := f.Surface().(decad.Plane)
-		if !ok || math.Abs(math.Abs(plane.Frame.N().Y)-1) > 1e-9 {
+		if !ok || math.Abs(math.Abs(plane.Frame.N().Dot(normal))-1) > 1e-9 {
 			continue
 		}
 		match := false
 		for _, o := range offsets {
-			match = match || math.Abs(plane.Frame.Origin().Y-o) < 1e-6
+			match = match || math.Abs(plane.Frame.Origin().Dot(normal)-o) < 1e-6
 		}
 		if !match {
 			continue
@@ -38,15 +38,15 @@ func largeFaces(t *testing.T, body *decad.Body, offsets ...float64) []*decad.Fac
 	return out
 }
 
-// bevelled reports whether the face beside an edge of f is a chamfer: a plane or cone that is neither parallel nor
-// perpendicular to f. Decad reports the chamfer round the frame's rounded corners as a faceted surface with no
+// bevelled reports whether the face beside an edge of f, whose normal lies along normal, is a chamfer: a plane or cone
+// that is neither parallel nor perpendicular to f. Decad reports the chamfer round the frame's rounded corners as a faceted surface with no
 // geometry to measure. The wall it replaces is a cylinder, which stays a cylinder, so a faceted neighbour is the
 // chamfer.
-func bevelled(t *testing.T, f, other *decad.Face) bool {
+func bevelled(t *testing.T, f, other *decad.Face, normal r3.Vec) bool {
 	t.Helper()
 	switch s := other.Surface().(type) {
 	case decad.Plane:
-		d := math.Abs(s.Frame.N().Y)
+		d := math.Abs(s.Frame.N().Dot(normal))
 		return d > 0.1 && d < 0.9
 	case decad.Cone:
 		half, err := s.HalfAngle.In(units.Radians(1).Unit())
@@ -60,28 +60,39 @@ func bevelled(t *testing.T, f, other *decad.Face) bool {
 }
 
 // rimExtent is the extent of the outer loops of a set of faces. A circle has one vertex, so radius is the largest
-// vertex distance from the rotor axis, which is the radius of a disc or flange centred on it.
+// vertex distance from the line through the centre along the normal, which is the radius of a disc or flange centred
+// on it.
 type rimExtent struct {
 	min, max r3.Vec
 	radius   float64
 }
 
-// requireChamfered checks that every edge of every kept loop on the large faces at the offsets has a bevel beside it,
-// and returns the outer-loop extent of those faces.
+// requireChamfered checks the large faces facing +Y: the centre of its rim radius is the rotor axis.
 func requireChamfered(t *testing.T, name string, body *decad.Body, keep edgefinish.LoopFilter, offsets ...float64) rimExtent {
 	t.Helper()
-	faces := largeFaces(t, body, offsets...)
+	return requireChamferedAlong(t, name, body, r3.Vec{Y: 1}, r3.Vec{Z: 84}, keep, offsets...)
+}
+
+// requireChamferedAlong checks that every edge of every kept loop on the large faces facing normal at the offsets has a
+// bevel beside it, and returns the outer-loop extent of those faces. The rim radius is measured from the line through
+// centre along normal.
+func requireChamferedAlong(t *testing.T, name string, body *decad.Body, normal, centre r3.Vec, keep edgefinish.LoopFilter,
+	offsets ...float64) rimExtent {
+	t.Helper()
+	faces := largeFaces(t, body, normal, offsets...)
 	require.NotEmpty(t, faces, "%s: large faces", name)
-	rim := rimExtent{min: r3.Vec{X: math.Inf(1), Z: math.Inf(1)}, max: r3.Vec{X: math.Inf(-1), Z: math.Inf(-1)}}
+	inf := math.Inf(1)
+	rim := rimExtent{min: r3.Vec{X: inf, Y: inf, Z: inf}, max: r3.Vec{X: -inf, Y: -inf, Z: -inf}}
 	for _, f := range faces {
 		for _, loop := range f.Loops() {
 			edges := loop.Edges()
 			if loop.IsOuter() {
 				for _, e := range edges {
 					for _, v := range []r3.Vec{e.Start().Position().Value, e.End().Position().Value} {
-						rim.min.X, rim.min.Z = math.Min(rim.min.X, v.X), math.Min(rim.min.Z, v.Z)
-						rim.radius = math.Max(rim.radius, math.Hypot(v.X, v.Z-84))
-						rim.max.X, rim.max.Z = math.Max(rim.max.X, v.X), math.Max(rim.max.Z, v.Z)
+						rim.min = r3.Vec{X: math.Min(rim.min.X, v.X), Y: math.Min(rim.min.Y, v.Y), Z: math.Min(rim.min.Z, v.Z)}
+						rim.max = r3.Vec{X: math.Max(rim.max.X, v.X), Y: math.Max(rim.max.Y, v.Y), Z: math.Max(rim.max.Z, v.Z)}
+						d := v.Sub(centre)
+						rim.radius = math.Max(rim.radius, d.Sub(normal.Scale(d.Dot(normal))).Len())
 					}
 				}
 			}
@@ -91,7 +102,7 @@ func requireChamfered(t *testing.T, name string, body *decad.Body, keep edgefini
 			for _, e := range edges {
 				beside := 0
 				for _, other := range e.Faces() {
-					if other != f && bevelled(t, f, other) {
+					if other != f && bevelled(t, f, other, normal) {
 						beside++
 					}
 				}
@@ -136,14 +147,25 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 		rim := requireChamfered(t, name, parts[name].Body, edgefinish.Outer, row.offsets...)
 		require.InDelta(t, row.radius-0.5, rim.radius, 1e-3+bounds(t, parts[name]).Bound.Base(), name)
 	}
-	// The horn's flange rims sit 0.5 inside the flange radius 58, and its mouth lip is the widest point.
+	// The collector: the outer loops of the rear and end faces sit 0.5 inside the bounds in X and Z, the bore rim on the
+	// ceiling and the throat rim on both wall faces are chamfered.
+	collectorBox := bounds(t, parts["collector"])
+	rim := requireChamferedAlong(t, "collector", parts["collector"].Body, r3.Vec{Y: 1}, r3.Vec{Z: 84}, longAll, -31.90, -96.90)
+	tol := 1e-3 + collectorBox.Bound.Base()
+	require.InDelta(t, collectorBox.Min.X+0.5, rim.min.X, tol, "collector rim")
+	require.InDelta(t, collectorBox.Max.X-0.5, rim.max.X, tol, "collector rim")
+	require.InDelta(t, collectorBox.Min.Z+0.5, rim.min.Z, tol, "collector rim")
+	require.InDelta(t, collectorBox.Max.Z-0.5, rim.max.Z, tol, "collector rim")
+	requireChamferedAlong(t, "collector ceiling", parts["collector"].Body, r3.Vec{Y: 1}, r3.Vec{Z: 84}, longInner, -39.90)
+	throat := r3.Vec{Y: -65.90, Z: 84}
+	requireChamferedAlong(t, "collector throat", parts["collector"].Body, r3.Vec{X: 1}, throat, longInner, -51, -46)
+	// The horn's mouth lip (vertex G) is the widest point: mouth + 2.5 - 0.5 sin 15 degrees = 51.1655 from the axis.
 	hornBox := bounds(t, parts["horn"])
-	// The mouth's outer lip (vertex G) is the widest point: rm + 2.5 - 0.5 sin 15 degrees.
-	require.InDelta(t, 73.1655, (hornBox.Max.X-hornBox.Min.X)/2, 1e-3+hornBox.Bound.Base())
-	hornRim := requireChamfered(t, "horn", parts["horn"].Body, edgefinish.Outer, -31.90, -39.90)
-	// The rear face's bore edge and the mouth lip face have no concave junction.
-	requireChamfered(t, "horn rear and lip", parts["horn"].Body, longAll, -31.90, -139.90)
-	require.InDelta(t, 57.5, hornRim.radius, 1e-3+hornBox.Bound.Base(), "horn flange rim")
+	require.InDelta(t, 51.1655, (hornBox.Max.Y-hornBox.Min.Y)/2, 1e-3+hornBox.Bound.Base())
+	hornRim := requireChamferedAlong(t, "horn flange", parts["horn"].Body, r3.Vec{X: 1}, throat, edgefinish.Outer, -51.25, -59.25)
+	require.InDelta(t, 29.5, hornRim.radius, 1e-3+hornBox.Bound.Base(), "horn flange rim")
+	// The mating face's bore edge and the mouth lip face have no concave junction.
+	requireChamferedAlong(t, "horn mating face and lip", parts["horn"].Body, r3.Vec{X: 1}, throat, longAll, -51.25, -159.25)
 
 	// The crank arm's caps.
 	requireChamfered(t, "crank-arm", parts["crank-arm"].Body, edgefinish.Outer, 38.6, 46.6)

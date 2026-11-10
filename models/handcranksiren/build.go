@@ -34,7 +34,7 @@ type builder struct {
 	name string
 }
 
-// turnAxis is the direction every part turns about: forward turns run clockwise seen from behind, about −Y.
+// turnAxis is the direction every part turns about: forward turns run clockwise seen from the operator's right (+Y), about −Y.
 var turnAxis = r3.Vec{Y: -1}
 
 // Build constructs the siren at p's pose. ctx and doc must not be nil; doc comes from NewDocument.

@@ -126,14 +126,15 @@ func (b *builder) gearboxFrame() *decad.Body {
 	return body
 }
 
-// head builds the siren head and the drum and horn hardware: the drum, the rotor, the stator and the horn, then the
+// head builds the siren head and its hardware: the drum, the rotor, the stator, the collector and the horn, then the
 // bolts and nuts that hold them.
 func (b *builder) head() {
 	b.part("drum", HousingContainerName, "fixed", b.drum)
 	b.part("rotor", RotorContainerName, "rotor", b.rotor)
 	b.part("stator", StatorContainerName, "fixed", b.stator)
+	b.part("collector", HousingContainerName, "fixed", b.collector)
 	b.part("horn", HornContainerName, "fixed", b.horn)
-	for _, prefix := range []string{"drum-bolt", "horn-bolt"} {
+	for _, prefix := range []string{"drum-bolt", "collector-bolt", "throat-bolt"} {
 		for _, s := range sitesNamed(prefix) {
 			b.hardware(s)
 		}

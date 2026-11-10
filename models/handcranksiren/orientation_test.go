@@ -16,19 +16,20 @@ func isGearbox(name string) bool {
 	return strings.HasPrefix(name, "gearbox-") && !strings.Contains(name, "bolt") && !strings.Contains(name, "nut")
 }
 
-// requireOrientation checks the frame of instructions.md: the horn points to -Y, the crank is behind everything, the
-// table is Z = 0 and only the gearbox pieces reach it, and the pin lies on the arm.
+// requireOrientation checks the held pose of instructions.md: the horn points forward (-X) and is the frontmost part, the
+// horn's axis runs through (throatY, 84), the crank is on the right (+Y), the table is Z = 0 and only the gearbox pieces
+// reach it, and the pin lies on the arm.
 func requireOrientation(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	box := map[string]decad.Box{}
 	for name, part := range parts {
 		box[name] = bounds(t, part)
 	}
-	minY, maxY := math.Inf(1), math.Inf(-1)
-	minYName, maxYName := "", ""
+	minX, maxY := math.Inf(1), math.Inf(-1)
+	minXName, maxYName := "", ""
 	minZ, minZBound := math.Inf(1), 0.0
 	for name, b := range box {
-		if b.Min.Y < minY {
-			minY, minYName = b.Min.Y, name
+		if b.Min.X < minX {
+			minX, minXName = b.Min.X, name
 		}
 		if b.Max.Y > maxY {
 			maxY, maxYName = b.Max.Y, name
@@ -37,8 +38,11 @@ func requireOrientation(t *testing.T, p handcranksiren.Params, parts map[string]
 			minZ, minZBound = b.Min.Z, b.Bound.Base()
 		}
 	}
-	require.Equal(t, "horn", minYName, "the horn is the frontmost part")
-	require.True(t, strings.HasPrefix(maxYName, "crank-"), "%s is the rearmost part", maxYName)
+	require.Equal(t, "horn", minXName, "the horn is the frontmost part")
+	hornBox := box["horn"]
+	require.InDelta(t, -65.90, (hornBox.Min.Y+hornBox.Max.Y)/2, 1e-3+hornBox.Bound.Base(), "the horn's axis is at throatY")
+	require.InDelta(t, 84, (hornBox.Min.Z+hornBox.Max.Z)/2, 1e-3+hornBox.Bound.Base(), "the horn's axis is at Z 84")
+	require.True(t, strings.HasPrefix(maxYName, "crank-"), "%s is the rightmost part", maxYName)
 	require.InDelta(t, 0, minZ, 1e-6+minZBound, "the table is Z = 0")
 	for name, b := range box {
 		if b.Min.Z < 1e-3+b.Bound.Base() {
@@ -88,7 +92,7 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcranksiren.Params
 // requireTessellates builds a verified mesh of the parts whose boundary or volume Decad can check.
 func requireTessellates(t *testing.T, parts map[string]handcranksiren.Part) {
 	for _, name := range []string{"gearbox-front", "gearbox-frame", "gearbox-rear", "drum", "rotor", "stator", "horn",
-		"crank-arm", "crank-handle", "crank-gear", "horn-nut-1"} {
+		"collector", "crank-arm", "crank-handle", "crank-gear", "collector-nut-1"} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)

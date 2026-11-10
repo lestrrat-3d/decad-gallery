@@ -207,10 +207,17 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	axial("L4", "crank-gear", "bearing-crank-rear", 1, loose)
 	axial("L4", "intermediate-pinion", "bearing-intermediate-rear", 1, loose)
 
-	// T2, T3: the drum's posts against the front plate, the stator against the drum, the horn against the stator.
+	// T2, T3: the drum's posts against the front plate, the stator against the drum, the collector against the stator.
 	axial("T2", "drum", "gearbox-front", 1, tight)
 	axial("T3", "stator", "drum", 1, tight)
-	axial("T3", "horn", "stator", 1, tight)
+	axial("T3", "collector", "stator", 1, tight)
+	// T11: the horn flange against the collector's -X wall, along X.
+	axial("T11", "horn", "collector", 0, tight)
+	// L6: the collector's end wall against the drum, and the horn against the stator and the drum in the plane Z 84.
+	axial("L6", "collector", "drum", 1, loose)
+	zPlane := frameAt(t, r3.Vec{Z: 84}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	section("L6", "horn", "stator", zPlane, loose)
+	section("L6", "horn", "drum", zPlane, loose)
 	// T5, T6: the rotor hub's D-bore on the rotor shaft, and the shaft's front end against the bore's floor.
 	exact("T5", "rotor", "rotor-shaft", atY(t, -20.5), tight)
 	exact("T6", "rotor", "rotor-shaft", axialPlane(t, p, "rotor", state.Rotor), tight)

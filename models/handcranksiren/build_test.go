@@ -12,7 +12,7 @@ import (
 
 // partGroups lists, per top-level container, the parts the build has so far. Later tasks extend it.
 var partGroups = map[string][]string{
-	handcranksiren.HousingContainerName: {"gearbox-front", "gearbox-frame", "gearbox-rear", "drum"},
+	handcranksiren.HousingContainerName: {"gearbox-front", "gearbox-frame", "gearbox-rear", "drum", "collector"},
 	handcranksiren.CrankContainerName:   {"crank-arm", "crank-pin", "crank-handle"},
 	handcranksiren.StatorContainerName:  {"stator"},
 	handcranksiren.RotorContainerName:   {"rotor"},
@@ -20,12 +20,14 @@ var partGroups = map[string][]string{
 	handcranksiren.BoltsContainerName: {
 		"gearbox-front-bolt-1", "gearbox-front-bolt-2", "gearbox-front-bolt-3", "gearbox-front-bolt-4",
 		"gearbox-rear-bolt-1", "gearbox-rear-bolt-2", "gearbox-rear-bolt-3", "gearbox-rear-bolt-4",
-		"drum-bolt-1", "drum-bolt-2", "drum-bolt-3", "horn-bolt-1", "horn-bolt-2", "horn-bolt-3", "horn-bolt-4", "crank-pin-bolt",
+		"drum-bolt-1", "drum-bolt-2", "drum-bolt-3", "collector-bolt-1", "collector-bolt-2", "collector-bolt-3", "collector-bolt-4",
+		"throat-bolt-1", "throat-bolt-2", "throat-bolt-3", "throat-bolt-4", "crank-pin-bolt",
 	},
 	handcranksiren.NutsContainerName: {
 		"gearbox-front-nut-1", "gearbox-front-nut-2", "gearbox-front-nut-3", "gearbox-front-nut-4",
 		"gearbox-rear-nut-1", "gearbox-rear-nut-2", "gearbox-rear-nut-3", "gearbox-rear-nut-4",
-		"drum-nut-1", "drum-nut-2", "drum-nut-3", "horn-nut-1", "horn-nut-2", "horn-nut-3", "horn-nut-4", "crank-pin-nut",
+		"drum-nut-1", "drum-nut-2", "drum-nut-3", "collector-nut-1", "collector-nut-2", "collector-nut-3", "collector-nut-4",
+		"throat-nut-1", "throat-nut-2", "throat-nut-3", "throat-nut-4", "crank-pin-nut",
 	},
 	handcranksiren.ShaftsContainerName: {"crank-shaft", "intermediate-shaft", "rotor-shaft"},
 	handcranksiren.BearingsContainerName: {
@@ -75,7 +77,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	doc, parts, a := buildSiren(t, p)
 	names := partNames()
 	require.Len(t, a.Parts, len(names))
-	require.Len(t, a.Parts, 55)
+	require.Len(t, a.Parts, 64)
 	for _, name := range names {
 		require.Contains(t, parts, name)
 	}
@@ -89,6 +91,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	})
 	t.Run("containers", func(t *testing.T) { requireContainers(t, doc, parts) })
 	t.Run("ports", func(t *testing.T) { requirePorts(t, p, parts) })
+	t.Run("outlet", func(t *testing.T) { requireOutlet(t, parts) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
 	if p != handcranksiren.DefaultParams() {

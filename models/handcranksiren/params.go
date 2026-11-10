@@ -1,5 +1,6 @@
 // Package handcranksiren builds a hand-cranked siren: a crank turns a two-stage spur step-up train, and the train spins
-// a slotted rotor disc in front of a fixed slotted stator disc inside a drum with an outlet horn.
+// a slotted rotor disc in front of a fixed slotted stator disc inside a drum, and a collector turns the air into a horn
+// that points forward.
 package handcranksiren
 
 import (
@@ -28,7 +29,8 @@ const (
 
 // Params selects the crank pose and the number of ports.
 type Params struct {
-	// CrankAngle is the forward turn, clockwise seen from behind (about −Y), from the arm pointing up. Radians.
+	// CrankAngle is the forward turn, clockwise seen from the operator's right (+Y), about −Y, from the arm pointing up.
+	// Radians.
 	CrankAngle float64
 	// Slots is the number of ports in the rotor and in the stator, and of vanes on the rotor; it lies in [12, 24].
 	Slots int

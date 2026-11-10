@@ -9,7 +9,7 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Siren head dimensions in mm. The drum, rotor, stator and horn are coaxial with R.
+// Siren head dimensions in mm. The drum, rotor, stator and collector are coaxial with R. The horn's axis runs along -X.
 const (
 	drumBackFace   = -11.50 // the back plate's outer face
 	drumPlateFace  = -15.50 // the back plate's inner face, where the drum bolt heads end
@@ -51,7 +51,7 @@ func (b *builder) ring(body *decad.Body, count int) *decad.Body {
 }
 
 // drum builds the drum: a revolved cup, three windows through its back plate, three posts that reach the gearbox, and the
-// pocket and hole of each drum bolt and each horn bolt.
+// pocket and hole of each drum bolt and each collector bolt.
 func (b *builder) drum() *decad.Body {
 	s := b.meridian()
 	b.fail("draw drum meridian", meridianPolygon(s, []point2{
@@ -77,7 +77,7 @@ func (b *builder) drum() *decad.Body {
 	for _, site := range sitesNamed("drum-bolt") {
 		body = b.fastenerCuts(body, site, true, true, false)
 	}
-	for _, site := range sitesNamed("horn-bolt") {
+	for _, site := range sitesNamed("collector-bolt") {
 		body = b.fastenerCuts(body, site, true, true, false)
 	}
 	return body

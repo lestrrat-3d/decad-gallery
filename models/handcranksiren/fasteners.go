@@ -15,22 +15,26 @@ import (
 // head sinks into a pocket of its part and ends flush with the part's face. A nut sits in a cavity its part encloses
 // apart from the bolt hole, so the part retains it; it drops in during a print pause.
 const (
-	gearboxBoltLength = 16
-	gearboxCavity     = 11.75
-	drumBoltLength    = 18
-	drumCavity        = 17.0
-	hornBoltLength    = 16
-	hornCavity        = 12.0
-	pinBoltLength     = 10
-	pinCavity         = 4.75
+	gearboxBoltLength   = 16
+	gearboxCavity       = 11.75
+	drumBoltLength      = 18
+	drumCavity          = 17.0
+	collectorBoltLength = 16
+	collectorNutCavity  = 12.0
+	throatBoltLength    = 10
+	throatCavity        = 6.75
+	pinBoltLength       = 10
+	pinCavity           = 4.75
 
-	frontFace = 0.0  // gearbox-front's outer (front) face, where its bolt heads end
-	rearFace  = 37.6 // gearbox-rear's outer face
-	boltPitch = 3    // drum posts and drum bolts are 120 degrees apart
-	drumBoltR = 30.0 // radius of the drum bolts and the posts about R
-	hornBoltR = 53.5 // radius of the horn bolts about R
-	drumHead  = -15.50
-	hornHead  = -21.40
+	frontFace         = 0.0  // gearbox-front's outer (front) face, where its bolt heads end
+	rearFace          = 37.6 // gearbox-rear's outer face
+	boltPitch         = 3    // drum posts and drum bolts are 120 degrees apart
+	drumBoltR         = 30.0 // radius of the drum bolts and the posts about R
+	collectorBoltR    = 53.5 // radius of the collector bolts about R
+	throatBoltR       = 26.0 // radius of the throat bolts about the throat axis
+	drumHead          = -15.50
+	collectorBoltHead = -21.40
+	throatHead        = -46.0 // the throat bolt heads' X, flush with the collector wall's inner face
 )
 
 // fastenerSite is one bolt and its captive nut, with the parts that hold them.
@@ -73,9 +77,15 @@ func fastenerSites() []fastenerSite {
 	for k := range 4 {
 		psi := math.Pi/4 + math.Pi/2*float64(k)
 		radial := r3.Vec{X: math.Cos(psi), Z: math.Sin(psi)}
-		add(fmt.Sprintf("horn-bolt-%d", k+1), fmt.Sprintf("horn-nut-%d", k+1), "drum", "horn", "fixed",
-			m2fastener.Site{Head: r3.Vec{Z: rotorHeight, Y: hornHead}.Add(radial.Scale(hornBoltR)), Dir: y.Scale(-1),
-				Corner: r3.Vec{X: -math.Sin(psi), Z: math.Cos(psi)}, Length: hornBoltLength, Cavity: hornCavity})
+		add(fmt.Sprintf("collector-bolt-%d", k+1), fmt.Sprintf("collector-nut-%d", k+1), "drum", "collector", "fixed",
+			m2fastener.Site{Head: r3.Vec{Z: rotorHeight, Y: collectorBoltHead}.Add(radial.Scale(collectorBoltR)), Dir: y.Scale(-1),
+				Corner: r3.Vec{X: -math.Sin(psi), Z: math.Cos(psi)}, Length: collectorBoltLength, Cavity: collectorNutCavity})
+	}
+	for k := range 4 {
+		a := math.Pi/4 + math.Pi/2*float64(k)
+		add(fmt.Sprintf("throat-bolt-%d", k+1), fmt.Sprintf("throat-nut-%d", k+1), "collector", "horn", "fixed",
+			m2fastener.Site{Head: r3.Vec{X: throatHead, Y: throatY + throatBoltR*math.Cos(a), Z: rotorHeight + throatBoltR*math.Sin(a)},
+				Dir: x.Scale(-1), Corner: r3.Vec{Y: math.Cos(a), Z: math.Sin(a)}, Length: throatBoltLength, Cavity: throatCavity})
 	}
 	add("crank-pin-bolt", "crank-pin-nut", "crank-arm", "crank-pin", "crank",
 		m2fastener.Site{Head: r3.Vec{X: crankOffset, Y: 38.6, Z: rotorHeight + 55}, Dir: y, Corner: x,

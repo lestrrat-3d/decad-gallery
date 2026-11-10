@@ -79,7 +79,7 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	all, err := handcranksiren.Fasteners(p)
 	require.NoError(t, err)
-	require.Len(t, all, 16)
+	require.Len(t, all, 20)
 	request := decad.ContactRequest{
 		PointResolution:  units.Millimeters(0.01),
 		NormalResolution: units.Radians(0.01),
