@@ -69,6 +69,10 @@ func planetaryFastenerScenes(ctx context.Context) (section, exploded solidlens.S
 	if err != nil {
 		return solidlens.Scene{}, solidlens.Scene{}, err
 	}
+	return planetaryFastenerScenesFrom(ctx, box)
+}
+
+func planetaryFastenerScenesFrom(ctx context.Context, box planetarygearbox.Gearbox) (section, exploded solidlens.Scene, err error) {
 	if section, err = planetaryFastenerSection(ctx, box); err != nil {
 		return solidlens.Scene{}, solidlens.Scene{}, err
 	}

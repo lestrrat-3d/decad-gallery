@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -358,10 +359,37 @@ func planetaryPartPreset(part planetaryPart) func(context.Context) (solidlens.Sc
 	}
 }
 
+type planetaryBuildFunc func(context.Context, int) (planetarygearbox.Gearbox, planetarygearbox.Params, error)
+
+func buildPlanetaryReadmeGearboxes(ctx context.Context, build planetaryBuildFunc) (
+	planetarygearbox.Gearbox, planetarygearbox.Params, planetarygearbox.Gearbox, error,
+) {
+	buildCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type fastenerResult struct {
+		box planetarygearbox.Gearbox
+		err error
+	}
+	fastenerDone := make(chan fastenerResult, 1)
+	go func() {
+		box, _, err := build(buildCtx, 1)
+		if err != nil {
+			cancel()
+		}
+		fastenerDone <- fastenerResult{box, err}
+	}()
+	box, params, err := build(buildCtx, 2)
+	if err != nil {
+		cancel()
+	}
+	fastener := <-fastenerDone
+	return box, params, fastener.box, errors.Join(err, fastener.err)
+}
+
 // renderPlanetaryGearboxReadme writes the index image, the hero, the assembled views, one image per unique part and
 // the motion animation. The part images go in the parts directory beside them.
 func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
-	box, params, err := buildPlanetaryGearbox(ctx, 2)
+	box, params, fastener, err := buildPlanetaryReadmeGearboxes(ctx, buildPlanetaryGearbox)
 	if err != nil {
 		return err
 	}
@@ -397,7 +425,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox assembled %s: %w", view.shot, err)
 		}
 	}
-	section, fastenerExploded, err := planetaryFastenerScenes(ctx)
+	section, fastenerExploded, err := planetaryFastenerScenesFrom(ctx, fastener)
 	if err != nil {
 		return err
 	}
