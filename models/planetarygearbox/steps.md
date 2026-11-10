@@ -23,15 +23,15 @@ Every sketch circle's diameter is bound to a table name with `Sketch.Bind`.
 
 Build each distinct part once about the local origin and +Z. A gear union fails on gears built at an offset.
 
-1. **Ring.** (Bolt holes `db'` are 2.4 mm, 0.2 mm radially wider than the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
+1. **Ring.** (Bolt holes `db'` are 2.6 mm, 0.3 mm radially wider than the M2 shank.) `spurgear.Variant{Define}.Build` with `Teeth = Zr`, thickness `L + 2`, no bore, `Backlash = -j`. `Define` replaces
 	`root_radius` by `pitch_radius - module`, `tip_radius` by `pitch_radius + module + c` and `fillet_radius` by
    `0`, so the pipeline builds the tooth-space tool. If `RingToothAngle` is not zero, `decad.Transform` the tool
    by that rotation about +Z. Sketch the blank on the plane z=1: the outline (a circle of diameter `2 * ring_outer_radius`, or with
    `EarCount > 0` the ear outline described under "Mounting ears" below)
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with `4 + EarCount`
-   holes and extrude it `L` upward. Cut eight closed hex nut cavities from the blank (`cutNutPockets`): one tool, a hexagon
-   of `s + 2c` across flats with its flats facing the bolt circle's radius, `c = 0.1`, extruded `m2nut.Thickness + 2c` up from its
+   holes and extrude it `L` upward. Cut eight closed round nut cavities from the blank (`cutNutPockets`): one tool, a circle
+   of diameter `2 (s / √3 + c)` (`s` = `m2nut.AcrossFlats`, `c = 0.2`), extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
 2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5, 0.25 mm larger radially than the 4.5 mm shaft)
@@ -89,7 +89,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
      `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
    - `decad.Union` the frame and the boss.
-   - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.1`) on the
+   - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.3`) on the
      plane `z = Tv - m2bolt.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
      the cover's +Z face, so the pocket is as deep as the head is tall.
    - Chamfer the boss pocket's entrance (see **Seat chamfer** below). Check: one solid.
@@ -97,7 +97,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    **Fasteners** (`buildFasteners`). Build `m2bolt.Build` with `Length = 6` and `m2nut.Build` once each, and copy
    them into place. A front bolt is turned over about X so its shank points into the ring, with its head's underside
    on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits in its
-   cavity with `c` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
+   cavity with `c = 0.2` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
    is measured from the head pocket's edge, not the hole's.
 
 **Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wb` (cover)

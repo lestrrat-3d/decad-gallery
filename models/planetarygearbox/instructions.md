@@ -22,7 +22,7 @@ The housing is the ring gear and two end covers. The covers are open frames, a r
 bearing hub, so they use little material. Eight M2 bolts and eight M2 nuts hold the housing together, four
 bolts per cover, built from `models/m2bolt` and `models/m2nut`. Each cover's four bolts have 6 mm length (the shortest
 standard length), so the bolt length does not depend on the stage count. A bolt's head sits in a round pocket in the
-cover's outer face and ends level with that face. Its nut sits in a closed hex cavity in the ring wall, 1 mm behind the
+cover's outer face and ends level with that face. Its nut sits in a closed round cavity in the ring wall, 1 mm behind the
 ring's end face, so the ring holds the nut and it cannot fall out; the bolt hole is the cavity's only opening. The nut
 is dropped in during a print pause. The bolt passes through the cover's remaining 1 mm, the ring's 1 mm roof and the nut,
 and its tip stays inside the ring's bolt hole. This follows the repository fastener rules (see `AGENTS.md`, Fasteners).
@@ -67,7 +67,7 @@ origin, so the axis is world +Z.
 | `Tc` | `CarrierThickness` | float64 | 3 | Axial thickness of a carrier's plate |
 | `g` | `StageGap` | float64 | 1 | Axial gap between a stage's gears, its carrier, the next stage and the ring ends; at least 0.75 |
 | `Tv` | `CoverThickness` | float64 | 3 | Axial thickness of an end cover's frame |
-| `db'` | `BoltHoleDiameter` | float64 | 2.4 | Diameter of the four clearance holes; the default 2.4 is 0.2 mm radially wider than the M2 shank |
+| `db'` | `BoltHoleDiameter` | float64 | 2.6 | Diameter of the four clearance holes; the default 2.6 is 0.3 mm radially wider than the M2 shank |
 | `Sf` | `KeyDepth` | float64 | 1.1 | Depth of the three keyway grooves on each shaft; zero leaves round shafts and round bores |
 | `Sw` | `KeyWidth` | float64 | 2 | Width of each keyway groove |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
@@ -75,7 +75,7 @@ origin, so the axis is world +Z.
 | `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
 | `Ec` | `EdgeChamfer` | float64 | 0.5 | Setback of the 45° chamfer on the edges of the large flat faces of the ring, the covers and the carriers; at least 0.5 |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
-| `w` | `RingWall` | float64 | 7 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
+| `w` | `RingWall` | float64 | 7.1 | Radial wall of the ring behind the tooth roots; it holds the bolt holes |
 | `Lo` | `OutputShaftLength` | float64 | 12 | How far the output shaft reaches out of the rear cover's bearing boss |
 | `Ne` | `EarCount` | int | 3 | Mounting ears on the ring; zero leaves the ring a plain cylinder |
 | `de` | `EarBoreDiameter` | float64 | 4 | Diameter of the bore through each ear; positive when there are ears |
@@ -106,8 +106,8 @@ A nil `Placement` is the one exception.
 | Ear bore center radius `Re` | ring outer radius `+ we` |
 | Bolt circle radius | (ring root radius + ring outer radius) / 2 |
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
-| Head pocket diameter | `m2bolt.HeadDiameter + 0.2` (depth `m2bolt.HeadHeight`) |
-| Nut cavity width across flats | `m2nut.AcrossFlats + 0.2` (height `m2nut.Thickness + 0.2`, starting 1 mm behind the ring's end face) |
+| Head pocket diameter | `m2bolt.HeadDiameter + 0.6` (depth `m2bolt.HeadHeight`) |
+| Nut cavity diameter | `2 (m2nut.AcrossFlats / √3 + 0.2)`, the circle through the nut's corners plus 0.2 mm radially (height `m2nut.Thickness + 0.4`, starting 1 mm behind the ring's end face) |
 | Cover boss diameter | pocket diameter `+ 2 wc` |
 | Cover hub diameter | cover boss diameter `+ 2 wc` |
 | Bearing bore, outside diameter, width `db`, `Db`, `Wb` | 5, 14, 5 (the 605ZZ, from `ballbearing.Params605ZZ`) |
@@ -131,7 +131,7 @@ the same gap normal to their circular and key faces.
 ## Input checks and limits
 
 - Reject `j < 0` or `j > m/2`.
-- Reject `m <= 0`, `T <= 0`, `Tc <= 0`, `g < 0.75`, `Tv <= 0`, `db' < 2.4`, `Li <= 0`, `cb < 0.05`, `wc <= 0`,
+- Reject `m <= 0`, `T <= 0`, `Tc <= 0`, `g < 0.75`, `Tv <= 0`, `db' < 2.6`, `Li <= 0`, `cb < 0.05`, `wc <= 0`,
   `w <= 0`, `Lo <= 0`, `Samples < 3` or a nonfinite length.
 - Reject `α` outside `(0, π/2)`, `n < 2` and `K < 1`.
 - Keep the placed tip-to-root clearance in every mesh at `max(0.25 m, 0.5 mm)` or greater.

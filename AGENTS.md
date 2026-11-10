@@ -35,8 +35,9 @@
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
 - Hold every nut in a cavity the part encloses on all sides except the bolt hole, so the part retains the nut and it cannot fall out. Drop the nut in during a print pause. A pocket open to a face is not enough.
 - Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.
-- Size the pockets from the fastener's constants plus 0.1 mm radial clearance. Make a head pocket as deep as the head is tall, and a nut cavity as high as the nut is thick plus the clearance.
-- Keep the clearance hole at least the shank diameter (2.4 mm for M2). Keep 1 mm or more of material under a head pocket and around any pocket.
+- Size a head pocket from the head diameter plus 0.3 mm radial clearance. Make it as deep as the head is tall.
+- Size a nut cavity as a circle through the nut's corners plus 0.2 mm radial clearance (radius 2.51 mm for M2). Make it as high as the nut is thick plus 0.2 mm on each face (2.0 mm for M2).
+- Size the bolt clearance hole from the shank diameter plus 0.3 mm radial clearance (2.6 mm for M2). Keep 1 mm or more of material under a head pocket and around any pocket.
 - Pick a standard bolt length from `m2bolt.StandardLengths()`. A housing too long for one bolt takes shorter bolts from each end, each into a nut cavity near the end of the middle part, not a custom length.
 - The tip of a bolt may stay inside a hole beyond its nut. It must not stand outside a face.
 - Test that each head ends flush and each nut sits inside its cavity (bounds), and that no fastener overlaps the parts it passes through.
