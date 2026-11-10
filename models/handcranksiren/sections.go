@@ -181,21 +181,6 @@ func (b *builder) cut(host, tool *decad.Body) *decad.Body {
 	return body
 }
 
-// turn rotates body by angle about the line through point along axis.
-func (b *builder) turn(body *decad.Body, point, axis r3.Vec, angle float64) *decad.Body {
-	if b.err != nil || angle == 0 {
-		return body
-	}
-	xf, err := r3.RotationAround(point, axis, units.Radians(angle))
-	if err != nil {
-		b.fail("create rotation", err)
-		return nil
-	}
-	turned, err := decad.Transform(b.ctx, body, xf)
-	b.fail("rotate body", err)
-	return turned
-}
-
 // roundedPolygon draws an axis-aligned polygon whose edges are placed by their distance from the sketch origin, then
 // rounds corner i with radii[i] (0 keeps it sharp). No edge may pass through the origin.
 func roundedPolygon(s *sketch.Sketch, xy []point2, radii []float64) error {
