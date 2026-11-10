@@ -107,6 +107,10 @@ mates with a fixed nominal part. When two fixed nominal parts mate, record the
 interface as a nominal exception; do not alter either part or claim that it
 meets a clearance class.
 
+A press-fit peg and its socket, such as a carrier pin in a carrier plate, take 0.05 mm of clearance on each
+side, and the 0.2 mm Tight minimum does not apply. The pin is a separate part that stays in the plate once pushed
+in.
+
 A bore or pocket that holds a purchased bearing fixed takes 0.05 mm of radial
 clearance, and the 0.2 mm Tight minimum does not apply. The bearing is a nominal part and the seat grips its outer race. A
 shaft or pin that turns in a bearing bore keeps its fit class.

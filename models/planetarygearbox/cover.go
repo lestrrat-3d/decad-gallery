@@ -228,7 +228,7 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	p := r.p
 	start := -(p.StageGap + p.CoverThickness + planetBearing().Width + p.InputShaftLength)
 	inner := -(p.StageGap + p.CoverThickness)
-	// The groove runs from the sun's lower face to past the shaft's top, through the sun.
+	// The flat runs from the sun's lower face to past the shaft's top, through the sun.
 	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance, span{0, p.GearThickness + 1})
 }
 

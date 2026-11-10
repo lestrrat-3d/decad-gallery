@@ -37,12 +37,10 @@ type Params struct {
 	CoverThickness float64
 	// BoltHoleDiameter is the diameter of the four clearance holes that join the covers and the ring.
 	BoltHoleDiameter float64
-	// KeyDepth is the depth of the three keyway grooves cut along each shaft where a sun or a carrier sits on it. The sun
-	// and the carrier have a matching tooth in their bore, so the shaft carries torque into them. The shaft is a
-	// full round cylinder where a bearing sits. Zero leaves round shafts and round bores.
-	KeyDepth float64
-	// KeyWidth is the width of each keyway groove.
-	KeyWidth float64
+	// FlatDepth is the depth of the flat that gives each shaft a D section where a sun or a carrier sits on it. The
+	// sun and the carrier have a matching D bore, so the shaft carries torque into them. The shaft is a full round
+	// cylinder where a bearing sits. Zero leaves round shafts and round bores.
+	FlatDepth float64
 	// SeatChamfer is the setback of the chamfer on the entrance of each bearing seat, the planets' pockets and the
 	// covers' boss pockets, so a bearing can be pressed into a tight printed seat. Zero leaves the entrance sharp.
 	SeatChamfer float64
@@ -90,8 +88,7 @@ func DefaultParams() Params {
 		StageGap:          1,
 		CoverThickness:    3,
 		BoltHoleDiameter:  minBoltHoleDiameter,
-		KeyDepth:          1.1,
-		KeyWidth:          2,
+		FlatDepth:         0.5,
 		SeatChamfer:       0.5,
 		EdgeChamfer:       MinEdgeChamfer,
 		InputShaftLength:  12,
@@ -144,10 +141,13 @@ const (
 	// pinCollarThickness keeps a printable pin collar between the bearing and the carrier plate.
 	pinCollarThickness = fitClearance
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
-	// face off the plane where the keyway groove ends, and gives the printed parts a little play.
+	// face off the plane where the flat ends, and gives the printed parts a little play.
 	collarClearance = 0.5
-	// keyCount is the number of keyway grooves on a shaft, spread evenly round it.
-	keyCount = 3
+	// pegClearance is the radial and axial gap between a carrier pin's peg and its socket in the carrier plate. It is
+	// a press fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the pin stays in the plate.
+	pegClearance = 0.05
+	// pegOverlap is how far a pin's rod and peg reach into its collar, so the unions cross faces.
+	pegOverlap = 0.05
 	// boltRimMargin is the material kept between a bolt hole and the edge of the ring or cover rim.
 	boltRimMargin = 1.5
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin
@@ -215,7 +215,7 @@ func (p Params) Validate() error {
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "CoverThickness": p.CoverThickness,
-		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "KeyDepth": p.KeyDepth, "KeyWidth": p.KeyWidth, "SeatChamfer": p.SeatChamfer,
+		"BoltHoleDiameter": p.BoltHoleDiameter, "InputShaftLength": p.InputShaftLength, "FlatDepth": p.FlatDepth, "SeatChamfer": p.SeatChamfer,
 		"EdgeChamfer":      p.EdgeChamfer,
 		"BearingClearance": p.BearingClearance, "CarrierWall": p.CarrierWall, "RingWall": p.RingWall, "Backlash": p.Backlash,
 		"OutputShaftLength": p.OutputShaftLength, "EarBoreDiameter": p.EarBoreDiameter,
@@ -231,15 +231,14 @@ func (p Params) Validate() error {
 	}{
 		{"module", p.Module, p.Module > 0},
 		{"gear thickness", p.GearThickness, p.GearThickness > 0},
-		{"carrier thickness", p.CarrierThickness, p.CarrierThickness > 0},
+		{"carrier thickness", p.CarrierThickness, p.CarrierThickness >= 2},
 		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinCollarClearance+pinCollarThickness},
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
-		{"key depth", p.KeyDepth, p.KeyDepth >= 0 && p.KeyDepth <= planetBearing().BoreDiameter/4},
+		{"flat depth", p.FlatDepth, p.FlatDepth >= 0 && p.FlatDepth <= planetBearing().BoreDiameter/4},
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"edge chamfer", p.EdgeChamfer, p.EdgeChamfer >= MinEdgeChamfer && p.EdgeChamfer <= 1},
-		{"key width", p.KeyWidth, p.KeyWidth > 0 && p.KeyWidth <= planetBearing().BoreDiameter/2},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= seatClearance},
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
@@ -279,9 +278,6 @@ func (p Params) Validate() error {
 	}
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return errors.New("invalid placement frame")
-	}
-	if p.KeyDepth > 0 && p.KeyWidth <= 2*fitClearance {
-		return fmt.Errorf("key width %v must exceed %v for the shaft clearance", p.KeyWidth, 2*fitClearance)
 	}
 	if err := p.validateFit(derive(p)); err != nil {
 		return err

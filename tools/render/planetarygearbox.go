@@ -21,6 +21,7 @@ var (
 	planetaryBearingColor = solidlens.RGB(0.62, 0.64, 0.68)
 	planetaryShaftColor   = solidlens.RGB(0.45, 0.47, 0.5)
 	planetaryCarrierColor = solidlens.RGB(0.55, 0.62, 0.3)
+	planetaryPinColor     = solidlens.RGB(0.38, 0.5, 0.22)
 )
 
 // planetaryEdges outlines every part.
@@ -65,7 +66,8 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 		for i, planet := range stage.Planets {
 			out = append(out,
 				planetaryBody{planetarygearbox.PlanetName(k, i), planet, planetaryPlanetColor, false},
-				planetaryBody{planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor, false})
+				planetaryBody{planetarygearbox.BearingName(k, i), stage.Bearings[i], planetaryBearingColor, false},
+				planetaryBody{planetarygearbox.PinName(k, i), stage.Pins[i], planetaryPinColor, false})
 		}
 		out = append(out,
 			planetaryBody{planetarygearbox.CarrierName(k), stage.Carrier, planetaryCarrierColor, false},
@@ -83,6 +85,7 @@ const (
 	planetaryExplodedStep    = 48
 	planetaryExplodedBearing = 14
 	planetaryExplodedCarrier = 24
+	planetaryExplodedPin     = 10
 	planetaryExplodedShaft   = 36
 	planetaryExplodedRing    = 64
 )
@@ -102,6 +105,7 @@ func planetaryExplodedLifts(box planetarygearbox.Gearbox) map[*decad.Body]float6
 		for i, planet := range stage.Planets {
 			lifts[planet] = base
 			lifts[stage.Bearings[i]] = base + planetaryExplodedBearing
+			lifts[stage.Pins[i]] = base + planetaryExplodedCarrier - planetaryExplodedPin
 		}
 		lifts[stage.Carrier] = base + planetaryExplodedCarrier
 		lifts[stage.Shaft] = base + planetaryExplodedShaft
@@ -271,7 +275,7 @@ type planetaryPart struct {
 	body  func(planetarygearbox.Gearbox) *decad.Body
 	color solidlens.Color
 	// view picks the camera: the default looks from the front and above, side from almost level with the
-	// part so a shaft shows its collar, and below from under the part so a carrier shows its pins.
+	// part so a shaft shows its collar, and below from under the part so a carrier shows its pin sockets.
 	view partView
 }
 
@@ -286,7 +290,7 @@ const (
 
 // planetaryParts lists the unique parts of a gearbox: the ring, one cover (the front cover is the rear one
 // turned over), the sun, one planet, one 605ZZ bearing (the planets and the covers use the same part), the
-// carrier, and the three shafts: the input shaft, a link shaft and the output shaft.
+// carrier, one carrier pin, and the three shafts: the input shaft, a link shaft and the output shaft.
 var planetaryParts = []planetaryPart{
 	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, frontView},
 	{"cover", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCover }, planetaryCoverColor, frontView},
@@ -294,6 +298,7 @@ var planetaryParts = []planetaryPart{
 	{"planet", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Planets[0] }, planetaryPlanetColor, frontView},
 	{"bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Bearings[0] }, planetaryBearingColor, frontView},
 	{"carrier", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Carrier }, planetaryCarrierColor, belowView},
+	{"carrier-pin", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Pins[0] }, planetaryPinColor, sideView},
 	{"input-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.InputShaft }, planetaryShaftColor, sideView},
 	{"link-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Shaft }, planetaryShaftColor, sideView},
 	{"output-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Shaft }, planetaryShaftColor, sideView},
@@ -313,7 +318,7 @@ var planetaryPartCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its keyway and its collar.
+// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its flat and its collar.
 var planetaryPartSideCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 22},
 	Target:   solidlens.Vec{},
@@ -321,8 +326,8 @@ var planetaryPartSideCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartBelowCamera looks at a part from under its lower face, so a carrier shows its pins and their
-// collars standing on the plate's underside.
+// planetaryPartBelowCamera looks at a part from under its lower face, so a carrier shows the sockets for its
+// pins in the plate's underside.
 var planetaryPartBelowCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: -90},
 	Target:   solidlens.Vec{},

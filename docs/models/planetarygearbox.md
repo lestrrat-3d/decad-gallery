@@ -17,9 +17,9 @@ display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets 
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing and has a collar against it. Every shaft is
-4.5 mm, with 0.25 mm radial clearance in the nominal 5 mm bearing bore. Each shaft has three keyway grooves, 120° apart, each `Params.KeyDepth` deep and `Params.KeyWidth` wide, where a sun or carrier sits, and
-round where a bearing sits; the sun's bore and the carrier's hole are cut with a tool of the shaft's section less the
-grooves, so each keeps three teeth and each shaft drives them. `Params.SeatChamfer` chamfers the entrance of each bearing pocket, in the planets and the covers, with
+4.5 mm, with 0.25 mm radial clearance in the nominal 5 mm bearing bore. Each shaft has a flat `Params.FlatDepth` deep, which gives it a D section, where a sun or carrier sits, and
+round where a bearing sits; the sun's bore and the carrier's hole are cut with a tool of the shaft's D section grown
+by the fit clearance, so each keeps a tooth at the flat and each shaft drives them. `Params.SeatChamfer` chamfers the entrance of each bearing pocket, in the planets and the covers, with
 `decad.Chamfer` on the rim found by its radius and height. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
@@ -42,9 +42,8 @@ start on the frame's plane.
 
 The sun and planets come from `spurgear.Build`. A planet is built with the lip bore, then a bearing pocket is cut from
 its upper face. Each planet's bearing is `ballbearing.Build` with `Params605ZZ()`, kept as its own body in
-`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once, and the keyed shaft hole is cut last.
-One pin joined to its collar is patterned and unioned to the plate in a single step, because decad refuses a union
-of every pin and collar separately. `buildShaft` joins a round rod and an optional collar, then cuts the three grooves. A cover is one extruded frame (a rim
+`Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once. A pattern of one D socket tool is cut from it, then the shaft hole. Each pin is its own body, `buildPin`: a rod, a collar and a D peg joined in one union, built once and posed for every planet in `Stage.Pins`.
+`buildShaft` joins a round rod and an optional collar, then cuts the flat. A cover is one extruded frame (a rim
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section. A cover then has four round pockets cut for the M2 bolt heads,
 and the ring blank has eight closed hex cavities cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built
