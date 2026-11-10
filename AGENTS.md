@@ -51,6 +51,13 @@
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
 
+## Pull requests
+
+- State each quantifiable improvement in the PR description where one can be measured.
+- Give the before and after values, e.g. build time, memory, body or face count, clearance, mass or test runtime.
+- Name the command or test that produced each number.
+- Omit a figure that was not measured. Do not estimate one.
+
 ## Model images
 
 - Every model README must show the finished product from multiple angles in addition to its hero image.
