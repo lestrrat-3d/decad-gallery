@@ -17,10 +17,10 @@ const (
 	armThick    = 8.0
 	armBoreFrom = 37.6 // the D-bore tool starts 1 before the inner face and runs 8, to the floor at Y 45.6
 	pinHoleR    = 1.3  // the bolt hole through the arm
-	pocketFlats = 7.43 // the arm's hexagonal pocket for the pin's stub: 6.93 plus 0.25 each side
+	pocketFlats = 7.53 // the arm's hexagonal pocket for the pin's stub: 7.03 plus 0.25 each side
 	pocketFrom  = 41.85
 	pocketLen   = 5.75
-	stubFlats   = 6.93
+	stubFlats   = 7.03 // keeps 1 mm of stub round the nut cavity (radius 2.51)
 	stubFrom    = 42.1
 	stubLen     = 5.05
 	shankR      = 4.5

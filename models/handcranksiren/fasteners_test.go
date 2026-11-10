@@ -112,7 +112,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		for k := range 12 {
 			angle := float64(k) * math.Pi / 6
 			ring := f.Corner.Scale(math.Cos(angle)).Add(f.Dir.Cross(f.Corner).Scale(math.Sin(angle)))
-			require.True(t, pocket.contains(ring.Scale(m2bolt.HeadDiameter/2+0.1+material)),
+			require.True(t, pocket.contains(ring.Scale(m2bolt.HeadDiameter/2+0.3+material)),
 				"%s: the part keeps 1 mm round the head pocket at %d degrees", f.Bolt, k*30)
 		}
 
@@ -131,20 +131,14 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		require.False(t, wall.contains(r3.Vec{}), "%s: the cavity is empty", f.Nut)
 		require.True(t, wall.contains(f.Corner.Scale(3.0)), "%s: the cavity's corner wall is solid", f.Nut)
 		require.True(t, wall.contains(flat.Scale(2.6)), "%s: the cavity's flat wall is solid", f.Nut)
-		require.False(t, wall.contains(f.Corner.Scale(2.1)), "%s: the cavity has the nut's room", f.Nut)
-		// Round the cavity the part keeps 1 mm beyond each corner and each flat.
-		corner, side := (m2nut.AcrossFlats+0.2)/math.Sqrt(3), (m2nut.AcrossFlats+0.2)/2
-		for k := range 6 {
-			angle := float64(k) * math.Pi / 3
-			for _, reach := range []struct {
-				name     string
-				radius   float64
-				rotation float64
-			}{{"corner", corner, 0}, {"flat", side, math.Pi / 6}} {
-				ring := f.Corner.Scale(math.Cos(angle + reach.rotation)).Add(flat.Scale(math.Sin(angle + reach.rotation)))
-				require.True(t, wall.contains(ring.Scale(reach.radius+material)),
-					"%s: the part keeps 1 mm round the cavity's %s %d", f.Nut, reach.name, k)
-			}
+		require.False(t, wall.contains(f.Corner.Scale(2.4)), "%s: the cavity has the nut's room", f.Nut)
+		// Round the cavity the part keeps 1 mm beyond its radius (the circle through the nut's corners plus 0.2 mm).
+		cavityRadius := m2nut.AcrossFlats/math.Sqrt(3) + 0.2
+		for k := range 12 {
+			angle := float64(k) * math.Pi / 6
+			ring := f.Corner.Scale(math.Cos(angle)).Add(flat.Scale(math.Sin(angle)))
+			require.True(t, wall.contains(ring.Scale(cavityRadius+material)),
+				"%s: the part keeps 1 mm round the cavity at %d degrees", f.Nut, k*30)
 		}
 		for name, d := range map[string]float64{"roof": f.CavityFar + 0.5, "floor": f.CavityNear - 0.5} {
 			layer := host(f, nutHost, d)

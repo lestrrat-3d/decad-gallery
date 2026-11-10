@@ -56,15 +56,18 @@ func TestTools(t *testing.T) {
 	require.InDelta(t, 2, hi, 1e-3)
 	box, err := pocket.Bounds()
 	require.NoError(t, err)
-	require.InDelta(t, 2.0, box.Max.X, 1e-3)
+	require.InDelta(t, 2.2, box.Max.X, 1e-3)
 
 	lo, hi = zRange(t, hole)
 	require.InDelta(t, -1, lo, 1e-3)
 	require.InDelta(t, 13, hi, 1e-3)
 
 	lo, hi = zRange(t, cavity)
+	cb, err := cavity.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 2.51, cb.Max.X, 5e-3)
 	require.InDelta(t, 6, lo, 1e-3)
-	require.InDelta(t, 7.8, hi, 1e-3)
+	require.InDelta(t, 8.0, hi, 1e-3)
 }
 
 func TestPlacement(t *testing.T) {
@@ -82,5 +85,5 @@ func TestPlacement(t *testing.T) {
 	require.NoError(t, err)
 	nb, err := nut.Body.Bounds()
 	require.NoError(t, err)
-	require.InDelta(t, 6.9, (nb.Min.Z+nb.Max.Z)/2, 1e-3)
+	require.InDelta(t, 7.0, (nb.Min.Z+nb.Max.Z)/2, 1e-3)
 }

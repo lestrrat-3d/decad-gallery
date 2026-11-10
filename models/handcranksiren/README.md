@@ -60,6 +60,9 @@ proud. Every nut sits in a cavity that the part closes on all sides except the b
 print pause: slice the piece in the orientation below, add a pause at the layer where the cavity's roof starts, drop
 the nut into the open cavity, and resume.
 
+The head pockets are 4.4 mm wide and 2 mm deep, the bolt holes 2.6 mm wide, and the nut cavities round, 5.02 mm wide
+and 2 mm high, so the nut has 0.2 mm of room on each face.
+
 | Piece | Prints with | Nuts to drop in |
 | --- | --- | --- |
 | Gearbox frame | front face down, with a second pause near the top | four near the bed and four near the top |

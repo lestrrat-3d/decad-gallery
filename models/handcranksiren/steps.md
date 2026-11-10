@@ -110,7 +110,8 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 
 `fastenerSite` wraps `m2fastener.Site` with names, hosts and motion. `hardware(site)` adds the bolt part and then the nut
 part, appending their sketches. `fastenerCuts` cuts the pocket, hole and cavity tools from `internal/m2fastener` per
-host (the flags decide which). `Fasteners(p)` in `export_test.go` poses every site. Site order: gearbox-front,
+host (the flags decide which). The tools follow the AGENTS.md clearances: head pocket radius 2.2, hole radius 1.3, round nut cavity of radius 2.51
+and height 2.0. `Fasteners(p)` in `export_test.go` poses every site. Site order: gearbox-front,
 gearbox-rear, drum, collector, throat, grip, crank-pin. The prefixes are `collector-bolt` (nut host collector),
 `throat-bolt` (collector to horn) and `grip-bolt` (grip to gearbox-front).
 

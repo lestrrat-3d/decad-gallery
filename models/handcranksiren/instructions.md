@@ -208,9 +208,9 @@ Axial stack (Y ranges):
 
 - crank-arm: a stadium on the plane Y 38.6 about (60, 84): two arcs of radius 10 at the origin and at 55 toward +Z,
   four tangent lines, and a circle of radius 1.3 at the pin end. Extruded 8, caps chamfered 0.5. D-bore cut from 37.6
-  for 8 (floor at Y 45.6). A hexagon 7.43 across flats about the pin axis from 41.85 to 47.6, corners on X. Then the
+  for 8 (floor at Y 45.6). A hexagon 7.53 across flats about the pin axis from 41.85 to 47.6, corners on X. Then the
   crank-pin-bolt head pocket.
-- crank-pin: a hexagon 6.93 across flats over [42.1, 47.15], a shank of radius 4.5 over [46.85, 94.0], a head of
+- crank-pin: a hexagon 7.03 across flats over [42.1, 47.15], a shank of radius 4.5 over [46.85, 94.0], a head of
   radius 5.8 over [93.6, 96.6], then the hole and cavity for crank-pin-bolt.
 - crank-handle: revolved about the pin axis (60, y, 139), Y [47.0, 97.0], meridian (axial, radius) from the fan's
   profile shifted +1: (1.5, 4.9), (47.2, 4.9), (47.2, 6.4), (50.5, 6.4), (51, 6.9), (51, 8.3), (49.8, 9.3), (44, 8),
@@ -241,7 +241,9 @@ so the bent fingers have room before the stator and the drum rim.
 ### Fasteners
 
 24 bolts (12 M2 × 16, 3 M2 × 18, 5 M2 × 10, 4 M2 × 20) and 24 nuts. The pocket and cavity sizes come from `internal/m2fastener`:
-head pocket radius 2.0 and depth 2.0, hole radius 1.3, nut cavity 4.2 across flats and 1.8 high, tool stock 1.0.
+head pocket radius 2.2 (head radius 1.9 plus 0.3) and depth 2.0, hole radius 1.3 (2.6 across), round nut cavity of radius
+2.51 (the circle through the nut's corners plus 0.2) and 2.0 high (the nut is 1.6 thick, 0.2 clear on each face), tool
+stock 1.0. The nut rests 0.2 beyond the cavity's near face.
 
 | Bolts | Nuts | Len | Head top | Dir | Corner | Cavity | Head host | Nut host |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -253,15 +255,15 @@ head pocket radius 2.0 and depth 2.0, hole radius 1.3, nut cavity 4.2 across fla
 | `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −16.25, 30), (99, −16.25, 30), (85, −16.25, 100), (99, −16.25, 100) | +Y | X | 17.75 | grip | gearbox-front |
 | `crank-pin-bolt` | `crank-pin-nut` | 10 | (60, 38.6, 139) | +Y | X | 4.75 | crank-arm | crank-pin |
 
-Derived: front-bolt cavities at Y [11.75, 13.55] with tips at 18. Rear-bolt cavities at [24.05, 25.85] with tips at 19.6.
-Drum cavities at [1.5, 3.3] with tips at 4.5. Collector cavities at Y [−33.40, −35.20] inside the collector's rear wall
+Derived: front-bolt cavities at Y [11.75, 13.75] with tips at 18. Rear-bolt cavities at [23.85, 25.85] with tips at 19.6.
+Drum cavities at [1.5, 3.5] with tips at 4.5. Collector cavities at Y [−33.40, −35.40] inside the collector's rear wall
 (8 thick), with tips at −39.40, 0.5 inside the cavity ceiling; the holes run Stock past the tip into the cavity.
 Throat pockets go into the collector's −X wall from the cavity side, X [−46, −48], with 3 of material to the outer face;
-the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X [−52.75, −54.55], with tips at X −58,
+the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X [−52.75, −54.75], with tips at X −58,
 1.25 inside the flange's outer face at −59.25. Throat bolts go in from inside the collector, through its 88 mm bore,
 before the collector meets the stator. Grip pockets go into the pad's window face, Y [−16.25, −14.25], with 14 of material
-under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.3], the same layers as the drum cavities, with tips at
-Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.15] with its tip at 50.6, inside the shank.
+under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.5], the same layers as the drum cavities, with tips at
+Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.35] with its tip at 50.6, inside the shank.
 
 #### Print pause
 

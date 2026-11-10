@@ -19,19 +19,22 @@ import (
 
 // Fastener dimensions in mm.
 const (
-	Clearance        = 0.1                               // AGENTS.md radial clearance round a head or nut
-	HoleRadius       = 1.3                               // clearance hole, 2.6 across (>= the 2.4 shank rule)
-	HeadPocketRadius = m2bolt.HeadDiameter/2 + Clearance // 2.0
-	HeadPocketDepth  = m2bolt.HeadHeight                 // 2.0: the head ends flush
-	NutCavityFlats   = m2nut.AcrossFlats + 2*Clearance   // 4.2
-	NutCavityHeight  = m2nut.Thickness + 2*Clearance     // 1.8
-	Stock            = 1.0                               // a tool's reach past a face it opens
-	NutSpec          = "M2 hex nut"                      // the bought part a nut is
-	unitTolerance    = 1e-9                              // how far a direction may stray from unit length
+	HeadClearance    = 0.3                                    // AGENTS.md radial clearance round a head and a shank
+	NutClearance     = 0.2                                    // AGENTS.md clearance round a nut: radial past its corners, axial at each face
+	HoleRadius       = m2bolt.ShankDiameter/2 + HeadClearance // 1.3, the clearance hole 2.6 across
+	HeadPocketRadius = m2bolt.HeadDiameter/2 + HeadClearance  // 2.2
+	HeadPocketDepth  = m2bolt.HeadHeight                      // 2.0: the head ends flush
+	NutCavityHeight  = m2nut.Thickness + 2*NutClearance       // 2.0
+	Stock            = 1.0                                    // a tool's reach past a face it opens
+	NutSpec          = "M2 hex nut"                           // the bought part a nut is
+	unitTolerance    = 1e-9                                   // how far a direction may stray from unit length
 )
 
+// NutCavityRadius is the radius of the nut cavity: the circle through the nut's corners, plus NutClearance (2.51).
+var NutCavityRadius = m2nut.AcrossFlats/math.Sqrt(3) + NutClearance
+
 // Site is one bolt and its captive nut. Head is the centre of the head's top face. Dir is the unit vector from the head
-// toward the tip. Corner is the unit vector across Dir on which the nut's and the cavity's corners lie. Length is one of
+// toward the tip. Corner is the unit vector across Dir on which the nut's corners lie; the cavity is round. Length is one of
 // m2bolt.StandardLengths(). Cavity is the nut cavity's near face, measured from Head along Dir.
 type Site struct {
 	Head, Dir, Corner r3.Vec
@@ -103,25 +106,9 @@ func cylinderTool(ctx context.Context, doc *decad.Document, s Site, from, radius
 	return body, sk, err
 }
 
-// CavityTool builds the nut cavity's cutter: a hexagon NutCavityFlats across, from Cavity to CavityFar, corners on
-// Corner.
+// CavityTool builds the nut cavity's cutter: a circle of radius NutCavityRadius, from Cavity to CavityFar.
 func CavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *sketch.Sketch, error) {
-	sk, err := newSketch(s, s.Cavity)
-	if err != nil {
-		return nil, nil, err
-	}
-	radius := NutCavityFlats / math.Sqrt(3)
-	p, err := sk.CreatePolygon(0, 0, 6, radius)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create cavity hexagon: %w", err)
-	}
-	sk.AddConstraint(
-		sketch.NewCoincident(p.Center, sk.Origin()),
-		sketch.NewHorizontal(p.Sides[1]),
-		sketch.NewDistance(p.Center, p.Vertices[0], radius),
-	)
-	body, err := extrude(ctx, doc, sk, NutCavityHeight)
-	return body, sk, err
+	return cylinderTool(ctx, doc, s, s.Cavity, NutCavityRadius, NutCavityHeight)
 }
 
 func newSketch(s Site, t float64) (*sketch.Sketch, error) {
@@ -183,9 +170,9 @@ func PlaceBolt(ctx context.Context, doc *decad.Document, s Site) (*m2bolt.Model,
 	return m, nil
 }
 
-// PlaceNut builds an m2nut whose lower face lies Clearance beyond the cavity's near face, corners on s.Corner.
+// PlaceNut builds an m2nut whose lower face lies NutClearance beyond the cavity's near face, corners on s.Corner.
 func PlaceNut(ctx context.Context, doc *decad.Document, s Site) (*m2nut.Model, error) {
-	f, err := s.Across(s.Cavity + Clearance)
+	f, err := s.Across(s.Cavity + NutClearance)
 	if err != nil {
 		return nil, fmt.Errorf("nut frame: %w", err)
 	}
