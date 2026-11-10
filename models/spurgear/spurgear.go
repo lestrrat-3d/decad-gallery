@@ -1,9 +1,11 @@
 package spurgear
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -23,7 +25,7 @@ type Params struct {
 }
 
 func DefaultParams() Params {
-	return Params{Module: 1, Teeth: 17, PressureAngle: 20 * math.Pi / 180, Thickness: 10, Samples: 15, Backlash: .05}
+	return Params{Module: 1, Teeth: 17, PressureAngle: 20 * math.Pi / 180, Thickness: 10, Samples: 15, Backlash: 0.05}
 }
 func (p Params) RejectPlacement(model string) error {
 	if p.Placement != nil {
@@ -43,32 +45,25 @@ func placement(p Params) (r3.Frame, error) {
 func shifted(f r3.Frame, dist float64) (r3.Frame, error) {
 	return r3.NewFrame(f.Origin().Add(f.N().Scale(dist)), f.U(), f.V())
 }
-func toWorld(f r3.Frame, xy point) r3.Vec {
-	return f.Origin().Add(f.U().Scale(xy.x)).Add(f.V().Scale(xy.y))
+func toWorld(f r3.Frame, p point) r3.Vec {
+	return f.Origin().Add(f.U().Scale(p.x)).Add(f.V().Scale(p.y))
 }
 func validate(p Params) error {
-	if p.Module <= 0 || p.Thickness <= 0 || p.Teeth < 3 || p.Samples < 3 {
-		return fmt.Errorf("invalid gear dimensions")
+	if p.Module <= 0 || p.Thickness <= 0 || p.Teeth < 3 || p.Samples < 3 || p.PressureAngle <= 0 || p.PressureAngle >= math.Pi/2 || p.BoreDiameter < 0 || p.CapChamfer < 0 {
+		return fmt.Errorf("invalid gear parameters")
 	}
-	if p.PressureAngle <= 0 || p.PressureAngle >= math.Pi/2 {
-		return fmt.Errorf("invalid pressure angle")
-	}
-	if p.BoreDiameter < 0 || p.CapChamfer < 0 {
-		return fmt.Errorf("invalid bore or chamfer")
-	}
-	if math.IsNaN(p.Backlash) || math.IsInf(p.Backlash, 0) || math.Abs(p.Backlash) > p.Module/2 {
+	if !finite(p.Backlash) || math.Abs(p.Backlash) > p.Module/2 {
 		return fmt.Errorf("invalid backlash")
 	}
 	if _, err := placement(p); err != nil {
 		return err
 	}
 	d := derive(p)
-	if d.root <= 0 || d.base <= 0 || d.tip <= d.base || p.BoreDiameter >= 2*d.root || math.IsNaN(d.fillet) || math.IsInf(d.fillet, 0) {
-		return fmt.Errorf("invalid derived dimensions")
+	if d.root <= 0 || d.base <= 0 || d.tip <= d.base || p.BoreDiameter >= 2*d.root || !finite(d.fillet) {
+		return fmt.Errorf("invalid gear dimensions")
 	}
 	return nil
 }
-
 func DefineParameters(t *param.Table, p Params) error { return defineParameters(t, p) }
 func defineParameters(t *param.Table, p Params) error {
 	if err := t.SetValue("module", units.Millimeters(p.Module)); err != nil {
@@ -123,216 +118,24 @@ func defineParameters(t *param.Table, p Params) error {
 }
 func readDimensions(doc *decad.Document) (dimensions, error) {
 	var d dimensions
-	for _, entry := range []struct {
-		name   string
-		target *float64
+	for _, v := range []struct {
+		name string
+		dst  *float64
 	}{{"pitch_radius", &d.pitch}, {"base_radius", &d.base}, {"root_radius", &d.root}, {"tip_radius", &d.tip}, {"fillet_radius", &d.fillet}, {"backlash", &d.backlash}} {
-		v, err := doc.Param(entry.name)
+		x, err := doc.Param(v.name)
 		if err != nil {
-			return dimensions{}, fmt.Errorf("%s: %w", entry.name, err)
+			return d, fmt.Errorf("%s: %w", v.name, err)
 		}
-		*entry.target = v.Base()
+		*v.dst = x.Base()
 	}
 	return d, nil
 }
-
-func solvedProfile(ctx context.Context, s *sketch.Sketch, curves int) (*sketch.Profile, error) {
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, err
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return nil, err
-	}
-	ps := s.Profiles()
-	if len(ps) != 1 || !ps[0].Valid || (curves > 0 && len(ps[0].Outer) != curves) {
-		return nil, fmt.Errorf("invalid profile")
-	}
-	return ps[0], nil
-}
-
-func BuildProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params) (*sketch.Sketch, *sketch.Profile, error) {
-	s, profile, _, err := BuildTwistedProfile(ctx, world, plane, p, 0)
-	return s, profile, err
-}
-func BuildTwistedProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, twist float64) (*sketch.Sketch, *sketch.Profile, [][2]float64, error) {
-	if ctx == nil || world == nil || plane == nil {
-		return nil, nil, nil, fmt.Errorf("context, world and plane are required")
-	}
-	if err := validate(p); err != nil {
-		return nil, nil, nil, err
-	}
-	if math.IsNaN(twist) || math.IsInf(twist, 0) {
-		return nil, nil, nil, fmt.Errorf("invalid twist")
-	}
-	s, profile, roots, err := buildGearProfileTwisted(ctx, world, plane, p, derive(p), twist)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	coords := make([][2]float64, len(roots))
-	for i, r := range roots {
-		coords[i] = [2]float64{r.x, r.y}
-	}
-	return s, profile, coords, nil
-}
-func buildGearProfile(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
-	return buildGearProfileTwisted(ctx, world, plane, p, d, 0)
-}
-func buildGearProfileTwisted(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, d dimensions, twist float64) (*sketch.Sketch, *sketch.Profile, []point, error) {
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	embedded := d.base < d.root
-	roots := make([]point, 0, 2*p.Teeth)
-	flanks := make([]*sketch.FitSpline, 0, 2*p.Teeth)
-	var firstRight, previousLeft *sketch.Point
-	for k := 0; k < p.Teeth; k++ {
-		left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), d.backlash, p.Samples, toothAngle(p, k)+twist)
-		lp, rp := make([]*sketch.Point, p.Samples), make([]*sketch.Point, p.Samples)
-		for i := range p.Samples {
-			rp[i] = sketchcheck.DimensionPoint(s, right[i].x, right[i].y)
-			if i == p.Samples-1 {
-				lp[i] = sketchcheck.DimensionArcEnd(s, left[i].x, left[i].y)
-			} else {
-				lp[i] = sketchcheck.DimensionPoint(s, left[i].x, left[i].y)
-			}
-		}
-		var lr, rr *sketch.Point
-		if !embedded {
-			l, r := rootContact(left[0], d), rootContact(right[0], d)
-			lr = sketchcheck.DimensionArcEnd(s, l.x, l.y)
-			rr = sketchcheck.DimensionPoint(s, r.x, r.y)
-			roots = append(roots, r, l)
-			if k == 0 {
-				firstRight = rr
-			} else {
-				s.CreateArc(s.Origin(), previousLeft, rr)
-			}
-			s.CreateLine(rr, rp[0])
-		}
-		rf, e := s.CreateFitSpline(rp...)
-		if e != nil {
-			return nil, nil, nil, e
-		}
-		s.CreateArc(s.Origin(), rp[p.Samples-1], lp[p.Samples-1])
-		lf, e := s.CreateFitSpline(lp...)
-		if e != nil {
-			return nil, nil, nil, e
-		}
-		flanks = append(flanks, rf, lf)
-		if !embedded {
-			s.CreateLine(lp[0], lr)
-			previousLeft = lr
-		}
-	}
-	if !embedded {
-		s.CreateArc(s.Origin(), previousLeft, firstRight)
-		profile, e := solvedProfile(ctx, s, 0)
-		return s, profile, roots, e
-	}
-	circle := s.CreateCircle(s.Origin(), d.root)
-	s.AddConstraint(sketch.NewRadius(circle, d.root))
-	if _, err := s.Solve(ctx); err != nil {
-		return nil, nil, nil, err
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return nil, nil, nil, err
-	}
-	ps := s.Profiles()
-	indices := make([]int, len(ps))
-	for i, profile := range ps {
-		if !profile.Valid {
-			return nil, nil, nil, fmt.Errorf("invalid embedded region")
-		}
-		indices[i] = i
-	}
-	profile, err := s.UnionProfiles(indices...)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	if !profile.Valid || len(profile.Holes) != 0 || len(profile.Outer) != 4*p.Teeth {
-		return nil, nil, nil, fmt.Errorf("invalid embedded outline")
-	}
-	contacts := make(map[*sketch.FitSpline]point, 2*p.Teeth)
-	for _, edge := range profile.Outer {
-		if f, ok := edge.Entity.(*sketch.FitSpline); ok {
-			if !edge.Partial || !edge.TExact {
-				return nil, nil, nil, fmt.Errorf("uncertified root trim")
-			}
-			x, y := f.Eval(edge.TStart)
-			if math.Abs(math.Hypot(x, y)-d.root) > 1e-8 {
-				return nil, nil, nil, fmt.Errorf("invalid root contact")
-			}
-			contacts[f] = point{x, y}
-		}
-	}
-	for _, f := range flanks {
-		contact, ok := contacts[f]
-		if !ok {
-			return nil, nil, nil, fmt.Errorf("missing root contact")
-		}
-		roots = append(roots, contact)
-	}
-	return s, profile, roots, nil
-}
-
-func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, error) {
-	halfAngle := func(radius float64) float64 {
-		q := involute(d.base, radius)
-		pitch := involute(d.base, d.pitch)
-		beta := math.Pi/(2*float64(p.Teeth)) - d.backlash/(2*d.pitch) - math.Atan2(-pitch.y, pitch.x)
-		q = rotate(q.x, -q.y, beta)
-		return math.Atan2(q.y, q.x)
-	}
-	limit := math.Pi / float64(p.Teeth)
-	if halfAngle(d.root) >= limit {
-		return nil, nil, fmt.Errorf("flanks overlap at root circle")
-	}
-	start := d.base
-	if halfAngle(d.base) >= limit {
-		lo, hi := d.base, d.root
-		for range 200 {
-			mid := (lo + hi) / 2
-			if halfAngle(mid) >= limit {
-				lo = mid
-			} else {
-				hi = mid
-			}
-		}
-		start = (hi + d.root) / 2
-	}
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, nil, err
-	}
-	left, right := sampleFlanks(d.pitch, d.base, start, d.tip, float64(p.Teeth), d.backlash, p.Samples, 0)
-	lp, rp := make([]*sketch.Point, p.Samples), make([]*sketch.Point, p.Samples)
-	for i := range p.Samples {
-		rp[i] = sketchcheck.DimensionPoint(s, right[i].x, right[i].y)
-		if i == 0 || i == p.Samples-1 {
-			lp[i] = sketchcheck.DimensionArcEnd(s, left[i].x, left[i].y)
-		} else {
-			lp[i] = sketchcheck.DimensionPoint(s, left[i].x, left[i].y)
-		}
-	}
-	if _, err := s.CreateFitSpline(rp...); err != nil {
-		return nil, nil, err
-	}
-	s.CreateArc(s.Origin(), rp[p.Samples-1], lp[p.Samples-1])
-	if _, err := s.CreateFitSpline(lp...); err != nil {
-		return nil, nil, err
-	}
-	s.CreateArc(s.Origin(), rp[0], lp[0])
-	profile, err := solvedProfile(ctx, s, 4)
-	return s, profile, err
-}
-
 func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	return (Variant{}).Build(ctx, doc, p)
 }
 func (v Variant) Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
 	if ctx == nil || doc == nil {
-		return nil, fmt.Errorf("context and document are required")
+		return nil, fmt.Errorf("nil build argument")
 	}
 	if v.LocalBuild {
 		return v.buildLocal(ctx, doc, p)
@@ -350,94 +153,210 @@ func (v Variant) assemble(ctx context.Context, r *run) (*decad.Body, error) {
 	}
 	s, err := r.world.CreateSketch(r.lower)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("disc sketch: %w", err)
 	}
-	circle := s.CreateCircle(s.Origin(), r.d.root)
-	radius := sketch.NewRadius(circle, r.d.root)
+	c := s.CreateCircle(s.Origin(), r.d.root)
+	radius := sketch.NewRadius(c, r.d.root)
 	s.AddConstraint(radius)
-	if err := s.Bind(radius, r.world.Params(), "root_radius"); err != nil {
-		return nil, err
+	if err = s.Bind(radius, r.world.Params(), "root_radius"); err != nil {
+		return nil, fmt.Errorf("disc radius: %w", err)
 	}
-	profile, err := solvedProfile(ctx, s, 0)
+	profile, err := sectionProfile(ctx, s, 1)
 	if err != nil {
-		return nil, fmt.Errorf("root disc: %w", err)
+		return nil, fmt.Errorf("disc profile: %w", err)
 	}
 	disc, err := decad.Extrude(ctx, r.doc, s, profile, r.extent)
 	if err != nil {
-		return nil, fmt.Errorf("extrude root disc: %w", err)
+		return nil, fmt.Errorf("disc extrude: %w", err)
 	}
 	copies, err := decad.PatternCopies(ctx, tooth, decad.CircularPattern{Center: r.frame.Origin(), Axis: r.frame.N(), Count: r.teeth})
 	if err != nil {
-		return nil, fmt.Errorf("pattern teeth: %w", err)
+		return nil, fmt.Errorf("pattern: %w", err)
 	}
-	gear, err := decad.Union(ctx, disc, append([]*decad.Body{tooth}, copies...)...)
+	body, err := decad.Union(ctx, disc, append([]*decad.Body{tooth}, copies...)...)
 	if err != nil {
-		return nil, fmt.Errorf("join teeth: %w", err)
+		return nil, fmt.Errorf("join: %w", err)
 	}
 	if v.RootFillet != nil {
-		gear, err = v.RootFillet(ctx, r.doc, gear, r.frame)
+		body, err = v.RootFillet(ctx, r.doc, body, r.frame)
 	} else if r.d.fillet > 0 {
-		gear, err = filletSpurRoots(ctx, r.doc, gear, r, r.d.base < r.d.root)
+		body, err = filletSpurRoots(ctx, r.doc, body, r, r.d.base < r.d.root)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("fillet roots: %w", err)
+		return nil, fmt.Errorf("fillet: %w", err)
 	}
 	if r.p.BoreDiameter > 0 {
-		gear, err = cutThroughBore(ctx, r.doc, gear, r.p)
+		body, err = cutThroughBore(ctx, r.doc, body, r.p)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("bore: %w", err)
 		}
 	}
 	if r.p.CapChamfer > 0 {
-		setback, e := r.doc.Param("cap_chamfer")
-		if e != nil {
-			return nil, e
+		var distance units.Value
+		distance, err = r.doc.Param("cap_chamfer")
+		if err == nil {
+			body, err = chamferOuterCaps(ctx, body, distance)
 		}
-		gear, err = chamferOuterCaps(ctx, gear, setback)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("chamfer: %w", err)
 		}
 	}
-	if !gear.IsSolid() {
+	if !body.IsSolid() {
 		return nil, fmt.Errorf("gear is not solid")
 	}
-	return gear, nil
+	return body, nil
+}
+
+func BuildProfile(ctx context.Context, w *sketch.World, plane *sketch.Plane, p Params) (*sketch.Sketch, *sketch.Profile, error) {
+	s, prof, _, err := BuildTwistedProfile(ctx, w, plane, p, 0)
+	return s, prof, err
+}
+func BuildTwistedProfile(ctx context.Context, w *sketch.World, plane *sketch.Plane, p Params, twist float64) (*sketch.Sketch, *sketch.Profile, [][2]float64, error) {
+	if ctx == nil || w == nil || plane == nil {
+		return nil, nil, nil, fmt.Errorf("nil profile argument")
+	}
+	if err := validate(p); err != nil {
+		return nil, nil, nil, err
+	}
+	if !finite(twist) {
+		return nil, nil, nil, fmt.Errorf("invalid twist")
+	}
+	s, prof, roots, err := buildGearProfileTwisted(ctx, w, plane, p, derive(p), twist)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	out := make([][2]float64, len(roots))
+	for i, v := range roots {
+		out[i] = [2]float64{v.x, v.y}
+	}
+	return s, prof, out, nil
+}
+func buildGearProfile(ctx context.Context, w *sketch.World, plane *sketch.Plane, p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, []point, error) {
+	return buildGearProfileTwisted(ctx, w, plane, p, d, 0)
+}
+func buildGearProfileTwisted(ctx context.Context, w *sketch.World, plane *sketch.Plane, p Params, d dimensions, twist float64) (*sketch.Sketch, *sketch.Profile, []point, error) {
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("profile sketch: %w", err)
+	}
+	embedded := d.base < d.root
+	var first, previous *sketch.Point
+	roots := make([]point, 0, 2*p.Teeth)
+	for k := 0; k < p.Teeth; k++ {
+		l, r := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), d.backlash, p.Samples, toothAngle(p, k)+twist)
+		lp, rp := flankPoints(s, l, r, false)
+		var lr, rr *sketch.Point
+		if !embedded {
+			lroot, rroot := rootContact(l[0], d), rootContact(r[0], d)
+			lr = sketchcheck.DimensionArcEnd(s, lroot.x, lroot.y)
+			rr = sketchcheck.DimensionPoint(s, rroot.x, rroot.y)
+			roots = append(roots, rroot, lroot)
+			if k == 0 {
+				first = rr
+			} else {
+				s.CreateArc(s.Origin(), previous, rr)
+			}
+			s.CreateLine(rr, rp[0])
+		}
+		if _, err = s.CreateFitSpline(rp...); err != nil {
+			return nil, nil, nil, fmt.Errorf("tooth %d right flank: %w", k, err)
+		}
+		s.CreateArc(s.Origin(), rp[len(rp)-1], lp[len(lp)-1])
+		if _, err = s.CreateFitSpline(lp...); err != nil {
+			return nil, nil, nil, fmt.Errorf("tooth %d left flank: %w", k, err)
+		}
+		if !embedded {
+			s.CreateLine(lp[0], lr)
+			previous = lr
+		}
+	}
+	if !embedded {
+		s.CreateArc(s.Origin(), previous, first)
+		prof, e := sectionProfile(ctx, s, 0)
+		return s, prof, roots, e
+	}
+	c := s.CreateCircle(s.Origin(), d.root)
+	s.AddConstraint(sketch.NewRadius(c, d.root))
+	if _, err = s.Solve(ctx); err != nil {
+		return nil, nil, nil, fmt.Errorf("solve embedded profile: %w", err)
+	}
+	if err = sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, nil, nil, fmt.Errorf("verify embedded profile: %w", err)
+	}
+	profiles := s.Profiles()
+	indices := make([]int, len(profiles))
+	for i, prof := range profiles {
+		if !prof.Valid {
+			return nil, nil, nil, fmt.Errorf("invalid embedded region %d", i)
+		}
+		indices[i] = i
+	}
+	prof, err := s.UnionProfiles(indices...)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("union profiles: %w", err)
+	}
+	if !prof.Valid || len(prof.Holes) != 0 || len(prof.Outer) != 4*p.Teeth {
+		return nil, nil, nil, fmt.Errorf("embedded boundary curves %d, expected %d and no holes", len(prof.Outer), 4*p.Teeth)
+	}
+	for _, edge := range prof.Outer {
+		if flank, ok := edge.Entity.(*sketch.FitSpline); ok {
+			if !edge.Partial || !edge.TExact {
+				return nil, nil, nil, fmt.Errorf("uncertified spline trim")
+			}
+			x, y := flank.Eval(edge.TStart)
+			if math.Abs(math.Hypot(x, y)-d.root) > 1e-8 {
+				return nil, nil, nil, fmt.Errorf("spline contact not on root circle")
+			}
+			roots = append(roots, point{x, y})
+		}
+	}
+	if len(roots) != 2*p.Teeth {
+		return nil, nil, nil, fmt.Errorf("root contacts %d, expected %d", len(roots), 2*p.Teeth)
+	}
+	// Return right then left for each tooth, independent of boundary traversal.
+	slices.SortFunc(roots, func(left, right point) int {
+		a := math.Mod(math.Mod(math.Atan2(left.y, left.x)-twist, 2*math.Pi)+2*math.Pi, 2*math.Pi)
+		b := math.Mod(math.Mod(math.Atan2(right.y, right.x)-twist, 2*math.Pi)+2*math.Pi, 2*math.Pi)
+		return cmp.Compare(a, b)
+	})
+	last := roots[len(roots)-1]
+	roots = append([]point{last}, roots[:len(roots)-1]...)
+	return s, prof, roots, nil
 }
 
 func filletRoots(ctx context.Context, body *decad.Body, frame r3.Frame, roots []point, radius float64) (*decad.Body, error) {
 	return filletRootsValue(ctx, body, frame, roots, units.Millimeters(radius))
 }
 func filletRootsValue(ctx context.Context, body *decad.Body, frame r3.Frame, roots []point, radius units.Value) (*decad.Body, error) {
-	axis := frame.N()
-	edges, err := decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)
+	edges, err := decad.Edges(decad.ParallelTo(frame.N())).SelectEdges(body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select axial edges: %w", err)
 	}
 	var corners []r3.Vec
 	for _, edge := range edges {
-		v := edge.Start().Position().Value
+		pos := edge.Start().Position().Value
 		for _, root := range roots {
-			if v.Sub(toWorld(frame, root)).Len() <= 1e-6 {
-				corners = append(corners, v)
+			if pos.Sub(toWorld(frame, root)).Len() < 1e-6 {
+				corners = append(corners, pos)
 				break
 			}
 		}
 	}
 	if len(corners) != len(roots) || len(corners) == 0 {
-		return nil, fmt.Errorf("matched %d root edges, expected %d", len(corners), len(roots))
+		return nil, fmt.Errorf("root edges %d, expected %d", len(corners), len(roots))
 	}
-	query := decad.Edges(decad.ParallelTo(axis), decad.EndpointAt(corners[0]))
-	for _, corner := range corners[1:] {
-		query = query.Or(decad.ParallelTo(axis), decad.EndpointAt(corner))
+	sel := decad.Edges(decad.ParallelTo(frame.N()), decad.EndpointAt(corners[0]))
+	for _, p := range corners[1:] {
+		sel = sel.Or(decad.ParallelTo(frame.N()), decad.EndpointAt(p))
 	}
-	return decad.Fillet(ctx, body, query.Exactly(len(corners)), radius)
+	return decad.Fillet(ctx, body, sel.Exactly(len(corners)), radius)
 }
 func filletEmbedded(ctx context.Context, body *decad.Body, frame r3.Frame, teeth int, radius units.Value) (*decad.Body, error) {
 	return decad.Fillet(ctx, body, decad.Edges(decad.ParallelTo(frame.N()), decad.Concave()).Exactly(2*teeth), radius)
 }
 
-func buildBoreProfile(ctx context.Context, world *sketch.World, p Params, margin float64) (*sketch.Sketch, *sketch.Profile, error) {
-	if err := defineParameters(world.Params(), p); err != nil {
+func buildBoreProfile(ctx context.Context, w *sketch.World, p Params, margin float64) (*sketch.Sketch, *sketch.Profile, error) {
+	if err := defineParameters(w.Params(), p); err != nil {
 		return nil, nil, err
 	}
 	f, err := placement(p)
@@ -448,25 +367,25 @@ func buildBoreProfile(ctx context.Context, world *sketch.World, p Params, margin
 	if err != nil {
 		return nil, nil, err
 	}
-	plane, err := world.CreatePlaneFromFrame(f)
+	pl, err := w.CreatePlaneFromFrame(f)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("bore plane: %w", err)
 	}
-	s, err := world.CreateSketch(plane)
+	s, err := w.CreateSketch(pl)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("bore sketch: %w", err)
 	}
-	circle := s.CreateCircle(s.Origin(), p.BoreDiameter/2)
-	diameter := sketch.NewDiameter(circle, p.BoreDiameter)
-	s.AddConstraint(diameter)
-	if err := s.Bind(diameter, world.Params(), "bore_diameter"); err != nil {
-		return nil, nil, err
+	c := s.CreateCircle(s.Origin(), p.BoreDiameter/2)
+	dim := sketch.NewDiameter(c, p.BoreDiameter)
+	s.AddConstraint(dim)
+	if err = s.Bind(dim, w.Params(), "bore_diameter"); err != nil {
+		return nil, nil, fmt.Errorf("bore diameter: %w", err)
 	}
-	profile, err := solvedProfile(ctx, s, 0)
-	return s, profile, err
+	prof, err := sectionProfile(ctx, s, 1)
+	return s, prof, err
 }
 func CutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body, p Params) (*decad.Body, error) {
-	if ctx == nil || doc == nil || body == nil || p.BoreDiameter <= 0 {
+	if ctx == nil || doc == nil || body == nil || !(p.BoreDiameter > 0) {
 		return nil, fmt.Errorf("invalid bore arguments")
 	}
 	if err := defineParameters(doc.Params(), p); err != nil {
@@ -477,37 +396,38 @@ func CutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body, 
 func cutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body, p Params) (*decad.Body, error) {
 	margin, err := doc.Param("tool_margin")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tool margin: %w", err)
 	}
-	s, profile, err := buildBoreProfile(ctx, sketch.NewWorld(), p, margin.Base())
+	w := sketch.NewWorld()
+	s, prof, err := buildBoreProfile(ctx, w, p, margin.Base())
 	if err != nil {
 		return nil, fmt.Errorf("bore profile: %w", err)
 	}
 	length, err := doc.Param("bore_tool_length")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bore tool length: %w", err)
 	}
-	tool, err := decad.Extrude(ctx, doc, s, profile, decad.Distance{D: length, Dir: decad.Along})
+	tool, err := decad.Extrude(ctx, doc, s, prof, decad.Distance{D: length, Dir: decad.Along})
 	if err != nil {
-		return nil, fmt.Errorf("bore tool: %w", err)
+		return nil, fmt.Errorf("bore extrusion: %w", err)
 	}
-	result, err := decad.Cut(ctx, body, tool)
+	cut, err := decad.Cut(ctx, body, tool)
 	if err != nil {
-		return nil, fmt.Errorf("cut bore: %w", err)
+		return nil, fmt.Errorf("bore cut: %w", err)
 	}
-	return result, nil
+	return cut, nil
 }
 func ChamferOuterCaps(ctx context.Context, gear *decad.Body, distance float64) (*decad.Body, error) {
-	if ctx == nil || gear == nil || distance <= 0 || math.IsNaN(distance) || math.IsInf(distance, 0) {
+	if ctx == nil || gear == nil || !finite(distance) || distance <= 0 {
 		return nil, fmt.Errorf("invalid chamfer arguments")
 	}
 	return chamferOuterCaps(ctx, gear, units.Millimeters(distance))
 }
-func chamferOuterCaps(ctx context.Context, gear *decad.Body, setback units.Value) (*decad.Body, error) {
-	selection := decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).Or(decad.OuterLoopOf(decad.CapEnd(gear)))
-	result, err := decad.Chamfer(ctx, gear, selection, setback)
+func chamferOuterCaps(ctx context.Context, gear *decad.Body, distance units.Value) (*decad.Body, error) {
+	sel := decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).Or(decad.OuterLoopOf(decad.CapEnd(gear)))
+	result, err := decad.Chamfer(ctx, gear, sel, distance)
 	if err != nil {
-		return nil, fmt.Errorf("chamfer caps: %w", err)
+		return nil, fmt.Errorf("chamfer outer caps: %w", err)
 	}
 	return result, nil
 }

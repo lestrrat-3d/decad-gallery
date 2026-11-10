@@ -135,8 +135,32 @@ func TestCutThroughBoreVolumeOnBox(t *testing.T) {
 
 	p := spurgear.DefaultParams()
 	p.BoreDiameter = 3
+	_, err = spurgear.CutThroughBore(nil, doc, base, p) //nolint:staticcheck // Check the nil-context guard.
+	require.Error(t, err)
+	_, err = spurgear.CutThroughBore(t.Context(), nil, base, p)
+	require.Error(t, err)
+	_, err = spurgear.CutThroughBore(t.Context(), doc, nil, p)
+	require.Error(t, err)
+	invalid := p
+	invalid.BoreDiameter = 0
+	_, err = spurgear.CutThroughBore(t.Context(), doc, base, invalid)
+	require.Error(t, err)
+	_, err = spurgear.ChamferOuterCaps(nil, base, 0.1) //nolint:staticcheck // Check the nil-context guard.
+	require.Error(t, err)
+	_, err = spurgear.ChamferOuterCaps(t.Context(), nil, 0.1)
+	require.Error(t, err)
+	for _, setback := range []float64{0, -1, math.NaN(), math.Inf(1)} {
+		_, err = spurgear.ChamferOuterCaps(t.Context(), base, setback)
+		require.Error(t, err)
+	}
 	withBore, err := spurgear.CutThroughBore(t.Context(), doc, base, p)
 	require.NoError(t, err)
+	root, err := doc.Param("root_radius")
+	require.NoError(t, err)
+	require.InDelta(t, 7.25, root.Base(), 1e-12)
+	length, err := doc.Param("bore_tool_length")
+	require.NoError(t, err)
+	require.InDelta(t, p.Thickness+2, length.Base(), 1e-12)
 	require.True(t, withBore.IsSolid())
 	require.Len(t, doc.Bodies(), 1)
 	boreVolume, err := withBore.Volume()

@@ -62,6 +62,10 @@ private `placement(p Params) (r3.Frame, error)` returning `*p.Placement` or
 - Validate `InvoluteFlanks` arguments according to Reusable constructions.
 - Treat `CutThroughBore` and `ChamferOuterCaps` as finishing helpers with the
   preconditions in Reusable constructions; they do not invoke the gear validator.
+- `CutThroughBore` returns an error before touching the document when context,
+  document or body is nil, or when the bore diameter is not positive.
+  `ChamferOuterCaps` returns an error when context or body is nil, or when its
+  distance is nonpositive or nonfinite. These guards apply to exported calls.
 - Wrap operation errors with `%w` and stage names. Include tooth index for
   flank failures and actual/expected counts for topology failures.
 
@@ -155,8 +159,9 @@ when `LocalBuild` is true; otherwise it calls `begin` and then `assemble`.
 disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
 binding and sketch verification for the root disc. When `RootFillet` is nonnil,
 call it with the joined body and frame; otherwise call `filletSpurRoots` only
-when the derived radius is positive. Apply Steps 8 and 9 after that, using the
-same shared bore and cap-chamfer helpers as the public finishing APIs.
+when the derived radius is positive. Apply Steps 8 and 9 after that. Use the
+private bore routine on the already configured document, and use the same
+cap-chamfer helper as the public finishing API.
 Return the final solid. Keep all per-build state in `run` and local variables.
 
 ## Step 0 — parameter table
@@ -390,8 +395,11 @@ include only edges matched to saved root contacts.
 
 ## Step 8 — cut a through-bore
 
-In `Build`, call this operation only when `p.BoreDiameter > 0`. Implement
-`CutThroughBore` and the internal build call through one shared routine:
+In `Build`, call this operation only when `p.BoreDiameter > 0`. Implement a
+private bore-cut routine that uses the document's existing parameter table
+without redefining it. `assemble` calls this routine so variant expressions
+remain intact. The exported `CutThroughBore` initializes the standard spur
+parameters on the document, then delegates to the same private routine:
 
 1. Set a 1 mm tool margin (the `tool_margin` entry's value). Create a world and call `buildBoreProfile` with it.
 2. In that helper, create the frame `shifted(placement, -margin)` from
@@ -404,8 +412,9 @@ In `Build`, call this operation only when `p.BoreDiameter > 0`. Implement
 4. Solve and verify, require exactly one valid profile, and return sketch/profile.
 5. Call `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: length,Dir: decad.Along})`
    to produce the tool, with `length` from `doc.Param("bore_tool_length")`.
-   `CutThroughBore` calls `defineParameters(doc.Params(), p)` first, so other
-   models can call it with a document that has not defined the table.
+   The exported wrapper calls `defineParameters(doc.Params(), p)` first, so
+   other models can call it with a document that has not defined the table.
+   The private routine and `assemble` must not redefine the document table.
 6. Call `decad.Cut(ctx,gear,tool)` and return its body.
 
 ## Step 9 — chamfer outer caps
