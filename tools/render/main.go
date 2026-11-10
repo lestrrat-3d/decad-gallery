@@ -166,6 +166,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	if model == "handcrankfan" {
 		return renderHandCrankFanReadme(ctx, outputDir)
 	}
+	if model == "handcranksiren" {
+		return renderHandCrankSirenReadme(ctx, outputDir)
+	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)
 	}
