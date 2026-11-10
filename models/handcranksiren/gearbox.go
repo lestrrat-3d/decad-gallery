@@ -82,6 +82,10 @@ func (b *builder) gearboxFront() *decad.Body {
 	for _, s := range sitesNamed("gearbox-front-bolt") {
 		body = b.fastenerCuts(body, s, true, true, false)
 	}
+	// The drum bolts end in nut cavities near the front plate's inner face.
+	for _, s := range sitesNamed("drum-bolt") {
+		body = b.fastenerCuts(body, s, false, true, true)
+	}
 	return body
 }
 
@@ -120,4 +124,18 @@ func (b *builder) gearboxFrame() *decad.Body {
 		}
 	}
 	return body
+}
+
+// head builds the siren head and the drum and horn hardware: the drum, the rotor, the stator and the horn, then the
+// bolts and nuts that hold them.
+func (b *builder) head() {
+	b.part("drum", HousingContainerName, "fixed", b.drum)
+	b.part("rotor", RotorContainerName, "rotor", b.rotor)
+	b.part("stator", StatorContainerName, "fixed", b.stator)
+	b.part("horn", HornContainerName, "fixed", b.horn)
+	for _, prefix := range []string{"drum-bolt", "horn-bolt"} {
+		for _, s := range sitesNamed(prefix) {
+			b.hardware(s)
+		}
+	}
 }

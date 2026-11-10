@@ -38,8 +38,8 @@ func Outer(loop *decad.Loop, _ []*decad.Edge) bool { return loop.IsOuter() }
 // Inner keeps the loops that are holes.
 func Inner(loop *decad.Loop, _ []*decad.Edge) bool { return !loop.IsOuter() }
 
-// Long keeps the loops f keeps whose edges add up to at least LongEdgeRun. An edge whose length Decad cannot bound
-// adds nothing.
+// Long keeps the loops f keeps whose edges add up to at least LongEdgeRun. Decad refuses the length of a rim a Boolean
+// cut into a curved source, so an edge it refuses is measured from its curve.
 func Long(f LoopFilter) LoopFilter {
 	return func(loop *decad.Loop, edges []*decad.Edge) bool {
 		if !f(loop, edges) {
@@ -47,14 +47,29 @@ func Long(f LoopFilter) LoopFilter {
 		}
 		total := 0.0
 		for _, e := range edges {
-			length, err := e.Length()
-			if err != nil {
-				continue
-			}
-			total += length.Value.Base()
+			total += edgeLength(e)
 		}
 		return total >= LongEdgeRun
 	}
+}
+
+// edgeLength returns the length of e in mm: Decad's proven length, or the curve's own length when Decad refuses one.
+func edgeLength(e *decad.Edge) float64 {
+	if length, err := e.Length(); err == nil {
+		return length.Value.Base()
+	}
+	start, end := e.Start().Position().Value, e.End().Position().Value
+	switch c := e.Curve().(type) {
+	case decad.Circle3:
+		return 2 * math.Pi * c.Radius.Base()
+	case decad.Arc3:
+		a, b := start.Sub(c.Center), end.Sub(c.Center)
+		// The edge's direction about Axis is unknown, so take the shorter way round. The arcs a Boolean cut leaves
+		// in a loop are at most a half turn.
+		sweep := math.Abs(math.Atan2(c.Axis.Dot(a.Cross(b)), a.Dot(b)))
+		return c.Radius.Base() * sweep
+	}
+	return end.Sub(start).Len()
 }
 
 // Chamfer chamfers by size, in one decad.Chamfer call, every edge of every kept loop on every planar face of body whose

@@ -1,6 +1,7 @@
 package handcranksiren_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -11,14 +12,20 @@ import (
 
 // partGroups lists, per top-level container, the parts the build has so far. Later tasks extend it.
 var partGroups = map[string][]string{
-	handcranksiren.HousingContainerName: {"gearbox-front", "gearbox-frame", "gearbox-rear"},
+	handcranksiren.HousingContainerName: {"gearbox-front", "gearbox-frame", "gearbox-rear", "drum"},
+	handcranksiren.CrankContainerName:   {"crank-arm", "crank-pin", "crank-handle"},
+	handcranksiren.StatorContainerName:  {"stator"},
+	handcranksiren.RotorContainerName:   {"rotor"},
+	handcranksiren.HornContainerName:    {"horn"},
 	handcranksiren.BoltsContainerName: {
 		"gearbox-front-bolt-1", "gearbox-front-bolt-2", "gearbox-front-bolt-3", "gearbox-front-bolt-4",
 		"gearbox-rear-bolt-1", "gearbox-rear-bolt-2", "gearbox-rear-bolt-3", "gearbox-rear-bolt-4",
+		"drum-bolt-1", "drum-bolt-2", "drum-bolt-3", "horn-bolt-1", "horn-bolt-2", "horn-bolt-3", "horn-bolt-4", "crank-pin-bolt",
 	},
 	handcranksiren.NutsContainerName: {
 		"gearbox-front-nut-1", "gearbox-front-nut-2", "gearbox-front-nut-3", "gearbox-front-nut-4",
 		"gearbox-rear-nut-1", "gearbox-rear-nut-2", "gearbox-rear-nut-3", "gearbox-rear-nut-4",
+		"drum-nut-1", "drum-nut-2", "drum-nut-3", "horn-nut-1", "horn-nut-2", "horn-nut-3", "horn-nut-4", "crank-pin-nut",
 	},
 	handcranksiren.ShaftsContainerName: {"crank-shaft", "intermediate-shaft", "rotor-shaft"},
 	handcranksiren.BearingsContainerName: {
@@ -68,6 +75,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	doc, parts, a := buildSiren(t, p)
 	names := partNames()
 	require.Len(t, a.Parts, len(names))
+	require.Len(t, a.Parts, 55)
 	for _, name := range names {
 		require.Contains(t, parts, name)
 	}
@@ -80,14 +88,27 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 		}
 	})
 	t.Run("containers", func(t *testing.T) { requireContainers(t, doc, parts) })
-	if p == handcranksiren.DefaultParams() {
-		t.Run("mesh", func(t *testing.T) {
-			requireSpurMesh(t, p, parts)
-			requireTipToFrame(t, p, parts)
+	t.Run("ports", func(t *testing.T) { requirePorts(t, p, parts) })
+	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
+	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
+	if p != handcranksiren.DefaultParams() {
+		// The variants prove only what Slots changes: the rotor's fits.
+		t.Run("rotor fits", func(t *testing.T) {
+			c := &fitCheck{t: t}
+			requireRotorFits(t, p, parts, c)
+			c.done()
 		})
-		t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
-		t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
+		return
 	}
+	t.Run("sweep", func(t *testing.T) { requireSweep(t, parts) })
+	t.Run("tessellate", func(t *testing.T) { requireTessellates(t, parts) })
+	t.Run("edges", func(t *testing.T) { requireEdgeFinishing(t, p, parts) })
+	t.Run("mesh", func(t *testing.T) {
+		requireSpurMesh(t, p, parts)
+		requireTipToFrame(t, p, parts)
+	})
+	t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
+	t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
 }
 
 // requireContainers checks that every body sits in the container for its kind and that the document verifies.
@@ -115,3 +136,13 @@ func requireContainers(t *testing.T, doc *decad.Document, parts map[string]handc
 }
 
 func TestHandCrankSirenDefault(t *testing.T) { checkSiren(t, handcranksiren.DefaultParams()) }
+
+// TestHandCrankSirenVariant builds the siren with the fewest and the most slots, at two crank angles.
+func TestHandCrankSirenVariant(t *testing.T) {
+	for name, p := range map[string]handcranksiren.Params{
+		"slots 12": {CrankAngle: 0, Slots: 12},
+		"slots 24": {CrankAngle: 5 * math.Pi / 4, Slots: 24},
+	} {
+		t.Run(name, func(t *testing.T) { checkSiren(t, p) })
+	}
+}

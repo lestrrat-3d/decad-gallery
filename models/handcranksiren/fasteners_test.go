@@ -86,9 +86,6 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		HeldChord:        units.Millimeters(0.01),
 	}
 	for _, f := range all {
-		if _, built := parts[f.Bolt]; !built {
-			continue // a later task builds this site
-		}
 		bolt, nut := parts[f.Bolt].Body, parts[f.Nut].Body
 		headHost, nutHost := parts[f.HeadHost].Body, parts[f.NutHost].Body
 		host := func(f handcranksiren.Fastener, body *decad.Body, d float64) sectionAt {

@@ -143,7 +143,8 @@ Axial stack (Y ranges):
 
 ### Gearbox
 
-- Outline: rounded rectangle X [−21, 107], Z [0, 131], corner radius 13. Frame cavity X [−14, 100], Z [7, 124], corner
+- Outline: rounded rectangle X [−21, 107], Z [0, 131], corner radius 13, drawn counter-clockwise (a
+  clockwise winding leaves the sketch fillets over-constrained). Frame cavity X [−14, 100], Z [7, 124], corner
   radius 6. Frame wall 7 thick.
 - gearbox-front: the outline from Y 0 for 10. On R, I and C: seat pocket radius 11.05 over [2.6, 10] plus 1 of stock,
   relief radius 9.5 over [1.6, 2.6]. On R: through hole radius 4.2 from −1 to 1.6. Edge finish with offsets {0, 10}.
@@ -156,8 +157,9 @@ Axial stack (Y ranges):
 
 ### Drum, rotor, stator and horn
 
-- drum: a revolved meridian (4.2, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
-  (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.2, −15.50) about the axis R along Y.
+- drum: a revolved meridian (4.7, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
+  (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.7, −15.50), (4.2, −15.00),
+  (4.2, −12.00) about the axis R along Y; the shaft hole's two 0.5 chamfers are in the meridian.
   Three windows (chord-sided port 14 to 24 radius, half angle 40°, centred at 60°, 180°, 300°... patterned with
   Count 3) are cut through the back plate. Three posts of radius 5 at radius 30 from R, Y [−12.50, −0.25] (angles 0°,
   120°, 240°).
@@ -213,7 +215,10 @@ flange's front face. The pin cavity is at [43.35, 45.15] with its tip at 50.6, i
 
 ### Fits
 
-The nominal gap is the class minimum plus 0.05. The test proves each lower bound with section outlines.
+The nominal gap is the class minimum plus 0.05. The test proves each lower bound with section outlines. Fits between
+round parts (T4, T5, T7, T9, T10, T8, R3) use a section tolerance of 0.01, because at 0.02 the intermediate shaft's bound
+against its bearing is 0.192, below the Tight minimum. Fits that include a printed plate use 0.02, the plates being
+faceted with a mesh bound of 0.01615. S1 sections the bearing at 0.01 and the plate at 0.0162.
 
 | ID | Parts | Class (min) | Nominal | How measured |
 | --- | --- | --- | --- | --- |
@@ -260,7 +265,7 @@ outer loop, and require:
 | --- | --- | --- | --- |
 | gearbox-front, gearbox-rear | both faces | `edgefinish` Long(All) 0.5 | bolt pockets and holes (loops < 20 mm) |
 | gearbox-frame | both ends | `edgefinish` Long(All) 0.5 | bolt holes (short) |
-| drum | back plate rear face, flange faces | meridian chamfers; `edgefinish` Long(Inner) on windows and shaft hole | concave junctions |
+| drum | back plate rear face, flange faces | meridian chamfers (outer corners and the shaft hole); `edgefinish` Long(Inner) on the windows | concave junctions (the posts) |
 | stator | both faces | cap outer loops 0.5 | ports: functional chopping edge |
 | rotor | front face, disc back face | cap outer loops 0.5 | ports: functional chopping edge |
 | horn | flange faces, mouth lip | meridian chamfers | none |

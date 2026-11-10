@@ -67,3 +67,6 @@ func Fasteners(p Params) ([]Fastener, error) {
 	}
 	return out, nil
 }
+
+// PinAxis is the crank pin's axis point at Y 0 and CrankAngle 0.
+var PinAxis = pinAxis

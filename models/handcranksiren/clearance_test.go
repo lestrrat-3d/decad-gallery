@@ -206,6 +206,31 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	}
 	axial("L4", "crank-gear", "bearing-crank-rear", 1, loose)
 	axial("L4", "intermediate-pinion", "bearing-intermediate-rear", 1, loose)
+
+	// T2, T3: the drum's posts against the front plate, the stator against the drum, the horn against the stator.
+	axial("T2", "drum", "gearbox-front", 1, tight)
+	axial("T3", "stator", "drum", 1, tight)
+	axial("T3", "horn", "stator", 1, tight)
+	// T5, T6: the rotor hub's D-bore on the rotor shaft, and the shaft's front end against the bore's floor.
+	exact("T5", "rotor", "rotor-shaft", atY(t, -20.5), tight)
+	exact("T6", "rotor", "rotor-shaft", axialPlane(t, p, "rotor", state.Rotor), tight)
+	// R1: the rotor shaft through the drum's hole.
+	section("R1", "rotor-shaft", "drum", axialPlane(t, p, "rotor", state.Rotor), regular)
+	requireRotorFits(t, p, parts, c)
+	// T5, T6, T8: the arm's D-bore on the crank shaft, the shaft's end against the bore's floor, the pin's stub in the
+	// arm's hexagonal pocket.
+	exact("T5", "crank-arm", "crank-shaft", atY(t, 41.0), tight)
+	exact("T6", "crank-arm", "crank-shaft", axialPlane(t, p, "crank", state.Crank), tight)
+	exact("T8", "crank-pin", "crank-arm", atY(t, 44.0), tight)
+	// R3: the handle on the pin, in the shank's and the head's sections and along the pin.
+	pinPlane := axialPlane(t, p, "crank", handcranksiren.PinAxis)
+	exact("R3", "crank-handle", "crank-pin", atY(t, 70), regular)
+	exact("R3", "crank-handle", "crank-pin", atY(t, 95), regular)
+	exact("R3", "crank-handle", "crank-pin", pinPlane, regular)
+	// R4: the arm against the handle's inner end.
+	axial("R4", "crank-arm", "crank-handle", 1, regular)
+	// L5: the arm against the rear plate.
+	axial("L5", "gearbox-rear", "crank-arm", 1, loose)
 	c.done()
 }
 
@@ -245,4 +270,29 @@ func requireSeatFloor(t *testing.T, c *fitCheck, site handcranksiren.BearingSite
 		got = 0.2
 	}
 	c.atLeast("S2", site.Name+" / seat floor", got, 0.2)
+}
+
+// requireRotorFits proves R2, the rotor's gap to the stator with the clamp budget of the stack, and L1, the rotor's gap
+// to the drum. Both depend on Slots, so the variants run them too.
+func requireRotorFits(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part, c *fitCheck) {
+	t.Helper()
+	state, err := handcranksiren.Motion(p)
+	require.NoError(t, err)
+	body := func(name string) *decad.Body { return parts[name].Body }
+	section := func(id, a, b string, plane r3.Frame, class float64) {
+		t.Helper()
+		c.atLeast(id, a+" / "+b, sectionGap(t, body(a), body(b), plane), class)
+	}
+	// R2: the stator against the rotor, with the clamp budget of the stack (instructions.md, Shafts and bearings).
+	c.atLeast("R2", "stator / rotor axial", axialGap(t, body("stator"), body("rotor"), 1), 1.10)
+	// L1: the rotor's rim against the drum wall, and its vanes and hub against the back plate.
+	section("L1", "rotor", "drum", atY(t, -26.0), loose)
+	section("L1", "rotor", "drum", axialPlane(t, p, "rotor", state.Rotor), loose)
+	// The same plane turned to a vane's mid-line, so the vanes are measured too.
+	vane := math.Pi / float64(p.Slots)
+	vaneOrigin, err := handcranksiren.PosePoint(p, "rotor", state.Rotor)
+	require.NoError(t, err)
+	vaneTip, err := handcranksiren.PosePoint(p, "rotor", state.Rotor.Add(r3.Vec{X: math.Cos(vane), Z: math.Sin(vane)}))
+	require.NoError(t, err)
+	section("L1", "rotor", "drum", frameAt(t, vaneOrigin, r3.Vec{Y: 1}, vaneTip.Sub(vaneOrigin)), loose)
 }
