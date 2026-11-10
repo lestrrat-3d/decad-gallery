@@ -261,7 +261,7 @@ the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X
 1.25 inside the flange's outer face at −59.25. Throat bolts go in from inside the collector, through its 88 mm bore,
 before the collector meets the stator. Grip pockets go into the pad's window face, Y [−16.25, −14.25], with 14 of material
 under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.3], the same layers as the drum cavities, with tips at
-Y 5.75 and holes ending at 6.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.15] with its tip at 50.6, inside the shank.
+Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.15] with its tip at 50.6, inside the shank.
 
 #### Print pause
 
