@@ -47,6 +47,13 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 		return nil, fmt.Errorf("build hand-crank siren: %w", err)
 	}
 	b := &builder{ctx: ctx, doc: doc, p: p, a: Assembly{State: state, Params: p}}
+	b.gears()
+	b.shafts()
+	b.bearings()
+	b.gearbox()
+	for _, s := range sitesNamed("gearbox-") {
+		b.hardware(s)
+	}
 	if b.err != nil {
 		return nil, b.err
 	}
