@@ -213,7 +213,7 @@ func renderPlanetaryPanels(ctx context.Context, count int, render func(context.C
 }
 
 // renderPlanetaryMotion writes an animation of the two-stage gearbox as its input turns, from three cameras: the
-// cutaway of the hero, the input end and the output end. Both shafts carry their keyway, so the turning of the
+// cutaway of the hero, the input end and the output end. Both shafts carry their flat, so the turning of the
 // input and the much slower turning of the output show. The first frame is the gearbox at rest, and a caption
 // strip below the panels reads the input and output angles. The frames play forward and back.
 func renderPlanetaryMotion(ctx context.Context, output string, width, height, frames int) error {
