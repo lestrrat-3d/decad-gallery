@@ -52,7 +52,7 @@ type planetaryMover struct {
 
 // planetaryMovers pairs every body with how it moves when the input shaft turns by an angle. The ring and
 // the covers are fixed. The input shaft and the first sun turn with the input. A carrier turns at
-// Zs/(Zs+Zr) of its sun's angle, and the next stage's sun turns with it. A planet is carried around by its
+// Zs/(Zs+Zr) of its sun's angle, and the next stage's sun turns with it, as do its pins. A planet is carried around by its
 // carrier and turns on its pin at -Zr/Zp of the carrier's angle, relative to the carrier, because it rolls
 // inside the fixed ring.
 func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planetarygearbox.Params) ([]planetaryMover, error) {
@@ -86,6 +86,10 @@ func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planet
 					move = func(input float64) (r3.Transform, error) { return about(carrierAngle(input)) }
 				}
 				for i := range stage.Planets {
+					if body.body == stage.Pins[i] {
+						move = func(input float64) (r3.Transform, error) { return about(carrierAngle(input)) }
+						continue
+					}
 					if body.body != stage.Planets[i] && body.body != stage.Bearings[i] {
 						continue
 					}
