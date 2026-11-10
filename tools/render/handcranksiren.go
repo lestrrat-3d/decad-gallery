@@ -39,7 +39,7 @@ var (
 		Target: solidlens.Vec{X: 45, Y: -20, Z: 80}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 	handCrankSirenCutawayCamera = solidlens.Camera{Position: solidlens.Vec{X: -480, Y: -300, Z: 230},
 		Target: solidlens.Vec{X: 0, Y: -60, Z: 84}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: -520, Y: -420, Z: 420},
+	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: 760, Y: -330, Z: 300},
 		Target: solidlens.Vec{X: 45, Y: 20, Z: 90}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 )
 
