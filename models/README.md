@@ -3,6 +3,7 @@
 | Model | Image | Description | Clearance adjustment |
 | --- | --- | --- | --- |
 | [Hand-crank fan](handcrankfan/) | <img src="handcrankfan/images/index.png" alt="Fan with a right-hand crank" width="240"> | A handheld fan whose right-hand crank drives a four-blade rotor of swappable blades through a spur pair and a bevel gear pair. | Mixed |
+| [Hand-crank siren](handcranksiren/) | <img src="handcranksiren/images/index.png" alt="Hand-crank siren with its horn" width="240"> | A hand crank spins a slotted rotor ten times faster through two spur stages; 20 ports chop the air into a 400 Hz tone at two crank turns a second. | Mixed |
 | [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. | Mixed |
 | [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | 608-2RS and 605ZZ nominal bore, outside diameter and width for fitting an assembly. | Nominal |
 | [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. | Adjustable |

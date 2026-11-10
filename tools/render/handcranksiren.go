@@ -169,6 +169,11 @@ func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, 
 	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
+// handCrankSirenHero is the siren's hero scene, drawn as a tile of the gallery image.
+func handCrankSirenHero(ctx context.Context) (solidlens.Scene, error) {
+	return handCrankSirenPreset(handCrankSirenHeroCamera, false, false)(ctx)
+}
+
 func handCrankSirenPreset(camera solidlens.Camera, exploded, cutaway bool) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
 		siren, err := buildHandCrankSiren(ctx)
