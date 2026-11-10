@@ -630,7 +630,7 @@ func TestHousing(t *testing.T) {
 		// less the head pocket radius (the head's radius plus 0.1 mm) and 1.5 mm of material. Each of the
 		// three windows reaches out to that radius and no further.
 		coverOuter := bounds(t, body).Max.X
-		rimInner := coverOuter - p.RingWall/2 - (m2bolt.HeadDiameter/2 + 0.1) - 1.5
+		rimInner := coverOuter - p.RingWall/2 - (m2bolt.HeadDiameter/2 + 0.3) - 1.5
 		sectionZ := bounds(t, body).Min.Z + 0.5
 		if name == "front" {
 			sectionZ = bounds(t, body).Max.Z - 0.5
@@ -854,7 +854,7 @@ func TestInvalidParams(t *testing.T) {
 func TestClearanceLimits(t *testing.T) {
 	t.Run("bolt holes allow exactly 1.5 mm of ring material", func(t *testing.T) {
 		p := planetarygearbox.DefaultParams()
-		p.BoltHoleDiameter = 4
+		p.BoltHoleDiameter = 4.1
 		require.NoError(t, p.Validate())
 		p.BoltHoleDiameter += 0.01
 		require.ErrorContains(t, p.Validate(), "bolt holes")

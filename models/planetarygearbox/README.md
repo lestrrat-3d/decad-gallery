@@ -98,8 +98,7 @@ The nuts are not pressed in afterwards. Each nut sits in a cavity the ring walls
 hole, so the nuts have to go in while the ring prints. Print the ring standing on its front face, and stop the printer
 twice:
 
-1. At 2.8 mm above the bed, the front cavities are open at the top. Drop a nut into each of the four, with a flat of the
-   nut against the cavity's flats, then resume.
+1. At 3 mm above the bed, the front cavities are open at the top. Drop a nut into each of the four, then resume.
 2. At `L - 1` mm above the bed, where `L` is the ring length (with the default dimensions 14 mm for one stage and `13 K + 1` mm for `K` stages),
    the rear cavities are open at the top. Drop a nut into each of the four, then resume.
 
@@ -110,9 +109,9 @@ roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
-| Bolt head | Round, in the cover's outer face | 4.0 mm wide, 2 mm deep, 1 mm of cover under it |
-| Bolt shank | Hole through the cover and the ring | 2.4 mm wide |
-| Nut | Closed hex cavity in the ring wall, 1 mm behind the end face | 4.2 mm across flats, 1.8 mm high |
+| Bolt head | Round, in the cover's outer face | 4.4 mm wide, 2 mm deep, 1 mm of cover under it |
+| Bolt shank | Hole through the cover and the ring | 2.6 mm wide |
+| Nut | Closed round cavity in the ring wall, 1 mm behind the end face | 5.02 mm wide, 2 mm high |
 
 ## Parts
 
@@ -143,7 +142,7 @@ You can vary:
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
 - How far the input and output shafts reach out of the covers.
-- The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.4 mm, the M2 clearance hole).
+- The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.6 mm, the M2 clearance hole).
 - The number of mounting ears on the ring (three by default, zero for none) and the diameter of their bore (4 mm).
 - Backlash.
 - The position and orientation of the gearbox in space.

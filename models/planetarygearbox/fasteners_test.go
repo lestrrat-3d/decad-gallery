@@ -38,10 +38,10 @@ func TestFastenersSitFlush(t *testing.T) {
 		b := bounds(t, nut)
 		require.InDelta(t, m2nut.Thickness, b.Max.Z-b.Min.Z, 2e-3, "nut %d thickness", i)
 		if i < 4 {
-			require.InDelta(t, -p.StageGap+1.1, b.Min.Z, 2e-3, "front nut %d is inside the ring", i)
+			require.InDelta(t, -p.StageGap+1.2, b.Min.Z, 2e-3, "front nut %d is inside the ring", i)
 			continue
 		}
-		require.InDelta(t, ringEnd-1.1, b.Max.Z, 2e-3, "rear nut %d is inside the ring", i)
+		require.InDelta(t, ringEnd-1.2, b.Max.Z, 2e-3, "rear nut %d is inside the ring", i)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestFastenerFitRules(t *testing.T) {
 		want string
 	}{
 		"hole narrower than the shank": {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 1.5 }, "shank"},
-		"hole under the M2 clearance":  {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 2.3 }, "clearance hole"},
+		"hole under the M2 clearance":  {func(p *planetarygearbox.Params) { p.BoltHoleDiameter = 2.5 }, "clearance hole"},
 		"cover too thin for the head":  {func(p *planetarygearbox.Params) { p.CoverThickness = 2.5 }, "bolt head"},
 	} {
 		t.Run(name, func(t *testing.T) {

@@ -89,7 +89,7 @@ func DefaultParams() Params {
 		CarrierThickness:  3,
 		StageGap:          1,
 		CoverThickness:    3,
-		BoltHoleDiameter:  2.4,
+		BoltHoleDiameter:  minBoltHoleDiameter,
 		KeyDepth:          1.1,
 		KeyWidth:          2,
 		SeatChamfer:       0.5,
@@ -97,7 +97,7 @@ func DefaultParams() Params {
 		InputShaftLength:  12,
 		BearingClearance:  seatClearance,
 		CarrierWall:       3,
-		RingWall:          7,
+		RingWall:          7.1,
 		Backlash:          0.15,
 		OutputShaftLength: 12,
 		EarCount:          3,
@@ -305,7 +305,7 @@ func (p Params) validateEars(d dims) error {
 	}
 	// A bolt site is clear of an ear when its pockets stay beyond the ear's side edge, or the ear lies on the
 	// far side of the axis.
-	reach := math.Max(nutPocketFlats(), headPocketDiameter())/2 + pocketMargin
+	reach := math.Max(nutPocketDiameter(), headPocketDiameter())/2 + pocketMargin
 	for i := range p.EarCount {
 		for _, b := range boltAngles() {
 			delta := earAngle(i, p.EarCount) - b
@@ -353,7 +353,7 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("cover thickness %v leaves less than %v under a %v tall bolt head",
 			p.CoverThickness, float64(coverFloor), m2bolt.HeadHeight)
 	}
-	if reach := math.Max(nutPocketFlats(), headPocketDiameter()) / 2; d.boltCircle-reach < d.ringRoot+pocketMargin ||
+	if reach := math.Max(nutPocketDiameter(), headPocketDiameter()) / 2; d.boltCircle-reach < d.ringRoot+pocketMargin ||
 		d.boltCircle+reach > d.ringOuter-pocketMargin {
 		return fmt.Errorf("bolt head and nut pockets of radius %v do not fit the ring wall %v with %v of material either side",
 			reach, p.RingWall, float64(pocketMargin))
