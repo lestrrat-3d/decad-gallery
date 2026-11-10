@@ -107,6 +107,8 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 		return
 	}
 	t.Run("grip", func(t *testing.T) { requireGrip(t, parts) })
+	t.Run("knuckle room", func(t *testing.T) { requireKnuckleRoom(t, parts) })
+	t.Run("window height", func(t *testing.T) { requireWindowHeight(t, parts) })
 	t.Run("sweep", func(t *testing.T) { requireSweep(t, parts) })
 	t.Run("tessellate", func(t *testing.T) { requireTessellates(t, parts) })
 	t.Run("edges", func(t *testing.T) { requireEdgeFinishing(t, p, parts) })

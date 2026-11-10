@@ -103,7 +103,7 @@ Axial stack (Y ranges):
 | --- | --- |
 | collector | Y [−96.90, −31.90], X [−51, 51], Z [33, 135]; rear wall [−39.90, −31.90] |
 | horn | X [−159.25, −51.25] about the axis (Y `throatY` = −65.90, Z 84); flange X [−59.25, −51.25] |
-| grip | X [79, 105], Y [−66.25, −0.25], Z [5, 125] |
+| grip | X [79, 105], Y [−76.25, −0.25], Z [5, 125] |
 | stator | [−31.65, −28.65] |
 | rotor disc | [−27.50, −24.50], hub and vanes drawn from −25.50 to −16.50 |
 | drum | flange [−28.40, −21.40], wall [−28.40, −11.50], back plate [−15.50, −11.50], posts [−12.50, −0.25] |
@@ -220,23 +220,27 @@ Axial stack (Y ranges):
 
 One body, a vertical D-handle on the left (−Y) face of gearbox-front, toward the operator. Its ring profile lies in the
 YZ plane on the frame origin (79, 0, 0), U = +Y, V = +Z, and is extruded along +X from X 79 for 26. The profile is the
-outer outline Y [−66.25, −0.25] × Z [5, 125] with corner radius 10 and the finger window Y [−36.25, −6.25] × Z [15, 115]
-with corner radius 6 as a hole, both counter-clockwise in (u, v); it has one hole. Then `edgefinish.Chamfer(+X,
+outer outline Y [−76.25, −0.25] × Z [5, 125] with corner radius 10 and the finger window Y [−46.25, −16.25] × Z [12, 118]
+with corner radius 3 as a hole, both counter-clockwise in (u, v); it has one hole. Then `edgefinish.Chamfer(+X,
 {79, 105}, Long(All), 2.0)` on both caps, then the pocket and hole for each `grip-bolt-*`. The parts of the ring are a
-pad (Y [−6.25, −0.25], 6 thick, its back face 0.25 off gearbox-front), a bar (Y [−66.25, −36.25], 26 × 30) and two arms
-(Z [5, 15] and [115, 125], 10 thick). The window is 30 deep and 100 tall (hand sizes: four-finger breadth up to about
-97, finger depth up to about 22, power-grip diameter 30 to 50).
+pad (Y [−16.25, −0.25], 16 thick, its back face 0.25 off gearbox-front), a bar (Y [−76.25, −46.25], 26 × 30) and two
+arms (Z [5, 12] and [118, 125], 7 thick). The window is 30 deep and 106 tall; the 3 mm corners leave 102.4 at 0.25 mm
+from the bar face, 104.5 at 1 mm and the full 106 from 3 mm (hand sizes: four-finger breadth up to about 100, finger
+depth up to about 25, power-grip diameter 30 to 50). The grip stands 10 mm further out than a thin pad would put it,
+so the bent fingers have room before the stator and the drum rim.
 
 - The bar's perimeter after the chamfers is 107.3, a 34.2 mm round bar. The left hand holds the bar thumb up, palm on
-  the outer face (Y −66.25), fingers round the front face (X 79).
-- The hand box X [57, 140], Y [−100, −36.25], Z [15, 115] holds no other part. The finger window box
-  X [79, 105], Y [−36.15, −6.35], Z [15, 115] holds no part. The grip is at Y ≤ −0.25 and the crank at Y ≥ 38.6, so the
+  the outer face (Y −76.25), fingers round the front face (X 79).
+- The hand box X [57, 140], Y [−110, −46.25], Z [12, 118] holds no other part. The finger window box
+  X [79, 105], Y [−46.15, −16.35], Z [12, 118] holds no part. No other part comes within 25 mm of the bar's inner front
+  edge (X 79, Y −46.25) on the X < 79 side, at any Z across the window, and the window is at least 100 tall at the bar
+  face. The grip is at Y ≤ −0.25 and the crank at Y ≥ 38.6, so the
   gearbox sits between the hands. The grip is at X ≥ 79 and the horn at X ≤ −51.25. Its lowest point is Z 5.
 - The pad covers the head of `gearbox-front-bolt-2` (103.5, 0, 74) with a 0.25 gap. Remove the grip to reach it.
 
 ### Fasteners
 
-24 bolts (12 M2 × 16, 3 M2 × 18, 9 M2 × 10) and 24 nuts. The pocket and cavity sizes come from `internal/m2fastener`:
+24 bolts (12 M2 × 16, 3 M2 × 18, 5 M2 × 10, 4 M2 × 20) and 24 nuts. The pocket and cavity sizes come from `internal/m2fastener`:
 head pocket radius 2.0 and depth 2.0, hole radius 1.3, nut cavity 4.2 across flats and 1.8 high, tool stock 1.0.
 
 | Bolts | Nuts | Len | Head top | Dir | Corner | Cavity | Head host | Nut host |
@@ -246,7 +250,7 @@ head pocket radius 2.0 and depth 2.0, hole radius 1.3, nut cavity 4.2 across fla
 | `drum-bolt-1..3` | `drum-nut-1..3` | 18 | R + 30(cos φ, 0, sin φ) at Y −15.50, φ = 0°, 120°, 240° | +Y | (cos φ, 0, sin φ) | 17.0 | drum | gearbox-front |
 | `collector-bolt-1..4` | `collector-nut-1..4` | 16 | R + 53.5(cos ψ, 0, sin ψ) at Y −21.40, ψ = 45° + 90°(k−1) | −Y | (−sin ψ, 0, cos ψ) | 12.0 | drum | collector |
 | `throat-bolt-1..4` | `throat-nut-1..4` | 10 | (−46, `throatY` + 26 cos a, 84 + 26 sin a), a = 45° + 90°(k−1) | −X | (0, cos a, sin a) | 6.75 | collector | horn |
-| `grip-bolt-1..4` | `grip-nut-1..4` | 10 | (85, −6.25, 30), (99, −6.25, 30), (85, −6.25, 100), (99, −6.25, 100) | +Y | X | 7.75 | grip | gearbox-front |
+| `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −16.25, 30), (99, −16.25, 30), (85, −16.25, 100), (99, −16.25, 100) | +Y | X | 17.75 | grip | gearbox-front |
 | `crank-pin-bolt` | `crank-pin-nut` | 10 | (60, 38.6, 139) | +Y | X | 4.75 | crank-arm | crank-pin |
 
 Derived: front-bolt cavities at Y [11.75, 13.55] with tips at 18. Rear-bolt cavities at [24.05, 25.85] with tips at 19.6.
@@ -255,7 +259,7 @@ Drum cavities at [1.5, 3.3] with tips at 4.5. Collector cavities at Y [−33.40,
 Throat pockets go into the collector's −X wall from the cavity side, X [−46, −48], with 3 of material to the outer face;
 the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X [−52.75, −54.55], with tips at X −58,
 1.25 inside the flange's outer face at −59.25. Throat bolts go in from inside the collector, through its 88 mm bore,
-before the collector meets the stator. Grip pockets go into the pad's window face, Y [−6.25, −4.25], with 4 of material
+before the collector meets the stator. Grip pockets go into the pad's window face, Y [−16.25, −14.25], with 14 of material
 under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.3], the same layers as the drum cavities, with tips at
 Y 5.75 and holes ending at 6.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.15] with its tip at 50.6, inside the shank.
 
@@ -363,3 +367,6 @@ clearances, fasteners, sweep, tessellate and edges checks.
   34.17 on 8 angles in the horn at X −100.
 - `grip` (default only) proves the hand box and the finger window box hold no other part, the grip is left of the
   gearbox and the crank right of it, the grip is behind the horn in X, and the grip's bounds.
+- `knuckle room` (default only) proves no other part comes within 25 mm of the bar's inner front edge on the X < 79 side.
+- `window height` (default only) sections the grip at X 92 and proves the window is at least 100 tall 0.25 mm from the
+  bar face.

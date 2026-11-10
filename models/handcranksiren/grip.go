@@ -12,16 +12,16 @@ import (
 const (
 	gripFrom         = 79.0
 	gripWidth        = 26.0
-	gripPadFace      = -6.25 // the pad's window face, where the grip bolt heads end
+	gripPadFace      = -16.25 // the pad's window face, where the grip bolt heads end
 	gripBack         = -0.25
-	gripOuterY       = -66.25
-	gripBarIn        = -36.25 // the bar's face toward the window
+	gripOuterY       = -76.25
+	gripBarIn        = -46.25 // the bar's face toward the window
 	gripBottom       = 5.0
 	gripTop          = 125.0
-	gripWindowBottom = 15.0
-	gripWindowTop    = 115.0
+	gripWindowBottom = 12.0
+	gripWindowTop    = 118.0
 	gripCorner       = 10.0
-	gripWindowCorner = 6.0
+	gripWindowCorner = 3.0
 	// gripChamfer is larger than the 0.5 minimum of "Surface edge finishing": it rounds the 26 x 30 bar for the hand
 	// (instructions.md, Edge finishing).
 	gripChamfer = 2.0

@@ -171,7 +171,7 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 	gripBox := bounds(t, parts["grip"])
 	gripRim := requireChamferedAlong(t, "grip", parts["grip"].Body, r3.Vec{X: 1}, r3.Vec{}, longAll, 79, 105)
 	tol = 1e-3 + gripBox.Bound.Base()
-	require.InDelta(t, -64.25, gripRim.min.Y, tol, "grip rim")
+	require.InDelta(t, -74.25, gripRim.min.Y, tol, "grip rim")
 	require.InDelta(t, -2.25, gripRim.max.Y, tol, "grip rim")
 	require.InDelta(t, 7, gripRim.min.Z, tol, "grip rim")
 	require.InDelta(t, 123, gripRim.max.Z, tol, "grip rim")

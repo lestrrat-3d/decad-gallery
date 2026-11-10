@@ -45,8 +45,8 @@ The horn bolts to the collector's forward face and points forward.
 ## Holding it
 
 The grip is a vertical D-handle on the gearbox's left face, toward you. Its bar is 26 by 30 mm with 2 mm rounded
-edges, about as thick as a 34 mm round handle, and the finger window behind it is 30 mm deep and 100 mm tall. Hold the
-bar with your left hand, thumb up, and curl your fingers round its front into the window. The gearbox sits between your
+edges, about as thick as a 34 mm round handle, and the finger window behind it is 30 mm deep and 106 mm tall, 100 mm or more even at the bar's face. Hold
+the bar with your left hand, thumb up, and curl your fingers round its front into the window. The gearbox sits between your
 two hands, and the crank torque goes straight from the grip into the gearbox. The grip covers one gearbox bolt head
 with a 0.25 mm gap. Remove the grip to reach it.
 
@@ -70,7 +70,7 @@ the nut into the open cavity, and resume.
 | Crank pin | upright, head down | one, for the pin bolt |
 
 The drum prints standing on its flange's front face, and its back plate needs slicer support. A siren takes 24 bolts (12
-of M2 x 16, 3 of M2 x 18 and 9 of M2 x 10), 24 nuts and 6 608-2RS bearings.
+of M2 x 16, 3 of M2 x 18, 5 of M2 x 10 and 4 of M2 x 20), 24 nuts and 6 608-2RS bearings.
 
 Fit the throat bolts from inside the collector, through its wide opening, before the collector meets the stator. Fit the
 grip bolts through the grip's finger window.
@@ -114,7 +114,7 @@ Each part is shown once, from the real model, in place at the default pose.
 | <img src="images/parts/drum-bolt.png" alt="Drum bolt and nut, M2 x 18 (three)" width="240"> | Drum bolt and nut, M2 x 18 (three) |
 | <img src="images/parts/collector-bolt.png" alt="Collector bolt and nut, M2 x 16 (four)" width="240"> | Collector bolt and nut, M2 x 16 (four) |
 | <img src="images/parts/throat-bolt.png" alt="Throat bolt and nut, M2 x 10 (four)" width="240"> | Throat bolt and nut, M2 x 10 (four) |
-| <img src="images/parts/grip-bolt.png" alt="Grip bolt and nut, M2 x 10 (four)" width="240"> | Grip bolt and nut, M2 x 10 (four) |
+| <img src="images/parts/grip-bolt.png" alt="Grip bolt and nut, M2 x 20 (four)" width="240"> | Grip bolt and nut, M2 x 20 (four) |
 | <img src="images/parts/crank-pin-bolt.png" alt="Crank pin bolt and nut, M2 x 10" width="240"> | Crank pin bolt and nut, M2 x 10 |
 
 You can vary:

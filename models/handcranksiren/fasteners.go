@@ -23,8 +23,8 @@ const (
 	collectorNutCavity  = 12.0
 	throatBoltLength    = 10
 	throatCavity        = 6.75
-	gripBoltLength      = 10
-	gripCavity          = 7.75
+	gripBoltLength      = 20
+	gripCavity          = 17.75
 	pinBoltLength       = 10
 	pinCavity           = 4.75
 
@@ -36,8 +36,8 @@ const (
 	throatBoltR       = 26.0 // radius of the throat bolts about the throat axis
 	drumHead          = -15.50
 	collectorBoltHead = -21.40
-	gripHeadY         = -6.25 // the grip's window face, where its bolt heads end
-	throatHead        = -46.0 // the throat bolt heads' X, flush with the collector wall's inner face
+	gripHeadY         = -16.25 // the grip's window face, where its bolt heads end
+	throatHead        = -46.0  // the throat bolt heads' X, flush with the collector wall's inner face
 )
 
 // The grip bolts' X and Z: four in a rectangle, X varying fastest.

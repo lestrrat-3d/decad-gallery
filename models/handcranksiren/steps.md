@@ -98,13 +98,13 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 ## 6a. Grip (`grip.go`)
 
 1. `section(frame((79, 0, 0), U (0,1,0), V (0,0,1)))`, then `roundedPolygon` of the outer outline
-   {(−66.25, 5), (−0.25, 5), (−0.25, 125), (−66.25, 125)} with radii 10 and of the window
-   {(−36.25, 15), (−6.25, 15), (−6.25, 115), (−36.25, 115)} with radii 6, both counter-clockwise in (u, v).
+   {(−76.25, 5), (−0.25, 5), (−0.25, 125), (−76.25, 125)} with radii 10 and of the window
+   {(−46.25, 12), (−16.25, 12), (−16.25, 118), (−46.25, 118)} with radii 3, both counter-clockwise in (u, v).
 2. `extrude(s, 1, 26)`.
 3. `edgefinish.Chamfer(body, +X, {79, 105}, Long(All), 2.0)`.
 4. Pocket and hole for each grip-bolt. `grip()` records the part in the `Grip` container, then the hardware for each
    grip-bolt site. `gearboxFront` cuts the hole and cavity of each grip-bolt (step 4 of section 4).
-- Check: rows T12, L7; the `grip` subtest.
+- Check: rows T12, L7; the `grip`, `knuckle room` and `window height` subtests.
 
 ## 7. Fasteners (`fasteners.go`)
 
@@ -122,7 +122,7 @@ container exists. The grip goes into its own `Grip` container and the collector 
 ## 9. Checks
 
 `TestHandCrankSirenDefault` runs `checkSiren` with the subtests `parts`, `sketches`, `containers`, `mesh`,
-`clearances`, `fasteners`, `ports`, `outlet`, `grip` (default only), `sweep`, `orientation`, `tessellate`, `edges` and
+`clearances`, `fasteners`, `ports`, `outlet`, `grip`, `knuckle room`, `window height` (these three default only), `sweep`, `orientation`, `tessellate`, `edges` and
 `overlap`.
 `TestHandCrankSirenVariant` runs `Slots` 12 (CrankAngle 0) and 24 (CrankAngle 5π/4) with parts, sketches, containers,
 ports, outlet, orientation, overlap, and rows R2 and L1. `TestValidate`, `TestMotion` and `TestPitch` check the parameters.
