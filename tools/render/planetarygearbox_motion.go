@@ -138,6 +138,25 @@ func planetaryPoseModels(movers []planetaryMover, input float64, cut bool) ([]so
 	return models, nil
 }
 
+// planetaryPanelMovers gives each uncut panel its own reusable stationary housing meshes.
+func planetaryPanelMovers(movers []planetaryMover, cut bool) ([]planetaryMover, error) {
+	if cut {
+		return movers, nil
+	}
+	panel := append([]planetaryMover(nil), movers...)
+	for i, mover := range panel {
+		if !mover.body.housing || mover.move != nil {
+			continue
+		}
+		mesh, err := solidlens.MeshFrom(mover.mesh)
+		if err != nil {
+			return nil, fmt.Errorf("prepare %s for motion: %w", mover.body.name, err)
+		}
+		panel[i].mesh = mesh
+	}
+	return panel, nil
+}
+
 // planetaryMotionPanel is one camera of the animation and its caption.
 type planetaryMotionPanel struct {
 	caption string
@@ -176,8 +195,13 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 	panels := planetaryMotionPanels()
 	panelWidth, panelHeight := width/len(panels), height-2*planetaryCaptionHeight
 	cameras := make([]solidlens.Camera, len(panels))
+	panelMovers := make([][]planetaryMover, len(panels))
 	for i, panel := range panels {
-		rest, err := planetaryPoseModels(movers, 0, panel.cut)
+		panelMovers[i], err = planetaryPanelMovers(movers, panel.cut)
+		if err != nil {
+			return err
+		}
+		rest, err := planetaryPoseModels(panelMovers[i], 0, panel.cut)
 		if err != nil {
 			return err
 		}
@@ -204,7 +228,7 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 		canvas := image.NewRGBA(image.Rect(0, 0, width, height))
 		draw.Draw(canvas, canvas.Bounds(), image.NewUniform(background), image.Point{}, draw.Src)
 		for i, panel := range panels {
-			models, err := planetaryPoseModels(movers, input, panel.cut)
+			models, err := planetaryPoseModels(panelMovers[i], input, panel.cut)
 			if err != nil {
 				return err
 			}
