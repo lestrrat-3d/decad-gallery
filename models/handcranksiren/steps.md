@@ -55,24 +55,36 @@ operations, their order and the checks.
 2. gearbox-rear: the same from Y 27.6, seats open to the front, C through hole, offsets {27.6, 37.6}.
 3. gearbox-frame: one sketch with the outline and the cavity (radius 6), profile with 1 hole, extruded 17.1, offsets
    {10.25, 27.35}, then the bolt holes and nut cavities.
+4. gearbox-front also gets the hole and cavity for each `grip-bolt-*`, after the drum-bolt cuts.
 - Check: `fasteners` subtest; rows T1, S1, S2, L2, L4.
 
-## 5. Siren head (`drum.go`, `rotor.go`, `stator.go`, `horn.go`)
+## 5. Siren head (`drum.go`, `rotor.go`, `stator.go`, `collector.go`, `horn.go`)
 
-Meridian sketches sit on origin (0, 0, 84), U = +X, V = +Y, normal +Z, and revolve about
-`ConstructionAxis{(0, 0, 84), (0, 1, 0)}`.
+Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y, normal +Z, and revolve about
+`ConstructionAxis{(0, 0, 84), (0, 1, 0)}`. The horn's meridian has its own origin and axis (see `horn.go`).
 
 - `drum.go`: revolve the drum `meridianPolygon` (with the shaft hole's 0.5 chamfers); cut three
   windows (`port(14, 24, 40°)` at Y −16.50, U at 60°, extruded 6, `Patterned` Count 3, then `Cut`);
   `edgefinish.Chamfer(body, +Y, {−11.50, −15.50}, windows only (Long(Inner), more than one edge), 0.5)`; union three
-  posts (radius 5 at radius 30, patterned); fastener cuts for drum-bolt and horn-bolt.
+  posts (radius 5 at radius 30, patterned); fastener cuts for drum-bolt and collector-bolt.
 - `rotor.go`: disc radius 45 over [−27.50, −24.50]; chamfer both cap outer loops 0.5 before any cut; vanes patterned
   Count N; hub radius 9; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N))` at Y −28.50,
   extruded 5, patterned Count N, cut; D-bore `dBoreTool(R, −25.50, 10, 0.25)`.
 - `stator.go`: disc radius 58 over [−31.65, −28.65]; cap outer loops chamfered 0.5; the same ports; hole for each
-  horn-bolt.
-- `horn.go`: revolve the horn `meridianPolygon` (vertices A to L); hole and cavity for each horn-bolt.
-- Check: the `ports` subtest; rows T2, T3, T5, T6, R1, R2, L1.
+  collector-bolt.
+- `collector.go`: `collector()` in eight steps:
+  1. outer prism `roundedPrism(rotor.across(−96.90), outline(−51, 51, 33, 135), {10,10,10,10}, 65)`;
+  2. cut the bore, `cylinder(rotor.across(−40.90), 44, 10)`;
+  3. cut the cavity, `roundedPrism(rotor.across(−91.90), outline(−46, 46, 38, 130), {7,7,7,7}, 52)`;
+  4. `finish(body, −31.90, −96.90)`;
+  5. `edgefinish.Chamfer(body, +Y, {−39.90}, Long(Inner), 0.5)` for the bore rim on the ceiling;
+  6. cut the throat, `cylinder(frame((−45, throatY, 84), U (0,0,1), V (0,1,0)), 22, 7)`;
+  7. `edgefinish.Chamfer(body, +X, {−51, −46}, Long(Inner), 0.5)` for the throat rim;
+  8. hole and cavity for each collector-bolt, then pocket and hole for each throat-bolt.
+- `horn.go`: the meridian sketch has origin O = (−50, throatY, 84), U = +Y, V = −X, normal +Z. `meridianPolygon` of the
+  vertices A to L, then `revolve` about `ConstructionAxis{Origin: O, Dir: (−1, 0, 0)}` with `FullRevolution`, then the
+  hole and cavity for each throat-bolt.
+- Check: the `ports` and `outlet` subtests; rows T2, T3, T11, T5, T6, R1, R2, L1, L6.
 
 ## 6. Crank (`crank.go`)
 
@@ -83,20 +95,34 @@ Meridian sketches sit on origin (0, 0, 84), U = +X, V = +Y, normal +Z, and revol
 - crank-handle: `meridianPolygon` about the pin axis with origin 1 behind the inner end, revolved.
 - Check: the `sweep` subtest; rows T5, T6, T8, R3, R4, L5.
 
+## 6a. Grip (`grip.go`)
+
+1. `section(frame((79, 0, 0), U (0,1,0), V (0,0,1)))`, then `roundedPolygon` of the outer outline
+   {(−66.25, 5), (−0.25, 5), (−0.25, 125), (−66.25, 125)} with radii 10 and of the window
+   {(−36.25, 15), (−6.25, 15), (−6.25, 115), (−36.25, 115)} with radii 6, both counter-clockwise in (u, v).
+2. `extrude(s, 1, 26)`.
+3. `edgefinish.Chamfer(body, +X, {79, 105}, Long(All), 2.0)`.
+4. Pocket and hole for each grip-bolt. `grip()` records the part in the `Grip` container, then the hardware for each
+   grip-bolt site. `gearboxFront` cuts the hole and cavity of each grip-bolt (step 4 of section 4).
+- Check: rows T12, L7; the `grip` subtest.
+
 ## 7. Fasteners (`fasteners.go`)
 
 `fastenerSite` wraps `m2fastener.Site` with names, hosts and motion. `hardware(site)` adds the bolt part and then the nut
 part, appending their sketches. `fastenerCuts` cuts the pocket, hole and cavity tools from `internal/m2fastener` per
-host (the flags decide which). `Fasteners(p)` in `export_test.go` poses every site.
+host (the flags decide which). `Fasteners(p)` in `export_test.go` poses every site. Site order: gearbox-front,
+gearbox-rear, drum, collector, throat, grip, crank-pin. The prefixes are `collector-bolt` (nut host collector),
+`throat-bolt` (collector to horn) and `grip-bolt` (grip to gearbox-front).
 
 ## 8. Containers and pose (`containers.go`)
 
 `moveBodies` runs last. For each part it calls `doc.Root().ChildNamed(group)` when it adds the body, so no empty
-container exists. Gears go into `Gear Pairs` with `NewUniqueChild("Pair")` for stage 1 and again for stage 2.
+container exists. The grip goes into its own `Grip` container and the collector into `Housing`. Gears go into `Gear Pairs` with `NewUniqueChild("Pair")` for stage 1 and again for stage 2.
 
 ## 9. Checks
 
 `TestHandCrankSirenDefault` runs `checkSiren` with the subtests `parts`, `sketches`, `containers`, `mesh`,
-`clearances`, `fasteners`, `ports`, `sweep`, `orientation`, `tessellate`, `edges` and `overlap`.
+`clearances`, `fasteners`, `ports`, `outlet`, `grip` (default only), `sweep`, `orientation`, `tessellate`, `edges` and
+`overlap`.
 `TestHandCrankSirenVariant` runs `Slots` 12 (CrankAngle 0) and 24 (CrankAngle 5π/4) with parts, sketches, containers,
-ports, orientation, overlap, and rows R2 and L1. `TestValidate`, `TestMotion` and `TestPitch` check the parameters.
+ports, outlet, orientation, overlap, and rows R2 and L1. `TestValidate`, `TestMotion` and `TestPitch` check the parameters.
