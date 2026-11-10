@@ -196,8 +196,8 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 		return nil, fmt.Errorf("carrier: join plate, pins and collars: %w", err)
 	}
 	// The shaft hole is cut last, so the plate keeps a tooth the full plate thickness where the shaft has its
-	// groove.
-	tool, err := r.extrudeKeyTool(ctx, "carrier shaft hole", -1, p.CarrierThickness+2)
+	// flat.
+	tool, err := r.extrudeFlatTool(ctx, "carrier shaft hole", -1, p.CarrierThickness+2)
 	if err != nil {
 		return nil, err
 	}
@@ -241,9 +241,9 @@ func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) 
 	return body, nil
 }
 
-// extrudeKeyBox extrudes the keyway groove's box from z=bottom to z=top: KeyWidth wide about the X axis, from
-// KeyDepth inside the shaft's +X edge to a millimeter beyond it.
-func (r *run) extrudeKeyBox(ctx context.Context, what string, bottom, top float64) (*decad.Body, error) {
+// extrudeFlatBox extrudes the box that cuts the shaft's flat from z=bottom to z=top: from FlatDepth inside the
+// shaft's +X edge to a millimeter beyond it, and a millimeter wider than the shaft on each side.
+func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float64) (*decad.Body, error) {
 	plane, err := r.planeAt(bottom)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", what, err)
@@ -252,9 +252,9 @@ func (r *run) extrudeKeyBox(ctx context.Context, what string, bottom, top float6
 	if err != nil {
 		return nil, fmt.Errorf("%s: sketch: %w", what, err)
 	}
-	x0 := r.d.shaft/2 - r.p.KeyDepth
+	x0 := r.d.shaft/2 - r.p.FlatDepth
 	x1 := r.d.shaft/2 + 1
-	half := r.p.KeyWidth / 2
+	half := r.d.shaft/2 + 1
 	box := s.CreateRectangle(x0, -half, x1, half)
 	s.AddConstraint(
 		sketch.NewHorizontalDistance(s.Origin(), box.A, x0),
@@ -277,36 +277,31 @@ func (r *run) extrudeKeyBox(ctx context.Context, what string, bottom, top float6
 // span is a range of heights, from lo up to hi.
 type span struct{ lo, hi float64 }
 
-// keyCut cuts the three keyway grooves over each of the spans out of body, which is the shaft or, for a bore, a
-// tool shaped like the shaft. With KeyDepth zero it returns body unchanged. The grooves of every span join into
-// one tool, so the body takes one cut however many spans there are.
-func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, spans ...span) (*decad.Body, error) {
-	if r.p.KeyDepth == 0 {
+// flatCut cuts the flat over each of the spans out of body, which is the shaft or, for a bore, a tool shaped like
+// the shaft. With FlatDepth zero it returns body unchanged. The flats of every span join into one tool, so the
+// body takes one cut however many spans there are.
+func (r *run) flatCut(ctx context.Context, what string, body *decad.Body, spans ...span) (*decad.Body, error) {
+	if r.p.FlatDepth == 0 {
 		return body, nil
 	}
 	var tools []*decad.Body
 	for _, sp := range spans {
-		box, err := r.extrudeKeyBox(ctx, what+" keyway", sp.lo, sp.hi)
+		box, err := r.extrudeFlatBox(ctx, what+" flat", sp.lo, sp.hi)
 		if err != nil {
 			return nil, err
 		}
-		// The other grooves are copies of the first, spread evenly round the axis.
-		copies, err := decad.PatternCopies(ctx, box, decad.CircularPattern{
-			Center: r3.NewVec(0, 0, 0), Axis: r3.NewVec(0, 0, 1), Count: keyCount,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("%s: pattern keyways: %w", what, err)
-		}
 		tools = append(tools, box)
-		tools = append(tools, copies...)
 	}
-	tool, err := decad.Union(ctx, tools[0], tools[1:]...)
-	if err != nil {
-		return nil, fmt.Errorf("%s: join keyways: %w", what, err)
+	tool := tools[0]
+	if len(tools) > 1 {
+		var err error
+		if tool, err = decad.Union(ctx, tools[0], tools[1:]...); err != nil {
+			return nil, fmt.Errorf("%s: join flats: %w", what, err)
+		}
 	}
 	cut, err := decad.Cut(ctx, body, tool)
 	if err != nil {
-		return nil, fmt.Errorf("%s: cut keyway: %w", what, err)
+		return nil, fmt.Errorf("%s: cut flat: %w", what, err)
 	}
 	if !cut.IsSolid() {
 		return nil, fmt.Errorf("%s: result is not a solid", what)
@@ -314,13 +309,12 @@ func (r *run) keyCut(ctx context.Context, what string, body *decad.Body, spans .
 	return cut, nil
 }
 
-// extrudeKeyTool extrudes a bore tool with fitClearance around the shaft, from z up length. Its round arc is
-// fitClearance outside the shaft and its key teeth have the same clearance on their sides and floors. The outline
-// is a long arc about the origin, from the groove's upper wall round to its lower wall, and three lines that
-// run in along the lower wall, across the groove floor and out along the upper wall. With KeyDepth zero the
-// tool is the round shaft.
-func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
-	if r.p.KeyDepth == 0 {
+// extrudeFlatTool extrudes a bore tool with fitClearance around the shaft, from z up length. Its round arc is
+// fitClearance outside the shaft and its flat lies fitClearance outside the shaft's flat. The outline is a long
+// arc about the origin, from the flat's upper end round to its lower end, and the line that closes it across the
+// flat. With FlatDepth zero the tool is the round shaft.
+func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
+	if r.p.FlatDepth == 0 {
 		return r.extrudeDisc(ctx, disc{
 			what: what, z: z, length: length, diameter: r.d.shaftBore, expr: "shaft_bore_diameter",
 		})
@@ -334,43 +328,14 @@ func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64
 		return nil, fmt.Errorf("%s: sketch: %w", what, err)
 	}
 	radius := r.d.shaft/2 + fitClearance
-	half := (r.p.KeyWidth - 2*fitClearance) / 2
-	floor := radius - r.p.KeyDepth
-	wall := math.Sqrt(radius*radius - half*half)
-	// Groove k lies at angle k*2pi/keyCount. Going counterclockwise the outline meets its lower wall first: a
-	// line in from the rim to the floor, across the floor, and out along the upper wall, then an arc of the
-	// circle to the next groove's lower wall. Each arc's start (the upper rim point) is fully dimensioned and its
-	// end (the next lower rim point) by the one coordinate that changes along the arc there.
-	rotate := func(angle, x, y float64) (float64, float64) {
-		sin, cos := math.Sincos(angle)
-		return x*cos - y*sin, x*sin + y*cos
-	}
-	spread := math.Asin(half / radius)
-	upper := make([]*sketch.Point, keyCount)
-	lower := make([]*sketch.Point, keyCount)
-	floorUpper := make([]*sketch.Point, keyCount)
-	floorLower := make([]*sketch.Point, keyCount)
-	for k := range keyCount {
-		angle := 2 * math.Pi * float64(k) / keyCount
-		x, y := rotate(angle, wall, half)
-		upper[k] = sketchcheck.DimensionPoint(s, x, y)
-		x, y = rotate(angle, floor, half)
-		floorUpper[k] = sketchcheck.DimensionPoint(s, x, y)
-		x, y = rotate(angle, floor, -half)
-		floorLower[k] = sketchcheck.DimensionPoint(s, x, y)
-	}
-	for k := range keyCount {
-		angle := 2 * math.Pi * float64(k) / keyCount
-		x, y := rotate(angle, wall, -half)
-		lower[k] = dimensionOnArc(s, x, y, angle-spread)
-	}
-	for k := range keyCount {
-		next := (k + 1) % keyCount
-		s.CreateArc(s.Origin(), upper[k], lower[next])
-		s.CreateLine(lower[k], floorLower[k])
-		s.CreateLine(floorLower[k], floorUpper[k])
-		s.CreateLine(floorUpper[k], upper[k])
-	}
+	flat := radius - r.p.FlatDepth
+	half := math.Sqrt(radius*radius - flat*flat)
+	// The arc runs counterclockwise from the flat's upper end, fully dimensioned, to its lower end, dimensioned by
+	// the one coordinate that changes along the arc there.
+	upper := sketchcheck.DimensionPoint(s, flat, half)
+	lower := dimensionOnArc(s, flat, -half, -math.Atan2(half, flat))
+	s.CreateArc(s.Origin(), upper, lower)
+	s.CreateLine(lower, upper)
 	profile, err := profileWithHoles(ctx, s, 0, what)
 	if err != nil {
 		return nil, err
@@ -385,11 +350,11 @@ func (r *run) extrudeKeyTool(ctx context.Context, what string, z, length float64
 
 // buildShaft builds a separate shaft about the local origin: a full round cylinder from z=bottom to z=top with,
 // when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights, and a
-// keyway grooves over each of the grooves' spans. A collar sits between a bearing's inner race and the part next to
-// it and takes the place of a washer. The shaft is round where a bearing sits, so the groove lies only where a
-// sun or carrier sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the
-// union crosses the rod's faces instead of sharing them.
-func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64, grooves ...span) (*decad.Body, error) {
+// flat over each of the flats' spans. A collar sits between a bearing's inner race and the part next to it and
+// takes the place of a washer. The shaft is round where a bearing sits, so the flat lies only where a sun or
+// carrier sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the union
+// crosses the rod's faces instead of sharing them.
+func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64, flats ...span) (*decad.Body, error) {
 	shaft, err := r.extrudeShaft(ctx, what, bottom, top-bottom)
 	if err != nil {
 		return nil, err
@@ -409,5 +374,5 @@ func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBo
 			return nil, fmt.Errorf("%s: result is not a solid", what)
 		}
 	}
-	return r.keyCut(ctx, what, shaft, grooves...)
+	return r.flatCut(ctx, what, shaft, flats...)
 }

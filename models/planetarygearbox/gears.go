@@ -37,9 +37,9 @@ func externalGearWithRootClearance(module, rootMargin float64) spurgear.Variant 
 // buildSun builds the sun gear about the local origin, from z=0 to the gear thickness.
 func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	p := r.p
-	// A keyed bore is cut after the gear is built; a round one is the spur gear's own bore.
+	// A D-shaped bore is cut after the gear is built; a round one is the spur gear's own bore.
 	bore := r.d.shaftBore
-	if p.KeyDepth > 0 {
+	if p.FlatDepth > 0 {
 		bore = 0
 	}
 	sun, err := externalGearWithRootClearance(p.Module, 0).Build(ctx, r.doc, spurgear.Params{
@@ -49,17 +49,17 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: %w", err)
 	}
-	if p.KeyDepth == 0 {
+	if p.FlatDepth == 0 {
 		return sun, nil
 	}
-	// The bore keeps a tooth for the shaft's groove.
-	tool, err := r.extrudeKeyTool(ctx, "sun bore tool", -1, p.GearThickness+2)
+	// The bore keeps a tooth for the shaft's flat.
+	tool, err := r.extrudeFlatTool(ctx, "sun bore tool", -1, p.GearThickness+2)
 	if err != nil {
 		return nil, err
 	}
 	bored, err := decad.Cut(ctx, sun, tool)
 	if err != nil {
-		return nil, fmt.Errorf("sun gear: cut keyed bore: %w", err)
+		return nil, fmt.Errorf("sun gear: cut D-shaped bore: %w", err)
 	}
 	return bored, nil
 }

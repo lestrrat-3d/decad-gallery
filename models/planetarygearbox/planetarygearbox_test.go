@@ -275,7 +275,7 @@ func TestPartClearances(t *testing.T) {
 	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, seatMinimum)
 
 	branchParams := p
-	branchParams.KeyDepth = 0
+	branchParams.FlatDepth = 0
 	branchParams.StageGap = 0.75
 	branchParams.BearingClearance = 0.5
 	branchParams.SeatChamfer = 0
@@ -582,7 +582,7 @@ func TestHousing(t *testing.T) {
 	shaft := bounds(t, box.InputShaft)
 	require.InDelta(t, front.Min.Z-p.InputShaftLength, shaft.Min.Z, 1e-6)
 	require.InDelta(t, p.GearThickness, shaft.Max.Z, 1e-6)
-	// The collar next to the front bearing is wider than the shaft, which has its keyway cut above the collar.
+	// The collar next to the front bearing is wider than the shaft, which has its flat cut above the collar.
 	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
 	require.NoError(t, err)
 	require.InDelta(t, shaftCollarDiameter.Base(), shaft.Max.X-shaft.Min.X, 2e-3)
@@ -658,10 +658,10 @@ func TestHousing(t *testing.T) {
 	}
 }
 
-// TestShaftKeys checks that the input shaft has three keyway grooves, 120 degrees apart, where the first sun sits and is a
-// full round cylinder where the bearing sits, and that the sun's bore has the matching tooth: in the groove the
-// shaft is absent and the sun has material, elsewhere in the bore the shaft is present and the sun is not.
-func TestShaftKeys(t *testing.T) {
+// TestShaftFlat checks that the input shaft has one flat on +X where the first sun sits and is a full round cylinder
+// where the bearing sits, and that the sun's bore has the matching D: at the flat the shaft is absent and the sun
+// has material, elsewhere in the bore the shaft is present and the sun is not.
+func TestShaftFlat(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
 	sun := box.Stages[0].Sun
@@ -670,45 +670,32 @@ func TestShaftKeys(t *testing.T) {
 		require.NoError(t, err)
 		return loc
 	}
-	// Each groove is 1.1 mm deep and 2 mm wide on the 4.5 mm shaft. The point at radius 1.7 lies in the groove
-	// and inside the round section, far enough from both surfaces to be decided.
-	// Each groove is centered on an angle 120 degrees from the next, and the shaft is round between them.
-	at := func(radius, degrees, z float64) r3.Vec {
-		sin, cos := math.Sincos(degrees * math.Pi / 180)
-		return r3.NewVec(radius*cos, radius*sin, z)
-	}
-	for _, degrees := range []float64{0, 120, 240} {
-		key := at(1.7, degrees, p.GearThickness/2)
-		require.Equal(t, decad.PointOutside, locate(box.InputShaft, key), "the shaft has a groove at %v degrees", degrees)
-		tooth := at(2, degrees, p.GearThickness/2)
-		require.Equal(t, decad.PointInside, locate(sun, tooth), "the sun's bore keeps a tooth at %v degrees", degrees)
-	}
-	for _, degrees := range []float64{60, 180, 300} {
-		round := at(1.7, degrees, 4)
-		require.Equal(t, decad.PointInside, locate(box.InputShaft, round), "shaft at %v degrees", degrees)
-		require.Equal(t, decad.PointOutside, locate(sun, round), "sun bore at %v degrees", degrees)
-	}
-	// Under the front bearing the shaft is a full cylinder, key side included.
+	// The flat is 0.5 mm deep on the 4.5 mm shaft, so it lies 1.75 mm from the axis, and the sun's flat 2 mm from
+	// it. The sun's bore is 5 mm across, so material at 2.4 mm on +X is the tooth and the bore is open at
+	// the middle. The shaft itself is too thin for point location near its surface; the volume check below
+	// covers the flat.
+	z := p.GearThickness / 2
+	require.Equal(t, decad.PointInside, locate(sun, r3.NewVec(2.4, 0.3, z)), "the sun's bore keeps a tooth at the flat")
+	require.Equal(t, decad.PointOutside, locate(sun, r3.NewVec(-1, 0.3, z)), "the sun's bore is open opposite the flat")
+	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(1, 0.3, z)), "the shaft fills the bore's middle")
+	// Under the front bearing the shaft is a full cylinder, flat side included.
 	bearingZ := -(p.StageGap + p.CoverThickness + 2.5)
-	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(1.7, 0, bearingZ)), "round where the bearing sits")
-	const keyCount = 3
+	require.Equal(t, decad.PointInside, locate(box.InputShaft, r3.NewVec(2, 0.3, bearingZ)), "round where the bearing sits")
 	b := bounds(t, box.InputShaft)
 	length := b.Max.Z - b.Min.Z
 	v, bound := volume(t, box.InputShaft)
 	// A round rod and a round collar 6.9 mm across in the space between the front bearing's inner race and the
-	// sun, less the groove: the circle's part inside the groove's width, from the floor out, over the groove's
-	// length.
+	// sun, less the flat: the circle's part beyond the flat over the flat's length.
 	shaftDiameter, err := doc.Param("shaft_diameter")
 	require.NoError(t, err)
 	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
 	require.NoError(t, err)
-	radius, depth, half := shaftDiameter.Base()/2, p.KeyDepth, p.KeyWidth/2
-	floor := radius - depth
-	groove := 2 * (half*math.Sqrt(radius*radius-half*half)/2 + radius*radius/2*math.Asin(half/radius) - floor*half)
+	radius := shaftDiameter.Base() / 2
+	floor := radius - p.FlatDepth
+	segment := radius*radius*math.Acos(floor/radius) - floor*math.Sqrt(radius*radius-floor*floor)
 	collarRadius := shaftCollarDiameter.Base() / 2
 	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5)
-	grooveLength := p.GearThickness
-	require.InDelta(t, math.Pi*radius*radius*length+collar-keyCount*groove*grooveLength, v, bound+0.5)
+	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*p.GearThickness, v, bound+0.5)
 }
 
 func TestPhaseAngles(t *testing.T) {
@@ -748,7 +735,7 @@ func TestTwoStages(t *testing.T) {
 	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
 	// A collar in the gap between the first carrier and the second sun stops 0.25 mm short
-	// of both, and the grooves are cut away above and below it, so it is whole where a groove would run.
+	// of both, and the flats are cut away above and below it, so it is whole where a flat would run.
 	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
 	require.NoError(t, err)
 	require.InDelta(t, shaftCollarDiameter.Base(), link.Max.X-link.Min.X, 2e-3)
@@ -759,10 +746,10 @@ func TestTwoStages(t *testing.T) {
 		require.NoError(t, err)
 		return loc
 	}
-	require.Equal(t, decad.PointInside, locateLink(r3.NewVec(3, 0, collarMid)), "the collar is whole over the groove")
+	require.Equal(t, decad.PointInside, locateLink(r3.NewVec(3, 0, collarMid)), "the collar is whole over the flat")
 	require.Equal(t, decad.PointOutside, locateLink(r3.NewVec(3, 0, collarMid+p.StageGap)), "no collar above it")
 	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Shaft).Max.Z, 1e-6)
-	// The second sun's bore has the tooth for the link shaft's groove on +X. Point location is undecided inside
+	// The second sun's bore has the tooth for the link shaft's flat on +X. Point location is undecided inside
 	// the thin shaft, so only the sun is probed: material at the tooth, none on the round side.
 	secondSun := box.Stages[1].Sun
 	locate := func(point r3.Vec) decad.PointLocation {
@@ -771,8 +758,8 @@ func TestTwoStages(t *testing.T) {
 		return loc
 	}
 	mid := pitch + p.GearThickness/2
-	require.Equal(t, decad.PointInside, locate(r3.NewVec(2, 0, mid)), "the second sun's bore keeps a tooth in the groove")
-	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-2, 0, mid)), "the second sun's bore is round opposite the groove")
+	require.Equal(t, decad.PointInside, locate(r3.NewVec(2.4, 0.3, mid)), "the second sun's bore keeps a tooth at the flat")
+	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-1, 0.3, mid)), "the second sun's bore is open opposite the flat")
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
@@ -820,8 +807,7 @@ func TestInvalidParams(t *testing.T) {
 		"carrier wall too wide": {func(p *planetarygearbox.Params) { p.CarrierWall = 12 }, "no room for spokes"},
 		"thin gear":             {func(p *planetarygearbox.Params) { p.GearThickness = 5.5 }, "gear thickness"},
 		"stage gap too short":   {func(p *planetarygearbox.Params) { p.StageGap = 0.5 }, "stage gap"},
-		"key too deep":          {func(p *planetarygearbox.Params) { p.KeyDepth = 3 }, "key depth"},
-		"key too wide":          {func(p *planetarygearbox.Params) { p.KeyWidth = 5 }, "key width"},
+		"flat too deep":         {func(p *planetarygearbox.Params) { p.FlatDepth = 3 }, "flat depth"},
 		"seat chamfer too big":  {func(p *planetarygearbox.Params) { p.SeatChamfer = 2 }, "seat chamfer"},
 		"negative clearance":    {func(p *planetarygearbox.Params) { p.BearingClearance = -0.1 }, "bearing clearance"},
 		"bad placement":         {func(p *planetarygearbox.Params) { p.Placement = &r3.Frame{} }, "placement"},

@@ -33,8 +33,8 @@ carrier), the link shaft, the second stage, the ring, the rear cover and its bea
 
 The input shaft and the first sun turn together. The planets roll inside the fixed ring, so each planet turns on its
 own bearing while the carrier carries it around the sun. The first carrier turns at 13 ÷ 84 of the sun's speed and
-drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The keyway
-grooves on each shaft show its turning: the input shaft's grooves sweep round, and the output shaft's creep. The readout
+drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The flat
+on each shaft shows its turning: the input shaft's flat sweeps round, and the output shaft's creeps. The readout
 below the panels gives both angles. The animation plays forward and then back, so it has no jump where it repeats. A one-way loop would need the
 input to turn 7,056 times, because the output shaft only comes back to its starting angle after that many turns of
 the input. It moves the real tessellated bodies rigidly; it is not a force simulation.
@@ -42,8 +42,8 @@ the input. It moves the real tessellated bodies rigidly; it is not a force simul
 ## How the input and the output connect
 
 Every shaft is a separate part, 4.5 mm across, with 0.25 mm radial clearance in the 5 mm bore of a 605ZZ. It is a full round cylinder where a bearing sits and
-has three keyway grooves, 1.1 mm deep and 2 mm wide and 120° apart, where a sun or a carrier sits, like the hand crank fan's shafts. The sun's bore and the carrier's
-hole each have a tooth in each groove, so a shaft turns them without slipping. The input shaft and the output shaft each
+has a flat 0.5 mm deep, which makes it a D section, where a sun or a carrier sits. The sun's bore and the carrier's
+hole are D-shaped to match, so a shaft turns them without slipping. The input shaft and the output shaft each
 have a round collar, 9.9 mm across, next to their bearing. It stands in for the washer a metal build would use, so
 the sun or the carrier does not rub on the bearing and the cover. It stops 0.5 mm short of the part it faces. Each link shaft has a collar too, in the 1 mm gap between its carrier and
 the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of play either side.
@@ -57,7 +57,7 @@ the next sun, so the sun cannot slide down onto the carrier; it has 0.25 mm of p
 
 Each pin of the carrier has a collar that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate.
 
-The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the groove, are where a coupling or a set screw would grip.
+The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the flat, are where a coupling or a set screw would grip.
 
 ## Edge finishing
 
