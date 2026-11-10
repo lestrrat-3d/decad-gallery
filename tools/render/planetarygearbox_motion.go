@@ -164,6 +164,11 @@ func renderPlanetaryMotion(ctx context.Context, output string, width, height, fr
 	if err != nil {
 		return err
 	}
+	return renderPlanetaryMotionFrom(ctx, output, width, height, frames, box, p)
+}
+
+func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height, frames int,
+	box planetarygearbox.Gearbox, p planetarygearbox.Params) error {
 	movers, err := planetaryMovers(ctx, box, p)
 	if err != nil {
 		return err
