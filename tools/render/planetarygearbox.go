@@ -361,7 +361,7 @@ func planetaryPartPreset(part planetaryPart) func(context.Context) (solidlens.Sc
 // renderPlanetaryGearboxReadme writes the index image, the hero, the assembled views, one image per unique part and
 // the motion animation. The part images go in the parts directory beside them.
 func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
-	box, _, err := buildPlanetaryGearbox(ctx, 2)
+	box, params, err := buildPlanetaryGearbox(ctx, 2)
 	if err != nil {
 		return err
 	}
@@ -416,6 +416,6 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 		planetaryExplodedHeight); err != nil {
 		return fmt.Errorf("render planetary gearbox exploded view: %w", err)
 	}
-	return renderPlanetaryMotion(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth, planetaryMotionHeight,
-		planetaryMotionFrames)
+	return renderPlanetaryMotionFrom(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth,
+		planetaryMotionHeight, planetaryMotionFrames, box, params)
 }

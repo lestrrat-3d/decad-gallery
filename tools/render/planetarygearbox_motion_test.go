@@ -1,7 +1,10 @@
 package main
 
 import (
+	"image/gif"
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
@@ -9,6 +12,65 @@ import (
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/stretchr/testify/require"
 )
+
+func TestPlanetaryMotionUsesBuiltGearbox(t *testing.T) {
+	box, params, err := buildPlanetaryGearbox(t.Context(), 1)
+	require.NoError(t, err)
+	parts := box.Named()
+	type geometry struct {
+		min, max r3.Vec
+		volume   float64
+	}
+	before := make([]geometry, len(parts))
+	for i, part := range parts {
+		bounds, err := part.Body.Bounds()
+		require.NoError(t, err, part.Name)
+		volume, err := part.Body.Volume()
+		require.NoError(t, err, part.Name)
+		before[i] = geometry{min: bounds.Min, max: bounds.Max, volume: volume.Value.Base()}
+	}
+	_, err = planetaryHeroScene(t.Context(), box)
+	require.NoError(t, err)
+	output := filepath.Join(t.TempDir(), "motion.gif")
+	require.NoError(t, renderPlanetaryMotionFrom(t.Context(), output, 120, 80, 2, box, params))
+	f, err := os.Open(output)
+	require.NoError(t, err)
+	defer func() { _ = f.Close() }()
+	animation, err := gif.DecodeAll(f)
+	require.NoError(t, err)
+	require.Len(t, animation.Image, 2)
+	standalone := filepath.Join(t.TempDir(), "standalone.gif")
+	require.NoError(t, renderPlanetaryMotion(t.Context(), standalone, 120, 80, 2))
+	g, err := os.Open(standalone)
+	require.NoError(t, err)
+	defer func() { _ = g.Close() }()
+	twoStage, err := gif.DecodeAll(g)
+	require.NoError(t, err)
+	different := false
+	for y := range 80 {
+		for x := range 120 {
+			r1, g1, b1, a1 := animation.Image[0].At(x, y).RGBA()
+			r2, g2, b2, a2 := twoStage.Image[0].At(x, y).RGBA()
+			if r1 != r2 || g1 != g2 || b1 != b2 || a1 != a2 {
+				different = true
+				break
+			}
+		}
+		if different {
+			break
+		}
+	}
+	require.True(t, different, "one-stage gearbox must produce a different first frame from the standalone two-stage render")
+	for i, part := range parts {
+		bounds, err := part.Body.Bounds()
+		require.NoError(t, err, part.Name)
+		volume, err := part.Body.Volume()
+		require.NoError(t, err, part.Name)
+		require.Equal(t, before[i].min, bounds.Min, "%s min", part.Name)
+		require.Equal(t, before[i].max, bounds.Max, "%s max", part.Name)
+		require.Equal(t, before[i].volume, volume.Value.Base(), "%s volume", part.Name)
+	}
+}
 
 // TestPlanetaryGearboxMotion builds the real two-stage gearbox once and checks the animation's kinematics:
 // at an input angle that turns the first carrier a third of a turn, so planet 0 has been carried
