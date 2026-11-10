@@ -28,12 +28,13 @@ const (
 // corners returns four equal corner radii.
 func corners(r float64) []float64 { return []float64{r, r, r, r} }
 
-// chamferAlong chamfers by MinChamfer the kept loops of the large faces whose normal lies along normal at the offsets.
-func (b *builder) chamferAlong(body *decad.Body, normal r3.Vec, keep edgefinish.LoopFilter, offsets ...float64) *decad.Body {
+// chamferAlong chamfers by size the kept loops of the large faces whose normal lies along normal at the offsets.
+func (b *builder) chamferAlong(body *decad.Body, normal r3.Vec, keep edgefinish.LoopFilter, size float64,
+	offsets ...float64) *decad.Body {
 	if b.err != nil || body == nil {
 		return nil
 	}
-	out, _, err := edgefinish.Chamfer(b.ctx, body, normal, offsets, keep, edgefinish.MinChamfer)
+	out, _, err := edgefinish.Chamfer(b.ctx, body, normal, offsets, keep, size)
 	b.fail("finish edges", err)
 	return out
 }
@@ -51,11 +52,11 @@ func (b *builder) collector() *decad.Body {
 		outline(-collectorCavityHalf, collectorCavityHalf, rotorHeight-collectorCavityHalf, rotorHeight+collectorCavityHalf),
 		corners(collectorCavityCorner), collectorCeiling-collectorFloor))
 	body = b.finish(body, collectorBack, collectorEnd)
-	body = b.chamferAlong(body, r3.Vec{Y: 1}, edgefinish.Long(edgefinish.Inner), collectorCeiling)
+	body = b.chamferAlong(body, r3.Vec{Y: 1}, edgefinish.Long(edgefinish.Inner), edgefinish.MinChamfer, collectorCeiling)
 	// The throat's frame has U = +Z and V = +Y, so its normal points to -X.
 	body = b.cut(body, b.cylinder(frame(r3.Vec{X: throatToolFrom, Y: throatY, Z: rotorHeight}, r3.Vec{Z: 1}, r3.Vec{Y: 1}),
 		throatRadius, 7))
-	body = b.chamferAlong(body, r3.Vec{X: 1}, edgefinish.Long(edgefinish.Inner), throatWallOut, throatWallIn)
+	body = b.chamferAlong(body, r3.Vec{X: 1}, edgefinish.Long(edgefinish.Inner), edgefinish.MinChamfer, throatWallOut, throatWallIn)
 	for _, site := range sitesNamed("collector-bolt") {
 		body = b.fastenerCuts(body, site, false, true, true)
 	}

@@ -53,6 +53,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	b.gearbox()
 	b.head()
 	b.crank()
+	b.grip()
 	for _, s := range sitesNamed("gearbox-") {
 		b.hardware(s)
 	}

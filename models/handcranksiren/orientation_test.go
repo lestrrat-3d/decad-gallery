@@ -43,6 +43,7 @@ func requireOrientation(t *testing.T, p handcranksiren.Params, parts map[string]
 	require.InDelta(t, -65.90, (hornBox.Min.Y+hornBox.Max.Y)/2, 1e-3+hornBox.Bound.Base(), "the horn's axis is at throatY")
 	require.InDelta(t, 84, (hornBox.Min.Z+hornBox.Max.Z)/2, 1e-3+hornBox.Bound.Base(), "the horn's axis is at Z 84")
 	require.True(t, strings.HasPrefix(maxYName, "crank-"), "%s is the rightmost part", maxYName)
+	require.Less(t, box["grip"].Max.Y, box["gearbox-front"].Min.Y, "the grip is left of the gearbox")
 	require.InDelta(t, 0, minZ, 1e-6+minZBound, "the table is Z = 0")
 	for name, b := range box {
 		if b.Min.Z < 1e-3+b.Bound.Base() {
@@ -92,7 +93,7 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcranksiren.Params
 // requireTessellates builds a verified mesh of the parts whose boundary or volume Decad can check.
 func requireTessellates(t *testing.T, parts map[string]handcranksiren.Part) {
 	for _, name := range []string{"gearbox-front", "gearbox-frame", "gearbox-rear", "drum", "rotor", "stator", "horn",
-		"collector", "crank-arm", "crank-handle", "crank-gear", "collector-nut-1"} {
+		"collector", "grip", "crank-arm", "crank-handle", "crank-gear", "collector-nut-1"} {
 		mesh, err := parts[name].Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)

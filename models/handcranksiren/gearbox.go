@@ -86,6 +86,10 @@ func (b *builder) gearboxFront() *decad.Body {
 	for _, s := range sitesNamed("drum-bolt") {
 		body = b.fastenerCuts(body, s, false, true, true)
 	}
+	// The grip bolts end in nut cavities in the same layers, so the nuts drop in at the same pause.
+	for _, s := range sitesNamed("grip-bolt") {
+		body = b.fastenerCuts(body, s, false, true, true)
+	}
 	return body
 }
 

@@ -12,6 +12,7 @@ const (
 	StatorContainerName    = "Stator"
 	RotorContainerName     = "Rotor"
 	HornContainerName      = "Horn"
+	GripContainerName      = "Grip"       // the grip
 	GearPairsContainerName = "Gear Pairs" // children "Pair" (stage 1) and "Pair 2" (stage 2)
 	PairContainerName      = "Pair"
 	ShaftsContainerName    = "Shafts"

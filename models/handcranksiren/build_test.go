@@ -17,17 +17,20 @@ var partGroups = map[string][]string{
 	handcranksiren.StatorContainerName:  {"stator"},
 	handcranksiren.RotorContainerName:   {"rotor"},
 	handcranksiren.HornContainerName:    {"horn"},
+	handcranksiren.GripContainerName:    {"grip"},
 	handcranksiren.BoltsContainerName: {
 		"gearbox-front-bolt-1", "gearbox-front-bolt-2", "gearbox-front-bolt-3", "gearbox-front-bolt-4",
 		"gearbox-rear-bolt-1", "gearbox-rear-bolt-2", "gearbox-rear-bolt-3", "gearbox-rear-bolt-4",
 		"drum-bolt-1", "drum-bolt-2", "drum-bolt-3", "collector-bolt-1", "collector-bolt-2", "collector-bolt-3", "collector-bolt-4",
-		"throat-bolt-1", "throat-bolt-2", "throat-bolt-3", "throat-bolt-4", "crank-pin-bolt",
+		"throat-bolt-1", "throat-bolt-2", "throat-bolt-3", "throat-bolt-4",
+		"grip-bolt-1", "grip-bolt-2", "grip-bolt-3", "grip-bolt-4", "crank-pin-bolt",
 	},
 	handcranksiren.NutsContainerName: {
 		"gearbox-front-nut-1", "gearbox-front-nut-2", "gearbox-front-nut-3", "gearbox-front-nut-4",
 		"gearbox-rear-nut-1", "gearbox-rear-nut-2", "gearbox-rear-nut-3", "gearbox-rear-nut-4",
 		"drum-nut-1", "drum-nut-2", "drum-nut-3", "collector-nut-1", "collector-nut-2", "collector-nut-3", "collector-nut-4",
-		"throat-nut-1", "throat-nut-2", "throat-nut-3", "throat-nut-4", "crank-pin-nut",
+		"throat-nut-1", "throat-nut-2", "throat-nut-3", "throat-nut-4",
+		"grip-nut-1", "grip-nut-2", "grip-nut-3", "grip-nut-4", "crank-pin-nut",
 	},
 	handcranksiren.ShaftsContainerName: {"crank-shaft", "intermediate-shaft", "rotor-shaft"},
 	handcranksiren.BearingsContainerName: {
@@ -77,7 +80,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	doc, parts, a := buildSiren(t, p)
 	names := partNames()
 	require.Len(t, a.Parts, len(names))
-	require.Len(t, a.Parts, 64)
+	require.Len(t, a.Parts, 73)
 	for _, name := range names {
 		require.Contains(t, parts, name)
 	}
@@ -103,6 +106,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 		})
 		return
 	}
+	t.Run("grip", func(t *testing.T) { requireGrip(t, parts) })
 	t.Run("sweep", func(t *testing.T) { requireSweep(t, parts) })
 	t.Run("tessellate", func(t *testing.T) { requireTessellates(t, parts) })
 	t.Run("edges", func(t *testing.T) { requireEdgeFinishing(t, p, parts) })

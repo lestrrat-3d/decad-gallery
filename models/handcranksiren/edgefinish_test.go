@@ -39,8 +39,8 @@ func largeFaces(t *testing.T, body *decad.Body, normal r3.Vec, offsets ...float6
 }
 
 // bevelled reports whether the face beside an edge of f, whose normal lies along normal, is a chamfer: a plane or cone
-// that is neither parallel nor perpendicular to f. Decad reports the chamfer round the frame's rounded corners as a faceted surface with no
-// geometry to measure. The wall it replaces is a cylinder, which stays a cylinder, so a faceted neighbour is the
+// that is neither parallel nor perpendicular to f. Decad reports the chamfer round the frame's rounded corners as a
+// faceted surface with no geometry to measure. The wall it replaces is a cylinder, which stays a cylinder, so a faceted neighbour is the
 // chamfer.
 func bevelled(t *testing.T, f, other *decad.Face, normal r3.Vec) bool {
 	t.Helper()
@@ -166,6 +166,15 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 	require.InDelta(t, 29.5, hornRim.radius, 1e-3+hornBox.Bound.Base(), "horn flange rim")
 	// The mating face's bore edge and the mouth lip face have no concave junction.
 	requireChamferedAlong(t, "horn mating face and lip", parts["horn"].Body, r3.Vec{X: 1}, throat, longAll, -51.25, -159.25)
+
+	// The grip's caps take the 2.0 chamfer of deviation A7: the rim sits 2.0 inside the bounds in Y and Z.
+	gripBox := bounds(t, parts["grip"])
+	gripRim := requireChamferedAlong(t, "grip", parts["grip"].Body, r3.Vec{X: 1}, r3.Vec{}, longAll, 79, 105)
+	tol = 1e-3 + gripBox.Bound.Base()
+	require.InDelta(t, -64.25, gripRim.min.Y, tol, "grip rim")
+	require.InDelta(t, -2.25, gripRim.max.Y, tol, "grip rim")
+	require.InDelta(t, 7, gripRim.min.Z, tol, "grip rim")
+	require.InDelta(t, 123, gripRim.max.Z, tol, "grip rim")
 
 	// The crank arm's caps.
 	requireChamfered(t, "crank-arm", parts["crank-arm"].Body, edgefinish.Outer, 38.6, 46.6)

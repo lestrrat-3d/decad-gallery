@@ -23,6 +23,8 @@ const (
 	collectorNutCavity  = 12.0
 	throatBoltLength    = 10
 	throatCavity        = 6.75
+	gripBoltLength      = 10
+	gripCavity          = 7.75
 	pinBoltLength       = 10
 	pinCavity           = 4.75
 
@@ -34,7 +36,14 @@ const (
 	throatBoltR       = 26.0 // radius of the throat bolts about the throat axis
 	drumHead          = -15.50
 	collectorBoltHead = -21.40
+	gripHeadY         = -6.25 // the grip's window face, where its bolt heads end
 	throatHead        = -46.0 // the throat bolt heads' X, flush with the collector wall's inner face
+)
+
+// The grip bolts' X and Z: four in a rectangle, X varying fastest.
+var (
+	gripBoltX = [2]float64{85, 99}
+	gripBoltZ = [2]float64{30, 100}
 )
 
 // fastenerSite is one bolt and its captive nut, with the parts that hold them.
@@ -86,6 +95,11 @@ func fastenerSites() []fastenerSite {
 		add(fmt.Sprintf("throat-bolt-%d", k+1), fmt.Sprintf("throat-nut-%d", k+1), "collector", "horn", "fixed",
 			m2fastener.Site{Head: r3.Vec{X: throatHead, Y: throatY + throatBoltR*math.Cos(a), Z: rotorHeight + throatBoltR*math.Sin(a)},
 				Dir: x.Scale(-1), Corner: r3.Vec{Y: math.Cos(a), Z: math.Sin(a)}, Length: throatBoltLength, Cavity: throatCavity})
+	}
+	for k := range 4 {
+		add(fmt.Sprintf("grip-bolt-%d", k+1), fmt.Sprintf("grip-nut-%d", k+1), "grip", "gearbox-front", "fixed",
+			m2fastener.Site{Head: r3.Vec{X: gripBoltX[k%2], Y: gripHeadY, Z: gripBoltZ[k/2]}, Dir: y, Corner: x,
+				Length: gripBoltLength, Cavity: gripCavity})
 	}
 	add("crank-pin-bolt", "crank-pin-nut", "crank-arm", "crank-pin", "crank",
 		m2fastener.Site{Head: r3.Vec{X: crankOffset, Y: 38.6, Z: rotorHeight + 55}, Dir: y, Corner: x,

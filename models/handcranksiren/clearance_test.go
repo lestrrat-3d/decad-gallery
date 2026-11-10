@@ -218,6 +218,13 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	zPlane := frameAt(t, r3.Vec{Z: 84}, r3.Vec{X: 1}, r3.Vec{Y: 1})
 	section("L6", "horn", "stator", zPlane, loose)
 	section("L6", "horn", "drum", zPlane, loose)
+	// T12: the grip's pad against gearbox-front and the head of the front bolt it covers, along Y.
+	axial("T12", "grip", "gearbox-front", 1, tight)
+	axial("T12", "grip", "gearbox-front-bolt-2", 1, tight)
+	// L7: the collector, the stator and the drum against the grip, along X.
+	for _, part := range []string{"collector", "stator", "drum"} {
+		axial("L7", part, "grip", 0, loose)
+	}
 	// T5, T6: the rotor hub's D-bore on the rotor shaft, and the shaft's front end against the bore's floor.
 	exact("T5", "rotor", "rotor-shaft", atY(t, -20.5), tight)
 	exact("T6", "rotor", "rotor-shaft", axialPlane(t, p, "rotor", state.Rotor), tight)
