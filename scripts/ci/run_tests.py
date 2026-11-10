@@ -229,7 +229,7 @@ def run_fan(case: str) -> None:
     go_test(["./models/handcrankfan", "-run", FAN_CASES[case], "-timeout", "40m", "-count=1"])
 
 
-# The hand-crank siren builds 55 solids and verifies every pair; each case gets its own job.
+# The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
     "variants": "^TestHandCrankSirenVariant$",
