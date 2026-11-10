@@ -27,48 +27,55 @@ func buildHandCrankSiren(ctx context.Context) (handCrankSiren, error) {
 	return handCrankSiren{a: a}, nil
 }
 
-// sirenView is a named camera for the whole assembled siren. The horn points to -Y, the crank to +Y and Z is up.
+// sirenView is a named camera for the whole assembled siren. Operator forward is -X, the crank is on the right (+Y) and Z
+// is up.
 type sirenView struct {
 	shot   string
 	camera solidlens.Camera
 }
 
 var (
-	// The hero looks from the front, left and above, with the horn mouth and the drum in front of the gearbox.
-	handCrankSirenHeroCamera = solidlens.Camera{Position: solidlens.Vec{X: -330, Y: -560, Z: 330},
-		Target: solidlens.Vec{X: 45, Y: -20, Z: 80}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	handCrankSirenCutawayCamera = solidlens.Camera{Position: solidlens.Vec{X: -480, Y: -300, Z: 230},
-		Target: solidlens.Vec{X: 0, Y: -60, Z: 84}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: 760, Y: -330, Z: 300},
-		Target: solidlens.Vec{X: 45, Y: 20, Z: 90}, Up: solidlens.Vec{Z: 1}, FOV: 35}
+	// The hero looks from the front-left above, with the horn mouth toward the camera and the grip and crank behind.
+	handCrankSirenHeroCamera = solidlens.Camera{Position: solidlens.Vec{X: -600, Y: -380, Z: 330},
+		Target: solidlens.Vec{X: -20, Y: -20, Z: 80}, Up: solidlens.Vec{Z: 1}, FOV: 35}
+	handCrankSirenCutawayCamera = solidlens.Camera{Position: solidlens.Vec{X: -380, Y: -420, Z: 560},
+		Target: solidlens.Vec{X: -40, Y: -40, Z: 84}, Up: solidlens.Vec{Z: 1}, FOV: 35}
+	handCrankSirenExplodedCamera = solidlens.Camera{Position: solidlens.Vec{X: -760, Y: -330, Z: 300},
+		Target: solidlens.Vec{X: -20, Y: 20, Z: 90}, Up: solidlens.Vec{Z: 1}, FOV: 35}
 )
 
-// handCrankSirenViews are the finished siren from other angles: the rear, where the crank is, the right side and the top.
+// handCrankSirenViews are the finished siren from other angles: from behind the operator, from the right where the crank
+// is, and from above.
 var handCrankSirenViews = []sirenView{
-	{"rear", solidlens.Camera{Position: solidlens.Vec{X: 330, Y: 520, Z: 300}, Target: solidlens.Vec{X: 45, Y: -20, Z: 80},
+	{"rear", solidlens.Camera{Position: solidlens.Vec{X: 650, Y: -220, Z: 330}, Target: solidlens.Vec{X: -20, Y: -20, Z: 80},
 		Up: solidlens.Vec{Z: 1}, FOV: 35}},
-	{"side", solidlens.Camera{Position: solidlens.Vec{X: 700, Y: -20, Z: 90}, Target: solidlens.Vec{X: 45, Y: -20, Z: 80},
+	{"side", solidlens.Camera{Position: solidlens.Vec{X: -20, Y: 720, Z: 140}, Target: solidlens.Vec{X: -20, Y: -20, Z: 80},
 		Up: solidlens.Vec{Z: 1}, FOV: 35}},
-	{"top", solidlens.Camera{Position: solidlens.Vec{X: 45, Y: -20, Z: 700}, Target: solidlens.Vec{X: 45, Y: -20, Z: 80},
-		Up: solidlens.Vec{Y: 1}, FOV: 35}},
+	// From above, forward (-X) is at the top of the image.
+	{"top", solidlens.Camera{Position: solidlens.Vec{X: -20, Y: -10, Z: 700}, Target: solidlens.Vec{X: -20, Y: -20, Z: 80},
+		Up: solidlens.Vec{X: -1}, FOV: 35}},
 }
 
-// handCrankSirenExplode is how far the exploded view moves a part, by name. Everything is coaxial along Y, so the offsets
-// are fixed: gearbox-front and the drum nuts stay where they are.
+// handCrankSirenExplode is how far the exploded view moves a part, by name. The parts move along Y by fixed offsets, and
+// the horn also moves along -X: gearbox-front, the drum nuts and the grip nuts stay where they are.
 func handCrankSirenExplode(name string) r3.Vec {
 	switch {
 	case strings.HasPrefix(name, "gearbox-front-bolt-"):
 		return r3.Vec{Y: -25}
 	case strings.HasSuffix(name, "-shaft"):
 		return r3.Vec{Z: 160}
-	case name == "drum" || strings.HasPrefix(name, "drum-bolt-") || strings.HasPrefix(name, "horn-bolt-"):
+	case name == "drum" || strings.HasPrefix(name, "drum-bolt-") || strings.HasPrefix(name, "collector-bolt-"):
 		return r3.Vec{Y: -35}
+	case name == "grip" || strings.HasPrefix(name, "grip-bolt-"):
+		return r3.Vec{Y: -45}
 	case name == "rotor":
 		return r3.Vec{Y: -65}
 	case name == "stator":
 		return r3.Vec{Y: -95}
-	case name == "horn" || strings.HasPrefix(name, "horn-nut-"):
+	case name == "collector" || strings.HasPrefix(name, "collector-nut-") || strings.HasPrefix(name, "throat-bolt-"):
 		return r3.Vec{Y: -135}
+	case name == "horn" || strings.HasPrefix(name, "throat-nut-"):
+		return r3.Vec{X: -60, Y: -135}
 	case strings.HasPrefix(name, "bearing-") && strings.HasSuffix(name, "-front"):
 		return r3.Vec{Y: 20}
 	case name == "intermediate-gear" || name == "rotor-pinion":
@@ -116,6 +123,7 @@ var handCrankSirenColors = map[string]solidlens.Color{
 	handcranksiren.StatorContainerName:    solidlens.RGB(.50, .56, .62),
 	handcranksiren.RotorContainerName:     solidlens.RGB(.16, .52, .70),
 	handcranksiren.HornContainerName:      solidlens.RGB(.78, .52, .16),
+	handcranksiren.GripContainerName:      solidlens.RGB(.20, .22, .25),
 	handcranksiren.GearPairsContainerName: solidlens.RGB(.80, .62, .20),
 	handcranksiren.ShaftsContainerName:    solidlens.RGB(.55, .58, .62),
 	handcranksiren.BearingsContainerName:  solidlens.RGB(.72, .76, .80),
@@ -142,8 +150,9 @@ func handCrankSirenMesh(ctx context.Context, part handcranksiren.Part) (sirenMes
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1}}}, nil
 }
 
-// sceneFrom draws the siren from camera. exploded moves each part by its offset. cutaway clips the drum, the stator and
-// the horn by the plane X = 0 and removes the -X half, so the rotor, the vanes and the ports show.
+// sceneFrom draws the siren from camera. exploded moves each part by its offset. cutaway clips the drum, the stator, the
+// collector and the horn by the plane Z = 84 and removes the top half, so the rotor, the ports, the collector cavity and
+// the horn bore show.
 func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, exploded, cutaway bool) (solidlens.Scene, error) {
 	meshes, err := handCrankSirenMeshes(ctx, s.a)
 	if err != nil {
@@ -155,10 +164,12 @@ func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, 
 		if exploded {
 			models[i].Mesh = placedMesh{TriangleSource: m.model.Mesh, scale: 1, offset: handCrankSirenExplode(m.part.Name)}
 		}
-		if cutaway && (m.part.Name == "drum" || m.part.Name == "stator" || m.part.Name == "horn") {
+		if cutaway && (m.part.Name == "drum" || m.part.Name == "stator" || m.part.Name == "collector" ||
+			m.part.Name == "horn") {
 			c := handCrankSirenColors[m.part.Group]
 			models[i].Clip = &solidlens.ClipPlane{
-				Normal: solidlens.Vec{X: -1},
+				Origin: solidlens.Vec{Z: 84},
+				Normal: solidlens.Vec{Z: 1},
 				Cap: &solidlens.Material{
 					Color: solidlens.RGB(c.R+(1-c.R)*0.35, c.G+(1-c.G)*0.35, c.B+(1-c.B)*0.35),
 					Unlit: true,
@@ -193,10 +204,10 @@ type handCrankSirenPart struct {
 }
 
 var (
-	sirenFront = r3.Vec{X: -.55, Y: -.75, Z: .4} // from the front, left and above
+	sirenFront = r3.Vec{X: -.55, Y: -.75, Z: .4} // from the front-left above
 	sirenRear  = r3.Vec{X: .55, Y: .75, Z: .4}   // from behind, right and above
-	sirenSide  = r3.Vec{X: .85, Y: -.3, Z: .3}   // from the right
-	sirenFace  = r3.Vec{X: -.3, Y: -.9, Z: .3}   // onto a front face
+	sirenSide  = r3.Vec{X: .85, Y: -.3, Z: .3}   // from behind the operator, +X
+	sirenFace  = r3.Vec{X: -.3, Y: -.9, Z: .3}   // onto the left face, -Y
 )
 
 var handCrankSirenParts = []handCrankSirenPart{
@@ -204,9 +215,11 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"gearbox-frame", "gearbox-frame", nil, sirenFront},
 	{"gearbox-rear", "gearbox-rear", nil, sirenFront},
 	{"drum", "drum", nil, sirenRear},
+	{"collector", "collector", nil, sirenFront},
 	{"stator", "stator", nil, sirenFace},
 	{"rotor", "rotor", nil, sirenRear},
 	{"horn", "horn", nil, sirenFront},
+	{"grip", "grip", nil, sirenFront},
 	{"crank-gear", "crank-gear", nil, sirenFace},
 	{"intermediate-pinion", "intermediate-pinion", nil, sirenFace},
 	{"intermediate-gear", "intermediate-gear", nil, sirenFace},
@@ -220,7 +233,9 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"crank-handle", "crank-handle", nil, sirenSide},
 	{"gearbox-bolt", "gearbox-front-bolt-1", []string{"gearbox-front-nut-1"}, sirenSide},
 	{"drum-bolt", "drum-bolt-1", []string{"drum-nut-1"}, sirenSide},
-	{"horn-bolt", "horn-bolt-1", []string{"horn-nut-1"}, sirenSide},
+	{"collector-bolt", "collector-bolt-1", []string{"collector-nut-1"}, sirenSide},
+	{"throat-bolt", "throat-bolt-1", []string{"throat-nut-1"}, sirenSide},
+	{"grip-bolt", "grip-bolt-1", []string{"grip-nut-1"}, sirenSide},
 	{"crank-pin-bolt", "crank-pin-bolt", []string{"crank-pin-nut"}, sirenSide},
 }
 
