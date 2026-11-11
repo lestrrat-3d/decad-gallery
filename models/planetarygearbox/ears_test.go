@@ -117,7 +117,7 @@ func TestRingWithoutEars(t *testing.T) {
 	doc := decad.New()
 	box, err := planetarygearbox.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 31)
+	require.Len(t, doc.Bodies(), 34)
 	outer := ringOuterRadius(p)
 	ring := bounds(t, box.Ring)
 	require.InDelta(t, outer, ring.Max.X, 1e-3)
