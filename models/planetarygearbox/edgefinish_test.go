@@ -71,6 +71,30 @@ func requireOuterEdgesChamfered(t *testing.T, name string, body *decad.Body, fac
 	}
 }
 
+// requireInnerLoopsSharp checks that each large flat face of body has exactly loops inner loops and that no edge of
+// those loops has a 45° bevel beside it. The carrier's pin sockets and centre hole are press-fit rims, so they keep
+// their shape.
+func requireInnerLoopsSharp(t *testing.T, name string, body *decad.Body, loops int) {
+	t.Helper()
+	flat := largeFlatFaces(t, body)
+	require.NotEmpty(t, flat, "%s: large flat faces", name)
+	for _, f := range flat {
+		inner := 0
+		for _, loop := range f.Loops() {
+			if loop.IsOuter() {
+				continue
+			}
+			inner++
+			for _, e := range loop.Edges() {
+				for _, other := range e.Faces() {
+					require.False(t, other != f && bevelAngle(t, other), "%s: an inner edge has a bevel beside it", name)
+				}
+			}
+		}
+		require.Equal(t, loops, inner, "%s: inner loops of a large flat face", name)
+	}
+}
+
 // requireRimSetback checks that the circular outer edges of the large flat faces of body sit the chamfer
 // setback inside the widest cylinder of the body.
 func requireRimSetback(t *testing.T, name string, body *decad.Body, setback float64) {
@@ -114,6 +138,7 @@ func TestEdgeFinishing(t *testing.T) {
 	}
 	for k, stage := range box.Stages {
 		requireOuterEdgesChamfered(t, planetarygearbox.CarrierName(k), stage.Carrier, 2)
+		requireInnerLoopsSharp(t, planetarygearbox.CarrierName(k), stage.Carrier, p.PlanetCount+1)
 	}
 }
 

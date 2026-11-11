@@ -302,6 +302,7 @@ func TestPartClearances(t *testing.T) {
 	requireSectionTouch(t, branchBearing, branch.Stages[0].Pins[0], branchBearingMid)
 	requireSectionClearance(t, branch.Stages[0].Carrier, branch.Stages[0].Shaft,
 		p.GearThickness+branchParams.StageGap+p.CarrierThickness/2, seatMinimum)
+	requireInnerLoopsSharp(t, "branch carrier", branch.Stages[0].Carrier, p.PlanetCount+1)
 	branchCarrierZ := p.GearThickness + branchParams.StageGap
 	requireSectionClearance(t, branch.Stages[0].Pins[0], branch.Stages[0].Carrier,
 		branchCarrierZ+p.CarrierThickness/2, seatMinimum)
@@ -851,6 +852,9 @@ func TestTwoStages(t *testing.T) {
 	link := bounds(t, box.Stages[0].Shaft)
 	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
+	for k, stage := range box.Stages {
+		requireInnerLoopsSharp(t, planetarygearbox.CarrierName(k), stage.Carrier, p.PlanetCount+1)
+	}
 	// The link shaft is thin-thick: a D thick part pressed through the first carrier that ends 0.25 mm short of the
 	// second sun, and a thin rod through the sun's bore.
 	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
@@ -890,6 +894,9 @@ func TestTwoStages(t *testing.T) {
 		q.Stages, q.FlatDepth, q.StageGap = 2, 0, 0.75
 		round, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), q)
 		require.NoError(t, err)
+		for k, stage := range round.Stages {
+			requireInnerLoopsSharp(t, planetarygearbox.CarrierName(k), stage.Carrier, q.PlanetCount+1)
+		}
 		pitch := q.GearThickness + q.CarrierThickness + 1.5
 		kz := q.GearThickness + 0.75
 		link := round.Stages[0].Shaft
