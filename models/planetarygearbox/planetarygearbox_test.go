@@ -549,7 +549,8 @@ func TestCarrierIsATriangle(t *testing.T) {
 	require.Equal(t, decad.PointInside, locate(at(12, math.Pi/3, plate)), "solid between the pins")
 	require.Equal(t, decad.PointInside, locate(at(14, math.Pi/3, plate)), "solid out to the edge")
 	require.Equal(t, decad.PointOutside, locate(at(20, math.Pi/3, plate)), "nothing past the tangent edge")
-	require.Equal(t, decad.PointInside, locate(at(25, 0, plate)), "a pin boss")
+	// 0.75 mm from the socket flat, too close to a surface for point location, so the section decides.
+	require.Equal(t, decad.PointInside, sectionLocate(t, carrier, at(25, 0, plate)), "a pin boss")
 	require.Equal(t, decad.PointOutside, locate(at(0, 0, plate)), "the D hole")
 	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-1.7, 0, plate)), "the hole is open on the round side")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, carrier, r3.NewVec(-3.4, 0, plate)), "the hole is wide, R 3.75")

@@ -303,10 +303,10 @@ func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float
 type span struct{ lo, hi float64 }
 
 // flatCut cuts the flat over each of the spans out of body, which is the shaft or, for a bore, a tool shaped like
-// the shaft. With FlatDepth zero it returns body unchanged. The flats of every span join into one tool, so the
+// the shaft. With FlatDepth zero or no spans it returns body unchanged. The flats of every span join into one tool, so the
 // body takes one cut however many spans there are.
 func (r *run) flatCut(ctx context.Context, what string, body *decad.Body, spans ...span) (*decad.Body, error) {
-	if r.p.FlatDepth == 0 {
+	if r.p.FlatDepth == 0 || len(spans) == 0 {
 		return body, nil
 	}
 	var tools []*decad.Body
