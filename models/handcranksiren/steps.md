@@ -39,7 +39,9 @@ operations, their order and the checks.
    (16T, 15T), Placement origin on the axis at the plane's front Y, V = (0, 1, 0) × U.
 2. U per gear as in the table of `instructions.md` (the driven gears turned by π/16 and π/15 about +Y).
 3. `dBoreTool(axis, planeFront − 1, 8, 0.25)` cut from each gear.
-- Check: the `mesh` subtest.
+4. Mark holes: for each gear, one section at the bore's start per hole, one circle of radius 0.75 at 6.6 from the
+   axis (25° apart, symmetric about +V), extruded 8 and cut. 1 hole for the 50T and 16T gears, 2 for the 48T and 15T.
+- Check: the `mesh` and `marks` subtests.
 
 ## 3. Shafts and bearings (`shafts.go`, `bearings.go`)
 

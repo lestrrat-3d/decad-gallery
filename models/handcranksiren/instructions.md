@@ -25,6 +25,7 @@ and the nuts `models/m2nut`, all imported and not copied. Printed parts: everyth
   tip circles 0.5 apart. See Gear train clearances.
 - Surface edge finishing: see Edge finishing.
 - Body containers: see Containers.
+- Look-alike part marks: see Look-alike parts.
 - `models/README.md` marks the model **Mixed**.
 
 ## API and parameters
@@ -139,6 +140,23 @@ Axial stack (Y ranges):
 - Tooth zero is centred on U, so each driver's tooth points at its mate and each driven gear's gap points back.
 - After the gear builds, cut each gear's D-bore: a cylinder of radius 3.75 + 0.25 minus a box beyond the flat 3.0 + 0.25
   from the axis toward world +Z. The bore runs from 1 before the gear's front face for 8. The flat faces world +Z.
+
+### Look-alike parts
+
+Two sets of gears look alike, so each gear carries stage mark holes (see Look-alike part marks in
+`docs/model-pipeline.md`).
+
+| Set | Parts | Reason |
+| --- | --- | --- |
+| Large gears | crank-gear (50T), intermediate-gear (48T) | Same module and thickness, two teeth apart |
+| Pinions | intermediate-pinion (16T), rotor-pinion (15T) | Same module and thickness, one tooth apart |
+
+- Holes: 1 for stage 1 (crank-gear, intermediate-pinion), 2 for stage 2 (intermediate-gear, rotor-pinion).
+- Each hole has radius 0.75 and its centre 6.6 from the axis, on the section frame's +V side (world −Z), opposite the
+  D flat. Neighbouring holes are 25° apart, spread symmetrically about the +V axis. The smallest root circle is 9.23, so
+  every hole keeps 1.88 from the root, and the D-bore (radius 4.0) leaves 1.85.
+- Each hole is its own sketch on the gear's section frame at the bore's start (1 before the front face), a circle
+  placed by horizontal and vertical distances from the origin, cut through for 8 along +Y after the D-bore.
 
 ### Shafts and bearings
 
@@ -361,7 +379,7 @@ Build every part at crank angle 0, pose it by its motion, move it into its conta
 
 `go test ./models/handcranksiren` covers the default and the `Slots` 12 and 24 variants: parts, sketches, containers,
 ports, outlet, orientation, overlap, fits R2 and L1 on the variants, and on the default also the grip, mesh,
-clearances, fasteners, sweep, tessellate and edges checks.
+clearances, fasteners, sweep, tessellate, edges and marks checks.
 
 - `outlet` (default and variants) sections the collector and the horn at `fitTolerance` 0.02: no material at radius 36
   about R in the collector at Y −35.90; no material at the throat centre or at radius 20 about it, and material at

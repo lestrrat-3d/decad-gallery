@@ -118,6 +118,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	})
 	t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 	t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
+	t.Run("marks", func(t *testing.T) { requireMarkHoles(t, p, parts) })
 }
 
 // requireContainers checks that every body sits in the container for its kind and that the document verifies.
