@@ -34,7 +34,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    of diameter `2 (s / √3 + c)` (`s` = `m2nut.AcrossFlats`, `c = 0.2`), extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
-2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5.5, 0.25 mm larger radially than the 5 mm shaft)
+2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5.1, 0.05 mm larger radially than the 5 mm shaft, a press fit)
    when `Sf = 0`, otherwise no bore. With a flat, extrude the D tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = lip bore diameter`,
@@ -133,9 +133,9 @@ outer loop and every loop of more than one edge. Carrier (after the centre hole 
 `z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
 
 **Shaft section.** A circle of diameter `shaft_diameter = bearing_bore_diameter`, the section of every rod.
-**D tool.** The section of the sun bore and carrier hole: one outline with 0.25 mm around the D shaft, its flat
-0.25 mm beyond the shaft's flat, extruded once so the tool is not itself a boolean result. With
-`R = shaft_diameter/2 + 0.25`, flat `x = f = R - Sf` and half width `h = sqrt(R² - f²)`, the outline is an arc about the
+**D tool.** The section of the sun bore: one outline with 0.05 mm (`shaft_bore_clearance`) around the D shaft, its flat
+0.05 mm beyond the shaft's flat, extruded once so the tool is not itself a boolean result. With
+`R = shaft_diameter/2 + 0.05`, flat `x = f = R - Sf` and half width `h = sqrt(R² - f²)`, the outline is an arc about the
 origin from the flat's upper end `(f, +h)` counterclockwise round to its lower end `(f, -h)`, and the line across the
 flat that closes it. Dimension the upper end from the origin and the lower end by the one coordinate that changes along
 the arc there, so the arc's radius relation fixes the rest; require one valid profile with two outer curves. With

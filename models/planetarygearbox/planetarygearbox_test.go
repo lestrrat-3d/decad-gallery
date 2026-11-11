@@ -266,7 +266,8 @@ func TestPartClearances(t *testing.T) {
 	// section measurement's uncertainty reaches 0.024 mm on the meshed covers, so the proven bound is about 0.026 mm.
 	const seatMinimum = 0.02
 
-	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, minimum)
+	// The sun's bore is a press fit on the shaft: the sun turns with it.
+	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, seatMinimum)
 	// The shaft's thick part is a press fit in the carrier's hole, tighter than the Tight minimum.
 	requireSectionClearance(t, stage.Carrier, stage.Shaft,
 		p.GearThickness+p.StageGap+p.CarrierThickness/2, seatMinimum)
@@ -760,8 +761,8 @@ func TestShaftFlat(t *testing.T) {
 		require.NoError(t, err)
 		return loc
 	}
-	// The flat is 0.5 mm deep on the 5 mm shaft, so it lies 2 mm from the axis, and the sun's flat 2.25 mm from
-	// it. The sun's bore is 5.5 mm across, so material at 2.5 mm on +X is the tooth and the bore is open at
+	// The flat is 0.5 mm deep on the 5 mm shaft, so it lies 2 mm from the axis, and the sun's flat 2.05 mm from
+	// it. The sun's bore is 5.1 mm across, so material at 2.5 mm on +X is the tooth and the bore is open at
 	// the middle. The tooth is a sliver under 0.5 mm thick, too thin for point location, so the sun's section
 	// decides those probes. The shaft itself is too thin for point location near its surface; the volume check
 	// below covers the flat.
@@ -872,7 +873,8 @@ func TestTwoStages(t *testing.T) {
 	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.125)), "thin rod")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch+p.GearThickness/2)))
 	requireSectionClearance(t, linkShaft, box.Stages[0].Carrier, kz+p.CarrierThickness/2, 0.02)
-	requireSectionClearance(t, linkShaft, box.Stages[1].Sun, pitch+p.GearThickness/2, 0.2)
+	// The second sun's bore is a press fit on the link shaft, like the first sun's on the input shaft.
+	requireSectionClearance(t, linkShaft, box.Stages[1].Sun, pitch+p.GearThickness/2, 0.02)
 	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
 		(p.CarrierThickness+p.StageGap-0.25) +
 		math.Pi*radius*radius*(p.GearThickness+0.25) - circleSegment(radius, p.FlatDepth)*p.GearThickness
