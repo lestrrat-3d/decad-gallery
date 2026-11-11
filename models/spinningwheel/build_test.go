@@ -137,6 +137,11 @@ func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
 	requireDriveBandFrameClearances(t, a)
 	requireBrakeSpringsFromOneCoil(t, doc, a)
 	requireYarnHooksFromOneMaster(t, doc, a)
+	if p == spinningwheel.DefaultParams() {
+		requireBearingSeats(t, a)
+		requireReferenceLayout(t, a)
+		requireRearRailClearance(t, p, a)
+	}
 	t.Logf("verified %d final bodies and %d sketches", len(a.Parts), len(a.Sketches))
 }
 

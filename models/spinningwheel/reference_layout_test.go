@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSpinningWheelReferenceLayout(t *testing.T) {
-	a := sharedDefaultAssembly(t)
+func requireReferenceLayout(t *testing.T, a *spinningwheel.Assembly) {
+	t.Helper()
 	spokes := 0
 	for _, part := range a.Parts {
 		if strings.HasPrefix(part.Name, "wheel-spoke-") {
@@ -50,9 +50,8 @@ func TestSpinningWheelReferenceLayout(t *testing.T) {
 	require.Greater(t, rod.Min.Y, wheel.Max.Y, "footman runs behind the wheel")
 }
 
-func TestSpinningWheelRearRailClearance(t *testing.T) {
-	p := spinningwheel.DefaultParams()
-	a := sharedDefaultAssembly(t)
+func requireRearRailClearance(t *testing.T, p spinningwheel.Params, a *spinningwheel.Assembly) {
+	t.Helper()
 	pose := p
 	pose.WheelAngle = 3 * math.Pi / 2
 	state, err := spinningwheel.Motion(pose)
