@@ -45,6 +45,8 @@
 ## Verification
 
 - Apply [Part clearances](docs/model-pipeline.md#part-clearances) to every modeled part fit.
+- Give every shaft or pin through a purchased bearing zero clearance: its diameter equals the bearing bore. See
+  [Part clearances](docs/model-pipeline.md#part-clearances).
 - Apply [Surface edge finishing](docs/model-pipeline.md#surface-edge-finishing) to every modeled part.
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
