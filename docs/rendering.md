@@ -119,14 +119,15 @@ are cut open with solidlens `Model.Clip` along the plane through the axis that h
 toward negative Y, and the camera looks from that side; every other part is drawn whole. The `readme` shot writes
 the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes one 480 × 270 pixel
 image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
-shaft, the carrier, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
+shaft, the carrier, the carrier pin, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
 gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
 `planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/fasteners-section` and `fasteners-exploded` presets cut a one-stage housing along the plane through
 the first bolt of each cover and draw its bolts, nuts, covers and ring in place and pulled apart along the bolt.
 The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
-`part-planet`, `part-bearing`, `part-carrier`, `part-input-shaft`, `part-link-shaft` and `part-output-shaft` presets
-render one of them alone. The shafts are seen from almost level with them so the groove and the collar show, and the
-carrier from below so the pins and their collars show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
+`part-planet`, `part-bearing`, `part-carrier`, `part-carrier-pin`, `part-input-shaft`, `part-link-shaft` and
+`part-output-shaft` presets
+render one of them alone. The shafts are seen from almost level with them so the flat and the collar or step show, and the
+carrier from below so its through sockets show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
 whole two-stage gearbox apart along its axis with nothing cut; the `planetarygearbox/exploded` preset renders it alone.
 
 The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 78 frames, of the two-stage gearbox in three

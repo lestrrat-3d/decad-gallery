@@ -107,7 +107,7 @@ mates with a fixed nominal part. When two fixed nominal parts mate, record the
 interface as a nominal exception; do not alter either part or claim that it
 meets a clearance class.
 
-A press-fit peg and its socket, such as a carrier pin in a carrier plate, take 0.05 mm of clearance on each
+A press-fit part and its socket, such as a carrier pin or a shaft pressed into a carrier plate, take 0.05 mm of clearance on each
 side, and the 0.2 mm Tight minimum does not apply. The pin is a separate part that stays in the plate once pushed
 in.
 
