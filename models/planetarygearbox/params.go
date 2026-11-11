@@ -37,9 +37,10 @@ type Params struct {
 	CoverThickness float64
 	// BoltHoleDiameter is the diameter of the four clearance holes that join the covers and the ring.
 	BoltHoleDiameter float64
-	// FlatDepth is the depth of the flat that gives each shaft a D section where a sun or a carrier sits on it. The
-	// sun and the carrier have a matching D bore, so the shaft carries torque into them. The shaft is a full round
-	// cylinder where a bearing sits. Zero leaves round shafts and round bores.
+	// FlatDepth is the depth of the flat that gives each shaft a D section where a sun sits on it, and gives each
+	// thick part (a carrier pin, a link shaft, the output shaft) its D section in the carrier. The sun and the carrier
+	// have a matching D bore, so the shaft carries torque into them. The shaft is a full round cylinder where a bearing
+	// sits. It must stay under the shaft collar margin, 1.2. Zero leaves round shafts and round bores.
 	FlatDepth float64
 	// SeatChamfer is the setback of the chamfer on the entrance of each bearing seat, the planets' pockets and the
 	// covers' boss pockets, so a bearing can be pressed into a tight printed seat. Zero leaves the entrance sharp.
@@ -136,18 +137,23 @@ const (
 	fitClearance = 0.25
 	// planetBearingLift raises each planet bearing above its pocket floor.
 	planetBearingLift = fitClearance
-	// pinCollarClearance keeps each carrier pin collar above the planet bearing's inner race.
-	pinCollarClearance = fitClearance
-	// pinCollarThickness keeps a printable pin collar between the bearing and the carrier plate.
-	pinCollarThickness = fitClearance
+	// pinShoulderClearance keeps each carrier pin's thick part above the planet bearing's inner race.
+	pinShoulderClearance = fitClearance
+	// pinShoulderReach is the shortest length of a pin's thick part below the carrier plate, so it prints sound.
+	pinShoulderReach = fitClearance
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
 	// face off the plane where the flat ends, and gives the printed parts a little play.
 	collarClearance = 0.5
-	// pegClearance is the radial and axial gap between a carrier pin's peg and its socket in the carrier plate. It is
-	// a press fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the pin stays in the plate.
-	pegClearance = 0.05
-	// pegOverlap is how far a pin's rod and peg reach into its collar, so the unions cross faces.
-	pegOverlap = 0.05
+	// pressFitClearance is the radial gap between a thick D part (a carrier pin, a link shaft or the output shaft) and
+	// its socket or hole in the carrier plate. It is a press fit, tighter than the 0.2 mm Tight minimum of Part
+	// clearances, because the part stays in the plate.
+	pressFitClearance = 0.05
+	// stepOverlap is how far a thin rod reaches into its thick part, so the union crosses faces.
+	stepOverlap = 0.05
+	// minSocketWall is the plate material kept around a pin socket at mid-plate.
+	minSocketWall = 1.0
+	// minSocketFaceWall is the plate material kept between a pin socket and the chamfered outline at a face.
+	minSocketFaceWall = 0.5
 	// boltRimMargin is the material kept between a bolt hole and the edge of the ring or cover rim.
 	boltRimMargin = 1.5
 	// armMargin is how much wider than a pin each carrier arm and cover spoke is on either side, so the pin
@@ -232,7 +238,7 @@ func (p Params) Validate() error {
 		{"module", p.Module, p.Module > 0},
 		{"gear thickness", p.GearThickness, p.GearThickness > 0},
 		{"carrier thickness", p.CarrierThickness, p.CarrierThickness >= 2},
-		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinCollarClearance+pinCollarThickness},
+		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinShoulderClearance+pinShoulderReach},
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
@@ -364,6 +370,19 @@ func (p Params) validateFit(d dims) error {
 	if d.orbit+d.boss/2 >= d.ringTip-looseGearClearance {
 		return fmt.Errorf("carrier radius %v does not leave more than %v clearance from ring tip radius %v",
 			d.orbit+d.boss/2, looseGearClearance, d.ringTip)
+	}
+	if p.FlatDepth >= collarMargin {
+		return fmt.Errorf("flat depth %v must stay under the %v collar margin, so a thick part's flat stays outside its rod",
+			p.FlatDepth, float64(collarMargin))
+	}
+	socket := d.collar/2 + pressFitClearance
+	if wall := d.boss/2 - socket; wall < minSocketWall {
+		return fmt.Errorf("carrier wall %v leaves %v of plate around a pin socket, less than %v",
+			p.CarrierWall, wall, float64(minSocketWall))
+	}
+	if face := d.boss/2 - socket - p.EdgeChamfer; face < minSocketFaceWall {
+		return fmt.Errorf("carrier wall %v and edge chamfer %v leave %v of plate around a pin socket at the plate's face, less than %v",
+			p.CarrierWall, p.EdgeChamfer, face, float64(minSocketFaceWall))
 	}
 	return nil
 }

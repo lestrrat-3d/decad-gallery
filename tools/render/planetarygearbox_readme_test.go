@@ -13,7 +13,7 @@ func TestPlanetaryReadmeConcurrentBuilds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if params.Stages != 2 || len(box.Named()) != 40 {
+	if params.Stages != 2 || len(box.Named()) != 46 {
 		t.Fatalf("README gearbox has %d stages and %d named bodies", params.Stages, len(box.Named()))
 	}
 	if len(fastener.Stages) != 1 || len(fastener.Named()) == 0 {

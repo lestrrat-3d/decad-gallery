@@ -21,15 +21,16 @@ type Stage struct {
 	// Bearings holds one 605ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
 	// bearing; the sun and the shafts turn with the carrier that drives them and need none.
 	Bearings []*decad.Body
-	// Pins holds one carrier pin per planet. Each is a separate part: a rod that carries the planet bearing, a collar
-	// under the carrier plate and a D-shaped peg that presses into the plate's socket.
+	// Pins holds one carrier pin per planet. Each is a separate part: a thin rod that carries the planet bearing
+	// and a D-shaped thick part that presses through the plate's socket, level with the plate's upper face.
 	Pins []*decad.Body
-	// Carrier is the triangular plate with a D-shaped socket for each pin and a D hole through its middle. It prints
-	// plate-down.
+	// Carrier is the triangular plate with a D-shaped socket through it for each pin and a D hole through its middle
+	// that takes the thick part of a shaft. It prints plate-down.
 	Carrier *decad.Body
-	// Shaft is a separate D-shaped rod through the carrier's hole. For every stage but the last it is the link
-	// shaft that also fills the next stage's sun bore; for the last stage it is the output shaft, which passes
-	// through the rear cover's bearing and carries a collar against it.
+	// Shaft is a separate thin-thick shaft. Its D thick part is pressed through the carrier's hole, level with the
+	// carrier's lower face. For every stage but the last it is the link shaft, whose thin rod also fills the next
+	// stage's sun bore; for the last stage it is the output shaft, whose thin rod passes through the rear cover's
+	// bearing, with the thick part's step short of it.
 	Shaft *decad.Body
 }
 
@@ -207,30 +208,22 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
-	// A link shaft runs from a carrier's lower face through its D hole, across the gap and through the next
-	// sun's bore, ending level with the sun's top. The output shaft starts at the last carrier's lower face and
-	// rises through the rear cover's bearing, ending OutputShaftLength beyond the bearing boss. Its collar fills
-	// the space between the carrier's upper face and the bearing's inner race.
+	// A link shaft and the output shaft are thin-thick. Each has a D thick part pressed through a carrier's hole,
+	// level with the carrier's lower face. The link shaft's thick part ends short of the next sun and its thin rod
+	// runs through that sun's bore, ending level with the sun's top. The output shaft's thick part ends short of the
+	// rear bearing's inner race and its thin rod rises through the bearing, ending OutputShaftLength beyond the
+	// bearing boss.
 	var link *decad.Body
 	if p.Stages > 1 {
 		linkTop := p.GearThickness + p.CarrierThickness + p.StageGap
-		// A collar in the gap between the carrier's upper face and the next sun keeps both off each other, with
-		// collarClearance/2 of play either side. The flats stop at the carrier and start at the sun, so the
-		// collar is whole. A gap too thin for a collar leaves a plain rod with one flat.
-		collarBottom, collarTop := 0.0, 0.0
-		flats := []span{{-1, linkTop + 1}}
-		if p.StageGap > collarClearance {
-			collarBottom = p.CarrierThickness + collarClearance/2
-			collarTop = p.CarrierThickness + p.StageGap - collarClearance/2
-			flats = []span{{-1, p.CarrierThickness}, {p.CarrierThickness + p.StageGap, linkTop + 1}}
-		}
-		if link, err = r.buildShaft(ctx, "link shaft", 0, linkTop, collarBottom, collarTop, flats...); err != nil {
+		if link, err = r.buildSteppedShaft(ctx, "link shaft", p.CarrierThickness+p.StageGap-fitClearance, linkTop,
+			span{p.CarrierThickness + p.StageGap, linkTop + 1}); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
-	output, err := r.buildShaft(ctx, "output shaft", 0, outputTop, p.CarrierThickness+collarClearance,
-		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, span{-1, p.CarrierThickness})
+	output, err := r.buildSteppedShaft(ctx, "output shaft",
+		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}

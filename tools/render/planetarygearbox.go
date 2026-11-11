@@ -275,7 +275,8 @@ type planetaryPart struct {
 	body  func(planetarygearbox.Gearbox) *decad.Body
 	color solidlens.Color
 	// view picks the camera: the default looks from the front and above, side from almost level with the
-	// part so a shaft shows its collar, and below from under the part so a carrier shows its pin sockets.
+	// part so a shaft shows its flat and its collar or step, and below from under the part so a carrier shows its
+	// through sockets.
 	view partView
 }
 
@@ -318,7 +319,7 @@ var planetaryPartCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its flat and its collar.
+// planetaryPartSideCamera looks at a long part from almost level with it, so a shaft shows its flat and its collar or step.
 var planetaryPartSideCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 22},
 	Target:   solidlens.Vec{},
@@ -326,7 +327,6 @@ var planetaryPartSideCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryPartBelowCamera looks at a part from under its lower face, so a carrier shows the sockets for its
 // pins in the plate's underside.
 var planetaryPartBelowCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: -90},
