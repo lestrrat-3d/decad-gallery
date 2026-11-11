@@ -29,14 +29,13 @@ so each piece prints with its shaft axes vertical and no bore prints on its side
 
 A build takes about a minute and one gigabyte; the bevel pair is most of it. The full check of the default fan takes
 about nine minutes (538 s at the last full run) and 1.5 GB, because the fastener and fit subtests add sections and
-contact queries. Run the checks with:
+contact queries. These checks skip themselves unless `HANDCRANKFAN_FULL=1` is set, and CI does not run them. Run them with:
 
 ```sh
-go test ./models/handcrankfan -timeout 30m
+HANDCRANKFAN_FULL=1 go test ./models/handcrankfan -timeout 30m
 ```
 
-CI splits the checks into the jobs `fan-default` and `fan-variants` (`.github/workflows/repository.yml`), and the job
-`fan-motion` runs `TestHandCrankFanMotion` in `tools/render`. The default job also proves the fastener, fit and spur
+The job `fan-motion` runs `TestHandCrankFanMotion` in `tools/render`. The full checks include the fastener, fit and spur
 mesh checks, which run for the default parameters only. The bevel mesh has no proven clearance yet; see the open
 non-compliance in [instructions.md](../../models/handcrankfan/instructions.md).
 

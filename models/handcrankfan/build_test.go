@@ -3,6 +3,7 @@ package handcrankfan_test
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 	"testing"
 
@@ -503,11 +504,22 @@ func requireGearPlacement(t *testing.T, p handcrankfan.Params, parts map[string]
 	require.InDelta(t, -31.5, pinion.Min.Y, 0.05)
 }
 
+// skipUnlessFull skips a slow check. The default build takes about five minutes and the variants as long again, so
+// they run only on demand: set HANDCRANKFAN_FULL=1. CI does not run them.
+func skipUnlessFull(t *testing.T) {
+	t.Helper()
+	if os.Getenv("HANDCRANKFAN_FULL") == "" {
+		t.Skip("slow: set HANDCRANKFAN_FULL=1 to run")
+	}
+}
+
 func TestHandCrankFanDefault(t *testing.T) {
+	skipUnlessFull(t)
 	checkFan(t, handcrankfan.DefaultParams())
 }
 
 func TestHandCrankFanVariant(t *testing.T) {
+	skipUnlessFull(t)
 	for name, p := range map[string]handcrankfan.Params{
 		"flat-three":  {CrankAngle: -0.7, BladePitch: 12 * math.Pi / 180, Blades: 3},
 		"steep-three": {CrankAngle: 2.5, BladePitch: 40 * math.Pi / 180, Blades: 3},

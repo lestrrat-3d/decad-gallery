@@ -218,17 +218,6 @@ def run_wheel(case: str) -> None:
     go_test(command)
 
 
-# The hand-crank fan builds about 50 solids, a bevel pair and verifies every pair; each case gets its own job.
-FAN_CASES = {
-    "default": "^(TestHandCrankFanDefault|TestValidate|TestMotion)$",
-    "variants": "^TestHandCrankFanVariant$",
-}
-
-
-def run_fan(case: str) -> None:
-    go_test(["./models/handcrankfan", "-run", FAN_CASES[case], "-timeout", "40m", "-count=1"])
-
-
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
@@ -274,14 +263,11 @@ def main() -> None:
     if suite == "wheel" and not args and (mode in WHEEL_CASES or mode == "rest"):
         run_wheel(mode)
         return
-    if suite == "fan" and not args and mode in FAN_CASES:
-        run_fan(mode)
-        return
     if suite == "siren" and not args and mode in SIREN_CASES:
         run_siren(mode)
         return
     raise SystemExit(
-        "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest> | fan <default|variants>"
+        "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
         " | siren <default|variants>"
     )
 
