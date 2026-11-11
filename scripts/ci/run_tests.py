@@ -222,7 +222,12 @@ def run_wheel(case: str) -> None:
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
-    "variants": "^TestHandCrankSirenVariant$",
+    "slots-12": "^TestHandCrankSirenVariant$/^slots_12$",
+    "slots-24": "^TestHandCrankSirenVariant$/^slots_24$",
+}
+SIREN_EXPECTED = {
+    "slots-12": "TestHandCrankSirenVariant/slots_12",
+    "slots-24": "TestHandCrankSirenVariant/slots_24",
 }
 
 FAN_VARIANTS = {
@@ -232,7 +237,11 @@ FAN_VARIANTS = {
 
 
 def run_siren(case: str) -> None:
-    go_test(["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"])
+    expected = [SIREN_EXPECTED[case]] if case in SIREN_EXPECTED else []
+    go_test(
+        ["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"],
+        expected,
+    )
 
 
 def run_fan_variant(variant: str) -> None:
@@ -294,7 +303,7 @@ def main() -> None:
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | fan <flat-three|steep-three>"
+        " | siren <default|slots-12|slots-24> | fan <flat-three|steep-three>"
     )
 
 

@@ -98,7 +98,8 @@ jobs:
       matrix:
         case:
           - default
-          - variants
+          - slots-12
+          - slots-24
     name: siren-${{ matrix.case }}
     runs-on: ubuntu-latest
     timeout-minutes: 45

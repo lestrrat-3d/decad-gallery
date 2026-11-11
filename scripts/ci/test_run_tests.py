@@ -26,7 +26,24 @@ class RunPatternTest(unittest.TestCase):
 
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
-        self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
+        self.assertEqual(set(run_tests.SIREN_CASES), {"default", "slots-12", "slots-24"})
+        self.assertEqual(
+            run_tests.SIREN_CASES["slots-12"], "^TestHandCrankSirenVariant$/^slots_12$"
+        )
+        self.assertEqual(
+            run_tests.SIREN_CASES["slots-24"], "^TestHandCrankSirenVariant$/^slots_24$"
+        )
+
+    def test_siren_variant_selectors_require_the_expected_subtest(self):
+        for case, expected in run_tests.SIREN_EXPECTED.items():
+            with self.subTest(case=case):
+                with mock.patch.object(run_tests, "go_test") as go_test:
+                    run_tests.run_siren(case)
+                args, kwargs = go_test.call_args
+                self.assertEqual(args[0][0], "./models/handcranksiren")
+                self.assertIn(run_tests.SIREN_CASES[case], args[0])
+                self.assertEqual(args[1], [expected])
+                self.assertEqual(kwargs, {})
 
 
 class FanVariantsTest(unittest.TestCase):
