@@ -118,10 +118,10 @@ MODEL_PR_TESTS = [
     "TestWindowSearchAtTheDefaults",
     "TestWindowSearchKeepsCollarWallToTheFlankingBores",
     "TestWindowSearchRoomRefusesTheBandWithNoWidth",
-    "TestSectionPairCutsBothRibbons",
-    "TestSectionPairOnePlaneOutsideGearAReadsEmpty",
-    "TestSectionPairFollowsThePlacement",
-    "TestSectionPairClearanceOfTheDefaultPair",
+    "TestSectionPair/default/cuts-both-ribbons",
+    "TestSectionPair/default/plane-outside-gear-a",
+    "TestSectionPair/placed",
+    "TestSectionPair/default/clearance",
     "TestRibbonDefaultIsOneVerifiedLoft",
 ]
 
