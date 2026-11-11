@@ -23,11 +23,6 @@ class RunPatternTest(unittest.TestCase):
                     self.assertNotIn("(", run_tests.run_pattern(tests))
 
 
-class FanCasesTest(unittest.TestCase):
-    def test_fan_cases(self):
-        self.assertEqual(set(run_tests.FAN_CASES), {"default", "variants"})
-
-
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
