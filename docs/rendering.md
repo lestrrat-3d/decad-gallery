@@ -35,6 +35,9 @@ The `readme` shot writes all of them.
 `m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
 The `readme` shot writes all of them.
 
+`pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
+The `readme` shot writes all of them and the index image.
+
 From the repository root, regenerate the spur gear hero image with:
 
 ```sh
