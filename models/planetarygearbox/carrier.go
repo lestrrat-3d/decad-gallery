@@ -152,14 +152,10 @@ func (r *run) extrudePlate(ctx context.Context) (*decad.Body, error) {
 	return plate, nil
 }
 
-// socketDepth is how far each pin's peg reaches up into the carrier plate: half the plate. The plate keeps
-// the other half as the socket's ceiling.
-func (r *run) socketDepth() float64 { return r.p.CarrierThickness / 2 }
-
 // buildCarrier builds one carrier about the local origin: the triangular plate from z=0 to the carrier
-// thickness with the shaft section cut through its middle and, for each planet, a D-shaped socket in its lower
-// face, socketDepth deep, that takes the peg of a separate pin. The pins are separate bodies, see buildPin.
-// The carrier prints plate-down. The shafts are separate bodies.
+// thickness with, for each planet, a D-shaped socket through the plate that takes the thick part of a separate pin
+// as a press fit, and a D-shaped centre hole that takes the thick part of a link or output shaft as a press fit.
+// The pins and the shafts are separate bodies, see buildPin and buildSteppedShaft. The carrier prints plate-down.
 func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
 	plate, err := r.extrudePlate(ctx)
@@ -167,10 +163,11 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	// One socket is cut by a pattern of copies of one tool, so the plate takes two booleans however many
-	// planets it has. The tool starts a millimeter below the plate's face so the cut crosses it.
+	// planets it has. The tool starts a millimeter below the plate's face and ends a millimeter above the other,
+	// so the cut crosses both.
 	socket, err := r.extrudeDSection(ctx, dSection{
-		what: "carrier pin socket", z: -1, length: r.socketDepth() + 1,
-		x: d.orbit, radius: d.pin/2 + pegClearance, depth: p.FlatDepth,
+		what: "carrier pin socket", z: -1, length: p.CarrierThickness + 2,
+		x: d.orbit, radius: d.collar/2 + pressFitClearance, depth: p.FlatDepth,
 	})
 	if err != nil {
 		return nil, err
@@ -189,7 +186,7 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("carrier: cut sockets: %w", err)
 	}
-	// The shaft hole is cut last, so the plate keeps a tooth the full plate thickness where the shaft has its
+	// The centre hole is cut last, so the plate keeps a tooth the full plate thickness where the shaft has its
 	// flat.
 	hole, err := r.extrudeFlatTool(ctx, "carrier shaft hole", -1, p.CarrierThickness+2)
 	if err != nil {
@@ -202,49 +199,38 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 		return nil, errors.New("carrier: result is not a solid")
 	}
 	// The plate's outline loses its edge on both flat faces.
-	for _, z := range []float64{0, p.CarrierThickness} {
-		if carrier, err = r.finishFaceEdges(ctx, carrier, "carrier", z, outerLoop); err != nil {
-			return nil, err
-		}
+	if carrier, err = r.finishFacesEdges(ctx, carrier, "carrier", []float64{0, p.CarrierThickness}, outerLoop); err != nil {
+		return nil, err
 	}
 	return carrier, nil
 }
 
 // buildPin builds one carrier pin about its own axis, in the carrier's frame: from the bottom, a thin rod down to
-// z=-(gear thickness + gap) that the planet's bearing sits on, a collar of the shaft collar diameter, as tall as
-// the gap allows, that stands in for a washer and rests under the carrier plate, and a short D-shaped peg that
-// goes up into the plate's socket. The collar's top and the peg's top each stay pegClearance short of the plate,
-// so the pin fits the socket with pegClearance all round. The rod and the peg overlap the collar, so each union
-// crosses faces instead of sharing them.
+// z=-(gear thickness + gap) that the planet's bearing sits on, and a D-shaped thick part of the shaft collar diameter
+// that starts pinShoulderClearance above the bearing's top face, passes through the plate's socket and ends level
+// with the plate's upper face. The thick part fits the socket with pressFitClearance all round. The rod overlaps the
+// thick part, so the union crosses faces instead of sharing them. The pin prints standing on its thick end.
 func (r *run) buildPin(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
 	hang := p.GearThickness + p.StageGap
-	collarBottom := -p.StageGap + planetBearingLift + pinCollarClearance
-	collarTop := -pegClearance
+	thickBottom := -p.StageGap + planetBearingLift + pinShoulderClearance
 	rod, err := r.extrudeDisc(ctx, disc{
-		what: "carrier pin rod", z: -hang, length: hang + collarBottom + pegOverlap,
+		what: "carrier pin rod", z: -hang, length: hang + thickBottom + stepOverlap,
 		diameter: d.pin, expr: "pin_diameter",
 	})
 	if err != nil {
 		return nil, err
 	}
-	collar, err := r.extrudeDisc(ctx, disc{
-		what: "carrier pin collar", z: collarBottom, length: collarTop - collarBottom,
-		diameter: d.collar, expr: "shaft_collar_diameter",
+	thick, err := r.extrudeDSection(ctx, dSection{
+		what: "carrier pin thick part", z: thickBottom, length: p.CarrierThickness - thickBottom,
+		radius: d.collar / 2, depth: p.FlatDepth, expr: "shaft_collar_diameter",
 	})
 	if err != nil {
 		return nil, err
 	}
-	peg, err := r.extrudeDSection(ctx, dSection{
-		what: "carrier pin peg", z: collarTop - pegOverlap, length: r.socketDepth() - pegClearance - collarTop + pegOverlap,
-		radius: d.pin / 2, depth: p.FlatDepth,
-	})
+	pin, err := decad.Union(ctx, rod, thick)
 	if err != nil {
-		return nil, err
-	}
-	pin, err := decad.Union(ctx, rod, collar, peg)
-	if err != nil {
-		return nil, fmt.Errorf("carrier pin: join rod, collar and peg: %w", err)
+		return nil, fmt.Errorf("carrier pin: join rod and thick part: %w", err)
 	}
 	if !pin.IsSolid() {
 		return nil, errors.New("carrier pin: result is not a solid")
@@ -353,6 +339,7 @@ type dSection struct {
 	length        float64 // extrusion length along +Z
 	x             float64 // center's X
 	radius, depth float64
+	expr          string // table expression bound to the diameter of the round section when depth is zero
 }
 
 // extrudeDSection extrudes the D section from z up length. The outline is a long arc about the center, from the
@@ -360,7 +347,7 @@ type dSection struct {
 func (r *run) extrudeDSection(ctx context.Context, c dSection) (*decad.Body, error) {
 	// With no flat the section is the round one.
 	if c.depth == 0 {
-		return r.extrudeDisc(ctx, disc{what: c.what, z: c.z, length: c.length, x: c.x, diameter: 2 * c.radius})
+		return r.extrudeDisc(ctx, disc{what: c.what, z: c.z, length: c.length, x: c.x, diameter: 2 * c.radius, expr: c.expr})
 	}
 	plane, err := r.planeAt(c.z)
 	if err != nil {
