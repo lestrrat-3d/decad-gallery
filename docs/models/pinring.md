@@ -1,6 +1,7 @@
 # Pin ring
 
-The model in `models/pinring` constructs a plain flat ring that holds a pin in place.
+The model in `models/pinring` constructs a plain flat ring, an assembly aid (jig) that holds a pin in place while a mechanism is assembled.
+It is not part of the finished assembly.
 
 ## Construction and API
 

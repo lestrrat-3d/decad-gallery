@@ -2,7 +2,10 @@
 
 ## Purpose
 
-Construct a plain flat ring that sits on a pin to hold the pin in place. All dimensions are in millimeters.
+Construct a plain flat ring used as an assembly aid (a jig). It sits on a pin's rod to hold the pin in place
+while a mechanism is assembled, for example a planetary gearbox carrier pin. It is a tool, not a body of the
+finished assembly, and it does not ship in it. This model is standalone and uses no other model's geometry.
+All dimensions are in millimeters.
 
 | Input | Meaning | Default |
 | --- | --- | --- |
@@ -14,7 +17,7 @@ Construct a plain flat ring that sits on a pin to hold the pin in place. All dim
 Derived values: the inner radius is `RodRadius + Clearance` (3), and the outer radius is the inner radius plus
 `Width` (8).
 
-The ring is a separate part. The bore takes the clearance, so the ring slides on the rod. The ring has no chamfer. Each flat face is 172.8 mm², below the 400 mm² that makes a planar surface large,
+The ring is a separate tool. The bore takes the clearance, so the ring slides on the rod. The ring has no chamfer. Each flat face is 172.8 mm², below the 400 mm² that makes a planar surface large,
 so the edge finishing rule does not apply.
 
 ## API
