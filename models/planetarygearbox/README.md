@@ -22,10 +22,24 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: input shaft, front bearing and cover, two stages of sun, planets, bearings and carrier with a link shaft between them, the ring, the rear cover and bearing, and the output shaft" width="450">
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing and cover below the input shaft, two stages of planets, bearings, pins and carrier with a link shaft between them, then the output shaft, the ring, the rear cover and the rear bearing" width="450">
 
-From the bottom: the input shaft, the front bearing and cover, the first stage (sun and planets, their bearings, the
-carrier), the link shaft, the second stage, the ring, the rear cover and its bearing, and the output shaft.
+Decad's `parts` package lays the view out from the model's joints (`Gearbox.Set`) and the order the parts leave
+(`Gearbox.Explode`). The input shaft stays put and everything else moves along the axis. The bolts and nuts are left out
+of the picture; the "How the housing is bolted" section below shows them.
+
+A shaft's collar is wider than the 5 mm bore of a bearing, so it cannot pass through one. Each shaft therefore goes in
+from the carrier side, inside the housing, and the bearing is pressed onto its free end last. In the picture the bearing and the cover
+sit beyond the shaft's free end, and the shaft stays on the carrier side of both.
+
+From the bottom:
+
+1. The front bearing, then the front cover, off the input shaft's outer end.
+2. The input shaft.
+3. For each stage, the sun and its planets, off the end of the shaft below them, the planets' bearings, which slide off the free
+   ends of the carrier pins, the pins, which leave the carrier from below, the carrier, and the shaft that was
+   pressed into the carrier from above (the link shaft, or for the last stage the output shaft).
+4. The ring, which slides over the output shaft's outer end, then the rear cover and the rear bearing.
 
 ## How it moves
 

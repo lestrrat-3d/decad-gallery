@@ -76,46 +76,23 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 	return out
 }
 
-// The exploded view pulls the gearbox apart along its axis. Each stage rises planetaryExplodedStep over the one
-// below, and inside a stage the planets' bearings, the carrier and the shaft each rise a little more, so every
-// part sits clear of the ones it joins. The ring floats above the last stage, the rear cover and its bearing above
-// that, and the output shaft above them all; the front cover, its bearing and the input shaft hang below the first
-// stage.
-const (
-	planetaryExplodedStep    = 48
-	planetaryExplodedBearing = 14
-	planetaryExplodedCarrier = 24
-	planetaryExplodedPin     = 10
-	planetaryExplodedShaft   = 36
-	planetaryExplodedRing    = 64
-)
-
-// planetaryExplodedLifts returns how far the exploded view raises each body of box.
-func planetaryExplodedLifts(box planetarygearbox.Gearbox) map[*decad.Body]float64 {
-	lifts := map[*decad.Body]float64{
-		box.InputShaft:   -34,
-		box.FrontBearing: -24,
-		box.FrontCover:   -12,
+// planetaryExplodedOffsets returns how far the exploded view moves each body of box, by part name. The offsets
+// come from parts.Set.Explode, which Gearbox.Explode drives with the order the parts come apart in. params must be
+// the parameters box was built with.
+func planetaryExplodedOffsets(ctx context.Context, box planetarygearbox.Gearbox, params planetarygearbox.Params) (map[string]r3.Vec, error) {
+	set, err := box.Set(box.Ring.Document(), params)
+	if err != nil {
+		return nil, fmt.Errorf("set up planetary gearbox parts: %w", err)
 	}
-	top := 0.0
-	for k, stage := range box.Stages {
-		base := float64(k) * planetaryExplodedStep
-		top = base
-		lifts[stage.Sun] = base
-		for i, planet := range stage.Planets {
-			lifts[planet] = base
-			lifts[stage.Bearings[i]] = base + planetaryExplodedBearing
-			lifts[stage.Pins[i]] = base + planetaryExplodedCarrier - planetaryExplodedPin
-		}
-		lifts[stage.Carrier] = base + planetaryExplodedCarrier
-		lifts[stage.Shaft] = base + planetaryExplodedShaft
+	layout, err := box.Explode(ctx, set, params)
+	if err != nil {
+		return nil, fmt.Errorf("explode planetary gearbox: %w", err)
 	}
-	// The output shaft passes through the ring and both rear parts, so it rises above them all to stay visible.
-	lifts[box.Stages[len(box.Stages)-1].Shaft] = top + planetaryExplodedRing + 56
-	lifts[box.Ring] = top + planetaryExplodedRing
-	lifts[box.RearCover] = top + planetaryExplodedRing + 28
-	lifts[box.RearBearing] = top + planetaryExplodedRing + 42
-	return lifts
+	offsets := make(map[string]r3.Vec, len(layout.Parts))
+	for _, part := range layout.Parts {
+		offsets[part.Name] = part.Offset
+	}
+	return offsets, nil
 }
 
 // planetaryExplodedCamera looks at the exploded gearbox from the front and above; fitCamera frames it.
@@ -126,9 +103,14 @@ var planetaryExplodedCamera = solidlens.Camera{
 	FOV:      35,
 }
 
-// planetaryExplodedScene draws the whole two-stage gearbox pulled apart along its axis, with nothing cut.
-func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, width, height int) (solidlens.Scene, error) {
-	lifts := planetaryExplodedLifts(box)
+// planetaryExplodedScene draws the whole two-stage gearbox pulled apart along its axis, with nothing cut. It leaves
+// out the bolts and nuts, which the fastener images show.
+func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, params planetarygearbox.Params,
+	width, height int) (solidlens.Scene, error) {
+	offsets, err := planetaryExplodedOffsets(ctx, box, params)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
 	var models []solidlens.Model
 	for _, body := range planetaryBodies(box) {
 		mesh, err := planetaryMesh(ctx, body)
@@ -136,7 +118,7 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, w
 			return solidlens.Scene{}, err
 		}
 		model := planetaryModel(mesh, body, false)
-		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: r3.NewVec(0, 0, lifts[body.body])}
+		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offsets[body.name]}
 		models = append(models, model)
 	}
 	return bevelScene(fitCamera(planetaryExplodedCamera, models, float64(width)/float64(height), bevelViewMargin), models), nil
@@ -145,11 +127,11 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, w
 func init() {
 	presets["planetarygearbox/exploded"] = preset{width: planetaryExplodedWidth, height: planetaryExplodedHeight,
 		scene: func(ctx context.Context) (solidlens.Scene, error) {
-			box, _, err := buildPlanetaryGearbox(ctx, 2)
+			box, params, err := buildPlanetaryGearbox(ctx, 2)
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
-			return planetaryExplodedScene(ctx, box, planetaryExplodedWidth, planetaryExplodedHeight)
+			return planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
 		}}
 }
 
@@ -441,7 +423,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox %s: %w", name, err)
 		}
 	}
-	exploded, err := planetaryExplodedScene(ctx, box, planetaryExplodedWidth, planetaryExplodedHeight)
+	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
 	if err != nil {
 		return err
 	}
