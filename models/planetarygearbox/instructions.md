@@ -101,7 +101,7 @@ A nil `Placement` is the one exception.
 | Ring root radius (largest tooth-space radius) | `m Zr/2 + m + c` |
 | Ring outer radius | ring root radius `+ w` |
 | Shaft and pin diameter | 605ZZ bore (no clearance against the bearing) |
-| Shaft bore diameter | Shaft diameter `+ 0.5` (0.25 mm radial clearance) |
+| Shaft bore diameter | Shaft diameter `+ 0.1` (0.05 mm radial clearance, a press fit; see Part clearances) |
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
 | Ear half width `we` | `de / 2 + 3` |
 | Ear bore center radius `Re` | ring outer radius `+ we` |
@@ -227,7 +227,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
 - Bearing: a 605ZZ envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
-  sun's top. It fills the front bearing's bore with no clearance and has 0.25 mm radial clearance in the sun's bore. Its flat runs
+  sun's top. It fills the front bearing's bore with no clearance and has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the shaft. Its flat runs
   from the sun's lower face to the top.
 
 ## Axial layout
@@ -285,7 +285,7 @@ parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_
 `cover_thickness`, `bolt_hole_diameter`, `ear_count`, `ear_bore_diameter`, `ear_wall`, `input_shaft_length`, `flat_depth`,
 `bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
 `bearing_clearance`, `gear_root_clearance`, `gear_root_margin`, `gear_tip_measurement_margin`,
-`shaft_fit_clearance`, `planet_bearing_lift`,
+`shaft_bore_clearance`, `planet_bearing_lift`,
 `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
 `pocket_diameter`, `seat_chamfer`, `edge_chamfer`, `lip_bore_diameter`, `shaft_collar_diameter`, `shaft_bore_diameter`,

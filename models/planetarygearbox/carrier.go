@@ -384,8 +384,8 @@ func (r *run) extrudeDSection(ctx context.Context, c dSection) (*decad.Body, err
 	return body, nil
 }
 
-// extrudeFlatTool extrudes a bore tool with fitClearance around the shaft, from z up length. Its round arc is
-// fitClearance outside the shaft and its flat lies fitClearance outside the shaft's flat. With FlatDepth zero the
+// extrudeFlatTool extrudes a bore tool with pressFitClearance around the shaft, from z up length. Its round arc is
+// pressFitClearance outside the shaft and its flat lies pressFitClearance outside the shaft's flat. With FlatDepth zero the
 // tool is the round shaft.
 func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
 	if r.p.FlatDepth == 0 {
@@ -394,7 +394,7 @@ func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float6
 		})
 	}
 	return r.extrudeDSection(ctx, dSection{
-		what: what, z: z, length: length, radius: r.d.shaft/2 + fitClearance, depth: r.p.FlatDepth,
+		what: what, z: z, length: length, radius: r.d.shaft/2 + pressFitClearance, depth: r.p.FlatDepth,
 	})
 }
 

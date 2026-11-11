@@ -145,8 +145,9 @@ const (
 	// face off the plane where the flat ends, and gives the printed parts a little play.
 	collarClearance = 0.5
 	// pressFitClearance is the radial gap between a thick D part (a carrier pin, a link shaft or the output shaft) and
-	// its socket or hole in the carrier plate. It is a press fit, tighter than the 0.2 mm Tight minimum of Part
-	// clearances, because the part stays in the plate.
+	// its socket or hole in the carrier plate, and between a shaft and the D bore of the sun it turns. It is a press
+	// fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the part stays in the plate or the sun
+	// turns with the shaft.
 	pressFitClearance = 0.05
 	// stepOverlap is how far a thin rod reaches into its thick part, so the union crosses faces.
 	stepOverlap = 0.05
@@ -195,7 +196,7 @@ func derive(p Params) dims {
 	d.pocket = b.OuterDiameter + 2*p.BearingClearance
 	d.lip = b.OuterDiameter - 2*lipWidth
 	d.shaft = b.BoreDiameter
-	d.shaftBore = d.shaft + 2*fitClearance
+	d.shaftBore = d.shaft + 2*pressFitClearance
 	d.collar = d.shaft + 2*collarMargin
 	d.coverBoss = d.pocket + 2*p.CarrierWall
 	d.coverHub = d.coverBoss + 2*p.CarrierWall

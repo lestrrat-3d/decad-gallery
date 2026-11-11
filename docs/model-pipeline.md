@@ -110,6 +110,8 @@ meets a clearance class.
 A press-fit part and its socket, such as a carrier pin or a shaft pressed into a carrier plate, take 0.05 mm of clearance on each
 side, and the 0.2 mm Tight minimum does not apply. The pin is a separate part that stays in the plate once pushed
 in.
+A gear bore that holds a shaft so the gear turns with it, such as a sun gear's D-shaped bore, is also a press fit and
+takes 0.05 mm of radial clearance.
 
 A bore or pocket that holds a purchased bearing fixed takes 0.05 mm of radial
 clearance, and the 0.2 mm Tight minimum does not apply. The bearing is a nominal part and the seat grips its outer race.
