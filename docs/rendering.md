@@ -131,7 +131,9 @@ The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `
 `part-output-shaft` presets
 render one of them alone. The shafts are seen from almost level with them so the flat and the collar or step show, and the
 carrier from below so its through sockets show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
-whole two-stage gearbox apart along its axis with nothing cut; the `planetarygearbox/exploded` preset renders it alone.
+whole two-stage gearbox apart along its axis with nothing cut and without its bolts and nuts. The offsets come from
+`parts.Set.Explode` over `Gearbox.Set`, in the order `Gearbox.Explode` states: each shaft stays on the carrier side of
+its bearing and cover, which slide off its free end. The `planetarygearbox/exploded` preset renders it alone.
 
 The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 78 frames, of the two-stage gearbox in three
 panels: the hero's cutaway, the input end from below and the output end from above, with a caption strip that reads
