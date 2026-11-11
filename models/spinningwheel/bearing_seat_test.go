@@ -64,8 +64,8 @@ func (e bearingEnvelope) ringPoints(radius, offset float64) []r3.Vec {
 
 // Only the radial seat is asserted. Axial capture of the 608-2RS press fits is not modelled by a
 // shoulder, collar or plate at every end face, so it is not claimed here.
-func TestSpinningWheelBearingSeats(t *testing.T) {
-	a := sharedDefaultAssembly(t)
+func requireBearingSeats(t *testing.T, a *spinningwheel.Assembly) {
+	t.Helper()
 	mounts := make(map[string]spinningwheel.Mount, len(a.Mounts))
 	for _, m := range a.Mounts {
 		mounts[m.Part] = m
