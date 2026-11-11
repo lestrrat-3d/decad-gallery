@@ -38,6 +38,9 @@ The direction of turn does not matter.
 The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 7.5 mm across with one flat, and each gear, the
 rotor hub and the crank arm have a D-shaped bore that is pressed on, so the printed bore grips the shaft. The crank
 gear has a shaft collar behind it, because it is the only gear that could slide into a gear it does not mesh with.
+The 50- and 48-tooth gears look alike, and so do the 16- and 15-tooth pinions, so each gear has through holes that
+name its stage: one hole for stage 1 (the crank gear and the 16-tooth pinion) and two holes for stage 2 (the 48-tooth
+gear and the 15-tooth pinion).
 The gearbox is a sandwich of three printed pieces, a front plate, a frame and a rear plate, each printed flat so every
 bearing seat is a vertical hole. Six 608-2RS bearings carry the three shafts. The drum stands on three posts on the gearbox's left face, with the stator and the collector bolted to its left end.
 The horn bolts to the collector's forward face and points forward.
@@ -102,10 +105,10 @@ Each part is shown once, from the real model, in place at the default pose.
 | <img src="images/parts/rotor.png" alt="Rotor" width="240"> | Rotor |
 | <img src="images/parts/horn.png" alt="Horn" width="240"> | Horn |
 | <img src="images/parts/grip.png" alt="Grip" width="240"> | Grip |
-| <img src="images/parts/crank-gear.png" alt="Crank gear, 50 teeth" width="240"> | Crank gear, 50 teeth |
-| <img src="images/parts/intermediate-pinion.png" alt="Intermediate pinion, 16 teeth" width="240"> | Intermediate pinion, 16 teeth |
-| <img src="images/parts/intermediate-gear.png" alt="Intermediate gear, 48 teeth" width="240"> | Intermediate gear, 48 teeth |
-| <img src="images/parts/rotor-pinion.png" alt="Rotor pinion, 15 teeth" width="240"> | Rotor pinion, 15 teeth |
+| <img src="images/parts/crank-gear.png" alt="Crank gear, 50 teeth" width="240"> | Crank gear, 50 teeth, one hole |
+| <img src="images/parts/intermediate-pinion.png" alt="Intermediate pinion, 16 teeth" width="240"> | Intermediate pinion, 16 teeth, one hole |
+| <img src="images/parts/intermediate-gear.png" alt="Intermediate gear, 48 teeth" width="240"> | Intermediate gear, 48 teeth, two holes |
+| <img src="images/parts/rotor-pinion.png" alt="Rotor pinion, 15 teeth" width="240"> | Rotor pinion, 15 teeth, two holes |
 | <img src="images/parts/crank-shaft.png" alt="Crank shaft" width="240"> | Crank shaft |
 | <img src="images/parts/intermediate-shaft.png" alt="Intermediate shaft" width="240"> | Intermediate shaft |
 | <img src="images/parts/rotor-shaft.png" alt="Rotor shaft" width="240"> | Rotor shaft |

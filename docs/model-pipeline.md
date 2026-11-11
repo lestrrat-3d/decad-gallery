@@ -168,6 +168,30 @@ Measure the tip-to-root clearance on the placed gears at several rotation
 angles across one tooth pitch, for every module and tooth-count case the model
 builds.
 
+### Look-alike part marks
+
+This rule applies to every multi-body model whose `instructions.md` has a
+"Look-alike parts" section. A model without that section needs no marks.
+
+- List each set of parts a person could mix up, with the reason, under "Look-alike
+  parts" in `instructions.md`. The author decides what looks alike.
+- Cut 1 to 6 round through holes in every part of a set. Give different parts of
+  one set different hole counts, and give identical copies of one part the same
+  count. Split a set that needs more than 6 counts into smaller sets.
+- Make each hole 1.5 mm across. Space the holes 25° apart on one circle about the
+  part's axis, away from any flat or keyway. Keep at least 1 mm of material between
+  a hole and every edge of the face, bore or pocket.
+- Place the circle on a face region that touches no mating part, and cut the
+  holes through the whole part.
+- Build each hole from its own sketch on the part's axis frame, with the centre
+  placed by horizontal and vertical distances from the sketch origin. Apply
+  [Sketch constraints](../AGENTS.md#sketch-constraints).
+- Do not mark fasteners, bearings, other bought parts, or a part with no round face.
+- Show each part's hole count in the model `README.md` parts table, with a
+  one-line legend that says what the counts mean.
+- Test each declared set: no two different parts share a count, and each hole
+  passes through its part.
+
 ## Spur gear example
 
 [`models/spurgear/instructions.md`](../models/spurgear/instructions.md) is

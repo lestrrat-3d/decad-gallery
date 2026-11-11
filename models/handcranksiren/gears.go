@@ -24,6 +24,12 @@ const (
 	boreClearance = 0.25 // tightFit: the gear's D-bore is this much larger than the shaft
 	boreFrom      = 1.0  // the bore tool starts this far before the gear's front face
 	boreLength    = 8.0
+
+	// A stage mark is one through hole (stage 1) or two (stage 2) on the face band, so the 50- and 48-tooth gears and
+	// the 16- and 15-tooth pinions, which look alike, can be told apart.
+	markRadius = 6.6  // the holes' circle about the gear axis: clear of the D-bore and of every root circle
+	markHole   = 0.75 // hole radius
+	markSpread = 25.0 // angle between neighbouring holes, in degrees
 )
 
 // gearSite is one gear of the train.
@@ -38,17 +44,18 @@ type gearSite struct {
 	toward func(State) r3.Vec
 	driven bool
 	cap    float64 // CapChamfer
+	stage  int     // the number of mark holes
 }
 
 var gearSites = [...]gearSite{
 	{"crank-gear", 50, func(s State) r3.Vec { return s.Crank }, plane1Front, "crank",
-		func(s State) r3.Vec { return s.Intermediate }, false, 0.2},
+		func(s State) r3.Vec { return s.Intermediate }, false, 0.2, 1},
 	{"intermediate-pinion", 16, func(s State) r3.Vec { return s.Intermediate }, plane1Front, "intermediate",
-		func(s State) r3.Vec { return s.Crank }, true, 0},
+		func(s State) r3.Vec { return s.Crank }, true, 0, 1},
 	{"intermediate-gear", 48, func(s State) r3.Vec { return s.Intermediate }, plane2Front, "intermediate",
-		func(s State) r3.Vec { return s.Rotor }, false, 0.2},
+		func(s State) r3.Vec { return s.Rotor }, false, 0.2, 2},
 	{"rotor-pinion", 15, func(s State) r3.Vec { return s.Rotor }, plane2Front, "rotor",
-		func(s State) r3.Vec { return s.Intermediate }, true, 0},
+		func(s State) r3.Vec { return s.Intermediate }, true, 0, 2},
 }
 
 // gears builds the four gears.
@@ -85,5 +92,18 @@ func (b *builder) gear(site gearSite) *decad.Body {
 	if err != nil {
 		return nil
 	}
-	return b.cut(body, b.dBoreTool(shaftAxis{axis}, site.front-boreFrom, boreLength, boreClearance))
+	body = b.cut(body, b.dBoreTool(shaftAxis{axis}, site.front-boreFrom, boreLength, boreClearance))
+	return b.markHoles(body, shaftAxis{axis}, site)
+}
+
+// markHoles cuts site.stage through holes on the +V side of the gear's section frame, opposite the D flat, spread
+// symmetrically about the V axis.
+func (b *builder) markHoles(body *decad.Body, a shaftAxis, site gearSite) *decad.Body {
+	for i := 0; i < site.stage; i++ {
+		angle := (90 + markSpread*(float64(i)-float64(site.stage-1)/2)) * math.Pi / 180
+		s := b.section(a.across(site.front - boreFrom))
+		circle(s, markRadius*math.Cos(angle), markRadius*math.Sin(angle), markHole)
+		body = b.cut(body, b.extrude(s, 0, boreLength))
+	}
+	return body
 }

@@ -30,6 +30,10 @@
 - Group similar bodies of every multi-body assembly in named containers. Apply
   [Body containers](docs/model-pipeline.md#body-containers) to every model in the gallery.
 
+## Part marks
+
+- Apply [Look-alike part marks](docs/model-pipeline.md#look-alike-part-marks) to every multi-body model that lists look-alike parts.
+
 ## Fasteners
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
