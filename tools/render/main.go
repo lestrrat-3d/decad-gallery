@@ -28,6 +28,10 @@ var presets = map[string]preset{
 	"m2nut/side":              {width: 1600, height: 900, scene: m2NutViewScene("side")},
 	"m2nut/low":               {width: 1600, height: 900, scene: m2NutViewScene("low")},
 	"m2nut/withbolt":          {width: 1600, height: 900, scene: m2NutViewScene("withbolt")},
+	"pinring/hero":            {width: 1600, height: 900, scene: pinRingHero},
+	"pinring/top":             {width: 1600, height: 900, scene: pinRingViewScene("top")},
+	"pinring/side":            {width: 1600, height: 900, scene: pinRingViewScene("side")},
+	"pinring/low":             {width: 1600, height: 900, scene: pinRingViewScene("low")},
 	"m2bolt/hero":             {width: 1600, height: 900, scene: m2BoltHero},
 	"m2bolt/head":             {width: 1600, height: 900, scene: m2BoltViewScene("head")},
 	"m2bolt/side":             {width: 1600, height: 900, scene: m2BoltViewScene("side")},
@@ -171,6 +175,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)
+	}
+	if model == "pinring" {
+		return renderPinRingReadme(ctx, outputDir)
 	}
 	if model == "m2bolt" {
 		return renderM2BoltReadme(ctx, outputDir)
