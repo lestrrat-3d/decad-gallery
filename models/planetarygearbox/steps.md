@@ -51,34 +51,34 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      closer to vertical, otherwise y, so the coordinate always changes as the point moves round the arc (the
      shared `DimensionArcEnd` picks by position and can pick the free one). The plate has no hole yet. Require one
      valid profile with `2n` outer curves.
-   - Socket tool: one D section of radius `dp/2 + 0.05` centered at `(a, 0)` with its flat `Sf` inside the rim, on
-     the plane `z = -1`, extruded `Tc/2 + 1`. `decad.PatternCopies` it with a `CircularPattern` about the origin and
-     +Z, count `n`, `decad.Union` the copies and `decad.Cut` the result from the plate. With `Sf = 0` the section is
-     round.
-   - Shaft hole: `decad.Cut` the D tool, extruded from `z = -1` up `Tc + 2`, from the carrier. The plate keeps a
-     tooth its full thickness where the shaft has its flat.
+   - Socket tool: one D section of radius `collar/2 + 0.05` centered at `(a, 0)` with its flat `Sf` inside the rim, on
+     the plane `z = -1`, extruded `Tc + 2` so it passes through the plate. `decad.PatternCopies` it with a
+     `CircularPattern` about the origin and +Z, count `n`, `decad.Union` the copies and `decad.Cut` the result from
+     the plate. With `Sf = 0` the section is round.
+   - Centre hole: `decad.Cut` a D section of radius `collar/2 + 0.05`, flat `Sf` inside the rim, extruded from
+     `z = -1` up `Tc + 2`, from the carrier. The plate keeps a tooth its full thickness where the shaft has its flat.
+     The D tool of the sun bore stays as below.
    - Check: one solid, nothing above the plate.
-   - Pin, a separate body built about its own axis in the carrier frame, with `dp = bearing_bore_diameter` and
-     the peg clearance `0.05`: a rod of diameter `dp` on the axis from `z = -(T + g)` up to `collarBottom + 0.05`,
-     a collar of diameter `shaft_collar_diameter` from `collarBottom = -g + 0.5` to `collarTop = -0.05`, and a D
-     peg of radius `dp/2` with its flat `Sf` inside the rim from `collarTop - 0.05` up to `Tc/2 - 0.05`, joined
-     with one `decad.Union`. This leaves 0.25 mm between the bearing and the collar. Pose pin `i` of stage `k` at
+   - Pin, a separate body built about its own axis in the carrier frame, with `dp = bearing_bore_diameter` and the
+     press-fit clearance `0.05`: `thickBottom = -g + 0.5`. A rod of diameter `dp` on the axis from `z = -(T + g)` up to
+     `thickBottom + 0.05`, and a D thick part of radius `collar/2` with its flat `Sf` inside the rim from `thickBottom`
+     up to `Tc` (with `Sf = 0` a round disc bound to `shaft_collar_diameter`), joined with one `decad.Union`. This
+     leaves 0.25 mm between the bearing and the thick part. Pose pin `i` of stage `k` at
      `(a cos φᵢ, a sin φᵢ, kP + T + g)` turned by `φᵢ`, so its flat faces the same way as its socket. Check: one
-     solid.
-6. **Shafts**, separate bodies. `buildShaft(bottom, top, collarBottom, collarTop, flatBottom, flatTop)`: a round rod
-   from `bottom` to `top`, when `collarTop > collarBottom` a round collar of diameter `ds + 2 × collar margin`
-   from `collarBottom` to `collarTop`, strictly inside the rod's length, joined to the rod with one union, and
-   then the flat's box cut out between `flatBottom` and `flatTop`. The box is `ds + 2` wide about the X axis and
-   runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a rectangle sketch with its corner dimensioned
-   from the origin, its width and its height.
-   `decad.Cut` removes it. Collars stop `0.5` short of the part they face, so no collar face
-   shares a plane with the flat's end.
-   - Link shaft, when `K > 1`: `bottom = 0`, `top = T + Tc + g`, collar from `Tc + 0.25` to `Tc + g - 0.25` and flats
-     from `-1` to `Tc` and from `Tc + g` to `top + 1`, so the collar is whole. When `g <= 0.5` it has no collar and
-     one flat from `-1` to `top + 1`. The flats of every span join into one tool and take one cut. Posed with its bottom on a carrier's
-     lower face.
-   - Output shaft: `bottom = 0`, `top = Tc + g + Tv + Wb + Lo`, collar from `Tc + 0.5` to `Tc + g + Tv - 0.25`, flat from
-     `-1` to `Tc`. Posed with its bottom on the last carrier's lower face.
+     solid, its top level with the carrier's top.
+6. **Shafts**, separate bodies. `buildSteppedShaft(thickTop, top, flats...)` builds the link and output shafts: a D thick
+   part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of diameter
+   `ds` from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; then the flat's box cut out over each of the
+   flats' spans. `buildShaft(bottom, top, collarBottom, collarTop, flats...)` builds the input shaft: a round rod
+   from `bottom` to `top`, a round collar of diameter `ds + 2 × collar margin` from `collarBottom` to `collarTop`,
+   strictly inside the rod's length, joined to the rod with one union, and then the flat's box cut out over each span.
+   The box is `ds + 2` wide about the X axis and runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a
+   rectangle sketch with its corner dimensioned from the origin, its width and its height. `decad.Cut` removes it. The
+   flats of every span join into one tool and take one cut.
+   - Link shaft, when `K > 1`: `thickTop = Tc + g - 0.25`, `top = T + Tc + g`, one flat from `Tc + g` to `top + 1`.
+     Posed with its bottom on a carrier's lower face.
+   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wb + Lo`, no flat on the rod. Posed with its
+     bottom on the last carrier's lower face.
    - Input shaft: `bottom = -(g + Tv + Wb + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, flat from `0` to
      `T + 1`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
@@ -129,7 +129,7 @@ at that height and whose area is at least 400 mm², then take the kept loops of 
 (`finishFacesEdges`, one `decad.Chamfer` call for both planes, after the tooth-space cut): the outer loop at `z = ringMargin`
 and at `z = ringMargin + ring length`, ears included. Cover (after the seat chamfer): at `z = 0` the
 outer loop, every loop of more than one edge and the single-circle loop of radius `lip_bore_diameter / 2`; at `z = Tv` the
-outer loop and every loop of more than one edge. Carrier (after the shaft hole is cut): the outer loop at `z = 0` and at
+outer loop and every loop of more than one edge. Carrier (after the centre hole is cut): the outer loop at `z = 0` and at
 `z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
 
 **Shaft section.** A circle of diameter `shaft_diameter = bearing_bore_diameter`, the section of every rod.
@@ -177,9 +177,14 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   annulus are inside the bearing body and outside the planet; the bearing is 14 mm across, `Wb` wide and
   its top is at `T`; the planet's volume is the plain gear's with the lip bore minus
   `π/4 (pocket² - lip²) Wb`, within the summed volume bounds plus 1.
+- Carrier pins: each pin is solid, runs from the gears' lower face to the carrier's upper face, has a D thick part 0.05 mm
+  from its socket (proven to 0.02 mm) and starts 0.2 to 0.3 mm above its bearing; its volume is the rod's plus the D prism's.
+- Carrier shafts: the output shaft's thick part starts at the carrier's lower face, ends 0.25 mm short of the rear
+  bearing, and its volume is the D prism's plus the thin rod's.
+- Press-fit rims: each carrier face has `n + 1` inner loops and none has a bevel beside it.
 - Carrier: with `LocatePoint`, at mid-plate height the plate is inside at radius 12 and 15 and 60 degrees (between
   two pins) and outside at radius 20 on that line; a pin boss is inside and the shaft hole open at the axis and at
-  `(-2.5, 0)`; a pin socket is empty and the plate beside it is solid at a quarter of the plate's height; the plate is solid at
+  `(-2.5, 0)`; a pin socket is empty at a quarter and three quarters of the plate's height and the plate beside it is solid; the plate is solid at
   `(6, 0)`. Nothing stands above the plate.
 - Mesh: for every planet, the outline vertices of the planet taken at the mid-height of the sun, and of the ring,
   and the reverse, are never reported inside by `Body.LocatePoint` with a 0.02 mm tolerance. The gears are
@@ -191,7 +196,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   the covers lie `Ec` inside the widest cylinder; an edge chamfer below 0.5 or above 1 is rejected.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
 - Shaft flat: with `LocatePoint` at mid-height of the sun, the sun is inside at `(2.4, 0.3)` and outside at `(-1, 0.3)`,
-  and the input shaft is inside at `(1, 0.3)`; the shaft's volume equals a round rod's plus the collar's less the flat's
+  and the input shaft is inside at `(1, 0.3)`; the input shaft's volume equals a round rod's plus the collar's less the flat's
   circle segment over the sun's thickness, within the volume bound plus 0.5; in the two-stage case the second sun has
   the same tooth for the link shaft.
 - Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
@@ -203,8 +208,10 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   is `HeadHeight + 6` from the cover's outer face. No bolt overlaps its cover or the ring and no nut overlaps the ring
   (volume of the intersection of copies). A hole narrower than the bolt shank, a cover thinner than head height plus
   1 mm, and pockets that leave less than 1 mm of ring wall are rejected.
-- Two stages: 40 bodies, stage offsets by `P`, the link shaft's top equal to the second sun's top, the output shaft
-  `Lo` beyond the rear boss, and the second stage's planets mesh as the first's do.
+- Two stages: 46 bodies, stage offsets by `P`, the link shaft's top equal to the second sun's top, the output shaft
+  `Lo` beyond the rear boss, and the second stage's planets mesh as the first's do. The link shaft's thick part is a
+  0.02 mm or wider press fit in the first carrier and ends 0.25 mm short of the second sun; a build with `Sf = 0` and
+  `g = 0.75` succeeds.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.
 - Backlash: a gearbox with `j = 0.2` has a smaller sun, planet and ring volume than the default beyond the volume bounds.
 - Invalid: every listed input error names its rule.
