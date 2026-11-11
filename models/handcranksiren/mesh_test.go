@@ -76,7 +76,7 @@ var meshStages = []meshStage{
 // meshSamples turns each stage through one driver tooth pitch in four steps and calls check with the turned gears,
 // their section outlines and the sample number.
 func meshSamples(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part,
-	check func(stage meshStage, driver, driven *decad.Body, driverOutline, drivenOutline decad.SectionOutline, k int)) {
+	check func(stage meshStage, driver, driven *decad.Body, driverOutline, drivenOutline decad.SectionOutline, plane r3.Frame, axisA, axisB r3.Vec, k int)) {
 	state, err := handcranksiren.Motion(p)
 	require.NoError(t, err)
 	for _, stage := range meshStages {
@@ -92,20 +92,20 @@ func meshSamples(t *testing.T, p handcranksiren.Params, parts map[string]handcra
 			driven, err := decad.Copy(t.Context(), parts[stage.driven].Body,
 				decad.WithCopyRotation(axisB, r3.Vec{Y: 1}, units.Radians(theta*stage.driverZ/stage.drivenZ)))
 			require.NoError(t, err)
-			check(stage, driver, driven, outerOutline(t, driver, plane, axisA), outerOutline(t, driven, plane, axisB), k)
+			driverOutline := outerOutline(t, driver, plane, axisA)
+			drivenOutline := outerOutline(t, driven, plane, axisB)
+			check(stage, driver, driven, driverOutline, drivenOutline, plane, axisA, axisB, k)
 			require.NoError(t, decad.Remove(driver))
 			require.NoError(t, decad.Remove(driven))
 		}
 	}
 }
 
-// requireSpurMesh checks both gear pairs at five angles across one tooth pitch: the tip of each gear clears its mate's
-// root by the rule, each root loop sits at the gear's root radius, and the outlines share no material.
-func requireSpurMesh(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
-	state, err := handcranksiren.Motion(p)
-	require.NoError(t, err)
-	meshSamples(t, p, parts, func(stage meshStage, _, _ *decad.Body, a, b decad.SectionOutline, k int) {
-		axisA, axisB := stage.driverAxis(state), stage.drivenAt(state)
+// requireMesh checks both gear pairs at five angles across one tooth pitch: the tip of each gear clears its mate's root
+// by the rule, each root loop sits at the gear's root radius, the outlines share no material, and both gears clear the
+// frame.
+func requireMesh(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
+	meshSamples(t, p, parts, func(stage meshStage, driver, driven *decad.Body, a, b decad.SectionOutline, plane r3.Frame, axisA, axisB r3.Vec, k int) {
 		for _, order := range []struct {
 			name        string
 			a, b        decad.SectionOutline
@@ -125,14 +125,6 @@ func requireSpurMesh(t *testing.T, p handcranksiren.Params, parts map[string]han
 		gap, err := a.Clearance(b)
 		require.NoError(t, err)
 		require.False(t, gap.Overlaps, "%s sample %d: the teeth share material", stage.name, k)
-	})
-}
-
-// requireTipToFrame checks the L2 gap between each gear and the frame at the same five mesh samples: the tip circles
-// stay 0.5 clear of the frame's cavity wall.
-func requireTipToFrame(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
-	meshSamples(t, p, parts, func(stage meshStage, driver, driven *decad.Body, _, _ decad.SectionOutline, k int) {
-		plane := frameAt(t, r3.Vec{Y: stage.midY}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 		frame := parts["gearbox-frame"].Body
 		require.GreaterOrEqual(t, sectionGap(t, driver, frame, plane), loose, "%s sample %d, L2 %s / gearbox-frame", stage.name, k, stage.driver)
 		require.GreaterOrEqual(t, sectionGap(t, driven, frame, plane), loose, "%s sample %d, L2 %s / gearbox-frame", stage.name, k, stage.driven)

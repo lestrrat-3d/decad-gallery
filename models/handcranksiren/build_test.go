@@ -113,8 +113,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	t.Run("tessellate", func(t *testing.T) { requireTessellates(t, parts) })
 	t.Run("edges", func(t *testing.T) { requireEdgeFinishing(t, p, parts) })
 	t.Run("mesh", func(t *testing.T) {
-		requireSpurMesh(t, p, parts)
-		requireTipToFrame(t, p, parts)
+		requireMesh(t, p, parts)
 	})
 	t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 	t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
