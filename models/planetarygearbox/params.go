@@ -185,10 +185,10 @@ func derive(p Params) dims {
 		stagePitch: p.GearThickness + p.CarrierThickness + 2*p.StageGap,
 	}
 	b := planetBearing()
-	d.pin = b.BoreDiameter - 2*fitClearance
+	d.pin = b.BoreDiameter
 	d.pocket = b.OuterDiameter + 2*p.BearingClearance
 	d.lip = b.OuterDiameter - 2*lipWidth
-	d.shaft = b.BoreDiameter - 2*fitClearance
+	d.shaft = b.BoreDiameter
 	d.shaftBore = d.shaft + 2*fitClearance
 	d.collar = d.shaft + 2*collarMargin
 	d.coverBoss = d.pocket + 2*p.CarrierWall

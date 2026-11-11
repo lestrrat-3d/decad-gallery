@@ -112,8 +112,12 @@ side, and the 0.2 mm Tight minimum does not apply. The pin is a separate part th
 in.
 
 A bore or pocket that holds a purchased bearing fixed takes 0.05 mm of radial
-clearance, and the 0.2 mm Tight minimum does not apply. The bearing is a nominal part and the seat grips its outer race. A
-shaft or pin that turns in a bearing bore keeps its fit class.
+clearance, and the 0.2 mm Tight minimum does not apply. The bearing is a nominal part and the seat grips its outer race.
+
+A shaft or pin that passes through a purchased bearing's bore takes no clearance: make its diameter equal the bore
+diameter. The bearing is a nominal part, so no fit class applies. Apply this to every model's bearing shafts and pins.
+Do not shrink a shaft to leave a gap against the bearing's inner race. The shaft's other fits, such as a D-flat bore in a
+gear or carrier, keep their own fit class.
 
 Mark each model in [models/README.md](../models/) as **Adjustable**, **Nominal**,
 or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to

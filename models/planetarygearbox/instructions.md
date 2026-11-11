@@ -32,10 +32,10 @@ bore through it parallel to the gearbox axis. The bore diameter is an input, bec
 user passes through it: a bolt, a pin or a shaft. The model adds no bolt, head pocket or nut cavity for an ear.
 
 The input and the output connect as follows. The shafts are separate bodies from the carriers, so each part
-prints in its own best orientation. The input shaft is a 4.5 mm rod: it passes through the front cover's bearing
+prints in its own best orientation. The input shaft is a 5 mm rod: it passes through the front cover's bearing
 and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
 how stages link. The output shaft runs through the last carrier's hole and the rear cover's bearing. Every shaft
-is 4.5 mm, leaving 0.25 mm radial clearance in each nominal 5 mm 605ZZ bore. Each shaft is a round cylinder with a flat `Sf` deep on the +X
+is 5 mm, the diameter of the nominal 605ZZ bore, so it has no clearance against the bearing. Each shaft is a round cylinder with a flat `Sf` deep on the +X
 side, which gives it a D section where a sun or a carrier sits on it. Where a bearing sits the shaft is a full cylinder. The sun's bore
 and the carrier's hole are D-shaped to match, so the input shaft turns the first sun, and each link or
 output shaft turns its carrier and, for a link shaft, the next sun, without slipping. The flat also lets a
@@ -98,7 +98,7 @@ A nil `Placement` is the one exception.
 | Sun tip radius | `m Zs/2 + m - ε` |
 | Ring root radius (largest tooth-space radius) | `m Zr/2 + m + c` |
 | Ring outer radius | ring root radius `+ w` |
-| Shaft and pin diameter | 605ZZ bore `- 0.5` (0.25 mm radial clearance) |
+| Shaft and pin diameter | 605ZZ bore (no clearance against the bearing) |
 | Shaft bore diameter | Shaft diameter `+ 0.5` (0.25 mm radial clearance) |
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
 | Ear half width `we` | `de / 2 + 3` |
@@ -219,7 +219,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
 - Bearing: a 605ZZ envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
-  sun's top. It has 0.25 mm radial clearance in the front bearing and sun bores. Its flat runs
+  sun's top. It fills the front bearing's bore with no clearance and has 0.25 mm radial clearance in the sun's bore. Its flat runs
   from the sun's lower face to the top.
 
 ## Axial layout
@@ -230,7 +230,7 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - Sun `k`, planets `k` and the ring teeth lie in the gear zone.
 - Bearing `i` of stage `k`: a 605ZZ envelope on the planet's axis, from `kP + T - Wb + 0.25` to
   `kP + T + 0.25`. Its lower face clears the pocket floor by 0.25 mm, its upper face extends
-  0.25 mm above the planet, and its 5 mm bore clears the 4.5 mm pin by 0.25 mm radially.
+  0.25 mm above the planet, and its 5 mm bore fits the 5 mm pin with no clearance.
   Bearings are separate bodies.
 - Carrier `k`'s plate lies in `[kP + T + g, kP + T + g + Tc]`. Each planet has a separate pin of diameter `dp` on
   the planet's axis, from `z = kP`, through the bearing and the lip bore, up to the plate's lower face. Its collar of
