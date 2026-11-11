@@ -2,6 +2,7 @@
 """Run the fast pull request or complete scheduled geometry test set."""
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -161,11 +162,11 @@ def finished_tests(lines) -> dict[str, str]:
     return finished
 
 
-def go_test(args: list[str], expected: list[str] = ()) -> None:
+def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None) -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
     finished = finished_tests(proc.stdout)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
@@ -224,9 +225,31 @@ SIREN_CASES = {
     "variants": "^TestHandCrankSirenVariant$",
 }
 
+FAN_VARIANTS = {
+    "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
+    "steep-three": "^TestHandCrankFanVariant$/^steep-three$",
+}
+
 
 def run_siren(case: str) -> None:
     go_test(["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"])
+
+
+def run_fan_variant(variant: str) -> None:
+    env = os.environ.copy()
+    env["HANDCRANKFAN_FULL"] = "1"
+    go_test(
+        [
+            "./models/handcrankfan",
+            "-run",
+            FAN_VARIANTS[variant],
+            "-timeout",
+            "40m",
+            "-count=1",
+        ],
+        [f"TestHandCrankFanVariant/{variant}"],
+        env,
+    )
 
 
 def run_models(mode: str) -> None:
@@ -266,9 +289,12 @@ def main() -> None:
     if suite == "siren" and not args and mode in SIREN_CASES:
         run_siren(mode)
         return
+    if suite == "fan" and not args and mode in FAN_VARIANTS:
+        run_fan_variant(mode)
+        return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants>"
+        " | siren <default|variants> | fan <flat-three|steep-three>"
     )
 
 

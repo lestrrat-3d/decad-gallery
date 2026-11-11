@@ -2,6 +2,7 @@ import contextlib
 import io
 import json
 import unittest
+from unittest import mock
 
 import run_tests
 
@@ -26,6 +27,26 @@ class RunPatternTest(unittest.TestCase):
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
+
+
+class FanVariantsTest(unittest.TestCase):
+    def test_fan_variant_patterns_select_each_full_subtest(self):
+        expected = {
+            "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
+            "steep-three": "^TestHandCrankFanVariant$/^steep-three$",
+        }
+        self.assertEqual(run_tests.FAN_VARIANTS, expected)
+        for variant, pattern in expected.items():
+            with self.subTest(variant=variant):
+                with mock.patch.dict(run_tests.os.environ, {}, clear=True):
+                    with mock.patch.object(run_tests, "go_test") as go_test:
+                        run_tests.run_fan_variant(variant)
+                args, kwargs = go_test.call_args
+                self.assertEqual(args[0][0], "./models/handcrankfan")
+                self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
+                self.assertEqual(args[1], [f"TestHandCrankFanVariant/{variant}"])
+                self.assertEqual(args[2]["HANDCRANKFAN_FULL"], "1")
+                self.assertEqual(kwargs, {})
 
 
 class FinishedTestsTest(unittest.TestCase):
