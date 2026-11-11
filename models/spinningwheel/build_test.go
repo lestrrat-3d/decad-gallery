@@ -112,6 +112,7 @@ func linkageSpinningWheel(t *testing.T, p spinningwheel.Params) {
 func verifySpinningWheel(t *testing.T, p spinningwheel.Params) {
 	t.Helper()
 	doc, a := buildSpinningWheel(t, p)
+	requirePartContainers(t, doc, a)
 	requireOnePieceWhorl(t, a, p)
 	requirePartHomes(t, a)
 	require.Equal(t, len(a.Parts), len(doc.Bodies()), "only final assembly bodies may remain live")

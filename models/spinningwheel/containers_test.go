@@ -43,13 +43,6 @@ func requirePartContainers(t *testing.T, doc *decad.Document, a *spinningwheel.A
 	}
 }
 
-func TestSpinningWheelBodyContainers(t *testing.T) {
-	doc := spinningwheel.NewDocument()
-	a, err := spinningwheel.Build(t.Context(), doc, spinningwheel.DefaultParams())
-	require.NoError(t, err)
-	requirePartContainers(t, doc, a)
-}
-
 func TestSpinningWheelPreviewContainers(t *testing.T) {
 	doc := spinningwheel.NewDocument()
 	preview, err := spinningwheel.BuildPreview(t.Context(), doc, spinningwheel.DefaultParams())
