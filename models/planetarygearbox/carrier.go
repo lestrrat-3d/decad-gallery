@@ -188,7 +188,10 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	}
 	// The centre hole is cut last, so the plate keeps a tooth the full plate thickness where the shaft has its
 	// flat.
-	hole, err := r.extrudeFlatTool(ctx, "carrier shaft hole", -1, p.CarrierThickness+2)
+	hole, err := r.extrudeDSection(ctx, dSection{
+		what: "carrier shaft hole", z: -1, length: p.CarrierThickness + 2,
+		radius: d.collar/2 + pressFitClearance, depth: p.FlatDepth,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -395,11 +398,37 @@ func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float6
 	})
 }
 
-// buildShaft builds a separate shaft about the local origin: a full round cylinder from z=bottom to z=top with,
+// buildSteppedShaft builds a carrier shaft about the local origin, its bottom on the carrier's lower face: a D thick
+// part of the shaft collar diameter, with the flat FlatDepth deep on +X, from z=0 up to thickTop, which is pressed
+// through the carrier's hole, and a round rod of the shaft diameter from stepOverlap below thickTop up to top, joined
+// in one union, then a flat cut over each of the flats' spans.
+func (r *run) buildSteppedShaft(ctx context.Context, what string, thickTop, top float64, flats ...span) (*decad.Body, error) {
+	thick, err := r.extrudeDSection(ctx, dSection{
+		what: what + " thick part", z: 0, length: thickTop,
+		radius: r.d.collar / 2, depth: r.p.FlatDepth, expr: "shaft_collar_diameter",
+	})
+	if err != nil {
+		return nil, err
+	}
+	rod, err := r.extrudeShaft(ctx, what, thickTop-stepOverlap, top-thickTop+stepOverlap)
+	if err != nil {
+		return nil, err
+	}
+	shaft, err := decad.Union(ctx, thick, rod)
+	if err != nil {
+		return nil, fmt.Errorf("%s: join thick part and rod: %w", what, err)
+	}
+	if !shaft.IsSolid() {
+		return nil, fmt.Errorf("%s: result is not a solid", what)
+	}
+	return r.flatCut(ctx, what, shaft, flats...)
+}
+
+// buildShaft builds the input shaft about the local origin: a full round cylinder from z=bottom to z=top with,
 // when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights, and a
 // flat over each of the flats' spans. A collar sits between a bearing's inner race and the part next to it and
-// takes the place of a washer. The shaft is round where a bearing sits, so the flat lies only where a sun or
-// carrier sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the union
+// takes the place of a washer. The shaft is round where a bearing sits, so the flat lies only where a sun
+// sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the union
 // crosses the rod's faces instead of sharing them.
 func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64, flats ...span) (*decad.Body, error) {
 	shaft, err := r.extrudeShaft(ctx, what, bottom, top-bottom)

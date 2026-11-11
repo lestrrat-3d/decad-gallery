@@ -267,8 +267,9 @@ func TestPartClearances(t *testing.T) {
 	const seatMinimum = 0.02
 
 	requireSectionClearance(t, box.InputShaft, stage.Sun, p.GearThickness/2, minimum)
+	// The shaft's thick part is a press fit in the carrier's hole, tighter than the Tight minimum.
 	requireSectionClearance(t, stage.Carrier, stage.Shaft,
-		p.GearThickness+p.StageGap+p.CarrierThickness/2, minimum)
+		p.GearThickness+p.StageGap+p.CarrierThickness/2, seatMinimum)
 	requireSectionClearance(t, planetBearing, stage.Planets[0], bearingMid, seatMinimum)
 	requireSectionTouch(t, planetBearing, stage.Pins[0], bearingMid)
 	frontFace := -p.StageGap - p.CoverThickness
@@ -300,7 +301,7 @@ func TestPartClearances(t *testing.T) {
 	requireSectionClearance(t, branchBearing, branch.Stages[0].Planets[0], branchBearingMid, minimum)
 	requireSectionTouch(t, branchBearing, branch.Stages[0].Pins[0], branchBearingMid)
 	requireSectionClearance(t, branch.Stages[0].Carrier, branch.Stages[0].Shaft,
-		p.GearThickness+branchParams.StageGap+p.CarrierThickness/2, minimum)
+		p.GearThickness+branchParams.StageGap+p.CarrierThickness/2, seatMinimum)
 	branchCarrierZ := p.GearThickness + branchParams.StageGap
 	requireSectionClearance(t, branch.Stages[0].Pins[0], branch.Stages[0].Carrier,
 		branchCarrierZ+p.CarrierThickness/2, seatMinimum)
@@ -550,6 +551,7 @@ func TestCarrierIsATriangle(t *testing.T) {
 	require.Equal(t, decad.PointInside, locate(at(25, 0, plate)), "a pin boss")
 	require.Equal(t, decad.PointOutside, locate(at(0, 0, plate)), "the D hole")
 	require.Equal(t, decad.PointOutside, locate(r3.NewVec(-1.7, 0, plate)), "the hole is open on the round side")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, carrier, r3.NewVec(-3.4, 0, plate)), "the hole is wide, R 3.75")
 	require.Equal(t, decad.PointInside, locate(r3.NewVec(6, 0, plate)), "the plate is solid just outside the hole")
 	// Each pin's socket passes through the plate: void in the socket near both faces, plate beside it.
 	carrierZ := p.GearThickness + p.StageGap
@@ -784,6 +786,35 @@ func TestShaftFlat(t *testing.T) {
 	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*p.GearThickness, v, bound+0.5)
 }
 
+// TestOutputShaft checks the thin-thick output shaft: a D thick part level with the carrier's lower face, pressed
+// through the carrier's hole and ending 0.25 mm short of the rear bearing, and a thin rod through the bearing.
+func TestOutputShaft(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	doc, box := defaultGearbox(t)
+	output := box.Stages[0].Shaft
+	kz := p.GearThickness + p.StageGap
+	top := bounds(t, box.RearBearing).Min.Z
+	require.True(t, output.IsSolid())
+	b := bounds(t, output)
+	require.InDelta(t, kz, b.Min.Z, 1e-6)
+	require.InDelta(t, bounds(t, box.Stages[0].Carrier).Min.Z, b.Min.Z, 1e-6)
+	require.InDelta(t, rearBossTop(p, 1)+p.OutputShaftLength, b.Max.Z, 1e-6)
+	collarDiameter, err := doc.Param("shaft_collar_diameter")
+	require.NoError(t, err)
+	shaftDiameter, err := doc.Param("shaft_diameter")
+	require.NoError(t, err)
+	thickRadius, radius := collarDiameter.Base()/2, shaftDiameter.Base()/2
+	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
+		(p.CarrierThickness+p.StageGap+p.CoverThickness-0.25) +
+		math.Pi*radius*radius*(5+p.OutputShaftLength+0.25)
+	v, bound := volume(t, output)
+	require.InDelta(t, want, v, bound+0.5)
+	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
+	require.Equal(t, decad.PointOutside, sectionLocate(t, output, r3.NewVec(3.45, 0, kz+p.CarrierThickness/2)), "flat")
+	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, top-0.5)), "thick part")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, output, r3.NewVec(-3, 0, top-0.125)), "thin rod")
+}
+
 func TestPhaseAngles(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.Zero(t, planetarygearbox.RingToothAngle(p))
@@ -820,20 +851,28 @@ func TestTwoStages(t *testing.T) {
 	link := bounds(t, box.Stages[0].Shaft)
 	require.InDelta(t, p.GearThickness+p.StageGap, link.Min.Z, 1e-6)
 	require.InDelta(t, pitch+p.GearThickness, link.Max.Z, 1e-6)
-	// A collar in the gap between the first carrier and the second sun stops 0.25 mm short
-	// of both, and the flats are cut away above and below it, so it is whole where a flat would run.
+	// The link shaft is thin-thick: a D thick part pressed through the first carrier that ends 0.25 mm short of the
+	// second sun, and a thin rod through the sun's bore.
 	shaftCollarDiameter, err := doc.Param("shaft_collar_diameter")
 	require.NoError(t, err)
-	require.InDelta(t, shaftCollarDiameter.Base(), link.Max.X-link.Min.X, 2e-3)
+	shaftDiameter, err := doc.Param("shaft_diameter")
+	require.NoError(t, err)
+	thickRadius, radius := shaftCollarDiameter.Base()/2, shaftDiameter.Base()/2
+	kz := p.GearThickness + p.StageGap
+	require.InDelta(t, shaftCollarDiameter.Base(), link.Max.Y-link.Min.Y, 2e-3)
+	require.InDelta(t, shaftCollarDiameter.Base()-p.FlatDepth, link.Max.X-link.Min.X, 2e-3)
 	linkShaft := box.Stages[0].Shaft
-	collarMid := p.GearThickness + p.StageGap + p.CarrierThickness + p.StageGap/2
-	locateLink := func(point r3.Vec) decad.PointLocation {
-		loc, err := linkShaft.LocatePoint(t.Context(), point, units.Millimeters(0.02))
-		require.NoError(t, err)
-		return loc
-	}
-	require.Equal(t, decad.PointInside, locateLink(r3.NewVec(3, 0, collarMid)), "the collar is whole over the flat")
-	require.Equal(t, decad.PointOutside, locateLink(r3.NewVec(3, 0, collarMid+p.StageGap)), "no collar above it")
+	require.Equal(t, decad.PointInside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
+	require.Equal(t, decad.PointInside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.5)), "thick part")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.125)), "thin rod")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch+p.GearThickness/2)))
+	requireSectionClearance(t, linkShaft, box.Stages[0].Carrier, kz+p.CarrierThickness/2, 0.02)
+	requireSectionClearance(t, linkShaft, box.Stages[1].Sun, pitch+p.GearThickness/2, 0.2)
+	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
+		(p.CarrierThickness+p.StageGap-0.25) +
+		math.Pi*radius*radius*(p.GearThickness+0.25) - circleSegment(radius, p.FlatDepth)*p.GearThickness
+	v, bound := volume(t, linkShaft)
+	require.InDelta(t, want, v, bound+0.5)
 	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Shaft).Max.Z, 1e-6)
 	// The second sun's bore has the tooth for the link shaft's flat on +X. Point location is undecided inside
 	// the thin shaft and the tooth, so the sun's section decides: material at the tooth, none on the round side.
@@ -844,6 +883,21 @@ func TestTwoStages(t *testing.T) {
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
+
+	// With no flat and the tightest gap the carrier's hole and sockets and the thick parts are round.
+	t.Run("round sections", func(t *testing.T) {
+		q := planetarygearbox.DefaultParams()
+		q.Stages, q.FlatDepth, q.StageGap = 2, 0, 0.75
+		round, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), q)
+		require.NoError(t, err)
+		pitch := q.GearThickness + q.CarrierThickness + 1.5
+		kz := q.GearThickness + 0.75
+		link := round.Stages[0].Shaft
+		requireSectionClearance(t, link, round.Stages[0].Carrier, kz+q.CarrierThickness/2, 0.02)
+		requireSectionClearance(t, round.Stages[1].Shaft, round.Stages[1].Carrier, pitch+kz+q.CarrierThickness/2, 0.02)
+		require.InDelta(t, pitch+q.GearThickness, bounds(t, link).Max.Z, 1e-6)
+		require.Equal(t, decad.PointOutside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch-0.125)))
+	})
 }
 
 func TestPlacedGearbox(t *testing.T) {
