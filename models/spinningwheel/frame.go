@@ -84,7 +84,7 @@ func (b *builder) frame() {
 			}
 			return b.cut(body, b.union(
 				b.liftCylinder(wl, wheelAt(0, 0, (y0+30)*s+5), 9, 30*s+10),
-				b.liftCylinder(wl, wheelAt(0, 0, seat1), 11, seat1-seat0)))
+				b.liftCylinder(wl, wheelAt(0, 0, seat1), 11.05, seat1-seat0)))
 		})
 	}
 	for i, y0 := range []float64{-45 * s, 45*s - 7} {
@@ -97,7 +97,7 @@ func (b *builder) frame() {
 			ring = [2]float64{y0 - 1, y0}
 		}
 		b.part(fmt.Sprintf("wheel-bearing-%d-ring", i+1), "retainer", "fixed", func() *decad.Body {
-			return b.liftAnnulus(wl, wheelAt(0, 0, ring[1]), 9, 11, ring[1]-ring[0])
+			return b.liftAnnulus(wl, wheelAt(0, 0, ring[1]), 9, 11.05, ring[1]-ring[0])
 		})
 	}
 	hl := b.heelLift()
@@ -111,7 +111,7 @@ func (b *builder) frame() {
 			ring = x*s - 3.5 - 1
 		}
 		b.part(fmt.Sprintf("heel-bearing-%d-ring", i+1), "retainer", "fixed", func() *decad.Body {
-			return b.liftAnnulus(hl, level(0, 0, ring), 9, 11, 1)
+			return b.liftAnnulus(hl, level(0, 0, ring), 9, 11.05, 1)
 		})
 	}
 	for i, interval := range [][2]float64{{-55*s - 3, -55 * s}, {55 * s, 55*s + 3}} {

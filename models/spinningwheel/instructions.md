@@ -107,7 +107,7 @@ Stock5 crank pin spans Y[78*Scale-3.5,112*Scale+3.5]. Retain it with stock9 OD,5
 collars immediately outside the crank's front face and behind the gimbal bearing, with0.2 stock axial gaps.
 One stock605ZZ is centred on C, axis Y; its outer race is carried by the upper gimbal bridge.
 In GimbalFrame coordinates (u along W0,v along V0,w along -Y), bridge u[-11,10],v[-22,22],
-w[-2.5,2.5] stock axial width5, with stock14 through-seat at (u,v)=(0,0).
+w[-2.5,2.5] stock axial width5, with stock14.1 through-seat at (u,v)=(0,0).
 Two outer-race retaining rings ID10,OD18,width2 stock lie beyond the bridge faces with0.2 gaps.
 Gimbal fork cheeks have v[-22,-15] and[15,22],u[8,46],w[-9,9], scaled.
 Stock5.2 cross-pin holes run along v through (u,w)=(32*Scale,0).
@@ -116,7 +116,7 @@ Its stock9 OD,5 ID,3 wide end collars start0.2 beyond each cheek's outer face.
 Bridge, cheeks, crank605, cross-pin and its collars use Motion gimbal; rigid overlaps are named mounting joints.
 
 Footman long timber uses RodFrame coordinates u[20,476],v[-10,10],w[-4,4], scaled.
-Its upper boss is u[460,498],v[-12,12],w[-10,10], scaled, with a stock14 bore along v at u486,w0.
+Its upper boss is u[460,498],v[-12,12],w[-10,10], scaled, with a stock14.1 bore along v at u486,w0.
 The16*Scale overlap joins the wood parts below the bearing seat; the long timber never obstructs that seat.
 Two stock605ZZ sit in that boss: v[-12*Scale+0.01,-12*Scale+5.01] and[12*Scale-5.01,12*Scale-0.01].
 Each sits a designed 0.01 off its retaining ring, which rides another frame.
@@ -151,8 +151,8 @@ All parts pass left of or behind the rear leg.
 An8 mm stock rotating heel shaft spans X[-283,243]*Scale at Y=-190*Scale,Z60*Scale.
 Cut its stock flat at local radial coordinate3 over X[-234,194]*Scale only; journals stay round.
 Two stock608 bearings have axis X and centres(-260,-190,60)*Scale and(220,-190,60)*Scale;
-each leg's heel bore is stock radius9 outboard of its bearing, a shoulder on the outer race, with the radius11 seat
-cut from the inboard side and a stock ID18,OD22,width1 retaining ring on the outer race's inboard face;
+each leg's heel bore is stock radius9 outboard of its bearing, a shoulder on the outer race, with the radius11.05 seat
+cut from the inboard side and a stock ID18,OD22.1,width1 retaining ring on the outer race's inboard face;
 their stock7 widths are centred on those X coordinates. They seat in the two structural leg bores.
 Stock12 OD,8 ID,3 wide collars lie0.2 outside each bearing pair's outer width face; their setscrew tips stand a
 designed stock 0.01 off the heel pin.
@@ -171,10 +171,10 @@ Two sloping rails use XZ polygon(-280,465),(240,375),(240,410),(-280,500),
 at Y[-85,-55] and[55,85]; each leg socket is a designed stock 0.01 wider than its rail on both sloping faces.
 Two wedges at those same Y spans support the head base:
 their X[-195,-105], upperZ525, lowerZ=500-(X+280)*90/520. Their lower surfaces touch the rails.
-Separate wheel bearing caps X[200,240],Y[-55,-25] and[25,55],Z[550,610], stock22 bores at wheel centre.
+Separate wheel bearing caps X[200,240],Y[-55,-25] and[25,55],Z[550,610], stock22.1 bores at wheel centre.
 Stock608 bearings span Y[-45*Scale,-45*Scale+7] and [45*Scale-7,45*Scale]. Add shaft collars outside posts.
 Each cap bore steps to stock radius9 outboard of its bearing, a shoulder on the outer race's outboard face, and a
-stock ID18,OD22,width1 retaining ring in the seat holds the outer race's inboard face.
+stock ID18,OD22.1,width1 retaining ring in the seat holds the outer race's inboard face.
 Those stock12 OD,8 ID,3 wide collars spanY[-55*Scale-3,-55*Scale] and[55*Scale,55*Scale+3].
 Stock12 OD,8 ID thrust spacers spanY[-55,-45]*Scale and[45,55]*Scale.
 No gear enclosure carries a bearing. The wheel is supported on both sides.
@@ -267,10 +267,10 @@ Add D flats X6 stock over Y[-222,-208]*Scale for crossbar and[-283,-249]*Scale f
 Front maiden X=headX+-20*Scale,Y[-314,-286]*Scale,Z[585,715]*Scale, stock26 bore at axis.
 Front plain nylon bush ID16.2,OD26,width20 stock, centred Y=-300*Scale. This is a sleeve,
 not a purchased ball bearing. Reuse ballbearing.Build's custom annulus construction, identify group bush.
-Rear maiden X=headX+-20*Scale,Y[-54,-30]*Scale,Z[585,715]*Scale, stock22 bore.
+Rear maiden X=headX+-20*Scale,Y[-54,-30]*Scale,Z[585,715]*Scale, stock22.1 bore.
 Rear stock608 spansY[-48*Scale,-48*Scale+7]. Add axial collars/retainers clear of rotating U arms.
-The rear maiden's bore is stock radius9 in front of that bearing, a shoulder on its outer race, with the radius11
-seat cut from the rear and a stock ID18,OD22,width1 retaining ring on the outer race's rear face.
+The rear maiden's bore is stock radius9 in front of that bearing, a shoulder on its outer race, with the radius11.05
+seat cut from the rear and a stock ID18,OD22.1,width1 retaining ring on the outer race's rear face.
 Rear flyer stock12 OD,8 ID,3 wide front collar spansY[-54*Scale-3.2,-54*Scale-0.2].
 Its stock12 OD,8 ID thrust spacer spansY[-54*Scale-0.2,-48*Scale].
 The rear thrust spacer spansY[-48*Scale+7,-30*Scale].
@@ -286,7 +286,7 @@ Crossbar/arm overlaps are rigid joints. Arms end before the stationary bobbin br
 Bobbin independently rotates on stock8 rear shaft with two608 bearings. One exact revolved wooden body:
 front flange localY[-204,-194], radius45; barrelY[-194,-74],radius17;
 rear flangeY[-74,-64],radius45, scaled. Barrel passage12 stock clears the11 OD inner-race spacer.
-Each flange has stock22 bearing counterbore, depth10*Scale; the front one is a designed stock 0.01 deeper.
+Each flange has stock22.1 bearing counterbore, depth10*Scale; the front one is a designed stock 0.01 deeper.
 Front608 Y[-194*Scale-7,-194*Scale], rear608Y[-74*Scale,-74*Scale+7].
 Rear flange V brake groove centreY=-69*Scale, root42*Scale, lip planes+-1.5*Scale, outer45*Scale.
 Yarn pack annulus barrel radius17*Scale to31*Scale,Y[-190,-78]*Scale; optional visual winding marker.
