@@ -22,7 +22,8 @@ type galleryTile struct {
 }
 
 // galleryTiles puts the spinning wheel on the left, three involute gears across the top, and the planetary
-// gearbox, cycloidal drive, bevel gear pairs, hand-crank fan and hand-crank siren along the bottom. The wheel tile is a full 16:9
+// gearbox, cycloidal drive, bevel gear pairs, hand-crank fan and hand-crank siren along the bottom.
+// The escapement tile sits in the gap on the left, where none of its pixels meet another model's. The wheel tile is a full 16:9
 // scene whose empty margins extend past the canvas edge and under the gear tiles; renderGallery draws only the
 // pixels that differ from the background, so overlapping margins do not hide neighbours.
 var galleryTiles = []galleryTile{
@@ -35,6 +36,7 @@ var galleryTiles = []galleryTile{
 	{bevelGearHero, image.Rect(1300, 500, 1600, 670)},
 	{handCrankFanHero, image.Rect(1080, 620, 1560, 890)},
 	{handCrankSirenHero, image.Rect(620, 640, 1080, 899)},
+	{escapementHero, image.Rect(560, 330, 820, 476)},
 }
 
 const (

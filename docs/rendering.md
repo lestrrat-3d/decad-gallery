@@ -189,13 +189,39 @@ writes `cutaway.png`, and the preset can be rendered on its own:
 go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwgear/images/cutaway.png
 ```
 
+The `escapement/hero` preset renders the default Graham escapement at Phase 0 from the front and a little above and to
+the right, with the front plate, the front bearings and the bolts left out so the wheel, anchor, crutch and pendulum
+show. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
+`hero.png` and `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
+`assembled-side.png` and `closeup.png`, and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
+`escapement/closeup` preset is a near-orthographic front view of the pallets and the teeth between them with the front
+plate, the crutch, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
+pulls the parts apart along `+Z` by the offsets in `tools/render/escapement.go`, and `TestEscapementExploded` checks that no
+two of them overlap. The `part-back-plate`, `part-front-plate`, `part-escape-wheel`, `part-anchor`, `part-crutch`,
+`part-pendulum`, `part-suspension-pin`, `part-suspension-cap`, `part-great-wheel`, `part-drum`, `part-winding-knob`,
+`part-escape-arbor`, `part-pallet-arbor`, `part-great-wheel-arbor`, `part-bearing` and `part-bolt` presets render one of
+them alone, the bolt with its nut.
+
+The `motion` shot writes `images/motion.gif`, 960 × 540 pixels and 36 frames, of one pendulum period. Frame `k` is Phase
+`k/36`. The build is made once at Phase 0 and each frame turns the tessellated wheel and arbor, the anchor, pallet arbor and
+crutch, and the pendulum and its bearing by the change in the angle `Motion` gives, about their own axes. The front plate,
+the front bearings, the bolts and the drive train are left out, because the drive does not repeat in one period. The wheel
+advances one tooth in the loop, so the loop has no jump. A readout under the picture gives the pendulum, anchor and wheel
+angles.
+
+```sh
+go -C tools/render run . -model escapement -shot readme -out ../../models/escapement/images
+go -C tools/render run . -model escapement -shot motion -out ../../models/escapement/images/motion.gif
+```
+
 The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan and the hand-crank siren one after another. It places each at its own size on a
-1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right), and keeps only the pixels that differ from the background
-where the tiles overlap. Building all nine models takes about six minutes plus the wheel build:
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren and the Graham escapement one after another. It places each at its own size on a
+1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right, the escapement in the gap at the middle left), and keeps
+only the pixels that differ from the background where the tiles overlap. The escapement tile's pixels meet no other
+model's. Building all ten models takes about seven minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
