@@ -126,7 +126,7 @@ func (b *builder) driveGimbal() {
 		right := b.liftPanel(l, crossAt(0, 27*s), 8*s, -9*s, 46*s, 9*s, 27*s-20*s, hole{32 * s, 0, 2.6})
 		// The crank bearing's bore is cut by a tool on the bearing's own wheel lift, 5 past both plate faces.
 		y := b.a.State.CrankPin.Y
-		return b.cut(b.union(bridge, left, right), b.liftCylinder(b.wheelLift(), wheelAt(25*s, 0, y+2.5+5), 7, 15))
+		return b.cut(b.union(bridge, left, right), b.liftCylinder(b.wheelLift(), wheelAt(25*s, 0, y+2.5+5), 7.05, 15))
 	})
 	// The crank bearing is round, so it rides its journal's lift: the crank pin's, local (25s, 0) of the wheel.
 	b.part("gimbal-crank-605", "bearing", "gimbal", func() *decad.Body {

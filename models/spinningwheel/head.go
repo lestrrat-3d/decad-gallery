@@ -129,12 +129,12 @@ func (b *builder) head() {
 		// The seat's length is taken between the shifted planes, so its shoulder lands on the bearing's front face.
 		shift := b.a.State.HeadShift
 		body := b.liftPanel(hl, b.headAt(-30*s), -20*s, -115*s, 20*s, 25*s, 24*s, hole{r: 9})
-		return b.cut(body, b.liftCylinder(hl, b.headAt(-30*s+5), 11, (-30*s+5+shift)-(-48*s+shift)))
+		return b.cut(body, b.liftCylinder(hl, b.headAt(-30*s+5), 11.05, (-30*s+5+shift)-(-48*s+shift)))
 	})
 	b.fixedRing("front-maiden-bush", "bush", "fixed", 8.1, 13, -300*s-10, -300*s+10)
 	b.fixedRing("rear-flyer-bearing", "bearing", "fixed", 4, 11, -48*s, -48*s+7)
 	// A stock retaining ring in the seat holds the outer race's rear face.
-	b.fixedRing("rear-flyer-bearing-ring", "retainer", "fixed", 9, 11, -48*s+7, -48*s+8)
+	b.fixedRing("rear-flyer-bearing-ring", "retainer", "fixed", 9, 11.05, -48*s+7, -48*s+8)
 	// The flyer's rings are round, so they ride the fixed head lift with the bearings they bear on.
 	b.fixedRing("rear-flyer-front-collar", "collar", "flyer", 4, 6, -54*s-3.2, -54*s-0.2)
 	b.fixedRing("rear-flyer-front-thrust-spacer", "spacer", "flyer", 4, 6, -54*s-0.2, -48*s)
@@ -150,12 +150,12 @@ func (b *builder) head() {
 	b.liftedPart("bobbin", "bobbin", "bobbin", func() *decad.Body {
 		o := b.headAt(-64 * s).Origin()
 		return b.liftRevolve(hl, frame(o, r3.Vec{X: 1}, r3.Vec{Y: -1}), []point2{
-			{11, 0}, {45 * s, 0}, {45 * s, 3.5 * s}, {42 * s, 5 * s},
+			{11.05, 0}, {45 * s, 0}, {45 * s, 3.5 * s}, {42 * s, 5 * s},
 			{45 * s, 6.5 * s}, {45 * s, 10 * s}, {17 * s, 10 * s},
 			{17 * s, 130 * s}, {45 * s, 130 * s}, {45 * s, 140 * s},
 			// The front counterbore runs a designed 0.01 deeper than the front bearing: one revolve frame cannot
 			// land both shoulders on their bearings' faces exactly.
-			{11, 140 * s}, {11, 130*s - 0.01}, {6, 130*s - 0.01}, {6, 10 * s}, {11, 10 * s},
+			{11.05, 140 * s}, {11.05, 130*s - 0.01}, {6, 130*s - 0.01}, {6, 10 * s}, {11.05, 10 * s},
 		})
 	})
 	b.fixedRing("bobbin-front-bearing", "bearing", "fixed", 4, 11, -194*s-7, -194*s)
