@@ -11,10 +11,10 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Shaft D-flat dimensions in mm: the shaft is 7.5 across with a flat 3.0 from its axis toward +Z.
+// Shaft D-flat dimensions in mm: the shaft is 8 across, the bore of a 608 bearing, with a flat 3.25 from its axis toward +Z.
 const (
-	shaftRadius = 3.75
-	flatOffset  = 3.0
+	shaftRadius = 4.0
+	flatOffset  = 3.25
 	flatReach   = 3.0 // how far past the flat the cutting box runs
 	boxHalf     = 5.0 // the box's half width across the flat
 )

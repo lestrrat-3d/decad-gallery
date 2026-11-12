@@ -86,8 +86,19 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcranksiren.Params
 			continue
 		}
 		_, ok := exempt[[2]string{names[d.Pair.A], names[d.Pair.B]}]
-		require.True(t, ok, "%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)
+		// A shaft equals its bearing's bore, so the two touch and Decad cannot decide the pair. The T4 rows of the
+		// clearances subtest prove their sections meet with no gap, and the pair is still checked for interference.
+		touching := bearingShaft(names[d.Pair.A], names[d.Pair.B])
+		require.True(t, ok || touching && d.Code == decad.DiagUnsupportedPairContact,
+			"%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)
 	}
+}
+
+// bearingShaft reports whether the two part names are a shaft and a bearing, in either order.
+func bearingShaft(a, b string) bool {
+	isShaft := func(n string) bool { return strings.HasSuffix(n, "-shaft") }
+	isBearing := func(n string) bool { return strings.HasPrefix(n, "bearing-") }
+	return isShaft(a) && isBearing(b) || isShaft(b) && isBearing(a)
 }
 
 // requireTessellates builds a verified mesh of the parts whose boundary or volume Decad can check.

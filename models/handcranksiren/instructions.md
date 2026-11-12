@@ -138,7 +138,7 @@ Axial stack (Y ranges):
 | rotor-pinion (15T) | R | 2 | stage 2 driven | unit(I − R) turned by π/15 about +Y |
 
 - Tooth zero is centred on U, so each driver's tooth points at its mate and each driven gear's gap points back.
-- After the gear builds, cut each gear's D-bore: a cylinder of radius 3.75 + 0.25 minus a box beyond the flat 3.0 + 0.25
+- After the gear builds, cut each gear's D-bore: a cylinder of radius 4.0 + 0.05 minus a box beyond the flat 3.25 + 0.05
   from the axis toward world +Z. The bore runs from 1 before the gear's front face for 8. The flat faces world +Z.
 
 ### Look-alike parts
@@ -154,13 +154,13 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
 - Holes: 1 for stage 1 (crank-gear, intermediate-pinion), 2 for stage 2 (intermediate-gear, rotor-pinion).
 - Each hole has radius 0.75 and its centre 6.6 from the axis, on the section frame's +V side (world −Z), opposite the
   D flat. Neighbouring holes are 25° apart, spread symmetrically about the +V axis. The smallest root circle is 9.23, so
-  every hole keeps 1.88 from the root, and the D-bore (radius 4.0) leaves 1.85.
+  every hole keeps 1.88 from the root, and the D-bore (radius 4.05) leaves 1.80.
 - Each hole is its own sketch on the gear's section frame at the bore's start (1 before the front face), a circle
   placed by horizontal and vertical distances from the origin, cut through for 8 along +Y after the D-bore.
 
 ### Shafts and bearings
 
-- Every shaft is a cylinder of radius 3.75 with a flat 0.75 deep (3.0 from the axis toward +Z) along its whole length.
+- Every shaft is a cylinder of radius 4.0, equal to the 608 bearing bore, with a flat 0.75 deep (3.25 from the axis toward +Z) along its whole length.
 - rotor-shaft: Y [−25.25, 35.70] with a collar of radius 5.5 over [10.1, 12.1].
 - intermediate-shaft: Y [2.90, 34.70].
 - crank-shaft: Y [2.90, 45.35] with a collar of radius 5.5 over [19.1, 20.1]. The collar keeps crank-gear in plane 1.
@@ -181,20 +181,20 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
   clockwise winding leaves the sketch fillets over-constrained). Frame cavity X [−14, 100], Z [7, 124], corner
   radius 6. Frame wall 7 thick.
 - gearbox-front: the outline from Y 0 for 10. On R, I and C: seat pocket radius 11.05 over [2.6, 10] plus 1 of stock,
-  relief radius 9.5 over [1.6, 2.6]. On R: through hole radius 4.2 from −1 to 1.6. Edge finish with offsets {0, 10}.
+  relief radius 9.5 over [1.6, 2.6]. On R: through hole radius 4.4 from −1 to 1.6. Edge finish with offsets {0, 10}.
   Fastener cuts for `gearbox-front-bolt-*`, then the hole and cavity for each `drum-bolt-*`, then the hole and cavity
   for each `grip-bolt-*`.
 - gearbox-rear: the outline from Y 27.6 for 10. Seat pockets radius 11.05 over [26.6, 35.0], reliefs radius 9.5 over
-  [35.0, 36.0], and on C a through hole radius 4.2 over [36.0, 38.6]. Edge finish offsets {27.6, 37.6}. Fastener cuts
+  [35.0, 36.0], and on C a through hole radius 4.4 over [36.0, 38.6]. Edge finish offsets {27.6, 37.6}. Fastener cuts
   for `gearbox-rear-bolt-*`.
 - gearbox-frame: outline plus cavity on the plane Y 10.25, extruded 17.1. Edge finish offsets {10.25, 27.35}. Hole and
   cavity for every gearbox-front and gearbox-rear bolt.
 
 ### Drum, rotor, stator, collector and horn
 
-- drum: a revolved meridian (4.7, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
-  (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.7, −15.50), (4.2, −15.00),
-  (4.2, −12.00) about the axis R along Y; the shaft hole's two 0.5 chamfers are in the meridian.
+- drum: a revolved meridian (4.9, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
+  (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.9, −15.50), (4.4, −15.00),
+  (4.4, −12.00) about the axis R along Y; the shaft hole's two 0.5 chamfers are in the meridian.
   Three windows (chord-sided port 14 to 24 radius, half angle 40°, centred at 60°, 180°, 300°... patterned with
   Count 3) are cut through the back plate. Three posts of radius 5 at radius 30 from R, Y [−12.50, −0.25] (angles 0°,
   120°, 240°).
@@ -297,9 +297,9 @@ Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at
 
 ### Fits
 
-The nominal gap is the class minimum plus 0.05. The test proves each lower bound with section outlines. Fits between
-round parts (T4, T5, T7, T9, T10, T8, R3) use a section tolerance of 0.01, because at 0.02 the intermediate shaft's bound
-against its bearing is 0.192, below the Tight minimum. Fits that include a printed plate use 0.02, the plates being
+The nominal gap is the class minimum plus 0.05. A bearing shaft equals the bearing bore (T4, no gap), and a press fit (T5) is a 0.05 radial clearance whose proven bound must reach 0.03. The test proves each lower bound with section outlines. Fits between
+round parts (T4, T5, T7, T9, T10, T8, R3) use a section tolerance of 0.01, because at 0.02 the press-fit and Tight bounds
+fall below their minimums. Fits that include a printed plate use 0.02, the plates being
 faceted with a mesh bound of 0.01615. S1 sections the bearing at 0.01 and the plate at 0.0162.
 
 | ID | Parts | Class (min) | Nominal | How measured |
@@ -309,16 +309,16 @@ faceted with a mesh bound of 0.01615. S1 sections the bearing at 0.01 and the pl
 | T3 | stator / drum, collector / stator | Tight | 0.25 | axial bounds (Y): `axialGap(collector, stator, 1)` |
 | T11 | horn / collector | Tight | 0.25 | axial bounds (X): `axialGap(horn, collector, 0)` |
 | T12 | grip / gearbox-front; grip / gearbox-front-bolt-2 head | Tight | 0.25 / 0.25 | axial bounds (Y) |
-| T4 | each shaft / each of its bearings | Tight | 0.25 | section at the bearing's mid-plane |
-| T5 | each D-bore / its shaft (4 gears, rotor hub, crank-arm) | Tight | 0.25 | section at the bore's mid-plane |
-| T6 | shaft ends / bore floors and blind relief floors | Tight | 0.25 / 0.3 (rotor rear) / 1.3 | axial section |
-| T7 | rotor-shaft collar / bearing-rotor-front | Tight | 0.25 | axial section through R |
+| T4 | each shaft / each of its bearings | none: shaft equals the bore | 0 | sections touch at the bearing's mid-plane |
+| T5 | each D-bore / its shaft (4 gears, rotor hub, crank-arm) | Press fit | 0.05 | section at the bore's mid-plane |
+| T6 | shaft ends / bore floors and blind relief floors | Tight | 0.25 / 0.3 (rotor rear) / 1.3 | axial section; a D-bore floor is the Y gap, since its radial gap is the T5 press fit |
+| T7 | rotor-shaft collar / bearing-rotor-front | Tight | 0.25 | Y gap from the collar face found in the axial section through R |
 | T8 | crank-pin stub / crank-arm pocket | Tight | 0.25 | section at Y 44 |
-| T9 | rotor-pinion / rotor-shaft collar | Tight | 0.5 | axial section through R |
-| T10 | crank-gear / crank-shaft collar | Tight | 0.5 | axial section through C |
+| T9 | rotor-pinion / rotor-shaft collar | Tight | 0.5 | Y gap from the collar face (axial section through R) |
+| T10 | crank-gear / crank-shaft collar | Tight | 0.5 | Y gap from the collar face (axial section through C) |
 | S1 | each bearing / its seat | bearing-seat rule, proven ≥ 0.02 | 0.05 | section at mid-plane |
 | S2 | each bearing / its seat floor | Tight | 0.25 | holder section 0.2 from the floor-side face has no material at radius 10.25 on 12 angles |
-| R1 | rotor-shaft / gearbox-front hole and drum hole; crank-shaft / gearbox-rear hole | Regular 0.35 | 0.45 | section mid-hole |
+| R1 | rotor-shaft / gearbox-front hole and drum hole; crank-shaft / gearbox-rear hole | Regular 0.35 | 0.40 | section mid-hole |
 | R2 | rotor / stator | Regular plus clamp budget, proven ≥ 1.10 | 1.15 | axial bounds |
 | R3 | crank-handle / crank-pin | Regular | 0.4 | sections at Y 70 and 95; axial plane |
 | R4 | crank-arm / crank-handle | Regular | 0.4 | axial bounds |

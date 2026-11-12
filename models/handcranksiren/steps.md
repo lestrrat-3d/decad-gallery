@@ -25,10 +25,10 @@ operations, their order and the checks.
   p2 (rIn cos h, +rIn sin h), p3 (rOut cos h, −rOut sin h), p4 (rOut cos h, +rOut sin h) and lines p1–p2, p3–p4, p1–p3,
   p2–p4. Constraints: p1–p2 and p3–p4 vertical at distances `rIn cos h` and `rOut cos h` from the origin; the origin on
   lines p1–p3 and p2–p4; `NewVerticalDistance` of ∓`rIn sin h` on p1 and p2. DOF 0.
-- `dBoreTool(axis, from, length, clearance)`: a cylinder of radius 3.75 + clearance minus a box starting 3.0 +
+- `dBoreTool(axis, from, length, clearance)`: a cylinder of radius 4.0 + clearance minus a box starting 3.25 +
   clearance from the axis toward +Z, ±5 across, 2 longer than the cylinder. Cut the box from the cylinder, then the tool
   from the host.
-- `dShaft(axis, from, to)`: a cylinder of radius 3.75 minus a box beyond 3.0 toward +Z along its whole length, with 1 of
+- `dShaft(axis, from, to)`: a cylinder of radius 4.0 minus a box beyond 3.25 toward +Z along its whole length, with 1 of
   stock at each end. Cut before any union with a collar.
 - Check: `TestValidate`, `TestMotion`, `TestPitch`.
 
@@ -38,7 +38,7 @@ operations, their order and the checks.
    Module 1.5, the teeth, Thickness 6, Backlash 0.15, BoreDiameter 0, Samples 15, `CapChamfer` 0.2 (50T, 48T) or 0
    (16T, 15T), Placement origin on the axis at the plane's front Y, V = (0, 1, 0) × U.
 2. U per gear as in the table of `instructions.md` (the driven gears turned by π/16 and π/15 about +Y).
-3. `dBoreTool(axis, planeFront − 1, 8, 0.25)` cut from each gear.
+3. `dBoreTool(axis, planeFront − 1, 8, 0.05)` cut from each gear.
 4. Mark holes: for each gear, one section at the bore's start per hole, one circle of radius 0.75 at 6.6 from the
    axis (25° apart, symmetric about +V), extruded 8 and cut. 1 hole for the 50T and 16T gears, 2 for the 48T and 15T.
 - Check: the `mesh` and `marks` subtests.
@@ -71,7 +71,7 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
   posts (radius 5 at radius 30, patterned); fastener cuts for drum-bolt and collector-bolt.
 - `rotor.go`: disc radius 45 over [−27.50, −24.50]; chamfer both cap outer loops 0.5 before any cut; vanes patterned
   Count N; hub radius 9; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N))` at Y −28.50,
-  extruded 5, patterned Count N, cut; D-bore `dBoreTool(R, −25.50, 10, 0.25)`.
+  extruded 5, patterned Count N, cut; D-bore `dBoreTool(R, −25.50, 10, 0.05)`.
 - `stator.go`: disc radius 58 over [−31.65, −28.65]; cap outer loops chamfered 0.5; the same ports; hole for each
   collector-bolt.
 - `collector.go`: `collector()` in eight steps:
@@ -91,7 +91,7 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 ## 6. Crank (`crank.go`)
 
 - crank-arm: stadium on Y 38.6 (two arcs of radius 10 with `NewEqualRadius`, four `NewTangent` lines, pin circle radius
-  1.3), extrude 8 selecting the profile with 1 hole, chamfer cap outer loops 0.5, `dBoreTool(C, 37.6, 8, 0.25)`, the
+  1.3), extrude 8 selecting the profile with 1 hole, chamfer cap outer loops 0.5, `dBoreTool(C, 37.6, 8, 0.05)`, the
   hexagon pocket, the pin-bolt head pocket.
 - crank-pin: hexagon, shank, head unioned in that order, then hole and cavity.
 - crank-handle: `meridianPolygon` about the pin axis with origin 1 behind the inner end, revolved.
