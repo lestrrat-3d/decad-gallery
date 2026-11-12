@@ -29,6 +29,8 @@ The [dependency updater](docs/dependency-updates.md) keeps the root and renderer
 
 [`fusion360-gear-generator`](https://github.com/lestrrat-3d/fusion360-gear-generator) translates the Go
 construction into Python code for Fusion add-ins.
+[`fusion-addins`](https://github.com/lestrrat-3d/fusion-addins) holds the Autodesk Fusion add-ins generated from
+these models, with a script to install each one into Fusion.
 
 ## License
 
