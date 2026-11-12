@@ -114,6 +114,10 @@ It also declares `ToothInput`, the one argument of a `Tooth` builder, with these
 It also declares the per-build state `run` with fields `doc *decad.Document`,
 `world *sketch.World`, `p Params`, `d dimensions`, `frame r3.Frame`,
 `lower *sketch.Plane`, `extent decad.Distance`, and `teeth int`.
+`begin` sets `extent` to `decad.Distance{D: thickness, Dir: decad.Along}`, with
+`thickness` from `doc.Param("thickness")`. It is the gear thickness, extruded
+along the lower plane's normal. Step 6 extrudes both the tooth and the root disc
+with `r.extent`.
 Only `tooth` fills a `ToothInput`, from `run`. Emitted code does not create one.
 Do not duplicate these types or the existing methods and functions below:
 
@@ -431,8 +435,10 @@ parameters on the document, then delegates to the same private routine:
 
 1. Set a 1 mm tool margin (the `tool_margin` entry's value). Create a world and call `buildBoreProfile` with it.
 2. In that helper, create the frame `shifted(placement, -margin)` from
-   `p`'s placement, its plane, and its sketch. Use the frame creation APIs
-   from Step 6. The tool then spans the placed gear along its normal.
+   `p`'s placement. Create its plane with `world.CreatePlaneFromFrame`, also
+   when `p.Placement` is nil. Do not use `world.XY()`: the shifted frame lies
+   `margin` below it. Create the sketch on that plane with `world.CreateSketch`.
+   The tool then spans the placed gear along its normal.
 3. Call `s.CreateCircle(s.Origin(),p.BoreDiameter/2)` and add
    `sketch.NewDiameter(circle,p.BoreDiameter)`, then bind that diameter with
    `s.Bind(diameter,world.Params(),"bore_diameter")`. `buildBoreProfile` keeps its
