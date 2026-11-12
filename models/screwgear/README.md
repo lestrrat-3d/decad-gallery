@@ -15,6 +15,21 @@
 The cutaway opens the mechanism along the sleeve's axis. Inside the hollow, the two toothed edges meet, and
 each ribbon runs out through a bore in the wall.
 
+## Exploded
+
+![The sleeve with ribbon A and ribbon B each pulled out along its own axis and lifted apart](images/exploded.png)
+
+Each ribbon is pulled out of the sleeve along its own axis, 115 mm, and the two are lifted 40 mm apart along the
+sleeve's axis so they do not overlap.
+
+## Parts
+
+| Image | Part |
+| --- | --- |
+| ![Ribbon A](images/parts/ribbon-a.png) | Ribbon A (blue) |
+| ![Ribbon B](images/parts/ribbon-b.png) | Ribbon B (orange) |
+| ![Sleeve](images/parts/sleeve.png) | Sleeve |
+
 A pair of gears that move by a screw motion: each gear turns about its own axis while it slides along that
 axis. Each gear is a flat ribbon with a wavy toothed edge, twisted along its length into a helix. The two axes
 cross at 80° by default. A thick-walled sleeve holds the pair. Each ribbon passes through the sleeve's wall twice,

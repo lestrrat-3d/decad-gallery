@@ -164,8 +164,10 @@ go -C tools/render run . -model planetarygearbox -shot motion -out ../../models/
 The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies
 as separate meshes: ribbon A in blue, ribbon B in orange and the sleeve in grey, each with outlines. The camera frames
 the sleeve and the 70 mm of ribbon around it, so the 178.5 mm ribbons run off the image edges. The `hero`, `top` and
-`low` presets write one image each; the `readme` shot writes `index.png`, `hero.png`, `top.png`, `low.png` and
-`cutaway.png` from one build. The ribbons are meshed at 0.1 mm and the sleeve at 0.2 mm, the finest chord
+`low` presets write one image each; the `readme` shot writes `index.png`, `hero.png`, `top.png`, `low.png`,
+`exploded.png`, `cutaway.png` and the 480 × 270 pixel `parts/ribbon-a.png`, `ribbon-b.png` and `sleeve.png` from one
+build. The `screwgear/exploded` preset pulls each ribbon 115 mm out along its own axis and lifts the two 40 mm apart
+along the sleeve's axis, framed on every vertex, and renders alone. The ribbons are meshed at 0.1 mm and the sleeve at 0.2 mm, the finest chord
 Decad accepts for it:
 
 ```sh

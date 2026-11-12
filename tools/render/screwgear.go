@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
+	"os"
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
@@ -47,7 +49,30 @@ var screwGearCameras = map[string]solidlens.Camera{
 		Up:       solidlens.Vec{Z: 1},
 		FOV:      30,
 	},
+	"exploded": {
+		Position: solidlens.Vec{X: 120, Y: -420, Z: 330},
+		Target:   solidlens.Vec{},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	},
+	"part": {
+		Position: solidlens.Vec{X: 60, Y: -300, Z: 110},
+		Target:   solidlens.Vec{},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	},
 }
+
+// screwGearExplodeDistance is how far each ribbon is pulled out along its own axis, in millimeters. The ribbons
+// are 178.5 mm long and the sleeve is 18.5 mm in radius, so 115 mm takes each ribbon's near end clear of the sleeve.
+const screwGearExplodeDistance = 115.0
+
+// screwGearExplodeLift is how far the ribbons are moved apart along the sleeve's axis, so they do not overlap
+// in the exploded view.
+const screwGearExplodeLift = 40.0
+
+// screwGearPartNames are the file names of the three bodies in images/parts, in model order.
+var screwGearPartNames = [3]string{"ribbon-a", "ribbon-b", "sleeve"}
 
 // screwGearColors are ribbon A, ribbon B and the cage.
 var screwGearColors = [3]solidlens.Color{
@@ -107,6 +132,28 @@ func screwGearScene(camera solidlens.Camera, models []solidlens.Model, aspect fl
 	return bevelScene(fitCamera(camera, focus, aspect, bevelViewMargin), models)
 }
 
+// screwGearExplode pulls each ribbon out along its own axis and lifts the two apart along the sleeve's axis.
+// The sleeve stays in place. The axes lie at plus and minus half the crossing angle from X in the unplaced default
+// mechanism, so the two ribbons end up on either side of the sleeve.
+func screwGearExplode(models []solidlens.Model, crossAngle float64) []solidlens.Model {
+	half := crossAngle / 2
+	dirs := [2]r3.Vec{
+		r3.NewVec(math.Cos(half), math.Sin(half), 0),
+		r3.NewVec(math.Cos(half), -math.Sin(half), 0),
+	}
+	out := make([]solidlens.Model, len(models))
+	copy(out, models)
+	for i, dir := range dirs {
+		lift := screwGearExplodeLift
+		if i == 0 {
+			lift = -lift
+		}
+		offset := dir.Scale(screwGearExplodeDistance).Add(r3.NewVec(0, 0, lift))
+		out[i].Mesh = placedMesh{TriangleSource: models[i].Mesh, scale: 1, offset: offset}
+	}
+	return out
+}
+
 // pointCloud is a vertex list that stands in for a mesh when only extents matter.
 type pointCloud []r3.Vec
 
@@ -134,14 +181,44 @@ func screwGearCutaway(models []solidlens.Model) []solidlens.Model {
 	return out
 }
 
+// screwGearExplodedScene frames every vertex of the pulled-apart mechanism, unlike the other views.
+func screwGearExplodedScene(models []solidlens.Model) solidlens.Scene {
+	models = screwGearExplode(models, screwgear.DefaultParams().CrossAngle)
+	return bevelScene(fitCamera(screwGearCameras["exploded"], models, 16.0/9, bevelViewMargin), models)
+}
+
+// screwGearPartScene shows one body alone. The sleeve is framed like the assembled views. A ribbon is framed whole
+// and seen from the side of its own axis, which lies at plus or minus half the crossing angle from X.
+func screwGearPartScene(models []solidlens.Model, i int) solidlens.Scene {
+	if i == 2 {
+		return screwGearScene(screwGearCameras["part"], models[i:i+1], 16.0/9)
+	}
+	half := screwgear.DefaultParams().CrossAngle / 2
+	if i == 1 {
+		half = -half
+	}
+	side := solidlens.Vec{X: math.Sin(half), Y: -math.Cos(half)}
+	camera := solidlens.Camera{
+		Position: solidlens.Vec{X: side.X * 300, Y: side.Y * 300, Z: 90},
+		Target:   solidlens.Vec{},
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      30,
+	}
+	own := models[i : i+1]
+	return bevelScene(fitCamera(camera, own, 16.0/9, bevelViewMargin), own)
+}
+
 func screwGearView(shot string) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
 		models, err := screwGearModels(ctx)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
-		if shot == "cutaway" {
+		switch shot {
+		case "cutaway":
 			models = screwGearCutaway(models)
+		case "exploded":
+			return screwGearExplodedScene(models), nil
 		}
 		return screwGearScene(screwGearCameras[shot], models, 16.0/9), nil
 	}
@@ -169,6 +246,19 @@ func renderScrewGearReadme(ctx context.Context, outputDir string) error {
 		scene := screwGearScene(screwGearCameras[image.shot], models, 16.0/9)
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render screwgear %s: %w", image.name, err)
+		}
+	}
+	exploded := screwGearExplodedScene(models)
+	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, 1600, 900); err != nil {
+		return fmt.Errorf("render screwgear exploded.png: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Join(outputDir, "parts"), 0o755); err != nil {
+		return fmt.Errorf("create screwgear parts directory: %w", err)
+	}
+	for i, name := range screwGearPartNames {
+		path := filepath.Join(outputDir, "parts", name+".png")
+		if err := renderPNG(ctx, path, screwGearPartScene(models, i), 480, 270); err != nil {
+			return fmt.Errorf("render screwgear parts/%s.png: %w", name, err)
 		}
 	}
 	cutaway := screwGearScene(screwGearCameras["cutaway"], screwGearCutaway(models), 16.0/9)

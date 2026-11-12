@@ -41,6 +41,7 @@ var presets = map[string]preset{
 	"screwgear/top":               {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":               {width: 1600, height: 900, scene: screwGearView("low")},
 	"screwgear/cutaway":           {width: 1600, height: 900, scene: screwGearView("cutaway")},
+	"screwgear/exploded":          {width: 1600, height: 900, scene: screwGearView("exploded")},
 	"spurgear/hero":               {width: 1600, height: 900, scene: spurGearHero},
 	"spurgear/top":                {width: 1600, height: 900, scene: spurGearTop},
 	"spurgear/low":                {width: 1600, height: 900, scene: spurGearLow},
