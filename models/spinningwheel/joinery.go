@@ -115,11 +115,11 @@ func (b *builder) frameJoinery() {
 	// Each heel bearing's radius11 seat runs from its outboard face out past the leg's inboard face.
 	hl := b.heelLift()
 	b.machine("head-leg", b.railStock(-55), b.railStock(85),
-		b.liftCylinder(hl, level(0, 0, -260*s-3.5), 11, (-240*s+5)-(-260*s-3.5)))
+		b.liftCylinder(hl, level(0, 0, -260*s-3.5), 11.05, (-240*s+5)-(-260*s-3.5)))
 	// Each cap socket runs 5 past the leg's top corner on the side away from the rails, which it opens; flush
 	// with that corner, the Cut needed Decad's gap shift. The leg has no material there, so the socket is the same.
 	b.machine("front-wheel-leg", b.railStock(-55), b.capStock(-55, 0, 5),
-		b.liftCylinder(hl, level(0, 0, 200*s-5), 11, (220*s+3.5)-(200*s-5)))
+		b.liftCylinder(hl, level(0, 0, 200*s-5), 11.05, (220*s+3.5)-(200*s-5)))
 	b.machine("rear-wheel-leg", b.railStock(85), b.capStock(25, 5, 0))
 
 	var wedgeTools []*decad.Body
@@ -194,7 +194,7 @@ func (b *builder) frameJoinery() {
 	// The rod socket runs 5 past the boss's end face it opens.
 	// The bearing bore runs 5 past both boss faces on the cross pin's gimbal lift, the lift of the bearings in it.
 	b.machine("footman-head-boss", b.localStock(b.footmanLift(), 460*s-5, 476*s, -10*s, 10*s, -5*s, 5*s),
-		b.liftCylinder(b.gimbalLift(), crossAt(32*s, 12*s+5), 7, 24*s+10))
+		b.liftCylinder(b.gimbalLift(), crossAt(32*s, 12*s+5), 7.05, 24*s+10))
 
 	// The radial spoke blanks seat in the hub and the rim rather than sharing material.
 	var hubTools, rimTools []*decad.Body
@@ -504,9 +504,9 @@ func (b *builder) mountInventory() {
 	add("wheel-crank-pin", "retained-pin", refs("wheel-crank"), refs("wheel-crank-pin-collar-1", "wheel-crank-pin-collar-2"), 0.1)
 	add("wheel-crank-pin-spacer", "captive-inner-race-spacer", refs("wheel-crank-pin", "wheel-crank", "gimbal-crank-605"), nil, 0)
 	add("gimbal-crank-605", "press-fit-and-journal", refs("gimbal-bridge", "wheel-crank-pin"),
-		refs("gimbal-crank-retainer-1", "gimbal-crank-retainer-2"), 0)
+		refs("gimbal-crank-retainer-1", "gimbal-crank-retainer-2"), 0.05)
 	add("gimbal-bridge", "bearing-clevis", refs("gimbal-crank-605", "wheel-crank-pin"),
-		refs("gimbal-crank-retainer-1", "gimbal-crank-retainer-2"), 0)
+		refs("gimbal-crank-retainer-1", "gimbal-crank-retainer-2"), 0.05)
 	for i := 1; i <= 2; i++ {
 		plate := fmt.Sprintf("gimbal-crank-retainer-%d", i)
 		bolt, nut := fmt.Sprintf("gimbal-retainer-bolt-%d", i), fmt.Sprintf("gimbal-retainer-nut-%d", i)

@@ -112,6 +112,8 @@ func requireBearingSeats(t *testing.T, a *spinningwheel.Assembly) {
 			require.True(t, inside(part, p), "%s race must fill its stock envelope", part.Name)
 		}
 		require.Equal(t, 12, held(e.outer/2+.15, 0, refs), "%s seat must wrap the outer race", part.Name)
+		// The seat keeps 0.05 mm radial clearance, so no part holds material 0.02 mm outside the outer race.
+		require.Equal(t, 0, held(e.outer/2+.02, 0, nil), "%s seat must keep 0.05 mm clearance", part.Name)
 		require.Equal(t, 12, held(e.bore/2-.15, 0, nil), "%s bore must hold a journal", part.Name)
 	}
 	require.Equal(t, 10, checked, "seven 608-2RS and three 605ZZ bearings")

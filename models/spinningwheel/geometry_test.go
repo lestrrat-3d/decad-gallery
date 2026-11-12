@@ -152,7 +152,7 @@ func requireWheelFeatures(t *testing.T, a *spinningwheel.Assembly, p spinningwhe
 	require.False(t, rail.contains(keyPoint), "heel rail must clear the installed key")
 	require.True(t, meshes["heel-key"].contains(keyPoint), "key must occupy its passage")
 	require.True(t, rail.contains(st.PedalFrame.ToWorld(r3.Vec{X: -100 * s, Z: 4.5})), "a quarter-turned key must interfere with the heel rail")
-	requireBoreCaps(t, wheelPart(t, a, "footman-head-boss"), st.RodHead, st.RodFrame.V(), 7)
+	requireBoreCaps(t, wheelPart(t, a, "footman-head-boss"), st.RodHead, st.RodFrame.V(), 7.05)
 	stock608, stock605 := 0, 0
 	for _, part := range a.Parts {
 		if part.Group != "bearing" {
