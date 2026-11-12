@@ -37,6 +37,11 @@ var presets = map[string]preset{
 	"m2bolt/side":                 {width: 1600, height: 900, scene: m2BoltViewScene("side")},
 	"m2bolt/underside":            {width: 1600, height: 900, scene: m2BoltViewScene("underside")},
 	"m2bolt/lengths":              {width: 1600, height: 900, scene: m2BoltViewScene("lengths")},
+	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
+	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
+	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
+	"spiralspring/root":           {width: 1600, height: 900, scene: spiralSpringViewScene("root")},
+	"spiralspring/sizes":          {width: 1600, height: 900, scene: spiralSpringViewScene("sizes")},
 	"screwgear/hero":              {width: 1600, height: 900, scene: screwGearView("hero")},
 	"screwgear/top":               {width: 1600, height: 900, scene: screwGearView("top")},
 	"screwgear/low":               {width: 1600, height: 900, scene: screwGearView("low")},
@@ -196,6 +201,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "m2bolt" {
 		return renderM2BoltReadme(ctx, outputDir)
+	}
+	if model == "spiralspring" {
+		return renderSpiralSpringReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)
