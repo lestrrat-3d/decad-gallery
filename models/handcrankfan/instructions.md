@@ -172,7 +172,8 @@ pinion heel is `Module*28/2 + Module*14/8`.
   - Crank bearing block: the same square (Y [-15, 15], Z [101.4, 190]) from 1 inside the crank-side wall to X 45, 13.8
     long beyond the wall, with its end face rounded with radius 2.
   - Ears: four boxes 16 long along Y and 8 high that stick out 8 from the tray, each straddling the fan-side wall's seam
-    (Y -31.9): at X [-19, -11] and X [25, 31.2] under the floor (Z [93.4, 102.4], the outer one clear of the grip) and at
+    (Y -31.9): at X [-19, -11] and X [25, 32.2] under the floor (Z [93.4, 102.4], the outer one clear of the grip and 1 mm wider
+    than the others, so the round nut cavity keeps 1 mm of material beside it) and at
     X [-19, -11] and X [22, 30] on the top of the walls (Z [189, 198]). The fan block leaves no room for a bolt head on
     the wall's outer face, so these seams need ears. Each ear carries one bolt site (see Fasteners) along Y: the head
     on the fan-side wall's half and the nut cavity in the post's or the crank-side wall's half.
@@ -385,20 +386,20 @@ test proves the head seat with a contact query and requires its gap to be at mos
 ### Fasteners
 
 Every bolt is a `models/m2bolt` body and every nut a `models/m2nut` body at nominal size. Each bolt site is a
-head pocket, a clearance hole and a nut cavity cut into the parts, and the radial clearance of 0.1 around a head or a
-nut is the Fasteners rule's, not a fit class.
+head pocket, a clearance hole and a nut cavity cut into the parts, and the clearances around a head, a shank and a nut
+are the Fasteners rule's (`internal/m2fastener`), not a fit class.
 
-- Head pocket: radius 2.0 (head diameter 3.8 plus 0.1 each side) and 2.0 deep, as deep as the head is tall, so the
+- Head pocket: radius 2.2 (head radius 1.9 plus 0.3) and 2.0 deep, as deep as the head is tall, so the
   head's top face lies flush with the part's face. Nothing stands proud.
 - Clearance hole: radius 1.3 (2.6 across), above the 2.4 mm that an M2 shank needs. It runs through the part and
   past the bolt's tip.
-- Nut cavity: a hexagon 4.2 across flats (nut 4.0 plus 0.1 each side) and 1.8 high (nut 1.6 plus 0.1 each side), so
-  the nut floats 0.1 from both faces. The part encloses it on every side except the bolt hole, so the part keeps the
-  nut and it cannot fall out. Its corners lie on the direction named below.
+- Nut cavity: a circle of radius 2.51 (through the nut's corners, radius 2.31, plus 0.2) and 2.0 high (nut 1.6 plus
+  0.2 each side), so the nut floats 0.2 from both faces. The part encloses it on every side except the bolt hole, so the part keeps the
+  nut and it cannot fall out. The nut's corners lie on the direction named below.
 - Every pocket and cavity keeps 1 mm or more of material round it, and under the head pocket.
 - A bolt tip ends inside a hole beyond its nut, never outside a face.
 
-| Bolts | Nuts | Size | Head in | Nut in | Cavity corners on |
+| Bolts | Nuts | Size | Head in | Nut in | Nut corners on |
 | --- | --- | --- | --- | --- | --- |
 | `fan-bolt-1` .. `N` | `fan-nut-1` .. `N` | M2 x 16 | `fan-hub` front face | `fan-hub` | the radial line |
 | `gearbox-bolt-1` .. `4` | `gearbox-nut-1` .. `4` | M2 x 10 | `gearbox-fan-wall` ear | `gearbox-post` (1, 3), `gearbox-crank-wall` (2, 4) | Z |

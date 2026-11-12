@@ -2,6 +2,7 @@ package handcrankfan
 
 import (
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -62,7 +63,7 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(bottomArc, armRadius), sketch.NewEqualRadius(bottomArc, topArc),
 			sketch.NewTangent(right, bottomArc), sketch.NewTangent(right, topArc),
 			sketch.NewTangent(left, bottomArc), sketch.NewTangent(left, topArc))
-		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, boltHole), boltHole))
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, m2fastener.HoleRadius), m2fastener.HoleRadius))
 	}
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
 	// The arm is pressed onto the shaft's splined end, a press fit, and the bore's floor stands tightFit from the

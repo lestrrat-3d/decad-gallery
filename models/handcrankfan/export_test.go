@@ -72,8 +72,8 @@ func Fasteners(p Params) ([]Fastener, error) {
 		}
 		out = append(out, Fastener{
 			Bolt: s.bolt, Nut: s.nut, HeadHost: s.headHost, NutHost: s.nutHost,
-			Head: xf.Apply(s.head), Dir: xf.ApplyDir(s.dir), Corner: xf.ApplyDir(s.corner),
-			Length: s.length, CavityNear: s.cavity, CavityFar: s.cavity + nutCavityHeight,
+			Head: xf.Apply(s.Head), Dir: xf.ApplyDir(s.Dir), Corner: xf.ApplyDir(s.Corner),
+			Length: s.Length, CavityNear: s.Cavity, CavityFar: s.CavityFar(),
 		})
 	}
 	return out, nil
