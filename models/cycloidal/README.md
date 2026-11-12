@@ -44,7 +44,7 @@ You can vary:
 
 - The number of pin positions and the pin circle diameter.
 - The eccentricity, the pin diameters and the clearances. Moving custom parts have the Regular fit and pins in
-  the plate have the Tight fit.
+  the plate have the press fit.
 - One or two discs, their thickness and the gap between them.
 - The cam diameter and the input shaft bore, or a solid cam.
 - The number and circle of the output pins.
