@@ -179,6 +179,9 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	require.True(t, rearBearing.above(output), "the rear bearing is beyond the output shaft's free end")
 	require.True(t, rearBearing.above(rear), "the rear bearing is outside the rear cover")
 	require.True(t, rear.above(ring), "the rear cover is outside the ring")
+	// The README "Exploded" section fixes this order. A flip would change the layout silently after a decad bump.
+	require.True(t, front.above(input), "the input shaft lies outside the front cover, at the front of the exploded view")
+	require.True(t, rear.above(output), "the output shaft lies inside the rear cover, short of it along the axis")
 
 	// No collar passes a bore narrower than itself. A shaft's collar or thick part, and a carrier pin's thick part,
 	// are 7.4 mm across. The 605ZZ bore is 5 mm and a sun's D bore 5.1 mm, so each bearing or sun that a shaft or
