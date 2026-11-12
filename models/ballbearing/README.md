@@ -18,6 +18,14 @@ be pressed in.
 You can change the bore diameter, the outside diameter and the width for other nominal sizes. Catalogue
 bearings should keep their specified dimensions rather than scaling with the assembly.
 
+## Other angles
+
+| Top | Side |
+|---|---|
+| ![608-2RS from above](images/top.png) | ![608-2RS from the side](images/side.png) |
+
+The top view looks down the 8 mm bore at the 22 mm outer diameter. The side view shows the 7 mm width.
+
 ## 605ZZ preset
 
 ![605ZZ nominal mounting envelope](images/605zz.png)
@@ -30,7 +38,7 @@ The default preset and hero image show the 608-2RS envelope.
 
 The 608ZZ preset selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
 a 608-2RS has a rubber seal, and both have the same outline, so this is the same envelope as the default and
-has no image of its own. Use it where a design calls for a 608ZZ by name, such as the
-[planetary gearbox](../planetarygearbox/), which presses one into each planet gear.
+has no image of its own. Use it where a design calls for a 608ZZ by name, such as an
+assembly that mounts a 608 bearing. The [planetary gearbox](../planetarygearbox/) uses `Params605ZZ()` instead.
 
 For how to build this envelope from Go, see the [developer notes](../../docs/models/ballbearing.md).
