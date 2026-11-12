@@ -101,6 +101,97 @@ func bevelGearStraightHigh(ctx context.Context) (solidlens.Scene, error) {
 	return bevelStraightView(ctx, "high")
 }
 
+func bevelGearExplodedSpiral(ctx context.Context) (solidlens.Scene, error) {
+	spiral, err := buildSpiralBevelPair(ctx)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	return bevelExplodedScene(spiral, spiralColor), nil
+}
+
+func bevelGearExplodedStraight(ctx context.Context) (solidlens.Scene, error) {
+	straight, err := buildStraightBevelPair(ctx)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	return bevelExplodedScene(straight, straightColor), nil
+}
+
+// bevelExplodeShare is the distance each member moves along its shaft, as a share of the pair's bounding
+// box diagonal.
+const bevelExplodeShare = 0.4
+
+// bevelExplodedScene pulls the pair apart along its two shafts. At the default 90 degree shaft angle the driving
+// gear's shaft runs along +X and the pinion's along +Y from the common pitch apex, so each member moves away from
+// the apex along its own shaft.
+func bevelExplodedScene(pair bevelPairMesh, color solidlens.Color) solidlens.Scene {
+	low, high := pair.bounds(1)
+	step := bevelExplodeShare * high.Sub(low).Len()
+	models := pair.explodedModels(color, step)
+	center := low.Add(high).Scale(0.5)
+	camera := solidlens.Camera{
+		Position: solidlens.Vec{X: center.X - 1.3*step, Y: center.Y - 2.2*step, Z: center.Z + 1.8*step},
+		Target:   solidlens.Vec(center),
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      35,
+	}
+	return bevelViewScene(camera, models)
+}
+
+// bevelPartScene shows one member alone, from the angle of the hero views.
+func bevelPartScene(mesh *decad.Mesh, color solidlens.Color) solidlens.Scene {
+	var source solidlens.TriangleSource = mesh
+	models := []solidlens.Model{bevelModel(source, color)}
+	low, high := meshBounds(mesh)
+	center := low.Add(high).Scale(0.5)
+	span := high.Sub(low).Len()
+	camera := solidlens.Camera{
+		Position: solidlens.Vec{X: center.X - 0.9*span, Y: center.Y - 0.9*span, Z: center.Z + 0.8*span},
+		Target:   solidlens.Vec(center),
+		Up:       solidlens.Vec{Z: 1},
+		FOV:      35,
+	}
+	return bevelScene(fitCamera(camera, models, float64(bevelPartWidth)/bevelPartHeight, bevelViewMargin), models)
+}
+
+// bevelPartWidth and bevelPartHeight are the pixel size of each parts table image.
+const (
+	bevelPartWidth  = 480
+	bevelPartHeight = 270
+)
+
+func meshBounds(mesh *decad.Mesh) (low, high r3.Vec) {
+	for i, v := range mesh.Vertices() {
+		if i == 0 {
+			low, high = v, v
+			continue
+		}
+		low = r3.NewVec(math.Min(low.X, v.X), math.Min(low.Y, v.Y), math.Min(low.Z, v.Z))
+		high = r3.NewVec(math.Max(high.X, v.X), math.Max(high.Y, v.Y), math.Max(high.Z, v.Z))
+	}
+	return low, high
+}
+
+func bevelModel(source solidlens.TriangleSource, color solidlens.Color) solidlens.Model {
+	return solidlens.Model{
+		Mesh:     source,
+		Material: solidlens.Matte(color),
+		Edges: solidlens.Edges{
+			Enabled: true,
+			Color:   solidlens.RGB(0.025, 0.07, 0.11),
+			Width:   1.5,
+		},
+	}
+}
+
+// explodedModels moves the driving gear step along +X and the pinion step along +Y.
+func (m bevelPairMesh) explodedModels(color solidlens.Color, step float64) []solidlens.Model {
+	return []solidlens.Model{
+		bevelModel(placedMesh{TriangleSource: m.pinion, scale: 1, offset: r3.NewVec(0, step, 0)}, color),
+		bevelModel(placedMesh{TriangleSource: m.driving, scale: 1, offset: r3.NewVec(step, 0, 0)}, color),
+	}
+}
+
 func bevelSpiralView(ctx context.Context, shot string) (solidlens.Scene, error) {
 	spiral, err := buildSpiralBevelPair(ctx)
 	if err != nil {
@@ -144,6 +235,11 @@ func renderBevelReadme(ctx context.Context, outputDir string) error {
 		{"straight-top.png", bevelViewScene(straightCamera("top", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
 		{"straight-low.png", bevelViewScene(straightCamera("low", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
 		{"straight-high.png", bevelViewScene(straightCamera("high", straightMin, straightMax), straight), bevelViewWidth, bevelViewHeight},
+		{"exploded-spiral.png", bevelExplodedScene(pairs.spiral, spiralColor), bevelViewWidth, bevelViewHeight},
+		{"exploded-straight.png", bevelExplodedScene(pairs.straight, straightColor), bevelViewWidth, bevelViewHeight},
+		{"parts/spiral-gear.png", bevelPartScene(pairs.spiral.driving, spiralColor), bevelPartWidth, bevelPartHeight},
+		{"parts/straight-driving.png", bevelPartScene(pairs.straight.driving, straightColor), bevelPartWidth, bevelPartHeight},
+		{"parts/straight-pinion.png", bevelPartScene(pairs.straight.pinion, straightColor), bevelPartWidth, bevelPartHeight},
 	}
 	for _, image := range images {
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
