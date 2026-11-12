@@ -35,7 +35,7 @@ const (
 	driveShaftEnd = crankWallX + 7.1 // the drive shaft ends in the crank-side wall's bearing, 0.05 short of its far face
 )
 
-// shaftWithCollar builds a round shaft of radius 3.9 from the collar at the left of the post to X end, with a collar of
+// shaftWithCollar builds a round shaft of radius 4.0 from the collar at the left of the post to X end, with a collar of
 // radius 6 at its left end. cut runs on the bare shaft first, because Decad refuses to cut after a union with the
 // collar.
 func (b *builder) shaftWithCollar(z, end float64, cut func(shaft *decad.Body) *decad.Body) *decad.Body {
@@ -66,7 +66,7 @@ func (b *builder) spurGear(z float64, turned bool) *decad.Body {
 		body = b.turn(body, r3.Vec{X: gearX, Z: z}, r3.Vec{X: 1}, math.Pi/spurTeeth)
 	}
 	// The spline bore is cut last, after the half-tooth turn, so that its teeth line up with the shaft's grooves.
-	return b.splineCut(body, shaftAxis{r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}}, gearX-1, spurThick+2, tightFit)
+	return b.splineCut(body, shaftAxis{r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1}, r3.Vec{Z: 1}}, gearX-1, spurThick+2, pressFit)
 }
 
 // spurRootClearance deepens the root so a tip clears its mate's root by gearRootClearance plus the margin at center
