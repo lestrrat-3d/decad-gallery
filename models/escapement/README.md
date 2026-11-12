@@ -50,7 +50,7 @@ fixed. The drive train, the front bearings and the bolts are left out of it. The
 
 ## Seen from the back
 
-<img src="images/assembled-back.png" alt="The movement from behind: the great wheel's back face and teeth, the escape wheel and the anchor seen through the back plate's two windows" width="450">
+<img src="images/assembled-back.png" alt="The movement from behind: the great wheel's back face and teeth, the escape wheel and the anchor seen through the back plate's two windows">
 
 The back plate's windows show the great wheel's back face and teeth, the pinion's ring beyond the hub, and the escape
 wheel and the anchor behind them. The strip down the middle hides the mesh of the pinion and the great wheel.

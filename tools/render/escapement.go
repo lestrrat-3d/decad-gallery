@@ -208,6 +208,17 @@ func (b *escapementBuild) viewScene(dir r3.Vec) solidlens.Scene {
 	return bevelScene(escapementCamera(models, dir, 16.0/9), models)
 }
 
+// backScene looks at the movement from behind. The shared lights shine toward -Z, so they leave the back faces dark;
+// this scene turns them to shine toward +Z. The frame is square because the movement is taller than it is wide.
+func (b *escapementBuild) backScene() solidlens.Scene {
+	models := b.models(everything, false)
+	scene := bevelScene(escapementCamera(models, escapementBackDir, 1), models)
+	for i := range scene.DirectionalLights {
+		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
+	}
+	return scene
+}
+
 func (b *escapementBuild) explodedScene() solidlens.Scene {
 	models := b.models(everything, true)
 	return bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
@@ -287,7 +298,7 @@ func init() {
 	presets["escapement/assembled-front"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementFrontDir) })}
 	presets["escapement/assembled-angle"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementAngleDir) })}
 	presets["escapement/assembled-side"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementSideDir) })}
-	presets["escapement/assembled-back"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementBackDir) })}
+	presets["escapement/assembled-back"] = preset{width: 1000, height: 1000, scene: cached((*escapementBuild).backScene)}
 	presets["escapement/closeup"] = preset{width: 1200, height: 675, scene: func(ctx context.Context) (solidlens.Scene, error) {
 		b, err := buildEscapement(ctx)
 		if err != nil {
@@ -325,7 +336,7 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		{"assembled-front.png", 1200, 675, b.viewScene(escapementFrontDir)},
 		{"assembled-angle.png", 1200, 675, b.viewScene(escapementAngleDir)},
 		{"assembled-side.png", 1200, 675, b.viewScene(escapementSideDir)},
-		{"assembled-back.png", 1200, 675, b.viewScene(escapementBackDir)},
+		{"assembled-back.png", 1000, 1000, b.backScene()},
 		{"closeup.png", 1200, 675, closeup},
 		{"exploded.png", 1600, 900, b.explodedScene()},
 	} {
