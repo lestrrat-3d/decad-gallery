@@ -23,5 +23,5 @@ An assembly may import reusable geometry from another item. Keep the reusable co
 item; do not copy it into the assembly. The spur gear in `models/spurgear` establishes the Go package
 layout for these imports.
 
-When decad lacks a needed operation or behaves incorrectly, follow [`AGENTS.md`](../AGENTS.md) and raise
-the gap before changing the model.
+When decad lacks a needed operation or behaves incorrectly, stop the model change and hand off the
+smallest real failing case, as [Verify the real model](model-pipeline.md#4-verify-the-real-model) says.

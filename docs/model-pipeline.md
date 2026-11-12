@@ -63,6 +63,12 @@ with `VerifyAll` for complex final bodies. Check a shared
 model again through its consuming assembly. CI runs `go test ./...` and the
 repository layout check after a push.
 
+Start with the smallest real case, using the generated candidate staged in
+the actual package. If it fails at a Sketch or Decad boundary, stop adding
+cases and hand off the blocker. Resume only when the gallery's real build
+passes against the upstream fix. Once the first case passes, run the other
+parameter cases and the consuming model checks.
+
 ### Body containers
 
 This rule applies to every model that builds more than one body, across the whole
@@ -126,12 +132,6 @@ or **Mixed**. Use **Adjustable** when the model's custom fits can be changed to
 provide clearance. Use **Nominal** when the model preserves fixed standard or
 purchased dimensions. Use **Mixed** when a model combines adjustable custom
 fits with fixed nominal components.
-
-Start with the smallest real case, using the generated candidate staged in
-the actual package. If it fails at a Sketch or Decad boundary, stop adding
-cases and hand off the blocker. Resume only when the gallery's real build
-passes against the upstream fix. Once the first case passes, run the other
-parameter cases and the consuming model checks.
 
 ### Surface edge finishing
 
@@ -197,8 +197,9 @@ This rule applies to every multi-body model whose `instructions.md` has a
 ## Spur gear example
 
 [`models/spurgear/instructions.md`](../models/spurgear/instructions.md) is
-the construction contract. Its [steps](../models/spurgear/steps.md) map both
-ordinary involute flanks through a root disc, one lofted tooth per angle, a
-union, root fillet, bore, and cap chamfer, and embedded flanks through one
-lofted outline of all teeth. `spurgear.Build` is the
+the construction contract. Its [steps](../models/spurgear/steps.md) extrude
+one tooth and a root disc, repeat the tooth with a circular pattern, and join
+the disc and all teeth in one union. The root fillet, bore, and cap chamfer
+follow. A gear whose flanks start inside the root circle uses the same steps
+with a tooth closed by an arc inside the root disc. `spurgear.Build` is the
 reusable Go entry point, and the package tests exercise the resulting bodies.
