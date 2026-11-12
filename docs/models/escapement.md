@@ -27,7 +27,7 @@ Winding Knob), Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
 | `Amplitude` | 5° | `(LiftAngle + LockAngle) / 2 + 1°` through 6°, in radians |
 | `LockAngle` | 1.5° | 1.25° through 1.5°, in radians |
 | `LiftAngle` | 2.5° | 2° through 3°, in radians |
-| `Phase` | 0 | 0 up to but not including 1, the fraction of one pendulum period |
+| `Phase` | 0.25 | 0 up to but not including 1, the fraction of one pendulum period; 0.25 hangs the pendulum at rest |
 | `Backlash` | 0.15 | 0 through 0.3 mm of tooth thinning per gear |
 | `Placement` | nil | an `r3.Frame` that carries the model frame, or nil for the identity |
 
@@ -37,7 +37,9 @@ error names the field. Every other dimension is a fixed constant of `instruction
 `Layout(Params)` returns a `Geometry` that holds every derived value and point: the pallet corners, the anchor outline's
 points, the tooth feet, the crutch and pendulum outlines, the gear radii and the axes. `Motion(Params)` returns the
 `State` at `Phase` in closed form: the anchor angle ψ, the wheel angle φ, the pendulum angle β, the great wheel's angle
-and which pallet holds the wheel. `Geometry.StateAt(t)` gives the state at any phase. The model frame has its origin on
+and which pallet holds the wheel. `Geometry.StateAt(t)` gives the state at any phase. The great wheel arbor `G` is directly below the escape arbor `O`, at `(0, -45.75)`, so the suspension, pallet arbor, escape
+arbor and great wheel arbor stand on the plumb line `x = 0`. Both plates are open frames, mirror-symmetric about that line,
+with two windows each. The model frame has its origin on
 the escape arbor in the plane of the back plate's inner face, `+X` to the right, `+Y` up and `+Z` toward the viewer.
 
 `Build` poses every body at `Phase`: the wheel, anchor and pendulum turn about their axes, the great wheel, drum, knob and
@@ -70,6 +72,9 @@ The package tests, about 4.5 minutes in all, build the default movement once and
   change the anchor and pendulum outlines.
 - `TestInventory`, `TestPlacement`, `TestBuildValidates`: 29 solid bodies in their containers, a placed build with the
   same volumes and mapped bounds, and the rejection of bad parameters before the document is touched.
+- `TestCentreLine`, `TestPlateWindows`, `TestPlateMaterial` and `TestKnob`: the four axes on `x = 0`, ψ = 0 and β = 0 at the
+  default phase, plates that are symmetric about the line, windows open where the mechanism shows and material in the
+  spine, hub rings and rims, and a winding knob under 400 mm².
 - `TestArbors`, `TestEscapeWheel`, `TestAnchor`, `TestPendulumParts`, `TestRatchet`, `TestPlates` and `TestFasteners`: each
   part's shape and each fastener's place.
 - `TestGearMesh`, `TestCoupling`, `TestFits`, `TestEdgeFinishing` and `TestPoseNoOverlap`: the gear train clearances at five

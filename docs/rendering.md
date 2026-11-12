@@ -189,13 +189,13 @@ writes `cutaway.png`, and the preset can be rendered on its own:
 go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwgear/images/cutaway.png
 ```
 
-The `escapement/hero` preset renders the default Graham escapement at Phase 0 from the front and a little above and to
-the right, with the front plate, the front bearings and the bolts left out so the wheel, anchor, crutch and pendulum
-show. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
+The `escapement/hero` preset renders the default Graham escapement at its default Phase 0.25, with the pendulum at rest, from the
+front and a little above and to the right. The front plate is in the picture, and the wheel, anchor and drive show
+through its windows. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
 `hero.png` and `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
-`assembled-side.png` and `closeup.png`, and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
-`escapement/closeup` preset is a near-orthographic front view of the pallets and the teeth between them with the front
-plate, the crutch, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
+`assembled-side.png`, `assembled-back.png` (from behind, through the back plate's windows) and `closeup.png`, and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
+`escapement/closeup` preset is a near-orthographic front view at Phase 0, where the entry pallet holds a tooth, of the pallets and the
+teeth between them with the front plate, the crutch, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
 pulls the parts apart along `+Z` by the offsets in `tools/render/escapement.go`, and `TestEscapementExploded` checks that no
 two of them overlap. The `part-back-plate`, `part-front-plate`, `part-escape-wheel`, `part-anchor`, `part-crutch`,
 `part-pendulum`, `part-suspension-pin`, `part-suspension-cap`, `part-great-wheel`, `part-drum`, `part-winding-knob`,
@@ -203,9 +203,9 @@ two of them overlap. The `part-back-plate`, `part-front-plate`, `part-escape-whe
 them alone, the bolt with its nut.
 
 The `motion` shot writes `images/motion.gif`, 960 × 540 pixels and 36 frames, of one pendulum period. Frame `k` is Phase
-`k/36`. The build is made once at Phase 0 and each frame turns the tessellated wheel and arbor, the anchor, pallet arbor and
-crutch, and the pendulum and its bearing by the change in the angle `Motion` gives, about their own axes. The front plate,
-the front bearings, the bolts and the drive train are left out, because the drive does not repeat in one period. The wheel
+`k/36`. The build is made once at the default phase and each frame turns the tessellated wheel and arbor, the anchor, pallet arbor and
+crutch, and the pendulum and its bearing by the change in the angle `Motion` gives, about their own axes. Both plates stay in, because they are fixed.
+The front bearings, the bolts and the drive train are left out, because the drive does not repeat in one period. The wheel
 advances one tooth in the loop, so the loop has no jump. A readout under the picture gives the pendulum, anchor and wheel
 angles.
 
