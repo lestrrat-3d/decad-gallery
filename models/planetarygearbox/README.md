@@ -22,31 +22,31 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing and cover below the input shaft, two stages of suns, planets, bearings, pins and carrier with a link shaft between them, then the output shaft, the ring, the rear cover and the rear bearing" width="450">
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing and the input shaft below the front cover, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing" width="450">
 
-Decad's `parts` package lays the view out from the model's joints (`Gearbox.Set`) and a list of stages
-(`Gearbox.Explode`). The stages list the parts from the input shaft outward, which is the reverse of the order in which
-they come off the gearbox. A bearing is wider than its cover's 10 mm lip bore, so the front bearing comes off the shaft
-before the front cover, and the picture puts it beyond the cover. The input shaft stays put and everything else moves
-along the axis. The bolts and nuts are left out of the picture; the "How the housing is bolted" section below shows
-them.
+Decad's `parts` package lays the view out from the model's parts (`Gearbox.Set`) in its derived mode
+(`Gearbox.Explode`). It reads from the tessellated bodies which parts block which along the gearbox's axis, takes the
+parts off in rounds, and moves each part toward the front or the rear. The model states no order or direction. The
+front cover stays put. The picture lists the parts outward from the front cover in the reverse of the order in which
+they come off: the part taken off last sits nearest the front cover, and the part taken off first sits farthest out.
+The bolts and nuts are left out of the picture; the "How the housing is bolted" section below shows them.
 
-A shaft's collar is wider than the 5 mm bore of a bearing, so it cannot pass through one. The input and output shafts
-therefore go in from the carrier side, inside the housing, and their bearings are pressed onto their free ends last. In
-the picture each of these bearings and its cover sit beyond the shaft's free end, and the shaft stays on the carrier
-side of both.
+A shaft's collar is 7.4 mm across. It is wider than the 5 mm bore of a bearing and the 5.1 mm bore of a sun, so it
+cannot pass through either, but it fits through a cover's 10 mm lip bore. Each cover bearing therefore comes off the
+free end of its shaft first, and the shaft then leaves through its cover. In the picture each of these bearings sits
+beyond its shaft's free end.
 
 From the bottom:
 
-1. The front bearing, then the front cover, off the input shaft's outer end.
-2. The input shaft.
-3. For each stage:
-   - the sun and its planets, off the end of the shaft below them;
-   - the planets' bearings, which slide off the free ends of the carrier pins;
-   - the pins, which leave the carrier from below;
-   - the carrier;
-   - the shaft pressed into the carrier from above: the link shaft, or for the last stage the output shaft.
-4. The ring, which slides over the output shaft's outer end, then the rear cover and the rear bearing.
+1. The front bearing, off the input shaft's outer end.
+2. The input shaft, out through the front cover.
+3. The front cover.
+4. The ring.
+5. The first stage: the planets; the sun, beside the planets' bearings, which come up out of the planets; the
+   carrier; and above it the carrier pins, which leave through the top of the carrier's sockets, beside the link shaft.
+6. The second stage: the planets; the sun, beside the planets' bearings; the carrier pins, below the carrier; the
+   carrier; and the output shaft, out of the top of the carrier.
+7. The rear cover, then the rear bearing off the output shaft's outer end.
 
 ## How it moves
 

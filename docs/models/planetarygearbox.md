@@ -14,10 +14,10 @@ passes through the front bearing into the first sun. Each entry of `Stages` hold
 `Bearings` entry per planet and a `Carrier`. `Named` lists every body with a
 display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets and one stage.
 
-`Gearbox.Set(doc, params)` returns the build as a `parts.Set` with its materials and joints, and
-`Gearbox.Explode(ctx, set, params)` pulls it apart along its axis with `Set.Explode`, keeping the input shaft in place.
-Both need the document and parameters `Build` used, and Decad's `parts` package, which the repository's Decad version
-provides. In the set the input and output shafts turn in their cover bearings and each planet turns on its carrier
+`Gearbox.Set(doc, params)` returns the build as a `parts.Set` with its materials and joints; it needs the document and
+parameters `Build` used. `Gearbox.Explode(ctx, set)` pulls that set apart along its axis with `Set.Explode` in Decad's
+derived mode (`parts.WithDerivedExplode`), keeping the front cover in place. Decad reads from the tessellated bodies
+which parts block which, so the model states no removal order or direction. In the set the input and output shafts turn in their cover bearings and each planet turns on its carrier
 pin; every other joint is fixed. Each pin-in-bore joint declares its fit's radial clearance: zero for a shaft or pin
 in a bearing bore and for a bolt in its nut, `BearingClearance` for a bearing in its seat, 0.05 mm for a part pressed
 into a sun or carrier and 0.3 mm for a bolt in its hole. For one stage, `Set.Linkage` with the ring as ground gives
