@@ -28,9 +28,13 @@ The 32/16 straight-tooth pair:
 Each pair pulled apart along its two shafts. The driving gear moves out along its shaft and the pinion along its
 own, both away from the shared pitch apex.
 
-| Spiral pair, 31/31 | Straight pair, 32/16 |
-| --- | --- |
-| <img src="images/exploded-spiral.png" alt="The two spiral gears pulled apart along their shafts" width="420"> | <img src="images/exploded-straight.png" alt="The 32-tooth driving gear and the 16-tooth pinion pulled apart along their shafts" width="420"> |
+Spiral pair, 31/31:
+
+<img src="images/exploded-spiral.png" alt="The two spiral gears pulled apart along their shafts">
+
+Straight pair, 32/16:
+
+<img src="images/exploded-straight.png" alt="The 32-tooth driving gear and the 16-tooth pinion pulled apart along their shafts">
 
 ## Parts
 
