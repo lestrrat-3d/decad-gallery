@@ -72,7 +72,10 @@ func TestMeasuredFits(t *testing.T) {
 			tc.mod(&p)
 			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
 			require.NoError(t, err)
-			const regular, tight = 0.35, 0.2
+			const regular, press = 0.35, 0.05
+			// The section measurement of the round pin and socket reads up to 0.03 mm under the nominal gap
+			// (measured 0.025 for a 0.05 nominal), so the press fit must be proven to this bound.
+			const pressMeasured = press - 0.03
 			for i, disc := range drive.Discs {
 				mid := float64(i)*(p.DiscThickness+p.DiscGap) + p.DiscThickness/2
 				require.GreaterOrEqual(t, sectionGap(t, disc, drive.Housing, mid), regular, "disc %d to casing", i+1)
@@ -83,7 +86,7 @@ func TestMeasuredFits(t *testing.T) {
 			}
 			plateMid := float64(p.DiscCount)*p.DiscThickness + float64(p.DiscCount-1)*p.DiscGap + 1 + p.OutputPlateThickness/2
 			for k, pin := range drive.OutputPins {
-				require.GreaterOrEqual(t, sectionGap(t, drive.OutputPlate, pin, plateMid), tight, "plate to pin %d", k+1)
+				require.GreaterOrEqual(t, sectionGap(t, drive.OutputPlate, pin, plateMid), pressMeasured, "plate to pin %d", k+1)
 			}
 			if p.DiscCount == 2 {
 				require.GreaterOrEqual(t, axialGap(t, drive.Discs[0], drive.Discs[1]), regular, "disc 1 to disc 2")

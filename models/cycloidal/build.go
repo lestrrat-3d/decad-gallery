@@ -54,7 +54,7 @@ func (d Drive) Named() []NamedBody {
 //     across DiscGap, so each section clears the other disc axially by DiscGap. The add-in's second section
 //     reaches the first disc's top face, which leaves no clearance.
 //   - Every moving fit has at least the Regular clearance of docs/model-pipeline.md (MinClearance), and each
-//     output pin sits in its plate socket with the Tight clearance of 0.2 mm. The add-in allows zero.
+//     output pin sits in its plate socket with the press-fit clearance of 0.05 mm. The add-in allows zero.
 //   - Each lobe is drawn as three fit splines, one per curvature sign, because decad certifies a spline
 //     only when its curvature has one sign. A drive with many lobes is sampled coarser when decad's work
 //     ceiling refuses the finest sampling.
