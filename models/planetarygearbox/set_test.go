@@ -1,15 +1,19 @@
 package planetarygearbox_test
 
 import (
+	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+	"github.com/lestrrat-3d/decad/linkage"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +38,29 @@ func spanOf(t *testing.T, body *decad.Body, offset, axis r3.Vec) axialSpan {
 // above reports whether a lies wholly beyond b along the axis.
 func (a axialSpan) above(b axialSpan) bool { return a.lo > b.hi }
 
-func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+// sharingPairs lists the part pairs that may still share space in the exploded view, each name pair in both orders:
+// a planet in mesh with its sun, and a nut in its cavity in the ring.
+func sharingPairs(box planetarygearbox.Gearbox) map[[2]string]struct{} {
+	pairs := map[[2]string]struct{}{}
+	add := func(a, b string) {
+		pairs[[2]string{a, b}] = struct{}{}
+		pairs[[2]string{b, a}] = struct{}{}
+	}
+	for k, s := range box.Stages {
+		for i := range s.Planets {
+			add(planetarygearbox.SunName(k), planetarygearbox.PlanetName(k, i))
+		}
+	}
+	half := len(box.Nuts) / 2
+	for i := range half {
+		add(planetarygearbox.RingName, planetarygearbox.FrontNutName(i))
+		add(planetarygearbox.RingName, planetarygearbox.RearNutName(i))
+	}
+	return pairs
+}
+
+func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygearbox.Gearbox,
+	p planetarygearbox.Params) {
 	t.Helper()
 	set, err := box.Set(doc, p)
 	require.NoError(t, err)
@@ -61,7 +87,8 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		offsets[part.Name] = part.Offset
 		require.GreaterOrEqual(t, part.Depth, 0, "%s is joined to the input shaft", part.Name)
 		if part.Name != planetarygearbox.InputShaftName {
-			require.InDelta(t, part.Offset.Len(), math.Abs(part.Offset.Dot(axis)), 1e-9, "%s moves along the axis", part.Name)
+			require.InDelta(t, part.Offset.Len(), math.Abs(part.Offset.Dot(axis)), 1e-9, "%s moves along the axis",
+				part.Name)
 		}
 	}
 	require.Zero(t, offsets[planetarygearbox.InputShaftName].Len(), "the input shaft stays put")
@@ -72,10 +99,14 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		return spanOf(t, body, offsets[name], axis)
 	}
 
-	// Two parts may share space only when they move by the same offset, which leaves them as assembled: a captive nut
-	// in the ring and a planet in mesh with its sun.
+	// Only a planet and its sun, or a nut and the ring, may still share space, and only when they move by the same
+	// offset, which leaves them as assembled.
+	sharing := sharingPairs(box)
 	for _, pair := range layout.Overlaps {
-		require.InDelta(t, 0, offsets[pair[0]].Sub(offsets[pair[1]]).Len(), 1e-9, "%s and %s share space", pair[0], pair[1])
+		_, ok := sharing[pair]
+		require.True(t, ok, "%s and %s share space", pair[0], pair[1])
+		require.InDelta(t, 0, offsets[pair[0]].Sub(offsets[pair[1]]).Len(), 1e-9, "%s and %s share space",
+			pair[0], pair[1])
 	}
 
 	last := len(box.Stages) - 1
@@ -85,7 +116,8 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	// and the output shaft's is at the rear.
 	for _, name := range []string{planetarygearbox.InputShaftName, planetarygearbox.OutputShaftName} {
 		box := bounds(t, bodies[name])
-		require.Greater(t, math.Max(box.Max.X-box.Min.X, box.Max.Y-box.Min.Y), bore, "%s is wider than the bearing bore", name)
+		require.Greater(t, math.Max(box.Max.X-box.Min.X, box.Max.Y-box.Min.Y), bore,
+			"%s is wider than the bearing bore", name)
 	}
 	input, front, frontBearing := span(planetarygearbox.InputShaftName), span(planetarygearbox.FrontCoverName),
 		span(planetarygearbox.FrontBearingName)
@@ -100,19 +132,17 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	require.True(t, rear.above(output), "the output shaft is on the carrier side of the rear cover")
 	require.True(t, rearBearing.above(rear), "the rear bearing is outside the rear cover")
 	require.True(t, rearBearing.above(output), "the output shaft is on the carrier side of the rear bearing")
-	require.True(t, output.lo >= span(planetarygearbox.CarrierName(last)).lo, "the output shaft leaves its carrier")
+	require.True(t, output.above(span(planetarygearbox.CarrierName(last))), "the output shaft is out of its carrier")
 
 	// Each bolt comes out of its cover, on the cover's outer side.
-	for i := range box.Bolts {
-		half := len(box.Bolts) / 2
-		if i < half {
-			require.True(t, front.above(span(planetarygearbox.FrontBoltName(i))), "front bolt %d is outside the front cover", i+1)
-			continue
-		}
-		require.True(t, span(planetarygearbox.RearBoltName(i-half)).above(rear), "rear bolt %d is outside the rear cover", i-half+1)
+	half := len(box.Bolts) / 2
+	for i := range half {
+		require.True(t, front.above(span(planetarygearbox.FrontBoltName(i))),
+			"front bolt %d is outside the front cover", i+1)
+		require.True(t, span(planetarygearbox.RearBoltName(i)).above(rear), "rear bolt %d is outside the rear cover", i+1)
 	}
 
-	// Up each stage, the parts come apart in the order they were assembled: planets and sun, planet bearings, carrier pins,
+	// Up each stage the parts lie in the order the stages name them: planets and sun, planet bearings, carrier pins,
 	// carrier, shaft. A planet bearing slides off the free end of its pin, and a pin leaves its carrier from below.
 	prev := span(planetarygearbox.SunName(0))
 	require.True(t, prev.above(input), "the first sun is off the input shaft's end")
@@ -131,7 +161,7 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 			require.True(t, pin.above(bearing), "bearing %d.%d is off the pin's free end", k+1, i+1)
 			require.True(t, carrier.above(pin), "pin %d.%d is out of its carrier", k+1, i+1)
 		}
-		require.True(t, shaft.lo >= carrier.lo, "shaft %d leaves its carrier", k+1)
+		require.True(t, shaft.above(carrier), "shaft %d is out of its carrier", k+1)
 		prev = shaft
 	}
 
@@ -143,31 +173,77 @@ func TestExplodedGearbox(t *testing.T) {
 	doc, box := defaultGearbox(t)
 	require.Len(t, box.Stages, 1)
 	requireExplodedGearbox(t, doc, box, p)
+
+	// With the ring held, the input shaft and its sun turn in the front bearing, the carrier and the output shaft turn
+	// in the rear bearing, and each planet turns on its carrier pin.
+	t.Run("linkage", func(t *testing.T) {
+		set, err := box.Set(doc, p)
+		require.NoError(t, err)
+		l, unplaced, err := set.Linkage(planetarygearbox.RingName, nil)
+		require.NoError(t, err)
+		names := map[*decad.Body]string{}
+		for _, nb := range box.Named() {
+			names[nb.Body] = nb.Name
+		}
+		var links []string
+		for _, link := range l.Links() {
+			_, ok := link.Joint().(linkage.RevoluteJoint)
+			require.True(t, ok, "every link turns")
+			var members []string
+			for _, b := range link.Bodies() {
+				members = append(members, names[b])
+			}
+			slices.Sort(members)
+			links = append(links, strings.Join(members, ", "))
+		}
+		want := []string{
+			planetarygearbox.InputShaftName + ", " + planetarygearbox.SunName(0),
+			strings.Join([]string{planetarygearbox.CarrierName(0), planetarygearbox.PinName(0, 0),
+				planetarygearbox.PinName(0, 1), planetarygearbox.PinName(0, 2), planetarygearbox.OutputShaftName}, ", "),
+		}
+		for i := range p.PlanetCount {
+			want = append(want, planetarygearbox.PlanetName(0, i)+", "+planetarygearbox.BearingName(0, i))
+		}
+		for i := range want {
+			members := strings.Split(want[i], ", ")
+			slices.Sort(members)
+			want[i] = strings.Join(members, ", ")
+		}
+		require.ElementsMatch(t, want, links)
+
+		// The second joint between two links that already turn about the same axis closes a loop.
+		var loops []string
+		for _, j := range unplaced {
+			loops = append(loops, j.Name)
+		}
+		wantLoops := []string{"input shaft in the front cover", "output shaft in the rear cover"}
+		for i := range p.PlanetCount {
+			wantLoops = append(wantLoops, fmt.Sprintf("pin 1.%d through its planet's lip", i+1))
+		}
+		require.ElementsMatch(t, wantLoops, loops)
+	})
 }
 
 func TestExplodedTwoStageGearbox(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
-	p.Stages = 2
-	doc := planetarygearbox.NewDocument()
-	box, err := planetarygearbox.Build(t.Context(), doc, p)
-	require.NoError(t, err)
+	p := twoStageParams()
+	doc, box := twoStageGearbox(t)
 	requireExplodedGearbox(t, doc, box, p)
 
 	set, err := box.Set(doc, p)
 	require.NoError(t, err)
 	t.Run("joints", func(t *testing.T) {
-		joints := set.Joints()
-		names := map[string]struct{}{}
-		for _, j := range joints {
-			names[j.Name] = struct{}{}
+		joints := map[string]parts.Joint{}
+		for _, j := range set.Joints() {
+			joints[j.Name] = j
 		}
 		for _, want := range []string{
 			"input shaft in the front bearing", "input shaft in the front cover", "input shaft in the first sun",
 			"Link Shaft 1 in Carrier 1", "Link Shaft 1 in Sun Gear 2", "Output Shaft in Carrier 2",
-			"output shaft in the rear bearing", "output shaft in the rear cover", "the ring clears the output shaft",
-			"pin 2.3 in its bearing", "pin 2.3 in the carrier", "bearing 2.3 in its planet", "planet 2.3 meshes the ring",
+			"output shaft in the rear bearing", "output shaft in the rear cover", "pin 2.3 in its bearing",
+			"pin 2.3 in the carrier", "pin 2.3 through its planet's lip", "bearing 2.3 in its planet",
+			"planet 2.3 meshes the ring", "Rear Bolt 4 in the cover", "Rear Bolt 4 in the ring",
 		} {
-			require.Contains(t, names, want)
+			require.Contains(t, joints, want)
 		}
 		// A shaft joins its bearing as a pin in a bore: the bearing's bore is the narrowest hole it passes.
 		for _, j := range joints {
@@ -175,6 +251,35 @@ func TestExplodedTwoStageGearbox(t *testing.T) {
 				require.Equal(t, parts.PinInBore, j.Kind, j.Name)
 			}
 		}
+		// The shafts turn in their covers and bearings, and each planet turns on its pin; the rest is held fixed.
+		turns := map[string]struct{}{
+			"input shaft in the front bearing": {}, "input shaft in the front cover": {},
+			"output shaft in the rear bearing": {}, "output shaft in the rear cover": {},
+		}
+		for k := range p.Stages {
+			for i := range p.PlanetCount {
+				turns[fmt.Sprintf("pin %d.%d in its bearing", k+1, i+1)] = struct{}{}
+				turns[fmt.Sprintf("pin %d.%d through its planet's lip", k+1, i+1)] = struct{}{}
+			}
+		}
+		for name, j := range joints {
+			want := parts.Fixed
+			if _, ok := turns[name]; ok {
+				want = parts.Turns
+			}
+			require.Equal(t, want, j.Motion, name)
+		}
+		// A shaft or pin in a bearing bore has no clearance, and a bearing sits in its seat with the seat clearance.
+		requireClearance := func(name string, want float64) {
+			t.Helper()
+			c := joints[name].Clearance
+			require.NotEqual(t, units.Value{}, c, "%s declares a clearance", name)
+			require.InDelta(t, want, c.Base(), 1e-12, name)
+		}
+		requireClearance("input shaft in the front bearing", 0)
+		requireClearance("pin 2.3 in its bearing", 0)
+		requireClearance("bearing 2.3 in its planet", p.BearingClearance)
+		requireClearance("front bearing in the front cover", p.BearingClearance)
 	})
 	t.Run("bill of materials", func(t *testing.T) {
 		bom, err := set.BOM(t.Context())
@@ -185,19 +290,15 @@ func TestExplodedTwoStageGearbox(t *testing.T) {
 				count[row.Spec] += row.Quantity
 			}
 		}
-		require.Equal(t, 2+2*p.PlanetCount, count["605ZZ ball bearing"], "two cover bearings and one for each planet")
+		require.Equal(t, 2+p.Stages*p.PlanetCount, count["605ZZ ball bearing"],
+			"two cover bearings and one for each planet")
 		require.Equal(t, 8, count["M2 hex nut"])
 		require.Equal(t, 8, count["M2 x 6 bolt"])
 	})
 }
 
 func TestExplodedPlacedGearbox(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
-	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
-	require.NoError(t, err)
-	p.Placement = &f
-	doc := planetarygearbox.NewDocument()
-	box, err := planetarygearbox.Build(t.Context(), doc, p)
-	require.NoError(t, err)
+	p := placedParams(t)
+	doc, box := placedGearbox(t)
 	requireExplodedGearbox(t, doc, box, p)
 }

@@ -123,6 +123,7 @@ MODEL_PR_TESTS = [
     "TestSectionPair/placed",
     "TestSectionPair/default/clearance",
     "TestRibbonDefaultIsOneVerifiedLoft",
+    "TestExplodedGearbox",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -262,6 +263,7 @@ def run_models(mode: str) -> None:
                 "./models/screwgear",
                 "./models/spurgear",
                 "./models/ballbearing",
+                "./models/planetarygearbox",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
