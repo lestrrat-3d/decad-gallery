@@ -28,6 +28,15 @@ exception.
 - `models/README.md` marks the model **Mixed**: its custom fits carry the class clearances, and the bolts, nuts and
   bearings keep their nominal sizes.
 
+## Body containers
+
+`Build` ends by `moveBodies` (`containers.go`), after every cut, because Decad cuts only within one container. The
+top-level containers are `Housing` (the four gearbox parts), `Grip` (the handle), `Crank` (arm, pin and crank grip),
+`Hub`, `Blades`, `Shafts`, `Bearings`, `Bolts`, `Nuts`, `Spur Pair` (crank gear and drive gear) and `Pair`, the bevel pair that
+`bevelgear.BuildPair` made, with `Driving Gear` and `Pinion Gear` inside. The bevel bodies go back into those
+containers because Decad cannot remove the emptied ones. The test checks each body's
+container and `doc.VerifyContainers().Err()`.
+
 ## API and parameters
 
 Package `handcrankfan`. Expose `Params{CrankAngle, BladePitch float64; Blades int}`.

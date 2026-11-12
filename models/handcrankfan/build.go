@@ -34,6 +34,8 @@ type builder struct {
 	a    Assembly
 	err  error
 	name string
+	// bevel maps driving-gear and pinion to the containers bevelgear.BuildPair put them in.
+	bevel map[string]*decad.Container
 }
 
 var (
@@ -63,6 +65,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Assembly, error
 	b.fan()
 	if b.err != nil {
 		return nil, b.err
+	}
+	if err := moveBodies(doc, b.a.Parts, b.bevel); err != nil {
+		return nil, fmt.Errorf("hand-crank fan containers: %w", err)
 	}
 	return &b.a, nil
 }
