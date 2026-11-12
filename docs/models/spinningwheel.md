@@ -66,6 +66,8 @@ The `hero` and `rear` presets render single scenes. The `front-back`, `layout`, 
 presets render paired views. The `animation` preset writes a GIF.
 The `whorl` sheet isolates the actual one-piece body and crops its bore in the second panel.
 The `layout` sheet shows top and side views of the pedal, perpendicular pivot axes and rear footman.
+The `exploded` preset and the `readme` shot's `exploded.png` move whole sub-assemblies; `readme` also writes
+`parts/<name>.png` for each distinct body.
 The `readme` preset shares one build across all images.
 
 ```sh
