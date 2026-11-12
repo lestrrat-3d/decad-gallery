@@ -21,7 +21,7 @@ const (
 	plane1Front = 20.6 // crank-gear, intermediate-pinion
 	plane2Front = 12.6 // intermediate-gear, rotor-pinion
 
-	boreClearance = 0.25 // tightFit: the gear's D-bore is this much larger than the shaft
+	boreClearance = 0.05 // press fit: the gear's D-bore is this much larger than the shaft (the press-fit rule)
 	boreFrom      = 1.0  // the bore tool starts this far before the gear's front face
 	boreLength    = 8.0
 

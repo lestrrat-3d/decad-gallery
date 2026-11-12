@@ -36,7 +36,7 @@ The air then enters the collector, which turns it through a right angle into the
 The direction of turn does not matter. The ports have straight sides rather than curved ones; the effect on the
 tone is small.
 
-The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 7.5 mm across with one flat, and each gear, the
+The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 8 mm across, the bore of its bearings, with one flat, and each gear, the
 rotor hub and the crank arm have a D-shaped bore that is pressed on, so the printed bore grips the shaft. The crank
 gear has a shaft collar behind it, because it is the only gear that could slide into a gear it does not mesh with.
 The 50- and 48-tooth gears look alike, and so do the 16- and 15-tooth pinions, so each gear has through holes that
