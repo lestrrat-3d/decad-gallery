@@ -65,9 +65,9 @@ func (b *builder) crankArm() *decad.Body {
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, boltHole), boltHole))
 	}
 	arm := b.roundCaps(b.extrude(s, 1, armThick), 1.5)
-	// The shaft's splined end is a Tight fit in this bore and the bore's floor stands tightFit from the shaft's end. The
-	// pin's stub has the same gap on every flat and at its end.
-	arm = b.splineCut(arm, crankSpline, crankFace+3, 7, tightFit)
+	// The arm is pressed onto the shaft's splined end, a press fit, and the bore's floor stands tightFit from the
+	// shaft's end. The pin's stub has the Tight gap on every flat and at its end.
+	arm = b.splineCut(arm, crankSpline, crankFace+3, 7, pressFit)
 	arm = b.cut(arm, b.hexagon(alongPin(crankFace+7), stubFlats+2*tightFit, 6))
 	return b.fastenerCuts(arm, sitesNamed("crank-pin-bolt")[0], true, false, false)
 }

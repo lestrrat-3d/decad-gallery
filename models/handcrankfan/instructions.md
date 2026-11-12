@@ -179,24 +179,24 @@ pinion heel is `Module*28/2 + Module*14/8`.
   - Wall bolts: the post and the crank-side wall need no ears. Each has two bolt sites (see Fasteners) along X in its
     outer face (X -20, and X 31.2), at Y 34.3 (the middle of the back wall) and Z 112 and 185. The head sits in the
     wall, and the nut cavity in the end of the base's back wall.
-  - Seats: a bearing seat is a pocket of radius 11.25 and 7.4 deep (a Tight fit around the bearing's radius 11), with a
+  - Seats: a bearing seat is a pocket of radius 11.05 and 7.4 deep (a 0.05 press fit around the bearing's radius 11), with a
     relief behind its floor, so the floor holds only the bearing's outer ring. There is one in the post's outer face
     (X -20) on each of the drive axis (Z 170) and the crank axis (Z 130), one in the crank-side wall's inner face
     (X 21.4) on each of them, one in the crank block's end (X 45) on the crank axis, and one in the fan-side wall's inner
     face (Y -31.9) and one in the fan block's end (Y -65.7) on the fan axis. The crank axis and the fan axis each have a
-    hole of radius 4.2 between their two seats. The drive shaft's seat in the crank-side wall is blind. Every seat,
+    hole of radius 4.4 between their two seats (a Regular fit around the shaft). The drive shaft's seat in the crank-side wall is blind. Every seat,
     relief and hole is round. The relief is a cylinder of radius 9.5 and 2.1 deep for the post's seats and the blocks'
-    seats, and a 45° cone from radius 9.5 down to radius 4.2 for the seats in the walls' inner faces, which open onto the
-    bed: their ledge for the bearing is 1.75 wide.
+    seats, and a 45° cone from radius 9.5 down to radius 4.4 for the seats in the walls' inner faces, which open onto the
+    bed: their ledge for the bearing is 1.55 wide.
   - Bolt sites in the floor: the two grip bolts (see Fasteners) cut a head pocket and a hole into the floor at X -2 and
     X 16, Y -23.5.
 
 ### Shafts, bearings and splines
 
-Every shaft is 7.5 across (radius 3.75): the 8 mm bore of a 608-2RS bearing (outside diameter 22, 7 wide) less a Tight
-fit of 0.25 on the radius. The bearings are the `models/ballbearing` envelope at its nominal size, group `bearing`, one
-purchased part each, fixed. Each seat is 0.25 larger than the bearing's radius, and each bearing sits 0.25 off its
-seat's floor and 0.15 inside the seat's mouth:
+Every shaft is 8 across (radius 4.0): the 8 mm bore of a 608-2RS bearing (outside diameter 22, 7 wide), with no
+clearance. The bearings are the `models/ballbearing` envelope at its nominal size, group `bearing`, one
+purchased part each, fixed. Each seat is a press fit, 0.05 larger than the bearing's radius, and each bearing sits 0.25
+off its seat's floor and 0.15 inside the seat's mouth:
 
 | Part | Shaft | Position along the shaft |
 | --- | --- | --- |
@@ -206,15 +206,15 @@ seat's floor and 0.15 inside the seat's mouth:
 | `bearing-fan-wall` | fan | Y [-39.05, -32.05] |
 | `bearing-fan-block` | fan | Y [-65.55, -58.55] |
 
-The bearings' envelopes carry no fit allowance, as `docs/models/ballbearing.md` says. The fit rows T4 and T5 measure
-the clearance of the printed seat and of the printed shaft.
+The bearings' envelopes carry no fit allowance, as `docs/models/ballbearing.md` says. The fit row S1 measures the
+printed seat, row Z1 the shaft in the bearing's bore, and row T5 the collar to the bearing face.
 
 A gear, the crank arm and the fan hub carry the torque on a spline: three grooves 2 wide, from radius 2.9 outward,
 cut into the shaft along its length at 90°, 210° and 330° (measured from the shaft's first axis toward its second:
 Y toward Z for the crank and drive shafts, X toward Z for the fan shaft), and a spline bore in the part, a round bore of
-radius 4.0 with three teeth 1.5 wide that reach in to radius 3.15. Each tooth sits 0.25 off its groove's floor and
-walls, a Tight fit. The bore of a bevel gear is larger by the bevel gears' held mesh bound of 0.1: radius 4.1, with
-teeth 1.3 wide that reach in to radius 3.25. That puts six faces under load, and the shaft still slides through every
+radius 4.05 with three teeth 1.9 wide that reach in to radius 2.95. Each tooth sits 0.05 off its groove's floor and
+walls, a press fit, because the part turns with its shaft. The bore of a bevel gear is larger by the bevel gears' held
+mesh bound of 0.1: radius 4.15, with teeth 1.7 wide that reach in to radius 3.05. That puts six faces under load, and the shaft still slides through every
 bore, because the round shaft's grooves pass the teeth. The grooves run only where a bore has to slide over them: from
 X -10 to the shaft's end on the crank shaft and the drive shaft, and on the fan shaft from Y -25 to -32.2 for the pinion
 and from Y -75 to its end for the hub. The shaft is round inside every bearing except where a groove has to pass
@@ -229,7 +229,7 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 130, along X.
 
 - `crank-gear`: a spur gear of Module 2, 20 teeth, 6 thick, with a spline bore, on the crank axis at X [-9.2, -3.2],
   1.125 from the post's piece. See Spur pair for its tip, root and backlash. It keeps the spur gear's root fillet.
-- `crank-shaft`: a round shaft of radius 3.75 on the crank axis, X [-24.1, 54.75], with a collar of radius 6 at its left
+- `crank-shaft`: a round shaft of radius 4.0 on the crank axis, X [-24.1, 54.75], with a collar of radius 6 at its left
   end (X [-24.1, -20.1], 0.25 clear of the post bearing's face). It slides in from the left through the post's bearing,
   the crank gear, the crank-side wall's bearing, the crank block's bearing and the arm, and the collar on the post
   bearing and the arm on the block bearing hold it with about 4 mm of play. The splines' grooves run from X -10 to
@@ -238,8 +238,8 @@ The crank parts turn about the crank axis, which lies at Y 0, Z 130, along X.
 - `crank-arm`: a stadium 20 wide, X [49, 57], with the axis and the pin 55 apart (end radius 10, so the arm
   is 75 long), both faces rounded with radius 1.5, and a hole of diameter 2.6 at the pin end. A spline bore at X [48, 55]
   opens on the inner face for the shaft, and a hexagonal pocket (7.43 across flats) at X [52, 58] opens on the outer
-  face for the pin stub. The bore is a Tight fit on the shaft and its floor stands 0.25 from the shaft's end, and the
-  pocket leaves 0.25 on every flat of the stub. The printed bore is made to grip the shaft, so the arm is pressed on
+  face for the pin stub. The bore is a 0.05 press fit on the shaft and its floor stands 0.25 from the shaft's end, and the
+  pocket leaves 0.25 on every flat of the stub. The printed bore grips the shaft, so the arm is pressed on
   and the splines carry the torque. The pin's bolt site (see Fasteners) sinks the bolt head into the inner face.
 - `crank-pin`: a hexagonal stub (8 across corners, 6.93 across flats) at X [52.25, 57.55], a round shank of radius 4.5
   from X 57.25 (the shoulder, 0.25 clear of the arm) to X 104.4, and a head of radius 5.8 at X [104.0, 107.0]. The pin
@@ -268,7 +268,7 @@ The drive parts turn about the drive shaft's axis, along X through the apex, the
 - `drive-gear`: a spur gear like the crank gear, with a spline bore, on the drive axis at X [-9.2, -3.2], turned half a
   tooth about its axis so that its tooth meets the crank gear's gap on the line between the two axes. See Spur pair
   for the mesh. Its tip radius of 21.98 leaves 9.92 to the fan-side wall's inner face in Y.
-- `drive-shaft`: a round shaft of radius 3.75 on the drive axis, X [-24.1, 28.5], with a collar of radius 6 at its left
+- `drive-shaft`: a round shaft of radius 4.0 on the drive axis, X [-24.1, 28.5], with a collar of radius 6 at its left
   end like the crank shaft's. It slides in from the left through the post's bearing, the drive gear and the bevel gear,
   and ends in the crank-side wall's bearing, 0.05 short of the bearing's far face. The grooves run from X -10 to
   X 29.5.
@@ -287,13 +287,13 @@ clearance, from the gears' own section outlines, at each sample.
 ### Fan parts, motion `fan`
 
 - `pinion`: the pinion bevel gear, with a spline bore.
-- `fan-shaft`: a round shaft of radius 3.75 on the fan axis, Y [-100, -26], with a collar of radius 6 at
+- `fan-shaft`: a round shaft of radius 4.0 on the fan axis, Y [-100, -26], with a collar of radius 6 at
   Y [-75.75, -65.8], between the front bearing and the hub (0.25 from the bearing's face and 0.25 from the hub). It
   slides in from the front through the two bearings and into the pinion, and stops with the collar against the front
   bearing. The hub slides on from the front over its grooves. Its tip is clear of the drive gear's teeth.
 - `fan-hub`, group `rotor`: a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is
   10.3 in front of the bearing block's end (Y -65.7). The crank is lower than the fan axis, so the blades stay clear of
-  its reach without a long shaft. It has a spline bore (a Tight fit) and, for each blade k at angle
+  its reach without a long shaft. It has a spline bore (a 0.05 press fit) and, for each blade k at angle
   `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning toward +Z):
   - a radial socket of radius 3.4 on the hub's mid plane, from r 5.6 outward through the hub surface, a round hole,
     6.8 across, small enough to print on its side when the hub prints front face down;
@@ -344,15 +344,16 @@ full run, in mm. It is a dated illustration, and the test owns the number.
 | T1 | each pair of gearbox pieces | the seams | Tight | 0.217 |
 | T2 | `handle` and `gearbox-base` | grip top under the floor | Tight | 0.214 |
 | T3 | `handle` and the fan wall, the post, the crank wall | grip beside the lower ears | Tight | 0.552 |
-| T4 | each `bearing-*` and the piece that holds it | outside diameter and floor of the seat | Tight | 0.211 |
-| T5 | each shaft and each of its bearings | shaft in the bore, collar to the bearing face | Tight | 0.227 |
-| T6 | `crank-shaft` and `crank-gear`, `drive-shaft` and `drive-gear` | spline | Tight | 0.245 |
-| T6b | `crank-shaft` and `crank-arm` | spline and shaft end | Tight | 0.243 |
-| T6c | `fan-shaft` and `fan-hub` | spline and collar face | Tight | 0.243 |
-| T6d | `drive-shaft` and `driving-gear`, `fan-shaft` and `pinion` | bevel spline | Tight | 0.243 |
+| S1 | each `bearing-*` and the piece that holds it | outside diameter of the seat | Press, proven at least 0.015 | 0.0173 |
+| Z1 | each shaft and each of its bearings | shaft in the bore, no clearance | Zero | 0 within the section bound |
+| T5 | the post bearings, the front fan bearing and the shaft collars | collar to the bearing face | Tight | 0.250 |
+| T6 | `crank-shaft` and `crank-gear`, `drive-shaft` and `drive-gear` | spline | Press, proven at least 0.02 | 0.045 |
+| T6b | `crank-shaft` and `crank-arm` | spline | Press, proven at least 0.02 | 0.044 |
+| T6c | `fan-shaft` and `fan-hub` | spline | Press, proven at least 0.02 | 0.044 |
+| T6d | `drive-shaft` and `driving-gear`, `fan-shaft` and `pinion` | bevel spline | Press, proven at least 0.02 | 0.043 |
 | T7 | `crank-pin` and `crank-arm` | stub in the pocket, stub end, shoulder | Tight | 0.247 |
 | T8 | `drive-gear` and `driving-gear` | two gears on one shaft | Tight | 12.9 |
-| R1 | each shaft and the pieces it crosses | shaft through the housing hole | Regular | 0.433 |
+| R1 | each shaft and the pieces it crosses | shaft through the housing hole | Regular | 0.385 |
 | R2 | `driving-gear` and the crank wall, `pinion` and the fan wall | gear back face to the wall | Regular | 0.424 |
 | R3 | `driving-gear` and `gearbox-base` | gear to the back wall, at the heel | Regular | 4.75 |
 | R4 | `bearing-drive-wall` and `driving-gear`, `bearing-fan-wall` and `pinion` | bearing face to the gear back | Regular | 0.427 |
@@ -364,6 +365,13 @@ full run, in mm. It is a dated illustration, and the test owns the number.
 | L3 | `crank-gear` with `driving-gear`, and both spur gears with `pinion` | gears that do not mesh | Loose | 12.9 axial, 0.50 or more at all 5 mesh angles |
 | L4 | `crank-arm` and `gearbox-crank-wall` | arm to the block end | Loose | 3.97 |
 | L5 | `fan-hub` and `gearbox-fan-wall` | hub to the fan block | Loose | 10.2 |
+
+A press fit is 0.05 on the radius, for a bearing seat and for a bore that turns with its shaft. The 0.2 Tight minimum does
+not apply to it, and the test requires only that the section proves a positive gap, because the proof subtracts the
+mesh bound. A shaft in a purchased bearing's bore has no clearance by rule (row Z1). Decad's contact report calls that
+pair undecided, so the overlap test skips the shaft and bearing pairs and relies on Z1. The collar to the bearing face
+and the arm and hub axial gaps stay at 0.25; T5 measures the collar faces, and the others are not measured separately
+from the spline rows.
 
 Rows R2, R4, R3 and T6d involve a bevel gear, whose section is taken at 0.11 and whose bound includes its mesh bound.
 Rows that depend on the crank angle (L2 and part of L3) are sampled at five angles across one tooth pitch, as the spur

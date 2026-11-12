@@ -61,14 +61,14 @@ floor is 5 thick, which leaves the crank gear's tip 1.62 above the cavity floor.
    the bolt and its Z range (under the floor, Z 93.4 to 102.4, or on the top, Z 189 to 198), from `gearboxEars`.
    `Union` the body, the two blocks and the four ears.
 5. Seats and holes, by `b.seat(host, axis, pocketFrom, pocketTo, reliefFrom, reliefTo)`, which `Cut`s a cylinder of
-   radius 11.25 (`seatRadius`, 11 + `tightFit`) between the first two stations along the shaft and one of radius 9.5
+   radius 11.05 (`seatRadius`, 11 + `pressFit`) between the first two stations along the shaft and one of radius 9.5
    between the last two. Stations run along the crank and drive shafts by X and along the fan shaft by the distance
    behind the apex. The post's seat on the drive axis and the crank axis is `b.seat` from -21 to -12.6 with its relief
    from -13 to -9.2. A seat in a wall's inner face is `b.funnelSeat(host, axis, floor, mouth)`: a cylinder of radius
-   11.25 between the mouth (1 before the face) and the floor (7.4 behind it), and a cylinder of radius 9.5 and 5.5 long
-   just behind the floor whose far end cap `decad.Chamfer` takes by 5.3, which makes a 45° cone down to radius 4.2. The
+   11.05 between the mouth (1 before the face) and the floor (7.4 behind it), and a cylinder of radius 9.5 and 5.5 long
+   just behind the floor whose far end cap `decad.Chamfer` takes by 5.1, which makes a 45° cone down to radius 4.4. The
    crank-side wall has one on each of the crank axis and the drive axis, and the fan-side wall one on the fan axis. On
-   the crank axis a hole of radius 4.2 (`b.hole`) joins the wall's seat to the block's seat, and the block's seat has its
+   the crank axis a hole of radius 4.4 (`b.hole`) joins the wall's seat to the block's seat, and the block's seat has its
    relief behind its floor. The fan axis has the same pair.
 6. Bolt sites: `fastenerCuts` for every site of `fastenerSites()` whose bolt name starts with `gearbox-` cuts its head
    pocket, its hole and its nut cavity from the whole tray, so the cavity lands in the piece that holds the nut after the
@@ -96,13 +96,13 @@ The pair's driving body is `driving-gear` and its pinion body is `pinion`. The p
 mesh is not measured (see the instructions' Open non-compliance: the bevel mesh).
 
 - `driving-gear` (motion `drive`) and `pinion` (motion `fan`) are the pair's bodies with their spline bores, cut with
-  clearance `tightFit + bevelBound`.
+  clearance `pressFit + bevelBound`.
 - Splines, in `bearings.go`: `shaftAxis` has a point, a direction and two perpendicular axes, and `spokeFrame(t, k)` is the
   plane at station t whose U axis points at angle 90° + 120° k. `b.grooves(shaft, axis, from, to)` `Cut`s three boxes
   (U 2.9 to `shaftRadius + 1.5`, V -1 to 1) along the shaft. `b.splineCut(host, axis, from, length, clearance)` makes the
   tool by a cylinder of radius `shaftRadius + clearance` minus three boxes (U `2.9 + clearance` to the bore plus 1,
   V `-(1 - clearance)` to `1 - clearance`, each running 1 past both ends) and `Cut`s it from the host. The spur gears, the
-  arm and the hub pass `tightFit` (bore 4.0, teeth from 3.15, 1.5 wide).
+  arm and the hub pass `pressFit` (bore 4.05, teeth from 2.95, 1.9 wide).
 - `bearing-*` (motion `fixed`, group `bearing`): `models/ballbearing` with bore 8, outside diameter 22 and width 7,
   placed by `spokeFrame` at the start station of each of the seven sites in the instructions' table.
 - `alongCrank(x)`: origin `(x, 0, 130)`, U = +Y, V = +Z, normal +X. `alongPin(x)`: origin `(x, 0, 185)`, U = +Y,
@@ -114,17 +114,17 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
   fails), then `root_radius = pitch_radius - module - gear_root_clearance - gear_root_margin` (17.48) and
   `tip_radius = pitch_radius + module - gear_root_margin` (21.98) with `SetExpr`. The variant keeps the spur gear's root
   fillet. The drive gear is then turned by half a tooth, pi / 20, about its axis, and each gear gets its spline bore
-  with `tightFit`. The `mesh` test proves the tip-to-root clearance of the pair (see Checks).
-- `drive-shaft` (motion `drive`): a cylinder of radius 3.75 on `alongX(-23.1)` to X 28.5, `Cut` by the three grooves from
+  with `pressFit`. The `mesh` test proves the tip-to-root clearance of the pair (see Checks).
+- `drive-shaft` (motion `drive`): a cylinder of radius 4.0 on `alongX(-23.1)` to X 28.5, `Cut` by the three grooves from
   X -10 to 29.5, then `Union` with the collar, a cylinder of radius 6 on `alongX(-24.1)`, extruded 4. The shaft starts 1
   inside the collar.
-- `crank-shaft`: a cylinder of radius 3.75 on `alongCrank(-23.1)` to X 54.75, `Cut` by the three grooves from X -10 to
+- `crank-shaft`: a cylinder of radius 4.0 on `alongCrank(-23.1)` to X 54.75, `Cut` by the three grooves from X -10 to
   56, then `Union` with the collar, a cylinder of radius 6 on `alongCrank(-24.1)`, extruded 4. There is no slot or bolt
   hole, because the arm is a tight fit on the splines. Cutting after the union with the collar fails in Decad.
 - `crank-arm`: on `alongCrank(49)`, a stadium: an arc of radius 10 about the origin and an equal arc about (0, 55),
   `NewEqualRadius`, with four `NewTangent` lines, plus a circle of radius 1.3 (`boltHole`) at the pin end, extruded 8;
   the profile selection requires one hole. `decad.Fillet` the outer loops of both caps with radius 1.5. Equal end
-  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a spline bore (`tightFit`) on `alongCrank(48)`,
+  radii make the joins exactly tangent, which the loop fillet needs. `Cut` a spline bore (`pressFit`) on `alongCrank(48)`,
   extruded 7, and a hexagon of 7.43 across flats (`stubFlats + 2 * tightFit`) on `alongPin(52)`, extruded 6. Then
   `fastenerCuts` cuts the pin site's head pocket from the inner face.
 - `crank-pin`: a hexagon of 6.93 across flats (8 across corners) on `alongPin(52.25)`, extruded 5.3; a shank of radius
@@ -141,11 +141,11 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
 
 ## 5. Fan
 
-- `fan-shaft`: circle radius 3.75 on `alongMinusY(-26)`, extruded 74, `Cut` by the grooves from 25 to 32.2 and from 75 to
+- `fan-shaft`: circle radius 4.0 on `alongMinusY(-26)`, extruded 74, `Cut` by the grooves from 25 to 32.2 and from 75 to
   101 behind the apex, then `Union` with the collar, a circle of radius 6 on `alongMinusY(-65.8)`, extruded 9.95.
 - Hub: one sketch on the frame origin `(0, -76, 170)`, U = +X, V = +Z: circle radius 14 and `Blades` circles of radius 1.3
   at `(9.5 cos th_k, 9.5 sin th_k)`, `th_k = 2 pi k / Blades`, each centre dimensioned from the origin by a horizontal
-  and a vertical distance. Extrude 20 toward -Y, round the end caps with radius 1, and `Cut` the spline bore (`tightFit`)
+  and a vertical distance. Extrude 20 toward -Y, round the end caps with radius 1, and `Cut` the spline bore (`pressFit`)
   from 75 to 97 behind the apex.
 - Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
   `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}` through `b.ring`, and every tool running 1 mm past the

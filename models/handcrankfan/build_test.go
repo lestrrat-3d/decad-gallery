@@ -378,6 +378,10 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		proven[[2]string{f.Bolt, f.HeadHost}], proven[[2]string{f.HeadHost, f.Bolt}] = struct{}{}, struct{}{}
 		proven[[2]string{f.Bolt, f.Nut}], proven[[2]string{f.Nut, f.Bolt}] = struct{}{}, struct{}{}
 	}
+	zeroFit := map[[2]string]struct{}{}
+	for _, site := range shaftsInBearings {
+		zeroFit[[2]string{site.shaft, site.bearing}], zeroFit[[2]string{site.bearing, site.shaft}] = struct{}{}, struct{}{}
+	}
 	checked := func(a, b *decad.Body) bool {
 		x, y := names[a], names[b]
 		if _, ok := proven[[2]string{x, y}]; ok {
@@ -395,6 +399,11 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 	}
 	for _, d := range report.Diagnostics {
 		if d.Pair == nil {
+			continue
+		}
+		// A shaft in its bearing's bore has zero clearance by rule, which the contact report cannot decide. Row Z1 of
+		// the clearance test proves the sections touch, and an interference above would still fail.
+		if _, ok := zeroFit[[2]string{names[d.Pair.A], names[d.Pair.B]}]; ok {
 			continue
 		}
 		require.False(t, checked(d.Pair.A, d.Pair.B), "%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)

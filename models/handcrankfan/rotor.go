@@ -140,7 +140,7 @@ func (b *builder) hub() *decad.Body {
 		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), boltHole)
 	}
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
-	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, tightFit)
+	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, pressFit)
 	// The socket is a plain round hole. It is 6.3 across, small enough to print on its side without support.
 	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		socketRadius, hubRadius+1-socketStart)
