@@ -164,8 +164,16 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		default:
 			require.Failf(t, "head seat", "%s in %s: relation %v, reason %v", f.Bolt, f.HeadHost, seat.Relation, seat.Reason)
 		}
-		for _, pair := range [][2]*decad.Body{{bolt, nutHost}, {nut, nutHost}} {
-			relation := contact(pair[0], pair[1])
+		for _, relationPair := range []struct {
+			a, b *decad.Body
+		}{{bolt, nutHost}, {nut, nutHost}} {
+			separated, err := doc.ProvePairSeparated(t.Context(), relationPair.a, relationPair.b,
+				r3.Identity(), r3.Identity(), request)
+			require.NoError(t, err)
+			if separated {
+				continue
+			}
+			relation := contact(relationPair.a, relationPair.b)
 			require.NotEqual(t, decad.ContactOverlapping, relation.Relation, "%s: %v", f.Bolt, relation.Reason)
 			require.NotEqual(t, decad.ContactUndecided, relation.Relation, "%s: %v", f.Bolt, relation.Reason)
 		}
