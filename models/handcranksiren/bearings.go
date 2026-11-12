@@ -13,7 +13,7 @@ const (
 	bearingRadius    = 11.0
 	seatRadius       = bearingRadius + seatClearance // 11.05
 	reliefRadius     = 9.5
-	shaftHoleRadius  = 4.2
+	shaftHoleRadius  = shaftRadius + regularFit // 4.4: the plates and the drum clear the shaft by the Regular class
 	frontBearingFrom = 2.85
 	rearBearingFrom  = 27.75
 )
