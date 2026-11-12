@@ -155,8 +155,8 @@ The two private section builders implement Steps 5 and 4b respectively.
 
 `Build` delegates to `Variant{}.Build`. The method delegates to `buildLocal`
 when `LocalBuild` is true; otherwise it calls `begin` and then `assemble`.
-`assemble` consumes the prepared `run`: call `v.tooth` once, extrude the root
-disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
+`assemble` consumes the prepared `run`: call `v.tooth` once, then extrude the
+root disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
 binding and sketch verification for the root disc. When `RootFillet` is nonnil,
 call it with the joined body and frame; otherwise call `filletSpurRoots` only
 when the derived radius is positive. Apply Steps 8 and 9 after that. Use the
@@ -255,7 +255,7 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
 12. Solve and verify. Require exactly one valid profile from `s.Profiles()`.
 
 Test curve counts from Ordinary profile. Do not round sketch corners; Step 7
-applies native solid fillets after lofting.
+applies native solid fillets after the join.
 
 ## Step 4 — build an embedded outline
 
@@ -264,7 +264,8 @@ applies native solid fillets after lofting.
 2. Omit radial lines and individual root arcs. Call
    `s.CreateCircle(s.Origin(),d.root)` and add its radius constraint.
 3. Solve and verify before extracting regions.
-4. Read all `s.Profiles()`. Reject invalid regions; collect every region index.
+4. Read all `s.Profiles()`. Return an error when there is no region or when
+   any region is not valid. Do not skip a region. Collect every region index.
 5. Call `s.UnionProfiles(indices...)` and check its error.
 6. Require `profile.Valid`, no `profile.Holes`, and the boundary count from
    Embedded profile. Return this union profile rather than an arbitrary region.
@@ -275,7 +276,7 @@ applies native solid fillets after lofting.
 9. Require exactly `2*p.Teeth` saved contacts; return sketch, profile, and contacts.
 
 Use native trim parameters, not polyline endpoints or reconstructed intersections.
-If certified trimming fails, follow AGENTS.md Agent coordination with the real case.
+If a trim is not certified, return an error that names the tooth.
 
 ## Step 4b — build an embedded tooth
 
@@ -323,19 +324,21 @@ appropriate section from the branches below. Both branches use these operations:
    `p.Placement` is nil; otherwise call `world.CreatePlaneFromFrame` with the
    placement frame.
 
+Both branches build tooth zero first and the root disc second. The union in
+step 4 still takes the disc as its first body.
+
 Ordinary branch (`d.base >= d.root`):
 
-2. Build the root disc. Create a sketch on the lower plane, call
-   `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`;
-   bind that radius with `s.Bind(radius,world.Params(),"root_radius")`.
-   Solve and verify the sketch, require one valid profile, and call
-   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
-   Dir: decad.Along})` with `thickness` from `doc.Param("thickness")`.
-3. Build the tooth section once, on the lower plane with angle 0 (the Step 5
+2. Build the tooth section once, on the lower plane with angle 0 (the Step 5
    construction, without re-validating `p`). Call
    `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
-   Dir: decad.Along})` on it, as for the root disc, and keep the returned tooth
-   body. Draw no section on the upper plane.
+   Dir: decad.Along})` on it with `thickness` from `doc.Param("thickness")`,
+   and keep the returned tooth body. Draw no section on the upper plane.
+3. Build the root disc. Create a sketch on the lower plane, call
+   `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`;
+   bind that radius with `s.Bind(radius,world.Params(),"root_radius")`.
+   Solve and verify the sketch, require one valid profile, and extrude it
+   through `thickness` as for the tooth.
 4. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
    Axis: frame.N(), Count: teeth})` for the other `N-1` teeth. Call
    `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)` once, with the
@@ -348,9 +351,9 @@ Ordinary branch (`d.base >= d.root`):
 
 Embedded branch (`d.base < d.root`):
 
-2. Build the root disc as in the ordinary branch.
-3. Call `buildEmbeddedTooth` once, on the lower plane, and extrude its profile
+2. Call `buildEmbeddedTooth` once, on the lower plane, and extrude its profile
    through `thickness` as in the ordinary branch into one tooth body.
+3. Build the root disc as in the ordinary branch.
 4. Pattern and join exactly as in the ordinary branch (`decad.PatternCopies`
    once, then one `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)`).
    Return no saved root list.
@@ -380,12 +383,17 @@ are the ordinary branch only. Ordinary branch:
 1. Use `axis := placement.N()` and
    `decad.Edges(decad.ParallelTo(axis)).SelectEdges(body)`. Pass the placement
    frame into this step.
-2. Read `edge.Start().Position().Value` for each axial edge. Match it to a
-   saved root when `toWorld(placement, root)` is within `1e-6` of it. After the
-   ordinary join, a corner vertex holds either the line's recorded end or the
-   circle fragment's computed end, and the two differ by rounding.
-3. Save the full 3D start once per matched edge. Require the number of matches
-   to equal the saved root count before constructing the selector.
+2. For each axial edge, read `edge.Start().Position().Value`. Match the edge
+   to a saved root when `toWorld(placement, root)` is within `1e-6` of that
+   position. When the start does not match, test `edge.End().Position().Value`
+   the same way. Decad does not fix which cap an edge starts on, so a root edge
+   may run in either direction. After the ordinary join, a corner vertex holds
+   either the line's recorded end or the circle fragment's computed end, and
+   the two differ by rounding.
+3. Save the matched endpoint's full 3D position once per matched edge. An axial edge
+   has at most one endpoint on the lower cap, so at most one endpoint matches.
+   Require the number of matches to equal the saved root count before
+   constructing the selector.
 4. Start with `decad.Edges(decad.ParallelTo(axis),decad.EndpointAt(corners[0]))`.
    Add each remaining conjunction with `.Or(decad.ParallelTo(axis),decad.EndpointAt(corner))`.
 5. Call `decad.Fillet(ctx,body,selection.Exactly(len(corners)),radius)`.
@@ -490,6 +498,6 @@ Do not infer success from an image or only a non-error return.
 Run `go test ./models/spurgear` as the focused generation gate. Exercise changed
 interfaces through real consuming packages before claiming those connections
 work; hand-authored arrays cannot prove this boundary. Use the repository pipeline
-for isolated regeneration, broader CI, and rendering. Report engine failures
-through AGENTS.md Agent coordination with parameters, last successful operation,
-and the real failing build command.
+for isolated regeneration, broader CI, and rendering. Report an engine failure
+with its parameters, the last successful operation, and the real failing build
+command.
