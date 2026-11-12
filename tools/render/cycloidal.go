@@ -12,18 +12,6 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// cycloidalLayout is the exploded layout of the two-disc drive. Each part moves along a staircase 34 mm along
-// X and 16 mm along Z per step.
-var cycloidalLayout = map[string]int{
-	cycloidal.HousingName:     -2,
-	cycloidal.DiscName(0):     -1,
-	cycloidal.DiscName(1):     0,
-	cycloidal.CamName:         1,
-	cycloidal.OutputPlateName: 2,
-}
-
-var cycloidalStep = r3.NewVec(34, 0, 16)
-
 var cycloidalColors = map[string]solidlens.Color{
 	cycloidal.HousingName:     solidlens.RGB(0.38, 0.45, 0.52),
 	cycloidal.DiscName(0):     solidlens.RGB(0.17, 0.42, 0.6),
@@ -91,10 +79,15 @@ func init() {
 	}
 }
 
-func buildCycloidalDrive(ctx context.Context) (cycloidal.Drive, error) {
+// cycloidalParams are the parameters of the two-disc drive every cycloidal image shows.
+func cycloidalParams() cycloidal.Params {
 	params := cycloidal.DefaultParams()
 	params.DiscCount = 2
-	drive, err := cycloidal.Build(ctx, decad.New(decad.WithChainTolerance(units.Millimeters(0.1))), params)
+	return params
+}
+
+func buildCycloidalDrive(ctx context.Context) (cycloidal.Drive, error) {
+	drive, err := cycloidal.Build(ctx, decad.New(decad.WithChainTolerance(units.Millimeters(0.1))), cycloidalParams())
 	if err != nil {
 		return cycloidal.Drive{}, fmt.Errorf("build cycloidal drive: %w", err)
 	}
@@ -121,17 +114,35 @@ func cycloidalBodyModel(ctx context.Context, named cycloidal.NamedBody, offset r
 	}, nil
 }
 
+// cycloidalExplodedOffsets returns how far the exploded view moves each body of drive, by part name. The offsets come
+// from parts.Set.Explode in Decad's derived mode, which Drive.Explode runs.
+func cycloidalExplodedOffsets(ctx context.Context, drive cycloidal.Drive) (map[string]r3.Vec, error) {
+	set, err := drive.Set(drive.Housing.Document(), cycloidalParams())
+	if err != nil {
+		return nil, fmt.Errorf("set up cycloidal parts: %w", err)
+	}
+	layout, err := drive.Explode(ctx, set)
+	if err != nil {
+		return nil, fmt.Errorf("explode cycloidal drive: %w", err)
+	}
+	offsets := make(map[string]r3.Vec, len(layout.Parts))
+	for _, part := range layout.Parts {
+		offsets[part.Name] = part.Offset
+	}
+	return offsets, nil
+}
+
 func cycloidalModels(ctx context.Context, drive cycloidal.Drive, exploded bool) ([]solidlens.Model, error) {
+	var offsets map[string]r3.Vec
+	if exploded {
+		var err error
+		if offsets, err = cycloidalExplodedOffsets(ctx, drive); err != nil {
+			return nil, err
+		}
+	}
 	var models []solidlens.Model
 	for _, named := range drive.Named() {
-		var offset r3.Vec
-		if exploded {
-			step, ok := cycloidalLayout[named.Name]
-			if !ok {
-				step = cycloidalLayout[cycloidal.OutputPlateName]
-			}
-			offset = cycloidalStep.Scale(float64(step))
-		}
+		offset := offsets[named.Name]
 		model, err := cycloidalBodyModel(ctx, named, offset)
 		if err != nil {
 			return nil, err

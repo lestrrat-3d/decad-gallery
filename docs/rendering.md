@@ -115,7 +115,8 @@ go -C tools/render run . -model bevelgear -shot readme -out ../../models/bevelge
 ```
 
 The `cycloidal/hero` preset renders the assembled two-disc drive. The `cycloidal/exploded` preset pulls the
-housing, both rotor discs, cam, plate and pins apart along a staircase. The `readme` shot writes the
+housing, both rotor discs, cam, plate and pins apart along the drive axis in Decad's derived explode mode (`parts.Set.Explode`, with the
+housing as ground). The `readme` shot writes the
 480 × 270 pixel `index.png`, the 1600 × 900 pixel `hero.png` and `exploded.png`, three 1200 × 675 pixel
 assembled views (`assembled-output.png`, `assembled-input.png`, `assembled-side.png`), and a 480 × 270 pixel
 image in `parts/` for every named body:
