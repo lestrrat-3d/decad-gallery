@@ -95,6 +95,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 		require.True(t, mesh.BoundaryVerified(), name)
 		require.True(t, mesh.VolumeVerified(), name)
 	}
+	t.Run("containers", func(t *testing.T) { requireContainers(t, doc, a) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("pitch", func(t *testing.T) { requirePitch(t, p, parts) })
 	t.Run("joint", func(t *testing.T) { requireJoint(t, p, parts) })
@@ -115,6 +116,68 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	t.Run("gears", func(t *testing.T) { requireGearPlacement(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
 	t.Run("copies", func(t *testing.T) { requireIdenticalBlades(t, p, parts) })
+}
+
+// wantContainer is the container a part belongs in. Bolts and nuts go by name and the gear pairs by their gears.
+func wantContainer(name string) string {
+	switch {
+	case name == "crank-gear" || name == "drive-gear":
+		return "Spur Pair"
+	case name == "driving-gear" || name == "pinion":
+		return "Pair"
+	case name == "handle":
+		return "Grip"
+	case strings.HasPrefix(name, "gearbox-") && !strings.Contains(name, "bolt") && !strings.Contains(name, "screw") &&
+		!strings.Contains(name, "nut"):
+		return "Housing"
+	case strings.Contains(name, "nut"):
+		return "Nuts"
+	case strings.Contains(name, "bolt") || strings.Contains(name, "screw"):
+		return "Bolts"
+	case strings.HasPrefix(name, "bearing-"):
+		return "Bearings"
+	case strings.HasSuffix(name, "-shaft"):
+		return "Shafts"
+	case strings.HasPrefix(name, "fan-blade-"):
+		return "Blades"
+	case name == "fan-hub":
+		return "Hub"
+	}
+	return "Crank"
+}
+
+// requireContainers checks that every body sits in the container for its kind, that the container names are the
+// expected ones and that no container is empty or left in the root.
+func requireContainers(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly) {
+	t.Helper()
+	require.NoError(t, doc.VerifyContainers().Err())
+	names := map[string]struct{}{}
+	for _, part := range a.Parts {
+		c, err := doc.ContainerOf(part.Body)
+		require.NoError(t, err, part.Name)
+		want := wantContainer(part.Name)
+		switch part.Name {
+		case "driving-gear":
+			require.Equal(t, "Driving Gear", c.Name(), part.Name)
+			require.Equal(t, "Pair", c.Parent().Name(), part.Name)
+		case "pinion":
+			require.Equal(t, "Pinion Gear", c.Name(), part.Name)
+			require.Equal(t, "Pair", c.Parent().Name(), part.Name)
+		default:
+			require.Equal(t, want, c.Name(), part.Name)
+		}
+		names[want] = struct{}{}
+	}
+	got := []string{}
+	for _, c := range doc.Root().Children() {
+		got = append(got, c.Name())
+	}
+	want := []string{}
+	for name := range names {
+		want = append(want, name)
+	}
+	require.ElementsMatch(t, want, got)
+	require.Len(t, names, 11)
 }
 
 func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
@@ -516,6 +579,12 @@ func skipUnlessFull(t *testing.T) {
 func TestHandCrankFanDefault(t *testing.T) {
 	skipUnlessFull(t)
 	checkFan(t, handcrankfan.DefaultParams())
+}
+
+// TestHandCrankFanContainers builds the default fan, which takes about half a minute, and checks its containers.
+func TestHandCrankFanContainers(t *testing.T) {
+	doc, _, a := buildFan(t, handcrankfan.DefaultParams())
+	requireContainers(t, doc, a)
 }
 
 func TestHandCrankFanVariant(t *testing.T) {

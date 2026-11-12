@@ -32,6 +32,15 @@ func (b *builder) drive() {
 		return
 	}
 
+	drivingBox, err := b.doc.ContainerOf(pair.Driving)
+	b.fail("find the driving gear's container", err)
+	pinionBox, err := b.doc.ContainerOf(pair.Pinion)
+	b.fail("find the pinion's container", err)
+	if b.err != nil {
+		return
+	}
+	b.bevel = map[string]*decad.Container{"driving-gear": drivingBox, "pinion": pinionBox}
+
 	// The pair's bodies sit in the pair's own containers, and Decad cuts only within one container, so they move to the root.
 	b.fail("move the gears to the root", b.doc.Root().AddBody(pair.Driving))
 	b.fail("move the gears to the root", b.doc.Root().AddBody(pair.Pinion))
