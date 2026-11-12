@@ -15,25 +15,22 @@ shaft or housing fits, bearing life, load capacity or fastening details.
 For a tight-fitting bearing seat in a 3D-printed part, chamfer the hole entrance so the bearing can
 be pressed in.
 
-`DefaultParams` selects 608-2RS dimensions. `BoreDiameter`, `OuterDiameter` and `Width` allow other
-nominal sizes. `Placement` positions the lower-face center and bearing axis in an assembly.
-Catalogue bearings should keep their specified dimensions rather than scaling with the assembly.
+You can change the bore diameter, the outside diameter and the width for other nominal sizes. Catalogue
+bearings should keep their specified dimensions rather than scaling with the assembly.
 
 ## 605ZZ preset
 
 ![605ZZ nominal mounting envelope](images/605zz.png)
 
-`Params605ZZ()` selects a 5 mm bore, 14 mm outside diameter and 5 mm width, as listed in
+The 605ZZ preset selects a 5 mm bore, 14 mm outside diameter and 5 mm width, as listed in
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
-It calls the same construction through `Build`; no bearing geometry is copied.
-The default preset and hero image continue to show the 608-2RS envelope.
+The default preset and hero image show the 608-2RS envelope.
 
 ## 608ZZ preset
 
-`Params608ZZ()` selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
+The 608ZZ preset selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
 a 608-2RS has a rubber seal, and both have the same outline, so this is the same envelope as the default and
 has no image of its own. Use it where a design calls for a 608ZZ by name, such as the
 [planetary gearbox](../planetarygearbox/), which presses one into each planet gear.
 
-The [developer guide](../../docs/models/ballbearing.md) documents construction and checks.
-The [instructions](instructions.md) own the nominal geometry; the [steps](steps.md) map it to Decad.
+For how to build this envelope from Go, see the [developer notes](../../docs/models/ballbearing.md).

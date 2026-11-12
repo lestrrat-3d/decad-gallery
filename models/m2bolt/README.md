@@ -11,9 +11,8 @@ fitting holes and parts. It does not set thread length, tolerance or strength cl
 
 **Clearance adjustment:** Nominal. Adjust custom mating geometry to provide fit clearance.
 
-`DefaultParams` selects an M2x10 screw. `Length` sets the length from the head's underside to the tip and
-must be one of `StandardLengths()`. `Placement` positions the underside center and the screw axis in an
-assembly; the head lies along the frame's normal.
+The default is an M2x10 screw. You can change the length, measured from the head's underside to the tip,
+to one of the six standard lengths.
 
 ## Views
 
@@ -35,5 +34,4 @@ All six lengths, from M2x6 at the bottom to M2x25 at the top.
 
 ![M2 screws in lengths 6, 10, 16, 18, 20 and 25 mm](images/lengths.png)
 
-The [developer guide](../../docs/models/m2bolt.md) documents construction and checks.
-The [instructions](instructions.md) own the dimensions; the [steps](steps.md) map them to Decad.
+For how to build this screw from Go, see the [developer notes](../../docs/models/m2bolt.md).

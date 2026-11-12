@@ -24,25 +24,10 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 <img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing" width="450">
 
-Decad's `parts` package lays the view out from the model's parts (`Gearbox.Set`) in its derived mode
-(`Gearbox.Explode`). It reads from the tessellated bodies which parts block which along the gearbox's axis, takes the
-parts off in rounds, and moves each part toward the front or the rear. The front cover stays put. The picture lists
-the parts outward from the front cover in the reverse of the order in which they come off: the part taken off last
-sits nearest the front cover, and the part taken off first sits farthest out. The bolts and nuts are left out of the
-picture; the "How the housing is bolted" section below shows them.
+The picture pulls the gearbox apart along its axis. The bolts and nuts are left out; the "How the housing is
+bolted" section shows them.
 
-A shaft's collar is 7.4 mm across. It is wider than the 5 mm bore of a bearing and the 5.1 mm bore of a sun, so it
-cannot pass through either, but it fits through a cover's 10 mm lip bore. Each cover bearing therefore comes off the
-free end of its shaft first. In the picture each of these bearings sits outside its cover, beyond its shaft's free
-end, and each shaft sits on the inner side of its cover: both ends read bearing, cover, shaft from the outside in.
-
-The model states one choice for the input shaft. Its collar would let it leave toward the front through the cover's
-lip bore once the front bearing is off, which would draw it below the cover. `Gearbox.Explode` makes it leave toward
-the rear after the ring instead, so it sits next to the front cover on the inner side, as the output shaft does at the
-rear cover. The ring and the front bearing sit 20 mm, not 6 mm, from the parts below them, so the camera above still
-sees the input shaft's collar and flat end below the ring, and the front bearing below the front cover's rim.
-
-From the bottom:
+The parts, from the bottom of the picture:
 
 1. The front bearing, off the input shaft's outer end.
 2. The front cover.
@@ -62,9 +47,7 @@ The input shaft and the first sun turn together. The planets roll inside the fix
 own bearing while the carrier carries it around the sun. The first carrier turns at 13 ÷ 84 of the sun's speed and
 drives the second sun, which drives the second carrier and the output shaft at the same ratio again. The flat
 on each shaft shows its turning: the input shaft's flat sweeps round, and the output shaft's creeps. The readout
-below the panels gives both angles. The animation plays forward and then back, so it has no jump where it repeats. A one-way loop would need the
-input to turn 7,056 times, because the output shaft only comes back to its starting angle after that many turns of
-the input. It moves the real tessellated bodies rigidly; it is not a force simulation.
+below the panels gives both angles. The animation plays forward and then back.
 
 ## How the input and the output connect
 
@@ -94,17 +77,16 @@ The model does not show a set screw or the coupling to a motor. The input and ou
 
 Every large flat face of the ring, the covers and the carriers has its outer edge chamfered by 0.5 mm at 45°, so the
 printed parts have no sharp rims to chip or cut. That covers both end faces of the ring, both faces of each cover
-including the edges of its three windows, and both faces of each carrier plate. The ring's teeth, the pin sockets and the carrier's centre hole (press-fit rims), the
-bolt holes and the bearing seats keep their shapes, so the gears mesh and the parts fit as before. The chamfer on the ring
-follows the mounting ears too.
+including the edges of its three windows, and both faces of each carrier plate. The ring's teeth, the pin sockets, the carrier's centre hole, the bolt holes and the
+bearing seats are not chamfered. The chamfer on the ring follows the mounting ears too.
 
 ## Mounting the gearbox
 
 The ring has three mounting ears, spaced 120° apart, to fix the gearbox in place. Each ear is a tab on the ring's outside,
 as long as the ring, with a 4 mm bore parallel to the gearbox axis. The bore is a plain hole: the model adds no bolt,
 head pocket or nut cavity, so you choose what passes through it. The bore's edge is 3 mm from the covers' outer edge, so a
-fastener head up to 10 mm across lies beside the covers and not on them. Set the bore diameter and the number of ears
-with `EarBoreDiameter` and `EarCount`. `EarCount = 0` leaves the ring a plain cylinder.
+fastener head up to 10 mm across lies beside the covers and not on them. You can change the bore diameter and the number
+of ears. With no ears, the ring is a plain cylinder.
 
 The ring is the fixed part of a planetary gearbox, so the ears carry the whole reaction torque of the output.
 
@@ -146,7 +128,7 @@ roof into the nut.
 
 ## Parts
 
-Each part is shown once, from the real model. A gearbox has one ring, two covers, two cover bearings and an input
+A gearbox has one ring, two covers, two cover bearings and an input
 shaft and, in every stage, one sun, three planets, three planet bearings, three carrier pins, one carrier and one shaft. The bearing is a
 purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 5 mm where they pass through a bearing, the same as the bearing bore, with no clearance. Planet and cover bearing pockets have 0.05 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage

@@ -33,7 +33,8 @@ to 24 slots the pitch at that crank speed runs from 240 Hz to 480 Hz. The rotor 
 between its ports, so it also works as a blower: air comes in through three windows in the drum's back plate, the vanes
 throw it outward to the port ring, and it leaves through the ports whenever a rotor port lines up with a stator port.
 The air then enters the collector, which turns it through a right angle into the horn, and the horn sends it forward.
-The direction of turn does not matter.
+The direction of turn does not matter. The ports have straight sides rather than curved ones; the effect on the
+tone is small.
 
 The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 7.5 mm across with one flat, and each gear, the
 rotor hub and the crank arm have a D-shaped bore that is pressed on, so the printed bore grips the shaft. The crank
@@ -52,9 +53,6 @@ edges, about as thick as a 34 mm round handle, and the finger window behind it i
 the bar with your left hand, thumb up, and curl your fingers round its front into the window. The gearbox sits between your
 two hands, and the crank torque goes straight from the grip into the gearbox. The grip covers one gearbox bolt head
 with a 0.25 mm gap. Remove the grip to reach it.
-
-Ports are straight-sided (chord-sided) rather than arc-sided, because Decad cannot pattern 20 arc-sided cuts yet. The
-acoustic difference is small.
 
 ## Bolts, nuts and fits
 
@@ -83,16 +81,11 @@ grip bolts through the grip's finger window.
 
 Every pair of printed parts has a gap of at least 0.2 mm where the parts are not meant to come apart (Tight), 0.35 mm
 where they move or come apart for service (Regular), and 0.5 mm where they only sit near each other (Loose). Each
-bearing seat is 0.05 mm larger in radius than the bearing. The tests measure each gap on the built model. The two
+bearing seat is 0.05 mm larger in radius than the bearing. The two
 gear pairs sit 49.5 mm and 47.25 mm apart, half the sum of their pitch diameters, with a deeper tooth root and a small
 backlash, so each tooth tip clears the other gear's root by more than 0.5 mm.
 
-The model is marked Mixed in [models/README.md](../README.md): the printed fits carry these clearances, and the bolts,
-nuts and bearings keep their standard sizes.
-
 ## Parts
-
-Each part is shown once, from the real model, in place at the default pose.
 
 | Image | Name |
 | --- | --- |

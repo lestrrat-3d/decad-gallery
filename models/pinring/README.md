@@ -10,9 +10,7 @@ which is the 5 mm thin rod's 2.5 mm radius plus 0.5 mm of radial clearance, and 
 
 **Clearance adjustment:** Adjustable. The bore clearance is a parameter.
 
-`DefaultParams` selects the ring in its local frame: the axis is the Z axis and the ring spans z from 0 to 5.
-You can change the rod radius, the clearance, the radial width and the thickness. `Placement` positions the
-ring in an assembly.
+You can change the rod radius, the clearance, the radial width and the thickness.
 
 ## Views
 
@@ -28,5 +26,4 @@ The underside is flat, like the top.
 
 ![Underside of the pin ring](images/low.png)
 
-The [developer guide](../../docs/models/pinring.md) documents construction and checks.
-The [instructions](instructions.md) own the dimensions; the [steps](steps.md) map them to Decad.
+For how to build this ring from Go, see the [developer notes](../../docs/models/pinring.md).

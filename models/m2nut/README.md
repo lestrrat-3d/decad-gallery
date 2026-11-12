@@ -10,9 +10,6 @@ The hexagon uses its exact corners, 4.619 mm across, where the standards give a 
 
 **Clearance adjustment:** Nominal. Adjust custom mating geometry to provide fit clearance.
 
-`DefaultParams` selects the nut in its local frame, with the lower face on the XY plane. `Placement`
-positions the lower-face center and the nut's axis in an assembly.
-
 ## Views
 
 The top view shows the hexagon, the flat bearing circle and the bore.
@@ -31,5 +28,4 @@ The nut fits the M2x10 bolt. This image seats it 1 mm from the tip.
 
 ![M2 nut on an M2x10 bolt](images/withbolt.png)
 
-The [developer guide](../../docs/models/m2nut.md) documents construction and checks.
-The [instructions](instructions.md) own the dimensions; the [steps](steps.md) map them to Decad.
+For how to build this nut from Go, see the [developer notes](../../docs/models/m2nut.md).
