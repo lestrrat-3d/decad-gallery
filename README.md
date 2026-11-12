@@ -1,6 +1,6 @@
 # decad gallery
 
-![A spinning wheel, a hand-crank fan, a hand-crank siren and a Graham escapement beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
+![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement and a spiral spring beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
@@ -14,7 +14,7 @@ planetary gearbox. They also include a [treadle spinning wheel](models/spinningw
 a [hand-crank fan](models/handcrankfan/) driven through spur and bevel gears,
 a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up,
 a [Graham escapement](models/escapement/) with a weight drive, a crutch and a pendulum, 608-2RS and 605ZZ bearing
-envelopes, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
+envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
 
 ## For developers
