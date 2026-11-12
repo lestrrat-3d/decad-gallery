@@ -36,13 +36,13 @@ and `side.png` (looking at the outer surface) of the 608-2RS at the same size.
 The `head`, `side`, `underside` and `lengths` presets show other angles and all six standard lengths.
 The `readme` shot writes all of them.
 
+`m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
+The `readme` shot writes all of them.
+
 `spiralspring/hero` renders the default spring lying flat with its axis up. The `top`, `low`, `root` and `sizes`
 presets show the spiral from above, the underside, a close-up of the hub and spoke, and three springs of
 different sizes. The `readme` shot writes all of them and the index image:
 `go -C tools/render run . -model spiralspring -shot readme -out ../../models/spiralspring/images`.
-
-`m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
-The `readme` shot writes all of them.
 
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.

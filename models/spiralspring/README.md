@@ -15,7 +15,8 @@ torque, fatigue or creep.
 ## Parameters
 
 All dimensions are in millimeters. `Params.Validate` rejects values outside the limits with an error that names
-the field.
+the limit. A non-zero `ArborFlatDepth` must also exceed `BoreClearance`, and the turn count, given or
+automatic, is at most 40.
 
 | Parameter | Default | Limit |
 | --- | --- | --- |
