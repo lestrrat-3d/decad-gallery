@@ -88,19 +88,12 @@ func isFastener(g Gearbox, b *decad.Body) bool {
 	return false
 }
 
-// joints lists the connections of the assembled gearbox with each axis stated in world coordinates. The order of the
-// list matters: Decad assigns each part the first joint that reaches it from the ground, the input shaft, as its parent
-// joint. The input shaft is joined to the front bearing and the front cover before they are joined to anything else,
-// so both take the input shaft as their parent and clear its outer end. The rear end is reached from the ring, which
-// the front cover reaches first: the rear cover takes the ring as its parent, and the output shaft and the rear bearing
-// take the rear cover.
-//
-// Each shaft turns in its cover's bearing and passes the cover's lip bore, and each planet turns on its carrier pin
-// through its bearing and its lip bore; every other joint holds its parts fixed. A pin-in-bore joint declares the
-// radial clearance of its fit: zero for a shaft or pin in a bearing bore and for a bolt in its nut, Params.
-// BearingClearance for a bearing in its seat, pressFitClearance for a shaft or pin pressed into a sun or carrier, and
-// headClearance for a bolt in its hole. A lip bore is far wider than the shaft or pin in it and is not a fit, so those
-// joints declare no clearance.
+// joints lists the connections of the assembled gearbox with each axis stated in world coordinates. Each shaft turns
+// in its cover's bearing and passes the cover's lip bore, and each planet turns on its carrier pin through its bearing
+// and its lip bore; every other joint holds its parts fixed. A pin-in-bore joint declares the radial clearance of its
+// fit: zero for a shaft or pin in a bearing bore and for a bolt in its nut, Params.BearingClearance for a bearing in
+// its seat, pressFitClearance for a shaft or pin pressed into a sun or carrier, and headClearance for a bolt in its
+// hole. A lip bore is far wider than the shaft or pin in it and is not a fit, so those joints declare no clearance.
 func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 	d := derive(p)
 	axisAt := func(x, y float64) parts.Axis {
@@ -122,8 +115,7 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 	hole := units.Millimeters(headClearance)
 
 	// The input shaft passes through the front bearing and the front cover and fills the first sun's bore. Its collar
-	// is wider than the bearing's bore and rests on the bearing's inner side, so the bearing and the cover leave over
-	// the shaft's outer end and the shaft goes in from the sun's side.
+	// is wider than the bearing's bore and rests on the bearing's inner side.
 	pin("input shaft in the front bearing", InputShaftName, FrontBearingName, centre, parts.Turns, zero)
 	pin("input shaft in the front cover", InputShaftName, FrontCoverName, centre, parts.Turns, none)
 	pin("input shaft in the first sun", InputShaftName, SunName(0), centre, parts.Fixed, press)
@@ -176,75 +168,14 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 	return js
 }
 
-// Explode pulls the gearbox apart along its axis with parts.Set.Explode. set must be this gearbox's Set over the
-// document Build used with p. The input shaft stays put and every other part moves along the axis in a stage of its
-// own, each stage clearing the parts it is joined to; the ring stage clears every other part. Decad has no
-// rule for the order in which parts can be inserted, so the stages state it.
-//
-// The stages run outward from the input shaft, and each moves its parts past the ones moved before, so the stage
-// order is the order of the parts along the axis, not the order in which they come off the gearbox. Toward the front
-// the front cover moves first, then the front bearing and then the front bolts beyond it. A bearing is wider than the
-// cover's 10 mm lip bore, so to take the gearbox apart the bearing comes off the shaft before the cover does.
-// Toward the rear each stage of the gearbox moves as the first sun and its planets, the planets' bearings, the
-// carrier's pins, the carrier and the shaft pressed into it, and the next stage follows the same way. The ring, the
-// rear cover, the rear bearing and the rear bolts follow beyond the output shaft. A shaft's collar is wider than the
-// bore of the bearing it passes through, so each shaft stays on the carrier side of that bearing and its cover.
-func (g Gearbox) Explode(ctx context.Context, set *parts.Set, p Params) (*parts.Exploded, error) {
-	frame, err := frameTransform(p)
-	if err != nil {
-		return nil, fmt.Errorf("planetarygearbox: %w", err)
-	}
-	rear, front := frame.ApplyDir(r3.Vec{Z: 1}), frame.ApplyDir(r3.Vec{Z: -1})
-	stage := func(name string, direction r3.Vec, names ...string) parts.Stage {
-		return parts.Stage{Name: name, Parts: names, Direction: direction}
-	}
-	// A rigid group moves by one offset.
-	together := func(name string, direction r3.Vec, names ...string) parts.Stage {
-		st := stage(name, direction, names...)
-		st.Together = true
-		return st
-	}
-	names := func(n int, name func(int) string) []string {
-		out := make([]string, n)
-		for i := range out {
-			out[i] = name(i)
-		}
-		return out
-	}
-	var frontBolts, rearBolts, nuts []string
-	for i := range g.Bolts {
-		if i < len(g.Bolts)/2 {
-			frontBolts = append(frontBolts, FrontBoltName(i))
-			nuts = append(nuts, FrontNutName(i))
-			continue
-		}
-		rearBolts = append(rearBolts, RearBoltName(i-len(g.Bolts)/2))
-		nuts = append(nuts, RearNutName(i-len(g.Bolts)/2))
-	}
-	stages := []parts.Stage{
-		stage("front cover", front, FrontCoverName),
-		stage("front bearing", front, FrontBearingName),
-		stage("front bolts", front, frontBolts...),
-	}
-	for k, s := range g.Stages {
-		n := len(s.Planets)
-		layer := append([]string{SunName(k)}, names(n, func(i int) string { return PlanetName(k, i) })...)
-		stages = append(stages,
-			together(fmt.Sprintf("sun and planets %d", k+1), rear, layer...),
-			stage(fmt.Sprintf("planet bearings %d", k+1), rear, names(n, func(i int) string { return BearingName(k, i) })...),
-			stage(fmt.Sprintf("carrier pins %d", k+1), rear, names(n, func(i int) string { return PinName(k, i) })...),
-			stage(fmt.Sprintf("carrier %d", k+1), rear, CarrierName(k)),
-			stage(fmt.Sprintf("shaft %d", k+1), rear, ShaftName(k, len(g.Stages))))
-	}
-	// The ring is joined to the planets but not to their bearings or pins, which it passes on its way, so it clears
-	// every other part, not only the parts it is joined to.
-	ring := together("ring", rear, append([]string{RingName}, nuts...)...)
-	ring.Clear = parts.ClearAll
-	stages = append(stages,
-		ring,
-		stage("rear cover", rear, RearCoverName),
-		stage("rear bearing", rear, RearBearingName),
-		stage("rear bolts", rear, rearBolts...))
-	return set.Explode(ctx, parts.WithExplodeGround(InputShaftName), parts.WithExplodeGap(units.Millimeters(explodeGap)),
-		parts.WithExplodeStages(stages...))
+// Explode pulls the gearbox apart along its axis with parts.Set.Explode in Decad's derived mode. set must be this
+// gearbox's Set over the document Build used. The front cover stays put. Decad reads from the tessellated bodies which
+// parts stand in the way of which along each direction, takes the parts off in rounds, each round holding the parts
+// nothing still present blocks, and lays the rounds out with the round removed last nearest the front cover. Every
+// part leaves along the gearbox's axis, toward the front or the rear, and ends explodeGap beyond the parts it clears.
+// The layout is a picture, not a proven assembly sequence: Decad counts a pair it cannot settle from the meshes as
+// free.
+func (g Gearbox) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
+	return set.Explode(ctx, parts.WithDerivedExplode(), parts.WithExplodeGround(FrontCoverName),
+		parts.WithExplodeGap(units.Millimeters(explodeGap)))
 }

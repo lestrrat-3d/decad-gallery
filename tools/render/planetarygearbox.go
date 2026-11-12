@@ -77,15 +77,15 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 }
 
 // planetaryExplodedOffsets returns how far the exploded view moves each body of box, by part name. The offsets
-// come from parts.Set.Explode, which Gearbox.Explode drives with its stages. params must be the parameters box was
-// built with.
+// come from parts.Set.Explode in Decad's derived mode, which Gearbox.Explode runs. params must be the parameters box
+// was built with.
 func planetaryExplodedOffsets(ctx context.Context, box planetarygearbox.Gearbox,
 	params planetarygearbox.Params) (map[string]r3.Vec, error) {
 	set, err := box.Set(box.Ring.Document(), params)
 	if err != nil {
 		return nil, fmt.Errorf("set up planetary gearbox parts: %w", err)
 	}
-	layout, err := box.Explode(ctx, set, params)
+	layout, err := box.Explode(ctx, set)
 	if err != nil {
 		return nil, fmt.Errorf("explode planetary gearbox: %w", err)
 	}
