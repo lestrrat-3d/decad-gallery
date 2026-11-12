@@ -131,17 +131,6 @@ func without(names ...string) bodyFilter {
 	return func(name string) bool { _, h := hidden[name]; return !h }
 }
 
-func and(filters ...bodyFilter) bodyFilter {
-	return func(name string) bool {
-		for _, f := range filters {
-			if !f(name) {
-				return false
-			}
-		}
-		return true
-	}
-}
-
 // frontParts are the bodies in front of the escapement that a view of it leaves out.
 var frontParts = func() []string {
 	out := []string{escapement.FrontPlateName, escapement.FrontEscapeBearingName, escapement.FrontPalletBearingName,
@@ -230,8 +219,8 @@ func (b *escapementBuild) closeupScene() solidlens.Scene {
 		escapement.WindingKnobName)
 	models := b.models(without(hide...), false)
 	const distance = 600.0
-	centre := r3.NewVec(0, b.geometry.P.Y-18, 25)
-	halfHeight := 27.0
+	centre := r3.NewVec(0, b.geometry.P.Y-24, 25)
+	halfHeight := 24.0
 	camera := solidlens.Camera{
 		Position: solidlens.Vec(centre.Add(r3.NewVec(0, 0, distance))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 2 * math.Atan(halfHeight/distance) * 180 / math.Pi, Near: 1, Far: 4000,
@@ -330,4 +319,13 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		}
 	}
 	return nil
+}
+
+// escapementHero builds the movement and returns the hero scene, for the gallery tile.
+func escapementHero(ctx context.Context) (solidlens.Scene, error) {
+	b, err := buildEscapement(ctx)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	return b.heroScene(), nil
 }

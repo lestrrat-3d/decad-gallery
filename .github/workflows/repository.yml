@@ -66,6 +66,28 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
 
+  escapement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check Graham escapement
+        run: python3 scripts/ci/run_tests.py escapement all
+
+  escapement-exploded:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+      - name: Check escapement exploded view
+        run: go -C tools/render test -run '^TestEscapementExploded$' -timeout 15m ./...
+
   wheel:
     strategy:
       fail-fast: false

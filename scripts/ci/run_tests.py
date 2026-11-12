@@ -236,6 +236,11 @@ def run_siren(case: str) -> None:
     go_test(["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"])
 
 
+def run_escapement() -> None:
+    """Run every test of the Graham escapement package: about 4.5 minutes, one default build shared by the tests."""
+    go_test(["./models/escapement", "-timeout", "40m", "-count=1"])
+
+
 def run_fan_variant(variant: str) -> None:
     env = os.environ.copy()
     env["HANDCRANKFAN_FULL"] = "1"
@@ -291,12 +296,15 @@ def main() -> None:
     if suite == "siren" and not args and mode in SIREN_CASES:
         run_siren(mode)
         return
+    if suite == "escapement" and not args and mode == "all":
+        run_escapement()
+        return
     if suite == "fan" and not args and mode in FAN_VARIANTS:
         run_fan_variant(mode)
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | fan <flat-three|steep-three>"
+        " | siren <default|variants> | escapement all | fan <flat-three|steep-three>"
     )
 
 

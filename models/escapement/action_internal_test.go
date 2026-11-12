@@ -204,10 +204,8 @@ func overlap(p, q []Pt) bool {
 }
 
 type checker struct {
-	g      *Geometry
-	in     actionInput
-	near   []Pt // anchor vertices near the wheel at some swing, for pruning (anchor frame)
-	psiMax float64
+	g  *Geometry
+	in actionInput
 }
 
 // worldAnchor returns the anchor outline at anchor angle psi in the model frame.

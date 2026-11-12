@@ -29,6 +29,16 @@ class SirenCasesTest(unittest.TestCase):
         self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
 
 
+class EscapementTest(unittest.TestCase):
+    def test_escapement_runs_the_whole_package(self):
+        with mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_escapement()
+        args, kwargs = go_test.call_args
+        self.assertEqual(args[0][0], "./models/escapement")
+        self.assertNotIn("-run", args[0])
+        self.assertEqual(kwargs, {})
+
+
 class FanVariantsTest(unittest.TestCase):
     def test_fan_variant_patterns_select_each_full_subtest(self):
         expected = {
