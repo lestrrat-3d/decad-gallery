@@ -102,21 +102,25 @@ func toothPolys(loop []Pt) ([][]Pt, error) {
 	if start < 0 {
 		return nil, fmt.Errorf("the wheel outline has no root vertex")
 	}
+	// A tooth is a run of vertices beyond the root circle plus the root vertex on each side of it.
 	var out [][]Pt
 	var run []Pt
 	for k := 1; k <= n; k++ {
 		p := loop[(start+k)%n]
 		if p.Len() > above {
+			if len(run) == 0 {
+				run = append(run, loop[(start+k-1)%n])
+			}
 			run = append(run, p)
 			continue
 		}
-		if len(run) >= 2 {
-			out = append(out, run)
+		if len(run) > 0 {
+			out = append(out, append(run, p))
 		}
 		run = nil
 	}
-	if len(run) >= 2 {
-		out = append(out, run)
+	if len(run) > 0 {
+		out = append(out, append(run, loop[start]))
 	}
 	return out, nil
 }
@@ -163,12 +167,25 @@ func inPoly(poly []Pt, x Pt) bool {
 	return in
 }
 
-// overlap reports whether the closed polygons p and q overlap (touching does not count).
+// overlap reports whether the closed polygons p and q overlap (touching does not count). Segments of q far from p's
+// bounding box are skipped, so a small p against a long q is cheap.
 func overlap(p, q []Pt) bool {
-	for i := range p {
-		a, b := p[i], p[(i+1)%len(p)]
-		for j := range q {
-			if segCross(a, b, q[j], q[(j+1)%len(q)]) {
+	lo, hi := p[0], p[0]
+	for _, v := range p {
+		lo = Pt{math.Min(lo.X, v.X), math.Min(lo.Y, v.Y)}
+		hi = Pt{math.Max(hi.X, v.X), math.Max(hi.Y, v.Y)}
+	}
+	near := func(a, b Pt) bool {
+		return math.Max(a.X, b.X) >= lo.X && math.Min(a.X, b.X) <= hi.X &&
+			math.Max(a.Y, b.Y) >= lo.Y && math.Min(a.Y, b.Y) <= hi.Y
+	}
+	for j := range q {
+		c, d := q[j], q[(j+1)%len(q)]
+		if !near(c, d) {
+			continue
+		}
+		for i := range p {
+			if segCross(p[i], p[(i+1)%len(p)], c, d) {
 				return true
 			}
 		}
@@ -179,7 +196,7 @@ func overlap(p, q []Pt) bool {
 		}
 	}
 	for _, v := range q {
-		if inPoly(p, v) {
+		if v.X >= lo.X && v.X <= hi.X && v.Y >= lo.Y && v.Y <= hi.Y && inPoly(p, v) {
 			return true
 		}
 	}
@@ -303,7 +320,7 @@ func (c *checker) run() (actionResult, error) {
 					return res, fmt.Errorf("the anchor jams the wheel at ψ %v°", psi/deg)
 				}
 			}
-			for k := 0; k < 50; k++ {
+			for hi-lo > 1e-9 {
 				m := (lo + hi) / 2
 				if c.collide(phi-m, anchor) {
 					lo = m
@@ -323,7 +340,7 @@ func (c *checker) run() (actionResult, error) {
 			}
 		}
 		lo, hi := phi, phi+step
-		for k := 0; k < 50; k++ {
+		for hi-lo > 1e-9 {
 			m := (lo + hi) / 2
 			if c.collide(m, anchor) {
 				hi = m
@@ -396,16 +413,53 @@ func (c *checker) run() (actionResult, error) {
 	return res, nil
 }
 
-// isTop reports whether anchor-frame vertex v belongs to a pallet top or an arm: at least 8° past its pallet's locking
-// corner and outside the hub.
+// simplify drops the vertices of the closed polygon p that lie within tol of the chord between their neighbours
+// (Douglas-Peucker), which keeps the outline within tol and makes the checker much faster.
+func simplify(p []Pt, tol float64) []Pt {
+	n := len(p)
+	if n < 8 {
+		return p
+	}
+	// Split the loop at vertex 0 and the vertex farthest from it, and simplify the two chains.
+	far, best := 0, 0.0
+	for i, v := range p {
+		if d := v.Sub(p[0]).Len(); d > best {
+			far, best = i, d
+		}
+	}
+	var chain func(pts []Pt) []Pt
+	chain = func(pts []Pt) []Pt {
+		if len(pts) < 3 {
+			return pts
+		}
+		idx, worst := 0, 0.0
+		for i := 1; i < len(pts)-1; i++ {
+			if d := distPointSeg(pts[i], pts[0], pts[len(pts)-1]); d > worst {
+				idx, worst = i, d
+			}
+		}
+		if worst <= tol {
+			return []Pt{pts[0], pts[len(pts)-1]}
+		}
+		left := chain(pts[:idx+1])
+		right := chain(pts[idx:])
+		return append(left[:len(left)-1:len(left)-1], right...)
+	}
+	a := chain(p[:far+1])
+	b := chain(append(append([]Pt{}, p[far:]...), p[0]))
+	return append(a[:len(a)-1:len(a)-1], b[:len(b)-1]...)
+}
+
+// isTop reports whether anchor-frame vertex v belongs to a pallet top or an arm: within 0.15° of the pallet's top or beyond it (the pallet's
+// length past the locking corner is Lpal), outside the hub.
 func (c *checker) isTop(v Pt) bool {
 	if v.Len() < c.g.RIn-0.01 {
 		return false
 	}
 	if v.X < 0 {
-		return normAng(c.g.CE.Angle()-v.Angle()) >= 8*deg && normAng(c.g.CE.Angle()-v.Angle()) < math.Pi
+		return normAng(c.g.CE.Angle()-v.Angle()) >= PalletLength-0.15*deg && normAng(c.g.CE.Angle()-v.Angle()) < math.Pi
 	}
-	return normAng(v.Angle()-c.g.CX.Angle()) >= 8*deg && normAng(v.Angle()-c.g.CX.Angle()) < math.Pi
+	return normAng(v.Angle()-c.g.CX.Angle()) >= PalletLength-0.15*deg && normAng(v.Angle()-c.g.CX.Angle()) < math.Pi
 }
 
 // measure updates E1 at the current state.
