@@ -195,7 +195,7 @@ func (e gearboxEar) centre() r3.Vec {
 // on the wall's outer face for a screw head, so these seams need ears.
 var gearboxEars = [...]gearboxEar{
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, false, "gearbox-fan-wall", "gearbox-post"},
-	{r3.Vec{Y: 1}, fanWallY, 25, 31.2, false, "gearbox-fan-wall", "gearbox-crank-wall"},
+	{r3.Vec{Y: 1}, fanWallY, 25, 32.2, false, "gearbox-fan-wall", "gearbox-crank-wall"},
 	{r3.Vec{Y: 1}, fanWallY, -19, -11, true, "gearbox-fan-wall", "gearbox-post"},
 	{r3.Vec{Y: 1}, fanWallY, 22, 30, true, "gearbox-fan-wall", "gearbox-crank-wall"},
 }

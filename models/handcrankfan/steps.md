@@ -190,12 +190,12 @@ on, the bolt `length` and the `cavity` offset from the head. `bladeSites(n)` tur
 - `placeBolt(site)`: `m2bolt.Build` with `Length` and a `Placement` frame whose origin is `head + dir * 2.0` (the head
   pocket depth), U = `corner` and V = `(-dir) x corner`, so the bolt's local +Z (underside to head) points back to the
   head. It appends the bolt's `Profile` and `Socket` sketches to `Assembly.Sketches`.
-- `placeNut(site)`: `m2nut.Build` with a `Placement` frame whose origin lies at `head + dir * (cavity + 0.1)`, U = `corner`
+- `placeNut(site)`: `m2nut.Build` with a `Placement` frame whose origin lies at `head + dir * (cavity + 0.2)`, U = `corner`
   and V = `dir x corner`. It appends the nut's `Hexagon`, `LowerChamfer` and `UpperChamfer` sketches.
 - `fastenerCuts(host, site, pocket, hole, cavity)` cuts the features whose flag is true. The pocket is a cylinder of
-  radius 2.0 from 1 outside the face to 2.0 inside. The hole is a cylinder of radius 1.3 from 1 outside the face to 1
-  beyond the bolt's tip. The cavity is a hexagon (`b.hexagon`) 4.2 across flats and 1.8 long, starting at `cavity`,
-  corners on `corner`. The caller passes the flags for the body it holds.
+  radius 2.2 from 1 outside the face to 2.0 inside. The hole is a cylinder of radius 1.3 from 1 outside the face to 1
+  beyond the bolt's tip. The cavity is a cylinder of radius 2.51 and 2.0 long, starting at `cavity`. The caller passes
+  the flags for the body it holds.
 - `hardware(site)` adds the bolt and then the nut as parts of group `hardware` with the site's motion.
 - `fastenerSpec(name)` maps a part name to its bill of materials spec (`M2 x 10 socket head cap screw`,
   `M2 x 16 socket head cap screw` or `M2 hex nut`). Blade sites match by prefix.

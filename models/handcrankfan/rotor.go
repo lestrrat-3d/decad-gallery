@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -137,7 +138,7 @@ func (b *builder) hub() *decad.Body {
 	circle(s, 0, 0, hubRadius)
 	for k := 0; k < n; k++ {
 		theta := 2 * math.Pi * float64(k) / float64(n)
-		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), boltHole)
+		circle(s, boltAt*math.Cos(theta), boltAt*math.Sin(theta), m2fastener.HoleRadius)
 	}
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
 	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, pressFit)
@@ -190,7 +191,7 @@ func (b *builder) blades() []*decad.Body {
 	}
 	// Local Z is the blade's radial line, local X the direction of motion and local Y downstream.
 	stud := b.cylinder(frame(r3.Vec{Z: studStart}, r3.Vec{X: 1}, r3.Vec{Y: 1}), studRadius, studEnd-studStart)
-	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), boltHole, 10))
+	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), m2fastener.HoleRadius, 10))
 	blade := b.union(loft, stud)
 	if b.err != nil {
 		return nil
