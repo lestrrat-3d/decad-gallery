@@ -29,29 +29,37 @@ Check after the step: `TestValidate`, `TestLayout`, `TestMotion`, `TestActionAna
 
 ## Layout and motion (no Decad)
 
+`G` is `(0, -45.75)`, the pinion's tooth 0 is at -90° and the great wheel's at 93.75°. `DefaultParams().Phase` is 0.25, where
+ψ = 0 and β = 0.
+
 `Layout` computes every constant, derived value and point of instructions.md "Escapement geometry", "Pendulum and
 crutch", "Drive train" and the three axes. `Motion` implements "Motion and pose" in closed form. Check against the
 default numbers in the tables to 1e-4 and the 4000-sample monotonic and drop checks.
 
 ## Bodies
 
-### 1. Back Plate
+### 1. Back Plate and 2. Front Plate
 
-Sketch `back plate outline` (`z -6`, origin `O`): 4 axis-aligned lines, 4 corner arcs `NewRadius 10` tangent to both
-neighbours, each side placed by one H or V distance from the origin; lip-bore circles `r 5` at `O`, `P`, `G` and
-mounting circles `r 2.25` at `(-30, 90)` and `(48, 90)` with their centres located by polar points. Valid profile:
-5 holes. Extrude 6. Four pillar sketches (circle `r 5`, `z -0.5`, one per pillar, plane origin at the pillar) extruded
-28.5; `Union(plate, pillars...)`. Cut tool: `r 7.05` pocket circles at `O`, `P`, `G` (`z -5`, height 6) unioned with
-`m2fastener.HoleTool` and `CavityTool` of the four sites. `edgefinish.Chamfer` over `{-6, 0}`: outer loops, pocket
-rims (7.05) and lip-bore rims (5) within 0.01 mm (22 edges), once and last. Check: solid, pockets, cavities, holes
-by point classification, volume drop.
+Each plate is one sketch, extruded once (instructions.md "Open skeleton plates"). Sketch `back plate outline` (`z -6`,
+origin `O`) or `front plate outline` (`z 28`): the rounded-rectangle outline (4 axis-aligned lines, 4 corner arcs
+`NewRadius 10` tangent to both neighbours, each side placed by one H or V distance from the origin), then two window
+loops, then (back plate) the mounting circles `r 2.25` at `(±40, 90)` as polar points. The hub centres of `P` and `G` are
+polar points on `xRef`, shared by both windows; the hub centre of `O` is the origin.
 
-### 2. Front Plate
+Window loop (right side, `sx = +1`; the left window mirrors it): 6 lines and 5 arcs, the pieces and points of
+instructions.md. Constraints: the vertical spine sides `NewVertical` with `NewHorizontalDistance(origin, A or H or J,
+sx 4)`; the bottom edge `NewHorizontal` with `NewVerticalDistance(origin, A, -82)`; the top edge `NewHorizontal` with
+`NewVerticalDistance(origin, E, 62)`; the side edge `NewVertical` with `NewHorizontalDistance(origin, C, sx 44)`; each
+corner arc `NewRadius 6` and `NewTangent` to both of its lines; each hub arc `NewRadius 10` about its shared centre. The
+shared endpoints `F, H, I, J, K, L` are fixed by those lines and arcs, not by distances. On the right a clockwise arc from
+`X` to `Y` is `CreateArc(centre, Y, X)`; on the left it is `CreateArc(centre, X, Y)`.
 
-Sketch `front plate outline` (`z 28`): as the back plate with `y` top 82, the three lip bores only. Valid profile:
-3 holes. Extrude 6. Cut tool: pocket circles `r 7.05` at `z 27` (height 6), `m2fastener.HoleTool` and `PocketTool`
-of the four sites, and the D press outline about `S` (`r 2.55`, chord `x = S_x + 2.05`, plane origin at `S`, `z 31`,
-height 4). One chamfer over `{28, 34}` (22 edges).
+Valid profile: 2 holes (front) or 4 holes (back). Extrude 6. Back plate: `Union(plate, four pillars)` (circles `r 5`, `z
+-0.5`, 28.5 long, at `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`). One cut tool, the union of the three pockets
+`r 7.05` (back `z -5`, front `z 27`, 6 long), the three lip bores `r 5` (`z low - 1`, 8 long), per pillar
+`m2fastener.HoleTool` and `CavityTool` (back) or `PocketTool` (front), and on the front plate the D socket about `S`.
+Then one `edgefinish.Chamfer` over `{low, low + 6}` with the `keep` filter of instructions.md. Do not union rim, spine
+and hub prisms. Check: solid; `TestPlates`, `TestPlateWindows`, `TestPlateMaterial`; volume drop of the chamfer.
 
 ### 3-9. Bearings
 
@@ -118,14 +126,14 @@ copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratch
 
 ### 20. Drum
 
-Meridian sketch of the drum polygon (instructions "Drum"), revolve, cut the D press bore (tool `z 7.75`, height 21).
+Meridian sketch of the drum polygon (instructions "Drum": flange `r 9.5`, barrel 10 mm), revolve, cut the D press bore (tool `z 7.75`, height 21).
 Pawl layer: core sketch (`z 5.25`) circle `r 7.5` with the D relief loop (`r 2.8`, flat `x 2.3`): valid profile with 1
 hole, extrude 4; two pawl sketches (the pawl loop, polar points, arcs `NewRadius` 7.0, 9.0, 12.5, 10.5) extruded 4;
 `Union(core, pawl0, pawl1)`; `Union(drum, layer)`. Check: solid; pawls present at `z 7`; flange front face under 400 mm².
 
 ### 21. Winding Knob
 
-Circle `r 10` at `G`, `z 34.25`, extrude 3; D press socket cut (`z 33.25`, height 5).
+Circle `r 9` at `G`, `z 34.25`, extrude 3; D press socket cut (`z 33.25`, height 5).
 
 ### 22-29. Bolts and nuts
 

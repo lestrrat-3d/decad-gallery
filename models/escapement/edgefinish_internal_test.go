@@ -43,10 +43,10 @@ func TestEdgeFinishing(t *testing.T) {
 		})
 	}
 
-	// Back plate: the outer loop of both faces, the three seat rims on the inner face, the three lip rims on the rear.
+	// Plates: the outer loop and both windows on both faces, and the three seat rims on the inner face; the lip rims stay sharp.
 	outer := func(z float64, body *decad.Body) float64 { return perimeter(loopsBy(sectionAt(t, body, z))[0]) }
-	backEdges := 2*outer(-3, m.BackPlate) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
-	frontEdges := 2*outer(31, m.FrontPlate) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
+	backEdges := 2*plateRims(t, m.BackPlate, -3) + 3*2*math.Pi*seatRadius
+	frontEdges := 2*plateRims(t, m.FrontPlate, 31) + 3*2*math.Pi*seatRadius
 	check("back plate", m.BackPlate, plain.buildBackPlate, backEdges)
 	check("front plate", m.FrontPlate, plain.buildFrontPlate, frontEdges)
 	// Anchor: the outer loop of both faces, pallets included.
@@ -75,3 +75,16 @@ func TestEdgeFinishing(t *testing.T) {
 }
 
 func centroidLen(l []Pt) float64 { return centroid(l).Len() }
+
+// plateRims is the length of the outer loop and the two window loops of a plate at height z.
+func plateRims(t *testing.T, body *decad.Body, z float64) float64 {
+	t.Helper()
+	sum := 0.0
+	for _, l := range loopsBy(sectionAt(t, body, z)) {
+		// The outer loop and the windows are the loops longer than 100 mm; holes, pockets and sockets are shorter.
+		if perimeter(l) > 100 {
+			sum += perimeter(l)
+		}
+	}
+	return sum
+}

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// gearLoops returns the outer loops at z 3 of the pinion (about the origin, tooth 0 at -60°) and the great wheel (about
+// gearLoops returns the outer loops at z 3 of the pinion (about the origin, tooth 0 at -90°) and the great wheel (about
 // the origin, tooth 0 on +X), and the section bound.
 func gearLoops(t *testing.T, backlash float64) (pinion, great []Pt, off float64) {
 	t.Helper()

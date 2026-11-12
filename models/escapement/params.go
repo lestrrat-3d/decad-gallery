@@ -29,13 +29,15 @@ type Params struct {
 	Placement *r3.Frame
 }
 
-// DefaultParams returns the default movement: a 180 mm pendulum, a 5° anchor swing, 1.5° of lock and 2.5° of lift.
+// DefaultParams returns the default movement: a 180 mm pendulum, a 5° anchor swing, 1.5° of lock and 2.5° of lift, posed
+// at Phase 0.25 where the anchor and the pendulum hang plumb.
 func DefaultParams() Params {
 	return Params{
 		PendulumLength: 180,
 		Amplitude:      5 * deg,
 		LockAngle:      1.5 * deg,
 		LiftAngle:      2.5 * deg,
+		Phase:          0.25,
 		Backlash:       0.15,
 	}
 }

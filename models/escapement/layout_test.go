@@ -32,7 +32,7 @@ func TestLayout(t *testing.T) {
 	near(t, 41.4, g.ROut, "rout")
 	nearPt(t, [2]float64{0, 56.5685}, g.P, "P")
 	nearPt(t, [2]float64{0, 70.5685}, g.S, "S")
-	nearPt(t, [2]float64{22.8750, -39.6207}, g.G, "G")
+	nearPt(t, [2]float64{0, -45.75}, g.G, "G")
 
 	nearPt(t, [2]float64{-29.2569, 27.2770}, g.IL, "IL")
 	nearPt(t, [2]float64{-27.2770, 29.2569}, g.FL, "FL")
@@ -87,7 +87,7 @@ func TestLayout(t *testing.T) {
 	near(t, 37.48, g.GreatTip, "great tip")
 	near(t, 0.54, g.TipToRootA, "tip to root a")
 	near(t, 0.54, g.TipToRootB, "tip to root b")
-	near(t, 123.75, g.GreatPhase/deg, "great phase")
+	near(t, 93.75, g.GreatPhase/deg, "great phase")
 	near(t, 0.99425, g.WheelPhaseE/deg, "phi E")
 	near(t, 6.99425, g.WheelPhaseX/deg, "phi X")
 	near(t, 1.98848, g.Drop/deg, "drop")
