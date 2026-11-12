@@ -193,11 +193,13 @@ var (
 	escapementFrontDir   = r3.NewVec(0, 0, 1)
 	escapementAngleDir   = r3.NewVec(1, 0.6, 1)
 	escapementSideDir    = r3.NewVec(1, 0, 0)
+	escapementBackDir    = r3.NewVec(0, 0, -1)
 	escapementExplodeDir = r3.NewVec(1, 0.5, 1.2)
 )
 
+// heroScene shows the whole movement at the default pose: the open plates let the wheel, anchor and drive show through.
 func (b *escapementBuild) heroScene() solidlens.Scene {
-	models := b.models(without(frontParts...), false)
+	models := b.models(everything, false)
 	return bevelScene(escapementCamera(models, escapementHeroDir, 16.0/9), models)
 }
 
@@ -211,13 +213,20 @@ func (b *escapementBuild) explodedScene() solidlens.Scene {
 	return bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
 }
 
-// closeupScene is a near-orthographic front view of the pallets and the teeth between them: the front plate, the
-// crutch, the pendulum and the other parts in front of the anchor are left out.
-func (b *escapementBuild) closeupScene() solidlens.Scene {
+// closeupScene is a near-orthographic front view of the pallets and the teeth between them at Phase 0, where the entry
+// pallet holds a tooth: the front plate, the crutch, the pendulum and the other parts in front of the anchor are left out.
+func (b *escapementBuild) closeupScene() (solidlens.Scene, error) {
 	hide := append(append([]string{}, frontParts...), escapement.CrutchName, escapement.PendulumName,
 		escapement.PendulumBearingName, escapement.SuspensionPinName, escapement.SuspensionCapName,
 		escapement.WindingKnobName)
-	models := b.models(without(hide...), false)
+	locked, err := b.geometry.StateAt(0)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	models, err := b.motionModels(without(hide...), b.escapementMovers(), locked)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
 	const distance = 600.0
 	centre := r3.NewVec(0, b.geometry.P.Y-24, 25)
 	halfHeight := 24.0
@@ -225,7 +234,7 @@ func (b *escapementBuild) closeupScene() solidlens.Scene {
 		Position: solidlens.Vec(centre.Add(r3.NewVec(0, 0, distance))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 2 * math.Atan(halfHeight/distance) * 180 / math.Pi, Near: 1, Far: 4000,
 	}
-	return bevelScene(camera, models)
+	return bevelScene(camera, models), nil
 }
 
 // escapementPart names one image of a distinct body.
@@ -278,7 +287,14 @@ func init() {
 	presets["escapement/assembled-front"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementFrontDir) })}
 	presets["escapement/assembled-angle"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementAngleDir) })}
 	presets["escapement/assembled-side"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementSideDir) })}
-	presets["escapement/closeup"] = preset{width: 1200, height: 675, scene: cached((*escapementBuild).closeupScene)}
+	presets["escapement/assembled-back"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementBackDir) })}
+	presets["escapement/closeup"] = preset{width: 1200, height: 675, scene: func(ctx context.Context) (solidlens.Scene, error) {
+		b, err := buildEscapement(ctx)
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		return b.closeupScene()
+	}}
 	presets["escapement/exploded"] = preset{width: 1600, height: 900, scene: cached((*escapementBuild).explodedScene)}
 	for _, part := range escapementParts {
 		presets["escapement/part-"+part.shot] = preset{width: 480, height: 270,
@@ -295,6 +311,10 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
+	closeup, err := b.closeupScene()
+	if err != nil {
+		return err
+	}
 	for _, image := range []struct {
 		name          string
 		width, height int
@@ -305,7 +325,8 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		{"assembled-front.png", 1200, 675, b.viewScene(escapementFrontDir)},
 		{"assembled-angle.png", 1200, 675, b.viewScene(escapementAngleDir)},
 		{"assembled-side.png", 1200, 675, b.viewScene(escapementSideDir)},
-		{"closeup.png", 1200, 675, b.closeupScene()},
+		{"assembled-back.png", 1200, 675, b.viewScene(escapementBackDir)},
+		{"closeup.png", 1200, 675, closeup},
 		{"exploded.png", 1600, 900, b.explodedScene()},
 	} {
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {

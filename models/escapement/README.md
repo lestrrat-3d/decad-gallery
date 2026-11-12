@@ -1,13 +1,13 @@
 # Graham escapement
 
-![A Graham deadbeat escapement movement: a weight-driven great wheel and a 30-tooth escape wheel, an anchor, a crutch and a 180 mm pendulum in a two-plate frame, seen from the front with the front plate removed](images/hero.png)
+![A Graham deadbeat escapement movement: a weight-driven great wheel and a 30-tooth escape wheel, an anchor, a crutch and a 180 mm pendulum in an open two-plate frame, seen from the front with the pendulum at rest](images/hero.png)
 
 A desk-clock-size Graham escapement. A falling weight turns a great wheel, which turns a 30-tooth escape wheel through a
 13-tooth pinion. An anchor with two pallets lets the escape wheel advance one half tooth at a time. A crutch on the
 anchor's arbor pushes a pendulum, and the pendulum's swing times the anchor. The model includes the weight drive's drum,
 ratchet and winding knob, but no cord or weight. It has 29 bodies, seven of them purchased 605ZZ bearings.
 
-The whole movement is 122 mm wide, 184 mm tall and 51.75 mm deep, from the back of the back plate to the suspension
+The whole movement is 116 mm wide, 194 mm tall and 51.75 mm deep, from the back of the back plate to the suspension
 cap. Every part fits a 220 × 220 mm print bed. The default pendulum is 215 mm long, so it is the longest part.
 
 ## How the escapement works
@@ -39,14 +39,30 @@ pallet is 0.62 mm.
 
 The animation shows one pendulum period in 36 frames. The crutch pin stands in a slot in the pendulum, so the pendulum's
 swing turns the anchor, and the anchor lets the wheel advance one tooth per period. The loop has no jump: after one
-period the wheel has turned one tooth, and the wheel looks the same. The drive train and the front parts are left out of
-the animation. The drive does not repeat in one period.
+period the wheel has turned one tooth, and the wheel looks the same. Both plates stay in the animation, because they are
+fixed. The drive train, the front bearings and the bolts are left out of it. The drive does not repeat in one period.
 
 ## Assembled
 
 | From the front | From above and the right | From the right |
 | --- | --- | --- |
 | <img src="images/assembled-front.png" alt="The complete movement from the front" width="320"> | <img src="images/assembled-angle.png" alt="The complete movement from above and to the right" width="320"> | <img src="images/assembled-side.png" alt="The complete movement from the right, showing the stack of parts between the plates" width="320"> |
+
+## Seen from the back
+
+<img src="images/assembled-back.png" alt="The movement from behind: the great wheel's back face and teeth, the escape wheel and the anchor seen through the back plate's two windows" width="450">
+
+The back plate's windows show the great wheel's back face and teeth, the pinion's ring beyond the hub, and the escape
+wheel and the anchor behind them. The strip down the middle hides the mesh of the pinion and the great wheel.
+
+## Open frame
+
+Both plates are open frames, mirror-symmetric about a plumb line. Each has a rim, a spine 8 mm wide and a hub ring of
+radius 10 round each bearing, and two windows. The suspension, the pallet arbor, the escape arbor and the great wheel
+arbor stand on that line, and the pendulum hangs down it at rest, so every still image reads vertical. From the front,
+through the front plate's windows, you see the escape wheel's teeth, the anchor's pallets and arms, the great wheel's teeth
+and the ratchet with its pawls. The spine, the hubs and the winding knob hide only the middle of each wheel. The model is
+for a wall mount and has no stand.
 
 ## Exploded
 
@@ -61,8 +77,8 @@ seven bearings (the seventh sits in the pendulum), four bolts, four nuts, and ev
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, with four pillars, three bearing seats, two mounting holes and the nut cavities |
-| <img src="images/parts/front-plate.png" alt="Front plate" width="240"> | Front plate, with three bearing seats, four head pockets and the suspension socket |
+| <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, an open frame with two windows, four pillars, three bearing seats, two mounting holes and the nut cavities |
+| <img src="images/parts/front-plate.png" alt="Front plate" width="240"> | Front plate, an open frame with two windows, three bearing seats, four head pockets and the suspension socket |
 | <img src="images/parts/escape-wheel.png" alt="Escape wheel" width="240"> | Escape wheel, with the 13-tooth pinion and a rear boss |
 | <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor |
 | <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin |
@@ -85,11 +101,12 @@ is at its rear end.
 
 ## How it is driven
 
-A weight on a cord hangs from the left side of the drum, 7 mm to the left of the great wheel's axis, and turns the drum
-counter-clockwise. Two flexure pawls on the drum push the great wheel's internal ratchet. The great wheel turns the
+The great wheel sits directly below the escape wheel, on the same plumb line. A weight on a cord hangs from the left side
+of the drum, 7 mm to the left of the great wheel's axis, between the plates, behind the pendulum and in front of the wall,
+and turns the drum counter-clockwise. A weight up to 36 mm across hangs clear of both. Two flexure pawls on the drum push the great wheel's internal ratchet. The great wheel turns the
 13-tooth pinion on the escape wheel, which turns clockwise. The ratio is 48 ÷ 13.
 
-To wind, turn the winding knob clockwise. The drum turns clockwise, and each pawl's arm flexes inward and clicks over
+To wind, stop the pendulum and turn the winding knob clockwise by its sides. The drum turns clockwise, and each pawl's arm flexes inward and clicks over
 the 12 ratchet teeth, so the great wheel stays where it is. Under load the arms are in tension.
 
 One escape wheel turn takes 30 pendulum periods, 25.5 s at the default pendulum length. One drum turn is 48 ÷ 13 wheel
@@ -108,7 +125,7 @@ Print each part without supports in this orientation:
 - Arbors and the suspension pin: standing on end, with the 1.2 mm collar ledge printing as a small overhang.
 - Back plate: the rear face down. **Pause at 32 mm above the bed** (`z` 26 in the model), drop the four nuts into
   their open cavities, and resume. The next layers close the cavities and hold the nuts.
-- Front plate: the front face up or down.
+- Front plate: the front face up or down. The plates print flat, and the windows need no support.
 
 Assemble in this order:
 
@@ -123,7 +140,8 @@ Assemble in this order:
    D-shaped socket. Set the pendulum's bearing on the pin and the crutch pin in the pendulum's slot, and press the cap on
    the pin's front peg.
 
-Hang the movement level, so the pendulum hangs at the anchor's centre position, ψ = 0. Wind clockwise.
+Hang the movement on a wall, level, so the pendulum hangs at the anchor's centre position, ψ = 0. The default pose is that
+position. Wind clockwise.
 
 ## Fits and edge finishing
 
@@ -141,10 +159,11 @@ Hang the movement level, so the pendulum hangs at the anchor's centre position, 
 - **Gears.** The pinion's tips clear the great wheel's roots by 0.54 mm and the great wheel's tips clear the pinion's roots
   by 0.54 mm, at module 1.5. The default backlash is 0.15 mm per gear.
 
-The back and front plates have their outer edges, the bearing seat rims and the lip-bore rims chamfered by 0.5 mm at 45°.
+The back and front plates have their outer edges, both windows and the bearing seat rims chamfered by 0.5 mm at 45°.
 The anchor's whole outline, the pendulum's outline with its pocket and lip-bore rims, and the six windows of the escape
-wheel are chamfered too. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
-pockets, the crutch slot and the faces under 400 mm² are not chamfered.
+wheel are chamfered too. The plates' lip-bore rims stay sharp, because the cut that makes them leaves faceted edges that a
+chamfer cannot name. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
+pockets, the crutch slot and the faces under 400 mm² (the winding knob and the drum's flange) are not chamfered.
 
 You can vary:
 

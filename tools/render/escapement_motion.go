@@ -81,7 +81,12 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 	if err != nil {
 		return err
 	}
-	keep := without(append(append([]string{}, frontParts...), driveParts...)...)
+	// Both plates stay in the picture, because they are fixed and the loop stays seamless; the drive is left out.
+	hidden := []string{escapement.FrontEscapeBearingName, escapement.FrontPalletBearingName, escapement.FrontGreatWheelBearingName}
+	for i := range 4 {
+		hidden = append(hidden, escapement.BoltName(i))
+	}
+	keep := without(append(hidden, driveParts...)...)
 	movers := b.escapementMovers()
 	// The camera frames the swing's two ends so nothing leaves the image.
 	var framing []solidlens.Model

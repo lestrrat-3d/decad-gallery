@@ -147,7 +147,7 @@ func Layout(p Params) (Geometry, error) {
 	g.O = Pt{}
 	g.P = Pt{0, g.CentreDistance}
 	g.S = Pt{0, g.CentreDistance + SuspensionOffset}
-	g.G = Polar(m2c(), -60*deg)
+	g.G = Polar(m2c(), -90*deg)
 
 	g.IL, g.FL = tip(&g, g.ROut, true), tip(&g, g.RIn, true)
 	g.IR, g.FR = tip(&g, g.RIn, false), tip(&g, g.ROut, false)
@@ -202,8 +202,8 @@ func Layout(p Params) (Geometry, error) {
 	g.GreatTip = g.GreatPitchR + Module - GearTipMargin
 	g.TipToRootA = g.GearCentre - g.PinionTip - g.GreatRoot
 	g.TipToRootB = g.GearCentre - g.GreatTip - g.PinionRoot
-	g.PinionPhase = -60 * deg
-	g.GreatPhase = 120*deg + math.Pi/GreatTeeth
+	g.PinionPhase = -90 * deg
+	g.GreatPhase = 90*deg + math.Pi/GreatTeeth
 
 	g.WheelPhaseE = math.Mod(math.Mod(90*deg-g.IL.Angle(), g.Pitch)+g.Pitch, g.Pitch)
 	g.WheelPhaseX = g.WheelPhaseE + g.Pitch/2

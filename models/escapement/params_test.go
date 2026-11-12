@@ -12,6 +12,7 @@ import (
 func TestValidate(t *testing.T) {
 	const deg = math.Pi / 180
 	require.NoError(t, escapement.DefaultParams().Validate())
+	require.Equal(t, 0.25, escapement.DefaultParams().Phase)
 
 	cases := []struct {
 		field string

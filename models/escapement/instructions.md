@@ -28,14 +28,14 @@ The model is desk-clock size, not a watch-size miniature.
 | Escape wheel | 80 mm across (tip radius 40), 30 teeth, 3 mm thick, tooth 7 mm tall |
 | Anchor | pallets 2.8 mm wide, 5 mm thick; lock depth about 1.0 to 1.1 mm; drop 1.39 mm at the tooth tip |
 | Gears | module 1.5: 13-tooth pinion, 48-tooth great wheel (75 mm across) |
-| Frame | back plate 122 × 184 mm, front plate 122 × 168 mm, 6 mm thick; 28 mm between plates |
+| Frame | open skeleton plates, back plate 116 × 194 mm, front plate 116 × 178 mm, 6 mm thick; 28 mm between plates |
 | Movement depth | 51.75 mm, from the back plate's rear face to the pendulum's suspension cap |
 | Pendulum | 180 mm from pivot to bob centre by default (120 to 250), bob 50 mm across; 215 mm long overall |
 | Bearings | seven purchased 605ZZ (5 × 14 × 5); arbors 5.0 mm, equal to the bearing bore |
 | Fasteners | four M2 × 10 bolts and four M2 nuts |
 
 Every part fits a 220 × 220 mm bed. The longest parts are the default pendulum (215 mm overall) and the back
-plate (184 mm). A 250 mm pendulum (285 mm overall) needs the diagonal of a 220 mm bed.
+plate (194 mm). A 250 mm pendulum (285 mm overall) needs the diagonal of a 220 mm bed.
 
 ## Frame and conventions
 
@@ -47,7 +47,9 @@ plate (184 mm). A 250 mm pendulum (285 mm overall) needs the diagonal of a 220 m
   A part turned by a clockwise angle `a` is rotated by math angle `-a`.
 - The escape wheel turns clockwise. The pinion turns with it. The great wheel and the drum turn counter-clockwise.
 - Axes (default): `O = (0, 0)`, `P = (0, d) = (0, 56.5685)` pallet arbor, `S = (0, d + 14) = (0, 70.5685)` pendulum
-  suspension, `G = 45.75 (cos -60°, sin -60°) = (22.8750, -39.6207)` great wheel arbor.
+  suspension, `G = (0, -45.75)` great wheel arbor, directly below `O`. All four axes lie on the plumb line `x = 0`.
+- Default pose `Phase = 0.25`: `ψ = 0` and `β = 0`, so the anchor and the pendulum hang plumb. The entry pallet is mid-impulse
+  there (ψ between `ψ_Eu` = -0.5° and `ψ_Ef` = +2°); the build pose's 0.05° wheel back-off keeps the tooth off the pallet.
 - `Placement *r3.Frame` maps the model frame (origin `O`, `U = +X`, `V = +Y`) into the world; nil is identity.
 
 ## Escapement geometry
@@ -249,7 +251,7 @@ Print-error study (default parameters; `dr` tip radius error, `dw` pallet width 
 
 ## Drive train
 
-A weight on a cord hangs from the left side of the drum (`x = G_x - 7`). It turns the drum counter-clockwise. Two
+A weight on a cord hangs from the left side of the drum (`x = -7`, between the plates at `z ∈ [8.75, 18.75]`, behind the pendulum and in front of the wall). A weight up to 36 mm across hangs clear of both. It turns the drum counter-clockwise. Two
 flexure pawls on the drum push the internal ratchet of the great wheel. The great wheel drives the 13-tooth pinion
 on the escape wheel clockwise. Winding: turn the winding knob clockwise. The drum turns clockwise and the pawls click
 over the ratchet. The model includes no cord or weight.
@@ -260,7 +262,7 @@ over the ratchet. The model includes no cord or weight.
 |---|---|
 | module `m`, pressure angle | 1.5, 20° |
 | pinion `Zp`, great wheel `Zg` | 13, 48; ratio 48/13 |
-| centre distance | `m (Zp + Zg)/2 = 45.75`, `G` at math angle -60° from `O` |
+| centre distance | `m (Zp + Zg)/2 = 45.75`, `G` at math angle -90° from `O` (directly below) |
 | root clearance `c` | `max(0.25 m, 0.5) = 0.5` |
 | pinion radii | root `9.75 - 1.5 - 0.5 - 0.02 = 7.73`, tip `9.75 + 1.5 - 0.02 = 11.23` |
 | great wheel radii | root `36 - 1.5 - 0.5 - 0.02 = 33.98`, tip `36 + 1.5 - 0.02 = 37.48` |
@@ -268,7 +270,7 @@ over the ratchet. The model includes no cord or weight.
 | backlash `j` | `Backlash`, default 0.15 per gear → 0.3 play |
 | pinion | `spurgear` variant, 13 teeth, thickness 21, `z ∈ [1.5, 22.5]`, no bore (D bore cut after unions) |
 | great wheel | `spurgear` variant, 48 teeth, thickness 7, `z ∈ [1.5, 8.5]`, `BoreDiameter 5.8` (round, Regular fit) |
-| mesh phase at `φ = 0` | pinion tooth 0 at math angle `θp0 = -60°` (toward `G`); great wheel tooth 0 at `θg0 = 120° + 180°/48 = 123.75°` (gap facing `O`) |
+| mesh phase at `φ = 0` | pinion tooth 0 at math angle `θp0 = -90°` (toward `G`); great wheel tooth 0 at `θg0 = 90° + 180°/48 = 93.75°` (gap facing `O`) |
 
 Root-clearance variant: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}` from the shared
 `internal/gearroot` package, for both gears. It sets `root_radius = pitch_radius - module - 0.5 - 0.02` and
@@ -288,10 +290,10 @@ at `30(k+1)°`. At `r 12.5` the gap spans `[30k + 23.06°, 30(k+1)°]`.
 
 Drum local frame: axis through `G`, D-flat of its bore on `+X`.
 
-1. Revolve the meridian `(r, z)`: `(0, 8.75) (7, 8.75) (7, 16.75) (11.5, 21.25) (3.7, 21.25) (3.7, 27.75) (0, 27.75)`:
-   barrel `r 7`, a 45° cone to the flange `r 11.5`, front face `z 21.25`, spacer boss `r 3.7` to `z 27.75`. The
-   flange's front face is `π (11.5² - 3.7²) = 372.5 mm²`, under the 400 mm² of Surface edge finishing (with `r 12`
-   and the 7.4 mm boss it would be 409 mm²).
+1. Revolve the meridian `(r, z)`: `(0, 8.75) (7, 8.75) (7, 18.75) (9.5, 21.25) (3.7, 21.25) (3.7, 27.75) (0, 27.75)`:
+   barrel `r 7` (10 mm long), a 45° cone to the flange `r 9.5`, front face `z 21.25`, spacer boss `r 3.7` to `z 27.75`. The
+   flange shrank from `r 11.5` so it no longer covers the pawl teeth (`r 10.5` to `12.5`) or the ratchet (`r 11.5` to `13.5`).
+   The flange's front face is `π (9.5² - 3.7²) = 240.6 mm²`, under the 400 mm² of Surface edge finishing.
 2. Cut the D press bore (`r 2.55`, flat at `x = 2.05`), tool `z ∈ [7.75, 28.75]`.
 3. Pawl layer `z ∈ [5.25, 9.25]`: core circle `r 7.5` with a D relief hole (`r 2.8`, flat `x 2.3`, 0.3 mm clear of
    the arbor; the revolve's bore holds the drum), unioned with two pawls.
@@ -304,7 +306,7 @@ Drum local frame: axis through `G`, D-flat of its bore on `+X`.
 
 Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core and 1.0 mm to the
 ratchet tips. Winding pushes the pawl tip in from `r 12.5` past the land at `r 11.5`, a 1.0 mm deflection plus
-0.3 mm margin. Bending strain is about 0.8 %. Under load the arm is in tension. Barrel cord length 8.0 mm.
+0.3 mm margin. Bending strain is about 0.8 %. Under load the arm is in tension. Barrel cord length 10 mm.
 
 Pose: the drum's local frame sits at great-wheel-local angle `+20.8°`, so each pawl's contact face lies 1.2° (0.25 mm
 at `r 12`) clockwise of a ratchet radial face. The pawl tooth occupies `[30k - 5.2°, 30k - 1.2°]` at `r 12.5`. That is
@@ -312,7 +314,7 @@ inside the gap `[30k - 6.94°, 30k]`.
 
 ### Winding knob
 
-Circle `r 10` about `G`, `z ∈ [34.25, 37.25]`, D press socket (`r 2.55`, flat `x 2.05`). Pressed on the great
+Circle `r 9` about `G`, `z ∈ [34.25, 37.25]` (area `π 9² ≈ 254 mm²`, no chamfer; from the front it hides no more than the front plate's `r 10` hub ring at `G`), D press socket (`r 2.55`, flat `x 2.05`). Pressed on the great
 wheel arbor's front end.
 
 ### Running time (README text)
@@ -371,27 +373,61 @@ Bearings: seven `ballbearing.Params605ZZ()` envelopes, axis `+Z`, lower cap at: 
 
 ## Frame plates and fasteners
 
-### Back plate (`z ∈ [-6, 0]`, plus pillars to `z 28`)
+### Open skeleton plates
 
-1. Outline: rounded rectangle `x ∈ [-52, 70]`, `y ∈ [-86, 98]`, corner radius 10. Holes: lip bores `r 5` at
-   `O, P, G`; mounting holes `r 2.25` at `(-30, 90)` and `(48, 90)`. Extrude `z ∈ [-6, 0]`.
-2. Pillars: circles `r 5` at `(-44, 74)`, `(62, 74)`, `(-44, -78)`, `(62, -78)`, each extruded `z ∈ [-0.5, 28]`;
-   union all with the plate in one call.
-3. Cut one tool, the union of: pockets `r 7.05` at `O, P, G` over `z ∈ [-5, 1]`; per pillar
-   `m2fastener.HoleTool(site)` and `m2fastener.CavityTool(site)` (Fasteners).
-4. One `edgefinish.Chamfer(ctx, body, +Z, {-6, 0}, keep, edgefinish.MinChamfer)`. `keep` takes outer loops, and
-   single-edge circular loops whose start point lies within 0.01 mm of radius 7.05 (pocket rims, face `z 0`) or 5
-   (lip-bore rims, face `z -6`) about `O`, `P` or `G`. Expect 22 edges.
+Both plates are open frames, mirror-symmetric about `x = 0`: a rim, a centre spine 8 mm wide (behind the 8 mm pendulum
+rod), and a hub ring of radius 10 around each bearing. Two windows, mirror images of each other, open the rest.
 
-### Front plate (`z ∈ [28, 34]`)
+| Item | Back plate | Front plate |
+|---|---|---|
+| outline | rounded rectangle `x ∈ [-58, 58]`, `y ∈ [-96, 98]`, corner `r 10` | `x ∈ [-58, 58]`, `y ∈ [-96, 82]`, corner `r 10` |
+| z | `[-6, 0]`, pillars to `28` | `[28, 34]` |
+| windows | two (Window loop) | the same two |
+| mounting holes | `r 2.25` at `(-40, 90)` and `(40, 90)` | none |
+| lip bores, pockets | lip bore `r 5` and pocket `r 7.05` at `O, P, G` | as the back plate |
+| other | pillars `r 5` | suspension socket at `S` (in the top rim) |
 
-1. Outline: rounded rectangle `x ∈ [-52, 70]`, `y ∈ [-86, 82]`, radius 10. Holes: lip bores `r 5` at `O, P, G`;
-   no bolt holes in the outline (the hole tools cut them). Extrude `z ∈ [28, 34]`.
-2. Cut one tool: pockets `r 7.05` at `O, P, G` over `z ∈ [27, 33]`; per pillar `m2fastener.HoleTool(site)` and
-   `m2fastener.PocketTool(site)`; the suspension socket, D press outline about `S` (`r 2.55`, chord at
-   `x = S_x + 2.05`) over `z ∈ [31, 35]`.
-3. One `edgefinish.Chamfer` over `{28, 34}`: outer loops, pocket rims on `z 28`, lip-bore rims on `z 34` (same
-   radius test). Expect 22 edges.
+Pillars, and the bolt sites in this order: `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`. Each pillar keeps 1 mm of
+rim between its edge and a window (`x 45` against `x 44`; `y -83` against `y -82`), and lies 2.17 mm inside the
+outline's corner arc.
+
+#### Window loop
+
+Right window (`sx = +1`); the left window is its mirror (`x → -x`). `P = (0, 56.5685)`, `O = (0, 0)`, `G = (0, -45.75)`,
+`h = sqrt(10² - 4²) = 9.1652`, `fx = sqrt(10² - (62 - 56.5685)²) = 8.3958`. One closed loop of 6 lines and 5 arcs, in order:
+
+1. line `A (4, -82) → B (38, -82)`
+2. arc `r 6`, centre `(38, -76)`, `B → C (44, -76)`
+3. line `C → D (44, 56)`
+4. arc `r 6`, centre `(38, 56)`, `D → E (38, 62)`
+5. line `E → F (fx, 62)` = `(8.3958, 62)`
+6. arc `r 10` about `P`, `F → H (4, P_y - h)` = `(4, 47.4033)`, clockwise (the hub ring bulges into the window)
+7. line `H → I (4, h)` = `(4, 9.1652)`
+8. arc `r 10` about `O`, `I → J (4, -9.1652)`, clockwise
+9. line `J → K (4, G_y + h)` = `(4, -36.5848)`
+10. arc `r 10` about `G`, `K → L (4, G_y - h)` = `(4, -54.9152)`, clockwise
+11. line `L → A`
+
+Material this leaves: spine `|x| ≤ 4` from `y -82` to `62`; hub rings `r 10` about `P, O, G` (2.95 mm round each 7.05 mm
+pocket); top rim `y ∈ [62, 82]` (front) or `[62, 98]` (back), which holds `S` and the mounting holes; bottom rim
+`y ∈ [-96, -82]`; side rims `|x| ∈ [44, 58]`.
+
+#### Construction
+
+The plate section is one sketch: the outline, both window loops and (back plate) the mounting holes, extruded once to 6 mm.
+Do not build the plate as a union of rim, spine and hub prisms: Decad refuses a union of coplanar prisms.
+
+1. One sketch at the plate's low face: the rounded-rectangle outline, the right window, the left window and, on the back
+   plate, the mounting circles. Profile with 2 holes (front) or 4 holes (back). Extrude 6.
+2. Back plate: union the four pillars `r 5`, `z ∈ [-0.5, 28]`, in one call.
+3. Cut one tool, the union of: pockets `r 7.05` (back `z ∈ [-5, 1]`, front `z ∈ [27, 33]`); lip bores `r 5` through
+   (`z ∈ [low - 1, low + 7]`); per site `m2fastener.HoleTool` and `CavityTool` (back) or `HoleTool` and `PocketTool` (front);
+   on the front plate the suspension socket, D press outline about `S` (`r 2.55`, chord at `x = 2.05`) over `z ∈ [31, 35]`.
+4. One `edgefinish.Chamfer(ctx, body, +Z, {low, low + 6}, keep, edgefinish.MinChamfer)`. `keep` takes outer loops, inner
+   loops of more than 4 edges (the windows; the 2-edge D socket has faceted edges that `edgefinish` cannot name), and
+   single-edge `decad.Circle3` loops of radius 7.05 or 5 (±0.01) centred within 0.01 of `O`, `P` or `G`. The lip bores are
+   cut by a tool and leave faceted rims that no chamfer can name, and a lip bore drawn in the plate's own sketch makes the
+   chamfer of the pocket rims fail on the front plate, so the lip rims stay sharp.
 
 ### Fasteners (`AGENTS.md` Fasteners)
 
@@ -423,7 +459,7 @@ the planetary gearbox's covers on its ring.
 | `Amplitude` | anchor amplitude, radians | 5° | `(LiftAngle + LockAngle)/2 + 1°` to 6° |
 | `LockAngle` | `κ`, radians | 1.5° | 1.25° to 1.5° |
 | `LiftAngle` | `λ`, radians | 2.5° | 2° to 3° |
-| `Phase` | pose, fraction of a period | 0 | 0 up to but not including 1 |
+| `Phase` | pose, fraction of a period | 0.25 (pendulum at rest) | 0 up to but not including 1 |
 | `Backlash` | gear tooth thinning, mm | 0.15 | 0 to 0.3 |
 | `Placement` | frame mapping the model frame into the world | nil (identity) | a valid frame |
 
@@ -469,7 +505,7 @@ counter-clockwise), `Locked` (`"entry"`, `"exit"` or `""` during impulse). `Move
 | 22-25 | Bolt 1..4 | M2 × 10 | Bolts | fixed |
 | 26-29 | Nut 1..4 | M2 | Nuts | fixed |
 
-Bolt/nut `i` sits at pillar `i` in the order `(-44, 74)`, `(62, 74)`, `(-44, -78)`, `(62, -78)`. Use
+Bolt/nut `i` sits at pillar `i` in the order `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`. Use
 `Container.ChildNamed` for kinds with several bodies; `doc.VerifyContainers().Err()` must be nil.
 
 ## Fits
@@ -516,13 +552,13 @@ Large faces (≥ 400 mm²) and their chamfers (0.5, 45°), all through `internal
 
 | Part | Chamfered | Kept sharp (reason) |
 |---|---|---|
-| Back plate | outer loop both faces; lip-bore rims on the rear face; pocket rims (seat chamfer) | mounting holes, pillar holes (< 20 mm) |
-| Front plate | outer loop both faces; lip-bore rims on the front face; pocket rims | bolt holes, head pockets, suspension socket (< 20 mm) |
+| Back plate | outer loop and both windows on both faces; pocket rims (seat chamfer) | lip-bore rims (faceted, no chamfer can name them), mounting holes, pillar holes (< 20 mm) |
+| Front plate | outer loop and both windows on both faces; pocket rims | lip-bore rims (faceted), bolt holes, head pockets, suspension socket (< 20 mm) |
 | Escape Wheel | 6 window loops on both faces | tooth outline: pieces 2 to 8 mm, corners, no 20 mm run |
 | Anchor | whole outer loop of both faces, pallets included | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
 | Pendulum | outer loop of both faces; pocket rim; lip-bore rim on the rear face | slot (fit T6) |
 | Great Wheel | none | front face outer loop = tooth flanks; ratchet pocket loop = functional teeth |
-| Drum, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 294, drum flange front 372.5) |
+| Drum, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254, drum flange front 240.6) |
 
 Test: each chamfered part weighs less than its unchamfered build by the bevel volume. Each kept-sharp loop keeps
 its edges (face count).
@@ -552,7 +588,7 @@ Closed form for `Motion(p)` (`t = Phase`, `A = Amplitude`):
 | Drum, Great Wheel Arbor, Winding Knob | rotate about `G` by `θg0 + 20.8° + (φ - 0.05°)·13/48` |
 | everything else | fixed |
 
-The escape wheel is built with tooth 0 on `+Y` and the pinion's tooth 0 at -60°. Arbor flats and part D bores are
+The escape wheel is built with tooth 0 on `+Y` and the pinion's tooth 0 at -90°. Arbor flats and part D bores are
 on `+X` in each local frame.
 
 ## Geometry checks
@@ -590,6 +626,39 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 
 Escapement checker (a test helper): a quasi-static simulation on generic closed polylines. Prune segments to the annulus `[Rr - 1, R + 1]` about `O` within ±30° of `I_L`/`I_R`. 2000 steps per
 period, 3 periods, measure periods 2 and 3. Advance by 0.02° then bisect to 1e-9 rad.
+
+## Open frame and centre line
+
+When the clock hangs, the parts that set its time stand on one plumb line. That line runs through the suspension `S`, the
+pallet arbor `P`, the escape arbor `O` and the great wheel arbor `G`. The pendulum hangs straight down it at rest, and the
+frame is mirror-symmetric about it. The default pose shows the pendulum at rest, so every still image reads vertical. The
+model is for a wall mount and has no stand.
+
+The Fits table is unchanged. Only positions moved: `G`, the pillars, the bolt sites and the mounting holes. Every distance
+from `O` and `P` to the drive parts is the same, because the drive turned about `O` by 30°.
+
+Front view (from `+Z`, pendulum at rest), through the front plate's windows:
+
+| Part | Visible | Hidden by |
+|---|---|---|
+| crutch, crutch pin, pendulum, suspension cap | all (in front of the plate) | none |
+| anchor | pallets, impulse and locking faces, arms | the hub at `P` (`r 10`) covers its hub |
+| escape wheel | all 30 teeth except near `(0, ±40)`; spokes and windows | the spine strip `|x| ≤ 4` (behind the pendulum rod), the hub at `O` |
+| great wheel | teeth and face, except the spine strip, the hub at `G` and its lowest 1.2 mm (bottom rim) | none |
+| ratchet and pawls | ratchet teeth `r 11.5` to `13.5`, pawl teeth `r 10.5` to `12.5` | the hub ring and knob inside `r 10` |
+| drum barrel, pinion | none | the hub at `G`; the escape wheel's hub (pinion) |
+
+Back view (from `-Z`) through the back plate's windows: the great wheel's back face and teeth, the pinion ring (`r 10` to
+`11.23` beyond the hub, except the spine strip), and the escape wheel and anchor behind them. The pinion and great wheel
+mesh lies on the centre line, so the spine strip covers it. It shows in the angled and side views.
+
+Acceptance cases added: `TestCentreLine` (`O, P, S, G` at `x = 0` to 1e-9; default `Motion` gives ψ = 0 and β = 0; each
+plate's bounds are symmetric within the section bound; pillars and mounting holes in mirror pairs), `TestPlateWindows`
+(by section outline at mid-plane, the points `(±29.5114, 27.5334)`, `(±28.2168, 26.2738)`, `(±37.1764, 37.3885)`,
+`(±40, 0)`, `(±20, 0)`, `(±30, -45.75)`, `(±37, -45.75)`, `(±12.5, -45.75)` and `(±10.8, 0)` are open; the hub rings
+at `(±8.5, 0)`, the spine at `(0, 30)`, the rim beside each pillar at `(±47, 74)` and `(±47, -88)` and, on the front plate,
+the socket wall at `(0, 75)` are material) and `TestPlateMaterial` (each pocket circle at least 2.0 mm from a window, each
+bolt hole at least 3.0 mm, the socket at least 5.0 mm).
 
 ## Look-alike parts
 

@@ -159,7 +159,7 @@ func TestRatchet(t *testing.T) {
 		}
 	}
 	require.GreaterOrEqual(t, armGap, 0.95-off)
-	// The drum's flange front face (z 21.25) stays under the 400 mm² of large faces: π (11.5² - 3.7²) = 372.5.
+	// The drum's flange front face (z 21.25) stays under the 400 mm² of large faces: π (9.5² - 3.7²) = 240.6.
 	found := false
 	for _, f := range drum.Faces() {
 		pl, ok := f.Surface().(decad.Plane)
@@ -168,8 +168,24 @@ func TestRatchet(t *testing.T) {
 		}
 		area, err := f.Area()
 		require.NoError(t, err)
-		require.InDelta(t, 372.5, area.Value.Base(), 1.0)
+		require.InDelta(t, 240.6, area.Value.Base(), 1.0)
 		found = true
 	}
 	require.True(t, found, "the flange front face")
+}
+
+// TestKnob checks the winding knob: radius 9, so its face (254 mm² less the socket) is under the 400 mm² of large faces.
+func TestKnob(t *testing.T) {
+	b := testBuilder(t)
+	knob, err := b.buildKnob()
+	require.NoError(t, err)
+	require.True(t, knob.IsSolid())
+	o := sectionAt(t, knob, 35)
+	require.Less(t, o.PolygonArea().Base(), 400.0)
+	require.InDelta(t, math.Pi*81, o.PolygonArea().Base()+math.Pi*2.55*2.55*0.93, 4)
+	far := 0.0
+	for _, v := range loopsBy(o)[0] {
+		far = math.Max(far, v.Len())
+	}
+	require.InDelta(t, 9, far, 0.03+o.OffSurface.Base())
 }

@@ -2,7 +2,7 @@
 
 | Model | Image | Description | Clearance adjustment |
 | --- | --- | --- | --- |
-| [Graham escapement](escapement/) | <img src="escapement/images/index.png" alt="Graham escapement with a pendulum" width="240"> | A weight-driven clock movement: a 30-tooth escape wheel, a deadbeat anchor, a crutch and a pendulum in a two-plate frame on seven 605ZZ bearings. | Mixed |
+| [Graham escapement](escapement/) | <img src="escapement/images/index.png" alt="Graham escapement with a pendulum" width="240"> | A weight-driven clock movement: a 30-tooth escape wheel, a deadbeat anchor, a crutch and a pendulum in an open, symmetric two-plate frame on seven 605ZZ bearings, with the mechanism in view from the front and the back. | Mixed |
 | [Hand-crank fan](handcrankfan/) | <img src="handcrankfan/images/index.png" alt="Fan with a right-hand crank" width="240"> | A handheld fan whose right-hand crank drives a four-blade rotor of swappable blades through a spur pair and a bevel gear pair. | Mixed |
 | [Hand-crank siren](handcranksiren/) | <img src="handcranksiren/images/index.png" alt="Hand-crank siren with its horn" width="240"> | A hand crank spins a slotted rotor ten times faster through two spur stages; 20 ports chop the air into a 400 Hz tone at two crank turns a second. | Mixed |
 | [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. | Mixed |

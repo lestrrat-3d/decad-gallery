@@ -24,7 +24,7 @@ const (
 	drumCoreRadius = 7.5
 	layerLow       = 5.25
 	layerLength    = 4.0
-	knobRadius     = 10.0
+	knobRadius     = 9.0
 	knobLow        = 34.25
 	knobHigh       = 37.25
 )
@@ -107,7 +107,7 @@ func pawlLoop(s *sketch.Sketch, ref *sketch.Line, g float64) {
 
 // buildDrum builds the drum about the origin: the barrel, cone, flange and boss, the press bore, and the pawl layer.
 func (b *builder) buildDrum() (*decad.Body, error) {
-	drum, err := b.stepped("drum", 0, 0, meridianPoints{{0, 8.75}, {7, 8.75}, {7, 16.75}, {11.5, 21.25}, {3.7, 21.25},
+	drum, err := b.stepped("drum", 0, 0, meridianPoints{{0, 8.75}, {7, 8.75}, {7, 18.75}, {9.5, 21.25}, {3.7, 21.25},
 		{3.7, 27.75}, {0, 27.75}})
 	if err != nil {
 		return nil, err

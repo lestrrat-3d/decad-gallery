@@ -3,8 +3,10 @@ package escapement
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -12,9 +14,9 @@ import (
 
 // Plate dimensions in mm.
 const (
-	plateLeft    = -52.0
-	plateRight   = 70.0
-	plateBottom  = -86.0
+	plateLeft    = -58.0
+	plateRight   = 58.0
+	plateBottom  = -96.0
 	backTop      = 98.0
 	frontTop     = 82.0
 	plateCorner  = 10.0
@@ -28,16 +30,17 @@ const (
 	seatRadius   = 7.05 // a 605ZZ's 7.0 radius and the 0.05 bearing-seat clearance
 	seatDepth    = 6.0
 	mountRadius  = 2.25
+	plateThick   = 6.0
 	boltLength   = 10.0
 	nutCavityAt  = 8.0
 	headTop      = 34.0
 )
 
 // pillars are the four pillar centres, in the order of the bolts and nuts.
-var pillars = []Pt{{-44, 74}, {62, 74}, {-44, -78}, {62, -78}}
+var pillars = []Pt{{-50, 74}, {50, 74}, {-50, -88}, {50, -88}}
 
 // mountHoles are the back plate's two mounting holes.
-var mountHoles = []Pt{{-30, 90}, {48, 90}}
+var mountHoles = []Pt{{-40, 90}, {40, 90}}
 
 // sites returns the four bolt sites: head top at z 34, shank toward -Z, nut corners on +X.
 func sites() []m2fastener.Site {
@@ -90,18 +93,80 @@ func holeAt(s *sketch.Sketch, ref *sketch.Line, c Pt, r float64) {
 	s.AddConstraint(sketch.NewRadius(s.CreateCircle(centre, r), r))
 }
 
-// plateOutline extrudes a plate outline at height low with holes through it.
-func (b *builder) plateOutline(what string, low, high, top float64, holes []Pt, radii []float64) (*decad.Body, error) {
+// Window dimensions in mm: the spine is 8 mm wide, each hub ring has radius 10, the window's corners radius 6.
+const (
+	spineHalf    = 4.0
+	windowSide   = 44.0
+	windowBottom = -82.0
+	windowTop    = 62.0
+	windowCorner = 6.0
+	hubRing      = 10.0
+)
+
+// window draws the window on side sx (+1 right, -1 left) as one closed loop of six lines and five arcs. The hub rings
+// bulge into it around the centres p, o and g, which both windows share. A clockwise arc on the right is the same arc
+// drawn counter-clockwise from its other end, and the other way round on the left.
+func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) {
+	h := math.Sqrt(hubRing*hubRing - spineHalf*spineHalf)
+	pt := func(x, y float64) *sketch.Point { return s.CreatePoint(sx*x, y) }
+	fx := math.Sqrt(hubRing*hubRing - (windowTop-geo.P.Y)*(windowTop-geo.P.Y))
+	a, b := pt(spineHalf, windowBottom), pt(38, windowBottom)
+	c, d := pt(windowSide, -76), pt(windowSide, 56)
+	e, f := pt(38, windowTop), pt(fx, windowTop)
+	hp, i := pt(spineHalf, geo.P.Y-h), pt(spineHalf, h)
+	j, k := pt(spineHalf, -h), pt(spineHalf, geo.G.Y+h)
+	l := pt(spineHalf, geo.G.Y-h)
+	c1, c2 := pt(38, -76), pt(38, 56)
+	arc := func(centre, from, to *sketch.Point) *sketch.Arc {
+		if sx > 0 {
+			return s.CreateArc(centre, to, from)
+		}
+		return s.CreateArc(centre, from, to)
+	}
+	ab := s.CreateLine(a, b)
+	arc1 := arc(c1, c, b)
+	cd := s.CreateLine(c, d)
+	arc2 := arc(c2, e, d)
+	ef := s.CreateLine(e, f)
+	arcP := arc(p, f, hp)
+	hi := s.CreateLine(hp, i)
+	arcO := arc(o, i, j)
+	jk := s.CreateLine(j, k)
+	arcG := arc(g, k, l)
+	la := s.CreateLine(l, a)
+	s.AddConstraint(
+		sketch.NewHorizontal(ab), sketch.NewVerticalDistance(s.Origin(), a, windowBottom),
+		sketch.NewHorizontalDistance(s.Origin(), a, sx*spineHalf),
+		sketch.NewVertical(cd), sketch.NewHorizontalDistance(s.Origin(), c, sx*windowSide),
+		sketch.NewHorizontal(ef), sketch.NewVerticalDistance(s.Origin(), e, windowTop),
+		sketch.NewVertical(hi), sketch.NewHorizontalDistance(s.Origin(), hp, sx*spineHalf),
+		sketch.NewVertical(jk), sketch.NewHorizontalDistance(s.Origin(), j, sx*spineHalf),
+		sketch.NewVertical(la),
+		sketch.NewRadius(arc1, windowCorner), sketch.NewRadius(arc2, windowCorner),
+		sketch.NewTangent(ab, arc1), sketch.NewTangent(cd, arc1),
+		sketch.NewTangent(cd, arc2), sketch.NewTangent(ef, arc2),
+		sketch.NewRadius(arcP, hubRing), sketch.NewRadius(arcO, hubRing), sketch.NewRadius(arcG, hubRing),
+	)
+}
+
+// plateOutline extrudes one plate section, as a single sketch: the outline, both windows and the holes. A union of rim,
+// spine and hub prisms is refused by Decad, so the plate is drawn whole.
+func (b *builder) plateOutline(what string, low, top float64, holes []Pt) (*decad.Body, error) {
 	s, err := b.flat(what, 0, 0, low)
 	if err != nil {
 		return nil, err
 	}
 	ref := xRef(s)
 	roundedRect(s, top)
-	for i, h := range holes {
-		holeAt(s, ref, h, radii[i])
+	// The hub centres: O is the origin; P and G are polar points shared by both windows.
+	pc := polar(s, ref, b.g.P.Len(), 90*deg)
+	gc := polar(s, ref, b.g.G.Len(), -90*deg)
+	window(s, 1, pc, s.Origin(), gc, &b.g)
+	window(s, -1, pc, s.Origin(), gc, &b.g)
+	for _, h := range holes {
+		holeAt(s, ref, h, mountRadius)
 	}
-	return b.extrude(s, len(holes), high-low, what)
+	return b.extrude(s, 2+len(holes), plateThick, what)
 }
 
 // fastenerTools builds the tool of each site made by f and records its sketch.
@@ -133,11 +198,50 @@ func (b *builder) seatTools(z float64) ([]*decad.Body, error) {
 	return out, nil
 }
 
+// lipTools builds the three lip bores through a plate that starts at low: a circle of radius 5 at each axis. The bores are
+// cut by tools, because the chamfer of a pocket rim is refused when the lip bores are holes of the plate's own sketch.
+// The cut leaves each lip rim a faceted edge that no chamfer can name, so the lip rims stay sharp.
+func (b *builder) lipTools(low float64) ([]*decad.Body, error) {
+	var out []*decad.Body
+	for i, a := range b.axes() {
+		t, err := b.discAt(fmt.Sprintf("lip bore %d", i+1), a.X, a.Y, low-1, lipRadius, plateThick+2)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+// plateKeep chooses the loops of a plate that are chamfered: the outer loop, each window (more than four edges; the
+// two-edge D socket is not taken, because its faceted edges cannot be named), and the single-edge circles of radius
+// 7.05 (the seat rims) at the three axes. The faceted lip rims are not named.
+func (b *builder) plateKeep() edgefinish.LoopFilter {
+	axes := b.axes()
+	return func(l *decad.Loop, e []*decad.Edge) bool {
+		if l.IsOuter() || len(e) > 4 {
+			return true
+		}
+		c, ok := e[0].Curve().(decad.Circle3)
+		if !ok || len(e) != 1 {
+			return false
+		}
+		r := c.Radius.Base()
+		if math.Abs(r-seatRadius) > 0.01 && math.Abs(r-lipRadius) > 0.01 {
+			return false
+		}
+		for _, a := range axes {
+			if math.Hypot(c.Center.X-a.X, c.Center.Y-a.Y) < 0.01 {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 // buildBackPlate builds the back plate with its pillars, bearing seats, bolt holes and nut cavities.
 func (b *builder) buildBackPlate() (*decad.Body, error) {
-	holes := append(b.axes(), mountHoles...)
-	radii := []float64{lipRadius, lipRadius, lipRadius, mountRadius, mountRadius}
-	plate, err := b.plateOutline("back plate outline", backLow, backHigh, backTop, holes, radii)
+	plate, err := b.plateOutline("back plate outline", backLow, backTop, mountHoles)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +260,12 @@ func (b *builder) buildBackPlate() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
+	bores, err := b.lipTools(backLow)
+	if err != nil {
+		return nil, err
+	}
+	tools = append(tools, bores...)
+
 	holeTools, err := b.fastenerTools(m2fastener.HoleTool)
 	if err != nil {
 		return nil, err
@@ -172,7 +282,7 @@ func (b *builder) buildBackPlate() (*decad.Body, error) {
 	if plate, err = b.cut(plate, tool, "back plate"); err != nil {
 		return nil, err
 	}
-	plate, err = b.finish(plate, []float64{backLow, backHigh}, rimKeepAll(b.axes(), seatRadius, lipRadius))
+	plate, err = b.finish(plate, []float64{backLow, backHigh}, b.plateKeep())
 	if err != nil {
 		return nil, fmt.Errorf("back plate edges: %w", err)
 	}
@@ -181,8 +291,7 @@ func (b *builder) buildBackPlate() (*decad.Body, error) {
 
 // buildFrontPlate builds the front plate with its bearing seats, bolt holes, head pockets and suspension socket.
 func (b *builder) buildFrontPlate() (*decad.Body, error) {
-	plate, err := b.plateOutline("front plate outline", frontLow, frontHigh, frontTop, b.axes(),
-		[]float64{lipRadius, lipRadius, lipRadius})
+	plate, err := b.plateOutline("front plate outline", frontLow, frontTop, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +299,12 @@ func (b *builder) buildFrontPlate() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
+	bores, err := b.lipTools(frontLow)
+	if err != nil {
+		return nil, err
+	}
+	tools = append(tools, bores...)
+
 	holeTools, err := b.fastenerTools(m2fastener.HoleTool)
 	if err != nil {
 		return nil, err
@@ -210,7 +325,7 @@ func (b *builder) buildFrontPlate() (*decad.Body, error) {
 	if plate, err = b.cut(plate, tool, "front plate"); err != nil {
 		return nil, err
 	}
-	plate, err = b.finish(plate, []float64{frontLow, frontHigh}, rimKeepAll(b.axes(), seatRadius, lipRadius))
+	plate, err = b.finish(plate, []float64{frontLow, frontHigh}, b.plateKeep())
 	if err != nil {
 		return nil, fmt.Errorf("front plate edges: %w", err)
 	}
