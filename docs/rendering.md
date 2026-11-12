@@ -26,7 +26,8 @@ go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballb
 ```
 
 `ballbearing/605zz` renders the 5 × 14 × 5 mm 605ZZ envelope through the same builder.
-The readme shot also writes `605zz.png` at 1600 × 900.
+The readme shot also writes `605zz.png` at 1600 × 900, plus `top.png` (looking down the bore)
+and `side.png` (looking at the outer surface) of the 608-2RS at the same size.
 
 `m2bolt/hero` renders the default M2x10 bolt lying on its side with its head toward the camera.
 The `head`, `side`, `underside` and `lengths` presets show other angles and all six standard lengths.
