@@ -10,12 +10,11 @@ import (
 const (
 	// regularFit is the Regular fit of docs/model-pipeline.md, the least gap between moving custom parts.
 	regularFit = 0.35
-	// tightFit is the Tight fit of docs/model-pipeline.md, for a pin that is not meant to be removed.
-	tightFit = 0.2
+	// pressFit is the radial clearance of a press-fit part and its socket, from Part clearances in
+	// docs/model-pipeline.md. The 0.2 mm Tight minimum does not apply to it.
+	pressFit = 0.05
 	// regularMeasurementMargin covers held chamfer-mesh bounds and section measurement uncertainty.
 	regularMeasurementMargin = 0.2
-	// tightMeasurementMargin covers section measurement uncertainty for the exact pin and plate surfaces.
-	tightMeasurementMargin = 0.05
 )
 
 // MinClearance is the smallest nominal gap, in millimeters, that Problems accepts between moving custom parts:
@@ -28,8 +27,8 @@ const MinClearance = regularFit + regularMeasurementMargin
 const MinChamferSize = 0.5
 
 // socketClearance is the radial gap, in millimeters, between an output pin and its socket in the output plate:
-// the Tight fit plus the measurement margin.
-const socketClearance = tightFit + tightMeasurementMargin
+// the press fit. The pin stays in the plate once pushed in.
+const socketClearance = pressFit
 
 // Params describes one cycloidal drive. Lengths are millimeters. A diameter of zero where the field says
 // "auto" selects the mean of the size's theoretical bounds.

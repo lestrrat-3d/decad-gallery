@@ -40,7 +40,7 @@ per-field status text boxes are dialog furniture and have no gallery counterpart
 
 `Rr = PinDiameter / 2` when `PinDiameter > 0`, else `(E + R sin(π/N)) / 2`. `Rr_eff = Rr + c`.
 `Rv = R - Rr_eff - E`. `D_pin = OutputPinDiameter` when it is positive, else `Rop sin(π/M) - E`.
-`D_hole = D_pin + 2E + 2 c_pin`, where `c_pin` is `OutputPinClearance`. `D_socket = D_pin + 2 × 0.25` is the
+`D_hole = D_pin + 2E + 2 c_pin`, where `c_pin` is `OutputPinClearance`. `D_socket = D_pin + 2 × 0.05` is the
 plate socket that holds a pin. The housing outer diameter is `2 (R - Rr + 2E + wall)`, its base inner diameter
 is `2 (R - Rr - wall)`, and the output plate diameter is `2 Rop + D_socket + 2 wall`.
 `Rr` and `D_hole` are numeric snapshots in the parameter table because they choose between a derived
@@ -63,7 +63,7 @@ and two touching discs; the gallery refuses them.
 ## Fits
 
 The moving custom parts keep the Regular fit of [Part clearances](../../docs/model-pipeline.md#part-clearances),
-0.35 mm, and the output pins keep the Tight fit, 0.2 mm. The regular-fit inputs add 0.2 mm for held chamfer-mesh
+0.35 mm, and the output pins in the plate keep the press fit, 0.05 mm. The regular-fit inputs add 0.2 mm for held chamfer-mesh
 bounds and section uncertainty. `Problems` refuses a smaller value.
 
 | Fit | Input | Minimum |
@@ -72,7 +72,7 @@ bounds and section uncertainty. `Problems` refuses a smaller value.
 | Disc bore to cam, radial | `BearingClearance / 2` | 0.55 |
 | Output pin to disc hole | `OutputPinClearance` | 0.55 |
 | Disc to disc, along the axis | `DiscGap` (two discs) | 0.55 |
-| Output pin to plate socket, radial | fixed | 0.25 |
+| Output pin to plate socket, radial | fixed | 0.05 |
 
 The disc, housing base and output plate stand one plane gap (1 mm) apart along the axis.
 

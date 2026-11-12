@@ -30,9 +30,9 @@ against the removed wedge. Every body passes 0.1 mm `VerifyAll`, every sketch is
 the rotor clears the casing, the cam and the output pins at the home pose.
 
 `TestMeasuredFits` sections the placed bodies and requires the proven lower bound of every moving fit to reach
-the Regular fit of 0.35 mm, and of the pins in the plate to reach the Tight fit of 0.2 mm. It runs one and two
+the Regular fit of 0.35 mm, and of the pins in the plate to reach the press fit of 0.05 mm less 0.03 mm of section uncertainty. It runs one and two
 discs, 12 and 20 pins, a solid cam, five output pins, the smallest clearances `Problems` accepts, and larger ones.
 The regular-fit inputs have minimums of 0.55 mm (1.1 mm diametral for the bearing), which is the fit plus a 0.2 mm
-margin for held chamfer-mesh bounds and section uncertainty. The pin-to-plate socket keeps a 0.25 mm radial gap.
+margin for held chamfer-mesh bounds and section uncertainty. The pin-to-plate socket keeps a 0.05 mm radial gap.
 
 The [renderer](../rendering.md) produces the page's images from the two-disc drive.
