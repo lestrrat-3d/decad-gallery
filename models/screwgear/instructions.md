@@ -308,7 +308,9 @@ cases below each build.
    tool is the opening rectangle at the cut's first station, swept along the gear's axis for `sOut − sIn` with a
    twist of `(sOut − sIn)/Λ`, then moved onto the gear's axis.
 4. Cut each window that has room, the one facing `d` before the one facing `−d`.
-5. Move gear A, gear B and the cage onto `Placement`.
+5. Chamfer both rims of both end faces of the cage by 0.5 mm, four edges in all, as Surface edge finishing
+   requires. Each end face is 584 mm² and the chamfer leaves it about 487 mm² with a 45° bevel beside each rim.
+6. Move gear A, gear B and the cage onto `Placement`.
 
 The ribbons are never operands of a boolean. They pass through the channels and the cuts leave them whole. Every
 cut leaves exactly one cage body.

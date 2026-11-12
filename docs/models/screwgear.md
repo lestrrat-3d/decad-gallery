@@ -37,6 +37,7 @@ about 40 s, and the build cases use 16 teeth, which takes about 15 s each. A lon
 - the defaults, the derived values and every input check;
 - the pair frame and the roof side of each bore;
 - the wall separation of 5.310 mm and the window search numbers at the defaults;
+- the sleeve's two end faces, each with both rims chamfered 0.5 mm at 45°;
 - the default build's volumes and bounds, a placed build, and three build branches;
 - the default 68-tooth ribbon as one verified loft: 681 sections lofted as one solid, its volume against the
   denoted solid, its verified mesh and mesh volume, and a rigid copy (about 12 s and 1.3 GB, run by pull request
