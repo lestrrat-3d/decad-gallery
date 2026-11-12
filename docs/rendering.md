@@ -90,10 +90,16 @@ go -C tools/render run . -model bevelgear -shot straight-high -out ../../models/
 go -C tools/render run . -model bevelgear -shot straight-low -out ../../models/bevelgear/images/straight-low.png
 ```
 
+The `bevelgear/exploded-spiral` and `bevelgear/exploded-straight` presets pull each pair apart along its
+shafts, the driving gear along +X and the pinion along +Y, each by 0.4 of the pair's bounding box diagonal. The
+`readme` shot writes them as 1200 × 1000 pixel `exploded-spiral.png` and `exploded-straight.png`, and writes
+480 × 270 pixel `parts/spiral-gear.png`, `parts/straight-driving.png` and `parts/straight-pinion.png` for the
+parts table.
+
 The `readme` shot builds each model once and writes a 480 × 270 pixel
 `index.png` for `models/README.md`. For helical and herringbone gears it also
 writes 1600 × 900 pixel `top.png` and `low.png` views. For bevel gears it
-writes a 1600 × 900 pixel `hero.png` and six 1200 × 1000 pixel views (`top.png`, `low.png`,
+writes a 1600 × 900 pixel `hero.png` and eight 1200 × 1000 pixel views (the two exploded views and `top.png`, `low.png`,
 `high.png`, `straight-top.png`, `straight-low.png`, and `straight-high.png`) with outlines
 enabled. The hero camera is shifted sideways until the left and right margins match. The hero
 scene sets the edge tolerance to 0.12 mm for every image size, so the 480 × 270 pixel index
