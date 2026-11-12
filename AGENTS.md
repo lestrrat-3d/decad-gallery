@@ -62,6 +62,7 @@
 - Every model README must show the finished product from multiple angles in addition to its hero image.
 - For a multi-body assembly, include an exploded view and a table with an image and name for each distinct body.
   See `models/planetarygearbox/README.md` for an example.
+- Apply [Exploded views](docs/model-pipeline.md#exploded-views) to every exploded image: large, full-width, every part visible.
 - For every new model, update the root `README.md` overview and gallery hero image.
 - Add every new model to `models/README.md` with its description and index image.
 - Follow `docs/adding-models.md` for the model's hero and index images.

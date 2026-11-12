@@ -15,6 +15,7 @@ same rendering tool when a model needs motion to explain it. Add the item to the
 In addition to the hero image, show the finished product in the README from multiple angles. For a
 multi-body assembly, include an exploded view and a table with an image and name for each distinct body.
 See the [planetary gearbox README](../models/planetarygearbox/README.md) for an example.
+Size and place the exploded view by [Exploded views](model-pipeline.md#exploded-views).
 
 Follow the [model build pipeline](model-pipeline.md) when adding an item. The instructions own the
 dimensions and behavior; the steps map them to Sketch and Decad operations.

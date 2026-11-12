@@ -66,7 +66,7 @@ for a wall mount and has no stand.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars, the great wheel, the front plate, the crutch, the winding knob, the bolts, the pendulum, its bearing and the cap; the arbors lie behind the back plate" width="450">
+<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars, the great wheel, the front plate, the crutch, the winding knob, the bolts, the pendulum, its bearing and the cap; the arbors lie behind the back plate">
 
 The picture pulls the parts apart along the movement's axis, from the arbors at the back to the suspension cap at the front. The arbors lie 70 mm behind the back plate, so the back plate hides most of them.
 

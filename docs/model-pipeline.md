@@ -194,6 +194,24 @@ This rule applies to every multi-body model whose `instructions.md` has a
 - Test each declared set: no two different parts share a count, and each hole
   passes through its part.
 
+### Exploded views
+
+The exploded view is the assembly manual and a visual check of the part list, so
+a reader must be able to tell every part apart in it. This rule applies to the
+exploded image of every multi-body model.
+
+- Render the image at 1600 × 900 pixels or larger.
+- Show it in the model `README.md` at the full width of the page, with no
+  `width` attribute. Never show it narrower than 800 px.
+- Show one exploded image per row. Do not put two exploded images side by side
+  in a table.
+- Fill the frame: the exploded parts span at least 80% of the image width or
+  height. Crop empty margin by moving the camera, not by shrinking the offsets.
+- Make every part visible. Offset parts far enough along the explode axis that
+  none hides another. A part that still hides behind another gets its own
+  close-up or second angle in the README, not a sentence saying it is hidden.
+- Give the image alt text that lists every part in assembly order.
+
 ## Spur gear example
 
 [`models/spurgear/instructions.md`](../models/spurgear/instructions.md) is
