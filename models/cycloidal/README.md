@@ -19,7 +19,7 @@ The two-disc drive from the output end, input end and side.
 
 ## Exploded
 
-![The two-disc cycloidal drive pulled apart along a staircase: housing, two rotor discs, cam, output plate and pins](images/exploded.png)
+![The two-disc cycloidal drive pulled apart along its axis in Decad's derived order: housing, rotor disc, output pins, cam, rotor disc and output plate](images/exploded.png)
 
 ## Parts
 
