@@ -23,14 +23,14 @@ The gears are `models/spurgear` bodies of module 1.5, and the ratio is exactly 1
 and the nuts `models/m2nut` bodies: 24 of each, with every head flush in a pocket and every nut in an enclosed
 cavity. The shared build steps live in `internal/gearroot`, `internal/edgefinish` and `internal/m2fastener`.
 
-The default build with every check takes about 5.7 minutes (340 s) and the two variants about 5.6 minutes together
-(Slots 12 and 24, which run the port, orientation, overlap and rotor-fit checks only). Run the checks with:
+The default build runs every siren check. Slots 12 and 24 each run the full siren build and geometry checks. Run all
+three cases with:
 
 ```sh
 go test ./models/handcranksiren -timeout 40m
 ```
 
-CI splits the checks into the jobs `siren-default` and `siren-variants` (`.github/workflows/repository.yml`), and runs
-the shared packages' tests in the mesh helper step.
+CI runs the cases in jobs `siren-default`, `siren-slots12`, and `siren-slots24` (`.github/workflows/repository.yml`).
+It runs the shared packages' tests in the mesh helper step.
 
 Render the images with `go -C tools/render run . -model handcranksiren -shot readme -out ../../models/handcranksiren/images`.

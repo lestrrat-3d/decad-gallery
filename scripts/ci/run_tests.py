@@ -232,8 +232,18 @@ def run_wheel(case: str) -> None:
 
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
-    "default": "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
-    "variants": "^TestHandCrankSirenVariant$",
+    "default": (
+        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+        [],
+    ),
+    "slots12": (
+        "^TestHandCrankSirenVariant$/^slots_12$",
+        ["TestHandCrankSirenVariant/slots_12"],
+    ),
+    "slots24": (
+        "^TestHandCrankSirenVariant$/^slots_24$",
+        ["TestHandCrankSirenVariant/slots_24"],
+    ),
 }
 
 FAN_VARIANTS = {
@@ -243,7 +253,11 @@ FAN_VARIANTS = {
 
 
 def run_siren(case: str) -> None:
-    go_test(["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"])
+    pattern, expected = SIREN_CASES[case]
+    go_test(
+        ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
+        expected,
+    )
 
 
 def run_escapement() -> None:

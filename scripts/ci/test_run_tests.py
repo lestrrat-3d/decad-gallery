@@ -26,7 +26,32 @@ class RunPatternTest(unittest.TestCase):
 
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
-        self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
+        expected = {
+            "default": (
+                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+                [],
+            ),
+            "slots12": (
+                "^TestHandCrankSirenVariant$/^slots_12$",
+                ["TestHandCrankSirenVariant/slots_12"],
+            ),
+            "slots24": (
+                "^TestHandCrankSirenVariant$/^slots_24$",
+                ["TestHandCrankSirenVariant/slots_24"],
+            ),
+        }
+        self.assertEqual(run_tests.SIREN_CASES, expected)
+
+    def test_siren_cases_pass_expected_variant(self):
+        for case, (pattern, expected) in run_tests.SIREN_CASES.items():
+            with self.subTest(case=case):
+                with mock.patch.object(run_tests, "go_test") as go_test:
+                    run_tests.run_siren(case)
+                args, kwargs = go_test.call_args
+                self.assertEqual(args[0][0], "./models/handcranksiren")
+                self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
+                self.assertEqual(args[1], expected)
+                self.assertEqual(kwargs, {})
 
 
 class EscapementTest(unittest.TestCase):
