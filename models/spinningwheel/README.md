@@ -2,11 +2,7 @@
 
 ![Open Saxony spinning wheel](images/hero.png)
 
-The images show all 206 parts of the default build, rendered from the real Decad body with Decad `c79783bd2ca2`.
-The [preview status](images/preview-status.json) records the part counts and that no part is omitted.
-Every part pair of the default build and of four scale and ratio variants has a conclusive non-overlap result.
-Mating parts that ride different motion frames keep small designed gaps, 0.01 to 0.05 mm, listed in the
-[instructions](instructions.md). The heel bearings' inner races keep a 0.2 mm axial float.
+The images show all 206 parts of the default build.
 
 This wheel follows the flyer-and-bobbin arrangement in
 [George Weil's labelled spinning wheel](https://www.georgeweil.com/blog/how-does-a-spinning-wheel-work/).
@@ -38,7 +34,6 @@ Moving its base along the flyer axis selects a whorl groove while keeping both p
 The footboard extends fore and aft toward the operator. Its hinge shaft crosses the frame,
 perpendicular to the wheel axle. Two bars carry the footboard, and a crossarm behind the wheel reaches the footman.
 An upper gimbal has two rolling axes; a lower compliant connector joins the rocking rail to the footman.
-The [reference inventory](../../docs/spinning-wheel-reference-audit.md) records all corrected arrangements.
 
 ## Yarn path and take-up
 
@@ -66,16 +61,15 @@ a plain nylon sleeve; the smaller rear journal uses a 608 bearing.
 
 ![Wheel turn animation](images/motion.gif)
 
-The animation shows one wheel turn in 96 frames. The left panel views the wheel from the side opposite
+The animation shows one wheel turn. The left panel views the wheel from the side opposite
 the still images (turned 180 degrees about the vertical axis) to show the treadle, footman, crank and connector.
 It prescribes 195 mm of yarn feed per wheel turn,
 so the flyer makes 7 turns while the bobbin makes 6.
-The still images show one solved pose. The frame stays fixed while the treadle rocks and the footman's
-bearing centres follow the spatial linkage. The model default prescribes 100 mm of yarn feed per wheel turn.
+The still images show one pose. The model default is 100 mm of yarn feed per wheel turn.
 
 The wheel can turn in either direction after a hand start. Flywheel inertia carries it
 through the crank's dead centres and raises the pedal. Side slides and a pedal return spring
-are unnecessary for this rocking treadle. The model prescribes motion; it does not
+are unnecessary for this rocking treadle. The animation shows set motion; it does not
 calculate foot force, bearing load, inertia, belt traction or brake friction.
 
 ## Parts and adjustment

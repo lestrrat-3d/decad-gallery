@@ -23,7 +23,7 @@ The two-disc drive from the output end, input end and side.
 
 ## Parts
 
-Each image shows one named body from the real two-disc build. The six output pins have the same shape and appear
+Each image shows one named body of the two-disc build. The six output pins have the same shape and appear
 separately because each pin is its own body.
 
 | Image | Name |
@@ -43,8 +43,8 @@ separately because each pin is its own body.
 You can vary:
 
 - The number of pin positions and the pin circle diameter.
-- The eccentricity, the pin diameters and the clearances. The tests prove the repository's Regular fit for
-  moving custom parts and Tight fit for pins in the plate.
+- The eccentricity, the pin diameters and the clearances. Moving custom parts have the Regular fit and pins in
+  the plate have the Tight fit.
 - One or two discs, their thickness and the gap between them.
 - The cam diameter and the input shaft bore, or a solid cam.
 - The number and circle of the output pins.
@@ -53,7 +53,7 @@ You can vary:
   rotor discs, housing, cam and output plate, and on both ends of every output pin.
 - The position and orientation of the drive in space.
 
-The model follows the Fusion 360 add-in's cycloidal drive. Dimensions are in millimeters.
+Dimensions are in millimeters.
 
-For how to build this drive from Go and how it differs from the add-in, see the
+For how to build this drive from Go, see the
 [developer notes](../../docs/models/cycloidal.md).

@@ -13,7 +13,7 @@ The finished fan from three more angles: the crank side, from behind and above, 
 | --- | --- | --- |
 | <img src="images/view-crank.png" alt="Hand-crank fan seen from the crank side, with the crank arm and handle on the gearbox and the grip below" width="320"> | <img src="images/view-rear.png" alt="Hand-crank fan seen from behind and above: the open back of the gearbox with the bevel gears, the two shaft collars on its left face with small flush bolt heads at the corners, and the grip below" width="320"> | <img src="images/view-below.png" alt="Hand-crank fan seen from below: the grip, the gearbox's underside with its bolt heads, the crank handle and the four-blade rotor" width="320"> |
 
-![The fan exploded by Decad along its joints: grip and its bolts, gearbox, spur and bevel gears, shafts, arm, handle and pin, and the fan shaft, hub, blades, bolts and nuts](images/exploded.png)
+![The fan pulled apart along its joints: grip and its bolts, gearbox, spur and bevel gears, shafts, arm, handle and pin, and the fan shaft, hub, blades, bolts and nuts](images/exploded.png)
 
 The crank shaft sits 40 mm below the fan's axis, so the crank handle swings clear of the blades. A pair of
 equal spur gears inside the gearbox carries its turn up to the drive shaft, and a straight-tooth bevel gear pair turns that through 90°
@@ -69,18 +69,12 @@ The printer cannot make a closed cavity around a nut, so you drop each nut in du
 A fan with four blades takes 15 bolts (7 of M2 x 10 and 8 of M2 x 16) and 15 nuts.
 
 Every pair of printed parts has a gap of at least 0.2 mm where the parts are not meant to come apart (Tight), 0.35 mm
-where they move or come apart for service (Regular), and 0.5 mm where they only sit near each other (Loose). The
-tests measure each of them on the built model. The spur gears sit 40 mm apart, half the sum of their pitch diameters,
+where they move or come apart for service (Regular), and 0.5 mm where they only sit near each other (Loose). The spur gears sit 40 mm apart, half the sum of their pitch diameters,
 with a deeper tooth root and a small backlash, so each tooth tip clears the other gear's root by more than 0.5 mm.
-
-The model is marked Mixed in [models/README.md](../README.md): the printed fits carry these clearances, and the bolts,
-nuts and bearings keep their standard sizes. One item is open. The bevel gear pair has no proven tooth clearance,
-because `models/bevelgear` has no backlash parameter and Decad cannot yet prove a gap between two faceted bodies.
-Closing it needs a `Backlash` parameter in `models/bevelgear` and that proof from Decad.
 
 ## Parts
 
-Each part is shown once, from the real model, in place at the default pose. A fan has one of each part except
+A fan has one of each part except
 the gearbox bolts and nuts, the grip bolts and nuts, the bearings, and the blades with their bolts and nuts, which are
 repeated as the names say. The bought parts are the bolts, the nuts and the bearings. Everything else is printed.
 

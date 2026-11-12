@@ -16,12 +16,12 @@ a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up, 608-
 envelopes, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
 
+## For developers
+
 Every model directory holds two specification files. `instructions.md` states the inputs and defaults,
 units, derived values, geometric construction, feature order, valid parameter range, and representative
 cases. `steps.md` maps each construction requirement to a Sketch or Decad operation and names the geometry
 check at each boundary.
-
-## For developers
 
 The [docs](docs/) explain how the models are built, how to add one, and how the images are rendered. The
 [repository layout and checks](docs/repository.md) page lists what lives where.

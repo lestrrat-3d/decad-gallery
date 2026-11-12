@@ -12,9 +12,8 @@
 
 ![The sleeve and both ribbons cut open along the sleeve's axis, showing the two ribbons meshing in the hollow](images/cutaway.png)
 
-The mechanism is cut open along a plane through the sleeve's axis, and the half toward the camera is removed. The cut
-faces of the sleeve and of both ribbons are drawn flat in a lighter shade. Inside the hollow, the two toothed edges
-meet, and each ribbon runs out through a bore in the wall.
+The cutaway opens the mechanism along the sleeve's axis. Inside the hollow, the two toothed edges meet, and
+each ribbon runs out through a bore in the wall.
 
 A pair of gears that move by a screw motion: each gear turns about its own axis while it slides along that
 axis. Each gear is a flat ribbon with a wavy toothed edge, twisted along its length into a helix. The two axes
@@ -40,7 +39,5 @@ You can vary:
 Dimensions are in millimeters. Angles are in radians. The tooth shape, lean, bow and mesh numbers are fitted to the
 default 80° crossing angle and 49.5 mm lead. Other values build, but how well the teeth fit together has not been
 measured.
-
-The model leaves out the bore identification marks and the print diagnostics of the Fusion add-in.
 
 For how to build this mechanism from Go, see the [developer notes](../../docs/models/screwgear.md).
