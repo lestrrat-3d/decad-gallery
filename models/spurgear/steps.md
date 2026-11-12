@@ -101,19 +101,36 @@ through `buildBoreProfile`. Other private helper names are implementation choice
 It declares `Variant` with these fields: `Define func(*param.Table) error`,
 `Tooth func(context.Context, ToothInput) (*decad.Body, error)`, `LocalBuild bool`,
 and `RootFillet func(context.Context,*decad.Document,*decad.Body,r3.Frame) (*decad.Body,error)`.
+It also declares `ToothInput`, the one argument of a `Tooth` builder, with these fields:
+
+| Field | Type | Value that `tooth` passes |
+| --- | --- | --- |
+| `Doc` | `*decad.Document` | The build's document, with the spur and variant parameters defined |
+| `World` | `*sketch.World` | The build's sketch world, with the same parameters defined |
+| `Params` | `Params` | The validated parameters |
+| `Frame` | `r3.Frame` | The placement frame: origin on the gear axis, normal along the axis |
+| `Lower` | `*sketch.Plane` | The lower cap plane built from `Frame` |
+
 It also declares the per-build state `run` with fields `doc *decad.Document`,
 `world *sketch.World`, `p Params`, `d dimensions`, `frame r3.Frame`,
 `lower *sketch.Plane`, `extent decad.Distance`, and `teeth int`.
+Only `tooth` fills a `ToothInput`, from `run`. Emitted code does not create one.
 Do not duplicate these types or the existing methods and functions below:
 
 ```go
+func (in ToothInput) Shifted(dist units.Value) (r3.Frame, error)
+func (in ToothInput) PlaneAt(dist units.Value) (*sketch.Plane, error)
 func (v Variant) begin(ctx context.Context, doc *decad.Document, p Params) (*run, error)
+func (v Variant) BuildTooth(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error)
 func (v Variant) tooth(ctx context.Context, r *run) (*decad.Body, error)
 func (v Variant) buildLocal(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error)
 func filletSpurRoots(ctx context.Context, doc *decad.Document, body *decad.Body,
     r *run, embedded bool) (*decad.Body, error)
 ```
 
+`Shifted` returns `shifted(in.Frame, dist.Base())`, so it calls the emitted
+private `shifted`. `PlaneAt` creates a world plane from that shifted frame.
+`BuildTooth` calls `begin` and then `tooth`, and returns tooth zero alone.
 `begin` validates inputs, defines the spur and optional variant parameters on
 both tables, reads dimensions, teeth and thickness, resolves placement, and
 creates the lower sketch plane. `tooth` calls the optional `Tooth` builder;
@@ -159,10 +176,10 @@ when `LocalBuild` is true; otherwise it calls `begin` and then `assemble`.
 root disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
 binding and sketch verification for the root disc. When `RootFillet` is nonnil,
 call it with the joined body and frame; otherwise call `filletSpurRoots` only
-when the derived radius is positive. Apply Steps 8 and 9 after that. Use the
-private bore routine on the already configured document, and use the same
-cap-chamfer helper as the public finishing API.
-Return the final solid. Keep all per-build state in `run` and local variables.
+when the derived radius is positive. Apply Steps 8 and 9 after that, through
+the private bore routine of Step 8 and the private `chamferCaps` of Step 9, on
+the already configured document. `assemble` does not call `CutThroughBore` or
+`ChamferOuterCaps`. Return the final solid. Keep all per-build state in `run` and local variables.
 
 ## Step 0 — parameter table
 
@@ -239,7 +256,7 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
 1. Call `world.CreateSketch(plane)` and use its origin as center.
 2. Iterate teeth in ascending index. Sample the rotated left/right flank arrays.
 3. Create dimensioned sample points according to Step 2. Create both root
-   points by scaling their base samples according to Ordinary profile; compute
+   points by scaling their base samples according to Ordinary construction; compute
    each coordinate as `x*d.root/d.base` (multiply, then divide), never with a
    precomputed `d.root/d.base` factor. Create the left root before the right root.
 4. Save right root then left root coordinates for each tooth in a `2N`-entry list.
@@ -253,9 +270,12 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
 10. Call `s.CreateLine(leftPoints[0],leftRoot)` and save the left root.
 11. After the loop, call `s.CreateArc(center,lastLeftRoot,firstRightRoot)`.
 12. Solve and verify. Require exactly one valid profile from `s.Profiles()`.
+13. Require `len(profile.Outer) == 6*p.Teeth`, the curve count from Ordinary
+    construction. Otherwise return an error that gives the actual count and
+    the expected count. Do not return the sketch or profile in that case.
 
-Test curve counts from Ordinary profile. Do not round sketch corners; Step 7
-applies native solid fillets after the join.
+Test the same curve counts. Do not round sketch corners; Step 7 applies native
+solid fillets after the join.
 
 ## Step 4 — build an embedded outline
 
@@ -427,15 +447,26 @@ parameters on the document, then delegates to the same private routine:
 
 ## Step 9 — chamfer outer caps
 
-In `Build`, call `ChamferOuterCaps` only when `p.CapChamfer > 0`:
+Implement one private routine with this signature:
+
+```go
+func chamferCaps(ctx context.Context, gear *decad.Body, setback units.Value) (*decad.Body, error)
+```
+
+It takes the gear body and the setback as a length. It checks no arguments.
+Its two callers check them first: `assemble` through `begin`, and
+`ChamferOuterCaps` through its own guards.
 
 1. Select `decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).Or(
    decad.OuterLoopOf(decad.CapEnd(gear)))`.
-2. Call `decad.Chamfer(ctx,gear,selection,setback)`, where `setback` is
-   `doc.Param("cap_chamfer")` when called from `Build`. The exported
-   `ChamferOuterCaps` keeps its float signature and wraps `distance` with
-   `units.Millimeters`; both share one private routine taking the `units.Value`.
-3. Return its body or a contextual error.
+2. Call `decad.Chamfer(ctx,gear,selection,setback)`.
+3. Return its body, or its error wrapped with `%w` and the stage name.
+
+`assemble` calls `chamferCaps` only when `p.CapChamfer > 0`. It passes the
+`units.Value` from `doc.Param("cap_chamfer")` and wraps a read error with the
+parameter name. The exported `ChamferOuterCaps` keeps its float signature,
+applies the guards in Package and API, and calls `chamferCaps` with
+`units.Millimeters(distance)`.
 
 Use cap references and outer-loop selectors rather than face indices or every
 cap edge. The bore loop must not enter the query.

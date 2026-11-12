@@ -149,6 +149,8 @@ repeated `N` times about the gear axis, joined into one solid.
 - The whole-gear outline of the same teeth (the root arc of each tooth joined
   to the next tooth's right root, one outline for all `N` teeth) remains
   available to callers as a plane profile; the ordinary gear build does not use it.
+- Require `6N` boundary curves in that whole-gear outline: two splines, two
+  radial lines, one tip arc and one root arc per tooth.
 
 ### Embedded profile
 
