@@ -15,6 +15,9 @@ go -C tools/render run . -model spinningwheel-preview -shot readme -out ../../mo
 It draws completed native parts using the same constructors and pose as the strict model.
 It records failed construction or meshing in `preview-status.json`, leaves assembly-wide joint cuts pending,
 and labels every static image. Failed tools are excluded. It writes the hero, index, and five paired views.
+The `spinningwheel/exploded` preset pulls the full wheel apart by sub-assembly (frame, wheel, treadle, footman and
+gimbal, head, flyer, brake and drive band). The `readme` shot writes it as `exploded.png`, and writes one image per
+distinct body (identical bodies share one) into `parts/` for the README's parts table.
 The ordinary `spinningwheel` preset still requires the complete assembly. Preview mode does not regenerate
 the animation or establish retention, clearance or interference checks.
 
