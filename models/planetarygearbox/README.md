@@ -22,25 +22,31 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing and the input shaft below the front cover, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing" width="450">
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing" width="450">
 
 Decad's `parts` package lays the view out from the model's parts (`Gearbox.Set`) in its derived mode
 (`Gearbox.Explode`). It reads from the tessellated bodies which parts block which along the gearbox's axis, takes the
-parts off in rounds, and moves each part toward the front or the rear. The model states no order or direction. The
-front cover stays put. The picture lists the parts outward from the front cover in the reverse of the order in which
-they come off: the part taken off last sits nearest the front cover, and the part taken off first sits farthest out.
-The bolts and nuts are left out of the picture; the "How the housing is bolted" section below shows them.
+parts off in rounds, and moves each part toward the front or the rear. The front cover stays put. The picture lists
+the parts outward from the front cover in the reverse of the order in which they come off: the part taken off last
+sits nearest the front cover, and the part taken off first sits farthest out. The bolts and nuts are left out of the
+picture; the "How the housing is bolted" section below shows them.
 
 A shaft's collar is 7.4 mm across. It is wider than the 5 mm bore of a bearing and the 5.1 mm bore of a sun, so it
 cannot pass through either, but it fits through a cover's 10 mm lip bore. Each cover bearing therefore comes off the
-free end of its shaft first, and the shaft then leaves through its cover. In the picture each of these bearings sits
-beyond its shaft's free end.
+free end of its shaft first. In the picture each of these bearings sits outside its cover, beyond its shaft's free
+end, and each shaft sits on the inner side of its cover: both ends read bearing, cover, shaft from the outside in.
+
+The model states one choice for the input shaft. Its collar would let it leave toward the front through the cover's
+lip bore once the front bearing is off, which would draw it below the cover. `Gearbox.Explode` makes it leave toward
+the rear after the ring instead, so it sits next to the front cover on the inner side, as the output shaft does at the
+rear cover. The ring and the front bearing sit 20 mm, not 6 mm, from the parts below them, so the camera above still
+sees the input shaft's collar and flat end below the ring, and the front bearing below the front cover's rim.
 
 From the bottom:
 
 1. The front bearing, off the input shaft's outer end.
-2. The input shaft, out through the front cover.
-3. The front cover.
+2. The front cover.
+3. The input shaft, out of the front cover's inner side.
 4. The ring.
 5. The first stage: the planets; the sun, beside the planets' bearings, which come up out of the planets; the
    carrier; and above it the carrier pins, which leave through the top of the carrier's sockets, beside the link shaft.

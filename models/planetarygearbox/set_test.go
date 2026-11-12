@@ -112,9 +112,9 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	for _, nb := range named {
 		bodies[nb.Name] = nb.Body
 	}
-	offsets := map[string]r3.Vec{}
+	offsets, gaps := map[string]r3.Vec{}, map[string]float64{}
 	for _, part := range layout.Parts {
-		offsets[part.Name] = part.Offset
+		offsets[part.Name], gaps[part.Name] = part.Offset, part.Gap.Base()
 		require.GreaterOrEqual(t, part.Depth, 0, "%s is joined to the front cover", part.Name)
 		if part.Name == planetarygearbox.FrontCoverName {
 			continue
@@ -168,16 +168,29 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		requireSameOffset("carrier pins", n, func(i int) string { return planetarygearbox.PinName(k, i) })
 	}
 
-	// Each cover bearing sits beyond its shaft's free end and outside its cover: the input shaft's free end is at
-	// the front and the output shaft's at the rear. The rear cover sits beyond the ring.
+	// Each end reads, from the outside in, bearing, cover, shaft: each shaft sits on the inner side of its cover and
+	// each cover bearing outside it, each one of its own gaps from the cover, so the bearing is beyond the shaft's free
+	// end. The input shaft's free end is at the front and the output shaft's at the rear. The rear cover sits beyond the
+	// ring. Decad lays the parts out from its own boxes, so a gap is read to within 0.1 mm.
+	requireNextTo := func(cover, part string) {
+		t.Helper()
+		a, b := span(cover), span(part)
+		require.LessOrEqual(t, math.Max(a.lo-b.hi, b.lo-a.hi), gaps[part]+0.1, "%s sits next to %s", part, cover)
+	}
 	input, front, frontBearing := span(planetarygearbox.InputShaftName), span(planetarygearbox.FrontCoverName),
 		span(planetarygearbox.FrontBearingName)
-	require.True(t, input.above(frontBearing), "the front bearing is beyond the input shaft's free end")
+	require.True(t, input.above(front), "the input shaft is on the inner side of the front cover")
 	require.True(t, front.above(frontBearing), "the front bearing is outside the front cover")
+	require.True(t, input.above(frontBearing), "the front bearing is beyond the input shaft's free end")
+	requireNextTo(planetarygearbox.FrontCoverName, planetarygearbox.InputShaftName)
+	requireNextTo(planetarygearbox.FrontCoverName, planetarygearbox.FrontBearingName)
 	output, ring, rear, rearBearing := span(planetarygearbox.OutputShaftName), span(planetarygearbox.RingName),
 		span(planetarygearbox.RearCoverName), span(planetarygearbox.RearBearingName)
-	require.True(t, rearBearing.above(output), "the rear bearing is beyond the output shaft's free end")
+	require.True(t, rear.above(output), "the output shaft is on the inner side of the rear cover")
 	require.True(t, rearBearing.above(rear), "the rear bearing is outside the rear cover")
+	require.True(t, rearBearing.above(output), "the rear bearing is beyond the output shaft's free end")
+	requireNextTo(planetarygearbox.RearCoverName, planetarygearbox.OutputShaftName)
+	requireNextTo(planetarygearbox.RearCoverName, planetarygearbox.RearBearingName)
 	require.True(t, rear.above(ring), "the rear cover is outside the ring")
 
 	// No collar passes a bore narrower than itself. A shaft's collar or thick part, and a carrier pin's thick part,

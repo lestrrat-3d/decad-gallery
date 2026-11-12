@@ -20,6 +20,11 @@ const (
 // explodeGap is how far past touching each part of the exploded view sits from the part it clears.
 const explodeGap = 6.0
 
+// wideGap is the gap of the ring and the front bearing in the exploded view. The README image looks at the gearbox
+// from above, and from there the ring or a cover's rim hides the top of a part that sits explodeGap below it. With
+// wideGap the input shaft's collar and flat end show below the ring, and the front bearing below the front cover.
+const wideGap = 20.0
+
 // Set returns the gearbox as a parts.Set over doc, which must be the document Build used with p: every part with its
 // material (the printed parts are PLA, the bearings and fasteners are bought) and the joints between them. A in a
 // joint is the part that goes in and B the part it goes into. The set feeds Gearbox.Explode.
@@ -172,10 +177,29 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 // gearbox's Set over the document Build used. The front cover stays put. Decad reads from the tessellated bodies which
 // parts stand in the way of which along each direction, takes the parts off in rounds, each round holding the parts
 // nothing still present blocks, and lays the rounds out with the round removed last nearest the front cover. Every
-// part leaves along the gearbox's axis, toward the front or the rear, and ends explodeGap beyond the parts it clears.
+// part leaves along the gearbox's axis, toward the front or the rear, and ends explodeGap beyond the parts it clears,
+// or wideGap for the ring and the front bearing.
 // The layout is a picture, not a proven assembly sequence: Decad counts a pair it cannot settle from the meshes as
 // free.
+//
+// The input shaft's collar is narrower than the front cover's lip bore, so the shaft could leave toward the front as
+// soon as the front bearing is off. Explode makes it leave toward the rear instead, and only after the ring, so the
+// layout draws it on the inner side of the front cover, next to it, as the output shaft sits on the inner side of the
+// rear cover: front bearing, front cover, input shaft, from the outside in.
 func (g Gearbox) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
+	var rear r3.Vec
+	for _, j := range set.Joints() {
+		if j.A == InputShaftName && j.B == FrontBearingName && j.Axis != nil {
+			rear = j.Axis.Dir
+		}
+	}
+	if rear == (r3.Vec{}) {
+		return nil, fmt.Errorf("planetarygearbox: the set has no axis joining %s and %s", InputShaftName,
+			FrontBearingName)
+	}
 	return set.Explode(ctx, parts.WithDerivedExplode(), parts.WithExplodeGround(FrontCoverName),
-		parts.WithExplodeGap(units.Millimeters(explodeGap)))
+		parts.WithExplodeGap(units.Millimeters(explodeGap)),
+		parts.WithRemoval(InputShaftName, parts.Removal{Direction: rear, After: []string{RingName}}),
+		parts.WithPartGap(RingName, units.Millimeters(wideGap)),
+		parts.WithPartGap(FrontBearingName, units.Millimeters(wideGap)))
 }

@@ -133,8 +133,10 @@ render one of them alone. The shafts are seen from almost level with them so the
 carrier from below so its through sockets show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
 whole two-stage gearbox apart along its axis with nothing cut and without its bolts and nuts. The offsets come from
 `parts.Set.Explode` over `Gearbox.Set` in Decad's derived mode, which `Gearbox.Explode` runs with the front cover held
-in place: each cover bearing sits beyond its shaft's free end, and each shaft leaves through its cover's lip bore. The
-`planetarygearbox/exploded` preset renders it alone.
+in place. Both ends read bearing, cover, shaft from the outside in: each cover bearing sits outside its cover, beyond
+its shaft's free end, and each shaft sits on the inner side of its cover. The ring and the front bearing sit 20 mm
+from the parts below them, so the camera above sees the input shaft's collar and the front bearing past the ring and
+the front cover's rim. The `planetarygearbox/exploded` preset renders it alone.
 
 The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 78 frames, of the two-stage gearbox in three
 panels: the hero's cutaway, the input end from below and the output end from above, with a caption strip that reads
