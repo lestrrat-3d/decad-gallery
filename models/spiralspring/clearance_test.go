@@ -95,11 +95,16 @@ func sliceSegments(mesh *decad.Mesh, z float64) []segment {
 func pairLimits(segs []segment, reach float64, skipAir func(p, q segment) bool) (minAir, minMaterial float64) {
 	minAir, minMaterial = math.Inf(1), math.Inf(1)
 	cells := map[[2]int][]int{}
+	// Segments may be longer than reach, so a close pair can have midpoints several cells apart.
+	window := 1
+	for _, s := range segs {
+		window = max(window, int(math.Ceil(s.a.distTo(s.b)/reach))+1)
+	}
 	cell := func(p vec2) [2]int { return [2]int{int(math.Floor(p[0] / reach)), int(math.Floor(p[1] / reach))} }
 	for i, s := range segs {
 		c := cell(s.midpoint())
-		for dx := -2; dx <= 2; dx++ {
-			for dy := -2; dy <= 2; dy++ {
+		for dx := -window; dx <= window; dx++ {
+			for dy := -window; dy <= window; dy++ {
 				for _, j := range cells[[2]int{c[0] + dx, c[1] + dy}] {
 					p, q := segs[j], s
 					if p.n.dot(q.n) >= -0.94 {

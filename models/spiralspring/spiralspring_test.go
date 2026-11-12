@@ -308,6 +308,7 @@ func TestSpiralSpringRejectsInvalidInputs(t *testing.T) {
 		{"flat-too-deep", func(p *spiralspring.Params) { p.ArborFlatDepth = 2 }},
 		{"bore-clearance", func(p *spiralspring.Params) { p.BoreClearance = 0.19 }},
 		{"anchor-clearance", func(p *spiralspring.Params) { p.AnchorClearance = 0.19 }},
+		{"arbor-zero", func(p *spiralspring.Params) { p.ArborDiameter = 0 }},
 		{"outer-below-hub", func(p *spiralspring.Params) { p.OuterDiameter = 10 }},
 	} {
 		t.Run(item.name, func(t *testing.T) {
