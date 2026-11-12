@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -173,8 +172,7 @@ func (b *builder) buildBackPlate() (*decad.Body, error) {
 	if plate, err = b.cut(plate, tool, "back plate"); err != nil {
 		return nil, err
 	}
-	plate, _, err = edgefinish.Chamfer(b.ctx, plate, zAxis, []float64{backLow, backHigh},
-		rimKeepAll(b.axes(), seatRadius, lipRadius), edgefinish.MinChamfer)
+	plate, err = b.finish(plate, []float64{backLow, backHigh}, rimKeepAll(b.axes(), seatRadius, lipRadius))
 	if err != nil {
 		return nil, fmt.Errorf("back plate edges: %w", err)
 	}
@@ -212,8 +210,7 @@ func (b *builder) buildFrontPlate() (*decad.Body, error) {
 	if plate, err = b.cut(plate, tool, "front plate"); err != nil {
 		return nil, err
 	}
-	plate, _, err = edgefinish.Chamfer(b.ctx, plate, zAxis, []float64{frontLow, frontHigh},
-		rimKeepAll(b.axes(), seatRadius, lipRadius), edgefinish.MinChamfer)
+	plate, err = b.finish(plate, []float64{frontLow, frontHigh}, rimKeepAll(b.axes(), seatRadius, lipRadius))
 	if err != nil {
 		return nil, fmt.Errorf("front plate edges: %w", err)
 	}

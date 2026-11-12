@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
@@ -109,8 +108,8 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	wheel, _, err = edgefinish.Chamfer(b.ctx, wheel, zAxis, []float64{wheelLow, wheelHigh},
-		func(l *decad.Loop, e []*decad.Edge) bool { return !l.IsOuter() && len(e) > 1 }, edgefinish.MinChamfer)
+	wheel, err = b.finish(wheel, []float64{wheelLow, wheelHigh},
+		func(l *decad.Loop, e []*decad.Edge) bool { return !l.IsOuter() && len(e) > 1 })
 	if err != nil {
 		return nil, fmt.Errorf("escape wheel windows: %w", err)
 	}

@@ -111,8 +111,7 @@ func (b *builder) buildAnchor() (*decad.Body, error) {
 	if body, err = b.cut(body, tool, "anchor bore"); err != nil {
 		return nil, err
 	}
-	body, _, err = edgefinish.Chamfer(b.ctx, body, zAxis, []float64{anchorLow, anchorHigh}, edgefinish.Outer,
-		edgefinish.MinChamfer)
+	body, err = b.finish(body, []float64{anchorLow, anchorHigh}, edgefinish.Outer)
 	if err != nil {
 		return nil, fmt.Errorf("anchor edges: %w", err)
 	}

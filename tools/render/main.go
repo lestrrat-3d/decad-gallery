@@ -118,6 +118,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderPlanetaryMotion(ctx, output, width, height, planetaryMotionFrames)
 	}
+	if model == "escapement" && shot == "motion" {
+		if width == 0 {
+			width = escapementMotionWidth
+		}
+		if height == 0 {
+			height = escapementMotionHeight
+		}
+		return renderEscapementMotion(ctx, output, width, height, escapementMotionFrames)
+	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {
 			width = galleryWidth
@@ -175,6 +184,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "handcranksiren" {
 		return renderHandCrankSirenReadme(ctx, outputDir)
+	}
+	if model == "escapement" {
+		return renderEscapementReadme(ctx, outputDir)
 	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)

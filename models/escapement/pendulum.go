@@ -113,8 +113,7 @@ func (b *builder) buildPendulum() (*decad.Body, error) {
 	if body, err = b.cut(body, pocket, "pendulum pocket"); err != nil {
 		return nil, err
 	}
-	body, _, err = edgefinish.Chamfer(b.ctx, body, zAxis, []float64{pendulumLow, pendulumHigh}, rimKeep(g.S, pocketRadius,
-		lipRadius), edgefinish.MinChamfer)
+	body, err = b.finish(body, []float64{pendulumLow, pendulumHigh}, rimKeep(g.S, pocketRadius, lipRadius))
 	if err != nil {
 		return nil, fmt.Errorf("pendulum edges: %w", err)
 	}

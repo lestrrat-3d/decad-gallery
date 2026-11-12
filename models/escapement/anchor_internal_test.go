@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -62,4 +63,24 @@ func outerLoop2(loops [][]r3.Vec, origin Pt) []Pt {
 		}
 	}
 	return best
+}
+
+// TestSketchesBranches verifies the sketches of the parts that change with the parameters (the anchor outline and the
+// pendulum outline) for the two non-default branch cases; the default case is checked on the whole movement.
+func TestSketchesBranches(t *testing.T) {
+	for name, p := range anchorCases() {
+		t.Run(name, func(t *testing.T) {
+			g, err := Layout(p)
+			require.NoError(t, err)
+			b := newBuilder(t.Context(), NewDocument(), g)
+			_, err = b.buildAnchor()
+			require.NoError(t, err)
+			_, err = b.buildPendulum()
+			require.NoError(t, err)
+			require.NotEmpty(t, b.sketches)
+			for i, s := range b.sketches {
+				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
+			}
+		})
+	}
 }

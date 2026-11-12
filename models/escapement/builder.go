@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -19,6 +20,8 @@ type builder struct {
 	world    *sketch.World
 	g        Geometry
 	sketches []*sketch.Sketch
+	// plain skips the edge finishing, so a test can measure what the chamfers remove.
+	plain bool
 }
 
 func newBuilder(ctx context.Context, doc *decad.Document, g Geometry) *builder {
@@ -183,4 +186,13 @@ func (b *builder) discAt(what string, x, y, z, r, length float64) (*decad.Body, 
 	}
 	circleAt(s, r)
 	return b.extrude(s, 0, length, what)
+}
+
+// finish chamfers body with edgefinish.Chamfer unless the builder is plain.
+func (b *builder) finish(body *decad.Body, offsets []float64, keep edgefinish.LoopFilter) (*decad.Body, error) {
+	if b.plain {
+		return body, nil
+	}
+	out, _, err := edgefinish.Chamfer(b.ctx, body, zAxis, offsets, keep, edgefinish.MinChamfer)
+	return out, err
 }
