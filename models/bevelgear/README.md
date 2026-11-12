@@ -23,6 +23,26 @@ The 32/16 straight-tooth pair:
 | --- | --- | --- |
 | ![Both straight-tooth gear members from above](images/straight-top.png) | ![Both bored straight-tooth gear members from a high oblique angle](images/straight-high.png) | ![Both bored straight-tooth gear members from a low side angle](images/straight-low.png) |
 
+## Exploded
+
+Each pair pulled apart along its two shafts. The driving gear moves out along its shaft and the pinion along its
+own, both away from the shared pitch apex.
+
+| Spiral pair, 31/31 | Straight pair, 32/16 |
+| --- | --- |
+| <img src="images/exploded-spiral.png" alt="The two spiral gears pulled apart along their shafts" width="420"> | <img src="images/exploded-straight.png" alt="The 32-tooth driving gear and the 16-tooth pinion pulled apart along their shafts" width="420"> |
+
+## Parts
+
+A pair has two parts, the driving gear and the pinion. The two spiral gears are the same part, one mirrored
+from the other, so they have one row. The straight pair has two different parts.
+
+| Image | Name |
+| --- | --- |
+| <img src="images/parts/spiral-gear.png" alt="Spiral bevel gear, 31 teeth" width="240"> | Spiral gear (31 teeth; driving gear and pinion, mirror images) |
+| <img src="images/parts/straight-driving.png" alt="Straight bevel driving gear, 32 teeth" width="240"> | Straight driving gear (32 teeth) |
+| <img src="images/parts/straight-pinion.png" alt="Straight bevel pinion, 16 teeth" width="240"> | Straight pinion (16 teeth) |
+
 You can vary:
 
 - Straight teeth: any tooth count and the supported options.
