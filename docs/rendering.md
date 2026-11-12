@@ -218,9 +218,10 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan and the hand-crank siren one after another. It places each at its own size on a
-1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right), and keeps only the pixels that differ from the background
-where the tiles overlap. Building all nine models takes about six minutes plus the wheel build:
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren and the Graham escapement one after another. It places each at its own size on a
+1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right, the escapement in the gap at the middle left), and keeps
+only the pixels that differ from the background where the tiles overlap. The escapement tile's pixels meet no other
+model's. Building all ten models takes about seven minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
