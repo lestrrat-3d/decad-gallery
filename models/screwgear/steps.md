@@ -184,6 +184,10 @@ For each window whose `room()` is `""`, in facing order:
    `d`.
 4. `decad.Cut(ctx, cage, tool)`.
 
+After the last window, chamfer both rims of both end faces: `edgefinish.Chamfer(ctx, cage, (0, 0, 1), {-CageRise,
+CageRise}, edgefinish.All, edgefinish.MinChamfer)`. That is 0.5 mm on four edges. Wrap an error with
+`finish sleeve edges`.
+
 The six chained cuts (four bores and two windows) need the document from `NewDocument`. A window without room is
 skipped without an error.
 
@@ -229,6 +233,7 @@ Run `go test ./models/screwgear`. The tests named here read the values of "Accep
 | `TestBuildDefaultMechanism` | Default build: three solid bodies, ribbon volumes, cage volume 17,088 mm³, cage bounds |
 | `TestBuildPlacementMovesTheWholeMechanism` | Placed cage bounds and volume |
 | `TestBuildBoresFollowTheRibbonSurface` | `DistanceToPoint` from the cage to ribbon points at all four crossings: 0.19 ± 0.03 mm, and 0.48 ± 0.05 mm at the roof face |
+| `TestSleeveEndFacesAreChamfered` | Both cage end faces at `±CageRise` keep two loops, each edge has a 45° cone beside it, and the area is below 560 mm² |
 | `TestBuildBranches` | No roof allowance, `Σ = 100°`, and mounting angles of ±5° each build with both windows cut |
 | `TestSectionPair/default/cuts-both-ribbons` | `Mechanism.SectionPair` at −0.4, 0 and +0.4 mm: both ribbons give outlines on the plane, with positive area and an off-surface bound under 0.05 mm |
 | `TestSectionPair/default/plane-outside-gear-a` | A plane 1.0 mm toward gear B gives gear A no loop, and `Clearance` is nil |

@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -13,8 +14,8 @@ import (
 )
 
 // buildSleeve makes the tube, cuts the four twisted bores in the spec's order (gear A -R,
-// gear A +R, gear B -R, gear B +R), then cuts each window that has room. Everything is in
-// the pair frame.
+// gear A +R, gear B -R, gear B +R), then cuts each window that has room and chamfers both rims
+// of both end faces. Everything is in the pair frame.
 func buildSleeve(ctx context.Context, doc *decad.Document, f sleeve) (*decad.Body, error) {
 	cage, err := f.tube(ctx, doc)
 	if err != nil {
@@ -40,6 +41,12 @@ func buildSleeve(ctx context.Context, doc *decad.Document, f sleeve) (*decad.Bod
 		if cage, err = decad.Cut(ctx, cage, tool); err != nil {
 			return nil, fmt.Errorf("cut window facing %v: %w", w.facing, err)
 		}
+	}
+	// The end faces are large flat faces, so both rims of each get the rule's chamfer.
+	cage, _, err = edgefinish.Chamfer(ctx, cage, r3.NewVec(0, 0, 1), []float64{-f.zb, f.zb}, edgefinish.All,
+		edgefinish.MinChamfer)
+	if err != nil {
+		return nil, fmt.Errorf("finish sleeve edges: %w", err)
 	}
 	return cage, nil
 }
