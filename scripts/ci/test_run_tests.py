@@ -24,6 +24,32 @@ class RunPatternTest(unittest.TestCase):
                     self.assertNotIn("(", run_tests.run_pattern(tests))
 
 
+class BevelJobGroupsTest(unittest.TestCase):
+    def test_groups_partition_all_shards_once(self):
+        shards = [shard for group in run_tests.BEVEL_JOB_GROUPS.values() for shard in group]
+        self.assertEqual(sorted(shards), list("abcdefgh"))
+
+    def test_group_runs_original_shards_in_order(self):
+        with mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_bevel("pr", "abgh")
+        self.assertEqual(
+            go_test.call_args_list,
+            [
+                mock.call(
+                    [
+                        "./models/bevelgear",
+                        "-run",
+                        run_tests.run_pattern(run_tests.BEVEL_TESTS["pr"][shard]),
+                        "-timeout",
+                        "15m",
+                    ],
+                    run_tests.BEVEL_TESTS["pr"][shard],
+                )
+                for shard in ("a", "b", "g", "h")
+            ],
+        )
+
+
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         expected = {

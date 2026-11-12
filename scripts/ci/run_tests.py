@@ -141,6 +141,10 @@ BEVEL_FULL_TESTS = [
     for shard in BEVEL_TESTS["full"].values()
     for test in shard
 ]
+BEVEL_JOB_GROUPS = {
+    "abgh": ("a", "b", "g", "h"),
+    "cdef": ("c", "d", "e", "f"),
+}
 
 
 def run_pattern(tests: list[str]) -> str:
@@ -189,6 +193,10 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
 
 
 def run_bevel(mode: str, shard: str) -> None:
+    if shard in BEVEL_JOB_GROUPS:
+        for member in BEVEL_JOB_GROUPS[shard]:
+            run_bevel(mode, member)
+        return
     tests = BEVEL_TESTS[mode][shard]
     timeout = "15m" if mode == "pr" else "60m"
     go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests)
