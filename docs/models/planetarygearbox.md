@@ -14,6 +14,18 @@ passes through the front bearing into the first sun. Each entry of `Stages` hold
 `Bearings` entry per planet and a `Carrier`. `Named` lists every body with a
 display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets and one stage.
 
+`Gearbox.Set(doc, params)` returns the build as a `parts.Set` with its materials and joints, and
+`Gearbox.Explode(ctx, set, params)` pulls it apart along its axis with `Set.Explode`, keeping the input shaft in place.
+Both need the document and parameters `Build` used, and Decad's `parts` package, which the repository's Decad version
+provides. In the set the input and output shafts turn in their cover bearings and each planet turns on its carrier
+pin; every other joint is fixed. Each pin-in-bore joint declares its fit's radial clearance: zero for a shaft or pin
+in a bearing bore and for a bolt in its nut, `BearingClearance` for a bearing in its seat, 0.05 mm for a part pressed
+into a sun or carrier and 0.3 mm for a bolt in its hole. For one stage, `Set.Linkage` with the ring as ground gives
+five turning links: the input shaft with its sun, the carrier with its pins and the output shaft, and each planet with
+its bearing. With more stages, each carrier before the last turns in no bearing: only the gear meshes, which are
+contact joints, hold it. `Set.Linkage` then leaves that carrier with its pins, its link shaft and the next sun, and the
+carrier's planets, static.
+
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing. The link and output shafts are thin-thick: a D thick part of the shaft collar diameter, pressed
@@ -61,8 +73,9 @@ the others listed in `instructions.md`) are not overwritten.
 
 ## Checks
 
-Run `go test ./models/planetarygearbox`; it takes about 90 seconds. The tests build the default, two-stage and
-placed gearboxes, and check that no planet vertex lies inside the sun or the ring and that a planet turned half a
+Run `go test ./models/planetarygearbox -timeout 30m`; it takes about 15 minutes and 3.6 GB. `TestExplodedGearbox`
+alone takes about 30 seconds. The tests build the default, two-stage and placed gearboxes, each once for all the
+tests that read it, and check that no planet vertex lies inside the sun or the ring and that a planet turned half a
 tooth does. The sketches are checked for full constraint inside the build.
 
 The [renderer](../rendering.md) draws the hero from a two-stage gearbox with the ring and covers cut open, three

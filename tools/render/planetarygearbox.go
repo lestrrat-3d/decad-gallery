@@ -77,9 +77,10 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 }
 
 // planetaryExplodedOffsets returns how far the exploded view moves each body of box, by part name. The offsets
-// come from parts.Set.Explode, which Gearbox.Explode drives with the order the parts come apart in. params must be
-// the parameters box was built with.
-func planetaryExplodedOffsets(ctx context.Context, box planetarygearbox.Gearbox, params planetarygearbox.Params) (map[string]r3.Vec, error) {
+// come from parts.Set.Explode, which Gearbox.Explode drives with its stages. params must be the parameters box was
+// built with.
+func planetaryExplodedOffsets(ctx context.Context, box planetarygearbox.Gearbox,
+	params planetarygearbox.Params) (map[string]r3.Vec, error) {
 	set, err := box.Set(box.Ring.Document(), params)
 	if err != nil {
 		return nil, fmt.Errorf("set up planetary gearbox parts: %w", err)
@@ -113,12 +114,16 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, p
 	}
 	var models []solidlens.Model
 	for _, body := range planetaryBodies(box) {
+		offset, ok := offsets[body.name]
+		if !ok {
+			return solidlens.Scene{}, fmt.Errorf("explode planetary gearbox: no offset for %s", body.name)
+		}
 		mesh, err := planetaryMesh(ctx, body)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		model := planetaryModel(mesh, body, false)
-		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offsets[body.name]}
+		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offset}
 		models = append(models, model)
 	}
 	return bevelScene(fitCamera(planetaryExplodedCamera, models, float64(width)/float64(height), bevelViewMargin), models), nil

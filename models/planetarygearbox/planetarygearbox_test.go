@@ -62,22 +62,60 @@ func maximumBearingClearanceAtRootWall(p planetarygearbox.Params) float64 {
 	return planetRoot - p.Module - ballbearing.Params605ZZ().OuterDiameter/2
 }
 
-var (
-	defaultOnce sync.Once
-	defaultDoc  *decad.Document
-	defaultBox  planetarygearbox.Gearbox
-	defaultErr  error
-)
+// sharedBuild holds one gearbox build that several tests read. The tests must not change it.
+type sharedBuild struct {
+	once sync.Once
+	doc  *decad.Document
+	box  planetarygearbox.Gearbox
+	err  error
+}
+
+// get builds the gearbox for p on the first call and returns that build on every call.
+func (s *sharedBuild) get(t *testing.T, p planetarygearbox.Params) (*decad.Document, planetarygearbox.Gearbox) {
+	t.Helper()
+	s.once.Do(func() {
+		s.doc = planetarygearbox.NewDocument()
+		s.box, s.err = planetarygearbox.Build(t.Context(), s.doc, p)
+	})
+	require.NoError(t, s.err)
+	return s.doc, s.box
+}
+
+var defaultBuild, twoStageBuild, placedBuild sharedBuild
 
 // defaultGearbox builds the default gearbox once for the tests that read it.
 func defaultGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
 	t.Helper()
-	defaultOnce.Do(func() {
-		defaultDoc = planetarygearbox.NewDocument()
-		defaultBox, defaultErr = planetarygearbox.Build(t.Context(), defaultDoc, planetarygearbox.DefaultParams())
-	})
-	require.NoError(t, defaultErr)
-	return defaultDoc, defaultBox
+	return defaultBuild.get(t, planetarygearbox.DefaultParams())
+}
+
+// twoStageParams are the default parameters with two stages.
+func twoStageParams() planetarygearbox.Params {
+	p := planetarygearbox.DefaultParams()
+	p.Stages = 2
+	return p
+}
+
+// twoStageGearbox builds the two-stage gearbox once for the tests that read it.
+func twoStageGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
+	t.Helper()
+	return twoStageBuild.get(t, twoStageParams())
+}
+
+// placedParams are the default parameters placed on a frame whose axis is +X, through (10, -5, 7).
+func placedParams(t *testing.T) planetarygearbox.Params {
+	t.Helper()
+	p := planetarygearbox.DefaultParams()
+	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+	require.NoError(t, err)
+	p.Placement = &f
+	return p
+}
+
+// placedGearbox builds the placed gearbox once for the tests that read it.
+func placedGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
+	t.Helper()
+	return placedBuild.get(t, placedParams(t))
 }
 
 func bounds(t *testing.T, b *decad.Body) decad.Box {
@@ -830,11 +868,8 @@ func TestPhaseAngles(t *testing.T) {
 }
 
 func TestTwoStages(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
-	p.Stages = 2
-	doc := planetarygearbox.NewDocument()
-	box, err := planetarygearbox.Build(t.Context(), doc, p)
-	require.NoError(t, err)
+	p := twoStageParams()
+	doc, box := twoStageGearbox(t)
 	require.Len(t, doc.Bodies(), 46)
 	require.Len(t, box.Stages, 2)
 	requireContainers(t, doc, box)
@@ -911,12 +946,8 @@ func TestTwoStages(t *testing.T) {
 }
 
 func TestPlacedGearbox(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
-	f, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
-	require.NoError(t, err)
-	p.Placement = &f
-	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
-	require.NoError(t, err)
+	p := placedParams(t)
+	_, box := placedGearbox(t)
 	_, world := defaultGearbox(t)
 	// U=+Y, V=+Z, so the axis is +X: the reference plane is x=10.
 	sun := bounds(t, box.Stages[0].Sun)
