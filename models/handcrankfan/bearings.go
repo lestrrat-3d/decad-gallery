@@ -9,19 +9,18 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Shaft, bearing and spline dimensions in mm. Every shaft is 7.5 across, a Tight fit (0.25) inside the 4.0 radius bore of
-// a 608-2RS bearing (8 bore, 22 outside diameter, 7 wide). Each bearing sits in a round seat 0.25 larger than its
+// Shaft, bearing and spline dimensions in mm. Every shaft is 8 across, the 4.0 radius bore of a 608-2RS bearing (8 bore,
+// 22 outside diameter, 7 wide) with no clearance. Each bearing sits in a round seat pressFit (0.05) larger than its
 // outside radius, 7.4 deep, behind a relief bore that frees the inner ring. Three grooves along the shaft take three
 // teeth in a gear's bore, so six faces carry the torque and the round shaft still slides through every bore.
 const (
-	shaftRadius  = splineBore - tightFit
-	seatRadius   = 11 + tightFit
+	shaftRadius  = 4.0 // the bearing's bore radius: a shaft in a purchased bearing has no clearance
+	seatRadius   = 11 + pressFit
 	seatDepth    = 7.4
 	reliefRadius = 9.5
 	reliefDepth  = 2.1
-	shaftHole    = 4.2 // the plain hole between two bearings
+	shaftHole    = 4.4 // the plain hole between two bearings: the shaft's radius plus the Regular fit and its margin
 
-	splineBore = 4.0 // the spur bores' radius, the reference the shaft is sized from
 	grooveFlor = 2.9 // radius of a groove's floor
 	grooveHalf = 1.0 // half the width of a groove
 )
@@ -80,7 +79,7 @@ func (b *builder) seat(host *decad.Body, a shaftAxis, pocket0, pocket1, relief0,
 
 // funnelSeat cuts a bearing seat between floor and mouth whose relief is a 45° cone from the seat's floor down to the
 // plain hole, away from the mouth. A piece that prints with the mouth on the bed has vertical pocket walls, a ledge
-// 1.6 wide for the bearing and a cone no flatter than 45° for a ceiling, so the seat needs no support.
+// 1.55 wide for the bearing and a cone no flatter than 45° for a ceiling, so the seat needs no support.
 func (b *builder) funnelSeat(host *decad.Body, a shaftAxis, floor, mouth float64) *decad.Body {
 	host = b.hole(host, a, seatRadius, math.Min(floor, mouth), math.Max(floor, mouth))
 	depth := reliefRadius - shaftHole

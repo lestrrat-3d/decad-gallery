@@ -31,10 +31,10 @@ The grip hangs under the gearbox. It is an oval of about 35 to 38 mm, raked like
 and a palm swell, and two M2 x 10 bolts hold it. The grip starts below the lowered floor, and the crank sits at the
 height of the gearbox's lower half, 40 mm below the fan. The crank handle is a small 50 mm barrel, 16 mm thick, for the
 thumb, index and middle fingers. It spins on a headed pin, so it neither slides off nor wobbles. The arm sits on the
-shaft's splines in a tight-fit bore, and one more M2 x 10 bolt and nut hold the pin. Outside corners are rounded. The
+shaft's splines in a press-fit bore, and one more M2 x 10 bolt and nut hold the pin. Outside corners are rounded. The
 rotor has no guard.
 
-The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). Each shaft is 7.5 mm
+The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). Each shaft is 8 mm
 across with three grooves, and each gear, the crank arm and the fan hub have a bore with three teeth that sit in them, so six
 faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post across its left end and a back wall, 51 mm
 wide, 89 mm tall and 81 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and

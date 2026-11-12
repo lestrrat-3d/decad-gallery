@@ -44,7 +44,7 @@ func (b *builder) drive() {
 	// The pair's bodies sit in the pair's own containers, and Decad cuts only within one container, so they move to the root.
 	b.fail("move the gears to the root", b.doc.Root().AddBody(pair.Driving))
 	b.fail("move the gears to the root", b.doc.Root().AddBody(pair.Pinion))
-	b.part("driving-gear", "gear", "drive", func() *decad.Body { return b.splineCut(pair.Driving, driveSpline, -5, 30, tightFit+bevelBound) })
+	b.part("driving-gear", "gear", "drive", func() *decad.Body { return b.splineCut(pair.Driving, driveSpline, -5, 30, pressFit+bevelBound) })
 	b.part("drive-gear", "gear", "drive", func() *decad.Body { return b.spurGear(axisHeight, true) })
 	b.part("drive-shaft", "shaft", "drive", func() *decad.Body {
 		return b.shaftWithCollar(axisHeight, driveShaftEnd, func(shaft *decad.Body) *decad.Body {
@@ -53,5 +53,5 @@ func (b *builder) drive() {
 	})
 	b.crank()
 
-	b.part("pinion", "gear", "fan", func() *decad.Body { return b.splineCut(pair.Pinion, fanSpline, -2, 40, tightFit+bevelBound) })
+	b.part("pinion", "gear", "fan", func() *decad.Body { return b.splineCut(pair.Pinion, fanSpline, -2, 40, pressFit+bevelBound) })
 }
