@@ -77,7 +77,13 @@ func main() {
 	width := flag.Int("width", 0, "override preset width in pixels")
 	height := flag.Int("height", 0, "override preset height in pixels")
 	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
+	kit := flag.String("kit", "", "planetary gearbox bearing kit; empty selects the default")
 	flag.Parse()
+	if err := checkKitFlag(*name, *kit); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	planetaryKit = *kit
 	if *frames > 0 {
 		fanAnimationFrames = *frames
 	}
@@ -179,6 +185,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 		return renderCycloidalReadme(ctx, outputDir)
 	}
 	if model == "planetarygearbox" {
+		if planetaryKit != "" {
+			return renderPlanetaryKitReadme(ctx, outputDir)
+		}
 		return renderPlanetaryGearboxReadme(ctx, outputDir)
 	}
 	if model == "screwgear" {

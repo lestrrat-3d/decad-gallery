@@ -41,6 +41,10 @@ module 1; try 14/28/70`. It never changes teeth itself.
 passes `Validate` (13/29/71, or 14/28/70 when a 608ZZ shaft needs a larger sun). It never adjusts teeth for you: an
 unknown kit name is an error that lists the supported kits.
 
+The [planet605-shaft608 kit page](../../models/planetarygearbox/kit-planet605-shaft608.md) shows the 608ZZ shaft kit with
+its images; the images come from `go -C tools/render run . -model planetarygearbox -kit planet605-shaft608 -shot readme
+-out ../../models/planetarygearbox/images/kit-planet605-shaft608` (see `docs/rendering.md`).
+
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing. The link and output shafts are thin-thick: a D thick part of the shaft collar diameter, pressed

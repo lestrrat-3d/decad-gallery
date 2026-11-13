@@ -159,10 +159,24 @@ You can vary:
 - The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.6 mm, the M2 clearance hole).
 - The number of mounting ears on the ring (three by default, zero for none) and the diameter of their bore (4 mm).
 - Backlash.
+- The planet bearing and the shaft bearing, 605ZZ or 608ZZ (see Bearing kits).
 - The position and orientation of the gearbox in space.
 
 The ring must have as many teeth as the sun plus twice the planets, and the sun and ring teeth together must divide
 by the planet count so the planets sit at equal angles. Dimensions are in millimeters, and the pressure angle is in
 radians. Each pair of meshing gears has 0.3 mm of backlash by default, set by how much each tooth is thinned. The tip-to-root clearance is at least `max(0.25 × module, 0.5 mm)`.
+
+## Bearing kits
+
+A kit picks a bearing for the planets and a bearing for the shafts and comes with a tooth set that passes the fit
+checks. A 608ZZ shaft is 8 mm across and carries more torque than a 605ZZ shaft, which is 5 mm. Only the first two kits
+have a page so far.
+
+| Kit | Planet bearing | Shaft bearing | Teeth | One-stage ratio |
+| --- | --- | --- | --- | --- |
+| [planet605-shaft605](#planetary-gearbox) (default) | 605ZZ | 605ZZ | 13/29/71 | 6.46 |
+| [planet605-shaft608](kit-planet605-shaft608.md) | 605ZZ | 608ZZ | 14/28/70 | 6 |
+| planet608-shaft605 | 608ZZ | 605ZZ | 13/29/71 | 6.46 |
+| planet608-shaft608 | 608ZZ | 608ZZ | 14/28/70 | 6 |
 
 For how to build this gearbox from Go, see the [developer notes](../../docs/models/planetarygearbox.md).

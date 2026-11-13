@@ -31,9 +31,26 @@ var planetaryEdges = solidlens.Edges{
 	Width:   1.5,
 }
 
-// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count.
+// planetaryKit is the bearing kit the images show. The -kit flag sets it; empty selects the default.
+var planetaryKit string
+
+// checkKitFlag returns an error when kit is set for a model other than the planetary gearbox.
+func checkKitFlag(model, kit string) error {
+	if kit != "" && model != "planetarygearbox" {
+		return errors.New("-kit applies only to -model planetarygearbox")
+	}
+	return nil
+}
+
+// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count, in the -kit kit.
 func buildPlanetaryGearbox(ctx context.Context, stages int) (planetarygearbox.Gearbox, planetarygearbox.Params, error) {
 	params := planetarygearbox.DefaultParams()
+	if planetaryKit != "" {
+		var err error
+		if params, err = planetarygearbox.DefaultParamsFor(planetaryKit); err != nil {
+			return planetarygearbox.Gearbox{}, params, err
+		}
+	}
 	params.Stages = stages
 	box, err := planetarygearbox.Build(ctx, planetarygearbox.NewDocument(), params)
 	if err != nil {
@@ -107,7 +124,7 @@ var planetaryExplodedCamera = solidlens.Camera{
 // planetaryExplodedScene draws the whole two-stage gearbox pulled apart along its axis, with nothing cut. It leaves
 // out the bolts and nuts, which the fastener images show.
 func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, params planetarygearbox.Params,
-	width, height int) (solidlens.Scene, error) {
+	camera solidlens.Camera, width, height int) (solidlens.Scene, error) {
 	offsets, err := planetaryExplodedOffsets(ctx, box, params)
 	if err != nil {
 		return solidlens.Scene{}, err
@@ -126,7 +143,7 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, p
 		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offset}
 		models = append(models, model)
 	}
-	return bevelScene(fitCamera(planetaryExplodedCamera, models, float64(width)/float64(height), bevelViewMargin), models), nil
+	return bevelScene(fitCamera(camera, models, float64(width)/float64(height), bevelViewMargin), models), nil
 }
 
 func init() {
@@ -136,7 +153,8 @@ func init() {
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
-			return planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
+			return planetaryExplodedScene(ctx, box, params, planetaryExplodedCamera, planetaryExplodedWidth,
+				planetaryExplodedHeight)
 		}}
 }
 
@@ -428,7 +446,8 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox %s: %w", name, err)
 		}
 	}
-	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
+	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryExplodedCamera, planetaryExplodedWidth,
+		planetaryExplodedHeight)
 	if err != nil {
 		return err
 	}
@@ -438,4 +457,90 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	}
 	return renderPlanetaryMotionFrom(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth,
 		planetaryMotionHeight, planetaryMotionFrames, box, params)
+}
+
+// planetaryKitParts returns planetaryParts for p's kit. When the planet and shaft bearings differ, the one bearing
+// image becomes a planet bearing image and a cover bearing image, in the place of the bearing.
+func planetaryKitParts(p planetarygearbox.Params) []planetaryPart {
+	if p.PlanetBearing == p.ShaftBearing {
+		return planetaryParts
+	}
+	var out []planetaryPart
+	for _, part := range planetaryParts {
+		if part.shot != "bearing" {
+			out = append(out, part)
+			continue
+		}
+		out = append(out,
+			planetaryPart{"planet-bearing", part.body, planetaryBearingColor, frontView},
+			planetaryPart{"cover-bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearBearing },
+				planetaryBearingColor, frontView})
+	}
+	return out
+}
+
+// planetaryExplodedOtherCamera looks at the exploded gearbox from the other side, 120 degrees round the axis from
+// planetaryExplodedCamera. Each camera looks along the line through the sun and one planet, which hides that planet's
+// bearing and part of the planet behind the sun, and the two cameras hide different planets.
+var planetaryExplodedOtherCamera = solidlens.Camera{
+	Position: solidlens.Vec{X: 230, Y: 420, Z: 190},
+	Target:   solidlens.Vec{Z: 66},
+	Up:       solidlens.Vec{Z: 1},
+	FOV:      35,
+}
+
+// The kit pages show the exploded view at the full width of the page, at the size Exploded views requires.
+const (
+	planetaryKitExplodedWidth  = 1600
+	planetaryKitExplodedHeight = 900
+)
+
+// renderPlanetaryKitReadme builds the -kit kit as a two-stage gearbox once and writes its hero, one image per unique
+// part (in the parts directory), the three assembled views and the exploded view from two sides. The fasteners and the motion do not
+// depend on the bearings, so it writes no index, fastener images or animation.
+func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
+	box, params, err := buildPlanetaryGearbox(ctx, 2)
+	if err != nil {
+		return err
+	}
+	hero, err := planetaryHeroScene(ctx, box)
+	if err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "hero.png"), hero, 1600, 900); err != nil {
+		return fmt.Errorf("render planetary gearbox kit hero: %w", err)
+	}
+	for _, part := range planetaryKitParts(params) {
+		scene, err := planetaryPartScene(ctx, box, part)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
+			return fmt.Errorf("render planetary gearbox kit part %s: %w", part.shot, err)
+		}
+	}
+	for _, view := range planetaryViews {
+		scene, err := planetaryAssembledScene(ctx, box, view)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, "assembled-"+view.shot+".png"), scene, 1200, 675); err != nil {
+			return fmt.Errorf("render planetary gearbox kit assembled %s: %w", view.shot, err)
+		}
+	}
+	for _, view := range []struct {
+		name   string
+		camera solidlens.Camera
+	}{{"exploded.png", planetaryExplodedCamera}, {"exploded-other-side.png", planetaryExplodedOtherCamera}} {
+		exploded, err := planetaryExplodedScene(ctx, box, params, view.camera, planetaryKitExplodedWidth,
+			planetaryKitExplodedHeight)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, view.name), exploded, planetaryKitExplodedWidth,
+			planetaryKitExplodedHeight); err != nil {
+			return fmt.Errorf("render planetary gearbox kit %s: %w", view.name, err)
+		}
+	}
+	return nil
 }
