@@ -80,17 +80,17 @@ seven bearings (the seventh sits in the pendulum), four collar rings (two of eac
 | <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, an open frame with two windows, four pillars, three bearing seats, two mounting holes and the nut cavities |
 | <img src="images/parts/front-plate.png" alt="Front plate" width="240"> | Front plate, an open frame with two windows, three bearing seats, four head pockets and the suspension socket |
 | <img src="images/parts/escape-wheel.png" alt="Escape wheel" width="240"> | Escape wheel, with the 13-tooth pinion and a counterbore for a collar at each end |
-| <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor, with a counterbore for the pallet front collar in its front face |
+| <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor, with a counterbore for the pallet front collar in its front face. It is pressed on the pallet arbor and rocks with it, and its two pallets catch the escape wheel's teeth one at a time |
 | <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin and a keyed counterbore for the crutch collar in its rear face |
 | <img src="images/parts/pendulum.png" alt="Pendulum" width="240"> | Pendulum, with the crutch slot and the bearing pocket |
 | <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing |
 | <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
 | <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet and a counterbore for the arbor's collar in its rear face |
-| <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls |
+| <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls. It is pressed on the great wheel's arbor, and its pawls push the great wheel's internal ratchet, so the spring drives the wheel but the wheel does not unwind when you wind the knob |
 | <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
-| <img src="images/parts/spring-spacer.png" alt="Spring spacer" width="240"> | Spring spacer |
-| <img src="images/parts/spring-anchor-pin.png" alt="Spring anchor pin" width="240"> | Spring anchor pin |
-| <img src="images/parts/winding-knob.png" alt="Winding knob" width="240"> | Winding knob, with a keyed counterbore for the knob collar in its rear face |
+| <img src="images/parts/spring-spacer.png" alt="Spring spacer" width="240"> | Spring spacer, a short tube pressed on the great wheel's arbor in front of the mainspring's hub, so the hub stays on the arbor between the pawl carrier and the spacer |
+| <img src="images/parts/spring-anchor-pin.png" alt="Spring anchor pin" width="240"> | Spring anchor pin, a rod pressed into the front plate that holds the mainspring's outer eye still while the arbor winds the hub |
+| <img src="images/parts/winding-knob.png" alt="Winding knob" width="240"> | Winding knob, with a keyed counterbore for the knob collar in its rear face. It is pressed on the front end of the great wheel's arbor, and turning it winds the mainspring |
 | <img src="images/parts/escape-arbor.png" alt="Escape arbor" width="240"> | Escape arbor |
 | <img src="images/parts/pallet-arbor.png" alt="Pallet arbor" width="240"> | Pallet arbor |
 | <img src="images/parts/great-wheel-arbor.png" alt="Great wheel arbor" width="240"> | Great wheel arbor |
