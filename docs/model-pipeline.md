@@ -144,6 +144,11 @@ Put a collar on the shaft between the flush side and the carried part. A collar 
 shaft's own body, wider than the carried part's bore. It holds the carried part clear of the flush side, so the part
 does not rub it. A boss on the carried part's own body is not a collar and does not meet this rule.
 
+A separate printed collar ring also counts as a collar. It is pressed on the shaft's flat, is located by a
+counterbore floor, the end of a flat or a step of the shaft, and meets every clause of this rule. Use one where a
+collar of the shaft's own body would stop a part or a bearing from being fitted, as on a shaft that runs in two
+bearings and carries parts between them.
+
 Make every collar at least 3.0 mm long along the shaft's axis, and measure its whole length, including any part inside
 a counterbore. A collar about 1 mm long cannot be printed reliably. A collar that only stops a pressed part, with no
 flush side beside it, takes the same minimum. A part pressed on a shaft end outside the frame takes a collar between
