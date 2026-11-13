@@ -166,7 +166,7 @@ func SpringParams() spiralspring.Params {
 	sp := spiralspring.DefaultParams()
 	sp.OuterDiameter, sp.HubDiameter, sp.Thickness, sp.Height, sp.MinGap = 64, 12, 1.5, springHeight, 1.0
 	sp.Turns = 0
-	sp.ArborDiameter, sp.ArborFlatDepth, sp.BoreClearance = 5, 0.5, 0.25
+	sp.ArborDiameter, sp.ArborFlatDepth, sp.BoreClearance = 5, 0.5, 0.28
 	sp.AnchorPinDiameter, sp.AnchorClearance = 3, 0.4
 	return sp
 }
@@ -200,7 +200,7 @@ func Layout(p Params) (Geometry, error) {
 	g.CarrierOffset = math.Mod(g.SpringTurn+math.Pi/2-old, 2*math.Pi)
 	// A uniform-curvature spiral: k = E h t³ / (12 L) and strain = (t / 2) θ / L.
 	sp := SpringParams()
-	g.SpringRate = springYoung * sp.Height * sp.Thickness*sp.Thickness*sp.Thickness / (12 * dims.ActiveLength)
+	g.SpringRate = springYoung * sp.Height * sp.Thickness * sp.Thickness * sp.Thickness / (12 * dims.ActiveLength)
 	full := springFullTurns * 2 * math.Pi
 	g.FullWindTorque = g.SpringRate * full
 	g.FullWindStrain = sp.Thickness / 2 * full / dims.ActiveLength

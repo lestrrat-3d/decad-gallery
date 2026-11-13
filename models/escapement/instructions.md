@@ -300,7 +300,7 @@ would need a new great wheel and would hide the spring, so it is rejected.
 
 `spiralspring.Params` (a constant set of the escapement; the user cannot change it): `OuterDiameter` 64, `HubDiameter` 12,
 `Thickness` 1.5, `Height` 6, `MinGap` 1.0, `Turns` 0 (as many as fit), `ArborDiameter` 5, `ArborFlatDepth` 0.5,
-`BoreClearance` 0.25, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
+`BoreClearance` 0.28, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
 `rho0` 8.4 and an active length of 1142.3 mm. The eye centre is `(-31.250, -13.399)` local: radius 34.0015 from the axis, at
 math angle -156.7916°. The eye radius is 3.4 and the eye hole 3.8. The item's hub-wrap strain is 1.56 %.
 
@@ -389,7 +389,7 @@ Great wheel arbor at `G = (0, -45.75)`, z from the back:
 | `[28, 33]` | front bearing |
 | `[34.25, 37.25]` | winding knob |
 
-The Pawl Carrier and the Spring Spacer are press fits on the arbor flat. The spring hub slides on the flat with 0.25 clearance,
+The Pawl Carrier and the Spring Spacer are press fits on the arbor flat. The spring hub slides on the flat with 0.28 clearance,
 and its two faces stand 0.25 from the carrier boss and from the spacer. Assembly from the arbor's front end: the great wheel;
 the Pawl Carrier, pressed until the great wheel turns freely with about 0.25 play; the Mainspring; the Spring Spacer, pressed
 until the spring hub turns freely by about 0.25. Then the arbor goes into the frame, the spring's eye goes onto the anchor pin,
@@ -410,7 +410,8 @@ spring's bore flat (world angle `γs + 90° = 156.7916°`) at the default `Phase
 115.0277°. `Layout` computes `δb` from `DefaultParams()` and `Derive`, not from a literal. The Pawl Carrier's local frame has its
 bore flat on `+X`, and its pawls are drawn at `g = 90° - δb` and `270° - δb`, so each pawl stays at great-wheel-local `+20.8°`
 from a ratchet face. Across `Phase ∈ [0, 1)` the arbor turns at most 3.25° (one period × 13/48) against the fixed spring, and the
-arbor's flat corners can turn 11.0° inside the spring's bore before touching it, so no phase overlaps.
+arbor's flat corners can turn 11.0° inside the spring's bore before touching it, so no phase overlaps. Because the arbor turns, the gap between the arbor's flat corners and the bore's flat is the build-pose 0.28 mm
+less 0.076 mm at the worst phase: at least 0.20 mm at every phase (0.204 mm measured over 40 phases).
 
 ### Winding knob
 
@@ -632,7 +633,7 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | P1 | crutch, knob on arbor ends; suspension pin rear peg in the front plate; cap on the pin | press | press-fit rule | 0.05 |
 | B1 | each 605ZZ in its pocket | radial | bearing-seat exception | 0.05 |
 | G1 | pinion / great wheel | tip-to-root | gear rule | ≥ 0.5 at 5 angles |
-| S1 | Mainspring hub D bore on the great wheel arbor | radial, at the flat | Tight | 0.25 |
+| S1 | Mainspring hub D bore on the great wheel arbor | radial, at the flat | Tight | 0.28 at the build pose, 0.20 or more at every phase |
 | S2 | Mainspring eye on the Spring Anchor Pin | radial | Regular | 0.40 |
 | S3 | Mainspring hub faces to the carrier boss (`z 11.0`) and to the spacer (`z 17.5`) | axial | Tight | 0.25 |
 | S4 | Spring Anchor Pin in the front plate socket | press | press | 0.05 |
