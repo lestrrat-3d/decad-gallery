@@ -75,6 +75,8 @@ origin, so the axis is world +Z.
 | `Sf` | `FlatDepth` | float64 | 0.5 | Depth of the flat on each shaft; zero leaves round shafts and round bores |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
 | `cb` | `BearingClearance` | float64 | 0.05 | Radial clearance between each purchased bearing and its custom pocket |
+| `bp` | `PlanetBearing` | string | `"605ZZ"` | Catalog bearing each planet turns on; `"605ZZ"` or `"608ZZ"` (the [ballbearing catalog](../ballbearing/instructions.md#catalog)). Each carrier pin is as wide as its bore |
+| `bs` | `ShaftBearing` | string | `"605ZZ"` | Catalog bearing each cover holds for the input or output shaft; `"605ZZ"` or `"608ZZ"`. Each shaft is as wide as its bore |
 | `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
 | `Ec` | `EdgeChamfer` | float64 | 0.5 | Setback of the 45° chamfer on the edges of the large flat faces of the ring, the covers and the carriers; at least 0.5 |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
@@ -153,7 +155,8 @@ the same gap normal to their circular and flat faces.
   `2 a sin(π/n) >= planet tip diameter + 0.5`.
 - Reject a sun bore (`ds + 0.1`) that leaves less than `m` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
-- Reject `Sf < 0` or `Sf >= 1.2`, the collar margin (so a thick part's flat stays outside its rod).
+- Reject a bearing name not in the catalog: `bp` or `bs` that is not `"605ZZ"` or `"608ZZ"`. This check comes first.
+- Reject `Sf < 0` or `Sf >= 1.2`, the collar margin (so a thick part's flat stays outside its rod), and `Sf > min(dbp, dbs) / 4`.
 - Reject `Tc < 2`, so each press fit grips over at least 2 mm of plate.
 - Reject a carrier wall that leaves less than 1 mm of plate around a pin socket at mid-plate:
   `boss/2 - (dpc/2 + 0.05) < 1`, that is `wc < 2.25` for the default pin.

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
@@ -52,6 +53,12 @@ type Params struct {
 	InputShaftLength float64
 	// BearingClearance is the radial clearance between each purchased bearing and its pocket.
 	BearingClearance float64
+	// PlanetBearing names the catalog bearing (models/ballbearing) each planet turns on, e.g. "605ZZ" or "608ZZ".
+	// Each carrier pin is as wide as its bore.
+	PlanetBearing string
+	// ShaftBearing names the catalog bearing each cover holds for the input or output shaft. Every shaft is as wide as
+	// its bore where it passes a bearing or a sun.
+	ShaftBearing string
 	// CarrierWall is the width of carrier material around the shaft and around each planet pin.
 	CarrierWall float64
 	// RingWall is the radial wall of the ring behind the tooth roots. It carries the bolt holes.
@@ -94,6 +101,8 @@ func DefaultParams() Params {
 		EdgeChamfer:       MinEdgeChamfer,
 		InputShaftLength:  12,
 		BearingClearance:  seatClearance,
+		PlanetBearing:     "605ZZ",
+		ShaftBearing:      "605ZZ",
 		CarrierWall:       3,
 		RingWall:          7.1,
 		Backlash:          0.15,
@@ -110,16 +119,29 @@ func (p Params) Ratio() float64 {
 	return math.Pow(stage, float64(p.Stages))
 }
 
-// planetBearing is the catalog bearing each planet turns on.
-func planetBearing(Params) ballbearing.Spec { return defaultBearing() }
-
-// shaftBearing is the catalog bearing each cover holds for the input or output shaft.
-func shaftBearing(Params) ballbearing.Spec { return defaultBearing() }
-
-// defaultBearing is the 605ZZ catalog entry.
-func defaultBearing() ballbearing.Spec {
-	b, _ := ballbearing.Lookup("605ZZ")
+// planetBearing is the catalog bearing each planet turns on. It is the zero Spec when p names no catalog bearing.
+func planetBearing(p Params) ballbearing.Spec {
+	b, _ := ballbearing.Lookup(p.PlanetBearing)
 	return b
+}
+
+// shaftBearing is the catalog bearing each cover holds for the input or output shaft. It is the zero Spec when p
+// names no catalog bearing.
+func shaftBearing(p Params) ballbearing.Spec {
+	b, _ := ballbearing.Lookup(p.ShaftBearing)
+	return b
+}
+
+// bearingNameError returns the error for a bearing name outside the catalog, or nil when the name is in it.
+func bearingNameError(role, name string) error {
+	if _, ok := ballbearing.Lookup(name); ok {
+		return nil
+	}
+	names := make([]string, 0, len(ballbearing.Catalog()))
+	for _, s := range ballbearing.Catalog() {
+		names = append(names, s.Name)
+	}
+	return fmt.Errorf("%s bearing %q is not in the bearing catalog; choose one of %s", role, name, strings.Join(names, ", "))
 }
 
 const (
@@ -233,6 +255,12 @@ func finite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 // Validate applies the input checks of the construction contract.
 func (p Params) Validate() error {
+	if err := bearingNameError("planet", p.PlanetBearing); err != nil {
+		return err
+	}
+	if err := bearingNameError("shaft", p.ShaftBearing); err != nil {
+		return err
+	}
 	for name, v := range map[string]float64{
 		"Module": p.Module, "PressureAngle": p.PressureAngle, "GearThickness": p.GearThickness,
 		"CarrierThickness": p.CarrierThickness, "StageGap": p.StageGap, "CoverThickness": p.CoverThickness,
@@ -257,7 +285,7 @@ func (p Params) Validate() error {
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
-		{"flat depth", p.FlatDepth, p.FlatDepth >= 0 && p.FlatDepth <= planetBearing(p).BoreDiameter/4},
+		{"flat depth", p.FlatDepth, p.FlatDepth >= 0 && p.FlatDepth <= math.Min(planetBearing(p).BoreDiameter, shaftBearing(p).BoreDiameter)/4},
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"edge chamfer", p.EdgeChamfer, p.EdgeChamfer >= MinEdgeChamfer && p.EdgeChamfer <= 1},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= seatClearance},

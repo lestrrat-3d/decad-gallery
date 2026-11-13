@@ -5,7 +5,7 @@ every dimension and rule; this file owns the call order, the exported API and th
 
 ## Exported API
 
-- `Params`, `DefaultParams()`, `(Params).Validate() error`, `(Params).Ratio() float64`.
+- `Params`, with the string fields `PlanetBearing` and `ShaftBearing` (catalog names), `DefaultParams()`, `(Params).Validate() error`, `(Params).Ratio() float64`.
 - `Build(ctx, doc, Params) (Gearbox, error)`. It rejects a nil context or document, calls `Validate`, and wraps
   every later failure with the part it came from.
 - `Gearbox{Ring *decad.Body; Stages []Stage}`, `Stage{Sun, Planets, Carrier}`, `(Gearbox).Named()`, and the

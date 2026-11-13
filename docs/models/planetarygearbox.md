@@ -29,6 +29,9 @@ its bearing. With more stages, each carrier before the last turns in no bearing:
 contact joints, hold it. `Set.Linkage` then leaves that carrier with its pins, its link shaft and the next sun, and the
 carrier's planets, static.
 
+`Params.PlanetBearing` and `Params.ShaftBearing` name the catalog bearing (`ballbearing.Lookup`) of each role, `"605ZZ"` or
+`"608ZZ"`, and every dependent dimension follows. `Validate` rejects a name that is not in the catalog.
+
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing. The link and output shafts are thin-thick: a D thick part of the shaft collar diameter, pressed

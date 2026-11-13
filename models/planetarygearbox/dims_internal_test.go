@@ -58,3 +58,39 @@ func requireTableMatchesDerive(t *testing.T, p Params) {
 		}
 	}
 }
+
+func TestDerivePerRole(t *testing.T) {
+	shaft := DefaultParams()
+	shaft.ShaftBearing = "608ZZ"
+	d := derive(shaft)
+	for _, c := range []struct {
+		name      string
+		got, want float64
+	}{
+		{"shaft", d.shaft, 8}, {"shaftBore", d.shaftBore, 8.1}, {"collar", d.collar, 10.4},
+		{"coverPocket", d.coverPocket, 22.1}, {"coverLip", d.coverLip, 18}, {"coverBoss", d.coverBoss, 28.1},
+		{"coverHub", d.coverHub, 34.1},
+		{"pin", d.pin, 5}, {"pinCollar", d.pinCollar, 7.4}, {"planetPocket", d.planetPocket, 14.1},
+	} {
+		require.InDelta(t, c.want, c.got, 1e-9, "608ZZ shaft: "+c.name)
+	}
+
+	planet := DefaultParams()
+	planet.PlanetBearing = "608ZZ"
+	d = derive(planet)
+	for _, c := range []struct {
+		name      string
+		got, want float64
+	}{
+		{"pin", d.pin, 8}, {"pinCollar", d.pinCollar, 10.4}, {"planetPocket", d.planetPocket, 22.1},
+		{"planetLip", d.planetLip, 18}, {"boss", d.boss, 14}, {"arm", d.arm, 10},
+		{"shaft", d.shaft, 5}, {"shaftBore", d.shaftBore, 5.1}, {"collar", d.collar, 7.4},
+		{"coverPocket", d.coverPocket, 14.1}, {"coverLip", d.coverLip, 10},
+	} {
+		require.InDelta(t, c.want, c.got, 1e-9, "608ZZ planet: "+c.name)
+	}
+
+	unknown := DefaultParams()
+	unknown.PlanetBearing = "609ZZ"
+	require.NotPanics(t, func() { derive(unknown) })
+}
