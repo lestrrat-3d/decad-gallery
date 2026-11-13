@@ -127,7 +127,7 @@ func touching(a, b string) bool {
 		{BackPlateName, FrontPlateName},
 	}
 	// A 605ZZ in its 0.05 mm seat and a press-fit part on its arbor leave a gap below what a 0.02 mm mesh can prove, so
-	// TestFits measures those by section.
+	// TestFits measures those by section. The mainspring's mesh bound is wide, so its 0.25 mm fits are measured in TestSpringFits.
 	for _, bearing := range []string{BackEscapeBearingName, BackPalletBearingName, BackGreatWheelBearingName} {
 		pairs = append(pairs, [2]string{bearing, BackPlateName})
 	}
@@ -136,8 +136,11 @@ func touching(a, b string) bool {
 	}
 	pairs = append(pairs, [2]string{PendulumBearingName, PendulumName}, [2]string{EscapeWheelName, EscapeArborName},
 		[2]string{AnchorName, PalletArborName}, [2]string{CrutchName, PalletArborName},
-		[2]string{DrumName, GreatWheelArborName}, [2]string{WindingKnobName, GreatWheelArborName},
-		[2]string{SuspensionCapName, SuspensionPinName})
+		[2]string{PawlCarrierName, GreatWheelArborName}, [2]string{SpringSpacerName, GreatWheelArborName},
+		[2]string{WindingKnobName, GreatWheelArborName},
+		[2]string{SuspensionCapName, SuspensionPinName}, [2]string{SpringAnchorPinName, FrontPlateName},
+		[2]string{MainspringName, GreatWheelArborName}, [2]string{MainspringName, PawlCarrierName},
+		[2]string{MainspringName, SpringSpacerName}, [2]string{MainspringName, SpringAnchorPinName})
 	for i := 0; i < 4; i++ {
 		pairs = append(pairs, [2]string{BoltName(i), FrontPlateName}, [2]string{BoltName(i), NutName(i)})
 	}
@@ -152,7 +155,7 @@ func touching(a, b string) bool {
 // byOutline lists the pairs that move against one another closely enough that the checks use their outlines.
 func byOutline(a, b string) bool {
 	set := map[[2]string]struct{}{
-		{EscapeWheelName, AnchorName}: {}, {EscapeWheelName, GreatWheelName}: {}, {GreatWheelName, DrumName}: {},
+		{EscapeWheelName, AnchorName}: {}, {EscapeWheelName, GreatWheelName}: {}, {GreatWheelName, PawlCarrierName}: {},
 	}
 	_, ok := set[[2]string{a, b}]
 	_, ok2 := set[[2]string{b, a}]
@@ -190,7 +193,27 @@ func TestPoseNoOverlap(t *testing.T) {
 		great := l.posedLoops(t, GreatWheelName, 3, table[GreatWheelName])
 		require.False(t, overlap(pinion[0], great[0]), "phase %v: pinion and great wheel", phase)
 		pocket := l.posedLoops(t, GreatWheelName, 7, table[GreatWheelName])[1]
-		drum := l.posedLoops(t, DrumName, 7, table[DrumName])[0]
-		require.True(t, fitsIn(drum, pocket), "phase %v: the drum's pawls stay inside the ratchet pocket", phase)
+		drum := l.posedLoops(t, PawlCarrierName, 7, table[PawlCarrierName])[0]
+		require.True(t, fitsIn(drum, pocket), "phase %v: the carrier's pawls stay inside the ratchet pocket", phase)
+		// The arbor turns inside the fixed spring hub's bore without touching it.
+		arbor := l.posedLoops(t, GreatWheelArborName, 14.25, table[GreatWheelArborName])[0]
+		var bore []Pt
+		for _, lp := range l.posedLoops(t, MainspringName, 14.25, table[MainspringName]) {
+			near := true
+			for _, v := range lp {
+				if v.Sub(g.G).Len() > 4 {
+					near = false
+					break
+				}
+			}
+			if near {
+				bore = lp
+			}
+		}
+		require.NotNil(t, bore, "the spring hub's bore")
+		require.True(t, fitsIn(arbor, bore), "phase %v: the arbor turns inside the spring's bore", phase)
+		// The arbor turns 3.25° across a period against the fixed spring, so the flat corners close the 0.25 mm of the build
+		// pose to about 0.17 mm at the worst phase: no overlap, and the gap stays above 0.15 mm.
+		require.Greater(t, distPolys(arbor, bore), 0.15, "phase %v: arbor to spring bore", phase)
 	}
 }

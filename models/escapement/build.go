@@ -21,10 +21,11 @@ type Movement struct {
 
 	EscapeArbor, PalletArbor, GreatWheelArbor *decad.Body
 
-	EscapeWheel, Anchor                            *decad.Body
-	Crutch, Pendulum, SuspensionPin, SuspensionCap *decad.Body
-	GreatWheel, Drum, WindingKnob                  *decad.Body
-	Bolts, Nuts                                    []*decad.Body
+	EscapeWheel, Anchor                                    *decad.Body
+	Crutch, Pendulum, SuspensionPin, SuspensionCap         *decad.Body
+	GreatWheel, WindingKnob                                *decad.Body
+	PawlCarrier, Mainspring, SpringSpacer, SpringAnchorPin *decad.Body
+	Bolts, Nuts                                            []*decad.Body
 
 	// Sketches holds every sketch of the movement's own parts and of the bearing, bolt and nut models.
 	Sketches []*sketch.Sketch
@@ -65,7 +66,10 @@ const (
 	SuspensionPinName          = "Suspension Pin"
 	SuspensionCapName          = "Suspension Cap"
 	GreatWheelName             = "Great Wheel"
-	DrumName                   = "Drum"
+	PawlCarrierName            = "Pawl Carrier"
+	MainspringName             = "Mainspring"
+	SpringSpacerName           = "Spring Spacer"
+	SpringAnchorPinName        = "Spring Anchor Pin"
 	WindingKnobName            = "Winding Knob"
 )
 
@@ -86,7 +90,9 @@ func (m *Movement) slots() []slot {
 		{EscapeArborName, &m.EscapeArbor}, {PalletArborName, &m.PalletArbor}, {GreatWheelArborName, &m.GreatWheelArbor},
 		{EscapeWheelName, &m.EscapeWheel}, {AnchorName, &m.Anchor}, {CrutchName, &m.Crutch}, {PendulumName, &m.Pendulum},
 		{SuspensionPinName, &m.SuspensionPin}, {SuspensionCapName, &m.SuspensionCap},
-		{GreatWheelName, &m.GreatWheel}, {DrumName, &m.Drum}, {WindingKnobName, &m.WindingKnob},
+		{GreatWheelName, &m.GreatWheel},
+		{PawlCarrierName, &m.PawlCarrier}, {MainspringName, &m.Mainspring}, {SpringSpacerName, &m.SpringSpacer},
+		{SpringAnchorPinName, &m.SpringAnchorPin}, {WindingKnobName, &m.WindingKnob},
 	}
 	for i := range m.Bolts {
 		out = append(out, slot{BoltName(i), &m.Bolts[i]})
@@ -232,7 +238,10 @@ func (b *builder) buildAll(m *Movement) error {
 		{"pendulum", func() (e error) { m.Pendulum, e = b.buildPendulum(); return }},
 		{"suspension cap", func() (e error) { m.SuspensionCap, e = b.buildCap(); return }},
 		{"great wheel", func() (e error) { m.GreatWheel, e = b.buildGreatWheel(); return }},
-		{"drum", func() (e error) { m.Drum, e = b.buildDrum(); return }},
+		{"pawl carrier", func() (e error) { m.PawlCarrier, e = b.buildPawlCarrier(); return }},
+		{"mainspring", func() (e error) { m.Mainspring, e = b.buildMainspring(); return }},
+		{"spring spacer", func() (e error) { m.SpringSpacer, e = b.buildSpringSpacer(); return }},
+		{"spring anchor pin", func() (e error) { m.SpringAnchorPin, e = b.buildSpringAnchorPin(); return }},
 		{"winding knob", func() (e error) { m.WindingKnob, e = b.buildKnob(); return }},
 		{"hardware", func() (e error) {
 			var h *Hardware
@@ -265,14 +274,15 @@ type bodyPose struct {
 func poses(g *Geometry, s State) map[string]bodyPose {
 	wheel := s.WheelAngle - BuildBackoff
 	great := g.GreatPhase + wheel*PinionTeeth/GreatTeeth
-	drum := great + DrumOffset
+	arbor := great + DrumOffset + g.CarrierOffset
 	return map[string]bodyPose{
 		PendulumBearingName: {g.S, -s.PendulumAngle, false},
 		EscapeArborName:     {g.O, -wheel, false}, PalletArborName: {g.P, -s.AnchorAngle, false},
-		GreatWheelArborName: {g.G, drum, false},
+		GreatWheelArborName: {g.G, arbor, false},
 		EscapeWheelName:     {g.O, -wheel, false}, AnchorName: {g.P, -s.AnchorAngle, false},
 		CrutchName: {g.P, -s.AnchorAngle, false}, PendulumName: {g.S, -s.PendulumAngle, false},
-		GreatWheelName: {g.G, great, true}, DrumName: {g.G, drum, true}, WindingKnobName: {g.G, drum, true},
+		GreatWheelName: {g.G, great, true}, PawlCarrierName: {g.G, arbor, true}, SpringSpacerName: {g.G, arbor, true},
+		WindingKnobName: {g.G, arbor, true},
 	}
 }
 

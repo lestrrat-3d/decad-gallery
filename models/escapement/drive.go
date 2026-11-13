@@ -5,28 +5,29 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/spiralspring"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Drive dimensions in mm. The great wheel, drum and knob are built about the origin and then moved onto the great
+// Drive dimensions in mm. The great wheel, pawl carrier, spacer and knob are built about the origin and then moved onto the great
 // wheel arbor.
 const (
-	greatRear      = 1.5
-	greatLength    = 7.0
-	greatBore      = 5.8
-	ratchetFloor   = 5.0
-	ratchetTool    = 4.5
-	ratchetDisc    = 11.5
-	ratchetInner   = 11.0
-	ratchetOuter   = 13.5
-	ratchetTeeth   = 12
-	drumCoreRadius = 7.5
-	layerLow       = 5.25
-	layerLength    = 4.0
-	knobRadius     = 9.0
-	knobLow        = 34.25
-	knobHigh       = 37.25
+	greatRear         = 1.5
+	greatLength       = 7.0
+	greatBore         = 5.8
+	ratchetFloor      = 5.0
+	ratchetTool       = 4.5
+	ratchetDisc       = 11.5
+	ratchetInner      = 11.0
+	ratchetOuter      = 13.5
+	ratchetTeeth      = 12
+	carrierCoreRadius = 7.5
+	layerLow          = 5.25
+	layerLength       = 4.0
+	knobRadius        = 9.0
+	knobLow           = 34.25
+	knobHigh          = 37.25
 )
 
 // ratchetToolBody builds the internal ratchet's cutter: a disc and twelve triangles.
@@ -105,33 +106,22 @@ func pawlLoop(s *sketch.Sketch, ref *sketch.Line, g float64) {
 	s.AddConstraint(sketch.NewDistance(o, p5, 10.5), sketch.NewAngle(ref, l, (g-120*deg)/deg))
 }
 
-// buildDrum builds the drum about the origin: the barrel, cone, flange and boss, the press bore, and the pawl layer.
-func (b *builder) buildDrum() (*decad.Body, error) {
-	drum, err := b.stepped("drum", 0, 0, meridianPoints{{0, 8.75}, {7, 8.75}, {7, 18.75}, {9.5, 21.25}, {3.7, 21.25},
-		{3.7, 27.75}, {0, 27.75}})
+// buildPawlCarrier builds the pawl carrier about the origin: the pawl layer (a core and two pawls), a short boss in
+// front of it, and the D press bore. Its bore flat is on +X, and its pawls are drawn CarrierOffset behind the
+// positions of the old drum's, so that pose by the arbor's turn leaves each pawl at the same angle from its ratchet face.
+func (b *builder) buildPawlCarrier() (*decad.Body, error) {
+	cs, err := b.flat("carrier core", 0, 0, layerLow)
 	if err != nil {
 		return nil, err
 	}
-	bore, err := b.dTool("drum bore", 0, 0, 7.75, pressRadius, pressFlat, 21)
+	circleAt(cs, carrierCoreRadius)
+	core, err := b.extrude(cs, 0, layerLength, "carrier core")
 	if err != nil {
 		return nil, err
 	}
-	if drum, err = b.cut(drum, bore, "drum bore"); err != nil {
-		return nil, err
-	}
-	cs, err := b.flat("drum core", 0, 0, layerLow)
-	if err != nil {
-		return nil, err
-	}
-	circleAt(cs, drumCoreRadius)
-	dLoop(cs, reliefRadius, reliefFlat)
-	core, err := b.extrude(cs, 1, layerLength, "drum core")
-	if err != nil {
-		return nil, err
-	}
-	var pawls []*decad.Body
-	for j, g := range []float64{90 * deg, 270 * deg} {
-		what := fmt.Sprintf("drum pawl %d", j+1)
+	var rest []*decad.Body
+	for j, g := range []float64{90*deg - b.g.CarrierOffset, 270*deg - b.g.CarrierOffset} {
+		what := fmt.Sprintf("carrier pawl %d", j+1)
 		s, err := b.flat(what, 0, 0, layerLow)
 		if err != nil {
 			return nil, err
@@ -141,13 +131,60 @@ func (b *builder) buildDrum() (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		pawls = append(pawls, pawl)
+		rest = append(rest, pawl)
 	}
-	layer, err := b.union("drum pawl layer", core, pawls...)
+	boss, err := b.discAt("carrier boss", 0, 0, carrierBossLow, CollarRadius, carrierBossLength)
 	if err != nil {
 		return nil, err
 	}
-	return b.union("drum", drum, layer)
+	carrier, err := b.union("pawl carrier", core, append(rest, boss)...)
+	if err != nil {
+		return nil, err
+	}
+	bore, err := b.dTool("carrier bore", 0, 0, layerLow-1, pressRadius, pressFlat, 7.75)
+	if err != nil {
+		return nil, err
+	}
+	return b.cut(carrier, bore, "carrier bore")
+}
+
+// buildSpringSpacer builds the pressed tube from the spring hub's front face to the front bearing, about the origin.
+func (b *builder) buildSpringSpacer() (*decad.Body, error) {
+	spacer, err := b.discAt("spring spacer", 0, 0, spacerLow, CollarRadius, spacerHigh-spacerLow)
+	if err != nil {
+		return nil, err
+	}
+	bore, err := b.dTool("spacer bore", 0, 0, spacerLow-1, pressRadius, pressFlat, spacerHigh-spacerLow+2)
+	if err != nil {
+		return nil, err
+	}
+	return b.cut(spacer, bore, "spring spacer bore")
+}
+
+// buildSpringAnchorPin builds the round rod that carries the spring's eye, standing at its place.
+func (b *builder) buildSpringAnchorPin() (*decad.Body, error) {
+	q := b.g.SpringAnchor
+	return b.discAt("spring anchor pin", q.X, q.Y, springAnchorLow, springAnchorPinR, springAnchorHigh-springAnchorLow)
+}
+
+// buildMainspring builds the spiral mainspring with spiralspring.Build, placed on the great wheel arbor with its eye
+// straight below it, and records the item's profile sketch.
+func (b *builder) buildMainspring() (*decad.Body, error) {
+	g := &b.g
+	sp := SpringParams()
+	frame, err := r3.NewFrame(r3.NewVec(g.G.X, g.G.Y, springZ),
+		r3.NewVec(math.Cos(g.SpringTurn), math.Sin(g.SpringTurn), 0),
+		r3.NewVec(-math.Sin(g.SpringTurn), math.Cos(g.SpringTurn), 0))
+	if err != nil {
+		return nil, fmt.Errorf("mainspring: placement: %w", err)
+	}
+	sp.Placement = &frame
+	m, err := spiralspring.Build(b.ctx, b.doc, sp)
+	if err != nil {
+		return nil, fmt.Errorf("mainspring: %w", err)
+	}
+	b.sketches = append(b.sketches, m.Profile)
+	return m.Body, nil
 }
 
 // buildKnob builds the winding knob about the origin.

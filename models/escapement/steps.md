@@ -125,18 +125,32 @@ origin `z 1.5`. Ratchet tool: disc sketch (`z 5.0`, `G`) circle `r 11.5`; triang
 `(11.0∠0°)`, `(13.5∠30°)`, `(11.0∠30°)`; extrude both 4.5; pattern the triangle 12 times; `Union(disc, tooth,
 copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratchet teeth; outline at `z 3` shows 48 teeth.
 
-### 20. Drum
+### 20. Pawl Carrier
 
-Meridian sketch of the drum polygon (instructions "Drum": flange `r 9.5`, barrel 10 mm), revolve, cut the D press bore (tool `z 7.75`, height 21).
-Pawl layer: core sketch (`z 5.25`) circle `r 7.5` with the D relief loop (`r 2.8`, flat `x 2.3`): valid profile with 1
-hole, extrude 4; two pawl sketches (the pawl loop, polar points, arcs `NewRadius` 7.0, 9.0, 12.5, 10.5) extruded 4;
-`Union(core, pawl0, pawl1)`; `Union(drum, layer)`. Check: solid; pawls present at `z 7`; flange front face under 400 mm².
+Built about the origin and moved onto `G` by the pose. Core sketch (`z 5.25`): circle `r 7.5`, valid profile with 0
+holes, extrude 4. Two pawl sketches (the pawl loop of instructions "Pawl Carrier", polar points, arcs `NewRadius` 7.0, 9.0,
+12.5, 10.5) at `g = 90° - δb` and `270° - δb`, extruded 4. Boss sketch (`z 8.75`): circle `r 3.7`, extrude 2.25.
+`Union(core, pawl0, pawl1, boss)`; cut the D press bore (sketch `z 4.25`, arc `r 2.55` and a vertical chord at `x 2.05`,
+extrude 7.75). Check: solid; pawl tips at the old drum's world angles; boss present at `z 10`, absent at `z 11.1`.
 
-### 21. Winding Knob
+### 21. Mainspring
+
+`spiralspring.Build(ctx, doc, SpringParams())` with `Placement` origin `(G_x, G_y, 11.25)`, `U = (cos γs, sin γs, 0)`,
+`V = (-sin γs, cos γs, 0)`. `Layout` derives the dimensions with `Derive`. The item chamfers its caps and verifies its own
+profile sketch; `Model.Profile` goes into `Movement.Sketches`. Check: solid; bounds `x ∈ [-32.0, 31.22]`, `y ∈ [-83.16, -13.75]`,
+`z ∈ [11.25, 17.25]`; the eye's hole at `z 14.25` lies 1.9 mm round `Q`.
+
+### 22. Spring Spacer and 23. Spring Anchor Pin
+
+Spacer sketch (`z 17.5`): circle `r 3.7`, extrude 10.25; D press bore (sketch `z 16.5`, extrude 12.25). Anchor pin sketch (plane
+origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socket tool (sketch at `Q`, `z 27`): circle
+`r 1.55`, extrude 4, appended to the front plate's tool list (`spring.go`). Check: solids; `TestFrontPlateSpringAnchor`.
+
+### 24. Winding Knob
 
 Circle `r 9` at `G`, `z 34.25`, extrude 3; D press socket cut (`z 33.25`, height 5).
 
-### 22-29. Bolts and nuts
+### 25-32. Bolts and nuts
 
 `m2fastener.PlaceBolt` and `PlaceNut` on the four sites. Check: head top at `z 34`, nut inside its cavity, tip inside
 the pillar hole, no overlap with a plate.

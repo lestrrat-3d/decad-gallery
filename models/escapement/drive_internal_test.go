@@ -81,7 +81,7 @@ func TestRatchet(t *testing.T) {
 	wheel, err := b.buildGreatWheel()
 	require.NoError(t, err)
 	require.True(t, wheel.IsSolid())
-	drum, err := b.buildDrum()
+	drum, err := b.buildPawlCarrier()
 	require.NoError(t, err)
 	require.True(t, drum.IsSolid())
 
@@ -105,12 +105,14 @@ func TestRatchet(t *testing.T) {
 	// The drum's pawl layer at z 7: core with pawls, and the D relief.
 	do := sectionAt(t, drum, 7)
 	dl := loopsBy(do)
-	require.Len(t, dl, 2, "core with two pawls, and the relief hole")
+	require.Len(t, dl, 2, "core with two pawls, and the D bore")
 	pawls := dl[0]
 	off := wo.OffSurface.Base() + do.OffSurface.Base()
 
 	// At the build pose the drum sits 20.8° ccw in the wheel's frame.
-	pose := func(extra float64) []Pt { return rotPoly(pawls, DrumOffset+extra) }
+	// The carrier's pawls are drawn CarrierOffset behind, and the arbor turns it that much further, so the world pose is the
+	// drum's old one.
+	pose := func(extra float64) []Pt { return rotPoly(pawls, DrumOffset+b.g.CarrierOffset+extra) }
 	require.True(t, fitsIn(pose(0), pocket), "the pawls sit in the pocket at the build pose")
 	// The contact face (radial at -1.2° from r 10.5 to 12.5) against the ratchet's radial face (0° from r 11.5 to 13.5).
 	pawlFace := [2]Pt{Polar(10.5, -1.2*deg), Polar(12.5, -1.2*deg)}
@@ -159,19 +161,16 @@ func TestRatchet(t *testing.T) {
 		}
 	}
 	require.GreaterOrEqual(t, armGap, 0.95-off)
-	// The drum's flange front face (z 21.25) stays under the 400 mm² of large faces: π (9.5² - 3.7²) = 240.6.
-	found := false
+	// No face of the carrier is large: its largest planar face is the pawl layer's (core and pawls, under 400 mm²).
 	for _, f := range drum.Faces() {
 		pl, ok := f.Surface().(decad.Plane)
-		if !ok || math.Abs(pl.Frame.Origin().Z-21.25) > 1e-6 || math.Abs(pl.Frame.N().Z) < 0.999 {
+		if !ok || math.Abs(pl.Frame.N().Z) < 0.999 {
 			continue
 		}
 		area, err := f.Area()
 		require.NoError(t, err)
-		require.InDelta(t, 240.6, area.Value.Base(), 1.0)
-		found = true
+		require.Less(t, area.Value.Base(), 400.0)
 	}
-	require.True(t, found, "the flange front face")
 }
 
 // TestKnob checks the winding knob: radius 9, so its face (254 mm² less the socket) is under the 400 mm² of large faces.

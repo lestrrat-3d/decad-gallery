@@ -102,7 +102,8 @@ func TestFits(t *testing.T) {
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 rear boss to the back bearing")
 	hasPlane(t, m.GreatWheelArbor, 0.25, "T2 great wheel collar")
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3)
-	hasPlane(t, m.Drum, 27.75, "T2 drum boss")
+	hasPlane(t, m.SpringSpacer, 27.75, "T2 spring spacer")
+	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "S5 spacer to the front great wheel bearing")
 	hasPlane(t, m.Anchor, 27.75, "T2 anchor boss")
 	pendLow, pendHigh := bearingZ(t, m.PendulumBearing)
 	axial(t, m.SuspensionPin, 38.75, m.Pendulum, 38.75, 0, "T2 shoulder")
@@ -113,7 +114,8 @@ func TestFits(t *testing.T) {
 	// T3, P1: press fits take 0.05 mm all round.
 	radial(t, m.EscapeWheel, m.EscapeArbor, 10, 0.05, 0, "T3 escape wheel on its arbor")
 	radial(t, m.Anchor, m.PalletArbor, 24, 0.05, 0, "T3 anchor on its arbor")
-	radial(t, m.Drum, m.GreatWheelArbor, 15, 0.05, 0, "T3 drum on its arbor")
+	radial(t, m.PawlCarrier, m.GreatWheelArbor, 7, 0.05, 0, "T3 pawl carrier on its arbor")
+	radial(t, m.SpringSpacer, m.GreatWheelArbor, 22, 0.05, 0, "T3 spring spacer on its arbor")
 	radial(t, m.Crutch, m.PalletArbor, 36, 0.05, 0, "P1 crutch on its arbor")
 	radial(t, m.WindingKnob, m.GreatWheelArbor, 36, 0.05, 0, "P1 knob on its arbor")
 	radial(t, m.SuspensionCap, m.SuspensionPin, 45, 0.05, 0, "P1 cap on the pin")
@@ -121,7 +123,7 @@ func TestFits(t *testing.T) {
 
 	// T4, T4p: axial gaps along an arbor.
 	axial(t, m.GreatWheel, 1.5, m.GreatWheelArbor, 1.25, 0.25, "T4 great wheel to its collar")
-	axial(t, m.Drum, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
+	axial(t, m.PawlCarrier, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
 	axial(t, m.EscapeWheel, 25, m.EscapeArbor, 25.05, 0.05, "T4p escape wheel to its collar")
 	axial(t, m.Anchor, 21, m.PalletArbor, 20.95, 0.05, "T4p anchor to the pallet collar")
 
@@ -136,16 +138,15 @@ func TestFits(t *testing.T) {
 	radial(t, m.GreatWheel, m.GreatWheelArbor, 4, 0.4, regular, "R1 great wheel bore")
 
 	// L1, L3, L4: axial Loose gaps.
-	axial(t, m.EscapeWheel, 22, m.Drum, 21.25, 0.75, "L1 escape wheel to the drum flange")
 	axial(t, m.Pendulum, 37.75, m.Crutch, 37.25, 0.5, "L3 pendulum to the crutch")
 	axial(t, m.Pendulum, 37.75, m.WindingKnob, 37.25, 0.5, "L3 pendulum to the knob")
 	axial(t, m.Anchor, 26, m.FrontPlate, 28, 2.0, "L4 anchor to the front plate")
 	axial(t, m.EscapeWheel, 25, m.FrontPlate, 28, 3.0, "L4 escape wheel to the front plate")
 
 	// L2, L5, L6: radial Loose gaps.
-	radial(t, m.Drum, m.EscapeWheel, 23.5, 2.05, 2.05-0.1, "L2 drum boss to the wheel tips")
+	radial(t, m.SpringSpacer, m.EscapeWheel, 23.5, 2.05, 2.05-0.1, "L2 spring spacer to the wheel tips")
 	radial(t, m.GreatWheelArbor, m.EscapeWheel, 23.5, 3.25, 3.25-0.1, "L2 great wheel arbor to the wheel tips")
-	radial(t, m.EscapeWheel, m.Drum, 7, 22.0, 22.0-0.1, "L5 pinion tips to the pawl layer")
+	radial(t, m.EscapeWheel, m.PawlCarrier, 7, 22.0, 22.0-0.1, "L5 pinion tips to the pawl layer")
 	radial(t, m.SuspensionPin, m.Pendulum, 38.2, 1.3, 1.3-0.1, "L6 shoulder in the lip bore")
 
 	// B1: each 605ZZ in its 0.05 mm seat.

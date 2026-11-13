@@ -35,6 +35,9 @@ func (m *Movement) Set(doc *decad.Document, p Params) (*parts.Set, error) {
 		if strings.HasSuffix(nb.Name, "Bearing") || strings.HasPrefix(nb.Name, "Bolt ") || strings.HasPrefix(nb.Name, "Nut ") {
 			part.Kind, part.Material = parts.Purchased, parts.Material{Name: "steel"}
 		}
+		if nb.Name == MainspringName {
+			part.Material = parts.Material{Name: "PETG"}
+		}
 		if err := set.Add(part); err != nil {
 			return nil, fmt.Errorf("escapement: add %s to the parts set: %w", nb.Name, err)
 		}
@@ -81,12 +84,16 @@ func joints(g *Geometry, frame r3.Transform) []parts.Joint {
 	pin("escape wheel on its arbor", EscapeWheelName, EscapeArborName, g.O, parts.Fixed)
 	pin("anchor on the pallet arbor", AnchorName, PalletArborName, g.P, parts.Fixed)
 	pin("crutch on the pallet arbor", CrutchName, PalletArborName, g.P, parts.Fixed)
-	pin("drum on the great wheel arbor", DrumName, GreatWheelArborName, g.G, parts.Fixed)
+	pin("pawl carrier on the great wheel arbor", PawlCarrierName, GreatWheelArborName, g.G, parts.Fixed)
+	pin("mainspring on the great wheel arbor", MainspringName, GreatWheelArborName, g.G, parts.Fixed)
+	pin("spring spacer on the great wheel arbor", SpringSpacerName, GreatWheelArborName, g.G, parts.Fixed)
 	pin("winding knob on the great wheel arbor", WindingKnobName, GreatWheelArborName, g.G, parts.Fixed)
 	pin("great wheel on its arbor", GreatWheelName, GreatWheelArborName, g.G, parts.Turns)
 	contact("great wheel meshes the escape wheel's pinion", GreatWheelName, EscapeWheelName)
 	contact("anchor meets the escape wheel", AnchorName, EscapeWheelName)
-	contact("drum pawls on the great wheel", DrumName, GreatWheelName)
+	contact("carrier pawls on the great wheel", PawlCarrierName, GreatWheelName)
+	pin("spring anchor pin in the front plate", SpringAnchorPinName, FrontPlateName, g.SpringAnchor, parts.Fixed)
+	pin("mainspring eye on the spring anchor pin", MainspringName, SpringAnchorPinName, g.SpringAnchor, parts.Turns)
 
 	// The pendulum hangs on the suspension pin through its bearing, and its slot takes the crutch's pin.
 	pin("pendulum bearing in the pendulum", PendulumBearingName, PendulumName, g.S, parts.Fixed)

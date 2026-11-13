@@ -3,6 +3,8 @@ package escapement
 import (
 	"fmt"
 	"math"
+
+	"github.com/lestrrat-3d/decad-gallery/models/spiralspring"
 )
 
 // Fixed constants of instructions.md "Escapement geometry", in mm and radians.
@@ -119,6 +121,14 @@ type Geometry struct {
 	WheelPhaseE, WheelPhaseX, Drop float64
 	TipToRootA, TipToRootB         float64
 	PendulumPeriod                 float64
+
+	// Mainspring: the item's derived dimensions, the turn of the spring about G, the carrier's bore offset, the anchor pin
+	// centre, and the torque estimates.
+	Spring                                     spiralspring.Dimensions
+	SpringTurn, CarrierOffset                  float64
+	SpringAnchor                               Pt
+	SpringRate, FullWindTorque, FullWindStrain float64
+	RunTurns                                   float64
 }
 
 // tip returns the point where the tip circle meets the circle of radius r about P, on the left (entry) or right side.
@@ -132,8 +142,74 @@ func tip(g *Geometry, r float64, left bool) Pt {
 	return Pt{x, y}
 }
 
+// Mainspring constants. The spring is fixed by the design, and the user cannot change it.
+const (
+	springHeight      = 6.0
+	springZ           = 11.25  // the spring's rear face
+	springYoung       = 2100.0 // N/mm², printed PETG
+	springFullTurns   = 2.25   // arbor turns past relaxed at full wind
+	springMinTorque   = 8.0    // N·mm, the design minimum
+	springAnchorLow   = 10.25
+	springAnchorHigh  = 30.95
+	springSocketLow   = 27.0
+	springSocketHigh  = 31.0
+	springSocketR     = 1.55
+	springAnchorPinR  = 1.5
+	carrierBossLow    = 8.75
+	carrierBossLength = 2.25
+	spacerLow         = 17.5
+	spacerHigh        = 27.75
+)
+
+// SpringParams returns the mainspring's spiralspring parameters, without a placement.
+func SpringParams() spiralspring.Params {
+	sp := spiralspring.DefaultParams()
+	sp.OuterDiameter, sp.HubDiameter, sp.Thickness, sp.Height, sp.MinGap = 64, 12, 1.5, springHeight, 1.0
+	sp.Turns = 0
+	sp.ArborDiameter, sp.ArborFlatDepth, sp.BoreClearance = 5, 0.5, 0.25
+	sp.AnchorPinDiameter, sp.AnchorClearance = 3, 0.4
+	return sp
+}
+
 // Layout computes the geometry of the movement for p.
 func Layout(p Params) (Geometry, error) {
+	g, err := layoutEscapement(p)
+	if err != nil {
+		return Geometry{}, err
+	}
+	dims, err := SpringParams().Derive()
+	if err != nil {
+		return Geometry{}, fmt.Errorf("escapement: mainspring: %w", err)
+	}
+	g.Spring = dims
+	eye := math.Atan2(dims.EyeCenterY, dims.EyeCenterX)
+	g.SpringTurn = -math.Pi/2 - eye
+	g.SpringAnchor = Pt{g.G.X, g.G.Y - math.Hypot(dims.EyeCenterX, dims.EyeCenterY)}
+	// The arbor's flat meets the spring's bore flat at the default phase. There the old drum pose is the great wheel's
+	// angle plus DrumOffset, and the carrier's bore flat is turned from it by CarrierOffset.
+	dp := DefaultParams()
+	gd, err := layoutEscapement(dp)
+	if err != nil {
+		return Geometry{}, err
+	}
+	sd, err := gd.StateAt(dp.Phase)
+	if err != nil {
+		return Geometry{}, err
+	}
+	old := gd.GreatPhase + (sd.WheelAngle-BuildBackoff)*PinionTeeth/GreatTeeth + DrumOffset
+	g.CarrierOffset = math.Mod(g.SpringTurn+math.Pi/2-old, 2*math.Pi)
+	// A uniform-curvature spiral: k = E h t³ / (12 L) and strain = (t / 2) θ / L.
+	sp := SpringParams()
+	g.SpringRate = springYoung * sp.Height * math.Pow(sp.Thickness, 3) / (12 * dims.ActiveLength)
+	full := springFullTurns * 2 * math.Pi
+	g.FullWindTorque = g.SpringRate * full
+	g.FullWindStrain = sp.Thickness / 2 * full / dims.ActiveLength
+	g.RunTurns = springFullTurns - springMinTorque/(g.SpringRate*2*math.Pi)
+	return g, nil
+}
+
+// layoutEscapement computes everything but the mainspring.
+func layoutEscapement(p Params) (Geometry, error) {
 	if err := p.Validate(); err != nil {
 		return Geometry{}, err
 	}
