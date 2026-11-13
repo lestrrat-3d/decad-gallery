@@ -27,6 +27,11 @@ func TestSupportedCombinationsAreValid(t *testing.T) {
 			require.NoError(t, p.Validate())
 			require.Equal(t, k.PlanetBearing, p.PlanetBearing)
 			require.Equal(t, k.ShaftBearing, p.ShaftBearing)
+			want := map[string][3]int{
+				"planet605-shaft605": {13, 29, 71}, "planet605-shaft608": {14, 28, 70},
+				"planet608-shaft605": {13, 29, 71}, "planet608-shaft608": {14, 28, 70},
+			}[k.Name]
+			require.Equal(t, want, [3]int{p.SunTeeth, p.PlanetTeeth, p.RingTeeth})
 			require.InDelta(t, 1+float64(p.RingTeeth)/float64(p.SunTeeth), p.Ratio(), 1e-12)
 			requireTableMatchesDerive(t, p)
 		})
