@@ -166,7 +166,7 @@ position. Wind clockwise.
   bearing sits in a seat with 0.05 mm of radial clearance.
 - **Tight fits, 0.25 mm.** Collars, bosses, the pin's shoulder and the cap stand 0.25 mm from a bearing face. The crutch
   and knob stand 0.25 mm off the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
-  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.25 mm on the arbor's flat and stands
+  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.28 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
   0.25 mm from the carrier boss and from the spacer, and the eye has 0.40 mm on the anchor pin.
 - **Regular fit, 0.40 mm.** The great wheel's 5.8 mm bore turns on the 5.0 mm arbor.
 - **Loose fits.** The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel

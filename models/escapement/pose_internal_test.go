@@ -212,8 +212,8 @@ func TestPoseNoOverlap(t *testing.T) {
 		}
 		require.NotNil(t, bore, "the spring hub's bore")
 		require.True(t, fitsIn(arbor, bore), "phase %v: the arbor turns inside the spring's bore", phase)
-		// The arbor turns 3.25° across a period against the fixed spring, so the flat corners close the 0.25 mm of the build
-		// pose to about 0.17 mm at the worst phase: no overlap, and the gap stays above 0.15 mm.
-		require.Greater(t, distPolys(arbor, bore), 0.15, "phase %v: arbor to spring bore", phase)
+		// The arbor turns 3.25° across a period against the fixed spring, so the flat corners close the 0.28 mm of the build
+		// pose by about 0.076 mm at the worst phase, and the 0.28 mm bore clearance keeps the Tight 0.2 mm minimum.
+		require.GreaterOrEqual(t, distPolys(arbor, bore), 0.2, "phase %v: arbor to spring bore", phase)
 	}
 }

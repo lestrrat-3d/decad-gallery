@@ -113,7 +113,7 @@ func TestSpringFits(t *testing.T) {
 	require.NoError(t, err)
 	const loose = 0.5
 
-	// S1: the hub's D bore on the arbor's flat, Tight 0.25.
+	// S1: the hub's D bore on the arbor's flat, Tight: 0.28 at the build pose (TestPoseNoOverlap keeps 0.2 at every phase).
 	// The spring's outline is one long loop whose Clearance bound is wide, so the bore is measured by its own vertices.
 	so, ao := sectionAt(t, m.Mainspring, 14.25), sectionAt(t, m.GreatWheelArbor, 14.25)
 	arbor := loopsBy(ao)[0]
@@ -132,7 +132,7 @@ func TestSpringFits(t *testing.T) {
 			}
 		}
 	}
-	require.InDelta(t, 0.25, bore, 0.03+so.OffSurface.Base()+ao.OffSurface.Base(), "S1 hub bore on the arbor")
+	require.InDelta(t, 0.28, bore, 0.03+so.OffSurface.Base()+ao.OffSurface.Base(), "S1 hub bore on the arbor")
 	// S2: the eye on the anchor pin, Regular 0.40.
 	pinOutline := loopsBy(sectionAt(t, m.SpringAnchorPin, 14.25))
 	require.InDelta(t, 0.4, springGap(so, g.SpringAnchor, 0, 4, pinOutline), 0.03+so.OffSurface.Base(), "S2 eye on the anchor pin")
