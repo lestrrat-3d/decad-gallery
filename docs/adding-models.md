@@ -10,7 +10,7 @@ Give each completed item an `images/hero.png` rendered from its Decad body. The 
 480 × 270 pixels and the hero image is 1600 × 900 pixels. Register the item's image preset in the
 [model renderer](rendering.md) and show the image in the item's `README.md`. Add animations through the
 same rendering tool when a model needs motion to explain it. Add the item to the table in
-[`models/README.md`](../models/).
+[`models/README.md`](../models/), in alphabetical order by the model name in its first column.
 
 In addition to the hero image, show the finished product in the README from multiple angles. For a
 multi-body assembly, include an exploded view and a table with an image and name for each distinct body.

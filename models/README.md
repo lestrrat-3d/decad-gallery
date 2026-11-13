@@ -2,22 +2,22 @@
 
 | Model | Image | Description | Clearance adjustment |
 | --- | --- | --- | --- |
+| [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | 608-2RS and 605ZZ nominal bore, outside diameter and width for fitting an assembly. | Nominal |
+| [Bevel gear pair](bevelgear/) | <img src="bevelgear/images/index.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. | Adjustable |
+| [Cycloidal drive](cycloidal/) | <img src="cycloidal/images/index.png" alt="Assembled cycloidal drive" width="240"> | A cycloidal speed reducer with one or two lobed discs, a pinless housing, eccentric cam and output plate. | Adjustable |
 | [Graham escapement](escapement/) | <img src="escapement/images/index.png" alt="Graham escapement with a pendulum" width="240"> | A weight-driven clock movement: a 30-tooth escape wheel, a deadbeat anchor, a crutch and a pendulum in an open, symmetric two-plate frame on seven 605ZZ bearings, with the mechanism in view from the front and the back. | Mixed |
 | [Hand-crank fan](handcrankfan/) | <img src="handcrankfan/images/index.png" alt="Fan with a right-hand crank" width="240"> | A handheld fan whose right-hand crank drives a four-blade rotor of swappable blades through a spur pair and a bevel gear pair. | Mixed |
 | [Hand-crank siren](handcranksiren/) | <img src="handcranksiren/images/index.png" alt="Hand-crank siren with its horn" width="240"> | A hand crank spins a slotted rotor ten times faster through two spur stages; 20 ports chop the air into a 400 Hz tone at two crank turns a second. | Mixed |
-| [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. | Mixed |
-| [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | 608-2RS and 605ZZ nominal bore, outside diameter and width for fitting an assembly. | Nominal |
-| [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. | Adjustable |
 | [Helical gear](helicalgear/) | <img src="helicalgear/images/index.png" alt="Bored helical gear" width="240"> | An involute gear with teeth twisted along its axis. | Adjustable |
 | [Herringbone gear](herringbonegear/) | <img src="herringbonegear/images/index.png" alt="Bored herringbone gear" width="240"> | An involute gear with mirrored tooth slopes that meet at its midpoint. | Adjustable |
-| [Planetary gearbox](planetarygearbox/) | <img src="planetarygearbox/images/index.png" alt="Cut-open two-stage planetary gearbox" width="240"> | A stackable planetary speed reducer: a sun gear, three planets and a carrier inside a fixed internal ring gear. | Mixed |
-| [Cycloidal drive](cycloidal/) | <img src="cycloidal/images/index.png" alt="Assembled cycloidal drive" width="240"> | A cycloidal speed reducer with one or two lobed discs, a pinless housing, eccentric cam and output plate. | Adjustable |
-| [Bevel gear pair](bevelgear/) | <img src="bevelgear/images/index.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. | Adjustable |
-| [Screw gear](screwgear/) | <img src="screwgear/images/index.png" alt="Two twisted ribbon gears in a sleeve" width="240"> | Two twisted toothed ribbons that run through a windowed sleeve and move one another one tooth for one tooth. | Adjustable |
 | [M2 bolt](m2bolt/) | <img src="m2bolt/images/index.png" alt="M2 socket head cap screw" width="240"> | An M2 socket head cap screw with a hex socket and a length you choose. | Nominal |
 | [M2 nut](m2nut/) | <img src="m2nut/images/index.png" alt="M2 hex nut" width="240"> | An M2 hex nut that fits the M2 bolt. | Nominal |
-| [Spiral spring](spiralspring/) | <img src="spiralspring/images/index.png" alt="Spiral spring with a D-bore hub and an anchor eye" width="240"> | A flat spiral (clock) spring for wind-up mechanisms, with a D-bore hub and an anchor eye, sized by its relaxed outer diameter. | Adjustable |
 | [Pin ring](pinring/) | <img src="pinring/images/index.png" alt="Flat pin ring" width="240"> | An assembly aid (jig): a plain flat ring that sits on a pin to hold it in place while you assemble. | Adjustable |
+| [Planetary gearbox](planetarygearbox/) | <img src="planetarygearbox/images/index.png" alt="Cut-open two-stage planetary gearbox" width="240"> | A stackable planetary speed reducer: a sun gear, three planets and a carrier inside a fixed internal ring gear. | Mixed |
+| [Screw gear](screwgear/) | <img src="screwgear/images/index.png" alt="Two twisted ribbon gears in a sleeve" width="240"> | Two twisted toothed ribbons that run through a windowed sleeve and move one another one tooth for one tooth. | Adjustable |
+| [Spiral spring](spiralspring/) | <img src="spiralspring/images/index.png" alt="Spiral spring with a D-bore hub and an anchor eye" width="240"> | A flat spiral (clock) spring for wind-up mechanisms, with a D-bore hub and an anchor eye, sized by its relaxed outer diameter. | Adjustable |
+| [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. | Adjustable |
+| [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. | Mixed |
 
 Clearance adjustment labels follow the [model fit rules](../docs/model-pipeline.md#part-clearances).
 Nominal components keep their published dimensions; adjust the custom mating part to provide the required gap.
