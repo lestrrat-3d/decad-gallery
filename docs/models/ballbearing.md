@@ -19,6 +19,13 @@ name of the shielded 608ZZ.
 [EZO's 605ZZ catalogue](https://www.ezo-brg.co.jp/english/product/spec.php?eid=00529).
 Both presets use the same `Build` entry point, and callers supply placement independently.
 
+`Catalog()` lists the purchasable bearings as `Spec` values (605ZZ, then 608ZZ) and `Lookup(name)` finds one by
+exact name. A `Spec` adds `InnerRaceDiameter` to the three dimensions; it is a repository assumption, 8 mm for
+605ZZ and 12 mm for 608ZZ. `Spec.Params()` returns the `Params` for `Build`. `Spec.ShaftDiameter()`,
+`SeatDiameter()` and `PressBoreDiameter()` apply the fit rules of
+[Part clearances](../model-pipeline.md#part-clearances) with `SeatClearance` and `PressFitClearance`, both 0.05 mm.
+`Params605ZZ()` and `Params608ZZ()` return the matching catalog entry's `Params()`.
+
 `Build(ctx, doc, params)` returns a `Model` with `Body` and the actual `Sketch` consumed by extrusion.
 The sketch remains in its local XY plane when the body is placed. It contains two origin-centered
 diameter-constrained circles, and Build verifies its full constraint before using the annular profile.
