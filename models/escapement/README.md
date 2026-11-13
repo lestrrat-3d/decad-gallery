@@ -83,8 +83,8 @@ seven bearings (the seventh sits in the pendulum), two collar rings, four bolts,
 | <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor, with a counterbore for the pallet front collar in its front face |
 | <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin |
 | <img src="images/parts/pendulum.png" alt="Pendulum" width="240"> | Pendulum, with the crutch slot and the bearing pocket |
-| <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin |
-| <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap |
+| <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing |
+| <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
 | <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet |
 | <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls |
 | <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
