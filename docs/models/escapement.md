@@ -7,7 +7,7 @@ and angles are in radians.
 
 ## Using the package
 
-`Build(ctx, doc, Params)` adds the movement's 29 bodies to a decad document and returns a `*Movement`. The document must
+`Build(ctx, doc, Params)` adds the movement's 32 bodies to a decad document and returns a `*Movement`. The document must
 come from `NewDocument()`, which sets `decad.WithChainTolerance` to 0.1 mm; the plates take many cuts and then a chamfer,
 and a plain document refuses them. `Build` rejects a nil context or document and invalid parameters before it adds
 anything to the document, and it returns every later failure with the part and step that failed.
@@ -15,9 +15,10 @@ anything to the document, and it returns every later failure with the part and s
 `Movement` holds one field per body, every Sketch it used in `Sketches`, and the pose it was built at in `State`.
 `Named()` lists the bodies with their display names, in the order of the Bodies table of `instructions.md`: the two plates,
 the seven 605ZZ bearings, the three arbors, the escape wheel and anchor, the crutch, pendulum, suspension pin and cap,
-the great wheel, drum and winding knob, then four bolts and four nuts. The bodies sit in the containers Frame, Bearings,
-Arbors, Escapement (Escape Wheel, Anchor), Pendulum Assembly (Crutch, Pendulum, Suspension), Drive (Great Wheel, Drum,
-Winding Knob), Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
+the great wheel, the pawl carrier, the mainspring, the spring spacer, the spring anchor pin and the winding knob, then four
+bolts and four nuts. The bodies sit in the containers Frame, Bearings,
+Arbors, Escapement (Escape Wheel, Anchor), Pendulum Assembly (Crutch, Pendulum, Suspension), Drive (Great Wheel, Pawl Carrier,
+Mainspring, Spring Spacer, Spring Anchor, Winding Knob), Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
 
 `Params` has seven fields:
 
@@ -34,7 +35,9 @@ Winding Knob), Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
 `DefaultParams()` returns the defaults and `Validate()` applies the ranges. Zero is not a request for the default. The
 error names the field. Every other dimension is a fixed constant of `instructions.md`.
 
-`Layout(Params)` returns a `Geometry` that holds every derived value and point: the pallet corners, the anchor outline's
+`Layout(Params)` returns a `Geometry` that holds every derived value and point, the mainspring's `spiralspring.Dimensions`
+(`Spring`), the spring's turn `SpringTurn`, the carrier's offset `CarrierOffset`, the anchor pin's centre `SpringAnchor` and the
+torque estimates `SpringRate`, `FullWindTorque`, `FullWindStrain` and `RunTurns`; it also holds the pallet corners, the anchor outline's
 points, the tooth feet, the crutch and pendulum outlines, the gear radii and the axes. `Motion(Params)` returns the
 `State` at `Phase` in closed form: the anchor angle ψ, the wheel angle φ, the pendulum angle β, the great wheel's angle
 and which pallet holds the wheel. `Geometry.StateAt(t)` gives the state at any phase. The great wheel arbor `G` is directly below the escape arbor `O`, at `(0, -45.75)`, so the suspension, pallet arbor, escape
@@ -42,14 +45,16 @@ arbor and great wheel arbor stand on the plumb line `x = 0`. Both plates are ope
 with two windows each. The model frame has its origin on
 the escape arbor in the plane of the back plate's inner face, `+X` to the right, `+Y` up and `+Z` toward the viewer.
 
-`Build` poses every body at `Phase`: the wheel, anchor and pendulum turn about their axes, the great wheel, drum, knob and
-their arbor follow the pinion, and the build backs the wheel off by 0.05° so the tooth and the pallet do not touch.
+`Build` poses every body at `Phase`: the wheel, anchor and pendulum turn about their axes, the great wheel follows the pinion, and the pawl carrier, spring spacer, knob and
+their arbor turn with it, offset by a constant that lines the arbor's flat with the fixed mainspring's bore. The mainspring and
+its anchor pin stay fixed, and the build backs the wheel off by 0.05° so the tooth and the pallet do not touch.
 
 ## Shared tooling
 
 The package uses `internal/gearroot` for the pinion's and the great wheel's deep root, `internal/edgefinish` for every
 chamfer, and `internal/m2fastener` for the four bolt sites: the head pockets, clearance holes, nut cavities and the bolts
-and nuts themselves. The gears are `models/spurgear` bodies; the bearings are `models/ballbearing` bodies of the 605ZZ
+and nuts themselves. The mainspring is a `models/spiralspring` body, built by `spiralspring.Build` with the constants of `SpringParams()` and not
+copied. The gears are `models/spurgear` bodies; the bearings are `models/ballbearing` bodies of the 605ZZ
 size, and the bolts and nuts are `models/m2bolt` and `models/m2nut` bodies.
 
 ## Checks
@@ -72,6 +77,8 @@ The package tests, about 4.5 minutes in all, build the default movement once and
   change the anchor and pendulum outlines.
 - `TestInventory`, `TestPlacement`, `TestBuildValidates`: 29 solid bodies in their containers, a placed build with the
   same volumes and mapped bounds, and the rejection of bad parameters before the document is touched.
+- `TestSpringLayout`, `TestMainspring`, `TestPawlCarrier`, `TestFrontPlateSpringAnchor` and `TestSpringFits`: the spring's
+  derived numbers and torque, the spring and carrier bodies, the front plate's anchor socket, and the spring's fits.
 - `TestCentreLine`, `TestPlateWindows`, `TestPlateMaterial` and `TestKnob`: the four axes on `x = 0`, ψ = 0 and β = 0 at the
   default phase, plates that are symmetric about the line, windows open where the mechanism shows and material in the
   spine, hub rings and rims, and a winding knob under 400 mm².
