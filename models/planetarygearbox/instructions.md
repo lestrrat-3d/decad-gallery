@@ -328,12 +328,30 @@ and the bearings, bolts and nuts keep their nominal dimensions.
   and each carrier's centre hole, which are press-fit rims; each bolt hole, head pocket and nut cavity, whose edges are shorter than 20 mm;
   the pocket and boss edges, which are not convex edges of the face.
 
+## Bearing kits
+
+A kit is one supported pair of bearings with a tooth set that passes the checks. The module is 1 and each stage has
+three planets. `SupportedCombinations` lists the kits in this order and `DefaultParamsFor(kit)` returns
+`DefaultParams` with the kit's bearings and teeth. The default kit comes first and equals `DefaultParams`.
+
+| Kit | Planet bearing | Shaft bearing | Teeth `Zs/Zp/Zr` | One-stage ratio |
+| --- | --- | --- | --- | --- |
+| `planet605-shaft605` | 605ZZ | 605ZZ | 13/29/71 | 6.4615 |
+| `planet605-shaft608` | 605ZZ | 608ZZ | 14/28/70 | 6.0 |
+| `planet608-shaft605` | 608ZZ | 605ZZ | 13/29/71 | 6.4615 |
+| `planet608-shaft608` | 608ZZ | 608ZZ | 14/28/70 | 6.0 |
+
+An 8 mm shaft bore (8.1 mm) needs `Zs >= 14` at module 1, so the 608ZZ shaft kits use 14/28/70. The 608ZZ planet pocket
+leaves 0.93 mm of wall over the one-module minimum with 29 planet teeth and 0.43 mm with 28. The model never changes
+teeth to fit a bearing. An unknown kit name is an error that lists the supported kits.
+
 ## Acceptance cases
 
 | Case | Overrides | Required result |
 | --- | --- | --- |
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, 8 bolts, 8 nuts, all solids; ratio 1 + 71/13 |
 | Fasteners | Default | Every bolt head ends level with its cover's outer face, every nut sits in its cavity 1 mm behind the ring's end face, and no bolt or nut overlaps the cover or ring it passes through |
+| Kits | Each kit of Bearing kits | Each kit validates and has its bearings and teeth. Each non-default kit builds and passes the default's fit, edge, container, fastener, gear-clearance and explode checks |
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
 | Shaft flat | Default | The input shaft has a flat on +X where the first sun sits and the sun's D bore has the matching tooth: at the flat the sun has material beyond the shaft's edge, and elsewhere in the bore the sun is absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the flat's circle segment over the sun's thickness; in a two-stage gearbox the second sun's bore has the same tooth for the link shaft's thin rod |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
