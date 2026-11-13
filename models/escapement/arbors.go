@@ -103,9 +103,9 @@ func (b *builder) arbor(what string, x, y float64, pts meridianPoints, spans []f
 }
 
 var (
-	escapeArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {bodyRadius, 0.25}, {bodyRadius, 25.05},
-		{3.7, 25.05}, {3.7, 27.75}, {2.5, 27.75}, {2.5, 33}, {0, 33}}
-	palletArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 19.95}, {3.7, 19.95},
+	escapeArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {bodyRadius, 0.25}, {bodyRadius, 24.0},
+		{3.7, 24.0}, {3.7, 27.75}, {2.5, 27.75}, {2.5, 33}, {0, 33}}
+	palletArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
 		{3.7, 20.95}, {bodyRadius, 20.95}, {bodyRadius, 27.75}, {2.5, 27.75}, {2.5, 37.2}, {0, 37.2}}
 	greatArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
 		{3.7, 1.25}, {driveBodyRadius, 1.25}, {driveBodyRadius, 17.45}, {bodyRadius, 17.45}, {bodyRadius, 27.75},
@@ -113,7 +113,7 @@ var (
 	pinPoints = meridianPoints{{0, 31.05}, {2.5, 31.05}, {2.5, 34}, {3.7, 34},
 		{3.7, 38.75}, {2.5, 38.75}, {2.5, 45.70}, {0, 45.70}}
 
-	escapeArborFlats = []flatSpan{{bodyFlatX, 0.20, 25.0}}
+	escapeArborFlats = []flatSpan{{bodyFlatX, 0.20, 23.95}}
 	palletArborFlats = []flatSpan{{bodyFlatX, 21.0, 27.80}, {FlatX, 34.25, 38.2}}
 	greatArborFlats  = []flatSpan{{bodyFlatX, 5.25, 27.80}, {FlatX, 34.25, 38.2}}
 	pinFlats         = []flatSpan{{FlatX, 30.05, 33.95}, {FlatX, 44.25, 46.70}}

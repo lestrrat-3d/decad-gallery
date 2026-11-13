@@ -29,6 +29,14 @@ func TestAnchor(t *testing.T) {
 			require.True(t, body.IsSolid())
 			require.NotEmpty(t, b.sketches)
 
+			// The front counterbore: radius 3.75 from the floor at z 24.70 to the front face at 26.
+			require.False(t, inside(t, body, g.P.X+3.5, g.P.Y, 25.0), "the counterbore is open at z 25")
+			require.True(t, inside(t, body, g.P.X+3.5, g.P.Y, 24.2), "material under the counterbore")
+			require.True(t, inside(t, body, g.P.X+3.9, g.P.Y, 25.0), "material round the counterbore")
+			bb, err := body.Bounds()
+			require.NoError(t, err)
+			require.InDelta(t, 26, bb.Max.Z, 2e-3, "no boss stands in front of the anchor")
+
 			f, err := r3.NewFrame(r3.NewVec(0, 0, 23.5), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 			require.NoError(t, err)
 			o, err := body.SectionOutline(t.Context(), f, units.Millimeters(0.02))

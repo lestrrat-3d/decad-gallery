@@ -51,4 +51,19 @@ func TestEscapeWheel(t *testing.T) {
 	require.Equal(t, PinionTeeth, count)
 	require.InDelta(t, 11.23, tip, 0.03+po.OffSurface.Base())
 	require.InDelta(t, 7.73, root, 0.05+po.OffSurface.Base())
+
+	// The front counterbore: radius 3.75 from the floor at z 23.95 to the face at 25, its rim chamfered from z 24.5.
+	require.False(t, inside(t, body, 3.5, 0, 24.2), "the front counterbore is open at z 24.2")
+	require.True(t, inside(t, body, 3.9, 0, 24.2), "material round the front counterbore")
+	require.True(t, inside(t, body, 3.5, 0, 23.5), "the front counterbore's floor")
+	require.True(t, inside(t, body, 3.5, 0, 22.5), "material under the front counterbore")
+	require.False(t, inside(t, body, 3.9, 0, 24.9), "the rim chamfer opens the counterbore at the face")
+	// The rear counterbore: radius 3.75 from the pinion's rear face at 1.5 up to the floor at 3.30.
+	require.False(t, inside(t, body, 3.5, 0, 2.4), "the rear counterbore is open at z 2.4")
+	require.True(t, inside(t, body, 3.9, 0, 2.4), "material round the rear counterbore")
+	require.True(t, inside(t, body, 3.5, 0, 3.5), "the rear counterbore's floor")
+	// No boss stands behind the pinion.
+	bb, err := body.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, 1.5, bb.Min.Z, 2e-3, "the pinion's rear face is the wheel's rearmost face")
 }

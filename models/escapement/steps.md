@@ -87,12 +87,16 @@ Sketch `escape disc` (`z 22`, `O`): root circle `r 33`; six windows of an inner 
 two lines each; each line `NewDistancePointLine(origin, line, 2.5)` and `NewAngle(xRef, line, σ)`. Valid profile: 6
 holes. Extrude 3. Sketch `escape tooth` (`z 22`): `T` by H distance 0 and V distance 40; `L` and `B` on radius 32.5 with
 `NewAngle(TO, TL, -10°)` and `NewAngle(TO, TB, -30°)`. Valid profile: 0 holes. Extrude 3. `decad.PatternCopies` (circular, count 30, axis `+Z`
-through `O`); `Union(disc, tooth, copies...)`. One `edgefinish.Chamfer` over `{22, 25}`: inner loops with more than
-one edge. Pinion: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}`, module 1.5, 13 teeth,
+through `O`); `Union(disc, tooth, copies...)`. Front counterbore sketch (`z 23.95`, `O`): circle `r 3.75`, extrude 2.05
+(tool `z [23.95, 26.0]`); `Cut` it from the wheel. One `edgefinish.Chamfer` over `{22, 25}`: inner loops with more than
+one edge, and the single-edge circle of radius 3.75 about `O` (the counterbore's rim; match the loop's one edge by the
+distance of its start from `O`, within 0.01). Pinion: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}`, module 1.5, 13 teeth,
 pressure angle 20°, thickness 21, `Backlash`, no bore, placement origin `z 1.5` with `U = (cos -60°, sin -60°)`.
-Sketch `rear boss` (`z 0.25`): circle `r 3.7`, extrude 1.75. `Union(wheel, pinion, boss)`. Cut the D press bore: sketch
-(plane at `z -0.75`) arc `r 2.85` and chord `NewVertical` at `x 2.60` (body family); extrude 26.75. Check: solid; section at
-`z 23.5` has 8 loops and 30 tips at radius 40; section at `z 10` shows 13 teeth, tip 11.23.
+`Union(wheel, pinion)`; there is no boss. Cut the D press bore: sketch (plane at `z -0.75`) arc `r 2.85` and chord
+`NewVertical` at `x 2.60` (body family); extrude 27.5. The same cut takes the rear counterbore: sketch (`z 0.5`) circle
+`r 3.75`, extrude 2.80 (tool `z [0.5, 3.30]`), unioned with the D bore tool, so one `Cut` makes both. Check: solid; section at
+`z 23.5` has 8 loops and 30 tips at radius 40; section at `z 10` shows 13 teeth, tip 11.23; the counterbores are open at
+`z 24.2` and `z 2.4` inside radius 3.75 and the part's rearmost face is `z 1.5`.
 
 ### 14. Anchor
 
@@ -100,8 +104,10 @@ Sketch `anchor outline` (`z 21`, `P`): the 14 pieces of "Anchor outline" plus `x
 `rh`; `C_E`, `F_E`, `C_X`, `F_X` polar points; arm inner lines by `NewAngle(xRef, line, a)` and
 `NewPointOnLine(origin, line)`; `K` on the `r_out` arc and on the inner line; arm ends `NewPerpendicular` and
 `NewDistancePointLine(M, inner, 6)`; outer sides `NewParallel`, `N` on the top hub arc. Valid profile: 0 holes.
-Extrude 5. Boss sketch (`z 25.5`) circle `r 3.7`, extrude 2.25, `Union`. Cut the D press bore (body family: arc `r 2.85`, chord `x 2.60`; tool `z 20`, height
-8.75). `edgefinish.Chamfer` over `{21, 26}` with `Outer` (28 edges), last. Check: solid; outline at `z 23.5` passes
+Extrude 5. There is no boss. Counterbore sketch (`z 24.70`, `P`): circle `r 3.75`, extrude 2.30 (tool `z [24.70, 27.0]`),
+`Cut`. Cut the D press bore (body family: arc `r 2.85`, chord `x 2.60`; tool `z 20`, height 8.75).
+`edgefinish.Chamfer` over `{21, 26}` keeping the outer loops and the counterbore's rim (the single-edge circle of radius
+3.75 about `P`), last. Check: solid; outline at `z 23.5` passes
 within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches verified for the three branch cases.
 
 ### 15. Crutch
@@ -154,7 +160,14 @@ origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socke
 
 Circle `r 9` at `G`, `z 34.25`, extrude 3; D press socket cut (`z 33.25`, height 5).
 
-### 25-32. Bolts and nuts
+### 25-26. Escape Rear Collar and Pallet Front Collar
+
+Each ring is a disc sketch `r 3.7` (about `O` at `z 0.25`; about `P` at `z 24.75`), extruded 3.0, with the body-family D bore
+cut through (sketch 1 mm below the ring, arc `r 2.85`, chord `NewVertical` at `x 2.60`, extrude 5.0), the pattern of the
+Spring Spacer. Both rings are built where they stand and posed with their arbor (`poses()`: `O` by `-wheel`, `P` by
+`-ψ`). They go in the container `Collars`. Check: solid; z extent 3.0; outer radius 3.7; `TestArborCollars`.
+
+### 27-34. Bolts and nuts
 
 `m2fastener.PlaceBolt` and `PlaceNut` on the four sites. Check: head top at `z 34`, nut inside its cavity, tip inside
 the pillar hole, no overlap with a plate.

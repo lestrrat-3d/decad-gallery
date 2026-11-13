@@ -25,7 +25,7 @@ func escapementColor(name string) solidlens.Color {
 		return solidlens.RGB(0.38, 0.45, 0.52)
 	case strings.HasSuffix(name, "Bearing"):
 		return solidlens.RGB(0.72, 0.74, 0.78)
-	case strings.HasSuffix(name, "Arbor"), name == escapement.SuspensionPinName:
+	case strings.HasSuffix(name, "Arbor"), strings.HasSuffix(name, "Collar"), name == escapement.SuspensionPinName:
 		return solidlens.RGB(0.3, 0.32, 0.36)
 	case strings.HasPrefix(name, "Bolt"), strings.HasPrefix(name, "Nut"):
 		return solidlens.RGB(0.55, 0.57, 0.6)
@@ -301,6 +301,7 @@ var escapementParts = []escapementPart{
 	{"escape-arbor", []string{escapement.EscapeArborName}, r3.NewVec(1, 0.3, 0.5)},
 	{"pallet-arbor", []string{escapement.PalletArborName}, r3.NewVec(1, 0.3, 0.5)},
 	{"great-wheel-arbor", []string{escapement.GreatWheelArborName}, r3.NewVec(1, 0.3, 0.5)},
+	{"arbor-collar", []string{escapement.EscapeRearCollarName}, r3.NewVec(1, 0.3, 0.5)},
 	{"bearing", []string{escapement.BackEscapeBearingName}, r3.NewVec(0.5, 0.5, 1)},
 	{"bolt", []string{escapement.BoltName(0), escapement.NutName(0)}, r3.NewVec(1, 0.3, 0.5)},
 }

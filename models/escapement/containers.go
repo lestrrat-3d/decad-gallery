@@ -25,6 +25,7 @@ const (
 	SpringSpacerContainerName = "Spring Spacer"
 	SpringAnchorContainerName = "Spring Anchor"
 	WindingKnobContainerName  = "Winding Knob"
+	CollarsContainerName      = "Collars"
 	BoltsContainerName        = "Bolts"
 	NutsContainerName         = "Nuts"
 )
@@ -66,6 +67,7 @@ func moveBodies(doc *decad.Document, m *Movement) error {
 		{[]string{DriveContainerName, SpringSpacerContainerName}, []*decad.Body{m.SpringSpacer}},
 		{[]string{DriveContainerName, SpringAnchorContainerName}, []*decad.Body{m.SpringAnchorPin}},
 		{[]string{DriveContainerName, WindingKnobContainerName}, []*decad.Body{m.WindingKnob}},
+		{[]string{CollarsContainerName}, []*decad.Body{m.EscapeRearCollar, m.PalletFrontCollar}},
 		{[]string{BoltsContainerName}, m.Bolts},
 		{[]string{NutsContainerName}, m.Nuts},
 	} {
