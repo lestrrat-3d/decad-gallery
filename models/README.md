@@ -2,7 +2,7 @@
 
 | Model | Image | Description | Clearance adjustment |
 | --- | --- | --- | --- |
-| [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | 608-2RS and 605ZZ nominal bore, outside diameter and width for fitting an assembly. | Nominal |
+| [Ball bearing envelope](ballbearing/) | <img src="ballbearing/images/index.png" alt="608-2RS mounting envelope" width="240"> | 608-2RS, 608ZZ and 605ZZ nominal bore, outside diameter and width for fitting an assembly. | Nominal |
 | [Bevel gear pair](bevelgear/) | <img src="bevelgear/images/index.png" alt="Meshing bevel gear pair" width="240"> | Two meshing gears whose shafts meet at an angle. | Adjustable |
 | [Cycloidal drive](cycloidal/) | <img src="cycloidal/images/index.png" alt="Assembled cycloidal drive" width="240"> | A cycloidal speed reducer with one or two lobed discs, a pinless housing, eccentric cam and output plate. | Adjustable |
 | [Graham escapement](escapement/) | <img src="escapement/images/index.png" alt="Graham escapement with a pendulum" width="240"> | A spring-driven clock movement: a 30-tooth escape wheel, a deadbeat anchor, a crutch and a pendulum, with an open spiral mainspring, in an open, symmetric two-plate frame on seven 605ZZ bearings, with the mechanism in view from the front and the back. | Mixed |
