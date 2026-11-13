@@ -25,8 +25,14 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 <img src="images/kit-planet605-shaft608/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing">
 
-The picture pulls the gearbox apart along its axis. It leaves out the bolts and nuts, which are the same as in the
-default gearbox.
+The first picture pulls the gearbox apart along its axis. It leaves out the bolts and nuts, which are the same as in the
+default gearbox; [How the housing is bolted](README.md#how-the-housing-is-bolted) shows them.
+
+Each stage has three planets, and each camera looks along the line through the sun and one planet, so that planet and
+its bearing hide behind the sun. The second picture looks from the other side of the gearbox, 120° round the axis, and
+hides a different planet. Every planet, planet bearing and carrier pin is visible in at least one of the two.
+
+<img src="images/kit-planet605-shaft608/exploded-other-side.png" alt="The same exploded two-stage gearbox seen from the other side of the axis, with the same parts in the same order, so the planet and bearing that hid behind the sun in the first picture show">
 
 The parts, from the bottom of the picture:
 
@@ -59,8 +65,9 @@ The carrier pins, the planet pockets and lips, the pin boss and the cover spoke 
 
 ## Parts
 
-The gearbox has the same parts as the default. The two cover bearings are 608ZZ and the three planet bearings are
-605ZZ, so this kit lists two bearings. Each is drawn as its nominal envelope.
+The gearbox has the same parts as the default. The two cover bearings are 608ZZ and the planet bearings, three in
+every stage, are 605ZZ, so this kit lists two bearings. Each is drawn as its envelope: 8 × 22 × 7 mm for the 608ZZ and
+5 × 14 × 5 mm for the 605ZZ.
 
 | Image | Name |
 | --- | --- |

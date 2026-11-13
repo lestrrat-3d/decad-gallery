@@ -389,4 +389,4 @@ it assembled and uncut from the output end, the input end and the side, and an a
 gearbox turning from three cameras, its parts moved rigidly with the kinematic angles (carrier `Zs/(Zs+Zr)` of
 its sun's, planet `1 - Zr/Zp` of its carrier's).
 
-Each non-default kit that has a page, `models/planetarygearbox/kit-<kit>.md`, shows a hero, three assembled views, an exploded view and a parts table rendered through `tools/render/` with `-kit <kit>`. The exploded view is at least 1600 × 900 pixels and fills the page width.
+Each non-default kit that has a page, `models/planetarygearbox/kit-<kit>.md`, shows a hero, three assembled views, an exploded view from each of two sides, so no planet stays hidden, and a parts table rendered through `tools/render/` with `-kit <kit>`. The exploded view is at least 1600 × 900 pixels and fills the page width.

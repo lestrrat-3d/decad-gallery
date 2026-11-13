@@ -174,7 +174,7 @@ The `-kit` flag renders a bearing kit of `planetarygearbox.SupportedCombinations
 only to `-model planetarygearbox` and any other model with `-kit` is an error. The single-preset shots
 (`planetarygearbox/hero`, `assembled-*`, `part-*` and `exploded`) honour it. With `-shot readme` it builds one two-stage
 gearbox and writes `hero.png` (1600 × 900), `assembled-output.png`, `assembled-input.png` and `assembled-side.png`
-(1200 × 675), `exploded.png` (1600 × 900, the size Exploded views requires) and `parts/<part>.png` (480 × 270). It writes
+(1200 × 675), `exploded.png` and `exploded-other-side.png` (1600 × 900, the size Exploded views requires; the second camera is 120° round the axis, so the planet that hides behind the sun in the first shows) and `parts/<part>.png` (480 × 270). It writes
 no `index.png`, fastener images or `motion.gif`, because they do not depend on the bearings. A kit whose planet and
 shaft bearings differ writes `parts/planet-bearing.png` and `parts/cover-bearing.png` in place of `parts/bearing.png`.
 The `part-bearing` preset of such a kit shows the planet bearing.

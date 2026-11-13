@@ -124,7 +124,7 @@ var planetaryExplodedCamera = solidlens.Camera{
 // planetaryExplodedScene draws the whole two-stage gearbox pulled apart along its axis, with nothing cut. It leaves
 // out the bolts and nuts, which the fastener images show.
 func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, params planetarygearbox.Params,
-	width, height int) (solidlens.Scene, error) {
+	camera solidlens.Camera, width, height int) (solidlens.Scene, error) {
 	offsets, err := planetaryExplodedOffsets(ctx, box, params)
 	if err != nil {
 		return solidlens.Scene{}, err
@@ -143,7 +143,7 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, p
 		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offset}
 		models = append(models, model)
 	}
-	return bevelScene(fitCamera(planetaryExplodedCamera, models, float64(width)/float64(height), bevelViewMargin), models), nil
+	return bevelScene(fitCamera(camera, models, float64(width)/float64(height), bevelViewMargin), models), nil
 }
 
 func init() {
@@ -153,7 +153,8 @@ func init() {
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
-			return planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
+			return planetaryExplodedScene(ctx, box, params, planetaryExplodedCamera, planetaryExplodedWidth,
+				planetaryExplodedHeight)
 		}}
 }
 
@@ -445,7 +446,8 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox %s: %w", name, err)
 		}
 	}
-	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryExplodedWidth, planetaryExplodedHeight)
+	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryExplodedCamera, planetaryExplodedWidth,
+		planetaryExplodedHeight)
 	if err != nil {
 		return err
 	}
@@ -477,6 +479,16 @@ func planetaryKitParts(p planetarygearbox.Params) []planetaryPart {
 	return out
 }
 
+// planetaryExplodedOtherCamera looks at the exploded gearbox from the other side, 120 degrees round the axis from
+// planetaryExplodedCamera. Each camera looks along the line through the sun and one planet, which hides that planet's
+// bearing and part of the planet behind the sun, and the two cameras hide different planets.
+var planetaryExplodedOtherCamera = solidlens.Camera{
+	Position: solidlens.Vec{X: 230, Y: 420, Z: 190},
+	Target:   solidlens.Vec{Z: 66},
+	Up:       solidlens.Vec{Z: 1},
+	FOV:      35,
+}
+
 // The kit pages show the exploded view at the full width of the page, at the size Exploded views requires.
 const (
 	planetaryKitExplodedWidth  = 1600
@@ -484,7 +496,7 @@ const (
 )
 
 // renderPlanetaryKitReadme builds the -kit kit as a two-stage gearbox once and writes its hero, one image per unique
-// part (in the parts directory), the three assembled views and the exploded view. The fasteners and the motion do not
+// part (in the parts directory), the three assembled views and the exploded view from two sides. The fasteners and the motion do not
 // depend on the bearings, so it writes no index, fastener images or animation.
 func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 	box, params, err := buildPlanetaryGearbox(ctx, 2)
@@ -516,13 +528,19 @@ func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 			return fmt.Errorf("render planetary gearbox kit assembled %s: %w", view.shot, err)
 		}
 	}
-	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryKitExplodedWidth, planetaryKitExplodedHeight)
-	if err != nil {
-		return err
-	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryKitExplodedWidth,
-		planetaryKitExplodedHeight); err != nil {
-		return fmt.Errorf("render planetary gearbox kit exploded view: %w", err)
+	for _, view := range []struct {
+		name   string
+		camera solidlens.Camera
+	}{{"exploded.png", planetaryExplodedCamera}, {"exploded-other-side.png", planetaryExplodedOtherCamera}} {
+		exploded, err := planetaryExplodedScene(ctx, box, params, view.camera, planetaryKitExplodedWidth,
+			planetaryKitExplodedHeight)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, view.name), exploded, planetaryKitExplodedWidth,
+			planetaryKitExplodedHeight); err != nil {
+			return fmt.Errorf("render planetary gearbox kit %s: %w", view.name, err)
+		}
 	}
 	return nil
 }
