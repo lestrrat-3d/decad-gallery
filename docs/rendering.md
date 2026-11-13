@@ -198,7 +198,7 @@ The `escapement/hero` preset renders the default Graham escapement at its defaul
 front and a little above and to the right. The front plate is in the picture, and the wheel, anchor and drive show
 through its windows. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
 `hero.png` and `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
-`assembled-side.png`, `assembled-back.png` (from behind, through the back plate's windows) and `closeup.png`, and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
+`assembled-side.png`, `closeup.png` and the 1000 × 1000 pixel `assembled-back.png` (from behind, through the back plate's windows, with the lights turned to shine on its back faces), and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
 `escapement/closeup` preset is a near-orthographic front view at Phase 0, where the entry pallet holds a tooth, of the pallets and the
 teeth between them with the front plate, the crutch, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
 pulls the parts apart along `+Z` by the offsets in `tools/render/escapement.go`, and `TestEscapementExploded` checks that no
