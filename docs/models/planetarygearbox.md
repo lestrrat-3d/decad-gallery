@@ -29,6 +29,14 @@ its bearing. With more stages, each carrier before the last turns in no bearing:
 contact joints, hold it. `Set.Linkage` then leaves that carrier with its pins, its link shaft and the next sun, and the
 carrier's planets, static.
 
+`Params.PlanetBearing` and `Params.ShaftBearing` name the catalog bearing (`ballbearing.Lookup`) of each role, `"605ZZ"` or
+`"608ZZ"`, and every dependent dimension follows. `Validate` rejects a name that is not in the catalog.
+
+`SupportedCombinations()` lists four kits: every pair of 605ZZ and 608ZZ over the planet and shaft roles, named
+`planet<NNN>-shaft<NNN>`. `DefaultParamsFor(kit)` returns `DefaultParams()` with that kit's bearings and a tooth set that
+passes `Validate` (13/29/71, or 14/28/70 when a 608ZZ shaft needs a larger sun). It never adjusts teeth for you: an
+unknown kit name is an error that lists the supported kits.
+
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing. The link and output shafts are thin-thick: a D thick part of the shaft collar diameter, pressed
