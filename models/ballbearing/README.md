@@ -18,6 +18,16 @@ be pressed in.
 You can change the bore diameter, the outside diameter and the width for other nominal sizes. Catalogue
 bearings should keep their specified dimensions rather than scaling with the assembly.
 
+## Presets
+
+Each preset is a function in `presets.go` that returns `Params` for `Build`.
+
+| Preset | Function | Bore | Outside diameter | Width |
+|---|---|---|---|---|
+| 608-2RS (default) | `Params6082RS()`, `DefaultParams()` | 8 mm | 22 mm | 7 mm |
+| 608ZZ | `Params608ZZ()` | 8 mm | 22 mm | 7 mm |
+| 605ZZ | `Params605ZZ()` | 5 mm | 14 mm | 5 mm |
+
 ## Other angles
 
 | Top | Side |

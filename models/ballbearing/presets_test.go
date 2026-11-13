@@ -50,3 +50,14 @@ func TestBearing608ZZPreset(t *testing.T) {
 	q.Width = 9
 	require.InDelta(t, 7, ballbearing.Params608ZZ().Width, 0)
 }
+
+func TestBearing6082RSPreset(t *testing.T) {
+	p := ballbearing.Params6082RS()
+	require.Equal(t, ballbearing.DefaultParams(), p)
+	require.Nil(t, p.Placement)
+	m, err := ballbearing.Build(t.Context(), decad.New(), p)
+	require.NoError(t, err)
+	volume, err := m.Body.Volume()
+	require.NoError(t, err)
+	require.InDelta(t, math.Pi*(121-16)*7, volume.Value.Base(), volume.Bound.Base()+1e-6)
+}
