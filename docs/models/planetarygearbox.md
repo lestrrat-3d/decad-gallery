@@ -94,7 +94,7 @@ the others listed in `instructions.md`) are not overwritten.
 
 ## Checks
 
-Run `go test ./models/planetarygearbox -timeout 30m`; it takes about 15 minutes and 3.6 GB. `TestExplodedGearbox`
+Run `go test ./models/planetarygearbox -timeout 60m`; it takes about 15 minutes and 3.6 GB, plus about 6 minutes for each kit that `TestKitGearboxes` builds. That test skips the two kits with a 608ZZ planet bearing until a Decad explode fix lands. `TestExplodedGearbox`
 alone takes about 30 seconds. The tests build the default, two-stage and placed gearboxes, each once for all the
 tests that read it, and check that no planet vertex lies inside the sun or the ring and that a planet turned half a
 tooth does. The sketches are checked for full constraint inside the build.
