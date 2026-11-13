@@ -9,6 +9,14 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 REQUIRED = ("README.md", "AGENTS.md", "LICENSE", "models/README.md", "docs/model-pipeline.md")
 MODEL_FILES = ("README.md", "instructions.md", "steps.md")
+# Models whose printed parts are not yet held to "Corners and roots" (docs/model-pipeline.md).
+# Remove a model in the change that adds its corner test.
+CORNER_PENDING = {
+    "bevelgear", "cycloidal", "escapement", "handcrankfan", "handcranksiren",
+    "planetarygearbox", "screwgear", "spinningwheel", "spiralspring",
+}
+# Models that build only purchased or standard parts kept at nominal size.
+CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
 
 
 def unsorted_model_rows() -> list[str]:
@@ -22,6 +30,27 @@ def unsorted_model_rows() -> list[str]:
         if match:
             names.append(match.group(1))
     return [a for a, b in zip(names, sorted(names, key=str.lower)) if a != b]
+
+
+def has_corner_test(model: Path) -> bool:
+    """Return whether a test file of the model calls the corner check."""
+    return any("cornercheck." in path.read_text() for path in model.glob("*_test.go"))
+
+
+def corner_problems(models: Path) -> list[str]:
+    """Return the models that break the corners and roots enforcement."""
+    names = {item.name for item in models.iterdir() if item.is_dir()}
+    problems = []
+    for name in sorted(CORNER_PENDING | CORNER_NOMINAL):
+        if name not in names:
+            problems.append(f"corner list names {name}, which has no model directory")
+    for name in sorted(names):
+        tested = has_corner_test(models / name)
+        if name in CORNER_PENDING and tested:
+            problems.append(f"remove {name} from CORNER_PENDING")
+        elif name not in CORNER_PENDING | CORNER_NOMINAL and not tested:
+            problems.append(f"missing: models/{name}/*_test.go (cornercheck)")
+    return problems
 
 
 def main() -> int:
@@ -39,6 +68,13 @@ def main() -> int:
                     missing.append(f"{item.relative_to(ROOT)}/*.go")
                 if not any(item.glob("*_test.go")):
                     missing.append(f"{item.relative_to(ROOT)}/*_test.go")
+
+    if models.is_dir():
+        problems = corner_problems(models)
+        if problems:
+            for problem in problems:
+                print(problem, file=sys.stderr)
+            return 1
 
     unsorted = unsorted_model_rows()
     if unsorted:
