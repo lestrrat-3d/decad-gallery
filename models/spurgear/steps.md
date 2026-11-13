@@ -39,6 +39,8 @@ func CutThroughBore(ctx context.Context, doc *decad.Document, body *decad.Body,
 func ChamferOuterCaps(ctx context.Context, gear *decad.Body,
     distance float64) (*decad.Body, error)
 func (p Params) RejectPlacement(model string) error
+func (v Variant) Build(ctx context.Context, doc *decad.Document,
+    p Params) (*decad.Body, error)
 ```
 
 `Params` ends with `Placement *r3.Frame`; nil selects the world frame. Add a
@@ -48,6 +50,9 @@ private `placement(p Params) (r3.Frame, error)` returning `*p.Placement` or
 `r3.NewFrame(f.Origin().Add(f.N().Scale(dist)),f.U(),f.V())`, and a private
 `toWorld(f r3.Frame, xy point) r3.Vec` returning
 `f.Origin().Add(f.U().Scale(xy.x)).Add(f.V().Scale(xy.y))`.
+
+`r3.NewFrame(origin, u, v)` returns `(r3.Frame, error)`. Return both results
+directly from `placement` and `shifted`; do not append a separate `nil` error.
 
 - Return left and right base-to-tip arrays, respectively, from `InvoluteFlanks`.
 - Return solved, verified sketches and their profiles from both profile APIs.
@@ -178,9 +183,23 @@ The two private section builders implement Steps 5 and 4b respectively.
 when `LocalBuild` is true; otherwise it calls `begin` and then `assemble`.
 `assemble` consumes the prepared `run`: call `v.tooth` once, then extrude the
 root disc, pattern the tooth once, and join once as in Step 6. Preserve the radius
-binding and sketch verification for the root disc. When `RootFillet` is nonnil,
-call it with the joined body and frame; otherwise call `filletSpurRoots` only
-when the derived radius is positive. Apply Steps 8 and 9 after that, through
+binding and sketch verification for the root disc. Use this exact dispatch
+after the join:
+
+```go
+if v.RootFillet != nil {
+    body, err = v.RootFillet(ctx, r.doc, body, r.frame)
+} else if r.d.fillet > 0 {
+    body, err = filletSpurRoots(ctx, r.doc, body, r, r.d.base < r.d.root)
+}
+if err != nil {
+    return nil, fmt.Errorf("root fillet: %w", err)
+}
+```
+
+Do not duplicate root-contact construction or call `filletRoots` or
+`filletEmbedded` directly from `assemble`; `filletSpurRoots` owns that dispatch.
+Apply Steps 8 and 9 after that, through
 the private bore routine of Step 8 and the private `chamferCaps` of Step 9, on
 the already configured document. `assemble` does not call `CutThroughBore` or
 `ChamferOuterCaps`. Return the final solid. Keep all per-build state in `run` and local variables.
@@ -249,9 +268,21 @@ Sketch constraints. Add circle constraints with
 `s.AddConstraint(sketch.NewDiameter(circle,diameter))`. Reuse endpoint pointers;
 do not add coincident constraints to points that already are identical.
 
-Call `s.Solve(ctx)` and check its error, then
-`sketchcheck.VerifyFullyConstrained(ctx,s)`. Only then read `s.Profiles()` or
-call `s.UnionProfiles(...)`. Repeat for every sketch, including tool sketches.
+`s.Solve(ctx, options...)` returns `(*sketch.Result, error)`. Call it as
+`_, err := s.Solve(ctx)` (or assign to an existing `err`), check `err`, then
+call `sketchcheck.VerifyFullyConstrained(ctx,s)`. Only then read `s.Profiles()`
+or call `s.UnionProfiles(...)`. Repeat for every sketch, including tool sketches.
+
+`sketch.NewWorld()` returns `*sketch.World`. `(*sketch.World).CreateSketch`
+takes `*sketch.Plane` and returns `(*sketch.Sketch, error)`. Check every
+`CreateSketch` error before using its sketch.
+
+`Variant` is declared in the existing `variant.go`; do not redeclare it. It has
+a `LocalBuild bool` field. Define `Variant.Build` exactly once in
+`spurgear.go`. Reject nil context and document. When `v.LocalBuild` is true,
+return `v.buildLocal(ctx,doc,p)`. Otherwise call `v.begin(ctx,doc,p)`, check
+its error, then return `v.assemble(ctx,r)`. Package `Build` delegates to
+`Variant{}.Build`.
 
 ## Step 3 — build an ordinary outline
 
@@ -295,9 +326,14 @@ solid fillets after the join.
    Embedded profile. Return this union profile rather than an arbitrary region.
 7. For each `profile.Outer` edge whose `Entity` is `*sketch.FitSpline`, require
    `edge.Partial` and `edge.TExact`.
-8. Evaluate `flank.Eval(edge.TStart)` on the original base-to-tip spline. Require
-   `abs(hypot(x,y)-d.root) <= 1e-8` and save this actual root contact.
-9. Require exactly `2*p.Teeth` saved contacts; return sketch, profile, and contacts.
+8. Retain each tooth's right and left `*sketch.FitSpline` identities while
+   creating the splines. For each trimmed boundary edge, match `edge.Entity`
+   to its saved tooth and side, then place `flank.Eval(edge.TStart)` into
+   `contacts[2*k]` for right or `contacts[2*k+1]` for left. Do not append in
+   `profile.Outer` traversal order.
+9. Require `abs(hypot(x,y)-d.root) <= 1e-8` for each saved root contact.
+   Reject an unknown or duplicate edge and require every contact slot filled.
+10. Return the ordered contacts with the sketch and profile.
 
 Use native trim parameters, not polyline endpoints or reconstructed intersections.
 If a trim is not certified, return an error that names the tooth.

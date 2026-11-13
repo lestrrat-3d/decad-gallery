@@ -191,7 +191,8 @@ func derive(p Params) (Dimensions, error) {
 	re := hole/2 + t
 	rhoPrev := rk(2*n-2) + t
 	lateral := rk(2*n-1) + t/2 + d
-	l := math.Max(2*re, math.Sqrt(math.Max(0, math.Pow(rhoPrev+g+re, 2)-lateral*lateral)))
+	rootTerm := rhoPrev + g + re
+	l := math.Max(2*re, math.Sqrt(math.Max(0, rootTerm*rootTerm-lateral*lateral)))
 	nf := float64(n)
 	return Dimensions{
 		Turns:            n,
