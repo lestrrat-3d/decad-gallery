@@ -5,14 +5,14 @@ import (
 
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/escapement"
-	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
-// TestEscapementExploded checks that the derived exploded view moves every body, that no two bodies overlap, that no
-// body hides another from the exploded camera except within a stack of bodies that Decad lays one behind another
-// along an arbor, and that every moved body has a guide line.
+// TestEscapementExploded checks the derived exploded view against the acceptance criteria of Decad's layer spread
+// (agent-docs/parts-design.md "Escapement acceptance"): every body moves, no two bodies overlap, the layout stays
+// compact, and a part covered completely by a part it is joined to lies on that part's axis.
 func TestEscapementExploded(t *testing.T) {
 	b, err := buildEscapement(t.Context())
 	require.NoError(t, err)
@@ -21,6 +21,15 @@ func TestEscapementExploded(t *testing.T) {
 	require.NotNil(t, layout.Spread)
 	require.True(t, layout.Spread.Ran, "the thin escapement spreads its layers")
 	require.Len(t, layout.Parts, 29)
+
+	for name, extent := range map[string]struct {
+		got units.Value
+		max float64
+	}{"width": {layout.Spread.Width, 150}, "depth": {layout.Spread.Depth, 250}, "height": {layout.Spread.Height, 350}} {
+		mm, err := extent.got.In(units.Millimeter)
+		require.NoError(t, err)
+		require.Less(t, mm, extent.max, "the exploded %s in mm", name)
+	}
 
 	offsets := map[string]r3.Vec{}
 	for _, part := range layout.Parts {
@@ -50,29 +59,34 @@ func TestEscapementExploded(t *testing.T) {
 		}
 	}
 
+	set, err := b.movement.Set(b.doc, b.params)
+	require.NoError(t, err)
+	joined := map[[2]string]bool{}
+	for _, j := range set.Joints() {
+		joined[[2]string{j.A, j.B}], joined[[2]string{j.B, j.A}] = true, true
+	}
 	hidden, err := layout.Hidden(escapementExplodeDir.Scale(-1))
 	require.NoError(t, err)
-	stack := map[string]parts.ExplodedPart{}
-	for _, part := range layout.Parts {
-		stack[part.Name] = part
-	}
-	var pairs []string
 	for _, o := range hidden {
-		front, back := stack[o.Front], stack[o.Back]
-		if front.Stack > 0 && back.Stack > 0 && front.Stage == back.Stage {
+		if !joined[[2]string{o.Front, o.Back}] {
 			continue
 		}
-		pairs = append(pairs, o.Front+" over "+o.Back)
+		covered, err := o.Covered.In(units.One)
+		require.NoError(t, err)
+		if covered < 1 {
+			continue
+		}
+		across := offsets[o.Front].Sub(offsets[o.Back]).Cross(layout.Spread.Axis)
+		require.InDelta(t, 0, across.Len(), 1e-6, "%s covers %s but they are not on one axis", o.Front, o.Back)
 	}
-	require.Empty(t, pairs, "bodies that may hide another from the exploded camera")
 
 	guided := map[string]bool{}
 	for _, guide := range layout.Guides {
 		guided[guide.Part] = true
 	}
 	for _, part := range layout.Parts {
-		if part.Name != escapement.BackPlateName {
-			require.True(t, guided[part.Name], "%s has a guide line", part.Name)
+		if part.Name != escapement.BackPlateName && part.Offset != (r3.Vec{}) {
+			require.True(t, guided[part.Name], "%s has a guide", part.Name)
 		}
 	}
 }

@@ -197,14 +197,15 @@ go -C tools/render run . -model screwgear -shot cutaway -out ../../models/screwg
 The `escapement/hero` preset renders the default Graham escapement at its default Phase 0.25, with the pendulum at rest, from the
 front and a little above and to the right. The front plate is in the picture, and the wheel, anchor and drive show
 through its windows. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
-`hero.png`, the 1600 × 1600 pixel `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
+`hero.png`, `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
 `assembled-side.png`, `closeup.png` and the 1000 × 1000 pixel `assembled-back.png` (from behind, through the back plate's windows, with the lights turned to shine on its back faces), and a 480 × 270 pixel image in `parts/` for each of 16 kinds of body. The
 `escapement/closeup` preset is a near-orthographic front view at Phase 0, where the entry pallet holds a tooth, of the pallets and the
 teeth between them with the front plate, the crutch, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
 renders the layout that `Movement.Explode` takes from Decad's derived explode mode (`parts.Set.Explode`), seen from
-`(-1, 0, 1.2)`. It draws a dotted line from each part of 13 mm or more back to the part it joins, from `Exploded.Guides`.
-`TestEscapementExploded` checks that no two parts overlap, that none hides another from that camera except inside a
-stack of parts on one arbor, and that every moved part has a guide. The `part-back-plate`, `part-front-plate`, `part-escape-wheel`, `part-anchor`, `part-crutch`,
+`(-1, 0, 1.2)`. Each part stays on its own axis, and a layer steps sideways only where a part it joins would hide it.
+The preset draws a dotted line from each part of 13 mm or more that left its own line back to the part it joins, from
+`Exploded.Guides`. `TestEscapementExploded` checks that no two parts overlap, that the layout stays under 150 × 250 ×
+350 mm, and that a part joined to another and covered by it from that camera lies on the other part's axis. The `part-back-plate`, `part-front-plate`, `part-escape-wheel`, `part-anchor`, `part-crutch`,
 `part-pendulum`, `part-suspension-pin`, `part-suspension-cap`, `part-great-wheel`, `part-drum`, `part-winding-knob`,
 `part-escape-arbor`, `part-pallet-arbor`, `part-great-wheel-arbor`, `part-bearing` and `part-bolt` presets render one of
 them alone, the bolt with its nut.

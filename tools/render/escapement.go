@@ -220,7 +220,8 @@ func (b *escapementBuild) backScene() solidlens.Scene {
 }
 
 // escapementGuideMinSize is the longest box edge, in mm, a part needs to get a guide line in the exploded view. It
-// leaves the nuts, bolts and small bearings out, which would clutter the image.
+// leaves the nuts, bolts and small bearings out, which would clutter the image. A part that moved along its own axis
+// gets no line either, because its place in the stack already shows where it goes.
 const escapementGuideMinSize = 13.0
 
 // explodedScene is the movement pulled apart by the derived explode, framed square because the layer grid is, with a dotted guide line from each moved part
@@ -231,13 +232,13 @@ func (b *escapementBuild) explodedScene(ctx context.Context) (solidlens.Scene, e
 		return solidlens.Scene{}, err
 	}
 	models := b.models(everything, layout)
-	scene := bevelScene(escapementCamera(models, escapementExplodeDir, 1), models)
+	scene := bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
 	for _, guide := range layout.Guides {
 		size, err := guide.Size.In(units.Millimeter)
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("size of the guide of %s: %w", guide.Part, err)
 		}
-		if size < escapementGuideMinSize {
+		if guide.Inline || size < escapementGuideMinSize {
 			continue
 		}
 		scene.Lines = append(scene.Lines, solidlens.Line{
@@ -329,7 +330,7 @@ func init() {
 		}
 		return b.closeupScene()
 	}}
-	presets["escapement/exploded"] = preset{width: 1600, height: 1600, scene: func(ctx context.Context) (solidlens.Scene, error) {
+	presets["escapement/exploded"] = preset{width: 1600, height: 900, scene: func(ctx context.Context) (solidlens.Scene, error) {
 		b, err := buildEscapement(ctx)
 		if err != nil {
 			return solidlens.Scene{}, err
@@ -371,7 +372,7 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		{"assembled-side.png", 1200, 675, b.viewScene(escapementSideDir)},
 		{"assembled-back.png", 1000, 1000, b.backScene()},
 		{"closeup.png", 1200, 675, closeup},
-		{"exploded.png", 1600, 1600, exploded},
+		{"exploded.png", 1600, 900, exploded},
 	} {
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render escapement %s: %w", image.name, err)
