@@ -30,7 +30,9 @@ func TestSpiralSpringParamsDefaults(t *testing.T) {
 		require.InDelta(t, pair[1], pair[0], 1e-9, name)
 	}
 	// L = sqrt((rho_prev + g + R_e)^2 - (r_{2N-1} + t/2 + d)^2) with rho_prev = 28.0 and r_9 = 28.4.
-	wantL := math.Sqrt(math.Pow(28.0+2.4+3.45, 2) - math.Pow(28.4+0.8+2.0, 2))
+	rootTerm := 28.0 + 2.4 + 3.45
+	lateral := 28.4 + 0.8 + 2.0
+	wantL := math.Sqrt(rootTerm*rootTerm - lateral*lateral)
 	require.InDelta(t, wantL, dm.TailLength, 1e-9)
 	require.InDelta(t, -wantL, dm.EyeCenterY, 1e-9)
 	wantStrain := 0.8 * (1/6.8 - 1/9.2)
