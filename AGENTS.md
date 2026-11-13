@@ -46,6 +46,11 @@
 - The tip of a bolt may stay inside a hole beyond its nut. It must not stand outside a face.
 - Test that each head ends flush and each nut sits inside its cavity (bounds), and that no fastener overlaps the parts it passes through.
 
+## Arbor collars
+
+- Apply [Arbor collars](docs/model-pipeline.md#arbor-collars) to every collar on a printed shaft, arbor or pin, and to
+  every printed shaft that carries a part, in every model.
+
 ## Verification
 
 - Apply [Part clearances](docs/model-pipeline.md#part-clearances) to every modeled part fit.
