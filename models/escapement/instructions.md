@@ -281,7 +281,7 @@ ratchet while the escapement holds the great wheel. The model has no cord or wei
 | tip-to-root | `45.75 - 11.23 - 33.98 = 0.54`, `45.75 - 37.48 - 7.73 = 0.54` (rule: ≥ 0.5) |
 | backlash `j` | `Backlash`, default 0.15 per gear → 0.3 play |
 | pinion | `spurgear` variant, 13 teeth, thickness 21, `z ∈ [1.5, 22.5]`, no bore (D bore cut after unions) |
-| great wheel | `spurgear` variant, 48 teeth, thickness 7, `z ∈ [1.5, 8.5]`, `BoreDiameter 6.9` (round, Regular fit on the arbor's `r 3.05` section) |
+| great wheel | `spurgear` variant, 48 teeth, thickness 7, `z ∈ [1.5, 8.5]`, `BoreDiameter 6.9` (round, Regular fit on the arbor's `r 3.05` section); rear counterbore `r 4.10`, tool `z ∈ [0.5, 3.50]`, cut before the ratchet; floor `z 3.50` |
 | mesh phase at `φ = 0` | pinion tooth 0 at math angle `θp0 = -90°` (toward `G`); great wheel tooth 0 at `θg0 = 90° + 180°/48 = 93.75°` (gap facing `O`) |
 
 Root-clearance variant: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}` from the shared
@@ -394,7 +394,8 @@ Great wheel arbor at `G = (0, -45.75)`, z from the back:
 |---|---|
 | `[-5, 0]` | back bearing |
 | `[0.25, 1.25]` | arbor collar |
-| `[1.5, 8.5]` | great wheel, free on the arbor's `r 3.05` section (pocket floor `z 5.0`) |
+| `[0.25, 3.25]` | arbor collar (3.0 long); it enters the great wheel's rear counterbore |
+| `[1.5, 8.5]` | great wheel, free on the arbor's `r 3.05` section (pocket floor `z 5.0`; rear counterbore floor `z 3.50`) |
 | `[5.25, 9.25]` | Pawl Carrier pawl layer |
 | `[8.75, 11.0]` | Pawl Carrier boss `r 4.2` (0.5 overlap into the layer) |
 | `[11.25, 17.25]` | Mainspring (hub and coils), `Height` 6 |
@@ -464,7 +465,7 @@ starts 0.05 inside an `r 2.5` section where it ends; it removes nothing there. A
 |---|---|---|---|
 | Escape Arbor | `O` | `(0,-5) (2.5,-5) (2.5,0.25) (2.8,0.25) (2.8,24.0) (3.7,24.0) (3.7,27.75) (2.5,27.75) (2.5,33) (0,33)` | `x 2.55`: `[0.20, 23.95]` |
 | Pallet Arbor | `P` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,20.95) (2.8,20.95) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[21.0, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
-| Great Wheel Arbor | `G` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,1.25) (3.05,1.25) (3.05,17.45) (2.8,17.45) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[5.25, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
+| Great Wheel Arbor | `G` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,3.25) (3.05,3.25) (3.05,17.45) (2.8,17.45) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[5.25, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
 
 Bore outlines (D = circular arc plus chord, flat on `+X`):
 
@@ -480,7 +481,7 @@ Axial stacks (z):
 | Item | Escape (`O`) | Pallet (`P`) | Great wheel (`G`) |
 |---|---|---|---|
 | back bearing | `[-5, 0]` | `[-5, 0]` | `[-5, 0]` |
-| collar | `[24.0, 27.75]`; ring `[0.25, 3.25]` | shoulder `[0.25, 20.95]`; ring `[24.75, 27.75]` | `[0.25, 1.25]` |
+| collar | `[24.0, 27.75]`; ring `[0.25, 3.25]` | shoulder `[0.25, 20.95]`; ring `[24.75, 27.75]` | `[0.25, 3.25]` |
 | parts | escape wheel `[1.5, 25]` | anchor `[21, 26]` | great wheel `[1.5, 8.5]`, carrier `[5.25, 11.0]`, spring `[11.25, 17.25]`, spacer `[17.5, 27.75]` |
 | front bearing | `[28, 33]` | `[28, 33]` | `[28, 33]` |
 | outside | none (ends at 33) | crutch `[34.25, 37.25]` + pin to 43.25 | knob `[34.25, 37.25]` |
@@ -495,7 +496,7 @@ Axial stacks (z):
   Collar (`z [24.75, 27.75]`) is pressed on from the front into the anchor's counterbore until it is 0.05 from the floor;
   its front face stops 0.25 from the front bearing. The crutch, pressed on the front end, stops the arbor backward 0.25
   from the front plate. The shoulder (`z [0.25, 20.95]`, 20.7 long) stops the arbor 0.25 from the back bearing.
-- Great wheel turns freely on the `r 3.05` section, 0.25 from the collar and 0.25 from the pawl carrier's pawl layer. The
+- Great wheel turns freely on the `r 3.05` section, its counterbore floor 0.25 from the collar's end (`z 3.25`), the collar 0.40 inside the counterbore wall, and 0.25 from the pawl carrier's pawl layer. The
   carrier is pressed on the flat to that position (README: press until the great wheel just turns freely). The spacer stops
   0.25 from the front bearing and 0.05 from the step at `z 17.45`.
 - Print orientations (README): escape wheel wheel-face down; anchor rear face down; pawl carrier pawl layer down; mainspring flat, in PETG; great wheel
@@ -516,11 +517,12 @@ bearing whose inner ring is fixed with the pin and faces no flush side.
 | Escape Rear Collar | own ring | Escape Arbor | Escape Wheel | back escape bearing | `[0.25, 3.25]` | 3.0 | 2: pinion rear counterbore `r 3.75`, floor 3.30 |
 | Pallet shoulder | Pallet Arbor | Pallet Arbor | Anchor (press stop) | back pallet bearing | `[0.25, 20.95]` | 20.70 | 1 |
 | Pallet Front Collar | own ring | Pallet Arbor | Anchor | front pallet bearing | `[24.75, 27.75]` | 3.0 | 2: anchor front counterbore `r 3.75`, floor 24.70 |
+| Great wheel collar | Great Wheel Arbor | Great Wheel Arbor | Great Wheel (turns) | back great wheel bearing | `[0.25, 3.25]` | 3.0 | 2: wheel rear counterbore `r 4.10`, floor 3.50 |
 | Spring Spacer | own ring | Great Wheel Arbor | Mainspring hub stack | front great wheel bearing | `[17.5, 27.75]` | 10.25 | 1 |
 | Suspension shoulder | Suspension Pin | Suspension Pin | Pendulum Bearing | front plate outer face | `[34, 38.75]` | 4.75 | 1 |
 
-Collars that do not yet meet the rule, and are changed by the following steps of the same plan: the great wheel arbor's
-rear collar (1.0 long), and the crutch and the winding knob (no collar between each and the front plate).
+Collars that do not yet meet the rule, and are changed by the following step of the same plan: the crutch and the
+winding knob (no collar between each and the front plate).
 
 Gaps: the escape collar and the rings keep the Tight 0.25 to the bearing they face; the rings and the escape front collar
 keep the press-fit 0.05 to the counterbore floor and wall (fit C1). The carried parts clear their flush sides: the pinion's
@@ -681,9 +683,10 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | T1 | each arbor in its two bearings; suspension pin shank in the pendulum bearing | radial | none: diameter = bore (Part clearances) | 0 |
 | T2 | collars, collar rings, body steps at `z 0.25` (escape) and `z 27.75` (all three arbors), spacer bosses, shoulders, cap to bearing faces | axial | Tight | 0.25 |
 | T3 | escape wheel, anchor, Spring Spacer, Escape Rear Collar and Pallet Front Collar D bores on `r 2.8`; Pawl Carrier D bore on `r 3.05` (parts that turn with the arbor), at both ends of each bore | radial and at the flat | press fit | 0.05 |
-| T4 | great wheel rear face to its collar; Pawl Carrier pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
+| T4 | great wheel counterbore floor (`z 3.50`) to its collar end (`3.25`); Pawl Carrier pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
 | T4p | escape wheel counterbore floor (`z 23.95`) to the escape front collar (`z 24.0`); Escape Rear Collar (`z 3.25`) to the pinion counterbore floor (`3.30`); Pallet Front Collar (`z 24.75`) to the anchor counterbore floor (`24.70`); anchor rear face to the pallet shoulder (`20.95`); Spring Spacer rear face (`z 17.5`) to the arbor step (`z 17.45`) (pressed parts, press stop) | axial | press fit | 0.05 |
 | C1 | escape front collar in the wheel's counterbore; Escape Rear Collar in the pinion's counterbore; Pallet Front Collar in the anchor's counterbore (parts that turn with the arbor) | radial | press fit | 0.05 |
+| C2 | great wheel collar (`r 3.7`) in the wheel's rear counterbore (`r 4.10`) (the wheel turns on the arbor) | radial | Regular | 0.40 |
 | T5 | crutch and knob rear faces to the front plate's front face | axial | Tight | 0.25 |
 | T6 | crutch pin in the pendulum slot | each side | Tight | 0.25 |
 | T7 | carrier pawl contact face to ratchet radial face at the build pose (working contact) | angular | Tight | 0.25 at `r 12` |
@@ -729,7 +732,7 @@ Large faces (≥ 400 mm²) and their chamfers (0.5, 45°), all through `internal
 | Escape Wheel | 6 window loops on both faces; the front counterbore's rim (`r 3.75`, 3.076 mm³) | tooth outline: pieces 2 to 8 mm, corners, no 20 mm run; the pinion's rear face and its counterbore (face 255 mm²) |
 | Anchor | whole outer loop of both faces, pallets included; the front counterbore's rim (`r 3.75`, 3.076 mm³) | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
 | Pendulum | outer loop of both faces; pocket rim; lip-bore rim on the rear face | slot (fit T6) |
-| Great Wheel | none | front face outer loop = tooth flanks; ratchet pocket loop = functional teeth |
+| Great Wheel | the rear counterbore's rim (`r 4.10`, 3.351 mm³) | front face outer loop = tooth flanks; ratchet pocket loop = functional teeth |
 | Pawl Carrier, Spring Spacer, Spring Anchor Pin, collar rings, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254) |
 | Mainspring | its caps, by `models/spiralspring` | the item chamfers its own caps |
 
@@ -847,6 +850,6 @@ and no marks are cut. The parts a person could confuse are the three arbors. Mar
 1.5 mm hole with 1 mm of material each side needs a face wider than 3.5 mm off the axis, and a 5.0 mm arbor has
 none. They differ by sight instead. The escape arbor is 38 mm long and the other two are 42.2 mm. The pallet arbor's
 shoulder runs from its rear end to `z 20.95`, the escape arbor's collar is near its front end (`z 24.0` to 27.75) and the
-great wheel arbor's is at its rear end (`z 0.75`). The two collar rings are the same part and carry no marks: a 1.5 mm
+great wheel arbor's is at its rear end (`z 0.25` to 3.25). The two collar rings are the same part and carry no marks: a 1.5 mm
 hole with 1 mm of material each side needs more than 3.5 mm of face, and a ring is at most 1.1 mm wide. They are told
 apart by where they go. The README parts table states these differences.

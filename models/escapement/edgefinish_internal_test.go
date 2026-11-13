@@ -58,6 +58,8 @@ func TestEdgeFinishing(t *testing.T) {
 		rimBevel(anchorCounterRadius))
 	// Pendulum: the outer loop of both faces, the pocket rim and the lip-bore rim.
 	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(40.5, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius, 0)
+	// Great wheel: the rear counterbore's rim only; the tooth flanks and the ratchet stay sharp.
+	check("great wheel", m.GreatWheel, plain.buildGreatWheel, 0, rimBevel(greatCounterRadius))
 	// Escape wheel: the six window loops on both faces and the front counterbore's rim. The pinion's rear face and its
 	// rear counterbore stay sharp: the face is 255 mm², under 400.
 	var windows float64

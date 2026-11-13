@@ -85,7 +85,7 @@ seven bearings (the seventh sits in the pendulum), two collar rings, four bolts,
 | <img src="images/parts/pendulum.png" alt="Pendulum" width="240"> | Pendulum, with the crutch slot and the bearing pocket |
 | <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing |
 | <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
-| <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet |
+| <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet and a counterbore for the arbor's collar in its rear face |
 | <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls |
 | <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
 | <img src="images/parts/spring-spacer.png" alt="Spring spacer" width="240"> | Spring spacer |
@@ -101,7 +101,7 @@ seven bearings (the seventh sits in the pendulum), two collar rings, four bolts,
 The three arbors look alike and carry no marks, because a 1.5 mm mark hole with 1 mm of material on each side needs a
 face wider than a 5 mm arbor offers. They differ in length and in where the collar is. The escape arbor is 38 mm long and
 the other two are 42.2 mm. The escape arbor's collar is near its front end, the pallet arbor has a long shoulder from its
-rear end to `z` 21, and the great wheel arbor's collar is at its rear end. The two collar rings are the same part and
+rear end to `z` 21, and the great wheel arbor's 3 mm collar is at its rear end. The two collar rings are the same part and
 carry no marks, because a ring is at most 1.1 mm wide; they differ only in where they go.
 
 ## How it is driven
@@ -133,7 +133,7 @@ Print each part without supports in this orientation:
 - Pawl carrier: the pawl layer down.
 - Mainspring: flat, in PETG. The other parts can use PLA.
 - Spring spacer: on its side or on end.
-- Great wheel: the rear face down.
+- Great wheel: the rear face down. The floor of its counterbore prints as a ring 0.65 mm wide over air, which needs no support.
 - Crutch and pendulum: the rear face down.
 - Collar rings: flat on the bed.
 - Arbors and the suspension pin: standing on end, with the 1.2 mm collar ledge printing as a small overhang.
@@ -149,7 +149,7 @@ Assemble in this order:
    press a collar ring on from the rear end, into the pinion's counterbore, until it stops.
 2. Off the frame, on the pallet arbor: press the anchor on from the front end until its rear face stops on the shoulder,
    then press a collar ring on from the front end, into the anchor's counterbore, until it stops.
-3. Off the frame, on the great wheel arbor, from the front end: slide the great wheel on, then press the pawl carrier on
+3. Off the frame, on the great wheel arbor, from the front end: slide the great wheel on, counterbore toward the back, up to the collar, then press the pawl carrier on
    the flat until the great wheel turns freely with about 0.25 mm of play. Slide the mainspring on the flat, then press
    the spring spacer on until it stops on the arbor's step, which leaves the spring hub about 0.25 mm of play.
 4. Press the three back bearings into the back plate's seats, then push the three arbors into them from the front.
@@ -175,9 +175,10 @@ position. Wind clockwise.
   bearing sits in a seat with 0.05 mm of radial clearance.
 - **Tight fits, 0.25 mm.** Collars, collar rings, the spacer, the pin's shoulder and the cap stand 0.25 mm from a bearing face. The crutch
   and knob stand 0.25 mm off the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
-  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
+  wheel's counterbore floor stands 0.25 mm from its collar's end and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
   0.25 mm from the carrier boss and from the spacer, and the eye has 0.40 mm on the anchor pin.
-- **Regular fit, 0.40 mm.** The great wheel's 6.9 mm bore turns on the arbor's 6.1 mm section.
+- **Regular fit, 0.40 mm.** The great wheel's 6.9 mm bore turns on the arbor's 6.1 mm section, and its 8.2 mm counterbore turns
+  on the 7.4 mm collar.
 - **Loose fits.** The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel
   3.0 mm behind the front plate. A pawl's arm clears the ratchet teeth by 1.0 mm.
 - **Gears.** The pinion's tips clear the great wheel's roots by 0.54 mm and the great wheel's tips clear the pinion's roots
@@ -185,7 +186,7 @@ position. Wind clockwise.
 
 The back and front plates have their outer edges, both windows, the bearing seat rims and the lip-bore rims chamfered by
 0.5 mm at 45°. The anchor's whole outline, the pendulum's outline with its pocket and lip-bore rims, and the six windows
-of the escape wheel are chamfered too, as are the rims of the escape wheel's and anchor's front counterbores. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
+of the escape wheel are chamfered too, as are the rims of the escape wheel's and anchor's front counterbores and the great wheel's rear counterbore. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
 pockets, the crutch slot and the faces under 400 mm² (the winding knob, the carrier, the spacer, the collar rings, the pinion's rear face and the pin) are not chamfered.
 
 You can vary:

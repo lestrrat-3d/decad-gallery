@@ -64,7 +64,7 @@ func TestInstallability(t *testing.T) {
 		{"anchor", m.Anchor, m.PalletArbor, 21.1, 24.6, 0.05, 0},
 		{"pawl carrier", m.PawlCarrier, m.GreatWheelArbor, 5.35, 10.9, 0.05, 0},
 		{"spring spacer", m.SpringSpacer, m.GreatWheelArbor, 17.6, 27.65, 0.05, 0},
-		{"great wheel", m.GreatWheel, m.GreatWheelArbor, 1.6, 8.4, 0.4, 0.35},
+		{"great wheel", m.GreatWheel, m.GreatWheelArbor, 3.6, 8.4, 0.4, 0.35},
 		{"escape rear collar", m.EscapeRearCollar, m.EscapeArbor, 0.35, 3.15, 0.05, 0},
 		{"pallet front collar", m.PalletFrontCollar, m.PalletArbor, 24.85, 27.65, 0.05, 0},
 	} {

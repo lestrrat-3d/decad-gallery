@@ -131,7 +131,7 @@ func TestFits(t *testing.T) {
 	radial(t, m.FrontPlate, m.SuspensionPin, 32, 0.05, 0, "P1 pin in the front plate")
 
 	// T4, T4p: axial gaps along an arbor.
-	axial(t, m.GreatWheel, 1.5, m.GreatWheelArbor, 1.25, 0.25, "T4 great wheel to its collar")
+	axial(t, m.GreatWheel, 3.5, m.GreatWheelArbor, 3.25, 0.25, "T4 great wheel counterbore floor to its collar")
 	axial(t, m.PawlCarrier, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
 	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "T4p escape wheel counterbore floor to its collar")
 	axial(t, m.EscapeRearCollar, 3.25, m.EscapeWheel, 3.30, 0.05, "T4p escape rear collar to the pinion counterbore floor")
@@ -147,6 +147,9 @@ func TestFits(t *testing.T) {
 	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "C1 escape front collar in the wheel's counterbore")
 	radial(t, m.EscapeRearCollar, m.EscapeWheel, 2.4, 0.05, 0, "C1 escape rear collar in the pinion's counterbore")
 	radial(t, m.PalletFrontCollar, m.Anchor, 25.2, 0.05, 0, "C1 pallet front collar in the anchor's counterbore")
+
+	// C1: the great wheel turns on its collar in the counterbore, Regular 0.40 radially.
+	radial(t, m.GreatWheel, m.GreatWheelArbor, 2.5, 0.4, regular, "C1 great wheel counterbore on its collar")
 
 	// T6: the crutch pin in the pendulum's slot, 0.25 each side (checked in TestCoupling by pose); here the build pose.
 	radial(t, m.Crutch, m.Pendulum, 40, 0.25, 0, "T6 crutch pin in the slot")
