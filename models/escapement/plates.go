@@ -149,8 +149,8 @@ func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) 
 	)
 }
 
-// plateOutline extrudes one plate section, as a single sketch: the outline, both windows and the holes. A union of rim,
-// spine and hub prisms is refused by Decad, so the plate is drawn whole.
+// plateOutline extrudes one plate section, as a single sketch: the outline, both windows, the three lip bores and the
+// holes. A union of rim, spine and hub prisms is refused by Decad, so the plate is drawn whole.
 func (b *builder) plateOutline(what string, low, top float64, holes []Pt) (*decad.Body, error) {
 	s, err := b.flat(what, 0, 0, low)
 	if err != nil {
@@ -163,10 +163,13 @@ func (b *builder) plateOutline(what string, low, top float64, holes []Pt) (*deca
 	gc := polar(s, ref, b.g.G.Len(), -90*deg)
 	window(s, 1, pc, s.Origin(), gc, &b.g)
 	window(s, -1, pc, s.Origin(), gc, &b.g)
+	for _, a := range b.axes() {
+		holeAt(s, ref, a, lipRadius)
+	}
 	for _, h := range holes {
 		holeAt(s, ref, h, mountRadius)
 	}
-	return b.extrude(s, 2+len(holes), plateThick, what)
+	return b.extrude(s, 2+3+len(holes), plateThick, what)
 }
 
 // fastenerTools builds the tool of each site made by f and records its sketch.
@@ -198,24 +201,9 @@ func (b *builder) seatTools(z float64) ([]*decad.Body, error) {
 	return out, nil
 }
 
-// lipTools builds the three lip bores through a plate that starts at low: a circle of radius 5 at each axis. The bores are
-// cut by tools, because the chamfer of a pocket rim is refused when the lip bores are holes of the plate's own sketch.
-// The cut leaves each lip rim a faceted edge that no chamfer can name, so the lip rims stay sharp.
-func (b *builder) lipTools(low float64) ([]*decad.Body, error) {
-	var out []*decad.Body
-	for i, a := range b.axes() {
-		t, err := b.discAt(fmt.Sprintf("lip bore %d", i+1), a.X, a.Y, low-1, lipRadius, plateThick+2)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, t)
-	}
-	return out, nil
-}
-
 // plateKeep chooses the loops of a plate that are chamfered: the outer loop, each window (more than four edges; the
 // two-edge D socket is not taken, because its faceted edges cannot be named), and the single-edge circles of radius
-// 7.05 (the seat rims) at the three axes. The faceted lip rims are not named.
+// 7.05 (the seat rims) and 5 (the lip-bore rims) at the three axes.
 func (b *builder) plateKeep() edgefinish.LoopFilter {
 	axes := b.axes()
 	return func(l *decad.Loop, e []*decad.Edge) bool {
@@ -260,11 +248,6 @@ func (b *builder) buildBackPlate() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bores, err := b.lipTools(backLow)
-	if err != nil {
-		return nil, err
-	}
-	tools = append(tools, bores...)
 
 	holeTools, err := b.fastenerTools(m2fastener.HoleTool)
 	if err != nil {
@@ -299,11 +282,6 @@ func (b *builder) buildFrontPlate() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bores, err := b.lipTools(frontLow)
-	if err != nil {
-		return nil, err
-	}
-	tools = append(tools, bores...)
 
 	holeTools, err := b.fastenerTools(m2fastener.HoleTool)
 	if err != nil {
