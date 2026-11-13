@@ -13,8 +13,13 @@ import (
 // TestFastenersSitFlush checks that four M2 bolts and four nuts join each cover to the ring, that every bolt head
 // ends level with its cover's outer face, and that every nut sits inside the ring, 1 mm from its end face.
 func TestFastenersSitFlush(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
 	_, box := defaultGearbox(t)
+	requireFastenersFlush(t, box, planetarygearbox.DefaultParams())
+}
+
+// requireFastenersFlush checks the bolts and nuts of the built gearbox box against its covers and ring.
+func requireFastenersFlush(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+	t.Helper()
 	require.Len(t, box.Bolts, 8)
 	require.Len(t, box.Nuts, 8)
 
@@ -68,6 +73,13 @@ func TestFastenersFitTheirPockets(t *testing.T) {
 	// The overlap checks copy bodies into their document, so they use a gearbox of their own.
 	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), planetarygearbox.DefaultParams())
 	require.NoError(t, err)
+	requireFastenersClear(t, box)
+}
+
+// requireFastenersClear checks that no bolt or nut of box overlaps the parts it passes through. It copies bodies into
+// the document, so call it last.
+func requireFastenersClear(t *testing.T, box planetarygearbox.Gearbox) {
+	t.Helper()
 	for i, bolt := range box.Bolts {
 		cover := box.FrontCover
 		if i >= 4 {

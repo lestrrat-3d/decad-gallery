@@ -32,6 +32,10 @@ carrier's planets, static.
 `Params.PlanetBearing` and `Params.ShaftBearing` name the catalog bearing (`ballbearing.Lookup`) of each role, `"605ZZ"` or
 `"608ZZ"`, and every dependent dimension follows. `Validate` rejects a name that is not in the catalog.
 
+`Problems(p)` returns every way `p` is invalid, and `Validate` returns the first. A failure forced by a bearing says
+what it needs: for a 608ZZ shaft on the default teeth it reports `SunTeeth must be at least 14 for the 8.1 mm shaft at
+module 1; try 14/28/70`. It never changes teeth itself.
+
 `SupportedCombinations()` lists four kits: every pair of 605ZZ and 608ZZ over the planet and shaft roles, named
 `planet<NNN>-shaft<NNN>`. `DefaultParamsFor(kit)` returns `DefaultParams()` with that kit's bearings and a tooth set that
 passes `Validate` (13/29/71, or 14/28/70 when a 608ZZ shaft needs a larger sun). It never adjusts teeth for you: an
@@ -90,7 +94,7 @@ the others listed in `instructions.md`) are not overwritten.
 
 ## Checks
 
-Run `go test ./models/planetarygearbox -timeout 30m`; it takes about 15 minutes and 3.6 GB. `TestExplodedGearbox`
+Run `go test ./models/planetarygearbox -timeout 60m`; it takes about 15 minutes and 3.6 GB, plus about 6 minutes for each kit that `TestKitGearboxes` builds. That test skips the two kits with a 608ZZ planet bearing until a Decad explode fix lands. `TestExplodedGearbox`
 alone takes about 30 seconds. The tests build the default, two-stage and placed gearboxes, each once for all the
 tests that read it, and check that no planet vertex lies inside the sun or the ring and that a planet turned half a
 tooth does. The sketches are checked for full constraint inside the build.

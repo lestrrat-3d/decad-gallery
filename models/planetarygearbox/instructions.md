@@ -176,6 +176,16 @@ the same gap normal to their circular and flat faces.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
   leaves no more than 0.5 mm between its edge and the ring tip radius (`a + boss/2 >= ring tip radius - 0.5`).
 - Reject a non-nil `Placement` that is not a valid frame.
+- Reject a shaft collar that is not narrower than the shaft bearing's inner race (`ds + 2.4 >= ` its `InnerRaceDiameter`),
+  and a pin thick part (`dpc`) that is not narrower than the planet bearing's inner race.
+- Reject a shaft collar that does not pass the cover lip bore with 0.25 mm on each side (`ds + 2.4 + 0.5 > Dbs - 4`).
+- Reject a carrier whose centre hole and pin socket leave less than 1 mm of plate between them:
+  `a - (collar/2 + 0.05) - (dpc/2 + 0.05) < 1`.
+
+`Problems(p)` returns every failing rule in this order, and `Validate` returns the first. When an input check fails,
+only the input problems are returned. Each bearing-forced minimum (the sun wall, the planet pocket wall, the lip
+thickness and the cover hub) also names the minimum it needs, for example `SunTeeth must be at least 14 for the 8.1 mm
+shaft at module 1`. At module 1 it then names the tooth set of the kit with the same bearings, as `try 14/28/70`.
 
 ## Gears
 
@@ -351,7 +361,7 @@ teeth to fit a bearing. An unknown kit name is an error that lists the supported
 | --- | --- | --- |
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, 8 bolts, 8 nuts, all solids; ratio 1 + 71/13 |
 | Fasteners | Default | Every bolt head ends level with its cover's outer face, every nut sits in its cavity 1 mm behind the ring's end face, and no bolt or nut overlaps the cover or ring it passes through |
-| Kits | Each kit of Bearing kits | Each kit validates and has its bearings and teeth. Each non-default kit builds and passes the default's fit, edge, container, fastener, gear-clearance and explode checks |
+| Kits | Each kit of Bearing kits | Each kit validates and has its bearings and teeth. Each non-default kit builds and passes the default's fit, edge, container, fastener, gear-clearance and explode checks. Until the pending Decad fix for the lopsided derived explode lands, `planet608-shaft605` and `planet608-shaft608` are skipped, not verified |
 | Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
 | Shaft flat | Default | The input shaft has a flat on +X where the first sun sits and the sun's D bore has the matching tooth: at the flat the sun has material beyond the shaft's edge, and elsewhere in the bore the sun is absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the flat's circle segment over the sun's thickness; in a two-stage gearbox the second sun's bore has the same tooth for the link shaft's thin rod |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |

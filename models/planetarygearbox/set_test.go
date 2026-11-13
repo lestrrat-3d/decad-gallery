@@ -194,10 +194,15 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	require.True(t, rear.above(ring), "the rear cover is outside the ring")
 
 	// No collar passes a bore narrower than itself. A shaft's collar or thick part, and a carrier pin's thick part,
-	// are 7.4 mm across. The 605ZZ bore is 5 mm and a sun's D bore 5.1 mm, so each bearing or sun that a shaft or
-	// pin passes stays on the side of its collar where it was assembled. A cover's 10 mm lip bore and the carrier
-	// socket that holds the thick part are wide enough for it.
-	radius := ballbearing.Params605ZZ().BoreDiameter/2 + 0.5
+	// are the bearing bore plus 2.4 mm across (7.4 mm for a 605ZZ). A bearing bore and a sun's D bore are narrower,
+	// so each bearing or sun that a shaft or pin passes stays on the side of its collar where it was assembled. A
+	// cover's lip bore and the carrier socket that holds the thick part are wide enough for it. A pin turns on the
+	// planet bearing's bore and any other shaft on the shaft bearing's.
+	planetBore, ok := ballbearing.Lookup(p.PlanetBearing)
+	require.True(t, ok, "planet bearing %q is in the catalog", p.PlanetBearing)
+	shaftBore, ok := ballbearing.Lookup(p.ShaftBearing)
+	require.True(t, ok, "shaft bearing %q is in the catalog", p.ShaftBearing)
+	pins := map[string]struct{}{}
 	narrow := map[string]struct{}{planetarygearbox.FrontBearingName: {}, planetarygearbox.RearBearingName: {}}
 	shafts := map[string]struct{}{planetarygearbox.InputShaftName: {}}
 	for k, s := range box.Stages {
@@ -206,6 +211,7 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		for i := range s.Planets {
 			narrow[planetarygearbox.BearingName(k, i)] = struct{}{}
 			shafts[planetarygearbox.PinName(k, i)] = struct{}{}
+			pins[planetarygearbox.PinName(k, i)] = struct{}{}
 		}
 	}
 	const touching = 1e-6
@@ -215,6 +221,10 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		_, isNarrow := narrow[j.B]
 		if j.Kind != parts.PinInBore || !isShaft || !isNarrow {
 			continue
+		}
+		radius := shaftBore.BoreDiameter/2 + 0.5
+		if _, isPin := pins[j.A]; isPin {
+			radius = planetBore.BoreDiameter/2 + 0.5
 		}
 		collar := collarSpan(t, bodies[j.A], *j.Axis, radius)
 		bore := spanOf(t, bodies[j.B], r3.Vec{}, axis)
