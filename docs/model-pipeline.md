@@ -133,6 +133,55 @@ provide clearance. Use **Nominal** when the model preserves fixed standard or
 purchased dimensions. Use **Mixed** when a model combines adjustable custom
 fits with fixed nominal components.
 
+### Arbor collars
+
+This rule applies to every model in the gallery. It covers every collar on a printed shaft, arbor or pin, and every
+printed shaft that carries another part, such as a gear, wheel, drum, lever or knob. The carried part may sit beside a
+flush side (a plate face, a wall face, or the face of a bearing set flush in either), may be pressed on a shaft end
+outside the frame, or may sit against a collar with no flush side nearby.
+
+Put a collar on the shaft between the flush side and the carried part. A collar is a raised ring or shoulder of the
+shaft's own body, wider than the carried part's bore. It holds the carried part clear of the flush side, so the part
+does not rub it. A boss on the carried part's own body is not a collar and does not meet this rule.
+
+Make every collar at least 3.0 mm long along the shaft's axis, and measure its whole length, including any part inside
+a counterbore. A collar about 1 mm long cannot be printed reliably. A collar that only stops a pressed part, with no
+flush side beside it, takes the same minimum. A part pressed on a shaft end outside the frame takes a collar between
+it and the frame's outer face.
+
+Choose the first of these that fits:
+
+1. **Collar in the gap.** Measure the space between the flush side and the carried part, less the collar's fit gap at
+   each end. When that space is 3.0 mm or longer, put the whole collar in the gap.
+2. **Pierce the carried part.** When that space is shorter, extend the collar into a counterbore in the carried part's
+   face until the collar is 3.0 mm long or more. The counterbore is blind: its floor stops the part on the collar, and
+   the collar never passes through the flush side. Keep 1 mm or more of the part's material around and under the
+   counterbore. Fit the counterbore by how the part moves on the shaft, as [Part clearances](#part-clearances) sets out:
+   - A part that turns with the shaft takes the press-fit clearance, radially and between the floor and the collar.
+   - A part that turns on the shaft takes a Regular radial fit and a Tight gap between the floor and the collar.
+3. **Change the assembly.** When neither fits, move the carried part along the shaft, or shorten or move a
+   neighbouring part, until option 1 or 2 fits. For example, a collar beside a purchased bearing cannot grow into the
+   bearing, and the bearing cannot change. When the carried part also has no room for a counterbore, the parts around
+   it must move.
+
+Do not make a collar shorter than 3.0 mm to fit a gap. Do not extend a collar into a purchased bearing, and do not
+change a bearing's size to make room. A shaft through a bearing keeps the bore's diameter, as Part clearances requires.
+
+A collar that faces a purchased bearing bears on the inner ring only: keep its diameter inside the inner ring's face,
+with a Tight gap to the bearing face. A collar that stops a pressed part takes the press-fit gap to that part. A
+collar beside a part that turns on the shaft takes a Tight gap to it.
+
+Purchased collars are exempt from this rule.
+
+In the model's `instructions.md`, list each collar: its shaft, the carried part, the flush side (if any), its axial
+extent and length, its diameter, and which of the three options it uses, with the reason for option 3. Apply
+[Sketch constraints](../AGENTS.md#sketch-constraints) to every collar and counterbore sketch, and
+[Surface edge finishing](#surface-edge-finishing) to every counterbore rim.
+
+Test each collar on the built shaft body for every parameter case that changes it. Find the collar's two end faces on
+the body, and require the distance between them to be 3.0 mm or more. Require the collar's diameter to be the listed
+one. Measure each counterbore fit, and the gap between each carried part and its flush side, against their fit classes.
+
 ### Surface edge finishing
 
 Chamfer every qualifying convex boundary edge on a large planar surface:
