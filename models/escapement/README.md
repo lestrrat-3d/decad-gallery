@@ -159,10 +159,9 @@ position. Wind clockwise.
 - **Gears.** The pinion's tips clear the great wheel's roots by 0.54 mm and the great wheel's tips clear the pinion's roots
   by 0.54 mm, at module 1.5. The default backlash is 0.15 mm per gear.
 
-The back and front plates have their outer edges, both windows and the bearing seat rims chamfered by 0.5 mm at 45°.
-The anchor's whole outline, the pendulum's outline with its pocket and lip-bore rims, and the six windows of the escape
-wheel are chamfered too. The plates' lip-bore rims stay sharp, because the cut that makes them leaves faceted edges that a
-chamfer cannot name. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
+The back and front plates have their outer edges, both windows, the bearing seat rims and the lip-bore rims chamfered by
+0.5 mm at 45°. The anchor's whole outline, the pendulum's outline with its pocket and lip-bore rims, and the six windows
+of the escape wheel are chamfered too. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
 pockets, the crutch slot and the faces under 400 mm² (the winding knob and the drum's flange) are not chamfered.
 
 You can vary:

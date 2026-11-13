@@ -414,20 +414,19 @@ pocket); top rim `y ∈ [62, 82]` (front) or `[62, 98]` (back), which holds `S` 
 
 #### Construction
 
-The plate section is one sketch: the outline, both window loops and (back plate) the mounting holes, extruded once to 6 mm.
+The plate section is one sketch: the outline, both window loops, the three lip bores `r 5` at `O, P, G` and (back plate)
+the mounting holes, extruded once to 6 mm.
 Do not build the plate as a union of rim, spine and hub prisms: Decad refuses a union of coplanar prisms.
 
-1. One sketch at the plate's low face: the rounded-rectangle outline, the right window, the left window and, on the back
-   plate, the mounting circles. Profile with 2 holes (front) or 4 holes (back). Extrude 6.
+1. One sketch at the plate's low face: the rounded-rectangle outline, the right window, the left window, the three lip circles `r 5` and,
+   on the back plate, the mounting circles. Profile with 5 holes (front) or 7 holes (back). Extrude 6.
 2. Back plate: union the four pillars `r 5`, `z ∈ [-0.5, 28]`, in one call.
-3. Cut one tool, the union of: pockets `r 7.05` (back `z ∈ [-5, 1]`, front `z ∈ [27, 33]`); lip bores `r 5` through
-   (`z ∈ [low - 1, low + 7]`); per site `m2fastener.HoleTool` and `CavityTool` (back) or `HoleTool` and `PocketTool` (front);
+3. Cut one tool, the union of: pockets `r 7.05` (back `z ∈ [-5, 1]`, front `z ∈ [27, 33]`); per site `m2fastener.HoleTool` and `CavityTool` (back) or `HoleTool` and `PocketTool` (front);
    on the front plate the suspension socket, D press outline about `S` (`r 2.55`, chord at `x = 2.05`) over `z ∈ [31, 35]`.
 4. One `edgefinish.Chamfer(ctx, body, +Z, {low, low + 6}, keep, edgefinish.MinChamfer)`. `keep` takes outer loops, inner
    loops of more than 4 edges (the windows; the 2-edge D socket has faceted edges that `edgefinish` cannot name), and
-   single-edge `decad.Circle3` loops of radius 7.05 or 5 (±0.01) centred within 0.01 of `O`, `P` or `G`. The lip bores are
-   cut by a tool and leave faceted rims that no chamfer can name, and a lip bore drawn in the plate's own sketch makes the
-   chamfer of the pocket rims fail on the front plate, so the lip rims stay sharp.
+   single-edge `decad.Circle3` loops of radius 7.05 (the seat rims, inner face) or 5 (the lip-bore rims, outer face)
+   (±0.01) centred within 0.01 of `O`, `P` or `G`.
 
 ### Fasteners (`AGENTS.md` Fasteners)
 
@@ -552,8 +551,8 @@ Large faces (≥ 400 mm²) and their chamfers (0.5, 45°), all through `internal
 
 | Part | Chamfered | Kept sharp (reason) |
 |---|---|---|
-| Back plate | outer loop and both windows on both faces; pocket rims (seat chamfer) | lip-bore rims (faceted, no chamfer can name them), mounting holes, pillar holes (< 20 mm) |
-| Front plate | outer loop and both windows on both faces; pocket rims | lip-bore rims (faceted), bolt holes, head pockets, suspension socket (< 20 mm) |
+| Back plate | outer loop and both windows on both faces; pocket rims (seat chamfer); lip-bore rims on the rear face | mounting holes, pillar holes (< 20 mm) |
+| Front plate | outer loop and both windows on both faces; pocket rims; lip-bore rims on the front face | bolt holes, head pockets, suspension socket (< 20 mm) |
 | Escape Wheel | 6 window loops on both faces | tooth outline: pieces 2 to 8 mm, corners, no 20 mm run |
 | Anchor | whole outer loop of both faces, pallets included | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
 | Pendulum | outer loop of both faces; pocket rim; lip-bore rim on the rear face | slot (fit T6) |
