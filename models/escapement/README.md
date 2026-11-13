@@ -66,7 +66,7 @@ for a wall mount and has no stand.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars at the left, the pallet arbor with the anchor and the crutch, the escape arbor with its wheel, the great wheel arbor with the great wheel, the pawl carrier, the mainspring and the spring spacer, the bearings, the front plate with the suspension pin, then the pendulum with its bearing and cap shifted to the right, and the bolts and nuts around the plates">
+<img src="images/exploded.png" alt="The movement pulled apart along its axis, in assembly order: the escape arbor with the escape wheel, the pallet arbor with the anchor, the great wheel arbor with the great wheel, the pawl carrier, the mainspring and the spring spacer, the back plate with its pillars and three back bearings, the spring anchor pin, the three front bearings, the front plate with the suspension pin, the four bolts and four nuts around the plates, the crutch and the winding knob, then the pendulum with its bearing and the suspension cap shifted to the right">
 
 The picture pulls the parts apart along the movement's axis, so each arbor, its wheels and its bearings stay in one line. A layer moves sideways only where a part it joins would hide it: the crutch lies inside the pendulum's outline, so the pendulum, its bearing and the suspension cap step 25 mm to the right. A dotted line joins a part to its place on the part it joins when the part moved off its own line, here the pendulum and its bearing. Each arbor sits beyond the wheels pressed onto it, in the same line.
 
@@ -139,16 +139,17 @@ Print each part without supports in this orientation:
 
 Assemble in this order:
 
-1. Press the three back bearings into the back plate's seats, then set the escape arbor and the pallet arbor in them. The great
-   wheel arbor goes in at step 5.
-2. Slide the escape wheel on from the escape arbor's rear end, with the pinion toward the front, until its front face
-   nearly meets the collar. It is a press fit: the D-shaped bore and the arbor's flat turn together.
-3. Press the anchor on the pallet arbor from the front until its rear face nearly meets the pallet collar.
-4. Slide the great wheel on its round arbor, then press the pawl carrier on the flat until the great wheel turns freely with
-   about 0.25 mm of play. Slide the mainspring on the flat, then press the spring spacer on until the spring hub turns freely by
-   about 0.25 mm. Do this with the arbor out of the frame, from its front end.
-5. Put the arbor in the back bearing and hook the spring's eye on the anchor pin, which is pressed into the front plate. Place the
-   front bearings, then the front plate, and tighten the four M2 × 10 bolts from the front. Each head ends flush
+1. Off the frame, on the escape arbor: slide the escape wheel on from the rear end, front face first so the pinion
+   faces the back, until its front face nearly meets the collar. It is a press fit: the D-shaped bore and the arbor's
+   flat turn together. The bore is wider than the arbor's 5.0 mm bearing seat, so the wheel passes over the seat.
+2. Off the frame, on the pallet arbor: press the anchor on from the front end until its rear face nearly meets the pallet
+   collar.
+3. Off the frame, on the great wheel arbor, from the front end: slide the great wheel on, then press the pawl carrier on
+   the flat until the great wheel turns freely with about 0.25 mm of play. Slide the mainspring on the flat, then press
+   the spring spacer on until it stops on the arbor's step, which leaves the spring hub about 0.25 mm of play.
+4. Press the three back bearings into the back plate's seats, then push the three arbors into them from the front.
+5. Place the front bearings on the arbors' front ends and hook the spring's eye on the anchor pin, which is pressed into
+   the front plate. Set the front plate on, and tighten the four M2 × 10 bolts from the front. Each head ends flush
    with the plate's face.
 6. Press the crutch and the winding knob on the arbor ends, and the suspension pin's rear peg into the front plate's
    D-shaped socket. Set the pendulum's bearing on the pin and the crutch pin in the pendulum's slot, and press the cap on
@@ -162,13 +163,15 @@ position. Wind clockwise.
 - **Shafts in bearings.** Every arbor and the suspension pin is 5.0 mm across at a bearing, the same as the 605ZZ's
   bore, so the fit has no clearance.
 - **Press fits.** The escape wheel, anchor, pawl carrier, spring spacer, crutch, knob and cap each have a D-shaped bore with 0.05 mm of radial
-  clearance on the arbor's or pin's flat. The suspension pin's rear peg has the same fit in the front plate. Each
+  clearance on the arbor's or pin's flat. Between the bearings each arbor is thicker than its 5.0 mm seats (2.8 mm radius, and
+  3.05 mm under the great wheel, pawl carrier and spring), with the flat 0.05 mm further out than the seat radius, so
+  the bores pass the seats. The suspension pin's rear peg has the same fit in the front plate. Each
   bearing sits in a seat with 0.05 mm of radial clearance.
 - **Tight fits, 0.25 mm.** Collars, bosses, the pin's shoulder and the cap stand 0.25 mm from a bearing face. The crutch
   and knob stand 0.25 mm off the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
-  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.28 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
+  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
   0.25 mm from the carrier boss and from the spacer, and the eye has 0.40 mm on the anchor pin.
-- **Regular fit, 0.40 mm.** The great wheel's 5.8 mm bore turns on the 5.0 mm arbor.
+- **Regular fit, 0.40 mm.** The great wheel's 6.9 mm bore turns on the arbor's 6.1 mm section.
 - **Loose fits.** The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel
   3.0 mm behind the front plate. A pawl's arm clears the ratchet teeth by 1.0 mm.
 - **Gears.** The pinion's tips clear the great wheel's roots by 0.54 mm and the great wheel's tips clear the pinion's roots

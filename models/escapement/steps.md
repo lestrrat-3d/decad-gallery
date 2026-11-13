@@ -72,10 +72,14 @@ and hub prisms. Check: solid; `TestPlates`, `TestPlateWindows`, `TestPlateMateri
 Meridian sketch (plane `U = +X`, `V = +Z`, origin on the axis): polygon of the staircase points of "Arbors"
 (pin: "Pendulum and crutch"); each line `NewHorizontal` or `NewVertical`, the axis edge by
 `NewHorizontalDistance(origin, p, 0)`, each step by H distance (radius) and V distance (z) from the origin. Valid
-profile: 0 holes. `decad.Revolve` full turn about the sketch line `(0,0)-(0,1)`. Flat boxes: `CreateRectangle` at
-`x 2.0 to 3.5`, `y -3.5 to 3.5`, corner by H/V distance, width 1.5 and height 7 by distances between corners,
-extruded over each flat span; `Union` the boxes of one part and `Cut` once. Check: solid; diameter 5.0 at each bearing
-seat; flat present at each span's middle and absent under each bearing.
+profile: 0 holes. `decad.Revolve` full turn about the sketch line `(0,0)-(0,1)`. The arbor and pin points are the
+meridians of instructions.md "Arbors, bearings and axial layout" (the escape, pallet and great wheel arbors have `r 2.8`
+and `r 3.05` body sections between their bearing seats). Flat boxes: `flatBox(what, x, y, flatX, z0, z1)`:
+`CreateRectangle` at `x flatX to 3.5`, `y -3.5 to 3.5`, corner by H/V distance, width `3.5 - flatX` and height 7 by
+distances between corners, extruded over each `flatSpan{X, Z0, Z1}` (`x 2.55` over a body section, `x 2.0` on an end or
+the pin); `Union` the boxes of one part and `Cut` once. Check: solid; diameter 5.0 at each bearing seat; flat present at
+each span's middle (between the flat plane and the section radius) and absent under each bearing; volume equals the
+revolve less the circular segment of each section beyond its flat over each span.
 
 ### 13. Escape Wheel
 
@@ -87,7 +91,7 @@ through `O`); `Union(disc, tooth, copies...)`. One `edgefinish.Chamfer` over `{2
 one edge. Pinion: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}`, module 1.5, 13 teeth,
 pressure angle 20°, thickness 21, `Backlash`, no bore, placement origin `z 1.5` with `U = (cos -60°, sin -60°)`.
 Sketch `rear boss` (`z 0.25`): circle `r 3.7`, extrude 1.75. `Union(wheel, pinion, boss)`. Cut the D press bore: sketch
-(plane at `z -0.75`) arc `r 2.55` and chord `NewVertical` at `x 2.05`; extrude 26.75. Check: solid; section at
+(plane at `z -0.75`) arc `r 2.85` and chord `NewVertical` at `x 2.60` (body family); extrude 26.75. Check: solid; section at
 `z 23.5` has 8 loops and 30 tips at radius 40; section at `z 10` shows 13 teeth, tip 11.23.
 
 ### 14. Anchor
@@ -96,7 +100,7 @@ Sketch `anchor outline` (`z 21`, `P`): the 14 pieces of "Anchor outline" plus `x
 `rh`; `C_E`, `F_E`, `C_X`, `F_X` polar points; arm inner lines by `NewAngle(xRef, line, a)` and
 `NewPointOnLine(origin, line)`; `K` on the `r_out` arc and on the inner line; arm ends `NewPerpendicular` and
 `NewDistancePointLine(M, inner, 6)`; outer sides `NewParallel`, `N` on the top hub arc. Valid profile: 0 holes.
-Extrude 5. Boss sketch (`z 25.5`) circle `r 3.7`, extrude 2.25, `Union`. Cut the D press bore (tool `z 20`, height
+Extrude 5. Boss sketch (`z 25.5`) circle `r 3.7`, extrude 2.25, `Union`. Cut the D press bore (body family: arc `r 2.85`, chord `x 2.60`; tool `z 20`, height
 8.75). `edgefinish.Chamfer` over `{21, 26}` with `Outer` (28 edges), last. Check: solid; outline at `z 23.5` passes
 within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches verified for the three branch cases.
 
@@ -104,7 +108,7 @@ within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches
 
 Sketch `crutch outline` (`z 34.25`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5`, end arc `r 4` centred by H/V
 distance `(0, -45)`. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 36.75`, origin at the end centre) circle `r 1.5`,
-extrude 6.5; `Union`. Cut the D press socket (`r 2.55`, flat `2.05`; tool `z 33.25`, height 5). Check: solid, area under 400 mm².
+extrude 6.5; `Union`. Cut the D press socket (end family: `r 2.55`, flat `2.05`; tool `z 33.25`, height 5). Check: solid, area under 400 mm².
 
 ### 16. Pendulum
 
@@ -120,7 +124,7 @@ Circle `r 3.7` at `S`, `z 44.25`, extrude 1.5; cut the D press socket (`z 43.25`
 
 ### 19. Great Wheel
 
-`spurgear` with the `gearroot` variant: module 1.5, 48 teeth, thickness 7, `BoreDiameter 5.8`, `Backlash`, placement
+`spurgear` with the `gearroot` variant: module 1.5, 48 teeth, thickness 7, `BoreDiameter 6.9`, `Backlash`, placement
 origin `z 1.5`. Ratchet tool: disc sketch (`z 5.0`, `G`) circle `r 11.5`; triangle sketch with polar points
 `(11.0∠0°)`, `(13.5∠30°)`, `(11.0∠30°)`; extrude both 4.5; pattern the triangle 12 times; `Union(disc, tooth,
 copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratchet teeth; outline at `z 3` shows 48 teeth.
@@ -129,9 +133,9 @@ copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratch
 
 Built about the origin and moved onto `G` by the pose. Core sketch (`z 5.25`): circle `r 7.5`, valid profile with 0
 holes, extrude 4. Two pawl sketches (the pawl loop of instructions "Pawl Carrier", polar points, arcs `NewRadius` 7.0, 9.0,
-12.5, 10.5) at `g = 90° - δb` and `270° - δb`, extruded 4. Boss sketch (`z 8.75`): circle `r 3.7`, extrude 2.25.
-`Union(core, pawl0, pawl1, boss)`; cut the D press bore (sketch `z 4.25`, arc `r 2.55` and a vertical chord at `x 2.05`,
-extrude 7.75). Check: solid; pawl tips at the old drum's world angles; boss present at `z 10`, absent at `z 11.1`.
+12.5, 10.5) at `g = 90° - δb` and `270° - δb`, extruded 4. Boss sketch (`z 8.75`): circle `r 4.2`, extrude 2.25.
+`Union(core, pawl0, pawl1, boss)`; cut the D press bore (sketch `z 4.25`, drive family: arc `r 3.10` and a vertical chord at
+`x 2.60`, extrude 7.75). Check: solid; pawl tips at the old drum's world angles; boss present at `z 10`, absent at `z 11.1`.
 
 ### 21. Mainspring
 
@@ -142,7 +146,7 @@ profile sketch; `Model.Profile` goes into `Movement.Sketches`. Check: solid; bou
 
 ### 22. Spring Spacer and 23. Spring Anchor Pin
 
-Spacer sketch (`z 17.5`): circle `r 3.7`, extrude 10.25; D press bore (sketch `z 16.5`, extrude 12.25). Anchor pin sketch (plane
+Spacer sketch (`z 17.5`): circle `r 3.7`, extrude 10.25; D press bore (body family: arc `r 2.85`, chord `x 2.60`; sketch `z 16.5`, extrude 12.25). Anchor pin sketch (plane
 origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socket tool (sketch at `Q`, `z 27`): circle
 `r 1.55`, extrude 4, appended to the front plate's tool list (`spring.go`). Check: solids; `TestFrontPlateSpringAnchor`.
 

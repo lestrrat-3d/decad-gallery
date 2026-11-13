@@ -50,48 +50,72 @@ func volume(t *testing.T, body *decad.Body) float64 {
 	return v.Value.Base()
 }
 
+// segmentArea is the area of the circular segment of a circle of radius r beyond the chord x = flat; zero when the
+// flat lies outside the circle.
+func segmentArea(r, flat float64) float64 {
+	if r <= flat {
+		return 0
+	}
+	return r*r*math.Acos(flat/r) - flat*math.Sqrt(r*r-flat*flat)
+}
+
+// sectionRadius returns the radius of the meridian pts at height z.
+func sectionRadius(pts meridianPoints, z float64) float64 {
+	for i, p := range pts {
+		q := pts[(i+1)%len(pts)]
+		if p[0] == q[0] && p[0] > 0 && z > math.Min(p[1], q[1]) && z < math.Max(p[1], q[1]) {
+			return p[0]
+		}
+	}
+	return 0
+}
+
 func TestArbors(t *testing.T) {
 	b := testBuilder(t)
 	cases := []struct {
 		name  string
 		build func() (*decad.Body, error)
 		x, y  float64
-		z0    float64 // the shaft's lowest point
 		pts   meridianPoints
-		spans [][2]float64
+		spans []flatSpan
 		seats [][2]float64 // z ranges of the round 5.0 bearing seats
 	}{
-		{"escape arbor", b.buildEscapeArbor, 0, 0, -5, escapeArborPoints, [][2]float64{{0.5, 25.0}}, [][2]float64{{-5, 0}, {28, 33}}},
-		{"pallet arbor", b.buildPalletArbor, 0, b.g.P.Y, -5, palletArborPoints, [][2]float64{{21, 27.75}, {34.25, 38.2}},
+		{"escape arbor", b.buildEscapeArbor, 0, 0, escapeArborPoints, escapeArborFlats, [][2]float64{{-5, 0}, {28, 33}}},
+		{"pallet arbor", b.buildPalletArbor, 0, b.g.P.Y, palletArborPoints, palletArborFlats,
 			[][2]float64{{-5, 0}, {28, 33}}},
-		{"great wheel arbor", b.buildGreatWheelArbor, b.g.G.X, b.g.G.Y, -5, greatArborPoints, [][2]float64{{5.25, 27.75}, {34.25, 38.2}},
+		{"great wheel arbor", b.buildGreatWheelArbor, b.g.G.X, b.g.G.Y, greatArborPoints, greatArborFlats,
 			[][2]float64{{-5, 0}, {28, 33}}},
-		{"suspension pin", b.buildSuspensionPin, 0, b.g.S.Y, 31.05, pinPoints, [][2]float64{{30.05, 33.95}, {44.25, 46.70}},
-			[][2]float64{{39, 44}}},
+		{"suspension pin", b.buildSuspensionPin, 0, b.g.S.Y, pinPoints, pinFlats, [][2]float64{{39, 44}}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			body, err := c.build()
 			require.NoError(t, err)
 			require.True(t, body.IsSolid())
-			// Volume: the revolve minus the circular segment of each flat over its span.
-			want := math.Pi * 0
+			// Volume: the revolve minus, over each flat's span, the circular segment of each section beyond its flat.
+			want := 0.0
 			for i, p := range c.pts {
 				q := c.pts[(i+1)%len(c.pts)]
-				if p[0] == q[0] {
-					want += math.Pi * p[0] * p[0] * (q[1] - p[1])
+				if p[0] != q[0] {
+					continue
 				}
-			}
-			segment := ArborRadius*ArborRadius*math.Acos(FlatX/ArborRadius) - FlatX*math.Sqrt(ArborRadius*ArborRadius-FlatX*FlatX)
-			for _, sp := range c.spans {
-				want -= segment * (sp[1] - sp[0])
+				want += math.Pi * p[0] * p[0] * (q[1] - p[1])
+				for _, sp := range c.spans {
+					lo, hi := math.Max(p[1], sp.Z0), math.Min(q[1], sp.Z1)
+					if hi > lo {
+						want -= segmentArea(p[0], sp.X) * (hi - lo)
+					}
+				}
 			}
 			require.InDelta(t, want, volume(t, body), 0.01*want)
 			for _, sp := range c.spans {
-				mid := (sp[0] + sp[1]) / 2
-				require.False(t, inside(t, body, c.x+2.25, c.y, mid), "flat cut at z %v", mid)
-				require.True(t, inside(t, body, c.x+1.9, c.y, mid), "shaft kept at z %v", mid)
-				require.True(t, inside(t, body, c.x-2.4, c.y, mid), "round side kept at z %v", mid)
+				mid := (sp.Z0 + sp.Z1) / 2
+				r := sectionRadius(c.pts, mid)
+				require.Greater(t, r, sp.X, "the flat at z %v cuts a section", mid)
+				require.False(t, inside(t, body, c.x+(sp.X+r)/2, c.y, mid), "flat cut at z %v", mid)
+				require.True(t, inside(t, body, c.x+sp.X-0.15, c.y, mid), "shaft kept at z %v", mid)
+				require.True(t, inside(t, body, c.x-r+0.1, c.y, mid), "round side kept at z %v", mid)
+				require.False(t, inside(t, body, c.x-r-0.05, c.y, mid), "section radius at z %v", mid)
 			}
 			for _, seat := range c.seats {
 				mid := (seat[0] + seat[1]) / 2

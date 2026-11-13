@@ -164,7 +164,7 @@ Loop, in order (arcs centred on `P`; "ccw" = increasing math angle):
 13. line `M_E → K_E` (entry arm end)
 14. arc `r_out` from `K_E` to `C_E` (ccw) (entry locking face)
 
-Bore: D-shaped (see Arbors), cut after the boss union. Front spacer boss: circle `r 3.7` about `P`,
+Bore: D-shaped, body family (see Arbors), cut after the boss union. Front spacer boss: circle `r 3.7` about `P`,
 `z ∈ [25.5, 27.75]` (overlaps the anchor body by 0.5).
 
 ### Escape wheel
@@ -229,7 +229,7 @@ Print-error study (default parameters; `dr` tip radius error, `dw` pallet width 
   `A_R = (2.5, -5.4544)`, `A_L = (-2.5, -5.4544)`, `B_L = (-2.5, -41.8775)`, `B_R = (2.5, -41.8775)`. Loop: hub arc
   ccw `A_R → A_L` over the top, line `A_L → B_L`, end arc ccw `B_L → B_R` round the bottom, line `B_R → A_R`.
   `z ∈ [34.25, 37.25]`. Crutch pin: circle `r 1.5` at `(0, -45)`, `z ∈ [36.75, 43.25]` (overlaps 0.5). D press socket
-  (`r 2.55`, flat at `x = 2.05`) through the hub.
+  (end family: arc `r 2.55`, flat at `x = 2.05`) through the hub.
 - Pendulum: pivots on a 605ZZ on the suspension pin at `S = P + (0, 14)`. Outline in a sketch with origin `S`: eye
   circle `r 10`; rod 8 wide (`x = ±4`) down to a bob circle `r 25` centred `(0, -Lp)`. Outline points:
   `E_R = (4, -9.1652)`, `E_L = (-4, -9.1652)`, `Q_L = (-4, -Lp + 24.6779)`, `Q_R = (4, -Lp + 24.6779)`. Loop: eye arc
@@ -270,7 +270,7 @@ ratchet while the escapement holds the great wheel. The model has no cord or wei
 | tip-to-root | `45.75 - 11.23 - 33.98 = 0.54`, `45.75 - 37.48 - 7.73 = 0.54` (rule: ≥ 0.5) |
 | backlash `j` | `Backlash`, default 0.15 per gear → 0.3 play |
 | pinion | `spurgear` variant, 13 teeth, thickness 21, `z ∈ [1.5, 22.5]`, no bore (D bore cut after unions) |
-| great wheel | `spurgear` variant, 48 teeth, thickness 7, `z ∈ [1.5, 8.5]`, `BoreDiameter 5.8` (round, Regular fit) |
+| great wheel | `spurgear` variant, 48 teeth, thickness 7, `z ∈ [1.5, 8.5]`, `BoreDiameter 6.9` (round, Regular fit on the arbor's `r 3.05` section) |
 | mesh phase at `φ = 0` | pinion tooth 0 at math angle `θp0 = -90°` (toward `G`); great wheel tooth 0 at `θg0 = 90° + 180°/48 = 93.75°` (gap facing `O`) |
 
 Root-clearance variant: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}` from the shared
@@ -299,8 +299,8 @@ would need a new great wheel and would hide the spring, so it is rejected.
 ### Spring dimensions and torque
 
 `spiralspring.Params` (a constant set of the escapement; the user cannot change it): `OuterDiameter` 64, `HubDiameter` 12,
-`Thickness` 1.5, `Height` 6, `MinGap` 1.0, `Turns` 0 (as many as fit), `ArborDiameter` 5, `ArborFlatDepth` 0.5,
-`BoreClearance` 0.28, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
+`Thickness` 1.5, `Height` 6, `MinGap` 1.0, `Turns` 0 (as many as fit), `ArborDiameter` 6.1, `ArborFlatDepth` 0.5,
+`BoreClearance` 0.30, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
 `rho0` 8.4 and an active length of 1142.3 mm. The eye centre is `(-31.250, -13.399)` local: radius 34.0015 from the axis, at
 math angle -156.7916°. The eye radius is 3.4 and the eye hole 3.8. The item's hub-wrap strain is 1.56 %.
 
@@ -353,8 +353,9 @@ Carrier local frame: axis through the origin (moved onto `G`), D-flat of its bor
    `(10.5∠g-120°)` → line → `(12.5∠g-116°)` → arc `r 12.5` ccw → `(12.5∠g-112°)` → line → `(10.5∠g-112°)` → arc
    `r 10.5` ccw → `(10.5∠g+10°)` → line → `(7.0∠g+10°)`.
    Contact face: radial line at `g - 112°` from `r 10.5` to `12.5`, facing counter-clockwise.
-2. Boss `r 3.7`, `z ∈ [8.75, 11.0]` (0.5 overlap into the layer).
-3. Union, then cut the D press bore (`r 2.55`, flat at `x = 2.05`), tool `z ∈ [4.25, 12]`.
+2. Boss `r 4.2`, `z ∈ [8.75, 11.0]` (0.5 overlap into the layer). It faces only the spring hub, not a bearing, so it is
+   not a collar. It grew from `r 3.7` to keep a 1.1 mm wall round the larger bore.
+3. Union, then cut the D press bore (drive family: arc `r 3.10`, flat at `x = 2.60`), tool `z ∈ [4.25, 12]`.
 
 Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core and 1.0 mm to the ratchet tips.
 Winding pushes the pawl tip in from `r 12.5` past the land at `r 11.5`, a 1.0 mm deflection plus 0.3 mm margin. Bending strain
@@ -365,7 +366,8 @@ Each pawl's contact face lies 1.2° (0.25 mm at `r 12`) clockwise of a ratchet r
 
 ### Spring Spacer and Spring Anchor Pin
 
-Spring Spacer: disc `r 3.7`, `z ∈ [17.5, 27.75]`, D press bore (`r 2.55`, flat `x 2.05`), pressed on the arbor's flat.
+Spring Spacer: disc `r 3.7`, `z ∈ [17.5, 27.75]`, D press bore (body family: arc `r 2.85`, flat `x 2.60`), pressed on the arbor's
+flat until its rear face is 0.05 from the step at `z 17.45`.
 Spring Anchor Pin: round rod `r 1.5` at `Q = (0, G_y - 34.0015) = (0, -79.7515)`, `z ∈ [10.25, 30.95]`, pressed into a blind
 socket in the front plate's inner face: `r 1.55`, `z ∈ [28, 31]` (the tool spans `z ∈ [27, 31]`). Its tip is 1 mm behind the
 eye's lower face. `Q` is on the front plate's spine (`|x| ≤ 4`, between the `G` hub and the bottom rim), leaving 2.45 mm of
@@ -381,23 +383,24 @@ Great wheel arbor at `G = (0, -45.75)`, z from the back:
 |---|---|
 | `[-5, 0]` | back bearing |
 | `[0.25, 1.25]` | arbor collar |
-| `[1.5, 8.5]` | great wheel, free on the round arbor (pocket floor `z 5.0`) |
+| `[1.5, 8.5]` | great wheel, free on the arbor's `r 3.05` section (pocket floor `z 5.0`) |
 | `[5.25, 9.25]` | Pawl Carrier pawl layer |
-| `[8.75, 11.0]` | Pawl Carrier boss `r 3.7` (0.5 overlap into the layer) |
+| `[8.75, 11.0]` | Pawl Carrier boss `r 4.2` (0.5 overlap into the layer) |
 | `[11.25, 17.25]` | Mainspring (hub and coils), `Height` 6 |
 | `[17.5, 27.75]` | Spring Spacer `r 3.7` |
 | `[28, 33]` | front bearing |
 | `[34.25, 37.25]` | winding knob |
 
-The Pawl Carrier and the Spring Spacer are press fits on the arbor flat. The spring hub slides on the flat with 0.28 clearance,
+The Pawl Carrier and the Spring Spacer are press fits on the arbor flat. The spring hub slides on the flat with 0.30 clearance,
 and its two faces stand 0.25 from the carrier boss and from the spacer. Assembly from the arbor's front end: the great wheel;
 the Pawl Carrier, pressed until the great wheel turns freely with about 0.25 play; the Mainspring; the Spring Spacer, pressed
 until the spring hub turns freely by about 0.25. Then the arbor goes into the frame, the spring's eye goes onto the anchor pin,
-and the knob is pressed on in front. The arbor's flat span `[5.25, 27.75]` already covers the carrier, the spring hub and the spacer.
+and the knob is pressed on in front. The arbor's flat span `[5.25, 27.80]` already covers the carrier, the spring hub and the spacer. The spacer stops on the arbor's
+step at `z 17.45`, 0.05 from its rear face.
 
 ### Spring ends
 
-The inner end is the item's hub: its D bore (arc `r 2.75`, flat 2.25 from the axis on local `+Y`) sits on the arbor's flat, and
+The inner end is the item's hub: its D bore (arc `r 3.35`, flat 2.85 from the axis on local `+Y`) sits on the arbor's flat, and
 the flat carries the torque. The outer end is the item's eye (hole 3.8) on the Spring Anchor Pin.
 
 ### Spring pose
@@ -410,37 +413,56 @@ spring's bore flat (world angle `γs + 90° = 156.7916°`) at the default `Phase
 115.0277°. `Layout` computes `δb` from `DefaultParams()` and `Derive`, not from a literal. The Pawl Carrier's local frame has its
 bore flat on `+X`, and its pawls are drawn at `g = 90° - δb` and `270° - δb`, so each pawl stays at great-wheel-local `+20.8°`
 from a ratchet face. Across `Phase ∈ [0, 1)` the arbor turns at most 3.25° (one period × 13/48) against the fixed spring, and the
-arbor's flat corners can turn 11.0° inside the spring's bore before touching it, so no phase overlaps. Because the arbor turns, the gap between the arbor's flat corners and the bore's flat is the build-pose 0.28 mm
-less 0.076 mm at the worst phase: at least 0.20 mm at every phase (0.204 mm measured over 40 phases).
+arbor's flat corners can turn 12.4° inside the spring's bore before touching it, so no phase overlaps. Because the arbor turns, the gap between the arbor's flat corners and the bore's flat is the build-pose 0.30 mm
+less 0.084 mm at the worst phase: at least 0.20 mm at every phase.
 
 ### Winding knob
 
-Circle `r 9` about `G`, `z ∈ [34.25, 37.25]` (area `π 9² ≈ 254 mm²`, no chamfer; from the front it hides no more than the front plate's `r 10` hub ring at `G`), D press socket (`r 2.55`, flat `x 2.05`). Pressed on the great
+Circle `r 9` about `G`, `z ∈ [34.25, 37.25]` (area `π 9² ≈ 254 mm²`, no chamfer; from the front it hides no more than the front plate's `r 10` hub ring at `G`), D press socket (end family: arc `r 2.55`, flat `x 2.05`). Pressed on the great
 wheel arbor's front end.
 
 ## Arbors, bearings and axial layout
 
-Arbor diameter 5.0: `docs/model-pipeline.md` Part clearances makes a shaft through a purchased bearing's bore equal
-to the bore, with no clearance and no fit class. Flat depth `Sf = 0.5` on `+X` (flat plane `x = 2.0`). Collars,
-spacer bosses, the shoulder and the cap are `r 3.7` (diameter 7.4 = 5.0 + 2·1.2, the planetary gearbox's
-`collarMargin`; a 605 inner race is about 8 mm across). They bear on the bearing's inner ring only.
+Bearing seats are 5.0 across: `docs/model-pipeline.md` Part clearances makes a shaft through a purchased bearing's bore
+equal to the bore, with no clearance and no fit class. Between the seats the arbor body is larger (stepped), so a
+D-bored part slides on over a seat on its way to the body. Collars, spacer bosses, the shoulder and the cap are `r 3.7`
+(diameter 7.4 = 5.0 + 2·1.2, the planetary gearbox's `collarMargin`; a 605 inner race is about 8 mm across). They bear
+on the bearing's inner ring only.
+
+Body sections and bore families (all D flats on `+X`):
+
+| Name | Value | Use |
+|---|---|---|
+| seat | `r 2.5` | every bearing seat, and the ends outside the front plate |
+| `bodyRadius` | `r 2.8` | arbor body between the seats (escape, pallet, great wheel front section) |
+| `driveBodyRadius` | `r 3.05` | great wheel arbor under the great wheel, the pawl carrier and the mainspring |
+| `bodyFlatX` | `x 2.55` | flat plane of every body section; above 2.5, so a flat never reaches a seat |
+| end family | arc `r 2.55`, chord `x 2.05` | D bore on the `r 2.5` ends: crutch, knob, cap, front-plate suspension socket |
+| body family | arc `r 2.85`, chord `x 2.60` | D bore on `r 2.8`: escape wheel, anchor, spring spacer |
+| drive family | arc `r 3.10`, chord `x 2.60` | D bore on `r 3.05`: pawl carrier |
+
+Every body-family chord (`x 2.60`) is above the seat radius 2.5, so each between-plate part passes a bearing seat. Body
+steps (`r 2.5` to a body section) facing a bearing sit 0.25 from its face, the same Tight gap as a collar. The ends keep
+the `r 2.5` section with its flat at `x 2.0`.
 
 Arbors are full revolves of a staircase meridian `(r, z)` about their axis. Flats are cut with box tools
-`x ∈ [2.0, 3.5]`, `y ∈ [-3.5, 3.5]` over the listed spans; the boxes of one arbor are unioned and cut once. Probe:
-revolve and box cut work on the new pin.
+`x ∈ [flat, 3.5]`, `y ∈ [-3.5, 3.5]` over the listed spans; the boxes of one arbor are unioned and cut once. A body box
+starts 0.05 inside an `r 2.5` section where it ends; it removes nothing there. A box never overlaps a collar span.
 
-| Arbor | Axis | Meridian `(r, z)` | Flat spans (box z) |
+| Arbor | Axis | Meridian `(r, z)` | Flat spans (flat plane, box z) |
 |---|---|---|---|
-| Escape Arbor | `O` | `(0,-5) (2.5,-5) (2.5,25.05) (3.7,25.05) (3.7,27.75) (2.5,27.75) (2.5,33) (0,33)` | `[0.5, 25.0]` |
-| Pallet Arbor | `P` | `(0,-5) (2.5,-5) (2.5,19.95) (3.7,19.95) (3.7,20.95) (2.5,20.95) (2.5,37.2) (0,37.2)` | `[21.0, 27.75]`, `[34.25, 38.2]` |
-| Great Wheel Arbor | `G` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,1.25) (2.5,1.25) (2.5,37.2) (0,37.2)` | `[5.25, 27.75]`, `[34.25, 38.2]` |
+| Escape Arbor | `O` | `(0,-5) (2.5,-5) (2.5,0.25) (2.8,0.25) (2.8,25.05) (3.7,25.05) (3.7,27.75) (2.5,27.75) (2.5,33) (0,33)` | `x 2.55`: `[0.20, 25.0]` |
+| Pallet Arbor | `P` | `(0,-5) (2.5,-5) (2.5,19.95) (3.7,19.95) (3.7,20.95) (2.8,20.95) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[21.0, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
+| Great Wheel Arbor | `G` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,1.25) (3.05,1.25) (3.05,17.45) (2.8,17.45) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[5.25, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
 
 Bore outlines (D = circular arc plus chord, flat on `+X`):
 
 | Fit | Shape | Used by |
 |---|---|---|
-| press (0.05 radial, Part clearances press-fit rule) | D: arc `r 2.55`, chord at `x = 2.05` | escape wheel, anchor, pawl carrier, spring spacer, crutch, knob, cap, front-plate suspension socket |
-| Regular (0.35 + 0.05 margin) | round, diameter 5.8 | great wheel (turns freely on the round arbor when winding) |
+| press, end family (0.05 radial, Part clearances press-fit rule) | D: arc `r 2.55`, chord at `x = 2.05` | crutch, knob, cap, front-plate suspension socket |
+| press, body family | D: arc `r 2.85`, chord at `x = 2.60` | escape wheel, anchor, spring spacer |
+| press, drive family | D: arc `r 3.10`, chord at `x = 2.60` | pawl carrier |
+| Regular (0.35 + 0.05 margin) | round, diameter 6.9 | great wheel (turns freely on the `r 3.05` section when winding) |
 
 Axial stacks (z):
 
@@ -452,14 +474,15 @@ Axial stacks (z):
 | front bearing | `[28, 33]` | `[28, 33]` | `[28, 33]` |
 | outside | none (ends at 33) | crutch `[34.25, 37.25]` + pin to 43.25 | knob `[34.25, 37.25]` |
 
-- Escape wheel: rear boss `r 3.7`, `z [0.25, 2.0]`; pinion `[1.5, 22.5]`; wheel `[22, 25]`. Pressed on from the
-  arbor's rear end until its front face is 0.05 from the collar (press-fit gap). The arbor and wheel then move as one:
-  the collar stops 0.25 from the front bearing, the rear boss 0.25 from the back bearing.
+- Escape wheel: rear boss `r 3.7`, `z [0.25, 2.0]`; pinion `[1.5, 22.5]`; wheel `[22, 25]`. Slid on from the arbor's rear
+  end, over the back seat, until its front face is 0.05 from the collar (press-fit gap). The arbor and wheel then move as
+  one: the collar stops 0.25 from the front bearing, the rear boss 0.25 from the back bearing. The arbor's flat starts at
+  `z 0.20`, so the wheel's D bore never meets the round shaft.
 - Anchor: pressed on from the front until its rear face is 0.05 from the pallet collar; its boss stops 0.25 from the
   front bearing. The crutch, pressed on the front end, stops the arbor backward 0.25 from the front plate.
-- Great wheel turns freely on the round arbor, 0.25 from the collar and 0.25 from the pawl carrier's pawl layer. The carrier is
-  pressed on the flat to that position (README: press until the great wheel just turns freely); its boss stops 0.25
-  from the front bearing.
+- Great wheel turns freely on the `r 3.05` section, 0.25 from the collar and 0.25 from the pawl carrier's pawl layer. The
+  carrier is pressed on the flat to that position (README: press until the great wheel just turns freely). The spacer stops
+  0.25 from the front bearing and 0.05 from the step at `z 17.45`.
 - Print orientations (README): escape wheel wheel-face down; anchor rear face down; pawl carrier pawl layer down; mainspring flat, in PETG; great wheel
   rear face down; crutch and pendulum rear face down; arbors on end (1.2 mm collar ledge).
 
@@ -613,16 +636,16 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | ID | Parts | Fit | Class | Built gap |
 |---|---|---|---|---|
 | T1 | each arbor in its two bearings; suspension pin shank in the pendulum bearing | radial | none: diameter = bore (Part clearances) | 0 |
-| T2 | collars, spacer bosses, rear boss, shoulder, cap to bearing faces | axial | Tight | 0.25 |
-| T3 | escape wheel, anchor, Pawl Carrier, Spring Spacer D bores on their arbors (parts that turn with the arbor) | radial and at the flat | press fit | 0.05 |
+| T2 | collars, body steps at `z 0.25` (escape) and `z 27.75` (all three arbors), spacer bosses, rear boss, shoulder, cap to bearing faces | axial | Tight | 0.25 |
+| T3 | escape wheel, anchor, Spring Spacer D bores on `r 2.8`; Pawl Carrier D bore on `r 3.05` (parts that turn with the arbor), at both ends of each bore | radial and at the flat | press fit | 0.05 |
 | T4 | great wheel rear face to its collar; Pawl Carrier pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
-| T4p | escape wheel front face to escape collar; anchor rear face to pallet collar (pressed parts, press stop) | axial | press fit | 0.05 |
+| T4p | escape wheel front face to escape collar; anchor rear face to pallet collar; Spring Spacer rear face (`z 17.5`) to the arbor step (`z 17.45`) (pressed parts, press stop) | axial | press fit | 0.05 |
 | T5 | crutch and knob rear faces to the front plate's front face | axial | Tight | 0.25 |
 | T6 | crutch pin in the pendulum slot | each side | Tight | 0.25 |
 | T7 | carrier pawl contact face to ratchet radial face at the build pose (working contact) | angular | Tight | 0.25 at `r 12` |
-| R1 | great wheel bore (5.8) on the great wheel arbor (5.0) | radial | Regular | 0.40 |
+| R1 | great wheel bore (6.9) on the great wheel arbor's `r 3.05` section (6.1) | radial | Regular | 0.40 |
 | L1 | Mainspring to the escape wheel (replaces the drum flange) | axial | Loose | 4.75 |
-| L2 | Spring Spacer (`r 3.7`) to escape wheel tips; great wheel arbor (`r 2.5`) to escape wheel tips | radial | Loose | 2.05; 3.25 |
+| L2 | Spring Spacer (`r 3.7`) to escape wheel tips; great wheel arbor (`r 2.8` at `z 22` to 25) to escape wheel tips | radial | Loose | 2.05; 2.95 |
 | L3 | pendulum to crutch; pendulum to knob | axial | Loose | 0.50 |
 | L4 | anchor to front plate; escape wheel to front plate | axial | Loose | 2.0; 3.0 |
 | L5 | pawl arm to ratchet tips; pinion tips to the pawl layer | radial | Loose | 1.0; 22 |
@@ -633,7 +656,7 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | P1 | crutch, knob on arbor ends; suspension pin rear peg in the front plate; cap on the pin | press | press-fit rule | 0.05 |
 | B1 | each 605ZZ in its pocket | radial | bearing-seat exception | 0.05 |
 | G1 | pinion / great wheel | tip-to-root | gear rule | ≥ 0.5 at 5 angles |
-| S1 | Mainspring hub D bore on the great wheel arbor | radial, at the flat | Tight | 0.28 at the build pose, 0.20 or more at every phase |
+| S1 | Mainspring hub D bore on the great wheel arbor | radial, at the flat | Tight | 0.30 at the build pose, 0.20 or more at every phase |
 | S2 | Mainspring eye on the Spring Anchor Pin | radial | Regular | 0.40 |
 | S3 | Mainspring hub faces to the carrier boss (`z 11.0`) and to the spacer (`z 17.5`) | axial | Tight | 0.25 |
 | S4 | Spring Anchor Pin in the front plate socket | press | press | 0.05 |
@@ -719,6 +742,7 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestFasteners` | default | each head top at `z 34` ± 1e-6 and in its pocket; each nut inside its cavity bounds; bolt tip inside the pillar; no bolt or nut overlaps the plate it passes; 1 mm of material round pockets and cavities |
 | `TestEdgeFinishing` | default | Edge finishing table (volume drop per part; sharp loops keep their edges) |
 | `TestPlacement` | origin `(10, -5, 7)`, `U = +Y`, `V = +Z` | same volumes as unplaced; bounds follow the frame |
+| `TestInstallability` | default | each between-plate part with a bore (escape wheel, anchor, pawl carrier, spring spacer, mainspring, great wheel) has its bore wall at least 2.54 mm + `OffSurface` from its axis, so it passes a 605ZZ seat; each D bore keeps its press fit (great wheel: Regular) on its arbor 0.1 mm inside both ends, with no overlap |
 | `TestPoseNoOverlap` | Phase 0, 0.1, 0.35, 0.6, 0.85 | no two bodies overlap (escape wheel/anchor, pinion/great wheel, carrier/great wheel by outline; others by meshgap) |
 | `TestExploded` (render module) | exploded offsets | no two exploded parts overlap |
 
