@@ -2,13 +2,13 @@
 
 ## Purpose and source
 
-Construct a desk-clock-size Graham deadbeat anchor escapement as one assembly: a weight-driven great wheel and drum,
+Construct a desk-clock-size Graham deadbeat anchor escapement as one assembly: a spring-driven great wheel and pawl carrier,
 a 30-tooth escape wheel, an anchor, a crutch and a pendulum, all in a two-plate frame on seven purchased 605ZZ
 bearings. It is the source for downstream ports. All lengths are in millimeters.
 
 ## Choice of escapement
 
-Build a **Graham deadbeat anchor escapement** driven by a falling weight, regulated by a pendulum through a crutch.
+Build a **Graham deadbeat anchor escapement** driven by an open spiral mainspring, regulated by a pendulum through a crutch.
 
 - Graham locks on arcs centred on the pallet arbor, so a locked tooth exerts no torque on the anchor (no recoil).
   Small print errors change only the lock depth and the drop, not the action. The tolerance study below keeps
@@ -16,7 +16,7 @@ Build a **Graham deadbeat anchor escapement** driven by a falling weight, regula
 - Recoil anchor: simpler, but recoil wears printed teeth and is the less instructive mechanism.
 - Swiss lever and pin-pallet: need a balance wheel and hairspring. A printed hairspring is not reliable, and the
   lever, roller, guard pin and banking add tiny parts below comfortable print size.
-- Pendulum + crutch + weight is the classic regulator for Graham. Every part prints without supports in the
+- Pendulum + crutch + spring is a regulator for Graham. Every part prints without supports in the
   orientation given under Arbors (arbors print on end with a 1.2 mm collar ledge).
 
 ## Scale and print size
@@ -45,7 +45,7 @@ plate (194 mm). A 250 mm pendulum (285 mm overall) needs the diagonal of a 220 m
 - `math angle` = counter-clockwise from `+X` seen from `+Z`.
 - Wheel angle `φ`, anchor angle `ψ` and pendulum angle `β` are **clockwise-positive** seen from `+Z`.
   A part turned by a clockwise angle `a` is rotated by math angle `-a`.
-- The escape wheel turns clockwise. The pinion turns with it. The great wheel and the drum turn counter-clockwise.
+- The escape wheel turns clockwise. The pinion turns with it. The great wheel turns counter-clockwise, and so do the spring's inner end and the pawl carrier while the spring runs down.
 - Axes (default): `O = (0, 0)`, `P = (0, d) = (0, 56.5685)` pallet arbor, `S = (0, d + 14) = (0, 70.5685)` pendulum
   suspension, `G = (0, -45.75)` great wheel arbor, directly below `O`. All four axes lie on the plumb line `x = 0`.
 - Default pose `Phase = 0.25`: `ψ = 0` and `β = 0`, so the anchor and the pendulum hang plumb. The entry pallet is mid-impulse
@@ -251,10 +251,11 @@ Print-error study (default parameters; `dr` tip radius error, `dw` pallet width 
 
 ## Drive train
 
-A weight on a cord hangs from the left side of the drum (`x = -7`, between the plates at `z ∈ [8.75, 18.75]`, behind the pendulum and in front of the wall). A weight up to 36 mm across hangs clear of both. It turns the drum counter-clockwise. Two
-flexure pawls on the drum push the internal ratchet of the great wheel. The great wheel drives the 13-tooth pinion
-on the escape wheel clockwise. Winding: turn the winding knob clockwise. The drum turns clockwise and the pawls click
-over the ratchet. The model includes no cord or weight.
+An open spiral mainspring on the great wheel arbor drives the movement. Its inner hub sits on the arbor's flat and its outer
+eye hooks on a fixed pin. Two flexure pawls on the pawl carrier, which is pressed on the same arbor, push the internal
+ratchet of the great wheel. The great wheel drives the 13-tooth pinion on the escape wheel clockwise. Winding: stop the
+pendulum and turn the winding knob clockwise. The arbor turns clockwise, the spring tightens, and the pawls click over the
+ratchet while the escapement holds the great wheel. The model has no cord or weight.
 
 ### Gear pair
 
@@ -286,41 +287,135 @@ Resulting ratchet tooth `k` (material between gap `k-1` and gap `k`): a radial f
 `r 11.5`, facing clockwise. A tip land on `r 11.5` from `30k°` to `30k° + 12.07°`. A slope out to the root `r 13.5`
 at `30(k+1)°`. At `r 12.5` the gap spans `[30k + 23.06°, 30(k+1)°]`.
 
-### Drum
+### Spring choice
 
-Drum local frame: axis through `G`, D-flat of its bore on `+X`.
+Use an **open spiral mainspring on the great wheel arbor**, with its outer eye hooked on a fixed pin. It is not in a barrel.
+It stays visible through the open front plate. It reuses the winding path: the knob turns the great wheel arbor, and the pawl
+carrier on that arbor drives the great wheel's internal ratchet counter-clockwise. `models/spiralspring` builds the spring
+(imported, not copied: `spiralspring.Params`, `Derive`, `Build`). The item winds counter-clockwise outward seen from its `+Z`
+and tightens when the arbor turns clockwise, so with its `+Z` along the movement's `+Z` the hand matches. A going barrel
+would need a new great wheel and would hide the spring, so it is rejected.
 
-1. Revolve the meridian `(r, z)`: `(0, 8.75) (7, 8.75) (7, 18.75) (9.5, 21.25) (3.7, 21.25) (3.7, 27.75) (0, 27.75)`:
-   barrel `r 7` (10 mm long), a 45° cone to the flange `r 9.5`, front face `z 21.25`, spacer boss `r 3.7` to `z 27.75`. The
-   flange shrank from `r 11.5` so it no longer covers the pawl teeth (`r 10.5` to `12.5`) or the ratchet (`r 11.5` to `13.5`).
-   The flange's front face is `π (9.5² - 3.7²) = 240.6 mm²`, under the 400 mm² of Surface edge finishing.
-2. Cut the D press bore (`r 2.55`, flat at `x = 2.05`), tool `z ∈ [7.75, 28.75]`.
-3. Pawl layer `z ∈ [5.25, 9.25]`: core circle `r 7.5` with a D relief hole (`r 2.8`, flat `x 2.3`, 0.3 mm clear of
-   the arbor; the revolve's bore holds the drum), unioned with two pawls.
-   Pawl `j` (`g = 90° + 180° j`), one closed loop (angles in the drum frame):
+### Spring dimensions and torque
+
+`spiralspring.Params` (a constant set of the escapement; the user cannot change it): `OuterDiameter` 64, `HubDiameter` 12,
+`Thickness` 1.5, `Height` 6, `MinGap` 1.0, `Turns` 0 (as many as fit), `ArborDiameter` 5, `ArborFlatDepth` 0.5,
+`BoreClearance` 0.25, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
+`rho0` 8.4 and an active length of 1142.3 mm. The eye centre is `(-31.250, -13.399)` local: radius 34.0015 from the axis, at
+math angle -156.7916°. The eye radius is 3.4 and the eye hole 3.8. The item's hub-wrap strain is 1.56 %.
+
+A uniform-curvature spiral gives `k = E h t³ / (12 L)` and bending strain `ε = (t/2) θ / L`, with printed PETG at `E` =
+2.1 GPa (1.9 to 2.2):
+
+| Wound (arbor turns past relaxed) | Torque | Strain |
+|---|---|---|
+| 0.41 | 8.0 N·mm (design minimum) | 0.17 % |
+| 1.5 | 29.2 N·mm | 0.62 % |
+| 2.0 | 39.0 N·mm | 0.83 % |
+| 2.25 (full wind) | 43.9 N·mm | 0.93 % |
+| 2.57 | coils packed on the hub (geometric limit, estimate) | 1.06 % |
+
+`k` = 3.10 N·mm/rad. The pendulum (about 20 g effective at 0.16 m) swings 3.81° and stores 0.069 mJ. With an assumed Q of 10
+to 30, a 40 % escapement efficiency and a 90 % gear efficiency, the great wheel arbor needs 0.7 to 2.1 N·mm; the design
+minimum of 8 N·mm allows 4 to 11 times that for printed friction. These losses are estimates, not measurements.
+
+Run time: from full wind (2.25 turns) down to 8 N·mm (0.41 turns) the arbor and great wheel turn 1.84 times. That is
+1.84 × 48/13 = 6.8 escape wheel turns, 204 pendulum periods, **about 2.9 minutes** at the default 180 mm pendulum. A spring
+this size cannot do better without breaking the strain limit or the pinion clearance.
+
+Printing: PETG (or nylon), as `models/spiralspring` says. Full-wind strain 0.93 % is about a quarter of PETG's yield strain
+(3.5 to 4 %). PETG creeps under a held load, so the README says to let the spring run down after a showing. PLA (`E` ≈
+3.5 GPa) would give 73 N·mm at full wind but is brittle near 2 % and creeps at room temperature, so it is not recommended.
+The strip is 1.5 mm, four 0.375 mm lines, with 1.1 mm between coils, 6 mm tall, printed flat with no support. Full-wind
+torque gives 10.7 N·mm at the escape wheel, about 20 to 60 times the estimated need. The pendulum's amplitude grows with
+drive, and above an anchor amplitude of about 7.5° the pallets reach the wheel's roots (1.23 mm clearance at 6°, close to 0 at
+7.5°). The model cannot predict the running amplitude, so the first print must check it at full wind.
+
+### What the spring replaces
+
+| Before | After |
+|---|---|
+| Drum (barrel, cone, flange, boss, pawl layer) | **Pawl Carrier**: the pawl layer and core plus a short boss; no barrel, cone or flange |
+| Cord and weight (README text only) | **Mainspring** on the great wheel arbor; no cord or weight text |
+| Drum boss that stopped the arbor at the front bearing | **Spring Spacer**: a pressed tube from the spring hub to the front bearing |
+| none | **Spring Anchor Pin**: pressed into the front plate's spine; carries the spring's eye |
+
+The great wheel, the internal ratchet, the pawl shapes and their engagement, the 13/48 pair, the knob and the great wheel
+arbor (same meridian and flats) do not change.
+
+### Pawl Carrier
+
+Carrier local frame: axis through the origin (moved onto `G`), D-flat of its bore on `+X`.
+
+1. Pawl layer `z ∈ [5.25, 9.25]`: core circle `r 7.5`, unioned with two pawls.
+   Pawl `j` (`g = 90° - δb + 180° j`, with the offset `δb` of Pose), one closed loop (angles in the carrier frame):
    `(7.0∠g+10°)` → arc `r 7.0` cw → `(7.0∠g)` → line → `(9.0∠g)` → arc `r 9.0` cw → `(9.0∠g-120°)` → line →
    `(10.5∠g-120°)` → line → `(12.5∠g-116°)` → arc `r 12.5` ccw → `(12.5∠g-112°)` → line → `(10.5∠g-112°)` → arc
    `r 10.5` ccw → `(10.5∠g+10°)` → line → `(7.0∠g+10°)`.
    Contact face: radial line at `g - 112°` from `r 10.5` to `12.5`, facing counter-clockwise.
-4. Union the pawl layer with the bored revolve.
+2. Boss `r 3.7`, `z ∈ [8.75, 11.0]` (0.5 overlap into the layer).
+3. Union, then cut the D press bore (`r 2.55`, flat at `x = 2.05`), tool `z ∈ [4.25, 12]`.
 
-Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core and 1.0 mm to the
-ratchet tips. Winding pushes the pawl tip in from `r 12.5` past the land at `r 11.5`, a 1.0 mm deflection plus
-0.3 mm margin. Bending strain is about 0.8 %. Under load the arm is in tension. Barrel cord length 10 mm.
+Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core and 1.0 mm to the ratchet tips.
+Winding pushes the pawl tip in from `r 12.5` past the land at `r 11.5`, a 1.0 mm deflection plus 0.3 mm margin. Bending strain
+is about 0.8 %. Under load the arm is in tension.
 
-Pose: the drum's local frame sits at great-wheel-local angle `+20.8°`, so each pawl's contact face lies 1.2° (0.25 mm
-at `r 12`) clockwise of a ratchet radial face. The pawl tooth occupies `[30k - 5.2°, 30k - 1.2°]` at `r 12.5`. That is
-inside the gap `[30k - 6.94°, 30k]`.
+Each pawl's contact face lies 1.2° (0.25 mm at `r 12`) clockwise of a ratchet radial face at great-wheel-local `+20.8°`
+(`DrumOffset`). The pawl tooth occupies `[30k - 5.2°, 30k - 1.2°]` at `r 12.5`, inside the gap `[30k - 6.94°, 30k]`.
+
+### Spring Spacer and Spring Anchor Pin
+
+Spring Spacer: disc `r 3.7`, `z ∈ [17.5, 27.75]`, D press bore (`r 2.55`, flat `x 2.05`), pressed on the arbor's flat.
+Spring Anchor Pin: round rod `r 1.5` at `Q = (0, G_y - 34.0015) = (0, -79.7515)`, `z ∈ [10.25, 30.95]`, pressed into a blind
+socket in the front plate's inner face: `r 1.55`, `z ∈ [28, 31]` (the tool spans `z ∈ [27, 31]`). Its tip is 1 mm behind the
+eye's lower face. `Q` is on the front plate's spine (`|x| ≤ 4`, between the `G` hub and the bottom rim), leaving 2.45 mm of
+wall beside the socket and 3.0 mm to the window corner, and on the centre line, so the eye hangs straight below the arbor.
+The pin stops 1.75 mm in front of the great wheel's face (`z 8.5`), whose radius 37.48 covers `Q`. The eye cannot slide off:
+the spring hub is held on the arbor between the carrier and the spacer.
+
+### Arbor stack
+
+Great wheel arbor at `G = (0, -45.75)`, z from the back:
+
+| z | Item |
+|---|---|
+| `[-5, 0]` | back bearing |
+| `[0.25, 1.25]` | arbor collar |
+| `[1.5, 8.5]` | great wheel, free on the round arbor (pocket floor `z 5.0`) |
+| `[5.25, 9.25]` | Pawl Carrier pawl layer |
+| `[8.75, 11.0]` | Pawl Carrier boss `r 3.7` (0.5 overlap into the layer) |
+| `[11.25, 17.25]` | Mainspring (hub and coils), `Height` 6 |
+| `[17.5, 27.75]` | Spring Spacer `r 3.7` |
+| `[28, 33]` | front bearing |
+| `[34.25, 37.25]` | winding knob |
+
+The Pawl Carrier and the Spring Spacer are press fits on the arbor flat. The spring hub slides on the flat with 0.25 clearance,
+and its two faces stand 0.25 from the carrier boss and from the spacer. Assembly from the arbor's front end: the great wheel;
+the Pawl Carrier, pressed until the great wheel turns freely with about 0.25 play; the Mainspring; the Spring Spacer, pressed
+until the spring hub turns freely by about 0.25. Then the arbor goes into the frame, the spring's eye goes onto the anchor pin,
+and the knob is pressed on in front. The arbor's flat span `[5.25, 27.75]` already covers the carrier, the spring hub and the spacer.
+
+### Spring ends
+
+The inner end is the item's hub: its D bore (arc `r 2.75`, flat 2.25 from the axis on local `+Y`) sits on the arbor's flat, and
+the flat carries the torque. The outer end is the item's eye (hole 3.8) on the Spring Anchor Pin.
+
+### Spring pose
+
+The Mainspring is built by `spiralspring.Build` with `Placement` origin `(G_x, G_y, 11.25)`, `U = (cos γs, sin γs, 0)`,
+`V = (-sin γs, cos γs, 0)`, where `γs = -90° - ∠E = 66.7916°` puts the eye straight below `G` at `Q`. The spring is fixed:
+it does not turn with `Phase`. The great wheel arbor, Pawl Carrier, Spring Spacer and winding knob turn about `G` by
+`θarb = θg0 + 20.8° + δb + (φ - 0.05°)·13/48`, with the constant `δb = 41.7639°`. `δb` aligns the arbor's flat with the
+spring's bore flat (world angle `γs + 90° = 156.7916°`) at the default `Phase` 0.25, where the old drum and arbor pose is
+115.0277°. `Layout` computes `δb` from `DefaultParams()` and `Derive`, not from a literal. The Pawl Carrier's local frame has its
+bore flat on `+X`, and its pawls are drawn at `g = 90° - δb` and `270° - δb`, so each pawl stays at great-wheel-local `+20.8°`
+from a ratchet face. Across `Phase ∈ [0, 1)` the arbor turns at most 3.25° (one period × 13/48) against the fixed spring, and the
+arbor's flat corners can turn 11.0° inside the spring's bore before touching it, so no phase overlaps.
 
 ### Winding knob
 
 Circle `r 9` about `G`, `z ∈ [34.25, 37.25]` (area `π 9² ≈ 254 mm²`, no chamfer; from the front it hides no more than the front plate's `r 10` hub ring at `G`), D press socket (`r 2.55`, flat `x 2.05`). Pressed on the great
 wheel arbor's front end.
-
-### Running time (README text)
-
-Escape wheel turn = 30 periods (25.5 s at 180 mm). Drum turn = 48/13 escape turns (94 s). Treat run length per
-metre of cord as a README estimate, not a model check.
 
 ## Arbors, bearings and axial layout
 
@@ -343,8 +438,7 @@ Bore outlines (D = circular arc plus chord, flat on `+X`):
 
 | Fit | Shape | Used by |
 |---|---|---|
-| press (0.05 radial, Part clearances press-fit rule) | D: arc `r 2.55`, chord at `x = 2.05` | escape wheel, anchor, drum revolve, crutch, knob, cap, front-plate suspension socket |
-| relief (0.3, not a fit) | D: arc `r 2.8`, chord at `x = 2.3` | drum pawl-layer core |
+| press (0.05 radial, Part clearances press-fit rule) | D: arc `r 2.55`, chord at `x = 2.05` | escape wheel, anchor, pawl carrier, spring spacer, crutch, knob, cap, front-plate suspension socket |
 | Regular (0.35 + 0.05 margin) | round, diameter 5.8 | great wheel (turns freely on the round arbor when winding) |
 
 Axial stacks (z):
@@ -353,7 +447,7 @@ Axial stacks (z):
 |---|---|---|---|
 | back bearing | `[-5, 0]` | `[-5, 0]` | `[-5, 0]` |
 | collar | `[25.05, 27.75]` | `[19.95, 20.95]` | `[0.25, 1.25]` |
-| parts | escape wheel `[0.25, 25]` | anchor `[21, 27.75]` | great wheel `[1.5, 8.5]`, drum `[5.25, 27.75]` |
+| parts | escape wheel `[0.25, 25]` | anchor `[21, 27.75]` | great wheel `[1.5, 8.5]`, carrier `[5.25, 11.0]`, spring `[11.25, 17.25]`, spacer `[17.5, 27.75]` |
 | front bearing | `[28, 33]` | `[28, 33]` | `[28, 33]` |
 | outside | none (ends at 33) | crutch `[34.25, 37.25]` + pin to 43.25 | knob `[34.25, 37.25]` |
 
@@ -362,10 +456,10 @@ Axial stacks (z):
   the collar stops 0.25 from the front bearing, the rear boss 0.25 from the back bearing.
 - Anchor: pressed on from the front until its rear face is 0.05 from the pallet collar; its boss stops 0.25 from the
   front bearing. The crutch, pressed on the front end, stops the arbor backward 0.25 from the front plate.
-- Great wheel turns freely on the round arbor, 0.25 from the collar and 0.25 from the drum's pawl layer. The drum is
+- Great wheel turns freely on the round arbor, 0.25 from the collar and 0.25 from the pawl carrier's pawl layer. The carrier is
   pressed on the flat to that position (README: press until the great wheel just turns freely); its boss stops 0.25
   from the front bearing.
-- Print orientations (README): escape wheel wheel-face down; anchor rear face down; drum pawl layer down; great wheel
+- Print orientations (README): escape wheel wheel-face down; anchor rear face down; pawl carrier pawl layer down; mainspring flat, in PETG; great wheel
   rear face down; crutch and pendulum rear face down; arbors on end (1.2 mm collar ledge).
 
 Bearings: seven `ballbearing.Params605ZZ()` envelopes, axis `+Z`, lower cap at: back `O, P, G` `z -5`; front `O, P, G`
@@ -491,7 +585,7 @@ counter-clockwise), `Locked` (`"entry"`, `"exit"` or `""` during impulse). `Move
 | 3-9 | Back Escape Bearing, Back Pallet Bearing, Back Great Wheel Bearing, Front Escape Bearing, Front Pallet Bearing, Front Great Wheel Bearing, Pendulum Bearing | 605ZZ | Bearings | fixed; pendulum's turns with the pendulum |
 | 10 | Escape Arbor | printed | Arbors | φ about `O` |
 | 11 | Pallet Arbor | printed | Arbors | ψ about `P` |
-| 12 | Great Wheel Arbor | printed | Arbors | with the drum |
+| 12 | Great Wheel Arbor | printed | Arbors | with the pawl carrier |
 | 13 | Escape Wheel (wheel + pinion + rear boss) | printed | Escapement / Escape Wheel | φ |
 | 14 | Anchor | printed | Escapement / Anchor | ψ |
 | 15 | Crutch | printed | Pendulum Assembly / Crutch | ψ |
@@ -499,10 +593,13 @@ counter-clockwise), `Locked` (`"entry"`, `"exit"` or `""` during impulse). `Move
 | 17 | Suspension Pin | printed | Pendulum Assembly / Suspension | fixed |
 | 18 | Suspension Cap | printed | Pendulum Assembly / Suspension | fixed |
 | 19 | Great Wheel | printed | Drive / Great Wheel | φ·13/48 ccw about `G` |
-| 20 | Drum | printed | Drive / Drum | as great wheel |
-| 21 | Winding Knob | printed | Drive / Winding Knob | as great wheel |
-| 22-25 | Bolt 1..4 | M2 × 10 | Bolts | fixed |
-| 26-29 | Nut 1..4 | M2 | Nuts | fixed |
+| 20 | Pawl Carrier | printed | Drive / Pawl Carrier | arbor turn `θarb` |
+| 21 | Mainspring | printed (PETG) | Drive / Mainspring | fixed |
+| 22 | Spring Spacer | printed | Drive / Spring Spacer | arbor turn |
+| 23 | Spring Anchor Pin | printed | Drive / Spring Anchor | fixed |
+| 24 | Winding Knob | printed | Drive / Winding Knob | arbor turn |
+| 25-28 | Bolt 1..4 | M2 × 10 | Bolts | fixed |
+| 29-32 | Nut 1..4 | M2 | Nuts | fixed |
 
 Bolt/nut `i` sits at pillar `i` in the order `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`. Use
 `Container.ChildNamed` for kinds with several bodies; `doc.VerifyContainers().Err()` must be nil.
@@ -516,18 +613,18 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 |---|---|---|---|---|
 | T1 | each arbor in its two bearings; suspension pin shank in the pendulum bearing | radial | none: diameter = bore (Part clearances) | 0 |
 | T2 | collars, spacer bosses, rear boss, shoulder, cap to bearing faces | axial | Tight | 0.25 |
-| T3 | escape wheel, anchor, drum D bores on their arbors (parts that turn with the arbor) | radial and at the flat | press fit | 0.05 |
-| T4 | great wheel rear face to its collar; drum pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
+| T3 | escape wheel, anchor, Pawl Carrier, Spring Spacer D bores on their arbors (parts that turn with the arbor) | radial and at the flat | press fit | 0.05 |
+| T4 | great wheel rear face to its collar; Pawl Carrier pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
 | T4p | escape wheel front face to escape collar; anchor rear face to pallet collar (pressed parts, press stop) | axial | press fit | 0.05 |
 | T5 | crutch and knob rear faces to the front plate's front face | axial | Tight | 0.25 |
 | T6 | crutch pin in the pendulum slot | each side | Tight | 0.25 |
-| T7 | drum pawl contact face to ratchet radial face at the build pose (working contact) | angular | Tight | 0.25 at `r 12` |
+| T7 | carrier pawl contact face to ratchet radial face at the build pose (working contact) | angular | Tight | 0.25 at `r 12` |
 | R1 | great wheel bore (5.8) on the great wheel arbor (5.0) | radial | Regular | 0.40 |
-| L1 | escape wheel to drum flange | axial | Loose | 0.75 |
-| L2 | drum boss (`r 3.7`) to escape wheel tips; great wheel arbor (`r 2.5`) to escape wheel tips | radial | Loose | 2.05; 3.25 |
+| L1 | Mainspring to the escape wheel (replaces the drum flange) | axial | Loose | 4.75 |
+| L2 | Spring Spacer (`r 3.7`) to escape wheel tips; great wheel arbor (`r 2.5`) to escape wheel tips | radial | Loose | 2.05; 3.25 |
 | L3 | pendulum to crutch; pendulum to knob | axial | Loose | 0.50 |
 | L4 | anchor to front plate; escape wheel to front plate | axial | Loose | 2.0; 3.0 |
-| L5 | pawl arm to ratchet tips; pinion tips to drum pawl layer | radial | Loose | 1.0; 22 |
+| L5 | pawl arm to ratchet tips; pinion tips to the pawl layer | radial | Loose | 1.0; 22 |
 | L6 | shoulder (`r 3.7`) in the pendulum lip bore (`r 5`) | radial | Loose | 1.30 |
 | E1 | anchor to escape wheel apart from the working contact, over the swing | 2D | Loose | ≥ 0.6 (escapement check) |
 | E2 | pallets to the root circle at `A = 6°` | 2D | Loose | ≥ 1.2 |
@@ -535,6 +632,14 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | P1 | crutch, knob on arbor ends; suspension pin rear peg in the front plate; cap on the pin | press | press-fit rule | 0.05 |
 | B1 | each 605ZZ in its pocket | radial | bearing-seat exception | 0.05 |
 | G1 | pinion / great wheel | tip-to-root | gear rule | ≥ 0.5 at 5 angles |
+| S1 | Mainspring hub D bore on the great wheel arbor | radial, at the flat | Tight | 0.25 |
+| S2 | Mainspring eye on the Spring Anchor Pin | radial | Regular | 0.40 |
+| S3 | Mainspring hub faces to the carrier boss (`z 11.0`) and to the spacer (`z 17.5`) | axial | Tight | 0.25 |
+| S4 | Spring Anchor Pin in the front plate socket | press | press | 0.05 |
+| S5 | Spring Spacer front face to the front bearing | axial | Tight (T2) | 0.25 |
+| S6 | Mainspring coils (relaxed) to the pinion tips | radial | Loose | 2.52 |
+| L7 | Mainspring to the great wheel face; to the pawl layer; anchor pin tip to the great wheel face | axial | Loose | 2.75; 2.0; 1.75 |
+| L8 | Mainspring coils (other than the eye) to the anchor pin | radial | Loose | ≥ 0.5 (the item keeps the eye `g` = 1.1 from the previous turn) |
 
 L3 (0.50), L4 (2.0; 3.0) and L5 (1.0; 22.02) do not depend on the arbor size and are unchanged.
 
@@ -557,7 +662,8 @@ Large faces (≥ 400 mm²) and their chamfers (0.5, 45°), all through `internal
 | Anchor | whole outer loop of both faces, pallets included | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
 | Pendulum | outer loop of both faces; pocket rim; lip-bore rim on the rear face | slot (fit T6) |
 | Great Wheel | none | front face outer loop = tooth flanks; ratchet pocket loop = functional teeth |
-| Drum, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254, drum flange front 240.6) |
+| Pawl Carrier, Spring Spacer, Spring Anchor Pin, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254) |
+| Mainspring | its caps, by `models/spiralspring` | the item chamfers its own caps |
 
 Test: each chamfered part weighs less than its unchamfered build by the bevel volume. Each kept-sharp loop keeps
 its edges (face count).
@@ -584,7 +690,8 @@ Closed form for `Motion(p)` (`t = Phase`, `A = Amplitude`):
 | Anchor, Pallet Arbor, Crutch | rotate about `P` by `-ψ` |
 | Pendulum, Pendulum Bearing | rotate about `S` by `-β` |
 | Great Wheel | rotate about `G` by `θg0 + (φ - 0.05°)·13/48` |
-| Drum, Great Wheel Arbor, Winding Knob | rotate about `G` by `θg0 + 20.8° + (φ - 0.05°)·13/48` |
+| Pawl Carrier, Spring Spacer, Great Wheel Arbor, Winding Knob | rotate about `G` by `θg0 + 20.8° + δb + (φ - 0.05°)·13/48` (Spring pose) |
+| Mainspring, Spring Anchor Pin | fixed |
 | everything else | fixed |
 
 The escape wheel is built with tooth 0 on `+Y` and the pinion's tooth 0 at -90°. Arbor flats and part D bores are
@@ -603,15 +710,15 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestActionAnalytic` | default | polygon checker on analytic outlines reproduces Numerical verification within 0.02 mm / 0.05° |
 | `TestEscapementAction` | default; `{κ 1.25°, λ 3°, A 6°}`; `{κ 1.5°, λ 2°, A 6°}` | see below |
 | `TestSketches` | 3 branch cases (Sketch constraint plan) | every `Movement.Sketches` entry fully constrained |
-| `TestInventory` | default, Phase 0.3 | 29 bodies, all solid, unique names, Named order = Bodies table; containers and membership as Bodies table; `VerifyContainers().Err()` nil |
+| `TestInventory` | default, Phase 0.3 | 32 bodies, all solid, unique names, Named order = Bodies table; containers and membership as Bodies table; `VerifyContainers().Err()` nil |
 | `TestGearMesh` | default; `Backlash 0` | pinion and great wheel outlines at `z 3`, 5 samples over one pinion pitch with the mesh relation: tip-to-root ≥ 0.5 both ways, no overlap |
-| `TestRatchet` | default | at `z 7` outlines: pawl-to-face gap 0.25 ± (0.02 + OffSurface); drum turned ccw 2.5° relative to the wheel overlaps (drive engages); turned cw 2.5° does not; pawl arm to ratchet tips ≥ 0.95 |
+| `TestRatchet` | default | at `z 7` outlines: pawl-to-face gap 0.25 ± (0.02 + OffSurface); carrier turned ccw 2.5° relative to the wheel overlaps (drive engages); turned cw 2.5° does not; pawl arm to ratchet tips ≥ 0.95 |
 | `TestCoupling` | Phase 0, 0.25, 0.5, 0.75 | crutch pin to slot sides ≥ 0.2 each side; pendulum not overlapping crutch, knob or plate |
 | `TestFits` | default | each Fits row's lower bound (`internal/meshgap` or `SectionOutline.Clearance`) ≥ class minimum; press and seat rows 0.05 ± bound; T1: shaft radius at each bearing seat 2.5 ± bound |
 | `TestFasteners` | default | each head top at `z 34` ± 1e-6 and in its pocket; each nut inside its cavity bounds; bolt tip inside the pillar; no bolt or nut overlaps the plate it passes; 1 mm of material round pockets and cavities |
 | `TestEdgeFinishing` | default | Edge finishing table (volume drop per part; sharp loops keep their edges) |
 | `TestPlacement` | origin `(10, -5, 7)`, `U = +Y`, `V = +Z` | same volumes as unplaced; bounds follow the frame |
-| `TestPoseNoOverlap` | Phase 0, 0.1, 0.35, 0.6, 0.85 | no two bodies overlap (escape wheel/anchor, pinion/great wheel, drum/great wheel by outline; others by meshgap) |
+| `TestPoseNoOverlap` | Phase 0, 0.1, 0.35, 0.6, 0.85 | no two bodies overlap (escape wheel/anchor, pinion/great wheel, carrier/great wheel by outline; others by meshgap) |
 | `TestExploded` (render module) | exploded offsets | no two exploded parts overlap |
 
 `TestEscapementAction` requirements, on `SectionOutline` (tolerance 0.02) of the real Escape Wheel and Anchor at
@@ -645,11 +752,14 @@ Front view (from `+Z`, pendulum at rest), through the front plate's windows:
 | escape wheel | all 30 teeth except near `(0, ±40)`; spokes and windows | the spine strip `|x| ≤ 4` (behind the pendulum rod), the hub at `O` |
 | great wheel | teeth and face, except the spine strip, the hub at `G` and its lowest 1.2 mm (bottom rim) | none |
 | ratchet and pawls | ratchet teeth `r 11.5` to `13.5`, pawl teeth `r 10.5` to `12.5` | the hub ring and knob inside `r 10` |
-| drum barrel, pinion | none | the hub at `G`; the escape wheel's hub (pinion) |
+| mainspring | all coils and the eye | the hub ring and the knob inside `r 10` |
+| carrier boss, spacer, pinion | none | the hub at `G`; the escape wheel's hub (pinion) |
 
 Back view (from `-Z`) through the back plate's windows: the great wheel's back face and teeth, the pinion ring (`r 10` to
 `11.23` beyond the hub, except the spine strip), and the escape wheel and anchor behind them. The pinion and great wheel
 mesh lies on the centre line, so the spine strip covers it. It shows in the angled and side views.
+
+Acceptance cases added for the spring drive: `TestSpringLayout` (spring `N` 9, pitch 2.6, gap 1.1, active length 1142.3, eye radius 34.0015, `γs` 66.7916°, `δb` 41.7639°, `Q` `(0, -79.7515)`, `SpringRate` 3.10, `FullWindTorque` 43.9, `FullWindStrain` 0.93 %, `RunTurns` 1.84), `TestMainspring`, `TestPawlCarrier`, `TestFrontPlateSpringAnchor` and `TestSpringFits`.
 
 Acceptance cases added: `TestCentreLine` (`O, P, S, G` at `x = 0` to 1e-9; default `Motion` gives ψ = 0 and β = 0; each
 plate's bounds are symmetric within the section bound; pillars and mounting holes in mirror pairs), `TestPlateWindows`

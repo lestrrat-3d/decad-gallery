@@ -1,11 +1,11 @@
 # Graham escapement
 
-![A Graham deadbeat escapement movement: a weight-driven great wheel and a 30-tooth escape wheel, an anchor, a crutch and a 180 mm pendulum in an open two-plate frame, seen from the front with the pendulum at rest](images/hero.png)
+![A Graham deadbeat escapement movement: a spring-driven great wheel and a 30-tooth escape wheel, an anchor, a crutch and a 180 mm pendulum in an open two-plate frame, seen from the front with the pendulum at rest and the mainspring in view](images/hero.png)
 
-A desk-clock-size Graham escapement. A falling weight turns a great wheel, which turns a 30-tooth escape wheel through a
+A desk-clock-size Graham escapement. An open spiral mainspring turns a great wheel, which turns a 30-tooth escape wheel through a
 13-tooth pinion. An anchor with two pallets lets the escape wheel advance one half tooth at a time. A crutch on the
-anchor's arbor pushes a pendulum, and the pendulum's swing times the anchor. The model includes the weight drive's drum,
-ratchet and winding knob, but no cord or weight. It has 29 bodies, seven of them purchased 605ZZ bearings.
+anchor's arbor pushes a pendulum, and the pendulum's swing times the anchor. The model includes the mainspring, the pawl carrier
+with the great wheel's internal ratchet, and the winding knob. It has 32 bodies, seven of them purchased 605ZZ bearings.
 
 The whole movement is 116 mm wide, 194 mm tall and 51.75 mm deep, from the back of the back plate to the suspension
 cap. Every part fits a 220 × 220 mm print bed. The default pendulum is 215 mm long, so it is the longest part.
@@ -66,13 +66,13 @@ for a wall mount and has no stand.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars at the left, the pallet arbor with the anchor and the crutch, the escape arbor with its wheel, the great wheel arbor with the great wheel and the drum, the bearings, the front plate with the suspension pin, then the pendulum with its bearing and cap shifted to the right, and the bolts and nuts around the plates">
+<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars at the left, the pallet arbor with the anchor and the crutch, the escape arbor with its wheel, the great wheel arbor with the great wheel, the pawl carrier, the mainspring and the spring spacer, the bearings, the front plate with the suspension pin, then the pendulum with its bearing and cap shifted to the right, and the bolts and nuts around the plates">
 
 The picture pulls the parts apart along the movement's axis, so each arbor, its wheels and its bearings stay in one line. A layer moves sideways only where a part it joins would hide it: the crutch lies inside the pendulum's outline, so the pendulum, its bearing and the suspension cap step 25 mm to the right. A dotted line joins a part to its place on the part it joins when the part moved off its own line, here the pendulum and its bearing. Each arbor sits beyond the wheels pressed onto it, in the same line.
 
 ## Parts
 
-The movement has 29 bodies and 16 distinct kinds. The table shows one of each kind and the counts are in the text:
+The movement has 32 bodies and 19 distinct kinds. The table shows one of each kind and the counts are in the text:
 seven bearings (the seventh sits in the pendulum), four bolts, four nuts, and every other part once.
 
 | Image | Name |
@@ -86,7 +86,10 @@ seven bearings (the seventh sits in the pendulum), four bolts, four nuts, and ev
 | <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin |
 | <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap |
 | <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet |
-| <img src="images/parts/drum.png" alt="Drum" width="240"> | Drum, with two flexure pawls |
+| <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls |
+| <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
+| <img src="images/parts/spring-spacer.png" alt="Spring spacer" width="240"> | Spring spacer |
+| <img src="images/parts/spring-anchor-pin.png" alt="Spring anchor pin" width="240"> | Spring anchor pin |
 | <img src="images/parts/winding-knob.png" alt="Winding knob" width="240"> | Winding knob |
 | <img src="images/parts/escape-arbor.png" alt="Escape arbor" width="240"> | Escape arbor |
 | <img src="images/parts/pallet-arbor.png" alt="Pallet arbor" width="240"> | Pallet arbor |
@@ -101,17 +104,22 @@ is at its rear end.
 
 ## How it is driven
 
-The great wheel sits directly below the escape wheel, on the same plumb line. A weight on a cord hangs from the left side
-of the drum, 7 mm to the left of the great wheel's axis, between the plates, behind the pendulum and in front of the wall,
-and turns the drum counter-clockwise. A weight up to 36 mm across hangs clear of both. Two flexure pawls on the drum push the great wheel's internal ratchet. The great wheel turns the
-13-tooth pinion on the escape wheel, which turns clockwise. The ratio is 48 ÷ 13.
+The great wheel sits directly below the escape wheel, on the same plumb line. An open spiral mainspring, 64 mm across and
+6 mm tall, sits on the great wheel's arbor. Its inner hub fits the arbor's flat, and its outer eye hooks on a pin pressed into
+the front plate's spine, directly below the arbor. The spring is not in a barrel, so it shows through the front plate's
+windows. Two flexure pawls on the pawl carrier, which is pressed on the same arbor, push the great wheel's internal ratchet.
+The great wheel turns the 13-tooth pinion on the escape wheel, which turns clockwise. The ratio is 48 ÷ 13.
 
-To wind, stop the pendulum and turn the winding knob clockwise by its sides. The drum turns clockwise, and each pawl's arm flexes inward and clicks over
-the 12 ratchet teeth, so the great wheel stays where it is. Under load the arms are in tension.
+To wind, stop the pendulum and turn the winding knob clockwise about 2¼ turns, until it stiffens. Never turn it past the stiff
+point. The spring tightens, and each pawl's arm flexes inward and clicks over the 12 ratchet teeth, so the great wheel stays
+where it is. Under load the arms are in tension.
 
-One escape wheel turn takes 30 pendulum periods, 25.5 s at the default pendulum length. One drum turn is 48 ÷ 13 wheel
-turns, about 94 s. The model has no cord, so the run time for a length of cord is an estimate that depends on the
-cord's thickness and the weight.
+The spring gives about 8 N·mm at the end of its run and 44 N·mm at full wind, an estimate for printed PETG. From full wind the
+great wheel turns about 1.8 times, which is 6.8 escape wheel turns and 204 pendulum periods: **about 3 minutes** at the default
+pendulum length. The torque and the losses are estimates, not measurements. The strain at full wind is 0.93 %, about a
+quarter of PETG's yield strain. PETG creeps under a held load, so let the spring run down after a showing. At full wind the
+pendulum may swing wider than the default; check the amplitude on a first print, and do not let it pass about 7.5° at the
+anchor, where the pallets reach the wheel's roots.
 
 ## Printing and assembly
 
@@ -119,7 +127,9 @@ Print each part without supports in this orientation:
 
 - Escape wheel: the wheel face down.
 - Anchor: the rear face down.
-- Drum: the pawl layer down.
+- Pawl carrier: the pawl layer down.
+- Mainspring: flat, in PETG. The other parts can use PLA.
+- Spring spacer: on its side or on end.
 - Great wheel: the rear face down.
 - Crutch and pendulum: the rear face down.
 - Arbors and the suspension pin: standing on end, with the 1.2 mm collar ledge printing as a small overhang.
@@ -129,12 +139,16 @@ Print each part without supports in this orientation:
 
 Assemble in this order:
 
-1. Press the three back bearings into the back plate's seats, then set the arbors in them.
+1. Press the three back bearings into the back plate's seats, then set the escape arbor and the pallet arbor in them. The great
+   wheel arbor goes in at step 5.
 2. Slide the escape wheel on from the escape arbor's rear end, with the pinion toward the front, until its front face
    nearly meets the collar. It is a press fit: the D-shaped bore and the arbor's flat turn together.
 3. Press the anchor on the pallet arbor from the front until its rear face nearly meets the pallet collar.
-4. Slide the great wheel on its round arbor, then press the drum on the flat until the great wheel just turns freely.
-5. Place the front bearings, then the front plate, and tighten the four M2 × 10 bolts from the front. Each head ends flush
+4. Slide the great wheel on its round arbor, then press the pawl carrier on the flat until the great wheel turns freely with
+   about 0.25 mm of play. Slide the mainspring on the flat, then press the spring spacer on until the spring hub turns freely by
+   about 0.25 mm. Do this with the arbor out of the frame, from its front end.
+5. Put the arbor in the back bearing and hook the spring's eye on the anchor pin, which is pressed into the front plate. Place the
+   front bearings, then the front plate, and tighten the four M2 × 10 bolts from the front. Each head ends flush
    with the plate's face.
 6. Press the crutch and the winding knob on the arbor ends, and the suspension pin's rear peg into the front plate's
    D-shaped socket. Set the pendulum's bearing on the pin and the crutch pin in the pendulum's slot, and press the cap on
@@ -147,12 +161,13 @@ position. Wind clockwise.
 
 - **Shafts in bearings.** Every arbor and the suspension pin is 5.0 mm across at a bearing, the same as the 605ZZ's
   bore, so the fit has no clearance.
-- **Press fits.** The escape wheel, anchor, drum, crutch, knob and cap each have a D-shaped bore with 0.05 mm of radial
+- **Press fits.** The escape wheel, anchor, pawl carrier, spring spacer, crutch, knob and cap each have a D-shaped bore with 0.05 mm of radial
   clearance on the arbor's or pin's flat. The suspension pin's rear peg has the same fit in the front plate. Each
   bearing sits in a seat with 0.05 mm of radial clearance.
 - **Tight fits, 0.25 mm.** Collars, bosses, the pin's shoulder and the cap stand 0.25 mm from a bearing face. The crutch
   and knob stand 0.25 mm off the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
-  wheel stands 0.25 mm from its collar and the drum's pawl layer 0.25 mm from the ratchet pocket floor.
+  wheel stands 0.25 mm from its collar and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.25 mm on the arbor's flat and stands
+  0.25 mm from the carrier boss and from the spacer, and the eye has 0.40 mm on the anchor pin.
 - **Regular fit, 0.40 mm.** The great wheel's 5.8 mm bore turns on the 5.0 mm arbor.
 - **Loose fits.** The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel
   3.0 mm behind the front plate. A pawl's arm clears the ratchet teeth by 1.0 mm.
@@ -162,7 +177,7 @@ position. Wind clockwise.
 The back and front plates have their outer edges, both windows, the bearing seat rims and the lip-bore rims chamfered by
 0.5 mm at 45°. The anchor's whole outline, the pendulum's outline with its pocket and lip-bore rims, and the six windows
 of the escape wheel are chamfered too. The escape wheel's teeth, the great wheel's teeth and ratchet, the plates' small holes, the head
-pockets, the crutch slot and the faces under 400 mm² (the winding knob and the drum's flange) are not chamfered.
+pockets, the crutch slot and the faces under 400 mm² (the winding knob, the carrier, the spacer and the pin) are not chamfered.
 
 You can vary:
 

@@ -35,7 +35,10 @@ func escapementColor(name string) solidlens.Color {
 		return solidlens.RGB(0.7, 0.28, 0.2)
 	case name == escapement.PendulumName, name == escapement.CrutchName, name == escapement.SuspensionCapName:
 		return solidlens.RGB(0.17, 0.5, 0.55)
-	case name == escapement.DrumName, name == escapement.WindingKnobName:
+	case name == escapement.MainspringName:
+		return solidlens.RGB(0.62, 0.38, 0.62)
+	case name == escapement.PawlCarrierName, name == escapement.SpringSpacerName, name == escapement.SpringAnchorPinName,
+		name == escapement.WindingKnobName:
 		return solidlens.RGB(0.45, 0.58, 0.3)
 	}
 	return solidlens.RGB(0.65, 0.47, 0.2)
@@ -121,8 +124,9 @@ var frontParts = func() []string {
 	return out
 }()
 
-// driveParts are the weight drive's bodies.
-var driveParts = []string{escapement.GreatWheelName, escapement.DrumName, escapement.WindingKnobName,
+// driveParts are the spring drive's bodies.
+var driveParts = []string{escapement.GreatWheelName, escapement.PawlCarrierName, escapement.MainspringName,
+	escapement.SpringSpacerName, escapement.SpringAnchorPinName, escapement.WindingKnobName,
 	escapement.GreatWheelArborName, escapement.BackGreatWheelBearingName}
 
 // models returns the models of the bodies f keeps, at rest or moved by the offsets of layout, which must be the
@@ -289,7 +293,10 @@ var escapementParts = []escapementPart{
 	{"suspension-pin", []string{escapement.SuspensionPinName}, r3.NewVec(1, 0.3, 0.6)},
 	{"suspension-cap", []string{escapement.SuspensionCapName}, r3.NewVec(0.5, 0.4, 1)},
 	{"great-wheel", []string{escapement.GreatWheelName}, r3.NewVec(0.5, 0.4, 1)},
-	{"drum", []string{escapement.DrumName}, r3.NewVec(0.5, 0.6, 1)},
+	{"pawl-carrier", []string{escapement.PawlCarrierName}, r3.NewVec(0.5, 0.6, 1)},
+	{"mainspring", []string{escapement.MainspringName}, r3.NewVec(0.5, 0.4, 1)},
+	{"spring-spacer", []string{escapement.SpringSpacerName}, r3.NewVec(1, 0.3, 0.5)},
+	{"spring-anchor-pin", []string{escapement.SpringAnchorPinName}, r3.NewVec(1, 0.3, 0.5)},
 	{"winding-knob", []string{escapement.WindingKnobName}, r3.NewVec(0.5, 0.4, 1)},
 	{"escape-arbor", []string{escapement.EscapeArborName}, r3.NewVec(1, 0.3, 0.5)},
 	{"pallet-arbor", []string{escapement.PalletArborName}, r3.NewVec(1, 0.3, 0.5)},

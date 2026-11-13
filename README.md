@@ -13,7 +13,7 @@ The [models](models/) include spur, helical, herringbone, bevel and screw gears,
 planetary gearbox. They also include a [treadle spinning wheel](models/spinningwheel/) with a flyer and bobbin,
 a [hand-crank fan](models/handcrankfan/) driven through spur and bevel gears,
 a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up,
-a [Graham escapement](models/escapement/) with a weight drive, a crutch and a pendulum, 608-2RS and 605ZZ bearing
+a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and a pendulum, 608-2RS and 605ZZ bearing
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
 

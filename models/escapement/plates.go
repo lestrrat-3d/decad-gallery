@@ -296,6 +296,11 @@ func (b *builder) buildFrontPlate() (*decad.Body, error) {
 		return nil, err
 	}
 	tools = append(append(append(tools, holeTools...), pockets...), socket)
+	anchor, err := b.springAnchorSocket()
+	if err != nil {
+		return nil, err
+	}
+	tools = append(tools, anchor)
 	tool, err := b.union("front plate tools", tools[0], tools[1:]...)
 	if err != nil {
 		return nil, err
