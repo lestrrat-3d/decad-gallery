@@ -3,7 +3,7 @@ module github.com/lestrrat-3d/decad-gallery
 go 1.27.4
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261113065608-0280c5efe21d
+	github.com/lestrrat-3d/decad v0.0.0-20261113142741-bf2dc20a5d42
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/sketch v0.0.0-20261106060024-fe873315de3d
 	github.com/lestrrat-3d/units v0.0.0-20261004210137-572d4a3c7f0a
@@ -13,6 +13,6 @@ require (
 require (
 	github.com/lestrrat-go/option/v3 v3.0.0-alpha1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/image v0.47.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/image v0.48.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 )
