@@ -11,24 +11,25 @@ import (
 
 // Crutch, pendulum and cap heights in mm.
 const (
-	crutchLow     = 34.25
-	crutchHigh    = 37.25
-	crutchPinLow  = 36.75
-	crutchPinHigh = 43.25
-	pendulumLow   = 37.75
-	pendulumHigh  = 43.75
-	pocketLow     = 38.75
+	crutchLow     = 35.30
+	crutchHigh    = 38.30
+	crutchPinLow  = 37.80
+	crutchPinHigh = 44.30
+	pendulumLow   = 38.80
+	pendulumHigh  = 44.80
+	pocketLow     = 39.80
 	pocketRadius  = 7.05
 	lipRadius     = 5.0
-	capLow        = 44.25
-	capHigh       = 45.75
+	capLow        = 45.30
+	capHigh       = 46.80
 	slotLow       = -61.25
 	slotHigh      = -56.75
 	slotRadius    = 1.75
 	pressToolLow  = 1.0 // a press-bore tool starts this far below the part
 )
 
-// buildCrutch builds the crutch: a hub, an arm and a round end, the pin on its end and the D press socket.
+// buildCrutch builds the crutch: a hub, an arm and a round end, the pin on its end, the keyed rear counterbore for the
+// crutch collar and the D press socket.
 func (b *builder) buildCrutch() (*decad.Body, error) {
 	const what = "crutch outline"
 	g := &b.g
@@ -59,6 +60,13 @@ func (b *builder) buildCrutch() (*decad.Body, error) {
 		return nil, err
 	}
 	if body, err = b.union("crutch", body, pin); err != nil {
+		return nil, err
+	}
+	counter, err := b.keyedCounterbore("crutch counterbore", g.P.X, g.P.Y)
+	if err != nil {
+		return nil, err
+	}
+	if body, err = b.cut(body, counter, "crutch counterbore"); err != nil {
 		return nil, err
 	}
 	tool, err := b.dTool("crutch socket", g.P.X, g.P.Y, crutchLow-pressToolLow, pressRadius, pressFlat,

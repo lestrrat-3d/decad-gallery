@@ -67,7 +67,7 @@ func moveBodies(doc *decad.Document, m *Movement) error {
 		{[]string{DriveContainerName, SpringSpacerContainerName}, []*decad.Body{m.SpringSpacer}},
 		{[]string{DriveContainerName, SpringAnchorContainerName}, []*decad.Body{m.SpringAnchorPin}},
 		{[]string{DriveContainerName, WindingKnobContainerName}, []*decad.Body{m.WindingKnob}},
-		{[]string{CollarsContainerName}, []*decad.Body{m.EscapeRearCollar, m.PalletFrontCollar}},
+		{[]string{CollarsContainerName}, []*decad.Body{m.EscapeRearCollar, m.PalletFrontCollar, m.CrutchCollar, m.KnobCollar}},
 		{[]string{BoltsContainerName}, m.Bolts},
 		{[]string{NutsContainerName}, m.Nuts},
 	} {

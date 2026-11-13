@@ -57,7 +57,7 @@ func TestEdgeFinishing(t *testing.T) {
 	check("anchor", m.Anchor, plain.buildAnchor, 2*perimeter(outerLoop2(sectionAt(t, m.Anchor, 23.5).Loops, g.P)),
 		rimBevel(anchorCounterRadius))
 	// Pendulum: the outer loop of both faces, the pocket rim and the lip-bore rim.
-	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(40.5, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius, 0)
+	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(41.55, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius, 0)
 	// Great wheel: the rear counterbore's rim only; the tooth flanks and the ratchet stay sharp.
 	check("great wheel", m.GreatWheel, plain.buildGreatWheel, 0, rimBevel(greatCounterRadius))
 	// Escape wheel: the six window loops on both faces and the front counterbore's rim. The pinion's rear face and its
@@ -79,7 +79,7 @@ func TestEdgeFinishing(t *testing.T) {
 	for _, p := range pillars {
 		require.True(t, inside(t, m.FrontPlate, p.X+2.3, p.Y, 33.9), "head pocket rim is sharp")
 	}
-	require.True(t, inside(t, m.Pendulum, g.S.X+2.0, g.S.Y-58, 43.65), "the slot's rim is sharp")
+	require.True(t, inside(t, m.Pendulum, g.S.X+2.0, g.S.Y-58, 44.70), "the slot's rim is sharp")
 }
 
 func centroidLen(l []Pt) float64 { return centroid(l).Len() }

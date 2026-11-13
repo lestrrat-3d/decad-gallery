@@ -26,8 +26,8 @@ const (
 	layerLow          = 5.25
 	layerLength       = 4.0
 	knobRadius        = 9.0
-	knobLow           = 34.25
-	knobHigh          = 37.25
+	knobLow           = 35.30
+	knobHigh          = 38.30
 	// The great wheel's rear counterbore takes the arbor's collar: radius 4.10 over the collar's 3.7 (a 0.40 Regular
 	// fit, the wheel turns on the arbor), floor 0.25 past the collar's end at 3.25.
 	greatCounterRadius = 4.10
@@ -213,6 +213,13 @@ func (b *builder) buildMainspring() (*decad.Body, error) {
 func (b *builder) buildKnob() (*decad.Body, error) {
 	body, err := b.discAt("winding knob", 0, 0, knobLow, knobRadius, knobHigh-knobLow)
 	if err != nil {
+		return nil, err
+	}
+	counter, err := b.keyedCounterbore("knob counterbore", 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	if body, err = b.cut(body, counter, "knob counterbore"); err != nil {
 		return nil, err
 	}
 	tool, err := b.dTool("knob socket", 0, 0, knobLow-pressToolLow, pressRadius, pressFlat,

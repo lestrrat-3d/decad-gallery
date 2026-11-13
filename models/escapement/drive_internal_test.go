@@ -179,7 +179,11 @@ func TestKnob(t *testing.T) {
 	knob, err := b.buildKnob()
 	require.NoError(t, err)
 	require.True(t, knob.IsSolid())
-	o := sectionAt(t, knob, 35)
+	o := sectionAt(t, knob, 37.8)
+	// The keyed rear counterbore is open at z 36 inside its D outline, and the face under it is solid.
+	require.False(t, inside(t, knob, -3.5, 0, 36), "the knob's keyed counterbore")
+	require.True(t, inside(t, knob, -3.9, 0, 36), "material round the keyed counterbore")
+	require.True(t, inside(t, knob, -3.5, 0, 37.8), "the counterbore's floor")
 	require.Less(t, o.PolygonArea().Base(), 400.0)
 	require.InDelta(t, math.Pi*81, o.PolygonArea().Base()+math.Pi*2.55*2.55*0.93, 4)
 	far := 0.0

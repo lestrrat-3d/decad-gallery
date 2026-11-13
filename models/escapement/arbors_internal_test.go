@@ -85,7 +85,7 @@ func TestArbors(t *testing.T) {
 			[][2]float64{{-5, 0}, {28, 33}}},
 		{"great wheel arbor", b.buildGreatWheelArbor, b.g.G.X, b.g.G.Y, greatArborPoints, greatArborFlats,
 			[][2]float64{{-5, 0}, {28, 33}}},
-		{"suspension pin", b.buildSuspensionPin, 0, b.g.S.Y, pinPoints, pinFlats, [][2]float64{{39, 44}}},
+		{"suspension pin", b.buildSuspensionPin, 0, b.g.S.Y, pinPoints, pinFlats, [][2]float64{{40.05, 45.05}}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

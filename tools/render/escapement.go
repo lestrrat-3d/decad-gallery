@@ -127,7 +127,7 @@ var frontParts = func() []string {
 // driveParts are the spring drive's bodies.
 var driveParts = []string{escapement.GreatWheelName, escapement.PawlCarrierName, escapement.MainspringName,
 	escapement.SpringSpacerName, escapement.SpringAnchorPinName, escapement.WindingKnobName,
-	escapement.GreatWheelArborName, escapement.BackGreatWheelBearingName}
+	escapement.GreatWheelArborName, escapement.BackGreatWheelBearingName, escapement.KnobCollarName}
 
 // models returns the models of the bodies f keeps, at rest or moved by the offsets of layout, which must be the
 // movement's exploded layout when exploded is true.
@@ -257,7 +257,7 @@ func (b *escapementBuild) explodedScene(ctx context.Context) (solidlens.Scene, e
 func (b *escapementBuild) closeupScene() (solidlens.Scene, error) {
 	hide := append(append([]string{}, frontParts...), escapement.CrutchName, escapement.PendulumName,
 		escapement.PendulumBearingName, escapement.SuspensionPinName, escapement.SuspensionCapName,
-		escapement.WindingKnobName)
+		escapement.WindingKnobName, escapement.CrutchCollarName, escapement.KnobCollarName)
 	locked, err := b.geometry.StateAt(0)
 	if err != nil {
 		return solidlens.Scene{}, err
@@ -302,6 +302,7 @@ var escapementParts = []escapementPart{
 	{"pallet-arbor", []string{escapement.PalletArborName}, r3.NewVec(1, 0.3, 0.5)},
 	{"great-wheel-arbor", []string{escapement.GreatWheelArborName}, r3.NewVec(1, 0.3, 0.5)},
 	{"arbor-collar", []string{escapement.EscapeRearCollarName}, r3.NewVec(1, 0.3, 0.5)},
+	{"end-collar", []string{escapement.CrutchCollarName}, r3.NewVec(1, 0.3, 0.5)},
 	{"bearing", []string{escapement.BackEscapeBearingName}, r3.NewVec(0.5, 0.5, 1)},
 	{"bolt", []string{escapement.BoltName(0), escapement.NutName(0)}, r3.NewVec(1, 0.3, 0.5)},
 }
