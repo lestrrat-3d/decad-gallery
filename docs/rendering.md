@@ -39,6 +39,11 @@ The `readme` shot writes all of them.
 `m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
 The `readme` shot writes all of them.
 
+`spiralspring/hero` renders the default spring lying flat with its axis up. The `top`, `low`, `root` and `sizes`
+presets show the spiral from above, the underside, a close-up of the hub and spoke, and three springs of
+different sizes. The `readme` shot writes all of them and the index image:
+`go -C tools/render run . -model spiralspring -shot readme -out ../../models/spiralspring/images`.
+
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.
 
@@ -218,10 +223,10 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren and the Graham escapement one after another. It places each at its own size on a
-1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right, the escapement in the gap at the middle left), and keeps
-only the pixels that differ from the background where the tiles overlap. The escapement tile's pixels meet no other
-model's. Building all ten models takes about seven minutes plus the wheel build:
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement and the spiral spring one after another. It places each at its own size on a
+1600 × 900 pixel canvas (the wheel on the left, the gears and the fan on the right, the escapement in the gap at the middle left, the spiral spring in the gap between the siren and the fan), and keeps
+only the pixels that differ from the background where the tiles overlap. The escapement and spiral spring tiles' pixels meet no other
+model's. Building all eleven models takes about seven minutes plus the wheel build:
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png

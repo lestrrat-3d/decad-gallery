@@ -16,6 +16,7 @@
 | [Screw gear](screwgear/) | <img src="screwgear/images/index.png" alt="Two twisted ribbon gears in a sleeve" width="240"> | Two twisted toothed ribbons that run through a windowed sleeve and move one another one tooth for one tooth. | Adjustable |
 | [M2 bolt](m2bolt/) | <img src="m2bolt/images/index.png" alt="M2 socket head cap screw" width="240"> | An M2 socket head cap screw with a hex socket and a length you choose. | Nominal |
 | [M2 nut](m2nut/) | <img src="m2nut/images/index.png" alt="M2 hex nut" width="240"> | An M2 hex nut that fits the M2 bolt. | Nominal |
+| [Spiral spring](spiralspring/) | <img src="spiralspring/images/index.png" alt="Spiral spring with a D-bore hub and an anchor eye" width="240"> | A flat spiral (clock) spring for wind-up mechanisms, with a D-bore hub and an anchor eye, sized by its relaxed outer diameter. | Adjustable |
 | [Pin ring](pinring/) | <img src="pinring/images/index.png" alt="Flat pin ring" width="240"> | An assembly aid (jig): a plain flat ring that sits on a pin to hold it in place while you assemble. | Adjustable |
 
 Clearance adjustment labels follow the [model fit rules](../docs/model-pipeline.md#part-clearances).

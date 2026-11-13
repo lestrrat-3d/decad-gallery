@@ -124,6 +124,16 @@ MODEL_PR_TESTS = [
     "TestSectionPair/default/clearance",
     "TestRibbonDefaultIsOneVerifiedLoft",
     "TestExplodedGearbox",
+    "TestSpiralSpringDefault",
+    "TestSpiralSpringBranches",
+    "TestSpiralSpringFits",
+    "TestSpiralSpringPlacement",
+    "TestSpiralSpringRejectsInvalidInputs",
+    "TestSpiralSpringClearance",
+    "TestSpiralSpringParamsDefaults",
+    "TestSpiralSpringParamsThicknessFloor",
+    "TestSpiralSpringParamsTurnBoundary",
+    "TestSpiralSpringParamsEyeFloor",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -269,6 +279,7 @@ def run_models(mode: str) -> None:
                 "./models/spurgear",
                 "./models/ballbearing",
                 "./models/planetarygearbox",
+                "./models/spiralspring",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
