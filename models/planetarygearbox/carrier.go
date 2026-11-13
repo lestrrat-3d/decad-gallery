@@ -167,7 +167,7 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	// so the cut crosses both.
 	socket, err := r.extrudeDSection(ctx, dSection{
 		what: "carrier pin socket", z: -1, length: p.CarrierThickness + 2,
-		x: d.orbit, radius: d.collar/2 + pressFitClearance, depth: p.FlatDepth,
+		x: d.orbit, radius: d.pinCollar/2 + pressFitClearance, depth: p.FlatDepth,
 	})
 	if err != nil {
 		return nil, err
@@ -209,7 +209,7 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 }
 
 // buildPin builds one carrier pin about its own axis, in the carrier's frame: from the bottom, a thin rod down to
-// z=-(gear thickness + gap) that the planet's bearing sits on, and a D-shaped thick part of the shaft collar diameter
+// z=-(gear thickness + gap) that the planet's bearing sits on, and a D-shaped thick part of the pin collar diameter
 // that starts pinShoulderClearance above the bearing's top face, passes through the plate's socket and ends level
 // with the plate's upper face. The thick part fits the socket with pressFitClearance all round. The rod overlaps the
 // thick part, so the union crosses faces instead of sharing them. The pin prints standing on its thick end.
@@ -226,7 +226,7 @@ func (r *run) buildPin(ctx context.Context) (*decad.Body, error) {
 	}
 	thick, err := r.extrudeDSection(ctx, dSection{
 		what: "carrier pin thick part", z: thickBottom, length: p.CarrierThickness - thickBottom,
-		radius: d.collar / 2, depth: p.FlatDepth, expr: "shaft_collar_diameter",
+		radius: d.pinCollar / 2, depth: p.FlatDepth, expr: "pin_collar_diameter",
 	})
 	if err != nil {
 		return nil, err

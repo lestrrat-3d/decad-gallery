@@ -71,15 +71,15 @@ func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
 	planet, err := externalGearWithRootClearance(p.Module, gearRootMeasurementMargin).Build(ctx, r.doc, spurgear.Params{
 		Module: p.Module, Teeth: p.PlanetTeeth, PressureAngle: p.PressureAngle,
-		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: d.lip, Backlash: p.Backlash,
+		Thickness: p.GearThickness, Samples: p.Samples, BoreDiameter: d.planetLip, Backlash: p.Backlash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("planet gear: %w", err)
 	}
 	// The pocket tool starts at the top of the lip and reaches one millimeter past the upper face.
 	tool, err := r.extrudeDisc(ctx, disc{
-		what: "planet bearing pocket", z: p.GearThickness - planetBearing().Width,
-		length: planetBearing().Width + 1, diameter: d.pocket, expr: "pocket_diameter",
+		what: "planet bearing pocket", z: p.GearThickness - planetBearing(p).Width,
+		length: planetBearing(p).Width + 1, diameter: d.planetPocket, expr: "planet_pocket_diameter",
 	})
 	if err != nil {
 		return nil, err
@@ -91,14 +91,15 @@ func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	if !pocketed.IsSolid() {
 		return nil, errors.New("planet gear: result is not a solid")
 	}
-	return r.chamferSeat(ctx, pocketed, "planet bearing pocket", p.GearThickness)
+	return r.chamferSeat(ctx, pocketed, "planet bearing pocket", p.GearThickness, d.planetPocket)
 }
 
-// buildBearing builds a 605ZZ bearing about the local origin, from z=0 to its width.
-func (r *run) buildBearing(ctx context.Context) (*decad.Body, error) {
-	model, err := ballbearing.Build(ctx, r.doc, planetBearing())
+// buildBearing builds the catalog bearing b about the local origin, from z=0 to its width. what names the bearing in
+// errors.
+func (r *run) buildBearing(ctx context.Context, what string, b ballbearing.Spec) (*decad.Body, error) {
+	model, err := ballbearing.Build(ctx, r.doc, b.Params())
 	if err != nil {
-		return nil, fmt.Errorf("planet bearing: %w", err)
+		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	return model.Body, nil
 }

@@ -37,10 +37,12 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
 2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5.1, 0.05 mm larger radially than the 5 mm shaft, a press fit)
    when `Sf = 0`, otherwise no bore. With a flat, extrude the D tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
-3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = lip bore diameter`,
-   `Backlash = j`. Then extrude a circle of the pocket diameter on the plane `z = T - Wb`, `Wb + 1` up, and
+3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = planet lip bore diameter`,
+   `Backlash = j`. Then extrude a circle of the planet pocket diameter (`planet_pocket_diameter`) on the plane
+   `z = T - Wbp`, `Wbp + 1` up, and
    `decad.Cut` it from the planet. Then chamfer the pocket's entrance (see **Seat chamfer** below). Check: one solid.
-4. **Bearing.** `ballbearing.Build` with `ballbearing.Params605ZZ()`, nil placement: the annulus from z=0 to `Wb`.
+4. **Bearing.** `ballbearing.Build` with the bearing's `Spec.Params()`, nil placement: the annulus from z=0 to its width.
+   Build one for the planet bearing (`Wbp`) and one for the shaft bearing (`Wbs`).
 5. **Carrier**, built once; every stage uses the same one.
    - Plate: one sketch on z=0, extruded `Tc`. The outline is the convex hull of the `n` pin bosses: for pin `k`
      at `a (cos φₖ, sin φₖ)` and boss radius `Rb`, edge `k` runs from pin `k` to pin `k+1` with outward normal at
@@ -51,18 +53,18 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      closer to vertical, otherwise y, so the coordinate always changes as the point moves round the arc (the
      shared `DimensionArcEnd` picks by position and can pick the free one). The plate has no hole yet. Require one
      valid profile with `2n` outer curves.
-   - Socket tool: one D section of radius `collar/2 + 0.05` centered at `(a, 0)` with its flat `Sf` inside the rim, on
+   - Socket tool: one D section of radius `pin collar/2 + 0.05` (`pin_collar_diameter`) centered at `(a, 0)` with its flat `Sf` inside the rim, on
      the plane `z = -1`, extruded `Tc + 2` so it passes through the plate. `decad.PatternCopies` it with a
      `CircularPattern` about the origin and +Z, count `n`, `decad.Union` the copies and `decad.Cut` the result from
      the plate. With `Sf = 0` the section is round.
-   - Centre hole: `decad.Cut` a D section of radius `collar/2 + 0.05`, flat `Sf` inside the rim, extruded from
+   - Centre hole: `decad.Cut` a D section of radius `shaft collar/2 + 0.05`, flat `Sf` inside the rim, extruded from
      `z = -1` up `Tc + 2`, from the carrier. The plate keeps a tooth its full thickness where the shaft has its flat.
      The D tool of the sun bore stays as below.
    - Check: one solid, nothing above the plate.
-   - Pin, a separate body built about its own axis in the carrier frame, with `dp = bearing_bore_diameter` and the
+   - Pin, a separate body built about its own axis in the carrier frame, with `dp = planet_bearing_bore_diameter` and the
      press-fit clearance `0.05`: `thickBottom = -g + 0.5`. A rod of diameter `dp` on the axis from `z = -(T + g)` up to
-     `thickBottom + 0.05`, and a D thick part of radius `collar/2` with its flat `Sf` inside the rim from `thickBottom`
-     up to `Tc` (with `Sf = 0` a round disc bound to `shaft_collar_diameter`), joined with one `decad.Union`. This
+     `thickBottom + 0.05`, and a D thick part of radius `pin collar/2` with its flat `Sf` inside the rim from
+     `thickBottom` up to `Tc` (with `Sf = 0` a round disc bound to `pin_collar_diameter`), joined with one `decad.Union`. This
      leaves 0.25 mm between the bearing and the thick part. Pose pin `i` of stage `k` at
      `(a cos φᵢ, a sin φᵢ, kP + T + g)` turned by `φᵢ`, so its flat faces the same way as its socket. Check: one
      solid, its top level with the carrier's top.
@@ -77,12 +79,12 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    flats of every span join into one tool and take one cut.
    - Link shaft, when `K > 1`: `thickTop = Tc + g - 0.25`, `top = T + Tc + g`, one flat from `Tc + g` to `top + 1`.
      Posed with its bottom on a carrier's lower face.
-   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wb + Lo`, no flat on the rod. Posed with its
+   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`, no flat on the rod. Posed with its
      bottom on the last carrier's lower face.
-   - Input shaft: `bottom = -(g + Tv + Wb + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, flat from `0` to
+   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, flat from `0` to
      `T + 1`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
-   - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `lip_bore_diameter`
+   - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `cover_lip_bore_diameter`
      at the origin; the four bolt-hole circles as for the ring. For each spoke `k`, with spoke angle
      `ψ = π/6 + 2πk/3`, half spoke width `h`, hub radius `Rh = cover hub diameter / 2` and rim radius
      `Rr = cover rim inner radius`: a window between spoke `k` and spoke `k + 1` bounded by a line along spoke
@@ -91,7 +93,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      start. Dimension the start and rim-start points from the origin and the other two arc ends by one
      coordinate each. Require one valid profile with `3 + 1 + 4` holes and extrude it `Tv`.
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
-     `cover_boss_diameter` and `pocket_diameter`; extrude the annulus `Wb + 1` up.
+     `cover_boss_diameter` and `cover_pocket_diameter`; extrude the annulus `Wbs + 1` up.
    - `decad.Union` the frame and the boss.
    - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.3`) on the
      plane `z = Tv - m2bolt.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
@@ -104,8 +106,8 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    cavity with `c = 0.2` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
    is measured from the head pocket's edge, not the hole's.
 
-**Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wb` (cover)
-by `seat_chamfer`, skipped when it is zero. A boolean moves a circle's seam, so find the rim by its radius and height
+**Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wbs` (cover)
+by `seat_chamfer`, skipped when it is zero. The planet and the cover pass their own pocket diameter to find the rim. A boolean moves a circle's seam, so find the rim by its radius and height
 among the body's edges, then select it with `decad.Edges(decad.Circular(), decad.EndpointAt(its start))` asserted
 `Exactly(1)`. Chamfer the planet and the cover as built, before they are copied.
 
@@ -128,11 +130,11 @@ at that height and whose area is at least 400 mm², then take the kept loops of 
 `decad.ParallelTo(its direction)` for a line, asserted `Exactly(count)`, and make one `decad.Chamfer` call per plane. Ring
 (`finishFacesEdges`, one `decad.Chamfer` call for both planes, after the tooth-space cut): the outer loop at `z = ringMargin`
 and at `z = ringMargin + ring length`, ears included. Cover (after the seat chamfer): at `z = 0` the
-outer loop, every loop of more than one edge and the single-circle loop of radius `lip_bore_diameter / 2`; at `z = Tv` the
+outer loop, every loop of more than one edge and the single-circle loop of radius `cover_lip_bore_diameter / 2`; at `z = Tv` the
 outer loop and every loop of more than one edge. Carrier (after the centre hole is cut): the outer loop at `z = 0` and at
 `z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
 
-**Shaft section.** A circle of diameter `shaft_diameter = bearing_bore_diameter`, the section of every rod.
+**Shaft section.** A circle of diameter `shaft_diameter = shaft_bearing_bore_diameter`, the section of every rod.
 **D tool.** The section of the sun bore: one outline with 0.05 mm (`shaft_bore_clearance`) around the D shaft, its flat
 0.05 mm beyond the shaft's flat, extruded once so the tool is not itself a boolean result. With
 `R = shaft_diameter/2 + 0.05`, flat `x = f = R - Sf` and half width `h = sqrt(R² - f²)`, the outline is an arc about the
@@ -153,12 +155,12 @@ for a nil placement). For every stage `k` with `z = k P`:
 - Sun `k`: translate `(0, 0, z)`.
 - Planet `i` of stage `k`: turn by `PlanetToothAngle(p, i)`, translate
   `(a cos φᵢ, a sin φᵢ, z)`.
-- Bearing `i` of stage `k`: translate `(a cos φᵢ, a sin φᵢ, z + T - Wb + 0.25)`.
+- Bearing `i` of stage `k`: translate `(a cos φᵢ, a sin φᵢ, z + T - Wbp + 0.25)`.
 - Carrier `k`: translate `(0, 0, z + T + g)`.
 - Shaft of stage `k`: translate `(0, 0, z + T + g)`; stage `K - 1` takes the output shaft and the rest the link shaft.
 - Ring: translate `(0, 0, -1 - g)`, which puts its blank's z=1 start at `-g`.
 - Rear cover: translate `(0, 0, K P)`. Front cover: turn over about the X axis by `π`, then translate `(0, 0, -g)`.
-- Rear bearing: translate `(0, 0, K P + Tv)`. Front bearing: translate `(0, 0, -(g + Tv + Wb))`.
+- Rear bearing: translate `(0, 0, K P + Tv)`. Front bearing: translate `(0, 0, -(g + Tv + Wbs))`.
 - Input shaft: no motion.
 
 For each part, `decad.Copy` with `WithCopyPlacement` makes every instance but the last, and `decad.Transform` moves
@@ -174,9 +176,9 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   x is `a + boss/2`, its top is the plate's top and its bottom is its lower face; the output shaft starts at the
   carrier's lower face and ends `Lo` beyond the rear boss.
 - Bearings: for each planet, points on three radii, three heights and three angles inside the bearing's
-  annulus are inside the bearing body and outside the planet; the bearing is 14 mm across, `Wb` wide and
+  annulus are inside the bearing body and outside the planet; the bearing is 14 mm across (default), `Wbp` wide and
   its top is at `T`; the planet's volume is the plain gear's with the lip bore minus
-  `π/4 (pocket² - lip²) Wb`, within the summed volume bounds plus 1.
+  `π/4 (pocket² - lip²) Wbp`, within the summed volume bounds plus 1.
 - Carrier pins: each pin is solid, runs from the gears' lower face to the carrier's upper face, has a D thick part 0.05 mm
   from its socket (proven to 0.02 mm) and starts 0.2 to 0.3 mm above its bearing; its volume is the rod's plus the D prism's.
 - Carrier shafts: the output shaft's thick part starts at the carrier's lower face, ends 0.25 mm short of the rear
