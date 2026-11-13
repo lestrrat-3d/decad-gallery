@@ -1,11 +1,11 @@
 module github.com/lestrrat-3d/decad-gallery/tools/render
 
-go 1.27.3
+go 1.27.4
 
 replace github.com/lestrrat-3d/decad-gallery => ../..
 
 require (
-	github.com/lestrrat-3d/decad v0.0.0-20261112020852-fba1ac68963b
+	github.com/lestrrat-3d/decad v0.0.0-20261113004827-b5297782b265
 	github.com/lestrrat-3d/decad-gallery v0.0.0
 	github.com/lestrrat-3d/r3 v0.0.0-20261014125509-3c90eee135e1
 	github.com/lestrrat-3d/solidlens v0.0.0-20261104053514-77287d451905

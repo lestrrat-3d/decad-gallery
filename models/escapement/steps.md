@@ -43,7 +43,8 @@ default numbers in the tables to 1e-4 and the 4000-sample monotonic and drop che
 Each plate is one sketch, extruded once (instructions.md "Open skeleton plates"). Sketch `back plate outline` (`z -6`,
 origin `O`) or `front plate outline` (`z 28`): the rounded-rectangle outline (4 axis-aligned lines, 4 corner arcs
 `NewRadius 10` tangent to both neighbours, each side placed by one H or V distance from the origin), then two window
-loops, then (back plate) the mounting circles `r 2.25` at `(±40, 90)` as polar points. The hub centres of `P` and `G` are
+loops, then the lip circles `r 5` at `O` (the origin) and at `P`, `G` (polar points), then (back plate) the mounting
+circles `r 2.25` at `(±40, 90)` as polar points. The hub centres of `P` and `G` are
 polar points on `xRef`, shared by both windows; the hub centre of `O` is the origin.
 
 Window loop (right side, `sx = +1`; the left window mirrors it): 6 lines and 5 arcs, the pieces and points of
@@ -54,9 +55,9 @@ corner arc `NewRadius 6` and `NewTangent` to both of its lines; each hub arc `Ne
 shared endpoints `F, H, I, J, K, L` are fixed by those lines and arcs, not by distances. On the right a clockwise arc from
 `X` to `Y` is `CreateArc(centre, Y, X)`; on the left it is `CreateArc(centre, X, Y)`.
 
-Valid profile: 2 holes (front) or 4 holes (back). Extrude 6. Back plate: `Union(plate, four pillars)` (circles `r 5`, `z
+Valid profile: 5 holes (front) or 7 holes (back). Extrude 6. Back plate: `Union(plate, four pillars)` (circles `r 5`, `z
 -0.5`, 28.5 long, at `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`). One cut tool, the union of the three pockets
-`r 7.05` (back `z -5`, front `z 27`, 6 long), the three lip bores `r 5` (`z low - 1`, 8 long), per pillar
+`r 7.05` (back `z -5`, front `z 27`, 6 long), per pillar
 `m2fastener.HoleTool` and `CavityTool` (back) or `PocketTool` (front), and on the front plate the D socket about `S`.
 Then one `edgefinish.Chamfer` over `{low, low + 6}` with the `keep` filter of instructions.md. Do not union rim, spine
 and hub prisms. Check: solid; `TestPlates`, `TestPlateWindows`, `TestPlateMaterial`; volume drop of the chamfer.
