@@ -25,6 +25,7 @@ func TestSupportedCombinationsAreValid(t *testing.T) {
 			p, err := DefaultParamsFor(k.Name)
 			require.NoError(t, err)
 			require.NoError(t, p.Validate())
+			require.Empty(t, Problems(p))
 			require.Equal(t, k.PlanetBearing, p.PlanetBearing)
 			require.Equal(t, k.ShaftBearing, p.ShaftBearing)
 			want := map[string][3]int{

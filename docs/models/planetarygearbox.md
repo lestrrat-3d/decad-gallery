@@ -32,6 +32,10 @@ carrier's planets, static.
 `Params.PlanetBearing` and `Params.ShaftBearing` name the catalog bearing (`ballbearing.Lookup`) of each role, `"605ZZ"` or
 `"608ZZ"`, and every dependent dimension follows. `Validate` rejects a name that is not in the catalog.
 
+`Problems(p)` returns every way `p` is invalid, and `Validate` returns the first. A failure forced by a bearing says
+what it needs: for a 608ZZ shaft on the default teeth it reports `SunTeeth must be at least 14 for the 8.1 mm shaft at
+module 1; try 14/28/70`. It never changes teeth itself.
+
 `SupportedCombinations()` lists four kits: every pair of 605ZZ and 608ZZ over the planet and shaft roles, named
 `planet<NNN>-shaft<NNN>`. `DefaultParamsFor(kit)` returns `DefaultParams()` with that kit's bearings and a tooth set that
 passes `Validate` (13/29/71, or 14/28/70 when a 608ZZ shaft needs a larger sun). It never adjusts teeth for you: an

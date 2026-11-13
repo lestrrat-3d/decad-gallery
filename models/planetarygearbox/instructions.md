@@ -176,6 +176,16 @@ the same gap normal to their circular and flat faces.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
   leaves no more than 0.5 mm between its edge and the ring tip radius (`a + boss/2 >= ring tip radius - 0.5`).
 - Reject a non-nil `Placement` that is not a valid frame.
+- Reject a shaft collar that is not narrower than the shaft bearing's inner race (`ds + 2.4 >= ` its `InnerRaceDiameter`),
+  and a pin thick part (`dpc`) that is not narrower than the planet bearing's inner race.
+- Reject a shaft collar that does not pass the cover lip bore with 0.25 mm on each side (`ds + 2.4 + 0.5 > Dbs - 4`).
+- Reject a carrier whose centre hole and pin socket leave less than 1 mm of plate between them:
+  `a - (collar/2 + 0.05) - (dpc/2 + 0.05) < 1`.
+
+`Problems(p)` returns every failing rule in this order, and `Validate` returns the first. When an input check fails,
+only the input problems are returned. Each bearing-forced minimum (the sun wall, the planet pocket wall, the lip
+thickness and the cover hub) also names the minimum it needs, for example `SunTeeth must be at least 14 for the 8.1 mm
+shaft at module 1`. At module 1 it then names the tooth set of the kit with the same bearings, as `try 14/28/70`.
 
 ## Gears
 

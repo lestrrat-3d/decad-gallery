@@ -129,6 +129,8 @@ MODEL_PR_TESTS = [
     "TestParameterTableMatchesDerive",
     "TestDerivePerRole",
     "TestSupportedCombinationsAreValid",
+    "TestProblemsNameForcedMinimums",
+    "TestNewFitChecks",
     "TestSpiralSpringDefault",
     "TestSpiralSpringBranches",
     "TestSpiralSpringFits",
