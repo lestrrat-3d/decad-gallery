@@ -170,6 +170,21 @@ go -C tools/render run . -model planetarygearbox -shot readme -out ../../models/
 go -C tools/render run . -model planetarygearbox -shot motion -out ../../models/planetarygearbox/images/motion.gif
 ```
 
+The `-kit` flag renders a bearing kit of `planetarygearbox.SupportedCombinations()` instead of the default. It applies
+only to `-model planetarygearbox` and any other model with `-kit` is an error. The single-preset shots
+(`planetarygearbox/hero`, `assembled-*`, `part-*` and `exploded`) honour it. With `-shot readme` it builds one two-stage
+gearbox and writes `hero.png` (1600 × 900), `assembled-output.png`, `assembled-input.png` and `assembled-side.png`
+(1200 × 675), `exploded.png` (1600 × 900, the size Exploded views requires) and `parts/<part>.png` (480 × 270). It writes
+no `index.png`, fastener images or `motion.gif`, because they do not depend on the bearings. A kit whose planet and
+shaft bearings differ writes `parts/planet-bearing.png` and `parts/cover-bearing.png` in place of `parts/bearing.png`.
+The `part-bearing` preset of such a kit shows the planet bearing.
+
+```sh
+go -C tools/render run . -model planetarygearbox -kit planet605-shaft608 -shot readme -out ../../models/planetarygearbox/images/kit-planet605-shaft608
+go -C tools/render run . -model planetarygearbox -kit planet608-shaft605 -shot readme -out ../../models/planetarygearbox/images/kit-planet608-shaft605
+go -C tools/render run . -model planetarygearbox -kit planet608-shaft608 -shot readme -out ../../models/planetarygearbox/images/kit-planet608-shaft608
+```
+
 The `screwgear` presets build the default mechanism once (about 40 seconds and 1.3 GB) and render its three bodies
 as separate meshes: ribbon A in blue, ribbon B in orange and the sleeve in grey, each with outlines. The camera frames
 the sleeve and the 70 mm of ribbon around it, so the 178.5 mm ribbons run off the image edges. The `hero`, `top` and

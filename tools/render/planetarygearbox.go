@@ -31,9 +31,26 @@ var planetaryEdges = solidlens.Edges{
 	Width:   1.5,
 }
 
-// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count.
+// planetaryKit is the bearing kit the images show. The -kit flag sets it; empty selects the default.
+var planetaryKit string
+
+// checkKitFlag returns an error when kit is set for a model other than the planetary gearbox.
+func checkKitFlag(model, kit string) error {
+	if kit != "" && model != "planetarygearbox" {
+		return errors.New("-kit applies only to -model planetarygearbox")
+	}
+	return nil
+}
+
+// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count, in the -kit kit.
 func buildPlanetaryGearbox(ctx context.Context, stages int) (planetarygearbox.Gearbox, planetarygearbox.Params, error) {
 	params := planetarygearbox.DefaultParams()
+	if planetaryKit != "" {
+		var err error
+		if params, err = planetarygearbox.DefaultParamsFor(planetaryKit); err != nil {
+			return planetarygearbox.Gearbox{}, params, err
+		}
+	}
 	params.Stages = stages
 	box, err := planetarygearbox.Build(ctx, planetarygearbox.NewDocument(), params)
 	if err != nil {
@@ -438,4 +455,74 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	}
 	return renderPlanetaryMotionFrom(ctx, filepath.Join(outputDir, "motion.gif"), planetaryMotionWidth,
 		planetaryMotionHeight, planetaryMotionFrames, box, params)
+}
+
+// planetaryKitParts returns planetaryParts for p's kit. When the planet and shaft bearings differ, the one bearing
+// image becomes a planet bearing image and a cover bearing image, in the place of the bearing.
+func planetaryKitParts(p planetarygearbox.Params) []planetaryPart {
+	if p.PlanetBearing == p.ShaftBearing {
+		return planetaryParts
+	}
+	var out []planetaryPart
+	for _, part := range planetaryParts {
+		if part.shot != "bearing" {
+			out = append(out, part)
+			continue
+		}
+		out = append(out,
+			planetaryPart{"planet-bearing", part.body, planetaryBearingColor, frontView},
+			planetaryPart{"cover-bearing", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearBearing },
+				planetaryBearingColor, frontView})
+	}
+	return out
+}
+
+// The kit pages show the exploded view at the full width of the page, at the size Exploded views requires.
+const (
+	planetaryKitExplodedWidth  = 1600
+	planetaryKitExplodedHeight = 900
+)
+
+// renderPlanetaryKitReadme builds the -kit kit as a two-stage gearbox once and writes its hero, one image per unique
+// part (in the parts directory), the three assembled views and the exploded view. The fasteners and the motion do not
+// depend on the bearings, so it writes no index, fastener images or animation.
+func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
+	box, params, err := buildPlanetaryGearbox(ctx, 2)
+	if err != nil {
+		return err
+	}
+	hero, err := planetaryHeroScene(ctx, box)
+	if err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "hero.png"), hero, 1600, 900); err != nil {
+		return fmt.Errorf("render planetary gearbox kit hero: %w", err)
+	}
+	for _, part := range planetaryKitParts(params) {
+		scene, err := planetaryPartScene(ctx, box, part)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
+			return fmt.Errorf("render planetary gearbox kit part %s: %w", part.shot, err)
+		}
+	}
+	for _, view := range planetaryViews {
+		scene, err := planetaryAssembledScene(ctx, box, view)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, "assembled-"+view.shot+".png"), scene, 1200, 675); err != nil {
+			return fmt.Errorf("render planetary gearbox kit assembled %s: %w", view.shot, err)
+		}
+	}
+	exploded, err := planetaryExplodedScene(ctx, box, params, planetaryKitExplodedWidth, planetaryKitExplodedHeight)
+	if err != nil {
+		return err
+	}
+	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryKitExplodedWidth,
+		planetaryKitExplodedHeight); err != nil {
+		return fmt.Errorf("render planetary gearbox kit exploded view: %w", err)
+	}
+	return nil
 }
