@@ -59,6 +59,7 @@ func TestArborCollars(t *testing.T) {
 	// Collars of the shafts' own bodies.
 	requireShaftCollar(t, m.EscapeArbor, g.O, 24.0, 27.75, "escape front collar")
 	requireShaftCollar(t, m.PalletArbor, g.P, 0.25, 20.95, "pallet shoulder")
+	requireShaftCollar(t, m.GreatWheelArbor, g.G, 0.25, 3.25, "great wheel collar")
 
 	// Collar rings.
 	requireRing(t, m.EscapeRearCollar, g.O, 0.25, "escape rear collar")
@@ -70,6 +71,10 @@ func TestArborCollars(t *testing.T) {
 	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "escape wheel front counterbore floor")
 	axial(t, m.EscapeRearCollar, 3.25, m.EscapeWheel, 3.30, 0.05, "pinion rear counterbore floor")
 	axial(t, m.PalletFrontCollar, 24.75, m.Anchor, 24.70, 0.05, "anchor front counterbore floor")
+	axial(t, m.GreatWheel, 3.5, m.GreatWheelArbor, 3.25, 0.25, "great wheel counterbore floor")
+	radial(t, m.GreatWheel, m.GreatWheelArbor, 2.5, 0.4, 0.35, "great wheel counterbore wall")
+	require.GreaterOrEqual(t, 3.25-1.5, 1.0, "great wheel collar depth in the wheel")
+	require.GreaterOrEqual(t, ratchetFloor-greatCounterFloor, 1.0, "wheel material under its counterbore floor")
 	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "escape wheel front counterbore wall")
 	radial(t, m.EscapeRearCollar, m.EscapeWheel, 2.4, 0.05, 0, "pinion rear counterbore wall")
 	radial(t, m.PalletFrontCollar, m.Anchor, 25.2, 0.05, 0, "anchor front counterbore wall")
@@ -85,10 +90,12 @@ func TestArborCollars(t *testing.T) {
 	frontZ, _ := bearingZ(t, m.FrontPalletBearing)
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "escape rear collar to the back bearing")
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "pallet shoulder to the back bearing")
+	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "great wheel collar to the back bearing")
 	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "pallet front collar to the front bearing")
 
 	// Carried part to flush side: the pinion's rear face is 1.5 from the back plate's inner face, and the anchor's front
 	// face is 2.0 from the front plate's inner face.
 	axial(t, m.EscapeWheel, 1.5, m.BackPlate, 0, 1.5, "pinion rear face to the back plate")
+	axial(t, m.GreatWheel, 1.5, m.BackPlate, 0, 1.5, "great wheel rear face to the back plate")
 	axial(t, m.Anchor, 26, m.FrontPlate, 28, 2.0, "anchor front face to the front plate")
 }

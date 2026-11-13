@@ -108,7 +108,7 @@ var (
 	palletArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
 		{3.7, 20.95}, {bodyRadius, 20.95}, {bodyRadius, 27.75}, {2.5, 27.75}, {2.5, 37.2}, {0, 37.2}}
 	greatArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
-		{3.7, 1.25}, {driveBodyRadius, 1.25}, {driveBodyRadius, 17.45}, {bodyRadius, 17.45}, {bodyRadius, 27.75},
+		{3.7, 3.25}, {driveBodyRadius, 3.25}, {driveBodyRadius, 17.45}, {bodyRadius, 17.45}, {bodyRadius, 27.75},
 		{2.5, 27.75}, {2.5, 37.2}, {0, 37.2}}
 	pinPoints = meridianPoints{{0, 31.05}, {2.5, 31.05}, {2.5, 34}, {3.7, 34},
 		{3.7, 38.75}, {2.5, 38.75}, {2.5, 45.70}, {0, 45.70}}

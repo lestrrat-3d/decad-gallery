@@ -131,9 +131,11 @@ Circle `r 3.7` at `S`, `z 44.25`, extrude 1.5; cut the D press socket (`z 43.25`
 ### 19. Great Wheel
 
 `spurgear` with the `gearroot` variant: module 1.5, 48 teeth, thickness 7, `BoreDiameter 6.9`, `Backlash`, placement
-origin `z 1.5`. Ratchet tool: disc sketch (`z 5.0`, `G`) circle `r 11.5`; triangle sketch with polar points
+origin `z 1.5`. Counterbore sketch (`z 0.5`, `G`): circle `r 4.10`, extrude 3.0 (tool `z [0.5, 3.50]`); `Cut` it from
+the gear, then one `edgefinish.Chamfer` over `{1.5}` that keeps only the single-edge circle of radius 4.10 about the
+origin (the counterbore's rim), so the tooth flanks stay sharp. Ratchet tool: disc sketch (`z 5.0`, `G`) circle `r 11.5`; triangle sketch with polar points
 `(11.0∠0°)`, `(13.5∠30°)`, `(11.0∠30°)`; extrude both 4.5; pattern the triangle 12 times; `Union(disc, tooth,
-copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratchet teeth; outline at `z 3` shows 48 teeth.
+copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratchet teeth; outline at `z 3` shows 48 teeth and the counterbore (`r 4.10`) as a hole; the rim is chamfered.
 
 ### 20. Pawl Carrier
 

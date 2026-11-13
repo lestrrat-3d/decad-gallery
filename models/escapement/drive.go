@@ -28,6 +28,11 @@ const (
 	knobRadius        = 9.0
 	knobLow           = 34.25
 	knobHigh          = 37.25
+	// The great wheel's rear counterbore takes the arbor's collar: radius 4.10 over the collar's 3.7 (a 0.40 Regular
+	// fit, the wheel turns on the arbor), floor 0.25 past the collar's end at 3.25.
+	greatCounterRadius = 4.10
+	greatCounterLow    = 0.5 // the tool starts this high, below the wheel's rear face
+	greatCounterFloor  = 3.50
 )
 
 // ratchetToolBody builds the internal ratchet's cutter: a disc and twelve triangles.
@@ -61,11 +66,28 @@ func (b *builder) ratchetToolBody() (*decad.Body, error) {
 	return b.union("ratchet tool", disc, append([]*decad.Body{tooth}, copies...)...)
 }
 
-// buildGreatWheel builds the 48-tooth great wheel with its internal ratchet, about the origin with tooth 0 on +X.
+// buildGreatWheel builds the 48-tooth great wheel with its rear counterbore and internal ratchet, about the origin with
+// tooth 0 on +X.
 func (b *builder) buildGreatWheel() (*decad.Body, error) {
 	wheel, err := b.buildGear("great wheel", GreatTeeth, greatLength, greatRear, 0, greatBore)
 	if err != nil {
 		return nil, err
+	}
+	counter, err := b.discAt("great wheel counterbore", 0, 0, greatCounterLow, greatCounterRadius,
+		greatCounterFloor-greatCounterLow)
+	if err != nil {
+		return nil, err
+	}
+	if wheel, err = b.cut(wheel, counter, "great wheel counterbore"); err != nil {
+		return nil, err
+	}
+	// Only the counterbore's rim on the rear face is chamfered; the tooth flanks and the ratchet stay sharp.
+	wheel, err = b.finish(wheel, []float64{greatRear}, func(l *decad.Loop, e []*decad.Edge) bool {
+		return !l.IsOuter() && len(e) == 1 && math.Abs(math.Hypot(e[0].Start().Position().Value.X,
+			e[0].Start().Position().Value.Y)-greatCounterRadius) < 0.01
+	})
+	if err != nil {
+		return nil, fmt.Errorf("great wheel edges: %w", err)
 	}
 	tool, err := b.ratchetToolBody()
 	if err != nil {
