@@ -65,6 +65,7 @@
 - Apply [Exploded views](docs/model-pipeline.md#exploded-views) to every exploded image: large, full-width, every part visible.
 - For every new model, update the root `README.md` overview and gallery hero image.
 - Add every new model to `models/README.md` with its description and index image.
+- Keep the `models/README.md` rows in alphabetical order by model name. `scripts/check_repository.py` checks it.
 - Follow `docs/adding-models.md` for the model's hero and index images.
 - Build images from real Decad bodies with `tools/render/`; do not draw substitute geometry.
 - Regenerate images in the same change as any geometry change; never leave stale images behind.
