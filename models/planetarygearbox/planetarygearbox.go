@@ -18,7 +18,7 @@ import (
 type Stage struct {
 	Sun     *decad.Body
 	Planets []*decad.Body
-	// Bearings holds one 605ZZ bearing envelope per planet, in the planet's pocket. A planet turns on its
+	// Bearings holds one planet bearing envelope per planet, in the planet's pocket. A planet turns on its
 	// bearing; the sun and the shafts turn with the carrier that drives them and need none.
 	Bearings []*decad.Body
 	// Pins holds one carrier pin per planet. Each is a separate part: a thin rod that carries the planet bearing
@@ -36,7 +36,7 @@ type Stage struct {
 
 // Gearbox holds the bodies of a built gearbox.
 type Gearbox struct {
-	// Ring is the fixed internal gear. FrontCover and RearCover close its two ends, each with a 605ZZ bearing in
+	// Ring is the fixed internal gear. FrontCover and RearCover close its two ends, each with a shaft bearing in
 	// a boss; the input shaft turns in the front one and the last carrier's shaft in the rear one.
 	Ring                      *decad.Body
 	FrontCover, RearCover     *decad.Body
@@ -196,7 +196,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
-	bearing, err := r.buildBearing(ctx)
+	bearing, err := r.buildBearing(ctx, "planet bearing", planetBearing(p))
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
@@ -221,7 +221,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
-	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + planetBearing().Width + p.OutputShaftLength
+	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.OutputShaftLength
 	output, err := r.buildSteppedShaft(ctx, "output shaft",
 		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop)
 	if err != nil {
@@ -245,7 +245,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			}
 			planetMoves = append(planetMoves, m)
 			m, err = pose(r.frame, 0, d.orbit*math.Cos(phi), d.orbit*math.Sin(phi),
-				z+p.GearThickness-planetBearing().Width+planetBearingLift)
+				z+p.GearThickness-planetBearing(p).Width+planetBearingLift)
 			if err != nil {
 				return Gearbox{}, fmt.Errorf("planetarygearbox: bearing pose: %w", err)
 			}
@@ -320,7 +320,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 // bearing boss faces away from the ring.
 func (r *run) buildHousing(ctx context.Context, box *Gearbox) error {
 	p, d := r.p, r.d
-	width := planetBearing().Width
+	width := shaftBearing(p).Width
 	cover, err := r.buildCover(ctx)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func (r *run) buildHousing(ctx context.Context, box *Gearbox) error {
 	}
 	box.FrontCover, box.RearCover = covers[0], covers[1]
 
-	bearing, err := r.buildBearing(ctx)
+	bearing, err := r.buildBearing(ctx, "cover bearing", shaftBearing(p))
 	if err != nil {
 		return err
 	}

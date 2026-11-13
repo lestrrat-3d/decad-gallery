@@ -37,6 +37,35 @@ Expose `Build(ctx context.Context, doc *decad.Document, p Params) (*Model,error)
 The returned Sketch is the actual local section consumed by the extrusion, even when the body is placed.
 Build must add exactly one final bearing body to doc, preserving other existing bodies.
 
+### Catalog
+
+Expose `Spec`, one purchased bearing, with fields `Name string`, `BoreDiameter`, `OuterDiameter`, `Width` and
+`InnerRaceDiameter`, all float64 in millimeters. `InnerRaceDiameter` is the outside diameter of the inner race's
+face, so a shoulder or collar that touches the face must be narrower. It is a repository assumption, not a
+catalogue value: 8.0 for 605ZZ and 12.0 for 608ZZ. The EZO 605ZZ catalogue lists a shoulder `da max` of 6.8 mm,
+which is narrower than the assumed 8.0.
+Expose `Catalog() []Spec`, a fresh copy in catalog order, `Lookup(name string) (Spec, bool)`, an exact
+case-sensitive match on `Name` that returns `Spec{}, false` for an unknown name, and `Spec.Params() Params` with the
+three dimensions and nil Placement and Lift. The catalog holds two entries in this order:
+
+| Name | Bore | Outside diameter | Width | Inner race diameter |
+|---|---|---|---|---|
+| 605ZZ | 5 | 14 | 5 | 8 |
+| 608ZZ | 8 | 22 | 7 | 12 |
+
+`Params605ZZ()` and `Params608ZZ()` return the `Params()` of the matching catalog entry.
+
+The fit rules of [Part clearances](../../docs/model-pipeline.md#part-clearances) are exported as constants and
+`Spec` methods, so every model sizes a bearing fit the same way:
+
+| Name | Value |
+|---|---|
+| `SeatClearance` | 0.05, radial clearance between an outer race and the bore that holds it fixed |
+| `PressFitClearance` | 0.05, radial clearance between a shaft and a printed bore it is pressed into |
+| `Spec.ShaftDiameter()` | `BoreDiameter`; a shaft through the bore takes no clearance |
+| `Spec.SeatDiameter()` | `OuterDiameter + 2*SeatClearance` |
+| `Spec.PressBoreDiameter()` | `BoreDiameter + 2*PressFitClearance`, the bore a `ShaftDiameter` shaft presses into |
+
 ## Validation
 
 Reject nil ctx/doc at the public boundary. Reject nonfinite or nonpositive dimensions.

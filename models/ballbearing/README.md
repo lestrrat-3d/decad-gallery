@@ -49,6 +49,6 @@ The default preset and hero image show the 608-2RS envelope.
 The 608ZZ preset selects an 8 mm bore, 22 mm outside diameter and 7 mm width. A 608ZZ has a metal shield where
 a 608-2RS has a rubber seal, and both have the same outline, so this is the same envelope as the default and
 has no image of its own. Use it where a design calls for a 608ZZ by name, such as an
-assembly that mounts a 608 bearing. The [planetary gearbox](../planetarygearbox/) uses `Params605ZZ()` instead.
+assembly that mounts a 608 bearing. The [planetary gearbox](../planetarygearbox/) takes its planet and shaft bearings from the catalog, and uses 605ZZ for both by default.
 
 For how to build this envelope from Go, see the [developer notes](../../docs/models/ballbearing.md).

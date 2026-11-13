@@ -12,9 +12,11 @@ carrier. The sun is the input and the carrier is the output. A stage count above
 identical stages in the same ring: each carrier drives the next stage's sun through a
 link shaft, and the last carrier drives the output shaft.
 
-Every part that turns on another part rides on a purchased 605ZZ bearing. The planets turn on
-their pins, so each planet holds one bearing in a pocket and the bearing's inner race sits on
-the pin. The input shaft and the output shaft turn in the housing, so each rides in a 605ZZ in an
+Every part that turns on another part rides on a purchased ball bearing from the
+[bearing catalog](../ballbearing/instructions.md#catalog). Two roles pick a bearing: the planet bearing, and the shaft
+bearing. Both are 605ZZ by default. The planets turn on
+their pins, so each planet holds one planet bearing in a pocket and the bearing's inner race sits on
+the pin. The input shaft and the output shaft turn in the housing, so each rides in a shaft bearing in an
 end cover. The sun turns with the input shaft and each later sun with the carrier before it, so
 they hold no bearing. The ring and the covers are the fixed housing.
 
@@ -32,13 +34,13 @@ bore through it parallel to the gearbox axis. The bore diameter is an input, bec
 user passes through it: a bolt, a pin or a shaft. The model adds no bolt, head pocket or nut cavity for an ear.
 
 The input and the output connect as follows. The shafts are separate bodies from the carriers, so each part
-prints in its own best orientation. The input shaft is a 5 mm rod: it passes through the front cover's bearing
-and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
+prints in its own best orientation. The input shaft is a rod as wide as the shaft bearing's bore (5 mm by default): it passes through the front
+cover's bearing and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
 how stages link. The output shaft runs through the last carrier's hole and the rear cover's bearing. Every shaft
-is 5 mm, the diameter of the nominal 605ZZ bore, where it passes through a bearing or a sun, so it has no clearance
-against the bearing. The input shaft is a round cylinder with a flat `Sf` deep on the +X side, which gives it a D
+is as wide as the shaft bearing's bore (5 mm for the nominal 605ZZ) where it passes through a bearing or a sun, so it
+has no clearance against the bearing. Each carrier pin is as wide as the planet bearing's bore. The input shaft is a round cylinder with a flat `Sf` deep on the +X side, which gives it a D
 section where the first sun sits on it. Where a bearing sits it is a full cylinder. The link and output shafts are
-thin-thick: a thin 5 mm rod, and a thicker part of the shaft collar diameter with the same flat, a D section, that is
+thin-thick: a thin rod of the shaft diameter, and a thicker part of the shaft collar diameter with the same flat, a D section, that is
 pressed through the carrier's centre hole. The sun's bore and the carrier's hole are D-shaped to match, so the input
 shaft turns the first sun, and each link or output shaft turns its carrier and, for a link shaft, the next sun,
 without slipping. The flat also lets a coupling grip the input and output shaft ends. The contract does not model the
@@ -46,8 +48,8 @@ coupling, a set screw or the motor.
 
 The input shaft carries a collar, a round bulge wider than the shaft, between the front bearing's inner race and the
 first sun. A collar is the printed stand-in for a washer. It keeps the turning part clear of the bearing and the
-cover. The carrier pins, the link shaft and the output shaft have no collar. Each has a D thick part of the shaft
-collar diameter instead, pressed through the carrier, and its step keeps the planet bearing, the next sun or the rear
+cover. The carrier pins, the link shaft and the output shaft have no collar. Each has a D thick part instead, pressed
+through the carrier: the pin collar diameter for a pin and the shaft collar diameter for a shaft, and its step keeps the planet bearing, the next sun or the rear
 bearing clear of the plate.
 
 Lengths are millimeters and angles are radians. The gearbox is anchored by one `r3.Frame`:
@@ -72,7 +74,7 @@ origin, so the axis is world +Z.
 | `db'` | `BoltHoleDiameter` | float64 | 2.6 | Diameter of the four clearance holes; the default 2.6 is 0.3 mm radially wider than the M2 shank |
 | `Sf` | `FlatDepth` | float64 | 0.5 | Depth of the flat on each shaft; zero leaves round shafts and round bores |
 | `Li` | `InputShaftLength` | float64 | 12 | How far the input shaft reaches out of the front cover's bearing boss |
-| `cb` | `BearingClearance` | float64 | 0.05 | Radial clearance between a 605ZZ bearing and its custom pocket |
+| `cb` | `BearingClearance` | float64 | 0.05 | Radial clearance between each purchased bearing and its custom pocket |
 | `Sc` | `SeatChamfer` | float64 | 0.5 | Setback of the chamfer on the entrance of each bearing pocket, in the planets and the covers; zero leaves it sharp |
 | `Ec` | `EdgeChamfer` | float64 | 0.5 | Setback of the 45° chamfer on the edges of the large flat faces of the ring, the covers and the carriers; at least 0.5 |
 | `wc` | `CarrierWall` | float64 | 3 | Carrier material around each planet pin, and cover material around a bearing |
@@ -100,7 +102,7 @@ A nil `Placement` is the one exception.
 | Sun tip radius | `m Zs/2 + m - ε` |
 | Ring root radius (largest tooth-space radius) | `m Zr/2 + m + c` |
 | Ring outer radius | ring root radius `+ w` |
-| Shaft and pin diameter | 605ZZ bore (no clearance against the bearing) |
+| Shaft diameter `ds` | Shaft bearing bore (no clearance against the bearing) |
 | Shaft bore diameter | Shaft diameter `+ 0.1` (0.05 mm radial clearance, a press fit; see Part clearances) |
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
 | Ear half width `we` | `de / 2 + 3` |
@@ -109,17 +111,22 @@ A nil `Placement` is the one exception.
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
 | Head pocket diameter | `m2bolt.HeadDiameter + 0.6` (depth `m2bolt.HeadHeight`) |
 | Nut cavity diameter | `2 (m2nut.AcrossFlats / √3 + 0.2)`, the circle through the nut's corners plus 0.2 mm radially (height `m2nut.Thickness + 0.4`, starting 1 mm behind the ring's end face) |
-| Cover boss diameter | pocket diameter `+ 2 wc` |
+| Cover boss diameter | cover pocket diameter `+ 2 wc` |
 | Cover hub diameter | cover boss diameter `+ 2 wc` |
-| Bearing bore, outside diameter, width `db`, `Db`, `Wb` | 5, 14, 5 (the 605ZZ, from `ballbearing.Params605ZZ`) |
-| Pin diameter `dp` | `db` |
-| Planet pocket diameter | `Db + 2 cb` |
-| Planet lip bore diameter | `Db - 4` |
-| Planet lip thickness | `T - Wb` |
+| Planet bearing bore, outside diameter, width `dbp`, `Dbp`, `Wbp` | The planet bearing's catalog entry (5, 14, 5 for the default 605ZZ) |
+| Shaft bearing bore, outside diameter, width `dbs`, `Dbs`, `Wbs` | The shaft bearing's catalog entry (5, 14, 5 for the default 605ZZ) |
+| Pin diameter `dp` | `dbp` |
+| Pin collar diameter `dpc` | `dp + 2.4` (7.4 by default), the thick part of a pin |
+| Planet pocket diameter | `Dbp + 2 cb` |
+| Planet lip bore diameter | `Dbp - 4` |
+| Planet lip thickness | `T - Wbp` |
+| Cover pocket diameter | `Dbs + 2 cb` |
+| Cover lip bore diameter | `Dbs - 4` |
 | Carrier hub diameter | `ds + 2 wc` |
 | Pin boss diameter | `dp + 2 wc` |
-| Thick part diameter | Shaft collar diameter `ds + 2.4` (7.4), D with flat `Sf` |
-| Press-fit socket and carrier centre hole | The thick D grown 0.05 radially |
+| Shaft collar diameter | `ds + 2.4` (7.4 by default); the thick part of a link or output shaft and the input shaft's collar, D with flat `Sf` |
+| Pin socket | The pin's thick D (pin collar diameter) grown 0.05 radially |
+| Carrier centre hole | The shaft's thick D (shaft collar diameter) grown 0.05 radially |
 | Carrier arm and cover spoke width | `dp + 2` |
 | Stage pitch `P` | `T + Tc + 2g` |
 | Ring length `L` | `K P + g` |
@@ -144,14 +151,14 @@ the same gap normal to their circular and flat faces.
   mesh with one sun and one ring at once.
 - Reject neighbouring planets unless their centers are at least the planet tip diameter plus 0.5 mm apart:
   `2 a sin(π/n) >= planet tip diameter + 0.5`.
-- Reject a sun bore (`ds + 0.5`) that leaves less than `m` of wall under the sun's root circle, and a
+- Reject a sun bore (`ds + 0.1`) that leaves less than `m` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
 - Reject `Sf < 0` or `Sf >= 1.2`, the collar margin (so a thick part's flat stays outside its rod).
 - Reject `Tc < 2`, so each press fit grips over at least 2 mm of plate.
 - Reject a carrier wall that leaves less than 1 mm of plate around a pin socket at mid-plate:
-  `boss/2 - (collar/2 + 0.05) < 1`, that is `wc < 2.25`.
+  `boss/2 - (dpc/2 + 0.05) < 1`, that is `wc < 2.25` for the default pin.
 - Reject a carrier wall and edge chamfer that leave less than 0.5 mm between a pin socket and the chamfered outline at a
-  face: `boss/2 - (collar/2 + 0.05) - Ec < 0.5`.
+  face: `boss/2 - (dpc/2 + 0.05) - Ec < 0.5`.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
 - Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
@@ -162,7 +169,7 @@ the same gap normal to their circular and flat faces.
   `we` plus the larger pocket radius plus 1.
 - Reject a seat chamfer outside `[0, 1]`.
 - Reject an edge chamfer outside `[0.5, 1]`.
-- Reject `T - Wb < 1`: the planet needs a lip at least 1 mm thick under the pocket.
+- Reject `T - Wbp < 1`: the planet needs a lip at least 1 mm thick under the pocket.
 - Reject a shaft that does not fit between the pin bosses (`ds/2 + boss/2 >= a`) and a carrier plate that
   leaves no more than 0.5 mm between its edge and the ring tip radius (`a + boss/2 >= ring tip radius - 0.5`).
 - Reject a non-nil `Placement` that is not a valid frame.
@@ -173,11 +180,11 @@ All three gears are involute spur gears of one module and pressure angle, built 
 `models/spurgear`. Do not copy its geometry.
 
 - Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's size: a circle of
-  diameter `db` (the shaft diameter plus 0.5 mm) with a flat `Sf` inside its rim, which leaves the sun a D-shaped bore
+  diameter the shaft bore diameter (the shaft diameter plus 0.1 mm) with a flat `Sf` inside its rim, which leaves the sun a D-shaped bore
   (a round bore when `Sf = 0`). The D bore is cut after the gear is built, with a tool of that outline.
-- Planet: `Zp` teeth, thickness `T`, centered bore of the lip bore diameter, spur backlash `j`.
-  A bearing pocket of the pocket diameter is then cut from the planet's upper face, `Wb` deep,
-  which leaves a lip `T - Wb` thick under it with the lip bore through it. The lip bore is
+- Planet: `Zp` teeth, thickness `T`, centered bore of the planet lip bore diameter, spur backlash `j`.
+  A bearing pocket of the planet pocket diameter is then cut from the planet's upper face, `Wbp` deep,
+  which leaves a lip `T - Wbp` thick under it with the lip bore through it. The lip bore is
   smaller than the bearing's outside diameter, so the bearing cannot leave through the lower face. The pocket's
   entrance on the upper face is chamfered by `Sc`, so the bearing can be pressed into the tight printed seat, as the
   [ball bearing README](../ballbearing/README.md) advises.
@@ -219,13 +226,13 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - Frame: one extruded section with eight holes. Its outer circle has the ring's outer radius. A hub
   circle of the cover hub diameter surrounds the bearing, three spokes of the spoke width run from the
   hub to a rim whose inner radius is the cover rim inner radius, and the four bolt holes lie in the rim at
-  the ring's bolt angles. The lip bore diameter is a through hole in the hub. Between the spokes are three
+  the ring's bolt angles. The cover lip bore diameter is a through hole in the hub. Between the spokes are three
   windows. Spoke `k` runs along the angle `π/6 + 2πk/3`.
-- Boss: a ring of the cover boss diameter around a pocket of the pocket diameter, `Wb` tall, standing on
+- Boss: a ring of the cover boss diameter around a pocket of the cover pocket diameter, `Wbs` tall, standing on
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
   from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
-- Bearing: a 605ZZ envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
+- Bearing: a shaft bearing envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
   sun's top. It fills the front bearing's bore with no clearance and has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the shaft. Its flat runs
   from the sun's lower face to the top.
@@ -236,13 +243,13 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 `[kP, kP + T]`.
 
 - Sun `k`, planets `k` and the ring teeth lie in the gear zone.
-- Bearing `i` of stage `k`: a 605ZZ envelope on the planet's axis, from `kP + T - Wb + 0.25` to
+- Bearing `i` of stage `k`: a planet bearing envelope on the planet's axis, from `kP + T - Wbp + 0.25` to
   `kP + T + 0.25`. Its lower face clears the pocket floor by 0.25 mm, its upper face extends
-  0.25 mm above the planet, and its 5 mm bore fits the 5 mm pin with no clearance.
+  0.25 mm above the planet, and its bore fits the pin of the same diameter with no clearance.
   Bearings are separate bodies.
 - Carrier `k`'s plate lies in `[kP + T + g, kP + T + g + Tc]`. Each planet has a separate pin on the planet's axis,
   thin-thick. Its thin rod of diameter `dp` runs from `z = kP`, through the lip bore and the bearing, up to 0.05 mm
-  into the thick part. Its thick part is a D of the shaft collar diameter with a flat `Sf` deep on the pin's outer side.
+  into the thick part. Its thick part is a D of the pin collar diameter with a flat `Sf` deep on the pin's outer side.
   It starts 0.25 mm above the bearing's top face (`g - 0.5` below the plate) and passes through a D socket in the
   plate, ending level with the plate's upper face. The socket is the thick D grown by 0.05 mm radially and cuts through
   the whole plate. The pin is a press fit in the plate, and the gap is the exception to the 0.2 mm Tight minimum in
@@ -254,14 +261,14 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
   and ends at the top of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore. The flat of the thin rod runs
   from the next sun's lower face to the shaft's top. For the last stage it is the output shaft. Its thick part ends
   0.25 mm below the rear bearing's inner face, at `Tc + g + Tv - 0.25` above the carrier's lower face. Its thin rod ends
-  `Lo` above the rear cover's boss, at `K P + Tv + Wb + Lo`, and is round in the bearing and the stub. The step bears
+  `Lo` above the rear cover's boss, at `K P + Tv + Wbs + Lo`, and is round in the bearing and the stub. The step bears
   on the next sun's lower face (link) or the bearing's inner race (output) after 0.25 mm of play. A shaft prints
   standing on its thick end.
 - The ring spans `[-g, K P]`.
-- The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wb, -g - Tv]`; the rear cover's
-  frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wb]`. The front bearing fills
-  `[-g - Tv - Wb, -g - Tv]` and the rear bearing `[K P + Tv, K P + Tv + Wb]`.
-- The input shaft spans `[-g - Tv - Wb - Li, T]`; a collar fills `[-g - Tv, -0.5]`, from the front bearing's inner
+- The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wbs, -g - Tv]`; the rear cover's
+  frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wbs]`. The front bearing fills
+  `[-g - Tv - Wbs, -g - Tv]` and the rear bearing `[K P + Tv, K P + Tv + Wbs]`.
+- The input shaft spans `[-g - Tv - Wbs - Li, T]`; a collar fills `[-g - Tv, -0.5]`, from the front bearing's inner
   face to 0.5 mm short of the first sun's lower face. That 0.5 mm is the collar clearance.
 
 Each carrier is one solid body, a plate with a socket for each pin, and each pin is its own body, as are the shafts.
@@ -283,12 +290,14 @@ The gearbox records its inputs and derived dimensions as named entries of the do
 parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_teeth`,
 `planet_count`, `stage_count`, `tooth_backlash`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
 `cover_thickness`, `bolt_hole_diameter`, `ear_count`, `ear_bore_diameter`, `ear_wall`, `input_shaft_length`, `flat_depth`,
-`bearing_bore_diameter`, `bearing_outer_diameter`, `bearing_width`,
+`planet_bearing_bore_diameter`, `planet_bearing_outer_diameter`, `planet_bearing_width`,
+`shaft_bearing_bore_diameter`, `shaft_bearing_outer_diameter`, `shaft_bearing_width`,
 `bearing_clearance`, `gear_root_clearance`, `gear_root_margin`, `gear_tip_measurement_margin`,
 `shaft_bore_clearance`, `planet_bearing_lift`,
 `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
 `orbit_radius`, `ring_tip_radius`, `ring_root_radius`, `ring_outer_radius`, `pin_diameter`,
-`pocket_diameter`, `seat_chamfer`, `edge_chamfer`, `lip_bore_diameter`, `shaft_collar_diameter`, `shaft_bore_diameter`,
+`pin_collar_diameter`, `planet_pocket_diameter`, `planet_lip_bore_diameter`, `cover_pocket_diameter`,
+`cover_lip_bore_diameter`, `seat_chamfer`, `edge_chamfer`, `shaft_collar_diameter`, `shaft_bore_diameter`,
 `collar_margin`, `boss_diameter`, `arm_width`,
 `arm_margin`,
 `shaft_diameter`, `cover_boss_diameter`, `cover_hub_diameter`, `bolt_circle_radius`,

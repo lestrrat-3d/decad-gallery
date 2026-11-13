@@ -37,3 +37,15 @@ For this emission, output only a new presets.go file in package ballbearing.
 Implement `Params605ZZ() Params` returning a struct literal with BoreDiameter5, OuterDiameter14,
 Width5 and nil Placement. Do not duplicate or modify Build, Model, Params, validation or the default608 preset.
 The parent supplies the existing public Params/Build API; the emitted preset only selects dimensions.
+
+## 5. Catalog
+
+Add `catalog.go` in package ballbearing. Declare `SeatClearance` and `PressFitClearance` as constants of 0.05.
+Declare `Spec` with the fields named in instructions.md, in the order Name, BoreDiameter, OuterDiameter, Width,
+InnerRaceDiameter.
+Declare an unexported `catalog` slice of keyed `Spec` literals: 605ZZ (5, 14, 5, 8), then 608ZZ (8, 22, 7, 12).
+`Catalog` returns `slices.Clone(catalog)`. `Lookup` scans the slice for an exact `Name` match and returns
+`Spec{}, false` when none matches. `Spec.Params` returns a `Params` with the three dimensions and nil Placement
+and Lift. `ShaftDiameter`, `SeatDiameter` and `PressBoreDiameter` apply the formulas in instructions.md.
+In presets.go, `Params605ZZ` and `Params608ZZ` look up "605ZZ" and "608ZZ" and return the entry's `Params()`.
+`Params6082RS` and `DefaultParams` keep their literals.

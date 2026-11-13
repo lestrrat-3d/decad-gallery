@@ -121,7 +121,7 @@ func (r *run) extrudeCoverFrame(ctx context.Context) (*decad.Body, error) {
 	if err := r.addCircle(s, 2*d.ringOuter, "2 * ring_outer_radius"); err != nil {
 		return nil, fmt.Errorf("cover frame: %w", err)
 	}
-	if err := r.addCircle(s, d.lip, "lip_bore_diameter"); err != nil {
+	if err := r.addCircle(s, d.coverLip, "cover_lip_bore_diameter"); err != nil {
 		return nil, fmt.Errorf("cover frame: %w", err)
 	}
 	if err := r.addBoltHoles(s); err != nil {
@@ -181,7 +181,7 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if err := r.addCircle(s, d.coverBoss, "cover_boss_diameter"); err != nil {
 		return nil, fmt.Errorf("cover boss: %w", err)
 	}
-	if err := r.addCircle(s, d.pocket, "pocket_diameter"); err != nil {
+	if err := r.addCircle(s, d.coverPocket, "cover_pocket_diameter"); err != nil {
 		return nil, fmt.Errorf("cover boss: %w", err)
 	}
 	profile, err := profileWithHoles(ctx, s, 1, "cover boss")
@@ -189,7 +189,7 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	boss, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(1 + planetBearing().Width), Dir: decad.Along})
+		decad.Distance{D: units.Millimeters(1 + shaftBearing(p).Width), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("cover boss: extrude: %w", err)
 	}
@@ -203,13 +203,14 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if cover, err = r.cutHeadPockets(ctx, cover); err != nil {
 		return nil, err
 	}
-	if cover, err = r.chamferSeat(ctx, cover, "cover bearing pocket", p.CoverThickness+planetBearing().Width); err != nil {
+	if cover, err = r.chamferSeat(ctx, cover, "cover bearing pocket",
+		p.CoverThickness+shaftBearing(p).Width, d.coverPocket); err != nil {
 		return nil, err
 	}
 	// Both flat faces lose their outer rim. The inner face also loses the bearing lip's edge: the bearing rests
 	// on the other side of the lip, so no bearing seat shrinks.
 	lip := func(loop *decad.Loop, edges []*decad.Edge) bool {
-		return loop.IsOuter() || len(edges) > 1 || (len(edges) == 1 && math.Abs(radiusAbout(edges[0])-d.lip/2) < 1e-3)
+		return loop.IsOuter() || len(edges) > 1 || (len(edges) == 1 && math.Abs(radiusAbout(edges[0])-d.coverLip/2) < 1e-3)
 	}
 	if cover, err = r.finishFaceEdges(ctx, cover, "cover inner face", 0, lip); err != nil {
 		return nil, err
@@ -226,7 +227,7 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 // collarClearance to spare.
 func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	p := r.p
-	start := -(p.StageGap + p.CoverThickness + planetBearing().Width + p.InputShaftLength)
+	start := -(p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.InputShaftLength)
 	inner := -(p.StageGap + p.CoverThickness)
 	// The flat runs from the sun's lower face to past the shaft's top, through the sun.
 	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance, span{0, p.GearThickness + 1})
@@ -235,8 +236,8 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 // chamferSeat chamfers the entrance of a bearing seat by SeatChamfer, so a bearing can be pressed into the tight
 // printed pocket. The entrance is the pocket's circular rim in the plane z. A boolean moves a circle's seam, so
 // the rim is found by its radius and height and selected by its stored start point. It returns body unchanged
-// when SeatChamfer is zero.
-func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z float64) (*decad.Body, error) {
+// when SeatChamfer is zero. pocket is the pocket's diameter.
+func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z, pocket float64) (*decad.Body, error) {
 	if r.p.SeatChamfer == 0 {
 		return body, nil
 	}
@@ -247,7 +248,7 @@ func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z 
 	var seam *r3.Vec
 	for _, e := range body.Edges() {
 		at := e.Start().Position().Value
-		if math.Abs(at.Z-z) < 1e-6 && math.Abs(math.Hypot(at.X, at.Y)-r.d.pocket/2) < 1e-3 {
+		if math.Abs(at.Z-z) < 1e-6 && math.Abs(math.Hypot(at.X, at.Y)-pocket/2) < 1e-3 {
 			if seam != nil {
 				return nil, fmt.Errorf("%s: more than one edge starts on the pocket's rim", what)
 			}

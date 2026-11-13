@@ -9,7 +9,7 @@ Lengths are in millimeters and angles are in radians.
 ## Using the package
 
 `Build(ctx, doc, Params)` adds the gearbox's bodies to a decad document and returns a `Gearbox`. The housing is the
-`Ring`, a `FrontCover` and a `RearCover`, each with a 605ZZ bearing (`FrontBearing`, `RearBearing`); the `InputShaft`
+`Ring`, a `FrontCover` and a `RearCover`, each with a shaft bearing (`FrontBearing`, `RearBearing`; 605ZZ by default); the `InputShaft`
 passes through the front bearing into the first sun. Each entry of `Stages` holds a `Sun`, the `Planets`, one
 `Bearings` entry per planet and a `Carrier`. `Named` lists every body with a
 display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets and one stage.
@@ -32,7 +32,13 @@ carrier's planets, static.
 Set `Params.Stages` to stack more stages in the same ring. Each stage's shaft is a separate body: a link shaft
 through the carrier's hole and the next stage's sun bore, and for the last stage the output shaft, which runs through the
 rear cover's bearing. The link and output shafts are thin-thick: a D thick part of the shaft collar diameter, pressed
-through the carrier's hole, and a thin 5 mm rod. The rod is 5 mm where it passes through a bearing, with no clearance.
+through the carrier's hole, and a thin rod of the shaft diameter. The rod is as wide as the shaft bearing's bore (5 mm for
+the default 605ZZ) where it passes through a bearing, with no clearance. A carrier pin is as wide as the planet
+bearing's bore and has a D thick part of the pin collar diameter.
+The parameter table names each bearing by role: `planet_bearing_bore_diameter`, `planet_bearing_outer_diameter`,
+`planet_bearing_width` and the same three with `shaft_bearing_`. It holds separate planet and cover pocket and lip bore
+diameters (`planet_pocket_diameter`, `planet_lip_bore_diameter`, `cover_pocket_diameter`, `cover_lip_bore_diameter`) and
+`pin_collar_diameter` for a pin's thick part.
 Each shaft has a flat `Params.FlatDepth` deep, which gives it a D section, where a sun or carrier sits, and
 round where a bearing sits; the sun's bore is cut with a tool of the shaft's D section grown by the fit clearance, and
 the carrier's hole is the thick D grown by the press-fit clearance, so each keeps a tooth at the flat and each shaft
@@ -58,7 +64,7 @@ start on the frame's plane.
 ## How it is built
 
 The sun and planets come from `spurgear.Build`. A planet is built with the lip bore, then a bearing pocket is cut from
-its upper face. Each planet's bearing is `ballbearing.Build` with `Params605ZZ()`, kept as its own body in
+its upper face. Each planet's bearing is `ballbearing.Build` with the planet bearing's catalog `Spec.Params()`, kept as its own body in
 `Stage.Bearings`. The carrier's plate is one outline, the convex hull of the pin bosses extruded once. A pattern of one D socket tool is cut through it, then the press-fit D centre hole. Each pin is its own body, `buildPin`: a rod and a D thick part joined in one union, built once and posed for every planet in `Stage.Pins`.
 `buildSteppedShaft` joins a D thick part and a thin rod for the link and output shafts, then cuts the flat. `buildShaft` joins a round rod and a collar for the input shaft, then cuts the flat. A cover is one extruded frame (a rim
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank

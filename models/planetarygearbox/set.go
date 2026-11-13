@@ -13,8 +13,8 @@ import (
 
 // Spec labels of the bought parts, which the bill of materials groups on.
 const (
-	bearingSpec = "605ZZ ball bearing"
-	nutSpec     = "M2 hex nut"
+	bearingSuffix = " ball bearing"
+	nutSpec       = "M2 hex nut"
 )
 
 // explodeGap is how far past touching each part of the exploded view sits from the part it clears.
@@ -37,8 +37,10 @@ func (g Gearbox) Set(doc *decad.Document, p Params) (*parts.Set, error) {
 	for _, nb := range g.Named() {
 		part := parts.Part{Name: nb.Name, Kind: parts.Manufactured, Body: nb.Body, Material: parts.Material{Name: "PLA"}}
 		switch {
-		case isBearing(g, nb.Body):
-			part.Kind, part.Material, part.Spec = parts.Purchased, parts.Material{Name: "steel"}, bearingSpec
+		case isPlanetBearing(g, nb.Body):
+			part.Kind, part.Material, part.Spec = parts.Purchased, parts.Material{Name: "steel"}, planetBearing(p).Name+bearingSuffix
+		case isCoverBearing(g, nb.Body):
+			part.Kind, part.Material, part.Spec = parts.Purchased, parts.Material{Name: "steel"}, shaftBearing(p).Name+bearingSuffix
 		case isFastener(g, nb.Body):
 			part.Kind, part.Material = parts.Purchased, parts.Material{Name: "steel"}
 			part.Spec = fmt.Sprintf("M2 x %g bolt", fastenerLength)
@@ -58,10 +60,11 @@ func (g Gearbox) Set(doc *decad.Document, p Params) (*parts.Set, error) {
 	return set, nil
 }
 
-func isBearing(g Gearbox, b *decad.Body) bool {
-	if b == g.FrontBearing || b == g.RearBearing {
-		return true
-	}
+func isCoverBearing(g Gearbox, b *decad.Body) bool {
+	return b == g.FrontBearing || b == g.RearBearing
+}
+
+func isPlanetBearing(g Gearbox, b *decad.Body) bool {
 	for _, s := range g.Stages {
 		for _, bearing := range s.Bearings {
 			if b == bearing {

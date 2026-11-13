@@ -496,7 +496,7 @@ func TestBearingsSitInPlanetPockets(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
 	stage := box.Stages[0]
-	bearingWidth, err := doc.Param("bearing_width")
+	bearingWidth, err := doc.Param("planet_bearing_width")
 	require.NoError(t, err)
 	bearingLift, err := doc.Param("planet_bearing_lift")
 	require.NoError(t, err)

@@ -50,7 +50,7 @@ type Params struct {
 	EdgeChamfer float64
 	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
 	InputShaftLength float64
-	// BearingClearance is the radial clearance between a planet's 605ZZ bearing and its pocket.
+	// BearingClearance is the radial clearance between each purchased bearing and its pocket.
 	BearingClearance float64
 	// CarrierWall is the width of carrier material around the shaft and around each planet pin.
 	CarrierWall float64
@@ -110,8 +110,17 @@ func (p Params) Ratio() float64 {
 	return math.Pow(stage, float64(p.Stages))
 }
 
-// planetBearing is the purchased bearing each planet turns on.
-func planetBearing() ballbearing.Params { return ballbearing.Params605ZZ() }
+// planetBearing is the catalog bearing each planet turns on.
+func planetBearing(Params) ballbearing.Spec { return defaultBearing() }
+
+// shaftBearing is the catalog bearing each cover holds for the input or output shaft.
+func shaftBearing(Params) ballbearing.Spec { return defaultBearing() }
+
+// defaultBearing is the 605ZZ catalog entry.
+func defaultBearing() ballbearing.Spec {
+	b, _ := ballbearing.Lookup("605ZZ")
+	return b
+}
 
 const (
 	gearRootModuleClearanceFactor = 0.25
@@ -132,7 +141,7 @@ const (
 	lipWidth     = 2
 	lipThickness = 1
 	// seatClearance is the radial clearance between a purchased bearing and the bore that holds it fixed.
-	seatClearance = 0.05
+	seatClearance = ballbearing.SeatClearance
 	// fitClearance is the smallest surface gap used by adjustable gearbox fits.
 	fitClearance = 0.25
 	// planetBearingLift raises each planet bearing above its pocket floor.
@@ -148,7 +157,7 @@ const (
 	// its socket or hole in the carrier plate, and between a shaft and the D bore of the sun it turns. It is a press
 	// fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the part stays in the plate or the sun
 	// turns with the shaft.
-	pressFitClearance = 0.05
+	pressFitClearance = ballbearing.PressFitClearance
 	// stepOverlap is how far a thin rod reaches into its thick part, so the union crosses faces.
 	stepOverlap = 0.05
 	// minSocketWall is the plate material kept around a pin socket at mid-plate.
@@ -162,7 +171,7 @@ const (
 	armMargin = 1
 	// collarMargin is how far a shaft collar reaches past the shaft on each side. A collar is the printed
 	// stand-in for a washer: it spans the gap between a bearing and the part that would rub on it, and it
-	// must stay narrower than the bearing's inner race (a 605 inner race is about 8 mm across).
+	// must stay narrower than its bearing's InnerRaceDiameter (see ballbearing.Spec).
 	collarMargin = 1.2
 	// coverSpokes is the number of spokes joining a cover's rim to its bearing hub.
 	coverSpokes = 3
@@ -172,9 +181,11 @@ const (
 type dims struct {
 	orbit, planetRoot, planetTip float64
 	ringTip, ringRoot, ringOuter float64
-	pin, pocket, lip             float64
+	pin, pinCollar               float64
+	planetPocket, planetLip      float64
 	boss, arm, collar            float64
 	shaft, shaftBore             float64
+	coverPocket, coverLip        float64
 	coverBoss, coverHub          float64
 	boltCircle, rimInner         float64
 	stagePitch, ringLength       float64
@@ -191,14 +202,17 @@ func derive(p Params) dims {
 		ringRoot:   m*float64(p.RingTeeth)/2 + gearRootDepth(m),
 		stagePitch: p.GearThickness + p.CarrierThickness + 2*p.StageGap,
 	}
-	b := planetBearing()
-	d.pin = b.BoreDiameter
-	d.pocket = b.OuterDiameter + 2*p.BearingClearance
-	d.lip = b.OuterDiameter - 2*lipWidth
-	d.shaft = b.BoreDiameter
+	pb, sb := planetBearing(p), shaftBearing(p)
+	d.pin = pb.ShaftDiameter()
+	d.pinCollar = d.pin + 2*collarMargin
+	d.planetPocket = pb.OuterDiameter + 2*p.BearingClearance
+	d.planetLip = pb.OuterDiameter - 2*lipWidth
+	d.shaft = sb.ShaftDiameter()
 	d.shaftBore = d.shaft + 2*pressFitClearance
 	d.collar = d.shaft + 2*collarMargin
-	d.coverBoss = d.pocket + 2*p.CarrierWall
+	d.coverPocket = sb.OuterDiameter + 2*p.BearingClearance
+	d.coverLip = sb.OuterDiameter - 2*lipWidth
+	d.coverBoss = d.coverPocket + 2*p.CarrierWall
 	d.coverHub = d.coverBoss + 2*p.CarrierWall
 	d.boss = d.pin + 2*p.CarrierWall
 	d.arm = d.pin + 2*armMargin
@@ -243,7 +257,7 @@ func (p Params) Validate() error {
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
 		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
-		{"flat depth", p.FlatDepth, p.FlatDepth >= 0 && p.FlatDepth <= planetBearing().BoreDiameter/4},
+		{"flat depth", p.FlatDepth, p.FlatDepth >= 0 && p.FlatDepth <= planetBearing(p).BoreDiameter/4},
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"edge chamfer", p.EdgeChamfer, p.EdgeChamfer >= MinEdgeChamfer && p.EdgeChamfer <= 1},
 		{"bearing clearance", p.BearingClearance, p.BearingClearance >= seatClearance},
@@ -331,13 +345,13 @@ func (p Params) validateFit(d dims) error {
 	if d.shaftBore/2 > sunRoot-m {
 		return fmt.Errorf("the %v mm shaft bore leaves less than one module of wall under the sun root", d.shaftBore)
 	}
-	b := planetBearing()
-	if p.GearThickness-b.Width < lipThickness {
+	planetW := planetBearing(p).Width
+	if p.GearThickness-planetW < lipThickness {
 		return fmt.Errorf("gear thickness %v leaves less than %v for the lip behind a %v wide bearing",
-			p.GearThickness, float64(lipThickness), b.Width)
+			p.GearThickness, float64(lipThickness), planetW)
 	}
-	if d.pocket/2 > d.planetRoot-m {
-		return fmt.Errorf("bearing pocket diameter %v leaves less than one module of wall under the planet root", d.pocket)
+	if d.planetPocket/2 > d.planetRoot-m {
+		return fmt.Errorf("bearing pocket diameter %v leaves less than one module of wall under the planet root", d.planetPocket)
 	}
 	if d.shaft/2+d.boss/2 >= d.orbit {
 		return fmt.Errorf("shaft diameter %v and planet pin boss %v do not fit within orbit radius %v",
@@ -376,7 +390,7 @@ func (p Params) validateFit(d dims) error {
 		return fmt.Errorf("flat depth %v must stay under the %v collar margin, so a thick part's flat stays outside its rod",
 			p.FlatDepth, float64(collarMargin))
 	}
-	socket := d.collar/2 + pressFitClearance
+	socket := d.pinCollar/2 + pressFitClearance
 	if wall := d.boss/2 - socket; wall < minSocketWall {
 		return fmt.Errorf("carrier wall %v leaves %v of plate around a pin socket, less than %v",
 			p.CarrierWall, wall, float64(minSocketWall))
