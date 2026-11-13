@@ -202,6 +202,52 @@ Chamfer every qualifying convex boundary edge on a large planar surface:
 - Document and test any smaller chamfer or retained sharp edge required by
   functional geometry, nominal dimensions, fit clearances, or minimum material.
 
+### Corners and roots
+
+This rule applies to every printed part in the gallery. Purchased and standard parts kept at their nominal size,
+such as bolts, nuts and bearings, are exempt, as [Part clearances](#part-clearances) keeps them.
+
+Read each part in its print orientation, as the model README states it. A section is the part cut by a plane
+parallel to the print bed, at a height inside a run of layers that share one outline.
+
+- **Inside corners.** Round every inside corner of a section with a radius of at least 0.5 mm. An inside corner is
+  a point where the outline turns toward the material by more than 45°. A turn of 45° or less needs no round.
+- **Stressed roots.** Some features bend or carry load in use: a spring strip, a flexure, a pawl, an arm, a lever,
+  a crank, a spoke, a clip, a tab, or a ratchet or pawl tooth. Round the root of such a feature with a radius of at
+  least half the thinner of the two sections that meet there, and at least 0.5 mm. When a slot is too narrow for
+  two such radii, end it in a full round whose radius is half the slot width. When a fit clearance or a mating
+  part's path leaves less room, use the largest radius that keeps the fit, at least 0.5 mm, and list the corner.
+- **Root width.** Make the root of a feature at least as wide, before its rounds, as the feature's narrowest
+  section. Make a part that bends in use at least 1.2 mm thick (three 0.4 mm lines). Make every other wall at
+  least 0.8 mm thick (two lines).
+- **Tips.** Keep the material angle at every outward corner of a section at 60° or more. Blunt a sharper tip
+  with a flat at least 0.8 mm wide or a round of at least 0.4 mm radius.
+- **Corners between layers.** An inside corner along an edge parallel to the bed, such as the root of a pin
+  standing on a face, takes the same radius when the corner opens upward. When it opens downward, cut it with a
+  45° chamfer of the same leg length instead, because a round there starts as a flat overhang.
+
+These corners are exempt:
+
+- Gear teeth: the flanks, tips and root fillets of involute and cycloidal teeth follow their generators and
+  [Gear train clearances](#gear-train-clearances). The rest of a gear body, such as its hub, web, windows and
+  bore keys, follows this rule.
+- Engagement edges: a corner whose shape is the working contact, such as a pallet's locking corner, an escape
+  wheel tooth tip, or the contact corner of a pawl or ratchet tooth. The root of such a tooth is not exempt.
+- Mating corners: a D-bore, keyway or joinery corner that must match a corner of its mate. Round both mates, or
+  keep both sharp and list the pair.
+- Chamfer faces that [Surface edge finishing](#surface-edge-finishing) adds.
+
+List every exempt corner, and every root rounded below half its section, under "Retained sharp corners" in the
+model's `instructions.md`, with its location and reason.
+
+Test every printed part with `internal/cornercheck`. Cut a section at the middle of each run of layers
+(`cornercheck.MidHeights`) and require no finding outside the listed corners. Each listed corner must match a
+finding, so the list stays current. The check reads an inside corner as a turn toward the material of more than
+50° within 0.4 mm of outline; a 0.5 mm round turns 46° over 0.4 mm and passes. It reads a tip as a turn away from
+the material of more than 120° within 0.8 mm; a 0.4 mm round tip turns 115° over 0.8 mm and passes. Check every
+parameter case that changes a part's outline. Where the face levels are not the runs of one outline, such as the
+apex plane of a herringbone gear, pass explicit heights to `cornercheck.CheckAt` and say why in a comment.
+
 ### Gear train clearances
 
 These rules apply to spur and helical gears that share a plane and have
