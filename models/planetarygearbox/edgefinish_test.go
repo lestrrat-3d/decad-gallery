@@ -129,7 +129,12 @@ func TestEdgeFinishing(t *testing.T) {
 	require.InDelta(t, 0.5, p.EdgeChamfer, 0)
 	require.GreaterOrEqual(t, p.EdgeChamfer, planetarygearbox.MinEdgeChamfer)
 	_, box := defaultGearbox(t)
+	requireEdgeFinishing(t, box, p)
+}
 
+// requireEdgeFinishing checks the edge finishing of the built gearbox box.
+func requireEdgeFinishing(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+	t.Helper()
 	// The ring is held as a mesh once the mounting ears are in, so its bevels are measured on section outlines.
 	requireRingBevel(t, box.Ring, p)
 	for name, cover := range map[string]*decad.Body{"front cover": box.FrontCover, "rear cover": box.RearCover} {

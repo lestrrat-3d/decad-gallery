@@ -292,14 +292,13 @@ func sectionRadialSpan(t *testing.T, body *decad.Body, center r3.Vec, z, targetR
 	return selected
 }
 
-func TestPartClearances(t *testing.T) {
-	p := planetarygearbox.DefaultParams()
-	_, box := defaultGearbox(t)
+// requireFitClearances checks the part fits of the built gearbox box against their fit classes.
+func requireFitClearances(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+	t.Helper()
 	stage := box.Stages[0]
 	planetBearing := stage.Bearings[0]
 	bearingBounds := bounds(t, planetBearing)
 	bearingMid := (bearingBounds.Min.Z + bearingBounds.Max.Z) / 2
-	const minimum = 0.2
 	// A bearing seat is designed at 0.05 mm radial clearance (docs/model-pipeline.md "Part clearances"). The
 	// section measurement's uncertainty reaches 0.024 mm on the meshed covers, so the proven bound is about 0.026 mm.
 	const seatMinimum = 0.02
@@ -326,6 +325,14 @@ func TestPartClearances(t *testing.T) {
 	rearBearingMid := (rearBearing.Min.Z + rearBearing.Max.Z) / 2
 	requireSectionTouch(t, stage.Shaft, box.RearBearing, rearBearingMid)
 	requireSectionClearance(t, box.RearBearing, box.RearCover, rearBearingMid, seatMinimum)
+}
+
+func TestPartClearances(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	requireFitClearances(t, box, p)
+	const minimum = 0.2
+	const seatMinimum = 0.02
 
 	branchParams := p
 	branchParams.FlatDepth = 0
@@ -406,8 +413,14 @@ func TestGearTipRootClearance(t *testing.T) {
 			"non-meshing planet tips")
 	}
 
-	p := planetarygearbox.DefaultParams()
 	_, box := defaultGearbox(t)
+	requireTipRootClearance(t, box, planetarygearbox.DefaultParams())
+}
+
+// requireTipRootClearance checks the tip-to-root clearance of the built gearbox box at several rotation angles across
+// one sun tooth pitch.
+func requireTipRootClearance(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+	t.Helper()
 	z := p.GearThickness / 2
 	orbit := p.Module * float64(p.SunTeeth+p.PlanetTeeth) / 2
 	minimum := minimumGearRootClearance(p.Module)
