@@ -17,8 +17,6 @@ const (
 	wheelHigh     = 25.0
 	pinionRear    = 1.5
 	pinionLength  = 21.0
-	bossRear      = 0.25
-	bossLength    = 1.75
 	spokeHalf     = 2.5
 	windowInner   = 13.0
 	windowOuter   = 28.0
@@ -27,6 +25,13 @@ const (
 	reliefRadius  = 2.8
 	reliefFlat    = 2.3
 	boreToolReach = 0.75
+	// The collar counterbores: radius 3.75 over the collar's 3.7 (a 0.05 press). The front one opens on the wheel's front
+	// face and stops on the arbor collar; the rear one opens on the pinion's rear face and stops the rear collar ring.
+	wheelCounterRadius = 3.75
+	wheelCounterFloor  = 23.95
+	wheelCounterTop    = 26.0
+	pinionCounterLow   = 0.5 // the rear counterbore tool starts this high, below the pinion's rear face
+	pinionCounterFloor = 3.30
 )
 
 // escapeDisc draws the root disc with its six windows and extrudes it.
@@ -89,8 +94,8 @@ func (b *builder) escapeTooth() (*decad.Body, error) {
 	return b.extrude(s, 0, wheelHigh-wheelLow, what)
 }
 
-// buildEscapeWheel builds the escape wheel with its pinion and rear boss, bored for the arbor, in the model frame about
-// the origin.
+// buildEscapeWheel builds the escape wheel with its pinion, bored for the arbor and counterbored at both ends for the
+// arbor collar and the rear collar ring, in the model frame about the origin.
 func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	disc, err := b.escapeDisc()
 	if err != nil {
@@ -108,8 +113,18 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
+	front, err := b.discAt("escape front counterbore", 0, 0, wheelCounterFloor, wheelCounterRadius,
+		wheelCounterTop-wheelCounterFloor)
+	if err != nil {
+		return nil, err
+	}
+	if wheel, err = b.cut(wheel, front, "escape front counterbore"); err != nil {
+		return nil, err
+	}
+	// The six windows and the front counterbore's rim are chamfered; the teeth keep their edges.
+	rim := rimKeep(Pt{}, wheelCounterRadius)
 	wheel, err = b.finish(wheel, []float64{wheelLow, wheelHigh},
-		func(l *decad.Loop, e []*decad.Edge) bool { return !l.IsOuter() && len(e) > 1 })
+		func(l *decad.Loop, e []*decad.Edge) bool { return !l.IsOuter() && (len(e) > 1 || rim(l, e)) })
 	if err != nil {
 		return nil, fmt.Errorf("escape wheel windows: %w", err)
 	}
@@ -117,11 +132,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	boss, err := b.discAt("escape rear boss", 0, 0, bossRear, CollarRadius, bossLength)
-	if err != nil {
-		return nil, err
-	}
-	part, err := b.union("escape wheel", wheel, pinion, boss)
+	part, err := b.union("escape wheel", wheel, pinion)
 	if err != nil {
 		return nil, err
 	}
@@ -129,5 +140,14 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b.cut(part, tool, "escape wheel bore")
+	rear, err := b.discAt("escape rear counterbore", 0, 0, pinionCounterLow, wheelCounterRadius,
+		pinionCounterFloor-pinionCounterLow)
+	if err != nil {
+		return nil, err
+	}
+	bore, err := b.union("escape wheel bore tool", tool, rear)
+	if err != nil {
+		return nil, err
+	}
+	return b.cut(part, bore, "escape wheel bore")
 }

@@ -83,6 +83,8 @@ func joints(g *Geometry, frame r3.Transform) []parts.Joint {
 	pin("great wheel arbor in the front bearing", GreatWheelArborName, FrontGreatWheelBearingName, g.G, parts.Turns)
 	pin("escape wheel on its arbor", EscapeWheelName, EscapeArborName, g.O, parts.Fixed)
 	pin("anchor on the pallet arbor", AnchorName, PalletArborName, g.P, parts.Fixed)
+	pin("escape rear collar on the escape arbor", EscapeRearCollarName, EscapeArborName, g.O, parts.Fixed)
+	pin("pallet front collar on the pallet arbor", PalletFrontCollarName, PalletArborName, g.P, parts.Fixed)
 	pin("crutch on the pallet arbor", CrutchName, PalletArborName, g.P, parts.Fixed)
 	pin("pawl carrier on the great wheel arbor", PawlCarrierName, GreatWheelArborName, g.G, parts.Fixed)
 	pin("mainspring on the great wheel arbor", MainspringName, GreatWheelArborName, g.G, parts.Fixed)

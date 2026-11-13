@@ -28,7 +28,10 @@ func TestEdgeFinishing(t *testing.T) {
 	plain := newBuilder(t.Context(), NewDocument(), g)
 	plain.plain = true
 
-	check := func(name string, finished *decad.Body, unfinished func() (*decad.Body, error), edges float64) {
+	// rimBevel is the volume a 0.5 mm chamfer removes round the rim of a hole of radius r: pi (r + c/3) c².
+	rimBevel := func(r float64) float64 { return math.Pi * (r + 0.5/3) * 0.25 }
+
+	check := func(name string, finished *decad.Body, unfinished func() (*decad.Body, error), edges, extra float64) {
 		t.Run(name, func(t *testing.T) {
 			raw, err := unfinished()
 			require.NoError(t, err)
@@ -37,7 +40,7 @@ func TestEdgeFinishing(t *testing.T) {
 			rv, err := raw.Volume()
 			require.NoError(t, err)
 			drop := rv.Value.Base() - fv.Value.Base()
-			want := edges * bevel
+			want := edges*bevel + extra
 			// A chamfer along a curved edge removes a little more or less than the straight-edge figure.
 			require.InDelta(t, want, drop, 0.05*want, "volume drop %v against %v mm of chamfered edge", drop, edges)
 		})
@@ -48,20 +51,22 @@ func TestEdgeFinishing(t *testing.T) {
 	outer := func(z float64, body *decad.Body) float64 { return perimeter(loopsBy(sectionAt(t, body, z))[0]) }
 	backEdges := 2*plateRims(t, m.BackPlate, -3) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
 	frontEdges := 2*plateRims(t, m.FrontPlate, 31) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
-	check("back plate", m.BackPlate, plain.buildBackPlate, backEdges)
-	check("front plate", m.FrontPlate, plain.buildFrontPlate, frontEdges)
-	// Anchor: the outer loop of both faces, pallets included.
-	check("anchor", m.Anchor, plain.buildAnchor, 2*perimeter(outerLoop2(sectionAt(t, m.Anchor, 23.5).Loops, g.P)))
+	check("back plate", m.BackPlate, plain.buildBackPlate, backEdges, 0)
+	check("front plate", m.FrontPlate, plain.buildFrontPlate, frontEdges, 0)
+	// Anchor: the outer loop of both faces, pallets included, and the front counterbore's rim.
+	check("anchor", m.Anchor, plain.buildAnchor, 2*perimeter(outerLoop2(sectionAt(t, m.Anchor, 23.5).Loops, g.P)),
+		rimBevel(anchorCounterRadius))
 	// Pendulum: the outer loop of both faces, the pocket rim and the lip-bore rim.
-	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(40.5, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius)
-	// Escape wheel: the six window loops on both faces.
+	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(40.5, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius, 0)
+	// Escape wheel: the six window loops on both faces and the front counterbore's rim. The pinion's rear face and its
+	// rear counterbore stay sharp: the face is 255 mm², under 400.
 	var windows float64
 	for _, l := range loopsBy(sectionAt(t, m.EscapeWheel, 23.5))[1:] {
 		if len(l) > 20 && centroidLen(l) > 10 {
 			windows += perimeter(l)
 		}
 	}
-	check("escape wheel", m.EscapeWheel, plain.buildEscapeWheel, 2*windows)
+	check("escape wheel", m.EscapeWheel, plain.buildEscapeWheel, 2*windows, rimBevel(wheelCounterRadius))
 
 	// Kept sharp: the mounting holes and pillar holes of the back plate, the bolt holes and head pockets of the front
 	// plate (the bolt hole itself ends on the pocket floor), the slot of the pendulum, and the teeth, ratchet and flange of the other parts keep their rim edges.

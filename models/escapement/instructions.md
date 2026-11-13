@@ -164,8 +164,11 @@ Loop, in order (arcs centred on `P`; "ccw" = increasing math angle):
 13. line `M_E → K_E` (entry arm end)
 14. arc `r_out` from `K_E` to `C_E` (ccw) (entry locking face)
 
-Bore: D-shaped, body family (see Arbors), cut after the boss union. Front spacer boss: circle `r 3.7` about `P`,
-`z ∈ [25.5, 27.75]` (overlaps the anchor body by 0.5).
+The anchor has no boss. Front counterbore (for the Pallet Front Collar ring): circle `r 3.75` about `P`, tool
+`z ∈ [24.70, 27.0]`, cut after the outline and before the bore. Its floor is `z 24.70` (0.05 behind the ring's rear face),
+the material under it is 3.70 thick and the material round it at least 4.25. Bore: D-shaped, body family (see Arbors),
+tool `z ∈ [20, 28.75]`, cut after the counterbore. The chamfer keeps the outer loops and the counterbore's rim (a circle of
+radius 3.75 about `P` on the front face).
 
 ### Escape wheel
 
@@ -178,6 +181,14 @@ Bore: D-shaped, body family (see Arbors), cut after the boss union. Front spacer
   the line from `T` at angle `χ`: `B = (-4.5118, 32.1853)`. At `r 33` the feet are `(-1.2384, 32.9768)` and
   `(-4.1961, 32.7321)`, a root thickness of 2.97 mm.
 - Teeth: tooth 0 patterned 30× about `O` (`decad.PatternCopies`, CircularPattern), unioned with the disc.
+- Front counterbore (for the arbor's front collar): circle `r 3.75` about `O`, tool `z ∈ [23.95, 26.0]`, cut into the disc
+  and teeth before the chamfer. The floor is `z 23.95`, 0.05 behind the collar's rear face at 24.0, and the counterbore is
+  1.05 deep so the 0.5 rim chamfer leaves a 0.55 straight seat. The wheel and pinion keep 1.95 and more of material under
+  it. The chamfer keeps the six windows and the counterbore's rim (a circle of radius 3.75 about `O` on the front face).
+- No rear boss. Pinion rear counterbore (for the Escape Rear Collar ring): circle `r 3.75` about `O`, tool
+  `z ∈ [0.5, 3.30]`, unioned with the D bore tool and cut once after the wheel and pinion are joined. Its floor is
+  `z 3.30`, 0.05 above the ring's front face at 3.25, with 1.8 mm of pinion under it. The pinion's rear face (`z 1.5`,
+  255 mm²) is under 400 mm² and stays sharp, with the counterbore's rim.
 - Tooth `j` tip at math angle `90° + j τ` in the part frame. The wheel turns clockwise, so the front face leads.
 
 
@@ -451,8 +462,8 @@ starts 0.05 inside an `r 2.5` section where it ends; it removes nothing there. A
 
 | Arbor | Axis | Meridian `(r, z)` | Flat spans (flat plane, box z) |
 |---|---|---|---|
-| Escape Arbor | `O` | `(0,-5) (2.5,-5) (2.5,0.25) (2.8,0.25) (2.8,25.05) (3.7,25.05) (3.7,27.75) (2.5,27.75) (2.5,33) (0,33)` | `x 2.55`: `[0.20, 25.0]` |
-| Pallet Arbor | `P` | `(0,-5) (2.5,-5) (2.5,19.95) (3.7,19.95) (3.7,20.95) (2.8,20.95) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[21.0, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
+| Escape Arbor | `O` | `(0,-5) (2.5,-5) (2.5,0.25) (2.8,0.25) (2.8,24.0) (3.7,24.0) (3.7,27.75) (2.5,27.75) (2.5,33) (0,33)` | `x 2.55`: `[0.20, 23.95]` |
+| Pallet Arbor | `P` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,20.95) (2.8,20.95) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[21.0, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
 | Great Wheel Arbor | `G` | `(0,-5) (2.5,-5) (2.5,0.25) (3.7,0.25) (3.7,1.25) (3.05,1.25) (3.05,17.45) (2.8,17.45) (2.8,27.75) (2.5,27.75) (2.5,37.2) (0,37.2)` | `x 2.55`: `[5.25, 27.80]`; `x 2.0`: `[34.25, 38.2]` |
 
 Bore outlines (D = circular arc plus chord, flat on `+X`):
@@ -469,22 +480,52 @@ Axial stacks (z):
 | Item | Escape (`O`) | Pallet (`P`) | Great wheel (`G`) |
 |---|---|---|---|
 | back bearing | `[-5, 0]` | `[-5, 0]` | `[-5, 0]` |
-| collar | `[25.05, 27.75]` | `[19.95, 20.95]` | `[0.25, 1.25]` |
-| parts | escape wheel `[0.25, 25]` | anchor `[21, 27.75]` | great wheel `[1.5, 8.5]`, carrier `[5.25, 11.0]`, spring `[11.25, 17.25]`, spacer `[17.5, 27.75]` |
+| collar | `[24.0, 27.75]`; ring `[0.25, 3.25]` | shoulder `[0.25, 20.95]`; ring `[24.75, 27.75]` | `[0.25, 1.25]` |
+| parts | escape wheel `[1.5, 25]` | anchor `[21, 26]` | great wheel `[1.5, 8.5]`, carrier `[5.25, 11.0]`, spring `[11.25, 17.25]`, spacer `[17.5, 27.75]` |
 | front bearing | `[28, 33]` | `[28, 33]` | `[28, 33]` |
 | outside | none (ends at 33) | crutch `[34.25, 37.25]` + pin to 43.25 | knob `[34.25, 37.25]` |
 
-- Escape wheel: rear boss `r 3.7`, `z [0.25, 2.0]`; pinion `[1.5, 22.5]`; wheel `[22, 25]`. Slid on from the arbor's rear
-  end, over the back seat, until its front face is 0.05 from the collar (press-fit gap). The arbor and wheel then move as
-  one: the collar stops 0.25 from the front bearing, the rear boss 0.25 from the back bearing. The arbor's flat starts at
-  `z 0.20`, so the wheel's D bore never meets the round shaft.
-- Anchor: pressed on from the front until its rear face is 0.05 from the pallet collar; its boss stops 0.25 from the
-  front bearing. The crutch, pressed on the front end, stops the arbor backward 0.25 from the front plate.
+- Escape wheel: pinion `[1.5, 22.5]`, wheel `[22, 25]`, no boss. Slid on from the arbor's rear end, over the back seat,
+  front face first, until its front counterbore floor is 0.05 from the arbor's front collar (`z 24.0`). The Escape Rear
+  Collar (`z [0.25, 3.25]`) is then pressed on from the rear end into the pinion's counterbore until it is 0.05 from the
+  floor. The arbor, wheel and ring then move as one: the collar stops 0.25 from the front bearing and the ring 0.25 from
+  the back bearing. The arbor's flat starts at `z 0.20` and ends at `23.95`, so the D bores never meet the round shaft
+  and the flat never reaches the collar.
+- Anchor: pressed on from the front until its rear face is 0.05 from the pallet shoulder (`z 20.95`). The Pallet Front
+  Collar (`z [24.75, 27.75]`) is pressed on from the front into the anchor's counterbore until it is 0.05 from the floor;
+  its front face stops 0.25 from the front bearing. The crutch, pressed on the front end, stops the arbor backward 0.25
+  from the front plate. The shoulder (`z [0.25, 20.95]`, 20.7 long) stops the arbor 0.25 from the back bearing.
 - Great wheel turns freely on the `r 3.05` section, 0.25 from the collar and 0.25 from the pawl carrier's pawl layer. The
   carrier is pressed on the flat to that position (README: press until the great wheel just turns freely). The spacer stops
   0.25 from the front bearing and 0.05 from the step at `z 17.45`.
 - Print orientations (README): escape wheel wheel-face down; anchor rear face down; pawl carrier pawl layer down; mainspring flat, in PETG; great wheel
   rear face down; crutch and pendulum rear face down; arbors on end (1.2 mm collar ledge).
+
+### Arbor collars
+
+`docs/model-pipeline.md` Arbor collars applies. A separate printed collar ring counts as a collar (owner decision, now in
+that rule): each arbor between two bearings needs a collar at each end of its parts, and one of the two is a ring because a
+605ZZ bore (5.0) cannot pass a collar (7.4). Each ring is a disc `r 3.7` with a body-family D bore, pressed on the arbor's
+flat and located by a counterbore floor. Every collar is at least 3.0 mm long and 7.4 across. The Pawl Carrier boss is not
+a collar: it faces the spring hub, not a bearing or a plate. The Suspension Cap (1.5 long) is not a collar: it holds a
+bearing whose inner ring is fixed with the pin and faces no flush side.
+
+| Collar | Body | Shaft | Carried part | Flush side | z | Len | Option |
+|---|---|---|---|---|---|---|---|
+| Escape front collar | Escape Arbor | Escape Arbor | Escape Wheel | front escape bearing | `[24.0, 27.75]` | 3.75 | 2: wheel front counterbore `r 3.75`, floor 23.95 |
+| Escape Rear Collar | own ring | Escape Arbor | Escape Wheel | back escape bearing | `[0.25, 3.25]` | 3.0 | 2: pinion rear counterbore `r 3.75`, floor 3.30 |
+| Pallet shoulder | Pallet Arbor | Pallet Arbor | Anchor (press stop) | back pallet bearing | `[0.25, 20.95]` | 20.70 | 1 |
+| Pallet Front Collar | own ring | Pallet Arbor | Anchor | front pallet bearing | `[24.75, 27.75]` | 3.0 | 2: anchor front counterbore `r 3.75`, floor 24.70 |
+| Spring Spacer | own ring | Great Wheel Arbor | Mainspring hub stack | front great wheel bearing | `[17.5, 27.75]` | 10.25 | 1 |
+| Suspension shoulder | Suspension Pin | Suspension Pin | Pendulum Bearing | front plate outer face | `[34, 38.75]` | 4.75 | 1 |
+
+Collars that do not yet meet the rule, and are changed by the following steps of the same plan: the great wheel arbor's
+rear collar (1.0 long), and the crutch and the winding knob (no collar between each and the front plate).
+
+Gaps: the escape collar and the rings keep the Tight 0.25 to the bearing they face; the rings and the escape front collar
+keep the press-fit 0.05 to the counterbore floor and wall (fit C1). The carried parts clear their flush sides: the pinion's
+rear face is 1.5 from the back plate's inner face, and the anchor's front face is 2.0 from the front plate's inner face.
+`TestArborCollars` checks each collar on the built bodies.
 
 Bearings: seven `ballbearing.Params605ZZ()` envelopes, axis `+Z`, lower cap at: back `O, P, G` `z -5`; front `O, P, G`
 `z 28`; pendulum `S` `z 39`. Pockets: diameter `14 + 2·0.05 = 14.1`, 5 deep.
@@ -610,7 +651,7 @@ counter-clockwise), `Locked` (`"entry"`, `"exit"` or `""` during impulse). `Move
 | 10 | Escape Arbor | printed | Arbors | φ about `O` |
 | 11 | Pallet Arbor | printed | Arbors | ψ about `P` |
 | 12 | Great Wheel Arbor | printed | Arbors | with the pawl carrier |
-| 13 | Escape Wheel (wheel + pinion + rear boss) | printed | Escapement / Escape Wheel | φ |
+| 13 | Escape Wheel (wheel + pinion) | printed | Escapement / Escape Wheel | φ |
 | 14 | Anchor | printed | Escapement / Anchor | ψ |
 | 15 | Crutch | printed | Pendulum Assembly / Crutch | ψ |
 | 16 | Pendulum | printed | Pendulum Assembly / Pendulum | β about `S` |
@@ -622,8 +663,10 @@ counter-clockwise), `Locked` (`"entry"`, `"exit"` or `""` during impulse). `Move
 | 22 | Spring Spacer | printed | Drive / Spring Spacer | arbor turn |
 | 23 | Spring Anchor Pin | printed | Drive / Spring Anchor | fixed |
 | 24 | Winding Knob | printed | Drive / Winding Knob | arbor turn |
-| 25-28 | Bolt 1..4 | M2 × 10 | Bolts | fixed |
-| 29-32 | Nut 1..4 | M2 | Nuts | fixed |
+| 25 | Escape Rear Collar | printed | Collars | φ about `O` |
+| 26 | Pallet Front Collar | printed | Collars | ψ about `P` |
+| 27-30 | Bolt 1..4 | M2 × 10 | Bolts | fixed |
+| 31-34 | Nut 1..4 | M2 | Nuts | fixed |
 
 Bolt/nut `i` sits at pillar `i` in the order `(-50, 74)`, `(50, 74)`, `(-50, -88)`, `(50, -88)`. Use
 `Container.ChildNamed` for kinds with several bodies; `doc.VerifyContainers().Err()` must be nil.
@@ -636,10 +679,11 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | ID | Parts | Fit | Class | Built gap |
 |---|---|---|---|---|
 | T1 | each arbor in its two bearings; suspension pin shank in the pendulum bearing | radial | none: diameter = bore (Part clearances) | 0 |
-| T2 | collars, body steps at `z 0.25` (escape) and `z 27.75` (all three arbors), spacer bosses, rear boss, shoulder, cap to bearing faces | axial | Tight | 0.25 |
-| T3 | escape wheel, anchor, Spring Spacer D bores on `r 2.8`; Pawl Carrier D bore on `r 3.05` (parts that turn with the arbor), at both ends of each bore | radial and at the flat | press fit | 0.05 |
+| T2 | collars, collar rings, body steps at `z 0.25` (escape) and `z 27.75` (all three arbors), spacer bosses, shoulders, cap to bearing faces | axial | Tight | 0.25 |
+| T3 | escape wheel, anchor, Spring Spacer, Escape Rear Collar and Pallet Front Collar D bores on `r 2.8`; Pawl Carrier D bore on `r 3.05` (parts that turn with the arbor), at both ends of each bore | radial and at the flat | press fit | 0.05 |
 | T4 | great wheel rear face to its collar; Pawl Carrier pawl layer to the ratchet pocket floor (the great wheel turns relative to both) | axial | Tight | 0.25 |
-| T4p | escape wheel front face to escape collar; anchor rear face to pallet collar; Spring Spacer rear face (`z 17.5`) to the arbor step (`z 17.45`) (pressed parts, press stop) | axial | press fit | 0.05 |
+| T4p | escape wheel counterbore floor (`z 23.95`) to the escape front collar (`z 24.0`); Escape Rear Collar (`z 3.25`) to the pinion counterbore floor (`3.30`); Pallet Front Collar (`z 24.75`) to the anchor counterbore floor (`24.70`); anchor rear face to the pallet shoulder (`20.95`); Spring Spacer rear face (`z 17.5`) to the arbor step (`z 17.45`) (pressed parts, press stop) | axial | press fit | 0.05 |
+| C1 | escape front collar in the wheel's counterbore; Escape Rear Collar in the pinion's counterbore; Pallet Front Collar in the anchor's counterbore (parts that turn with the arbor) | radial | press fit | 0.05 |
 | T5 | crutch and knob rear faces to the front plate's front face | axial | Tight | 0.25 |
 | T6 | crutch pin in the pendulum slot | each side | Tight | 0.25 |
 | T7 | carrier pawl contact face to ratchet radial face at the build pose (working contact) | angular | Tight | 0.25 at `r 12` |
@@ -682,14 +726,15 @@ Large faces (≥ 400 mm²) and their chamfers (0.5, 45°), all through `internal
 |---|---|---|
 | Back plate | outer loop and both windows on both faces; pocket rims (seat chamfer); lip-bore rims on the rear face | mounting holes, pillar holes (< 20 mm) |
 | Front plate | outer loop and both windows on both faces; pocket rims; lip-bore rims on the front face | bolt holes, head pockets, suspension socket (< 20 mm) |
-| Escape Wheel | 6 window loops on both faces | tooth outline: pieces 2 to 8 mm, corners, no 20 mm run |
-| Anchor | whole outer loop of both faces, pallets included | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
+| Escape Wheel | 6 window loops on both faces; the front counterbore's rim (`r 3.75`, 3.076 mm³) | tooth outline: pieces 2 to 8 mm, corners, no 20 mm run; the pinion's rear face and its counterbore (face 255 mm²) |
+| Anchor | whole outer loop of both faces, pallets included; the front counterbore's rim (`r 3.75`, 3.076 mm³) | none. The wheel spans `z [22, 25]`, 1 mm inside each anchor face, so the 0.5 chamfer leaves the working faces whole |
 | Pendulum | outer loop of both faces; pocket rim; lip-bore rim on the rear face | slot (fit T6) |
 | Great Wheel | none | front face outer loop = tooth flanks; ratchet pocket loop = functional teeth |
-| Pawl Carrier, Spring Spacer, Spring Anchor Pin, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254) |
+| Pawl Carrier, Spring Spacer, Spring Anchor Pin, collar rings, crutch, knob, pin, cap, arbors | none | faces under 400 mm² (crutch 321, knob 254) |
 | Mainspring | its caps, by `models/spiralspring` | the item chamfers its own caps |
 
-Test: each chamfered part weighs less than its unchamfered build by the bevel volume. Each kept-sharp loop keeps
+A chamfer round a hole rim of radius `r` removes `π (r + c/3) c²` with setback `c = 0.5`, which `TestEdgeFinishing` adds for each
+counterbore rim. Test: each chamfered part weighs less than its unchamfered build by the bevel volume. Each kept-sharp loop keeps
 its edges (face count).
 
 ## Motion and pose
@@ -734,7 +779,7 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestActionAnalytic` | default | polygon checker on analytic outlines reproduces Numerical verification within 0.02 mm / 0.05° |
 | `TestEscapementAction` | default; `{κ 1.25°, λ 3°, A 6°}`; `{κ 1.5°, λ 2°, A 6°}` | see below |
 | `TestSketches` | 3 branch cases (Sketch constraint plan) | every `Movement.Sketches` entry fully constrained |
-| `TestInventory` | default, Phase 0.3 | 32 bodies, all solid, unique names, Named order = Bodies table; containers and membership as Bodies table; `VerifyContainers().Err()` nil |
+| `TestInventory` | default, Phase 0.3 | 34 bodies, all solid, unique names, Named order = Bodies table; containers and membership as Bodies table; `VerifyContainers().Err()` nil |
 | `TestGearMesh` | default; `Backlash 0` | pinion and great wheel outlines at `z 3`, 5 samples over one pinion pitch with the mesh relation: tip-to-root ≥ 0.5 both ways, no overlap |
 | `TestRatchet` | default | at `z 7` outlines: pawl-to-face gap 0.25 ± (0.02 + OffSurface); carrier turned ccw 2.5° relative to the wheel overlaps (drive engages); turned cw 2.5° does not; pawl arm to ratchet tips ≥ 0.95 |
 | `TestCoupling` | Phase 0, 0.25, 0.5, 0.75 | crutch pin to slot sides ≥ 0.2 each side; pendulum not overlapping crutch, knob or plate |
@@ -742,7 +787,8 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestFasteners` | default | each head top at `z 34` ± 1e-6 and in its pocket; each nut inside its cavity bounds; bolt tip inside the pillar; no bolt or nut overlaps the plate it passes; 1 mm of material round pockets and cavities |
 | `TestEdgeFinishing` | default | Edge finishing table (volume drop per part; sharp loops keep their edges) |
 | `TestPlacement` | origin `(10, -5, 7)`, `U = +Y`, `V = +Z` | same volumes as unplaced; bounds follow the frame |
-| `TestInstallability` | default | each between-plate part with a bore (escape wheel, anchor, pawl carrier, spring spacer, mainspring, great wheel) has its bore wall at least 2.54 mm + `OffSurface` from its axis, so it passes a 605ZZ seat; each D bore keeps its press fit (great wheel: Regular) on its arbor 0.1 mm inside both ends, with no overlap |
+| `TestArborCollars` | default | each shaft collar has both end faces on its arbor, a length of at least 3.0 mm and a round section of radius 3.7 at mid-length; each ring has a z extent of at least 3.0 mm and an outer radius of 3.7; counterbore floors and walls at the C1 and T4p press gaps; carried part to flush side 1.5 (pinion) and 2.0 (anchor) |
+| `TestInstallability` | default | each between-plate part with a bore (escape wheel, anchor, pawl carrier, spring spacer, mainspring, great wheel, both collar rings) has its bore wall at least 2.54 mm from its axis, so it passes a 605ZZ seat; each D bore keeps its press fit (great wheel: Regular) on its arbor 0.1 mm inside both ends, with no overlap |
 | `TestPoseNoOverlap` | Phase 0, 0.1, 0.35, 0.6, 0.85 | no two bodies overlap (escape wheel/anchor, pinion/great wheel, carrier/great wheel by outline; others by meshgap) |
 | `TestExploded` (render module) | exploded offsets | no two exploded parts overlap |
 
@@ -800,5 +846,7 @@ This design has no "Look-alike parts" section, so `docs/model-pipeline.md` Look-
 and no marks are cut. The parts a person could confuse are the three arbors. Marks cannot be placed on them: a
 1.5 mm hole with 1 mm of material each side needs a face wider than 3.5 mm off the axis, and a 5.0 mm arbor has
 none. They differ by sight instead. The escape arbor is 38 mm long and the other two are 42.2 mm. The pallet arbor's
-collar is mid-length (`z 20`) and the great wheel arbor's is at its rear end (`z 0.75`). The README parts table
-states these differences.
+shoulder runs from its rear end to `z 20.95`, the escape arbor's collar is near its front end (`z 24.0` to 27.75) and the
+great wheel arbor's is at its rear end (`z 0.75`). The two collar rings are the same part and carry no marks: a 1.5 mm
+hole with 1 mm of material each side needs more than 3.5 mm of face, and a ring is at most 1.1 mm wide. They are told
+apart by where they go. The README parts table states these differences.

@@ -125,6 +125,8 @@ func touching(a, b string) bool {
 		{GreatWheelArborName, BackGreatWheelBearingName}, {GreatWheelArborName, FrontGreatWheelBearingName},
 		{SuspensionPinName, PendulumBearingName}, {SuspensionPinName, FrontPlateName},
 		{BackPlateName, FrontPlateName},
+		{EscapeRearCollarName, EscapeArborName}, {EscapeRearCollarName, EscapeWheelName},
+		{PalletFrontCollarName, PalletArborName}, {PalletFrontCollarName, AnchorName},
 	}
 	// A 605ZZ in its 0.05 mm seat and a press-fit part on its arbor leave a gap below what a 0.02 mm mesh can prove, so
 	// TestFits measures those by section. The mainspring's mesh bound is wide, so its 0.25 mm fits are measured in TestSpringFits.

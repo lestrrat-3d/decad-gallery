@@ -98,13 +98,20 @@ func TestFits(t *testing.T) {
 	require.InDelta(t, 28, frontZ, 2e-3)
 	require.InDelta(t, 0, backTop, 2e-3)
 	axial(t, m.EscapeArbor, 27.75, m.FrontEscapeBearing, frontZ, 0.25, "T2 escape collar to the front bearing")
-	hasPlane(t, m.EscapeWheel, 0.25, "T2 escape wheel's rear boss")
-	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 rear boss to the back bearing")
+	hasPlane(t, m.EscapeArbor, 0.25, "T2 escape arbor's body step")
+	hasPlane(t, m.EscapeRearCollar, 0.25, "T2 escape rear collar")
+	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 escape rear collar to the back bearing")
+	hasPlane(t, m.PalletArbor, 0.25, "T2 pallet shoulder")
+	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 pallet shoulder to the back pallet bearing")
+	hasPlane(t, m.PalletArbor, 27.75, "T2 pallet arbor's body step")
+	hasPlane(t, m.EscapeArbor, 27.75, "T2 escape arbor's front collar")
+	hasPlane(t, m.GreatWheelArbor, 27.75, "T2 great wheel arbor's body step")
 	hasPlane(t, m.GreatWheelArbor, 0.25, "T2 great wheel collar")
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3)
 	hasPlane(t, m.SpringSpacer, 27.75, "T2 spring spacer")
 	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "S5 spacer to the front great wheel bearing")
-	hasPlane(t, m.Anchor, 27.75, "T2 anchor boss")
+	hasPlane(t, m.PalletFrontCollar, 27.75, "T2 pallet front collar")
+	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "T2 pallet front collar to the front pallet bearing")
 	pendLow, pendHigh := bearingZ(t, m.PendulumBearing)
 	axial(t, m.SuspensionPin, 38.75, m.Pendulum, 38.75, 0, "T2 shoulder")
 	require.InDelta(t, 0.25, pendLow-38.75, 2e-3, "T2 shoulder to the pendulum bearing")
@@ -114,6 +121,8 @@ func TestFits(t *testing.T) {
 	// T3, P1: press fits take 0.05 mm all round.
 	radial(t, m.EscapeWheel, m.EscapeArbor, 10, 0.05, 0, "T3 escape wheel on its arbor")
 	radial(t, m.Anchor, m.PalletArbor, 24, 0.05, 0, "T3 anchor on its arbor")
+	radial(t, m.EscapeRearCollar, m.EscapeArbor, 1.75, 0.05, 0, "T3 escape rear collar on its arbor")
+	radial(t, m.PalletFrontCollar, m.PalletArbor, 26.25, 0.05, 0, "T3 pallet front collar on its arbor")
 	radial(t, m.PawlCarrier, m.GreatWheelArbor, 7, 0.05, 0, "T3 pawl carrier on its arbor")
 	radial(t, m.SpringSpacer, m.GreatWheelArbor, 22, 0.05, 0, "T3 spring spacer on its arbor")
 	radial(t, m.Crutch, m.PalletArbor, 36, 0.05, 0, "P1 crutch on its arbor")
@@ -124,12 +133,20 @@ func TestFits(t *testing.T) {
 	// T4, T4p: axial gaps along an arbor.
 	axial(t, m.GreatWheel, 1.5, m.GreatWheelArbor, 1.25, 0.25, "T4 great wheel to its collar")
 	axial(t, m.PawlCarrier, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
-	axial(t, m.EscapeWheel, 25, m.EscapeArbor, 25.05, 0.05, "T4p escape wheel to its collar")
+	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "T4p escape wheel counterbore floor to its collar")
+	axial(t, m.EscapeRearCollar, 3.25, m.EscapeWheel, 3.30, 0.05, "T4p escape rear collar to the pinion counterbore floor")
+	axial(t, m.PalletFrontCollar, 24.75, m.Anchor, 24.70, 0.05, "T4p pallet front collar to the anchor counterbore floor")
+	axial(t, m.SpringSpacer, 17.5, m.GreatWheelArbor, 17.45, 0.05, "T4p spring spacer to the arbor step")
 	axial(t, m.Anchor, 21, m.PalletArbor, 20.95, 0.05, "T4p anchor to the pallet collar")
 
 	// T5: the crutch and knob stand 0.25 off the front plate.
 	axial(t, m.Crutch, 34.25, m.FrontPlate, 34, 0.25, "T5 crutch")
 	axial(t, m.WindingKnob, 34.25, m.FrontPlate, 34, 0.25, "T5 knob")
+
+	// C1: each collar ring in the counterbore it enters, press 0.05 all round.
+	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "C1 escape front collar in the wheel's counterbore")
+	radial(t, m.EscapeRearCollar, m.EscapeWheel, 2.4, 0.05, 0, "C1 escape rear collar in the pinion's counterbore")
+	radial(t, m.PalletFrontCollar, m.Anchor, 25.2, 0.05, 0, "C1 pallet front collar in the anchor's counterbore")
 
 	// T6: the crutch pin in the pendulum's slot, 0.25 each side (checked in TestCoupling by pose); here the build pose.
 	radial(t, m.Crutch, m.Pendulum, 40, 0.25, 0, "T6 crutch pin in the slot")
