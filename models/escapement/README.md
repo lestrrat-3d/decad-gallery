@@ -66,9 +66,9 @@ for a wall mount and has no stand.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars, the great wheel, the front plate, the crutch, the winding knob, the bolts, the pendulum, its bearing and the cap; the arbors lie behind the back plate">
+<img src="images/exploded.png" alt="The movement pulled apart along its axis: the back plate with its pillars at the left, the pallet arbor with the anchor and the crutch, the escape arbor with its wheel, the great wheel arbor with the great wheel and the drum, the bearings, the front plate with the suspension pin, then the pendulum with its bearing and cap shifted to the right, and the bolts and nuts around the plates">
 
-The picture pulls the parts apart along the movement's axis, from the arbors at the back to the suspension cap at the front. The arbors lie 70 mm behind the back plate, so the back plate hides most of them.
+The picture pulls the parts apart along the movement's axis, so each arbor, its wheels and its bearings stay in one line. A layer moves sideways only where a part it joins would hide it: the crutch lies inside the pendulum's outline, so the pendulum, its bearing and the suspension cap step 25 mm to the right. A dotted line joins a part to its place on the part it joins when the part moved off its own line, here the pendulum and its bearing. Each arbor sits beyond the wheels pressed onto it, in the same line.
 
 ## Parts
 

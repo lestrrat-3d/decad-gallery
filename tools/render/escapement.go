@@ -9,6 +9,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/escapement"
+	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
@@ -16,30 +17,6 @@ import (
 
 // escapementMargin is the free border of every framed escapement view, as a fraction of the image.
 const escapementMargin = 0.06
-
-// escapementExplode is how far each body moves along +Z in the exploded view, in mm.
-var escapementExplode = map[string]float64{
-	escapement.EscapeArborName: -70, escapement.PalletArborName: -70, escapement.GreatWheelArborName: -70,
-	escapement.BackPlateName:         0,
-	escapement.BackEscapeBearingName: 10, escapement.BackPalletBearingName: 10, escapement.BackGreatWheelBearingName: 10,
-	escapement.EscapeWheelName: 20, escapement.AnchorName: 20, escapement.GreatWheelName: 20,
-	escapement.DrumName:               40,
-	escapement.FrontEscapeBearingName: 45, escapement.FrontPalletBearingName: 45,
-	escapement.FrontGreatWheelBearingName: 45,
-	escapement.FrontPlateName:             55,
-	escapement.CrutchName:                 65, escapement.WindingKnobName: 65,
-	escapement.SuspensionPinName:   75,
-	escapement.PendulumName:        90,
-	escapement.PendulumBearingName: 100,
-	escapement.SuspensionCapName:   110,
-}
-
-func init() {
-	for i := range 4 {
-		escapementExplode[escapement.NutName(i)] = 12
-		escapementExplode[escapement.BoltName(i)] = 75
-	}
-}
 
 // escapementColor colours a body by the group it belongs to.
 func escapementColor(name string) solidlens.Color {
@@ -66,6 +43,8 @@ func escapementColor(name string) solidlens.Color {
 
 // escapementBuild is the default movement with every body tessellated once.
 type escapementBuild struct {
+	doc      *decad.Document
+	params   escapement.Params
 	movement *escapement.Movement
 	state    escapement.State
 	geometry escapement.Geometry
@@ -75,7 +54,8 @@ type escapementBuild struct {
 
 func buildEscapement(ctx context.Context) (*escapementBuild, error) {
 	p := escapement.DefaultParams()
-	m, err := escapement.Build(ctx, escapement.NewDocument(), p)
+	doc := escapement.NewDocument()
+	m, err := escapement.Build(ctx, doc, p)
 	if err != nil {
 		return nil, fmt.Errorf("build escapement: %w", err)
 	}
@@ -83,7 +63,7 @@ func buildEscapement(ctx context.Context) (*escapementBuild, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := &escapementBuild{movement: m, state: m.State, geometry: g, named: m.Named(), meshes: map[string]*decad.Mesh{}}
+	b := &escapementBuild{doc: doc, params: p, movement: m, state: m.State, geometry: g, named: m.Named(), meshes: map[string]*decad.Mesh{}}
 	for _, nb := range b.named {
 		mesh, err := nb.Body.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
@@ -145,22 +125,40 @@ var frontParts = func() []string {
 var driveParts = []string{escapement.GreatWheelName, escapement.DrumName, escapement.WindingKnobName,
 	escapement.GreatWheelArborName, escapement.BackGreatWheelBearingName}
 
-// models returns the models of the bodies f keeps, at rest or exploded.
-func (b *escapementBuild) models(f bodyFilter, exploded bool) []solidlens.Model {
+// models returns the models of the bodies f keeps, at rest or moved by the offsets of layout, which must be the
+// movement's exploded layout when exploded is true.
+func (b *escapementBuild) models(f bodyFilter, layout *parts.Exploded) []solidlens.Model {
+	offsets := map[string]r3.Vec{}
+	if layout != nil {
+		for _, part := range layout.Parts {
+			offsets[part.Name] = part.Offset
+		}
+	}
 	var out []solidlens.Model
 	for _, nb := range b.named {
 		if !f(nb.Name) {
 			continue
 		}
 		move := r3.Identity()
-		if exploded {
-			if t, err := r3.Translation(r3.NewVec(0, 0, escapementExplode[nb.Name])); err == nil {
-				move = t
-			}
+		if t, err := r3.Translation(offsets[nb.Name]); err == nil {
+			move = t
 		}
 		out = append(out, b.escapementModel(nb.Name, move))
 	}
 	return out
+}
+
+// explode runs the movement's derived explode over the build's document.
+func (b *escapementBuild) explode(ctx context.Context) (*parts.Exploded, error) {
+	set, err := b.movement.Set(b.doc, b.params)
+	if err != nil {
+		return nil, fmt.Errorf("set up escapement parts: %w", err)
+	}
+	layout, err := b.movement.Explode(ctx, set)
+	if err != nil {
+		return nil, fmt.Errorf("explode escapement: %w", err)
+	}
+	return layout, nil
 }
 
 // escapementCamera looks at the models' centre from direction dir (the way the camera lies from the target), with
@@ -189,29 +187,31 @@ func modelBounds(models []solidlens.Model) (low, high r3.Vec) {
 }
 
 var (
-	escapementHeroDir    = r3.NewVec(0.35, 0.25, 1)
-	escapementFrontDir   = r3.NewVec(0, 0, 1)
-	escapementAngleDir   = r3.NewVec(1, 0.6, 1)
-	escapementSideDir    = r3.NewVec(1, 0, 0)
-	escapementBackDir    = r3.NewVec(0, 0, -1)
-	escapementExplodeDir = r3.NewVec(1, 0.5, 1.2)
+	escapementHeroDir  = r3.NewVec(0.35, 0.25, 1)
+	escapementFrontDir = r3.NewVec(0, 0, 1)
+	escapementAngleDir = r3.NewVec(1, 0.6, 1)
+	escapementSideDir  = r3.NewVec(1, 0, 0)
+	escapementBackDir  = r3.NewVec(0, 0, -1)
+	// escapementExplodeDir is the exploded view's camera, on the side of the layer grid where no part hides a part of
+	// another layer (parts.Exploded.Spread.View is the opposite of a direction in that set).
+	escapementExplodeDir = r3.NewVec(-1, 0, 1.2)
 )
 
 // heroScene shows the whole movement at the default pose: the open plates let the wheel, anchor and drive show through.
 func (b *escapementBuild) heroScene() solidlens.Scene {
-	models := b.models(everything, false)
+	models := b.models(everything, nil)
 	return bevelScene(escapementCamera(models, escapementHeroDir, 16.0/9), models)
 }
 
 func (b *escapementBuild) viewScene(dir r3.Vec) solidlens.Scene {
-	models := b.models(everything, false)
+	models := b.models(everything, nil)
 	return bevelScene(escapementCamera(models, dir, 16.0/9), models)
 }
 
 // backScene looks at the movement from behind. The shared lights shine toward -Z, so they leave the back faces dark;
 // this scene turns them to shine toward +Z. The frame is square because the movement is taller than it is wide.
 func (b *escapementBuild) backScene() solidlens.Scene {
-	models := b.models(everything, false)
+	models := b.models(everything, nil)
 	scene := bevelScene(escapementCamera(models, escapementBackDir, 1), models)
 	for i := range scene.DirectionalLights {
 		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
@@ -219,9 +219,33 @@ func (b *escapementBuild) backScene() solidlens.Scene {
 	return scene
 }
 
-func (b *escapementBuild) explodedScene() solidlens.Scene {
-	models := b.models(everything, true)
-	return bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
+// escapementGuideMinSize is the longest box edge, in mm, a part needs to get a guide line in the exploded view. It
+// leaves the nuts, bolts and small bearings out, which would clutter the image. A part that moved along its own axis
+// gets no line either, because its place in the stack already shows where it goes.
+const escapementGuideMinSize = 13.0
+
+// explodedScene is the movement pulled apart by the derived explode, framed square because the layer grid is, with a dotted guide line from each moved part
+// back to where it assembles.
+func (b *escapementBuild) explodedScene(ctx context.Context) (solidlens.Scene, error) {
+	layout, err := b.explode(ctx)
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	models := b.models(everything, layout)
+	scene := bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
+	for _, guide := range layout.Guides {
+		size, err := guide.Size.In(units.Millimeter)
+		if err != nil {
+			return solidlens.Scene{}, fmt.Errorf("size of the guide of %s: %w", guide.Part, err)
+		}
+		if guide.Inline || size < escapementGuideMinSize {
+			continue
+		}
+		scene.Lines = append(scene.Lines, solidlens.Line{
+			Points: []solidlens.Vec{solidlens.Vec(guide.From), solidlens.Vec(guide.To)},
+			Color:  solidlens.RGB(0.1, 0.12, 0.16), Width: 1.5, Dash: []float64{6, 5}})
+	}
+	return scene, nil
 }
 
 // closeupScene is a near-orthographic front view of the pallets and the teeth between them at Phase 0, where the entry
@@ -279,7 +303,7 @@ func (b *escapementBuild) partScene(part escapementPart) solidlens.Scene {
 	for _, n := range part.bodies {
 		keep[n] = struct{}{}
 	}
-	models := b.models(func(name string) bool { _, ok := keep[name]; return ok }, false)
+	models := b.models(func(name string) bool { _, ok := keep[name]; return ok }, nil)
 	return bevelScene(escapementCamera(models, part.dir, 16.0/9), models)
 }
 
@@ -306,7 +330,13 @@ func init() {
 		}
 		return b.closeupScene()
 	}}
-	presets["escapement/exploded"] = preset{width: 1600, height: 900, scene: cached((*escapementBuild).explodedScene)}
+	presets["escapement/exploded"] = preset{width: 1600, height: 900, scene: func(ctx context.Context) (solidlens.Scene, error) {
+		b, err := buildEscapement(ctx)
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		return b.explodedScene(ctx)
+	}}
 	for _, part := range escapementParts {
 		presets["escapement/part-"+part.shot] = preset{width: 480, height: 270,
 			scene: cached(func(b *escapementBuild) solidlens.Scene { return b.partScene(part) })}
@@ -326,6 +356,10 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
+	exploded, err := b.explodedScene(ctx)
+	if err != nil {
+		return err
+	}
 	for _, image := range []struct {
 		name          string
 		width, height int
@@ -338,7 +372,7 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		{"assembled-side.png", 1200, 675, b.viewScene(escapementSideDir)},
 		{"assembled-back.png", 1000, 1000, b.backScene()},
 		{"closeup.png", 1200, 675, closeup},
-		{"exploded.png", 1600, 900, b.explodedScene()},
+		{"exploded.png", 1600, 900, exploded},
 	} {
 		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render escapement %s: %w", image.name, err)
