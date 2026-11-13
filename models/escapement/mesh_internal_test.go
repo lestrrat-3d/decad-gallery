@@ -78,9 +78,9 @@ func TestCoupling(t *testing.T) {
 		s, err := g.StateAt(phase)
 		require.NoError(t, err)
 		table := poses(g, s)
-		pin := l.posedLoops(t, CrutchName, 40, table[CrutchName])
+		pin := l.posedLoops(t, CrutchName, 41.05, table[CrutchName])
 		require.Len(t, pin, 1)
-		slot := slotLoop(l.posedLoops(t, PendulumName, 40, table[PendulumName]), g.S)
+		slot := slotLoop(l.posedLoops(t, PendulumName, 41.05, table[PendulumName]), g.S)
 		require.NotNil(t, slot, "the pendulum's slot")
 		require.True(t, fitsIn(pin[0], slot), "the crutch pin stands in the slot at phase %v", phase)
 		// Each side of the 3.5 mm slot clears the 3.0 mm pin by the Tight 0.25; the slot's length leaves the swing free.

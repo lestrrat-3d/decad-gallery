@@ -112,21 +112,22 @@ within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches
 
 ### 15. Crutch
 
-Sketch `crutch outline` (`z 34.25`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5`, end arc `r 4` centred by H/V
-distance `(0, -45)`. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 36.75`, origin at the end centre) circle `r 1.5`,
-extrude 6.5; `Union`. Cut the D press socket (end family: `r 2.55`, flat `2.05`; tool `z 33.25`, height 5). Check: solid, area under 400 mm².
+Sketch `crutch outline` (`z 35.30`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5`, end arc `r 4` centred by H/V
+distance `(0, -45)`. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 37.80`, origin at the end centre) circle `r 1.5`,
+extrude 6.5; `Union`. Cut the keyed rear counterbore: `dTool` D outline (arc `r 3.75`, chord `x 3.35`) about `P` at `z 34.30`,
+extrude 3.0, flat on `+X` like the bore. Cut the D press socket (end family: `r 2.55`, flat `2.05`; tool `z 34.30`, height 5). Check: solid, area under 400 mm².
 
 ### 16. Pendulum
 
-Sketch `pendulum outline` (`z 37.75`, `S`): eye arc `r 10`, lines at `x = ±4`, bob arc `r 25` centred by H/V
+Sketch `pendulum outline` (`z 38.80`, `S`): eye arc `r 10`, lines at `x = ±4`, bob arc `r 25` centred by H/V
 distance `(0, -Lp)`, lip circle `r 5`, slot (`CreateSlot`) with arc centres by H/V distance `(0, -61.25)` and
-`(0, -56.75)`, radius 1.75. Valid profile: 2 holes. Extrude 6. Pocket sketch (`z 38.75`) circle `r 7.05`, extrude
-6, `Cut`. One chamfer over `{37.75, 43.75}`: outer loop, pocket rim (7.05), lip-bore rim (5). Check: solid, slot
+`(0, -56.75)`, radius 1.75. Valid profile: 2 holes. Extrude 6. Pocket sketch (`z 39.80`) circle `r 7.05`, extrude
+6, `Cut`. One chamfer over `{38.80, 44.80}`: outer loop, pocket rim (7.05), lip-bore rim (5). Check: solid, slot
 and pocket present, chamfered volume drop.
 
 ### 18. Suspension Cap
 
-Circle `r 3.7` at `S`, `z 44.25`, extrude 1.5; cut the D press socket (`z 43.25`, height 3).
+Circle `r 3.7` at `S`, `z 45.30`, extrude 1.5; cut the D press socket (`z 44.30`, height 3).
 
 ### 19. Great Wheel
 
@@ -160,7 +161,8 @@ origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socke
 
 ### 24. Winding Knob
 
-Circle `r 9` at `G`, `z 34.25`, extrude 3; D press socket cut (`z 33.25`, height 5).
+Circle `r 9` at `G`, `z 35.30`, extrude 3; cut the keyed rear counterbore (`dTool`, arc `r 3.75`, chord `x 3.35`, at `z 34.30`,
+extrude 3.0) and the D press socket (`z 34.30`, height 5).
 
 ### 25-26. Escape Rear Collar and Pallet Front Collar
 
@@ -169,7 +171,14 @@ cut through (sketch 1 mm below the ring, arc `r 2.85`, chord `NewVertical` at `x
 Spring Spacer. Both rings are built where they stand and posed with their arbor (`poses()`: `O` by `-wheel`, `P` by
 `-ψ`). They go in the container `Collars`. Check: solid; z extent 3.0; outer radius 3.7; `TestArborCollars`.
 
-### 27-34. Bolts and nuts
+### 27-28. Crutch Collar and Knob Collar
+
+Each ring is a keyed D: sketch `dTool` outline (arc `r 3.7`, chord `x 3.3`, flat on `+X`) about `P` (crutch) or the origin
+(knob) at `z 34.25`, extruded 3.0, with the end-family D bore cut through (sketch at `z 33.25`, arc `r 2.55`, chord
+`x 2.05`, extrude 5.0). The Crutch Collar is posed with the anchor (`P` by `-ψ`), the Knob Collar with the knob (`G` by
+the arbor turn). Both go in the container `Collars`. Check: solid; rear face `z 34.25`; length 3.0; outer chord 3.3.
+
+### 29-36. Bolts and nuts
 
 `m2fastener.PlaceBolt` and `PlaceNut` on the four sites. Check: head top at `z 34`, nut inside its cavity, tip inside
 the pillar hole, no overlap with a plate.

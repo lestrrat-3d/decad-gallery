@@ -5,9 +5,9 @@
 A desk-clock-size Graham escapement. An open spiral mainspring turns a great wheel, which turns a 30-tooth escape wheel through a
 13-tooth pinion. An anchor with two pallets lets the escape wheel advance one half tooth at a time. A crutch on the
 anchor's arbor pushes a pendulum, and the pendulum's swing times the anchor. The model includes the mainspring, the pawl carrier
-with the great wheel's internal ratchet, and the winding knob. It has 34 bodies, seven of them purchased 605ZZ bearings.
+with the great wheel's internal ratchet, and the winding knob. It has 36 bodies, seven of them purchased 605ZZ bearings.
 
-The whole movement is 116 mm wide, 194 mm tall and 51.75 mm deep, from the back of the back plate to the suspension
+The whole movement is 116 mm wide, 194 mm tall and 52.80 mm deep, from the back of the back plate to the suspension
 cap. Every part fits a 220 × 220 mm print bed. The default pendulum is 215 mm long, so it is the longest part.
 
 ## How the escapement works
@@ -66,14 +66,14 @@ for a wall mount and has no stand.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The movement pulled apart along its axis, in assembly order: the escape arbor with the escape wheel and one collar ring, the pallet arbor with the anchor and the other collar ring, the great wheel arbor with the great wheel, the pawl carrier, the mainspring and the spring spacer, the back plate with its pillars and three back bearings, the spring anchor pin, the three front bearings, the front plate with the suspension pin, the four bolts and four nuts around the plates, the crutch and the winding knob, then the pendulum with its bearing and the suspension cap shifted to the right">
+<img src="images/exploded.png" alt="The movement pulled apart along its axis, in assembly order: the escape arbor with the escape wheel and one collar ring, the pallet arbor with the anchor and the other collar ring, the great wheel arbor with the great wheel, the pawl carrier, the mainspring and the spring spacer, the back plate with its pillars and three back bearings, the spring anchor pin, the three front bearings, the front plate with the suspension pin, the four bolts and four nuts around the plates, the crutch collar and the crutch, the knob collar and the winding knob, then the pendulum with its bearing and the suspension cap shifted to the right">
 
 The picture pulls the parts apart along the movement's axis, so each arbor, its wheels and its bearings stay in one line. A layer moves sideways only where a part it joins would hide it: the crutch lies inside the pendulum's outline, so the pendulum, its bearing and the suspension cap step 25 mm to the right. A dotted line joins a part to its place on the part it joins when the part moved off its own line, here the pendulum and its bearing. Each arbor sits beyond the wheels pressed onto it, in the same line, and each collar ring sits on its arbor beside the counterbore it enters.
 
 ## Parts
 
-The movement has 34 bodies and 20 distinct kinds. The table shows one of each kind and the counts are in the text:
-seven bearings (the seventh sits in the pendulum), two collar rings, four bolts, four nuts, and every other part once.
+The movement has 36 bodies and 21 distinct kinds. The table shows one of each kind and the counts are in the text:
+seven bearings (the seventh sits in the pendulum), four collar rings (two of each kind), four bolts, four nuts, and every other part once.
 
 | Image | Name |
 | --- | --- |
@@ -81,7 +81,7 @@ seven bearings (the seventh sits in the pendulum), two collar rings, four bolts,
 | <img src="images/parts/front-plate.png" alt="Front plate" width="240"> | Front plate, an open frame with two windows, three bearing seats, four head pockets and the suspension socket |
 | <img src="images/parts/escape-wheel.png" alt="Escape wheel" width="240"> | Escape wheel, with the 13-tooth pinion and a counterbore for a collar at each end |
 | <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor, with a counterbore for the pallet front collar in its front face |
-| <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin |
+| <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin and a keyed counterbore for the crutch collar in its rear face |
 | <img src="images/parts/pendulum.png" alt="Pendulum" width="240"> | Pendulum, with the crutch slot and the bearing pocket |
 | <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing |
 | <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
@@ -90,19 +90,19 @@ seven bearings (the seventh sits in the pendulum), two collar rings, four bolts,
 | <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
 | <img src="images/parts/spring-spacer.png" alt="Spring spacer" width="240"> | Spring spacer |
 | <img src="images/parts/spring-anchor-pin.png" alt="Spring anchor pin" width="240"> | Spring anchor pin |
-| <img src="images/parts/winding-knob.png" alt="Winding knob" width="240"> | Winding knob |
+| <img src="images/parts/winding-knob.png" alt="Winding knob" width="240"> | Winding knob, with a keyed counterbore for the knob collar in its rear face |
 | <img src="images/parts/escape-arbor.png" alt="Escape arbor" width="240"> | Escape arbor |
 | <img src="images/parts/pallet-arbor.png" alt="Pallet arbor" width="240"> | Pallet arbor |
 | <img src="images/parts/great-wheel-arbor.png" alt="Great wheel arbor" width="240"> | Great wheel arbor |
 | <img src="images/parts/arbor-collar.png" alt="Arbor collar ring" width="240"> | Arbor collar ring, a 3 mm ring with a D-shaped bore: two in all, one behind the escape wheel's pinion and one in front of the anchor |
+| <img src="images/parts/end-collar.png" alt="End collar ring" width="240"> | End collar ring, a 3 mm ring with a D-shaped outer surface and a D-shaped bore: two in all, one on the pallet arbor and one on the great wheel arbor, both in front of the front plate |
 | <img src="images/parts/bearing.png" alt="605ZZ bearing" width="240"> | Bearing (605ZZ), seven in all |
 | <img src="images/parts/bolt.png" alt="M2 bolt with its nut" width="240"> | M2 × 10 bolt, with its nut: four bolts and four nuts |
 
 The three arbors look alike and carry no marks, because a 1.5 mm mark hole with 1 mm of material on each side needs a
 face wider than a 5 mm arbor offers. They differ in length and in where the collar is. The escape arbor is 38 mm long and
-the other two are 42.2 mm. The escape arbor's collar is near its front end, the pallet arbor has a long shoulder from its
-rear end to `z` 21, and the great wheel arbor's 3 mm collar is at its rear end. The two collar rings are the same part and
-carry no marks, because a ring is at most 1.1 mm wide; they differ only in where they go.
+the other two are 43.25 mm. The escape arbor's collar is near its front end, the pallet arbor has a long shoulder from its
+rear end to `z` 21, and the great wheel arbor's 3 mm collar is at its rear end. The collar rings carry no marks, because a ring is at most 1.1 mm wide. The two arbor collar rings are the same part, and so are the two end collar rings. An end ring is flat on one side of its outside, and its bore is 5.1 mm across; an arbor ring is round outside, with a 5.7 mm bore.
 
 ## How it is driven
 
@@ -134,7 +134,8 @@ Print each part without supports in this orientation:
 - Mainspring: flat, in PETG. The other parts can use PLA.
 - Spring spacer: on its side or on end.
 - Great wheel: the rear face down. The floor of its counterbore prints as a ring 0.65 mm wide over air, which needs no support.
-- Crutch and pendulum: the rear face down.
+- Crutch and pendulum: the rear face down. The floor of the crutch's and the knob's rear counterbore prints as an overhang
+  ring over air, 0.9 to 1.3 mm wide, which needs no support.
 - Collar rings: flat on the bed.
 - Arbors and the suspension pin: standing on end, with the 1.2 mm collar ledge printing as a small overhang.
 - Back plate: the rear face down. **Pause at 32 mm above the bed** (`z` 26 in the model), drop the four nuts into
@@ -156,9 +157,11 @@ Assemble in this order:
 5. Place the front bearings on the arbors' front ends and hook the spring's eye on the anchor pin, which is pressed into
    the front plate. Set the front plate on, and tighten the four M2 × 10 bolts from the front. Each head ends flush
    with the plate's face.
-6. Press the crutch and the winding knob on the arbor ends, and the suspension pin's rear peg into the front plate's
-   D-shaped socket. Set the pendulum's bearing on the pin and the crutch pin in the pendulum's slot, and press the cap on
-   the pin's front peg.
+6. Press the crutch collar on the pallet arbor's front end, flat to flat, until it stops at the end of the flat, then press
+   the crutch on, its keyed counterbore over the collar, until it stops. Do the same with the knob collar and the winding
+   knob on the great wheel arbor.
+7. Press the suspension pin's rear peg into the front plate's D-shaped socket. Set the pendulum's bearing on the pin and
+   the crutch pin in the pendulum's slot, and press the cap on the pin's front peg.
 
 Hang the movement on a wall, level, so the pendulum hangs at the anchor's centre position, ψ = 0. The default pose is that
 position. Wind clockwise.
@@ -173,13 +176,12 @@ position. Wind clockwise.
   the bores pass the seats. The suspension pin's rear peg has the same fit in the front plate. Each
   collar ring has 0.05 mm of radial clearance in its counterbore and 0.05 mm between its rear face and the counterbore's floor. Each
   bearing sits in a seat with 0.05 mm of radial clearance.
-- **Tight fits, 0.25 mm.** Collars, collar rings, the spacer, the pin's shoulder and the cap stand 0.25 mm from a bearing face. The crutch
-  and knob stand 0.25 mm off the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
+- **Tight fits, 0.25 mm.** Collars, collar rings, the spacer, the pin's shoulder and the cap stand 0.25 mm from a bearing face, and the end collar rings start 0.25 mm in front of the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
   wheel's counterbore floor stands 0.25 mm from its collar's end and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
   0.25 mm from the carrier boss and from the spacer, and the eye has 0.40 mm on the anchor pin.
 - **Regular fit, 0.40 mm.** The great wheel's 6.9 mm bore turns on the arbor's 6.1 mm section, and its 8.2 mm counterbore turns
   on the 7.4 mm collar.
-- **Loose fits.** The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel
+- **Loose fits.** The crutch and the knob stand 1.30 mm in front of the front plate. The pendulum is 0.5 mm in front of the crutch and the knob. The anchor is 2.0 mm and the escape wheel
   3.0 mm behind the front plate. A pawl's arm clears the ratchet teeth by 1.0 mm.
 - **Gears.** The pinion's tips clear the great wheel's roots by 0.54 mm and the great wheel's tips clear the pinion's roots
   by 0.54 mm, at module 1.5. The default backlash is 0.15 mm per gear.

@@ -25,6 +25,7 @@ type Movement struct {
 	Crutch, Pendulum, SuspensionPin, SuspensionCap         *decad.Body
 	GreatWheel, WindingKnob                                *decad.Body
 	EscapeRearCollar, PalletFrontCollar                    *decad.Body
+	CrutchCollar, KnobCollar                               *decad.Body
 	PawlCarrier, Mainspring, SpringSpacer, SpringAnchorPin *decad.Body
 	Bolts, Nuts                                            []*decad.Body
 
@@ -74,6 +75,8 @@ const (
 	WindingKnobName            = "Winding Knob"
 	EscapeRearCollarName       = "Escape Rear Collar"
 	PalletFrontCollarName      = "Pallet Front Collar"
+	CrutchCollarName           = "Crutch Collar"
+	KnobCollarName             = "Knob Collar"
 )
 
 // slot is a body field of a Movement with its display name.
@@ -97,6 +100,7 @@ func (m *Movement) slots() []slot {
 		{PawlCarrierName, &m.PawlCarrier}, {MainspringName, &m.Mainspring}, {SpringSpacerName, &m.SpringSpacer},
 		{SpringAnchorPinName, &m.SpringAnchorPin}, {WindingKnobName, &m.WindingKnob},
 		{EscapeRearCollarName, &m.EscapeRearCollar}, {PalletFrontCollarName, &m.PalletFrontCollar},
+		{CrutchCollarName, &m.CrutchCollar}, {KnobCollarName, &m.KnobCollar},
 	}
 	for i := range m.Bolts {
 		out = append(out, slot{BoltName(i), &m.Bolts[i]})
@@ -249,6 +253,8 @@ func (b *builder) buildAll(m *Movement) error {
 		{"winding knob", func() (e error) { m.WindingKnob, e = b.buildKnob(); return }},
 		{"escape rear collar", func() (e error) { m.EscapeRearCollar, e = b.buildEscapeRearCollar(); return }},
 		{"pallet front collar", func() (e error) { m.PalletFrontCollar, e = b.buildPalletFrontCollar(); return }},
+		{"crutch collar", func() (e error) { m.CrutchCollar, e = b.buildCrutchCollar(); return }},
+		{"knob collar", func() (e error) { m.KnobCollar, e = b.buildKnobCollar(); return }},
 		{"hardware", func() (e error) {
 			var h *Hardware
 			if h, e = b.buildHardware(); e != nil {
@@ -290,6 +296,7 @@ func poses(g *Geometry, s State) map[string]bodyPose {
 		GreatWheelName: {g.G, great, true}, PawlCarrierName: {g.G, arbor, true}, SpringSpacerName: {g.G, arbor, true},
 		WindingKnobName:      {g.G, arbor, true},
 		EscapeRearCollarName: {g.O, -wheel, false}, PalletFrontCollarName: {g.P, -s.AnchorAngle, false},
+		CrutchCollarName: {g.P, -s.AnchorAngle, false}, KnobCollarName: {g.G, arbor, true},
 	}
 }
 

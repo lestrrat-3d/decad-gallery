@@ -14,7 +14,7 @@ import (
 const (
 	backBearingZ     = -5.0
 	frontBearingZ    = 28.0
-	pendulumBearingZ = 39.0
+	pendulumBearingZ = 40.05
 )
 
 // Hardware holds the purchased parts: seven 605ZZ bearings, four bolts and four nuts.

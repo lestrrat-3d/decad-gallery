@@ -61,9 +61,39 @@ func TestArborCollars(t *testing.T) {
 	requireShaftCollar(t, m.PalletArbor, g.P, 0.25, 20.95, "pallet shoulder")
 	requireShaftCollar(t, m.GreatWheelArbor, g.G, 0.25, 3.25, "great wheel collar")
 
+	// The keyed rings in their own frames (the built movement turns them): the arc reaches 3.7 on the -X side and the
+	// chord stands at 3.3 on the +X side.
+	b := testBuilder(t)
+	for name, build := range map[string]func() (*decad.Body, error){"crutch collar": b.buildCrutchCollar,
+		"knob collar": b.buildKnobCollar} {
+		ring, err := build()
+		require.NoError(t, err)
+		bb, err := ring.Bounds()
+		require.NoError(t, err)
+		axisX := 0.0
+		require.InDelta(t, axisX+keyedRingFlat, bb.Max.X, 2e-3, "%s: outer chord", name)
+		require.InDelta(t, axisX-CollarRadius, bb.Min.X, 2e-3, "%s: outer arc", name)
+	}
+
 	// Collar rings.
 	requireRing(t, m.EscapeRearCollar, g.O, 0.25, "escape rear collar")
 	requireRing(t, m.PalletFrontCollar, g.P, 24.75, "pallet front collar")
+	for _, e := range []struct {
+		ring *decad.Body
+		axis Pt
+		name string
+	}{{m.CrutchCollar, g.P, "crutch collar"}, {m.KnobCollar, g.G, "knob collar"}} {
+		bb, err := e.ring.Bounds()
+		require.NoError(t, err)
+		require.InDelta(t, 34.25, bb.Min.Z, 2e-3, "%s: rear face", e.name)
+		require.GreaterOrEqual(t, bb.Max.Z-bb.Min.Z, minCollar-2e-3, "%s: length", e.name)
+		// A keyed D ring: the arc reaches radius 3.7 on the -X side and the chord stands at 3.3 on the +X side.
+		_, hi, off := sectionRadii(t, e.ring, 36, e.axis)
+		require.InDelta(t, 2.05, boreReach(t, e.ring, 36, e.axis), 0.02, "%s: bore chord", e.name)
+		require.InDelta(t, CollarRadius, hi, 0.01+off, "%s: outer radius", e.name)
+		// Wall at the flats: 3.3 - 2.05 = 1.25.
+		require.GreaterOrEqual(t, keyedRingFlat-pressFlat, 1.2, "%s: wall at the flats", e.name)
+	}
 
 	// Counterbores: the part's floor stops 0.05 from the collar and the wall stands 0.05 from it all round (press fits,
 	// the parts turn with the shaft). The collar enters each counterbore by at least 1 mm of its length, and the part
@@ -97,5 +127,11 @@ func TestArborCollars(t *testing.T) {
 	// face is 2.0 from the front plate's inner face.
 	axial(t, m.EscapeWheel, 1.5, m.BackPlate, 0, 1.5, "pinion rear face to the back plate")
 	axial(t, m.GreatWheel, 1.5, m.BackPlate, 0, 1.5, "great wheel rear face to the back plate")
+	axial(t, m.Crutch, 35.30, m.FrontPlate, 34, 1.30, "crutch rear face to the front plate")
+	axial(t, m.WindingKnob, 35.30, m.FrontPlate, 34, 1.30, "knob rear face to the front plate")
+	// Outside collars start 0.25 in front of the plate's outer face, and stay outside its lip bore.
+	hasPlane(t, m.CrutchCollar, 34.25, "crutch collar rear face")
+	hasPlane(t, m.KnobCollar, 34.25, "knob collar rear face")
+	hasPlane(t, m.PalletArbor, 34.25, "the pallet arbor flat starts where the crutch collar does")
 	axial(t, m.Anchor, 26, m.FrontPlate, 28, 2.0, "anchor front face to the front plate")
 }

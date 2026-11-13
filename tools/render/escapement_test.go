@@ -20,7 +20,7 @@ func TestEscapementExploded(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, layout.Spread)
 	require.True(t, layout.Spread.Ran, "the thin escapement spreads its layers")
-	require.Len(t, layout.Parts, 34)
+	require.Len(t, layout.Parts, 36)
 
 	for name, extent := range map[string]struct {
 		got units.Value

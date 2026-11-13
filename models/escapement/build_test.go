@@ -36,6 +36,7 @@ var expectedNames = []struct{ name, path string }{
 	{"Great Wheel", "Drive/Great Wheel"}, {"Pawl Carrier", "Drive/Pawl Carrier"}, {"Mainspring", "Drive/Mainspring"},
 	{"Spring Spacer", "Drive/Spring Spacer"}, {"Spring Anchor Pin", "Drive/Spring Anchor"}, {"Winding Knob", "Drive/Winding Knob"},
 	{"Escape Rear Collar", "Collars"}, {"Pallet Front Collar", "Collars"},
+	{"Crutch Collar", "Collars"}, {"Knob Collar", "Collars"},
 	{"Bolt 1", "Bolts"}, {"Bolt 2", "Bolts"}, {"Bolt 3", "Bolts"}, {"Bolt 4", "Bolts"},
 	{"Nut 1", "Nuts"}, {"Nut 2", "Nuts"}, {"Nut 3", "Nuts"}, {"Nut 4", "Nuts"},
 }
