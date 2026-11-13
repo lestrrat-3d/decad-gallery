@@ -58,11 +58,15 @@ func TestPlates(t *testing.T) {
 	require.False(t, inside(t, front, 57.9, 0, 28.1), "front plate inner edge")
 	require.False(t, inside(t, front, 57.9, 0, 33.9), "front plate front edge")
 	require.True(t, inside(t, front, 57.4, 0, 33.4), "front plate wall below the chamfer")
-	// The bearing seats carry a seat chamfer on the inner face; the lip rims on the outer face stay sharp.
-	require.False(t, inside(t, back, 7.4, 0, -0.1), "back seat rim chamfer")
-	require.True(t, inside(t, back, 5.1, 0, -5.9), "the lip rim stays sharp: Decad names no faceted rim")
-	require.False(t, inside(t, front, 7.4, 0, 28.1), "front seat rim chamfer")
-	require.True(t, inside(t, front, 5.1, 0, 33.9), "the lip rim stays sharp")
+	// The bearing seats carry a seat chamfer on the inner face and the lip bores a rim chamfer on the outer face.
+	for _, a := range []Pt{g.O, g.P, g.G} {
+		require.False(t, inside(t, back, a.X+7.4, a.Y, -0.1), "back seat rim chamfer")
+		require.False(t, inside(t, back, a.X+5.1, a.Y, -5.9), "back lip rim chamfer")
+		require.True(t, inside(t, back, a.X+5.6, a.Y, -5.4), "back plate below the lip rim chamfer")
+		require.False(t, inside(t, front, a.X+7.4, a.Y, 28.1), "front seat rim chamfer")
+		require.False(t, inside(t, front, a.X+5.1, a.Y, 33.9), "front lip rim chamfer")
+		require.True(t, inside(t, front, a.X+5.6, a.Y, 33.4), "front plate below the lip rim chamfer")
+	}
 }
 
 // TestPlateWindows checks by section outline at mid-plane that each plate is open where the mechanism shows through and

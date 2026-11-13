@@ -43,10 +43,11 @@ func TestEdgeFinishing(t *testing.T) {
 		})
 	}
 
-	// Plates: the outer loop and both windows on both faces, and the three seat rims on the inner face; the lip rims stay sharp.
+	// Plates: the outer loop and both windows on both faces, the three seat rims on the inner face and the three lip-bore
+	// rims on the outer face.
 	outer := func(z float64, body *decad.Body) float64 { return perimeter(loopsBy(sectionAt(t, body, z))[0]) }
-	backEdges := 2*plateRims(t, m.BackPlate, -3) + 3*2*math.Pi*seatRadius
-	frontEdges := 2*plateRims(t, m.FrontPlate, 31) + 3*2*math.Pi*seatRadius
+	backEdges := 2*plateRims(t, m.BackPlate, -3) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
+	frontEdges := 2*plateRims(t, m.FrontPlate, 31) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
 	check("back plate", m.BackPlate, plain.buildBackPlate, backEdges)
 	check("front plate", m.FrontPlate, plain.buildFrontPlate, frontEdges)
 	// Anchor: the outer loop of both faces, pallets included.
