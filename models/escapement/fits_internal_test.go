@@ -134,7 +134,7 @@ func TestFits(t *testing.T) {
 	// T6: the crutch pin in the pendulum's slot, 0.25 each side (checked in TestCoupling by pose); here the build pose.
 	radial(t, m.Crutch, m.Pendulum, 40, 0.25, 0, "T6 crutch pin in the slot")
 
-	// R1: the great wheel's 5.8 bore on the 5.0 arbor.
+	// R1: the great wheel's 6.9 bore on the 6.1 arbor section.
 	radial(t, m.GreatWheel, m.GreatWheelArbor, 4, 0.4, regular, "R1 great wheel bore")
 
 	// L1, L3, L4: axial Loose gaps.
@@ -145,7 +145,7 @@ func TestFits(t *testing.T) {
 
 	// L2, L5, L6: radial Loose gaps.
 	radial(t, m.SpringSpacer, m.EscapeWheel, 23.5, 2.05, 2.05-0.1, "L2 spring spacer to the wheel tips")
-	radial(t, m.GreatWheelArbor, m.EscapeWheel, 23.5, 3.25, 3.25-0.1, "L2 great wheel arbor to the wheel tips")
+	radial(t, m.GreatWheelArbor, m.EscapeWheel, 23.5, 2.95, 2.95-0.1, "L2 great wheel arbor to the wheel tips")
 	radial(t, m.EscapeWheel, m.PawlCarrier, 7, 22.0, 22.0-0.1, "L5 pinion tips to the pawl layer")
 	radial(t, m.SuspensionPin, m.Pendulum, 38.2, 1.3, 1.3-0.1, "L6 shoulder in the lip bore")
 

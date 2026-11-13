@@ -15,6 +15,17 @@ const (
 	flatReach    = 3.5
 )
 
+// The body between the bearing seats is larger than the seat, so a part bored with a D chord at bodyPressFlat
+// slides over a seat on its way to the body. Every body section has its flat at bodyFlatX.
+const (
+	bodyRadius       = 2.8  // arbor body between the seats
+	driveBodyRadius  = 3.05 // great wheel arbor under the great wheel, the pawl carrier and the mainspring
+	bodyFlatX        = 2.55 // flat plane of every body section; above 2.5, so the cutting box never touches a seat
+	bodyPressRadius  = 2.85 // D bore arc on bodyRadius, 0.05 press
+	drivePressRadius = 3.10 // D bore arc on driveBodyRadius, 0.05 press
+	bodyPressFlat    = 2.60 // D bore chord on either body section, 0.05 press; above 2.5, so it passes a seat
+)
+
 // meridianPoints is a (radius, z) polygon with a point on the axis at each end.
 type meridianPoints [][2]float64
 
@@ -49,31 +60,34 @@ func (b *builder) stepped(what string, x, y float64, pts meridianPoints) (*decad
 	return b.revolve(s, what)
 }
 
-// flatBox extrudes the box x in [FlatX, flatReach+0], y in [-3.5, 3.5] over z in [z0, z1] about the axis (x, y).
-func (b *builder) flatBox(what string, x, y, z0, z1 float64) (*decad.Body, error) {
+// flatSpan is one flat cut along an arbor: the flat plane x = X over z in [Z0, Z1].
+type flatSpan struct{ X, Z0, Z1 float64 }
+
+// flatBox extrudes the box x in [flatX, flatReach], y in [-3.5, 3.5] over z in [z0, z1] about the axis (x, y).
+func (b *builder) flatBox(what string, x, y, flatX, z0, z1 float64) (*decad.Body, error) {
 	s, err := b.flat(what, x, y, z0)
 	if err != nil {
 		return nil, err
 	}
-	rect := s.CreateRectangle(FlatX, -flatReach, flatReach, flatReach)
+	rect := s.CreateRectangle(flatX, -flatReach, flatReach, flatReach)
 	s.AddConstraint(
-		sketch.NewHorizontalDistance(s.Origin(), rect.A, FlatX),
+		sketch.NewHorizontalDistance(s.Origin(), rect.A, flatX),
 		sketch.NewVerticalDistance(s.Origin(), rect.A, -flatReach),
-		sketch.NewHorizontalDistance(rect.A, rect.B, flatReach-FlatX),
+		sketch.NewHorizontalDistance(rect.A, rect.B, flatReach-flatX),
 		sketch.NewVerticalDistance(rect.A, rect.D, 2*flatReach),
 	)
 	return b.extrude(s, 0, z1-z0, what)
 }
 
 // arbor builds a stepped shaft and cuts its flats over the spans.
-func (b *builder) arbor(what string, x, y float64, pts meridianPoints, spans [][2]float64) (*decad.Body, error) {
+func (b *builder) arbor(what string, x, y float64, pts meridianPoints, spans []flatSpan) (*decad.Body, error) {
 	body, err := b.stepped(what, x, y, pts)
 	if err != nil {
 		return nil, err
 	}
 	var boxes []*decad.Body
 	for i, sp := range spans {
-		box, err := b.flatBox(fmt.Sprintf("%s flat %d", what, i+1), x, y, sp[0], sp[1])
+		box, err := b.flatBox(fmt.Sprintf("%s flat %d", what, i+1), x, y, sp.X, sp.Z0, sp.Z1)
 		if err != nil {
 			return nil, err
 		}
@@ -89,28 +103,34 @@ func (b *builder) arbor(what string, x, y float64, pts meridianPoints, spans [][
 }
 
 var (
-	escapeArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 25.05}, {3.7, 25.05}, {3.7, 27.75},
-		{2.5, 27.75}, {2.5, 33}, {0, 33}}
+	escapeArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {bodyRadius, 0.25}, {bodyRadius, 25.05},
+		{3.7, 25.05}, {3.7, 27.75}, {2.5, 27.75}, {2.5, 33}, {0, 33}}
 	palletArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 19.95}, {3.7, 19.95},
-		{3.7, 20.95}, {2.5, 20.95}, {2.5, 37.2}, {0, 37.2}}
+		{3.7, 20.95}, {bodyRadius, 20.95}, {bodyRadius, 27.75}, {2.5, 27.75}, {2.5, 37.2}, {0, 37.2}}
 	greatArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
-		{3.7, 1.25}, {2.5, 1.25}, {2.5, 37.2}, {0, 37.2}}
+		{3.7, 1.25}, {driveBodyRadius, 1.25}, {driveBodyRadius, 17.45}, {bodyRadius, 17.45}, {bodyRadius, 27.75},
+		{2.5, 27.75}, {2.5, 37.2}, {0, 37.2}}
 	pinPoints = meridianPoints{{0, 31.05}, {2.5, 31.05}, {2.5, 34}, {3.7, 34},
 		{3.7, 38.75}, {2.5, 38.75}, {2.5, 45.70}, {0, 45.70}}
+
+	escapeArborFlats = []flatSpan{{bodyFlatX, 0.20, 25.0}}
+	palletArborFlats = []flatSpan{{bodyFlatX, 21.0, 27.80}, {FlatX, 34.25, 38.2}}
+	greatArborFlats  = []flatSpan{{bodyFlatX, 5.25, 27.80}, {FlatX, 34.25, 38.2}}
+	pinFlats         = []flatSpan{{FlatX, 30.05, 33.95}, {FlatX, 44.25, 46.70}}
 )
 
 func (b *builder) buildEscapeArbor() (*decad.Body, error) {
-	return b.arbor("escape arbor", 0, 0, escapeArborPoints, [][2]float64{{0.5, 25.0}})
+	return b.arbor("escape arbor", 0, 0, escapeArborPoints, escapeArborFlats)
 }
 
 func (b *builder) buildPalletArbor() (*decad.Body, error) {
-	return b.arbor("pallet arbor", 0, b.g.P.Y, palletArborPoints, [][2]float64{{21.0, 27.75}, {34.25, 38.2}})
+	return b.arbor("pallet arbor", 0, b.g.P.Y, palletArborPoints, palletArborFlats)
 }
 
 func (b *builder) buildGreatWheelArbor() (*decad.Body, error) {
-	return b.arbor("great wheel arbor", b.g.G.X, b.g.G.Y, greatArborPoints, [][2]float64{{5.25, 27.75}, {34.25, 38.2}})
+	return b.arbor("great wheel arbor", b.g.G.X, b.g.G.Y, greatArborPoints, greatArborFlats)
 }
 
 func (b *builder) buildSuspensionPin() (*decad.Body, error) {
-	return b.arbor("suspension pin", 0, b.g.S.Y, pinPoints, [][2]float64{{30.05, 33.95}, {44.25, 46.70}})
+	return b.arbor("suspension pin", 0, b.g.S.Y, pinPoints, pinFlats)
 }

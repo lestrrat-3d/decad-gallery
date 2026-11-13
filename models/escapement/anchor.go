@@ -104,7 +104,7 @@ func (b *builder) buildAnchor() (*decad.Body, error) {
 	if body, err = b.union("anchor", body, boss); err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("anchor bore", g.P.X, g.P.Y, anchorBoreAt, pressRadius, pressFlat, anchorBoreH)
+	tool, err := b.dTool("anchor bore", g.P.X, g.P.Y, anchorBoreAt, bodyPressRadius, bodyPressFlat, anchorBoreH)
 	if err != nil {
 		return nil, err
 	}

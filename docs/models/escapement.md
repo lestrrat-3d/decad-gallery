@@ -82,6 +82,8 @@ The package tests, about 4.5 minutes in all, build the default movement once and
 - `TestCentreLine`, `TestPlateWindows`, `TestPlateMaterial` and `TestKnob`: the four axes on `x = 0`, ψ = 0 and β = 0 at the
   default phase, plates that are symmetric about the line, windows open where the mechanism shows and material in the
   spine, hub rings and rims, and a winding knob under 400 mm².
+- `TestInstallability`: each between-plate part's D bore passes a 605ZZ seat and keeps its press fit at both ends on
+  the stepped arbor.
 - `TestArbors`, `TestEscapeWheel`, `TestAnchor`, `TestPendulumParts`, `TestRatchet`, `TestPlates` and `TestFasteners`: each
   part's shape and each fastener's place.
 - `TestGearMesh`, `TestCoupling`, `TestFits`, `TestEdgeFinishing` and `TestPoseNoOverlap`: the gear train clearances at five

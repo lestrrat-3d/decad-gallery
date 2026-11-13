@@ -125,7 +125,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("escape wheel bore", 0, 0, -boreToolReach, pressRadius, pressFlat, wheelHigh+2*boreToolReach+1)
+	tool, err := b.dTool("escape wheel bore", 0, 0, -boreToolReach, bodyPressRadius, bodyPressFlat, wheelHigh+2*boreToolReach+1)
 	if err != nil {
 		return nil, err
 	}

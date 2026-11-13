@@ -15,7 +15,7 @@ import (
 const (
 	greatRear         = 1.5
 	greatLength       = 7.0
-	greatBore         = 5.8
+	greatBore         = 6.9
 	ratchetFloor      = 5.0
 	ratchetTool       = 4.5
 	ratchetDisc       = 11.5
@@ -133,7 +133,7 @@ func (b *builder) buildPawlCarrier() (*decad.Body, error) {
 		}
 		rest = append(rest, pawl)
 	}
-	boss, err := b.discAt("carrier boss", 0, 0, carrierBossLow, CollarRadius, carrierBossLength)
+	boss, err := b.discAt("carrier boss", 0, 0, carrierBossLow, carrierBossRadius, carrierBossLength)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (b *builder) buildPawlCarrier() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bore, err := b.dTool("carrier bore", 0, 0, layerLow-1, pressRadius, pressFlat, 7.75)
+	bore, err := b.dTool("carrier bore", 0, 0, layerLow-1, drivePressRadius, bodyPressFlat, 7.75)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (b *builder) buildSpringSpacer() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bore, err := b.dTool("spacer bore", 0, 0, spacerLow-1, pressRadius, pressFlat, spacerHigh-spacerLow+2)
+	bore, err := b.dTool("spacer bore", 0, 0, spacerLow-1, bodyPressRadius, bodyPressFlat, spacerHigh-spacerLow+2)
 	if err != nil {
 		return nil, err
 	}
