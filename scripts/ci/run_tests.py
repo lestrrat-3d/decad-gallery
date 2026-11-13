@@ -141,6 +141,10 @@ BEVEL_FULL_TESTS = [
     for shard in BEVEL_TESTS["full"].values()
     for test in shard
 ]
+BEVEL_JOB_GROUPS = {
+    "abgh": ("a", "b", "g", "h"),
+    "cdef": ("c", "d", "e", "f"),
+}
 
 
 def run_pattern(tests: list[str]) -> str:
@@ -189,6 +193,10 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
 
 
 def run_bevel(mode: str, shard: str) -> None:
+    if shard in BEVEL_JOB_GROUPS:
+        for member in BEVEL_JOB_GROUPS[shard]:
+            run_bevel(mode, member)
+        return
     tests = BEVEL_TESTS[mode][shard]
     timeout = "15m" if mode == "pr" else "60m"
     go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests)
@@ -232,8 +240,18 @@ def run_wheel(case: str) -> None:
 
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
-    "default": "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
-    "variants": "^TestHandCrankSirenVariant$",
+    "default": (
+        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+        [],
+    ),
+    "slots12": (
+        "^TestHandCrankSirenVariant$/^slots_12$",
+        ["TestHandCrankSirenVariant/slots_12"],
+    ),
+    "slots24": (
+        "^TestHandCrankSirenVariant$/^slots_24$",
+        ["TestHandCrankSirenVariant/slots_24"],
+    ),
 }
 
 FAN_VARIANTS = {
@@ -243,7 +261,11 @@ FAN_VARIANTS = {
 
 
 def run_siren(case: str) -> None:
-    go_test(["./models/handcranksiren", "-run", SIREN_CASES[case], "-timeout", "40m", "-count=1"])
+    pattern, expected = SIREN_CASES[case]
+    go_test(
+        ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
+        expected,
+    )
 
 
 def run_escapement() -> None:

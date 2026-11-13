@@ -24,9 +24,60 @@ class RunPatternTest(unittest.TestCase):
                     self.assertNotIn("(", run_tests.run_pattern(tests))
 
 
+class BevelJobGroupsTest(unittest.TestCase):
+    def test_groups_partition_all_shards_once(self):
+        shards = [shard for group in run_tests.BEVEL_JOB_GROUPS.values() for shard in group]
+        self.assertEqual(sorted(shards), list("abcdefgh"))
+
+    def test_group_runs_original_shards_in_order(self):
+        with mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_bevel("pr", "abgh")
+        self.assertEqual(
+            go_test.call_args_list,
+            [
+                mock.call(
+                    [
+                        "./models/bevelgear",
+                        "-run",
+                        run_tests.run_pattern(run_tests.BEVEL_TESTS["pr"][shard]),
+                        "-timeout",
+                        "15m",
+                    ],
+                    run_tests.BEVEL_TESTS["pr"][shard],
+                )
+                for shard in ("a", "b", "g", "h")
+            ],
+        )
+
+
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
-        self.assertEqual(set(run_tests.SIREN_CASES), {"default", "variants"})
+        expected = {
+            "default": (
+                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+                [],
+            ),
+            "slots12": (
+                "^TestHandCrankSirenVariant$/^slots_12$",
+                ["TestHandCrankSirenVariant/slots_12"],
+            ),
+            "slots24": (
+                "^TestHandCrankSirenVariant$/^slots_24$",
+                ["TestHandCrankSirenVariant/slots_24"],
+            ),
+        }
+        self.assertEqual(run_tests.SIREN_CASES, expected)
+
+    def test_siren_cases_pass_expected_variant(self):
+        for case, (pattern, expected) in run_tests.SIREN_CASES.items():
+            with self.subTest(case=case):
+                with mock.patch.object(run_tests, "go_test") as go_test:
+                    run_tests.run_siren(case)
+                args, kwargs = go_test.call_args
+                self.assertEqual(args[0][0], "./models/handcranksiren")
+                self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
+                self.assertEqual(args[1], expected)
+                self.assertEqual(kwargs, {})
 
 
 class EscapementTest(unittest.TestCase):

@@ -120,7 +120,8 @@ jobs:
       matrix:
         case:
           - default
-          - variants
+          - slots12
+          - slots24
     name: siren-${{ matrix.case }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -132,7 +133,26 @@ jobs:
       - name: Check hand-crank siren
         run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
 
-  bevel:
+  bevel-pr:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: abgh
+          - group: cdef
+    name: bevel-${{ matrix.group }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check representative bevel geometry shards
+        run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.group }}
+
+  bevel-full:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -152,9 +172,5 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Check representative bevel geometry
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.shard }}
       - name: Check full bevel coverage shard
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
