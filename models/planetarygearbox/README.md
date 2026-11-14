@@ -169,14 +169,13 @@ radians. Each pair of meshing gears has 0.3 mm of backlash by default, set by ho
 ## Bearing kits
 
 A kit picks a bearing for the planets and a bearing for the shafts and comes with a tooth set that passes the fit
-checks. A 608ZZ shaft is 8 mm across and carries more torque than a 605ZZ shaft, which is 5 mm. Only the first two kits
-have a page so far.
+checks. A 608ZZ shaft or pin is 8 mm across and carries more torque than a 605ZZ one, which is 5 mm.
 
 | Kit | Planet bearing | Shaft bearing | Teeth | One-stage ratio |
 | --- | --- | --- | --- | --- |
 | [planet605-shaft605](#planetary-gearbox) (default) | 605ZZ | 605ZZ | 13/29/71 | 6.46 |
 | [planet605-shaft608](kit-planet605-shaft608.md) | 605ZZ | 608ZZ | 14/28/70 | 6 |
-| planet608-shaft605 | 608ZZ | 605ZZ | 13/29/71 | 6.46 |
-| planet608-shaft608 | 608ZZ | 608ZZ | 14/28/70 | 6 |
+| [planet608-shaft605](kit-planet608-shaft605.md) | 608ZZ | 605ZZ | 13/29/71 | 6.46 |
+| [planet608-shaft608](kit-planet608-shaft608.md) | 608ZZ | 608ZZ | 14/28/70 | 6 |
 
 For how to build this gearbox from Go, see the [developer notes](../../docs/models/planetarygearbox.md).
