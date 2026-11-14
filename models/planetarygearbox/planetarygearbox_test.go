@@ -836,7 +836,7 @@ func TestShaftFlat(t *testing.T) {
 	radius := shaftDiameter.Base() / 2
 	segment := circleSegment(radius, p.FlatDepth)
 	collarRadius := shaftCollarDiameter.Base() / 2
-	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5)
+	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5 - 0.25)
 	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*p.GearThickness, v, bound+0.5)
 }
 

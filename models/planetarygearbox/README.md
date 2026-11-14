@@ -22,10 +22,11 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing">
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover and the rear bearing">
 
 The picture pulls the gearbox apart along its axis. The bolts and nuts are left out; the "How the housing is
-bolted" section shows them.
+bolted" section shows them. Each stage's planets, bearings and carrier pins also move 45 mm outward from the axis, so
+all three planets of a stage show side by side and none hides behind the sun.
 
 The parts, from the bottom of the picture:
 

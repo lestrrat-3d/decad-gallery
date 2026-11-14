@@ -281,8 +281,10 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wbs, -g - Tv]`; the rear cover's
   frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wbs]`. The front bearing fills
   `[-g - Tv - Wbs, -g - Tv]` and the rear bearing `[K P + Tv, K P + Tv + Wbs]`.
-- The input shaft spans `[-g - Tv - Wbs - Li, T]`; a collar fills `[-g - Tv, -0.5]`, from the front bearing's inner
-  face to 0.5 mm short of the first sun's lower face. That 0.5 mm is the collar clearance.
+- The input shaft spans `[-g - Tv - Wbs - Li, T]`; a collar fills `[-g - Tv + 0.25, -0.5]`, from 0.25 mm above the
+  front bearing's inner face to 0.5 mm short of the first sun's lower face. The 0.25 mm is the Tight gap to the
+  bearing and the 0.5 mm is the collar clearance. The collar is `g + Tv - 0.75` long, 3.25 mm by default and never under
+  3.0 mm, because `g >= 0.75` and `Tv >= 3`.
 
 Each carrier is one solid body, a plate with a socket for each pin, and each pin is its own body, as are the shafts.
 A carrier's plate is the convex hull of the `n` pin bosses, a rounded polygon: a boss circle of the boss diameter
@@ -300,7 +302,7 @@ test measures them on the built bodies yet.
 
 | Collar | Shaft | Carried part | Flush side | z | Len | Option |
 |---|---|---|---|---|---|---|
-| Input shaft collar | Input shaft | First sun, which turns with the shaft | Front bearing's inner face, `z -4` | `[-4, -0.5]` | 3.5 | 1: the 4 mm gap, less the 0.5 collar clearance at the sun |
+| Input shaft collar | Input shaft | First sun, which turns with the shaft | Front bearing's inner face, `z -4` | `[-3.75, -0.5]` | 3.25 | 1: the 4 mm gap, less the 0.25 Tight gap at the bearing and the 0.5 collar clearance at the sun |
 | Output shaft thick part | Output shaft | Last carrier, which turns with the shaft | Rear bearing's inner face, `z 16` | `[9, 15.75]` | 6.75 | 1: 3.75 above the plate's upper face (`z 12`), 0.25 short of the bearing |
 | Link shaft thick part | Link shaft | First carrier, and the next sun above it | Carrier plate, `[9, 12]` | `[9, 12.75]` | 3.75 | None of the three: the part is pressed through the plate and only 0.75 mm of it stands above the plate |
 | Carrier pin thick part | Carrier pin | Planet bearing, which turns on the pin | Carrier plate, `[9, 12]` | `[8.5, 12]` | 3.5 | None of the three: the part is pressed through the plate, 0.5 mm of it stands below, and the planet bearing top is 0.25 below that |
@@ -412,4 +414,4 @@ it assembled and uncut from the output end, the input end and the side, and an a
 gearbox turning from three cameras, its parts moved rigidly with the kinematic angles (carrier `Zs/(Zs+Zr)` of
 its sun's, planet `1 - Zr/Zp` of its carrier's).
 
-Each non-default kit that has a page, `models/planetarygearbox/kit-<kit>.md`, shows a hero, three assembled views, an exploded view from each of two sides, so no planet stays hidden, and a parts table rendered through `tools/render/` with `-kit <kit>`. The exploded view is at least 1600 × 900 pixels and fills the page width.
+Each non-default kit that has a page, `models/planetarygearbox/kit-<kit>.md`, shows a hero, three assembled views, an exploded view and a parts table rendered through `tools/render/` with `-kit <kit>`. The exploded view is at least 1600 × 900 pixels and fills the page width.
