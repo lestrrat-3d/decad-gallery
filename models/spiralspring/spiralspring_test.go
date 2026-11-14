@@ -42,6 +42,9 @@ var springCases = []springCase{
 	{name: "thickness-floor", edit: func(p *spiralspring.Params) {
 		p.OuterDiameter, p.Thickness, p.MinGap, p.Height = 30, 1.5, 1, 4
 	}, turns: 2},
+	{name: "gap-floor", edit: func(p *spiralspring.Params) {
+		p.OuterDiameter, p.Thickness, p.MinGap, p.Height = 32, 1.5, 1, 4
+	}, turns: 3},
 	{name: "max-turns", edit: func(p *spiralspring.Params) { p.OuterDiameter = 310 }, turns: 40, noMesh: true},
 }
 

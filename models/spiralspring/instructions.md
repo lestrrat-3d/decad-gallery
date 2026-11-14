@@ -34,7 +34,10 @@ All dimensions are in millimeters.
 | `rho_prev` | outer radius of half turn `2N-2` (about `B`) | `r_{2N-2} + t` |
 | `L` | eye center depth below the X axis | `max(2*R_e, sqrt(max(0, (rho_prev + g + R_e)^2 - (r_{2N-1} + t/2 + d)^2)))` |
 | `E` | eye center | `(-(r_{2N-1} + t/2), -L)` |
-| `r_f` | 3D fillet radius | `min(t/2, g/4)` |
+| `r_f` | 3D fillet radius | `min(t/2, g/2)` |
+| `e` | taper offset: half turn 0's inner-edge center moves from `B` by `e` | `min(TaperFraction*t, e_room)` |
+| `e_room` | the largest `e` that keeps `TaperMargin` of the spoke's straight underside between the C3 and C4 fillets | `rho0 - r_f - (Q^2 + a^2)/(2Q)`, with `a = 2t + r_f`, `x4 = -sqrt((R + r_f)^2 - a^2)` and `Q = TaperMargin + d - x4 + rho0 - r_f` |
+| root thickness | strip thickness at the spoke | `t + 2e` |
 
 `ActiveLength` is the centerline length of the `2N` arcs: `pi*(2N*(rho0 + t/2) + d*N*(2N - 1))`.
 `WindStrain` estimates the surface strain when the first turn wraps the hub:
@@ -44,7 +47,8 @@ All dimensions are in millimeters.
 
 Package: `models/spiralspring`. Exported surface:
 
-- Constants `ThicknessFloor = 1.5`, `GapFloor = 1.0`, `ClearanceFloor = 0.2` and `MaxTurns = 40`.
+- Constants `ThicknessFloor = 1.5`, `GapFloor = 1.0`, `ClearanceFloor = 0.2`, `MaxTurns = 40`,
+  `TaperFraction = 0.075` and `TaperMargin = 0.05`.
 - `Params` with the float fields `OuterDiameter`, `HubDiameter`, `Thickness`, `Height`, `MinGap`,
   `ArborDiameter`, `ArborFlatDepth`, `BoreClearance`, `AnchorPinDiameter`, `AnchorClearance`, the integer
   `Turns` (0 selects as many turns as fit) and `Placement *r3.Frame` (nil selects the local frame).
@@ -54,7 +58,8 @@ Package: `models/spiralspring`. Exported surface:
   `CenterOffset` (`d`), `HubRadius` (`R`), `CoilRadius` (`R_c`), `FirstInnerRadius` (`rho0`), `SpokeWidth` (`w`),
   `BoreRadius` (`r_b`), `BoreFlatDistance` (`f`, 0 when the bore is round), `EyeCenterX` and `EyeCenterY` (the
   coordinates of `E`, so `EyeCenterY = -L`), `EyeRadius` (`R_e`), `EyeHoleDiameter` (`D_hole`), `TailLength`
-  (`L` itself, not the straight part of the tail), `FilletRadius` (`r_f`), `ActiveLength` and `WindStrain`.
+  (`L` itself, not the straight part of the tail), `FilletRadius` (`r_f`), `TaperOffset` (`e`), `ActiveLength`
+  and `WindStrain`.
   `Dimensions` has no thickness or height field; those stay in `Params`.
 - `Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)`. `Model` exposes
   `Body *decad.Body`, `Profile *sketch.Sketch` and `Dimensions Dimensions`. Build adds exactly one body.
@@ -64,7 +69,7 @@ Defaults: `OuterDiameter` 60, `HubDiameter` 12, `Thickness` 1.6, `Height` 8, `Mi
 nil `Placement`.
 
 Default derived values: `N = 5`, `p = 4.0`, `g = 2.4`, `d = 2.0`, `rho0 = 10.4`, `r_9 = 28.4`, `w = 3.2`,
-`r_b = 2.7`, `f = 2.2`, `D_hole = 3.7`, `R_e = 3.45`, `L = 13.129`, `E = (-29.2, -13.129)`, `r_f = 0.6`,
+`r_b = 2.7`, `f = 2.2`, `D_hole = 3.7`, `R_e = 3.45`, `L = 13.129`, `E = (-29.2, -13.129)`, `r_f = 0.8`, `e = 0.12`, root thickness 1.84,
 `ActiveLength` 634.6, `WindStrain` 0.0307.
 
 ## Validation
@@ -84,7 +89,9 @@ Every message starts with `spiralspring: `. Validate checks in this order and re
 11. `N_max >= 1`: `OuterDiameter leaves no room for one turn`.
 12. `Turns > 0` and `Turns > N_max`: `Turns %d needs a gap below MinGap; at most %d turns fit`.
 13. `N <= MaxTurns`, the limit of the sketch's numerical conditioning.
-14. `Placement != nil` and not a valid frame: `Placement must be a valid frame`.
+14. `e_room > 0`: `HubDiameter and Gap leave no room for the root fillets`. A hub this large for the gap leaves no
+    room for the C3 and C4 fillets under the spoke.
+15. `Placement != nil` and not a valid frame: `Placement must be a valid frame`.
 
 Build rejects a nil context (`context must not be nil`) and a nil document (`document must not be nil`), then
 derives the dimensions and checks `ctx.Err()` before it creates any geometry. A rejected build leaves the
@@ -98,8 +105,11 @@ and the placement transform.
 
 1. **Coil.** The coil is a two-center arc spiral. Half-turn arcs are centered alternately at `A`, the axis
    (the origin), and `B = (d, 0)`. Each half turn grows the radius by `d`, so the pitch per turn is the
-   constant `p`. The strip's two edges are concentric arcs, so the normal gap between turns is exactly
-   `p - t` everywhere. Junctions lie on the X axis where both centers are collinear, so the strip is tangent
+   constant `p`. Half turn 0's inner edge is centered at `(d + e, 0)` with radius `rho0 - e`, so the strip tapers
+   from `t + 2e` at the spoke to `t` at the junction `J1 = (d + rho0, 0)`, where it stays tangent to half turn 1.
+   Its outer edge keeps center `B` and radius `rho0 + t`. Every other half turn has concentric edges, so the
+   normal gap between turns is exactly `p - t`. The gap between the hub and half turn 0 narrows to `g - 2e` at
+   the spoke. Junctions lie on the X axis where both centers are collinear, so the strip is tangent
    continuous without a tangent constraint. Half turn `k` is centered at `B` for even `k` and at `A` for
    odd `k`; its inner edge has radius `r_k` and its outer edge `r_k + t`.
 2. **Turn count.** The hub counts as turn 0, so the coil radius is `R + (N + 1)*p`. Hence `N` and `p` follow
@@ -113,7 +123,7 @@ and the placement transform.
    `2*R_e` long.
 5. **Bore.** The hub's bore is a D shape when `ArborFlatDepth > 0`: an arc of radius `r_b` closed by a flat at
    distance `f` from the axis, on the +Y side. It is a circle of radius `r_b` when `ArborFlatDepth = 0`.
-6. **Fillets.** Five concave vertical edges are rounded with a 3D fillet of radius `r_f`: the root corners
+6. **Fillets.** Five concave vertical edges are rounded with a 3D fillet of radius `r_f = min(t/2, g/2)`: the root corners
    `C1`, `C3`, `C4` and the tail-to-eye junctions `P_i`, `P_o`. This is a native CAD operation, not a stand-in
    for a sketch fillet.
 7. **Cap chamfer.** Surface edge finishing applies to each cap whose area is at least 400 mm^2: chamfer every
@@ -140,8 +150,8 @@ and Z is `[0, 8]`.
 ## Valid range
 
 - `Thickness` at least 1.5 mm, so every strip, tail and eye wall is at least `Thickness` thick.
-- `MinGap` at least 1.0 mm. Every air gap between facing walls when relaxed is at least `Gap`, which is at
-  least `MinGap`.
+- `MinGap` at least 1.0 mm. Every air gap between turns, and between the tail or eye and a turn, is at least
+  `Gap`, which is at least `MinGap`. The gap between the hub and half turn 0 is at least `g - 2e`, at the spoke.
 - At most 40 turns, so an outer diameter of 320 mm with the defaults is rejected.
 - `BoreClearance` and `AnchorClearance` at least 0.2 mm.
 
@@ -161,15 +171,27 @@ the model is Adjustable.
 - `large-arbor`: `OuterDiameter` 60, `HubDiameter` 16, `ArborDiameter` 8; the bore loop is chamfered.
 - `thickness-floor`: `OuterDiameter` 30, `HubDiameter` 12, `Thickness` 1.5, `MinGap` 1, `Height` 4 gives 2
   turns and no chamfer.
+- `gap-floor`: `OuterDiameter` 32, `HubDiameter` 12, `Thickness` 1.5, `MinGap` 1.0, `Height` 4 gives 3 turns, `p = 2.5`,
+  `g = 1.0`, `r_f = 0.5` and `e = 0.0648`.
 - `max-turns`: `OuterDiameter` 310 gives 40 turns.
 - Placed: the frame with origin `(10, 5, 0)`, U `(0, 1, 0)` and V `(0, 0, 1)` maps local +Z to world +X, local X
   to world Y and local Y to world Z.
+
+## Retained sharp corners
+
+The rule is "Corners and roots" in `docs/model-pipeline.md`.
+
+- The convex corner C2 (90 degrees, the outer end of the root face) stays sharp: the rule allows a convex corner of
+  60 degrees or more.
+- `r_f` is under `t/2` when `g < t`, because the gap under the spoke limits it. The taper offsets this: it thickens
+  the strip at the root to `t + 2e`.
 
 ## Printing and material
 
 Print the spring flat with the axis vertical. Every layer holds the whole spiral and the strip bends in the
 layer plane along its perimeters, so layer adhesion carries no bending load. The default `Thickness` of 1.6 mm is 4
-extrusion lines of 0.4 mm. No supports are needed. Use PETG or nylon. PLA creeps under
+extrusion lines of 0.4 mm. The root is `t + 2e` thick, so the slicer lays about 4.6 lines of 0.4 mm there instead of 4. Arachne varies the line
+width; the classic generator adds gap fill. The taper lies in the layer plane and needs no support. No supports are needed. Use PETG or nylon. PLA creeps under
 constant load and cracks at a lower strain.
 
 ## Checks and images

@@ -101,12 +101,13 @@ const (
 	windowTop    = 62.0
 	windowCorner = 6.0
 	hubRing      = 10.0
+	windowRound  = 1.0 // the round at each inside corner of a window
 )
 
 // window draws the window on side sx (+1 right, -1 left) as one closed loop of six lines and five arcs. The hub rings
 // bulge into it around the centres p, o and g, which both windows share. A clockwise arc on the right is the same arc
 // drawn counter-clockwise from its other end, and the other way round on the left.
-func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) {
+func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) error {
 	h := math.Sqrt(hubRing*hubRing - spineHalf*spineHalf)
 	pt := func(x, y float64) *sketch.Point { return s.CreatePoint(sx*x, y) }
 	fx := math.Sqrt(hubRing*hubRing - (windowTop-geo.P.Y)*(windowTop-geo.P.Y))
@@ -135,18 +136,41 @@ func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) 
 	arcG := arc(g, k, l)
 	la := s.CreateLine(l, a)
 	s.AddConstraint(
-		sketch.NewHorizontal(ab), sketch.NewVerticalDistance(s.Origin(), a, windowBottom),
-		sketch.NewHorizontalDistance(s.Origin(), a, sx*spineHalf),
+		sketch.NewHorizontal(ab),
 		sketch.NewVertical(cd), sketch.NewHorizontalDistance(s.Origin(), c, sx*windowSide),
-		sketch.NewHorizontal(ef), sketch.NewVerticalDistance(s.Origin(), e, windowTop),
-		sketch.NewVertical(hi), sketch.NewHorizontalDistance(s.Origin(), hp, sx*spineHalf),
-		sketch.NewVertical(jk), sketch.NewHorizontalDistance(s.Origin(), j, sx*spineHalf),
-		sketch.NewVertical(la),
+		sketch.NewHorizontal(ef),
+		sketch.NewVertical(hi), sketch.NewDistancePointLine(s.Origin(), hi, spineHalf),
+		sketch.NewVertical(jk), sketch.NewDistancePointLine(s.Origin(), jk, spineHalf),
+		sketch.NewVertical(la), sketch.NewDistancePointLine(s.Origin(), la, spineHalf),
+		sketch.NewDistancePointLine(s.Origin(), ab, -windowBottom), sketch.NewDistancePointLine(s.Origin(), ef, windowTop),
 		sketch.NewRadius(arc1, windowCorner), sketch.NewRadius(arc2, windowCorner),
 		sketch.NewTangent(ab, arc1), sketch.NewTangent(cd, arc1),
 		sketch.NewTangent(cd, arc2), sketch.NewTangent(ef, arc2),
 		sketch.NewRadius(arcP, hubRing), sketch.NewRadius(arcO, hubRing), sketch.NewRadius(arcG, hubRing),
 	)
+	// The plate is rigid, so every inside corner of the window takes the 1 mm round of "Corners and roots": the
+	// spine meets each hub ring, the bottom rim and the top rim. The legs name their own place, so the rounds keep
+	// the sketch fully constrained.
+	// Sketch's redundancy check reports the round arc's own radius as redundant for some leg orders, and the order
+	// that passes follows the window's drawing direction: the left window is drawn the other way round.
+	r := windowRound
+	round := func(before, after sketch.Entity, at *sketch.Point) error {
+		if sx < 0 {
+			before, after = after, before
+		}
+		return sketchFillet(s, before, after, at, r)
+	}
+	for i, c := range []struct {
+		before, after sketch.Entity
+		at            *sketch.Point
+	}{
+		{arcP, hi, hp}, {hi, arcO, i}, {arcO, jk, j}, {jk, arcG, k}, {arcG, la, l}, {la, ab, a}, {ef, arcP, f},
+	} {
+		if err := round(c.before, c.after, c.at); err != nil {
+			return fmt.Errorf("round window corner %d: %w", i+1, err)
+		}
+	}
+	return nil
 }
 
 // plateOutline extrudes one plate section, as a single sketch: the outline, both windows, the three lip bores and the
@@ -161,8 +185,11 @@ func (b *builder) plateOutline(what string, low, top float64, holes []Pt) (*deca
 	// The hub centres: O is the origin; P and G are polar points shared by both windows.
 	pc := polar(s, ref, b.g.P.Len(), 90*deg)
 	gc := polar(s, ref, b.g.G.Len(), -90*deg)
-	window(s, 1, pc, s.Origin(), gc, &b.g)
-	window(s, -1, pc, s.Origin(), gc, &b.g)
+	for _, sx := range []float64{1, -1} {
+		if err := window(s, sx, pc, s.Origin(), gc, &b.g); err != nil {
+			return nil, fmt.Errorf("%s: %w", what, err)
+		}
+	}
 	for _, a := range b.axes() {
 		holeAt(s, ref, a, lipRadius)
 	}

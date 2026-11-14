@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +16,7 @@ func TestEscapeWheel(t *testing.T) {
 
 	f, err := r3.NewFrame(r3.NewVec(0, 0, 23.5), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
-	o, err := body.SectionOutline(t.Context(), f, units.Millimeters(0.02))
+	o, err := outlineAt(t, body, f)
 	require.NoError(t, err)
 	require.Len(t, o.Loops, 8, "outer, six windows and the bore")
 	off := o.OffSurface.Base()
@@ -35,7 +34,7 @@ func TestEscapeWheel(t *testing.T) {
 	// The pinion at z 10 has 13 teeth reaching the tip radius.
 	f10, err := r3.NewFrame(r3.NewVec(0, 0, 10), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
-	po, err := body.SectionOutline(t.Context(), f10, units.Millimeters(0.02))
+	po, err := outlineAt(t, body, f10)
 	require.NoError(t, err)
 	pin := outerLoop(po.Loops)
 	tip, root := 0.0, math.Inf(1)

@@ -35,6 +35,18 @@ func TestSpringLayout(t *testing.T) {
 	require.InDelta(t, g.CarrierOffset, g2.CarrierOffset, 1e-12)
 }
 
+// TestSpringRoot checks the mainspring's root: fillets of 0.55 mm, over the 0.5 mm floor of "Corners and roots", and
+// a taper offset of 0.0692 mm that thickens the strip to 1.638 mm at the spoke.
+func TestSpringRoot(t *testing.T) {
+	dm, err := SpringParams().Derive()
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, dm.FilletRadius, 0.5)
+	require.InDelta(t, 0.55, dm.FilletRadius, 1e-4)
+	require.InDelta(t, 0.0692, dm.TaperOffset, 1e-4)
+	require.InDelta(t, 1.638, SpringParams().Thickness+2*dm.TaperOffset, 1e-3)
+	require.InDelta(t, 0.962, dm.Gap-2*dm.TaperOffset, 1e-3)
+}
+
 func TestMainspring(t *testing.T) {
 	b := testBuilder(t)
 	spring, err := b.buildMainspring()
@@ -88,6 +100,16 @@ func TestPawlCarrier(t *testing.T) {
 			best = math.Min(best, math.Abs(a))
 		}
 		require.Less(t, best, 3e-3, "pawl tip at %v°", w)
+	}
+	// Each slot ends in a full round of radius 0.75 about (8.25 at g - 5.209°): its centre lies in the slot's air, and
+	// a point 0.7 mm from it toward the larger angles is air while a point 0.8 mm from it is material.
+	for _, g := range []float64{90*deg - b.g.CarrierOffset, 270*deg - b.g.CarrierOffset} {
+		c := g - slotEndRadius/(carrierCoreRadius+slotEndRadius)
+		centre := Polar(carrierCoreRadius+slotEndRadius, c)
+		along := Pt{-math.Sin(c), math.Cos(c)}
+		air, wall := centre.Add(Pt{0.7 * along.X, 0.7 * along.Y}), centre.Add(Pt{0.8 * along.X, 0.8 * along.Y})
+		require.False(t, inside(t, carrier, air.X, air.Y, 7.25), "slot end round, air side")
+		require.True(t, inside(t, carrier, wall.X, wall.Y, 7.25), "slot end round, wall")
 	}
 	require.True(t, inside(t, carrier, -3.3, 0, 10), "the boss exists at z 10")
 	require.False(t, inside(t, carrier, -3.3, 0, 11.1), "the boss ends at z 11")

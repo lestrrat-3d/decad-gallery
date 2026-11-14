@@ -18,6 +18,10 @@ const (
 	anchorCounterTop    = 27.0
 	anchorBoreAt        = 20.0
 	anchorBoreH         = 8.75
+	// anchorHubRound is half the arm's 6 mm width; anchorPalletRound is the round between an arm's inner side and its
+	// pallet's locking arc.
+	anchorHubRound    = 3.0
+	anchorPalletRound = 1.0
 )
 
 // anchorOutline draws the anchor's closed loop of 14 pieces about the pallet arbor and extrudes it.
@@ -76,6 +80,19 @@ func (b *builder) anchorOutline() (*decad.Body, error) {
 			sketch.NewPerpendicular(a.end, a.inner), sketch.NewDistancePointLine(a.m, a.inner, ArmWidth),
 			sketch.NewParallel(a.outer, a.inner),
 		)
+	}
+	// Round the four inside corners: the arm's inner side meets the hub's lower arc (H) and the pallet's inner arc (G).
+	// The H round is half the arm's width. The G round is as large as keeps every escape wheel tooth contact on the
+	// pallet's unrounded locking arc.
+	for i, f := range []func() error{
+		func() error { _, err := sketch.CreateFillet(s, arcHubLow, innerE, he, anchorHubRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, innerX, arcHubLow, hx, anchorHubRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, innerE, arcInE, ge, anchorPalletRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, arcInX, innerX, gx, anchorPalletRound); return err },
+	} {
+		if err := f(); err != nil {
+			return nil, fmt.Errorf("%s: round inside corner %d: %w", what, i+1, err)
+		}
 	}
 	body, err := b.extrude(s, 0, anchorHigh-anchorLow, what)
 	if err != nil {

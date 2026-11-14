@@ -15,16 +15,24 @@ func sectionAt(t *testing.T, body *decad.Body, z float64) decad.SectionOutline {
 	t.Helper()
 	f, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
 	require.NoError(t, err)
+	o, err := outlineAt(t, body, f)
+	require.NoError(t, err)
+	return o
+}
+
+// outlineAt cuts body with the plane f at the finest chord tolerance the body allows. A faceted Boolean result
+// refuses a chord below its own bound, so the cut retries coarser.
+func outlineAt(t *testing.T, body *decad.Body, f r3.Frame) (decad.SectionOutline, error) {
+	t.Helper()
 	var o decad.SectionOutline
-	// A faceted Boolean result refuses a chord below its own bound, so retry coarser.
+	var err error
 	for _, tol := range []float64{0.02, 0.03, 0.05} {
 		o, err = body.SectionOutline(t.Context(), f, units.Millimeters(tol))
 		if err == nil {
 			break
 		}
 	}
-	require.NoError(t, err)
-	return o
+	return o, err
 }
 
 // loopsBy returns the loops of o as XY polygons, largest extent first.
@@ -114,9 +122,10 @@ func TestRatchet(t *testing.T) {
 	// drum's old one.
 	pose := func(extra float64) []Pt { return rotPoly(pawls, DrumOffset+b.g.CarrierOffset+extra) }
 	require.True(t, fitsIn(pose(0), pocket), "the pawls sit in the pocket at the build pose")
-	// The contact face (radial at -1.2° from r 10.5 to 12.5) against the ratchet's radial face (0° from r 11.5 to 13.5).
+	// The contact face (radial at -1.2° from r 10.5 to 12.5) against the ratchet's radial face (0° from r 11.5 to 12.95,
+	// where the root round starts).
 	pawlFace := [2]Pt{Polar(10.5, -1.2*deg), Polar(12.5, -1.2*deg)}
-	ratchetFace := [2]Pt{Polar(11.5, 0), Polar(13.5, 0)}
+	ratchetFace := [2]Pt{Polar(11.5, 0), Polar(12.95, 0)}
 	faceGap := math.Inf(1)
 	for _, v := range pawlFace {
 		faceGap = math.Min(faceGap, distPointSeg(v, ratchetFace[0], ratchetFace[1]))
@@ -140,27 +149,61 @@ func TestRatchet(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, onFace, 2)
 	require.GreaterOrEqual(t, onRadial, 2)
+	// The ratchet's tip land runs from 30k° to 30k° + 10.07° on r 11.5, and at r 12.5 the gap spans [30k + 20.55°,
+	// 30(k+1)°]: the slope runs out to the 0.5 mm round at the root on r 14.
+	fold := func(a float64) float64 { return math.Mod(math.Mod(a, 30*deg)+30*deg, 30*deg) / deg }
+	landEnd, gapStart := 0.0, math.Inf(1)
+	for i, v := range pocket {
+		if a := fold(v.Angle()); math.Abs(v.Len()-11.5) < 0.01 && a < 15 {
+			landEnd = math.Max(landEnd, a)
+		}
+		w := pocket[(i+1)%len(pocket)]
+		if (v.Len()-12.5)*(w.Len()-12.5) < 0 {
+			// Where the straight edge v-w crosses the circle r 12.5: |v + f (w - v)|² = 12.5².
+			d := Pt{w.X - v.X, w.Y - v.Y}
+			qa, qb, qc := d.X*d.X+d.Y*d.Y, 2*(v.X*d.X+v.Y*d.Y), v.X*v.X+v.Y*v.Y-12.5*12.5
+			f := (-qb + math.Sqrt(qb*qb-4*qa*qc)) / (2 * qa)
+			if f < 0 || f > 1 {
+				f = (-qb - math.Sqrt(qb*qb-4*qa*qc)) / (2 * qa)
+			}
+			x := Pt{v.X + f*d.X, v.Y + f*d.Y}
+			if a := fold(x.Angle()); a > 12 && a < 29.9 {
+				gapStart = math.Min(gapStart, a)
+			}
+		}
+	}
+	require.InDelta(t, 10.07, landEnd, 0.3, "tip land end angle")
+	require.InDelta(t, 20.55, gapStart, 0.3, "gap start angle at r 12.5")
 	// The pawl's tip corner is closest to the ratchet's slope: its gap is the closest approach of the two outlines.
 	require.GreaterOrEqual(t, distPolys(pose(0), pocket), 0.19-off)
 	require.False(t, fitsIn(pose(2.5*deg), pocket), "turning the drum ccw drives the ratchet")
-	// Winding turns the drum cw: the pawl has 1.5° of free play, then rides up the ratchet slope with its arm flexing,
+	// Winding turns the drum cw: the pawl has 4° of free play, then rides up the ratchet slope with its arm flexing,
 	// which a rigid outline cannot do (instructions.md "Drum": 1.0 mm of deflection plus 0.3 mm margin).
-	require.True(t, fitsIn(pose(-1.5*deg), pocket), "the pawl turns freely cw before the slope")
-	require.False(t, fitsIn(pose(-2.5*deg), pocket), "past that the slope needs the arm to flex")
-	// The arms keep clear of the ratchet tips: the closest approach of the pawl layer outside the pawl tips.
-	var arms []Pt
-	for _, p := range pawls {
-		if p.Len() < 11.0 {
-			arms = append(arms, p)
+	require.True(t, fitsIn(pose(-3.5*deg), pocket), "the pawl turns freely cw before the slope")
+	require.False(t, fitsIn(pose(-5*deg), pocket), "past that the slope needs the arm to flex")
+	// The arms keep clear of the ratchet tips: the closest approach of the pawl layer outside the pawl tips. The tooth-root
+	// round beside the contact face reaches r 10.99, so that spot is its own Regular row: at least 0.35.
+	armGap, rootGap := math.Inf(1), math.Inf(1)
+	for _, p := range pose(0) {
+		if p.Len() >= 11.0 {
+			continue
 		}
-	}
-	armGap := math.Inf(1)
-	for _, p := range arms {
+		// The two pawls are half a turn apart, so fold the angle onto one of them.
+		a := p.Angle() - math.Pi*math.Round(p.Angle()/math.Pi)
+		rootSpot := p.Len() > 10.45 && a > -1.3*deg && a < 4*deg
 		for j := range pocket {
-			armGap = math.Min(armGap, distPointSeg(p, pocket[j], pocket[(j+1)%len(pocket)]))
+			d := distPointSeg(p, pocket[j], pocket[(j+1)%len(pocket)])
+			if rootSpot {
+				rootGap = math.Min(rootGap, d)
+			} else {
+				armGap = math.Min(armGap, d)
+			}
 		}
 	}
-	require.GreaterOrEqual(t, armGap, 0.95-off)
+	t.Logf("arm gap %.3f, tooth-root round gap %.3f, bound %.3f", armGap, rootGap, off)
+	require.GreaterOrEqual(t, armGap, 0.95-off, "pawl arm to ratchet tips")
+	require.GreaterOrEqual(t, rootGap, 0.35-off, "pawl tooth-root round to ratchet tips")
+	require.Less(t, rootGap, 0.95, "the root round is the closest spot of the arm")
 	// No face of the carrier is large: its largest planar face is the pawl layer's (core and pawls, under 400 mm²).
 	for _, f := range drum.Faces() {
 		pl, ok := f.Surface().(decad.Plane)

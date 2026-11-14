@@ -61,15 +61,21 @@ func scanLoop(loop []r3.Vec, n r3.Vec, height float64) []Finding {
 	return out
 }
 
-// dedupe drops repeated points, including a closing point equal to the first.
+// minSpacing is the shortest outline segment in mm that scanLoop keeps. A mesh Boolean leaves clusters of vertices
+// micrometres apart whose segments double back; their turns cancel in a window that holds all of them but read as a
+// sharp corner in a window that holds one. Dropping vertices closer than minSpacing to the last kept one removes
+// them, and moves the outline by less than minSpacing.
+const minSpacing = 0.002
+
+// dedupe drops vertices closer than minSpacing to the previous kept vertex, including a closing point near the first.
 func dedupe(loop []r3.Vec) []r3.Vec {
 	var out []r3.Vec
 	for _, p := range loop {
-		if len(out) == 0 || p.Sub(out[len(out)-1]).Len() > 1e-9 {
+		if len(out) == 0 || p.Sub(out[len(out)-1]).Len() >= minSpacing {
 			out = append(out, p)
 		}
 	}
-	for len(out) > 1 && out[0].Sub(out[len(out)-1]).Len() <= 1e-9 {
+	for len(out) > 1 && out[0].Sub(out[len(out)-1]).Len() < minSpacing {
 		out = out[:len(out)-1]
 	}
 	return out

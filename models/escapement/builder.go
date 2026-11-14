@@ -196,3 +196,25 @@ func (b *builder) finish(body *decad.Body, offsets []float64, keep edgefinish.Lo
 	out, _, err := edgefinish.Chamfer(b.ctx, body, zAxis, offsets, keep, edgefinish.MinChamfer)
 	return out, err
 }
+
+// sketchFillet rounds the corner at where the line or arc first meets second, with a tangent arc of radius r.
+func sketchFillet(s *sketch.Sketch, first, second sketch.Entity, at *sketch.Point, r float64) error {
+	var err error
+	switch a := first.(type) {
+	case *sketch.Line:
+		switch b := second.(type) {
+		case *sketch.Line:
+			_, err = sketch.CreateFillet(s, a, b, at, r)
+		case *sketch.Arc:
+			_, err = sketch.CreateFillet(s, a, b, at, r)
+		}
+	case *sketch.Arc:
+		switch b := second.(type) {
+		case *sketch.Line:
+			_, err = sketch.CreateFillet(s, a, b, at, r)
+		case *sketch.Arc:
+			_, err = sketch.CreateFillet(s, a, b, at, r)
+		}
+	}
+	return err
+}

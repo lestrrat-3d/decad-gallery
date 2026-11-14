@@ -26,6 +26,9 @@ const (
 	slotHigh      = -56.75
 	slotRadius    = 1.75
 	pressToolLow  = 1.0 // a press-bore tool starts this far below the part
+	// crutchArmRound and pendulumRodRound are half the 5 mm and 8 mm widths of the arm and rod they round.
+	crutchArmRound   = 2.5
+	pendulumRodRound = 4.0
 )
 
 // buildCrutch builds the crutch: a hub, an arm and a round end, the pin on its end, the keyed rear counterbore for the
@@ -49,8 +52,15 @@ func (b *builder) buildCrutch() (*decad.Body, error) {
 		sketch.NewHorizontalDistance(o, e, 0), sketch.NewVerticalDistance(o, e, -CrutchLength),
 		sketch.NewRadius(hub, 6), sketch.NewRadius(end, 4),
 		sketch.NewVertical(left), sketch.NewVertical(right),
-		sketch.NewHorizontalDistance(o, ar, 2.5), sketch.NewHorizontalDistance(o, al, -2.5),
+		sketch.NewDistancePointLine(o, left, 2.5), sketch.NewDistancePointLine(o, right, 2.5),
 	)
+	// The arm meets the hub with a 62 degree turn. Round both corners with half the arm's width.
+	if _, err := sketch.CreateFillet(s, hub, right, ar, crutchArmRound); err != nil {
+		return nil, fmt.Errorf("%s: round arm root: %w", what, err)
+	}
+	if _, err := sketch.CreateFillet(s, left, hub, al, crutchArmRound); err != nil {
+		return nil, fmt.Errorf("%s: round arm root: %w", what, err)
+	}
 	body, err := b.extrude(s, 0, crutchHigh-crutchLow, what)
 	if err != nil {
 		return nil, err
@@ -98,8 +108,19 @@ func (b *builder) buildPendulum() (*decad.Body, error) {
 		sketch.NewHorizontalDistance(o, bob, 0), sketch.NewVerticalDistance(o, bob, -lp),
 		sketch.NewRadius(eye, 10), sketch.NewRadius(round, 25),
 		sketch.NewVertical(left), sketch.NewVertical(right),
-		sketch.NewHorizontalDistance(o, er, 4), sketch.NewHorizontalDistance(o, el, -4),
+		sketch.NewDistancePointLine(o, left, 4), sketch.NewDistancePointLine(o, right, 4),
 	)
+	// The rod meets the eye and the bob in 64 and 79 degree turns. Round all four corners with half the rod's width.
+	for i, f := range []func() error{
+		func() error { _, err := sketch.CreateFillet(s, left, eye, el, pendulumRodRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, round, left, ql, pendulumRodRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, right, round, qr, pendulumRodRound); return err },
+		func() error { _, err := sketch.CreateFillet(s, eye, right, er, pendulumRodRound); return err },
+	} {
+		if err := f(); err != nil {
+			return nil, fmt.Errorf("%s: round rod corner %d: %w", what, i+1, err)
+		}
+	}
 	circleAt(s, lipRadius)
 	slot, err := s.CreateSlot(0, slotLow, 0, slotHigh, slotRadius)
 	if err != nil {

@@ -110,3 +110,15 @@ func TestInvalidMeshGapInputs(t *testing.T) {
 	_, _, err = a.Exceeds(meshgap.Mesh{}, 0)
 	require.ErrorContains(t, err, "empty mesh")
 }
+
+func TestDegenerateTriangleHasFiniteGap(t *testing.T) {
+	// A triangle with two coincident vertices has zero area; its distance to another mesh stays finite.
+	sliver, err := meshgap.New([]r3.Vec{{}, {X: 1}}, [][3]int{{0, 0, 1}}, 0)
+	require.NoError(t, err)
+	other, err := meshgap.New([]r3.Vec{{X: 0.5, Z: 2}, {X: 3, Z: 2}, {X: 0.5, Y: 3, Z: 2}}, [][3]int{{0, 1, 2}}, 0)
+	require.NoError(t, err)
+	gap, separated, err := sliver.Exceeds(other, 3)
+	require.NoError(t, err)
+	require.False(t, separated)
+	require.InDelta(t, 2, gap, 1e-5)
+}

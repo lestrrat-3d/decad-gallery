@@ -20,7 +20,8 @@ const (
 	ratchetTool       = 4.5
 	ratchetDisc       = 11.5
 	ratchetInner      = 11.0
-	ratchetOuter      = 13.5
+	ratchetOuter      = 14.0 // the triangle's outer vertex before its round, with ratchetRound: the wedge root
+	ratchetRound      = 0.5
 	ratchetTeeth      = 12
 	carrierCoreRadius = 7.5
 	layerLow          = 5.25
@@ -49,11 +50,18 @@ func (b *builder) ratchetToolBody() (*decad.Body, error) {
 	ref := xRef(s)
 	step := 2 * math.Pi / ratchetTeeth
 	a := polar(s, ref, ratchetInner, 0)
-	c := polar(s, ref, ratchetOuter, step)
+	c := s.CreatePoint(ratchetOuter*math.Cos(step), ratchetOuter*math.Sin(step))
 	d := polar(s, ref, ratchetInner, step)
-	s.CreateLine(a, c)
-	s.CreateLine(c, d)
+	ac := s.CreateLine(a, c)
+	cd := s.CreateLine(c, d)
 	s.CreateLine(d, a)
+	// The corner at c is removed by its round, so the two legs carry their own direction: c-d is the radial face on
+	// the ray through the origin, and a-c leaves a at the angle it had to the old vertex.
+	s.AddConstraint(sketch.NewPointOnLine(s.Origin(), cd),
+		sketch.NewAngle(ref, ac, math.Atan2(c.Y()-a.Y(), c.X()-a.X())/deg))
+	if _, err := sketch.CreateFillet(s, ac, cd, c, ratchetRound); err != nil {
+		return nil, fmt.Errorf("%s: round the tooth root: %w", what, err)
+	}
 	tooth, err := b.extrude(s, 0, ratchetTool, what)
 	if err != nil {
 		return nil, err
@@ -96,70 +104,105 @@ func (b *builder) buildGreatWheel() (*decad.Body, error) {
 	return b.cut(wheel, tool, "great wheel ratchet")
 }
 
-// pawlLoop draws pawl j's closed loop (g is its base angle) on s and returns nothing: its pieces are the profile.
-func pawlLoop(s *sketch.Sketch, ref *sketch.Line, g float64) {
+// Pawl layer dimensions in mm: the slot between a pawl arm and the core is 1.5 wide and ends in a full round, the
+// arm's tooth root takes a 0.5 round, and the back of the root block takes a 1.0 round into the core.
+const (
+	slotEndRadius   = 0.75
+	toothRootRound  = 0.5
+	blockBackRound  = 1.0
+	carrierArmInner = 9.0
+	carrierArmOuter = 10.5
+)
+
+// pawlLayer draws the carrier's whole pawl layer on s as one closed loop: the core, both slots
+// and both pawls are its pieces. For pawl j, with base angle g_j, the core arc about the origin ends at the slot end,
+// a full round of radius slotEndRadius tangent to the core and to the arm's inner arc. The arm runs clockwise from the
+// slot end to its tooth, returns along its outer arc to the root block's back line, and the back line meets the next
+// core arc in a round. The tooth's contact face meets the arm's outer arc in a root round.
+func pawlLayer(s *sketch.Sketch, ref *sketch.Line, gs []float64) error {
 	o := s.Origin()
 	at := func(r, a float64) *sketch.Point { return s.CreatePoint(r*math.Cos(a), r*math.Sin(a)) }
-	p1, p2, p3 := at(7.0, g+10*deg), at(7.0, g), at(9.0, g)
-	p4, p5 := at(9.0, g-120*deg), at(10.5, g-120*deg)
-	p6, p7 := at(12.5, g-116*deg), at(12.5, g-112*deg)
-	p8, p9 := at(10.5, g-112*deg), at(10.5, g+10*deg)
-	a7 := s.CreateArc(o, p2, p1)
-	s.CreateLine(p2, p3)
-	a9 := s.CreateArc(o, p4, p3)
-	s.CreateLine(p4, p5)
-	s.CreateLine(p5, p6)
-	a125 := s.CreateArc(o, p6, p7)
-	s.CreateLine(p7, p8)
-	a105 := s.CreateArc(o, p8, p9)
-	s.CreateLine(p9, p1)
-	s.AddConstraint(sketch.NewRadius(a7, 7.0), sketch.NewRadius(a9, 9.0), sketch.NewRadius(a125, 12.5),
-		sketch.NewRadius(a105, 10.5))
-	for _, c := range []struct {
-		p *sketch.Point
-		a float64
-	}{{p1, g + 10*deg}, {p2, g}, {p3, g}, {p4, g - 120*deg}, {p6, g - 116*deg}, {p7, g - 112*deg},
-		{p8, g - 112*deg}, {p9, g + 10*deg}} {
-		polarOnArc(s, ref, c.p, c.a)
+	slotAngle := slotEndRadius / (carrierCoreRadius + slotEndRadius)
+	n := len(gs)
+	corners := make([]*sketch.Point, n) // the back corner of each pawl's root block
+	for j, g := range gs {
+		corners[j] = at(carrierCoreRadius, g+10*deg)
 	}
-	// p5 is on no arc: its radius and angle fix it.
-	l := s.CreateLine(o, p5)
-	l.SetConstruction(true)
-	s.AddConstraint(sketch.NewDistance(o, p5, 10.5), sketch.NewAngle(ref, l, (g-120*deg)/deg))
+	cores := make([]*sketch.Arc, n)
+	backs := make([]*sketch.Line, n)
+	contacts := make([]*sketch.Line, n)
+	outers := make([]*sketch.Arc, n)
+	roots := make([]*sketch.Point, n)
+	for j, g := range gs {
+		c := g - slotAngle
+		prev := corners[(j+n-1)%n]
+		slotStart, slotTop := at(carrierCoreRadius, c), at(carrierArmInner, c)
+		center := at(carrierCoreRadius+slotEndRadius, c)
+		p4, p5 := at(carrierArmInner, g-120*deg), at(carrierArmOuter, g-120*deg)
+		p6, p7 := at(12.5, g-116*deg), at(12.5, g-112*deg)
+		p8, p9 := at(carrierArmOuter, g-112*deg), at(carrierArmOuter, g+10*deg)
+
+		core := s.CreateArc(o, prev, slotStart)
+		cores[j] = core
+		slot := s.CreateArc(center, slotTop, slotStart) // bulges toward larger angles
+		inner := s.CreateArc(o, p4, slotTop)
+		s.CreateLine(p4, p5)
+		s.CreateLine(p5, p6)
+		tip := s.CreateArc(o, p6, p7)
+		contact := s.CreateLine(p7, p8)
+		outer := s.CreateArc(o, p8, p9)
+		back := s.CreateLine(p9, corners[j])
+		contacts[j], outers[j], backs[j], roots[j] = contact, outer, back, p8
+		s.AddConstraint(sketch.NewRadius(core, carrierCoreRadius), sketch.NewRadius(inner, carrierArmInner), sketch.NewTangentCircles(core, slot, false),
+			sketch.NewRadius(tip, 12.5), sketch.NewRadius(outer, carrierArmOuter),
+			sketch.NewAngle(ref, contact, (g-112*deg+math.Pi)/deg), sketch.NewAngle(ref, back, (g+10*deg+math.Pi)/deg))
+		for _, p := range []struct {
+			pt *sketch.Point
+			a  float64
+		}{{slotStart, c}, {slotTop, c}, {p4, g - 120*deg}, {p6, g - 116*deg}, {p7, g - 112*deg}, {p9, g + 10*deg}} {
+			polarOnArc(s, ref, p.pt, p.a)
+		}
+		// p5 is on no arc: its radius and angle fix it.
+		l := s.CreateLine(o, p5)
+		l.SetConstruction(true)
+		s.AddConstraint(sketch.NewDistance(o, p5, carrierArmOuter), sketch.NewAngle(ref, l, (g-120*deg)/deg))
+	}
+	// The corners are removed by their rounds, so each leg carries its own place before the rounds: the radial lines
+	// pass through the origin and the arcs have their radii. Sketch's redundancy check reports a round arc's own radius
+	// as redundant for some leg orders, so the order below is the one that verifies.
+	for j := range gs {
+		if _, err := sketch.CreateFillet(s, outers[j], contacts[j], roots[j], toothRootRound); err != nil {
+			return fmt.Errorf("round pawl %d tooth root: %w", j+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, cores[(j+1)%n], backs[j], corners[j], blockBackRound); err != nil {
+			return fmt.Errorf("round pawl %d block back: %w", j+1, err)
+		}
+	}
+	return nil
 }
 
-// buildPawlCarrier builds the pawl carrier about the origin: the pawl layer (a core and two pawls), a short boss in
-// front of it, and the D press bore. Its bore flat is on +X, and its pawls are drawn CarrierOffset behind the
-// positions of the old drum's, so that pose by the arbor's turn leaves each pawl at the same angle from its ratchet face.
+// buildPawlCarrier builds the pawl carrier about the origin: the pawl layer (one closed loop of the core and both
+// pawls), a short boss in front of it, and the D press bore. Its bore flat is on +X, and its pawls are drawn
+// CarrierOffset behind the positions of the old drum's, so that pose by the arbor's turn leaves each pawl at the same
+// angle from its ratchet face.
 func (b *builder) buildPawlCarrier() (*decad.Body, error) {
-	cs, err := b.flat("carrier core", 0, 0, layerLow)
+	const what = "carrier layer"
+	s, err := b.flat(what, 0, 0, layerLow)
 	if err != nil {
 		return nil, err
 	}
-	circleAt(cs, carrierCoreRadius)
-	core, err := b.extrude(cs, 0, layerLength, "carrier core")
+	if err := pawlLayer(s, xRef(s), []float64{90*deg - b.g.CarrierOffset, 270*deg - b.g.CarrierOffset}); err != nil {
+		return nil, fmt.Errorf("%s: %w", what, err)
+	}
+	layer, err := b.extrude(s, 0, layerLength, what)
 	if err != nil {
 		return nil, err
-	}
-	var rest []*decad.Body
-	for j, g := range []float64{90*deg - b.g.CarrierOffset, 270*deg - b.g.CarrierOffset} {
-		what := fmt.Sprintf("carrier pawl %d", j+1)
-		s, err := b.flat(what, 0, 0, layerLow)
-		if err != nil {
-			return nil, err
-		}
-		pawlLoop(s, xRef(s), g)
-		pawl, err := b.extrude(s, 0, layerLength, what)
-		if err != nil {
-			return nil, err
-		}
-		rest = append(rest, pawl)
 	}
 	boss, err := b.discAt("carrier boss", 0, 0, carrierBossLow, carrierBossRadius, carrierBossLength)
 	if err != nil {
 		return nil, err
 	}
-	carrier, err := b.union("pawl carrier", core, append(rest, boss)...)
+	carrier, err := b.union("pawl carrier", layer, boss)
 	if err != nil {
 		return nil, err
 	}

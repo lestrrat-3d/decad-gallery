@@ -164,6 +164,12 @@ Loop, in order (arcs centred on `P`; "ccw" = increasing math angle):
 13. line `M_E → K_E` (entry arm end)
 14. arc `r_out` from `K_E` to `C_E` (ccw) (entry locking face)
 
+The four inside corners of the loop are rounded with the sketch fillet, after the legs carry their own direction and
+position: the two where the arm's inner side meets the hub's lower arc (`H_E`, `H_X`), radius 3.0 (half the 6 mm arm width),
+and the two where it meets the pallet's inner arc (`G_E`, `G_X`), radius 1.0. The rounds replace pieces 3 and 5's end points at
+`H` and `G`; the pallet's locking arc runs from `F` toward `G` and the escape wheel's tooth locks near `F`, 29.2 mm of arc away from the
+round.
+
 The anchor has no boss. Front counterbore (for the Pallet Front Collar ring): circle `r 3.75` about `P`, tool
 `z ∈ [24.70, 27.0]`, cut after the outline and before the bore. Its floor is `z 24.70` (0.05 behind the ring's rear face),
 the material under it is 3.70 thick and the material round it at least 4.25. Bore: D-shaped, body family (see Arbors),
@@ -175,7 +181,8 @@ radius 3.75 about `P` on the front face).
 - Disc: root circle `Rr = 33` with 6 windows, extruded `z ∈ [22, 25]`. Window `k` (`k = 0..5`) lies between the spokes
   at math angles `σk = 90° + 60° k` and `σk+1`. Spoke half-width 2.5. Window corners: on `r 13` at
   `σk + asin(2.5/13)` and `σk+1 - asin(2.5/13)`; on `r 28` at `σk + asin(2.5/28)` and `σk+1 - asin(2.5/28)`. Window
-  sides are straight lines parallel to the spoke centrelines, 2.5 away.
+  sides are straight lines parallel to the spoke centrelines, 2.5 away. The four corners of each window are rounded with the sketch
+  fillet, radius 1.0.
 - Tooth 0: triangle with tip `T = (0, 40)` and feet on `r = Rr - ov = 32.5`. Front-face foot `L` on the line from
   `T` at angle `ρ` from the inward radial, leaning back (toward `-X`): `L = (-1.3272, 32.4729)`. Back-face foot `B` on
   the line from `T` at angle `χ`: `B = (-4.5118, 32.1853)`. At `r 33` the feet are `(-1.2384, 32.9768)` and
@@ -239,7 +246,7 @@ Print-error study (default parameters; `dr` tip radius error, `dw` pallet width 
   hub circle `r 6`; arm 5 wide (`x = ±2.5`) straight down; end circle `r 4` centred `(0, -45)`. Outline points:
   `A_R = (2.5, -5.4544)`, `A_L = (-2.5, -5.4544)`, `B_L = (-2.5, -41.8775)`, `B_R = (2.5, -41.8775)`. Loop: hub arc
   ccw `A_R → A_L` over the top, line `A_L → B_L`, end arc ccw `B_L → B_R` round the bottom, line `B_R → A_R`.
-  `z ∈ [35.30, 38.30]` (thickness 3.0; its rear face is 1.30 from the front plate's front face). Crutch pin: circle
+  The two corners where the arm meets the hub are rounded, radius 2.5 (half the arm width). `z ∈ [35.30, 38.30]` (thickness 3.0; its rear face is 1.30 from the front plate's front face). Crutch pin: circle
   `r 1.5` at `(0, -45)`, `z ∈ [37.80, 44.30]` (overlaps 0.5). Rear keyed counterbore (for the Crutch Collar): the D
   outline arc `r 3.75`, chord `x 3.35` (flat on `+X`) about `P`, tool `z ∈ [34.30, 37.30]`, so the floor is 1.0 thick
   (`z 37.30` to 38.30). D press socket (end family: arc `r 2.55`, flat at `x = 2.05`) through the hub, tool
@@ -247,7 +254,7 @@ Print-error study (default parameters; `dr` tip radius error, `dw` pallet width 
 - Pendulum: pivots on a 605ZZ on the suspension pin at `S = P + (0, 14)`. Outline in a sketch with origin `S`: eye
   circle `r 10`; rod 8 wide (`x = ±4`) down to a bob circle `r 25` centred `(0, -Lp)`. Outline points:
   `E_R = (4, -9.1652)`, `E_L = (-4, -9.1652)`, `Q_L = (-4, -Lp + 24.6779)`, `Q_R = (4, -Lp + 24.6779)`. Loop: eye arc
-  ccw `E_R → E_L` over the top, line `E_L → Q_L`, bob arc ccw `Q_L → Q_R` round the bottom, line `Q_R → E_R`. Holes:
+  ccw `E_R → E_L` over the top, line `E_L → Q_L`, bob arc ccw `Q_L → Q_R` round the bottom, line `Q_R → E_R`. The four corners where the rod meets the eye and the bob are rounded, radius 4.0 (half the rod width). Holes:
   lip bore circle `r 5` at the origin; crutch slot = stadium from `(0, -61.25)` to `(0, -56.75)`, `r 1.75` (3.5 × 8,
   centred 59 below `S`). Extrude `z ∈ [38.80, 44.80]`. Bearing pocket: circle `r 7.05`, cut `z ∈ [39.80, 45.80]`
   (5 deep from the front face, leaving a 1 mm lip).
@@ -294,12 +301,14 @@ Root-clearance variant: `spurgear.Variant{Define: gearroot.Define(gearroot.Clear
 ### Internal ratchet (in the great wheel)
 
 Cut from the great wheel's front face, in its local frame (tooth 0 of the gear on `+X`). Tool = disc `r 11.5` ∪
-12 triangles `{(11.0∠30k°), (13.5∠30(k+1)°), (11.0∠30(k+1)°)}`, `k = 0..11`. The tool spans `z ∈ [5.0, 9.5]`, so the
+12 triangles `{(11.0∠30k°), (14.0∠30(k+1)°), (11.0∠30(k+1)°)}`, `k = 0..11`, each with the corner at `14.0∠30(k+1)°` rounded by the
+sketch fillet, radius 0.5 (the sides carry their own direction first: the radial side lies on a ray through the origin). The tool spans `z ∈ [5.0, 9.5]`, so the
 pocket floor is at `z 5.0` (3.5 mm floor under it) and the pocket opens on the front face `z 8.5`.
 
-Resulting ratchet tooth `k` (material between gap `k-1` and gap `k`): a radial face at `30k°` from `r 13.5` in to
-`r 11.5`, facing clockwise. A tip land on `r 11.5` from `30k°` to `30k° + 12.07°`. A slope out to the root `r 13.5`
-at `30(k+1)°`. At `r 12.5` the gap spans `[30k + 23.06°, 30(k+1)°]`.
+Resulting ratchet tooth `k` (material between gap `k-1` and gap `k`): a radial face at `30k°` from the root round (flat out to `r 12.95`) in to
+`r 11.5`, facing clockwise. A tip land on `r 11.5` from `30k°` to `30k° + 10.07°`. A slope out to the root `r 14.0`
+at `30(k+1)°`, with a 0.5 mm round at the root. At `r 12.5` the gap spans `[30k + 20.55°, 30(k+1)°]`. The root sat at `r 13.5` before the
+round; with the round there it would leave the flat face ending at `r 12.52`, 0.02 mm past the pawl tip.
 
 ### Spring choice
 
@@ -316,7 +325,10 @@ would need a new great wheel and would hide the spring, so it is rejected.
 `Thickness` 1.5, `Height` 6, `MinGap` 1.0, `Turns` 0 (as many as fit), `ArborDiameter` 6.1, `ArborFlatDepth` 0.5,
 `BoreClearance` 0.30, `AnchorPinDiameter` 3, `AnchorClearance` 0.4. `Derive` gives `N = 9` turns, pitch 2.6, gap 1.1,
 `rho0` 8.4 and an active length of 1142.3 mm. The eye centre is `(-31.250, -13.399)` local: radius 34.0015 from the axis, at
-math angle -156.7916°. The eye radius is 3.4 and the eye hole 3.8. The item's hub-wrap strain is 1.56 %.
+math angle -156.7916°. The eye radius is 3.4 and the eye hole 3.8. The item's hub-wrap strain is 1.56 %. The root fillets are 0.55 mm (`min(t/2, g/2)`) and the strip tapers from 1.638 mm at
+the spoke to 1.5 mm over the first half turn (`models/spiralspring`: taper offset 0.0692). The taper raises the spring rate by 0.3 %
+(3.10 to 3.11 N·mm/rad, full-wind torque 43.9 to 44.0 N·mm). That is far smaller than the ±7 % that the PETG modulus range (1.9 to 2.2 GPa)
+already gives, so the table keeps the uniform-strip figures.
 
 A uniform-curvature spiral gives `k = E h t³ / (12 L)` and bending strain `ε = (t/2) θ / L`, with printed PETG at `E` =
 2.1 GPa (1.9 to 2.2):
@@ -361,17 +373,25 @@ arbor (same meridian and flats) do not change.
 
 Carrier local frame: axis through the origin (moved onto `G`), D-flat of its bore on `+X`.
 
-1. Pawl layer `z ∈ [5.25, 9.25]`: core circle `r 7.5`, unioned with two pawls.
-   Pawl `j` (`g = 90° - δb + 180° j`, with the offset `δb` of Pose), one closed loop (angles in the carrier frame):
-   `(7.0∠g+10°)` → arc `r 7.0` cw → `(7.0∠g)` → line → `(9.0∠g)` → arc `r 9.0` cw → `(9.0∠g-120°)` → line →
-   `(10.5∠g-120°)` → line → `(12.5∠g-116°)` → arc `r 12.5` ccw → `(12.5∠g-112°)` → line → `(10.5∠g-112°)` → arc
-   `r 10.5` ccw → `(10.5∠g+10°)` → line → `(7.0∠g+10°)`.
-   Contact face: radial line at `g - 112°` from `r 10.5` to `12.5`, facing counter-clockwise.
+1. Pawl layer `z ∈ [5.25, 9.25]`: one closed loop in one sketch, extruded once (the core and both pawls are pieces of the
+   loop). For pawl `j`, with `g = 90° - δb + 180° j` (the offset `δb` of Pose; angles in the carrier frame) and `c = g - 5.209°`
+   (`5.209° = 0.75 / 8.25` rad), the loop runs counter-clockwise:
+   core arc `r 7.5` about the origin to `(7.5∠c)`; the slot-end round, arc `r 0.75` about `(8.25∠c)` from `(9.0∠c)` to `(7.5∠c)`
+   (it bulges toward the larger angles and is tangent to the core arc and to the arm's inner arc); arm inner arc `r 9.0` cw to
+   `(9.0∠g-120°)`; line to `(10.5∠g-120°)`; line to `(12.5∠g-116°)`; tip arc `r 12.5` ccw to `(12.5∠g-112°)`; contact line (radial,
+   at `g - 112°`) to `(10.5∠g-112°)`; arm outer arc `r 10.5` ccw to `(10.5∠g+10°)`; back line (radial) to `(7.5∠g+10°)`, which meets the
+   next pawl's core arc. Two sketch fillets: radius 0.5 where the contact line meets the outer arc (the tooth root), and radius 1.0
+   where the back line meets the core arc. The slot-end round's centre is not dimensioned: both its end points are fixed (angle `c`
+   on `r 7.5` and `r 9.0`), and its radius 0.75 follows from the 1.5 mm slot; a radius dimension there gives a double-root intersection
+   that the solver reads as redundant.
+   Contact face: radial line at `g - 112°` from `r 10.5` (the round starts at `r 10.5`) to `12.5`, facing counter-clockwise.
 2. Boss `r 4.2`, `z ∈ [8.75, 11.0]` (0.5 overlap into the layer). It faces only the spring hub, not a bearing, so it is
    not a collar. It grew from `r 3.7` to keep a 1.1 mm wall round the larger bore.
 3. Union, then cut the D press bore (drive family: arc `r 3.10`, flat at `x = 2.60`), tool `z ∈ [4.25, 12]`.
 
-Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core and 1.0 mm to the ratchet tips.
+Facts: the arm (`r 9 to 10.5`, 120° long, 19.4 mm, 1.5 thick) has a 1.5 mm slot to the core, ending in a full round of 0.75 mm, and 1.0 mm to the ratchet tips.
+The tooth-root round adds material up to `r 10.99` beside the contact face; its gap to the ratchet tips is the Regular row L5r.
+The pawl turns freely clockwise by 4° at the build pose before the slope meets its tooth (it was 1.5° with the root at `r 13.5`).
 Winding pushes the pawl tip in from `r 12.5` past the land at `r 11.5`, a 1.0 mm deflection plus 0.3 mm margin. Bending strain
 is about 0.8 %. Under load the arm is in tension.
 
@@ -584,6 +604,9 @@ Right window (`sx = +1`); the left window is its mirror (`x → -x`). `P = (0, 5
 10. arc `r 10` about `G`, `K → L (4, G_y - h)` = `(4, -54.9152)`, clockwise
 11. line `L → A`
 
+The plate is rigid, so each of the seven inside corners of a window (`A`, `F`, `H`, `I`, `J`, `K`, `L`) is rounded by the sketch fillet, radius 1.0,
+after each leg carries its own position and direction. Corners `B`, `C`, `D`, `E` are already tangent.
+
 Material this leaves: spine `|x| ≤ 4` from `y -82` to `62`; hub rings `r 10` about `P, O, G` (2.95 mm round each 7.05 mm
 pocket); top rim `y ∈ [62, 82]` (front) or `[62, 98]` (back), which holds `S` and the mounting holes; bottom rim
 `y ∈ [-96, -82]`; side rims `|x| ∈ [44, 58]`.
@@ -712,7 +735,8 @@ margin, or larger). Nominal parts (bearings, bolts, nuts) keep nominal size.
 | L2 | Spring Spacer (`r 3.7`) to escape wheel tips; great wheel arbor (`r 2.8` at `z 22` to 25) to escape wheel tips | radial | Loose | 2.05; 2.95 |
 | L3 | pendulum to crutch; pendulum to knob | axial | Loose | 0.50 |
 | L4 | anchor to front plate; escape wheel to front plate | axial | Loose | 2.0; 3.0 |
-| L5 | pawl arm to ratchet tips; pinion tips to the pawl layer | radial | Loose | 1.0; 22 |
+| L5 | pawl arm to ratchet tips, away from the tooth-root round; pinion tips to the pawl layer | radial | Loose | 1.0; 22 |
+| L5r | pawl tooth-root round to ratchet tips | radial | Regular | 0.5 (measured 0.56) |
 | L6 | shoulder (`r 3.7`) in the pendulum lip bore (`r 5`) | radial | Loose | 1.30 |
 | E1 | anchor to escape wheel apart from the working contact, over the swing | 2D | Loose | ≥ 0.6 (escapement check) |
 | E2 | pallets to the root circle at `A = 6°` | 2D | Loose | ≥ 1.2 |
@@ -737,6 +761,23 @@ pawl on the ratchet are working contacts. The build pose backs the wheel off by 
 bodies do not touch.
 
 `models/README.md` label: **Mixed**.
+
+## Retained sharp corners
+
+Rule: "Corners and roots" in `docs/model-pipeline.md`. Printed parts are cut in their print orientation (axis +Z). Exempt corners:
+
+| Part | Corner | Reason |
+|---|---|---|
+| Escape Wheel | tooth tips and roots, annulus `r 32.8` to `40.1` about `O` | tooth generator: the tips are working contacts |
+| Anchor | pallet corners `F_E` and `F_X` (turn 122°, material angle 58°) | engagement edges: the escape wheel teeth enter and leave the pallets there |
+| Pawl Carrier | the contact corner at `(12.5∠g-112°)` (convex 90°) | engagement edge; the checker does not flag it |
+| Great Wheel | the radial-face-to-land corner of each ratchet tooth (convex 90°) | engagement edge; the checker does not flag it |
+| Crutch | the pin's root where it stands on the arm's front face | a corner between layers; 0.5 mm separates the crutch's front face from the pendulum, and the pin runs in a slot with 0.25 mm clearance, so a 0.75 mm round would reach the pendulum. The pendulum's drive force is small |
+| Arbors | the steps of each collar | between layers, small loads, out of scope |
+
+Rounds below half their section: the escape wheel's window corners (1.0 mm on 5 mm spokes; the wheel carries only the escapement torque, 0.1 N·mm
+or less), the front and back plate window corners (1.0 mm on a rigid plate), the anchor's `G` rounds (1.0 mm on a 6 mm arm: the locking arc keeps its length)
+and the pawl tooth-root round (0.5 mm on a 1.5 mm arm: a larger round would reach the ratchet tips; Fits L5r).
 
 ## Edge finishing
 
@@ -801,7 +842,9 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestSketches` | 3 branch cases (Sketch constraint plan) | every `Movement.Sketches` entry fully constrained |
 | `TestInventory` | default, Phase 0.3 | 36 bodies, all solid, unique names, Named order = Bodies table; containers and membership as Bodies table; `VerifyContainers().Err()` nil |
 | `TestGearMesh` | default; `Backlash 0` | pinion and great wheel outlines at `z 3`, 5 samples over one pinion pitch with the mesh relation: tip-to-root ≥ 0.5 both ways, no overlap |
-| `TestRatchet` | default | at `z 7` outlines: pawl-to-face gap 0.25 ± (0.02 + OffSurface); carrier turned ccw 2.5° relative to the wheel overlaps (drive engages); turned cw 2.5° does not; pawl arm to ratchet tips ≥ 0.95 |
+| `TestRatchet` | default | at `z 7` outlines: pawl-to-face gap 0.25 ± (0.02 + OffSurface); carrier turned ccw 2.5° relative to the wheel overlaps (drive engages); turned cw 3.5° fits freely and 5° does not; pawl arm to ratchet tips ≥ 0.95, tooth-root round to ratchet tips ≥ 0.35, tip land to 10.07° and gap start 20.55° at `r 12.5` |
+| `TestSpringRoot` | default | mainspring `FilletRadius` 0.55 (at least 0.5) and `TaperOffset` 0.0692 |
+| `TestCorners` | default | every printed body, cut at the middle of each run of layers with `internal/cornercheck`, has no finding outside Retained sharp corners; each listed exemption matches a finding |
 | `TestCoupling` | Phase 0, 0.25, 0.5, 0.75 | crutch pin to slot sides ≥ 0.2 each side; pendulum not overlapping crutch, knob or plate |
 | `TestFits` | default | each Fits row's lower bound (`internal/meshgap` or `SectionOutline.Clearance`) ≥ class minimum; press and seat rows 0.05 ± bound; T1: shaft radius at each bearing seat 2.5 ± bound |
 | `TestFasteners` | default | each head top at `z 34` ± 1e-6 and in its pocket; each nut inside its cavity bounds; bolt tip inside the pillar; no bolt or nut overlaps the plate it passes; 1 mm of material round pockets and cavities |
@@ -812,7 +855,7 @@ Never pass meshes or bodies to `require.Equal`; report counts, names and scalars
 | `TestPoseNoOverlap` | Phase 0, 0.1, 0.35, 0.6, 0.85 | no two bodies overlap (escape wheel/anchor, pinion/great wheel, carrier/great wheel by outline; others by meshgap) |
 | `TestExploded` (render module) | exploded offsets | no two exploded parts overlap |
 
-`TestEscapementAction` requirements, on `SectionOutline` (tolerance 0.02) of the real Escape Wheel and Anchor at
+`TestEscapementAction` requirements, on `SectionOutline` (tolerance 0.02, or the body's held mesh bound when that is coarser) of the real Escape Wheel and Anchor at
 `z 23.5`:
 
 - one tooth per period (±0.05°);
@@ -842,7 +885,7 @@ Front view (from `+Z`, pendulum at rest), through the front plate's windows:
 | anchor | pallets, impulse and locking faces, arms | the hub at `P` (`r 10`) covers its hub |
 | escape wheel | all 30 teeth except near `(0, ±40)`; spokes and windows | the spine strip `|x| ≤ 4` (behind the pendulum rod), the hub at `O` |
 | great wheel | teeth and face, except the spine strip, the hub at `G` and its lowest 1.2 mm (bottom rim) | none |
-| ratchet and pawls | ratchet teeth `r 11.5` to `13.5`, pawl teeth `r 10.5` to `12.5` | the hub ring and knob inside `r 10` |
+| ratchet and pawls | ratchet teeth `r 11.5` to `14.0`, pawl teeth `r 10.5` to `12.5` | the hub ring and knob inside `r 10` |
 | mainspring | all coils and the eye | the hub ring and the knob inside `r 10` |
 | carrier boss, spacer, pinion | none | the hub at `G`; the escape wheel's hub (pinion) |
 

@@ -7,16 +7,17 @@ Follow instructions.md for the API, the symbols and the governing dimensions. Em
 
 ## 1. Validate and derive (params.go)
 
-`params.go` makes no geometry calls. One unexported `derive(p Params) (Dimensions, error)` runs the 14
+`params.go` makes no geometry calls. One unexported `derive(p Params) (Dimensions, error)` runs the 15
 validation rules of instructions.md in their stated order, then computes every `Dimensions` field from the
-symbol table; the field-to-symbol mapping is in instructions.md (`TailLength` is `L`). `Validate` returns its error; `Derive` returns both values. `WindStrain` and `ActiveLength` use the
-formulas of instructions.md. `BoreFlatDistance` is 0 when `ArborFlatDepth` is 0. The float finite check names
+symbol table; the field-to-symbol mapping is in instructions.md (`TailLength` is `L`). `Validate` returns its error; `Derive` returns both values. `FilletRadius` is `min(t/2, g/2)`, `e_room` and `TaperOffset` follow the symbol table of instructions.md, and
+`WindStrain` and `ActiveLength` use its formulas. `BoreFlatDistance` is 0 when `ArborFlatDepth` is 0. The float finite check names
 the field: `<Field> must be finite`. Messages:
 
 - rule 2: `spiralspring: Thickness must be at least 1.5 mm`
 - rule 11: `spiralspring: OuterDiameter leaves no room for one turn`
 - rule 12: `spiralspring: Turns %d needs a gap below MinGap; at most %d turns fit`
-- rule 14: `spiralspring: Placement must be a valid frame`
+- rule 14: `spiralspring: HubDiameter and Gap leave no room for the root fillets`
+- rule 15: `spiralspring: Placement must be a valid frame`
 
 Every other rule gets a message naming the field and the limit.
 
@@ -30,8 +31,9 @@ Use a fresh `sketch.NewWorld()`, `world.CreateSketch(world.XY())` and `A = s.Ori
 coordinate given; the solver starts there, and two-solution constraints pick the side of the start point.
 With `R, g, d, w, rho0` from `Dimensions` and `t = p.Thickness`:
 
-1. Center `B = (d, 0)`. Constraints `NewHorizontalPoints(A, B)` and `NewHorizontalDistance(A, B, d)`.
-2. Root. Points `C1 = (-R, 0)`, `C2 = (-(R + g + t), 0)`, `C3 = (d - sqrt(rho0^2 - w^2), -w)`,
+1. Center `B = (d, 0)`. Constraints `NewHorizontalPoints(A, B)` and `NewHorizontalDistance(A, B, d)`. Also the taper
+   center `B0 = (d + e, 0)` with `NewHorizontalPoints(A, B0)` and `NewHorizontalDistance(A, B0, d + e)`. Do not fix it.
+2. Root. Points `C1 = (-R, 0)`, `C2 = (-(R + g + t), 0)`, `C3 = (d + e - sqrt((rho0 - e)^2 - w^2), -w)`,
    `C4 = (-sqrt(R^2 - w^2), -w)`.
    Entities: `hub = CreateArc(A, C4, C1)`, `L1 = CreateLine(C1, C2)` (root end face) and
    `L2 = CreateLine(C3, C4)` (spoke underside).
@@ -40,10 +42,11 @@ With `R, g, d, w, rho0` from `Dimensions` and `t = p.Thickness`:
 3. Coil, for `k = 0 .. 2N-1`. The center `c_k` is `B` for even `k` and `A` for odd `k`.
    - Inner end point `J_{k+1}`: x = `d + r_k` (even `k`) or `-r_k` (odd `k`), y = 0. Outer end point
      `O_{k+1}`: x = `d + r_k + t` (even `k`) or `-(r_k + t)` (odd `k`), y = 0. `r_k = rho0 + k*d`.
-   - `inner[k] = CreateArc(c_k, J_k, J_{k+1})` with `J_0 = C3`. `outer[k] = CreateArc(c_k, O_k, O_{k+1})` with
+   - `inner[k] = CreateArc(c_k, J_k, J_{k+1})` with `J_0 = C3`, except `inner[0]`, which is centered at `B0`. `outer[k] = CreateArc(c_k, O_k, O_{k+1})` with
      `O_0 = C2`. Arcs run counter-clockwise from start to end.
    - `NewHorizontalPoints(A, J_{k+1})` and `NewHorizontalPoints(A, O_{k+1})`.
-   - After the loop: `NewRadius(inner[0], rho0)` and `NewRadialOffset(inner[0], outer[0], t)`.
+   - After the loop: `NewRadius(inner[0], rho0 - e)` and `NewRadius(outer[0], rho0 + t)`. The two arcs are not
+     concentric, so no radial offset applies.
    - Every later radius follows from the shared junctions. Adding any other radius dimension is redundant.
 4. Tail and eye. Let `J = J_{2N}`, `O = O_{2N}`, `y_c = -L + sqrt(R_e^2 - t^2/4)`. Points:
    `E = (E.x, -L)`, `P_i = (E.x + t/2, y_c)`, `P_o = (E.x - t/2, y_c)`.
