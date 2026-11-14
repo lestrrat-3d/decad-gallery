@@ -13,10 +13,12 @@ MODEL_FILES = ("README.md", "instructions.md", "steps.md")
 # Remove a model in the change that adds its corner test.
 CORNER_PENDING = {
     "bevelgear", "cycloidal", "handcrankfan", "handcranksiren",
-    "planetarygearbox", "screwgear", "spinningwheel",
+    "planetarygearbox", "screwgear",
 }
 # Models that build only purchased or standard parts kept at nominal size.
 CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
+# Models whose instructions.md states, under Materials, that no part is printed.
+CORNER_UNPRINTED = {"spinningwheel"}
 
 
 def unsorted_model_rows() -> list[str]:
@@ -41,13 +43,21 @@ def corner_problems(models: Path) -> list[str]:
     """Return the models that break the corners and roots enforcement."""
     names = {item.name for item in models.iterdir() if item.is_dir()}
     problems = []
-    for name in sorted(CORNER_PENDING | CORNER_NOMINAL):
+    for name in sorted(CORNER_PENDING | CORNER_NOMINAL | CORNER_UNPRINTED):
         if name not in names:
             problems.append(f"corner list names {name}, which has no model directory")
     for name in sorted(names):
         tested = has_corner_test(models / name)
         if name in CORNER_PENDING and tested:
             problems.append(f"remove {name} from CORNER_PENDING")
+        elif name in CORNER_UNPRINTED:
+            if tested:
+                problems.append(f"remove {name} from CORNER_UNPRINTED")
+            instructions = models / name / "instructions.md"
+            if not instructions.is_file() or not re.search(
+                r"^## Materials\s*$", instructions.read_text(), re.MULTILINE
+            ):
+                problems.append(f"models/{name}/instructions.md: missing ## Materials section")
         elif name not in CORNER_PENDING | CORNER_NOMINAL and not tested:
             problems.append(f"missing: models/{name}/*_test.go (cornercheck)")
     return problems

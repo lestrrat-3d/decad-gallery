@@ -79,6 +79,8 @@ and three 605ZZ bearings. A custom 16.2 x 26 x 20 mm sleeve carries the front fl
 Other hardware includes 8 mm shafts, 5 mm linkage pins, M6 post/clamp fasteners,
 an M8 drive-tension screw and an M4 brake-adjusting screw. Each shaft collar has a radial M2 grub screw.
 Bolted end plates retain the gimbal and footman bearings. Screw threads are represented by mounting envelopes.
+The wheel is timber and bought hardware and is not designed to be printed; see
+[Materials](instructions.md#materials).
 
 The rear maiden and its glued foot remove together for bobbin changes. Slacken the drive band and release the brake cord.
 Remove the outer rear-flyer collar, unbolt the maiden foot, and slide the post-and-foot unit rearward off the shaft.

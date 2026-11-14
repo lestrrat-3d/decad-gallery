@@ -214,6 +214,8 @@ Chamfer every qualifying convex boundary edge on a large planar surface:
 
 This rule applies to every printed part in the gallery. Purchased and standard parts kept at their nominal size,
 such as bolts, nuts and bearings, are exempt, as [Part clearances](#part-clearances) keeps them.
+A model whose `instructions.md` has a Materials section stating that no part is printed, such as the timber
+spinning wheel, is not checked.
 
 Read each part in its print orientation, as the model README states it. A section is the part cut by a plane
 parallel to the print bed, at a height inside a run of layers that share one outline.
