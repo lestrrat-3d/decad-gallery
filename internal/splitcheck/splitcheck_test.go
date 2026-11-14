@@ -168,6 +168,13 @@ func TestShaftViolations(t *testing.T) {
 		// A second flat toward +X on the first 8 mm: no one plane cuts both flats in half.
 		r := b.check(b.cut(b.dShaft(), b.box(b.across(-1), flatOffset, -5, flatOffset+3, 5, 9)), r3.Vec{})
 		requireViolation(t, r, "not parallel")
+		reported := 0
+		for _, v := range r.Violations {
+			if strings.Contains(v, "not parallel") {
+				reported++
+			}
+		}
+		require.Equal(t, 1, reported, "each stray flat direction is reported once")
 	})
 	t.Run("off_centre_notch", func(t *testing.T) {
 		b := newShafts(t)

@@ -127,6 +127,7 @@ func (r *Report) flats(point, axis r3.Vec, vertices []r3.Vec, triangles [][3]int
 	}
 	var line r3.Vec
 	var planes []plane
+	var astray []r3.Vec // the other directions found, each reported once
 	for i, t := range triangles {
 		n := normals[i]
 		if sources[i] == nil || sources[i].Surface() == nil || sources[i].Surface().Kind() != decad.KindPlane ||
@@ -137,7 +138,16 @@ func (r *Report) flats(point, axis r3.Vec, vertices []r3.Vec, triangles [][3]int
 			line = n
 		}
 		if line.Cross(n).Len() > parallel {
-			r.violate(fmt.Sprintf("flat normal %v is not parallel to flat normal %v", round(n), round(line)))
+			known := false
+			for _, a := range astray {
+				if a.Cross(n).Len() <= parallel {
+					known = true
+					break
+				}
+			}
+			if !known {
+				astray = append(astray, n)
+			}
 			continue
 		}
 		offset := vertices[t[0]].Sub(point).Dot(n)
@@ -151,6 +161,13 @@ func (r *Report) flats(point, axis r3.Vec, vertices []r3.Vec, triangles [][3]int
 		if !seen {
 			planes = append(planes, plane{n, offset})
 		}
+	}
+	for i, a := range astray {
+		if i == 3 {
+			r.violate(fmt.Sprintf("%d flat directions in all are not parallel to flat normal %v", len(astray), round(line)))
+			break
+		}
+		r.violate(fmt.Sprintf("flat normal %v is not parallel to flat normal %v", round(a), round(line)))
 	}
 	r.Flats = len(planes)
 	return line
