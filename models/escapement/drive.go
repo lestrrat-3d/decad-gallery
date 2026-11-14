@@ -168,13 +168,12 @@ func pawlLayer(s *sketch.Sketch, ref *sketch.Line, gs []float64) error {
 		s.AddConstraint(sketch.NewDistance(o, p5, carrierArmOuter), sketch.NewAngle(ref, l, (g-120*deg)/deg))
 	}
 	// The corners are removed by their rounds, so each leg carries its own place before the rounds: the radial lines
-	// pass through the origin and the arcs have their radii. Sketch's redundancy check reports a round arc's own radius
-	// as redundant for some leg orders, so the order below is the one that verifies.
+	// pass through the origin and the arcs have their radii.
 	for j := range gs {
-		if _, err := sketch.CreateFillet(s, outers[j], contacts[j], roots[j], toothRootRound); err != nil {
+		if _, err := sketch.CreateFillet(s, contacts[j], outers[j], roots[j], toothRootRound); err != nil {
 			return fmt.Errorf("round pawl %d tooth root: %w", j+1, err)
 		}
-		if _, err := sketch.CreateFillet(s, cores[(j+1)%n], backs[j], corners[j], blockBackRound); err != nil {
+		if _, err := sketch.CreateFillet(s, backs[j], cores[(j+1)%n], corners[j], blockBackRound); err != nil {
 			return fmt.Errorf("round pawl %d block back: %w", j+1, err)
 		}
 	}

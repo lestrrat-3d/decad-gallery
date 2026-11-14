@@ -89,22 +89,10 @@ func axisPolygon(t *testing.T, pts []xy, radii []float64) *decad.Body {
 			continue
 		}
 		prev, next := lines[(i+n-1)%n], lines[i]
-		// sketch's redundancy check reports the arc's implicit radius as redundant for a concave round when the
-		// legs are passed in outline order, so a concave corner takes them reversed.
-		if concave(pts, i) {
-			prev, next = next, prev
-		}
 		_, err := sketch.CreateFillet(s, prev, next, points[i], r)
 		require.NoError(t, err)
 	}
 	return extrude(t, s, 0)
-}
-
-// concave reports whether the counter-clockwise polygon turns right at vertex i.
-func concave(pts []xy, i int) bool {
-	n := len(pts)
-	a, b, c := pts[(i+n-1)%n], pts[i], pts[(i+1)%n]
-	return (b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x) < 0
 }
 
 // wedge extrudes an isosceles triangle on a 20 mm base whose apex angle is apex degrees, rounding the apex with r
