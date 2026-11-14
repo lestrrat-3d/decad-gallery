@@ -300,7 +300,7 @@ func requireFitClearances(t *testing.T, box planetarygearbox.Gearbox, p planetar
 	bearingBounds := bounds(t, planetBearing)
 	bearingMid := (bearingBounds.Min.Z + bearingBounds.Max.Z) / 2
 	// A bearing seat is designed at 0.05 mm radial clearance (docs/model-pipeline.md "Part clearances"). The
-	// section measurement's uncertainty reaches 0.024 mm on the meshed covers, so the proven bound is about 0.026 mm.
+	// section measurement's uncertainty reaches 0.019 mm on the meshed covers, so the proven bound is about 0.031 mm.
 	const seatMinimum = 0.02
 
 	// The sun's bore is a press fit on the shaft: the sun turns with it.

@@ -13,6 +13,28 @@ import (
 // earWall mirrors the material the ears keep around a bore.
 const earWall = 3
 
+// earRootRound mirrors the radius of the rounds where an ear meets the ring: half the thinner of the ring wall and
+// the ear's width.
+func earRootRound(p planetarygearbox.Params) float64 {
+	return math.Min(p.RingWall, 2*(p.EarBoreDiameter/2+earWall)) / 2
+}
+
+// rootRoundArea is the area one root round adds: the region between the line that is half from an ear's axis, the
+// circle of radius outer about the origin, and the round of radius r tangent to both. It is the quadrilateral from
+// the old corner P, the round's tangent point T1 on the line, its center C and its tangent point T2 on the circle,
+// less the round's sector between T1 and T2 and the outer circle's segment between T2 and P.
+func rootRoundArea(outer, half, r float64) float64 {
+	cx, cy := math.Sqrt((outer+r)*(outer+r)-(half+r)*(half+r)), half+r
+	px, py := math.Sqrt(outer*outer-half*half), half
+	t1x, t1y := cx, half
+	t2x, t2y := cx*outer/(outer+r), cy*outer/(outer+r)
+	quad := math.Abs((px*t1y-t1x*py)+(t1x*cy-cx*t1y)+(cx*t2y-t2x*cy)+(t2x*py-px*t2y)) / 2
+	sector := r * r * math.Acos(cy/(outer+r)) / 2
+	phi := math.Atan2(cy, cx) - math.Asin(half/outer)
+	segment := outer * outer * (phi - math.Sin(phi)) / 2
+	return quad - sector - segment
+}
+
 // ringOuterRadius is the ring's outer wall for the default module: the ring root radius plus the wall.
 func ringOuterRadius(p planetarygearbox.Params) float64 {
 	return p.Module*float64(p.RingTeeth)/2 + p.Module + minimumGearRootClearance(p.Module) + p.RingWall
@@ -64,18 +86,19 @@ func requireEars(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.
 				along, side float64
 				material    bool
 			}{
-				"bore center":                {center, 0, false},
-				"bore edge toward the ring":  {center - p.EarBoreDiameter/2 + 0.3, 0, false},
-				"bore edge toward the tip":   {center + p.EarBoreDiameter/2 - 0.3, 0, false},
-				"bore edge sideways":         {center, p.EarBoreDiameter/2 - 0.3, false},
-				"wall toward the ring":       {center - p.EarBoreDiameter/2 - 0.3, 0, true},
-				"wall toward the tip":        {center + p.EarBoreDiameter/2 + 0.3, 0, true},
-				"wall sideways":              {center, p.EarBoreDiameter/2 + 0.3, true},
-				"between the wall and ring":  {outer + 0.5, 0, true},
-				"inside the ring wall":       {outer - 0.5, 0, true},
-				"beyond the tip":             {center + half + 0.3, 0, false},
-				"beyond the side":            {center, half + 0.3, false},
-				"beside the ear on the wall": {outer + 0.5, half + 0.3, false},
+				"bore center":               {center, 0, false},
+				"bore edge toward the ring": {center - p.EarBoreDiameter/2 + 0.3, 0, false},
+				"bore edge toward the tip":  {center + p.EarBoreDiameter/2 - 0.3, 0, false},
+				"bore edge sideways":        {center, p.EarBoreDiameter/2 - 0.3, false},
+				"wall toward the ring":      {center - p.EarBoreDiameter/2 - 0.3, 0, true},
+				"wall toward the tip":       {center + p.EarBoreDiameter/2 + 0.3, 0, true},
+				"wall sideways":             {center, p.EarBoreDiameter/2 + 0.3, true},
+				"between the wall and ring": {outer + 0.5, 0, true},
+				"inside the ring wall":      {outer - 0.5, 0, true},
+				"beyond the tip":            {center + half + 0.3, 0, false},
+				"beyond the side":           {center, half + 0.3, false},
+				"in the root round":         {outer + 0.3, half + 0.3, true},
+				"beside the root round":     {outer + 0.5, half + earRootRound(p) + 0.3, false},
 			} {
 				require.Equal(t, want.material, at(want.along, want.side), "ear %d at z=%v: %s", i+1, z, name)
 			}
@@ -127,11 +150,13 @@ func TestRingWithoutEars(t *testing.T) {
 	requireRimSetback(t, "ring", box.Ring, p.EdgeChamfer)
 
 	// Each ear adds its section over the ring length: the strip between the outer wall and the bore's center line,
-	// a half circle, less the bore. The chamfers take a small part of it, within the tolerance.
+	// a half circle, less the bore, and the two root rounds. The chamfers take a small part of it, within the tolerance.
 	half := p.EarBoreDiameter/2 + earWall
 	wall := ringOuterRadius(p)
 	strip := 2*half*(wall+half) - (half*math.Sqrt(wall*wall-half*half) + wall*wall*math.Asin(half/wall))
 	section := strip + math.Pi*half*half/2 - math.Pi*p.EarBoreDiameter*p.EarBoreDiameter/4
+	// Each ear also meets the ring in two root rounds.
+	section += 2 * rootRoundArea(wall, half, earRootRound(p))
 	length := float64(p.Stages)*(p.GearThickness+p.CarrierThickness+2*p.StageGap) + p.StageGap
 	want := float64(3) * section * length
 	_, with := defaultGearbox(t)
@@ -140,4 +165,11 @@ func TestRingWithoutEars(t *testing.T) {
 	earred, err := with.Ring.Volume()
 	require.NoError(t, err)
 	require.InDelta(t, want, earred.Value.Base()-plain.Value.Base(), 0.03*want+plain.Bound.Base()+earred.Bound.Base())
+}
+
+// TestRootRoundArea checks the area formula against the default ear: 1.848 mm² for each of the 3.55 mm root rounds.
+func TestRootRoundArea(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	require.InDelta(t, 3.55, earRootRound(p), 1e-9)
+	require.InDelta(t, 1.848, rootRoundArea(ringOuterRadius(p), p.EarBoreDiameter/2+earWall, earRootRound(p)), 0.01)
 }

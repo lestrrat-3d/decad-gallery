@@ -33,7 +33,7 @@ to 24 slots the pitch at that crank speed runs from 240 Hz to 480 Hz. The rotor 
 between its ports, so it also works as a blower: air comes in through three windows in the drum's back plate, the vanes
 throw it outward to the port ring, and it leaves through the ports whenever a rotor port lines up with a stator port.
 The air then enters the collector, which turns it through a right angle into the horn, and the horn sends it forward.
-The direction of turn does not matter. The ports have straight sides rather than curved ones; the effect on the
+The direction of turn does not matter. The ports have straight sides with rounded corners rather than curved sides; the effect on the
 tone is small.
 
 The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 8 mm across, the bore of its bearings, with one flat, and each gear, the
@@ -73,6 +73,12 @@ and 2 mm high, so the nut has 0.2 mm of room on each face.
 | Horn | flange mating face down, mouth up | four, near the bed, for the throat bolts |
 | Grip | one flat side down | none |
 | Crank pin | upright, head down | one, for the pin bolt |
+| Rotor | disc front face down, vanes and hub up | none |
+| Stator | either face down | none |
+| Crank gear, intermediate pinion, intermediate gear, rotor pinion | either face down, axis vertical | none |
+| Crank arm | inner face down, axis vertical | none |
+| Crank handle | standing on its inner end | none |
+| Crank shaft, intermediate shaft, rotor shaft | standing on one end | none |
 
 Each shaft can print as two halves cut lengthwise through the middle of its flat, each half lying on its cut face, so
 the layers run along the shaft. The model keeps each shaft whole; the export to Fusion cuts it when asked. The bearings

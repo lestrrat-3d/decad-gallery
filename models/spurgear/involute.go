@@ -1,6 +1,7 @@
 package spurgear
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -9,70 +10,68 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// point is a planar coordinate in the gear frame, in millimeters.
+// point is a planar coordinate in the gear frame.
 type point struct{ x, y float64 }
 
-// dimensions holds the derived radii and backlash read from the parameter table.
-type dimensions struct{ pitch, base, root, tip, fillet, backlash float64 }
+// dimensions holds the derived radii read from the parameter table.
+type dimensions struct {
+	pitch, base, root, tip, fillet, backlash float64
+}
 
-// defineParameters writes the spur parameter table of instructions.md into t.
+// defineParameters writes the spur gear parameter table into t.
 func defineParameters(t *param.Table, p Params) error {
-	if t == nil {
-		return fmt.Errorf("define parameters: nil parameter table")
-	}
 	if err := t.SetValue("module", units.Millimeters(p.Module)); err != nil {
-		return fmt.Errorf("parameter module: %w", err)
+		return fmt.Errorf("parameter %s: %w", "module", err)
 	}
 	if err := t.SetNumber("teeth", float64(p.Teeth)); err != nil {
-		return fmt.Errorf("parameter teeth: %w", err)
+		return fmt.Errorf("parameter %s: %w", "teeth", err)
 	}
 	if err := t.SetValue("pressure_angle", units.Radians(p.PressureAngle)); err != nil {
-		return fmt.Errorf("parameter pressure_angle: %w", err)
+		return fmt.Errorf("parameter %s: %w", "pressure_angle", err)
 	}
 	if err := t.SetValue("thickness", units.Millimeters(p.Thickness)); err != nil {
-		return fmt.Errorf("parameter thickness: %w", err)
+		return fmt.Errorf("parameter %s: %w", "thickness", err)
 	}
 	if err := t.SetNumber("samples", float64(p.Samples)); err != nil {
-		return fmt.Errorf("parameter samples: %w", err)
+		return fmt.Errorf("parameter %s: %w", "samples", err)
 	}
 	if err := t.SetValue("bore_diameter", units.Millimeters(p.BoreDiameter)); err != nil {
-		return fmt.Errorf("parameter bore_diameter: %w", err)
+		return fmt.Errorf("parameter %s: %w", "bore_diameter", err)
 	}
 	if err := t.SetValue("cap_chamfer", units.Millimeters(p.CapChamfer)); err != nil {
-		return fmt.Errorf("parameter cap_chamfer: %w", err)
+		return fmt.Errorf("parameter %s: %w", "cap_chamfer", err)
 	}
 	if err := t.SetValue("backlash", units.Millimeters(p.Backlash)); err != nil {
-		return fmt.Errorf("parameter backlash: %w", err)
+		return fmt.Errorf("parameter %s: %w", "backlash", err)
 	}
 	if err := t.SetExpr("tool_margin", "1", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter tool_margin: %w", err)
+		return fmt.Errorf("parameter %s: %w", "tool_margin", err)
 	}
 	if err := t.SetExpr("pitch_radius", "module * teeth / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter pitch_radius: %w", err)
+		return fmt.Errorf("parameter %s: %w", "pitch_radius", err)
 	}
 	if err := t.SetExpr("base_radius", "pitch_radius * cos(pressure_angle)", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter base_radius: %w", err)
+		return fmt.Errorf("parameter %s: %w", "base_radius", err)
 	}
 	if err := t.SetExpr("root_radius", "(module * teeth - 2.5 * module) / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter root_radius: %w", err)
+		return fmt.Errorf("parameter %s: %w", "root_radius", err)
 	}
 	if err := t.SetExpr("tip_radius", "(module * teeth + 2 * module) / 2", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter tip_radius: %w", err)
+		return fmt.Errorf("parameter %s: %w", "tip_radius", err)
 	}
 	if err := t.SetExpr("involute_angle", "tan(pressure_angle) - deg(pressure_angle) * pi / 180", units.One); err != nil {
-		return fmt.Errorf("parameter involute_angle: %w", err)
+		return fmt.Errorf("parameter %s: %w", "involute_angle", err)
 	}
-	if err := t.SetExpr("fillet_radius", "0.9 * root_radius * (pi / teeth - 2 * involute_angle) / 2",
-		units.Millimeter); err != nil {
-		return fmt.Errorf("parameter fillet_radius: %w", err)
+	if err := t.SetExpr("fillet_radius", "0.9 * root_radius * (pi / teeth - 2 * involute_angle) / 2", units.Millimeter); err != nil {
+		return fmt.Errorf("parameter %s: %w", "fillet_radius", err)
 	}
 	if err := t.SetExpr("bore_tool_length", "thickness + 2 * tool_margin", units.Millimeter); err != nil {
-		return fmt.Errorf("parameter bore_tool_length: %w", err)
+		return fmt.Errorf("parameter %s: %w", "bore_tool_length", err)
 	}
 	return nil
 }
 
-// readDimensions reads the derived radii and backlash from doc's parameter table.
+// readDimensions reads the derived radii from the document's parameter table.
 func readDimensions(doc *decad.Document) (dimensions, error) {
 	var d dimensions
 	targets := []struct {
@@ -89,15 +88,15 @@ func readDimensions(doc *decad.Document) (dimensions, error) {
 	for _, t := range targets {
 		v, err := doc.Param(t.name)
 		if err != nil {
-			return dimensions{}, fmt.Errorf("parameter %s: %w", t.name, err)
+			return dimensions{}, fmt.Errorf("read parameter %s: %w", t.name, err)
 		}
 		*t.dst = v.Base()
 	}
 	return d, nil
 }
 
-// derive computes the derived dimensions of p on a scratch document. It returns
-// the zero dimensions when the table cannot be defined or read.
+// derive computes the dimensions of p on a scratch document. It returns a zero
+// dimensions value when the table cannot be built or read.
 func derive(p Params) dimensions {
 	doc := decad.New()
 	if err := defineParameters(doc.Params(), p); err != nil {
@@ -111,52 +110,57 @@ func derive(p Params) dimensions {
 }
 
 // filletRadius returns the root fillet radius of d.
-func filletRadius(_ Params, d dimensions) float64 {
+func filletRadius(p Params, d dimensions) float64 {
 	return d.fillet
 }
 
-// rotate turns (x, y) counterclockwise by theta radians.
+// rotate turns (x, y) by theta about the origin.
 func rotate(x, y, theta float64) point {
-	c, s := math.Cos(theta), math.Sin(theta)
+	s, c := math.Sincos(theta)
 	return point{x*c - y*s, x*s + y*c}
 }
 
-// rootContact scales a base-circle point out to the root circle.
+// rootContact scales a base-circle point onto the root circle, multiplying
+// before dividing.
 func rootContact(basePoint point, d dimensions) point {
 	return point{basePoint.x * d.root / d.base, basePoint.y * d.root / d.base}
 }
 
-// toothAngle returns the angle of tooth k about the gear axis.
+// toothAngle returns the rotation of tooth k.
 func toothAngle(p Params, k int) float64 {
 	return 2 * math.Pi * float64(k) / float64(p.Teeth)
 }
 
-// involuteAt evaluates the original involute of a circle of radius base at
-// radius r (r >= base).
-func involuteAt(base, r float64) point {
+// mirroredInvolute returns the involute point at radius r, mirrored across X.
+func mirroredInvolute(base, r float64) point {
 	ratio := base / r
 	if ratio > 1 {
 		ratio = 1
 	}
 	t := math.Tan(math.Acos(ratio))
-	return point{
-		base * (math.Cos(t) + t*math.Sin(t)),
-		base * (math.Sin(t) - t*math.Cos(t)),
-	}
+	sin, cos := math.Sincos(t)
+	return point{base * (cos + t*sin), -base * (sin - t*cos)}
 }
 
-// flankShift returns the rotation beta that places the mirrored involute's
-// pitch crossing at pi/(2 teeth) minus the backlash half-angle.
+// flankShift returns the rotation beta that centres the left flank on the
+// tooth axis, thinned by the backlash.
 func flankShift(pitch, base, teeth, backlash float64) float64 {
-	pp := involuteAt(base, pitch)
-	px, py := pp.x, -pp.y
+	pp := mirroredInvolute(base, pitch)
 	delta := backlash / (2 * pitch)
-	return math.Pi/(2*teeth) - delta - math.Atan2(py, px)
+	return math.Pi/(2*teeth) - delta - math.Atan2(pp.y, pp.x)
 }
 
-// sampleFlanks samples the left and right involute flanks from radius start to
-// tip, both endpoints included, rotated by angle. It returns the left array and
-// then the right array, each running from start to tip.
+// flankHalfAngle returns the angle between the tooth axis and the left flank
+// at radius r.
+func flankHalfAngle(pitch, base, teeth, backlash, r float64) float64 {
+	beta := flankShift(pitch, base, teeth, backlash)
+	q := mirroredInvolute(base, r)
+	q = rotate(q.x, q.y, beta)
+	return math.Atan2(q.y, q.x)
+}
+
+// sampleFlanks samples both flanks from radius start to tip. It returns the
+// left array then the right array, both running start-to-tip.
 func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int,
 	angle float64) ([]point, []point) {
 	beta := flankShift(pitch, base, teeth, backlash)
@@ -164,52 +168,72 @@ func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int,
 	right := make([]point, samples)
 	for i := 0; i < samples; i++ {
 		r := start + (tip-start)*float64(i)/float64(samples-1)
-		q := involuteAt(base, r)
-		l := rotate(q.x, -q.y, beta)
+		q := mirroredInvolute(base, r)
+		l := rotate(q.x, q.y, beta)
+		rt := point{l.x, -l.y}
 		left[i] = rotate(l.x, l.y, angle)
-		right[i] = rotate(l.x, -l.y, angle)
+		right[i] = rotate(rt.x, rt.y, angle)
 	}
 	return left, right
 }
 
-// halfAngle returns the angle between the tooth axis and the left flank where
-// the flank meets radius r.
-func halfAngle(d dimensions, teeth, r float64) float64 {
-	beta := flankShift(d.pitch, d.base, teeth, d.backlash)
-	q := involuteAt(d.base, r)
-	l := rotate(q.x, -q.y, beta)
-	return math.Atan2(l.y, l.x)
-}
-
-// InvoluteFlanks samples the left and right involute flanks for the given
-// radii and real-valued effective tooth count, rotated by angle, with no
-// backlash. Each array runs from base to tip.
+// InvoluteFlanks samples the left and right involute flanks from the base
+// radius to the tip radius, with no backlash. Both arrays run base-to-tip.
 func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
 	angle float64) ([][2]float64, [][2]float64, error) {
 	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, nil, fmt.Errorf("involute flanks: nonfinite scalar input")
+			return nil, nil, errors.New("spurgear: nonfinite flank input")
 		}
 	}
-	switch {
-	case base <= 0:
-		return nil, nil, fmt.Errorf("involute flanks: base radius %g must be positive", base)
-	case pitch <= base:
-		return nil, nil, fmt.Errorf("involute flanks: pitch radius %g must exceed base radius %g", pitch, base)
-	case tip <= pitch:
-		return nil, nil, fmt.Errorf("involute flanks: tip radius %g must exceed pitch radius %g", tip, pitch)
-	case effectiveTeeth <= 0:
-		return nil, nil, fmt.Errorf("involute flanks: effective teeth %g must be positive", effectiveTeeth)
-	case samples < 3:
-		return nil, nil, fmt.Errorf("involute flanks: samples %d must be at least 3", samples)
+	if base <= 0 {
+		return nil, nil, fmt.Errorf("spurgear: base radius %g must be positive", base)
+	}
+	if pitch <= base {
+		return nil, nil, fmt.Errorf("spurgear: pitch radius %g must exceed base radius %g", pitch, base)
+	}
+	if tip <= pitch {
+		return nil, nil, fmt.Errorf("spurgear: tip radius %g must exceed pitch radius %g", tip, pitch)
+	}
+	if effectiveTeeth <= 0 {
+		return nil, nil, fmt.Errorf("spurgear: effective teeth %g must be positive", effectiveTeeth)
+	}
+	if samples < 3 {
+		return nil, nil, fmt.Errorf("spurgear: samples %d must be at least 3", samples)
 	}
 	left, right := sampleFlanks(pitch, base, base, tip, effectiveTeeth, 0, samples, angle)
-	toPairs := func(pts []point) [][2]float64 {
-		out := make([][2]float64, len(pts))
-		for i, q := range pts {
-			out[i] = [2]float64{q.x, q.y}
-		}
-		return out
+	l := make([][2]float64, len(left))
+	r := make([][2]float64, len(right))
+	for i := range left {
+		l[i] = [2]float64{left[i].x, left[i].y}
+		r[i] = [2]float64{right[i].x, right[i].y}
 	}
-	return toPairs(left), toPairs(right), nil
+	return l, r, nil
+}
+
+// closingRadius returns the radius Rc at which an embedded tooth section is
+// closed by an arc about the gear axis.
+func closingRadius(p Params, d dimensions) (float64, error) {
+	teeth := float64(p.Teeth)
+	limit := math.Pi / teeth
+	half := func(r float64) float64 {
+		return flankHalfAngle(d.pitch, d.base, teeth, d.backlash, r)
+	}
+	if half(d.base) < limit {
+		return d.base, nil
+	}
+	if half(d.root) >= limit {
+		return 0, errors.New("spurgear: no closing radius inside the root circle for the embedded tooth")
+	}
+	lo, hi := d.base, d.root
+	for i := 0; i < 200; i++ {
+		mid := (lo + hi) / 2
+		if half(mid) >= limit {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	rq := (lo + hi) / 2
+	return (rq + d.root) / 2, nil
 }

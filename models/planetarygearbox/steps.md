@@ -94,11 +94,19 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      `Rr = cover rim inner radius`: a window between spoke `k` and spoke `k + 1` bounded by a line along spoke
      `k`'s upper edge from the hub circle to the rim circle, an arc of the rim circle (about the origin)
      to spoke `k + 1`'s lower edge, a line back to the hub circle, and an arc of the hub circle back to the
-     start. Dimension the start and rim-start points from the origin and the other two arc ends by one
-     coordinate each. Require one valid profile with `3 + 1 + 4` holes and extrude it `Tv`.
+     start. Hold the directions with a horizontal construction line `ref` from the origin (`Horizontal`, 10 mm long)
+     and one construction axis per spoke from the origin (`Angle` from `ref` equal to the spoke angle, `Distance` 10).
+     Constrain each window's two straight edges `Parallel` to their spoke's axis, each with `DistancePointLine` from
+     the origin equal to `h`, and the two arcs by `Radius` (`Rr` and `Rh`). Then `sketch.CreateFillet` all four corners
+     of every window with radius `arm_width / 2`: hub arc to line, line to rim arc, rim arc to line, line to hub arc.
+     A fillet deletes its corner point and the constraints on it, so no corner is dimensioned by coordinates. Require
+     the sketch fully constrained (DOF 0), and one valid profile with `3 + 1 + 4` holes, and extrude it `Tv`.
    - Boss: a sketch on the plane `z = Tv - 1` with two circles about the origin, diameters
      `cover_boss_diameter` and `cover_pocket_diameter`; extrude the annulus `Wbs + 1` up.
    - `decad.Union` the frame and the boss.
+   - Boss root (`roundBossRoot`): `decad.Fillet` of the circular edge of radius `cover_boss_diameter / 2` in the plane
+     `z = Tv`, found by radius and height and selected by its start point as in **Seat chamfer**, by
+     `min(carrier_wall, Tv) / 2` (1.5 mm by default). Require a solid.
    - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.3`) on the
      plane `z = Tv - m2bolt.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
      the cover's +Z face, so the pocket is as deep as the head is tall.
@@ -125,7 +133,11 @@ origin, counter-clockwise from ear `i`'s counter-clockwise root to ear `i+1`'s c
 each later axis `Angle` of `360/EarCount` degrees from the one before; the bore `Diameter` (bound to `ear_bore_diameter`); the half
 circle `Radius = we` (bound to `ear_bore_diameter / 2 + ear_wall`); `Perpendicular(axis, across)` and `PointOnLine(bore center,
 across)`; both straight edges `Parallel` to the axis; each outer arc `Radius = ring_outer_radius`. Place each initial point from
-the angle `a`. The sketch must report fully constrained with DOF 0. Ear bores are inner loops of the section.
+the angle `a`. After the outer arcs, `sketch.CreateFillet` both roots of every ear with radius
+`re = min(ring_wall, 2 we) / 2`: the counter-clockwise straight edge to the outer arc that follows it, and the outer
+arc that precedes the ear to the clockwise straight edge. With one ear those two arcs are the same arc. The fillet
+adds the two tangencies and the radius dimension. The sketch must report fully constrained with DOF 0. Ear bores are
+inner loops of the section.
 
 **Edge finishing.** After a ring, a cover or a carrier is complete, chamfer the boundary loops it keeps by `edge_chamfer`
 (see Edge finishing in `instructions.md`). For each plane `z`, find the body's planar faces whose plane normal is along Z
@@ -218,6 +230,11 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   `Lo` beyond the rear boss, and the second stage's planets mesh as the first's do. The link shaft's thick part is a
   0.02 mm or wider press fit in the first carrier and ends 0.25 mm short of the second sun; a build with `Sf = 0` and
   `g = 0.75` succeeds.
+- Corners: `TestCorners` cuts every printed body of the default along +Z at the middle of each run of layers with
+  `internal/cornercheck` and requires no finding outside "Retained sharp corners" in `instructions.md`.
+  `TestCornersVariants` does the same for the other kits, `EarCount` 0, 1 and 6, and two stages.
+- Ear roots: the section has material in each root round and none beside it; two stages' worth of ear volume matches
+  the ear section plus two root rounds.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.
 - Backlash: a gearbox with `j = 0.2` has a smaller sun, planet and ring volume than the default beyond the volume bounds.
 - Invalid: every listed input error names its rule.

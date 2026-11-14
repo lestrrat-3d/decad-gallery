@@ -65,7 +65,7 @@ func (b *builder) drum() *decad.Body {
 	f := frame(r3.Vec{Z: rotorHeight, Y: windowY},
 		r3.Vec{X: math.Cos(windowAngle), Z: math.Sin(windowAngle)}, r3.Vec{Y: 1}.Cross(r3.Vec{X: math.Cos(windowAngle), Z: math.Sin(windowAngle)}))
 	ws := b.section(f)
-	port(ws, windowRIn, windowROut, windowHalf)
+	b.fail("draw window", port(ws, windowRIn, windowROut, windowHalf, portRound))
 	window := b.ring(b.extrude(ws, 0, windowLength), windows)
 	body = b.cut(body, window)
 	body = b.finishInner(body, drumBackFace, drumPlateFace)

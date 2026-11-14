@@ -105,6 +105,9 @@ func (r *run) extrudeRingBlank(ctx context.Context) (*decad.Body, error) {
 	return blank, nil
 }
 
+// axisLength is the length of the construction lines that hold the cover spokes' directions.
+const axisLength = 10
+
 // extrudeCoverFrame extrudes a cover's frame from z=0 up the cover thickness: an outer rim with the four
 // bolt holes, a hub with the lip bore through it, and spokes joining them. Between the spokes are three
 // windows, so the section is one region with eight holes.
@@ -127,27 +130,60 @@ func (r *run) extrudeCoverFrame(ctx context.Context) (*decad.Body, error) {
 	if err := r.addBoltHoles(s); err != nil {
 		return nil, fmt.Errorf("cover frame: %w", err)
 	}
+	// A horizontal reference line and one construction axis per spoke hold the spoke edges' directions.
+	refEnd := s.CreatePoint(axisLength, 0)
+	ref := s.CreateLine(s.Origin(), refEnd)
+	ref.SetConstruction(true)
+	s.AddConstraint(sketch.NewHorizontal(ref), sketch.NewHorizontalDistance(s.Origin(), refEnd, axisLength))
 	// at returns the point on spoke k's axis at distance x and sideways offset y.
 	at := func(k int, x, y float64) (float64, float64) {
 		sin, cos := math.Sincos(spokeAngle(k))
 		return x*cos - y*sin, x*sin + y*cos
 	}
+	axes := make([]*sketch.Line, coverSpokes)
+	for k := range axes {
+		ex, ey := at(k, axisLength, 0)
+		end := s.CreatePoint(ex, ey)
+		axes[k] = s.CreateLine(s.Origin(), end)
+		axes[k].SetConstruction(true)
+		s.AddConstraint(
+			sketch.NewAngle(ref, axes[k], spokeAngle(k)*180/math.Pi),
+			sketch.NewDistance(s.Origin(), end, axisLength),
+		)
+	}
+	// Each window's four corners take the spoke's own round, half the spoke width: the spokes carry the bearing's
+	// load from the hub to the rim, so their roots are stressed roots.
+	round := d.arm / 2
 	for k := range coverSpokes {
 		next := (k + 1) % coverSpokes
-		// Window k lies between spoke k's upper edge and the next spoke's lower edge. Its hub arc
-		// and rim arc each have one fully dimensioned end and one end the arc's radius relation fixes.
+		// Window k lies between spoke k's upper edge and the next spoke's lower edge. The edges are parallel to
+		// their spoke's axis and half the spoke width from it; the arcs are about the origin.
 		ax, ay := at(k, hubX, half)
 		bx, by := at(k, rimX, half)
 		cx, cy := at(next, rimX, -half)
 		dx, dy := at(next, hubX, -half)
-		a := sketchcheck.DimensionPoint(s, ax, ay)
-		b := sketchcheck.DimensionPoint(s, bx, by)
-		c := sketchcheck.DimensionArcEnd(s, cx, cy)
-		dd := sketchcheck.DimensionArcEnd(s, dx, dy)
-		s.CreateLine(a, b)
-		s.CreateArc(s.Origin(), b, c)
-		s.CreateLine(c, dd)
-		s.CreateArc(s.Origin(), a, dd)
+		a, b, c, dd := s.CreatePoint(ax, ay), s.CreatePoint(bx, by), s.CreatePoint(cx, cy), s.CreatePoint(dx, dy)
+		ab := s.CreateLine(a, b)
+		rim := s.CreateArc(s.Origin(), b, c)
+		cd := s.CreateLine(c, dd)
+		hub := s.CreateArc(s.Origin(), a, dd)
+		s.AddConstraint(
+			sketch.NewParallel(axes[k], ab), sketch.NewDistancePointLine(s.Origin(), ab, half),
+			sketch.NewParallel(axes[next], cd), sketch.NewDistancePointLine(s.Origin(), cd, half),
+			sketch.NewRadius(rim, rimR), sketch.NewRadius(hub, hubR),
+		)
+		if _, err := sketch.CreateFillet(s, hub, ab, a, round); err != nil {
+			return nil, fmt.Errorf("cover frame: window %d: round hub corner after spoke %d: %w", k+1, k+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, ab, rim, b, round); err != nil {
+			return nil, fmt.Errorf("cover frame: window %d: round rim corner after spoke %d: %w", k+1, k+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, rim, cd, c, round); err != nil {
+			return nil, fmt.Errorf("cover frame: window %d: round rim corner before spoke %d: %w", k+1, next+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, cd, hub, dd, round); err != nil {
+			return nil, fmt.Errorf("cover frame: window %d: round hub corner before spoke %d: %w", k+1, next+1, err)
+		}
 	}
 	profile, err := profileWithHoles(ctx, s, coverSpokes+1+4, "cover frame")
 	if err != nil {
@@ -200,6 +236,9 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if !cover.IsSolid() {
 		return nil, errors.New("cover: result is not a solid")
 	}
+	if cover, err = r.roundBossRoot(ctx, cover); err != nil {
+		return nil, err
+	}
 	if cover, err = r.cutHeadPockets(ctx, cover); err != nil {
 		return nil, err
 	}
@@ -235,6 +274,47 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 		span{0, p.GearThickness + 1}, span{start - 1, start + p.InputShaftLength - endFlatMargin})
 }
 
+// circleSeam returns the start of the one edge of body that starts at height z on a circle of the given radius about
+// the axis. A boolean moves a circle's seam, so a circular edge is found by its radius and height and selected by its
+// stored start point. what names the feature in errors.
+func circleSeam(body *decad.Body, what string, z, radius float64) (r3.Vec, error) {
+	var seam *r3.Vec
+	for _, e := range body.Edges() {
+		at := e.Start().Position().Value
+		if math.Abs(at.Z-z) < 1e-6 && math.Abs(math.Hypot(at.X, at.Y)-radius) < 1e-3 {
+			if seam != nil {
+				return r3.Vec{}, fmt.Errorf("%s: more than one edge starts on the circle of radius %v", what, radius)
+			}
+			seam = &at
+		}
+	}
+	if seam == nil {
+		return r3.Vec{}, fmt.Errorf("%s: no edge starts on the circle of radius %v", what, radius)
+	}
+	return *seam, nil
+}
+
+// bossRootRound is the radius of the round where the bearing boss stands on the frame: half the thinner of the boss
+// wall and the frame (1.5 mm by default). The corner opens upward in the print orientation, so it takes a round.
+func bossRootRound(p Params) float64 { return math.Min(p.CarrierWall, p.CoverThickness) / 2 }
+
+// roundBossRoot rounds the concave circular edge where the bearing boss's outside wall stands on the frame's +Z face.
+func (r *run) roundBossRoot(ctx context.Context, body *decad.Body) (*decad.Body, error) {
+	seam, err := circleSeam(body, "cover boss root", r.p.CoverThickness, r.d.coverBoss/2)
+	if err != nil {
+		return nil, err
+	}
+	root := decad.Edges(decad.Circular(), decad.EndpointAt(seam)).Exactly(1)
+	out, err := decad.Fillet(ctx, body, root, units.Millimeters(bossRootRound(r.p)))
+	if err != nil {
+		return nil, fmt.Errorf("cover boss root: round: %w", err)
+	}
+	if !out.IsSolid() {
+		return nil, errors.New("cover boss root: rounded result is not a solid")
+	}
+	return out, nil
+}
+
 // chamferSeat chamfers the entrance of a bearing seat by SeatChamfer, so a bearing can be pressed into the tight
 // printed pocket. The entrance is the pocket's circular rim in the plane z. A boolean moves a circle's seam, so
 // the rim is found by its radius and height and selected by its stored start point. It returns body unchanged
@@ -247,20 +327,11 @@ func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z,
 	if err != nil {
 		return nil, fmt.Errorf("%s: read chamfer size: %w", what, err)
 	}
-	var seam *r3.Vec
-	for _, e := range body.Edges() {
-		at := e.Start().Position().Value
-		if math.Abs(at.Z-z) < 1e-6 && math.Abs(math.Hypot(at.X, at.Y)-pocket/2) < 1e-3 {
-			if seam != nil {
-				return nil, fmt.Errorf("%s: more than one edge starts on the pocket's rim", what)
-			}
-			seam = &at
-		}
+	seam, err := circleSeam(body, what, z, pocket/2)
+	if err != nil {
+		return nil, err
 	}
-	if seam == nil {
-		return nil, fmt.Errorf("%s: no edge starts on the pocket's rim", what)
-	}
-	rim := decad.Edges(decad.Circular(), decad.EndpointAt(*seam)).Exactly(1)
+	rim := decad.Edges(decad.Circular(), decad.EndpointAt(seam)).Exactly(1)
 	out, err := decad.Chamfer(ctx, body, rim, size)
 	if err != nil {
 		return nil, fmt.Errorf("%s: chamfer entrance: %w", what, err)
