@@ -224,15 +224,17 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
 
 ### Crank
 
-- crank-arm: a stadium on the plane Y 38.6 about (60, 84): two arcs of radius 10 at the origin and at 55 toward +Z,
-  four tangent lines, and a circle of radius 1.3 at the pin end. Extruded 8, caps chamfered 0.5. D-bore cut from 37.6
-  for 8 (floor at Y 45.6). A hexagon 7.53 across flats about the pin axis from 41.85 to 47.6, corners on X. Then the
-  crank-pin-bolt head pocket.
+The crank is [`models/crankhandle`](../crankhandle/)'s `Params6082RS` crank (8 mm shaft, 0.75 mm flat, 0.05 mm press
+fit, throw 55), built by `crankhandle.BuildParts` with a placement that maps its origin to (60, 38.6, 84), its +Z to +Y
+and its +Y to +Z. The siren files its three parts in its own `Crank` container.
+
+- crank-arm: a stadium 20 wide and 8 thick on the plane Y 38.6, from C to the pin at 55 toward +Z, with a circle of
+  radius 1.3 at the pin end and both faces' outlines chamfered 0.5. A blind D-bore from Y 37.6 to the floor at
+  Y 45.6. A hexagon 7.53 across flats about the pin axis from 41.85 to 47.6, corners on X. Then the crank-pin-bolt head
+  pocket.
 - crank-pin: a hexagon 7.03 across flats over [42.1, 47.15], a shank of radius 4.5 over [46.85, 94.0], a head of
   radius 5.8 over [93.6, 96.6], then the hole and cavity for crank-pin-bolt.
-- crank-handle: revolved about the pin axis (60, y, 139), Y [47.0, 97.0], meridian (axial, radius) from the fan's
-  profile shifted +1: (1.5, 4.9), (47.2, 4.9), (47.2, 6.4), (50.5, 6.4), (51, 6.9), (51, 8.3), (49.8, 9.3), (44, 8),
-  (37, 7.25), (23, 8), (9, 7.8), (2.2, 7.2), (1, 6), (1, 5.4).
+- crank-handle: revolved about the pin axis (60, y, 139), Y [47.0, 97.0], from `crankhandle.HandleProfile`.
 
 ### Grip
 

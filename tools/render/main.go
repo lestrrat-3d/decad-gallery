@@ -40,7 +40,6 @@ var presets = map[string]preset{
 	"crankhandle/hero":            {width: 1600, height: 900, scene: crankHandleHero},
 	"crankhandle/back":            {width: 1600, height: 900, scene: crankHandleViewScene("back")},
 	"crankhandle/side":            {width: 1600, height: 900, scene: crankHandleViewScene("side")},
-	"crankhandle/tail":            {width: 1600, height: 900, scene: crankHandleViewScene("tail")},
 	"crankhandle/sizes":           {width: 1600, height: 900, scene: crankHandleViewScene("sizes")},
 	"crankhandle/cutaway":         {width: 1600, height: 900, scene: crankHandleViewScene("cutaway")},
 	"crankhandle/exploded":        {width: 1600, height: 900, scene: crankHandleViewScene("exploded")},

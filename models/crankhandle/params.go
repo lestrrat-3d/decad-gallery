@@ -10,92 +10,82 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Fixed dimensions in mm.
+// Fixed dimensions in mm, in the local frame (see Build). They are the hand-crank siren's crank, which imports this
+// package. Each fit gap is its class minimum from docs/model-pipeline.md "Part clearances" plus FitMargin.
 const (
-	// DefaultFlatDepth is the default depth of the shaft's flat, the same as the planetary gearbox shafts' flat.
-	DefaultFlatDepth = 0.5
-	// PressWall is the least wall round a press-fit bore of a separate printed part (AGENTS.md "Verification").
-	PressWall = 1.6
-	// BoltLength is the set screw's length, the shortest standard M2 length.
-	BoltLength = 6.0
-	// CavityDepth is the distance from the head's top face to the nut cavity's near face: 2 mm of material lies
-	// between the cavity and the head pocket's floor, and 2 mm between the cavity and the bore's flat.
-	CavityDepth = 4.0
-	// RimChamfer is the leg of the 45 degree chamfer that fills the concave rims of the head pocket's floor and of
-	// the nut cavity, so a section through the set screw turns 45 degrees at a time. Its foot on the pocket floor
-	// stays 0.02 mm outside the head's rim, and its face is long enough that internal/cornercheck reads its two
-	// turns apart (at most 46 degrees in one window).
-	RimChamfer = m2fastener.HeadClearance - 0.02
-	// EndLedge is the width of the arm's top face left round the grip's root fillet.
-	EndLedge = 1.5
-	// GripTipRound is the largest radius of the round on the grip's top edge.
-	GripTipRound = 2.0
-	// MaxBoreClearance is the largest radial bore clearance Validate accepts, the Loose fit.
-	MaxBoreClearance = 0.5
+	FitMargin  = 0.05
+	TightFit   = 0.2 + FitMargin  // 0.25: the pin's stub in the arm's hexagonal pocket
+	RegularFit = 0.35 + FitMargin // 0.40: the handle on the pin's shank, and its gap to the arm
+
+	ArmRadius    = 10.0 // the arm is a stadium 20 wide
+	ArmThickness = 8.0
+	BoreFloor    = 1.0 // the D bore is blind: 1 mm of arm closes it at the outer face
+	PinHoleR     = 1.3 // the pin bolt's clearance hole through the arm
+	PocketFlats  = StubFlats + 2*TightFit
+	PocketFrom   = 3.25 // the hexagonal pocket runs from here through the outer face
+	PocketLength = 5.75
+	StubFlats    = 7.03 // keeps 1 mm of stub round the nut cavity (radius 2.51)
+	StubFrom     = 3.5
+	StubLength   = 5.05
+	ShankR       = 4.5
+	ShankFrom    = 8.25
+	ShankTo      = 55.4
+	HeadR        = 5.8
+	HeadFrom     = 55.0
+	HeadLength   = 3.0
+	HandleFrom   = 7.4 // the handle sketch's origin, 1 behind the handle's inner end
+	PinBolt      = 10.0
+	PinCavity    = 4.75 // from the bolt head's top face, in the arm's back face, to the nut cavity's near face
+	PressWall    = 1.6  // the least wall round a press-fit bore (AGENTS.md "Verification")
+	ChamferSize  = 0.5  // the arm's face chamfer
 )
 
-// Params specifies a crank handle in mm. The shaft is a purchased bearing's shaft: its diameter equals the
-// bearing's bore. A nil Placement selects the local frame (see Build).
+// HandleProfile is the handle's meridian: (distance along the pin from the sketch origin at HandleFrom, radius). A small
+// barrel with a waist and a flared outer end, with a bore for the pin's shank and a counterbore for its head. Every
+// corner is cut by a small chamfer, so the handle is made of cones and cylinders. The origin is 1 behind the inner end.
+var HandleProfile = [...][2]float64{
+	{1.5, 4.9}, {47.2, 4.9}, {47.2, 6.4}, {50.5, 6.4}, {51, 6.9}, {51, 8.3}, {49.8, 9.3},
+	{44, 8}, {37, 7.25}, {23, 8}, {9, 7.8}, {2.2, 7.2}, {1, 6}, {1, 5.4},
+}
+
+// Params specifies a crank in mm. The shaft runs in a purchased bearing, so its diameter equals the bearing's bore. A
+// nil Placement selects the local frame.
 type Params struct {
-	// ShaftDiameter is the diameter of the D-flat shaft the crank fits, the bore of its bearing.
+	// ShaftDiameter is the diameter of the D-flat shaft the arm presses onto.
 	ShaftDiameter float64
 	// FlatDepth is how deep the shaft's flat cuts below its round.
 	FlatDepth float64
-	// BoreClearance is the radial clearance of the hub's D bore round the shaft, on the round and on the flat.
+	// BoreClearance is the radial clearance of the arm's D bore round the shaft, on the round and on the flat.
 	BoreClearance float64
-	// HubDiameter is the diameter of the hub round the shaft axis.
-	HubDiameter float64
-	// Thickness is the crank's thickness along the shaft axis, the length of the bore.
-	Thickness float64
-	// Throw is the distance from the shaft axis to the grip's axis.
-	Throw float64
-	// GripDiameter and GripLength size the round grip that stands on the arm's end.
-	GripDiameter float64
-	GripLength   float64
-	Placement    *r3.Frame
+	// Throw is the distance from the shaft axis to the pin axis.
+	Throw     float64
+	Placement *r3.Frame
 }
 
-// Params605ZZ returns a crank for the 5 mm shaft of a 605ZZ bearing (ballbearing.Params605ZZ).
+// Params605ZZ returns a crank for the 5 mm shaft of a 605ZZ bearing (ballbearing.Params605ZZ), with the planetary
+// gearbox shafts' 0.5 mm flat.
 func Params605ZZ() Params {
-	return forShaft(ballbearing.Params605ZZ().BoreDiameter, 24)
+	return Params{ShaftDiameter: ballbearing.Params605ZZ().BoreDiameter, FlatDepth: 0.5,
+		BoreClearance: ballbearing.PressFitClearance, Throw: 55}
 }
 
-// Params6082RS returns a crank for the 8 mm shaft of a 608-2RS bearing (ballbearing.Params6082RS). A 608ZZ has
-// the same bore.
+// Params6082RS returns a crank for the 8 mm shaft of a 608-2RS bearing (ballbearing.Params6082RS), with a 0.75 mm
+// flat: the hand-crank siren's crank. A 608ZZ has the same bore.
 func Params6082RS() Params {
-	return forShaft(ballbearing.Params6082RS().BoreDiameter, 28)
+	return Params{ShaftDiameter: ballbearing.Params6082RS().BoreDiameter, FlatDepth: 0.75,
+		BoreClearance: ballbearing.PressFitClearance, Throw: 55}
 }
 
 // DefaultParams returns Params605ZZ.
 func DefaultParams() Params { return Params605ZZ() }
 
-func forShaft(shaft, hub float64) Params {
-	return Params{
-		ShaftDiameter: shaft,
-		FlatDepth:     DefaultFlatDepth,
-		BoreClearance: ballbearing.PressFitClearance,
-		HubDiameter:   hub,
-		Thickness:     10,
-		Throw:         50,
-		GripDiameter:  14,
-		GripLength:    30,
-	}
-}
-
 // Dimensions are the values Derive computes from Params, in mm, in the local frame.
 type Dimensions struct {
-	BoreRadius   float64 // r_b: ShaftDiameter/2 + BoreClearance
-	BoreFlat     float64 // f_b: distance from the axis to the bore's flat, on the -Y side
-	BoreLoop     float64 // length of the bore's outline: its arc the long way round plus its flat
-	HubRadius    float64 // R_h
-	TailDistance float64 // t: distance from the axis to the hub's flat tail face, on the -Y side
-	TailHalf     float64 // half the width of the tail face
-	ScrewHeight  float64 // z of the set screw's axis, half the thickness
-	RootRadius   float64 // rho: radius of the grip's root fillet
-	EndRadius    float64 // R_e: radius of the arm's end round the grip axis
-	TipRound     float64 // radius of the round on the grip's top edge
-	// Site is the set screw's bolt and nut: the head's top face is flush with the tail face and the tip ends on
-	// the bore's flat.
+	BoreRadius float64 // r_b: ShaftDiameter/2 + BoreClearance
+	BoreFlat   float64 // f_b: distance from the axis to the bore's flat, on the +Y side
+	BoreLoop   float64 // length of the bore's outline in the back face: its arc the long way round plus its flat
+	// Site is the pin bolt: its head's top face is flush with the arm's back face at the pin axis, and it runs along
+	// +Z into the nut cavity in the pin's stub.
 	Site m2fastener.Site
 }
 
@@ -112,8 +102,7 @@ func (p Params) Derive() (Dimensions, error) {
 		value float64
 	}{
 		{"ShaftDiameter", p.ShaftDiameter}, {"FlatDepth", p.FlatDepth}, {"BoreClearance", p.BoreClearance},
-		{"HubDiameter", p.HubDiameter}, {"Thickness", p.Thickness}, {"Throw", p.Throw},
-		{"GripDiameter", p.GripDiameter}, {"GripLength", p.GripLength},
+		{"Throw", p.Throw},
 	} {
 		if math.IsNaN(f.value) || math.IsInf(f.value, 0) || f.value <= 0 {
 			return Dimensions{}, fmt.Errorf("crankhandle: %s must be finite and positive", f.name)
@@ -122,58 +111,32 @@ func (p Params) Derive() (Dimensions, error) {
 	if p.FlatDepth > p.ShaftDiameter/4 {
 		return Dimensions{}, errors.New("crankhandle: FlatDepth must be at most a quarter of ShaftDiameter")
 	}
-	if p.BoreClearance < ballbearing.PressFitClearance || p.BoreClearance > MaxBoreClearance {
-		return Dimensions{}, fmt.Errorf("crankhandle: BoreClearance must be from %g to %g mm",
-			ballbearing.PressFitClearance, MaxBoreClearance)
+	if p.BoreClearance < ballbearing.PressFitClearance || p.BoreClearance > 0.5 {
+		return Dimensions{}, fmt.Errorf("crankhandle: BoreClearance must be from %g to 0.5 mm",
+			ballbearing.PressFitClearance)
 	}
-	var dm Dimensions
-	dm.BoreRadius = p.ShaftDiameter/2 + p.BoreClearance
-	dm.BoreFlat = p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance
-	// The bolt's hole must open on the bore's flat, not on its round.
-	flatHalf := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
-	if flatHalf < m2fastener.HoleRadius {
-		return Dimensions{}, fmt.Errorf("crankhandle: the bore's flat is %.2f mm wide, narrower than the %.1f mm bolt hole",
-			2*flatHalf, 2*m2fastener.HoleRadius)
+	dm := Dimensions{
+		BoreRadius: p.ShaftDiameter/2 + p.BoreClearance,
+		BoreFlat:   p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance,
 	}
-	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + 2*flatHalf
-	dm.HubRadius = p.HubDiameter / 2
-	dm.TailDistance = dm.BoreFlat + m2fastener.HeadPocketDepth + BoltLength
-	if dm.HubRadius <= dm.TailDistance {
-		return Dimensions{}, fmt.Errorf("crankhandle: HubDiameter must exceed %.2f mm to hold the set screw",
-			2*dm.TailDistance)
+	half := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
+	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + 2*half
+	if ArmRadius-dm.BoreRadius < PressWall {
+		return Dimensions{}, fmt.Errorf("crankhandle: ShaftDiameter leaves less than a %.1f mm wall in the %g mm arm",
+			PressWall, 2*ArmRadius)
 	}
-	dm.TailHalf = math.Sqrt(dm.HubRadius*dm.HubRadius - dm.TailDistance*dm.TailDistance)
-	// 1 mm of material round the head pocket on the tail face, and round the nut cavity.
-	if need := m2fastener.HeadPocketRadius + 1; dm.TailHalf < need {
-		return Dimensions{}, fmt.Errorf("crankhandle: HubDiameter must be at least %.2f mm to hold the set screw's head",
-			2*math.Hypot(dm.TailDistance, need))
-	}
-	if dm.HubRadius-dm.BoreRadius < PressWall {
-		return Dimensions{}, fmt.Errorf("crankhandle: HubDiameter leaves less than a %.1f mm wall round the bore", PressWall)
-	}
-	if need := 2 * (m2fastener.NutCavityRadius + 1); p.Thickness < need {
-		return Dimensions{}, fmt.Errorf("crankhandle: Thickness must be at least %.2f mm to enclose the nut", need)
-	}
-	dm.ScrewHeight = p.Thickness / 2
-	dm.RootRadius = math.Min(p.Thickness, p.GripDiameter) / 2
-	dm.EndRadius = p.GripDiameter/2 + dm.RootRadius + EndLedge
-	dm.TipRound = math.Min(GripTipRound, p.GripDiameter/4)
-	if p.GripLength < dm.RootRadius+dm.TipRound+1 {
-		return Dimensions{}, fmt.Errorf("crankhandle: GripLength must be at least %.2f mm", dm.RootRadius+dm.TipRound+1)
-	}
-	if p.Throw < dm.HubRadius+dm.EndRadius {
-		return Dimensions{}, fmt.Errorf("crankhandle: Throw must be at least %.2f mm so the arm's end clears the hub",
-			dm.HubRadius+dm.EndRadius)
+	if p.Throw < 2*ArmRadius {
+		return Dimensions{}, fmt.Errorf("crankhandle: Throw must be at least %g mm", 2*ArmRadius)
 	}
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return Dimensions{}, errors.New("crankhandle: Placement must be a valid frame")
 	}
 	dm.Site = m2fastener.Site{
-		Head:   r3.Vec{Y: -dm.TailDistance, Z: dm.ScrewHeight},
-		Dir:    r3.Vec{Y: 1},
+		Head:   r3.Vec{Y: p.Throw},
+		Dir:    r3.Vec{Z: 1},
 		Corner: r3.Vec{X: 1},
-		Length: BoltLength,
-		Cavity: CavityDepth,
+		Length: PinBolt,
+		Cavity: PinCavity,
 	}
 	if err := dm.Site.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: %w", err)

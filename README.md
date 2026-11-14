@@ -15,7 +15,7 @@ a [hand-crank fan](models/handcrankfan/) driven through spur and bevel gears,
 a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up,
 a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and a pendulum, 608-2RS and 605ZZ bearing
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, a [crank handle](models/crankhandle/)
-for a D-flat shaft, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
+with a handle that turns on its pin, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
 
 ## For developers

@@ -1,25 +1,26 @@
 # Crank handle
 
-The model in `models/crankhandle` constructs a printed crank handle for a D-flat shaft, with an M2 set screw and nut.
+The model in `models/crankhandle` constructs a printed hand crank for a D-flat shaft: an arm, a pin, a handle that turns
+on the pin, and the M2 bolt and nut that clamp the pin. `models/handcranksiren` builds its crank from it.
 
 ## Construction and API
 
-`Params` holds the shaft diameter and flat depth, the bore clearance, the hub diameter, the plate thickness, the throw,
-the grip's diameter and length, and an optional `Placement` frame. `Params605ZZ()` and `Params6082RS()` read the shaft
-diameter from `ballbearing.Params605ZZ()` and `ballbearing.Params6082RS()`, and the bore clearance from
-`ballbearing.PressFitClearance`. `DefaultParams()` returns `Params605ZZ()`. `Params.Derive()` returns the first failure
-in the order `instructions.md` lists, or `Dimensions`: the bore's radius, flat and outline length, the tail face's
-distance and width, the set screw's height and `m2fastener.Site`, the grip's root fillet, the arm end's radius and the
-grip's top round.
+`Params` holds the shaft diameter and flat depth, the bore clearance, the throw and an optional `Placement` frame. The
+arm, pin and handle keep fixed sizes, exported as constants with the handle's meridian `HandleProfile`.
+`Params605ZZ()` and `Params6082RS()` read the shaft diameter from `ballbearing.Params605ZZ()` and
+`ballbearing.Params6082RS()`, and the bore clearance from `ballbearing.PressFitClearance`. `DefaultParams()` returns
+`Params605ZZ()`. `Params6082RS()` is the siren's crank. `Params.Derive()` returns the first failure in the order
+`instructions.md` lists, or `Dimensions`: the bore's radius, flat and outline length, and the pin bolt's
+`m2fastener.Site`.
 
-`Build(ctx, doc, params)` returns a `Model` with the `Crank` body, the `Bolt` and `Nut` models, the `Plate` and
-`Screw` sketches, `Dimensions`, and the set screw's `Site` in the world frame. It adds three bodies to `doc`, in the
-`Crank`, `Bolts` and `Nuts` containers. A rejected build adds no body.
+`BuildParts(ctx, doc, params)` adds the arm, the pin and the handle and returns them with every sketch and the pin
+bolt's site in the world frame. It files them in no container, so an assembly files them with its own parts.
+`Build(ctx, doc, params)` adds those three, the M2 x 10 bolt and the nut, in the `Arm`, `Pin`, `Handle`, `Bolts` and
+`Nuts` containers. A rejected build adds no body.
 
-Build extrudes the plate sketch (hub, tangent arm, end circle and D bore), cuts the set screw channel with one revolved
-tool, chamfers the outer loop of both faces (and the bore's rim when its outline is 20 mm or longer), raises the grip
-with `decad.Boss` and a root fillet, rounds the grip's top edge, and applies the placement. `internal/m2fastener` places
-the M2 × 6 bolt and the nut.
+The arm is an extruded stadium with both faces' outlines chamfered, then cut by a blind D bore, the hexagonal pocket
+for the pin's stub and the bolt's head pocket. The pin joins a hexagonal stub, a round shank and a head, then takes the
+bolt's hole and the nut's cavity. The handle is a revolved meridian.
 
 ## Build and images
 
@@ -28,22 +29,22 @@ go test ./models/crankhandle
 go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images
 ```
 
-The readme shot writes `hero.png`, `index.png`, `side.png`, `back.png`, `tail.png`, `cutaway.png`, `exploded.png`,
-`sizes.png` and `parts/crank.png`, `parts/bolt.png` and `parts/nut.png`. The presets `crankhandle/hero`, `side`, `back`,
-`tail`, `cutaway`, `exploded` and `sizes` render one view each.
+The readme shot writes `hero.png`, `index.png`, `side.png`, `back.png`, `cutaway.png`, `exploded.png`, `sizes.png` and
+`parts/arm.png`, `pin.png`, `handle.png`, `bolt.png` and `nut.png`. The presets `crankhandle/hero`, `side`, `back`,
+`cutaway`, `exploded` and `sizes` render one view each.
 
 ## Verification
 
-Tests build four cases: both presets, a 0.35 mm bore clearance, and a long, thin crank with a 1 mm flat. For each they
-check both sketches' full constraint, the three bodies and their containers, and `cornercheck` on the crank with the
-D bore's corners listed when they turn more than 45 degrees. They cut sections of the crank and require every point
-of the bore to lie `BoreClearance` outside the shaft's D section, and the wall round the bore to be at least 1.6 mm.
-They require the bolt's head to be flush with the tail face and its tip on the bore's flat, the nut to lie inside its
-cavity, material round the cavity on every side, and no overlap between the crank and the bolt or the nut. They check
-the 0.5 mm face chamfers, the bore rim's chamfer when its outline is 20 mm or longer, and the grip's root fillet and
-diameter. The default's bounds and `VerifyAll` mesh, the placed crank, and the validation errors are checked too.
+Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm throw. For each they check every sketch's
+full constraint, the five bodies and their containers, and `cornercheck` on the arm, pin and handle with the hexagonal
+pocket's corners listed. They cut sections of the arm and require every point of the bore to lie `BoreClearance`
+outside the shaft's D section, the bore to stop at its floor, and the wall round it to be at least 1.6 mm. They measure
+the stub's gap in its pocket (Tight), the handle's gap round the shank (Regular), and the handle's gaps to the pin and
+the arm in a cut through the pin axis (Regular). They require the bolt's head to be flush with the arm's back face, its
+tip inside the pin, the nut inside its cavity, and no overlap between the fasteners and the parts. The default's bounds
+and `VerifyAll` meshes, the placed crank and the validation errors are checked too. The siren's tests check its crank
+through the assembly.
 
 ## Known decad limit
 
-Decad refuses the face chamfer after the set screw cut for some throws, such as 30 and 65 to 90 mm at the 605ZZ
-preset; chamfering first makes Decad refuse the cut. `steps.md` quotes both errors.
+The 608-2RS bore's rim in the arm's back face is not chamfered: Decad refuses the chamfer. `steps.md` quotes the error.

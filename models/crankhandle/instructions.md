@@ -2,14 +2,19 @@
 
 ## Purpose and source
 
-Construct a printed crank handle that turns a D-flat shaft by hand. The crank is one printed solid: a flat plate
-whose hub has a D bore, a tapered arm, and a round grip standing on the arm's end. An M2 set screw enters the hub's
-flat tail face, passes a captive nut, and presses on the shaft's flat.
+Construct a printed hand crank for a D-flat shaft. It is the hand-crank siren's crank, moved here so that the siren and
+any other mechanism build it from one construction. The parts are:
 
-The shaft is not modeled. It belongs to the mechanism the crank drives, and its diameter equals the bore of the
-purchased bearing it runs in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets take that
-bore from the bearing presets in [`models/ballbearing`](../ballbearing/). The bolt and the nut are
-[`models/m2bolt`](../m2bolt/) and [`models/m2nut`](../m2nut/), placed with `internal/m2fastener`.
+- an arm, a stadium pressed onto the shaft's D-flat;
+- a pin, whose hexagonal stub sits in a pocket in the arm and whose head holds the handle on;
+- a handle, a barrel that turns freely on the pin's shank;
+- an M2 x 10 bolt from the arm's back face and an M2 nut in the pin's stub, which clamp the pin in the arm.
+
+The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
+in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
+[`models/ballbearing`](../ballbearing/). The bolt and nut are [`models/m2bolt`](../m2bolt/) and
+[`models/m2nut`](../m2nut/), placed with `internal/m2fastener`. [`models/handcranksiren`](../handcranksiren/) builds its
+crank with `BuildParts(Params6082RS())`.
 
 All dimensions are in millimeters.
 
@@ -17,68 +22,43 @@ All dimensions are in millimeters.
 
 | Symbol | Meaning | Formula |
 | --- | --- | --- |
-| `D` | shaft diameter | `ShaftDiameter` |
-| `d` | depth of the shaft's flat | `FlatDepth` |
-| `c` | radial bore clearance | `BoreClearance` |
+| `D`, `d`, `c` | shaft diameter, flat depth, bore clearance | `ShaftDiameter`, `FlatDepth`, `BoreClearance` |
 | `r_b` | bore radius | `D/2 + c` |
-| `f_b` | distance from the axis to the bore's flat | `D/2 - d + c` |
-| `w_b` | half the width of the bore's flat | `sqrt(r_b^2 - f_b^2)` |
-| `L_b` | length of the bore's outline | `2 r_b (pi - acos(f_b / r_b)) + 2 w_b` |
-| `R_h` | hub radius | `HubDiameter/2` |
-| `L_s` | set screw length | 6, the shortest of `m2bolt.StandardLengths()` |
-| `t` | distance from the axis to the tail face | `f_b + 2 + L_s` (head height 2) |
-| `w_t` | half the width of the tail face | `sqrt(R_h^2 - t^2)` |
-| `T` | plate thickness | `Thickness` |
-| `z_s` | height of the set screw's axis | `T/2` |
-| `rho` | grip root fillet radius | `min(T, GripDiameter)/2` |
-| `R_e` | radius of the arm's end about the grip axis | `GripDiameter/2 + rho + 1.5` |
-| `r_t` | round on the grip's top edge | `min(2, GripDiameter/4)` |
-| `k` | rim chamfer of the head pocket floor and the nut cavity | `0.28` |
+| `f_b` | distance from the axis to the bore's flat, toward the pin | `D/2 - d + c` |
+| `L_b` | length of the bore's outline | `2 r_b (pi - acos(f_b / r_b)) + 2 sqrt(r_b^2 - f_b^2)` |
+| `L` | throw, axis to pin axis | `Throw` |
 
 ## API
 
 Package: `models/crankhandle`. Exported surface:
 
-- Constants `DefaultFlatDepth = 0.5`, `PressWall = 1.6`, `BoltLength = 6`, `CavityDepth = 4`, `RimChamfer = 0.28`,
-  `EndLedge = 1.5`, `GripTipRound = 2`, `MaxBoreClearance = 0.5`, and the container names `CrankContainerName`
-  (`Crank`), `BoltsContainerName` (`Bolts`) and `NutsContainerName` (`Nuts`).
-- `Params` with the float fields `ShaftDiameter`, `FlatDepth`, `BoreClearance`, `HubDiameter`, `Thickness`, `Throw`,
-  `GripDiameter`, `GripLength` and `Placement *r3.Frame` (nil selects the local frame).
+- The fixed dimensions as constants: `FitMargin`, `TightFit` (0.25), `RegularFit` (0.40), `ArmRadius` (10),
+  `ArmThickness` (8), `BoreFloor` (1), `PinHoleR` (1.3), `PocketFlats` (7.53), `PocketFrom` (3.25), `PocketLength`
+  (5.75), `StubFlats` (7.03), `StubFrom` (3.5), `StubLength` (5.05), `ShankR` (4.5), `ShankFrom` (8.25), `ShankTo`
+  (55.4), `HeadR` (5.8), `HeadFrom` (55), `HeadLength` (3), `HandleFrom` (7.4), `PinBolt` (10), `PinCavity` (4.75),
+  `PressWall` (1.6), `ChamferSize` (0.5), and `HandleProfile`, the handle's meridian.
+- The container names `ArmContainerName` (`Arm`), `PinContainerName` (`Pin`), `HandleContainerName` (`Handle`),
+  `BoltsContainerName` (`Bolts`) and `NutsContainerName` (`Nuts`).
+- `Params` with `ShaftDiameter`, `FlatDepth`, `BoreClearance`, `Throw` and `Placement *r3.Frame` (nil selects the local
+  frame).
 - `Params605ZZ()`, `Params6082RS()` and `DefaultParams()`, which returns `Params605ZZ()`.
-- `Params.Validate() error` and `Params.Derive() (Dimensions, error)`.
-- `Dimensions` with `BoreRadius` (`r_b`), `BoreFlat` (`f_b`), `BoreLoop` (`L_b`), `HubRadius` (`R_h`), `TailDistance`
-  (`t`), `TailHalf` (`w_t`), `ScrewHeight` (`z_s`), `RootRadius` (`rho`), `EndRadius` (`R_e`), `TipRound` (`r_t`)
-  and `Site`, the set screw's `m2fastener.Site` in the local frame.
-- `Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)`. `Model` exposes `Crank *decad.Body`,
-  `Bolt *m2bolt.Model`, `Nut *m2nut.Model`, the sketches `Plate` and `Screw`, `Dimensions`, and `Site` in the world
-  frame. Build adds exactly three bodies.
+- `Params.Validate() error` and `Params.Derive() (Dimensions, error)`. `Dimensions` holds `BoreRadius`, `BoreFlat`,
+  `BoreLoop` and `Site`, the pin bolt's `m2fastener.Site` in the local frame.
+- `BuildParts(ctx, doc, p) (*Parts, error)` adds the arm, the pin and the handle and puts them in no container. `Parts`
+  holds `Arm`, `Pin`, `Handle`, every `Sketches`, `Dimensions` and the pin bolt's `Site` in the world frame.
+- `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolt and the nut, each in its container. `Model` embeds
+  `Parts` and holds `Bolt *m2bolt.Model` and `Nut *m2nut.Model`.
 
 ## Presets and defaults
 
-| Field | `Params605ZZ` | `Params6082RS` |
+| Field | `Params605ZZ` (default) | `Params6082RS` (the siren's) |
 | --- | --- | --- |
 | `ShaftDiameter` | 5, `ballbearing.Params605ZZ().BoreDiameter` | 8, `ballbearing.Params6082RS().BoreDiameter` |
-| `FlatDepth` | 0.5 | 0.5 |
+| `FlatDepth` | 0.5, the planetary gearbox shafts' flat | 0.75, the siren shafts' flat |
 | `BoreClearance` | 0.05, `ballbearing.PressFitClearance` | 0.05 |
-| `HubDiameter` | 24 | 28 |
-| `Thickness` | 10 | 10 |
-| `Throw` | 50 | 50 |
-| `GripDiameter` | 14 | 14 |
-| `GripLength` | 30 | 30 |
+| `Throw` | 55 | 55 |
 
-A 608ZZ has the same 8 mm bore as a 608-2RS. The 0.5 mm flat is the planetary gearbox shafts' flat.
-
-Derived values:
-
-| Value | 605ZZ | 608-2RS |
-| --- | --- | --- |
-| `r_b` | 2.55 | 4.05 |
-| `f_b` | 2.05 | 3.55 |
-| width of the bore's flat, `2 w_b` | 3.03 | 3.90 |
-| `L_b` | 15.81 | 25.28 |
-| `t` | 10.05 | 11.55 |
-| `w_t` | 6.557 | 7.912 |
-| `z_s`, `rho`, `R_e`, `r_t` | 5, 5, 13.5, 2 | 5, 5, 13.5, 2 |
+Derived: `r_b` 2.55 and 4.05, `f_b` 2.05 and 3.30, `L_b` 15.8 and 25.3. A 608ZZ has the same bore as a 608-2RS.
 
 ## Validation
 
@@ -86,126 +66,97 @@ Every message starts with `crankhandle: `. Derive checks in this order and retur
 
 1. Every float field is finite and positive: `<Field> must be finite and positive`.
 2. `d <= D/4`.
-3. `ballbearing.PressFitClearance <= c <= MaxBoreClearance`.
-4. `w_b >= m2fastener.HoleRadius` (1.3), so the bolt's hole opens on the bore's flat and not on its round.
-5. `R_h > t`, then `w_t >= m2fastener.HeadPocketRadius + 1` (3.2), so the head pocket keeps 1 mm of material on the
-   tail face. The message gives the smallest hub diameter.
-6. `R_h - r_b >= PressWall`.
-7. `T >= 2 (m2fastener.NutCavityRadius + 1)` (7.02), so 1 mm of material lies above and below the nut cavity.
-8. `GripLength >= rho + r_t + 1`.
-9. `Throw >= R_h + R_e`, so the arm's end circle does not reach into the hub circle.
-10. `Placement` is nil or a valid frame.
+3. `ballbearing.PressFitClearance <= c <= 0.5`.
+4. `ArmRadius - r_b >= PressWall`, so the arm keeps a 1.6 mm wall round the bore (`D` at most 16.7).
+5. `L >= 2 ArmRadius`.
+6. `Placement` is nil or a valid frame.
 
-Build rejects a nil context and a nil document, derives the dimensions, and checks `ctx.Err()` before it creates any
+BuildParts and Build reject a nil context and a nil document, derive the dimensions, and check `ctx.Err()` before any
 geometry. A rejected build adds no body.
 
 ## Local frame
 
-The origin is on the shaft axis in the crank's back face, the face toward the mechanism. +Z runs along the shaft
-axis away from the mechanism. The arm runs along +Y to the grip axis at `(0, Throw)`. The bore's flat, the tail face
-and the set screw face -Y. A `Placement` maps this frame onto the given one after the last operation.
+The origin is on the shaft axis in the arm's back face, the face toward the mechanism. +Z runs along the shaft axis away
+from the mechanism, the arm runs along +Y to the pin axis at `(0, L)`, and the bore's flat faces +Y. A `Placement` maps
+this frame onto the given one after each part's last operation.
 
 ## Geometry
 
-1. **Plate outline.** One fully constrained sketch in the XY plane. The hub is a circle of radius `R_h` about the
-   origin, cut by the tail face, a line at `y = -t`. The arm's end is a circle of radius `R_e` about `(0, Throw)`.
-   Two lines tangent to both circles join them, so the outline is convex and has no inside corner. Extrude it `T`
-   along +Z.
-2. **Bore.** A D-shaped hole in the same sketch: an arc of radius `r_b` about the origin the long way round through
-   +Y, closed by a flat at `y = -f_b`. Every point of the bore lies `c` outside the shaft's D section, on the round
-   and on the flat.
-3. **Set screw channel.** The set screw lies on the line through `(0, -t, z_s)` along +Y. Its head's top face is
-   flush with the tail face, and its tip ends on the bore's flat, at distance `2 + L_s` from the head. One revolved
-   tool cuts, from the tail face inward: the head pocket (radius 2.2, depth 2), the clearance hole (radius 1.3), the
-   nut cavity (radius 2.51, from 4 to 6 from the head) and the clearance hole again, into the bore. A 45 degree
-   chamfer of leg `k` fills the concave rim of the pocket floor and both concave rims of the cavity. The tool's
-   meridian runs from 1 mm before the tail face to 1 mm inside the bore.
-4. **Surface edge finishing.** Chamfer the outer loop of the back and front faces by 0.5 mm. Chamfer the bore's rim
-   on both faces as well when `L_b >= 20` (the 608-2RS crank).
-5. **Grip.** A round boss of diameter `GripDiameter` and height `GripLength` stands on the front face at
-   `(0, Throw, T)`, with a root fillet of radius `rho` (`decad.Boss` with `RootFillet`). Its top edge is rounded with
-   a fillet of radius `r_t`.
-6. **Fasteners.** `m2fastener.PlaceBolt` and `m2fastener.PlaceNut` place an M2 x 6 bolt and an M2 nut at the site,
-   carried through `Placement`. The nut's corners lie along X, so it stands on a flat when it is dropped in.
-7. **Containers.** The crank goes in `Crank`, the bolt in `Bolts` and the nut in `Nuts`, each a child of the document
+1. **Arm.** A sketch on z = 0: arcs of radius `ArmRadius` about the origin and about `(0, L)`, joined by two tangent
+   lines, with a circle of radius `PinHoleR` about `(0, L)`. Extrude it `ArmThickness` along +Z, then chamfer the outer
+   loop of both faces by `ChamferSize`. Cut the blind D bore, a sketch on z = -1 extruded `ArmThickness` (to z = 7): an
+   arc of radius `r_b` about the axis the long way round through -Y, closed by its flat at `y = f_b`. Cut the hexagonal
+   pocket, a hexagon `PocketFlats` across flats about `(0, L)` with its corners on X, from z = `PocketFrom` for
+   `PocketLength`, out through the front face. Cut the pin bolt's head pocket.
+2. **Pin.** Join a hexagon `StubFlats` across flats from z = `StubFrom` for `StubLength`, a cylinder of radius `ShankR`
+   from `ShankFrom` to `ShankTo`, and a cylinder of radius `HeadR` from `HeadFrom` for `HeadLength`, all about `(0, L)`.
+   Cut the pin bolt's hole and nut cavity.
+3. **Handle.** Revolve `HandleProfile` about the pin axis. The sketch plane holds the axis, with its origin at
+   `(0, L, HandleFrom)`, U along +Z and V the radius. The handle runs from z = 8.4 to 58.4: a bore of radius 4.9, a
+   counterbore of radius 6.4 from z = 54.6 for the pin's head, a waist and a flared outer end. Every corner of the
+   meridian is cut by a small chamfer.
+4. **Fasteners.** The pin bolt's head lies flush with the arm's back face at `(0, L)` and the bolt runs along +Z: head
+   pocket 2 deep in the arm, hole 2.6 across through the arm and into the pin, nut cavity from 4.75 to 6.75 in the stub,
+   and the tip at z = 12, inside the shank. `m2fastener.PlaceBolt` and `PlaceNut` place an M2 x 10 bolt and an M2 nut.
+5. **Containers.** `Build` files the arm, pin, handle, bolt and nut in their containers, each a child of the document
    root.
-
-The set screw channel is cut before the faces are chamfered (see `steps.md`, "Known decad limit").
-
-## Fasteners
-
-The set screw holds the crank on the shaft along its axis and takes up the bore's clearance toward the flat. The
-flat carries the torque. The set screw meets the AGENTS.md fastener rules:
-
-- The head pocket is 2.2 mm in radius (head 1.9 plus 0.3) and 2 mm deep, and the head's top face is flush with the
-  tail face. The bolt is modeled with its tip on the bore's flat; tightened, it presses on the shaft's flat and its
-  head sinks up to `c` below flush.
-- The nut cavity is 2.51 mm in radius and 2.0 mm long. The crank closes it on every side except the bolt hole: 2 mm of
-  material lies between it and the pocket floor, 2 mm between it and the bore's flat, `z_s - 2.51` above and below,
-  and at least `w_t - 2.51` to each side.
-- The clearance hole is 2.6 mm across, and the tip stays inside the bore.
-
-A clamp hub, a slotted hub closed by a cross bolt, was not chosen: the slot weakens the hub, and the bolt crosses the
-slot horizontally in the print just as the set screw does.
 
 ## Part fits
 
 | Fit | Class | Clearance |
 | --- | --- | --- |
-| D bore round the shaft | Press fit, the crank turns with the shaft | `c` = 0.05 radial, on the round and on the flat |
-| Set screw head in its pocket | Fastener rule | 0.3 radial |
-| Bolt shank in its hole | Fastener rule | 0.3 radial |
-| Nut in its cavity | Fastener rule | 0.2 past the corners, 0.2 at each face |
+| D bore round the shaft | Press fit, the arm turns with the shaft | `c` = 0.05 radial, on the round and on the flat |
+| Pin stub in the arm's pocket | Tight | 0.25 on each flat |
+| Handle on the pin's shank | Regular | 0.40 radial (bore 4.9, shank 4.5) |
+| Handle's inner end to the arm's front face | Regular | 0.40 |
+| Handle's counterbore round the pin's head | | 0.6 radial, 0.4 below and above the head |
+| Bolt, nut | Fastener rules | head pocket 0.3, hole 0.3, cavity 0.2 |
 
-`BoreClearance` can be raised to 0.5 for a crank that slides on, so the model is **Mixed**: the bore fit is adjustable
-and the bolt and nut keep their nominal size.
+The handle is a solid of revolution about the pin axis, so it turns freely when every gap in a cut through that axis
+clears its class. The pin's head (radius 5.8) is wider than the handle's bore (radius 4.9), so the handle cannot slide
+off the pin. The model is **Mixed**: the bore fit is adjustable and the bolt and nut keep their nominal size.
 
-The crank is a part pressed on a shaft end outside the frame. [Arbor collars](../../docs/model-pipeline.md#arbor-collars)
-asks the consuming model's shaft for a collar between the frame's outer face and the crank's back face.
+The arm is held on the shaft by the press fit alone, as on the siren. Nothing clamps it along the shaft.
 
 ## Valid range
 
-- `FlatDepth` from just above the width the bolt hole needs (rule 4) to `D/4`.
-- `HubDiameter` from 21.1 (605ZZ) or 24.0 (608-2RS) up; Derive names the limit.
-- `Thickness` at least 7.02.
-- `Throw` at least `R_h + R_e`. Decad currently refuses the face chamfer for some throws (see `steps.md`).
+- `ShaftDiameter` up to 16.7 at the default clearance; `FlatDepth` up to `D/4`; `BoreClearance` 0.05 to 0.5.
+- `Throw` from 20 up.
 
 ## Representative cases
 
 - `605ZZ`: the default.
-- `608-2RS`: an 8 mm bore whose rim is chamfered.
-- `regular-fit`: `Params605ZZ` with `BoreClearance` 0.35.
-- `long-thin`: `Params605ZZ` with `Throw` 100, `Thickness` 8, `GripDiameter` 18, `GripLength` 45 and `FlatDepth` 1;
-  the bore's corners turn more than 45 degrees.
+- `608-2RS`: the siren's crank.
+- `regular-bore`: `Params605ZZ` with `BoreClearance` 0.35.
+- `long-throw`: `Params6082RS` with `Throw` 80.
 - Placed: the frame with origin `(10, -5, 7)`, U `(0, 1, 0)` and V `(0, 0, 1)`.
 
-## Retained sharp corners
+## Retained sharp corners and edges
 
-The rule is "Corners and roots" in `docs/model-pipeline.md`. The crank prints on its back face with the shaft axis
-vertical, as the press-fit rule asks.
+The rule is "Corners and roots" in `docs/model-pipeline.md`. The arm prints on its back face, the pin upright on its
+head, the handle upright on its inner end.
 
-| Corner | Reason |
-| --- | --- |
-| The two corners of the D bore, where the flat meets the arc | Mating corners: they match the sharp edges of the shaft's flat. They turn `acos(f_b / r_b)`: 36.5 degrees at 605ZZ and 28.8 at 608-2RS, so they need no round there. A deeper flat, such as `long-thin`, turns them more than 45 degrees, and the corner test lists them. |
+| Part | Corner or edge | Reason |
+| --- | --- | --- |
+| Arm | The six corners of the hexagonal pocket | Joinery: they match the sharp corners of the pin's stub. |
+| Arm | The two corners of the D bore | Mating corners of the shaft's flat. They turn 36.5 degrees (605ZZ) and 35.4 (608-2RS), so they need no round. |
+| Arm | The bore's rim in the back face, at 608-2RS (`L_b` 25.3 mm, a long run) | Not chamfered: Decad refuses the chamfer (steps.md, "Known decad limit"). The siren's arm has the same sharp rim. |
 
-The section through the set screw's axis turns 45 degrees at each chamfered rim and 90 degrees outward elsewhere, so
-it has no inside corner. The grip's root is a stressed root, and its fillet radius `rho` is half the thinner of the
-plate and the grip. The tip round `r_t` sits on an outward edge between layers.
-
-The set screw's hole breaks the wall round the bore at the flat. Elsewhere the wall is `R_h - r_b` round the arc and
-2 mm between the nut cavity and the flat, both above `PressWall`.
+The pin carries the handle beside the arm's front face without a collar, as on the siren. [Arbor
+collars](../../docs/model-pipeline.md#arbor-collars) asks for a collar there; the siren's crank predates the rule.
 
 ## Printing
 
-Print the crank on its back face with no supports. Pause the print at `z_s + 0.5` (5.5 mm for the presets), drop the
-nut into its cavity on a flat, and resume. The layers above close the cavity. Screw the set screw in from the tail
-face after the print.
+Print the arm on its back face, the pin upright on its head, and the handle upright on its inner end, with no
+supports. Pause the pin's print at 53.25 mm, the top of the nut cavity (the pin stands 54.5 tall, head down), drop the
+nut in, and resume.
+To assemble, slide the handle onto the pin's shank from the stub end, push the stub into the arm's pocket, and drive the
+bolt in from the arm's back face. Press the arm onto the shaft.
 
 ## Checks and images
 
-Check every case above: both sketches fully constrained, the three bodies and their containers, the bore's clearance
-round the nominal shaft and its wall, the set screw's head, tip and nut against their pockets, no overlap between the
-fasteners and the crank, the chamfers, the grip's root fillet and round, and `internal/cornercheck`. Check the
-default's bounds and a `VerifyAll` mesh, and the placed crank against the local one. Register the `crankhandle`
-presets in `tools/render`, add the model to `models/README.md` and the gallery image, and run
-`scripts/check_repository.py`.
+Check every case above: every sketch fully constrained, the five bodies and their containers, the bore's clearance
+round the nominal shaft, its floor and wall, every fit between the printed parts with the handle's gaps in a cut
+through the pin axis, the bolt's head, tip and nut against their pockets with no overlap, the face chamfers, and
+`internal/cornercheck` on the arm, pin and handle. Check the default's bounds and `VerifyAll` meshes, and the placed
+crank against the local one. The siren's own tests check its crank through the assembly.

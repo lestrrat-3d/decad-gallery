@@ -90,11 +90,10 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 
 ## 6. Crank (`crank.go`)
 
-- crank-arm: stadium on Y 38.6 (two arcs of radius 10 with `NewEqualRadius`, four `NewTangent` lines, pin circle radius
-  1.3), extrude 8 selecting the profile with 1 hole, chamfer cap outer loops 0.5, `dBoreTool(C, 37.6, 8, 0.05)`, the
-  hexagon pocket, the pin-bolt head pocket.
-- crank-pin: hexagon, shank, head unioned in that order, then hole and cavity.
-- crank-handle: `meridianPolygon` about the pin axis with origin 1 behind the inner end, revolved.
+- Build `crankhandle.Params6082RS()` with `crankhandle.BuildParts` once, with the placement frame origin
+  (60, 38.6, 84), U (-1, 0, 0) and V (0, 0, 1). Fail when its shaft is not the crank shaft (diameter `2 shaftRadius`,
+  flat at `flatOffset`). Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as crank-arm,
+  crank-pin and crank-handle. `models/crankhandle/steps.md` lists the operations.
 - Check: the `sweep` subtest; rows T5, T6, T8, R3, R4, L5.
 
 ## 6a. Grip (`grip.go`)

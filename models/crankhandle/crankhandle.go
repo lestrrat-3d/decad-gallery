@@ -1,20 +1,17 @@
-// Package crankhandle builds a printed crank handle for a D-flat shaft: a flat plate whose hub has a D bore, a
-// tapered arm, and a round grip standing on the arm's end. An M2 set screw enters the hub's flat tail face and
-// presses on the shaft's flat; its nut sits in a cavity the hub encloses.
+// Package crankhandle builds a printed crank for a D-flat shaft: an arm pressed onto the shaft, a pin clamped in the
+// arm, and a handle that turns freely on the pin, held on by the pin's head. One M2 bolt and nut clamp the pin. The
+// hand-crank siren imports it for its crank.
 //
-// The local frame has its origin on the shaft axis in the crank's back face, the face toward the mechanism. +Z
-// runs along the shaft axis out of the mechanism, the arm runs along +Y to the grip, and the bore's flat and the
-// set screw face -Y.
+// The local frame has its origin on the shaft axis in the arm's back face, the face toward the mechanism. +Z runs
+// along the shaft axis away from the mechanism, the arm runs along +Y to the pin, and the bore's flat faces +Y.
 package crankhandle
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
@@ -26,27 +23,33 @@ import (
 
 // Container names, one per kind of body.
 const (
-	CrankContainerName = "Crank"
-	BoltsContainerName = "Bolts"
-	NutsContainerName  = "Nuts"
+	ArmContainerName    = "Arm"
+	PinContainerName    = "Pin"
+	HandleContainerName = "Handle"
+	BoltsContainerName  = "Bolts"
+	NutsContainerName   = "Nuts"
 )
 
-// Model is a built crank handle.
-type Model struct {
-	// Crank is the printed crank: hub, arm and grip in one body.
-	Crank *decad.Body
-	// Bolt is the M2 set screw and Nut its captive nut.
-	Bolt *m2bolt.Model
-	Nut  *m2nut.Model
-	// Plate is the plate's outline sketch and Screw the set screw tool's meridian sketch.
-	Plate, Screw *sketch.Sketch
-	Dimensions   Dimensions
-	// Site is the set screw in the world frame.
+// Parts are the crank's printed bodies, placed, without the bolt and nut.
+type Parts struct {
+	Arm, Pin, Handle *decad.Body
+	// Sketches are every sketch the parts were built from, each fully constrained.
+	Sketches   []*sketch.Sketch
+	Dimensions Dimensions
+	// Site is the pin bolt in the world frame.
 	Site m2fastener.Site
 }
 
-// Build adds the crank, its set screw and its nut to doc, each in its container. ctx and doc must not be nil.
-func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
+// Model is a built crank: its parts, and the pin bolt and nut.
+type Model struct {
+	Parts
+	Bolt *m2bolt.Model
+	Nut  *m2nut.Model
+}
+
+// BuildParts adds the arm, the pin and the handle to doc and returns them. It puts them in no container, so an
+// assembly can file them with its own parts. ctx and doc must not be nil.
+func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
 	if ctx == nil {
 		return nil, errors.New("crankhandle: context must not be nil")
 	}
@@ -60,17 +63,39 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("crankhandle: before creating geometry: %w", err)
 	}
-	m := &Model{Dimensions: dm}
-	crank, err := m.buildCrank(ctx, doc, p)
+	r := &run{ctx: ctx, doc: doc, p: p, dm: dm}
+	out := &Parts{Dimensions: dm}
+	for _, step := range []struct {
+		name  string
+		build func() (*decad.Body, error)
+		dst   **decad.Body
+	}{{"arm", r.arm, &out.Arm}, {"pin", r.pin, &out.Pin}, {"handle", r.handle, &out.Handle}} {
+		body, err := step.build()
+		if err != nil {
+			return nil, fmt.Errorf("crankhandle: %s: %w", step.name, err)
+		}
+		if body == nil || !body.IsSolid() {
+			return nil, fmt.Errorf("crankhandle: %s is not a solid", step.name)
+		}
+		if *step.dst, err = placement.Place(ctx, body, p.Placement); err != nil {
+			return nil, fmt.Errorf("crankhandle: place %s: %w", step.name, err)
+		}
+	}
+	out.Sketches = r.sketches
+	if out.Site, err = placeSite(dm.Site, p.Placement); err != nil {
+		return nil, fmt.Errorf("crankhandle: place pin bolt: %w", err)
+	}
+	return out, nil
+}
+
+// Build adds the arm, the pin, the handle, the pin bolt and its nut to doc, each in its container. ctx and doc must
+// not be nil.
+func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
+	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
 		return nil, err
 	}
-	if m.Crank, err = placement.Place(ctx, crank, p.Placement); err != nil {
-		return nil, fmt.Errorf("crankhandle: place crank: %w", err)
-	}
-	if m.Site, err = placeSite(dm.Site, p.Placement); err != nil {
-		return nil, fmt.Errorf("crankhandle: place set screw: %w", err)
-	}
+	m := &Model{Parts: *parts}
 	if m.Bolt, err = m2fastener.PlaceBolt(ctx, doc, m.Site); err != nil {
 		return nil, fmt.Errorf("crankhandle: %w", err)
 	}
@@ -81,7 +106,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		name string
 		body *decad.Body
 	}{
-		{CrankContainerName, m.Crank}, {BoltsContainerName, m.Bolt.Body}, {NutsContainerName, m.Nut.Body},
+		{ArmContainerName, m.Arm}, {PinContainerName, m.Pin}, {HandleContainerName, m.Handle},
+		{BoltsContainerName, m.Bolt.Body}, {NutsContainerName, m.Nut.Body},
 	} {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
@@ -94,74 +120,80 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	return m, nil
 }
 
-// buildCrank builds the crank in the local frame.
-func (m *Model) buildCrank(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, error) {
-	dm := m.Dimensions
-	s, profile, err := plateSketch(ctx, p, dm)
+// arm extrudes the stadium, chamfers both faces' outlines, and cuts the blind D bore, the hexagonal pocket for the pin's
+// stub from the outer face, and the pin bolt's head pocket in the back face.
+func (r *run) arm() (*decad.Body, error) {
+	s, err := r.armSketch()
 	if err != nil {
 		return nil, err
 	}
-	m.Plate = s
-	body, err := decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along})
+	body, err := r.extrude(s, 1, ArmThickness)
 	if err != nil {
-		return nil, fmt.Errorf("crankhandle: extrude plate: %w", err)
+		return nil, fmt.Errorf("extrude: %w", err)
 	}
-	// The set screw channel is cut before the faces are finished: Decad composes no boolean with a body whose
-	// cap-loop chamfer has arcs.
-	tool, ts, err := screwTool(ctx, doc, dm.Site)
+	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body)))
+	if body, err = decad.Chamfer(r.ctx, body, loops, units.Millimeters(ChamferSize)); err != nil {
+		return nil, fmt.Errorf("chamfer faces: %w", err)
+	}
+	bore, err := r.boreTool()
+	if err != nil {
+		return nil, fmt.Errorf("bore tool: %w", err)
+	}
+	pocket, err := r.hexagon(r.p.Throw, PocketFrom, PocketFlats, PocketLength)
+	if err != nil {
+		return nil, fmt.Errorf("pocket tool: %w", err)
+	}
+	head, hs, err := m2fastener.PocketTool(r.ctx, r.doc, r.dm.Site)
+	if err != nil {
+		return nil, fmt.Errorf("head pocket tool: %w", err)
+	}
+	r.sketches = append(r.sketches, hs)
+	for _, tool := range []*decad.Body{bore, pocket, head} {
+		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			return nil, fmt.Errorf("cut: %w", err)
+		}
+	}
+	// The 608 bore's rim (BoreLoop 25.3 mm) stays sharp: Decad refuses to chamfer it (steps.md, "Known decad limit").
+	return body, nil
+}
+
+// pin joins the hexagonal stub, the round shank and the head, then cuts the bolt's hole and the nut's cavity.
+func (r *run) pin() (*decad.Body, error) {
+	y := r.p.Throw
+	stub, err := r.hexagon(y, StubFrom, StubFlats, StubLength)
 	if err != nil {
 		return nil, err
 	}
-	m.Screw = ts
-	if body, err = decad.Cut(ctx, body, tool); err != nil {
-		return nil, fmt.Errorf("crankhandle: cut set screw channel: %w", err)
-	}
-	// The only hole in either face is the bore. Its length comes from the dimensions: edgefinish.Long measures an
-	// arc a Boolean cut leaves the shorter way round, and the bore's arc runs more than half a turn.
-	keep := func(loop *decad.Loop, edges []*decad.Edge) bool {
-		return edgefinish.Outer(loop, edges) || dm.BoreLoop >= edgefinish.LongEdgeRun
-	}
-	if body, _, err = edgefinish.Chamfer(ctx, body, r3.Vec{Z: 1}, []float64{0, p.Thickness}, keep,
-		edgefinish.MinChamfer); err != nil {
-		return nil, fmt.Errorf("crankhandle: finish plate edges: %w", err)
-	}
-	body, err = decad.Boss(ctx, body, decad.BossSpec{
-		Face:       decad.Faces(decad.Facing(r3.Vec{Z: 1})).Exactly(1),
-		At:         r3.Vec{Y: p.Throw, Z: p.Thickness},
-		Diameter:   units.Millimeters(p.GripDiameter),
-		Height:     units.Millimeters(p.GripLength),
-		RootFillet: units.Millimeters(dm.RootRadius),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("crankhandle: raise grip: %w", err)
-	}
-	top, err := gripTopEdge(body, p)
+	shank, err := r.cylinder(y, ShankFrom, ShankR, ShankTo-ShankFrom)
 	if err != nil {
 		return nil, err
 	}
-	if body, err = decad.Fillet(ctx, body, decad.Edges(top...).Exactly(1), units.Millimeters(dm.TipRound)); err != nil {
-		return nil, fmt.Errorf("crankhandle: round grip top: %w", err)
+	head, err := r.cylinder(y, HeadFrom, HeadR, HeadLength)
+	if err != nil {
+		return nil, err
 	}
-	if !body.IsSolid() {
-		return nil, errors.New("crankhandle: crank is not a solid")
+	body, err := decad.Union(r.ctx, stub, shank, head)
+	if err != nil {
+		return nil, fmt.Errorf("join: %w", err)
+	}
+	hole, hs, err := m2fastener.HoleTool(r.ctx, r.doc, r.dm.Site)
+	if err != nil {
+		return nil, err
+	}
+	cavity, cs, err := m2fastener.CavityTool(r.ctx, r.doc, r.dm.Site)
+	if err != nil {
+		return nil, err
+	}
+	r.sketches = append(r.sketches, hs, cs)
+	for _, tool := range []*decad.Body{hole, cavity} {
+		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			return nil, fmt.Errorf("cut: %w", err)
+		}
 	}
 	return body, nil
 }
 
-// gripTopEdge names the circular edge round the grip's top face.
-func gripTopEdge(body *decad.Body, p Params) ([]decad.EdgePredicate, error) {
-	top := p.Thickness + p.GripLength
-	for _, e := range body.Edges() {
-		c, ok := e.Curve().(decad.Circle3)
-		if !ok || math.Abs(c.Center.Z-top) > 1e-6 || math.Abs(c.Radius.Base()-p.GripDiameter/2) > 1e-6 {
-			continue
-		}
-		return []decad.EdgePredicate{decad.EndpointAt(e.Start().Position().Value), decad.Circular()}, nil
-	}
-	return nil, errors.New("crankhandle: no circular edge round the grip's top face")
-}
-
-// placeSite carries the local set screw site through the placement.
+// placeSite carries the local pin bolt site through the placement.
 func placeSite(s m2fastener.Site, f *r3.Frame) (m2fastener.Site, error) {
 	if f == nil {
 		return s, nil

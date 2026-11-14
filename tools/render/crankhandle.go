@@ -12,34 +12,43 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// The crank lies on its back face with the shaft axis along +Z, the arm along +Y and the set screw's tail face toward
-// -Y. Every view shows the default 605ZZ crank except "sizes", which adds the 608-2RS crank beside it.
+// The crank lies on the arm's back face with the shaft axis along +Z, the arm along +Y and the handle standing up on
+// the pin at (0, 55). Every view shows the default 605ZZ crank except "sizes", which adds the 608-2RS crank beside it.
 var crankHandleCameras = map[string]solidlens.Camera{
-	"hero":     {Position: solidlens.Vec{X: 70, Y: -75, Z: 75}, Target: solidlens.Vec{Y: 20, Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"back":     {Position: solidlens.Vec{X: -70, Y: -60, Z: -55}, Target: solidlens.Vec{Y: 20, Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"side":     {Position: solidlens.Vec{X: 130, Y: 20, Z: 25}, Target: solidlens.Vec{Y: 20, Z: 18}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"tail":     {Position: solidlens.Vec{X: 35, Y: -95, Z: 18}, Target: solidlens.Vec{Y: 20, Z: 12}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"sizes":    {Position: solidlens.Vec{X: 80, Y: -110, Z: 110}, Target: solidlens.Vec{X: 25, Y: 20, Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"cutaway":  {Position: solidlens.Vec{X: 6, Y: -14, Z: 44}, Target: solidlens.Vec{Y: -3, Z: 5}, Up: solidlens.Vec{Y: 1}, FOV: 30},
-	"exploded": {Position: solidlens.Vec{X: 140, Y: -25, Z: 55}, Target: solidlens.Vec{Y: 5, Z: 12}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"hero":     {Position: solidlens.Vec{X: 95, Y: -60, Z: 85}, Target: solidlens.Vec{Y: 28, Z: 20}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"back":     {Position: solidlens.Vec{X: -70, Y: -55, Z: -60}, Target: solidlens.Vec{Y: 28, Z: 20}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"side":     {Position: solidlens.Vec{X: 150, Y: 28, Z: 30}, Target: solidlens.Vec{Y: 28, Z: 28}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"sizes":    {Position: solidlens.Vec{X: 90, Y: -110, Z: 110}, Target: solidlens.Vec{X: 18, Y: 28, Z: 20}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"cutaway":  {Position: solidlens.Vec{X: 150, Y: 20, Z: 40}, Target: solidlens.Vec{Y: 28, Z: 28}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"exploded": {Position: solidlens.Vec{X: 190, Y: -60, Z: 80}, Target: solidlens.Vec{Y: 30, Z: 55}, Up: solidlens.Vec{Z: 1}, FOV: 35},
 }
 
-// The exploded view pulls the nut and then the bolt out of the tail face along -Y, the way they go in.
-const (
-	crankExplodeNut  = 12.0
-	crankExplodeBolt = 26.0
-)
+// The exploded view pulls the parts apart along the pin axis, the way they go together: the bolt out of the arm's back
+// face, the nut out of the pin's stub, the handle off the arm, and the pin out of the handle.
+var crankExplode = map[string]float64{"arm": 0, "bolt": -18, "nut": 16, "handle": 32, "pin": 75}
 
 var (
-	crankColor = solidlens.RGB(.22, .45, .75)
-	boltColor  = solidlens.RGB(.5, .52, .56)
+	crankArmColor    = solidlens.RGB(.70, .22, .12) // the hand-crank siren's crank colour
+	crankHandleColor = solidlens.RGB(.20, .22, .25)
+	crankBoltColor   = solidlens.RGB(.55, .57, .60)
 )
 
-// crankMeshes is one built crank: the crank, bolt and nut meshes.
+// crankMeshes is one built crank's meshes by part name.
 type crankMeshes struct {
-	crank, bolt, nut *decad.Mesh
-	dm               crankhandle.Dimensions
-	p                crankhandle.Params
+	mesh map[string]*decad.Mesh
+	p    crankhandle.Params
+}
+
+var crankPartOrder = []string{"arm", "pin", "handle", "bolt", "nut"}
+
+func crankPartColor(name string) solidlens.Color {
+	switch name {
+	case "handle":
+		return crankHandleColor
+	case "bolt", "nut":
+		return crankBoltColor
+	}
+	return crankArmColor
 }
 
 func buildCrankMeshes(ctx context.Context, p crankhandle.Params) (crankMeshes, error) {
@@ -47,17 +56,19 @@ func buildCrankMeshes(ctx context.Context, p crankhandle.Params) (crankMeshes, e
 	if err != nil {
 		return crankMeshes{}, fmt.Errorf("build crank handle: %w", err)
 	}
-	out := crankMeshes{dm: m.Dimensions, p: p}
-	for _, b := range []struct {
-		body *decad.Body
-		dst  **decad.Mesh
-		tol  float64
-	}{{m.Crank, &out.crank, .05}, {m.Bolt.Body, &out.bolt, .01}, {m.Nut.Body, &out.nut, .01}} {
-		mesh, err := b.body.Tessellate(ctx, units.Millimeters(b.tol), decad.WithVerification(decad.VerifyAll))
-		if err != nil {
-			return crankMeshes{}, fmt.Errorf("mesh crank handle: %w", err)
+	out := crankMeshes{mesh: map[string]*decad.Mesh{}, p: p}
+	for name, body := range map[string]*decad.Body{
+		"arm": m.Arm, "pin": m.Pin, "handle": m.Handle, "bolt": m.Bolt.Body, "nut": m.Nut.Body,
+	} {
+		tol := .05
+		if name == "bolt" || name == "nut" {
+			tol = .01
 		}
-		*b.dst = mesh
+		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+		if err != nil {
+			return crankMeshes{}, fmt.Errorf("mesh crank %s: %w", name, err)
+		}
+		out.mesh[name] = mesh
 	}
 	return out, nil
 }
@@ -67,28 +78,15 @@ func crankModel(mesh solidlens.TriangleSource, color solidlens.Color) solidlens.
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}
 }
 
-// shifted moves a mesh by v.
-func shifted(mesh solidlens.TriangleSource, v r3.Vec) (solidlens.TriangleSource, error) {
-	move, err := r3.Translation(v)
-	if err != nil {
-		return nil, err
-	}
-	return rotatedMesh{TriangleSource: mesh, move: move}, nil
-}
-
-// models returns the crank, bolt and nut models, with the nut and bolt pulled out along -Y by nut and bolt.
-func (c crankMeshes) models(at r3.Vec, nut, bolt float64) ([]solidlens.Model, error) {
+// models returns every part moved by at, each part also pulled along +Z by its entry of pull.
+func (c crankMeshes) models(at r3.Vec, pull map[string]float64) ([]solidlens.Model, error) {
 	var out []solidlens.Model
-	for _, part := range []struct {
-		mesh  *decad.Mesh
-		pull  float64
-		color solidlens.Color
-	}{{c.crank, 0, crankColor}, {c.nut, nut, boltColor}, {c.bolt, bolt, boltColor}} {
-		mesh, err := shifted(part.mesh, at.Add(r3.Vec{Y: -part.pull}))
+	for _, name := range crankPartOrder {
+		move, err := r3.Translation(at.Add(r3.Vec{Z: pull[name]}))
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, crankModel(mesh, part.color))
+		out = append(out, crankModel(rotatedMesh{TriangleSource: c.mesh[name], move: move}, crankPartColor(name)))
 	}
 	return out, nil
 }
@@ -101,7 +99,7 @@ func crankHandleViewScene(name string) func(context.Context) (solidlens.Scene, e
 	return func(ctx context.Context) (solidlens.Scene, error) { return crankHandleView(ctx, name) }
 }
 
-// crankHandleView builds the default crank and draws one view.
+// crankHandleView builds the default crank, and the 608-2RS crank for "sizes", and draws one view.
 func crankHandleView(ctx context.Context, name string) (solidlens.Scene, error) {
 	c, err := buildCrankMeshes(ctx, crankhandle.DefaultParams())
 	if err != nil {
@@ -124,47 +122,35 @@ func (c crankMeshes) view(name string, large *crankMeshes) (solidlens.Scene, err
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown crank handle view %q", name)
 	}
-	var nut, bolt float64
+	var pull map[string]float64
 	if name == "exploded" {
-		nut, bolt = crankExplodeNut, crankExplodeBolt
+		pull = crankExplode
 	}
-	models, err := c.models(r3.Vec{}, nut, bolt)
+	models, err := c.models(r3.Vec{}, pull)
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
 	if large != nil {
-		// The 608-2RS crank stands 15 mm clear of the default one along +X.
-		more, err := large.models(r3.Vec{X: c.dm.EndRadius + large.dm.HubRadius + 15}, 0, 0)
+		// The 608-2RS crank lies 15 mm clear of the default one along +X.
+		more, err := large.models(r3.Vec{X: 2*crankhandle.ArmRadius + 15}, nil)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		models = append(models, more...)
 	}
-	switch name {
-	case "cutaway":
-		// Cut every body by the plane through the set screw's axis and remove the half toward +Z, so the view from
-		// above shows the D bore, the screw in its hole and the nut in its cavity.
-		for i := range models {
-			color := crankColor
-			if i > 0 {
-				color = boltColor
-			}
+	if name == "cutaway" {
+		// Cut every body by the plane x = 0, which holds the shaft axis and the pin axis, and remove the half toward +X,
+		// so the view from +X shows the D bore, the pin clamped in the arm, and the handle round the pin.
+		for i, name := range crankPartOrder {
+			color := crankPartColor(name)
 			models[i].Clip = &solidlens.ClipPlane{
-				Origin: solidlens.Vec{Z: c.dm.ScrewHeight},
-				Normal: solidlens.Vec{Z: 1},
+				Normal: solidlens.Vec{X: 1},
 				Cap: &solidlens.Material{Color: solidlens.RGB(color.R+(1-color.R)*.35, color.G+(1-color.G)*.35,
 					color.B+(1-color.B)*.35), Unlit: true},
 			}
 		}
-		return bevelScene(camera, models), nil
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
-}
-
-// crankPartScene draws one part alone, from the hero's side.
-func crankPartScene(mesh *decad.Mesh, color solidlens.Color, camera solidlens.Camera) solidlens.Scene {
-	models := []solidlens.Model{crankModel(mesh, color)}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
 }
 
 // renderCrankHandleReadme builds the default crank once, and the 608-2RS crank once for the size comparison, and
@@ -183,7 +169,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		width, height int
 	}{
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270},
-		{"back", "back.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"tail", "tail.png", 1600, 900},
+		{"back", "back.png", 1600, 900}, {"side", "side.png", 1600, 900},
 		{"sizes", "sizes.png", 1600, 900}, {"cutaway", "cutaway.png", 1600, 900},
 		{"exploded", "exploded.png", 1600, 900},
 	} {
@@ -199,20 +185,16 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
-	part := solidlens.Camera{Position: solidlens.Vec{X: 60, Y: -70, Z: 60}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	for _, p := range []struct {
-		file  string
-		mesh  *decad.Mesh
-		color solidlens.Color
-	}{{"crank.png", c.crank, crankColor}, {"bolt.png", c.bolt, boltColor}, {"nut.png", c.nut, boltColor}} {
-		low, high := meshBounds(p.mesh)
-		camera := part
+	for _, name := range crankPartOrder {
+		mesh := c.mesh[name]
+		low, high := meshBounds(mesh)
 		center := low.Add(high).Scale(.5)
 		span := high.Sub(low).Len()
-		camera.Target = solidlens.Vec(center)
-		camera.Position = solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span}))
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", p.file), crankPartScene(p.mesh, p.color, camera),
-			480, 270); err != nil {
+		camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
+			Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+		models := []solidlens.Model{crankModel(mesh, crankPartColor(name))}
+		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", name+".png"), scene, 480, 270); err != nil {
 			return err
 		}
 	}

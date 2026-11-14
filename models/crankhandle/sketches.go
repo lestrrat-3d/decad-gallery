@@ -6,142 +6,167 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
-// plateSketch sketches the plate in the local XY plane: the hub circle about the origin cut by the tail's flat
-// at y = -t, the arm's end circle about (0, Throw), the two lines tangent to both circles, and the D bore. It
-// returns the sketch and the plate's profile, the one with the bore as its hole.
-func plateSketch(ctx context.Context, p Params, dm Dimensions) (*sketch.Sketch, *sketch.Profile, error) {
-	fail := func(step string, err error) (*sketch.Sketch, *sketch.Profile, error) {
-		return nil, nil, fmt.Errorf("crankhandle: plate sketch: %s: %w", step, err)
-	}
-	world := sketch.NewWorld()
-	s, err := world.CreateSketch(world.XY())
+// run builds one crank in the local frame. It records every sketch and keeps the first error.
+type run struct {
+	ctx      context.Context
+	doc      *decad.Document
+	p        Params
+	dm       Dimensions
+	sketches []*sketch.Sketch
+}
+
+// sketchOn starts a sketch on the plane f; extrusions run along f's normal U × V.
+func (r *run) sketchOn(f r3.Frame) (*sketch.Sketch, error) {
+	w := sketch.NewWorld()
+	plane, err := w.CreatePlaneFromFrame(f)
 	if err != nil {
-		return fail("create", err)
+		return nil, fmt.Errorf("create sketch plane: %w", err)
 	}
-	o := s.Origin()
-	rh, re, t, half := dm.HubRadius, dm.EndRadius, dm.TailDistance, dm.TailHalf
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("create sketch: %w", err)
+	}
+	r.sketches = append(r.sketches, s)
+	return s, nil
+}
 
-	// The outward normal of the right tangent line: its distance from O is rh and from E is re.
-	ny := (rh - re) / p.Throw
-	nx := math.Sqrt(1 - ny*ny)
+// profile solves s, requires it fully constrained and returns its one valid profile with the given number of holes.
+func (r *run) profile(s *sketch.Sketch, holes int) (*sketch.Profile, error) {
+	if _, err := s.Solve(r.ctx); err != nil {
+		return nil, fmt.Errorf("solve sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(r.ctx, s); err != nil {
+		return nil, fmt.Errorf("verify sketch: %w", err)
+	}
+	var chosen *sketch.Profile
+	for _, pr := range s.Profiles() {
+		if !pr.Valid || len(pr.Holes) != holes {
+			continue
+		}
+		if chosen != nil {
+			return nil, fmt.Errorf("several valid profiles with %d holes", holes)
+		}
+		chosen = pr
+	}
+	if chosen == nil {
+		return nil, fmt.Errorf("no valid profile with %d holes", holes)
+	}
+	return chosen, nil
+}
 
-	e := s.CreatePoint(0, p.Throw)
-	hr := s.CreatePoint(rh*nx, rh*ny)
-	er := s.CreatePoint(re*nx, p.Throw+re*ny)
-	el := s.CreatePoint(-re*nx, p.Throw+re*ny)
-	hl := s.CreatePoint(-rh*nx, rh*ny)
-	tl := s.CreatePoint(-half, -t)
-	tr := s.CreatePoint(half, -t)
+// extrude extrudes the profile of s with the given holes by length along its normal.
+func (r *run) extrude(s *sketch.Sketch, holes int, length float64) (*decad.Body, error) {
+	pr, err := r.profile(s, holes)
+	if err != nil {
+		return nil, err
+	}
+	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+}
 
-	hubRight := s.CreateArc(o, tr, hr)
-	right := s.CreateLine(hr, er)
-	end := s.CreateArc(e, er, el)
-	left := s.CreateLine(el, hl)
-	hubLeft := s.CreateArc(o, hl, tl)
-	tail := s.CreateLine(tl, tr)
+// across is the plane z = const through the point (0, y) of the local frame, with U = +X and V = +Y.
+func across(y, z float64) r3.Frame {
+	f, _ := r3.NewFrame(r3.Vec{Y: y, Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	return f
+}
+
+// cylinder extrudes a circle of radius rad about (0, y) from z for length along +Z.
+func (r *run) cylinder(y, z, rad, length float64) (*decad.Body, error) {
+	s, err := r.sketchOn(across(y, z))
+	if err != nil {
+		return nil, err
+	}
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), rad), rad))
+	return r.extrude(s, 0, length)
+}
+
+// hexagon extrudes a regular hexagon flats across, its corners on X, about (0, y) from z for length along +Z.
+func (r *run) hexagon(y, z, flats, length float64) (*decad.Body, error) {
+	s, err := r.sketchOn(across(y, z))
+	if err != nil {
+		return nil, err
+	}
+	radius := flats / math.Sqrt(3)
+	poly, err := s.CreatePolygon(0, 0, 6, radius)
+	if err != nil {
+		return nil, fmt.Errorf("create hexagon: %w", err)
+	}
 	s.AddConstraint(
-		sketch.NewVerticalPoints(o, e), sketch.NewVerticalDistance(o, e, p.Throw),
-		sketch.NewRadius(hubRight, rh), sketch.NewEqualRadius(hubRight, hubLeft), sketch.NewRadius(end, re),
-		sketch.NewTangent(right, hubRight), sketch.NewTangent(right, end),
-		sketch.NewTangent(left, end), sketch.NewTangent(left, hubLeft),
-		sketch.NewHorizontal(tail), sketch.NewDistancePointLine(o, tail, t),
+		sketch.NewCoincident(poly.Center, s.Origin()),
+		sketch.NewHorizontal(poly.Sides[1]),
+		sketch.NewDistance(poly.Center, poly.Vertices[0], radius),
 	)
+	return r.extrude(s, 0, length)
+}
 
-	// The D bore: an arc of radius r_b the long way round through +Y, closed by its flat at y = -f_b.
-	rb, fb := dm.BoreRadius, dm.BoreFlat
+// armSketch sketches the arm on the back face: a stadium of radius ArmRadius about the origin and about the pin axis
+// at (0, Throw), joined by two tangent lines, with the pin bolt's hole round the pin axis.
+func (r *run) armSketch() (*sketch.Sketch, error) {
+	s, err := r.sketchOn(across(0, 0))
+	if err != nil {
+		return nil, err
+	}
+	throw := r.p.Throw
+	o := s.Origin()
+	top := s.CreatePoint(0, throw)
+	s.AddConstraint(sketch.NewVerticalPoints(o, top), sketch.NewVerticalDistance(o, top, throw))
+	r1, l1 := s.CreatePoint(ArmRadius, 0), s.CreatePoint(-ArmRadius, 0)
+	r2, l2 := s.CreatePoint(ArmRadius, throw), s.CreatePoint(-ArmRadius, throw)
+	hubArc, pinArc := s.CreateArc(o, l1, r1), s.CreateArc(top, r2, l2)
+	right, left := s.CreateLine(r1, r2), s.CreateLine(l2, l1)
+	// Equal end radii make the line-arc joins exactly tangent, which the face chamfer needs.
+	s.AddConstraint(sketch.NewRadius(hubArc, ArmRadius), sketch.NewEqualRadius(hubArc, pinArc),
+		sketch.NewTangent(right, hubArc), sketch.NewTangent(right, pinArc),
+		sketch.NewTangent(left, hubArc), sketch.NewTangent(left, pinArc))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, PinHoleR), PinHoleR))
+	return s, nil
+}
+
+// boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the
+// long way round through -Y, closed by its flat at y = +f_b, toward the pin.
+func (r *run) boreTool() (*decad.Body, error) {
+	s, err := r.sketchOn(across(0, -1))
+	if err != nil {
+		return nil, err
+	}
+	rb, fb := r.dm.BoreRadius, r.dm.BoreFlat
 	w := math.Sqrt(rb*rb - fb*fb)
-	q1 := s.CreatePoint(w, -fb)
-	q2 := s.CreatePoint(-w, -fb)
+	o := s.Origin()
+	q1, q2 := s.CreatePoint(-w, fb), s.CreatePoint(w, fb)
 	bore := s.CreateArc(o, q1, q2)
 	flat := s.CreateLine(q2, q1)
 	s.AddConstraint(sketch.NewRadius(bore, rb), sketch.NewHorizontal(flat), sketch.NewDistancePointLine(o, flat, fb))
-
-	if _, err := s.Solve(ctx); err != nil {
-		return fail("solve", err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return fail("verify", err)
-	}
-	var plate *sketch.Profile
-	for _, pr := range s.Profiles() {
-		if !pr.Valid || len(pr.Holes) != 1 {
-			continue
-		}
-		if plate != nil {
-			return fail("select profile", fmt.Errorf("several profiles have one hole"))
-		}
-		plate = pr
-	}
-	if plate == nil {
-		return fail("select profile", fmt.Errorf("no valid profile has one hole"))
-	}
-	return s, plate, nil
+	return r.extrude(s, 0, 1+ArmThickness-BoreFloor)
 }
 
-// screwMeridian returns the set screw tool's meridian as (a, r) pairs: a along the site's Dir from the head's top
-// face, r from the screw axis. It runs from Stock before the tail face, through the head pocket, the clearance
-// hole and the nut cavity, to Stock inside the bore. A 45 degree chamfer of RimChamfer fills the concave rim of the
-// pocket's floor and both rims of the cavity.
-func screwMeridian(site m2fastener.Site) [][2]float64 {
-	const c = RimChamfer
-	rp, dp := m2fastener.HeadPocketRadius, m2fastener.HeadPocketDepth
-	rh, rn := m2fastener.HoleRadius, m2fastener.NutCavityRadius
-	near, far := site.Cavity, site.CavityFar()
-	end := site.Tip() + m2fastener.Stock
-	return [][2]float64{
-		{-m2fastener.Stock, 0}, {-m2fastener.Stock, rp}, {dp - c, rp}, {dp, rp - c}, {dp, rh},
-		{near, rh}, {near, rn - c}, {near + c, rn}, {far - c, rn}, {far, rn - c}, {far, rh},
-		{end, rh}, {end, 0},
-	}
-}
-
-// screwTool revolves screwMeridian about the set screw's axis. The sketch plane holds the axis: its U axis is the
-// site's Dir and its V axis the plate normal +Z, so every vertex is dimensioned from the origin at the head.
-func screwTool(ctx context.Context, doc *decad.Document, site m2fastener.Site) (*decad.Body, *sketch.Sketch, error) {
-	fail := func(step string, err error) (*decad.Body, *sketch.Sketch, error) {
-		return nil, nil, fmt.Errorf("crankhandle: set screw sketch: %s: %w", step, err)
-	}
-	f, err := r3.NewFrame(site.Head, site.Dir, r3.Vec{Z: 1})
+// handle revolves HandleProfile about the pin axis. The sketch plane holds the axis: U runs along it (+Z) and V is the
+// radius (+X), so every vertex is dimensioned from the origin at (0, Throw, HandleFrom).
+func (r *run) handle() (*decad.Body, error) {
+	origin := r3.Vec{Y: r.p.Throw, Z: HandleFrom}
+	f, err := r3.NewFrame(origin, r3.Vec{Z: 1}, r3.Vec{X: 1})
 	if err != nil {
-		return fail("frame", err)
+		return nil, err
 	}
-	world := sketch.NewWorld()
-	plane, err := world.CreatePlaneFromFrame(f)
+	s, err := r.sketchOn(f)
 	if err != nil {
-		return fail("plane", err)
+		return nil, err
 	}
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return fail("create", err)
-	}
-	pts := screwMeridian(site)
-	points := make([]*sketch.Point, len(pts))
-	for i, pt := range pts {
+	points := make([]*sketch.Point, len(HandleProfile))
+	for i, pt := range HandleProfile {
 		points[i] = sketchcheck.DimensionPoint(s, pt[0], pt[1])
 	}
 	for i := range points {
 		s.CreateLine(points[i], points[(i+1)%len(points)])
 	}
-	if _, err := s.Solve(ctx); err != nil {
-		return fail("solve", err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return fail("verify", err)
-	}
-	profiles := s.Profiles()
-	if len(profiles) != 1 || !profiles[0].Valid {
-		return fail("select profile", fmt.Errorf("want one valid profile, got %d", len(profiles)))
-	}
-	body, err := decad.Revolve(ctx, doc, s, profiles[0], decad.ConstructionAxis{Origin: site.Head, Dir: site.Dir},
-		decad.FullRevolution{})
+	pr, err := r.profile(s, 0)
 	if err != nil {
-		return fail("revolve", err)
+		return nil, err
 	}
-	return body, s, nil
+	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{})
 }

@@ -44,12 +44,12 @@ presets show the spiral from above, the underside, a close-up of the hub and spo
 different sizes. The `readme` shot writes all of them and the index image:
 `go -C tools/render run . -model spiralspring -shot readme -out ../../models/spiralspring/images`.
 
-`crankhandle/hero` renders the default 605ZZ crank lying on its back face, from above and in front of its tail face.
-The `side`, `back` and `tail` presets show it from the side, from below and toward the set screw's head. `cutaway`
-clips every body by the plane through the set screw's axis, removes the half above it, and looks down on the hub.
-`exploded` pulls the nut 12 mm and the bolt 26 mm out of the tail face along -Y. `sizes` puts the 608-2RS crank 15 mm
-beside the default one. The `readme` shot builds each crank once and writes all of them, the index image and one
-480 × 270 image of the crank, the bolt and the nut in `parts/`:
+`crankhandle/hero` renders the default 605ZZ crank lying on the arm's back face with the handle standing up, in the
+hand-crank siren's crank colour with a dark handle. The `side` and `back` presets show it from the side and from below.
+`cutaway` clips every body by the plane through the shaft axis and the pin axis, removes the half toward +X, and looks
+from that side. `exploded` pulls the parts along the pin axis: the bolt 18 mm down, the nut 16 mm, the handle 32 mm and
+the pin 75 mm up. `sizes` puts the 608-2RS crank 15 mm beside the default one. The `readme` shot builds each crank once
+and writes all of them, the index image and one 480 × 270 image of each part in `parts/`:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.

@@ -152,7 +152,7 @@ MODEL_PR_TESTS = [
     "TestCrankHandleBoreFit",
     "TestCrankHandleFasteners",
     "TestCrankHandleEdgeFinishing",
-    "TestCrankHandleGrip",
+    "TestCrankHandleFits",
     "TestCrankHandlePlacement",
     "TestCrankHandleRejectsInvalidInputs",
 ]

@@ -1,85 +1,56 @@
 # Crank handle Decad steps
 
-Follow instructions.md for the API, the symbols, the presets and the validation order. Emit three files:
-`params.go` (constants, `Params`, the presets, `Validate`, `Derive`, `Dimensions`), `sketches.go` (the plate sketch and
-the set screw tool) and `crankhandle.go` (package doc, container names, `Model`, `Build`, the 3D features, placement
-and containers). Every error message starts with `crankhandle: `.
+Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has three files:
+`params.go` (constants, `HandleProfile`, `Params`, the presets, `Validate`, `Derive`, `Dimensions`), `sketches.go` (the
+build run and its sketches) and `crankhandle.go` (package doc, container names, `Parts`, `Model`, `BuildParts`, `Build`,
+the arm and the pin). Every error message starts with `crankhandle: `.
 
 ## 1. Validate and derive (params.go)
 
-`Derive` makes no geometry calls. It runs the ten rules of instructions.md in order and fills every `Dimensions`
-field from the symbol table. `Site` is `m2fastener.Site{Head: (0, -t, z_s), Dir: (0, 1, 0), Corner: (1, 0, 0),
-Length: 6, Cavity: 4}`, and Derive returns `Site.Validate()`'s error wrapped with the prefix. `Validate` returns
-Derive's error. The presets read `ShaftDiameter` from `ballbearing.Params605ZZ().BoreDiameter` and
-`ballbearing.Params6082RS().BoreDiameter`, and `BoreClearance` from `ballbearing.PressFitClearance`.
+`Derive` makes no geometry calls. It runs the six rules of instructions.md in order and fills `BoreRadius`, `BoreFlat`
+and `BoreLoop`. `Site` is `m2fastener.Site{Head: (0, L, 0), Dir: (0, 0, 1), Corner: (1, 0, 0), Length: 10, Cavity:
+4.75}`; Derive returns `Site.Validate()`'s error with the prefix.
 
-## 2. Plate sketch (sketches.go)
+## 2. Sketches (sketches.go)
 
-`plateSketch(ctx, p, dm) (*sketch.Sketch, *sketch.Profile, error)`. A fresh `sketch.NewWorld()`, a sketch on
-`world.XY()`, `O = s.Origin()`. Let `n_y = (R_h - R_e) / Throw` and `n_x = sqrt(1 - n_y^2)`, the outward normal of the
-right tangent line. Create the points at these coordinates; the solver starts there and picks each tangent's side:
+Each sketch is on a fresh `sketch.NewWorld()` plane made from an `r3.Frame`, recorded in the run, solved, and checked
+with `sketchcheck.VerifyFullyConstrained` before its profile is used.
 
-- `E = (0, Throw)`, `H_R = R_h (n_x, n_y)`, `E_R = E + R_e (n_x, n_y)`, `E_L = E + R_e (-n_x, n_y)`,
-  `H_L = R_h (-n_x, n_y)`, `T_L = (-w_t, -t)`, `T_R = (w_t, -t)`.
+- `across(y, z)` is the plane z = const through `(0, y)`, U = +X, V = +Y.
+- `cylinder(y, z, r, length)`: a circle of radius `r` about the origin with `NewRadius`, extruded along +Z.
+- `hexagon(y, z, flats, length)`: `CreatePolygon(0, 0, 6, flats/sqrt(3))`, with `NewCoincident(center, origin)`,
+  `NewHorizontal(Sides[1])` and `NewDistance(center, Vertices[0], flats/sqrt(3))`, so its corners lie on X. Extrude
+  along +Z.
+- `armSketch()` on `across(0, 0)`: the point `top = (0, L)` with `NewVerticalPoints(O, top)` and
+  `NewVerticalDistance(O, top, L)`; `r1 = (10, 0)`, `l1 = (-10, 0)`, `r2 = (10, L)`, `l2 = (-10, L)`;
+  `hubArc = CreateArc(O, l1, r1)`, `pinArc = CreateArc(top, r2, l2)`, `right = CreateLine(r1, r2)`,
+  `left = CreateLine(l2, l1)`; `NewRadius(hubArc, 10)`, `NewEqualRadius(hubArc, pinArc)` and `NewTangent` of each line
+  with each arc. A circle of radius 1.3 about `top` with `NewRadius`. Select the profile with one hole.
+- `boreTool()` on `across(0, -1)`: `q1 = (-w, f_b)`, `q2 = (w, f_b)` with `w = sqrt(r_b^2 - f_b^2)`,
+  `bore = CreateArc(O, q1, q2)` (counter-clockwise, the long way through -Y), `flat = CreateLine(q2, q1)`;
+  `NewRadius(bore, r_b)`, `NewHorizontal(flat)`, `NewDistancePointLine(O, flat, f_b)`. Extrude `ArmThickness`.
+- `handle()`: the plane `r3.NewFrame((0, L, 7.4), (0, 0, 1), (1, 0, 0))`. Dimension every `HandleProfile` vertex from
+  the origin with `sketchcheck.DimensionPoint`, join them in order, and `decad.Revolve` about
+  `decad.ConstructionAxis{Origin: (0, L, 7.4), Dir: (0, 0, 1)}` with `decad.FullRevolution{}`.
 
-Entities, each arc counter-clockwise from its start to its end:
+## 3. Parts (crankhandle.go)
 
-- `hubRight = CreateArc(O, T_R, H_R)`, `right = CreateLine(H_R, E_R)`, `end = CreateArc(E, E_R, E_L)`,
-  `left = CreateLine(E_L, H_L)`, `hubLeft = CreateArc(O, H_L, T_L)`, `tail = CreateLine(T_L, T_R)`.
+1. Arm: extrude `armSketch` by `ArmThickness`; `decad.Chamfer` of
+   `decad.Edges(decad.OuterLoopOf(decad.CapStart(arm))).Or(decad.OuterLoopOf(decad.CapEnd(arm)))` by 0.5; then
+   `decad.Cut` the bore tool, `hexagon(L, 3.25, 7.53, 5.75)` and `m2fastener.PocketTool(site)`, in that order.
+2. Pin: `decad.Union` of `hexagon(L, 3.5, 7.03, 5.05)`, `cylinder(L, 8.25, 4.5, 47.15)` and
+   `cylinder(L, 55, 5.8, 3)`; then `decad.Cut` `m2fastener.HoleTool(site)` and `m2fastener.CavityTool(site)`.
+3. Handle: `handle()`.
+4. Require each part solid, then `placement.Place(ctx, body, p.Placement)`. Carry the site's `Head` through
+   `r3.FromFrame(*Placement).Apply`, and `Dir` and `Corner` through `ApplyDir`.
 
-Constraints: `NewVerticalPoints(O, E)`, `NewVerticalDistance(O, E, Throw)`, `NewRadius(hubRight, R_h)`,
-`NewEqualRadius(hubRight, hubLeft)`, `NewRadius(end, R_e)`, `NewTangent` of `right` with `hubRight` and `end`, of
-`left` with `end` and `hubLeft`, `NewHorizontal(tail)` and `NewDistancePointLine(O, tail, t)`.
-
-The bore: `Q1 = (w_b, -f_b)`, `Q2 = (-w_b, -f_b)`, `bore = CreateArc(O, Q1, Q2)`, `flat = CreateLine(Q2, Q1)`, with
-`NewRadius(bore, r_b)`, `NewHorizontal(flat)` and `NewDistancePointLine(O, flat, f_b)`.
-
-`s.Solve(ctx)`, then `sketchcheck.VerifyFullyConstrained(ctx, s)`. Select the one valid profile with exactly one
-hole; the other profile is the bore's disc. More than one or none is an error.
-
-## 3. Set screw tool (sketches.go)
-
-`screwTool(ctx, doc, site) (*decad.Body, *sketch.Sketch, error)`. The sketch plane is
-`r3.NewFrame(site.Head, site.Dir, (0, 0, 1))`, so sketch U runs along the screw from the head (`a`) and V is the
-distance from the axis (`r`). Dimension every vertex from the origin with `sketchcheck.DimensionPoint` and join them
-in order with lines, the last back to the first. With `k = RimChamfer`, `rp = m2fastener.HeadPocketRadius` (2.2),
-`dp = m2fastener.HeadPocketDepth` (2), `rh = m2fastener.HoleRadius` (1.3), `rn = m2fastener.NutCavityRadius` (2.51),
-`near = site.Cavity` (4), `far = site.CavityFar()` (6), `end = site.Tip() + m2fastener.Stock` (9):
-
-`(-1, 0), (-1, rp), (dp - k, rp), (dp, rp - k), (dp, rh), (near, rh), (near, rn - k), (near + k, rn), (far - k, rn),
-(far, rn - k), (far, rh), (end, rh), (end, 0)`.
-
-Solve, verify full constraint, require one valid profile, and
-`decad.Revolve(ctx, doc, s, profile, decad.ConstructionAxis{Origin: site.Head, Dir: site.Dir}, decad.FullRevolution{})`.
-
-## 4. Crank body (crankhandle.go)
-
-In the local frame, in this order:
-
-1. `decad.Extrude(ctx, doc, plate, profile, decad.Distance{D: T, Dir: decad.Along})`.
-2. `decad.Cut(ctx, body, screwTool)`.
-3. `edgefinish.Chamfer(ctx, body, (0, 0, 1), []float64{0, T}, keep, edgefinish.MinChamfer)`, where `keep` is true for
-   `edgefinish.Outer` and, when `L_b >= edgefinish.LongEdgeRun`, for every loop. The only inner loop on either face
-   is the bore. Use `L_b` from `Dimensions`, not `edgefinish.Long`: after the cut Decad refuses the bore arc's length,
-   and `edgefinish.Long` then measures the arc the shorter way round, which is wrong for an arc of more than half a
-   turn.
-4. `decad.Boss(ctx, body, decad.BossSpec{Face: decad.Faces(decad.Facing((0, 0, 1))).Exactly(1), At: (0, Throw, T),
-   Diameter: GripDiameter, Height: GripLength, RootFillet: rho})`.
-5. Find the circular edge whose centre lies at `z = T + GripLength` with radius `GripDiameter/2`, name it by
-   `decad.EndpointAt(start)` and `decad.Circular()`, and `decad.Fillet` it `Exactly(1)` with radius `r_t`.
-6. Require `body.IsSolid()`, then `placement.Place(ctx, body, p.Placement)`.
-
-## 5. Fasteners and containers (crankhandle.go)
-
-Carry `Site.Head` through `r3.FromFrame(*Placement).Apply` and `Dir` and `Corner` through `ApplyDir`, then
-`m2fastener.PlaceBolt` and `m2fastener.PlaceNut`. Put each body in `doc.Root().ChildNamed(name)` with `AddBody`, after
-every boolean.
+`Build` then calls `m2fastener.PlaceBolt` and `PlaceNut` at the placed site, and adds each body to
+`doc.Root().ChildNamed(name)` with `AddBody` after every boolean.
 
 ## Known decad limit
 
-Decad cannot chamfer the faces of a plate after the set screw cut for some throws. At the 605ZZ preset with `Throw`
-30 or 65 to 90 the chamfer fails: "cut's tool holds its mesh, where this pair meets, only within a bound of 0.00258 mm,
-coarser than this pair's chord tolerance 0.00211 mm". `Throw` 40, 50, 55, 60, 100 and 120 build. Chamfering first does
-not help: Decad then refuses the cut, because "loop 0 of this cap-loop chamfer has an arc whose recorded end is not on
-the circle its start states", and no boolean may compose that chamfer. The construction keeps the cut and the native
-chamfer, and the representative cases use throws that build.
+The 608-2RS bore's rim in the arm's back face is a 25.3 mm run on a large face, which "Surface edge finishing" asks to
+chamfer. After the bore cut Decad stores its arc as a `decad.FacetedCurve`, so `decad.Circular()` does not select it.
+Selected by both endpoints and `decad.Convex()`, `decad.Chamfer` refuses it: "this evaluator chamfers a straight prism,
+its one-line Sweep reduction, or a revolve only; no retained blend class reads selected edge[0]: an edge between a
+retained plane and a retained cylinder". The rim stays sharp, as it was on the siren's arm.
