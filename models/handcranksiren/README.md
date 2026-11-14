@@ -74,6 +74,10 @@ and 2 mm high, so the nut has 0.2 mm of room on each face.
 | Grip | one flat side down | none |
 | Crank pin | upright, head down | one, for the pin bolt |
 
+Each shaft can print as two halves cut lengthwise through the middle of its flat, each half lying on its cut face, so
+the layers run along the shaft. The model keeps each shaft whole; the export to Fusion cuts it when asked. The bearings
+and the pressed gears clamp the halves together.
+
 The drum prints standing on its flange's front face, and its back plate needs slicer support. A siren takes 24 bolts (12
 of M2 x 16, 3 of M2 x 18, 5 of M2 x 10 and 4 of M2 x 20), 24 nuts and 6 608-2RS bearings.
 

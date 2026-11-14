@@ -26,6 +26,7 @@ and the nuts `models/m2nut`, all imported and not copied. Printed parts: everyth
 - Surface edge finishing: see Edge finishing.
 - Body containers: see Containers.
 - Look-alike part marks: see Look-alike parts.
+- Split shafts: every shaft can print as two mirror-image halves. See Shafts and bearings.
 - `models/README.md` marks the model **Mixed**.
 
 ## API and parameters
@@ -164,6 +165,10 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
 - rotor-shaft: Y [−25.25, 35.70] with a collar of radius 5.5 over [10.1, 12.1].
 - intermediate-shaft: Y [2.90, 34.70].
 - crank-shaft: Y [2.90, 45.35] with a collar of radius 5.5 over [19.1, 20.1]. The collar keeps crank-gear in plane 1.
+- Split shafts: each of the three shafts prints as two halves split by the plane through its axis and its flat's
+  normal. At crank angle 0 the flat faces +Z and the split plane's normal is +X; the pose turns both about −Y by the
+  shaft's angle, giving the normal (cos a, 0, sin a). The collars are turned about the axis, so the halves are mirror
+  images. The build does not model the split.
 - Six 608-2RS bearings (`ballbearing.DefaultParams()`, 8 × 22 × 7): `bearing-rotor-front`,
   `bearing-intermediate-front`, `bearing-crank-front` at Y 2.85, and `bearing-rotor-rear`,
   `bearing-intermediate-rear`, `bearing-crank-rear` at Y 27.75. Holders are gearbox-front and gearbox-rear.
@@ -380,8 +385,12 @@ Build every part at crank angle 0, pose it by its motion, move it into its conta
 ## Verification
 
 `go test ./models/handcranksiren` covers the default and the `Slots` 12 and 24 variants: parts, sketches, containers,
-ports, outlet, orientation, overlap, fits R2 and L1 on the variants, and on the default also the grip, mesh,
-clearances, fasteners, sweep, tessellate, edges and marks checks.
+ports, outlet, orientation, overlap, split shafts, fits R2 and L1 on the variants, and on the default also the grip,
+mesh, clearances, fasteners, sweep, tessellate, edges and marks checks.
+
+- `split shafts` (default and variants) runs `splitcheck.Check` on each posed shaft at chord tolerance 0.01: no
+  violation, one flat plane, the split normal (cos a, 0, sin a) within 1e-9, and each half 5.5 high on the crank and
+  rotor shafts (the collar) and 4.0 on the intermediate shaft.
 
 - `outlet` (default and variants) sections the collector and the horn at `fitTolerance` 0.02: no material at radius 36
   about R in the collector at Y −35.90; no material at the throat centre or at radius 20 about it, and material at

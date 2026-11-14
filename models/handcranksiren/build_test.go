@@ -97,6 +97,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	t.Run("outlet", func(t *testing.T) { requireOutlet(t, parts) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
+	t.Run("split shafts", func(t *testing.T) { requireSplitShafts(t, a, parts) })
 	if p != handcranksiren.DefaultParams() {
 		// The variants prove only what Slots changes: the rotor's fits.
 		t.Run("rotor fits", func(t *testing.T) {
