@@ -103,6 +103,8 @@ through `buildBoreProfile`. Other private helper names are implementation choice
 ## Existing variant pipeline dependencies
 
 `variant.go` is a handwritten dependency in this package. Do not regenerate it.
+It does not declare `Variant.Build`; emit that method exactly once in
+`spurgear.go` as specified in Step 2.
 It declares `Variant` with these fields: `Define func(*param.Table) error`,
 `Tooth func(context.Context, ToothInput) (*decad.Body, error)`, `LocalBuild bool`,
 and `RootFillet func(context.Context,*decad.Document,*decad.Body,r3.Frame) (*decad.Body,error)`.
