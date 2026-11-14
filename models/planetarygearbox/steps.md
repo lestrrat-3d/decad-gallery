@@ -84,7 +84,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      Posed with its bottom on a carrier's lower face.
    - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`, no flat on the rod. Posed with its
      bottom on the last carrier's lower face.
-   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv)` to `-0.5`, flat from `0` to
+   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv) + 0.25` to `-0.5` (0.25 mm above the front bearing's inner face), flat from `0` to
      `T + 1`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
    - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `cover_lip_bore_diameter`

@@ -171,6 +171,8 @@ const (
 	pinShoulderClearance = fitClearance
 	// pinShoulderReach is the shortest length of a pin's thick part below the carrier plate, so it prints sound.
 	pinShoulderReach = fitClearance
+	// collarBearingGap is the Tight gap between the input shaft's collar and the front bearing's inner face.
+	collarBearingGap = fitClearance
 	// collarClearance is the gap between a shaft collar and the sun or carrier it faces. It keeps the collar's
 	// face off the plane where the flat ends, and gives the printed parts a little play.
 	collarClearance = 0.5

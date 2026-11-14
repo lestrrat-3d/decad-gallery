@@ -24,17 +24,13 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/kit-planet608-shaft605/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of planets, suns with the planet bearings, carriers and carrier pins with a link shaft between them, then the output shaft, the rear cover and the rear bearing">
+<img src="images/kit-planet608-shaft605/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover and the rear bearing">
 
-The first picture pulls the gearbox apart along its axis. It leaves out the bolts and nuts, which are the same as in the
+The picture pulls the gearbox apart along its axis. It leaves out the bolts and nuts, which are the same as in the
 default gearbox; [How the housing is bolted](README.md#how-the-housing-is-bolted) shows them.
 
-Each stage has three planets, and each camera looks along the line through the sun and one planet, so that planet and
-its bearing are partly hidden behind the sun or the carrier. The second picture looks from the other side of the
-gearbox, 120° round the axis, and hides a different planet. Every planet, planet bearing and carrier pin is visible in
-at least one of the two.
-
-<img src="images/kit-planet608-shaft605/exploded-other-side.png" alt="The same exploded two-stage gearbox seen from the other side of the axis, with the same parts in the same order, so the planet and bearing that hid in the first picture show">
+Each stage's planets, bearings and carrier pins also move 45 mm outward from the axis, so all three planets of a
+stage show side by side and none hides behind the sun.
 
 The parts, from the bottom of the picture:
 

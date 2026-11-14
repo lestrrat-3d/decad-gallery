@@ -146,13 +146,15 @@ The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `
 `part-planet`, `part-bearing`, `part-carrier`, `part-carrier-pin`, `part-input-shaft`, `part-link-shaft` and
 `part-output-shaft` presets
 render one of them alone. The shafts are seen from almost level with them so the flat and the collar or step show, and the
-carrier from below so its through sockets show. A 900 × 1200 pixel exploded view, `exploded.png`, pulls the
+carrier from below so its through sockets show. A 1600 × 900 pixel exploded view, `exploded.png`, pulls the
 whole two-stage gearbox apart along its axis with nothing cut and without its bolts and nuts. The offsets come from
 `parts.Set.Explode` over `Gearbox.Set` in Decad's derived mode, which `Gearbox.Explode` runs with the front cover held
 in place. Both ends read bearing, cover, shaft from the outside in: each cover bearing sits outside its cover, beyond
 its shaft's free end, and each shaft sits on the inner side of its cover. The ring and the front bearing sit 20 mm
-from the parts below them, so the camera above sees the input shaft's collar and the front bearing past the ring and
-the front cover's rim. The `planetarygearbox/exploded` preset renders it alone.
+from the parts below them. The render also moves each planet, its bearing and its carrier pin 45 mm outward from the axis,
+along that planet's own direction, so the three planets of a stage show side by side. The camera looks from nearly
+level, 50° round the axis from the first planet, so no planet lines up with the sun and the carriers show edge on. The
+`planetarygearbox/exploded` preset renders it alone.
 
 The `motion` shot writes `images/motion.gif`, 960 × 320 pixels and 78 frames, of the two-stage gearbox in three
 panels: the hero's cutaway, the input end from below and the output end from above, with a caption strip that reads
@@ -174,7 +176,7 @@ The `-kit` flag renders a bearing kit of `planetarygearbox.SupportedCombinations
 only to `-model planetarygearbox` and any other model with `-kit` is an error. The single-preset shots
 (`planetarygearbox/hero`, `assembled-*`, `part-*` and `exploded`) honour it. With `-shot readme` it builds one two-stage
 gearbox and writes `hero.png` (1600 × 900), `assembled-output.png`, `assembled-input.png` and `assembled-side.png`
-(1200 × 675), `exploded.png` and `exploded-other-side.png` (1600 × 900, the size Exploded views requires; the second camera is 120° round the axis, so the planet that hides behind the sun in the first shows) and `parts/<part>.png` (480 × 270). It writes
+(1200 × 675), `exploded.png` (1600 × 900) and `parts/<part>.png` (480 × 270). It writes
 no `index.png`, fastener images or `motion.gif`, because they do not depend on the bearings. A kit whose planet and
 shaft bearings differ writes `parts/planet-bearing.png` and `parts/cover-bearing.png` in place of `parts/bearing.png`.
 The `part-bearing` preset of such a kit shows the planet bearing.

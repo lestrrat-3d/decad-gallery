@@ -403,3 +403,19 @@ func TestExplodedPlacedGearbox(t *testing.T) {
 	doc, box := placedGearbox(t)
 	requireExplodedGearbox(t, doc, box, p)
 }
+
+// TestInputShaftCollar checks the input shaft's collar on the built body against Arbor collars: it is at least
+// 3.0 mm long, and it keeps the Tight 0.2 mm gap to the front bearing's inner face and the collar clearance to the sun.
+func TestInputShaftCollar(t *testing.T) {
+	p := planetarygearbox.DefaultParams()
+	_, box := defaultGearbox(t)
+	axis := parts.Axis{Point: r3.Vec{}, Dir: r3.Vec{Z: 1}}
+	collar := collarSpan(t, box.InputShaft, axis, ballbearing.Params605ZZ().BoreDiameter/2+0.5)
+	require.GreaterOrEqual(t, collar.hi-collar.lo, 3.0, "collar length")
+	require.InDelta(t, p.StageGap+p.CoverThickness-0.75, collar.hi-collar.lo, 2e-3)
+	bearingFace := bounds(t, box.FrontBearing).Max.Z
+	require.GreaterOrEqual(t, collar.lo-bearingFace, 0.2, "gap to the front bearing")
+	require.InDelta(t, 0.25, collar.lo-bearingFace, 2e-3)
+	sunFace := bounds(t, box.Stages[0].Sun).Min.Z
+	require.InDelta(t, 0.5, sunFace-collar.hi, 2e-3, "collar clearance to the sun")
+}
