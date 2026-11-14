@@ -151,14 +151,8 @@ func window(s *sketch.Sketch, sx float64, p, o, g *sketch.Point, geo *Geometry) 
 	// The plate is rigid, so every inside corner of the window takes the 1 mm round of "Corners and roots": the
 	// spine meets each hub ring, the bottom rim and the top rim. The legs name their own place, so the rounds keep
 	// the sketch fully constrained.
-	// Sketch's redundancy check reports the round arc's own radius as redundant for some leg orders, and the order
-	// that passes follows the window's drawing direction: the left window is drawn the other way round.
-	r := windowRound
 	round := func(before, after sketch.Entity, at *sketch.Point) error {
-		if sx < 0 {
-			before, after = after, before
-		}
-		return sketchFillet(s, before, after, at, r)
+		return sketchFillet(s, before, after, at, windowRound)
 	}
 	for i, c := range []struct {
 		before, after sketch.Entity

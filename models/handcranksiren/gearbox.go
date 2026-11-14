@@ -32,7 +32,7 @@ const (
 
 // outline returns the rounded-rectangle corners in the sketch frame of the axis R: u = x, v = 84 − z.
 func outline(left, right, bottom, top float64) []point2 {
-	// Counter-clockwise in (u, v), which is the winding the sketch fillet needs to stay fully constrained.
+	// Counter-clockwise in (u, v).
 	return []point2{{left, rotorHeight - top}, {right, rotorHeight - top}, {right, rotorHeight - bottom}, {left, rotorHeight - bottom}}
 }
 
