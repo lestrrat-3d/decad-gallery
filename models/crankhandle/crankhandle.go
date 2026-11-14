@@ -38,13 +38,20 @@ type Parts struct {
 	Dimensions Dimensions
 	// Site is the pin bolt in the world frame.
 	Site m2fastener.Site
+	// CrossSites are the two cross bolts that clamp the pin's halves, in the world frame.
+	CrossSites [2]m2fastener.Site
+	// SplitNormal is the unit normal, in the world frame, of the plane through the pin axis that splits the pin into
+	// its two printed halves. It runs along the arm, from the shaft toward the pin.
+	SplitNormal r3.Vec
 }
 
-// Model is a built crank: its parts, and the pin bolt and nut.
+// Model is a built crank: its parts, the pin bolt and nut, and the cross bolts and nuts that clamp the pin's halves.
 type Model struct {
 	Parts
-	Bolt *m2bolt.Model
-	Nut  *m2nut.Model
+	Bolt       *m2bolt.Model
+	Nut        *m2nut.Model
+	CrossBolts [2]*m2bolt.Model
+	CrossNuts  [2]*m2nut.Model
 }
 
 // BuildParts adds the arm, the pin and the handle to doc and returns them. It puts them in no container, so an
@@ -85,6 +92,19 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	if out.Site, err = placeSite(dm.Site, p.Placement); err != nil {
 		return nil, fmt.Errorf("crankhandle: place pin bolt: %w", err)
 	}
+	for i, site := range dm.CrossSites {
+		if out.CrossSites[i], err = placeSite(site, p.Placement); err != nil {
+			return nil, fmt.Errorf("crankhandle: place cross bolt %d: %w", i+1, err)
+		}
+	}
+	out.SplitNormal = r3.Vec{Y: 1}
+	if p.Placement != nil {
+		xf, err := r3.FromFrame(*p.Placement)
+		if err != nil {
+			return nil, fmt.Errorf("crankhandle: place split plane: %w", err)
+		}
+		out.SplitNormal = xf.ApplyDir(out.SplitNormal)
+	}
 	return out, nil
 }
 
@@ -102,13 +122,24 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if m.Nut, err = m2fastener.PlaceNut(ctx, doc, m.Site); err != nil {
 		return nil, fmt.Errorf("crankhandle: %w", err)
 	}
-	for _, c := range []struct {
+	type filed struct {
 		name string
 		body *decad.Body
-	}{
+	}
+	bodies := []filed{
 		{ArmContainerName, m.Arm}, {PinContainerName, m.Pin}, {HandleContainerName, m.Handle},
 		{BoltsContainerName, m.Bolt.Body}, {NutsContainerName, m.Nut.Body},
-	} {
+	}
+	for i, site := range m.CrossSites {
+		if m.CrossBolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
+			return nil, fmt.Errorf("crankhandle: cross bolt %d: %w", i+1, err)
+		}
+		if m.CrossNuts[i], err = m2fastener.PlaceNut(ctx, doc, site); err != nil {
+			return nil, fmt.Errorf("crankhandle: cross nut %d: %w", i+1, err)
+		}
+		bodies = append(bodies, filed{BoltsContainerName, m.CrossBolts[i].Body}, filed{NutsContainerName, m.CrossNuts[i].Body})
+	}
+	for _, c := range bodies {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
 			return nil, fmt.Errorf("crankhandle: container %s: %w", c.name, err)
@@ -157,35 +188,55 @@ func (r *run) arm() (*decad.Body, error) {
 	return body, nil
 }
 
-// pin joins the hexagonal stub, the round shank and the head, then cuts the bolt's hole and the nut's cavity.
+// pin joins the hexagonal stub to the turned shank and head, then cuts the double flats, the pin bolt's rounded hole
+// and nut cavity, and each cross bolt's hole, head pocket and nut cavity.
 func (r *run) pin() (*decad.Body, error) {
 	y := r.p.Throw
 	stub, err := r.hexagon(y, StubFrom, StubFlats, StubLength)
 	if err != nil {
 		return nil, err
 	}
-	shank, err := r.cylinder(y, ShankFrom, ShankR, ShankTo-ShankFrom)
+	turned, err := r.turnedPin(y)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("turned shank: %w", err)
 	}
-	head, err := r.cylinder(y, HeadFrom, HeadR, HeadLength)
-	if err != nil {
-		return nil, err
-	}
-	body, err := decad.Union(r.ctx, stub, shank, head)
+	body, err := decad.Union(r.ctx, stub, turned)
 	if err != nil {
 		return nil, fmt.Errorf("join: %w", err)
 	}
-	hole, hs, err := m2fastener.HoleTool(r.ctx, r.doc, r.dm.Site)
+	var tools []*decad.Body
+	for _, z := range CrossZ {
+		for _, side := range []float64{1, -1} {
+			flat, err := r.flatTool(y, z, side)
+			if err != nil {
+				return nil, fmt.Errorf("flat tool: %w", err)
+			}
+			tools = append(tools, flat)
+		}
+	}
+	hole, hs, err := m2fastener.RoundedHoleTool(r.ctx, r.doc, r.dm.Site)
 	if err != nil {
 		return nil, err
 	}
-	cavity, cs, err := m2fastener.CavityTool(r.ctx, r.doc, r.dm.Site)
+	cavity, cs, err := m2fastener.RoundedCavityTool(r.ctx, r.doc, r.dm.Site)
 	if err != nil {
 		return nil, err
 	}
 	r.sketches = append(r.sketches, hs, cs)
-	for _, tool := range []*decad.Body{hole, cavity} {
+	tools = append(tools, hole, cavity)
+	for _, site := range r.dm.CrossSites {
+		for _, build := range []func(context.Context, *decad.Document, m2fastener.Site) (*decad.Body, *sketch.Sketch, error){
+			m2fastener.HoleTool, m2fastener.PocketTool, m2fastener.CavityTool,
+		} {
+			tool, sk, err := build(r.ctx, r.doc, site)
+			if err != nil {
+				return nil, err
+			}
+			r.sketches = append(r.sketches, sk)
+			tools = append(tools, tool)
+		}
+	}
+	for _, tool := range tools {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}

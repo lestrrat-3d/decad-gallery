@@ -111,6 +111,108 @@ func CavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, 
 	return cylinderTool(ctx, doc, s, s.Cavity, NutCavityRadius, NutCavityHeight)
 }
 
+// RoundRadius is the radius of the rounds RoundedHoleTool and RoundedCavityTool put on a tool's end corners, and
+// roundChords is the number of chords each round is drawn with. Eight chords of a 0.55 mm round turn 11.25° each,
+// 0.11 mm apart, so no 0.4 mm of a section through the line turns more than 45° ("Corners and roots" in
+// docs/model-pipeline.md). The tools are for a part printed with the site's line parallel to the bed, such as a split
+// shaft's half, where a section through the line shows the tool's ends as corners. A section off the line crosses a
+// round nearer its edge and turns more sharply; RoundRadius is the largest round that keeps the nut's corner clearance.
+const (
+	RoundRadius = 0.55
+	roundChords = 8
+)
+
+// RoundedHoleTool builds the clearance hole's cutter, as HoleTool does, with its far end's corner rounded by
+// RoundRadius: a revolved meridian about the site's line.
+func RoundedHoleTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *sketch.Sketch, error) {
+	end := s.Tip() + Stock
+	pts := [][2]float64{{-Stock, 0}, {-Stock, HoleRadius}}
+	pts = append(pts, quarterRound(end-RoundRadius, HoleRadius-RoundRadius, 0)...)
+	pts = append(pts, [2]float64{end, 0})
+	return revolveTool(ctx, doc, s, pts)
+}
+
+// RoundedCavityTool builds the nut cavity's cutter, as CavityTool does, with both outer corners rounded by
+// RoundRadius. At the nut's faces, 0.2 mm inside the cavity's faces, the rounds leave 0.07 mm of the 0.2 mm radial
+// clearance past the nut's corners, and the flat end faces reach radius 1.96, inside the nut's 2.0 mm half width.
+func RoundedCavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *sketch.Sketch, error) {
+	near, far := s.Cavity, s.CavityFar()
+	pts := [][2]float64{{near, 0}}
+	pts = append(pts, quarterRound(near+RoundRadius, NutCavityRadius-RoundRadius, math.Pi)...)
+	pts = append(pts, quarterRound(far-RoundRadius, NutCavityRadius-RoundRadius, 0)...)
+	pts = append(pts, [2]float64{far, 0})
+	return revolveTool(ctx, doc, s, pts)
+}
+
+// quarterRound returns the roundChords+1 points (along, radius) of the quarter round of RoundRadius about (t, r) that
+// runs from its far side's radial end to its top for start 0, or from its near side's radial end up to its top for
+// start π, in the order a meridian walks them from the axis outward and back.
+func quarterRound(t, r, start float64) [][2]float64 {
+	out := make([][2]float64, 0, roundChords+1)
+	for i := 0; i <= roundChords; i++ {
+		f := float64(i) / roundChords
+		var a float64
+		if start == 0 {
+			a = math.Pi / 2 * (1 - f) // from the top (90°) down to the far end (0°)
+		} else {
+			a = math.Pi - math.Pi/2*f // from the near end (180°) up to the top (90°)
+		}
+		out = append(out, [2]float64{t + RoundRadius*math.Cos(a), r + RoundRadius*math.Sin(a)})
+	}
+	return out
+}
+
+// revolveTool revolves the closed meridian pts, each (distance along the site's line from Head, radius), about the
+// site's line. The sketch plane holds the line: U along Dir, V along Corner, its origin at Head. Every vertex is placed
+// by its horizontal and vertical distance from the origin.
+func revolveTool(ctx context.Context, doc *decad.Document, s Site, pts [][2]float64) (*decad.Body, *sketch.Sketch, error) {
+	f, err := r3.NewFrame(s.Head, s.Dir, s.Corner)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fastener meridian frame: %w", err)
+	}
+	w := sketch.NewWorld()
+	plane, err := w.CreatePlaneFromFrame(f)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create fastener plane: %w", err)
+	}
+	sk, err := w.CreateSketch(plane)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create fastener sketch: %w", err)
+	}
+	points := make([]*sketch.Point, len(pts))
+	for i, p := range pts {
+		points[i] = sketchcheck.DimensionPoint(sk, p[0], p[1])
+	}
+	for i := range points {
+		sk.CreateLine(points[i], points[(i+1)%len(points)])
+	}
+	if _, err := sk.Solve(ctx); err != nil {
+		return nil, nil, fmt.Errorf("solve fastener sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(ctx, sk); err != nil {
+		return nil, nil, fmt.Errorf("verify fastener sketch: %w", err)
+	}
+	var chosen *sketch.Profile
+	for _, p := range sk.Profiles() {
+		if !p.Valid || len(p.Holes) != 0 {
+			continue
+		}
+		if chosen != nil {
+			return nil, nil, fmt.Errorf("select fastener profile: several valid profiles")
+		}
+		chosen = p
+	}
+	if chosen == nil {
+		return nil, nil, fmt.Errorf("select fastener profile: no valid profile")
+	}
+	body, err := decad.Revolve(ctx, doc, sk, chosen, decad.ConstructionAxis{Origin: s.Head, Dir: s.Dir},
+		decad.FullRevolution{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("revolve fastener tool: %w", err)
+	}
+	return body, sk, nil
+}
+
 func newSketch(s Site, t float64) (*sketch.Sketch, error) {
 	f, err := s.Across(t)
 	if err != nil {

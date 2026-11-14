@@ -26,26 +26,45 @@ const (
 	PocketLength = 5.75
 	StubFlats    = 7.03 // keeps 1 mm of stub round the nut cavity (radius 2.51)
 	StubFrom     = 3.5
-	StubLength   = 5.05
-	ShankR       = 4.5
-	ShankFrom    = 8.25
-	ShankTo      = 55.4
-	HeadR        = 5.8
-	HeadFrom     = 55.0
+	StubLength   = 5.8 // to z 9.3, where the shank's root cone has grown past the stub's corners
+	ShankR       = 5.15
+	ShankFrom    = 8.25 // the root cone starts here at radius RootR, inside the stub
+	RootR        = 3.5  // inside the stub's flats (3.515), so the cone starts inside the stub
+	ShankTo      = 52.75
+	HeadR        = 6.45
+	HeadFrom     = 55.0 // the head cone runs from ShankTo up to here
 	HeadLength   = 3.0
 	HandleFrom   = 7.4 // the handle sketch's origin, 1 behind the handle's inner end
 	PinBolt      = 10.0
 	PinCavity    = 4.75 // from the bolt head's top face, in the arm's back face, to the nut cavity's near face
 	PressWall    = 1.6  // the least wall round a press-fit bore (AGENTS.md "Verification")
 	ChamferSize  = 0.5  // the arm's face chamfer
+
+	// The pin prints as two halves split by the plane through its axis and local X, the direction of the hand's
+	// driving force ("Split shafts" in docs/model-pipeline.md). Two M2 x 6 cross bolts clamp the halves: each runs
+	// along -Y, normal to the seam, from a head pocket in the +Y half to a nut cavity in the -Y half. A double flat
+	// CrossFlat from the axis, parallel to the seam, seats the head flush and leaves the halves mirror images.
+	CrossBolt     = 6.0
+	CrossFlat     = 4.0  // the flats' distance from the pin axis, on both sides
+	CrossFlatHalf = 3.25 // half the flats' length along the pin: 1 mm of flat round the head pocket (radius 2.2)
+	CrossCavity   = 5.0  // from the head's top face to the nut cavity's near face: 1 mm of -Y half on each side
+	// ConeAngle is the half angle of the cones from the stub to the shank and from the shank to the head. A cut through
+	// the stub's hexagon reads the cone up to 1.8 times steeper, and 30 degrees keeps that turn under 50 degrees.
+	ConeAngle = 30.0
 )
+
+// CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
+// short of the head cone.
+var CrossZ = [2]float64{17, 49}
 
 // HandleProfile is the handle's meridian: (distance along the pin from the sketch origin at HandleFrom, radius). A small
 // barrel with a waist and a flared outer end, with a bore for the pin's shank and a counterbore for its head. Every
 // corner is cut by a small chamfer, so the handle is made of cones and cylinders. The origin is 1 behind the inner end.
+// The bore (radius 5.55) clears the shank by RegularFit. Its top end is a 30 degree cone 0.4 mm off the pin's head
+// cone, into the counterbore (radius 7.05) that clears the head by 0.6 mm.
 var HandleProfile = [...][2]float64{
-	{1.5, 4.9}, {47.2, 4.9}, {47.2, 6.4}, {50.5, 6.4}, {51, 6.9}, {51, 8.3}, {49.8, 9.3},
-	{44, 8}, {37, 7.25}, {23, 8}, {9, 7.8}, {2.2, 7.2}, {1, 6}, {1, 5.4},
+	{1.5, 5.55}, {45.24, 5.55}, {47.84, 7.05}, {50.5, 7.05}, {51, 7.55}, {51, 8.3}, {49.8, 9.3},
+	{44, 8}, {37, 7.25}, {23, 8}, {9, 7.8}, {2.2, 7.2}, {1, 6.6}, {1, 6.05},
 }
 
 // Params specifies a crank in mm. The shaft runs in a purchased bearing, so its diameter equals the bearing's bore. A
@@ -87,6 +106,8 @@ type Dimensions struct {
 	// Site is the pin bolt: its head's top face is flush with the arm's back face at the pin axis, and it runs along
 	// +Z into the nut cavity in the pin's stub.
 	Site m2fastener.Site
+	// CrossSites are the two cross bolts that clamp the pin's halves, at CrossZ.
+	CrossSites [2]m2fastener.Site
 }
 
 // Validate reports the first problem Derive finds.
@@ -140,6 +161,18 @@ func (p Params) Derive() (Dimensions, error) {
 	}
 	if err := dm.Site.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: %w", err)
+	}
+	for i, z := range CrossZ {
+		dm.CrossSites[i] = m2fastener.Site{
+			Head:   r3.Vec{Y: p.Throw + CrossFlat, Z: z},
+			Dir:    r3.Vec{Y: -1},
+			Corner: r3.Vec{X: 1},
+			Length: CrossBolt,
+			Cavity: CrossCavity,
+		}
+		if err := dm.CrossSites[i].Validate(); err != nil {
+			return Dimensions{}, fmt.Errorf("crankhandle: cross bolt %d: %w", i+1, err)
+		}
 	}
 	return dm, nil
 }

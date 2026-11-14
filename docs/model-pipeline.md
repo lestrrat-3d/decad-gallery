@@ -197,39 +197,57 @@ one. Measure each counterbore fit, and the gap between each carried part and its
 
 ### Split shafts
 
-This rule covers every printed shaft, arbor and axle that turns in a purchased bearing or carries a part pressed on
-its flat. Such a shaft prints as two halves, cut lengthwise by one plane through its axis, each half lying on the bed
-on its cut face. Its layers then run along the shaft, so torque and bending pull along the printed lines and not
-across the bonds between layers.
+This rule covers every printed shaft, arbor, axle and pin. Such a part prints as two halves, cut lengthwise by one
+plane through its axis, each half lying on the bed on its cut face. Its layers then run along the part, so torque and
+bending pull along the printed lines and not across the bonds between layers. Separate collar rings and parts the
+model marks as not printed are outside this rule.
 
-Do not model the split. Build the shaft as one body. The export to Fusion (decad-converter) cuts it in two when the
-user asks. Build the shaft so that cut is possible:
+Do not model the split. Build the part as one body. The export to Fusion (decad-converter) cuts it in two when the
+user asks. Build the part so that cut is possible:
 
-- **Split plane.** The plane holds the shaft's axis and the normal of its flat, so it cuts every flat in half
-  lengthwise. The flat then stands as a vertical wall in print, each half carries one edge of the flat to take torque
-  from a D-bore, and only one seam crosses the round surface a bearing grips. A shaft with no flat states its split
-  plane in `instructions.md`.
-- **Flats.** Every flat of one shaft faces the same way, or the opposite way for a double flat. Flats may sit at
-  different distances from the axis. A flat facing any other way, a hex section, a spline or a keyway breaks the rule.
-- **Symmetry.** The shaft is mirror-symmetric about the split plane, so the halves are mirror images. Steps,
-  shoulders, collars of the shaft's own body and end chamfers are turned about the axis and keep the symmetry.
-- **No supports.** With either half's cut face on the bed, no surface faces downward more than 45° from vertical. Run
-  a cross hole normal to the split plane, so each half prints it as a vertical hole. A cross hole in the split plane,
-  an axial bore, a keyway, a groove with a roof and a thread each leave a downward face and break the rule.
-- **Size.** Each half stands at least 2.0 mm (five 0.4 mm lines) above its cut face, so the shaft is at least 4 mm
+- **Split plane.** The plane holds the part's axis. On a D-flat shaft it also holds the flat's normal, so it cuts the
+  flat in half lengthwise: each half then carries one edge of the flat to take torque from a D-bore. On a pin loaded
+  mainly one way, such as a crank pin under the hand's driving force, the plane holds that direction too: a load across
+  the seam bends the halves as two stacked strips, which slide on each other. A part whose faces do not name one plane,
+  such as a pin with a hexagonal stub and a double flat parallel to its seam, names the plane in its API and
+  `instructions.md`.
+- **Flats.** Every flat of a shaft that sets its plane from the flat faces the same way, or the opposite way for a
+  double flat. A spline or a keyway breaks the rule.
+- **Symmetry.** The part is mirror-symmetric about the split plane, so the halves are mirror images, except round the
+  bolts that clamp them, where a head pocket in one half faces a nut cavity in the other.
+- **Clamping.** Hardware holds the halves together; never glue them. A shaft held at both ends by purchased bearings,
+  whose inner races fit it with no clearance, and carrying its loads in press-fit bores, is held by them. Any other part,
+  such as a crank pin standing out from its arm, takes M2 cross bolts:
+  - Run each cross bolt normal to the seam, from a head pocket in one half to a nut cavity that the other half encloses
+    on all sides but the bolt hole. Follow the [Fasteners](../AGENTS.md#fasteners) rules for the head, the hole, the
+    cavity, the bolt's length and the 1 mm of material round every pocket.
+  - Seat the head flush on a flat parallel to the seam, and cut the same flat on the nut's side, so the halves stay
+    mirror images.
+  - Put a cross bolt near each end of the span the load bends, so the halves act as one section between them.
+  - A nut cavity that the seam cuts in half, for a bolt along the part's axis, counts as enclosed when the clamped
+    halves close it. Drop the nut into one half before assembly.
+- **No supports.** With either half's cut face on the bed, no surface faces downward more than 45° from vertical,
+  except a bridge: a connected downward face no wider than 6 mm across its narrowest direction, such as a nut cavity's
+  roof or a bolt's half groove on the cut face. Run a cross hole normal to the seam, so each half prints it as a
+  vertical hole. An axial bore wider than a bridge, a keyway and a thread break the rule.
+- **Corners.** Apply [Corners and roots](#corners-and-roots) to each half on its cut face, with sections parallel to
+  the seam. There a step of the part, such as a collar or a shoulder, is an inside corner: join the two diameters with
+  a cone of 30° half angle or less, which reads under 50° even in a section through a hexagonal stub. Round both ends
+  of a hole or cavity that runs along the axis with `m2fastener.RoundedHoleTool` and `m2fastener.RoundedCavityTool`.
+- **Size.** Each half stands at least 2.0 mm (five 0.4 mm lines) above its cut face, so the part is at least 4 mm
   across.
-- **Joining.** Give the shaft no joining feature: no dowel holes, pins or tongues. The bearings and the press-fit
-  bores clamp the halves together. A joining feature belongs to the split, so the converter adds it if one is wanted.
 
-Pressed pins, such as carrier pins and output pins, headed pins that a handle turns on, separate collar rings, and
-parts the model marks as not printed are outside this rule. They print standing on an end.
+In the model's `instructions.md`, list each split part, its split plane and what holds its halves. Test each one on
+the built and posed body, for every parameter case that changes the part or its pose:
 
-In the model's `instructions.md`, list each split shaft and its split plane. Test each one with
-`internal/splitcheck` on the built and posed body, for every parameter case that changes the shaft or its pose.
-`splitcheck.Check` finds the flats and sets the split plane from them, then reports a violation for flats facing more
-than one way, for a mirror image that leaves the boundary by more than twice the mesh bound, for a downward face
-steeper than 45° from vertical, and for a half lower than 2.0 mm. Require no violation, and require the split plane's
-normal to be the one `instructions.md` lists.
+- Run `splitcheck.Check`. Pass the split plane's normal in `Shaft.Normal` when the flats do not name it, and each
+  cross bolt's line in `Shaft.Exempt` with the nut cavity's radius. It reports flats facing more than one way (without
+  `Normal`), a mirror image that leaves the boundary by more than twice the mesh bound, a downward face wider than a
+  6 mm bridge, and a half lower than 2.0 mm. Require no violation, and require the split plane's normal to be the one
+  `instructions.md` lists.
+- Run `cornercheck.Check` with the split plane's normal as the print axis.
+- Check each cross bolt as the Fasteners rules ask: the head flush with its flat, the nut inside its cavity, the bolt
+  crossing the seam, and no overlap with the part.
 
 ### Surface edge finishing
 

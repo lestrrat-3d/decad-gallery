@@ -141,6 +141,32 @@ func TestCompliantShafts(t *testing.T) {
 		r := b.check(b.cut(b.dShaft(), hole), r3.Vec{})
 		require.Empty(t, r.Violations)
 	})
+	t.Run("cross_hole_in_the_split_plane_bridges", func(t *testing.T) {
+		b := newShafts(t)
+		// The hole runs along Z, inside the split plane, so each half has a groove whose roof the printer bridges.
+		hole := b.cylinder(b.frame(r3.Vec{Y: 20, Z: -5}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1, 10)
+		r := b.check(b.cut(b.dShaft(), hole), r3.Vec{})
+		require.Empty(t, r.Violations)
+		require.Positive(t, r.Bridges)
+		require.InDelta(t, 2*math.Sin(math.Pi/4), r.Bridge, 0.05, "the roof's part steeper than 45 degrees")
+	})
+	t.Run("explicit_normal_and_exempt_bolt", func(t *testing.T) {
+		b := newShafts(t)
+		// A round shaft split by the plane Z = 0, named by Normal. A blind pocket from +Z reaches into the +Z half
+		// only, round the line X = 0, Y = 20 along Z: the halves differ there and nowhere else.
+		pocket := b.cylinder(b.frame(r3.Vec{Y: 20, Z: 2}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1.5, 3)
+		body := b.cut(b.cylinder(b.across(0), radius, length), pocket)
+		shaft := splitcheck.Shaft{Body: body, Axis: axisY, Normal: r3.Vec{Z: 1}}
+		r, err := splitcheck.Check(t.Context(), shaft, tolerance)
+		require.NoError(t, err)
+		requireViolation(t, r, "mirror image")
+		shaft.Exempt = []splitcheck.Line{{Point: r3.Vec{Y: 20}, Dir: r3.Vec{Z: 1}, Radius: 1.6}}
+		r, err = splitcheck.Check(t.Context(), shaft, tolerance)
+		require.NoError(t, err)
+		require.Empty(t, r.Violations)
+		require.Positive(t, r.Exempted)
+		require.InDelta(t, 1, r.Normal.Z, 1e-12)
+	})
 	t.Run("round_shaft_with_reference", func(t *testing.T) {
 		b := newShafts(t)
 		r := b.check(b.cylinder(b.across(0), radius, length), r3.Vec{Z: 1})
@@ -155,13 +181,14 @@ func TestShaftViolations(t *testing.T) {
 		b := newShafts(t)
 		requireViolation(t, b.check(b.cylinder(b.across(0), radius, length), r3.Vec{}), "no flat")
 	})
-	t.Run("cross_hole_in_the_split_plane", func(t *testing.T) {
+	t.Run("axial_bore_too_wide_to_bridge", func(t *testing.T) {
 		b := newShafts(t)
-		// The hole runs along Z, inside the split plane, so each half has a groove with a roof over the bed.
-		hole := b.cylinder(b.frame(r3.Vec{Y: 20, Z: -5}, r3.Vec{X: 1}, r3.Vec{Y: 1}), 1, 10)
-		r := b.check(b.cut(b.dShaft(), hole), r3.Vec{})
-		requireViolation(t, r, "faces down")
-		require.LessOrEqual(t, r.Asymmetry, r.AsymmetryLimit, "the hole is symmetric; only its roof fails")
+		// A radius 6 shaft with a radius 4.5 bore along its axis: each half has a groove on its cut face whose roof,
+		// steeper than 45 degrees, is 6.36 mm across.
+		shaft := b.cut(b.cylinder(b.across(0), 6, length), b.cylinder(b.across(-1), 4.5, length+2))
+		r := b.check(shaft, r3.Vec{Z: 1})
+		requireViolation(t, r, "wider than")
+		require.LessOrEqual(t, r.Asymmetry, r.AsymmetryLimit, "the bore is symmetric; only its roof fails")
 	})
 	t.Run("second_flat_turned", func(t *testing.T) {
 		b := newShafts(t)
@@ -195,4 +222,9 @@ func TestCheckRejectsInvalidInput(t *testing.T) {
 	b := newShafts(t)
 	_, err = splitcheck.Check(t.Context(), splitcheck.Shaft{Body: b.dShaft()}, tolerance)
 	require.ErrorContains(t, err, "zero axis")
+	_, err = splitcheck.Check(t.Context(), splitcheck.Shaft{Body: b.dShaft(), Axis: axisY, Normal: axisY}, tolerance)
+	require.ErrorContains(t, err, "normal to the axis")
+	_, err = splitcheck.Check(t.Context(), splitcheck.Shaft{Body: b.dShaft(), Axis: axisY,
+		Exempt: []splitcheck.Line{{Dir: r3.Vec{Z: 1}}}}, tolerance)
+	require.ErrorContains(t, err, "positive radius")
 }

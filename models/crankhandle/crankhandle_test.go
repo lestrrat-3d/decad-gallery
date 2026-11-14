@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/splitcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/r3"
@@ -45,17 +46,17 @@ type builtCase struct {
 // builtCases holds each case's build, shared by the tests: Build takes seconds and the tests only read its bodies.
 var builtCases = map[string]builtCase{}
 
-// built builds a case on first use and checks what every case shares: five bodies, each in its container, and every
-// sketch fully constrained.
+// built builds a case on first use and checks what every case shares: nine bodies (the arm, the pin, the handle, three
+// bolts and three nuts), each in its container, and every sketch fully constrained.
 func built(t *testing.T, c crankCase) (*crankhandle.Model, *decad.Document) {
 	t.Helper()
 	if b, ok := builtCases[c.name]; ok {
 		return b.m, b.doc
 	}
-	doc := decad.New()
+	doc := crankhandle.NewDocument()
 	m, err := crankhandle.Build(t.Context(), doc, c.params())
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 5)
+	require.Len(t, doc.Bodies(), 9)
 	require.NotEmpty(t, m.Sketches)
 	for _, s := range m.Sketches {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s))
@@ -119,19 +120,19 @@ func TestCrankHandleContainers(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m, doc := built(t, c)
 			require.NoError(t, doc.VerifyContainers().Err())
-			want := map[string]*decad.Body{
-				crankhandle.ArmContainerName:    m.Arm,
-				crankhandle.PinContainerName:    m.Pin,
-				crankhandle.HandleContainerName: m.Handle,
-				crankhandle.BoltsContainerName:  m.Bolt.Body,
-				crankhandle.NutsContainerName:   m.Nut.Body,
+			want := map[string][]*decad.Body{
+				crankhandle.ArmContainerName:    {m.Arm},
+				crankhandle.PinContainerName:    {m.Pin},
+				crankhandle.HandleContainerName: {m.Handle},
+				crankhandle.BoltsContainerName:  {m.Bolt.Body, m.CrossBolts[0].Body, m.CrossBolts[1].Body},
+				crankhandle.NutsContainerName:   {m.Nut.Body, m.CrossNuts[0].Body, m.CrossNuts[1].Body},
 			}
 			children := doc.Root().Children()
 			require.Len(t, children, len(want))
 			for _, box := range children {
-				body, ok := want[box.Name()]
+				bodies, ok := want[box.Name()]
 				require.True(t, ok, "unexpected container %q", box.Name())
-				require.Equal(t, []*decad.Body{body}, box.Bodies())
+				require.Equal(t, bodies, box.Bodies())
 			}
 		})
 	}
@@ -277,6 +278,95 @@ func TestCrankHandleFasteners(t *testing.T) {
 			// 1 mm or more of stub round the cavity and of arm under the head pocket.
 			require.GreaterOrEqual(t, crankhandle.StubFlats/2-m2fastener.NutCavityRadius, 1.0)
 			require.GreaterOrEqual(t, crankhandle.PocketFrom-m2fastener.HeadPocketDepth, 1.0)
+			requireCrossBolts(t, p, m)
+		})
+	}
+}
+
+// atY is the plane y = const of the local frame, normal +Y: a layer of the pin's halves as they print.
+func atY(t *testing.T, y float64) r3.Frame {
+	t.Helper()
+	f, err := r3.NewFrame(r3.Vec{Y: y}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	require.NoError(t, err)
+	return f
+}
+
+// requireCrossBolts checks the two cross bolts that clamp the pin's halves: each head's top face is flush with the +Y
+// flat and inside its pocket in the +Y half, each tip ends at the -Y flat, each nut lies inside its cavity in the -Y
+// half, so the bolt crosses the seam, and no bolt or nut shares volume with the pin. It also checks 1 mm or more of
+// pin round every pocket and cavity.
+func requireCrossBolts(t *testing.T, p crankhandle.Params, m *crankhandle.Model) {
+	t.Helper()
+	seam := p.Throw
+	for i, z := range crankhandle.CrossZ {
+		bb, err := m.CrossBolts[i].Body.Bounds()
+		require.NoError(t, err)
+		tol := bb.Bound.Base() + 2e-3
+		require.InDelta(t, seam+crankhandle.CrossFlat, bb.Max.Y, tol, "cross bolt %d: head top flush with the +Y flat", i+1)
+		require.InDelta(t, seam+crankhandle.CrossFlat-m.CrossSites[i].Tip(), bb.Min.Y, tol, "cross bolt %d: tip", i+1)
+		require.GreaterOrEqual(t, bb.Min.Y, seam-crankhandle.CrossFlat-tol, "cross bolt %d: tip inside the -Y flat", i+1)
+		require.Less(t, math.Max(math.Max(-bb.Min.X, bb.Max.X), math.Max(z-bb.Min.Z, bb.Max.Z-z)),
+			m2fastener.HeadPocketRadius, "cross bolt %d: head inside its pocket", i+1)
+		require.Less(t, bb.Min.Y, seam, "cross bolt %d crosses the seam", i+1)
+		nb, err := m.CrossNuts[i].Body.Bounds()
+		require.NoError(t, err)
+		near := seam + crankhandle.CrossFlat - crankhandle.CrossCavity
+		require.LessOrEqual(t, nb.Max.Y, near, "cross nut %d inside its cavity in the -Y half", i+1)
+		require.GreaterOrEqual(t, nb.Min.Y, near-m2fastener.NutCavityHeight, "cross nut %d", i+1)
+		for _, d := range []float64{nb.Min.X, nb.Max.X, nb.Min.Z - z, nb.Max.Z - z} {
+			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius, "cross nut %d", i+1)
+		}
+		for _, y := range []float64{3.5, 2.5, 1.0, -0.5, -1.5, -2.0, -2.5, -3.5} {
+			a := section(t, m.Pin, atY(t, seam+y))
+			for _, part := range []*decad.Body{m.CrossBolts[i].Body, m.CrossNuts[i].Body} {
+				b := section(t, part, atY(t, seam+y))
+				if len(a.Loops) == 0 || len(b.Loops) == 0 {
+					continue
+				}
+				cl, err := a.Clearance(b)
+				require.NoError(t, err)
+				require.False(t, cl.Overlaps, "cross fastener %d overlaps the pin at y %g", i+1, y)
+			}
+		}
+	}
+	r, flat := crankhandle.ShankR, crankhandle.CrossFlat
+	far := crankhandle.CrossCavity + m2fastener.NutCavityHeight - flat // the cavity's far face from the seam
+	for name, wall := range map[string]float64{
+		"round the cavity at its far face":   math.Sqrt(r*r-far*far) - m2fastener.NutCavityRadius,
+		"round the head pocket at the flat":  math.Sqrt(r*r-flat*flat) - m2fastener.HeadPocketRadius,
+		"of flat beyond the head pocket":     crankhandle.CrossFlatHalf - m2fastener.HeadPocketRadius,
+		"under the head pocket to the seam":  flat - m2fastener.HeadPocketDepth,
+		"between the cavity and the seam":    crankhandle.CrossCavity - flat,
+		"between the cavity and the -Y flat": flat - far,
+	} {
+		require.GreaterOrEqual(t, wall, 1.0-1e-9, "material %s", name)
+	}
+	require.LessOrEqual(t, m.CrossSites[0].Tip(), 2*flat, "tip inside the -Y flat")
+}
+
+// TestCrankHandleSplitPin checks the pin against "Split shafts": split by the plane through its axis and local X,
+// it is mirror-symmetric apart from the cross bolts' pockets and cavities, each half prints on its cut face with only
+// bridgeable roofs, and each half stands HeadR high.
+func TestCrankHandleSplitPin(t *testing.T) {
+	for _, c := range crankCases {
+		t.Run(c.name, func(t *testing.T) {
+			p := c.params()
+			m, _ := built(t, c)
+			require.InDelta(t, 1, m.SplitNormal.Y, 1e-12)
+			var exempt []splitcheck.Line
+			for _, site := range m.CrossSites {
+				exempt = append(exempt, splitcheck.Line{Point: site.Head, Dir: site.Dir, Radius: m2fastener.NutCavityRadius + 0.1})
+			}
+			r, err := splitcheck.Check(t.Context(), splitcheck.Shaft{
+				Body: m.Pin, Point: r3.Vec{Y: p.Throw}, Axis: r3.Vec{Z: 1}, Normal: m.SplitNormal, Exempt: exempt,
+			}, 0.01)
+			require.NoError(t, err)
+			require.Empty(t, r.Violations)
+			require.Positive(t, r.Bridges)
+			require.LessOrEqual(t, r.Bridge, splitcheck.MaxBridge)
+			for i, h := range r.HalfHeights {
+				require.InDelta(t, crankhandle.HeadR, h, 0.01, "half %d", i+1)
+			}
 		})
 	}
 }
@@ -319,15 +409,31 @@ func TestCrankHandleCorners(t *testing.T) {
 			}
 			for name, item := range map[string]struct {
 				body   *decad.Body
+				up     r3.Vec
 				exempt []cornercheck.Exempt
 			}{
-				"arm": {m.Arm, []cornercheck.Exempt{pocket}}, "pin": {m.Pin, nil}, "handle": {m.Handle, nil},
+				"arm":    {m.Arm, r3.Vec{Z: 1}, []cornercheck.Exempt{pocket}},
+				"pin":    {m.Pin, m.SplitNormal, []cornercheck.Exempt{nutRounds(p)}},
+				"handle": {m.Handle, r3.Vec{Z: 1}, nil},
 			} {
-				fs, err := cornercheck.Check(t.Context(), item.body, r3.Vec{Z: 1}, item.exempt)
+				fs, err := cornercheck.Check(t.Context(), item.body, item.up, item.exempt)
 				require.NoError(t, err, name)
 				require.Empty(t, fs, "%s: %s", name, cornercheck.Report(fs, 8))
 			}
 		})
+	}
+}
+
+// nutRounds lists the pin bolt's nut cavity rounds (m2fastener.RoundRadius, 0.55 mm), the largest that keep the nut's
+// corner clearance. A layer 2 mm off the seam crosses them near their edge and reads them at about 52 degrees
+// (instructions.md, "Retained sharp corners").
+func nutRounds(p crankhandle.Params) cornercheck.Exempt {
+	return cornercheck.Exempt{
+		Reason: "pin bolt nut cavity rounds",
+		Near: func(v r3.Vec) bool {
+			return math.Hypot(v.X, v.Y-p.Throw) <= m2fastener.NutCavityRadius+0.05 &&
+				v.Z >= crankhandle.PinCavity-0.05 && v.Z <= crankhandle.PinCavity+m2fastener.NutCavityHeight+0.05
+		},
 	}
 }
 
@@ -337,13 +443,15 @@ func TestCrankHandlePlacement(t *testing.T) {
 	local, _ := built(t, crankCases[0])
 	p := crankhandle.DefaultParams()
 	p.Placement = &frame
-	placed, err := crankhandle.Build(t.Context(), decad.New(), p)
+	placed, err := crankhandle.Build(t.Context(), crankhandle.NewDocument(), p)
 	require.NoError(t, err)
 	xf, err := r3.FromFrame(frame)
 	require.NoError(t, err)
 	for name, pair := range map[string][2]*decad.Body{
 		"arm": {local.Arm, placed.Arm}, "pin": {local.Pin, placed.Pin}, "handle": {local.Handle, placed.Handle},
 		"bolt": {local.Bolt.Body, placed.Bolt.Body}, "nut": {local.Nut.Body, placed.Nut.Body},
+		"cross bolt": {local.CrossBolts[1].Body, placed.CrossBolts[1].Body},
+		"cross nut":  {local.CrossNuts[1].Body, placed.CrossNuts[1].Body},
 	} {
 		lv, err := pair[0].Volume()
 		require.NoError(t, err)
@@ -362,6 +470,8 @@ func TestCrankHandlePlacement(t *testing.T) {
 		require.InDelta(t, math.Min(lo.Z, hi.Z), pb.Min.Z, tol, name)
 	}
 	require.InDelta(t, 0, placed.Site.Head.Sub(xf.Apply(local.Site.Head)).Len(), 1e-9)
+	require.InDelta(t, 0, placed.CrossSites[0].Head.Sub(xf.Apply(local.CrossSites[0].Head)).Len(), 1e-9)
+	require.InDelta(t, 0, placed.SplitNormal.Sub(xf.ApplyDir(local.SplitNormal)).Len(), 1e-12)
 }
 
 func TestCrankHandleRejectsInvalidInputs(t *testing.T) {

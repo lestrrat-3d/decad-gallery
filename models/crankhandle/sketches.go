@@ -75,16 +75,6 @@ func across(y, z float64) r3.Frame {
 	return f
 }
 
-// cylinder extrudes a circle of radius rad about (0, y) from z for length along +Z.
-func (r *run) cylinder(y, z, rad, length float64) (*decad.Body, error) {
-	s, err := r.sketchOn(across(y, z))
-	if err != nil {
-		return nil, err
-	}
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), rad), rad))
-	return r.extrude(s, 0, length)
-}
-
 // hexagon extrudes a regular hexagon flats across, its corners on X, about (0, y) from z for length along +Z.
 func (r *run) hexagon(y, z, flats, length float64) (*decad.Body, error) {
 	s, err := r.sketchOn(across(y, z))
@@ -169,4 +159,63 @@ func (r *run) handle() (*decad.Body, error) {
 	}
 	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
 		decad.FullRevolution{})
+}
+
+// turnedPin revolves the pin's turned part about the pin axis at (0, y): a cone of half angle ConeAngle from radius
+// RootR at ShankFrom out to the shank (radius ShankR), the shank to ShankTo, a cone out to the head (radius HeadR) at
+// HeadFrom, and the head to HeadFrom + HeadLength. The sketch plane holds the axis: U runs along it (+Z) and V is the
+// radius (+X), so every vertex is dimensioned from the origin at (0, y, 0).
+func (r *run) turnedPin(y float64) (*decad.Body, error) {
+	origin := r3.Vec{Y: y}
+	f, err := r3.NewFrame(origin, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	if err != nil {
+		return nil, err
+	}
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, err
+	}
+	slope := math.Tan(ConeAngle * math.Pi / 180)
+	top := HeadFrom + HeadLength
+	meridian := [][2]float64{
+		{ShankFrom, 0}, {ShankFrom, RootR}, {ShankFrom + (ShankR-RootR)/slope, ShankR}, {ShankTo, ShankR},
+		{HeadFrom, HeadR}, {top, HeadR}, {top, 0},
+	}
+	points := make([]*sketch.Point, len(meridian))
+	for i, pt := range meridian {
+		points[i] = sketchcheck.DimensionPoint(s, pt[0], pt[1])
+	}
+	for i := range points {
+		s.CreateLine(points[i], points[(i+1)%len(points)])
+	}
+	pr, err := r.profile(s, 0)
+	if err != nil {
+		return nil, err
+	}
+	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{})
+}
+
+// flatTool cuts one of a cross bolt's double flats: everything beyond CrossFlat from the pin axis at (0, y) on the
+// side (+1 for +Y, -1 for -Y), over CrossFlatHalf either side of z. Its sketch lies on the plane across the pin at the
+// flat's lower end, with its origin on the pin axis.
+func (r *run) flatTool(y, z, side float64) (*decad.Body, error) {
+	s, err := r.sketchOn(across(y, z-CrossFlatHalf))
+	if err != nil {
+		return nil, err
+	}
+	const reach = 3.0 // past the shank's surface
+	half := ShankR + 1
+	v0, v1 := CrossFlat, CrossFlat+reach
+	if side < 0 {
+		v0, v1 = -v1, -v0
+	}
+	rect := s.CreateRectangle(-half, v0, half, v1)
+	s.AddConstraint(
+		sketch.NewHorizontalDistance(s.Origin(), rect.A, -half),
+		sketch.NewVerticalDistance(s.Origin(), rect.A, v0),
+		sketch.NewHorizontalDistance(rect.A, rect.B, 2*half),
+		sketch.NewVerticalDistance(rect.B, rect.C, v1-v0),
+	)
+	return r.extrude(s, 0, 2*CrossFlatHalf)
 }
