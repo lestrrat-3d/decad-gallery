@@ -109,6 +109,9 @@ A nil `Placement` is the one exception.
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
 | Ear half width `we` | `de / 2 + 3` |
 | Ear bore center radius `Re` | ring outer radius `+ we` |
+| Ear root round `re` | `min(w, 2 we) / 2` (half the thinner of the ring wall and the ear's width; 3.55 by default) |
+| Cover window round | spoke width `/ 2` (3.5 by default, 5 for a 608ZZ planet bearing) |
+| Cover boss root round | `min(wc, Tv) / 2` (1.5 by default) |
 | Bolt circle radius | (ring root radius + ring outer radius) / 2 |
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
 | Head pocket diameter | `m2bolt.HeadDiameter + 0.6` (depth `m2bolt.HeadHeight`) |
@@ -167,7 +170,8 @@ the same gap normal to their circular and flat faces.
 - Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
   leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut cavity at each end.
 - Reject `Ne < 0`, a nonfinite `de`, and `de <= 0` when `Ne > 0`.
-- Reject ears whose bore centers are closer than `2 we + 1` (`2 Re sin(π/Ne) < 2 we + 1`), and an ear that lies over a bolt
+- Reject ears whose bore centers are closer than `2 we + 2 re + 1` (`2 Re sin(π/Ne) < 2 we + 2 re + 1`), so the root
+  rounds of neighbouring ears leave 1 mm of the outer circle between them, and an ear that lies over a bolt
   site: an ear at angle `θ` and a bolt angle `β` with `cos(θ - β) > 0` and `bolt circle radius × |sin(θ - β)|` below
   `we` plus the larger pocket radius plus 1.
 - Reject a seat chamfer outside `[0, 1]`.
@@ -215,7 +219,10 @@ All three gears are involute spur gears of one module and pressure angle, built 
   radius `Re`. Its straight edges run parallel to the axis, `we` either side of it, from the outer circle to the half
   circle's ends. Its bore is a hole of the section, `de` across, centered at `Re` on the axis. Every ear runs the whole
   ring length, so its faces lie in the ring's two end planes. The bore clears the covers' outer wall, which has the
-  ring's outer radius, by 3 mm. With `Ne = 0` the outline is the circle.
+  ring's outer radius, by 3 mm. Each straight edge meets the outer circle in a round of radius `re`, tangent to both,
+  because the ears carry the gearbox's whole reaction torque (a stressed root). With one ear the arc before and after the
+  ear is the same arc. The rounds are drawn with `sketch.CreateFillet`, which adds the tangencies and the radius
+  dimension and leaves the sketch fully constrained. With `Ne = 0` the outline is the circle.
 
 ## Meshing phase
 
@@ -240,10 +247,16 @@ The front cover is turned over about the X axis so its boss faces away from the 
   circle of the cover hub diameter surrounds the bearing, three spokes of the spoke width run from the
   hub to a rim whose inner radius is the cover rim inner radius, and the four bolt holes lie in the rim at
   the ring's bolt angles. The cover lip bore diameter is a through hole in the hub. Between the spokes are three
-  windows. Spoke `k` runs along the angle `π/6 + 2πk/3`.
+  windows. Spoke `k` runs along the angle `π/6 + 2πk/3`. Each window's four corners are rounded with the spoke
+  width over two, because the spokes carry the bearing's load from the hub to the rim (stressed roots). The window's
+  straight edges run parallel to their spoke's axis, half the spoke width from it, and its arcs are about the origin, so
+  the window is held by those relations and the rounds, not by corner coordinates. The check that the hub fits inside
+  the rim leaves room for the rounds: a window's straight edge must be longer than the spoke width.
 - Boss: a ring of the cover boss diameter around a pocket of the cover pocket diameter, `Wbs` tall, standing on
   the frame's +Z face. It starts 1 mm inside the frame so the union overlaps. The boss pocket opens away
-  from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in.
+  from the frame; its floor is the frame's hub, so the hub's lip bore holds the bearing in. The circular edge where the
+  boss's outside wall stands on the frame is rounded by `min(wc, Tv) / 2`, 1.5 mm by default. It opens upward when the
+  cover prints frame down, so it takes a round. The round lies inside the hub, clear of the window rounds.
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
 - Bearing: a shaft bearing envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
@@ -350,6 +363,28 @@ dimension every circle's center from that origin and its diameter by a bound par
 solve and verify each sketch is fully constrained before extruding. The spur gear builds
 verify their own sketches.
 
+## Retained sharp corners
+
+Rule: "Corners and roots" in `docs/model-pipeline.md`. Printed parts are cut in their print orientation (axis +Z).
+Exempt corners:
+
+| Part | Corner | Reason |
+|---|---|---|
+| Ring Gear | tooth tips and roots, annulus from the ring tip radius `- 0.2` to the ring root radius `+ 0.2` about the axis (34.3 to 37.2 by default; 33.8 to 36.7 for the 70-tooth kits) | tooth generator: the tool that cuts the tooth spaces has no root fillet, and the internal tips are working flanks |
+| Planet Gear | tooth tips and roots, annulus from the planet root radius `- 0.2` to the planet tip radius `+ 0.2` about each planet's axis (12.78 to 15.68 by default; 12.28 to 15.18 for the 28-tooth kits) | tooth generator; the tips turn 127° |
+| Covers | the bearing pocket's floor corner (between layers) | mating corner: the purchased bearing's outer ring sits on the floor, and its 0.15 to 0.3 mm corner chamfer leaves no room for a 0.5 mm round |
+| Planet Gear | the planet bearing pocket's floor corner (between layers) | the same |
+| Covers | the floor corners of the four bolt-head pockets (between layers) | Fasteners rule: the pocket is the head diameter plus 0.3 mm and as deep as the head, and the head's flat underside needs the whole floor |
+| Ring Gear | the eight nut cavities (between layers) | Fasteners rule: closed cavities whose roofs print as bridges over the dropped-in nut |
+| Input Shaft, Output Shaft, Link Shaft, Carrier Pins | the collar and thick-part steps (between layers) | Arbor collars sets each step; each step faces a bearing's inner ring (bore chamfer 0.15 to 0.3 mm) or a sun face, and a round would reach it |
+
+Rounds below half their section: none. The ring's ear roots, the cover windows' corners and the cover boss root are
+rounded at half their section.
+
+Known pending violation, not changed here: in the two kits with a 608ZZ shaft bearing (`planet605-shaft608` and
+`planet608-shaft608`) the sun's D bore leaves a 1.45 mm wall to the tooth roots, under the 1.6 mm press-fit wall
+clause. It is a separate decision.
+
 ## Edge finishing
 
 Surface edge finishing chamfers every convex boundary edge of a flat face of at least 400 mm² (net area) along a run of
@@ -357,7 +392,7 @@ at least 20 mm. In this model the large flat faces are the ring's two end faces,
 both faces of each carrier plate. The sun, the planets, the shafts and the bearing boss end are smaller than 400 mm²,
 and the bearings, bolts and nuts keep their nominal dimensions.
 
-- Chamfer by `Ec`: the outer boundary of each of those faces (the ring's includes its ears), the three window loops of each cover on both of its faces,
+- Chamfer by `Ec`: the outer boundary of each of those faces (the ring's includes its ears and their root rounds), the three window loops of each cover on both of its faces (the chamfer follows the rounded corners),
   and the cover lip's edge on the inner face. The bearing rests on the other side of the lip, so no seat shrinks.
 - Keep sharp: the ring's tooth edges, because they are the gear flanks and take the root clearance; the pin sockets
   and each carrier's centre hole, which are press-fit rims; each bolt hole, head pocket and nut cavity, whose edges are shorter than 20 mm;
@@ -401,8 +436,9 @@ teeth to fit a bearing. An unknown kit name is an error that lists the supported
 | Backlash | Default and `j = 0.2` | The `j = 0.2` sun and planet have less volume, and its ring has less volume, than the default's |
 | Phase | Default with one planet turned half a tooth about its own axis | The same check finds vertices inside the sun and the ring |
 | Placed | Default with frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volumes as the unplaced box; bounds follow the frame |
-| Ears | Default; `Ne = 2`, `de = 6`; `Ne = 0` | The default ring has three ears at 90°, 210° and 330° that run the ring's whole length: the section has no material in a bore or beyond an ear's tip or side, and material in the ear's wall and between the wall and the ring; the bore clears the covers' outer wall by at least 3 mm; the ring's bounds follow the ears. `Ne = 2`, `de = 6` gives two larger ears on the Y axis. `Ne = 0` gives the plain cylinder with the earlier rim bevel and builds in a plain document. Every ear sketch is fully constrained |
-| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; a negative ear count; ears without a bore; ears over the bolt sites; ears too close together; a flat depth of 1.2 or more; a carrier wall under 2.25; an invalid placement | An error naming the failing rule |
+| Ears | Default; `Ne = 2`, `de = 6`; `Ne = 0` | The default ring has three ears at 90°, 210° and 330° that run the ring's whole length: the section has no material in a bore or beyond an ear's tip or side, and material in the ear's wall, in each root round and between the wall and the ring; the ring's volume exceeds the plain ring's by the ears' sections plus two root rounds each; the bore clears the covers' outer wall by at least 3 mm; the ring's bounds follow the ears. `Ne = 2`, `de = 6` gives two larger ears on the Y axis. `Ne = 0` gives the plain cylinder with the earlier rim bevel and builds in a plain document. Every ear sketch is fully constrained |
+| Corners | Default (`TestCorners`); the other kits, `Ne = 0, 1, 6` and `K = 2` (`TestCornersVariants`) | Per [Corners and roots](../../docs/model-pipeline.md#corners-and-roots): every printed body, cut along +Z at the middle of each run of layers with `internal/cornercheck`, has no finding outside Retained sharp corners. The default runs in pull request CI. The variants, about 5 minutes, run in the scheduled full suite, including the two kits with a 608ZZ planet bearing. Every new sketch is fully constrained in every case |
+| Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; a negative ear count; ears without a bore; ears over the bolt sites; ears too close together (counting their root rounds); a flat depth of 1.2 or more; a carrier wall under 2.25; an invalid placement | An error naming the failing rule |
 
 ## Verification
 

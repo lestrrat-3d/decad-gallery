@@ -62,14 +62,21 @@ drives them. `Params.SeatChamfer` chamfers the entrance of each bearing pocket, 
 `decad.Chamfer` on the rim found by its radius and height. `Params.Ratio` returns the reduction with the ring held.
 `Validate` applies the input checks, and `Build` calls it first.
 
+Each cover window's four corners are rounded with half the spoke width (`extrudeCoverFrame`, `sketch.CreateFillet`),
+and the circular edge where the bearing boss stands on the frame is rounded with half the thinner of the carrier wall
+and the cover thickness, 1.5 mm by default (`roundBossRoot`, `decad.Fillet`). `TestCorners` applies "Corners and roots"
+to every printed part.
+
 `NewDocument()` returns a decad document with `decad.WithChainTolerance` set to 0.1 mm, and `Build` needs a document made
 with it while the ring has mounting ears. A plain `decad.New()` document fails at the chamfer of the ring's end faces,
 because the chamfer meets tooth-space facets held to about 0.0034 mm. With `EarCount = 0` a plain document works.
 
 `EarCount` (default 3) and `EarBoreDiameter` (default 4 mm) set the mounting ears on the ring. The ears are spread
 evenly, the first on +Y, and each runs the whole ring length with a bore parallel to the axis. The model adds no
-bolt, head pocket or nut cavity for an ear; the bore is only a hole of the size you give. `Validate` rejects a negative
-count, a bore that is not positive when there are ears, ears too close to each other, and an ear count that puts an ear
+bolt, head pocket or nut cavity for an ear; the bore is only a hole of the size you give. Each ear meets the ring in
+two rounds of half the thinner of the ring wall and the ear's width (3.55 mm by default), drawn with `sketch.CreateFillet`
+in `addRingOutline`. `Validate` rejects a negative count, a bore that is not positive when there are ears, ears too
+close to each other (counting the rounds), and an ear count that puts an ear
 over one of the housing's bolt sites, such as 8.
 
 `Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.

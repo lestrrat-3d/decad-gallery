@@ -25,6 +25,12 @@ func earCenterRadius(ringOuter, bore float64) float64 { return ringOuter + earHa
 // bolt angles for the usual counts.
 func earAngle(i, count int) float64 { return math.Pi/2 + 2*math.Pi*float64(i)/float64(count) }
 
+// earRootRound is the radius of the rounds where an ear meets the ring: half the thinner of the ring wall and the
+// ear's width. The ears carry the gearbox's reaction torque, so their roots are stressed roots.
+func earRootRound(p Params) float64 {
+	return math.Min(p.RingWall, 2*earHalfWidth(p.EarBoreDiameter)) / 2
+}
+
 // earPoints are the corners of one ear's outline.
 type earPoints struct {
 	center *sketch.Point
@@ -56,6 +62,8 @@ func (r *run) addRingOutline(s *sketch.Sketch) error {
 
 	ears := make([]earPoints, p.EarCount)
 	var axes []*sketch.Line
+	ups := make([]*sketch.Line, p.EarCount)
+	downs := make([]*sketch.Line, p.EarCount)
 	for i := range ears {
 		angle := earAngle(i, p.EarCount)
 		sin, cos := math.Sincos(angle)
@@ -94,6 +102,7 @@ func (r *run) addRingOutline(s *sketch.Sketch) error {
 		across := s.CreateLine(e.tipDown, e.tipUp)
 		across.SetConstruction(true)
 		up, down := s.CreateLine(e.tipUp, e.rootUp), s.CreateLine(e.tipDown, e.rootDown)
+		ups[i], downs[i] = up, down
 		end := s.CreateArc(e.center, e.tipDown, e.tipUp)
 		endRadius := sketch.NewRadius(end, half)
 		s.AddConstraint(
@@ -110,13 +119,26 @@ func (r *run) addRingOutline(s *sketch.Sketch) error {
 
 	// Between two ears the outline follows the outer circle, counter-clockwise from one ear's rootUp to the next
 	// ear's rootDown. With one ear it runs the long way round to that ear's own rootDown.
+	arcs := make([]*sketch.Arc, len(ears))
 	for i, e := range ears {
 		next := ears[(i+1)%len(ears)]
 		arc := s.CreateArc(s.Origin(), e.rootUp, next.rootDown)
+		arcs[i] = arc
 		outer := sketch.NewRadius(arc, d.ringOuter)
 		s.AddConstraint(outer)
 		if err := s.Bind(outer, r.world.Params(), "ring_outer_radius"); err != nil {
 			return fmt.Errorf("ear %d: bind outer radius: %w", i+1, err)
+		}
+	}
+	// Each ear meets the ring in two rounds. With one ear, the arc before and after it is the same arc.
+	round := earRootRound(p)
+	for i, e := range ears {
+		prev := arcs[(i+len(ears)-1)%len(ears)]
+		if _, err := sketch.CreateFillet(s, ups[i], arcs[i], e.rootUp, round); err != nil {
+			return fmt.Errorf("ear %d: round counter-clockwise root: %w", i+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, prev, downs[i], e.rootDown, round); err != nil {
+			return fmt.Errorf("ear %d: round clockwise root: %w", i+1, err)
 		}
 	}
 	return nil
