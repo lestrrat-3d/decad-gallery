@@ -1,7 +1,8 @@
 # Hand-crank siren package
 
 [instructions.md](../../models/handcranksiren/instructions.md) owns the dimensions and the orientation rules.
-[steps.md](../../models/handcranksiren/steps.md) maps them to Sketch and Decad operations.
+[steps.md](../../models/handcranksiren/steps.md) maps them to Sketch and Decad operations. The crank arm, pin and
+handle come from [`models/crankhandle`](crankhandle.md) (`Params6082RS`).
 
 ## Using the package
 

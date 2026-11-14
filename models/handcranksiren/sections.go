@@ -309,26 +309,6 @@ func port(s *sketch.Sketch, rIn, rOut, half float64) {
 	)
 }
 
-// hexagon extrudes a regular hexagon of the given width across flats along f's normal, with its corners on f's U axis.
-func (b *builder) hexagon(f r3.Frame, flats, length float64) *decad.Body {
-	s := b.section(f)
-	if s == nil {
-		return nil
-	}
-	radius := flats / math.Sqrt(3)
-	p, err := s.CreatePolygon(0, 0, 6, radius)
-	if err != nil {
-		b.fail("create hexagon", err)
-		return nil
-	}
-	s.AddConstraint(
-		sketch.NewCoincident(p.Center, s.Origin()),
-		sketch.NewHorizontal(p.Sides[1]),
-		sketch.NewDistance(p.Center, p.Vertices[0], radius),
-	)
-	return b.extrude(s, 0, length)
-}
-
 // dShape builds the D-shaped cylinder radius shaftRadius + clearance about a, from Y from for length, without the part
 // beyond the flat, which lies flatOffset + clearance from the axis toward +Z. The box that removes it starts 1 before
 // from and ends 1 after the cylinder, so the cut is clean at both ends.
