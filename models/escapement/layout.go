@@ -157,9 +157,10 @@ const (
 	springAnchorPinR  = 1.5
 	carrierBossLow    = 8.75
 	carrierBossLength = 2.25
-	carrierBossRadius = 4.2
-	spacerLow         = 17.5
-	spacerHigh        = 27.75
+	carrierBossRadius = 5.0
+	retainerLow       = 17.5
+	retainerHigh      = 20.5
+	retainerRadius    = 5.0
 )
 
 // SpringParams returns the mainspring's spiralspring parameters, without a placement.
@@ -167,7 +168,7 @@ func SpringParams() spiralspring.Params {
 	sp := spiralspring.DefaultParams()
 	sp.OuterDiameter, sp.HubDiameter, sp.Thickness, sp.Height, sp.MinGap = 64, 12, 1.5, springHeight, 1.0
 	sp.Turns = 0
-	sp.ArborDiameter, sp.ArborFlatDepth, sp.BoreClearance = 6.1, 0.5, 0.30
+	sp.ArborDiameter, sp.ArborFlatDepth, sp.BoreClearance = 6.6, 0.5, 0.30
 	sp.AnchorPinDiameter, sp.AnchorClearance = 3, 0.4
 	return sp
 }

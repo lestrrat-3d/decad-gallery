@@ -21,18 +21,16 @@ const (
 	windowInner      = 13.0
 	windowOuter      = 28.0
 	wheelWindowRound = 1.0  // the round at each corner of an escape wheel window
-	pressRadius      = 2.55 // the press-fit D bore: arc radius, 0.05 over the arbor's 2.5
+	pressRadius      = 2.55 // the press-fit D bore on a 2.5 peg: arc radius, 0.05 over it
 	pressFlat        = 2.05
 	reliefRadius     = 2.8
 	reliefFlat       = 2.3
 	boreToolReach    = 0.75
-	// The collar counterbores: radius 3.75 over the collar's 3.7 (a 0.05 press). The front one opens on the wheel's front
-	// face and stops on the arbor collar; the rear one opens on the pinion's rear face and stops the rear collar ring.
+	// The front collar counterbore: radius 3.75 over the collar's 3.7 (a 0.05 press). It opens on the wheel's front face
+	// and stops on the arbor collar. The pinion has no rear counterbore: the arbor's body step is the rear collar.
 	wheelCounterRadius = 3.75
 	wheelCounterFloor  = 23.95
 	wheelCounterTop    = 26.0
-	pinionCounterLow   = 0.5 // the rear counterbore tool starts this high, below the pinion's rear face
-	pinionCounterFloor = 3.30
 )
 
 // escapeDisc draws the root disc with its six windows and extrudes it.
@@ -105,8 +103,8 @@ func (b *builder) escapeTooth() (*decad.Body, error) {
 	return b.extrude(s, 0, wheelHigh-wheelLow, what)
 }
 
-// buildEscapeWheel builds the escape wheel with its pinion, bored for the arbor and counterbored at both ends for the
-// arbor collar and the rear collar ring, in the model frame about the origin.
+// buildEscapeWheel builds the escape wheel with its pinion, bored for the arbor and counterbored at the front for the
+// arbor collar, in the model frame about the origin.
 func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	disc, err := b.escapeDisc()
 	if err != nil {
@@ -147,18 +145,10 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("escape wheel bore", 0, 0, -boreToolReach, bodyPressRadius, bodyPressFlat, wheelHigh+2*boreToolReach+1)
+	tool, err := b.dTool("escape wheel bore", 0, 0, -boreToolReach, bodyPressRadius, bodyPressFlat,
+		wheelHigh+2*boreToolReach+1)
 	if err != nil {
 		return nil, err
 	}
-	rear, err := b.discAt("escape rear counterbore", 0, 0, pinionCounterLow, wheelCounterRadius,
-		pinionCounterFloor-pinionCounterLow)
-	if err != nil {
-		return nil, err
-	}
-	bore, err := b.union("escape wheel bore tool", tool, rear)
-	if err != nil {
-		return nil, err
-	}
-	return b.cut(part, bore, "escape wheel bore")
+	return b.cut(part, tool, "escape wheel bore")
 }

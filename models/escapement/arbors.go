@@ -7,7 +7,7 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Arbor dimensions in mm: the shaft is the 605ZZ bore, the collar is 7.4 across, the flat is 0.5 deep on +X.
+// Arbor dimensions in mm: the shaft is the 605ZZ bore, the collar is 7.4 across, the rear peg's flat is 0.5 deep on +X.
 const (
 	ArborRadius  = 2.5
 	CollarRadius = 3.7
@@ -16,14 +16,24 @@ const (
 )
 
 // The body between the bearing seats is larger than the seat, so a part bored with a D chord at bodyPressFlat
-// slides over a seat on its way to the body. Every body section has its flat at bodyFlatX.
+// slides over a seat on its way to the body. Every body section has its flat at bodyFlatX, and the body's step down to
+// the seat is the collar on the side its parts are fitted from.
 const (
-	bodyRadius       = 2.8  // arbor body between the seats
-	driveBodyRadius  = 3.05 // great wheel arbor under the great wheel, the pawl carrier and the mainspring
-	bodyFlatX        = 2.55 // flat plane of every body section; above 2.5, so the cutting box never touches a seat
-	bodyPressRadius  = 2.85 // D bore arc on bodyRadius, 0.05 press
-	drivePressRadius = 3.10 // D bore arc on driveBodyRadius, 0.05 press
-	bodyPressFlat    = 2.60 // D bore chord on either body section, 0.05 press; above 2.5, so it passes a seat
+	bodyRadius       = 3.3  // arbor body between the seats: escape, pallet and great wheel front section, and the carrier section
+	journalRadius    = 3.05 // great wheel arbor under the great wheel, where it turns
+	bodyFlatX        = 2.55 // flat plane of the body sections; above 2.5, so the cutting box never touches a seat
+	carrierFlatX     = 2.80 // flat plane of the carrier and spring hub section
+	bodyPressRadius  = 3.35 // D bore arc on bodyRadius, 0.05 press
+	bodyPressFlat    = 2.60 // D bore chord on the body flat, 0.05 press; above 2.5, so it passes a seat
+	carrierPressFlat = 2.85 // D bore chord of the pawl carrier on the carrier flat, 0.05 press
+	// The arbor ends outside the front plate step down from the seat to r 2.0, 4.0 across, with a flat at x 1.5. The
+	// crutch, knob, keyed rings and cap bore onto them with 0.05 press: arc r 2.05, chord x 1.55.
+	endRadius      = 2.0
+	endFlatX       = 1.5
+	endPressRadius = 2.05
+	endPressFlat   = 1.55
+	endStepZ       = 33.25 // where a pallet or great wheel arbor steps from the seat down to the end, 0.25 past the bearing
+	journalEndZ    = 5.20  // where the great wheel journal steps up to the body, 0.25 from the wheel's bore edge
 )
 
 // meridianPoints is a (radius, z) polygon with a point on the axis at each end.
@@ -106,17 +116,18 @@ var (
 	escapeArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {bodyRadius, 0.25}, {bodyRadius, 24.0},
 		{3.7, 24.0}, {3.7, 27.75}, {2.5, 27.75}, {2.5, 33}, {0, 33}}
 	palletArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
-		{3.7, 20.95}, {bodyRadius, 20.95}, {bodyRadius, 27.75}, {2.5, 27.75}, {2.5, 38.25}, {0, 38.25}}
+		{3.7, 20.95}, {bodyRadius, 20.95}, {bodyRadius, 27.75}, {2.5, 27.75}, {2.5, endStepZ}, {endRadius, endStepZ},
+		{endRadius, 38.25}, {0, 38.25}}
 	greatArborPoints = meridianPoints{{0, -5}, {2.5, -5}, {2.5, 0.25}, {3.7, 0.25},
-		{3.7, 3.25}, {driveBodyRadius, 3.25}, {driveBodyRadius, 17.45}, {bodyRadius, 17.45}, {bodyRadius, 27.75},
-		{2.5, 27.75}, {2.5, 38.25}, {0, 38.25}}
+		{3.7, 3.25}, {journalRadius, 3.25}, {journalRadius, journalEndZ}, {bodyRadius, journalEndZ}, {bodyRadius, 27.75},
+		{2.5, 27.75}, {2.5, endStepZ}, {endRadius, endStepZ}, {endRadius, 38.25}, {0, 38.25}}
 	pinPoints = meridianPoints{{0, 31.05}, {2.5, 31.05}, {2.5, 34}, {3.7, 34},
-		{3.7, 39.80}, {2.5, 39.80}, {2.5, 46.75}, {0, 46.75}}
+		{3.7, 39.80}, {2.5, 39.80}, {2.5, 45.25}, {endRadius, 45.25}, {endRadius, 46.75}, {0, 46.75}}
 
 	escapeArborFlats = []flatSpan{{bodyFlatX, 0.20, 23.95}}
-	palletArborFlats = []flatSpan{{bodyFlatX, 21.0, 27.80}, {FlatX, 34.25, 39.25}}
-	greatArborFlats  = []flatSpan{{bodyFlatX, 5.25, 27.80}, {FlatX, 34.25, 39.25}}
-	pinFlats         = []flatSpan{{FlatX, 30.05, 33.95}, {FlatX, 45.30, 47.75}}
+	palletArborFlats = []flatSpan{{bodyFlatX, 21.0, 27.80}, {endFlatX, 34.25, 39.25}}
+	greatArborFlats  = []flatSpan{{carrierFlatX, 5.25, 17.55}, {bodyFlatX, 17.45, 27.80}, {endFlatX, 34.25, 39.25}}
+	pinFlats         = []flatSpan{{FlatX, 30.05, 33.95}, {endFlatX, 45.30, 47.75}}
 )
 
 func (b *builder) buildEscapeArbor() (*decad.Body, error) {

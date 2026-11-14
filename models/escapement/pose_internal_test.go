@@ -125,8 +125,6 @@ func touching(a, b string) bool {
 		{GreatWheelArborName, BackGreatWheelBearingName}, {GreatWheelArborName, FrontGreatWheelBearingName},
 		{SuspensionPinName, PendulumBearingName}, {SuspensionPinName, FrontPlateName},
 		{BackPlateName, FrontPlateName},
-		{EscapeRearCollarName, EscapeArborName}, {EscapeRearCollarName, EscapeWheelName},
-		{PalletFrontCollarName, PalletArborName}, {PalletFrontCollarName, AnchorName},
 		{CrutchCollarName, PalletArborName}, {CrutchCollarName, CrutchName},
 		{KnobCollarName, GreatWheelArborName}, {KnobCollarName, WindingKnobName},
 	}
@@ -140,11 +138,11 @@ func touching(a, b string) bool {
 	}
 	pairs = append(pairs, [2]string{PendulumBearingName, PendulumName}, [2]string{EscapeWheelName, EscapeArborName},
 		[2]string{AnchorName, PalletArborName}, [2]string{CrutchName, PalletArborName},
-		[2]string{PawlCarrierName, GreatWheelArborName}, [2]string{SpringSpacerName, GreatWheelArborName},
+		[2]string{PawlCarrierName, GreatWheelArborName}, [2]string{SpringRetainerName, GreatWheelArborName},
 		[2]string{WindingKnobName, GreatWheelArborName},
 		[2]string{SuspensionCapName, SuspensionPinName}, [2]string{SpringAnchorPinName, FrontPlateName},
 		[2]string{MainspringName, GreatWheelArborName}, [2]string{MainspringName, PawlCarrierName},
-		[2]string{MainspringName, SpringSpacerName}, [2]string{MainspringName, SpringAnchorPinName})
+		[2]string{MainspringName, SpringRetainerName}, [2]string{MainspringName, SpringAnchorPinName})
 	for i := 0; i < 4; i++ {
 		pairs = append(pairs, [2]string{BoltName(i), FrontPlateName}, [2]string{BoltName(i), NutName(i)})
 	}

@@ -7,7 +7,7 @@ and angles are in radians.
 
 ## Using the package
 
-`Build(ctx, doc, Params)` adds the movement's 36 bodies to a decad document and returns a `*Movement`. The document must
+`Build(ctx, doc, Params)` adds the movement's 34 bodies to a decad document and returns a `*Movement`. The document must
 come from `NewDocument()`, which sets `decad.WithChainTolerance` to 0.1 mm; the plates take many cuts and then a chamfer,
 and a plain document refuses them. `Build` rejects a nil context or document and invalid parameters before it adds
 anything to the document, and it returns every later failure with the part and step that failed.
@@ -15,10 +15,10 @@ anything to the document, and it returns every later failure with the part and s
 `Movement` holds one field per body, every Sketch it used in `Sketches`, and the pose it was built at in `State`.
 `Named()` lists the bodies with their display names, in the order of the Bodies table of `instructions.md`: the two plates,
 the seven 605ZZ bearings, the three arbors, the escape wheel and anchor, the crutch, pendulum, suspension pin and cap,
-the great wheel, the pawl carrier, the mainspring, the spring spacer, the spring anchor pin and the winding knob, the escape rear collar, the pallet front collar, the crutch collar and the knob collar, then four
+the great wheel, the pawl carrier, the mainspring, the spring retainer, the spring anchor pin and the winding knob, the crutch collar and the knob collar, then four
 bolts and four nuts. The bodies sit in the containers Frame, Bearings,
 Arbors, Escapement (Escape Wheel, Anchor), Pendulum Assembly (Crutch, Pendulum, Suspension), Drive (Great Wheel, Pawl Carrier,
-Mainspring, Spring Spacer, Spring Anchor, Winding Knob), Collars, Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
+Mainspring, Spring Retainer, Spring Anchor, Winding Knob), Collars, Bolts and Nuts, and `doc.VerifyContainers().Err()` is nil.
 
 `Params` has seven fields:
 
@@ -45,7 +45,7 @@ arbor and great wheel arbor stand on the plumb line `x = 0`. Both plates are ope
 with two windows each. The model frame has its origin on
 the escape arbor in the plane of the back plate's inner face, `+X` to the right, `+Y` up and `+Z` toward the viewer.
 
-`Build` poses every body at `Phase`: the wheel, anchor and pendulum turn about their axes, the great wheel follows the pinion, and the pawl carrier, spring spacer, knob and
+`Build` poses every body at `Phase`: the wheel, anchor and pendulum turn about their axes, the great wheel follows the pinion, and the pawl carrier, spring retainer, knob and
 their arbor turn with it, offset by a constant that lines the arbor's flat with the fixed mainspring's bore. The mainspring and
 its anchor pin stay fixed, and the build backs the wheel off by 0.05° so the tooth and the pallet do not touch.
 
@@ -75,7 +75,7 @@ The package tests, about 4.5 minutes in all, build the default movement once and
   of at least 1.30 mm that land on a locking face, no recoil, and gaps to the pallets of at least 0.5 mm, 1.0 mm and 2.0 mm.
 - `TestSketches`, `TestSketchesBranches`: every Sketch is fully constrained, for the default and the two cases that
   change the anchor and pendulum outlines.
-- `TestInventory`, `TestPlacement`, `TestBuildValidates`: 36 solid bodies in their containers, a placed build with the
+- `TestInventory`, `TestPlacement`, `TestBuildValidates`: 34 solid bodies in their containers, a placed build with the
   same volumes and mapped bounds, and the rejection of bad parameters before the document is touched.
 - `TestSpringLayout`, `TestMainspring`, `TestPawlCarrier`, `TestFrontPlateSpringAnchor` and `TestSpringFits`: the spring's
   derived numbers and torque, the spring and carrier bodies, the front plate's anchor socket, and the spring's fits.
@@ -84,8 +84,9 @@ The package tests, about 4.5 minutes in all, build the default movement once and
   spine, hub rings and rims, and a winding knob under 400 mm².
 - `TestInstallability`: each between-plate part's D bore passes a 605ZZ seat and keeps its press fit at both ends on
   the stepped arbor.
-- `TestArborCollars`: each shaft collar and collar ring is at least 3.0 mm long and 7.4 mm across, and the counterbores
-  that take them have the press-fit gaps.
+- `TestArborCollars`: each shaft collar is at least 3.0 mm long and 7.4 mm across, each body step of an arbor is 6.6 mm
+  across with 0.3 mm of face beyond a worst-case bore chamfer, and the counterbores and keyed rings have the press-fit gaps.
+- `TestPressFitWalls`: every separate part pressed on a shaft has a wall of 1.6 mm or more round its bore.
 - `TestArbors`, `TestEscapeWheel`, `TestAnchor`, `TestPendulumParts`, `TestRatchet`, `TestPlates` and `TestFasteners`: each
   part's shape and each fastener's place.
 - `TestGearMesh`, `TestCoupling`, `TestFits`, `TestEdgeFinishing` and `TestPoseNoOverlap`: the gear train clearances at five

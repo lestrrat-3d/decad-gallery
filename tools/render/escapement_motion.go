@@ -45,9 +45,8 @@ func (b *escapementBuild) escapementMovers() []escapementMover {
 	pendulum := func(rest, now escapement.State) float64 { return -(now.PendulumAngle - rest.PendulumAngle) }
 	return []escapementMover{
 		{escapement.EscapeWheelName, o, wheel}, {escapement.EscapeArborName, o, wheel},
-		{escapement.EscapeRearCollarName, o, wheel},
 		{escapement.AnchorName, p, anchor}, {escapement.PalletArborName, p, anchor}, {escapement.CrutchName, p, anchor},
-		{escapement.PalletFrontCollarName, p, anchor}, {escapement.CrutchCollarName, p, anchor},
+		{escapement.CrutchCollarName, p, anchor},
 		{escapement.PendulumName, s, pendulum}, {escapement.PendulumBearingName, s, pendulum},
 	}
 }

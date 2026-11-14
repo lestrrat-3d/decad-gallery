@@ -57,10 +57,10 @@ func TestEscapeWheel(t *testing.T) {
 	require.True(t, inside(t, body, 3.5, 0, 23.5), "the front counterbore's floor")
 	require.True(t, inside(t, body, 3.5, 0, 22.5), "material under the front counterbore")
 	require.False(t, inside(t, body, 3.9, 0, 24.9), "the rim chamfer opens the counterbore at the face")
-	// The rear counterbore: radius 3.75 from the pinion's rear face at 1.5 up to the floor at 3.30.
-	require.False(t, inside(t, body, 3.5, 0, 2.4), "the rear counterbore is open at z 2.4")
-	require.True(t, inside(t, body, 3.9, 0, 2.4), "material round the rear counterbore")
-	require.True(t, inside(t, body, 3.5, 0, 3.5), "the rear counterbore's floor")
+	// No rear counterbore: at the pinion's rear end only the D bore (arc r 3.35, chord x 2.60) is open.
+	require.False(t, inside(t, body, -3.2, 0, 2.4), "the D bore is open at z 2.4")
+	require.True(t, inside(t, body, -3.5, 0, 2.4), "material round the bore at the rear end")
+	require.True(t, inside(t, body, 3.5, 0, 2.4), "no counterbore at the chord side")
 	// No boss stands behind the pinion.
 	bb, err := body.Bounds()
 	require.NoError(t, err)

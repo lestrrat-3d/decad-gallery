@@ -8,26 +8,26 @@ import (
 
 // Container names. Each path below the document root names a kind of body.
 const (
-	FrameContainerName        = "Frame"
-	BearingsContainerName     = "Bearings"
-	ArborsContainerName       = "Arbors"
-	EscapementContainerName   = "Escapement"
-	EscapeWheelContainerName  = "Escape Wheel"
-	AnchorContainerName       = "Anchor"
-	PendulumAssemblyName      = "Pendulum Assembly"
-	CrutchContainerName       = "Crutch"
-	PendulumContainerName     = "Pendulum"
-	SuspensionContainerName   = "Suspension"
-	DriveContainerName        = "Drive"
-	GreatWheelContainerName   = "Great Wheel"
-	PawlCarrierContainerName  = "Pawl Carrier"
-	MainspringContainerName   = "Mainspring"
-	SpringSpacerContainerName = "Spring Spacer"
-	SpringAnchorContainerName = "Spring Anchor"
-	WindingKnobContainerName  = "Winding Knob"
-	CollarsContainerName      = "Collars"
-	BoltsContainerName        = "Bolts"
-	NutsContainerName         = "Nuts"
+	FrameContainerName          = "Frame"
+	BearingsContainerName       = "Bearings"
+	ArborsContainerName         = "Arbors"
+	EscapementContainerName     = "Escapement"
+	EscapeWheelContainerName    = "Escape Wheel"
+	AnchorContainerName         = "Anchor"
+	PendulumAssemblyName        = "Pendulum Assembly"
+	CrutchContainerName         = "Crutch"
+	PendulumContainerName       = "Pendulum"
+	SuspensionContainerName     = "Suspension"
+	DriveContainerName          = "Drive"
+	GreatWheelContainerName     = "Great Wheel"
+	PawlCarrierContainerName    = "Pawl Carrier"
+	MainspringContainerName     = "Mainspring"
+	SpringRetainerContainerName = "Spring Retainer"
+	SpringAnchorContainerName   = "Spring Anchor"
+	WindingKnobContainerName    = "Winding Knob"
+	CollarsContainerName        = "Collars"
+	BoltsContainerName          = "Bolts"
+	NutsContainerName           = "Nuts"
 )
 
 // moveBodies puts every body of m in the container for its kind.
@@ -64,10 +64,10 @@ func moveBodies(doc *decad.Document, m *Movement) error {
 		{[]string{DriveContainerName, GreatWheelContainerName}, []*decad.Body{m.GreatWheel}},
 		{[]string{DriveContainerName, PawlCarrierContainerName}, []*decad.Body{m.PawlCarrier}},
 		{[]string{DriveContainerName, MainspringContainerName}, []*decad.Body{m.Mainspring}},
-		{[]string{DriveContainerName, SpringSpacerContainerName}, []*decad.Body{m.SpringSpacer}},
+		{[]string{DriveContainerName, SpringRetainerContainerName}, []*decad.Body{m.SpringRetainer}},
 		{[]string{DriveContainerName, SpringAnchorContainerName}, []*decad.Body{m.SpringAnchorPin}},
 		{[]string{DriveContainerName, WindingKnobContainerName}, []*decad.Body{m.WindingKnob}},
-		{[]string{CollarsContainerName}, []*decad.Body{m.EscapeRearCollar, m.PalletFrontCollar, m.CrutchCollar, m.KnobCollar}},
+		{[]string{CollarsContainerName}, []*decad.Body{m.CrutchCollar, m.KnobCollar}},
 		{[]string{BoltsContainerName}, m.Bolts},
 		{[]string{NutsContainerName}, m.Nuts},
 	} {

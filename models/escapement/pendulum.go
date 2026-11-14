@@ -79,7 +79,7 @@ func (b *builder) buildCrutch() (*decad.Body, error) {
 	if body, err = b.cut(body, counter, "crutch counterbore"); err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("crutch socket", g.P.X, g.P.Y, crutchLow-pressToolLow, pressRadius, pressFlat,
+	tool, err := b.dTool("crutch socket", g.P.X, g.P.Y, crutchLow-pressToolLow, endPressRadius, endPressFlat,
 		crutchHigh-crutchLow+2*pressToolLow)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func (b *builder) buildCap() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("cap socket", g.S.X, g.S.Y, capLow-pressToolLow, pressRadius, pressFlat,
+	tool, err := b.dTool("cap socket", g.S.X, g.S.Y, capLow-pressToolLow, endPressRadius, endPressFlat,
 		capHigh-capLow+2*pressToolLow)
 	if err != nil {
 		return nil, err

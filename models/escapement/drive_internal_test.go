@@ -228,7 +228,8 @@ func TestKnob(t *testing.T) {
 	require.True(t, inside(t, knob, -3.9, 0, 36), "material round the keyed counterbore")
 	require.True(t, inside(t, knob, -3.5, 0, 37.8), "the counterbore's floor")
 	require.Less(t, o.PolygonArea().Base(), 400.0)
-	require.InDelta(t, math.Pi*81, o.PolygonArea().Base()+math.Pi*2.55*2.55*0.93, 4)
+	require.InDelta(t, math.Pi*81, o.PolygonArea().Base()+math.Pi*endPressRadius*endPressRadius-
+		segmentArea(endPressRadius, endPressFlat), 4)
 	far := 0.0
 	for _, v := range loopsBy(o)[0] {
 		far = math.Max(far, v.Len())

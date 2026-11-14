@@ -21,13 +21,12 @@ type Movement struct {
 
 	EscapeArbor, PalletArbor, GreatWheelArbor *decad.Body
 
-	EscapeWheel, Anchor                                    *decad.Body
-	Crutch, Pendulum, SuspensionPin, SuspensionCap         *decad.Body
-	GreatWheel, WindingKnob                                *decad.Body
-	EscapeRearCollar, PalletFrontCollar                    *decad.Body
-	CrutchCollar, KnobCollar                               *decad.Body
-	PawlCarrier, Mainspring, SpringSpacer, SpringAnchorPin *decad.Body
-	Bolts, Nuts                                            []*decad.Body
+	EscapeWheel, Anchor                                      *decad.Body
+	Crutch, Pendulum, SuspensionPin, SuspensionCap           *decad.Body
+	GreatWheel, WindingKnob                                  *decad.Body
+	CrutchCollar, KnobCollar                                 *decad.Body
+	PawlCarrier, Mainspring, SpringRetainer, SpringAnchorPin *decad.Body
+	Bolts, Nuts                                              []*decad.Body
 
 	// Sketches holds every sketch of the movement's own parts and of the bearing, bolt and nut models.
 	Sketches []*sketch.Sketch
@@ -70,11 +69,9 @@ const (
 	GreatWheelName             = "Great Wheel"
 	PawlCarrierName            = "Pawl Carrier"
 	MainspringName             = "Mainspring"
-	SpringSpacerName           = "Spring Spacer"
+	SpringRetainerName         = "Spring Retainer"
 	SpringAnchorPinName        = "Spring Anchor Pin"
 	WindingKnobName            = "Winding Knob"
-	EscapeRearCollarName       = "Escape Rear Collar"
-	PalletFrontCollarName      = "Pallet Front Collar"
 	CrutchCollarName           = "Crutch Collar"
 	KnobCollarName             = "Knob Collar"
 )
@@ -97,9 +94,8 @@ func (m *Movement) slots() []slot {
 		{EscapeWheelName, &m.EscapeWheel}, {AnchorName, &m.Anchor}, {CrutchName, &m.Crutch}, {PendulumName, &m.Pendulum},
 		{SuspensionPinName, &m.SuspensionPin}, {SuspensionCapName, &m.SuspensionCap},
 		{GreatWheelName, &m.GreatWheel},
-		{PawlCarrierName, &m.PawlCarrier}, {MainspringName, &m.Mainspring}, {SpringSpacerName, &m.SpringSpacer},
+		{PawlCarrierName, &m.PawlCarrier}, {MainspringName, &m.Mainspring}, {SpringRetainerName, &m.SpringRetainer},
 		{SpringAnchorPinName, &m.SpringAnchorPin}, {WindingKnobName, &m.WindingKnob},
-		{EscapeRearCollarName, &m.EscapeRearCollar}, {PalletFrontCollarName, &m.PalletFrontCollar},
 		{CrutchCollarName, &m.CrutchCollar}, {KnobCollarName, &m.KnobCollar},
 	}
 	for i := range m.Bolts {
@@ -248,11 +244,9 @@ func (b *builder) buildAll(m *Movement) error {
 		{"great wheel", func() (e error) { m.GreatWheel, e = b.buildGreatWheel(); return }},
 		{"pawl carrier", func() (e error) { m.PawlCarrier, e = b.buildPawlCarrier(); return }},
 		{"mainspring", func() (e error) { m.Mainspring, e = b.buildMainspring(); return }},
-		{"spring spacer", func() (e error) { m.SpringSpacer, e = b.buildSpringSpacer(); return }},
+		{"spring retainer", func() (e error) { m.SpringRetainer, e = b.buildSpringRetainer(); return }},
 		{"spring anchor pin", func() (e error) { m.SpringAnchorPin, e = b.buildSpringAnchorPin(); return }},
 		{"winding knob", func() (e error) { m.WindingKnob, e = b.buildKnob(); return }},
-		{"escape rear collar", func() (e error) { m.EscapeRearCollar, e = b.buildEscapeRearCollar(); return }},
-		{"pallet front collar", func() (e error) { m.PalletFrontCollar, e = b.buildPalletFrontCollar(); return }},
 		{"crutch collar", func() (e error) { m.CrutchCollar, e = b.buildCrutchCollar(); return }},
 		{"knob collar", func() (e error) { m.KnobCollar, e = b.buildKnobCollar(); return }},
 		{"hardware", func() (e error) {
@@ -293,9 +287,8 @@ func poses(g *Geometry, s State) map[string]bodyPose {
 		GreatWheelArborName: {g.G, arbor, false},
 		EscapeWheelName:     {g.O, -wheel, false}, AnchorName: {g.P, -s.AnchorAngle, false},
 		CrutchName: {g.P, -s.AnchorAngle, false}, PendulumName: {g.S, -s.PendulumAngle, false},
-		GreatWheelName: {g.G, great, true}, PawlCarrierName: {g.G, arbor, true}, SpringSpacerName: {g.G, arbor, true},
-		WindingKnobName:      {g.G, arbor, true},
-		EscapeRearCollarName: {g.O, -wheel, false}, PalletFrontCollarName: {g.P, -s.AnchorAngle, false},
+		GreatWheelName: {g.G, great, true}, PawlCarrierName: {g.G, arbor, true}, SpringRetainerName: {g.G, arbor, true},
+		WindingKnobName:  {g.G, arbor, true},
 		CrutchCollarName: {g.P, -s.AnchorAngle, false}, KnobCollarName: {g.G, arbor, true},
 	}
 }

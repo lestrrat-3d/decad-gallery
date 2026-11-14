@@ -10,7 +10,7 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Drive dimensions in mm. The great wheel, pawl carrier, spacer and knob are built about the origin and then moved onto the great
+// Drive dimensions in mm. The great wheel, pawl carrier, retainer and knob are built about the origin and then moved onto the great
 // wheel arbor.
 const (
 	greatRear         = 1.5
@@ -205,24 +205,26 @@ func (b *builder) buildPawlCarrier() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bore, err := b.dTool("carrier bore", 0, 0, layerLow-1, drivePressRadius, bodyPressFlat, 7.75)
+	bore, err := b.dTool("carrier bore", 0, 0, layerLow-1, bodyPressRadius, carrierPressFlat, 7.75)
 	if err != nil {
 		return nil, err
 	}
 	return b.cut(carrier, bore, "carrier bore")
 }
 
-// buildSpringSpacer builds the pressed tube from the spring hub's front face to the front bearing, about the origin.
-func (b *builder) buildSpringSpacer() (*decad.Body, error) {
-	spacer, err := b.discAt("spring spacer", 0, 0, spacerLow, CollarRadius, spacerHigh-spacerLow)
+// buildSpringRetainer builds the pressed ring that stops the spring hub on the front, about the origin: a wide disc whose
+// rear face lies 0.05 from the end of the arbor's body flat.
+func (b *builder) buildSpringRetainer() (*decad.Body, error) {
+	retainer, err := b.discAt("spring retainer", 0, 0, retainerLow, retainerRadius, retainerHigh-retainerLow)
 	if err != nil {
 		return nil, err
 	}
-	bore, err := b.dTool("spacer bore", 0, 0, spacerLow-1, bodyPressRadius, bodyPressFlat, spacerHigh-spacerLow+2)
+	bore, err := b.dTool("retainer bore", 0, 0, retainerLow-1, bodyPressRadius, bodyPressFlat,
+		retainerHigh-retainerLow+2)
 	if err != nil {
 		return nil, err
 	}
-	return b.cut(spacer, bore, "spring spacer bore")
+	return b.cut(retainer, bore, "spring retainer bore")
 }
 
 // buildSpringAnchorPin builds the round rod that carries the spring's eye, standing at its place.
@@ -264,7 +266,7 @@ func (b *builder) buildKnob() (*decad.Body, error) {
 	if body, err = b.cut(body, counter, "knob counterbore"); err != nil {
 		return nil, err
 	}
-	tool, err := b.dTool("knob socket", 0, 0, knobLow-pressToolLow, pressRadius, pressFlat,
+	tool, err := b.dTool("knob socket", 0, 0, knobLow-pressToolLow, endPressRadius, endPressFlat,
 		knobHigh-knobLow+2*pressToolLow)
 	if err != nil {
 		return nil, err

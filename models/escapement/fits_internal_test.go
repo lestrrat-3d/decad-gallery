@@ -99,8 +99,7 @@ func TestFits(t *testing.T) {
 	require.InDelta(t, 0, backTop, 2e-3)
 	axial(t, m.EscapeArbor, 27.75, m.FrontEscapeBearing, frontZ, 0.25, "T2 escape collar to the front bearing")
 	hasPlane(t, m.EscapeArbor, 0.25, "T2 escape arbor's body step")
-	hasPlane(t, m.EscapeRearCollar, 0.25, "T2 escape rear collar")
-	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 escape rear collar to the back bearing")
+	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 escape body step to the back bearing")
 	hasPlane(t, m.PalletArbor, 0.25, "T2 pallet shoulder")
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3, "T2 pallet shoulder to the back pallet bearing")
 	hasPlane(t, m.PalletArbor, 27.75, "T2 pallet arbor's body step")
@@ -108,10 +107,8 @@ func TestFits(t *testing.T) {
 	hasPlane(t, m.GreatWheelArbor, 27.75, "T2 great wheel arbor's body step")
 	hasPlane(t, m.GreatWheelArbor, 0.25, "T2 great wheel collar")
 	require.InDelta(t, 0.25, 0.25-backTop, 2e-3)
-	hasPlane(t, m.SpringSpacer, 27.75, "T2 spring spacer")
-	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "S5 spacer to the front great wheel bearing")
-	hasPlane(t, m.PalletFrontCollar, 27.75, "T2 pallet front collar")
-	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "T2 pallet front collar to the front pallet bearing")
+	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "S5 great wheel body step to the front great wheel bearing")
+	require.InDelta(t, 0.25, frontZ-27.75, 2e-3, "T2 pallet body step to the front pallet bearing")
 	pendLow, pendHigh := bearingZ(t, m.PendulumBearing)
 	axial(t, m.SuspensionPin, 39.80, m.Pendulum, 39.80, 0, "T2 shoulder")
 	require.InDelta(t, 0.25, pendLow-39.80, 2e-3, "T2 shoulder to the pendulum bearing")
@@ -121,10 +118,8 @@ func TestFits(t *testing.T) {
 	// T3, P1: press fits take 0.05 mm all round.
 	radial(t, m.EscapeWheel, m.EscapeArbor, 10, 0.05, 0, "T3 escape wheel on its arbor")
 	radial(t, m.Anchor, m.PalletArbor, 24, 0.05, 0, "T3 anchor on its arbor")
-	radial(t, m.EscapeRearCollar, m.EscapeArbor, 1.75, 0.05, 0, "T3 escape rear collar on its arbor")
-	radial(t, m.PalletFrontCollar, m.PalletArbor, 26.25, 0.05, 0, "T3 pallet front collar on its arbor")
 	radial(t, m.PawlCarrier, m.GreatWheelArbor, 7, 0.05, 0, "T3 pawl carrier on its arbor")
-	radial(t, m.SpringSpacer, m.GreatWheelArbor, 22, 0.05, 0, "T3 spring spacer on its arbor")
+	radial(t, m.SpringRetainer, m.GreatWheelArbor, 19, 0.05, 0, "T3 spring retainer on its arbor")
 	radial(t, m.Crutch, m.PalletArbor, 37.8, 0.05, 0, "P1 crutch on its arbor (in its floor)")
 	radial(t, m.CrutchCollar, m.PalletArbor, 36, 0.05, 0, "P1 crutch collar on its arbor")
 	radial(t, m.KnobCollar, m.GreatWheelArbor, 36, 0.05, 0, "P1 knob collar on its arbor")
@@ -136,9 +131,7 @@ func TestFits(t *testing.T) {
 	axial(t, m.GreatWheel, 3.5, m.GreatWheelArbor, 3.25, 0.25, "T4 great wheel counterbore floor to its collar")
 	axial(t, m.PawlCarrier, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
 	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "T4p escape wheel counterbore floor to its collar")
-	axial(t, m.EscapeRearCollar, 3.25, m.EscapeWheel, 3.30, 0.05, "T4p escape rear collar to the pinion counterbore floor")
-	axial(t, m.PalletFrontCollar, 24.75, m.Anchor, 24.70, 0.05, "T4p pallet front collar to the anchor counterbore floor")
-	axial(t, m.SpringSpacer, 17.5, m.GreatWheelArbor, 17.45, 0.05, "T4p spring spacer to the arbor step")
+	axial(t, m.SpringRetainer, 17.5, m.GreatWheelArbor, 17.45, 0.05, "T4p spring retainer to the end of the arbor's flat")
 	axial(t, m.Anchor, 21, m.PalletArbor, 20.95, 0.05, "T4p anchor to the pallet collar")
 
 	// T5: the crutch and knob rear faces stand 1.30 off the front plate's front face (Loose); the collar rings start 0.25
@@ -152,8 +145,6 @@ func TestFits(t *testing.T) {
 
 	// C1: each collar ring in the counterbore it enters, press 0.05 all round.
 	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "C1 escape front collar in the wheel's counterbore")
-	radial(t, m.EscapeRearCollar, m.EscapeWheel, 2.4, 0.05, 0, "C1 escape rear collar in the pinion's counterbore")
-	radial(t, m.PalletFrontCollar, m.Anchor, 25.2, 0.05, 0, "C1 pallet front collar in the anchor's counterbore")
 
 	// C1: the great wheel turns on its collar in the counterbore, Regular 0.40 radially.
 	radial(t, m.GreatWheel, m.GreatWheelArbor, 2.5, 0.4, regular, "C1 great wheel counterbore on its collar")
@@ -161,8 +152,11 @@ func TestFits(t *testing.T) {
 	// T6: the crutch pin in the pendulum's slot, 0.25 each side (checked in TestCoupling by pose); here the build pose.
 	radial(t, m.Crutch, m.Pendulum, 41.05, 0.25, 0, "T6 crutch pin in the slot")
 
-	// R1: the great wheel's 6.9 bore on the 6.1 arbor section.
+	// R1: the great wheel's 6.9 bore on the 6.1 journal.
 	radial(t, m.GreatWheel, m.GreatWheelArbor, 4, 0.4, regular, "R1 great wheel bore")
+	// The wheel's bore edge at z 5.0 stands 0.25 from the journal's step to the body (Tight), measured to the step's edge.
+	require.GreaterOrEqual(t, math.Hypot(greatBore/2-bodyRadius, journalEndZ-ratchetFloor), 0.25-1e-9,
+		"R1 great wheel bore edge to the journal step")
 
 	// L1, L3, L4: axial Loose gaps.
 	axial(t, m.Pendulum, 38.80, m.Crutch, 38.30, 0.5, "L3 pendulum to the crutch")
@@ -171,8 +165,11 @@ func TestFits(t *testing.T) {
 	axial(t, m.EscapeWheel, 25, m.FrontPlate, 28, 3.0, "L4 escape wheel to the front plate")
 
 	// L2, L5, L6: radial Loose gaps.
-	radial(t, m.SpringSpacer, m.EscapeWheel, 23.5, 2.05, 2.05-0.1, "L2 spring spacer to the wheel tips")
-	radial(t, m.GreatWheelArbor, m.EscapeWheel, 23.5, 2.95, 2.95-0.1, "L2 great wheel arbor to the wheel tips")
+	// The retainer (r 5.0, z 17.5 to 20.5) lies behind the wheel (z 22): 1.5 apart axially, and even in the wheel's plane
+	// it would clear the tip circle by 45.75 - 40 - 5.0 = 0.75.
+	axial(t, m.SpringRetainer, 20.5, m.EscapeWheel, 22, 1.5, "L2 spring retainer to the escape wheel")
+	require.GreaterOrEqual(t, g.G.Sub(g.O).Len()-TipRadius-retainerRadius, 0.5, "L2 spring retainer to the tip circle")
+	radial(t, m.GreatWheelArbor, m.EscapeWheel, 23.5, 2.45, 2.45-0.1, "L2 great wheel arbor to the wheel tips")
 	radial(t, m.EscapeWheel, m.PawlCarrier, 7, 22.0, 22.0-0.1, "L5 pinion tips to the pawl layer")
 	radial(t, m.SuspensionPin, m.Pendulum, 39.30, 1.3, 1.3-0.1, "L6 shoulder in the lip bore")
 
