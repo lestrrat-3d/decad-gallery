@@ -290,6 +290,29 @@ around each pin and a straight line tangent to the circles of neighbouring pins 
 between the pins, so it takes the sideways load the planets put on their pins. The sockets and the centre hole pass
 through the plate. The plate is extruded `Tc`; it needs `Tc >= 2` so each press fit grips over at least 2 mm.
 
+## Arbor collars
+
+[Arbor collars](../../docs/model-pipeline.md#arbor-collars) applies. The gearbox has no separate collar ring: each
+collar is a raised part of a shaft's or pin's own body. The table lists every one with the default dimensions, from the
+axial layout above. `z` is the height above the reference plane. The shaft collar diameter is `ds + 2.4` (7.4; 10.4 with
+a 608ZZ shaft bearing) and the pin collar diameter is `dp + 2.4` (7.4). The lengths follow from the construction; no
+test measures them on the built bodies yet.
+
+| Collar | Shaft | Carried part | Flush side | z | Len | Option |
+|---|---|---|---|---|---|---|
+| Input shaft collar | Input shaft | First sun, which turns with the shaft | Front bearing's inner face, `z -4` | `[-4, -0.5]` | 3.5 | 1: the 4 mm gap, less the 0.5 collar clearance at the sun |
+| Output shaft thick part | Output shaft | Last carrier, which turns with the shaft | Rear bearing's inner face, `z 16` | `[9, 15.75]` | 6.75 | 1: 3.75 above the plate's upper face (`z 12`), 0.25 short of the bearing |
+| Link shaft thick part | Link shaft | First carrier, and the next sun above it | Carrier plate, `[9, 12]` | `[9, 12.75]` | 3.75 | None of the three: the part is pressed through the plate and only 0.75 mm of it stands above the plate |
+| Carrier pin thick part | Carrier pin | Planet bearing, which turns on the pin | Carrier plate, `[9, 12]` | `[8.5, 12]` | 3.5 | None of the three: the part is pressed through the plate, 0.5 mm of it stands below, and the planet bearing top is 0.25 below that |
+
+The pin and link shaft thick parts use none of the three options. Each is a press-fit plug in the carrier plate, with
+3.0 mm of its length inside the plate. The free gap beside it is too short for option 1. For a pin, the planet bearing's
+top face (`z 8.25`) to the plate's lower face (`z 9`) is 0.75 mm, which is 0.5 mm after the 0.25 mm fit gap. For the link
+shaft, the plate's upper face (`z 12`) to the next sun's lower face (`z 13`) is 1 mm, which is 0.75 mm after the fit gap.
+Option 2 needs a counterbore in the carried part and forbids the collar from passing through the flush side, but these
+thick parts pass through the plate. The construction keeps them as they are, and the table lists them so a later change
+can decide.
+
 ## Document
 
 The ring is cut for its nut cavities and tooth spaces and then chamfered round the ears, and the chamfer meets facets of
