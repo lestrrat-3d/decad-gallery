@@ -78,7 +78,7 @@ The model does not show a set screw or the coupling to a motor. Each of the inpu
 
 Every large flat face of the ring, the covers and the carriers has its outer edge chamfered by 0.5 mm at 45°, so the
 printed parts have no sharp rims to chip or cut. That covers both end faces of the ring, both faces of each cover
-including the edges of its three windows, and both faces of each carrier plate. The ring's teeth, the pin sockets, the carrier's centre hole, the bolt holes and the
+including the edges of its three windows (the chamfer follows the rounded window corners), and both faces of each carrier plate. The ring's teeth, the pin sockets, the carrier's centre hole, the bolt holes and the
 bearing seats are not chamfered. The chamfer on the ring follows the mounting ears too.
 
 ## Mounting the gearbox
@@ -89,7 +89,9 @@ head pocket or nut cavity, so you choose what passes through it. The bore's edge
 fastener head up to 10 mm across lies beside the covers and not on them. You can change the bore diameter and the number
 of ears. With no ears, the ring is a plain cylinder.
 
-The ring is the fixed part of a planetary gearbox, so the ears carry the whole reaction torque of the output.
+The ring is the fixed part of a planetary gearbox, so the ears carry the whole reaction torque of the output. Each ear meets
+the ring in a rounded root, 3.55 mm in radius, so the reaction torque has no sharp corner to start a crack.
+The cover windows have rounded corners too.
 
 ## How the housing is bolted
 

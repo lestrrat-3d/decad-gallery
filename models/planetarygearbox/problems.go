@@ -290,11 +290,12 @@ func earProblems(p Params, d dims) []string {
 	half := earHalfWidth(p.EarBoreDiameter)
 	radius := earCenterRadius(d.ringOuter, p.EarBoreDiameter)
 	if p.EarCount > 1 {
-		// Neighbouring ears are closest at their half circles, whose centers are a chord apart.
-		if chord := 2 * radius * math.Sin(math.Pi/float64(p.EarCount)); chord < 2*half+earGap {
+		// Neighbouring ears are closest at their half circles, whose centers are a chord apart. Their root rounds share
+		// the outer arc between them, so each takes up its own radius beyond the ear's edge.
+		if chord := 2 * radius * math.Sin(math.Pi/float64(p.EarCount)); chord < 2*(half+earRootRound(p))+earGap {
 			probs = append(probs, fmt.Sprintf(
-				"neighbouring ear bores are %v apart; the ears need %v for at least %v between them",
-				chord, 2*half+earGap, float64(earGap)))
+				"neighbouring ear bores are %v apart; the ears and their root rounds need %v for at least %v between them",
+				chord, 2*(half+earRootRound(p))+earGap, float64(earGap)))
 		}
 	}
 	// A bolt site is clear of an ear when its pockets stay beyond the ear's side edge, or the ear lies on the
