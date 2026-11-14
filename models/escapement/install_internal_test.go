@@ -43,9 +43,8 @@ func TestInstallability(t *testing.T) {
 		z    float64
 	}{
 		{"escape wheel", m.EscapeWheel, g.O, 10}, {"anchor", m.Anchor, g.P, 22},
-		{"pawl carrier", m.PawlCarrier, g.G, 7}, {"spring spacer", m.SpringSpacer, g.G, 22},
+		{"pawl carrier", m.PawlCarrier, g.G, 7}, {"spring retainer", m.SpringRetainer, g.G, 19},
 		{"mainspring", m.Mainspring, g.G, 14.25}, {"great wheel", m.GreatWheel, g.G, 6},
-		{"escape rear collar", m.EscapeRearCollar, g.O, 1.75}, {"pallet front collar", m.PalletFrontCollar, g.P, 26.25},
 	} {
 		// The bore's wall is a chord between exact section vertices; the section's OffSurface bound belongs to its other
 		// loops (the spring's long outline, the anchor's pallets), so it is not added here.
@@ -60,13 +59,11 @@ func TestInstallability(t *testing.T) {
 		z0, z1, want float64
 		min          float64
 	}{
-		{"escape wheel", m.EscapeWheel, m.EscapeArbor, 3.4, 23.85, 0.05, 0},
-		{"anchor", m.Anchor, m.PalletArbor, 21.1, 24.6, 0.05, 0},
+		{"escape wheel", m.EscapeWheel, m.EscapeArbor, 1.6, 23.85, 0.05, 0},
+		{"anchor", m.Anchor, m.PalletArbor, 21.1, 25.9, 0.05, 0},
 		{"pawl carrier", m.PawlCarrier, m.GreatWheelArbor, 5.35, 10.9, 0.05, 0},
-		{"spring spacer", m.SpringSpacer, m.GreatWheelArbor, 17.6, 27.65, 0.05, 0},
+		{"spring retainer", m.SpringRetainer, m.GreatWheelArbor, 17.6, 20.4, 0.05, 0},
 		{"great wheel", m.GreatWheel, m.GreatWheelArbor, 3.6, 8.4, 0.4, 0.35},
-		{"escape rear collar", m.EscapeRearCollar, m.EscapeArbor, 0.35, 3.15, 0.05, 0},
-		{"pallet front collar", m.PalletFrontCollar, m.PalletArbor, 24.85, 27.65, 0.05, 0},
 	} {
 		radial(t, e.part, e.arbor, e.z0, e.want, e.min, e.name+" bore at its rear end")
 		radial(t, e.part, e.arbor, e.z1, e.want, e.min, e.name+" bore at its front end")

@@ -23,6 +23,9 @@ func TestCorners(t *testing.T) {
 			Reason: "escape wheel teeth",
 			Near:   cornercheck.Annulus(r3.Vec{}, z, RootRadius-0.2, TipRadius+0.1),
 		}},
+		// The crutch's D socket: its two corners are mated to the corners of the arbor end's flat (Mating corners), so
+		// both stay sharp. The turn is 41° at the corner plus the arc's own curvature over the 0.4 mm window.
+		CrutchName: {{Reason: "D socket corners", Near: cornercheck.Disc(r3.Vec{X: g.P.X, Y: g.P.Y}, z, endPressRadius+0.1)}},
 		// The two pallet corners that meet the escape wheel's teeth are engagement edges.
 		AnchorName: {
 			{Reason: "entry pallet corner", Near: cornercheck.Disc(r3.Vec{X: g.P.X + g.FE.X, Y: g.P.Y + g.FE.Y}, z, 0.5)},

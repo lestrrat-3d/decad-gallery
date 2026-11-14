@@ -149,6 +149,14 @@ counterbore floor, the end of a flat or a step of the shaft, and meets every cla
 collar of the shaft's own body would stop a part or a bearing from being fitted, as on a shaft that runs in two
 bearings and carries parts between them.
 
+A shaft that runs in two bearings may use a step of its own body as the collar on the side its parts are fitted
+from. The step is the end of the section the parts are pressed on, and it faces the bearing's inner ring with a
+Tight gap. Its diameter clears the inner ring's bore chamfer by at least 0.3 mm on the round side. A part pressed on
+the flat and stopped by a collar on its other side needs no further collar on the fitting side. Its face there
+stands at least 1.0 mm from the flush side. A part that turns on the shaft, or slides on the flat without a press
+fit, still takes a collar on both sides. List each such step in the collar table with its diameter and the
+clearance of the part's face. The 3.0 mm minimum applies to the section the step ends, not to the step.
+
 Make every collar at least 3.0 mm long along the shaft's axis, and measure its whole length, including any part inside
 a counterbore. A collar about 1 mm long cannot be printed reliably. A collar that only stops a pressed part, with no
 flush side beside it, takes the same minimum. A part pressed on a shaft end outside the frame takes a collar between
@@ -220,6 +228,8 @@ parallel to the print bed, at a height inside a run of layers that share one out
 - **Root width.** Make the root of a feature at least as wide, before its rounds, as the feature's narrowest
   section. Make a part that bends in use at least 1.2 mm thick (three 0.4 mm lines). Make every other wall at
   least 0.8 mm thick (two lines).
+  Make the wall round a press-fit bore or press-fit counterbore of a separate printed part at least 1.6 mm (four
+  0.4 mm lines) over its whole pressed length, and print such a ring with its axis vertical.
 - **Tips.** Keep the material angle at every outward corner of a section at 60° or more. Blunt a sharper tip
   with a flat at least 0.8 mm wide or a round of at least 0.4 mm radius.
 - **Corners between layers.** An inside corner along an edge parallel to the bed, such as the root of a pin

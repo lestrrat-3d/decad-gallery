@@ -75,11 +75,12 @@ Meridian sketch (plane `U = +X`, `V = +Z`, origin on the axis): polygon of the s
 (pin: "Pendulum and crutch"); each line `NewHorizontal` or `NewVertical`, the axis edge by
 `NewHorizontalDistance(origin, p, 0)`, each step by H distance (radius) and V distance (z) from the origin. Valid
 profile: 0 holes. `decad.Revolve` full turn about the sketch line `(0,0)-(0,1)`. The arbor and pin points are the
-meridians of instructions.md "Arbors, bearings and axial layout" (the escape, pallet and great wheel arbors have `r 2.8`
-and `r 3.05` body sections between their bearing seats). Flat boxes: `flatBox(what, x, y, flatX, z0, z1)`:
+meridians of instructions.md "Arbors, bearings and axial layout" (the escape, pallet and great wheel arbors have `r 3.3`
+body sections between their bearing seats; the great wheel arbor has a `r 3.05` journal under the great wheel; the pallet and great wheel
+arbors and the pin's front peg step down to `r 2.0` outside the front plate). Flat boxes: `flatBox(what, x, y, flatX, z0, z1)`:
 `CreateRectangle` at `x flatX to 3.5`, `y -3.5 to 3.5`, corner by H/V distance, width `3.5 - flatX` and height 7 by
-distances between corners, extruded over each `flatSpan{X, Z0, Z1}` (`x 2.55` over a body section, `x 2.0` on an end or
-the pin); `Union` the boxes of one part and `Cut` once. Check: solid; diameter 5.0 at each bearing seat; flat present at
+distances between corners, extruded over each `flatSpan{X, Z0, Z1}` (`x 2.55` over a body section, `x 2.80` over the great wheel arbor's carrier section, `x 1.5` on an end or
+the pin's front peg, `x 2.0` on the pin's rear peg); `Union` the boxes of one part and `Cut` once. Check: solid; diameter 5.0 at each bearing seat; flat present at
 each span's middle (between the flat plane and the section radius) and absent under each bearing; volume equals the
 revolve less the circular segment of each section beyond its flat over each span.
 
@@ -94,11 +95,10 @@ through `O`); `Union(disc, tooth, copies...)`. Front counterbore sketch (`z 23.9
 one edge, and the single-edge circle of radius 3.75 about `O` (the counterbore's rim; match the loop's one edge by the
 distance of its start from `O`, within 0.01). Pinion: `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}`, module 1.5, 13 teeth,
 pressure angle 20°, thickness 21, `Backlash`, no bore, placement origin `z 1.5` with `U = (cos -60°, sin -60°)`.
-`Union(wheel, pinion)`; there is no boss. Cut the D press bore: sketch (plane at `z -0.75`) arc `r 2.85` and chord
-`NewVertical` at `x 2.60` (body family); extrude 27.5. The same cut takes the rear counterbore: sketch (`z 0.5`) circle
-`r 3.75`, extrude 2.80 (tool `z [0.5, 3.30]`), unioned with the D bore tool, so one `Cut` makes both. Check: solid; section at
-`z 23.5` has 8 loops and 30 tips at radius 40; section at `z 10` shows 13 teeth, tip 11.23; the counterbores are open at
-`z 24.2` and `z 2.4` inside radius 3.75 and the part's rearmost face is `z 1.5`.
+`Union(wheel, pinion)`; there is no boss and no rear counterbore. Cut the D press bore: sketch (plane at `z -0.75`) arc `r 3.35` and chord
+`NewVertical` at `x 2.60` (body family); extrude 27.5. Check: solid; section at
+`z 23.5` has 8 loops and 30 tips at radius 40; section at `z 10` shows 13 teeth, tip 11.23; the front counterbore is open at
+`z 24.2` inside radius 3.75 and the part's rearmost face is `z 1.5`, solid under `r 3.35`'s wall of 4.38.
 
 ### 14. Anchor
 
@@ -108,10 +108,8 @@ Sketch `anchor outline` (`z 21`, `P`): the 14 pieces of "Anchor outline" plus `x
 `NewDistancePointLine(M, inner, 6)`; outer sides `NewParallel`, `N` on the top hub arc. Then `sketch.CreateFillet` at the four inside corners: `H_E`, `H_X` (arm
 inner side to hub arc) with radius 3.0 and `G_E`, `G_X` (arm inner side to pallet arc) with radius 1.0; the arm inner lines carry their
 angle and `NewPointOnLine` before the fillet, and the leg order that verifies is the one the code uses. Valid profile: 0 holes.
-Extrude 5. There is no boss. Counterbore sketch (`z 24.70`, `P`): circle `r 3.75`, extrude 2.30 (tool `z [24.70, 27.0]`),
-`Cut`. Cut the D press bore (body family: arc `r 2.85`, chord `x 2.60`; tool `z 20`, height 8.75).
-`edgefinish.Chamfer` over `{21, 26}` keeping the outer loops and the counterbore's rim (the single-edge circle of radius
-3.75 about `P`), last. Check: solid; outline at `z 23.5` passes
+Extrude 5. There is no boss and no counterbore. Cut the D press bore (body family: arc `r 3.35`, chord `x 2.60`; tool `z 20`, height 8.75).
+`edgefinish.Chamfer` over `{21, 26}` keeping the outer loops, last. Check: solid; outline at `z 23.5` passes
 within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches verified for the three branch cases.
 
 ### 15. Crutch
@@ -119,7 +117,7 @@ within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches
 Sketch `crutch outline` (`z 35.30`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5` (each `NewVertical` and `NewDistancePointLine(origin, line, 2.5)`), end arc `r 4` centred by H/V
 distance `(0, -45)`. Round the two arm-to-hub corners with `sketch.CreateFillet`, radius 2.5. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 37.80`, origin at the end centre) circle `r 1.5`,
 extrude 6.5; `Union`. Cut the keyed rear counterbore: `dTool` D outline (arc `r 3.75`, chord `x 3.35`) about `P` at `z 34.30`,
-extrude 3.0, flat on `+X` like the bore. Cut the D press socket (end family: `r 2.55`, flat `2.05`; tool `z 34.30`, height 5). Check: solid, area under 400 mm².
+extrude 3.0, flat on `+X` like the bore. Cut the D press socket (end family: `r 2.05`, flat `1.55`; tool `z 34.30`, height 5). Check: solid, area under 400 mm².
 
 ### 16. Pendulum
 
@@ -150,8 +148,8 @@ Built about the origin and moved onto `G` by the pose. Pawl layer sketch (`z 5.2
 Carrier" for both pawls (`g = 90° - δb` and `270° - δb`), valid profile with 0 holes, extrude 4. Core arcs `NewRadius 7.5`; the slot-end
 round is `CreateArc(centre, top, start)` with `NewTangentCircles(core, round, false)` and both end points polar (angle `c`), and no radius
 dimension; arcs `NewRadius` 9.0, 12.5, 10.5; the contact and back lines `NewAngle(xRef, line, a)`; then `sketch.CreateFillet` at the tooth root
-(0.5) and the block back (1.0). Boss sketch (`z 8.75`): circle `r 4.2`, extrude 2.25. `Union(layer, boss)`; cut the D press bore
-(sketch `z 4.25`, drive family: arc `r 3.10` and a vertical chord at `x 2.60`, extrude 7.75). Check: solid; pawl tips at the old drum's
+(0.5) and the block back (1.0). Boss sketch (`z 8.75`): circle `r 5.0`, extrude 2.25. `Union(layer, boss)`; cut the D press bore
+(sketch `z 4.25`, carrier family: arc `r 3.35` and a vertical chord at `x 2.85`, extrude 7.75). Check: solid; pawl tips at the old drum's
 world angles; slot-end round present; boss present at `z 10`, absent at `z 11.1`.
 
 ### 21. Mainspring
@@ -161,9 +159,9 @@ world angles; slot-end round present; boss present at `z 10`, absent at `z 11.1`
 profile sketch; `Model.Profile` goes into `Movement.Sketches`. Check: solid; bounds `x ∈ [-32.0, 31.22]`, `y ∈ [-83.16, -13.75]`,
 `z ∈ [11.25, 17.25]`; the eye's hole at `z 14.25` lies 1.9 mm round `Q`.
 
-### 22. Spring Spacer and 23. Spring Anchor Pin
+### 22. Spring Retainer and 23. Spring Anchor Pin
 
-Spacer sketch (`z 17.5`): circle `r 3.7`, extrude 10.25; D press bore (body family: arc `r 2.85`, chord `x 2.60`; sketch `z 16.5`, extrude 12.25). Anchor pin sketch (plane
+Retainer sketch (`z 17.5`): circle `r 5.0`, extrude 3.0; D press bore (body family: arc `r 3.35`, chord `x 2.60`; sketch `z 16.5`, extrude 5.0). Anchor pin sketch (plane
 origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socket tool (sketch at `Q`, `z 27`): circle
 `r 1.55`, extrude 4, appended to the front plate's tool list (`spring.go`). Check: solids; `TestFrontPlateSpringAnchor`.
 
@@ -172,21 +170,14 @@ origin at `Q`, `z 10.25`): circle `r 1.5`, extrude 20.7. The front plate's socke
 Circle `r 9` at `G`, `z 35.30`, extrude 3; cut the keyed rear counterbore (`dTool`, arc `r 3.75`, chord `x 3.35`, at `z 34.30`,
 extrude 3.0) and the D press socket (`z 34.30`, height 5).
 
-### 25-26. Escape Rear Collar and Pallet Front Collar
-
-Each ring is a disc sketch `r 3.7` (about `O` at `z 0.25`; about `P` at `z 24.75`), extruded 3.0, with the body-family D bore
-cut through (sketch 1 mm below the ring, arc `r 2.85`, chord `NewVertical` at `x 2.60`, extrude 5.0), the pattern of the
-Spring Spacer. Both rings are built where they stand and posed with their arbor (`poses()`: `O` by `-wheel`, `P` by
-`-ψ`). They go in the container `Collars`. Check: solid; z extent 3.0; outer radius 3.7; `TestArborCollars`.
-
-### 27-28. Crutch Collar and Knob Collar
+### 25-26. Crutch Collar and Knob Collar
 
 Each ring is a keyed D: sketch `dTool` outline (arc `r 3.7`, chord `x 3.3`, flat on `+X`) about `P` (crutch) or the origin
-(knob) at `z 34.25`, extruded 3.0, with the end-family D bore cut through (sketch at `z 33.25`, arc `r 2.55`, chord
-`x 2.05`, extrude 5.0). The Crutch Collar is posed with the anchor (`P` by `-ψ`), the Knob Collar with the knob (`G` by
+(knob) at `z 34.25`, extruded 3.0, with the end-family D bore cut through (sketch at `z 33.25`, arc `r 2.05`, chord
+`x 1.55`, extrude 5.0). The Crutch Collar is posed with the anchor (`P` by `-ψ`), the Knob Collar with the knob (`G` by
 the arbor turn). Both go in the container `Collars`. Check: solid; rear face `z 34.25`; length 3.0; outer chord 3.3.
 
-### 29-36. Bolts and nuts
+### 27-34. Bolts and nuts
 
 `m2fastener.PlaceBolt` and `PlaceNut` on the four sites. Check: head top at `z 34`, nut inside its cavity, tip inside
 the pillar hole, no overlap with a plate.

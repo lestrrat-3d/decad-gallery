@@ -111,8 +111,10 @@ func TestPawlCarrier(t *testing.T) {
 		require.False(t, inside(t, carrier, air.X, air.Y, 7.25), "slot end round, air side")
 		require.True(t, inside(t, carrier, wall.X, wall.Y, 7.25), "slot end round, wall")
 	}
-	require.True(t, inside(t, carrier, -3.3, 0, 10), "the boss exists at z 10")
-	require.False(t, inside(t, carrier, -3.3, 0, 11.1), "the boss ends at z 11")
+	require.True(t, inside(t, carrier, -4.2, 0, 10), "the boss exists at z 10")
+	require.True(t, inside(t, carrier, -4.9, 0, 10), "the boss reaches r 5.0")
+	require.False(t, inside(t, carrier, -5.1, 0, 10), "the boss ends at r 5.0")
+	require.False(t, inside(t, carrier, -4.2, 0, 11.1), "the boss ends at z 11")
 }
 
 // TestFrontPlateSpringAnchor checks the blind socket for the spring anchor pin: open from the plate's inner face, with
@@ -158,9 +160,9 @@ func TestSpringFits(t *testing.T) {
 	// S2: the eye on the anchor pin, Regular 0.40.
 	pinOutline := loopsBy(sectionAt(t, m.SpringAnchorPin, 14.25))
 	require.InDelta(t, 0.4, springGap(so, g.SpringAnchor, 0, 4, pinOutline), 0.03+so.OffSurface.Base(), "S2 eye on the anchor pin")
-	// S3: the hub's faces stand 0.25 from the carrier boss and the spacer.
+	// S3: the hub's faces stand 0.25 from the carrier boss and the retainer.
 	axial(t, m.Mainspring, 11.25, m.PawlCarrier, 11.0, 0.25, "S3 hub to the carrier boss")
-	axial(t, m.Mainspring, 17.25, m.SpringSpacer, 17.5, 0.25, "S3 hub to the spacer")
+	axial(t, m.Mainspring, 17.25, m.SpringRetainer, 17.5, 0.25, "S3 hub to the retainer")
 	// S4: the anchor pin in its socket, press 0.05.
 	radial(t, m.FrontPlate, m.SpringAnchorPin, 29.5, 0.05, 0, "S4 anchor pin in the front plate")
 	// S6: the relaxed coils clear the pinion tips by 2.52. The spring and the pinion meet at z 11.25 to 17.25.

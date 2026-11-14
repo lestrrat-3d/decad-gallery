@@ -9,15 +9,10 @@ import (
 
 // Anchor heights in mm.
 const (
-	anchorLow  = 21.0
-	anchorHigh = 26.0
-	// The front counterbore takes the pallet front collar ring: radius 3.75 over the ring's 3.7 (a 0.05 press), floor
-	// 0.05 behind the ring's rear face.
-	anchorCounterRadius = 3.75
-	anchorCounterFloor  = 24.70
-	anchorCounterTop    = 27.0
-	anchorBoreAt        = 20.0
-	anchorBoreH         = 8.75
+	anchorLow    = 21.0
+	anchorHigh   = 26.0
+	anchorBoreAt = 20.0
+	anchorBoreH  = 8.75
 	// anchorHubRound is half the arm's 6 mm width; anchorPalletRound is the round between an arm's inner side and its
 	// pallet's locking arc.
 	anchorHubRound    = 3.0
@@ -109,20 +104,11 @@ func polarOnArc(s *sketch.Sketch, ref *sketch.Line, pt *sketch.Point, angle floa
 	s.AddConstraint(sketch.NewAngle(ref, l, angle/deg))
 }
 
-// buildAnchor builds the anchor: the outline, its front counterbore, the press-fit D bore and the outer-loop and
-// counterbore-rim chamfers.
+// buildAnchor builds the anchor: the outline, the press-fit D bore and the outer-loop chamfers.
 func (b *builder) buildAnchor() (*decad.Body, error) {
 	g := &b.g
 	body, err := b.anchorOutline()
 	if err != nil {
-		return nil, err
-	}
-	counter, err := b.discAt("anchor counterbore", g.P.X, g.P.Y, anchorCounterFloor, anchorCounterRadius,
-		anchorCounterTop-anchorCounterFloor)
-	if err != nil {
-		return nil, err
-	}
-	if body, err = b.cut(body, counter, "anchor counterbore"); err != nil {
 		return nil, err
 	}
 	tool, err := b.dTool("anchor bore", g.P.X, g.P.Y, anchorBoreAt, bodyPressRadius, bodyPressFlat, anchorBoreH)
@@ -132,7 +118,7 @@ func (b *builder) buildAnchor() (*decad.Body, error) {
 	if body, err = b.cut(body, tool, "anchor bore"); err != nil {
 		return nil, err
 	}
-	body, err = b.finish(body, []float64{anchorLow, anchorHigh}, rimKeep(g.P, anchorCounterRadius))
+	body, err = b.finish(body, []float64{anchorLow, anchorHigh}, rimKeep(g.P))
 	if err != nil {
 		return nil, fmt.Errorf("anchor edges: %w", err)
 	}

@@ -59,6 +59,8 @@
 - Apply [Surface edge finishing](docs/model-pipeline.md#surface-edge-finishing) to every modeled part.
 - Apply [Corners and roots](docs/model-pipeline.md#corners-and-roots) to every printed part: round inside corners and
   stressed roots, and blunt sharp tips.
+- Give every separate printed part pressed on a shaft a wall of 1.6 mm or more round its press-fit bore, and print
+  each such ring with its axis vertical. See [Corners and roots](docs/model-pipeline.md#corners-and-roots).
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.

@@ -215,7 +215,7 @@ The `escapement/hero` preset renders the default Graham escapement at its defaul
 front and a little above and to the right. The front plate is in the picture, and the wheel, anchor and drive show
 through its windows. The `readme` shot builds the movement once and writes the 480 × 270 pixel `index.png`, the 1600 × 900 pixel
 `hero.png`, `exploded.png`, and the 1200 × 675 pixel `assembled-front.png`, `assembled-angle.png`,
-`assembled-side.png`, `closeup.png` and the 1000 × 1000 pixel `assembled-back.png` (from behind, through the back plate's windows, with the lights turned to shine on its back faces), and a 480 × 270 pixel image in `parts/` for each of 21 kinds of body. The
+`assembled-side.png`, `closeup.png` and the 1000 × 1000 pixel `assembled-back.png` (from behind, through the back plate's windows, with the lights turned to shine on its back faces), and a 480 × 270 pixel image in `parts/` for each of 20 kinds of body. The
 `escapement/closeup` preset is a near-orthographic front view at Phase 0, where the entry pallet holds a tooth, of the pallets and the
 teeth between them with the front plate, the crutch, the crutch collar, the knob collar, the pendulum and the other parts in front of the anchor left out. The `escapement/exploded` preset
 renders the layout that `Movement.Explode` takes from Decad's derived explode mode (`parts.Set.Explode`), seen from
@@ -223,12 +223,12 @@ renders the layout that `Movement.Explode` takes from Decad's derived explode mo
 The preset draws a dotted line from each part of 13 mm or more that left its own line back to the part it joins, from
 `Exploded.Guides`. `TestEscapementExploded` checks that no two parts overlap, that the layout stays under 150 × 250 ×
 350 mm, and that a part joined to another and covered by it from that camera lies on the other part's axis. The `part-back-plate`, `part-front-plate`, `part-escape-wheel`, `part-anchor`, `part-crutch`,
-`part-pendulum`, `part-suspension-pin`, `part-suspension-cap`, `part-great-wheel`, `part-pawl-carrier`, `part-mainspring`, `part-spring-spacer`, `part-spring-anchor-pin`, `part-winding-knob`,
-`part-escape-arbor`, `part-pallet-arbor`, `part-great-wheel-arbor`, `part-arbor-collar`, `part-end-collar`, `part-bearing` and `part-bolt` presets
+`part-pendulum`, `part-suspension-pin`, `part-suspension-cap`, `part-great-wheel`, `part-pawl-carrier`, `part-mainspring`, `part-spring-retainer`, `part-spring-anchor-pin`, `part-winding-knob`,
+`part-escape-arbor`, `part-pallet-arbor`, `part-great-wheel-arbor`, `part-end-collar`, `part-bearing` and `part-bolt` presets
 render one of them alone, the bolt with its nut.
 
 The `motion` shot writes `images/motion.gif`, 960 × 540 pixels and 36 frames, of one pendulum period. Frame `k` is Phase
-`k/36`. The build is made once at the default phase and each frame turns the tessellated wheel, arbor and rear collar ring, the anchor, pallet arbor, front collar ring, crutch and crutch collar, and the pendulum and its bearing by the change in the angle `Motion` gives, about their own axes. Both plates stay in, because they are fixed.
+`k/36`. The build is made once at the default phase and each frame turns the tessellated wheel and arbor, the anchor, pallet arbor, crutch and crutch collar, and the pendulum and its bearing by the change in the angle `Motion` gives, about their own axes. Both plates stay in, because they are fixed.
 The front bearings, the bolts and the drive train are left out, because the drive does not repeat in one period. The wheel
 advances one tooth in the loop, so the loop has no jump. A readout under the picture gives the pendulum, anchor and wheel
 angles.

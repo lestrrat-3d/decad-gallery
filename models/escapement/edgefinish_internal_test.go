@@ -53,9 +53,8 @@ func TestEdgeFinishing(t *testing.T) {
 	frontEdges := 2*plateRims(t, m.FrontPlate, 31) + 3*2*math.Pi*seatRadius + 3*2*math.Pi*lipRadius
 	check("back plate", m.BackPlate, plain.buildBackPlate, backEdges, 0)
 	check("front plate", m.FrontPlate, plain.buildFrontPlate, frontEdges, 0)
-	// Anchor: the outer loop of both faces, pallets included, and the front counterbore's rim.
-	check("anchor", m.Anchor, plain.buildAnchor, 2*perimeter(outerLoop2(sectionAt(t, m.Anchor, 23.5).Loops, g.P)),
-		rimBevel(anchorCounterRadius))
+	// Anchor: the outer loop of both faces, pallets included; the bore's rim stays sharp.
+	check("anchor", m.Anchor, plain.buildAnchor, 2*perimeter(outerLoop2(sectionAt(t, m.Anchor, 23.5).Loops, g.P)), 0)
 	// Pendulum: the outer loop of both faces, the pocket rim and the lip-bore rim.
 	check("pendulum", m.Pendulum, plain.buildPendulum, 2*outer(41.55, m.Pendulum)+2*math.Pi*pocketRadius+2*math.Pi*lipRadius, 0)
 	// Great wheel: the rear counterbore's rim only; the tooth flanks and the ratchet stay sharp.

@@ -24,7 +24,7 @@ func TestPendulumParts(t *testing.T) {
 			require.NoError(t, err)
 			require.Less(t, o.PolygonArea().Base(), 400.0, "crutch area stays under the large-face limit")
 			// The D socket is open, the pin stands on the end and the hub is kept.
-			require.False(t, inside(t, crutch, g.P.X+2.0, g.P.Y, 37.8))
+			require.False(t, inside(t, crutch, g.P.X+1.4, g.P.Y, 37.8))
 			require.True(t, inside(t, crutch, g.P.X-5.5, g.P.Y, 37.8))
 			require.True(t, inside(t, crutch, g.P.X+0.6, g.P.Y-45, 41.05))
 			require.False(t, inside(t, crutch, g.P.X+1.7, g.P.Y-45, 41.05))
@@ -54,7 +54,7 @@ func TestPendulumParts(t *testing.T) {
 			cap, err := b.buildCap()
 			require.NoError(t, err)
 			require.True(t, cap.IsSolid())
-			require.False(t, inside(t, cap, g.S.X+2.0, g.S.Y, 46.05))
+			require.False(t, inside(t, cap, g.S.X+1.4, g.S.Y, 46.05))
 			require.True(t, inside(t, cap, g.S.X-3, g.S.Y, 46.05))
 			require.NotEmpty(t, b.sketches)
 		})
