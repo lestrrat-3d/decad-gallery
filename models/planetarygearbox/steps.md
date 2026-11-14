@@ -79,13 +79,14 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    strictly inside the rod's length, joined to the rod with one union, and then the flat's box cut out over each span.
    The box is `ds + 2` wide about the X axis and runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a
    rectangle sketch with its corner dimensioned from the origin, its width and its height. `decad.Cut` removes it. The
-   flats of every span join into one tool and take one cut.
+   flats of every span join into one tool and take one cut. The free ends of the input and output shafts take a
+   further flat span each, ending (input) or starting (output) 1 mm clear of the bearing boss (`endFlatMargin`).
    - Link shaft, when `K > 1`: `thickTop = Tc + g - 0.25`, `top = T + Tc + g`, one flat from `Tc + g` to `top + 1`.
      Posed with its bottom on a carrier's lower face.
-   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`, no flat on the rod. Posed with its
+   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`, one flat from `top - Lo + 1` to `top + 1` on the free end. Posed with its
      bottom on the last carrier's lower face.
-   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv) + 0.25` to `-0.5` (0.25 mm above the front bearing's inner face), flat from `0` to
-     `T + 1`.
+   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv) + 0.25` to `-0.5` (0.25 mm above the front bearing's inner face), flats from `0` to
+     `T + 1` and from `bottom - 1` to `bottom + Li - 1`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
    - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `cover_lip_bore_diameter`
      at the origin; the four bolt-hole circles as for the ring. For each spoke `k`, with spoke angle

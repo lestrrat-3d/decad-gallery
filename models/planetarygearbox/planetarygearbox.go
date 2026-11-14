@@ -223,7 +223,8 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.OutputShaftLength
 	output, err := r.buildSteppedShaft(ctx, "output shaft",
-		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop)
+		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop,
+		span{outputTop - p.OutputShaftLength + endFlatMargin, outputTop + 1})
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}

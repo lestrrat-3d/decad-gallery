@@ -230,7 +230,9 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	start := -(p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.InputShaftLength)
 	inner := -(p.StageGap + p.CoverThickness) + collarBearingGap
 	// The flat runs from the sun's lower face to past the shaft's top, through the sun.
-	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance, span{0, p.GearThickness + 1})
+	// A second flat runs along the end that reaches out of the cover, where a coupling or a set screw grips.
+	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance,
+		span{0, p.GearThickness + 1}, span{start - 1, start + p.InputShaftLength - endFlatMargin})
 }
 
 // chamferSeat chamfers the entrance of a bearing seat by SeatChamfer, so a bearing can be pressed into the tight

@@ -299,6 +299,9 @@ func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float
 	return body, nil
 }
 
+// endFlatMargin is how far a flat on a shaft's outer end stays clear of the bearing boss that the shaft leaves.
+const endFlatMargin = 1.0
+
 // span is a range of heights, from lo up to hi.
 type span struct{ lo, hi float64 }
 
