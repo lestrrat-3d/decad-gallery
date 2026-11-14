@@ -178,9 +178,26 @@ func TestSpiralSpringClearance(t *testing.T) {
 				return mid.len() <= dm.BoreRadius+0.01 ||
 					mid.distTo(vec2{dm.EyeCenterX, dm.EyeCenterY}) <= dm.EyeHoleDiameter/2+0.01
 			}
-			skip := func(p, q segment) bool { return inHole(p) && inHole(q) }
+			// The taper narrows the gap between the hub and half turn 0 to g - 2e at the spoke, so that pair is
+			// measured on its own.
+			// The hub side includes the C4 fillet, which leaves the hub circle by up to r_f.
+			onHub := func(s segment) bool {
+				r := s.midpoint().len()
+				return r > dm.HubRadius-sliceMargin && r < dm.HubRadius+dm.FilletRadius+sliceMargin
+			}
+			onFirst := func(s segment) bool {
+				d := s.midpoint().distTo(vec2{dm.CenterOffset + dm.TaperOffset, 0})
+				// The C3 fillet adds material inside the edge's circle, by up to r_f.
+				edge := dm.FirstInnerRadius - dm.TaperOffset
+				return d > edge-dm.FilletRadius-sliceMargin && d < edge+sliceMargin
+			}
+			hubPair := func(p, q segment) bool { return onHub(p) && onFirst(q) || onFirst(p) && onHub(q) }
+			skip := func(p, q segment) bool { return inHole(p) && inHole(q) || hubPair(p, q) }
 			reach := 1.5 * math.Max(dm.Gap, p.Thickness)
 			minAir, minMaterial := pairLimits(segs, reach, skip)
+			minHub, _ := pairLimits(segs, reach, func(p, q segment) bool { return !hubPair(p, q) })
+			require.GreaterOrEqual(t, minHub, dm.Gap-2*dm.TaperOffset-sliceMargin, "hub to half turn 0")
+			require.LessOrEqual(t, minHub, dm.Gap+sliceMargin, "hub to half turn 0")
 			msg := fmt.Sprintf("minAir %.4f (gap %.4f), minMaterial %.4f (thickness %.4f)", minAir, dm.Gap, minMaterial, p.Thickness)
 			require.GreaterOrEqual(t, minAir, dm.Gap-sliceMargin, msg)
 			require.LessOrEqual(t, minAir, dm.Gap+sliceMargin, msg)

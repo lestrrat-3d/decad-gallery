@@ -25,7 +25,8 @@ func TestSpiralSpringParamsDefaults(t *testing.T) {
 		"EyeHoleDiameter":  {dm.EyeHoleDiameter, 3.7},
 		"EyeRadius":        {dm.EyeRadius, 3.45},
 		"EyeCenterX":       {dm.EyeCenterX, -29.2},
-		"FilletRadius":     {dm.FilletRadius, 0.6},
+		"FilletRadius":     {dm.FilletRadius, 0.8},
+		"TaperOffset":      {dm.TaperOffset, 0.12},
 	} {
 		require.InDelta(t, pair[1], pair[0], 1e-9, name)
 	}
@@ -65,4 +66,49 @@ func TestSpiralSpringParamsEyeFloor(t *testing.T) {
 	dm, err := p.Derive()
 	require.NoError(t, err)
 	require.InDelta(t, 2*dm.EyeRadius, dm.TailLength, 1e-9)
+}
+
+// rootRoom returns the C4 fillet's contact x4 on the spoke's underside, the C3 fillet's contact x3(e) for the
+// derived e, and r_f, from the construction's own formulas.
+func rootRoom(p spiralspring.Params, dm spiralspring.Dimensions) (x4, x3 float64) {
+	a := 2*p.Thickness + dm.FilletRadius
+	x4 = -math.Sqrt((dm.HubRadius+dm.FilletRadius)*(dm.HubRadius+dm.FilletRadius) - a*a)
+	r := dm.FirstInnerRadius - dm.TaperOffset - dm.FilletRadius
+	x3 = dm.CenterOffset + dm.TaperOffset - math.Sqrt(r*r-a*a)
+	return x4, x3
+}
+
+func TestSpiralSpringParamsRoot(t *testing.T) {
+	want := map[string]struct{ rf, e float64 }{
+		"default":         {0.8, 0.12},
+		"one-turn":        {0.8, 0.12},
+		"round-bore":      {0.8, 0.12},
+		"turns-override":  {0.8, 0.12},
+		"thickness-floor": {0.75, 0.0876},
+		"gap-floor":       {0.5, 0.0648},
+	}
+	for _, c := range springCases {
+		t.Run(c.name, func(t *testing.T) {
+			p := c.params()
+			dm, err := p.Derive()
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, dm.FilletRadius, 0.5)
+			require.InDelta(t, math.Min(p.Thickness/2, dm.Gap/2), dm.FilletRadius, 1e-12)
+			require.InDelta(t, math.Min(spiralspring.TaperFraction*p.Thickness, dm.TaperOffset), dm.TaperOffset, 1e-12)
+			require.Greater(t, dm.TaperOffset, 0.0)
+			x4, x3 := rootRoom(p, dm)
+			require.GreaterOrEqual(t, x4-x3, spiralspring.TaperMargin-1e-9, "straight underside left between the fillets")
+			if w, ok := want[c.name]; ok {
+				require.InDelta(t, w.rf, dm.FilletRadius, 1e-9)
+				require.InDelta(t, w.e, dm.TaperOffset, 1e-4)
+			}
+		})
+	}
+}
+
+func TestSpiralSpringParamsRootRoom(t *testing.T) {
+	// A hub this large for the gap leaves no room for two fillets under the spoke (e_room is -0.016).
+	p := spiralspring.DefaultParams()
+	p.OuterDiameter, p.HubDiameter, p.Thickness, p.MinGap, p.Height = 60, 40, 1.5, 1, 4
+	require.ErrorContains(t, p.Validate(), "spiralspring: HubDiameter and Gap leave no room for the root fillets")
 }

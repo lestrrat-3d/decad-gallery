@@ -19,6 +19,7 @@ func buildProfile(ctx context.Context, p Params, dm Dimensions) (*sketch.Sketch,
 	}
 	t := p.Thickness
 	R, g, d, w, rho0 := dm.HubRadius, dm.Gap, dm.CenterOffset, dm.SpokeWidth, dm.FirstInnerRadius
+	e := dm.TaperOffset
 	n := dm.Turns
 
 	world := sketch.NewWorld()
@@ -31,11 +32,14 @@ func buildProfile(ctx context.Context, p Params, dm Dimensions) (*sketch.Sketch,
 	// 1. Second arc center.
 	B := s.CreatePoint(d, 0)
 	s.AddConstraint(sketch.NewHorizontalPoints(A, B), sketch.NewHorizontalDistance(A, B, d))
+	// Half turn 0's inner edge is centred at B0 = (d + e, 0), so the strip thickens from t at J1 to t + 2e at the spoke.
+	B0 := s.CreatePoint(d+e, 0)
+	s.AddConstraint(sketch.NewHorizontalPoints(A, B0), sketch.NewHorizontalDistance(A, B0, d+e))
 
 	// 2. Root.
 	C1 := s.CreatePoint(-R, 0)
 	C2 := s.CreatePoint(-(R + g + t), 0)
-	C3 := s.CreatePoint(d-math.Sqrt(rho0*rho0-w*w), -w)
+	C3 := s.CreatePoint(d+e-math.Sqrt((rho0-e)*(rho0-e)-w*w), -w)
 	C4 := s.CreatePoint(-math.Sqrt(R*R-w*w), -w)
 	hub := s.CreateArc(A, C4, C1)
 	L1 := s.CreateLine(C1, C2)
@@ -55,20 +59,23 @@ func buildProfile(ctx context.Context, p Params, dm Dimensions) (*sketch.Sketch,
 	J := C3
 	O := C2
 	for k := 0; k < 2*n; k++ {
-		center := A
+		center, innerCenter := A, A
 		jx, ox := -rk(k), -(rk(k) + t)
 		if k%2 == 0 {
-			center = B
+			center, innerCenter = B, B
+			if k == 0 {
+				innerCenter = B0
+			}
 			jx, ox = d+rk(k), d+rk(k)+t
 		}
 		Jn := s.CreatePoint(jx, 0)
 		On := s.CreatePoint(ox, 0)
-		inner[k] = s.CreateArc(center, J, Jn)
+		inner[k] = s.CreateArc(innerCenter, J, Jn)
 		outer[k] = s.CreateArc(center, O, On)
 		s.AddConstraint(sketch.NewHorizontalPoints(A, Jn), sketch.NewHorizontalPoints(A, On))
 		J, O = Jn, On
 	}
-	s.AddConstraint(sketch.NewRadius(inner[0], rho0), sketch.NewRadialOffset(inner[0], outer[0], t))
+	s.AddConstraint(sketch.NewRadius(inner[0], rho0-e), sketch.NewRadius(outer[0], rho0+t))
 
 	// 4. Tail and eye.
 	ex, l, re := dm.EyeCenterX, -dm.EyeCenterY, dm.EyeRadius

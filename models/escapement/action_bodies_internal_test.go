@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +31,7 @@ func realWheelTeeth(t *testing.T) ([][]Pt, float64) {
 			return
 		}
 		f, _ := r3.NewFrame(r3.NewVec(0, 0, 23.5), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-		o, err := body.SectionOutline(t.Context(), f, units.Millimeters(0.02))
+		o, err := outlineAt(t, body, f)
 		if err != nil {
 			wheelBuildEr = err
 			return
@@ -65,7 +64,7 @@ func TestEscapementAction(t *testing.T) {
 			body, err := b.buildAnchor()
 			require.NoError(t, err)
 			f, _ := r3.NewFrame(r3.NewVec(0, 0, 23.5), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
-			o, err := body.SectionOutline(t.Context(), f, units.Millimeters(0.02))
+			o, err := outlineAt(t, body, f)
 			require.NoError(t, err)
 			anchor := simplify(outerLoop2(o.Loops, g.P), 0.004)
 			c := &checker{g: &g, in: actionInput{teeth: teeth, anchor: anchor}}

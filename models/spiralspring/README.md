@@ -69,7 +69,9 @@ From left to right: the default spring (60 mm), a 40 mm spring with 1.5 mm strip
 
 Print the spring flat with the axis vertical and no supports. Every layer holds the whole spiral, and the strip
 bends in the layer plane along its perimeters, so layer adhesion carries no bending load. At the default
-1.6 mm thickness the strip is four 0.4 mm extrusion lines wide.
+1.6 mm thickness the strip is four 0.4 mm extrusion lines wide. The strip thickens to 1.84 mm at the root, where
+the spoke joins the first turn, and the root corners are rounded with 0.8 mm fillets, so the root carries the
+peak bending stress with a lower stress concentration.
 
 Use PETG or nylon. PLA creeps under a constant load and cracks at a lower strain.
 

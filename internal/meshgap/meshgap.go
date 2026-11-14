@@ -226,7 +226,7 @@ func squaredPointTriangle(p r3.Vec, t [3]r3.Vec) float64 {
 	}
 	vc := d1*d4 - d3*d2
 	if vc <= 0 && d1 >= 0 && d3 <= 0 {
-		d := p.Sub(a.Add(ab.Scale(d1 / (d1 - d3))))
+		d := p.Sub(a.Add(ab.Scale(ratio(d1, d1-d3))))
 		return d.Dot(d)
 	}
 	cp := p.Sub(c)
@@ -236,12 +236,12 @@ func squaredPointTriangle(p r3.Vec, t [3]r3.Vec) float64 {
 	}
 	vb := d5*d2 - d1*d6
 	if vb <= 0 && d2 >= 0 && d6 <= 0 {
-		d := p.Sub(a.Add(ac.Scale(d2 / (d2 - d6))))
+		d := p.Sub(a.Add(ac.Scale(ratio(d2, d2-d6))))
 		return d.Dot(d)
 	}
 	va := d3*d6 - d5*d4
 	if va <= 0 && (d4-d3) >= 0 && (d5-d6) >= 0 {
-		w := (d4 - d3) / ((d4 - d3) + (d5 - d6))
+		w := ratio(d4-d3, (d4-d3)+(d5-d6))
 		d := p.Sub(b.Add(c.Sub(b).Scale(w)))
 		return d.Dot(d)
 	}
@@ -251,6 +251,15 @@ func squaredPointTriangle(p r3.Vec, t [3]r3.Vec) float64 {
 	}
 	d := p.Sub(a.Add(ab.Scale(vb / denom)).Add(ac.Scale(vc / denom)))
 	return d.Dot(d)
+}
+
+// ratio returns num/den, or 0 when den is 0. A sliver triangle whose vertices nearly coincide has such a denominator;
+// the vertex the edge parameter 0 selects is then as close as the sliver gets.
+func ratio(num, den float64) float64 {
+	if den == 0 {
+		return 0
+	}
+	return num / den
 }
 
 func squaredSegments(p1, q1, p2, q2 r3.Vec) float64 {

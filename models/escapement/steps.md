@@ -52,7 +52,9 @@ instructions.md. Constraints: the vertical spine sides `NewVertical` with `NewHo
 sx 4)`; the bottom edge `NewHorizontal` with `NewVerticalDistance(origin, A, -82)`; the top edge `NewHorizontal` with
 `NewVerticalDistance(origin, E, 62)`; the side edge `NewVertical` with `NewHorizontalDistance(origin, C, sx 44)`; each
 corner arc `NewRadius 6` and `NewTangent` to both of its lines; each hub arc `NewRadius 10` about its shared centre. The
-shared endpoints `F, H, I, J, K, L` are fixed by those lines and arcs, not by distances. On the right a clockwise arc from
+shared endpoints `F, H, I, J, K, L` are fixed by those lines and arcs, not by distances. The bottom and top edges and the spine
+lines are placed by `NewDistancePointLine(origin, line, d)` (so a fillet keeps them), and `sketch.CreateFillet` rounds the seven corners
+`A, F, H, I, J, K, L` with radius 1.0; the left window passes the legs in the other order. On the right a clockwise arc from
 `X` to `Y` is `CreateArc(centre, Y, X)`; on the left it is `CreateArc(centre, X, Y)`.
 
 Valid profile: 5 holes (front) or 7 holes (back). Extrude 6. Back plate: `Union(plate, four pillars)` (circles `r 5`, `z
@@ -84,7 +86,7 @@ revolve less the circular segment of each section beyond its flat over each span
 ### 13. Escape Wheel
 
 Sketch `escape disc` (`z 22`, `O`): root circle `r 33`; six windows of an inner arc `r 13`, an outer arc `r 28` and
-two lines each; each line `NewDistancePointLine(origin, line, 2.5)` and `NewAngle(xRef, line, σ)`. Valid profile: 6
+two lines each, the four corners of each window rounded with `sketch.CreateFillet`, radius 1.0; each line `NewDistancePointLine(origin, line, 2.5)` and `NewAngle(xRef, line, σ)`. Valid profile: 6
 holes. Extrude 3. Sketch `escape tooth` (`z 22`): `T` by H distance 0 and V distance 40; `L` and `B` on radius 32.5 with
 `NewAngle(TO, TL, -10°)` and `NewAngle(TO, TB, -30°)`. Valid profile: 0 holes. Extrude 3. `decad.PatternCopies` (circular, count 30, axis `+Z`
 through `O`); `Union(disc, tooth, copies...)`. Front counterbore sketch (`z 23.95`, `O`): circle `r 3.75`, extrude 2.05
@@ -103,7 +105,9 @@ pressure angle 20°, thickness 21, `Backlash`, no bore, placement origin `z 1.5`
 Sketch `anchor outline` (`z 21`, `P`): the 14 pieces of "Anchor outline" plus `xRef`. Arcs `NewRadius` `r_in`, `r_out`,
 `rh`; `C_E`, `F_E`, `C_X`, `F_X` polar points; arm inner lines by `NewAngle(xRef, line, a)` and
 `NewPointOnLine(origin, line)`; `K` on the `r_out` arc and on the inner line; arm ends `NewPerpendicular` and
-`NewDistancePointLine(M, inner, 6)`; outer sides `NewParallel`, `N` on the top hub arc. Valid profile: 0 holes.
+`NewDistancePointLine(M, inner, 6)`; outer sides `NewParallel`, `N` on the top hub arc. Then `sketch.CreateFillet` at the four inside corners: `H_E`, `H_X` (arm
+inner side to hub arc) with radius 3.0 and `G_E`, `G_X` (arm inner side to pallet arc) with radius 1.0; the arm inner lines carry their
+angle and `NewPointOnLine` before the fillet, and the leg order that verifies is the one the code uses. Valid profile: 0 holes.
 Extrude 5. There is no boss. Counterbore sketch (`z 24.70`, `P`): circle `r 3.75`, extrude 2.30 (tool `z [24.70, 27.0]`),
 `Cut`. Cut the D press bore (body family: arc `r 2.85`, chord `x 2.60`; tool `z 20`, height 8.75).
 `edgefinish.Chamfer` over `{21, 26}` keeping the outer loops and the counterbore's rim (the single-edge circle of radius
@@ -112,15 +116,16 @@ within `0.02 + OffSurface` of `C_E`, `F_E`, `C_X`, `F_X`, `M_E`, `M_X`; sketches
 
 ### 15. Crutch
 
-Sketch `crutch outline` (`z 35.30`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5`, end arc `r 4` centred by H/V
-distance `(0, -45)`. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 37.80`, origin at the end centre) circle `r 1.5`,
+Sketch `crutch outline` (`z 35.30`, `P`): hub arc `r 6`, vertical lines at `x = ±2.5` (each `NewVertical` and `NewDistancePointLine(origin, line, 2.5)`), end arc `r 4` centred by H/V
+distance `(0, -45)`. Round the two arm-to-hub corners with `sketch.CreateFillet`, radius 2.5. Valid profile: 0 holes. Extrude 3. Pin sketch (`z 37.80`, origin at the end centre) circle `r 1.5`,
 extrude 6.5; `Union`. Cut the keyed rear counterbore: `dTool` D outline (arc `r 3.75`, chord `x 3.35`) about `P` at `z 34.30`,
 extrude 3.0, flat on `+X` like the bore. Cut the D press socket (end family: `r 2.55`, flat `2.05`; tool `z 34.30`, height 5). Check: solid, area under 400 mm².
 
 ### 16. Pendulum
 
 Sketch `pendulum outline` (`z 38.80`, `S`): eye arc `r 10`, lines at `x = ±4`, bob arc `r 25` centred by H/V
-distance `(0, -Lp)`, lip circle `r 5`, slot (`CreateSlot`) with arc centres by H/V distance `(0, -61.25)` and
+distance `(0, -Lp)`, each rod line `NewVertical` and `NewDistancePointLine(origin, line, 4)`, the four rod corners rounded with
+`sketch.CreateFillet` radius 4.0, lip circle `r 5`, slot (`CreateSlot`) with arc centres by H/V distance `(0, -61.25)` and
 `(0, -56.75)`, radius 1.75. Valid profile: 2 holes. Extrude 6. Pocket sketch (`z 39.80`) circle `r 7.05`, extrude
 6, `Cut`. One chamfer over `{38.80, 44.80}`: outer loop, pocket rim (7.05), lip-bore rim (5). Check: solid, slot
 and pocket present, chamfered volume drop.
@@ -135,16 +140,19 @@ Circle `r 3.7` at `S`, `z 45.30`, extrude 1.5; cut the D press socket (`z 44.30`
 origin `z 1.5`. Counterbore sketch (`z 0.5`, `G`): circle `r 4.10`, extrude 3.0 (tool `z [0.5, 3.50]`); `Cut` it from
 the gear, then one `edgefinish.Chamfer` over `{1.5}` that keeps only the single-edge circle of radius 4.10 about the
 origin (the counterbore's rim), so the tooth flanks stay sharp. Ratchet tool: disc sketch (`z 5.0`, `G`) circle `r 11.5`; triangle sketch with polar points
-`(11.0∠0°)`, `(13.5∠30°)`, `(11.0∠30°)`; extrude both 4.5; pattern the triangle 12 times; `Union(disc, tooth,
+`(11.0∠0°)`, `(14.0∠30°)` (a plain point), `(11.0∠30°)`; the radial side `NewPointOnLine(origin, line)` and the slope side `NewAngle`; round the
+`14.0` corner with `sketch.CreateFillet`, radius 0.5; extrude both 4.5; pattern the triangle 12 times; `Union(disc, tooth,
 copies...)`; `Cut` from the wheel. Check: solid; outline at `z 7` shows 12 ratchet teeth; outline at `z 3` shows 48 teeth and the counterbore (`r 4.10`) as a hole; the rim is chamfered.
 
 ### 20. Pawl Carrier
 
-Built about the origin and moved onto `G` by the pose. Core sketch (`z 5.25`): circle `r 7.5`, valid profile with 0
-holes, extrude 4. Two pawl sketches (the pawl loop of instructions "Pawl Carrier", polar points, arcs `NewRadius` 7.0, 9.0,
-12.5, 10.5) at `g = 90° - δb` and `270° - δb`, extruded 4. Boss sketch (`z 8.75`): circle `r 4.2`, extrude 2.25.
-`Union(core, pawl0, pawl1, boss)`; cut the D press bore (sketch `z 4.25`, drive family: arc `r 3.10` and a vertical chord at
-`x 2.60`, extrude 7.75). Check: solid; pawl tips at the old drum's world angles; boss present at `z 10`, absent at `z 11.1`.
+Built about the origin and moved onto `G` by the pose. Pawl layer sketch (`z 5.25`): the one closed loop of instructions "Pawl
+Carrier" for both pawls (`g = 90° - δb` and `270° - δb`), valid profile with 0 holes, extrude 4. Core arcs `NewRadius 7.5`; the slot-end
+round is `CreateArc(centre, top, start)` with `NewTangentCircles(core, round, false)` and both end points polar (angle `c`), and no radius
+dimension; arcs `NewRadius` 9.0, 12.5, 10.5; the contact and back lines `NewAngle(xRef, line, a)`; then `sketch.CreateFillet` at the tooth root
+(0.5) and the block back (1.0). Boss sketch (`z 8.75`): circle `r 4.2`, extrude 2.25. `Union(layer, boss)`; cut the D press bore
+(sketch `z 4.25`, drive family: arc `r 3.10` and a vertical chord at `x 2.60`, extrude 7.75). Check: solid; pawl tips at the old drum's
+world angles; slot-end round present; boss present at `z 10`, absent at `z 11.1`.
 
 ### 21. Mainspring
 

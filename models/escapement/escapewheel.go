@@ -13,18 +13,19 @@ var zAxis = r3.Vec{Z: 1}
 
 // Escape wheel heights in mm.
 const (
-	wheelLow      = 22.0 // the wheel's rear face
-	wheelHigh     = 25.0
-	pinionRear    = 1.5
-	pinionLength  = 21.0
-	spokeHalf     = 2.5
-	windowInner   = 13.0
-	windowOuter   = 28.0
-	pressRadius   = 2.55 // the press-fit D bore: arc radius, 0.05 over the arbor's 2.5
-	pressFlat     = 2.05
-	reliefRadius  = 2.8
-	reliefFlat    = 2.3
-	boreToolReach = 0.75
+	wheelLow         = 22.0 // the wheel's rear face
+	wheelHigh        = 25.0
+	pinionRear       = 1.5
+	pinionLength     = 21.0
+	spokeHalf        = 2.5
+	windowInner      = 13.0
+	windowOuter      = 28.0
+	wheelWindowRound = 1.0  // the round at each corner of an escape wheel window
+	pressRadius      = 2.55 // the press-fit D bore: arc radius, 0.05 over the arbor's 2.5
+	pressFlat        = 2.05
+	reliefRadius     = 2.8
+	reliefFlat       = 2.3
+	boreToolReach    = 0.75
 	// The collar counterbores: radius 3.75 over the collar's 3.7 (a 0.05 press). The front one opens on the wheel's front
 	// face and stops on the arbor collar; the rear one opens on the pinion's rear face and stops the rear collar ring.
 	wheelCounterRadius = 3.75
@@ -61,6 +62,16 @@ func (b *builder) escapeDisc() (*decad.Body, error) {
 			sketch.NewAngle(ref, side1, s1/deg), sketch.NewDistancePointLine(o, side1, spokeHalf),
 			sketch.NewAngle(ref, side2, s2/deg), sketch.NewDistancePointLine(o, side2, spokeHalf),
 		)
+		// The four corners of the window are inside corners of the wheel: the sides keep their own position and
+		// direction, so the rounds leave the sketch fully constrained.
+		for i, c := range []struct {
+			before, after sketch.Entity
+			at            *sketch.Point
+		}{{inner, side1, a}, {side2, inner, bb}, {outer, side2, c}, {side1, outer, d}} {
+			if err := sketchFillet(s, c.before, c.after, c.at, wheelWindowRound); err != nil {
+				return nil, fmt.Errorf("%s: round window %d corner %d: %w", what, k+1, i+1, err)
+			}
+		}
 	}
 	return b.extrude(s, 6, wheelHigh-wheelLow, what)
 }

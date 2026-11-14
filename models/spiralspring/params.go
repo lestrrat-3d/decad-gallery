@@ -16,6 +16,10 @@ const (
 	ClearanceFloor = 0.2
 	// MaxTurns is the most turns the sketch's numerical conditioning allows.
 	MaxTurns = 40
+	// TaperFraction is the root taper offset e as a fraction of the thickness, when the fillets leave room.
+	TaperFraction = 0.075
+	// TaperMargin is the length in mm of the spoke's straight underside kept between the C3 and C4 fillets.
+	TaperMargin = 0.05
 )
 
 // Params configures a spiral spring. All lengths are in millimeters.
@@ -80,6 +84,7 @@ type Dimensions struct {
 	EyeHoleDiameter  float64 // D_hole
 	TailLength       float64 // L
 	FilletRadius     float64 // r_f
+	TaperOffset      float64 // e
 	ActiveLength     float64
 	WindStrain       float64
 }
@@ -178,14 +183,23 @@ func derive(p Params) (Dimensions, error) {
 	if n > MaxTurns {
 		return Dimensions{}, errf("at most %d turns are supported, got %d", MaxTurns, n)
 	}
-	if p.Placement != nil && !p.Placement.IsValid() {
-		return Dimensions{}, errf("Placement must be a valid frame")
-	}
-
 	pitch := (Rc - R) / float64(n+1)
 	g := pitch - t
 	d := pitch / 2
 	rho0 := R + g + d
+	rf := math.Min(t/2, g/2)
+	// The C4 fillet's contact on the spoke's underside L2 lies at x4. The C3 fillet's contact moves toward it as
+	// the taper offset e grows. eRoom is the e that leaves TaperMargin of straight L2 between them.
+	a := 2*t + rf
+	x4 := -math.Sqrt((R+rf)*(R+rf) - a*a)
+	q := TaperMargin + d - x4 + rho0 - rf
+	eRoom := rho0 - rf - (q*q+a*a)/(2*q)
+	if eRoom <= 0 {
+		return Dimensions{}, errf("HubDiameter and Gap leave no room for the root fillets")
+	}
+	if p.Placement != nil && !p.Placement.IsValid() {
+		return Dimensions{}, errf("Placement must be a valid frame")
+	}
 	rk := func(k int) float64 { return rho0 + float64(k)*d }
 	hole := p.AnchorPinDiameter + 2*p.AnchorClearance
 	re := hole/2 + t
@@ -210,7 +224,8 @@ func derive(p Params) (Dimensions, error) {
 		EyeRadius:        re,
 		EyeHoleDiameter:  hole,
 		TailLength:       l,
-		FilletRadius:     math.Min(t/2, g/4),
+		FilletRadius:     rf,
+		TaperOffset:      math.Min(TaperFraction*t, eRoom),
 		ActiveLength:     math.Pi * (2*nf*(rho0+t/2) + d*nf*(2*nf-1)),
 		WindStrain:       (t / 2) * (1/(R+t/2) - 1/(R+g+t/2)),
 	}, nil

@@ -141,6 +141,10 @@ MODEL_PR_TESTS = [
     "TestSpiralSpringParamsDefaults",
     "TestSpiralSpringParamsThicknessFloor",
     "TestSpiralSpringParamsTurnBoundary",
+    "TestSpiralSpringParamsRoot",
+    "TestSpiralSpringParamsRootRoom",
+    "TestSpiralSpringCorners",
+    "TestSpiralSpringRootThickness",
     "TestSpiralSpringParamsEyeFloor",
 ]
 
