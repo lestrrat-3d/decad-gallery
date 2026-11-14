@@ -41,7 +41,8 @@ rotor hub and the crank arm have a D-shaped bore that is pressed on, so the prin
 gear has a shaft collar behind it, because it is the only gear that could slide into a gear it does not mesh with.
 The 50- and 48-tooth gears look alike, and so do the 16- and 15-tooth pinions, so each gear has through holes that
 name its stage: one hole for stage 1 (the crank gear and the 16-tooth pinion) and two holes for stage 2 (the 48-tooth
-gear and the 15-tooth pinion).
+gear and the 15-tooth pinion). The crank arm, pin and handle are the [crank handle](../crankhandle/) model's 608-2RS
+crank.
 The gearbox is a sandwich of three printed pieces, a front plate, a frame and a rear plate, each printed flat so every
 bearing seat is a vertical hole. Six 608-2RS bearings carry the three shafts. The drum stands on three posts on the gearbox's left face, with the stator and the collector bolted to its left end.
 The horn bolts to the collector's forward face and points forward.
