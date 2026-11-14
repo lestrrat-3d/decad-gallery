@@ -31,6 +31,20 @@ Other dimensions below define this gallery design; they are not Ashford manufact
 
 Reuse the ballbearing construction by import.
 
+## Materials
+
+| Group | Material |
+|---|---|
+| frame, treadle, footman, wheel, bobbin, flyer (crossbar and arms) | timber, glued and bolted joints |
+| shaft, key, pin, collar, retainer, spacer, insert, fastener, spring, bearing, hinge | bought steel or brass stock |
+| bush | bought nylon sleeve |
+| drive-band, brake-band | cord |
+| yarn, yarn-pack, marker | visual only, not manufactured |
+| adjustment, anchor, brake-guide, crank, gimbal, guide, whorl, compliant | timber or bought metal, maker's choice; not printed |
+
+No part of this wheel is designed to be 3D-printed, so
+[Corners and roots](../../docs/model-pipeline.md#corners-and-roots) does not apply to it.
+
 ## API and parameters
 
 Package spinningwheel. Expose Params{Scale,WheelAngle,DriveTension,BrakeTravel,YarnFeedPerTurn float64; Ratio int}.
