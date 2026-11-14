@@ -97,6 +97,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	t.Run("outlet", func(t *testing.T) { requireOutlet(t, parts) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
+	t.Run("corners", func(t *testing.T) { requireCorners(t, p, parts) })
 	if p != handcranksiren.DefaultParams() {
 		// The variants prove only what Slots changes: the rotor's fits.
 		t.Run("rotor fits", func(t *testing.T) {
@@ -118,6 +119,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	t.Run("clearances", func(t *testing.T) { requireClearances(t, p, parts) })
 	t.Run("fasteners", func(t *testing.T) { requireFasteners(t, doc, p, parts) })
 	t.Run("marks", func(t *testing.T) { requireMarkHoles(t, p, parts) })
+	t.Run("press-fit walls", func(t *testing.T) { requirePressFitWalls(t, p, parts) })
 }
 
 // requireContainers checks that every body sits in the container for its kind and that the document verifies.

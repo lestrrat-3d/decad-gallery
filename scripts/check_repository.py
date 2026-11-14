@@ -12,7 +12,7 @@ MODEL_FILES = ("README.md", "instructions.md", "steps.md")
 # Models whose printed parts are not yet held to "Corners and roots" (docs/model-pipeline.md).
 # Remove a model in the change that adds its corner test.
 CORNER_PENDING = {
-    "bevelgear", "cycloidal", "handcrankfan", "handcranksiren",
+    "bevelgear", "cycloidal", "handcrankfan",
     "planetarygearbox", "screwgear",
 }
 # Models that build only purchased or standard parts kept at nominal size.

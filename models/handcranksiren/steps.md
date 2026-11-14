@@ -21,10 +21,13 @@ operations, their order and the checks.
   a slanted segment gets a horizontal distance from the origin; between a vertical and a slanted segment a vertical
   distance; between two slanted segments `sketchcheck.DimensionPoint`. A vertex between two axis-aligned segments gets
   nothing more. It returns an error when an axis-aligned segment passes through the origin.
-- `port(s, rIn, rOut, half)` draws the chord-sided port centred on +U with points p1 (rIn cos h, −rIn sin h),
+- `port(s, rIn, rOut, half, round)` draws the chord-sided port centred on +U with points p1 (rIn cos h, −rIn sin h),
   p2 (rIn cos h, +rIn sin h), p3 (rOut cos h, −rOut sin h), p4 (rOut cos h, +rOut sin h) and lines p1–p2, p3–p4, p1–p3,
-  p2–p4. Constraints: p1–p2 and p3–p4 vertical at distances `rIn cos h` and `rOut cos h` from the origin; the origin on
-  lines p1–p3 and p2–p4; `NewVerticalDistance` of ∓`rIn sin h` on p1 and p2. DOF 0.
+  p2–p4. Constraints: a horizontal construction line from the origin (distance 10); p1–p2 and p3–p4 vertical at
+  distances `rIn cos h` and `rOut cos h` from the origin; the origin on lines p1–p3 and p2–p4, which make angles −h
+  and +h with the construction line. When `round` is above 0, `sketch.CreateFillet` rounds the four corners
+  (inner/right at p1, left/inner at p2, right/outer at p3, outer/left at p4). The constraints name lines, so they
+  survive the fillets. DOF 0.
 - `dBoreTool(axis, from, length, clearance)`: a cylinder of radius 4.0 + clearance minus a box starting 3.25 +
   clearance from the axis toward +Z, ±5 across, 2 longer than the cylinder. Cut the box from the cylinder, then the tool
   from the host.
@@ -66,11 +69,11 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 `ConstructionAxis{(0, 0, 84), (0, 1, 0)}`. The horn's meridian has its own origin and axis (see `horn.go`).
 
 - `drum.go`: revolve the drum `meridianPolygon` (with the shaft hole's 0.5 chamfers); cut three
-  windows (`port(14, 24, 40°)` at Y −16.50, U at 60°, extruded 6, `Patterned` Count 3, then `Cut`);
+  windows (`port(14, 24, 40°, round 1)` at Y −16.50, U at 60°, extruded 6, `Patterned` Count 3, then `Cut`);
   `edgefinish.Chamfer(body, +Y, {−11.50, −15.50}, windows only (Long(Inner), more than one edge), 0.5)`; union three
   posts (radius 5 at radius 30, patterned); fastener cuts for drum-bolt and collector-bolt.
-- `rotor.go`: disc radius 45 over [−27.50, −24.50]; chamfer both cap outer loops 0.5 before any cut; vanes patterned
-  Count N; hub radius 9; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N))` at Y −28.50,
+- `rotor.go`: disc radius 45 over [−27.50, −24.50]; chamfer both cap outer loops 0.5 before any cut; vanes (rectangle u [11, 44], v [−1, 1], Y [−25.50, −16.50]) patterned
+  Count N; hub radius 9; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N), round 1)` at Y −28.50,
   extruded 5, patterned Count N, cut; D-bore `dBoreTool(R, −25.50, 10, 0.05)`.
 - `stator.go`: disc radius 58 over [−31.65, −28.65]; cap outer loops chamfered 0.5; the same ports; hole for each
   collector-bolt.

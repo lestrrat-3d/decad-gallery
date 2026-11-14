@@ -16,7 +16,7 @@ const (
 	rotorDiscThick  = 3.0
 	vaneFrom        = -25.50
 	vaneLength      = 9.0
-	vaneInner       = 8.5
+	vaneInner       = 11.0 // the vanes stop 2 mm short of the hub, so no 0.5 mm round is needed at their roots
 	vaneOuter       = 44.0
 	vaneHalfWidth   = 1.0
 	hubRadius       = 9.0
@@ -26,6 +26,7 @@ const (
 	portFrom        = -28.50 // the rotor's port tool starts here and runs 5, through the disc
 	portLength      = 5.0
 	chamfer         = 0.5
+	portRound       = 1.0 // the radius of each port and drum window corner
 )
 
 // discChamfer chamfers the outer loops of both end caps of an extruded disc.
@@ -47,7 +48,7 @@ func faceOnR(y float64) r3.Frame {
 // portsCut cuts the ring of Slots ports, starting at Y from, from disc.
 func (b *builder) portsCut(disc *decad.Body, from float64) *decad.Body {
 	s := b.section(faceOnR(from))
-	port(s, portRIn, portROut, math.Pi/(2*float64(b.p.Slots)))
+	b.fail("draw port", port(s, portRIn, portROut, math.Pi/(2*float64(b.p.Slots)), portRound))
 	return b.cut(disc, b.ring(b.extrude(s, 0, portLength), b.p.Slots))
 }
 

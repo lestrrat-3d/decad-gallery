@@ -24,6 +24,7 @@ and the nuts `models/m2nut`, all imported and not copied. Printed parts: everyth
 - Gear train clearances: both meshing pairs keep the tip-to-root clearance of 0.5 and the non-meshing gears keep their
   tip circles 0.5 apart. See Gear train clearances.
 - Surface edge finishing: see Edge finishing.
+- Corners and roots: see Retained sharp corners.
 - Body containers: see Containers.
 - Look-alike part marks: see Look-alike parts.
 - `models/README.md` marks the model **Mixed**.
@@ -195,11 +196,11 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
 - drum: a revolved meridian (4.9, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
   (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.9, −15.50), (4.4, −15.00),
   (4.4, −12.00) about the axis R along Y; the shaft hole's two 0.5 chamfers are in the meridian.
-  Three windows (chord-sided port 14 to 24 radius, half angle 40°, centred at 60°, 180°, 300°... patterned with
-  Count 3) are cut through the back plate. Three posts of radius 5 at radius 30 from R, Y [−12.50, −0.25] (angles 0°,
+  Three windows (chord-sided port 14 to 24 radius, half angle 40°, each corner rounded with radius 1, centred at
+  60°, 180°, 300°... patterned with Count 3) are cut through the back plate. Three posts of radius 5 at radius 30 from R, Y [−12.50, −0.25] (angles 0°,
   120°, 240°).
-- rotor: disc radius 45 over [−27.50, −24.50]; vanes u [8.5, 44], v [−1, 1], Y [−25.50, −16.50], one per slot, centred
-  on the lands; hub radius 9 from −25.50 for 9; ports (chord-sided, radii 30 to 42, half angle π/(2N)) cut through the
+- rotor: disc radius 45 over [−27.50, −24.50]; vanes u [11, 44], v [−1, 1], Y [−25.50, −16.50], one per slot, centred
+  on the lands; hub radius 9 from −25.50 for 9; ports (chord-sided, radii 30 to 42, half angle π/(2N), corners rounded with radius 1) cut through the
   disc; D-bore from −25.50 for 10, leaving a floor 2 thick.
 - stator: disc radius 58 over [−31.65, −28.65]; the same ports; a hole for each `collector-bolt-*`.
 - collector: a rounded-square box coaxial with R, Y [−96.90, −31.90]. Constants: rear face −31.90, ceiling −39.90,
@@ -215,12 +216,12 @@ Two sets of gears look alike, so each gear carries stage mark holes (see Look-al
   the cone runs to X −159.25. Vertices (u radius, v axial): A (22.5, 1.25), B (29.5, 1.25), C (30, 1.75), D (30, 8.75),
   E (29.5, 9.25), F (24.5, 9.25), G (51.1655, 108.7670), H (50.7949, 109.25), I (49.2949, 109.25),
   J (48.6655, 108.7670), K (22, 9.25), L (22, 1.75). Then the hole and cavity for each `throat-bolt-*`.
-- Port shape: chord-sided (straight inner and outer edges), not arc-sided. Decad refuses to pattern 20 arc-sided
-  instances.
+- Port shape: chord-sided (straight inner and outer edges) with a 1 mm round at each of the four corners. The
+  sketch rounds them with `sketch.CreateFillet`; the cut tool is patterned `Slots` times.
 - Air path: air enters through the 11.25 gap behind the drum, passes the three windows, and the vanes throw it outward to
   the port ring. It leaves through the ports whenever a rotor port lines up with a stator port, passes into the
   collector through its 88 mm bore, crosses the 92 × 92 × 52 cavity, turns 90 degrees through the throat (22 radius,
-  1520 mm², more than the 1352 mm² of open port area) in the collector's −X wall, and leaves along −X through the horn.
+  1520 mm², more than the 1334 mm² of open port area) in the collector's −X wall, and leaves along −X through the horn.
 
 ### Crank
 
@@ -295,6 +296,11 @@ Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at
 - `horn` prints with its flange mating face (X −51.25) down and the mouth up. Its four throat nuts sit near the bed.
 - `grip` prints with one X cap down. The ring profile is the layer shape, so it needs no support and no pause.
 - `crank-pin` prints head down.
+- `rotor` prints with its disc's front face (Y −27.50) down, the vanes and hub up.
+- `stator` prints with either face down.
+- The four gears print with either face down, their axes vertical.
+- `crank-arm` prints with its inner face (Y 38.6) down, its axis vertical.
+- The three shafts and the `crank-handle` print standing on an end.
 - `drum` prints standing on its flange's front face, and its back plate needs slicer support.
 
 ### Fits
@@ -347,13 +353,44 @@ outer loop, and require:
 - the centre distance equals `a1` or `a2` within 1e-9;
 - the L2 tip-to-frame gaps at that sample are at least 0.5.
 
+### Retained sharp corners
+
+The rule is "Corners and roots" in `docs/model-pipeline.md`. Each part is read in its print orientation (Print pause
+and the README): the axis is Y for every part except the horn and the grip, whose axis is X. Bolts, nuts and bearings
+are purchased parts. `TestHandCrankSirenDefault/corners` and the two variant cases cut every other part at the middle of
+each run of layers and allow only the listed exemption.
+
+| Part | Corner | Reason |
+| --- | --- | --- |
+| crank-arm | the six corners of the hexagonal pocket | Mating corners: they match the sharp corners of the pin's stub, as in `models/crankhandle`. |
+| crank-gear, intermediate-pinion, intermediate-gear, rotor-pinion | tooth flanks, tips and root fillets | Tooth generator; the checker does not flag them. |
+| the four gears, rotor hub, crank-arm | the two corners of each D-bore | Mating corners: they match the corners of the shaft's flat. They turn about 36 degrees, so the checker does not flag them. |
+| rotor | the roots of the vanes and the hub on the disc's back face | Between layers, opening upward when the disc prints face down; air drag only. |
+| drum | the posts' roots on the back plate's outer face; the wall's root on the back plate's inner face (r 46, Y −15.50); the flange step (r 49, Y −21.40) | Between layers. The posts are clamped by the drum bolts and carry little load. |
+| crank-shaft, intermediate-shaft, rotor-shaft | collar and end steps | Between layers; small loads, as the escapement's arbors. |
+| crank-pin | the steps between stub, shank and head | Between layers; the pin bolt clamps the stub. |
+
+Rounds below half their section:
+
+- The port and drum window corners: 1.0 mm on lands 4.7 to 6.6 mm wide. The rotor's centrifugal stress at 1200 rpm is
+  under 0.02 MPa and the stator is clamped, so the lands carry almost no load. The windows' lands carry no load: the
+  posts stand at r 30, outside the windows (r 14 to 24).
+
+The rotor's vanes start at r 11, 2 mm clear of the hub (r 9), because at 20 to 24 slots only 0.36 to 0.83 mm of hub
+lies between neighbouring vanes. Each vane ends in a square inner end, whose convex corners are 90 degrees. This costs
+0.85 % of the vanes' throw, which scales with r squared.
+
+The press-fit walls: a gear's bore keeps 1.80 mm to its stage-mark holes, the rotor hub 4.95 mm and the crank arm
+5.95 mm, each at least the 1.6 mm of the press-fit clause. `press-fit walls` (default only) sections each at the
+gear's mid-plane (Y 23.6 and 15.6), at Y −20.50 for the rotor and at Y 40.0 for the arm.
+
 ### Edge finishing
 
 | Body | Large planar faces | Finishing | Retained sharp |
 | --- | --- | --- | --- |
 | gearbox-front, gearbox-rear | both faces | `edgefinish` Long(All) 0.5 | bolt pockets and holes (loops < 20 mm) |
 | gearbox-frame | both ends | `edgefinish` Long(All) 0.5 | bolt holes (short) |
-| drum | back plate rear face, flange faces | meridian chamfers (outer corners and the shaft hole); `edgefinish` Long(Inner) on the windows | concave junctions (the posts) |
+| drum | back plate rear face, flange faces | meridian chamfers (outer corners and the shaft hole); `edgefinish` Long(Inner) on the rounded windows | concave junctions (the posts) |
 | stator | both faces | cap outer loops 0.5 | ports: functional chopping edge |
 | rotor | front face, disc back face | cap outer loops 0.5 | ports: functional chopping edge |
 | collector | rear face, end face, cavity ceiling, −X wall faces | `edgefinish` 0.5: Long(All) on Y −31.90 and −96.90; Long(Inner) on Y −39.90 and on X −51, −46 | concave cavity corners and the horn-side junctions; bolt pockets and holes (loops < 20 mm) |
@@ -381,7 +418,7 @@ Build every part at crank angle 0, pose it by its motion, move it into its conta
 
 `go test ./models/handcranksiren` covers the default and the `Slots` 12 and 24 variants: parts, sketches, containers,
 ports, outlet, orientation, overlap, fits R2 and L1 on the variants, and on the default also the grip, mesh,
-clearances, fasteners, sweep, tessellate, edges and marks checks.
+clearances, fasteners, sweep, tessellate, edges, marks and press-fit walls checks. The corners check runs on the default and both variants.
 
 - `outlet` (default and variants) sections the collector and the horn at `fitTolerance` 0.02: no material at radius 36
   about R in the collector at Y −35.90; no material at the throat centre or at radius 20 about it, and material at
