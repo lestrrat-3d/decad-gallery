@@ -33,7 +33,7 @@ to 24 slots the pitch at that crank speed runs from 240 Hz to 480 Hz. The rotor 
 between its ports, so it also works as a blower: air comes in through three windows in the drum's back plate, the vanes
 throw it outward to the port ring, and it leaves through the ports whenever a rotor port lines up with a stator port.
 The air then enters the collector, which turns it through a right angle into the horn, and the horn sends it forward.
-The direction of turn does not matter. The ports have straight sides rather than curved ones; the effect on the
+The direction of turn does not matter. The ports have straight sides with rounded corners rather than curved sides; the effect on the
 tone is small.
 
 The gears are [spur gears](../spurgear/) of module 1.5. Each shaft is 8 mm across, the bore of its bearings, with one flat, and each gear, the
@@ -73,6 +73,12 @@ and 2 mm high, so the nut has 0.2 mm of room on each face.
 | Horn | flange mating face down, mouth up | four, near the bed, for the throat bolts |
 | Grip | one flat side down | none |
 | Crank pin | upright, head down | one, for the pin bolt |
+| Rotor | disc front face down, vanes and hub up | none |
+| Stator | either face down | none |
+| Crank gear, intermediate pinion, intermediate gear, rotor pinion | either face down, axis vertical | none |
+| Crank arm | inner face down, axis vertical | none |
+| Crank handle | standing on its inner end | none |
+| Crank shaft, intermediate shaft, rotor shaft | standing on one end | none |
 
 The drum prints standing on its flange's front face, and its back plate needs slicer support. A siren takes 24 bolts (12
 of M2 x 16, 3 of M2 x 18, 5 of M2 x 10 and 4 of M2 x 20), 24 nuts and 6 608-2RS bearings.

@@ -289,24 +289,42 @@ func meridianPolygon(s *sketch.Sketch, pts []point2) error {
 
 // port draws the chord-sided port centred on +U: the points p1 (rIn cos h, −rIn sin h), p2 (rIn cos h, rIn sin h),
 // p3 (rOut cos h, −rOut sin h) and p4 (rOut cos h, rOut sin h) joined by the lines p1–p2, p3–p4, p1–p3 and p2–p4. The
-// lines p1–p2 and p3–p4 are vertical at their distances from the origin, the origin lies on p1–p3 and p2–p4, and p1
-// and p2 are placed by their vertical distance. half is the half angle in radians.
-func port(s *sketch.Sketch, rIn, rOut, half float64) {
+// lines p1–p2 and p3–p4 are vertical at their distances from the origin, and the radial lines p1–p3 and p2–p4 pass
+// through the origin at −h and +h from a horizontal construction line. Constraints that name lines rather than
+// corner points survive the rounds. half is the half angle in radians. When round is above 0, each of the four corners
+// is rounded with that radius.
+func port(s *sketch.Sketch, rIn, rOut, half, round float64) error {
 	if s == nil {
-		return
+		return nil
 	}
 	cos, sin := math.Cos(half), math.Sin(half)
 	p1, p2 := s.CreatePoint(rIn*cos, -rIn*sin), s.CreatePoint(rIn*cos, rIn*sin)
 	p3, p4 := s.CreatePoint(rOut*cos, -rOut*sin), s.CreatePoint(rOut*cos, rOut*sin)
 	inner, outer := s.CreateLine(p1, p2), s.CreateLine(p3, p4)
 	right, left := s.CreateLine(p1, p3), s.CreateLine(p2, p4)
+	x1 := s.CreatePoint(10, 0)
+	ref := s.CreateLine(s.Origin(), x1)
+	ref.SetConstruction(true)
+	deg := half * 180 / math.Pi
 	s.AddConstraint(
+		sketch.NewHorizontal(ref), sketch.NewDistance(s.Origin(), x1, 10),
 		sketch.NewVertical(inner), sketch.NewDistancePointLine(s.Origin(), inner, rIn*cos),
 		sketch.NewVertical(outer), sketch.NewDistancePointLine(s.Origin(), outer, rOut*cos),
 		sketch.NewPointOnLine(s.Origin(), right), sketch.NewPointOnLine(s.Origin(), left),
-		sketch.NewVerticalDistance(s.Origin(), p1, -rIn*sin),
-		sketch.NewVerticalDistance(s.Origin(), p2, rIn*sin),
+		sketch.NewAngle(ref, right, -deg), sketch.NewAngle(ref, left, deg),
 	)
+	if round == 0 {
+		return nil
+	}
+	for i, c := range []struct {
+		a, b *sketch.Line
+		at   *sketch.Point
+	}{{inner, right, p1}, {left, inner, p2}, {right, outer, p3}, {outer, left, p4}} {
+		if _, err := sketch.CreateFillet(s, c.a, c.b, c.at, round); err != nil {
+			return fmt.Errorf("round port corner %d: %w", i+1, err)
+		}
+	}
+	return nil
 }
 
 // dShape builds the D-shaped cylinder radius shaftRadius + clearance about a, from Y from for length, without the part
