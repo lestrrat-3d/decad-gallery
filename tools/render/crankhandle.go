@@ -221,6 +221,52 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
+	return c.renderPinHalves(ctx, filepath.Join(outputDir, "parts"))
+}
+
+// renderPinHalves writes one 480 × 270 image of each printed half of the pin: the real pin mesh clipped by the seam,
+// the plane through the pin axis normal to SplitNormal (local +Y), each lying on its cut face as it prints, with the pin
+// axis across the image. pin-half-heads.png is the +Y half, whose flats carry the cross bolts' head pockets;
+// pin-half-nuts.png is the -Y half, whose flats show only the bolts' holes over the enclosed nut cavities.
+func (c crankMeshes) renderPinHalves(ctx context.Context, dir string) error {
+	// The view frame of splitView: X along the pin axis, Y against SplitNormal, Z along local +X.
+	frame, err := r3.NewFrame(r3.Vec{Y: c.p.Throw}, r3.Vec{Z: 1}, r3.Vec{Y: -1})
+	if err != nil {
+		return err
+	}
+	place, err := r3.FromFrame(frame)
+	if err != nil {
+		return err
+	}
+	local, err := place.Inverse()
+	if err != nil {
+		return err
+	}
+	pinView := rotatedMesh{TriangleSource: c.mesh["pin"], move: local}
+	cut := solidlens.Material{Color: solidlens.RGB(.92, .62, .42), Unlit: true}
+	for _, half := range []struct {
+		file string
+		side float64 // the half's side of the seam in the view frame: -1 is the +Y half, +1 the -Y half
+	}{{"pin-half-heads.png", -1}, {"pin-half-nuts.png", 1}} {
+		clipped, err := solidlens.ClipMesh(pinView, solidlens.ClipPlane{Normal: solidlens.Vec{Y: -half.side}})
+		if err != nil {
+			return fmt.Errorf("clip pin half: %w", err)
+		}
+		// Turning the half by side·90° about X takes its side of the seam to +Z, so it lies on its cut face at Z = 0.
+		turn, err := r3.Rotation(r3.Vec{X: 1}, units.Radians(half.side*math.Pi/2))
+		if err != nil {
+			return err
+		}
+		model := crankModel(rotatedMesh{TriangleSource: clipped, move: turn}, crankArmColor)
+		model.BackMaterial = &cut
+		camera := solidlens.Camera{Position: solidlens.Vec{X: 10, Y: -45, Z: 55}, Target: solidlens.Vec{X: 31, Z: 2},
+			Up: solidlens.Vec{Z: 1}, FOV: 35}
+		models := []solidlens.Model{model}
+		scene := bevelScene(fitCamera(camera, models, 16.0/9, .08), models)
+		if err := renderPNG(ctx, filepath.Join(dir, half.file), scene, 480, 270); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -279,11 +325,14 @@ func (c crankMeshes) splitView(name string) (solidlens.Scene, error) {
 			}
 			models = append(models, m)
 		}
-		for part, at := range map[string]r3.Vec{
-			"cross-bolt-1": {Y: -gap - 9}, "cross-bolt-2": {Y: -gap - 9},
-			"cross-nut-1": {Y: gap}, "cross-nut-2": {Y: gap}, "bolt": {}, "nut": {},
+		for _, item := range []struct {
+			part string
+			at   r3.Vec
+		}{
+			{"cross-bolt-1", r3.Vec{Y: -gap - 9}}, {"cross-bolt-2", r3.Vec{Y: -gap - 9}},
+			{"cross-nut-1", r3.Vec{Y: gap}}, {"cross-nut-2", r3.Vec{Y: gap}}, {"bolt", r3.Vec{}}, {"nut", r3.Vec{}},
 		} {
-			mesh, err := moved(part, shift(at))
+			mesh, err := moved(item.part, shift(item.at))
 			if err != nil {
 				return solidlens.Scene{}, err
 			}

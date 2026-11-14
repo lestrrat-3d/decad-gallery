@@ -7,11 +7,15 @@ its crank from this model. The arm presses onto the shaft, a pin is clamped into
 and the handle turns freely on the pin, so your hand does not twist on it as you crank. The pin's head holds the handle
 on.
 
+The pin prints as two halves cut lengthwise, each lying flat on the bed, so its layers run along the pin and the hand's
+force bends it along the printed lines instead of pulling its layers apart. Two small M2 bolts across the pin clamp the
+halves together.
+
 The crank fits a shaft that runs in a purchased bearing, because the shaft's diameter equals the bearing's bore. The
 default fits the 5 mm shaft of a 605ZZ bearing. A second preset fits the 8 mm shaft of a 608-2RS (or 608ZZ) bearing; it
 is the siren's crank. The shaft is part of the mechanism the crank drives and is not in this model.
 
-**Clearance adjustment:** Mixed. The bore's clearance is a parameter; the bolt and nut keep their nominal size.
+**Clearance adjustment:** Mixed. The bore's clearance is a parameter; the bolts and nuts keep their nominal size.
 
 ## Views
 
@@ -26,32 +30,54 @@ the mechanism.
 
 ## How the parts go together
 
-![The crank cut through the shaft axis and the pin axis: the blind D bore, the pin's stub in the arm's pocket with the bolt and nut, and the handle round the pin's shank under its head](images/cutaway.png)
+![The crank cut through the shaft axis and the pin axis: the blind D bore, the pin's stub in the arm's pocket with the M2 x 10 bolt and nut, the two M2 x 6 cross bolts and nuts across the pin, and the handle round the pin's shank under its head](images/cutaway.png)
 
 The picture cuts the crank through the shaft axis and the pin axis.
 
 - The D bore is blind: 1 mm of arm closes it at the front, and the shaft's end stops there. The bore is 0.05 mm larger
   than the shaft all round, a press fit, so the arm turns with the shaft. You can raise that clearance up to 0.5 mm.
 - The pin's hexagonal stub sits in a hexagonal pocket in the arm with 0.25 mm of clearance on each flat, so the pin
-  cannot turn in the arm. An M2 x 10 bolt from the arm's back face runs into a nut held inside the stub and clamps it.
+  cannot turn in the arm. An M2 x 10 bolt from the arm's back face runs into a nut held inside the stub and holds the
+  pin in the arm.
+- Two M2 x 6 bolts cross the pin, one near each end of the handle. Each head sits flush on a small flat on one half,
+  and each bolt runs into a nut inside the other half, so the bolts clamp the halves together.
 - The handle's bore is 0.4 mm larger than the pin's shank all round, and the handle stands 0.4 mm clear of the arm and of
   the pin's head, so it turns freely. The head is wider than the handle's bore, so the handle cannot come off.
 
 ## Exploded
 
-![The crank pulled apart along the pin axis: the M2 x 10 bolt below the arm, the arm, the M2 nut, the handle, and the pin at the top](images/exploded.png)
+![The crank pulled apart along the pin axis, from the bottom: the M2 x 10 bolt, the arm, the M2 nut, the handle, and the pin at the top with its two M2 x 6 cross bolts pulled out to one side and their two M2 nuts to the other](images/exploded.png)
 
-From the bottom: the bolt, the arm, the nut, the handle and the pin.
+From the bottom: the M2 x 10 bolt, the arm, its nut, the handle, and the pin with its two cross bolts on one side and
+their nuts on the other.
+
+## The split pin
+
+![The pin's two halves pulled apart: the half with the head pockets in front with its two M2 x 6 bolts, the other half behind showing its cut face with the half groove for the M2 x 10 bolt and the half pocket for its nut, and the M2 x 10 bolt and nut between them](images/split.png)
+
+The pin's two halves meet on the plane through the pin's axis that lies across the arm, the direction your hand pushes
+the handle. That push then loads the two halves side by side, and they do not slide on each other.
+
+- One half carries the cross bolts' head pockets. The other encloses their nuts.
+- The M2 x 10 bolt that holds the pin in the arm runs along the seam. Its hole and its nut's pocket are split between
+  the halves, and the clamped halves hold the nut in.
+
+![The pin's two halves lying on their cut faces, as they print](images/print.png)
+
+Each half prints lying on its cut face, with no supports.
 
 ## Parts
 
 | Image | Name |
 | --- | --- |
 | <img src="images/parts/arm.png" alt="Arm" width="240"> | Arm (printed) |
-| <img src="images/parts/pin.png" alt="Pin" width="240"> | Pin (printed) |
+| <img src="images/parts/pin.png" alt="Pin" width="240"> | Pin, assembled from its two halves |
+| <img src="images/parts/pin-half-heads.png" alt="Pin half with the head pockets" width="240"> | Pin half with the cross bolts' head pockets (printed) |
+| <img src="images/parts/pin-half-nuts.png" alt="Pin half with the nut cavities" width="240"> | Pin half with the cross bolts' nuts inside (printed) |
 | <img src="images/parts/handle.png" alt="Handle" width="240"> | Handle (printed) |
-| <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)) |
-| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)) |
+| <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1 |
+| <img src="images/parts/cross-bolt.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2 |
+| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 |
 
 ## Sizes
 
@@ -71,15 +97,22 @@ All dimensions are in millimeters. `Params.Validate` rejects a value outside its
 | `Throw` | 55 | 55 | At least 20 |
 | `Placement` | none | none | A valid frame |
 
-`Throw` is the distance from the shaft's axis to the pin's axis. The arm, pin and handle keep the siren's sizes: the arm
-is 20 mm wide and 8 mm thick, and the handle is 50 mm long and up to 18.6 mm across.
+`Throw` is the distance from the shaft's axis to the pin's axis. The arm is 20 mm wide and 8 mm thick. The pin's shank
+is 10.3 mm across and its head 12.9 mm. The handle is 50 mm long and up to 18.6 mm across, with an 11.1 mm bore.
 
 ## Printing
 
-Print the arm on its back face, the pin upright on its head, and the handle upright on its inner end, with no supports.
-Pause the pin's print at 53.25 mm, drop the M2 nut into its cavity, and resume. To assemble, slide the handle onto the
-pin from the stub end, push the stub into the arm's pocket, drive the bolt in from the arm's back face, and press the
-arm onto the shaft.
+Print the arm on its back face and the handle upright on its inner end, with no supports. Print the pin as its two
+halves, each lying on its cut face, with no supports. Pause the print of the half with the nut cavities at 3.0 mm, drop
+an M2 nut into each cavity, and resume.
+
+To assemble:
+
+1. Drop the M2 x 10 bolt's nut into its half pocket in one pin half, and lay the other half on it.
+2. Push each M2 x 6 bolt through its head pocket into its nut in the other half, and tighten it.
+3. Slide the handle onto the pin from the stub end.
+4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
+5. Press the arm onto the shaft.
 
 For how to build this crank from Go, see the [developer notes](../../docs/models/crankhandle.md). The construction is
 in [instructions.md](instructions.md) and [steps.md](steps.md).
