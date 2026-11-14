@@ -146,6 +146,15 @@ MODEL_PR_TESTS = [
     "TestSpiralSpringCorners",
     "TestSpiralSpringRootThickness",
     "TestSpiralSpringParamsEyeFloor",
+    "TestCrankHandleCorners",
+    "TestCrankHandleContainers",
+    "TestCrankHandleDefault",
+    "TestCrankHandleBoreFit",
+    "TestCrankHandleFasteners",
+    "TestCrankHandleEdgeFinishing",
+    "TestCrankHandleGrip",
+    "TestCrankHandlePlacement",
+    "TestCrankHandleRejectsInvalidInputs",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -315,6 +324,7 @@ def run_models(mode: str) -> None:
                 "./models/pinring",
                 "./models/planetarygearbox",
                 "./models/spiralspring",
+                "./models/crankhandle",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",

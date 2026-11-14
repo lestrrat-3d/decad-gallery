@@ -37,6 +37,13 @@ var presets = map[string]preset{
 	"m2bolt/side":                 {width: 1600, height: 900, scene: m2BoltViewScene("side")},
 	"m2bolt/underside":            {width: 1600, height: 900, scene: m2BoltViewScene("underside")},
 	"m2bolt/lengths":              {width: 1600, height: 900, scene: m2BoltViewScene("lengths")},
+	"crankhandle/hero":            {width: 1600, height: 900, scene: crankHandleHero},
+	"crankhandle/back":            {width: 1600, height: 900, scene: crankHandleViewScene("back")},
+	"crankhandle/side":            {width: 1600, height: 900, scene: crankHandleViewScene("side")},
+	"crankhandle/tail":            {width: 1600, height: 900, scene: crankHandleViewScene("tail")},
+	"crankhandle/sizes":           {width: 1600, height: 900, scene: crankHandleViewScene("sizes")},
+	"crankhandle/cutaway":         {width: 1600, height: 900, scene: crankHandleViewScene("cutaway")},
+	"crankhandle/exploded":        {width: 1600, height: 900, scene: crankHandleViewScene("exploded")},
 	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
 	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
@@ -213,6 +220,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "spiralspring" {
 		return renderSpiralSpringReadme(ctx, outputDir)
+	}
+	if model == "crankhandle" {
+		return renderCrankHandleReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)
