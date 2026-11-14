@@ -43,7 +43,7 @@ section where the first sun sits on it. Where a bearing sits it is a full cylind
 thin-thick: a thin rod of the shaft diameter, and a thicker part of the shaft collar diameter with the same flat, a D section, that is
 pressed through the carrier's centre hole. The sun's bore and the carrier's hole are D-shaped to match, so the input
 shaft turns the first sun, and each link or output shaft turns its carrier and, for a link shaft, the next sun,
-without slipping. The flat also lets a coupling grip the input and output shaft ends. The contract does not model the
+without slipping. The input and output shafts each have a flat on the free end, 1 mm clear of the boss, so a coupling grips it. The contract does not model the
 coupling, a set screw or the motor.
 
 The input shaft carries a collar, a round bulge wider than the shaft, between the front bearing's inner race and the
@@ -248,7 +248,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - Bearing: a shaft bearing envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
   sun's top. It fills the front bearing's bore with no clearance and has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the shaft. Its flat runs
-  from the sun's lower face to the top.
+  from the sun's lower face to the top, and a second flat on the free end runs from `Li` outside the boss to 1 mm short of the boss.
 
 ## Axial layout
 

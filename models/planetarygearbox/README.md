@@ -72,7 +72,7 @@ sun's bore or the bearing. Only the input shaft keeps a collar.
 
 Each pin of the carrier is a separate part, shaped thin-thick: a 5 mm rod that carries the planet bearing and a 7.4 mm D-shaped thick part that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate, and passes through a D socket in the plate. The thick part ends level with the plate's upper face. It and its socket have 0.05 mm of clearance all round, a press fit, so the pin stays in the plate once pushed in. To assemble, lay the carrier upper face down on a flat surface and press each pin in, thick end first, until it meets the surface. Press the link or output shaft into the carrier from the upper face, with the lower face on the surface.
 
-The model does not show a set screw or the coupling to a motor. The input and output shafts' round ends, and the flat, are where a coupling or a set screw would grip.
+The model does not show a set screw or the coupling to a motor. Each of the input and output shafts has a D flat on its free end, 1 mm clear of the bearing boss, where a coupling or a set screw grips.
 
 ## Edge finishing
 

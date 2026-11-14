@@ -837,7 +837,7 @@ func TestShaftFlat(t *testing.T) {
 	segment := circleSegment(radius, p.FlatDepth)
 	collarRadius := shaftCollarDiameter.Base() / 2
 	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5 - 0.25)
-	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*p.GearThickness, v, bound+0.5)
+	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*(p.GearThickness+p.InputShaftLength-1), v, bound+0.5)
 }
 
 // TestOutputShaft checks the thin-thick output shaft: a D thick part level with the carrier's lower face, pressed
@@ -860,13 +860,18 @@ func TestOutputShaft(t *testing.T) {
 	thickRadius, radius := collarDiameter.Base()/2, shaftDiameter.Base()/2
 	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
 		(p.CarrierThickness+p.StageGap+p.CoverThickness-0.25) +
-		math.Pi*radius*radius*(5+p.OutputShaftLength+0.25)
+		math.Pi*radius*radius*(5+p.OutputShaftLength+0.25) -
+		circleSegment(radius, p.FlatDepth)*(p.OutputShaftLength-1)
 	v, bound := volume(t, output)
 	require.InDelta(t, want, v, bound+0.5)
 	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
 	require.Equal(t, decad.PointOutside, sectionLocate(t, output, r3.NewVec(3.45, 0, kz+p.CarrierThickness/2)), "flat")
 	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, top-0.5)), "thick part")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, output, r3.NewVec(-3, 0, top-0.125)), "thin rod")
+	// The free end has the flat on +X and is round on -X.
+	end := b.Max.Z - p.OutputShaftLength/2
+	require.Equal(t, decad.PointOutside, sectionLocate(t, output, r3.NewVec(radius-p.FlatDepth/2, 0, end)), "end flat")
+	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-(radius-0.2), 0, end)), "end round side")
 }
 
 func TestPhaseAngles(t *testing.T) {
