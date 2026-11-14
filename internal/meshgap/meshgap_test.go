@@ -122,3 +122,28 @@ func TestDegenerateTriangleHasFiniteGap(t *testing.T) {
 	require.False(t, separated)
 	require.InDelta(t, 2, gap, 1e-5)
 }
+
+func TestPointDistanceToBearingBoundary(t *testing.T) {
+	p := ballbearing.DefaultParams()
+	m := bearingMesh(t, p, r3.Vec{})
+	require.Positive(t, m.Bound())
+	for _, test := range []struct {
+		name  string
+		point r3.Vec
+		want  float64
+	}{
+		{"above_cap", r3.Vec{X: p.OuterDiameter / 2, Z: p.Width + 3}, 3},
+		{"outside_rim", r3.Vec{X: p.OuterDiameter/2 + 2, Z: p.Width / 2}, 2},
+		{"in_bore", r3.Vec{Z: p.Width / 2}, p.BoreDiameter / 2},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := m.PointDistance(test.point)
+			require.NoError(t, err)
+			require.InDelta(t, test.want, got, m.Bound()+1e-6)
+		})
+	}
+	_, err := m.PointDistance(r3.Vec{X: math.Inf(1)})
+	require.ErrorContains(t, err, "nonfinite")
+	_, err = meshgap.Mesh{}.PointDistance(r3.Vec{})
+	require.ErrorContains(t, err, "empty mesh")
+}

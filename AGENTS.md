@@ -62,6 +62,7 @@
 - Give every separate printed part pressed on a shaft a wall of 1.6 mm or more round its press-fit bore, and print
   each such ring with its axis vertical. See [Corners and roots](docs/model-pipeline.md#corners-and-roots).
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
+- Apply [Split shafts](docs/model-pipeline.md#split-shafts) to every printed shaft, arbor and axle; never model the split.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.

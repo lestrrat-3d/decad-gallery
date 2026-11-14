@@ -23,6 +23,8 @@ rotor axis is `(0, y, 84)`, the crank axis `(60, y, 84)` and the intermediate ax
 The gears are `models/spurgear` bodies of module 1.5, and the ratio is exactly 10. The bolts are `models/m2bolt` bodies
 and the nuts `models/m2nut` bodies: 24 of each, with every head flush in a pocket and every nut in an enclosed
 cavity. The shared build steps live in `internal/gearroot`, `internal/edgefinish` and `internal/m2fastener`.
+The `split shafts` check runs `internal/splitcheck` on each shaft, as
+[Split shafts](../model-pipeline.md#split-shafts) requires.
 
 The default build runs every siren check. Slots 12 and 24 each run the full siren build and geometry checks. Run all
 three cases with:
