@@ -126,9 +126,13 @@ func TestBuildPlacementMovesTheWholeMechanism(t *testing.T) {
 // crest and one thickness face, and about 0.48 mm from the other, which is the roof face that
 // carries the 0.6 mm allowance. The readings are distances to the twisted wall, shorter than the
 // section's own 0.2 mm and 0.8 mm offsets because the wall tilts against the section plane.
-// Which face is the roof alternates with the gear and the side, as roofSide says. decad
-// reports a lower bound of zero for these distances, so the test checks the measured values
-// and does not prove clearance.
+// Which face is the roof alternates with the gear and the side, as roofSide says.
+//
+// DistanceToPoint returns a lower bound, and the cage's held mesh bound lowers it. The document's
+// rim split holds that bound at 0.033 mm or less, so the readings are 0.110 to 0.115 mm on the
+// faces that stand 0.19 mm away and 0.410 mm on the roof face. Under the earlier 0.19 mm bound they
+// read 0.19 and 0.48. The mesh distance is unchanged. The test pins the readings to 0.01
+// mm and does not prove clearance by itself.
 func TestBuildBoresFollowTheRibbonSurface(t *testing.T) {
 	t.Parallel()
 	p := shortParams()
@@ -150,9 +154,9 @@ func TestBuildBoresFollowTheRibbonSurface(t *testing.T) {
 				pt := screwgear.GearWorldForTest(p, gi, c.u, c.v, s)
 				d, err := m.Cage.DistanceToPoint(t.Context(), pt, units.Millimeters(0.5))
 				require.NoError(t, err)
-				want, tol := 0.19, 0.03
+				want, tol := 0.113, 0.01
 				if c.roof {
-					want, tol = 0.48, 0.05
+					want, tol = 0.41, 0.01
 				}
 				require.InDelta(t, want, d.Value.Base(), tol, "gear %d side %+.0f %s", gi, sign, c.name)
 			}
