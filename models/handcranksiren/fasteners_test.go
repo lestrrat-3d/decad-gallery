@@ -2,6 +2,7 @@ package handcranksiren_test
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -13,32 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// outward returns the extent of box in the direction n, which is a signed unit axis.
-func outward(box decad.Box, n r3.Vec) float64 {
-	switch {
-	case n.X > 0.5:
-		return box.Max.X
-	case n.X < -0.5:
-		return -box.Min.X
-	case n.Y > 0.5:
-		return box.Max.Y
-	case n.Y < -0.5:
-		return -box.Min.Y
-	case n.Z > 0.5:
-		return box.Max.Z
+// extent returns the least and the greatest offset along the unit vector d of body's mesh vertices, and the mesh's
+// bound. A bolt's head top, its tip and a nut's faces and corners are planar faces or edges of the body, so their
+// vertices are exact; the crank's fasteners turn with it, so their axes need not lie on a world axis.
+func extent(t *testing.T, body *decad.Body, d r3.Vec) (lo, hi, bound float64) {
+	t.Helper()
+	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.01), decad.WithVerification(decad.VerifyNone))
+	require.NoError(t, err)
+	lo, hi = math.Inf(1), math.Inf(-1)
+	for _, v := range mesh.Vertices() {
+		lo, hi = math.Min(lo, v.Dot(d)), math.Max(hi, v.Dot(d))
 	}
-	return -box.Min.Z
-}
-
-// along returns the extent of box along the axis that the unit vector d lies on.
-func along(box decad.Box, d r3.Vec) (lo, hi float64) {
-	switch {
-	case d.X > 0.5 || d.X < -0.5:
-		return box.Min.X, box.Max.X
-	case d.Y > 0.5 || d.Y < -0.5:
-		return box.Min.Y, box.Max.Y
-	}
-	return box.Min.Z, box.Max.Z
+	return lo, hi, mesh.Bound().Base()
 }
 
 // headPocketMid is the distance from the head top to the middle of the head pocket.
@@ -79,7 +66,7 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	all, err := handcranksiren.Fasteners(p)
 	require.NoError(t, err)
-	require.Len(t, all, 24)
+	require.Len(t, all, 27)
 	request := decad.ContactRequest{
 		PointResolution:  units.Millimeters(0.01),
 		NormalResolution: units.Radians(0.01),
@@ -96,8 +83,8 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		}
 
 		// Flush: the head's top face lies on the part's face.
-		box := bounds(t, parts[f.Bolt])
-		require.InDelta(t, f.Head.Dot(f.Dir.Scale(-1)), outward(box, f.Dir.Scale(-1)), 2e-3+box.Bound.Base(), "%s head is flush", f.Bolt)
+		top, _, bound := extent(t, bolt, f.Dir)
+		require.InDelta(t, f.Head.Dot(f.Dir), top, 2e-3+bound, "%s head is flush", f.Bolt)
 		// The part's section just under the face has material beside the head's pocket and none around it on the
 		// face's other side, so the face is the head's top plane. The pocket itself is empty.
 		under, over := host(f, headHost, 0.3), host(f, headHost, -0.3)
@@ -117,14 +104,18 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		}
 
 		// The nut floats in its cavity, and the part encloses the cavity on every side but the bolt hole.
-		nutBox := bounds(t, parts[f.Nut])
-		lo, hi := along(nutBox, f.Dir)
-		require.InDelta(t, m2nut.Thickness, hi-lo, 2e-3+nutBox.Bound.Base(), "%s thickness", f.Nut)
+		flat := f.Dir.Cross(f.Corner)
 		mid := (f.CavityNear + f.CavityFar) / 2
 		centre := f.Head.Add(f.Dir.Scale(mid))
-		got := r3.Vec{X: (nutBox.Min.X + nutBox.Max.X) / 2, Y: (nutBox.Min.Y + nutBox.Max.Y) / 2, Z: (nutBox.Min.Z + nutBox.Max.Z) / 2}
-		require.Less(t, got.Sub(centre).Len(), 0.01+nutBox.Bound.Base(), "%s is centred in its cavity", f.Nut)
-		flat := f.Dir.Cross(f.Corner)
+		var off [3]float64
+		for i, d := range []r3.Vec{f.Dir, f.Corner, flat} {
+			lo, hi, bound := extent(t, nut, d)
+			if i == 0 {
+				require.InDelta(t, m2nut.Thickness, hi-lo, 2e-3+bound, "%s thickness", f.Nut)
+			}
+			off[i] = (lo+hi)/2 - centre.Dot(d)
+			require.Less(t, math.Abs(off[i]), 0.01+bound, "%s is centred in its cavity", f.Nut)
+		}
 		// The cavity's section is a hole loop with the part's material round it. The floor and the roof beside the
 		// cavity are solid except for the bolt hole, so the cavity is closed on every side but the hole.
 		wall := host(f, nutHost, mid)
@@ -147,7 +138,15 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		}
 		tip := m2bolt.HeadHeight + f.Length
 		require.True(t, host(f, nutHost, tip-0.3).contains(f.Corner.Scale(1.6)), "%s: the tip is held by the part", f.Bolt)
-		require.True(t, host(f, nutHost, tip+0.3).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
+		if strings.HasPrefix(f.Bolt, "crank-cross-bolt-") {
+			// A cross bolt's tip ends at the pin's far flat (models/crankhandle): the part holds material up to it, and
+			// the bolt ends there.
+			_, end, bound := extent(t, bolt, f.Dir)
+			require.InDelta(t, f.Head.Dot(f.Dir)+tip, end, 2e-3+bound, "%s: tip", f.Bolt)
+			require.True(t, host(f, nutHost, tip-0.05).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
+		} else {
+			require.True(t, host(f, nutHost, tip+0.3).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
+		}
 
 		// No overlap with the parts the fastener passes through.
 		contact := func(a, b *decad.Body) *decad.ContactReport {

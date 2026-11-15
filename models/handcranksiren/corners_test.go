@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/decad-gallery/models/handcranksiren"
 	"github.com/lestrrat-3d/r3"
@@ -14,35 +16,67 @@ import (
 )
 
 // requireCorners applies "Corners and roots" to every printed part in its print orientation: the horn and the grip
-// on their X caps, every other part along Y. Bolts, nuts and bearings are purchased parts. The one exemption matches
-// "Retained sharp corners" in instructions.md.
+// on their X caps, the crank pin's halves on their cut faces (print axis the split plane's normal, which runs along the
+// arm), every other part along Y. Bolts, nuts and bearings are purchased parts. The exemptions match "Retained sharp
+// corners" in instructions.md.
 func requireCorners(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	t.Helper()
 	state, err := handcranksiren.Motion(p)
 	require.NoError(t, err)
-	// The crank arm's hexagonal pocket keeps its six sharp corners to match the pin's stub (Mating corners), as in
-	// models/crankhandle. They lie PocketFlats/√3 from the pin axis.
-	pin := state.Crank.Add(state.ArmDirection.Scale(crankhandle.Params6082RS().Throw))
-	corner := crankhandle.PocketFlats / math.Sqrt(3)
-	exempt := map[string][]cornercheck.Exempt{
-		"crank-arm": {{
-			Reason: "hexagonal pocket corners",
-			Near:   cornercheck.Annulus(pin, r3.Vec{Y: 1}, corner-0.3, corner+0.3),
-		}},
-	}
+	exempt := crankExempt(t, p)
 	for _, name := range partNames() {
 		if strings.Contains(name, "-bolt") || strings.Contains(name, "-nut") || strings.HasPrefix(name, "bearing-") {
 			continue
 		}
 		axis := r3.Vec{Y: 1}
-		if name == "horn" || name == "grip" {
+		switch name {
+		case "horn", "grip":
 			axis = r3.Vec{X: 1}
+		case "crank-pin":
+			axis = state.ArmDirection
 		}
 		t.Run(name, func(t *testing.T) {
 			fs, err := cornercheck.Check(t.Context(), parts[name].Body, axis, exempt[name])
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 5))
 		})
+	}
+}
+
+// crankExempt lists the crank's retained corners as models/crankhandle lists them for its 608-2RS crank, read in
+// crankhandle's local frame (+Z out of the mechanism, +Y along the arm to the pin): the arm's hexagonal pocket, which
+// matches the pin's stub (Mating corners), the clamp bolt's head pocket floor rim, and the pin bolt's nut cavity rounds
+// in the pin's halves. crankhandle lists the slit's end round only for its long-throw crank, so the siren's 55 mm crank
+// has none.
+func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck.Exempt {
+	t.Helper()
+	toLocal, err := handcranksiren.CrankLocal(p)
+	require.NoError(t, err)
+	dm, err := crankhandle.Params6082RS().Derive()
+	require.NoError(t, err)
+	throw := crankhandle.Params6082RS().Throw
+	local := func(near func(r3.Vec) bool) func(r3.Vec) bool {
+		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
+	}
+	corner := crankhandle.PocketFlats / math.Sqrt(3)
+	return map[string][]cornercheck.Exempt{
+		"crank-arm": {{
+			Reason: "hexagonal pocket corners",
+			Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
+		}, {
+			Reason: "clamp head pocket floor rim",
+			Near: local(func(v r3.Vec) bool {
+				return math.Abs(v.X-(crankhandle.ArmRadius-m2fastener.HeadPocketDepth)) < 0.05 &&
+					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
+			}),
+		}},
+		"crank-pin": {{
+			Reason: "pin bolt nut cavity rounds",
+			Near: local(func(v r3.Vec) bool {
+				return math.Hypot(v.X, v.Y-throw) <= m2fastener.NutCavityRadius+0.05 &&
+					v.Z >= crankhandle.PinCavity-0.05 && v.Z <= crankhandle.PinCavity+m2fastener.NutCavityHeight+0.05
+			}),
+		}},
 	}
 }
 
@@ -92,7 +126,7 @@ func boreWall(t *testing.T, loops [][]r3.Vec, axis r3.Vec) float64 {
 
 // requirePressFitWalls requires every separate printed part pressed on a shaft to keep at least 1.6 mm of wall round
 // its bore (the press-fit clause of "Corners and roots"): the four gears at their mid-planes, the rotor in its vane
-// layer and the crank arm.
+// layer and the crank arm (requireArmWall).
 func requirePressFitWalls(t *testing.T, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	t.Helper()
 	state, err := handcranksiren.Motion(p)
@@ -104,7 +138,7 @@ func requirePressFitWalls(t *testing.T, p handcranksiren.Params, parts map[strin
 	}{
 		{"crank-gear", state.Crank, 23.6}, {"intermediate-pinion", state.Intermediate, 23.6},
 		{"intermediate-gear", state.Intermediate, 15.6}, {"rotor-pinion", state.Rotor, 15.6},
-		{"rotor", state.Rotor, -20.50}, {"crank-arm", state.Crank, 40.0},
+		{"rotor", state.Rotor, -20.50},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			section, err := parts[c.name].Body.SectionOutline(t.Context(), atY(t, c.y), units.Millimeters(roundFitTolerance))
@@ -113,4 +147,57 @@ func requirePressFitWalls(t *testing.T, p handcranksiren.Params, parts map[strin
 			require.GreaterOrEqual(t, wall, minPressWall-0.01, "%s: wall round the bore at Y %v", c.name, c.y)
 		})
 	}
+	t.Run("crank-arm", func(t *testing.T) { requireArmWall(t, p, parts["crank-arm"].Body) })
+}
+
+// requireArmWall measures the crank arm's wall round its D bore as models/crankhandle does: the slit joins the bore to
+// the outline, so the bore is the section's points within r_b + 0.1 of the axis outside the slit, read in crankhandle's
+// local frame, and the wall runs from them to every edge that is neither the bore nor the slit. It cuts the arm at Y
+// 40.0 and 45.1 (local z 1.4 and 6.5), below and above the clamp bolt's hole, whose 1.05 mm web over the slit is a
+// listed exception (instructions.md, "Retained sharp corners").
+func requireArmWall(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
+	t.Helper()
+	toLocal, err := handcranksiren.CrankLocal(p)
+	require.NoError(t, err)
+	dm, err := crankhandle.Params6082RS().Derive()
+	require.NoError(t, err)
+	half := crankhandle.SlitWidth / 2
+	for _, y := range []float64{40.0, 45.1} {
+		o, err := arm.SectionOutline(t.Context(), atY(t, y), units.Millimeters(armTolerance))
+		require.NoError(t, err)
+		bound := o.OffSurface.Base() + 1e-6
+		inSlit := func(v r3.Vec) bool { return math.Abs(v.X) <= half+bound && v.Y < 0 }
+		onBore := func(v r3.Vec) bool { return math.Hypot(v.X, v.Y) < dm.BoreRadius+0.1 && !inSlit(v) }
+		var bore []r3.Vec
+		var edges [][2]r3.Vec
+		for _, loop := range o.Loops {
+			for i := range loop {
+				a, b := toLocal.Apply(loop[i]), toLocal.Apply(loop[(i+1)%len(loop)])
+				if onBore(a) {
+					bore = append(bore, a)
+				}
+				if !onBore(a) && !onBore(b) && !inSlit(a) && !inSlit(b) {
+					edges = append(edges, [2]r3.Vec{a, b})
+				}
+			}
+		}
+		require.NotEmpty(t, bore, "Y %v: bore", y)
+		wall := math.Inf(1)
+		for _, v := range bore {
+			for _, e := range edges {
+				wall = math.Min(wall, planarSegment(v, e[0], e[1]))
+			}
+		}
+		require.GreaterOrEqual(t, wall, minPressWall-bound, "crank-arm: wall round the bore at Y %v", y)
+	}
+}
+
+// planarSegment is the distance from v to the segment ab in the local XY plane.
+func planarSegment(v, a, b r3.Vec) float64 {
+	dx, dy := b.X-a.X, b.Y-a.Y
+	f := 0.0
+	if l := dx*dx + dy*dy; l > 0 {
+		f = math.Max(0, math.Min(1, ((v.X-a.X)*dx+(v.Y-a.Y)*dy)/l))
+	}
+	return math.Hypot(v.X-a.X-f*dx, v.Y-a.Y-f*dy)
 }

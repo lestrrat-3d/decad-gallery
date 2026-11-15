@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
+	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/decad-gallery/models/handcranksiren"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -79,6 +80,14 @@ func requireChamfered(t *testing.T, name string, body *decad.Body, keep edgefini
 func requireChamferedAlong(t *testing.T, name string, body *decad.Body, normal, centre r3.Vec, keep edgefinish.LoopFilter,
 	offsets ...float64) rimExtent {
 	t.Helper()
+	return requireChamferedExcept(t, name, body, normal, centre, keep, nil, offsets...)
+}
+
+// requireChamferedExcept is requireChamferedAlong that leaves out the edges of a kept loop that sharp reports as listed
+// sharp edges. A nil sharp leaves out none.
+func requireChamferedExcept(t *testing.T, name string, body *decad.Body, normal, centre r3.Vec, keep edgefinish.LoopFilter,
+	sharp func(*decad.Edge) bool, offsets ...float64) rimExtent {
+	t.Helper()
 	faces := largeFaces(t, body, normal, offsets...)
 	require.NotEmpty(t, faces, "%s: large faces", name)
 	inf := math.Inf(1)
@@ -100,6 +109,9 @@ func requireChamferedAlong(t *testing.T, name string, body *decad.Body, normal, 
 				continue
 			}
 			for _, e := range edges {
+				if sharp != nil && sharp(e) {
+					continue
+				}
 				beside := 0
 				for _, other := range e.Faces() {
 					if other != f && bevelled(t, f, other, normal) {
@@ -176,8 +188,13 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 	require.InDelta(t, 7, gripRim.min.Z, tol, "grip rim")
 	require.InDelta(t, 123, gripRim.max.Z, tol, "grip rim")
 
-	// The crank arm's caps.
-	requireChamfered(t, "crank-arm", parts["crank-arm"].Body, edgefinish.Outer, 38.6, 46.6)
+	// The crank arm's caps, posed by the crank. The slit opens both faces' outlines: its walls and its end round stay
+	// sharp, as does the bore's rim in the back face, which the slit joins to the outline (models/crankhandle
+	// instructions.md, "Retained sharp corners and edges"). Every other edge of the outer loops is chamfered.
+	crankAxis, err := handcranksiren.PosePoint(p, "crank", r3.Vec{X: 60, Z: 84})
+	require.NoError(t, err)
+	requireChamferedExcept(t, "crank-arm", parts["crank-arm"].Body, r3.Vec{Y: 1}, crankAxis, edgefinish.Outer,
+		armSharpEdge(t, p), 38.6, 46.6)
 
 	// 48T and 50T gears: a 0.2 cap chamfer pulls the tips in 0.1 inside each cap.
 	state, err := handcranksiren.Motion(p)
@@ -210,6 +227,26 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 			require.NoError(t, err)
 			require.Less(t, area.Value.Base(), edgefinish.LargeFaceArea, "%s cap face", name)
 		}
+	}
+}
+
+// armSharpEdge reports whether an edge of the crank arm's faces is one crankhandle keeps sharp: both its ends, read in
+// crankhandle's local frame, lie on the slit's walls or end round (within SlitWidth/2 of x = 0, behind the shaft axis)
+// or on the D bore's outline (within r_b of the axis).
+func armSharpEdge(t *testing.T, p handcranksiren.Params) func(*decad.Edge) bool {
+	t.Helper()
+	toLocal, err := handcranksiren.CrankLocal(p)
+	require.NoError(t, err)
+	dm, err := crankhandle.Params6082RS().Derive()
+	require.NoError(t, err)
+	const slack = 1e-6
+	sharp := func(v r3.Vec) bool {
+		l := toLocal.Apply(v)
+		inSlit := math.Abs(l.X) <= crankhandle.SlitWidth/2+slack && l.Y < 0
+		return inSlit || math.Hypot(l.X, l.Y) <= dm.BoreRadius+slack
+	}
+	return func(e *decad.Edge) bool {
+		return sharp(e.Start().Position().Value) && sharp(e.End().Position().Value)
 	}
 }
 

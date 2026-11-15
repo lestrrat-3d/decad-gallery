@@ -177,6 +177,45 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 	return math.Max(0, math.Sqrt(best)-margin), true, nil
 }
 
+// PointDistance returns the distance from p to the nearest triangle of the mesh. It reads the triangles only and
+// does not charge the displacement bound; the caller adds Bound where it compares with the denoted body.
+// This reads immutable mesh data and may run concurrently on the same Mesh.
+func (m Mesh) PointDistance(p r3.Vec) (float64, error) {
+	if len(m.triangles) == 0 {
+		return 0, fmt.Errorf("meshgap: empty mesh")
+	}
+	if !finite(p.X) || !finite(p.Y) || !finite(p.Z) {
+		return 0, fmt.Errorf("meshgap: nonfinite query point")
+	}
+	query := triangle{lo: p, hi: p}
+	best := math.Inf(1)
+	pending := []int{0}
+	for len(pending) != 0 {
+		n := m.nodes[pending[len(pending)-1]]
+		pending = pending[:len(pending)-1]
+		if squaredBoxGap(query, triangle{lo: n.lo, hi: n.hi}) >= best {
+			continue
+		}
+		if n.left >= 0 {
+			pending = append(pending, n.left, n.right)
+			continue
+		}
+		for _, t := range m.triangles[n.start:n.end] {
+			if squaredBoxGap(query, t) >= best {
+				continue
+			}
+			best = math.Min(best, squaredPointTriangle(p, t.p))
+		}
+	}
+	if !finite(best) {
+		return 0, fmt.Errorf("meshgap: point distance is not finite")
+	}
+	return math.Sqrt(best), nil
+}
+
+// Bound returns the displacement bound New was given, in millimeters.
+func (m Mesh) Bound() float64 { return m.bound }
+
 func squaredBoxGap(a, b triangle) float64 {
 	x := math.Max(0, math.Max(a.lo.X-b.hi.X, b.lo.X-a.hi.X))
 	y := math.Max(0, math.Max(a.lo.Y-b.hi.Y, b.lo.Y-a.hi.Y))

@@ -24,6 +24,7 @@ var partGroups = map[string][]string{
 		"drum-bolt-1", "drum-bolt-2", "drum-bolt-3", "collector-bolt-1", "collector-bolt-2", "collector-bolt-3", "collector-bolt-4",
 		"throat-bolt-1", "throat-bolt-2", "throat-bolt-3", "throat-bolt-4",
 		"grip-bolt-1", "grip-bolt-2", "grip-bolt-3", "grip-bolt-4", "crank-pin-bolt",
+		"crank-cross-bolt-1", "crank-cross-bolt-2", "crank-clamp-bolt",
 	},
 	handcranksiren.NutsContainerName: {
 		"gearbox-front-nut-1", "gearbox-front-nut-2", "gearbox-front-nut-3", "gearbox-front-nut-4",
@@ -31,6 +32,7 @@ var partGroups = map[string][]string{
 		"drum-nut-1", "drum-nut-2", "drum-nut-3", "collector-nut-1", "collector-nut-2", "collector-nut-3", "collector-nut-4",
 		"throat-nut-1", "throat-nut-2", "throat-nut-3", "throat-nut-4",
 		"grip-nut-1", "grip-nut-2", "grip-nut-3", "grip-nut-4", "crank-pin-nut",
+		"crank-cross-nut-1", "crank-cross-nut-2", "crank-clamp-nut",
 	},
 	handcranksiren.ShaftsContainerName: {"crank-shaft", "intermediate-shaft", "rotor-shaft"},
 	handcranksiren.BearingsContainerName: {
@@ -80,7 +82,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	doc, parts, a := buildSiren(t, p)
 	names := partNames()
 	require.Len(t, a.Parts, len(names))
-	require.Len(t, a.Parts, 73)
+	require.Len(t, a.Parts, 79)
 	for _, name := range names {
 		require.Contains(t, parts, name)
 	}
@@ -97,6 +99,7 @@ func checkSiren(t *testing.T, p handcranksiren.Params) {
 	t.Run("outlet", func(t *testing.T) { requireOutlet(t, parts) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("overlap", func(t *testing.T) { requireNoOverlap(t, doc, p, parts) })
+	t.Run("split shafts", func(t *testing.T) { requireSplitShafts(t, a, parts) })
 	t.Run("corners", func(t *testing.T) { requireCorners(t, p, parts) })
 	if p != handcranksiren.DefaultParams() {
 		// The variants prove only what Slots changes: the rotor's fits.

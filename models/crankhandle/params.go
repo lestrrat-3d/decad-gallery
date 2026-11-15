@@ -17,7 +17,7 @@ const (
 	TightFit   = 0.2 + FitMargin  // 0.25: the pin's stub in the arm's hexagonal pocket
 	RegularFit = 0.35 + FitMargin // 0.40: the handle on the pin's shank, and its gap to the arm
 
-	ArmRadius    = 10.0 // the arm is a stadium 20 wide
+	ArmRadius    = 10.0 // the arm is 20 wide: its sides run at x = ±ArmRadius
 	ArmThickness = 8.0
 	BoreFloor    = 1.0 // the D bore is blind: 1 mm of arm closes it at the outer face
 	PinHoleR     = 1.3 // the pin bolt's clearance hole through the arm
@@ -26,26 +26,63 @@ const (
 	PocketLength = 5.75
 	StubFlats    = 7.03 // keeps 1 mm of stub round the nut cavity (radius 2.51)
 	StubFrom     = 3.5
-	StubLength   = 5.05
-	ShankR       = 4.5
-	ShankFrom    = 8.25
-	ShankTo      = 55.4
-	HeadR        = 5.8
-	HeadFrom     = 55.0
+	StubLength   = 5.8 // to z 9.3, where the shank's root cone has grown past the stub's corners
+	ShankR       = 5.15
+	ShankFrom    = 8.25 // the root cone starts here at radius RootR, inside the stub
+	RootR        = 3.5  // inside the stub's flats (3.515), so the cone starts inside the stub
+	ShankTo      = 52.75
+	HeadR        = 6.45
+	HeadFrom     = 55.0 // the head cone runs from ShankTo up to here
 	HeadLength   = 3.0
 	HandleFrom   = 7.4 // the handle sketch's origin, 1 behind the handle's inner end
 	PinBolt      = 10.0
 	PinCavity    = 4.75 // from the bolt head's top face, in the arm's back face, to the nut cavity's near face
 	PressWall    = 1.6  // the least wall round a press-fit bore (AGENTS.md "Verification")
 	ChamferSize  = 0.5  // the arm's face chamfer
+
+	// The pin prints as two halves split by the plane through its axis and local X, the direction of the hand's
+	// driving force ("Split shafts" in docs/model-pipeline.md). Two M2 x 6 cross bolts clamp the halves: each runs
+	// along -Y, normal to the seam, from a head pocket in the +Y half to a nut cavity in the -Y half. A double flat
+	// CrossFlat from the axis, parallel to the seam, seats the head flush and leaves the halves mirror images.
+	CrossBolt     = 6.0
+	CrossFlat     = 4.0  // the flats' distance from the pin axis, on both sides
+	CrossFlatHalf = 3.25 // half the flats' length along the pin: 1 mm of flat round the head pocket (radius 2.2)
+	CrossCavity   = 5.0  // from the head's top face to the nut cavity's near face: 1 mm of -Y half on each side
+	// ConeAngle is the half angle of the cones from the stub to the shank and from the shank to the head. A cut through
+	// the stub's hexagon reads the cone up to 1.8 times steeper, and 30 degrees keeps that turn under 50 degrees.
+	ConeAngle = 30.0
+
+	// The arm pinches the shaft. It keeps its full width past the shaft: its sides run straight on to a point
+	// ClampSideRun below the clamp bolt's axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
+	// join tangent. A slit SlitWidth wide runs along x = 0 from the end arc into the bore and ends in a full round in the
+	// bore's floor. The M2 x 16 clamp bolt crosses the whole width along -X: its head lies flush in the +X side face,
+	// and its nut sits in a cavity in the -X jaw from ClampNutFrom to ClampNutFrom + 2 from the axis.
+	ClampBolt     = 16.0
+	ClampNutFrom  = 5.0
+	ClampHoleWall = 1.05 // between the clamp bolt's hole and the bore, where the hole crosses the slit
+	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut cavity's ring (2.51), with margin
+	ClampCornerR  = 4.5
+	ClampEndR     = 22.0
+	SlitWidth     = 1.0
+	SlitInBore    = 1.0 // the slit runs this far past the bore's wall, so its round end lies in the bore's floor
+	// The nut cavity's two faces and the hole's blind end are rounded on their tools, so the arm's inside corners there
+	// pass "Corners and roots" in a section that cuts the rounds at a slant.
+	ClampCavityRound = 0.6
+	ClampHoleRound   = 0.7
 )
+
+// CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
+// short of the head cone.
+var CrossZ = [2]float64{17, 49}
 
 // HandleProfile is the handle's meridian: (distance along the pin from the sketch origin at HandleFrom, radius). A small
 // barrel with a waist and a flared outer end, with a bore for the pin's shank and a counterbore for its head. Every
 // corner is cut by a small chamfer, so the handle is made of cones and cylinders. The origin is 1 behind the inner end.
+// The bore (radius 5.55) clears the shank by RegularFit. Its top end is a 30 degree cone 0.4 mm off the pin's head
+// cone, into the counterbore (radius 7.05) that clears the head by 0.6 mm.
 var HandleProfile = [...][2]float64{
-	{1.5, 4.9}, {47.2, 4.9}, {47.2, 6.4}, {50.5, 6.4}, {51, 6.9}, {51, 8.3}, {49.8, 9.3},
-	{44, 8}, {37, 7.25}, {23, 8}, {9, 7.8}, {2.2, 7.2}, {1, 6}, {1, 5.4},
+	{1.5, 5.55}, {45.24, 5.55}, {47.84, 7.05}, {50.5, 7.05}, {51, 7.55}, {51, 8.3}, {49.8, 9.3},
+	{44, 8}, {37, 7.25}, {23, 8}, {9, 7.8}, {2.2, 7.2}, {1, 6.6}, {1, 6.05},
 }
 
 // Params specifies a crank in mm. The shaft runs in a purchased bearing, so its diameter equals the bearing's bore. A
@@ -87,6 +124,24 @@ type Dimensions struct {
 	// Site is the pin bolt: its head's top face is flush with the arm's back face at the pin axis, and it runs along
 	// +Z into the nut cavity in the pin's stub.
 	Site m2fastener.Site
+	// CrossSites are the two cross bolts that clamp the pin's halves, at CrossZ.
+	CrossSites [2]m2fastener.Site
+	// ClampY is the clamp bolt's axis, y = -(r_b + 1.3 + ClampHoleWall), at mid thickness. SideEnd is where the arm's
+	// sides stop being straight, ClampY - ClampSideRun. Reach is how far the end arc runs behind the shaft axis.
+	ClampY, SideEnd, Reach float64
+	// ClampSite is the clamp bolt: its head's top face is flush with the +X side face at (ArmRadius, ClampY), and it
+	// runs along -X with its nut cavity's near face ClampNutFrom from the axis.
+	ClampSite m2fastener.Site
+}
+
+// CornerCenter is the centre of the right corner arc; the left one is its mirror in x = 0. EndCenter is the centre of
+// the end arc, on x = 0.
+func (dm Dimensions) CornerCenter() r3.Vec { return r3.Vec{X: ArmRadius - ClampCornerR, Y: dm.SideEnd} }
+
+// EndCenter is the centre of the end arc, which touches both corner arcs from inside.
+func (dm Dimensions) EndCenter() r3.Vec {
+	dx := ArmRadius - ClampCornerR
+	return r3.Vec{Y: dm.SideEnd + math.Sqrt((ClampEndR-ClampCornerR)*(ClampEndR-ClampCornerR)-dx*dx)}
 }
 
 // Validate reports the first problem Derive finds.
@@ -140,6 +195,31 @@ func (p Params) Derive() (Dimensions, error) {
 	}
 	if err := dm.Site.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: %w", err)
+	}
+	dm.ClampY = -(dm.BoreRadius + m2fastener.HoleRadius + ClampHoleWall)
+	dm.SideEnd = dm.ClampY - ClampSideRun
+	dm.Reach = ClampEndR - dm.EndCenter().Y
+	dm.ClampSite = m2fastener.Site{
+		Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: ArmThickness / 2},
+		Dir:    r3.Vec{X: -1},
+		Corner: r3.Vec{Y: 1},
+		Length: ClampBolt,
+		Cavity: ArmRadius + ClampNutFrom,
+	}
+	if err := dm.ClampSite.Validate(); err != nil {
+		return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt: %w", err)
+	}
+	for i, z := range CrossZ {
+		dm.CrossSites[i] = m2fastener.Site{
+			Head:   r3.Vec{Y: p.Throw + CrossFlat, Z: z},
+			Dir:    r3.Vec{Y: -1},
+			Corner: r3.Vec{X: 1},
+			Length: CrossBolt,
+			Cavity: CrossCavity,
+		}
+		if err := dm.CrossSites[i].Validate(); err != nil {
+			return Dimensions{}, fmt.Errorf("crankhandle: cross bolt %d: %w", i+1, err)
+		}
 	}
 	return dm, nil
 }

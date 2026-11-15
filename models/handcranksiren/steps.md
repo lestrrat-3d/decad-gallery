@@ -97,7 +97,13 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
   (60, 38.6, 84), U (-1, 0, 0) and V (0, 0, 1). Fail when its shaft is not the crank shaft (diameter `2 shaftRadius`,
   flat at `flatOffset`). Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as crank-arm,
   crank-pin and crank-handle. `models/crankhandle/steps.md` lists the operations.
-- Check: the `sweep` subtest; rows T5, T6, T8, R3, R4, L5.
+- `crankSites` carries crankhandle's own sites from `Params6082RS().Derive()` (`Site`, `CrossSites`, `ClampSite`)
+  through the placement frame: crank-pin-bolt (head host crank-arm, nut host crank-pin), crank-cross-bolt-1 and -2
+  (both hosts crank-pin) and crank-clamp-bolt (both hosts crank-arm), all with motion `crank`. After `BuildParts`, fail
+  unless these equal the placed `Parts.Site`, `Parts.CrossSites` and `Parts.ClampSite`. Then `hardware` for each
+  `crank-` site; crankhandle has already cut every pocket, hole and cavity.
+- Check: the `sweep` and `split shafts` subtests; rows T5, T6, T8, R3, R4, L5. Sections of the arm use 0.0102, above
+  its mesh bound.
 
 ## 6a. Grip (`grip.go`)
 
@@ -116,7 +122,7 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 part, appending their sketches. `fastenerCuts` cuts the pocket, hole and cavity tools from `internal/m2fastener` per
 host (the flags decide which). The tools follow the AGENTS.md clearances: head pocket radius 2.2, hole radius 1.3, round nut cavity of radius 2.51
 and height 2.0. `Fasteners(p)` in `export_test.go` poses every site. Site order: gearbox-front,
-gearbox-rear, drum, collector, throat, grip, crank-pin. The prefixes are `collector-bolt` (nut host collector),
+gearbox-rear, drum, collector, throat, grip, crank-pin, crank-cross, crank-clamp. The prefixes are `collector-bolt` (nut host collector),
 `throat-bolt` (collector to horn) and `grip-bolt` (grip to gearbox-front).
 
 ## 8. Containers and pose (`containers.go`)
