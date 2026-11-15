@@ -17,6 +17,11 @@ import (
 // joinMeshBound is the mesh bound in mm that the straight tooth join is refined to.
 const joinMeshBound = 0.03
 
+// filletedJoinMeshBound is the bound a straight member with filleted roots is refined to. decad's sector cap
+// refinement is exhausted at 0.03 around the fillet's run-out wedge, and reaches 0.041 mm at 0.05. That is the
+// largest bound cornercheck.MaxMeshBound accepts, and the bored pinion keeps 0.009 mm under it.
+const filletedJoinMeshBound = 0.05
+
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
 type Params struct {
 	Module           float64
@@ -47,6 +52,10 @@ type Params struct {
 	// toward U by the shaft angle. Nil keeps the build frame: apex at the world origin, shafts
 	// in the world XY plane and the driving shaft on +X.
 	Placement *r3.Frame
+
+	// rootFillet draws the root fillet on a radial-flank tooth. Only the straight member sets it: the spiral
+	// member shares the point tooth, and the fillet does not clear its corners.
+	rootFillet bool
 }
 
 // DefaultParams returns the values from instructions.md.
@@ -318,6 +327,38 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 			return nil, fmt.Errorf("build reference blank: %w", err)
 		}
 	}
+	// The root fillet is drawn where it fits and where decad is known to certify the tooth join (see
+	// rootFilletMinVirtualTeeth). A member whose filleted join decad refuses anyway, as at some shaft angles, keeps
+	// the sharp root it had before the fillet, after the bodies of the refused attempt leave the document.
+	geometryParams.rootFillet = true
+	_, filleted := rootFilletFor(geometryParams)
+	before := map[*decad.Body]struct{}{}
+	for _, b := range doc.Bodies() {
+		before[b] = struct{}{}
+	}
+	joined, err := joinStraightTeeth(ctx, doc, c, f, blank, p, geometryParams, filleted)
+	if err != nil && filleted && (errors.Is(err, decad.ErrUnsupported) || errors.Is(err, decad.ErrDegenerate)) {
+		for _, b := range doc.Bodies() {
+			if _, ok := before[b]; ok {
+				continue
+			}
+			if err := decad.Remove(b); err != nil {
+				return nil, fmt.Errorf("remove the refused filleted tooth: %w", err)
+			}
+		}
+		geometryParams.rootFillet = false
+		joined, err = joinStraightTeeth(ctx, doc, c, f, blank, p, geometryParams, false)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return joined, nil
+}
+
+// joinStraightTeeth lofts one tooth, trims it, patterns it and joins it to blank. filleted tells that geometryParams
+// carry a root fillet, which decides the mesh bound that the join is refined to.
+func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Container, f shaftFrame,
+	blank *decad.Body, p, geometryParams Params, filleted bool) (*decad.Body, error) {
 	tooth, err := buildPointToothIn(ctx, doc, c, f, geometryParams)
 	if err != nil {
 		return nil, fmt.Errorf("loft point tooth: %w", err)
@@ -353,7 +394,11 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 	// The sector join holds a 0.1 mm mesh bound at its cone caps. The corner check reads sections of the
 	// finished gear and needs a bound of 0.05 mm or less after the bore cut, which loosens the join's bound
 	// a little, so rebuild the join finer first.
-	refined, err := decad.Refine(ctx, joined, units.Millimeters(joinMeshBound))
+	bound := joinMeshBound
+	if filleted {
+		bound = filletedJoinMeshBound
+	}
+	refined, err := decad.Refine(ctx, joined, units.Millimeters(bound))
 	switch {
 	case err == nil:
 		joined = refined

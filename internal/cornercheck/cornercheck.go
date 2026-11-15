@@ -161,11 +161,19 @@ func SplitHeights(point, normal r3.Vec, rMin float64) ([]float64, error) {
 	return out, nil
 }
 
-// Section cuts body with the plane normal to axis at the given offset and returns its findings.
-func Section(ctx context.Context, body *decad.Body, axis r3.Vec, height float64) ([]Finding, error) {
+// SectionOutline is a body's section by a plane normal to an axis: its loops, oriented so a convex corner turns
+// positive about Normal.
+type SectionOutline struct {
+	Loops  [][]r3.Vec
+	Normal r3.Vec
+}
+
+// Outline cuts body with the plane normal to axis at the given offset and returns the outline Section reads. It
+// holds the same mesh bound limit as Section.
+func Outline(ctx context.Context, body *decad.Body, axis r3.Vec, height float64) (SectionOutline, error) {
 	a, ok := axis.Normalize()
 	if !ok {
-		return nil, errors.New("cornercheck: zero axis")
+		return SectionOutline{}, errors.New("cornercheck: zero axis")
 	}
 	helper := r3.Vec{X: 1}
 	if math.Abs(a.X) > 0.9 {
@@ -174,23 +182,32 @@ func Section(ctx context.Context, body *decad.Body, axis r3.Vec, height float64)
 	u, _ := helper.Cross(a).Normalize()
 	frame, err := r3.NewFrame(a.Scale(height), u, a.Cross(u))
 	if err != nil {
-		return nil, fmt.Errorf("cornercheck: section frame: %w", err)
+		return SectionOutline{}, fmt.Errorf("cornercheck: section frame: %w", err)
 	}
 	outline, err := body.SectionOutline(ctx, frame, units.Millimeters(Tolerance))
 	var bound *decad.MeshBoundError
 	if errors.As(err, &bound) {
 		floor := bound.Floor().Base()
 		if floor > MaxMeshBound {
-			return nil, fmt.Errorf("cornercheck: held mesh bound %.3f mm exceeds %.2f mm", floor, MaxMeshBound)
+			return SectionOutline{}, fmt.Errorf("cornercheck: held mesh bound %.3f mm exceeds %.2f mm", floor, MaxMeshBound)
 		}
 		outline, err = body.SectionOutline(ctx, frame, bound.Floor())
 	}
 	if err != nil {
-		return nil, fmt.Errorf("cornercheck: section at %.3f: %w", height, err)
+		return SectionOutline{}, fmt.Errorf("cornercheck: section at %.3f: %w", height, err)
+	}
+	return SectionOutline{Loops: outline.Loops, Normal: frame.N()}, nil
+}
+
+// Section cuts body with the plane normal to axis at the given offset and returns its findings.
+func Section(ctx context.Context, body *decad.Body, axis r3.Vec, height float64) ([]Finding, error) {
+	outline, err := Outline(ctx, body, axis, height)
+	if err != nil {
+		return nil, err
 	}
 	var out []Finding
 	for _, loop := range outline.Loops {
-		out = append(out, scanLoop(loop, frame.N(), height)...)
+		out = append(out, scanLoop(loop, outline.Normal, height)...)
 	}
 	return out, nil
 }

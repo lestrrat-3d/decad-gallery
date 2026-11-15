@@ -116,7 +116,13 @@ func buildVirtualToothProfile(ctx context.Context, world *sketch.World, c *decad
 		return nil, nil, fmt.Errorf("left virtual flank: %w", err)
 	}
 	embedded := base < root
-	if embedded {
+	filletDims, filleted := rootFilletFor(p)
+	if filleted {
+		rightDrop := drawRadialRootFillet(s, rightPoints[0], right[0][0], right[0][1], filletDims)
+		leftDrop := drawRadialRootFillet(s, leftPoints[0], left[0][0], left[0][1], filletDims)
+		rootArc := s.CreateArc(center, rightDrop, leftDrop)
+		s.AddConstraint(sketch.NewRadius(rootArc, filletDims.root))
+	} else if embedded {
 		rootCircle := s.CreateCircle(center, root)
 		s.AddConstraint(sketch.NewRadius(rootCircle, root))
 	} else {
@@ -143,9 +149,13 @@ func buildVirtualToothProfile(ctx context.Context, world *sketch.World, c *decad
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, nil, fmt.Errorf("virtual tooth sketch has %d profiles; want one valid region", len(profiles))
 	}
-	if len(profiles[0].Outer) != 6 || len(profiles[0].Holes) != 0 {
-		return nil, nil, fmt.Errorf("virtual tooth outline has %d edges and %d holes; want six edges and no holes",
-			len(profiles[0].Outer), len(profiles[0].Holes))
+	wantEdges := 6
+	if filleted {
+		wantEdges = radialToothOutlineEdges
+	}
+	if len(profiles[0].Outer) != wantEdges || len(profiles[0].Holes) != 0 {
+		return nil, nil, fmt.Errorf("virtual tooth outline has %d edges and %d holes; want %d edges and no holes",
+			len(profiles[0].Outer), len(profiles[0].Holes), wantEdges)
 	}
 	return s, profiles[0], nil
 }

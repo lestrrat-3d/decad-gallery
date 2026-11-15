@@ -10,6 +10,8 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/rootcheck"
+	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -79,10 +81,10 @@ func earRootCorners(name string) []cornercheck.Exempt {
 // requireCorners applies "Corners and roots" to every printed part in its print orientation (the README's table).
 // The exemptions match "Retained sharp corners" in instructions.md. The bolts, nuts and bearings are purchased parts.
 // The driving gear's section is read at the one height MidHeights finds, 17.5, which cuts the hub behind the teeth, so
-// its teeth are not checked there. The pinion has no run of layers that share one outline, so MidHeights finds no
-// height and Check reads nothing of it. TestBevelToothRootCorners reads the teeth of both and records that their roots
-// are not rounded. The gearbox's ear roots are exempt by earRootCorners, which keeps this model on CORNER_PENDING in
-// scripts/check_repository.py until decad rounds them.
+// its teeth are not checked there: TestBevelToothRootCorners records that its roots are not rounded. The pinion has no
+// run of layers that share one outline, so it is read at the heights requirePinionRoots cuts through its teeth, where
+// the root fillet has no corner. The gearbox's ear roots are exempt by earRootCorners, and the driving gear's roots
+// are listed, which keeps this model on CORNER_PENDING in scripts/check_repository.py until they are rounded.
 func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	t.Helper()
 	state, err := handcrankfan.Motion(p)
@@ -151,6 +153,7 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 5))
 	})
+	t.Run("pinion", func(t *testing.T) { requirePinionRoots(t, state, parts["pinion"].Body, bore(state.Apex, y)) })
 	for k := 1; k <= p.Blades; k++ {
 		t.Run(fmt.Sprintf("fan-blade-%d", k), func(t *testing.T) { requireBladeCorners(t, p, state, k, parts) })
 	}
@@ -186,9 +189,49 @@ func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
 }
 
-// toothRoots cuts body, normal to axis through the apex, at each height and checks the bevel teeth's root corners.
-// A section holds the spline bore's six corners (r 4.15), where the bore reaches it, and one root corner per tooth on
-// the root cone. The cone's
+// pinionParams are the pinion's parameters as drive builds it: module 2, 14 teeth against the driving gear's 28.
+func pinionParams() bevelgear.Params {
+	p := bevelgear.DefaultParams()
+	p.Module, p.Teeth, p.MateTeeth, p.SpiralAngle = 2, 14, 28, 0
+	return p
+}
+
+// requirePinionRoots applies "Corners and roots" to the pinion's teeth, which carry a root fillet. It cuts the pinion
+// normal to its shaft, which runs from the apex toward -Y, at eight stations from the toe to the heel of the root
+// cone, and requires no inside corner there but the spline bore's. internal/rootcheck also requires that each section
+// cuts every tooth twice and that every root turns as a fillet: 20 to 50 degrees over 0.4 mm, and at most 15 degrees
+// over 0.05 mm. A sharp root turns 80 to 90 degrees at one vertex.
+func requirePinionRoots(t *testing.T, state handcrankfan.State, body *decad.Body, bore []cornercheck.Exempt) {
+	t.Helper()
+	p := pinionParams()
+	band, err := p.ToothBand()
+	require.NoError(t, err)
+	require.Equal(t, 14, band.Teeth)
+	require.Positive(t, band.RootFillet, "the pinion's roots carry a fillet")
+	secs, err := rootcheck.Read(t.Context(), body, band, state.Apex, r3.Vec{Y: -1}, r3.Vec{Y: 1})
+	require.NoError(t, err)
+	fs, err := cornercheck.CheckAt(t.Context(), body, r3.Vec{Y: 1}, rootcheck.SectionHeights(secs), bore)
+	require.NoError(t, err)
+	require.Zero(t, len(fs), cornercheck.Report(fs, 5))
+	inTeeth := 0
+	for _, sec := range secs {
+		if !sec.InTeeth {
+			continue
+		}
+		inTeeth++
+		require.Equal(t, 2*band.Teeth, sec.Crossings, "the section at %.2f cuts every tooth twice", sec.Station)
+		require.GreaterOrEqual(t, len(sec.Quarter), band.Teeth, "fillet turns at %.2f", sec.Station)
+		for _, turn := range sec.Quarter {
+			require.GreaterOrEqual(t, turn, rootcheck.QuarterMinTurn)
+			require.LessOrEqual(t, turn, cornercheck.InsideMaxTurn, "station %.2f", sec.Station)
+		}
+		require.Zero(t, sec.FineMax, "a sharp turn at station %.2f", sec.Station)
+	}
+	require.GreaterOrEqual(t, inTeeth, 5)
+}
+
+// toothRoots cuts body, normal to axis through the apex, at each height and checks the driving gear's root corners.
+// A section holds the spline bore's six corners (r 4.15) and one root corner per tooth on the root cone. The cone's
 // radius about the shaft at height h is r0 + slope*(h-h0). An empty or short section cannot pass, because it holds
 // fewer than the tooth count.
 func toothRoots(t *testing.T, body *decad.Body, axis, apex r3.Vec, teeth int, heights []float64, bores func(h float64) int,
@@ -218,23 +261,14 @@ func toothRoots(t *testing.T, body *decad.Body, axis, apex r3.Vec, teeth int, he
 	}
 }
 
-// TestBevelToothRootCorners records that the bevel pair's tooth roots have no fillet. Each tooth leaves one sharp
-// inside corner of about 83° (driving gear) or 89° (pinion) on its root cone, in every section through the teeth.
-// "Corners and roots" does not exempt them, so they are known findings, and the model stays on CORNER_PENDING until
-// bevelgear rounds them. The test fails when the roots are rounded or the geometry moves.
+// TestBevelToothRootCorners records that the driving gear's tooth roots have no fillet. Each of its teeth leaves one
+// sharp inside corner of about 83° on its root cone, in every section through the teeth. The gear's flank is an
+// involute that starts below the root, and a fillet tangent to it needs a sketch constraint and a decad join that do
+// not exist yet. "Corners and roots" does not exempt the corners, so they are known findings, and the model stays on
+// CORNER_PENDING until they are rounded. The pinion's roots are filleted and read by requirePinionRoots. The test
+// fails when the driving gear's roots are rounded or the geometry moves.
 func TestBevelToothRootCorners(t *testing.T) {
 	_, parts, a := sharedDefault(t)
-	t.Run("pinion", func(t *testing.T) {
-		// 28 teeth, y -28.25 to -24.25 (the teeth span y -28.75 to -23.75), root cone r 10.61 at y -26.25.
-		toothRoots(t, parts["pinion"].Body, r3.Vec{Y: 1}, a.State.Apex, 28,
-			[]float64{-28.25, -27.25, -26.25, -25.25, -24.25},
-			func(h float64) int { // the spline bore ends at y -26.75
-				if h < -26.75 {
-					return 6
-				}
-				return 0
-			}, 10.61, -26.25, -0.404, 88, 90.5)
-	})
 	t.Run("driving-gear", func(t *testing.T) {
 		// 56 teeth, x 14.14 to 16.14, root cone r 23.41 at x 14.14.
 		toothRoots(t, parts["driving-gear"].Body, r3.Vec{X: 1}, a.State.Apex, 56,

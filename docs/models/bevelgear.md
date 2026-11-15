@@ -29,6 +29,15 @@ after the join. The pinion and driving member share a pitch apex and follow the 
 rotations. The tooth band and the smooth back face meet at a sharp root, because the source joins them
 into one solid without a root fillet.
 
+## Root fillet of a straight member
+
+A straight member whose tooth flank is a radial line at the root, such as the fan's 14-tooth pinion, draws a root
+fillet of radius 0.38 Module in its back-cone tooth sketch, so the fillet scales along the cone. The fillet ends in a
+short straight run-out that crosses the blank's root at 10°, because decad cannot certify a tangent contact in the
+tooth join. The tooth join is refined to 0.05 mm, not 0.03 mm. See Root fillet in
+[`instructions.md`](../../models/bevelgear/instructions.md). A member whose fillet does not fit, or whose join decad
+refuses, keeps the sharp root.
+
 ## Images
 
 The [renderer](../rendering.md) builds the source-default pair and the 32/16 straight pair for the hero
