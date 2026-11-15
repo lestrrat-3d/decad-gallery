@@ -592,7 +592,7 @@ func TestCrankHandleCorners(t *testing.T) {
 // and in a case marked slitRound the slit's end round in the bore's floor.
 func armExempt(c crankCase, m *crankhandle.Model, pocket cornercheck.Exempt) []cornercheck.Exempt {
 	dm := m.Dimensions
-	floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight
+	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
 	out := []cornercheck.Exempt{pocket, {
 		// The pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm round of the
 		// floor's outline at a slant and reads it as a turn over 45 degrees (instructions.md, "Retained sharp corners").
@@ -765,8 +765,8 @@ func atX(t *testing.T, x float64) r3.Frame {
 	return f
 }
 
-// requireClampBolt checks the clamp bolt across the arm's hub: an M2 x 18 whose head's top face is flush with the +X
-// side face and inside its pocket, which crosses the slit and whose tip ends flush with the -X side face, and whose nut
+// requireClampBolt checks the clamp bolt across the arm's hub: an M2 x 16 whose head's top face is flush with the +X
+// side face and inside its pocket, which crosses the slit and whose tip ends inside the -X side face, and whose nut
 // lies inside its hexagonal pocket, below the -X side face; neither bolt nor nut shares volume with the arm in sections
 // along and across the bolt. It also checks the pocket: open to the -X side face, a hexagon whose flats the nut's
 // corners cannot pass, so the nut cannot turn, with room for the nut's corners.
@@ -774,7 +774,7 @@ func requireClampBolt(t *testing.T, m *crankhandle.Model) {
 	t.Helper()
 	dm, site := m.Dimensions, m.ClampSite
 	mid := crankhandle.ArmThickness / 2
-	floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight // the nut pocket's floor
+	floor := crankhandle.ArmRadius - site.Cavity // the nut pocket's floor
 	bb, err := m.ClampBolt.Body.Bounds()
 	require.NoError(t, err)
 	tol := bb.Bound.Base() + 2e-3
@@ -782,14 +782,14 @@ func requireClampBolt(t *testing.T, m *crankhandle.Model) {
 	require.Contains(t, m2bolt.StandardLengths(), site.Length)
 	require.InDelta(t, crankhandle.ArmRadius, bb.Max.X, tol, "clamp bolt: head top flush with the +X side face")
 	require.InDelta(t, crankhandle.ArmRadius-site.Tip(), bb.Min.X, tol, "clamp bolt: tip")
-	require.InDelta(t, -crankhandle.ArmRadius, bb.Min.X, tol, "clamp bolt: tip flush with the -X side face")
+	require.Greater(t, bb.Min.X, -crankhandle.ArmRadius+m2fastener.Stock, "clamp bolt: tip inside the -X side face")
 	require.Less(t, math.Max(math.Max(bb.Max.Y-dm.ClampY, dm.ClampY-bb.Min.Y), math.Max(bb.Max.Z-mid, mid-bb.Min.Z)),
 		m2fastener.HeadPocketRadius, "clamp bolt: head inside its pocket")
 	require.Less(t, bb.Min.X, -crankhandle.SlitWidth/2, "clamp bolt crosses the slit")
 	nb, err := m.ClampNut.Body.Bounds()
 	require.NoError(t, err)
 	ntol := nb.Bound.Base() + 2e-3
-	require.GreaterOrEqual(t, nb.Min.X, -crankhandle.ArmRadius+m2fastener.NutClearance-ntol, "clamp nut below the -X side face")
+	require.GreaterOrEqual(t, nb.Min.X, floor-m2fastener.NutCavityHeight-ntol, "clamp nut below the -X side face")
 	require.LessOrEqual(t, nb.Max.X, floor-m2fastener.NutClearance+ntol, "clamp nut inside its pocket")
 	require.Less(t, bb.Min.X, nb.Min.X, "clamp bolt runs through the whole nut")
 	for _, d := range []float64{nb.Min.Z - mid, nb.Max.Z - mid} {
@@ -846,7 +846,7 @@ func requireClampPocket(t *testing.T, m *crankhandle.Model) {
 	t.Helper()
 	dm := m.Dimensions
 	mid := crankhandle.ArmThickness / 2
-	floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight
+	floor := crankhandle.ArmRadius - m.ClampSite.Cavity
 	across := section(t, m.Arm, atX(t, -crankhandle.ArmRadius+1))
 	bound := across.OffSurface.Base() + 1e-3
 	near, far := math.Inf(1), math.Inf(-1)
@@ -925,7 +925,7 @@ func TestCrankHandleClampWalls(t *testing.T) {
 			require.NoError(t, err)
 			rad := m2fastener.NutCavityRadius
 			flat := rad * math.Sqrt(3) / 2
-			floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight
+			floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
 			pocketOutline := math.Inf(1)
 			for _, y := range []float64{dm.ClampY - flat, dm.ClampY + flat} {
 				pocketOutline = math.Min(pocketOutline, clampOutlineDistance(dm, floor, y))

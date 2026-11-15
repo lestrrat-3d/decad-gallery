@@ -50,7 +50,7 @@ hand-crank siren's crank colour with a dark handle. The `side` and `back` preset
 from that side. `exploded` pulls the parts along the pin axis: the bolt 18 mm down, the nut 16 mm, the handle 32 mm and
 the pin 75 mm up. `sizes` puts the 608-2RS crank 15 mm beside the default one. The `readme` shot builds each crank once
 and writes all of them, the index image and one 480 × 270 image of each part in `parts/`. `clamp-section` cuts the arm
-across the clamp nut's pocket at x = -9, and `cross-section` cuts the pin across the first cross nut's pocket at
+across the clamp nut's pocket at x = -7, and `cross-section` cuts the pin across the first cross nut's pocket at
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 

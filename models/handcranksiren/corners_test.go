@@ -60,7 +60,7 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
 	}
 	corner := crankhandle.PocketFlats / math.Sqrt(3)
-	floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight
+	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
 	return map[string][]cornercheck.Exempt{
 		"crank-arm": {{
 			Reason: "hexagonal pocket corners",
