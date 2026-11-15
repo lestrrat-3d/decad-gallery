@@ -266,10 +266,3 @@ the mechanism's).
 Assembly: press the back plate onto the shaft, outer face toward the mechanism; press the hub on; push each pawl head in
 with a finger and slide the ring over the hub, turning it in the freewheel direction; press the cover on; drive the
 three M2 x 16 bolts into the nuts and tighten.
-
-## Known decad limit (8 mm presets)
-
-The 8 mm presets (`608ZZ`, `608ZZ-gearbox`) chamfer the plates' D loop (25 mm, over the 20 mm rule). Decad then refuses
-every Boolean on the chamfered plate: "loop 1 of this cap-loop chamfer has a reflex corner, whose apex fan's stations no
-recorded window states at the corner ... and no boolean may compose it". The default 605ZZ (D loop 15.8 mm, not
-chamfered) is unaffected. Crank handle records the same refusal for its 608 bore (`models/crankhandle/steps.md`).
