@@ -158,11 +158,12 @@ func fitProblems(p Params, d dims) []string {
 			chord, 2*d.planetTip+looseGearClearance, looseGearClearance)
 	}
 	sunRoot := m*float64(p.SunTeeth)/2 - gearRootDepth(m)
-	if d.shaftBore/2 > sunRoot-m {
-		minSun := int(math.Ceil((d.shaftBore+2*gearRootDepth(m)+2*m)/m - 1e-9))
-		add("the %v mm shaft bore leaves less than one module of wall under the sun root; "+
-			"SunTeeth must be at least %d for the %g mm shaft at module %g%s",
-			d.shaftBore, minSun, d.shaftBore, m, suggestion(p))
+	minWall := math.Max(m, minPressFitWall)
+	if sunRoot-d.shaftBore/2 < minWall-1e-9 {
+		minSun := int(math.Ceil((d.shaftBore+2*gearRootDepth(m)+2*minWall)/m - 1e-9))
+		add("the %v mm sun bore leaves less than %g mm of wall under the sun root; "+
+			"SunTeeth must be at least %d for the %g mm shaft section at module %g%s",
+			d.shaftBore, minWall, minSun, d.sunShaft, m, suggestion(p))
 	}
 	planetW := planetBearing(p).Width
 	if p.GearThickness-planetW < lipThickness {

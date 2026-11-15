@@ -5,12 +5,13 @@
 ![The two-stage planetary gearbox of the planet608-shaft608 kit, fully assembled, with the ring gear and both end covers cut open to show the planets, carriers, shafts and bearings inside](images/kit-planet608-shaft608/hero.png)
 
 This kit uses 608ZZ bearings for the planets and for the shafts in the covers. Every shaft and every carrier pin is 8
-mm across where it passes a bearing or a sun, the bore of a 608ZZ, so it has no clearance in the bearing. A wider
-printed shaft or pin carries more torque.
+mm across where it passes a bearing, the bore of a 608ZZ, so it has no clearance in the bearing. Where a sun sits
+on it the shaft narrows to 6 mm, so the sun keeps 2.45 mm of wall between its bore and its tooth roots, over the 1.6 mm a
+pressed bore needs. A wider printed pin carries more torque.
 
 The kit has a 14-tooth sun, three 28-tooth planets and a 70-tooth ring. The default 13/29/71 teeth do not fit here:
-the 8.1 mm sun bore needs a sun of at least 14 teeth at module 1, and the 22.1 mm planet bearing pocket leaves 0.43 mm
-of wall under the planet's root circle beyond the one module the design needs, with 28 teeth. One stage slows the output
+the 22.1 mm planet bearing pocket leaves 0.43 mm of wall under the planet's root circle beyond the one module the
+design needs, with 28 teeth, and the kit keeps 14 sun teeth for the ratio. One stage slows the output
 to 1 ÷ 6 of the input speed (1 + 70 ÷ 14), and two stages slow it to 1 ÷ 36. The images show two stages in the same
 ring. The ring and both covers are cut open along a plane through the axis in the hero image; every other part is shown
 whole.
@@ -52,7 +53,8 @@ The parts, from the bottom of the picture:
 | Sun, planet and ring teeth | 13, 29, 71 | 14, 28, 70 |
 | One-stage ratio | 6.46 | 6 |
 | Shaft diameter | 5 mm | 8 mm |
-| Sun bore | 5.1 mm | 8.1 mm |
+| Shaft diameter through the sun | 5 mm | 6 mm |
+| Sun bore | 5.1 mm | 6.1 mm |
 | Shaft collar and thick part | 7.4 mm | 10.4 mm |
 | Cover bearing pocket | 14.1 mm | 22.1 mm |
 | Cover lip bore | 10 mm | 18 mm |
@@ -79,7 +81,7 @@ The gearbox has the same parts as the default. All five bearings are 608ZZ, draw
 | <img src="images/kit-planet608-shaft608/parts/sun.png" alt="Sun gear with 14 teeth" width="240"> | Sun gear |
 | <img src="images/kit-planet608-shaft608/parts/planet.png" alt="Planet gear with 28 teeth and a 22.1 mm bearing pocket" width="240"> | Planet gear |
 | <img src="images/kit-planet608-shaft608/parts/bearing.png" alt="608ZZ bearing" width="240"> | Bearing (608ZZ) |
-| <img src="images/kit-planet608-shaft608/parts/input-shaft.png" alt="Input shaft, 8 mm across, with its collar" width="240"> | Input shaft |
+| <img src="images/kit-planet608-shaft608/parts/input-shaft.png" alt="Input shaft, 8 mm across at the bearing and 6 mm across at the sun, with its collar" width="240"> | Input shaft |
 | <img src="images/kit-planet608-shaft608/parts/carrier.png" alt="Carrier with 14 mm pin bosses" width="240"> | Carrier |
 | <img src="images/kit-planet608-shaft608/parts/carrier-pin.png" alt="Carrier pin, 8 mm across, with its 10.4 mm thick part" width="240"> | Carrier pin |
 | <img src="images/kit-planet608-shaft608/parts/link-shaft.png" alt="Link shaft with its 10.4 mm thick part" width="240"> | Link shaft |

@@ -232,6 +232,11 @@ parallel to the print bed, at a height inside a run of layers that share one out
   least 0.8 mm thick (two lines).
   Make the wall round a press-fit bore or press-fit counterbore of a separate printed part at least 1.6 mm (four
   0.4 mm lines) over its whole pressed length, and print such a ring with its axis vertical.
+  This clause covers printed press-fit tubes: rings and bores that grip a printed or machined shaft or pin. It does
+  not cover the pocket that holds a purchased bearing. A bearing seat grips a purchased part with a small radial fit
+  and does not load a printed tube, so it keeps the wall the part needs for its own function instead. The known case
+  is the planetary gearbox 608ZZ planet bearing pocket, which leaves 1.43 mm of wall to the planet root circle in the
+  28-tooth kits (see `models/planetarygearbox/instructions.md`).
 - **Tips.** Keep the material angle at every outward corner of a section at 60° or more. Blunt a sharper tip
   with a flat at least 0.8 mm wide or a round of at least 0.4 mm radius.
 - **Corners between layers.** An inside corner along an edge parallel to the bed, such as the root of a pin

@@ -118,6 +118,10 @@ func (p Params) Ratio() float64 {
 	return math.Pow(stage, float64(p.Stages))
 }
 
+// SunBoreDiameter returns the diameter of the round part of each sun's bore, the diameter of the shaft section that
+// runs through a sun plus the press-fit clearance on both sides. A shaft wider than 6 mm narrows to 6 mm there.
+func SunBoreDiameter(p Params) float64 { return derive(p).shaftBore }
+
 // planetBearing is the catalog bearing each planet turns on. It is the zero Spec when p names no catalog bearing.
 func planetBearing(p Params) ballbearing.Spec {
 	b, _ := ballbearing.Lookup(p.PlanetBearing)
@@ -181,6 +185,14 @@ const (
 	// fit, tighter than the 0.2 mm Tight minimum of Part clearances, because the part stays in the plate or the sun
 	// turns with the shaft.
 	pressFitClearance = ballbearing.PressFitClearance
+	// maxSunShaft is the widest shaft section that runs through a sun. A shaft wider than this, one that rides in a
+	// 608ZZ bearing, narrows to this diameter where a sun sits on it. A sun bore for the full 8 mm shaft would leave a
+	// 1.45 mm wall to the tooth roots of a 14 tooth sun at module 1, under the 1.6 mm press-fit wall; a 6 mm shaft
+	// section leaves 2.45 mm.
+	maxSunShaft = 6.0
+	// minPressFitWall is the least wall round a press-fit bore of a separate printed part, from the Corners and roots
+	// clause of the model pipeline (four 0.4 mm lines).
+	minPressFitWall = 1.6
 	// stepOverlap is how far a thin rod reaches into its thick part, so the union crosses faces.
 	stepOverlap = 0.05
 	// minSocketWall is the plate material kept around a pin socket at mid-plate.
@@ -207,7 +219,7 @@ type dims struct {
 	pin, pinCollar               float64
 	planetPocket, planetLip      float64
 	boss, arm, collar            float64
-	shaft, shaftBore             float64
+	shaft, sunShaft, shaftBore   float64
 	coverPocket, coverLip        float64
 	coverBoss, coverHub          float64
 	boltCircle, rimInner         float64
@@ -231,7 +243,8 @@ func derive(p Params) dims {
 	d.planetPocket = pb.OuterDiameter + 2*p.BearingClearance
 	d.planetLip = pb.OuterDiameter - 2*lipWidth
 	d.shaft = sb.ShaftDiameter()
-	d.shaftBore = d.shaft + 2*pressFitClearance
+	d.sunShaft = math.Min(d.shaft, maxSunShaft)
+	d.shaftBore = d.sunShaft + 2*pressFitClearance
 	d.collar = d.shaft + 2*collarMargin
 	d.coverPocket = sb.OuterDiameter + 2*p.BearingClearance
 	d.coverLip = sb.OuterDiameter - 2*lipWidth

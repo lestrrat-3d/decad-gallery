@@ -139,6 +139,7 @@ func TestDefaultGearbox(t *testing.T) {
 		require.NoError(t, err, nb.Name)
 		require.Positive(t, v.Value.Base(), nb.Name)
 	}
+	requirePressFitWalls(t, box, p)
 	require.InDelta(t, 1+71.0/13, p.Ratio(), 1e-12)
 	rootClearance := minimumGearRootClearance(p.Module)
 	planetRoot, err := doc.Param("root_radius")
@@ -891,6 +892,7 @@ func TestTwoStages(t *testing.T) {
 	require.Len(t, doc.Bodies(), 46)
 	require.Len(t, box.Stages, 2)
 	requireContainers(t, doc, box)
+	requirePressFitWalls(t, box, p)
 	require.InDelta(t, (1+71.0/13)*(1+71.0/13), p.Ratio(), 1e-9)
 	pitch := p.GearThickness + p.CarrierThickness + 2*p.StageGap
 
