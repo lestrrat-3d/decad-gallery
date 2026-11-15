@@ -247,7 +247,7 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 }
 
 // ringSketch sketches the ring's outline on its lower face: the outside, with the three ears as its outer loop, and as
-// holes the tooth band's circle and the three ear bores. Each ear is a lug of half width EarRadius with a full end round,
+// holes the 24-tooth loop (toothLoop) and the three ear bores. Each ear is a lug of half width EarRadius with a full end round,
 // its sides parallel to the ear's axis and tangent to the end round, and each side meets the outside circle in a round of
 // EarRound. The ears are the same in both freewheel directions, so they are not mirrored. Each loop is drawn
 // counter-clockwise: outside arc, ear's right side, end round, left side, outside arc.
@@ -299,7 +299,9 @@ func (r *run) ringSketch() (*sketch.Sketch, error) {
 		)
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(e.c, m2fastener.HoleRadius), m2fastener.HoleRadius))
 	}
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, RingBand), RingBand))
+	if err := r.toothLoop(s, ps); err != nil {
+		return nil, err
+	}
 	// A fillet removes its corner point and the constraints on it, so each side keeps its parallel and tangent
 	// constraints and each outside arc its radius.
 	for k := range ears {
@@ -315,16 +317,11 @@ func (r *run) ringSketch() (*sketch.Sketch, error) {
 	return s, nil
 }
 
-// toothSketch sketches the ring's tooth tool on the plane z: the whole void inside the teeth, one closed loop. Lock face j
+// toothLoop adds the ring's tooth loop to s: the whole void inside the teeth, one closed loop. Lock face j
 // lies on the radial axis at LockAngle + 15 degrees * j from Q_j (ToothRoot) in to P_j (ToothTip); the ramp of tooth j
 // runs from P_j to Q_{j+1}; each Q_j is rounded by RootRound.
-func (r *run) toothSketch(z float64) (*sketch.Sketch, error) {
-	s, err := r.sketchOn(across(z))
-	if err != nil {
-		return nil, err
-	}
+func (r *run) toothLoop(s *sketch.Sketch, ps *polarSketch) error {
 	o := s.Origin()
-	ps := r.newPolar(s)
 	pitch := 360.0 / Teeth
 	rampDistance := r.dm.RampDistance
 	at := func(radius float64, j int) *sketch.Point {
@@ -350,10 +347,10 @@ func (r *run) toothSketch(z float64) (*sketch.Sketch, error) {
 	for j := range root {
 		prev := (j + Teeth - 1) % Teeth
 		if _, err := sketch.CreateFillet(s, ramp[prev], lock[j], root[j], RootRound); err != nil {
-			return nil, fmt.Errorf("round the root of tooth %d: %w", j+1, err)
+			return fmt.Errorf("round the root of tooth %d: %w", j+1, err)
 		}
 	}
-	return s, nil
+	return nil
 }
 
 // meridian sketches the closed polygon through the (r, z) vertices on the half plane holding the Z axis: U runs along +Z

@@ -154,8 +154,9 @@ func (r *run) hub() (*decad.Body, error) {
 	return body, nil
 }
 
-// ring extrudes the ring's outline (ringSketch) RingHeight along +Z, chamfers the whole outer loop of both end faces,
-// cuts the two counterbore tools and then the tooth tool. The ring is symmetric end for end.
+// ring extrudes the ring's outline (ringSketch) RingHeight along +Z, chamfers the whole outer loop of both end faces
+// and cuts the two counterbore tools. The outline holds the teeth, so the ring has no tooth cut. The ring is symmetric
+// end for end.
 func (r *run) ring() (*decad.Body, error) {
 	s, err := r.ringSketch()
 	if err != nil {
@@ -177,17 +178,6 @@ func (r *run) ring() (*decad.Body, error) {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut counterbore %d: %w", i+1, err)
 		}
-	}
-	ts, err := r.toothSketch(RingFrom - 1)
-	if err != nil {
-		return nil, fmt.Errorf("tooth tool sketch: %w", err)
-	}
-	tool, err := r.extrude(ts, 0, RingHeight+2)
-	if err != nil {
-		return nil, fmt.Errorf("tooth tool: %w", err)
-	}
-	if body, err = decad.Cut(r.ctx, body, tool); err != nil {
-		return nil, fmt.Errorf("cut teeth: %w", err)
 	}
 	return body, nil
 }
@@ -258,7 +248,7 @@ func (r *run) fastenerTools(build func(context.Context, *decad.Document, m2faste
 // RingBackTool and RingFrontTool are the ring's counterbore tools, closed meridians (r, z) revolved a full turn about Z
 // and cut from the extruded outline. Each takes the plate's rim in a counterbore of radius RingCounter, with a 45 degree
 // lead-in at the ring's end face and a 45 degree cone that holds the ring axially. The tool's flat at BandFrom or BandTo
-// becomes the teeth's end face once the tooth tool cuts the band's bore away. The front tool is the back one mirrored in
+// is the teeth's end face. The front tool is the back one mirrored in
 // the hub's mid-plane.
 var (
 	RingBackTool = [...][2]float64{

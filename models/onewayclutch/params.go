@@ -26,7 +26,6 @@ const (
 	ToothTip    = 14.5 // ring tooth tip radius R_tip
 	ToothRoot   = 17.0 // ring tooth root radius R_root
 	RootRound   = 0.8  // ring tooth root round, equal to HeadGap + TipRound
-	RingBand    = 13.5 // blank bore radius in the tooth band, all cut away by the tooth tool
 	RingCounter = 18.5 // ring counterbore radius
 	RingOuter   = 21.0 // ring outside radius (OD 42)
 	RingChamfer = 0.5  // lead-in of the ring's outer loop and counterbores at both ends

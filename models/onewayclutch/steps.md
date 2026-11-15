@@ -46,11 +46,13 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
   core_{k+1}, false)`. After all constraints, `sketch.CreateFillet(core, web, a, 1.0)` and `sketch.CreateFillet(flank,
   lock, A, 0.4)` for every pawl (a fillet removes its corner point and its constraints). Then `boreLoop` and
   `boltHoles`. Select the profile with four holes. Extrude 10 along +Z.
-- `toothSketch(z)` on `across(z)`: 24 tip points `P_j` and root points `Q_j` at the mirrored `14.5∠φ_j` and
+- `toothLoop(s, ps)` adds to a sketch: 24 tip points `P_j` and root points `Q_j` at the mirrored `14.5∠φ_j` and
   `17∠φ_j`, `φ_j = 90 + 15j`; `lock_j = CreateLine(Q_j, P_j)`, `ramp_j = CreateLine(P_j, Q_{j+1})`. Per `j`: axis at
   `φ_j`; `NewPointOnLine(P_j, axis)`, `NewDistance(O, P_j, 14.5)`, `NewParallel(axis, lock_j)`,
-  `NewDistancePointLine(O, ramp_j, 13.289)`. Then `CreateFillet(ramp_{j-1}, lock_j, Q_j, 0.8)` at every `Q_j`. Select
-  the profile with no hole. Extrude 20 along +Z from z = 0.25.
+  `NewDistancePointLine(O, ramp_j, 13.289)`. Then `CreateFillet(ramp_{j-1}, lock_j, Q_j, 0.8)` at every `Q_j`. It is
+  the ring outline's tooth hole.
+- `ringSketch()` on `across(RingFrom)`: the outline with three ears as its outer loop, and as holes the tooth loop and
+  three ear bores. See the ears design for the ear construction.
 - `meridian(vertices)`: the plane `r3.NewFrame((0, 0, 0), (0, 0, 1), (1, 0, 0))`; `DimensionPoint(z, r)` for each vertex,
   lines in order, closed; `decad.Revolve` about `ConstructionAxis{Origin: (0, 0, 0), Dir: (0, 0, 1)}` with
   `decad.FullRevolution{}`.
@@ -60,7 +62,9 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
 - `hub()`: `hubSketch`, extrude 10 along +Z, then one `edgefinish.ChamferRuns(body, +Z, [HubFrom, HubFrom+10],
   Long(All), Long(Inner), 0.5)` call: the arm arcs and inner runs of 20 mm or more, then the whole D loop at 8 mm
   (two decad calls, edges chosen on the prism). The head run stays sharp. No Boolean.
-- `ring()`: `meridian(RingMeridian)`, then `toothSketch(0.25)` extruded 20, then `decad.Cut(blank, tool)`.
+- `ring()`: `ringSketch` extruded `RingHeight` (4 holes), one `edgefinish.Chamfer(body, +Z, [RingFrom, RingTo],
+  Long(Outer), 0.5)`, then `decad.Cut` with `meridian(RingBackTool)` and `meridian(RingFrontTool)`. The outline holds
+  the teeth, so there is no tooth cut.
 - `plate(z, length, outerZ, inner, tools)`: `plateSketch(z)`, extrude `length` along +Z, then one
   `edgefinish.Chamfer(body, +Z, [outerZ], Long(All), 0.5)` call, which takes every outer-face loop of 20 mm or more (the
   outer circle, and the D loop at 8 mm), then `decad.Cut` with `meridian(inner)` and each fastener tool in order.

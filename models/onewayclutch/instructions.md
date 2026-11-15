@@ -67,7 +67,6 @@ The body does not change with the preset: only the D bore of the hub and both pl
 | `Pawls`, `Teeth` | 3, 24 | all three heads engage at once |
 | `ToothTip`, `ToothRoot` | 14.5, 17.0 | ring tooth tip and root radii |
 | `RootRound` | 0.8 | ring tooth root round, `HeadGap + TipRound` |
-| `RingBand` | 13.5 | blank bore radius in the tooth band, cut away by the tooth tool |
 | `RingCounter`, `RingOuter`, `RingChamfer` | 18.5, 21.0, 0.5 | counterbore, outside radius (OD 42), OD end lead-ins |
 | `CoreRadius` | 10.7 | hub core |
 | `SlotWidth`, `ArmThickness` | 2.05, 1.2 | slot under each arm; arm (three 0.4 mm lines, the bending-part minimum) |
