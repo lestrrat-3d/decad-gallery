@@ -54,8 +54,8 @@ shot. The presets `crankhandle/hero`, `side`, `back`, `cutaway`, `exploded`,
 Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm throw. For each they check:
 
 - every sketch's full constraint, the eleven bodies and their containers;
-- `cornercheck` on the arm and the handle (axis +Z, with the hexagonal pocket's corners and the clamp head pocket's
-  floor rim listed, and the slit's end round in the 80 mm throw) and on the pin with the split normal as its print
+- `cornercheck` on the arm and the handle (axis +Z, with the hexagonal pocket's corners, the clamp pocket's floor round
+  and the clamp head pocket's floor rim listed, and the slit's end round in the 80 mm throw) and on the pin with the split normal as its print
   axis (the cross pockets' corners listed);
 - the bore: every point lies `BoreClearance` outside the shaft's D section, it stops at its floor apart from the slit's
   round end, and the wall round it is at least 1.6 mm, or 1.05 mm over the clamp bolt's hole;
@@ -63,7 +63,7 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   in the floor 1 mm past the bore's wall;
 - the clamp bolt: an M2 x 18 with its head flush with the +X side face and inside its pocket, crossing the slit, its
   tip flush with the -X face, its nut inside its hexagonal pocket below that face, and no overlap with the arm in
-  sections along and across it; the pocket open to the -X face, its flats closer to the axis than the nut's corners
+  sections along and across it; the pocket open to the -X face with a corner up and one down, its flats closer to the axis than the nut's corners
   and its corners clear of them; and every wall round the clamp's cuts at least 1 mm, also for a 16.6 mm shaft;
 - the face chamfers: 0.25 mm inside each face the section stands 0.25 mm in from the pin end, the end arc and both
   sides;
@@ -71,9 +71,10 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   the arm in a cut through the pin axis (Regular);
 - the pin bolt: its head flush with the arm's back face, its tip inside the pin, the nut inside its cavity;
 - each cross bolt: its head flush with the +Y flat and inside its pocket, its tip at the -Y flat, its nut inside its
-  hexagonal pocket below that flat, the pocket open to the flat with its flats closer to the bolt than the nut's
+  hexagonal pocket below that flat, the pocket open to the flat with its corners across the pin and its flats closer to the bolt than the nut's
   corners, the bolt crossing the seam, no overlap with the pin in cuts parallel to the seam, and 1 mm or
-  more of pin round every pocket and cavity;
+  more of pin round every pocket and cavity, except the listed 0.73 mm wall round each nut pocket's corners at the
+  -Y flat (its value is pinned);
 - `splitcheck` on the pin with the split normal and both cross bolts' lines exempt: no violation, bridges no wider
   than 6 mm, and each half as high as the head's radius.
 

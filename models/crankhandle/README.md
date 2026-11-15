@@ -45,9 +45,13 @@ Tightening the bolt closes the slit and pinches the bore on the shaft.
 
 The nut's pocket is a hexagon 4.35 mm across its flats and 2 mm deep, open to the side face. Its flats stop the nut
 turning, so you tighten the bolt from the head's side alone, and the tightened bolt holds the nut in. The nut ends
-below the face. The pocket's roof is a short flat bridge, so the arm prints with no supports and no pause.
+below the face. One of the hexagon's diagonals runs along Z: a corner points up and one down, and the flats are its
+two sides. The pocket's roof is two short slopes that meet in the upper corner, each 30° above horizontal, so they
+print as a bridge and the arm needs no supports and no pause.
 
-The clamp keeps four listed exceptions to the gallery's rules ([instructions.md](instructions.md), "Retained sharp
+![A section across the clamp's nut pocket, half way down its depth: the hexagon with a corner up and one down and its flats on the sides, the M2 nut in it and the bolt through the nut](images/clamp-section.png)
+
+The clamp keeps five listed exceptions to the gallery's rules ([instructions.md](instructions.md), "Retained sharp
 corners and edges"):
 
 - The slit's edge in the front face stays sharp. The slit is the working 1 mm clamp gap, and a 0.5 mm chamfer would
@@ -56,6 +60,7 @@ corners and edges"):
   slit makes the hub a clamp, so no pressed ring is loaded there.
 - The clamp bolt's head pocket keeps a sharp floor rim. The 0.3 mm head clearance leaves no room to round it.
 - The nut pocket keeps its six hexagon corners sharp, to match the nut's sharp corners.
+- The pocket's floor round (0.6 mm) is cut at a slant by the layers, which read it as a turn over 45°.
 
 ## How the parts go together
 
@@ -92,8 +97,13 @@ the handle. That push then loads the two halves side by side, and they do not sl
 
 - One half carries the cross bolts' head pockets. The other holds their nuts in hex pockets open to its outer flat,
   and each bolt holds its nut there.
+- Each nut pocket's corners point across the pin and its flats lie along the pin's axis. That leaves 0.73 mm of pin
+  between a corner and the shank's round at the flat, under the 1 mm the gallery asks for. The corners along the axis
+  would keep 1.07 mm. [instructions.md](instructions.md) lists this as an exception to confirm.
 - The M2 x 10 bolt that holds the pin in the arm runs along the seam. Its hole and its nut's pocket are split between
   the halves, and the clamped halves hold the nut in.
+
+![A section across a cross bolt's nut pocket, half way down its depth: the hexagon with its corners pointing across the pin and its flats along the pin's axis, the M2 nut in it and the bolt through the nut](images/cross-section.png)
 
 ![The pin's two halves lying on their cut faces, as they print](images/print.png)
 
