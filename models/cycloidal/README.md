@@ -40,13 +40,29 @@ separately because each pin is its own body.
 | <img src="images/parts/output-pin-5.png" alt="Output Pin 5" width="240"> | Output Pin 5 |
 | <img src="images/parts/output-pin-6.png" alt="Output Pin 6" width="240"> | Output Pin 6 |
 
+## Printing
+
+Print each part in this orientation, axis vertical:
+
+| Part | Orientation |
+| --- | --- |
+| Rotor discs | Flat, either face down. |
+| Housing | Base down, the cavity open upward. |
+| Eccentric cam | Standing on its lower end face. A two-disc cam's upper section overhangs the neck between the sections, so its underside outside the neck needs slicer support. |
+| Output plate | Flat. |
+| Output pins | Standing on end. |
+
+The output pins are pressed into the plate, and the cam is pressed onto its input shaft. Each of those printed rings
+keeps at least 1.6 mm of wall round its bore.
+
 You can vary:
 
 - The number of pin positions and the pin circle diameter.
 - The eccentricity, the pin diameters and the clearances. Moving custom parts have the Regular fit and pins in
   the plate have the press fit.
-- One or two discs, their thickness and the gap between them.
-- The cam diameter and the input shaft bore, or a solid cam.
+- One or two discs, their thickness and the gap between them (at least 1.4 mm for two discs, where the cam's neck
+  takes its round and chamfer).
+- The cam diameter and the input shaft it is pressed on, or a solid cam.
 - The number and circle of the output pins.
 - The housing wall, base and output plate thickness.
 - The chamfer size; it defaults to the required 0.5 mm at 45° on long convex outer rims of the

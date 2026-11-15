@@ -19,9 +19,20 @@ const (
 
 // MinClearance is the smallest nominal gap, in millimeters, that Problems accepts between moving custom parts:
 // the Regular fit plus the margin that lets a measurement prove the Regular fit. It applies to the disc and casing
-// (DiskClearance), the disc bore and cam (BearingClearance, diametral, so twice this), the output pins and disc
-// holes (OutputPinClearance), and the two discs (DiscGap).
+// (DiskClearance), the disc bore and cam (BearingClearance, diametral, so twice this) and the output pins and disc
+// holes (OutputPinClearance). The two discs keep MinCamNeck apart, which is more.
 const MinClearance = regularFit + regularMeasurementMargin
+
+// MinCamNeck is the smallest DiscGap of a two-disc drive. The cam's neck between its two sections takes a 0.5 mm
+// round at its lower end, a 0.5 mm chamfer at its upper end and 0.4 mm of straight bridge between them. The straight
+// is as long as the corner check's window, so the 45° turn of the chamfer's foot does not add the round's turn to its
+// own: with only 0.1 mm of straight the check reads 67° to 79° at that corner.
+const MinCamNeck = 1.4
+
+// MinPressFitWall is the least wall, in millimeters, round a press-fit bore of a printed ring: four 0.4 mm lines, from
+// "Corners and roots" in docs/model-pipeline.md. It covers the housing wall (the output plate's rim), the wall between
+// the plate's sockets and the wall round the cam's input bore.
+const MinPressFitWall = 1.6
 
 // MinChamferSize is the minimum outer-edge chamfer required by Surface edge finishing.
 const MinChamferSize = 0.5
@@ -45,12 +56,13 @@ type Params struct {
 	// DiscCount is 1, or 2 for two discs 180° apart; two discs need even PinCount and OutputPinCount.
 	DiscCount     int
 	DiscThickness float64
-	// DiscGap separates disc 1 from disc 2 along the axis. A two-disc drive needs at least MinClearance;
+	// DiscGap separates disc 1 from disc 2 along the axis. A two-disc drive needs at least MinCamNeck;
 	// a one-disc drive ignores it.
 	DiscGap float64
 	// CenterBearingDiameter is both the disc center bore and the cam outer diameter.
 	CenterBearingDiameter float64
-	// InputShaftDiameter is the bore through the cam; zero leaves the cam solid.
+	// InputShaftDiameter is the shaft the cam is pressed on; the bore through the cam is this plus the press-fit
+	// clearance of 0.05 mm on each side. Zero leaves the cam solid.
 	InputShaftDiameter float64
 	// BearingClearance enlarges the disc center bore over the cam, diametrally. At least 2 * MinClearance.
 	BearingClearance        float64
@@ -62,7 +74,8 @@ type Params struct {
 	// OutputPinClearance is the radial gap between an output pin and the wall of a disc hole at the pin's
 	// farthest offset. At least MinClearance.
 	OutputPinClearance float64
-	// HousingWall is the minimum radial wall of the pinless casing.
+	// HousingWall is the minimum radial wall of the pinless casing, and the rim wall of the output plate. At least
+	// MinPressFitWall.
 	HousingWall          float64
 	BaseThickness        float64
 	OutputPlateThickness float64
@@ -83,7 +96,7 @@ func DefaultParams() Params {
 		DiskClearance:           MinClearance,
 		DiscCount:               1,
 		DiscThickness:           8,
-		DiscGap:                 MinClearance,
+		DiscGap:                 MinCamNeck,
 		CenterBearingDiameter:   30,
 		InputShaftDiameter:      8,
 		BearingClearance:        2 * MinClearance,

@@ -15,6 +15,7 @@ type dimensions struct {
 	outputPinDiameter             float64 // D_pin
 	outputHoleDiameter            float64 // D_pin + 2E + 2 c_pin
 	outputSocketDiameter          float64 // D_pin + 2 socketClearance
+	camBoreDiameter               float64 // InputShaftDiameter + 2 pressFit, 0 for a solid cam
 	housingInner, housingOuter    float64
 	outputPlateDiameter           float64
 	lobes                         int
@@ -41,6 +42,9 @@ func resolve(p Params) dimensions {
 	}
 	d.outputHoleDiameter = d.outputPinDiameter + 2*p.Eccentricity + 2*p.OutputPinClearance
 	d.outputSocketDiameter = d.outputPinDiameter + 2*socketClearance
+	if p.InputShaftDiameter > 0 {
+		d.camBoreDiameter = p.InputShaftDiameter + 2*pressFit
+	}
 	d.housingInner = 2 * (d.pinCircleRadius - d.pinRadius - p.HousingWall)
 	d.housingOuter = 2 * (d.pinCircleRadius - d.pinRadius + 2*p.Eccentricity + p.HousingWall)
 	d.outputPlateDiameter = p.OutputPinCircleDiameter + d.outputSocketDiameter + 2*p.HousingWall
@@ -166,12 +170,17 @@ func Problems(p Params) []string {
 		{"Disk Clearance", p.DiskClearance, MinClearance, true},
 		{"Bearing Clearance", p.BearingClearance, 2 * MinClearance, true},
 		{"Output Pin Clearance", p.OutputPinClearance, MinClearance, true},
-		{"Disc Gap", p.DiscGap, MinClearance, p.DiscCount == 2},
+		{"Disc Gap", p.DiscGap, MinCamNeck, p.DiscCount == 2},
+		{"Housing Wall", p.HousingWall, MinPressFitWall, true},
 		{"Chamfer Size", p.ChamferSize, MinChamferSize, true},
 	} {
 		if f.applies && f.value < f.least {
 			add("%s must be at least %.2f mm (currently %.2f mm).", f.name, f.least, f.value)
 		}
+	}
+	if socketWall := 2*rop*math.Sin(math.Pi/m) - d.outputSocketDiameter; socketWall < MinPressFitWall {
+		add("Output plate sockets need %.2f mm of wall between them — increase Output Pin Circle Diameter or reduce "+
+			"Output Pin Count / Output Pin Diameter (currently %.2f mm).", MinPressFitWall, socketWall)
 	}
 	if p.DiscCount == 2 && (p.PinCount%2 != 0 || p.OutputPinCount%2 != 0) {
 		add("Two discs require an even Pin Count and an even Output Pin Count (currently N=%d, M=%d).",
@@ -223,7 +232,28 @@ func Problems(p Params) []string {
 		add("Disk center bore overlaps the output holes — increase Output Pin Circle Diameter above %.2f mm, or reduce Center Bearing Diameter / Bearing Clearance / output pin size.",
 			cbd+clr+dhole)
 	}
+	if wall := camBoreWall(p, d); isd > 0 && wall < MinPressFitWall {
+		add("The input bore of the cam needs %.2f mm of wall — reduce Input Shaft Diameter or Eccentricity, or increase "+
+			"Center Bearing Diameter (currently %.2f mm).", MinPressFitWall, wall)
+	}
 	return out
+}
+
+// camBoreWall returns the thinnest wall round the cam's press-fit input bore: the section's ring, and for two discs
+// the bridge between the sections, whose radius is halfway between the bore and the section's inner reach.
+func camBoreWall(p Params, d dimensions) float64 {
+	bore := d.camBoreDiameter / 2
+	wall := p.CenterBearingDiameter/2 - p.Eccentricity - bore
+	if p.DiscCount == 2 {
+		wall = camBridgeRadius(p) - bore
+	}
+	return wall
+}
+
+// camBridgeRadius is the radius of the two-disc cam's bridge: halfway between the input shaft's radius and the
+// largest circle about the drive axis that fits inside both sections.
+func camBridgeRadius(p Params) float64 {
+	return (p.CenterBearingDiameter/2 - p.Eccentricity + p.InputShaftDiameter/2) / 2
 }
 
 // Validate returns nil for a buildable p, else an error wrapping ErrInvalid that lists every problem.

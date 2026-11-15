@@ -57,6 +57,8 @@ func defineParameters(t *param.Table, p Params) error {
 		"2 * (pin_circle_radius - pin_radius + 2 * eccentricity + wall)", units.Millimeter))
 	record("disc_bore_diameter", t.SetExpr("disc_bore_diameter",
 		"center_bearing_diameter + bearing_clearance", units.Millimeter))
+	record("cam_bore_diameter", t.SetExpr("cam_bore_diameter",
+		"input_shaft_diameter + 2 * socket_clearance", units.Millimeter))
 	record("resolved_output_pin_diameter", t.SetExpr("resolved_output_pin_diameter",
 		"output_hole_diameter - 2 * eccentricity - 2 * output_pin_clearance", units.Millimeter))
 	record("output_socket_diameter", t.SetExpr("output_socket_diameter",

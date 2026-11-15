@@ -70,9 +70,13 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 			return nil, err
 		}
 		sections = append(sections, bridge)
-		cam, err = decad.Union(ctx, sections[0], sections[1:]...)
+		lower, upper := sections[0], sections[1]
+		cam, err = decad.Union(ctx, lower, sections[1:]...)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: join cam sections: %w", err)
+		}
+		if cam, err = r.finishCamNeck(ctx, cam, lower, upper); err != nil {
+			return nil, err
 		}
 	}
 	if p.InputShaftDiameter == 0 {
@@ -87,7 +91,7 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: input bore sketch: %w", err)
 	}
-	if _, err := r.circleAt(s, 0, 0, p.InputShaftDiameter, "input_shaft_diameter"); err != nil {
+	if _, err := r.circleAt(s, 0, 0, r.d.camBoreDiameter, "cam_bore_diameter"); err != nil {
 		return nil, fmt.Errorf("cycloidal: input bore circle: %w", err)
 	}
 	if err := solveAndVerify(ctx, s, "cycloidal: input bore"); err != nil {
@@ -109,6 +113,32 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 	return bored, nil
 }
 
+// camNeckRound and camNeckChamfer are the round at the lower end of the cam's neck, where it meets the top of the
+// lower section and the corner opens upward, and the chamfer at its upper end, where it meets the underside of the
+// upper section and the corner opens downward ("Corners between layers" in docs/model-pipeline.md).
+const (
+	camNeckRound   = 0.5
+	camNeckChamfer = 0.5
+)
+
+// finishCamNeck rounds the concave circular edge where the bridge meets the lower section's top face and chamfers the
+// one where it meets the upper section's underside. Each is named by the section cap whose boundary it lies on, which
+// the union keeps.
+func (r *run) finishCamNeck(ctx context.Context, cam, lower, upper *decad.Body) (*decad.Body, error) {
+	neck := func(cap decad.FeatureRef) decad.EdgeSelector {
+		return decad.Edges(decad.Concave(), decad.Circular(), decad.CreatedBy(cap)).Exactly(1)
+	}
+	rounded, err := decad.Fillet(ctx, cam, neck(decad.CapEnd(lower)), units.Millimeters(camNeckRound))
+	if err != nil {
+		return nil, fmt.Errorf("cycloidal: round cam neck: %w", err)
+	}
+	chamfered, err := decad.Chamfer(ctx, rounded, neck(decad.CapStart(upper)), units.Millimeters(camNeckChamfer))
+	if err != nil {
+		return nil, fmt.Errorf("cycloidal: chamfer cam neck: %w", err)
+	}
+	return chamfered, nil
+}
+
 // The bridge reaches camOverlap into each cam section. Decad decides a union only when the bodies interpenetrate
 // deeper than its 0.1 mm chord tolerance, so the overlap is above that.
 const camOverlap = 0.2
@@ -127,8 +157,7 @@ func (r *run) buildCamBridge(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: cam bridge sketch: %w", err)
 	}
-	inner := p.CenterBearingDiameter/2 - p.Eccentricity
-	diameter := inner + p.InputShaftDiameter/2
+	diameter := 2 * camBridgeRadius(p)
 	circle := s.CreateCircle(s.Origin(), diameter/2)
 	s.AddConstraint(sketch.NewDiameter(circle, diameter))
 	if err := solveAndVerify(ctx, s, "cycloidal: cam bridge"); err != nil {

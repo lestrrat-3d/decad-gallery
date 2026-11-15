@@ -19,15 +19,17 @@ Params)` returns a `Drive`.
    build as unsupported, repeat steps 2 to 4 with 8°, 12° and 20° sampling.
 5. Build the cam: per disc a circle of diameter `center_bearing_diameter` on that disc's center, extruded
    over that disc only. For two discs, add a bridge cylinder on the drive axis across `disc_gap` that reaches
-   0.2 mm into each section, and join the three with `Union`. Cut the
-   input bore as a cylinder that starts a plane gap below the cam and ends one above.
+   0.2 mm into each section, and join the three with `Union`. Round the concave circle where the bridge meets
+   section 1's top face with `Fillet` of 0.5 mm, and chamfer the one where it meets section 2's underside by 0.5 mm,
+   each found by the section cap it lies on. Cut the input bore of diameter `cam_bore_diameter` (the shaft plus
+   0.05 mm each side) as a cylinder that starts a plane gap below the cam and ends one above.
 6. Sweep the casing contour for one pin pitch as the instructions describe, mirror it about the pin, and move
    each point `disk_clearance` along the envelope's outward normal, which comes from the points four steps either side. Draw the cavity sketch: one pitch as three fit splines,
    thinned by a stride of 3, with its end point left free, and make `N` copies of it with a circular pattern about the
    origin that closes the ring on shared points. Extrude the region inside the contour from one plane gap above the base
    to past the stack top. If decad refuses it as unsupported, use strides 2, 4, 6 and 1.
-7. `Extrude` the housing's outer circle from `1 mm + base_thickness` below disc 1 to the stack top. `Cut`
-   the cavity, then `Cut` a cylinder of diameter `housing_inner_diameter` from below the housing up into
+7. `Extrude` the housing's outer circle from `1 mm + base_thickness` below disc 1 to the stack top. For `PinCount`
+   up to 20, chamfer the cavity tool's start-cap outer loop by 1.0 mm. `Cut` the cavity, then `Cut` a cylinder of diameter `housing_inner_diameter` from below the housing up into
    the cavity.
 8. Draw the output plate sketch one plane gap above the stack: the plate circle and one socket circle
    of diameter `output_socket_diameter`, repeated `M` times with a circular pattern about the origin. `Extrude` the region with `M` holes by
@@ -42,3 +44,6 @@ Params)` returns a `Drive`.
 11. Section each pair of moving parts in the plane through the middle of the disc or plate, and check that the
     gap, less the mesh bound of both sections, is at least 0.35 mm (0.2 mm for the pins in the plate).
     Compare the axial gaps from the body bounds.
+12. Cut every printed body at the middle of each run of layers, and the housing, cam and plate by the planes through
+    the drive axis, with `internal/cornercheck`, and require no finding outside the listed casing floor corner of a
+    housing with 21 or more pins. Measure the 1.6 mm walls of the plate and the cam.

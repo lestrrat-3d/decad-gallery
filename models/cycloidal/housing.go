@@ -47,6 +47,19 @@ func thinned(run []point, stride int) []point {
 	return out
 }
 
+// casingFloorChamfer is the leg of the 45° chamfer at the foot of the casing wall, where the base's top face meets
+// the contour wall and the corner opens upward ("Corners between layers" in docs/model-pipeline.md). The rotor's
+// own 0.5 mm rim chamfer faces it at 1.05/√2 = 0.74 mm, which keeps the Regular fit and its 0.2 mm margin.
+const casingFloorChamfer = 1.0
+
+// MaxChamferedFloorPins is the largest PinCount whose casing floor takes the chamfer. Decad refuses the chamfer on
+// the contour's free-form rim from 21 pins up: 21 to 23 pins because the offset spline departs from the exact offset
+// by more than 0.002 mm, 24 pins because the contour has a 13.8° crease where two branches meet, which decad's
+// rimoffset does not offset (it offsets joints under 10° only; mitred joints are decad P7, not built yet), and 25
+// pins because the 1.5 mm offset reaches the radius of curvature of the rim. Those housings keep the floor corner
+// sharp and list it under "Retained sharp corners" in instructions.md.
+const MaxChamferedFloorPins = 20
+
 // buildHousing builds the housing as one prism and two cuts. The prism is the outer cylinder from the underside
 // of the base to the top of the disc stack. The first cut removes everything inside the casing's swept contour
 // from the top of the base up, which leaves the casing wall and the base floor; the second cuts the base's
@@ -91,6 +104,13 @@ func (r *run) buildHousing(ctx context.Context) (*decad.Body, error) {
 	}
 	if err != nil {
 		return nil, err
+	}
+	if p.PinCount <= MaxChamferedFloorPins {
+		cavity, err = decad.Chamfer(ctx, cavity, decad.Edges(decad.OuterLoopOf(decad.CapStart(cavity))),
+			units.Millimeters(casingFloorChamfer))
+		if err != nil {
+			return nil, fmt.Errorf("cycloidal: chamfer casing floor: %w", err)
+		}
 	}
 	walled, err := decad.Cut(ctx, prism, cavity)
 	if err != nil {

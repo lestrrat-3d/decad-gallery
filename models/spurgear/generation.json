@@ -4,12 +4,12 @@
     "models/spurgear/steps.md": "6fd8afa645f19041e88573347abbd3fa2467a27cd9c4d3c2f643ea40e4fcfc96",
     "scripts/modelgen/spurgear_prompt.md": "c2c8d931854866387f0d4a4e91a76156f336557a44a6848cc366e14bbd10e952",
     "internal/sketchcheck/verify.go": "48d0be76858c3a2b7302e63854295fb4bc4f4deda24f74118e596bd14aff6d0c",
-    "go.mod": "e633e836f79f4c9a4d2508209a125f951e6b99eff28f0e183b2afaee1c663198",
-    "go.sum": "27b443554ae3f2a803c1e18dd55c66cee4310e2979def72f642b859bfa7ddd3b"
+    "go.mod": "6d9f85b52e76e3cad2e44c1e17f2c0eefccbbaf854c97e2a3e5632d2fe6ca69c",
+    "go.sum": "7df12c6292702c2367dff2be3734a68e0171ea6b36ed5f72d34e594b75ab03a1"
   },
   "outputs": {
-    "involute.go": "8aad48e659cfb48387cea2b4def3f60d27b68145a70e49785ea87ed31f3278db",
-    "spurgear.go": "3118d88ece49e9c770e3435cba52de09ccacfe3dbe38f8e1c573e50c8c904b64",
-    "tooth_section.go": "82610918bf8954187ac767e0d30f277799a8ac721dc1bea1ed73a4e60d7faa5d"
+    "involute.go": "48dcb36ad6ba4ea8fa2ea4b694e568bc3a8fab43f44ba41e9623780a8dd6acba",
+    "spurgear.go": "32a3683270247177b45a91fcfde76419fd8feff911a7b4b813f5803990524bcd",
+    "tooth_section.go": "2292d3eb2ebedf55a68edc2a68a23b3dc3b4a1762bfbc20b5cb9ee34dc16198d"
   }
 }

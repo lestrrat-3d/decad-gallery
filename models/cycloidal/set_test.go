@@ -14,7 +14,7 @@ import (
 func TestExplode(t *testing.T) {
 	for _, discs := range []int{1, 2} {
 		p := cycloidal.DefaultParams()
-		p.DiscCount, p.DiscGap = discs, cycloidal.MinClearance
+		p.DiscCount, p.DiscGap = discs, cycloidal.MinCamNeck
 		doc := chainDocument()
 		drive, err := cycloidal.Build(t.Context(), doc, p)
 		require.NoError(t, err)

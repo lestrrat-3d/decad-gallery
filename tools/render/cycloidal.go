@@ -82,7 +82,7 @@ func init() {
 // cycloidalParams are the parameters of the two-disc drive every cycloidal image shows.
 func cycloidalParams() cycloidal.Params {
 	params := cycloidal.DefaultParams()
-	params.DiscCount = 2
+	params.DiscCount, params.DiscGap = 2, cycloidal.MinCamNeck
 	return params
 }
 
