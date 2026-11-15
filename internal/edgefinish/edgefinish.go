@@ -82,6 +82,133 @@ func edgeLength(e *decad.Edge) float64 {
 // not touch. The query demands exactly the counted edges, so a mismatch fails the build.
 func Chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, keep LoopFilter,
 	size float64) (*decad.Body, int, error) {
+	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) []*decad.Edge {
+		edges := loop.Edges()
+		if !keep(loop, edges) {
+			return nil
+		}
+		return edges
+	})
+}
+
+// ChamferRuns is Chamfer for faces whose outline mixes long and short tangent-continuous runs. It splits each loop
+// that keep accepts into runs (see Runs) and chamfers the edges of the runs of LongEdgeRun or more, so the short
+// runs, such as a tooth head, stay sharp. A loop that whole accepts is chamfered whole instead, however its runs
+// divide: a D bore's arc and flat are short runs but a long loop. Decad accepts the result only when each run ends at
+// a convex corner and the run is not a whole loop; the evaluator refuses anything else, and ChamferRuns returns that
+// error unchanged. The other rules are Chamfer's.
+func ChamferRuns(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, keep, whole LoopFilter,
+	size float64) (*decad.Body, int, error) {
+	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) []*decad.Edge {
+		edges := loop.Edges()
+		if !keep(loop, edges) {
+			return nil
+		}
+		if whole(loop, edges) {
+			return edges
+		}
+		var out []*decad.Edge
+		for _, run := range Runs(loop) {
+			if run.Length >= LongEdgeRun {
+				out = append(out, run.Edges...)
+			}
+		}
+		return out
+	})
+}
+
+// Run is a chain of consecutive edges of a loop that meet tangent to each other.
+type Run struct {
+	// Edges are the run's edges in walk order.
+	Edges []*decad.Edge
+	// Length is the run's arc length in mm.
+	Length float64
+	// Closed is true when the run is the whole loop, with no corner.
+	Closed bool
+}
+
+// tangentCos is the cosine of the angle, 1e-3 rad, below which two edge directions at a joint are tangent.
+const tangentCos = 1 - 5e-7
+
+// Runs splits loop at its corners into tangent-continuous runs, in walk order. A loop with no corner is one closed
+// run. A curve it cannot take a direction of counts as a corner on both sides.
+func Runs(loop *decad.Loop) []Run {
+	cos := loop.CoEdges()
+	n := len(cos)
+	if n == 0 {
+		return nil
+	}
+	breaks := make([]bool, n) // breaks[i]: a corner lies between coedge i and i+1
+	corners := 0
+	for i, ce := range cos {
+		next := cos[(i+1)%n]
+		out, ok1 := endTangent(ce, true)
+		in, ok2 := endTangent(next, false)
+		breaks[i] = !ok1 || !ok2 || out.Dot(in) < tangentCos
+		if breaks[i] {
+			corners++
+		}
+	}
+	if corners == 0 {
+		run := Run{Closed: true}
+		for _, ce := range cos {
+			run.Edges = append(run.Edges, ce.Edge())
+			run.Length += edgeLength(ce.Edge())
+		}
+		return []Run{run}
+	}
+	start := 0
+	for i := range breaks {
+		if breaks[i] {
+			start = (i + 1) % n
+			break
+		}
+	}
+	var runs []Run
+	var cur Run
+	for k := 0; k < n; k++ {
+		i := (start + k) % n
+		cur.Edges = append(cur.Edges, cos[i].Edge())
+		cur.Length += edgeLength(cos[i].Edge())
+		if breaks[i] {
+			runs = append(runs, cur)
+			cur = Run{}
+		}
+	}
+	return runs
+}
+
+// endTangent returns the unit direction of travel of ce at its end (atEnd) or start, and false when its curve has none.
+func endTangent(ce decad.CoEdge, atEnd bool) (r3.Vec, bool) {
+	e := ce.Edge()
+	// Travel runs from ce.Start to ce.End; the stored curve runs from e.Start to e.End.
+	p := ce.Start().Position().Value
+	if atEnd {
+		p = ce.End().Position().Value
+	}
+	var t r3.Vec
+	switch c := e.Curve().(type) {
+	case decad.Line3:
+		t = e.End().Position().Value.Sub(e.Start().Position().Value)
+	case decad.Arc3:
+		t = c.Axis.Cross(p.Sub(c.Center))
+	case decad.Circle3:
+		t = c.Axis.Cross(p.Sub(c.Center))
+	default:
+		return r3.Vec{}, false
+	}
+	if !ce.IsForward() {
+		t = t.Scale(-1)
+	}
+	if t.Len() == 0 {
+		return r3.Vec{}, false
+	}
+	return t.Scale(1 / t.Len()), true
+}
+
+// chamfer is the shared body of Chamfer and ChamferRuns. pick returns the edges of a loop to chamfer, or none.
+func chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, size float64,
+	pick func(*decad.Loop) []*decad.Edge) (*decad.Body, int, error) {
 	if normal.Len() == 0 {
 		return nil, 0, fmt.Errorf("edge finish: zero normal")
 	}
@@ -109,11 +236,7 @@ func Chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []flo
 			continue
 		}
 		for _, loop := range f.Loops() {
-			edges := loop.Edges()
-			if !keep(loop, edges) {
-				continue
-			}
-			for _, e := range edges {
+			for _, e := range pick(loop) {
 				pred, err := predicates(e)
 				if err != nil {
 					return nil, 0, fmt.Errorf("edge finish: %w", err)
