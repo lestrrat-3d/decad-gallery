@@ -25,8 +25,6 @@ const (
 	throatCavity        = 6.75
 	gripBoltLength      = 20
 	gripCavity          = 17.75
-	pinBoltLength       = 10
-	pinCavity           = 4.75
 
 	frontFace         = 0.0  // gearbox-front's outer (front) face, where its bolt heads end
 	rearFace          = 37.6 // gearbox-rear's outer face
@@ -101,10 +99,7 @@ func fastenerSites() []fastenerSite {
 			m2fastener.Site{Head: r3.Vec{X: gripBoltX[k%2], Y: gripHeadY, Z: gripBoltZ[k/2]}, Dir: y, Corner: x,
 				Length: gripBoltLength, Cavity: gripCavity})
 	}
-	add("crank-pin-bolt", "crank-pin-nut", "crank-arm", "crank-pin", "crank",
-		m2fastener.Site{Head: r3.Vec{X: crankOffset, Y: 38.6, Z: rotorHeight + 55}, Dir: y, Corner: x,
-			Length: pinBoltLength, Cavity: pinCavity})
-	return sites
+	return append(sites, crankSites()...)
 }
 
 // sitesNamed returns the sites whose bolt name starts with prefix, in table order.
