@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 
 BEVEL_TESTS = {
@@ -168,6 +169,52 @@ BEVEL_JOB_GROUPS = {
     "cdef": ("c", "d", "e", "f"),
 }
 
+ESCAPEMENT_SHARDS = (
+    (
+        "TestArborCollars",
+        "TestCentreLine",
+        "TestCorners",
+        "TestEdgeFinishing",
+        "TestFits",
+        "TestInstallability",
+        "TestInventory",
+        "TestPlacement",
+        "TestPressFitWalls",
+        "TestSetJoinsEveryPart",
+        "TestSketches",
+        "TestSplitShafts",
+        "TestSpringFits",
+    ),
+    (
+        "TestActionAnalytic",
+        "TestActionAnalyticWide",
+        "TestAnchor",
+        "TestArbors",
+        "TestBuildValidates",
+        "TestCoupling",
+        "TestEscapeWheel",
+        "TestEscapementAction",
+        "TestFasteners",
+        "TestFrontPlateSpringAnchor",
+        "TestGearMesh",
+        "TestKnob",
+        "TestLayout",
+        "TestMainspring",
+        "TestMotion",
+        "TestPawlCarrier",
+        "TestPendulumParts",
+        "TestPlateMaterial",
+        "TestPlateWindows",
+        "TestPlates",
+        "TestPoseNoOverlap",
+        "TestRatchet",
+        "TestSketchesBranches",
+        "TestSpringLayout",
+        "TestSpringRoot",
+        "TestValidate",
+    ),
+)
+
 
 def run_pattern(tests: list[str]) -> str:
     """Build a go test -run pattern that selects exactly the named tests and subtests.
@@ -212,6 +259,76 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
     missing = [name for name in expected if finished.get(name) not in {"pass", "fail"}]
     if missing:
         raise SystemExit("go test did not run: " + ", ".join(missing))
+
+
+def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: str) -> None:
+    """Run exact, disjoint test shards concurrently and require complete package coverage."""
+    flattened = [test for shard in shards for test in shard]
+    if len(flattened) != len(set(flattened)):
+        raise SystemExit("go test shards contain duplicate test names")
+
+    listing = subprocess.run(
+        ["go", "test", "-list", "^Test", package],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    available = {line for line in listing.stdout.splitlines() if line.startswith("Test")}
+    missing = sorted(available - set(flattened))
+    unknown = sorted(set(flattened) - available)
+    if missing or unknown:
+        details = []
+        if missing:
+            details.append("unassigned tests: " + ", ".join(missing))
+        if unknown:
+            details.append("unknown tests: " + ", ".join(unknown))
+        raise SystemExit("go test shard coverage does not match package: " + "; ".join(details))
+
+    env = os.environ.copy()
+    env["GOMAXPROCS"] = "2"
+    processes = []
+    try:
+        for index, shard in enumerate(shards, start=1):
+            command = [
+                "go",
+                "test",
+                "-json",
+                package,
+                "-run",
+                run_pattern(list(shard)),
+                "-timeout",
+                timeout,
+                "-count=1",
+            ]
+            print(f"+ shard {index}/{len(shards)}: {' '.join(command)}", flush=True)
+            output = tempfile.TemporaryFile(mode="w+t")
+            try:
+                proc = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT, text=True, env=env)
+            except BaseException:
+                output.close()
+                raise
+            processes.append((proc, output, shard))
+
+        results = []
+        for proc, output, shard in processes:
+            returncode = proc.wait()
+            output.seek(0)
+            finished = finished_tests(output)
+            failures = [test for test in shard if finished.get(test) != "pass"]
+            results.append((returncode, failures))
+        failed = [
+            f"shard {index} (exit {returncode}): {', '.join(failures) or 'process failed'}"
+            for index, (returncode, failures) in enumerate(results, start=1)
+            if returncode != 0 or failures
+        ]
+        if failed:
+            raise SystemExit("go test shard failure: " + "; ".join(failed))
+    finally:
+        for proc, output, _ in processes:
+            if proc.poll() is None:
+                proc.terminate()
+                proc.wait()
+            output.close()
 
 
 def run_bevel(mode: str, shard: str) -> None:
@@ -291,9 +408,8 @@ def run_siren(case: str) -> None:
 
 
 def run_escapement() -> None:
-    """Run every test of the Graham escapement package: about 12 minutes, with a default build and a second-phase
-    build shared by the tests."""
-    go_test(["./models/escapement", "-timeout", "40m", "-count=1"])
+    """Run all Graham escapement tests in two concurrent, fully covering shards."""
+    go_test_shards("./models/escapement", ESCAPEMENT_SHARDS, "40m")
 
 
 def run_fan_variant(variant: str) -> None:
