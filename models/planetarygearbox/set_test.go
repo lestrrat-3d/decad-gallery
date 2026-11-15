@@ -64,7 +64,9 @@ func sharingPairs(box planetarygearbox.Gearbox) map[[2]string]struct{} {
 
 // collarSpan returns the axial span, in the assembled pose, of the part of body that reaches more than radius from
 // the joint axis: the collar of a shaft, or the thick part of a stepped shaft or a carrier pin. It reads the vertices
-// of a 0.05 mm tessellation, and fails when no vertex reaches that far.
+// of a 0.05 mm tessellation, and fails when no vertex reaches that far. Called with a radius just under the collar's,
+// it spans the collar's cylinder and stops where its cone begins, because a cone's mesh has vertices only on its two
+// end circles (and on a flat's cut across it, which stays under the radius above the cone's start).
 func collarSpan(t *testing.T, body *decad.Body, axis parts.Axis, radius float64) axialSpan {
 	t.Helper()
 	mesh, err := body.Tessellate(t.Context(), units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
@@ -222,9 +224,15 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 		if j.Kind != parts.PinInBore || !isShaft || !isNarrow {
 			continue
 		}
-		radius := shaftBore.BoreDiameter/2 + 0.5
+		// A thick part is a collar margin (1.2 mm) wider than the rod; read it just under that. The input shaft's collar
+		// is a cone on the sun's side, down to a sun section that a 608ZZ shaft narrows to 6 mm, so its cone has no
+		// vertex between its two end circles and it is read from 0.2 mm over the bore, under the 8.8 mm collar of a 608ZZ shaft.
+		radius := shaftBore.BoreDiameter/2 + 1.15
 		if _, isPin := pins[j.A]; isPin {
-			radius = planetBore.BoreDiameter/2 + 0.5
+			radius = planetBore.BoreDiameter/2 + 1.15
+		}
+		if j.A == planetarygearbox.InputShaftName {
+			radius = shaftBore.BoreDiameter/2 + 0.2
 		}
 		collar := collarSpan(t, bodies[j.A], *j.Axis, radius)
 		bore := spanOf(t, bodies[j.B], r3.Vec{}, axis)
@@ -410,7 +418,11 @@ func TestInputShaftCollar(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	_, box := defaultGearbox(t)
 	axis := parts.Axis{Point: r3.Vec{}, Dir: r3.Vec{Z: 1}}
-	collar := collarSpan(t, box.InputShaft, axis, ballbearing.Params605ZZ().BoreDiameter/2+0.5)
+	rod := ballbearing.Params605ZZ().BoreDiameter / 2
+	collar := collarSpan(t, box.InputShaft, axis, rod+1.15)
+	// The collar ends in a 30° cone on the sun's side, measured to where the cone meets the rod: its length is the
+	// 1.2 mm of radius times the cone run.
+	collar.hi += 1.2 * math.Sqrt(3)
 	require.GreaterOrEqual(t, collar.hi-collar.lo, 3.0, "collar length")
 	require.InDelta(t, p.StageGap+p.CoverThickness-0.75, collar.hi-collar.lo, 2e-3)
 	bearingFace := bounds(t, box.FrontBearing).Max.Z

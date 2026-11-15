@@ -83,8 +83,8 @@ seven bearings (the seventh sits in the pendulum), two end collar rings, four bo
 | <img src="images/parts/anchor.png" alt="Anchor" width="240"> | Anchor, pressed on the pallet arbor and rocks with it, and its two pallets catch the escape wheel's teeth one at a time |
 | <img src="images/parts/crutch.png" alt="Crutch" width="240"> | Crutch, with its pin and a keyed counterbore for the crutch collar in its rear face |
 | <img src="images/parts/pendulum.png" alt="Pendulum" width="240"> | Pendulum, with the crutch slot and the bearing pocket |
-| <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing |
-| <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
+| <img src="images/parts/suspension-pin.png" alt="Suspension pin" width="240"> | Suspension pin, the pendulum's pivot: its rear peg presses into the front plate's socket, and its round 5.0 mm shank carries the pendulum's bearing. Its steps to the peg and the shoulder are 30° cones |
+| <img src="images/parts/suspension-cap.png" alt="Suspension cap" width="240"> | Suspension cap, a 1.5 mm thick, 7.4 mm wide disc with a D-shaped socket that presses onto the pin's front peg and a 30° countersink in its rear face for the peg's cone, and holds the pendulum's bearing on the pin so the pendulum cannot slide off. It is a retainer, not an arbor collar |
 | <img src="images/parts/great-wheel.png" alt="Great wheel" width="240"> | Great wheel, with the internal ratchet and a counterbore for the arbor's collar in its rear face |
 | <img src="images/parts/pawl-carrier.png" alt="Pawl carrier" width="240"> | Pawl carrier, with two flexure pawls. It is pressed on the great wheel's arbor, and its pawls push the great wheel's internal ratchet, so the spring drives the wheel but the wheel does not unwind when you wind the knob |
 | <img src="images/parts/mainspring.png" alt="Mainspring" width="240"> | Mainspring, an open spiral in PETG |
@@ -136,7 +136,10 @@ Print each part without supports in this orientation:
 - Crutch and pendulum: the rear face down. The floor of the crutch's and the knob's rear counterbore prints as an overhang
   ring over air, 0.9 to 1.3 mm wide, which needs no support.
 - Collar rings and the suspension cap: flat on the bed, axis vertical.
-- Arbors and the suspension pin: standing on end, with the 1.2 mm collar ledge printing as a small overhang.
+- Arbors and the suspension pin: each can print as two halves cut lengthwise through the middle of its flat, each half lying
+  on its cut face, so the layers run along the shaft. The model keeps each shaft whole; the export to Fusion cuts it when asked.
+  The bearings and the pressed parts clamp the halves together. A half has no overhang over 45°: every step that does not face
+  a bearing is a 30° cone, and a flat that stops partway ends in a 30° ramp.
 - Back plate: the rear face down. **Pause at 32 mm above the bed** (`z` 26 in the model), drop the four nuts into
   their open cavities, and resume. The next layers close the cavities and hold the nuts.
 - Front plate: the front face up or down. The plates print flat, and the windows need no support.
@@ -176,7 +179,7 @@ position. Wind clockwise.
   has the same in its front counterbore. Each
   bearing sits in a seat with 0.05 mm of radial clearance.
 - **Tight fits, 0.25 mm.** Collars, the arbors' own steps (where an arbor narrows from 6.6 to 5.0 mm), the pin's shoulder and the cap stand 0.25 mm from a bearing face, and the end collar rings start 0.25 mm in front of the front plate. The crutch pin has 0.25 mm on each side in the pendulum's slot. The great
-  wheel's counterbore floor stands 0.25 mm from its collar's end and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
+  wheel's counterbore floor stands at least 0.25 mm from its collar's cone and the pawl carrier's pawl layer 0.25 mm from the ratchet pocket floor. The spring hub has 0.30 mm on the arbor's flat, which the turning arbor closes to no less than 0.20 mm, and stands
   0.25 mm from the carrier boss and from the retainer, and the eye has 0.40 mm on the anchor pin.
 - **Regular fit, 0.40 mm.** The great wheel's 6.9 mm bore turns on the arbor's 6.1 mm journal, and its 8.2 mm counterbore turns
   on the 7.4 mm collar.

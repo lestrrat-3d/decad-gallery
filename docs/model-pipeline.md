@@ -158,7 +158,8 @@ fit, still takes a collar on both sides. List each such step in the collar table
 clearance of the part's face. The 3.0 mm minimum applies to the section the step ends, not to the step.
 
 Make every collar at least 3.0 mm long along the shaft's axis, and measure its whole length, including any part inside
-a counterbore. A collar about 1 mm long cannot be printed reliably. A collar that only stops a pressed part, with no
+a counterbore. A collar that ends in a cone, as [Split shafts](#split-shafts) asks of a step, is measured to where the
+cone meets the smaller diameter. A collar about 1 mm long cannot be printed reliably. A collar that only stops a pressed part, with no
 flush side beside it, takes the same minimum. A part pressed on a shaft end outside the frame takes a collar between
 it and the frame's outer face.
 
@@ -191,8 +192,8 @@ extent and length, its diameter, and which of the three options it uses, with th
 [Sketch constraints](../AGENTS.md#sketch-constraints) to every collar and counterbore sketch, and
 [Surface edge finishing](#surface-edge-finishing) to every counterbore rim.
 
-Test each collar on the built shaft body for every parameter case that changes it. Find the collar's two end faces on
-the body, and require the distance between them to be 3.0 mm or more. Require the collar's diameter to be the listed
+Test each collar on the built shaft body for every parameter case that changes it. Find the collar's two ends on the
+body, each an end face or the end of a cone, and require the distance between them to be 3.0 mm or more. Require the collar's diameter to be the listed
 one. Measure each counterbore fit, and the gap between each carried part and its flush side, against their fit classes.
 
 ### Split shafts
@@ -232,8 +233,18 @@ user asks. Build the part so that cut is possible:
   vertical hole. An axial bore wider than a bridge, a keyway and a thread break the rule.
 - **Corners.** Apply [Corners and roots](#corners-and-roots) to each half on its cut face, with sections parallel to
   the seam. There a step of the part, such as a collar or a shoulder, is an inside corner: join the two diameters with
-  a cone of 30° half angle or less, which reads under 50° even in a section through a hexagonal stub. Round both ends
-  of a hole or cavity that runs along the axis with `m2fastener.RoundedHoleTool` and `m2fastener.RoundedCavityTool`.
+  a cone of 30° half angle or less that spans the whole step, so no square face is left. Let the cone take the end of
+  the larger section when that section still does its job; otherwise let it run along the smaller section, and give
+  the printed part that then meets it a matching countersink. A part that faces a cone keeps the fit class it had to
+  the step, measured normal to the cone.
+  - A step that faces a purchased bearing across a gap, with its inside corner on the bearing's side, stays square:
+    the bearing's inner-ring corner sits in that corner, and a cone or a round there would reach the ring. List it
+    under "Retained sharp corners" as a mating corner with the bearing.
+  - End a flat that stops partway along the part with a plane at 30° or less to the axis, outside every D bore that
+    uses the flat. Where a D bore's chord stops on the end of a flat, keep both corners sharp and list the pair as
+    mating corners.
+  - Round both ends of a hole or cavity that runs along the axis with `m2fastener.RoundedHoleTool` and
+    `m2fastener.RoundedCavityTool`.
 - **Size.** Each half stands at least 2.0 mm (five 0.4 mm lines) above its cut face, so the part is at least 4 mm
   across.
 
@@ -245,7 +256,13 @@ the built and posed body, for every parameter case that changes the part or its 
   `Normal`), a mirror image that leaves the boundary by more than twice the mesh bound, a downward face wider than a
   6 mm bridge, and a half lower than 2.0 mm. Require no violation, and require the split plane's normal to be the one
   `instructions.md` lists.
-- Run `cornercheck.Check` with the split plane's normal as the print axis.
+- Run `cornercheck.CheckAt` with the split plane's normal as the print axis, at the heights
+  `cornercheck.SplitHeights` returns for the smallest radius that meets a step or a cone. `cornercheck.Check` reads
+  no section of such a part: its `MidHeights` comes from planar faces parallel to the bed, and a round shaft whose
+  flats stand normal to the cut face has none, so `Check` returns no finding without reading the part. The heights
+  run from the seam up to 0.8 of that radius, in 0.25 mm steps. Above that a section cuts a cone so obliquely that a
+  30° cone reads over 50° (60° at 0.92 of the radius), though the part's surface turns no more than 30° there. Exempt
+  only the listed bearing-facing steps and flat-end pairs, and require no other finding.
 - Check each cross bolt as the Fasteners rules ask: the head flush with its flat, the nut inside its cavity, the bolt
   crossing the seam, and no overlap with the part.
 
@@ -317,7 +334,10 @@ finding, so the list stays current. The check reads an inside corner as a turn t
 50° within 0.4 mm of outline; a 0.5 mm round turns 46° over 0.4 mm and passes. It reads a tip as a turn away from
 the material of more than 120° within 0.8 mm; a 0.4 mm round tip turns 115° over 0.8 mm and passes. Check every
 parameter case that changes a part's outline. Where the face levels are not the runs of one outline, such as the
-apex plane of a herringbone gear, pass explicit heights to `cornercheck.CheckAt` and say why in a comment.
+apex plane of a herringbone gear, pass explicit heights to `cornercheck.CheckAt` and say why in a comment. A part
+with no planar face parallel to the bed, such as a round shaft lying on its side, gives `MidHeights` no height, and
+`cornercheck.Check` then reports no finding without cutting a section; read such a part at explicit heights, as
+[Split shafts](#split-shafts) does.
 
 ### Gear train clearances
 

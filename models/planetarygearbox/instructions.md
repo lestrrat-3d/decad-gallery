@@ -45,14 +45,22 @@ the sun sits it is a cylinder of the sun shaft diameter. The collar between them
 shafts are thin-thick: a thin rod of the shaft diameter (the sun shaft diameter for a link shaft, which meets no bearing), and a thicker part of the shaft collar diameter with the same flat, a D section, that is
 pressed through the carrier's centre hole. The sun's bore and the carrier's hole are D-shaped to match, so the input
 shaft turns the first sun, and each link or output shaft turns its carrier and, for a link shaft, the next sun,
-without slipping. The input and output shafts each have a flat on the free end, 1 mm clear of the boss, so a coupling grips it. The contract does not model the
+without slipping. The input and output shafts each have a flat on the free end, 1 mm clear of the boss and ending in a 30° ramp, so a coupling grips it. The contract does not model the
 coupling, a set screw or the motor.
+
+Every shaft and pin prints as two halves lying on their cut faces, see [Split shafts](#split-shafts). Read along that
+seam, a square step of a shaft is an inside corner, so a step that does not face a purchased bearing is a cone at 30° to
+the axis, and a flat that stops partway along a shaft ends in a ramp at 30° to the axis. A step that faces a bearing's
+inner ring keeps its square corner, and so does the start of a flat on which a sun's D bore stops.
 
 The input shaft carries a collar, a round bulge wider than the shaft, between the front bearing's inner race and the
 first sun. A collar is the printed stand-in for a washer. It keeps the turning part clear of the bearing and the
-cover. The carrier pins, the link shaft and the output shaft have no collar. Each has a D thick part instead, pressed
-through the carrier: the pin collar diameter for a pin and the shaft collar diameter for a shaft, and its step keeps the planet bearing, the next sun or the rear
-bearing clear of the plate.
+cover. Its bearing side is a square step that faces the bearing's inner ring. Its sun side is a 30° cone that takes the
+collar's end and meets the shaft 0.5 mm below the sun, so the collar keeps its whole length. The carrier pins, the link shaft and the output shaft have no collar. Each has a D thick part instead, pressed
+through the carrier: the pin collar diameter for a pin and the shaft collar diameter for a shaft. A pin's and the
+output shaft's thick part ends in a square step that faces a bearing's inner ring and keeps the planet bearing or the rear
+bearing clear of the plate. The link shaft's thick part ends level with the plate's upper face and a 30° cone carries it
+on to the rod, into a countersink in the next sun.
 
 Lengths are millimeters and angles are radians. The gearbox is anchored by one `r3.Frame`:
 its origin is a point on the gearbox axis, `U × V` is the axis direction, and the first
@@ -134,6 +142,9 @@ A nil `Placement` is the one exception.
 | Carrier hub diameter | `ds + 2 wc` |
 | Pin boss diameter | `dp + 2 wc` |
 | Shaft collar diameter | `ds + 2.4` (7.4 by default); the thick part of a link or output shaft and the input shaft's collar, D with flat `Sf` |
+| Cone length | `√3` times the radius change: 2.078 mm for the 1.2 mm from the rod to the shaft collar or the pin collar, 3.811 mm for the 2.2 mm from the 6 mm sun section to the 10.4 mm thick part of a 608ZZ shaft. A cone is at 30° to the axis |
+| Ramp length | `√3 (Sf + 0.2)`; the flat's ramp rises from the flat plane to 0.2 mm beyond the rod's surface, so it leaves the rod after `√3 Sf` (0.866 mm by default) |
+| Sun countersink | The link shaft's cone moved out by 0.25 mm normal to it, `0.25 / cos 30°` = 0.289 mm along the radius, up to the sun's bore radius (see Gears) |
 | Pin socket | The pin's thick D (pin collar diameter) grown 0.05 radially |
 | Carrier centre hole | The shaft's thick D (shaft collar diameter) grown 0.05 radially |
 | Carrier arm and cover spoke width | `dp + 2` |
@@ -203,6 +214,12 @@ All three gears are involute spur gears of one module and pressure angle, built 
 - Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's sun section: a circle of
   diameter the sun bore diameter (the sun shaft diameter plus 0.1 mm) with a flat `Sf` inside its rim, which leaves the sun a D-shaped bore
   (a round bore when `Sf = 0`). The D bore is cut after the gear is built, with a tool of that outline.
+- Sun fed by a link shaft (every sun after the first): the same sun with a countersink cut in its rear face, a cone at 30°
+  to the axis that is the link shaft's cone moved out 0.25 mm normal to it. The shaft's cone starts at the plate's upper
+  face, `g` below the sun's rear face, at the shaft collar radius, so the countersink's radius at the rear face is
+  `ds/2 + 1.2 + 0.289 - g/√3` (3.41 by default) and it narrows to the bore radius `1.49 mm` above the face (`√3 × (ds/2 + 1.2 + 0.289 - bore radius) - g`).
+  The D bore's tooth begins there, so the sun keeps the 0.25 mm gap it had to the shaft's old square step. The countersink is a
+  revolved profile and a Boolean cut after the D bore. The first sun sits on the input shaft and has none.
 - Planet: `Zp` teeth, thickness `T`, centered bore of the planet lip bore diameter, spur backlash `j`.
   A bearing pocket of the planet pocket diameter is then cut from the planet's upper face, `Wbp` deep,
   which leaves a lip `T - Wbp` thick under it with the lip bore through it. The lip bore is
@@ -266,7 +283,7 @@ The front cover is turned over about the X axis so its boss faces away from the 
 - Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to the collar, then a round rod
   of diameter `dss` from the collar to level with the first sun's top. The `ds` rod fills the front bearing's bore with
   no clearance. The `dss` rod has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the
-  shaft. Both rods reach 0.05 mm into the collar, so the unions cross faces; for a shaft bearing with a bore of 6 mm or
+  shaft. The whole shaft, collar included, is one revolved meridian (see the axial layout); for a shaft bearing with a bore of 6 mm or
   less the two rods are one diameter. Its flat on the `dss` rod runs
   from the sun's lower face to the top, and a second flat on the free end runs from `Li` outside the boss to 1 mm short of the boss.
 
@@ -289,22 +306,34 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
   Part clearances. Nothing stands above the plate. The pin prints standing on its thick end.
 - Shaft of stage `k`: thin-thick, its bottom level with the carrier's lower face `kP + T + g`. Its thick part is a D of
   the shaft collar diameter with a flat `Sf` deep on +X, pressed through the carrier's centre hole (the thick D grown
-  0.05 mm radially). For `k < K - 1` it is the link shaft. Its thick part ends 0.25 mm below the next sun,
-  at `Tc + g - 0.25` above the carrier's lower face. Its thin rod of diameter `dss` reaches 0.05 mm into the thick part
-  and ends at the top of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore. The flat of the thin rod runs
-  from the next sun's lower face to the shaft's top. For the last stage it is the output shaft. Its thick part ends
-  0.25 mm below the rear bearing's inner face, at `Tc + g + Tv - 0.25` above the carrier's lower face. Its thin rod, of diameter `ds`, ends
-  `Lo` above the rear cover's boss, at `K P + Tv + Wbs + Lo`, and is round in the bearing and the stub. The step bears
-  on the next sun's lower face (link) or the bearing's inner race (output) after 0.25 mm of play. A shaft prints
+  0.05 mm radially). For `k < K - 1` it is the link shaft. It is one revolved meridian: the thick part up to the plate's
+  upper face (`Tc`, 3 mm), a 30° cone from there to the rod (`√3` times the radius change long: 2.078 mm, ending `Tc + 2.078` = 5.078 above the carrier's
+  lower face; 3.811 mm, ending 6.811 above it, for the 6 mm sun section on a 10.4 mm thick part), and the rod of the sun section, diameter `dss`, up to the top of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore.
+  Its flat is one plane that follows the shaft: at `Sf` inside the thick part's rim up to the plate, along the cone at the
+  same 30°, `Sf` inside its surface, and at `Sf` inside the rod's rim from the cone's end to the top. The flat has no
+  end. The sun's countersink (see Gears) faces the cone and its D bore's tooth starts above the flat's ramp. For the last stage it is the output shaft. Its thick part ends
+  0.25 mm below the rear bearing's inner face, at `Tc + g + Tv - 0.25` above the carrier's lower face, in a square step that faces
+  the bearing's inner ring. Its thin rod ends `Lo` above the rear cover's boss, at `K P + Tv + Wbs + Lo`, and is round in
+  the bearing and the stub. Its flat on the free end runs at full depth from 1 mm above the boss to the top (z 22.0 to 33 by default)
+  and ends toward the boss in a 30° ramp that leaves the rod 0.866 mm lower, 0.13 mm above the boss. The step bears
+  on the bearing's inner race after 0.25 mm of play. A shaft prints
   standing on its thick end.
 - The ring spans `[-g, K P]`.
 - The front cover's frame spans `[-g - Tv, -g]` and its boss `[-g - Tv - Wbs, -g - Tv]`; the rear cover's
   frame spans `[K P, K P + Tv]` and its boss `[K P + Tv, K P + Tv + Wbs]`. The front bearing fills
   `[-g - Tv - Wbs, -g - Tv]` and the rear bearing `[K P + Tv, K P + Tv + Wbs]`.
-- The input shaft spans `[-g - Tv - Wbs - Li, T]`; a collar fills `[-g - Tv + 0.25, -0.5]`, from 0.25 mm above the
+- The input shaft spans `[-g - Tv - Wbs - Li, T]`, one revolved meridian; a collar fills `[-g - Tv + 0.25, -0.5]`, from 0.25 mm above the
   front bearing's inner face to 0.5 mm short of the first sun's lower face. The 0.25 mm is the Tight gap to the
   bearing and the 0.5 mm is the collar clearance. The collar is `g + Tv - 0.75` long, 3.25 mm by default and never under
-  3.0 mm, because `g >= 0.75` and `Tv >= 3`.
+  3.0 mm, because `g >= 0.75` and `Tv >= 3`. Its bearing side is a square step. Its sun side is a 30° cone that meets the sun section
+  at `-0.5`, so the collar's whole length, measured to where the cone meets the rod, is the full 3.25 mm; the
+  cylinder at the collar radius is 1.17 mm long (`[-3.75, -2.578]`) and the cone is `[-2.578, -0.5]`. The first sun's lower face is 0.5 mm
+  above the cone's end, which is the closest the sun comes to the collar. With a 608ZZ shaft bearing the sun section is 6 mm,
+  and a cone down 2.2 mm of radius would be 3.81 mm long, longer than the collar. The collar then keeps a 0.8 mm cylinder at its
+  bearing-side face, at radius 4.41 mm instead of 5.2 mm (the radius from which a 30° cone reaches the 3 mm sun section at `-0.5`), and the cone takes the other 2.45 mm. Its sun-side flat, on the sun section, runs at full depth from the sun's lower face (z 0) to
+  the top and ends there in a square step, where the sun's D bore stops (see Retained sharp corners). Its free-end flat runs at full depth
+  from the shaft's free end to 1 mm below the boss (z −21 to −10 by default) and ends toward the boss in a 30° ramp
+  that leaves the rod 0.866 mm higher, 0.13 mm below the boss. It is on the bearing section.
 
 Each carrier is one solid body, a plate with a socket for each pin, and each pin is its own body, as are the shafts.
 A carrier's plate is the convex hull of the `n` pin bosses, a rounded polygon: a boss circle of the boss diameter
@@ -317,23 +346,55 @@ through the plate. The plate is extruded `Tc`; it needs `Tc >= 2` so each press 
 [Arbor collars](../../docs/model-pipeline.md#arbor-collars) applies. The gearbox has no separate collar ring: each
 collar is a raised part of a shaft's or pin's own body. The table lists every one with the default dimensions, from the
 axial layout above. `z` is the height above the reference plane. The shaft collar diameter is `ds + 2.4` (7.4; 10.4 with
-a 608ZZ shaft bearing) and the pin collar diameter is `dp + 2.4` (7.4). The lengths follow from the construction; no
-test measures them on the built bodies yet.
+a 608ZZ shaft bearing) and the pin collar diameter is `dp + 2.4` (7.4). A collar that ends in a cone is measured to where the
+cone meets the rod, as the rule asks, and every cone is 2.078 mm long (1.2 mm of radius at 30° to the axis). The lengths
+follow from the construction; no test measures them on the built bodies yet.
 
 | Collar | Shaft | Carried part | Flush side | z | Len | Option |
 |---|---|---|---|---|---|---|
-| Input shaft collar | Input shaft | First sun, which turns with the shaft | Front bearing's inner face, `z -4` | `[-3.75, -0.5]` | 3.25 | 1: the 4 mm gap, less the 0.25 Tight gap at the bearing and the 0.5 collar clearance at the sun |
+| Input shaft collar | Input shaft | First sun, which turns with the shaft | Front bearing's inner face, `z -4` | `[-3.75, -0.5]`, cone `[-2.578, -0.5]` | 3.25 | 1: the 4 mm gap, less the 0.25 Tight gap at the bearing and the 0.5 collar clearance at the sun |
 | Output shaft thick part | Output shaft | Last carrier, which turns with the shaft | Rear bearing's inner face, `z 16` | `[9, 15.75]` | 6.75 | 1: 3.75 above the plate's upper face (`z 12`), 0.25 short of the bearing |
-| Link shaft thick part | Link shaft | First carrier, and the next sun above it | Carrier plate, `[9, 12]` | `[9, 12.75]` | 3.75 | None of the three: the part is pressed through the plate and only 0.75 mm of it stands above the plate |
+| Link shaft thick part | Link shaft | First carrier, and the next sun above it | Carrier plate, `[9, 12]` | `[9, 12]`, cone `[12, 14.078]` | 5.078 | None of the three: the part is pressed through the plate and ends level with its upper face, and the 0.75 mm above the plate (to the next sun, 1 mm up) cannot hold a cone, so the cone runs along the rod into the next sun's countersink |
 | Carrier pin thick part | Carrier pin | Planet bearing, which turns on the pin | Carrier plate, `[9, 12]` | `[8.5, 12]` | 3.5 | None of the three: the part is pressed through the plate, 0.5 mm of it stands below, and the planet bearing top is 0.25 below that |
 
 The pin and link shaft thick parts use none of the three options. Each is a press-fit plug in the carrier plate, with
 3.0 mm of its length inside the plate. The free gap beside it is too short for option 1. For a pin, the planet bearing's
 top face (`z 8.25`) to the plate's lower face (`z 9`) is 0.75 mm, which is 0.5 mm after the 0.25 mm fit gap. For the link
-shaft, the plate's upper face (`z 12`) to the next sun's lower face (`z 13`) is 1 mm, which is 0.75 mm after the fit gap.
-Option 2 needs a counterbore in the carried part and forbids the collar from passing through the flush side, but these
+shaft, the plate's upper face (`z 12`) to the next sun's lower face (`z 13`) is 1 mm. Option 2 needs a counterbore in the
+carried part and forbids the collar from passing through the flush side, but these
 thick parts pass through the plate. The construction keeps them as they are, and the table lists them so a later change
-can decide.
+can decide. The link shaft's cone meets the next sun's countersink with the 0.25 mm gap the shaft's old square step had to the
+sun, measured normal to the cone (Fits, below).
+
+### Fits
+
+| Fit | Surfaces | Gap | Class |
+|---|---|---|---|
+| Link shaft cone to the next sun's countersink | The cone and the countersink, both at 30° to the axis | 0.25 mm normal to the cone, 0.289 mm along the radius | Tight (0.2 mm minimum); it is the gap the old square step had to the sun's rear face |
+| Input shaft collar's cone to the first sun | The cone's end, at the rod, and the sun's lower face | 0.5 mm axial (collar clearance) | Loose (0.5 mm); unchanged |
+| Link shaft thick part to the first carrier's hole, output shaft thick part to the last carrier's hole, pin thick part to its socket | D to D | 0.05 mm radial | Press fit, unchanged |
+| Sun's D bore to a shaft's rod | D to D | 0.05 mm radial | Press fit, unchanged |
+
+## Split shafts
+
+[Split shafts](../../docs/model-pipeline.md#split-shafts) applies. The model builds each part below as one body and does
+not model the split. Each prints as two halves, each lying on its cut face.
+
+| Part | Split plane (normal) | What holds the halves |
+|---|---|---|
+| Input Shaft | Holds the axis and the flat's normal, +X, so its normal is ±Y | The front bearing's inner race, a no-clearance fit on the rod, and the first sun's D bore, a press fit on both halves |
+| Link Shaft (each stage but the last) | The same, normal ±Y | The carrier's D hole, a press fit on the thick part, and the next sun's D bore, a press fit on the rod |
+| Output Shaft | The same, normal ±Y | The last carrier's D hole, a press fit on the thick part, and the rear bearing's inner race, a no-clearance fit on the rod |
+| Carrier Pin (each) | Holds the axis and the direction its flat faces, which is its orbit direction `(cos φ, sin φ)`, so its normal is the tangent `(-sin φ, cos φ)` | The planet bearing's inner race, a no-clearance fit on the rod, and the carrier's D socket, a press fit on the thick part |
+
+Each part is mirror-symmetric about its split plane, has no downward face wider than a 6 mm bridge, and stands at least 3.7 mm
+(4.41 mm for the input shaft and 5.2 mm for the link and output shafts with a 608ZZ shaft bearing) above its cut face. `TestSplitShafts` runs `splitcheck.Check` on each part of the
+default build and then `cornercheck.CheckAt` along the split normal at the heights `cornercheck.SplitHeights` returns for
+the smallest radius that meets a step or a cone (`dss/2` for the input and link shafts, `ds/2` for the output shaft, `dp/2` for a pin), 0.1 mm to 0.8 of it from the seam on each side in 0.25 mm steps. It
+exempts only the corners listed under Retained sharp corners. `TestSplitShaftsVariants` does the same for the three other
+kits, two stages and `Sf = 0`, and runs in the scheduled full suite. With `Sf = 0` no part has a flat, so the split
+plane takes the +X direction (the pin's orbit direction for a pin) as its reference, which is where the flat faces when
+`Sf > 0`.
 
 ## Document
 
@@ -368,7 +429,11 @@ table, so those hold the last gear built.
 Follow the repository sketch rules: anchor every sketch at the origin of its plane,
 dimension every circle's center from that origin and its diameter by a bound parameter,
 solve and verify each sketch is fully constrained before extruding. The spur gear builds
-verify their own sketches.
+verify their own sketches. The input and link shafts and the sun countersink are revolved from one meridian sketch on the XZ
+plane (`U` the radius, `V` the height) that starts on the axis: the first corner is dimensioned from the origin, each
+vertical edge takes its length, each horizontal edge and each cone edge takes its corner's distance from the axis, bound
+to the table (`shaft_diameter / 2`, `shaft_collar_diameter / 2`, `shaft_bore_diameter / 2`), and each cone edge takes
+its 30° angle to the first vertical edge. The flat tools are the same kind of sketch, extruded symmetrically along Y.
 
 ## Retained sharp corners
 
@@ -383,7 +448,14 @@ Exempt corners:
 | Planet Gear | the planet bearing pocket's floor corner (between layers) | the same |
 | Covers | the floor corners of the four bolt-head pockets (between layers) | Fasteners rule: the pocket is the head diameter plus 0.3 mm and as deep as the head, and the head's flat underside needs the whole floor |
 | Ring Gear | the eight nut cavities (between layers) | Fasteners rule: closed cavities whose roofs print as bridges over the dropped-in nut |
-| Input Shaft, Output Shaft, Link Shaft, Carrier Pins | the collar and thick-part steps (between layers) | Arbor collars sets each step; each step faces a bearing's inner ring (bore chamfer 0.15 to 0.3 mm) or a sun face, and a round would reach it |
+| Input Shaft | the collar's bearing-side step: the inside corner at radius `ds/2` and `z -3.75` (between layers; in the split halves, every section across the seam) | mating corner with the front bearing: the step faces the inner ring across the 0.25 mm Tight gap, and the ring's corner sits in this corner, so a cone or a round would reach it |
+| Output Shaft | the thick part's step: the inside corner at radius `ds/2` and `z 15.75` (between layers; in the split halves, every section across the seam) | mating corner with the rear bearing, as above |
+| Carrier Pins | the thick part's step: the inside corner at radius `dp/2` and `z 8.5` (between layers; in the split halves, every section across the seam) | mating corner with the planet bearing's inner ring, as above |
+| Input Shaft, first Sun Gear | the square start of the shaft's sun-side flat at `z 0`, at the chord `dss/2 - Sf` from the axis, and the sun's D bore chord that stops on it (between layers; in the split halves, every section across the seam that cuts the flat); none with `Sf = 0` | mating corner pair: the sun's tooth begins at its lower face on the end of the flat. A ramp there would run into the collar's cone (0.5 mm below) and the sun's chord would ride on it. Both corners stay sharp |
+
+Every other step of a shaft is a 30° cone, and every other flat ends in a 30° ramp or runs on to the end of the part, so the
+split halves have no other inside corner (see Split shafts). The collar, link shaft and output shaft steps that earlier
+builds listed as retained, and the link shaft's step to the next sun, are no longer exempt except as the rows above say.
 
 Rounds below half their section: none. The ring's ear roots, the cover windows' corners and the cover boss root are
 rounded at half their section.
@@ -396,6 +468,13 @@ The 1.6 mm clause covers printed press-fit tubes only, not the pocket that holds
 bearing pocket therefore leaves 1.43 mm of wall to the planet root circle in the 28-tooth kits (the one-module minimum
 plus 0.43 mm), which is allowed: the bearing seat grips a purchased part with a small radial fit and loads no printed
 tube. See [Corners and roots](../../docs/model-pipeline.md#corners-and-roots).
+
+Known pending violation, not changed here: with two or more stages in the two kits with a 608ZZ shaft bearing
+(`planet605-shaft608` and `planet608-shaft608`), the countersink of a sun fed by a link shaft (10.4 mm thick part) opens
+to 4.91 mm radius at its rear face, which leaves 0.59 mm of wall under the 5.5 mm sun root there (0.8 mm is the minimum
+for a wall), rising to 0.8 mm at 0.37 mm above the face. The 6 mm sun section does not change it, because the cone starts at
+the thick part's radius. With the 605ZZ shaft bearings the same wall is 1.59 mm. A shorter thick part would shorten the
+carrier's press fit. It is a separate decision.
 
 ## Edge finishing
 
@@ -435,14 +514,14 @@ teeth to fit a bearing. An unknown kit name is an error that lists the supported
 | Default | None | 1 ring, 2 covers, 2 cover bearings, 1 input shaft, 1 sun, 3 planets, 3 bearings, 1 carrier, 1 output shaft, 8 bolts, 8 nuts, all solids; ratio 1 + 71/13 |
 | Fasteners | Default | Every bolt head ends level with its cover's outer face, every nut sits in its cavity 1 mm behind the ring's end face, and no bolt or nut overlaps the cover or ring it passes through |
 | Kits | Each kit of Bearing kits | Each kit validates and has its bearings and teeth. Each non-default kit builds and passes the default's fit, edge, container, fastener, gear-clearance and explode checks. `planet608-shaft605` and `planet608-shaft608` build only when `PLANETARY_ALL_KITS` is set, because each build takes 6 to 10 minutes; otherwise their subtests are skipped |
-| Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore |
-| Shaft flat | Default | The input shaft has a flat on +X where the first sun sits and the sun's D bore has the matching tooth: at the flat the sun has material beyond the shaft's edge, and elsewhere in the bore the sun is absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's less the flat's circle segment over the sun's thickness; in a two-stage gearbox the second sun's bore has the same tooth for the link shaft's thin rod |
+| Two stages | `K = 2` | The default parts plus a second stage: 2 suns, 6 planets, 6 bearings, 2 carriers and a link shaft before the output shaft; the link shaft fills the second sun's bore, and its 30° cone keeps 0.25 mm normal to the second sun's countersink (0.289 mm along the radius, read at three heights up the countersink) |
+| Shaft flat | Default | The input shaft has a flat on +X where the first sun sits and the sun's D bore has the matching tooth: at the flat the sun has material beyond the shaft's edge, and elsewhere in the bore the sun is absent; under the front bearing the shaft is a full cylinder; the shaft's volume is a round rod's plus the collar's, whose sun side is a cone, less the flat's circle segment over the sun's thickness and the free end's flat with its ramp; in a two-stage gearbox the second sun's bore has the same tooth for the link shaft's thin rod |
 | Housing | Default | The covers and bearings sit at the axial positions above; the bolt holes of the ring and both covers line up; a cover has material on a spoke and none in a window and weighs less than a disc; the input shaft fills the first sun's bore |
 | Bearings | Default | Each pocket is empty where its bearing sits; the 14 mm × 5 mm bearing clears the pocket by 0.05 mm radially and is lifted by 0.25 mm axially; the planet weighs the plain gear with the lip bore minus the pocket's ring |
 | Seat chamfer | Default and `Sc = 0` | A planet and a cover each weigh less than the `Sc = 0` ones by a ring of triangular section, `Sc²/2` times the pocket's circumference, within the volume bounds plus 1; every body stays one solid |
 | Edge finishing | Default | Per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing): every flat face of at least 400 mm² on the ring, the covers and the carriers has a 45° bevel of `Ec` along its whole outer boundary; the covers' windows and the cover lip's inner edge are bevelled too, and the ring's rims sit `Ec` inside its outer radius. The ring's tooth edges, the pin sockets, the centre holes and the bolt holes stay sharp (see Edge finishing); each carrier face has `n + 1` inner loops, none bevelled |
 | Carrier pins | Default | Each planet has its own pin body, starting at the gears' lower face: a 5 mm rod and a D thick part that starts 0.2 to 0.3 mm above the bearing and ends level with the carrier's upper face; the thick part has 0.05 mm of radial clearance in its socket, proven to about 0.026 mm; the pin's volume is the rod's plus the D prism's |
-| Carrier shafts | Default and `K = 2` | Each link and output shaft has a thick D part pressed into the carrier's centre hole with 0.05 mm of clearance, its bottom level with the carrier's lower face, ending 0.25 mm short of the next sun or the rear bearing; the thin rod fills the sun's bore or the bearing; the volume is the D prism's plus the rod's less the flat's segment over the thin rod's flat span |
+| Carrier shafts | Default and `K = 2` | Each link and output shaft has a thick D part pressed into the carrier's centre hole with 0.05 mm of clearance, its bottom level with the carrier's lower face, ending 0.25 mm short of the next sun or the rear bearing; the thin rod fills the sun's bore or the bearing; the link shaft's thick part ends level with the plate's upper face and a 30° cone runs on to the rod; the volume is the D prism's (plus the cone's) plus the rod's less the flat's segment over the thin rod's flat span and, along the link shaft's cone and the free end's ramp, the segment that shrinks with it |
 | Carrier | Default | The plate is solid between the pins out to the tangent edge and absent beyond it; the centre hole is a wider D, open in the middle with a tooth where the flat goes; a socket for each pin is open in both faces; nothing stands above the plate, so the carrier's top is the plate's top |
 | Mesh | Default | No planet outline vertex lies inside the sun or the ring, and no sun or ring vertex inside a planet |
 | Gear roots | Module 0.5, 1 and 2; default placed gear bodies | Root and tip circles leave `max(0.25 m, 0.5 mm)` at the sun-planet and planet-ring meshes; the built model's root parameters match the same radii |
@@ -451,6 +530,7 @@ teeth to fit a bearing. An unknown kit name is an error that lists the supported
 | Placed | Default with frame origin `(10,-5,7)`, `U=+Y`, `V=+Z` | Same volumes as the unplaced box; bounds follow the frame |
 | Ears | Default; `Ne = 2`, `de = 6`; `Ne = 0` | The default ring has three ears at 90°, 210° and 330° that run the ring's whole length: the section has no material in a bore or beyond an ear's tip or side, and material in the ear's wall, in each root round and between the wall and the ring; the ring's volume exceeds the plain ring's by the ears' sections plus two root rounds each; the bore clears the covers' outer wall by at least 3 mm; the ring's bounds follow the ears. `Ne = 2`, `de = 6` gives two larger ears on the Y axis. `Ne = 0` gives the plain cylinder with the earlier rim bevel and builds in a plain document. Every ear sketch is fully constrained |
 | Corners | Default (`TestCorners`); the other kits, `Ne = 0, 1, 6` and `K = 2` (`TestCornersVariants`) | Per [Corners and roots](../../docs/model-pipeline.md#corners-and-roots): every printed body, cut along +Z at the middle of each run of layers with `internal/cornercheck`, has no finding outside Retained sharp corners. The default runs in pull request CI. The variants, about 5 minutes, run in the scheduled full suite, including the two kits with a 608ZZ planet bearing. Every new sketch is fully constrained in every case |
+| Split shafts | Default (`TestSplitShafts`); the other kits, `K = 2` and `Sf = 0` (`TestSplitShaftsVariants`) | Per [Split shafts](../../docs/model-pipeline.md#split-shafts): every shaft and pin, built and posed, passes `splitcheck.Check` with the split normal that Split shafts lists, and its two halves read on their cut faces with `cornercheck.CheckAt` along that normal at the `cornercheck.SplitHeights` heights have no finding outside the listed bearing-facing steps and the square flat start. Every exemption claims a finding. The default runs in pull request CI; the variants run in the scheduled full suite |
 | Invalid | `Zr != Zs + 2Zp`; `(Zs + Zr) mod n != 0`; colliding planets; a carrier plate that reaches the ring; a gear too thin for the lip; `j` below 0 or above `m/2`; a negative ear count; ears without a bore; ears over the bolt sites; ears too close together (counting their root rounds); a flat depth of 1.2 or more; a carrier wall under 2.25; an invalid placement | An error naming the failing rule |
 
 ## Verification

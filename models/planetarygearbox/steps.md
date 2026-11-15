@@ -39,7 +39,9 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
 2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (`sun_shaft_diameter + 0.1`: 5.1 for a 605ZZ shaft bearing, 6.1 for a 608ZZ, 0.05 mm larger radially than the shaft's sun section, a press fit)
    when `Sf = 0`, otherwise no bore. With a flat, extrude the D tool (see below) from `z = -1` up `T + 2` and
-   `decad.Cut` it from the sun.
+   `decad.Cut` it from the sun. For `K > 1`, `decad.Copy` the finished sun and `countersinkSun` it: revolve the
+   countersink's meridian (see **Shaft meridians** below) about the axis and `decad.Cut` it from the copy. The first sun
+   keeps the plain bore and the copy serves the later suns.
 3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = planet lip bore diameter`,
    `Backlash = j`. Then extrude a circle of the planet pocket diameter (`planet_pocket_diameter`) on the plane
    `z = T - Wbp`, `Wbp + 1` up, and
@@ -71,22 +73,40 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      leaves 0.25 mm between the bearing and the thick part. Pose pin `i` of stage `k` at
      `(a cos φᵢ, a sin φᵢ, kP + T + g)` turned by `φᵢ`, so its flat faces the same way as its socket. Check: one
      solid, its top level with the carrier's top.
-6. **Shafts**, separate bodies. `buildSteppedShaft(thickTop, top, flats...)` builds the link and output shafts: a D thick
-   part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of the given section (`dss` for the link shaft, `ds` for the output shaft) from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; then the flat's box cut out over each of the
-   flats' spans. `buildShaft(bottom, top, collarBottom, collarTop, flats...)` builds the input shaft: a round rod of
-   diameter `ds` from `bottom` to 0.05 below `collarTop`, a round collar of diameter `ds + 2 × collar margin` from
-   `collarBottom` to `collarTop`, and a round rod of diameter `dss` (`sun_shaft_diameter`) from 0.1 below `collarTop` to
-   `top`, joined with one union, and then the flat's box cut out over each span.
-   Each span names the section it flats (`dss` over the sun, `ds` on the free end). The box is the section's diameter `+ 2` wide about the X axis and runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a
-   rectangle sketch with its corner dimensioned from the origin, its width and its height. `decad.Cut` removes it. The
-   flats of every span join into one tool and take one cut. The free ends of the input and output shafts take a
-   further flat span each, ending (input) or starting (output) 1 mm clear of the bearing boss (`endFlatMargin`).
-   - Link shaft, when `K > 1`: `thickTop = Tc + g - 0.25`, `top = T + Tc + g`, one flat from `Tc + g` to `top + 1`.
-     Posed with its bottom on a carrier's lower face.
-   - Output shaft: `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`, one flat from `top - Lo + 1` to `top + 1` on the free end. Posed with its
-     bottom on the last carrier's lower face.
-   - Input shaft: `bottom = -(g + Tv + Wbs + Li)`, `top = T`, collar from `-(g + Tv) + 0.25` to `-0.5` (0.25 mm above the front bearing's inner face), flats from `0` to
-     `T + 1` and from `bottom - 1` to `bottom + Li - 1`.
+6. **Shafts**, separate bodies. Each is built from a revolved meridian (see **Shaft meridians** below) or, for the
+   output shaft's thick part, a D extrusion, then takes its flats from one tool. A step that does not face a bearing is a
+   cone at 30° to the axis, `√3` times the radius change long, and a flat that stops partway ends in a ramp at 30° to the axis.
+   `flatCut` takes `flat{lo, hi, loRamp, hiRamp, section}` values (`section` is the bearing section `ds` or the sun section `dss`): each is one meridian polygon that runs from `Sf` inside the
+   rod's +X rim (`ds/2 - Sf`) over `lo` to `hi` and out to `ds/2 + collar margin`, extruded symmetrically along Y, with a
+   ramp from `x = ds/2 - Sf` up to `ds/2 + collar margin / 6` over `√3 (Sf + collar margin / 6)` where the flat ends in
+   one. The tools of every flat join into one and take one `decad.Cut`. With `Sf = 0` no flat is cut.
+   - Link shaft, when `K > 1` (`buildLinkShaft`): revolve `(0, 0)`, `(collar, 0)`, `(collar, Tc)`, `(rod, Tc + √3 (collar - rod))`,
+     `(rod, T + Tc + g)`, `(0, T + Tc + g)`, with `rod = dss/2` (`sun_shaft_diameter`, the sun section) and `collar = shaft collar diameter / 2`. Its one flat tool is the
+     polygon `(collar + collar margin, -1)`, `(collar - Sf, -1)`, `(collar - Sf, Tc)`, `(rod - Sf, Tc + √3 (collar - rod))`,
+     `(rod - Sf, top + 1)`, `(collar + collar margin, top + 1)`, so the flat takes the thick part's D, follows the cone and goes
+     on along the rod, with no end. Posed with its bottom on a carrier's lower face.
+   - Output shaft (`buildOutputShaft(thickTop, top)`): `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`. A D
+     thick part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of
+     diameter `ds` from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; the step at `thickTop` is square, because
+     it faces the rear bearing's inner ring. One flat from `top - Lo + 1` to `top + 1` with a ramp at its lower end.
+     Posed with its bottom on the last carrier's lower face.
+   - Input shaft (`buildInputShaft`): `bottom = -(g + Tv + Wbs + Li)`, `top = T`, `rb = ds/2`, `rs = dss/2`. Revolve `(0, bottom)`, `(rb, bottom)`,
+     `(rb, -(g + Tv) + 0.25)`, `(collar, -(g + Tv) + 0.25)`, `(collar, -0.5 - √3 (collar - rs))`, `(rs, -0.5)`, `(rs, T)`, `(0, T)`.
+     When `√3 (collar - rs)` leaves less than 0.8 mm of the collar's 3.25 mm (a 608ZZ shaft: `dss` 6), the collar radius is
+     `rs + (3.25 - 0.8)/√3` (4.41 mm) and the cone starts 0.8 mm above the collar's bearing-side face.
+     The collar's bearing side is square, because it faces the front bearing's inner ring. A flat on the sun section from `0` to `T + 1`
+     ending square at the sun's lower face, and a flat on the bearing section from `bottom - 1` to `bottom + Li - 1` with a ramp at its upper
+     end. The 1 mm is `endFlatMargin`; it grows to `√3 Sf + 0.1` when the ramp is longer than it.
+   **Shaft meridians.** A meridian is a closed polygon on the world's XZ plane, `U` the radius and `V` the height, built
+   by `meridian`. Its first vertex is dimensioned from the origin (`sketchcheck.DimensionPoint`). For each later
+   vertex a vertical edge takes `Vertical` and a `VerticalDistance` from the vertex before it; a horizontal edge takes
+   `Horizontal` and the vertex's `HorizontalDistance` from the origin; a 30° edge takes the vertex's `HorizontalDistance`
+   from the origin and an `Angle` against the first vertical edge. A vertex's `HorizontalDistance` is bound to the table
+   with `Sketch.Bind` where the vertex sits on the rod or the collar. The edge back to the first vertex takes no
+   constraint. Solve and verify the sketch is fully constrained, require one valid profile, and `decad.Revolve` it with
+   `decad.SketchLine` from `(0, 0)` to `(0, 1)` as the axis, or `decad.Extrude` it with `decad.Symmetric`. The sun's
+   countersink is `(0, -1)`, `(r(-1), -1)`, `(bore, h)`, `(0, h)` with `r(z) = collar + 0.289 - (z + g)/√3`,
+   `h = -g + √3 (collar + 0.289 - bore)`, `bore = shaft bore diameter / 2`; 0.289 is `0.25 / cos 30°`.
 7. **Cover.** One extruded frame, then a bearing boss, joined by one union.
    - Frame: one sketch on z=0. Circle of diameter `2 * ring_outer_radius`; circle of diameter `cover_lip_bore_diameter`
      at the origin; the four bolt-hole circles as for the ring. For each spoke `k`, with spoke angle
@@ -198,7 +218,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
 - Carrier pins: each pin is solid, runs from the gears' lower face to the carrier's upper face, has a D thick part 0.05 mm
   from its socket (proven to 0.02 mm) and starts 0.2 to 0.3 mm above its bearing; its volume is the rod's plus the D prism's.
 - Carrier shafts: the output shaft's thick part starts at the carrier's lower face, ends 0.25 mm short of the rear
-  bearing, and its volume is the D prism's plus the thin rod's.
+  bearing, and its volume is the D prism's plus the thin rod's less the free end's ramp.
 - Press-fit rims: each carrier face has `n + 1` inner loops and none has a bevel beside it.
 - Carrier: with `LocatePoint`, at mid-plate height the plate is inside at radius 12 and 15 and 60 degrees (between
   two pins) and outside at radius 20 on that line; a pin boss is inside and the shaft hole open at the axis and at
@@ -219,7 +239,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   build, the sun root radius less half the sun bore leaves 1.6 mm (`TestSunBoreWallDimensions`).
 - Shaft flat: with `LocatePoint` at mid-height of the sun, the sun is inside at `(2.4, 0.3)` and outside at `(-1, 0.3)`,
   and the input shaft is inside at `(1, 0.3)`; the input shaft's volume equals a round rod's plus the collar's less the flat's
-  circle segment over the sun's thickness, within the volume bound plus 0.5; in the two-stage case the second sun has
+  circle segment over the sun's thickness (and the collar's cone and the free end's ramp, integrated numerically), within the volume bound plus 0.5; in the two-stage case the second sun has
   the same tooth for the link shaft.
 - Housing: the covers' and bearings' bounds sit at the axial positions of the contract; the input shaft starts `Li`
   below the front boss and ends at `T`, and `LocatePoint` finds it inside and the sun outside at the axis; at
@@ -232,11 +252,16 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   1 mm, and pockets that leave less than 1 mm of ring wall are rejected.
 - Two stages: 46 bodies, stage offsets by `P`, the link shaft's top equal to the second sun's top, the output shaft
   `Lo` beyond the rear boss, and the second stage's planets mesh as the first's do. The link shaft's thick part is a
-  0.02 mm or wider press fit in the first carrier and ends 0.25 mm short of the second sun; a build with `Sf = 0` and
+  0.02 mm or wider press fit in the first carrier and ends level with its upper face, with a 30° cone from there to the
+  rod; the cone keeps 0.2/cos 30° or more of radial gap to the second sun's countersink at three heights up it; a build with `Sf = 0` and
   `g = 0.75` succeeds.
 - Corners: `TestCorners` cuts every printed body of the default along +Z at the middle of each run of layers with
   `internal/cornercheck` and requires no finding outside "Retained sharp corners" in `instructions.md`.
   `TestCornersVariants` does the same for the other kits, `EarCount` 0, 1 and 6, and two stages.
+- Split shafts: `TestSplitShafts` runs `splitcheck.Check` and then `cornercheck.CheckAt` along the split normal at the
+  `cornercheck.SplitHeights` heights on the input shaft, the output shaft and every carrier pin of the default build, with only
+  the bearing-facing steps and the input shaft's square flat start exempt. `TestSplitShaftsVariants` does the same for the
+  other kits, two stages (with the link shaft) and `Sf = 0`.
 - Ear roots: the section has material in each root round and none beside it; two stages' worth of ear volume matches
   the ear section plus two root rounds.
 - Placed: bounds follow the frame, and each body's volume matches the unplaced one within the volume bounds.

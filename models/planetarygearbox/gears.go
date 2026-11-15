@@ -64,6 +64,34 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	return bored, nil
 }
 
+// countersinkSun cuts the countersink that a sun fed by a link shaft has in its rear bore, from sun (a copy of the sun
+// built by buildSun) and returns the result. The link shaft's cone (see buildLinkShaft) starts StageGap below the sun's
+// rear face, at the carrier plate's upper face, at the shaft collar's radius and runs up along the rod at 30° to the
+// axis. The countersink is the cone moved out by fitClearance measured normal to it, which is fitClearance/cos 30°
+// along the radius, so the sun keeps the 0.25 mm gap it had to the shaft's old square step. It runs up to the bore,
+// where the D bore's tooth begins. Printed with its axis vertical the cone reads 30° in every section.
+func (r *run) countersinkSun(ctx context.Context, sun *decad.Body) (*decad.Body, error) {
+	collar, bore := r.d.collar/2, r.d.shaftBore/2
+	out := 2 * fitClearance / coneRun
+	// The cone's radius at height z above the sun's rear face.
+	radiusAt := func(z float64) float64 { return collar + out - (z+r.p.StageGap)/coneRun }
+	top := -r.p.StageGap + coneRun*(collar+out-bore)
+	tool, err := r.revolveMeridian(ctx, "sun countersink", []vertex{
+		{0, -1, ""}, {radiusAt(-1), -1, ""}, {bore, top, "shaft_bore_diameter / 2"}, {0, top, ""},
+	})
+	if err != nil {
+		return nil, err
+	}
+	cut, err := decad.Cut(ctx, sun, tool)
+	if err != nil {
+		return nil, fmt.Errorf("sun gear: cut countersink: %w", err)
+	}
+	if !cut.IsSolid() {
+		return nil, errors.New("sun gear: countersunk result is not a solid")
+	}
+	return cut, nil
+}
+
 // buildPlanet builds a planet gear about the local origin, from z=0 to the gear thickness. It has a
 // pocket for its bearing open on the upper face, deep as the bearing is wide, and a lip below the pocket
 // whose bore is smaller than the bearing so the bearing cannot fall out.

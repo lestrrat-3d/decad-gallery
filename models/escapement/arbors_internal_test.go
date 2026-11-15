@@ -59,15 +59,58 @@ func segmentArea(r, flat float64) float64 {
 	return r*r*math.Acos(flat/r) - flat*math.Sqrt(r*r-flat*flat)
 }
 
-// sectionRadius returns the radius of the meridian pts at height z.
+// sectionRadius returns the radius of the meridian pts at height z, along a cylinder or a cone.
 func sectionRadius(pts meridianPoints, z float64) float64 {
 	for i, p := range pts {
 		q := pts[(i+1)%len(pts)]
-		if p[0] == q[0] && p[0] > 0 && z > math.Min(p[1], q[1]) && z < math.Max(p[1], q[1]) {
-			return p[0]
+		lo, hi := math.Min(p[1], q[1]), math.Max(p[1], q[1])
+		if p[1] == q[1] || z <= lo || z >= hi || math.Min(p[0], q[0]) < 0 || (p[0] == 0 && q[0] == 0) {
+			continue
 		}
+		return p[0] + (q[0]-p[0])*(z-p[1])/(q[1]-p[1])
 	}
 	return 0
+}
+
+// flatPlaneAt returns the least flat plane the spans put at height z, and whether any covers z. A ramp past the end of
+// a span moves the plane out at 30 degrees to the axis.
+func flatPlaneAt(spans []flatSpan, z float64) (float64, bool) {
+	best, found := math.Inf(1), false
+	for _, sp := range spans {
+		x := math.Inf(1)
+		switch {
+		case z >= sp.Z0 && z <= sp.Z1:
+			x = sp.X
+		case sp.RampEnd && z > sp.Z1:
+			x = sp.X + (z-sp.Z1)*math.Tan(coneHalfAngle)
+		case sp.RampStart && z < sp.Z0:
+			x = sp.X + (sp.Z0-z)*math.Tan(coneHalfAngle)
+		}
+		if x < best {
+			best, found = x, true
+		}
+	}
+	return best, found
+}
+
+// meridianVolume integrates the meridian pts, less the circular segment each flat takes off a section, over z in
+// steps of 1 µm.
+func meridianVolume(pts meridianPoints, spans []flatSpan) float64 {
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for _, p := range pts {
+		lo, hi = math.Min(lo, p[1]), math.Max(hi, p[1])
+	}
+	const step = 0.001
+	sum := 0.0
+	for z := lo + step/2; z < hi; z += step {
+		r := sectionRadius(pts, z)
+		area := math.Pi * r * r
+		if x, ok := flatPlaneAt(spans, z); ok {
+			area -= segmentArea(r, x)
+		}
+		sum += area * step
+	}
+	return sum
 }
 
 func TestArbors(t *testing.T) {
@@ -92,21 +135,8 @@ func TestArbors(t *testing.T) {
 			body, err := c.build()
 			require.NoError(t, err)
 			require.True(t, body.IsSolid())
-			// Volume: the revolve minus, over each flat's span, the circular segment of each section beyond its flat.
-			want := 0.0
-			for i, p := range c.pts {
-				q := c.pts[(i+1)%len(c.pts)]
-				if p[0] != q[0] {
-					continue
-				}
-				want += math.Pi * p[0] * p[0] * (q[1] - p[1])
-				for _, sp := range c.spans {
-					lo, hi := math.Max(p[1], sp.Z0), math.Min(q[1], sp.Z1)
-					if hi > lo {
-						want -= segmentArea(p[0], sp.X) * (hi - lo)
-					}
-				}
-			}
+			// Volume: the revolve minus, over each flat and its ramp, the circular segment of each section beyond the flat.
+			want := meridianVolume(c.pts, c.spans)
 			require.InDelta(t, want, volume(t, body), 0.01*want)
 			for _, sp := range c.spans {
 				mid := (sp.Z0 + sp.Z1) / 2
@@ -116,6 +146,22 @@ func TestArbors(t *testing.T) {
 				require.True(t, inside(t, body, c.x+sp.X-0.15, c.y, mid), "shaft kept at z %v", mid)
 				require.True(t, inside(t, body, c.x-r+0.1, c.y, mid), "round side kept at z %v", mid)
 				require.False(t, inside(t, body, c.x-r-0.05, c.y, mid), "section radius at z %v", mid)
+			}
+			// A ramp is a plane at 30 degrees to the axis: 0.3 mm past the end of the flat the cut plane stands
+			// 0.3 tan 30 degrees further out, and the shaft is kept below it and cut above it.
+			for _, sp := range c.spans {
+				for _, ramp := range []struct {
+					on bool
+					z  float64
+				}{{sp.RampEnd, sp.Z1 + 0.3}, {sp.RampStart, sp.Z0 - 0.3}} {
+					if !ramp.on {
+						continue
+					}
+					plane := sp.X + 0.3*math.Tan(coneHalfAngle)
+					require.Greater(t, sectionRadius(c.pts, ramp.z), plane+0.05, "the ramp at z %v cuts a section", ramp.z)
+					require.True(t, inside(t, body, c.x+plane-0.05, c.y, ramp.z), "shaft kept under the ramp at z %v", ramp.z)
+					require.False(t, inside(t, body, c.x+plane+0.05, c.y, ramp.z), "ramp cut at z %v", ramp.z)
+				}
 			}
 			for _, seat := range c.seats {
 				mid := (seat[0] + seat[1]) / 2

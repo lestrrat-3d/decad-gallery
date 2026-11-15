@@ -286,3 +286,18 @@ func TestExemptions(t *testing.T) {
 	require.True(t, ring(r3.Vec{X: 15.2, Y: 15, Z: 99}))
 	require.False(t, ring(r3.Vec{X: 16, Y: 15}))
 }
+
+func TestSplitHeights(t *testing.T) {
+	hs, err := cornercheck.SplitHeights(r3.Vec{X: 5, Y: 2}, r3.Vec{Y: 2}, 2.0)
+	require.NoError(t, err)
+	// 0.1, 0.35, ..., 1.6 on each side of the seam at y 2.
+	require.Len(t, hs, 14)
+	require.InDelta(t, 1.9, hs[0], 1e-12)
+	require.InDelta(t, 2.1, hs[1], 1e-12)
+	require.InDelta(t, 0.4, hs[12], 1e-12)
+	require.InDelta(t, 3.6, hs[13], 1e-12)
+	_, err = cornercheck.SplitHeights(r3.Vec{}, r3.Vec{}, 2)
+	require.Error(t, err)
+	_, err = cornercheck.SplitHeights(r3.Vec{}, r3.Vec{Z: 1}, 0)
+	require.Error(t, err)
+}

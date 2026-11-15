@@ -55,7 +55,8 @@ The parts, from the bottom of the picture:
 | Shaft diameter | 5 mm | 8 mm |
 | Shaft diameter through the sun | 5 mm | 6 mm |
 | Sun bore | 5.1 mm | 6.1 mm |
-| Shaft collar and thick part | 7.4 mm | 10.4 mm |
+| Shaft thick part (link and output shafts) | 7.4 mm | 10.4 mm |
+| Input shaft collar, widest | 7.4 mm | 8.8 mm |
 | Cover bearing pocket | 14.1 mm | 22.1 mm |
 | Cover lip bore | 10 mm | 18 mm |
 | Cover bearing boss | 20.1 mm | 28.1 mm |
@@ -69,6 +70,8 @@ The parts, from the bottom of the picture:
 | Ring outer radius | 44.1 mm | 43.6 mm |
 
 
+
+The input shaft's collar narrows to the 6 mm sun section along a 30° cone, so the printed halves have no square inside corner there. A cone down from 10.4 mm would be longer than the collar, so the collar is 8.8 mm across at its widest, with a 0.8 mm cylinder on the bearing's side. A link shaft's cone from the 10.4 mm thick part to the 6 mm section is 3.8 mm long and runs into a countersink in the next sun.
 
 ## Parts
 

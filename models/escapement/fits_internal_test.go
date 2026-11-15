@@ -124,15 +124,23 @@ func TestFits(t *testing.T) {
 	radial(t, m.CrutchCollar, m.PalletArbor, 36, 0.05, 0, "P1 crutch collar on its arbor")
 	radial(t, m.KnobCollar, m.GreatWheelArbor, 36, 0.05, 0, "P1 knob collar on its arbor")
 	radial(t, m.WindingKnob, m.GreatWheelArbor, 37.8, 0.05, 0, "P1 knob on its arbor (in its floor)")
-	radial(t, m.SuspensionCap, m.SuspensionPin, 46.05, 0.05, 0, "P1 cap on the pin")
+	radial(t, m.SuspensionCap, m.SuspensionPin, 46.4, 0.05, 0, "P1 cap on the pin")
 	radial(t, m.FrontPlate, m.SuspensionPin, 32, 0.05, 0, "P1 pin in the front plate")
 
-	// T4, T4p: axial gaps along an arbor.
-	axial(t, m.GreatWheel, 3.5, m.GreatWheelArbor, 3.25, 0.25, "T4 great wheel counterbore floor to its collar")
+	// T4, T4p: gaps along an arbor. A collar that ends in a cone has no stop face: its gap is the normal distance to the
+	// cone, from the part's floor (a cone parallel to it) or from the corner where its face meets its bore.
+	greatCone := coneBetween(greatArborPoints, 4)
+	hasPlane(t, m.GreatWheel, greatCounterFloor, "T4 great wheel counterbore floor")
+	require.GreaterOrEqual(t, greatCone.gapTo(greatBore/2, greatCounterFloor), 0.25-1e-9,
+		"T4 great wheel counterbore floor corner to its collar's cone")
 	axial(t, m.PawlCarrier, 5.25, m.GreatWheel, 5.0, 0.25, "T4 pawl layer to the ratchet floor")
-	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "T4p escape wheel counterbore floor to its collar")
+	hasPlane(t, m.EscapeWheel, wheelCounterFloor, "T4p escape wheel counterbore floor")
+	require.InDelta(t, 0.05, coneBetween(escapeArborPoints, 4).gapTo(bodyPressRadius, wheelCounterFloor), 1e-3,
+		"T4p escape wheel counterbore floor corner to its collar's cone")
 	axial(t, m.SpringRetainer, 17.5, m.GreatWheelArbor, 17.45, 0.05, "T4p spring retainer to the end of the arbor's flat")
-	axial(t, m.Anchor, 21, m.PalletArbor, 20.95, 0.05, "T4p anchor to the pallet collar")
+	hasPlane(t, m.Anchor, anchorLow, "T4p anchor rear face")
+	require.InDelta(t, 0.05, coneBetween(palletArborPoints, 4).gapTo(bodyPressRadius, anchorLow), 1e-3,
+		"T4p anchor bore corner to the pallet shoulder's cone")
 
 	// T5: the crutch and knob rear faces stand 1.30 off the front plate's front face (Loose); the collar rings start 0.25
 	// off it, on the end of the arbor's flat (a stated contact), and the parts' floors stand 0.05 off the rings.
@@ -144,19 +152,35 @@ func TestFits(t *testing.T) {
 	radial(t, m.WindingKnob, m.KnobCollar, 36.5, 0.05, 0, "C1 knob collar in the knob's keyed counterbore")
 
 	// C1: each collar ring in the counterbore it enters, press 0.05 all round.
-	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "C1 escape front collar in the wheel's counterbore")
+	// The collar's full radius starts at z 24.656, past the straight wall (z 23.95 to 24.5; the rim chamfer opens it above),
+	// so the wall stands from the collar's cone, not from its round part: the wall's end is 0.12 from the cone, and the
+	// round part clears the chamfer by more than 0.05.
+	require.GreaterOrEqual(t, coneBetween(escapeArborPoints, 4).gapTo(wheelCounterRadius, 24.5), 0.05,
+		"C1 escape front collar's cone to the wheel's counterbore wall")
+	radial(t, m.EscapeWheel, m.EscapeArbor, 24.8, 0, 0.05, "C1 escape front collar in the wheel's counterbore")
 
 	// C1: the great wheel turns on its collar in the counterbore, Regular 0.40 radially.
-	radial(t, m.GreatWheel, m.GreatWheelArbor, 2.5, 0.4, regular, "C1 great wheel counterbore on its collar")
+	radial(t, m.GreatWheel, m.GreatWheelArbor, 1.7, 0.4, regular, "C1 great wheel counterbore on its collar")
 
 	// T6: the crutch pin in the pendulum's slot, 0.25 each side (checked in TestCoupling by pose); here the build pose.
 	radial(t, m.Crutch, m.Pendulum, 41.05, 0.25, 0, "T6 crutch pin in the slot")
 
 	// R1: the great wheel's 6.9 bore on the 6.1 journal.
 	radial(t, m.GreatWheel, m.GreatWheelArbor, 4, 0.4, regular, "R1 great wheel bore")
-	// The wheel's bore edge at z 5.0 stands 0.25 from the journal's step to the body (Tight), measured to the step's edge.
-	require.GreaterOrEqual(t, math.Hypot(greatBore/2-bodyRadius, journalEndZ-ratchetFloor), 0.25-1e-9,
-		"R1 great wheel bore edge to the journal step")
+	// The wheel's bore edge at z 5.0 stands 0.25 from the journal's cone to the body (Tight), measured normal to the cone;
+	// the pawl carrier's bore corner at z 5.25 clears the cone too.
+	journalCone := coneBetween(greatArborPoints, 6)
+	require.GreaterOrEqual(t, journalCone.gapTo(greatBore/2, ratchetFloor), 0.25-1e-9,
+		"R1 great wheel bore edge to the journal cone")
+	require.GreaterOrEqual(t, journalCone.gapTo(bodyPressRadius, layerLow), 0.05,
+		"R1 pawl carrier bore corner to the journal cone")
+
+	// R2: the suspension pin's cone leaves the front plate's outer face (z 34) and its rim at the socket's arc stands
+	// within the press gap of it; the cap's countersink stands 0.05 from the pin's end cone, measured normal to it.
+	require.InDelta(t, 0.05*math.Cos(coneHalfAngle), coneBetween(pinPoints, 2).gapTo(pressRadius, frontHigh), 1e-3,
+		"R2 front plate socket rim to the pin's cone")
+	require.InDelta(t, 0.05, coneFloorGap(t, m.SuspensionCap, coneBetween(pinPoints, 6), 2.06, 2.52), 1e-3,
+		"R2 cap countersink to the pin's end cone")
 
 	// L1, L3, L4: axial Loose gaps.
 	axial(t, m.Pendulum, 38.80, m.Crutch, 38.30, 0.5, "L3 pendulum to the crutch")
