@@ -38,9 +38,11 @@
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
 - Hold every nut in a cavity the part encloses on all sides except the bolt hole, so the part retains the nut and it cannot fall out. Drop the nut in during a print pause. A pocket open to a face is not enough.
+- In a split shaft or pin, a nut cavity the seam cuts in half counts as enclosed when the halves, clamped by hardware, close it on all sides except the bolt hole. Drop the nut into one half before assembly. See [Split shafts](docs/model-pipeline.md#split-shafts).
 - Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.
 - Size a head pocket from the head diameter plus 0.3 mm radial clearance. Make it as deep as the head is tall.
 - Size a nut cavity as a circle through the nut's corners plus 0.2 mm radial clearance (radius 2.51 mm for M2). Make it as high as the nut is thick plus 0.2 mm on each face (2.0 mm for M2).
+- A nut cavity for a bolt parallel to the print bed may have a square top: the circle's lower half, then sides as wide as the circle up to a flat roof, so the nut drops in on edge at the print pause.
 - Size the bolt clearance hole from the shank diameter plus 0.3 mm radial clearance (2.6 mm for M2). Keep 1 mm or more of material under a head pocket and around any pocket.
 - Pick a standard bolt length from `m2bolt.StandardLengths()`. A housing too long for one bolt takes shorter bolts from each end, each into a nut cavity near the end of the middle part, not a custom length.
 - The tip of a bolt may stay inside a hole beyond its nut. It must not stand outside a face.
@@ -62,6 +64,8 @@
 - Give every separate printed part pressed on a shaft or pin a wall of 1.6 mm or more round its press-fit bore, and
   print each such ring with its axis vertical. A pocket that holds a purchased bearing is exempt. See [Corners and roots](docs/model-pipeline.md#corners-and-roots).
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
+- Apply [Split shafts](docs/model-pipeline.md#split-shafts) to every printed shaft, arbor, axle and pin: hardware clamps
+  the halves, never glue, and the gallery never models the split.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.

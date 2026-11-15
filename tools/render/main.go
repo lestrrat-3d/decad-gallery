@@ -43,6 +43,8 @@ var presets = map[string]preset{
 	"crankhandle/sizes":           {width: 1600, height: 900, scene: crankHandleViewScene("sizes")},
 	"crankhandle/cutaway":         {width: 1600, height: 900, scene: crankHandleViewScene("cutaway")},
 	"crankhandle/exploded":        {width: 1600, height: 900, scene: crankHandleViewScene("exploded")},
+	"crankhandle/split":           {width: 1600, height: 900, scene: crankHandleViewScene("split")},
+	"crankhandle/print":           {width: 1600, height: 900, scene: crankHandleViewScene("print")},
 	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
 	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},

@@ -17,7 +17,7 @@ its vanes, the ports, the collector cavity and the horn bore.
 
 ![The siren cut open horizontally: the rotor disc with its vanes and ports, the stator, the collector cavity and the horn bore](images/cutaway.png)
 
-![The siren exploded: grip, horn, collector, stator, rotor, drum, the three gearbox pieces with the gears, shafts, bearings, and the crank](images/exploded.png)
+![The siren exploded, from the horn end to the crank: the horn and its throat nuts, the collector with its nuts and the throat bolts, the stator, the rotor, the grip and its bolts, the drum with its bolts and the collector bolts, the front plate's bolts, the front plate, the front bearings, the 48-tooth gear and 15-tooth pinion, the crank gear and 16-tooth pinion, the frame with the gearbox nuts, the rear bearings, the rear plate and its bolts, the three shafts lifted above, the crank's M2 x 10 pin bolt, the crank arm with the M2 x 16 clamp bolt pulled out of one side and the clamp nut out of the other, the pin bolt's nut, the handle, and the pin with its two M2 x 6 cross bolts pulled out to one side and their nuts to the other](images/exploded.png)
 
 ## How it works
 
@@ -42,7 +42,9 @@ gear has a shaft collar behind it, because it is the only gear that could slide 
 The 50- and 48-tooth gears look alike, and so do the 16- and 15-tooth pinions, so each gear has through holes that
 name its stage: one hole for stage 1 (the crank gear and the 16-tooth pinion) and two holes for stage 2 (the 48-tooth
 gear and the 15-tooth pinion). The crank arm, pin and handle are the [crank handle](../crankhandle/) model's 608-2RS
-crank.
+crank. A slit runs through the arm's hub into its bore, and an M2 x 16 bolt across the hub closes it, so the arm pinches
+the crank shaft. The pin is held in the arm by an M2 x 10 bolt, and it prints as two halves that two M2 x 6 cross bolts
+clamp together.
 The gearbox is a sandwich of three printed pieces, a front plate, a frame and a rear plate, each printed flat so every
 bearing seat is a vertical hole. Six 608-2RS bearings carry the three shafts. The drum stands on three posts on the gearbox's left face, with the stator and the collector bolted to its left end.
 The horn bolts to the collector's forward face and points forward.
@@ -72,16 +74,21 @@ and 2 mm high, so the nut has 0.2 mm of room on each face.
 | Collector | end face down | four, near the top, for the collector bolts |
 | Horn | flange mating face down, mouth up | four, near the bed, for the throat bolts |
 | Grip | one flat side down | none |
-| Crank pin | upright, head down | one, for the pin bolt |
+| Crank pin | as two halves, each on its cut face | three, dropped into one half before you bolt the halves together: the pin bolt's nut and the two cross bolts' nuts |
 | Rotor | disc front face down, vanes and hub up | none |
 | Stator | either face down | none |
 | Crank gear, intermediate pinion, intermediate gear, rotor pinion | either face down, axis vertical | none |
-| Crank arm | inner face down, axis vertical | none |
+| Crank arm | inner face down, axis vertical | one, for the clamp bolt, dropped in on edge at the cavity's roof |
 | Crank handle | standing on its inner end | none |
 | Crank shaft, intermediate shaft, rotor shaft | standing on one end | none |
 
-The drum prints standing on its flange's front face, and its back plate needs slicer support. A siren takes 24 bolts (12
-of M2 x 16, 3 of M2 x 18, 5 of M2 x 10 and 4 of M2 x 20), 24 nuts and 6 608-2RS bearings.
+Each shaft can print as two halves cut lengthwise through the middle of its flat, each half lying on its cut face, so
+the layers run along the shaft. The model keeps each shaft whole; the export to Fusion cuts it when asked. The bearings
+and the pressed gears clamp the halves together. The crank pin prints the same way, cut through its axis across the arm,
+and its two cross bolts clamp its halves.
+
+The drum prints standing on its flange's front face, and its back plate needs slicer support. A siren takes 27 bolts (13
+of M2 x 16, 3 of M2 x 18, 5 of M2 x 10, 4 of M2 x 20 and 2 of M2 x 6), 27 nuts and 6 608-2RS bearings.
 
 Fit the throat bolts from inside the collector, through its wide opening, before the collector meets the stator. Fit the
 grip bolts through the grip's finger window.
@@ -122,6 +129,8 @@ backlash, so each tooth tip clears the other gear's root by more than 0.5 mm.
 | <img src="images/parts/throat-bolt.png" alt="Throat bolt and nut, M2 x 10 (four)" width="240"> | Throat bolt and nut, M2 x 10 (four) |
 | <img src="images/parts/grip-bolt.png" alt="Grip bolt and nut, M2 x 20 (four)" width="240"> | Grip bolt and nut, M2 x 20 (four) |
 | <img src="images/parts/crank-pin-bolt.png" alt="Crank pin bolt and nut, M2 x 10" width="240"> | Crank pin bolt and nut, M2 x 10 |
+| <img src="images/parts/crank-cross-bolt.png" alt="Crank pin cross bolt and nut, M2 x 6 (two)" width="240"> | Crank pin cross bolt and nut, M2 x 6 (two) |
+| <img src="images/parts/crank-clamp-bolt.png" alt="Crank arm clamp bolt and nut, M2 x 16" width="240"> | Crank arm clamp bolt and nut, M2 x 16 |
 
 You can vary:
 

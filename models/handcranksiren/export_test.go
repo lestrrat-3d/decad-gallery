@@ -70,3 +70,25 @@ func Fasteners(p Params) ([]Fastener, error) {
 
 // PinAxis is the crank pin's axis point at Y 0 and CrankAngle 0.
 var PinAxis = pinAxis
+
+// CrankLocal returns the transform that carries a point of the posed siren into crankhandle's local frame: the inverse
+// of the crank's placement followed by its pose for p.
+func CrankLocal(p Params) (r3.Transform, error) {
+	state, err := Motion(p)
+	if err != nil {
+		return r3.Transform{}, err
+	}
+	pose, err := motionTransform(state, "crank")
+	if err != nil {
+		return r3.Transform{}, err
+	}
+	place, err := r3.FromFrame(crankPlacement())
+	if err != nil {
+		return r3.Transform{}, err
+	}
+	world, err := place.Then(pose)
+	if err != nil {
+		return r3.Transform{}, err
+	}
+	return world.Inverse()
+}
