@@ -158,7 +158,7 @@ stand 2 mm proud.
 - The head pocket (`m2fastener.PocketTool`, radius 2.2, 2 deep) sinks the head flush in the +X side face.
 - The nut sits in a hexagonal pocket open to the -X side face, from x = -8 to -10 (`NutCavityHeight` deep). A pinch
   clamp's nut may sit in a pocket open to a face, because the clamp bolt holds it there (AGENTS.md "Fasteners"). The
-  pin's cross-bolt nuts use the same pocket tool, `nutPocketTool` for a site, with the pocket's corners on the
+  pin's cross-bolt nuts use the same pocket tool, `m2fastener.HexPocketTool` for a site, with the pocket's corners on the
   site's `Corner`. The clamp's `Corner` is +Z. The
   hexagon is centred on the bolt's axis with its corners on the circle of radius 2.51, one diagonal along Z, so a
   corner points up and one down and the flats are the +Y and -Y sides, 4.35 across. The nut's corners (radius 2.31)

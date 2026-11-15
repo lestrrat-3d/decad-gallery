@@ -218,10 +218,11 @@ func (r *run) arm() (*decad.Body, error) {
 
 // nutPocketCutter builds a site's hexagonal nut pocket tool with its floor's outline rounded by NutPocketRound.
 func (r *run) nutPocketCutter(site m2fastener.Site) (*decad.Body, error) {
-	pocket, err := r.nutPocketTool(site)
+	pocket, sk, err := m2fastener.HexPocketTool(r.ctx, r.doc, site)
 	if err != nil {
 		return nil, err
 	}
+	r.sketches = append(r.sketches, sk)
 	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(pocket)))
 	if pocket, err = decad.Fillet(r.ctx, pocket, floor, units.Millimeters(NutPocketRound)); err != nil {
 		return nil, fmt.Errorf("round floor: %w", err)

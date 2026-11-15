@@ -40,7 +40,7 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
   `b = (h, yc)` and `c = (-h, yc)` each placed by `NewVerticalDistance(O, ·, yc)`, `d = DimensionPoint(-h, y0)`,
   `center = DimensionPoint(0, yc)`, `arc = CreateArc(center, b, c)` with `NewRadius(arc, h)`, and lines a–b, c–d, d–a.
   Placing b and c by x would meet the circle at a tangent, a singular solve. Extrude 10.
-- `nutPocketTool(site)` on `site.Across(site.Cavity)` (U along `site.Corner`): for the clamp (U +Z, V +Y), six corner points at `2.51·(cos 60k°, sin 60k°)`
+- `m2fastener.HexPocketTool(site)` on `site.Across(site.Cavity)` (U along `site.Corner`): for the clamp (U +Z, V +Y), six corner points at `2.51·(cos 60k°, sin 60k°)`
   and the six sides `corner k → corner k+1`, each with `NewDistancePointLine(O, side, 2.51·sqrt(3)/2)`;
   `NewHorizontal(sides[1])` and `NewAngle(sides[k], sides[k+1], 60)` for k = 0..4. The corners stay sharp. Extrude 3
   (2 plus `Stock`) along the bolt's direction. For a cross site the sketch's U is local +X, so the hexagon's corners point
@@ -64,14 +64,14 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
 1. Arm: extrude `armSketch` by `ArmThickness`; `decad.Chamfer` of
    `decad.Edges(decad.OuterLoopOf(decad.CapStart(arm))).Or(decad.OuterLoopOf(decad.CapEnd(arm)))` by 0.5; then
    `decad.Cut`, in this order, `slitTool()`, the bore tool, `hexagon(L, 3.25, 7.53, 5.75)`,
-   `m2fastener.PocketTool(site)`, the clamp nut pocket (`nutPocketTool(ClampSite)` with `decad.Fillet` of the outer loop of
+   `m2fastener.PocketTool(site)`, the clamp nut pocket (`m2fastener.HexPocketTool(ClampSite)` with `decad.Fillet` of the outer loop of
    its `CapStart`, the floor, by 0.6), `m2fastener.PocketTool(ClampSite)` and `m2fastener.HoleTool(ClampSite)`. The
    chamfer needs decad 902e347 or later, which admits the outline's solver-placed tangent arcs in the Booleans that
    follow. The slit goes before the bore: cut after it, the slit refuses the bore's rim bound (0.0101 mm) at the
    608-2RS within the 0.01 mm chain tolerance.
 2. Pin: `decad.Union` of `hexagon(L, 3.5, 7.03, 5.8)` and `turnedPin(L)`; then `decad.Cut`, in this order, the four
    `flatTool(L, CrossZ[i], ±1)`, `m2fastener.RoundedHoleTool(site)`, `m2fastener.RoundedCavityTool(site)`, and for
-   each cross site `HoleTool`, `PocketTool` and the nut pocket (`nutPocketTool(site)` with the same floor fillet by
+   each cross site `HoleTool`, `PocketTool` and the nut pocket (`m2fastener.HexPocketTool(site)` with the same floor fillet by
    `NutPocketRound`, open to the -Y flat). The rounded tools revolve a meridian about the site's
    line with eight chords for each 0.55 mm round, every vertex placed with `DimensionPoint`.
 3. Handle: `handle()`.
