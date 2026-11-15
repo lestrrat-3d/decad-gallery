@@ -96,6 +96,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 		require.True(t, mesh.VolumeVerified(), name)
 	}
 	t.Run("containers", func(t *testing.T) { requireContainers(t, doc, a) })
+	t.Run("corners", func(t *testing.T) { requireCorners(t, p, parts) })
 	t.Run("orientation", func(t *testing.T) { requireOrientation(t, p, parts) })
 	t.Run("pitch", func(t *testing.T) { requirePitch(t, p, parts) })
 	t.Run("joint", func(t *testing.T) { requireJoint(t, p, parts) })
@@ -590,9 +591,9 @@ func TestHandCrankFanDefault(t *testing.T) {
 	checkFan(t, handcrankfan.DefaultParams())
 }
 
-// TestHandCrankFanContainers builds the default fan, which takes about half a minute, and checks its containers.
+// TestHandCrankFanContainers checks the containers of the shared default build, which takes about two minutes.
 func TestHandCrankFanContainers(t *testing.T) {
-	doc, _, a := buildFan(t, handcrankfan.DefaultParams())
+	doc, _, a := sharedDefault(t)
 	requireContainers(t, doc, a)
 }
 

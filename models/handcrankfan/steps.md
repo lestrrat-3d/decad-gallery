@@ -65,7 +65,7 @@ floor is 5 thick, which leaves the crank gear's tip 1.62 above the cavity floor.
    between the last two. Stations run along the crank and drive shafts by X and along the fan shaft by the distance
    behind the apex. The post's seat on the drive axis and the crank axis is `b.seat` from -21 to -12.6 with its relief
    from -13 to -9.2. A seat in a wall's inner face is `b.funnelSeat(host, axis, floor, mouth)`: a cylinder of radius
-   11.05 between the mouth (1 before the face) and the floor (7.4 behind it), and a cylinder of radius 9.5 and 5.5 long
+   11.05 between the mouth (1 before the face, except 0.05 for the fan-side wall's seat, so it cuts no scallop into the post's corner beside the seam) and the floor (7.4 behind it), and a cylinder of radius 9.5 and 5.5 long
    just behind the floor whose far end cap `decad.Chamfer` takes by 5.1, which makes a 45° cone down to radius 4.4. The
    crank-side wall has one on each of the crank axis and the drive axis, and the fan-side wall one on the fan axis. On
    the crank axis a hole of radius 4.4 (`b.hole`) joins the wall's seat to the block's seat, and the block's seat has its
@@ -150,8 +150,10 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
 - Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
   `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}` through `b.ring`, and every tool running 1 mm past the
   face it opens:
-  - socket: a circle of radius 3.4 (`studRadius + regularFit`) on the frame origin `(5.6, -86, 170)`, U = +Y, V = +Z
-    (normal +X), extruded 9.4, a plain round hole.
+  - socket: a circle of radius 3.4 (`studRadius + regularFit`) on the frame origin `(5.7, -86, 170)`, U = +Y, V = +Z
+    (normal +X), extruded 9.3, a plain round hole. `decad.Fillet` its start cap's outer loop with 0.5 before the
+    tool cuts, which rounds the socket floor. (Filleting the hub's floor edge after the cut matches only some of the
+    floor circles, because the mesh cuts leave the others as faceted curves.)
   - head pocket and nut cavity: `fastenerCuts(hub, site, true, false, true)` for each of the `Blades` sites of
     `bladeSites`. The bolt holes are the sketch's circles.
 
@@ -167,7 +169,8 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
   1. `decad.LoftSections` through the ten sections in ascending r.
   2. When `BladePitch` is not 25°, `decad.Transform` the loft by `r3.RotationAround(origin, +Z,
      -(BladePitch - 25°))` in the blade's local frame.
-  3. Root stud: a circle of radius 3 on the frame origin `(0, 0, 6)`, U = +X, V = +Y, extruded 10. `Cut` it by a
+  3. Root stud: a circle of radius 3 on the frame origin `(0, 0, 6.1)`, U = +X, V = +Y, extruded 9.9. `decad.Chamfer` its
+     start cap's outer loop with 0.3. `Cut` it by a
      circle of radius 1.3 on the frame origin `(0, -5, 9.5)`, U = +Z, V = +X, extruded 10 (the bolt hole). The
      cut happens before the union, so the faceted loft never takes part in it.
   4. `Union` the loft and the stud: they overlap in volume and share no face.

@@ -16,6 +16,9 @@ CORNER_PENDING = {
 }
 # Models that build only purchased or standard parts kept at nominal size.
 CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
+# Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
+# stays in CORNER_PENDING until the test skips nothing.
+CORNER_PARTIAL = {"handcrankfan"}
 # Models whose instructions.md states, under Materials, that no part is printed.
 CORNER_UNPRINTED = {"spinningwheel"}
 
@@ -47,7 +50,12 @@ def corner_problems(models: Path) -> list[str]:
             problems.append(f"corner list names {name}, which has no model directory")
     for name in sorted(names):
         tested = has_corner_test(models / name)
-        if name in CORNER_PENDING and tested:
+        if name in CORNER_PARTIAL:
+            if name not in CORNER_PENDING:
+                problems.append(f"{name} is in CORNER_PARTIAL but not CORNER_PENDING")
+            elif not tested:
+                problems.append(f"missing: models/{name}/*_test.go (cornercheck)")
+        elif name in CORNER_PENDING and tested:
             problems.append(f"remove {name} from CORNER_PENDING")
         elif name in CORNER_UNPRINTED:
             if tested:

@@ -15,8 +15,8 @@ imported and not copied. The bolts are `models/m2bolt` bodies and the nuts `mode
 
 ## Compliance with AGENTS.md
 
-The model follows the Fasteners, Part clearances and Gear train clearances rules of `AGENTS.md`, with one open
-exception.
+The model follows the Fasteners, Part clearances, Gear train clearances and Corners and roots rules, with two open
+exceptions.
 
 - Fits: every pair of separate printed parts keeps a gap of its class, and the test proves the lower bound of each row
   of the table under Fits.
@@ -24,7 +24,10 @@ exception.
   go in during a print pause (see Fasteners).
 - Spur pair: the gears sit at the sum of their pitch radii, 40 apart, with a deeper root and a tooth backlash. The test
   proves the tip-to-root clearance at five angles across one tooth pitch.
+- Corners and roots: every printed part except the bevel pair and the gearbox's ear roots is checked in its print
+  orientation, and the press-fit walls are at least 1.6 mm (see Print orientation and Retained sharp corners).
 - Open: the bevel mesh has no proven clearance (see Open non-compliance: the bevel mesh).
+- Open: the gearbox's ear roots and the bevel pair are not yet checked for corners (see Retained sharp corners).
 - `models/README.md` marks the model **Mixed**: its custom fits carry the class clearances, and the bolts, nuts and
   bearings keep their nominal sizes.
 
@@ -97,7 +100,8 @@ turned about the fan axis.
 
 The shape follows a wind turbine blade. A round root carries the joint. The section then turns into a thick oval
 and an airfoil at the maximum chord (r 25), and the chord tapers to the tip along the Schmitz optimum. The
-thickness ratio falls from 100 % at the root to 26 % at maximum chord and 17 to 18 % outboard. The blade angle
+thickness ratio falls from 100 % at the root to 26 % at maximum chord, 17 to 18 % outboard and 22 % at the tip, where a blunt leading edge and a trailing edge
+1.0 thick keep the tip printable. The blade angle
 follows the flow angle of a uniform axial inflow plus a design angle of attack of 5°, so it falls from the root to
 the tip, and it stays constant inboard of r 21.5, as on a turbine root. A fan adds energy where a turbine takes
 it, so the angle is flow plus attack, not flow minus attack. The sections are NACA 4-digit mean lines with 3 to
@@ -296,20 +300,22 @@ clearance, from the gears' own section outlines, at each sample.
   10.3 in front of the bearing block's end (Y -65.7). The crank is lower than the fan axis, so the blades stay clear of
   its reach without a long shaft. It has a spline bore (a 0.05 press fit) and, for each blade k at angle
   `2 pi (k-1) / Blades` about the fan axis (the first along +X, turning toward +Z):
-  - a radial socket of radius 3.4 on the hub's mid plane, from r 5.6 outward through the hub surface, a round hole,
-    6.8 across, small enough to print on its side when the hub prints front face down;
+  - a radial socket of radius 3.4 on the hub's mid plane, from r 5.7 outward through the hub surface, a round hole,
+    6.8 across, small enough to print on its side when the hub prints front face down. Its floor has a round of
+    radius 0.5, and it leaves 1.65 of wall round the spline bore (r 4.05), above the press-fit wall of 1.6;
   - a bolt site (see Fasteners) parallel to the fan axis at r 9.5: a hole of radius 1.3 through the hub, a head pocket
     in the front face and a nut cavity near the back face.
 - `fan-blade-1` .. `fan-blade-N`, group `blade`: one blade each, with N = `Blades`. A blade is a smooth loft
   through the ten sections of the table below, stacked on its radial line through the hub's mid plane. The loft
-  starts at r 14.4, 0.4 outside the hub rim. A root stud of radius 3, from r 6 to r 16 on the radial line, is joined
-  to it, with a bolt hole of radius 1.3 parallel to the fan axis at r 9.5. The stud engages the socket from r 6
+  starts at r 14.4, 0.4 outside the hub rim. A root stud of radius 3, from r 6.1 to r 16 on the radial line, is joined
+  to it, with a bolt hole of radius 1.3 parallel to the fan axis at r 9.5. The stud's inner end has a 0.3 chamfer, so
+  its corner stays clear of the socket floor's round. The stud engages the socket from r 6.1
   to r 14 with a 0.4 clearance (a Regular fit). The first blade lies along +X at fan angle 0.
 
   | r | 14.4 | 16.3 | 19 | 21.5 | 25 | 30 | 38 | 46 | 55 | 64 |
   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
   | chord c | 8.0 | 8.0 | 11.5 | 15.5 | 17.8 | 16.5 | 14.5 | 12.5 | 10.5 | 8.0 |
-  | thickness ratio t/c | 1.00 | 1.00 | 0.60 | 0.38 | 0.26 | 0.22 | 0.19 | 0.18 | 0.17 | 0.18 |
+  | thickness ratio t/c | 1.00 | 1.00 | 0.60 | 0.38 | 0.26 | 0.22 | 0.19 | 0.18 | 0.17 | 0.22 |
   | camber m (of c) | 0 | 0 | 0.010 | 0.025 | 0.035 | 0.040 | 0.040 | 0.040 | 0.035 | 0.030 |
   | ellipse weight w | 1 | 1 | 0.60 | 0.25 | 0 | 0 | 0 | 0 | 0 | 0 |
 
@@ -317,13 +323,16 @@ clearance, from the gears' own section outlines, at each sample.
   `m` at `p = 0.40`. Its half thickness is `(1 - w) naca(x) + w ell(x)`, where
   `naca(x) = (t/2 - 0.15 tTE) / 0.10002 * n(x) + tTE x / 2`,
   `n(x) = 0.2969 sqrt(x) - 0.1260 x - 0.3516 x^2 + 0.2843 x^3 - 0.1036 x^4`,
-  `ell(x) = t sqrt(x (1 - x)) + tTE x / 2`, `t = (t/c) c` and the trailing-edge thickness `tTE = 0.5`.
+  `ell(x) = t sqrt(x (1 - x)) + tTE x / 2`, `t = (t/c) c` and the trailing-edge thickness `tTE = 1.0`.
   It is laid off normal to the chord on both sides of `c yc(x)`. The section is turned to `beta(r)` at
   `BladePitch = 25°` about its stacking point, the mean-line point at chord fraction `0.40 + 0.10 w`, which lies on
   the radial line. The loft always uses the sections at 25°. For another pitch the finished loft is turned by
   `BladePitch - 25°` about the radial line before the stud joins it, because Decad's twisted loft panics on
   some section tables that depend on the pitch. Outboard camber is held to 3 to 4 %, because Decad's loft refuses
-  thin sections with more.
+  thin sections with more. The trailing edge is a flat 1.0 wide, which keeps its two corners more than the checker's
+  0.8 window apart (1.2 would thin the leading edge until it fails near the tip), and the tip's ratio of 0.22 gives
+  the leading edge a radius above 0.4 near r 64. These two make the blade pass the Corners and roots check: the
+  trailing edge is a blunt tip of at least 0.8, and the leading edge is rounded by at least 0.4.
 - `fan-bolt-1` .. `fan-bolt-N` and `fan-nut-1` .. `fan-nut-N`, group `hardware`: one M2 x 16 bolt and one nut for each
   blade, at its bolt site (see Fasteners). The bolt runs from the front face through the hub, the blade's stud and the
   hub again to the nut cavity. Undoing the bolt from the front frees the blade; the nut stays in its cavity.
@@ -358,7 +367,7 @@ full run, in mm. It is a dated illustration, and the test owns the number.
 | R2 | `driving-gear` and the crank wall, `pinion` and the fan wall | gear back face to the wall | Regular | 0.424 |
 | R3 | `driving-gear` and `gearbox-base` | gear to the back wall, at the heel | Regular | 4.75 |
 | R4 | `bearing-drive-wall` and `driving-gear`, `bearing-fan-wall` and `pinion` | bearing face to the gear back | Regular | 0.427 |
-| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket, stud end, root to the rim | Regular | 0.379 |
+| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket, stud end, root to the rim | Regular | 0.380 |
 | R6 | `crank-grip` and `crank-pin` | handle bore, counterbore and head face | Regular | 0.390 |
 | R7 | `crank-arm` and `crank-grip` | handle end to the arm | Regular | 0.395 |
 | L1 | `crank-gear` and `drive-gear` with `gearbox-post` | gear to the post | Loose | 1.08 |
@@ -429,6 +438,56 @@ lies flat and the printer bridges the roof.
 
 The tests check that each head ends flush, that each nut sits in its cavity with the part enclosing it, that the bolt
 tip stays inside the part, and that no bolt or nut overlaps a part it passes through.
+
+### Print orientation
+
+Corners and roots reads each part in its print orientation. The first six pieces are in the table above.
+
+| Part | Prints with | Print axis in the posed assembly |
+| --- | --- | --- |
+| `gearbox-post` | inner face down | X |
+| `gearbox-crank-wall` | the face that meets the base down | X |
+| `gearbox-fan-wall` | the face that meets the base down, block up | Y |
+| `gearbox-base` | back wall down | Y |
+| `handle` (grip) | upright, base down | Z |
+| `fan-hub` | front face down | Y |
+| `crank-pin` | upright, head down | X |
+| `crank-arm` | either face down | X |
+| `crank-gear`, `drive-gear` | either face down | X |
+| `driving-gear`, `pinion` | back face down | X and Y |
+| `crank-shaft`, `drive-shaft` | standing on the collar end | X |
+| `fan-shaft` | standing on its front tip, so the collar's hub-side face is the overhang and its bearing-side face stays clean | Y |
+| `crank-grip` (handle barrel) | standing on its inner end | X |
+| `fan-blade-k` | standing on the stud end, radial line vertical | the blade's radial line |
+
+Every separate printed part pressed on a shaft prints with its axis vertical: the arm, the four gears and the hub.
+
+### Retained sharp corners
+
+The corner test (`TestHandCrankFanCorners`) cuts each part at the middle of each run of layers and requires no finding
+outside this list. The shaft's spline and the mating corners carry the torque.
+
+| Part | Corner | Reason |
+| --- | --- | --- |
+| Crank Gear, Drive Gear, Crank Arm, Fan Hub (and the bevel gears) | the six corners of the spline bore, where its three teeth meet the round bore (turn about 108°), annulus r 2.9 to 4.2 about the shaft axis | mating corners: the teeth sit in the shaft's grooves at a 0.05 press gap, and the grooves stay sharp too |
+| Crank Shaft, Drive Shaft, Fan Shaft | the groove floor corners (90°), annulus r 2.8 to 4.1 about the shaft axis | mating corners with the spline teeth |
+| Crank Arm | the six corners of the pin's hexagonal pocket (turn 60°) | mating corners with the pin's hexagonal stub, 0.25 Tight gap on every flat |
+| Fan Blade | the four corners where the bolt hole crosses the stud, at r 9.5 and 10.2 | the material angle is 64° to 90°, which meets the rule; the checker adds the stud's curvature and reads 125° to 130° |
+| Gearbox Post, Gearbox Crank-side Wall, Gearbox Base | the two flat ends of each nut cavity whose axis lies in the layer plane (90°) | mating corners with the nut: a 0.5 round would hit the nut's corners |
+| Crank Shaft, Drive Shaft, Fan Shaft; Crank Pin; Crank Handle; Fan Hub | the collar steps; the stub root and the head step; the counterbore floor; the socket mouths | corners between layers, out of the checker's sections (as in the escapement's arbors) |
+| Gearbox Post, Gearbox Crank-side Wall, Gearbox Fan-side Wall | the ear roots: the ends of each ear against the floor's underside and the wall top (90°), and the fan block's corners against the wall's edge round (57.5°) | pending decad: the rounds need `decad.Fillet` to accept a root edge that ends on a rounded end (P8, the fillet rim side test) and a reflex base at the end of an open chain (P9), and a built rounded ear must keep the held mesh under 0.05 mm |
+| Driving Gear, Pinion | not checked | pending decad: the checker refuses their held mesh bounds (0.088 and 0.103 mm, above 0.05), and the rule's gear-teeth exemption cannot apply because the section fails first |
+
+The model stays on `CORNER_PENDING` in `scripts/check_repository.py` (and in `CORNER_PARTIAL`, which says its corner
+test runs) until the last two rows are gone. The test lists the ear-root corners by name in `earRootCorners` and skips
+the bevel pair by name.
+
+Rounds below half their section:
+
+- the hub's socket floor round (0.5 on a 3.4 socket).
+
+The post's funnel seat for the fan shaft ends 0.05 past the fan wall's face, so it no longer cuts a scallop into
+the post's corner. The blade's stud has a 0.3 chamfer at its inner end.
 
 ### Open non-compliance: the bevel mesh
 
@@ -526,6 +585,9 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
   Spur pair). Both run for the default parameters only: `BladePitch` turns each blade about its radial line, `Blades`
   repeats identical sockets and `CrankAngle` turns each part about its own axis, and none of the three changes a fit
   against the housing or within one motion group.
+- The corner test checks every printed part in its print orientation, as Retained sharp corners lists, and requires each
+  listed corner to match a finding. `TestPressFitWalls` requires at least 1.6 mm of wall round the bore of the hub
+  (through its socket floors, 1.65), the arm and the two spur gears, from the section outline.
 - Sketch coverage: the fan's own sketches, the bearing sketches and every `m2bolt` and `m2nut` sketch are in
   `Assembly.Sketches`, which the test verifies for each case. `spurgear` and `bevelgear` verify each of their sketches
   inside `Build` and `BuildPair`, so a build that passes covers them. `Blades` changes the hub sketch, and the default

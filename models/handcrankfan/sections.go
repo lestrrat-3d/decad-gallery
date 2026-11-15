@@ -115,6 +115,26 @@ func (b *builder) roundEnd(body *decad.Body, radius float64) *decad.Body {
 	return rounded
 }
 
+// roundStart rounds the outer loop of the start cap of an extruded body.
+func (b *builder) roundStart(body *decad.Body, radius float64) *decad.Body {
+	if b.err != nil || body == nil {
+		return nil
+	}
+	rounded, err := decad.Fillet(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(radius))
+	b.fail("round start", err)
+	return rounded
+}
+
+// chamferStart chamfers the outer loop of the start cap of an extruded body.
+func (b *builder) chamferStart(body *decad.Body, size float64) *decad.Body {
+	if b.err != nil || body == nil {
+		return nil
+	}
+	cut, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(size))
+	b.fail("chamfer start", err)
+	return cut
+}
+
 func rectangle(s *sketch.Sketch, u0, v0, u1, v1 float64) {
 	if s == nil {
 		return

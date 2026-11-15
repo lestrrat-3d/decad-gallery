@@ -322,7 +322,9 @@ func (b *builder) housing() *decad.Body {
 	body = b.hole(body, crankSpline, shaftHole, crankWallX+seatDepth+cone-0.1, crankFace-seatDepth-reliefDepth+0.2)
 	body = b.seat(body, crankSpline, crankFace-seatDepth, crankFace+1, crankFace-seatDepth-reliefDepth+0.1, crankFace-seatDepth+0.1)
 	// The fan shaft's two bearings are measured behind the apex.
-	body = b.funnelSeat(body, fanSpline, -fanWallY+seatDepth, -fanWallY-1)
+	// The mouth ends 0.05 past the wall's face, so it opens through the wall without cutting a scallop into the
+	// post's corner beside it.
+	body = b.funnelSeat(body, fanSpline, -fanWallY+seatDepth, -fanWallY-0.05)
 	body = b.hole(body, fanSpline, shaftHole, -fanWallY+seatDepth+cone-0.1, fanBlockFace-seatDepth-reliefDepth+0.2)
 	body = b.seat(body, fanSpline, fanBlockFace-seatDepth, fanBlockFace+1, fanBlockFace-seatDepth-reliefDepth+0.1, fanBlockFace-seatDepth+0.1)
 	// Every bolt of the housing has its head pocket, its clearance hole and its nut cavity cut from the whole tray. The

@@ -66,6 +66,18 @@ The printer cannot make a closed cavity around a nut, so you drop each nut in du
 | Grip | upright, base down | two, for the grip bolts |
 | Crank pin | upright, head down | one, for the pin bolt |
 
+The other printed parts print as follows. A part pressed on a shaft prints with its axis vertical.
+
+| Part | Prints with |
+| --- | --- |
+| Gearbox fan-side wall | the face that meets the base down, block up |
+| Crank arm, crank gear, drive gear | either face down |
+| Bevel gears | back face down |
+| Crank shaft, drive shaft | standing on the collar end |
+| Fan shaft | standing on its front tip |
+| Crank handle | standing on its inner end |
+| Fan blade | standing on the stud end |
+
 A fan with four blades takes 15 bolts (7 of M2 x 10 and 8 of M2 x 16) and 15 nuts.
 
 Every pair of printed parts has a gap of at least 0.2 mm where the parts are not meant to come apart (Tight), 0.35 mm
