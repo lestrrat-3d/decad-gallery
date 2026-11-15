@@ -44,11 +44,12 @@ func sharedDefault(t *testing.T) (*decad.Document, map[string]handcrankfan.Part,
 }
 
 // earRootCorners lists the gearbox's pending corners: the root of each ear, where it meets the floor's underside or
-// the wall top, and the corners of the fan block against the wall's edge round. They need rounds, which wait for decad:
-// decad.Fillet refuses a root edge that ends on a rounded end or a faceted curve (P8, the rim side test, and P9, a
-// reflex base at the end of an open chain), and a built two-lug ear holds the pieces' meshes above the checker's 0.05
-// bound. Each predicate matches one set of corners from the scan of the default fan, so a corner of another kind in
-// the same part is still a finding. Remove each predicate when the rounds land.
+// the wall top, and the corners of the fan block against the wall's edge round. They wait for two decad gaps. A side
+// root that lies in the tray's end round is refused as "the tangent chain branches or cannot be decided here: 0 edges
+// continue it and 2 cannot be decided ... (modify-reach SX2)" at the junction of the end round and the wall's outer
+// round. Several ears that share one floor face are refused as "a vertex of the wall lies on an end face's plane".
+// Each predicate matches one set of corners from the scan of the default fan, so a corner of another kind in the same
+// part is still a finding. Remove each predicate when the rounds land.
 //
 //   - gearbox-post, X: inside, 90°, y -23.9, at z 101.4 and 190 and x -18.5, -15.3 and -11.8 (the post-side ears).
 //   - gearbox-crank-wall, X: inside, 90°, y -23.9, at z 101.4 to 102.08 and 190, x 23.5 to 30.7 (the crank-side ears).
@@ -77,9 +78,11 @@ func earRootCorners(name string) []cornercheck.Exempt {
 
 // requireCorners applies "Corners and roots" to every printed part in its print orientation (the README's table).
 // The exemptions match "Retained sharp corners" in instructions.md. The bolts, nuts and bearings are purchased parts.
-// The bevel pair is skipped: its held mesh bound (0.088 and 0.103 mm) exceeds the checker's 0.05 mm, so the checker
-// refuses it, which keeps bevelgear and this model on CORNER_PENDING in scripts/check_repository.py until decad holds
-// the bevel meshes finer. The gearbox's ear roots are exempt by earRootCorners for the same reason.
+// The driving gear is checked too: bevelgear refines its tooth join, so the held mesh stays under the checker's 0.05 mm
+// after the spline cut (0.028 mm at its section). The pinion is not: it has no run of layers that share one outline, so
+// MidHeights finds no height, and a section of it at explicit heights reads 28 tooth-root corners of about 89° on
+// its root cone (radius 10 to 11.7 about the shaft). The gearbox's ear roots are exempt by earRootCorners, which keeps this model on CORNER_PENDING
+// in scripts/check_repository.py until decad rounds them.
 func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	t.Helper()
 	state, err := handcrankfan.Motion(p)
@@ -124,11 +127,12 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 		"drive-gear":         {x, bore(state.Apex, x)},
 		"crank-arm": {x, append(bore(state.Crank, x),
 			cornercheck.Exempt{Reason: "pin pocket", Near: cornercheck.Annulus(pin, x, 3.4, 4.4)})},
-		"crank-shaft": {x, grooves(state.Crank, x)},
-		"drive-shaft": {x, grooves(state.Apex, x)},
-		"fan-shaft":   {y, grooves(state.Apex, y)},
-		"crank-pin":   {x, nil},
-		"crank-grip":  {x, nil},
+		"driving-gear": {x, bore(state.Apex, x)},
+		"crank-shaft":  {x, grooves(state.Crank, x)},
+		"drive-shaft":  {x, grooves(state.Apex, x)},
+		"fan-shaft":    {y, grooves(state.Apex, y)},
+		"crank-pin":    {x, nil},
+		"crank-grip":   {x, nil},
 	}
 	for name, c := range checks {
 		t.Run(name, func(t *testing.T) {
@@ -239,7 +243,7 @@ func boreWall(t *testing.T, loops [][]r3.Vec, axis r3.Vec) float64 {
 
 // TestPressFitWalls requires at least 1.6 mm of wall round the bore of every separate printed part pressed on a shaft
 // (docs/model-pipeline.md "Corners and roots", Root width): the hub through its socket floors, the arm and the two
-// spur gears. The bevel pair is left out with the corner check: its mesh bound of 0.1 mm is too coarse to measure.
+// spur gears. The bevel pair is not measured here.
 func TestPressFitWalls(t *testing.T) {
 	_, parts, a := sharedDefault(t)
 	for _, c := range []struct {
