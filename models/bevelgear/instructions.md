@@ -361,5 +361,19 @@ also check unequal
 tooth counts, non-90° shaft angles, both flank/root routes, bore surfaces,
 toe and spacing changes, and right and left spiral traces.
 
-The corner check reads sections of the bored and unbored straight and spiral members normal to the
-shaft, with no exempt corner: the sections hold no sharp inside corner or tip, gear teeth included.
+`TestCorners` reads the bored and unbored straight and spiral members normal to the shaft at the heights
+`cornercheck.MidHeights` returns. On the default gear that is one height, 17.44, which cuts the hub behind the
+teeth. The sections hold no sharp corner, and the teeth are not in them.
+
+The tooth roots are not rounded. The tooth profile runs a radial line to the base of the involute and nothing
+rounds that join (`tooth_profile.go`), so the flat flank meets the root cone at about 90° along a line through
+the apex. The spur gears round their roots with the 0.38 m rack value; the bevel teeth do not. Sections of the
+teeth at x 11.36 to 16.36 hold 31 inside corners each, one per tooth, on the root cone (radius 10.14 at x 11.36
+to 14.60 at x 16.36). The turn is about 85° on the straight member and 105° to 125° on the spiral member. The
+sections from the toe side to x 14.4 also hold 31 sharp tooth tips (turn about 147° on the straight member),
+which the gear-teeth exemption covers.
+
+`TestToothRootCorners` cuts the teeth at five heights and requires exactly those corners: the tooth count of
+inside corners on the root cone, and the expected tips. It fails when a root fillet lands or the geometry moves,
+and it fails on an empty section. The model is on `CORNER_PENDING` and `CORNER_PARTIAL` in
+`scripts/check_repository.py` until the roots have a fillet.

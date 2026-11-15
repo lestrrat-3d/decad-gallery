@@ -12,13 +12,13 @@ MODEL_FILES = ("README.md", "instructions.md", "steps.md")
 # Models whose printed parts are not yet held to "Corners and roots" (docs/model-pipeline.md).
 # Remove a model in the change that adds its corner test.
 CORNER_PENDING = {
-    "handcrankfan", "screwgear",
+    "bevelgear", "handcrankfan", "screwgear",
 }
 # Models that build only purchased or standard parts kept at nominal size.
 CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
 # Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
 # stays in CORNER_PENDING until the test skips nothing.
-CORNER_PARTIAL = {"handcrankfan"}
+CORNER_PARTIAL = {"bevelgear", "handcrankfan"}
 # Models whose instructions.md states, under Materials, that no part is printed.
 CORNER_UNPRINTED = {"spinningwheel"}
 

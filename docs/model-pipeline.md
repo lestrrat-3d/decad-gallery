@@ -326,6 +326,10 @@ These corners are exempt:
   keep both sharp and list the pair.
 - Chamfer faces that [Surface edge finishing](#surface-edge-finishing) adds.
 
+Known case: the bevel gear teeth (`models/bevelgear`) have no root fillet, so each tooth leaves a sharp inside
+corner of 83° to 125° on the root cone. These are retained corners pending a real root fillet, not an exemption.
+A model that uses them stays on `CORNER_PENDING`, and its test records them without hiding them.
+
 List every exempt corner, and every root rounded below half its section, under "Retained sharp corners" in the
 model's `instructions.md`, with its location and reason.
 
