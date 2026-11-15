@@ -17,6 +17,9 @@ a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, a [crank handle](models/crankhandle/)
 with a handle that turns on its pin, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
+The spinning wheel, the escapement, the spiral spring, the hand-crank fan and the hand-crank siren are not built
+yet: nobody has made them as physical objects and tested them. The [model table](models/) marks every model's
+build status.
 
 ## For developers
 

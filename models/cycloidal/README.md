@@ -1,5 +1,7 @@
 # Cycloidal drive
 
+**Build status:** Built and tested.
+
 ![The assembled two-disc cycloidal drive, with its housing, eccentric cam, output plate and pins](images/hero.png)
 
 A cycloidal speed reducer. One or two lobed discs ride on an eccentric cam inside a pinless housing. An output

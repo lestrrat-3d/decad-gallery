@@ -1,5 +1,7 @@
 # Hand-crank siren
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 A hand-cranked siren. You hold the grip with your left hand and turn the crank on the right with your right hand. Two
 spur stages spin a slotted rotor disc ten times faster, and the rotor chops the air against a fixed slotted stator disc.
 The horn sends the tone forward, away from you.

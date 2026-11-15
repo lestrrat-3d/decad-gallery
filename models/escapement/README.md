@@ -1,5 +1,7 @@
 # Graham escapement
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 ![A Graham deadbeat escapement movement: a spring-driven great wheel and a 30-tooth escape wheel, an anchor, a crutch and a 180 mm pendulum in an open two-plate frame, seen from the front with the pendulum at rest and the mainspring in view](images/hero.png)
 
 A desk-clock-size Graham escapement. An open spiral mainspring turns a great wheel, which turns a 30-tooth escape wheel through a
