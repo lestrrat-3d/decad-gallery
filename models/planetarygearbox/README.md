@@ -173,7 +173,7 @@ radians. Each pair of meshing gears has 0.3 mm of backlash by default, set by ho
 ## Bearing kits
 
 A kit picks a bearing for the planets and a bearing for the shafts and comes with a tooth set that passes the fit
-checks. A 608ZZ shaft or pin is 8 mm across and carries more torque than a 605ZZ one, which is 5 mm.
+checks. A 608ZZ shaft or pin is 8 mm across (a shaft narrows to 6 mm at a sun) and carries more torque than a 605ZZ one, which is 5 mm.
 
 | Kit | Planet bearing | Shaft bearing | Teeth | One-stage ratio |
 | --- | --- | --- | --- | --- |

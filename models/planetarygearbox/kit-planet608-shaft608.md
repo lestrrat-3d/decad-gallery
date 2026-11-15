@@ -81,7 +81,7 @@ The gearbox has the same parts as the default. All five bearings are 608ZZ, draw
 | <img src="images/kit-planet608-shaft608/parts/sun.png" alt="Sun gear with 14 teeth" width="240"> | Sun gear |
 | <img src="images/kit-planet608-shaft608/parts/planet.png" alt="Planet gear with 28 teeth and a 22.1 mm bearing pocket" width="240"> | Planet gear |
 | <img src="images/kit-planet608-shaft608/parts/bearing.png" alt="608ZZ bearing" width="240"> | Bearing (608ZZ) |
-| <img src="images/kit-planet608-shaft608/parts/input-shaft.png" alt="Input shaft, 8 mm across, with its collar" width="240"> | Input shaft |
+| <img src="images/kit-planet608-shaft608/parts/input-shaft.png" alt="Input shaft, 8 mm across at the bearing and 6 mm across at the sun, with its collar" width="240"> | Input shaft |
 | <img src="images/kit-planet608-shaft608/parts/carrier.png" alt="Carrier with 14 mm pin bosses" width="240"> | Carrier |
 | <img src="images/kit-planet608-shaft608/parts/carrier-pin.png" alt="Carrier pin, 8 mm across, with its 10.4 mm thick part" width="240"> | Carrier pin |
 | <img src="images/kit-planet608-shaft608/parts/link-shaft.png" alt="Link shaft with its 10.4 mm thick part" width="240"> | Link shaft |
