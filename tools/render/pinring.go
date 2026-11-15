@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/pinring"
@@ -46,20 +45,8 @@ func pinRingView(ctx context.Context, name string) (solidlens.Scene, error) {
 
 // renderPinRingReadme writes the index image and every README view.
 func renderPinRingReadme(ctx context.Context, outputDir string) error {
-	for _, shot := range []struct {
-		view, file    string
-		width, height int
-	}{
+	return renderReadmeViews(ctx, outputDir, []readmeView{
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270},
 		{"top", "top.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"low", "low.png", 1600, 900},
-	} {
-		scene, err := pinRingView(ctx, shot.view)
-		if err != nil {
-			return err
-		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
-			return err
-		}
-	}
-	return nil
+	}, pinRingView, renderPNG)
 }
