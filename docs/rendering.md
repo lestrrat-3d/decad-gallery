@@ -271,10 +271,14 @@ collector cavity and horn bore show. The `handcranksiren/exploded` preset pulls 
 from behind the operator, on the left and above (camera at (650, -450, 330)): the collector and its nuts and the throat bolts by -135 in Y, the horn and the throat
 nuts by -135 in Y and -60 in X, the stator -95, the rotor -65, the grip and its bolts -45, the drum and its bolts and
 the collector bolts -35, the front bearings +20, the plane-2 gears +40, the plane-1 gears +60, the frame and the gearbox nuts +85, the rear bearings +110,
-the rear plate and its bolts +135, the crank arm +165, the crank handle +195 and the crank pin +235 (the shafts lift
-160 in Z and the front bolts move -25 in Y). The `readme` shot builds the siren once and writes `hero.png`,
+the rear plate and its bolts +135 (the shafts lift 160 in Z and the front bolts move -25 in Y). The crank moves +230,
+clear of the rear plate, and comes apart from there along the pin axis as the `crankhandle/exploded` preset pulls it:
+the pin bolt 18 back, the pin nut 16 and the handle 32 out, and the pin 95 out, clear of the handle. The cross bolts go
+with the pin and 14 further along the arm, their nuts 14 back toward the shaft. The clamp bolt pulls 30 out of the
+arm's side face and the clamp nut 25 the other way along its line, past the far jaw, where the arm does not hide it.
+The `readme` shot builds the siren once and writes `hero.png`,
 `index.png` (480 × 270), `exploded.png`, `cutaway.png`, `view-rear.png`, `view-side.png`, `view-top.png` and one
-480 × 270 image per unique part (26) in `parts/`:
+480 × 270 image per unique part (28) in `parts/`:
 
 ```sh
 go -C tools/render run . -model handcranksiren -shot readme -out ../../models/handcranksiren/images

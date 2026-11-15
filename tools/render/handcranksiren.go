@@ -57,9 +57,26 @@ var handCrankSirenViews = []sirenView{
 }
 
 // handCrankSirenExplode is how far the exploded view moves a part, by name. The parts move along Y by fixed offsets, and
-// the horn also moves along -X: gearbox-front, the drum nuts and the grip nuts stay where they are.
-func handCrankSirenExplode(name string) r3.Vec {
+// the horn also moves along -X: gearbox-front, the drum nuts and the grip nuts stay where they are. The crank moves
+// +230 clear of the rear plate, so its hub shows beside it, and its parts are pulled apart from there along the pin
+// axis (+Y), as models/crankhandle's exploded view pulls them: the pin bolt 18 back out of the arm, the pin nut 16 and
+// the handle 32 out, and the pin 95 out, clear of the handle, with its cross bolts 14 further along arm, the posed
+// direction from the shaft to the pin, and their nuts 14 back. The clamp bolt pulls 30 out of the arm's side face, and
+// the clamp nut 25 the other way along the bolt's line, out past the far jaw, where the arm does not hide it.
+func handCrankSirenExplode(name string, arm r3.Vec) r3.Vec {
+	armY := r3.Vec{Y: 230}
+	pin := armY.Add(r3.Vec{Y: 95})
+	// side is crankhandle's local +X, toward the clamp bolt's head: the siren's placement turns it to -X at crank angle 0.
+	side := r3.Vec{X: -arm.Z, Z: arm.X}
 	switch {
+	case strings.HasPrefix(name, "crank-cross-bolt-"):
+		return pin.Add(arm.Scale(14))
+	case strings.HasPrefix(name, "crank-cross-nut-"):
+		return pin.Add(arm.Scale(-14))
+	case name == "crank-clamp-bolt":
+		return armY.Add(side.Scale(30))
+	case name == "crank-clamp-nut":
+		return armY.Add(side.Scale(-25))
 	case strings.HasPrefix(name, "gearbox-front-bolt-"):
 		return r3.Vec{Y: -25}
 	case strings.HasSuffix(name, "-shaft"):
@@ -88,12 +105,16 @@ func handCrankSirenExplode(name string) r3.Vec {
 		return r3.Vec{Y: 110}
 	case name == "gearbox-rear" || strings.HasPrefix(name, "gearbox-rear-bolt-"):
 		return r3.Vec{Y: 135}
-	case name == "crank-arm" || name == "crank-pin-bolt":
-		return r3.Vec{Y: 165}
+	case name == "crank-arm":
+		return armY
+	case name == "crank-pin-bolt":
+		return armY.Add(r3.Vec{Y: -18})
+	case name == "crank-pin-nut":
+		return armY.Add(r3.Vec{Y: 16})
 	case name == "crank-handle":
-		return r3.Vec{Y: 195}
-	case name == "crank-pin" || name == "crank-pin-nut":
-		return r3.Vec{Y: 235}
+		return armY.Add(r3.Vec{Y: 32})
+	case name == "crank-pin":
+		return pin
 	}
 	return r3.Vec{}
 }
@@ -162,7 +183,8 @@ func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, 
 	for i, m := range meshes {
 		models[i] = m.model
 		if exploded {
-			models[i].Mesh = placedMesh{TriangleSource: m.model.Mesh, scale: 1, offset: handCrankSirenExplode(m.part.Name)}
+			offset := handCrankSirenExplode(m.part.Name, s.a.State.ArmDirection)
+			models[i].Mesh = placedMesh{TriangleSource: m.model.Mesh, scale: 1, offset: offset}
 		}
 		if cutaway && (m.part.Name == "drum" || m.part.Name == "stator" || m.part.Name == "collector" ||
 			m.part.Name == "horn") {
@@ -228,7 +250,7 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"intermediate-shaft", "intermediate-shaft", nil, sirenSide},
 	{"rotor-shaft", "rotor-shaft", nil, sirenSide},
 	{"bearing", "bearing-rotor-front", nil, sirenFace},
-	{"crank-arm", "crank-arm", nil, sirenSide},
+	{"crank-arm", "crank-arm", nil, sirenFace},
 	{"crank-pin", "crank-pin", nil, sirenSide},
 	{"crank-handle", "crank-handle", nil, sirenSide},
 	{"gearbox-bolt", "gearbox-front-bolt-1", []string{"gearbox-front-nut-1"}, sirenSide},
@@ -237,6 +259,8 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"throat-bolt", "throat-bolt-1", []string{"throat-nut-1"}, sirenFace},
 	{"grip-bolt", "grip-bolt-1", []string{"grip-nut-1"}, sirenSide},
 	{"crank-pin-bolt", "crank-pin-bolt", []string{"crank-pin-nut"}, sirenSide},
+	{"crank-cross-bolt", "crank-cross-bolt-1", []string{"crank-cross-nut-1"}, sirenSide},
+	{"crank-clamp-bolt", "crank-clamp-bolt", []string{"crank-clamp-nut"}, sirenSide},
 }
 
 func init() {

@@ -31,6 +31,10 @@ const fitTolerance = 0.02
 // bound against its bearing is 0.192, below the Tight minimum.
 const roundFitTolerance = 0.01
 
+// armTolerance is the finest section tolerance the crank arm accepts: its slit and bore cuts hold a mesh bound of
+// 0.010115 mm (models/crankhandle instructions.md, "Arm"), just over roundFitTolerance.
+const armTolerance = 0.0102
+
 // pressFit is the proven lower bound required of a press fit, whose design clearance is 0.05 mm radial (the press-fit
 // rule in docs/model-pipeline.md "Part clearances"). The section measurement's uncertainty takes up the rest.
 const pressFit = 0.03
@@ -124,10 +128,11 @@ func axialPlane(t *testing.T, p handcranksiren.Params, motion string, axis r3.Ve
 	return frameAt(t, origin, r3.Vec{Y: 1}, tip.Sub(origin))
 }
 
-// axialPoints returns the Y and the distance from the axis of every point of body's section in the axial plane.
-func axialPoints(t *testing.T, body *decad.Body, plane r3.Frame) [][2]float64 {
+// axialPoints returns the Y and the distance from the axis of every point of body's section in the axial plane, cut at
+// tolerance.
+func axialPoints(t *testing.T, body *decad.Body, plane r3.Frame, tolerance float64) [][2]float64 {
 	t.Helper()
-	section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(roundFitTolerance))
+	section, err := body.SectionOutline(t.Context(), plane, units.Millimeters(tolerance))
 	require.NoError(t, err)
 	var points [][2]float64
 	for _, loop := range section.Loops {
@@ -144,7 +149,7 @@ func axialPoints(t *testing.T, body *decad.Body, plane r3.Frame) [][2]float64 {
 func collarSpan(t *testing.T, shaft *decad.Body, plane r3.Frame) (float64, float64) {
 	t.Helper()
 	lo, hi := math.Inf(1), math.Inf(-1)
-	for _, point := range axialPoints(t, shaft, plane) {
+	for _, point := range axialPoints(t, shaft, plane, roundFitTolerance) {
 		if point[1] > 4.5 {
 			lo, hi = math.Min(lo, point[0]), math.Max(hi, point[0])
 		}
@@ -154,15 +159,15 @@ func collarSpan(t *testing.T, shaft *decad.Body, plane r3.Frame) (float64, float
 }
 
 // boreFloorGap returns the proven axial gap between a shaft's end and the floor of the blind bore that holds it: the
-// nearest point of the host's section inside the bore (within 4.1 of the axis) beyond the shaft's end. The radial gap
-// of the bore is a press fit and is measured on its own.
-func boreFloorGap(t *testing.T, host, shaft *decad.Body, plane r3.Frame, front bool) float64 {
+// nearest point of the host's section, cut at hostTolerance, inside the bore (within 4.1 of the axis) beyond the shaft's
+// end. The radial gap of the bore is a press fit and is measured on its own.
+func boreFloorGap(t *testing.T, host, shaft *decad.Body, plane r3.Frame, front bool, hostTolerance float64) float64 {
 	t.Helper()
 	end := math.Inf(1)
 	if !front {
 		end = math.Inf(-1)
 	}
-	for _, point := range axialPoints(t, shaft, plane) {
+	for _, point := range axialPoints(t, shaft, plane, roundFitTolerance) {
 		if front {
 			end = math.Min(end, point[0])
 		} else {
@@ -170,7 +175,7 @@ func boreFloorGap(t *testing.T, host, shaft *decad.Body, plane r3.Frame, front b
 		}
 	}
 	gap := math.Inf(1)
-	for _, point := range axialPoints(t, host, plane) {
+	for _, point := range axialPoints(t, host, plane, hostTolerance) {
 		if point[1] > 4.1 {
 			continue
 		}
@@ -181,7 +186,7 @@ func boreFloorGap(t *testing.T, host, shaft *decad.Body, plane r3.Frame, front b
 		}
 	}
 	require.False(t, math.IsInf(gap, 1), "no bore floor beyond the shaft's end")
-	return gap - 2*roundFitTolerance
+	return gap - roundFitTolerance - hostTolerance
 }
 
 // requireClearances measures every distinct fit of the default siren on the placed parts, and requires the proven lower
@@ -322,16 +327,20 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	// T5, T6: the rotor hub's D-bore on the rotor shaft, and the shaft's front end against the bore's floor.
 	exact("T5", "rotor", "rotor-shaft", atY(t, -20.5), pressFit)
 	c.atLeast("T6", "rotor / rotor-shaft floor axial",
-		boreFloorGap(t, body("rotor"), body("rotor-shaft"), axialPlane(t, p, "rotor", state.Rotor), true), tight)
+		boreFloorGap(t, body("rotor"), body("rotor-shaft"), axialPlane(t, p, "rotor", state.Rotor), true,
+			roundFitTolerance), tight)
 	// R1: the rotor shaft through the drum's hole.
 	section("R1", "rotor-shaft", "drum", axialPlane(t, p, "rotor", state.Rotor), regular)
 	requireRotorFits(t, p, parts, c)
 	// T5, T6, T8: the arm's D-bore on the crank shaft, the shaft's end against the bore's floor, the pin's stub in the
-	// arm's hexagonal pocket.
-	exact("T5", "crank-arm", "crank-shaft", atY(t, 41.0), pressFit)
+	// arm's hexagonal pocket. The arm is cut at armTolerance.
+	c.atLeast("T5", "crank-arm / crank-shaft", sectionGapMixed(t, body("crank-arm"), armTolerance, body("crank-shaft"),
+		roundFitTolerance, atY(t, 41.0)), pressFit)
 	c.atLeast("T6", "crank-arm / crank-shaft floor axial",
-		boreFloorGap(t, body("crank-arm"), body("crank-shaft"), axialPlane(t, p, "crank", state.Crank), false), tight)
-	exact("T8", "crank-pin", "crank-arm", atY(t, 44.0), tight)
+		boreFloorGap(t, body("crank-arm"), body("crank-shaft"), axialPlane(t, p, "crank", state.Crank), false,
+			armTolerance), tight)
+	c.atLeast("T8", "crank-pin / crank-arm", sectionGapMixed(t, body("crank-pin"), roundFitTolerance, body("crank-arm"),
+		armTolerance, atY(t, 44.0)), tight)
 	// R3: the handle on the pin, in the shank's and the head's sections and along the pin.
 	pinPlane := axialPlane(t, p, "crank", handcranksiren.PinAxis)
 	exact("R3", "crank-handle", "crank-pin", atY(t, 70), regular)
