@@ -179,23 +179,30 @@ body set does not change with any parameter. There is no "Look-alike parts" sect
 
 ## Part fits
 
-| ID | Parts | Class (min) | Modeled | Measure |
-| --- | --- | --- | ---: | --- |
-| P1 | hub D bore / shaft | press fit | `c` (0.05) | section at mid-height |
-| P2 | back plate, cover D bores / shaft | press fit | `c` | as P1 |
-| T1 | hub / each plate boss | Tight 0.2 | 0.25 | axial bounds |
-| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | axial bounds |
-| R2 | ring counterbores / plate rims | Regular | 0.40 radial | section mid-rim |
-| R3 | ring cones / plate cones | Regular | 0.60 normal | axial plane |
-| R4 | ring tooth ends / plate annuli | Regular | 0.85 axial | axial bounds |
-| R5 | each head / its tooth gap, seated | Regular | 0.40 | `meshgap` on the placed meshes |
-| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | section at mid-height |
-| F | bolts, nuts | fastener rules | pocket 0.3, hole 0.3, cavity 0.2 | bounds and no overlap |
+| ID | Parts | Class (min) | Modeled | Measured, proven lower bound | Measure |
+| --- | --- | --- | ---: | ---: | --- |
+| P1 | hub D bore / shaft | press fit | `c` (0.05) | 0.040 (at `c` 0.35: 0.340) | section at mid-height |
+| P2 | back plate, cover D bores / shaft | press fit | `c` | 0.049 (at `c` 0.35: 0.349) | as P1 |
+| T1 | hub / each plate boss | Tight 0.2 | 0.25 | 0.237 | mesh gap, placed meshes |
+| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | 0.642 | axial section, hub bounds |
+| R2 | ring counterbores / plate rims | Regular | 0.40 radial | 0.390 | section mid-rim |
+| R3 | ring cones / plate cones | Regular | 0.60 normal | 0.591 | axial section |
+| R4 | ring tooth ends / plate annuli | Regular | 0.85 axial | 0.840 | axial section |
+| R5 | each head / its tooth gap, seated | Regular | 0.40 | 0.387 | `meshgap` on the placed meshes |
+| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | 0.543 | section at mid-height |
+| F | bolts, nuts | fastener rules | pocket 0.3, hole 0.3, cavity 0.2 | | bounds and no overlap |
 
 The model is **Mixed**: the bore clearance is a parameter, and the bolts and nuts keep their nominal size. The ring's
-outside fit in the user's housing belongs to the consumer. Task 1 builds the geometry; the fit measurements
-(`TestOneWayClutchFits`, `TestOneWayClutchPawls`) are a later task, so the "Modeled" column is the construction value.
-In the head-on-pocket-floor and bolt-in-nut pairs the meshes touch by design (nominal pair).
+outside fit in the user's housing belongs to the consumer. `TestOneWayClutchFits` measures P1 to R5 and L1 for every
+preset in both directions, for `BoreClearance` 0.35 on `605ZZ`, and the mesh gaps for a placed default. The measured
+column is the least value over those cases, less each section's or mesh's proven displacement bound, so it sits a
+little under the modeled value. A D bore's corners stand more than `c` from the shaft's corners, since `c` is radial
+on the round and on the flat. In the head-on-pocket-floor and bolt-in-nut pairs the meshes touch by design (nominal
+pair).
+
+`TestOneWayClutchPawls` checks the arm (1.2 mm thick, 0.65 % strain at full travel), the slot (2.05 mm, leaving 0.79
+mm under a fully pressed head), the web (1.80 mm to the slot end's round, wider than the arm) and the lock face (0.82
+mm radial contact, 9.6 mm axial), from `Dimensions` and from sections of the built hub.
 
 ## Sketch constraints
 
