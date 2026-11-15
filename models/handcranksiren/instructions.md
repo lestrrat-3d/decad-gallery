@@ -17,9 +17,9 @@ and the nuts `models/m2nut`, all imported and not copied. Printed parts: everyth
 
 - Sketch constraints: every sketch the build uses (including bearing, bolt, nut and fastener-tool sketches) is fully
   constrained, with DOF 0, no redundant constraint and no conflict, on every parameter branch.
-- Fasteners: every head sinks into a pocket and ends flush, every nut but the crank's clamp nut sits in a cavity its
-  part encloses, the clamp nut sits in a hex pocket open to the arm's side face, held there by the clamp bolt, and
-  every bolt has a standard M2 length. See Fasteners.
+- Fasteners: every head sinks into a pocket and ends flush, every nut but the crank's clamp nut and two cross nuts sits in a
+  cavity its part encloses, those three sit in hex pockets open to a face (the arm's side face and the pin's flat), held
+  there by their bolts, and every bolt has a standard M2 length. See Fasteners.
 - Part clearances: every pair of separate printed parts keeps a gap of its class. See Fits. A bearing seat takes
   0.05 mm of radial clearance (the bearing-seat rule).
 - Gear train clearances: both meshing pairs keep the tip-to-root clearance of 0.5 and the non-meshing gears keep their
@@ -248,7 +248,7 @@ dimension; at crank angle 0 they read:
 - crank-pin: a hexagon 7.03 across flats over Y [42.1, 47.9]; a 30° cone from radius 3.5 at Y 46.85 out to the shank,
   radius 5.15, to Y 91.35; a 30° cone out to the head, radius 6.45 over [93.6, 96.6]; the hole and cavity of
   crank-pin-bolt along its axis; and a double flat 4 from the axis on ±Z round each of the two M2 x 6 cross bolts at
-  Y 55.6 and 87.6, each with a head pocket in the +Z half and a nut cavity in the -Z half.
+  Y 55.6 and 87.6, each with a head pocket in the +Z half and a hex nut pocket in the -Z half, open to the -Z flat.
 - crank-handle: revolved about the pin axis (60, y, 139), Y [47.0, 97.0], from `crankhandle.HandleProfile`. Its bore,
   radius 5.55, clears the shank by 0.4.
 - Split pin: crank-pin prints as two halves split by the plane through its axis and the hand's driving force, across
@@ -293,13 +293,14 @@ stock 1.0. The nut rests 0.2 beyond the cavity's near face.
 | `throat-bolt-1..4` | `throat-nut-1..4` | 10 | (−46, `throatY` + 26 cos a, 84 + 26 sin a), a = 45° + 90°(k−1) | −X | (0, cos a, sin a) | 6.75 | collector | horn |
 | `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −16.25, 30), (99, −16.25, 30), (85, −16.25, 100), (99, −16.25, 100) | +Y | X | 17.75 | grip | gearbox-front |
 | `crank-pin-bolt` | `crank-pin-nut` | 10 | (60, 38.6, 139) | +Y | −X | 4.75 | crank-arm | crank-pin |
-| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (60, 55.6, 143), (60, 87.6, 143) | −Z | −X | 5.0 | crank-pin | crank-pin |
+| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (60, 55.6, 143), (60, 87.6, 143) | −Z | Y | 6.0 | crank-pin | crank-pin |
 | `crank-clamp-bolt` | `crank-clamp-nut` | 18 | (50, 42.6, 77.6) | +X | Z | 18.0 | crank-arm | crank-arm |
 
 The crank's sites are crankhandle's (`Dimensions.Site`, `CrossSites`, `ClampSite`) carried through the placement; the
 table gives them at crank angle 0, and the pose turns them with the crank. crankhandle cuts their pockets, holes and
 cavities; the clamp nut's is a hexagonal pocket open to the arm's +X side face (`models/crankhandle/instructions.md`,
-"Clamp"), the others round cavities.
+"Clamp"), each cross nut's a hexagonal pocket open to the pin's -Z flat with its corners along the pin's axis, and the
+others round cavities.
 
 Derived: front-bolt cavities at Y [11.75, 13.75] with tips at 18. Rear-bolt cavities at [23.85, 25.85] with tips at 19.6.
 Drum cavities at [1.5, 3.5] with tips at 4.5. Collector cavities at Y [−33.40, −35.40] inside the collector's rear wall
@@ -310,8 +311,8 @@ the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X
 before the collector meets the stator. Grip pockets go into the pad's window face, Y [−16.25, −14.25], with 14 of material
 under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.5], the same layers as the drum cavities, with tips at
 Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.35] with its tip at 50.6,
-inside the shank. The cross nut cavities are at Z [136, 138] in the -Z half, and each cross bolt's tip ends at the far
-flat, Z 135. The clamp nut pocket is at X [68, 70], open to the +X side face at 70, and the clamp bolt's tip ends flush
+inside the shank. The cross nut pockets are at Z [135, 137] in the -Z half, open to the flat at Z 135, and each cross bolt's tip ends
+flush with that flat. The clamp nut pocket is at X [68, 70], open to the +X side face at 70, and the clamp bolt's tip ends flush
 with that face.
 
 #### Print pause
@@ -323,8 +324,8 @@ with that face.
   Its four collector nuts sit near the top.
 - `horn` prints with its flange mating face (X −51.25) down and the mouth up. Its four throat nuts sit near the bed.
 - `grip` prints with one X cap down. The ring profile is the layer shape, so it needs no support and no pause.
-- `crank-pin` prints as two halves, each on its cut face. Drop the pin nut into one half's split pocket and the cross
-  nuts into their cavities before closing the halves; no pause.
+- `crank-pin` prints as two halves, each on its cut face. Drop the pin nut into one half's split pocket and set the
+  cross nuts in their pockets in the -Z flat before closing the halves; no pause.
 - `rotor` prints with its disc's front face (Y −27.50) down, the vanes and hub up.
 - `stator` prints with either face down.
 - The four gears print with either face down, their axes vertical.
@@ -404,7 +405,7 @@ slit's end round only for its long-throw crank, so the siren's 55 mm crank has n
 | crank-arm | the clamp bolt's head pocket floor rim, 2 mm into the -X side face | The 0.3 mm head clearance leaves no room to round it, as in `models/crankhandle`. |
 | crank-arm | the 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, as in `models/crankhandle`. |
 | crank-arm | the six corners of the clamp nut's hexagonal pocket in the +X side face | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. |
-| crank-pin | the pin bolt's nut cavity's 0.55 mm end rounds, in the layer 2 mm off the seam | That layer crosses them near their edge, where they turn about 52 degrees; they are the largest rounds that keep the nut's corner clearance, as in `models/crankhandle`. |
+| crank-pin | the six corners of each cross nut's hexagonal pocket in the -Z flat, edges along the cross bolt | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. |
 | crank-shaft, intermediate-shaft, rotor-shaft | collar and end steps | Between layers; small loads, as the escapement's arbors. |
 
 Rounds below half their section:

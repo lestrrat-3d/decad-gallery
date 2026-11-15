@@ -160,14 +160,13 @@ func (r *run) slitTool() (*decad.Body, error) {
 	return r.extrude(s, 0, ArmThickness+2)
 }
 
-// clampPocketTool extrudes the clamp nut's hexagonal pocket from its floor, the site's Cavity, out through the -X side
-// face: NutCavityHeight plus m2fastener.Stock along the bolt. The hexagon is centred on the bolt's axis with its corners
-// on the circle of radius m2fastener.NutCavityRadius along Corner (±Y), so two flats lie parallel to the print bed. Each
-// side is held by its distance from the axis, the first flat is horizontal and each next side turns 60 degrees from
-// the one before, so the corners lie where the sides meet. The corners stay sharp, matching the nut's sharp corners.
-// The sketch lies on site.Across(Cavity): U is Corner (+Y) and V is Dir × Corner (-Z), so it extrudes along -X.
-func (r *run) clampPocketTool() (*decad.Body, error) {
-	site := r.dm.ClampSite
+// nutPocketTool extrudes a site's hexagonal nut pocket from its floor, the site's Cavity, out through the face its bolt
+// tip ends on: NutCavityHeight plus m2fastener.Stock along the bolt. The hexagon is centred on the bolt's axis with its
+// corners on the circle of radius m2fastener.NutCavityRadius, the first along the site's Corner. Each side is held by
+// its distance from the axis, the first flat is horizontal and each next side turns 60 degrees from the one before, so
+// the corners lie where the sides meet. The corners stay sharp, matching the nut's sharp corners. The sketch lies on
+// site.Across(Cavity): U is Corner and V is Dir × Corner, so it extrudes along the site's Dir.
+func (r *run) nutPocketTool(site m2fastener.Site) (*decad.Body, error) {
 	f, err := site.Across(site.Cavity)
 	if err != nil {
 		return nil, err

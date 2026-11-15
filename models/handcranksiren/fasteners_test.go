@@ -2,7 +2,6 @@ package handcranksiren_test
 
 import (
 	"math"
-	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -60,13 +59,13 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 	return crossings%2 == 1
 }
 
-// openPocketNut names the one nut that sits in a hexagonal pocket open to its part's face instead of an enclosed cavity:
-// the crank arm's clamp nut, which the clamp bolt holds in (models/crankhandle). Its pocket runs from CavityNear to the
-// face at CavityFar, and the bolt's tip ends flush with that face.
-const openPocketNut = "crank-clamp-nut"
+// openPocketNut names the nuts that sit in a hexagonal pocket open to their part's face instead of an enclosed cavity:
+// the crank arm's clamp nut and the crank pin's two cross nuts, which their bolts hold in (models/crankhandle). A
+// pocket runs from CavityNear to the face at CavityFar, and the bolt's tip ends flush with that face.
+var openPocketNut = map[string]struct{}{"crank-clamp-nut": {}, "crank-cross-nut-1": {}, "crank-cross-nut-2": {}}
 
 // requireFasteners proves for each fastener: the head ends flush with its part's face, the nut sits inside the cavity
-// its part encloses (or, for openPocketNut, inside its hexagonal pocket below the face), the part keeps 1 mm of material
+// its part encloses (or, for an openPocketNut, inside its hexagonal pocket below the face), the part keeps 1 mm of material
 // round the pocket and the cavity, the bolt's tip stays in the part, and no fastener shares material with the parts it
 // passes through.
 func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
@@ -124,7 +123,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		}
 		// The cavity's section is a hole loop with the part's material round it. The floor and the roof beside the
 		// cavity are solid except for the bolt hole, so the cavity is closed on every side but the hole.
-		open := f.Nut == openPocketNut
+		_, open := openPocketNut[f.Nut]
 		wall := host(f, nutHost, mid)
 		require.False(t, wall.contains(r3.Vec{}), "%s: the cavity is empty", f.Nut)
 		require.True(t, wall.contains(f.Corner.Scale(3.0)), "%s: the cavity's corner wall is solid", f.Nut)
@@ -163,15 +162,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		} else {
 			require.True(t, host(f, nutHost, tip-0.3).contains(f.Corner.Scale(1.6)), "%s: the tip is held by the part", f.Bolt)
 		}
-		switch {
-		case open:
-		case strings.HasPrefix(f.Bolt, "crank-cross-bolt-"):
-			// A cross bolt's tip ends at the pin's far flat (models/crankhandle): the part holds material up to it, and
-			// the bolt ends there.
-			_, end, bound := extent(t, bolt, f.Dir)
-			require.InDelta(t, f.Head.Dot(f.Dir)+tip, end, 2e-3+bound, "%s: tip", f.Bolt)
-			require.True(t, host(f, nutHost, tip-0.05).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
-		default:
+		if !open {
 			require.True(t, host(f, nutHost, tip+0.3).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
 		}
 

@@ -70,7 +70,8 @@ The picture cuts the crank through the shaft axis and the pin axis.
   cannot turn in the arm. An M2 x 10 bolt from the arm's back face runs into a nut held inside the stub and holds the
   pin in the arm.
 - Two M2 x 6 bolts cross the pin, one near each end of the handle. Each head sits flush on a small flat on one half,
-  and each bolt runs into a nut inside the other half, so the bolts clamp the halves together.
+  and each bolt runs into a nut in a hex pocket open to the other half's outer flat, so the bolts clamp the halves
+  together.
 - The handle's bore is 0.4 mm larger than the pin's shank all round, and the handle stands 0.4 mm clear of the arm and of
   the pin's head, so it turns freely. The head is wider than the handle's bore, so the handle cannot come off.
 
@@ -84,12 +85,13 @@ nuts on the other.
 
 ## The split pin
 
-![The pin's two halves pulled apart: the half with the head pockets in front with its two M2 x 6 bolts, the other half behind showing its cut face with the half groove for the M2 x 10 bolt and the half pocket for its nut, and the M2 x 10 bolt and nut between them](images/split.png)
+![The pin's two halves pulled apart: the half with the head pockets in front with its two M2 x 6 bolts, the other half behind with its two hex nut pockets, showing its cut face with the half groove for the M2 x 10 bolt and the half pocket for its nut, and the M2 x 10 bolt and nut between them](images/split.png)
 
 The pin's two halves meet on the plane through the pin's axis that lies across the arm, the direction your hand pushes
 the handle. That push then loads the two halves side by side, and they do not slide on each other.
 
-- One half carries the cross bolts' head pockets. The other encloses their nuts.
+- One half carries the cross bolts' head pockets. The other holds their nuts in hex pockets open to its outer flat,
+  and each bolt holds its nut there.
 - The M2 x 10 bolt that holds the pin in the arm runs along the seam. Its hole and its nut's pocket are split between
   the halves, and the clamped halves hold the nut in.
 
@@ -104,7 +106,7 @@ Each half prints lying on its cut face, with no supports.
 | <img src="images/parts/arm.png" alt="Arm" width="240"> | Arm (printed) |
 | <img src="images/parts/pin.png" alt="Pin" width="240"> | Pin, assembled from its two halves |
 | <img src="images/parts/pin-half-heads.png" alt="Pin half with the head pockets" width="240"> | Pin half with the cross bolts' head pockets (printed) |
-| <img src="images/parts/pin-half-nuts.png" alt="Pin half with the nut cavities" width="240"> | Pin half with the cross bolts' nuts inside (printed) |
+| <img src="images/parts/pin-half-nuts.png" alt="Pin half with the nut pockets" width="240"> | Pin half with the cross bolts' nut pockets (printed) |
 | <img src="images/parts/handle.png" alt="Handle" width="240"> | Handle (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1 |
 | <img src="images/parts/cross-bolt.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2 |
@@ -136,13 +138,13 @@ is 10.3 mm across and its head 12.9 mm. The handle is 50 mm long and up to 18.6 
 ## Printing
 
 Print the arm on its back face and the handle upright on its inner end, with no supports and no pause. Print the pin
-as its two halves, each lying on its cut face, with no supports. Pause the print of the half with the nut cavities at
-3.0 mm, drop an M2 nut into each cavity, and resume.
+as its two halves, each lying on its cut face, with no supports and no pause.
 
 To assemble:
 
 1. Drop the M2 x 10 bolt's nut into its half pocket in one pin half, and lay the other half on it.
-2. Push each M2 x 6 bolt through its head pocket into its nut in the other half, and tighten it.
+2. Set an M2 nut in each hex pocket of the other half, push each M2 x 6 bolt through its head pocket into its nut,
+   and tighten it.
 3. Slide the handle onto the pin from the stub end.
 4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
 5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in one side of the arm's hub, push the M2 x 18

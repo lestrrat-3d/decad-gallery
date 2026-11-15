@@ -215,13 +215,14 @@ user asks. Build the part so that cut is possible:
 - **Flats.** Every flat of a shaft that sets its plane from the flat faces the same way, or the opposite way for a
   double flat. A spline or a keyway breaks the rule.
 - **Symmetry.** The part is mirror-symmetric about the split plane, so the halves are mirror images, except round the
-  bolts that clamp them, where a head pocket in one half faces a nut cavity in the other.
+  bolts that clamp them, where a head pocket in one half faces a nut cavity or hex pocket in the other.
 - **Clamping.** Hardware holds the halves together; never glue them. A shaft held at both ends by purchased bearings,
   whose inner races fit it with no clearance, and carrying its loads in press-fit bores, is held by them. Any other part,
   such as a crank pin standing out from its arm, takes M2 cross bolts:
   - Run each cross bolt normal to the seam, from a head pocket in one half to a nut cavity that the other half encloses
-    on all sides but the bolt hole. Follow the [Fasteners](../AGENTS.md#fasteners) rules for the head, the hole, the
-    cavity, the bolt's length and the 1 mm of material round every pocket.
+    on all sides but the bolt hole, or to a hex pocket open to the flat on that side, which the bolt holds the nut in.
+    Follow the [Fasteners](../AGENTS.md#fasteners) rules for the head, the hole, the cavity, the bolt's length and the
+    1 mm of material round every pocket.
   - Seat the head flush on a flat parallel to the seam, and cut the same flat on the nut's side, so the halves stay
     mirror images.
   - Put a cross bolt near each end of the span the load bends, so the halves act as one section between them.
@@ -263,8 +264,8 @@ the built and posed body, for every parameter case that changes the part or its 
   run from the seam up to 0.8 of that radius, in 0.25 mm steps. Above that a section cuts a cone so obliquely that a
   30° cone reads over 50° (60° at 0.92 of the radius), though the part's surface turns no more than 30° there. Exempt
   only the listed bearing-facing steps and flat-end pairs, and require no other finding.
-- Check each cross bolt as the Fasteners rules ask: the head flush with its flat, the nut inside its cavity, the bolt
-  crossing the seam, and no overlap with the part.
+- Check each cross bolt as the Fasteners rules ask: the head flush with its flat, the nut inside its cavity or
+  pocket, the bolt crossing the seam, and no overlap with the part.
 
 ### Surface edge finishing
 

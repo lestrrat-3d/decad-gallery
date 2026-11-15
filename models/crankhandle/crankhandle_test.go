@@ -371,9 +371,10 @@ func atY(t *testing.T, y float64) r3.Frame {
 }
 
 // requireCrossBolts checks the two cross bolts that clamp the pin's halves: each head's top face is flush with the +Y
-// flat and inside its pocket in the +Y half, each tip ends at the -Y flat, each nut lies inside its cavity in the -Y
-// half, so the bolt crosses the seam, and no bolt or nut shares volume with the pin. It also checks 1 mm or more of
-// pin round every pocket and cavity.
+// flat and inside its pocket in the +Y half, each tip ends flush with the -Y flat, each nut lies inside its hexagonal
+// pocket open to the -Y flat, below it, with the bolt through the whole nut, so the bolt crosses the seam, and no bolt or
+// nut shares volume with the pin in sections across and along the bolt. It also checks 1 mm or more of pin round every
+// pocket and the shape of the nut pockets (requireCrossPocket).
 func requireCrossBolts(t *testing.T, p crankhandle.Params, m *crankhandle.Model) {
 	t.Helper()
 	seam := p.Throw
@@ -384,47 +385,111 @@ func requireCrossBolts(t *testing.T, p crankhandle.Params, m *crankhandle.Model)
 		require.InDelta(t, seam+crankhandle.CrossFlat, bb.Max.Y, tol, "cross bolt %d: head top flush with the +Y flat", i+1)
 		require.InDelta(t, seam+crankhandle.CrossFlat-m.CrossSites[i].Tip(), bb.Min.Y, tol, "cross bolt %d: tip", i+1)
 		require.GreaterOrEqual(t, bb.Min.Y, seam-crankhandle.CrossFlat-tol, "cross bolt %d: tip inside the -Y flat", i+1)
+		require.InDelta(t, seam-crankhandle.CrossFlat, bb.Min.Y, tol, "cross bolt %d: tip flush with the -Y flat", i+1)
 		require.Less(t, math.Max(math.Max(-bb.Min.X, bb.Max.X), math.Max(z-bb.Min.Z, bb.Max.Z-z)),
 			m2fastener.HeadPocketRadius, "cross bolt %d: head inside its pocket", i+1)
 		require.Less(t, bb.Min.Y, seam, "cross bolt %d crosses the seam", i+1)
 		nb, err := m.CrossNuts[i].Body.Bounds()
 		require.NoError(t, err)
-		near := seam + crankhandle.CrossFlat - crankhandle.CrossCavity
-		require.LessOrEqual(t, nb.Max.Y, near, "cross nut %d inside its cavity in the -Y half", i+1)
-		require.GreaterOrEqual(t, nb.Min.Y, near-m2fastener.NutCavityHeight, "cross nut %d", i+1)
-		for _, d := range []float64{nb.Min.X, nb.Max.X, nb.Min.Z - z, nb.Max.Z - z} {
-			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius, "cross nut %d", i+1)
+		floor := seam + crankhandle.CrossFlat - crankhandle.CrossCavity // the pocket's floor
+		ntol := nb.Bound.Base() + 2e-3
+		require.LessOrEqual(t, nb.Max.Y, floor-m2fastener.NutClearance+ntol, "cross nut %d inside its pocket", i+1)
+		require.GreaterOrEqual(t, nb.Min.Y, seam-crankhandle.CrossFlat+m2fastener.NutClearance-ntol,
+			"cross nut %d below the -Y flat", i+1)
+		require.Less(t, bb.Min.Y, nb.Min.Y, "cross bolt %d runs through the whole nut", i+1)
+		for _, d := range []float64{nb.Min.Z - z, nb.Max.Z - z} {
+			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius, "cross nut %d: corners inside its pocket", i+1)
 		}
-		for _, y := range []float64{3.5, 2.5, 1.0, -0.5, -1.5, -2.0, -2.5, -3.5} {
-			a := section(t, m.Pin, atY(t, seam+y))
-			for _, part := range []*decad.Body{m.CrossBolts[i].Body, m.CrossNuts[i].Body} {
-				b := section(t, part, atY(t, seam+y))
-				if len(a.Loops) == 0 || len(b.Loops) == 0 {
-					continue
-				}
-				cl, err := a.Clearance(b)
-				require.NoError(t, err)
-				require.False(t, cl.Overlaps, "cross fastener %d overlaps the pin at y %g", i+1, y)
-			}
+		for _, d := range []float64{nb.Min.X, nb.Max.X} {
+			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius*math.Sqrt(3)/2+ntol,
+				"cross nut %d: flats inside its pocket", i+1)
+		}
+		for _, y := range []float64{3.5, 2.5, 1.0, -0.5, -1.5, -2.1, -2.5, -3.0, -3.5, -3.9} {
+			requireNoOverlap(t, m.Pin, atY(t, seam+y), fmt.Sprintf("cross fastener %d at y %g", i+1, y),
+				m.CrossBolts[i].Body, m.CrossNuts[i].Body)
+		}
+		for name, f := range map[string]r3.Frame{"x 0": atX(t, 0), "z": atZ(t, z)} {
+			requireNoOverlap(t, m.Pin, f, fmt.Sprintf("cross fastener %d along its bolt at %s", i+1, name),
+				m.CrossBolts[i].Body, m.CrossNuts[i].Body)
 		}
 	}
+	requireCrossPocket(t, p, m)
 	r, flat := crankhandle.ShankR, crankhandle.CrossFlat
-	far := crankhandle.CrossCavity + m2fastener.NutCavityHeight - flat // the cavity's far face from the seam
 	for name, wall := range map[string]float64{
-		"round the cavity at its far face":   math.Sqrt(r*r-far*far) - m2fastener.NutCavityRadius,
-		"round the head pocket at the flat":  math.Sqrt(r*r-flat*flat) - m2fastener.HeadPocketRadius,
-		"of flat beyond the head pocket":     crankhandle.CrossFlatHalf - m2fastener.HeadPocketRadius,
-		"under the head pocket to the seam":  flat - m2fastener.HeadPocketDepth,
-		"between the cavity and the seam":    crankhandle.CrossCavity - flat,
-		"between the cavity and the -Y flat": flat - far,
+		"round the nut pocket at the -Y flat": math.Sqrt(r*r-flat*flat) - m2fastener.NutCavityRadius*math.Sqrt(3)/2,
+		"round the head pocket at the flat":   math.Sqrt(r*r-flat*flat) - m2fastener.HeadPocketRadius,
+		"of flat beyond the head pocket":      crankhandle.CrossFlatHalf - m2fastener.HeadPocketRadius,
+		"under the head pocket to the seam":   flat - m2fastener.HeadPocketDepth,
+		"between the pocket's floor and seam": crankhandle.CrossCavity - flat,
 	} {
 		require.GreaterOrEqual(t, wall, 1.0-1e-9, "material %s", name)
 	}
 	require.LessOrEqual(t, m.CrossSites[0].Tip(), 2*flat, "tip inside the -Y flat")
 }
 
+// requireNoOverlap requires that no part shares volume with host in the section of both at frame f; name tells the
+// case in a failure.
+func requireNoOverlap(t *testing.T, host *decad.Body, f r3.Frame, name string, parts ...*decad.Body) {
+	t.Helper()
+	a := section(t, host, f)
+	for _, part := range parts {
+		b := section(t, part, f)
+		if len(a.Loops) == 0 || len(b.Loops) == 0 {
+			continue
+		}
+		cl, err := a.Clearance(b)
+		require.NoError(t, err)
+		require.False(t, cl.Overlaps, "%s: overlap", name)
+	}
+}
+
+// requireCrossPocket checks each cross nut's pocket in sections of the pin. Across the bolt, 1 mm inside the -Y flat,
+// its loop round the bolt's line comes no nearer the line than the nut's flats allow and no farther than the circle
+// through the pocket's corners, and its least distance is under the nut's corner radius, so the nut cannot turn in it
+// while its corners keep their room. Along the bolt in the plane x = 0, the pocket opens to the -Y flat and the pin is
+// solid beyond its floor and beyond its corners.
+func requireCrossPocket(t *testing.T, p crankhandle.Params, m *crankhandle.Model) {
+	t.Helper()
+	seam := p.Throw
+	across := section(t, m.Pin, atY(t, seam-crankhandle.CrossFlat+1))
+	bound := across.OffSurface.Base() + 1e-3
+	along := section(t, m.Pin, atX(t, 0))
+	zy := func(v r3.Vec) (float64, float64) { return v.Z, v.Y }
+	for i, z := range crankhandle.CrossZ {
+		near, far := math.Inf(1), math.Inf(-1)
+		found := false
+		for _, l := range across.Loops {
+			var ds []float64
+			for _, v := range l {
+				ds = append(ds, math.Hypot(v.X, v.Z-z))
+			}
+			if slices.Max(ds) > m2fastener.NutCavityRadius+0.5 {
+				continue
+			}
+			found = true
+			for j := range l {
+				a, b := l[j], l[(j+1)%len(l)]
+				xz := func(v r3.Vec) r3.Vec { return r3.Vec{X: v.X, Y: v.Z - z} }
+				near = math.Min(near, distanceToLoop(r3.Vec{}, []r3.Vec{xz(a), xz(b)}))
+				far = math.Max(far, math.Hypot(a.X, a.Z-z))
+			}
+		}
+		require.True(t, found, "cross nut pocket %d: its loop round the bolt's line", i+1)
+		require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, near, bound, "nut pocket %d: its flats", i+1)
+		require.Less(t, near, m2nut.AcrossCorners()/2, "nut pocket %d: the nut's corners cannot pass its flats", i+1)
+		require.LessOrEqual(t, far, m2fastener.NutCavityRadius+bound, "nut pocket %d: its corners", i+1)
+		require.Greater(t, far, m2nut.AcrossCorners()/2+0.05, "nut pocket %d: room for the nut's corners", i+1)
+		flatY := seam - crankhandle.CrossFlat
+		require.False(t, inSection(along, zy, z+1.8, flatY+0.1), "nut pocket %d open to the -Y flat", i+1)
+		require.True(t, inSection(along, zy, z+m2fastener.NutCavityRadius+0.5, flatY+0.1),
+			"pin beyond nut pocket %d's corner", i+1)
+		floor := seam + crankhandle.CrossFlat - crankhandle.CrossCavity
+		require.True(t, inSection(along, zy, z+1.8, floor+0.4), "pin beyond nut pocket %d's floor", i+1)
+	}
+}
+
 // TestCrankHandleSplitPin checks the pin against "Split shafts": split by the plane through its axis and local X,
-// it is mirror-symmetric apart from the cross bolts' pockets and cavities, each half prints on its cut face with only
+// it is mirror-symmetric apart from the cross bolts' pockets, each half prints on its cut face with only
 // bridgeable roofs, and each half stands HeadR high.
 func TestCrankHandleSplitPin(t *testing.T) {
 	for _, c := range crankCases {
@@ -480,9 +545,10 @@ func TestCrankHandleEdgeFinishing(t *testing.T) {
 // TestCrankHandleCorners applies "Corners and roots" to every printed part in its print orientation, axis +Z: the arm
 // flat, the pin upright and the handle upright. The arm's hexagonal pocket keeps sharp corners to match the pin's
 // sharp stub, a listed joinery pair, and the clamp bolt's head pocket keeps its sharp floor rim, which the 0.3 mm head
-// clearance leaves no room to round. Both are listed in instructions.md. The six corners of the clamp nut's hexagonal
-// pocket are listed there too, but they run parallel to the print bed, so no layer section reads them and an exemption
-// for them would claim no finding, which cornercheck rejects; the arm passes without one.
+// clearance leaves no room to round. The pin's cross nut pockets keep the six sharp corners that mate with their nuts.
+// All are listed in instructions.md. The six corners of the clamp nut's hexagonal pocket are listed there too, but they
+// run parallel to the print bed, so no layer section reads them and an exemption for them would claim no finding,
+// which cornercheck rejects; the arm passes without one.
 func TestCrankHandleCorners(t *testing.T) {
 	for _, c := range crankCases {
 		t.Run(c.name, func(t *testing.T) {
@@ -499,7 +565,7 @@ func TestCrankHandleCorners(t *testing.T) {
 				exempt []cornercheck.Exempt
 			}{
 				"arm":    {m.Arm, r3.Vec{Z: 1}, armExempt(c, m, pocket)},
-				"pin":    {m.Pin, m.SplitNormal, []cornercheck.Exempt{nutRounds(p)}},
+				"pin":    {m.Pin, m.SplitNormal, crossPocketCorners(p, m)},
 				"handle": {m.Handle, r3.Vec{Z: 1}, nil},
 			} {
 				fs, err := cornercheck.Check(t.Context(), item.body, item.up, item.exempt)
@@ -534,16 +600,60 @@ func armExempt(c crankCase, m *crankhandle.Model, pocket cornercheck.Exempt) []c
 	return out
 }
 
-// nutRounds lists the pin bolt's nut cavity rounds (m2fastener.RoundRadius, 0.55 mm), the largest that keep the nut's
-// corner clearance. A layer 2 mm off the seam crosses them near their edge and reads them at about 52 degrees
-// (instructions.md, "Retained sharp corners").
-func nutRounds(p crankhandle.Params) cornercheck.Exempt {
-	return cornercheck.Exempt{
-		Reason: "pin bolt nut cavity rounds",
-		Near: func(v r3.Vec) bool {
-			return math.Hypot(v.X, v.Y-p.Throw) <= m2fastener.NutCavityRadius+0.05 &&
-				v.Z >= crankhandle.PinCavity-0.05 && v.Z <= crankhandle.PinCavity+m2fastener.NutCavityHeight+0.05
-		},
+// crossPocketNear reports whether a finding point is at one of the six corners of cross nut pocket i: in the pocket's
+// band along the bolt, within the circle through its corners, and within 10 degrees about the bolt's line of a corner
+// direction, which lies along the pin axis (0, 60, ... 300 degrees from local Z).
+func crossPocketNear(p crankhandle.Params, i int) func(r3.Vec) bool {
+	z := crankhandle.CrossZ[i]
+	return func(v r3.Vec) bool {
+		if v.Y < p.Throw-crankhandle.CrossFlat-0.05 || v.Y > p.Throw-crankhandle.CrossFlat+m2fastener.NutCavityHeight+0.05 {
+			return false
+		}
+		if math.Hypot(v.X, v.Z-z) > m2fastener.NutCavityRadius+0.05 || math.Hypot(v.X, v.Z-z) < 2.2 {
+			return false
+		}
+		deg := math.Abs(math.Atan2(v.X, v.Z-z)) * 180 / math.Pi
+		rem := math.Mod(deg, 60)
+		return math.Min(rem, 60-rem) <= 10
+	}
+}
+
+// crossPocketCorners lists the six sharp corners of each cross nut pocket in the pin, the corners that mate with the
+// nut's sharp corners (instructions.md, "Retained sharp corners").
+func crossPocketCorners(p crankhandle.Params, m *crankhandle.Model) []cornercheck.Exempt {
+	var out []cornercheck.Exempt
+	for i := range m.CrossSites {
+		out = append(out, cornercheck.Exempt{
+			Reason: fmt.Sprintf("cross nut pocket %d corners", i+1),
+			Near:   crossPocketNear(p, i),
+		})
+	}
+	return out
+}
+
+// TestCrankHandleCrossPocketCorners proves that a section of the pin 1 mm inside the -Y flat shows exactly six findings
+// at each cross nut pocket's corners, one in each of the six corner directions, so the exemption names real corners.
+func TestCrankHandleCrossPocketCorners(t *testing.T) {
+	for _, c := range crankCases {
+		t.Run(c.name, func(t *testing.T) {
+			p := c.params()
+			m, _ := built(t, c)
+			fs, err := cornercheck.Section(t.Context(), m.Pin, m.SplitNormal, p.Throw-crankhandle.CrossFlat+1)
+			require.NoError(t, err)
+			for i, z := range crankhandle.CrossZ {
+				near := crossPocketNear(p, i)
+				var sectors []int
+				for _, f := range fs {
+					if !near(f.At) {
+						continue
+					}
+					deg := math.Atan2(f.At.X, f.At.Z-z) * 180 / math.Pi
+					sectors = append(sectors, int(math.Round(math.Mod(deg+360, 360)/60))%6)
+				}
+				slices.Sort(sectors)
+				require.Equal(t, []int{0, 1, 2, 3, 4, 5}, sectors, "cross nut pocket %d: findings by corner direction", i+1)
+			}
+		})
 	}
 }
 
@@ -792,13 +902,13 @@ func TestCrankHandleClampWalls(t *testing.T) {
 			}
 			mid := crankhandle.ArmThickness / 2
 			for name, wall := range map[string]float64{
-				"between the hole and the bore":                -dm.ClampY - m2fastener.HoleRadius - dm.BoreRadius,
-				"between the nut pocket and the bore":          math.Hypot(floor, math.Min(0, dm.ClampY+rad)) - dm.BoreRadius,
+				"between the hole and the bore":                  -dm.ClampY - m2fastener.HoleRadius - dm.BoreRadius,
+				"between the nut pocket and the bore":            math.Hypot(floor, math.Min(0, dm.ClampY+rad)) - dm.BoreRadius,
 				"between the nut pocket's floor and the outline": pocketOutline,
-				"between the nut pocket and each face":         mid - rad*math.Sqrt(3)/2,
-				"of -X side face beyond the nut pocket":        dm.ClampY - rad - dm.SideEnd,
-				"of side face beyond the head pocket":          dm.ClampY - m2fastener.HeadPocketRadius - dm.SideEnd,
-				"between the head pocket and each face":        mid - m2fastener.HeadPocketRadius,
+				"between the nut pocket and each face":           mid - rad*math.Sqrt(3)/2,
+				"of -X side face beyond the nut pocket":          dm.ClampY - rad - dm.SideEnd,
+				"of side face beyond the head pocket":            dm.ClampY - m2fastener.HeadPocketRadius - dm.SideEnd,
+				"between the head pocket and each face":          mid - m2fastener.HeadPocketRadius,
 				"under the head pocket to the slit": crankhandle.ArmRadius - m2fastener.HeadPocketDepth -
 					crankhandle.SlitWidth/2,
 			} {

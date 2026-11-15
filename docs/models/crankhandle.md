@@ -31,7 +31,8 @@ cut by the slit, the blind D bore, the hexagonal pocket for the pin's stub, the 
 bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The nut pocket keeps sharp hexagon corners and
 its floor is rounded on the tool. The pin joins a hexagonal stub to a revolved shank and head, then
 takes the double flats, the pin bolt's hole and nut cavity with rounded ends (`m2fastener.RoundedHoleTool` and
-`RoundedCavityTool`), and each cross bolt's hole, head pocket and nut cavity. The handle is a revolved meridian.
+`RoundedCavityTool`), and each cross bolt's hole, head pocket and hexagonal nut pocket open to the -Y flat, with the
+floor rounded by `NutPocketRound` as for the clamp. The handle is a revolved meridian.
 
 ## Build and images
 
@@ -55,7 +56,7 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
 - every sketch's full constraint, the eleven bodies and their containers;
 - `cornercheck` on the arm and the handle (axis +Z, with the hexagonal pocket's corners and the clamp head pocket's
   floor rim listed, and the slit's end round in the 80 mm throw) and on the pin with the split normal as its print
-  axis (the pin bolt's nut cavity rounds listed);
+  axis (the cross pockets' corners listed);
 - the bore: every point lies `BoreClearance` outside the shaft's D section, it stops at its floor apart from the slit's
   round end, and the wall round it is at least 1.6 mm, or 1.05 mm over the clamp bolt's hole;
 - the slit: one section loop runs from the bore down the slit's walls, 1 mm apart, to the end arc, and the slit ends
@@ -70,7 +71,8 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   the arm in a cut through the pin axis (Regular);
 - the pin bolt: its head flush with the arm's back face, its tip inside the pin, the nut inside its cavity;
 - each cross bolt: its head flush with the +Y flat and inside its pocket, its tip at the -Y flat, its nut inside its
-  cavity in the -Y half, the bolt crossing the seam, no overlap with the pin in cuts parallel to the seam, and 1 mm or
+  hexagonal pocket below that flat, the pocket open to the flat with its flats closer to the bolt than the nut's
+  corners, the bolt crossing the seam, no overlap with the pin in cuts parallel to the seam, and 1 mm or
   more of pin round every pocket and cavity;
 - `splitcheck` on the pin with the split normal and both cross bolts' lines exempt: no violation, bridges no wider
   than 6 mm, and each half as high as the head's radius.

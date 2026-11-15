@@ -13,8 +13,9 @@ import (
 
 // Fastener sites in mm. Every bolt is an m2bolt body and every nut an m2nut body, sized and cut by internal/m2fastener. A
 // head sinks into a pocket of its part and ends flush with the part's face. A nut sits in a cavity its part encloses
-// apart from the bolt hole, so the part retains it; it drops in during a print pause. The crank arm's clamp nut sits in
-// a hexagonal pocket open to the arm's side face instead, held there by the clamp bolt (models/crankhandle).
+// apart from the bolt hole, so the part retains it; it drops in during a print pause. The crank arm's clamp nut and the
+// crank pin's two cross-bolt nuts sit in hexagonal pockets open to a face instead, held there by their bolts
+// (models/crankhandle).
 const (
 	gearboxBoltLength   = 16
 	gearboxCavity       = 11.75

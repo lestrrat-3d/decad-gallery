@@ -45,8 +45,8 @@ Package: `models/crankhandle`. Exported surface:
   (5.75), `StubFlats` (7.03), `StubFrom` (3.5), `StubLength` (5.8), `ShankR` (5.15), `ShankFrom` (8.25), `RootR`
   (3.5), `ShankTo` (52.75), `HeadR` (6.45), `HeadFrom` (55), `HeadLength` (3), `HandleFrom` (7.4), `PinBolt` (10),
   `PinCavity` (4.75), `PressWall` (1.6), `ChamferSize` (0.5), `CrossBolt` (6), `CrossFlat` (4.0), `CrossFlatHalf`
-  (3.25), `CrossCavity` (5.0), `ConeAngle` (30), `ClampBolt` (18), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
-  `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `ClampPocketRound` (0.6), the cross
+  (3.25), `CrossCavity` (6.0), `ConeAngle` (30), `ClampBolt` (18), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
+  `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `NutPocketRound` (0.6), the cross
   bolts' positions `CrossZ` (17, 49), and `HandleProfile`, the handle's meridian.
 - The container names `ArmContainerName` (`Arm`), `PinContainerName` (`Pin`), `HandleContainerName` (`Handle`),
   `BoltsContainerName` (`Bolts`) and `NutsContainerName` (`Nuts`).
@@ -127,8 +127,8 @@ this frame onto the given one after each part's last operation.
      side, over z = `CrossZ[i]` ± `CrossFlatHalf`, so 13.75 to 20.25 and 45.75 to 52.25.
    - Cut the pin bolt's hole and nut cavity with `m2fastener.RoundedHoleTool` and `RoundedCavityTool`: radius 1.3 to
      z 13 and radius 2.51 from z 4.75 to 6.75, each end corner rounded by 0.55 mm.
-   - Cut each cross bolt's clearance hole, head pocket and nut cavity with `m2fastener.HoleTool`, `PocketTool` and
-     `CavityTool`.
+   - Cut each cross bolt's clearance hole and head pocket with `m2fastener.HoleTool` and `PocketTool`, and its nut
+     pocket with the hexagonal pocket tool ("Clamp" below), rounded by `NutPocketRound`.
 3. **Handle.** Revolve `HandleProfile` about the pin axis. The sketch plane holds the axis, with its origin at
    `(0, L, HandleFrom)`, U along +Z and V the radius. The handle runs from z = 8.4 to 58.4: a bore of radius 5.55, which
    ends in a 30° cone 0.4 mm off the pin's head cone, a counterbore of radius 7.05 for the pin's head, a waist and a
@@ -137,10 +137,11 @@ this frame onto the given one after each part's last operation.
    - The pin bolt's head lies flush with the arm's back face at `(0, L)` and the bolt runs along +Z: head pocket 2 deep
      in the arm, hole 2.6 across through the arm and into the pin, nut cavity from 4.75 to 6.75 in the stub, and the
      tip at z = 12, inside the shank. `m2fastener.PlaceBolt` and `PlaceNut` place an M2 x 10 bolt and an M2 nut.
-   - Each cross bolt's site has its head at `(0, L + CrossFlat, CrossZ[i])`, `Dir` (0, -1, 0), `Corner` (1, 0, 0),
-     `Length` 6 and `Cavity` 5. Its head lies flush with the +Y flat in a pocket 2 deep (y from L + 4 to L + 2), its
-     hole runs through both halves, its nut cavity lies in the -Y half from y = L - 1 to L - 3, and its tip ends at the
-     -Y flat (y = L - 4). `PlaceBolt` and `PlaceNut` place an M2 x 6 bolt and an M2 nut at each.
+   - Each cross bolt's site has its head at `(0, L + CrossFlat, CrossZ[i])`, `Dir` (0, -1, 0), `Corner` (0, 0, 1),
+     `Length` 6 and `Cavity` 6. Its head lies flush with the +Y flat in a pocket 2 deep (y from L + 4 to L + 2), its
+     hole runs through both halves, its nut sits in a hexagonal pocket open to the -Y flat, from y = L - 2 to L - 4, and
+     its tip ends at the -Y flat (y = L - 4). `Derive` rejects a cross site whose tip is not flush with the flat.
+     `PlaceBolt` and `PlaceNut` place an M2 x 6 bolt and an M2 nut at each.
 5. **Containers.** `Build` files the arm, pin and handle in their containers, the three bolts in `Bolts` and the three
    nuts in `Nuts`, each container a child of the document root.
 
@@ -157,10 +158,12 @@ stand 2 mm proud.
 - The head pocket (`m2fastener.PocketTool`, radius 2.2, 2 deep) sinks the head flush in the +X side face.
 - The nut sits in a hexagonal pocket open to the -X side face, from x = -8 to -10 (`NutCavityHeight` deep). A pinch
   clamp's nut may sit in a pocket open to a face, because the clamp bolt holds it there (AGENTS.md "Fasteners"). The
+  pin's cross-bolt nuts use the same pocket tool, `nutPocketTool` for a site, with the pocket's corners on the
+  site's `Corner`. The
   hexagon is centred on the bolt's axis with its corners on the circle of radius 2.51 along ±Y, so it is 4.35 across
   its flats, which lie parallel to the print bed. The nut's corners (radius 2.31) cannot pass the flats (2.17 from
   the axis), so the nut cannot turn. The corners stay sharp, 0.2 mm past the nut's corners, and the floor's outline is
-  rounded by `ClampPocketRound` (0.6) on the tool. The nut's 30° face chamfer clears the floor round, so the nut ends
+  rounded by `NutPocketRound` (0.6) on the tool. The nut's 30° face chamfer clears the floor round, so the nut ends
   at least 0.2 mm below the face.
 - The hole (`m2fastener.HoleTool`, 2.6 across) runs from the head pocket across the slit and out through the nut
   pocket. The bolt's tip ends at x = -10, flush with the -X side face.
@@ -192,8 +195,9 @@ loads the halves side by side and not across the seam. The plane passes through 
 `Parts.SplitNormal` is its normal, local +Y, along the arm toward the pin. The model keeps the pin whole; the export to
 Fusion cuts it.
 
-- The +Y half (away from the shaft) holds the cross bolts' head pockets. The -Y half holds their nut cavities, which it
-  encloses on all sides but the bolt hole, with 1 mm of pin between each cavity and the seam and 1 mm to the -Y flat.
+- The +Y half (away from the shaft) holds the cross bolts' head pockets. The -Y half holds their nuts in hexagonal
+  pockets open to the -Y flat, each 2 mm deep. The hexagon's corners lie along the pin's axis and its flats face ±X,
+  which keeps 1.07 mm of pin between each corner and the shank's round at the flat. The bolt holds each nut there.
 - The two M2 x 6 cross bolts clamp the halves. One sits past the pin bolt's hole and one short of the head cone, so
   the halves act as one section over the span the hand bends.
 - The seam cuts the pin bolt's hole and nut cavity in half. The clamped halves enclose its nut, and the stub's place in
@@ -204,11 +208,11 @@ Fusion cuts it.
 
 | Wall round a cross bolt | mm |
 | --- | --- |
-| Pin round the nut cavity at its far face | 1.68 |
+| Pin round the nut pocket at the -Y flat, across the pin | 1.07 |
+| Pin round the nut pocket's floor | 2.57 |
 | Flat round the head pocket | 1.04 across, 1.05 along the pin |
 | Pin under the head pocket to the seam | 2.0 |
-| Pin between the nut cavity and the seam | 1.0 |
-| Pin between the nut cavity and the -Y flat | 1.0 |
+| Pin between the nut pocket's floor and the seam | 2.0 |
 
 ## Part fits
 
@@ -221,7 +225,7 @@ Fusion cuts it.
 | Handle's bore cone to the pin's head cone | Regular | 0.40 normal to the cones |
 | Handle's counterbore round the pin's head | | 0.6 radial, 0.4 above the head |
 | Bolts, nuts | Fastener rules | head pocket 0.3, hole 0.3, cavity 0.2 |
-| Clamp nut in its hexagonal pocket | Fastener rules | 0.17 at each flat, 0.2 past each corner, 0.2 to the floor |
+| Clamp nut and cross nuts in their hexagonal pockets | Fastener rules | 0.17 at each flat, 0.2 past each corner, 0.2 to the floor |
 
 The pin bolt's nut cavity has 0.55 mm rounds at its end corners. At the nut's faces they leave 0.07 mm of the 0.2 mm
 radial clearance past the nut's corners.
@@ -262,7 +266,7 @@ the head without a sharp step.
 | Arm | The six corners of the clamp nut's hexagonal pocket, edges along the clamp bolt in the -X side face | Mating corners: they match the sharp corners of the M2 nut, as the stub pocket's corners match the stub. They run parallel to the bed, so `cornercheck`'s layer sections do not read them. |
 | Arm | The 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, so the bore carries no pressed ring's hoop stress there ("Clamp" above). |
 | Arm | The slit's R0.5 end round in the bore's floor, in the `long-throw` case only | It is the full round of half the slit's width that "Corners and roots" asks for. The longer arm's held boolean mesh chords it coarsely enough that the check reads 51.8°. |
-| Pin | The pin bolt's nut cavity's 0.55 mm end rounds, in the layer 2 mm off the seam | That layer crosses the rounds near their edge, where they turn about 52°. They are the largest rounds that keep the nut's corner clearance. |
+| Pin | The six corners of each cross nut's hex pocket, edges along the cross bolt | Mating corners: they match the M2 nut's sharp corners. |
 
 The pin carries the handle beside the arm's front face without a collar, as on the siren. [Arbor
 collars](../../docs/model-pipeline.md#arbor-collars) asks for a collar there; the siren's crank predates the rule.
@@ -270,15 +274,15 @@ collars](../../docs/model-pipeline.md#arbor-collars) asks for a collar there; th
 ## Printing
 
 Print the arm on its back face and the handle upright on its inner end, with no supports and no pause. The clamp nut
-goes into its pocket at assembly. Print the pin as its two halves, each lying on its cut face, with no supports. The
-half grooves of the pin bolt's hole and nut cavity on the cut face are short bridges, at most 3.6 mm across, and so
-are the roofs of the -Y half's nut cavities, 5.02 mm across. Pause the -Y half's print at 3.0 mm, the top of its two
-nut cavities, drop an M2 nut into each, and resume. The +Y half needs no pause.
+goes into its pocket at assembly. Print the pin as its two halves, each lying on its cut face, with no supports and no
+pause. The half grooves of the pin bolt's hole and nut cavity on the cut face are short bridges, at most 3.6 mm across.
+The -Y half prints with the pockets opening upward, and the cross nuts go in at assembly.
 
 To assemble:
 
 1. Drop the pin bolt's M2 nut into its half pocket in one half, and lay the other half on it.
-2. Push each M2 x 6 cross bolt through its head pocket in the +Y half into its nut in the -Y half, and tighten it.
+2. Set an M2 nut in each hexagonal pocket of the -Y half, push each M2 x 6 cross bolt through its head pocket in the
+   +Y half into its nut, and tighten it.
 3. Slide the handle onto the pin's shank from the stub end.
 4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
 5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in the arm's -X side, push the M2 x 18 clamp
