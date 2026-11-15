@@ -11,7 +11,10 @@ container names, `Parts`, `Model`, `BuildParts`, `Build`, the arm and the pin). 
 `Derive` makes no geometry calls. It runs the six rules of instructions.md in order and fills `BoreRadius`, `BoreFlat`
 and `BoreLoop`. `Site` is `m2fastener.Site{Head: (0, L, 0), Dir: (0, 0, 1), Corner: (1, 0, 0), Length: 10, Cavity:
 4.75}`. `CrossSites[i]` is `m2fastener.Site{Head: (0, L + 4, CrossZ[i]), Dir: (0, -1, 0), Corner: (1, 0, 0), Length: 6,
-Cavity: 5}`. Derive returns each site's `Validate()` error with the prefix, a cross bolt's also naming it.
+Cavity: 5}`. `ClampY = -(r_b + 1.3 + 1.05)`, `SideEnd = ClampY - 3.6`, `Reach = 22 - EndCenter().Y` with
+`EndCenter() = (0, SideEnd + sqrt(17.5^2 - 5.5^2))` and `CornerCenter() = (5.5, SideEnd)`. `ClampSite` is
+`m2fastener.Site{Head: (10, ClampY, 4), Dir: (-1, 0, 0), Corner: (0, 1, 0), Length: 16, Cavity: 15}`. Derive returns each
+site's `Validate()` error with the prefix, a cross bolt's and the clamp bolt's also naming it.
 
 ## 2. Sketches (sketches.go)
 
@@ -23,10 +26,23 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
   `NewHorizontal(Sides[1])` and `NewDistance(center, Vertices[0], flats/sqrt(3))`, so its corners lie on X. Extrude
   along +Z.
 - `armSketch()` on `across(0, 0)`: the point `top = (0, L)` with `NewVerticalPoints(O, top)` and
-  `NewVerticalDistance(O, top, L)`; `r1 = (10, 0)`, `l1 = (-10, 0)`, `r2 = (10, L)`, `l2 = (-10, L)`;
-  `hubArc = CreateArc(O, l1, r1)`, `pinArc = CreateArc(top, r2, l2)`, `right = CreateLine(r1, r2)`,
-  `left = CreateLine(l2, l1)`; `NewRadius(hubArc, 10)`, `NewEqualRadius(hubArc, pinArc)` and `NewTangent` of each line
-  with each arc. A circle of radius 1.3 about `top` with `NewRadius`. Select the profile with one hole.
+  `NewVerticalDistance(O, top, L)`; `r2 = (10, L)`, `l2 = (-10, L)`, `sR = (10, SideEnd)`, `sL = (-10, SideEnd)`;
+  `pinArc = CreateArc(top, r2, l2)`, `right = CreateLine(sR, r2)`, `left = CreateLine(l2, sL)` with `NewRadius(pinArc,
+  10)`, `NewTangent` of each line with `pinArc`, `NewVertical` of each line and `NewVerticalDistance(O, sR, SideEnd)`,
+  `NewVerticalDistance(O, sL, SideEnd)`. Points at the corner centres `c_R`, `c_L` (its mirror) and the end centre
+  `c_E`, and the tangent points `p_R = c_E + 22·(c_R - c_E)/|c_R - c_E|` and its mirror `p_L`;
+  `arcR = CreateArc(c_R, p_R, sR)`, `arcL = CreateArc(c_L, sL, p_L)`, `arcB = CreateArc(c_E, p_L, p_R)` with
+  `NewRadius(arcR, 4.5)`, `NewTangent(right, arcR)`, `NewRadius(arcL, 4.5)`, `NewTangent(left, arcL)`,
+  `NewRadius(arcB, 22)` and `NewTangentCircles(arcB, arcR, true)`, `NewTangentCircles(arcB, arcL, true)`. A circle of
+  radius 1.3 about `top` with `NewRadius`. Select the profile with one hole.
+- `slitTool()` on `across(0, -1)`: with `h = 0.5`, `y0 = -Reach - 2`, `yc = -r_b + 1 - h`: `a = DimensionPoint(h, y0)`,
+  `b = (h, yc)` and `c = (-h, yc)` each placed by `NewVerticalDistance(O, ·, yc)`, `d = DimensionPoint(-h, y0)`,
+  `center = DimensionPoint(0, yc)`, `arc = CreateArc(center, b, c)` with `NewRadius(arc, h)`, and lines a–b, c–d, d–a.
+  Placing b and c by x would meet the circle at a tangent, a singular solve. Extrude 10.
+- `clampCavityTool()` on `ClampSite.Across(Cavity)` (U +Y, V -Z): `a = DimensionArcEnd(2.51, 0)`,
+  `b = DimensionArcEnd(-2.51, 0)`, `c = DimensionPoint(-2.51, -2.51)`, `d = DimensionPoint(2.51, -2.51)`,
+  `arc = CreateArc(O, a, b)` (through +V, below the axis) with `NewRadius(arc, 2.51)`, and lines b–c, c–d, d–a: the
+  square top. Extrude 2 along -X.
 - `boreTool()` on `across(0, -1)`: `q1 = (-w, f_b)`, `q2 = (w, f_b)` with `w = sqrt(r_b^2 - f_b^2)`,
   `bore = CreateArc(O, q1, q2)` (counter-clockwise, the long way through -Y), `flat = CreateLine(q2, q1)`;
   `NewRadius(bore, r_b)`, `NewHorizontal(flat)`, `NewDistancePointLine(O, flat, f_b)`. Extrude `ArmThickness`.
@@ -45,7 +61,12 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
 
 1. Arm: extrude `armSketch` by `ArmThickness`; `decad.Chamfer` of
    `decad.Edges(decad.OuterLoopOf(decad.CapStart(arm))).Or(decad.OuterLoopOf(decad.CapEnd(arm)))` by 0.5; then
-   `decad.Cut` the bore tool, `hexagon(L, 3.25, 7.53, 5.75)` and `m2fastener.PocketTool(site)`, in that order.
+   `decad.Cut`, in this order, `slitTool()`, the bore tool, `hexagon(L, 3.25, 7.53, 5.75)`,
+   `m2fastener.PocketTool(site)`, the clamp nut cavity (`clampCavityTool()` with `decad.Fillet` of the outer loops of
+   its `CapStart` and `CapEnd` by 0.6), `m2fastener.PocketTool(ClampSite)` and `m2fastener.HoleTool(ClampSite)` with
+   `decad.Fillet` of its `CapEnd` outer loop by 0.7. The chamfer needs decad 902e347 or later, which admits the
+   outline's solver-placed tangent arcs in the Booleans that follow. The slit goes before the bore: cut after it, the
+   slit refuses the bore's rim bound (0.0101 mm) at the 608-2RS within the 0.01 mm chain tolerance.
 2. Pin: `decad.Union` of `hexagon(L, 3.5, 7.03, 5.8)` and `turnedPin(L)`; then `decad.Cut`, in this order, the four
    `flatTool(L, CrossZ[i], ±1)`, `m2fastener.RoundedHoleTool(site)`, `m2fastener.RoundedCavityTool(site)`, and for
    each cross site `HoleTool`, `PocketTool` and `CavityTool`. The rounded tools revolve a meridian about the site's
@@ -54,9 +75,9 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
 4. Require each part solid, then `placement.Place(ctx, body, p.Placement)`. Carry each site's `Head` through
    `r3.FromFrame(*Placement).Apply`, and `Dir`, `Corner` and `SplitNormal` (local +Y) through `ApplyDir`.
 
-`Build` then calls `m2fastener.PlaceBolt` and `PlaceNut` at the placed pin bolt site and at each cross site, and adds
-each body to `doc.Root().ChildNamed(name)` with `AddBody` after every boolean: the pin bolt, then cross bolts 1 and 2
-in `Bolts`, and their nuts in the same order in `Nuts`.
+`Build` then calls `m2fastener.PlaceBolt` and `PlaceNut` at the placed pin bolt site, at each cross site and at the
+clamp site, and adds each body to `doc.Root().ChildNamed(name)` with `AddBody` after every boolean: the pin bolt,
+cross bolts 1 and 2, then the clamp bolt in `Bolts`, and their nuts in the same order in `Nuts`.
 
 The pin's cuts after its union need a document with a chain tolerance of 0.005 mm or more. A plain `decad.New()`
 refuses one with "cut's target holds its mesh, where this pair meets, only within a bound of 0.0012 mm, coarser than

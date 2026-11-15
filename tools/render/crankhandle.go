@@ -28,10 +28,12 @@ var crankHandleCameras = map[string]solidlens.Camera{
 // The exploded view pulls the parts apart along the pin axis, the way they go together: the bolt out of the arm's back
 // face, the nut out of the pin's stub, the handle off the arm, and the pin out of the handle. The cross bolts and their
 // nuts go with the pin, each pulled out along its own line: the bolts toward +Y, out of their pockets, and the nuts
-// toward -Y.
+// toward -Y. The clamp bolt pulls out of the arm's +X side face along its line, and the clamp nut rises out of its
+// cavity, the way it drops in at the print pause.
 var crankExplode = map[string]r3.Vec{
 	"arm": {}, "bolt": {Z: -18}, "nut": {Z: 16}, "handle": {Z: 32}, "pin": {Z: 75},
 	"cross-bolt-1": {Y: 14, Z: 75}, "cross-bolt-2": {Y: 14, Z: 75}, "cross-nut-1": {Y: -14, Z: 75}, "cross-nut-2": {Y: -14, Z: 75},
+	"clamp-bolt": {X: 30}, "clamp-nut": {Z: 16},
 }
 
 var (
@@ -44,9 +46,13 @@ var (
 type crankMeshes struct {
 	mesh map[string]*decad.Mesh
 	p    crankhandle.Params
+	dm   crankhandle.Dimensions
 }
 
-var crankPartOrder = []string{"arm", "pin", "handle", "bolt", "nut", "cross-bolt-1", "cross-nut-1", "cross-bolt-2", "cross-nut-2"}
+var crankPartOrder = []string{
+	"arm", "pin", "handle", "bolt", "nut", "cross-bolt-1", "cross-nut-1", "cross-bolt-2", "cross-nut-2", "clamp-bolt",
+	"clamp-nut",
+}
 
 // isCrankHardware reports whether the part is a bought bolt or nut.
 func isCrankHardware(name string) bool {
@@ -68,9 +74,10 @@ func buildCrankMeshes(ctx context.Context, p crankhandle.Params) (crankMeshes, e
 	if err != nil {
 		return crankMeshes{}, fmt.Errorf("build crank handle: %w", err)
 	}
-	out := crankMeshes{mesh: map[string]*decad.Mesh{}, p: p}
+	out := crankMeshes{mesh: map[string]*decad.Mesh{}, p: p, dm: m.Dimensions}
 	bodies := map[string]*decad.Body{
 		"arm": m.Arm, "pin": m.Pin, "handle": m.Handle, "bolt": m.Bolt.Body, "nut": m.Nut.Body,
+		"clamp-bolt": m.ClampBolt.Body, "clamp-nut": m.ClampNut.Body,
 	}
 	for i := range m.CrossBolts {
 		bodies[fmt.Sprintf("cross-bolt-%d", i+1)] = m.CrossBolts[i].Body
@@ -138,6 +145,9 @@ func (c crankMeshes) view(name string, large *crankMeshes) (solidlens.Scene, err
 	if name == "split" || name == "print" {
 		return c.splitView(name)
 	}
+	if name == "clamp" || name == "clamp-nut" {
+		return c.clampView(name)
+	}
 	camera, ok := crankHandleCameras[name]
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown crank handle view %q", name)
@@ -193,6 +203,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		{"sizes", "sizes.png", 1600, 900}, {"cutaway", "cutaway.png", 1600, 900},
 		{"exploded", "exploded.png", 1600, 900},
 		{"split", "split.png", 1600, 900}, {"print", "print.png", 1600, 900},
+		{"clamp", "clamp.png", 1600, 900}, {"clamp-nut", "clamp-nut.png", 1600, 900},
 	} {
 		var with *crankMeshes
 		if shot.view == "sizes" {
@@ -206,8 +217,8 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
-	// One image per distinct part: the cross nuts are the pin bolt's nut, and the two cross bolts are alike.
-	for _, name := range []string{"arm", "pin", "handle", "bolt", "nut", "cross-bolt-1"} {
+	// One image per distinct part: every nut is the pin bolt's nut, and the two cross bolts are alike.
+	for _, name := range []string{"arm", "pin", "handle", "bolt", "nut", "cross-bolt-1", "clamp-bolt"} {
 		mesh := c.mesh[name]
 		low, high := meshBounds(mesh)
 		center := low.Add(high).Scale(.5)
@@ -362,3 +373,59 @@ func (c crankMeshes) splitView(name string) (solidlens.Scene, error) {
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
 }
+
+// clampView draws the arm's hub, with the clamp bolt and nut and none of the pin's parts, cut by one plane:
+//
+//   - clamp: the plane y = ClampY through the clamp bolt's line, the half toward the end arc removed, seen from the end:
+//     the head flush in its pocket in the +X side face, the bolt crossing the slit, and the nut in its cavity in the -X
+//     jaw, with the hole's blind end 1 mm inside the -X face;
+//   - clamp-nut: the plane x = -(ClampNutFrom + 1) across the nut's cavity, the half toward -X removed, seen from -X: the
+//     cavity's round bottom and square top round the nut, standing on edge.
+func (c crankMeshes) clampView(name string) (solidlens.Scene, error) {
+	mid := crankhandle.ArmThickness / 2
+	var clip solidlens.ClipPlane
+	var camera solidlens.Camera
+	switch name {
+	case "clamp":
+		clip = solidlens.ClipPlane{Origin: solidlens.Vec{Y: c.dm.ClampY}, Normal: solidlens.Vec{Y: -1}}
+		camera = solidlens.Camera{Position: solidlens.Vec{X: 30, Y: -110, Z: 40}, Target: solidlens.Vec{Y: c.dm.ClampY, Z: mid},
+			Up: solidlens.Vec{Z: 1}, FOV: 30}
+	default:
+		x := -(crankhandle.ClampNutFrom + 1)
+		clip = solidlens.ClipPlane{Origin: solidlens.Vec{X: x}, Normal: solidlens.Vec{X: -1}}
+		camera = solidlens.Camera{Position: solidlens.Vec{X: -110, Y: -40, Z: 35}, Target: solidlens.Vec{X: x, Y: c.dm.ClampY, Z: mid},
+			Up: solidlens.Vec{Z: 1}, FOV: 30}
+	}
+	var models []solidlens.Model
+	for _, part := range []string{"arm", "clamp-bolt", "clamp-nut"} {
+		color := crankPartColor(part)
+		m := crankModel(c.mesh[part], color)
+		cut := clip
+		cut.Cap = &solidlens.Material{Color: solidlens.RGB(color.R+(1-color.R)*.35, color.G+(1-color.G)*.35,
+			color.B+(1-color.B)*.35), Unlit: true}
+		m.Clip = &cut
+		models = append(models, m)
+	}
+	// Frame the hub alone: the arm reaches to the pin, so the fit reads a box round the clamp instead of the meshes.
+	lo := r3.Vec{X: -crankhandle.ArmRadius - 1, Y: -c.dm.Reach - 1, Z: -1}
+	hi := r3.Vec{X: crankhandle.ArmRadius + 1, Y: 6, Z: crankhandle.ArmThickness + 1}
+	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
+	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models), nil
+}
+
+// boxCorners is the eight corners of the box from lo to hi, a vertex set fitCamera can frame.
+type boxCorners [2]r3.Vec
+
+func (b boxCorners) Vertices() []r3.Vec {
+	var out []r3.Vec
+	for _, x := range []float64{b[0].X, b[1].X} {
+		for _, y := range []float64{b[0].Y, b[1].Y} {
+			for _, z := range []float64{b[0].Z, b[1].Z} {
+				out = append(out, r3.Vec{X: x, Y: y, Z: z})
+			}
+		}
+	}
+	return out
+}
+
+func (boxCorners) Triangles() [][3]int { return nil }

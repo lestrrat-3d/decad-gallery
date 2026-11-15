@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -94,27 +95,97 @@ func (r *run) hexagon(y, z, flats, length float64) (*decad.Body, error) {
 	return r.extrude(s, 0, length)
 }
 
-// armSketch sketches the arm on the back face: a stadium of radius ArmRadius about the origin and about the pin axis
-// at (0, Throw), joined by two tangent lines, with the pin bolt's hole round the pin axis.
+// armSketch sketches the arm on the back face: an arc of radius ArmRadius about the pin axis at (0, Throw), the two
+// straight sides at x = ±ArmRadius tangent to it, which run down to y = SideEnd and turn into ClampCornerR corner arcs,
+// and the ClampEndR end arc tangent to both corners from inside, with the pin bolt's hole round the pin axis. Every join
+// of the outline is tangent, so it has no inside corner and no step.
 func (r *run) armSketch() (*sketch.Sketch, error) {
 	s, err := r.sketchOn(across(0, 0))
 	if err != nil {
 		return nil, err
 	}
-	throw := r.p.Throw
+	throw, dm := r.p.Throw, r.dm
 	o := s.Origin()
 	top := s.CreatePoint(0, throw)
 	s.AddConstraint(sketch.NewVerticalPoints(o, top), sketch.NewVerticalDistance(o, top, throw))
-	r1, l1 := s.CreatePoint(ArmRadius, 0), s.CreatePoint(-ArmRadius, 0)
 	r2, l2 := s.CreatePoint(ArmRadius, throw), s.CreatePoint(-ArmRadius, throw)
-	hubArc, pinArc := s.CreateArc(o, l1, r1), s.CreateArc(top, r2, l2)
-	right, left := s.CreateLine(r1, r2), s.CreateLine(l2, l1)
-	// Equal end radii make the line-arc joins exactly tangent, which the face chamfer needs.
-	s.AddConstraint(sketch.NewRadius(hubArc, ArmRadius), sketch.NewEqualRadius(hubArc, pinArc),
-		sketch.NewTangent(right, hubArc), sketch.NewTangent(right, pinArc),
-		sketch.NewTangent(left, hubArc), sketch.NewTangent(left, pinArc))
+	sR, sL := s.CreatePoint(ArmRadius, dm.SideEnd), s.CreatePoint(-ArmRadius, dm.SideEnd)
+	pinArc := s.CreateArc(top, r2, l2)
+	right, left := s.CreateLine(sR, r2), s.CreateLine(l2, sL)
+	s.AddConstraint(sketch.NewRadius(pinArc, ArmRadius), sketch.NewTangent(right, pinArc), sketch.NewTangent(left, pinArc),
+		sketch.NewVertical(right), sketch.NewVertical(left),
+		sketch.NewVerticalDistance(o, sR, dm.SideEnd), sketch.NewVerticalDistance(o, sL, dm.SideEnd))
+	cR, cB := dm.CornerCenter(), dm.EndCenter()
+	cL := r3.Vec{X: -cR.X, Y: cR.Y}
+	// The corner arc meets the end arc on the line through their centres, ClampEndR from the end arc's centre.
+	pR := cB.Add(cR.Sub(cB).Scale(ClampEndR / cR.Sub(cB).Len()))
+	pL := r3.Vec{X: -pR.X, Y: pR.Y}
+	cRp, cLp, cBp := s.CreatePoint(cR.X, cR.Y), s.CreatePoint(cL.X, cL.Y), s.CreatePoint(cB.X, cB.Y)
+	pRp, pLp := s.CreatePoint(pR.X, pR.Y), s.CreatePoint(pL.X, pL.Y)
+	arcR := s.CreateArc(cRp, pRp, sR) // counter-clockwise from the end arc up to the right side
+	arcL := s.CreateArc(cLp, sL, pLp) // from the left side down to the end arc
+	arcB := s.CreateArc(cBp, pLp, pRp)
+	s.AddConstraint(
+		sketch.NewRadius(arcR, ClampCornerR), sketch.NewTangent(right, arcR),
+		sketch.NewRadius(arcL, ClampCornerR), sketch.NewTangent(left, arcL),
+		sketch.NewRadius(arcB, ClampEndR), sketch.NewTangentCircles(arcB, arcR, true),
+		sketch.NewTangentCircles(arcB, arcL, true),
+	)
 	s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, PinHoleR), PinHoleR))
 	return s, nil
+}
+
+// slitTool extrudes the slit's cutter from z = -1 through the arm: x within ±SlitWidth/2 from 2 mm past the end arc up
+// to SlitInBore past the bore's wall, closed there by a half circle of radius SlitWidth/2. The round end lies inside the
+// bore's outline, so it shows only in the bore's floor.
+func (r *run) slitTool() (*decad.Body, error) {
+	s, err := r.sketchOn(across(0, -1))
+	if err != nil {
+		return nil, err
+	}
+	half := SlitWidth / 2
+	y0, y1 := -r.dm.Reach-2, -r.dm.BoreRadius+SlitInBore
+	yc := y1 - half
+	a := sketchcheck.DimensionPoint(s, half, y0)
+	// The arc's ends are placed by height: placing their x at ±half would meet the circle at a tangent, a singular solve.
+	b, c := s.CreatePoint(half, yc), s.CreatePoint(-half, yc)
+	s.AddConstraint(sketch.NewVerticalDistance(s.Origin(), b, yc), sketch.NewVerticalDistance(s.Origin(), c, yc))
+	d := sketchcheck.DimensionPoint(s, -half, y0)
+	center := sketchcheck.DimensionPoint(s, 0, yc)
+	arc := s.CreateArc(center, b, c)
+	s.AddConstraint(sketch.NewRadius(arc, half))
+	s.CreateLine(a, b)
+	s.CreateLine(c, d)
+	s.CreateLine(d, a)
+	return r.extrude(s, 0, ArmThickness+2)
+}
+
+// clampCavityTool extrudes the clamp nut's cavity: the circle of radius m2fastener.NutCavityRadius about the bolt's
+// axis for its lower half, and a rectangle as wide above the axis, so its top is square. The cavity opens straight up
+// across its whole width at the print pause, and the nut drops in on edge. It runs NutCavityHeight along the bolt from
+// the site's Cavity. The sketch lies on site.Across(Cavity): U is Corner (+Y) and V is Dir × Corner (-Z, down).
+func (r *run) clampCavityTool() (*decad.Body, error) {
+	site := r.dm.ClampSite
+	f, err := site.Across(site.Cavity)
+	if err != nil {
+		return nil, err
+	}
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, err
+	}
+	rad := m2fastener.NutCavityRadius
+	a := sketchcheck.DimensionArcEnd(s, rad, 0)
+	b := sketchcheck.DimensionArcEnd(s, -rad, 0)
+	c := sketchcheck.DimensionPoint(s, -rad, -rad)
+	d := sketchcheck.DimensionPoint(s, rad, -rad)
+	// +V is down, so the counter-clockwise arc from a to b passes below the axis.
+	arc := s.CreateArc(s.Origin(), a, b)
+	s.AddConstraint(sketch.NewRadius(arc, rad))
+	s.CreateLine(b, c)
+	s.CreateLine(c, d)
+	s.CreateLine(d, a)
+	return r.extrude(s, 0, m2fastener.NutCavityHeight)
 }
 
 // boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the

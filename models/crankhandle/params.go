@@ -17,7 +17,7 @@ const (
 	TightFit   = 0.2 + FitMargin  // 0.25: the pin's stub in the arm's hexagonal pocket
 	RegularFit = 0.35 + FitMargin // 0.40: the handle on the pin's shank, and its gap to the arm
 
-	ArmRadius    = 10.0 // the arm is a stadium 20 wide
+	ArmRadius    = 10.0 // the arm is 20 wide: its sides run at x = ±ArmRadius
 	ArmThickness = 8.0
 	BoreFloor    = 1.0 // the D bore is blind: 1 mm of arm closes it at the outer face
 	PinHoleR     = 1.3 // the pin bolt's clearance hole through the arm
@@ -51,6 +51,24 @@ const (
 	// ConeAngle is the half angle of the cones from the stub to the shank and from the shank to the head. A cut through
 	// the stub's hexagon reads the cone up to 1.8 times steeper, and 30 degrees keeps that turn under 50 degrees.
 	ConeAngle = 30.0
+
+	// The arm pinches the shaft. It keeps its full width past the shaft: its sides run straight on to a point
+	// ClampSideRun below the clamp bolt's axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
+	// join tangent. A slit SlitWidth wide runs along x = 0 from the end arc into the bore and ends in a full round in the
+	// bore's floor. The M2 x 16 clamp bolt crosses the whole width along -X: its head lies flush in the +X side face,
+	// and its nut sits in a cavity in the -X jaw from ClampNutFrom to ClampNutFrom + 2 from the axis.
+	ClampBolt     = 16.0
+	ClampNutFrom  = 5.0
+	ClampHoleWall = 1.05 // between the clamp bolt's hole and the bore, where the hole crosses the slit
+	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut cavity's ring (2.51), with margin
+	ClampCornerR  = 4.5
+	ClampEndR     = 22.0
+	SlitWidth     = 1.0
+	SlitInBore    = 1.0 // the slit runs this far past the bore's wall, so its round end lies in the bore's floor
+	// The nut cavity's two faces and the hole's blind end are rounded on their tools, so the arm's inside corners there
+	// pass "Corners and roots" in a section that cuts the rounds at a slant.
+	ClampCavityRound = 0.6
+	ClampHoleRound   = 0.7
 )
 
 // CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
@@ -108,6 +126,22 @@ type Dimensions struct {
 	Site m2fastener.Site
 	// CrossSites are the two cross bolts that clamp the pin's halves, at CrossZ.
 	CrossSites [2]m2fastener.Site
+	// ClampY is the clamp bolt's axis, y = -(r_b + 1.3 + ClampHoleWall), at mid thickness. SideEnd is where the arm's
+	// sides stop being straight, ClampY - ClampSideRun. Reach is how far the end arc runs behind the shaft axis.
+	ClampY, SideEnd, Reach float64
+	// ClampSite is the clamp bolt: its head's top face is flush with the +X side face at (ArmRadius, ClampY), and it
+	// runs along -X with its nut cavity's near face ClampNutFrom from the axis.
+	ClampSite m2fastener.Site
+}
+
+// CornerCenter is the centre of the right corner arc; the left one is its mirror in x = 0. EndCenter is the centre of
+// the end arc, on x = 0.
+func (dm Dimensions) CornerCenter() r3.Vec { return r3.Vec{X: ArmRadius - ClampCornerR, Y: dm.SideEnd} }
+
+// EndCenter is the centre of the end arc, which touches both corner arcs from inside.
+func (dm Dimensions) EndCenter() r3.Vec {
+	dx := ArmRadius - ClampCornerR
+	return r3.Vec{Y: dm.SideEnd + math.Sqrt((ClampEndR-ClampCornerR)*(ClampEndR-ClampCornerR)-dx*dx)}
 }
 
 // Validate reports the first problem Derive finds.
@@ -161,6 +195,19 @@ func (p Params) Derive() (Dimensions, error) {
 	}
 	if err := dm.Site.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: %w", err)
+	}
+	dm.ClampY = -(dm.BoreRadius + m2fastener.HoleRadius + ClampHoleWall)
+	dm.SideEnd = dm.ClampY - ClampSideRun
+	dm.Reach = ClampEndR - dm.EndCenter().Y
+	dm.ClampSite = m2fastener.Site{
+		Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: ArmThickness / 2},
+		Dir:    r3.Vec{X: -1},
+		Corner: r3.Vec{Y: 1},
+		Length: ClampBolt,
+		Cavity: ArmRadius + ClampNutFrom,
+	}
+	if err := dm.ClampSite.Validate(); err != nil {
+		return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt: %w", err)
 	}
 	for i, z := range CrossZ {
 		dm.CrossSites[i] = m2fastener.Site{
