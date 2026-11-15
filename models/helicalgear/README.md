@@ -1,5 +1,7 @@
 # Helical gear
 
+**Build status:** Built and tested.
+
 ![Bored 17-tooth helical gear with twisted involute teeth](images/hero.png)
 
 ## More views

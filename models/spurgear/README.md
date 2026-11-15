@@ -1,5 +1,7 @@
 # Spur gear
 
+**Build status:** Built and tested.
+
 ![The Decad spur gear rendered at an angle](images/hero.png)
 
 ## More views

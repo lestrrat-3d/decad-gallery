@@ -1,5 +1,7 @@
 # M2 socket head cap screw
 
+**Build status:** Built and tested.
+
 ![M2x10 socket head cap screw](images/hero.png)
 
 This model is an M2 socket head cap screw in the standard lengths 6, 10, 16, 18, 20 and 25 mm.

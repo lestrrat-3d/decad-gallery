@@ -1,5 +1,7 @@
 # Crank handle
 
+**Build status:** Built and tested.
+
 ![Crank handle for a 5 mm D-flat shaft: a red arm and a dark handle that turns on its pin](images/hero.png)
 
 A printed hand crank for a D-flat shaft. It is the crank of the [hand-crank siren](../handcranksiren/), which builds

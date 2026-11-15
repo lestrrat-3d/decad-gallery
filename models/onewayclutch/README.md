@@ -1,5 +1,7 @@
 # One-way clutch
 
+**Build status:** Built and tested.
+
 ![A one-way clutch cut at the hub's mid-height: three pawl heads seated in the teeth of the ring, the arms behind them, the back plate below, and the ring's three bolt ears outside](images/hero.png)
 
 A printed one-way clutch for a D-flat shaft. A hub with three flexing pawls presses on the shaft and meets a 42 mm ring

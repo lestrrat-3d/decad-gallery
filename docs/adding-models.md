@@ -17,6 +17,11 @@ multi-body assembly, include an exploded view and a table with an image and name
 See the [planetary gearbox README](../models/planetarygearbox/README.md) for an example.
 Size and place the exploded view by [Exploded views](model-pipeline.md#exploded-views).
 
+Say whether anyone has made the model as a physical object and tested it. Put `**Build status:** Built and tested.`
+or `**Build status:** Not built yet.` on the line under the README title, and fill the Build status column of the
+`models/README.md` row with `Built` or `Not built yet`. A new model starts as not built yet. Add it to `UNBUILT` in
+`scripts/check_repository.py`, which checks that the README and the table agree.
+
 Follow the [model build pipeline](model-pipeline.md) when adding an item. The instructions own the
 dimensions and behavior; the steps map them to Sketch and Decad operations.
 
