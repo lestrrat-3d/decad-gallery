@@ -154,23 +154,39 @@ func (r *run) hub() (*decad.Body, error) {
 	return body, nil
 }
 
-// ring revolves the ring's meridian (RingMeridian) and cuts the tooth tool from it.
+// ring extrudes the ring's outline (ringSketch) RingHeight along +Z, chamfers the whole outer loop of both end faces,
+// cuts the two counterbore tools and then the tooth tool. The ring is symmetric end for end.
 func (r *run) ring() (*decad.Body, error) {
-	blank, err := r.meridian(RingMeridian[:])
+	s, err := r.ringSketch()
 	if err != nil {
-		return nil, fmt.Errorf("blank: %w", err)
+		return nil, err
 	}
-	const from, length = 0.25, 20.0
-	s, err := r.toothSketch(from)
+	body, err := r.extrude(s, 1+Ears, RingHeight)
+	if err != nil {
+		return nil, fmt.Errorf("extrude: %w", err)
+	}
+	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{RingFrom, RingTo},
+		edgefinish.Long(edgefinish.Outer), RingChamfer); err != nil {
+		return nil, fmt.Errorf("chamfer outer loop: %w", err)
+	}
+	for i, meridian := range [][][2]float64{RingBackTool[:], RingFrontTool[:]} {
+		tool, err := r.meridian(meridian)
+		if err != nil {
+			return nil, fmt.Errorf("counterbore tool %d: %w", i+1, err)
+		}
+		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			return nil, fmt.Errorf("cut counterbore %d: %w", i+1, err)
+		}
+	}
+	ts, err := r.toothSketch(RingFrom - 1)
 	if err != nil {
 		return nil, fmt.Errorf("tooth tool sketch: %w", err)
 	}
-	tool, err := r.extrude(s, 0, length)
+	tool, err := r.extrude(ts, 0, RingHeight+2)
 	if err != nil {
 		return nil, fmt.Errorf("tooth tool: %w", err)
 	}
-	body, err := decad.Cut(r.ctx, blank, tool)
-	if err != nil {
+	if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 		return nil, fmt.Errorf("cut teeth: %w", err)
 	}
 	return body, nil
@@ -210,14 +226,14 @@ func (r *run) plate(z, length float64, outerZ float64, inner [][2]float64,
 	return body, nil
 }
 
-// backPlate is the plate on the mechanism side: z 0 to 5, with a nut cavity at each bolt.
+// backPlate is the plate on the mechanism side: z 0 to 3.5, with a hex nut pocket open to its outer face at each bolt.
 func (r *run) backPlate() (*decad.Body, error) {
 	return r.plate(0, BackPlateThickness, 0, BackPlateInner[:], func() ([]*decad.Body, error) {
-		return r.fastenerTools(m2fastener.CavityTool)
+		return r.fastenerTools(m2fastener.HexPocketTool)
 	})
 }
 
-// cover is the plate on the front side: z 15.5 to 19.5, with a head pocket at each bolt.
+// cover is the plate on the front side: z 14 to 18, with a head pocket at each bolt.
 func (r *run) cover() (*decad.Body, error) {
 	return r.plate(CoverFrom, CoverThickness, CoverTo, CoverInner[:], func() ([]*decad.Body, error) {
 		return r.fastenerTools(m2fastener.PocketTool)
@@ -239,20 +255,27 @@ func (r *run) fastenerTools(build func(context.Context, *decad.Document, m2faste
 	return tools, nil
 }
 
-// RingMeridian is the ring blank's closed meridian (r, z), revolved a full turn about Z. The counterbores take the
-// plates' rims, the 45 degree cones hold the ring axially, and the flats at BandFrom and BandTo become the teeth's end
-// faces once the tooth tool cuts the band's bore away.
-var RingMeridian = [...][2]float64{
-	{RingOuter - RingChamfer, RingFrom}, {RingOuter, RingFrom + RingChamfer}, {RingOuter, RingTo - RingChamfer},
-	{RingOuter - RingChamfer, RingTo}, {RingCounter, RingTo}, {RingCounter, BandTo + 1.5}, {ToothRoot, BandTo},
-	{RingBand, BandTo}, {RingBand, BandFrom}, {ToothRoot, BandFrom}, {RingCounter, BandFrom - 1.5}, {RingCounter, RingFrom},
-}
+// RingBackTool and RingFrontTool are the ring's counterbore tools, closed meridians (r, z) revolved a full turn about Z
+// and cut from the extruded outline. Each takes the plate's rim in a counterbore of radius RingCounter, with a 45 degree
+// lead-in at the ring's end face and a 45 degree cone that holds the ring axially. The tool's flat at BandFrom or BandTo
+// becomes the teeth's end face once the tooth tool cuts the band's bore away. The front tool is the back one mirrored in
+// the hub's mid-plane.
+var (
+	RingBackTool = [...][2]float64{
+		{13.0, RingFrom - 1}, {20.0, RingFrom - 1}, {RingCounter, RingFrom + RingChamfer}, {RingCounter, BandFrom - 1.5},
+		{ToothRoot, BandFrom}, {13.0, BandFrom},
+	}
+	RingFrontTool = [...][2]float64{
+		{13.0, RingTo + 1}, {20.0, RingTo + 1}, {RingCounter, RingTo - RingChamfer}, {RingCounter, BandTo + 1.5},
+		{ToothRoot, BandTo}, {13.0, BandTo},
+	}
+)
 
 // BackPlateInner and CoverInner are the plates' inner-face tools (r, z): the boss, its bevel, the recessed annulus and
 // the 45 degree cone to the rim.
 var (
-	BackPlateInner = [...][2]float64{{9.8, 6.0}, {9.8, 5.4}, {10.6, 4.6}, {17.0, 4.6}, {19.1, 2.5}, {19.1, 6.0}}
-	CoverInner     = [...][2]float64{{9.8, 14.5}, {9.8, 15.1}, {10.6, 15.9}, {17.0, 15.9}, {19.1, 18.0}, {19.1, 14.5}}
+	BackPlateInner = [...][2]float64{{9.8, 4.5}, {9.8, 3.9}, {10.6, 3.1}, {17.0, 3.1}, {19.1, 1.0}, {19.1, 4.5}}
+	CoverInner     = [...][2]float64{{9.8, 13.0}, {9.8, 13.6}, {10.6, 14.4}, {17.0, 14.4}, {19.1, 16.5}, {19.1, 13.0}}
 )
 
 // placeSite carries a local bolt site through the placement.

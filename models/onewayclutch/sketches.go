@@ -246,6 +246,75 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 	return s, nil
 }
 
+// ringSketch sketches the ring's outline on its lower face: the outside, with the three ears as its outer loop, and as
+// holes the tooth band's circle and the three ear bores. Each ear is a lug of half width EarRadius with a full end round,
+// its sides parallel to the ear's axis and tangent to the end round, and each side meets the outside circle in a round of
+// EarRound. The ears are the same in both freewheel directions, so they are not mirrored. Each loop is drawn
+// counter-clockwise: outside arc, ear's right side, end round, left side, outside arc.
+func (r *run) ringSketch() (*sketch.Sketch, error) {
+	s, err := r.sketchOn(across(RingFrom))
+	if err != nil {
+		return nil, err
+	}
+	o := s.Origin()
+	ps := r.newPolar(s)
+	root := math.Sqrt(RingOuter*RingOuter - EarRadius*EarRadius) // where an ear side meets the outside circle, along the ear
+	type ear struct {
+		bRight, tRight, tLeft, bLeft, c *sketch.Point
+		right, left                     *sketch.Line
+		end                             *sketch.Arc
+	}
+	var ears [Ears]ear
+	for k, a := range EarAngles {
+		u := polar(1, a)
+		n := r3.Vec{X: -u.Y, Y: u.X}
+		at := func(along, across float64) *sketch.Point {
+			v := u.Scale(along).Add(n.Scale(across))
+			return s.CreatePoint(v.X, v.Y)
+		}
+		ears[k] = ear{
+			bRight: at(root, -EarRadius), tRight: at(EarCircle, -EarRadius),
+			tLeft: at(EarCircle, EarRadius), bLeft: at(root, EarRadius), c: at(EarCircle, 0),
+		}
+	}
+	var outside [Ears]*sketch.Arc
+	for k := range ears {
+		e := &ears[k]
+		next := &ears[(k+1)%Ears]
+		e.right = s.CreateLine(e.bRight, e.tRight)
+		e.end = s.CreateArc(e.c, e.tRight, e.tLeft)
+		e.left = s.CreateLine(e.tLeft, e.bLeft)
+		outside[k] = s.CreateArc(o, e.bLeft, next.bRight)
+	}
+	for k, a := range EarAngles {
+		e := &ears[k]
+		axis := s.CreateLine(o, s.CreatePoint(axisLength*math.Cos(a*math.Pi/180), axisLength*math.Sin(a*math.Pi/180)))
+		axis.SetConstruction(true)
+		s.AddConstraint(
+			sketch.NewAngle(ps.ref, axis, a), sketch.NewDistance(o, axis.End, axisLength),
+			sketch.NewPointOnLine(e.c, axis), sketch.NewDistance(o, e.c, EarCircle),
+			sketch.NewRadius(e.end, EarRadius), sketch.NewRadius(outside[k], RingOuter),
+			sketch.NewParallel(axis, e.right), sketch.NewTangent(e.right, e.end),
+			sketch.NewParallel(axis, e.left), sketch.NewTangent(e.left, e.end),
+		)
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(e.c, m2fastener.HoleRadius), m2fastener.HoleRadius))
+	}
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, RingBand), RingBand))
+	// A fillet removes its corner point and the constraints on it, so each side keeps its parallel and tangent
+	// constraints and each outside arc its radius.
+	for k := range ears {
+		prev := (k + Ears - 1) % Ears
+		e := &ears[k]
+		if _, err := sketch.CreateFillet(s, outside[prev], e.right, e.bRight, EarRound); err != nil {
+			return nil, fmt.Errorf("round the right root of ear %d: %w", k+1, err)
+		}
+		if _, err := sketch.CreateFillet(s, e.left, outside[k], e.bLeft, EarRound); err != nil {
+			return nil, fmt.Errorf("round the left root of ear %d: %w", k+1, err)
+		}
+	}
+	return s, nil
+}
+
 // toothSketch sketches the ring's tooth tool on the plane z: the whole void inside the teeth, one closed loop. Lock face j
 // lies on the radial axis at LockAngle + 15 degrees * j from Q_j (ToothRoot) in to P_j (ToothTip); the ramp of tooth j
 // runs from P_j to Q_{j+1}; each Q_j is rounded by RootRound.

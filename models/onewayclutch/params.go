@@ -29,7 +29,15 @@ const (
 	RingBand    = 13.5 // blank bore radius in the tooth band, all cut away by the tooth tool
 	RingCounter = 18.5 // ring counterbore radius
 	RingOuter   = 21.0 // ring outside radius (OD 42)
-	RingChamfer = 0.5  // lead-in of the ring's outside ends
+	RingChamfer = 0.5  // lead-in of the ring's outer loop and counterbores at both ends
+
+	// The ring's ears: three full-height lugs on its outside, each with an M2 clearance bore along the axis.
+	Ears        = 3    // ears on the ring
+	EarCircle   = 23.5 // radius of the ear bores' centres
+	EarRadius   = 3.6  // ear half width and end round radius
+	EarRound    = 1.5  // round where each ear side meets the ring's outside
+	EarReach    = EarCircle + EarRadius
+	ToothEndGap = 0.85 // axial gap from each plate's inner face (and the hub's) to the tooth band's end
 
 	CoreRadius   = 10.7 // hub core R_c
 	SlotWidth    = 2.05 // slot under each arm s
@@ -51,7 +59,7 @@ const (
 
 	PlateRadius        = RingCounter - RegularFit // 18.1
 	Recess             = RegularFit               // annulus below the boss face
-	BackPlateThickness = 5.0
+	BackPlateThickness = 3.5
 	CoverThickness     = 4.0
 	PlateChamfer       = 0.5
 	HubChamfer         = 0.5
@@ -61,14 +69,19 @@ const (
 	PressWall  = 1.6 // least wall round a press-fit bore (AGENTS.md "Verification")
 
 	// Axial stack, z along the shaft from the back plate's outer face.
-	HubFrom   = BackPlateThickness + Seam  // 5.25
-	CoverFrom = HubFrom + HubHeight + Seam // 15.5
-	CoverTo   = CoverFrom + CoverThickness // 19.5
-	RingFrom  = 1.25
-	RingTo    = 19.25
-	BandFrom  = 5.45
-	BandTo    = 15.05
+	HubFrom    = BackPlateThickness + Seam  // 3.75
+	CoverFrom  = HubFrom + HubHeight + Seam // 14.0
+	CoverTo    = CoverFrom + CoverThickness // 18.0
+	RingFrom   = 0.25
+	RingTo     = CoverTo - 0.75 // 17.25, symmetric about the hub's mid-plane
+	RingHeight = RingTo - RingFrom
+	BandFrom   = BackPlateThickness - Recess + ToothEndGap // 3.95
+	BandTo     = CoverFrom + Recess - ToothEndGap          // 13.55
 )
+
+// EarAngles are the ear axes' angles, in degrees. They are symmetric about x = 0, so the ears do not depend on the
+// freewheel direction; each lies outside a tooth root in both directions.
+var EarAngles = [Ears]float64{90, 210, 330}
 
 // BoltAngles are the bolt axes' angles, in degrees. They are symmetric about x = 0, so the plates, bolts and nuts do not
 // depend on the freewheel direction.
@@ -186,7 +199,7 @@ func polar(r, deg float64) r3.Vec {
 }
 
 // Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, the wall
-// between the bore and the nut cavities, Placement, each bolt site.
+// between the bore and the nut pockets, Placement, each bolt site.
 func (p Params) Derive() (Dimensions, error) {
 	shaft, ok := LookupShaft(p.Shaft)
 	if !ok {
@@ -213,7 +226,7 @@ func (p Params) Derive() (Dimensions, error) {
 	}
 	if BoltCircle-m2fastener.NutCavityRadius-dm.BoreRadius < PressWall {
 		return Dimensions{}, fmt.Errorf(
-			"onewayclutch: BoreClearance %g leaves less than %.1f mm of wall between the bore and the nut cavities",
+			"onewayclutch: BoreClearance %g leaves less than %.1f mm of wall between the bore and the nut pockets",
 			c, PressWall)
 	}
 	half := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
@@ -229,7 +242,7 @@ func (p Params) Derive() (Dimensions, error) {
 			Dir:    r3.Vec{Z: -1},
 			Corner: r3.Vec{X: dir.X, Y: dir.Y},
 			Length: BoltLength,
-			Cavity: CoverTo - 3.5,
+			Cavity: CoverTo - m2fastener.NutCavityHeight,
 		}
 		if err := dm.Sites[i].Validate(); err != nil {
 			return Dimensions{}, fmt.Errorf("onewayclutch: bolt %d: %w", i+1, err)
