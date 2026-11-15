@@ -71,18 +71,26 @@ and hub prisms. Check: solid; `TestPlates`, `TestPlateWindows`, `TestPlateMateri
 
 ### 10-12. Arbors, and 17 Suspension Pin
 
-Meridian sketch (plane `U = +X`, `V = +Z`, origin on the axis): polygon of the staircase points of "Arbors"
-(pin: "Pendulum and crutch"); each line `NewHorizontal` or `NewVertical`, the axis edge by
-`NewHorizontalDistance(origin, p, 0)`, each step by H distance (radius) and V distance (z) from the origin. Valid
+Meridian sketch (plane `U = +X`, `V = +Z`, origin on the axis): polygon of the points of "Arbors"
+(pin: "Pendulum and crutch"); each horizontal or vertical line `NewHorizontal` or `NewVertical`, the axis edge by
+`NewHorizontalDistance(origin, p, 0)`, each step by H distance (radius) and V distance (z) from the origin. A cone is a
+slanted line between two such points, fixed by both distances of its end point; its points come from the 30° half angle
+(length along the axis = 1.732 × the radius change) and from the part it faces: the escape and pallet cones are placed so the
+wheel's and the anchor's bore corner stands 0.05 normal to the cone. Valid
 profile: 0 holes. `decad.Revolve` full turn about the sketch line `(0,0)-(0,1)`. The arbor and pin points are the
 meridians of instructions.md "Arbors, bearings and axial layout" (the escape, pallet and great wheel arbors have `r 3.3`
 body sections between their bearing seats; the great wheel arbor has a `r 3.05` journal under the great wheel; the pallet and great wheel
-arbors and the pin's front peg step down to `r 2.0` outside the front plate). Flat boxes: `flatBox(what, x, y, flatX, z0, z1)`:
+arbors and the pin's front peg step down to `r 2.0` outside the front plate). Flat tools: a span with no ramp is `flatBox(what, x, y, flatX, z0, z1)`:
 `CreateRectangle` at `x flatX to 3.5`, `y -3.5 to 3.5`, corner by H/V distance, width `3.5 - flatX` and height 7 by
-distances between corners, extruded over each `flatSpan{X, Z0, Z1}` (`x 2.55` over a body section, `x 2.80` over the great wheel arbor's carrier section, `x 1.5` on an end or
-the pin's front peg, `x 2.0` on the pin's rear peg); `Union` the boxes of one part and `Cut` once. Check: solid; diameter 5.0 at each bearing seat; flat present at
-each span's middle (between the flat plane and the section radius) and absent under each bearing; volume equals the
-revolve less the circular segment of each section beyond its flat over each span.
+distances between corners, extruded over the `flatSpan{X, Z0, Z1}` (`x 2.55` over a body section, `x 2.80` over the great wheel arbor's carrier section, `x 1.5` on an end or
+the pin's front peg, `x 2.0` on the pin's rear peg). A span with a ramp (`RampStart` or `RampEnd`) is `flatRamp`: a meridian
+sketch through the axis with the polygon `(X, Z0) (X, Z1) (4.0, Z1 + ramp) (4.0, Z0)`, the ramp end rising 30° to the axis
+(ramp = 1.732 × (4.0 - X)), each corner fixed by its H and V distance, extruded `Symmetric` 4.0 each way; `Union` the tools of one
+part and `Cut` once. Check: solid; diameter 5.0 at each bearing seat; flat present at
+each span's middle (between the flat plane and the section radius) and absent under each bearing; a ramp keeps the shaft below
+its plane and cuts above it 0.3 mm past the span's end; volume equals the revolve less the circular segment of each section
+beyond its flat (the ramp's plane included), integrated along `z`. `TestSplitShafts` then reads the posed bodies as halves on
+their cut face.
 
 ### 13. Escape Wheel
 
@@ -130,7 +138,9 @@ and pocket present, chamfered volume drop.
 
 ### 18. Suspension Cap
 
-Circle `r 3.7` at `S`, `z 45.30`, extrude 1.5; cut the D press socket (`z 44.30`, height 3).
+Circle `r 3.7` at `S`, `z 45.30`, extrude 1.5; cut the countersink (a meridian revolve about the axis through `S`: `(0, 44.30)`,
+`(3.106, 44.30)`, `(2.05, 46.129)`, `(0, 46.129)`, whose slanted side is the pin's end cone moved 0.05 along its normal), then the D
+press socket (`z 44.30`, height 3).
 
 ### 19. Great Wheel
 

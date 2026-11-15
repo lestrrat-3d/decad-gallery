@@ -27,14 +27,75 @@ func sectionRadii(t *testing.T, body *decad.Body, z float64, axis Pt) (float64, 
 	return lo, hi, o.OffSurface.Base()
 }
 
-// requireShaftCollar requires a collar of the shaft's own body between z0 and z1: both end faces on the arbor, a
-// length of at least 3.0 mm and a round section of radius 3.7 at mid-length.
-func requireShaftCollar(t *testing.T, arbor *decad.Body, axis Pt, z0, z1 float64, what string) {
+// arborCone is a cone of an arbor's meridian: its two end points (radius, z).
+type arborCone struct{ a, b [2]float64 }
+
+// coneBetween returns the cone of pts that joins the points at index i and i+1.
+func coneBetween(pts meridianPoints, i int) arborCone { return arborCone{pts[i], pts[i+1]} }
+
+// gapTo returns the normal distance from the meridian point (r, z) to the cone, measured to the cone's segment.
+func (c arborCone) gapTo(r, z float64) float64 {
+	return distPointSeg(Pt{r, z}, Pt{c.a[0], c.a[1]}, Pt{c.b[0], c.b[1]})
+}
+
+// coneFaces returns the cone faces of body with a half angle of 30 degrees.
+func coneFaces(t *testing.T, body *decad.Body) []decad.Cone {
 	t.Helper()
-	hasPlane(t, arbor, z0, what+": rear end face")
-	hasPlane(t, arbor, z1, what+": front end face")
-	require.GreaterOrEqual(t, z1-z0, minCollar-1e-9, "%s: length", what)
-	lo, hi, off := sectionRadii(t, arbor, (z0+z1)/2, axis)
+	var out []decad.Cone
+	for _, f := range body.Faces() {
+		c, ok := f.Surface().(decad.Cone)
+		if !ok {
+			continue
+		}
+		// A chamfer is a cone too, at 45 degrees; only the 30 degree cones are the arbor's and its mates'.
+		if math.Abs(c.HalfAngle.Base()-math.Pi/6) < 1e-6 {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// coneZ returns the z at radius r on the cone surface c.
+func coneZ(c decad.Cone, r float64) float64 {
+	return c.Origin.Z + c.Axis.Z*(r-c.Radius.Base())/math.Tan(c.HalfAngle.Base())
+}
+
+// requireCone requires a cone face on body, of 30 degrees half angle, that passes through both end points of want.
+func requireCone(t *testing.T, body *decad.Body, want arborCone, what string) {
+	t.Helper()
+	for _, c := range coneFaces(t, body) {
+		if math.Abs(coneZ(c, want.a[0])-want.a[1]) < 1e-6 && math.Abs(coneZ(c, want.b[0])-want.b[1]) < 1e-6 {
+			return
+		}
+	}
+	require.Failf(t, "missing cone", "%s has no 30 degree cone from (r %.4f, z %.4f) to (r %.4f, z %.4f)", what,
+		want.a[0], want.a[1], want.b[0], want.b[1])
+}
+
+// coneFloorGap returns the least normal distance from the cone face of body that passes the cone c's line, sampled
+// over radii lo to hi, to the segment of c.
+func coneFloorGap(t *testing.T, body *decad.Body, c arborCone, lo, hi float64) float64 {
+	t.Helper()
+	least := math.Inf(1)
+	for _, f := range coneFaces(t, body) {
+		for i := 0; i <= 100; i++ {
+			r := lo + (hi-lo)*float64(i)/100
+			least = math.Min(least, c.gapTo(r, coneZ(f, r)))
+		}
+	}
+	require.False(t, math.IsInf(least, 1), "the body has a cone face")
+	return least
+}
+
+// requireConeCollar requires a collar of the shaft's own body from its end face at far to where its cone meets the
+// smaller diameter at near: the end face and the cone are on the arbor, the whole length is at least 3.0 mm, and a
+// round section of radius 3.7 at z round.
+func requireConeCollar(t *testing.T, arbor *decad.Body, axis Pt, far, near, round float64, cone arborCone, what string) {
+	t.Helper()
+	hasPlane(t, arbor, far, what+": end face")
+	requireCone(t, arbor, cone, what)
+	require.GreaterOrEqual(t, math.Abs(far-near), minCollar-1e-9, "%s: whole length to the cone's end", what)
+	lo, hi, off := sectionRadii(t, arbor, round, axis)
 	require.InDelta(t, CollarRadius, lo, 0.01+off, "%s: radius", what)
 	require.InDelta(t, CollarRadius, hi, 0.01+off, "%s: radius", what)
 }
@@ -68,9 +129,17 @@ func TestArborCollars(t *testing.T) {
 	require.NoError(t, err)
 
 	// Collars of the shafts' own bodies.
-	requireShaftCollar(t, m.EscapeArbor, g.O, 24.0, 27.75, "escape front collar")
-	requireShaftCollar(t, m.PalletArbor, g.P, 0.25, 20.95, "pallet shoulder")
-	requireShaftCollar(t, m.GreatWheelArbor, g.G, 0.25, 3.25, "great wheel collar")
+	// Each collar's whole length runs to where its cone meets the smaller diameter.
+	escapeCone, palletCone := coneBetween(escapeArborPoints, 4), coneBetween(palletArborPoints, 4)
+	greatCone := coneBetween(greatArborPoints, 4)
+	requireConeCollar(t, m.EscapeArbor, g.O, 27.75, escapeConeLow, 27, escapeCone, "escape front collar")
+	requireConeCollar(t, m.PalletArbor, g.P, 0.25, palletConeHigh, 10, palletCone, "pallet shoulder")
+	requireConeCollar(t, m.GreatWheelArbor, g.G, 0.25, greatCollarEnd, 1.2, greatCone, "great wheel collar")
+	requireCone(t, m.GreatWheelArbor, coneBetween(greatArborPoints, 6), "great wheel journal step")
+	requireCone(t, m.PalletArbor, coneBetween(palletArborPoints, 8), "pallet end step")
+	requireCone(t, m.GreatWheelArbor, coneBetween(greatArborPoints, 10), "great wheel end step")
+	requireConeCollar(t, m.SuspensionPin, g.S, 39.80, frontHigh, 38, coneBetween(pinPoints, 2), "suspension shoulder")
+	requireCone(t, m.SuspensionPin, coneBetween(pinPoints, 6), "suspension pin end step")
 
 	// Body steps of the shafts: the end of the body section the parts are pressed on, facing the bearing with the Tight
 	// gap. The escape wheel's pinion rear face is at 1.5, the anchor's front face at 26.
@@ -110,17 +179,24 @@ func TestArborCollars(t *testing.T) {
 		require.GreaterOrEqual(t, keyedRingFlat-endPressFlat, minPressWall, "%s: wall at the flats", e.name)
 	}
 
-	// Counterbores: the part's floor stops 0.05 from the collar and the wall stands 0.05 from it all round (press fits,
+	// Counterbores: the part's floor stands 0.05 from the collar and the wall stands 0.05 from it all round (press fits,
 	// the parts turn with the shaft). The collar enters each counterbore by at least 1 mm of its length, and the part
-	// keeps at least 1 mm of material under it.
-	axial(t, m.EscapeWheel, 23.95, m.EscapeArbor, 24.0, 0.05, "escape wheel front counterbore floor")
-	axial(t, m.GreatWheel, 3.5, m.GreatWheelArbor, 3.25, 0.25, "great wheel counterbore floor")
-	radial(t, m.GreatWheel, m.GreatWheelArbor, 2.5, 0.4, 0.35, "great wheel counterbore wall")
-	require.GreaterOrEqual(t, 3.25-1.5, 1.0, "great wheel collar depth in the wheel")
+	// keeps at least 1 mm of material under it. A cone has no stop face: the escape wheel's floor corner and the anchor's
+	// rear bore corner stand 0.05 from the cone, measured normal to it, and the great wheel's floor corner at its bore
+	// stands at least 0.25 from the collar's cone.
+	hasPlane(t, m.EscapeWheel, wheelCounterFloor, "escape wheel front counterbore floor")
+	require.InDelta(t, 0.05, escapeCone.gapTo(bodyPressRadius, wheelCounterFloor), 1e-3, "escape wheel floor corner to the cone")
+	hasPlane(t, m.Anchor, anchorLow, "anchor rear face")
+	require.InDelta(t, 0.05, palletCone.gapTo(bodyPressRadius, anchorLow), 1e-3, "anchor bore corner to the cone")
+	hasPlane(t, m.GreatWheel, greatCounterFloor, "great wheel counterbore floor")
+	require.GreaterOrEqual(t, greatCone.gapTo(greatBore/2, greatCounterFloor), 0.25, "great wheel floor corner to the cone")
+	radial(t, m.GreatWheel, m.GreatWheelArbor, 1.7, 0.4, 0.35, "great wheel counterbore wall")
+	require.GreaterOrEqual(t, greatCollarEnd-1.5, 1.0, "great wheel collar depth in the wheel")
 	require.GreaterOrEqual(t, ratchetFloor-greatCounterFloor, 1.0, "wheel material under its counterbore floor")
-	radial(t, m.EscapeWheel, m.EscapeArbor, 24.2, 0.05, 0, "escape wheel front counterbore wall")
-	require.GreaterOrEqual(t, 25.0-24.0, 1.0-1e-9, "escape front collar depth in the wheel")
-	require.GreaterOrEqual(t, 23.95-22.0, 1.0, "wheel material under its counterbore floor")
+	require.GreaterOrEqual(t, escapeCone.gapTo(wheelCounterRadius, 24.5), 0.05, "escape wheel counterbore wall to the cone")
+	radial(t, m.EscapeWheel, m.EscapeArbor, 24.8, 0, 0.05, "escape wheel front counterbore wall")
+	require.GreaterOrEqual(t, 25.0-escapeConeLow, 1.0-1e-9, "escape front collar depth in the wheel")
+	require.GreaterOrEqual(t, wheelCounterFloor-22.0, 1.0, "wheel material under its counterbore floor")
 
 	// Collar to flush side: each collar and step stands 0.25 from the bearing it faces.
 	_, backTop := bearingZ(t, m.BackEscapeBearing)

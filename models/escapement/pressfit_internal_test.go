@@ -65,7 +65,7 @@ func TestPressFitWalls(t *testing.T) {
 	check("Anchor hub", g.P, 23.5, loopsBy(sectionAt(t, m.Anchor, 23.5)))
 	check("Crutch Collar", g.P, 36, loopsBy(sectionAt(t, m.CrutchCollar, 36)))
 	check("Knob Collar", g.G, 36, loopsBy(sectionAt(t, m.KnobCollar, 36)))
-	check("Suspension Cap", g.S, 46, loopsBy(sectionAt(t, m.SuspensionCap, 46)))
+	check("Suspension Cap", g.S, 46.5, loopsBy(sectionAt(t, m.SuspensionCap, 46.5)))
 	check("Crutch floor", g.P, 37.8, loopsBy(sectionAt(t, m.Crutch, 37.8)))
 	check("Winding Knob floor", g.G, 37.8, loopsBy(sectionAt(t, m.WindingKnob, 37.8)))
 

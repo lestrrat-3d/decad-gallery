@@ -176,11 +176,34 @@ func rimKeepAll(centres []Pt, radii ...float64) edgefinish.LoopFilter {
 	}
 }
 
-// buildCap builds the suspension cap: a disc on the pin's front peg with a D press socket.
+// capSinkGap is the normal distance from the cap's countersink to the pin's end cone: the press-fit gap, as the 0.05
+// between the cap's rear face and the pin's old step.
+const capSinkGap = 0.05
+
+// capCountersinkAt returns the radius of the cap's countersink at height z: the pin's end cone, moved 0.05 along its
+// normal.
+func capCountersinkAt(z float64) float64 {
+	c, s := math.Cos(coneHalfAngle), math.Sin(coneHalfAngle)
+	return ArborRadius + capSinkGap*c - (z-pinEndStepZ-capSinkGap*s)*math.Tan(coneHalfAngle)
+}
+
+// buildCap builds the suspension cap: a disc on the pin's front peg with a D press socket and, in its rear face, a
+// 30 degree countersink for the cone where the peg steps down to the end section.
 func (b *builder) buildCap() (*decad.Body, error) {
 	g := &b.g
 	body, err := b.discAt("suspension cap", g.S.X, g.S.Y, capLow, CollarRadius, capHigh-capLow)
 	if err != nil {
+		return nil, err
+	}
+	// The countersink ends where its cone meets the socket's arc.
+	sinkEnd := pinEndStepZ + capSinkGap*math.Sin(coneHalfAngle) +
+		(ArborRadius+capSinkGap*math.Cos(coneHalfAngle)-endPressRadius)/math.Tan(coneHalfAngle)
+	sink, err := b.stepped("cap countersink", g.S.X, g.S.Y, meridianPoints{{0, capLow - pressToolLow},
+		{capCountersinkAt(capLow - pressToolLow), capLow - pressToolLow}, {endPressRadius, sinkEnd}, {0, sinkEnd}})
+	if err != nil {
+		return nil, err
+	}
+	if body, err = b.cut(body, sink, "cap countersink"); err != nil {
 		return nil, err
 	}
 	tool, err := b.dTool("cap socket", g.S.X, g.S.Y, capLow-pressToolLow, endPressRadius, endPressFlat,

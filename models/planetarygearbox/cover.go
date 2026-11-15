@@ -260,20 +260,6 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	return cover, nil
 }
 
-// buildInputShaft builds the input shaft about the local origin: a D-shaped rod that starts InputShaftLength
-// below the front cover's bearing boss and ends flush with the top of the first sun, so it fills the sun's
-// bore. A collar between the front bearing's inner race and the sun's lower face keeps the sun off the cover, with
-// collarBearingGap to the bearing and collarClearance to the sun.
-func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
-	p := r.p
-	start := -(p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.InputShaftLength)
-	inner := -(p.StageGap + p.CoverThickness) + collarBearingGap
-	// The flat runs from the sun's lower face to past the shaft's top, through the sun.
-	// A second flat runs along the end that reaches out of the cover, where a coupling or a set screw grips.
-	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance,
-		span{0, p.GearThickness + 1, r.d.sunShaft}, span{start - 1, start + p.InputShaftLength - endFlatMargin, r.d.shaft})
-}
-
 // circleSeam returns the start of the one edge of body that starts at height z on a circle of the given radius about
 // the axis. A boolean moves a circle's seam, so a circular edge is found by its radius and height and selected by its
 // stored start point. what names the feature in errors.

@@ -192,6 +192,16 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
+	// A sun that a link shaft feeds has a countersink in its rear bore, so the build keeps a second master of it.
+	linkedSun := sun
+	if p.Stages > 1 {
+		if linkedSun, err = decad.Copy(ctx, sun); err != nil {
+			return Gearbox{}, fmt.Errorf("planetarygearbox: copy sun: %w", err)
+		}
+		if linkedSun, err = r.countersinkSun(ctx, linkedSun); err != nil {
+			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+		}
+	}
 	planet, err := r.buildPlanet(ctx)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
@@ -215,16 +225,12 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	// bearing boss.
 	var link *decad.Body
 	if p.Stages > 1 {
-		linkTop := p.GearThickness + p.CarrierThickness + p.StageGap
-		if link, err = r.buildSteppedShaft(ctx, "link shaft", r.sunRod(), p.CarrierThickness+p.StageGap-fitClearance, linkTop,
-			span{p.CarrierThickness + p.StageGap, linkTop + 1, r.d.sunShaft}); err != nil {
+		if link, err = r.buildLinkShaft(ctx); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 		}
 	}
 	outputTop := p.CarrierThickness + p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.OutputShaftLength
-	output, err := r.buildSteppedShaft(ctx, "output shaft", r.shaftRod(),
-		p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop,
-		span{outputTop - p.OutputShaftLength + endFlatMargin, outputTop + 1, r.d.shaft})
+	output, err := r.buildOutputShaft(ctx, p.CarrierThickness+p.StageGap+p.CoverThickness-fitClearance, outputTop)
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
@@ -269,9 +275,17 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			linkMoves = append(linkMoves, m)
 		}
 	}
-	suns, err := instances(ctx, sun, sunMoves)
+	// The first sun sits on the input shaft; every later sun is fed by a link shaft.
+	suns, err := instances(ctx, sun, sunMoves[:1])
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: suns: %w", err)
+	}
+	if p.Stages > 1 {
+		later, err := instances(ctx, linkedSun, sunMoves[1:])
+		if err != nil {
+			return Gearbox{}, fmt.Errorf("planetarygearbox: linked suns: %w", err)
+		}
+		suns = append(suns, later...)
 	}
 	planets, err := instances(ctx, planet, planetMoves)
 	if err != nil {

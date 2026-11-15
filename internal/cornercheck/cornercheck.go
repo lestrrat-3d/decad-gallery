@@ -133,6 +133,34 @@ func MidHeights(body *decad.Body, axis r3.Vec) ([]float64, error) {
 	return mids, nil
 }
 
+// SplitStep is the spacing in mm of the sections SplitHeights cuts.
+const SplitStep = 0.25
+
+// SplitReach is the fraction of the smallest step radius up to which SplitHeights cuts sections.
+const SplitReach = 0.8
+
+// SplitHeights returns the section heights, as offsets along normal, at which to read a split shaft's halves on their
+// cut face, as "Split shafts" in docs/model-pipeline.md sets out. MidHeights finds none on a round shaft whose flats
+// stand normal to the cut face, so Check would pass it unread. The heights run from 0.1 mm off the seam through point,
+// in SplitStep steps, up to SplitReach of rMin on each side, where rMin is the smallest radius that meets a step or a
+// cone on the part. Above that a section cuts a cone so obliquely that a 30° cone reads over 50°, though the part has no
+// sharper corner there.
+func SplitHeights(point, normal r3.Vec, rMin float64) ([]float64, error) {
+	n, ok := normal.Normalize()
+	if !ok {
+		return nil, errors.New("cornercheck: zero normal")
+	}
+	if !(rMin > 0) {
+		return nil, errors.New("cornercheck: rMin must be positive")
+	}
+	base := point.Dot(n)
+	var out []float64
+	for h := 0.1; h <= SplitReach*rMin+1e-9; h += SplitStep {
+		out = append(out, base-h, base+h)
+	}
+	return out, nil
+}
+
 // Section cuts body with the plane normal to axis at the given offset and returns its findings.
 func Section(ctx context.Context, body *decad.Body, axis r3.Vec, height float64) ([]Finding, error) {
 	a, ok := axis.Normalize()

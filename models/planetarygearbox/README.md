@@ -57,12 +57,14 @@ Every shaft is a separate part, 5 mm across where it passes through a bearing, t
 shaft narrows to 6 mm there and the sun's bore keeps at least 1.6 mm of wall. The sun's bore is D-shaped with 0.05 mm of radial clearance, a press fit (5.1 mm across), so a flat 0.5 mm deep on the
 shaft, which makes it a D section, turns the sun without slipping. The input shaft is a 5 mm rod with that flat where the sun sits and
 a round collar, 7.4 mm across, next to its bearing. The collar stands in for the washer a metal build would use, so the
-sun does not rub on the bearing and the cover.
+sun does not rub on the bearing and the cover. The collar's face toward the bearing is square, because it stands 0.25 mm from the
+bearing's inner ring. Its other end is a 30° cone down to the rod, so the printed halves have no square inside corner there.
 
 The link shaft and the output shaft are thin-thick. Each has a 7.4 mm D thick part with a 0.5 mm flat, pressed through
-the carrier's D hole with 0.05 mm of clearance all round and level with the carrier's lower face. The thick part ends
-0.25 mm short of the next sun or the rear bearing, so the step keeps them off the carrier. The thin 5 mm part fills the
-sun's bore or the bearing. Only the input shaft keeps a collar.
+the carrier's D hole with 0.05 mm of clearance all round and level with the carrier's lower face. The output shaft's thick part
+ends 0.25 mm short of the rear bearing, in a square step that keeps the bearing off the carrier. The link shaft's thick part ends
+level with the carrier's upper face, and a 30° cone runs on from there up the rod into a matching countersink in the next sun, which keeps
+0.25 mm from the cone. The thin 5 mm part fills the sun's bore or the bearing. Only the input shaft keeps a collar.
 
 - **Input.** The input shaft enters through the front cover's 605ZZ and fills the first sun's bore. It sticks out
   12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
@@ -73,7 +75,10 @@ sun's bore or the bearing. Only the input shaft keeps a collar.
 
 Each pin of the carrier is a separate part, shaped thin-thick: a 5 mm rod that carries the planet bearing and a 7.4 mm D-shaped thick part that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate, and passes through a D socket in the plate. The thick part ends level with the plate's upper face. It and its socket have 0.05 mm of clearance all round, a press fit, so the pin stays in the plate once pushed in. To assemble, lay the carrier upper face down on a flat surface and press each pin in, thick end first, until it meets the surface. Press the link or output shaft into the carrier from the upper face, with the lower face on the surface.
 
-The model does not show a set screw or the coupling to a motor. Each of the input and output shafts has a D flat on its free end, 1 mm clear of the bearing boss, where a coupling or a set screw grips.
+The model does not show a set screw or the coupling to a motor. Each of the input and output shafts has a D flat on its free end, 1 mm clear of the bearing boss, where a coupling or a set screw grips. The flat ends toward the boss in a 30° ramp.
+
+Every shaft and pin prints as two halves, each lying on its cut face, so its layers run along the part. The cut plane holds the part's axis and
+the direction its flat faces. Nothing is glued: the bearing's inner race and the press-fit D bore of the carrier or the sun hold the halves of each part together.
 
 ## Edge finishing
 
@@ -137,8 +142,7 @@ shaft and, in every stage, one sun, three planets, three planet bearings, three 
 purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 5 mm where they pass through a bearing, the same as the bearing bore, with no clearance. Planet and cover bearing pockets have 0.05 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
-part is shaped to print on its own, without supports: the carrier plate down, the pins, the link shaft and the output shaft standing on their thick ends,
-the input shaft standing on end or lying down.
+part is shaped to print on its own, without supports: the carrier plate down, and the pins and every shaft as two halves lying on their cut faces.
 
 | Image | Name |
 | --- | --- |

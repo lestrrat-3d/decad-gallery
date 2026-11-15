@@ -580,6 +580,35 @@ func circleSegment(radius, depth float64) float64 {
 	return radius*radius*math.Acos(floor/radius) - floor*math.Sqrt(radius*radius-floor*floor)
 }
 
+// integrate sums f over [0, length] by the midpoint rule.
+func integrate(length float64, f func(z float64) float64) float64 {
+	const steps = 4000
+	h := length / steps
+	sum := 0.0
+	for i := range steps {
+		sum += f((float64(i) + 0.5) * h)
+	}
+	return sum * h
+}
+
+// coneRun is the axial length of a 30° half-angle cone per unit of radius change.
+var coneRun = math.Sqrt(3)
+
+// rampSegments is the volume a flat depth deep removes along a 30° ramp from full depth out to the rim of a rod of the
+// given radius: the circle segment shrinks to nothing as the ramp rises over depth times coneRun.
+func rampSegments(radius, depth float64) float64 {
+	return integrate(depth*coneRun, func(z float64) float64 { return circleSegment(radius, depth-z/coneRun) })
+}
+
+// coneVolume is the volume of the cone from radius from down to radius to over to-from times coneRun of length, less
+// the circle segment a flat depth deep cuts off every section, as the link shaft's flat follows the cone.
+func coneVolume(from, to, depth float64) float64 {
+	return integrate((from-to)*coneRun, func(z float64) float64 {
+		radius := from - z/coneRun
+		return math.Pi*radius*radius - circleSegment(radius, depth)
+	})
+}
+
 // TestCarrierIsATriangle checks that the carrier's plate is the solid triangle between the pin bosses with
 // the shaft's D hole in the middle and a socket through the plate for each pin. Points are probed
 // 1.5 mm or more from a surface where the body is thick, because point location is undecided closer than
@@ -837,8 +866,17 @@ func TestShaftFlat(t *testing.T) {
 	radius := shaftDiameter.Base() / 2
 	segment := circleSegment(radius, p.FlatDepth)
 	collarRadius := shaftCollarDiameter.Base() / 2
-	collar := (math.Pi*collarRadius*collarRadius - math.Pi*radius*radius) * (p.StageGap + p.CoverThickness - 0.5 - 0.25)
-	require.InDelta(t, math.Pi*radius*radius*length+collar-segment*(p.GearThickness+p.InputShaftLength-1), v, bound+0.5)
+	// The collar's sun side is a 30° cone that takes the collar's end, so its whole length is what it was.
+	collarLength := p.StageGap + p.CoverThickness - 0.5 - 0.25
+	coneLength := (collarRadius - radius) * coneRun
+	collar := (math.Pi*collarRadius*collarRadius-math.Pi*radius*radius)*(collarLength-coneLength) +
+		integrate(coneLength, func(z float64) float64 {
+			r := collarRadius - z/coneRun
+			return math.Pi*r*r - math.Pi*radius*radius
+		})
+	// The sun-side flat ends square; the flat on the free end ends in a 30° ramp.
+	flats := segment*(p.GearThickness+p.InputShaftLength-1) + rampSegments(radius, p.FlatDepth)
+	require.InDelta(t, math.Pi*radius*radius*length+collar-flats, v, bound+0.5)
 }
 
 // TestOutputShaft checks the thin-thick output shaft: a D thick part level with the carrier's lower face, pressed
@@ -862,7 +900,7 @@ func TestOutputShaft(t *testing.T) {
 	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
 		(p.CarrierThickness+p.StageGap+p.CoverThickness-0.25) +
 		math.Pi*radius*radius*(5+p.OutputShaftLength+0.25) -
-		circleSegment(radius, p.FlatDepth)*(p.OutputShaftLength-1)
+		circleSegment(radius, p.FlatDepth)*(p.OutputShaftLength-1) - rampSegments(radius, p.FlatDepth)
 	v, bound := volume(t, output)
 	require.InDelta(t, want, v, bound+0.5)
 	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
@@ -925,14 +963,19 @@ func TestTwoStages(t *testing.T) {
 	linkShaft := box.Stages[0].Shaft
 	require.Equal(t, decad.PointInside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
 	require.Equal(t, decad.PointInside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.5)), "thick part")
-	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.125)), "thin rod")
+	require.Equal(t, decad.PointInside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch-0.125)), "cone above the thick part")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch+1.5)), "thin rod above the cone")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, linkShaft, r3.NewVec(-3, 0, pitch+p.GearThickness/2)))
 	requireSectionClearance(t, linkShaft, box.Stages[0].Carrier, kz+p.CarrierThickness/2, 0.02)
 	// The second sun's bore is a press fit on the link shaft, like the first sun's on the input shaft.
 	requireSectionClearance(t, linkShaft, box.Stages[1].Sun, pitch+p.GearThickness/2, 0.02)
-	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
-		(p.CarrierThickness+p.StageGap-0.25) +
-		math.Pi*radius*radius*(p.GearThickness+0.25) - circleSegment(radius, p.FlatDepth)*p.GearThickness
+	// The thick part, the 30° cone from its end to the rod, and the rod, each less the flat's segment. The flat follows
+	// the cone, FlatDepth inside its surface.
+	coneLength := (thickRadius - radius) * coneRun
+	rodLength := p.GearThickness + p.StageGap - coneLength
+	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*p.CarrierThickness +
+		coneVolume(thickRadius, radius, p.FlatDepth) +
+		(math.Pi*radius*radius-circleSegment(radius, p.FlatDepth))*rodLength
 	v, bound := volume(t, linkShaft)
 	require.InDelta(t, want, v, bound+0.5)
 	require.InDelta(t, rearBossTop(p, 2)+p.OutputShaftLength, bounds(t, box.Stages[1].Shaft).Max.Z, 1e-6)
@@ -942,6 +985,7 @@ func TestTwoStages(t *testing.T) {
 	mid := pitch + p.GearThickness/2
 	require.Equal(t, decad.PointInside, sectionLocate(t, secondSun, r3.NewVec(2.5, 0.3, mid)), "the second sun's bore keeps a tooth at the flat")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, secondSun, r3.NewVec(-1, 0.3, mid)), "the second sun's bore is open opposite the flat")
+	requireLinkCountersink(t, linkShaft, secondSun, pitch)
 	// The second stage meshes like the first.
 	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
 	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
@@ -961,8 +1005,21 @@ func TestTwoStages(t *testing.T) {
 		requireSectionClearance(t, link, round.Stages[0].Carrier, kz+q.CarrierThickness/2, 0.02)
 		requireSectionClearance(t, round.Stages[1].Shaft, round.Stages[1].Carrier, pitch+kz+q.CarrierThickness/2, 0.02)
 		require.InDelta(t, pitch+q.GearThickness, bounds(t, link).Max.Z, 1e-6)
-		require.Equal(t, decad.PointOutside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch-0.125)))
+		require.Equal(t, decad.PointInside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch-0.125)), "cone")
+		require.Equal(t, decad.PointOutside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch+1.5)), "thin rod")
+		requireLinkCountersink(t, round.Stages[0].Shaft, round.Stages[1].Sun, pitch)
 	})
+}
+
+// requireLinkCountersink checks the gap between a link shaft's 30° cone and the countersink in the next sun's rear bore.
+// The gap is the 0.25 mm the shaft's old square step had to the sun, measured normal to the cone, and the Tight minimum
+// of Part clearances is 0.2 mm. A horizontal section sees the gap along the radius, which is the normal gap over cos 30°,
+// so the sections up the countersink must show 0.2/cos 30° or more. sunZ is the height of the sun's rear face.
+func requireLinkCountersink(t *testing.T, link, sun *decad.Body, sunZ float64) {
+	t.Helper()
+	for _, up := range []float64{0.3, 0.6, 0.9} {
+		requireSectionClearance(t, link, sun, sunZ+up, 0.2/math.Cos(math.Pi/6))
+	}
 }
 
 func TestPlacedGearbox(t *testing.T) {

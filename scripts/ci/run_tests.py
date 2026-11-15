@@ -132,6 +132,7 @@ MODEL_PR_TESTS = [
     "TestProblemsNameForcedMinimums",
     "TestNewFitChecks",
     "TestCorners",
+    "TestSplitShafts",
     "TestSpiralSpringDefault",
     "TestSpiralSpringBranches",
     "TestSpiralSpringFits",
@@ -290,7 +291,8 @@ def run_siren(case: str) -> None:
 
 
 def run_escapement() -> None:
-    """Run every test of the Graham escapement package: about 4.5 minutes, one default build shared by the tests."""
+    """Run every test of the Graham escapement package: about 12 minutes, with a default build and a second-phase
+    build shared by the tests."""
     go_test(["./models/escapement", "-timeout", "40m", "-count=1"])
 
 
