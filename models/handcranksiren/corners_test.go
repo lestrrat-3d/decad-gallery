@@ -60,10 +60,19 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
 	}
 	corner := crankhandle.PocketFlats / math.Sqrt(3)
+	floor := -crankhandle.ArmRadius + m2fastener.NutCavityHeight
 	return map[string][]cornercheck.Exempt{
 		"crank-arm": {{
 			Reason: "hexagonal pocket corners",
 			Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
+		}, {
+			// The clamp pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm
+			// round of the floor's outline at a slant and reads it as a turn over 45 degrees, as in crankhandle.
+			Reason: "clamp nut pocket floor round cut at a slant",
+			Near: local(func(v r3.Vec) bool {
+				return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
+					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.NutCavityRadius+0.05
+			}),
 		}, {
 			Reason: "clamp head pocket floor rim",
 			Near: local(func(v r3.Vec) bool {
@@ -77,7 +86,8 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 
 // crossPocketCorners lists the six corners of each cross nut pocket in the pin, as crankhandle's crossPocketNear reads
 // them: in the pocket's band along the bolt, within the circle through its corners, and within 10 degrees about the
-// bolt's line of a corner direction (0, 60, ... 300 degrees from local Z). The points are read in crankhandle's frame.
+// bolt's line of a corner direction, which points across the pin (30, 90, ... 330 degrees from local Z, so 90 is +X).
+// The points are read in crankhandle's frame.
 func crossPocketCorners(local func(func(r3.Vec) bool) func(r3.Vec) bool, throw float64) []cornercheck.Exempt {
 	var out []cornercheck.Exempt
 	for i, z := range crankhandle.CrossZ {
@@ -91,7 +101,8 @@ func crossPocketCorners(local func(func(r3.Vec) bool) func(r3.Vec) bool, throw f
 				if r := math.Hypot(v.X, v.Z-z); r > m2fastener.NutCavityRadius+0.05 || r < 2.2 {
 					return false
 				}
-				rem := math.Mod(math.Abs(math.Atan2(v.X, v.Z-z))*180/math.Pi, 60)
+				deg := math.Abs(math.Atan2(v.X, v.Z-z))*180/math.Pi - 30
+				rem := math.Mod(deg+60, 60)
 				return math.Min(rem, 60-rem) <= 10
 			}),
 		})

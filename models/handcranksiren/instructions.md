@@ -293,14 +293,17 @@ stock 1.0. The nut rests 0.2 beyond the cavity's near face.
 | `throat-bolt-1..4` | `throat-nut-1..4` | 10 | (−46, `throatY` + 26 cos a, 84 + 26 sin a), a = 45° + 90°(k−1) | −X | (0, cos a, sin a) | 6.75 | collector | horn |
 | `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −16.25, 30), (99, −16.25, 30), (85, −16.25, 100), (99, −16.25, 100) | +Y | X | 17.75 | grip | gearbox-front |
 | `crank-pin-bolt` | `crank-pin-nut` | 10 | (60, 38.6, 139) | +Y | −X | 4.75 | crank-arm | crank-pin |
-| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (60, 55.6, 143), (60, 87.6, 143) | −Z | Y | 6.0 | crank-pin | crank-pin |
-| `crank-clamp-bolt` | `crank-clamp-nut` | 18 | (50, 42.6, 77.6) | +X | Z | 18.0 | crank-arm | crank-arm |
+| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (60, 55.6, 143), (60, 87.6, 143) | −Z | −X | 6.0 | crank-pin | crank-pin |
+| `crank-clamp-bolt` | `crank-clamp-nut` | 18 | (50, 42.6, 77.6) | +X | Y | 18.0 | crank-arm | crank-arm |
 
 The crank's sites are crankhandle's (`Dimensions.Site`, `CrossSites`, `ClampSite`) carried through the placement; the
 table gives them at crank angle 0, and the pose turns them with the crank. crankhandle cuts their pockets, holes and
 cavities; the clamp nut's is a hexagonal pocket open to the arm's +X side face (`models/crankhandle/instructions.md`,
-"Clamp"), each cross nut's a hexagonal pocket open to the pin's -Z flat with its corners along the pin's axis, and the
-others round cavities.
+"Clamp") with a corner up and one down (along Y) and its flats on the sides, each cross nut's a hexagonal pocket open to
+the pin's -Z flat with its corners across the pin (along X) and its flats along the pin's axis, and the others round
+cavities. The pin keeps 0.73 mm between each cross pocket's corner and the shank's round at the flat, the exception that
+`models/crankhandle/instructions.md` ("Walls under 1 mm") lists. The clamp pocket's roof is two 30 degree slopes that
+count as a bridge (2.17 mm across, under the 6 mm a bridge may span), so the arm needs no pause.
 
 Derived: front-bolt cavities at Y [11.75, 13.75] with tips at 18. Rear-bolt cavities at [23.85, 25.85] with tips at 19.6.
 Drum cavities at [1.5, 3.5] with tips at 4.5. Collector cavities at Y [−33.40, −35.40] inside the collector's rear wall
@@ -403,9 +406,10 @@ slit's end round only for its long-throw crank, so the siren's 55 mm crank has n
 | rotor | the roots of the vanes and the hub on the disc's back face | Between layers, opening upward when the disc prints face down; air drag only. |
 | drum | the posts' roots on the back plate's outer face; the wall's root on the back plate's inner face (r 46, Y −15.50); the flange step (r 49, Y −21.40) | Between layers. The posts are clamped by the drum bolts and carry little load. |
 | crank-arm | the clamp bolt's head pocket floor rim, 2 mm into the -X side face | The 0.3 mm head clearance leaves no room to round it, as in `models/crankhandle`. |
+| crank-arm | the 0.6 mm round of the clamp nut pocket's floor outline, where a layer cuts it at a slant | The pocket's slopes lie 30 degrees off the bed, so a layer chords the round into turns of 51.6 to 54.4 degrees, as in `models/crankhandle`. The test exempts only that floor band. |
 | crank-arm | the 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, as in `models/crankhandle`. |
 | crank-arm | the six corners of the clamp nut's hexagonal pocket in the +X side face | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. |
-| crank-pin | the six corners of each cross nut's hexagonal pocket in the -Z flat, edges along the cross bolt | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. |
+| crank-pin | the six corners of each cross nut's hexagonal pocket in the -Z flat, edges along the cross bolt | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. Their direction is across the pin (30, 90, ... degrees from local Z). |
 | crank-shaft, intermediate-shaft, rotor-shaft | collar and end steps | Between layers; small loads, as the escapement's arbors. |
 
 Rounds below half their section:
