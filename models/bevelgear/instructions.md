@@ -179,8 +179,11 @@ The current straight-tooth build revolves the six-sided reference blank,
 lofts one fitted back-cone tooth from the common apex, cuts that tooth at
 the toe and heel cones, places eight rotated copies around the shaft, and
 joins each copy to the blank with sequential binary `Union` calls. This is
-the verified interim 8/8 construction. A spiral member uses the serial join of
-the next section.
+the verified interim 8/8 construction. Right after the join, `decad.Refine` rebuilds the
+sector join to a 0.03 mm mesh bound, so the bound after the bore cut stays at or below the 0.05 mm
+that the corner check needs. It adds triangles and moves no surface. A gear with large sectors, such as
+module 4 with 4 to 32 teeth, is beyond what `Refine` rebuilds, and keeps the unrefined join. A spiral member uses the serial
+join of the next section, which `Refine` does not cover.
 Both hands pass `VerifyAll` at 0.1 mm before and after their auto-calculated
 bores. `BuildPair` rotates the pinion about world Z by the shaft angle, then
 rotates the driving member by `π / Teeth` about its shaft.
@@ -357,3 +360,6 @@ one through-hole after a 1 mm bore, and a `VerifyAll` mesh. Later cases must
 also check unequal
 tooth counts, non-90° shaft angles, both flank/root routes, bore surfaces,
 toe and spacing changes, and right and left spiral traces.
+
+The corner check reads sections of the bored and unbored straight and spiral members normal to the
+shaft, with no exempt corner: the sections hold no sharp inside corner or tip, gear teeth included.

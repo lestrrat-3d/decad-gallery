@@ -3,6 +3,7 @@ package bevelgear
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -10,7 +11,11 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch/param"
+	"github.com/lestrrat-3d/units"
 )
+
+// joinMeshBound is the mesh bound in mm that the straight tooth join is refined to.
+const joinMeshBound = 0.03
 
 // Params describes one member of a bevel pair. Angles are radians and lengths are millimeters.
 type Params struct {
@@ -344,6 +349,19 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 	joined, err := decad.Union(ctx, blank, pattern...)
 	if err != nil {
 		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
+	}
+	// The sector join holds a 0.1 mm mesh bound at its cone caps. The corner check reads sections of the
+	// finished gear and needs a bound of 0.05 mm or less after the bore cut, which loosens the join's bound
+	// a little, so rebuild the join finer first.
+	refined, err := decad.Refine(ctx, joined, units.Millimeters(joinMeshBound))
+	switch {
+	case err == nil:
+		joined = refined
+	case errors.Is(err, decad.ErrUnsupported):
+		// A gear with large sectors, such as module 4 with 4 to 32 teeth, needs more caps triangles than decad
+		// refines, even at 0.08 mm. Keep the unrefined join: the corner check does not read such gears.
+	default:
+		return nil, fmt.Errorf("refine straight tooth join: %w", err)
 	}
 	return joined, nil
 }

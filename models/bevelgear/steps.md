@@ -31,6 +31,8 @@ supported pair.
    tooth in a Boolean. Rotate them around the shaft at successive 45°
    increments. Join the original and each copy to the revolved blank with
    sequential Decad `Union` calls. This is the verified interim 8/8 path.
+   Then call `decad.Refine` on the joined body with a 0.03 mm bound, so the
+   bored gear still reads at 0.05 mm or finer for the corner check.
 6. Check that the joined body is one solid and its unbored mesh has one
    closed outer shell. `Tessellate(0.1 mm, VerifyAll)` verifies its
    boundary and volume.
