@@ -85,15 +85,13 @@ func clutchCut(plane solidlens.ClipPlane, c solidlens.Color) *solidlens.ClipPlan
 	return &plane
 }
 
-// models returns every part moved by at and by its entry of pull, cut by clip when it is not nil. The cover and the
-// bolts above a z-normal clip lie wholly in the removed half and are left out.
+// models returns every part moved by at and by its entry of pull, cut by clip when it is not nil. A part wholly in the
+// removed half is left out.
 func (s clutchSet) models(at r3.Vec, pull map[string]r3.Vec, clip *solidlens.ClipPlane) ([]solidlens.Model, error) {
 	var out []solidlens.Model
 	for _, part := range s {
-		if clip != nil && clip.Normal.Z == 1 {
-			if low, _ := meshBounds(part.mesh); low.Z >= clip.Origin.Z {
-				continue
-			}
+		if clip != nil && clipRemovesAll(part.mesh, *clip) {
+			continue
 		}
 		move, err := r3.Translation(at.Add(pull[part.name]))
 		if err != nil {
@@ -106,6 +104,19 @@ func (s clutchSet) models(at r3.Vec, pull map[string]r3.Vec, clip *solidlens.Cli
 		out = append(out, m)
 	}
 	return out, nil
+}
+
+// clipRemovesAll reports whether an axis-aligned clip plane leaves nothing of the mesh, because the whole mesh lies on
+// the removed side.
+func clipRemovesAll(mesh *decad.Mesh, clip solidlens.ClipPlane) bool {
+	low, _ := meshBounds(mesh)
+	switch {
+	case clip.Normal.Z == 1:
+		return low.Z >= clip.Origin.Z
+	case clip.Normal.X == 1:
+		return low.X >= clip.Origin.X
+	}
+	return false
 }
 
 // The exploded view pulls the parts apart along the shaft axis, in the order they go together: the nuts out of the back
