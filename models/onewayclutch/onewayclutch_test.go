@@ -90,8 +90,12 @@ func TestOneWayClutchDefault(t *testing.T) {
 				require.InDelta(t, w[1].Y, box.Max.Y, tol, name)
 			}
 		}
-		require.GreaterOrEqual(t, box.Min.Z, -tol, name)
-		require.LessOrEqual(t, box.Max.Z, onewayclutch.CoverTo+tol, name)
+		lo, hi := 0.0, onewayclutch.CoverTo
+		if name == "ring" {
+			lo, hi = onewayclutch.RingFrom, onewayclutch.RingTo
+		}
+		require.GreaterOrEqual(t, box.Min.Z, lo-tol, name)
+		require.LessOrEqual(t, box.Max.Z, hi+tol, name)
 		require.LessOrEqual(t, box.Max.X, earX+tol, name)
 		require.LessOrEqual(t, box.Max.Y, onewayclutch.EarReach+tol, name)
 		require.GreaterOrEqual(t, box.Min.X, -earX-tol, name)
@@ -103,7 +107,7 @@ func TestOneWayClutchDefault(t *testing.T) {
 		require.NoError(t, err, name)
 		meshes[name] = mg
 	}
-	// The hub's pawl heads reach 15.76 from the axis; the clutch is 18.0 mm long.
+	// The hub's pawl heads reach 15.76 from the axis; the plates span 18.5 mm and the ring 21.0 mm.
 	hub, err := m.Hub.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, m.Dimensions.HeadReach, max(hub.Max.X, hub.Max.Y, -hub.Min.X, -hub.Min.Y), 0.5)

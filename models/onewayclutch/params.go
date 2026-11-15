@@ -58,7 +58,7 @@ const (
 
 	PlateRadius        = RingCounter - RegularFit // 18.1
 	Recess             = RegularFit               // annulus below the boss face
-	BackPlateThickness = 3.5
+	BackPlateThickness = 4.0
 	CoverThickness     = 4.0
 	PlateChamfer       = 0.5
 	HubChamfer         = 0.5
@@ -68,14 +68,17 @@ const (
 	PressWall  = 1.6 // least wall round a press-fit bore (AGENTS.md "Verification")
 
 	// Axial stack, z along the shaft from the back plate's outer face.
-	HubFrom    = BackPlateThickness + Seam  // 3.75
-	CoverFrom  = HubFrom + HubHeight + Seam // 14.0
-	CoverTo    = CoverFrom + CoverThickness // 18.0
-	RingFrom   = 0.25
-	RingTo     = CoverTo - 0.75 // 17.25, symmetric about the hub's mid-plane
-	RingHeight = RingTo - RingFrom
-	BandFrom   = BackPlateThickness - Recess + ToothEndGap // 3.95
-	BandTo     = CoverFrom + Recess - ToothEndGap          // 13.55
+	HubFrom   = BackPlateThickness + Seam  // 4.25
+	CoverFrom = HubFrom + HubHeight + Seam // 14.5
+	CoverTo   = CoverFrom + CoverThickness // 18.5
+	// EndStandoff is how far each ring end stands past the plates' outer faces: the ring's axial play ToothEndGap plus a
+	// Regular gap, so a flat container face at either end touches only the ring.
+	EndStandoff = ToothEndGap + RegularFit // 1.25
+	RingFrom    = -EndStandoff
+	RingTo      = CoverTo + EndStandoff // 19.75, symmetric about the hub's mid-plane
+	RingHeight  = RingTo - RingFrom
+	BandFrom    = BackPlateThickness - Recess + ToothEndGap // 4.45
+	BandTo      = CoverFrom + Recess - ToothEndGap          // 14.05
 )
 
 // EarAngles are the ear axes' angles, in degrees. They are symmetric about x = 0, so the ears do not depend on the

@@ -23,9 +23,9 @@ const (
 	fitCut = 7.0
 	// midHub is the hub's mid-height; the ring's tooth band shares it.
 	midHub = (onewayclutch.HubFrom + onewayclutch.HubFrom + onewayclutch.HubHeight) / 2
-	// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore, from the end of the
-	// counterbore's lead-in (z 0.75) to the cone's start on the plate's rim (z 2.0); the cover's is its mirror in midHub.
-	fitBackRimZ = (onewayclutch.RingFrom + onewayclutch.RingChamfer + onewayclutch.BackPlateThickness - 1.5) / 2
+	// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore: from the end of the
+	// plate's outer chamfer (z 0.5) to the cone's start on the plate's rim (z 2.5); the cover's is its mirror in midHub.
+	fitBackRimZ = (onewayclutch.PlateChamfer + onewayclutch.BackPlateThickness - 1.5) / 2
 )
 
 type fitCase struct {

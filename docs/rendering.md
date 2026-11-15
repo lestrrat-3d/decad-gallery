@@ -54,7 +54,7 @@ across the clamp nut's pocket at x = -9, and `cross-section` cuts the pin across
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
-`onewayclutch/hero` renders the default clutch with every body cut by the plane z = 8.75, the hub's mid-height, and the
+`onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
 +Z side removed, seen from the front and above, so the pawl heads in the ring's teeth, the arms and the back plate show, with the ring's
 three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
 the same cut, and `cutaway` cuts every body by the plane x = 0 and looks from +X. `exploded` pulls the parts apart along

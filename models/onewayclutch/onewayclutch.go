@@ -264,8 +264,14 @@ var (
 // BackPlateInner and CoverInner are the plates' inner-face tools (r, z): the boss, its bevel, the recessed annulus and
 // the 45 degree cone to the rim.
 var (
-	BackPlateInner = [...][2]float64{{9.8, 4.5}, {9.8, 3.9}, {10.6, 3.1}, {17.0, 3.1}, {19.1, 1.0}, {19.1, 4.5}}
-	CoverInner     = [...][2]float64{{9.8, 13.0}, {9.8, 13.6}, {10.6, 14.4}, {17.0, 14.4}, {19.1, 16.5}, {19.1, 13.0}}
+	BackPlateInner = [...][2]float64{
+		{9.8, BackPlateThickness + 1}, {9.8, BackPlateThickness - 0.6}, {10.6, BackPlateThickness - Recess},
+		{17.0, BackPlateThickness - Recess}, {19.1, BackPlateThickness - Recess - 2.1}, {19.1, BackPlateThickness + 1},
+	}
+	CoverInner = [...][2]float64{
+		{9.8, CoverFrom - 1}, {9.8, CoverFrom + 0.6}, {10.6, CoverFrom + Recess}, {17.0, CoverFrom + Recess},
+		{19.1, CoverFrom + Recess + 2.1}, {19.1, CoverFrom - 1},
+	}
 )
 
 // placeSite carries a local bolt site through the placement.

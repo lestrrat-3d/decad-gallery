@@ -21,15 +21,15 @@ three ears stand out between the bolt heads.
 
 ![The clutch from the front: the cover with three bolt heads and the D bore, and the ring's three ears between them](images/front.png)
 
-From the back, the back plate's outer face goes against the mechanism. Its three hex pockets hold the nuts, each flush
-with the bolt tip.
+From the back, the back plate's outer face goes against the mechanism. Its three hex pockets hold the nuts. Each bolt tip
+sits just inside the back plate's outer face, and ends flush with it once the bolts are tight.
 
-![The clutch from the back: the back plate with the D bore and three nuts in hex pockets](images/back.png)
+![The clutch from the back: the back plate with the D bore and three nuts in hex pockets, the ring standing out round it](images/back.png)
 
 From the side, the ring's outside is 42 mm across between the ears, which stand out to a 54.2 mm circle. The ring's
-outer edges are chamfered.
+outer edges are chamfered, and the ring stands 1.25 mm past both plates.
 
-![The clutch from the side: the ring with an ear in front and the ear tips on a 54.2 mm circle](images/side.png)
+![The clutch from the side: the ring with an ear in front, standing 1.25 mm past the plates at both ends](images/side.png)
 
 ## How it works
 
@@ -53,14 +53,23 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
 
 The second cut runs through the shaft axis. Each plate has a rim that fits a counterbore in the ring's end, with a 45°
 cone beside it, so the plates hold the ring between them and it cannot slide along the shaft. The ring keeps 0.4 mm of
-radial gap to each rim.
+radial gap to each rim, and each rim overlaps the counterbore over 2.0 mm.
 
-## Mounting the ring
+## Mounting the clutch
 
-The ring turns relative to the hub, the plates and the shaft, so the driven part attaches to the ring alone. Three ears
-run the ring's full height, each with an M2 clearance bore. Bolt the driven part to the ears, or key a housing onto
-them: a tight fit needs a 42 mm bore with three notches for the ears. The model places no bolt in the ears. The plates
-stay round, so nothing bolted to the ears reaches the parts that turn with the shaft.
+The ring's two ends stand 1.25 mm past everything that turns with the shaft: both plates, the bolt heads and the bolt
+tips. The ring floats 0.85 mm each way between the plates' cones, so 0.4 mm stays clear at the end of its travel.
+
+- A part that turns with the ring, such as a housing or a gear, may sit flat against either end of the ring. It must
+  clear the shaft and a 37 mm circle round it.
+- A part that turns with the shaft, such as a collar, a spacer or a bearing's inner race, bears on a plate's face.
+  Keep it inside 35 mm across, so it never reaches the ring.
+- No bearing outside the clutch is needed. The plates' rims and cones carry the ring.
+
+The driven part attaches to the ring alone. Three ears run the ring's full height, each with an M2 clearance bore. Bolt
+the driven part to the ears, or key a housing onto them: a tight fit needs a 42 mm bore with three notches for the ears.
+The model places no bolt in the ears. The plates stay round, so nothing bolted to the ears reaches the parts that turn
+with the shaft.
 
 | Ear dimension | Value |
 | --- | ---: |
@@ -69,7 +78,7 @@ stay round, so nothing bolted to the ears reaches the parts that turn with the s
 | Bore | 2.6 mm (M2 clearance) |
 | Ear width | 7.2 mm |
 | Tip circle | 54.2 mm across |
-| Length | 17.0 mm (the ring's full height) |
+| Length | 21.0 mm (the ring's full height) |
 
 ## Freewheel direction
 
@@ -112,6 +121,7 @@ directions, less the measurement's own error bound, so it sits a little under th
 | Ring counterbore to each plate's rim | 0.40 | 0.381 |
 | Ring cone to each plate's cone | 0.60 | 0.583 |
 | Ring tooth ends to the plates | 0.85 | 0.832 |
+| Ring ends past every shaft-side part, with the ring at the end of its play | 1.25 | 0.40 at the end of the play |
 | Each pawl head in its tooth gap, seated | 0.40 | 0.387 |
 | Arm outer arc to the teeth's tips | 0.55 | 0.515 |
 
@@ -133,8 +143,8 @@ All dimensions are in millimeters. `Params.Validate` rejects a value outside its
 | `BoreClearance` | 0.05 | Radial clearance of every D bore, 0.05 to 0.5, and small enough to keep 1.6 mm of wall between the bore and the nut pockets |
 | `Placement` | none | A valid frame |
 
-The ring is 42 mm across between its ears and 54.2 mm across the ear tips, and the stack is 18.0 mm high. None of these
-depends on the preset.
+The ring is 42 mm across between its ears and 54.2 mm across the ear tips, and the plates are 18.5 mm long, the ring 21.0 mm. None of
+these depends on the preset.
 
 ## Printing
 
@@ -150,7 +160,7 @@ To assemble, work off the shaft with the bolts loose, because a nut is not held 
 4. Lay the back plate on, inner face down, with the bolts through its holes.
 5. Drop an M2 nut into each hex pocket. Lift the stack, holding the plates together, and turn each bolt from the cover's
    side until it catches its nut. Leave them loose.
-6. Press the clutch onto the shaft, back plate first, its outer face toward the mechanism. The loose bolts let the three
+6. Press the clutch onto the shaft, back plate first, its outer face toward the mechanism's collar. The loose bolts let the three
    D bores line up on the shaft.
 7. Tighten the three bolts from the front. The pockets stop the nuts turning.
 

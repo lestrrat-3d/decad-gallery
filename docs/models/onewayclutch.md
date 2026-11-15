@@ -48,8 +48,10 @@ each they check:
 - that the placed model equals the local one moved by the frame (`TestOneWayClutchPlacement`);
 - the part fits of `instructions.md` and that no two bodies overlap (`TestOneWayClutchFits`);
 - the pawl's arm thickness, slot margin, strain and lock contact (`TestOneWayClutchPawls`);
-- that each bolt head ends flush in its pocket, each tip ends flush with the back plate's outer face, each nut sits in
-  its hex pocket and no fastener overlaps a part (`TestOneWayClutchFasteners`);
+- that each bolt head ends flush in its pocket, each tip lies inside the back plate's outer face and ends flush with it once
+  the seams close, each nut sits in its hex pocket and no fastener overlaps a part (`TestOneWayClutchFasteners`);
+- that the ring stands 1.25 mm past every shaft-side body at both ends and that its axial play stays under that
+  standoff by a Regular gap (`TestOneWayClutchEnds`);
 - the ring's three ears, their bores and walls, and that the ring's outside is the same in both directions
   (`TestOneWayClutchEars`);
 - the chamfers of the plates', the hub's and the ring's faces (`TestOneWayClutchEdgeFinishing`,
