@@ -67,6 +67,7 @@ func TestKitGearboxes(t *testing.T) {
 			require.InDelta(t, wantBoss, boss.max, boss.bound+2e-3, "rear cover boss radius")
 
 			requireFitClearances(t, box, p)
+			requirePressFitWalls(t, box, p)
 			requireEdgeFinishing(t, box, p)
 			requireFastenersFlush(t, box, p)
 			for i, planet := range stage.Planets {

@@ -10,8 +10,8 @@ import (
 func TestProblemsNameForcedMinimums(t *testing.T) {
 	require.Empty(t, planetarygearbox.Problems(planetarygearbox.DefaultParams()))
 
-	shaft := planetarygearbox.DefaultParams()
-	shaft.ShaftBearing = "608ZZ"
+	sun := planetarygearbox.DefaultParams()
+	sun.SunTeeth, sun.PlanetTeeth, sun.RingTeeth = 11, 28, 67
 	pocket := planetarygearbox.DefaultParams()
 	pocket.PlanetBearing = "608ZZ"
 	pocket.SunTeeth, pocket.PlanetTeeth, pocket.RingTeeth = 13, 26, 65
@@ -23,10 +23,10 @@ func TestProblemsNameForcedMinimums(t *testing.T) {
 		p    planetarygearbox.Params
 		want []string
 	}{
-		"sun wall": {shaft, []string{
-			"shaft bore leaves less than one module",
-			"SunTeeth must be at least 14 for the 8.1 mm shaft at module 1",
-			"try 14/28/70",
+		"sun wall": {sun, []string{
+			"sun bore leaves less than 1.6 mm of wall",
+			"SunTeeth must be at least 12 for the 5 mm shaft section at module 1",
+			"try 13/29/71",
 		}},
 		"planet pocket wall": {pocket, []string{"PlanetTeeth must be at least 28 for the 608ZZ planet bearing"}},
 		"lip":                {lip, []string{"a 608ZZ planet bearing needs GearThickness >= 8"}},

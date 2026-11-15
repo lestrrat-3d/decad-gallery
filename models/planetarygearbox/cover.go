@@ -271,7 +271,7 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	// The flat runs from the sun's lower face to past the shaft's top, through the sun.
 	// A second flat runs along the end that reaches out of the cover, where a coupling or a set screw grips.
 	return r.buildShaft(ctx, "input shaft", start, p.GearThickness, inner, -collarClearance,
-		span{0, p.GearThickness + 1}, span{start - 1, start + p.InputShaftLength - endFlatMargin})
+		span{0, p.GearThickness + 1, r.d.sunShaft}, span{start - 1, start + p.InputShaftLength - endFlatMargin, r.d.shaft})
 }
 
 // circleSeam returns the start of the one edge of body that starts at height z on a circle of the given radius about
