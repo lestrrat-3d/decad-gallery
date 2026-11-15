@@ -87,8 +87,14 @@ this pair's chord tolerance 0.0011 mm". `NewDocument` sets 0.01 mm.
 
 ## Known decad limit
 
-The 608-2RS bore's rim in the arm's back face is a 25.3 mm run on a large face, which "Surface edge finishing" asks to
-chamfer. After the bore cut Decad stores its arc as a `decad.FacetedCurve`, so `decad.Circular()` does not select it.
-Selected by both endpoints and `decad.Convex()`, `decad.Chamfer` refuses it: "this evaluator chamfers a straight prism,
-its one-line Sweep reduction, or a revolve only; no retained blend class reads selected edge[0]: an edge between a
-retained plane and a retained cylinder". The rim stays sharp, as it was on the siren's arm.
+The D bore's rim in the arm's back face, a 25.3 mm run at the 608-2RS, is a long run on a large face, which "Surface
+edge finishing" asks to chamfer. The slit opens that rim into three edges: two arcs and the flat, each arc ending at a
+slit wall. Chamfered by their endpoints after the bore cut, with decad `affd593f7cdf` (it holds #3240, #3243 and #3246),
+the run is refused: "not supported by the current evaluator: an edge end meets a face that is not a retained plane". Each arc alone is
+refused with "a setback point lies behind an arc end". Decad's current main refuses it the same way. The rim stays
+sharp, as it was on the siren's arm.
+
+A bore rim the slit does not open does chamfer, so the order bore, rim chamfer, slit would work where the Booleans
+admit it. At the 605ZZ the slit cut after the rim chamfer passes. At the 608-2RS it fails: the cut's target holds its
+mesh within 0.0196 mm, coarser than the pair's chord tolerance of 0.0017 mm. Taking that route needs a geometry change
+that a bore-first order admits at both bearings.
