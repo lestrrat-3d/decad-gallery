@@ -62,7 +62,7 @@ var handCrankSirenViews = []sirenView{
 // axis (+Y), as models/crankhandle's exploded view pulls them: the pin bolt 18 back out of the arm, the pin nut 16 and
 // the handle 32 out, and the pin 95 out, clear of the handle, with its cross bolts 14 further along arm, the posed
 // direction from the shaft to the pin, and their nuts 14 back. The clamp bolt pulls 30 out of the arm's side face, and
-// the clamp nut 25 the other way along the bolt's line, out past the far jaw, where the arm does not hide it.
+// the clamp nut 25 the other way along the bolt's line, out of its pocket in the far side face.
 func handCrankSirenExplode(name string, arm r3.Vec) r3.Vec {
 	armY := r3.Vec{Y: 230}
 	pin := armY.Add(r3.Vec{Y: 95})

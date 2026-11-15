@@ -60,9 +60,15 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 	return crossings%2 == 1
 }
 
+// openPocketNut names the one nut that sits in a hexagonal pocket open to its part's face instead of an enclosed cavity:
+// the crank arm's clamp nut, which the clamp bolt holds in (models/crankhandle). Its pocket runs from CavityNear to the
+// face at CavityFar, and the bolt's tip ends flush with that face.
+const openPocketNut = "crank-clamp-nut"
+
 // requireFasteners proves for each fastener: the head ends flush with its part's face, the nut sits inside the cavity
-// its part encloses, the part keeps 1 mm of material round the pocket and the cavity, the bolt's tip stays in the part,
-// and no fastener shares material with the parts it passes through.
+// its part encloses (or, for openPocketNut, inside its hexagonal pocket below the face), the part keeps 1 mm of material
+// round the pocket and the cavity, the bolt's tip stays in the part, and no fastener shares material with the parts it
+// passes through.
 func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	all, err := handcranksiren.Fasteners(p)
 	require.NoError(t, err)
@@ -118,6 +124,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		}
 		// The cavity's section is a hole loop with the part's material round it. The floor and the roof beside the
 		// cavity are solid except for the bolt hole, so the cavity is closed on every side but the hole.
+		open := f.Nut == openPocketNut
 		wall := host(f, nutHost, mid)
 		require.False(t, wall.contains(r3.Vec{}), "%s: the cavity is empty", f.Nut)
 		require.True(t, wall.contains(f.Corner.Scale(3.0)), "%s: the cavity's corner wall is solid", f.Nut)
@@ -131,20 +138,40 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 			require.True(t, wall.contains(ring.Scale(cavityRadius+material)),
 				"%s: the part keeps 1 mm round the cavity at %d degrees", f.Nut, k*30)
 		}
-		for name, d := range map[string]float64{"roof": f.CavityFar + 0.5, "floor": f.CavityNear - 0.5} {
+		layers := map[string]float64{"roof": f.CavityFar + 0.5, "floor": f.CavityNear - 0.5}
+		if open {
+			delete(layers, "roof")
+		}
+		for name, d := range layers {
 			layer := host(f, nutHost, d)
 			require.True(t, layer.contains(f.Corner.Scale(1.6)), "%s: the %s of the cavity is solid", f.Nut, name)
 			require.False(t, layer.contains(r3.Vec{}), "%s: the %s has the bolt hole", f.Nut, name)
 		}
 		tip := m2bolt.HeadHeight + f.Length
-		require.True(t, host(f, nutHost, tip-0.3).contains(f.Corner.Scale(1.6)), "%s: the tip is held by the part", f.Bolt)
-		if strings.HasPrefix(f.Bolt, "crank-cross-bolt-") {
+		if open {
+			// The pocket opens to the face at CavityFar: the part ends there, the nut ends below it, and the bolt's tip
+			// ends flush with it, through the whole nut.
+			require.InDelta(t, f.CavityFar, tip, 1e-9, "%s: the tip reaches the pocket's face", f.Bolt)
+			require.True(t, host(f, nutHost, f.CavityFar-0.05).contains(f.Corner.Scale(3.0)), "%s: the part runs to the face", f.Nut)
+			require.False(t, host(f, nutHost, f.CavityFar-0.05).contains(f.Corner.Scale(1.6)), "%s: the pocket reaches the face", f.Nut)
+			require.False(t, host(f, nutHost, f.CavityFar+0.05).contains(f.Corner.Scale(3.0)), "%s: the part ends at the face", f.Nut)
+			_, nutEnd, nb := extent(t, nut, f.Dir)
+			require.LessOrEqual(t, nutEnd, f.Head.Dot(f.Dir)+f.CavityFar+nb, "%s ends below the face", f.Nut)
+			_, end, bb := extent(t, bolt, f.Dir)
+			require.InDelta(t, f.Head.Dot(f.Dir)+tip, end, 2e-3+bb, "%s: tip flush with the face", f.Bolt)
+			require.Greater(t, end, nutEnd, "%s runs through the whole nut", f.Bolt)
+		} else {
+			require.True(t, host(f, nutHost, tip-0.3).contains(f.Corner.Scale(1.6)), "%s: the tip is held by the part", f.Bolt)
+		}
+		switch {
+		case open:
+		case strings.HasPrefix(f.Bolt, "crank-cross-bolt-"):
 			// A cross bolt's tip ends at the pin's far flat (models/crankhandle): the part holds material up to it, and
 			// the bolt ends there.
 			_, end, bound := extent(t, bolt, f.Dir)
 			require.InDelta(t, f.Head.Dot(f.Dir)+tip, end, 2e-3+bound, "%s: tip", f.Bolt)
 			require.True(t, host(f, nutHost, tip-0.05).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
-		} else {
+		default:
 			require.True(t, host(f, nutHost, tip+0.3).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
 		}
 
@@ -183,6 +210,11 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		gap("head in its pocket", bolt, headHost, 1.0)
 		gap("shank in the head host's hole", bolt, headHost, 3.0)
 		gap("nut in its cavity", nut, nutHost, f.CavityNear+0.9)
-		gap("shank in the nut host's hole", bolt, nutHost, f.CavityFar+0.3)
+		if open {
+			// Past the open pocket's face there is no part: read the shank in the hole before the pocket's floor.
+			gap("shank in the nut host's hole", bolt, nutHost, f.CavityNear-0.5)
+		} else {
+			gap("shank in the nut host's hole", bolt, nutHost, f.CavityFar+0.3)
+		}
 	}
 }
