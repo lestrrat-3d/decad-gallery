@@ -13,10 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Tolerances of the fit measurements, in mm: the chord tolerance of every section and printed-part mesh.
+// Tolerances of the fit measurements, in mm: the chord tolerance of every section and printed-part mesh. The chamfered
+// hub is faceted, with a mesh bound near 0.024, so no section or mesh of it may be finer than 0.03.
 const (
-	fitSectionTol = 0.01
-	fitMeshTol    = 0.01
+	fitSectionTol = 0.03
+	fitMeshTol    = 0.03
 	// fitCut is the angle of the axial section plane. It is not a multiple of the 15 degree tooth pitch, so the plane
 	// cuts the teeth through their ramps and never lies along a lock face.
 	fitCut = 7.0

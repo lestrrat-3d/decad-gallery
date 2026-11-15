@@ -338,6 +338,7 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 				hub := rotated(-sigma * free.angle)
 				gap, clear, err := meshOf(t, hub, "free hub").Exceeds(meshOf(t, parts.Ring, "ring"), free.clearance)
 				require.NoError(t, err)
+				t.Logf("free way, hub turned %g degrees: proven gap %.3f mm", free.angle, gap)
 				require.True(t, clear, "the hub turned %g degrees the free way clears the ring by %g mm (gap bound %g)",
 					free.angle, free.clearance, gap)
 				require.Zero(t, countInside(tessellate(t, hub, "free hub").Vertices(), ring))

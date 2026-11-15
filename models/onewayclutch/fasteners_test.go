@@ -166,9 +166,9 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	}
 	for _, pr := range probes {
 		f := atZ(t, pr.z)
-		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(0.01))
+		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(0.03))
 		require.NoError(t, err, pr.name)
-		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(0.01))
+		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(0.03))
 		require.NoError(t, err, pr.name)
 		c, err := a.Clearance(b)
 		require.NoError(t, err, pr.name)
