@@ -392,6 +392,11 @@ Press-fit walls: the sun's D bore keeps 2.45 mm of wall to the tooth roots in ev
 or more round its pin sockets and its shaft hole, so the 1.6 mm press-fit wall clause holds. A shaft through a 608ZZ
 narrows to 6 mm where a sun sits on it, because an 8.1 mm bore would leave 1.45 mm under a 14-tooth sun's root circle.
 
+The 1.6 mm clause covers printed press-fit tubes only, not the pocket that holds a purchased bearing. The 608ZZ planet
+bearing pocket therefore leaves 1.43 mm of wall to the planet root circle in the 28-tooth kits (the one-module minimum
+plus 0.43 mm), which is allowed: the bearing seat grips a purchased part with a small radial fit and loads no printed
+tube. See [Corners and roots](../../docs/model-pipeline.md#corners-and-roots).
+
 ## Edge finishing
 
 Surface edge finishing chamfers every convex boundary edge of a flat face of at least 400 mm² (net area) along a run of
