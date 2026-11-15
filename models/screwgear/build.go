@@ -30,9 +30,11 @@ const (
 const chainTolerance = 0.1
 
 // NewDocument returns a decad document that admits the sleeve's chain of six cuts. Build needs a
-// document made with this tolerance; opts are applied after it.
+// document made with this tolerance and with decad.WithRimSplit, which keeps the sleeve's held mesh
+// bound at or below the corner check's 0.05 mm after each cut; opts are applied after them.
 func NewDocument(opts ...decad.DocumentOption) *decad.Document {
-	return decad.New(append([]decad.DocumentOption{decad.WithChainTolerance(units.Millimeters(chainTolerance))}, opts...)...)
+	base := []decad.DocumentOption{decad.WithChainTolerance(units.Millimeters(chainTolerance)), decad.WithRimSplit()}
+	return decad.New(append(base, opts...)...)
 }
 
 // Build adds the two gears and the sleeve to doc and returns them. ctx and doc must not be nil.

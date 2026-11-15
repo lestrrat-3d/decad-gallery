@@ -41,6 +41,9 @@ default ribbons have 68 teeth, are 15 mm wide and 3.75 mm thick, and are 178.5 m
 tall and runs from 12.5 mm to 18.5 mm in radius. The model builds the gears and the sleeve as three separate
 bodies.
 
+Print each ribbon standing on one end and the sleeve standing on one end face. The corner check reads each part in
+that orientation.
+
 You can vary:
 
 - The ribbon: width, thickness, tooth count, tooth pitch and height, the lean and bow of the tooth ridges, and the
