@@ -156,18 +156,6 @@ MODEL_PR_TESTS = [
     "TestCrankHandleFits",
     "TestCrankHandlePlacement",
     "TestCrankHandleRejectsInvalidInputs",
-    "TestOneWayClutchDefault",
-    "TestOneWayClutchContainers",
-    "TestOneWayClutchRejectsInvalidInputs",
-    "TestOneWayClutchSketches",
-    "TestOneWayClutchMirror",
-    "TestOneWayClutchFreewheelDirection",
-    "TestOneWayClutchPlacement",
-    "TestOneWayClutchFits",
-    "TestOneWayClutchPawls",
-    "TestOneWayClutchFasteners",
-    "TestOneWayClutchEdgeFinishing",
-    "TestOneWayClutchCorners",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -308,6 +296,12 @@ def run_escapement() -> None:
     go_test(["./models/escapement", "-timeout", "40m", "-count=1"])
 
 
+def run_onewayclutch() -> None:
+    """Run every test of the one-way clutch package: about 12 minutes, over the 5 minute PR job limit, so it has its
+    own job."""
+    go_test(["./models/onewayclutch", "-timeout", "40m", "-count=1"])
+
+
 def run_fan_variant(variant: str) -> None:
     env = os.environ.copy()
     env["HANDCRANKFAN_FULL"] = "1"
@@ -339,7 +333,6 @@ def run_models(mode: str) -> None:
                 "./models/planetarygearbox",
                 "./models/spiralspring",
                 "./models/crankhandle",
-                "./models/onewayclutch",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
@@ -370,12 +363,15 @@ def main() -> None:
     if suite == "escapement" and not args and mode == "all":
         run_escapement()
         return
+    if suite == "onewayclutch" and not args and mode == "all":
+        run_onewayclutch()
+        return
     if suite == "fan" and not args and mode in FAN_VARIANTS:
         run_fan_variant(mode)
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | escapement all | fan <flat-three|steep-three>"
+        " | siren <default|variants> | escapement all | onewayclutch all | fan <flat-three|steep-three>"
     )
 
 
