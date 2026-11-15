@@ -9,7 +9,7 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// The crank is models/crankhandle's 608-2RS crank: an arm that an M2 x 16 clamp bolt pinches onto the crank shaft's
+// The crank is models/crankhandle's 608-2RS crank: an arm that an M2 x 18 clamp bolt pinches onto the crank shaft's
 // D-flat, a pin whose hexagonal stub one M2 x 10 bolt and nut clamp in the arm and whose two printed halves two M2 x 6
 // cross bolts clamp, and a handle that turns on the pin. It is built at CrankAngle 0, with the arm pointing up (+Z)
 // from C.

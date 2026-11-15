@@ -2,7 +2,7 @@
 
 The model in `models/crankhandle` constructs a printed hand crank for a D-flat shaft: an arm that pinches the shaft, a
 pin, a handle that turns on the pin, the M2 x 10 bolt and nut that clamp the pin in the arm, the two M2 x 6 cross bolts
-and nuts that clamp the pin's two printed halves together, and the M2 x 16 clamp bolt and nut that close the arm's slit
+and nuts that clamp the pin's two printed halves together, and the M2 x 18 clamp bolt and nut that close the arm's slit
 on the shaft. `models/handcranksiren` builds its crank from it.
 
 ## Construction and API
@@ -28,8 +28,8 @@ The arm's outline runs from an arc round the pin down two straight sides, past t
 one 22 mm end arc, every join tangent. It is extruded and both faces' outlines are chamfered; the chamfer needs decad
 902e347 or later, which admits the outline's solver-placed tangent arcs in the Booleans that follow. Then the arm is
 cut by the slit, the blind D bore, the hexagonal pocket for the pin's stub, the pin bolt's head pocket, and the clamp
-bolt's square-topped nut cavity, head pocket and blind hole, with the cavity's faces and the hole's end rounded on
-their tools. The pin joins a hexagonal stub to a revolved shank and head, then
+bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The nut pocket keeps sharp hexagon corners and
+its floor is rounded on the tool. The pin joins a hexagonal stub to a revolved shank and head, then
 takes the double flats, the pin bolt's hole and nut cavity with rounded ends (`m2fastener.RoundedHoleTool` and
 `RoundedCavityTool`), and each cross bolt's hole, head pocket and nut cavity. The handle is a revolved meridian.
 
@@ -42,8 +42,9 @@ go -C tools/render run . -model crankhandle -shot readme -out ../../models/crank
 
 The readme shot writes `hero.png`, `index.png`, `side.png`, `back.png`, `cutaway.png`, `exploded.png`, `split.png`,
 `print.png`, `sizes.png`, `clamp.png`, `clamp-nut.png`, and `parts/arm.png`, `pin.png`, `pin-half-heads.png`,
-`pin-half-nuts.png`, `handle.png`, `bolt.png`, `cross-bolt.png`, `clamp-bolt.png` and `nut.png`. `clamp` and
-`clamp-nut` cut the arm's hub along and across the clamp bolt; they are written only by the readme shot. The presets `crankhandle/hero`, `side`, `back`, `cutaway`, `exploded`,
+`pin-half-nuts.png`, `handle.png`, `bolt.png`, `cross-bolt.png`, `clamp-bolt.png` and `nut.png`. `clamp` cuts the
+arm's hub along the clamp bolt, and `clamp-nut` shows the hub from the nut's side; they are written only by the readme
+shot. The presets `crankhandle/hero`, `side`, `back`, `cutaway`, `exploded`,
 `split`, `print` and `sizes` render one view each. `split` and `print` clip the real pin mesh by the seam with
 `solidlens.ClipMesh`; the model keeps the pin whole.
 
@@ -59,9 +60,10 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   round end, and the wall round it is at least 1.6 mm, or 1.05 mm over the clamp bolt's hole;
 - the slit: one section loop runs from the bore down the slit's walls, 1 mm apart, to the end arc, and the slit ends
   in the floor 1 mm past the bore's wall;
-- the clamp bolt: an M2 x 16 with its head flush with the +X side face and inside its pocket, crossing the slit, its
-  hole ending 1 mm inside the -X face, its nut inside its cavity, and no overlap with the arm in sections along and
-  across it; and every wall round the clamp's cuts at least 1 mm, also for a 16.6 mm shaft;
+- the clamp bolt: an M2 x 18 with its head flush with the +X side face and inside its pocket, crossing the slit, its
+  tip flush with the -X face, its nut inside its hexagonal pocket below that face, and no overlap with the arm in
+  sections along and across it; the pocket open to the -X face, its flats closer to the axis than the nut's corners
+  and its corners clear of them; and every wall round the clamp's cuts at least 1 mm, also for a 16.6 mm shaft;
 - the face chamfers: 0.25 mm inside each face the section stands 0.25 mm in from the pin end, the end arc and both
   sides;
 - the fits: the stub in its pocket (Tight), the handle round the shank (Regular), and the handle's gaps to the pin and

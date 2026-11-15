@@ -5,14 +5,14 @@
 Construct a printed hand crank for a D-flat shaft. It is the hand-crank siren's crank, moved here so that the siren and
 any other mechanism build it from one construction. The parts are:
 
-- an arm, 20 mm wide, whose D bore pinches the shaft's D-flat: a slit through its hub and an M2 x 16 bolt across it
+- an arm, 20 mm wide, whose D bore pinches the shaft's D-flat: a slit through its hub and an M2 x 18 bolt across it
   close the bore;
 - a pin, whose hexagonal stub sits in a pocket in the arm and whose head holds the handle on. It prints as two halves
   split lengthwise ([Split shafts](../../docs/model-pipeline.md#split-shafts));
 - a handle, a barrel that turns freely on the pin's shank;
 - an M2 x 10 bolt from the arm's back face and an M2 nut in the pin's stub, which clamp the pin in the arm;
 - two M2 x 6 cross bolts and M2 nuts, which clamp the pin's two halves together;
-- an M2 x 16 clamp bolt and M2 nut across the arm's hub, which close the slit.
+- an M2 x 18 clamp bolt and M2 nut across the arm's hub, which close the slit.
 
 The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
 in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
@@ -45,10 +45,9 @@ Package: `models/crankhandle`. Exported surface:
   (5.75), `StubFlats` (7.03), `StubFrom` (3.5), `StubLength` (5.8), `ShankR` (5.15), `ShankFrom` (8.25), `RootR`
   (3.5), `ShankTo` (52.75), `HeadR` (6.45), `HeadFrom` (55), `HeadLength` (3), `HandleFrom` (7.4), `PinBolt` (10),
   `PinCavity` (4.75), `PressWall` (1.6), `ChamferSize` (0.5), `CrossBolt` (6), `CrossFlat` (4.0), `CrossFlatHalf`
-  (3.25), `CrossCavity` (5.0), `ConeAngle` (30), `ClampBolt` (16), `ClampNutFrom` (5), `ClampHoleWall` (1.05),
-  `ClampSideRun` (3.6), `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `ClampCavityRound`
-  (0.6), `ClampHoleRound` (0.7), the cross bolts' positions `CrossZ` (17, 49), and `HandleProfile`, the handle's
-  meridian.
+  (3.25), `CrossCavity` (5.0), `ConeAngle` (30), `ClampBolt` (18), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
+  `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `ClampPocketRound` (0.6), the cross
+  bolts' positions `CrossZ` (17, 49), and `HandleProfile`, the handle's meridian.
 - The container names `ArmContainerName` (`Arm`), `PinContainerName` (`Pin`), `HandleContainerName` (`Handle`),
   `BoltsContainerName` (`Bolts`) and `NutsContainerName` (`Nuts`).
 - `Params` with `ShaftDiameter`, `FlatDepth`, `BoreClearance`, `Throw` and `Placement *r3.Frame` (nil selects the local
@@ -115,7 +114,7 @@ this frame onto the given one after each part's last operation.
    - the hexagonal pocket, a hexagon `PocketFlats` across flats about `(0, L)` with its corners on X, from z =
      `PocketFrom` for `PocketLength`, out through the front face;
    - the pin bolt's head pocket;
-   - the clamp bolt's nut cavity, head pocket and hole ("Clamp" below).
+   - the clamp bolt's nut pocket, head pocket and hole ("Clamp" below).
 
    The slit goes first. The bore cut on the chamfered arm leaves a mesh bound round its rim of about 0.0101 mm, over
    the document's 0.01 mm chain tolerance for the slit's cut, while the bore's cut admits the slit's finer rim.
@@ -150,32 +149,40 @@ this frame onto the given one after each part's last operation.
 The slit through the hub closes the D bore on the shaft when the clamp bolt is tightened. The bolt crosses the whole
 arm along -X, at mid thickness on y = `y_c`, so the hole between it and the bore keeps `ClampHoleWall` (1.05 mm) where
 it crosses the slit. Its site is `m2fastener.Site{Head: (ArmRadius, y_c, ArmThickness/2), Dir: (-1, 0, 0), Corner:
-(0, 1, 0), Length: 16, Cavity: ArmRadius + ClampNutFrom}`. M2 x 16 is in `m2bolt.StandardLengths()`.
+(0, 1, 0), Length: 18, Cavity: 2 ArmRadius - NutCavityHeight}`, so `Cavity` is 18 and both `CavityFar` and the bolt's
+tip lie 20 from the head, on the -X side face. Derive rejects a site whose tip is not flush. M2 x 18 is in
+`m2bolt.StandardLengths()`. M2 x 16 would end at the pocket's floor with no thread in the nut, and M2 x 20 would
+stand 2 mm proud.
 
 - The head pocket (`m2fastener.PocketTool`, radius 2.2, 2 deep) sinks the head flush in the +X side face.
-- The nut cavity lies in the -X jaw from x = -5 to -7 (`ClampNutFrom` to `ClampNutFrom` + 2). The arm encloses it on
-  all sides but the bolt hole. Its section across the bolt is the circle of radius 2.51 for its lower half and a
-  rectangle as wide above the bolt's axis: a square top, so the nut drops in on edge when the print pauses at the
-  cavity's roof (AGENTS.md "Fasteners"). Both its faces' outlines are rounded by `ClampCavityRound` on the tool.
-- The hole (`m2fastener.HoleTool`, 2.6 across) runs from the pocket across the slit and through the nut cavity to x =
-  -9, 1 mm inside the -X face; its blind end's outline is rounded by `ClampHoleRound` on the tool. The bolt's tip
-  ends at x = -8.
-- The sides stay straight `ClampSideRun` (3.6) past the bolt's axis, so the side face keeps 1.4 mm of flat beyond the
-  head pocket's ring before the corner arc begins.
+- The nut sits in a hexagonal pocket open to the -X side face, from x = -8 to -10 (`NutCavityHeight` deep). A pinch
+  clamp's nut may sit in a pocket open to a face, because the clamp bolt holds it there (AGENTS.md "Fasteners"). The
+  hexagon is centred on the bolt's axis with its corners on the circle of radius 2.51 along ±Y, so it is 4.35 across
+  its flats, which lie parallel to the print bed. The nut's corners (radius 2.31) cannot pass the flats (2.17 from
+  the axis), so the nut cannot turn. The corners stay sharp, 0.2 mm past the nut's corners, and the floor's outline is
+  rounded by `ClampPocketRound` (0.6) on the tool. The nut's 30° face chamfer clears the floor round, so the nut ends
+  at least 0.2 mm below the face.
+- The hole (`m2fastener.HoleTool`, 2.6 across) runs from the head pocket across the slit and out through the nut
+  pocket. The bolt's tip ends at x = -10, flush with the -X side face.
+- The sides stay straight `ClampSideRun` (3.6) past the bolt's axis, so each side face keeps 1.4 mm of flat beyond the
+  head pocket's ring and 1.09 mm beyond the nut pocket's corner before the corner arc begins.
+
+The pocket prints without supports or a pause: its roof is a 2.5 mm flat bridge and its upper sides rise at 60°. The
+nut goes in from the side at assembly.
 
 | Wall round the clamp | 605ZZ | 608-2RS |
 | --- | --- | --- |
 | Hole to the bore, at the slit | 1.05 | 1.05 |
-| Nut cavity to the bore | 2.99 | 2.29 |
-| Nut cavity to the outline, the -X face nearest | 3.0 | 3.0 |
-| Nut cavity to each face | 1.49 | 1.49 |
+| Nut pocket to the bore | 5.80 | 4.85 |
+| Nut pocket's floor to the outline, the corner arc nearest | 1.77 | 1.77 |
+| Nut pocket to each face | 1.83 | 1.83 |
+| -X side face beyond the nut pocket | 1.09 | 1.09 |
 | Side face beyond the head pocket | 1.4 | 1.4 |
 | Head pocket to each face | 1.8 | 1.8 |
-| Hole's blind end to the -X face | 1.0 | 1.0 |
 
 The press-fit wall rule asks for 1.6 mm round the bore. The arm keeps it everywhere but the 1.05 mm web over the clamp
 bolt's hole, at the slit: the slit makes the hub a clamp, so the bore no longer carries a pressed ring's hoop stress
-there. At the widest shaft the arm takes (16.7 mm), the nut cavity still keeps 1.24 mm to the bore.
+there. At the widest shaft the arm takes (16.7 mm), the nut pocket still keeps 3.08 mm to the bore.
 
 ## Split pin
 
@@ -214,7 +221,7 @@ Fusion cuts it.
 | Handle's bore cone to the pin's head cone | Regular | 0.40 normal to the cones |
 | Handle's counterbore round the pin's head | | 0.6 radial, 0.4 above the head |
 | Bolts, nuts | Fastener rules | head pocket 0.3, hole 0.3, cavity 0.2 |
-| Clamp nut in its square-topped cavity | Fastener rules | 0.2 radial past the nut's corners below the axis, 0.2 at each face |
+| Clamp nut in its hexagonal pocket | Fastener rules | 0.17 at each flat, 0.2 past each corner, 0.2 to the floor |
 
 The pin bolt's nut cavity has 0.55 mm rounds at its end corners. At the nut's faces they leave 0.07 mm of the 0.2 mm
 radial clearance past the nut's corners.
@@ -252,6 +259,7 @@ the head without a sharp step.
 | Arm | The bore's rim in the back face, at 608-2RS (`L_b` 25.3 mm, a long run, now opened by the slit) | Not chamfered: Decad refuses the chamfer (steps.md, "Known decad limit"). The siren's arm has the same sharp rim. |
 | Arm | The clamp bolt's head pocket floor rim, 2 mm into the +X side face | The 0.3 mm head clearance leaves no room to round it: a round would sit under the head. |
 | Arm | The slit's outline in the front face, a 25 mm run of two walls and the end round | Not chamfered: the slit is the 1 mm clamp gap, and a 0.5 mm chamfer each side would open its mouth to 2 mm. |
+| Arm | The six corners of the clamp nut's hexagonal pocket, edges along the clamp bolt in the -X side face | Mating corners: they match the sharp corners of the M2 nut, as the stub pocket's corners match the stub. They run parallel to the bed, so `cornercheck`'s layer sections do not read them. |
 | Arm | The 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, so the bore carries no pressed ring's hoop stress there ("Clamp" above). |
 | Arm | The slit's R0.5 end round in the bore's floor, in the `long-throw` case only | It is the full round of half the slit's width that "Corners and roots" asks for. The longer arm's held boolean mesh chords it coarsely enough that the check reads 51.8°. |
 | Pin | The pin bolt's nut cavity's 0.55 mm end rounds, in the layer 2 mm off the seam | That layer crosses the rounds near their edge, where they turn about 52°. They are the largest rounds that keep the nut's corner clearance. |
@@ -261,11 +269,11 @@ collars](../../docs/model-pipeline.md#arbor-collars) asks for a collar there; th
 
 ## Printing
 
-Print the arm on its back face and the handle upright on its inner end. Pause the arm's print at 6.51 mm, the roof of
-the clamp nut's cavity, drop an M2 nut into it on edge, and resume. Print the pin as its two halves, each lying
-on its cut face, with no supports. The half grooves of the pin bolt's hole and nut cavity on the cut face are short
-bridges, at most 3.6 mm across, and so are the roofs of the -Y half's nut cavities, 5.02 mm across. Pause the -Y half's print at 3.0 mm, the top of its two nut cavities, drop an M2 nut
-into each, and resume. The +Y half needs no pause.
+Print the arm on its back face and the handle upright on its inner end, with no supports and no pause. The clamp nut
+goes into its pocket at assembly. Print the pin as its two halves, each lying on its cut face, with no supports. The
+half grooves of the pin bolt's hole and nut cavity on the cut face are short bridges, at most 3.6 mm across, and so
+are the roofs of the -Y half's nut cavities, 5.02 mm across. Pause the -Y half's print at 3.0 mm, the top of its two
+nut cavities, drop an M2 nut into each, and resume. The +Y half needs no pause.
 
 To assemble:
 
@@ -273,7 +281,8 @@ To assemble:
 2. Push each M2 x 6 cross bolt through its head pocket in the +Y half into its nut in the -Y half, and tighten it.
 3. Slide the handle onto the pin's shank from the stub end.
 4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
-5. Press the arm onto the shaft, push the M2 x 16 clamp bolt in from the arm's +X side into its nut, and tighten it.
+5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in the arm's -X side, push the M2 x 18 clamp
+   bolt in from the +X side into it, and tighten it.
 
 ## Checks and images
 

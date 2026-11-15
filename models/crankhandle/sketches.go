@@ -160,11 +160,13 @@ func (r *run) slitTool() (*decad.Body, error) {
 	return r.extrude(s, 0, ArmThickness+2)
 }
 
-// clampCavityTool extrudes the clamp nut's cavity: the circle of radius m2fastener.NutCavityRadius about the bolt's
-// axis for its lower half, and a rectangle as wide above the axis, so its top is square. The cavity opens straight up
-// across its whole width at the print pause, and the nut drops in on edge. It runs NutCavityHeight along the bolt from
-// the site's Cavity. The sketch lies on site.Across(Cavity): U is Corner (+Y) and V is Dir × Corner (-Z, down).
-func (r *run) clampCavityTool() (*decad.Body, error) {
+// clampPocketTool extrudes the clamp nut's hexagonal pocket from its floor, the site's Cavity, out through the -X side
+// face: NutCavityHeight plus m2fastener.Stock along the bolt. The hexagon is centred on the bolt's axis with its corners
+// on the circle of radius m2fastener.NutCavityRadius along Corner (±Y), so two flats lie parallel to the print bed. Each
+// side is held by its distance from the axis, the first flat is horizontal and each next side turns 60 degrees from
+// the one before, so the corners lie where the sides meet. The corners stay sharp, matching the nut's sharp corners.
+// The sketch lies on site.Across(Cavity): U is Corner (+Y) and V is Dir × Corner (-Z), so it extrudes along -X.
+func (r *run) clampPocketTool() (*decad.Body, error) {
 	site := r.dm.ClampSite
 	f, err := site.Across(site.Cavity)
 	if err != nil {
@@ -175,17 +177,23 @@ func (r *run) clampCavityTool() (*decad.Body, error) {
 		return nil, err
 	}
 	rad := m2fastener.NutCavityRadius
-	a := sketchcheck.DimensionArcEnd(s, rad, 0)
-	b := sketchcheck.DimensionArcEnd(s, -rad, 0)
-	c := sketchcheck.DimensionPoint(s, -rad, -rad)
-	d := sketchcheck.DimensionPoint(s, rad, -rad)
-	// +V is down, so the counter-clockwise arc from a to b passes below the axis.
-	arc := s.CreateArc(s.Origin(), a, b)
-	s.AddConstraint(sketch.NewRadius(arc, rad))
-	s.CreateLine(b, c)
-	s.CreateLine(c, d)
-	s.CreateLine(d, a)
-	return r.extrude(s, 0, m2fastener.NutCavityHeight)
+	flat := rad * math.Sqrt(3) / 2
+	var corners [6]*sketch.Point
+	for i := range corners {
+		a := float64(i) * math.Pi / 3
+		corners[i] = s.CreatePoint(rad*math.Cos(a), rad*math.Sin(a))
+	}
+	var sides [6]*sketch.Line
+	for i := range sides {
+		sides[i] = s.CreateLine(corners[i], corners[(i+1)%6])
+		s.AddConstraint(sketch.NewDistancePointLine(s.Origin(), sides[i], flat))
+	}
+	// sides[1] runs from the corner at 60 degrees to the one at 120 degrees: a flat.
+	s.AddConstraint(sketch.NewHorizontal(sides[1]))
+	for i := range 5 {
+		s.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
+	}
+	return r.extrude(s, 0, m2fastener.NutCavityHeight+m2fastener.Stock)
 }
 
 // boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the

@@ -55,20 +55,21 @@ const (
 	// The arm pinches the shaft. It keeps its full width past the shaft: its sides run straight on to a point
 	// ClampSideRun below the clamp bolt's axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
 	// join tangent. A slit SlitWidth wide runs along x = 0 from the end arc into the bore and ends in a full round in the
-	// bore's floor. The M2 x 16 clamp bolt crosses the whole width along -X: its head lies flush in the +X side face,
-	// and its nut sits in a cavity in the -X jaw from ClampNutFrom to ClampNutFrom + 2 from the axis.
-	ClampBolt     = 16.0
-	ClampNutFrom  = 5.0
+	// bore's floor. The M2 x 18 clamp bolt crosses the whole width along -X: its head lies flush in the +X side face,
+	// and its nut sits in a hexagonal pocket open to the -X side face, m2fastener.NutCavityHeight (2) deep, so the
+	// bolt's tip ends flush with that face. The tightened bolt holds the nut in the pocket, and the pocket's flats stop
+	// it turning.
+	ClampBolt     = 18.0
 	ClampHoleWall = 1.05 // between the clamp bolt's hole and the bore, where the hole crosses the slit
-	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut cavity's ring (2.51), with margin
+	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut pocket's corners (2.51), with margin
 	ClampCornerR  = 4.5
 	ClampEndR     = 22.0
 	SlitWidth     = 1.0
 	SlitInBore    = 1.0 // the slit runs this far past the bore's wall, so its round end lies in the bore's floor
-	// The nut cavity's two faces and the hole's blind end are rounded on their tools, so the arm's inside corners there
-	// pass "Corners and roots" in a section that cuts the rounds at a slant.
-	ClampCavityRound = 0.6
-	ClampHoleRound   = 0.7
+	// The nut pocket's hexagon has its sharp corners on the circle of radius m2fastener.NutCavityRadius, 0.2 mm past the
+	// nut's corners. Its floor's outline is rounded by ClampPocketRound on the tool, so the arm's inside corners there
+	// pass "Corners and roots" in a section that cuts the round at a slant.
+	ClampPocketRound = 0.6
 )
 
 // CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
@@ -130,7 +131,8 @@ type Dimensions struct {
 	// sides stop being straight, ClampY - ClampSideRun. Reach is how far the end arc runs behind the shaft axis.
 	ClampY, SideEnd, Reach float64
 	// ClampSite is the clamp bolt: its head's top face is flush with the +X side face at (ArmRadius, ClampY), and it
-	// runs along -X with its nut cavity's near face ClampNutFrom from the axis.
+	// runs along -X. Its Cavity is the nut pocket's floor, NutCavityHeight inside the -X side face, so CavityFar and
+	// the bolt's tip both lie on that face.
 	ClampSite m2fastener.Site
 }
 
@@ -204,10 +206,13 @@ func (p Params) Derive() (Dimensions, error) {
 		Dir:    r3.Vec{X: -1},
 		Corner: r3.Vec{Y: 1},
 		Length: ClampBolt,
-		Cavity: ArmRadius + ClampNutFrom,
+		Cavity: 2*ArmRadius - m2fastener.NutCavityHeight,
 	}
 	if err := dm.ClampSite.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt: %w", err)
+	}
+	if dm.ClampSite.Tip() != dm.ClampSite.CavityFar() {
+		return Dimensions{}, errors.New("crankhandle: clamp bolt: its tip must end flush with the -X side face")
 	}
 	for i, z := range CrossZ {
 		dm.CrossSites[i] = m2fastener.Site{
