@@ -252,6 +252,7 @@ the head without a sharp step.
 | Arm | The bore's rim in the back face, at 608-2RS (`L_b` 25.3 mm, a long run, now opened by the slit) | Not chamfered: Decad refuses the chamfer (steps.md, "Known decad limit"). The siren's arm has the same sharp rim. |
 | Arm | The clamp bolt's head pocket floor rim, 2 mm into the +X side face | The 0.3 mm head clearance leaves no room to round it: a round would sit under the head. |
 | Arm | The slit's outline in the front face, a 25 mm run of two walls and the end round | Not chamfered: the slit is the 1 mm clamp gap, and a 0.5 mm chamfer each side would open its mouth to 2 mm. |
+| Arm | The 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, so the bore carries no pressed ring's hoop stress there ("Clamp" above). |
 | Arm | The slit's R0.5 end round in the bore's floor, in the `long-throw` case only | It is the full round of half the slit's width that "Corners and roots" asks for. The longer arm's held boolean mesh chords it coarsely enough that the check reads 51.8°. |
 | Pin | The pin bolt's nut cavity's 0.55 mm end rounds, in the layer 2 mm off the seam | That layer crosses the rounds near their edge, where they turn about 52°. They are the largest rounds that keep the nut's corner clearance. |
 

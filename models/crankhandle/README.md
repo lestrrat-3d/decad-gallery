@@ -46,6 +46,15 @@ bolt closes the slit and pinches the bore on the shaft.
 The nut's cavity has a round bottom and a square top as wide as the round, so the nut drops in on edge when the
 arm's print pauses at the cavity's roof. The arm then prints over it and holds it in.
 
+The clamp keeps three listed exceptions to the gallery's rules ([instructions.md](instructions.md), "Retained sharp
+corners and edges"):
+
+- The slit's edge in the front face stays sharp. The slit is the working 1 mm clamp gap, and a 0.5 mm chamfer would
+  open its mouth to 2 mm.
+- The arm between the bore and the clamp bolt's hole is 1.05 mm, under the 1.6 mm wall a press-fit bore asks for. The
+  slit makes the hub a clamp, so no pressed ring is loaded there.
+- The clamp bolt's head pocket keeps a sharp floor rim. The 0.3 mm head clearance leaves no room to round it.
+
 ## How the parts go together
 
 ![The crank cut through the shaft axis and the pin axis: the blind D bore, the pin's stub in the arm's pocket with the M2 x 10 bolt and nut, the two M2 x 6 cross bolts and nuts across the pin, and the handle round the pin's shank under its head](images/cutaway.png)
