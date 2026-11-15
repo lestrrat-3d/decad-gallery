@@ -1,6 +1,7 @@
 package handcranksiren_test
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -45,9 +46,9 @@ func requireCorners(t *testing.T, p handcranksiren.Params, parts map[string]hand
 
 // crankExempt lists the crank's retained corners as models/crankhandle lists them for its 608-2RS crank, read in
 // crankhandle's local frame (+Z out of the mechanism, +Y along the arm to the pin): the arm's hexagonal pocket, which
-// matches the pin's stub (Mating corners), the clamp bolt's head pocket floor rim, and the pin bolt's nut cavity rounds
-// in the pin's halves. crankhandle lists the slit's end round only for its long-throw crank, so the siren's 55 mm crank
-// has none.
+// matches the pin's stub (Mating corners), the clamp bolt's head pocket floor rim, and the six corners of each cross
+// nut's hexagonal pocket in the pin's halves. crankhandle lists the slit's end round only for its long-throw crank, so
+// the siren's 55 mm crank has none.
 func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck.Exempt {
 	t.Helper()
 	toLocal, err := handcranksiren.CrankLocal(p)
@@ -70,14 +71,32 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
 			}),
 		}},
-		"crank-pin": {{
-			Reason: "pin bolt nut cavity rounds",
-			Near: local(func(v r3.Vec) bool {
-				return math.Hypot(v.X, v.Y-throw) <= m2fastener.NutCavityRadius+0.05 &&
-					v.Z >= crankhandle.PinCavity-0.05 && v.Z <= crankhandle.PinCavity+m2fastener.NutCavityHeight+0.05
-			}),
-		}},
+		"crank-pin": crossPocketCorners(local, throw),
 	}
+}
+
+// crossPocketCorners lists the six corners of each cross nut pocket in the pin, as crankhandle's crossPocketNear reads
+// them: in the pocket's band along the bolt, within the circle through its corners, and within 10 degrees about the
+// bolt's line of a corner direction (0, 60, ... 300 degrees from local Z). The points are read in crankhandle's frame.
+func crossPocketCorners(local func(func(r3.Vec) bool) func(r3.Vec) bool, throw float64) []cornercheck.Exempt {
+	var out []cornercheck.Exempt
+	for i, z := range crankhandle.CrossZ {
+		out = append(out, cornercheck.Exempt{
+			Reason: fmt.Sprintf("cross nut pocket %d corners", i+1),
+			Near: local(func(v r3.Vec) bool {
+				if v.Y < throw-crankhandle.CrossFlat-0.05 ||
+					v.Y > throw-crankhandle.CrossFlat+m2fastener.NutCavityHeight+0.05 {
+					return false
+				}
+				if r := math.Hypot(v.X, v.Z-z); r > m2fastener.NutCavityRadius+0.05 || r < 2.2 {
+					return false
+				}
+				rem := math.Mod(math.Abs(math.Atan2(v.X, v.Z-z))*180/math.Pi, 60)
+				return math.Min(rem, 60-rem) <= 10
+			}),
+		})
+	}
+	return out
 }
 
 // minPressWall is the press-fit wall of "Corners and roots": four 0.4 mm lines.

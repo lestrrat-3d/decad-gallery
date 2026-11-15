@@ -38,7 +38,9 @@
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
 - Hold every nut in a cavity the part encloses on all sides except the bolt hole, so the part retains the nut and it cannot fall out. Drop the nut in during a print pause. A pocket open to a face is not enough.
-- A pinch clamp's nut may instead sit in a hex pocket open to a face, because the clamp bolt holds it there. Put the hexagon's corners on the nut cavity's circle (radius 2.51 mm for M2) and make it as deep as a nut cavity is high (2.0 mm for M2), so the nut ends below the face.
+- A pinch clamp's nut, or a split shaft's or pin's cross-bolt nut, may instead sit in a hex pocket open to a face,
+  because its bolt holds it there. Put the hexagon's corners on the nut cavity's circle (radius 2.51 mm for M2)
+  and make it as deep as a nut cavity is high (2.0 mm for M2), so the nut ends below the face.
 - In a split shaft or pin, a nut cavity the seam cuts in half counts as enclosed when the halves, clamped by hardware, close it on all sides except the bolt hole. Drop the nut into one half before assembly. See [Split shafts](docs/model-pipeline.md#split-shafts).
 - Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.
 - Size a head pocket from the head diameter plus 0.3 mm radial clearance. Make it as deep as the head is tall.

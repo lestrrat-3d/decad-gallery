@@ -10,12 +10,12 @@ container names, `Parts`, `Model`, `BuildParts`, `Build`, the arm and the pin). 
 
 `Derive` makes no geometry calls. It runs the six rules of instructions.md in order and fills `BoreRadius`, `BoreFlat`
 and `BoreLoop`. `Site` is `m2fastener.Site{Head: (0, L, 0), Dir: (0, 0, 1), Corner: (1, 0, 0), Length: 10, Cavity:
-4.75}`. `CrossSites[i]` is `m2fastener.Site{Head: (0, L + 4, CrossZ[i]), Dir: (0, -1, 0), Corner: (1, 0, 0), Length: 6,
-Cavity: 5}`. `ClampY = -(r_b + 1.3 + 1.05)`, `SideEnd = ClampY - 3.6`, `Reach = 22 - EndCenter().Y` with
+4.75}`. `CrossSites[i]` is `m2fastener.Site{Head: (0, L + 4, CrossZ[i]), Dir: (0, -1, 0), Corner: (0, 0, 1), Length: 6,
+Cavity: 6}`. `ClampY = -(r_b + 1.3 + 1.05)`, `SideEnd = ClampY - 3.6`, `Reach = 22 - EndCenter().Y` with
 `EndCenter() = (0, SideEnd + sqrt(17.5^2 - 5.5^2))` and `CornerCenter() = (5.5, SideEnd)`. `ClampSite` is
 `m2fastener.Site{Head: (10, ClampY, 4), Dir: (-1, 0, 0), Corner: (0, 1, 0), Length: 18, Cavity: 18}`. Derive returns each
-site's `Validate()` error with the prefix, a cross bolt's and the clamp bolt's also naming it, and rejects a clamp site
-whose `Tip()` differs from its `CavityFar()`.
+site's `Validate()` error with the prefix, a cross bolt's and the clamp bolt's also naming it, and rejects a clamp or cross
+site whose `Tip()` differs from its `CavityFar()`.
 
 ## 2. Sketches (sketches.go)
 
@@ -40,10 +40,11 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
   `b = (h, yc)` and `c = (-h, yc)` each placed by `NewVerticalDistance(O, ·, yc)`, `d = DimensionPoint(-h, y0)`,
   `center = DimensionPoint(0, yc)`, `arc = CreateArc(center, b, c)` with `NewRadius(arc, h)`, and lines a–b, c–d, d–a.
   Placing b and c by x would meet the circle at a tangent, a singular solve. Extrude 10.
-- `clampPocketTool()` on `ClampSite.Across(Cavity)` (U +Y, V -Z): six corner points at `2.51·(cos 60k°, sin 60k°)`
+- `nutPocketTool(site)` on `site.Across(site.Cavity)` (U along `site.Corner`): for the clamp (U +Y, V -Z), six corner points at `2.51·(cos 60k°, sin 60k°)`
   and the six sides `corner k → corner k+1`, each with `NewDistancePointLine(O, side, 2.51·sqrt(3)/2)`;
   `NewHorizontal(sides[1])` and `NewAngle(sides[k], sides[k+1], 60)` for k = 0..4. The corners stay sharp. Extrude 3
-  (2 plus `Stock`) along -X.
+  (2 plus `Stock`) along the bolt's direction. For a cross site the sketch's U is local +Z, so the hexagon's corners lie
+  along the pin's axis and its flats face ±X.
 - `boreTool()` on `across(0, -1)`: `q1 = (-w, f_b)`, `q2 = (w, f_b)` with `w = sqrt(r_b^2 - f_b^2)`,
   `bore = CreateArc(O, q1, q2)` (counter-clockwise, the long way through -Y), `flat = CreateLine(q2, q1)`;
   `NewRadius(bore, r_b)`, `NewHorizontal(flat)`, `NewDistancePointLine(O, flat, f_b)`. Extrude `ArmThickness`.
@@ -63,14 +64,15 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
 1. Arm: extrude `armSketch` by `ArmThickness`; `decad.Chamfer` of
    `decad.Edges(decad.OuterLoopOf(decad.CapStart(arm))).Or(decad.OuterLoopOf(decad.CapEnd(arm)))` by 0.5; then
    `decad.Cut`, in this order, `slitTool()`, the bore tool, `hexagon(L, 3.25, 7.53, 5.75)`,
-   `m2fastener.PocketTool(site)`, the clamp nut pocket (`clampPocketTool()` with `decad.Fillet` of the outer loop of
+   `m2fastener.PocketTool(site)`, the clamp nut pocket (`nutPocketTool(ClampSite)` with `decad.Fillet` of the outer loop of
    its `CapStart`, the floor, by 0.6), `m2fastener.PocketTool(ClampSite)` and `m2fastener.HoleTool(ClampSite)`. The
    chamfer needs decad 902e347 or later, which admits the outline's solver-placed tangent arcs in the Booleans that
    follow. The slit goes before the bore: cut after it, the slit refuses the bore's rim bound (0.0101 mm) at the
    608-2RS within the 0.01 mm chain tolerance.
 2. Pin: `decad.Union` of `hexagon(L, 3.5, 7.03, 5.8)` and `turnedPin(L)`; then `decad.Cut`, in this order, the four
    `flatTool(L, CrossZ[i], ±1)`, `m2fastener.RoundedHoleTool(site)`, `m2fastener.RoundedCavityTool(site)`, and for
-   each cross site `HoleTool`, `PocketTool` and `CavityTool`. The rounded tools revolve a meridian about the site's
+   each cross site `HoleTool`, `PocketTool` and the nut pocket (`nutPocketTool(site)` with the same floor fillet by
+   `NutPocketRound`, open to the -Y flat). The rounded tools revolve a meridian about the site's
    line with eight chords for each 0.55 mm round, every vertex placed with `DimensionPoint`.
 3. Handle: `handle()`.
 4. Require each part solid, then `placement.Place(ctx, body, p.Placement)`. Carry each site's `Head` through

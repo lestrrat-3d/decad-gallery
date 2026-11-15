@@ -60,11 +60,11 @@ with a 0.25 mm gap. Remove the grip to reach it.
 ## Bolts, nuts and fits
 
 Every bolt head sinks into a pocket in the part it joins and ends flush with that part's face, so nothing stands
-proud. Every nut but one sits in a cavity that the part closes on all sides except the bolt hole. You drop each such
+proud. Every nut but three sits in a cavity that the part closes on all sides except the bolt hole. You drop each such
 nut in during a print pause: slice the piece in the orientation below, add a pause at the layer where the cavity's roof
-starts, drop the nut into the open cavity, and resume. The crank arm's clamp nut is the exception: it sits in a
-hexagonal pocket open to the arm's side face, so it cannot turn, and the tightened clamp bolt holds it there. You set it
-in the pocket when you fit the crank.
+starts, drop the nut into the open cavity, and resume. The crank arm's clamp nut and the crank pin's two cross nuts are the exceptions. Each sits in a
+hexagonal pocket open to a face, so it cannot turn, and its bolt holds it there. You set the clamp nut in its pocket
+when you fit the crank, and each cross nut in its pocket in the pin half before you bolt the halves together.
 
 The head pockets are 4.4 mm wide and 2 mm deep, the bolt holes 2.6 mm wide, and the nut cavities round, 5.02 mm wide
 and 2 mm high, so the nut has 0.2 mm of room on each face.
@@ -76,7 +76,7 @@ and 2 mm high, so the nut has 0.2 mm of room on each face.
 | Collector | end face down | four, near the top, for the collector bolts |
 | Horn | flange mating face down, mouth up | four, near the bed, for the throat bolts |
 | Grip | one flat side down | none |
-| Crank pin | as two halves, each on its cut face | three, dropped into one half before you bolt the halves together: the pin bolt's nut and the two cross bolts' nuts |
+| Crank pin | as two halves, each on its cut face | one, dropped into one half before you bolt the halves together: the pin bolt's nut. The two cross nuts go into their side pockets, with no pause |
 | Rotor | disc front face down, vanes and hub up | none |
 | Stator | either face down | none |
 | Crank gear, intermediate pinion, intermediate gear, rotor pinion | either face down, axis vertical | none |

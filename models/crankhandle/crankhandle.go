@@ -172,7 +172,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 // clamp bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The slit goes first: the bore cut on the
 // chamfered body holds a coarser mesh bound round its rim than the slit's cut admits through the document's chain
 // tolerance, while the bore's cut admits the slit's finer rim. The nut pocket's floor is rounded on its tool
-// (ClampPocketRound).
+// (NutPocketRound).
 func (r *run) arm() (*decad.Body, error) {
 	s, err := r.armSketch()
 	if err != nil {
@@ -216,17 +216,26 @@ func (r *run) arm() (*decad.Body, error) {
 	return body, nil
 }
 
-// clampTools builds the clamp bolt's cutters: the hexagonal nut pocket with its floor's outline rounded by
-// ClampPocketRound, the head pocket, and the clearance hole, which runs out through the nut pocket.
-func (r *run) clampTools() ([]*decad.Body, error) {
-	site := r.dm.ClampSite
-	pocket, err := r.clampPocketTool()
+// nutPocketCutter builds a site's hexagonal nut pocket tool with its floor's outline rounded by NutPocketRound.
+func (r *run) nutPocketCutter(site m2fastener.Site) (*decad.Body, error) {
+	pocket, err := r.nutPocketTool(site)
 	if err != nil {
-		return nil, fmt.Errorf("clamp nut pocket tool: %w", err)
+		return nil, err
 	}
 	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(pocket)))
-	if pocket, err = decad.Fillet(r.ctx, pocket, floor, units.Millimeters(ClampPocketRound)); err != nil {
-		return nil, fmt.Errorf("round clamp nut pocket tool: %w", err)
+	if pocket, err = decad.Fillet(r.ctx, pocket, floor, units.Millimeters(NutPocketRound)); err != nil {
+		return nil, fmt.Errorf("round floor: %w", err)
+	}
+	return pocket, nil
+}
+
+// clampTools builds the clamp bolt's cutters: the hexagonal nut pocket with its floor's outline rounded by
+// NutPocketRound, the head pocket, and the clearance hole, which runs out through the nut pocket.
+func (r *run) clampTools() ([]*decad.Body, error) {
+	site := r.dm.ClampSite
+	pocket, err := r.nutPocketCutter(site)
+	if err != nil {
+		return nil, fmt.Errorf("clamp nut pocket tool: %w", err)
 	}
 	head, hs, err := m2fastener.PocketTool(r.ctx, r.doc, site)
 	if err != nil {
@@ -241,7 +250,7 @@ func (r *run) clampTools() ([]*decad.Body, error) {
 }
 
 // pin joins the hexagonal stub to the turned shank and head, then cuts the double flats, the pin bolt's rounded hole
-// and nut cavity, and each cross bolt's hole, head pocket and nut cavity.
+// and nut cavity, and each cross bolt's hole, head pocket and hexagonal nut pocket open to the -Y flat.
 func (r *run) pin() (*decad.Body, error) {
 	y := r.p.Throw
 	stub, err := r.hexagon(y, StubFrom, StubFlats, StubLength)
@@ -278,7 +287,7 @@ func (r *run) pin() (*decad.Body, error) {
 	tools = append(tools, hole, cavity)
 	for _, site := range r.dm.CrossSites {
 		for _, build := range []func(context.Context, *decad.Document, m2fastener.Site) (*decad.Body, *sketch.Sketch, error){
-			m2fastener.HoleTool, m2fastener.PocketTool, m2fastener.CavityTool,
+			m2fastener.HoleTool, m2fastener.PocketTool,
 		} {
 			tool, sk, err := build(r.ctx, r.doc, site)
 			if err != nil {
@@ -287,6 +296,11 @@ func (r *run) pin() (*decad.Body, error) {
 			r.sketches = append(r.sketches, sk)
 			tools = append(tools, tool)
 		}
+		pocket, err := r.nutPocketCutter(site)
+		if err != nil {
+			return nil, fmt.Errorf("cross nut pocket tool: %w", err)
+		}
+		tools = append(tools, pocket)
 	}
 	for _, tool := range tools {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {

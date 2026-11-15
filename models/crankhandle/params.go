@@ -42,12 +42,14 @@ const (
 
 	// The pin prints as two halves split by the plane through its axis and local X, the direction of the hand's
 	// driving force ("Split shafts" in docs/model-pipeline.md). Two M2 x 6 cross bolts clamp the halves: each runs
-	// along -Y, normal to the seam, from a head pocket in the +Y half to a nut cavity in the -Y half. A double flat
-	// CrossFlat from the axis, parallel to the seam, seats the head flush and leaves the halves mirror images.
+	// along -Y, normal to the seam, from a head pocket in the +Y half to a hexagonal nut pocket open to the -Y half's
+	// flat, so the bolt's tip ends flush with that flat. The bolt holds the nut in its pocket and the pocket's flats stop
+	// it turning. A double flat CrossFlat from the axis, parallel to the seam, seats the head flush and leaves the
+	// halves mirror images.
 	CrossBolt     = 6.0
 	CrossFlat     = 4.0  // the flats' distance from the pin axis, on both sides
 	CrossFlatHalf = 3.25 // half the flats' length along the pin: 1 mm of flat round the head pocket (radius 2.2)
-	CrossCavity   = 5.0  // from the head's top face to the nut cavity's near face: 1 mm of -Y half on each side
+	CrossCavity   = 6.0  // head top face to the nut pocket's floor: 2*CrossFlat - NutCavityHeight
 	// ConeAngle is the half angle of the cones from the stub to the shank and from the shank to the head. A cut through
 	// the stub's hexagon reads the cone up to 1.8 times steeper, and 30 degrees keeps that turn under 50 degrees.
 	ConeAngle = 30.0
@@ -66,10 +68,10 @@ const (
 	ClampEndR     = 22.0
 	SlitWidth     = 1.0
 	SlitInBore    = 1.0 // the slit runs this far past the bore's wall, so its round end lies in the bore's floor
-	// The nut pocket's hexagon has its sharp corners on the circle of radius m2fastener.NutCavityRadius, 0.2 mm past the
-	// nut's corners. Its floor's outline is rounded by ClampPocketRound on the tool, so the arm's inside corners there
-	// pass "Corners and roots" in a section that cuts the round at a slant.
-	ClampPocketRound = 0.6
+	// A nut pocket's hexagon, the clamp's or a cross bolt's, has its sharp corners on the circle of radius
+	// m2fastener.NutCavityRadius, 0.2 mm past the nut's corners. Its floor's outline is rounded by NutPocketRound on the
+	// tool, so the part's inside corners there pass "Corners and roots" in a section that cuts the round at a slant.
+	NutPocketRound = 0.6
 )
 
 // CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
@@ -218,12 +220,15 @@ func (p Params) Derive() (Dimensions, error) {
 		dm.CrossSites[i] = m2fastener.Site{
 			Head:   r3.Vec{Y: p.Throw + CrossFlat, Z: z},
 			Dir:    r3.Vec{Y: -1},
-			Corner: r3.Vec{X: 1},
+			Corner: r3.Vec{Z: 1},
 			Length: CrossBolt,
 			Cavity: CrossCavity,
 		}
 		if err := dm.CrossSites[i].Validate(); err != nil {
 			return Dimensions{}, fmt.Errorf("crankhandle: cross bolt %d: %w", i+1, err)
+		}
+		if dm.CrossSites[i].Tip() != dm.CrossSites[i].CavityFar() {
+			return Dimensions{}, fmt.Errorf("crankhandle: cross bolt %d: its tip must end flush with the -Y flat", i+1)
 		}
 	}
 	return dm, nil
