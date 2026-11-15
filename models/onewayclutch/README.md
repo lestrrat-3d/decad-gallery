@@ -40,7 +40,11 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
   the head against it, and the ring turns with the hub.
 - Turning the hub the other way, the ramp presses the head inward. The arm bends in the plane of the print, so the
   bending loads the printed lines along the arm, and the head clicks over the tooth.
-- A slot behind each arm gives it room to bend. The arm is 1.2 mm thick.
+- A slot behind each arm gives it room to bend. The arm is 1.2 mm thick, and it strains 0.65 % at full travel.
+- Turned the free way, each head clears the teeth: 0.12 mm after 1.5 degrees of turn and 0.07 mm after 2 degrees,
+  measured on the built parts.
+- The hub's two faces carry a 0.5 mm chamfer along the arms and, on the 8 mm presets, round the D bore. The head's run
+  stays sharp so it keeps its lock contact.
 
 ![The clutch cut through the shaft axis: the plates, the ring held between them by cones, a bolt and its nut](images/cutaway.png)
 
@@ -75,6 +79,22 @@ From the left: the three M2 nuts, the back plate, the hub, the ring, the cover, 
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover, with three head pockets (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3 |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 |
+
+## Fits
+
+The model keeps these clearances between its parts. The measured value is the least over every preset and both
+directions, less the measurement's own error bound, so it sits a little under the modeled value.
+
+| Pair | Modeled (mm) | Measured (mm) |
+| --- | ---: | ---: |
+| Hub, back plate and cover D bores on the shaft | `BoreClearance` (0.05) | 0.04 to 0.049 |
+| Hub on each plate's boss | 0.25 | 0.237 |
+| Pawls to the plates | 0.65 | 0.642 |
+| Ring counterbore to each plate's rim | 0.40 | 0.390 |
+| Ring cone to each plate's cone | 0.60 | 0.591 |
+| Ring tooth ends to the plates | 0.85 | 0.840 |
+| Each pawl head in its tooth gap, seated | 0.40 | 0.387 |
+| Arm outer arc to the teeth's tips | 0.55 | 0.543 |
 
 ## Sizes
 
