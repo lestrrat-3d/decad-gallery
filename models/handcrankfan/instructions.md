@@ -27,7 +27,7 @@ exceptions.
 - Corners and roots: every printed part except the bevel pair and the gearbox's ear roots is checked in its print
   orientation, and the press-fit walls are at least 1.6 mm (see Print orientation and Retained sharp corners).
 - Open: the bevel mesh has no proven clearance (see Open non-compliance: the bevel mesh).
-- Open: the gearbox's ear roots and the bevel pair are not yet checked for corners (see Retained sharp corners).
+- Open: the gearbox's ear roots are not yet rounded and the pinion is not yet checked for corners (see Retained sharp corners).
 - `models/README.md` marks the model **Mixed**: its custom fits carry the class clearances, and the bolts, nuts and
   bearings keep their nominal sizes.
 
@@ -469,18 +469,19 @@ outside this list. The shaft's spline and the mating corners carry the torque.
 
 | Part | Corner | Reason |
 | --- | --- | --- |
-| Crank Gear, Drive Gear, Crank Arm, Fan Hub (and the bevel gears) | the six corners of the spline bore, where its three teeth meet the round bore (turn about 108°), annulus r 2.9 to 4.2 about the shaft axis | mating corners: the teeth sit in the shaft's grooves at a 0.05 press gap, and the grooves stay sharp too |
+| Crank Gear, Drive Gear, Crank Arm, Fan Hub, Driving Gear | the six corners of the spline bore, where its three teeth meet the round bore (turn about 108°), annulus r 2.9 to 4.2 about the shaft axis | mating corners: the teeth sit in the shaft's grooves at a 0.05 press gap, and the grooves stay sharp too |
 | Crank Shaft, Drive Shaft, Fan Shaft | the groove floor corners (90°), annulus r 2.8 to 4.1 about the shaft axis | mating corners with the spline teeth |
 | Crank Arm | the six corners of the pin's hexagonal pocket (turn 60°) | mating corners with the pin's hexagonal stub, 0.25 Tight gap on every flat |
 | Fan Blade | the four corners where the bolt hole crosses the stud, at r 9.5 and 10.2 | the material angle is 64° to 90°, which meets the rule; the checker adds the stud's curvature and reads 125° to 130° |
 | Gearbox Post, Gearbox Crank-side Wall, Gearbox Base | the two flat ends of each nut cavity whose axis lies in the layer plane (90°) | mating corners with the nut: a 0.5 round would hit the nut's corners |
 | Crank Shaft, Drive Shaft, Fan Shaft; Crank Pin; Crank Handle; Fan Hub | the collar steps; the stub root and the head step; the counterbore floor; the socket mouths | corners between layers, out of the checker's sections (as in the escapement's arbors) |
-| Gearbox Post, Gearbox Crank-side Wall, Gearbox Fan-side Wall | the ear roots: the ends of each ear against the floor's underside and the wall top (90°), and the fan block's corners against the wall's edge round (57.5°) | pending decad: the rounds need `decad.Fillet` to accept a root edge that ends on a rounded end (P8, the fillet rim side test) and a reflex base at the end of an open chain (P9), and a built rounded ear must keep the held mesh under 0.05 mm |
-| Driving Gear, Pinion | not checked | pending decad: the checker refuses their held mesh bounds (0.088 and 0.103 mm, above 0.05), and the rule's gear-teeth exemption cannot apply because the section fails first |
+| Pinion | not checked | it has no run of layers with one outline, so `MidHeights` finds no height. Sectioned every 2 mm, the checker reads 28 tooth-root corners (about 89°) on the root cone at radius 10 to 11.7 about the shaft. Whether the rule gear-teeth exemption covers them is open |
+| Gearbox Post, Gearbox Crank-side Wall, Gearbox Fan-side Wall | the ear roots: the ends of each ear against the floor's underside and the wall top (90°), and the fan block's corners against the wall's edge round (57.5°) | pending decad: a side root in the tray's end round is refused (the tangent chain cannot be decided at the junction of the end round and the wall's outer round, SX2), and so are several ears that share one floor face (a vertex of the wall lies on an end face's plane) |
 
 The model stays on `CORNER_PENDING` in `scripts/check_repository.py` (and in `CORNER_PARTIAL`, which says its corner
-test runs) until the last two rows are gone. The test lists the ear-root corners by name in `earRootCorners` and skips
-the bevel pair by name.
+test runs) until the ear-root row is gone and the pinion is checked. The test lists the ear-root corners by name in
+`earRootCorners`. The driving gear is checked: `bevelgear` refines its tooth join, so the held mesh stays under the
+checker's 0.05 mm after the spline cut (0.028 mm).
 
 Rounds below half their section:
 
