@@ -83,4 +83,5 @@ tests check its crank through the assembly.
 
 ## Known decad limit
 
-The 608-2RS bore's rim in the arm's back face is not chamfered: Decad refuses the chamfer. `steps.md` quotes the error.
+The D bore's rim in the arm's back face is not chamfered: the slit opens the rim into a run that ends at the slit's
+walls, and Decad refuses the chamfer of that run. `steps.md` quotes the errors.
