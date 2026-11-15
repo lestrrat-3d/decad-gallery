@@ -18,7 +18,7 @@ CORNER_PENDING = {
 CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
 # Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
 # stays in CORNER_PENDING until the test skips nothing.
-CORNER_PARTIAL = {"bevelgear", "handcrankfan"}
+CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
 # Models whose instructions.md states, under Materials, that no part is printed.
 CORNER_UNPRINTED = {"spinningwheel"}
 

@@ -324,7 +324,7 @@ cut leaves exactly one cage body.
 | Windows face ê | `CrossAngle = 100°` | First window faces `+ê`, both have room. Same volume range |
 | Mounted | `MountAngleA = 5°`, `MountAngleB = −5°` | First window faces `+k̂`, both have room. Same volume range |
 | Placed | Frame at `(10, −5, 7)` with `U = +Y`, `V = +Z`, normal `+X` | Cage bounds `10 ± CageRise` along X, `−5 ± Ro` along Y and `7 ± Ro` along Z. Cage volume 17,126 mm³ within the reported bound plus 50 |
-| Bore clearance | Default pair, 16 teeth | Distance from each bore wall to the ribbon at the crossing station is 0.19 ± 0.03 mm at the crest, the back edge and the non-roof thickness face, and 0.48 ± 0.05 mm at the roof face |
+| Bore clearance | Default pair, 16 teeth | Distance from each bore wall to the ribbon at the crossing station is 0.19 mm at the crest, the back edge and the non-roof thickness face, and 0.48 mm at the roof face. `DistanceToPoint` reads lower bounds of 0.113 ± 0.01 mm and 0.41 ± 0.01 mm, because the sleeve's mesh bound is held at 0.033 mm or less |
 | Invalid | `Clearance = 0` | Error naming `clearance`. A nil context also fails |
 
 The window search at the defaults, both windows: `lo` −4.537, `hi` 5.130, `bottom` −22.215, `top` 22.808,
@@ -354,3 +354,26 @@ Cut both ribbons with planes parallel to the mid-plane between the gear axes, at
 `n̂`. On each plane the two section outlines do not overlap, and the proven least gap between them is at least
 0.55 mm for the default inputs. A plane 1 mm toward gear B cuts only gear B, because gear A's crests reach 0.575 mm
 across the mid-plane.
+
+## Retained sharp corners
+
+Print each ribbon standing on one end, so its sections are the planes square to its own axis, and the sleeve standing
+on one end face, so its sections are the planes square to the sleeve's axis `n̂`. Apply "Corners and roots" of
+[the model pipeline](../../docs/model-pipeline.md#corners-and-roots) to each in that orientation.
+
+| Part | Where | Why |
+| --- | --- | --- |
+| Ribbon | The two corners of each section where the toothed edge meets a thickness face. The tooth's flank edge leans across the thickness, so the material angle is as little as 34° there | Gear tooth tips and flanks, covered by the gear-teeth exemption |
+| Sleeve | Every corner of the four twisted bores, along the whole bore, and the places where a bore wall meets the tube's cylinders | Not exempt. They are known findings that wait on a design decision, below |
+
+The ribbon's back corners turn 90° and need no round. At the 16-tooth and the default build, `TestGearCorners` reads
+both ribbons at six heights and requires no finding outside the tooth corners.
+
+The sleeve is not yet held to the rule. At heights from -13 to +14 mm its sections hold 2 to 23 inside corners
+turning 126° to 178° (up to 286° where two corners fall in one 0.4 mm window), and 2 to 28 tips. The bore
+channels' rectangle corners and the bore walls' junctions with the tube account for them. The windows add tips on
+their 45° sides where they meet the outer cylinder. A 0.5 mm round on a bore corner leaves 0.076 mm to the ribbon's
+back corner, against the 0.2 mm bore clearance. The largest round that keeps 0.2 mm is 0.2 mm, below the rule's 0.5 mm.
+The rounding needs a decision on the bore fit (or on rounding the ribbon's back corners), so the sleeve keeps these
+corners and `TestSleeveCornersRecorded` records them. The model stays on `CORNER_PENDING` and `CORNER_PARTIAL` in
+`scripts/check_repository.py` until the bores are rounded.

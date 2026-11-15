@@ -81,13 +81,83 @@ class SirenCasesTest(unittest.TestCase):
 
 
 class EscapementTest(unittest.TestCase):
-    def test_escapement_runs_the_whole_package(self):
-        with mock.patch.object(run_tests, "go_test") as go_test:
+    def test_escapement_runs_all_shards(self):
+        with mock.patch.object(run_tests, "go_test_shards") as go_test_shards:
             run_tests.run_escapement()
-        args, kwargs = go_test.call_args
-        self.assertEqual(args[0][0], "./models/escapement")
-        self.assertNotIn("-run", args[0])
-        self.assertEqual(kwargs, {})
+        go_test_shards.assert_called_once_with(
+            "./models/escapement", run_tests.ESCAPEMENT_SHARDS, "40m"
+        )
+
+    def test_shards_cover_package_without_splitting_shared_build_tests(self):
+        shards = run_tests.ESCAPEMENT_SHARDS
+        flattened = [test for shard in shards for test in shard]
+        self.assertEqual(len(flattened), 39)
+        self.assertEqual(len(flattened), len(set(flattened)))
+        self.assertEqual(
+            shards[0],
+            (
+                "TestArborCollars",
+                "TestCentreLine",
+                "TestCorners",
+                "TestEdgeFinishing",
+                "TestFits",
+                "TestInstallability",
+                "TestInventory",
+                "TestPlacement",
+                "TestPressFitWalls",
+                "TestSetJoinsEveryPart",
+                "TestSketches",
+                "TestSplitShafts",
+                "TestSpringFits",
+            ),
+        )
+        self.assertIn("TestCoupling", shards[1])
+        self.assertIn("TestPoseNoOverlap", shards[1])
+
+    def test_sharded_runner_checks_coverage_and_runs_two_processes(self):
+        shards = (("TestA",), ("TestB",))
+        list_result = mock.Mock(stdout="TestA\nTestB\n", returncode=0)
+        pass_events = [
+            json.dumps({"Action": "pass", "Test": test}) + "\n"
+            for test in ("TestA", "TestB")
+        ]
+
+        class FakeProcess:
+            def __init__(self, command, stdout, **kwargs):
+                self.stdout = stdout
+                self.returncode = 0
+                self.stdout.write(pass_events[0 if "TestA" in command[command.index("-run") + 1] else 1])
+
+            def wait(self):
+                return self.returncode
+
+            def poll(self):
+                return self.returncode
+
+        with (
+            mock.patch.object(run_tests.subprocess, "run", return_value=list_result) as listing,
+            mock.patch.object(run_tests.subprocess, "Popen", side_effect=FakeProcess) as popen,
+            mock.patch("builtins.print"),
+        ):
+            run_tests.go_test_shards("./pkg", shards, "1m")
+
+        listing.assert_called_once_with(
+            ["go", "test", "-list", "^Test", "./pkg"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(popen.call_count, 2)
+
+    def test_sharded_runner_rejects_incomplete_coverage(self):
+        with mock.patch.object(
+            run_tests.subprocess,
+            "run",
+            return_value=mock.Mock(stdout="TestA\nTestB\n"),
+        ), mock.patch.object(run_tests.subprocess, "Popen") as popen:
+            with self.assertRaisesRegex(SystemExit, "unassigned tests: TestB"):
+                run_tests.go_test_shards("./pkg", (("TestA",),), "1m")
+        popen.assert_not_called()
 
 
 class FanVariantsTest(unittest.TestCase):

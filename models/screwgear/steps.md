@@ -17,7 +17,7 @@ These were measured against the decad branches the gallery builds with. They dec
 | Booleans with the long ribbon are refused | The ribbons are never operands of a boolean. They are built whole and only moved |
 | `decad.Sweep` with `WithSweepTwist` admits off-axis sections and any twist angle. Earlier it refused 35 to 55 degrees | The bore tool is one sweep with the twist `(sOut − sIn)/Λ` of about 80 degrees |
 | `decad.Cut` of a twisted tool needs the tool to overshoot the wall by at least 0.75 mm each side | The bore cut overshoots by 1 mm at each end (`sIn` and `sOut`) |
-| The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))`. `Build` needs a document made by it |
+| The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))` and `decad.WithRimSplit()`, which holds the sleeve's mesh bound at 0.033 mm or less after each cut. `Build` needs a document made by it |
 | `decad.Verify` with clearances took 108 s on the 16-tooth model, found no interference, measured 0.548 ± 0.027 mm between the ribbons, and left both ribbon-versus-cage pairs undecided | Clearance checks use `DistanceToPoint` on the cage, not `decad.Verify` |
 
 These capabilities landed in decad in pull requests 2629 to 2634. The gallery `go.mod` pins decad at
@@ -65,8 +65,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Mechanism, erro
 
 - `DefaultParams` returns the defaults of the Inputs table. `ToothSlant` is `25.8·π/180`, `CrossAngle` is
   `80·π/180`, and the mounting angles are 0.
-- `NewDocument` returns `decad.New` with `decad.WithChainTolerance(units.Millimeters(0.1))` applied first, then
-  the caller's options.
+- `NewDocument` returns `decad.New` with `decad.WithChainTolerance(units.Millimeters(0.1))` and
+  `decad.WithRimSplit()` applied first, then the caller's options.
 - `Build` returns an error when `ctx` or `doc` is nil, then calls `Validate`. It wraps stage errors with `%w` and
   names the gear (`gear A`, `gear B`) or `sleeve`.
 - `Mechanism` holds the three bodies. After `Build`, a fresh document holds exactly three bodies and each is
@@ -232,7 +232,9 @@ Run `go test ./models/screwgear`. The tests named here read the values of "Accep
 | `TestWindowSearchRoomRefusesTheBandWithNoWidth` | `CollarWall = 7` leaves no band |
 | `TestBuildDefaultMechanism` | Default build: three solid bodies, ribbon volumes, cage volume 17,088 mm³, cage bounds |
 | `TestBuildPlacementMovesTheWholeMechanism` | Placed cage bounds and volume |
-| `TestBuildBoresFollowTheRibbonSurface` | `DistanceToPoint` from the cage to ribbon points at all four crossings: 0.19 ± 0.03 mm, and 0.48 ± 0.05 mm at the roof face |
+| `TestBuildBoresFollowTheRibbonSurface` | `DistanceToPoint` from the cage to ribbon points at all four crossings: 0.113 ± 0.01 mm, and 0.41 ± 0.01 mm at the roof face. The readings are lower bounds that the cage's mesh bound lowers; the mesh distances are 0.19 and 0.48 mm |
+| `TestGearCorners` | Both ribbons, default and 16-tooth, at six heights: one outline loop of the ribbon's width, a mesh bound of 0.05 mm or less, and no corner but the listed tooth tips |
+| `TestSleeveCornersRecorded` | The sleeve at eight heights through the bores: a non-empty section with at least two inside corners turning more than 50° (the retained sharp corners) |
 | `TestSleeveEndFacesAreChamfered` | Both cage end faces at `±CageRise` keep two loops, each edge has a 45° cone beside it, and the area is below 560 mm² |
 | `TestBuildBranches` | No roof allowance, `Σ = 100°`, and mounting angles of ±5° each build with both windows cut |
 | `TestSectionPair/default/cuts-both-ribbons` | `Mechanism.SectionPair` at −0.4, 0 and +0.4 mm: both ribbons give outlines on the plane, with positive area and an off-surface bound under 0.05 mm |

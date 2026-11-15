@@ -11,7 +11,10 @@ diagnostics are not part of this model. Lengths are in millimeters and angles ar
 
 `NewDocument()` returns a decad document that the sleeve's chain of six cuts needs. `Build` with a document made
 by plain `decad.New` can fail at a window cut that meets a bore rim. `NewDocument` sets
-`decad.WithChainTolerance` to 0.1 mm and applies any options you pass after it.
+`decad.WithChainTolerance` to 0.1 mm and `decad.WithRimSplit`, and applies any options you pass after them.
+`WithRimSplit` keeps the sleeve's held mesh bound at 0.033 mm or less after each of the six cuts (0.05 to 0.19 mm
+without it), which the corner check needs to read the sleeve's sections. It adds about 30% to the sleeve's triangle
+count (53,392 to 69,786).
 
 `Build(ctx, doc, Params)` adds three bodies to the document and returns them as a `*Mechanism` with fields `GearA`,
 `GearB` and `Cage`. `DefaultParams()` returns the default 68-tooth mechanism. The table in `instructions.md` lists
