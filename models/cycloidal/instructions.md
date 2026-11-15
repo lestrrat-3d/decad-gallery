@@ -19,15 +19,15 @@ parameter-table names `defineParameters` registers.
 | `DiskClearance` | `disk_clearance` | 0.55 | `c`, backlash cut into the profile, and the gap between the rotor and the casing. At least 0.55. |
 | `DiscCount` | `disc_count` | 1 | 1, or 2 discs 180° apart. |
 | `DiscThickness` | `disc_thickness` | 8 | Axial thickness of each disc. |
-| `DiscGap` | `disc_gap` | 0.55 | Gap between disc 1 and disc 2. At least 0.55 for two discs; a one-disc drive ignores it. |
+| `DiscGap` | `disc_gap` | 1.4 | Gap between disc 1 and disc 2. At least 1.4 for two discs, so the cam's neck takes its round and chamfer; a one-disc drive ignores it. |
 | `CenterBearingDiameter` | `center_bearing_diameter` | 30 | Cam outer diameter, and the disc center bore before clearance. |
-| `InputShaftDiameter` | `input_shaft_diameter` | 8 | Bore through the cam. 0 leaves the cam solid. |
+| `InputShaftDiameter` | `input_shaft_diameter` | 8 | The shaft the cam is pressed on. The bore through the cam is this plus 0.05 mm on each side (`cam_bore_diameter`, a press fit). 0 leaves the cam solid. |
 | `BearingClearance` | `bearing_clearance` | 1.1 | Diametral clearance of the disc bore over the cam. At least 1.1. |
 | `OutputPinCircleDiameter` | `output_pin_circle_diameter` | 50 | `2Rop`. |
 | `OutputPinCount` | `output_pin_count` | 6 | `M`. |
 | `OutputPinDiameter` | `output_pin_diameter` | 0 | Output-pin diameter. 0 derives it. |
 | `OutputPinClearance` | `output_pin_clearance` | 0.55 | Radial gap between an output pin and its disc hole at the pin's farthest offset. At least 0.55. |
-| `HousingWall` | `wall` | 3 | Minimum radial wall of the casing. |
+| `HousingWall` | `wall` | 3 | Minimum radial wall of the casing, and the rim wall of the output plate. At least 1.6. |
 | `BaseThickness` | `base_thickness` | 5 | Axial thickness of the housing base. |
 | `OutputPlateThickness` | `output_plate_thickness` | 5 | Axial thickness of the output plate. |
 | `ChamferSize` | `chamfer_size` | 0.5 | 45° chamfer on outer rims of the discs, housing, cam and plate, and both pin ends. It must be at least 0.5 mm per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing). |
@@ -41,7 +41,7 @@ per-field status text boxes are dialog furniture and have no gallery counterpart
 `Rr = PinDiameter / 2` when `PinDiameter > 0`, else `(E + R sin(π/N)) / 2`. `Rr_eff = Rr + c`.
 `Rv = R - Rr_eff - E`. `D_pin = OutputPinDiameter` when it is positive, else `Rop sin(π/M) - E`.
 `D_hole = D_pin + 2E + 2 c_pin`, where `c_pin` is `OutputPinClearance`. `D_socket = D_pin + 2 × 0.05` is the
-plate socket that holds a pin. The housing outer diameter is `2 (R - Rr + 2E + wall)`, its base inner diameter
+plate socket that holds a pin. `D_bore = ISD + 2 × 0.05` is the cam's input bore, a press fit on the shaft. The housing outer diameter is `2 (R - Rr + 2E + wall)`, its base inner diameter
 is `2 (R - Rr - wall)`, and the output plate diameter is `2 Rop + D_socket + 2 wall`.
 `Rr` and `D_hole` are numeric snapshots in the parameter table because they choose between a derived
 and an overridden value. Every other derived name is an expression.
@@ -58,7 +58,16 @@ not enforce, because the build cannot take them: `N >= 4`, `M >= 3`, a disc coun
 values, lengths above zero, and optional lengths (pin, output pin and shaft diameters, clearances and gap)
 not below zero. `ChamferSize` must be at least 0.5 mm per [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing).
 It then adds the clearance minimums below. The add-in allows smaller clearances
-and two touching discs; the gallery refuses them.
+and two touching discs; the gallery refuses them. It adds three wall rules for the printed press-fit rings, each 1.6
+mm (the "Corners and roots" clause of [model-pipeline.md](../../docs/model-pipeline.md)):
+
+- `HousingWall >= 1.6`. It is the output plate's rim wall, and it keeps the casing wall above the 0.8 mm general
+  minimum.
+- The wall between the plate's sockets, `2 Rop sin(π/M) - D_socket`, is at least 1.6.
+- The wall round the cam's input bore is at least 1.6 when `ISD > 0`: `CBD/2 - E - D_bore/2` for one disc, and for two
+  discs the thinner wall of the neck, `r_b - D_bore/2` with the bridge radius `r_b = (CBD/2 - E + ISD/2) / 2`.
+
+A two-disc drive also needs `DiscGap >= 1.4` (`MinCamNeck`).
 
 ## Fits
 
@@ -71,10 +80,16 @@ bounds and section uncertainty. `Problems` refuses a smaller value.
 | Rotor to casing | `DiskClearance` | 0.55 |
 | Disc bore to cam, radial | `BearingClearance / 2` | 0.55 |
 | Output pin to disc hole | `OutputPinClearance` | 0.55 |
-| Disc to disc, along the axis | `DiscGap` (two discs) | 0.55 |
+| Disc to disc, along the axis | `DiscGap` (two discs) | 1.4, from the cam neck; the Regular 0.35 still holds |
+| Cam input bore to shaft, radial (press fit) | fixed | 0.05 |
 | Output pin to plate socket, radial | fixed | 0.05 |
 
 The disc, housing base and output plate stand one plane gap (1 mm) apart along the axis.
+
+The cam is pressed on its input shaft and turns with it, so its bore is a press fit. The printed rings that grip a
+pin or shaft keep 1.6 mm of wall over their whole pressed length: the output plate (rim and between sockets) and the
+cam. The plate and the cam print with their axis vertical, as the Printing section states. Walls: output plate rim
+`HousingWall` (3.0 by default), between sockets 13.9, cam bore 9.45 (one disc) and 4.7 at the neck (two discs).
 
 ## Geometry
 
@@ -123,13 +138,21 @@ curvature certificate refuses.
 split at its inflections into three fit splines through every third sampled point, and through every
 second, fourth, sixth or single point when decad refuses) is cut from one plane gap above the base to past
 the top. That leaves the casing wall and a base floor. A cylinder of diameter `2 (R - Rr - wall)` is then
-cut through the floor. No two bodies share a face, which decad does not decide.
+cut through the floor. No two bodies share a face, which decad does not decide. Before the cut, the cavity tool's
+start-cap outer loop takes a 45° chamfer of leg 1.0 mm, which becomes a concave chamfer at the foot of the casing wall
+(see Retained sharp corners). It leaves 1.05/√2 = 0.74 mm between the rotor's own 0.5 mm rim chamfer and the housing,
+above the Regular 0.35 mm plus the 0.2 mm margin. Decad accepts that chamfer for `PinCount` up to 20, so a housing
+with 21 or more pins goes without it.
 
 **Cam.** Section `d` is a cylinder of diameter `CenterBearingDiameter` centered on disc `d`'s center. A
 one-disc cam is one cylinder over the disc. A two-disc cam joins a cylinder over disc 0 and a cylinder over
 disc 1, each flush with its disc's faces, by a bridge cylinder on the drive axis across the gap that reaches
-0.2 mm into each. Each section clears the other disc by `DiscGap`. The input bore of diameter
-`InputShaftDiameter` on the drive axis is cut through the whole cam when it is positive.
+0.2 mm into each. Each section clears the other disc by `DiscGap`. The bridge's two ends are finished as "Corners
+and roots" requires: the concave circle where it meets the top face of section 1 takes a 0.5 mm round (the corner
+opens upward), and the concave circle where it meets the underside of section 2 takes a 0.5 mm 45° chamfer (the corner
+opens downward). That leaves 0.4 mm of straight bridge in the 1.4 mm gap, as long as the corner check's window, so the
+two neighbouring turns do not add. The input bore of diameter `D_bore` on the drive axis is cut through the whole cam
+when `InputShaftDiameter` is positive.
 
 **Output.** The plate lies one plane gap above the stack, with `M` sockets on the circle of radius `Rop`
 about the drive axis, of diameter `D_socket`. Each pin has diameter `D_pin` and runs from the top of the plate down to the lower
@@ -140,6 +163,31 @@ and repeats the finished pin with a circular pattern of bodies about the drive a
 **Chamfers.** `ChamferSize` chamfers the outer loop of both faces of every rotor disc, the outer circles of
 the housing's two end faces, every convex outer rim of each cam section, the outer circle of both plate faces and both
 ends of every pin. Bore and hole rims are concave, so they do not qualify as convex boundary edges.
+
+## Printing
+
+Every printed part is read in its print orientation, axis +Z in the built pose (a `Placement` only moves the whole
+drive).
+
+| Part | Orientation |
+| --- | --- |
+| Rotor discs | Flat, either face down. |
+| Housing | Base down, the cavity open upward. |
+| Eccentric cam | Standing on its lower end face. A two-disc cam's upper section overhangs the neck between the sections, so its underside outside the neck needs slicer support. |
+| Output plate | Flat. The press-fit rule requires a pressed ring to print with its axis vertical, and this meets it. |
+| Output pins | Standing on end. |
+
+## Retained sharp corners
+
+Rule: "Corners and roots" in `docs/model-pipeline.md`. Every printed part is cut in its print orientation, axis +Z.
+
+| Part | Corner | Reason |
+| --- | --- | --- |
+| Cycloidal discs | the lobe flanks and tips | cycloidal teeth, from the rotor profile generator; the checker flags none |
+| Housing with 21 or more pins | the casing floor to contour wall, the ring at `z = -1` along the wall foot, between radius `R - Rr - 0.3` and `R - Rr + 2E + c + 0.3` (90° turn, opens upward) | between layers, a stressed root. A 45° chamfer of leg 1.0 replaces it for up to 20 pins. Decad refuses the chamfer from 21 pins. At 24 pins the contour has a 13.8° crease where two branches meet, and decad's rimoffset offsets only joints under 10° (mitred joints are decad P7, not built yet). 21 to 23 pins fail because the offset spline departs from the exact offset by more than 0.002 mm, and 25 pins because the offset reaches the rim's radius of curvature. Remove the listing when decad accepts the chamfer |
+| Housing (all pin counts) | the chamfer at the casing floor, 45° turns | a chamfer, not a round, because decad cannot round the contour's free-form rim; the rule counts a turn of 45° or less as no inside corner |
+
+The disc row lists nothing the test exempts. The checker reads the finished, chamfered discs and flags nothing.
 
 ## Result
 
@@ -155,3 +203,10 @@ sketch origin, which is the drive axis, and circle diameters are bound to the pa
 pose the rotor clears the casing, the cam and the output pins, and the housing clears the cam and the plate.
 Sections of the placed bodies prove each gap in the Fits table, with the mesh bound subtracted, for one and two
 discs, 12, 20 and 24 pins, a solid cam, five output pins and the smallest accepted clearances.
+
+`TestCorners` cuts every printed body at the middle of each run of layers (`cornercheck.MidHeights`, axis +Z), the
+chamfered rotor discs included, and requires no finding. It also cuts the housing, the cam and the output plate by
+the planes through the drive axis normal to X and to Y, for the corners between layers. The one-disc and two-disc
+defaults run on every pull request. `TestCornersVariants` runs 12, 24 and 20 pins with two discs; at 24 pins it lists
+the casing floor corner above, and each listing must match a finding. `TestPressFitWalls` proves the 1.6 mm walls
+on the built bodies.

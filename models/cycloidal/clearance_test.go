@@ -59,7 +59,7 @@ func TestMeasuredFits(t *testing.T) {
 		{"solid_cam_five_pins", func(p *cycloidal.Params) { p.InputShaftDiameter, p.OutputPinCount = 0, 5 }},
 		{"minimum_clearances", func(p *cycloidal.Params) {
 			p.DiscCount, p.DiskClearance, p.BearingClearance = 2, cycloidal.MinClearance, 2*cycloidal.MinClearance
-			p.OutputPinClearance, p.DiscGap = cycloidal.MinClearance, cycloidal.MinClearance
+			p.OutputPinClearance, p.DiscGap = cycloidal.MinClearance, cycloidal.MinCamNeck
 		}},
 		{"larger_clearances", func(p *cycloidal.Params) {
 			p.DiskClearance, p.BearingClearance, p.OutputPinClearance = 0.6, 1.2, 0.6

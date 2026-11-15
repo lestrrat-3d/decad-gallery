@@ -35,4 +35,8 @@ discs, 12 and 20 pins, a solid cam, five output pins, the smallest clearances `P
 The regular-fit inputs have minimums of 0.55 mm (1.1 mm diametral for the bearing), which is the fit plus a 0.2 mm
 margin for held chamfer-mesh bounds and section uncertainty. The pin-to-plate socket keeps a 0.05 mm radial gap.
 
+`TestCorners` and `TestCornersVariants` apply "Corners and roots" to every printed body, the chamfered rotor discs
+included, and `TestPressFitWalls` proves the 1.6 mm walls of the output plate and the cam. A housing with 21 or more
+pins keeps its casing floor corner sharp, because decad does not yet chamfer that contour; `instructions.md` lists it.
+
 The [renderer](../rendering.md) produces the page's images from the two-disc drive.

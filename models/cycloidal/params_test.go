@@ -18,7 +18,7 @@ func TestDiscGapLimit(t *testing.T) {
 	p := cycloidal.DefaultParams()
 	p.DiscGap = 0
 	require.Empty(t, cycloidal.Problems(p))
-	p.DiscCount, p.DiscGap = 2, cycloidal.MinClearance
+	p.DiscCount, p.DiscGap = 2, cycloidal.MinCamNeck
 	require.Empty(t, cycloidal.Problems(p))
 }
 
@@ -64,7 +64,17 @@ func TestProblems(t *testing.T) {
 		{"chamfer below the edge finish minimum", func(p *cycloidal.Params) { p.ChamferSize = 0.49 },
 			"Chamfer Size must be at least 0.50 mm"},
 		{"touching discs", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0 },
-			"Disc Gap must be at least 0.55 mm"},
+			"Disc Gap must be at least 1.40 mm"},
+		{"gap below the cam neck", func(p *cycloidal.Params) { p.DiscCount, p.DiscGap = 2, 0.55 },
+			"Disc Gap must be at least 1.40 mm"},
+		{"housing wall below the press-fit wall", func(p *cycloidal.Params) { p.HousingWall = 1.5 },
+			"Housing Wall must be at least 1.60 mm (currently 1.50 mm)."},
+		{"plate sockets too close", func(p *cycloidal.Params) {
+			p.Eccentricity, p.OutputPinDiameter, p.CenterBearingDiameter = 0.2, 23.4, 20
+		},
+			"Output plate sockets need 1.60 mm of wall between them"},
+		{"cam bore wall too thin", func(p *cycloidal.Params) { p.InputShaftDiameter = 24 },
+			"The input bore of the cam needs 1.60 mm of wall"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -84,4 +94,29 @@ func TestUndercutBound(t *testing.T) {
 	problems := cycloidal.Problems(p)
 	require.Len(t, problems, 1)
 	require.Contains(t, problems[0], "undercuts/self-intersects. Reduce Eccentricity below 2.4")
+}
+
+// The wall clauses each fail alone: the plate's socket-to-socket wall at 1.5 mm, and the cam's input bore wall.
+func TestPressFitWallLimits(t *testing.T) {
+	p := cycloidal.DefaultParams()
+	p.Eccentricity, p.OutputPinDiameter, p.CenterBearingDiameter = 0.2, 23.4, 20
+	problems := cycloidal.Problems(p)
+	require.Len(t, problems, 1)
+	require.Contains(t, problems[0], "sockets need 1.60 mm of wall between them")
+	require.Contains(t, problems[0], "(currently 1.50 mm)")
+	p.OutputPinDiameter = 23.2
+	require.Empty(t, cycloidal.Problems(p))
+
+	// A 24 mm shaft in a 30 mm cam leaves 15 - 1.5 - 12.05 = 1.45 mm. With two discs the bridge is the thinner wall:
+	// a 22 mm shaft leaves 1.20 mm there.
+	q := cycloidal.DefaultParams()
+	q.InputShaftDiameter = 24
+	problems = cycloidal.Problems(q)
+	require.Len(t, problems, 1)
+	require.Contains(t, problems[0], "(currently 1.45 mm)")
+	q.InputShaftDiameter = 8
+	q.DiscCount, q.InputShaftDiameter = 2, 22
+	problems = cycloidal.Problems(q)
+	require.Len(t, problems, 1)
+	require.Contains(t, problems[0], "The input bore of the cam needs 1.60 mm of wall")
 }
