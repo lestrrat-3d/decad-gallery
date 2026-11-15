@@ -7,7 +7,9 @@ shaft. The two gears of a pair share one pitch apex and are rotated so their tee
 
 ![Bored 31/31 spiral bevel gear pair beside a bored 32/16 straight-tooth pair](images/hero.png)
 
-The tooth root has no fillet.
+The straight pair's 16-tooth pinion has a root fillet of radius 0.38 Module, which ends in a short straight run-out
+that crosses the blank's root at 10°. The spiral pair and the 32-tooth driving gear keep a sharp tooth root. The
+default gear's fillet does not fit, and a fillet on an involute root is not built yet.
 
 ## More views
 

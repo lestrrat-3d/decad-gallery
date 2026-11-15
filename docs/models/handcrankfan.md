@@ -38,8 +38,9 @@ HANDCRANKFAN_FULL=1 go test ./models/handcrankfan -timeout 30m
 Three tests run without the flag and share one build of the default fan (about two minutes):
 `TestHandCrankFanContainers`, `TestHandCrankFanCorners` and `TestPressFitWalls`. The corner test applies "Corners and
 roots" to every printed part in its print orientation, with the exemptions listed under Retained sharp corners in
-[instructions.md](../../models/handcrankfan/instructions.md). It skips the bevel pair and exempts the gearbox's ear
-roots, which wait for decad, so the model stays on `CORNER_PENDING`. The full check runs the same corner test for the
+[instructions.md](../../models/handcrankfan/instructions.md). It reads the pinion's filleted teeth from the toe to the heel, skips the driving gear's teeth and exempts the
+gearbox's ear roots, so the model stays on `CORNER_PENDING` until the driving gear's roots are rounded and decad
+supports the ear roots. The full check runs the same corner test for the
 default fan and both variants.
 
 The job `fan-motion` runs `TestHandCrankFanMotion` in `tools/render`. The full checks include the fastener, fit and spur

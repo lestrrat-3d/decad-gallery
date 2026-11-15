@@ -20,6 +20,13 @@ type hit struct {
 // are spread over the stretch up to half a segment (at most maxSpread) on each side of the vertex, so a window's turn
 // does not depend on where the mesh happens to put its vertices.
 func scanLoop(loop []r3.Vec, n r3.Vec, height float64) []Finding {
+	return append(scanWindows(loop, n, height, Inside, InsideWindow, InsideMaxTurn),
+		scanWindows(loop, n, height, Tip, TipWindow, TipMaxTurn)...)
+}
+
+// scanWindows returns the windows of the loop whose turn exceeds limit: toward the material for Inside, away from it
+// for Tip.
+func scanWindows(loop []r3.Vec, n r3.Vec, height float64, kind Kind, window, limit float64) []Finding {
 	pts := dedupe(loop)
 	m := len(pts)
 	if m < 3 {
@@ -40,23 +47,17 @@ func scanLoop(loop []r3.Vec, n r3.Vec, height float64) []Finding {
 		turn[i] = math.Atan2(n.Dot(u.Cross(v)), u.Dot(v)) * 180 / math.Pi
 	}
 	cum := newCumulative(start, seg, turn, total)
+	sign := 1.0 // +1 reads convex turns, -1 reads concave turns
+	if kind == Inside {
+		sign = -1
+	}
 	var out []Finding
-	for _, rule := range []struct {
-		kind   Kind
-		window float64
-		limit  float64
-		sign   float64 // +1 reads convex turns, -1 reads concave turns
-	}{
-		{Inside, InsideWindow, InsideMaxTurn, -1},
-		{Tip, TipWindow, TipMaxTurn, 1},
-	} {
-		for _, h := range cum.hits(rule.window, rule.limit, rule.sign) {
-			at, ok := sharpest(pts, start, seg, turn, total, h, rule.sign)
-			if !ok {
-				continue
-			}
-			out = append(out, Finding{Kind: rule.kind, At: at, Turn: h.turn, Height: height})
+	for _, h := range cum.hits(window, limit, sign) {
+		at, ok := sharpest(pts, start, seg, turn, total, h, sign)
+		if !ok {
+			continue
 		}
+		out = append(out, Finding{Kind: kind, At: at, Turn: h.turn, Height: height})
 	}
 	return out
 }

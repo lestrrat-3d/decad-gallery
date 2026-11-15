@@ -326,9 +326,24 @@ These corners are exempt:
   keep both sharp and list the pair.
 - Chamfer faces that [Surface edge finishing](#surface-edge-finishing) adds.
 
-Known case: the bevel gear teeth (`models/bevelgear`) have no root fillet, so each tooth leaves a sharp inside
-corner of 83° to 125° on the root cone. These are retained corners pending a real root fillet, not an exemption.
-A model that uses them stays on `CORNER_PENDING`, and its test records them without hiding them.
+Known case: the bevel gear teeth (`models/bevelgear`).
+
+- **Radial-flank gears carry a root fillet.** A straight bevel tooth whose flank is a radial line at the root, such
+  as the fan's 14-tooth pinion, is drawn with a fillet of radius 0.38 m (the rack value of the spur gears) in the
+  back-cone tooth sketch, so every section along the cone is a similar copy and the radius falls with the distance
+  from the apex. The fillet cannot end tangent to the blank's root cone, because decad cannot certify the tangent
+  contact in the tooth join. It stops 10° short, and a straight run-out line tangent to the arc crosses the root cone
+  at 10° and ends on the tooth's own root arc, 0.025 m inside the blank's root. The outline therefore turns 10° where
+  the run-out crosses the root cone, and then follows the arc. This crease is part of the root fillet and not a
+  corner: 10° is far below the 45° that this rule rounds, and at the pinion's toe the fillet and the crease together
+  read 48.9° over 0.4 mm, under the checker's 50°. A crease of 15° would read 53.9° there and fail. A member whose
+  fillet does not fit, or whose join decad refuses, keeps the sharp root below.
+- **The other gears keep a sharp root.** The involute-root gears (the fan's driving gear, the default 31/31 gear and
+  any other gear whose base circle lies below the fillet's tangent point) and the spiral member leave one sharp
+  inside corner per tooth on the root cone, 83° to 125°. A fillet tangent to an involute needs a sketch constraint
+  and a decad join that do not exist yet, and a spiral member's sections meet the root obliquely, so its corners stay
+  above 100° with a fillet. These are retained corners pending a real root fillet, not an exemption. A model that
+  uses them stays on `CORNER_PENDING`, and its test records them without hiding them.
 
 List every exempt corner, and every root rounded below half its section, under "Retained sharp corners" in the
 model's `instructions.md`, with its location and reason.

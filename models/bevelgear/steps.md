@@ -19,8 +19,12 @@ supported pair.
    and `VerifyAll` mesh.
 3. Draw one fitted involute tooth on the tilted back-cone plane. Keep
    `Teeth / cos(γ)` as a real number. Anchor the tooth center to the sketch
-   origin; dimension its fit points and arcs for both root routes. Solve and
-   verify the Sketch profile before lofting
+   origin; dimension its fit points and arcs for both root routes. A straight
+   member whose base circle lies above the root also draws the root fillet
+   (instructions.md, Root fillet): per side a flank line, a fillet arc tangent
+   to it, a run-out line tangent to the arc, and a root arc 0.025 Module inside
+   the blank's root, constrained with `NewPointOnLine`, `NewTangent` and
+   `NewDistance`. Solve and verify the Sketch profile before lofting
    it from the exact common apex with `decad.LoftFromPoint`.
 4. Dimension, solve, and verify the triangular axial sections before
    revolving the cutting cones from the blank's toe-dish and heel-cone lines.
@@ -31,7 +35,8 @@ supported pair.
    tooth in a Boolean. Rotate them around the shaft at successive 45°
    increments. Join the original and each copy to the revolved blank with
    sequential Decad `Union` calls. This is the verified interim 8/8 path.
-   Then call `decad.Refine` on the joined body with a 0.03 mm bound, so the
+   Then call `decad.Refine` on the joined body with a 0.03 mm bound (0.05 mm
+   for a filleted member, which refinement cannot take below that), so the
    bored gear still reads at 0.05 mm or finer for the corner check.
 6. Check that the joined body is one solid and its unbored mesh has one
    closed outer shell. `Tessellate(0.1 mm, VerifyAll)` verifies its

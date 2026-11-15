@@ -6,8 +6,10 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/rootcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,12 +58,16 @@ func TestCorners(t *testing.T) {
 // lie on it, from 10.14 at x 11.36 to 14.60 at x 16.36.
 func rootCone(x float64) float64 { return 10.14 + 0.892*(x-11.36) }
 
-// TestToothRootCorners records that the bevel teeth have no root fillet.
+// TestToothRootCorners records that the default 31/31 gear and the spiral member keep a sharp root.
 //
-// The tooth profile runs a radial line to the base of the involute and nothing rounds that join, so every tooth
-// leaves one sharp inside corner on the root cone, in every section from the toe to the heel. The rule's gear-teeth
-// exemption names "root fillets" that follow the generators; this gear has none, so these corners are known findings
-// of "Corners and roots", not exempt ones, and the model stays on CORNER_PENDING until decad can round them.
+// The default gear's fillet does not fit: its radial flank ends below the fillet's tangent point, so the tooth sketch
+// runs the flank line to the blank's root and nothing rounds that join. The spiral member shares that tooth and
+// draws no fillet by design: its bed-parallel sections meet the root obliquely, 31 corners remain at 107 to 116
+// degrees with a fillet, and the build takes 3.6 times as long. So every tooth leaves one sharp inside corner on the
+// root cone, in every section from the toe to the heel. The rule's gear-teeth exemption names "root fillets" that
+// follow the generators; these gears have none, so these corners are known findings of "Corners and roots", not
+// exempt ones, and the model stays on CORNER_PENDING and CORNER_PARTIAL until they are rounded. The fan's pinion and
+// every radial-flank gear whose fillet fits are rounded: TestFilletedPinionRootCorners.
 //
 // The test cuts the teeth region at five heights. At each it requires exactly one inside corner per tooth, on the
 // root cone, and exactly the expected tooth tips. It fails when the roots get a fillet (the corners disappear or
@@ -110,6 +116,63 @@ func TestToothRootCorners(t *testing.T) {
 				require.Equal(t, tc.p.Teeth, roots, "root corners at x %.2f: %s", h.x, cornercheck.Report(fs, 3))
 				require.Equal(t, h.tips, tips, "tip corners at x %.2f: %s", h.x, cornercheck.Report(fs, 3))
 			}
+		})
+	}
+}
+
+// TestFilletedPinionRootCorners reads the root fillet of the fan's pinion (module 2, 14 teeth against 28) from the
+// toe to the heel. At Heights sections along the root cone it requires that
+//
+//   - the section cut the teeth, not a hollow: the outline crosses the pitch circle twice per tooth;
+//   - no inside corner remains, by the corner check proper, with no exemption;
+//   - the fillet is there, so an empty or sharp root cannot pass: every tooth's flank-to-root turn spreads over a
+//     0.4 mm window as 20 to 50 degrees, and no 0.05 mm window turns more than 15 degrees. A sharp root turns 80 to 90
+//     degrees in one vertex, and fails the second;
+//   - the joined mesh holds a bound the corner check may read, bored or not.
+//
+// Sections behind the pitch point of the heel cone no longer cut the pitch circle, so only the corner check reads
+// them.
+func TestFilletedPinionRootCorners(t *testing.T) {
+	bored := filletPinion()
+	bored.EnableBore = true
+	for _, tc := range []struct {
+		name string
+		p    bevelgear.Params
+	}{{"unbored", filletPinion()}, {"bored", bored}} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			band, err := tc.p.ToothBand()
+			require.NoError(t, err)
+			require.Positive(t, band.RootFillet, "the pinion's fillet fits")
+			body, err := bevelgear.Build(t.Context(), decad.New(), tc.p)
+			require.NoError(t, err)
+			mesh, err := body.Tessellate(t.Context(), units.Millimeters(cornercheck.MaxMeshBound))
+			require.NoError(t, err)
+			require.LessOrEqual(t, mesh.Bound().Base(), cornercheck.MaxMeshBound)
+
+			axis := r3.Vec{X: 1}
+			secs, err := rootcheck.Read(t.Context(), body, band, r3.Vec{}, axis, axis)
+			require.NoError(t, err)
+			require.Len(t, secs, rootcheck.Heights)
+			fs, err := cornercheck.CheckAt(t.Context(), body, axis, rootcheck.SectionHeights(secs), nil)
+			require.NoError(t, err)
+			require.Zero(t, len(fs), cornercheck.Report(fs, 5))
+			inTeeth := 0
+			for _, sec := range secs {
+				if !sec.InTeeth {
+					continue
+				}
+				inTeeth++
+				require.Equal(t, 2*tc.p.Teeth, sec.Crossings, "the section at %.2f cuts every tooth twice", sec.Station)
+				// At the toe the two fillets of a gap share one window.
+				require.GreaterOrEqual(t, len(sec.Quarter), tc.p.Teeth, "fillet turns at %.2f", sec.Station)
+				for _, turn := range sec.Quarter {
+					require.GreaterOrEqual(t, turn, rootcheck.QuarterMinTurn)
+					require.LessOrEqual(t, turn, cornercheck.InsideMaxTurn, "station %.2f", sec.Station)
+				}
+				require.Zero(t, sec.FineMax, "a sharp turn at station %.2f", sec.Station)
+			}
+			require.GreaterOrEqual(t, inTeeth, 5)
 		})
 	}
 }

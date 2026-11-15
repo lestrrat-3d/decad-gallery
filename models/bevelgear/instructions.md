@@ -213,6 +213,10 @@ spur involute sampler for its two fitted flanks. Connect them with a tip arc,
 a root arc, and radial lines when the base circle lies above the root.
 When the base circle lies below the root, retain the fitted curves and trim
 them at the root circle with Sketch rather than replacing them with chords.
+
+A straight member whose base circle lies above the root also rounds the root
+(see Root fillet below). The root arc then lies 0.025 Module below the blank's
+root radius, `virtual pitch radius − 1.25 Module`, not 0.1125 Module below it.
 Center the single tooth at 180° in its local plane, as the reference does;
 this keeps the root-circle seam away from the tooth's trimmed root arc.
 Place that plane through the point
@@ -330,6 +334,43 @@ reference does. A solid-cone `Cut` result alone does not identify that
 keeper. Check both sides of a real heel split before choosing one: the
 spaced 16/12 tooth at 90° has material on both sides of its heel cone.
 
+## Root fillet
+
+Every surface of a straight tooth is a cone through the pitch apex. A fillet drawn in the back-cone tooth sketch and
+lofted to the apex is a cone too, so each section is a similar copy of the heel section: the radius at the toe is the
+heel radius times `toe_scale`. This is the definition of the fillet. A constant-radius rolling ball is not used,
+because the toe gap is `toe_scale` times the heel gap and the sector join needs similar sections.
+
+A straight member whose base circle lies above the root gets the fillet when it fits. Per flank, in the heel
+sketch, with `R_d = virtual pitch radius − 1.25 Module` (the blank's root radius), `ρ = 0.38 Module`, `θ = 10°` and
+`h = ρ (1 − cos θ) / 2`:
+
+1. The flank is a radial line from T1 to the first involute sample F0 on the base circle.
+2. The fillet arc has radius ρ. It is tangent to the flank at T1 and tangent to the circle `R_d − h` about the
+   origin, so its centre C lies `R_d − h + ρ` from the origin.
+3. The arc stops at T3, the point at radius `R_d + h` on the flank side of the arc's lowest point. That is θ short
+   of tangency to the root cone.
+4. The run-out line leaves T3 tangent to the arc, toward the gap's centre and inward. It crosses the blank's root
+   circle at about θ and ends at D on the tooth's own root arc, radius `R_d − 0.025 Module` about the origin.
+5. The root arc runs from D on one side to D on the other.
+
+The fillet stops short of tangency because a fillet tangent to the blank's root cone makes the tooth `Union` hold a
+tangent contact, which decad's sector join cannot certify. In a section the outline runs along the root cone, turns
+θ where the run-out crosses it, follows the arc to the flank, and follows the flank. The 10° crease belongs to the
+root fillet. It is the largest crease the corner check accepts at the pinion's toe: the fillet and the crease read
+48.9° over 0.4 mm against the checker's 50°, and 15° would read 53.9°.
+
+The fillet fits when T1, at `sqrt((R_d − h + ρ)² − ρ²)` from the origin, lies at least 0.1 Module below the base
+circle, and the member has at least 15.5 virtual teeth. decad certifies the join at the fan pinion's 15.65 and
+refuses it at 15.0 (module 4, 12 teeth against 16), 11.3 and 5.7, where the neighbouring run-outs meet. Otherwise
+the tooth keeps the 6-edge outline above, with a sharp root. Only the straight route draws it: the
+spiral member shares the point tooth and keeps its sharp root.
+
+A filleted join is refined to 0.05 mm (`filletedJoinMeshBound`), not 0.03 mm: decad's sector cap refinement is
+exhausted at 0.03 around the run-out wedge. The fan's pinion then holds 0.041 mm, bored or not, under the corner
+check's 0.05 mm. When decad refuses a filleted join anyway (`ErrUnsupported` or `ErrDegenerate`), the build removes that
+attempt's bodies and builds the member again without the fillet.
+
 ## Sketch constraints
 
 Anchor every axial section to its sketch origin and dimension its shaft
@@ -341,6 +382,15 @@ relates its endpoint radii, so dimension only the needed tangential
 coordinate of one endpoint. For the embedded-flank route, dimension the
 separate root circle to the derived root radius. Do not fix every computed
 point.
+
+For the root fillet, per side: T1 lies on the flank's line through the origin
+(`NewPointOnLine`), the fillet arc is tangent to that line (`NewTangent`) at T1
+with `NewDistance(C, T1, ρ)`, and its centre is `NewDistance(origin, C, R_d − h + ρ)`
+from the origin. The run-out line is tangent to the arc (`NewTangent`) and T3 is
+`NewDistance(origin, T3, R_d + h)` from the origin. The root arc takes a
+`NewRadius`. Dimensioning the centre's distance, not T3's collinearity with the
+origin, keeps the set free of redundant constraints. Two coordinates of F0 and
+the other flank points are dimensioned as before.
 
 For each spiral slicing sheet, anchor and dimension the two line endpoints
 on its sketch plane before extruding the sheet. When a bore is enabled,
@@ -365,15 +415,30 @@ toe and spacing changes, and right and left spiral traces.
 `cornercheck.MidHeights` returns. On the default gear that is one height, 17.44, which cuts the hub behind the
 teeth. The sections hold no sharp corner, and the teeth are not in them.
 
-The tooth roots are not rounded. The tooth profile runs a radial line to the base of the involute and nothing
-rounds that join (`tooth_profile.go`), so the flat flank meets the root cone at about 90° along a line through
-the apex. The spur gears round their roots with the 0.38 m rack value; the bevel teeth do not. Sections of the
-teeth at x 11.36 to 16.36 hold 31 inside corners each, one per tooth, on the root cone (radius 10.14 at x 11.36
-to 14.60 at x 16.36). The turn is about 85° on the straight member and 105° to 125° on the spiral member. The
-sections from the toe side to x 14.4 also hold 31 sharp tooth tips (turn about 147° on the straight member),
-which the gear-teeth exemption covers.
+The fan's pinion (module 2, 14 teeth against 28) and every other straight member whose root
+fillet fits have rounded roots; the default 31/31 gear, the fan's driving gear and the spiral member do not. The
+default gear's radial flank ends below the fillet's tangent point, and the driving gear's involute flank starts below
+the root, where a fillet tangent to the involute needs a sketch constraint and a decad join that do not exist yet
+(its best scratch join fails with a root arc margin of 0.059 mm against a join cost of 0.196). The spiral member's
+sections meet the root obliquely: with a fillet they still hold 31 corners at 107° to 116°, and the build takes 68.5 s
+instead of 18.8 s.
 
-`TestToothRootCorners` cuts the teeth at five heights and requires exactly those corners: the tooth count of
-inside corners on the root cone, and the expected tips. It fails when a root fillet lands or the geometry moves,
-and it fails on an empty section. The model is on `CORNER_PENDING` and `CORNER_PARTIAL` in
-`scripts/check_repository.py` until the roots have a fillet.
+`TestFilletedPinionRootCorners` builds the pinion bored and unbored and cuts it at 8 stations from 0.3 mm past the
+toe root to 0.3 mm short of the heel root (`internal/rootcheck`, with `Params.ToothBand` giving the cones). At each
+it requires no finding from `cornercheck.CheckAt` and no exemption. At the stations that cut the teeth (the six before
+the heel cone leaves the pitch circle) it also requires 28 crossings of the pitch circle, so a section that missed the
+teeth cannot pass; at least one 0.4 mm window per tooth that turns 20° to 50° toward the material, which proves the
+fillet is there; and no 0.05 mm window that turns more than 15°, where a sharp root turns 80° to 90°. It reads the
+bored and unbored joined mesh at 0.05 mm and requires a bound of 0.05 mm or less (0.041 measured).
+`TestRootFilletToothProfile` and `TestRootFilletShape` require every tooth sketch route fully constrained
+(`DOF 0`, no redundant constraint, no conflict) and read the solved fillet: radius `0.38 Module`, T1 on the flank,
+the run-out tangent to the arc and crossing the blank's root at 10°, and the root arc 0.025 Module inside it.
+
+The default gear and the spiral member keep a sharp root. The default gear's sections of the teeth at x 11.36 to
+16.36 hold 31 inside corners each, one per tooth, on the root cone (radius 10.14 at x 11.36 to 14.60 at x 16.36).
+The turn is about 85° on the straight member and 105° to 125° on the spiral member. The sections from the toe side to
+x 14.4 also hold 31 sharp tooth tips (turn about 147° on the straight member), which the gear-teeth exemption covers.
+`TestToothRootCorners` cuts the teeth at five heights and requires exactly those corners: the tooth count of inside
+corners on the root cone, and the expected tips. It fails when a root fillet lands or the geometry moves, and it
+fails on an empty section. The model is on `CORNER_PENDING` and `CORNER_PARTIAL` in `scripts/check_repository.py`
+until those roots are rounded.
