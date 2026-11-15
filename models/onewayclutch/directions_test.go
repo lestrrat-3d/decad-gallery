@@ -332,9 +332,8 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			require.Positive(t, countInside(locked.Vertices(), ring), "the locked hub reaches into the ring")
 
 			// The ring turned by +sigma*turn (the hub by -sigma*turn): the heads ride up the ramps and stay clear. The
-			// design expects 0.05 mm left after 2 degrees; the built hub keeps 0.046 mm, so the test requires the 0.05 mm at
-			// 1.5 degrees (0.12 mm measured) and a positive gap at the full 2 degrees.
-			for _, free := range []struct{ angle, clearance float64 }{{1.5, 0.05}, {turn, 0.02}} {
+			// design requires 0.05 mm left after 2 degrees (0.07 mm measured) and keeps the 0.05 mm at 1.5 degrees.
+			for _, free := range []struct{ angle, clearance float64 }{{1.5, 0.05}, {turn, 0.05}} {
 				hub := rotated(-sigma * free.angle)
 				gap, clear, err := meshOf(t, hub, "free hub").Exceeds(meshOf(t, parts.Ring, "ring"), free.clearance)
 				require.NoError(t, err)

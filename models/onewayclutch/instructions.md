@@ -252,16 +252,22 @@ All four printed parts print with their axis vertical. Rounded as the rule asks:
 bending-part minimum; every other wall is 0.8 or more. The hub, back plate and cover are press-fit rings with walls of
 1.6 or more round the bore.
 
-Retained sharp corners (the corner test is a later task and must match each entry to a finding):
+Retained sharp corners. `TestOneWayClutchCorners` reads sections at every layer run of each part, for every preset
+and both directions, and exempts nothing: no section reports a finding. Each corner below is kept sharp by design. It
+either passes the rule's limits (inside turn up to 50°, tip turn up to 120°) or lies between layers, where no section
+reads it.
 
-| Part | Corner | Reason |
-| --- | --- | --- |
-| Hub | each head's tip (0.4 round) and lock-face edges | Engagement corners of a pawl tooth. The 51.4° tip is blunted by the rule's minimum 0.4 round. |
-| Hub, back plate, cover | the two corners of the D bore | Mating corners of the shaft's flat. |
-| Ring | the 24 tooth roots, 0.8 round | A ratchet tooth root, rounded below half its section: 0.8 is the largest round that keeps the head's 0.40 gap. |
-| Ring | the 24 tooth tips | Engagement corners. |
-| Cover | the floor rims of the three head pockets (between layers) | The 0.3 mm head clearance leaves no room. |
-| Back plate | the floor and roof rims of the three nut cavities (between layers) | A round would cut into the nut's 0.2 mm face clearance. |
+| Part | Corner | Reason | Test reading |
+| --- | --- | --- | --- |
+| Hub | each head's tip (0.4 round) and lock-face edges | Engagement corners of a pawl tooth. The 51.4° tip is blunted by the rule's minimum 0.4 round. | passes the tip limit |
+| Hub, back plate, cover | the two corners of the D bore | Mating corners of the shaft's flat. | passes the inside limit (turn 28.8° to 36.5°) |
+| Ring | the 24 tooth roots, 0.8 round | A ratchet tooth root, rounded below half its section: 0.8 is the largest round that keeps the head's 0.40 gap. | passes the inside limit |
+| Ring | the 24 tooth tips | Engagement corners. | passes the tip limit |
+| Cover | the floor rims of the three head pockets (between layers) | The 0.3 mm head clearance leaves no room. | between layers, not read |
+| Back plate | the floor and roof rims of the three nut cavities (between layers) | A round would cut into the nut's 0.2 mm face clearance. | between layers, not read |
+
+The test also checks each press-fit ring's wall: in every layer run, the hub's, back plate's and cover's bore lies
+1.6 mm or more from every other outline.
 
 Not applicable: Split shafts (no printed shaft or pin), Gear train clearances (no gears), Arbor collars (the shaft is
 the mechanism's).
