@@ -79,10 +79,17 @@ func (r *run) extrudeDisc(ctx context.Context, c disc) (*decad.Body, error) {
 	return body, nil
 }
 
-// addShaftSection draws the round shaft cross-section on s about its origin.
-func (r *run) addShaftSection(s *sketch.Sketch) error {
-	return r.addCircle(s, r.d.shaft, "shaft_diameter")
+// rod is a round shaft section: its diameter and the table expression bound to it.
+type rod struct {
+	diameter float64
+	expr     string
 }
+
+// shaftRod is the section of a shaft where a bearing sits: as wide as the bearing's bore.
+func (r *run) shaftRod() rod { return rod{r.d.shaft, "shaft_diameter"} }
+
+// sunRod is the section of a shaft where a sun sits: no wider than maxSunShaft, so the sun's bore keeps its wall.
+func (r *run) sunRod() rod { return rod{r.d.sunShaft, "sun_shaft_diameter"} }
 
 // dimensionOnArc creates a point at (x, y) on an arc's circle and fixes one of its coordinates from the sketch
 // origin. normal is the direction from the arc's center to the point. The point moves along the circle at right
@@ -241,8 +248,8 @@ func (r *run) buildPin(ctx context.Context) (*decad.Body, error) {
 	return pin, nil
 }
 
-// extrudeShaft extrudes the round shaft cross-section from z up length.
-func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
+// extrudeShaft extrudes the round cross-section of rod from z up length.
+func (r *run) extrudeShaft(ctx context.Context, what string, rod rod, z, length float64) (*decad.Body, error) {
 	plane, err := r.planeAt(z)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", what, err)
@@ -251,7 +258,7 @@ func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: sketch: %w", what, err)
 	}
-	if err := r.addShaftSection(s); err != nil {
+	if err := r.addCircle(s, rod.diameter, rod.expr); err != nil {
 		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	profile, err := profileWithHoles(ctx, s, 0, what)
@@ -266,9 +273,9 @@ func (r *run) extrudeShaft(ctx context.Context, what string, z, length float64) 
 	return body, nil
 }
 
-// extrudeFlatBox extrudes the box that cuts the shaft's flat from z=bottom to z=top: from FlatDepth inside the
-// shaft's +X edge to a millimeter beyond it, and a millimeter wider than the shaft on each side.
-func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float64) (*decad.Body, error) {
+// extrudeFlatBox extrudes the box that cuts the flat of a shaft section of the given diameter from z=bottom to z=top:
+// from FlatDepth inside the section's +X edge to a millimeter beyond it, and a millimeter wider than it on each side.
+func (r *run) extrudeFlatBox(ctx context.Context, what string, diameter, bottom, top float64) (*decad.Body, error) {
 	plane, err := r.planeAt(bottom)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", what, err)
@@ -277,9 +284,9 @@ func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float
 	if err != nil {
 		return nil, fmt.Errorf("%s: sketch: %w", what, err)
 	}
-	x0 := r.d.shaft/2 - r.p.FlatDepth
-	x1 := r.d.shaft/2 + 1
-	half := r.d.shaft/2 + 1
+	x0 := diameter/2 - r.p.FlatDepth
+	x1 := diameter/2 + 1
+	half := diameter/2 + 1
 	box := s.CreateRectangle(x0, -half, x1, half)
 	s.AddConstraint(
 		sketch.NewHorizontalDistance(s.Origin(), box.A, x0),
@@ -302,8 +309,8 @@ func (r *run) extrudeFlatBox(ctx context.Context, what string, bottom, top float
 // endFlatMargin is how far a flat on a shaft's outer end stays clear of the bearing boss that the shaft leaves.
 const endFlatMargin = 1.0
 
-// span is a range of heights, from lo up to hi.
-type span struct{ lo, hi float64 }
+// span is a range of heights, from lo up to hi, over which a shaft section of the given diameter has its flat.
+type span struct{ lo, hi, diameter float64 }
 
 // flatCut cuts the flat over each of the spans out of body, which is the shaft or, for a bore, a tool shaped like
 // the shaft. With FlatDepth zero or no spans it returns body unchanged. The flats of every span join into one tool, so the
@@ -314,7 +321,7 @@ func (r *run) flatCut(ctx context.Context, what string, body *decad.Body, spans 
 	}
 	var tools []*decad.Body
 	for _, sp := range spans {
-		box, err := r.extrudeFlatBox(ctx, what+" flat", sp.lo, sp.hi)
+		box, err := r.extrudeFlatBox(ctx, what+" flat", sp.diameter, sp.lo, sp.hi)
 		if err != nil {
 			return nil, err
 		}
@@ -387,7 +394,7 @@ func (r *run) extrudeDSection(ctx context.Context, c dSection) (*decad.Body, err
 	return body, nil
 }
 
-// extrudeFlatTool extrudes a bore tool with pressFitClearance around the shaft, from z up length. Its round arc is
+// extrudeFlatTool extrudes the sun's bore tool with pressFitClearance around the shaft's sun section, from z up length. Its round arc is
 // pressFitClearance outside the shaft and its flat lies pressFitClearance outside the shaft's flat. With FlatDepth zero the
 // tool is the round shaft.
 func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float64) (*decad.Body, error) {
@@ -397,15 +404,15 @@ func (r *run) extrudeFlatTool(ctx context.Context, what string, z, length float6
 		})
 	}
 	return r.extrudeDSection(ctx, dSection{
-		what: what, z: z, length: length, radius: r.d.shaft/2 + pressFitClearance, depth: r.p.FlatDepth,
+		what: what, z: z, length: length, radius: r.d.sunShaft/2 + pressFitClearance, depth: r.p.FlatDepth,
 	})
 }
 
 // buildSteppedShaft builds a carrier shaft about the local origin, its bottom on the carrier's lower face: a D thick
 // part of the shaft collar diameter, with the flat FlatDepth deep on +X, from z=0 up to thickTop, which is pressed
-// through the carrier's hole, and a round rod of the shaft diameter from stepOverlap below thickTop up to top, joined
+// through the carrier's hole, and a round rod of the given section from stepOverlap below thickTop up to top, joined
 // in one union, then a flat cut over each of the flats' spans.
-func (r *run) buildSteppedShaft(ctx context.Context, what string, thickTop, top float64, flats ...span) (*decad.Body, error) {
+func (r *run) buildSteppedShaft(ctx context.Context, what string, rod rod, thickTop, top float64, flats ...span) (*decad.Body, error) {
 	thick, err := r.extrudeDSection(ctx, dSection{
 		what: what + " thick part", z: 0, length: thickTop,
 		radius: r.d.collar / 2, depth: r.p.FlatDepth, expr: "shaft_collar_diameter",
@@ -413,11 +420,11 @@ func (r *run) buildSteppedShaft(ctx context.Context, what string, thickTop, top 
 	if err != nil {
 		return nil, err
 	}
-	rod, err := r.extrudeShaft(ctx, what, thickTop-stepOverlap, top-thickTop+stepOverlap)
+	upper, err := r.extrudeShaft(ctx, what, rod, thickTop-stepOverlap, top-thickTop+stepOverlap)
 	if err != nil {
 		return nil, err
 	}
-	shaft, err := decad.Union(ctx, thick, rod)
+	shaft, err := decad.Union(ctx, thick, upper)
 	if err != nil {
 		return nil, fmt.Errorf("%s: join thick part and rod: %w", what, err)
 	}
@@ -427,31 +434,34 @@ func (r *run) buildSteppedShaft(ctx context.Context, what string, thickTop, top 
 	return r.flatCut(ctx, what, shaft, flats...)
 }
 
-// buildShaft builds the input shaft about the local origin: a full round cylinder from z=bottom to z=top with,
-// when collarTop is above collarBottom, a round collar of the shaft collar diameter between those heights, and a
-// flat over each of the flats' spans. A collar sits between a bearing's inner race and the part next to it and
-// takes the place of a washer. The shaft is round where a bearing sits, so the flat lies only where a sun
-// sits, and stops short of the collar. The collar lies strictly inside the rod's length, so the union
-// crosses the rod's faces instead of sharing them.
+// buildShaft builds the input shaft about the local origin: a round rod of the shaft diameter from z=bottom up into a
+// collar of the shaft collar diameter between collarBottom and collarTop, which sits between a bearing's inner race
+// and the sun and takes the place of a washer, then a round rod of the sun section from inside the collar up to
+// z=top, with a flat over each of the flats' spans. The shaft is as wide as the bearing's bore where the bearing
+// sits and narrows to the sun section where the sun sits, so the flats of the two sections differ. The collar lies
+// strictly inside the rods' lengths, so the unions cross faces instead of sharing them.
 func (r *run) buildShaft(ctx context.Context, what string, bottom, top, collarBottom, collarTop float64, flats ...span) (*decad.Body, error) {
-	shaft, err := r.extrudeShaft(ctx, what, bottom, top-bottom)
+	lower, err := r.extrudeShaft(ctx, what+" bearing rod", r.shaftRod(), bottom, collarTop-stepOverlap-bottom)
 	if err != nil {
 		return nil, err
 	}
-	if collarTop > collarBottom {
-		collar, err := r.extrudeDisc(ctx, disc{
-			what: what + " collar", z: collarBottom, length: collarTop - collarBottom,
-			diameter: r.d.collar, expr: "shaft_collar_diameter",
-		})
-		if err != nil {
-			return nil, err
-		}
-		if shaft, err = decad.Union(ctx, shaft, collar); err != nil {
-			return nil, fmt.Errorf("%s: join rod and collar: %w", what, err)
-		}
-		if !shaft.IsSolid() {
-			return nil, fmt.Errorf("%s: result is not a solid", what)
-		}
+	collar, err := r.extrudeDisc(ctx, disc{
+		what: what + " collar", z: collarBottom, length: collarTop - collarBottom,
+		diameter: r.d.collar, expr: "shaft_collar_diameter",
+	})
+	if err != nil {
+		return nil, err
+	}
+	upper, err := r.extrudeShaft(ctx, what+" sun rod", r.sunRod(), collarTop-2*stepOverlap, top-collarTop+2*stepOverlap)
+	if err != nil {
+		return nil, err
+	}
+	shaft, err := decad.Union(ctx, lower, collar, upper)
+	if err != nil {
+		return nil, fmt.Errorf("%s: join rods and collar: %w", what, err)
+	}
+	if !shaft.IsSolid() {
+		return nil, fmt.Errorf("%s: result is not a solid", what)
 	}
 	return r.flatCut(ctx, what, shaft, flats...)
 }

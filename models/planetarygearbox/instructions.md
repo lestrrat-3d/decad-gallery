@@ -37,10 +37,12 @@ The input and the output connect as follows. The shafts are separate bodies from
 prints in its own best orientation. The input shaft is a rod as wide as the shaft bearing's bore (5 mm by default): it passes through the front
 cover's bearing and fills the first sun's bore. A link shaft runs through each carrier's hole and the next sun's bore, which is
 how stages link. The output shaft runs through the last carrier's hole and the rear cover's bearing. Every shaft
-is as wide as the shaft bearing's bore (5 mm for the nominal 605ZZ) where it passes through a bearing or a sun, so it
-has no clearance against the bearing. Each carrier pin is as wide as the planet bearing's bore. The input shaft is a round cylinder with a flat `Sf` deep on the +X side, which gives it a D
-section where the first sun sits on it. Where a bearing sits it is a full cylinder. The link and output shafts are
-thin-thick: a thin rod of the shaft diameter, and a thicker part of the shaft collar diameter with the same flat, a D section, that is
+is as wide as the shaft bearing's bore (5 mm for the nominal 605ZZ) where it passes through a bearing, so it
+has no clearance against the bearing. Where a sun sits on it, a shaft is as wide as the bearing's bore up to 6 mm and
+6 mm wide for a wider bore (the 8 mm bore of a 608ZZ), so the sun's bore keeps at least 1.6 mm of wall. Each carrier pin is as wide as the planet bearing's bore. The input shaft is a round cylinder with a flat `Sf` deep on the +X side, which gives it a D
+section where the first sun sits on it. Where a bearing sits it is a full cylinder of the shaft diameter, and where
+the sun sits it is a cylinder of the sun shaft diameter. The collar between them takes the step. The link and output
+shafts are thin-thick: a thin rod of the shaft diameter (the sun shaft diameter for a link shaft, which meets no bearing), and a thicker part of the shaft collar diameter with the same flat, a D section, that is
 pressed through the carrier's centre hole. The sun's bore and the carrier's hole are D-shaped to match, so the input
 shaft turns the first sun, and each link or output shaft turns its carrier and, for a link shaft, the next sun,
 without slipping. The input and output shafts each have a flat on the free end, 1 mm clear of the boss, so a coupling grips it. The contract does not model the
@@ -105,7 +107,9 @@ A nil `Placement` is the one exception.
 | Ring root radius (largest tooth-space radius) | `m Zr/2 + m + c` |
 | Ring outer radius | ring root radius `+ w` |
 | Shaft diameter `ds` | Shaft bearing bore (no clearance against the bearing) |
-| Shaft bore diameter | Shaft diameter `+ 0.1` (0.05 mm radial clearance, a press fit; see Part clearances) |
+| Sun shaft diameter `dss` | `min(ds, 6)`: the shaft's section through a sun (5 mm for a 605ZZ, 6 mm for a 608ZZ) |
+| Sun bore diameter (`shaft_bore_diameter`) | `dss + 0.1` (0.05 mm radial clearance, a press fit; see Part clearances) |
+| Sun bore wall | Sun root radius `-` half the sun bore diameter: 2.45 mm for every kit, at least 1.6 mm (press-fit wall of [Corners and roots](../../docs/model-pipeline.md#corners-and-roots)) |
 | Planet bearing lift | `0.25` above the pocket floor; the bearing extends `0.25` above the planet |
 | Ear half width `we` | `de / 2 + 3` |
 | Ear bore center radius `Re` | ring outer radius `+ we` |
@@ -156,7 +160,7 @@ the same gap normal to their circular and flat faces.
   mesh with one sun and one ring at once.
 - Reject neighbouring planets unless their centers are at least the planet tip diameter plus 0.5 mm apart:
   `2 a sin(π/n) >= planet tip diameter + 0.5`.
-- Reject a sun bore (`ds + 0.1`) that leaves less than `m` of wall under the sun's root circle, and a
+- Reject a sun bore (`dss + 0.1`) that leaves less than `max(m, 1.6)` of wall under the sun's root circle, and a
   planet pocket that leaves less than `m` of wall under the planet's root circle.
 - Reject a bearing name not in the catalog: `bp` or `bs` that is not `"605ZZ"` or `"608ZZ"`. This check comes first.
 - Reject `Sf < 0` or `Sf >= 1.2`, the collar margin (so a thick part's flat stays outside its rod), and `Sf > min(dbp, dbs) / 4`.
@@ -188,16 +192,16 @@ the same gap normal to their circular and flat faces.
 
 `Problems(p)` returns every failing rule in this order, and `Validate` returns the first. When an input check fails,
 only the input problems are returned. Each bearing-forced minimum (the sun wall, the planet pocket wall, the lip
-thickness and the cover hub) also names the minimum it needs, for example `SunTeeth must be at least 14 for the 8.1 mm
-shaft at module 1`. At module 1 it then names the tooth set of the kit with the same bearings, as `try 14/28/70`.
+thickness and the cover hub) also names the minimum it needs, for example `SunTeeth must be at least 12 for the 5 mm
+shaft section at module 1`. At module 1 it then names the tooth set of the kit with the same bearings, as `try 13/29/71`.
 
 ## Gears
 
 All three gears are involute spur gears of one module and pressure angle, built by
 `models/spurgear`. Do not copy its geometry.
 
-- Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's size: a circle of
-  diameter the shaft bore diameter (the shaft diameter plus 0.1 mm) with a flat `Sf` inside its rim, which leaves the sun a D-shaped bore
+- Sun: `Zs` teeth, thickness `T`, spur backlash `j`, and a centered bore of the shaft's sun section: a circle of
+  diameter the sun bore diameter (the sun shaft diameter plus 0.1 mm) with a flat `Sf` inside its rim, which leaves the sun a D-shaped bore
   (a round bore when `Sf = 0`). The D bore is cut after the gear is built, with a tool of that outline.
 - Planet: `Zp` teeth, thickness `T`, centered bore of the planet lip bore diameter, spur backlash `j`.
   A bearing pocket of the planet pocket diameter is then cut from the planet's upper face, `Wbp` deep,
@@ -259,8 +263,11 @@ The front cover is turned over about the X axis so its boss faces away from the 
   cover prints frame down, so it takes a round. The round lies inside the hub, clear of the window rounds.
 - The boss pocket's entrance is chamfered by `Sc`, as the planet pocket's is.
 - Bearing: a shaft bearing envelope has 0.05 mm radial clearance in the boss pocket and rests on its floor, the cover frame's +Z face, with no axial offset.
-- Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to level with the first
-  sun's top. It fills the front bearing's bore with no clearance and has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the shaft. Its flat runs
+- Input shaft: a round rod of diameter `ds` on the axis from `Li` below the front boss to the collar, then a round rod
+  of diameter `dss` from the collar to level with the first sun's top. The `ds` rod fills the front bearing's bore with
+  no clearance. The `dss` rod has 0.05 mm radial clearance in the sun's bore, a press fit, so the sun turns with the
+  shaft. Both rods reach 0.05 mm into the collar, so the unions cross faces; for a shaft bearing with a bore of 6 mm or
+  less the two rods are one diameter. Its flat on the `dss` rod runs
   from the sun's lower face to the top, and a second flat on the free end runs from `Li` outside the boss to 1 mm short of the boss.
 
 ## Axial layout
@@ -283,10 +290,10 @@ Stage `k` (0-based) starts at `z = k P` above the reference plane, with a gear z
 - Shaft of stage `k`: thin-thick, its bottom level with the carrier's lower face `kP + T + g`. Its thick part is a D of
   the shaft collar diameter with a flat `Sf` deep on +X, pressed through the carrier's centre hole (the thick D grown
   0.05 mm radially). For `k < K - 1` it is the link shaft. Its thick part ends 0.25 mm below the next sun,
-  at `Tc + g - 0.25` above the carrier's lower face. Its thin rod of diameter `ds` reaches 0.05 mm into the thick part
+  at `Tc + g - 0.25` above the carrier's lower face. Its thin rod of diameter `dss` reaches 0.05 mm into the thick part
   and ends at the top of sun `k + 1`, `(k + 1) P + T`, passing through that sun's bore. The flat of the thin rod runs
   from the next sun's lower face to the shaft's top. For the last stage it is the output shaft. Its thick part ends
-  0.25 mm below the rear bearing's inner face, at `Tc + g + Tv - 0.25` above the carrier's lower face. Its thin rod ends
+  0.25 mm below the rear bearing's inner face, at `Tc + g + Tv - 0.25` above the carrier's lower face. Its thin rod, of diameter `ds`, ends
   `Lo` above the rear cover's boss, at `K P + Tv + Wbs + Lo`, and is round in the bearing and the stub. The step bears
   on the next sun's lower face (link) or the bearing's inner race (output) after 0.25 mm of play. A shaft prints
   standing on its thick end.
@@ -342,7 +349,7 @@ parameter table: `module`, `pressure_angle`, `sun_teeth`, `planet_teeth`, `ring_
 `planet_count`, `stage_count`, `tooth_backlash`, `gear_thickness`, `carrier_thickness`, `stage_gap`,
 `cover_thickness`, `bolt_hole_diameter`, `ear_count`, `ear_bore_diameter`, `ear_wall`, `input_shaft_length`, `flat_depth`,
 `planet_bearing_bore_diameter`, `planet_bearing_outer_diameter`, `planet_bearing_width`,
-`shaft_bearing_bore_diameter`, `shaft_bearing_outer_diameter`, `shaft_bearing_width`,
+`shaft_bearing_bore_diameter`, `shaft_bearing_outer_diameter`, `shaft_bearing_width`, `sun_shaft_diameter`,
 `bearing_clearance`, `gear_root_clearance`, `gear_root_margin`, `gear_tip_measurement_margin`,
 `shaft_bore_clearance`, `planet_bearing_lift`,
 `lip_width`, `carrier_wall`, `ring_wall`, `output_shaft_length`,
@@ -381,9 +388,9 @@ Exempt corners:
 Rounds below half their section: none. The ring's ear roots, the cover windows' corners and the cover boss root are
 rounded at half their section.
 
-Known pending violation, not changed here: in the two kits with a 608ZZ shaft bearing (`planet605-shaft608` and
-`planet608-shaft608`) the sun's D bore leaves a 1.45 mm wall to the tooth roots, under the 1.6 mm press-fit wall
-clause. It is a separate decision.
+Press-fit walls: the sun's D bore keeps 2.45 mm of wall to the tooth roots in every kit, and each carrier keeps 1.75 mm
+or more round its pin sockets and its shaft hole, so the 1.6 mm press-fit wall clause holds. A shaft through a 608ZZ
+narrows to 6 mm where a sun sits on it, because an 8.1 mm bore would leave 1.45 mm under a 14-tooth sun's root circle.
 
 ## Edge finishing
 
@@ -411,7 +418,8 @@ three planets. `SupportedCombinations` lists the kits in this order and `Default
 | `planet608-shaft605` | 608ZZ | 605ZZ | 13/29/71 | 6.4615 |
 | `planet608-shaft608` | 608ZZ | 608ZZ | 14/28/70 | 6.0 |
 
-An 8 mm shaft bore (8.1 mm) needs `Zs >= 14` at module 1, so the 608ZZ shaft kits use 14/28/70. The 608ZZ planet pocket
+The shaft is 6 mm wide through a sun (6.1 mm bore, 2.45 mm of wall under the 14-tooth sun's 5.5 mm root radius), and the
+608ZZ shaft kits keep 14/28/70 for their ratio. An unchanged 8.1 mm bore would need `Zs >= 16` for the 1.6 mm wall. The 608ZZ planet pocket
 leaves 0.93 mm of wall over the one-module minimum with 29 planet teeth and 0.43 mm with 28. The model never changes
 teeth to fit a bearing. An unknown kit name is an error that lists the supported kits.
 

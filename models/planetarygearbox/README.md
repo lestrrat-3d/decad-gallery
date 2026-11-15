@@ -52,8 +52,9 @@ below the panels gives both angles. The animation plays forward and then back.
 
 ## How the input and the output connect
 
-Every shaft is a separate part, 5 mm across where it passes through a bearing or a sun, the same as the 5 mm bore of a
-605ZZ, so it has no clearance in the bearing. The sun's bore is D-shaped with 0.05 mm of radial clearance, a press fit (5.1 mm across), so a flat 0.5 mm deep on the
+Every shaft is a separate part, 5 mm across where it passes through a bearing, the same as the 5 mm bore of a
+605ZZ, so it has no clearance in the bearing. Where a sun sits on it, a shaft is at most 6 mm across, so a 608ZZ's 8 mm
+shaft narrows to 6 mm there and the sun's bore keeps at least 1.6 mm of wall. The sun's bore is D-shaped with 0.05 mm of radial clearance, a press fit (5.1 mm across), so a flat 0.5 mm deep on the
 shaft, which makes it a D section, turns the sun without slipping. The input shaft is a 5 mm rod with that flat where the sun sits and
 a round collar, 7.4 mm across, next to its bearing. The collar stands in for the washer a metal build would use, so the
 sun does not rub on the bearing and the cover.

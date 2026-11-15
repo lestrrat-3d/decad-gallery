@@ -37,7 +37,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    of diameter `2 (s / √3 + c)` (`s` = `m2nut.AcrossFlats`, `c = 0.2`), extruded `m2nut.Thickness + 2c` up from its
    plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
    cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
-2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (5.1, 0.05 mm larger radially than the 5 mm shaft, a press fit)
+2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (`sun_shaft_diameter + 0.1`: 5.1 for a 605ZZ shaft bearing, 6.1 for a 608ZZ, 0.05 mm larger radially than the shaft's sun section, a press fit)
    when `Sf = 0`, otherwise no bore. With a flat, extrude the D tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun.
 3. **Planet.** `spurgear.Variant{Define}.Build` with `Teeth = Zp`, `Thickness = T`, root radius `pitch_radius - module - c - ε`, tip radius `pitch_radius + module - ε`, `BoreDiameter = planet lip bore diameter`,
@@ -72,12 +72,12 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      `(a cos φᵢ, a sin φᵢ, kP + T + g)` turned by `φᵢ`, so its flat faces the same way as its socket. Check: one
      solid, its top level with the carrier's top.
 6. **Shafts**, separate bodies. `buildSteppedShaft(thickTop, top, flats...)` builds the link and output shafts: a D thick
-   part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of diameter
-   `ds` from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; then the flat's box cut out over each of the
-   flats' spans. `buildShaft(bottom, top, collarBottom, collarTop, flats...)` builds the input shaft: a round rod
-   from `bottom` to `top`, a round collar of diameter `ds + 2 × collar margin` from `collarBottom` to `collarTop`,
-   strictly inside the rod's length, joined to the rod with one union, and then the flat's box cut out over each span.
-   The box is `ds + 2` wide about the X axis and runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a
+   part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of the given section (`dss` for the link shaft, `ds` for the output shaft) from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; then the flat's box cut out over each of the
+   flats' spans. `buildShaft(bottom, top, collarBottom, collarTop, flats...)` builds the input shaft: a round rod of
+   diameter `ds` from `bottom` to 0.05 below `collarTop`, a round collar of diameter `ds + 2 × collar margin` from
+   `collarBottom` to `collarTop`, and a round rod of diameter `dss` (`sun_shaft_diameter`) from 0.1 below `collarTop` to
+   `top`, joined with one union, and then the flat's box cut out over each span.
+   Each span names the section it flats (`dss` over the sun, `ds` on the free end). The box is the section's diameter `+ 2` wide about the X axis and runs from `Sf` inside the rod's +X edge to 1 mm beyond it, as a
    rectangle sketch with its corner dimensioned from the origin, its width and its height. `decad.Cut` removes it. The
    flats of every span join into one tool and take one cut. The free ends of the input and output shafts take a
    further flat span each, ending (input) or starting (output) 1 mm clear of the bearing boss (`endFlatMargin`).
@@ -150,10 +150,10 @@ outer loop, every loop of more than one edge and the single-circle loop of radiu
 outer loop and every loop of more than one edge. Carrier (after the centre hole is cut): the outer loop at `z = 0` and at
 `z = Tc`. A body that has no large face in the plane, or a chamfered result that is not a solid, is an error.
 
-**Shaft section.** A circle of diameter `shaft_diameter = shaft_bearing_bore_diameter`, the section of every rod.
+**Shaft sections.** A circle of diameter `shaft_diameter = shaft_bearing_bore_diameter`, the section of every rod that passes a bearing, and a circle of diameter `sun_shaft_diameter = min(shaft_diameter, 6)`, the section of a rod that passes a sun.
 **D tool.** The section of the sun bore: one outline with 0.05 mm (`shaft_bore_clearance`) around the D shaft, its flat
 0.05 mm beyond the shaft's flat, extruded once so the tool is not itself a boolean result. With
-`R = shaft_diameter/2 + 0.05`, flat `x = f = R - Sf` and half width `h = sqrt(R² - f²)`, the outline is an arc about the
+`R = sun_shaft_diameter/2 + 0.05`, flat `x = f = R - Sf` and half width `h = sqrt(R² - f²)`, the outline is an arc about the
 origin from the flat's upper end `(f, +h)` counterclockwise round to its lower end `(f, -h)`, and the line across the
 flat that closes it. Dimension the upper end from the origin and the lower end by the one coordinate that changes along
 the arc there, so the arc's radius relation fixes the rest; require one valid profile with two outer curves. With
@@ -213,6 +213,10 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   has a 45° bevel beside it (a plane tilted 45° or a cone of 45° half angle); the circular outer edges of the ring and
   the covers lie `Ec` inside the widest cylinder; an edge chamfer below 0.5 or above 1 is rejected.
 - Phase: a planet copy turned by `π/Zp` about its own axis has such vertices inside both the sun and the ring.
+- Press-fit walls: the sun's section at mid-height and each carrier's section at mid-plate keep a wall of 1.6 mm or
+  more, less the section's measurement bound, between every hole (the D bore, the pin sockets and the shaft hole) and the
+  other loops, in the default, the two-stage and every kit build (`requirePressFitWalls`); for every kit, without a
+  build, the sun root radius less half the sun bore leaves 1.6 mm (`TestSunBoreWallDimensions`).
 - Shaft flat: with `LocatePoint` at mid-height of the sun, the sun is inside at `(2.4, 0.3)` and outside at `(-1, 0.3)`,
   and the input shaft is inside at `(1, 0.3)`; the input shaft's volume equals a round rod's plus the collar's less the flat's
   circle segment over the sun's thickness, within the volume bound plus 0.5; in the two-stage case the second sun has
