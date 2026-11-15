@@ -49,6 +49,7 @@ var presets = map[string]preset{
 	"crankhandle/clamp-nut":       {width: 1600, height: 900, scene: crankHandleViewScene("clamp-nut")},
 	"crankhandle/clamp-section":   {width: 1600, height: 900, scene: crankHandleViewScene("clamp-section")},
 	"crankhandle/cross-section":   {width: 1600, height: 900, scene: crankHandleViewScene("cross-section")},
+	"onewayclutch/hero":           {width: 1600, height: 900, scene: oneWayClutchHero},
 	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
 	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
