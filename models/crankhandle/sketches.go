@@ -160,13 +160,13 @@ func (r *run) slitTool() (*decad.Body, error) {
 	return r.extrude(s, 0, ArmThickness+2)
 }
 
-// nutPocketTool extrudes a site's hexagonal nut pocket from its floor, the site's Cavity, out through the face its bolt
-// tip ends on: NutCavityHeight plus m2fastener.Stock along the bolt. The hexagon is centred on the bolt's axis with its
+// nutPocketTool extrudes a site's hexagonal nut pocket from its floor, the site's Cavity, depth along the bolt: out
+// through the face the pocket opens on, plus m2fastener.Stock. The hexagon is centred on the bolt's axis with its
 // corners on the circle of radius m2fastener.NutCavityRadius, the first along the site's Corner. Each side is held by
 // its distance from the axis, the first flat is horizontal and each next side turns 60 degrees from the one before, so
 // the corners lie where the sides meet. The corners stay sharp, matching the nut's sharp corners. The sketch lies on
 // site.Across(Cavity): U is Corner and V is Dir × Corner, so it extrudes along the site's Dir.
-func (r *run) nutPocketTool(site m2fastener.Site) (*decad.Body, error) {
+func (r *run) nutPocketTool(site m2fastener.Site, depth float64) (*decad.Body, error) {
 	f, err := site.Across(site.Cavity)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func (r *run) nutPocketTool(site m2fastener.Site) (*decad.Body, error) {
 	for i := range 5 {
 		s.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
 	}
-	return r.extrude(s, 0, m2fastener.NutCavityHeight+m2fastener.Stock)
+	return r.extrude(s, 0, depth)
 }
 
 // boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the

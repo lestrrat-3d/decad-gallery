@@ -13,7 +13,7 @@ and `BoreLoop`. `Site` is `m2fastener.Site{Head: (0, L, 0), Dir: (0, 0, 1), Corn
 4.75}`. `CrossSites[i]` is `m2fastener.Site{Head: (0, L + 4, CrossZ[i]), Dir: (0, -1, 0), Corner: (1, 0, 0), Length: 6,
 Cavity: 6}`. `ClampY = -(r_b + 1.3 + 1.05)`, `SideEnd = ClampY - 3.6`, `Reach = 22 - EndCenter().Y` with
 `EndCenter() = (0, SideEnd + sqrt(17.5^2 - 5.5^2))` and `CornerCenter() = (5.5, SideEnd)`. `ClampSite` is
-`m2fastener.Site{Head: (10, ClampY, 4), Dir: (-1, 0, 0), Corner: (0, 0, 1), Length: 18, Cavity: 18}`. Derive returns each
+`m2fastener.Site{Head: (10, ClampY, 4), Dir: (-1, 0, 0), Corner: (0, 0, 1), Length: 16, Cavity: 16}`. Derive returns each
 site's `Validate()` error with the prefix, a cross bolt's and the clamp bolt's also naming it, and rejects a clamp or cross
 site whose `Tip()` differs from its `CavityFar()`.
 
@@ -42,8 +42,7 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
   Placing b and c by x would meet the circle at a tangent, a singular solve. Extrude 10.
 - `nutPocketTool(site)` on `site.Across(site.Cavity)` (U along `site.Corner`): for the clamp (U +Z, V +Y), six corner points at `2.51·(cos 60k°, sin 60k°)`
   and the six sides `corner k → corner k+1`, each with `NewDistancePointLine(O, side, 2.51·sqrt(3)/2)`;
-  `NewHorizontal(sides[1])` and `NewAngle(sides[k], sides[k+1], 60)` for k = 0..4. The corners stay sharp. Extrude 3
-  (2 plus `Stock`) along the bolt's direction. For a cross site the sketch's U is local +X, so the hexagon's corners point
+  `NewHorizontal(sides[1])` and `NewAngle(sides[k], sides[k+1], 60)` for k = 0..4. The corners stay sharp. Extrude `depth` (the clamp: 2 ArmRadius - Cavity + `Stock` = 5; a cross site: 3, 2 plus `Stock`) along the bolt's direction. For a cross site the sketch's U is local +X, so the hexagon's corners point
   across the pin and its flats lie along the pin's axis. The clamp's U is +Z, so a corner points up and one down and its flats face ±Y.
 - `boreTool()` on `across(0, -1)`: `q1 = (-w, f_b)`, `q2 = (w, f_b)` with `w = sqrt(r_b^2 - f_b^2)`,
   `bore = CreateArc(O, q1, q2)` (counter-clockwise, the long way through -Y), `flat = CreateLine(q2, q1)`;

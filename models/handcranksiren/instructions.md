@@ -241,7 +241,7 @@ dimension; at crank angle 0 they read:
 - crank-arm: 20 wide and 8 thick on the plane Y 38.6, from the pin end (radius 10 about the pin axis, Z 139) past C,
   where its sides run straight to Z 74 and close with 4.5 mm corners and one 22 mm end arc reaching Z 68.6, both faces'
   outlines chamfered 0.5. A 1 mm slit along X 60 runs from the end arc into the blind D-bore (radius 4.05, Y 37.6 to its
-  floor at Y 45.6) and ends in a full round in the bore's floor. An M2 x 18 clamp bolt crosses the hub along +X at
+  floor at Y 45.6) and ends in a full round in the bore's floor. An M2 x 16 clamp bolt crosses the hub along +X at
   Z 77.6, mid thickness (Y 42.6): its head pocket is in the -X side face (X 50) and its nut sits in a hexagonal pocket
   open to the +X side face (X 70). A hexagon 7.53 across flats about the pin axis from Y 41.85 through the outer face,
   corners on X, and the crank-pin-bolt head pocket in the inner face.
@@ -315,8 +315,8 @@ before the collector meets the stator. Grip pockets go into the pad's window fac
 under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.5], the same layers as the drum cavities, with tips at
 Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.35] with its tip at 50.6,
 inside the shank. The cross nut pockets are at Z [135, 137] in the -Z half, open to the flat at Z 135, and each cross bolt's tip ends
-flush with that flat. The clamp nut pocket is at X [68, 70], open to the +X side face at 70, and the clamp bolt's tip ends flush
-with that face.
+flush with that flat. The clamp nut pocket is at X [66, 70], open to the +X side face at 70, with the nut at its floor and the clamp
+bolt's tip ending at X 68, inside the pocket.
 
 #### Print pause
 

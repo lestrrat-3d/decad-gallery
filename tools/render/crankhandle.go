@@ -382,9 +382,9 @@ func (c crankMeshes) splitView(name string) (solidlens.Scene, error) {
 //
 //   - clamp: cut by the plane y = ClampY through the clamp bolt's line, the half toward the end arc removed, seen from
 //     the end: the head flush in its pocket in the +X side face, the bolt crossing the slit, and the nut in its
-//     hexagonal pocket in the -X side face, with the bolt's tip flush with that face;
+//     hexagonal pocket in the -X side face, with the bolt's tip ending inside the pocket;
 //   - clamp-nut: uncut, seen from -X and in front: the nut in its hexagonal pocket below the -X side face, with the
-//     bolt's tip flush in it.
+//     bolt's tip ending in it.
 func (c crankMeshes) clampView(name string) (solidlens.Scene, error) {
 	mid := crankhandle.ArmThickness / 2
 	var clip *solidlens.ClipPlane
@@ -425,7 +425,7 @@ func (c crankMeshes) clampView(name string) (solidlens.Scene, error) {
 
 // pocketSectionView cuts across a nut's hexagonal pocket, through the nut and the bolt, and looks into the cut:
 //
-//   - clamp-section: the arm cut by the plane x = -9, half way down the clamp pocket, the half toward -X removed and
+//   - clamp-section: the arm cut by the plane x = -7, through the nut in the clamp pocket, the half toward -X removed and
 //     seen from -X: the hexagon with a corner up and one down, its flats on the sides, the nut in it and the bolt
 //     through the nut;
 //   - cross-section: the pin cut by the plane y = Throw - 3 across the first cross bolt's pocket, the half toward -Y
@@ -439,11 +439,11 @@ func (c crankMeshes) pocketSectionView(name string) (solidlens.Scene, error) {
 	switch name {
 	case "clamp-section":
 		parts = []string{"arm", "clamp-bolt", "clamp-nut"}
-		clip = solidlens.ClipPlane{Origin: solidlens.Vec{X: -9}, Normal: solidlens.Vec{X: -1}}
+		clip = solidlens.ClipPlane{Origin: solidlens.Vec{X: -7}, Normal: solidlens.Vec{X: -1}}
 		camera = solidlens.Camera{Position: solidlens.Vec{X: -110, Y: c.dm.ClampY + 8, Z: mid + 12},
-			Target: solidlens.Vec{X: -9, Y: c.dm.ClampY, Z: mid}, Up: solidlens.Vec{Z: 1}, FOV: 30}
+			Target: solidlens.Vec{X: -7, Y: c.dm.ClampY, Z: mid}, Up: solidlens.Vec{Z: 1}, FOV: 30}
 		lo = r3.Vec{X: -crankhandle.ArmRadius - 1, Y: c.dm.ClampY - 5.5, Z: mid - 5.5}
-		hi = r3.Vec{X: -8, Y: c.dm.ClampY + 5.5, Z: mid + 5.5}
+		hi = r3.Vec{X: -6, Y: c.dm.ClampY + 5.5, Z: mid + 5.5}
 	default:
 		z := crankhandle.CrossZ[0]
 		parts = []string{"pin", "cross-bolt-1", "cross-nut-1"}
