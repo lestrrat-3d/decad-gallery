@@ -132,8 +132,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	return m, nil
 }
 
-// hub extrudes the hub's outline, with the D bore and the bolt holes, HubHeight along +Z. It has no Boolean; its
-// faces are not chamfered (design Q1).
+// hub extrudes the hub's outline, with the D bore and the bolt holes, HubHeight along +Z, then chamfers both faces by
+// 0.5 mm along the runs of 20 mm or more: per pawl the arm's outer arc and the inner run, and at the 8 mm presets the
+// whole D loop. The head run (flank, tip round, lock face) is 7.1 mm and stays sharp, so its 0.4 tip round and the
+// lock contact are kept. Decad ends each run at the concave 22.5 degree corner beside the head's flank, where the bevel
+// tapers out on the flank's plane, and at the convex corners at the web and the lock face. The hub has no Boolean.
 func (r *run) hub() (*decad.Body, error) {
 	s, err := r.hubSketch()
 	if err != nil {
@@ -142,6 +145,11 @@ func (r *run) hub() (*decad.Body, error) {
 	body, err := r.extrude(s, 4, HubHeight)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
+	}
+	body, _, err = edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Z: 1}, []float64{HubFrom, HubFrom + HubHeight},
+		edgefinish.Long(edgefinish.All), edgefinish.Long(edgefinish.Inner), HubChamfer)
+	if err != nil {
+		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
 	return body, nil
 }

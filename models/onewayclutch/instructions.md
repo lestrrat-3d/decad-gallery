@@ -126,7 +126,7 @@ at `BoltCircle` on 30°, 150° and 270°. Extrude 5.0 or 4.0 along +Z. Then:
 ### Hub (one prism)
 
 One sketch on z = 5.25 holds the whole outline, the D bore and the three bolt holes; extrude `HubHeight` along +Z. The
-hub has no Boolean. Its faces are not chamfered yet (see "Surface edge finishing").
+hub has no Boolean. Both faces are then chamfered 0.5 along their long runs (see "Surface edge finishing").
 
 ### Hub outline, counter-clockwise layout, pawl 0 (pawl `k` is turned by 120°k)
 
@@ -234,12 +234,16 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
 | Cover | outer face | 934 to 964 | as above; head pockets 13.8, short | chamfer 0.5 (one call) |
 | Plates | annulus | 555 | outer edge meets the 45° cone | the 1.1 mm cone is that edge's finish |
 | Plates | boss face | 260 to 290 | none | small, none |
-| Hub | each face | 409 to 439 | per pawl: arm outer arc 22.9, inner run 47.8; head run 7.1, short | pending (below) |
+| Hub | each face | 409 to 439 | per pawl: arm outer arc 22.9, inner run 47.8; head run 7.1, short; D loop 25.1 to 25.3 at 8 mm | chamfer 0.5 on the long runs; head run sharp (below) |
 | Ring | end faces | 245 net | none | none; the OD end lead-ins are in the meridian |
 
-The rule asks for 0.5 mm on the hub's long runs only. Decad refuses a chamfer of part of a cap loop, and refuses the
-whole loop at 0.5 because of the head's 0.4 tip round, so the hub's finish waits on that decision. The hub is built
-without a chamfer for now; this is a known gap, not a retained sharp edge.
+The hub's two faces are chamfered 0.5 mm along the runs of 20 mm or more, and the head run stays sharp so the head keeps
+its 0.4 tip round and its lock contact. `edgefinish.ChamferRuns` chooses the edges on the extruded prism, then chamfers in
+two decad calls: the partial runs (the arm's outer arc and the inner run of every pawl, 36 edges on both faces), then,
+at the 8 mm presets, the whole D loop of each face. Each run ends at a convex corner (the web, the lock face's root)
+or at the concave 22.5 degree corner beside the head's flank, where the bevel tapers out on the flank's plane over
+about 1.5 mm. The 605ZZ's D loop is 15 mm long and stays sharp. The result is faceted, so its checks are sections 0.25 mm
+inside each face (`TestOneWayClutchEdgeFinishing`), not volumes.
 
 ## Corners and roots
 

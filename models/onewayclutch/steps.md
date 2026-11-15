@@ -57,7 +57,9 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
 
 ## 3. Parts (onewayclutch.go)
 
-- `hub()`: `hubSketch`, extrude 10 along +Z. No Boolean, no chamfer.
+- `hub()`: `hubSketch`, extrude 10 along +Z, then one `edgefinish.ChamferRuns(body, +Z, [HubFrom, HubFrom+10],
+  Long(All), Long(Inner), 0.5)` call: the arm arcs and inner runs of 20 mm or more, then the whole D loop at 8 mm
+  (two decad calls, edges chosen on the prism). The head run stays sharp. No Boolean.
 - `ring()`: `meridian(RingMeridian)`, then `toothSketch(0.25)` extruded 20, then `decad.Cut(blank, tool)`.
 - `plate(z, length, outerZ, inner, tools)`: `plateSketch(z)`, extrude `length` along +Z, then one
   `edgefinish.Chamfer(body, +Z, [outerZ], Long(All), 0.5)` call, which takes every outer-face loop of 20 mm or more (the

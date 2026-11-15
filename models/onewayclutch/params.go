@@ -54,6 +54,7 @@ const (
 	BackPlateThickness = 5.0
 	CoverThickness     = 4.0
 	PlateChamfer       = 0.5
+	HubChamfer         = 0.5
 
 	BoltCircle = 8.4
 	BoltLength = 16.0

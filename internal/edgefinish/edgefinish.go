@@ -82,30 +82,35 @@ func edgeLength(e *decad.Edge) float64 {
 // not touch. The query demands exactly the counted edges, so a mismatch fails the build.
 func Chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, keep LoopFilter,
 	size float64) (*decad.Body, int, error) {
-	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) []*decad.Edge {
+	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) ([]*decad.Edge, []*decad.Edge) {
 		edges := loop.Edges()
 		if !keep(loop, edges) {
-			return nil
+			return nil, nil
 		}
-		return edges
+		return edges, nil
 	})
 }
 
 // ChamferRuns is Chamfer for faces whose outline mixes long and short tangent-continuous runs. It splits each loop
 // that keep accepts into runs (see Runs) and chamfers the edges of the runs of LongEdgeRun or more, so the short
 // runs, such as a tooth head, stay sharp. A loop that whole accepts is chamfered whole instead, however its runs
-// divide: a D bore's arc and flat are short runs but a long loop. Decad accepts the result only when each run ends at
-// a convex corner and the run is not a whole loop; the evaluator refuses anything else, and ChamferRuns returns that
-// error unchanged. The other rules are Chamfer's.
+// divide: a D bore's arc and flat are short runs but a long loop.
+//
+// Decad takes a part of a cap loop only when each run ends at a concave corner of up to 90 degrees beside a line, or
+// at a convex corner of 45 degrees or more, and refuses a call that also holds a whole loop. So ChamferRuns makes two
+// calls: the partial runs first, then the whole loops on that result. Every edge is chosen on body, before the first
+// cut, because a cut leaves the cap faces under LargeFaceArea and a Boolean result's D arc reads short. The edges of
+// the second call keep their start point and kind through the first. The count is the sum of both calls. Decad's
+// refusal comes back unchanged. The other rules are Chamfer's.
 func ChamferRuns(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, keep, whole LoopFilter,
 	size float64) (*decad.Body, int, error) {
-	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) []*decad.Edge {
+	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) ([]*decad.Edge, []*decad.Edge) {
 		edges := loop.Edges()
 		if !keep(loop, edges) {
-			return nil
+			return nil, nil
 		}
 		if whole(loop, edges) {
-			return edges
+			return nil, edges
 		}
 		var out []*decad.Edge
 		for _, run := range Runs(loop) {
@@ -113,7 +118,7 @@ func ChamferRuns(ctx context.Context, body *decad.Body, normal r3.Vec, offsets [
 				out = append(out, run.Edges...)
 			}
 		}
-		return out
+		return out, nil
 	})
 }
 
@@ -206,15 +211,15 @@ func endTangent(ce decad.CoEdge, atEnd bool) (r3.Vec, bool) {
 	return t.Scale(1 / t.Len()), true
 }
 
-// chamfer is the shared body of Chamfer and ChamferRuns. pick returns the edges of a loop to chamfer, or none.
+// chamfer is the shared body of Chamfer and ChamferRuns. pick returns the edges of a loop for the first call and for
+// the second. Both are chosen on body before any cut.
 func chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, size float64,
-	pick func(*decad.Loop) []*decad.Edge) (*decad.Body, int, error) {
+	pick func(*decad.Loop) ([]*decad.Edge, []*decad.Edge)) (*decad.Body, int, error) {
 	if normal.Len() == 0 {
 		return nil, 0, fmt.Errorf("edge finish: zero normal")
 	}
 	normal = normal.Scale(1 / normal.Len())
-	var query *decad.EdgeQuery
-	count := 0
+	var first, second selection
 	for _, f := range body.Faces() {
 		plane, ok := f.Surface().(decad.Plane)
 		if !ok {
@@ -236,31 +241,56 @@ func chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []flo
 			continue
 		}
 		for _, loop := range f.Loops() {
-			for _, e := range pick(loop) {
-				pred, err := predicates(e)
-				if err != nil {
-					return nil, 0, fmt.Errorf("edge finish: %w", err)
-				}
-				if query == nil {
-					query = decad.Edges(pred...)
-				} else {
-					query = query.Or(pred...)
-				}
-				count++
+			a, b := pick(loop)
+			if err := first.add(a); err != nil {
+				return nil, 0, err
+			}
+			if err := second.add(b); err != nil {
+				return nil, 0, err
 			}
 		}
 	}
-	if query == nil {
+	if first.count+second.count == 0 {
 		return nil, 0, fmt.Errorf("edge finish: no edge to chamfer in the planes at %g along %v", offsets, normal)
 	}
-	out, err := decad.Chamfer(ctx, body, query.Exactly(count), units.Millimeters(size))
-	if err != nil {
-		return nil, 0, fmt.Errorf("edge finish: chamfer %d edges at %g along %v: %w", count, offsets, normal, err)
+	out := body
+	for _, sel := range []selection{first, second} {
+		if sel.count == 0 {
+			continue
+		}
+		next, err := decad.Chamfer(ctx, out, sel.query.Exactly(sel.count), units.Millimeters(size))
+		if err != nil {
+			return nil, 0, fmt.Errorf("edge finish: chamfer %d edges at %g along %v: %w", sel.count, offsets, normal, err)
+		}
+		out = next
 	}
 	if !out.IsSolid() {
 		return nil, 0, fmt.Errorf("edge finish: the chamfered result is not a solid")
 	}
-	return out, count, nil
+	return out, first.count + second.count, nil
+}
+
+// selection is the edge query of one chamfer call and the number of edges it names.
+type selection struct {
+	query *decad.EdgeQuery
+	count int
+}
+
+// add names each edge of edges in the selection.
+func (s *selection) add(edges []*decad.Edge) error {
+	for _, e := range edges {
+		pred, err := predicates(e)
+		if err != nil {
+			return fmt.Errorf("edge finish: %w", err)
+		}
+		if s.query == nil {
+			s.query = decad.Edges(pred...)
+		} else {
+			s.query = s.query.Or(pred...)
+		}
+		s.count++
+	}
+	return nil
 }
 
 // matchOffset returns the entry of offsets that d matches.
