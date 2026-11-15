@@ -72,6 +72,13 @@
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
 
+## Build status
+
+- Mark every model as built and tested or not built yet, in its README (the line under the title) and in the
+  `models/README.md` table. See `docs/adding-models.md`. List a model nobody has built in `UNBUILT` in
+  `scripts/check_repository.py`.
+- Change a model's status only when the user says someone built and tested it.
+
 ## Model images
 
 - Every model README must show the finished product from multiple angles in addition to its hero image.

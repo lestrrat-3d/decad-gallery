@@ -1,5 +1,7 @@
 # Screw gear
 
+**Build status:** Built and tested.
+
 ![Two crossed, twisted screw gear ribbons inside their sleeve](images/hero.png)
 
 ## More views

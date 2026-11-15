@@ -1,5 +1,7 @@
 # Planetary gearbox
 
+**Build status:** Built and tested.
+
 ![The default two-stage planetary gearbox, fully assembled, with the ring gear and both end covers cut open to show the planets, carriers, shafts and bearings inside](images/hero.png)
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by

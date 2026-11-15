@@ -1,5 +1,7 @@
 # Hand-crank fan
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 A handheld fan. You hold the grip in your left hand and turn the crank on the right with your right hand. The fan
 faces you and blows air toward you.
 
