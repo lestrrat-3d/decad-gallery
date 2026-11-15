@@ -35,6 +35,13 @@ contact queries. These checks skip themselves unless `HANDCRANKFAN_FULL=1` is se
 HANDCRANKFAN_FULL=1 go test ./models/handcrankfan -timeout 30m
 ```
 
+Three tests run without the flag and share one build of the default fan (about two minutes):
+`TestHandCrankFanContainers`, `TestHandCrankFanCorners` and `TestPressFitWalls`. The corner test applies "Corners and
+roots" to every printed part in its print orientation, with the exemptions listed under Retained sharp corners in
+[instructions.md](../../models/handcrankfan/instructions.md). It skips the bevel pair and exempts the gearbox's ear
+roots, which wait for decad, so the model stays on `CORNER_PENDING`. The full check runs the same corner test for the
+default fan and both variants.
+
 The job `fan-motion` runs `TestHandCrankFanMotion` in `tools/render`. The full checks include the fastener, fit and spur
 mesh checks, which run for the default parameters only. The bevel mesh has no proven clearance yet; see the open
 non-compliance in [instructions.md](../../models/handcrankfan/instructions.md).

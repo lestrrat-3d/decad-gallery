@@ -19,12 +19,14 @@ const (
 	hubBack   = -(fanWallY - wallThick) + fanGap
 	hubMid    = hubBack + hubLength/2
 
-	fanTip       = 26.0                    // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
-	studRadius   = 3.0                     // the blade's root stud
-	studStart    = 6.0                     // radius of the stud's inner end
-	studEnd      = 16.0                    // radius of its outer end, inside the blade's root
-	socketRadius = studRadius + regularFit // a Regular fit around the stud
-	socketStart  = 5.6                     // radius of the socket floor
+	fanTip           = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
+	studRadius       = 3.0  // the blade's root stud
+	studStart        = 6.1  // radius of the stud's inner end
+	studEnd          = 16.0 // radius of its outer end, inside the blade's root
+	socketFloorRound = 0.5
+	studChamfer      = 0.3                     // chamfer on the stud's inner end
+	socketRadius     = studRadius + regularFit // a Regular fit around the stud
+	socketStart      = 5.7                     // radius of the socket floor, 1.65 from the spline bore (the press-fit wall)
 )
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
@@ -38,7 +40,7 @@ const (
 	refPitch     = 25 * math.Pi / 180 // the pitch the sections are drawn at; the finished blade is turned from it
 	holdRadius   = 21.5               // inboard of this the blade angle stays constant, as on a turbine root
 	camberAt     = 0.40               // chord fraction of the maximum camber
-	edgeThick    = 0.5                // trailing-edge thickness
+	edgeThick    = 1.0                // trailing-edge thickness
 	sidePoints   = 10                 // fit points per surface, besides the leading edge
 )
 
@@ -56,7 +58,7 @@ var stations = [...]station{
 	{38.0, 14.5, 0.19, 0.040, 0},
 	{46.0, 12.5, 0.18, 0.040, 0},
 	{55.0, 10.5, 0.17, 0.035, 0},
-	{64.0, 8.0, 0.18, 0.030, 0},
+	{64.0, 8.0, 0.22, 0.030, 0},
 }
 
 // beta is the blade angle at radius r, measured from the plane of rotation, for a blade angle of pitch at refRadius.
@@ -145,6 +147,8 @@ func (b *builder) hub() *decad.Body {
 	// The socket is a plain round hole. It is 6.3 across, small enough to print on its side without support.
 	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
 		socketRadius, hubRadius+1-socketStart)
+	// A round at the floor takes the inside corner off the print.
+	socket = b.roundStart(socket, socketFloorRound)
 	for _, copy := range b.ring(socket) {
 		hub = b.cut(hub, copy)
 	}
@@ -191,6 +195,8 @@ func (b *builder) blades() []*decad.Body {
 	}
 	// Local Z is the blade's radial line, local X the direction of motion and local Y downstream.
 	stud := b.cylinder(frame(r3.Vec{Z: studStart}, r3.Vec{X: 1}, r3.Vec{Y: 1}), studRadius, studEnd-studStart)
+	// A 0.3 chamfer on the inner end keeps the stud's corner clear of the socket floor's round.
+	stud = b.chamferStart(stud, studChamfer)
 	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), m2fastener.HoleRadius, 10))
 	blade := b.union(loft, stud)
 	if b.err != nil {
