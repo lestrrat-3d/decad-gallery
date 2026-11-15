@@ -1,12 +1,12 @@
 # One-way clutch
 
-![A one-way clutch cut at the hub's mid-height: three pawl heads seated in the teeth of the ring, the arms behind them, and the back plate and nuts below](images/hero.png)
+![A one-way clutch cut at the hub's mid-height: three pawl heads seated in the teeth of the ring, the arms behind them, the back plate below, and the ring's three bolt ears outside](images/hero.png)
 
 A printed one-way clutch for a D-flat shaft. A hub with three flexing pawls presses on the shaft and meets a 42 mm ring
-with 24 internal teeth. Turn the shaft one way and the pawls catch the teeth, so the ring turns with it. Turn the shaft
+with 24 internal teeth and three bolt ears. Turn the shaft one way and the pawls catch the teeth, so the ring turns with it. Turn the shaft
 the other way and the teeth push the pawls inward, the arms bend, and the ring stays still with a click for each tooth.
-A back plate and a cover hold the ring on the hub. Three M2 × 16 bolts and nuts clamp the stack. Every printed part
-prints with its axis vertical and no supports.
+A back plate and a cover hold the ring on the hub. Three M2 × 16 bolts clamp the stack, each into a nut in a hex pocket
+in the back plate's outer face. Every printed part prints with its axis vertical and no supports.
 
 You choose the shaft from three presets (`605ZZ`, `608ZZ` and `608ZZ-gearbox`) and the direction in which the ring turns
 freely. The shaft is not part of this model: a shaft that runs in a bearing has the bearing's bore as its diameter, and
@@ -16,17 +16,20 @@ the mechanism you build owns it.
 
 ## Views
 
-From the front, the cover shows the three bolt heads, flush in their pockets, round the shaft's D hole.
+From the front, the cover shows the three bolt heads, flush in their pockets, round the shaft's D hole. The ring's
+three ears stand out between the bolt heads.
 
-![The clutch from the front: the cover with three bolt heads and the D bore](images/front.png)
+![The clutch from the front: the cover with three bolt heads and the D bore, and the ring's three ears between them](images/front.png)
 
-From the back, the back plate's outer face goes against the mechanism.
+From the back, the back plate's outer face goes against the mechanism. Its three hex pockets hold the nuts, each flush
+with the bolt tip.
 
-![The clutch from the back: the back plate with the D bore](images/back.png)
+![The clutch from the back: the back plate with the D bore and three nuts in hex pockets](images/back.png)
 
-From the side, the ring's outside is 42 mm across and has chamfered ends.
+From the side, the ring's outside is 42 mm across between the ears, which stand out to a 54.2 mm circle. The ring's
+outer edges are chamfered.
 
-![The clutch from the side](images/side.png)
+![The clutch from the side: the ring with an ear in front and the ear tips on a 54.2 mm circle](images/side.png)
 
 ## How it works
 
@@ -46,11 +49,27 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
 - The hub's two faces carry a 0.5 mm chamfer along the arms and, on the 8 mm presets, round the D bore. The head's run
   stays sharp so it keeps its lock contact.
 
-![The clutch cut through the shaft axis: the plates, the ring held between them by cones, a bolt and its nut](images/cutaway.png)
+![The clutch cut through the shaft axis: the plates, the ring held between them by cones, a bolt and its nut in the back plate's hex pocket](images/cutaway.png)
 
 The second cut runs through the shaft axis. Each plate has a rim that fits a counterbore in the ring's end, with a 45°
 cone beside it, so the plates hold the ring between them and it cannot slide along the shaft. The ring keeps 0.4 mm of
 radial gap to each rim.
+
+## Mounting the ring
+
+The ring turns relative to the hub, the plates and the shaft, so the driven part attaches to the ring alone. Three ears
+run the ring's full height, each with an M2 clearance bore. Bolt the driven part to the ears, or key a housing onto
+them: a tight fit needs a 42 mm bore with three notches for the ears. The model places no bolt in the ears. The plates
+stay round, so nothing bolted to the ears reaches the parts that turn with the shaft.
+
+| Ear dimension | Value |
+| --- | ---: |
+| Ears | 3, at 90°, 210° and 330° (the same in both directions) |
+| Bore circle | 47.0 mm across |
+| Bore | 2.6 mm (M2 clearance) |
+| Ear width | 7.2 mm |
+| Tip circle | 54.2 mm across |
+| Length | 17.0 mm (the ring's full height) |
 
 ## Freewheel direction
 
@@ -65,17 +84,17 @@ The left clutch (`Clockwise`) lets the ring turn clockwise about a held shaft, s
 
 ## Exploded
 
-![The clutch pulled apart along the shaft axis, from the back plate's side on the left: three M2 nuts, the back plate, the hub, the ring, the cover, and three M2 x 16 bolts](images/exploded.png)
+![The clutch pulled apart along the shaft axis, from the back plate's side on the left: three M2 nuts, the back plate with its hex pockets, the hub, the ring with its three ears, the cover, and three M2 x 16 bolts](images/exploded.png)
 
-From the left: the three M2 nuts, the back plate, the hub, the ring, the cover, and the three M2 × 16 bolts.
+From the left: the three M2 nuts, the back plate, the hub, the ring with its ears, the cover, and the three M2 × 16 bolts.
 
 ## Parts
 
 | Image | Name |
 | --- | --- |
 | <img src="images/parts/hub.png" alt="Hub" width="240"> | Hub with its three pawls (printed) |
-| <img src="images/parts/ring.png" alt="Ring" width="240"> | Ring with 24 internal teeth (printed) |
-| <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, with three nut cavities (printed) |
+| <img src="images/parts/ring.png" alt="Ring" width="240"> | Ring with 24 internal teeth and three bolt ears (printed) |
+| <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, with three hex nut pockets in its outer face (printed) |
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover, with three head pockets (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3 |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 |
@@ -87,14 +106,14 @@ directions, less the measurement's own error bound, so it sits a little under th
 
 | Pair | Modeled (mm) | Measured (mm) |
 | --- | ---: | ---: |
-| Hub, back plate and cover D bores on the shaft | `BoreClearance` (0.05) | 0.04 to 0.049 |
+| Hub, back plate and cover D bores on the shaft | `BoreClearance` (0.05) | 0.049 |
 | Hub on each plate's boss | 0.25 | 0.237 |
-| Pawls to the plates | 0.65 | 0.642 |
-| Ring counterbore to each plate's rim | 0.40 | 0.390 |
-| Ring cone to each plate's cone | 0.60 | 0.591 |
-| Ring tooth ends to the plates | 0.85 | 0.840 |
+| Pawls to the plates | 0.65 | 0.601 |
+| Ring counterbore to each plate's rim | 0.40 | 0.381 |
+| Ring cone to each plate's cone | 0.60 | 0.583 |
+| Ring tooth ends to the plates | 0.85 | 0.832 |
 | Each pawl head in its tooth gap, seated | 0.40 | 0.387 |
-| Arm outer arc to the teeth's tips | 0.55 | 0.543 |
+| Arm outer arc to the teeth's tips | 0.55 | 0.515 |
 
 ## Sizes
 
@@ -111,24 +130,29 @@ All dimensions are in millimeters. `Params.Validate` rejects a value outside its
 | --- | --- | --- |
 | `Shaft` | `605ZZ` | A preset name: `605ZZ` (5 mm shaft, 0.5 mm flat), `608ZZ` (8 mm, 0.75 mm flat) or `608ZZ-gearbox` (8 mm, 0.5 mm flat) |
 | `Freewheel` | `Clockwise` | `Clockwise` or `CounterClockwise`; the zero value is rejected |
-| `BoreClearance` | 0.05 | Radial clearance of every D bore, 0.05 to 0.5, and small enough to keep 1.6 mm of wall between the bore and the nut cavities |
+| `BoreClearance` | 0.05 | Radial clearance of every D bore, 0.05 to 0.5, and small enough to keep 1.6 mm of wall between the bore and the nut pockets |
 | `Placement` | none | A valid frame |
 
-The ring is 42 mm across and the stack is 19.5 mm high. Neither depends on the preset.
+The ring is 42 mm across between its ears and 54.2 mm across the ear tips, and the stack is 18.0 mm high. None of these
+depends on the preset.
 
 ## Printing
 
 Print the hub in PETG, since its arms flex at every click; PLA works too. Print the hub and the ring on either face, and
-the cover with its outer face down, with no supports. Print the back plate with its outer face down and pause the print
-just above the nut cavities, at 3.5 mm, to drop an M2 nut into each one.
+the cover with its outer face down, with no supports. Print the back plate with its outer face down; its hex pockets open on the bed, and no pause is needed. The ears print
+as vertical prisms with no overhang.
 
-To assemble:
+To assemble, work off the shaft with the bolts loose, because a nut is not held until its bolt reaches it:
 
-1. Press the back plate onto the shaft, its outer face toward the mechanism.
-2. Press the hub onto the shaft.
+1. Push the three M2 × 16 bolts through the cover's head pockets, and stand the cover on its outer face, bolts up.
+2. Slide the hub over the bolts onto the cover.
 3. Push each pawl head in with a finger and slide the ring over the hub, turning it in the freewheel direction.
-4. Press the cover onto the shaft.
-5. Drive the three M2 × 16 bolts through the cover and the hub into the nuts, and tighten them.
+4. Lay the back plate on, inner face down, with the bolts through its holes.
+5. Drop an M2 nut into each hex pocket. Lift the stack, holding the plates together, and turn each bolt from the cover's
+   side until it catches its nut. Leave them loose.
+6. Press the clutch onto the shaft, back plate first, its outer face toward the mechanism. The loose bolts let the three
+   D bores line up on the shaft.
+7. Tighten the three bolts from the front. The pockets stop the nuts turning.
 
 For how to build this clutch from Go, see the [developer notes](../../docs/models/onewayclutch.md). The construction is
 in [instructions.md](instructions.md) and [steps.md](steps.md).

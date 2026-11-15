@@ -15,7 +15,7 @@ import (
 
 // The clutch lies with its shaft axis along +Z, the back plate at the bottom and the cover on top. The hero view cuts
 // every body by the plane z = clutchMidPlane, the hub's mid-height, and removes the +Z side, so the pawl heads in the
-// ring's teeth, the arms, the back plate and the nuts below show.
+// ring's teeth, the arms and the back plate show, with the ring's three ears outside them.
 const clutchMidPlane = onewayclutch.HubFrom + onewayclutch.HubHeight/2
 
 var (
@@ -120,7 +120,7 @@ func clipRemovesAll(mesh *decad.Mesh, clip solidlens.ClipPlane) bool {
 }
 
 // The exploded view pulls the parts apart along the shaft axis, in the order they go together: the nuts out of the back
-// plate's cavities, the back plate, the hub, the ring, the cover, and the bolts, 30 mm apart.
+// plate's hex pockets, the back plate, the hub, the ring, the cover, and the bolts, 30 mm apart.
 var clutchExplode = map[string]r3.Vec{
 	"nut 1": {Z: -30}, "nut 2": {Z: -30}, "nut 3": {Z: -30}, "back plate": {}, "hub": {Z: 30}, "ring": {Z: 60},
 	"cover": {Z: 90}, "bolt 1": {Z: 120}, "bolt 2": {Z: 120}, "bolt 3": {Z: 120},
@@ -133,12 +133,12 @@ var (
 )
 
 var clutchCameras = map[string]solidlens.Camera{
-	"hero":    {Position: solidlens.Vec{X: 40, Y: -60, Z: 85}, Target: solidlens.Vec{Z: 8}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"front":   {Position: solidlens.Vec{X: 50, Y: -70, Z: 95}, Target: solidlens.Vec{Z: 8}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"back":    {Position: solidlens.Vec{X: -50, Y: -70, Z: -75}, Target: solidlens.Vec{Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"side":    {Position: solidlens.Vec{X: 140, Y: -30, Z: 25}, Target: solidlens.Vec{Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"hero":    {Position: solidlens.Vec{X: 40, Y: -60, Z: 85}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"front":   {Position: solidlens.Vec{X: 50, Y: -70, Z: 95}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"back":    {Position: solidlens.Vec{X: -50, Y: -70, Z: -75}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"side":    {Position: solidlens.Vec{X: 140, Y: -30, Z: 25}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Z: 1}, FOV: 35},
 	"section": {Position: solidlens.Vec{Z: 220}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Y: 1}, FOV: 30},
-	"cutaway": {Position: solidlens.Vec{X: 150, Y: -25, Z: 30}, Target: solidlens.Vec{Z: 10}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"cutaway": {Position: solidlens.Vec{X: 150, Y: -25, Z: 30}, Target: solidlens.Vec{Z: clutchMidPlane}, Up: solidlens.Vec{Z: 1}, FOV: 35},
 	// The shaft axis runs left to right on the screen, the back plate's side at the left, seen a little from below.
 	"exploded": {Position: solidlens.Vec{X: -260, Y: 120, Z: -40}, Target: solidlens.Vec{Z: 55}, Up: solidlens.Vec{Y: 1},
 		FOV: 35},
@@ -167,17 +167,17 @@ func (s clutchSet) view(name string) (solidlens.Scene, error) {
 	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
-// sideBySide draws the section of each clutch in the sets, the sets spaced 50 mm apart along +X, seen from above.
+// sideBySide draws the section of each clutch in the sets, the sets spaced 60 mm apart along +X, seen from above.
 func sideBySide(sets []clutchSet) (solidlens.Scene, error) {
 	var models []solidlens.Model
 	for i, s := range sets {
-		more, err := s.models(r3.Vec{X: float64(i) * 50}, nil, &clutchMidCut)
+		more, err := s.models(r3.Vec{X: float64(i) * 60}, nil, &clutchMidCut)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		models = append(models, more...)
 	}
-	mid := float64(len(sets)-1) * 25
+	mid := float64(len(sets)-1) * 30
 	camera := solidlens.Camera{Position: solidlens.Vec{X: mid, Z: 240}, Target: solidlens.Vec{X: mid, Z: clutchMidPlane},
 		Up: solidlens.Vec{Y: 1}, FOV: 30}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
@@ -302,8 +302,13 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 			low, high := meshBounds(part.mesh)
 			center := low.Add(high).Scale(.5)
 			span := high.Sub(low).Len()
+			// The back plate is seen from below, so its three hex nut pockets show.
+			lift := .8 * span
+			if name == "back plate" {
+				lift = -.8 * span
+			}
 			camera := solidlens.Camera{
-				Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
+				Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: lift})),
 				Target:   solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
 			models := []solidlens.Model{clutchModel(part.mesh, part.color)}
 			scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)

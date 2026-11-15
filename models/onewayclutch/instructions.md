@@ -1,9 +1,9 @@
 # One-way clutch instructions
 
 A printed one-way clutch for a D-flat shaft. A hub pressed on the shaft carries three flexing pawls. They engage a ring
-with 24 internal sawtooth teeth, so the ring turns freely one way about the held shaft and is driven the other way. A
-back plate and a cover hold the ring on the hub, clamped by three M2 bolts and nuts. Every part except the bolts and
-nuts prints on an FDM printer with its axis vertical and no supports. The shaft is not modeled, as in `crankhandle`:
+with 24 internal sawtooth teeth and three bolt ears, so the ring turns freely one way about the held shaft and is
+driven the other way. A back plate and a cover hold the ring on the hub, clamped by three M2 bolts and nuts. Each nut
+sits in a hex pocket open to the back plate's outer face. Every part except the bolts and nuts prints on an FDM printer with its axis vertical and no supports. The shaft is not modeled, as in `crankhandle`:
 the mechanism owns it and any [Arbor collars](../../docs/model-pipeline.md#arbor-collars) that locate the clutch.
 
 Units are millimeters. The local frame has its origin on the shaft axis in the back plate's outer face (the face toward
@@ -44,7 +44,8 @@ counter-clockwise, so each arc's start and end swap when `σ = -1`. The D flat a
 | `608ZZ` | 8 | 0.75 | 7.25 | hand-crank siren shafts, `crankhandle.Params6082RS` |
 | `608ZZ-gearbox` | 8 | 0.5 | 7.5 | planetary gearbox 608ZZ shaft kits |
 
-The body does not change with the preset: only the D bore of the hub and both plates changes. D bore radius
+The body does not change with the preset: only the D bore of the hub and both plates changes. The ring's ears are
+the same for every preset and `BoreClearance`. D bore radius
 `r_b = D/2 + c`, flat at `f_b = D/2 - d + c` from the axis on the +Y side, where `c` is `BoreClearance`.
 
 ### Validation (first failure wins; every message starts `onewayclutch: `)
@@ -53,7 +54,7 @@ The body does not change with the preset: only the D bore of the hub and both pl
 2. `Freewheel` is `Clockwise` or `CounterClockwise`.
 3. `BoreClearance` is finite and `0.05 <= c <= 0.5`.
 4. `BoltCircle - NutCavityRadius - r_b >= PressWall`, that is `r_b <= 4.29`; the message says the bore leaves less than
-   1.6 mm of wall between the bore and the nut cavities.
+   1.6 mm of wall between the bore and the nut pockets.
 5. `Placement` is nil or valid.
 6. Each bolt site passes `m2fastener.Site.Validate()`.
 
@@ -67,7 +68,10 @@ The body does not change with the preset: only the D bore of the hub and both pl
 | `Pawls`, `Teeth` | 3, 24 | all three heads engage at once |
 | `ToothTip`, `ToothRoot` | 14.5, 17.0 | ring tooth tip and root radii |
 | `RootRound` | 0.8 | ring tooth root round, `HeadGap + TipRound` |
-| `RingCounter`, `RingOuter`, `RingChamfer` | 18.5, 21.0, 0.5 | counterbore, outside radius (OD 42), OD end lead-ins |
+| `RingCounter`, `RingOuter`, `RingChamfer` | 18.5, 21.0, 0.5 | counterbore, outside radius (OD 42 between the ears), lead-ins of the outer loop and the counterbores |
+| `Ears`, `EarAngles` | 3, 90° 210° 330° | ears on the ring, the same in both directions |
+| `EarCircle`, `EarRadius`, `EarRound`, `EarReach` | 23.5, 3.6, 1.5, 27.1 | ear bore circle, ear half width and end round, round where an ear side meets the outside, ear tip radius |
+| `RingHeight`, `ToothEndGap` | 17.0, 0.85 | ring height; tooth band end to the plate annulus |
 | `CoreRadius` | 10.7 | hub core |
 | `SlotWidth`, `ArmThickness` | 2.05, 1.2 | slot under each arm; arm (three 0.4 mm lines, the bending-part minimum) |
 | `ArmInner`, `ArmOuter` | 12.75, 13.95 | `R_c + s`, `+ t` |
@@ -75,7 +79,7 @@ The body does not change with the preset: only the D bore of the hub and both pl
 | `WebRound`, `TipRound`, `HeadGap` | 1.0, 0.4, 0.40 | web root round, head tip round, head to its gap (seated) |
 | `HubHeight`, `Seam` | 10.0, 0.25 | hub and pawls; hub to each plate boss |
 | `PlateRadius`, `Recess` | 18.1, 0.40 | `RingCounter - RegularFit`; annulus below the boss face |
-| `BackPlateThickness`, `CoverThickness` | 5.0, 4.0 | outer face to boss face |
+| `BackPlateThickness`, `CoverThickness` | 3.5, 4.0 | outer face to boss face |
 | `PlateChamfer` | 0.5 | outer-face chamfer |
 | `BoltCircle`, `BoltAngles`, `BoltLength` | 8.4, 30° 150° 270°, 16 | three M2 x 16 through bolts |
 | `PressWall` | 1.6 | least wall round a press-fit bore |
@@ -84,47 +88,63 @@ The body does not change with the preset: only the D bore of the hub and both pl
 
 | Part | z from | z to | Notes |
 | --- | ---: | ---: | --- |
-| Back plate | 0 | 5.0 | boss face 5.0, annulus 4.6, nut cavities 1.5 to 3.5 |
-| Hub | 5.25 | 15.25 | 0.25 seams to both bosses |
-| Cover | 15.5 | 19.5 | boss face 15.5, annulus 15.9, head pockets 17.5 to 19.5 |
-| Ring | 1.25 | 19.25 | symmetric about z 10.25, the hub's mid-plane |
-| Ring tooth band | 5.45 | 15.05 | 9.6 tall, inside the heads' 5.25 to 15.25 |
+| Back plate | 0 | 3.5 | boss face 3.5, annulus 3.1, rim cylinder 0.5 to 2.0 at r 18.1, hex pockets 0 to 2.0 open to z 0 |
+| Hub | 3.75 | 13.75 | 0.25 seams to both bosses; mid-plane 8.75 |
+| Cover | 14.0 | 18.0 | boss face 14.0, annulus 14.4, head pockets 16.0 to 18.0 |
+| Ring | 0.25 | 17.25 | symmetric about z 8.75, the hub's mid-plane |
+| Ring tooth band | 3.95 | 13.55 | 9.6 tall, inside the heads' 3.75 to 13.75 |
 
-The assembly is 42 mm across and 19.5 mm long.
+The assembly is 18.0 mm long. The ring is 42 mm across between its ears; the ear tips lie on a 54.2 mm circle, so the
+clutch spans x -23.95 to 23.95 and y -21.0 to 27.1.
 
 ## Construction
 
-### Ring (revolve, then one cut)
+### Ring (prism, chamfer, two cuts)
 
-Meridian `(r, z)`, closed, revolved a full turn about Z: (20.5, 1.25), (21.0, 1.75), (21.0, 18.75), (20.5, 19.25),
-(18.5, 19.25), (18.5, 16.55), (17.0, 15.05), (13.5, 15.05), (13.5, 5.45), (17.0, 5.45), (18.5, 3.95), (18.5, 1.25).
-The counterbores take the plate rims; the 45° cones from `RingCounter` down to `ToothRoot` hold the ring axially; the
-flats at z 5.45 and 15.05 become the teeth's end faces.
+1. Outline sketch on z = 0.25: the outside, radius 21.0, with three ears as the outer loop; as holes the 24-tooth loop
+   and the three ear bores. Extrude `RingHeight` 17.0 along +Z. The extrusion is not a Boolean.
+2. Chamfer the whole outer loop of both end faces by 0.5 in one call (`edgefinish.Chamfer`, `Long(Outer)`).
+3. Cut two counterbore tools, revolved meridians `(r, z)`. Back: (13.0, -0.75), (20.0, -0.75), (18.5, 0.75),
+   (18.5, 2.45), (17.0, 3.95), (13.0, 3.95). Front, the back one mirrored in z = 8.75: (13.0, 18.25), (20.0, 18.25),
+   (18.5, 16.75), (18.5, 15.05), (17.0, 13.55), (13.0, 13.55). The counterbores take the plate rims; the 45° lead-in
+   from the end face and the 45° cones from `RingCounter` down to `ToothRoot` hold the ring axially; the flats at z 3.95
+   and 13.55 are the teeth's end faces.
 
-Teeth: one sketch on z = 0.25 holding the whole void inside the teeth, extruded 20 along +Z and cut from the blank.
-Counter-clockwise layout: lock face `j` lies on the radial axis at `φ_j = 90° + 15°j`, from `Q_j = R_root∠φ_j` in to
-`P_j = R_tip∠φ_j`; the ramp of tooth `j` runs from `P_j` to `Q_{j+1}`. Each `Q_j` is rounded by `RootRound`. The tooth
-occupies the angles just counter-clockwise of each lock face; the gap where a head sits lies just clockwise. The ramp
-line is at distance 13.289 from the axis (`RampDistance`), at 141.417° (`RampAngle`).
+The tooth loop is the whole void inside the teeth, one closed loop. Counter-clockwise layout: lock face `j` lies on the
+radial axis at `φ_j = 90° + 15°j`, from `Q_j = R_root∠φ_j` in to `P_j = R_tip∠φ_j`; the ramp of tooth `j` runs from
+`P_j` to `Q_{j+1}`. Each `Q_j` is rounded by `RootRound`. The tooth occupies the angles just counter-clockwise of each
+lock face; the gap where a head sits lies just clockwise. The ramp line is at distance 13.289 from the axis
+(`RampDistance`), at 141.417° (`RampAngle`).
+
+Drawing the teeth in the outline leaves the ring two Boolean cuts. A tooth cut after the counterbore cuts is refused
+by decad, because it would meet the counterbore cuts' rims.
+
+Ears: three full-height lugs at 90°, 210° and 330° (symmetric about `x = 0`, so not mirrored), each 7.2 mm wide with a
+full end round of 3.6 about a point 23.5 from the axis, the sides parallel to the ear's axis and tangent to the end
+round. Each side meets the outside circle in a round of 1.5 (a stressed root, above half the 2.5 mm wall). An M2
+clearance bore (radius 1.3) runs through each ear along the axis, 2.3 mm from its sides and end and 3.7 mm from the
+counterbore. The model places no bolt in the ears: the driven part decides between bolts and a tight fit in a housing
+with three notches.
 
 ### Plates (prism, chamfer, cuts)
 
-Profile on the plate's inner-side plane (back plate z = 0, cover z = 15.5): the circle `PlateRadius` about the origin,
+Profile on the plate's inner-side plane (back plate z = 0, cover z = 14.0): the circle `PlateRadius` about the origin,
 the D bore (arc of `r_b` the long way through -Y, flat at `y = f_b`), and three circles of `m2fastener.HoleRadius` (1.3)
-at `BoltCircle` on 30°, 150° and 270°. Extrude 5.0 or 4.0 along +Z. Then:
+at `BoltCircle` on 30°, 150° and 270°. Extrude 3.5 or 4.0 along +Z. Then:
 
-1. Chamfer the outer face (back plate z = 0, cover z = 19.5) by 0.5 in one call: its outer circle, plus the whole D loop
+1. Chamfer the outer face (back plate z = 0, cover z = 18.0) by 0.5 in one call: its outer circle, plus the whole D loop
    when `BoreLoop >= 20` (the 8 mm presets; the 5 mm loop is 15.8). The bolt-hole and head-pocket loops are short.
-2. Cut the inner-face tool, a revolved meridian `(r, z)`. Back plate: (9.8, 6.0), (9.8, 5.4), (10.6, 4.6), (17.0, 4.6),
-   (19.1, 2.5), (19.1, 6.0). Cover: (9.8, 14.5), (9.8, 15.1), (10.6, 15.9), (17.0, 15.9), (19.1, 18.0), (19.1, 14.5).
+2. Cut the inner-face tool, a revolved meridian `(r, z)`. Back plate: (9.8, 4.5), (9.8, 3.9), (10.6, 3.1), (17.0, 3.1),
+   (19.1, 1.0), (19.1, 4.5). Cover: (9.8, 13.0), (9.8, 13.6), (10.6, 14.4), (17.0, 14.4), (19.1, 16.5), (19.1, 13.0).
    It leaves the boss (radius 10.2 at the face, a 0.4 mm 45° bevel), the recessed annulus out to r 17.0 and a 45° cone
    to the rim.
-3. Back plate: cut `m2fastener.CavityTool` at each site (z 1.5 to 3.5). Cover: cut `m2fastener.PocketTool` at each
-   site (z 17.5 to 19.5). The holes are already in the profile.
+3. Back plate: cut `m2fastener.HexPocketTool` at each site (z 0 to 2.0, open to the outer face; the chamfer in step 1
+   runs first, so the hex loops are never chamfered). Cover: cut `m2fastener.PocketTool` at each site (z 16.0 to
+   18.0). The holes are already in the profile.
 
 ### Hub (one prism)
 
-One sketch on z = 5.25 holds the whole outline, the D bore and the three bolt holes; extrude `HubHeight` along +Z. The
+One sketch on z = 3.75 holds the whole outline, the D bore and the three bolt holes; extrude `HubHeight` along +Z. The
 hub has no Boolean. Both faces are then chamfered 0.5 along their long runs (see "Surface edge finishing").
 
 ### Hub outline, counter-clockwise layout, pawl 0 (pawl `k` is turned by 120°k)
@@ -158,10 +178,12 @@ to a bolt hole and 1.0 from a bolt hole to the core arc.
 
 ### Bolts and nuts
 
-Site `i` at angle `a_i` in {30°, 150°, 270°}: `m2fastener.Site{Head: (8.4 cos a, 8.4 sin a, 19.5), Dir: (0, 0, -1),
+Site `i` at angle `a_i` in {30°, 150°, 270°}: `m2fastener.Site{Head: (8.4 cos a, 8.4 sin a, 18.0), Dir: (0, 0, -1),
 Corner: (cos a, sin a, 0), Length: 16, Cavity: 16.0}`. The head lies flush with the cover's outer face in a 2 mm pocket.
-The bolt passes the cover, the hub and the back plate. The nut cavity (z 1.5 to 3.5) is enclosed by the back plate
-except for the bolt hole. The tip ends at z 1.5, the cavity's far face. M2 x 16 is in `m2bolt.StandardLengths()`.
+The bolt passes the cover, the hub and the back plate. The nut sits in a hexagonal pocket (z 0 to 2.0) open to the back plate's outer face, with its corners on
+`Corner` at radius 2.51 and its flats 2.174 from the bolt line; the nut sits from z 0.2 to 1.8. The tip ends at z 0,
+flush with the back plate's outer face, past the nut's outer face, so the nut is fully engaged. The bolt holds the
+nut in its pocket, and the pocket's flats stop it turning. The pocket's floor is 1.1 mm below the annulus. M2 x 16 is in `m2bolt.StandardLengths()`.
 
 ## Bodies and containers
 
@@ -180,19 +202,19 @@ body set does not change with any parameter. There is no "Look-alike parts" sect
 
 | ID | Parts | Class (min) | Modeled | Measured, proven lower bound | Measure |
 | --- | --- | --- | ---: | ---: | --- |
-| P1 | hub D bore / shaft | press fit | `c` (0.05) | 0.040 (at `c` 0.35: 0.340) | section at mid-height |
+| P1 | hub D bore / shaft | press fit | `c` (0.05) | 0.049 (at `c` 0.35: 0.349) | section at mid-height |
 | P2 | back plate, cover D bores / shaft | press fit | `c` | 0.049 (at `c` 0.35: 0.349) | as P1 |
 | T1 | hub / each plate boss | Tight 0.2 | 0.25 | 0.237 | mesh gap, placed meshes |
-| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | 0.642 | axial section, hub bounds |
-| R2 | ring counterbores / plate rims | Regular | 0.40 radial | 0.390 | section mid-rim |
-| R3 | ring cones / plate cones | Regular | 0.60 normal | 0.591 | axial section |
-| R4 | ring tooth ends / plate annuli | Regular | 0.85 axial | 0.840 | axial section |
+| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | 0.601 | axial section, hub bounds |
+| R2 | ring counterbores / plate rims | Regular | 0.40 radial | 0.381 | section mid-overlap (z 1.375 and 16.125) |
+| R3 | ring cones / plate cones | Regular | 0.60 normal | 0.583 | axial section |
+| R4 | ring tooth ends / plate annuli | Regular | 0.85 axial | 0.832 | axial section |
 | R5 | each head / its tooth gap, seated | Regular | 0.40 | 0.387 | `meshgap` on the placed meshes |
-| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | 0.543 | section at mid-height |
-| F | bolts, nuts | fastener rules | pocket 0.3, hole 0.3, cavity 0.2 | | bounds and no overlap |
+| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | 0.515 | section at mid-height |
+| F | bolts, nuts | fastener rules | head pocket 0.3, hole 0.3, nut 0.17 at each flat, 0.20 past each corner and to the floor | | bounds, sections and no overlap |
 
 The model is **Mixed**: the bore clearance is a parameter, and the bolts and nuts keep their nominal size. The ring's
-outside fit in the user's housing belongs to the consumer. `TestOneWayClutchFits` measures P1 to R5 and L1 for every
+ears and outside fit in the user's driven part or housing belong to the consumer. `TestOneWayClutchFits` measures P1 to R5 and L1 for every
 preset in both directions, for `BoreClearance` 0.35 on `605ZZ`, and the mesh gaps for a placed default. The measured
 column is the least value over those cases, less each section's or mesh's proven displacement bound, so it sits a
 little under the modeled value. A D bore's corners stand more than `c` from the shaft's corners, since `c` is radial
@@ -217,10 +239,15 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
   round: centre `NewPointOnLine` on the slot axis, `NewTangentCircles` with the arm inner arc (internal) and the next
   core arc (external); no radius constraint. The D bore and bolt holes follow the plate profile. A fillet removes its
   corner point and the constraints on it, so each line is held by constraints on the line and its far end.
-- Ring tooth sketch: 24 axes at `φ_j`. `P_j` is `NewPointOnLine` on axis `j` with `NewDistance(origin, P_j, R_tip)`. The
+- Ring outline sketch: three construction axes at the ear angles with `NewAngle(ref, axis, e_k)`; each ear centre
+  `NewPointOnLine` on its axis with `NewDistance(origin, centre, 23.5)`; the end round `NewRadius(3.6)`; each side
+  `NewParallel(axis, side)` and `NewTangent(side, endRound)`; the three outside arcs `NewRadius(21.0)` about the origin;
+  the bores `NewRadius(1.3)` sharing the ear centres; then `CreateFillet` at all six side-to-outside corners, 1.5. The
+  tooth loop is drawn in the same sketch (next item). Select the profile with four holes.
+- Ring tooth loop: 24 axes at `φ_j`. `P_j` is `NewPointOnLine` on axis `j` with `NewDistance(origin, P_j, R_tip)`. The
   lock line `Q_j → P_j` is `NewParallel` to axis `j`. The ramp `P_j → Q_{j+1}` is `NewDistancePointLine(origin, ramp,
-  13.289)`. `CreateFillet` at every `Q_j`, 0.8. One closed loop, no holes.
-- Meridians (ring blank, plate inner tools): the plane holds the axis, U along +Z and V radial; every vertex
+  13.289)`. `CreateFillet` at every `Q_j`, 0.8. One closed loop, a hole of the ring's outline.
+- Meridians (ring counterbore tools, plate inner tools): the plane holds the axis, U along +Z and V radial; every vertex
   `DimensionPoint`; revolve with `decad.FullRevolution{}`.
 - Plate profile: the hub's bore and holes, plus `NewRadius(PlateRadius)` on a circle about the origin.
 - Fastener tools: `m2fastener` returns their sketches; they are recorded in `Parts.Sketches`.
@@ -229,12 +256,12 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
 
 | Part | Face | Net area | Long runs | Action |
 | --- | --- | ---: | --- | --- |
-| Back plate | outer face | 964 to 994 | outer circle 113.7; D loop 25.1 to 25.3 at 8 mm | chamfer 0.5 (one call) |
+| Back plate | outer face | about 931 to 961 | outer circle 113.7; D loop 25.1 to 25.3 at 8 mm; hex loops 15.06, short | chamfer 0.5 (one call) |
 | Cover | outer face | 934 to 964 | as above; head pockets 13.8, short | chamfer 0.5 (one call) |
 | Plates | annulus | 555 | outer edge meets the 45° cone | the 1.1 mm cone is that edge's finish |
 | Plates | boss face | 260 to 290 | none | small, none |
 | Hub | each face | 409 to 439 | per pawl: arm outer arc 22.9, inner run 47.8; head run 7.1, short; D loop 25.1 to 25.3 at 8 mm | chamfer 0.5 on the long runs; head run sharp (below) |
-| Ring | end faces | 245 net | none | none; the OD end lead-ins are in the meridian |
+| Ring | each end face | 413.3: outline 1504.5 less counterbore 1075.2 less bores 15.9 | outer loop (outside arcs, rounds, sides, end rounds, all tangent) 158.7; counterbore rim 116.2; ear bores 8.2, short | chamfer the outer loop 0.5; the counterbore rim by the tool's lead-in |
 
 The hub's two faces are chamfered 0.5 mm along the runs of 20 mm or more, and the head run stays sharp so the head keeps
 its 0.4 tip round and its lock contact. `edgefinish.ChamferRuns` chooses the edges on the extruded prism, then chamfers in
@@ -242,7 +269,7 @@ two decad calls: the partial runs (the arm's outer arc and the inner run of ever
 at the 8 mm presets, the whole D loop of each face. Each run ends at a convex corner (the web, the lock face's root)
 or at the concave 22.5 degree corner beside the head's flank, where the bevel tapers out on the flank's plane over
 about 1.5 mm. The 605ZZ's D loop is 15 mm long and stays sharp. The result is faceted, so its checks are sections 0.25 mm
-inside each face (`TestOneWayClutchEdgeFinishing`), not volumes.
+inside each face (`TestOneWayClutchEdgeFinishing`, and `TestOneWayClutchRingEdgeFinishing` for the ring), not volumes.
 
 ## Corners and roots
 
@@ -252,7 +279,7 @@ bending-part minimum; every other wall is 0.8 or more. The hub, back plate and c
 1.6 or more round the bore.
 
 Retained sharp corners. `TestOneWayClutchCorners` reads sections at every layer run of each part, for every preset
-and both directions, and exempts nothing: no section reports a finding. Each corner below is kept sharp by design. It
+and both directions, and exempts the back plate's hex pocket corners only, each exemption matching a finding in every case. Each corner below is kept sharp by design. It
 either passes the rule's limits (inside turn up to 50°, tip turn up to 120°) or lies between layers, where no section
 reads it.
 
@@ -263,7 +290,9 @@ reads it.
 | Ring | the 24 tooth roots, 0.8 round | A ratchet tooth root, rounded below half its section: 0.8 is the largest round that keeps the head's 0.40 gap. | passes the inside limit |
 | Ring | the 24 tooth tips | Engagement corners. | passes the tip limit |
 | Cover | the floor rims of the three head pockets (between layers) | The 0.3 mm head clearance leaves no room. | between layers, not read |
-| Back plate | the floor and roof rims of the three nut cavities (between layers) | A round would cut into the nut's 0.2 mm face clearance. | between layers, not read |
+| Back plate | the six corners of each of the three hex pockets (18), edges vertical | Mating corners: they match the M2 nut's sharp corners, as in `models/crankhandle`. | read in the z 0 to 2.0 run: 60° inside turns; exempt with `cornercheck.Annulus` about each site, radius 2.51 ± 0.3 |
+| Back plate | the ceiling rim of each hex pocket at z 2.0 | A 45° chamfer of 0.5 mm would fill the corner the nut's corners sit in. | between layers, not read |
+| Ring | the six ear root rounds (1.5), ear end rounds and bores | Rounded as the rule asks: 1.5 is above half the 2.5 mm wall. | passes |
 
 The test also checks each press-fit ring's wall: in every layer run, the hub's, back plate's and cover's bore lies
 1.6 mm or more from every other outline.
@@ -274,11 +303,20 @@ the mechanism's).
 ## Printing and assembly
 
 - Material: PETG is recommended for the hub, since its arms flex at every click; PLA works at 0.65 % strain.
-- Hub and ring: either face down, no supports. The ring's tooth ends overhang 2.5 mm at the lower end; the 0.85 mm gap
+- Hub and ring: either face down, no supports. The ears are vertical prisms with no overhang. The ring's tooth ends overhang 2.5 mm at the lower end; the 0.85 mm gap
   to the plate absorbs a little droop.
-- Back plate: outer face down. Pause at z 3.5, drop an M2 nut into each cavity, resume.
+- Back plate: outer face down, no pause. The hex pockets open on the bed; each pocket's ceiling bridges at most 5.02 mm
+  around the 2.6 mm bolt hole.
 - Cover: outer face down; the head pockets open on the bed.
 
-Assembly: press the back plate onto the shaft, outer face toward the mechanism; press the hub on; push each pawl head in
-with a finger and slide the ring over the hub, turning it in the freewheel direction; press the cover on; drive the
-three M2 x 16 bolts into the nuts and tighten.
+Assembly. The nuts are not held until their bolts reach them, so assemble off the shaft with the bolts loose:
+
+1. Push the three M2 x 16 bolts through the cover's head pockets. Stand the cover on its outer face, bolts up.
+2. Slide the hub over the bolts onto the cover.
+3. Push each pawl head in and slide the ring over the hub, turning it the way it turns freely.
+4. Lay the back plate on, inner face down, with the bolts through its holes.
+5. Drop an M2 nut into each hex pocket. Lift the stack, holding the plates together, and turn each bolt from the
+   cover's side until it catches its nut. Leave them loose.
+6. Press the clutch onto the shaft, back plate first, its outer face toward the mechanism. The loose bolts let the three
+   D bores line up on the shaft.
+7. Tighten the three bolts from the front. The pockets stop the nuts turning.

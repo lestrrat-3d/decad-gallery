@@ -59,8 +59,8 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		{"clearance NaN", with(func(p *onewayclutch.Params) { p.BoreClearance = math.NaN() }), "BoreClearance must be"},
 		{"clearance +Inf", with(func(p *onewayclutch.Params) { p.BoreClearance = math.Inf(1) }), "BoreClearance must be"},
 		{"clearance -Inf", with(func(p *onewayclutch.Params) { p.BoreClearance = math.Inf(-1) }), "BoreClearance must be"},
-		{"wall to the nut cavities", with(func(p *onewayclutch.Params) { p.Shaft, p.BoreClearance = "608ZZ", 0.35 }),
-			"leaves less than 1.6 mm of wall between the bore and the nut cavities"},
+		{"wall to the nut pockets", with(func(p *onewayclutch.Params) { p.Shaft, p.BoreClearance = "608ZZ", 0.35 }),
+			"leaves less than 1.6 mm of wall between the bore and the nut pockets"},
 		{"invalid placement", with(func(p *onewayclutch.Params) { p.Placement = &r3.Frame{} }),
 			"Placement must be a valid frame"},
 	}
@@ -90,7 +90,7 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		p.Freewheel = onewayclutch.Clockwise
 		require.ErrorContains(t, p.Validate(), "BoreClearance must be")
 		p.BoreClearance = 0.35
-		require.ErrorContains(t, p.Validate(), "wall between the bore and the nut cavities")
+		require.ErrorContains(t, p.Validate(), "wall between the bore and the nut pockets")
 		p.Shaft = "605ZZ"
 		require.ErrorContains(t, p.Validate(), "Placement must be a valid frame")
 		p.Placement = nil

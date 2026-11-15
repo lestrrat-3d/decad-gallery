@@ -23,6 +23,9 @@ const (
 	fitCut = 7.0
 	// midHub is the hub's mid-height; the ring's tooth band shares it.
 	midHub = (onewayclutch.HubFrom + onewayclutch.HubFrom + onewayclutch.HubHeight) / 2
+	// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore, from the end of the
+	// counterbore's lead-in (z 0.75) to the cone's start on the plate's rim (z 2.0); the cover's is its mirror in midHub.
+	fitBackRimZ = (onewayclutch.RingFrom + onewayclutch.RingChamfer + onewayclutch.BackPlateThickness - 1.5) / 2
 )
 
 type fitCase struct {
@@ -269,9 +272,9 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	const regular = onewayclutch.RegularFit - onewayclutch.FitMargin
 
 	// The annulus floor is the plate's vertices from the boss bevel out to the cone: radius 11 to 16.9.
-	_, backTop, n := fitZRange(fitRadial(back, 11, 16.9), 0, 10)
+	_, backTop, n := fitZRange(fitRadial(back, 11, 16.9), 0, midHub)
 	require.NotZero(t, n)
-	coverBottom, _, n := fitZRange(fitRadial(cover, 11, 16.9), 10.25, 30)
+	coverBottom, _, n := fitZRange(fitRadial(cover, 11, 16.9), midHub, 30)
 	require.NotZero(t, n)
 	// The ring's tooth end faces: its vertices from the tooth tips out to the root radius.
 	toothLo, _, n := fitZRange(fitRadial(ring, 14.4, 17.01), 0, midHub)
@@ -312,7 +315,7 @@ func fitRimFits(t *testing.T, m *onewayclutch.Model) {
 	for name, c := range map[string]struct {
 		plate *decad.Body
 		z     float64
-	}{"back": {m.BackPlate, 2.5}, "cover": {m.Cover, 18.25}} {
+	}{"back": {m.BackPlate, fitBackRimZ}, "cover": {m.Cover, 2*midHub - fitBackRimZ}} {
 		plane := fitPlane(t, c.z)
 		plate, ring := fitSection(t, c.plate, plane), fitSection(t, m.Ring, plane)
 		gap, err := plate.Clearance(ring)
@@ -359,8 +362,8 @@ func TestOneWayClutchFits(t *testing.T) {
 			m := fitBuild(t, c)
 			cl := c.p.BoreClearance
 			requireBoreFit(t, "P1 hub", m.Hub, midHub, m, cl)
-			requireBoreFit(t, "P2 back plate", m.BackPlate, 2.5, m, cl)
-			requireBoreFit(t, "P2 cover", m.Cover, 17.5, m, cl)
+			requireBoreFit(t, "P2 back plate", m.BackPlate, onewayclutch.BackPlateThickness-1, m, cl)
+			requireBoreFit(t, "P2 cover", m.Cover, onewayclutch.CoverFrom+1, m, cl)
 			requireFitPairs(t, m)
 			band := fitAxialFits(t, m)
 			require.GreaterOrEqual(t, band, onewayclutch.BandTo-onewayclutch.BandFrom-0.05, "tooth band height")

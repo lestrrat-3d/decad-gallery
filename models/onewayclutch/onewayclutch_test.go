@@ -1,6 +1,7 @@
 package onewayclutch_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -63,12 +64,16 @@ func TestOneWayClutchDefault(t *testing.T) {
 	require.InDelta(t, 2.55, m.Dimensions.BoreRadius, 1e-12)
 	require.InDelta(t, 2.05, m.Dimensions.BoreFlat, 1e-12)
 
-	// Each body's bounds, from the design's stack (section 5.1).
+	// Each body's bounds, from the amended stack (ears design section 3.2). The ring's three ears, at 90, 210 and 330
+	// degrees, reach EarReach on +Y and, with their end rounds, EarCircle*cos(30) + EarRadius on both sides of x = 0.
+	earX := onewayclutch.EarCircle*math.Cos(30*math.Pi/180) + onewayclutch.EarRadius
 	want := map[string][2]r3.Vec{
-		"back plate": {{X: -18.1, Y: -18.1, Z: 0}, {X: 18.1, Y: 18.1, Z: 5}},
-		"hub":        {{X: -16, Y: -16, Z: 5.25}, {X: 16, Y: 16, Z: 15.25}},
-		"cover":      {{X: -18.1, Y: -18.1, Z: 15.5}, {X: 18.1, Y: 18.1, Z: 19.5}},
-		"ring":       {{X: -21, Y: -21, Z: 1.25}, {X: 21, Y: 21, Z: 19.25}},
+		"back plate": {{X: -18.1, Y: -18.1, Z: 0}, {X: 18.1, Y: 18.1, Z: onewayclutch.BackPlateThickness}},
+		"hub": {{X: -16, Y: -16, Z: onewayclutch.HubFrom},
+			{X: 16, Y: 16, Z: onewayclutch.HubFrom + onewayclutch.HubHeight}},
+		"cover": {{X: -18.1, Y: -18.1, Z: onewayclutch.CoverFrom}, {X: 18.1, Y: 18.1, Z: onewayclutch.CoverTo}},
+		"ring": {{X: -earX, Y: -onewayclutch.RingOuter, Z: onewayclutch.RingFrom},
+			{X: earX, Y: onewayclutch.EarReach, Z: onewayclutch.RingTo}},
 	}
 	meshes := map[string]meshgap.Mesh{}
 	for name, body := range partsOf(m) {
@@ -86,11 +91,11 @@ func TestOneWayClutchDefault(t *testing.T) {
 			}
 		}
 		require.GreaterOrEqual(t, box.Min.Z, -tol, name)
-		require.LessOrEqual(t, box.Max.Z, 19.5+tol, name)
-		require.LessOrEqual(t, box.Max.X, 21+tol, name)
-		require.LessOrEqual(t, box.Max.Y, 21+tol, name)
-		require.GreaterOrEqual(t, box.Min.X, -21-tol, name)
-		require.GreaterOrEqual(t, box.Min.Y, -21-tol, name)
+		require.LessOrEqual(t, box.Max.Z, onewayclutch.CoverTo+tol, name)
+		require.LessOrEqual(t, box.Max.X, earX+tol, name)
+		require.LessOrEqual(t, box.Max.Y, onewayclutch.EarReach+tol, name)
+		require.GreaterOrEqual(t, box.Min.X, -earX-tol, name)
+		require.GreaterOrEqual(t, box.Min.Y, -onewayclutch.RingOuter-tol, name)
 		mesh, err := body.Tessellate(t.Context(), units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)
@@ -98,7 +103,7 @@ func TestOneWayClutchDefault(t *testing.T) {
 		require.NoError(t, err, name)
 		meshes[name] = mg
 	}
-	// The hub's pawl heads reach 15.76 from the axis; the whole clutch is 42 mm across and 19.5 mm long.
+	// The hub's pawl heads reach 15.76 from the axis; the clutch is 18.0 mm long.
 	hub, err := m.Hub.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, m.Dimensions.HeadReach, max(hub.Max.X, hub.Max.Y, -hub.Min.X, -hub.Min.Y), 0.5)
@@ -133,7 +138,7 @@ func isBoltCoverPair(a, b string) bool {
 func requireBoltsClearCover(t *testing.T, m *onewayclutch.Model) {
 	t.Helper()
 	for i := range m.Bolts {
-		for _, z := range []float64{18.5, 16.5} {
+		for _, z := range []float64{onewayclutch.CoverTo - 1.0, onewayclutch.CoverFrom + 1.0} {
 			f, err := r3.NewFrame(r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1})
 			require.NoError(t, err)
 			ob, err := m.Bolts[i].Body.SectionOutline(t.Context(), f, units.Millimeters(0.01))

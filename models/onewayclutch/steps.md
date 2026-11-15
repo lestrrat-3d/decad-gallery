@@ -9,7 +9,7 @@ four part builders and the meridian tables). Every error message starts with `on
 ## 1. Validate and derive (params.go)
 
 `Derive` makes no geometry calls. It runs the validation rules of instructions.md in order and fills `BoreRadius`,
-`BoreFlat`, `BoreLoop` and `Sign`. `Sites[i]` is `m2fastener.Site{Head: (8.4 cos a_i, 8.4 sin a_i, 19.5), Dir: (0, 0,
+`BoreFlat`, `BoreLoop` and `Sign`. `Sites[i]` is `m2fastener.Site{Head: (8.4 cos a_i, 8.4 sin a_i, 18.0), Dir: (0, 0,
 -1), Corner: (cos a_i, sin a_i, 0), Length: 16, Cavity: 16}` for `a_i` in 30°, 150°, 270°; each passes `Validate()`.
 
 The pawl values come from the seated tooth gap. `P = 14.5∠75°`, `Q = 17∠90°`. `ramp = (Q - P)/|Q - P|`;
@@ -35,7 +35,7 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
   centre, 8.4)`, a circle `NewRadius(1.3)`.
 - `plateSketch(z)` on `across(z)`: a circle about the origin with `NewRadius(18.1)`, `boreLoop`, `boltHoles`. Select
   the profile with four holes.
-- `hubSketch()` on `across(5.25)`: for each pawl `k` (turn `d = 120k`), points at the mirrored, turned layout positions
+- `hubSketch()` on `across(3.75)`: for each pawl `k` (turn `d = 120k`), points at the mirrored, turned layout positions
   of `a` (core and web corner), `W`, `H_f`, `A`, `H_l`, `S` (arm inner arc end at `12.75∠-6°`), `T` (core end of the
   slot round, `10.7∠-6°`) and the slot centre `C` (`11.725∠-6°`). Entities: `core = arc(O, T_{k-1}, a)`, `web =
   CreateLine(a, W)`, `outer = arc(O, W, H_f)`, `flank = CreateLine(H_f, A)`, `lock = CreateLine(A, H_l)`, `inner =
@@ -68,7 +68,7 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
 - `plate(z, length, outerZ, inner, tools)`: `plateSketch(z)`, extrude `length` along +Z, then one
   `edgefinish.Chamfer(body, +Z, [outerZ], Long(All), 0.5)` call, which takes every outer-face loop of 20 mm or more (the
   outer circle, and the D loop at 8 mm), then `decad.Cut` with `meridian(inner)` and each fastener tool in order.
-- `backPlate()`: `plate(0, 5, 0, BackPlateInner, CavityTool per site)`. `cover()`: `plate(15.5, 4, 19.5, CoverInner,
+- `backPlate()`: `plate(0, 3.5, 0, BackPlateInner, HexPocketTool per site)`. `cover()`: `plate(14, 4, 18, CoverInner,
   PocketTool per site)`.
 - `BuildParts` builds the four bodies in the order hub, ring, back plate, cover, requires each to be solid, and moves
   each by `placement.Place` last. It places the sites with `placeSite`.
@@ -79,5 +79,5 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
 
 `TestOneWayClutchDefault`: ten solids; every sketch fully constrained; each body's bounds from the stack; every body
 tessellates with `VerifyAll`; no two bodies overlap (a bolt in its nut and a head on its pocket floor touch by design;
-the bolt-to-cover clearance is measured in sections at z 18.5 and 16.5, at least 0.28 mm). `TestOneWayClutchContainers`:
+the bolt-to-cover clearance is measured in sections at z 17.0 and 15.0, at least 0.28 mm). `TestOneWayClutchContainers`:
 the five names, each body in its container, `doc.VerifyContainers().Err()` nil.

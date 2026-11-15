@@ -1,7 +1,8 @@
 # One-way clutch
 
 The model in `models/onewayclutch` constructs a printed one-way clutch for a D-flat shaft: a hub with three flexing
-pawls, a ring with 24 internal teeth, a back plate and a cover, and three M2 x 16 bolts with their nuts. The shaft is
+pawls, a ring with 24 internal teeth and three bolt ears, a back plate and a cover, and three M2 x 16 bolts with their nuts,
+each nut in a hex pocket open to the back plate's outer face. The shaft is
 not modeled.
 
 ## Construction and API
@@ -47,10 +48,13 @@ each they check:
 - that the placed model equals the local one moved by the frame (`TestOneWayClutchPlacement`);
 - the part fits of `instructions.md` and that no two bodies overlap (`TestOneWayClutchFits`);
 - the pawl's arm thickness, slot margin, strain and lock contact (`TestOneWayClutchPawls`);
-- that each bolt head ends flush in its pocket, each nut sits inside its cavity and no fastener overlaps a part
-  (`TestOneWayClutchFasteners`);
-- the chamfers of the plates' and the hub's faces (`TestOneWayClutchEdgeFinishing`);
-- `cornercheck` on the four printed parts, with the retained sharp corners of `instructions.md` listed
+- that each bolt head ends flush in its pocket, each tip ends flush with the back plate's outer face, each nut sits in
+  its hex pocket and no fastener overlaps a part (`TestOneWayClutchFasteners`);
+- the ring's three ears, their bores and walls, and that the ring's outside is the same in both directions
+  (`TestOneWayClutchEars`);
+- the chamfers of the plates', the hub's and the ring's faces (`TestOneWayClutchEdgeFinishing`,
+  `TestOneWayClutchRingEdgeFinishing`);
+- `cornercheck` on the four printed parts, with the retained sharp corners of `instructions.md` listed and the back plate's hex pocket corners exempt
   (`TestOneWayClutchCorners`).
 
 The `readme` shot writes every image the README shows.

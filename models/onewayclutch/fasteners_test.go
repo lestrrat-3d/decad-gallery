@@ -36,6 +36,7 @@ func TestOneWayClutchFasteners(t *testing.T) {
 			m, _ := buildCase(t, name, p)
 			for i, site := range m.Sites {
 				requireSiteFastener(t, m, i, site)
+				requireSitePocket(t, m, i, site)
 				requireSiteWalls(t, m, i, site)
 				requireSiteClear(t, m, i, site)
 			}
@@ -44,7 +45,7 @@ func TestOneWayClutchFasteners(t *testing.T) {
 }
 
 // requireSiteFastener checks one site's bolt and nut by bounds: the head flush with the cover's outer face and inside
-// its pocket, the tip inside the cavity's far face and above z 0, the nut inside its cavity.
+// its pocket, the tip flush with the back plate's outer face, the nut inside its hex pocket.
 func requireSiteFastener(t *testing.T, m *onewayclutch.Model, i int, site m2fastener.Site) {
 	t.Helper()
 	label := fmt.Sprintf("site %d", i+1)
@@ -63,6 +64,9 @@ func requireSiteFastener(t *testing.T, m *onewayclutch.Model, i int, site m2fast
 	require.InDelta(t, headZ, bb.Max.Z, tol, "%s: head top at the site", label)
 	require.InDelta(t, tipZ, bb.Min.Z, tol, "%s: tip", label)
 	require.GreaterOrEqual(t, bb.Min.Z, -tol, "%s: tip above z 0", label)
+	back0, err := m.BackPlate.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, back0.Min.Z, bb.Min.Z, tol, "%s: the tip ends flush with the back plate's outer face", label)
 	require.LessOrEqual(t, bb.Min.Z, site.At(site.CavityFar()).Z+tol, "%s: tip at or below the cavity's far face", label)
 	require.Less(t, bb.Min.Z, site.At(site.Cavity+m2fastener.NutClearance).Z, "%s: tip reaches the nut", label)
 	// Head inside its pocket: the bolt's radius from the site's line stays within the pocket.
@@ -82,8 +86,40 @@ func requireSiteFastener(t *testing.T, m *onewayclutch.Model, i int, site m2fast
 	}
 	back, err := m.BackPlate.Bounds()
 	require.NoError(t, err)
-	require.Greater(t, nb.Min.Z, back.Min.Z+m2fastener.Stock*0.5, "%s: back plate encloses the nut from below", label)
+	require.InDelta(t, back.Min.Z+m2fastener.NutClearance, nb.Min.Z, ntol+0.01,
+		"%s: the nut's outer face lies 0.2 above the back plate's outer face", label)
 	require.Less(t, nb.Max.Z, back.Max.Z, "%s: nut inside the back plate", label)
+}
+
+// requireSitePocket checks the back plate's section at z 1.0 at one site: a hexagon with its corners 2.51 mm from the
+// site's line along Corner and its flats 2.174 mm from it, open to the outer face (the section sits between the
+// pocket's floor at z 2.0 and the face at z 0, so the pocket is a hole of the plate's section there).
+func requireSitePocket(t *testing.T, m *onewayclutch.Model, i int, site m2fastener.Site) {
+	t.Helper()
+	label := fmt.Sprintf("site %d", i+1)
+	s, err := m.BackPlate.SectionOutline(t.Context(), atZ(t, 1.0), units.Millimeters(0.01))
+	require.NoError(t, err)
+	var hex []r3.Vec
+	for _, loop := range s.Loops {
+		lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
+		for _, p := range loop {
+			lo, hi = r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y)}, r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y)}
+		}
+		if math.Hypot((lo.X+hi.X)/2-site.Head.X, (lo.Y+hi.Y)/2-site.Head.Y) < 0.3 && hi.X-lo.X < 6 {
+			hex = loop
+		}
+	}
+	require.NotEmpty(t, hex, "%s: a hole at the site", label)
+	corner := site.Corner
+	flat := r3.Vec{X: -corner.Y, Y: corner.X}
+	var alongMax, acrossMax float64
+	for _, p := range hex {
+		d := r3.Vec{X: p.X - site.Head.X, Y: p.Y - site.Head.Y}
+		alongMax = math.Max(alongMax, math.Abs(d.Dot(corner)))
+		acrossMax = math.Max(acrossMax, math.Abs(d.Dot(flat)))
+	}
+	require.InDelta(t, m2fastener.NutCavityRadius, alongMax, 0.02, "%s: hex corners along Corner", label)
+	require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, acrossMax, 0.02, "%s: hex flats", label)
 }
 
 // requireSiteWalls checks the material round the pockets and cavities: 1 mm or more under a head pocket and round
@@ -100,8 +136,7 @@ func requireSiteWalls(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	// lowest face the pocket's disc reaches, at CoverFrom + Recess).
 	floor := site.At(m2fastener.HeadPocketDepth).Z
 	require.GreaterOrEqual(t, floor-(cover.Min.Z+onewayclutch.Recess), 1.0, "%s: material under the head pocket", label)
-	// Material beside the cavity: below it, and above it under the hub-side face (the recessed annulus).
-	require.GreaterOrEqual(t, site.At(site.CavityFar()).Z-back.Min.Z, 1.0, "%s: material below the cavity", label)
+	// Material beside the pocket: above it under the hub-side face (the recessed annulus).
 	require.GreaterOrEqual(t, (back.Max.Z-onewayclutch.Recess)-site.At(site.Cavity).Z, 1.0,
 		"%s: material above the cavity", label)
 	// Radial walls from the plate rim.
@@ -159,10 +194,10 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	probes := []probe{
 		{m.Cover, bolt, "bolt/cover head", headMid, 0.28},
 		{m.Cover, bolt, "bolt/cover shank", site.At(m2fastener.HeadPocketDepth + 1).Z, 0.28},
-		{m.Hub, bolt, "bolt/hub", 10, 0.28},
+		{m.Hub, bolt, "bolt/hub", onewayclutch.HubFrom + onewayclutch.HubHeight/2, 0.28},
 		{m.BackPlate, bolt, "bolt/back plate", site.At(site.Cavity - 0.5).Z, 0.28},
-		{m.BackPlate, nut, "nut/back plate", nutMid, 0.18},
-		{m.BackPlate, bolt, "bolt/back plate cavity", nutMid, 0.5},
+		{m.BackPlate, nut, "nut/back plate", nutMid, 0.15},
+		{m.BackPlate, bolt, "bolt/back plate pocket", nutMid, 0.5},
 	}
 	for _, pr := range probes {
 		f := atZ(t, pr.z)

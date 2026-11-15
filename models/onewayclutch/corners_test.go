@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
@@ -13,10 +14,12 @@ import (
 const cornerMinWall = 1.6
 
 // TestOneWayClutchCorners applies "Corners and roots" to the four printed parts, each in its print orientation (axis
-// vertical, so +Z in the clutch's frame), in every preset and both directions. No part has a finding, so the test
-// exempts nothing: every corner listed under "Retained sharp corners" in instructions.md passes the rule's limits
-// (the D bore's corners, the head tip and lock face, the ring's tooth tips and roots) or lies between layers (the
-// head pocket and nut cavity rims), where no section reads it. The hub, back plate and cover are press-fit rings, so
+// vertical, so +Z in the clutch's frame), in every preset and both directions. The one exemption is the back plate's
+// hex pocket corners: 18 vertical 60 degree corners that match the M2 nut's sharp corners, read in the section run
+// z 0 to 2.0 and exempt about each site within NutCavityRadius plus or minus 0.3. Every other corner listed under
+// "Retained sharp corners" in instructions.md passes the rule's limits (the D bore's corners, the head tip and lock
+// face, the ring's tooth tips and roots) or lies between layers (the head pocket and hex pocket rims), where no
+// section reads it. The hub, back plate and cover are press-fit rings, so
 // each section's bore keeps a wall of 1.6 mm or more to every other outline.
 func TestOneWayClutchCorners(t *testing.T) {
 	axis := r3.Vec{Z: 1}
@@ -29,7 +32,17 @@ func TestOneWayClutchCorners(t *testing.T) {
 			}{{"hub", true}, {"ring", false}, {"back plate", true}, {"cover", true}} {
 				t.Run(part.name, func(t *testing.T) {
 					body := partsOf(m)[part.name]
-					fs, err := cornercheck.Check(t.Context(), body, axis, nil)
+					var exempt []cornercheck.Exempt
+					if part.name == "back plate" {
+						for _, site := range m.Sites {
+							exempt = append(exempt, cornercheck.Exempt{
+								Reason: "hex nut pocket corners match the nut's sharp corners",
+								Near: cornercheck.Annulus(r3.Vec{X: site.Head.X, Y: site.Head.Y}, axis,
+									m2fastener.NutCavityRadius-0.3, m2fastener.NutCavityRadius+0.3),
+							})
+						}
+					}
+					fs, err := cornercheck.Check(t.Context(), body, axis, exempt)
 					require.NoError(t, err)
 					require.Empty(t, fs, cornercheck.Report(fs, 5))
 					if !part.bored {
