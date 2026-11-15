@@ -98,8 +98,8 @@ func loopSpan(loop []r3.Vec, axis r3.Vec) float64 {
 //
 // Rounding them is a design decision. A bore is its ribbon's crest rectangle plus 0.2 mm all round. A 0.5 mm round on
 // the bore's corner leaves 0.076 mm between it and the ribbon's sharp 90 degree back corner, and the largest round
-// that keeps 0.2 mm is 0.2 mm. The test fails when the sleeve is rounded (the corners disappear), so the change that
-// rounds the bores replaces it, and the model stays on CORNER_PENDING and CORNER_PARTIAL until then.
+// that keeps 0.2 mm is 0.2 mm. The model stays on CORNER_PENDING and CORNER_PARTIAL until the bores are rounded.
+// Rounding them changes these sections, so the change that does it also revisits this test.
 func TestSleeveCornersRecorded(t *testing.T) {
 	t.Parallel()
 	m, _ := build(t, shortParams())
