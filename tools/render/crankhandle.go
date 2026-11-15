@@ -148,6 +148,9 @@ func (c crankMeshes) view(name string, large *crankMeshes) (solidlens.Scene, err
 	if name == "clamp" || name == "clamp-nut" {
 		return c.clampView(name)
 	}
+	if name == "clamp-section" || name == "cross-section" {
+		return c.pocketSectionView(name)
+	}
 	camera, ok := crankHandleCameras[name]
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown crank handle view %q", name)
@@ -204,6 +207,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		{"exploded", "exploded.png", 1600, 900},
 		{"split", "split.png", 1600, 900}, {"print", "print.png", 1600, 900},
 		{"clamp", "clamp.png", 1600, 900}, {"clamp-nut", "clamp-nut.png", 1600, 900},
+		{"clamp-section", "clamp-section.png", 1600, 900}, {"cross-section", "cross-section.png", 1600, 900},
 	} {
 		var with *crankMeshes
 		if shot.view == "sizes" {
@@ -414,6 +418,50 @@ func (c crankMeshes) clampView(name string) (solidlens.Scene, error) {
 	if clip == nil {
 		lo = r3.Vec{X: -crankhandle.ArmRadius - 1, Y: c.dm.ClampY - 7, Z: -1}
 		hi = r3.Vec{X: -crankhandle.ArmRadius + 4, Y: c.dm.ClampY + 7, Z: crankhandle.ArmThickness + 1}
+	}
+	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
+	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models), nil
+}
+
+// pocketSectionView cuts across a nut's hexagonal pocket, through the nut and the bolt, and looks into the cut:
+//
+//   - clamp-section: the arm cut by the plane x = -9, half way down the clamp pocket, the half toward -X removed and
+//     seen from -X: the hexagon with a corner up and one down, its flats on the sides, the nut in it and the bolt
+//     through the nut;
+//   - cross-section: the pin cut by the plane y = Throw - 3 across the first cross bolt's pocket, the half toward -Y
+//     removed and seen from -Y: the hexagon with its corners across the pin and its flats along the pin's axis.
+func (c crankMeshes) pocketSectionView(name string) (solidlens.Scene, error) {
+	var parts []string
+	var clip solidlens.ClipPlane
+	var camera solidlens.Camera
+	var lo, hi r3.Vec
+	mid := crankhandle.ArmThickness / 2
+	switch name {
+	case "clamp-section":
+		parts = []string{"arm", "clamp-bolt", "clamp-nut"}
+		clip = solidlens.ClipPlane{Origin: solidlens.Vec{X: -9}, Normal: solidlens.Vec{X: -1}}
+		camera = solidlens.Camera{Position: solidlens.Vec{X: -110, Y: c.dm.ClampY + 8, Z: mid + 12},
+			Target: solidlens.Vec{X: -9, Y: c.dm.ClampY, Z: mid}, Up: solidlens.Vec{Z: 1}, FOV: 30}
+		lo = r3.Vec{X: -crankhandle.ArmRadius - 1, Y: c.dm.ClampY - 5.5, Z: mid - 5.5}
+		hi = r3.Vec{X: -8, Y: c.dm.ClampY + 5.5, Z: mid + 5.5}
+	default:
+		z := crankhandle.CrossZ[0]
+		parts = []string{"pin", "cross-bolt-1", "cross-nut-1"}
+		clip = solidlens.ClipPlane{Origin: solidlens.Vec{Y: c.p.Throw - 3}, Normal: solidlens.Vec{Y: -1}}
+		camera = solidlens.Camera{Position: solidlens.Vec{X: 12, Y: c.p.Throw - 110, Z: z + 12},
+			Target: solidlens.Vec{Y: c.p.Throw - 3, Z: z}, Up: solidlens.Vec{Z: 1}, FOV: 30}
+		lo = r3.Vec{X: -6.5, Y: c.p.Throw - 4, Z: z - 6.5}
+		hi = r3.Vec{X: 6.5, Y: c.p.Throw - 2, Z: z + 6.5}
+	}
+	var models []solidlens.Model
+	for _, part := range parts {
+		color := crankPartColor(part)
+		m := crankModel(c.mesh[part], color)
+		cut := clip
+		cut.Cap = &solidlens.Material{Color: solidlens.RGB(color.R+(1-color.R)*.35, color.G+(1-color.G)*.35,
+			color.B+(1-color.B)*.35), Unlit: true}
+		m.Clip = &cut
+		models = append(models, m)
 	}
 	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
 	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models), nil

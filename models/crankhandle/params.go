@@ -206,7 +206,7 @@ func (p Params) Derive() (Dimensions, error) {
 	dm.ClampSite = m2fastener.Site{
 		Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: ArmThickness / 2},
 		Dir:    r3.Vec{X: -1},
-		Corner: r3.Vec{Y: 1},
+		Corner: r3.Vec{Z: 1},
 		Length: ClampBolt,
 		Cavity: 2*ArmRadius - m2fastener.NutCavityHeight,
 	}
@@ -220,7 +220,7 @@ func (p Params) Derive() (Dimensions, error) {
 		dm.CrossSites[i] = m2fastener.Site{
 			Head:   r3.Vec{Y: p.Throw + CrossFlat, Z: z},
 			Dir:    r3.Vec{Y: -1},
-			Corner: r3.Vec{Z: 1},
+			Corner: r3.Vec{X: 1},
 			Length: CrossBolt,
 			Cavity: CrossCavity,
 		}
