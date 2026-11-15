@@ -156,6 +156,18 @@ MODEL_PR_TESTS = [
     "TestCrankHandleFits",
     "TestCrankHandlePlacement",
     "TestCrankHandleRejectsInvalidInputs",
+    "TestOneWayClutchDefault",
+    "TestOneWayClutchContainers",
+    "TestOneWayClutchRejectsInvalidInputs",
+    "TestOneWayClutchSketches",
+    "TestOneWayClutchMirror",
+    "TestOneWayClutchFreewheelDirection",
+    "TestOneWayClutchPlacement",
+    "TestOneWayClutchFits",
+    "TestOneWayClutchPawls",
+    "TestOneWayClutchFasteners",
+    "TestOneWayClutchEdgeFinishing",
+    "TestOneWayClutchCorners",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -327,6 +339,7 @@ def run_models(mode: str) -> None:
                 "./models/planetarygearbox",
                 "./models/spiralspring",
                 "./models/crankhandle",
+                "./models/onewayclutch",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
