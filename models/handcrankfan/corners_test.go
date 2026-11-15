@@ -78,11 +78,11 @@ func earRootCorners(name string) []cornercheck.Exempt {
 
 // requireCorners applies "Corners and roots" to every printed part in its print orientation (the README's table).
 // The exemptions match "Retained sharp corners" in instructions.md. The bolts, nuts and bearings are purchased parts.
-// The driving gear is checked too: bevelgear refines its tooth join, so the held mesh stays under the checker's 0.05 mm
-// after the spline cut (0.028 mm at its section). The pinion is not: it has no run of layers that share one outline, so
-// MidHeights finds no height, and a section of it at explicit heights reads 28 tooth-root corners of about 89° on
-// its root cone (radius 10 to 11.7 about the shaft). The gearbox's ear roots are exempt by earRootCorners, which keeps this model on CORNER_PENDING
-// in scripts/check_repository.py until decad rounds them.
+// The driving gear's section is read at the one height MidHeights finds, 17.5, which cuts the hub behind the teeth, so
+// its teeth are not checked there. The pinion has no run of layers that share one outline, so MidHeights finds no
+// height and Check reads nothing of it. TestBevelToothRootCorners reads the teeth of both and records that their roots
+// are not rounded. The gearbox's ear roots are exempt by earRootCorners, which keeps this model on CORNER_PENDING in
+// scripts/check_repository.py until decad rounds them.
 func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	t.Helper()
 	state, err := handcrankfan.Motion(p)
@@ -184,6 +184,62 @@ func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan
 	fs, err = cornercheck.CheckAt(t.Context(), body, d, loft, nil)
 	require.NoError(t, err)
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
+}
+
+// toothRoots cuts body, normal to axis through the apex, at each height and checks the bevel teeth's root corners.
+// A section holds the spline bore's six corners (r 4.15), where the bore reaches it, and one root corner per tooth on
+// the root cone. The cone's
+// radius about the shaft at height h is r0 + slope*(h-h0). An empty or short section cannot pass, because it holds
+// fewer than the tooth count.
+func toothRoots(t *testing.T, body *decad.Body, axis, apex r3.Vec, teeth int, heights []float64, bores func(h float64) int,
+	r0, h0, slope, turnMin, turnMax float64) {
+	t.Helper()
+	for _, h := range heights {
+		fs, err := cornercheck.Section(t.Context(), body, axis, h)
+		require.NoError(t, err)
+		var bore, roots int
+		for _, f := range fs {
+			d := f.At.Sub(apex)
+			r := d.Sub(axis.Scale(d.Dot(axis))).Len()
+			switch {
+			case f.Kind == cornercheck.Inside && r < 5:
+				bore++
+			case f.Kind == cornercheck.Inside:
+				roots++
+				require.InDelta(t, r0+slope*(h-h0), r, 0.15, "root corner off the root cone at %.2f", h)
+				require.GreaterOrEqual(t, f.Turn, turnMin, "at %.2f", h)
+				require.LessOrEqual(t, f.Turn, turnMax, "at %.2f", h)
+			default:
+				t.Errorf("unexpected %s at %.2f: r %.2f turn %.1f", f.Kind, h, r, f.Turn)
+			}
+		}
+		require.Equal(t, bores(h), bore, "spline bore corners at %.2f", h)
+		require.Equal(t, teeth, roots, "root corners at %.2f: %s", h, cornercheck.Report(fs, 3))
+	}
+}
+
+// TestBevelToothRootCorners records that the bevel pair's tooth roots have no fillet. Each tooth leaves one sharp
+// inside corner of about 83° (driving gear) or 89° (pinion) on its root cone, in every section through the teeth.
+// "Corners and roots" does not exempt them, so they are known findings, and the model stays on CORNER_PENDING until
+// bevelgear rounds them. The test fails when the roots are rounded or the geometry moves.
+func TestBevelToothRootCorners(t *testing.T) {
+	_, parts, a := sharedDefault(t)
+	t.Run("pinion", func(t *testing.T) {
+		// 28 teeth, y -28.25 to -24.25 (the teeth span y -28.75 to -23.75), root cone r 10.61 at y -26.25.
+		toothRoots(t, parts["pinion"].Body, r3.Vec{Y: 1}, a.State.Apex, 28,
+			[]float64{-28.25, -27.25, -26.25, -25.25, -24.25},
+			func(h float64) int { // the spline bore ends at y -26.75
+				if h < -26.75 {
+					return 6
+				}
+				return 0
+			}, 10.61, -26.25, -0.404, 88, 90.5)
+	})
+	t.Run("driving-gear", func(t *testing.T) {
+		// 56 teeth, x 14.14 to 16.14, root cone r 23.41 at x 14.14.
+		toothRoots(t, parts["driving-gear"].Body, r3.Vec{X: 1}, a.State.Apex, 56,
+			[]float64{14.14, 15.14, 16.14}, func(float64) int { return 6 }, 23.41, 14.14, 1.655, 82, 84)
+	})
 }
 
 func TestHandCrankFanCorners(t *testing.T) {
