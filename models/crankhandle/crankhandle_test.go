@@ -480,7 +480,9 @@ func TestCrankHandleEdgeFinishing(t *testing.T) {
 // TestCrankHandleCorners applies "Corners and roots" to every printed part in its print orientation, axis +Z: the arm
 // flat, the pin upright and the handle upright. The arm's hexagonal pocket keeps sharp corners to match the pin's
 // sharp stub, a listed joinery pair, and the clamp bolt's head pocket keeps its sharp floor rim, which the 0.3 mm head
-// clearance leaves no room to round. Both are listed in instructions.md.
+// clearance leaves no room to round. Both are listed in instructions.md. The six corners of the clamp nut's hexagonal
+// pocket are listed there too, but they run parallel to the print bed, so no layer section reads them and an exemption
+// for them would claim no finding, which cornercheck rejects; the arm passes without one.
 func TestCrankHandleCorners(t *testing.T) {
 	for _, c := range crankCases {
 		t.Run(c.name, func(t *testing.T) {
