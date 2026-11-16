@@ -380,7 +380,7 @@ def run_wheel(case: str) -> None:
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": (
-        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams|TestGearboxSpike)$",
         [],
     ),
     "slots12": (
@@ -410,6 +410,11 @@ def run_siren(case: str) -> None:
 def run_escapement() -> None:
     """Run all Graham escapement tests in two concurrent, fully covering shards."""
     go_test_shards("./models/escapement", ESCAPEMENT_SHARDS, "40m")
+
+
+def run_turbinefan() -> None:
+    """Run every test of the turbine fan package: about 5 minutes on a busy runner, so it has its own job."""
+    go_test(["./models/turbinefan", "-timeout", "40m", "-count=1"])
 
 
 def run_onewayclutch() -> None:
@@ -482,12 +487,15 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
+    if suite == "turbinefan" and not args and mode == "all":
+        run_turbinefan()
+        return
     if suite == "fan" and not args and mode in FAN_VARIANTS:
         run_fan_variant(mode)
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | escapement all | onewayclutch all | fan <flat-three|steep-three>"
+        " | siren <default|variants> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 

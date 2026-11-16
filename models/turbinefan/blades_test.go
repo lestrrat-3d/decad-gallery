@@ -1,0 +1,250 @@
+package turbinefan_test
+
+import (
+	"fmt"
+	"math"
+	"testing"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
+	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
+	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
+	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
+	"github.com/stretchr/testify/require"
+)
+
+// meshRing returns the vertices whose Y lies on the radial ring nearest r, and that Y.
+func meshRing(verts []r3.Vec, r float64) (float64, []r3.Vec) {
+	ring := math.Inf(1)
+	for _, v := range verts {
+		if math.Abs(v.Y-r) < math.Abs(ring-r) {
+			ring = v.Y
+		}
+	}
+	var out []r3.Vec
+	for _, v := range verts {
+		if math.Abs(v.Y-ring) <= 1e-6 {
+			out = append(out, v)
+		}
+	}
+	return ring, out
+}
+
+// farthest returns the vertex of ring farthest from the point, skipping those skip claims.
+func farthest(ring []r3.Vec, from r3.Vec, skip func(r3.Vec) bool) r3.Vec {
+	var best r3.Vec
+	distance := -1.0
+	for _, v := range ring {
+		if skip != nil && skip(v) {
+			continue
+		}
+		if d := v.Sub(from).Len(); d > distance {
+			best, distance = v, d
+		}
+	}
+	return best
+}
+
+// TestTurbineFanPitch pins the fan's hand and pitch. Blade 1 lies along +Y. In one radial ring of its mesh the chord
+// runs from the trailing edge's midpoint to the leading edge. Seen from the front the fan turns clockwise, toward +X at
+// the top, so the leading edge leads (+X) and sits upstream (-Z): the chord is (cos beta, 0, -sin beta), where beta is
+// the blade angle handcrankfan.Beta gives at that radius.
+func TestTurbineFanPitch(t *testing.T) {
+	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		p := c.params()
+		verts := meshOf(t, m.Blades[0], 0.1).Vertices()
+		for _, r := range []float64{30, 40, 50, 60} {
+			y, ring := meshRing(verts, r)
+			require.NotEmpty(t, ring, "ring near radius %g", r)
+			stack := r3.Vec{Y: y, Z: turbinefan.HubMid}
+			te1 := farthest(ring, stack, nil)
+			le := farthest(ring, te1, nil)
+			te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
+			mid := te1.Add(te2).Scale(0.5)
+			dx, dz := le.X-mid.X, le.Z-mid.Z
+			require.Greater(t, dx, 0.0, "the leading edge leads toward +X at radius %g", y)
+			require.Less(t, dz, 0.0, "the leading edge is upstream at radius %g", y)
+			require.InDelta(t, handcrankfan.Beta(y, p.BladePitch), math.Atan2(-dz, dx), 0.5*math.Pi/180, "chord angle at radius %g", y)
+		}
+	})
+}
+
+// turnedBox returns the bounds of body's mesh, tessellated at tol, turned back by angle about +Z.
+func turnedBox(t *testing.T, body *decad.Body, tol, angle float64) (lo, hi r3.Vec) {
+	t.Helper()
+	xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(angle))
+	require.NoError(t, err)
+	lo, hi = r3.Vec{X: math.Inf(1), Y: math.Inf(1), Z: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1), Z: math.Inf(-1)}
+	for _, v := range meshOf(t, body, tol).Vertices() {
+		v = xf.Apply(v)
+		lo = r3.Vec{X: math.Min(lo.X, v.X), Y: math.Min(lo.Y, v.Y), Z: math.Min(lo.Z, v.Z)}
+		hi = r3.Vec{X: math.Max(hi.X, v.X), Y: math.Max(hi.Y, v.Y), Z: math.Max(hi.Z, v.Z)}
+	}
+	return lo, hi
+}
+
+// TestTurbineFanCopies requires blades 2 and 3, their bolts and their nuts to be blade 1's turned by 120 and 240
+// degrees about the shaft axis, and the hub to hold three identical sockets with solid hub between them.
+func TestTurbineFanCopies(t *testing.T) {
+	eachCase(t, []string{"605ZZ", "steep"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		for name, item := range map[string]struct {
+			bodies [turbinefan.BladeCount]*decad.Body
+			tol    float64
+		}{
+			"blade": {m.Blades, 0.1},
+			"bolt":  {[3]*decad.Body{m.BladeBolts[0].Body, m.BladeBolts[1].Body, m.BladeBolts[2].Body}, 0.01},
+			"nut":   {[3]*decad.Body{m.BladeNuts[0].Body, m.BladeNuts[1].Body, m.BladeNuts[2].Body}, 0.01},
+		} {
+			firstLo, firstHi := turnedBox(t, item.bodies[0], item.tol, 0)
+			for k := 2; k <= turbinefan.BladeCount; k++ {
+				lo, hi := turnedBox(t, item.bodies[k-1], item.tol, -2*math.Pi*float64(k-1)/turbinefan.BladeCount)
+				for i, pair := range [][2]float64{
+					{firstLo.X, lo.X}, {firstLo.Y, lo.Y}, {firstLo.Z, lo.Z}, {firstHi.X, hi.X}, {firstHi.Y, hi.Y}, {firstHi.Z, hi.Z},
+				} {
+					require.InDelta(t, pair[0], pair[1], 0.15, "%s %d matches %s 1 (bound %d)", name, k, name, i)
+				}
+			}
+		}
+		locate := func(at r3.Vec) decad.PointLocation {
+			loc, err := m.Hub.LocatePoint(t.Context(), at, units.Millimeters(0.05))
+			require.NoError(t, err)
+			return loc
+		}
+		for k := 1; k <= turbinefan.BladeCount; k++ {
+			u := bladeDir(k)
+			for _, r := range []float64{7, 12} {
+				require.Equal(t, decad.PointOutside, locate(u.Scale(r).Add(r3.Vec{Z: turbinefan.HubMid})),
+					"socket %d is empty at radius %g", k, r)
+			}
+		}
+		for _, deg := range []float64{30, 150, 270} {
+			a := deg * math.Pi / 180
+			at := r3.Vec{X: 9.5 * math.Cos(a), Y: 9.5 * math.Sin(a), Z: turbinefan.HubMid}
+			require.Equal(t, decad.PointInside, locate(at), "the hub is solid at %g degrees", deg)
+		}
+	})
+}
+
+// mesh builds a meshgap mesh of body's tessellation at tol, moved by d.
+func gapMesh(t *testing.T, body *decad.Body, tol float64, d r3.Vec) meshgap.Mesh {
+	t.Helper()
+	mesh := meshOf(t, body, tol)
+	vs := mesh.Vertices()
+	moved := make([]r3.Vec, len(vs))
+	for i, v := range vs {
+		moved[i] = v.Add(d)
+	}
+	g, err := meshgap.New(moved, mesh.Triangles(), mesh.Bound().Base())
+	require.NoError(t, err)
+	return g
+}
+
+// TestTurbineFanReplaceBlade proves a blade can be replaced: with its bolt out, the blade slides out along its radial
+// line clear of the hub, and the bolt lifts out of the front face clear of the hub and the blade; and with the bolt in,
+// the bolt stops the blade within the hole's clearance.
+func TestTurbineFanReplaceBlade(t *testing.T) {
+	eachCase(t, []string{"605ZZ", "steep"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		hub := gapMesh(t, m.Hub, 0.02, r3.Vec{})
+		for k := 1; k <= turbinefan.BladeCount; k++ {
+			t.Run(fmt.Sprintf("blade-%d", k), func(t *testing.T) {
+				blade, bolt := m.Blades[k-1], m.BladeBolts[k-1].Body
+				for _, lift := range []float64{0.5, 2, 5, 10, 18.5} {
+					moved := gapMesh(t, bolt, 0.01, r3.Vec{Z: lift})
+					for name, other := range map[string]meshgap.Mesh{"hub": hub, "blade": gapMesh(t, blade, 0.02, r3.Vec{})} {
+						_, ok, err := moved.Exceeds(other, 0.05)
+						require.NoError(t, err)
+						require.True(t, ok, "the bolt lifted %g stays clear of the %s", lift, name)
+					}
+				}
+				u := bladeDir(k)
+				// Sliding the blade out along its radial line: its section through the stud's axis, and the one across the
+				// stud at mid length, moved by the slide, stay 0.2 or more from the hub's. The stud is a body of revolution
+				// about the radial line, so these two planes bound every gap between it and the socket, and the root beyond
+				// the rim only moves away from the hub. (A mesh-to-mesh check of the whole blade reads the coincident bolt
+				// holes of the stud and the hub as undecided.)
+				for _, plane := range []r3.Frame{radial(t, k), atZ(t, turbinefan.HubMid)} {
+					hubOutline, bladeOutline := section(t, m.Hub, plane), section(t, blade, plane)
+					for _, slide := range []float64{0.5, 1.7, 4, 6.3, 8, 8.5} {
+						moved := bladeOutline
+						moved.Loops = nil
+						for _, loop := range bladeOutline.Loops {
+							shifted := make([]r3.Vec, len(loop))
+							for i, v := range loop {
+								shifted[i] = v.Add(u.Scale(slide))
+							}
+							moved.Loops = append(moved.Loops, shifted)
+						}
+						cl, err := hubOutline.Clearance(moved)
+						require.NoError(t, err)
+						require.False(t, cl.Overlaps, "the blade slid out %g overlaps the hub", slide)
+						require.GreaterOrEqual(t, cl.Lower().Base(), 0.2, "the blade slid out %g", slide)
+					}
+				}
+				// The shank's inner side lies at 8.5 along the radial line and the hole's inner wall at 8.2: material at 8.0
+				// and hollow at 8.5 mean a slide outward of 0.5 would put the blade's wall through the shank, so the bolt
+				// stops it within 0.3. The same holds at the hole's outer wall (10.8) and the shank's outer side (10.5).
+				// The radial plane through the blade's axis shows the hole: the blade's point location is undecided there.
+				plane := section(t, blade, radial(t, k))
+				uv := func(v r3.Vec) (float64, float64) { return v.X*u.X + v.Y*u.Y, v.Z }
+				solid := func(r float64) bool { return inSection(plane, uv, r, turbinefan.HubMid) }
+				shank := handcrankfan.BladeBoltAt
+				require.True(t, solid(shank-1.5), "the stud's wall inside the shank")
+				require.False(t, solid(shank-1.0), "the shank's inner side lies in the hole")
+				require.False(t, solid(shank+1.0), "the shank's outer side lies in the hole")
+				require.True(t, solid(shank+1.5), "the stud's wall beyond the shank")
+				require.Less(t, 1.3-0.97, 0.35, "the hole clearance leaves the blade under 0.35 of play")
+				require.Greater(t, m2fastener.HoleRadius, 1.0)
+			})
+		}
+	})
+}
+
+// TestTurbineFanLeftHand builds the left-hand fan and proves its blades are the right-hand blades reflected in the plane
+// x = 0: the same volume and the bounds mirrored in x. The hub, the bolts and the nuts do not depend on the hand, so the
+// other tests run for the right hand only.
+func TestTurbineFanLeftHand(t *testing.T) {
+	right, _ := built(t, caseNamed(t, "605ZZ"))
+	p := turbinefan.DefaultParams()
+	p.Hand = turbinefan.LeftHand
+	doc := turbinefan.NewDocument()
+	parts, err := turbinefan.BuildParts(t.Context(), doc, p)
+	require.NoError(t, err)
+	require.Len(t, doc.Bodies(), 4)
+	for k := range parts.Blades {
+		// Blade k of the left fan is the mirror of blade k of the right fan in x = 0; blades 2 and 3 swap sides.
+		mirror := map[int]int{0: 0, 1: 2, 2: 1}[k]
+		rb, err := right.Blades[mirror].Bounds()
+		require.NoError(t, err)
+		lb, err := parts.Blades[k].Bounds()
+		require.NoError(t, err)
+		tol := rb.Bound.Base() + lb.Bound.Base() + 1e-3
+		require.InDelta(t, -rb.Max.X, lb.Min.X, tol, "blade %d", k+1)
+		require.InDelta(t, -rb.Min.X, lb.Max.X, tol, "blade %d", k+1)
+		require.InDelta(t, rb.Min.Y, lb.Min.Y, tol, "blade %d", k+1)
+		require.InDelta(t, rb.Max.Y, lb.Max.Y, tol, "blade %d", k+1)
+		require.InDelta(t, rb.Min.Z, lb.Min.Z, tol, "blade %d", k+1)
+		require.InDelta(t, rb.Max.Z, lb.Max.Z, tol, "blade %d", k+1)
+		rv, err := right.Blades[mirror].Volume()
+		require.NoError(t, err)
+		lv, err := parts.Blades[k].Volume()
+		require.NoError(t, err)
+		require.InDelta(t, rv.Value.Base(), lv.Value.Base(), 2e-3*rv.Value.Base(), "blade %d", k+1)
+	}
+	// The blade nut slots stay reachable: no left-hand blade vertex lies in its nut's path.
+	for k := range parts.Blades {
+		requireAccess(t, meshOf(t, parts.Blades[k], 0.1).Vertices(), k+1)
+	}
+	// The leading edge now leads toward -X and still sits upstream.
+	verts := meshOf(t, parts.Blades[0], 0.1).Vertices()
+	y, ring := meshRing(verts, 40)
+	stack := r3.Vec{Y: y, Z: turbinefan.HubMid}
+	te1 := farthest(ring, stack, nil)
+	le := farthest(ring, te1, nil)
+	te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
+	mid := te1.Add(te2).Scale(0.5)
+	require.Less(t, le.X-mid.X, 0.0)
+	require.Less(t, le.Z-mid.Z, 0.0)
+	require.InDelta(t, handcrankfan.Beta(y, p.BladePitch), math.Atan2(-(le.Z-mid.Z), -(le.X-mid.X)), 0.5*math.Pi/180)
+}

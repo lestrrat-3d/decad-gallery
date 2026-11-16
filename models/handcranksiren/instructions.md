@@ -2,456 +2,484 @@
 
 ## Purpose
 
-Build a hand-cranked siren. A hand crank on the right of the gearbox turns a two-stage spur step-up train, and the
-train spins a slotted rotor disc with paddle vanes in front of a fixed slotted stator disc, inside a drum. A collector
-turns the air 90 degrees into a horn that points forward, and a grip on the gearbox's left face gives the other hand
-something to hold. Each time a rotor port passes a stator port the air flow opens and closes once, so the pitch is
-`f = Slots × Ratio × n_crank`. With 20 ports, a ratio of 10 and 2 crank turns per second the rotor turns 20 rev/s
-(1200 rpm) and the pitch is 400 Hz. Over 12 to 24 ports the pitch runs from 240 Hz to 480 Hz at that crank speed.
+Build a hand-cranked siren. A hand crank on the right turns the output (carrier) shaft of the gallery's planetary
+gearbox ([`models/planetarygearbox`](../planetarygearbox/), kit `planet608-shaft608`), which runs backwards as a
+one-stage step-up: its input (sun) shaft spins a slotted rotor disc with paddle vanes in front of a fixed slotted stator
+disc, inside a drum. The crank and the rotor share one axis. A collector turns the air 90 degrees into a horn that points
+forward, and a grip on the housing's left face gives the other hand something to hold. Each time a rotor port passes a
+stator port the air flow opens and closes once, so the pitch is `f = Slots × Ratio × n_crank`. With 34 ports, the ratio
+of 6 and 2 crank turns per second the rotor turns 12 rev/s (720 rpm) and the pitch is 408 Hz. Over 12 to 40 ports the
+pitch runs from 144 Hz to 480 Hz at that crank speed.
 
-The gears are the `models/spurgear` construction, the bearings are `models/ballbearing`, the bolts are `models/m2bolt`
-and the nuts `models/m2nut`, all imported and not copied. Printed parts: everything except the 6 bearings, 24 bolts and
-24 nuts.
+The gearbox is `models/planetarygearbox`, the crank is `models/crankhandle`, the bearings are `models/ballbearing`, the
+bolts are `models/m2bolt` and the nuts `models/m2nut`, all imported and not copied. Printed parts: everything except
+the 7 bearings (5 in the gearbox), 34 bolts and 34 nuts (8 bolts and 11 nuts in the gearbox).
+
+The gearbox keeps its own construction, fits and checks. This contract owns how the siren sets its parameters, places
+it, holds it and poses it, and every siren part round it.
 
 ## Compliance with AGENTS.md
 
-- Sketch constraints: every sketch the build uses (including bearing, bolt, nut and fastener-tool sketches) is fully
-  constrained, with DOF 0, no redundant constraint and no conflict, on every parameter branch.
-- Fasteners: every head sinks into a pocket and ends flush, every nut but the crank's clamp nut and two cross nuts sits in a
-  cavity its part encloses, those three sit in hex pockets open to a face (the arm's side face and the pin's flat), held
-  there by their bolts, and every bolt has a standard M2 length. See Fasteners.
-- Part clearances: every pair of separate printed parts keeps a gap of its class. See Fits. A bearing seat takes
-  0.05 mm of radial clearance (the bearing-seat rule).
-- Gear train clearances: both meshing pairs keep the tip-to-root clearance of 0.5 and the non-meshing gears keep their
-  tip circles 0.5 apart. See Gear train clearances.
+- Sketch constraints: every sketch the siren and the crank build is fully constrained, with DOF 0, no redundant
+  constraint and no conflict, on every parameter branch. The gearbox verifies each of its own sketches before use, so a
+  gearbox build that returns proves them.
+- Fasteners: every head sinks into a pocket and ends flush. Every new siren nut sits in a hex pocket open to a face or in
+  a hex slot open to a post's side, held by its bolt. The ear bolts use the gearbox's own embedded ear nuts. The collector
+  and throat joints keep their enclosed cavities, which they had before the embedded-nut rule. See Fasteners.
+- Part clearances: every pair of separate parts keeps a gap of its class. See Fits.
+- Gear train clearances: the siren has no gear pair of its own. The gearbox's meshes are the planetary gearbox's.
 - Surface edge finishing: see Edge finishing.
 - Corners and roots: see Retained sharp corners.
 - Body containers: see Containers.
-- Look-alike part marks: see Look-alike parts.
-- Split shafts: every shaft can print as two mirror-image halves. See Shafts and bearings.
+- Look-alike part marks: the siren has no look-alike parts, so it has no "Look-alike parts" section and no marks.
+- Arbor collars: see Arbor collars.
+- Split shafts: see Split shafts.
 - `models/README.md` marks the model **Mixed**.
 
 ## API and parameters
 
 Package `handcranksiren`.
 
-- `Ratio = 10.0` is the rotor turns per crank turn, `(50/16)(48/15)`.
-- `Params{CrankAngle float64; Slots int}`. `DefaultParams()` is `{5π/4, 20}`.
+- `Ratio = 6.0` is the rotor turns per crank turn, `1 + Zr/Zs = 1 + 70/14`. It equals the `Ratio()` of
+  `planetarygearbox.NewMotion` for the siren's gearbox parameters, driven `planetarygearbox.CarrierDriven`.
+- `Params{CrankAngle float64; Slots int}`. `DefaultParams()` is `{4π/3, 34}`.
 - `CrankAngle` is the forward turn, clockwise seen from the operator's right (+Y), about −Y, from the arm pointing
-  up. `Validate` requires
-  `CrankAngle` and `Ratio*CrankAngle` finite.
+  up. `Validate` requires `CrankAngle` and `Ratio*CrankAngle` finite.
 - `Slots` is the number of ports in the rotor and in the stator and of vanes on the rotor. `Validate` requires it in
-  `[12, 24]`.
+  `[12, 40]`.
 - `PitchHz(slots int, crankRevPerSecond float64) float64` is `float64(slots) * Ratio * crankRevPerSecond`.
-  `PitchHz(20, 2) == 400`, `PitchHz(12, 2) == 240`, `PitchHz(24, 2) == 480`.
-- `State{CrankAngle, IntermediateAngle, RotorAngle; Rotor, Intermediate, Crank r3.Vec; ArmDirection r3.Vec}` and
-  `Motion(Params) (State, error)`. `IntermediateAngle = −(50/16)·CrankAngle`, `RotorAngle = Ratio·CrankAngle`,
+  `PitchHz(34, 2) == 408`, `PitchHz(12, 2) == 144`, `PitchHz(40, 2) == 480`.
+- `GearboxParams() (planetarygearbox.Params, error)` returns the gearbox the siren builds (see Gearbox). Its error is
+  `planetarygearbox.DefaultParamsFor`'s, wrapped; `Build` and `Motion` return it.
+- `State{CrankAngle, RotorAngle, GearboxInput float64; Axis, ArmDirection r3.Vec}` and `Motion(Params) (State, error)`.
+  `RotorAngle = Ratio·CrankAngle`, `GearboxInput = −CrankAngle`, `Axis = (0, 0, 84)`,
   `ArmDirection = (−sin CrankAngle, 0, cos CrankAngle)`.
-- `NewDocument(opts ...decad.DocumentOption)` returns `decad.New(WithChainTolerance(0.01 mm), opts...)`. The rotor's
-  unions need the tolerance.
-- `Build(ctx, doc, Params) (*Assembly, error)` returns `Assembly{Parts, Sketches, State, Params}`. `Part` is
-  `{Name, Group, Motion string; Body *decad.Body}`. The build has 73 parts for every `Slots`.
-- `GripContainerName = "Grip"` is the one new exported constant: the container of the grip.
+- `NewDocument(opts ...decad.DocumentOption)` returns `planetarygearbox.NewDocument(opts...)`, a document with a chain
+  tolerance of 0.1 mm. The gearbox's ring needs 0.1 mm, and the rotor (0.01 mm) and the crank pin (0.005 mm) need less,
+  so one document holds all three.
+- `Build(ctx, doc, Params) (*Assembly, error)` returns `Assembly{Parts, Sketches, State, Params, Gearbox}`. `Part` is
+  `{Name, Group, Motion string; Body *decad.Body}`. `Gearbox` is the `planetarygearbox.Gearbox` that `BuildParts`
+  returned, with `EarBolts` set to nil after the siren removes them. The build has 103 parts for every `Slots`.
+- Exported container names: `HousingContainerName` (`Housing`), `StatorContainerName`, `RotorContainerName`,
+  `HornContainerName`, `GripContainerName`, `SpacersContainerName` (`Spacers`), `BearingsContainerName`,
+  `CrankContainerName`, `BoltsContainerName`, `NutsContainerName` and `GearboxContainerName` (`Gearbox`).
 - Errors read `hand-crank siren <part>: <operation>: <cause>`.
 
 ## Frame and orientation
 
-- The held pose fixes what the build axes mean. The coordinates do not change. The table is Z = 0.
+- The held pose fixes what the build axes mean. The table is Z = 0.
 
 | Operator direction | Build axis | Content |
 | --- | --- | --- |
 | forward | −X | horn mouth at X −159.25; sound leaves along −X |
-| right | +Y | crank arm, pin and handle (Y ≥ 38.6) |
-| left | −Y | drum, stator, collector, grip (Y < 0) |
-| up | +Z | table at Z 0; only the gearbox pieces reach it |
+| right | +Y | crank arm, pin and handle (Y ≥ 38.30) |
+| left | −Y | drum, stator, collector, grip (Y ≤ −11.5) |
+| up | +Z | table at Z 0; only housing-front and housing-rear reach it |
 
 - The operator holds the grip with the left hand and turns the crank with the right. The listener stands in front,
   at −X. The horn is the frontmost part (smallest X of all parts).
 - Seen from +Y, forward (−X) is on the viewer's right, so a forward turn moves the handle forward over the top.
-  `DefaultParams` (arm down and toward the operator, +X) does not change.
-- `R`, `I` and `C` are the rotor, intermediate and crank axes. All three run along Y.
-- Angles about an axis are measured in the XZ plane from +X toward +Z.
+- `A` is the one shaft axis, the line X 0, Z 84 along Y. The gearbox, the rotor, the drum and the crank all turn about
+  it. Y is the gearbox's own height above its reference plane, so every gearbox dimension in
+  `models/planetarygearbox/instructions.md` reads directly as a siren Y.
+- Angles about A are measured in the XZ plane from +X toward +Z and written φ.
 
 ## Crank and rotor motion and pitch
 
-- Motions: `fixed` (housing, collector, stator, horn, grip, bearings, every bolt and nut except the crank's), `crank`
-  (crank-gear, crank-shaft, crank-arm, crank-pin, crank-handle and the crank's eight bolts and nuts: crank-pin-bolt,
-  crank-cross-bolt-1 and -2, crank-clamp-bolt and their nuts), `intermediate`
-  (intermediate-pinion, intermediate-gear, intermediate-shaft) and `rotor` (rotor-pinion, rotor-shaft, rotor).
-- The pose turns each part about the line through its axis point along −Y: `crank` by CrankAngle, `intermediate` by
-  IntermediateAngle, `rotor` by RotorAngle.
-- At the default the rotor angle is 12.5π, a whole number of port pitches for 12, 20 and 24 ports, so the ports line
-  up (open).
+- Motions: `fixed` (housing-front, housing-rear, drum, collector, stator, horn, grip, both siren bearings, every siren
+  bolt and nut except the crank's), `crank` (crank-arm, crank-pin, crank-handle, crank-spacer and the crank's four bolts
+  and four nuts), `rotor` (rotor, rotor-spacer) and `gearbox` (every gearbox body).
+- The pose turns each `crank` part about A along −Y by CrankAngle and each `rotor` part about A along −Y by RotorAngle.
+  Each `gearbox` body takes `motion.Transform(name, GearboxInput)` of `planetarygearbox.NewMotion` for the siren's
+  gearbox parameters, driven `planetarygearbox.CarrierDriven`. That turns the output shaft, the rear
+  collar, the carrier, its pins and its planet bearings with the crank, rolls each planet on its pin, and turns the input
+  shaft and the front collar with the rotor. The ring, the covers, the cover bearings and the gearbox's bolts and nuts
+  stay fixed.
+- The planetary's motion turns about its local +Z, which is world +Y, so its input is −CrankAngle. A rotor part's
+  transform therefore equals the Input Shaft's, and a crank part's equals the Output Shaft's.
+- At the default the rotor angle is 8π, a whole number of turns, so the ports line up (open) for every `Slots`.
 - Pitch: each rotor port passing a stator port opens and closes the air flow once, so `PitchHz` gives the tone.
 
 ## Dimensions
 
-All lengths are mm and all angles radians.
+All lengths are mm and all angles radians unless written in degrees.
 
 ### Layout
 
-| Name | Value |
-| --- | --- |
-| module, gearThick, backlash | 1.5, 6, 0.15 |
-| teeth | crank 50, intermediate pinion 16, intermediate gear 48, rotor pinion 15 |
-| a1 (I–C), a2 (R–I) | 49.5, 47.25 |
-| R, C | (0, 0, 84), (60, 0, 84) |
-| I | x 28.18594 = `(60² + a2² − a1²) / 120`, z 46.07751 = `84 − sqrt(a2² − I.x²)` |
-| root radius | `rp − module − 0.5 − 0.02` |
-| tip radius | `rp + module − 0.02` |
-| tip / root radii | 15T 12.73 / 9.23, 16T 13.48 / 9.98, 48T 37.48 / 33.98, 50T 38.98 / 35.48 |
-| tip-to-root | 0.54 on both pairs |
+Axial stack (Y ranges, at crank angle 0). Radii are about A.
 
-Axial stack (Y ranges):
-
-| Body or feature | Y range |
-| --- | --- |
-| collector | Y [−96.90, −31.90], X [−51, 51], Z [33, 135]; rear wall [−39.90, −31.90] |
-| horn | X [−159.25, −51.25] about the axis (Y `throatY` = −65.90, Z 84); flange X [−59.25, −51.25] |
-| grip | X [79, 105], Y [−76.25, −0.25], Z [5, 125] |
-| stator | [−31.65, −28.65] |
-| rotor disc | [−27.50, −24.50], hub and vanes drawn from −25.50 to −16.50 |
-| drum | flange [−28.40, −21.40], wall [−28.40, −11.50], back plate [−15.50, −11.50], posts [−12.50, −0.25] |
-| gearbox-front | [0, 10] |
-| gearbox-frame | [10.25, 27.35] |
-| gearbox-rear | [27.6, 37.6] |
-| gear plane 2 | [12.6, 18.6] (intermediate-gear, rotor-pinion) |
-| gear plane 1 | [20.6, 26.6] (crank-gear, intermediate-pinion) |
-| front bearings | [2.85, 9.85], pocket [2.6, 10], relief [1.6, 2.6] |
-| rear bearings | [27.75, 34.75], pocket [27.6, 35.0], relief [35.0, 36.0] |
-| rotor-shaft | [−25.25, 35.70], collar radius 5.5 at [10.1, 12.1] |
-| intermediate-shaft | [2.90, 34.70] |
-| crank-shaft | [2.90, 45.35], collar radius 5.5 at [19.1, 20.1] |
-| crank-arm | [38.6, 46.6] |
-| crank-pin | stub [42.1, 47.9], root cone from 46.85, shank radius 5.15 to 91.35, head cone to 93.6, head [93.6, 96.6] |
-| crank-handle | [47.0, 97.0] |
-
-### Gear train
-
-- Each gear is a `spurgear.Variant` build with the root deepened by `internal/gearroot` (clearance
-  `max(0.25·module, 0.5)` = 0.5, margin 0.02). Pressure angle 20°, Samples 15, Module 1.5, Thickness 6, Backlash 0.15,
-  BoreDiameter 0.
-- `CapChamfer` is 0.2 for the 48T and 50T gears and 0 for the 15T and 16T gears.
-- Placement frame origin: the gear's axis point at the front Y of its plane; normal +Y.
-
-| Part | Axis | Plane | Role | U |
-| --- | --- | --- | --- | --- |
-| crank-gear (50T) | C | 1 [20.6, 26.6] | stage 1 driver | unit(I − C) |
-| intermediate-pinion (16T) | I | 1 | stage 1 driven | unit(C − I) turned by π/16 about +Y |
-| intermediate-gear (48T) | I | 2 [12.6, 18.6] | stage 2 driver | unit(R − I) |
-| rotor-pinion (15T) | R | 2 | stage 2 driven | unit(I − R) turned by π/15 about +Y |
-
-- Tooth zero is centred on U, so each driver's tooth points at its mate and each driven gear's gap points back.
-- After the gear builds, cut each gear's D-bore: a cylinder of radius 4.0 + 0.05 minus a box beyond the flat 3.25 + 0.05
-  from the axis toward world +Z. The bore runs from 1 before the gear's front face for 8. The flat faces world +Z.
-
-### Look-alike parts
-
-Two sets of gears look alike, so each gear carries stage mark holes (see Look-alike part marks in
-`docs/model-pipeline.md`).
-
-| Set | Parts | Reason |
+| Body or feature | Y range | Radius or extent |
 | --- | --- | --- |
-| Large gears | crank-gear (50T), intermediate-gear (48T) | Same module and thickness, two teeth apart |
-| Pinions | intermediate-pinion (16T), rotor-pinion (15T) | Same module and thickness, one tooth apart |
-
-- Holes: 1 for stage 1 (crank-gear, intermediate-pinion), 2 for stage 2 (intermediate-gear, rotor-pinion).
-- Each hole has radius 0.75 and its centre 6.6 from the axis, on the section frame's +V side (world −Z), opposite the
-  D flat. Neighbouring holes are 25° apart, spread symmetrically about the +V axis. The smallest root circle is 9.23, so
-  every hole keeps 1.88 from the root, and the D-bore (radius 4.05) leaves 1.80.
-- Each hole is its own sketch on the gear's section frame at the bore's start (1 before the front face), a circle
-  placed by horizontal and vertical distances from the origin, cut through for 8 along +Y after the D-bore.
-
-### Shafts and bearings
-
-- Every shaft is a cylinder of radius 4.0, equal to the 608 bearing bore, with a flat 0.75 deep (3.25 from the axis toward +Z) along its whole length.
-- rotor-shaft: Y [−25.25, 35.70] with a collar of radius 5.5 over [10.1, 12.1].
-- intermediate-shaft: Y [2.90, 34.70].
-- crank-shaft: Y [2.90, 45.35] with a collar of radius 5.5 over [19.1, 20.1]. The collar keeps crank-gear in plane 1.
-- Split shafts: each of the three shafts prints as two halves split by the plane through its axis and its flat's
-  normal. At crank angle 0 the flat faces +Z and the split plane's normal is +X; the pose turns both about −Y by the
-  shaft's angle, giving the normal (cos a, 0, sin a). The collars are turned about the axis, so the halves are mirror
-  images. The build does not model the split.
-- Six 608-2RS bearings (`ballbearing.DefaultParams()`, 8 × 22 × 7): `bearing-rotor-front`,
-  `bearing-intermediate-front`, `bearing-crank-front` at Y 2.85, and `bearing-rotor-rear`,
-  `bearing-intermediate-rear`, `bearing-crank-rear` at Y 27.75. Holders are gearbox-front and gearbox-rear.
-- rotor-shaft floats 0.25 forward and 0.3 backward. If both gearbox seams (T1) close, the rear plate pushes the shaft at
-  most 0.2 forward, inside the 0.25.
-- intermediate-shaft is captive between two blind seats, 1.3 from each relief floor. crank-shaft's front end sits in a
-  blind seat (1.3). The arm is pressed on the rear end.
-- The rotor hub, the crank arm and the gears are pressed onto their D-flats.
-- Clamping may close the Tight seams T2 and T3 by 0.25 each, which carries the stator 0.5 toward the rotor. The
-  rotor-to-stator nominal gap is 1.15. The vane-to-back-plate nominal gap is 1.0, and the worst case is 0.7.
+| collector | [−106.70, −41.70]; rear wall [−49.70, −41.70] | X [−51, 51], Z [33, 135] |
+| horn | about the throat axis (Y `throatY` = −75.70, Z 84); flange X [−59.25, −51.25] | cone to X −159.25 |
+| grip | [−85.25, −11.50] | X [79, 105], Z [5, 125] |
+| stator | [−41.45, −38.45] | 58 |
+| rotor disc | [−37.30, −34.30] | 45 |
+| rotor hub and vanes | [−35.30, −26.30] | hub 9; vanes from `rv` to 44 |
+| rotor-spacer | [−26.25, −22.75] | 5.75 |
+| drum flange | [−38.20, −31.20] | 49 to 58 |
+| drum wall | [−38.20, −21.30] | 46 to 49 |
+| drum back plate | [−25.30, −21.30] | 9 to 49 |
+| drum bearing hub | [−25.30, −15.50]; seat [−22.75, −15.50] | hub 13.55; seat 11.05; lip bore 9 |
+| bearing-rotor (608ZZ) | [−22.50, −15.50] | 4 to 11 |
+| drum posts | [−21.30, −11.50] | 5, at radius 30 |
+| gearbox front collar ring | [−15.25, −11.25] | 5.75 |
+| housing-front plate | [−11.25, −1.25] | outline X [−68, 107], Z [0, 152] |
+| housing-front boss hole | [−11.25, −5.30] | 14.55 |
+| housing-front recess | [−5.30, −1.25] | 44.1 |
+| gearbox front cover | boss [−11, −4], frame [−4, −1] | boss 14.05, frame 43.6 |
+| gearbox ring and ears | [−1, 13] | 43.6; ears to 52.2 |
+| gearbox rear cover | frame [13, 16], boss [16, 23] | frame 43.6, boss 14.05 |
+| housing-front posts | [−1.25, 26.00] | 5, at (±52, 32) and (±52, 136) |
+| gearbox rear collar ring | [23.25, 27.25] | 5.75 |
+| housing-rear plate | [26.25, 34.50]; lip [26.25, 27.25]; seat [27.25, 34.50] | outline X [−68, 68], Z [0, 152] |
+| bearing-crank (608ZZ) | [27.50, 34.50] | 4 to 11 |
+| crank-spacer | [34.75, 38.25] | 5.75 |
+| crank-arm | [38.30, 46.30]; D bore floor at 45.30 | throw 55 |
+| crank-handle | [46.70, 96.70] | about the pin axis |
+| input shaft | [−35.05, 8] | gearbox |
+| output shaft | [9, 45.05] | gearbox |
 
 ### Gearbox
 
-- Outline: rounded rectangle X [−21, 107], Z [0, 131], corner radius 13, drawn counter-clockwise (a
-  clockwise winding leaves the sketch fillets over-constrained). Frame cavity X [−14, 100], Z [7, 124], corner
-  radius 6. Frame wall 7 thick.
-- gearbox-front: the outline from Y 0 for 10. On R, I and C: seat pocket radius 11.05 over [2.6, 10] plus 1 of stock,
-  relief radius 9.5 over [1.6, 2.6]. On R: through hole radius 4.4 from −1 to 1.6. Edge finish with offsets {0, 10}.
-  Fastener cuts for `gearbox-front-bolt-*`, then the hole and cavity for each `drum-bolt-*`, then the hole and cavity
-  for each `grip-bolt-*`.
-- gearbox-rear: the outline from Y 27.6 for 10. Seat pockets radius 11.05 over [26.6, 35.0], reliefs radius 9.5 over
-  [35.0, 36.0], and on C a through hole radius 4.4 over [36.0, 38.6]. Edge finish offsets {27.6, 37.6}. Fastener cuts
-  for `gearbox-rear-bolt-*`.
-- gearbox-frame: outline plus cavity on the plane Y 10.25, extruded 17.1. Edge finish offsets {10.25, 27.35}. Hole and
-  cavity for every gearbox-front and gearbox-rear bolt.
+- `GearboxParams()` is `planetarygearbox.DefaultParamsFor("planet608-shaft608")` with these overrides:
+  - `InputShaftLength` 24.05: the boss face is at −11, and the shaft ends at −35.05, 0.25 short of the rotor bore's
+    floor (Tight).
+  - `OutputShaftLength` 22.05: the boss face is at 23, and the shaft ends at 45.05, 0.25 short of the crank arm bore's
+    floor.
+  - `Placement` the frame with origin (0, 0, 84), U (0, 0, 1) and V (1, 0, 0), so local z is world Y, local +X is
+    world +Z and local +Y is world +X.
+  - Every other field keeps the kit's value: module 1, 14/28/70 teeth, three planets, one stage, `FlatDepth` 0.5,
+    608ZZ planet and shaft bearings, three ears with 2.6 mm bores.
+- Build it with `planetarygearbox.BuildParts(ctx, doc, GearboxParams())` in the siren's document, before any siren part.
+- Local +X is where every flat faces at angle 0, so the shafts' flats and the D bores pressed on them face world +Z at
+  crank angle 0, as the crank arm's bore does.
+- The three ears lie at local angles 90°, 210° and 330°, which are φ 0°, 240° and 120°. Their bores are at radius 47.9:
+  ear 1 (47.9, Y, 84), ear 2 (−23.95, Y, 42.518) and ear 3 (−23.95, Y, 125.482). Each ear runs Y [−1, 13] and holds the
+  gearbox's own ear nut in a closed cavity Y [0.8, 2.8], the nut resting at Y [1.0, 2.6].
+- The gearbox's ear bolts clamp nothing in the siren. Remove each of `Gearbox.EarBolts` with `doc.Remove` and leave it
+  out of the parts. The siren's ear bolts take their place (see Fasteners). The ears' rear-face head pockets (Y
+  [11, 13]) stay empty.
+- The gearbox's 8 housing bolts (M2 × 6) and 8 nuts, its 3 ear nuts, its 5 bearings and its printed parts are posed and
+  filed as Containers says, under their `Gearbox.Parts()` names.
+- The ear joint follows the gearbox contract: housing-front lies against the ears' front faces and takes an M2 bolt from
+  its own side into each ear's nut. The ears need no change.
+
+### Housing
+
+The housing is two printed parts that stand on the table and hold the gearbox by its ears.
+
+- housing-front: the rounded rectangle X [−68, 107], Z [0, 152], corner radius 13, drawn counter-clockwise, with a
+  circle of radius 14.55 about A as its one hole, extruded from Y −11.25 for 10.
+  - Cut the recess, a cylinder of radius 44.1 about A over Y [−5.30, −1.25] (with stock out through the +Y face). The
+    gearbox front cover sits in it: 0.5 radially from the cover frame and 1.3 axially from its −Y face, and the boss
+    sits in the boss hole 0.5 radially.
+  - Chamfer the edges (see Edge finishing).
+  - Join four posts, each a cylinder of radius 5 along +Y from Y −2.25 (1 inside the plate) to 26.00, at
+    (52, 32), (−52, 32), (52, 136) and (−52, 136) in (X, Z).
+  - Round each post's root on the plate's +Y face (Y −1.25) by 5, half the post's 10 mm section (a stressed root).
+  - Round the recess floor's outer corner (radius 44.1, Y −5.30) by 0.5.
+  - Cut the fastener features of the ear bolts, the drum nuts, the grip nuts and the housing nuts (see Fasteners).
+- housing-rear: the rounded rectangle X [−68, 68], Z [0, 152], corner radius 13, counter-clockwise, extruded from Y 26.25
+  for 8.25.
+  - Cut the lip bore, a cylinder of radius 9 about A through the plate.
+  - Cut the crank bearing's seat, a cylinder of radius 11.05 about A over Y [27.25, 34.50], open to the +Y face. The
+    1 mm under it, Y [26.25, 27.25], is the lip.
+  - Chamfer the edges (see Edge finishing), then cut the housing bolts' head pockets and holes.
+- The posts end 0.25 short of housing-rear's −Y face. Four M2 × 16 housing bolts from housing-rear's +Y face join them.
+- Print housing-front with its −Y face (Y −11.25) down: the recess, the drum and grip nut pockets and the posts open
+  upward, and the ear bolts' head pockets open to the bed with 4.4 mm bridges. Print housing-rear with its −Y face down,
+  so the seat opens upward. Neither needs a pause or support.
+
+### Bearings and spacers
+
+- Two 608ZZ bearings, `ballbearing.Params608ZZ()` (8 × 22 × 7), the gearbox's bearing: `bearing-rotor` over Y
+  [−22.50, −15.50] in the drum's seat and `bearing-crank` over Y [27.50, 34.50] in housing-rear's seat. Each sits 0.25
+  off its seat floor and flush with the seat's open face.
+- Each siren bearing sits on the shaft's free end, inside the D flat that runs from 1.25 outside the cover boss to the end.
+  Its bore touches the 8 mm round of the shaft (no clearance, the bearing-shaft rule); the flat leaves a segment of
+  the bore free.
+- The gearbox's front collar ring faces bearing-rotor's inner ring across 0.25 (Y −15.25 to −15.50), and its rear collar
+  ring faces bearing-crank's inner ring across 0.25 (27.25 to 27.50). Both rings are 11.5 across, inside the 608ZZ's
+  12 mm inner race diameter.
+- spacer: one printed ring, built once about the origin and placed twice. It is 3.5 long, 11.5 across (radius 5.75,
+  inside the 12 mm inner race diameter), with a D bore that is the shaft's D grown 0.05 radially: radius 4.05 with its
+  flat 3.55 from the axis. Its wall is 1.7, over the 1.6 press-fit wall. It prints with its axis vertical.
+  - rotor-spacer over Y [−26.25, −22.75], between bearing-rotor (0.25) and the rotor hub (0.05).
+  - crank-spacer over Y [34.75, 38.25], between bearing-crank (0.25) and the crank arm (0.05).
+- Each spacer is pressed on the flat. The carried part sets its place: the rotor and the crank arm are pressed until
+  their blind bores' floors meet the shaft's end. That closes the 0.25 floor gap and the spacer's 0.25 gap to its
+  bearing's inner ring together, and the inner ring turns with the spacer. The model shows both gaps open.
+- The input shaft floats ±0.25 in the gearbox (between the input shaft collar and the front collar ring). At either
+  limit the rotor-spacer or the front collar ring touches bearing-rotor's inner ring, which turns with them.
+
+### Arbor collars
+
+[Arbor collars](../../docs/model-pipeline.md#arbor-collars) applies. The gearbox owns the collars inside it (see
+`models/planetarygearbox/instructions.md`). Outside it:
+
+| Collar | Shaft | Carried part | Flush side | Y | Len | Dia | Option |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Front collar ring (gearbox) | Input shaft | bearing-rotor's inner ring | Front cover bearing's outer face, Y −11 | [−15.25, −11.25] | 4.0 | 11.5 | 1 |
+| rotor-spacer | Input shaft | rotor, which turns with the shaft | bearing-rotor's −Y face, set in the drum's seat, Y −22.50 | [−26.25, −22.75] | 3.5 | 11.5 | 1: the 3.8 gap less 0.25 at the bearing and 0.05 at the rotor |
+| Rear collar ring (gearbox) | Output shaft | bearing-crank's inner ring | Rear cover bearing's outer face, Y 23 | [23.25, 27.25] | 4.0 | 11.5 | 1 |
+| crank-spacer | Output shaft | crank arm, which turns with the shaft | bearing-crank's +Y face, flush with housing-rear's +Y face, Y 34.50 | [34.75, 38.25] | 3.5 | 11.5 | 1: as the rotor-spacer |
+
+The gearbox's collar rings keep their shape and place; each now faces the next bearing's inner ring with a Tight gap
+instead of a pressed part with a press-fit gap.
+
+### Split shafts
+
+[Split shafts](../../docs/model-pipeline.md#split-shafts) applies. The build does not model any split.
+
+| Part | Split plane (normal at crank angle 0) | What holds the halves |
+| --- | --- | --- |
+| Input Shaft (gearbox) | Holds A and the flat's normal (+Z): normal ±X, turned by RotorAngle | front cover bearing, sun bore, front collar ring, bearing-rotor, rotor-spacer, rotor bore |
+| Output Shaft (gearbox) | The same: normal ±X, turned by CrankAngle | carrier hole, rear cover bearing, rear collar ring, bearing-crank, crank-spacer, clamped arm bore |
+| crank-pin | Holds the pin axis and the hand's driving force: normal +Z, along the arm, turned to `ArmDirection` | its two M2 × 6 cross bolts (models/crankhandle) |
+
+The gearbox's other shafts and pins keep the gearbox's own split planes and checks. The siren checks the two shafts it
+lengthens.
 
 ### Drum, rotor, stator, collector and horn
 
-- drum: a revolved meridian (4.9, −11.50), (48.5, −11.50), (49, −12.00), (49, −21.40), (57.5, −21.40), (58, −21.90),
-  (58, −27.90), (57.5, −28.40), (46.5, −28.40), (46, −27.90), (46, −15.50), (4.9, −15.50), (4.4, −15.00),
-  (4.4, −12.00) about the axis R along Y; the shaft hole's two 0.5 chamfers are in the meridian.
-  Three windows (chord-sided port 14 to 24 radius, half angle 40°, each corner rounded with radius 1, centred at
-  60°, 180°, 300°... patterned with Count 3) are cut through the back plate. Three posts of radius 5 at radius 30 from R, Y [−12.50, −0.25] (angles 0°,
-  120°, 240°).
-- rotor: disc radius 45 over [−27.50, −24.50]; vanes u [11, 44], v [−1, 1], Y [−25.50, −16.50], one per slot, centred
-  on the lands; hub radius 9 from −25.50 for 9; ports (chord-sided, radii 30 to 42, half angle π/(2N), corners rounded with radius 1) cut through the
-  disc; D-bore from −25.50 for 10, leaving a floor 2 thick.
-- stator: disc radius 58 over [−31.65, −28.65]; the same ports; a hole for each `collector-bolt-*`.
-- collector: a rounded-square box coaxial with R, Y [−96.90, −31.90]. Constants: rear face −31.90, ceiling −39.90,
-  floor −91.90, end −96.90, outer half-width 51 (corner radius 10), cavity half-width 46 (corner radius 7), bore 44
-  across, `throatY` −65.90, throat radius 22, −X wall faces at X −51 (outer) and −46 (inner). Built as the outer prism
-  X [−51, 51], Z [33, 135]; the bore (radius 44 cylinder, Y [−40.90, −30.90]) and the cavity (X [−46, 46], Z [38, 130],
-  Y [−91.90, −39.90]) cut; 0.5 chamfers on the outer loops of the rear and end faces, the bore rim on the rear face and
-  the bore rim on the ceiling; the throat (radius 22, X [−52, −45], axis along −X through (−, −65.90, 84)) cut, with
-  0.5 chamfers of its rim on both wall faces; then the hole and cavity for each `collector-bolt-*` and the pocket and
-  hole for each `throat-bolt-*`.
-- horn: a revolved meridian about the axis O = (−50, `throatY`, 84) along −X (U = +Y radius, V = −X axial, normal +Z),
-  half angle 15°, length 100, wall 2.5, mouth inner radius 48.7949. The flange spans X [−51.25, −59.25] (8 thick) and
-  the cone runs to X −159.25. Vertices (u radius, v axial): A (22.5, 1.25), B (29.5, 1.25), C (30, 1.75), D (30, 8.75),
-  E (29.5, 9.25), F (24.5, 9.25), G (51.1655, 108.7670), H (50.7949, 109.25), I (49.2949, 109.25),
-  J (48.6655, 108.7670), K (22, 9.25), L (22, 1.75). Then the hole and cavity for each `throat-bolt-*`.
-- Port shape: chord-sided (straight inner and outer edges) with a 1 mm round at each of the four corners. The
-  sketch rounds them with `sketch.CreateFillet`; the cut tool is patterned `Slots` times.
-- Air path: air enters through the 11.25 gap behind the drum, passes the three windows, and the vanes throw it outward to
-  the port ring. It leaves through the ports whenever a rotor port lines up with a stator port, passes into the
-  collector through its 88 mm bore, crosses the 92 × 92 × 52 cavity, turns 90 degrees through the throat (22 radius,
-  1520 mm², more than the 1334 mm² of open port area) in the collector's −X wall, and leaves along −X through the horn.
+Each is the earlier siren's part moved 9.80 toward −Y, except the drum's centre and the rotor's vanes.
+
+- drum: a revolved meridian about A (U the radius, V = Y), counter-clockwise from the seat's rim:
+  (11.55, −15.50), (11.05, −16.00), (11.05, −22.75), (9, −22.75), (9, −24.80), (9.50, −25.30), (46, −25.30),
+  (46, −37.70), (46.50, −38.20), (57.50, −38.20), (58, −37.70), (58, −31.70), (57.50, −31.20), (49, −31.20),
+  (49, −21.80), (48.50, −21.30), (13.55, −21.30), (13.55, −15.50). The 0.5 segments are the seat chamfer, the lip bore's
+  rim chamfer and the outer chamfers.
+  - Round the hub's root, the circle of radius 13.55 at Y −21.30, by 1.25 (half the 2.5 hub wall), with
+    `decad.Fillet`.
+  - Cut three windows through the back plate: `port(21, 31, 40°, round 1)` centred at φ 60°, 180° and 300°. Each
+    window's inner chord lies 21·cos 40° = 16.09 from A, 1.29 outside the hub's round.
+  - Chamfer the windows (see Edge finishing).
+  - Join three posts of radius 5 at radius 30 from A, Y [−21.30, −11.50], at φ 0°, 120° and 240°.
+  - Cut the drum bolts' head pockets and holes and the collector bolts' head pockets and holes.
+- rotor: disc radius 45 over [−37.30, −34.30], both cap outer loops chamfered 0.5; vanes u [`rv`, 44], v [−1, 1],
+  Y [−35.30, −26.30], one per slot, centred on the lands; hub radius 9 from −35.30 for 9; ports
+  `port(30, 42, π/(2N), round 1)` cut through the disc; D bore from the hub's +Y face (−26.30) toward −Y, 9 deep,
+  radius 4.05 with its flat 3.55 from A toward +Z, leaving a floor 2 thick.
+  - `rv = max(11, 0.51·Slots)`: 11 up to 21 slots, 17.34 at 34 and 20.40 at 40. It keeps at least 1.2 between the
+    inner corners of neighbouring vanes (1.208 at 34, 1.207 at 40, 1.214 at 22). The vanes lose 9.9 % of their throw
+    at 34 slots, which scales with `44² − rv²`.
+- stator: disc radius 58 over [−41.45, −38.45]; the same ports; a hole for each `collector-bolt-*`.
+- collector: the earlier collector moved 9.80 toward −Y. Constants: rear face −41.70, ceiling −49.70, floor −101.70,
+  end −106.70, outer half-width 51 (corner radius 10), cavity half-width 46 (corner radius 7), bore 44 across,
+  `throatY` −75.70, throat radius 22, −X wall faces at X −51 and −46. The outer prism, the bore (radius 44 cylinder,
+  Y [−50.70, −40.70]), the cavity (X [−46, 46], Z [38, 130], Y [−101.70, −49.70]), the chamfers, the throat (radius 22,
+  X [−52, −45], axis along −X through (−, −75.70, 84)), then the hole and cavity for each `collector-bolt-*` and the
+  pocket and hole for each `throat-bolt-*`.
+- horn: the earlier horn's meridian about O = (−50, `throatY`, 84) along −X, unchanged in its own frame: half angle 15°,
+  length 100, wall 2.5, flange X [−51.25, −59.25], cone to X −159.25, vertices A to L as before, then the hole and
+  cavity for each `throat-bolt-*`.
+- Port shape: chord-sided with a 1 mm round at each of the four corners, rounded with `sketch.CreateFillet`, the cut
+  tool patterned `Slots` times. At 40 slots the inner chord is 2.36 long and the two rounds take 1.92 of it.
+- Air path: air enters through the 10.05 gap between the drum's back plate and housing-front, passes the three
+  windows, and the vanes throw it outward to the port ring. It leaves through the ports whenever a rotor port lines up
+  with a stator port, then crosses the collector and leaves through the throat and the horn, as before.
 
 ### Crank
 
-The crank is [`models/crankhandle`](../crankhandle/)'s `Params6082RS` crank (8 mm shaft, 0.75 mm flat, 0.05 mm press
-fit, throw 55), built by `crankhandle.BuildParts` with a placement that maps its origin to (60, 38.6, 84), its +Z to +Y
-and its +Y to +Z. The siren files its three parts in its own `Crank` container and places the crank's four bolts and
-four nuts at the sites crankhandle cut them for ("Fasteners"). `models/crankhandle/instructions.md` owns every crank
+The crank is [`models/crankhandle`](../crankhandle/)'s `Params6082RS()` with `FlatDepth` set to the gearbox's `FlatDepth`
+(0.5), so its D bore fits the gearbox's output shaft: radius 4.05, flat 3.55 from the axis. It is built by
+`crankhandle.BuildParts` with a placement that maps its origin to (0, 38.30, 84), its +Z to +Y and its +Y to +Z (U
+(−1, 0, 0), V (0, 0, 1)). The siren files its three parts in its own `Crank` container and places the crank's four
+bolts and four nuts at the sites crankhandle cut them for. `models/crankhandle/instructions.md` owns every crank
 dimension; at crank angle 0 they read:
 
-- crank-arm: 20 wide and 8 thick on the plane Y 38.6, from the pin end (radius 10 about the pin axis, Z 139) past C,
-  where its sides run straight to Z 74 and close with 4.5 mm corners and one 22 mm end arc reaching Z 68.6, both faces'
-  outlines chamfered 0.5. A 1 mm slit along X 60 runs from the end arc into the blind D-bore (radius 4.05, Y 37.6 to its
-  floor at Y 45.6) and ends in a full round in the bore's floor. An M2 x 16 clamp bolt crosses the hub along +X at
-  Z 77.6, mid thickness (Y 42.6): its head pocket is in the -X side face (X 50) and its nut sits in a hexagonal pocket
-  open to the +X side face (X 70). A hexagon 7.53 across flats about the pin axis from Y 41.85 through the outer face,
-  corners on X, and the crank-pin-bolt head pocket in the inner face.
-- crank-pin: a hexagon 7.03 across flats over Y [42.1, 47.9]; a 30° cone from radius 3.5 at Y 46.85 out to the shank,
-  radius 5.15, to Y 91.35; a 30° cone out to the head, radius 6.45 over [93.6, 96.6]; the hole and cavity of
-  crank-pin-bolt along its axis; and a double flat 4 from the axis on ±Z round each of the two M2 x 6 cross bolts at
-  Y 55.6 and 87.6, each with a head pocket in the +Z half and a hex nut pocket in the -Z half, open to the -Z flat.
-- crank-handle: revolved about the pin axis (60, y, 139), Y [47.0, 97.0], from `crankhandle.HandleProfile`. Its bore,
-  radius 5.55, clears the shank by 0.4.
-- Split pin: crank-pin prints as two halves split by the plane through its axis and the hand's driving force, across
-  the arm. At crank angle 0 the plane's normal is +Z, along the arm; the pose turns it to `ArmDirection`. The two cross
-  bolts clamp the halves. The build does not model the split.
+- crank-arm: 20 wide and 8 thick from Y 38.30, the pin end at Z 139, the end arc behind A. Its blind D bore runs from
+  the back face (38.30) to its floor at 45.30. The M2 × 16 clamp bolt crosses the hub along +X at Z 77.6, mid thickness
+  (Y 42.30): head pocket in the −X side face (X −10), nut in a hexagonal pocket open to the +X side face (X 10).
+- crank-pin: about (0, Y, 139), the stub from Y 41.80, the shank to Y 91.05 and the head over [93.30, 96.30]; cross
+  bolts at Y 55.30 and 87.30.
+- crank-handle: revolved about the pin axis, Y [46.70, 96.70].
+- With the 0.5 flat the arm's D bore corners turn acos(3.55/4.05) = 28.8°, under the checker's limit.
 
 ### Grip
 
-One body, a vertical D-handle on the left (−Y) face of gearbox-front, toward the operator. Its ring profile lies in the
-YZ plane on the frame origin (79, 0, 0), U = +Y, V = +Z, and is extruded along +X from X 79 for 26. The profile is the
-outer outline Y [−76.25, −0.25] × Z [5, 125] with corner radius 10 and the finger window Y [−46.25, −16.25] × Z [12, 118]
-with corner radius 3 as a hole, both counter-clockwise in (u, v); it has one hole. Then `edgefinish.Chamfer(+X,
-{79, 105}, Long(All), 2.0)` on both caps, then the pocket and hole for each `grip-bolt-*`. The parts of the ring are a
-pad (Y [−16.25, −0.25], 16 thick, its back face 0.25 off gearbox-front), a bar (Y [−76.25, −46.25], 26 × 30) and two
-arms (Z [5, 12] and [118, 125], 7 thick). The window is 30 deep and 106 tall; the 3 mm corners leave 102.4 at 0.25 mm
-from the bar face, 104.5 at 1 mm and the full 106 from 3 mm (hand sizes: four-finger breadth up to about 100, finger
-depth up to about 25, power-grip diameter 30 to 50). The grip stands 10 mm further out than a thin pad would put it,
-so the bent fingers have room before the stator and the drum rim.
+One body, a vertical D-handle on housing-front's −Y face, toward the operator. Its ring profile lies in the YZ plane on
+the frame origin (79, 0, 0), U = +Y, V = +Z, and is extruded along +X from X 79 for 26. The profile is the outer outline
+Y [−85.25, −11.50] × Z [5, 125] with corner radius 10 and the finger window Y [−55.25, −23.25] × Z [12, 118] with corner
+radius 3 as a hole, both counter-clockwise in (u, v). Then `edgefinish.Chamfer(+X, {79, 105}, Long(All), 2.0)` on both
+caps, then the pocket and hole for each `grip-bolt-*`. The ring is a pad (Y [−23.25, −11.50], 11.75 thick, its back
+face 0.25 off housing-front), a bar (Y [−85.25, −55.25], 26 × 30) and two arms (Z [5, 12] and [118, 125]). The window
+is 32 deep and 106 tall.
 
 - The bar's perimeter after the chamfers is 107.3, a 34.2 mm round bar. The left hand holds the bar thumb up, palm on
-  the outer face (Y −76.25), fingers round the front face (X 79).
-- The hand box X [57, 140], Y [−110, −46.25], Z [12, 118] holds no other part. The finger window box
-  X [79, 105], Y [−46.15, −16.35], Z [12, 118] holds no part. No other part comes within 25 mm of the bar's inner front
-  edge (X 79, Y −46.25) on the X < 79 side, at any Z across the window, and the window is at least 100 tall at the bar
-  face. The grip is at Y ≤ −0.25 and the crank at Y ≥ 38.6, so the
-  gearbox sits between the hands. The grip is at X ≥ 79 and the horn at X ≤ −51.25. Its lowest point is Z 5.
-- The pad covers the head of `gearbox-front-bolt-2` (103.5, 0, 74) with a 0.25 gap. Remove the grip to reach it.
+  the outer face (Y −85.25), fingers round the front face (X 79).
+- The hand box X [57, 140], Y [−119.25, −55.25], Z [12, 118] holds no other part. The finger window box
+  X [79, 105], Y [−55.15, −23.35], Z [12, 118] holds no part. No other part comes within 25 mm of the bar's inner front
+  edge (X 79, Y −55.25) on the X < 79 side, at any Z across the window: the nearest is the stator's rim at
+  (58, −41.45, 84), 25.13 away. The window is at least 100 tall at the bar face.
+- The grip is at Y ≤ −11.50 and the crank at Y ≥ 34.75, so the housing sits between the hands. The grip is at X ≥ 79
+  and the horn at X ≤ −51.25. Its lowest point is Z 5.
 
 ### Fasteners
 
-27 bolts (12 M2 × 16, 4 M2 × 18, 5 M2 × 10, 4 M2 × 20, 2 M2 × 6) and 27 nuts. The pocket and cavity sizes come from `internal/m2fastener`:
-head pocket radius 2.2 (head radius 1.9 plus 0.3) and depth 2.0, hole radius 1.3 (2.6 across), round nut cavity of radius
-2.51 (the circle through the nut's corners plus 0.2) and 2.0 high (the nut is 1.6 thick, 0.2 clear on each face), tool
-stock 1.0. The nut rests 0.2 beyond the cavity's near face.
+34 bolts and 34 nuts. The siren places 26 bolts (12 M2 × 16, 3 M2 × 18, 5 M2 × 10, 4 M2 × 20, 2 M2 × 6) and 23 nuts;
+the gearbox brings 8 M2 × 6 bolts, 8 nuts and the 3 ear nuts. The pocket and cavity sizes come from
+`internal/m2fastener`: head pocket radius 2.2 and depth 2.0, hole radius 1.3 (2.6 across), round nut cavity of radius
+2.51 and 2.0 high, hex pocket with its corners on radius 2.51 (4.35 across its flats) and 2.0 deep, tool stock 1.0.
 
-| Bolts | Nuts | Len | Head top | Dir | Corner | Cavity | Head host | Nut host |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `gearbox-front-bolt-1..4` | `gearbox-front-nut-1..4` | 16 | (−17.5, 0, 74), (103.5, 0, 74), (30, 0, 127.5), (30, 0, 3.5) | +Y | Z, Z, X, X | 11.75 | gearbox-front | gearbox-frame |
-| `gearbox-rear-bolt-1..4` | `gearbox-rear-nut-1..4` | 16 | (−17.5, 37.6, 50), (103.5, 37.6, 50), (75, 37.6, 127.5), (75, 37.6, 3.5) | −Y | Z, Z, X, X | 11.75 | gearbox-rear | gearbox-frame |
-| `drum-bolt-1..3` | `drum-nut-1..3` | 18 | R + 30(cos φ, 0, sin φ) at Y −15.50, φ = 0°, 120°, 240° | +Y | (cos φ, 0, sin φ) | 17.0 | drum | gearbox-front |
-| `collector-bolt-1..4` | `collector-nut-1..4` | 16 | R + 53.5(cos ψ, 0, sin ψ) at Y −21.40, ψ = 45° + 90°(k−1) | −Y | (−sin ψ, 0, cos ψ) | 12.0 | drum | collector |
-| `throat-bolt-1..4` | `throat-nut-1..4` | 10 | (−46, `throatY` + 26 cos a, 84 + 26 sin a), a = 45° + 90°(k−1) | −X | (0, cos a, sin a) | 6.75 | collector | horn |
-| `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −16.25, 30), (99, −16.25, 30), (85, −16.25, 100), (99, −16.25, 100) | +Y | X | 17.75 | grip | gearbox-front |
-| `crank-pin-bolt` | `crank-pin-nut` | 10 | (60, 38.6, 139) | +Y | −X | 4.75 | crank-arm | crank-pin |
-| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (60, 55.6, 143), (60, 87.6, 143) | −Z | −X | 6.0 | crank-pin | crank-pin |
-| `crank-clamp-bolt` | `crank-clamp-nut` | 18 | (50, 42.6, 77.6) | +X | Y | 18.0 | crank-arm | crank-arm |
+| Bolts | Nuts | Len | Head top | Dir | Corner | Cavity | Head host | Nut host | Nut seat |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ear-bolt-1..3` | gearbox `Ear Nut 1..3` | 16 | (47.9 cos φ, −11.25, 84 + 47.9 sin φ), φ = 0°, 240°, 120° | +Y | (cos φ, 0, sin φ) | 12.05 | housing-front | Ring Gear | the gearbox's closed cavity, Y [0.8, 2.8] |
+| `housing-bolt-1..4` | `housing-nut-1..4` | 16 | (52, 34.5, 32), (−52, 34.5, 32), (52, 34.5, 136), (−52, 34.5, 136) | −Y | (sx, 0, sz)/√2 | 12.0 | housing-rear | housing-front (post) | hex slot open to the post's outer side |
+| `drum-bolt-1..3` | `drum-nut-1..3` | 18 | A + 30(cos φ, 0, sin φ) at Y −25.30, φ = 0°, 120°, 240° | +Y | (cos φ, 0, sin φ) | 18.0 | drum | housing-front | hex pocket open to the recess floor (Y −5.30) |
+| `collector-bolt-1..4` | `collector-nut-1..4` | 16 | A + 53.5(cos ψ, 0, sin ψ) at Y −31.20, ψ = 45° + 90°(k−1) | −Y | (−sin ψ, 0, cos ψ) | 12.0 | drum | collector | closed cavity (unchanged joint) |
+| `throat-bolt-1..4` | `throat-nut-1..4` | 10 | (−46, `throatY` + 26 cos a, 84 + 26 sin a), a = 45° + 90°(k−1) | −X | (0, cos a, sin a) | 6.75 | collector | horn | closed cavity (unchanged joint) |
+| `grip-bolt-1..4` | `grip-nut-1..4` | 20 | (85, −23.25, 30), (99, −23.25, 30), (85, −23.25, 100), (99, −23.25, 100) | +Y | X | 20.0 | grip | housing-front | hex pocket open to the +Y face (Y −1.25) |
+| `crank-pin-bolt` | `crank-pin-nut` | 10 | (0, 38.30, 139) | +Y | −X | 4.75 | crank-arm | crank-pin | crankhandle |
+| `crank-cross-bolt-1..2` | `crank-cross-nut-1..2` | 6 | (0, 55.30, 143), (0, 87.30, 143) | −Z | −X | 6.0 | crank-pin | crank-pin | crankhandle |
+| `crank-clamp-bolt` | `crank-clamp-nut` | 16 | (−10, 42.30, 77.6) | +X | +Y | 16.0 | crank-arm | crank-arm | crankhandle |
 
-The crank's sites are crankhandle's (`Dimensions.Site`, `CrossSites`, `ClampSite`) carried through the placement; the
-table gives them at crank angle 0, and the pose turns them with the crank. crankhandle cuts their pockets, holes and
-cavities; the clamp nut's is a hexagonal pocket open to the arm's +X side face (`models/crankhandle/instructions.md`,
-"Clamp") with a corner up and one down (along Y) and its flats on the sides, each cross nut's a hexagonal pocket open to
-the pin's -Z flat with its corners across the pin (along X) and its flats along the pin's axis, and the others round
-cavities. The pin keeps 0.73 mm between each cross pocket's corner and the shank's round at the flat, the exception that
-`models/crankhandle/instructions.md` ("Walls under 1 mm") lists. The clamp pocket's roof is two 30 degree slopes that
-count as a bridge (2.17 mm across, under the 6 mm a bridge may span), so the arm needs no pause.
+`sx` and `sz` are the signs of the post's X and of its Z − 84, so each slot opens away from A. The crank's sites are
+crankhandle's (`Dimensions.Site`, `CrossSites`, `ClampSite`) carried through the placement; the table gives them at crank
+angle 0, and the pose turns them with the crank. crankhandle cuts their pockets, holes and cavities.
 
-Derived: front-bolt cavities at Y [11.75, 13.75] with tips at 18. Rear-bolt cavities at [23.85, 25.85] with tips at 19.6.
-Drum cavities at [1.5, 3.5] with tips at 4.5. Collector cavities at Y [−33.40, −35.40] inside the collector's rear wall
-(8 thick), with tips at −39.40, 0.5 inside the cavity ceiling; the holes run Stock past the tip into the cavity.
-Throat pockets go into the collector's −X wall from the cavity side, X [−46, −48], with 3 of material to the outer face;
-the bolts cross the 0.25 seam into the horn flange. Throat nut cavities are at X [−52.75, −54.75], with tips at X −58,
-1.25 inside the flange's outer face at −59.25. Throat bolts go in from inside the collector, through its 88 mm bore,
-before the collector meets the stator. Grip pockets go into the pad's window face, Y [−16.25, −14.25], with 14 of material
-under them. Grip nut cavities are in gearbox-front at Y [1.5, 3.5], the same layers as the drum cavities, with tips at
-Y 3.75 and holes ending at 4.75, inside the 10-thick plate. The pin cavity is at [43.35, 45.35] with its tip at 50.6,
-inside the shank. The cross nut pockets are at Z [135, 137] in the -Z half, open to the flat at Z 135, and each cross bolt's tip ends
-flush with that flat. The clamp nut pocket is at X [66, 70], open to the +X side face at 70, with the nut at its floor and the clamp
-bolt's tip ending at X 68, inside the pocket.
+Derived, along each bolt from its head's top face:
+
+- Ear bolts: the head pocket is Y [−11.25, −9.25] in housing-front, the hole runs through the plate, and the bolt crosses
+  the 0.25 seam into the ear, passes the whole ear nut (Y [1.0, 2.6]) and ends at Y 6.75, inside the ear's bore and
+  4.25 short of the empty head pocket's floor (Y 11). The nut bears on the ear's 1.8 roof, the joint the gearbox
+  contract describes.
+- Housing bolts: the head pocket is Y [32.5, 34.5] in housing-rear. The bolt crosses housing-rear and the 0.25 seam into
+  the post and ends at Y 16.5. The hex slot spans Y [20.5, 22.5]: a hex pocket (`HexPocketTool`, depth 2.0) joined to a
+  box 4.35 wide (the pocket's flats) running from the bolt's line along Corner out through the post's side. The nut
+  slides in flat-first, the slot's walls stop it turning, and the bolt runs through it. The post keeps 2.49 round the
+  hexagon's far corner and 3.5 between the slot and its end.
+- Drum bolts: the head pocket is Y [−25.30, −23.30] in the drum back plate's inner face. The bolt crosses the back
+  plate, the post and the 0.25 seam, and ends flush with the recess floor at Y −5.30. The hex pocket is Y
+  [−7.30, −5.30], 3.95 above housing-front's −Y face. Each pocket lies under a window of the gearbox's front cover (its
+  spokes are at φ 60°, 180° and 300°), so the nut can be set or held through the window.
+- Grip bolts: the head pocket is Y [−23.25, −21.25] in the pad's window face, with 9.75 of pad under it. The bolt ends
+  flush with housing-front's +Y face at Y −1.25, and the hex pocket is Y [−3.25, −1.25].
+- Collector and throat bolts: the earlier geometry moved 9.80 toward −Y. Collector cavities at Y [−43.20, −45.20] in
+  the collector's rear wall, tips at −49.20. Throat pockets in the collector's −X wall from the cavity side, nut
+  cavities in the horn flange, X [−52.75, −54.75], tips at X −58.
+- Hex pockets and slots: a bolt's tip ends at the pocket's open face or inside the post, never outside a face. Every
+  pocket keeps 1 mm or more of material round it.
 
 #### Print pause
 
-- `gearbox-frame` has two pauses (front nuts near the bed, rear nuts near the top).
-- `gearbox-front` prints inner face down, and its seven nuts sit near the top: three drum nuts and four grip nuts, in
-  one pause.
-- `collector` prints with its end face (Y −96.90) down; the ceiling bridges at most about 18 mm at the cavity corners.
-  Its four collector nuts sit near the top.
-- `horn` prints with its flange mating face (X −51.25) down and the mouth up. Its four throat nuts sit near the bed.
-- `grip` prints with one X cap down. The ring profile is the layer shape, so it needs no support and no pause.
-- `crank-pin` prints as two halves, each on its cut face. Drop the pin nut into one half's split pocket and set the
-  cross nuts in their pockets in the -Z flat before closing the halves; no pause.
-- `rotor` prints with its disc's front face (Y −27.50) down, the vanes and hub up.
-- `stator` prints with either face down.
-- The four gears print with either face down, their axes vertical.
-- `crank-arm` prints with its inner face (Y 38.6) down, its axis vertical, with no pause. Its clamp nut goes into its
-  hexagonal pocket in the +X side face at assembly.
-- The three shafts and the `crank-handle` print standing on an end.
-- `drum` prints standing on its flange's front face, and its back plate needs slicer support.
+- `collector` prints with its end face (Y −106.70) down; its four collector nuts sit near the top, in one pause.
+- `horn` prints with its flange mating face (X −51.25) down; its four throat nuts sit near the bed, in one pause.
+- The gearbox ring's housing and ear nuts drop in as `models/planetarygearbox` says.
+- `housing-front`, `housing-rear`, `drum`, `grip`, `rotor`, `stator`, the spacers and the crank parts need no pause.
+  Their nuts go in at assembly.
+- `crank-pin` prints as two halves, each on its cut face; `crank-arm` with its back face down, axis vertical;
+  `crank-handle` standing on an end; `rotor` with its disc's front face down; `stator` with either face down; each
+  spacer standing on an end, axis vertical.
+- `drum` prints standing on its flange's front face; its back plate needs slicer support. The seat opens upward.
+
+#### Assembly order
+
+1. Set the three drum nuts in housing-front's recess-floor pockets, with the plate on its −Y face.
+2. Seat the gearbox's front cover in the recess, ears on the plate's +Y face, and drive the three ear bolts from the
+   −Y face.
+3. Set the four housing nuts in the posts' slots. Press bearing-crank into housing-rear, slide housing-rear over the
+   output shaft onto the posts and drive the four housing bolts.
+4. Press the crank-spacer and the crank arm on the output shaft and fit the crank as `models/crankhandle` says.
+5. Press bearing-rotor into the drum's seat, slide the drum over the input shaft onto housing-front and drive the
+   three drum bolts from inside the drum.
+6. Press the rotor-spacer and the rotor on the input shaft.
+7. Fit the stator, the collector and the horn as before: the throat bolts first, from inside the collector.
+8. Set the four grip nuts in housing-front's +Y face pockets and drive the grip bolts through the finger window.
 
 ### Fits
 
-The nominal gap is the class minimum plus 0.05. A bearing shaft equals the bearing bore (T4, no gap), and a press fit (T5) is a 0.05 radial clearance whose proven bound must reach 0.03. The test proves each lower bound with section outlines. Fits between
-round parts (T4, T5, T7, T9, T10, T8, R3) use a section tolerance of 0.01, because at 0.02 the press-fit and Tight bounds
-fall below their minimums. The crank arm is sectioned at 0.0102, just above its mesh bound of 0.010115 (its slit and
-bore cuts), and its partner at 0.01. Fits that include a printed plate use 0.02, the plates being
-faceted with a mesh bound of 0.01615. S1 sections the bearing at 0.01 and the plate at 0.0162.
+The nominal gap is the class minimum plus 0.05. A bearing shaft equals the bearing bore (no gap), and a press fit is a
+0.05 radial clearance whose proven bound must reach 0.03. Fits between round parts use a section tolerance of 0.01. The
+crank arm is sectioned at 0.0102 and its partner at 0.01. Fits that include a printed plate use 0.02.
 
 | ID | Parts | Class (min) | Nominal | How measured |
 | --- | --- | --- | --- | --- |
-| T1 | gearbox-front / gearbox-frame, gearbox-frame / gearbox-rear | Tight 0.2 | 0.25 | axial gap (Y) |
-| T2 | drum posts / gearbox-front | Tight | 0.25 | axial bounds |
-| T3 | stator / drum, collector / stator | Tight | 0.25 | axial bounds (Y): `axialGap(collector, stator, 1)` |
-| T11 | horn / collector | Tight | 0.25 | axial bounds (X): `axialGap(horn, collector, 0)` |
-| T12 | grip / gearbox-front; grip / gearbox-front-bolt-2 head | Tight | 0.25 / 0.25 | axial bounds (Y) |
-| T4 | each shaft / each of its bearings | none: shaft equals the bore | 0 | sections touch at the bearing's mid-plane |
-| T5 | each D-bore / its shaft (4 gears, rotor hub, crank-arm) | Press fit | 0.05 | section at the bore's mid-plane |
-| T6 | shaft ends / bore floors and blind relief floors | Tight | 0.25 / 0.3 (rotor rear) / 1.3 | axial section; a D-bore floor is the Y gap, since its radial gap is the T5 press fit |
-| T7 | rotor-shaft collar / bearing-rotor-front | Tight | 0.25 | Y gap from the collar face found in the axial section through R |
-| T8 | crank-pin stub / crank-arm pocket | Tight | 0.25 | section at Y 44 |
-| T9 | rotor-pinion / rotor-shaft collar | Tight | 0.5 | Y gap from the collar face (axial section through R) |
-| T10 | crank-gear / crank-shaft collar | Tight | 0.5 | Y gap from the collar face (axial section through C) |
-| S1 | each bearing / its seat | bearing-seat rule, proven ≥ 0.02 | 0.05 | section at mid-plane |
-| S2 | each bearing / its seat floor | Tight | 0.25 | holder section 0.2 from the floor-side face has no material at radius 10.25 on 12 angles |
-| R1 | rotor-shaft / gearbox-front hole and drum hole; crank-shaft / gearbox-rear hole | Regular 0.35 | 0.40 | section mid-hole |
+| T1 | housing-front posts / housing-rear | Tight 0.2 | 0.25 | axial gap (Y) |
+| T2 | drum posts / housing-front | Tight | 0.25 | axial bounds |
+| T3 | stator / drum, collector / stator | Tight | 0.25 | axial bounds (Y) |
+| T11 | horn / collector | Tight | 0.25 | axial bounds (X) |
+| T12 | grip / housing-front | Tight | 0.25 | axial bounds (Y) |
+| T13 | gearbox ears / housing-front | Tight | 0.25 | axial gap from each ear's front face |
+| T4 | input shaft / bearing-rotor, output shaft / bearing-crank | none: shaft equals the bore | 0 | sections touch at the bearing's mid-plane, on the round side |
+| T5 | rotor D bore, crank-arm D bore, each spacer's D bore / its shaft | Press fit | 0.05 | section at the bore's mid-plane |
+| T6 | input shaft end / rotor bore floor, output shaft end / arm bore floor | Tight | 0.25 | axial section |
+| T7 | each spacer / its bearing's inner ring; each gearbox collar ring / the next bearing's inner ring | Tight | 0.25 | Y gap from the face found in the axial section through A |
+| T8 | crank-pin stub / crank-arm pocket | Tight | 0.25 | section in the stub |
+| T9 | rotor-spacer / rotor hub, crank-spacer / crank arm | Press fit | 0.05 | Y gap |
+| S1 | each siren bearing / its seat | bearing-seat rule, proven ≥ 0.02 | 0.05 | section at mid-plane |
+| S2 | each siren bearing / its seat floor | Tight | 0.25 | Y gap |
+| R1 | rotor-spacer / the drum's lip bore; rear collar ring / housing-rear's lip bore | Loose | 3.25 | section |
 | R2 | rotor / stator | Regular plus clamp budget, proven ≥ 1.10 | 1.15 | axial bounds |
-| R3 | crank-handle / crank-pin | Regular | 0.4 | sections at Y 70 and 95; axial plane |
+| R3 | crank-handle / crank-pin | Regular | 0.4 | sections; axial plane |
 | R4 | crank-arm / crank-handle | Regular | 0.4 | axial bounds |
-| L1 | rotor / drum | Loose 0.5 | 1.0 | section at Y −26.0 and axial plane through R |
-| L2 | each gear / gearbox-front, gearbox-rear, gearbox-frame | Loose | ≥ 1.0 | axial bounds; section at each of 5 mesh samples |
-| L3 | plane-2 gears / plane-1 gears; crank-shaft / intermediate-gear; rotor-shaft / crank-gear | Loose | 2.0 / 8.27 / 17.3 | axial bounds; sections |
-| L4 | each gear / nearest bearing | Loose | ≥ 1.15 | axial plane section |
-| L5 | crank-arm / gearbox-rear | Loose | 1.0 | axial bounds |
-| L6 | collector / drum; horn / stator; horn / drum | Loose | 3.5 / 4.25 / ≥ 4.25 | `axialGap(collector, drum, 1)`; section in the plane Z 84 for the horn rows |
+| L1 | rotor / drum | Loose 0.5 | 1.0 | vanes to the back plate's inner face; disc to the wall |
+| L5 | crank-arm / housing-rear | Loose | 3.8 | axial bounds |
+| L6 | collector / drum; horn / stator; horn / drum | Loose | 3.5 / 4.25 / ≥ 4.25 | as before |
 | L7 | grip / collector, stator, drum | Loose | 28 / 21 / 21 | axial bounds (X) |
+| L8 | gearbox front cover / housing-front recess and boss hole | Loose | 0.5 radial / 1.3 axial | sections |
+| L9 | gearbox rear cover boss / housing-rear | Loose | 3.25 | axial bounds |
+| L10 | drum hub / gearbox front cover boss; drum posts / front cover | Loose | 4.5 / ≥ 10 | axial bounds; sections |
+
+Clamping may close T2 and T3 by 0.25 each, which carries the stator 0.5 toward the rotor; the input shaft's ±0.25
+float takes another 0.25, so R2's worst case is 0.40. The drum moves away from the vanes when T2 closes, so L1's worst
+case is 0.75, from the float.
 
 Nominal exceptions: a bolt shank in its own nut; a bolt head on its pocket floor (proved with `doc.ContactPair`, gap at
-most 0.05). The two meshing pairs fall under Gear train clearances.
-
-### Gear train clearances
-
-For each pair, turn the driver by θ_k = k·(2π/Z_driver)/4 for k = 0..4 and the driven gear by −θ_k·Z_driver/Z_driven,
-each about its own axis. Take the section at the plane's mid-Y (23.6 for stage 1, 15.6 for stage 2), keep each gear's
-outer loop, and require:
-
-- reach − root ≥ 0.5 in both directions;
-- each root loop within 0.05 of the gear's root radius;
-- no overlap of the two outlines;
-- the centre distance equals `a1` or `a2` within 1e-9;
-- the L2 tip-to-frame gaps at that sample are at least 0.5.
+most 0.05); each siren bearing's bore on the round of the D-flat shaft.
 
 ### Retained sharp corners
 
-The rule is "Corners and roots" in `docs/model-pipeline.md`. Each part is read in its print orientation (Print pause
-and the README): the axis is Y for every part except the horn and the grip, whose axis is X, and the crank pin, whose
-halves print on their cut faces, so its axis is the split plane's normal, `ArmDirection`. Bolts, nuts and bearings
-are purchased parts. `TestHandCrankSirenDefault/corners` and the two variant cases cut every other part at the middle of
-each run of layers and allow only the listed exemptions. The crank's rows match
-`models/crankhandle/instructions.md` ("Retained sharp corners and edges") for its 608-2RS crank; crankhandle lists the
-slit's end round only for its long-throw crank, so the siren's 55 mm crank has none.
+The rule is "Corners and roots" in `docs/model-pipeline.md`. Each siren part is read in its print orientation (Print
+pause): the axis is Y for housing-front, housing-rear, the drum, the rotor, the stator, the collector and the spacers, X
+for the horn and the grip, and the split normal for the crank pin. Bolts, nuts and bearings are purchased parts. The
+gearbox's parts follow `models/planetarygearbox/instructions.md`. The crank's rows match
+`models/crankhandle/instructions.md`.
 
 | Part | Corner | Reason |
 | --- | --- | --- |
-| crank-arm | the six corners of the hexagonal pocket | Mating corners: they match the sharp corners of the pin's stub, as in `models/crankhandle`. |
-| crank-gear, intermediate-pinion, intermediate-gear, rotor-pinion | tooth flanks, tips and root fillets | Tooth generator; the checker does not flag them. |
-| the four gears, rotor hub, crank-arm | the two corners of each D-bore | Mating corners: they match the corners of the shaft's flat. They turn about 36 degrees, so the checker does not flag them. |
+| housing-front | the floor rims of the three ear bolts' head pockets | Fasteners rule: the head's flat underside needs the whole floor. |
+| housing-front | the six corners of each drum and grip nut's hex pocket, and the three of each housing nut's slot | Mating corners: they match the M2 nut's sharp corners. |
+| housing-rear | the bearing seat's floor corner (radius 11.05, Y 27.25) | Mating corner: the bearing's outer ring sits 0.25 off the floor with a 0.15 to 0.3 corner chamfer, which leaves no room for a 0.5 round. |
+| housing-rear | the floor rims of the four housing bolts' head pockets | Fasteners rule. |
+| drum | the bearing seat's floor corner (radius 11.05, Y −22.75) | As housing-rear's. |
+| drum | the posts' roots on the back plate's +Y face; the wall's root on the back plate's inner face (r 46, Y −25.30); the flange step (r 49, Y −31.20) | Between layers. The posts are clamped by the drum bolts and carry little load. |
+| drum | the floor rims of the drum bolts' head pockets | Fasteners rule. |
+| rotor, crank-arm, rotor-spacer, crank-spacer | the two corners of each D bore | Mating corners with the shaft's flat. They turn 28.8°, so the checker does not flag them. |
 | rotor | the roots of the vanes and the hub on the disc's back face | Between layers, opening upward when the disc prints face down; air drag only. |
-| drum | the posts' roots on the back plate's outer face; the wall's root on the back plate's inner face (r 46, Y −15.50); the flange step (r 49, Y −21.40) | Between layers. The posts are clamped by the drum bolts and carry little load. |
-| crank-arm | the clamp bolt's head pocket floor rim, 2 mm into the -X side face | The 0.3 mm head clearance leaves no room to round it, as in `models/crankhandle`. |
-| crank-arm | the 0.6 mm round of the clamp nut pocket's floor outline, where a layer cuts it at a slant | The pocket's slopes lie 30 degrees off the bed, so a layer chords the round into turns of 51.6 to 54.4 degrees, as in `models/crankhandle`. The test exempts only that floor band. |
-| crank-arm | the 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, as in `models/crankhandle`. |
-| crank-arm | the six corners of the clamp nut's hexagonal pocket in the +X side face | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. |
-| crank-pin | the six corners of each cross nut's hexagonal pocket in the -Z flat, edges along the cross bolt | Mating corners: they match the sharp corners of the M2 nut, as in `models/crankhandle`. Their direction is across the pin (30, 90, ... degrees from local Z). |
-| crank-shaft, intermediate-shaft, rotor-shaft | collar and end steps | Between layers; small loads, as the escapement's arbors. |
+| crank-arm | the stub pocket's six corners; the clamp head pocket's floor rim; the slanted cut of the clamp nut pocket's 0.6 floor round; the 1.05 web at the slit; the clamp nut pocket's six corners | As in `models/crankhandle`. |
+| crank-pin | the six corners of each cross nut's hexagonal pocket | As in `models/crankhandle`. |
 
 Rounds below half their section:
 
-- The port and drum window corners: 1.0 mm on lands 4.7 to 6.6 mm wide. The rotor's centrifugal stress at 1200 rpm is
-  under 0.02 MPa and the stator is clamped, so the lands carry almost no load. The windows' lands carry no load: the
-  posts stand at r 30, outside the windows (r 14 to 24).
+- The port corners: 1.0 on lands 2.36 (40 slots) to 7.8 (12 slots) wide at radius 30, `2·30·sin(π/(2N))`. The rotor's
+  centrifugal stress at 720 rpm is under 0.01 MPa and the stator is clamped, so the lands carry almost no load. The
+  drum window corners: 1.0 on lands over 14 wide; the posts stand at r 30 between the windows and carry the load.
 
-The rotor's vanes start at r 11, 2 mm clear of the hub (r 9), because at 20 to 24 slots only 0.36 to 0.83 mm of hub
-lies between neighbouring vanes. Each vane ends in a square inner end, whose convex corners are 90 degrees. This costs
-0.85 % of the vanes' throw, which scales with r squared.
-
-The press-fit walls: a gear's bore keeps 1.80 mm to its stage-mark holes, the rotor hub 4.95 mm and the crank arm
-1.6 mm, each at least the 1.6 mm of the press-fit clause. `press-fit walls` (default only) sections each at the
-gear's mid-plane (Y 23.6 and 15.6), at Y −20.50 for the rotor and at Y 40.0 and 45.1 for the arm, below and above the
-clamp bolt's hole. The slit joins the arm's bore to its outline, so the arm's wall runs from the bore's points outside
-the slit to every other edge, as `models/crankhandle` measures it.
+The press-fit walls: the rotor hub keeps 4.95 round its bore, each spacer 1.7 and the crank arm 1.6 (1.05 at the slit,
+as crankhandle lists), each at least the 1.6 of the press-fit clause.
 
 ### Edge finishing
 
 | Body | Large planar faces | Finishing | Retained sharp |
 | --- | --- | --- | --- |
-| gearbox-front, gearbox-rear | both faces | `edgefinish` Long(All) 0.5 | bolt pockets and holes (loops < 20 mm) |
-| gearbox-frame | both ends | `edgefinish` Long(All) 0.5 | bolt holes (short) |
-| drum | back plate rear face, flange faces | meridian chamfers (outer corners and the shaft hole); `edgefinish` Long(Inner) on the rounded windows | concave junctions (the posts) |
-| stator | both faces | cap outer loops 0.5 | ports: functional chopping edge |
-| rotor | front face, disc back face | cap outer loops 0.5 | ports: functional chopping edge |
-| collector | rear face, end face, cavity ceiling, −X wall faces | `edgefinish` 0.5: Long(All) on Y −31.90 and −96.90; Long(Inner) on Y −39.90 and on X −51, −46 | concave cavity corners and the horn-side junctions; bolt pockets and holes (loops < 20 mm) |
-| horn | flange faces, mouth lip | meridian chamfers 0.5 (B/C, D/E, A/L, lip G to J) | flange outer face to cone junction (concave); throat-bolt holes (short) |
-| grip | both X caps | `edgefinish` Long(All) **2.0** (deviation A7) | bolt pockets and holes (short); the window and outline corners are tangent arcs |
+| housing-front | −Y face, +Y face, recess floor | `edgefinish` Long(All) 0.5 on Y −11.25, −1.25 and −5.30 (outer loop, boss hole rim, recess rim) | pockets, holes and slots (loops < 20 mm); post roots and recess corner (concave) |
+| housing-rear | both faces | `edgefinish` Long(All) 0.5 on Y 26.25 (outer loop, lip bore rim) and 34.50 (outer loop, seat rim) | head pockets and holes (loops < 20 mm) |
+| drum | back plate faces, flange faces | meridian chamfers (outer corners, seat rim, lip bore rim); `edgefinish` Long(Inner) on the windows on Y −21.30 and −25.30 | concave junctions (the posts, the wall, the hub's round) |
+| stator, rotor, collector, horn, grip | as before | as before | as before |
 | crank-arm | both faces; the bore's rim in the inner face | cap outer loops 0.5; the bore rim's two arcs and flat 0.5 (`crankhandle`'s `chamferBoreRim`) | pin bolt hole; hex pocket opening (Tight fit); the slit's walls and end round in both faces (the 1 mm clamp gap, as `models/crankhandle` lists) |
-| crank-gear, intermediate-gear | both caps | `CapChamfer` 0.2 | 0.5 consumes the tooth tip land at module 1.5 |
-| intermediate-pinion, rotor-pinion | none: net cap areas 381 and 327 mm² | none | not qualifying |
+| rotor-spacer, crank-spacer | none: each face is about 55 mm² | none | not qualifying |
 
-The grip's chamfer is the one deviation from the 0.5 minimum of "Surface edge finishing" (A7). It is 2.0, so the 26 × 30
-bar rounds into a hand-sized grip. It is larger than the rule asks, and the edge test proves the 2.0 setback.
+The grip's 2.0 chamfer is the one deviation from the 0.5 minimum of "Surface edge finishing" (A7), as before.
 
 ### Containers
 
-`Housing` (gearbox-front, gearbox-frame, gearbox-rear, drum, collector), `Stator`, `Rotor`, `Horn` (horn), `Grip` (grip), `Gear Pairs` with children
-`Pair` (crank-gear, intermediate-pinion) and `Pair 2` (intermediate-gear, rotor-pinion), `Shafts`, `Bearings`, `Crank`
-(crank-arm, crank-pin, crank-handle), `Bolts` (27), `Nuts` (27). A container exists only when it holds a body.
+`Housing` (housing-front, housing-rear, drum, collector), `Stator`, `Rotor`, `Horn`, `Grip`, `Spacers` (rotor-spacer,
+crank-spacer), `Bearings` (bearing-rotor, bearing-crank), `Crank` (crank-arm, crank-pin, crank-handle), `Bolts` (26),
+`Nuts` (23), and `Gearbox`, whose children are the containers `Gearbox.Parts()` names (`Housing`, `Cover Bearings`,
+`Sun Gears`, `Planet Gears`, `Planet Bearings`, `Carriers`, `Carrier Pins`, `Shafts`, `Shaft Collars`, `Bolts`, `Nuts`).
+A gearbox part's `Group` is `Gearbox/<its container>`. A container exists only when it holds a body.
 `doc.VerifyContainers().Err()` is nil.
 
 ## Pose
@@ -460,26 +488,5 @@ Build every part at crank angle 0, pose it by its motion, move it into its conta
 
 ## Verification
 
-`go test ./models/handcranksiren` covers the default and the `Slots` 12 and 24 variants: parts, sketches, containers,
-ports, outlet, orientation, overlap, split shafts, fits R2 and L1 on the variants, and on the default also the grip,
-mesh, clearances, fasteners, sweep, tessellate, edges, marks and press-fit walls checks. The corners check runs on the
-default and both variants.
-
-- `split shafts` (default and variants) runs `splitcheck.Check` on each posed shaft at chord tolerance 0.01: no
-  violation, one flat plane, the split normal (cos a, 0, sin a) within 1e-9, and each half 5.5 high on the crank and
-  rotor shafts (the collar) and 4.0 on the intermediate shaft. It checks the posed crank pin with the normal
-  `ArmDirection` and the two cross bolts' lines exempt: no violation, roofs no wider than a bridge, and each half 6.45
-  high (the head).
-- `fasteners` (default only) checks all 27 sites. The crank's sites are posed off the world axes, so the head's flush
-  face, the nut's thickness and its centre are read from the mesh along the site's own axes. A cross bolt's tip ends at
-  the pin's far flat: the test requires the tip there and material up to 0.05 short of it.
-
-- `outlet` (default and variants) sections the collector and the horn at `fitTolerance` 0.02: no material at radius 36
-  about R in the collector at Y −35.90; no material at the throat centre or at radius 20 about it, and material at
-  radius 23 on 0°, 90°, 180° and 270°, in the collector at X −48.5; no material at radius 30 and material at radius
-  34.17 on 8 angles in the horn at X −100.
-- `grip` (default only) proves the hand box and the finger window box hold no other part, the grip is left of the
-  gearbox and the crank right of it, the grip is behind the horn in X, and the grip's bounds.
-- `knuckle room` (default only) proves no other part comes within 25 mm of the bar's inner front edge on the X < 79 side.
-- `window height` (default only) sections the grip at X 92 and proves the window is at least 100 tall 0.25 mm from the
-  bar face.
+`go test ./models/handcranksiren` covers the default and the `Slots` 12 (CrankAngle 0) and 40 (CrankAngle 4π/3)
+variants. The tests, one per rule, are named in [steps.md](steps.md) ("Checks").
