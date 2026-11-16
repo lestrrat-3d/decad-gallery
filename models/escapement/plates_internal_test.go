@@ -10,8 +10,12 @@ import (
 
 func TestPlates(t *testing.T) {
 	back, g := defaultBackPlate(t)
+	backAgain, _ := defaultBackPlate(t)
+	require.True(t, back == backAgain, "back plate fixture returns the same body")
 	require.True(t, back.IsSolid())
 	front, _ := defaultFrontPlate(t)
+	frontAgain, _ := defaultFrontPlate(t)
+	require.True(t, front == frontAgain, "front plate fixture returns the same body")
 	require.True(t, front.IsSolid())
 
 	// Back plate: plate z -6..0, pillars to 28, seats 5 deep from the inner face, lip bores, mounting holes.
