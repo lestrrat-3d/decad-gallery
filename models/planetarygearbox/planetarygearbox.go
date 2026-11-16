@@ -130,13 +130,28 @@ type run struct {
 	frame r3.Transform
 }
 
-// Build constructs the gearbox in doc.
+// Build constructs the gearbox in doc and files each body in the container for its kind. It is BuildParts followed by
+// the container moves. The document must come from NewDocument, which declares the containers.
+func Build(ctx context.Context, doc *decad.Document, p Params) (Gearbox, error) {
+	box, err := BuildParts(ctx, doc, p)
+	if err != nil {
+		return Gearbox{}, err
+	}
+	if err := moveBodies(doc, box); err != nil {
+		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
+	}
+	return box, nil
+}
+
+// BuildParts constructs the gearbox bodies in doc and returns them. It files them in no container, so an assembly
+// can group them with its own parts; Gearbox.Parts lists each body with its name and the container Build would use.
+// ctx and doc must not be nil.
 //
 // Each distinct part (sun, planet, ring, carrier) is built once about the local origin and
 // then copied and moved into place, because gear unions fail on bodies built at an offset.
 // The parameter table holds the gearbox entries, and the spur gear builds overwrite the
 // spur names (teeth, thickness and others) with the last gear built.
-func Build(ctx context.Context, doc *decad.Document, p Params) (Gearbox, error) {
+func BuildParts(ctx context.Context, doc *decad.Document, p Params) (Gearbox, error) {
 	if ctx == nil {
 		return Gearbox{}, errors.New("planetarygearbox: nil context")
 	}
@@ -323,9 +338,6 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 			Carrier:  carriers[k],
 			Shaft:    shafts[k],
 		})
-	}
-	if err := moveBodies(r.doc, box); err != nil {
-		return Gearbox{}, fmt.Errorf("planetarygearbox: %w", err)
 	}
 	return box, nil
 }
