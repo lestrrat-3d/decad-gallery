@@ -58,7 +58,7 @@ func fitCases() []fitCase {
 
 func fitBuild(t *testing.T, c fitCase) *onewayclutch.Model {
 	t.Helper()
-	m, _ := buildCase(t, "fits/"+c.name, c.p)
+	m, _ := buildCase(t, c.p)
 	return m
 }
 

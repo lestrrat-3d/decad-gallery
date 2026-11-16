@@ -18,24 +18,79 @@ type built struct {
 	doc *decad.Document
 }
 
-var cache = map[string]built{}
+type fixtureKey struct {
+	shaft         string
+	freewheel     onewayclutch.Direction
+	boreClearance float64
+	hasPlacement  bool
+	placement     r3.Frame
+}
+
+func keyForParams(p onewayclutch.Params) fixtureKey {
+	key := fixtureKey{shaft: p.Shaft, freewheel: p.Freewheel, boreClearance: p.BoreClearance}
+	if p.Placement != nil {
+		key.hasPlacement = true
+		key.placement = *p.Placement
+	}
+	return key
+}
+
+var cache = map[fixtureKey]built{}
 
 // buildCase builds a case on first use; the tests only read its bodies.
-func buildCase(t *testing.T, name string, p onewayclutch.Params) (*onewayclutch.Model, *decad.Document) {
+func buildCase(t *testing.T, p onewayclutch.Params) (*onewayclutch.Model, *decad.Document) {
 	t.Helper()
-	if b, ok := cache[name]; ok {
+	key := keyForParams(p)
+	if b, ok := cache[key]; ok {
 		return b.m, b.doc
 	}
 	doc := onewayclutch.NewDocument()
 	m, err := onewayclutch.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	cache[name] = built{m: m, doc: doc}
+	cache[key] = built{m: m, doc: doc}
 	return m, doc
 }
 
 func buildDefault(t *testing.T) (*onewayclutch.Model, *decad.Document) {
 	t.Helper()
-	return buildCase(t, "default", onewayclutch.DefaultParams())
+	return buildCase(t, onewayclutch.DefaultParams())
+}
+
+func TestFixtureKey(t *testing.T) {
+	p := onewayclutch.DefaultParams()
+	base := keyForParams(p)
+	shaft := p
+	shaft.Shaft = "608ZZ"
+	direction := p
+	direction.Freewheel = onewayclutch.CounterClockwise
+	clearance := p
+	clearance.BoreClearance = 0.35
+	zero := r3.Frame{}
+	placed := p
+	placed.Placement = &zero
+	frame := fitFrame(t, r3.Vec{X: 1}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	otherFrame := frame
+	placedFrame := p
+	placedFrame.Placement = &frame
+	placedCopy := p
+	placedCopy.Placement = &otherFrame
+	for name, variant := range map[string]onewayclutch.Params{
+		"shaft": shaft, "direction": direction, "clearance": clearance, "placement": placed,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.True(t, base != keyForParams(variant))
+		})
+	}
+	require.True(t, keyForParams(placed) != keyForParams(placedFrame))
+	require.True(t, keyForParams(placedFrame) == keyForParams(placedCopy))
+}
+
+func TestFixtureReuse(t *testing.T) {
+	p := onewayclutch.DefaultParams()
+	m, doc := buildCase(t, p)
+	again, againDoc := buildCase(t, p)
+	require.Same(t, m, again)
+	require.Same(t, doc, againDoc)
 }
 
 // partsOf lists the ten bodies by name.

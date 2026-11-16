@@ -158,7 +158,7 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 func TestOneWayClutchSketches(t *testing.T) {
 	for _, tc := range dirCases() {
 		t.Run(tc.name, func(t *testing.T) {
-			m, _ := buildCase(t, tc.name, tc.params)
+			m, _ := buildCase(t, tc.params)
 			require.NotEmpty(t, m.Sketches)
 			// Hub, ring tooth tool, two meridians, two plate profiles and the plates' inner tools come first, then one
 			// fastener tool per bolt for each plate; none may be missing.
@@ -192,8 +192,8 @@ func TestOneWayClutchMirror(t *testing.T) {
 			ccwParams.Shaft, ccwParams.Freewheel = shaft.Name, onewayclutch.CounterClockwise
 			cwParams := ccwParams
 			cwParams.Freewheel = onewayclutch.Clockwise
-			ccw, _ := buildCase(t, shaft.Name+" "+onewayclutch.CounterClockwise.String(), ccwParams)
-			cw, _ := buildCase(t, shaft.Name+" "+onewayclutch.Clockwise.String(), cwParams)
+			ccw, _ := buildCase(t, ccwParams)
+			cw, _ := buildCase(t, cwParams)
 
 			require.Equal(t, 1.0, ccw.Dimensions.Sign)
 			require.Equal(t, -1.0, cw.Dimensions.Sign)
