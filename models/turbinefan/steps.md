@@ -55,7 +55,7 @@ Tools, each recording its sketch:
 
 1. Hub: extrude the outline 20 along +Z (profile with four holes); `edgefinish.Chamfer` of both faces by 0.5 over the long
    loops; then `decad.Cut`, in this order, the socket tool and its two pattern copies, for each blade site `m2fastener.PocketTool`
-   then `bladeSlotTool`, then `counterboreTool`, `m2fastener.HoleTool(SetScrewSite)` and `setScrewSlotTool`. The socket tool is
+   then `bladeSlotTool` (a call of `slotTool`), then `counterboreTool`, `m2fastener.HoleTool(SetScrewSite)` and `setScrewSlotTool`. The socket tool is
    `handcrankfan.BladeSocketTool` on `r3.NewFrame((0, 5.7, 10), (0, 0, 1), (1, 0, 0))`; its copies come from
    `decad.PatternCopies` with `decad.CircularPattern{Axis: (0, 0, 1), Count: 3}`. Record every tool's sketch.
 2. Blades: `handcrankfan.BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` when `Hand` is `LeftHand`); record its

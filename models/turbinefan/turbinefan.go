@@ -59,7 +59,8 @@ type Parts struct {
 	EarSites [onewayclutch.Ears]m2fastener.Site
 }
 
-// Model is a built fan: its parts, the three blade bolts and nuts, and the set screw and its nut.
+// Model is a built fan: its parts, the three blade bolts and nuts, and the set screw and its nut (ShaftMount) or the
+// three ear bolts and nuts (ClutchMount).
 type Model struct {
 	Parts
 	BladeBolts  [BladeCount]*m2bolt.Model
@@ -72,7 +73,7 @@ type Model struct {
 	EarNuts  [onewayclutch.Ears]*m2nut.Model
 }
 
-// BuildParts adds the hub and the three blades to doc and returns them. It puts them in no container. ctx and doc must
+// BuildParts adds the hub, the three blades and, in ClutchMount, the clamp ring to doc and returns them. It puts them in no container. ctx and doc must
 // not be nil.
 func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
 	if ctx == nil {
@@ -157,7 +158,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	return out, nil
 }
 
-// Build adds the hub, the blades, and every bolt and nut to doc, each in its container. ctx and doc must not be nil.
+// Build adds the hub, the blades, the clamp ring (ClutchMount), and every bolt and nut to doc, each in its container. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -350,7 +351,7 @@ func (r *run) clamp() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := r.extrudeOutline(s, BladeCount+1, ClampThickness)
+	body, err := r.extrudeOutline(s, onewayclutch.Ears+1, ClampThickness)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
