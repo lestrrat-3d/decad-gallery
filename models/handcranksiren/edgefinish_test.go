@@ -189,8 +189,9 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 	require.InDelta(t, 123, gripRim.max.Z, tol, "grip rim")
 
 	// The crank arm's caps, posed by the crank. The slit opens both faces' outlines: its walls and its end round stay
-	// sharp, as does the bore's rim in the back face, which the slit joins to the outline (models/crankhandle
-	// instructions.md, "Retained sharp corners and edges"). Every other edge of the outer loops is chamfered.
+	// sharp (models/crankhandle instructions.md, "Retained sharp corners and edges"). The bore's rim in the back face is
+	// chamfered too, but the slit joins it to the outline, so the check skips it with the slit's edges. Every other
+	// edge of the outer loops is chamfered.
 	crankAxis, err := handcranksiren.PosePoint(p, "crank", r3.Vec{X: 60, Z: 84})
 	require.NoError(t, err)
 	requireChamferedExcept(t, "crank-arm", parts["crank-arm"].Body, r3.Vec{Y: 1}, crankAxis, edgefinish.Outer,

@@ -467,7 +467,8 @@ as crankhandle lists), each at least the 1.6 of the press-fit clause.
 | housing-front | −Y face, +Y face, recess floor | `edgefinish` Long(All) 0.5 on Y −11.25, −1.25 and −5.30 (outer loop, boss hole rim, recess rim) | pockets, holes and slots (loops < 20 mm); post roots and recess corner (concave) |
 | housing-rear | both faces | `edgefinish` Long(All) 0.5 on Y 26.25 (outer loop, lip bore rim) and 34.50 (outer loop, seat rim) | head pockets and holes (loops < 20 mm) |
 | drum | back plate faces, flange faces | meridian chamfers (outer corners, seat rim, lip bore rim); `edgefinish` Long(Inner) on the windows on Y −21.30 and −25.30 | concave junctions (the posts, the wall, the hub's round) |
-| stator, rotor, collector, horn, grip, crank-arm | as before | as before | as before |
+| stator, rotor, collector, horn, grip | as before | as before | as before |
+| crank-arm | both faces; the bore's rim in the inner face | cap outer loops 0.5; the bore rim's two arcs and flat 0.5 (`crankhandle`'s `chamferBoreRim`) | pin bolt hole; hex pocket opening (Tight fit); the slit's walls and end round in both faces (the 1 mm clamp gap, as `models/crankhandle` lists) |
 | rotor-spacer, crank-spacer | none: each face is about 55 mm² | none | not qualifying |
 
 The grip's 2.0 chamfer is the one deviation from the 0.5 minimum of "Surface edge finishing" (A7), as before.

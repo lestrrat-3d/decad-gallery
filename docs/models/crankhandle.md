@@ -28,7 +28,8 @@ The arm's outline runs from an arc round the pin down two straight sides, past t
 one 22 mm end arc, every join tangent. It is extruded and both faces' outlines are chamfered; the chamfer needs decad
 902e347 or later, which admits the outline's solver-placed tangent arcs in the Booleans that follow. Then the arm is
 cut by the slit, the blind D bore, the hexagonal pocket for the pin's stub, the pin bolt's head pocket, and the clamp
-bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The nut pocket keeps sharp hexagon corners and
+bolt's hexagonal nut pocket in the -X side face, head pocket and hole. Last, the bore's rim in the back face, which
+the slit opens into two arcs and the flat, is chamfered by 0.5 mm. The nut pocket keeps sharp hexagon corners and
 its floor is rounded on the tool. The pin joins a hexagonal stub to a revolved shank and head, then
 takes the double flats, the pin bolt's hole and nut cavity with rounded ends (`m2fastener.RoundedHoleTool` and
 `RoundedCavityTool`), and each cross bolt's hole, head pocket and hexagonal nut pocket open to the -Y flat, with the
@@ -67,6 +68,8 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   and its corners clear of them; and every wall round the clamp's cuts at least 1 mm, also for a 16.6 mm shaft;
 - the face chamfers: 0.25 mm inside each face the section stands 0.25 mm in from the pin end, the end arc and both
   sides;
+- the bore's rim chamfer: sections 0.05, 0.25 and 0.45 mm above the back face run along the arc of radius
+  `r_b + 0.5 - z` and the flat at `f_b + 0.5 - z`, and the bevel meets each slit wall where that arc does;
 - the fits: the stub in its pocket (Tight), the handle round the shank (Regular), and the handle's gaps to the pin and
   the arm in a cut through the pin axis (Regular);
 - the pin bolt: its head flush with the arm's back face, its tip inside the pin, the nut inside its cavity;
@@ -80,8 +83,3 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
 
 The default's bounds and `VerifyAll` meshes, the placed crank and the validation errors are checked too. The siren's
 tests check its crank through the assembly.
-
-## Known decad limit
-
-The D bore's rim in the arm's back face is not chamfered: the slit opens the rim into a run that ends at the slit's
-walls, and Decad refuses the chamfer of that run. `steps.md` quotes the errors.

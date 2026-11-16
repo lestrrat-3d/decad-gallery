@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
@@ -171,8 +172,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 // the hexagonal pocket for the pin's stub from the outer face, the pin bolt's head pocket in the back face, and the
 // clamp bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The slit goes first: the bore cut on the
 // chamfered body holds a coarser mesh bound round its rim than the slit's cut admits through the document's chain
-// tolerance, while the bore's cut admits the slit's finer rim. The nut pocket's floor is rounded on its tool
-// (NutPocketRound).
+// tolerance, while the bore's cut admits the slit's finer rim. The bore's rim in the back face is chamfered last
+// (chamferBoreRim). The nut pocket's floor is rounded on its tool (NutPocketRound).
 func (r *run) arm() (*decad.Body, error) {
 	s, err := r.armSketch()
 	if err != nil {
@@ -212,9 +213,51 @@ func (r *run) arm() (*decad.Body, error) {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}
-	// The 608 bore's rim (BoreLoop 25.3 mm) stays sharp: Decad refuses to chamfer it (steps.md, "Known decad limit").
+	return r.chamferBoreRim(body)
+}
+
+// chamferBoreRim chamfers the bore's rim in the back face by ChamferSize. The slit opens the rim into three edges, two
+// arcs and the flat, each arc ending at a slit wall, so the rim is a partial run of the back face's loop. It runs last:
+// no later cut meets the rim. A Boolean result's edges carry no selector name, so each rim edge is named by both its
+// stored end points, which Edges returns as stored (a faceted body's vertices sit a few ulps off the exact values, so
+// the end points cannot be computed). Anything but two arcs and one line is an error.
+func (r *run) chamferBoreRim(body *decad.Body) (*decad.Body, error) {
+	var rim *decad.EdgeQuery
+	arcs, lines := 0, 0
+	for _, e := range body.Edges() {
+		a, b := e.Start().Position().Value, e.End().Position().Value
+		if math.Abs(a.Z) > rimPlane || math.Abs(b.Z) > rimPlane ||
+			math.Hypot(a.X, a.Y) > r.dm.BoreRadius+rimPlane || math.Hypot(b.X, b.Y) > r.dm.BoreRadius+rimPlane {
+			continue
+		}
+		switch e.Curve().(type) {
+		case decad.Arc3:
+			arcs++
+		case decad.Line3:
+			lines++
+		default:
+			return nil, fmt.Errorf("bore rim: unexpected %T edge at %v", e.Curve(), a)
+		}
+		preds := []decad.EdgePredicate{decad.EndpointAt(a), decad.EndpointAt(b)}
+		if rim == nil {
+			rim = decad.Edges(preds...)
+			continue
+		}
+		rim = rim.Or(preds...)
+	}
+	if arcs != 2 || lines != 1 {
+		return nil, fmt.Errorf("bore rim: found %d arcs and %d lines, want 2 and 1", arcs, lines)
+	}
+	body, err := decad.Chamfer(r.ctx, body, rim, units.Millimeters(ChamferSize))
+	if err != nil {
+		return nil, fmt.Errorf("chamfer bore rim: %w", err)
+	}
 	return body, nil
 }
+
+// rimPlane is how far, in mm, an edge may sit from the back face (z = 0) or from the bore's circle and still count
+// as part of the bore's rim.
+const rimPlane = 1e-4
 
 // nutPocketCutter builds a site's hexagonal nut pocket tool, depth deep from its floor, with its floor's outline rounded
 // by NutPocketRound.
