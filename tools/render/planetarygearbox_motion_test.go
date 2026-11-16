@@ -93,16 +93,18 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 	require.NoError(t, err)
 	housingCount := 0
 	for i, mover := range movers {
-		if cut[i].mesh != mover.mesh {
-			t.Fatalf("cut panel changed mesh for %s", mover.body.name)
-		}
 		if !mover.body.housing || mover.move != nil {
-			if uncutA[i].mesh != mover.mesh || uncutB[i].mesh != mover.mesh {
+			if cut[i].mesh != mover.mesh || uncutA[i].mesh != mover.mesh || uncutB[i].mesh != mover.mesh {
 				t.Fatalf("uncut panel changed non-housing mesh for %s", mover.body.name)
 			}
 			continue
 		}
 		housingCount++
+		cutMesh, ok := cut[i].mesh.(*solidlens.Mesh)
+		require.True(t, ok, "%s uses a reusable cut mesh", mover.body.name)
+		if !cut[i].preclipped || cutMesh == mover.mesh {
+			t.Fatalf("cut panel did not preclip %s", mover.body.name)
+		}
 		meshA, ok := uncutA[i].mesh.(*solidlens.Mesh)
 		require.True(t, ok, "%s uses a reusable mesh", mover.body.name)
 		meshB, ok := uncutB[i].mesh.(*solidlens.Mesh)
@@ -126,6 +128,34 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 		}
 	}
 	require.Equal(t, 3, housingCount)
+	originalRest, err := planetaryPoseModels(movers, 0, true)
+	require.NoError(t, err)
+	camera := fitCamera(planetaryHeroCamera, originalRest, 1, bevelViewMargin)
+	for _, angle := range []float64{0, 0.2} {
+		original, err := planetaryPoseModels(movers, angle, true)
+		require.NoError(t, err)
+		clipped, err := planetaryPoseModels(cut, angle, true)
+		require.NoError(t, err)
+		for i, mover := range cut {
+			if mover.preclipped && (clipped[i].Mesh != mover.mesh || clipped[i].Clip != nil || clipped[i].BackMaterial == nil) {
+				t.Fatalf("cut mesh or material changed for %s at angle %g", mover.body.name, angle)
+			}
+		}
+		settings := solidlens.Settings{Width: 160, Height: 160}
+		want, err := solidlens.Render(t.Context(), bevelScene(camera, original), settings)
+		require.NoError(t, err)
+		got, err := solidlens.Render(t.Context(), bevelScene(camera, clipped), settings)
+		require.NoError(t, err)
+		for y := range 160 {
+			for x := range 160 {
+				wr, wg, wb, wa := want.At(x, y).RGBA()
+				gr, gg, gb, ga := got.At(x, y).RGBA()
+				if wr != gr || wg != gg || wb != gb || wa != ga {
+					t.Fatalf("pixel differs at angle %g, (%d, %d): got %d,%d,%d,%d; want %d,%d,%d,%d", angle, x, y, gr, gg, gb, ga, wr, wg, wb, wa)
+				}
+			}
+		}
+	}
 	input := 2 * math.Pi / float64(params.PlanetCount) * float64(params.SunTeeth+params.RingTeeth) / float64(params.SunTeeth)
 	posed, err := planetaryPoseModels(movers, input, true)
 	require.NoError(t, err)
