@@ -327,9 +327,6 @@ func TestEdgeFinishIndex(t *testing.T) {
 				n := int(math.Ceil(b.Sub(a).Len() / efStep))
 				for k := 0; k < n; k++ {
 					count++
-					if count%97 != 0 {
-						continue
-					}
 					p := a.Add(b.Sub(a).Scale(float64(k) / float64(n)))
 					got, want := index.nearest(p), fitNearest(p, face)
 					require.Equal(t, want, got, "z %.3f sample %d point (%.6f, %.6f, %.6f)", z, count, p.X, p.Y, p.Z)
@@ -337,7 +334,7 @@ func TestEdgeFinishIndex(t *testing.T) {
 				}
 			}
 		}
-		require.Greater(t, count, 97)
+		require.Positive(t, count)
 	}
 }
 
