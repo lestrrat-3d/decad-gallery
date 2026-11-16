@@ -11,7 +11,7 @@ become part of a hand-crank siren or a wind turbine.
 
 The [models](models/) include spur, helical, herringbone, bevel and screw gears, a cycloidal drive, and a
 planetary gearbox. They also include a [treadle spinning wheel](models/spinningwheel/) with a flyer and bobbin,
-a [hand-crank fan](models/handcrankfan/) driven through spur and bevel gears,
+a [hand-crank fan](models/handcrankfan/) with a three-blade turbine rotor, driven through spur and bevel gears,
 a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up,
 a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and a pendulum, 608-2RS and 605ZZ bearing
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, a [crank handle](models/crankhandle/)

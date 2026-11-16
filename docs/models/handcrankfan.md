@@ -7,7 +7,7 @@
 
 Import `github.com/lestrrat-3d/decad-gallery/models/handcrankfan`.
 `Build(ctx, doc, params)` needs a document from `NewDocument`, which carries the chain tolerance the lofted blades
-need. It returns an `Assembly` of `45 + 3 x Blades` named solid parts (54 for three blades, 57 for four),
+need. It returns an `Assembly` of 56 named solid parts,
 every Sketch it used, and the `State`.
 `Motion(params)` computes the pose without building bodies.
 `Assembly.Set(doc)` returns the build as a `parts.Set` with its materials and joints, and `Assembly.Explode(ctx, set)`
@@ -17,14 +17,13 @@ pulls it apart with `Set.Explode`. They need Decad's `parts` package, which the 
 | --- | --- | --- |
 | CrankAngle | 5π/4 | Any finite radians; forward is clockwise seen from the right |
 | BladePitch | 25° | 10° through 40°, the blade angle at 75 % of the radius; it turns each whole blade |
-| Blades | 4 | 3 or 4 |
 
 X runs to the operator's right, Y away from the operator and Z up. The drive shaft runs along +X and the
 fan shaft along -Y, meeting at the apex `(0, 0, 170)`. The crank shaft runs along +X 40 below the drive shaft, and a
-pair of spur gears in the tray joins them. Each shaft is 7.5 mm across with three grooves that the gears, the arm and the hub
-sit on by three teeth in their bores, and seven bought 608-2RS ball bearings carry the shafts where they cross the
-gearbox's walls. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies: `11 + Blades` of each, with
-every head flush in a pocket and every nut in an enclosed cavity. The gearbox is four printed pieces cut at its walls,
+pair of spur gears in the tray joins them. Each shaft is 8 mm across with three grooves that the gears, the arm and the pinion
+sit on by three teeth in their bores (the fan shaft carries the hub on a D flat instead), and seven bought 608-2RS ball bearings carry the shafts where they cross the
+gearbox's walls. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies: 15 of each, with
+every head flush in a pocket and every nut in an enclosed cavity, except the rotor's nuts, which sit in slots open to a face. The gearbox is four printed pieces cut at its walls,
 so each piece prints with its shaft axes vertical and no bore prints on its side. The model's document has a chain tolerance of 0.1 mm, which the bevel gears need for their bores.
 
 A build takes about a minute and one gigabyte; the bevel pair is most of it. The full check of the default fan takes
@@ -49,8 +48,10 @@ non-compliance in [instructions.md](../../models/handcrankfan/instructions.md).
 
 Render the images with `go -C tools/render run . -model handcrankfan -shot readme -out ../../models/handcrankfan/images`.
 
-## Blade
+## Rotor
 
-The blade, its mirrored twin, the socket cutter and the hub and blade-joint constants live in `models/turbinefan`
-(`BuildBlade`, `BuildBladeMirrored`, `BladeSocketTool`), which this model imports. `TestBuildBlade` and
-`TestBuildBladeMirrored` there check them.
+The rotor is `models/turbinefan`'s 608ZZ fan (`turbinefan.BuildParts` with `Params608ZZ`, right-handed, at the fan's pitch),
+placed on the fan axis with a `Placement` frame; this model does not copy its geometry. The blade, its mirrored twin, the
+socket cutter and the hub and blade-joint constants live there too (`BuildBlade`, `BuildBladeMirrored`,
+`BladeSocketTool`), and its tests check them. This model places the blade bolts, the set screw and their nuts itself, at
+the sites `BuildParts` returns, and draws the set screw 0.1 mm short of tight so it clears the centred shaft's flat.

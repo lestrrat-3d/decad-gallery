@@ -14,13 +14,6 @@ There are no placement transforms before the Booleans.
   (`crankHeight = axisHeight - centerDist`).
 - `alongMinusY(y)`: origin `(0, y, 170)`, U = +X, V = +Z, normal -Y. Coordinates are `(x, z-170)`.
 
-- Blade frame: sections on world-XY planes at Z = r (radius) with the sketch origin on the stacking line,
-  placed by `r3.FromFrame(NewFrame((0, -86, 170), U = +Z, V = -Y))`, so the local Z becomes +X, local X the
-  blade's direction of motion and local Y downstream (-Y). A local point `(u, v)` of a section at angle `beta`
-  for chord position `xi` (mm from the leading edge) and offset `eta` toward the suction side is
-  `(xiP - xi)(cos beta, -sin beta) + (eta - etaP)(-sin beta, -cos beta)`, with `xiP = c/2` and
-  `etaP = c yc(0.5)`.
-
 ## 2. Handle
 
 1. Sections: one `sketch.NewWorld()`. For each of the 14 stations of the instructions' table, a sketch on
@@ -101,8 +94,8 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
   plane at station t whose U axis points at angle 90° + 120° k. `b.grooves(shaft, axis, from, to)` `Cut`s three boxes
   (U 2.9 to `shaftRadius + 1.5`, V -1 to 1) along the shaft. `b.splineCut(host, axis, from, length, clearance)` makes the
   tool by a cylinder of radius `shaftRadius + clearance` minus three boxes (U `2.9 + clearance` to the bore plus 1,
-  V `-(1 - clearance)` to `1 - clearance`, each running 1 past both ends) and `Cut`s it from the host. The spur gears, the
-  arm and the hub pass `pressFit` (bore 4.05, teeth from 2.95, 1.9 wide).
+  V `-(1 - clearance)` to `1 - clearance`, each running 1 past both ends) and `Cut`s it from the host. The spur gears and the
+  arm pass `pressFit` (bore 4.05, teeth from 2.95, 1.9 wide).
 - `bearing-*` (motion `fixed`, group `bearing`): `models/ballbearing` with bore 8, outside diameter 22 and width 7,
   placed by `spokeFrame` at the start station of each of the seven sites in the instructions' table.
 - `alongCrank(x)`: origin `(x, 0, 130)`, U = +Y, V = +Z, normal +X. `alongPin(x)`: origin `(x, 0, 185)`, U = +Y,
@@ -141,54 +134,37 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
 
 ## 5. Fan
 
-- `fan-shaft`: circle radius 4.0 on `alongMinusY(-26)`, extruded 74, `Cut` by the grooves from 25 to 32.2 and from 75 to
-  101 behind the apex, then `Union` with the collar, a circle of radius 6 on `alongMinusY(-65.8)`, extruded 9.95.
-- Hub: one sketch on the frame origin `(0, -76, 170)`, U = +X, V = +Z: circle radius 14 and `Blades` circles of radius 1.3
-  at `(9.5 cos th_k, 9.5 sin th_k)`, `th_k = 2 pi k / Blades`, each centre dimensioned from the origin by a horizontal
-  and a vertical distance. Extrude 20 toward -Y, round the end caps with radius 1, and `Cut` the spline bore (`pressFit`)
-  from 75 to 97 behind the apex.
-- Hub tools, each made for blade 1, with the others from `decad.PatternCopies` with
-  `CircularPattern{Center (0, 0, 170), Axis -Y, Count Blades}` through `b.ring`, and every tool running 1 mm past the
-  face it opens:
-  - socket: a circle of radius 3.4 (`studRadius + regularFit`) on the frame origin `(5.7, -86, 170)`, U = +Y, V = +Z
-    (normal +X), extruded 9.3, a plain round hole. `decad.Fillet` its start cap's outer loop with 0.5 before the
-    tool cuts, which rounds the socket floor. (Filleting the hub's floor edge after the cut matches only some of the
-    floor circles, because the mesh cuts leave the others as faceted curves.)
-  - head pocket and nut cavity: `fastenerCuts(hub, site, true, false, true)` for each of the `Blades` sites of
-    `bladeSites`. The bolt holes are the sketch's circles.
-
-  `Cut` the hub by each tool in turn. The result is `fan-hub`.
-- Blade sections: one `sketch.NewWorld()`. For each of the ten stations of the instructions' table, a sketch on
-  `CreateOffsetPlane(XY, r)`. It holds 21 fit points, each made by `sketchcheck.DimensionPoint`, in the order
-  suction surface at x_k for k = 10..1, the leading edge, then the pressure surface for k = 1..10, with
-  `x_k = (1 - cos(pi k / 10)) / 2`. A tail point carries `NewMidpointOf(tail, first, last)`. There is one
-  `CreateFitSpline` through the 21 points and the lines `last -> tail` and `tail -> first`. Solve, require
-  `sketchcheck.VerifyFullyConstrained`, and select the valid profile with no holes and three outer edges.
-  The sections are always drawn at the 25° blade angle. Every section sketch is returned in `Assembly.Sketches`.
-- Blade 1:
-  1. `decad.LoftSections` through the ten sections in ascending r.
-  2. When `BladePitch` is not 25°, `decad.Transform` the loft by `r3.RotationAround(origin, +Z,
-     -(BladePitch - 25°))` in the blade's local frame.
-  3. Root stud: a circle of radius 3 on the frame origin `(0, 0, 6.1)`, U = +X, V = +Y, extruded 9.9. `decad.Chamfer` its
-     start cap's outer loop with 0.3. `Cut` it by a
-     circle of radius 1.3 on the frame origin `(0, -5, 9.5)`, U = +Z, V = +X, extruded 10 (the bolt hole). The
-     cut happens before the union, so the faceted loft never takes part in it.
-  4. `Union` the loft and the stud: they overlap in volume and share no face.
-  5. `decad.Transform` by `r3.FromFrame(NewFrame((0, -86, 170), U = +Z, V = -Y))`, so the local Z becomes +X,
-     local X the direction of motion and local Y downstream (-Y).
-  6. `decad.PatternCopies` with the hub's pattern gives blades 2..N. `Transform` retires its input, so blade 1 is
-     not turned again.
-- Bolts and nuts: `placeBolt` and `placeNut` of blade 1's site (below), then `PatternCopies` gives bolts 2..N and
-  nuts 2..N. Each nut follows its bolt in the parts list.
+- `fan-shaft` (`fanShaft`): circle radius 4.0 on `alongMinusY(-26)`, extruded 69 (to 95 behind the apex, 1.0 inside the
+  hub's front face). `Cut` by the pinion's grooves from 25 to 32.2. `Cut` by the D flat: a rectangle on
+  `alongMinusY(-74)` from `(-5.5, -5.5)` to `(-3.25, 5.5)`, extruded 24, where 3.25 is `4.0 - FlatDepth` and `FlatDepth` is
+  read from `fanParams(p)` (turbinefan's 0.75). Then `Union` with the collar, a circle of radius 6 on
+  `alongMinusY(-65.8)`, extruded 10.15 (to 75.95, `hubBack - pressFit`). The flat is cut before the union, so the collar
+  refills Y -74 to -75.95.
+- `fanPlacement()`: the frame with origin `(0, -76, 170)`, U = -Z, V = +X, whose normal U x V is -Y. It maps
+  turbinefan's local origin to the fan axis in the hub's back face, local +Z to -Y, local +Y (blade 1) to +X and local +X
+  to -Z.
+- `fanParams(p)`: `turbinefan.Params608ZZ()` with `BladePitch = p.BladePitch`, `Hand = RightHand` and `Placement` set to
+  `fanPlacement()`.
+- `fan()`: `b.part("fan-shaft", ...)`, then one lazy `built()` that calls `turbinefan.BuildParts(ctx, doc, fanParams(p))`
+  once, fails the build unless `ShaftDiameter == 2 * shaftRadius`, appends `Parts.Sketches` to `Assembly.Sketches` and
+  runs `sameFanSites`. Then `b.part` for `fan-hub` (`Parts.Hub`) and `fan-blade-1` .. `3` (`Parts.Blades`), each posed by the
+  `fan` motion. Last, `hardware(site)` for each site named `fan-` in table order: `fan-bolt-1`, `fan-nut-1`, ..,
+  `fan-set-screw`, `fan-set-screw-nut`. `BuildParts` leaves its bodies in the root, so `moveBodies` files them last.
+- `sameFanSites(parts)`: errors unless `fanSites()` matches `Parts.BladeSites` and `Parts.SetScrewSite` (the latter after
+  undoing the back-off): head, direction and corner within 1e-9, and the same length and cavity.
 - The document must come from `NewDocument`: without its chain tolerance, Decad refuses the blade-stud union
-  because the loft's mesh bound is coarser than the pair's chord tolerance.
+  because the loft's mesh bound is coarser than the pair's chord tolerance. The hub, blades, sockets and nut slots are
+  built by `models/turbinefan` (see its steps.md).
 
 ### Fasteners
 
 `fasteners.go` owns every bolt and nut. `fastenerSites()` returns the site table of the instructions' Fasteners section
 at crank angle 0: a `fastenerSite` holds the bolt and nut names, the head host and nut host, the motion, the head's top
 face centre `head`, the direction `dir` from the head to the tip, the unit vector `corner` that the nut's corners lie
-on, the bolt `length` and the `cavity` offset from the head. `bladeSites(n)` turns blade 1's site about the fan axis.
+on, the bolt `length` and the `cavity` offset from the head. `fanSites()` carries turbinefan's three blade sites and its
+set screw site (from `Params608ZZ().Derive()`) through `r3.FromFrame(fanPlacement())`: `Head` by `Apply`, `Dir` and `Corner` by
+`ApplyDir`. The set screw site is first moved `setScrewBackOff` (0.1) back along its own line (`Head -= 0.1 * Dir`,
+`Cavity += 0.1`), which leaves its nut where turbinefan seats it.
 
 - `placeBolt(site)`: `m2bolt.Build` with `Length` and a `Placement` frame whose origin is `head + dir * 2.0` (the head
   pocket depth), U = `corner` and V = `(-dir) x corner`, so the bolt's local +Z (underside to head) points back to the
@@ -198,10 +174,10 @@ on, the bolt `length` and the `cavity` offset from the head. `bladeSites(n)` tur
 - `fastenerCuts(host, site, pocket, hole, cavity)` cuts the features whose flag is true. The pocket is a cylinder of
   radius 2.2 from 1 outside the face to 2.0 inside. The hole is a cylinder of radius 1.3 from 1 outside the face to 1
   beyond the bolt's tip. The cavity is a cylinder of radius 2.51 and 2.0 long, starting at `cavity`. The caller passes
-  the flags for the body it holds.
+  the flags for the body it holds. The rotor's hub is cut by turbinefan instead, so no `fan-` site goes through it.
 - `hardware(site)` adds the bolt and then the nut as parts of group `hardware` with the site's motion.
 - `fastenerSpec(name)` maps a part name to its bill of materials spec (`M2 x 10 socket head cap screw`,
-  `M2 x 16 socket head cap screw` or `M2 hex nut`). Blade sites match by prefix.
+  `M2 x 16 socket head cap screw`, `M2 x 6 socket head cap screw` or `M2 hex nut`), looked up in `fastenerSites()`.
 
 ## 6. Parts set and exploded view
 
@@ -210,7 +186,7 @@ for the hardware and bearing groups) and `Join` each joint as a `PinInBore` with
 axis through `State.Crank` along X, the drive axis through the apex along X, the pin axis through
 `State.Crank + 55 * ArmDirection` along X, the fan axis along -Y, each shaft's axis for its bearings (each shaft in each
 bearing turns, each bearing is fixed in the gearbox), each blade's radial line, each blade bolt's line parallel to the
-fan axis at 9.5 along the blade, each grip bolt's vertical line at X -2 or X 16, Y -23.5, each ear bolt's line through
+fan axis at 9.5 along the blade, the set screw's posed line (its head and direction carried through the `fan` pose), each grip bolt's vertical line at X -2 or X 16, Y -23.5, each ear bolt's line through
 its ear's centre along Y and each wall bolt's line along X at Y 34.3. Every nut joins its host and its bolt along the
 bolt's line (`nutJoints`), except `gearbox-screw-nut-*` in the ground piece, which has no joint. The head-side joints of
 the pin bolt, the ear bolts and the wall bolts have `Pull` set to the direction the head comes out.
@@ -223,7 +199,7 @@ shortest largest move. The order is: `ear bolts` (-Y), `post bolts` (-X), `crank
 default clearing), `handle` (+X), `pin` with its nut (+X), `pin bolt` (-X), `drive shaft` and `crank shaft` (-X),
 `pinion` (-X), `grip bolts` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `crank block bearing` (+X),
 `wall bearings` and `post bearings` (-X), `fan wall bearing` (+Y), `fan block bearing` (-Y), `blade bolts` (-Y),
-`blades`, `hub` with its nuts (-Y), `fan shaft` (-Y), `post` with nuts 1 and 3 (-X), `crank-side wall` with nuts 2 and
+`blades`, `hub` with its nuts and the set screw with its nut (-Y), `fan shaft` (-Y), `post` with nuts 1 and 3 (-X), `crank-side wall` with nuts 2 and
 4 (+X), `fan-side wall` (-X) and `grip` with its nuts (-Z).
 
 ## 7. Pose
@@ -234,8 +210,8 @@ about the line along -Y by `-2*CrankAngle`.
 
 ## 8. Checks
 
-`go test ./models/handcrankfan -timeout 30m` runs, for the default, a flat-pitch three-blade variant and a 40°
-three-blade variant:
+`go test ./models/handcrankfan -timeout 30m` runs, for the default, a flat-pitch variant and a 40°
+variant:
 
 - the parameter and `Motion` checks (no build);
 - part names, solids, and no leftover tool bodies;
@@ -243,18 +219,20 @@ three-blade variant:
 - `Tessellate` with `VerifyAll` for the handle, the four gearbox pieces, crank shaft (at 0.2 mm), crank arm, pin, crank
   gear, handle, hub, blade 1, bolt 1 and the nuts `gearbox-nut-1` and `handle-nut-1`;
 - the orientation rules by bounds;
-- the blade pitch from the blade mesh: leading edge upstream and chord angle within 0.5° of `beta(r)` at four
-  radii, and the thickness ratio against the table (`LocatePoint` leaves too many points inside lofted bodies
-  undecided to check a mirror point);
-- the hub empty at a socket, at the head pocket and at the nut cavity;
+- the blade pitch from the blade mesh: leading edge upstream and chord angle within 0.5° of `pi - beta(r)` at four
+  radii (the thickness ratio against the table is checked in `models/turbinefan`);
+- the hub empty at a socket, at the head pocket and at the nut slot;
 - the crank's sweep against the blades: every vertex of the arm, pin and handle turned through a full turn about the
   crank axis in 3° steps stays 15 clear of the blades' disc;
 - the grip's mesh rings at Z -0.75, 58.25 and 87.25 against the table (26.75 lower than drawn), and the 15° rake;
 - for the default fan only, three subtests:
-  - `fasteners` (`requireFasteners`): for each of the `11 + Blades` sites, the head is flush, the part is solid beside the
+  - `fasteners` (`requireFasteners`): for each of the 15 sites, the head is flush, the part is solid beside the
     pocket and 1 mm round it and the cavity, the nut sits centred in the part-enclosed cavity, the bolt tip is held by
     the part, the head seat is a contact with a gap of at most 0.05, no bolt or nut overlaps a part it passes through,
-    and each gap between a fastener and its pocket, hole or cavity has a proven lower bound of at least 0.05;
+    and each gap between a fastener and its pocket, hole or cavity has a proven lower bound of at least 0.05. The four
+    rotor sites (`Rotor`) run only the checks that hold for open slots (`requireRotorFastener`): flush head, material
+    beside and 1 mm round the pocket and the head seat (blade bolts only), no overlap or undecided contact with the hub,
+    and the four section gaps;
   - `clearances` (`requireClearances`): every row of the instructions' Fits table, as the lower bound of a section
     outline gap or an axial bounds gap, against its class minimum, with every failing row listed together;
   - `mesh` (`requireSpurMesh`): the spur pair turned through one tooth pitch in four steps. At each of the five samples
@@ -264,11 +242,14 @@ three-blade variant:
     at least Loose. The centre distance must be 40;
 - the parts set and its explosion at the default pose: the arm, handle and pin in order along X with gaps, the main parts
   moving, the shafts and the pinion sliding to the left and the gears lifting, each joined nut moving with its host and
-  the base's nuts staying, no two parts sharing space, and the bill of materials counting `11 + Blades` bolts,
-  `11 + Blades` nuts and the seven bearings;
+  the base's nuts staying, no two parts sharing space, and the bill of materials counting 15 bolts, 15 nuts and the
+  seven bearings;
 - the gear back faces at X = 21 and Y = -31.5 after undoing the pose, which retires the gears;
 - no overlap or undecided pair among the finished parts from `doc.Verify` (the rotor, the handle, the gearbox, the
   bearings, the bolts and nuts, and the crank's shaft, arm, pin and handle, and the drive shaft), and none between a
   shaft or a bearing and any other part, which proves each groove lines up with its tooth. A bolt with its head host and
   with its own nut is left to the `fasteners` subtest, and the meshing gears are left out;
-- blades 2 to N, bolts 2 to N and nuts 2 to N as copies of the first, which retires the bodies it turns and so runs last.
+- blades 2 and 3, bolts 2 and 3 and nuts 2 and 3 matching the first within 0.05, which retires the bodies it turns and so
+  runs last.
+- `TestFanHubIsTurbinePreset`: `fanParams` with the pitch, hand and placement reset equals `turbinefan.Params608ZZ()`. The
+  corner test leaves out `fan-hub` and relies on turbinefan's `TestTurbineFanCorners` for the 608ZZ hub.
