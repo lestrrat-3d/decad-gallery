@@ -25,7 +25,7 @@ const galleryRendererPackage = "github.com/lestrrat-3d/decad-gallery/tools/rende
 type galleryPackage struct {
 	ImportPath, Dir, BuildID, Export                                                                                    string
 	Standard                                                                                                            bool
-	Deps                                                                                                                []string
+	Imports, Deps                                                                                                       []string
 	GoFiles, CgoFiles, CFiles, CXXFiles, MFiles, HFiles, FFiles, SFiles, SwigFiles, SwigCXXFiles, SysoFiles, EmbedFiles []string
 }
 
@@ -58,22 +58,9 @@ func discoverGalleryCache(ctx context.Context) (galleryCache, error) {
 }
 
 func discoverGalleryCacheFor(ctx context.Context, executable string, info *debug.BuildInfo) (galleryCache, error) {
-	cmd := exec.CommandContext(ctx, "go", "list", "-deps", "-export", "-json", ".")
-	data, err := cmd.Output()
+	packages, err := galleryPackages(ctx)
 	if err != nil {
 		return galleryCache{}, err
-	}
-	decoder := json.NewDecoder(strings.NewReader(string(data)))
-	packages := map[string]galleryPackage{}
-	for {
-		var pkg galleryPackage
-		if err := decoder.Decode(&pkg); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return galleryCache{}, err
-		}
-		packages[pkg.ImportPath] = pkg
 	}
 	renderer, ok := packages[galleryRendererPackage]
 	if !ok || renderer.Dir == "" || renderer.BuildID == "" {
@@ -84,6 +71,39 @@ func discoverGalleryCacheFor(ctx context.Context, executable string, info *debug
 		return galleryCache{}, fmt.Errorf("renderer executable does not match current source")
 	}
 	root := filepath.Clean(filepath.Join(renderer.Dir, "../.."))
+	fingerprint, err := galleryFingerprint(packages, renderer, root, info)
+	if err != nil {
+		return galleryCache{}, err
+	}
+	keys := make(map[string]string, len(galleryTiles))
+	for _, tile := range galleryTiles {
+		keys[tile.name] = fingerprint
+	}
+	return galleryCache{dir: filepath.Join(root, ".tmp", "gallery-cache"), keys: keys}, nil
+}
+
+func galleryPackages(ctx context.Context) (map[string]galleryPackage, error) {
+	cmd := exec.CommandContext(ctx, "go", "list", "-deps", "-export", "-json", ".")
+	data, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	packages := map[string]galleryPackage{}
+	for {
+		var pkg galleryPackage
+		if err := decoder.Decode(&pkg); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		packages[pkg.ImportPath] = pkg
+	}
+	return packages, nil
+}
+
+func galleryFingerprint(packages map[string]galleryPackage, renderer galleryPackage, root string, info *debug.BuildInfo) (string, error) {
 	base := sha256.New()
 	_, _ = fmt.Fprintln(base, "gallery-cache-v1", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	for _, dep := range info.Deps {
@@ -96,30 +116,31 @@ func discoverGalleryCacheFor(ctx context.Context, executable string, info *debug
 	}
 	for _, file := range []string{"go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"} {
 		if err := galleryHashFile(base, filepath.Join(root, file)); err != nil {
-			return galleryCache{}, err
+			return "", err
 		}
 	}
-	if err := galleryHashPackage(base, renderer); err != nil {
-		return galleryCache{}, err
-	}
-	// Any renderer function can call another model, so every dependency invalidates all tiles.
+	// Refuse to cache if the go list output omitted any dependency.
 	for _, name := range renderer.Deps {
-		pkg, ok := packages[name]
-		if !ok {
-			return galleryCache{}, fmt.Errorf("missing dependency %s", name)
+		if _, ok := packages[name]; !ok {
+			return "", fmt.Errorf("missing dependency %s", name)
 		}
+	}
+	// Hash the complete flattened package list, including transitive dependencies.
+	names := make([]string, 0, len(packages))
+	for name := range packages {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		pkg := packages[name]
 		if pkg.Standard {
 			continue
 		}
 		if err := galleryHashPackage(base, pkg); err != nil {
-			return galleryCache{}, err
+			return "", err
 		}
 	}
-	keys := make(map[string]string, len(galleryTiles))
-	for _, tile := range galleryTiles {
-		keys[tile.name] = hex.EncodeToString(base.Sum(nil))
-	}
-	return galleryCache{dir: filepath.Join(root, ".tmp", "gallery-cache"), keys: keys}, nil
+	return hex.EncodeToString(base.Sum(nil)), nil
 }
 
 func galleryHashPackage(h hash.Hash, pkg galleryPackage) error {

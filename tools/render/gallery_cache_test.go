@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
+	"slices"
 	"testing"
 
 	"github.com/lestrrat-3d/solidlens"
@@ -92,4 +94,30 @@ func TestGalleryHashPackageChangesWithSource(t *testing.T) {
 	second := sha256.New()
 	require.NoError(t, galleryHashPackage(second, pkg))
 	require.NotEqual(t, first.Sum(nil), second.Sum(nil))
+}
+
+func TestGalleryCacheInvalidatesTransitiveSource(t *testing.T) {
+	packages, err := galleryPackages(t.Context())
+	require.NoError(t, err)
+	renderer := packages[galleryRendererPackage]
+	const dependency = "github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
+	require.False(t, slices.Contains(renderer.Imports, dependency), "dependency must be transitive")
+	require.True(t, slices.Contains(renderer.Deps, dependency), "dependency must appear in the real graph")
+	pkg := packages[dependency]
+	require.Len(t, pkg.GoFiles, 1)
+	contents, err := os.ReadFile(filepath.Join(pkg.Dir, pkg.GoFiles[0]))
+	require.NoError(t, err)
+	pkg.Dir = t.TempDir()
+	file := filepath.Join(pkg.Dir, pkg.GoFiles[0])
+	require.NoError(t, os.WriteFile(file, contents, 0o644))
+	packages[dependency] = pkg
+	info, ok := debug.ReadBuildInfo()
+	require.True(t, ok)
+	root := filepath.Clean(filepath.Join(renderer.Dir, "../.."))
+	before, err := galleryFingerprint(packages, renderer, root, info)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(file, append(contents, []byte("\n// changed\n")...), 0o644))
+	after, err := galleryFingerprint(packages, renderer, root, info)
+	require.NoError(t, err)
+	require.NotEqual(t, before, after, "transitive source changes must invalidate cached tiles")
 }
