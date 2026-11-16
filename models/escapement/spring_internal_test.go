@@ -120,10 +120,8 @@ func TestPawlCarrier(t *testing.T) {
 // TestFrontPlateSpringAnchor checks the blind socket for the spring anchor pin: open from the plate's inner face, with
 // the spine solid beside it and plate above it.
 func TestFrontPlateSpringAnchor(t *testing.T) {
-	b := testBuilder(t)
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
-	q := b.g.SpringAnchor
+	front, g := defaultFrontPlate(t)
+	q := g.SpringAnchor
 	require.False(t, inside(t, front, q.X+1.0, q.Y, 29), "the socket is open")
 	require.True(t, inside(t, front, q.X+2.5, q.Y, 29), "the spine stands beside the socket")
 	require.True(t, inside(t, front, q.X, q.Y, 33), "the plate closes the socket's top")

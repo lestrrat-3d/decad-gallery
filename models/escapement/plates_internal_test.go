@@ -9,16 +9,16 @@ import (
 )
 
 func TestPlates(t *testing.T) {
-	b := testBuilder(t)
-	back, err := b.buildBackPlate()
-	require.NoError(t, err)
+	back, g := defaultBackPlate(t)
+	backAgain, _ := defaultBackPlate(t)
+	require.True(t, back == backAgain, "back plate fixture returns the same body")
 	require.True(t, back.IsSolid())
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
+	front, _ := defaultFrontPlate(t)
+	frontAgain, _ := defaultFrontPlate(t)
+	require.True(t, front == frontAgain, "front plate fixture returns the same body")
 	require.True(t, front.IsSolid())
 
 	// Back plate: plate z -6..0, pillars to 28, seats 5 deep from the inner face, lip bores, mounting holes.
-	g := &b.g
 	for _, a := range []Pt{g.O, g.P, g.G} {
 		require.False(t, inside(t, back, a.X+6, a.Y, -2), "bearing seat open")
 		require.True(t, inside(t, back, a.X+6, a.Y, -5.5), "the 1 mm lip under the seat wall is solid")
@@ -72,11 +72,8 @@ func TestPlates(t *testing.T) {
 // TestPlateWindows checks by section outline at mid-plane that each plate is open where the mechanism shows through and
 // solid in the spine, the hub rings and the rims.
 func TestPlateWindows(t *testing.T) {
-	b := testBuilder(t)
-	back, err := b.buildBackPlate()
-	require.NoError(t, err)
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
+	back, _ := defaultBackPlate(t)
+	front, _ := defaultFrontPlate(t)
 	open := [][2]float64{{29.5114, 27.5334}, {28.2168, 26.2738}, {37.1764, 37.3885}, {40, 0}, {20, 0}, {30, -45.75},
 		{37, -45.75}, {12.5, -45.75}, {10.8, 0}}
 	material := [][2]float64{{8.5, 0}, {8.5, 56.5685}, {8.5, -45.75}, {0, 30}, {47, 74}, {-47, 74}, {47, -88}, {-47, -88}}
@@ -98,12 +95,8 @@ func TestPlateWindows(t *testing.T) {
 
 // TestPlateMaterial checks the wall between each window and the features near it.
 func TestPlateMaterial(t *testing.T) {
-	b := testBuilder(t)
-	back, err := b.buildBackPlate()
-	require.NoError(t, err)
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
-	g := &b.g
+	back, g := defaultBackPlate(t)
+	front, _ := defaultFrontPlate(t)
 	for name, c := range map[string]struct {
 		body *decad.Body
 		z    float64
