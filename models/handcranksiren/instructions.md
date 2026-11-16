@@ -440,7 +440,7 @@ the slit to every other edge, as `models/crankhandle` measures it.
 | collector | rear face, end face, cavity ceiling, −X wall faces | `edgefinish` 0.5: Long(All) on Y −31.90 and −96.90; Long(Inner) on Y −39.90 and on X −51, −46 | concave cavity corners and the horn-side junctions; bolt pockets and holes (loops < 20 mm) |
 | horn | flange faces, mouth lip | meridian chamfers 0.5 (B/C, D/E, A/L, lip G to J) | flange outer face to cone junction (concave); throat-bolt holes (short) |
 | grip | both X caps | `edgefinish` Long(All) **2.0** (deviation A7) | bolt pockets and holes (short); the window and outline corners are tangent arcs |
-| crank-arm | both faces | cap outer loops 0.5 | pin bolt hole; hex pocket opening (Tight fit); the slit's walls and end round in both faces and the bore's rim in the inner face, which the slit joins to the outer loop (the 1 mm clamp gap; Decad refuses the bore rim's chamfer, as `models/crankhandle` lists) |
+| crank-arm | both faces; the bore's rim in the inner face | cap outer loops 0.5; the bore rim's two arcs and flat 0.5 (`crankhandle`'s `chamferBoreRim`) | pin bolt hole; hex pocket opening (Tight fit); the slit's walls and end round in both faces (the 1 mm clamp gap, as `models/crankhandle` lists) |
 | crank-gear, intermediate-gear | both caps | `CapChamfer` 0.2 | 0.5 consumes the tooth tip land at module 1.5 |
 | intermediate-pinion, rotor-pinion | none: net cap areas 381 and 327 mm² | none | not qualifying |
 

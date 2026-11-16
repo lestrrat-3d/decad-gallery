@@ -118,6 +118,7 @@ this frame onto the given one after each part's last operation.
 
    The slit goes first. The bore cut on the chamfered arm leaves a mesh bound round its rim of about 0.0101 mm, over
    the document's 0.01 mm chain tolerance for the slit's cut, while the bore's cut admits the slit's finer rim.
+   After the last cut, chamfer the bore's rim in the back face, the two arcs and the flat the slit leaves, by 0.5 mm.
 2. **Pin.** About `(0, L)`:
    - Join a hexagon `StubFlats` across flats, corners on X, from z = `StubFrom` for `StubLength` (to z 9.3), and a
      revolved meridian: a cone of half angle `ConeAngle` from radius `RootR` at z = `ShankFrom` out to `ShankR` at
@@ -273,7 +274,6 @@ the head without a sharp step.
 | --- | --- | --- |
 | Arm | The six corners of the hexagonal pocket | Joinery: they match the sharp corners of the pin's stub. |
 | Arm | The two corners of the D bore | Mating corners of the shaft's flat. They turn 36.5 degrees (605ZZ) and 35.4 (608-2RS), so they need no round. |
-| Arm | The bore's rim in the back face, at 608-2RS (`L_b` 25.3 mm, a long run, now opened by the slit) | Not chamfered: Decad refuses the chamfer (steps.md, "Known decad limit"). The siren's arm has the same sharp rim. |
 | Arm | The clamp bolt's head pocket floor rim, 2 mm into the +X side face | The 0.3 mm head clearance leaves no room to round it: a round would sit under the head. |
 | Arm | The slit's outline in the front face, a 25 mm run of two walls and the end round | Not chamfered: the slit is the 1 mm clamp gap, and a 0.5 mm chamfer each side would open its mouth to 2 mm. |
 | Arm | The six corners of the clamp nut's hexagonal pocket, edges along the clamp bolt in the -X side face | Mating corners: they match the sharp corners of the M2 nut, as the stub pocket's corners match the stub. They run parallel to the bed, so `cornercheck`'s layer sections do not read them. |

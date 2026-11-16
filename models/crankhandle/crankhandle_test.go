@@ -553,8 +553,67 @@ func TestCrankHandleEdgeFinishing(t *testing.T) {
 	}
 }
 
+// TestCrankHandleBoreRim checks the 0.5 mm chamfer on the bore's rim in the back face, which the slit opens into two
+// arcs and the flat. A section z above the face runs along the arc of radius r_b + d - z and along the flat at
+// f_b + d - z, where d is the chamfer size, and the bevel meets each slit wall where that arc does.
+func TestCrankHandleBoreRim(t *testing.T) {
+	for _, c := range crankCases {
+		t.Run(c.name, func(t *testing.T) {
+			m, _ := built(t, c)
+			rb, fb := m.Dimensions.BoreRadius, m.Dimensions.BoreFlat
+			half := crankhandle.SlitWidth / 2
+			for _, z := range []float64{0.05, 0.25, 0.45} {
+				d := crankhandle.ChamferSize - z
+				o := section(t, m.Arm, atZ(t, z))
+				tol := o.OffSurface.Base() + 1e-3
+				var rim, walls []r3.Vec
+				for _, l := range o.Loops {
+					for _, v := range l {
+						if math.Hypot(v.X, v.Y) > rb+crankhandle.ChamferSize+0.2 {
+							continue
+						}
+						if v.Y < 0 && math.Abs(math.Abs(v.X)-half) <= tol {
+							walls = append(walls, v)
+							continue
+						}
+						if v.Y < 0 && math.Abs(v.X) < half {
+							continue
+						}
+						rim = append(rim, v)
+					}
+				}
+				require.NotEmpty(t, rim, "z %g: rim", z)
+				arcs, flats := 0, 0
+				for _, v := range rim {
+					r := math.Hypot(v.X, v.Y)
+					onArc := math.Abs(r-(rb+d)) <= tol && v.Y <= fb+d+tol
+					onFlat := math.Abs(v.Y-(fb+d)) <= tol && r <= rb+d+tol
+					require.True(t, onArc || onFlat, "z %g: rim point %v is off the arc (r %g) and the flat (y %g)", z, v, rb+d, fb+d)
+					if onArc {
+						arcs++
+					}
+					if onFlat {
+						flats++
+					}
+				}
+				require.Positive(t, arcs, "z %g: arc points", z)
+				require.Positive(t, flats, "z %g: flat points", z)
+				want := -math.Sqrt((rb+d)*(rb+d) - half*half)
+				meets := 0
+				for _, v := range walls {
+					if math.Abs(v.Y-want) <= tol {
+						meets++
+					}
+				}
+				require.GreaterOrEqual(t, meets, 2, "z %g: the bevel meets both slit walls at y %g, walls %v", z, want, walls)
+			}
+		})
+	}
+}
+
 // TestCrankHandleCorners applies "Corners and roots" to every printed part in its print orientation, axis +Z: the arm
-// flat, the pin upright and the handle upright. The arm's hexagonal pocket keeps sharp corners to match the pin's
+// flat, the pin upright and the handle upright. The bore's rim in the back face is chamfered, so it holds no corner.
+// The arm's hexagonal pocket keeps sharp corners to match the pin's
 // sharp stub, a listed joinery pair, and the clamp bolt's head pocket keeps its sharp floor rim, which the 0.3 mm head
 // clearance leaves no room to round. The pin's cross nut pockets keep the six sharp corners that mate with their nuts.
 // All are listed in instructions.md. The six corners of the clamp nut's hexagonal pocket are listed there too, but they

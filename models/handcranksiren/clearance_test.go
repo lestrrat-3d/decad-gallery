@@ -31,9 +31,10 @@ const fitTolerance = 0.02
 // bound against its bearing is 0.192, below the Tight minimum.
 const roundFitTolerance = 0.01
 
-// armTolerance is the finest section tolerance the crank arm accepts: its slit and bore cuts hold a mesh bound of
-// 0.010115 mm (models/crankhandle instructions.md, "Arm"), just over roundFitTolerance.
-const armTolerance = 0.0102
+// armTolerance is the finest section tolerance the crank arm accepts. It follows the arm's mesh bound after the bore
+// rim chamfer (0.014772 mm; before it, 0.010115 mm and a tolerance of 0.0102), as the clutch's tolerances follow its
+// faceted bodies' mesh bounds. It is the least round value above the bound with margin.
+const armTolerance = 0.016
 
 // pressFit is the proven lower bound required of a press fit, whose design clearance is 0.05 mm radial (the press-fit
 // rule in docs/model-pipeline.md "Part clearances"). The section measurement's uncertainty takes up the rest.

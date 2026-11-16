@@ -64,7 +64,7 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
    `decad.Edges(decad.OuterLoopOf(decad.CapStart(arm))).Or(decad.OuterLoopOf(decad.CapEnd(arm)))` by 0.5; then
    `decad.Cut`, in this order, `slitTool()`, the bore tool, `hexagon(L, 3.25, 7.53, 5.75)`,
    `m2fastener.PocketTool(site)`, the clamp nut pocket (`m2fastener.HexPocketTool(ClampSite)` with `decad.Fillet` of the outer loop of
-   its `CapStart`, the floor, by 0.6), `m2fastener.PocketTool(ClampSite)` and `m2fastener.HoleTool(ClampSite)`. The
+   its `CapStart`, the floor, by 0.6), `m2fastener.PocketTool(ClampSite)` and `m2fastener.HoleTool(ClampSite)`; then `chamferBoreRim(arm)` ("Bore rim chamfer" below). The
    chamfer needs decad 902e347 or later, which admits the outline's solver-placed tangent arcs in the Booleans that
    follow. The slit goes before the bore: cut after it, the slit refuses the bore's rim bound (0.0101 mm) at the
    608-2RS within the 0.01 mm chain tolerance.
@@ -85,16 +85,17 @@ The pin's cuts after its union need a document with a chain tolerance of 0.005 m
 refuses one with "cut's target holds its mesh, where this pair meets, only within a bound of 0.0012 mm, coarser than
 this pair's chord tolerance 0.0011 mm". `NewDocument` sets 0.01 mm.
 
-## Known decad limit
+## Bore rim chamfer
 
 The D bore's rim in the arm's back face, a 25.3 mm run at the 608-2RS, is a long run on a large face, which "Surface
 edge finishing" asks to chamfer. The slit opens that rim into three edges: two arcs and the flat, each arc ending at a
-slit wall. Chamfered by their endpoints after the bore cut, with decad `affd593f7cdf` (it holds #3240, #3243 and #3246),
-the run is refused: "not supported by the current evaluator: an edge end meets a face that is not a retained plane". Each arc alone is
-refused with "a setback point lies behind an arc end". Decad's current main refuses it the same way. The rim stays
-sharp, as it was on the siren's arm.
+slit wall. `chamferBoreRim` chamfers them by `ChamferSize` as the last step of `arm()`, after every cut, so no later cut
+meets the rim. This needs decad `adf3d289fca1` or later, which chamfers a run of a retained plane's loop on a mesh
+Boolean result.
 
-A bore rim the slit does not open does chamfer, so the order bore, rim chamfer, slit would work where the Booleans
-admit it. At the 605ZZ the slit cut after the rim chamfer passes. At the 608-2RS it fails: the cut's target holds its
-mesh within 0.0196 mm, coarser than the pair's chord tolerance of 0.0017 mm. Taking that route needs a geometry change
-that a bore-first order admits at both bearings.
+`chamferBoreRim` takes the edges of `body.Edges()` whose end points lie at z = 0 within `BoreRadius` of the axis. It
+expects two `Arc3` and one `Line3` and returns an error for any other count or kind. It names each edge by both its
+stored end points with `decad.EndpointAt`, joined with `Or`. It reads the end points from the edges because the body is
+faceted and its vertices sit a few ulps off the exact values, so a computed end point does not match.
+
+The slit goes before the bore for the same reason as in section 3: a bore cut before the slit is refused.
