@@ -8,6 +8,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -47,9 +48,27 @@ var fanCases = []fanCase{
 	}},
 }
 
+// clutchCases are the clutch-mount cases, each from ParamsForClutch with the clutch's own frame.
+var clutchCases = []fanCase{
+	{"clutch-605ZZ", func() turbinefan.Params { return clutchParams(onewayclutch.DefaultParams()) }},
+	{"clutch-608ZZ-left", func() turbinefan.Params {
+		return clutchParams(onewayclutch.Params{Shaft: "608ZZ", Freewheel: onewayclutch.CounterClockwise, BoreClearance: 0.05})
+	}},
+}
+
+// clutchParams returns ParamsForClutch(c) in the fan's local frame, and panics on an error.
+func clutchParams(c onewayclutch.Params) turbinefan.Params {
+	p, err := turbinefan.ParamsForClutch(c)
+	if err != nil {
+		panic(err)
+	}
+	p.Placement = nil
+	return p
+}
+
 func caseNamed(t *testing.T, name string) fanCase {
 	t.Helper()
-	for _, c := range fanCases {
+	for _, c := range append(slices.Clone(fanCases), clutchCases...) {
 		if c.name == name {
 			return c
 		}

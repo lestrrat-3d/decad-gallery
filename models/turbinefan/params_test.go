@@ -8,6 +8,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
+	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -78,6 +79,9 @@ func TestTurbineFanValidate(t *testing.T) {
 		{"pitch-high", func(p *turbinefan.Params) { p.BladePitch = 41 * math.Pi / 180 }, "BladePitch must lie in [10°, 40°] radians"},
 		{"bad-hand", func(p *turbinefan.Params) { p.Hand = 2 }, "Hand must be RightHand or LeftHand"},
 		{"invalid-frame", func(p *turbinefan.Params) { p.Placement = &r3.Frame{} }, "Placement must be a valid frame"},
+		{"bad-mount", func(p *turbinefan.Params) { p.Mount = turbinefan.Mount(2) }, "Mount must be ShaftMount or ClutchMount"},
+		{"clutch-shaft-too-wide", func(p *turbinefan.Params) { p.Mount, p.ShaftDiameter = turbinefan.ClutchMount, 9 },
+			"less than a 0.8 mm wall between the clutch mount's bore and the blade sockets"},
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			p := def
@@ -102,6 +106,13 @@ func TestTurbineFanValidate(t *testing.T) {
 	both.ShaftDiameter, both.BladePitch = 0, 0
 	require.ErrorContains(t, both.Validate(), "ShaftDiameter")
 
+	// The clutch mount shapes nothing with FlatDepth: 0.25 fails rule 7 in ShaftMount only.
+	shallow := turbinefan.DefaultParams()
+	shallow.FlatDepth = 0.25
+	require.Error(t, shallow.Validate())
+	shallow.Mount = turbinefan.ClutchMount
+	require.NoError(t, shallow.Validate())
+
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	doc := decad.New()
@@ -112,4 +123,87 @@ func TestTurbineFanValidate(t *testing.T) {
 	require.ErrorContains(t, err, "document")
 	_, err = turbinefan.Build(nil, doc, def) //nolint:staticcheck
 	require.ErrorContains(t, err, "context")
+}
+
+func TestTurbineFanClutchParams(t *testing.T) {
+	def, err := turbinefan.ParamsForClutch(onewayclutch.DefaultParams())
+	require.NoError(t, err)
+	require.InDelta(t, 5, def.ShaftDiameter, 0)
+	require.InDelta(t, 0.5, def.FlatDepth, 0)
+	require.Equal(t, turbinefan.RightHand, def.Hand)
+	require.Equal(t, turbinefan.ClutchMount, def.Mount)
+	require.Equal(t, ballbearing.PressFitClearance, def.BoreClearance)
+	require.Equal(t, turbinefan.DefaultBladePitch, def.BladePitch)
+	mf, err := turbinefan.MountFrame(nil)
+	require.NoError(t, err)
+	require.NotNil(t, def.Placement)
+	require.Equal(t, mf, *def.Placement)
+	require.NoError(t, def.Validate())
+
+	left, err := turbinefan.ParamsForClutch(onewayclutch.Params{
+		Shaft: "608ZZ", Freewheel: onewayclutch.CounterClockwise, BoreClearance: 0.05})
+	require.NoError(t, err)
+	require.InDelta(t, 8, left.ShaftDiameter, 0)
+	require.InDelta(t, 0.75, left.FlatDepth, 0)
+	require.Equal(t, turbinefan.LeftHand, left.Hand)
+	require.NoError(t, left.Validate())
+	gearbox, err := turbinefan.ParamsForClutch(onewayclutch.Params{
+		Shaft: "608ZZ-gearbox", Freewheel: onewayclutch.Clockwise, BoreClearance: 0.05})
+	require.NoError(t, err)
+	require.InDelta(t, 0.5, gearbox.FlatDepth, 0)
+
+	_, err = turbinefan.ParamsForClutch(onewayclutch.Params{Shaft: "605ZZ", BoreClearance: 0.05})
+	require.ErrorContains(t, err, "turbinefan: clutch: onewayclutch: Freewheel")
+
+	require.Equal(t, onewayclutch.Clockwise, turbinefan.RightHand.Freewheel())
+	require.Equal(t, onewayclutch.CounterClockwise, turbinefan.LeftHand.Freewheel())
+	require.Equal(t, onewayclutch.Direction(0), turbinefan.Hand(5).Freewheel())
+	for k, want := range []float64{30, 150, 270} {
+		require.InDelta(t, want*math.Pi/180, turbinefan.EarBoltAngle(k+1), 1e-12)
+	}
+
+	dm, err := def.Derive()
+	require.NoError(t, err)
+	require.InDelta(t, 3.05, dm.ClutchBoreRadius, 1e-12)
+	for k, site := range dm.EarSites {
+		a := turbinefan.EarBoltAngle(k + 1)
+		require.InDelta(t, onewayclutch.EarCircle*math.Cos(a), site.Head.X, 1e-12)
+		require.InDelta(t, onewayclutch.EarCircle*math.Sin(a), site.Head.Y, 1e-12)
+		require.InDelta(t, 0, site.Head.Z, 0)
+		require.Equal(t, r3.Vec{Z: -1}, site.Dir)
+		require.InDelta(t, 25, site.Length, 0)
+		require.InDelta(t, 25.5, site.Cavity, 0)
+		require.InDelta(t, 27, site.Tip(), 0)
+	}
+	require.Equal(t, m2fastener.Site{}, dm.SetScrewSite)
+	require.Zero(t, dm.SetScrewTip)
+	require.Zero(t, dm.SetScrewHead)
+	require.Zero(t, dm.CounterboreFloor)
+	big, err := left.Derive()
+	require.NoError(t, err)
+	require.InDelta(t, 4.55, big.ClutchBoreRadius, 1e-12)
+
+	shaft, err := turbinefan.DefaultParams().Derive()
+	require.NoError(t, err)
+	require.Zero(t, shaft.ClutchBoreRadius)
+	require.Equal(t, [onewayclutch.Ears]m2fastener.Site{}, shaft.EarSites)
+
+	require.InDelta(t, 23, mf.Origin().Z, 0)
+	require.InDelta(t, math.Cos(math.Pi/3), mf.U().X, 1e-12)
+	require.InDelta(t, math.Sin(math.Pi/3), mf.U().Y, 1e-12)
+	f, err := r3.NewFrame(r3.Vec{X: 10, Y: -5, Z: 7}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	require.NoError(t, err)
+	placed, err := turbinefan.MountFrame(&f)
+	require.NoError(t, err)
+	outer, err := r3.FromFrame(f)
+	require.NoError(t, err)
+	inner, err := r3.FromFrame(mf)
+	require.NoError(t, err)
+	both, err := r3.FromFrame(placed)
+	require.NoError(t, err)
+	for _, v := range []r3.Vec{{}, {X: 1, Y: 2, Z: 3}, {X: -4, Z: 5}} {
+		require.InDelta(t, 0, both.Apply(v).Sub(outer.Apply(inner.Apply(v))).Len(), 1e-9)
+	}
+	_, err = turbinefan.MountFrame(&r3.Frame{})
+	require.ErrorContains(t, err, "turbinefan: clutch Placement must be a valid frame")
 }

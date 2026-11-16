@@ -28,6 +28,22 @@ each blade's head pocket and hex nut slot, and the set screw's counterbore, hole
 revolved meridian with a rounded floor; each nut slot is a hexagon with two straight walls running out through a face, with
 its corners and edges rounded by 0.5.
 
+## Clutch mount
+
+`Params.Mount = ClutchMount` bolts the hub's flange to the ring ears of a `onewayclutch` instead of gripping the shaft; the
+zero value `ShaftMount` is the fan above. `ParamsForClutch(onewayclutch.Params)` returns a matched fan: the clutch's shaft, the
+hand that its `Freewheel` drives forward (`Hand.Freewheel()` is the reverse mapping), the default pitch and `Placement`
+`MountFrame(c.Placement)`, which seats the fan on the clutch turned `ClutchTurn` (60 degrees) so each ear bolt lies between
+two blades. `Derive` fills `ClutchBoreRadius` and `EarSites`; the hub is one revolved body (`clutchHubMeridian`) with a 3 mm
+flange; `Build` adds a clamp ring (`Parts.Clamp`, container `Clamp Ring`), three M2 x 25 ear bolts and nuts
+(`Model.EarBolts`, `EarNuts`) and no set screw. Build the clutch and the fan in separate documents.
+
+The presets `turbinefan/clutch`, `clutch-back`, `clutch-cutaway` and `clutch-exploded` render the fan on the default clutch;
+the readme shot also writes `clutch.png`, `clutch-back.png`, `clutch-cutaway.png`, `clutch-exploded.png` and
+`parts/clutch-hub.png`, `clamp-ring.png` and `ear-bolt.png`. The tests `TestTurbineFanClutchParams`, `ClutchBuild`,
+`ClutchSketches`, `ClutchBounds`, `ClutchHub`, `ClutchEarBolts`, `ClutchAccess`, `ClutchCorners`, `ClutchEdgeFinishing` and
+`TestTurbineFanOnClutch` (the fan on the real clutch: ears, stack, every fit pair) cover it.
+
 ## Build and images
 
 ```sh

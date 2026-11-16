@@ -71,7 +71,8 @@ tips. The ring floats 0.85 mm each way between the plates' cones, so 0.4 mm stay
 The driven part attaches to the ring alone. Three ears run the ring's full height, each with an M2 clearance bore. Bolt
 the driven part to the ears, or key a housing onto them: a tight fit needs a 42 mm bore with three notches for the ears.
 The model places no bolt in the ears. The plates stay round, so nothing bolted to the ears reaches the parts that turn
-with the shaft.
+with the shaft. The [turbine fan](../turbinefan/) is an example: its clutch mount bolts a flange and a clamp ring to the
+ears.
 
 | Ear dimension | Value |
 | --- | ---: |
