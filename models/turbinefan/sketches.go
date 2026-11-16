@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
@@ -201,11 +200,15 @@ func (r *run) setScrewSlotTool() (*decad.Body, error) {
 
 // slotTool is a nut slot for site: a hex slot from the cavity's far face up to its near face, along u (the radial line
 // outward from the axis through the site's head) from the corner at 6.99 behind the bolt line out to reach beyond it,
-// with its three hexagon corners rounded by NutSlotRound. The site's Dir is -Z. The slot's mouth opens where reach lies
-// outside the part. A blade bolt's slot opens through the hub's rim, an ear bolt's through the clamp ring's.
+// with its three hexagon corners rounded by NutSlotRound. The slot's mouth opens where reach lies outside the part,
+// through the hub's rim. A site with Dir -Z (a blade bolt) puts the slot's far face CavityFar behind its head; a site
+// with Dir +Z (an adapter bolt) puts the slot Cavity in front of its head.
 func (r *run) slotTool(site m2fastener.Site, u r3.Vec, reach float64) (*decad.Body, error) {
 	v := r3.Vec{X: -u.Y, Y: u.X}
 	z := site.Head.Z - site.CavityFar()
+	if site.Dir.Z > 0 {
+		z = site.Head.Z + site.Cavity
+	}
 	f, err := r3.NewFrame(r3.Vec{X: site.Head.X, Y: site.Head.Y, Z: z}, u, v)
 	if err != nil {
 		return nil, err
@@ -251,73 +254,4 @@ func (r *run) slotTool(site m2fastener.Site, u r3.Vec, reach float64) (*decad.Bo
 		return nil, fmt.Errorf("round slot corners: %w", err)
 	}
 	return tool, nil
-}
-
-// clutchHubMeridian is the clutch-mount hub's one revolved body: a meridian on the half plane holding the Z axis (U is
-// +Z, V the radius +X), every vertex dimensioned from the origin, revolved a full turn about Z. From the back face up
-// it is the flange (radius FlangeRadius, FlangeThickness thick), the hub cylinder joined to it by a root round of
-// FlangeRound drawn in eight chords, and the round bore of radius r_c. The face chamfers are in the meridian: the
-// outer circles of the three faces, and the bore's rims when its loop is long.
-func (r *run) clutchHubMeridian() (*decad.Body, error) {
-	c, rc := ChamferSize, r.dm.ClutchBoreRadius
-	t, round := FlangeThickness, FlangeRound
-	long := 2*math.Pi*rc >= edgefinish.LongEdgeRun
-	var vertices [][2]float64 // (r, z)
-	if long {
-		vertices = append(vertices, [2]float64{rc, -t + c}, [2]float64{rc + c, -t})
-	} else {
-		vertices = append(vertices, [2]float64{rc, -t})
-	}
-	vertices = append(vertices, [2]float64{FlangeRadius - c, -t}, [2]float64{FlangeRadius, -t + c},
-		[2]float64{FlangeRadius, -c}, [2]float64{FlangeRadius - c, 0}, [2]float64{HubRadius + round, 0})
-	for i := 1; i <= 8; i++ {
-		a := 3*math.Pi/2 - (math.Pi/2)*float64(i)/8
-		vertices = append(vertices, [2]float64{HubRadius + round + round*math.Cos(a), round + round*math.Sin(a)})
-	}
-	vertices = append(vertices, [2]float64{HubRadius, HubLength - c}, [2]float64{HubRadius - c, HubLength})
-	if long {
-		vertices = append(vertices, [2]float64{rc + c, HubLength}, [2]float64{rc, HubLength - c})
-	} else {
-		vertices = append(vertices, [2]float64{rc, HubLength})
-	}
-	f, err := r3.NewFrame(r3.Vec{}, r3.Vec{Z: 1}, r3.Vec{X: 1})
-	if err != nil {
-		return nil, err
-	}
-	s, err := r.sketchOn(f)
-	if err != nil {
-		return nil, err
-	}
-	points := make([]*sketch.Point, len(vertices))
-	for i, v := range vertices {
-		points[i] = sketchcheck.DimensionPoint(s, v[1], v[0])
-	}
-	for i := range points {
-		s.CreateLine(points[i], points[(i+1)%len(points)])
-	}
-	pr, err := r.profile(s, 0)
-	if err != nil {
-		return nil, err
-	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
-}
-
-// clampSketch sketches the clamp ring's outline on its back face: circles of radius ClampOuterRadius and
-// ClampInnerRadius about the axis and a circle of radius m2fastener.HoleRadius at each ear bolt. The profile has four
-// holes: the bore and the three bolt holes.
-func (r *run) clampSketch() (*sketch.Sketch, error) {
-	s, err := r.sketchOn(across(ClampBack))
-	if err != nil {
-		return nil, err
-	}
-	o := s.Origin()
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, ClampOuterRadius), ClampOuterRadius))
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, ClampInnerRadius), ClampInnerRadius))
-	for _, site := range r.dm.EarSites {
-		c := s.CreatePoint(site.Head.X, site.Head.Y)
-		s.AddConstraint(sketch.NewHorizontalDistance(o, c, site.Head.X), sketch.NewVerticalDistance(o, c, site.Head.Y))
-		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, m2fastener.HoleRadius), m2fastener.HoleRadius))
-	}
-	return s, nil
 }

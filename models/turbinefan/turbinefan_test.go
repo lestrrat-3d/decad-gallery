@@ -132,12 +132,13 @@ func TestTurbineFanBuild(t *testing.T) {
 }
 
 // TestTurbineFanSketches requires every sketch of every case, the hub's and the blades' and each bolt's and nut's,
-// fully constrained: 23 from BuildParts and 20 from Build.
+// fully constrained: 27 from BuildParts (the hub's two adapter hole sketches and two adapter slot sketches among them)
+// and 20 from Build.
 func TestTurbineFanSketches(t *testing.T) {
 	for _, c := range fanCases {
 		t.Run(c.name, func(t *testing.T) {
 			m, _ := built(t, c)
-			require.Len(t, m.Sketches, 23)
+			require.Len(t, m.Sketches, 27)
 			for i, s := range m.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}

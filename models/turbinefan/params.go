@@ -37,20 +37,9 @@ const (
 
 // Fixed dimensions of the clutch mount in mm and radians. Values that another model owns are referenced.
 const (
-	ClutchTurn          = math.Pi / 3                                                                  // the fan frame's turn about Z from the clutch frame
-	FlangeThickness     = m2fastener.HeadPocketDepth + 1.0                                             // 3.0: the head pocket plus 1 mm under it
-	FlangeRadius        = onewayclutch.AdapterRadius                                                   // 25.7: covers the ear tips (onewayclutch.EarReach)
-	FlangeRound         = 1.5                                                                          // the hub's root round on the flange: half its thickness
-	ClutchBoreClearance = onewayclutch.LooseFit                                                        // 0.55
-	ClutchSeam          = onewayclutch.Seam                                                            // 0.25
-	ClampThickness      = 1 + m2fastener.NutCavityHeight + 1                                           // 4.0
-	ClampInnerRadius    = onewayclutch.PlateRadius + onewayclutch.LooseFit                             // 17.25: Loose off the back plate's rim
-	ClampOuterRadius    = FlangeRadius                                                                 // 25.7
-	ClampBack           = -(FlangeThickness + 2*ClutchSeam + onewayclutch.RingHeight + ClampThickness) // -28.5
-	EarBoltLength       = 25.0                                                                         // M2 x 25, the longest standard length
-	EarBoltCavity       = -(ClampBack + 1 + m2fastener.NutCavityHeight)                                // 25.5
-	MinWall             = 0.8                                                                          // least wall of a part that does not bend
-	MountZ              = onewayclutch.RingTo + ClutchSeam + FlangeThickness                           // 23.0: the fan frame's origin in the clutch frame
+	ClutchTurn = math.Pi / 3                         // the fan frame's turn about Z from the clutch frame
+	ClutchSeam = onewayclutch.Seam                   // 0.25
+	MountZ     = onewayclutch.AdapterTo + ClutchSeam // 26.25: the fan frame's origin in the clutch frame
 )
 
 // BladeAngle returns the angle, about +Z from +X, of blade k's radial line, k = 1, 2, 3: 90, 210 and 330 degrees.
@@ -88,7 +77,8 @@ type Mount int
 const (
 	// ShaftMount is the zero value: the hub's D bore grips the shaft and a set screw holds it.
 	ShaftMount Mount = iota
-	// ClutchMount bolts the hub's flange to the ring ears of a onewayclutch on the shaft; a round bore clears the shaft.
+	// ClutchMount bolts the hub's back face to the adapter ring of a onewayclutch; the hub holds no shaft and has no set
+	// screw.
 	ClutchMount
 )
 
@@ -201,11 +191,10 @@ type Dimensions struct {
 	// BladeSites are the three blade bolts: each head's top face is flush with the front face (z = HubLength) at
 	// BladeBoltAt from the axis along blade k's radial line, and the bolt runs along -Z.
 	BladeSites [BladeCount]m2fastener.Site
-	// ClutchBoreRadius is r_c: ShaftDiameter/2 + ClutchBoreClearance in ClutchMount, else 0.
-	ClutchBoreRadius float64
-	// EarSites are the three ear bolts in ClutchMount, local frame, each head's top face flush with the flange's front
-	// face; zero in ShaftMount.
-	EarSites [onewayclutch.Ears]m2fastener.Site
+	// AdapterSites are the two adapter bolts, local frame: each head's top face lies on the adapter's rear face, one
+	// adapter thickness and one seam behind the hub's back face, and the bolt runs along +Z into a nut slot open to
+	// the hub's round face. The hub carries their holes and slots in both modes, at 30 and 150 degrees.
+	AdapterSites [2]m2fastener.Site
 }
 
 // Validate reports the first problem Derive finds.
@@ -236,7 +225,6 @@ func (p Params) Derive() (Dimensions, error) {
 	if p.Mount != ShaftMount && p.Mount != ClutchMount {
 		return Dimensions{}, errors.New("turbinefan: Mount must be ShaftMount or ClutchMount")
 	}
-	clutch := p.Mount == ClutchMount
 	dm := Dimensions{
 		BoreRadius: p.ShaftDiameter/2 + p.BoreClearance,
 		BoreFlat:   p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance,
@@ -244,23 +232,15 @@ func (p Params) Derive() (Dimensions, error) {
 	dm.BoreFlatWidth = 2 * math.Sqrt(dm.BoreRadius*dm.BoreRadius-dm.BoreFlat*dm.BoreFlat)
 	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + dm.BoreFlatWidth
 	dm.ShaftFlatWidth = 2 * math.Sqrt(p.FlatDepth*(p.ShaftDiameter-p.FlatDepth))
-	if clutch {
-		dm.ClutchBoreRadius = p.ShaftDiameter/2 + ClutchBoreClearance
-		if BladeSocketStart-dm.ClutchBoreRadius < MinWall-1e-9 {
-			return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall between the clutch "+
-				"mount's bore and the blade sockets", MinWall)
-		}
-	} else {
-		if BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
-			return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
-				PressWall)
-		}
-		if dm.ShaftFlatWidth < m2bolt.ShankDiameter-1e-9 {
-			return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the shaft's flat at least 2 mm wide for the set screw's tip")
-		}
-		if dm.BoreFlatWidth < 2*(m2fastener.HoleRadius+0.1)-1e-9 {
-			return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the bore's flat at least 2.8 mm wide for the set screw's hole")
-		}
+	if BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
+		return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
+			PressWall)
+	}
+	if dm.ShaftFlatWidth < m2bolt.ShankDiameter-1e-9 {
+		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the shaft's flat at least 2 mm wide for the set screw's tip")
+	}
+	if dm.BoreFlatWidth < 2*(m2fastener.HoleRadius+0.1)-1e-9 {
+		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the bore's flat at least 2.8 mm wide for the set screw's hole")
 	}
 	if p.BladePitch < MinBladePitch || p.BladePitch > MaxBladePitch {
 		return Dimensions{}, errors.New("turbinefan: BladePitch must lie in [10°, 40°] radians")
@@ -271,9 +251,21 @@ func (p Params) Derive() (Dimensions, error) {
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return Dimensions{}, errors.New("turbinefan: Placement must be a valid frame")
 	}
-	if !clutch {
-		if err := dm.deriveSetScrew(p); err != nil {
-			return Dimensions{}, err
+	if err := dm.deriveSetScrew(p); err != nil {
+		return Dimensions{}, err
+	}
+	for i := range dm.AdapterSites {
+		a := EarBoltAngle(i + 1)
+		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
+		dm.AdapterSites[i] = m2fastener.Site{
+			Head:   u.Scale(onewayclutch.FaceCircle).Add(r3.Vec{Z: -(onewayclutch.AdapterThickness + ClutchSeam)}),
+			Dir:    r3.Vec{Z: 1},
+			Corner: u,
+			Length: onewayclutch.FaceLength,
+			Cavity: onewayclutch.AdapterThickness + ClutchSeam + onewayclutch.FaceNutDepth,
+		}
+		if err := dm.AdapterSites[i].Validate(); err != nil {
+			return Dimensions{}, fmt.Errorf("turbinefan: adapter bolt %d: %w", i+1, err)
 		}
 	}
 	for i := range dm.BladeSites {
@@ -289,27 +281,10 @@ func (p Params) Derive() (Dimensions, error) {
 			return Dimensions{}, fmt.Errorf("turbinefan: blade bolt %d: %w", i+1, err)
 		}
 	}
-	if !clutch {
-		return dm, nil
-	}
-	for i := range dm.EarSites {
-		a := EarBoltAngle(i + 1)
-		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
-		dm.EarSites[i] = m2fastener.Site{
-			Head:   u.Scale(onewayclutch.EarCircle),
-			Dir:    r3.Vec{Z: -1},
-			Corner: u,
-			Length: EarBoltLength,
-			Cavity: EarBoltCavity,
-		}
-		if err := dm.EarSites[i].Validate(); err != nil {
-			return Dimensions{}, fmt.Errorf("turbinefan: ear bolt %d: %w", i+1, err)
-		}
-	}
 	return dm, nil
 }
 
-// deriveSetScrew fills the set screw's values and checks them: a ShaftMount fan only.
+// deriveSetScrew fills the set screw's values and checks them. The hub carries the set screw's cuts in both modes.
 func (dm *Dimensions) deriveSetScrew(p Params) error {
 	dm.SetScrewTip = p.ShaftDiameter/2 - p.FlatDepth - p.BoreClearance
 	dm.SetScrewHead = dm.SetScrewTip + m2fastener.HeadPocketDepth + SetScrewBolt

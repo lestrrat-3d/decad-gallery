@@ -86,9 +86,16 @@ const (
 	AdapterFrom      = RingTo + Seam // 20.0
 	AdapterThickness = 6.0
 	AdapterTo        = AdapterFrom + AdapterThickness // 26.0
-	AdapterInner     = 17.9                           // 1.5 mm from each head pocket, and outside the ring-side circle
+	AdapterInner     = 5.0                            // clears the 8 mm shaft by 1.0 (Loose) and the 5 mm shaft by 2.5
 	AdapterRadius    = EarReach                       // 25.7: OD 51.4
 	MountLength      = 25.0                           // an m2bolt.StandardLengths entry
+
+	// The adapter's front face takes a part on three more M2 bolts from its rear face, on the ear lines. A part bolted
+	// there puts its back face one Seam in front of the adapter, takes the bolts into hex nut slots open to its rim,
+	// and seats each nut FaceNutDepth into its body.
+	FaceCircle   = 9.5  // the face bolts' circle: clear of the 10 mm bore's chamfer and of the ear holes
+	FaceLength   = 10.0 // an m2bolt.StandardLengths entry
+	FaceNutDepth = 1.5  // how far the nut slot's near face lies inside the mating part
 )
 
 // EarAngles are the ear axes' angles, in degrees. They are symmetric about x = 0, so the ears do not depend on the
@@ -189,6 +196,10 @@ type Dimensions struct {
 	// MountSites are the three adapter bolts, one per ear, in the local frame. The head is on the adapter's front face,
 	// and the nut pocket is open to the ring's rear face.
 	MountSites [3]m2fastener.Site
+	// FaceSites are the three face bolts, one per ear line, in the local frame. The head's top face is flush with the
+	// adapter's rear face (z = AdapterFrom) and the bolt runs along +Z through the adapter into a part whose back face
+	// lies one Seam in front of it. Cavity is the nut slot's near face in that part, FaceNutDepth inside it.
+	FaceSites [3]m2fastener.Site
 
 	Apex          r3.Vec  // A: where the head's lock line meets its flank line
 	TipCenter     r3.Vec  // centre of the head's tip round
@@ -214,7 +225,7 @@ func polar(r, deg float64) r3.Vec {
 }
 
 // Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, the wall
-// between the bore and the nut pockets, Placement, each bolt site, each mount site.
+// between the bore and the nut pockets, Placement, each bolt site, each mount site, each face site.
 func (p Params) Derive() (Dimensions, error) {
 	shaft, ok := LookupShaft(p.Shaft)
 	if !ok {
@@ -273,6 +284,19 @@ func (p Params) Derive() (Dimensions, error) {
 		}
 		if err := dm.MountSites[i].Validate(); err != nil {
 			return Dimensions{}, fmt.Errorf("onewayclutch: mount bolt %d: %w", i+1, err)
+		}
+	}
+	for i, a := range EarAngles {
+		pos := polar(FaceCircle, a)
+		dm.FaceSites[i] = m2fastener.Site{
+			Head:   r3.Vec{X: pos.X, Y: pos.Y, Z: AdapterFrom},
+			Dir:    r3.Vec{Z: 1},
+			Corner: polar(1, a),
+			Length: FaceLength,
+			Cavity: AdapterThickness + Seam + FaceNutDepth,
+		}
+		if err := dm.FaceSites[i].Validate(); err != nil {
+			return Dimensions{}, fmt.Errorf("onewayclutch: face bolt %d: %w", i+1, err)
 		}
 	}
 	dm.derivePawl()

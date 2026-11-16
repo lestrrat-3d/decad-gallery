@@ -4,10 +4,12 @@
 // is this model's blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the
 // shaft, holds it in a nut that sits in a hex slot open to the round face.
 //
-// With Params.Mount = ClutchMount the hub does not grip the shaft. A flange behind it bolts to the three ring ears of a
-// onewayclutch with three M2 x 25 bolts, each in a nut in a hex slot open to the rim of a clamp ring behind the ring. The
-// fan frame is turned 60 degrees about the axis from the clutch frame, so each ear bolt lies midway between two blades.
-// The shaft drives the fan through the clutch, and the fan coasts when the shaft stops or turns back.
+// The hub has two M2 x 10 bolt holes in its back face at 30 and 150 degrees, each with a hex nut slot open to the round
+// face. They are cut in both modes. With Params.Mount = ClutchMount the hub does not grip the shaft: the adapter ring of
+// a onewayclutch (onewayclutch.BuildAdapter, built by the caller in the clutch's document) sits against the back face,
+// one seam behind it, and two M2 x 10 bolts from the adapter's rear face hold the hub in those nuts; the set screw is
+// left out. The fan frame is turned 60 degrees about the axis from the clutch frame. The shaft drives the fan through the
+// clutch, and the fan coasts when the shaft stops or turns back.
 //
 // The local frame has its origin on the shaft axis in the hub's back face, the face toward the mechanism. +Z runs along
 // the shaft axis away from the mechanism to the front face at z = HubLength, and the bore's flat faces -Y, where the set
@@ -38,42 +40,37 @@ const (
 	BladesContainerName = "Blades"
 	BoltsContainerName  = "Bolts"
 	NutsContainerName   = "Nuts"
-	// ClampContainerName holds the clutch mount's clamp ring.
-	ClampContainerName = "Clamp Ring"
 )
 
 // Parts are the fan's printed bodies, placed, without the bolts and nuts.
 type Parts struct {
 	Hub    *decad.Body
 	Blades [BladeCount]*decad.Body
-	// Clamp is the clutch mount's clamp ring; nil in ShaftMount.
-	Clamp *decad.Body
 	// Sketches are every sketch the parts were built from, each fully constrained.
 	Sketches   []*sketch.Sketch
 	Dimensions Dimensions
-	// BladeSites are the three blade bolts in the world frame; SetScrewSite is the set screw in the world frame.
+	// BladeSites are the three blade bolts in the world frame; SetScrewSite is the set screw in the world frame (the hub
+	// has its cuts in both modes) and AdapterSites are the two adapter bolts in the world frame.
 	BladeSites   [BladeCount]m2fastener.Site
 	SetScrewSite m2fastener.Site
-	// EarSites are the clutch mount's three ear bolts in the world frame; zero in ShaftMount.
-	EarSites [onewayclutch.Ears]m2fastener.Site
+	AdapterSites [2]m2fastener.Site
 }
 
 // Model is a built fan: its parts, the three blade bolts and nuts, and the set screw and its nut (ShaftMount) or the
-// three ear bolts and nuts (ClutchMount).
+// two adapter bolts and nuts (ClutchMount).
 type Model struct {
 	Parts
 	BladeBolts  [BladeCount]*m2bolt.Model
 	BladeNuts   [BladeCount]*m2nut.Model
 	SetScrew    *m2bolt.Model
 	SetScrewNut *m2nut.Model
-	// EarBolts and EarNuts are the clutch mount's ear bolts and nuts; nil in ShaftMount, where SetScrew and SetScrewNut
-	// are set instead.
-	EarBolts [onewayclutch.Ears]*m2bolt.Model
-	EarNuts  [onewayclutch.Ears]*m2nut.Model
+	// AdapterBolts and AdapterNuts are the clutch mount's adapter bolts and nuts; nil in ShaftMount, where SetScrew and
+	// SetScrewNut are set instead.
+	AdapterBolts [2]*m2bolt.Model
+	AdapterNuts  [2]*m2nut.Model
 }
 
-// BuildParts adds the hub, the three blades and, in ClutchMount, the clamp ring to doc and returns them. It puts them in no container. ctx and doc must
-// not be nil.
+// BuildParts adds the hub and the three blades to doc and returns them. It puts them in no container. ctx and doc must not be nil.
 func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
 	if ctx == nil {
 		return nil, errors.New("turbinefan: context must not be nil")
@@ -90,12 +87,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	}
 	r := &run{ctx: ctx, doc: doc, p: p, dm: dm}
 	out := &Parts{Dimensions: dm}
-	clutch := p.Mount == ClutchMount
-	buildHub := r.hub
-	if clutch {
-		buildHub = r.clutchHub
-	}
-	hub, err := buildHub()
+	hub, err := r.hub()
 	if err != nil {
 		return nil, fmt.Errorf("turbinefan: hub: %w", err)
 	}
@@ -104,20 +96,10 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		return nil, fmt.Errorf("turbinefan: blades: %w", err)
 	}
 	bodies := append([]*decad.Body{hub}, blades...)
-	if clutch {
-		clamp, err := r.clamp()
-		if err != nil {
-			return nil, fmt.Errorf("turbinefan: clamp ring: %w", err)
-		}
-		bodies = append(bodies, clamp)
-	}
 	for i, body := range bodies {
 		name := fmt.Sprintf("blade %d", i)
-		switch {
-		case i == 0:
+		if i == 0 {
 			name = "hub"
-		case i > BladeCount:
-			name = "clamp ring"
 		}
 		if body == nil || !body.IsSolid() {
 			return nil, fmt.Errorf("turbinefan: %s is not a solid", name)
@@ -126,38 +108,31 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		if err != nil {
 			return nil, fmt.Errorf("turbinefan: place %s: %w", name, err)
 		}
-		switch {
-		case i == 0:
+		if i == 0 {
 			out.Hub = placed
-		case i > BladeCount:
-			out.Clamp = placed
-		default:
-			out.Blades[i-1] = placed
+			continue
 		}
+		out.Blades[i-1] = placed
 	}
 	out.Sketches = r.sketches
-	if !clutch {
-		if out.SetScrewSite, err = placeSite(dm.SetScrewSite, p.Placement); err != nil {
-			return nil, fmt.Errorf("turbinefan: place set screw: %w", err)
-		}
+	if out.SetScrewSite, err = placeSite(dm.SetScrewSite, p.Placement); err != nil {
+		return nil, fmt.Errorf("turbinefan: place set screw: %w", err)
 	}
 	for i, site := range dm.BladeSites {
 		if out.BladeSites[i], err = placeSite(site, p.Placement); err != nil {
 			return nil, fmt.Errorf("turbinefan: place blade bolt %d: %w", i+1, err)
 		}
 	}
-	if !clutch {
-		return out, nil
-	}
-	for i, site := range dm.EarSites {
-		if out.EarSites[i], err = placeSite(site, p.Placement); err != nil {
-			return nil, fmt.Errorf("turbinefan: place ear bolt %d: %w", i+1, err)
+	for i, site := range dm.AdapterSites {
+		if out.AdapterSites[i], err = placeSite(site, p.Placement); err != nil {
+			return nil, fmt.Errorf("turbinefan: place adapter bolt %d: %w", i+1, err)
 		}
 	}
 	return out, nil
 }
 
-// Build adds the hub, the blades, the clamp ring (ClutchMount), and every bolt and nut to doc, each in its container. ctx and doc must not be nil.
+// Build adds the hub, the blades, and every bolt and nut to doc, each in its container: the set screw in ShaftMount, the
+// two adapter bolts in ClutchMount. It does not build the adapter or the clutch. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -172,9 +147,6 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	for _, blade := range m.Blades {
 		bodies = append(bodies, filed{BladesContainerName, blade})
 	}
-	if m.Clamp != nil {
-		bodies = append(bodies, filed{ClampContainerName, m.Clamp})
-	}
 	for i, site := range m.BladeSites {
 		if m.BladeBolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
 			return nil, fmt.Errorf("turbinefan: blade bolt %d: %w", i+1, err)
@@ -185,14 +157,14 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		bodies = append(bodies, filed{BoltsContainerName, m.BladeBolts[i].Body}, filed{NutsContainerName, m.BladeNuts[i].Body})
 	}
 	if p.Mount == ClutchMount {
-		for i, site := range m.EarSites {
-			if m.EarBolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
-				return nil, fmt.Errorf("turbinefan: ear bolt %d: %w", i+1, err)
+		for i, site := range m.AdapterSites {
+			if m.AdapterBolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
+				return nil, fmt.Errorf("turbinefan: adapter bolt %d: %w", i+1, err)
 			}
-			if m.EarNuts[i], err = m2fastener.PlaceNut(ctx, doc, site); err != nil {
-				return nil, fmt.Errorf("turbinefan: ear nut %d: %w", i+1, err)
+			if m.AdapterNuts[i], err = m2fastener.PlaceNut(ctx, doc, site); err != nil {
+				return nil, fmt.Errorf("turbinefan: adapter nut %d: %w", i+1, err)
 			}
-			bodies = append(bodies, filed{BoltsContainerName, m.EarBolts[i].Body}, filed{NutsContainerName, m.EarNuts[i].Body})
+			bodies = append(bodies, filed{BoltsContainerName, m.AdapterBolts[i].Body}, filed{NutsContainerName, m.AdapterNuts[i].Body})
 		}
 	} else {
 		if m.SetScrew, err = m2fastener.PlaceBolt(ctx, doc, m.SetScrewSite); err != nil {
@@ -216,8 +188,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 }
 
 // hub extrudes the outline along +Z, chamfers both faces' long loops, and cuts, in this order: the three sockets, each
-// blade's head pocket and nut slot, then the set screw's counterbore, hole and nut slot. The blade bolts' holes and the D
-// bore are in the outline.
+// blade's head pocket and nut slot, then the set screw's counterbore, hole and nut slot, then each adapter bolt's hole
+// and nut slot. The blade bolts' holes and the D bore are in the outline.
 func (r *run) hub() (*decad.Body, error) {
 	s, err := r.hubSketch()
 	if err != nil {
@@ -262,6 +234,18 @@ func (r *run) hub() (*decad.Body, error) {
 		return nil, fmt.Errorf("set screw nut slot tool: %w", err)
 	}
 	tools = append(tools, counterbore, hole, slot)
+	for k, site := range r.dm.AdapterSites {
+		ah, ahs, err := m2fastener.HoleTool(r.ctx, r.doc, site)
+		if err != nil {
+			return nil, fmt.Errorf("adapter bolt %d hole tool: %w", k+1, err)
+		}
+		r.sketches = append(r.sketches, ahs)
+		as, err := r.slotTool(site, site.Corner, HubRadius+m2fastener.Stock-onewayclutch.FaceCircle)
+		if err != nil {
+			return nil, fmt.Errorf("adapter bolt %d nut slot tool: %w", k+1, err)
+		}
+		tools = append(tools, ah, as)
+	}
 	for _, tool := range tools {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
@@ -292,83 +276,6 @@ func (r *run) socketTools() ([]*decad.Body, error) {
 func (r *run) bladeSlotTool(k int) (*decad.Body, error) {
 	u := r3.Vec{X: math.Cos(BladeAngle(k)), Y: math.Sin(BladeAngle(k))}
 	return r.slotTool(r.dm.BladeSites[k-1], u, HubRadius+m2fastener.Stock-BladeBoltAt)
-}
-
-// clutchHub is the clutch mount's hub: the revolved hub and flange, cut in this order by the three sockets, each blade's
-// bolt hole, head pocket and nut slot, then each ear's head pocket and hole.
-func (r *run) clutchHub() (*decad.Body, error) {
-	body, err := r.clutchHubMeridian()
-	if err != nil {
-		return nil, fmt.Errorf("clutch hub: revolve: %w", err)
-	}
-	tools, err := r.socketTools()
-	if err != nil {
-		return nil, fmt.Errorf("clutch hub: %w", err)
-	}
-	for k, site := range r.dm.BladeSites {
-		hole, hs, err := m2fastener.HoleTool(r.ctx, r.doc, site)
-		if err != nil {
-			return nil, fmt.Errorf("clutch hub: blade %d hole tool: %w", k+1, err)
-		}
-		r.sketches = append(r.sketches, hs)
-		pocket, ps, err := m2fastener.PocketTool(r.ctx, r.doc, site)
-		if err != nil {
-			return nil, fmt.Errorf("clutch hub: blade %d head pocket tool: %w", k+1, err)
-		}
-		r.sketches = append(r.sketches, ps)
-		slot, err := r.bladeSlotTool(k + 1)
-		if err != nil {
-			return nil, fmt.Errorf("clutch hub: blade %d nut slot tool: %w", k+1, err)
-		}
-		tools = append(tools, hole, pocket, slot)
-	}
-	for k, site := range r.dm.EarSites {
-		pocket, ps, err := m2fastener.PocketTool(r.ctx, r.doc, site)
-		if err != nil {
-			return nil, fmt.Errorf("clutch hub: ear %d head pocket tool: %w", k+1, err)
-		}
-		r.sketches = append(r.sketches, ps)
-		hole, hs, err := m2fastener.HoleTool(r.ctx, r.doc, site)
-		if err != nil {
-			return nil, fmt.Errorf("clutch hub: ear %d hole tool: %w", k+1, err)
-		}
-		r.sketches = append(r.sketches, hs)
-		tools = append(tools, pocket, hole)
-	}
-	for _, tool := range tools {
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
-			return nil, fmt.Errorf("clutch hub: cut: %w", err)
-		}
-	}
-	return body, nil
-}
-
-// clamp is the clutch mount's clamp ring: the outline extruded ClampThickness along +Z from ClampBack, both faces' long
-// loops chamfered, then a nut slot cut at each ear bolt, open through the rim.
-func (r *run) clamp() (*decad.Body, error) {
-	s, err := r.clampSketch()
-	if err != nil {
-		return nil, err
-	}
-	body, err := r.extrudeOutline(s, onewayclutch.Ears+1, ClampThickness)
-	if err != nil {
-		return nil, fmt.Errorf("extrude: %w", err)
-	}
-	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{ClampBack, ClampBack + ClampThickness},
-		edgefinish.Long(edgefinish.All), ChamferSize); err != nil {
-		return nil, fmt.Errorf("chamfer faces: %w", err)
-	}
-	for k, site := range r.dm.EarSites {
-		u := site.Corner
-		slot, err := r.slotTool(site, u, ClampOuterRadius+m2fastener.Stock-onewayclutch.EarCircle)
-		if err != nil {
-			return nil, fmt.Errorf("ear %d nut slot tool: %w", k+1, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, slot); err != nil {
-			return nil, fmt.Errorf("cut ear %d nut slot: %w", k+1, err)
-		}
-	}
-	return body, nil
 }
 
 // ring returns body and its two copies about the shaft axis, 120 and 240 degrees on.

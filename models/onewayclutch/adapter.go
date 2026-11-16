@@ -20,7 +20,9 @@ const AdapterContainerName = "Adapter"
 
 // Adapter is the standard adapter ring with its three bolts and nuts, placed. It bolts to the clutch's ears from the
 // front. A part of another shape takes its place when it has a flat back face at AdapterFrom, is AdapterThickness thick
-// at each ear, and cuts m2fastener.PocketTool and a clearance hole at Dimensions.MountSites.
+// at each ear, and cuts m2fastener.PocketTool and a clearance hole at Dimensions.MountSites. Its front interface is the
+// three face holes at Dimensions.FaceSites, each with a head pocket in the rear face: a part one Seam in front of it
+// takes M2 x FaceLength bolts into hex nut slots open to its rim, and the ring's bore clears the shaft.
 type Adapter struct {
 	Body  *decad.Body
 	Bolts [3]*m2bolt.Model
@@ -91,13 +93,14 @@ func BuildAdapter(ctx context.Context, doc *decad.Document, p Params) (*Adapter,
 }
 
 // adapter extrudes the adapter's annulus (adapterSketch) AdapterThickness along +Z, chamfers the long loops of both
-// faces, then cuts a head pocket at each mount site. The clearance holes are in the profile.
+// faces, then cuts a head pocket at each mount site (front face) and face site (rear face). The clearance holes are in
+// the profile.
 func (r *run) adapter() (*decad.Body, error) {
 	s, err := r.adapterSketch()
 	if err != nil {
 		return nil, err
 	}
-	body, err := r.extrude(s, Ears+1, AdapterThickness)
+	body, err := r.extrude(s, 3*Ears+1, AdapterThickness)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
@@ -105,7 +108,8 @@ func (r *run) adapter() (*decad.Body, error) {
 		edgefinish.Long(edgefinish.All), PlateChamfer); err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
-	for i, site := range r.dm.MountSites {
+	sites := append(r.dm.MountSites[:], r.dm.FaceSites[:]...)
+	for i, site := range sites {
 		tool, sk, err := m2fastener.PocketTool(r.ctx, r.doc, site)
 		if err != nil {
 			return nil, fmt.Errorf("head pocket %d: %w", i+1, err)
