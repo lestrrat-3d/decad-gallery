@@ -23,10 +23,10 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other eleven models in a grid of four
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other twelve models in a grid of four
 // columns beside it: the three involute gears and the bevel gear pair across the top, the planetary gearbox, cycloidal
-// drive, hand-crank fan and hand-crank siren in the middle, and the escapement, crank handle and spiral spring centred
-// below.
+// drive, hand-crank fan and hand-crank siren in the middle, and the escapement, crank handle, spiral spring and turbine
+// fan below.
 var galleryTiles = []galleryTile{
 	{spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
 	{spurGearHero, image.Rect(560, 0, 820, 300)},
@@ -37,9 +37,10 @@ var galleryTiles = []galleryTile{
 	{cycloidalHero, image.Rect(820, 300, 1080, 600)},
 	{handCrankFanHero, image.Rect(1080, 300, 1340, 600)},
 	{handCrankSirenHero, image.Rect(1340, 300, 1600, 600)},
-	{escapementHero, image.Rect(690, 600, 950, 900)},
-	{crankHandleHero, image.Rect(950, 600, 1210, 900)},
-	{spiralSpringHero, image.Rect(1210, 600, 1470, 900)},
+	{escapementHero, image.Rect(560, 600, 820, 900)},
+	{crankHandleHero, image.Rect(820, 600, 1080, 900)},
+	{spiralSpringHero, image.Rect(1080, 600, 1340, 900)},
+	{turbineFanHero, image.Rect(1340, 600, 1600, 900)},
 }
 
 const (

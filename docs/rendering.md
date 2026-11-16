@@ -54,6 +54,15 @@ across the clamp nut's pocket at x = -9, and `cross-section` cuts the pin across
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
+`turbinefan/hero` renders the default right-hand fan from the front, right and above, with blade 1 up, in the hand-crank
+fan's hub and blade colours. The `front`, `back` and `side` presets show other angles. `clamp` clips every body by the plane
+z = 10 and looks into the hub from the front; `joint` clips the hub, blade 1, its bolt and nut and the clamp bolt and nut by
+the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along its radial line, each blade bolt 30 mm out
+of the front face, each blade nut 14 mm out of the back, the clamp bolt 25 mm along +X and the clamp nut 18 mm along -X;
+`exploded-back` shows the same offsets from behind, where the nuts are visible. `sizes` puts the 608ZZ hub 40 mm beside the
+605ZZ hub, from behind. The `readme` shot writes all of them, the index image and one 480 × 270 image of each part in
+`parts/`: `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
+
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.
 
@@ -252,12 +261,12 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle and the
-spiral spring one after another. It renders each model twice, once to measure the pixels it draws and once at the scale that fits them to
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle, the
+spiral spring and the turbine fan one after another. It renders each model twice, once to measure the pixels it draws and once at the scale that fits them to
 a cell of the 1600 × 900 pixel canvas, so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other eleven models fill a grid of four columns (260 × 300 pixels each): the three gears and the
+(560 pixels wide). The other twelve models fill a grid of four columns (260 × 300 pixels each): the three gears and the
 bevel gear pair across the top, the planetary gearbox, cycloidal drive, fan and siren in the middle, and the escapement,
-crank handle and spiral spring centred below. Building all twelve models takes about seven minutes plus the wheel
+crank handle, spiral spring and turbine fan below. Building all thirteen models takes about seven minutes plus the wheel
 build:
 
 ```sh

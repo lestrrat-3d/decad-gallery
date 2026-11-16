@@ -34,6 +34,9 @@ takes the double flats, the pin bolt's hole and nut cavity with rounded ends (`m
 `RoundedCavityTool`), and each cross bolt's hole, head pocket and hexagonal nut pocket open to the -Y flat, with the
 floor rounded by `NutPocketRound` as for the clamp. The handle is a revolved meridian.
 
+`clamp.go` exports the cutters and the tail the turbine fan reuses: `BoreTool`, `SlitTool`, `NutPocketTool`, `TailCenters`,
+`TailReach` and `SketchTail`. The arm calls them, so its bodies and sketch order are unchanged.
+
 ## Build and images
 
 ```sh

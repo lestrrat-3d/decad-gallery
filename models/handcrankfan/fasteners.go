@@ -30,7 +30,7 @@ func fastenerSites() []fastenerSite {
 		bolt: "fan-bolt-1", nut: "fan-nut-1", headHost: "fan-hub", nutHost: "fan-hub", motion: "fan",
 		Site: m2fastener.Site{
 			Head: r3.Vec{X: boltAt, Y: -(hubBack + hubLength), Z: axisHeight}, Dir: r3.Vec{Y: 1}, Corner: r3.Vec{X: 1},
-			Length: 16, Cavity: 15.6,
+			Length: BladeBoltLength, Cavity: BladeBoltCavity,
 		},
 	}}
 	for i, e := range gearboxEars {

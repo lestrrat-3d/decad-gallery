@@ -49,6 +49,15 @@ var presets = map[string]preset{
 	"crankhandle/clamp-nut":       {width: 1600, height: 900, scene: crankHandleViewScene("clamp-nut")},
 	"crankhandle/clamp-section":   {width: 1600, height: 900, scene: crankHandleViewScene("clamp-section")},
 	"crankhandle/cross-section":   {width: 1600, height: 900, scene: crankHandleViewScene("cross-section")},
+	"turbinefan/hero":             {width: 1600, height: 900, scene: turbineFanHero},
+	"turbinefan/front":            {width: 1600, height: 900, scene: turbineFanViewScene("front")},
+	"turbinefan/back":             {width: 1600, height: 900, scene: turbineFanViewScene("back")},
+	"turbinefan/side":             {width: 1600, height: 900, scene: turbineFanViewScene("side")},
+	"turbinefan/clamp":            {width: 1600, height: 900, scene: turbineFanViewScene("clamp")},
+	"turbinefan/joint":            {width: 1600, height: 900, scene: turbineFanViewScene("joint")},
+	"turbinefan/exploded":         {width: 1600, height: 900, scene: turbineFanViewScene("exploded")},
+	"turbinefan/exploded-back":    {width: 1600, height: 900, scene: turbineFanViewScene("exploded-back")},
+	"turbinefan/sizes":            {width: 1600, height: 900, scene: turbineFanViewScene("sizes")},
 	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
 	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
@@ -228,6 +237,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "crankhandle" {
 		return renderCrankHandleReadme(ctx, outputDir)
+	}
+	if model == "turbinefan" {
+		return renderTurbineFanReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)

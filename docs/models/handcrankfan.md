@@ -48,3 +48,9 @@ mesh checks, which run for the default parameters only. The bevel mesh has no pr
 non-compliance in [instructions.md](../../models/handcrankfan/instructions.md).
 
 Render the images with `go -C tools/render run . -model handcrankfan -shot readme -out ../../models/handcrankfan/images`.
+
+## Blade export
+
+`blade.go` exports the blade, its mirrored twin, the socket cutter and the hub and blade-joint constants for the turbine fan
+(`models/turbinefan`). The hub and `blades()` call the same code, so this model's bodies and sketch order are unchanged.
+`TestBuildBlade` and `TestBuildBladeMirrored` check them.

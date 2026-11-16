@@ -19,6 +19,7 @@
 | [Spiral spring](spiralspring/) | <img src="spiralspring/images/index.png" alt="Spiral spring with a D-bore hub and an anchor eye" width="240"> | A flat spiral (clock) spring for wind-up mechanisms, with a D-bore hub and an anchor eye, sized by its relaxed outer diameter. | Adjustable |
 | [Spur gear](spurgear/) | <img src="spurgear/images/index.png" alt="Bored spur gear" width="240"> | A straight-toothed involute gear with optional bore and cap chamfers. | Adjustable |
 | [Treadle spinning wheel](spinningwheel/) | <img src="spinningwheel/images/index.png" alt="Saxony wheel with a flyer and bobbin" width="240"> | A single drive band turns a hollow flyer around an independently rotating bobbin with a Scotch brake. | Mixed |
+| [Turbine fan](turbinefan/) | <img src="turbinefan/images/index.png" alt="Three-blade fan on a clamping hub" width="240"> | A three-blade fan with turbine-shaped blades that each bolt into the hub, so a blade can be swapped, in a right-hand and a left-hand version; the hub pinches a D-flat shaft with a slit and an M2 bolt, with presets for the 5 mm shaft of a 605ZZ and the 8 mm shaft of a 608ZZ bearing. | Mixed |
 
 Clearance adjustment labels follow the [model fit rules](../docs/model-pipeline.md#part-clearances).
 Nominal components keep their published dimensions; adjust the custom mating part to provide the required gap.
