@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lestrrat-3d/decad
-          ref: 9e3e5c056b77
+          ref: 9e3e5c056b77ce4927980cea7b38184b2e460401
           path: decad-baseline
       - uses: actions/checkout@v4
         with:
