@@ -2,6 +2,7 @@ package turbinefan_test
 
 import (
 	"math"
+	"slices"
 	"sync"
 	"testing"
 
@@ -94,9 +95,9 @@ func TestTurbineFanBuild(t *testing.T) {
 				turbinefan.HubContainerName:    {m.Hub},
 				turbinefan.BladesContainerName: {m.Blades[0], m.Blades[1], m.Blades[2]},
 				turbinefan.BoltsContainerName: {
-					m.BladeBolts[0].Body, m.BladeBolts[1].Body, m.BladeBolts[2].Body, m.ClampBolt.Body},
+					m.BladeBolts[0].Body, m.BladeBolts[1].Body, m.BladeBolts[2].Body, m.SetScrew.Body},
 				turbinefan.NutsContainerName: {
-					m.BladeNuts[0].Body, m.BladeNuts[1].Body, m.BladeNuts[2].Body, m.ClampNut.Body},
+					m.BladeNuts[0].Body, m.BladeNuts[1].Body, m.BladeNuts[2].Body, m.SetScrewNut.Body},
 			}
 			children := doc.Root().Children()
 			require.Len(t, children, len(want))
@@ -113,12 +114,12 @@ func TestTurbineFanBuild(t *testing.T) {
 }
 
 // TestTurbineFanSketches requires every sketch of every case, the hub's and the blades' and each bolt's and nut's,
-// fully constrained: 25 from BuildParts and 20 from Build.
+// fully constrained: 23 from BuildParts and 20 from Build.
 func TestTurbineFanSketches(t *testing.T) {
 	for _, c := range fanCases {
 		t.Run(c.name, func(t *testing.T) {
 			m, _ := built(t, c)
-			require.Len(t, m.Sketches, 25)
+			require.Len(t, m.Sketches, 23)
 			for i, s := range m.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
@@ -126,9 +127,9 @@ func TestTurbineFanSketches(t *testing.T) {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), b.Profile), "blade bolt %d profile", i+1)
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), b.Socket), "blade bolt %d socket", i+1)
 			}
-			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.ClampBolt.Profile))
-			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.ClampBolt.Socket))
-			for i, n := range append(m.BladeNuts[:], m.ClampNut) {
+			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.SetScrew.Profile))
+			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.SetScrew.Socket))
+			for i, n := range append(m.BladeNuts[:], m.SetScrewNut) {
 				for _, s := range []*sketch.Sketch{n.Hexagon, n.LowerChamfer, n.UpperChamfer} {
 					require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "nut %d", i)
 				}
@@ -173,6 +174,33 @@ func atX(t *testing.T, x float64) r3.Frame {
 	f, err := r3.NewFrame(r3.Vec{X: x}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	require.NoError(t, err)
 	return f
+}
+
+// atY is the plane y = const of the local frame, normal +Y, with U along +Z and V along +X.
+func atY(t *testing.T, y float64) r3.Frame {
+	t.Helper()
+	f, err := r3.NewFrame(r3.Vec{Y: y}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	require.NoError(t, err)
+	return f
+}
+
+// crossingsAtX returns, sorted, the y values within [lo, hi] where the section's loop edges cross the line x = x0.
+func crossingsAtX(o decad.SectionOutline, x0, lo, hi float64) []float64 {
+	var out []float64
+	for _, l := range o.Loops {
+		for i := range l {
+			a, b := l[i], l[(i+1)%len(l)]
+			if (a.X-x0)*(b.X-x0) >= 0 || a.X == b.X {
+				continue
+			}
+			y := a.Y + (x0-a.X)/(b.X-a.X)*(b.Y-a.Y)
+			if y >= lo && y <= hi {
+				out = append(out, y)
+			}
+		}
+	}
+	slices.Sort(out)
+	return out
 }
 
 // radial is the plane through the shaft axis and blade k's radial line, U along the line and V along +Z.
@@ -268,8 +296,8 @@ func eachCase(t *testing.T, names []string, fn func(t *testing.T, c fanCase, m *
 	}
 }
 
-// TestTurbineFanBounds checks the default hub's bounds against the layout in instructions.md and tessellates the hub, a
-// blade, a bolt and a nut with every verification on.
+// TestTurbineFanBounds checks the default hub's bounds and tessellates the hub, a blade, the set screw and its nut with
+// every verification on.
 func TestTurbineFanBounds(t *testing.T) {
 	m, _ := built(t, caseNamed(t, "605ZZ"))
 	box, err := m.Hub.Bounds()
@@ -277,16 +305,16 @@ func TestTurbineFanBounds(t *testing.T) {
 	tol := box.Bound.Base() + 1e-3
 	require.InDelta(t, -turbinefan.HubRadius, box.Min.X, tol)
 	require.InDelta(t, turbinefan.HubRadius, box.Max.X, tol)
+	require.InDelta(t, -turbinefan.HubRadius, box.Min.Y, tol)
 	require.InDelta(t, turbinefan.HubRadius, box.Max.Y, tol)
-	require.InDelta(t, -m.Dimensions.Reach, box.Min.Y, tol)
 	require.InDelta(t, 0, box.Min.Z, tol)
 	require.InDelta(t, turbinefan.HubLength, box.Max.Z, tol)
-	require.InDelta(t, 23.47, m.Dimensions.Reach, 0.01)
 	for name, item := range map[string]struct {
 		body *decad.Body
 		tol  float64
 	}{
-		"hub": {m.Hub, 0.05}, "blade": {m.Blades[0], 0.1}, "bolt": {m.ClampBolt.Body, 0.01}, "nut": {m.ClampNut.Body, 0.01},
+		"hub": {m.Hub, 0.05}, "blade": {m.Blades[0], 0.1}, "set screw": {m.SetScrew.Body, 0.01},
+		"set screw nut": {m.SetScrewNut.Body, 0.01},
 	} {
 		mesh := meshOf(t, item.body, item.tol)
 		require.True(t, mesh.BoundaryVerified(), name)
@@ -304,7 +332,7 @@ func TestTurbineFanPlacement(t *testing.T) {
 		"hub": {local.Hub, placed.Hub}, "blade 1": {local.Blades[0], placed.Blades[0]},
 		"blade 3": {local.Blades[2], placed.Blades[2]}, "blade bolt": {local.BladeBolts[1].Body, placed.BladeBolts[1].Body},
 		"blade nut":  {local.BladeNuts[2].Body, placed.BladeNuts[2].Body},
-		"clamp bolt": {local.ClampBolt.Body, placed.ClampBolt.Body}, "clamp nut": {local.ClampNut.Body, placed.ClampNut.Body},
+		"set screw": {local.SetScrew.Body, placed.SetScrew.Body}, "set screw nut": {local.SetScrewNut.Body, placed.SetScrewNut.Body},
 	}
 	for name, pair := range pairs {
 		lv, err := pair[0].Volume()
@@ -324,7 +352,8 @@ func TestTurbineFanPlacement(t *testing.T) {
 		require.InDelta(t, math.Min(lo.Y, hi.Y), pb.Min.Y, tol, name)
 		require.InDelta(t, math.Max(lo.Z, hi.Z), pb.Max.Z, tol, name)
 	}
-	require.InDelta(t, 0, placed.ClampSite.Head.Sub(xf.Apply(local.ClampSite.Head)).Len(), 1e-9)
+	require.InDelta(t, 0, placed.SetScrewSite.Head.Sub(xf.Apply(local.SetScrewSite.Head)).Len(), 1e-9)
+	require.InDelta(t, 0, placed.SetScrewSite.Dir.Sub(xf.ApplyDir(local.SetScrewSite.Dir)).Len(), 1e-9)
 	for i := range local.BladeSites {
 		require.InDelta(t, 0, placed.BladeSites[i].Head.Sub(xf.Apply(local.BladeSites[i].Head)).Len(), 1e-9)
 		require.InDelta(t, 0, placed.BladeSites[i].Dir.Sub(xf.ApplyDir(local.BladeSites[i].Dir)).Len(), 1e-9)

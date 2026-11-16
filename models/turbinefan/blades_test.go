@@ -119,7 +119,7 @@ func TestTurbineFanCopies(t *testing.T) {
 					"socket %d is empty at radius %g", k, r)
 			}
 		}
-		for _, deg := range []float64{30, 150} {
+		for _, deg := range []float64{30, 150, 270} {
 			a := deg * math.Pi / 180
 			at := r3.Vec{X: 9.5 * math.Cos(a), Y: 9.5 * math.Sin(a), Z: turbinefan.HubMid}
 			require.Equal(t, decad.PointInside, locate(at), "the hub is solid at %g degrees", deg)
@@ -231,6 +231,10 @@ func TestTurbineFanLeftHand(t *testing.T) {
 		lv, err := parts.Blades[k].Volume()
 		require.NoError(t, err)
 		require.InDelta(t, rv.Value.Base(), lv.Value.Base(), 2e-3*rv.Value.Base(), "blade %d", k+1)
+	}
+	// The blade nut slots stay reachable: no left-hand blade vertex lies in its nut's path.
+	for k := range parts.Blades {
+		requireAccess(t, meshOf(t, parts.Blades[k], 0.1).Vertices(), k+1)
 	}
 	// The leading edge now leads toward -X and still sits upstream.
 	verts := meshOf(t, parts.Blades[0], 0.1).Vertices()

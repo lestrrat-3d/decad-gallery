@@ -3,7 +3,6 @@ package turbinefan_test
 import (
 	"fmt"
 	"math"
-	"slices"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
@@ -15,127 +14,108 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestTurbineFanClampBolt checks the clamp bolt across the tab: an M2 x 16 whose head's top face is flush with the +X
-// side face and inside its pocket, which crosses the slit and whose tip ends flush with the -X side face, and whose nut
-// lies inside its hexagonal pocket, below the -X side face; neither bolt nor nut shares volume with the hub in sections
-// along and across the bolt. It also checks the pocket: open to the -X side face, a hexagon whose flats the nut's
-// corners cannot pass, so the nut cannot turn, with room for the nut's corners.
-func TestTurbineFanClampBolt(t *testing.T) {
-	eachCase(t, []string{"605ZZ", "608ZZ"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
-		dm, site := m.Dimensions, m.ClampSite
-		mid := float64(turbinefan.HubMid)
-		w := float64(turbinefan.TabHalfWidth)
-		floor := -w + m2fastener.NutCavityHeight // the nut pocket's floor
-		bb, err := m.ClampBolt.Body.Bounds()
+// flatsHalf is the distance from a nut slot's line to its straight sides.
+var flatsHalf = m2fastener.NutCavityRadius * math.Sqrt(3) / 2
+
+// TestTurbineFanSetScrew checks the set screw: an M2 x 6 on the line x = 0, z = SetScrewZ, whose tip stands on the pushed
+// shaft's flat, whose head floats over a rounded counterbore floor and stays inside the round face, whose nut sits in a
+// hex slot open to the back face, and which share no volume with the hub.
+func TestTurbineFanSetScrew(t *testing.T) {
+	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		p, dm, site := c.params(), m.Dimensions, m.SetScrewSite
+		z0 := float64(turbinefan.SetScrewZ)
+		require.Equal(t, float64(turbinefan.SetScrewBolt), site.Length)
+		require.Contains(t, m2bolt.StandardLengths(), site.Length)
+
+		bb, err := m.SetScrew.Body.Bounds()
 		require.NoError(t, err)
 		tol := bb.Bound.Base() + 2e-3
-		require.Equal(t, turbinefan.ClampBolt, site.Length)
-		require.Contains(t, m2bolt.StandardLengths(), site.Length)
-		require.InDelta(t, w, bb.Max.X, tol, "head top flush with the +X side face")
-		require.InDelta(t, w-site.Tip(), bb.Min.X, tol, "tip")
-		require.InDelta(t, -w, bb.Min.X, tol, "tip flush with the -X side face")
-		require.Less(t, math.Max(math.Max(bb.Max.Y-dm.ClampY, dm.ClampY-bb.Min.Y), math.Max(bb.Max.Z-mid, mid-bb.Min.Z)),
-			m2fastener.HeadPocketRadius, "head inside its pocket")
-		require.Less(t, bb.Min.X, -turbinefan.SlitWidth/2, "the bolt crosses the slit")
-		nb, err := m.ClampNut.Body.Bounds()
+		require.InDelta(t, -dm.SetScrewHead, bb.Min.Y, tol, "head top")
+		require.InDelta(t, -dm.SetScrewTip, bb.Max.Y, tol, "tip")
+		require.InDelta(t, p.ShaftDiameter/2-p.FlatDepth-p.BoreClearance, dm.SetScrewTip, 1e-12)
+		require.InDelta(t, 2*p.BoreClearance, dm.BoreFlat-dm.SetScrewTip, 1e-12, "the tip stands 2c inside the bore's flat")
+		for _, d := range []float64{bb.Min.X, bb.Max.X, bb.Min.Z - z0, bb.Max.Z - z0} {
+			require.Less(t, math.Abs(d), m2fastener.HeadPocketRadius, "head inside its counterbore")
+		}
+		require.LessOrEqual(t, m2bolt.ShankDiameter, dm.ShaftFlatWidth, "the tip lies within the shaft's flat")
+
+		// Nothing stands out: every vertex of the bolt is inside the round face.
+		out := 0.0
+		for _, v := range meshOf(t, m.SetScrew.Body, 0.01).Vertices() {
+			out = math.Max(out, math.Hypot(v.X, v.Y))
+		}
+		require.Less(t, out, float64(turbinefan.HubRadius))
+		t.Logf("%s: the head stays %.2f inside the round face", c.name, turbinefan.HubRadius-dm.SetScrewHead)
+
+		// The head floats over a rounded floor.
+		require.InDelta(t, turbinefan.SetScrewTravel, (dm.SetScrewHead-m2fastener.HeadPocketDepth)-dm.CounterboreFloor, 1e-12)
+		plane := section(t, m.Hub, atZ(t, z0))
+		xy := func(v r3.Vec) (float64, float64) { return v.X, v.Y }
+		floor := dm.CounterboreFloor
+		require.True(t, inSection(plane, xy, 1.5, -(floor-0.2)), "hub below the counterbore floor")
+		require.False(t, inSection(plane, xy, 1.5, -(floor+0.2)), "the counterbore above its floor")
+		require.True(t, inSection(plane, xy, 2.15, -(floor+0.1)), "hub inside the floor's round")
+		require.False(t, inSection(plane, xy, 2.15, -(floor+0.6)), "the counterbore past the round")
+
+		// The nut sits in its slot.
+		nb, err := m.SetScrewNut.Body.Bounds()
 		require.NoError(t, err)
 		ntol := nb.Bound.Base() + 2e-3
-		require.GreaterOrEqual(t, nb.Min.X, -w+m2fastener.NutClearance-ntol, "nut below the -X side face")
-		require.LessOrEqual(t, nb.Max.X, floor-m2fastener.NutClearance+ntol, "nut inside its pocket")
-		require.Less(t, bb.Min.X, nb.Min.X, "the bolt runs through the whole nut")
-		for _, d := range []float64{nb.Min.Z - mid, nb.Max.Z - mid} {
-			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius, "nut: corners inside its pocket")
+		require.GreaterOrEqual(t, nb.Min.Y, -(dm.BoreFlat+3.6)+m2fastener.NutClearance-ntol)
+		require.LessOrEqual(t, nb.Max.Y, -(dm.BoreFlat+turbinefan.PressWall)-m2fastener.NutClearance+ntol)
+		require.LessOrEqual(t, math.Max(-nb.Min.X, nb.Max.X), flatsHalf+ntol, "nut flats inside the slot's sides")
+		require.LessOrEqual(t, math.Max(z0-nb.Min.Z, nb.Max.Z-z0), m2fastener.NutCavityRadius+ntol, "nut corners inside the slot")
+		require.Less(t, bb.Min.Y, nb.Min.Y, "the bolt runs through the whole nut")
+		require.Greater(t, bb.Max.Y, nb.Max.Y, "the bolt runs through the whole nut")
+
+		// The slot: open to the back face, a hexagonal end, straight sides.
+		slotY := -(dm.BoreFlat + 2.6)
+		across := section(t, m.Hub, atY(t, slotY))
+		zx := func(v r3.Vec) (float64, float64) { return v.Z, v.X }
+		abound := across.OffSurface.Base() + 1e-3
+		require.False(t, inSection(across, zx, 0.3, 0), "the slot is open to the back face")
+		require.False(t, inSection(across, zx, z0, 0), "the slot at the bolt's line")
+		require.False(t, inSection(across, zx, z0+2.3, 0), "the slot's end")
+		require.True(t, inSection(across, zx, z0+m2fastener.NutCavityRadius+0.4, 0), "hub beyond the slot's end")
+		for _, x := range []float64{-(flatsHalf + 0.4), flatsHalf + 0.4} {
+			require.True(t, inSection(across, zx, 2.0, x), "hub beside the slot")
 		}
-		for _, d := range []float64{nb.Min.Y - dm.ClampY, nb.Max.Y - dm.ClampY} {
-			require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius*math.Sqrt(3)/2+ntol, "nut: flats inside its pocket")
+		least := math.Inf(1)
+		for _, l := range across.Loops {
+			for _, v := range l {
+				if v.Z >= 1.0 && v.Z <= z0 {
+					least = math.Min(least, math.Abs(v.X))
+				}
+			}
 		}
-		requireClampPocket(t, m)
-		frames := map[string]r3.Frame{}
-		for _, z := range []float64{7.8, 8.8, 10, 11.2, 12.2} {
-			frames[fmt.Sprintf("z %g", z)] = atZ(t, z)
-		}
-		for _, x := range []float64{9.5, 8, 6, 3, 0, -3, -6, -7.9, -8.3, -9, -9.7} {
-			frames[fmt.Sprintf("x %g", x)] = atX(t, x)
-		}
+		require.InDelta(t, flatsHalf, least, abound, "the slot's straight sides")
+		require.Less(t, least, m2nut.AcrossCorners()/2, "the nut's corners cannot pass the sides")
+
+		frames := map[string]r3.Frame{"x 0": atX(t, 0), "x -1": atX(t, -1), "x 1": atX(t, 1), "z": atZ(t, z0),
+			"z-1": atZ(t, z0-1), "z+1": atZ(t, z0+1), "y flat": atY(t, -(dm.BoreFlat + 0.8)), "y slot": atY(t, slotY),
+			"y floor": atY(t, -(floor + 1))}
 		for name, f := range frames {
-			requireNoOverlap(t, m.Hub, f, "clamp fastener at "+name, m.ClampBolt.Body, m.ClampNut.Body)
+			requireNoOverlap(t, m.Hub, f, "set screw at "+name, m.SetScrew.Body, m.SetScrewNut.Body)
 		}
-		// 1 mm or more of material round the pockets: the tab's flat side faces beyond the head pocket's ring and the
-		// nut pocket's flats, the web between the hole and the bore, and under the head pocket.
-		flat := m2fastener.NutCavityRadius * math.Sqrt(3) / 2
-		for name, wall := range map[string]float64{
-			"between the hole and the bore":              -dm.ClampY - m2fastener.HoleRadius - dm.BoreRadius,
-			"of -X side face beyond the nut pocket":      dm.ClampY - flat - dm.SideEnd,
-			"of side face beyond the head pocket":        dm.ClampY - m2fastener.HeadPocketRadius - dm.SideEnd,
-			"between the head pocket and each face":      mid - m2fastener.HeadPocketRadius,
-			"between the nut pocket and each face":       mid - m2fastener.NutCavityRadius,
-			"under the head pocket to the slit":          w - m2fastener.HeadPocketDepth - turbinefan.SlitWidth/2,
-			"between the nut pocket floor and the bore ": math.Hypot(floor, math.Min(0, dm.ClampY+flat)) - dm.BoreRadius,
-		} {
-			require.GreaterOrEqual(t, wall, 1.0-1e-9, "material %s", name)
-		}
+
+		// Material round the pockets.
+		require.GreaterOrEqual(t, site.Cavity-m2fastener.HeadPocketDepth-turbinefan.SetScrewTravel, 1.0)
+		require.InDelta(t, turbinefan.PressWall, dm.SetScrewHead-site.CavityFar()-dm.BoreFlat, 1e-12)
+		require.GreaterOrEqual(t, z0-m2fastener.HeadPocketRadius, 1.0)
+		require.GreaterOrEqual(t, dm.BoreFlatWidth, 2*(m2fastener.HoleRadius+0.1))
 	})
 }
 
-// requireClampPocket checks the clamp nut's pocket in sections of the hub. Across the bolt, 1 mm inside the -X side
-// face, its loop round the bolt's axis comes no nearer the axis than the nut's flats allow and no farther than the
-// circle through the pocket's corners, and its least distance is under the nut's corner radius, so the nut cannot turn
-// in it while its corners keep their room. Along the bolt at mid thickness, the pocket opens to the -X side face and the
-// hub is solid beyond its floor and beyond its corners.
-func requireClampPocket(t *testing.T, m *turbinefan.Model) {
-	t.Helper()
-	dm := m.Dimensions
-	mid := float64(turbinefan.HubMid)
-	w := float64(turbinefan.TabHalfWidth)
-	floor := -w + m2fastener.NutCavityHeight
-	across := section(t, m.Hub, atX(t, -w+1))
-	bound := across.OffSurface.Base() + 1e-3
-	near, far := math.Inf(1), math.Inf(-1)
-	up, side := 0.0, 0.0
-	found := false
-	for _, l := range across.Loops {
-		var ds []float64
-		for _, v := range l {
-			ds = append(ds, math.Hypot(v.Y-dm.ClampY, v.Z-mid))
-		}
-		if slices.Max(ds) > m2fastener.NutCavityRadius+0.5 {
-			continue
-		}
-		found = true
-		for _, v := range l {
-			up, side = math.Max(up, math.Abs(v.Z-mid)), math.Max(side, math.Abs(v.Y-dm.ClampY))
-		}
-		for i := range l {
-			a, b := l[i], l[(i+1)%len(l)]
-			yz := func(v r3.Vec) r3.Vec { return r3.Vec{X: v.Y - dm.ClampY, Y: v.Z - mid} }
-			near = math.Min(near, distanceToLoop(r3.Vec{}, []r3.Vec{yz(a), yz(b)}))
-			far = math.Max(far, math.Hypot(a.Y-dm.ClampY, a.Z-mid))
-		}
-	}
-	require.True(t, found, "the nut pocket's loop round the clamp bolt's axis")
-	// A diagonal lies along Z: a corner points up and one down, and the flats are the +Y and -Y sides.
-	require.InDelta(t, m2fastener.NutCavityRadius, up, bound, "nut pocket: a corner up and one down")
-	require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, side, bound, "nut pocket: flats on the sides")
-	require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, near, bound, "nut pocket: its flats")
-	require.Less(t, near, m2nut.AcrossCorners()/2, "nut pocket: the nut's corners cannot pass its flats")
-	require.LessOrEqual(t, far, m2fastener.NutCavityRadius+bound, "nut pocket: its corners")
-	require.Greater(t, far, m2nut.AcrossCorners()/2+0.05, "nut pocket: room for the nut's corners")
-	along := section(t, m.Hub, atZ(t, mid))
-	xy := func(v r3.Vec) (float64, float64) { return v.X, v.Y }
-	require.False(t, inSection(along, xy, -w+0.3, dm.ClampY+1.8), "nut pocket open to the -X side face")
-	require.True(t, inSection(along, xy, -w+0.3, dm.ClampY+m2fastener.NutCavityRadius+0.5), "hub beyond the nut pocket's corner")
-	require.True(t, inSection(along, xy, floor+0.4, dm.ClampY+1.8), "hub beyond the nut pocket's floor")
-}
-
 // TestTurbineFanBladeBolts checks each blade bolt: the head's top face is flush with the front face and inside its
-// pocket, the tip stays inside the hole in the hub, the nut lies inside its cavity, the hub encloses the nut on all
-// sides but the bolt hole, and neither bolt nor nut shares volume with the hub or with its blade.
+// pocket, the tip stays inside the hole in the hub, the nut lies inside its slot, which is open to the round face and
+// closed above and below, and neither bolt nor nut shares volume with the hub or with its blade.
 func TestTurbineFanBladeBolts(t *testing.T) {
 	eachCase(t, []string{"605ZZ", "608ZZ"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		for k := 1; k <= turbinefan.BladeCount; k++ {
 			t.Run(fmt.Sprintf("blade-%d", k), func(t *testing.T) {
 				site := m.BladeSites[k-1]
 				u := bladeDir(k)
+				v := r3.Vec{X: -u.Y, Y: u.X}
 				line := r3.Vec{X: u.X * handcrankfan.BladeBoltAt, Y: u.Y * handcrankfan.BladeBoltAt}
 				bolt, nut := m.BladeBolts[k-1].Body, m.BladeNuts[k-1].Body
 				require.Equal(t, handcrankfan.BladeBoltLength, site.Length)
@@ -153,31 +133,30 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 				require.NoError(t, err)
 				ntol := nb.Bound.Base() + 2e-3
 				lo, hi := turbinefan.HubLength-site.CavityFar(), turbinefan.HubLength-site.Cavity
-				require.GreaterOrEqual(t, nb.Min.Z, lo-ntol)
-				require.LessOrEqual(t, nb.Max.Z, hi+ntol)
-				require.InDelta(t, 2.4, lo, 1e-9, "the cavity's low face")
-				require.InDelta(t, 4.4, hi, 1e-9, "the cavity's high face")
-				for _, d := range []float64{nb.Min.X - line.X, nb.Max.X - line.X, nb.Min.Y - line.Y, nb.Max.Y - line.Y} {
-					require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius, "nut inside its cavity")
+				require.InDelta(t, 2.4, lo, 1e-9, "the slot's low face")
+				require.InDelta(t, 4.4, hi, 1e-9, "the slot's high face")
+				require.GreaterOrEqual(t, nb.Min.Z, lo+m2fastener.NutClearance-ntol)
+				require.LessOrEqual(t, nb.Max.Z, hi-m2fastener.NutClearance+ntol)
+				for _, w := range meshOf(t, nut, 0.01).Vertices() {
+					d := w.Sub(line)
+					require.LessOrEqual(t, math.Abs(d.Dot(v)), flatsHalf+ntol, "nut flats inside the slot's sides")
+					require.LessOrEqual(t, math.Abs(d.Dot(u)), m2fastener.NutCavityRadius+ntol, "nut corners inside the slot")
 				}
-				// The hub holds the nut: material above and below the cavity beside the bolt hole, and all round it; the cavity
-				// and the bolt hole are empty. The cavity's faces are within 0.5 mm of these points, where the faceted hub's
-				// point location is undecided, so the sections read them.
-				xy := func(v r3.Vec) (float64, float64) { return v.X, v.Y }
-				solid := func(z, r, a float64) bool {
-					return inSection(section(t, m.Hub, atZ(t, z)), xy, line.X+r*math.Cos(a), line.Y+r*math.Sin(a))
-				}
+				// The slot, in the section at z 3.4: open to the rim, closed at its sides and its end. Above and below it
+				// the hub is solid, and the bolt's hole is empty.
+				xy := func(w r3.Vec) (float64, float64) { return w.X, w.Y }
+				mid := section(t, m.Hub, atZ(t, 3.4))
+				at := func(p r3.Vec) bool { return inSection(mid, xy, p.X, p.Y) }
+				require.False(t, at(line), "the slot at the bolt's line")
+				require.False(t, at(line.Add(u.Scale(3))), "the slot beyond the bolt")
+				require.False(t, at(u.Scale(13.9)), "the slot is open to the rim")
+				require.True(t, at(line.Add(v.Scale(flatsHalf+0.4))), "hub beside the slot")
+				require.True(t, at(line.Sub(v.Scale(flatsHalf+0.4))), "hub beside the slot")
+				require.True(t, at(u.Scale(handcrankfan.BladeBoltAt-m2fastener.NutCavityRadius-0.4)), "hub beyond the slot's end")
 				for _, z := range []float64{1.9, 4.9} {
-					for i := range 8 {
-						a := float64(i) * math.Pi / 4
-						require.True(t, solid(z, 2.0, a), "the hub closes the cavity at z %g, angle %g", z, a)
-						require.False(t, solid(z, 0.5, a), "the bolt hole at z %g", z)
-					}
-				}
-				for i := range 8 {
-					a := float64(i) * math.Pi / 4
-					require.True(t, solid(3.4, 3.0, a), "the hub round the cavity at angle %g", a)
-					require.False(t, solid(3.4, 2.0, a), "the cavity at angle %g is empty", a)
+					level := section(t, m.Hub, atZ(t, z))
+					require.True(t, inSection(level, xy, line.X+2*u.X, line.Y+2*u.Y), "hub under and over the slot at z %g", z)
+					require.False(t, inSection(level, xy, line.X, line.Y), "the bolt's hole at z %g", z)
 				}
 				frames := map[string]r3.Frame{"axis plane": radial(t, k)}
 				for _, z := range []float64{1, 3.4, 10, 19} {
@@ -187,9 +166,37 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 					requireNoOverlap(t, m.Hub, f, fmt.Sprintf("blade fastener %d at %s", k, name), bolt, nut)
 					requireNoOverlap(t, m.Blades[k-1], f, fmt.Sprintf("blade fastener %d with its blade at %s", k, name), bolt, nut)
 				}
-				// 1 mm or more of hub under the head pocket, round the cavity and to the back face.
-				require.GreaterOrEqual(t, handcrankfan.BladeBoltCavity-m2fastener.HeadPocketDepth, 1.0)
 			})
+		}
+	})
+}
+
+// requireAccess requires that no vertex of blade lies in blade k's nut path, the slot's mouth below the root: radial 13 to
+// 18.7 along the radial line, within 2.81 of it sideways, below z 4.7.
+func requireAccess(t *testing.T, blade []r3.Vec, k int) {
+	t.Helper()
+	u := bladeDir(k)
+	v := r3.Vec{X: -u.Y, Y: u.X}
+	for _, w := range blade {
+		if r := w.Dot(u); r >= 13 && r <= 18.7 && math.Abs(w.Dot(v)) <= 2.81 && w.Z < 4.7 {
+			require.FailNow(t, fmt.Sprintf("a blade %d vertex blocks its nut's path at %v", k, w))
+		}
+	}
+}
+
+// TestTurbineFanAccess requires the set screw's path from -Y and each blade's nut path to stay clear of every blade, so
+// the screw and the nuts reach their seats with the hub on its shaft.
+func TestTurbineFanAccess(t *testing.T) {
+	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		reach := m2fastener.HeadPocketRadius + 1
+		for k := 1; k <= turbinefan.BladeCount; k++ {
+			verts := meshOf(t, m.Blades[k-1], 0.1).Vertices()
+			for _, w := range verts {
+				if math.Abs(w.X) < reach && w.Y < -(turbinefan.HubRadius-1) && math.Abs(w.Z-turbinefan.SetScrewZ) < reach {
+					require.FailNow(t, fmt.Sprintf("a blade %d vertex blocks the set screw's path at %v", k, w))
+				}
+			}
+			requireAccess(t, verts, k)
 		}
 	})
 }

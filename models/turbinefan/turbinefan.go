@@ -1,12 +1,13 @@
-// Package turbinefan builds a fan of three replaceable blades on one printed hub. The hub pinches a D-flat shaft the way
-// the crank handle's arm does: a blind D bore, a 1 mm slit from the bore out through a clamp tab and one M2 bolt across
-// the tab. Each blade is the hand-crank fan's blade; its round root stud slides into a radial socket in the hub and one
-// M2 bolt, parallel to the shaft, holds it.
+// Package turbinefan builds a fan of three replaceable blades on one printed hub. The hub is a plain round cylinder with a
+// D bore for a D-flat shaft. One radial M2 x 6 bolt acts as a set screw: it threads through a nut in a hex slot open to the
+// back face, its tip presses the shaft's flat and its head floats, recessed, in a counterbore in the round face. Each blade
+// is the hand-crank fan's blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the
+// shaft, holds it in a nut that sits in a hex slot open to the round face.
 //
 // The local frame has its origin on the shaft axis in the hub's back face, the face toward the mechanism. +Z runs along
-// the shaft axis away from the mechanism to the front face at z = HubLength, and the bore's flat faces +Y. Blade 1 lies
-// along +Y, blades 2 and 3 at 210 and 330 degrees; the slit and the clamp tab point to -Y. Seen from the front, a right-hand
-// fan turns clockwise and a left-hand fan counter-clockwise; either blows air forward, away from the mechanism.
+// the shaft axis away from the mechanism to the front face at z = HubLength, and the bore's flat faces -Y, where the set
+// screw enters. Blade 1 lies along +Y, blades 2 and 3 at 210 and 330 degrees. Seen from the front, a right-hand fan turns
+// clockwise and a left-hand fan counter-clockwise; either blows air forward, away from the mechanism.
 package turbinefan
 
 import (
@@ -15,15 +16,14 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
-	"github.com/lestrrat-3d/units"
 )
 
 // Container names, one per kind of body.
@@ -41,18 +41,18 @@ type Parts struct {
 	// Sketches are every sketch the parts were built from, each fully constrained.
 	Sketches   []*sketch.Sketch
 	Dimensions Dimensions
-	// BladeSites are the three blade bolts in the world frame; ClampSite is the clamp bolt in the world frame.
-	BladeSites [BladeCount]m2fastener.Site
-	ClampSite  m2fastener.Site
+	// BladeSites are the three blade bolts in the world frame; SetScrewSite is the set screw in the world frame.
+	BladeSites   [BladeCount]m2fastener.Site
+	SetScrewSite m2fastener.Site
 }
 
-// Model is a built fan: its parts, the three blade bolts and nuts, and the clamp bolt and nut.
+// Model is a built fan: its parts, the three blade bolts and nuts, and the set screw and its nut.
 type Model struct {
 	Parts
-	BladeBolts [BladeCount]*m2bolt.Model
-	BladeNuts  [BladeCount]*m2nut.Model
-	ClampBolt  *m2bolt.Model
-	ClampNut   *m2nut.Model
+	BladeBolts  [BladeCount]*m2bolt.Model
+	BladeNuts   [BladeCount]*m2nut.Model
+	SetScrew    *m2bolt.Model
+	SetScrewNut *m2nut.Model
 }
 
 // BuildParts adds the hub and the three blades to doc and returns them. It puts them in no container. ctx and doc must
@@ -100,8 +100,8 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		out.Blades[i-1] = placed
 	}
 	out.Sketches = r.sketches
-	if out.ClampSite, err = placeSite(dm.ClampSite, p.Placement); err != nil {
-		return nil, fmt.Errorf("turbinefan: place clamp bolt: %w", err)
+	if out.SetScrewSite, err = placeSite(dm.SetScrewSite, p.Placement); err != nil {
+		return nil, fmt.Errorf("turbinefan: place set screw: %w", err)
 	}
 	for i, site := range dm.BladeSites {
 		if out.BladeSites[i], err = placeSite(site, p.Placement); err != nil {
@@ -135,13 +135,13 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		}
 		bodies = append(bodies, filed{BoltsContainerName, m.BladeBolts[i].Body}, filed{NutsContainerName, m.BladeNuts[i].Body})
 	}
-	if m.ClampBolt, err = m2fastener.PlaceBolt(ctx, doc, m.ClampSite); err != nil {
-		return nil, fmt.Errorf("turbinefan: clamp bolt: %w", err)
+	if m.SetScrew, err = m2fastener.PlaceBolt(ctx, doc, m.SetScrewSite); err != nil {
+		return nil, fmt.Errorf("turbinefan: set screw: %w", err)
 	}
-	if m.ClampNut, err = m2fastener.PlaceNut(ctx, doc, m.ClampSite); err != nil {
-		return nil, fmt.Errorf("turbinefan: clamp nut: %w", err)
+	if m.SetScrewNut, err = m2fastener.PlaceNut(ctx, doc, m.SetScrewSite); err != nil {
+		return nil, fmt.Errorf("turbinefan: set screw nut: %w", err)
 	}
-	bodies = append(bodies, filed{BoltsContainerName, m.ClampBolt.Body}, filed{NutsContainerName, m.ClampNut.Body})
+	bodies = append(bodies, filed{BoltsContainerName, m.SetScrew.Body}, filed{NutsContainerName, m.SetScrewNut.Body})
 	for _, c := range bodies {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
@@ -154,40 +154,24 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	return m, nil
 }
 
-// hub extrudes the outline along +Z, chamfers both faces' outlines, and cuts, in this order: the slit, the blind D
-// bore, the three blade sockets, each blade bolt's head pocket and nut cavity, and the clamp bolt's hexagonal nut
-// pocket in the -X side face, head pocket and hole. The blade bolts' holes are in the outline.
+// hub extrudes the outline along +Z, chamfers both faces' long loops, and cuts, in this order: the three sockets, each
+// blade's head pocket and nut slot, then the set screw's counterbore, hole and nut slot. The blade bolts' holes and the D
+// bore are in the outline.
 func (r *run) hub() (*decad.Body, error) {
 	s, err := r.hubSketch()
 	if err != nil {
 		return nil, err
 	}
-	body, err := r.extrudeOutline(s, BladeCount, HubLength)
+	body, err := r.extrudeOutline(s, BladeCount+1, HubLength)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
-	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body)))
-	if body, err = decad.Chamfer(r.ctx, body, loops, units.Millimeters(ChamferSize)); err != nil {
+	// Both faces' long loops go in one call: the outer circle, and the D loop at the 8 mm shaft.
+	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{0, HubLength}, edgefinish.Long(edgefinish.All),
+		ChamferSize); err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
 	var tools []*decad.Body
-	add := func(tool *decad.Body, s *sketch.Sketch, err error, what string) error {
-		if err != nil {
-			return fmt.Errorf("%s: %w", what, err)
-		}
-		r.sketches = append(r.sketches, s)
-		tools = append(tools, tool)
-		return nil
-	}
-	below := across(-1)
-	slit, ss, err := crankhandle.SlitTool(r.ctx, r.doc, below, -r.dm.Reach-2, r.dm.BoreRadius, HubLength+2)
-	if err := add(slit, ss, err, "slit tool"); err != nil {
-		return nil, err
-	}
-	bore, bs, err := crankhandle.BoreTool(r.ctx, r.doc, below, r.dm.BoreRadius, r.dm.BoreFlat, 1+HubLength-BoreFloor)
-	if err := add(bore, bs, err, "bore tool"); err != nil {
-		return nil, err
-	}
 	socketFrame, err := r3.NewFrame(r3.Vec{Y: handcrankfan.BladeSocketStart, Z: HubMid}, r3.Vec{Z: 1}, r3.Vec{X: 1})
 	if err != nil {
 		return nil, fmt.Errorf("socket frame: %w", err)
@@ -204,27 +188,30 @@ func (r *run) hub() (*decad.Body, error) {
 	tools = append(tools, sockets...)
 	for k, site := range r.dm.BladeSites {
 		pocket, ps, err := m2fastener.PocketTool(r.ctx, r.doc, site)
-		if err := add(pocket, ps, err, fmt.Sprintf("blade %d head pocket tool", k+1)); err != nil {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("blade %d head pocket tool: %w", k+1, err)
 		}
-		cavity, cs, err := m2fastener.CavityTool(r.ctx, r.doc, site)
-		if err := add(cavity, cs, err, fmt.Sprintf("blade %d nut cavity tool", k+1)); err != nil {
-			return nil, err
+		r.sketches = append(r.sketches, ps)
+		slot, err := r.bladeSlotTool(k + 1)
+		if err != nil {
+			return nil, fmt.Errorf("blade %d nut slot tool: %w", k+1, err)
 		}
+		tools = append(tools, pocket, slot)
 	}
-	nut, ns, err := crankhandle.NutPocketTool(r.ctx, r.doc, r.dm.ClampSite,
-		2*TabHalfWidth-r.dm.ClampSite.Cavity+m2fastener.Stock)
-	if err := add(nut, ns, err, "clamp nut pocket tool"); err != nil {
-		return nil, err
+	counterbore, err := r.counterboreTool()
+	if err != nil {
+		return nil, fmt.Errorf("counterbore tool: %w", err)
 	}
-	head, hs, err := m2fastener.PocketTool(r.ctx, r.doc, r.dm.ClampSite)
-	if err := add(head, hs, err, "clamp head pocket tool"); err != nil {
-		return nil, err
+	hole, hs, err := m2fastener.HoleTool(r.ctx, r.doc, r.dm.SetScrewSite)
+	if err != nil {
+		return nil, fmt.Errorf("set screw hole tool: %w", err)
 	}
-	hole, ls, err := m2fastener.HoleTool(r.ctx, r.doc, r.dm.ClampSite)
-	if err := add(hole, ls, err, "clamp hole tool"); err != nil {
-		return nil, err
+	r.sketches = append(r.sketches, hs)
+	slot, err := r.setScrewSlotTool()
+	if err != nil {
+		return nil, fmt.Errorf("set screw nut slot tool: %w", err)
 	}
+	tools = append(tools, counterbore, hole, slot)
 	for _, tool := range tools {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)

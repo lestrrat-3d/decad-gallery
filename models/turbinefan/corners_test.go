@@ -13,39 +13,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// clampFloorRound is the clamp nut pocket's 0.6 floor round, which a layer cuts at a slant and reads as a turn of 51.6
-// to 54.4 degrees (instructions.md, "Retained sharp corners and edges"). It exempts that band only.
-func clampFloorRound(dm turbinefan.Dimensions) cornercheck.Exempt {
-	floor := -turbinefan.TabHalfWidth + m2fastener.NutCavityHeight
+// counterboreRound is the set screw counterbore's 0.5 floor round, which a layer off the screw's line cuts at a slant and
+// reads as a turn over 45 degrees.
+func counterboreRound(dm turbinefan.Dimensions) cornercheck.Exempt {
 	return cornercheck.Exempt{
-		Reason: "clamp nut pocket floor round cut at a slant",
+		Reason: "counterbore floor round cut at a slant",
 		Near: func(v r3.Vec) bool {
-			return v.X < floor-0.05 && v.X > floor-turbinefan.NutPocketRound-0.1 &&
-				math.Hypot(v.Y-dm.ClampY, v.Z-turbinefan.HubMid) <= m2fastener.NutCavityRadius+0.05
+			r := math.Hypot(v.X, v.Z-turbinefan.SetScrewZ)
+			return math.Abs(-v.Y-dm.CounterboreFloor) <= turbinefan.CounterboreRound+0.1 &&
+				r >= m2fastener.HeadPocketRadius-turbinefan.CounterboreRound-0.05 && r <= m2fastener.HeadPocketRadius+0.05
 		},
 	}
 }
 
-// clampHeadRim is the clamp bolt's head pocket floor rim, which the 0.3 mm head clearance leaves no room to round.
-func clampHeadRim(dm turbinefan.Dimensions) cornercheck.Exempt {
+// setScrewSlotEndRound is the set screw slot's rounded sloped end, which a layer cuts at a slant.
+func setScrewSlotEndRound(dm turbinefan.Dimensions) cornercheck.Exempt {
 	return cornercheck.Exempt{
-		Reason: "clamp head pocket floor rim",
+		Reason: "set screw slot end round cut at a slant",
 		Near: func(v r3.Vec) bool {
-			return math.Abs(v.X-(turbinefan.TabHalfWidth-m2fastener.HeadPocketDepth)) < 0.05 &&
-				math.Hypot(v.Y-dm.ClampY, v.Z-turbinefan.HubMid) <= m2fastener.HeadPocketRadius+0.05
-		},
-	}
-}
-
-// slitRound is the slit's end round in the bore's floor, a full round of half the slit's width that the held mesh
-// chords coarsely enough for cornercheck to read.
-func slitRound(dm turbinefan.Dimensions) cornercheck.Exempt {
-	half := turbinefan.SlitWidth / 2
-	return cornercheck.Exempt{
-		Reason: "slit end round in the bore's floor",
-		Near: func(v r3.Vec) bool {
-			return math.Hypot(v.X, v.Y-(-dm.BoreRadius+turbinefan.SlitInBore-half)) <= half+0.05 &&
-				v.Z > turbinefan.HubLength-turbinefan.BoreFloor
+			return -v.Y >= dm.BoreFlat+turbinefan.PressWall-0.05 && -v.Y <= dm.BoreFlat+turbinefan.PressWall+2.05 &&
+				math.Abs(v.X) <= flatsHalf+0.05 && v.Z >= turbinefan.SetScrewZ+m2fastener.NutCavityRadius/2-0.1
 		},
 	}
 }
@@ -63,18 +50,17 @@ func socketFloorRound() cornercheck.Exempt {
 }
 
 // TestTurbineFanCorners applies "Corners and roots" to the hub, printed front face down with its axis +Z, and to each
-// blade, printed on its stud end with its radial line vertical. The hub's retained corners are listed in
-// instructions.md. The hub's layers run at the face levels MidHeights finds, and again at z = 7, 10 and 13, which cut the
-// sockets and the clamp's pockets off their axes.
+// blade, printed on its stud end with its radial line vertical. The hub is read at the face levels MidHeights finds and at
+// z = 2.5, 4, 5.5, 5.8, 7, 10 and 13, which cut the slots, the counterbore and the sockets off their axes. Three exemptions
+// are allowed, each only for the call whose findings it matches; instructions.md records their measured turns.
 func TestTurbineFanCorners(t *testing.T) {
 	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		dm := m.Dimensions
-		fs, err := cornercheck.Check(t.Context(), m.Hub, r3.Vec{Z: 1},
-			[]cornercheck.Exempt{clampFloorRound(dm), clampHeadRim(dm), slitRound(dm)})
+		fs, err := cornercheck.Check(t.Context(), m.Hub, r3.Vec{Z: 1}, []cornercheck.Exempt{counterboreRound(dm)})
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))
-		fs, err = cornercheck.CheckAt(t.Context(), m.Hub, r3.Vec{Z: 1}, []float64{7, 10, 13},
-			[]cornercheck.Exempt{clampHeadRim(dm), socketFloorRound()})
+		fs, err = cornercheck.CheckAt(t.Context(), m.Hub, r3.Vec{Z: 1}, []float64{2.5, 4, 5.5, 5.8, 7, 10, 13},
+			[]cornercheck.Exempt{counterboreRound(dm), setScrewSlotEndRound(dm), socketFloorRound()})
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))
 	})

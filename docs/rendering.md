@@ -65,13 +65,14 @@ clutch once, writes all of them, the index image and one 480 x 270 image of each
 `go -C tools/render run . -model onewayclutch -shot readme -out ../../models/onewayclutch/images`.
 
 `turbinefan/hero` renders the default right-hand fan from the front, right and above, with blade 1 up, in the hand-crank
-fan's hub and blade colours. The `front`, `back` and `side` presets show other angles. `clamp` clips every body by the plane
-z = 10 and looks into the hub from the front; `joint` clips the hub, blade 1, its bolt and nut and the clamp bolt and nut by
-the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along its radial line, each blade bolt 30 mm out
-of the front face, each blade nut 14 mm out of the back, the clamp bolt 25 mm along +X and the clamp nut 18 mm along -X;
-`exploded-back` shows the same offsets from behind, where the nuts are visible. `sizes` puts the 608ZZ hub 40 mm beside the
-605ZZ hub, from behind. The `readme` shot writes all of them, the index image and one 480 × 270 image of each part in
-`parts/`: `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
+fan's hub and blade colours. The `front`, `back` and `side` presets show other angles. `setscrew` clips the hub, the blade
+bolts and nuts and the set screw and its nut by the plane z = 4 and looks from the front; `joint` clips the hub, blade 1, its
+bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along
+its radial line, each blade bolt 30 mm out of the front face, each blade nut 18 mm out along its radial line, the set screw
+32 mm along -Y and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
+visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. The `readme` shot writes all of them, the index
+image and one 480 × 270 image of each part in `parts/`:
+`go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
 
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.

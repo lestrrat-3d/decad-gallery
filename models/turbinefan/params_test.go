@@ -33,27 +33,25 @@ func TestTurbineFanParams(t *testing.T) {
 	large, err := turbinefan.Params608ZZ().Derive()
 	require.NoError(t, err)
 	for name, want := range map[string][3]float64{
-		"bore radius":   {small.BoreRadius, 2.55, 1e-12},
-		"bore flat":     {small.BoreFlat, 2.05, 1e-12},
-		"bore loop":     {small.BoreLoop, 15.8, 0.05},
-		"large radius":  {large.BoreRadius, 4.05, 1e-12},
-		"large flat":    {large.BoreFlat, 3.30, 1e-12},
-		"large loop":    {large.BoreLoop, 25.1, 0.05},
-		"root centre x": {small.RootCenter.X, 10, 1e-4}, "root centre y": {small.RootCenter.Y, -11.1803, 1e-4},
-		"root disc x": {small.RootDisc.X, 9.3333, 1e-4}, "root disc y": {small.RootDisc.Y, -10.4350, 1e-4},
-		"root side": {small.RootSide, -11.1803, 1e-4}, "clamp y": {small.ClampY, -14.7803, 1e-4},
-		"side end": {small.SideEnd, -18.3803, 1e-4}, "tail corner x": {small.TailCorner.X, 4.5, 1e-4},
-		"tail end y": {small.TailEnd.Y, -1.4688, 1e-4}, "reach": {small.Reach, 23.4688, 1e-4},
-		"large reach":  {large.Reach, 23.4688, 1e-4},
-		"clamp cavity": {small.ClampSite.Cavity, 16, 1e-12}, "clamp length": {small.ClampSite.Length, 16, 0},
+		"bore radius": {small.BoreRadius, 2.55, 1e-12}, "bore flat": {small.BoreFlat, 2.05, 1e-12},
+		"bore flat width": {small.BoreFlatWidth, 3.0332, 1e-4}, "bore loop": {small.BoreLoop, 15.81, 0.05},
+		"shaft flat width": {small.ShaftFlatWidth, 3.0, 1e-4}, "tip": {small.SetScrewTip, 1.95, 1e-12},
+		"head": {small.SetScrewHead, 9.95, 1e-12}, "floor": {small.CounterboreFloor, 7.55, 1e-12},
+		"large radius": {large.BoreRadius, 4.05, 1e-12}, "large flat": {large.BoreFlat, 3.30, 1e-12},
+		"large flat width": {large.BoreFlatWidth, 4.6957, 1e-4}, "large loop": {large.BoreLoop, 25.12, 0.05},
+		"large shaft flat": {large.ShaftFlatWidth, 4.6637, 1e-4}, "large tip": {large.SetScrewTip, 3.20, 1e-12},
+		"large head": {large.SetScrewHead, 11.2, 1e-12}, "large floor": {large.CounterboreFloor, 8.8, 1e-12},
+		"screw head y": {small.SetScrewSite.Head.Y, -9.95, 1e-12}, "screw head z": {small.SetScrewSite.Head.Z, 4, 0},
+		"large screw head y": {large.SetScrewSite.Head.Y, -11.2, 1e-12}, "screw dir": {small.SetScrewSite.Dir.Y, 1, 0},
+		"screw corner": {small.SetScrewSite.Corner.Z, 1, 0}, "screw length": {small.SetScrewSite.Length, 6, 0},
+		"screw cavity": {small.SetScrewSite.Cavity, 4.3, 1e-12}, "large screw cavity": {large.SetScrewSite.Cavity, 4.3, 1e-12},
 		"blade 2 x": {small.BladeSites[1].Head.X, -8.2272, 1e-4}, "blade 2 y": {small.BladeSites[1].Head.Y, -4.75, 1e-4},
 		"blade 3 x": {small.BladeSites[2].Head.X, 8.2272, 1e-4}, "blade 1 y": {small.BladeSites[0].Head.Y, 9.5, 1e-12},
 		"blade head z": {small.BladeSites[0].Head.Z, 20, 0},
 	} {
 		require.InDelta(t, want[1], want[0], want[2], name)
 	}
-	require.Equal(t, small.ClampSite.Tip(), small.ClampSite.CavityFar())
-	require.Equal(t, m2fastener.HeadPocketDepth+16, 2*turbinefan.TabHalfWidth)
+	require.Equal(t, small.SetScrewSite.Tip(), small.SetScrewSite.Length+m2fastener.HeadPocketDepth)
 }
 
 // TestTurbineFanValidate rejects each bad field in the order Derive checks.
@@ -75,6 +73,8 @@ func TestTurbineFanValidate(t *testing.T) {
 		{"loose-clearance", func(p *turbinefan.Params) { p.BoreClearance = 0.51 }, "BoreClearance must be from 0.05 to 0.5 mm"},
 		{"shaft-too-wide", func(p *turbinefan.Params) { p.ShaftDiameter = 8.2; p.FlatDepth = 0.5 }, "less than a 1.6 mm wall"},
 		{"608-loose", func(p *turbinefan.Params) { *p = turbinefan.Params608ZZ(); p.BoreClearance = 0.11 }, "less than a 1.6 mm wall"},
+		{"shaft-flat-narrow", func(p *turbinefan.Params) { p.FlatDepth = 0.2 }, "shaft's flat at least 2 mm wide"},
+		{"bore-flat-narrow", func(p *turbinefan.Params) { p.FlatDepth = 0.25 }, "bore's flat at least 2.8 mm wide"},
 		{"pitch-low", func(p *turbinefan.Params) { p.BladePitch = 9 * math.Pi / 180 }, "BladePitch must lie in [10°, 40°] radians"},
 		{"pitch-high", func(p *turbinefan.Params) { p.BladePitch = 41 * math.Pi / 180 }, "BladePitch must lie in [10°, 40°] radians"},
 		{"bad-hand", func(p *turbinefan.Params) { p.Hand = 2 }, "Hand must be RightHand or LeftHand"},

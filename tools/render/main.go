@@ -53,7 +53,7 @@ var presets = map[string]preset{
 	"turbinefan/front":            {width: 1600, height: 900, scene: turbineFanViewScene("front")},
 	"turbinefan/back":             {width: 1600, height: 900, scene: turbineFanViewScene("back")},
 	"turbinefan/side":             {width: 1600, height: 900, scene: turbineFanViewScene("side")},
-	"turbinefan/clamp":            {width: 1600, height: 900, scene: turbineFanViewScene("clamp")},
+	"turbinefan/setscrew":         {width: 1600, height: 900, scene: turbineFanViewScene("setscrew")},
 	"turbinefan/joint":            {width: 1600, height: 900, scene: turbineFanViewScene("joint")},
 	"turbinefan/exploded":         {width: 1600, height: 900, scene: turbineFanViewScene("exploded")},
 	"turbinefan/exploded-back":    {width: 1600, height: 900, scene: turbineFanViewScene("exploded-back")},

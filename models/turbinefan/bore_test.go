@@ -10,46 +10,52 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestTurbineFanBoreFit measures the D bore against the nominal shaft: every point of the bore lies BoreClearance
-// outside the shaft's D section, the bore's floor is 1 mm thick apart from the slit's round end, and the wall round
-// the bore is at least 1.6 mm (1.65 mm through the socket floors at the 608ZZ bore). The slit joins the bore to the
-// outline, so the bore is read as the points within r_b of the axis outside the slit.
+// boreLoop returns the loop of o whose vertices all lie within limit of the shaft axis.
+func boreLoop(t *testing.T, loops [][]r3.Vec, limit float64) []r3.Vec {
+	t.Helper()
+	var found [][]r3.Vec
+	for _, l := range loops {
+		inside := true
+		for _, v := range l {
+			inside = inside && math.Hypot(v.X, v.Y) <= limit
+		}
+		if inside {
+			found = append(found, l)
+		}
+	}
+	require.Len(t, found, 1, "one loop is the bore")
+	return found[0]
+}
+
+// TestTurbineFanBoreFit measures the D bore against the nominal shaft: every point of the bore lies BoreClearance outside
+// the shaft's D section, the wall round the bore is at least 1.6 mm (1.65 mm through the socket floors at the 608ZZ bore,
+// and exactly 1.6 to the set screw's nut slot), and the bore runs through both faces.
 func TestTurbineFanBoreFit(t *testing.T) {
 	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		p := c.params()
+		dm := m.Dimensions
 		rs, fs := p.ShaftDiameter/2, p.ShaftDiameter/2-p.FlatDepth
-		half := turbinefan.SlitWidth / 2
-		for _, z := range []float64{5, 10, 15} {
+		for _, z := range []float64{8, 10, 15} {
 			o := section(t, m.Hub, atZ(t, z))
 			bound := o.OffSurface.Base() + 1e-6
-			inSlit := func(v r3.Vec) bool { return math.Abs(v.X) <= half+bound && v.Y < 0 }
-			onBore := func(v r3.Vec) bool { return math.Hypot(v.X, v.Y) < m.Dimensions.BoreRadius+0.1 && !inSlit(v) }
-			var bore []r3.Vec
-			for _, l := range o.Loops {
-				for _, v := range l {
-					if onBore(v) {
-						bore = append(bore, v)
-					}
-				}
-			}
-			require.NotEmpty(t, bore, "z %g: bore", z)
+			bore := boreLoop(t, o.Loops, dm.BoreRadius+0.1)
 			lo, hi := math.Inf(1), math.Inf(-1)
 			for _, v := range bore {
 				// Outside the shaft's convex D section, the distance is at least the larger of the distances outside the
-				// round and outside the flat's half plane.
-				gap := math.Max(math.Hypot(v.X, v.Y)-rs, v.Y-fs)
+				// round and outside the flat's half plane (the flat faces -Y).
+				gap := math.Max(math.Hypot(v.X, v.Y)-rs, -v.Y-fs)
 				lo, hi = math.Min(lo, gap), math.Max(hi, gap)
 			}
 			require.GreaterOrEqual(t, lo, p.BoreClearance-bound, "z %g", z)
 			require.LessOrEqual(t, hi, p.BoreClearance+bound, "z %g", z)
-			// The wall: from the bore to every edge of the section that is neither the bore nor the slit.
+			// The wall: from the bore to every edge of every other loop.
 			wall := math.Inf(1)
 			for _, l := range o.Loops {
+				if len(l) == len(bore) && l[0] == bore[0] {
+					continue
+				}
 				for i := range l {
 					a, b := l[i], l[(i+1)%len(l)]
-					if onBore(a) || onBore(b) || inSlit(a) || inSlit(b) {
-						continue
-					}
 					for _, v := range bore {
 						wall = math.Min(wall, distanceToLoop(v, []r3.Vec{a, b}))
 					}
@@ -57,90 +63,65 @@ func TestTurbineFanBoreFit(t *testing.T) {
 			}
 			require.GreaterOrEqual(t, wall, turbinefan.PressWall-bound, "z %g: wall round the bore", z)
 			if z == 10 {
-				// Through the socket floors, at radius 5.7 from the axis.
-				want := handcrankfan.BladeSocketStart - m.Dimensions.BoreRadius
-				require.GreaterOrEqual(t, want, turbinefan.PressWall-1e-9, "designed wall to the socket floors")
-				require.InDelta(t, want, wall, 0.05, "z 10: the least wall is the one to the socket floors")
+				require.InDelta(t, handcrankfan.BladeSocketStart-dm.BoreRadius, wall, 0.05, "z 10: the least wall is the one to the socket floors")
 			}
 		}
-		// At the front face the floor closes the bore everywhere but the slit's round end.
-		o := section(t, m.Hub, atZ(t, turbinefan.HubLength-0.25))
-		bound := o.OffSurface.Base() + 1e-3
-		for _, l := range o.Loops {
-			for _, v := range l {
-				if math.Abs(v.X) <= half+bound {
-					continue
-				}
-				require.Greater(t, math.Hypot(v.X, v.Y), m.Dimensions.BoreRadius+0.5, "bore through the floor at %v", v)
+		// The wall between the bore's flat and the set screw's nut slot, read across the flat beside the screw's hole.
+		for _, z := range []float64{1.2, 3.0, turbinefan.SetScrewZ} {
+			o := section(t, m.Hub, atZ(t, z))
+			bound := o.OffSurface.Base() + 1e-3
+			for _, x := range []float64{-1.45, 1.45} {
+				ys := crossingsAtX(o, x, -(dm.BoreFlat + 2.5), -(dm.BoreFlat - 0.5))
+				require.Len(t, ys, 2, "z %g, x %g", z, x)
+				require.InDelta(t, -(dm.BoreFlat + turbinefan.PressWall), ys[0], bound, "z %g: the slot's inner face", z)
+				require.InDelta(t, -dm.BoreFlat, ys[1], bound, "z %g: the bore's flat", z)
+				require.GreaterOrEqual(t, ys[1]-ys[0], turbinefan.PressWall-2*bound, "z %g: wall to the nut slot", z)
 			}
+		}
+		// The bore runs through: both faces' sections hold the bore loop.
+		for _, z := range []float64{0.75, turbinefan.HubLength - 0.75} {
+			bore := boreLoop(t, section(t, m.Hub, atZ(t, z)).Loops, dm.BoreRadius+0.6)
+			require.NotEmpty(t, bore, "z %g", z)
 		}
 	})
 }
 
-// TestTurbineFanSlit checks that the slit closes the bore: low in the hub one loop of its section runs from the bore
-// down the slit's two walls, SlitWidth apart, to the tail's end arc, so tightening the clamp bolt narrows the bore; and
-// in the floor the slit ends in its full round SlitInBore past the bore's wall.
-func TestTurbineFanSlit(t *testing.T) {
-	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
-		dm := m.Dimensions
-		half := turbinefan.SlitWidth / 2
-		o := section(t, m.Hub, atZ(t, 1))
-		bound := o.OffSurface.Base() + 1e-3
-		joined := false
-		for _, l := range o.Loops {
-			bore, end := false, false
-			for _, v := range l {
-				bore = bore || math.Hypot(v.X, v.Y) < dm.BoreRadius+0.1
-				end = end || v.Y < -dm.Reach+1
-			}
-			joined = joined || bore && end
-		}
-		require.True(t, joined, "one loop holds the bore and the end arc")
-		gap := math.Inf(1)
-		for _, l := range o.Loops {
-			for _, v := range l {
-				if v.Y < -dm.Reach+1.5 || v.Y > -dm.BoreRadius-0.3 {
-					continue
-				}
-				gap = math.Min(gap, math.Abs(v.X))
-			}
-		}
-		require.InDelta(t, half, gap, bound, "the slit's walls")
-		floor := section(t, m.Hub, atZ(t, turbinefan.HubLength-0.5))
-		top := math.Inf(-1)
-		for _, l := range floor.Loops {
-			for _, v := range l {
-				if math.Abs(v.X) <= half+bound && v.Y < 0 {
-					top = math.Max(top, v.Y)
-				}
-			}
-		}
-		require.InDelta(t, -dm.BoreRadius+turbinefan.SlitInBore, top, floor.OffSurface.Base()+1e-3, "the slit's round end")
-	})
-}
-
-// TestTurbineFanEdgeFinishing checks the 0.5 mm chamfer on both faces' outlines: a section 0.25 mm inside a face is
-// 0.25 mm short of the disc, of both tab sides and of the tail's end arc.
+// TestTurbineFanEdgeFinishing checks the 0.5 mm chamfer on both faces: a section 0.25 mm inside a face is 0.25 mm short
+// of the outer circle, and at the 608ZZ bore, whose D loop is long, 0.25 mm wider than the bore.
 func TestTurbineFanEdgeFinishing(t *testing.T) {
 	eachCase(t, []string{"605ZZ", "608ZZ"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		dm := m.Dimensions
+		chamfered := dm.BoreLoop >= 20
 		for _, z := range []float64{0.25, turbinefan.HubLength - 0.25} {
 			o := section(t, m.Hub, atZ(t, z))
 			bound := o.OffSurface.Base() + 1e-3
-			lo, hi := math.Inf(1), math.Inf(-1)
-			left, right := math.Inf(1), math.Inf(-1)
+			outer := 0
 			for _, l := range o.Loops {
+				far := 0.0
 				for _, v := range l {
-					lo, hi = math.Min(lo, v.Y), math.Max(hi, v.Y)
-					if math.Abs(v.Y-dm.ClampY) <= 0.5 {
-						left, right = math.Min(left, v.X), math.Max(right, v.X)
-					}
+					far = math.Max(far, math.Hypot(v.X, v.Y))
+				}
+				if far <= 13 {
+					continue
+				}
+				outer++
+				for _, v := range l {
+					require.InDelta(t, turbinefan.HubRadius-0.25, math.Hypot(v.X, v.Y), bound, "z %g: outer circle", z)
 				}
 			}
-			require.InDelta(t, -dm.Reach+0.25, lo, bound, "z %g: end arc", z)
-			require.InDelta(t, turbinefan.HubRadius-0.25, hi, bound, "z %g: disc at +Y", z)
-			require.InDelta(t, -turbinefan.TabHalfWidth+0.25, left, bound, "z %g: -X tab side", z)
-			require.InDelta(t, turbinefan.TabHalfWidth-0.25, right, bound, "z %g: +X tab side", z)
+			require.Equal(t, 1, outer, "z %g: one outer loop", z)
+			bore := boreLoop(t, o.Loops, dm.BoreRadius+0.6)
+			largest, least := 0.0, math.Inf(1)
+			for _, v := range bore {
+				largest = math.Max(largest, math.Hypot(v.X, v.Y))
+				least = math.Min(least, v.Y)
+			}
+			grow := 0.0
+			if chamfered {
+				grow = 0.25
+			}
+			require.InDelta(t, dm.BoreRadius+grow, largest, bound, "z %g: bore radius", z)
+			require.InDelta(t, -(dm.BoreFlat + grow), least, bound, "z %g: bore flat", z)
 		}
 	})
 }

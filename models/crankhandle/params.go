@@ -140,15 +140,12 @@ type Dimensions struct {
 
 // CornerCenter is the centre of the right corner arc; the left one is its mirror in x = 0. EndCenter is the centre of
 // the end arc, on x = 0.
-func (dm Dimensions) CornerCenter() r3.Vec {
-	corner, _ := TailCenters(ArmRadius, dm.SideEnd)
-	return corner
-}
+func (dm Dimensions) CornerCenter() r3.Vec { return r3.Vec{X: ArmRadius - ClampCornerR, Y: dm.SideEnd} }
 
 // EndCenter is the centre of the end arc, which touches both corner arcs from inside.
 func (dm Dimensions) EndCenter() r3.Vec {
-	_, end := TailCenters(ArmRadius, dm.SideEnd)
-	return end
+	dx := ArmRadius - ClampCornerR
+	return r3.Vec{Y: dm.SideEnd + math.Sqrt((ClampEndR-ClampCornerR)*(ClampEndR-ClampCornerR)-dx*dx)}
 }
 
 // Validate reports the first problem Derive finds.
@@ -205,7 +202,7 @@ func (p Params) Derive() (Dimensions, error) {
 	}
 	dm.ClampY = -(dm.BoreRadius + m2fastener.HoleRadius + ClampHoleWall)
 	dm.SideEnd = dm.ClampY - ClampSideRun
-	dm.Reach = TailReach(ArmRadius, dm.SideEnd)
+	dm.Reach = ClampEndR - dm.EndCenter().Y
 	dm.ClampSite = m2fastener.Site{
 		Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: ArmThickness / 2},
 		Dir:    r3.Vec{X: -1},

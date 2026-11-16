@@ -63,10 +63,6 @@ Package: `models/crankhandle`. Exported surface:
   holds `Arm`, `Pin`, `Handle`, every `Sketches`, `Dimensions`, and in the world frame the pin bolt's `Site`, the cross
   bolts' `CrossSites`, the clamp bolt's `ClampSite` and `SplitNormal`, the unit normal of the plane that splits the
   pin.
-- `BoreTool(ctx, doc, f, radius, flat, length)`, `SlitTool(ctx, doc, f, from, boreRadius, length)` and
-  `NutPocketTool(ctx, doc, site)` build the D bore's, the slit's and the hexagonal nut pocket's cutters, each with its
-  sketch; `TailCenters(halfWidth, sideEnd)`, `TailReach` and `SketchTail` build a clamp tail below straight sides. The turbine
-  fan imports them; the arm calls the same code.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds
   `Parts` and holds `Bolt *m2bolt.Model`, `Nut *m2nut.Model`, `CrossBolts [2]*m2bolt.Model`,
   `CrossNuts [2]*m2nut.Model`, `ClampBolt *m2bolt.Model` and `ClampNut *m2nut.Model`.

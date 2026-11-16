@@ -216,34 +216,19 @@ func (r *run) arm() (*decad.Body, error) {
 	return body, nil
 }
 
-// slitTool extrudes the slit's cutter from z = -1 through the arm: from 2 mm past the end arc up to SlitInBore past the
-// bore's wall (SlitTool).
-func (r *run) slitTool() (*decad.Body, error) {
-	body, s, err := SlitTool(r.ctx, r.doc, across(0, -1), -r.dm.Reach-2, r.dm.BoreRadius, ArmThickness+2)
-	if s != nil {
-		r.sketches = append(r.sketches, s)
-	}
-	return body, err
-}
-
-// boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor (BoreTool): its flat at
-// y = +f_b, toward the pin.
-func (r *run) boreTool() (*decad.Body, error) {
-	body, s, err := BoreTool(r.ctx, r.doc, across(0, -1), r.dm.BoreRadius, r.dm.BoreFlat, 1+ArmThickness-BoreFloor)
-	if s != nil {
-		r.sketches = append(r.sketches, s)
-	}
-	return body, err
-}
-
 // nutPocketCutter builds a site's hexagonal nut pocket tool, depth deep from its floor, with its floor's outline rounded
-// by NutPocketRound (NutPocketTool).
+// by NutPocketRound.
 func (r *run) nutPocketCutter(site m2fastener.Site, depth float64) (*decad.Body, error) {
-	body, s, err := NutPocketTool(r.ctx, r.doc, site, depth)
-	if s != nil {
-		r.sketches = append(r.sketches, s)
+	pocket, sk, err := m2fastener.HexPocketTool(r.ctx, r.doc, site, depth)
+	if err != nil {
+		return nil, err
 	}
-	return body, err
+	r.sketches = append(r.sketches, sk)
+	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(pocket)))
+	if pocket, err = decad.Fillet(r.ctx, pocket, floor, units.Millimeters(NutPocketRound)); err != nil {
+		return nil, fmt.Errorf("round floor: %w", err)
+	}
+	return pocket, nil
 }
 
 // clampTools builds the clamp bolt's cutters: the hexagonal nut pocket with its floor's outline rounded by

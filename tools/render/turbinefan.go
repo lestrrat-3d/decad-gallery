@@ -15,7 +15,7 @@ import (
 )
 
 // The fan stands with its shaft axis along +Z, the hub's back face at z = 0 and the front face at z = 20, blade 1 along
-// +Y and the clamp tab toward -Y. Every camera has +Y up, so blade 1 points up in every view.
+// +Y and the set screw toward -Y. Every camera has +Y up, so blade 1 points up in every view.
 var (
 	turbineHubColor      = solidlens.RGB(.16, .52, .70) // the hand-crank fan's rotor colour
 	turbineBladeColor    = solidlens.RGB(.30, .68, .85) // the hand-crank fan's blade colour
@@ -32,16 +32,17 @@ func turbineCamera(dir, target r3.Vec) solidlens.Camera {
 		Up: solidlens.Vec{Y: 1}, FOV: 35}
 }
 
-// turbineExplode is each part's offset in the exploded view: every blade outward along its radial line, each blade
-// bolt out of the front face and each blade nut out of the back, the clamp bolt out of the +X side face and its nut out
-// of the -X side face.
+// turbineExplode is each part's offset in the exploded view: every blade outward along its radial line, each blade bolt out
+// of the front face, each blade nut out of its slot along the radial line, the set screw out along -Y and its nut out of
+// the back face.
 func turbineExplode() map[string]r3.Vec {
-	out := map[string]r3.Vec{"hub": {}, "clamp-bolt": {X: 25}, "clamp-nut": {X: -18}}
+	out := map[string]r3.Vec{"hub": {}, "setscrew-bolt": {Y: -32}, "setscrew-nut": {Z: -14}}
 	for k := 1; k <= turbinefan.BladeCount; k++ {
 		a := turbinefan.BladeAngle(k)
-		out[fmt.Sprintf("blade-%d", k)] = r3.Vec{X: 35 * math.Cos(a), Y: 35 * math.Sin(a)}
+		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
+		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35)
 		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: 30}
-		out[fmt.Sprintf("nut-%d", k)] = r3.Vec{Z: -14}
+		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18)
 	}
 	return out
 }
@@ -53,7 +54,7 @@ type turbineMeshes struct {
 }
 
 var turbinePartOrder = []string{
-	"hub", "blade-1", "blade-2", "blade-3", "bolt-1", "nut-1", "bolt-2", "nut-2", "bolt-3", "nut-3", "clamp-bolt", "clamp-nut",
+	"hub", "blade-1", "blade-2", "blade-3", "bolt-1", "nut-1", "bolt-2", "nut-2", "bolt-3", "nut-3", "setscrew-bolt", "setscrew-nut",
 }
 
 func isTurbineHardware(name string) bool {
@@ -77,7 +78,7 @@ func buildTurbineMeshes(ctx context.Context, p turbinefan.Params) (turbineMeshes
 		return turbineMeshes{}, fmt.Errorf("build turbine fan: %w", err)
 	}
 	out := turbineMeshes{mesh: map[string]*decad.Mesh{}, dm: m.Dimensions}
-	bodies := map[string]*decad.Body{"hub": m.Hub, "clamp-bolt": m.ClampBolt.Body, "clamp-nut": m.ClampNut.Body}
+	bodies := map[string]*decad.Body{"hub": m.Hub, "setscrew-bolt": m.SetScrew.Body, "setscrew-nut": m.SetScrewNut.Body}
 	for k := range m.Blades {
 		bodies[fmt.Sprintf("blade-%d", k+1)] = m.Blades[k]
 		bodies[fmt.Sprintf("bolt-%d", k+1)] = m.BladeBolts[k].Body
@@ -153,7 +154,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 	case "hero", "front", "back", "side", "exploded", "exploded-back":
 		dirs := map[string]r3.Vec{
 			"hero": {X: .55, Y: .35, Z: 1}, "front": {X: .08, Y: .08, Z: 1}, "back": {X: -.35, Y: -.25, Z: -1},
-			"side": {X: 1, Y: -.15, Z: .1}, "exploded": {X: .5, Y: .5, Z: 1}, "exploded-back": {X: -.5, Y: .45, Z: -1},
+			"side": {X: 1, Y: -.55, Z: .15}, "exploded": {X: .5, Y: .5, Z: 1}, "exploded-back": {X: -.5, Y: .45, Z: -1},
 		}
 		var pull map[string]r3.Vec
 		if strings.HasPrefix(name, "exploded") {
@@ -176,24 +177,27 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		}
 		models = append(models, more...)
 		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: -.2, Y: -.35, Z: -1}, hubMid), models, 16.0/9, .08), models), nil
-	case "clamp":
-		// Every body cut by the plane z = 10 through the clamp bolt's line, the half toward the front removed, seen from
-		// the front: the hub's bore and slit, the sockets with the studs in them and the blade bolts.
-		models, err := c.models(turbinePartOrder, r3.Vec{}, nil)
+	case "setscrew":
+		// The hub, the blade bolts and nuts, and the set screw and its nut, cut by the plane z = SetScrewZ through the set
+		// screw's line, the half toward the front removed, seen from the front: the D bore, the screw's counterbore, hole
+		// and nut slot, the sockets with the studs in them, and the blade bolts.
+		parts := []string{"hub", "bolt-1", "bolt-2", "bolt-3", "nut-1", "nut-2", "nut-3", "setscrew-bolt", "setscrew-nut"}
+		models, err := c.models(parts, r3.Vec{}, nil)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
-		for i, part := range turbinePartOrder {
-			models[i] = clipped(models[i], turbinePartColor(part), solidlens.Vec{Z: turbinefan.HubMid}, solidlens.Vec{Z: 1})
+		for i, part := range parts {
+			models[i] = clipped(models[i], turbinePartColor(part), solidlens.Vec{Z: turbinefan.SetScrewZ}, solidlens.Vec{Z: 1})
 		}
-		lo := r3.Vec{X: -turbinefan.HubRadius - 10, Y: -c.dm.Reach - 10, Z: -1}
-		hi := r3.Vec{X: turbinefan.HubRadius + 10, Y: turbinefan.HubRadius + 10, Z: turbinefan.HubMid + 1}
+		lo := r3.Vec{X: -20, Y: -20, Z: -1}
+		hi := r3.Vec{X: 20, Y: 20, Z: turbinefan.SetScrewZ + 1}
 		frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
-		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: .04, Y: .06, Z: 1}, hubMid), frame, 16.0/9, .04), models), nil
+		target := r3.Vec{Z: turbinefan.SetScrewZ}
+		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: .04, Y: .06, Z: 1}, target), frame, 16.0/9, .04), models), nil
 	case "joint":
-		// The hub, blade 1, blade bolt 1 with its nut, and the clamp bolt and nut, cut by the plane x = 0 through the
+		// The hub, blade 1, blade bolt 1 with its nut, and the set screw and its nut, cut by the plane x = 0 through the
 		// shaft axis and blade 1's radial line, the half toward +X removed, seen from +X.
-		parts := []string{"hub", "blade-1", "bolt-1", "nut-1", "clamp-bolt", "clamp-nut"}
+		parts := []string{"hub", "blade-1", "bolt-1", "nut-1", "setscrew-bolt", "setscrew-nut"}
 		models, err := c.models(parts, r3.Vec{}, nil)
 		if err != nil {
 			return solidlens.Scene{}, err
@@ -224,7 +228,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 		width, height int
 	}{
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270}, {"front", "front.png", 1600, 900},
-		{"back", "back.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"clamp", "clamp.png", 1600, 900},
+		{"back", "back.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"setscrew", "setscrew.png", 1600, 900},
 		{"joint", "joint.png", 1600, 900}, {"exploded", "exploded.png", 1600, 900}, {"exploded-back", "exploded-back.png", 1600, 900}, {"sizes", "sizes.png", 1600, 900},
 	} {
 		var with *turbineMeshes
@@ -239,8 +243,9 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
-	// One image per distinct part: the three blades are alike, and so are the four bolts and the four nuts.
-	for _, name := range []string{"hub", "blade-1", "bolt-1", "nut-1"} {
+	// One image per distinct part: the three blades are alike, and so are the three blade bolts and the four nuts.
+	for _, item := range [][2]string{{"hub", "hub"}, {"blade-1", "blade"}, {"bolt-1", "bolt"}, {"setscrew-bolt", "setscrew"}, {"nut-1", "nut"}} {
+		name := item[0]
 		mesh := c.mesh[name]
 		low, high := meshBounds(mesh)
 		center := low.Add(high).Scale(.5)
@@ -254,8 +259,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 		}
 		models := []solidlens.Model{turbineModel(mesh, turbinePartColor(name))}
 		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
-		file := strings.TrimSuffix(name, "-1")
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
+		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 // run builds one crank in the local frame. It records every sketch and keeps the first error.
@@ -20,11 +21,16 @@ type run struct {
 	sketches []*sketch.Sketch
 }
 
-// sketchOn starts a sketch on the plane f and records it; extrusions run along f's normal U × V.
+// sketchOn starts a sketch on the plane f; extrusions run along f's normal U × V.
 func (r *run) sketchOn(f r3.Frame) (*sketch.Sketch, error) {
-	s, err := newSketch(f)
+	w := sketch.NewWorld()
+	plane, err := w.CreatePlaneFromFrame(f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create sketch plane: %w", err)
+	}
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		return nil, fmt.Errorf("create sketch: %w", err)
 	}
 	r.sketches = append(r.sketches, s)
 	return s, nil
@@ -32,12 +38,35 @@ func (r *run) sketchOn(f r3.Frame) (*sketch.Sketch, error) {
 
 // profile solves s, requires it fully constrained and returns its one valid profile with the given number of holes.
 func (r *run) profile(s *sketch.Sketch, holes int) (*sketch.Profile, error) {
-	return selectProfile(r.ctx, s, holes)
+	if _, err := s.Solve(r.ctx); err != nil {
+		return nil, fmt.Errorf("solve sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(r.ctx, s); err != nil {
+		return nil, fmt.Errorf("verify sketch: %w", err)
+	}
+	var chosen *sketch.Profile
+	for _, pr := range s.Profiles() {
+		if !pr.Valid || len(pr.Holes) != holes {
+			continue
+		}
+		if chosen != nil {
+			return nil, fmt.Errorf("several valid profiles with %d holes", holes)
+		}
+		chosen = pr
+	}
+	if chosen == nil {
+		return nil, fmt.Errorf("no valid profile with %d holes", holes)
+	}
+	return chosen, nil
 }
 
 // extrude extrudes the profile of s with the given holes by length along its normal.
 func (r *run) extrude(s *sketch.Sketch, holes int, length float64) (*decad.Body, error) {
-	return extrudeProfile(r.ctx, r.doc, s, holes, length)
+	pr, err := r.profile(s, holes)
+	if err != nil {
+		return nil, err
+	}
+	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
 }
 
 // across is the plane z = const through the point (0, y) of the local frame, with U = +X and V = +Y.
@@ -85,9 +114,66 @@ func (r *run) armSketch() (*sketch.Sketch, error) {
 	s.AddConstraint(sketch.NewRadius(pinArc, ArmRadius), sketch.NewTangent(right, pinArc), sketch.NewTangent(left, pinArc),
 		sketch.NewVertical(right), sketch.NewVertical(left),
 		sketch.NewVerticalDistance(o, sR, dm.SideEnd), sketch.NewVerticalDistance(o, sL, dm.SideEnd))
-	SketchTail(s, right, left, sR, sL, ArmRadius, dm.SideEnd)
+	cR, cB := dm.CornerCenter(), dm.EndCenter()
+	cL := r3.Vec{X: -cR.X, Y: cR.Y}
+	// The corner arc meets the end arc on the line through their centres, ClampEndR from the end arc's centre.
+	pR := cB.Add(cR.Sub(cB).Scale(ClampEndR / cR.Sub(cB).Len()))
+	pL := r3.Vec{X: -pR.X, Y: pR.Y}
+	cRp, cLp, cBp := s.CreatePoint(cR.X, cR.Y), s.CreatePoint(cL.X, cL.Y), s.CreatePoint(cB.X, cB.Y)
+	pRp, pLp := s.CreatePoint(pR.X, pR.Y), s.CreatePoint(pL.X, pL.Y)
+	arcR := s.CreateArc(cRp, pRp, sR) // counter-clockwise from the end arc up to the right side
+	arcL := s.CreateArc(cLp, sL, pLp) // from the left side down to the end arc
+	arcB := s.CreateArc(cBp, pLp, pRp)
+	s.AddConstraint(
+		sketch.NewRadius(arcR, ClampCornerR), sketch.NewTangent(right, arcR),
+		sketch.NewRadius(arcL, ClampCornerR), sketch.NewTangent(left, arcL),
+		sketch.NewRadius(arcB, ClampEndR), sketch.NewTangentCircles(arcB, arcR, true),
+		sketch.NewTangentCircles(arcB, arcL, true),
+	)
 	s.AddConstraint(sketch.NewRadius(s.CreateCircle(top, PinHoleR), PinHoleR))
 	return s, nil
+}
+
+// slitTool extrudes the slit's cutter from z = -1 through the arm: x within ±SlitWidth/2 from 2 mm past the end arc up
+// to SlitInBore past the bore's wall, closed there by a half circle of radius SlitWidth/2. The round end lies inside the
+// bore's outline, so it shows only in the bore's floor.
+func (r *run) slitTool() (*decad.Body, error) {
+	s, err := r.sketchOn(across(0, -1))
+	if err != nil {
+		return nil, err
+	}
+	half := SlitWidth / 2
+	y0, y1 := -r.dm.Reach-2, -r.dm.BoreRadius+SlitInBore
+	yc := y1 - half
+	a := sketchcheck.DimensionPoint(s, half, y0)
+	// The arc's ends are placed by height: placing their x at ±half would meet the circle at a tangent, a singular solve.
+	b, c := s.CreatePoint(half, yc), s.CreatePoint(-half, yc)
+	s.AddConstraint(sketch.NewVerticalDistance(s.Origin(), b, yc), sketch.NewVerticalDistance(s.Origin(), c, yc))
+	d := sketchcheck.DimensionPoint(s, -half, y0)
+	center := sketchcheck.DimensionPoint(s, 0, yc)
+	arc := s.CreateArc(center, b, c)
+	s.AddConstraint(sketch.NewRadius(arc, half))
+	s.CreateLine(a, b)
+	s.CreateLine(c, d)
+	s.CreateLine(d, a)
+	return r.extrude(s, 0, ArmThickness+2)
+}
+
+// boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the
+// long way round through -Y, closed by its flat at y = +f_b, toward the pin.
+func (r *run) boreTool() (*decad.Body, error) {
+	s, err := r.sketchOn(across(0, -1))
+	if err != nil {
+		return nil, err
+	}
+	rb, fb := r.dm.BoreRadius, r.dm.BoreFlat
+	w := math.Sqrt(rb*rb - fb*fb)
+	o := s.Origin()
+	q1, q2 := s.CreatePoint(-w, fb), s.CreatePoint(w, fb)
+	bore := s.CreateArc(o, q1, q2)
+	flat := s.CreateLine(q2, q1)
+	s.AddConstraint(sketch.NewRadius(bore, rb), sketch.NewHorizontal(flat), sketch.NewDistancePointLine(o, flat, fb))
+	return r.extrude(s, 0, 1+ArmThickness-BoreFloor)
 }
 
 // handle revolves HandleProfile about the pin axis. The sketch plane holds the axis: U runs along it (+Z) and V is the

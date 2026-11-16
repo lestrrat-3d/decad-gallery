@@ -2,12 +2,10 @@ package turbinefan_test
 
 import (
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
-	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,8 +15,7 @@ const regularMinimum = 0.35
 
 // TestTurbineFanFits checks every Regular fit between the hub and a blade: the stud in its socket, in the plane z = 10
 // through the stud's axis; the stud's inner end to the socket floor and the blade's root to the hub's rim, in the plane
-// through the shaft axis and the blade's radial line; and blades 2 and 3 to the tab's roots and sides, in layers along
-// the shaft. The bore's press fit is a design value, which TestTurbineFanBoreFit measures.
+// through the shaft axis and the blade's radial line; and every blade to the hub in layers along the shaft. The bore's press fit is a design value, which TestTurbineFanBoreFit measures.
 func TestTurbineFanFits(t *testing.T) {
 	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		for k := 1; k <= turbinefan.BladeCount; k++ {
@@ -28,32 +25,10 @@ func TestTurbineFanFits(t *testing.T) {
 			through := clearance(t, m.Hub, m.Blades[k-1], radial(t, k))
 			require.GreaterOrEqual(t, through.Lower().Base(), regularMinimum, "blade %d: stud end and root", k)
 		}
-		for _, k := range []int{2, 3} {
-			for _, z := range []float64{6, 8, 10, 12, 14} {
+		for k := 1; k <= turbinefan.BladeCount; k++ {
+			for _, z := range []float64{6, 10, 14} {
 				cl := clearance(t, m.Hub, m.Blades[k-1], atZ(t, z))
-				require.GreaterOrEqual(t, cl.Lower().Base(), regularMinimum, "blade %d to the tab at z %g", k, z)
-				_ = cl
-				// The least distance from the blade's section to the tab's edges, those below the roots.
-				hub, blade := section(t, m.Hub, atZ(t, z)), section(t, m.Blades[k-1], atZ(t, z))
-				bound := hub.OffSurface.Base() + blade.OffSurface.Base()
-				least := math.Inf(1)
-				for _, hl := range hub.Loops {
-					for i := range hl {
-						a, b := hl[i], hl[(i+1)%len(hl)]
-						if a.Y > m.Dimensions.RootSide || b.Y > m.Dimensions.RootSide {
-							continue
-						}
-						for _, bl := range blade.Loops {
-							for _, v := range bl {
-								least = math.Min(least, distanceToLoop(v, []r3.Vec{a, b}))
-							}
-						}
-					}
-				}
-				require.GreaterOrEqual(t, least-bound, regularMinimum, "blade %d to the tab's sides and tail at z %g", k, z)
-				if z == 10 {
-					t.Logf("%s blade %d to the tab at z 10: %.3f", c.name, k, least)
-				}
+				require.GreaterOrEqual(t, cl.Lower().Base(), regularMinimum, "blade %d to the hub at z %g", k, z)
 			}
 		}
 	})

@@ -1,6 +1,6 @@
 # Crank handle Decad steps
 
-Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has five files (`clamp.go` holds the exported cutters and the tail):
+Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has four files:
 `params.go` (constants, `CrossZ`, `HandleProfile`, `Params`, the presets, `Validate`, `Derive`, `Dimensions`),
 `document.go` (`NewDocument`), `sketches.go` (the build run and its sketches) and `crankhandle.go` (package doc,
 container names, `Parts`, `Model`, `BuildParts`, `Build`, the arm and the pin). Every error message starts with

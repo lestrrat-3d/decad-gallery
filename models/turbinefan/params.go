@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -19,23 +20,19 @@ const (
 
 	HubRadius = handcrankfan.HubRadius // 14, the hand-crank fan's hub: the blade's root and stud fix it
 	HubLength = handcrankfan.HubLength // 20
-	HubMid    = HubLength / 2          // the sockets', the blade bolts' line and the clamp bolt's plane
+	HubMid    = HubLength / 2          // the sockets' and blade bolts' plane
 
-	FirstBladeAngle = math.Pi / 2 // blade 1 lies along +Y; the slit and the clamp tab lie along -Y, 270 degrees
-	TabHalfWidth    = 9.0         // the clamp tab is 18 wide: head pocket 2 plus an M2 x 16 bolt
-	TabRootR        = 1.0         // the tab's two root rounds: a larger round reaches the sockets of blades 2 and 3
-	ClampBolt       = 16.0        // M2 x 16: HeadPocketDepth + 16 = 2 TabHalfWidth
+	FirstBladeAngle = math.Pi / 2 // blade 1 along +Y; the set screw lies along -Y, midway between blades 2 and 3
 
-	BoreFloor      = crankhandle.BoreFloor
-	ChamferSize    = crankhandle.ChamferSize
-	PressWall      = crankhandle.PressWall
-	SlitWidth      = crankhandle.SlitWidth
-	SlitInBore     = crankhandle.SlitInBore
-	ClampSideRun   = crankhandle.ClampSideRun
-	ClampCornerR   = crankhandle.ClampCornerR
-	ClampEndR      = crankhandle.ClampEndR
-	NutPocketRound = crankhandle.NutPocketRound
-	RegularFit     = crankhandle.RegularFit // 0.40: the stud in its socket and the blades' clearance to the tab
+	SetScrewBolt     = 6.0 // M2 x 6: the longest standard length whose head stays inside the round face at both presets
+	SetScrewZ        = 4.0 // the set screw's line: the counterbore keeps 1.8 to the back face, and a shaft need reach only 6 into the hub
+	SetScrewTravel   = 0.4 // gap under the head, so the screw grips before its head reaches the counterbore floor
+	CounterboreRound = 0.5 // the counterbore's floor rim round ("Corners and roots")
+	NutSlotRound     = 0.5 // the rounds of the nut slots' inside corners ("Corners and roots")
+
+	ChamferSize = crankhandle.ChamferSize // 0.5, the hub's face chamfer
+	PressWall   = crankhandle.PressWall   // 1.6, the least wall round a press-fit bore
+	RegularFit  = crankhandle.RegularFit  // 0.40: the stud in its socket
 )
 
 // BladeAngle returns the angle, about +Z from +X, of blade k's radial line, k = 1, 2, 3: 90, 210 and 330 degrees.
@@ -55,7 +52,7 @@ const (
 // Params specifies a fan in mm and radians. The shaft runs in a purchased bearing, so its diameter equals the bearing's
 // bore. A nil Placement selects the local frame.
 type Params struct {
-	// ShaftDiameter is the diameter of the D-flat shaft the hub pinches; it equals the bearing bore.
+	// ShaftDiameter is the diameter of the D-flat shaft the hub grips; it equals the bearing bore.
 	ShaftDiameter float64
 	// FlatDepth is how deep the shaft's flat cuts below its round.
 	FlatDepth float64
@@ -91,25 +88,20 @@ func Params608ZZ() Params {
 // DefaultParams returns Params605ZZ.
 func DefaultParams() Params { return Params605ZZ() }
 
-// Dimensions are the values Derive computes from Params, in mm, in the local frame.
+// Dimensions are the values Derive computes from Params, in mm, in the local frame. rho is a distance from the shaft
+// axis along -Y.
 type Dimensions struct {
-	BoreRadius float64 // r_b: ShaftDiameter/2 + BoreClearance
-	BoreFlat   float64 // f_b: distance from the axis to the bore's flat, on the +Y side
-	BoreLoop   float64 // length of the bore's outline in the back face: its arc the long way round plus its flat
-	// RootCenter is the centre of the right root round, tangent to the disc and to the tab's right side. RootDisc is
-	// where that round meets the disc. The left ones are the mirrors in x = 0. RootSide is the y where the round meets
-	// the straight side.
-	RootCenter, RootDisc r3.Vec
-	RootSide             float64
-	// ClampY is the clamp bolt's axis, ClampSideRun below the roots. SideEnd is where the tab's sides stop being
-	// straight. Reach is how far the tail's end arc runs behind the shaft axis.
-	ClampY, SideEnd, Reach float64
-	// TailCorner and TailEnd are the centres of the right corner arc and of the end arc.
-	TailCorner, TailEnd r3.Vec
-	// ClampSite is the clamp bolt: its head's top face is flush with the +X side face of the tab at (TabHalfWidth,
-	// ClampY, HubMid), and it runs along -X. Its Cavity is the nut pocket's floor, NutCavityHeight inside the -X side
-	// face, so CavityFar and the bolt's tip both lie on that face.
-	ClampSite m2fastener.Site
+	BoreRadius       float64 // r_b: ShaftDiameter/2 + BoreClearance
+	BoreFlat         float64 // f_b: D/2 - d + c; the bore's flat lies at y = -f_b
+	BoreFlatWidth    float64 // w_b: 2 sqrt(r_b^2 - f_b^2)
+	BoreLoop         float64 // length of the bore's outline: 2 r_b (pi - acos(f_b / r_b)) + w_b
+	ShaftFlatWidth   float64 // w_s: 2 sqrt(d (D - d)), the width of the shaft's flat
+	SetScrewTip      float64 // rho_t: D/2 - d - c, the flat of the shaft pushed c toward +Y
+	SetScrewHead     float64 // rho_h: rho_t + HeadPocketDepth + SetScrewBolt, the head's top face
+	CounterboreFloor float64 // rho_f: rho_h - HeadPocketDepth - SetScrewTravel
+	// SetScrewSite is the set screw: its head's top face at (0, -rho_h, SetScrewZ), running along +Y. Its Cavity puts the
+	// nut slot's inner face PressWall from the bore's flat.
+	SetScrewSite m2fastener.Site
 	// BladeSites are the three blade bolts: each head's top face is flush with the front face (z = HubLength) at
 	// BladeBoltAt from the axis along blade k's radial line, and the bolt runs along -Z.
 	BladeSites [BladeCount]m2fastener.Site
@@ -144,11 +136,18 @@ func (p Params) Derive() (Dimensions, error) {
 		BoreRadius: p.ShaftDiameter/2 + p.BoreClearance,
 		BoreFlat:   p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance,
 	}
-	half := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
-	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + 2*half
+	dm.BoreFlatWidth = 2 * math.Sqrt(dm.BoreRadius*dm.BoreRadius-dm.BoreFlat*dm.BoreFlat)
+	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + dm.BoreFlatWidth
+	dm.ShaftFlatWidth = 2 * math.Sqrt(p.FlatDepth*(p.ShaftDiameter-p.FlatDepth))
 	if handcrankfan.BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
 		return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
 			PressWall)
+	}
+	if dm.ShaftFlatWidth < m2bolt.ShankDiameter-1e-9 {
+		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the shaft's flat at least 2 mm wide for the set screw's tip")
+	}
+	if dm.BoreFlatWidth < 2*(m2fastener.HoleRadius+0.1)-1e-9 {
+		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the bore's flat at least 2.8 mm wide for the set screw's hole")
 	}
 	if p.BladePitch < handcrankfan.MinBladePitch || p.BladePitch > handcrankfan.MaxBladePitch {
 		return Dimensions{}, errors.New("turbinefan: BladePitch must lie in [10°, 40°] radians")
@@ -159,26 +158,27 @@ func (p Params) Derive() (Dimensions, error) {
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return Dimensions{}, errors.New("turbinefan: Placement must be a valid frame")
 	}
-	w, rho := float64(TabHalfWidth), float64(TabRootR)
-	dm.RootCenter = r3.Vec{X: w + rho, Y: -math.Sqrt((HubRadius+rho)*(HubRadius+rho) - (w+rho)*(w+rho))}
-	dm.RootDisc = dm.RootCenter.Scale(HubRadius / (HubRadius + rho))
-	dm.RootSide = dm.RootCenter.Y
-	dm.ClampY = dm.RootSide - ClampSideRun
-	dm.SideEnd = dm.ClampY - ClampSideRun
-	dm.TailCorner, dm.TailEnd = crankhandle.TailCenters(w, dm.SideEnd)
-	dm.Reach = crankhandle.TailReach(w, dm.SideEnd)
-	dm.ClampSite = m2fastener.Site{
-		Head:   r3.Vec{X: w, Y: dm.ClampY, Z: HubMid},
-		Dir:    r3.Vec{X: -1},
+	dm.SetScrewTip = p.ShaftDiameter/2 - p.FlatDepth - p.BoreClearance
+	dm.SetScrewHead = dm.SetScrewTip + m2fastener.HeadPocketDepth + SetScrewBolt
+	dm.CounterboreFloor = dm.SetScrewHead - m2fastener.HeadPocketDepth - SetScrewTravel
+	dm.SetScrewSite = m2fastener.Site{
+		Head:   r3.Vec{Y: -dm.SetScrewHead, Z: SetScrewZ},
+		Dir:    r3.Vec{Y: 1},
 		Corner: r3.Vec{Z: 1},
-		Length: ClampBolt,
-		Cavity: 2*w - m2fastener.NutCavityHeight,
+		Length: SetScrewBolt,
+		Cavity: dm.SetScrewHead - dm.BoreFlat - PressWall - m2fastener.NutCavityHeight,
 	}
-	if err := dm.ClampSite.Validate(); err != nil {
-		return Dimensions{}, fmt.Errorf("turbinefan: clamp bolt: %w", err)
+	if err := dm.SetScrewSite.Validate(); err != nil {
+		return Dimensions{}, fmt.Errorf("turbinefan: set screw: %w", err)
 	}
-	if dm.ClampSite.Tip() != dm.ClampSite.CavityFar() {
-		return Dimensions{}, errors.New("turbinefan: clamp bolt: its tip must end flush with the -X side face")
+	if dm.SetScrewHead > math.Sqrt(HubRadius*HubRadius-m2bolt.HeadDiameter*m2bolt.HeadDiameter/4) {
+		return Dimensions{}, errors.New("turbinefan: set screw: its head would stand out of the round face")
+	}
+	if dm.SetScrewSite.Cavity-m2fastener.HeadPocketDepth-SetScrewTravel < 1-1e-9 {
+		return Dimensions{}, errors.New("turbinefan: set screw: less than 1 mm between its counterbore and its nut slot")
+	}
+	if SetScrewZ-m2fastener.HeadPocketRadius < 1 {
+		return Dimensions{}, errors.New("turbinefan: set screw: less than 1 mm between its counterbore and the back face")
 	}
 	for i := range dm.BladeSites {
 		u := r3.Vec{X: math.Cos(BladeAngle(i + 1)), Y: math.Sin(BladeAngle(i + 1))}
