@@ -70,8 +70,15 @@ bolts and nuts and the set screw and its nut by the plane z = 4 and looks from t
 bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along
 its radial line, each blade bolt 30 mm out of the front face, each blade nut 18 mm out along its radial line, the set screw
 32 mm along -Y and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
-visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. The `readme` shot writes all of them, the index
-image and one 480 × 270 image of each part in `parts/`:
+visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. `turbinefan/clutch`, `clutch-back`,
+`clutch-cutaway` and `clutch-exploded` draw the clutch-mount fan (`ParamsForClutch` of the default clutch) on the real default
+one-way clutch, both in the clutch frame: `clutch` from the front, right and above, `clutch-back` from behind, `clutch-cutaway`
+cuts every body by the plane x = 0, which holds ear 1 and the clutch's 270 degree bolt, removes the +X half and looks from +X.
+`clutch-exploded` runs the shaft axis left to right and pulls the parts apart along it: the ear nuts and the clamp ring 30 mm
+behind the clutch (the nuts also 14 mm out along their ear), the clutch in place, the hub and blades 40 mm ahead (each blade
+35 mm and each blade nut 18 mm out along its radial line), the blade bolts 70 mm and the ear bolts 110 mm ahead. The `readme`
+shot writes all of them, the index image and one 480 × 270 image of each part in `parts/`, including `clutch-hub`,
+`clamp-ring` and `ear-bolt`:
 `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
 
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
