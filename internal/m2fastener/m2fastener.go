@@ -1,6 +1,8 @@
 // Package m2fastener places M2 bolts and nuts in their host parts, as AGENTS.md "Fasteners" requires: a bolt head sinks
-// in a pocket and ends flush, and a nut sits either in a cavity the host encloses apart from the bolt hole or in a hex
-// pocket open to a face, where its tightened bolt holds it.
+// in a pocket and ends flush, and a nut sits in a hex pocket
+// open to a face, where its tightened bolt holds it, or in another non-embedded fit whenever one can work. A nut
+// sits in a cavity the host encloses apart from the bolt hole only when no other solution exists, and the model's
+// steps.md says why.
 package m2fastener
 
 import (
