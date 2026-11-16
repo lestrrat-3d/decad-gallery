@@ -40,7 +40,43 @@ func requireCorners(t *testing.T, p handcranksiren.Params, parts map[string]hand
 			fs, err := cornercheck.Check(t.Context(), parts[name].Body, axis, exempt[name])
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 5))
+			if name == "crank-arm" {
+				requireSlitRound(t, p, parts[name].Body)
+			}
 		})
+	}
+}
+
+// slitRoundReadMax is the most a section of the arm may read on the slit's end round, in degrees: the round's real 45.8
+// degree turn per 0.4 mm window plus the chord error of a 0.0202 mm mesh bound. It sits 10 degrees over the limit, so a
+// sharper slit end still fails.
+const slitRoundReadMax = 60.0
+
+// slitRoundY is the local Y of the slit end round's center.
+func slitRoundY(dm crankhandle.Dimensions) float64 {
+	return -dm.BoreRadius + crankhandle.SlitInBore - crankhandle.SlitWidth/2
+}
+
+// requireSlitRound checks the slit end round that crankExempt claims: its real turn over the window is under the
+// limit, and no section of the arm reads it above slitRoundReadMax.
+func requireSlitRound(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
+	t.Helper()
+	require.Less(t, cornercheck.InsideWindow/(crankhandle.SlitWidth/2)*180/math.Pi, cornercheck.InsideMaxTurn)
+	toLocal, err := handcranksiren.CrankLocal(p)
+	require.NoError(t, err)
+	dm, err := crankhandle.Params6082RS().Derive()
+	require.NoError(t, err)
+	heights, err := cornercheck.MidHeights(arm, r3.Vec{Y: 1})
+	require.NoError(t, err)
+	for _, h := range heights {
+		fs, err := cornercheck.Section(t.Context(), arm, r3.Vec{Y: 1}, h)
+		require.NoError(t, err)
+		for _, f := range fs {
+			v := toLocal.Apply(f.At)
+			if v.Y >= slitRoundY(dm)-0.1 && math.Hypot(v.X, v.Y-slitRoundY(dm)) <= crankhandle.SlitWidth/2+0.1 {
+				require.LessOrEqual(t, f.Turn, slitRoundReadMax, "slit end round at height %.2f", h)
+			}
+		}
 	}
 }
 
@@ -63,6 +99,16 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
 	return map[string][]cornercheck.Exempt{
 		"crank-arm": {{
+			// The slit's end is a full round of radius SlitWidth/2 (0.5 mm), a real turn of 0.4 / 0.5 rad = 45.8 degrees
+			// over the 0.4 mm window, under the 50 degree limit. The arm's cuts hold a mesh bound of 0.0202 mm in the
+			// siren's 0.1 mm chain-tolerance document (0.0101 at 0.01 mm), so the section's chords on that round are
+			// about 0.28 mm long and a window can read up to slitRoundReadMax degrees. requireSlitRound bounds the
+			// reading; no other corner is claimed here.
+			Reason: "slit end round read on a coarse mesh",
+			Near: local(func(v r3.Vec) bool {
+				return v.Y >= slitRoundY(dm)-0.1 && math.Hypot(v.X, v.Y-slitRoundY(dm)) <= crankhandle.SlitWidth/2+0.1
+			}),
+		}, {
 			Reason: "hexagonal pocket corners",
 			Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
 		}, {

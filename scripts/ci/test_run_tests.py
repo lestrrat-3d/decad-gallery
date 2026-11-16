@@ -54,7 +54,7 @@ class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         expected = {
             "default": (
-                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams|TestGearboxSpike)$",
                 [],
             ),
             "slots12": (
