@@ -7,6 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
@@ -30,7 +31,7 @@ func fastenerSites() []fastenerSite {
 		bolt: "fan-bolt-1", nut: "fan-nut-1", headHost: "fan-hub", nutHost: "fan-hub", motion: "fan",
 		Site: m2fastener.Site{
 			Head: r3.Vec{X: boltAt, Y: -(hubBack + hubLength), Z: axisHeight}, Dir: r3.Vec{Y: 1}, Corner: r3.Vec{X: 1},
-			Length: BladeBoltLength, Cavity: BladeBoltCavity,
+			Length: turbinefan.BladeBoltLength, Cavity: turbinefan.BladeBoltCavity,
 		},
 	}}
 	for i, e := range gearboxEars {

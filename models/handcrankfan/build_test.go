@@ -10,6 +10,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -288,27 +289,8 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.Greater(t, le.Y-mid.Y, 0.0, "the leading edge is upstream at radius %g", r)
 		angle := math.Atan2(le.Y-mid.Y, le.Z-mid.Z)
 		// The blades are mirrored, so the leading edge leads toward -Z and the chord angle is pi minus beta.
-		require.InDelta(t, math.Pi-handcrankfan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
-		requireThickness(t, handcrankfan.ThicknessRatio(x), angle, ring, 0.03, x)
+		require.InDelta(t, math.Pi-turbinefan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
 	}
-	// The root is nearly round.
-	x, ring := meshRing(verts, 15)
-	requireThickness(t, 1, 0, ring, 0.1, x)
-}
-
-// requireThickness compares the ring's extent across the chord direction with its extent along it.
-func requireThickness(t *testing.T, want, angle float64, ring []r3.Vec, tol, x float64) {
-	t.Helper()
-	along := r3.Vec{Y: math.Sin(angle), Z: math.Cos(angle)}
-	across := r3.Vec{Y: math.Cos(angle), Z: -math.Sin(angle)}
-	lo, hi := [2]float64{math.Inf(1), math.Inf(1)}, [2]float64{math.Inf(-1), math.Inf(-1)}
-	for _, v := range ring {
-		for i, axis := range []r3.Vec{along, across} {
-			d := v.Y*axis.Y + v.Z*axis.Z
-			lo[i], hi[i] = math.Min(lo[i], d), math.Max(hi[i], d)
-		}
-	}
-	require.InDelta(t, want, (hi[1]-lo[1])/(hi[0]-lo[0]), tol, "thickness ratio at radius %g", x)
 }
 
 // requireJoint checks that the hub is empty where a stud, a bolt and a nut go. The overlap check proves they fit.

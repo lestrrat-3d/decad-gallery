@@ -53,13 +53,8 @@ Defaults: `5*pi/4`, `25*pi/180` and `4`.
 
 Reject an invalid input before the document changes.
 
-`blade.go` exports the blade for other models, with no change to this model's bodies: `BuildBlade(ctx, doc, pitch)` returns
-the unplaced blade and its twelve sketches; `BuildBladeMirrored` returns the blade of the other hand, its sections not
-flipped and its pitch turn reversed, so it is the first blade reflected in the plane x = 0 of its local frame (the turbine
-fan's left hand); `BladeSocketTool(ctx, doc, f)` builds a socket cutter; and the constants `HubRadius`, `HubLength`,
-`BladeBoltAt`, `BladeBoltLength`, `BladeBoltCavity`, `BladeStudRadius`, `BladeStudStart`, `BladeStudEnd`,
-`BladeSocketRadius`, `BladeSocketStart`, `BladeSocketFloorRound`, `DefaultBladePitch`, `MinBladePitch` and `MaxBladePitch`,
-with `BladeRootRadius()`, `BladeTipRadius()` and `Beta(r, pitch)`.
+The blade, its socket tool and the hub and blade-joint constants belong to [`models/turbinefan`](../turbinefan/), which
+this model imports: `turbinefan.BuildBlade`, `BladeSocketTool`, `Beta` and the `Blade...` constants.
 
 All lengths are mm and angles are radians. The frame is the operator's: X runs to the operator's right,
 Y runs away from the operator, and Z runs up. The operator therefore looks along +Y.

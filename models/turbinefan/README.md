@@ -4,9 +4,9 @@
 
 ![Three-blade turbine fan on a clamping hub, seen from the front and above](images/hero.png)
 
-A three-blade fan whose blades are shaped like small wind turbine blades: the [hand-crank fan's](../handcrankfan/)
-blade, with a thick round root, a widest section near the hub, and a taper to a thin tip. The hub is a plain round cylinder
-that holds a D-flat shaft with one M2 bolt used as a set screw, and each blade bolts into the hub on its own, so a blade can
+A three-blade fan whose blades are shaped like small wind turbine blades: with a thick round
+root, a widest section near the hub, and a taper to a thin tip. The [hand-crank fan](../handcrankfan/) uses the same
+blades. The hub is a plain round cylinder that holds a D-flat shaft with one M2 bolt used as a set screw, and each blade bolts into the hub on its own, so a blade can
 be swapped.
 
 The fan comes in two hands. Seen from the front, the right-hand fan (the default) turns clockwise and the left-hand fan

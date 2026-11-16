@@ -6,67 +6,23 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/sketch"
-	"github.com/lestrrat-3d/units"
 )
 
 // Rotor dimensions in mm. The hub's back face is at Y = -hubBack and its front face at Y = -(hubBack + hubLength).
 const (
-	hubRadius = 14.0
-	hubLength = 20.0
+	hubRadius = turbinefan.HubRadius
+	hubLength = turbinefan.HubLength
 	hubBack   = -(fanWallY - wallThick) + fanGap
 	hubMid    = hubBack + hubLength/2
 
-	fanTip           = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
-	studRadius       = 3.0  // the blade's root stud
-	studStart        = 6.1  // radius of the stud's inner end
-	studEnd          = 16.0 // radius of its outer end, inside the blade's root
-	socketFloorRound = 0.5
-	studChamfer      = 0.3                     // chamfer on the stud's inner end
-	socketRadius     = studRadius + regularFit // a Regular fit around the stud
-	socketStart      = 5.7                     // radius of the socket floor, 1.65 from the spline bore (the press-fit wall)
+	fanTip = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
 )
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
 // from the axis: the head sits in a pocket in the front face and the nut in a cavity the hub encloses.
-const boltAt = 9.5
-
-// Blade section constants.
-const (
-	designAttack = 5 * math.Pi / 180  // design angle of attack of the cambered section
-	refRadius    = 48.0               // BladePitch is the blade angle here, 75 % of the tip radius
-	refPitch     = 25 * math.Pi / 180 // the pitch the sections are drawn at; the finished blade is turned from it
-	holdRadius   = 21.5               // inboard of this the blade angle stays constant, as on a turbine root
-	camberAt     = 0.40               // chord fraction of the maximum camber
-	edgeThick    = 1.0                // trailing-edge thickness
-	sidePoints   = 10                 // fit points per surface, besides the leading edge
-)
-
-// station is one blade section: radius, chord, thickness ratio, maximum camber as a fraction of the chord, and the
-// weight of the ellipse in the shape (1 is an ellipse or the round root, 0 is the airfoil).
-type station struct{ r, chord, ratio, camber, ellipse float64 }
-
-var stations = [...]station{
-	{14.4, 8.0, 1.00, 0.000, 1.00},
-	{16.3, 8.0, 1.00, 0.000, 1.00},
-	{19.0, 11.5, 0.60, 0.010, 0.60},
-	{21.5, 15.5, 0.38, 0.025, 0.25},
-	{25.0, 17.8, 0.26, 0.035, 0},
-	{30.0, 16.5, 0.22, 0.040, 0},
-	{38.0, 14.5, 0.19, 0.040, 0},
-	{46.0, 12.5, 0.18, 0.040, 0},
-	{55.0, 10.5, 0.17, 0.035, 0},
-	{64.0, 8.0, 0.22, 0.030, 0},
-}
-
-// beta is the blade angle at radius r, measured from the plane of rotation, for a blade angle of pitch at refRadius.
-// The shape follows the angle of a uniform axial inflow plus designAttack, held constant across the root. The pitch
-// turns the whole blade, as on a turbine with a pitch bearing.
-func beta(r, pitch float64) float64 {
-	return designAttack + math.Atan(math.Tan(refPitch-designAttack)*refRadius/math.Max(r, holdRadius)) + (pitch - refPitch)
-}
+const boltAt = turbinefan.BladeBoltAt
 
 // fan builds the fan shaft, the hub, the blades and the blade bolts.
 func (b *builder) fan() {
@@ -148,7 +104,7 @@ func (b *builder) hub() *decad.Body {
 	// A round at the floor takes the inside corner off the print.
 	var socket *decad.Body
 	if b.err == nil {
-		tool, sk, err := BladeSocketTool(b.ctx, b.doc, frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight},
+		tool, sk, err := turbinefan.BladeSocketTool(b.ctx, b.doc, frame(r3.Vec{X: turbinefan.BladeSocketStart, Y: -hubMid, Z: axisHeight},
 			r3.Vec{Y: 1}, r3.Vec{Z: 1}))
 		b.fail("build blade socket", err)
 		if err == nil {
@@ -173,10 +129,13 @@ func (b *builder) blades() []*decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	blade := b.bladeBody(b.p.BladePitch)
-	if b.err != nil {
+	built, err := turbinefan.BuildBlade(b.ctx, b.doc, b.p.BladePitch)
+	if err != nil {
+		b.fail("build blade", err)
 		return nil
 	}
+	b.a.Sketches = append(b.a.Sketches, built.Sketches...)
+	blade := built.Body
 	// Local Z becomes +X, local X the direction of motion (+Z) and local Y downstream (-Y).
 	xf, err := r3.FromFrame(frame(r3.Vec{Y: -hubMid, Z: axisHeight}, r3.Vec{Z: 1}, r3.Vec{Y: -1}))
 	if err != nil {
@@ -188,146 +147,4 @@ func (b *builder) blades() []*decad.Body {
 		return nil
 	}
 	return b.ring(blade)
-}
-
-// bladeBody lofts blade 1 through the sections drawn at refPitch, turns it to pitch and joins a drilled root stud to
-// it. The body is in the blade's local frame: Z is its radial line, X the direction of motion and Y downstream.
-func (b *builder) bladeBody(pitch float64) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	w := sketch.NewWorld()
-	sections := make([]decad.LoftSection, len(stations))
-	for i, st := range stations {
-		sections[i] = b.bladeSection(w, st)
-	}
-	if b.err != nil {
-		return nil
-	}
-	// Decad's twisted loft panics for some section tables when the pitch changes the sections, so every pitch
-	// lofts the same sections and the finished loft is turned about the stacking line.
-	loft, err := decad.LoftSections(b.ctx, b.doc, sections...)
-	if err != nil {
-		b.fail("loft blade", err)
-		return nil
-	}
-	if turn := pitch - refPitch; math.Abs(turn) > 1e-12 {
-		if b.mirror {
-			turn = -turn
-		}
-		xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(turn))
-		if err != nil {
-			b.fail("create pitch rotation", err)
-			return nil
-		}
-		if loft, err = decad.Transform(b.ctx, loft, xf); err != nil {
-			b.fail("turn blade to pitch", err)
-			return nil
-		}
-	}
-	// Local Z is the blade's radial line, local X the direction of motion and local Y downstream.
-	stud := b.cylinder(frame(r3.Vec{Z: studStart}, r3.Vec{X: 1}, r3.Vec{Y: 1}), studRadius, studEnd-studStart)
-	// A 0.3 chamfer on the inner end keeps the stud's corner clear of the socket floor's round.
-	stud = b.chamferStart(stud, studChamfer)
-	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), m2fastener.HoleRadius, 10))
-	return b.union(loft, stud)
-}
-
-func camberLine(x, m float64) float64 {
-	if x < camberAt {
-		return m / (camberAt * camberAt) * (2*camberAt*x - x*x)
-	}
-	return m / ((1 - camberAt) * (1 - camberAt)) * ((1 - 2*camberAt) + 2*camberAt*x - x*x)
-}
-
-// pivotAt is the chord fraction of the stacking point: 0.4 for an airfoil, 0.5 for the round root.
-func pivotAt(st station) float64 { return camberAt + st.ellipse*(0.5-camberAt) }
-
-// halfThickness is the half thickness at chord fraction x: the NACA 4-digit shape blended with an ellipse, plus a
-// linear trailing-edge ramp.
-func halfThickness(x float64, st station) float64 {
-	thick := st.ratio * st.chord
-	n := 0.2969*math.Sqrt(x) - 0.1260*x - 0.3516*x*x + 0.2843*x*x*x - 0.1036*x*x*x*x
-	naca := (thick/2-0.3*edgeThick/2)/0.10002*n + edgeThick/2*x
-	ellipse := thick*math.Sqrt(x*(1-x)) + edgeThick/2*x
-	return (1-st.ellipse)*naca + st.ellipse*ellipse
-}
-
-// sectionPoints returns the section's fit points from the trailing edge along the suction side, round the leading
-// edge and back along the pressure side, in the plane local to the stacking point and turned to the blade angle.
-func sectionPoints(st station, angle float64) [][2]float64 {
-	pivot := pivotAt(st)
-	etaPivot := st.chord * camberLine(pivot, st.camber)
-	cosB, sinB := math.Cos(angle), math.Sin(angle)
-	local := func(x, eta float64) [2]float64 {
-		du, dv := pivot*st.chord-x*st.chord, eta-etaPivot
-		return [2]float64{du*cosB - dv*sinB, -du*sinB - dv*cosB}
-	}
-	chordFraction := func(k int) float64 { return (1 - math.Cos(math.Pi*float64(k)/sidePoints)) / 2 }
-	var pts [][2]float64
-	for k := sidePoints; k >= 1; k-- {
-		x := chordFraction(k)
-		pts = append(pts, local(x, st.chord*camberLine(x, st.camber)+halfThickness(x, st)))
-	}
-	pts = append(pts, local(0, 0))
-	for k := 1; k <= sidePoints; k++ {
-		x := chordFraction(k)
-		pts = append(pts, local(x, st.chord*camberLine(x, st.camber)-halfThickness(x, st)))
-	}
-	return pts
-}
-
-// bladeSection sketches one station on the world XY plane at height r: a fit spline through the section's points
-// closed by two trailing-edge lines that meet at the midpoint of the edge. The sketch origin is the stacking point.
-func (b *builder) bladeSection(w *sketch.World, st station) decad.LoftSection {
-	if b.err != nil {
-		return decad.LoftSection{}
-	}
-	plane, err := w.CreateOffsetPlane(w.XY(), st.r)
-	if err != nil {
-		b.fail("create blade plane", err)
-		return decad.LoftSection{}
-	}
-	sk, err := w.CreateSketch(plane)
-	if err != nil {
-		b.fail("create blade section", err)
-		return decad.LoftSection{}
-	}
-	b.a.Sketches = append(b.a.Sketches, sk)
-	pts := sectionPoints(st, beta(st.r, refPitch))
-	// The blades are mirrored: the spur pair reverses the crank's turn, so the fan turns the other way round and its
-	// blades must lead with the other face.
-	if !b.mirror {
-		for i := range pts {
-			pts[i][0] = -pts[i][0]
-		}
-	}
-	fit := make([]*sketch.Point, len(pts))
-	for i, p := range pts {
-		fit[i] = sketchcheck.DimensionPoint(sk, p[0], p[1])
-	}
-	first, last := fit[0], fit[len(fit)-1]
-	tail := sk.CreatePoint((pts[0][0]+pts[len(pts)-1][0])/2, (pts[0][1]+pts[len(pts)-1][1])/2)
-	sk.AddConstraint(sketch.NewMidpointOf(tail, first, last))
-	if _, err := sk.CreateFitSpline(fit...); err != nil {
-		b.fail("create blade spline", err)
-		return decad.LoftSection{}
-	}
-	sk.CreateLine(last, tail)
-	sk.CreateLine(tail, first)
-	if _, err := sk.Solve(b.ctx); err != nil {
-		b.fail("solve blade section", err)
-		return decad.LoftSection{}
-	}
-	if err := sketchcheck.VerifyFullyConstrained(b.ctx, sk); err != nil {
-		b.fail("verify blade section", fmt.Errorf("radius %g: %w", st.r, err))
-		return decad.LoftSection{}
-	}
-	for _, profile := range sk.Profiles() {
-		if profile.Valid && len(profile.Holes) == 0 && len(profile.Outer) == 3 {
-			return decad.LoftSection{Sketch: sk, Profile: profile}
-		}
-	}
-	b.fail("select blade profile", fmt.Errorf("radius %g: no valid profile of three edges", st.r))
-	return decad.LoftSection{}
 }

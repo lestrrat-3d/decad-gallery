@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -104,7 +103,7 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 	s.AddConstraint(sketch.NewRadius(bore, dm.BoreRadius), sketch.NewHorizontal(flat),
 		sketch.NewDistancePointLine(o, flat, dm.BoreFlat))
 	for k := 1; k <= BladeCount; k++ {
-		u, v := handcrankfan.BladeBoltAt*math.Cos(BladeAngle(k)), handcrankfan.BladeBoltAt*math.Sin(BladeAngle(k))
+		u, v := BladeBoltAt*math.Cos(BladeAngle(k)), BladeBoltAt*math.Sin(BladeAngle(k))
 		c := s.CreatePoint(u, v)
 		s.AddConstraint(sketch.NewHorizontalDistance(o, c, u), sketch.NewVerticalDistance(o, c, v))
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, m2fastener.HoleRadius), m2fastener.HoleRadius))
@@ -210,7 +209,7 @@ func (r *run) bladeSlotTool(k int) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	s, err := r.nutSlotSketch(f, HubRadius+m2fastener.Stock-handcrankfan.BladeBoltAt)
+	s, err := r.nutSlotSketch(f, HubRadius+m2fastener.Stock-BladeBoltAt)
 	if err != nil {
 		return nil, err
 	}
