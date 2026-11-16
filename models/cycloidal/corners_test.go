@@ -39,10 +39,8 @@ func housingFloorCorner(p cycloidal.Params) []cornercheck.Exempt {
 // orientation, axis +Z (the README's Printing section). The rotor discs are checked as built, chamfered. The housing
 // and the cam are also cut by planes through the drive axis, normal to X and to Y, for the "Corners between layers"
 // bullet: the casing floor, and the neck between the two sections of a two-disc cam.
-func requireCorners(t *testing.T, p cycloidal.Params) {
+func requireCorners(t *testing.T, p cycloidal.Params, drive *cycloidal.Drive) {
 	t.Helper()
-	drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-	require.NoError(t, err)
 	z := r3.Vec{Z: 1}
 	for _, nb := range drive.Named() {
 		t.Run(nb.Name, func(t *testing.T) {
@@ -76,11 +74,20 @@ func requireCorners(t *testing.T, p cycloidal.Params) {
 }
 
 func TestCorners(t *testing.T) {
-	t.Run("one disc", func(t *testing.T) { requireCorners(t, cycloidal.DefaultParams()) })
+	t.Run("one disc", func(t *testing.T) {
+		p := cycloidal.DefaultParams()
+		doc, drive, err := defaultFixture(t.Context(), p)
+		require.NoError(t, err)
+		count := len(doc.Bodies())
+		requireCorners(t, p, drive)
+		require.Len(t, doc.Bodies(), count)
+	})
 	t.Run("two discs", func(t *testing.T) {
 		p := cycloidal.DefaultParams()
 		p.DiscCount = 2
-		requireCorners(t, p)
+		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+		require.NoError(t, err)
+		requireCorners(t, p, &drive)
 	})
 }
 
@@ -97,7 +104,9 @@ func TestCornersVariants(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := cycloidal.DefaultParams()
 			mod(&p)
-			requireCorners(t, p)
+			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+			require.NoError(t, err)
+			requireCorners(t, p, &drive)
 		})
 	}
 }

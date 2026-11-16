@@ -17,9 +17,8 @@ func chainDocument() *decad.Document {
 }
 
 func TestBuildDefaultDrive(t *testing.T) {
-	doc := chainDocument()
 	p := cycloidal.DefaultParams()
-	drive, err := cycloidal.Build(t.Context(), doc, p)
+	doc, drive, err := defaultFixture(t.Context(), p)
 	require.NoError(t, err)
 	named := drive.Named()
 	require.Len(t, named, 1+1+1+1+6)
