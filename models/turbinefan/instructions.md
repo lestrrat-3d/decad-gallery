@@ -8,12 +8,16 @@ to the hub's back face, and its tip presses the shaft's flat. Its head floats, r
 round face, so nothing stands outside radius 14 except the three blades. Each blade is this model's blade
 (`blade.go`), with its round root stud that slides into a radial socket in the hub and one M2
 bolt that runs parallel to the shaft through the hub and the stud into a nut. That nut sits in a hex slot open to the round
-face, below the blade, so no nut is embedded and the hub needs no print pause. The parts are:
+face, below the blade, so no nut is embedded and the hub needs no print pause. The same hub also has two blind M2 bolt
+holes in its back face, each with a hex nut slot open to the round face: they take the two M2 x 10 bolts that hold it to
+the standard adapter ring of a one-way clutch (see "Clutch mount"). There is one hub for both mounts; it has no flange and
+no clamp ring. The parts are:
 
-- a hub, a cylinder cut by the D bore, three sockets, the blade bolts' pockets and nut slots, and the set screw's
-  counterbore, hole and nut slot;
+- a hub, a cylinder cut by the D bore, three sockets, the blade bolts' pockets and nut slots, the set screw's
+  counterbore, hole and nut slot, and the two adapter bolts' holes and nut slots;
 - three blades, one part printed three times;
-- four M2 bolts (three M2 x 16 blade bolts and the M2 x 6 set screw) and four M2 nuts.
+- four M2 bolts (three M2 x 16 blade bolts and the M2 x 6 set screw) and four M2 nuts in `ShaftMount`; five M2 bolts (the
+  blade bolts and two M2 x 10 adapter bolts) and five M2 nuts in `ClutchMount`, which has no set screw.
 
 The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
 in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
@@ -50,10 +54,8 @@ Package: `models/turbinefan`. Exported surface:
   (0.5), and the values it takes from `crankhandle`: `ChamferSize`, `PressWall` and `RegularFit`. `BladeAngle(k)` is blade
   k's angle about +Z.
 - The container names `HubContainerName` (`Hub`), `BladesContainerName` (`Blades`), `BoltsContainerName` (`Bolts`),
-  `NutsContainerName` (`Nuts`) and `ClampContainerName` (`Clamp Ring`).
-- The clutch-mount constants `ClutchTurn`, `FlangeThickness`, `FlangeRadius`, `FlangeRound`, `ClutchBoreClearance`,
-  `ClutchSeam`, `ClampThickness`, `ClampInnerRadius`, `ClampOuterRadius`, `ClampBack`, `EarBoltLength`, `EarBoltCavity`,
-  `MinWall` and `MountZ` (see "Clutch mount").
+  `NutsContainerName` (`Nuts`).
+- The clutch-mount constants `ClutchTurn`, `ClutchSeam` and `MountZ` (see "Clutch mount").
 - `Hand` with `RightHand` (the zero value) and `LeftHand`; `Hand.Freewheel()` returns the `onewayclutch.Direction` that
   drives a fan of that hand forward.
 - `Mount` with `ShaftMount` (the zero value) and `ClutchMount`; `EarBoltAngle(k)` is ear bolt k's angle in the fan frame.
@@ -63,15 +65,16 @@ Package: `models/turbinefan`. Exported surface:
 - `Params605ZZ()`, `Params608ZZ()` and `DefaultParams()`, which returns `Params605ZZ()`.
 - `Params.Validate() error` and `Params.Derive() (Dimensions, error)`. `Dimensions` holds `BoreRadius`, `BoreFlat`,
   `BoreFlatWidth`, `BoreLoop`, `ShaftFlatWidth`, `SetScrewTip`, `SetScrewHead`, `CounterboreFloor`, `SetScrewSite`,
-  `BladeSites`, `ClutchBoreRadius` and `EarSites`, in the local frame.
+  `BladeSites` and `AdapterSites`, in the local frame. `SetScrewSite` and `AdapterSites` are filled in both modes.
 - `NewDocument(opts ...decad.DocumentOption)` returns `decad.New(WithChainTolerance(0.1 mm), opts...)`. The blade's stud
   union refuses a plain document; build in such a document.
 - `BuildParts(ctx, doc, p) (*Parts, error)` adds the hub and the three blades and puts them in no container. `Parts`
-  holds `Hub`, `Blades`, `Clamp` (nil in `ShaftMount`), every `Sketches`, `Dimensions`, and in the world frame `BladeSites`,
-  `SetScrewSite` and `EarSites`.
+  holds `Hub`, `Blades`, every `Sketches`, `Dimensions`, and in the world frame `BladeSites`, `SetScrewSite` and
+  `AdapterSites`.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds `Parts`
   and holds `BladeBolts`, `BladeNuts`, `SetScrew` (`*m2bolt.Model`) and `SetScrewNut` (`*m2nut.Model`), and in
-  `ClutchMount` `EarBolts` and `EarNuts` (the set screw and its nut are nil).
+  `ClutchMount` `AdapterBolts` and `AdapterNuts` (the set screw and its nut are nil). `Build` builds neither the adapter nor
+  the clutch: the caller builds them in the clutch's own document (see "Clutch mount").
 
 The blade exports other models use: `BuildBlade(ctx, doc, pitch)` returns the unplaced blade and its twelve sketches,
 `BuildBladeMirrored` the blade of the other hand (its sections not flipped and its pitch turn reversed, so it is the first
@@ -115,24 +118,23 @@ Every message starts with `turbinefan: `. Derive checks in this order and return
 2. `d <= D/4`.
 3. `ballbearing.PressFitClearance <= c <= 0.5`.
 4. `Mount` is `ShaftMount` or `ClutchMount`, else `Mount must be ShaftMount or ClutchMount`.
-5. `ShaftMount`: `BladeSocketStart - r_b >= PressWall`, so 1.6 mm stays between the bore and the socket floors at r 5.7:
-   `r_b` at most 4.1. `ClutchMount`: `BladeSocketStart - r_c >= MinWall`, else `ShaftDiameter leaves less than a 0.8 mm wall
-   between the clutch mount's bore and the blade sockets`.
-6. `ShaftMount` only: `w_s >= m2bolt.ShankDiameter`, else `FlatDepth must leave the shaft's flat at least 2 mm wide for the
+5. `BladeSocketStart - r_b >= PressWall`, so 1.6 mm stays between the bore and the socket floors at r 5.7: `r_b` at most
+   4.1. Both mounts take this rule: one hub serves both.
+6. `w_s >= m2bolt.ShankDiameter`, else `FlatDepth must leave the shaft's flat at least 2 mm wide for the
    set screw's tip`.
-7. `ShaftMount` only: `w_b >= 2 (HoleRadius + 0.1)`, else `FlatDepth must leave the bore's flat at least 2.8 mm wide for the
+7. `w_b >= 2 (HoleRadius + 0.1)`, else `FlatDepth must leave the bore's flat at least 2.8 mm wide for the
    set screw's hole`. The 0.1 keeps the hole's cylinder off the bore's round.
 8. `BladePitch` lies in [10 degrees, 40 degrees].
 9. `Hand` is `RightHand` or `LeftHand`.
 10. `Placement` is nil or a valid frame.
-11. The site checks, constant over the valid range. `ShaftMount`, in this order: `SetScrewSite.Validate()` (`set screw:
-    ...`); `rho_h <= sqrt(HubRadius^2 - (HeadDiameter/2)^2)` (13.8705), else `set screw: its head would stand out of the
-    round face`; `Cavity - HeadPocketDepth - SetScrewTravel >= 1`, else `set screw: less than 1 mm between its counterbore
-    and its nut slot`; `SetScrewZ - HeadPocketRadius >= 1`, else `set screw: less than 1 mm between its counterbore and the
-    back face`; then each `BladeSites[k].Validate()`. `ClutchMount`: each `BladeSites[k].Validate()` (`blade bolt %d: ...`),
-    then each `EarSites[k].Validate()` (`ear bolt %d: ...`).
+11. The site checks, constant over the valid range and the same in both mounts, in this order: `SetScrewSite.Validate()`
+    (`set screw: ...`); `rho_h <= sqrt(HubRadius^2 - (HeadDiameter/2)^2)` (13.8705), else `set screw: its head would stand
+    out of the round face`; `Cavity - HeadPocketDepth - SetScrewTravel >= 1`, else `set screw: less than 1 mm between its
+    counterbore and its nut slot`; `SetScrewZ - HeadPocketRadius >= 1`, else `set screw: less than 1 mm between its
+    counterbore and the back face`; each `AdapterSites[k].Validate()` (`adapter bolt %d: ...`); then each
+    `BladeSites[k].Validate()`.
 
-`FlatDepth` 0.2 on the 605ZZ fails rule 6. 0.25 passes rule 6 and fails rule 7.
+`FlatDepth` 0.2 on the 605ZZ fails rule 6. 0.25 passes rule 6 and fails rule 7, in either mount.
 
 BuildParts and Build reject a nil context and a nil document, derive the dimensions, and check `ctx.Err()` before any
 geometry. A rejected build adds no body.
@@ -164,11 +166,16 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
      +Y), and its two copies from `decad.PatternCopies` with a circular pattern of three about +Z;
    - for each blade k, `m2fastener.PocketTool` (head pocket, z 18 to 20, radius 2.2) then the blade nut slot (below);
    - the set screw's counterbore (below), `m2fastener.HoleTool(SetScrewSite)` (radius 1.3, from `rho_h + 1` to `rho_t - 1`, its
-     inner end inside the bore) and the set screw's nut slot (below).
+     inner end inside the bore) and the set screw's nut slot (below);
+   - for each adapter bolt k = 1, 2 (angles 30 and 150 degrees), `m2fastener.HoleTool(AdapterSites[k])` (radius 1.3, blind,
+     from the back face to z 6.75) then the adapter nut slot (below).
 3. **Nut slot.** A hexagon about the bolt line with its corners on the circle of radius 2.51, one corner at the slot's end,
    whose two sides toward the opening run on as straight walls 2.1737 from the line, out through the part's face; 2.0 deep.
    - Set screw slot: plane `y = -(f_b + 1.6)`, extruded to `y = -(f_b + 3.6)`, U = -Z and V = +X, reaching `z = 6.51`
      at its end corner and open at z = -1 (below the back face). Every edge of both slot faces is rounded by `NutSlotRound`.
+   - Adapter slot k: `slotTool` with a `Dir` +Z site puts the slot plane at `Head.Z + Cavity`, z = 1.5, U = `u_k` (the
+     radial line at 30 or 150 degrees), V = `v_k`, the corner at r 6.99, open through the rim; z 1.5 to 3.5. Its three hexagon
+     corners are rounded by `NutSlotRound`, as the blade slots' are.
    - Blade slot k: plane z = 2.4, U = `u_k`, V = `v_k`, the corner at r 6.99 on the radial line, open through the rim; z 2.4 to
      4.4. Its three hexagon corners, the vertical edges along Z where the end meets the walls, are rounded by `NutSlotRound`: each turns 60 degrees, so a layer would read it as an inside corner.
 4. **Counterbore.** A revolved meridian about the screw's line: from the floor at `rho_f` a quarter-round of radius
@@ -185,8 +192,8 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
    constant inboard of r 21.5; a trailing edge 1.0 thick. The rotor is 128 across. Every blade vertex lies between z 0 and
    20: the measured range is z 5.02 to 17.72 at the default pitch, 4.17 to 19.39 at 40 degrees and 5.85 to 15.55 at 10
    degrees.
-7. **Containers.** `Build` files the hub, the three blades, the four bolts and the four nuts in their containers, each a
-   child of the document root.
+7. **Containers.** `Build` files the hub, the three blades, the bolts and the nuts in their containers, each a child of the
+   document root: four bolts and four nuts in `ShaftMount`, five of each in `ClutchMount`.
 
 ## Layout numbers
 
@@ -206,6 +213,9 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
 | Material, counterbore to back face | 1.8 | 1.8 | 1.8 |
 | Blade nut slot: from the corner at r 6.99 out through the rim; tangential; z | +-2.17; 2.4 to 4.4 | same | same |
 | Blade nut: along `u_k` r 7.19 to 11.81; z | 2.6 to 4.2 | same | same |
+| Adapter bolt hole r 1.3 and nut slot (30 and 150 degrees): hole z; slot z, corner r | -6.25 to 6.75, blind; 1.5 to 3.5, 6.99 | same | same |
+| Hub under the adapter slot (to the back face); slot corner to the bore | 1.5; 4.44 | 1.5; 2.89 | 1.5; 4.14 |
+| Adapter slot to blade nut slots, to sockets | 3.9 or more, 3.5 or more | same | same |
 | Blade nut slot to socket, back face, bore | 2.2, 2.4, 4.44 | 2.2, 2.4, 2.94 | 2.2, 2.4, 4.14 |
 | Set screw slot to blade nut slots, to blade bolt holes | 3.88, 4.76 | same | same |
 | Counterbore to blade nut slots | 4.15 | 4.76 | 4.05 |
@@ -224,12 +234,13 @@ slots use the hexagon of the Fasteners rule (corners on the 2.51 circle, 2.0 dee
 bolt line, less than the nut's 2.31 corner radius, so they stop the nut turning. The tightened bolt holds the nut: the set
 screw pulls its nut toward -Y onto the slot's outer face, and a blade bolt pulls its nut toward +Z onto the slot's face at
 z 4.4. The set screw's nut is wholly inside the hub (z 1.69 to 6.31); the blade nut's outer corner is at r 11.81, inside the
-14 rim. The 0.5 rounds leave 0.07 of clearance at the nut's flats and 0.12 at each rounded corner of the blade slot (a 120 degree corner rounded by 0.5 takes 0.077 of the 0.2 past the nut's corner).
+14 rim; an adapter nut (z 1.7 to 3.3) reaches r 12.43 at most. The 0.5 rounds leave 0.07 of clearance at the nut's flats and 0.12 at each rounded corner of the blade slot (a 120 degree corner rounded by 0.5 takes 0.077 of the 0.2 past the nut's corner).
 
 | Bolt | Head | Hole | Nut | Rule |
 | --- | --- | --- | --- | --- |
 | Blade bolt k (M2 x 16) | flush in the front face, pocket radius 2.2, 2 deep | radius 1.3 through the hub and the stud | hex slot open to the round face, entered radially, z 2.4 to 4.4 | open hex seat |
 | Set screw (M2 x 6) | recessed in a counterbore radius 2.2, 0.4 above its rounded floor (X1) | radius 1.3 from the counterbore floor through the press-fit wall (X3) into the bore | hex slot open to the back face, entered along +Z | open hex seat |
+| Adapter bolt k (M2 x 10, `ClutchMount` only) | flush in the adapter's rear face (z -6.25), in the adapter's pocket, not in the hub | radius 1.3 from the hub's back face to z 6.75, blind; the bolt's tip (z 5.75) stays inside | hex slot open to the round face, entered radially, z 1.5 to 3.5 | open hex seat |
 
 `Build` places the set screw with `m2fastener.PlaceBolt` at `SetScrewSite` and its nut with `PlaceNut`. `SetScrewSite` is
 `m2fastener.Site{Head: (0, -rho_h, SetScrewZ), Dir: (0, 1, 0), Corner: (0, 0, 1), Length: SetScrewBolt, Cavity:
@@ -370,10 +381,11 @@ blade prints standing on its stud end with its radial line vertical.
 | Part | Corner or edge | Reason |
 | --- | --- | --- |
 | Hub | The two corners of the D bore | Mating corners of the shaft's flat. They turn about 36 degrees, so they need no round. |
-| Hub | The set screw slot's corner edge at z 6.51 (along Y) and the blade slots' faces' edges (z 2.4 and 4.4) | The set screw slot's corner is a mating corner with the nut's corner and runs parallel to the bed; the blade slots' faces are between layers, sized by the Fasteners rule. |
+| Hub | The set screw slot's corner edge at z 6.51 (along Y), the blade slots' faces' edges (z 2.4 and 4.4), the adapter slots' faces' edges (z 1.5 and 3.5) and the adapter holes' blind ends (z 6.75) | The set screw slot's corner is a mating corner with the nut's corner and runs parallel to the bed; the blade slots' faces are between layers, sized by the Fasteners rule. |
 | Hub | The counterbore's 0.5 floor round, where a layer off the screw's line cuts it at a slant | A layer at z 2.5, 3.4 and 5.5 chords the round into turns of 50.1 to 53.1 degrees; the test exempts that band only. |
-| Hub | The set screw slot's 0.5 rounds where a layer cuts its sloped end (z 5.26 to 6.51) | Layers at z 5.5 and 5.8 read turns of 53.6 to 58.5 degrees; the test exempts that band only. |
+| Hub | The set screw slot's 0.5 rounds where a layer cuts its sloped end (z 5.26 to 6.51) | Layers at z 5.5 and 5.8 read turns of 53.6 to 58.5 degrees; the test exempts that band only. The adapter holes' blind floor at z 6.75 adds the mid heights 5.575 and 12.375, which cut the same round and the socket floor rounds at a slant, so the face-level call exempts both. |
 | Hub | The blade head pockets' floor rims | Between layers. |
+| Hub | The adapter slots' 0.5 rounds | The hexagon's three corners are rounded like the blade slots'; a layer at z 2.5 cuts them and reads no finding. |
 | Hub | The socket mouths | Between layers, out of the checker's sections. |
 | Hub | The socket floor's 0.5 round, where a layer off the socket's axis cuts it at a slant | A layer at z 7 or 13 chords the round into turns of 57.8 to 59.8 degrees on the floor's outline, 5.7 to 6.6 from the shaft axis; the test exempts that band only. |
 | Blade | The four corners where the bolt hole crosses the stud, at r 9.5 and 10.2 | The material angle is 64 to 90 degrees; the checker adds the stud's curvature. |
@@ -418,11 +430,13 @@ To assemble:
 
 ## Checks and images
 
-Check every case above: every sketch fully constrained (23 from `BuildParts` and 20 from `Build`), the twelve bodies and their
+Check every case above: every sketch fully constrained (27 from `BuildParts`: the hub's own, with two adapter hole sketches
+and two adapter slot sketches, and the blades'; 20 from `Build` in `ShaftMount`, 25 in `ClutchMount`), the twelve bodies (fourteen in `ClutchMount`) and their
 containers, the default's bounds and `VerifyAll` meshes, the placed fan against the local one, the blade envelope (every
 blade vertex at 0 <= z <= 20 and r <= 64.5), the bore's clearance round the nominal shaft, its wall and that it runs through,
 the face chamfers, the set screw (head, tip, floating head over a rounded floor, nut, slot shape, no overlap, every wall),
-each blade bolt's head, tip and nut with its slot and no overlap, access to the set screw's path and each blade nut's path,
+each blade bolt's head, tip and nut with its slot and no overlap, both adapter cuts on the `ShaftMount` hub (slot open to the
+round face, 1.5 of hub under it, the wall to the bore), access to the set screw's path and each blade nut's path,
 every Regular fit, the blades' pitch and hand, the copies turned by 120 and 240 degrees, the replacement paths, and
 `internal/cornercheck` on the hub (axis +Z) and each blade along its radial line.
 
@@ -430,104 +444,85 @@ every Regular fit, the blades' pitch and hand, the copies turned by 120 and 240 
 
 ### Purpose, frame turn and stack
 
-`Params.Mount = ClutchMount` bolts the fan to the three ring ears of [`models/onewayclutch`](../onewayclutch/) instead of
-gripping the shaft. The shaft drives the fan through the clutch, and the fan coasts when the shaft stops or turns back.
-The default (`ShaftMount`) fan does not change: same bodies, tests and images. The clutch is not modified; the fan side
-supplies everything that holds the ear bolts, including a clamp ring behind the ring.
+`Params.Mount = ClutchMount` bolts the fan to the standard adapter ring (`onewayclutch.BuildAdapter`) of
+[`models/onewayclutch`](../onewayclutch/) instead of gripping the shaft. The shaft drives the fan through the clutch, and
+the fan coasts when the shaft stops or turns back. The hub is the `ShaftMount` hub: one part, no flange and no clamp ring.
+The clutch and the adapter are not modified by the fan; the fan side supplies only the hub's two adapter bolt holes and
+nut slots, which are present in both mounts.
 
-The fan local frame is unchanged (origin on the axis in the hub's back face, +Z forward, blade 1 along +Y). In
-`ClutchMount` the flange lies at z -3 to 0, behind the hub. `MountFrame(C)` maps the fan frame to clutch-frame origin
-(0, 0, `MountZ`) with U = (cos 60, sin 60, 0) and V = (-sin 60, cos 60, 0), then through the clutch frame C. A fan angle
-is the clutch angle plus 60 degrees, so the clutch ears at 90, 210 and 330 degrees land at fan angles 30, 150 and 270,
-midway between the blades, and a hex key reaches each ear bolt from the front. Both frames share +Z.
+The fan local frame is unchanged (origin on the axis in the hub's back face, +Z forward, blade 1 along +Y). `MountFrame(C)`
+maps the fan frame to clutch-frame origin (0, 0, `MountZ`) with U = (cos 60, sin 60, 0) and V = (-sin 60, cos 60, 0), then
+through the clutch frame C. A fan angle is the clutch angle plus 60 degrees, so the clutch's ears and face holes at 90, 210
+and 330 degrees land at fan angles 30, 150 and 270, midway between the blades, and a hex key reaches each ear bolt from the
+front. The fan uses the face holes at 90 and 210 degrees (fan 30 and 150); the hole at 330 degrees (fan 270) lies under the
+hub's solid back face and stays empty. Both frames share +Z.
 
 | Item | Fan z | Clutch z |
 | --- | ---: | ---: |
-| Hub front face | 20 | 43 |
-| Flange front face, ear bolt head tops | 0 | 23 |
-| Flange back face | -3 | 20 |
-| Ring front end (seam 0.25) | -3.25 | 19.75 |
-| Clutch cover outer face, cover bolt heads | -4.5 | 18.5 |
-| Ring back end | -24.25 | -1.25 |
-| Clamp ring front face (seam 0.25) | -24.5 | -1.5 |
-| Ear nut slot | -25.5 to -27.5 | -2.5 to -4.5 |
-| Ear bolt tip (seams open) | -27.0 | -4.0 |
-| Clamp ring back face | -28.5 | -5.5 |
+| Hub front face | 20 | 46.25 |
+| Hub back face (seam 0.25) | 0 | 26.25 |
+| Adapter front face | -0.25 | 26 |
+| Adapter nut slot | 1.5 to 3.5 | 27.75 to 29.75 |
+| Adapter bolt tip (seam open) | 5.75 | 32 |
+| Blind hole floor | 6.75 | 33 |
+| Adapter rear face, adapter bolt head tops (flush) | -6.25 | 20 |
+| Ring front end (seam 0.25) | -6.5 | 19.75 |
+| Clutch cover outer face, cover bolt heads | -7.75 | 18.5 |
 
 The clamped faces are modeled with the clutch's 0.25 mm seam and close when the bolts are tightened, as the clutch's own
-plates do. The clutch-mount bore is round, radius `D/2 + 0.55`, and does not touch the shaft. `FlatDepth` and
-`BoreClearance` stay validated by rules 1 to 3 and shape nothing in `ClutchMount`.
+plates do. The hub has no bore contact with the shaft: the adapter's 10 mm bore clears the shaft, and the shaft stops short
+of the hub's back face.
 
 ### Constants
 
 | Name | Value | Definition / reason |
 | --- | ---: | --- |
 | `ClutchTurn` | pi/3 | fan frame turn about Z from the clutch frame |
-| `FlangeThickness` | 3.0 | `m2fastener.HeadPocketDepth + 1.0`: head pocket plus 1 mm under it |
-| `FlangeRadius` | 25.7 | `onewayclutch.AdapterRadius`: covers the ear tips (`onewayclutch.EarReach`); 1.9 mm round each head pocket, 1.4 inside the rim chamfer |
-| `FlangeRound` | 1.5 | root round of the hub on the flange: half the flange's 3.0 |
-| `ClutchBoreClearance` | 0.55 | `onewayclutch.LooseFit` |
 | `ClutchSeam` | 0.25 | `onewayclutch.Seam` |
-| `ClampThickness` | 4.0 | 1 + `m2fastener.NutCavityHeight` + 1 |
-| `ClampInnerRadius` | 17.25 | `onewayclutch.PlateRadius + onewayclutch.LooseFit`: Loose 0.55 off the back plate's rim (16.7); 1.84 to the nut slot's inner corner (r 19.09) |
-| `ClampOuterRadius` | 25.7 | `FlangeRadius` |
-| `ClampBack` | -28.5 | `-(FlangeThickness + 2*ClutchSeam + onewayclutch.RingHeight + ClampThickness)` |
-| `EarBoltLength` | 25.0 | M2 x 25, in `m2bolt.StandardLengths()`, its longest entry |
-| `EarBoltCavity` | 25.5 | `-(ClampBack + 1 + m2fastener.NutCavityHeight)` |
-| `MinWall` | 0.8 | least wall of a part that does not bend |
-| `MountZ` | 23.0 | `onewayclutch.RingTo + ClutchSeam + FlangeThickness` |
-| `ClampContainerName` | `"Clamp Ring"` | container of the clamp ring |
+| `MountZ` | 26.25 | `onewayclutch.AdapterTo + ClutchSeam`: the fan frame's origin in the clutch frame |
 
-The stack the bolt must span is flange 3.0 + 0.25 + ring 21.0 + 0.25 + clamp 4.0; 25 mm reaches through only when the
-flange is 3.0.
+The adapter's own constants are in [`models/onewayclutch`](../onewayclutch/instructions.md): `FaceCircle` 9.5, `FaceLength` 10
+(an `m2bolt.StandardLengths()` entry) and `FaceNutDepth` 1.5. The fan reads them; it does not redefine them.
 
 ### Validation
 
-See the rules above: rule 4 (Mount), rule 5 (clutch wall, `D` at most 8.7), rules 6 and 7 skipped, rule 11 (blade then
-ear sites). `EarSites[k]` (k = 0..2, angle `a = EarBoltAngle(k+1)`, `u = (cos a, sin a, 0)`) is `m2fastener.Site{Head:
-(EarCircle cos a, EarCircle sin a, 0), Dir: (0, 0, -1), Corner: u, Length: EarBoltLength, Cavity: EarBoltCavity}`, with
-`EarCircle` = `onewayclutch.EarCircle` (21.6). `Tip()` is 27 and `CavityFar()` is 27.5. In `ClutchMount` the set screw
-fields stay zero; `ClutchBoreRadius` is `r_c = D/2 + ClutchBoreClearance` (0 in `ShaftMount`).
+The `ClutchMount` hub passes the same rules as the `ShaftMount` hub (rules 1 to 11 above). `AdapterSites[k]` (k = 0, 1, angle
+`a = EarBoltAngle(k+1)`, 30 and 150 degrees, `u = (cos a, sin a, 0)`) is `m2fastener.Site{Head: (FaceCircle u, -(AdapterThickness
++ ClutchSeam)) = (9.5 cos a, 9.5 sin a, -6.25), Dir: (0, 0, 1), Corner: u, Length: FaceLength, Cavity: AdapterThickness +
+ClutchSeam + FaceNutDepth}`. `Cavity` is 7.75, `Tip()` is 12 and `CavityFar()` is 9.75. In `ClutchMount` the set screw's
+fields are filled, since the hub carries its cuts, but `Build` places no set screw.
 
 ### Geometry
 
-1. **Hub, one revolved body.** A meridian sketch on the frame with origin 0, U = +Z and V = +X, each vertex `(r, z)`
-   placed with `sketchcheck.DimensionPoint`, lines joining consecutive vertices and closing the loop. With `c` = 0.5,
-   `R` = 25.7, `T` = 3, `rho` = 1.5, `rh` = 14, `H` = 20 and `bc` = `2 pi r_c >= edgefinish.LongEdgeRun` (true at D = 8):
-   `(r_c, -T+c)`, `(r_c+c, -T)` when `bc` else `(r_c, -T)`; `(R-c, -T)`, `(R, -T+c)`, `(R, -c)`, `(R-c, 0)`;
-   `(rh+rho, 0)`; eight round points `(rh+rho + rho cos a_i, rho + rho sin a_i)`, `a_i = 3 pi/2 - (pi/2)(i/8)`, ending at
-   `(rh, rho)`; `(rh, H-c)`, `(rh-c, H)`; `(r_c+c, H)`, `(r_c, H-c)` when `bc` else `(r_c, H)`. That is 17 vertices, 19
-   with `bc`. The chamfers are in the meridian; no `edgefinish` call runs on this body. Revolve about the Z axis.
-   Cuts, in order: the three sockets; for each blade the hole tool, the pocket tool and the nut slot; for each ear the
-   pocket tool (z -2 to 0) then the hole tool (through the flange).
-2. **Clamp ring.** A sketch on z = `ClampBack`: circles of radius 25.7 and 17.25 about the origin, and three circles of radius
-   1.3 at the ear sites; extrude 4.0 along +Z. `edgefinish.Chamfer` of both faces by 0.5 over the long loops (outer and
-   inner circles). Then at each ear a nut slot (`slotTool`) of reach `ClampOuterRadius + Stock - EarCircle` (5.1): z -27.5
-   to -25.5, 1.0 from each face, its corner at r 19.09 (1.84 from the bore), its mouth through the rim.
-3. **Blades, bolts, nuts.** As in `ShaftMount`; the blades are the same part, and the blade nut slots open above the
-   flange.
-4. **Counts.** Bodies: 17. Sketches from `BuildParts`: 33 (1 meridian, 1 socket tool, 9 blade tools, 6 ear tools, 12 blade
-   sketches, 1 clamp outline and 3 clamp slots); `Build` adds 30 fastener sketches. Containers: `Hub` (hub), `Blades`,
-   `Clamp Ring`, `Bolts` (blade bolts 1 to 3, ear bolts 1 to 3), `Nuts` (blade nuts, ear nuts).
+1. **Hub.** As in "Geometry" above, with the adapter holes and slots, in `ClutchMount` too.
+2. **Blades, bolts, nuts.** As in `ShaftMount`; the blades are the same part.
+3. **Adapter bolts.** `Build` places each adapter bolt with `m2fastener.PlaceBolt` and its nut with `PlaceNut` at
+   `AdapterSites[k]` through the placement. The adapter is the caller's: `doc := onewayclutch.NewDocument();
+   onewayclutch.Build(ctx, doc, c); onewayclutch.BuildAdapter(ctx, doc, c)`, then `turbinefan.Build(ctx, turbinefan.NewDocument(),
+   ParamsForClutch(c))`. The fan builds in its own document because both models file their hub in a container named `Hub`;
+   one document would put the clutch hub and the fan hub in one container.
+4. **Counts.** Bodies: 14 (hub, three blades, five bolts and five nuts). Sketches from `BuildParts`: 27 (1 hub outline, 1 socket tool, 6 blade pocket and slot tools, 3 set screw
+   tools, 2 adapter hole tools, 2 adapter slot tools and 12 blade sketches); `Build` adds 25 fastener sketches (ten for five bolts, fifteen for five nuts). Containers: `Hub`, `Blades`,
+   `Bolts` (blade bolts 1 to 3, adapter bolts 1 and 2) and `Nuts`.
 
 ### Fasteners
 
-Each M2 x 25 ear bolt's head sits flush in a pocket in the flange's front face and the bolt passes the flange, the ring
-ear (21 mm) and the clamp ring. Each nut sits in a hex slot open to the clamp ring's rim: no nut is embedded, so no print
-pause (AGENTS.md "Fasteners"). The tightened bolt pulls the nut onto the slot's front face.
+Each M2 x 10 adapter bolt's head sits flush in a pocket in the adapter's rear face (the adapter's pocket, `m2fastener.PocketTool`
+at `onewayclutch.Dimensions.FaceSites`), and the bolt passes the adapter and the seam into the hub's blind hole. Each nut sits
+in a hex slot open to the hub's round face, `FaceNutDepth` (1.5) behind its far face: no nut is embedded, so no print pause
+(AGENTS.md "Fasteners"). The tightened bolt pulls the nut onto the slot's rear face.
 
 | Check | Seams open (model) | Seams closed (tightened) |
 | --- | --- | --- |
-| Head top | flush with flange front face, z 0 | same |
-| Material under head pocket | 1.0 (z -3 to -2) | same |
-| Shank in ear bore | 0.3 radial (bore 2.6, shank 2.0) | same |
-| Tip above clamp back face | 1.5 | 1.0 |
-| Nut position | z -25.7 to -27.3 | pulled onto the slot's front face, -25.0 to -26.6 |
-| Tip past the nut's far face | inside the nut, 1.3 of 1.6 engaged | 0.4 past the nut |
-| Slot walls | 1.0 to each clamp face | same |
+| Head top | flush with the adapter's rear face, fan z -6.25 | same |
+| Tip | z 5.75, inside the blind hole (floor 6.75) and 2.25 past the slot's far face | z 5.50 |
+| Nut position | z 1.7 to 3.3 | pulled onto the slot's rear face, z 1.5 to 3.1 |
+| Shank in the hub's hole, in the adapter's hole | 0.3 radial (hole 2.6, shank 2.0) | same |
+| Material under the slot | 1.5 | same |
 | Nut in slot | 0.17 at the flats (0.07 beside the rounds), 0.12 at each rounded corner, 0.2 at each face | same |
 
-The clamp ring moves 0.5 toward the head when both seams close: 0.25 at the flange and 0.25 at the clamp ring.
+The bolts cannot be reached once the adapter is on the clutch: bolt the hub to the adapter on the bench first (see
+"Assembly").
 
 ### Hand and freewheel
 
@@ -547,46 +542,42 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 
 | Pair | Class | Modeled | Test bound |
 | --- | --- | ---: | --- |
-| Flange back face / ring front end | clamped seam | 0.25 | at least 0.20 |
-| Clamp ring front face / ring back end | clamped seam | 0.25 | at least 0.20 |
-| Flange back face / cover, cover bolt heads | Regular, after the ring's 0.85 play and the seam closing | 1.50 | at least 1.45 |
-| Clamp ring / back plate, clutch nuts | Regular | 1.50 axial, plus radial separation | at least 1.45 |
-| Clamp ring inner bore / back plate rim | Loose | 0.55 radial | every clamp vertex at r 17.20 or more |
-| Round bore / nominal shaft | Loose | 0.55 radial | at least 0.50 |
-| Ear bolt shank / ear bore, clamp hole, flange hole | fastener rule | 0.30 | at least 0.28 in 0.01 sections |
-| Ear nut / slot | fastener rule | 0.17 flats (0.07 beside the rounds), 0.12 rounded corners, 0.20 faces | clear |
-| Blades / flange front face | Regular | 4.17 or more (lowest blade point at 40 degrees) | every blade vertex at r 25.7 or less at z 0.35 or more |
+| Hub back face / adapter front face | clamped seam | 0.25 | at least 0.20 |
+| Adapter rear face / ring front end | clamped seam | 0.25 | at least 0.20 |
+| Adapter rear face / cover, cover bolt heads | Regular, after the ring's 0.85 play and the seam closing | 1.50 | at least 1.45 |
+| Adapter bolt heads / cover | Regular | 1.50 | at least 1.45 |
+| Adapter bolt shank / adapter hole, hub hole | fastener rule | 0.30 | at least 0.28 |
+| Adapter nut / slot | fastener rule | 0.17 flats (0.07 beside the rounds), 0.12 rounded corners, 0.20 faces | clear |
+| Blades / adapter | Regular | 5.25 | at least 5.0 |
+| Blade / ear bolt (hex key room) | Regular | 5.6 | at least 5.0 |
 
-The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. The clutch's R6 guarantee (0.40
-at the end of the play) carries over to the flange because the flange is flat over r < 17.1. The bound 1.45 is 0.35 +
-`ToothEndGap` + `ClutchSeam`. Blade fits are unchanged.
+The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. Blade fits are unchanged.
 
-Measured by `TestTurbineFanOnClutch` in the plane x = 0 (section outlines, less each outline's off-surface bound), modeled in
-brackets: flange back face / ring front end 0.228 (0.25); clamp front face / ring back end 0.228 (0.25); flange back face /
-cover outer face 1.492 (1.50); flange back face / the 270 degree cover bolt head 1.495 (1.50); clamp front face / back plate
-outer face 1.492 (1.50).
+Measured by `TestTurbineFanOnClutch` (mesh gap lower bounds, 605ZZ / 608ZZ clutch): hub / adapter 0.245 / 0.242; adapter /
+ring 0.232 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt head 1.498 / 1.498; adapter bolt head / cover
+1.497 / 1.494; each blade / adapter 5.252; blade 1 / ear bolt 1 5.632.
 
 ### Retained sharp corners, edge finishing and printing
 
-- Hub: prints back face (flange) down, axis vertical, no supports. Each slot roof (z 4.4) is a 4.35 bridge. The root round
-  (1.5) is the upward-opening corner between layers.
-- Clamp ring: either face down, axis vertical. Each slot roof is a 4.35 bridge.
-- Retained sharp corners: the blade and ear head pocket floor rims; the blade slot faces and clamp slot faces at z -27.5
-  and -25.5 (between layers); the blade bolt hole blind ends; the socket mouths; the socket floor round band, exempt at
-  z 7 and 13 as today.
-- Short runs left sharp: blade bolt holes, ear holes and clamp holes (8.2), head pockets (13.8) and the 605ZZ bore (19.16).
-- Large faces (mm2, 605ZZ / 608ZZ): back face 2046 / 2010, flange front 1320, hub front 586 / 551, each clamp face 1124.
-- Containers: see Geometry. No look-alike parts, printed shaft, arbor collars or gears.
+- Hub: the same part as in `ShaftMount`: prints front face down, axis vertical, no supports. Each adapter slot roof (z 3.5)
+  is a 4.35 bridge.
+- Retained sharp corners: as the hub's, plus the adapter slots' faces at z 1.5 and 3.5 (between layers) and the adapter holes'
+  blind ends (z 6.75).
+- Short runs left sharp: the adapter holes (8.2).
+- Containers: see Geometry. No look-alike parts, printed shaft, arbor collars or gears. The adapter's own edge finishing,
+  corners and walls are in [`models/onewayclutch`](../onewayclutch/instructions.md).
 
 ### Mounting space, assembly and cases
 
-- Behind the ring: r 17.25 to 25.7, 4.25 mm deep from the ring's back end (clutch z -1.25 to -5.5). In front: the flange (51.4
-  across, clutch z 20 to 23) and the fan. The shaft may end anywhere from inside the clutch to the hub's front face.
-- Assembly: (1) fit the blades; (2) assemble the clutch off the shaft; (3) hang the clamp ring round the shaft and press
-  the clutch on, back plate first (the 33.4 plate passes the 34.5 clamp bore), tighten the clutch's bolts; (4) hold the
-  clamp ring against the ring's back end with its holes on the ear bores and slide an M2 nut into each slot from the rim;
-  (5) set the flange against the ring's front end and push the three M2 x 25 bolts through, tightening from the front with a
-  1.5 mm hex key between the blades.
+- Behind the ring: room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 at the ring's rear face).
+  In front: the adapter (51.4 across, clutch z 20 to 26) and the fan. The shaft may end anywhere from inside the clutch to the
+  adapter's front face (z 26); it must not enter the hub's back face. A shaft that entered the D bore would lock the fan to
+  the shaft and defeat the clutch.
+- Assembly: (1) fit the blades; (2) slide two M2 nuts into the hub's adapter slots from the round face, set the hub on the
+  adapter's front face (its pockets toward the back) and drive two M2 x 10 bolts from the adapter's rear pockets; (3) assemble
+  the clutch, press it on the shaft and tighten its three bolts (the 2.6 mm access holes in the adapter pass a 1.5 mm hex
+  key to the heads when the adapter is on); (4) hold an M2 nut in each of the ring's three rear ear pockets, set the adapter
+  against the ring's front end and drive the three M2 x 25 ear bolts from the front between the blades with a 1.5 mm hex key.
 - Cases: `clutch-605ZZ` (`ParamsForClutch(onewayclutch.DefaultParams())`, `Placement` nil), `clutch-608ZZ-left`
-  (`{Shaft: "608ZZ", Freewheel: CounterClockwise, BoreClearance: 0.05}`) and `assembly-605ZZ` (the fan placed on the real
-  clutch; `TestTurbineFanOnClutch`).
+  (`{Shaft: "608ZZ", Freewheel: CounterClockwise, BoreClearance: 0.05}`) and the fan placed on the real clutch with its adapter
+  (`TestTurbineFanOnClutch`).

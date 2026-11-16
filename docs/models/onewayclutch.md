@@ -27,8 +27,9 @@ in no container. `Build(ctx, doc, params)` adds those four, the three bolts and 
 `BuildAdapter(ctx, doc, params)` adds the standard adapter ring, three M2 x 25 bolts and three nuts that bolt it to the
 ring's ears from the front, in the `Adapter`, `Bolts` and `Nuts` containers, and returns them as an `Adapter`. Call it
 with the same `Params` as the clutch, in the same document (`Build` first: 17 bodies in six containers). It needs a
-chain tolerance only when the document also holds the clutch. A part of another shape, such as the turbine fan's flange
-and clamp ring, takes its place when it meets the ear interface of `Dimensions.MountSites`.
+chain tolerance only when the document also holds the clutch. A part of another shape takes its place when it meets the ear
+interface of `Dimensions.MountSites`. The adapter's face holes (`Dimensions.FaceSites`) take a part bolted to its front: the
+turbine fan's hub uses two of them, with its own document (both models file their hub in a container named `Hub`).
 
 ## Build and images
 
@@ -52,7 +53,8 @@ each they check:
 - every sketch's full constraint (`TestOneWayClutchSketches`), the ten bodies, their bounds and `VerifyAll` meshes
   (`TestOneWayClutchDefault`), and the containers (`TestOneWayClutchContainers`);
 - the adapter: 17 bodies in six containers with the clutch, its sketches, bounds and chamfers, each head flush, each nut
-  inside its pocket, each bolt tip, the clearances round every shank, the seam, the walls and its corners
+  inside its pocket, each bolt tip, the clearances round every shank, the seam, the walls, the face interface (face pockets,
+  face holes and access holes) and its corners
   (`TestOneWayClutchAdapter`, `TestOneWayClutchAdapterPlaced`);
 - that a plain document refuses the clutch build (`TestOneWayClutchPlainDocumentRefusesBuild`);
 - the validation errors and that a rejected build adds no body (`TestOneWayClutchRejectsInvalidInputs`);

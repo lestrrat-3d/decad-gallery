@@ -75,10 +75,10 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
   `edgefinish.Chamfer(body, +Z, [outerZ], Long(All), 0.5)` call, which takes every outer-face loop of 20 mm or more (the
   outer circle, and the D loop at 8 mm), then `decad.Cut` with `meridian(inner)` and each fastener tool in order.
 - `backPlate()`: `plate(0, 4, 0, BackPlateInner, HexPocketTool per site)`. `adapter()` (adapter.go): `adapterSketch` on
-  `across(AdapterFrom)` (the outer circle, and as holes the bore and three ear holes: four holes), extrude 6 along +Z, one
-  `edgefinish.Chamfer(body, +Z, [AdapterFrom, AdapterTo], Long(All), 0.5)`, then `m2fastener.PocketTool` at each mount
-  site. `BuildAdapter` places it, its bolts and its nuts, and files them in `Adapter`, `Bolts` and `Nuts`. `cover()`: `plate(14.5, 4, 18.5, CoverInner,
-  PocketTool per site)`.
+  `across(AdapterFrom)` (the outer circle, and as holes the 10 mm bore, three ear holes, three face holes at `FaceCircle` and three access holes
+  from `boltHoles`: ten holes), extrude 6 along +Z, one `edgefinish.Chamfer(body, +Z, [AdapterFrom, AdapterTo], Long(All), 0.5)`,
+  then `m2fastener.PocketTool` at each mount site and then at each face site. `BuildAdapter` places it, its bolts and its
+  nuts, and files them in `Adapter`, `Bolts` and `Nuts`. `cover()`: `plate(14.5, 4, 18.5, CoverInner, PocketTool per site)`.
 - `BuildParts` builds the four bodies in the order hub, ring, back plate, cover, requires each to be solid, and moves
   each by `placement.Place` last. It places the sites with `placeSite`.
 - `Build` places `m2fastener.PlaceBolt` and `PlaceNut` at each site and files every body with
@@ -91,4 +91,5 @@ tessellates with `VerifyAll`; no two bodies overlap (a bolt in its nut and a hea
 the bolt-to-cover clearance is measured in sections at z 17.5 and 15.5, at least 0.28 mm). `TestOneWayClutchContainers`:
 the five names, each body in its container, `doc.VerifyContainers().Err()` nil. `TestOneWayClutchAdapter` builds the clutch and
 `BuildAdapter` in one `NewDocument()`: 17 bodies in six containers, the adapter's bounds and chamfers, flush heads, nuts
-inside their pockets, bolt tips, the shank clearances, the seam and the walls.
+inside their pockets, bolt tips, the shank clearances, the seam and the walls, the face pockets' depth and walls, and the
+face and access holes' positions.

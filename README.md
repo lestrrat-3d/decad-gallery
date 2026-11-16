@@ -17,7 +17,7 @@ a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, a [crank handle](models/crankhandle/)
 with a handle that turns on its pin, a [one-way clutch](models/onewayclutch/) with three flexing pawls for a D-flat shaft and an adapter ring,
 a [turbine fan](models/turbinefan/) with swappable blades on a round hub held on a D-flat shaft by a set screw
-(an optional clutch mount bolts the hub to the one-way clutch's ring so the fan coasts),
+(the same hub also bolts to the one-way clutch's adapter ring so the fan coasts),
 and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
 The spinning wheel, the escapement, the spiral spring, the turbine fan, the hand-crank fan and the hand-crank siren are not built
