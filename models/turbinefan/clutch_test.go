@@ -82,28 +82,28 @@ func TestTurbineFanClutchBounds(t *testing.T) {
 	hub, err := m.Hub.Bounds()
 	require.NoError(t, err)
 	tol := hub.Bound.Base() + 1e-3
-	require.InDelta(t, -28, hub.Min.X, tol)
-	require.InDelta(t, 28, hub.Max.X, tol)
-	require.InDelta(t, -28, hub.Min.Y, tol)
-	require.InDelta(t, 28, hub.Max.Y, tol)
+	require.InDelta(t, -turbinefan.FlangeRadius, hub.Min.X, tol)
+	require.InDelta(t, turbinefan.FlangeRadius, hub.Max.X, tol)
+	require.InDelta(t, -turbinefan.FlangeRadius, hub.Min.Y, tol)
+	require.InDelta(t, turbinefan.FlangeRadius, hub.Max.Y, tol)
 	require.InDelta(t, -3, hub.Min.Z, tol)
 	require.InDelta(t, 20, hub.Max.Z, tol)
 	clamp, err := m.Clamp.Bounds()
 	require.NoError(t, err)
 	tol = clamp.Bound.Base() + 0.01
-	require.InDelta(t, -28, clamp.Min.X, tol)
-	require.InDelta(t, 28, clamp.Max.X, tol)
-	require.InDelta(t, 28, clamp.Max.Y, tol)
-	// The 270 degree slot spans only z -27.5 to -25.5, so the box still reaches -28 above and below it; the slot's own
-	// section reaches only the wall beside it.
-	require.InDelta(t, -28, clamp.Min.Y, tol)
+	require.InDelta(t, -turbinefan.ClampOuterRadius, clamp.Min.X, tol)
+	require.InDelta(t, turbinefan.ClampOuterRadius, clamp.Max.X, tol)
+	require.InDelta(t, turbinefan.ClampOuterRadius, clamp.Max.Y, tol)
+	// The 270 degree slot spans only z -27.5 to -25.5, so the box still reaches the outer radius above and below it;
+	// the slot's own section reaches only the wall beside it.
+	require.InDelta(t, -turbinefan.ClampOuterRadius, clamp.Min.Y, tol)
 	lowest := math.Inf(1)
 	for _, l := range section(t, m.Clamp, atZ(t, -26.5)).Loops {
 		for _, v := range l {
 			lowest = math.Min(lowest, v.Y)
 		}
 	}
-	require.InDelta(t, -math.Sqrt(28*28-2.17*2.17), lowest, 0.01)
+	require.InDelta(t, -math.Sqrt(turbinefan.ClampOuterRadius*turbinefan.ClampOuterRadius-2.17*2.17), lowest, 0.01)
 	require.InDelta(t, turbinefan.ClampBack, clamp.Min.Z, tol)
 	require.InDelta(t, turbinefan.ClampBack+turbinefan.ClampThickness, clamp.Max.Z, tol)
 	for name, item := range map[string]struct {
@@ -160,7 +160,7 @@ func TestTurbineFanClutchHub(t *testing.T) {
 			o := section(t, m.Hub, atZ(t, z))
 			requireRadius(t, boreLoop(t, o.Loops, rc+0.6), rc+grow, 0.03, fmt.Sprintf("bore chamfer at z %g", z))
 		}
-		for z, want := range map[float64]float64{-2.75: 27.75, -0.25: 27.75, -1.5: 28, 19.75: 13.75, 0.25: 15.5 - math.Sqrt(1.5*1.5-1.25*1.25), 1.6: 14} {
+		for z, want := range map[float64]float64{-2.75: turbinefan.FlangeRadius - 0.25, -0.25: turbinefan.FlangeRadius - 0.25, -1.5: turbinefan.FlangeRadius, 19.75: 13.75, 0.25: 15.5 - math.Sqrt(1.5*1.5-1.25*1.25), 1.6: 14} {
 			requireRadius(t, outerLoop(t, section(t, m.Hub, atZ(t, z)).Loops), want, 0.03, fmt.Sprintf("outer at z %g", z))
 		}
 		o := section(t, m.Hub, atZ(t, 10))
@@ -179,7 +179,7 @@ func TestTurbineFanClutchHub(t *testing.T) {
 		for _, z := range []float64{1.6, 2.2} {
 			level := section(t, m.Hub, atZ(t, z))
 			for k := 1; k <= turbinefan.BladeCount; k++ {
-				for _, r := range []float64{15.6, 20, 27} {
+				for _, r := range []float64{15.6, 20, 25} {
 					d := bladeDir(k).Scale(r)
 					require.False(t, inSection(level, xy, d.X, d.Y), "blade %d path at r %g, z %g", k, r, z)
 				}
@@ -233,7 +233,17 @@ func TestTurbineFanClutchAccess(t *testing.T) {
 func TestTurbineFanClutchCorners(t *testing.T) {
 	eachClutchCase(t, func(t *testing.T, _ fanCase, m *turbinefan.Model, _ *decad.Document) {
 		up := r3.Vec{Z: 1}
-		fs, err := cornercheck.Check(t.Context(), m.Hub, up, nil)
+		// The mid-height z 11.2 cuts each blade socket's floor round at a slant, where it runs into the socket's wall,
+		// 6.9 mm from the axis. With the 25.7 mm flange the section's chords there read a turn of 50.13 degrees, 0.12 over
+		// the limit (the 28 mm flange's chords read it under). The round is 0.5 mm and tangent to the wall, so the part
+		// has no corner there; only the chord sampling reads one.
+		fs, err := cornercheck.Check(t.Context(), m.Hub, up, []cornercheck.Exempt{{
+			Reason: "blade socket floor round meets its wall, chords read 50.13 degrees at z 11.2",
+			Near: func(v r3.Vec) bool {
+				r := math.Hypot(v.X, v.Y)
+				return math.Abs(v.Z-11.2) < 1e-6 && r >= turbinefan.BladeSocketStart+1.1 && r <= turbinefan.BladeSocketStart+1.3
+			},
+		}})
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))
 		fs, err = cornercheck.CheckAt(t.Context(), m.Hub, up, []float64{-2.5, -1, 0.5, 3.4, 7, 10, 13},
@@ -255,7 +265,7 @@ func TestTurbineFanClutchEdgeFinishing(t *testing.T) {
 	m, _ := built(t, caseNamed(t, "clutch-605ZZ"))
 	for _, z := range []float64{-28.25, -24.75} {
 		o := section(t, m.Clamp, atZ(t, z))
-		requireRadius(t, outerLoop(t, o.Loops), 27.75, 0.03, fmt.Sprintf("outer at z %g", z))
+		requireRadius(t, outerLoop(t, o.Loops), turbinefan.ClampOuterRadius-0.25, 0.03, fmt.Sprintf("outer at z %g", z))
 		inner, holes := 0, 0
 		for _, l := range o.Loops {
 			far, near := 0.0, math.Inf(1)
@@ -263,10 +273,10 @@ func TestTurbineFanClutchEdgeFinishing(t *testing.T) {
 				far, near = math.Max(far, math.Hypot(v.X, v.Y)), math.Min(near, math.Hypot(v.X, v.Y))
 			}
 			switch {
-			case far > 27:
+			case far > turbinefan.ClampOuterRadius-1:
 			case far < 20:
 				inner++
-				requireRadius(t, l, 19.25, 0.03, fmt.Sprintf("inner at z %g", z))
+				requireRadius(t, l, turbinefan.ClampInnerRadius+0.25, 0.03, fmt.Sprintf("inner at z %g", z))
 			default:
 				holes++
 				// The hole's centre is the nearest ear bolt's line.

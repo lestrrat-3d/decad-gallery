@@ -168,6 +168,29 @@ func (r *run) plateSketch(z float64) (*sketch.Sketch, error) {
 	return s, nil
 }
 
+// adapterSketch sketches the adapter on its back face: the circles AdapterRadius and AdapterInner about the origin, and
+// a clearance hole of radius m2fastener.HoleRadius at each ear's bore, its centre on the ear's axis at EarCircle.
+func (r *run) adapterSketch() (*sketch.Sketch, error) {
+	s, err := r.sketchOn(across(AdapterFrom))
+	if err != nil {
+		return nil, err
+	}
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), AdapterRadius), AdapterRadius))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), AdapterInner), AdapterInner))
+	ps := r.newPolar(s)
+	for _, a := range EarAngles {
+		pos := polar(EarCircle, a)
+		end := s.CreatePoint(axisLength*math.Cos(a*math.Pi/180), axisLength*math.Sin(a*math.Pi/180))
+		axis := s.CreateLine(s.Origin(), end)
+		axis.SetConstruction(true)
+		s.AddConstraint(sketch.NewAngle(ps.ref, axis, a), sketch.NewDistance(s.Origin(), end, axisLength))
+		center := s.CreatePoint(pos.X, pos.Y)
+		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, EarCircle))
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, m2fastener.HoleRadius), m2fastener.HoleRadius))
+	}
+	return s, nil
+}
+
 // hubSketch sketches the hub's whole outline on its lower face: for each of the three pawls the core arc, the web root
 // round, the web's back face, the arm's outer arc, the head's flank, tip round and lock face, the arm's inner arc and the
 // slot's full round; with the D bore and the three bolt holes as holes. Section 6.2 of the design lists the outline.

@@ -15,7 +15,7 @@ a [hand-crank fan](models/handcrankfan/) with a three-blade turbine rotor, drive
 a [hand-crank siren](models/handcranksiren/) with a two-stage spur step-up,
 a [Graham escapement](models/escapement/) with a spiral mainspring, a crutch and a pendulum, 608-2RS and 605ZZ bearing
 envelopes, a [spiral spring](models/spiralspring/) with a D-bore hub and an anchor eye, a [crank handle](models/crankhandle/)
-with a handle that turns on its pin, a [one-way clutch](models/onewayclutch/) with three flexing pawls for a D-flat shaft,
+with a handle that turns on its pin, a [one-way clutch](models/onewayclutch/) with three flexing pawls for a D-flat shaft and an adapter ring,
 a [turbine fan](models/turbinefan/) with swappable blades on a round hub held on a D-flat shaft by a set screw
 (an optional clutch mount bolts the hub to the one-way clutch's ring so the fan coasts),
 and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.

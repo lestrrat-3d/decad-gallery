@@ -122,7 +122,7 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 
 `ParamsForClutch` always returns a matched pair; a hand-built pair is not checked.
 
-**Mounting space.** Leave r 19 to 28 mm free, 4.25 mm deep, behind the ring (the clamp ring), and the flange (56 mm across,
+**Mounting space.** Leave r 17.25 to 25.7 mm free, 4.25 mm deep, behind the ring (the clamp ring), and the flange (51.4 mm across,
 3 mm thick) and the fan in front. The shaft may end anywhere from inside the clutch to the hub's front face. It never
 touches the fan.
 
@@ -130,8 +130,8 @@ touches the fan.
 
 1. Fit the blades to the hub, as above.
 2. Assemble the clutch off the shaft (see the clutch's README).
-3. Hang the clamp ring loosely round the shaft, then press the clutch on, back plate first: the back plate (36.2 mm across)
-   passes through the clamp ring (38 mm across). Tighten the clutch's three bolts.
+3. Hang the clamp ring loosely round the shaft, then press the clutch on, back plate first: the back plate (33.4 mm across)
+   passes through the clamp ring (34.5 mm across). Tighten the clutch's three bolts.
 4. Hold the clamp ring against the ring's back end, its holes on the ear bores. Slide an M2 nut into each slot from the rim.
 5. Set the flange against the ring's front end, the pockets over the ears, between the blades. Push the three M2 x 25 bolts
    through the flange, the ears and the clamp ring into the nuts. Tighten them from the front with a 1.5 mm hex key between

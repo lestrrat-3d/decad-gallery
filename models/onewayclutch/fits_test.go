@@ -13,20 +13,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Tolerances of the fit measurements, in mm: the chord tolerance of every section and printed-part mesh. The chamfered
-// hub is faceted, with a mesh bound near 0.024, so no section or mesh of it may be finer than 0.03.
+// Tolerances of the fit measurements, in mm. A section is cut at the finest chord of fitSectionTols that its body
+// holds: the exact parts take 0.01, the ring's held mesh bound of 0.0285 takes 0.03, and the chamfered 605ZZ hub, which
+// is faceted with a bound up to 0.0303 (counter-clockwise), takes 0.035. A coarser chord makes the section less exact
+// (a bolt hole's polygon shrinks by the sagitta, and the proven off-surface bound grows into every margin). The
+// printed-part meshes are 0.03, and the 605ZZ hub's 0.035, for the same reason: at 0.035 the exact 8 mm hub to ring gap
+// reads 0.349 against the 0.35 limit.
 const (
-	fitSectionTol = 0.03
-	fitMeshTol    = 0.03
-	// fitCut is the angle of the axial section plane. It is not a multiple of the 15 degree tooth pitch, so the plane
-	// cuts the teeth through their ramps and never lies along a lock face.
+	fitMeshTol   = 0.03
+	fitCoarseTol = 0.035
+	// fitCut is the angle of the axial section plane. It is off every lock face, which lie at 10 + 20k degrees (the
+	// 20 degree tooth pitch), so the plane cuts the teeth through their ramps and never lies along one.
 	fitCut = 7.0
 	// midHub is the hub's mid-height; the ring's tooth band shares it.
 	midHub = (onewayclutch.HubFrom + onewayclutch.HubFrom + onewayclutch.HubHeight) / 2
 	// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore: from the end of the
-	// plate's outer chamfer (z 0.5) to the cone's start on the plate's rim (z 2.5); the cover's is its mirror in midHub.
-	fitBackRimZ = (onewayclutch.PlateChamfer + onewayclutch.BackPlateThickness - 1.5) / 2
+	// plate's outer chamfer (z 0.5) to the cone's start on the plate's rim (z 3.0); the cover's is its mirror in midHub.
+	fitBackRimZ = (onewayclutch.PlateChamfer + onewayclutch.BackPlateThickness - onewayclutch.Recess -
+		(onewayclutch.PlateRadius - onewayclutch.ToothRoot)) / 2
 )
+
+// fitSectionTols are the chord tolerances fitSection tries, finest first.
+var fitSectionTols = []float64{0.01, 0.02, fitMeshTol, fitCoarseTol}
 
 type fitCase struct {
 	name string
@@ -63,7 +71,15 @@ func fitFrame(t *testing.T, origin, u, v r3.Vec) r3.Frame {
 
 func fitSection(t *testing.T, body *decad.Body, plane r3.Frame) decad.SectionOutline {
 	t.Helper()
-	s, err := body.SectionOutline(t.Context(), plane, units.Millimeters(fitSectionTol))
+	var s decad.SectionOutline
+	var err error
+	for _, tol := range fitSectionTols {
+		if s, err = body.SectionOutline(t.Context(), plane, units.Millimeters(tol)); err == nil {
+			break
+		}
+		var bound *decad.MeshBoundError
+		require.ErrorAs(t, err, &bound, "only a held mesh bound refuses a section")
+	}
 	require.NoError(t, err)
 	require.NotEmpty(t, s.Loops)
 	return s
@@ -203,6 +219,9 @@ func requireFitPairs(t *testing.T, m *onewayclutch.Model) {
 	for name, body := range bodies {
 		names = append(names, name)
 		tol := fitMeshTol
+		if name == "hub" && m.Dimensions.Shaft.Name == "605ZZ" {
+			tol = fitCoarseTol
+		}
 		if len(name) == 5 { // a bolt or a nut: a 0.05 mm mesh is fine
 			tol = 0.05
 		}
@@ -271,15 +290,16 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	hubBound := hub.Bound.Base()
 	const regular = onewayclutch.RegularFit - onewayclutch.FitMargin
 
-	// The annulus floor is the plate's vertices from the boss bevel out to the cone: radius 11 to 16.9.
-	_, backTop, n := fitZRange(fitRadial(back, 11, 16.9), 0, midHub)
+	// The annulus floor is the plate's vertices from the boss bevel out to the cone.
+	annulusLo, annulusHi := onewayclutch.CoreRadius+0.3, onewayclutch.ToothRoot-0.1
+	_, backTop, n := fitZRange(fitRadial(back, annulusLo, annulusHi), 0, midHub)
 	require.NotZero(t, n)
-	coverBottom, _, n := fitZRange(fitRadial(cover, 11, 16.9), midHub, 30)
+	coverBottom, _, n := fitZRange(fitRadial(cover, annulusLo, annulusHi), midHub, 30)
 	require.NotZero(t, n)
 	// The ring's tooth end faces: its vertices from the tooth tips out to the root radius.
-	toothLo, _, n := fitZRange(fitRadial(ring, 14.4, 17.01), 0, midHub)
+	toothLo, _, n := fitZRange(fitRadial(ring, onewayclutch.ToothTip-0.1, onewayclutch.ToothRoot+0.01), 0, midHub)
 	require.NotZero(t, n)
-	_, toothHi, n := fitZRange(fitRadial(ring, 14.4, 17.01), midHub, 30)
+	_, toothHi, n := fitZRange(fitRadial(ring, onewayclutch.ToothTip-0.1, onewayclutch.ToothRoot+0.01), midHub, 30)
 	require.NotZero(t, n)
 
 	off := func(a, b decad.SectionOutline) float64 { return a.OffSurface.Base() + b.OffSurface.Base() }
@@ -297,7 +317,7 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	for name, plate := range map[string]decad.SectionOutline{"back": back, "cover": cover} {
 		best, found := math.Inf(1), 0
 		for _, p := range fitPoints(plate) {
-			if r := p.Dot(plane.U()); r >= 16.98 && r <= 17.02 {
+			if r := p.Dot(plane.U()); math.Abs(r-onewayclutch.ToothRoot) <= 0.02 {
 				best, found = math.Min(best, fitNearest(p, ring.Loops)), found+1
 			}
 		}
@@ -434,10 +454,10 @@ func TestOneWayClutchPawls(t *testing.T) {
 			hub, ring := fitSection(t, m.Hub, plane), fitSection(t, m.Ring, plane)
 			off := hub.OffSurface.Base() + 1e-6
 
-			// Arm thickness and slot width, on rays through the arm and slot: the last three crossings are the
-			// core, the arm's inner arc and its outer arc.
+			// Arm thickness and slot width, on rays through the arm and slot (the arm ends at 67.4 degrees): the
+			// last three crossings are the core, the arm's inner arc and its outer arc.
 			var slotMin = math.Inf(1)
-			for _, layout := range []float64{10, 30, 50, 70} {
+			for _, layout := range []float64{10, 25, 40, 55} {
 				cr := fitCrossings(hub, fitMapAngle(sigma, layout))
 				require.GreaterOrEqual(t, len(cr), 3, "ray at layout %g", layout)
 				n := len(cr)

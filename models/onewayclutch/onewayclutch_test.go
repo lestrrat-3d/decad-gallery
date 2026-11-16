@@ -26,7 +26,7 @@ func buildCase(t *testing.T, name string, p onewayclutch.Params) (*onewayclutch.
 	if b, ok := cache[name]; ok {
 		return b.m, b.doc
 	}
-	doc := decad.New()
+	doc := onewayclutch.NewDocument()
 	m, err := onewayclutch.Build(t.Context(), doc, p)
 	require.NoError(t, err)
 	cache[name] = built{m: m, doc: doc}
@@ -68,10 +68,10 @@ func TestOneWayClutchDefault(t *testing.T) {
 	// degrees, reach EarReach on +Y and, with their end rounds, EarCircle*cos(30) + EarRadius on both sides of x = 0.
 	earX := onewayclutch.EarCircle*math.Cos(30*math.Pi/180) + onewayclutch.EarRadius
 	want := map[string][2]r3.Vec{
-		"back plate": {{X: -18.1, Y: -18.1, Z: 0}, {X: 18.1, Y: 18.1, Z: onewayclutch.BackPlateThickness}},
+		"back plate": {{X: -onewayclutch.PlateRadius, Y: -onewayclutch.PlateRadius, Z: 0}, {X: onewayclutch.PlateRadius, Y: onewayclutch.PlateRadius, Z: onewayclutch.BackPlateThickness}},
 		"hub": {{X: -16, Y: -16, Z: onewayclutch.HubFrom},
 			{X: 16, Y: 16, Z: onewayclutch.HubFrom + onewayclutch.HubHeight}},
-		"cover": {{X: -18.1, Y: -18.1, Z: onewayclutch.CoverFrom}, {X: 18.1, Y: 18.1, Z: onewayclutch.CoverTo}},
+		"cover": {{X: -onewayclutch.PlateRadius, Y: -onewayclutch.PlateRadius, Z: onewayclutch.CoverFrom}, {X: onewayclutch.PlateRadius, Y: onewayclutch.PlateRadius, Z: onewayclutch.CoverTo}},
 		"ring": {{X: -earX, Y: -onewayclutch.RingOuter, Z: onewayclutch.RingFrom},
 			{X: earX, Y: onewayclutch.EarReach, Z: onewayclutch.RingTo}},
 	}
@@ -107,7 +107,7 @@ func TestOneWayClutchDefault(t *testing.T) {
 		require.NoError(t, err, name)
 		meshes[name] = mg
 	}
-	// The hub's pawl heads reach 15.76 from the axis; the plates span 18.5 mm and the ring 21.0 mm.
+	// The hub's pawl heads reach 15.015 from the axis; the plates span 16.7 mm and the ring 19.1 mm.
 	hub, err := m.Hub.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, m.Dimensions.HeadReach, max(hub.Max.X, hub.Max.Y, -hub.Min.X, -hub.Min.Y), 0.5)
@@ -179,5 +179,43 @@ func TestOneWayClutchContainers(t *testing.T) {
 		bodies, ok := want[box.Name()]
 		require.True(t, ok, "unexpected container %q", box.Name())
 		require.Equal(t, bodies, box.Bodies(), box.Name())
+	}
+}
+
+// TestOneWayClutchPlainDocumentRefusesBuild pins the reason for NewDocument: the ring's mount nut pockets and the back
+// plate's cut meet held facets just past a plain document's chain gate (the back plate's held bound is 0.0010075 mm
+// against the gate's 0.00095), so decad refuses the build there. A document from NewDocument builds it.
+func TestOneWayClutchPlainDocumentRefusesBuild(t *testing.T) {
+	_, err := onewayclutch.Build(t.Context(), decad.New(), onewayclutch.DefaultParams())
+	require.ErrorIs(t, err, decad.ErrUnsupported)
+	require.ErrorContains(t, err, "back plate")
+}
+
+// TestOneWayClutchAdapterPlaced builds the adapter alone, in a plain document and in a placed frame: it needs no chain
+// tolerance without the clutch, and its bodies and sites follow the placement.
+func TestOneWayClutchAdapterPlaced(t *testing.T) {
+	local, err := onewayclutch.BuildAdapter(t.Context(), decad.New(), onewayclutch.DefaultParams())
+	require.NoError(t, err)
+	frame, err := r3.NewFrame(r3.Vec{X: 12, Y: -7, Z: 3}, r3.Vec{Y: 1}, r3.Vec{X: -1})
+	require.NoError(t, err)
+	xf, err := r3.FromFrame(frame)
+	require.NoError(t, err)
+	p := onewayclutch.DefaultParams()
+	p.Placement = &frame
+	placed, err := onewayclutch.BuildAdapter(t.Context(), decad.New(), p)
+	require.NoError(t, err)
+	a, b := boxOf(t, local.Body, "adapter"), boxOf(t, placed.Body, "adapter")
+	lo, hi := xf.Apply(a.Min), xf.Apply(a.Max)
+	tol := a.Bound.Base() + b.Bound.Base() + 1e-3
+	require.InDelta(t, math.Min(lo.X, hi.X), b.Min.X, tol)
+	require.InDelta(t, math.Min(lo.Y, hi.Y), b.Min.Y, tol)
+	require.InDelta(t, math.Min(lo.Z, hi.Z), b.Min.Z, tol)
+	require.InDelta(t, math.Max(lo.X, hi.X), b.Max.X, tol)
+	require.InDelta(t, math.Max(lo.Y, hi.Y), b.Max.Y, tol)
+	require.InDelta(t, math.Max(lo.Z, hi.Z), b.Max.Z, tol)
+	for i, site := range local.Sites {
+		w := placed.Sites[i]
+		require.InDelta(t, 0, xf.Apply(site.Head).Sub(w.Head).Len(), 1e-9, "site %d head", i)
+		require.InDelta(t, 0, xf.ApplyDir(site.Dir).Sub(w.Dir).Len(), 1e-9, "site %d dir", i)
 	}
 }
