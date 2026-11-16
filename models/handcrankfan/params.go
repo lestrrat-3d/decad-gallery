@@ -31,7 +31,7 @@ func (p Params) Validate() error {
 	if !finite(p.CrankAngle, Ratio*p.CrankAngle) {
 		return fmt.Errorf("handcrankfan: CrankAngle must be finite")
 	}
-	if !finite(p.BladePitch) || p.BladePitch < 10*math.Pi/180 || p.BladePitch > 40*math.Pi/180 {
+	if !finite(p.BladePitch) || p.BladePitch < MinBladePitch || p.BladePitch > MaxBladePitch {
 		return fmt.Errorf("handcrankfan: BladePitch must lie in [10°, 40°] radians")
 	}
 	if p.Blades != 3 && p.Blades != 4 {

@@ -34,6 +34,9 @@ type builder struct {
 	a    Assembly
 	err  error
 	name string
+	// mirror builds the blade of the opposite hand: its sections are not flipped and its pitch turn is reversed, so the
+	// blade is the right-hand blade reflected in the plane x = 0 of its local frame. Only BuildBladeMirrored sets it.
+	mirror bool
 	// bevel maps driving-gear and pinion to the containers bevelgear.BuildPair put them in.
 	bevel map[string]*decad.Container
 }

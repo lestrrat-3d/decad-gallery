@@ -145,10 +145,17 @@ func (b *builder) hub() *decad.Body {
 	hub := b.roundCaps(b.extrude(s, n, hubLength), 1)
 	hub = b.splineCut(hub, fanSpline, hubBack-1, hubLength+2, pressFit)
 	// The socket is a plain round hole. It is 6.3 across, small enough to print on its side without support.
-	socket := b.cylinder(frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight}, r3.Vec{Y: 1}, r3.Vec{Z: 1}),
-		socketRadius, hubRadius+1-socketStart)
 	// A round at the floor takes the inside corner off the print.
-	socket = b.roundStart(socket, socketFloorRound)
+	var socket *decad.Body
+	if b.err == nil {
+		tool, sk, err := BladeSocketTool(b.ctx, b.doc, frame(r3.Vec{X: socketStart, Y: -hubMid, Z: axisHeight},
+			r3.Vec{Y: 1}, r3.Vec{Z: 1}))
+		b.fail("build blade socket", err)
+		if err == nil {
+			b.a.Sketches = append(b.a.Sketches, sk)
+			socket = tool
+		}
+	}
 	for _, copy := range b.ring(socket) {
 		hub = b.cut(hub, copy)
 	}
@@ -161,9 +168,31 @@ func (b *builder) hub() *decad.Body {
 	return hub
 }
 
-// blades lofts blade 1 through the sections drawn at refPitch, turns it to the pitch, joins a drilled root stud to
-// it, places it along +X in the hub's mid plane and copies it about the fan axis.
+// blades builds blade 1 (bladeBody), places it along +X in the hub's mid plane and copies it about the fan axis.
 func (b *builder) blades() []*decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	blade := b.bladeBody(b.p.BladePitch)
+	if b.err != nil {
+		return nil
+	}
+	// Local Z becomes +X, local X the direction of motion (+Z) and local Y downstream (-Y).
+	xf, err := r3.FromFrame(frame(r3.Vec{Y: -hubMid, Z: axisHeight}, r3.Vec{Z: 1}, r3.Vec{Y: -1}))
+	if err != nil {
+		b.fail("create blade placement", err)
+		return nil
+	}
+	if blade, err = decad.Transform(b.ctx, blade, xf); err != nil {
+		b.fail("place blade", err)
+		return nil
+	}
+	return b.ring(blade)
+}
+
+// bladeBody lofts blade 1 through the sections drawn at refPitch, turns it to pitch and joins a drilled root stud to
+// it. The body is in the blade's local frame: Z is its radial line, X the direction of motion and Y downstream.
+func (b *builder) bladeBody(pitch float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
@@ -182,7 +211,10 @@ func (b *builder) blades() []*decad.Body {
 		b.fail("loft blade", err)
 		return nil
 	}
-	if turn := b.p.BladePitch - refPitch; math.Abs(turn) > 1e-12 {
+	if turn := pitch - refPitch; math.Abs(turn) > 1e-12 {
+		if b.mirror {
+			turn = -turn
+		}
 		xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(turn))
 		if err != nil {
 			b.fail("create pitch rotation", err)
@@ -198,21 +230,7 @@ func (b *builder) blades() []*decad.Body {
 	// A 0.3 chamfer on the inner end keeps the stud's corner clear of the socket floor's round.
 	stud = b.chamferStart(stud, studChamfer)
 	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -5, Z: boltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}), m2fastener.HoleRadius, 10))
-	blade := b.union(loft, stud)
-	if b.err != nil {
-		return nil
-	}
-	// Local Z becomes +X, local X the direction of motion (+Z) and local Y downstream (-Y).
-	xf, err := r3.FromFrame(frame(r3.Vec{Y: -hubMid, Z: axisHeight}, r3.Vec{Z: 1}, r3.Vec{Y: -1}))
-	if err != nil {
-		b.fail("create blade placement", err)
-		return nil
-	}
-	if blade, err = decad.Transform(b.ctx, blade, xf); err != nil {
-		b.fail("place blade", err)
-		return nil
-	}
-	return b.ring(blade)
+	return b.union(loft, stud)
 }
 
 func camberLine(x, m float64) float64 {
@@ -279,8 +297,10 @@ func (b *builder) bladeSection(w *sketch.World, st station) decad.LoftSection {
 	pts := sectionPoints(st, beta(st.r, refPitch))
 	// The blades are mirrored: the spur pair reverses the crank's turn, so the fan turns the other way round and its
 	// blades must lead with the other face.
-	for i := range pts {
-		pts[i][0] = -pts[i][0]
+	if !b.mirror {
+		for i := range pts {
+			pts[i][0] = -pts[i][0]
+		}
 	}
 	fit := make([]*sketch.Point, len(pts))
 	for i, p := range pts {

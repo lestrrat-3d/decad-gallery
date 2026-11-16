@@ -6,9 +6,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Beta exposes the blade angle for the external tests.
-var Beta = beta
-
 // ThicknessRatio is the table's thickness ratio at radius r, interpolated linearly between stations.
 func ThicknessRatio(r float64) float64 {
 	for i := 1; i < len(stations); i++ {
