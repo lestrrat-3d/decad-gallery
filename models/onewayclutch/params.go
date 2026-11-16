@@ -38,11 +38,15 @@ const (
 	EarReach    = EarCircle + EarRadius
 	ToothEndGap = 0.85 // axial gap from each plate's inner face (and the hub's) to the tooth band's end
 
-	CoreRadius   = 10.4 // hub core R_c
-	SlotWidth    = 1.6  // slot under each arm s
-	ArmThickness = 1.2  // arm t: three 0.4 mm lines, the bending-part minimum
-	ArmInner     = CoreRadius + SlotWidth
-	ArmOuter     = ArmInner + ArmThickness
+	CoreRadius = 10.1 // hub core R_c
+	SlotWidth  = 1.6  // slot under each arm s
+	// BossRadius is the plates' boss reference radius. It stays at the hub core's former 10.4 so the bolts' nut pockets
+	// keep clear of the boss step when CoreRadius shrinks to make room for the thicker arm.
+	BossRadius      = 10.4
+	MinArmThickness = 1.5 // least arm thickness that prints reliably
+	ArmThickness    = 1.5 // arm t
+	ArmInner        = CoreRadius + SlotWidth
+	ArmOuter        = ArmInner + ArmThickness
 
 	// WebAngle is the angle of pawl 0's web back face and SlotAngle that of its slot end, in the counter-clockwise layout.
 	WebAngle  = -20.0

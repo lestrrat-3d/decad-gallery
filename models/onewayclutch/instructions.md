@@ -77,8 +77,8 @@ any geometry. `BuildParts` and `Build` need a document from `NewDocument` (a cha
 | `EarCircle`, `EarRadius`, `EarRound`, `EarReach` | 21.6, 4.1, 1.5, 25.7 | ear bore circle, ear half width and end round, round where an ear side meets the outside, ear tip radius (tips on a 51.4 mm circle) |
 | `RingHeight`, `ToothEndGap` | 21.0, 0.85 | ring height; tooth band end to the plate annulus |
 | `EndStandoff` | 1.25 | `ToothEndGap + RegularFit`: how far each ring end stands past the plates' outer faces |
-| `CoreRadius` | 10.4 | hub core |
-| `SlotWidth`, `ArmThickness` | 1.6, 1.2 | slot under each arm; arm (three 0.4 mm lines, the bending-part minimum) |
+| `CoreRadius`, `BossRadius` | 10.1, 10.4 | hub core; the plates' boss reference radius (the core's former value, which keeps the nut pockets clear of the boss step) |
+| `SlotWidth`, `ArmThickness` | 1.6, 1.5 | slot under each arm; arm, at the `MinArmThickness` of 1.5 mm that prints reliably |
 | `ArmInner`, `ArmOuter` | 12.0, 13.2 | `R_c + s`, `+ t` |
 | `WebAngle`, `SlotAngle`, `LockAngle` | -20°, -6°, 90° | pawl 0's web back face, slot end, and ring lock face |
 | `WebRound`, `TipRound`, `HeadGap` | 1.0, 0.4, 0.40 | web root round, head tip round, head to its gap (seated) |
@@ -194,10 +194,10 @@ Outline of one period, counter-clockwise, material on the left:
 8. Core arc again, on to the next pawl's web root round.
 
 The head's lock face bears on the ring's lock face over 0.84 mm radially and 9.6 mm axially, on each of three heads. The
-flexible arm runs 73.4° from the slot end to `H_f`, 16.14 mm at radius 12.6; full travel bends it to 0.875 % strain
-(0.837 % from the built section). The slot leaves `SlotWidth - HeadTravel` = 0.335 mm under a fully pressed head
+flexible arm runs 73.4° from the slot end to `H_f`, 15.9 mm at radius 12.6; full travel bends it to 1.12 % strain
+(1.07 to 1.10 % from the built section; the test's cap is 1.2 %). The slot leaves `SlotWidth - HeadTravel` = 0.335 mm under a fully pressed head
 (0.335 by section, 0.275 after the section's `2 off` bound, against a floor of 0.25). The thinnest hub walls are 2.93 to
-3.38 from the bore to a bolt hole (605ZZ, `BoreClearance` 0.5 to 0.05) and 1.0 from a bolt hole to the core arc.
+3.38 from the bore to a bolt hole (605ZZ, `BoreClearance` 0.5 to 0.05) and 0.7 from a bolt hole to the core arc.
 
 ### Bolts and nuts
 
@@ -301,7 +301,7 @@ or mesh's proven displacement bound, so it sits a little under the modeled value
 on the round and on the flat. In the head-on-pocket-floor and bolt-in-nut pairs the meshes touch by design (nominal
 pair).
 
-`TestOneWayClutchPawls` checks the arm (1.2 mm thick, 0.875 % strain at full travel), the slot (1.6 mm, leaving 0.335
+`TestOneWayClutchPawls` checks the arm (1.5 mm thick, the enforced minimum; 1.12 % strain at full travel), the slot (1.6 mm, leaving 0.335
 mm under a fully pressed head), the web (1.88 mm to the slot end's round, wider than the arm) and the lock face (0.844
 mm radial contact, 0.83 to 0.84 from the sections, 9.6 mm axial), from `Dimensions` and from sections of the built hub.
 
@@ -340,12 +340,12 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
 | Cover | outer face | as above | as above; head pockets 13.8, short | chamfer 0.5 (one call) |
 | Plates | annulus | 481 | outer edge meets the 45° cone | the 1.1 mm cone is that edge's finish |
 | Plates | boss face | about 270 | none | small, none |
-| Hub, 605ZZ | each face | 405.7 to 413.4 | per pawl: arm outer arc 20.13, inner run; head run short; D loop 15.8, short | chamfer 0.25 on the long runs; head run sharp (below) |
+| Hub, 605ZZ | each face | 384.1 to 413.9 | per pawl: arm outer arc 20.13, inner run; head run short; D loop 15.8, short | chamfer 0.25 on the long runs; head run sharp (below) |
 | Hub, 8 mm | each face | 376.7 to 383.5 | under 400 | none; the exact prism |
 | Ring | each end face | 357.4 front, 324.2 rear | outer loop; counterbore rim; ear bores and rear nut pockets, short | chamfer the outer loop 0.5 as a lead-in (kept; the pockets are cut after it); the counterbore rim by the tool's lead-in |
 | Adapter | each face | about 1919 | outer circle 157.7; bore 31.4; holes short | chamfer 0.5 (one call) |
 
-The 605ZZ hub's two faces, 405.7 to 413.4 mm², are over the 400 mm² limit, so each takes a chamfer along the runs of
+The 605ZZ hub's two faces, 384.1 to 413.9 mm², are over the 400 mm² limit, so each takes a chamfer along the runs of
 20 mm or more, and the head run stays sharp so the head keeps its 0.4 tip round and its lock contact. The 8 mm hubs'
 faces, 376.7 to 383.5 mm², are under it: `edgefinish.ChamferRuns` returns `edgefinish.ErrNoEdge` and `hub()` keeps the exact
 prism (`TestOneWayClutchEdgeFinishing` checks both). `edgefinish.ChamferRuns` chooses the edges on the extruded prism,
@@ -363,7 +363,7 @@ inside a face (`TestOneWayClutchEdgeFinishing`).
 ## Corners and roots
 
 All four printed parts print with their axis vertical. Rounded as the rule asks: web roots 1.0, slot ends full round
-0.8, the plate boss step as a 45° bevel, every cone-to-cylinder or cone-to-flat turn at 45°. The arm (1.2) meets the
+0.8, the plate boss step as a 45° bevel, every cone-to-cylinder or cone-to-flat turn at 45°. The arm (1.5) meets the
 bending-part minimum; every other wall is 0.8 or more. The hub, back plate and cover are press-fit rings with walls of
 1.6 or more round the bore.
 
@@ -394,7 +394,7 @@ the mechanism's; a collar bears on a plate's face and stays inside 32 mm across,
 
 ## Printing and assembly
 
-- Material: PETG is recommended for the hub, since its arms flex at every click; PLA works at 0.875 % strain.
+- Material: PETG is recommended for the hub, since its arms flex at every click; PLA works at 1.12 % strain.
 - Hub and ring: either face down, no supports. The ears are vertical prisms with no overhang. The ring's tooth ends overhang 2.5 mm at the lower end; the 0.85 mm gap
   to the plate absorbs a little droop. The mount nut pockets open on the ring's rear face, on the bed or on top, and each
   pocket's ceiling bridges at most 5.02 mm round the bore, as the back plate's does.

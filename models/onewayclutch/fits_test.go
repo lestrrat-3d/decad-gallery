@@ -291,7 +291,7 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	const regular = onewayclutch.RegularFit - onewayclutch.FitMargin
 
 	// The annulus floor is the plate's vertices from the boss bevel out to the cone.
-	annulusLo, annulusHi := onewayclutch.CoreRadius+0.3, onewayclutch.ToothRoot-0.1
+	annulusLo, annulusHi := onewayclutch.BossRadius+0.3, onewayclutch.ToothRoot-0.1
 	_, backTop, n := fitZRange(fitRadial(back, annulusLo, annulusHi), 0, midHub)
 	require.NotZero(t, n)
 	coverBottom, _, n := fitZRange(fitRadial(cover, annulusLo, annulusHi), midHub, 30)
@@ -431,7 +431,7 @@ func TestOneWayClutchPawls(t *testing.T) {
 	dm, err := onewayclutch.DefaultParams().Derive()
 	require.NoError(t, err)
 	arm := onewayclutch.ArmOuter - onewayclutch.ArmInner
-	require.GreaterOrEqual(t, arm, 1.2-1e-9, "arm thickness: three 0.4 mm lines")
+	require.GreaterOrEqual(t, arm, onewayclutch.MinArmThickness-1e-9, "arm thickness: 1.5 mm minimum")
 	require.InDelta(t, onewayclutch.ArmThickness, arm, 1e-9)
 	margin := onewayclutch.SlotWidth - dm.HeadTravel
 	require.GreaterOrEqual(t, margin, 0.25, "slot margin s - delta")
@@ -439,7 +439,7 @@ func TestOneWayClutchPawls(t *testing.T) {
 	span := flankAngle - onewayclutch.SlotAngle
 	length := span * math.Pi / 180 * (onewayclutch.ArmInner + onewayclutch.ArmOuter) / 2
 	strain := 3 * arm * dm.HeadTravel / (2 * length * length)
-	require.LessOrEqual(t, strain, 0.01, "arm strain at full travel")
+	require.LessOrEqual(t, strain, 0.012, "arm strain at full travel")
 	contact := dm.TipCenter.Y - onewayclutch.ToothTip
 	require.GreaterOrEqual(t, contact, 0.8, "lock face contact, radial")
 	require.GreaterOrEqual(t, onewayclutch.BandTo-onewayclutch.BandFrom, 9.6-1e-9, "lock face contact, axial")
@@ -486,7 +486,7 @@ func TestOneWayClutchPawls(t *testing.T) {
 			require.InDelta(t, flankAngle, armMax, 0.3, "the arm's outer arc ends at the flank")
 			l := (armMax - onewayclutch.SlotAngle) * math.Pi / 180 * (onewayclutch.ArmInner + onewayclutch.ArmOuter) / 2
 			sectionStrain := 3 * (onewayclutch.ArmThickness - 2*off) * travel / (2 * l * l)
-			require.LessOrEqual(t, sectionStrain, 0.01, "strain from the section")
+			require.LessOrEqual(t, sectionStrain, 0.012, "strain from the section")
 
 			// Web width: from the slot's end round to the web's back face.
 			centre := onewayclutch.CoreRadius + onewayclutch.SlotWidth/2

@@ -41,9 +41,9 @@ construction line to the mirrored point `20∠θ` with `NewAngle(ref, axis, angl
   the profile with four holes.
 - `hubSketch()` on `across(4.25)`: for each pawl `k` (turn `d = 120k`), points at the mirrored, turned layout positions
   of `a` (core and web corner), `W`, `H_f`, `A`, `H_l`, `S` (arm inner arc end at `12.0∠-6°`), `T` (core end of the
-  slot round, `10.4∠-6°`) and the slot centre `C` (`11.2∠-6°`). Entities: `core = arc(O, T_{k-1}, a)`, `web =
+  slot round, `10.1∠-6°`) and the slot centre `C` (`10.9∠-6°`). Entities: `core = arc(O, T_{k-1}, a)`, `web =
   CreateLine(a, W)`, `outer = arc(O, W, H_f)`, `flank = CreateLine(H_f, A)`, `lock = CreateLine(A, H_l)`, `inner =
-  arc(O, S, H_l)`, `slot = arc(C, T, S)`. Constraints per pawl: `NewRadius` of `core` (10.4), `outer` (13.2), `inner`
+  arc(O, S, H_l)`, `slot = arc(C, T, S)`. Constraints per pawl: `NewRadius` of `core` (10.1), `outer` (13.2), `inner`
   (12.0); `NewParallel(webAxis, web)` and `NewPointOnLine(W, webAxis)`; `NewAngle(ref, flank, angle(RampAngle + d))`
   and `NewDistancePointLine(O, flank, FlankDistance)`; `NewParallel(lockAxis, lock)` and `NewDistancePointLine(O, lock,
   0.40)`; `NewPointOnLine(C, slotAxis)`; `NewTangentCircles(slot, inner, true)` and `NewTangentCircles(slot,
