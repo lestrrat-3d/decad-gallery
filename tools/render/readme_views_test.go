@@ -18,7 +18,7 @@ func TestRenderReadmeViewsPreservesOrderAndDimensions(t *testing.T) {
 	}
 	var built, rendered []string
 	var dimensions [][2]int
-	err := renderReadmeViews(context.Background(), t.TempDir(), views,
+	err := renderReadmeViews(t.Context(), t.TempDir(), views,
 		func(_ context.Context, view string) (solidlens.Scene, error) {
 			built = append(built, view)
 			return solidlens.Scene{}, nil
@@ -46,7 +46,7 @@ func TestRenderReadmeViewsStopsOnFirstError(t *testing.T) {
 		t.Run(failAt, func(t *testing.T) {
 			failure := errors.New("render failure")
 			var built, rendered []string
-			err := renderReadmeViews(context.Background(), t.TempDir(), []readmeView{
+			err := renderReadmeViews(t.Context(), t.TempDir(), []readmeView{
 				{view: "first", file: "first.png", width: 1, height: 2},
 				{view: "second", file: "second.png", width: 3, height: 4},
 			}, func(_ context.Context, view string) (solidlens.Scene, error) {
