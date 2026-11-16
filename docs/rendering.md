@@ -54,6 +54,16 @@ across the clamp nut's pocket at x = -7, and `cross-section` cuts the pin across
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
+`onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
++Z side removed, seen from the front and above, so the pawl heads in the ring's teeth, the arms and the back plate show, with the ring's
+three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
+the same cut, and `cutaway` cuts every body by the plane x = 0 and looks from +X. `exploded` pulls the parts apart along
+the shaft axis, with the axis running left to right on the screen: the nuts 30 mm below the back plate's hex pockets, then the hub 30 mm,
+the ring 60 mm, the cover 90 mm and the bolts 120 mm above it. `directions` puts the clockwise and counter-clockwise
+sections side by side, and `sizes` puts the sections of the three shaft presets side by side. The `readme` shot builds each
+clutch once, writes all of them, the index image and one 480 x 270 image of each distinct part in `parts/`:
+`go -C tools/render run . -model onewayclutch -shot readme -out ../../models/onewayclutch/images`.
+
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.
 
@@ -252,12 +262,12 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle and the
-spiral spring one after another. It renders each model twice, once to measure the pixels it draws and once at the scale that fits them to
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle, the
+one-way clutch and the spiral spring one after another. It renders each model twice, once to measure the pixels it draws and once at the scale that fits them to
 a cell of the 1600 × 900 pixel canvas, so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other eleven models fill a grid of four columns (260 × 300 pixels each): the three gears and the
+(560 pixels wide). The other twelve models fill a grid of four columns (260 × 300 pixels each): the three gears and the
 bevel gear pair across the top, the planetary gearbox, cycloidal drive, fan and siren in the middle, and the escapement,
-crank handle and spiral spring centred below. Building all twelve models takes about seven minutes plus the wheel
+crank handle, one-way clutch and spiral spring across the bottom. Building all thirteen models takes several minutes plus the wheel
 build:
 
 ```sh

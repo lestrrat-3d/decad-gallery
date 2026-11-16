@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -158,41 +157,6 @@ func (r *run) slitTool() (*decad.Body, error) {
 	s.CreateLine(c, d)
 	s.CreateLine(d, a)
 	return r.extrude(s, 0, ArmThickness+2)
-}
-
-// nutPocketTool extrudes a site's hexagonal nut pocket from its floor, the site's Cavity, depth along the bolt: out
-// through the face the pocket opens on, plus m2fastener.Stock. The hexagon is centred on the bolt's axis with its
-// corners on the circle of radius m2fastener.NutCavityRadius, the first along the site's Corner. Each side is held by
-// its distance from the axis, the first flat is horizontal and each next side turns 60 degrees from the one before, so
-// the corners lie where the sides meet. The corners stay sharp, matching the nut's sharp corners. The sketch lies on
-// site.Across(Cavity): U is Corner and V is Dir × Corner, so it extrudes along the site's Dir.
-func (r *run) nutPocketTool(site m2fastener.Site, depth float64) (*decad.Body, error) {
-	f, err := site.Across(site.Cavity)
-	if err != nil {
-		return nil, err
-	}
-	s, err := r.sketchOn(f)
-	if err != nil {
-		return nil, err
-	}
-	rad := m2fastener.NutCavityRadius
-	flat := rad * math.Sqrt(3) / 2
-	var corners [6]*sketch.Point
-	for i := range corners {
-		a := float64(i) * math.Pi / 3
-		corners[i] = s.CreatePoint(rad*math.Cos(a), rad*math.Sin(a))
-	}
-	var sides [6]*sketch.Line
-	for i := range sides {
-		sides[i] = s.CreateLine(corners[i], corners[(i+1)%6])
-		s.AddConstraint(sketch.NewDistancePointLine(s.Origin(), sides[i], flat))
-	}
-	// sides[1] runs from the corner at 60 degrees to the one at 120 degrees: a flat.
-	s.AddConstraint(sketch.NewHorizontal(sides[1]))
-	for i := range 5 {
-		s.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
-	}
-	return r.extrude(s, 0, depth)
 }
 
 // boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the

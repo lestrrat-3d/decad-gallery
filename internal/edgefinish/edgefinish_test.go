@@ -132,3 +132,62 @@ func TestChamferNoQualifyingFace(t *testing.T) {
 	_, _, err := edgefinish.Chamfer(t.Context(), body, r3.Vec{Y: 1}, []float64{0, 10}, edgefinish.Long(edgefinish.All), 0.5)
 	require.ErrorContains(t, err, "no edge")
 }
+
+func never(*decad.Loop, []*decad.Edge) bool { return false }
+
+func TestRuns(t *testing.T) {
+	doc := decad.New()
+	body := slab(t, doc, 40, 15, 4, 10)
+	checked := 0
+	for _, f := range body.Faces() {
+		plane, ok := f.Surface().(decad.Plane)
+		if !ok || math.Abs(math.Abs(plane.Frame.N().Y)-1) > 1e-9 {
+			continue
+		}
+		for _, l := range f.Loops() {
+			runs := edgefinish.Runs(l)
+			if l.IsOuter() {
+				require.Len(t, runs, 4, "a rectangle's corners split it into four runs")
+				lengths := 0.0
+				for _, r := range runs {
+					require.False(t, r.Closed)
+					lengths += r.Length
+				}
+				require.InDelta(t, 110, lengths, 1e-6)
+			} else {
+				require.Len(t, runs, 1)
+				require.True(t, runs[0].Closed, "a circle has no corner")
+				require.InDelta(t, 2*math.Pi*4, runs[0].Length, 1e-6)
+			}
+			checked++
+		}
+	}
+	require.Equal(t, 4, checked)
+}
+
+func TestChamferRunsKeepsLongRunsOnly(t *testing.T) {
+	doc := decad.New()
+	body := slab(t, doc, 40, 15, 0, 10)
+	offsets := []float64{0, 10}
+	out, n, err := edgefinish.ChamferRuns(t.Context(), body, r3.Vec{Y: 1}, offsets, edgefinish.Outer, never, 0.5)
+	require.NoError(t, err)
+	require.Equal(t, 4, n, "the two 40 mm edges of each face; the 15 mm edges stay sharp")
+	require.True(t, out.IsSolid())
+	before, err := body.Volume()
+	require.NoError(t, err)
+	after, err := out.Volume()
+	require.NoError(t, err)
+	// Two faces, two 40 mm edges each, lose a 0.5 mm wedge; the mitred ends add a little back.
+	lost := before.Value.Base() - after.Value.Base()
+	require.InDelta(t, 4*40*0.5*0.5/2, lost, 1.0)
+	require.Greater(t, lost, 0.0)
+}
+
+func TestChamferRunsWholeLoop(t *testing.T) {
+	doc := decad.New()
+	body := slab(t, doc, 40, 15, 0, 10)
+	_, n, err := edgefinish.ChamferRuns(t.Context(), body, r3.Vec{Y: 1}, []float64{0, 10}, edgefinish.Outer,
+		edgefinish.Long(edgefinish.All), 0.5)
+	require.NoError(t, err)
+	require.Equal(t, 8, n, "a whole-loop filter takes every edge")
+}

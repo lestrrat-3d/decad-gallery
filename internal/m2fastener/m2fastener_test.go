@@ -1,6 +1,7 @@
 package m2fastener_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -86,4 +87,29 @@ func TestPlacement(t *testing.T) {
 	nb, err := nut.Body.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, 7.0, (nb.Min.Z+nb.Max.Z)/2, 1e-3)
+}
+
+func TestHexPocketTool(t *testing.T) {
+	s := site()
+	tool, sk, err := m2fastener.HexPocketTool(t.Context(), decad.New(), s, m2fastener.NutCavityHeight+m2fastener.Stock)
+	require.NoError(t, err)
+	require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), sk))
+
+	lo, hi := zRange(t, tool)
+	require.InDelta(t, s.Cavity, lo, 1e-3)
+	require.InDelta(t, s.CavityFar()+m2fastener.Stock, hi, 1e-3)
+
+	// Corners lie on NutCavityRadius, the first along Corner (+X); flats are NutCavityRadius*sqrt(3)/2 across the axis.
+	box, err := tool.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, m2fastener.NutCavityRadius, box.Max.X, 1e-3)
+	require.InDelta(t, -m2fastener.NutCavityRadius, box.Min.X, 1e-3)
+	flat := m2fastener.NutCavityRadius * math.Sqrt(3) / 2
+	require.InDelta(t, flat, box.Max.Y, 1e-3)
+	require.InDelta(t, -flat, box.Min.Y, 1e-3)
+
+	vol, err := tool.Volume()
+	require.NoError(t, err)
+	area := 3 * math.Sqrt(3) / 2 * m2fastener.NutCavityRadius * m2fastener.NutCavityRadius
+	require.InEpsilon(t, area*(m2fastener.NutCavityHeight+m2fastener.Stock), vol.Value.Base(), 1e-3)
 }
