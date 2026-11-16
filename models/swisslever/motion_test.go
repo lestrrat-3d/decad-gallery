@@ -73,7 +73,7 @@ func TestMotion(t *testing.T) {
 	}
 }
 
-func TestActionAnalytic(t *testing.T) {
+func TestWheelAt(t *testing.T) {
 	g, err := swisslever.Layout(swisslever.DefaultParams())
 	require.NoError(t, err)
 	for _, c := range []struct {
