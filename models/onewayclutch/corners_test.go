@@ -27,7 +27,7 @@ func TestOneWayClutchCorners(t *testing.T) {
 	axis := r3.Vec{Z: 1}
 	for _, tc := range dirCases() {
 		t.Run(tc.name, func(t *testing.T) {
-			m, _ := buildCase(t, tc.name, tc.params)
+			m, _ := buildCase(t, tc.params)
 			for _, part := range []struct {
 				name  string
 				bored bool
