@@ -131,6 +131,7 @@ func TestChamferNoQualifyingFace(t *testing.T) {
 	body := slab(t, doc, 15, 15, 0, 10)
 	_, _, err := edgefinish.Chamfer(t.Context(), body, r3.Vec{Y: 1}, []float64{0, 10}, edgefinish.Long(edgefinish.All), 0.5)
 	require.ErrorContains(t, err, "no edge")
+	require.ErrorIs(t, err, edgefinish.ErrNoEdge)
 }
 
 func never(*decad.Loop, []*decad.Edge) bool { return false }
