@@ -1,7 +1,9 @@
 package onewayclutch_test
 
 import (
+	"cmp"
 	"math"
+	"slices"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -65,15 +67,100 @@ type efShift struct{ unchanged, offset, other float64 }
 
 func (s efShift) total() float64 { return s.unchanged + s.offset + s.other }
 
+type efSegment struct{ a, b r3.Vec }
+
+// efNode stores a balanced bounding-volume tree over the face section's segments.
+type efNode struct {
+	lo, hi      r3.Vec
+	left, right *efNode
+	segments    []efSegment
+}
+
+func efIndex(loops [][]r3.Vec) *efNode {
+	var segments []efSegment
+	for _, loop := range loops {
+		for i, a := range loop {
+			segments = append(segments, efSegment{a, loop[(i+1)%len(loop)]})
+		}
+	}
+	return efBuildIndex(segments)
+}
+
+func efBuildIndex(segments []efSegment) *efNode {
+	if len(segments) == 0 {
+		return nil
+	}
+	n := &efNode{lo: r3.Vec{X: math.Inf(1), Y: math.Inf(1), Z: math.Inf(1)},
+		hi: r3.Vec{X: math.Inf(-1), Y: math.Inf(-1), Z: math.Inf(-1)}}
+	for _, s := range segments {
+		for _, p := range []r3.Vec{s.a, s.b} {
+			n.lo.X, n.lo.Y, n.lo.Z = math.Min(n.lo.X, p.X), math.Min(n.lo.Y, p.Y), math.Min(n.lo.Z, p.Z)
+			n.hi.X, n.hi.Y, n.hi.Z = math.Max(n.hi.X, p.X), math.Max(n.hi.Y, p.Y), math.Max(n.hi.Z, p.Z)
+		}
+	}
+	// Expand the box by one representable value to keep its lower bound conservative under rounding.
+	n.lo = r3.Vec{X: math.Nextafter(n.lo.X, math.Inf(-1)), Y: math.Nextafter(n.lo.Y, math.Inf(-1)), Z: math.Nextafter(n.lo.Z, math.Inf(-1))}
+	n.hi = r3.Vec{X: math.Nextafter(n.hi.X, math.Inf(1)), Y: math.Nextafter(n.hi.Y, math.Inf(1)), Z: math.Nextafter(n.hi.Z, math.Inf(1))}
+	if len(segments) <= 8 {
+		n.segments = segments
+		return n
+	}
+	span := n.hi.Sub(n.lo)
+	axis := func(p r3.Vec) float64 { return p.X }
+	if span.Y > span.X && span.Y >= span.Z {
+		axis = func(p r3.Vec) float64 { return p.Y }
+	} else if span.Z > span.X && span.Z > span.Y {
+		axis = func(p r3.Vec) float64 { return p.Z }
+	}
+	slices.SortFunc(segments, func(a, b efSegment) int {
+		return cmp.Compare(axis(a.a)/2+axis(a.b)/2, axis(b.a)/2+axis(b.b)/2)
+	})
+	middle := len(segments) / 2
+	n.left, n.right = efBuildIndex(segments[:middle]), efBuildIndex(segments[middle:])
+	return n
+}
+
+// efLowerBound uses the largest coordinate gap, a lower bound on Euclidean distance.
+func (n *efNode) lowerBound(p r3.Vec) float64 {
+	gap := func(x, lo, hi float64) float64 { return math.Max(0, math.Max(lo-x, x-hi)) }
+	d := math.Max(gap(p.X, n.lo.X, n.hi.X), math.Max(gap(p.Y, n.lo.Y, n.hi.Y), gap(p.Z, n.lo.Z, n.hi.Z)))
+	return math.Nextafter(d, math.Inf(-1))
+}
+
+func (n *efNode) nearest(p r3.Vec) float64 {
+	if n == nil {
+		return math.Inf(1)
+	}
+	return n.search(p, math.Inf(1))
+}
+
+func (n *efNode) search(p r3.Vec, best float64) float64 {
+	if n.lowerBound(p) > best {
+		return best
+	}
+	if n.left == nil {
+		for _, s := range n.segments {
+			best = math.Min(best, fitSegDist(p, s.a, s.b))
+		}
+		return best
+	}
+	first, second := n.left, n.right
+	if second.lowerBound(p) < first.lowerBound(p) {
+		first, second = second, first
+	}
+	best = first.search(p, best)
+	return second.search(p, best)
+}
+
 // efMeasure samples the mid-height loop and reads each point's distance to the face section's loops.
-func efMeasure(mid []r3.Vec, face [][]r3.Vec) efShift {
+func efMeasure(mid []r3.Vec, face *efNode) efShift {
 	var out efShift
 	for i, a := range mid {
 		b := mid[(i+1)%len(mid)]
 		n := int(math.Ceil(b.Sub(a).Len() / efStep))
 		for k := 0; k < n; k++ {
 			p := a.Add(b.Sub(a).Scale(float64(k) / float64(n)))
-			d := fitNearest(p, face)
+			d := face.nearest(p)
 			l := b.Sub(a).Len() / float64(n)
 			switch {
 			case d < efSharp:
@@ -178,16 +265,17 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 			} {
 				loops := efSection(t, m.Hub, face.z)
 				require.Len(t, loops, len(mid), "%s: loop count", face.name)
+				index := efIndex(loops)
 				if !chamfered {
 					for _, loop := range mid {
-						got := efMeasure(loop, loops)
+						got := efMeasure(loop, index)
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: an 8 mm hub is not chamfered", face.name)
 					}
 					continue
 				}
 				var outer efShift
 				for _, loop := range mid {
-					got := efMeasure(loop, loops)
+					got := efMeasure(loop, index)
 					switch efKindOf(loop) {
 					case efHole:
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: a bolt hole is not chamfered", face.name)
@@ -220,6 +308,65 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 				// The faceted section reads 0.80 to 0.83 mm per pawl, 0.1 mm short of the exact 0.911; a missing taper or a square
 				// end reads 0 or 0.5.
 				require.InDelta(t, 3*0.911, taper, 3*0.15, "%s: the bevel tapers out along the flank's plane", face.name)
+			}
+		})
+	}
+}
+
+// TestEdgeFinishIndex checks real face sections against the exhaustive segment search.
+func TestEdgeFinishIndex(t *testing.T) {
+	m := fitBuild(t, fitCases()[0])
+	mid := efSection(t, m.Hub, midHub)
+	for _, z := range []float64{onewayclutch.HubFrom + efDepth, onewayclutch.HubFrom + onewayclutch.HubHeight - efDepth} {
+		face := efSection(t, m.Hub, z)
+		index := efIndex(face)
+		count := 0
+		for _, loop := range mid {
+			for i, a := range loop {
+				b := loop[(i+1)%len(loop)]
+				n := int(math.Ceil(b.Sub(a).Len() / efStep))
+				for k := 0; k < n; k++ {
+					count++
+					p := a.Add(b.Sub(a).Scale(float64(k) / float64(n)))
+					got, want := index.nearest(p), fitNearest(p, face)
+					require.Equal(t, want, got, "z %.3f sample %d point (%.6f, %.6f, %.6f)", z, count, p.X, p.Y, p.Z)
+					require.Equal(t, efClass(want), efClass(got), "z %.3f sample %d", z, count)
+				}
+			}
+		}
+		require.Positive(t, count)
+	}
+}
+
+func efClass(d float64) int {
+	if d < efSharp {
+		return 0
+	}
+	if math.Abs(d-efDepth) < efOffset {
+		return 1
+	}
+	return 2
+}
+
+func TestEdgeFinishIndexEdgeCases(t *testing.T) {
+	cases := []struct {
+		name   string
+		loops  [][]r3.Vec
+		points []r3.Vec
+	}{
+		{"empty", [][]r3.Vec{nil, {}}, []r3.Vec{{}, {X: 1}}},
+		{"point", [][]r3.Vec{{{X: 1, Y: 2, Z: 3}}}, []r3.Vec{{}, {X: 1, Y: 2, Z: 3}}},
+		{"tree", [][]r3.Vec{{{X: -5}, {X: -4}, {X: -3}, {X: -2}, {X: -1}, {},
+			{X: 1}, {X: 2}, {X: 3}, {X: 4}, {X: 5}}},
+			[]r3.Vec{{Y: 1}, {X: 4, Y: 1}, {X: -4, Z: 1}}},
+		{"segments", [][]r3.Vec{{{X: -2, Z: 3}, {X: 2, Z: 3}}, {{Y: 2}, {Y: 2}}},
+			[]r3.Vec{{}, {Z: 3}, {X: 4, Y: 2, Z: 7}}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			index := efIndex(c.loops)
+			for _, p := range c.points {
+				require.Equal(t, fitNearest(p, c.loops), index.nearest(p), "point (%.3f, %.3f, %.3f)", p.X, p.Y, p.Z)
 			}
 		})
 	}
