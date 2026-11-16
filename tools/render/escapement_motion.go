@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
-	"image/png"
 	"math"
 
 	"github.com/lestrrat-3d/decad-gallery/models/escapement"
@@ -117,13 +115,9 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 		if err != nil {
 			return err
 		}
-		var buffer bytes.Buffer
-		if err := solidlens.RenderPNG(ctx, &buffer, bevelScene(camera, models), solidlens.Settings{Width: width, Height: height}); err != nil {
-			return fmt.Errorf("render frame %d: %w", frame, err)
-		}
-		img, err := png.Decode(&buffer)
+		img, err := solidlens.Render(ctx, bevelScene(camera, models), solidlens.Settings{Width: width, Height: height})
 		if err != nil {
-			return fmt.Errorf("decode frame %d: %w", frame, err)
+			return fmt.Errorf("render frame %d: %w", frame, err)
 		}
 		canvas := image.NewRGBA(img.Bounds())
 		draw.Draw(canvas, canvas.Bounds(), image.NewUniform(background), image.Point{}, draw.Src)

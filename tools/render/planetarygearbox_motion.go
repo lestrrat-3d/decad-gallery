@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -10,7 +9,6 @@ import (
 	"image/color"
 	"image/draw"
 	"image/gif"
-	"image/png"
 	"math"
 	"slices"
 
@@ -241,14 +239,10 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 			if err != nil {
 				return nil, err
 			}
-			var buffer bytes.Buffer
 			scene := bevelScene(cameras[i], models)
-			if err := solidlens.RenderPNG(ctx, &buffer, scene, solidlens.Settings{Width: panelWidth, Height: panelHeight}); err != nil {
-				return nil, fmt.Errorf("render frame %d panel %d: %w", frame, i, err)
-			}
-			img, err := png.Decode(&buffer)
+			img, err := solidlens.Render(ctx, scene, solidlens.Settings{Width: panelWidth, Height: panelHeight})
 			if err != nil {
-				return nil, fmt.Errorf("decode frame %d panel %d: %w", frame, i, err)
+				return nil, fmt.Errorf("render frame %d panel %d: %w", frame, i, err)
 			}
 			return img, nil
 		})
