@@ -48,7 +48,8 @@ type Params struct {
 	// EdgeChamfer is the setback of the 45° chamfer on the outer and window edges of the large flat faces of the ring,
 	// the covers and the carriers. It must be at least MinEdgeChamfer.
 	EdgeChamfer float64
-	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss.
+	// InputShaftLength is how far the input shaft reaches out of the front cover's bearing boss. The front collar ring
+	// takes the first collarBearingGap + collarRingLength of it; the rest is free for a part pressed on the flat.
 	InputShaftLength float64
 	// BearingClearance is the radial clearance between each purchased bearing and its pocket.
 	BearingClearance float64
@@ -66,13 +67,15 @@ type Params struct {
 	// circle. The ring's tooth spaces are widened by the same amount, so a sun-planet pair and
 	// a planet-ring pair each have twice Backlash of play.
 	Backlash float64
-	// OutputShaftLength is how far the output shaft reaches out of the rear cover's bearing boss.
+	// OutputShaftLength is how far the output shaft reaches out of the rear cover's bearing boss. The rear collar ring
+	// takes the first collarBearingGap + collarRingLength of it, as on the input shaft.
 	OutputShaftLength float64
 	// EarCount is the number of mounting ears on the ring. Zero leaves the ring a plain cylinder.
 	EarCount int
-	// EarBoreDiameter is the diameter of the through hole in each ear, parallel to the gearbox axis. The ear is
-	// sized from it, so a larger bore makes a larger ear. The model adds no fastener, head pocket or nut cavity:
-	// the user chooses what passes through the ear.
+	// EarBoreDiameter is the diameter of the bolt hole through each ear, parallel to the gearbox axis. The ear is
+	// sized from it, so a larger bore makes a larger ear. Each ear holds an M2 bolt, its head flush in a pocket in the
+	// ear's rear face, and an M2 nut in a closed cavity near the front face, so the bore is an M2 clearance hole: at
+	// least the shank plus 0.2 mm and narrower than the nut across its flats.
 	EarBoreDiameter float64
 	// Placement is the reference point and plane. Nil selects the world XY frame
 	// at the origin.
@@ -98,16 +101,16 @@ func DefaultParams() Params {
 		FlatDepth:         0.5,
 		SeatChamfer:       0.5,
 		EdgeChamfer:       MinEdgeChamfer,
-		InputShaftLength:  12,
+		InputShaftLength:  14,
 		BearingClearance:  seatClearance,
 		PlanetBearing:     "605ZZ",
 		ShaftBearing:      "605ZZ",
 		CarrierWall:       3,
 		RingWall:          7.1,
 		Backlash:          0.15,
-		OutputShaftLength: 12,
+		OutputShaftLength: 14,
 		EarCount:          3,
-		EarBoreDiameter:   4,
+		EarBoreDiameter:   minBoltHoleDiameter,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
+	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 )
 
 // Problems returns every way p is invalid, in check order. Each names the failing rule; a bearing-forced minimum
@@ -72,7 +73,7 @@ func inputProblems(p Params) []string {
 		{"stage gap", p.StageGap, p.StageGap >= planetBearingLift+pinShoulderClearance+pinShoulderReach},
 		{"cover thickness", p.CoverThickness, p.CoverThickness > 0},
 		{"bolt hole diameter", p.BoltHoleDiameter, p.BoltHoleDiameter > 0},
-		{"input shaft length", p.InputShaftLength, p.InputShaftLength > 0},
+		{"input shaft length", p.InputShaftLength, p.InputShaftLength >= minShaftReach},
 		{"flat depth", p.FlatDepth, flatOK},
 		{"seat chamfer", p.SeatChamfer, p.SeatChamfer >= 0 && p.SeatChamfer <= 1},
 		{"edge chamfer", p.EdgeChamfer, p.EdgeChamfer >= MinEdgeChamfer && p.EdgeChamfer <= 1},
@@ -80,7 +81,7 @@ func inputProblems(p Params) []string {
 		{"carrier wall", p.CarrierWall, p.CarrierWall > 0},
 		{"ring wall", p.RingWall, p.RingWall > 0},
 		{"backlash", p.Backlash, p.Backlash >= 0 && p.Backlash <= p.Module/2},
-		{"output shaft length", p.OutputShaftLength, p.OutputShaftLength > 0},
+		{"output shaft length", p.OutputShaftLength, p.OutputShaftLength >= minShaftReach},
 		{"ear count", float64(p.EarCount), p.EarCount >= 0},
 		{"ear bore diameter", p.EarBoreDiameter, p.EarBoreDiameter >= 0 && (p.EarCount == 0 || p.EarBoreDiameter > 0)},
 	} {
@@ -288,6 +289,15 @@ func earProblems(p Params, d dims) []string {
 		return nil
 	}
 	var probs []string
+	if p.EarBoreDiameter < minBoltHoleDiameter || p.EarBoreDiameter >= m2nut.AcrossFlats {
+		probs = append(probs, fmt.Sprintf(
+			"ear bore diameter %v must be an M2 clearance hole, at least %v and narrower than the %v mm nut across its flats",
+			p.EarBoreDiameter, minBoltHoleDiameter, m2nut.AcrossFlats))
+	}
+	if earBoltLength(d.ringLength) == 0 {
+		probs = append(probs, fmt.Sprintf(
+			"ring length %v is too short for the shortest standard M2 bolt through a mounting ear", d.ringLength))
+	}
 	half := earHalfWidth(p.EarBoreDiameter)
 	radius := earCenterRadius(d.ringOuter, p.EarBoreDiameter)
 	if p.EarCount > 1 {

@@ -67,6 +67,8 @@ func TestMotionSunDriven(t *testing.T) {
 		planetarygearbox.CarrierName(1):  input / 36,
 		planetarygearbox.OutputShaftName: input / 36,
 		planetarygearbox.PinName(1, 0):   input / 36,
+		planetarygearbox.FrontCollarName: input,
+		planetarygearbox.RearCollarName:  input / 36,
 	} {
 		got, moves := turned(t, m, name, input)
 		require.True(t, moves, name)
@@ -74,7 +76,8 @@ func TestMotionSunDriven(t *testing.T) {
 	}
 	for _, name := range []string{
 		planetarygearbox.RingName, planetarygearbox.FrontCoverName, planetarygearbox.RearCoverName,
-		planetarygearbox.FrontBearingName, planetarygearbox.RearBearingName, "Unknown",
+		planetarygearbox.FrontBearingName, planetarygearbox.RearBearingName, planetarygearbox.EarBoltName(0),
+		planetarygearbox.EarNutName(0), "Unknown",
 	} {
 		_, moves := turned(t, m, name, input)
 		require.False(t, moves, name)
@@ -92,6 +95,8 @@ func TestMotionCarrierDriven(t *testing.T) {
 		planetarygearbox.OutputShaftName: input,
 		planetarygearbox.SunName(0):      input * 6,
 		planetarygearbox.InputShaftName:  input * 6,
+		planetarygearbox.FrontCollarName: input * 6,
+		planetarygearbox.RearCollarName:  input,
 	} {
 		got, moves := turned(t, m, name, input)
 		require.True(t, moves, name)

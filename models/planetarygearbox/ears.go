@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/sketch"
 )
 
@@ -29,6 +30,27 @@ func earAngle(i, count int) float64 { return math.Pi/2 + 2*math.Pi*float64(i)/fl
 // ear's width. The ears carry the gearbox's reaction torque, so their roots are stressed roots.
 func earRootRound(p Params) float64 {
 	return math.Min(p.RingWall, 2*earHalfWidth(p.EarBoreDiameter)) / 2
+}
+
+// earBoltLength is the length of each mounting ear's M2 bolt in a ring of the given length: the longest standard
+// length whose tip, with the head flush in the ear's rear face, stays inside the ear. It is zero when no standard
+// length fits.
+func earBoltLength(ringLength float64) float64 {
+	best := 0.0
+	for _, l := range m2bolt.StandardLengths() {
+		if l <= ringLength-m2bolt.HeadHeight+1e-9 {
+			best = math.Max(best, l)
+		}
+	}
+	return best
+}
+
+// earNutFloor is the height of an ear nut cavity's floor above the ring's front face. The cavity starts nutRoof inside
+// the face, as the front housing nuts' cavities do, unless the bolt is too short to pass through a nut there: it then
+// starts where the nut's lower face meets the bolt's tip, so the bolt runs through the whole nut.
+func earNutFloor(ringLength float64) float64 {
+	tip := ringLength - m2bolt.HeadHeight - earBoltLength(ringLength)
+	return math.Max(nutRoof, tip-nutClearance)
 }
 
 // earPoints are the corners of one ear's outline.

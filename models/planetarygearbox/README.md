@@ -2,6 +2,9 @@
 
 **Build status:** Built and tested.
 
+> The collar rings on the shaft ends and the M2 mounting ears (head pocket, nut cavity, bolt and nut) were added after
+> that build. They are not built yet.
+
 ![The default two-stage planetary gearbox, fully assembled, with the ring gear and both end covers cut open to show the planets, carriers, shafts and bearings inside](images/hero.png)
 
 A compact planetary speed reducer. A fixed ring gear with teeth on its inside is the housing, closed at both ends by
@@ -24,7 +27,7 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover and the rear bearing">
+<img src="images/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front collar ring and the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover, the rear bearing and the rear collar ring">
 
 The picture pulls the gearbox apart along its axis. The bolts and nuts are left out; the "How the housing is
 bolted" section shows them. Each stage's planets, bearings and carrier pins also move 45 mm outward from the axis, so
@@ -32,7 +35,7 @@ all three planets of a stage show side by side and none hides behind the sun.
 
 The parts, from the bottom of the picture:
 
-1. The front bearing, off the input shaft's outer end.
+1. The front collar ring and the front bearing, off the input shaft's outer end.
 2. The front cover.
 3. The input shaft, out of the front cover's inner side.
 4. The ring.
@@ -40,7 +43,7 @@ The parts, from the bottom of the picture:
    carrier; and above it the carrier pins, which leave through the top of the carrier's sockets, beside the link shaft.
 6. The second stage: the planets; the sun, beside the planets' bearings; the carrier pins, below the carrier; the
    carrier; and the output shaft, out of the top of the carrier.
-7. The rear cover, then the rear bearing off the output shaft's outer end.
+7. The rear cover, then the rear bearing and the rear collar ring off the output shaft's outer end.
 
 ## How it moves
 
@@ -69,18 +72,40 @@ level with the carrier's upper face, and a 30° cone runs on from there up the r
 0.25 mm from the cone. The thin 5 mm part fills the sun's bore or the bearing. Only the input shaft keeps a collar.
 
 - **Input.** The input shaft enters through the front cover's 605ZZ and fills the first sun's bore. It sticks out
-  12 mm beyond the front cover's bearing boss, where a motor or a crank attaches.
+  14 mm beyond the front cover's bearing boss. The front collar ring takes the first 4.25 mm, and the other 9.75 mm are
+  free for a part pressed on, such as a motor coupling, a crank or a rotor.
 - **Between stages.** A link shaft runs through the first carrier's hole and fills the second sun's bore, so the
   second sun turns with the first carrier.
-- **Output.** The output shaft runs through the last carrier's hole and the rear cover's 605ZZ and sticks out 12 mm
-  beyond its boss.
+- **Output.** The output shaft runs through the last carrier's hole and the rear cover's 605ZZ and sticks out 14 mm
+  beyond its boss, with the rear collar ring and 9.75 mm of free end, as on the input.
 
 Each pin of the carrier is a separate part, shaped thin-thick: a 5 mm rod that carries the planet bearing and a 7.4 mm D-shaped thick part that starts 0.25 mm above the bearing's top face, so the planet bearing stays clear of the plate, and passes through a D socket in the plate. The thick part ends level with the plate's upper face. It and its socket have 0.05 mm of clearance all round, a press fit, so the pin stays in the plate once pushed in. To assemble, lay the carrier upper face down on a flat surface and press each pin in, thick end first, until it meets the surface. Press the link or output shaft into the carrier from the upper face, with the lower face on the surface.
 
-The model does not show a set screw or the coupling to a motor. Each of the input and output shafts has a D flat on its free end, 1 mm clear of the bearing boss, where a coupling or a set screw grips. The flat ends toward the boss in a 30° ramp.
+### Collar rings on the shaft ends
+
+Each of the input and output shafts has a D flat on its free end, which runs out to the end and stops square 1.25 mm
+from the bearing boss. A collar ring, a separate printed part, is pressed on that flat next to the boss. A part pressed
+on the free end, which the model does not show, sits against the ring's outer face, so it cannot rub the bearing or the
+boss.
+
+| Collar ring | 605ZZ shaft | 608ZZ shaft |
+| --- | --- | --- |
+| Length | 4 mm | 4 mm |
+| Across, at the bearing face | 7.4 mm, inside the bearing's 8 mm inner ring | 10.4 mm, inside the 12 mm inner ring |
+| Across, over its press fit | 8.5 mm (a 1.7 mm wall) | 11.5 mm |
+| D bore | 5.1 mm, a 0.05 mm press fit on the flat | 8.1 mm |
+| Gap to the bearing | 0.25 mm | 0.25 mm |
+
+A collar of the shaft's own body could not stand there: the shaft already has a collar or a thick part on the bearing's
+inner side, so it could not then pass through the bearing. To assemble, push the shaft out through its bearing from
+inside the housing, then press the ring on from the free end until its D bore meets the end of the flat. That holds the
+ring 0.25 mm off the bearing and holds the shaft in the bearing from both sides. Near the bearing the ring's outside
+narrows in a 30° cone to 7.4 mm, so it only touches the bearing's inner ring, and its bore opens 0.4 mm round the shaft
+there, so the narrow rim keeps a 0.8 mm wall. Print the ring standing on its outer face.
 
 Every shaft and pin prints as two halves, each lying on its cut face, so its layers run along the part. The cut plane holds the part's axis and
-the direction its flat faces. Nothing is glued: the bearing's inner race and the press-fit D bore of the carrier or the sun hold the halves of each part together.
+the direction its flat faces. Nothing is glued: the bearing's inner race and the press-fit D bore of the carrier, the sun
+or the collar ring hold the halves of each part together, and on a free end so does the part pressed on it.
 
 ## Edge finishing
 
@@ -91,11 +116,24 @@ bearing seats are not chamfered. The chamfer on the ring follows the mounting ea
 
 ## Mounting the gearbox
 
-The ring has three mounting ears, spaced 120° apart, to fix the gearbox in place. Each ear is a tab on the ring's outside,
-as long as the ring, with a 4 mm bore parallel to the gearbox axis. The bore is a plain hole: the model adds no bolt,
-head pocket or nut cavity, so you choose what passes through it. The bore's edge is 3 mm from the covers' outer edge, so a
-fastener head up to 10 mm across lies beside the covers and not on them. You can change the bore diameter and the number
-of ears. With no ears, the ring is a plain cylinder.
+The ring has three M2 mounting ears, spaced 120° apart, to fix the gearbox in place. Each ear is a tab on the ring's
+outside, as long as the ring, with a 2.6 mm bore parallel to the gearbox axis, the M2 clearance hole. Each ear holds an
+M2 nut in a closed cavity near its front face, the input end, and an M2 bolt whose head sits flush in a pocket in its
+rear face. The bolt runs through the nut and its tip stays inside the ear.
+
+<img src="images/ear-section.png" alt="Section through a mounting ear along its bore: the bolt head flush in the pocket in the ear's rear face, the bolt down the bore, and the nut in its closed cavity near the front face" width="800">
+
+The ear is the nut side of a mounting joint. To fix the gearbox against a plate on the input side, take out the ear's
+bolt and drive an M2 bolt from the plate's side into the ear's nut. The bore's edge is 3 mm from the covers' outer edge,
+and the head pocket stands 2.1 mm clear of it, so a driver reaches the head past the rear cover. You can change the
+number of ears and, within the M2 clearance range (2.6 mm up to under the nut's 4 mm), the bore. With no ears, the ring
+is a plain cylinder and has no ear bolts or nuts.
+
+| Part | Pocket | Size |
+| --- | --- | --- |
+| Ear bolt head | Round, in the ear's rear face | 4.4 mm wide, 2 mm deep |
+| Ear bolt | M2 x 10 for one stage, M2 x 25 for two | the longest standard length whose tip stays inside the ear |
+| Ear nut | Closed round cavity, 1.8 mm behind the ear's front face | 5.02 mm wide, 2 mm high |
 
 The ring is the fixed part of a planetary gearbox, so the ears carry the whole reaction torque of the output. Each ear meets
 the ring in a rounded root, 3.55 mm in radius, so the reaction torque has no sharp corner to start a crack.
@@ -122,29 +160,32 @@ The nuts are not pressed in afterwards. Each nut sits in a cavity the ring walls
 hole, so the nuts have to go in while the ring prints. Print the ring standing on its front face, and stop the printer
 twice:
 
-1. At 3 mm above the bed, the front cavities are open at the top. Drop a nut into each of the four, then resume.
-2. At `L - 1` mm above the bed, where `L` is the ring length (with the default dimensions 14 mm for one stage and `13 K + 1` mm for `K` stages),
+1. At 3.8 mm above the bed, the front cavities and the ear cavities are open at the top. Drop a nut into each of the
+   four front cavities and into each ear, then resume.
+2. At `L - 1.8` mm above the bed, where `L` is the ring length (with the default dimensions 14 mm for one stage and `13 K + 1` mm for `K` stages),
    the rear cavities are open at the top. Drop a nut into each of the four, then resume.
 
-The next layers print the 1 mm roofs over the nuts. After that the ring holds all eight nuts by itself.
+The next layers print the 1.8 mm roofs over the nuts. After that the ring holds all its nuts by itself. With three or
+more stages the ear bolt is shorter than the ring, so the ear nuts sit deeper and need a third pause at the top of their
+cavities.
 
-To assemble, set each cover on its ring end and drive each bolt in from the cover's outer face, through the ring's 1 mm
+To assemble, set each cover on its ring end and drive each bolt in from the cover's outer face, through the ring's 1.8 mm
 roof into the nut.
 
 | Part | Pocket | Size |
 | --- | --- | --- |
 | Bolt head | Round, in the cover's outer face | 4.4 mm wide, 2 mm deep, 1 mm of cover under it |
 | Bolt shank | Hole through the cover and the ring | 2.6 mm wide |
-| Nut | Closed round cavity in the ring wall, 1 mm behind the end face | 5.02 mm wide, 2 mm high |
+| Nut | Closed round cavity in the ring wall, 1.8 mm behind the end face | 5.02 mm wide, 2 mm high |
 
 ## Parts
 
-A gearbox has one ring, two covers, two cover bearings and an input
-shaft and, in every stage, one sun, three planets, three planet bearings, three carrier pins, one carrier and one shaft. The bearing is a
+A gearbox has one ring, two covers, two cover bearings, an input shaft and two collar rings and, in every stage, one
+sun, three planets, three planet bearings, three carrier pins, one carrier and one shaft. The bearing is a
 purchased 605ZZ, drawn as its 5 × 14 × 5 mm envelope; the covers and the planets use the same part. Planet pins and shafts are 5 mm where they pass through a bearing, the same as the bearing bore, with no clearance. Planet and cover bearing pockets have 0.05 mm radial clearance. A planet bearing sits 0.25 mm above its pocket floor and extends 0.25 mm above the planet. Each pocket has a 0.5 mm chamfer on its entrance. The front cover is
 the rear cover turned over. Each carrier is the same part. A stage's shaft is the link shaft when another stage
 follows it, and the output shaft for the last stage. The default one-stage gearbox has only the output shaft. Every
-part is shaped to print on its own, without supports: the carrier plate down, and the pins and every shaft as two halves lying on their cut faces.
+part is shaped to print on its own, without supports: the carrier plate down, each collar ring on its outer face, and the pins and every shaft as two halves lying on their cut faces.
 
 | Image | Name |
 | --- | --- |
@@ -158,6 +199,7 @@ part is shaped to print on its own, without supports: the carrier plate down, an
 | <img src="images/parts/carrier-pin.png" alt="Carrier pin" width="240"> | Carrier pin |
 | <img src="images/parts/link-shaft.png" alt="Link shaft" width="240"> | Link shaft |
 | <img src="images/parts/output-shaft.png" alt="Output shaft" width="240"> | Output shaft |
+| <img src="images/parts/collar.png" alt="Collar ring" width="240"> | Collar ring (front and rear) |
 
 You can vary:
 
@@ -165,9 +207,9 @@ You can vary:
 - The tooth counts of the sun, planets and ring, and the number of planets.
 - Module and pressure angle.
 - Gear, carrier and cover thickness, and the gaps between them.
-- How far the input and output shafts reach out of the covers.
+- How far the input and output shafts reach out of the covers (at least 5.25 mm: the collar ring and 1 mm of free end).
 - The carrier wall, bearing pocket clearance and entrance chamfer, ring wall and bolt hole size (2.6 mm, the M2 clearance hole).
-- The number of mounting ears on the ring (three by default, zero for none) and the diameter of their bore (4 mm).
+- The number of mounting ears on the ring (three by default, zero for none) and the diameter of their M2 bore (2.6 mm).
 - Backlash.
 - The planet bearing and the shaft bearing, 605ZZ or 608ZZ (see Bearing kits).
 - The position and orientation of the gearbox in space.

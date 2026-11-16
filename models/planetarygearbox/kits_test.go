@@ -35,7 +35,7 @@ func TestKitGearboxes(t *testing.T) {
 			box, err := planetarygearbox.Build(t.Context(), doc, p)
 			require.NoError(t, err)
 
-			require.Len(t, doc.Bodies(), 34)
+			require.Len(t, doc.Bodies(), 42)
 			for _, nb := range box.Named() {
 				require.True(t, nb.Body.IsSolid(), "%s is solid", nb.Name)
 				volume, err := nb.Body.Volume()
@@ -70,6 +70,7 @@ func TestKitGearboxes(t *testing.T) {
 			requirePressFitWalls(t, box, p)
 			requireEdgeFinishing(t, box, p)
 			requireFastenersFlush(t, box, p)
+			requireCollarRings(t, box, p)
 			for i, planet := range stage.Planets {
 				require.Zero(t, penetration(t, planet, stage.Sun), "planet %d inside the sun", i)
 				require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", i)

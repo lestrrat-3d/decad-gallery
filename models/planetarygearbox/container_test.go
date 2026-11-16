@@ -1,6 +1,7 @@
 package planetarygearbox_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -15,9 +16,10 @@ func requireContainers(t *testing.T, doc *decad.Document, box planetarygearbox.G
 	want := map[string][]*decad.Body{
 		planetarygearbox.HousingContainerName:       {box.Ring, box.FrontCover, box.RearCover},
 		planetarygearbox.CoverBearingsContainerName: {box.FrontBearing, box.RearBearing},
-		planetarygearbox.BoltsContainerName:         box.Bolts,
-		planetarygearbox.NutsContainerName:          box.Nuts,
+		planetarygearbox.BoltsContainerName:         slices.Concat(box.Bolts, box.EarBolts),
+		planetarygearbox.NutsContainerName:          slices.Concat(box.Nuts, box.EarNuts),
 		planetarygearbox.ShaftsContainerName:        {box.InputShaft},
+		planetarygearbox.CollarsContainerName:       {box.FrontCollar, box.RearCollar},
 	}
 	for _, s := range box.Stages {
 		add := func(name string, bodies ...*decad.Body) { want[name] = append(want[name], bodies...) }
@@ -39,6 +41,7 @@ func requireContainers(t *testing.T, doc *decad.Document, box planetarygearbox.G
 		planetarygearbox.ShaftsContainerName, planetarygearbox.SunGearsContainerName,
 		planetarygearbox.PlanetGearsContainerName, planetarygearbox.PlanetBearingsContainerName,
 		planetarygearbox.CarriersContainerName, planetarygearbox.CarrierPinsContainerName,
+		planetarygearbox.CollarsContainerName,
 	}, names)
 
 	total := 0

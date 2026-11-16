@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
+	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -63,8 +65,34 @@ func insideAt(t *testing.T, body *decad.Body, z float64) func(x, y float64) bool
 	}
 }
 
+// earBoltLength mirrors the length of an ear's bolt: the longest standard M2 length that fits the ring length less
+// the head.
+func earBoltLength(ringLength float64) float64 {
+	best := 0.0
+	for _, l := range m2bolt.StandardLengths() {
+		if l <= ringLength-m2bolt.HeadHeight {
+			best = math.Max(best, l)
+		}
+	}
+	return best
+}
+
+// earNutFloor mirrors the height of an ear nut cavity's floor above the ring's front face: 1.8 mm, or where the nut's
+// lower face meets a bolt tip that ends further in.
+func earNutFloor(ringLength float64) float64 {
+	return math.Max(1.8, ringLength-m2bolt.HeadHeight-earBoltLength(ringLength)-0.2)
+}
+
+// Ear pocket radii: the head pocket is the head plus 0.3 mm radially, the nut cavity the circle through the nut's
+// corners plus 0.2 mm.
+var (
+	earHeadPocket = m2bolt.HeadDiameter/2 + 0.3
+	earNutCavity  = m2nut.AcrossCorners()/2 + 0.2
+)
+
 // requireEars checks the mounting ears of ring: each stands beyond the outer wall, runs the whole ring length, has
-// its bore through it and nothing else, and clears the covers' outer wall by the ear's bore wall.
+// its bore through it and nothing else, and clears the covers' outer wall by the ear's bore wall. Each also has a
+// head pocket in its rear face and a closed nut cavity near its front face, with the ear's wall round both.
 func requireEars(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
 	t.Helper()
 	outer := ringOuterRadius(p)
@@ -75,8 +103,29 @@ func requireEars(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.
 	require.InDelta(t, outer, cover.Max.X, 0.05)
 	require.GreaterOrEqual(t, center-p.EarBoreDiameter/2-cover.Max.X, float64(earWall)-0.05,
 		"the bore is closer to the covers' outer wall than the ear's wall")
+	require.Greater(t, center-earHeadPocket, cover.Max.X, "the head pocket lies beyond the covers")
 
-	for _, z := range []float64{first + 1, (first + last) / 2, last - 1} {
+	// The pockets: the head pocket's middle height, under the rear face, and the nut cavity's.
+	nutMid := first + earNutFloor(last-first) + 1
+	for _, c := range []struct {
+		what   string
+		z, rad float64
+	}{{"head pocket", last - 1, earHeadPocket}, {"nut cavity", nutMid, earNutCavity}} {
+		inside := insideAt(t, box.Ring, c.z)
+		for i := range p.EarCount {
+			sin, cos := math.Sincos(math.Pi/2 + 2*math.Pi*float64(i)/float64(p.EarCount))
+			at := func(along, side float64) bool { return inside(along*cos-side*sin, along*sin+side*cos) }
+			require.False(t, at(center+c.rad-0.3, 0), "ear %d %s is open toward the tip", i+1, c.what)
+			require.False(t, at(center, c.rad-0.3), "ear %d %s is open sideways", i+1, c.what)
+			require.True(t, at(center+c.rad+0.3, 0), "ear %d wall beyond the %s", i+1, c.what)
+			require.True(t, at(center, c.rad+0.3), "ear %d wall beside the %s", i+1, c.what)
+			// The ear keeps the 1 mm Fasteners margin round each pocket.
+			require.GreaterOrEqual(t, half-c.rad, 1.0, "ear %d wall round the %s", i+1, c.what)
+		}
+	}
+
+	// The bore alone, between the pockets and in the nut cavity's roof.
+	for _, z := range []float64{first + 1, (first + last) / 2} {
 		inside := insideAt(t, box.Ring, z)
 		for i := range p.EarCount {
 			angle := math.Pi/2 + 2*math.Pi*float64(i)/float64(p.EarCount)
@@ -109,15 +158,16 @@ func requireEars(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.
 func TestMountingEars(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.Equal(t, 3, p.EarCount)
-	require.InDelta(t, 4, p.EarBoreDiameter, 0)
+	require.InDelta(t, 2.6, p.EarBoreDiameter, 0)
 	_, box := defaultGearbox(t)
 	requireEars(t, box, p)
 }
 
-// TestEarBoreAndCount builds a different bore and ear count: two ears on the Y axis, with a 6 mm bore.
+// TestEarBoreAndCount builds a different bore and ear count: two ears on the Y axis, with a 3.5 mm bore, the widest
+// M2 clearance hole under the nut's 4 mm across its flats.
 func TestEarBoreAndCount(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
-	p.EarCount, p.EarBoreDiameter = 2, 6
+	p.EarCount, p.EarBoreDiameter = 2, 3.5
 	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
 	require.NoError(t, err)
 	requireEars(t, box, p)
@@ -140,7 +190,10 @@ func TestRingWithoutEars(t *testing.T) {
 	doc := decad.New()
 	box, err := planetarygearbox.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 34)
+	// 34 bodies and the two collar rings; with no ears there are no ear bolts or nuts.
+	require.Len(t, doc.Bodies(), 36)
+	require.Empty(t, box.EarBolts)
+	require.Empty(t, box.EarNuts)
 	outer := ringOuterRadius(p)
 	ring := bounds(t, box.Ring)
 	require.InDelta(t, outer, ring.Max.X, 1e-3)
@@ -158,7 +211,10 @@ func TestRingWithoutEars(t *testing.T) {
 	// Each ear also meets the ring in two root rounds.
 	section += 2 * rootRoundArea(wall, half, earRootRound(p))
 	length := float64(p.Stages)*(p.GearThickness+p.CarrierThickness+2*p.StageGap) + p.StageGap
-	want := float64(3) * section * length
+	// Each ear loses its head pocket and its nut cavity, both 2 mm high, beyond the bore they surround.
+	bore := p.EarBoreDiameter / 2
+	pockets := 2 * math.Pi * (earHeadPocket*earHeadPocket + earNutCavity*earNutCavity - 2*bore*bore)
+	want := float64(3) * (section*length - pockets)
 	_, with := defaultGearbox(t)
 	plain, err := box.Ring.Volume()
 	require.NoError(t, err)
@@ -167,9 +223,9 @@ func TestRingWithoutEars(t *testing.T) {
 	require.InDelta(t, want, earred.Value.Base()-plain.Value.Base(), 0.03*want+plain.Bound.Base()+earred.Bound.Base())
 }
 
-// TestRootRoundArea checks the area formula against the default ear: 1.848 mm² for each of the 3.55 mm root rounds.
+// TestRootRoundArea checks the area formula against the default ear: 1.919 mm² for each of the 3.55 mm root rounds.
 func TestRootRoundArea(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	require.InDelta(t, 3.55, earRootRound(p), 1e-9)
-	require.InDelta(t, 1.848, rootRoundArea(ringOuterRadius(p), p.EarBoreDiameter/2+earWall, earRootRound(p)), 0.01)
+	require.InDelta(t, 1.919, rootRoundArea(ringOuterRadius(p), p.EarBoreDiameter/2+earWall, earRootRound(p)), 0.01)
 }
