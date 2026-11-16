@@ -316,7 +316,7 @@ func clutchMountExplode() map[string]r3.Vec {
 		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: 70}
 	}
 	for k := 1; k <= 2; k++ {
-		a := onewayclutch.EarAngles[k-1] * math.Pi / 180
+		a := onewayclutch.EarAngles[k] * math.Pi / 180
 		out[fmt.Sprintf("adapterbolt-%d", k)] = r3.Vec{Z: 6}
 		out[fmt.Sprintf("adapternut-%d", k)] = r3.Vec{X: 18 * math.Cos(a), Y: 18 * math.Sin(a), Z: 40}
 	}
@@ -353,6 +353,11 @@ func buildClutchMount(ctx context.Context) (clutchSet, turbineMeshes, error) {
 	return set, fan, nil
 }
 
+// clutchMountCut cuts by the plane through the shaft axis and the 330 degree direction of the clutch frame, which holds
+// ear 3, adapter bolt 2 (the fan's 150 degree hole) and the clutch's 150 degree bolt, and removes the half toward its
+// normal (60 degrees).
+var clutchMountCut = solidlens.ClipPlane{Normal: solidlens.Vec{X: math.Cos(math.Pi / 3), Y: math.Sin(math.Pi / 3)}}
+
 // clutchMountView draws one clutch-mount view: "clutch", "clutch-back", "clutch-cutaway" or "clutch-exploded".
 func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.Scene, error) {
 	var clip *solidlens.ClipPlane
@@ -365,8 +370,10 @@ func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.S
 	case "clutch-back":
 		camera = turbineCamera(r3.Vec{X: -.45, Y: -.3, Z: -1}, target)
 	case "clutch-cutaway":
-		clip = &clutchAxisCut
-		camera = solidlens.Camera{Position: solidlens.Vec(target.Add(r3.Vec{X: turbineDistance, Y: -20, Z: 20})),
+		clip = &clutchMountCut
+		// Look from the removed side along the normal n, shifted 20 mm along -t, the plane's other horizontal direction.
+		n, t := r3.Vec{X: clutchMountCut.Normal.X, Y: clutchMountCut.Normal.Y}, r3.Vec{X: -clutchMountCut.Normal.Y, Y: clutchMountCut.Normal.X}
+		camera = solidlens.Camera{Position: solidlens.Vec(target.Add(n.Scale(turbineDistance)).Add(t.Scale(-20)).Add(r3.Vec{Z: 20})),
 			Target: solidlens.Vec(target), Up: solidlens.Vec{Z: 1}, FOV: 35}
 	case "clutch-exploded":
 		pull, clutchPull = clutchMountExplode(), clutchMountSetExplode()
@@ -395,7 +402,7 @@ func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.S
 	}
 	if clip != nil {
 		for i, part := range names {
-			more[i] = clipped(more[i], turbinePartColor(part), solidlens.Vec{}, solidlens.Vec{X: 1})
+			more[i] = clipped(more[i], turbinePartColor(part), solidlens.Vec{}, clutchMountCut.Normal)
 		}
 	}
 	models = append(models, more...)

@@ -16,7 +16,7 @@ instructions.md "Fasteners" says why each slot works and why a back-face slot do
 `SetScrewTip = D/2 - d - c`, `SetScrewHead = SetScrewTip + 2 + 6`, `CounterboreFloor = SetScrewHead - 2 - 0.4`.
 `SetScrewSite` is `m2fastener.Site{Head: (0, -SetScrewHead, 4), Dir: (0, 1, 0), Corner: (0, 0, 1), Length: 6, Cavity:
 SetScrewHead - f_b - 1.6 - 2}`. `BladeSites[k]` is `Head: 9.5 u_k + (0, 0, 20), Dir: (0, 0, -1), Corner: u_k, Length: 16,
-Cavity: 15.6`. `AdapterSites[k]` (k = 0, 1, `u` at `EarBoltAngle(k+1)`, 30 and 150 degrees) is `Head: 9.5 u + (0, 0, -6.25), Dir: (0, 0,
+Cavity: 15.6`. `AdapterSites[k]` (k = 0, 1, `u` at `EarBoltAngle(k+2)`, 30 and 150 degrees) is `Head: 9.5 u + (0, 0, -6.25), Dir: (0, 0,
 1), Corner: u, Length: 10, Cavity: 7.75`, both validated; `Derive` fills it and the set screw's values in both mounts.
 
 ## 2. Sketches (sketches.go)
@@ -64,8 +64,10 @@ Tools, each recording its sketch:
 2. Blades: `BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` when `Hand` is `LeftHand`); record its
    sketches; `decad.Transform` by `r3.FromFrame(r3.NewFrame((0, 0, 10), (-1, 0, 0), (0, 0, 1)))`; `decad.PatternCopies` with
    the same circular pattern.
-3. Require each part solid, then `placement.Place(ctx, body, p.Placement)`. Carry each site's `Head` through
-   `r3.FromFrame(*Placement).Apply`, and `Dir` and `Corner` through `ApplyDir`.
+3. Require each part solid, then `placement.Place(ctx, body, f)`, where `f` is `Placement` moved back from the placement point
+   to the local origin: origin `Placement.Apply((0, 0, -anchor))` with `Placement`'s U and V (anchor 20 in `ShaftMount`,
+   `ClutchAnchorZ` in `ClutchMount`; `f` is nil when `Placement` is nil). Carry each site's `Head` through `f` with
+   `r3.FromFrame(*f).Apply`, and `Dir` and `Corner` through `ApplyDir`.
 
 `Build` then calls `m2fastener.PlaceBolt` and `PlaceNut` at each placed blade site and, in `ShaftMount`, at the set screw site
 or, in `ClutchMount`, at each placed adapter site, and adds each body to `doc.Root().ChildNamed(name)` with `AddBody`: the hub
@@ -108,10 +110,12 @@ first failing step stops the rest.
 (sections 1 to 3), so the hub has the set screw's cuts and the two adapter holes and slots in both mounts. See
 instructions.md "Clutch mount" for the numbers.
 
-- `MountZ` is 26.25 (`onewayclutch.AdapterTo + ClutchSeam`) and `MountFrame` is unchanged otherwise (60 degree turn).
+- `MountZ` is 26.25 (`onewayclutch.AdapterTo + ClutchSeam`). `MountFrame` returns the placement point: origin (0, 0,
+  `onewayclutch.CoverTo`) in the clutch frame, turned `ClutchTurn` (180 degrees) about Z. `ClutchAnchorZ` is `CoverTo - MountZ` = -7.75.
+- `ParamsForClutch(c, opts...)` takes `WithBladePitch(pitch)` to replace the default pitch, then runs `Validate`.
 - `BuildParts` places `SetScrewSite` and both `AdapterSites` in both modes. `Build` in `ClutchMount` places an M2 x 10 bolt and
   nut at each adapter site and no set screw. Bodies: 14. Sketches from `BuildParts`: 27, the same as `ShaftMount`.
 - `Build` does not build the adapter or the clutch. The caller builds them with `onewayclutch.Build` and
   `onewayclutch.BuildAdapter` in the clutch's own `onewayclutch.NewDocument()`, and the fan in its own document, because both
-  models file their hub in a container named `Hub`. The adapter's `FaceSites[0]` and `FaceSites[1]` are the fan's
-  `AdapterSites[0]` and `[1]` through `MountFrame`.
+  models file their hub in a container named `Hub`. The adapter's `FaceSites[1]` and `FaceSites[2]` are the fan's
+  `AdapterSites[0]` and `[1]` through `MountFrame` and the anchor offset; `FaceSites[0]` stays empty.

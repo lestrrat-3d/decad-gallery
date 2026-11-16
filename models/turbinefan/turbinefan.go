@@ -8,7 +8,7 @@
 // face. They are cut in both modes. With Params.Mount = ClutchMount the hub does not grip the shaft: the adapter ring of
 // a onewayclutch (onewayclutch.BuildAdapter, built by the caller in the clutch's document) sits against the back face,
 // one seam behind it, and two M2 x 10 bolts from the adapter's rear face hold the hub in those nuts; the set screw is
-// left out. The fan frame is turned 60 degrees about the axis from the clutch frame. The shaft drives the fan through the
+// left out. The fan frame is turned 180 degrees about the axis from the clutch frame. The shaft drives the fan through the
 // clutch, and the fan coasts when the shaft stops or turns back.
 //
 // The local frame has its origin on the shaft axis in the hub's back face, the face toward the mechanism. +Z runs along
@@ -85,6 +85,10 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("turbinefan: before creating geometry: %w", err)
 	}
+	frame, err := p.buildFrame()
+	if err != nil {
+		return nil, err
+	}
 	r := &run{ctx: ctx, doc: doc, p: p, dm: dm}
 	out := &Parts{Dimensions: dm}
 	hub, err := r.hub()
@@ -104,7 +108,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		if body == nil || !body.IsSolid() {
 			return nil, fmt.Errorf("turbinefan: %s is not a solid", name)
 		}
-		placed, err := placement.Place(ctx, body, p.Placement)
+		placed, err := placement.Place(ctx, body, frame)
 		if err != nil {
 			return nil, fmt.Errorf("turbinefan: place %s: %w", name, err)
 		}
@@ -115,16 +119,16 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		out.Blades[i-1] = placed
 	}
 	out.Sketches = r.sketches
-	if out.SetScrewSite, err = placeSite(dm.SetScrewSite, p.Placement); err != nil {
+	if out.SetScrewSite, err = placeSite(dm.SetScrewSite, frame); err != nil {
 		return nil, fmt.Errorf("turbinefan: place set screw: %w", err)
 	}
 	for i, site := range dm.BladeSites {
-		if out.BladeSites[i], err = placeSite(site, p.Placement); err != nil {
+		if out.BladeSites[i], err = placeSite(site, frame); err != nil {
 			return nil, fmt.Errorf("turbinefan: place blade bolt %d: %w", i+1, err)
 		}
 	}
 	for i, site := range dm.AdapterSites {
-		if out.AdapterSites[i], err = placeSite(site, p.Placement); err != nil {
+		if out.AdapterSites[i], err = placeSite(site, frame); err != nil {
 			return nil, fmt.Errorf("turbinefan: place adapter bolt %d: %w", i+1, err)
 		}
 	}

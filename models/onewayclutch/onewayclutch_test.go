@@ -274,3 +274,20 @@ func TestOneWayClutchAdapterPlaced(t *testing.T) {
 		require.InDelta(t, 0, xf.ApplyDir(site.Dir).Sub(w.Dir).Len(), 1e-9, "site %d dir", i)
 	}
 }
+
+// TestOneWayClutchInnerTools checks the plates' inner-face tools against the vertices in instructions.md "Plates", and
+// that the cover's tool mirrors the back plate's about the plane midway between the plates' outer faces.
+func TestOneWayClutchInnerTools(t *testing.T) {
+	back := [][2]float64{{9.5, 5.0}, {9.5, 3.4}, {10.3, 3.6}, {16.1, 3.6}, {17.7, 2.0}, {17.7, 5.0}}
+	cover := [][2]float64{{9.5, 13.5}, {9.5, 15.1}, {10.3, 14.9}, {16.1, 14.9}, {17.7, 16.5}, {17.7, 13.5}}
+	require.Len(t, onewayclutch.BackPlateInner, len(back))
+	require.Len(t, onewayclutch.CoverInner, len(cover))
+	for i := range back {
+		require.InDelta(t, back[i][0], onewayclutch.BackPlateInner[i][0], 1e-9, "back plate vertex %d r", i)
+		require.InDelta(t, back[i][1], onewayclutch.BackPlateInner[i][1], 1e-9, "back plate vertex %d z", i)
+		require.InDelta(t, cover[i][0], onewayclutch.CoverInner[i][0], 1e-9, "cover vertex %d r", i)
+		require.InDelta(t, cover[i][1], onewayclutch.CoverInner[i][1], 1e-9, "cover vertex %d z", i)
+		require.InDelta(t, onewayclutch.CoverTo-onewayclutch.BackPlateInner[i][1], onewayclutch.CoverInner[i][1], 1e-9,
+			"cover vertex %d mirrors the back plate", i)
+	}
+}

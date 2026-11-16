@@ -156,7 +156,7 @@ func TestTurbineFanClutchParams(t *testing.T) {
 	require.Equal(t, onewayclutch.Clockwise, turbinefan.RightHand.Freewheel())
 	require.Equal(t, onewayclutch.CounterClockwise, turbinefan.LeftHand.Freewheel())
 	require.Equal(t, onewayclutch.Direction(0), turbinefan.Hand(5).Freewheel())
-	for k, want := range []float64{30, 150, 270} {
+	for k, want := range []float64{270, 30, 150} {
 		require.InDelta(t, want*math.Pi/180, turbinefan.EarBoltAngle(k+1), 1e-12)
 	}
 
@@ -170,11 +170,11 @@ func TestTurbineFanClutchParams(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, shaft.AdapterSites, dm.AdapterSites)
 	require.Equal(t, shaft.SetScrewSite, dm.SetScrewSite)
-	xf, err := r3.FromFrame(mf)
-	require.NoError(t, err)
+	// The fan's placement point is the clutch cover's outer face, so the fan frame sits ClutchAnchorZ behind it.
+	xf := anchoredTransform(t, mf, turbinefan.ClutchAnchorZ)
 	for k, site := range dm.AdapterSites {
-		face := cdm.FaceSites[k]
-		a := turbinefan.EarBoltAngle(k + 1)
+		face := cdm.FaceSites[k+1] // clutch angles 210 and 330; face hole 1 (90) stays empty
+		a := turbinefan.EarBoltAngle(k + 2)
 		require.InDelta(t, onewayclutch.FaceCircle*math.Cos(a), site.Head.X, 1e-12)
 		require.InDelta(t, onewayclutch.FaceCircle*math.Sin(a), site.Head.Y, 1e-12)
 		require.InDelta(t, -(onewayclutch.AdapterThickness + turbinefan.ClutchSeam), site.Head.Z, 1e-12)
@@ -187,14 +187,18 @@ func TestTurbineFanClutchParams(t *testing.T) {
 		require.InDelta(t, site.Cavity, face.Cavity, 1e-9)
 		require.InDelta(t, 0, xf.ApplyDir(site.Corner).Sub(face.Corner).Len(), 1e-9, "adapter site %d corner", k+1)
 	}
+	// The bore's flat faces -Y in the fan frame and the shaft's flat faces +Y in the clutch frame: ClutchTurn lines them up.
+	require.InDelta(t, 0, xf.ApplyDir(r3.Vec{Y: -1}).Sub(r3.Vec{Y: 1}).Len(), 1e-9, "bore flat meets the shaft flat")
 	require.NotEqual(t, m2fastener.Site{}, dm.SetScrewSite)
 	big, err := left.Derive()
 	require.NoError(t, err)
 	require.InDelta(t, 3.2, big.SetScrewTip, 1e-12)
 
-	require.InDelta(t, 26.25, mf.Origin().Z, 0)
-	require.InDelta(t, math.Cos(math.Pi/3), mf.U().X, 1e-12)
-	require.InDelta(t, math.Sin(math.Pi/3), mf.U().Y, 1e-12)
+	require.InDelta(t, math.Pi, turbinefan.ClutchTurn, 0)
+	require.InDelta(t, onewayclutch.CoverTo, mf.Origin().Z, 0)
+	require.InDelta(t, -7.75, turbinefan.ClutchAnchorZ, 1e-12)
+	require.InDelta(t, math.Cos(turbinefan.ClutchTurn), mf.U().X, 1e-12)
+	require.InDelta(t, math.Sin(turbinefan.ClutchTurn), mf.U().Y, 1e-12)
 	f, err := r3.NewFrame(r3.Vec{X: 10, Y: -5, Z: 7}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	require.NoError(t, err)
 	placed, err := turbinefan.MountFrame(&f)
@@ -210,4 +214,16 @@ func TestTurbineFanClutchParams(t *testing.T) {
 	}
 	_, err = turbinefan.MountFrame(&r3.Frame{})
 	require.ErrorContains(t, err, "turbinefan: clutch Placement must be a valid frame")
+}
+
+func TestTurbineFanClutchBladePitch(t *testing.T) {
+	steep, err := turbinefan.ParamsForClutch(onewayclutch.DefaultParams(), turbinefan.WithBladePitch(turbinefan.MaxBladePitch))
+	require.NoError(t, err)
+	require.Equal(t, turbinefan.MaxBladePitch, steep.BladePitch)
+	require.Equal(t, turbinefan.ClutchMount, steep.Mount)
+	def, err := turbinefan.ParamsForClutch(onewayclutch.DefaultParams())
+	require.NoError(t, err)
+	require.Equal(t, turbinefan.DefaultBladePitch, def.BladePitch)
+	_, err = turbinefan.ParamsForClutch(onewayclutch.DefaultParams(), turbinefan.WithBladePitch(turbinefan.MaxBladePitch+0.1))
+	require.ErrorContains(t, err, "BladePitch")
 }

@@ -55,13 +55,14 @@ Package: `models/turbinefan`. Exported surface:
   k's angle about +Z.
 - The container names `HubContainerName` (`Hub`), `BladesContainerName` (`Blades`), `BoltsContainerName` (`Bolts`),
   `NutsContainerName` (`Nuts`).
-- The clutch-mount constants `ClutchTurn`, `ClutchSeam` and `MountZ` (see "Clutch mount").
+- The clutch-mount constants `ClutchTurn`, `ClutchSeam`, `MountZ` and `ClutchAnchorZ` (see "Clutch mount").
 - `Hand` with `RightHand` (the zero value) and `LeftHand`; `Hand.Freewheel()` returns the `onewayclutch.Direction` that
   drives a fan of that hand forward.
 - `Mount` with `ShaftMount` (the zero value) and `ClutchMount`; `EarBoltAngle(k)` is ear bolt k's angle in the fan frame.
 - `Params` with `ShaftDiameter`, `FlatDepth`, `BoreClearance`, `BladePitch`, `Hand`, `Mount` and `Placement *r3.Frame`
-  (nil selects the local frame).
-- `MountFrame(clutch *r3.Frame) (r3.Frame, error)` and `ParamsForClutch(onewayclutch.Params) (Params, error)`.
+  (nil leaves every part in the local frame; a frame puts the placement point on it, see "Local frame and hand").
+- `MountFrame(clutch *r3.Frame) (r3.Frame, error)` and `ParamsForClutch(onewayclutch.Params, ...ClutchOption) (Params, error)`.
+  `WithBladePitch(pitch)` is the one `ClutchOption`; it replaces `DefaultBladePitch` and the result is validated.
 - `Params605ZZ()`, `Params608ZZ()` and `DefaultParams()`, which returns `Params605ZZ()`.
 - `Params.Validate() error` and `Params.Derive() (Dimensions, error)`. `Dimensions` holds `BoreRadius`, `BoreFlat`,
   `BoreFlatWidth`, `BoreLoop`, `ShaftFlatWidth`, `SetScrewTip`, `SetScrewHead`, `CounterboreFloor`, `SetScrewSite`,
@@ -145,7 +146,12 @@ The origin is on the shaft axis in the hub's back face, the face toward the mech
 the mechanism to the front face at z = 20. The bore's flat faces -Y, at y = -`f_b`, and the set screw enters from -Y along
 the line x = 0, z = `SetScrewZ` = 4, pointing +Y. Blade k lies along `u_k`: blade 1 along +Y, blade 2 at 210 degrees and
 blade 3 at 330 degrees, counter-clockwise seen from the front. The set screw lies at 270 degrees, midway between blades 2
-and 3. A `Placement` maps this frame onto the given one after each part's last operation.
+and 3. A `Placement` maps this frame onto the given one after each part's last operation, so that the placement point lands on
+the given frame's origin and the local axes land on its U, V and normal. The placement point is on the shaft axis. In
+`ShaftMount` it is the hub's front face (local z = 20, the face the blades face), and the hub extends `HubLength` back
+along the given frame's axis. In `ClutchMount` it is the clutch cover's outer face (local z = `ClutchAnchorZ` = -7.75), with
+the clutch behind it and the adapter and fan in front. A nil `Placement` moves nothing: the parts stay in the local frame
+above, with its origin in the hub's back face. Derived sites are in the local frame in every case.
 
 Hand: a right-hand rotor blows air forward, along +Z and away from the mechanism, when the shaft turns clockwise seen from
 the front. A left-hand rotor does the same when the shaft turns counter-clockwise: its blades are the right-hand blades
@@ -451,11 +457,14 @@ The clutch and the adapter are not modified by the fan; the fan side supplies on
 nut slots, which are present in both mounts.
 
 The fan local frame is unchanged (origin on the axis in the hub's back face, +Z forward, blade 1 along +Y). `MountFrame(C)`
-maps the fan frame to clutch-frame origin (0, 0, `MountZ`) with U = (cos 60, sin 60, 0) and V = (-sin 60, cos 60, 0), then
-through the clutch frame C. A fan angle is the clutch angle plus 60 degrees, so the clutch's ears and face holes at 90, 210
-and 330 degrees land at fan angles 30, 150 and 270, midway between the blades, and a hex key reaches each ear bolt from the
-front. The fan uses the face holes at 90 and 210 degrees (fan 30 and 150); the hole at 330 degrees (fan 270) lies under the
-hub's solid back face and stays empty. Both frames share +Z.
+returns the fan's placement point: clutch-frame origin (0, 0, `CoverTo` = 18.5), the clutch cover's outer face, with
+U = (cos 180, sin 180, 0) = (-1, 0, 0) and V = (-sin 180, cos 180, 0) = (0, -1, 0), then through the clutch frame C. The fan
+frame's own origin is `ClutchAnchorZ` = -7.75 from that point, so the hub's back face lands at clutch z `MountZ` = 26.25.
+A fan angle is the clutch angle plus 180 degrees, so the bore's flat (-Y in the fan frame) points where the shaft's flat
+(+Y in the clutch frame) does. The clutch's ears and face holes at 90, 210 and 330 degrees land at fan angles 270, 30 and
+150, midway between the blades at 90, 210 and 330, and a hex key reaches each ear bolt from the front. The fan uses the face
+holes at 210 and 330 degrees (`FaceSites[1]` and `[2]`, fan 30 and 150); the hole at 90 degrees (`FaceSites[0]`, fan 270)
+lies under the hub's solid back face and stays empty. Both frames share +Z.
 
 | Item | Fan z | Clutch z |
 | --- | ---: | ---: |
@@ -477,9 +486,10 @@ of the hub's back face.
 
 | Name | Value | Definition / reason |
 | --- | ---: | --- |
-| `ClutchTurn` | pi/3 | fan frame turn about Z from the clutch frame |
+| `ClutchTurn` | pi | fan frame turn about Z from the clutch frame; it lines the bore's flat up with the shaft's |
 | `ClutchSeam` | 0.25 | `onewayclutch.Seam` |
 | `MountZ` | 26.25 | `onewayclutch.AdapterTo + ClutchSeam`: the fan frame's origin in the clutch frame |
+| `ClutchAnchorZ` | -7.75 | `onewayclutch.CoverTo - MountZ`: the placement point of a `ClutchMount` fan, in the fan frame |
 
 The adapter's own constants are in [`models/onewayclutch`](../onewayclutch/instructions.md): `FaceCircle` 9.5, `FaceLength` 10
 (an `m2bolt.StandardLengths()` entry) and `FaceNutDepth` 1.5. The fan reads them; it does not redefine them.
@@ -487,7 +497,7 @@ The adapter's own constants are in [`models/onewayclutch`](../onewayclutch/instr
 ### Validation
 
 The `ClutchMount` hub passes the same rules as the `ShaftMount` hub (rules 1 to 11 above). `AdapterSites[k]` (k = 0, 1, angle
-`a = EarBoltAngle(k+1)`, 30 and 150 degrees, `u = (cos a, sin a, 0)`) is `m2fastener.Site{Head: (FaceCircle u, -(AdapterThickness
+`a = EarBoltAngle(k+2)`, 30 and 150 degrees, `u = (cos a, sin a, 0)`) is `m2fastener.Site{Head: (FaceCircle u, -(AdapterThickness
 + ClutchSeam)) = (9.5 cos a, 9.5 sin a, -6.25), Dir: (0, 0, 1), Corner: u, Length: FaceLength, Cavity: AdapterThickness +
 ClutchSeam + FaceNutDepth}`. `Cavity` is 7.75, `Tip()` is 12 and `CavityFar()` is 9.75. In `ClutchMount` the set screw's
 fields are filled, since the hub carries its cuts, but `Build` places no set screw.
