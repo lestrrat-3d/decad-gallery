@@ -1,0 +1,44 @@
+name: Paired Siren performance
+
+on:
+  push:
+    branches: [chore-siren-paired-runner]
+
+permissions:
+  contents: read
+
+jobs:
+  paired-siren:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gallery
+      - uses: actions/checkout@v4
+        with:
+          repository: lestrrat-3d/decad
+          ref: 9e3e5c056b77
+          path: decad-baseline
+      - uses: actions/checkout@v4
+        with:
+          repository: lestrrat-3d/decad
+          ref: 4b91b2f269f68168733e56fea5614611f61b3168
+          path: decad-candidate
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gallery/go.mod
+      - name: Run one interleaved CI-scope pair
+        run: >-
+          python3 gallery/scripts/ci/run_paired_siren.py
+          --gallery "$GITHUB_WORKSPACE/gallery"
+          --baseline "$GITHUB_WORKSPACE/decad-baseline"
+          --candidate "$GITHUB_WORKSPACE/decad-candidate"
+          --output "$GITHUB_WORKSPACE/gallery/.tmp/performance-pair"
+          --pairs 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paired-siren-performance
+          path: gallery/.tmp/performance-pair
+          if-no-files-found: warn
