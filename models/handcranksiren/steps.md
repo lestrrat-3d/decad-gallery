@@ -1,140 +1,245 @@
 # Hand-crank siren steps
 
-Each step maps a requirement of `instructions.md` to a Sketch or Decad operation. Every sketch is solved, verified
+Each step maps a requirement of `instructions.md` to a Sketch or Decad operation. Every siren sketch is solved, verified
 fully constrained and recorded in `Assembly.Sketches`. All dimensions are in `instructions.md`; this file gives the
-operations, their order and the checks.
+operations, their order and the checks. "Rework from the spur-train siren" at the end lists what the change deletes,
+what it regenerates and how to split it into pull requests.
 
 ## 1. Frames, parameters and helpers
 
-- `params.go`: `Ratio` (10), `Params`, `DefaultParams`, `Validate`, `PitchHz`, `State`, `Motion`. `document.go`:
-  `NewDocument` with a chain tolerance of 0.01 mm. `fits.go`: `tightFit` 0.25, `regularFit` 0.40, `looseFit` 0.55,
-  `seatClearance` 0.05.
-- `build.go`: `Build` validates, builds every part at crank angle 0, poses it by its motion, records it and returns
-  every sketch. The builder keeps the first error (`fail`) and wraps it as `hand-crank siren <part>: <operation>: %w`.
-  `part(name, group, motion, create)` poses through `motionTransform`, which rotates about the line through the axis
-  point along −Y.
-- `sections.go`: `frame`, `section` (new sketch on a frame, recorded), `profile` (solve, verify fully constrained,
-  select the one valid profile with the wanted hole count), `extrude`, `revolve`, `cylinder`, `cut`, `union` (folds
-  left to right), `turn`, `roundedPolygon`, `meridianPolygon`, `port`, `dBoreTool`, `dShaft`.
-- `meridianPolygon(s, pts)` draws a closed polygon in (u, v). A segment with equal v is horizontal with a
-  distance-to-origin of |v|. A segment with equal u is vertical with a distance of |u|. A vertex between a horizontal and
-  a slanted segment gets a horizontal distance from the origin; between a vertical and a slanted segment a vertical
-  distance; between two slanted segments `sketchcheck.DimensionPoint`. A vertex between two axis-aligned segments gets
-  nothing more. It returns an error when an axis-aligned segment passes through the origin.
-- `port(s, rIn, rOut, half, round)` draws the chord-sided port centred on +U with points p1 (rIn cos h, −rIn sin h),
-  p2 (rIn cos h, +rIn sin h), p3 (rOut cos h, −rOut sin h), p4 (rOut cos h, +rOut sin h) and lines p1–p2, p3–p4, p1–p3,
-  p2–p4. Constraints: a horizontal construction line from the origin (distance 10); p1–p2 and p3–p4 vertical at
-  distances `rIn cos h` and `rOut cos h` from the origin; the origin on lines p1–p3 and p2–p4, which make angles −h
-  and +h with the construction line. When `round` is above 0, `sketch.CreateFillet` rounds the four corners
-  (inner/right at p1, left/inner at p2, right/outer at p3, outer/left at p4). The constraints name lines, so they
-  survive the fillets. DOF 0.
-- `dBoreTool(axis, from, length, clearance)`: a cylinder of radius 4.0 + clearance minus a box starting 3.25 +
-  clearance from the axis toward +Z, ±5 across, 2 longer than the cylinder. Cut the box from the cylinder, then the tool
-  from the host.
-- `dShaft(axis, from, to)`: a cylinder of radius 4.0 minus a box beyond 3.25 toward +Z along its whole length, with 1 of
-  stock at each end. Cut before any union with a collar.
-- Check: `TestValidate`, `TestMotion`, `TestPitch`.
+- `params.go`: `Ratio` (6), `minSlots` 12, `maxSlots` 40, `Params`, `DefaultParams` (`{4π/3, 34}`), `Validate`,
+  `PitchHz`, `State` (`CrankAngle`, `RotorAngle`, `GearboxInput`, `Axis`, `ArmDirection`), `Motion`. `axisHeight` 84
+  replaces `rotorHeight`; `crankOffset`, `stage1Dist` and `stage2Dist` go.
+- `document.go`: `NewDocument` returns `planetarygearbox.NewDocument(opts...)`.
+- `fits.go`: unchanged (`tightFit` 0.25, `regularFit` 0.40, `looseFit` 0.55, `seatClearance` 0.05). Add
+  `pressFit` 0.05 for the D bores and the spacer faces.
+- `build.go`: `Build` validates, builds the gearbox, then every siren part at crank angle 0, poses each by its motion,
+  records it and returns every sketch. `part(name, group, motion, create)` poses through `motionTransform(s, name,
+  motion)`:
+  - `fixed`: identity.
+  - `crank`: rotation about A along −Y by `CrankAngle`.
+  - `rotor`: rotation about A along −Y by `RotorAngle`.
+  - `gearbox`: `gearboxMotion.Transform(name, s.GearboxInput)`, where `gearboxMotion` is
+    `planetarygearbox.NewMotion(GearboxParams(), planetarygearbox.CarrierDriven)`, made once per build. A body the
+    motion reports fixed keeps the identity.
+- `sections.go`: keep `frame`, `section`, `profile`, `extrude`, `revolve`, `cylinder`, `box`, `cut`, `union`,
+  `roundedPolygon`, `roundedPrism`, `meridianPolygon`, `port`, `dShape`, `dBoreTool`. `dBoreTool(axis, from, length,
+  clearance)` takes the planetary flat: a cylinder of radius 4.0 + clearance minus a box from 3.5 + clearance toward +Z.
+  Delete `dShaft`.
+- Check: `TestValidate`, `TestMotion`, `TestPitch`, `TestRatio`.
 
-## 2. Gears (`gears.go`)
+## 2. Gearbox (`gearbox.go`, new content)
 
-1. `spurgear.Variant{Define: gearroot.Define(gearroot.Clearance(1.5), 0.02)}.Build` with `spurgear.DefaultParams()`,
-   Module 1.5, the teeth, Thickness 6, Backlash 0.15, BoreDiameter 0, Samples 15, `CapChamfer` 0.2 (50T, 48T) or 0
-   (16T, 15T), Placement origin on the axis at the plane's front Y, V = (0, 1, 0) × U.
-2. U per gear as in the table of `instructions.md` (the driven gears turned by π/16 and π/15 about +Y).
-3. `dBoreTool(axis, planeFront − 1, 8, 0.05)` cut from each gear.
-4. Mark holes: for each gear, one section at the bore's start per hole, one circle of radius 0.75 at 6.6 from the
-   axis (25° apart, symmetric about +V), extruded 8 and cut. 1 hole for the 50T and 16T gears, 2 for the 48T and 15T.
-- Check: the `mesh` and `marks` subtests.
+1. `GearboxParams()`: `planetarygearbox.DefaultParamsFor("planet608-shaft608")`, then `InputShaftLength` 24.05,
+   `OutputShaftLength` 22.05 and `Placement` = `frame((0, 0, 84), U (0, 0, 1), V (1, 0, 0))`. It returns
+   `DefaultParamsFor`'s error wrapped as `handcranksiren: gearbox parameters: %w`; `Motion` and `Build` return it.
+2. `gearbox()`: `planetarygearbox.BuildParts(b.ctx, b.doc, GearboxParams())`. Fail on its error.
+3. For each body of `box.EarBolts`, `b.doc.Remove(body)`; then set `box.EarBolts = nil`.
+4. For each `Part` of `box.Parts()` whose name is not an `EarBoltName`, record `Part{Name: part.Name, Group: "Gearbox/" +
+   part.Container, Motion: "gearbox", Body: part.Body}` posed through `motionTransform`. Keep `box` in
+   `Assembly.Gearbox`.
+5. Fail unless each ear nut's bounds lie in Y [1.0, 2.6] about its ear's bore line, so a change of the gearbox's ear
+   cavity cannot pass silently.
+- Check: `TestGearboxParams`; the `gearbox pose` and `parts` subtests.
 
-## 3. Shafts and bearings (`shafts.go`, `bearings.go`)
+## 3. Housing (`housing.go`)
 
-- `dShaft` for each shaft. Union the collars last (rotor-shaft [10.1, 12.1], crank-shaft [19.1, 20.1], radius 5.5).
-- `ballbearing.Build` with `DefaultParams()` and Placement origin at the bearing's start Y on its axis, normal +Y.
-  Append `Model.Sketch` to the sketches. `BearingSites()` lists the six bearings with their holders.
-- Check: the `clearances` subtest rows T4, T5, T6, T7, T9, T10, L3.
+`ground` is `shaftAxis{(0, 0, 0)}`, so `ground.across(y)` has U = +X, V = −Z and normal +Y, and a point (X, Z) is
+(u, v) = (X, −Z). `A` is `shaftAxis{(0, 0, 84)}`, and a post's axis is `shaftAxis{(x, 0, z)}`.
 
-## 4. Gearbox (`gearbox.go`)
+1. housing-front: `section(ground.across(−11.25))`, `roundedPolygon` of {(−68, 0), (−68, −152), (107, −152), (107, 0)}
+   with radii 13, counter-clockwise in (u, v), and `circle(s, 0, −84, 14.55)`; `profile` with 1 hole;
+   `extrude(s, 1, 10)`.
+2. Cut the recess: `cylinder(A.across(−5.30), 44.1, 5.05)` (to Y −0.25, 1 past the face).
+3. `edgefinish.Chamfer(body, +Y, {−11.25, −1.25, −5.30}, Long(All), 0.5)`.
+4. Posts: for each (x, z) of (±52, 32), (±52, 136), `cylinder(shaftAxis{(x, 0, z)}.across(−2.25), 5, 28.25)`;
+   `union` the plate and the four posts.
+5. Round each post root with `decad.Fillet(body, Edges(Circular(), EndpointAt(seam)).Exactly(1), 5)`, the seam found
+   as the planetary gearbox finds its boss root (`circleSeam` at Y −1.25, radius 5 about the post's axis). Then round
+   the recess floor's outer corner (radius 44.1 about A at Y −5.30) by 0.5 the same way. Require a solid after each.
+6. `fastenerCuts` for every site whose head host or nut host is housing-front, in the site order of section 9.
+7. housing-rear: `section(ground.across(26.25))`, the outline {(−68, 0), (−68, −152), (68, −152), (68, 0)}, radii 13,
+   counter-clockwise in (u, v), extruded 8.25.
+   Cut `cylinder(A.across(25.25), 9, 10.25)` (the lip bore) and `cylinder(A.across(27.25), 11.05, 8.25)` (the seat,
+   1 past the +Y face). `edgefinish.Chamfer(body, +Y, {26.25, 34.50}, Long(All), 0.5)`. Then `fastenerCuts` for each
+   `housing-bolt-*` (pocket and hole).
+- Check: rows T1, T13, L8, L9, S1, S2 of `clearances`; `fasteners`; `edges`; `corners`.
 
-1. gearbox-front: rounded outline (`roundedPolygon`, radius 13) extruded 10 from Y 0. Cut seat pockets and reliefs on
-   R, I and C, the R through hole, then `edgefinish.Chamfer(body, +Y, {0, 10}, Long(All), 0.5)`, then the fastener cuts.
-2. gearbox-rear: the same from Y 27.6, seats open to the front, C through hole, offsets {27.6, 37.6}.
-3. gearbox-frame: one sketch with the outline and the cavity (radius 6), profile with 1 hole, extruded 17.1, offsets
-   {10.25, 27.35}, then the bolt holes and nut cavities.
-4. gearbox-front also gets the hole and cavity for each `grip-bolt-*`, after the drum-bolt cuts.
-- Check: `fasteners` subtest; rows T1, S1, S2, L2, L4.
+## 4. Bearings and spacers (`bearings.go`, `spacers.go`)
+
+- `ballbearing.Build` with `ballbearing.Params608ZZ()` and Placement origin at the bearing's −Y face on A, normal +Y:
+  `bearing-rotor` at Y −22.50 and `bearing-crank` at Y 27.50. Append each `Model.Sketch`. Group `Bearings`, motion
+  `fixed`.
+- spacer: built once about A at Y 0, then translated. `cylinder(A.across(0), 5.75, 3.5)` minus
+  `dBoreTool(A, −1, 5.5, 0.05)`. Place one copy with its −Y face at Y −26.25 (`rotor-spacer`, motion `rotor`) and one
+  at Y 34.75 (`crank-spacer`, motion `crank`), both in `Spacers`.
+- Check: the `bearings` and `collars` subtests; rows T4, T5, T7, T9, R1.
 
 ## 5. Siren head (`drum.go`, `rotor.go`, `stator.go`, `collector.go`, `horn.go`)
 
 Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y, normal +Z, and revolve about
-`ConstructionAxis{(0, 0, 84), (0, 1, 0)}`. The horn's meridian has its own origin and axis (see `horn.go`).
+`ConstructionAxis{(0, 0, 84), (0, 1, 0)}`. Every Y constant of the earlier head moves by −9.80 except as listed here.
 
-- `drum.go`: revolve the drum `meridianPolygon` (with the shaft hole's 0.5 chamfers); cut three
-  windows (`port(14, 24, 40°, round 1)` at Y −16.50, U at 60°, extruded 6, `Patterned` Count 3, then `Cut`);
-  `edgefinish.Chamfer(body, +Y, {−11.50, −15.50}, windows only (Long(Inner), more than one edge), 0.5)`; union three
-  posts (radius 5 at radius 30, patterned); fastener cuts for drum-bolt and collector-bolt.
-- `rotor.go`: disc radius 45 over [−27.50, −24.50]; chamfer both cap outer loops 0.5 before any cut; vanes (rectangle u [11, 44], v [−1, 1], Y [−25.50, −16.50]) patterned
-  Count N; hub radius 9; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N), round 1)` at Y −28.50,
-  extruded 5, patterned Count N, cut; D-bore `dBoreTool(R, −25.50, 10, 0.05)`.
-- `stator.go`: disc radius 58 over [−31.65, −28.65]; cap outer loops chamfered 0.5; the same ports; hole for each
+- `drum.go`: revolve the drum `meridianPolygon` of the 18 vertices in `instructions.md`. Round the hub root (circle of
+  radius 13.55 at Y −21.30) by 1.25 with `decad.Fillet`. Cut three windows (`port(21, 31, 40°, round 1)` on the plane Y
+  −26.30, U at 60°, extruded 6, `Patterned` Count 3, then `Cut`). `edgefinish.Chamfer(body, +Y, {−21.30, −25.30},
+  windows only (Long(Inner), more than one edge), 0.5)`. Union three posts (radius 5 at radius 30, Y [−21.30, −11.50],
+  patterned at 0°, 120°, 240°). Fastener cuts for drum-bolt (pocket and hole) and collector-bolt.
+- `rotor.go`: disc radius 45 over [−37.30, −34.30]; chamfer both cap outer loops 0.5 before any cut; vanes (rectangle
+  u [`rv`, 44], v [−1, 1], Y [−35.30, −26.30]) patterned Count N, with `vaneRadius(N) = max(11, 0.51·N)`; hub radius 9
+  over [−35.30, −26.30]; `Union(vanes, hub)` then `Union(disc, that)`; ports `port(30, 42, π/(2N), round 1)` at Y
+  −38.30, extruded 5, patterned Count N, cut; D bore `dBoreTool(A, −35.30, 10, 0.05)`.
+- `stator.go`: disc radius 58 over [−41.45, −38.45]; cap outer loops chamfered 0.5; the same ports; a hole for each
   collector-bolt.
-- `collector.go`: `collector()` in eight steps:
-  1. outer prism `roundedPrism(rotor.across(−96.90), outline(−51, 51, 33, 135), {10,10,10,10}, 65)`;
-  2. cut the bore, `cylinder(rotor.across(−40.90), 44, 10)`;
-  3. cut the cavity, `roundedPrism(rotor.across(−91.90), outline(−46, 46, 38, 130), {7,7,7,7}, 52)`;
-  4. `finish(body, −31.90, −96.90)`;
-  5. `edgefinish.Chamfer(body, +Y, {−39.90}, Long(Inner), 0.5)` for the bore rim on the ceiling;
-  6. cut the throat, `cylinder(frame((−45, throatY, 84), U (0,0,1), V (0,1,0)), 22, 7)`;
-  7. `edgefinish.Chamfer(body, +X, {−51, −46}, Long(Inner), 0.5)` for the throat rim;
-  8. hole and cavity for each collector-bolt, then pocket and hole for each throat-bolt.
-- `horn.go`: the meridian sketch has origin O = (−50, throatY, 84), U = +Y, V = −X, normal +Z. `meridianPolygon` of the
-  vertices A to L, then `revolve` about `ConstructionAxis{Origin: O, Dir: (−1, 0, 0)}` with `FullRevolution`, then the
-  hole and cavity for each throat-bolt.
-- Check: the `ports` and `outlet` subtests; rows T2, T3, T11, T5, T6, R1, R2, L1, L6.
+- `collector.go`: the eight steps of the earlier collector with every Y moved by −9.80 (`rotor.across(−106.70)`, bore
+  `cylinder(rotor.across(−50.70), 44, 10)`, cavity `roundedPrism(rotor.across(−101.70), …, 52)`, `finish(body, −41.70,
+  −106.70)`, ceiling chamfer at −49.70, throat on `frame((−45, throatY, 84), …)` with `throatY` −75.70).
+- `horn.go`: unchanged in its own frame, with O = (−50, −75.70, 84).
+- Check: the `ports` and `outlet` subtests; rows T2, T3, T11, T5, T6, R2, L1, L6, L10; the `vanes` subtest.
 
 ## 6. Crank (`crank.go`)
 
-- Build `crankhandle.Params6082RS()` with `crankhandle.BuildParts` once, with the placement frame origin
-  (60, 38.6, 84), U (-1, 0, 0) and V (0, 0, 1). Fail when its shaft is not the crank shaft (diameter `2 shaftRadius`,
-  flat at `flatOffset`). Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as crank-arm,
-  crank-pin and crank-handle. `models/crankhandle/steps.md` lists the operations.
-- `crankSites` carries crankhandle's own sites from `Params6082RS().Derive()` (`Site`, `CrossSites`, `ClampSite`)
-  through the placement frame: crank-pin-bolt (head host crank-arm, nut host crank-pin), crank-cross-bolt-1 and -2
-  (both hosts crank-pin) and crank-clamp-bolt (both hosts crank-arm), all with motion `crank`. After `BuildParts`, fail
-  unless these equal the placed `Parts.Site`, `Parts.CrossSites` and `Parts.ClampSite`. Then `hardware` for each
-  `crank-` site; crankhandle has already cut every pocket, hole and cavity.
-- Check: the `sweep` and `split shafts` subtests; rows T5, T6, T8, R3, R4, L5. Sections of the arm use 0.0102, above
-  its mesh bound.
+- `crankParams()`: `crankhandle.Params6082RS()` with `FlatDepth = GearboxParams().FlatDepth` and the placement frame
+  origin (0, 38.30, 84), U (−1, 0, 0), V (0, 0, 1). `armFace` is 38.30 and `pinAxis` (0, 0, 139).
+- Build it with `crankhandle.BuildParts` once. Fail unless its `Dimensions.BoreRadius` is 4.05 and `BoreFlat` is 3.55,
+  the output shaft's D grown by 0.05. Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as
+  crank-arm, crank-pin and crank-handle, motion `crank`, group `Crank`.
+- `crankSites` carries crankhandle's own sites from `crankParams().Derive()` through the placement, as before. After
+  `BuildParts`, fail unless they equal the placed `Parts.Site`, `Parts.CrossSites` and `Parts.ClampSite`. Then
+  `hardware` for each `crank-` site.
+- Check: the `sweep` and `split shafts` subtests; rows T5, T6, T8, R3, R4, L5. Sections of the arm use 0.0102.
 
-## 6a. Grip (`grip.go`)
+## 7. Grip (`grip.go`)
 
 1. `section(frame((79, 0, 0), U (0,1,0), V (0,0,1)))`, then `roundedPolygon` of the outer outline
-   {(−76.25, 5), (−0.25, 5), (−0.25, 125), (−76.25, 125)} with radii 10 and of the window
-   {(−46.25, 12), (−16.25, 12), (−16.25, 118), (−46.25, 118)} with radii 3, both counter-clockwise in (u, v).
+   {(−85.25, 5), (−11.50, 5), (−11.50, 125), (−85.25, 125)} with radii 10 and of the window
+   {(−55.25, 12), (−23.25, 12), (−23.25, 118), (−55.25, 118)} with radii 3, both counter-clockwise in (u, v).
 2. `extrude(s, 1, 26)`.
 3. `edgefinish.Chamfer(body, +X, {79, 105}, Long(All), 2.0)`.
-4. Pocket and hole for each grip-bolt. `grip()` records the part in the `Grip` container, then the hardware for each
-   grip-bolt site. `gearboxFront` cuts the hole and cavity of each grip-bolt (step 4 of section 4).
+4. Pocket and hole for each grip-bolt. housing-front cuts the hole and hex pocket of each grip-bolt (section 3, step 6).
 - Check: rows T12, L7; the `grip`, `knuckle room` and `window height` subtests.
 
-## 7. Fasteners (`fasteners.go`)
+## 8. Containers (`containers.go`)
 
-`fastenerSite` wraps `m2fastener.Site` with names, hosts and motion. `hardware(site)` adds the bolt part and then the nut
-part, appending their sketches. `fastenerCuts` cuts the pocket, hole and cavity tools from `internal/m2fastener` per
-host (the flags decide which). The tools follow the AGENTS.md clearances: head pocket radius 2.2, hole radius 1.3, round nut cavity of radius 2.51
-and height 2.0. The crank's cross nuts and clamp nut sit in hexagonal pockets that crankhandle cuts. `Fasteners(p)` in `export_test.go`
-poses every site. Site order: gearbox-front,
-gearbox-rear, drum, collector, throat, grip, crank-pin, crank-cross, crank-clamp. The prefixes are `collector-bolt` (nut host collector),
-`throat-bolt` (collector to horn) and `grip-bolt` (grip to gearbox-front).
+`moveBodies` runs last. For each part it splits `Group` on `/` and walks `doc.Root().ChildNamed` one level at a time,
+so `Gearbox/Planet Gears` lands in `Planet Gears` under `Gearbox`, and no container is created empty. Delete
+`GearPairsContainerName`, `PairContainerName`, `ShaftsContainerName` and `pairOf`; add `SpacersContainerName` and
+`GearboxContainerName`.
+- Check: the `containers` subtest.
 
-## 8. Containers and pose (`containers.go`)
+## 9. Fasteners (`fasteners.go`)
 
-`moveBodies` runs last. For each part it calls `doc.Root().ChildNamed(group)` when it adds the body, so no empty
-container exists. The grip goes into its own `Grip` container and the collector into `Housing`. Gears go into `Gear Pairs` with `NewUniqueChild("Pair")` for stage 1 and again for stage 2.
+`fastenerSite` wraps `m2fastener.Site` with names, hosts, motion and a nut seat: `cavity` (round, closed), `hex`
+(open to the face at `CavityFar`), `slot` (open to the post's side along `Corner`) or `none` (the ear bolts, whose nut
+is the gearbox's). `hardware(site)` adds the bolt, then the nut unless the seat is `none`. `fastenerCuts` cuts, per
+host:
 
-## 9. Checks
+- head host: `m2fastener.PocketTool` and `HoleTool`;
+- nut host, `cavity`: `HoleTool` and `CavityTool`;
+- nut host, `hex`: `HoleTool` and `HexPocketTool(site, NutCavityHeight+Stock)`;
+- nut host, `slot`: `HoleTool`, `HexPocketTool(site, NutCavityHeight)` and a slot box on `site.Across(site.Cavity)`
+  from u 0 to u 7 (2 past the post's side), v ±2.1737 (the hexagon's flats), extruded `NutCavityHeight` along Dir.
+  Union the box and the pocket, then cut. The box's sketch is a rectangle anchored to the origin by its v sides'
+  distances and its u 0 side through the origin, fully constrained.
 
-`TestHandCrankSirenDefault` runs `checkSiren` with the subtests `parts`, `sketches`, `containers`, `mesh`,
-`clearances`, `fasteners`, `ports`, `outlet`, `grip`, `knuckle room`, `window height` (these three default only), `sweep`, `orientation`, `tessellate`, `edges` and
-`overlap`.
-`TestHandCrankSirenVariant` runs `Slots` 12 (CrankAngle 0) and 24 (CrankAngle 5π/4) with parts, sketches, containers,
-ports, outlet, orientation, overlap, and rows R2 and L1. `TestValidate`, `TestMotion` and `TestPitch` check the parameters.
+Site order: ear, housing, drum, collector, throat, grip, crank-pin, crank-cross, crank-clamp. `Fasteners(p)` in
+`export_test.go` poses every site.
+
+Why no embedded nut: every new siren nut has an open seat. The housing posts take a slot because both of the posts'
+ends are covered (housing-front's own plate and housing-rear), so the slot opens to the post's side instead. The ear
+bolts use the gearbox's embedded nut: an open hex pocket in the ear's rear face would need an M2 × 22 bolt through the
+10 mm plate, which is not a standard length, and would change the planetary gearbox. The collector and throat joints do
+not change, so they keep their cavities (AGENTS.md "Fasteners": models built before the rule keep them until their
+fasteners change).
+- Check: the `fasteners` subtest.
+
+## 10. Checks
+
+One test per rule. `TestHandCrankSirenDefault` builds the default once and runs the subtests below.
+`TestHandCrankSirenVariant` runs `slots_12` (CrankAngle 0) and `slots_40` (CrankAngle 4π/3).
+
+| Rule | Test | What it requires |
+| --- | --- | --- |
+| Parameters | `TestValidate` | Slots 11 and 41 rejected, 12 and 40 accepted; non-finite CrankAngle rejected |
+| Motion | `TestMotion` | RotorAngle 6·CrankAngle, GearboxInput −CrankAngle, ArmDirection, Axis (0, 0, 84) |
+| Pitch | `TestPitch` | 408, 144 and 480 Hz |
+| Ratio | `TestRatio` | `Ratio` equals the planetary CarrierDriven motion's `Ratio()` within 1e-12 |
+| Gearbox parameters | `TestGearboxParams` | the kit's bearings and teeth, Li 24.05, Lo 22.05, the placement, `Validate` nil |
+| Parts | `.../parts` | 103 parts with unique names, groups and motions as listed; no live gearbox ear bolt; `Gearbox.EarBolts` nil |
+| Sketch constraints | `.../sketches` | every recorded sketch `FullyConstrained`, DOF 0, no redundant or conflicting constraint |
+| Body containers | `.../containers` | the container names, each body in its container, `doc.VerifyContainers().Err()` nil |
+| Motion through the gearbox | `.../gearbox pose` | each rotor part's transform maps 3 test points as the Input Shaft's does, each crank part's as the Output Shaft's, within 1e-9; the ports line up at the default |
+| Part clearances | `.../clearances` | every Fits row's proven lower bound meets its class |
+| Bearing shafts and seats | `.../bearings` | T4 sections touch on the round side; S1 seat gap proven ≥ 0.02; S2 0.25 off the floor |
+| Arbor collars | `.../collars` | each collar of the table is 3.0 or longer between its end faces, 11.5 across (under 12), and keeps its listed gaps |
+| Fasteners | `.../fasteners` | each head flush, each nut inside its cavity, pocket or slot, each tip at or inside a face, no fastener overlaps its parts, each ear bolt passes its ear nut |
+| Ports and air path | `.../ports`, `.../outlet` | `Slots` ports; open at the default; the outlet sections moved 9.80 toward −Y |
+| Grip | `.../grip`, `.../knuckle room`, `.../window height` | the hand box and window box empty, 25 mm round the bar's inner front edge, window ≥ 100 at the bar face |
+| Crank sweep | `.../sweep` | the crank at 16 angles overlaps no fixed part and keeps L5 |
+| Orientation | `.../orientation` | horn frontmost, grip left, crank right, only the housing plates reach Z 0 |
+| Solidity | `.../tessellate` | `VerifyAll` on every body |
+| Surface edge finishing | `.../edges` | the Edge finishing table, the spacers not qualifying |
+| No overlap | `.../overlap` | no two parts overlap, the gearbox's bodies included |
+| Press-fit walls | `.../press-fit walls` | rotor hub 4.95, spacers 1.7, crank arm 1.6 (1.05 web), each ring printed axis vertical |
+| Corners and roots | `.../corners` | `cornercheck` on every siren printed part, only the listed corners |
+| Split shafts | `.../split shafts` | `splitcheck.Check` and `cornercheck.CheckAt` on the posed Input Shaft, Output Shaft and crank pin with the listed normals |
+| Vanes | `TestHandCrankSirenVariant/.../vanes`, `TestVaneRadius` | `rv` by the formula; ≥ 1.2 between neighbouring vanes at 12, 22, 34 and 40 slots |
+
+The variants also run `parts`, `sketches`, `containers`, `ports`, `outlet`, `orientation`, `overlap`, `corners`, `split
+shafts` and rows R2 and L1.
+
+## Rework from the spur-train siren
+
+### Deleted
+
+- Files: `gears.go`, `shafts.go`, `mesh_test.go`, `marks_test.go`. `gearbox.go` and `bearings.go` are rewritten.
+- Constants and fields: `crankOffset`, `stage1Dist`, `stage2Dist`, `State.IntermediateAngle`, `State.Intermediate`,
+  `State.Rotor`, `State.Crank`, the `intermediate` motion, `gearboxBoltLength`, `gearboxCavity`, `frontFace`,
+  `rearFace`, `BearingSites`, `GearPairsContainerName`, `PairContainerName`, `ShaftsContainerName`, `pairOf`, `dShaft`
+  and the `spurgear` and `gearroot` imports. `drumCavity`, `gripCavity`, `gripHeadY`, `drumHead`, `collectorBoltHead`,
+  `armFace` and `pinAxis` take the new values.
+- Parts: gearbox-front, gearbox-frame, gearbox-rear, the four gears, the three siren shafts, the six 608-2RS bearings,
+  the gearbox-front, gearbox-rear and old drum and grip bolts and nuts.
+
+### Images and docs to regenerate
+
+All in the same pull request as the geometry (AGENTS.md "Model images"):
+
+- `models/handcranksiren/images/`: `hero.png`, `index.png`, `exploded.png`, `cutaway.png`, `view-rear.png`,
+  `view-side.png`, `view-top.png`, and a new `exploded-gearbox.png` (the planetary gearbox's `Set` and `Explode` on the
+  siren's gearbox, so its inner parts show).
+- `images/parts/`: delete `crank-gear`, `intermediate-pinion`, `intermediate-gear`, `rotor-pinion`, `crank-shaft`,
+  `intermediate-shaft`, `rotor-shaft`, `gearbox-front`, `gearbox-frame`, `gearbox-rear` and the old `gearbox-bolt`. Add
+  `housing-front`, `housing-rear`, `spacer`, `ear-bolt`, `housing-bolt`, and the gearbox's `ring`, `cover`, `sun`,
+  `planet`, `input-shaft`, `output-shaft`, `carrier`, `carrier-pin`, `collar`, `gearbox-bolt` (M2 × 6) and `ear-nut`.
+  Regenerate the rest (`drum`, `collector`, `stator`, `rotor`, `horn`, `grip`, `bearing` as a 608ZZ, the crank parts and
+  the remaining bolts).
+- `models/handcranksiren/README.md`: the summary, How it works (ratio 6, 34 slots, 408 Hz), the holding and
+  fastener text, the print table, the parts table and the exploded alt text.
+- `models/README.md`: the siren row's description and its index image.
+- `README.md`: the overview line and `docs/images/gallery.png` (`gallery/hero` preset).
+- `docs/models/handcranksiren.md`, the siren paragraph of `docs/rendering.md`, and `tools/render/handcranksiren.go`
+  (part list, groups, exploded offsets) with `handcranksiren_views_test.go`.
+- `models/crankhandle` (README, instructions, `params.go` and `crankhandle.go` comments, `docs/models/crankhandle.md`):
+  the siren now builds `Params6082RS()` with a 0.5 flat. The text only; no crankhandle geometry or image changes.
+- `scripts/ci/run_tests.py`, `scripts/ci/test_run_tests.py` and `.github/workflows/repository.yml`: the `slots24` case
+  becomes `slots40`, and the solid count in the comment becomes 103.
+- The build status stays **Not built yet**; `UNBUILT` keeps `handcranksiren`.
+
+### Pull requests
+
+No planetary gearbox change comes first: the ears, the shafts and the collar rings are used as they are.
+
+1. **Spike.** Add `GearboxParams()` and `TestGearboxParams`, and a test that builds the gearbox with it in a
+   `planetarygearbox.NewDocument()` document, then builds the current rotor and crank in the same document, recording
+   the build time. Switch `NewDocument` to the 0.1 mm chain tolerance and run the current siren suite once to see whether
+   the rotor, crank and fit sections still pass at it. If any step fails, stop and report the failing case.
+2. **Gearbox swap.** Sections 1 to 9 except the slot range: Ratio 6, the gearbox, the housing, the bearings and spacers,
+   the head moved 9.80, the drum's hub and windows, the crank on the output shaft, the grip, the fasteners, the
+   containers and every check of section 10, with `Slots` still [12, 24], 20 by default and CrankAngle 5π/4 (the rotor
+   angle 7.5π still lines the ports up for 12, 20 and 24). Regenerate every image and doc listed above. The default
+   pitch reads 240 Hz in this pull request.
+3. **Slot range.** `Slots` [12, 40], default 34, CrankAngle 4π/3, `vaneRadius`, the `vanes` checks, the `slots40` CI
+   case, and the images and docs again (rotor, stator, hero and the pitch text).
+
+Each pull request runs the focused siren tests locally and leaves the full suite to CI.
