@@ -13,6 +13,9 @@ every dimension and rule; this file owns the call order, the exported API and th
   every later failure with the part it came from.
 - `Gearbox{Ring *decad.Body; Stages []Stage}`, `Stage{Sun, Planets, Carrier}`, `(Gearbox).Named()`, and the
   name functions `RingName`, `SunName(k)`, `PlanetName(k, i)`, `CarrierName(k)`.
+- `Gearbox.FrontCollar` and `RearCollar` with `FrontCollarName` and `RearCollarName`, and `Gearbox.EarBolts` and
+  `EarNuts` with `EarBoltName(i)` and `EarNutName(i)`; the collars go in the `Shaft Collars` container
+  (`CollarsContainerName`), the ear bolts in `Bolts` and the ear nuts in `Nuts`.
 - `PlanetOrbitAngle(p, i)`, `PlanetToothAngle(p, i)` and `RingToothAngle(p)` from the meshing-phase formulas.
 
 ## 1. Parameter table
@@ -33,10 +36,12 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    `EarCount > 0` the ear outline described under "Mounting ears" below)
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with `4 + EarCount`
-   holes and extrude it `L` upward. Cut eight closed round nut cavities from the blank (`cutNutPockets`): one tool, a circle
+   holes and extrude it `L` upward. Cut the fastener pockets from the blank (`cutRingPockets`). The nut tool is a circle
    of diameter `2 (s / √3 + c)` (`s` = `m2nut.AcrossFlats`, `c = 0.2`), extruded `m2nut.Thickness + 2c` up from its
-   plane, copied to the four bolt angles. Place the front cavities' lower face 1 mm above the front face and the rear
-   cavities' upper face 1 mm below the rear face. The bolt hole is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
+   plane, copied to the four bolt angles at each end. Place the front cavities' lower face 1.8 mm above the front face and
+   the rear cavities' upper face 1.8 mm below the rear face. Copy the same tool to each ear's bore center with its lower
+   face `earNutFloor(L)` above the front face. Then cut one head pocket per ear (see **Ear pockets**). The bolt hole or the
+   ear bore is each cavity's only opening. `decad.Cut` the tooth-space tool from it. Chamfer the ring's two end faces last (see Edge finishing). Check: one solid.
 2. **Sun.** `spurgear.Variant{Define}.Build` with `Teeth = Zs`, `Thickness = T`, `Backlash = j`, root radius `pitch_radius - module - c`, tip radius `pitch_radius + module - ε`, and `BoreDiameter = shaft_bore_diameter` (`sun_shaft_diameter + 0.1`: 5.1 for a 605ZZ shaft bearing, 6.1 for a 608ZZ, 0.05 mm larger radially than the shaft's sun section, a press fit)
    when `Sf = 0`, otherwise no bore. With a flat, extrude the D tool (see below) from `z = -1` up `T + 2` and
    `decad.Cut` it from the sun. For `K > 1`, `decad.Copy` the finished sun and `countersinkSun` it: revolve the
@@ -75,11 +80,11 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
      solid, its top level with the carrier's top.
 6. **Shafts**, separate bodies. Each is built from a revolved meridian (see **Shaft meridians** below) or, for the
    output shaft's thick part, a D extrusion, then takes its flats from one tool. A step that does not face a bearing is a
-   cone at 30° to the axis, `√3` times the radius change long, and a flat that stops partway ends in a ramp at 30° to the axis.
-   `flatCut` takes `flat{lo, hi, loRamp, hiRamp, section}` values (`section` is the bearing section `ds` or the sun section `dss`): each is one meridian polygon that runs from `Sf` inside the
-   rod's +X rim (`ds/2 - Sf`) over `lo` to `hi` and out to `ds/2 + collar margin`, extruded symmetrically along Y, with a
-   ramp from `x = ds/2 - Sf` up to `ds/2 + collar margin / 6` over `√3 (Sf + collar margin / 6)` where the flat ends in
-   one. The tools of every flat join into one and take one `decad.Cut`. With `Sf = 0` no flat is cut.
+   cone at 30° to the axis, `√3` times the radius change long. A flat that stops partway ends square where a D bore's
+   tooth stops on it. `flatCut` takes `flat{lo, hi, section}` values (`section` is the bearing section `ds` or the sun
+   section `dss`): each is one meridian rectangle that runs from `Sf` inside the rod's +X rim (`ds/2 - Sf`) over `lo` to
+   `hi` and out to `ds/2 + collar margin`, extruded symmetrically along Y. The tools of every flat join into one and take
+   one `decad.Cut`. With `Sf = 0` no flat is cut.
    - Link shaft, when `K > 1` (`buildLinkShaft`): revolve `(0, 0)`, `(collar, 0)`, `(collar, Tc)`, `(rod, Tc + √3 (collar - rod))`,
      `(rod, T + Tc + g)`, `(0, T + Tc + g)`, with `rod = dss/2` (`sun_shaft_diameter`, the sun section) and `collar = shaft collar diameter / 2`. Its one flat tool is the
      polygon `(collar + collar margin, -1)`, `(collar - Sf, -1)`, `(collar - Sf, Tc)`, `(rod - Sf, Tc + √3 (collar - rod))`,
@@ -88,15 +93,24 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    - Output shaft (`buildOutputShaft(thickTop, top)`): `thickTop = Tc + g + Tv - 0.25`, `top = Tc + g + Tv + Wbs + Lo`. A D
      thick part of radius `collar/2` with its flat `Sf` inside the rim from `z = 0` up to `thickTop`, and a round rod of
      diameter `ds` from `thickTop - 0.05` up to `top`, joined with one `decad.Union`; the step at `thickTop` is square, because
-     it faces the rear bearing's inner ring. One flat from `top - Lo + 1` to `top + 1` with a ramp at its lower end.
+     it faces the rear bearing's inner ring. One flat from `top - Lo + 1.25` to `top + 1`, square at its lower end
+     (`freeFlatEnd` = 0.25 + 1, the collar ring's gap and relief).
      Posed with its bottom on the last carrier's lower face.
    - Input shaft (`buildInputShaft`): `bottom = -(g + Tv + Wbs + Li)`, `top = T`, `rb = ds/2`, `rs = dss/2`. Revolve `(0, bottom)`, `(rb, bottom)`,
      `(rb, -(g + Tv) + 0.25)`, `(collar, -(g + Tv) + 0.25)`, `(collar, -0.5 - √3 (collar - rs))`, `(rs, -0.5)`, `(rs, T)`, `(0, T)`.
      When `√3 (collar - rs)` leaves less than 0.8 mm of the collar's 3.25 mm (a 608ZZ shaft: `dss` 6), the collar radius is
      `rs + (3.25 - 0.8)/√3` (4.41 mm) and the cone starts 0.8 mm above the collar's bearing-side face.
      The collar's bearing side is square, because it faces the front bearing's inner ring. A flat on the sun section from `0` to `T + 1`
-     ending square at the sun's lower face, and a flat on the bearing section from `bottom - 1` to `bottom + Li - 1` with a ramp at its upper
-     end. The 1 mm is `endFlatMargin`; it grows to `√3 Sf + 0.1` when the ramp is longer than it.
+     ending square at the sun's lower face, and a flat on the bearing section from `bottom - 1` to `bottom + Li - 1.25`,
+     square at its upper end.
+   - Collar ring (`buildCollarRing`), built once with its bearing face on `z = 0`, `R = ds/2`: revolve `(0, 0)`,
+     `(R + 1.2, 0)` (bound to `shaft_collar_diameter / 2`), `(R + 1.75, √3 · 0.55)` (bound to
+     `shaft_diameter / 2 + shaft_bore_clearance + collar_ring_wall`), `(R + 1.75, 4)`, `(0, 4)`. `decad.Cut` a D section of
+     radius `R + 0.05` with its flat `Sf` inside the rim from `z = -1` up 6 (a disc bound to
+     `shaft_diameter + 2 * shaft_bore_clearance` when `Sf = 0`). Then cut the relief: revolve `(0, -1)`, `(R + 0.4, -1)`
+     (bound to `shaft_diameter / 2 + collar_ring_relief_gap`), `(R + 0.4, 1 - √3 · 0.35)`, `(R + 0.05, 1)` (bound to
+     `shaft_diameter / 2 + shaft_bore_clearance`), `(0, 1)`. Check: one solid. Pose the rear ring at
+     `KP + Tv + Wbs + 0.25` and the front ring turned over about X at `-(g + Tv + Wbs + 0.25)`.
    **Shaft meridians.** A meridian is a closed polygon on the world's XZ plane, `U` the radius and `V` the height, built
    by `meridian`. Its first vertex is dimensioned from the origin (`sketchcheck.DimensionPoint`). For each later
    vertex a vertical edge takes `Vertical` and a `VerticalDistance` from the vertex before it; a horizontal edge takes
@@ -136,7 +150,10 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    them into place. A front bolt is turned over about X so its shank points into the ring, with its head's underside
    on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits in its
    cavity with `c = 0.2` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
-   is measured from the head pocket's edge, not the hole's.
+   is measured from the head pocket's edge, not the hole's. With ears (`buildEarFasteners`), build one more
+   `m2bolt.Build` with `Length = earBoltLength(L)` and copy a nut: at each ear's bore center the bolt keeps its
+   orientation with its head's underside on the ear's head pocket floor, `HeadHeight` below the ring's rear face, and
+   the nut sits `c` above its cavity's floor, its flats toward the ear's radius.
 
 **Seat chamfer.** `decad.Chamfer` of the pocket's circular rim in the plane `z = T` (planet) or `z = Tv + Wbs` (cover)
 by `seat_chamfer`, skipped when it is zero. The planet and the cover pass their own pocket diameter to find the rim. A boolean moves a circle's seam, so find the rim by its radius and height
@@ -158,6 +175,23 @@ the angle `a`. After the outer arcs, `sketch.CreateFillet` both roots of every e
 arc that precedes the ear to the clockwise straight edge. With one ear those two arcs are the same arc. The fillet
 adds the two tangencies and the radius dimension. The sketch must report fully constrained with DOF 0. Ear bores are
 inner loops of the section.
+
+**Ear pockets.** `earBoltLength(L)` is the longest of `m2bolt.StandardLengths()` no longer than `L - HeadHeight`, and
+`earNutFloor(L) = max(1.8, L - HeadHeight - earBoltLength(L) - 0.2)`. The head pocket tool is the cover's: a circle of
+diameter `Dk + 0.6` on the plane `HeadHeight` below the blank's rear face, extruded up `HeadHeight + 1`, copied to each
+ear's bore center. The nut cavities share the housing nuts' tool (see **Ring**). Cut both after the housing nut cavities
+and before the tooth spaces.
+
+**Why the nuts are embedded.** The Fasteners rules embed a nut only when no other solution exists. An ear holds its
+own bolt, with the head flush in one end face, and its own nut, so the bolt must run through the whole nut and end
+inside the ear. A hex pocket open to the other end face fixes the nut at that face, 2 mm deep, and then the bolt must
+be `L - 4 + 1.6` to `L - 4 + 2` long: 11.6 to 12 mm for the one-stage ring (`L` 14), which no standard length meets
+(10 and 16 are the nearest). An enclosed cavity can sit anywhere along the bore, so the standard 10 mm bolt fits. A
+hex pocket open to the front face would also be covered by the part mounted there, so the nut would fall out before
+the mounting bolt reaches it. The housing nuts were enclosed before the rule; each faces its cover, which covers the
+ring's end while its bolt goes in, and the front cover goes on with the ring's front face downward, where an open pocket
+would drop its nuts. Their cavities moved from 1 mm to 1.8 mm behind the end faces, so the ear nuts share their print
+pause; the fastener is otherwise unchanged.
 
 **Edge finishing.** After a ring, a cover or a carrier is complete, chamfer the boundary loops it keeps by `edge_chamfer`
 (see Edge finishing in `instructions.md`). For each plane `z`, find the body's planar faces whose plane normal is along Z

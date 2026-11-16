@@ -10,7 +10,8 @@ Lengths are in millimeters and angles are in radians.
 
 `Build(ctx, doc, Params)` adds the gearbox's bodies to a decad document and returns a `Gearbox`. The housing is the
 `Ring`, a `FrontCover` and a `RearCover`, each with a shaft bearing (`FrontBearing`, `RearBearing`; 605ZZ by default); the `InputShaft`
-passes through the front bearing into the first sun. Each entry of `Stages` holds a `Sun`, the `Planets`, one
+passes through the front bearing into the first sun. A collar ring sits on each shaft's free end (`FrontCollar`,
+`RearCollar`), and `Bolts`, `Nuts`, `EarBolts` and `EarNuts` hold the fasteners. Each entry of `Stages` holds a `Sun`, the `Planets`, one
 `Bearings` entry per planet and a `Carrier`. `Named` lists every body with a
 display name. `DefaultParams()` returns the 13/29/71 gearbox with three planets and one stage.
 
@@ -24,8 +25,8 @@ output shafts turn in their cover bearings and each planet turns on its carrier
 pin; every other joint is fixed. Each pin-in-bore joint declares its fit's radial clearance: zero for a shaft or pin
 in a bearing bore and for a bolt in its nut, `BearingClearance` for a bearing in its seat, 0.05 mm for a part pressed
 into a sun or carrier and 0.3 mm for a bolt in its hole. For one stage, `Set.Linkage` with the ring as ground gives
-five turning links: the input shaft with its sun, the carrier with its pins and the output shaft, and each planet with
-its bearing. With more stages, each carrier before the last turns in no bearing: only the gear meshes, which are
+five turning links: the input shaft with its sun and the front collar ring, the carrier with its pins, the output
+shaft and the rear collar ring, and each planet with its bearing. With more stages, each carrier before the last turns in no bearing: only the gear meshes, which are
 contact joints, hold it. `Set.Linkage` then leaves that carrier with its pins, its link shaft and the next sun, and the
 carrier's planets, static.
 
@@ -71,13 +72,23 @@ to every printed part.
 with it while the ring has mounting ears. A plain `decad.New()` document fails at the chamfer of the ring's end faces,
 because the chamfer meets tooth-space facets held to about 0.0034 mm. With `EarCount = 0` a plain document works.
 
-`EarCount` (default 3) and `EarBoreDiameter` (default 4 mm) set the mounting ears on the ring. The ears are spread
-evenly, the first on +Y, and each runs the whole ring length with a bore parallel to the axis. The model adds no
-bolt, head pocket or nut cavity for an ear; the bore is only a hole of the size you give. Each ear meets the ring in
+`EarCount` (default 3) and `EarBoreDiameter` (default 2.6 mm) set the M2 mounting ears on the ring. The ears are spread
+evenly, the first on +Y, and each runs the whole ring length with an M2 clearance bore parallel to the axis. Each ear
+has a head pocket in its rear face and a closed nut cavity near its front face (`cutRingPockets`), and holds one bolt
+(`Gearbox.EarBolts`, `EarBoltName`) and one nut (`Gearbox.EarNuts`, `EarNutName`) from `models/m2bolt` and
+`models/m2nut`. The bolt is the longest standard length whose tip stays in the ear (`earBoltLength`: M2 x 10 for one
+stage, M2 x 25 for two). The nut cavity starts 1.8 mm inside the front face, the same layers as the front housing nuts,
+unless the bolt's tip ends further in (`earNutFloor`). Each ear meets the ring in
 two rounds of half the thinner of the ring wall and the ear's width (3.55 mm by default), drawn with `sketch.CreateFillet`
-in `addRingOutline`. `Validate` rejects a negative count, a bore that is not positive when there are ears, ears too
-close to each other (counting the rounds), and an ear count that puts an ear
-over one of the housing's bolt sites, such as 8.
+in `addRingOutline`. `Validate` rejects a negative count, a bore under 2.6 mm or of the nut's 4 mm across its flats or
+more when there are ears, a ring too short for a standard ear bolt, ears too close to each other (counting the rounds),
+and an ear count that puts an ear over one of the housing's bolt sites, such as 8.
+
+`FrontCollar` and `RearCollar` are the collar rings pressed on the free ends of the input and output shafts, 0.25 mm
+outside the cover bearings (`buildCollarRing`, in the `Shaft Collars` container). Each free end's flat ends square
+1.25 mm outside its boss, where the ring's D bore stops. `InputShaftLength` and `OutputShaftLength` (default 14 mm) must
+be at least 5.25 mm, so 1 mm of free end stands beyond the ring. `TestCollarRings` measures the rings against Arbor
+collars and Part clearances.
 
 `Backlash` thins every sun and planet tooth by that much at the pitch circle and passes the negative of it to the ring's tooth-space tool, so each meshing pair has twice `Backlash` of play. The default is 0.05 mm.
 

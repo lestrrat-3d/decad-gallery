@@ -181,4 +181,18 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 		require.InDelta(t, restShaft[i].X*cos-restShaft[i].Y*sin, turnedShaft[i].X, 1e-9)
 		require.InDelta(t, restShaft[i].X*sin+restShaft[i].Y*cos, turnedShaft[i].Y, 1e-9)
 	}
+
+	// Each collar ring turns with the shaft it is pressed on: the front one with the input shaft, the rear one with
+	// the output shaft.
+	for name, angle := range map[string]float64{
+		planetarygearbox.FrontCollarName: input, planetarygearbox.RearCollarName: input * q * q,
+	} {
+		index := byName[name]
+		restCollar, turnedCollar := movers[index].mesh.Vertices(), posed[index].Mesh.Vertices()
+		sin, cos := math.Sincos(angle)
+		for _, i := range []int{0, len(restCollar) / 2, len(restCollar) - 1} {
+			require.InDelta(t, restCollar[i].X*cos-restCollar[i].Y*sin, turnedCollar[i].X, 1e-9, name)
+			require.InDelta(t, restCollar[i].X*sin+restCollar[i].Y*cos, turnedCollar[i].Y, 1e-9, name)
+		}
+	}
 }

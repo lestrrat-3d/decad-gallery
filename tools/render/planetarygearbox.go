@@ -23,6 +23,7 @@ var (
 	planetaryShaftColor   = solidlens.RGB(0.45, 0.47, 0.5)
 	planetaryCarrierColor = solidlens.RGB(0.55, 0.62, 0.3)
 	planetaryPinColor     = solidlens.RGB(0.38, 0.5, 0.22)
+	planetaryCollarColor  = solidlens.RGB(0.62, 0.3, 0.32)
 )
 
 // planetaryEdges outlines every part.
@@ -69,7 +70,8 @@ type planetaryBody struct {
 	housing bool
 }
 
-// planetaryBodies lists every body of box with its colour. The ring and the two covers are the housing.
+// planetaryBodies lists every body of box with its colour, except the bolts and nuts. The ring and the two covers are
+// the housing.
 func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 	out := []planetaryBody{
 		{planetarygearbox.RingName, box.Ring, planetaryRingColor, true},
@@ -78,6 +80,8 @@ func planetaryBodies(box planetarygearbox.Gearbox) []planetaryBody {
 		{planetarygearbox.FrontBearingName, box.FrontBearing, planetaryBearingColor, false},
 		{planetarygearbox.RearBearingName, box.RearBearing, planetaryBearingColor, false},
 		{planetarygearbox.InputShaftName, box.InputShaft, planetaryShaftColor, false},
+		{planetarygearbox.FrontCollarName, box.FrontCollar, planetaryCollarColor, false},
+		{planetarygearbox.RearCollarName, box.RearCollar, planetaryCollarColor, false},
 	}
 	for k, stage := range box.Stages {
 		out = append(out, planetaryBody{planetarygearbox.SunName(k), stage.Sun, planetarySunColor, false})
@@ -320,7 +324,8 @@ const (
 
 // planetaryParts lists the unique parts of a gearbox: the ring, one cover (the front cover is the rear one
 // turned over), the sun, one planet, one 605ZZ bearing (the planets and the covers use the same part), the
-// carrier, one carrier pin, and the three shafts: the input shaft, a link shaft and the output shaft.
+// carrier, one carrier pin, the three shafts (the input shaft, a link shaft and the output shaft) and one collar ring
+// (the front one is the rear one turned over).
 var planetaryParts = []planetaryPart{
 	{"ring", func(b planetarygearbox.Gearbox) *decad.Body { return b.Ring }, planetaryRingColor, frontView},
 	{"cover", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCover }, planetaryCoverColor, frontView},
@@ -332,6 +337,7 @@ var planetaryParts = []planetaryPart{
 	{"input-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.InputShaft }, planetaryShaftColor, sideView},
 	{"link-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[0].Shaft }, planetaryShaftColor, sideView},
 	{"output-shaft", func(b planetarygearbox.Gearbox) *decad.Body { return b.Stages[1].Shaft }, planetaryShaftColor, sideView},
+	{"collar", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCollar }, planetaryCollarColor, frontView},
 }
 
 func init() {
@@ -463,8 +469,12 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
+	ear, err := planetaryEarSection(ctx, fastener)
+	if err != nil {
+		return err
+	}
 	for name, scene := range map[string]solidlens.Scene{
-		"fasteners-section.png": section, "fasteners-exploded.png": fastenerExploded,
+		"fasteners-section.png": section, "fasteners-exploded.png": fastenerExploded, "ear-section.png": ear,
 	} {
 		if err := renderPNG(ctx, filepath.Join(outputDir, name), scene, 1600, 900); err != nil {
 			return fmt.Errorf("render planetary gearbox %s: %w", name, err)

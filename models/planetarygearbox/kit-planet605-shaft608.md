@@ -24,7 +24,7 @@ The complete two-stage gearbox with nothing cut away, from the output end, from 
 
 ## Exploded
 
-<img src="images/kit-planet605-shaft608/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover and the rear bearing">
+<img src="images/kit-planet605-shaft608/exploded.png" alt="The two-stage gearbox pulled apart along its axis: the front collar ring and the front bearing below the front cover, the input shaft above it, then the ring, two stages of three planets each with a planet bearing and a carrier pin moved out to the sides, the suns, carriers and a link shaft between them, then the output shaft, the rear cover, the rear bearing and the rear collar ring">
 
 The picture pulls the gearbox apart along its axis. It leaves out the bolts and nuts, which are the same as in the
 default gearbox; [How the housing is bolted](README.md#how-the-housing-is-bolted) shows them.
@@ -34,7 +34,7 @@ stage show side by side and none hides behind the sun.
 
 The parts, from the bottom of the picture:
 
-1. The front bearing, a 608ZZ, off the input shaft's outer end.
+1. The front collar ring and the front bearing, a 608ZZ, off the input shaft's outer end.
 2. The front cover, with its wide bearing boss.
 3. The input shaft, out of the front cover's inner side.
 4. The ring.
@@ -42,7 +42,7 @@ The parts, from the bottom of the picture:
    carrier; and above it the carrier pins, beside the link shaft.
 6. The second stage: the planets; the sun, beside the planet bearings; the carrier pins, below the carrier; the
    carrier; and the output shaft, out of the top of the carrier.
-7. The rear cover, then the rear bearing, a 608ZZ, off the output shaft's outer end.
+7. The rear cover, then the rear bearing, a 608ZZ, and the rear collar ring off the output shaft's outer end.
 
 ## What changes from the default
 
@@ -84,6 +84,7 @@ every stage, are 605ZZ, so this kit lists two bearings. Each is drawn as its env
 | <img src="images/kit-planet605-shaft608/parts/carrier-pin.png" alt="Carrier pin" width="240"> | Carrier pin |
 | <img src="images/kit-planet605-shaft608/parts/link-shaft.png" alt="Link shaft with its 10.4 mm thick part" width="240"> | Link shaft |
 | <img src="images/kit-planet605-shaft608/parts/output-shaft.png" alt="Output shaft with its 10.4 mm thick part" width="240"> | Output shaft |
+| <img src="images/kit-planet605-shaft608/parts/collar.png" alt="Collar ring with a 10.4 mm bearing face and 11.5 mm across" width="240"> | Collar ring (front and rear) |
 
 ## Building it
 

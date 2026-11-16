@@ -37,11 +37,12 @@
 ## Fasteners
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
-- Seat each nut in a hex pocket open to a face whenever its tightened bolt holds it there and the face can be reached
-  while the bolt goes in. The pocket's flats stop the nut turning. Put the hexagon's corners on the nut cavity's circle
-  (radius 2.51 mm for M2) and make it as deep as a nut cavity is high (2.0 mm for M2), so the nut ends below the face.
-- Enclose a nut in a cavity on all sides except the bolt hole only when an open pocket cannot work: its face cannot be
-  reached during assembly, or the nut must stay in place before its bolt goes in. Drop the nut in during a print pause.
+- Seat each nut in a hex pocket open to a face, or use any other solution that does not embed the nut, whenever one
+  can work. The pocket's flats stop the nut turning, and the tightened bolt holds the nut there. Put the hexagon's
+  corners on the nut cavity's circle (radius 2.51 mm for M2) and make it as deep as a nut cavity is high (2.0 mm for
+  M2), so the nut ends below the face.
+- Embed a nut, in a cavity enclosed on all sides except the bolt hole, only when no other solution exists. Say in the
+  model's `steps.md` why none works. Drop the nut in during a print pause.
   Models built before this rule keep their enclosed cavities until their fasteners change.
 - In a split shaft or pin, a nut cavity the seam cuts in half counts as enclosed when the halves, clamped by hardware, close it on all sides except the bolt hole. Drop the nut into one half before assembly. See [Split shafts](docs/model-pipeline.md#split-shafts).
 - Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.

@@ -167,16 +167,18 @@ are cut open with solidlens `Model.Clip` along the plane through the axis that h
 toward negative Y, and the camera looks from that side; every other part is drawn whole. The `readme` shot writes
 the 480 × 270 pixel `index.png` and 1600 × 900 pixel `hero.png` from one build. It also writes one 480 × 270 pixel
 image of each unique part in `images/parts/`: the ring, one cover, the sun, one planet, one bearing, the input
-shaft, the carrier, the carrier pin, the link shaft and the output shaft. It also writes three 1200 × 675 pixel views of the whole two-stage
+shaft, the carrier, the carrier pin, the link shaft, the output shaft and one collar ring. It also writes three 1200 × 675 pixel views of the whole two-stage
 gearbox with nothing cut, `assembled-output.png`, `assembled-input.png` and `assembled-side.png`, which the
 `planetarygearbox/assembled-output`, `assembled-input` and `assembled-side` presets render alone. The `planetarygearbox/fasteners-section` and `fasteners-exploded` presets cut a one-stage housing along the plane through
 the first bolt of each cover and draw its bolts, nuts, covers and ring in place and pulled apart along the bolt.
-The `readme` shot writes both. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
-`part-planet`, `part-bearing`, `part-carrier`, `part-carrier-pin`, `part-input-shaft`, `part-link-shaft` and
-`part-output-shaft` presets
+The `planetarygearbox/ear-section` preset cuts the one-stage ring along the plane through the axis and the first
+mounting ear, on +Y, and draws the ear's bolt and nut in place, from +X. The `readme` shot writes all three, the last
+as `ear-section.png`. The `planetarygearbox/part-ring`, `part-cover`, `part-sun`,
+`part-planet`, `part-bearing`, `part-carrier`, `part-carrier-pin`, `part-input-shaft`, `part-link-shaft`,
+`part-output-shaft` and `part-collar` presets
 render one of them alone. The shafts are seen from almost level with them so the flat and the collar or step show, and the
 carrier from below so its through sockets show. A 1600 × 900 pixel exploded view, `exploded.png`, pulls the
-whole two-stage gearbox apart along its axis with nothing cut and without its bolts and nuts. The offsets come from
+whole two-stage gearbox apart along its axis with nothing cut and without its bolts and nuts, the ears' included. The offsets come from
 `parts.Set.Explode` over `Gearbox.Set` in Decad's derived mode, which `Gearbox.Explode` runs with the front cover held
 in place. Both ends read bearing, cover, shaft from the outside in: each cover bearing sits outside its cover, beyond
 its shaft's free end, and each shaft sits on the inner side of its cover. The ring and the front bearing sit 20 mm

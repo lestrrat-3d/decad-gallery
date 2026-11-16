@@ -42,7 +42,7 @@ func (a axialSpan) above(b axialSpan) bool { return a.lo > b.hi }
 const explodeGap = 6.0
 
 // sharingPairs lists the part pairs that may still share space in the exploded view, each name pair in both orders:
-// a planet in mesh with its sun, and a nut in its cavity in the ring.
+// a planet in mesh with its sun, and a nut in its closed cavity in the ring or in a mounting ear.
 func sharingPairs(box planetarygearbox.Gearbox) map[[2]string]struct{} {
 	pairs := map[[2]string]struct{}{}
 	add := func(a, b string) {
@@ -58,6 +58,9 @@ func sharingPairs(box planetarygearbox.Gearbox) map[[2]string]struct{} {
 	for i := range half {
 		add(planetarygearbox.RingName, planetarygearbox.FrontNutName(i))
 		add(planetarygearbox.RingName, planetarygearbox.RearNutName(i))
+	}
+	for i := range box.EarNuts {
+		add(planetarygearbox.RingName, planetarygearbox.EarNutName(i))
 	}
 	return pairs
 }
@@ -163,6 +166,8 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	requireSameOffset("rear bolts", half, planetarygearbox.RearBoltName)
 	requireSameOffset("front nuts", half, planetarygearbox.FrontNutName)
 	requireSameOffset("rear nuts", half, planetarygearbox.RearNutName)
+	requireSameOffset("ear bolts", len(box.EarBolts), planetarygearbox.EarBoltName)
+	requireSameOffset("ear nuts", len(box.EarNuts), planetarygearbox.EarNutName)
 	for k, s := range box.Stages {
 		n := len(s.Planets)
 		requireSameOffset("planets", n, func(i int) string { return planetarygearbox.PlanetName(k, i) })
@@ -194,6 +199,9 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 	requireNextTo(planetarygearbox.RearCoverName, planetarygearbox.OutputShaftName)
 	requireNextTo(planetarygearbox.RearCoverName, planetarygearbox.RearBearingName)
 	require.True(t, rear.above(ring), "the rear cover is outside the ring")
+	// Each collar ring comes off its shaft's free end, outside its cover's bearing.
+	require.True(t, frontBearing.above(span(planetarygearbox.FrontCollarName)), "the front collar is outside the front bearing")
+	require.True(t, span(planetarygearbox.RearCollarName).above(rearBearing), "the rear collar is outside the rear bearing")
 
 	// No collar passes a bore narrower than itself. A shaft's collar or thick part, and a carrier pin's thick part,
 	// are the bearing bore plus 2.4 mm across (7.4 mm for a 605ZZ). A bearing bore and a sun's D bore are narrower,
@@ -256,6 +264,10 @@ func requireExplodedGearbox(t *testing.T, doc *decad.Document, box planetarygear
 			"front bolt %d is outside the front cover", i+1)
 		require.True(t, span(planetarygearbox.RearBoltName(i)).above(rear), "rear bolt %d is outside the rear cover", i+1)
 	}
+	// Each ear bolt comes out of its ear's rear face, beyond the ring.
+	for i := range box.EarBolts {
+		require.True(t, span(planetarygearbox.EarBoltName(i)).above(ring), "ear bolt %d is beyond the ring", i+1)
+	}
 
 	// In each stage a planet bearing is off the free end of its pin, the pin sits next to its carrier, one gap
 	// below or above it, and the shaft pressed into the carrier is out of it. A pin's thick part ends level with the
@@ -306,9 +318,11 @@ func TestExplodedGearbox(t *testing.T) {
 			links = append(links, strings.Join(members, ", "))
 		}
 		want := []string{
-			planetarygearbox.InputShaftName + ", " + planetarygearbox.SunName(0),
+			strings.Join([]string{planetarygearbox.InputShaftName, planetarygearbox.SunName(0),
+				planetarygearbox.FrontCollarName}, ", "),
 			strings.Join([]string{planetarygearbox.CarrierName(0), planetarygearbox.PinName(0, 0),
-				planetarygearbox.PinName(0, 1), planetarygearbox.PinName(0, 2), planetarygearbox.OutputShaftName}, ", "),
+				planetarygearbox.PinName(0, 1), planetarygearbox.PinName(0, 2), planetarygearbox.OutputShaftName,
+				planetarygearbox.RearCollarName}, ", "),
 		}
 		for i := range p.PlanetCount {
 			want = append(want, planetarygearbox.PlanetName(0, i)+", "+planetarygearbox.BearingName(0, i))
@@ -401,8 +415,11 @@ func TestExplodedTwoStageGearbox(t *testing.T) {
 		}
 		require.Equal(t, 2+p.Stages*p.PlanetCount, count["605ZZ ball bearing"],
 			"two cover bearings and one for each planet")
-		require.Equal(t, 8, count["M2 hex nut"])
+		// Eight housing nuts and one in each of the three ears; the two-stage ring is 27 mm long, so each ear takes
+		// an M2 x 25 bolt.
+		require.Equal(t, 11, count["M2 hex nut"])
 		require.Equal(t, 8, count["M2 x 6 bolt"])
+		require.Equal(t, 3, count["M2 x 25 bolt"])
 	})
 }
 

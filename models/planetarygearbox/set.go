@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad/parts"
@@ -44,6 +45,9 @@ func (g Gearbox) Set(doc *decad.Document, p Params) (*parts.Set, error) {
 		case isFastener(g, nb.Body):
 			part.Kind, part.Material = parts.Purchased, parts.Material{Name: "steel"}
 			part.Spec = fmt.Sprintf("M2 x %g bolt", fastenerLength)
+			if isIn(g.EarBolts, nb.Body) {
+				part.Spec = fmt.Sprintf("M2 x %g bolt", earBoltLength(derive(p).ringLength))
+			}
 			if isNut(g, nb.Body) {
 				part.Spec = nutSpec
 			}
@@ -75,25 +79,15 @@ func isPlanetBearing(g Gearbox, b *decad.Body) bool {
 	return false
 }
 
-func isNut(g Gearbox, b *decad.Body) bool {
-	for _, nut := range g.Nuts {
-		if b == nut {
-			return true
-		}
-	}
-	return false
+// isIn reports whether b is one of bodies.
+func isIn(bodies []*decad.Body, b *decad.Body) bool {
+	return slices.Contains(bodies, b)
 }
 
+func isNut(g Gearbox, b *decad.Body) bool { return isIn(g.Nuts, b) || isIn(g.EarNuts, b) }
+
 func isFastener(g Gearbox, b *decad.Body) bool {
-	if isNut(g, b) {
-		return true
-	}
-	for _, bolt := range g.Bolts {
-		if b == bolt {
-			return true
-		}
-	}
-	return false
+	return isNut(g, b) || isIn(g.Bolts, b) || isIn(g.EarBolts, b)
 }
 
 // joints lists the connections of the assembled gearbox with each axis stated in world coordinates. Each shaft turns
@@ -128,6 +122,8 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 	pin("input shaft in the front cover", InputShaftName, FrontCoverName, centre, parts.Turns, none)
 	pin("input shaft in the first sun", InputShaftName, SunName(0), centre, parts.Fixed, press)
 	pin("front bearing in the front cover", FrontBearingName, FrontCoverName, centre, parts.Fixed, seat)
+	// A collar ring is pressed on each shaft's free end, outside the cover's bearing.
+	pin("input shaft in the front collar", InputShaftName, FrontCollarName, centre, parts.Fixed, press)
 	contact("front cover on the ring", FrontCoverName, RingName)
 
 	last := len(g.Stages) - 1
@@ -156,6 +152,7 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 	pin("output shaft in the rear bearing", output, RearBearingName, centre, parts.Turns, zero)
 	pin("output shaft in the rear cover", output, RearCoverName, centre, parts.Turns, none)
 	pin("rear bearing in the rear cover", RearBearingName, RearCoverName, centre, parts.Fixed, seat)
+	pin("output shaft in the rear collar", output, RearCollarName, centre, parts.Fixed, press)
 	contact("rear cover on the ring", RearCoverName, RingName)
 
 	// A bolt passes through its cover's hole and the ring's hole and screws into a nut that the ring holds in a
@@ -173,6 +170,17 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 		contact(nut+" in the ring", nut, RingName)
 		pin(name+" in "+nut, name, nut, at, parts.Fixed, zero)
 	}
+	// An ear bolt runs along its ear's bore from the head pocket in the rear face and screws into a nut that the ear
+	// holds in a closed cavity.
+	earRadius := earCenterRadius(d.ringOuter, p.EarBoreDiameter)
+	for i := range g.EarBolts {
+		angle := earAngle(i, p.EarCount)
+		at := axisAt(earRadius*math.Cos(angle), earRadius*math.Sin(angle))
+		bolt, nut := EarBoltName(i), EarNutName(i)
+		pin(bolt+" in the ring", bolt, RingName, at, parts.Fixed, hole)
+		contact(nut+" in the ring", nut, RingName)
+		pin(bolt+" in "+nut, bolt, nut, at, parts.Fixed, zero)
+	}
 	return js
 }
 
@@ -188,7 +196,10 @@ func (g Gearbox) joints(p Params, frame r3.Transform) []parts.Joint {
 // The input shaft's collar is narrower than the front cover's lip bore, so the shaft could leave toward the front as
 // soon as the front bearing is off. Explode makes it leave toward the rear instead, and only after the ring, so the
 // layout draws it on the inner side of the front cover, next to it, as the output shaft sits on the inner side of the
-// rear cover: front bearing, front cover, input shaft, from the outside in.
+// rear cover: front bearing, front cover, input shaft, from the outside in. The front collar ring stops the front bearing
+// from leaving until the ring is off, which would free the bearing in an early round and lay it out far beyond the
+// front bolts. So the collar ring leaves after the input shaft, and the bearing after the collar ring: the bearing then
+// leaves last and sits next to the front cover, with the collar ring beyond it.
 func (g Gearbox) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
 	var rear r3.Vec
 	for _, j := range set.Joints() {
@@ -203,6 +214,8 @@ func (g Gearbox) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, 
 	return set.Explode(ctx, parts.WithDerivedExplode(), parts.WithExplodeGround(FrontCoverName),
 		parts.WithExplodeGap(units.Millimeters(explodeGap)),
 		parts.WithRemoval(InputShaftName, parts.Removal{Direction: rear, After: []string{RingName}}),
+		parts.WithRemoval(FrontCollarName, parts.Removal{Direction: rear.Scale(-1), After: []string{InputShaftName}}),
+		parts.WithRemoval(FrontBearingName, parts.Removal{Direction: rear.Scale(-1), After: []string{FrontCollarName}}),
 		parts.WithPartGap(RingName, units.Millimeters(wideGap)),
 		parts.WithPartGap(FrontBearingName, units.Millimeters(wideGap)))
 }

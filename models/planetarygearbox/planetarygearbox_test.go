@@ -128,11 +128,12 @@ func bounds(t *testing.T, b *decad.Body) decad.Box {
 func TestDefaultGearbox(t *testing.T) {
 	p := planetarygearbox.DefaultParams()
 	doc, box := defaultGearbox(t)
-	require.Len(t, doc.Bodies(), 34)
+	// 34 bodies, two collar rings, and a bolt and a nut in each of the three ears.
+	require.Len(t, doc.Bodies(), 42)
 	require.Len(t, box.Stages, 1)
 	require.Len(t, box.Stages[0].Planets, 3)
 	require.Len(t, box.Stages[0].Bearings, 3)
-	require.Len(t, box.Named(), 34)
+	require.Len(t, box.Named(), 42)
 	for _, nb := range box.Named() {
 		require.True(t, nb.Body.IsSolid(), nb.Name)
 		v, err := nb.Body.Volume()
@@ -317,6 +318,10 @@ func requireFitClearances(t *testing.T, box planetarygearbox.Gearbox, p planetar
 	requireSectionClearance(t, box.Bolts[0], box.Ring, 0, minimumFastenerGapBound)
 	nut := bounds(t, box.Nuts[0])
 	requireSectionClearance(t, box.Nuts[0], box.Ring, (nut.Min.Z+nut.Max.Z)/2, minimumFastenerGapBound)
+	// An ear's bolt has the clearance hole's gap in the ear's bore, and its nut the cavity's gap.
+	earNut := bounds(t, box.EarNuts[0])
+	requireSectionClearance(t, box.EarBolts[0], box.Ring, earNut.Max.Z+2, minimumFastenerGapBound)
+	requireSectionClearance(t, box.EarNuts[0], box.Ring, (earNut.Min.Z+earNut.Max.Z)/2, minimumFastenerGapBound)
 
 	frontBearing := bounds(t, box.FrontBearing)
 	requireSectionTouch(t, box.InputShaft, box.FrontBearing, (frontBearing.Min.Z+frontBearing.Max.Z)/2)
@@ -594,12 +599,6 @@ func integrate(length float64, f func(z float64) float64) float64 {
 // coneRun is the axial length of a 30° half-angle cone per unit of radius change.
 var coneRun = math.Sqrt(3)
 
-// rampSegments is the volume a flat depth deep removes along a 30° ramp from full depth out to the rim of a rod of the
-// given radius: the circle segment shrinks to nothing as the ramp rises over depth times coneRun.
-func rampSegments(radius, depth float64) float64 {
-	return integrate(depth*coneRun, func(z float64) float64 { return circleSegment(radius, depth-z/coneRun) })
-}
-
 // coneVolume is the volume of the cone from radius from down to radius to over to-from times coneRun of length, less
 // the circle segment a flat depth deep cuts off every section, as the link shaft's flat follows the cone.
 func coneVolume(from, to, depth float64) float64 {
@@ -874,8 +873,9 @@ func TestShaftFlat(t *testing.T) {
 			r := collarRadius - z/coneRun
 			return math.Pi*r*r - math.Pi*radius*radius
 		})
-	// The sun-side flat ends square; the flat on the free end ends in a 30° ramp.
-	flats := segment*(p.GearThickness+p.InputShaftLength-1) + rampSegments(radius, p.FlatDepth)
+	// Both flats end square: the sun-side one where the sun's bore stops on it, and the one on the free end 1.25 mm
+	// outside the boss, where the front collar ring's bore stops on it.
+	flats := segment * (p.GearThickness + p.InputShaftLength - 1.25)
 	require.InDelta(t, math.Pi*radius*radius*length+collar-flats, v, bound+0.5)
 }
 
@@ -900,7 +900,7 @@ func TestOutputShaft(t *testing.T) {
 	want := (math.Pi*thickRadius*thickRadius-circleSegment(thickRadius, p.FlatDepth))*
 		(p.CarrierThickness+p.StageGap+p.CoverThickness-0.25) +
 		math.Pi*radius*radius*(5+p.OutputShaftLength+0.25) -
-		circleSegment(radius, p.FlatDepth)*(p.OutputShaftLength-1) - rampSegments(radius, p.FlatDepth)
+		circleSegment(radius, p.FlatDepth)*(p.OutputShaftLength-1.25)
 	v, bound := volume(t, output)
 	require.InDelta(t, want, v, bound+0.5)
 	require.Equal(t, decad.PointInside, sectionLocate(t, output, r3.NewVec(-3, 0, kz+p.CarrierThickness/2)))
@@ -927,7 +927,7 @@ func TestPhaseAngles(t *testing.T) {
 func TestTwoStages(t *testing.T) {
 	p := twoStageParams()
 	doc, box := twoStageGearbox(t)
-	require.Len(t, doc.Bodies(), 46)
+	require.Len(t, doc.Bodies(), 54)
 	require.Len(t, box.Stages, 2)
 	requireContainers(t, doc, box)
 	requirePressFitWalls(t, box, p)
@@ -1082,7 +1082,15 @@ func TestInvalidParams(t *testing.T) {
 		"negative ear bore":   {func(p *planetarygearbox.Params) { p.EarBoreDiameter = -4 }, "ear bore diameter"},
 		"nonfinite ear bore":  {func(p *planetarygearbox.Params) { p.EarBoreDiameter = math.Inf(1) }, "finite"},
 		"ears over the bolts": {func(p *planetarygearbox.Params) { p.EarCount = 8 }, "bolt site"},
-		"ears too close":      {func(p *planetarygearbox.Params) { p.EarCount, p.EarBoreDiameter = 20, 20 }, "neighbouring ear"},
+		"ears too close":      {func(p *planetarygearbox.Params) { p.EarCount, p.EarBoreDiameter = 20, 3 }, "neighbouring ear"},
+		"ear bore wider than the nut": {func(p *planetarygearbox.Params) { p.EarBoreDiameter = 4 },
+			"M2 clearance hole"},
+		"ear bore under the M2 clearance": {func(p *planetarygearbox.Params) { p.EarBoreDiameter = 2 },
+			"M2 clearance hole"},
+		"input shaft too short for its collar": {func(p *planetarygearbox.Params) { p.InputShaftLength = 5 },
+			"input shaft length"},
+		"output shaft too short for its collar": {func(p *planetarygearbox.Params) { p.OutputShaftLength = 5 },
+			"output shaft length"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := planetarygearbox.DefaultParams()

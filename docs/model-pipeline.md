@@ -219,8 +219,9 @@ user asks. Build the part so that cut is possible:
 - **Clamping.** Hardware holds the halves together; never glue them. A shaft held at both ends by purchased bearings,
   whose inner races fit it with no clearance, and carrying its loads in press-fit bores, is held by them. Any other part,
   such as a crank pin standing out from its arm, takes M2 cross bolts:
-  - Run each cross bolt normal to the seam, from a head pocket in one half to a nut cavity that the other half encloses
-    on all sides but the bolt hole, or to a hex pocket open to the flat on that side, which the bolt holds the nut in.
+  - Run each cross bolt normal to the seam, from a head pocket in one half to a hex pocket open to the flat on that side,
+    which the bolt holds the nut in. Use a nut cavity that the other half encloses on all sides but the bolt hole only
+    when no other solution exists, and say why in `steps.md`.
     Follow the [Fasteners](../AGENTS.md#fasteners) rules for the head, the hole, the cavity, the bolt's length and the
     1 mm of material round every pocket.
   - Seat the head flush on a flat parallel to the seam, and cut the same flat on the nut's side, so the halves stay

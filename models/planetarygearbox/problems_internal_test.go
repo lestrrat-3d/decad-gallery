@@ -48,18 +48,18 @@ func TestNewFitChecks(t *testing.T) {
 }
 
 // TestEarSpacingCountsRootRounds checks that the ear-spacing problem accounts for the rounds where each ear meets
-// the ring. With the default ring, 17 ears are 18.0 mm apart: more than the 11 mm the ears and their gap need, less
-// than the 18.1 mm they need with their 3.55 mm root rounds.
+// the ring. With the default ring, 19 ears are 15.9 mm apart: more than the 9.6 mm the ears and their gap need, less
+// than the 16.7 mm they need with their 3.55 mm root rounds. 18 ears are 16.8 mm apart, enough.
 func TestEarSpacingCountsRootRounds(t *testing.T) {
 	p := DefaultParams()
 	d := derive(p)
 	half := earHalfWidth(p.EarBoreDiameter)
-	p.EarCount = 17
-	chord := 2 * earCenterRadius(d.ringOuter, p.EarBoreDiameter) * math.Sin(math.Pi/17)
+	p.EarCount = 19
+	chord := 2 * earCenterRadius(d.ringOuter, p.EarBoreDiameter) * math.Sin(math.Pi/19)
 	require.Greater(t, chord, 2*half+earGap)
 	require.Less(t, chord, 2*(half+earRootRound(p))+earGap)
 	require.Contains(t, strings.Join(earProblems(p, d), "\n"), "neighbouring ear bores")
 
-	p.EarCount = 16
+	p.EarCount = 18
 	require.NotContains(t, strings.Join(earProblems(p, d), "\n"), "neighbouring ear bores")
 }

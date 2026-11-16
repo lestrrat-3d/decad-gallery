@@ -45,8 +45,15 @@ type Gearbox struct {
 	InputShaft *decad.Body
 	Stages     []Stage
 	// Bolts holds the eight M2 bolts, four per cover, front cover's first. Each head is sunk flush in its cover's
-	// outer face. Nuts holds the matching eight M2 nuts, each sunk flush in an end face of the ring.
+	// outer face. Nuts holds the matching eight M2 nuts, each in a closed cavity nutRoof inside an end face of the
+	// ring.
 	Bolts, Nuts []*decad.Body
+	// FrontCollar and RearCollar are the collar rings pressed on the free ends of the input and the output shaft,
+	// outside the cover bearings. Each keeps a part pressed on the free end off its bearing and boss.
+	FrontCollar, RearCollar *decad.Body
+	// EarBolts holds one M2 bolt per mounting ear, its head flush in the ear's rear face, and EarNuts the matching
+	// nuts, each in a closed cavity near the ear's front face. Both are empty without ears.
+	EarBolts, EarNuts []*decad.Body
 }
 
 // NamedBody is a body with its display name.
@@ -106,6 +113,10 @@ func (g Gearbox) Named() []NamedBody {
 		}
 		out = append(out, NamedBody{bolt, g.Bolts[i]}, NamedBody{nut, g.Nuts[i]})
 	}
+	for i := range g.EarBolts {
+		out = append(out, NamedBody{EarBoltName(i), g.EarBolts[i]}, NamedBody{EarNutName(i), g.EarNuts[i]})
+	}
+	out = append(out, NamedBody{FrontCollarName, g.FrontCollar}, NamedBody{RearCollarName, g.RearCollar})
 	for k, stage := range g.Stages {
 		out = append(out, NamedBody{SunName(k), stage.Sun})
 		for i, planet := range stage.Planets {
@@ -395,5 +406,25 @@ func (r *run) buildHousing(ctx context.Context, box *Gearbox) error {
 	if box.InputShaft, err = decad.Transform(ctx, shaft, place); err != nil {
 		return fmt.Errorf("place input shaft: %w", err)
 	}
+
+	// Each collar ring stands collarBearingGap outside its cover's bearing boss. The front one is turned over, so its
+	// bearing face looks toward the front bearing; the turn about X keeps its D bore's flat on +X.
+	ring, err := r.buildCollarRing(ctx)
+	if err != nil {
+		return err
+	}
+	frontCollar, err := poseFlipped(r.frame, -(p.StageGap + p.CoverThickness + width + collarBearingGap))
+	if err != nil {
+		return fmt.Errorf("front collar pose: %w", err)
+	}
+	rearCollar, err := pose(r.frame, 0, 0, 0, d.ringLength-p.StageGap+p.CoverThickness+width+collarBearingGap)
+	if err != nil {
+		return fmt.Errorf("rear collar pose: %w", err)
+	}
+	collars, err := instances(ctx, ring, []r3.Transform{frontCollar, rearCollar})
+	if err != nil {
+		return fmt.Errorf("collar rings: %w", err)
+	}
+	box.FrontCollar, box.RearCollar = collars[0], collars[1]
 	return nil
 }

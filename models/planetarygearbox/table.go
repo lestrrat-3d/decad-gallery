@@ -48,6 +48,9 @@ func defineParameters(t *param.Table, p Params) error {
 		{"output_shaft_length", units.Millimeters(p.OutputShaftLength)},
 		{"ear_bore_diameter", units.Millimeters(p.EarBoreDiameter)},
 		{"ear_wall", units.Millimeters(earWall)},
+		{"collar_ring_wall", units.Millimeters(collarRingWall)},
+		{"collar_ring_relief_gap", units.Millimeters(collarRingReliefGap)},
+		{"collar_ring_length", units.Millimeters(collarRingLength)},
 	}
 	for _, v := range values {
 		if err := t.SetValue(v.name, v.value); err != nil {

@@ -31,14 +31,23 @@ const (
 	// fastenerStock is the head pocket tool's reach beyond a face, so no tool face lies in a body face.
 	fastenerStock = 1.0
 	// nutRoof is the ring material between a ring end face and the cavity that holds a nut. The bolt hole runs
-	// through it, and it keeps the nut from falling out of the ring.
-	nutRoof = 1.0
+	// through it, and it keeps the nut from falling out of the ring. It is 1.8 mm, so a mounting ear's nut, which
+	// must sit wholly past the tip of a 10 mm bolt in a one-stage ring, lies in the same layers as the front
+	// housing nuts and drops in at the same print pause.
+	nutRoof = 1.8
 )
 
 // FrontBoltName is the name of front bolt i (0-based). Four bolts hold each cover to the ring, each head sunk flush
 // in the cover's outer face and each screwed into a nut held in a closed cavity inside the ring's wall,
 // nutRoof behind the ring's end face.
 func FrontBoltName(i int) string { return fmt.Sprintf("Front Bolt %d", i+1) }
+
+// EarBoltName is the name of the bolt in mounting ear i (0-based). Its head sits flush in a pocket in the ear's rear
+// face, and it runs along the ear's bore into a nut held in a closed cavity near the ear's front face.
+func EarBoltName(i int) string { return fmt.Sprintf("Ear Bolt %d", i+1) }
+
+// EarNutName is the name of the nut in mounting ear i (0-based).
+func EarNutName(i int) string { return fmt.Sprintf("Ear Nut %d", i+1) }
 
 // RearBoltName is the name of rear bolt i (0-based).
 func RearBoltName(i int) string { return fmt.Sprintf("Rear Bolt %d", i+1) }
@@ -59,11 +68,10 @@ func nutPocketDiameter() float64 { return 2 * (m2nut.AcrossFlats/math.Sqrt(3) + 
 // nutCavityHeight is the axial height of the cavity that holds a nut: the nut's thickness and the clearance at each face.
 func nutCavityHeight() float64 { return m2nut.Thickness + 2*nutClearance }
 
-// cutHeadPockets cuts the cover's four head pockets into the +Z (outer) face of the frame so the
-// bolt head ends level with the face.
-func (r *run) cutHeadPockets(ctx context.Context, cover *decad.Body) (*decad.Body, error) {
-	p, d := r.p, r.d
-	plane, err := r.planeAt(p.CoverThickness - m2bolt.HeadHeight)
+// buildHeadPocketTool builds the cutter for one bolt-head pocket about the local axis: a circle of the head pocket
+// diameter on the plane at z, the pocket's floor, extruded up the head height and fastenerStock past the face.
+func (r *run) buildHeadPocketTool(ctx context.Context, z float64) (*decad.Body, error) {
+	plane, err := r.planeAt(z)
 	if err != nil {
 		return nil, fmt.Errorf("head pocket: %w", err)
 	}
@@ -82,27 +90,47 @@ func (r *run) cutHeadPockets(ctx context.Context, cover *decad.Body) (*decad.Bod
 	if err != nil {
 		return nil, fmt.Errorf("head pocket: extrude: %w", err)
 	}
-	var moves []r3.Transform
-	for _, angle := range boltAngles() {
-		m, err := pose(r3.Identity(), 0, d.boltCircle*math.Cos(angle), d.boltCircle*math.Sin(angle), 0)
+	return tool, nil
+}
+
+// cutAt cuts a copy of tool, moved to each of the (x, y, z) offsets in turn, out of body, and requires a solid. The
+// last cut uses tool itself, so tool leaves the document. what names the feature in errors.
+func cutAt(ctx context.Context, what string, body, tool *decad.Body, at []r3.Vec) (*decad.Body, error) {
+	moves := make([]r3.Transform, 0, len(at))
+	for _, v := range at {
+		m, err := pose(r3.Identity(), 0, v.X, v.Y, v.Z)
 		if err != nil {
-			return nil, fmt.Errorf("head pocket pose: %w", err)
+			return nil, fmt.Errorf("%s pose: %w", what, err)
 		}
 		moves = append(moves, m)
 	}
 	tools, err := instances(ctx, tool, moves)
 	if err != nil {
-		return nil, fmt.Errorf("head pockets: %w", err)
+		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	for i, t := range tools {
-		if cover, err = decad.Cut(ctx, cover, t); err != nil {
-			return nil, fmt.Errorf("cut head pocket %d: %w", i, err)
+		if body, err = decad.Cut(ctx, body, t); err != nil {
+			return nil, fmt.Errorf("cut %s %d: %w", what, i+1, err)
 		}
 	}
-	if !cover.IsSolid() {
-		return nil, fmt.Errorf("cover with head pockets is not a solid")
+	if !body.IsSolid() {
+		return nil, fmt.Errorf("body with %s is not a solid", what)
 	}
-	return cover, nil
+	return body, nil
+}
+
+// cutHeadPockets cuts the cover's four head pockets into the +Z (outer) face of the frame so the
+// bolt head ends level with the face.
+func (r *run) cutHeadPockets(ctx context.Context, cover *decad.Body) (*decad.Body, error) {
+	tool, err := r.buildHeadPocketTool(ctx, r.p.CoverThickness-m2bolt.HeadHeight)
+	if err != nil {
+		return nil, err
+	}
+	var at []r3.Vec
+	for _, s := range r.fastenerSites() {
+		at = append(at, r3.Vec{X: s.x, Y: s.y})
+	}
+	return cutAt(ctx, "cover head pocket", cover, tool, at)
 }
 
 // buildNutTool builds the cutter for one nut cavity about the local origin: a circle of the cavity's diameter,
@@ -143,44 +171,60 @@ func (r *run) fastenerSites() []fastenerSite {
 	return sites
 }
 
-// cutNutPockets cuts a closed round cavity for a nut inside each end of the ring blank, at the four bolt
-// angles. The blank is the ring's outer cylinder in construction coordinates, from ringMargin up the ring length.
-// A cavity starts nutRoof inside the end face, so the bolt hole is its only opening and the nut cannot fall out of
-// the ring. The nut goes in while the ring prints, with a pause under the cavity's roof. The cavities are cut before the tooth spaces, because the
-// cuts then run on a plain cylinder.
-func (r *run) cutNutPockets(ctx context.Context, blank *decad.Body) (*decad.Body, error) {
+// earSites are the bore centers of the mounting ears, one per ear, each at its ear's angle.
+func (r *run) earSites() []fastenerSite {
+	radius := earCenterRadius(r.d.ringOuter, r.p.EarBoreDiameter)
+	var sites []fastenerSite
+	for i := range r.p.EarCount {
+		angle := earAngle(i, r.p.EarCount)
+		sites = append(sites, fastenerSite{radius * math.Cos(angle), radius * math.Sin(angle), angle})
+	}
+	return sites
+}
+
+// cutRingPockets cuts the fastener pockets of the ring blank. The blank is the ring's outer cylinder in construction
+// coordinates, from ringMargin up the ring length, with its front face at ringMargin.
+//
+// A closed round cavity for a housing nut lies inside each end at the four bolt angles, nutRoof inside the end face, so
+// the bolt hole is its only opening and the nut cannot fall out of the ring. Each mounting ear takes a head pocket in
+// its rear face, as deep as the head is tall, and a closed nut cavity earNutFloor above its front face. Every nut goes
+// in while the ring prints, with a pause under the cavity's roof. The pockets are cut before the tooth spaces, because
+// the cuts then run on a plain cylinder.
+func (r *run) cutRingPockets(ctx context.Context, blank *decad.Body) (*decad.Body, error) {
 	tool, err := r.buildNutTool(ctx)
 	if err != nil {
 		return nil, err
 	}
 	front := float64(ringMargin) + nutRoof
 	rear := float64(ringMargin) + r.d.ringLength - nutRoof - nutCavityHeight()
-	var moves []r3.Transform
+	var at []r3.Vec
 	for _, z := range []float64{front, rear} {
 		for _, s := range r.fastenerSites() {
-			m, err := pose(r3.Identity(), 0, s.x, s.y, z)
-			if err != nil {
-				return nil, fmt.Errorf("nut cavity pose: %w", err)
-			}
-			moves = append(moves, m)
+			at = append(at, r3.Vec{X: s.x, Y: s.y, Z: z})
 		}
 	}
-	tools, err := instances(ctx, tool, moves)
+	earNut := float64(ringMargin) + earNutFloor(r.d.ringLength)
+	for _, s := range r.earSites() {
+		at = append(at, r3.Vec{X: s.x, Y: s.y, Z: earNut})
+	}
+	if blank, err = cutAt(ctx, "nut cavity", blank, tool, at); err != nil {
+		return nil, err
+	}
+	if r.p.EarCount == 0 {
+		return blank, nil
+	}
+	head, err := r.buildHeadPocketTool(ctx, float64(ringMargin)+r.d.ringLength-m2bolt.HeadHeight)
 	if err != nil {
-		return nil, fmt.Errorf("nut cavities: %w", err)
+		return nil, err
 	}
-	for i, t := range tools {
-		if blank, err = decad.Cut(ctx, blank, t); err != nil {
-			return nil, fmt.Errorf("cut nut cavity %d: %w", i, err)
-		}
+	at = at[:0]
+	for _, s := range r.earSites() {
+		at = append(at, r3.Vec{X: s.x, Y: s.y})
 	}
-	if !blank.IsSolid() {
-		return nil, fmt.Errorf("ring blank with nut cavities is not a solid")
-	}
-	return blank, nil
+	return cutAt(ctx, "ear head pocket", blank, head, at)
 }
 
-// nutAngle is the turn that puts a nut's flats toward the bolt circle's radius; its corners lie on X at zero turn.
+// nutAngle is the turn that puts a nut's flats toward the site's radius; its corners lie on X at zero turn.
 func nutAngle(s fastenerSite) float64 { return s.angle - math.Pi/2 }
 
 // buildFasteners builds the eight M2 bolts and nuts. Each bolt's head ends level with its cover's outer face, so
@@ -234,8 +278,51 @@ func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 	if box.Bolts, err = instances(ctx, bolt.Body, boltMoves); err != nil {
 		return fmt.Errorf("bolts: %w", err)
 	}
+	if p.EarCount > 0 {
+		earNut, err := decad.Copy(ctx, nut.Body)
+		if err != nil {
+			return fmt.Errorf("ear nut: %w", err)
+		}
+		if err := r.buildEarFasteners(ctx, box, earNut); err != nil {
+			return err
+		}
+	}
 	if box.Nuts, err = instances(ctx, nut.Body, nutMoves); err != nil {
 		return fmt.Errorf("nuts: %w", err)
+	}
+	return nil
+}
+
+// buildEarFasteners builds one M2 bolt and one nut per mounting ear from the nut master nut, which it consumes. The
+// bolt is earBoltLength long. Its head rests on the floor of the pocket in the ear's rear face, so the head ends level
+// with that face, and its tip stays inside the ear's bore. The nut rests in its closed cavity, nutClearance above the
+// cavity's floor, wholly between the head and the tip.
+func (r *run) buildEarFasteners(ctx context.Context, box *Gearbox, nut *decad.Body) error {
+	p, d := r.p, r.d
+	ringEnd := d.ringLength - p.StageGap
+	bolt, err := m2bolt.Build(ctx, r.doc, m2bolt.Params{Length: earBoltLength(d.ringLength)})
+	if err != nil {
+		return fmt.Errorf("M2 ear bolt: %w", err)
+	}
+	floor := ringEnd - m2bolt.HeadHeight
+	nutZ := -p.StageGap + earNutFloor(d.ringLength) + nutClearance
+	var boltMoves, nutMoves []r3.Transform
+	for _, s := range r.earSites() {
+		m, err := pose(r.frame, 0, s.x, s.y, floor)
+		if err != nil {
+			return fmt.Errorf("ear bolt pose: %w", err)
+		}
+		boltMoves = append(boltMoves, m)
+		if m, err = pose(r.frame, nutAngle(s), s.x, s.y, nutZ); err != nil {
+			return fmt.Errorf("ear nut pose: %w", err)
+		}
+		nutMoves = append(nutMoves, m)
+	}
+	if box.EarBolts, err = instances(ctx, bolt.Body, boltMoves); err != nil {
+		return fmt.Errorf("ear bolts: %w", err)
+	}
+	if box.EarNuts, err = instances(ctx, nut, nutMoves); err != nil {
+		return fmt.Errorf("ear nuts: %w", err)
 	}
 	return nil
 }
