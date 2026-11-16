@@ -412,6 +412,11 @@ def run_escapement() -> None:
     go_test_shards("./models/escapement", ESCAPEMENT_SHARDS, "40m")
 
 
+def run_turbinefan() -> None:
+    """Run every test of the turbine fan package: about 5 minutes on a busy runner, so it has its own job."""
+    go_test(["./models/turbinefan", "-timeout", "40m", "-count=1"])
+
+
 def run_onewayclutch() -> None:
     """Run every test of the one-way clutch package: about 12 minutes, over the 5 minute PR job limit, so it has its
     own job."""
@@ -482,12 +487,15 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
+    if suite == "turbinefan" and not args and mode == "all":
+        run_turbinefan()
+        return
     if suite == "fan" and not args and mode in FAN_VARIANTS:
         run_fan_variant(mode)
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | escapement all | onewayclutch all | fan <flat-three|steep-three>"
+        " | siren <default|variants> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 
