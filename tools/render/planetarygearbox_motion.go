@@ -42,9 +42,10 @@ const planetaryCaptionHeight = 18
 
 // planetaryMover moves one body of the gearbox for an input angle. A nil move leaves the body where it is.
 type planetaryMover struct {
-	body planetaryBody
-	mesh solidlens.TriangleSource
-	move func(input float64) (r3.Transform, error)
+	body       planetaryBody
+	mesh       solidlens.TriangleSource
+	move       func(input float64) (r3.Transform, error)
+	preclipped bool
 }
 
 // planetaryMovers pairs every body with how it moves when the input shaft turns by an angle. The kinematics are
@@ -100,21 +101,30 @@ func planetaryPoseModels(movers []planetaryMover, input float64, cut bool) ([]so
 			mesh = moved
 		}
 		models[i] = planetaryModel(mesh, mover.body, cut)
+		if cut && mover.preclipped {
+			models[i].BackMaterial = models[i].Clip.Cap
+			models[i].Clip = nil
+		}
 	}
 	return models, nil
 }
 
-// planetaryPanelMovers gives each uncut panel its own reusable stationary housing meshes.
+// planetaryPanelMovers prepares reusable stationary housing meshes for each panel.
 func planetaryPanelMovers(movers []planetaryMover, cut bool) ([]planetaryMover, error) {
-	if cut {
-		return movers, nil
-	}
 	panel := append([]planetaryMover(nil), movers...)
 	for i, mover := range panel {
 		if !mover.body.housing || mover.move != nil {
 			continue
 		}
-		mesh, err := solidlens.MeshFrom(mover.mesh)
+		var mesh *solidlens.Mesh
+		var err error
+		if cut {
+			model := planetaryModel(mover.mesh, mover.body, true)
+			mesh, err = solidlens.ClipMesh(mover.mesh, *model.Clip)
+			panel[i].preclipped = true
+		} else {
+			mesh, err = solidlens.MeshFrom(mover.mesh)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("prepare %s for motion: %w", mover.body.name, err)
 		}
@@ -204,7 +214,7 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 		if err != nil {
 			return err
 		}
-		rest, err := planetaryPoseModels(panelMovers[i], 0, panel.cut)
+		rest, err := planetaryPoseModels(movers, 0, panel.cut)
 		if err != nil {
 			return err
 		}
