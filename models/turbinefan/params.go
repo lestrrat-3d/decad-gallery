@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/r3"
 )
@@ -18,9 +17,9 @@ import (
 const (
 	BladeCount = 3 // the requirement: three replaceable blades
 
-	HubRadius = handcrankfan.HubRadius // 14, the hand-crank fan's hub: the blade's root and stud fix it
-	HubLength = handcrankfan.HubLength // 20
-	HubMid    = HubLength / 2          // the sockets' and blade bolts' plane
+	HubRadius = 14.0 // the blade's root and stud fix it
+	HubLength = 20.0
+	HubMid    = HubLength / 2 // the sockets' and blade bolts' plane
 
 	FirstBladeAngle = math.Pi / 2 // blade 1 along +Y; the set screw lies along -Y, midway between blades 2 and 3
 
@@ -58,7 +57,7 @@ type Params struct {
 	FlatDepth float64
 	// BoreClearance is the radial clearance of the hub's D bore round the shaft, on the round and on the flat.
 	BoreClearance float64
-	// BladePitch is the blade angle at 48 mm radius, in radians, from handcrankfan.MinBladePitch to MaxBladePitch.
+	// BladePitch is the blade angle at 48 mm radius, in radians, from MinBladePitch to MaxBladePitch.
 	BladePitch float64
 	// Hand selects the blades' hand; the zero value is RightHand.
 	Hand      Hand
@@ -71,7 +70,7 @@ func Params605ZZ() Params {
 		ShaftDiameter: ballbearing.Params605ZZ().BoreDiameter,
 		FlatDepth:     crankhandle.Params605ZZ().FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
-		BladePitch:    handcrankfan.DefaultBladePitch,
+		BladePitch:    DefaultBladePitch,
 	}
 }
 
@@ -81,7 +80,7 @@ func Params608ZZ() Params {
 		ShaftDiameter: ballbearing.Params608ZZ().BoreDiameter,
 		FlatDepth:     crankhandle.Params6082RS().FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
-		BladePitch:    handcrankfan.DefaultBladePitch,
+		BladePitch:    DefaultBladePitch,
 	}
 }
 
@@ -139,7 +138,7 @@ func (p Params) Derive() (Dimensions, error) {
 	dm.BoreFlatWidth = 2 * math.Sqrt(dm.BoreRadius*dm.BoreRadius-dm.BoreFlat*dm.BoreFlat)
 	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + dm.BoreFlatWidth
 	dm.ShaftFlatWidth = 2 * math.Sqrt(p.FlatDepth*(p.ShaftDiameter-p.FlatDepth))
-	if handcrankfan.BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
+	if BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
 		return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
 			PressWall)
 	}
@@ -149,7 +148,7 @@ func (p Params) Derive() (Dimensions, error) {
 	if dm.BoreFlatWidth < 2*(m2fastener.HoleRadius+0.1)-1e-9 {
 		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the bore's flat at least 2.8 mm wide for the set screw's hole")
 	}
-	if p.BladePitch < handcrankfan.MinBladePitch || p.BladePitch > handcrankfan.MaxBladePitch {
+	if p.BladePitch < MinBladePitch || p.BladePitch > MaxBladePitch {
 		return Dimensions{}, errors.New("turbinefan: BladePitch must lie in [10°, 40°] radians")
 	}
 	if p.Hand != RightHand && p.Hand != LeftHand {
@@ -183,11 +182,11 @@ func (p Params) Derive() (Dimensions, error) {
 	for i := range dm.BladeSites {
 		u := r3.Vec{X: math.Cos(BladeAngle(i + 1)), Y: math.Sin(BladeAngle(i + 1))}
 		dm.BladeSites[i] = m2fastener.Site{
-			Head:   u.Scale(handcrankfan.BladeBoltAt).Add(r3.Vec{Z: HubLength}),
+			Head:   u.Scale(BladeBoltAt).Add(r3.Vec{Z: HubLength}),
 			Dir:    r3.Vec{Z: -1},
 			Corner: u,
-			Length: handcrankfan.BladeBoltLength,
-			Cavity: handcrankfan.BladeBoltCavity,
+			Length: BladeBoltLength,
+			Cavity: BladeBoltCavity,
 		}
 		if err := dm.BladeSites[i].Validate(); err != nil {
 			return Dimensions{}, fmt.Errorf("turbinefan: blade bolt %d: %w", i+1, err)

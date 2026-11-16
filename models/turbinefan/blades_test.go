@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -50,7 +49,7 @@ func farthest(ring []r3.Vec, from r3.Vec, skip func(r3.Vec) bool) r3.Vec {
 // TestTurbineFanPitch pins the fan's hand and pitch. Blade 1 lies along +Y. In one radial ring of its mesh the chord
 // runs from the trailing edge's midpoint to the leading edge. Seen from the front the fan turns clockwise, toward +X at
 // the top, so the leading edge leads (+X) and sits upstream (-Z): the chord is (cos beta, 0, -sin beta), where beta is
-// the blade angle handcrankfan.Beta gives at that radius.
+// the blade angle turbinefan.Beta gives at that radius.
 func TestTurbineFanPitch(t *testing.T) {
 	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		p := c.params()
@@ -66,7 +65,7 @@ func TestTurbineFanPitch(t *testing.T) {
 			dx, dz := le.X-mid.X, le.Z-mid.Z
 			require.Greater(t, dx, 0.0, "the leading edge leads toward +X at radius %g", y)
 			require.Less(t, dz, 0.0, "the leading edge is upstream at radius %g", y)
-			require.InDelta(t, handcrankfan.Beta(y, p.BladePitch), math.Atan2(-dz, dx), 0.5*math.Pi/180, "chord angle at radius %g", y)
+			require.InDelta(t, turbinefan.Beta(y, p.BladePitch), math.Atan2(-dz, dx), 0.5*math.Pi/180, "chord angle at radius %g", y)
 		}
 	})
 }
@@ -189,7 +188,7 @@ func TestTurbineFanReplaceBlade(t *testing.T) {
 				plane := section(t, blade, radial(t, k))
 				uv := func(v r3.Vec) (float64, float64) { return v.X*u.X + v.Y*u.Y, v.Z }
 				solid := func(r float64) bool { return inSection(plane, uv, r, turbinefan.HubMid) }
-				shank := handcrankfan.BladeBoltAt
+				shank := turbinefan.BladeBoltAt
 				require.True(t, solid(shank-1.5), "the stud's wall inside the shank")
 				require.False(t, solid(shank-1.0), "the shank's inner side lies in the hole")
 				require.False(t, solid(shank+1.0), "the shank's outer side lies in the hole")
@@ -246,5 +245,5 @@ func TestTurbineFanLeftHand(t *testing.T) {
 	mid := te1.Add(te2).Scale(0.5)
 	require.Less(t, le.X-mid.X, 0.0)
 	require.Less(t, le.Z-mid.Z, 0.0)
-	require.InDelta(t, handcrankfan.Beta(y, p.BladePitch), math.Atan2(-(le.Z-mid.Z), -(le.X-mid.X)), 0.5*math.Pi/180)
+	require.InDelta(t, turbinefan.Beta(y, p.BladePitch), math.Atan2(-(le.Z-mid.Z), -(le.X-mid.X)), 0.5*math.Pi/180)
 }

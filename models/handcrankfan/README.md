@@ -13,20 +13,21 @@ The finished fan from three more angles: the crank side, from behind and above, 
 
 | | | |
 | --- | --- | --- |
-| <img src="images/view-crank.png" alt="Hand-crank fan seen from the crank side, with the crank arm and handle on the gearbox and the grip below" width="320"> | <img src="images/view-rear.png" alt="Hand-crank fan seen from behind and above: the open back of the gearbox with the bevel gears, the two shaft collars on its left face with small flush bolt heads at the corners, and the grip below" width="320"> | <img src="images/view-below.png" alt="Hand-crank fan seen from below: the grip, the gearbox's underside with its bolt heads, the crank handle and the four-blade rotor" width="320"> |
+| <img src="images/view-crank.png" alt="Hand-crank fan seen from the crank side, with the crank arm and handle on the gearbox and the grip below" width="320"> | <img src="images/view-rear.png" alt="Hand-crank fan seen from behind and above: the open back of the gearbox with the bevel gears, the two shaft collars on its left face with small flush bolt heads at the corners, and the grip below" width="320"> | <img src="images/view-below.png" alt="Hand-crank fan seen from below: the grip, the gearbox's underside with its bolt heads, the crank handle and the three-blade rotor" width="320"> |
 
-![The fan pulled apart along its joints: grip and its bolts, gearbox, spur and bevel gears, shafts, arm, handle and pin, and the fan shaft, hub, blades, bolts and nuts](images/exploded.png)
+![The fan pulled apart along its joints: grip and its bolts, gearbox, spur and bevel gears, shafts, arm, handle and pin, and the fan shaft, hub, blades, set screw, bolts and nuts](images/exploded.png)
 
 The crank shaft sits 40 mm below the fan's axis, so the crank handle swings clear of the blades. A pair of
 equal spur gears inside the gearbox carries its turn up to the drive shaft, and a straight-tooth bevel gear pair turns that through 90°
-and doubles its speed: one forward crank turn (clockwise, seen from the right) turns the four-blade rotor
+and doubles its speed: one forward crank turn (clockwise, seen from the right) turns the three-blade turbine fan rotor
 twice, clockwise as the operator sees it. The spur pair reverses the turn, so the blades are mirrored to push air
 toward the operator. Each blade is shaped like a small wind turbine blade: a thick round root, a widest section near
 the hub, and a taper to a thin tip, with the angle falling from the root to the tip. Its concave face leads the
 motion and faces the operator.
 
-Each blade is a separate part with a round stud that slides into a socket in the hub. One M2 x 16 bolt and nut
-hold it, so a damaged blade comes off and is replaced. Everything else is meant to be 3D-printed, except the M2 bolts
+The rotor is the [turbine fan](../turbinefan/) on the 8 mm fan shaft. The hub grips a flat on the shaft, and one M2 x 6
+set screw in the hub's round face holds it there. Each blade is a separate part with a round stud that slides into a
+socket in the hub. One M2 x 16 bolt and nut hold it, so a damaged blade comes off and is replaced. Everything else is meant to be 3D-printed, except the M2 bolts
 and nuts and seven 608-2RS ball bearings, one wherever a shaft crosses a wall.
 
 The grip hangs under the gearbox. It is an oval of about 35 to 38 mm, raked like a pistol grip, with a flared base
@@ -37,8 +38,8 @@ shaft's splines in a press-fit bore, and one more M2 x 10 bolt and nut hold the 
 rotor has no guard.
 
 The gears are the [bevel gear pair](../bevelgear/) and two [spur gears](../spurgear/). Each shaft is 8 mm
-across with three grooves, and each gear, the crank arm and the fan hub have a bore with three teeth that sit in them, so six
-faces carry the torque and the round shaft still slides through every bore. The gearbox is one flat-walled tray with a post across its left end and a back wall, 51 mm
+across with three grooves, and each gear and the crank arm have a bore with three teeth that sit in them, so six
+faces carry the torque and the round shaft still slides through every bore. The fan shaft is grooved only where the pinion sits, and the hub sits on a flat further along it. The gearbox is one flat-walled tray with a post across its left end and a back wall, 51 mm
 wide, 89 mm tall and 81 mm deep, not counting the bearing blocks. The spur gears sit in it left of the bevel gear, and
 both shafts slide in through the post and carry a collar outside it. A bearing sits in a seat in the post, in the crank-side wall,
 in the crank block and in the fan wall and block, so there is no boss or sleeve. The tray prints as four pieces cut at its walls: the base, which is the floor and the back wall, the post, the
@@ -52,8 +53,9 @@ holes, small enough to print on their side.
 ## Bolts, nuts and fits
 
 Every bolt head sinks into a pocket in the part it joins and ends flush with that part's face, so nothing stands
-proud. Every nut sits in a cavity that the part closes on all sides except the bolt hole, so the nut cannot fall out.
-The printer cannot make a closed cavity around a nut, so you drop each nut in during a print pause:
+proud. Every nut in the gearbox, the grip and the crank pin sits in a cavity that the part closes on all sides except the bolt
+hole, so the nut cannot fall out. The printer cannot make a closed cavity around a nut, so you drop each of those nuts in
+during a print pause. The fan hub needs no pause: its nuts sit in slots open to a face, and you put them in after printing.
 
 1. Slice the piece in the orientation below and add a pause at the layer where the cavity's roof starts.
 2. When the printer pauses, drop the nut into the open cavity. It lies flat.
@@ -61,7 +63,6 @@ The printer cannot make a closed cavity around a nut, so you drop each nut in du
 
 | Piece | Prints with | Nuts to drop in |
 | --- | --- | --- |
-| Fan hub | front face down | one for each blade |
 | Gearbox post | inner face down | two, for the ear bolts |
 | Gearbox crank-side wall | the face that meets the base down | two, for the ear bolts |
 | Gearbox base | back wall down | four, for the wall bolts |
@@ -76,11 +77,12 @@ The other printed parts print as follows. A part pressed on a shaft prints with 
 | Crank arm, crank gear, drive gear | either face down |
 | Bevel gears | back face down |
 | Crank shaft, drive shaft | standing on the collar end |
+| Fan hub | front face down, axis vertical |
 | Fan shaft | standing on its front tip |
 | Crank handle | standing on its inner end |
 | Fan blade | standing on the stud end |
 
-A fan with four blades takes 15 bolts (7 of M2 x 10 and 8 of M2 x 16) and 15 nuts.
+A fan takes 15 bolts (7 of M2 x 10, 7 of M2 x 16 and 1 of M2 x 6) and 15 nuts.
 
 Every pair of printed parts has a gap of at least 0.2 mm where the parts are not meant to come apart (Tight), 0.35 mm
 where they move or come apart for service (Regular), and 0.5 mm where they only sit near each other (Loose). The spur gears sit 40 mm apart, half the sum of their pitch diameters,
@@ -115,13 +117,13 @@ repeated as the names say. The bought parts are the bolts, the nuts and the bear
 | <img src="images/parts/crank-pin-screw.png" alt="Crank pin bolt and nut, M2 x 10" width="240"> | Crank pin bolt and nut, M2 x 10 |
 | <img src="images/parts/crank-handle.png" alt="Crank handle" width="240"> | Crank handle |
 | <img src="images/parts/fan-hub.png" alt="Fan hub" width="240"> | Fan hub |
-| <img src="images/parts/fan-blade.png" alt="Fan blade (one for each blade)" width="240"> | Fan blade (one for each blade) |
-| <img src="images/parts/fan-bolt.png" alt="Blade bolt and nut, M2 x 16 (one for each blade)" width="240"> | Blade bolt and nut, M2 x 16 (one for each blade) |
+| <img src="images/parts/fan-blade.png" alt="Fan blade (three)" width="240"> | Fan blade (three) |
+| <img src="images/parts/fan-bolt.png" alt="Blade bolt and nut, M2 x 16 (three)" width="240"> | Blade bolt and nut, M2 x 16 (three) |
+| <img src="images/parts/fan-set-screw.png" alt="Set screw and nut, M2 x 6" width="240"> | Set screw and nut, M2 x 6, which holds the hub on the fan shaft's flat |
 
 You can vary:
 
 - The crank angle, which also sets the fan angle at twice that value.
 - The blade pitch, from 10° to 40°, which turns each whole blade; it is the blade angle at three quarters of the radius.
-- The number of blades, 3 or 4.
 
 For how to build it from Go, see the [developer notes](../../docs/models/handcrankfan.md).

@@ -7,7 +7,6 @@ import (
 
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -44,7 +43,7 @@ func socketFloorRound() cornercheck.Exempt {
 		Reason: "blade socket floor round cut at a slant",
 		Near: func(v r3.Vec) bool {
 			r := math.Hypot(v.X, v.Y)
-			return r >= handcrankfan.BladeSocketStart-0.05 && r <= handcrankfan.BladeSocketStart+0.9
+			return r >= turbinefan.BladeSocketStart-0.05 && r <= turbinefan.BladeSocketStart+0.9
 		},
 	}
 }
@@ -75,7 +74,7 @@ func TestTurbineFanCorners(t *testing.T) {
 // its bolt hole crosses it; the hole's four corners (r 9.5 and 10.2) are the one exemption, where the material angle is
 // 64 to 90 degrees and the checker adds the stud's curvature. The loft is cut at the listed radii, because it has no
 // planar faces to give heights. The step where the stud meets the root face (r 14.4) is a corner between layers, which
-// no section reads; instructions.md lists it as inherited from handcrankfan.
+// no section reads; instructions.md lists it.
 func requireBladeCorners(t *testing.T, m *turbinefan.Model, k int) {
 	t.Helper()
 	d := bladeDir(k)

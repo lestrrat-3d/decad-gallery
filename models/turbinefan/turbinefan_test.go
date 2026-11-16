@@ -8,7 +8,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -32,12 +31,12 @@ var fanCases = []fanCase{
 	}},
 	{"steep", func() turbinefan.Params {
 		p := turbinefan.Params608ZZ()
-		p.BladePitch = handcrankfan.MaxBladePitch
+		p.BladePitch = turbinefan.MaxBladePitch
 		return p
 	}},
 	{"flat", func() turbinefan.Params {
 		p := turbinefan.Params605ZZ()
-		p.BladePitch = handcrankfan.MinBladePitch
+		p.BladePitch = turbinefan.MinBladePitch
 		return p
 	}},
 	{"placed", func() turbinefan.Params {
@@ -331,7 +330,7 @@ func TestTurbineFanPlacement(t *testing.T) {
 	pairs := map[string][2]*decad.Body{
 		"hub": {local.Hub, placed.Hub}, "blade 1": {local.Blades[0], placed.Blades[0]},
 		"blade 3": {local.Blades[2], placed.Blades[2]}, "blade bolt": {local.BladeBolts[1].Body, placed.BladeBolts[1].Body},
-		"blade nut":  {local.BladeNuts[2].Body, placed.BladeNuts[2].Body},
+		"blade nut": {local.BladeNuts[2].Body, placed.BladeNuts[2].Body},
 		"set screw": {local.SetScrew.Body, placed.SetScrew.Body}, "set screw nut": {local.SetScrewNut.Body, placed.SetScrewNut.Body},
 	}
 	for name, pair := range pairs {
@@ -371,7 +370,7 @@ func TestTurbineFanEnvelope(t *testing.T) {
 			}
 			require.GreaterOrEqual(t, lo, 0.0, "blade %d: lowest z", k+1)
 			require.LessOrEqual(t, hi, float64(turbinefan.HubLength), "blade %d: highest z", k+1)
-			require.LessOrEqual(t, far, handcrankfan.BladeTipRadius()+0.5, "blade %d: radius", k+1)
+			require.LessOrEqual(t, far, turbinefan.BladeTipRadius()+0.5, "blade %d: radius", k+1)
 			t.Logf("%s blade %d: z from %.2f to %.2f, radius %.2f", c.name, k+1, lo, hi, far)
 		}
 	})

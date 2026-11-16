@@ -5,8 +5,8 @@
 Construct a fan of three replaceable blades on one printed hub. The hub is a plain round cylinder, radius 14 and 20 long,
 with a D bore for a D-flat shaft. One radial M2 x 6 bolt acts as a set screw: it threads through a nut in a hex slot open
 to the hub's back face, and its tip presses the shaft's flat. Its head floats, recessed, in a counterbore cut into the
-round face, so nothing stands outside radius 14 except the three blades. Each blade is the hand-crank fan's blade
-([`models/handcrankfan`](../handcrankfan/)), with its round root stud that slides into a radial socket in the hub and one M2
+round face, so nothing stands outside radius 14 except the three blades. Each blade is this model's blade
+(`blade.go`), with its round root stud that slides into a radial socket in the hub and one M2
 bolt that runs parallel to the shaft through the hub and the stud into a nut. That nut sits in a hex slot open to the round
 face, below the blade, so no nut is embedded and the hub needs no print pause. The parts are:
 
@@ -20,9 +20,9 @@ in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The preset
 [`models/ballbearing`](../ballbearing/). The bolts and nuts are [`models/m2bolt`](../m2bolt/) and
 [`models/m2nut`](../m2nut/), placed with `internal/m2fastener`.
 
-All dimensions are in millimeters; angles are radians in code and degrees in prose. The model reuses `handcrankfan` by
-import and copies no geometry: it exports `BuildBlade`, `BuildBladeMirrored`, the blade socket tool and the hub and
-blade-joint constants. It reads `PressWall`, `ChamferSize`, `RegularFit` and the shaft flats from `crankhandle`.
+All dimensions are in millimeters; angles are radians in code and degrees in prose. The model owns the blade and its
+joint: it exports `BuildBlade`, `BuildBladeMirrored`, the blade socket tool and the hub and blade-joint constants, and
+[`models/handcrankfan`](../handcrankfan/) imports them with `Params608ZZ`. It reads `PressWall`, `ChamferSize`, `RegularFit` and the shaft flats from `crankhandle`.
 
 ## Symbols
 
@@ -65,11 +65,13 @@ Package: `models/turbinefan`. Exported surface:
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds `Parts`
   and holds `BladeBolts`, `BladeNuts`, `SetScrew` (`*m2bolt.Model`) and `SetScrewNut` (`*m2nut.Model`).
 
-The exports this model needs from other items: `handcrankfan.BuildBlade(ctx, doc, pitch)` returns the unplaced blade and its
-sketches, `BuildBladeMirrored` the blade of the other hand, `BladeSocketTool(ctx, doc, f)` builds a socket cutter; and
-`HubRadius`, `HubLength`, `BladeBoltAt`, `BladeBoltLength`, `BladeBoltCavity`, the stud and socket constants,
-`DefaultBladePitch`, `MinBladePitch`, `MaxBladePitch`, `BladeRootRadius()`, `BladeTipRadius()` and `Beta(r, pitch)`. From
-`crankhandle`: `PressWall`, `ChamferSize`, `RegularFit`, `Params605ZZ` and `Params6082RS`.
+The blade exports other models use: `BuildBlade(ctx, doc, pitch)` returns the unplaced blade and its twelve sketches,
+`BuildBladeMirrored` the blade of the other hand (its sections not flipped and its pitch turn reversed, so it is the first
+blade reflected in the plane x = 0 of its local frame), `BladeSocketTool(ctx, doc, f)` builds a socket cutter; and
+`HubRadius`, `HubLength`, `BladeBoltAt`, `BladeBoltLength`, `BladeBoltCavity`, `BladeStudRadius`, `BladeStudStart`,
+`BladeStudEnd`, `BladeSocketRadius`, `BladeSocketStart`, `BladeSocketFloorRound`, `DefaultBladePitch`, `MinBladePitch`,
+`MaxBladePitch`, `BladeRootRadius()`, `BladeTipRadius()` and `Beta(r, pitch)`. From `crankhandle`: `PressWall`,
+`ChamferSize`, `RegularFit`, `Params605ZZ` and `Params6082RS`.
 
 ## Presets and defaults
 
@@ -78,7 +80,7 @@ sketches, `BuildBladeMirrored` the blade of the other hand, `BladeSocketTool(ctx
 | `ShaftDiameter` | 5, `ballbearing.Params605ZZ().BoreDiameter` | 8, `ballbearing.Params608ZZ().BoreDiameter` |
 | `FlatDepth` | 0.5, the planetary gearbox shafts' flat | 0.75, the siren shafts' flat |
 | `BoreClearance` | 0.05, `ballbearing.PressFitClearance` | 0.05 |
-| `BladePitch` | 25 degrees, `handcrankfan.DefaultBladePitch` | 25 degrees |
+| `BladePitch` | 25 degrees, `DefaultBladePitch` | 25 degrees |
 | `Hand` | `RightHand` | `RightHand` |
 
 | Derived | 605ZZ | 608ZZ | `regular-bore` (605ZZ, c 0.35) |
@@ -133,9 +135,9 @@ and 3. A `Placement` maps this frame onto the given one after each part's last o
 
 Hand: a right-hand rotor blows air forward, along +Z and away from the mechanism, when the shaft turns clockwise seen from
 the front. A left-hand rotor does the same when the shaft turns counter-clockwise: its blades are the right-hand blades
-reflected in the plane x = 0 (`handcrankfan.BuildBladeMirrored`), which maps blade 1 to itself and swaps blades 2 and 3.
+reflected in the plane x = 0 (`BuildBladeMirrored`), which maps blade 1 to itself and swaps blades 2 and 3.
 The hub, bolts and nuts do not depend on the hand. For the right hand, a blade's chord from its trailing edge to its
-leading edge at radius r runs along `(cos beta, 0, -sin beta)` with `beta = handcrankfan.Beta(r, BladePitch)`: the leading
+leading edge at radius r runs along `(cos beta, 0, -sin beta)` with `beta = Beta(r, BladePitch)`: the leading
 edge leads toward +X at the top and sits upstream (-Z), and the concave pressure face faces the front.
 
 ## Geometry
@@ -146,7 +148,7 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
    The profile has four holes: the three bolt holes and the bore. The bore runs through.
 2. **Hub body.** Extrude 20 along +Z, then `edgefinish.Chamfer` of both faces by `ChamferSize`, taking the long loops: the
    outer circle on both faces and, when `L_b` is 20 or more (608ZZ), the D loop. Then cut, in this order:
-   - the three sockets: `handcrankfan.BladeSocketTool` on the frame with origin `(0, 5.7, 10)`, U = +Z and V = +X (normal
+   - the three sockets: `BladeSocketTool` on the frame with origin `(0, 5.7, 10)`, U = +Z and V = +X (normal
      +Y), and its two copies from `decad.PatternCopies` with a circular pattern of three about +Z;
    - for each blade k, `m2fastener.PocketTool` (head pocket, z 18 to 20, radius 2.2) then the blade nut slot (below);
    - the set screw's counterbore (below), `m2fastener.HoleTool(SetScrewSite)` (radius 1.3, from `rho_h + 1` to `rho_t - 1`, its
@@ -160,12 +162,12 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
 4. **Counterbore.** A revolved meridian about the screw's line: from the floor at `rho_f` a quarter-round of radius
    `CounterboreRound` (eight chords) up to radius 2.2, out through the round face. The head (radius 1.9) floats
    `SetScrewTravel` above the floor, where the round's surface is at radius 2.19, so it clears it by 0.29.
-5. **Blades.** `handcrankfan.BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` for `LeftHand`) returns blade 1 in its own
+5. **Blades.** `BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` for `LeftHand`) returns blade 1 in its own
    frame (origin on the fan axis in the hub's mid plane, +Z its radial line, +Y downstream, the blade moving toward -X).
    `decad.Transform` by the frame with origin `(0, 0, 10)`, U = (-1, 0, 0) and V = (0, 0, 1) turns it into place: blade-local
    Z becomes +Y, local Y becomes +Z and local X becomes -X. `decad.PatternCopies` with the hub's pattern gives blades 2 and
    3. Do not transform blade 1 again before copying.
-6. **Blade facts.** From handcrankfan: a loft from r 14.4 to 64 through ten stations; a stud of radius 3 from r 6.1 to 16
+6. **Blade facts.** A loft from r 14.4 to 64 through ten stations; a stud of radius 3 from r 6.1 to 16
    with a 0.3 chamfer on its inner end; a bolt hole of radius 1.3 along the fan axis at r 9.5 through the stud; sections
    that are NACA 4-digit mean lines blended with an ellipse at the root; a blade angle `Beta(r, BladePitch)` that is
    constant inboard of r 21.5; a trailing edge 1.0 thick. The rotor is 128 across. Every blade vertex lies between z 0 and
@@ -221,7 +223,7 @@ z 4.4. The set screw's nut is wholly inside the hub (z 1.69 to 6.31); the blade 
 `m2fastener.Site{Head: (0, -rho_h, SetScrewZ), Dir: (0, 1, 0), Corner: (0, 0, 1), Length: SetScrewBolt, Cavity:
 rho_h - f_b - PressWall - NutCavityHeight}`; `Cavity` is 4.3 at the presets, so the slot spans `f_b + 1.6` to `f_b + 3.6`
 and its inner face keeps exactly `PressWall` to the bore's flat. `Corner` +Z puts the nut's corners up and down and its
-flats on +-X. `Tip()` is 8, so the tip lies at `rho_t`. The blade bolt sites are handcrankfan's, turned about the shaft
+flats on +-X. `Tip()` is 8, so the tip lies at `rho_t`. The blade bolt sites are turned about the shaft
 axis for blades 2 and 3: head at `BladeBoltAt` from the axis along the blade's radial line at z 20, `Dir` -Z, `Corner` the
 radial line, `Length` 16 and `Cavity` 15.6; the blade nut slot takes the place of the round cavity.
 
@@ -250,6 +252,40 @@ creep loosens the screw.
 
 Balance: the net imbalance on the -Y side is about 1.1 g mm (605ZZ) and 1.8 g mm (608ZZ) at full infill, up to about 3.4 g mm at
 sparse infill. The three blade slots are identical turned copies and cancel. No balance mass is added.
+
+## Blade shape
+
+The blade is a smooth loft through ten sections, stacked on its radial line through the hub's mid plane and starting at
+r 14.4, 0.4 outside the hub rim. A root stud of radius 3, from r 6.1 to r 16, is joined to it, with a bolt hole of radius
+1.3 parallel to the shaft at r 9.5. The stud's inner end has a 0.3 chamfer, so its corner stays clear of the socket floor's
+round. The stud engages the socket from r 6.1 to r 14 with a 0.4 clearance (a Regular fit). The shape follows a wind
+turbine blade: a round root carries the joint, the section turns into a thick oval and an airfoil at the maximum chord
+(r 25), and the chord tapers to the tip.
+
+| r | 14.4 | 16.3 | 19 | 21.5 | 25 | 30 | 38 | 46 | 55 | 64 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| chord c | 8.0 | 8.0 | 11.5 | 15.5 | 17.8 | 16.5 | 14.5 | 12.5 | 10.5 | 8.0 |
+| thickness ratio t/c | 1.00 | 1.00 | 0.60 | 0.38 | 0.26 | 0.22 | 0.19 | 0.18 | 0.17 | 0.22 |
+| camber m (of c) | 0 | 0 | 0.010 | 0.025 | 0.035 | 0.040 | 0.040 | 0.040 | 0.035 | 0.030 |
+| ellipse weight w | 1 | 1 | 0.60 | 0.25 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Each section, at chord fraction x from the leading edge, has the NACA 4-digit mean line `yc(x)` with camber `m` at
+`p = 0.40`. Its half thickness is `(1 - w) naca(x) + w ell(x)`, where
+`naca(x) = (t/2 - 0.15 tTE) / 0.10002 * n(x) + tTE x / 2`,
+`n(x) = 0.2969 sqrt(x) - 0.1260 x - 0.3516 x^2 + 0.2843 x^3 - 0.1036 x^4`,
+`ell(x) = t sqrt(x (1 - x)) + tTE x / 2`, `t = (t/c) c` and the trailing-edge thickness `tTE = 1.0`. It is laid off
+normal to the chord on both sides of `c yc(x)`. The blade angle is
+`beta(r) = alphaD + atan(tan(p0 - alphaD) * 48 / max(r, 21.5)) + (BladePitch - p0)`, with `alphaD = 5` degrees and
+`p0 = 25` degrees: the flow angle of a uniform axial inflow plus a design angle of attack, constant inboard of r 21.5. A
+fan adds energy where a turbine takes it, so the angle is flow plus attack, not flow minus attack. The section is turned to
+`beta(r)` at `BladePitch = 25` degrees about its stacking point, the mean-line point at chord fraction `0.40 + 0.10 w`,
+which lies on the radial line. The loft always uses the sections at 25 degrees. For another pitch the finished loft is
+turned by `BladePitch - 25` degrees about the radial line before the stud joins it, because Decad's twisted loft panics on
+some section tables that depend on the pitch. Outboard camber is held to 3 to 4 %, because Decad's loft refuses thin
+sections with more. The trailing edge is a flat 1.0 wide, which keeps its two corners more than the checker's 0.8 window
+apart (1.2 would thin the leading edge until it fails near the tip), and the tip's ratio of 0.22 gives the leading edge a
+radius above 0.4 near r 64. These two make the blade pass the Corners and roots check: the trailing edge is a blunt tip of
+at least 0.8, and the leading edge is rounded by at least 0.4.
 
 ## Replaceable blades
 
@@ -328,8 +364,8 @@ blade prints standing on its stud end with its radial line vertical.
 | Hub | The blade head pockets' floor rims | Between layers. |
 | Hub | The socket mouths | Between layers, out of the checker's sections. |
 | Hub | The socket floor's 0.5 round, where a layer off the socket's axis cuts it at a slant | A layer at z 7 or 13 chords the round into turns of 57.8 to 59.8 degrees on the floor's outline, 5.7 to 6.6 from the shaft axis; the test exempts that band only. |
-| Blade | The four corners where the bolt hole crosses the stud, at r 9.5 and 10.2 | The material angle is 64 to 90 degrees; the checker adds the stud's curvature (handcrankfan). |
-| Blade | The step where the stud meets the root face (r 14.4), opening downward when printed stud end down | Between layers; inherited from handcrankfan, which does not list it. |
+| Blade | The four corners where the bolt hole crosses the stud, at r 9.5 and 10.2 | The material angle is 64 to 90 degrees; the checker adds the stud's curvature. |
+| Blade | The step where the stud meets the root face (r 14.4), opening downward when printed stud end down | Between layers. |
 
 Rounds below half their section: the socket floor round only. The hub has no stressed root. Every hub wall is 1.1 mm or
 more (the 608ZZ lead-in band), elsewhere 1.3 or more; the outward corners where the slots and the counterbore meet the round
