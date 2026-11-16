@@ -141,7 +141,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 // run at the concave 11.43 degree corner beside the head's flank, where the bevel tapers out on the flank's plane, and
 // at the convex corners at the web and the lock face. The hub has no Boolean.
 //
-// Only the 605ZZ hub is chamfered. Its faces are 405.7 to 413.4 mm², over the 400 mm² of "Surface edge finishing".
+// Only the 605ZZ hub is chamfered. Its faces are 384.1 to 413.9 mm², over the 400 mm² of "Surface edge finishing".
 // The 8 mm presets' faces are 376.7 to 383.5 mm², under it, so edgefinish finds no edge and the hub stays the exact
 // prism. The chamfer is 0.25 mm, not 0.5: the flank's plane, carried back over the arm's outer arc, can cap a bevel of
 // at most R - D = 13.2 - 12.938 = 0.262 mm at that corner, which is the smaller chamfer "required by functional
@@ -287,12 +287,12 @@ var (
 // the 45 degree cone to the rim.
 var (
 	BackPlateInner = [...][2]float64{
-		{CoreRadius - 0.9, BackPlateThickness + 1}, {CoreRadius - 0.9, BackPlateThickness - 0.6},
-		{CoreRadius - 0.1, BackPlateThickness - Recess}, {ToothRoot, BackPlateThickness - Recess},
+		{BossRadius - 0.9, BackPlateThickness + 1}, {BossRadius - 0.9, BackPlateThickness - 0.6},
+		{BossRadius - 0.1, BackPlateThickness - Recess}, {ToothRoot, BackPlateThickness - Recess},
 		{PlateRadius + 1, BackPlateThickness - Recess - (PlateRadius + 1 - ToothRoot)}, {PlateRadius + 1, BackPlateThickness + 1},
 	}
 	CoverInner = [...][2]float64{
-		{CoreRadius - 0.9, CoverFrom - 1}, {CoreRadius - 0.9, CoverFrom + 0.6}, {CoreRadius - 0.1, CoverFrom + Recess},
+		{BossRadius - 0.9, CoverFrom - 1}, {BossRadius - 0.9, CoverFrom + 0.6}, {BossRadius - 0.1, CoverFrom + Recess},
 		{ToothRoot, CoverFrom + Recess}, {PlateRadius + 1, CoverFrom + Recess + (PlateRadius + 1 - ToothRoot)},
 		{PlateRadius + 1, CoverFrom - 1},
 	}

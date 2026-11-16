@@ -46,7 +46,7 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
   the head against it, and the ring turns with the hub.
 - Turning the hub the other way, the ramp presses the head inward. The arm bends in the plane of the print, so the
   bending loads the printed lines along the arm, and the head clicks over the tooth.
-- A slot behind each arm gives it room to bend. The arm is 1.2 mm thick, and it strains 0.88 % at full travel.
+- A slot behind each arm gives it room to bend. The arm is 1.5 mm thick, the least that prints reliably, and it strains 1.12 % at full travel.
 - Turned the free way, each head clears the teeth: 0.17 mm after 1.5 degrees of turn and 0.10 mm after 2 degrees on
   the 605ZZ hub (0.14 and 0.08 mm on the 8 mm hubs), measured on the built parts.
 - The 605ZZ hub's two faces, over 400 mm², carry a 0.25 mm chamfer along the arms. The 8 mm hubs' faces are under 400 mm²
