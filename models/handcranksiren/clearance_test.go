@@ -32,8 +32,9 @@ const fitTolerance = 0.02
 const roundFitTolerance = 0.01
 
 // armTolerance is the finest section tolerance the crank arm accepts: its slit and bore cuts hold a mesh bound of
-// 0.010115 mm (models/crankhandle instructions.md, "Arm"), just over roundFitTolerance.
-const armTolerance = 0.0102
+// 0.020213 mm in the siren's 0.1 mm chain-tolerance document (it was 0.010115 mm at 0.01 mm, and armTolerance 0.0102).
+// Every fit that reads the arm (T5, T7, T8) widens its proven bound by the 0.0101 mm difference on the arm's side.
+const armTolerance = 0.0203
 
 // pressFit is the proven lower bound required of a press fit, whose design clearance is 0.05 mm radial (the press-fit
 // rule in docs/model-pipeline.md "Part clearances"). The section measurement's uncertainty takes up the rest.

@@ -380,7 +380,7 @@ def run_wheel(case: str) -> None:
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": (
-        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch)$",
+        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams|TestGearboxSpike)$",
         [],
     ),
     "slots12": (

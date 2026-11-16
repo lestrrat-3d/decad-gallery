@@ -1,8 +1,11 @@
 package handcranksiren
 
 import (
+	"fmt"
+
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
+	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -143,4 +146,18 @@ func (b *builder) head() {
 			b.hardware(s)
 		}
 	}
+}
+
+// GearboxParams returns the planetary gearbox the reworked siren builds: the planet608-shaft608 kit with the siren's
+// shaft lengths, placed so its axis is the siren's shaft axis A (X 0, Z 84) and its +Z is world +Y.
+func GearboxParams() (planetarygearbox.Params, error) {
+	p, err := planetarygearbox.DefaultParamsFor("planet608-shaft608")
+	if err != nil {
+		return planetarygearbox.Params{}, fmt.Errorf("handcranksiren: gearbox parameters: %w", err)
+	}
+	p.InputShaftLength = 24.05
+	p.OutputShaftLength = 22.05
+	at := frame(r3.Vec{Z: rotorHeight}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	p.Placement = &at
+	return p, nil
 }
