@@ -57,11 +57,11 @@ const (
 	// The arm pinches the shaft. It keeps its full width past the shaft: its sides run straight on to a point
 	// ClampSideRun below the clamp bolt's axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
 	// join tangent. A slit SlitWidth wide runs along x = 0 from the end arc into the bore and ends in a full round in the
-	// bore's floor. The M2 x 18 clamp bolt crosses the whole width along -X: its head lies flush in the +X side face,
-	// and its nut sits in a hexagonal pocket open to the -X side face, m2fastener.NutCavityHeight (2) deep, so the
-	// bolt's tip ends flush with that face. The tightened bolt holds the nut in the pocket, and the pocket's flats stop
-	// it turning.
-	ClampBolt     = 18.0
+	// bore's floor. The M2 x 16 clamp bolt runs along -X: its head lies flush in the +X side face,
+	// and its nut sits in a hexagonal pocket open to the -X side face. The pocket is deep enough that the nut's cavity
+	// ends where the bolt's tip does, 2 mm inside that face, so the tip never stands outside the arm. The tightened bolt
+	// holds the nut in the pocket, and the pocket's flats stop it turning.
+	ClampBolt     = 16.0
 	ClampHoleWall = 1.05 // between the clamp bolt's hole and the bore, where the hole crosses the slit
 	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut pocket's corners (2.51), with margin
 	ClampCornerR  = 4.5
@@ -208,13 +208,13 @@ func (p Params) Derive() (Dimensions, error) {
 		Dir:    r3.Vec{X: -1},
 		Corner: r3.Vec{Z: 1},
 		Length: ClampBolt,
-		Cavity: 2*ArmRadius - m2fastener.NutCavityHeight,
+		Cavity: m2fastener.HeadPocketDepth + ClampBolt - m2fastener.NutCavityHeight,
 	}
 	if err := dm.ClampSite.Validate(); err != nil {
 		return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt: %w", err)
 	}
-	if dm.ClampSite.Tip() != dm.ClampSite.CavityFar() {
-		return Dimensions{}, errors.New("crankhandle: clamp bolt: its tip must end flush with the -X side face")
+	if dm.ClampSite.Tip() != dm.ClampSite.CavityFar() || dm.ClampSite.Tip() >= 2*ArmRadius {
+		return Dimensions{}, errors.New("crankhandle: clamp bolt: its tip must end at the nut cavity's far face, inside the -X side face")
 	}
 	for i, z := range CrossZ {
 		dm.CrossSites[i] = m2fastener.Site{

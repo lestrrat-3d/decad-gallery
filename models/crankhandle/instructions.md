@@ -5,14 +5,14 @@
 Construct a printed hand crank for a D-flat shaft. It is the hand-crank siren's crank, moved here so that the siren and
 any other mechanism build it from one construction. The parts are:
 
-- an arm, 20 mm wide, whose D bore pinches the shaft's D-flat: a slit through its hub and an M2 x 18 bolt across it
+- an arm, 20 mm wide, whose D bore pinches the shaft's D-flat: a slit through its hub and an M2 x 16 bolt across it
   close the bore;
 - a pin, whose hexagonal stub sits in a pocket in the arm and whose head holds the handle on. It prints as two halves
   split lengthwise ([Split shafts](../../docs/model-pipeline.md#split-shafts));
 - a handle, a barrel that turns freely on the pin's shank;
 - an M2 x 10 bolt from the arm's back face and an M2 nut in the pin's stub, which clamp the pin in the arm;
 - two M2 x 6 cross bolts and M2 nuts, which clamp the pin's two halves together;
-- an M2 x 18 clamp bolt and M2 nut across the arm's hub, which close the slit.
+- an M2 x 16 clamp bolt and M2 nut across the arm's hub, which close the slit.
 
 The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
 in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
@@ -45,7 +45,7 @@ Package: `models/crankhandle`. Exported surface:
   (5.75), `StubFlats` (7.03), `StubFrom` (3.5), `StubLength` (5.8), `ShankR` (5.15), `ShankFrom` (8.25), `RootR`
   (3.5), `ShankTo` (52.75), `HeadR` (6.45), `HeadFrom` (55), `HeadLength` (3), `HandleFrom` (7.4), `PinBolt` (10),
   `PinCavity` (4.75), `PressWall` (1.6), `ChamferSize` (0.5), `CrossBolt` (6), `CrossFlat` (4.0), `CrossFlatHalf`
-  (3.25), `CrossCavity` (6.0), `ConeAngle` (30), `ClampBolt` (18), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
+  (3.25), `CrossCavity` (6.0), `ConeAngle` (30), `ClampBolt` (16), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
   `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `NutPocketRound` (0.6), the cross
   bolts' positions `CrossZ` (17, 49), and `HandleProfile`, the handle's meridian.
 - The container names `ArmContainerName` (`Arm`), `PinContainerName` (`Pin`), `HandleContainerName` (`Handle`),
@@ -150,15 +150,16 @@ this frame onto the given one after each part's last operation.
 The slit through the hub closes the D bore on the shaft when the clamp bolt is tightened. The bolt crosses the whole
 arm along -X, at mid thickness on y = `y_c`, so the hole between it and the bore keeps `ClampHoleWall` (1.05 mm) where
 it crosses the slit. Its site is `m2fastener.Site{Head: (ArmRadius, y_c, ArmThickness/2), Dir: (-1, 0, 0), Corner:
-(0, 0, 1), Length: 18, Cavity: 2 ArmRadius - NutCavityHeight}`, so `Cavity` is 18 and both `CavityFar` and the bolt's
-tip lie 20 from the head, on the -X side face. Derive rejects a site whose tip is not flush. M2 x 18 is in
-`m2bolt.StandardLengths()`. M2 x 16 would end at the pocket's floor with no thread in the nut, and M2 x 20 would
-stand 2 mm proud.
+(0, 0, 1), Length: 16, Cavity: HeadPocketDepth + ClampBolt - NutCavityHeight}`, so `Cavity` is 16 and both
+`CavityFar` and the bolt's tip lie 18 from the head, 2 mm inside the -X side face. Derive rejects a site whose tip is
+not at `CavityFar` or not inside that face. M2 x 16 is in `m2bolt.StandardLengths()`. M2 x 18 would end flush with the
+face, and M2 x 20 would stand 2 mm proud.
 
 - The head pocket (`m2fastener.PocketTool`, radius 2.2, 2 deep) sinks the head flush in the +X side face.
-- The nut sits in a hexagonal pocket open to the -X side face, from x = -8 to -10 (`NutCavityHeight` deep). A pinch
+- The nut sits at the floor of a hexagonal pocket open to the -X side face. The pocket runs from x = -6 to -10, so
+  the nut occupies x = -6.2 to -7.8 and 2 mm of empty pocket lies between it and the face. A pinch
   clamp's nut may sit in a pocket open to a face, because the clamp bolt holds it there (AGENTS.md "Fasteners"). The
-  pin's cross-bolt nuts use the same pocket tool, `m2fastener.HexPocketTool` for a site, with the pocket's corners on the
+  pin's cross-bolt nuts use the same pocket tool, `m2fastener.HexPocketTool` for a site and a depth, with the pocket's corners on the
   site's `Corner`. The clamp's `Corner` is +Z. The
   hexagon is centred on the bolt's axis with its corners on the circle of radius 2.51, one diagonal along Z, so a
   corner points up and one down and the flats are the +Y and -Y sides, 4.35 across. The nut's corners (radius 2.31)
@@ -166,7 +167,7 @@ stand 2 mm proud.
   rounded by `NutPocketRound` (0.6) on the tool. The nut's 30° face chamfer clears the floor round, so the nut ends
   at least 0.2 mm below the face.
 - The hole (`m2fastener.HoleTool`, 2.6 across) runs from the head pocket across the slit and out through the nut
-  pocket. The bolt's tip ends at x = -10, flush with the -X side face.
+  pocket. The bolt's tip ends at x = -8, the nut cavity's far face, 2 mm inside the -X side face.
 - The sides stay straight `ClampSideRun` (3.6) past the bolt's axis, so each side face keeps 1.4 mm of flat beyond the
   head pocket's ring and 1.09 mm beyond the nut pocket's corner before the corner arc begins.
 
@@ -178,8 +179,8 @@ from the side at assembly.
 | Wall round the clamp | 605ZZ | 608-2RS |
 | --- | --- | --- |
 | Hole to the bore, at the slit | 1.05 | 1.05 |
-| Nut pocket to the bore | 5.90 | 5.00 |
-| Nut pocket's floor to the outline | 2.00 | 2.00 |
+| Nut pocket to the bore | 4.04 | 3.29 |
+| Nut pocket's floor to the outline | 4.00 | 4.00 |
 | Nut pocket's corners to each face | 1.49 | 1.49 |
 | -X side face beyond the nut pocket's flats | 1.43 | 1.43 |
 | Side face beyond the head pocket | 1.4 | 1.4 |
@@ -298,7 +299,7 @@ To assemble:
    +Y half into its nut, and tighten it.
 3. Slide the handle onto the pin's shank from the stub end.
 4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
-5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in the arm's -X side, push the M2 x 18 clamp
+5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in the arm's -X side, push the M2 x 16 clamp
    bolt in from the +X side into it, and tighten it.
 
 ## Checks and images

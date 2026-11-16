@@ -36,22 +36,23 @@ The arm keeps its full 20 mm width past the shaft. Its sides run straight on, tu
 one shallow 22 mm end arc, every join smooth, so the hub has no inside corner and no step. The end reaches 13.9 mm
 behind the shaft's axis on the 605ZZ crank and 15.4 mm on the 608-2RS crank.
 
-![The arm's hub cut through the clamp bolt: the M2 x 18 bolt's head flush in its pocket in one side face, the bolt crossing the 1 mm slit, and its nut in a hexagonal pocket in the other side face, with the bolt's tip flush with that face](images/clamp.png)
+![The arm's hub cut through the clamp bolt: the M2 x 16 bolt's head flush in its pocket in one side face, the bolt crossing the 1 mm slit, and its nut in a hexagonal pocket in the other side face, with the bolt's tip ending inside the pocket](images/clamp.png)
 
 The cut runs along the clamp bolt. A 1 mm slit runs from the arm's end into the D bore and ends in a full round in the
-bore's floor. The M2 x 18 bolt crosses the whole arm: its head sits flush in a pocket in one side face, and it runs
-across the slit into a nut in a hexagonal pocket in the other side face. Its tip ends flush with that face.
+bore's floor. The M2 x 16 bolt crosses the arm: its head sits flush in a pocket in one side face, and it runs
+across the slit into a nut in a hexagonal pocket in the other side face. The pocket is 4 mm deep, so the bolt's tip
+ends in it, 2 mm inside that face.
 Tightening the bolt closes the slit and pinches the bore on the shaft.
 
-![The arm's hub from the nut's side: the M2 nut in its hexagonal pocket, below the side face, with the bolt's tip flush](images/clamp-nut.png)
+![The arm's hub from the nut's side: the M2 nut in its hexagonal pocket, below the side face, with the bolt's tip ending inside the pocket](images/clamp-nut.png)
 
-The nut's pocket is a hexagon 4.35 mm across its flats and 2 mm deep, open to the side face. Its flats stop the nut
+The nut's pocket is a hexagon 4.35 mm across its flats and 4 mm deep, open to the side face. The nut sits at its floor. Its flats stop the nut
 turning, so you tighten the bolt from the head's side alone, and the tightened bolt holds the nut in. The nut ends
 below the face. One of the hexagon's diagonals runs along Z: a corner points up and one down, and the flats are its
 two sides. The pocket's roof is two short slopes that meet in the upper corner, each 30° above horizontal, so they
 print as a bridge and the arm needs no supports and no pause.
 
-![A section across the clamp's nut pocket, half way down its depth: the hexagon with a corner up and one down and its flats on the sides, the M2 nut in it and the bolt through the nut](images/clamp-section.png)
+![A section across the clamp's nut pocket, through the nut: the hexagon with a corner up and one down and its flats on the sides, the M2 nut in it and the bolt through the nut](images/clamp-section.png)
 
 The clamp keeps five listed exceptions to the gallery's rules ([instructions.md](instructions.md), "Retained sharp
 corners and edges"):
@@ -84,9 +85,9 @@ The picture cuts the crank through the shaft axis and the pin axis.
 
 ## Exploded
 
-![The crank pulled apart along the pin axis, from the bottom: the M2 x 10 bolt, the arm with the M2 x 18 clamp bolt pulled out of one side and the clamp nut out of the other, the pin bolt's M2 nut, the handle, and the pin at the top with its two M2 x 6 cross bolts pulled out to one side and their two M2 nuts to the other](images/exploded.png)
+![The crank pulled apart along the pin axis, from the bottom: the M2 x 10 bolt, the arm with the M2 x 16 clamp bolt pulled out of one side and the clamp nut out of the other, the pin bolt's M2 nut, the handle, and the pin at the top with its two M2 x 6 cross bolts pulled out to one side and their two M2 nuts to the other](images/exploded.png)
 
-From the bottom: the M2 x 10 bolt, the arm with the M2 x 18 clamp bolt pulled out of one side and the clamp nut out of
+From the bottom: the M2 x 10 bolt, the arm with the M2 x 16 clamp bolt pulled out of one side and the clamp nut out of
 its pocket in the other, the pin bolt's nut, the handle, and the pin with its two cross bolts on one side and their
 nuts on the other.
 
@@ -122,7 +123,7 @@ Each half prints lying on its cut face, with no supports.
 | <img src="images/parts/handle.png" alt="Handle" width="240"> | Handle (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1 |
 | <img src="images/parts/cross-bolt.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2 |
-| <img src="images/parts/clamp-bolt.png" alt="M2 x 18 bolt" width="240"> | M2 × 18 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1, the clamp bolt |
+| <img src="images/parts/clamp-bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1, the clamp bolt |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 4 |
 
 ## Sizes
@@ -159,7 +160,7 @@ To assemble:
    and tighten it.
 3. Slide the handle onto the pin from the stub end.
 4. Push the stub into the arm's pocket and drive the M2 x 10 bolt in from the arm's back face.
-5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in one side of the arm's hub, push the M2 x 18
+5. Press the arm onto the shaft, set an M2 nut in the hexagonal pocket in one side of the arm's hub, push the M2 x 16
    clamp bolt in from the other side into it, and tighten it.
 
 For how to build this crank from Go, see the [developer notes](../../docs/models/crankhandle.md). The construction is

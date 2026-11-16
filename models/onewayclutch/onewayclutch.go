@@ -219,7 +219,7 @@ func (r *run) plate(z, length float64, outerZ float64, inner [][2]float64,
 // backPlate is the plate on the mechanism side: z 0 to 3.5, with a hex nut pocket open to its outer face at each bolt.
 func (r *run) backPlate() (*decad.Body, error) {
 	return r.plate(0, BackPlateThickness, 0, BackPlateInner[:], func() ([]*decad.Body, error) {
-		return r.fastenerTools(m2fastener.HexPocketTool)
+		return r.fastenerTools(hexPocket)
 	})
 }
 
@@ -285,4 +285,9 @@ func placeSite(s m2fastener.Site, f *r3.Frame) (m2fastener.Site, error) {
 	}
 	s.Head, s.Dir, s.Corner = xf.Apply(s.Head), xf.ApplyDir(s.Dir), xf.ApplyDir(s.Corner)
 	return s, nil
+}
+
+// hexPocket builds a nut pocket as deep as a nut cavity, out through the back plate's outer face.
+func hexPocket(ctx context.Context, doc *decad.Document, s m2fastener.Site) (*decad.Body, *sketch.Sketch, error) {
+	return m2fastener.HexPocketTool(ctx, doc, s, m2fastener.NutCavityHeight+m2fastener.Stock)
 }

@@ -112,13 +112,13 @@ func CavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, 
 	return cylinderTool(ctx, doc, s, s.Cavity, NutCavityRadius, NutCavityHeight)
 }
 
-// HexPocketTool builds a hexagonal nut pocket's cutter from the site's Cavity out through the face its bolt tip ends
-// on: NutCavityHeight plus Stock along Dir. The hexagon is centred on the site's line with its corners on the circle of
+// HexPocketTool builds a hexagonal nut pocket's cutter from the site's Cavity, depth along Dir. A pocket that opens on a
+// face takes the depth out through it plus Stock (NutCavityHeight+Stock for a pocket as deep as a nut cavity). The hexagon is centred on the site's line with its corners on the circle of
 // radius NutCavityRadius, the first along Corner. Each side is held by its distance from the line, the first flat is
 // horizontal and each next side turns 60 degrees from the one before, so the corners lie where the sides meet. The
 // corners stay sharp, matching the nut's sharp corners. The sketch lies on Across(Cavity): U is Corner and V is
 // Dir x Corner, so it extrudes along Dir.
-func HexPocketTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *sketch.Sketch, error) {
+func HexPocketTool(ctx context.Context, doc *decad.Document, s Site, depth float64) (*decad.Body, *sketch.Sketch, error) {
 	sk, err := newSketch(s, s.Cavity)
 	if err != nil {
 		return nil, nil, err
@@ -140,7 +140,7 @@ func HexPocketTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Bod
 	for i := range 5 {
 		sk.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
 	}
-	body, err := extrude(ctx, doc, sk, NutCavityHeight+Stock)
+	body, err := extrude(ctx, doc, sk, depth)
 	return body, sk, err
 }
 

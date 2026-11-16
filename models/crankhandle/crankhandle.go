@@ -216,9 +216,10 @@ func (r *run) arm() (*decad.Body, error) {
 	return body, nil
 }
 
-// nutPocketCutter builds a site's hexagonal nut pocket tool with its floor's outline rounded by NutPocketRound.
-func (r *run) nutPocketCutter(site m2fastener.Site) (*decad.Body, error) {
-	pocket, sk, err := m2fastener.HexPocketTool(r.ctx, r.doc, site)
+// nutPocketCutter builds a site's hexagonal nut pocket tool, depth deep from its floor, with its floor's outline rounded
+// by NutPocketRound.
+func (r *run) nutPocketCutter(site m2fastener.Site, depth float64) (*decad.Body, error) {
+	pocket, sk, err := m2fastener.HexPocketTool(r.ctx, r.doc, site, depth)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (r *run) nutPocketCutter(site m2fastener.Site) (*decad.Body, error) {
 // NutPocketRound, the head pocket, and the clearance hole, which runs out through the nut pocket.
 func (r *run) clampTools() ([]*decad.Body, error) {
 	site := r.dm.ClampSite
-	pocket, err := r.nutPocketCutter(site)
+	pocket, err := r.nutPocketCutter(site, 2*ArmRadius-site.Cavity+m2fastener.Stock)
 	if err != nil {
 		return nil, fmt.Errorf("clamp nut pocket tool: %w", err)
 	}
@@ -297,7 +298,7 @@ func (r *run) pin() (*decad.Body, error) {
 			r.sketches = append(r.sketches, sk)
 			tools = append(tools, tool)
 		}
-		pocket, err := r.nutPocketCutter(site)
+		pocket, err := r.nutPocketCutter(site, m2fastener.NutCavityHeight+m2fastener.Stock)
 		if err != nil {
 			return nil, fmt.Errorf("cross nut pocket tool: %w", err)
 		}

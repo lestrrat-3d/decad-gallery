@@ -91,7 +91,7 @@ func TestPlacement(t *testing.T) {
 
 func TestHexPocketTool(t *testing.T) {
 	s := site()
-	tool, sk, err := m2fastener.HexPocketTool(t.Context(), decad.New(), s)
+	tool, sk, err := m2fastener.HexPocketTool(t.Context(), decad.New(), s, m2fastener.NutCavityHeight+m2fastener.Stock)
 	require.NoError(t, err)
 	require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), sk))
 
