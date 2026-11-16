@@ -21,6 +21,35 @@ CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut"}
 CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
 # Models whose instructions.md states, under Materials, that no part is printed.
 CORNER_UNPRINTED = {"spinningwheel"}
+# Models nobody has built and tested as a physical object yet. Remove a model once someone has built it, and change its
+# README status line and its models/README.md row in the same change.
+UNBUILT = {"escapement", "handcrankfan", "handcranksiren", "spinningwheel", "spiralspring", "turbinefan"}
+
+
+def build_status_problems(models: Path) -> list[str]:
+    """Return the models whose README or index row disagrees with UNBUILT."""
+    problems = []
+    index = (ROOT / "models/README.md").read_text() if (ROOT / "models/README.md").is_file() else ""
+    rows = {}
+    for line in index.splitlines():
+        match = re.match(r"\| \[[^\]]+\]\(([^/]+)/\) \|.*\| (Built|Not built yet) \|$", line)
+        if match:
+            rows[match.group(1)] = match.group(2)
+    for name in sorted(UNBUILT):
+        if not (models / name).is_dir():
+            problems.append(f"UNBUILT names {name}, which has no model directory")
+    for item in sorted(models.iterdir()):
+        if not item.is_dir():
+            continue
+        name = item.name
+        built = name not in UNBUILT
+        readme = item / "README.md"
+        want = "**Build status:** Built and tested." if built else "**Build status:** Not built yet."
+        if readme.is_file() and want not in readme.read_text():
+            problems.append(f"models/{name}/README.md: missing the line starting '{want}'")
+        if rows.get(name) != ("Built" if built else "Not built yet"):
+            problems.append(f"models/README.md: {name} row needs Build status '{'Built' if built else 'Not built yet'}'")
+    return problems
 
 
 def unsorted_model_rows() -> list[str]:
@@ -87,7 +116,7 @@ def main() -> int:
                     missing.append(f"{item.relative_to(ROOT)}/*_test.go")
 
     if models.is_dir():
-        problems = corner_problems(models)
+        problems = corner_problems(models) + build_status_problems(models)
         if problems:
             for problem in problems:
                 print(problem, file=sys.stderr)

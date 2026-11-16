@@ -1,5 +1,7 @@
 # Turbine fan
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 ![Three-blade turbine fan on a clamping hub, seen from the front and above](images/hero.png)
 
 A three-blade fan whose blades are shaped like small wind turbine blades: the [hand-crank fan's](../handcrankfan/)

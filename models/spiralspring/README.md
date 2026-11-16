@@ -1,5 +1,7 @@
 # Spiral spring
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 ![Spiral spring with a D-bore hub and an anchor eye](images/hero.png)
 
 This model is a flat spiral (clock or motor) spring for wind-up mechanisms, printed as one piece. You set

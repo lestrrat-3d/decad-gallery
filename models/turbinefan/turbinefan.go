@@ -212,7 +212,8 @@ func (r *run) hub() (*decad.Body, error) {
 			return nil, err
 		}
 	}
-	nut, ns, err := crankhandle.NutPocketTool(r.ctx, r.doc, r.dm.ClampSite)
+	nut, ns, err := crankhandle.NutPocketTool(r.ctx, r.doc, r.dm.ClampSite,
+		2*TabHalfWidth-r.dm.ClampSite.Cavity+m2fastener.Stock)
 	if err := add(nut, ns, err, "clamp nut pocket tool"); err != nil {
 		return nil, err
 	}

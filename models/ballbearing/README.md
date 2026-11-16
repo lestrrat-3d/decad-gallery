@@ -1,5 +1,7 @@
 # Ball-bearing mounting envelope
 
+**Build status:** Built and tested.
+
 ![608-2RS nominal mounting envelope](images/hero.png)
 
 This model gives a purchased 608-2RS bearing's nominal mounting envelope: an 8 mm bore,

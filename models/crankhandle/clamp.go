@@ -105,40 +105,11 @@ func SlitTool(ctx context.Context, doc *decad.Document, f r3.Frame, from, boreRa
 	return body, s, err
 }
 
-// NutPocketTool builds a site's hexagonal nut pocket cutter with its floor's outline rounded by NutPocketRound. The
-// pocket runs from the site's Cavity, its floor, out through the face its bolt tip ends on: NutCavityHeight plus
-// m2fastener.Stock along the bolt. The hexagon is centred on the bolt's axis with its corners on the circle of radius
-// m2fastener.NutCavityRadius, the first along the site's Corner. Each side is held by its distance from the axis, the
-// first flat is horizontal and each next side turns 60 degrees from the one before, so the corners lie where the sides
-// meet. The corners stay sharp, matching the nut's sharp corners. The sketch lies on site.Across(Cavity): U is Corner
-// and V is Dir × Corner, so it extrudes along the site's Dir.
-func NutPocketTool(ctx context.Context, doc *decad.Document, site m2fastener.Site) (*decad.Body, *sketch.Sketch, error) {
-	f, err := site.Across(site.Cavity)
-	if err != nil {
-		return nil, nil, err
-	}
-	s, err := newSketch(f)
-	if err != nil {
-		return nil, nil, err
-	}
-	rad := m2fastener.NutCavityRadius
-	flat := rad * math.Sqrt(3) / 2
-	var corners [6]*sketch.Point
-	for i := range corners {
-		a := float64(i) * math.Pi / 3
-		corners[i] = s.CreatePoint(rad*math.Cos(a), rad*math.Sin(a))
-	}
-	var sides [6]*sketch.Line
-	for i := range sides {
-		sides[i] = s.CreateLine(corners[i], corners[(i+1)%6])
-		s.AddConstraint(sketch.NewDistancePointLine(s.Origin(), sides[i], flat))
-	}
-	// sides[1] runs from the corner at 60 degrees to the one at 120 degrees: a flat.
-	s.AddConstraint(sketch.NewHorizontal(sides[1]))
-	for i := range 5 {
-		s.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
-	}
-	pocket, err := extrudeProfile(ctx, doc, s, 0, m2fastener.NutCavityHeight+m2fastener.Stock)
+// NutPocketTool builds a site's hexagonal nut pocket cutter, depth deep from the site's Cavity (m2fastener.HexPocketTool),
+// with its floor's outline rounded by NutPocketRound. A pocket open to a face takes the depth out through it plus
+// m2fastener.Stock. It returns the cutter and its sketch, fully constrained.
+func NutPocketTool(ctx context.Context, doc *decad.Document, site m2fastener.Site, depth float64) (*decad.Body, *sketch.Sketch, error) {
+	pocket, s, err := m2fastener.HexPocketTool(ctx, doc, site, depth)
 	if err != nil {
 		return nil, s, err
 	}

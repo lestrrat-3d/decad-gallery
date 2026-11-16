@@ -58,6 +58,15 @@ var presets = map[string]preset{
 	"turbinefan/exploded":         {width: 1600, height: 900, scene: turbineFanViewScene("exploded")},
 	"turbinefan/exploded-back":    {width: 1600, height: 900, scene: turbineFanViewScene("exploded-back")},
 	"turbinefan/sizes":            {width: 1600, height: 900, scene: turbineFanViewScene("sizes")},
+	"onewayclutch/hero":           {width: 1600, height: 900, scene: oneWayClutchHero},
+	"onewayclutch/front":          {width: 1600, height: 900, scene: oneWayClutchView("front")},
+	"onewayclutch/back":           {width: 1600, height: 900, scene: oneWayClutchView("back")},
+	"onewayclutch/side":           {width: 1600, height: 900, scene: oneWayClutchView("side")},
+	"onewayclutch/section":        {width: 1600, height: 900, scene: oneWayClutchView("section")},
+	"onewayclutch/cutaway":        {width: 1600, height: 900, scene: oneWayClutchView("cutaway")},
+	"onewayclutch/exploded":       {width: 1600, height: 900, scene: oneWayClutchView("exploded")},
+	"onewayclutch/directions":     {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchDirectionParams)},
+	"onewayclutch/sizes":          {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchSizeParams)},
 	"spiralspring/hero":           {width: 1600, height: 900, scene: spiralSpringHero},
 	"spiralspring/top":            {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":            {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
@@ -240,6 +249,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "turbinefan" {
 		return renderTurbineFanReadme(ctx, outputDir)
+	}
+	if model == "onewayclutch" {
+		return renderOneWayClutchReadme(ctx, outputDir)
 	}
 	if model == "ballbearing" {
 		return renderBearingReadme(ctx, outputDir)

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
@@ -64,21 +63,9 @@ func m2BoltView(ctx context.Context, name string) (solidlens.Scene, error) {
 
 // renderM2BoltReadme writes the index image and every README view.
 func renderM2BoltReadme(ctx context.Context, outputDir string) error {
-	for _, shot := range []struct {
-		view, file    string
-		width, height int
-	}{
+	return renderReadmeViews(ctx, outputDir, []readmeView{
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270},
 		{"head", "head.png", 1600, 900}, {"side", "side.png", 1600, 900},
 		{"underside", "underside.png", 1600, 900}, {"lengths", "lengths.png", 1600, 900},
-	} {
-		scene, err := m2BoltView(ctx, shot.view)
-		if err != nil {
-			return err
-		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
-			return err
-		}
-	}
-	return nil
+	}, m2BoltView, renderPNG)
 }

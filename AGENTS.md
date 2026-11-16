@@ -37,10 +37,12 @@
 ## Fasteners
 
 - Sink every bolt head in a pocket in the part it joins, so the head's top face lies flush with the part's face. Nothing stands proud.
-- Hold every nut in a cavity the part encloses on all sides except the bolt hole, so the part retains the nut and it cannot fall out. Drop the nut in during a print pause. A pocket open to a face is not enough.
-- A pinch clamp's nut, or a split shaft's or pin's cross-bolt nut, may instead sit in a hex pocket open to a face,
-  because its bolt holds it there. Put the hexagon's corners on the nut cavity's circle (radius 2.51 mm for M2)
-  and make it as deep as a nut cavity is high (2.0 mm for M2), so the nut ends below the face.
+- Seat each nut in a hex pocket open to a face whenever its tightened bolt holds it there and the face can be reached
+  while the bolt goes in. The pocket's flats stop the nut turning. Put the hexagon's corners on the nut cavity's circle
+  (radius 2.51 mm for M2) and make it as deep as a nut cavity is high (2.0 mm for M2), so the nut ends below the face.
+- Enclose a nut in a cavity on all sides except the bolt hole only when an open pocket cannot work: its face cannot be
+  reached during assembly, or the nut must stay in place before its bolt goes in. Drop the nut in during a print pause.
+  Models built before this rule keep their enclosed cavities until their fasteners change.
 - In a split shaft or pin, a nut cavity the seam cuts in half counts as enclosed when the halves, clamped by hardware, close it on all sides except the bolt hole. Drop the nut into one half before assembly. See [Split shafts](docs/model-pipeline.md#split-shafts).
 - Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.
 - Size a head pocket from the head diameter plus 0.3 mm radial clearance. Make it as deep as the head is tall.
@@ -71,6 +73,13 @@
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
+
+## Build status
+
+- Mark every model as built and tested or not built yet, in its README (the line under the title) and in the
+  `models/README.md` table. See `docs/adding-models.md`. List a model nobody has built in `UNBUILT` in
+  `scripts/check_repository.py`.
+- Change a model's status only when the user says someone built and tested it.
 
 ## Model images
 

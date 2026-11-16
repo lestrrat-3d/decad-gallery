@@ -1,5 +1,6 @@
-// Package m2fastener places M2 bolts and captive nuts in their host parts, as AGENTS.md "Fasteners" requires: a bolt
-// head sinks in a pocket and ends flush, and a nut sits in a cavity the host encloses apart from the bolt hole.
+// Package m2fastener places M2 bolts and nuts in their host parts, as AGENTS.md "Fasteners" requires: a bolt head sinks
+// in a pocket and ends flush, and a nut sits either in a cavity the host encloses apart from the bolt hole or in a hex
+// pocket open to a face, where its tightened bolt holds it.
 package m2fastener
 
 import (
@@ -109,6 +110,38 @@ func cylinderTool(ctx context.Context, doc *decad.Document, s Site, from, radius
 // CavityTool builds the nut cavity's cutter: a circle of radius NutCavityRadius, from Cavity to CavityFar.
 func CavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *sketch.Sketch, error) {
 	return cylinderTool(ctx, doc, s, s.Cavity, NutCavityRadius, NutCavityHeight)
+}
+
+// HexPocketTool builds a hexagonal nut pocket's cutter from the site's Cavity, depth along Dir. A pocket that opens on a
+// face takes the depth out through it plus Stock (NutCavityHeight+Stock for a pocket as deep as a nut cavity). The hexagon is centred on the site's line with its corners on the circle of
+// radius NutCavityRadius, the first along Corner. Each side is held by its distance from the line, the first flat is
+// horizontal and each next side turns 60 degrees from the one before, so the corners lie where the sides meet. The
+// corners stay sharp, matching the nut's sharp corners. The sketch lies on Across(Cavity): U is Corner and V is
+// Dir x Corner, so it extrudes along Dir.
+func HexPocketTool(ctx context.Context, doc *decad.Document, s Site, depth float64) (*decad.Body, *sketch.Sketch, error) {
+	sk, err := newSketch(s, s.Cavity)
+	if err != nil {
+		return nil, nil, err
+	}
+	rad := NutCavityRadius
+	flat := rad * math.Sqrt(3) / 2
+	var corners [6]*sketch.Point
+	for i := range corners {
+		a := float64(i) * math.Pi / 3
+		corners[i] = sk.CreatePoint(rad*math.Cos(a), rad*math.Sin(a))
+	}
+	var sides [6]*sketch.Line
+	for i := range sides {
+		sides[i] = sk.CreateLine(corners[i], corners[(i+1)%6])
+		sk.AddConstraint(sketch.NewDistancePointLine(sk.Origin(), sides[i], flat))
+	}
+	// sides[1] runs from the corner at 60 degrees to the one at 120 degrees: a flat.
+	sk.AddConstraint(sketch.NewHorizontal(sides[1]))
+	for i := range 5 {
+		sk.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
+	}
+	body, err := extrude(ctx, doc, sk, depth)
+	return body, sk, err
 }
 
 // RoundRadius is the radius of the rounds RoundedHoleTool and RoundedCavityTool put on a tool's end corners, and

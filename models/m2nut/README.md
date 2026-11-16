@@ -1,5 +1,7 @@
 # M2 hex nut
 
+**Build status:** Built and tested.
+
 ![M2 hex nut](images/hero.png)
 
 This model is the M2 hex nut that pairs with the [M2 bolt](../m2bolt/). It follows ISO 4032 and JIS B 1181:

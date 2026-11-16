@@ -1,5 +1,7 @@
 # Treadle spinning wheel
 
+**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+
 ![Open Saxony spinning wheel](images/hero.png)
 
 The images show all 206 parts of the default build.

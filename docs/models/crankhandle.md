@@ -2,7 +2,7 @@
 
 The model in `models/crankhandle` constructs a printed hand crank for a D-flat shaft: an arm that pinches the shaft, a
 pin, a handle that turns on the pin, the M2 x 10 bolt and nut that clamp the pin in the arm, the two M2 x 6 cross bolts
-and nuts that clamp the pin's two printed halves together, and the M2 x 18 clamp bolt and nut that close the arm's slit
+and nuts that clamp the pin's two printed halves together, and the M2 x 16 clamp bolt and nut that close the arm's slit
 on the shaft. `models/handcranksiren` builds its crank from it.
 
 ## Construction and API
@@ -64,8 +64,8 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
   round end, and the wall round it is at least 1.6 mm, or 1.05 mm over the clamp bolt's hole;
 - the slit: one section loop runs from the bore down the slit's walls, 1 mm apart, to the end arc, and the slit ends
   in the floor 1 mm past the bore's wall;
-- the clamp bolt: an M2 x 18 with its head flush with the +X side face and inside its pocket, crossing the slit, its
-  tip flush with the -X face, its nut inside its hexagonal pocket below that face, and no overlap with the arm in
+- the clamp bolt: an M2 x 16 with its head flush with the +X side face and inside its pocket, crossing the slit, its
+  tip 2 mm inside the -X face, its nut inside its hexagonal pocket below that face, and no overlap with the arm in
   sections along and across it; the pocket open to the -X face with a corner up and one down, its flats closer to the axis than the nut's corners
   and its corners clear of them; and every wall round the clamp's cuts at least 1 mm, also for a 16.6 mm shaft;
 - the face chamfers: 0.25 mm inside each face the section stands 0.25 mm in from the pin end, the end arc and both
@@ -86,4 +86,5 @@ tests check its crank through the assembly.
 
 ## Known decad limit
 
-The 608-2RS bore's rim in the arm's back face is not chamfered: Decad refuses the chamfer. `steps.md` quotes the error.
+The D bore's rim in the arm's back face is not chamfered: the slit opens the rim into a run that ends at the slit's
+walls, and Decad refuses the chamfer of that run. `steps.md` quotes the errors.

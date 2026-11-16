@@ -1,5 +1,7 @@
 # Pin ring
 
+**Build status:** Built and tested.
+
 ![Pin ring](images/hero.png)
 
 This model is a plain flat ring used as an assembly aid (a jig). It sits on a pin's rod to hold the pin in place

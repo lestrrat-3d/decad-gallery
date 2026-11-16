@@ -1,5 +1,7 @@
 # Herringbone gear
 
+**Build status:** Built and tested.
+
 ![A bored herringbone gear with opposing tooth slopes](images/hero.png)
 
 ## More views

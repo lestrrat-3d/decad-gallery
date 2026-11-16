@@ -1,5 +1,7 @@
 # Bevel gear pair
 
+**Build status:** Built and tested.
+
 Two meshing bevel gears whose shafts meet at an angle, shown as two pairs side by side. The pair on the
 left has spiral teeth: 31 teeth on each gear at Module 1 with 35° spiral teeth on a 90° shaft angle. The
 pair on the right has straight teeth: 32 and 16 teeth at Module 4. Every gear has a through-bore for its
