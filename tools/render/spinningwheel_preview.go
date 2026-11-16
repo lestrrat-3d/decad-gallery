@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 
@@ -112,11 +110,7 @@ func previewWheelPNG(ctx context.Context, output string, scene solidlens.Scene, 
 		return fmt.Errorf("preview image is too small")
 	}
 	scene.Camera = fitCamera(scene.Camera, scene.Models, float64(width)/float64(height-header), .08)
-	var buffer bytes.Buffer
-	if err := solidlens.RenderPNG(ctx, &buffer, scene, solidlens.Settings{Width: width, Height: height - header}); err != nil {
-		return err
-	}
-	native, err := png.Decode(&buffer)
+	native, err := solidlens.Render(ctx, scene, solidlens.Settings{Width: width, Height: height - header})
 	if err != nil {
 		return err
 	}

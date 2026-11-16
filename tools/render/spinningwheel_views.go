@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 
 	"github.com/lestrrat-3d/solidlens"
 	"golang.org/x/image/font"
@@ -105,11 +103,7 @@ func wheelPanelCanvas(ctx context.Context, panels []wheelPanel, width, height in
 	draw.Draw(canvas, canvas.Bounds(), image.NewUniform(solidlens.RGB(.88, .92, .95).NRGBA()), image.Point{}, draw.Src)
 	pw, ph := width/2, height-110
 	for i, panel := range panels {
-		var buffer bytes.Buffer
-		if err := solidlens.RenderPNG(ctx, &buffer, panel.scene, solidlens.Settings{Width: pw, Height: ph}); err != nil {
-			return nil, err
-		}
-		img, err := png.Decode(&buffer)
+		img, err := solidlens.Render(ctx, panel.scene, solidlens.Settings{Width: pw, Height: ph})
 		if err != nil {
 			return nil, err
 		}
