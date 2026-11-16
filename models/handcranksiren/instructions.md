@@ -207,10 +207,11 @@ The housing is two printed parts that stand on the table and hold the gearbox by
   flat 3.55 from the axis. Its wall is 1.7, over the 1.6 press-fit wall. It prints with its axis vertical.
   - rotor-spacer over Y [−26.25, −22.75], between bearing-rotor (0.25) and the rotor hub (0.05).
   - crank-spacer over Y [34.75, 38.25], between bearing-crank (0.25) and the crank arm (0.05).
-- Each spacer is pressed on the flat. The carried part sets its place: the rotor and the crank arm bottom on the shaft's
-  end in their blind bores, which leaves each spacer at least 0.25 off its bearing (0.5 nominal less the 0.25 floor gap).
-- The input shaft floats ±0.25 in the gearbox (between the input shaft collar and the front collar ring). At the limit
-  the rotor-spacer or the front collar ring touches bearing-rotor's inner ring, which turns with them.
+- Each spacer is pressed on the flat. The carried part sets its place: the rotor and the crank arm are pressed until
+  their blind bores' floors meet the shaft's end. That closes the 0.25 floor gap and the spacer's 0.25 gap to its
+  bearing's inner ring together, and the inner ring turns with the spacer. The model shows both gaps open.
+- The input shaft floats ±0.25 in the gearbox (between the input shaft collar and the front collar ring). At either
+  limit the rotor-spacer or the front collar ring touches bearing-rotor's inner ring, which turns with them.
 
 ### Arbor collars
 
