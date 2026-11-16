@@ -22,6 +22,16 @@ var frontPlateFixture struct {
 	err  error
 }
 
+func TestDefaultPlateFixtures(t *testing.T) {
+	back, _ := defaultBackPlate(t)
+	backAgain, _ := defaultBackPlate(t)
+	require.True(t, back == backAgain, "back plate fixture returns the same body")
+
+	front, _ := defaultFrontPlate(t)
+	frontAgain, _ := defaultFrontPlate(t)
+	require.True(t, front == frontAgain, "front plate fixture returns the same body")
+}
+
 func defaultBackPlate(t *testing.T) (*decad.Body, Geometry) {
 	t.Helper()
 	backPlateFixture.once.Do(func() {
