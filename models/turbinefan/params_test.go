@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
@@ -22,7 +21,7 @@ func TestTurbineFanParams(t *testing.T) {
 	require.Equal(t, ballbearing.Params608ZZ().BoreDiameter, turbinefan.Params608ZZ().ShaftDiameter)
 	for _, q := range []turbinefan.Params{turbinefan.Params605ZZ(), turbinefan.Params608ZZ()} {
 		require.Equal(t, ballbearing.PressFitClearance, q.BoreClearance)
-		require.Equal(t, handcrankfan.DefaultBladePitch, q.BladePitch)
+		require.Equal(t, turbinefan.DefaultBladePitch, q.BladePitch)
 		require.Nil(t, q.Placement)
 		require.Equal(t, turbinefan.RightHand, q.Hand)
 	}
@@ -134,7 +133,7 @@ func TestTurbineFanClutchParams(t *testing.T) {
 	require.Equal(t, turbinefan.RightHand, def.Hand)
 	require.Equal(t, turbinefan.ClutchMount, def.Mount)
 	require.Equal(t, ballbearing.PressFitClearance, def.BoreClearance)
-	require.Equal(t, handcrankfan.DefaultBladePitch, def.BladePitch)
+	require.Equal(t, turbinefan.DefaultBladePitch, def.BladePitch)
 	mf, err := turbinefan.MountFrame(nil)
 	require.NoError(t, err)
 	require.NotNil(t, def.Placement)

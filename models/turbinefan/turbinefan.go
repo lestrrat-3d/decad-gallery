@@ -1,7 +1,7 @@
 // Package turbinefan builds a fan of three replaceable blades on one printed hub. The hub is a plain round cylinder with a
 // D bore for a D-flat shaft. One radial M2 x 6 bolt acts as a set screw: it threads through a nut in a hex slot open to the
 // back face, its tip presses the shaft's flat and its head floats, recessed, in a counterbore in the round face. Each blade
-// is the hand-crank fan's blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the
+// is this model's blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the
 // shaft, holds it in a nut that sits in a hex slot open to the round face.
 //
 // With Params.Mount = ClutchMount the hub does not grip the shaft. A flange behind it bolts to the three ring ears of a
@@ -25,7 +25,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
@@ -273,11 +272,11 @@ func (r *run) hub() (*decad.Body, error) {
 
 // socketTools returns the three blade sockets' cutters and records the sketch.
 func (r *run) socketTools() ([]*decad.Body, error) {
-	socketFrame, err := r3.NewFrame(r3.Vec{Y: handcrankfan.BladeSocketStart, Z: HubMid}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	socketFrame, err := r3.NewFrame(r3.Vec{Y: BladeSocketStart, Z: HubMid}, r3.Vec{Z: 1}, r3.Vec{X: 1})
 	if err != nil {
 		return nil, fmt.Errorf("socket frame: %w", err)
 	}
-	socket, ks, err := handcrankfan.BladeSocketTool(r.ctx, r.doc, socketFrame)
+	socket, ks, err := BladeSocketTool(r.ctx, r.doc, socketFrame)
 	if err != nil {
 		return nil, fmt.Errorf("socket tool: %w", err)
 	}
@@ -292,7 +291,7 @@ func (r *run) socketTools() ([]*decad.Body, error) {
 // bladeSlotTool is blade k's nut slot: slotTool along the blade's radial line out through the hub's rim.
 func (r *run) bladeSlotTool(k int) (*decad.Body, error) {
 	u := r3.Vec{X: math.Cos(BladeAngle(k)), Y: math.Sin(BladeAngle(k))}
-	return r.slotTool(r.dm.BladeSites[k-1], u, HubRadius+m2fastener.Stock-handcrankfan.BladeBoltAt)
+	return r.slotTool(r.dm.BladeSites[k-1], u, HubRadius+m2fastener.Stock-BladeBoltAt)
 }
 
 // clutchHub is the clutch mount's hub: the revolved hub and flange, cut in this order by the three sockets, each blade's
@@ -381,12 +380,12 @@ func (r *run) ring(body *decad.Body) ([]*decad.Body, error) {
 	return append([]*decad.Body{body}, copies...), nil
 }
 
-// blades builds blade 1 (handcrankfan.BuildBlade), turns it into place along +Y in the hub's mid plane and copies it
+// blades builds blade 1 (BuildBlade), turns it into place along +Y in the hub's mid plane and copies it
 // about the shaft axis. Its Sketches join the run's.
 func (r *run) blades() ([]*decad.Body, error) {
-	build := handcrankfan.BuildBlade
+	build := BuildBlade
 	if r.p.Hand == LeftHand {
-		build = handcrankfan.BuildBladeMirrored
+		build = BuildBladeMirrored
 	}
 	blade, err := build(r.ctx, r.doc, r.p.BladePitch)
 	if err != nil {

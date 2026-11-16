@@ -1,8 +1,8 @@
 # Turbine fan Decad steps
 
-Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has five files:
+Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has six files:
 `params.go` (constants, `Hand`, `Params`, the presets, `Validate`, `Derive`, `Dimensions`), `document.go`
-(`NewDocument`), `sketches.go` (the build run, the hub's outline sketch, the nut slot sketch and the tools) and
+(`NewDocument`), `blade.go` (the blade and its joint), `sketches.go` (the build run, the hub's outline sketch, the nut slot sketch and the tools) and
 `turbinefan.go` (package doc, container names, `Parts`, `Model`, `BuildParts`, `Build`, the hub and the blades). Every error
 message starts with `turbinefan: `.
 
@@ -56,9 +56,9 @@ Tools, each recording its sketch:
 1. Hub: extrude the outline 20 along +Z (profile with four holes); `edgefinish.Chamfer` of both faces by 0.5 over the long
    loops; then `decad.Cut`, in this order, the socket tool and its two pattern copies, for each blade site `m2fastener.PocketTool`
    then `bladeSlotTool` (a call of `slotTool`), then `counterboreTool`, `m2fastener.HoleTool(SetScrewSite)` and `setScrewSlotTool`. The socket tool is
-   `handcrankfan.BladeSocketTool` on `r3.NewFrame((0, 5.7, 10), (0, 0, 1), (1, 0, 0))`; its copies come from
+   `BladeSocketTool` on `r3.NewFrame((0, 5.7, 10), (0, 0, 1), (1, 0, 0))`; its copies come from
    `decad.PatternCopies` with `decad.CircularPattern{Axis: (0, 0, 1), Count: 3}`. Record every tool's sketch.
-2. Blades: `handcrankfan.BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` when `Hand` is `LeftHand`); record its
+2. Blades: `BuildBlade(ctx, doc, BladePitch)` (`BuildBladeMirrored` when `Hand` is `LeftHand`); record its
    sketches; `decad.Transform` by `r3.FromFrame(r3.NewFrame((0, 0, 10), (-1, 0, 0), (0, 0, 1)))`; `decad.PatternCopies` with
    the same circular pattern.
 3. Require each part solid, then `placement.Place(ctx, body, p.Placement)`. Carry each site's `Head` through
@@ -70,7 +70,35 @@ in `Bolts`, and their nuts in the same order in `Nuts`.
 
 The blade's stud union needs a document with a chain tolerance of 0.1 mm; `NewDocument` sets it.
 
-## 4. Clutch mount
+## 4. Blade (blade.go)
+
+`BuildBlade(ctx, doc, pitch)` builds blade 1 in the blade frame and returns its body and its twelve sketches: the ten
+sections, the stud circle and the bolt-hole circle, in that order. `BuildBladeMirrored` differs only in `mirror`. The
+first failing step stops the rest.
+
+- Blade frame: sections on world-XY planes at Z = r (radius) with the sketch origin on the stacking line; local Z is the
+  radial line, local X the blade's direction of motion and local Y downstream. A local point `(u, v)` of a section at
+  angle `beta` for chord position `xi` (mm from the leading edge) and offset `eta` toward the suction side is
+  `(xiP - xi)(cos beta, -sin beta) + (eta - etaP)(-sin beta, -cos beta)`, with `xiP = c/2` and `etaP = c yc(0.5)`.
+- Sections: one `sketch.NewWorld()`. For each of the ten stations of the instructions' table, a sketch on
+  `CreateOffsetPlane(XY, r)`. It holds 21 fit points, each made by `sketchcheck.DimensionPoint`, in the order suction
+  surface at x_k for k = 10..1, the leading edge, then the pressure surface for k = 1..10, with
+  `x_k = (1 - cos(pi k / 10)) / 2`. A tail point carries `NewMidpointOf(tail, first, last)`. There is one `CreateFitSpline`
+  through the 21 points and the lines `last -> tail` and `tail -> first`. Solve, require `sketchcheck.VerifyFullyConstrained`,
+  and select the valid profile with no holes and three outer edges. The sections are always drawn at the 25 degree blade
+  angle, with every X coordinate negated for `BuildBlade` (not for `BuildBladeMirrored`).
+- Loft: `decad.LoftSections` through the ten sections in ascending r. When the pitch is not 25 degrees, `decad.Transform`
+  the loft by `r3.RotationAround(origin, +Z, -(pitch - 25 degrees))` (the opposite turn when mirrored).
+- Root stud: a circle of radius 3 on the frame origin `(0, 0, 6.1)`, U = +X, V = +Y, extruded 9.9. `decad.Chamfer` its
+  start cap's outer loop with 0.3. `Cut` it by a circle of radius 1.3 on the frame origin `(0, -5, 9.5)`, U = +Z, V = +X,
+  extruded 10 (the bolt hole). The cut happens before the union, so the faceted loft never takes part in it.
+- `Union` the loft and the stud: they overlap in volume and share no face.
+- `BladeSocketTool(ctx, doc, f)`: a circle of radius 3.4 on `f`, extruded `HubRadius + 1 - 5.7`, with `decad.Fillet` of its
+  start cap's outer loop by 0.5. It makes one sketch.
+- The document must come from `NewDocument`: without its chain tolerance, Decad refuses the blade-stud union because the
+  loft's mesh bound is coarser than the pair's chord tolerance.
+
+## 5. Clutch mount
 
 Only `Mount = ClutchMount` runs this. `ShaftMount` runs sections 1 to 3 unchanged. See instructions.md "Clutch mount" for
 the numbers. `Derive` fills `ClutchBoreRadius = D/2 + 0.55` and `EarSites[k]` (`Head: 23.5 (cos a, sin a, 0)`, `Dir: (0, 0,

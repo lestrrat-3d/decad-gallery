@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
 )
@@ -105,8 +106,8 @@ func (a *Assembly) joints() []parts.Joint {
 		js[len(js)-1].Pull = w.dir.Scale(-1)
 		add(fmt.Sprintf("wall bolt %d in %s", i+1, w.recv), bolt, w.recv, axis, parts.Fixed)
 	}
-	for k := 0; k < a.Params.Blades; k++ {
-		theta := a.State.FanAngle + 2*math.Pi*float64(k)/float64(a.Params.Blades)
+	for k := 0; k < turbinefan.BladeCount; k++ {
+		theta := a.State.FanAngle + 2*math.Pi*float64(k)/turbinefan.BladeCount
 		radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
 		stud := parts.Axis{Point: apex, Dir: radial}
 		bolt := parts.Axis{Point: apex.Add(radial.Scale(boltAt)), Dir: fanAxis}
@@ -116,6 +117,14 @@ func (a *Assembly) joints() []parts.Joint {
 		add(fmt.Sprintf("bolt %d in the blade", k+1), screw, blade, bolt, parts.Fixed)
 		add(fmt.Sprintf("nut %d in the hub", k+1), nut, "fan-hub", bolt, parts.Fixed)
 		add(fmt.Sprintf("bolt %d in the nut", k+1), screw, nut, bolt, parts.Fixed)
+	}
+	// The set screw runs along its posed line from the round face to the shaft's flat. Its nut is held in the hub.
+	if xf, err := motionTransform(a.State, "fan"); err == nil {
+		for _, site := range sitesNamed("fan-set-screw") {
+			screw := parts.Axis{Point: xf.Apply(site.Head), Dir: xf.ApplyDir(site.Dir)}
+			add("set screw in the hub", site.bolt, "fan-hub", screw, parts.Fixed)
+			nutJoints(site.bolt, site.nut, "fan-hub", screw)
+		}
 	}
 	return js
 }
@@ -127,7 +136,7 @@ func (a *Assembly) joints() []parts.Joint {
 // pin's stub end and so goes between the arm and the pin, then the pin. Both shafts then slide out to the left, through
 // the post. The pinion slides off to the left, the grip bolts, the crank gear, the drive gear and the driving gear lift
 // out of the open top in that order, and the grip drops. The fan side comes off along the fan axis: the blade bolts,
-// the blades, then the hub with its nuts. A captive nut leaves with its part, and the base's own nuts stay where they
+// the blades, then the hub with its nuts and its set screw. A captive nut leaves with its part, and the base's own nuts stay where they
 // are. The order and the directions of the lifts are the result of a search that leaves no two parts sharing space and
 // keeps the largest move shortest.
 func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error) {
@@ -142,7 +151,7 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		return st
 	}
 	var bolts, blades, nuts []string
-	for k := 1; k <= a.Params.Blades; k++ {
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		bolts = append(bolts, fmt.Sprintf("fan-bolt-%d", k))
 		blades = append(blades, fmt.Sprintf("fan-blade-%d", k))
 		nuts = append(nuts, fmt.Sprintf("fan-nut-%d", k))
@@ -170,7 +179,7 @@ func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded
 		stage("fan block bearing", r3.Vec{Y: -1}, "bearing-fan-block"),
 		stage("blade bolts", front, bolts...),
 		parts.Stage{Name: "blades", Parts: blades, Clear: parts.ClearAll},
-		together("hub", front, append([]string{"fan-hub"}, nuts...)...),
+		together("hub", front, append(append([]string{"fan-hub"}, nuts...), "fan-set-screw", "fan-set-screw-nut")...),
 		stage("fan shaft", front, "fan-shaft"),
 		together("post", left, "gearbox-post", "gearbox-nut-1", "gearbox-nut-3"),
 		together("crank-side wall", along, "gearbox-crank-wall", "gearbox-nut-2", "gearbox-nut-4"),

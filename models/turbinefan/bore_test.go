@@ -4,7 +4,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -63,7 +62,7 @@ func TestTurbineFanBoreFit(t *testing.T) {
 			}
 			require.GreaterOrEqual(t, wall, turbinefan.PressWall-bound, "z %g: wall round the bore", z)
 			if z == 10 {
-				require.InDelta(t, handcrankfan.BladeSocketStart-dm.BoreRadius, wall, 0.05, "z 10: the least wall is the one to the socket floors")
+				require.InDelta(t, turbinefan.BladeSocketStart-dm.BoreRadius, wall, 0.05, "z 10: the least wall is the one to the socket floors")
 			}
 		}
 		// The wall between the bore's flat and the set screw's nut slot, read across the flat beside the screw's hole.

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
@@ -116,9 +115,9 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 				site := m.BladeSites[k-1]
 				u := bladeDir(k)
 				v := r3.Vec{X: -u.Y, Y: u.X}
-				line := r3.Vec{X: u.X * handcrankfan.BladeBoltAt, Y: u.Y * handcrankfan.BladeBoltAt}
+				line := r3.Vec{X: u.X * turbinefan.BladeBoltAt, Y: u.Y * turbinefan.BladeBoltAt}
 				bolt, nut := m.BladeBolts[k-1].Body, m.BladeNuts[k-1].Body
-				require.Equal(t, handcrankfan.BladeBoltLength, site.Length)
+				require.Equal(t, turbinefan.BladeBoltLength, site.Length)
 				require.Contains(t, m2bolt.StandardLengths(), site.Length)
 				bb, err := bolt.Bounds()
 				require.NoError(t, err)
@@ -152,7 +151,7 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 				require.False(t, at(u.Scale(13.9)), "the slot is open to the rim")
 				require.True(t, at(line.Add(v.Scale(flatsHalf+0.4))), "hub beside the slot")
 				require.True(t, at(line.Sub(v.Scale(flatsHalf+0.4))), "hub beside the slot")
-				require.True(t, at(u.Scale(handcrankfan.BladeBoltAt-m2fastener.NutCavityRadius-0.4)), "hub beyond the slot's end")
+				require.True(t, at(u.Scale(turbinefan.BladeBoltAt-m2fastener.NutCavityRadius-0.4)), "hub beyond the slot's end")
 				for _, z := range []float64{1.9, 4.9} {
 					level := section(t, m.Hub, atZ(t, z))
 					require.True(t, inSection(level, xy, line.X+2*u.X, line.Y+2*u.Y), "hub under and over the slot at z %g", z)

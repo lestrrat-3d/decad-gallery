@@ -10,13 +10,14 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
-func partNames(blades int) []string {
+func partNames() []string {
 	names := []string{
 		"handle", "handle-bolt-1", "handle-nut-1", "handle-bolt-2", "handle-nut-2",
 		"gearbox-base", "gearbox-post", "gearbox-crank-wall", "gearbox-fan-wall", "gearbox-bolt-1", "gearbox-nut-1",
@@ -27,14 +28,14 @@ func partNames(blades int) []string {
 		"drive-shaft", "drive-gear", "crank-gear", "bearing-crank-post", "bearing-drive-post", "bearing-crank-wall",
 		"bearing-drive-wall", "bearing-crank-block", "bearing-fan-wall", "bearing-fan-block",
 	}
-	for k := 1; k <= blades; k++ {
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		names = append(names, fmt.Sprintf("fan-blade-%d", k), fmt.Sprintf("fan-bolt-%d", k), fmt.Sprintf("fan-nut-%d", k))
 	}
-	return names
+	return append(names, "fan-set-screw", "fan-set-screw-nut")
 }
 
 func isRotor(name string) bool {
-	return name == "fan-hub" || strings.HasPrefix(name, "fan-blade-") || strings.HasPrefix(name, "fan-bolt-") ||
+	return name == "fan-hub" || name == "fan-set-screw" || strings.HasPrefix(name, "fan-blade-") || strings.HasPrefix(name, "fan-bolt-") ||
 		strings.HasPrefix(name, "fan-nut-")
 }
 
@@ -77,7 +78,7 @@ func bounds(t *testing.T, part handcrankfan.Part) decad.Box {
 // checkFan runs every check on one real build.
 func checkFan(t *testing.T, p handcrankfan.Params) {
 	doc, parts, a := buildFan(t, p)
-	names := partNames(p.Blades)
+	names := partNames()
 	require.Len(t, a.Parts, len(names))
 	for _, name := range names {
 		require.Contains(t, parts, name)
@@ -101,7 +102,7 @@ func checkFan(t *testing.T, p handcrankfan.Params) {
 	t.Run("pitch", func(t *testing.T) { requirePitch(t, p, parts) })
 	t.Run("joint", func(t *testing.T) { requireJoint(t, p, parts) })
 	t.Run("grip", func(t *testing.T) { requireGrip(t, parts) })
-	t.Run("sweep", func(t *testing.T) { requireSweepClearance(t, parts, a.State, p.Blades) })
+	t.Run("sweep", func(t *testing.T) { requireSweepClearance(t, parts, a.State) })
 	// Fits, fasteners and gear mesh are measured at the default parameters only: the other parameters turn parts
 	// rigidly about their own axes or repeat identical sockets.
 	if p == handcrankfan.DefaultParams() {
@@ -221,8 +222,8 @@ func requireOrientation(t *testing.T, p handcrankfan.Params, parts map[string]ha
 	for name, b := range box {
 		require.GreaterOrEqual(t, b.Min.Z, box["handle"].Min.Z-tol, "%s hangs below the grip end", name)
 	}
-	require.InDelta(t, -100, box["fan-shaft"].Min.Y, tol)
-	for k := 1; k <= p.Blades; k++ {
+	require.InDelta(t, -95, box["fan-shaft"].Min.Y, tol, "the shaft ends 1 inside the hub's front face")
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		bolt := box[fmt.Sprintf("fan-bolt-%d", k)]
 		require.GreaterOrEqual(t, bolt.Min.Y, -96.0-0.01, "bolt %d's head is flush with the hub's front face", k)
 		require.Less(t, bolt.Max.Y, -76.0, "bolt %d is inside the hub's back face", k)
@@ -288,27 +289,8 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.Greater(t, le.Y-mid.Y, 0.0, "the leading edge is upstream at radius %g", r)
 		angle := math.Atan2(le.Y-mid.Y, le.Z-mid.Z)
 		// The blades are mirrored, so the leading edge leads toward -Z and the chord angle is pi minus beta.
-		require.InDelta(t, math.Pi-handcrankfan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
-		requireThickness(t, handcrankfan.ThicknessRatio(x), angle, ring, 0.03, x)
+		require.InDelta(t, math.Pi-turbinefan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
 	}
-	// The root is nearly round.
-	x, ring := meshRing(verts, 15)
-	requireThickness(t, 1, 0, ring, 0.1, x)
-}
-
-// requireThickness compares the ring's extent across the chord direction with its extent along it.
-func requireThickness(t *testing.T, want, angle float64, ring []r3.Vec, tol, x float64) {
-	t.Helper()
-	along := r3.Vec{Y: math.Sin(angle), Z: math.Cos(angle)}
-	across := r3.Vec{Y: math.Cos(angle), Z: -math.Sin(angle)}
-	lo, hi := [2]float64{math.Inf(1), math.Inf(1)}, [2]float64{math.Inf(-1), math.Inf(-1)}
-	for _, v := range ring {
-		for i, axis := range []r3.Vec{along, across} {
-			d := v.Y*axis.Y + v.Z*axis.Z
-			lo[i], hi[i] = math.Min(lo[i], d), math.Max(hi[i], d)
-		}
-	}
-	require.InDelta(t, want, (hi[1]-lo[1])/(hi[0]-lo[0]), tol, "thickness ratio at radius %g", x)
 }
 
 // requireJoint checks that the hub is empty where a stud, a bolt and a nut go. The overlap check proves they fit.
@@ -429,9 +411,16 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	for _, f := range fasteners {
 		captive[f.Nut] = f.NutHost
 	}
+	// The set screw stays in its nut in the hub, as turbinefan's instructions say, and both leave with the hub. The
+	// screw's box and its nut's box overlap, as a bolt's does with the nut it threads through.
+	captive["fan-set-screw"] = "fan-hub"
+	captive["fan-set-screw-nut"] = "fan-hub"
 	var overlaps [][2]string
 	for _, pair := range layout.Overlaps {
 		if captive[pair[0]] == pair[1] || captive[pair[1]] == pair[0] {
+			continue
+		}
+		if pair == [2]string{"fan-set-screw", "fan-set-screw-nut"} || pair == [2]string{"fan-set-screw-nut", "fan-set-screw"} {
 			continue
 		}
 		overlaps = append(overlaps, pair)
@@ -488,8 +477,8 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 			screws += row.Quantity
 		}
 	}
-	require.Equal(t, 11+a.Params.Blades, screws, "four ear bolts, four wall bolts, two grip bolts, the pin bolt and one for each blade")
-	require.Equal(t, 11+a.Params.Blades, nuts, "one nut for each bolt")
+	require.Equal(t, 15, screws, "four ear bolts, four wall bolts, two grip bolts, the pin bolt, three blade bolts and the set screw")
+	require.Equal(t, 15, nuts, "one nut for each bolt")
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 
@@ -497,7 +486,7 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 // a ring about the crank axis, which sits well below the fan axis, and the blades sweep a disc about the fan axis.
 // Every vertex of the crank parts is turned about the crank axis through a full turn, and none may come within a hand's
 // width of the blades' disc.
-func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, state handcrankfan.State, blades int) {
+func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, state handcrankfan.State) {
 	vertices := func(name string) []r3.Vec {
 		mesh, err := built[name].Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyNone))
 		require.NoError(t, err, name)
@@ -505,7 +494,7 @@ func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, sta
 	}
 	const hand = 15.0
 	front, back, disc := math.Inf(1), math.Inf(-1), 0.0
-	for k := 1; k <= blades; k++ {
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		for _, v := range vertices(fmt.Sprintf("fan-blade-%d", k)) {
 			front, back = math.Min(front, v.Y), math.Max(back, v.Y)
 			disc = math.Max(disc, math.Hypot(v.X, v.Z-state.Apex.Z))
@@ -530,12 +519,13 @@ func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, sta
 // requireIdenticalBlades turns every blade and bolt back to the first one's place and compares their bounds.
 // It retires the bodies it turns, so it runs last.
 func requireIdenticalBlades(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
+	const blades = turbinefan.BladeCount
 	state, err := handcrankfan.Motion(p)
 	require.NoError(t, err)
 	for _, kind := range []string{"fan-blade-", "fan-bolt-", "fan-nut-"} {
 		var first decad.Box
-		for k := 1; k <= p.Blades; k++ {
-			back := state.FanAngle + 2*math.Pi*float64(k-1)/float64(p.Blades)
+		for k := 1; k <= blades; k++ {
+			back := state.FanAngle + 2*math.Pi*float64(k-1)/blades
 			xf, err := r3.RotationAround(state.Apex, r3.Vec{Y: -1}, units.Radians(-back))
 			require.NoError(t, err)
 			moved, err := decad.Transform(t.Context(), parts[fmt.Sprintf("%s%d", kind, k)].Body, xf)
@@ -600,8 +590,8 @@ func TestHandCrankFanContainers(t *testing.T) {
 func TestHandCrankFanVariant(t *testing.T) {
 	skipUnlessFull(t)
 	for name, p := range map[string]handcrankfan.Params{
-		"flat-three":  {CrankAngle: -0.7, BladePitch: 12 * math.Pi / 180, Blades: 3},
-		"steep-three": {CrankAngle: 2.5, BladePitch: 40 * math.Pi / 180, Blades: 3},
+		"flat-three":  {CrankAngle: -0.7, BladePitch: 12 * math.Pi / 180},
+		"steep-three": {CrankAngle: 2.5, BladePitch: 40 * math.Pi / 180},
 	} {
 		t.Run(name, func(t *testing.T) { checkFan(t, p) })
 	}

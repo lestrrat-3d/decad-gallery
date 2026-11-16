@@ -322,13 +322,13 @@ the whole fan from the crank side, from behind and above, and from below (1200 �
 one of them. The `readme` shot builds the fan once and writes `hero.png` (1600 × 900),
 `index.png` (480 × 270), `exploded.png` (1600 × 900) and the three views. It also writes one 480 × 270 pixel image of each unique part in
 `images/parts/`, which the README's parts table shows: the gearbox, the grip, a grip screw, the three gears and the
-pinion, the three shafts, a bearing, the crank arm, pin, pin bolt and handle, the hub, a blade and a blade bolt. The
-bolt images (`gearbox-bolt`, `gearbox-screw`, `grip-screw`, `crank-pin-screw` and `fan-bolt`) draw the bolt with its nut,
+pinion, the three shafts, a bearing, the crank arm, pin, pin bolt and handle, the hub, a blade, a blade bolt and the set
+screw. The bolt images (`gearbox-bolt`, `gearbox-screw`, `grip-screw`, `crank-pin-screw`, `fan-bolt` and `fan-set-screw`) draw the bolt with its nut,
 which the part row names in its `with` field. The
 `handcrankfan/part-gearbox`, `part-grip`, `part-grip-screw`, `part-crank-gear`, `part-drive-gear`, `part-driving-gear`,
 `part-pinion`, `part-crank-shaft`, `part-drive-shaft`, `part-fan-shaft`, `part-bearing`, `part-crank-arm`,
-`part-crank-pin`, `part-crank-pin-screw`, `part-crank-handle`, `part-fan-hub`, `part-fan-blade` and `part-fan-bolt`
-presets render one of them alone, each from its own side:
+`part-crank-pin`, `part-crank-pin-screw`, `part-crank-handle`, `part-fan-hub`, `part-fan-blade`, `part-fan-bolt` and
+`part-fan-set-screw` presets render one of them alone, each from its own side:
 
 ```sh
 go -C tools/render run . -model handcrankfan -shot readme -out ../../models/handcrankfan/images

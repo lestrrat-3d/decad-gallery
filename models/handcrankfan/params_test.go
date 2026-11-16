@@ -17,8 +17,6 @@ func TestValidate(t *testing.T) {
 		"huge angle":     func(p *handcrankfan.Params) { p.CrankAngle = math.MaxFloat64 },
 		"flat pitch":     func(p *handcrankfan.Params) { p.BladePitch = 0.1 },
 		"steep pitch":    func(p *handcrankfan.Params) { p.BladePitch = 0.8 },
-		"two blades":     func(p *handcrankfan.Params) { p.Blades = 2 },
-		"five blades":    func(p *handcrankfan.Params) { p.Blades = 5 },
 	} {
 		p := handcrankfan.DefaultParams()
 		edit(&p)
@@ -39,7 +37,7 @@ func TestMotion(t *testing.T) {
 	// 5π/4 points the arm down and toward the operator (-Y).
 	require.InDelta(t, -math.Sqrt2/2, s.ArmDirection.Y, 1e-12)
 	require.InDelta(t, -math.Sqrt2/2, s.ArmDirection.Z, 1e-12)
-	s, err = handcrankfan.Motion(handcrankfan.Params{CrankAngle: 0, BladePitch: 0.5, Blades: 3})
+	s, err = handcrankfan.Motion(handcrankfan.Params{CrankAngle: 0, BladePitch: 0.5})
 	require.NoError(t, err)
 	require.InDelta(t, 1, s.ArmDirection.Z, 1e-12, "angle 0 points the arm up")
 }

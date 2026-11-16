@@ -3,7 +3,7 @@
 The model in `models/turbinefan` constructs a fan of three replaceable blades on one printed hub. The hub is a plain round
 cylinder, radius 14 and 20 long, with a D bore for a D-flat shaft. One radial M2 x 6 bolt acts as a set screw: it threads
 through a nut in a hex slot open to the back face and its tip presses the shaft's flat, and its head floats in a counterbore
-in the round face. Each blade is the hand-crank fan's blade with its round stud in a radial socket in the hub, held by one
+in the round face. Each blade is this model's blade, with its round stud in a radial socket in the hub, held by one
 M2 bolt and a nut in a hex slot open to the round face.
 
 ## Construction and API
@@ -19,8 +19,8 @@ document. `BuildParts(ctx, doc, params)` adds the hub and the three blades and f
 params)` adds those, the four bolts and the four nuts, in the `Hub`, `Blades`, `Bolts` and `Nuts` containers. A rejected
 build adds no body.
 
-The model reuses `handcrankfan` by import (`BuildBlade`, `BuildBladeMirrored`, `BladeSocketTool` and the hub and blade-joint
-constants) and reads `PressWall`, `ChamferSize` and `RegularFit` from `crankhandle`. It copies no geometry.
+The model owns the blade (`BuildBlade`, `BuildBladeMirrored`, `BladeSocketTool` and the hub and blade-joint constants),
+which `models/handcrankfan` imports, and reads `PressWall`, `ChamferSize` and `RegularFit` from `crankhandle`. It copies no geometry.
 
 The hub's outline holds the circle, the D bore and the three blade bolt holes. It is extruded 20, then `edgefinish.Chamfer`
 takes the long loops of both faces: the outer circle, and the D loop at the 608ZZ bore. Then it is cut by the three sockets,
