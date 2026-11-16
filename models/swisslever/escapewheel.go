@@ -118,7 +118,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	selection := decad.Edges(decad.ParallelTo(zAxis), decad.Concave()).Exactly(2 * Teeth)
+	selection := decad.Edges(decad.ParallelTo(zAxis), decad.Reflex()).Exactly(2 * Teeth)
 	if wheel, err = decad.Fillet(b.ctx, wheel, selection, units.Millimeters(toothRootRound)); err != nil {
 		return nil, fmt.Errorf("escape wheel: root fillet: %w", err)
 	}
