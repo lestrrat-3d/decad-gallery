@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: Check gallery tile cache
+        run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener ./internal/cornercheck ./internal/splitcheck -timeout 5m

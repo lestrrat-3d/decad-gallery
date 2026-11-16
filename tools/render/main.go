@@ -16,6 +16,8 @@ type preset struct {
 	scene         func(context.Context) (solidlens.Scene, error)
 }
 
+var galleryFresh bool
+
 var presets = map[string]preset{
 	"spinningwheel/hero":            {width: 1600, height: 900, scene: spinningWheelView("hero")},
 	"spinningwheel/rear":            {width: 1600, height: 900, scene: spinningWheelView("rear")},
@@ -114,6 +116,7 @@ func main() {
 	height := flag.Int("height", 0, "override preset height in pixels")
 	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
 	kit := flag.String("kit", "", "planetary gearbox bearing kit; empty selects the default")
+	flag.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore existing gallery tile cache entries")
 	flag.Parse()
 	if err := checkKitFlag(*name, *kit); err != nil {
 		fmt.Fprintln(os.Stderr, err)
