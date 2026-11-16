@@ -521,7 +521,14 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 | Ear nut / slot | fastener rule | 0.17 flats (0.07 beside the rounds), 0.12 rounded corners, 0.20 faces | clear |
 | Blades / flange front face | Regular | 4.17 or more (lowest blade point at 40 degrees) | every blade vertex at r 28 or less at z 0.35 or more |
 
-The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it.
+The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. The clutch's R6 guarantee (0.40
+at the end of the play) carries over to the flange because the flange is flat over r < 18.5. The bound 1.45 is 0.35 +
+`ToothEndGap` + `ClutchSeam`. Blade fits are unchanged.
+
+Measured by `TestTurbineFanOnClutch` in the plane x = 0 (section outlines, less each outline's off-surface bound), modeled in
+brackets: flange back face / ring front end 0.228 (0.25); clamp front face / ring back end 0.228 (0.25); flange back face /
+cover outer face 1.492 (1.50); flange back face / the 270 degree cover bolt head 1.495 (1.50); clamp front face / back plate
+outer face 1.492 (1.50).
 
 ### Retained sharp corners, edge finishing and printing
 

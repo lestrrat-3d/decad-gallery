@@ -47,6 +47,7 @@ each they check:
   (`TestOneWayClutchFreewheelDirection`);
 - that the placed model equals the local one moved by the frame (`TestOneWayClutchPlacement`);
 - the part fits of `instructions.md` and that no two bodies overlap (`TestOneWayClutchFits`);
+- that `TestTurbineFanOnClutch` in `models/turbinefan` checks the clutch through its consumer, the clutch-mount fan;
 - the pawl's arm thickness, slot margin, strain and lock contact (`TestOneWayClutchPawls`);
 - that each bolt head ends flush in its pocket, each tip lies inside the back plate's outer face and ends flush with it once
   the seams close, each nut sits in its hex pocket and no fastener overlaps a part (`TestOneWayClutchFasteners`);
