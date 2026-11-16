@@ -33,6 +33,19 @@ func turbineCamera(dir, target r3.Vec) solidlens.Camera {
 		Up: solidlens.Vec{Y: 1}, FOV: 35}
 }
 
+// turbineScene lights models like bevelScene, but turns the lights to shine toward +Z when the camera is behind the
+// fan (z below its target). The shared lights shine toward -Z, so they leave the back faces dark from there.
+func turbineScene(camera solidlens.Camera, models []solidlens.Model) solidlens.Scene {
+	scene := bevelScene(camera, models)
+	if camera.Position.Z >= camera.Target.Z {
+		return scene
+	}
+	for i := range scene.DirectionalLights {
+		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
+	}
+	return scene
+}
+
 // turbineExplode is each part's offset in the exploded view: every blade outward along its radial line, each blade bolt out
 // of the front face, each blade nut out of its slot along the radial line, the set screw out along -Y and its nut out of
 // the back face.
@@ -184,7 +197,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
-		return bevelScene(fitCamera(turbineCamera(dirs[name], hubMid), models, 16.0/9, .06), models), nil
+		return turbineScene(fitCamera(turbineCamera(dirs[name], hubMid), models, 16.0/9, .06), models), nil
 	case "sizes":
 		// The 605ZZ hub and the 608ZZ hub, 40 mm apart along X, seen from behind.
 		models, err := c.models([]string{"hub"}, r3.Vec{X: -20}, nil)
@@ -196,7 +209,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 			return solidlens.Scene{}, err
 		}
 		models = append(models, more...)
-		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: -.2, Y: -.35, Z: -1}, hubMid), models, 16.0/9, .08), models), nil
+		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: -.2, Y: -.35, Z: -1}, hubMid), models, 16.0/9, .08), models), nil
 	case "setscrew":
 		// The hub, the blade bolts and nuts, and the set screw and its nut, cut by the plane z = SetScrewZ through the set
 		// screw's line, the half toward the front removed, seen from the front: the D bore, the screw's counterbore, hole
@@ -213,7 +226,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		hi := r3.Vec{X: 20, Y: 20, Z: turbinefan.SetScrewZ + 1}
 		frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
 		target := r3.Vec{Z: turbinefan.SetScrewZ}
-		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: .04, Y: .06, Z: 1}, target), frame, 16.0/9, .04), models), nil
+		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: .04, Y: .06, Z: 1}, target), frame, 16.0/9, .04), models), nil
 	case "joint":
 		// The hub, blade 1, blade bolt 1 with its nut, and the set screw and its nut, cut by the plane x = 0 through the
 		// shaft axis and blade 1's radial line, the half toward +X removed, seen from +X.
@@ -227,7 +240,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		}
 		lo, hi := r3.Vec{X: -1, Y: -25, Z: -2}, r3.Vec{X: 1, Y: 30, Z: 22}
 		frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
-		return bevelScene(fitCamera(turbineCamera(r3.Vec{X: 1, Y: .01, Z: .02}, r3.Vec{Y: 2.5, Z: 10}), frame, 16.0/9, .05), models), nil
+		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: 1, Y: .01, Z: .02}, r3.Vec{Y: 2.5, Z: 10}), frame, 16.0/9, .05), models), nil
 	}
 	return solidlens.Scene{}, fmt.Errorf("unknown turbine fan view %q", name)
 }
@@ -278,7 +291,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 				Target: solidlens.Vec(center), Up: solidlens.Vec{Y: 1}, FOV: 35}
 		}
 		models := []solidlens.Model{turbineModel(mesh, turbinePartColor(name))}
-		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+		scene := turbineScene(fitCamera(camera, models, 16.0/9, .1), models)
 		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err
 		}
@@ -372,7 +385,7 @@ func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.S
 		}
 	}
 	models = append(models, more...)
-	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
+	return turbineScene(fitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
 // turbineClutchViewScene returns the preset for a clutch-mount view.
@@ -415,7 +428,7 @@ func renderTurbineClutchReadme(ctx context.Context, outputDir string) error {
 				Target: solidlens.Vec(center), Up: solidlens.Vec{Y: 1}, FOV: 35}
 		}
 		models := []solidlens.Model{turbineModel(mesh, turbinePartColor(name))}
-		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+		scene := turbineScene(fitCamera(camera, models, 16.0/9, .1), models)
 		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err
 		}
