@@ -21,10 +21,8 @@ func requireNoOverlap(t *testing.T, a, b *decad.Body, zs ...float64) {
 
 func TestFasteners(t *testing.T) {
 	b := testBuilder(t)
-	back, err := b.buildBackPlate()
-	require.NoError(t, err)
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
+	back, _ := defaultBackPlate(t)
+	front, _ := defaultFrontPlate(t)
 	h, err := b.buildHardware()
 	require.NoError(t, err)
 	require.Len(t, h.Bolts, 4)
