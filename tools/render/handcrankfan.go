@@ -166,6 +166,7 @@ var handCrankFanParts = []handCrankFanPart{
 	{"fan-hub", "fan-hub", nil, partRotor},
 	{"fan-blade", "fan-blade-1", nil, partRotor},
 	{"fan-bolt", "fan-bolt-1", []string{"fan-nut-1"}, partRotor},
+	{"fan-set-screw", "fan-set-screw", []string{"fan-set-screw-nut"}, partFront},
 }
 
 func init() {

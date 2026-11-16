@@ -74,13 +74,72 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 	return crossings%2 == 1
 }
 
+// requireRotorFastener proves the checks that hold for the rotor's open slots, where a nut is held by the hub's slot and
+// the bolt, not by an enclosed cavity: the blade bolt's head ends flush and has solid hub beside it and 1 mm round its
+// pocket; the head seat meets the hub; neither bolt nor nut shares material with the hub or is undecided against it; and
+// the four section gaps are 0.05 or more. The slot's geometry, the set screw's head and tip, and the hub's material are
+// proven by turbinefan's TestTurbineFanSetScrew, TestTurbineFanBladeBolts and TestTurbineFanAccess.
+func requireRotorFastener(t *testing.T, doc *decad.Document, f handcrankfan.Fastener, parts map[string]handcrankfan.Part,
+	host func(handcrankfan.Fastener, *decad.Body, float64) sectionAt, request decad.ContactRequest) {
+	t.Helper()
+	bolt, nut, hub := parts[f.Bolt].Body, parts[f.Nut].Body, parts[f.HeadHost].Body
+	if !f.SetScrew {
+		box := bounds(t, parts[f.Bolt])
+		require.InDelta(t, f.Head.Dot(f.Dir.Scale(-1)), outward(box, f.Dir.Scale(-1)), 2e-3+box.Bound.Base(), "%s head is flush", f.Bolt)
+		under, over := host(f, hub, 0.3), host(f, hub, -0.3)
+		require.True(t, under.contains(f.Corner.Scale(2.6)), "%s: the hub is solid just under the head's face", f.Bolt)
+		require.False(t, under.contains(r3.Vec{}), "%s: the head pocket is empty", f.Bolt)
+		require.False(t, over.contains(f.Corner.Scale(2.6)), "%s: nothing stands proud of the face", f.Bolt)
+		pocket := host(f, hub, headPocketMid)
+		for k := range 12 {
+			angle := float64(k) * math.Pi / 6
+			ring := f.Corner.Scale(math.Cos(angle)).Add(f.Dir.Cross(f.Corner).Scale(math.Sin(angle)))
+			require.True(t, pocket.contains(ring.Scale(m2fastener.HeadPocketRadius+0.95)),
+				"%s: the hub keeps 1 mm round the head pocket at %d degrees", f.Bolt, k*30)
+		}
+	}
+	contact := func(a, b *decad.Body) *decad.ContactReport {
+		report, err := doc.ContactPair(t.Context(), a, b, r3.Identity(), r3.Identity(), request)
+		require.NoError(t, err)
+		return report
+	}
+	if !f.SetScrew {
+		seat := contact(bolt, hub)
+		switch seat.Relation {
+		case decad.ContactSeparated, decad.ContactTouching:
+		case decad.ContactBand:
+			require.NotNil(t, seat.Gap, "%s head seat", f.Bolt)
+			require.LessOrEqual(t, seat.Gap.Bound.Base(), 0.05, "%s head seat", f.Bolt)
+		default:
+			require.Failf(t, "head seat", "%s in %s: relation %v, reason %v", f.Bolt, f.HeadHost, seat.Relation, seat.Reason)
+		}
+	}
+	for _, body := range []*decad.Body{bolt, nut} {
+		relation := contact(body, hub)
+		require.NotEqual(t, decad.ContactOverlapping, relation.Relation, "%s: %v", f.Bolt, relation.Reason)
+		require.NotEqual(t, decad.ContactUndecided, relation.Relation, "%s: %v", f.Bolt, relation.Reason)
+	}
+	for id, c := range map[string]struct {
+		a  *decad.Body
+		at float64
+	}{
+		"head in its pocket":        {bolt, 1.0},
+		"shank in the hub's hole":   {bolt, 3.0},
+		"nut in its slot":           {nut, f.CavityNear + 0.9},
+		"shank past the nut's slot": {bolt, f.CavityFar + 0.3},
+	} {
+		got := sectionGap(t, c.a, hub, acrossPlane(t, f, c.at))
+		require.GreaterOrEqual(t, got, fastenerGap, "%s %s", f.Bolt, id)
+	}
+}
+
 // requireFasteners proves for each fastener: the head ends flush with its part's face, the nut sits inside the cavity
 // its part encloses, the part keeps 1 mm of material round the pocket and the cavity, the bolt's tip stays in the part,
 // and no fastener shares material with the parts it passes through.
 func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
 	all, err := handcrankfan.Fasteners(p)
 	require.NoError(t, err)
-	require.Len(t, all, 11+p.Blades)
+	require.Len(t, all, 15)
 	request := decad.ContactRequest{
 		PointResolution:  units.Millimeters(0.01),
 		NormalResolution: units.Radians(0.01),
@@ -94,6 +153,11 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 			outline, err := body.SectionOutline(t.Context(), plane, units.Millimeters(fitTolerance))
 			require.NoError(t, err, f.Bolt)
 			return sectionAt{outline: outline, origin: plane.Origin(), u: f.Corner, v: f.Dir.Cross(f.Corner)}
+		}
+
+		if f.Rotor {
+			requireRotorFastener(t, doc, f, parts, host, request)
+			continue
 		}
 
 		// Flush: the head's top face lies on the part's face.

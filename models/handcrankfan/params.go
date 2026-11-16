@@ -18,16 +18,14 @@ type Params struct {
 	CrankAngle float64
 	// BladePitch turns each whole blade about its radial line; it is the blade angle at 48 mm and lies in [10°, 40°].
 	BladePitch float64
-	// Blades is 3 or 4.
-	Blades int
 }
 
-// DefaultParams returns the arm pointing down and toward the operator, a 25° pitch and four blades.
+// DefaultParams returns the arm pointing down and toward the operator, and a 25° pitch.
 func DefaultParams() Params {
-	return Params{CrankAngle: 5 * math.Pi / 4, BladePitch: 25 * math.Pi / 180, Blades: 4}
+	return Params{CrankAngle: 5 * math.Pi / 4, BladePitch: 25 * math.Pi / 180}
 }
 
-// Validate rejects a non-finite angle, a pitch outside [10°, 40°] and a blade count other than 3 or 4.
+// Validate rejects a non-finite angle, a pitch outside [10°, 40°] and any parameter turbinefan rejects.
 func (p Params) Validate() error {
 	if !finite(p.CrankAngle, Ratio*p.CrankAngle) {
 		return fmt.Errorf("handcrankfan: CrankAngle must be finite")
@@ -35,8 +33,8 @@ func (p Params) Validate() error {
 	if !finite(p.BladePitch) || p.BladePitch < turbinefan.MinBladePitch || p.BladePitch > turbinefan.MaxBladePitch {
 		return fmt.Errorf("handcrankfan: BladePitch must lie in [10°, 40°] radians")
 	}
-	if p.Blades != 3 && p.Blades != 4 {
-		return fmt.Errorf("handcrankfan: Blades must be 3 or 4")
+	if err := fanParams(p).Validate(); err != nil {
+		return fmt.Errorf("handcrankfan: %w", err)
 	}
 	return nil
 }

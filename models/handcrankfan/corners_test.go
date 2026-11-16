@@ -13,6 +13,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/rootcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -124,9 +125,10 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 		"gearbox-crank-wall": {x, append(cavities("gearbox-crank-wall", x), earRootCorners("gearbox-crank-wall")...)},
 		"gearbox-fan-wall":   {y, earRootCorners("gearbox-fan-wall")},
 		"gearbox-base":       {y, cavities("gearbox-base", y)},
-		"fan-hub":            {y, bore(state.Apex, y)},
-		"crank-gear":         {x, bore(state.Crank, x)},
-		"drive-gear":         {x, bore(state.Apex, x)},
+		// fan-hub is turbinefan's 608ZZ hub: TestTurbineFanCorners reads its corners, and TestFanHubIsTurbinePreset proves
+		// this model builds that hub.
+		"crank-gear": {x, bore(state.Crank, x)},
+		"drive-gear": {x, bore(state.Apex, x)},
 		"crank-arm": {x, append(bore(state.Crank, x),
 			cornercheck.Exempt{Reason: "pin pocket", Near: cornercheck.Annulus(pin, x, 3.4, 4.4)})},
 		"driving-gear": {x, bore(state.Apex, x)},
@@ -154,7 +156,7 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 		require.Empty(t, fs, cornercheck.Report(fs, 5))
 	})
 	t.Run("pinion", func(t *testing.T) { requirePinionRoots(t, state, parts["pinion"].Body, bore(state.Apex, y)) })
-	for k := 1; k <= p.Blades; k++ {
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		t.Run(fmt.Sprintf("fan-blade-%d", k), func(t *testing.T) { requireBladeCorners(t, p, state, k, parts) })
 	}
 }
@@ -166,7 +168,7 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 // if the radial line is right, so an unused exemption fails the test.
 func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan.State, k int, parts map[string]handcrankfan.Part) {
 	t.Helper()
-	theta := state.FanAngle + 2*math.Pi*float64(k-1)/float64(p.Blades)
+	theta := state.FanAngle + 2*math.Pi*float64(k-1)/turbinefan.BladeCount
 	d := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
 	height := func(r float64) float64 { return state.Apex.Dot(d) + r }
 	body := parts[fmt.Sprintf("fan-blade-%d", k)].Body
@@ -274,6 +276,16 @@ func TestBevelToothRootCorners(t *testing.T) {
 		toothRoots(t, parts["driving-gear"].Body, r3.Vec{X: 1}, a.State.Apex, 56,
 			[]float64{14.14, 15.14, 16.14}, func(float64) int { return 6 }, 23.41, 14.14, 1.655, 82, 84)
 	})
+}
+
+// TestFanHubIsTurbinePreset requires the fan's rotor to be turbinefan's 608ZZ preset apart from the pitch, the hand and
+// the placement, so TestTurbineFanCorners' reading of the 608ZZ hub holds for the hub built here.
+func TestFanHubIsTurbinePreset(t *testing.T) {
+	got := handcrankfan.FanParams(handcrankfan.DefaultParams())
+	require.NotNil(t, got.Placement)
+	require.Equal(t, turbinefan.RightHand, got.Hand)
+	got.Placement, got.BladePitch, got.Hand = nil, turbinefan.Params608ZZ().BladePitch, turbinefan.RightHand
+	require.Equal(t, turbinefan.Params608ZZ(), got)
 }
 
 func TestHandCrankFanCorners(t *testing.T) {

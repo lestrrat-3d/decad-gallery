@@ -2,19 +2,18 @@ package handcrankfan
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
 
 // Fastener sites. Every bolt is an m2bolt body and every nut an m2nut body, sized and cut by internal/m2fastener. A head
 // sinks into a pocket of its part and ends flush with the part's face. A nut sits in a cavity its part encloses, apart
-// from the bolt hole, so the part retains it; it drops in during a print pause.
+// from the bolt hole, so the part retains it; it drops in during a print pause. The rotor's nuts sit in slots open to a
+// face instead, as turbinefan cuts them.
 
 // fastenerSite is one bolt and its captive nut, with the parts that hold them. The site's Head is on headHost's face.
 type fastenerSite struct {
@@ -24,16 +23,10 @@ type fastenerSite struct {
 	motion            string
 }
 
-// fastenerSites returns every site at crank angle 0. The blade site is blade 1's; the other blades' come from the
-// pattern about the fan axis.
+// fastenerSites returns every site at crank angle 0: the fan's blade bolts and set screw first, then the gearbox, the
+// grip and the crank.
 func fastenerSites() []fastenerSite {
-	sites := []fastenerSite{{
-		bolt: "fan-bolt-1", nut: "fan-nut-1", headHost: "fan-hub", nutHost: "fan-hub", motion: "fan",
-		Site: m2fastener.Site{
-			Head: r3.Vec{X: boltAt, Y: -(hubBack + hubLength), Z: axisHeight}, Dir: r3.Vec{Y: 1}, Corner: r3.Vec{X: 1},
-			Length: turbinefan.BladeBoltLength, Cavity: turbinefan.BladeBoltCavity,
-		},
-	}}
+	sites := fanSites()
 	for i, e := range gearboxEars {
 		c := e.centre()
 		sites = append(sites, fastenerSite{
@@ -87,32 +80,9 @@ func (b *builder) hardware(s fastenerSite) {
 	b.part(s.nut, "hardware", s.motion, func() *decad.Body { return b.placeNut(s) })
 }
 
-// bladeSites returns the blade sites of an assembly with n blades, blade 1 first, at crank angle 0.
-func bladeSites(n int) ([]fastenerSite, error) {
-	first := fastenerSites()[0]
-	sites := []fastenerSite{first}
-	for k := 1; k < n; k++ {
-		turned, err := first.Turned(r3.Vec{Z: axisHeight}, fanAxis, 2*math.Pi*float64(k)/float64(n))
-		if err != nil {
-			return nil, fmt.Errorf("turn blade %d's fastener: %w", k+1, err)
-		}
-		s := first
-		s.Site = turned
-		s.bolt, s.nut = fmt.Sprintf("fan-bolt-%d", k+1), fmt.Sprintf("fan-nut-%d", k+1)
-		sites = append(sites, s)
-	}
-	return sites, nil
-}
-
 // fastenerSpec is the bought part a bolt or a nut is, which the bill of materials counts. It returns "" for any other
-// name. Blade sites match by prefix, because their number depends on the parameters.
+// name.
 func fastenerSpec(name string) string {
-	switch {
-	case strings.HasPrefix(name, "fan-nut-"):
-		return m2fastener.NutSpec
-	case strings.HasPrefix(name, "fan-bolt-"):
-		return m2fastener.BoltSpec(fastenerSites()[0].Length)
-	}
 	for _, s := range fastenerSites() {
 		switch name {
 		case s.bolt:

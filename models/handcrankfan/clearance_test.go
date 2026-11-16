@@ -7,6 +7,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -333,9 +334,26 @@ func requireClearances(t *testing.T, p handcrankfan.Params, parts map[string]han
 	// T6b: the arm's splined bore, across and along the shaft's end.
 	exact("T6b", "crank-shaft", "crank-arm", atX(t, 52), pressMinimum)
 	exact("T6b", "crank-shaft", "crank-arm", crankLine.axial(t, p), pressMinimum)
-	// T6c: the hub's spline and the collar face.
-	exact("T6c", "fan-shaft", "fan-hub", atY(t, -86), pressMinimum)
-	exact("T6c", "fan-shaft", "fan-hub", fanLine.axial(t, p), pressMinimum)
+	// T6c: the hub's D bore on the shaft's round and flat, across the shaft away from the set screw's counterbore and
+	// hole (Y -77.8 to -82.2), and along the shaft in the plane through the fan axis and the posed +Z, which holds the
+	// round on both sides, the collar face and the hub's back face and misses the set screw's hole.
+	exact("T6c", "fan-shaft", "fan-hub", atY(t, -88), pressMinimum)
+	upOrigin, err := handcrankfan.PosePoint(p, "fan", fanLine.point)
+	require.NoError(t, err)
+	upAxis, err := handcrankfan.PoseVector(p, "fan", fanLine.dir)
+	require.NoError(t, err)
+	upZ, err := handcrankfan.PoseVector(p, "fan", r3.Vec{Z: 1})
+	require.NoError(t, err)
+	exact("T6c", "fan-shaft", "fan-hub", frameAt(t, upOrigin, upAxis, upZ), pressMinimum)
+	// S2: the set screw's tip to the shaft's flat, in the plane through the fan axis and the screw's line. The screw is
+	// drawn backed off, so a gap shows; the check proves it, with no class to meet.
+	fasteners, err := handcrankfan.Fasteners(p)
+	require.NoError(t, err)
+	for _, f := range fasteners {
+		if f.SetScrew {
+			section("S2", f.Bolt, "fan-shaft", frameAt(t, upOrigin, upAxis, f.Dir), 0)
+		}
+	}
 	// T6d: the bevel splines.
 	bevel := func(id, gear, other string, plane r3.Frame, class float64) {
 		t.Helper()
@@ -376,7 +394,7 @@ func requireClearances(t *testing.T, p handcrankfan.Params, parts map[string]han
 	// R3: the driving gear to the back wall, taken at its heel, 0.1 inside the back face, where its radius is largest.
 	bevel("R3", "driving-gear", "gearbox-base", atX(t, 20.9), regular)
 	// R5: each blade's stud in the hub's socket, the stud end and the root to the rim.
-	for k := 1; k <= p.Blades; k++ {
+	for k := 1; k <= turbinefan.BladeCount; k++ {
 		section("R5", fmt.Sprintf("fan-blade-%d", k), "fan-hub", atY(t, -86), regular)
 	}
 	// R6, R7: the handle on the pin and against the arm.
