@@ -50,10 +50,11 @@ func bearingStep(point, axis r3.Vec, z, rod float64) cornercheck.Exempt {
 }
 
 // flatStart is the exemption for the square start of a flat at height z, the flat plane chord from the axis, where a
-// sun's D bore stops on the end of the flat: a mating corner pair, listed under Retained sharp corners.
+// D bore stops on the end of the flat, a sun's or a collar ring's: a mating corner pair, listed under Retained sharp
+// corners.
 func flatStart(point, axis, flat r3.Vec, z, chord float64) cornercheck.Exempt {
 	return cornercheck.Exempt{
-		Reason: "flat ending where the sun's D bore stops",
+		Reason: "flat ending where a D bore stops",
 		Near: at(point, axis, z, func(off r3.Vec) bool {
 			return math.Abs(off.Dot(flat)-chord) < 0.06
 		}),
@@ -77,8 +78,11 @@ func splitParts(box Gearbox, p Params) []splitPart {
 			bearingStep(r3.Vec{}, axis, -(p.StageGap+p.CoverThickness)+collarBearingGap, rod),
 		},
 	}
+	// The free end's flat ends square where the collar ring's D bore stops on it, freeFlatEnd outside the boss.
+	boss := p.StageGap + p.CoverThickness + shaftBearing(p).Width
 	if p.FlatDepth > 0 {
-		input.exempt = append(input.exempt, flatStart(r3.Vec{}, axis, input.flat, 0, sun-p.FlatDepth))
+		input.exempt = append(input.exempt, flatStart(r3.Vec{}, axis, input.flat, 0, sun-p.FlatDepth),
+			flatStart(r3.Vec{}, axis, input.flat, -boss-freeFlatEnd(), rod-p.FlatDepth))
 	}
 	parts = append(parts, input)
 
@@ -92,6 +96,10 @@ func splitParts(box Gearbox, p Params) []splitPart {
 			step := float64(k)*pitch + p.GearThickness + p.StageGap + p.CarrierThickness + p.StageGap +
 				p.CoverThickness - fitClearance
 			shaft.exempt = []cornercheck.Exempt{bearingStep(r3.Vec{}, axis, step, rod)}
+			if p.FlatDepth > 0 {
+				end := float64(len(box.Stages))*pitch + p.CoverThickness + shaftBearing(p).Width + freeFlatEnd()
+				shaft.exempt = append(shaft.exempt, flatStart(r3.Vec{}, axis, shaft.flat, end, rod-p.FlatDepth))
+			}
 		}
 		parts = append(parts, shaft)
 		for i := range p.PlanetCount {

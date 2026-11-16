@@ -10,14 +10,10 @@ import (
 
 // A printed shaft prints as two halves, each lying on its cut face. See "Split shafts" in docs/model-pipeline.md. Read
 // along the seam, every square step is an inside corner, so a step that does not face a purchased bearing is a cone at
-// 30° to the axis, and a flat that stops partway along a shaft ends in a 30° ramp. A step that faces a bearing keeps
-// its square corner, and so does the start of a flat on which a sun's D bore stops.
+// 30° to the axis. A step that faces a bearing keeps its square corner, and so does the end of a flat on which a D
+// bore stops: a sun's on the input shaft, or a collar ring's on a free end.
 
 const (
-	// endFlatMargin is how far a flat on a shaft's outer end stays clear of the bearing boss that the shaft leaves.
-	endFlatMargin = 1.0
-	// rampOver is how far a flat tool's ramp reaches past the rod's surface, so the ramp leaves the rod cleanly.
-	rampOver = collarMargin / 6
 	// collarBand is the shortest cylinder at the collar's largest radius, on its bearing side, when the cone to the sun
 	// section takes the rest of the collar.
 	collarBand = 0.8
@@ -25,38 +21,123 @@ const (
 	flatOver = collarMargin
 )
 
-// flat is one flat of a shaft's rod: the plane FlatDepth inside the +X rim, at full depth from lo to hi. A flat with a
-// ramp at one end leaves the rod there along a plane at 30° to the axis; one without ends square.
+// A collar ring is a separate printed collar (see "Arbor collars" in docs/model-pipeline.md) pressed on the flat of the
+// input or the output shaft's free end, outside the cover's bearing. A collar of the shaft's own body there would stop
+// the shaft from passing the bearing during assembly, because the shaft already has a collar or a thick part on the
+// bearing's other side. The ring keeps a part pressed on the free end off the bearing and the boss. Its bearing face
+// stands collarBearingGap from the bearing's outer face, and the ring is located by the square end of the free end's
+// flat, on which its D bore's tooth stops.
+//
+// The ring is collarRingLength long. Over its pressed length its wall is collarRingWall round the D bore, which is
+// pressFitClearance outside the shaft: the 1.6 mm press-fit wall of Corners and roots with 0.1 mm to spare, so the
+// measured wall meets it. At the bearing face its outside narrows to the shaft collar diameter, so it
+// bears on the bearing's inner ring only, and its bore opens to collarRingReliefGap round the shaft, which keeps the
+// 0.8 mm wall of Corners and roots there (collarMargin less collarRingReliefGap). A 30° cone joins each narrow part to
+// the full one, and the bore's cone ends collarRingRelief from the face, where the press fit starts.
+const (
+	// collarRingLength is the collar ring's length along the shaft.
+	collarRingLength = 4.0
+	// collarRingRelief is how far the press fit starts from the ring's bearing face.
+	collarRingRelief = 1.0
+	// collarRingReliefGap is the radial gap between the ring's relieved bore and the round shaft, a Regular fit.
+	collarRingReliefGap = 0.4
+	// collarRingWall is the ring's wall round its D bore over the pressed length.
+	collarRingWall = minPressFitWall + 0.1
+	// minStub is the least length of a free end beyond its collar ring.
+	minStub = 1.0
+	// minShaftReach is the least InputShaftLength or OutputShaftLength: the gap to the bearing, the collar ring and
+	// minStub of free end.
+	minShaftReach = collarBearingGap + collarRingLength + minStub
+)
+
+// FrontCollarName and RearCollarName are the names of the collar rings on the input and the output shaft's free ends.
+const (
+	FrontCollarName = "Front Collar"
+	RearCollarName  = "Rear Collar"
+)
+
+// flat is one flat of a shaft's rod: the plane FlatDepth inside the +X rim, at full depth from lo to hi. Both ends are
+// square: each either runs past the end of the rod or is the end on which a D bore's tooth stops.
 type flat struct {
-	lo, hi         float64
-	loRamp, hiRamp bool
+	lo, hi float64
 	// section is the round section of the rod the flat cuts: the bearing section or, narrower on a 608ZZ shaft, the
 	// sun section.
 	section rod
 }
 
-// rampMargin is how far a flat's full-depth end stays clear of the bearing boss it faces, so its ramp stays clear too.
-func (r *run) rampMargin() float64 {
-	return math.Max(endFlatMargin, r.p.FlatDepth*coneRun+0.1)
-}
-
-// flatOutline is the meridian of the tool that cuts f: the half plane beyond the flat, which ends in a ramp or square.
+// flatOutline is the meridian of the tool that cuts f: the half plane beyond the flat, square at both ends.
 func (r *run) flatOutline(f flat) []vertex {
 	radius := f.section.diameter / 2
-	x0, x1, xr := radius-r.p.FlatDepth, radius+flatOver, radius+rampOver
-	cx0 := f.section.expr + " / 2 - flat_depth"
-	cx1, cxr := f.section.expr+" / 2 + collar_margin", f.section.expr+" / 2 + collar_margin / 6"
-	run := (xr - x0) * coneRun
-	var v []vertex
-	if f.loRamp {
-		v = append(v, vertex{x1, f.lo - run, cx1}, vertex{xr, f.lo - run, cxr}, vertex{x0, f.lo, cx0})
-	} else {
-		v = append(v, vertex{x1, f.lo, cx1}, vertex{x0, f.lo, cx0})
+	x0, x1 := radius-r.p.FlatDepth, radius+flatOver
+	return []vertex{
+		{x1, f.lo, f.section.expr + " / 2 + collar_margin"}, {x0, f.lo, f.section.expr + " / 2 - flat_depth"},
+		{x0, f.hi, ""}, {x1, f.hi, f.section.expr + " / 2 + collar_margin"},
 	}
-	if f.hiRamp {
-		return append(v, vertex{x0, f.hi, ""}, vertex{xr, f.hi + run, cxr}, vertex{x1, f.hi + run, cx1})
+}
+
+// freeFlatEnd is the distance from a cover's bearing boss face to the square end of the flat on the shaft's free end:
+// the collar ring's bearing gap plus its relief, where the ring's D bore starts.
+func freeFlatEnd() float64 { return collarBearingGap + collarRingRelief }
+
+// buildCollarRing builds a collar ring about the local origin: its bearing face on z = 0 and its outer face at
+// collarRingLength, its D bore's flat on +X. The outside is one revolved meridian; the D bore and the relief at the
+// bearing face are then cut, as a sun's bore and countersink are.
+func (r *run) buildCollarRing(ctx context.Context) (*decad.Body, error) {
+	const what = "collar ring"
+	rod := r.d.shaft / 2
+	face, outer := r.d.collar/2, rod+pressFitClearance+collarRingWall
+	relief, press := rod+collarRingReliefGap, rod+pressFitClearance
+	if r.p.FlatDepth == 0 {
+		// A round bore is part of the revolved section: the ring is one annulus, its relief included. Decad refuses
+		// the cut of a round bore along the axis of a revolved body, "a circle segment's CCW flag contradicts its
+		// range order".
+		ring, err := r.revolveMeridian(ctx, what, []vertex{
+			{press, collarRingRelief, "shaft_diameter / 2 + shaft_bore_clearance"},
+			{relief, collarRingRelief - (relief-press)*coneRun, "shaft_diameter / 2 + collar_ring_relief_gap"},
+			{relief, 0, ""}, {face, 0, "shaft_collar_diameter / 2"},
+			{outer, (outer - face) * coneRun, "shaft_diameter / 2 + shaft_bore_clearance + collar_ring_wall"},
+			{outer, collarRingLength, ""}, {press, collarRingLength, ""},
+		})
+		if err != nil {
+			return nil, err
+		}
+		if !ring.IsSolid() {
+			return nil, fmt.Errorf("%s: result is not a solid", what)
+		}
+		return ring, nil
 	}
-	return append(v, vertex{x0, f.hi, ""}, vertex{x1, f.hi, cx1})
+	ring, err := r.revolveMeridian(ctx, what, []vertex{
+		{0, 0, ""}, {face, 0, "shaft_collar_diameter / 2"},
+		{outer, (outer - face) * coneRun, "shaft_diameter / 2 + shaft_bore_clearance + collar_ring_wall"},
+		{outer, collarRingLength, ""}, {0, collarRingLength, ""},
+	})
+	if err != nil {
+		return nil, err
+	}
+	bore, err := r.extrudeDSection(ctx, dSection{
+		what: what + " bore", z: -1, length: collarRingLength + 2, radius: press, depth: r.p.FlatDepth,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if ring, err = decad.Cut(ctx, ring, bore); err != nil {
+		return nil, fmt.Errorf("%s: cut D bore: %w", what, err)
+	}
+	tool, err := r.revolveMeridian(ctx, what+" relief", []vertex{
+		{0, -1, ""}, {relief, -1, "shaft_diameter / 2 + collar_ring_relief_gap"},
+		{relief, collarRingRelief - (relief-press)*coneRun, ""},
+		{press, collarRingRelief, "shaft_diameter / 2 + shaft_bore_clearance"}, {0, collarRingRelief, ""},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if ring, err = decad.Cut(ctx, ring, tool); err != nil {
+		return nil, fmt.Errorf("%s: cut relief: %w", what, err)
+	}
+	if !ring.IsSolid() {
+		return nil, fmt.Errorf("%s: result is not a solid", what)
+	}
+	return ring, nil
 }
 
 // flatCut cuts each of the flats out of body, which is the shaft's rod. With FlatDepth zero or no flats it returns body
@@ -110,7 +191,8 @@ func (r *run) cutShaft(ctx context.Context, what string, body, tool *decad.Body)
 //
 // One flat runs from the sun's lower face to the top, through the sun, on the sun section, and ends square at the
 // sun's lower face, where the sun's D bore stops on it. A second flat runs along the end that reaches out of the
-// cover, where a coupling or a set screw grips, on the bearing section, and ends in a ramp on the bearing's side.
+// cover, on the bearing section, where the front collar ring and a part pressed on outside it grip. It ends square
+// freeFlatEnd outside the bearing boss, where the collar ring's D bore stops on it.
 func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	p, d := r.p, r.d
 	start := -(p.StageGap + p.CoverThickness + shaftBearing(p).Width + p.InputShaftLength)
@@ -142,7 +224,7 @@ func (r *run) buildInputShaft(ctx context.Context) (*decad.Body, error) {
 	}
 	return r.flatCut(ctx, "input shaft", shaft,
 		flat{lo: 0, hi: p.GearThickness + flatOver, section: r.sunRod()},
-		flat{lo: start - flatOver, hi: start + p.InputShaftLength - r.rampMargin(), hiRamp: true, section: r.shaftRod()})
+		flat{lo: start - flatOver, hi: start + p.InputShaftLength - freeFlatEnd(), section: r.shaftRod()})
 }
 
 // buildLinkShaft builds a link shaft about the local origin, its bottom on the carrier's lower face, revolved from one
@@ -187,8 +269,8 @@ func (r *run) buildLinkShaft(ctx context.Context) (*decad.Body, error) {
 // buildOutputShaft builds the output shaft about the local origin, its bottom on the last carrier's lower face: a D
 // thick part of the shaft collar diameter, pressed through the carrier's hole, that ends fitClearance short of the rear
 // bearing's inner race, with a square step that faces the race, and a round rod of the shaft diameter from stepOverlap
-// below the step up to top, joined in one union, then a flat over the rod's free end that starts in a ramp, so no
-// square corner is left.
+// below the step up to top, joined in one union, then a flat over the rod's free end that starts square freeFlatEnd
+// outside the bearing boss, where the rear collar ring's D bore stops on it.
 func (r *run) buildOutputShaft(ctx context.Context, thickTop, top float64) (*decad.Body, error) {
 	const what = "output shaft"
 	thick, err := r.extrudeDSection(ctx, dSection{
@@ -210,5 +292,5 @@ func (r *run) buildOutputShaft(ctx context.Context, thickTop, top float64) (*dec
 		return nil, fmt.Errorf("%s: result is not a solid", what)
 	}
 	return r.flatCut(ctx, what, shaft,
-		flat{lo: top - r.p.OutputShaftLength + r.rampMargin(), hi: top + flatOver, loRamp: true, section: r.shaftRod()})
+		flat{lo: top - r.p.OutputShaftLength + freeFlatEnd(), hi: top + flatOver, section: r.shaftRod()})
 }

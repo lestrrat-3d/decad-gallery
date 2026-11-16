@@ -74,7 +74,10 @@ func NewMotion(p Params, mode DriveMode) (*Motion, error) {
 			return func(input float64) float64 { return input * math.Pow(step, float64(p.Stages-1-k)) }
 		}
 	}
+	// Each collar ring turns with the shaft it is pressed on.
 	m.angle[InputShaftName] = sun(0)
+	m.angle[FrontCollarName] = sun(0)
+	m.angle[RearCollarName] = carrier(p.Stages - 1)
 	for k := range p.Stages {
 		m.angle[SunName(k)] = sun(k)
 		m.angle[CarrierName(k)] = carrier(k)

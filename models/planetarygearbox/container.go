@@ -18,6 +18,7 @@ const (
 	ShaftsContainerName         = "Shafts"
 	BoltsContainerName          = "Bolts"
 	NutsContainerName           = "Nuts"
+	CollarsContainerName        = "Shaft Collars"
 )
 
 // Part is a gearbox body with its display name and the container Build files it in.
@@ -28,8 +29,8 @@ type Part struct {
 }
 
 // Parts lists every body of the gearbox with its name and container, in the order Build files them: the housing,
-// the cover bearings, the bolts, the nuts, the input shaft, then each stage's sun, planets, planet bearings, pins,
-// carrier and shaft.
+// the cover bearings, the bolts and the ear bolts, the nuts and the ear nuts, the collar rings, the input shaft, then
+// each stage's sun, planets, planet bearings, pins, carrier and shaft.
 func (g Gearbox) Parts() []Part {
 	out := []Part{
 		{RingName, HousingContainerName, g.Ring},
@@ -54,9 +55,18 @@ func (g Gearbox) Parts() []Part {
 	for i, b := range g.Bolts {
 		out = append(out, Part{boltName(i), BoltsContainerName, b})
 	}
+	for i, b := range g.EarBolts {
+		out = append(out, Part{EarBoltName(i), BoltsContainerName, b})
+	}
 	for i, n := range g.Nuts {
 		out = append(out, Part{nutName(i), NutsContainerName, n})
 	}
+	for i, n := range g.EarNuts {
+		out = append(out, Part{EarNutName(i), NutsContainerName, n})
+	}
+	out = append(out,
+		Part{FrontCollarName, CollarsContainerName, g.FrontCollar},
+		Part{RearCollarName, CollarsContainerName, g.RearCollar})
 	out = append(out, Part{InputShaftName, ShaftsContainerName, g.InputShaft})
 	for k, s := range g.Stages {
 		out = append(out, Part{SunName(k), SunGearsContainerName, s.Sun})

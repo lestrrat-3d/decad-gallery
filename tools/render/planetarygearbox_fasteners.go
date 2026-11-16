@@ -31,6 +31,13 @@ type planetaryFastenerPart struct {
 // planetaryFastenerScene cuts every part along the plane through the first bolt and draws it with camera. The
 // first bolt of each cover and its nut are the ones the plane passes through.
 func planetaryFastenerScene(ctx context.Context, parts []planetaryFastenerPart, camera solidlens.Camera) (solidlens.Scene, error) {
+	return planetaryCutScene(ctx, parts, planetaryFastenerNormal, camera)
+}
+
+// planetaryCutScene cuts every part along the plane through the gearbox axis whose normal is normal, removing the half
+// the normal points to, and draws it with camera.
+func planetaryCutScene(ctx context.Context, parts []planetaryFastenerPart, normal solidlens.Vec,
+	camera solidlens.Camera) (solidlens.Scene, error) {
 	var models []solidlens.Model
 	for _, part := range parts {
 		mesh, err := planetaryMesh(ctx, planetaryBody{name: part.name, body: part.body})
@@ -43,7 +50,7 @@ func planetaryFastenerScene(ctx context.Context, parts []planetaryFastenerPart, 
 			Edges:    planetaryEdges,
 		}
 		model = planetaryCut(model, part.color)
-		model.Clip.Normal = planetaryFastenerNormal
+		model.Clip.Normal = normal
 		models = append(models, model)
 	}
 	return bevelScene(camera, models), nil
@@ -109,7 +116,35 @@ func planetaryFastenerExploded(ctx context.Context, box planetarygearbox.Gearbox
 	return planetaryFastenerScene(ctx, parts, planetaryFastenerCamera(32, 21, 80, 12))
 }
 
+// planetaryEarSection draws the one-stage ring cut along the plane through the axis and the first mounting ear, on +Y,
+// with the ear's bolt and nut in place: the head flush in the pocket in the ear's rear face, and the nut in its closed
+// cavity near the front face. The camera looks square at the cut from +X, aimed at the ear's bore.
+func planetaryEarSection(ctx context.Context, box planetarygearbox.Gearbox) (solidlens.Scene, error) {
+	parts := []planetaryFastenerPart{
+		{"ring", box.Ring, planetaryRingColor, 0},
+		{"rear cover", box.RearCover, planetaryCoverColor, 0},
+		{"front cover", box.FrontCover, planetaryCoverColor, 0},
+		{"ear bolt", box.EarBolts[0], planetaryBoltColor, 0},
+		{"ear nut", box.EarNuts[0], planetaryNutColor, 0},
+	}
+	b, err := box.EarBolts[0].Bounds()
+	if err != nil {
+		return solidlens.Scene{}, err
+	}
+	at := solidlens.Vec{Y: (b.Min.Y + b.Max.Y) / 2, Z: 6}
+	camera := solidlens.Camera{Position: solidlens.Vec{X: 34, Y: at.Y, Z: at.Z}, Target: at, Up: solidlens.Vec{Z: 1}, FOV: 35}
+	return planetaryCutScene(ctx, parts, solidlens.Vec{X: 1}, camera)
+}
+
 func init() {
+	presets["planetarygearbox/ear-section"] = preset{width: 1600, height: 900,
+		scene: func(ctx context.Context) (solidlens.Scene, error) {
+			box, _, err := buildPlanetaryGearbox(ctx, 1)
+			if err != nil {
+				return solidlens.Scene{}, err
+			}
+			return planetaryEarSection(ctx, box)
+		}}
 	presets["planetarygearbox/fasteners-section"] = preset{width: 1600, height: 900,
 		scene: func(ctx context.Context) (solidlens.Scene, error) {
 			section, _, err := planetaryFastenerScenes(ctx)
