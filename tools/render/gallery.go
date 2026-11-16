@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"image"
@@ -19,6 +18,8 @@ import (
 // 1600 × 900 gallery image; renderGallery scales the model's drawn pixels to fill the cell, centred, so that
 // every model takes the same share of the image whatever the size and shape of its scene.
 type galleryTile struct {
+	// name identifies the tile in the cache.
+	name  string
 	scene func(context.Context) (solidlens.Scene, error)
 	cell  image.Rectangle
 }
@@ -28,20 +29,20 @@ type galleryTile struct {
 // drive, hand-crank fan and hand-crank siren in the middle, and the escapement, crank handle, one-way clutch, spiral spring
 // and turbine fan across the bottom.
 var galleryTiles = []galleryTile{
-	{spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
-	{spurGearHero, image.Rect(560, 0, 820, 300)},
-	{helicalGearHero, image.Rect(820, 0, 1080, 300)},
-	{herringboneGearHero, image.Rect(1080, 0, 1340, 300)},
-	{bevelGearHero, image.Rect(1340, 0, 1600, 300)},
-	{planetaryGearboxHero, image.Rect(560, 300, 820, 600)},
-	{cycloidalHero, image.Rect(820, 300, 1080, 600)},
-	{handCrankFanHero, image.Rect(1080, 300, 1340, 600)},
-	{handCrankSirenHero, image.Rect(1340, 300, 1600, 600)},
-	{escapementHero, image.Rect(560, 600, 768, 900)},
-	{crankHandleHero, image.Rect(768, 600, 976, 900)},
-	{oneWayClutchHero, image.Rect(976, 600, 1184, 900)},
-	{spiralSpringHero, image.Rect(1184, 600, 1392, 900)},
-	{turbineFanHero, image.Rect(1392, 600, 1600, 900)},
+	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
+	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 300)},
+	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 300)},
+	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 300)},
+	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 300)},
+	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 300, 820, 600)},
+	{"cycloidal", cycloidalHero, image.Rect(820, 300, 1080, 600)},
+	{"handcrankfan", handCrankFanHero, image.Rect(1080, 300, 1340, 600)},
+	{"handcranksiren", handCrankSirenHero, image.Rect(1340, 300, 1600, 600)},
+	{"escapement", escapementHero, image.Rect(560, 600, 768, 900)},
+	{"crankhandle", crankHandleHero, image.Rect(768, 600, 976, 900)},
+	{"onewayclutch", oneWayClutchHero, image.Rect(976, 600, 1184, 900)},
+	{"spiralspring", spiralSpringHero, image.Rect(1184, 600, 1392, 900)},
+	{"turbinefan", turbineFanHero, image.Rect(1392, 600, 1600, 900)},
 }
 
 const (
@@ -56,6 +57,11 @@ const (
 // renderGallery builds every model's hero scene, renders each to fill its cell, and writes them as one PNG. The
 // layout scales with width; height must keep the 16:9 shape of the tiles.
 func renderGallery(ctx context.Context, output string, width, height int) error {
+	cache := newGalleryCache(ctx, galleryFresh)
+	return renderGalleryWithCache(ctx, output, width, height, galleryTiles, cache)
+}
+
+func renderGalleryWithCache(ctx context.Context, output string, width, height int, tiles []galleryTile, cache galleryCache) error {
 	if output == "" {
 		return fmt.Errorf("-out is required")
 	}
@@ -63,47 +69,53 @@ func renderGallery(ctx context.Context, output string, width, height int) error 
 		return fmt.Errorf("gallery image must be 16:9, got %d × %d", width, height)
 	}
 	canvas := image.NewRGBA(image.Rect(0, 0, width, height))
-	for i, tile := range galleryTiles {
-		scene, err := tile.scene(ctx)
-		if err != nil {
-			return fmt.Errorf("build gallery tile %d scene: %w", i, err)
+	for i, tile := range tiles {
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 		cell := scaleRect(tile.cell, width)
 		margin := galleryMargin * width / galleryWidth
-		// A trial render measures the model's drawn size; the second render is made at the scale that fits the cell.
-		probe, _, err := renderTile(ctx, scene, galleryProbeWidth)
-		if err != nil {
-			return fmt.Errorf("render gallery tile %d: %w", i, err)
-		}
-		drawn := foregroundBounds(probe, probe.At(0, 0))
-		if drawn.Empty() {
-			return fmt.Errorf("gallery tile %d draws nothing", i)
-		}
-		fit := min(float64(cell.Dx()-2*margin)/float64(drawn.Dx()), float64(cell.Dy()-2*margin)/float64(drawn.Dy()))
-		rendered, background, err := renderTile(ctx, scene, int(math.Round(galleryProbeWidth*fit)))
-		if err != nil {
-			return fmt.Errorf("render gallery tile %d: %w", i, err)
+		rendered, background, ok := cache.read(tile.name, width, height, tile.cell)
+		if !ok {
+			scene, err := tile.scene(ctx)
+			if err != nil {
+				return fmt.Errorf("build gallery tile %d scene: %w", i, err)
+			}
+			// A trial render measures the model's drawn size; the second render is made at the scale that fits the cell.
+			probe, _, err := renderTile(ctx, scene, galleryProbeWidth)
+			if err != nil {
+				return fmt.Errorf("render gallery tile %d: %w", i, err)
+			}
+			drawn := foregroundBounds(probe, probe.At(0, 0))
+			if drawn.Empty() {
+				return fmt.Errorf("gallery tile %d draws nothing", i)
+			}
+			fit := min(float64(cell.Dx()-2*margin)/float64(drawn.Dx()), float64(cell.Dy()-2*margin)/float64(drawn.Dy()))
+			rendered, background, err = renderTile(ctx, scene, int(math.Round(galleryProbeWidth*fit)))
+			if err != nil {
+				return fmt.Errorf("render gallery tile %d: %w", i, err)
+			}
+			cache.write(tile.name, width, height, tile.cell, rendered)
 		}
 		if i == 0 {
 			draw.Draw(canvas, canvas.Bounds(), &image.Uniform{C: background}, image.Point{}, draw.Src)
 		}
-		drawn = foregroundBounds(rendered, background)
+		drawn := foregroundBounds(rendered, background)
 		origin := image.Pt(cell.Min.X+(cell.Dx()-drawn.Dx())/2, cell.Min.Y+(cell.Dy()-drawn.Dy())/2)
 		drawForeground(canvas, rendered, drawn, origin, background)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	return writePNG(output, canvas)
 }
 
 // renderTile renders scene at a 16:9 size of the given width and returns the image and its background colour.
 func renderTile(ctx context.Context, scene solidlens.Scene, width int) (image.Image, color.Color, error) {
-	var buffer bytes.Buffer
 	settings := solidlens.Settings{Width: width, Height: width * galleryHeight / galleryWidth}
-	if err := solidlens.RenderPNG(ctx, &buffer, scene, settings); err != nil {
-		return nil, nil, err
-	}
-	rendered, err := png.Decode(&buffer)
+	rendered, err := solidlens.Render(ctx, scene, settings)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode image: %w", err)
+		return nil, nil, err
 	}
 	return rendered, color.RGBAModel.Convert(rendered.At(0, 0)), nil
 }

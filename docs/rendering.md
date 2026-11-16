@@ -282,8 +282,9 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
 drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle, the
-one-way clutch, the spiral spring and the turbine fan one after another. It renders each model twice, once to measure the pixels it draws and once at the scale that fits them to
-a cell of the 1600 × 900 pixel canvas, so every model fills its cell alike. The wheel takes a tall cell on the left
+one-way clutch, the spiral spring and the turbine fan one after another. On a cache miss, it renders each model twice,
+once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
+so every model fills its cell alike. The wheel takes a tall cell on the left
 (560 pixels wide). The other thirteen models fill a grid of four columns (260 × 300 pixels each, 208 × 300 in the bottom row of five): the three gears and the
 bevel gear pair across the top, the planetary gearbox, cycloidal drive, fan and siren in the middle, and the escapement,
 crank handle, one-way clutch, spiral spring and turbine fan across the bottom. Building all fourteen models takes several minutes plus the wheel
@@ -292,6 +293,12 @@ build:
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
 ```
+
+The renderer stores finished tiles in `.tmp/gallery-cache/` in the checkout. It invalidates every tile when any
+renderer or dependency source, module manifest, toolchain or build setting changes. Changing the gallery dimensions
+invalidates the tiles too. It skips the cache when `go list` cannot discover the dependencies or the running executable
+does not match the current renderer build. Add `-gallery-fresh` to rebuild every tile and update the cache. Deleting
+`.tmp/gallery-cache/` also forces a rebuild.
 
 The `handcranksiren/hero` preset builds the default siren once and renders it from the front, left and above (camera at (-250, -650, 330)), with each
 part coloured by its group. Operator forward is -X and the crank is on the right (+Y). The `handcranksiren/view-rear`,
