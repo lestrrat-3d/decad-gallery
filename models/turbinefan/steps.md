@@ -46,8 +46,9 @@ Tools, each recording its sketch:
    `(0, -1, 0)` with `decad.FullRevolution{}`.
 2. `setScrewSlotTool()`: `nutSlotSketch(r3.NewFrame((0, -(f_b + 1.6), 4), U = (0, 0, -1), V = (1, 0, 0)), 4 + 1)`, extruded 2
    (`NutCavityHeight`) along its normal, -Y. Then `decad.Fillet` of both caps' outer loops by `NutSlotRound`.
-3. `bladeSlotTool(k)`: `nutSlotSketch(r3.NewFrame(9.5 u_k + (0, 0, 2.4), U = u_k, V = v_k), 14 + 1 - 9.5)`, extruded 2 along +Z.
-   Then fillet the three edges along Z through the hexagon's corners B, C and D (C at 6.99 `u_k`), each picked by
+3. `slotTool(site, u, reach)` (formerly `bladeSlotTool(k)`): `nutSlotSketch(r3.NewFrame((site.Head.X, site.Head.Y,
+   site.Head.Z - site.CavityFar()), U = u, V = (-u.Y, u.X, 0)), reach)`, extruded 2 along +Z. Blade k calls it with its
+   site, `u_k` and reach `14 + 1 - 9.5`, so the plane is z = 2.4 as before. Then fillet the three edges along Z through the hexagon's corners B, C and D (C at 6.99 `u_k`), each picked by
    `decad.EndpointAt` at its stored position and joined with `.Or`, `Exactly(3)`, by `NutSlotRound`.
 
 ## 3. Parts (turbinefan.go)
@@ -68,3 +69,37 @@ to `doc.Root().ChildNamed(name)` with `AddBody`: the hub in `Hub`, the blades in
 in `Bolts`, and their nuts in the same order in `Nuts`.
 
 The blade's stud union needs a document with a chain tolerance of 0.1 mm; `NewDocument` sets it.
+
+## 4. Clutch mount
+
+Only `Mount = ClutchMount` runs this. `ShaftMount` runs sections 1 to 3 unchanged. See instructions.md "Clutch mount" for
+the numbers. `Derive` fills `ClutchBoreRadius = D/2 + 0.55` and `EarSites[k]` (`Head: 23.5 (cos a, sin a, 0)`, `Dir: (0, 0,
+-1)`, `Corner: (cos a, sin a, 0)`, `Length: 25`, `Cavity: 25.5`, `a = EarBoltAngle(k+1)`) and leaves the set screw fields
+zero.
+
+`clutchHubMeridian()` (sketches.go) is a meridian on `r3.NewFrame((0, 0, 0), U = (0, 0, 1), V = (1, 0, 0))`, each vertex
+`(r, z)` placed with `sketchcheck.DimensionPoint(s, z, r)`, lines joining consecutive vertices and closing the loop, the
+profile with no holes revolved about the Z axis by `decad.FullRevolution{}`. With `c` 0.5, `R` 28, `T` 3, `rho` 1.5, `rh` 14,
+`H` 20 and `bc = 2 pi r_c >= edgefinish.LongEdgeRun`, the vertices in order are:
+
+1. `(r_c, -T+c)` and `(r_c+c, -T)` when `bc`, else `(r_c, -T)`.
+2. `(R-c, -T)`, `(R, -T+c)`, `(R, -c)`, `(R-c, 0)`.
+3. `(rh+rho, 0)`, then for i = 1 to 8 `(rh+rho + rho cos a_i, rho + rho sin a_i)` with `a_i = 3 pi/2 - (pi/2)(i/8)`.
+4. `(rh, H-c)`, `(rh-c, H)`.
+5. `(r_c+c, H)` and `(r_c, H-c)` when `bc`, else `(r_c, H)`.
+
+`clutchHub()` (turbinefan.go) revolves that body, then cuts in this order: the three sockets (as `hub()`); for each blade k
+`m2fastener.HoleTool(BladeSites[k])`, `PocketTool(BladeSites[k])` then `slotTool(BladeSites[k], u_k, 14 + 1 - 9.5)`; for
+each ear k `PocketTool(EarSites[k])` then `HoleTool(EarSites[k])`. Every tool's sketch is recorded. Errors read `clutch
+hub: <step>: %w`.
+
+`clampSketch()` (sketches.go) on `across(ClampBack)`: `CreateCircle` of radius 28 and 19 about the origin, each with
+`NewRadius`, and three circles of radius 1.3 at each `EarSites[k].Head` XY, centred by `NewHorizontalDistance` and
+`NewVerticalDistance` from the origin and with `NewRadius`. `clamp()` (turbinefan.go) extrudes the profile with four holes
+by `ClampThickness` along +Z, then runs `edgefinish.Chamfer(ctx, body, +Z, {ClampBack, ClampBack + 4}, Long(All), 0.5)`, then
+cuts `slotTool(EarSites[k], u_k, 28 + 1 - 23.5)` for each ear.
+
+`BuildParts` in `ClutchMount` builds `clutchHub()` for the hub, the blades as before, then `clamp()`; it requires each solid
+(`clamp ring` names the clamp), places each, and places the blade sites and ear sites (no set screw site). `Build` files, in
+order: the hub (`Hub`); the blades (`Blades`); the clamp ring (`Clamp Ring`); blade bolts 1 to 3 then ear bolts 1 to 3
+(`Bolts`); blade nuts 1 to 3 then ear nuts 1 to 3 (`Nuts`). Bodies: 17. Sketches from `BuildParts`: 33.
