@@ -59,9 +59,12 @@ y = Throw - 3; both look into the cut:
 three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
 the same cut, and `cutaway` cuts every body by the plane x = 0 and looks from +X. `exploded` pulls the parts apart along
 the shaft axis, with the axis running left to right on the screen: the nuts 30 mm below the back plate's hex pockets, then the hub 30 mm,
-the ring 60 mm, the cover 90 mm and the bolts 120 mm above it. `directions` puts the clockwise and counter-clockwise
+the ring 60 mm, the cover 90 mm and the bolts 120 mm above it. `adapter` draws the default clutch with the standard adapter
+ring (`BuildAdapter`) bolted to its front, from the front, right and above; `adapter-exploded` pulls that assembly apart the
+same way and adds the adapter 120 mm and the clutch's bolts and the adapter's bolts 150 mm above the back plate, with the
+adapter's nuts 30 mm below it, like the clutch's own. `directions` puts the clockwise and counter-clockwise
 sections side by side, and `sizes` puts the sections of the three shaft presets side by side. The `readme` shot builds each
-clutch once, writes all of them, the index image and one 480 x 270 image of each distinct part in `parts/`:
+clutch once, writes all of them, the index image and one 480 x 270 image of each distinct part in `parts/`, including `adapter` and `mount-bolt`:
 `go -C tools/render run . -model onewayclutch -shot readme -out ../../models/onewayclutch/images`.
 
 `turbinefan/hero` renders the default right-hand fan from the front, right and above, with blade 1 up, in the hand-crank

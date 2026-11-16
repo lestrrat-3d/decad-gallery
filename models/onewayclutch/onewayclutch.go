@@ -1,8 +1,11 @@
 // Package onewayclutch builds a printed one-way clutch for a D-flat shaft: a hub with three flexing pawls pressed on the
-// shaft, a ring with 24 internal sawtooth teeth that the pawl heads engage, and a back plate and a cover that hold the
+// shaft, a ring with 18 internal sawtooth teeth that the pawl heads engage, and a back plate and a cover that hold the
 // ring on the hub, clamped by three M2 bolts and nuts. The ring turns freely one way about the held shaft and is driven
 // the other way. The freewheel direction is a parameter: every hub and ring sketch is drawn in one counter-clockwise
 // layout and mirrored in the plane x = 0 for the clockwise one.
+//
+// The ring carries three ears with M2 bores and rear nut pockets, so one standard adapter ring (BuildAdapter), or any
+// other part, bolts to its front. The clutch itself is always the same ten bodies.
 //
 // The local frame has its origin on the shaft axis in the back plate's outer face, the face toward the mechanism. +Z
 // runs along the shaft axis to the cover, and the shaft's flat faces +Y.
@@ -50,7 +53,7 @@ type Model struct {
 }
 
 // BuildParts adds the hub, the ring, the back plate and the cover to doc and returns them. It puts them in no
-// container. ctx and doc must not be nil.
+// container. doc must come from NewDocument, or have a chain tolerance of 0.02 mm or more. ctx and doc must not be nil.
 func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
 	if ctx == nil {
 		return nil, errors.New("onewayclutch: context must not be nil")
@@ -95,8 +98,8 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	return out, nil
 }
 
-// Build adds the hub, the ring, the plates, and every bolt and nut to doc, each in its container. ctx and doc must not
-// be nil.
+// Build adds the hub, the ring, the plates, and every bolt and nut to doc, each in its container. doc must come from
+// NewDocument, or have a chain tolerance of 0.02 mm or more. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -133,10 +136,16 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 }
 
 // hub extrudes the hub's outline, with the D bore and the bolt holes, HubHeight along +Z, then chamfers both faces by
-// 0.5 mm along the runs of 20 mm or more: per pawl the arm's outer arc and the inner run, and at the 8 mm presets the
-// whole D loop. The head run (flank, tip round, lock face) is 7.1 mm and stays sharp, so its 0.4 tip round and the
-// lock contact are kept. Decad ends each run at the concave 22.5 degree corner beside the head's flank, where the bevel
-// tapers out on the flank's plane, and at the convex corners at the web and the lock face. The hub has no Boolean.
+// HubChamfer along the runs of 20 mm or more: per pawl the arm's outer arc and the inner run. The head run (flank, tip
+// round, lock face) is 7.1 mm and stays sharp, so its 0.4 tip round and the lock contact are kept. Decad ends each
+// run at the concave 11.43 degree corner beside the head's flank, where the bevel tapers out on the flank's plane, and
+// at the convex corners at the web and the lock face. The hub has no Boolean.
+//
+// Only the 605ZZ hub is chamfered. Its faces are 405.7 to 413.4 mm², over the 400 mm² of "Surface edge finishing".
+// The 8 mm presets' faces are 376.7 to 383.5 mm², under it, so edgefinish finds no edge and the hub stays the exact
+// prism. The chamfer is 0.25 mm, not 0.5: the flank's plane, carried back over the arm's outer arc, can cap a bevel of
+// at most R - D = 13.2 - 12.938 = 0.262 mm at that corner, which is the smaller chamfer "required by functional
+// geometry".
 func (r *run) hub() (*decad.Body, error) {
 	s, err := r.hubSketch()
 	if err != nil {
@@ -146,17 +155,21 @@ func (r *run) hub() (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
-	body, _, err = edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Z: 1}, []float64{HubFrom, HubFrom + HubHeight},
+	chamfered, _, err := edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Z: 1}, []float64{HubFrom, HubFrom + HubHeight},
 		edgefinish.Long(edgefinish.All), edgefinish.Long(edgefinish.Inner), HubChamfer)
+	if errors.Is(err, edgefinish.ErrNoEdge) {
+		return body, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
-	return body, nil
+	return chamfered, nil
 }
 
-// ring extrudes the ring's outline (ringSketch) RingHeight along +Z, chamfers the whole outer loop of both end faces
-// and cuts the two counterbore tools. The outline holds the teeth, so the ring has no tooth cut. The ring is symmetric
-// end for end.
+// ring extrudes the ring's outline (ringSketch) RingHeight along +Z, chamfers the whole outer loop of both end faces,
+// cuts the two counterbore tools, then cuts a hex nut pocket open to the rear face in each ear. The outline holds the
+// teeth, so the ring has no tooth cut. The ears run the ring's full height. The pockets are cut after the chamfer, so
+// their hexagons stay sharp. The ring needs a document from NewDocument.
 func (r *run) ring() (*decad.Body, error) {
 	s, err := r.ringSketch()
 	if err != nil {
@@ -177,6 +190,16 @@ func (r *run) ring() (*decad.Body, error) {
 		}
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut counterbore %d: %w", i+1, err)
+		}
+	}
+	for i, site := range r.dm.MountSites {
+		tool, sk, err := hexPocket(r.ctx, r.doc, site)
+		if err != nil {
+			return nil, fmt.Errorf("mount nut pocket %d: %w", i+1, err)
+		}
+		r.sketches = append(r.sketches, sk)
+		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			return nil, fmt.Errorf("cut mount nut pocket %d: %w", i+1, err)
 		}
 	}
 	return body, nil
@@ -248,16 +271,15 @@ func (r *run) fastenerTools(build func(context.Context, *decad.Document, m2faste
 // RingBackTool and RingFrontTool are the ring's counterbore tools, closed meridians (r, z) revolved a full turn about Z
 // and cut from the extruded outline. Each takes the plate's rim in a counterbore of radius RingCounter, with a 45 degree
 // lead-in at the ring's end face and a 45 degree cone that holds the ring axially. The tool's flat at BandFrom or BandTo
-// is the teeth's end face. The front tool is the back one mirrored in
-// the hub's mid-plane.
+// is the teeth's end face. The front tool is the back one mirrored in the hub's mid-plane.
 var (
 	RingBackTool = [...][2]float64{
-		{13.0, RingFrom - 1}, {20.0, RingFrom - 1}, {RingCounter, RingFrom + RingChamfer}, {RingCounter, BandFrom - 1.5},
-		{ToothRoot, BandFrom}, {13.0, BandFrom},
+		{ToothTip - 1.5, RingFrom - 1}, {RingCounter + 1.5, RingFrom - 1}, {RingCounter, RingFrom + RingChamfer},
+		{RingCounter, BandFrom - (RingCounter - ToothRoot)}, {ToothRoot, BandFrom}, {ToothTip - 1.5, BandFrom},
 	}
 	RingFrontTool = [...][2]float64{
-		{13.0, RingTo + 1}, {20.0, RingTo + 1}, {RingCounter, RingTo - RingChamfer}, {RingCounter, BandTo + 1.5},
-		{ToothRoot, BandTo}, {13.0, BandTo},
+		{ToothTip - 1.5, RingTo + 1}, {RingCounter + 1.5, RingTo + 1}, {RingCounter, RingTo - RingChamfer},
+		{RingCounter, BandTo + (RingCounter - ToothRoot)}, {ToothRoot, BandTo}, {ToothTip - 1.5, BandTo},
 	}
 )
 
@@ -265,12 +287,14 @@ var (
 // the 45 degree cone to the rim.
 var (
 	BackPlateInner = [...][2]float64{
-		{9.8, BackPlateThickness + 1}, {9.8, BackPlateThickness - 0.6}, {10.6, BackPlateThickness - Recess},
-		{17.0, BackPlateThickness - Recess}, {19.1, BackPlateThickness - Recess - 2.1}, {19.1, BackPlateThickness + 1},
+		{CoreRadius - 0.9, BackPlateThickness + 1}, {CoreRadius - 0.9, BackPlateThickness - 0.6},
+		{CoreRadius - 0.1, BackPlateThickness - Recess}, {ToothRoot, BackPlateThickness - Recess},
+		{PlateRadius + 1, BackPlateThickness - Recess - (PlateRadius + 1 - ToothRoot)}, {PlateRadius + 1, BackPlateThickness + 1},
 	}
 	CoverInner = [...][2]float64{
-		{9.8, CoverFrom - 1}, {9.8, CoverFrom + 0.6}, {10.6, CoverFrom + Recess}, {17.0, CoverFrom + Recess},
-		{19.1, CoverFrom + Recess + 2.1}, {19.1, CoverFrom - 1},
+		{CoreRadius - 0.9, CoverFrom - 1}, {CoreRadius - 0.9, CoverFrom + 0.6}, {CoreRadius - 0.1, CoverFrom + Recess},
+		{ToothRoot, CoverFrom + Recess}, {PlateRadius + 1, CoverFrom + Recess + (PlateRadius + 1 - ToothRoot)},
+		{PlateRadius + 1, CoverFrom - 1},
 	}
 )
 
@@ -287,7 +311,7 @@ func placeSite(s m2fastener.Site, f *r3.Frame) (m2fastener.Site, error) {
 	return s, nil
 }
 
-// hexPocket builds a nut pocket as deep as a nut cavity, out through the back plate's outer face.
+// hexPocket builds a nut pocket as deep as a nut cavity, open to the face at the site's far end: the back plate's outer face or the ring's rear face.
 func hexPocket(ctx context.Context, doc *decad.Document, s m2fastener.Site) (*decad.Body, *sketch.Sketch, error) {
 	return m2fastener.HexPocketTool(ctx, doc, s, m2fastener.NutCavityHeight+m2fastener.Stock)
 }

@@ -63,10 +63,10 @@ func TestTurbineFanClutchEarBolts(t *testing.T) {
 				mid := section(t, m.Clamp, atZ(t, -26.5))
 				at := func(p r3.Vec) bool { return inSection(mid, xy, p.X, p.Y) }
 				require.False(t, at(line), "the slot at the bolt's line")
-				require.False(t, at(u.Scale(27.9)), "the slot is open to the rim")
+				require.False(t, at(u.Scale(turbinefan.ClampOuterRadius+0.2)), "the slot is open to the rim")
 				require.True(t, at(line.Add(v.Scale(flatsHalf+0.4))), "clamp beside the slot")
 				require.True(t, at(line.Sub(v.Scale(flatsHalf+0.4))), "clamp beside the slot")
-				require.True(t, at(u.Scale(20.59)), "clamp beyond the slot's end")
+				require.True(t, at(u.Scale(onewayclutch.EarCircle-m2fastener.NutCavityRadius-0.4)), "clamp beyond the slot's end")
 				for _, z := range []float64{-28.0, -25.0} {
 					level := section(t, m.Clamp, atZ(t, z))
 					require.True(t, inSection(level, xy, line.X+2*u.X, line.Y+2*u.Y), "clamp under and over the slot at z %g", z)

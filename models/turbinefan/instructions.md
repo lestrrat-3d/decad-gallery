@@ -464,13 +464,13 @@ plates do. The clutch-mount bore is round, radius `D/2 + 0.55`, and does not tou
 | --- | ---: | --- |
 | `ClutchTurn` | pi/3 | fan frame turn about Z from the clutch frame |
 | `FlangeThickness` | 3.0 | `m2fastener.HeadPocketDepth + 1.0`: head pocket plus 1 mm under it |
-| `FlangeRadius` | 28.0 | covers the ear tips (`onewayclutch.EarReach` 27.1); 1.8 mm round each head pocket inside the rim chamfer |
+| `FlangeRadius` | 25.7 | `onewayclutch.AdapterRadius`: covers the ear tips (`onewayclutch.EarReach`); 1.9 mm round each head pocket, 1.4 inside the rim chamfer |
 | `FlangeRound` | 1.5 | root round of the hub on the flange: half the flange's 3.0 |
 | `ClutchBoreClearance` | 0.55 | `onewayclutch.LooseFit` |
 | `ClutchSeam` | 0.25 | `onewayclutch.Seam` |
 | `ClampThickness` | 4.0 | 1 + `m2fastener.NutCavityHeight` + 1 |
-| `ClampInnerRadius` | 19.0 | clears the clutch's 37 mm circle (`onewayclutch.RingCounter` 18.5) by 0.5; passes the back plate (18.1) |
-| `ClampOuterRadius` | 28.0 | `FlangeRadius` |
+| `ClampInnerRadius` | 17.25 | `onewayclutch.PlateRadius + onewayclutch.LooseFit`: Loose 0.55 off the back plate's rim (16.7); 1.84 to the nut slot's inner corner (r 19.09) |
+| `ClampOuterRadius` | 25.7 | `FlangeRadius` |
 | `ClampBack` | -28.5 | `-(FlangeThickness + 2*ClutchSeam + onewayclutch.RingHeight + ClampThickness)` |
 | `EarBoltLength` | 25.0 | M2 x 25, in `m2bolt.StandardLengths()`, its longest entry |
 | `EarBoltCavity` | 25.5 | `-(ClampBack + 1 + m2fastener.NutCavityHeight)` |
@@ -486,24 +486,24 @@ flange is 3.0.
 See the rules above: rule 4 (Mount), rule 5 (clutch wall, `D` at most 8.7), rules 6 and 7 skipped, rule 11 (blade then
 ear sites). `EarSites[k]` (k = 0..2, angle `a = EarBoltAngle(k+1)`, `u = (cos a, sin a, 0)`) is `m2fastener.Site{Head:
 (EarCircle cos a, EarCircle sin a, 0), Dir: (0, 0, -1), Corner: u, Length: EarBoltLength, Cavity: EarBoltCavity}`, with
-`EarCircle` = `onewayclutch.EarCircle` (23.5). `Tip()` is 27 and `CavityFar()` is 27.5. In `ClutchMount` the set screw
+`EarCircle` = `onewayclutch.EarCircle` (21.6). `Tip()` is 27 and `CavityFar()` is 27.5. In `ClutchMount` the set screw
 fields stay zero; `ClutchBoreRadius` is `r_c = D/2 + ClutchBoreClearance` (0 in `ShaftMount`).
 
 ### Geometry
 
 1. **Hub, one revolved body.** A meridian sketch on the frame with origin 0, U = +Z and V = +X, each vertex `(r, z)`
    placed with `sketchcheck.DimensionPoint`, lines joining consecutive vertices and closing the loop. With `c` = 0.5,
-   `R` = 28, `T` = 3, `rho` = 1.5, `rh` = 14, `H` = 20 and `bc` = `2 pi r_c >= edgefinish.LongEdgeRun` (true at D = 8):
+   `R` = 25.7, `T` = 3, `rho` = 1.5, `rh` = 14, `H` = 20 and `bc` = `2 pi r_c >= edgefinish.LongEdgeRun` (true at D = 8):
    `(r_c, -T+c)`, `(r_c+c, -T)` when `bc` else `(r_c, -T)`; `(R-c, -T)`, `(R, -T+c)`, `(R, -c)`, `(R-c, 0)`;
    `(rh+rho, 0)`; eight round points `(rh+rho + rho cos a_i, rho + rho sin a_i)`, `a_i = 3 pi/2 - (pi/2)(i/8)`, ending at
    `(rh, rho)`; `(rh, H-c)`, `(rh-c, H)`; `(r_c+c, H)`, `(r_c, H-c)` when `bc` else `(r_c, H)`. That is 17 vertices, 19
    with `bc`. The chamfers are in the meridian; no `edgefinish` call runs on this body. Revolve about the Z axis.
    Cuts, in order: the three sockets; for each blade the hole tool, the pocket tool and the nut slot; for each ear the
    pocket tool (z -2 to 0) then the hole tool (through the flange).
-2. **Clamp ring.** A sketch on z = `ClampBack`: circles of radius 28 and 19 about the origin, and three circles of radius
+2. **Clamp ring.** A sketch on z = `ClampBack`: circles of radius 25.7 and 17.25 about the origin, and three circles of radius
    1.3 at the ear sites; extrude 4.0 along +Z. `edgefinish.Chamfer` of both faces by 0.5 over the long loops (outer and
-   inner circles). Then at each ear a nut slot (`slotTool`) of reach `ClampOuterRadius + Stock - EarCircle` (5.5): z -27.5
-   to -25.5, 1.0 from each face, its corner at r 20.99 (1.99 from the bore), its mouth through the rim.
+   inner circles). Then at each ear a nut slot (`slotTool`) of reach `ClampOuterRadius + Stock - EarCircle` (5.1): z -27.5
+   to -25.5, 1.0 from each face, its corner at r 19.09 (1.84 from the bore), its mouth through the rim.
 3. **Blades, bolts, nuts.** As in `ShaftMount`; the blades are the same part, and the blade nut slots open above the
    flange.
 4. **Counts.** Bodies: 17. Sketches from `BuildParts`: 33 (1 meridian, 1 socket tool, 9 blade tools, 6 ear tools, 12 blade
@@ -551,14 +551,14 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 | Clamp ring front face / ring back end | clamped seam | 0.25 | at least 0.20 |
 | Flange back face / cover, cover bolt heads | Regular, after the ring's 0.85 play and the seam closing | 1.50 | at least 1.45 |
 | Clamp ring / back plate, clutch nuts | Regular | 1.50 axial, plus radial separation | at least 1.45 |
-| Clamp ring inner bore / clutch's 37 mm circle | Loose | 0.50 | every clamp vertex at r 18.95 or more |
+| Clamp ring inner bore / back plate rim | Loose | 0.55 radial | every clamp vertex at r 17.20 or more |
 | Round bore / nominal shaft | Loose | 0.55 radial | at least 0.50 |
 | Ear bolt shank / ear bore, clamp hole, flange hole | fastener rule | 0.30 | at least 0.28 in 0.01 sections |
 | Ear nut / slot | fastener rule | 0.17 flats (0.07 beside the rounds), 0.12 rounded corners, 0.20 faces | clear |
-| Blades / flange front face | Regular | 4.17 or more (lowest blade point at 40 degrees) | every blade vertex at r 28 or less at z 0.35 or more |
+| Blades / flange front face | Regular | 4.17 or more (lowest blade point at 40 degrees) | every blade vertex at r 25.7 or less at z 0.35 or more |
 
 The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. The clutch's R6 guarantee (0.40
-at the end of the play) carries over to the flange because the flange is flat over r < 18.5. The bound 1.45 is 0.35 +
+at the end of the play) carries over to the flange because the flange is flat over r < 17.1. The bound 1.45 is 0.35 +
 `ToothEndGap` + `ClutchSeam`. Blade fits are unchanged.
 
 Measured by `TestTurbineFanOnClutch` in the plane x = 0 (section outlines, less each outline's off-surface bound), modeled in
@@ -575,15 +575,15 @@ outer face 1.492 (1.50).
   and -25.5 (between layers); the blade bolt hole blind ends; the socket mouths; the socket floor round band, exempt at
   z 7 and 13 as today.
 - Short runs left sharp: blade bolt holes, ear holes and clamp holes (8.2), head pockets (13.8) and the 605ZZ bore (19.16).
-- Large faces (mm2, 605ZZ / 608ZZ): back face 2434 / 2398, flange front 1708, hub front 586 / 551, each clamp face 1313.
+- Large faces (mm2, 605ZZ / 608ZZ): back face 2046 / 2010, flange front 1320, hub front 586 / 551, each clamp face 1124.
 - Containers: see Geometry. No look-alike parts, printed shaft, arbor collars or gears.
 
 ### Mounting space, assembly and cases
 
-- Behind the ring: r 19 to 28, 4.25 mm deep from the ring's back end (clutch z -1.25 to -5.5). In front: the flange (56
+- Behind the ring: r 17.25 to 25.7, 4.25 mm deep from the ring's back end (clutch z -1.25 to -5.5). In front: the flange (51.4
   across, clutch z 20 to 23) and the fan. The shaft may end anywhere from inside the clutch to the hub's front face.
 - Assembly: (1) fit the blades; (2) assemble the clutch off the shaft; (3) hang the clamp ring round the shaft and press
-  the clutch on, back plate first (the 36.2 plate passes the 38 clamp bore), tighten the clutch's bolts; (4) hold the
+  the clutch on, back plate first (the 33.4 plate passes the 34.5 clamp bore), tighten the clutch's bolts; (4) hold the
   clamp ring against the ring's back end with its holes on the ear bores and slide an M2 nut into each slot from the rim;
   (5) set the flange against the ring's front end and push the three M2 x 25 bolts through, tightening from the front with a
   1.5 mm hex key between the blades.

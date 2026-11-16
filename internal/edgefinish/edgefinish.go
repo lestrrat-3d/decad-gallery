@@ -4,6 +4,7 @@ package edgefinish
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -25,6 +26,11 @@ const (
 	// normalTolerance is how far a face's unit normal may differ from the requested one.
 	normalTolerance = 1e-9
 )
+
+// ErrNoEdge is the error, wrapped, that Chamfer and ChamferRuns return when no face in the requested planes reaches
+// LargeFaceArea or no loop of one passes the filters, so there is nothing to chamfer. Callers whose faces may all be
+// small test for it with errors.Is.
+var ErrNoEdge = errors.New("no edge to chamfer")
 
 // LoopFilter decides whether the loop of a face, with its edges, is chamfered.
 type LoopFilter func(loop *decad.Loop, edges []*decad.Edge) bool
@@ -251,7 +257,7 @@ func chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []flo
 		}
 	}
 	if first.count+second.count == 0 {
-		return nil, 0, fmt.Errorf("edge finish: no edge to chamfer in the planes at %g along %v", offsets, normal)
+		return nil, 0, fmt.Errorf("edge finish: %w in the planes at %g along %v", ErrNoEdge, offsets, normal)
 	}
 	out := body
 	for _, sel := range []selection{first, second} {

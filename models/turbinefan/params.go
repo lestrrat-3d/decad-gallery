@@ -39,13 +39,13 @@ const (
 const (
 	ClutchTurn          = math.Pi / 3                                                                  // the fan frame's turn about Z from the clutch frame
 	FlangeThickness     = m2fastener.HeadPocketDepth + 1.0                                             // 3.0: the head pocket plus 1 mm under it
-	FlangeRadius        = 28.0                                                                         // covers the ear tips (onewayclutch.EarReach 27.1)
+	FlangeRadius        = onewayclutch.AdapterRadius                                                   // 25.7: covers the ear tips (onewayclutch.EarReach)
 	FlangeRound         = 1.5                                                                          // the hub's root round on the flange: half its thickness
 	ClutchBoreClearance = onewayclutch.LooseFit                                                        // 0.55
 	ClutchSeam          = onewayclutch.Seam                                                            // 0.25
 	ClampThickness      = 1 + m2fastener.NutCavityHeight + 1                                           // 4.0
-	ClampInnerRadius    = 19.0                                                                         // 0.5 off the clutch's 37 mm circle
-	ClampOuterRadius    = FlangeRadius                                                                 // 28
+	ClampInnerRadius    = onewayclutch.PlateRadius + onewayclutch.LooseFit                             // 17.25: Loose off the back plate's rim
+	ClampOuterRadius    = FlangeRadius                                                                 // 25.7
 	ClampBack           = -(FlangeThickness + 2*ClutchSeam + onewayclutch.RingHeight + ClampThickness) // -28.5
 	EarBoltLength       = 25.0                                                                         // M2 x 25, the longest standard length
 	EarBoltCavity       = -(ClampBack + 1 + m2fastener.NutCavityHeight)                                // 25.5

@@ -73,10 +73,12 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 			_, err = tc.params.Derive()
 			require.Error(t, err)
 
-			doc := decad.New()
+			doc := onewayclutch.NewDocument()
 			_, err = onewayclutch.BuildParts(t.Context(), doc, tc.params)
 			require.ErrorContains(t, err, tc.message)
 			_, err = onewayclutch.Build(t.Context(), doc, tc.params)
+			require.ErrorContains(t, err, tc.message)
+			_, err = onewayclutch.BuildAdapter(t.Context(), doc, tc.params)
 			require.ErrorContains(t, err, tc.message)
 			require.Empty(t, doc.Bodies(), "a rejected build adds no body")
 		})
@@ -101,8 +103,8 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		p := onewayclutch.DefaultParams()
 		p.BoreClearance = 0.5
 		require.NoError(t, p.Validate(), "605ZZ takes the largest clearance")
-		p.Shaft, p.BoreClearance = "608ZZ", 0.29
-		require.NoError(t, p.Validate(), "608ZZ takes a clearance up to 0.29")
+		p.Shaft, p.BoreClearance = "608ZZ", 0.326
+		require.NoError(t, p.Validate(), "608ZZ takes a clearance up to 0.326")
 		for _, shaft := range onewayclutch.Shafts() {
 			p := onewayclutch.DefaultParams()
 			p.Shaft = shaft.Name
@@ -112,11 +114,15 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 
 	t.Run("nil context and document", func(t *testing.T) {
 		var nilCtx context.Context
-		doc := decad.New()
+		doc := onewayclutch.NewDocument()
 		_, err := onewayclutch.BuildParts(nilCtx, doc, onewayclutch.DefaultParams())
 		require.ErrorContains(t, err, "context must not be nil")
 		_, err = onewayclutch.Build(nilCtx, doc, onewayclutch.DefaultParams())
 		require.ErrorContains(t, err, "context must not be nil")
+		_, err = onewayclutch.BuildAdapter(nilCtx, doc, onewayclutch.DefaultParams())
+		require.ErrorContains(t, err, "context must not be nil")
+		_, err = onewayclutch.BuildAdapter(t.Context(), nil, onewayclutch.DefaultParams())
+		require.ErrorContains(t, err, "document must not be nil")
 		_, err = onewayclutch.BuildParts(t.Context(), nil, onewayclutch.DefaultParams())
 		require.ErrorContains(t, err, "document must not be nil")
 		_, err = onewayclutch.Build(t.Context(), nil, onewayclutch.DefaultParams())
@@ -127,7 +133,7 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 	t.Run("canceled context", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
-		doc := decad.New()
+		doc := onewayclutch.NewDocument()
 		_, err := onewayclutch.Build(ctx, doc, onewayclutch.DefaultParams())
 		require.ErrorIs(t, err, context.Canceled)
 		require.Empty(t, doc.Bodies())
@@ -307,7 +313,7 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 		t.Run(dir.String(), func(t *testing.T) {
 			p := onewayclutch.DefaultParams()
 			p.Freewheel = dir
-			doc := decad.New()
+			doc := onewayclutch.NewDocument()
 			parts, err := onewayclutch.BuildParts(t.Context(), doc, p)
 			require.NoError(t, err)
 			sigma := dir.Sign()
@@ -332,7 +338,8 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			require.Positive(t, countInside(locked.Vertices(), ring), "the locked hub reaches into the ring")
 
 			// The ring turned by +sigma*turn (the hub by -sigma*turn): the heads ride up the ramps and stay clear. The
-			// design requires 0.05 mm left after 2 degrees (0.07 mm measured) and keeps the 0.05 mm at 1.5 degrees.
+			// design requires 0.05 mm left after 2 degrees and at 1.5 degrees. Measured on the 605ZZ hub: 0.166 mm at 1.5
+			// degrees and 0.104 at 2.0 (clockwise), 0.161 and 0.099 (counter-clockwise); on the 8 mm hubs 0.141 and 0.079.
 			for _, free := range []struct{ angle, clearance float64 }{{1.5, 0.05}, {turn, 0.05}} {
 				hub := rotated(-sigma * free.angle)
 				gap, clear, err := meshOf(t, hub, "free hub").Exceeds(meshOf(t, parts.Ring, "ring"), free.clearance)
@@ -367,7 +374,7 @@ func TestOneWayClutchPlacement(t *testing.T) {
 			require.NoError(t, err)
 			p := onewayclutch.DefaultParams()
 			p.Placement = &frame
-			placed, err := onewayclutch.Build(t.Context(), decad.New(), p)
+			placed, err := onewayclutch.Build(t.Context(), onewayclutch.NewDocument(), p)
 			require.NoError(t, err)
 
 			// moved returns the bounds of the local box under the frame (exact for the axis-aligned frames used here).

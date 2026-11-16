@@ -23,6 +23,8 @@ var (
 	clutchRingColor  = solidlens.RGB(.20, .22, .25)
 	clutchPlateColor = solidlens.RGB(.30, .45, .62)
 	clutchBoltColor  = solidlens.RGB(.55, .57, .60)
+	// The adapter ring is not any of the clutch's parts, so it has its own colour.
+	clutchAdapterColor = solidlens.RGB(.22, .55, .38)
 )
 
 // clutchPart is one body's name, mesh and colour, in drawing order.
@@ -32,9 +34,10 @@ type clutchPart struct {
 	color solidlens.Color
 }
 
-// isHardware reports whether the part is a bought bolt or nut.
+// isHardware reports whether the part is a bought bolt or nut, the adapter's mount fasteners included.
 func (p clutchPart) isHardware() bool {
-	return strings.HasPrefix(p.name, "bolt") || strings.HasPrefix(p.name, "nut")
+	name := strings.TrimPrefix(p.name, "mount ")
+	return strings.HasPrefix(name, "bolt") || strings.HasPrefix(name, "nut")
 }
 
 // clutchSet is one built clutch's ten meshes.
@@ -42,7 +45,18 @@ type clutchSet []clutchPart
 
 // buildClutchParts builds one clutch once and tessellates its ten bodies.
 func buildClutchParts(ctx context.Context, p onewayclutch.Params) (clutchSet, error) {
-	m, err := onewayclutch.Build(ctx, decad.New(), p)
+	return buildClutchSet(ctx, p, false)
+}
+
+// buildClutchAdapterParts builds one clutch and its standard adapter in one document and tessellates the seventeen
+// bodies: the ten of the clutch, then the adapter and its three mount bolts and nuts.
+func buildClutchAdapterParts(ctx context.Context, p onewayclutch.Params) (clutchSet, error) {
+	return buildClutchSet(ctx, p, true)
+}
+
+func buildClutchSet(ctx context.Context, p onewayclutch.Params, withAdapter bool) (clutchSet, error) {
+	doc := onewayclutch.NewDocument()
+	m, err := onewayclutch.Build(ctx, doc, p)
 	if err != nil {
 		return nil, fmt.Errorf("build one-way clutch: %w", err)
 	}
@@ -58,6 +72,22 @@ func buildClutchParts(ctx context.Context, p onewayclutch.Params) (clutchSet, er
 	for i := range m.Nuts {
 		parts = append(parts, clutchPart{fmt.Sprintf("nut %d", i+1), nil, clutchBoltColor})
 		bodies = append(bodies, m.Nuts[i].Body)
+	}
+	if withAdapter {
+		a, err := onewayclutch.BuildAdapter(ctx, doc, p)
+		if err != nil {
+			return nil, fmt.Errorf("build one-way clutch adapter: %w", err)
+		}
+		parts = append(parts, clutchPart{"adapter", nil, clutchAdapterColor})
+		bodies = append(bodies, a.Body)
+		for i := range a.Bolts {
+			parts = append(parts, clutchPart{fmt.Sprintf("mount bolt %d", i+1), nil, clutchBoltColor})
+			bodies = append(bodies, a.Bolts[i].Body)
+		}
+		for i := range a.Nuts {
+			parts = append(parts, clutchPart{fmt.Sprintf("mount nut %d", i+1), nil, clutchBoltColor})
+			bodies = append(bodies, a.Nuts[i].Body)
+		}
 	}
 	for i := range parts {
 		tol := .04
@@ -126,6 +156,16 @@ var clutchExplode = map[string]r3.Vec{
 	"cover": {Z: 90}, "bolt 1": {Z: 120}, "bolt 2": {Z: 120}, "bolt 3": {Z: 120},
 }
 
+// The adapter's exploded view keeps that order and adds the adapter and its bolts after the cover: the adapter 120 mm,
+// then the clutch's bolts and the adapter's bolts 150 mm above the back plate. The adapter's nuts go 30 mm below it, like
+// the clutch's, out of the ring's rear pockets.
+var clutchAdapterExplode = map[string]r3.Vec{
+	"nut 1": {Z: -30}, "nut 2": {Z: -30}, "nut 3": {Z: -30}, "mount nut 1": {Z: -30}, "mount nut 2": {Z: -30},
+	"mount nut 3": {Z: -30}, "back plate": {}, "hub": {Z: 30}, "ring": {Z: 60}, "cover": {Z: 90}, "adapter": {Z: 120},
+	"bolt 1": {Z: 150}, "bolt 2": {Z: 150}, "bolt 3": {Z: 150},
+	"mount bolt 1": {Z: 150}, "mount bolt 2": {Z: 150}, "mount bolt 3": {Z: 150},
+}
+
 var (
 	clutchMidCut = solidlens.ClipPlane{Origin: solidlens.Vec{Z: clutchMidPlane}, Normal: solidlens.Vec{Z: 1}}
 	// clutchAxisCut cuts by the plane x = 0, which holds the shaft axis, and removes the half toward +X.
@@ -142,6 +182,9 @@ var clutchCameras = map[string]solidlens.Camera{
 	// The shaft axis runs left to right on the screen, the back plate's side at the left, seen a little from below.
 	"exploded": {Position: solidlens.Vec{X: -260, Y: 120, Z: -40}, Target: solidlens.Vec{Z: 55}, Up: solidlens.Vec{Y: 1},
 		FOV: 35},
+	// The clutch with its adapter on the front, from the front, right and above.
+	"adapter":          {Position: solidlens.Vec{X: 55, Y: -75, Z: 100}, Target: solidlens.Vec{Z: 12}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"adapter-exploded": {Position: solidlens.Vec{X: -300, Y: 140, Z: -50}, Target: solidlens.Vec{Z: 62}, Up: solidlens.Vec{Y: 1}, FOV: 35},
 }
 
 // view draws one named view of a single clutch.
@@ -159,6 +202,8 @@ func (s clutchSet) view(name string) (solidlens.Scene, error) {
 		clip = &clutchAxisCut
 	case "exploded":
 		pull = clutchExplode
+	case "adapter-exploded":
+		pull = clutchAdapterExplode
 	}
 	models, err := s.models(r3.Vec{}, pull, clip)
 	if err != nil {
@@ -181,6 +226,17 @@ func sideBySide(sets []clutchSet) (solidlens.Scene, error) {
 	camera := solidlens.Camera{Position: solidlens.Vec{X: mid, Z: 240}, Target: solidlens.Vec{X: mid, Z: clutchMidPlane},
 		Up: solidlens.Vec{Y: 1}, FOV: 30}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
+}
+
+// oneWayClutchAdapterView returns the preset for a view of the default clutch with its standard adapter.
+func oneWayClutchAdapterView(name string) func(context.Context) (solidlens.Scene, error) {
+	return func(ctx context.Context) (solidlens.Scene, error) {
+		s, err := buildClutchAdapterParts(ctx, onewayclutch.DefaultParams())
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		return s.view(name)
+	}
 }
 
 func oneWayClutchHero(ctx context.Context) (solidlens.Scene, error) {
@@ -264,6 +320,20 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
+	// The adapter images are the clutch with its standard adapter bolted to the front.
+	withAdapter, err := buildClutchAdapterParts(ctx, onewayclutch.DefaultParams())
+	if err != nil {
+		return err
+	}
+	for _, shot := range []struct{ view, file string }{{"adapter", "adapter.png"}, {"adapter-exploded", "adapter-exploded.png"}} {
+		scene, err := withAdapter.view(shot.view)
+		if err != nil {
+			return err
+		}
+		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, 1600, 900); err != nil {
+			return err
+		}
+	}
 	// The directions image holds the clockwise clutch already built; the sizes image holds the default 605ZZ clutch.
 	ccw, err := buildClutchParts(ctx, clutchDirectionParams()[1])
 	if err != nil {
@@ -294,8 +364,8 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 		}
 	}
 	// One image per distinct part: the three bolts are alike, and so are the three nuts.
-	for _, name := range []string{"hub", "ring", "back plate", "cover", "bolt 1", "nut 1"} {
-		for _, part := range def {
+	for _, name := range []string{"hub", "ring", "back plate", "cover", "bolt 1", "nut 1", "adapter", "mount bolt 1"} {
+		for _, part := range withAdapter {
 			if part.name != name {
 				continue
 			}

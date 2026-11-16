@@ -151,7 +151,9 @@ func requireSiteWalls(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 
 	// Wall from the D bore to each cavity and pocket, from the bore's outline: the round arc and the flat on +Y.
 	d := distanceToBore(site.Head.X, site.Head.Y, dm.BoreRadius, dm.BoreFlat)
-	require.GreaterOrEqual(t, d-m2fastener.NutCavityRadius, onewayclutch.PressWall-1e-9, "%s: wall bore to nut cavity", label)
+	// The back plate's pockets are turned so that a flat, not a corner, faces the bore (Corner is at the bolt's angle plus
+	// 30 degrees), which is what keeps the 8 mm presets' wall at the press wall.
+	require.GreaterOrEqual(t, d-m2fastener.NutCavityRadius*math.Sqrt(3)/2, onewayclutch.PressWall-1e-9, "%s: wall bore to nut cavity", label)
 	require.GreaterOrEqual(t, d-m2fastener.HeadPocketRadius, onewayclutch.PressWall-1e-9, "%s: wall bore to head pocket", label)
 }
 
@@ -207,9 +209,16 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	}
 	for _, pr := range probes {
 		f := atZ(t, pr.z)
-		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(0.03))
+		// The chamfered 605ZZ hub is faceted and holds no section finer than 0.035. Every other pair is exact and takes
+		// 0.01: a coarser chord shrinks the bolt hole's polygon and the clearance read from it (0.272 at 0.03 for the
+		// 0.3 mm of the 8 mm hub's holes).
+		tol := 0.01
+		if pr.part == m.Hub && m.Dimensions.Shaft.Name == "605ZZ" {
+			tol = fitCoarseTol
+		}
+		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(tol))
 		require.NoError(t, err, pr.name)
-		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(0.03))
+		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(tol))
 		require.NoError(t, err, pr.name)
 		c, err := a.Clearance(b)
 		require.NoError(t, err, pr.name)

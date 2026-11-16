@@ -57,7 +57,7 @@ func zRange(o decad.SectionOutline) (lo, hi float64) {
 // stack and every fit pair through the pair. The clutch and the fan are built in separate documents.
 func TestTurbineFanOnClutch(t *testing.T) {
 	cp := onewayclutch.DefaultParams()
-	clutch, err := onewayclutch.Build(t.Context(), decad.New(), cp)
+	clutch, err := onewayclutch.Build(t.Context(), onewayclutch.NewDocument(), cp)
 	require.NoError(t, err)
 	fp, err := turbinefan.ParamsForClutch(cp)
 	require.NoError(t, err)
@@ -179,7 +179,7 @@ func TestTurbineFanOnClutch(t *testing.T) {
 
 	// Radial and axial limits.
 	for _, v := range meshOf(t, fan.Clamp, 0.05).Vertices() {
-		require.GreaterOrEqual(t, math.Hypot(v.X, v.Y), 18.95, "clamp vertex %v", v)
+		require.GreaterOrEqual(t, math.Hypot(v.X, v.Y), turbinefan.ClampInnerRadius-0.05, "clamp vertex %v", v)
 	}
 	for _, v := range meshOf(t, fan.Hub, 0.05).Vertices() {
 		if math.Hypot(v.X, v.Y) < onewayclutch.RingCounter {
