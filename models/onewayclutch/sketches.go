@@ -169,7 +169,9 @@ func (r *run) plateSketch(z float64) (*sketch.Sketch, error) {
 }
 
 // adapterSketch sketches the adapter on its back face: the circles AdapterRadius and AdapterInner about the origin, and
-// a clearance hole of radius m2fastener.HoleRadius at each ear's bore, its centre on the ear's axis at EarCircle.
+// a clearance hole of radius m2fastener.HoleRadius at each ear's bore, its centre on the ear's axis at EarCircle, one
+// at each face bolt, its centre on the same axis at FaceCircle, and one over each of the clutch's own bolt heads (see
+// boltHoles). The profile has 3*Ears+1 holes.
 func (r *run) adapterSketch() (*sketch.Sketch, error) {
 	s, err := r.sketchOn(across(AdapterFrom))
 	if err != nil {
@@ -187,7 +189,13 @@ func (r *run) adapterSketch() (*sketch.Sketch, error) {
 		center := s.CreatePoint(pos.X, pos.Y)
 		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, EarCircle))
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, m2fastener.HoleRadius), m2fastener.HoleRadius))
+		fpos := polar(FaceCircle, a)
+		fc := s.CreatePoint(fpos.X, fpos.Y)
+		s.AddConstraint(sketch.NewPointOnLine(fc, axis), sketch.NewDistance(s.Origin(), fc, FaceCircle))
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(fc, m2fastener.HoleRadius), m2fastener.HoleRadius))
 	}
+	// Access holes over the clutch's own bolt heads, so a hex key reaches them through the adapter.
+	r.boltHoles(s, ps)
 	return s, nil
 }
 

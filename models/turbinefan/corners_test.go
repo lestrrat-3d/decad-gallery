@@ -51,11 +51,14 @@ func socketFloorRound() cornercheck.Exempt {
 // TestTurbineFanCorners applies "Corners and roots" to the hub, printed front face down with its axis +Z, and to each
 // blade, printed on its stud end with its radial line vertical. The hub is read at the face levels MidHeights finds and at
 // z = 2.5, 4, 5.5, 5.8, 7, 10 and 13, which cut the slots, the counterbore and the sockets off their axes. Three exemptions
-// are allowed, each only for the call whose findings it matches; instructions.md records their measured turns.
+// are allowed; instructions.md records their measured turns.
 func TestTurbineFanCorners(t *testing.T) {
 	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		dm := m.Dimensions
-		fs, err := cornercheck.Check(t.Context(), m.Hub, r3.Vec{Z: 1}, []cornercheck.Exempt{counterboreRound(dm)})
+		// The adapter holes' blind floor (z 6.75) adds mid heights 5.575 and 12.375, which cut the set screw slot's end
+		// round and the socket floor rounds at a slant.
+		fs, err := cornercheck.Check(t.Context(), m.Hub, r3.Vec{Z: 1},
+			[]cornercheck.Exempt{counterboreRound(dm), setScrewSlotEndRound(dm), socketFloorRound()})
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))
 		fs, err = cornercheck.CheckAt(t.Context(), m.Hub, r3.Vec{Z: 1}, []float64{2.5, 4, 5.5, 5.8, 7, 10, 13},

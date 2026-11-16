@@ -8,6 +8,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -196,6 +197,53 @@ func TestTurbineFanAccess(t *testing.T) {
 				}
 			}
 			requireAccess(t, verts, k)
+		}
+	})
+}
+
+// TestTurbineFanAdapterCuts checks the hub's two adapter bolt cuts on the ShaftMount hub, which has them in both modes: a
+// blind clearance hole from the back face to z 6.75 and a hex nut slot open to the round face, 1.5 mm in front of the
+// back face, with the wall to the bore and the 1 mm of material round it.
+func TestTurbineFanAdapterCuts(t *testing.T) {
+	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		dm := m.Dimensions
+		xy := func(v r3.Vec) (float64, float64) { return v.X, v.Y }
+		for k, site := range dm.AdapterSites {
+			u := site.Corner
+			v := r3.Vec{X: -u.Y, Y: u.X}
+			line := r3.Vec{X: site.Head.X, Y: site.Head.Y}
+			require.Contains(t, m2bolt.StandardLengths(), site.Length)
+			require.InDelta(t, onewayclutch.FaceCircle, line.Len(), 1e-9)
+			// The slot spans z 1.5 to 3.5: FaceNutDepth under the back face's seam, below the set screw's line (z 4) and
+			// the blade slots' faces (z 2.4 to 4.4, in other directions).
+			lo := site.Head.Z + site.Cavity
+			require.InDelta(t, onewayclutch.FaceNutDepth, lo, 1e-9, "1.5 mm of hub under the slot")
+			hi := lo + m2fastener.NutCavityHeight
+			require.Less(t, hi, float64(turbinefan.SetScrewZ), "the slot stays under the set screw's line")
+
+			mid := section(t, m.Hub, atZ(t, (lo+hi)/2))
+			at := func(p r3.Vec) bool { return inSection(mid, xy, p.X, p.Y) }
+			require.False(t, at(line), "the slot at the bolt's line")
+			require.False(t, at(u.Scale(turbinefan.HubRadius-0.1)), "the slot is open to the round face")
+			require.True(t, at(line.Add(v.Scale(flatsHalf+0.4))), "hub beside the slot")
+			require.True(t, at(line.Sub(v.Scale(flatsHalf+0.4))), "hub beside the slot")
+			require.True(t, at(u.Scale(onewayclutch.FaceCircle-m2fastener.NutCavityRadius-0.4)), "hub beyond the slot's end")
+			// Wall from the slot's inner corner to the bore: PressWall or more.
+			corner := onewayclutch.FaceCircle - m2fastener.NutCavityRadius
+			require.GreaterOrEqual(t, corner-dm.BoreRadius, turbinefan.PressWall, "wall between the slot and the bore")
+			// The hole is blind: open at the back face, closed from z 6.75; solid above and below the slot beside it.
+			for _, z := range []float64{0.5, 1.0, 5.0, 6.5} {
+				level := section(t, m.Hub, atZ(t, z))
+				require.False(t, inSection(level, xy, line.X, line.Y), "the bolt's hole at z %g", z)
+			}
+			for _, z := range []float64{lo - 0.3, hi + 0.3} {
+				level := section(t, m.Hub, atZ(t, z))
+				require.True(t, inSection(level, xy, line.X+2*u.X, line.Y+2*u.Y), "hub round the slot at z %g", z)
+			}
+			require.Less(t, site.Head.Z+site.Tip(), 6.75, "the bolt's tip stays inside the blind hole")
+			closed := section(t, m.Hub, atZ(t, 6.95))
+			require.True(t, inSection(closed, xy, line.X, line.Y), "the hole's floor at z 6.95")
+			t.Logf("%s adapter cut %d: slot z %.2f to %.2f", c.name, k+1, lo, hi)
 		}
 	})
 }

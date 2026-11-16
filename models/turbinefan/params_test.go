@@ -80,8 +80,6 @@ func TestTurbineFanValidate(t *testing.T) {
 		{"bad-hand", func(p *turbinefan.Params) { p.Hand = 2 }, "Hand must be RightHand or LeftHand"},
 		{"invalid-frame", func(p *turbinefan.Params) { p.Placement = &r3.Frame{} }, "Placement must be a valid frame"},
 		{"bad-mount", func(p *turbinefan.Params) { p.Mount = turbinefan.Mount(2) }, "Mount must be ShaftMount or ClutchMount"},
-		{"clutch-shaft-too-wide", func(p *turbinefan.Params) { p.Mount, p.ShaftDiameter = turbinefan.ClutchMount, 9 },
-			"less than a 0.8 mm wall between the clutch mount's bore and the blade sockets"},
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			p := def
@@ -106,12 +104,12 @@ func TestTurbineFanValidate(t *testing.T) {
 	both.ShaftDiameter, both.BladePitch = 0, 0
 	require.ErrorContains(t, both.Validate(), "ShaftDiameter")
 
-	// The clutch mount shapes nothing with FlatDepth: 0.25 fails rule 7 in ShaftMount only.
+	// One hub serves both mounts, so a shallow flat fails in ClutchMount too.
 	shallow := turbinefan.DefaultParams()
 	shallow.FlatDepth = 0.25
 	require.Error(t, shallow.Validate())
 	shallow.Mount = turbinefan.ClutchMount
-	require.NoError(t, shallow.Validate())
+	require.ErrorContains(t, shallow.Validate(), "bore's flat at least 2.8 mm wide")
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -162,33 +160,39 @@ func TestTurbineFanClutchParams(t *testing.T) {
 		require.InDelta(t, want*math.Pi/180, turbinefan.EarBoltAngle(k+1), 1e-12)
 	}
 
+	// The hub has the same cuts in both modes; the adapter sites are the adapter's first two face sites, in the clutch's
+	// frame carried through MountFrame.
+	cdm, err := onewayclutch.DefaultParams().Derive()
+	require.NoError(t, err)
 	dm, err := def.Derive()
 	require.NoError(t, err)
-	require.InDelta(t, 3.05, dm.ClutchBoreRadius, 1e-12)
-	for k, site := range dm.EarSites {
-		a := turbinefan.EarBoltAngle(k + 1)
-		require.InDelta(t, onewayclutch.EarCircle*math.Cos(a), site.Head.X, 1e-12)
-		require.InDelta(t, onewayclutch.EarCircle*math.Sin(a), site.Head.Y, 1e-12)
-		require.InDelta(t, 0, site.Head.Z, 0)
-		require.Equal(t, r3.Vec{Z: -1}, site.Dir)
-		require.InDelta(t, 25, site.Length, 0)
-		require.InDelta(t, 25.5, site.Cavity, 0)
-		require.InDelta(t, 27, site.Tip(), 0)
-	}
-	require.Equal(t, m2fastener.Site{}, dm.SetScrewSite)
-	require.Zero(t, dm.SetScrewTip)
-	require.Zero(t, dm.SetScrewHead)
-	require.Zero(t, dm.CounterboreFloor)
-	big, err := left.Derive()
-	require.NoError(t, err)
-	require.InDelta(t, 4.55, big.ClutchBoreRadius, 1e-12)
-
 	shaft, err := turbinefan.DefaultParams().Derive()
 	require.NoError(t, err)
-	require.Zero(t, shaft.ClutchBoreRadius)
-	require.Equal(t, [onewayclutch.Ears]m2fastener.Site{}, shaft.EarSites)
+	require.Equal(t, shaft.AdapterSites, dm.AdapterSites)
+	require.Equal(t, shaft.SetScrewSite, dm.SetScrewSite)
+	xf, err := r3.FromFrame(mf)
+	require.NoError(t, err)
+	for k, site := range dm.AdapterSites {
+		face := cdm.FaceSites[k]
+		a := turbinefan.EarBoltAngle(k + 1)
+		require.InDelta(t, onewayclutch.FaceCircle*math.Cos(a), site.Head.X, 1e-12)
+		require.InDelta(t, onewayclutch.FaceCircle*math.Sin(a), site.Head.Y, 1e-12)
+		require.InDelta(t, -(onewayclutch.AdapterThickness + turbinefan.ClutchSeam), site.Head.Z, 1e-12)
+		require.Equal(t, r3.Vec{Z: 1}, site.Dir)
+		require.InDelta(t, onewayclutch.FaceLength, site.Length, 0)
+		require.InDelta(t, 7.75, site.Cavity, 1e-12)
+		require.InDelta(t, 0, xf.Apply(site.Head).Sub(face.Head).Len(), 1e-9, "adapter site %d head", k+1)
+		require.InDelta(t, 0, xf.ApplyDir(site.Dir).Sub(face.Dir).Len(), 1e-9, "adapter site %d direction", k+1)
+		require.InDelta(t, site.Length, face.Length, 0)
+		require.InDelta(t, site.Cavity, face.Cavity, 1e-9)
+		require.InDelta(t, 0, xf.ApplyDir(site.Corner).Sub(face.Corner).Len(), 1e-9, "adapter site %d corner", k+1)
+	}
+	require.NotEqual(t, m2fastener.Site{}, dm.SetScrewSite)
+	big, err := left.Derive()
+	require.NoError(t, err)
+	require.InDelta(t, 3.2, big.SetScrewTip, 1e-12)
 
-	require.InDelta(t, 23, mf.Origin().Z, 0)
+	require.InDelta(t, 26.25, mf.Origin().Z, 0)
 	require.InDelta(t, math.Cos(math.Pi/3), mf.U().X, 1e-12)
 	require.InDelta(t, math.Sin(math.Pi/3), mf.U().Y, 1e-12)
 	f, err := r3.NewFrame(r3.Vec{X: 10, Y: -5, Z: 7}, r3.Vec{Y: 1}, r3.Vec{Z: 1})

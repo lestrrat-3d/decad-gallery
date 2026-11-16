@@ -3,7 +3,6 @@ package turbinefan_test
 import (
 	"cmp"
 	"fmt"
-	"math"
 	"slices"
 	"testing"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
-	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,55 +23,47 @@ func clutchGapMesh(t *testing.T, body *decad.Body, tol float64) meshgap.Mesh {
 	return mg
 }
 
-// sectionAt cuts body by the plane f at the finest chord from 0.01 mm that the body allows; the faceted hub holds no
-// finer mesh than about 0.017.
-func sectionAt(t *testing.T, body *decad.Body, f r3.Frame) decad.SectionOutline {
-	t.Helper()
-	var o decad.SectionOutline
-	var err error
-	for _, tol := range []float64{0.01, 0.02, 0.03, 0.05} {
-		if o, err = body.SectionOutline(t.Context(), f, units.Millimeters(tol)); err == nil {
-			require.NotEmpty(t, o.Loops)
-			return o
-		}
-	}
-	require.NoError(t, err)
-	return o
-}
-
-// zRange returns the lowest and highest z over the section's vertices.
-func zRange(o decad.SectionOutline) (lo, hi float64) {
-	lo, hi = math.Inf(1), math.Inf(-1)
-	for _, l := range o.Loops {
-		for _, v := range l {
-			lo, hi = math.Min(lo, v.Z), math.Max(hi, v.Z)
-		}
-	}
-	return lo, hi
-}
-
-// TestTurbineFanOnClutch builds the real one-way clutch and the clutch-mount fan placed on it, and checks the ears, the
-// stack and every fit pair through the pair. The clutch and the fan are built in separate documents.
+// TestTurbineFanOnClutch builds the real one-way clutch with its adapter in one document and the clutch-mount fan placed
+// on it in another, and checks the face interface, the stack and every pair of bodies through the pair. The two documents
+// are separate because both models file their hub in a container named Hub.
 func TestTurbineFanOnClutch(t *testing.T) {
-	cp := onewayclutch.DefaultParams()
-	clutch, err := onewayclutch.Build(t.Context(), onewayclutch.NewDocument(), cp)
+	for _, cp := range []onewayclutch.Params{
+		onewayclutch.DefaultParams(),
+		{Shaft: "608ZZ", Freewheel: onewayclutch.CounterClockwise, BoreClearance: 0.05},
+	} {
+		t.Run(cp.Shaft, func(t *testing.T) { requireFanOnClutch(t, cp) })
+	}
+}
+
+func requireFanOnClutch(t *testing.T, cp onewayclutch.Params) {
+	t.Helper()
+	cdoc := onewayclutch.NewDocument()
+	clutch, err := onewayclutch.Build(t.Context(), cdoc, cp)
+	require.NoError(t, err)
+	adapter, err := onewayclutch.BuildAdapter(t.Context(), cdoc, cp)
 	require.NoError(t, err)
 	fp, err := turbinefan.ParamsForClutch(cp)
 	require.NoError(t, err)
-	fan, err := turbinefan.Build(t.Context(), turbinefan.NewDocument(), fp)
+	fdoc := turbinefan.NewDocument()
+	fan, err := turbinefan.Build(t.Context(), fdoc, fp)
 	require.NoError(t, err)
+	require.NoError(t, cdoc.VerifyContainers().Err())
+	require.NoError(t, fdoc.VerifyContainers().Err())
 
-	// Pairing and ear alignment.
-	require.Equal(t, turbinefan.RightHand, fp.Hand)
+	// Pairing and face alignment: the fan's adapter bolts sit on the adapter's first two face sites.
+	cdm, err := cp.Derive()
+	require.NoError(t, err)
 	require.Equal(t, cp.Freewheel, fp.Hand.Freewheel())
-	for k, site := range fan.EarSites {
-		a := onewayclutch.EarAngles[k] * math.Pi / 180
-		want := r3.Vec{X: onewayclutch.EarCircle * math.Cos(a), Y: onewayclutch.EarCircle * math.Sin(a), Z: turbinefan.MountZ}
-		require.InDelta(t, 0, site.Head.Sub(want).Len(), 1e-9, "ear %d head", k+1)
-		require.InDelta(t, 0, site.Dir.Sub(r3.Vec{Z: -1}).Len(), 1e-9, "ear %d direction", k+1)
+	for k, site := range fan.AdapterSites {
+		want := cdm.FaceSites[k]
+		require.InDelta(t, 0, site.Head.Sub(want.Head).Len(), 1e-9, "adapter bolt %d head", k+1)
+		require.InDelta(t, 0, site.Dir.Sub(want.Dir).Len(), 1e-9, "adapter bolt %d direction", k+1)
+		require.InDelta(t, 0, site.Corner.Sub(want.Corner).Len(), 1e-9, "adapter bolt %d corner", k+1)
+		require.InDelta(t, want.Cavity, site.Cavity, 1e-9)
+		require.InDelta(t, want.Length, site.Length, 0)
 	}
 
-	// Overlap pass: proves "clear" only. Meshes of printed parts at 0.03 and hardware at 0.05.
+	// Overlap pass: proves "clear" only. Meshes of printed parts at 0.03 and hardware and blades at 0.05.
 	type part struct {
 		name string
 		body *decad.Body
@@ -82,26 +71,42 @@ func TestTurbineFanOnClutch(t *testing.T) {
 	}
 	parts := []part{
 		{"clutch hub", clutch.Hub, 0.03}, {"clutch ring", clutch.Ring, 0.03}, {"back plate", clutch.BackPlate, 0.03},
-		{"cover", clutch.Cover, 0.03}, {"fan hub", fan.Hub, 0.03}, {"clamp", fan.Clamp, 0.03},
+		{"cover", clutch.Cover, 0.03}, {"adapter", adapter.Body, 0.03}, {"fan hub", fan.Hub, 0.03},
 	}
 	for i := range 3 {
 		parts = append(parts,
+			part{fmt.Sprintf("blade %d", i+1), fan.Blades[i], 0.05},
+			part{fmt.Sprintf("blade bolt %d", i+1), fan.BladeBolts[i].Body, 0.05},
+			part{fmt.Sprintf("blade nut %d", i+1), fan.BladeNuts[i].Body, 0.05},
 			part{fmt.Sprintf("clutch bolt %d", i+1), clutch.Bolts[i].Body, 0.05},
 			part{fmt.Sprintf("clutch nut %d", i+1), clutch.Nuts[i].Body, 0.05},
-			part{fmt.Sprintf("ear bolt %d", i+1), fan.EarBolts[i].Body, 0.05},
-			part{fmt.Sprintf("ear nut %d", i+1), fan.EarNuts[i].Body, 0.05})
+			part{fmt.Sprintf("ear bolt %d", i+1), adapter.Bolts[i].Body, 0.05},
+			part{fmt.Sprintf("ear nut %d", i+1), adapter.Nuts[i].Body, 0.05})
+	}
+	for i := range 2 {
+		parts = append(parts,
+			part{fmt.Sprintf("adapter bolt %d", i+1), fan.AdapterBolts[i].Body, 0.05},
+			part{fmt.Sprintf("adapter nut %d", i+1), fan.AdapterNuts[i].Body, 0.05})
 	}
 	slices.SortFunc(parts, func(a, b part) int { return cmp.Compare(a.name, b.name) })
 	meshes := map[string]meshgap.Mesh{}
 	for _, p := range parts {
 		meshes[p.name] = clutchGapMesh(t, p.body, p.tol)
 	}
+	// A head rests on its pocket's floor, so a bolt and the part it sits in touch; "TestTurbineFanClutchAdapterBolts"
+	// and the clutch's own tests measure those fits.
 	skip := map[[2]string]struct{}{}
 	for i := 1; i <= 3; i++ {
 		skip[[2]string{fmt.Sprintf("clutch bolt %d", i), fmt.Sprintf("clutch nut %d", i)}] = struct{}{}
-		skip[[2]string{fmt.Sprintf("ear bolt %d", i), fmt.Sprintf("ear nut %d", i)}] = struct{}{}
-		skip[[2]string{fmt.Sprintf("ear bolt %d", i), "fan hub"}] = struct{}{}
 		skip[[2]string{fmt.Sprintf("clutch bolt %d", i), "cover"}] = struct{}{}
+		skip[[2]string{fmt.Sprintf("ear bolt %d", i), fmt.Sprintf("ear nut %d", i)}] = struct{}{}
+		skip[[2]string{fmt.Sprintf("ear bolt %d", i), "adapter"}] = struct{}{}
+		skip[[2]string{fmt.Sprintf("blade bolt %d", i), fmt.Sprintf("blade nut %d", i)}] = struct{}{}
+		skip[[2]string{fmt.Sprintf("blade bolt %d", i), "fan hub"}] = struct{}{}
+	}
+	for i := 1; i <= 2; i++ {
+		skip[[2]string{fmt.Sprintf("adapter bolt %d", i), fmt.Sprintf("adapter nut %d", i)}] = struct{}{}
+		skip[[2]string{fmt.Sprintf("adapter bolt %d", i), "adapter"}] = struct{}{}
 	}
 	for i, a := range parts {
 		for _, b := range parts[i+1:] {
@@ -116,80 +121,44 @@ func TestTurbineFanOnClutch(t *testing.T) {
 		}
 	}
 
-	// Axial gaps in the plane x = 0, which holds ear 1 and the clutch's 270 degree bolt.
-	axial, err := r3.NewFrame(r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	require.NoError(t, err)
-	hub, ring := sectionAt(t, fan.Hub, axial), sectionAt(t, clutch.Ring, axial)
-	clamp, cover := sectionAt(t, fan.Clamp, axial), sectionAt(t, clutch.Cover, axial)
-	back, bolt := sectionAt(t, clutch.BackPlate, axial), sectionAt(t, clutch.Bolts[2].Body, axial)
-	hubLo, _ := zRange(hub)
-	ringLo, ringHi := zRange(ring)
-	_, clampHi := zRange(clamp)
-	_, coverHi := zRange(cover)
-	backLo, _ := zRange(back)
-	_, boltHi := zRange(bolt)
-	off := func(a, b decad.SectionOutline) float64 { return a.OffSurface.Base() + b.OffSurface.Base() }
+	// Gap lower bounds between the pairs the stack and the blades make.
 	for _, g := range []struct {
-		name  string
-		gap   float64
+		a, b  string
 		least float64
 	}{
-		{"flange back face / ring front end", hubLo - ringHi - off(hub, ring), 0.20},
-		{"clamp front face / ring back end", ringLo - clampHi - off(ring, clamp), 0.20},
-		{"flange back face / cover outer face", hubLo - coverHi - off(hub, cover), 1.45},
-		{"flange back face / cover bolt head", hubLo - boltHi - off(hub, bolt), 1.45},
-		{"clamp front face / back plate outer face", backLo - clampHi - off(back, clamp), 1.45},
+		{"fan hub", "adapter", 0.20},       // the modeled seam, 0.25
+		{"adapter", "clutch ring", 0.20},   // the seam, 0.25
+		{"adapter", "cover", 1.45},         // modeled 1.5
+		{"adapter", "clutch bolt 1", 1.45}, // the clutch's own bolt heads
+		{"adapter bolt 1", "cover", 1.45},  // head top flush with the adapter's rear face
+		{"blade 1", "adapter", 5.0},        // the blades stand clear of the adapter
+		{"blade 2", "adapter", 5.0},
+		{"blade 3", "adapter", 5.0},
+		{"blade 1", "ear bolt 1", 5.0}, // hex key room between the blades
 	} {
-		t.Logf("gap %s: %.3f", g.name, g.gap)
-		require.GreaterOrEqual(t, g.gap, g.least, g.name)
-	}
-
-	// Ear bolt clearance in sections normal to the bolt, and no overlap with the hub where the head rests.
-	for k, eb := range fan.EarBolts {
-		for _, c := range []struct {
-			name string
-			host *decad.Body
-			z    float64
-		}{
-			{"ring", clutch.Ring, 0}, {"ring", clutch.Ring, 9.25}, {"ring", clutch.Ring, 18.5},
-			{"clamp", fan.Clamp, -2.0}, {"fan hub", fan.Hub, 20.5},
-		} {
-			f, err := r3.NewFrame(r3.Vec{Z: c.z}, r3.Vec{X: 1}, r3.Vec{Y: 1})
-			require.NoError(t, err)
-			ob, oh := sectionAt(t, eb.Body, f), sectionAt(t, c.host, f)
-			cl, err := ob.Clearance(oh)
-			require.NoError(t, err)
-			require.False(t, cl.Overlaps, "ear bolt %d overlaps the %s at z %g", k+1, c.name, c.z)
-			require.GreaterOrEqual(t, cl.Distance.Value.Base(), 0.28, "ear bolt %d to the %s at z %g", k+1, c.name, c.z)
-		}
-		u := fan.EarSites[k].Corner
-		planes := []r3.Frame{}
-		pf, err := r3.NewFrame(r3.Vec{}, u, r3.Vec{Z: 1})
+		gap, _, err := meshes[g.a].Exceeds(meshes[g.b], 50)
 		require.NoError(t, err)
-		planes = append(planes, pf)
-		for _, z := range []float64{22, 21.5} {
-			f, err := r3.NewFrame(r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1})
-			require.NoError(t, err)
-			planes = append(planes, f)
-		}
-		for _, f := range planes {
-			requireNoOverlap(t, fan.Hub, f, fmt.Sprintf("ear bolt %d with the fan hub at %v", k+1, f.Origin()), eb.Body)
-		}
+		t.Logf("gap lower bound %s / %s: %.3f", g.a, g.b, gap)
+		require.GreaterOrEqual(t, gap, g.least, "%s / %s", g.a, g.b)
 	}
 
-	// Radial and axial limits.
-	for _, v := range meshOf(t, fan.Clamp, 0.05).Vertices() {
-		require.GreaterOrEqual(t, math.Hypot(v.X, v.Y), turbinefan.ClampInnerRadius-0.05, "clamp vertex %v", v)
+	// Axial z of the stack: the adapter's rear face (head tops flush) and front face, and the hub's back face.
+	for k := range fan.AdapterBolts {
+		box, err := fan.AdapterBolts[k].Body.Bounds()
+		require.NoError(t, err)
+		tol := box.Bound.Base() + 2e-3
+		require.InDelta(t, onewayclutch.AdapterFrom, box.Min.Z, tol, "adapter bolt %d head top", k+1)
+		require.InDelta(t, onewayclutch.AdapterFrom+fan.AdapterSites[k].Tip(), box.Max.Z, tol, "adapter bolt %d tip", k+1)
+		nb, err := fan.AdapterNuts[k].Body.Bounds()
+		require.NoError(t, err)
+		ntol := nb.Bound.Base() + 2e-3
+		require.GreaterOrEqual(t, nb.Min.Z, turbinefan.MountZ+1.5-ntol, "adapter nut %d inside its slot", k+1)
+		require.LessOrEqual(t, nb.Max.Z, turbinefan.MountZ+3.5+ntol, "adapter nut %d inside its slot", k+1)
 	}
-	for _, v := range meshOf(t, fan.Hub, 0.05).Vertices() {
-		if math.Hypot(v.X, v.Y) < onewayclutch.RingCounter {
-			require.GreaterOrEqual(t, v.Z, onewayclutch.RingTo+turbinefan.ClutchSeam-1e-3, "hub vertex %v", v)
-		}
-	}
-	level, err := r3.NewFrame(r3.Vec{Z: 21.5}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	abox, err := adapter.Body.Bounds()
 	require.NoError(t, err)
-	o := sectionAt(t, fan.Hub, level)
-	for _, v := range boreLoop(t, o.Loops, 4) {
-		require.GreaterOrEqual(t, math.Hypot(v.X, v.Y), 2.5+0.5-o.OffSurface.Base(), "bore point %v", v)
-	}
+	hbox, err := fan.Hub.Bounds()
+	require.NoError(t, err)
+	require.InDelta(t, onewayclutch.AdapterTo, abox.Max.Z, abox.Bound.Base()+2e-3)
+	require.InDelta(t, onewayclutch.AdapterTo+turbinefan.ClutchSeam, hbox.Min.Z, hbox.Bound.Base()+2e-3)
 }

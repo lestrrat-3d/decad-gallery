@@ -58,8 +58,8 @@ func TestOneWayClutchAdapter(t *testing.T) {
 	})
 
 	t.Run("sketches", func(t *testing.T) {
-		// The annulus and the three head pockets.
-		require.Len(t, a.Sketches, 1+onewayclutch.Ears)
+		// The annulus and the six head pockets: three at the ears, three at the face holes.
+		require.Len(t, a.Sketches, 1+2*onewayclutch.Ears)
 		for i, s := range a.Sketches {
 			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "adapter sketch %d", i)
 		}
@@ -85,7 +85,7 @@ func TestOneWayClutchAdapter(t *testing.T) {
 				if r > 20 {
 					outer = math.Max(outer, r)
 				}
-				if r > 17 && r < 19 {
+				if r > 3 && r < 7 {
 					inner = math.Min(inner, r)
 				}
 			}
@@ -94,7 +94,7 @@ func TestOneWayClutchAdapter(t *testing.T) {
 		}
 		// The face is over 400 mm², so the chamfer is required.
 		area := math.Pi*(onewayclutch.AdapterRadius*onewayclutch.AdapterRadius-onewayclutch.AdapterInner*onewayclutch.AdapterInner) -
-			3*math.Pi*m2fastener.HoleRadius*m2fastener.HoleRadius
+			9*math.Pi*m2fastener.HoleRadius*m2fastener.HoleRadius
 		require.Greater(t, area, 400.0)
 	})
 
@@ -221,7 +221,8 @@ func TestOneWayClutchAdapter(t *testing.T) {
 		// Round each head pocket: the section through the heads shows three pockets, the outer edge and the inner edge.
 		z := a.Sites[0].At(m2fastener.HeadPocketDepth / 2).Z
 		s := fitSection(t, a.Body, fitPlane(t, z))
-		require.Len(t, s.Loops, 2+onewayclutch.Ears)
+		// The outer edge, the bore, the three ear holes in their pockets, the three face holes and the three access holes.
+		require.Equal(t, 2+3*onewayclutch.Ears, len(s.Loops))
 		found := 0
 		for i, loop := range s.Loops {
 			c, near := r3.Vec{}, false
@@ -252,6 +253,73 @@ func TestOneWayClutchAdapter(t *testing.T) {
 		// Material under each head pocket: its floor to the adapter's back face.
 		floor := a.Sites[0].At(m2fastener.HeadPocketDepth).Z
 		require.GreaterOrEqual(t, floor-onewayclutch.AdapterFrom, 4.0-1e-9, "material under a head pocket")
+	})
+
+	t.Run("face interface and access holes", func(t *testing.T) {
+		dm, err := onewayclutch.DefaultParams().Derive()
+		require.NoError(t, err)
+		// A section through the rear face pockets: each face hole's head pocket is a circle about its site, and the wall
+		// to every other loop is 1.5 mm or more.
+		z := dm.FaceSites[0].At(m2fastener.HeadPocketDepth / 2).Z
+		s := fitSection(t, a.Body, fitPlane(t, z))
+		pockets := 0
+		for i, loop := range s.Loops {
+			for _, site := range dm.FaceSites {
+				if math.Hypot(loop[0].X-site.Head.X, loop[0].Y-site.Head.Y) > m2fastener.HeadPocketRadius+0.1 {
+					continue
+				}
+				pockets++
+				for _, p := range loop {
+					require.InDelta(t, m2fastener.HeadPocketRadius, math.Hypot(p.X-site.Head.X, p.Y-site.Head.Y), 0.03)
+				}
+				wall := math.Inf(1)
+				for j, other := range s.Loops {
+					if j == i {
+						continue
+					}
+					for _, p := range loop {
+						wall = math.Min(wall, fitNearest(p, [][]r3.Vec{other}))
+					}
+				}
+				require.GreaterOrEqual(t, wall, 1.5-0.03, "wall round a face head pocket")
+			}
+		}
+		require.Equal(t, onewayclutch.Ears, pockets)
+		// Each face bolt's head would end flush with the rear face, and 1 mm or more of material lies under its pocket.
+		for i, site := range dm.FaceSites {
+			require.Contains(t, m2bolt.StandardLengths(), site.Length, "face site %d", i+1)
+			require.InDelta(t, onewayclutch.AdapterFrom, site.Head.Z, 1e-9, "face site %d: head flush with the rear face", i+1)
+			require.GreaterOrEqual(t, onewayclutch.AdapterThickness-m2fastener.HeadPocketDepth, 1.0-1e-9, "material under a pocket")
+		}
+		// The section through the adapter's mid plane shows each face hole, centred on its site, and each access hole
+		// centred over a clutch bolt head; a 1.5 mm hex key (1.73 mm across corners) passes the access hole.
+		mid := fitSection(t, a.Body, fitPlane(t, onewayclutch.AdapterFrom+onewayclutch.AdapterThickness/2))
+		require.Equal(t, 2+3*onewayclutch.Ears, len(mid.Loops))
+		require.Greater(t, 2*m2fastener.HoleRadius, 1.5*2/math.Sqrt(3))
+		centres := make([]r3.Vec, 0, 2*onewayclutch.Ears)
+		for _, site := range dm.Sites {
+			centres = append(centres, site.Head)
+		}
+		for _, site := range dm.FaceSites {
+			centres = append(centres, r3.Vec{X: site.Head.X, Y: site.Head.Y})
+		}
+		for _, c := range centres {
+			found := false
+			for _, loop := range mid.Loops {
+				if math.Hypot(loop[0].X-c.X, loop[0].Y-c.Y) > m2fastener.HoleRadius+0.1 {
+					continue
+				}
+				found = true
+				for _, p := range loop {
+					require.InDelta(t, m2fastener.HoleRadius, math.Hypot(p.X-c.X, p.Y-c.Y), 0.03, "hole round at %v", c)
+				}
+			}
+			require.True(t, found, "no hole at %v", c)
+		}
+		// No access hole or face hole breaks into the bore: 1.5 mm of material remains to the bore's chamfer.
+		for _, c := range centres {
+			require.GreaterOrEqual(t, math.Hypot(c.X, c.Y)-m2fastener.HoleRadius-onewayclutch.AdapterInner, 1.5)
+		}
 	})
 
 	t.Run("corners", func(t *testing.T) {

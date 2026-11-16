@@ -74,7 +74,7 @@ The driven part attaches to the ring alone. Three ears run the ring's full heigh
 hex nut pocket open to the ring's rear face. Bolt the driven part to the ears through the standard adapter ring below, or
 key a housing onto them: a tight fit needs a 38.2 mm bore with three notches for the ears. The plates stay round, so
 nothing bolted to the ears reaches the parts that turn with the shaft. The [turbine fan](../turbinefan/) is an example:
-its clutch mount bolts a flange and a clamp ring to the ears.
+its clutch mount bolts the fan's hub to the standard adapter ring's face holes.
 
 | Ear dimension | Value |
 | --- | ---: |
@@ -88,31 +88,40 @@ its clutch mount bolts a flange and a clamp ring to the ears.
 
 ## Adapter ring
 
-The standard adapter ring bolts to the ears from the front and gives the clutch a flat 51.4 mm output face. It is a plain
-6 mm annulus with three flush bolt heads, so a part of your own bolts to it, or you replace it with one that meets the
-same ear interface. The clutch itself never changes.
+The standard adapter ring bolts to the ears from the front and gives the clutch a flat 51.4 mm output face with a 10 mm bore
+that clears the shaft. It is a 6 mm disc with three flush bolt heads on its front face and three more, flush with its rear
+face, for a part you bolt to its front. You can replace the ring with one that meets the same ear interface. The clutch
+itself never changes.
 
-![The clutch with its adapter ring bolted to the ears: the adapter's front face with three flush bolt heads, round the cover and the ring's ears behind it](images/adapter.png)
+![The clutch with its adapter ring bolted to the ears: the adapter's front face with three flush bolt heads, its 10 mm bore, three face holes and three access holes, and the ring's ears behind it](images/adapter.png)
 
 Three M2 × 25 bolts pass the adapter and the ears from the front, and each ends in a nut in the ear's rear pocket. No nut
 is embedded: each pocket is open to the ring's rear face.
 
+**Face interface.** Three M2 clearance holes on the ear lines (90°, 210° and 330°), 19 mm across the circle, each with a
+2.0 mm head pocket in the adapter's rear face, take a part bolted to the front. That part puts its back face one 0.25 mm
+seam in front of the adapter (z 26.25), takes M2 × 10 bolts from the adapter's rear pockets, and seats each nut in a hex
+slot open to its rim, 1.5 mm into its body. The [turbine fan](../turbinefan/) uses two of the three holes; the third stays
+empty under its solid hub. Three 2.6 mm access holes at 8.1 mm from the axis sit over the clutch's own bolt heads, so you can
+tighten those through the adapter with a 1.5 mm hex key.
+
 | Fastener check | Value |
 | --- | --- |
-| Bolt head | flush with the adapter's front face, in a 2.0 mm pocket with 4.0 mm of material under it |
+| Bolt head | flush with the adapter's front face, in a 2.0 mm pocket with 4.0 mm of material under it; a face bolt's head is flush with the rear face the same way |
 | Shank in the adapter hole and the ear bore | 0.3 mm radial clearance |
 | Bolt tip, seam open (as modeled) | 0.25 mm inside the ring's rear face |
 | Bolt tip, seam closed (bolts tight) | flush with the ring's rear face, never outside it |
 | Nut | in its pocket, 0.2 mm inside the ring's rear face, 1.55 mm of its 1.6 mm engaged |
 | Adapter to the ring | a clamped seam of 0.25 mm |
 
-To assemble, work off the shaft, before you press the clutch on:
+To assemble, work off the shaft, before you press the clutch on. Bolt any part to the face holes first, from the rear
+pockets, because the adapter's rear face is out of reach once the adapter sits on the ring:
 
 1. Stand the adapter front face down and push the three M2 × 25 bolts up through its head pockets.
 2. Lower the clutch onto it, ring front end down, with the bolts through the ear bores.
 3. Drop a nut into each rear-face pocket and turn each bolt from the front until it catches. Then tighten.
 
-Print the adapter front face down, so its head pockets open on the bed.
+Print the adapter front face down, so the head pockets of the ear bolts open on the bed. The rear face pockets open upward.
 
 ## Freewheel direction
 
@@ -149,7 +158,7 @@ the adapter ring, and the three M2 × 16 bolts of the plates and the three M2 ×
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover, with three head pockets (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3 |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 for the plates and 3 for the adapter |
-| <img src="images/parts/adapter.png" alt="Adapter ring" width="240"> | Adapter ring, a 6 mm annulus with three head pockets (printed, `BuildAdapter` only) |
+| <img src="images/parts/adapter.png" alt="Adapter ring" width="240"> | Adapter ring, a 6 mm disc with a 10 mm bore, three ear head pockets, three face holes with rear head pockets and three access holes (printed, `BuildAdapter` only) |
 | <img src="images/parts/mount-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw, 3 (`BuildAdapter` only) |
 
 ## Fits

@@ -71,10 +71,11 @@ var turbinePartOrder = []string{
 	"hub", "blade-1", "blade-2", "blade-3", "bolt-1", "nut-1", "bolt-2", "nut-2", "bolt-3", "nut-3", "setscrew-bolt", "setscrew-nut",
 }
 
-// turbineClutchPartOrder is the clutch-mount fan's parts: no set screw, and the clamp ring and the ear bolts and nuts.
+// turbineClutchPartOrder is the clutch-mount fan's parts: no set screw, and the two adapter bolts and nuts. The adapter
+// and the ear bolts belong to the clutch's set.
 var turbineClutchPartOrder = []string{
-	"hub", "blade-1", "blade-2", "blade-3", "bolt-1", "nut-1", "bolt-2", "nut-2", "bolt-3", "nut-3", "clamp",
-	"earbolt-1", "earnut-1", "earbolt-2", "earnut-2", "earbolt-3", "earnut-3",
+	"hub", "blade-1", "blade-2", "blade-3", "bolt-1", "nut-1", "bolt-2", "nut-2", "bolt-3", "nut-3",
+	"adapterbolt-1", "adapternut-1", "adapterbolt-2", "adapternut-2",
 }
 
 func isTurbineHardware(name string) bool {
@@ -102,15 +103,12 @@ func buildTurbineMeshes(ctx context.Context, p turbinefan.Params) (turbineMeshes
 	if m.SetScrew != nil {
 		bodies["setscrew-bolt"], bodies["setscrew-nut"] = m.SetScrew.Body, m.SetScrewNut.Body
 	}
-	if m.Clamp != nil {
-		bodies["clamp"] = m.Clamp
-	}
-	for k := range m.EarBolts {
-		if m.EarBolts[k] == nil {
+	for k := range m.AdapterBolts {
+		if m.AdapterBolts[k] == nil {
 			continue
 		}
-		bodies[fmt.Sprintf("earbolt-%d", k+1)] = m.EarBolts[k].Body
-		bodies[fmt.Sprintf("earnut-%d", k+1)] = m.EarNuts[k].Body
+		bodies[fmt.Sprintf("adapterbolt-%d", k+1)] = m.AdapterBolts[k].Body
+		bodies[fmt.Sprintf("adapternut-%d", k+1)] = m.AdapterNuts[k].Body
 	}
 	for k := range m.Blades {
 		bodies[fmt.Sprintf("blade-%d", k+1)] = m.Blades[k]
@@ -299,32 +297,48 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 	return renderTurbineClutchReadme(ctx, outputDir)
 }
 
-// The clutch-mount views draw the real clutch and the fan placed on it, both in the clutch frame: the shaft axis along +Z,
-// the clutch's back plate at z = 0 and the fan's flange against the ring's front end.
-const clutchViewTarget = 8.0 // the stack's middle along Z, for the cameras
+// The clutch-mount views draw the real clutch with its adapter and the fan placed on it, both in the clutch frame: the
+// shaft axis along +Z, the clutch's back plate at z = 0, the adapter against the ring's front end and the hub's back face
+// one seam in front of the adapter.
+const clutchViewTarget = 12.0 // the stack's middle along Z, for the cameras
 
-// clutchMountExplode is each part's offset, in the order they go together along +Z: the ear nuts 30 mm behind the clamp ring
-// and 14 mm out along their ear, the clamp ring 30 mm behind, the clutch as one unit, the hub 40 mm ahead, each blade
-// 35 mm out along its radial line, each blade nut 18 mm out, each blade bolt 70 mm and each ear bolt 110 mm ahead.
+// clutchMountExplode is each fan part's offset in the exploded view, in the order the parts go together along +Z: the
+// adapter 20 mm ahead of the clutch, the hub 40 mm ahead (each blade 35 mm and each blade nut 18 mm out along its radial
+// line), each blade bolt 70 mm ahead, each adapter bolt 6 mm ahead, which parks it between the clutch and the adapter, and
+// each adapter nut 40 mm ahead and 18 mm out along its line.
 func clutchMountExplode() map[string]r3.Vec {
-	out := map[string]r3.Vec{"clamp": {Z: -30}, "hub": {Z: 40}}
+	out := map[string]r3.Vec{"hub": {Z: 40}}
 	for k := 1; k <= turbinefan.BladeCount; k++ {
 		a := turbinefan.BladeAngle(k) + turbinefan.ClutchTurn
 		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
 		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35).Add(r3.Vec{Z: 40})
 		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18).Add(r3.Vec{Z: 40})
 		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: 70}
-		e := onewayclutch.EarAngles[k-1] * math.Pi / 180
-		out[fmt.Sprintf("earnut-%d", k)] = r3.Vec{X: 14 * math.Cos(e), Y: 14 * math.Sin(e), Z: -30}
-		out[fmt.Sprintf("earbolt-%d", k)] = r3.Vec{Z: 110}
+	}
+	for k := 1; k <= 2; k++ {
+		a := onewayclutch.EarAngles[k-1] * math.Pi / 180
+		out[fmt.Sprintf("adapterbolt-%d", k)] = r3.Vec{Z: 6}
+		out[fmt.Sprintf("adapternut-%d", k)] = r3.Vec{X: 18 * math.Cos(a), Y: 18 * math.Sin(a), Z: 40}
 	}
 	return out
 }
 
-// buildClutchMount builds the default clutch and the fan matched to it, once each.
+// clutchMountSetExplode is the offset of each part of the clutch set in the exploded view: the adapter 20 mm ahead, each ear
+// nut 30 mm behind the ring and 14 mm out along its ear, each ear bolt 110 mm ahead. The clutch itself stays in place.
+func clutchMountSetExplode() map[string]r3.Vec {
+	out := map[string]r3.Vec{"adapter": {Z: 20}}
+	for k := 1; k <= onewayclutch.Ears; k++ {
+		e := onewayclutch.EarAngles[k-1] * math.Pi / 180
+		out[fmt.Sprintf("mount nut %d", k)] = r3.Vec{X: 14 * math.Cos(e), Y: 14 * math.Sin(e), Z: -30}
+		out[fmt.Sprintf("mount bolt %d", k)] = r3.Vec{Z: 110}
+	}
+	return out
+}
+
+// buildClutchMount builds the default clutch with its adapter, and the fan matched to it, once each.
 func buildClutchMount(ctx context.Context) (clutchSet, turbineMeshes, error) {
 	cp := onewayclutch.DefaultParams()
-	set, err := buildClutchParts(ctx, cp)
+	set, err := buildClutchAdapterParts(ctx, cp)
 	if err != nil {
 		return nil, turbineMeshes{}, err
 	}
@@ -342,7 +356,7 @@ func buildClutchMount(ctx context.Context) (clutchSet, turbineMeshes, error) {
 // clutchMountView draws one clutch-mount view: "clutch", "clutch-back", "clutch-cutaway" or "clutch-exploded".
 func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.Scene, error) {
 	var clip *solidlens.ClipPlane
-	var pull map[string]r3.Vec
+	var pull, clutchPull map[string]r3.Vec
 	target := r3.Vec{Z: clutchViewTarget}
 	var camera solidlens.Camera
 	switch name {
@@ -355,13 +369,13 @@ func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.S
 		camera = solidlens.Camera{Position: solidlens.Vec(target.Add(r3.Vec{X: turbineDistance, Y: -20, Z: 20})),
 			Target: solidlens.Vec(target), Up: solidlens.Vec{Z: 1}, FOV: 35}
 	case "clutch-exploded":
-		pull = clutchMountExplode()
+		pull, clutchPull = clutchMountExplode(), clutchMountSetExplode()
 		camera = turbineCamera(r3.Vec{X: 1, Y: .25, Z: .1}, r3.Vec{Z: 40})
 	default:
 		return solidlens.Scene{}, fmt.Errorf("unknown clutch-mount view %q", name)
 	}
-	// The clutch moves as one unit, so it takes no part in the pull.
-	models, err := set.models(r3.Vec{}, nil, clip)
+	// The clutch moves as one unit; only the adapter, its bolts and its nuts take part in the pull.
+	models, err := set.models(r3.Vec{}, clutchPull, clip)
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
@@ -399,7 +413,7 @@ func turbineClutchViewScene(name string) func(context.Context) (solidlens.Scene,
 	}
 }
 
-// renderTurbineClutchReadme writes the four clutch-mount images and the three images of the parts it adds.
+// renderTurbineClutchReadme writes the four clutch-mount images and the images of the parts it adds.
 func renderTurbineClutchReadme(ctx context.Context, outputDir string) error {
 	set, fan, err := buildClutchMount(ctx)
 	if err != nil {
@@ -414,20 +428,23 @@ func renderTurbineClutchReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
-	for _, item := range [][2]string{{"hub", "clutch-hub"}, {"clamp", "clamp-ring"}, {"earbolt-1", "ear-bolt"}} {
+	// The ear bolt is the adapter's M2 x 25, drawn from the clutch's set.
+	for _, item := range [][2]string{{"adapterbolt-1", "adapter-bolt"}, {"mount bolt 1", "ear-bolt"}} {
 		name := item[0]
 		mesh := fan.mesh[name]
+		if mesh == nil {
+			for _, part := range set {
+				if part.name == name {
+					mesh = part.mesh
+				}
+			}
+		}
 		low, high := meshBounds(mesh)
 		center := low.Add(high).Scale(.5)
 		span := high.Sub(low).Len()
 		camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
 			Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
-		if name == "hub" {
-			// Seen from the front, the face with the blade bolts and the ear pockets, with blade 1 up.
-			camera = solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .5 * span, Y: .2 * span, Z: 1.2 * span})),
-				Target: solidlens.Vec(center), Up: solidlens.Vec{Y: 1}, FOV: 35}
-		}
-		models := []solidlens.Model{turbineModel(mesh, turbinePartColor(name))}
+		models := []solidlens.Model{turbineModel(mesh, turbineHardwareColor)}
 		scene := turbineScene(fitCamera(camera, models, 16.0/9, .1), models)
 		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err

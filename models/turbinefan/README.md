@@ -7,8 +7,8 @@
 A three-blade fan whose blades are shaped like small wind turbine blades: with a thick round
 root, a widest section near the hub, and a taper to a thin tip. The [hand-crank fan](../handcrankfan/) uses the same
 blades. The hub is a plain round cylinder that holds a D-flat shaft with one M2 bolt used as a set screw, and each blade bolts into the hub on its own, so a blade can
-be swapped. An optional clutch mount bolts the hub to the ring of the [one-way clutch](../onewayclutch/) instead, so the
-fan coasts when the shaft stops.
+be swapped. The same hub also bolts to the adapter ring of the [one-way clutch](../onewayclutch/) with two more M2 bolts,
+instead of gripping a shaft, so the fan coasts when the shaft stops.
 
 The fan comes in two hands. Seen from the front, the right-hand fan (the default) turns clockwise and the left-hand fan
 counter-clockwise; either blows air forward, away from the mechanism. The left-hand blades are the right-hand blades
@@ -26,12 +26,13 @@ From the front, the D bore shows through the hub's front face, with the blade bo
 ![The fan from the front, with blade 1 up and a bolt head in the hub's front face for each blade](images/front.png)
 
 From behind, the D bore shows in the back face, which goes against the mechanism, with its flat toward the set screw and
-the set screw nut's slot in the back face.
+the set screw nut's slot in the back face. Two more small holes, at 30° and 150°, are the blind bolt holes that take the
+clutch adapter's bolts.
 
 ![The fan from behind, showing the D bore, its flat toward the set screw, and the set screw nut's slot in the back face](images/back.png)
 
-From the side, the set screw's counterbore sits in the round face, the blade nut slots open below the blades, and the
-blades show their twist.
+From the side, the set screw's counterbore sits in the round face, the blade nut slots open below the blades (the two
+adapter nut slots open there too, nearer the back face), and the blades show their twist.
 
 ![The fan from the side, showing the set screw's counterbore in the round face, the blade nut slots below the blades, and the twist of the blades](images/side.png)
 
@@ -80,7 +81,7 @@ The set screw nut sits behind the hub in that view, so the same parts are shown 
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/hub.png" alt="Hub" width="240"> | Hub (printed) |
+| <img src="images/parts/hub.png" alt="Hub" width="240"> | Hub (printed), with or without the clutch adapter |
 | <img src="images/parts/blade.png" alt="Blade" width="240"> | Blade (printed), 3 |
 | <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the blade bolts |
 | <img src="images/parts/setscrew.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1: the set screw |
@@ -94,21 +95,22 @@ The 605ZZ hub (left) and the 608ZZ hub (right), from behind. They differ in the 
 
 ## On a one-way clutch
 
-With `Mount` set to `ClutchMount` (`ParamsForClutch` fills it in from a clutch), the hub has a 3 mm flange behind it and a
-round bore that clears the shaft. The flange bolts to the three ears of a [one-way clutch's](../onewayclutch/) ring with M2 x 25
-bolts that pass the flange, the ear and a clamp ring behind the ring. The shaft drives the fan through the clutch, and the fan
-coasts when the shaft stops or turns back. The fan is turned 60 degrees from the clutch, so each ear bolt lies midway between
-two blades and a hex key reaches it from the front. The pictures show the fan on the default (605ZZ, clockwise) clutch.
+With `Mount` set to `ClutchMount` (`ParamsForClutch` fills it in from a clutch), the fan uses the same hub, with no flange and
+no clamp ring, but it holds no shaft. Two M2 × 10 bolts from the rear of the [one-way clutch's](../onewayclutch/) adapter ring
+run into nuts in the hub's two adapter slots, and the adapter bolts to the clutch's ears as its own README describes. The
+shaft drives the fan through the clutch, and the fan coasts when the shaft stops or turns back. The fan is turned 60 degrees
+from the clutch, so each ear bolt lies midway between two blades and a hex key reaches it from the front. The pictures show the
+fan on the default (605ZZ, clockwise) clutch with its adapter.
 
-![The clutch-mount fan on the one-way clutch, seen from the front and above](images/clutch.png)
+![The clutch-mount fan on the one-way clutch and its adapter ring, seen from the front and above](images/clutch.png)
 
-![The clutch-mount fan on the one-way clutch, seen from behind, with the clamp ring behind the ring](images/clutch-back.png)
+![The clutch-mount fan on the one-way clutch, seen from behind, with the three ear nuts in the ring's rear pockets](images/clutch-back.png)
 
-The cutaway is cut by the plane x = 0, which holds one ear bolt and one of the clutch's own bolts.
+The cutaway is cut by the plane x = 0, which holds one ear bolt, one adapter bolt and one of the clutch's own bolts.
 
-![The clutch and fan cut through an ear bolt: the bolt through the flange, the ring's ear and the clamp ring into its nut, and a clutch bolt beside it](images/clutch-cutaway.png)
+![The clutch and fan cut through an ear bolt and an adapter bolt: the ear bolt through the adapter and the ring's ear into its nut, the adapter bolt from the adapter's rear face into its nut in the hub, and a clutch bolt beside them](images/clutch-cutaway.png)
 
-![The clutch-mount fan pulled apart along the shaft, in assembly order from the left: the three ear bolts, the three blade bolts, the three blades with their nuts, the hub with its flange, the clutch, the clamp ring and the three ear nuts](images/clutch-exploded.png)
+![The clutch-mount fan pulled apart along the shaft, in assembly order from the left: the three ear bolts, the three blade bolts, the three blades with their nuts, the hub, the two adapter nuts, the two adapter bolts, the adapter ring, the clutch and the three ear nuts](images/clutch-exploded.png)
 
 **Hand and freewheel.** The ring is driven when the shaft turns the clutch's `Freewheel` direction and coasts that way about a
 stopped shaft. A right-hand fan blows forward turning clockwise seen from the front.
@@ -122,31 +124,33 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 
 `ParamsForClutch` always returns a matched pair; a hand-built pair is not checked.
 
-**Mounting space.** Leave r 17.25 to 25.7 mm free, 4.25 mm deep, behind the ring (the clamp ring), and the flange (51.4 mm across,
-3 mm thick) and the fan in front. The shaft may end anywhere from inside the clutch to the hub's front face. It never
-touches the fan.
+**Mounting space.** Leave room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 mm at the ring's
+rear face). In front are the adapter (51.4 mm across, 6 mm thick) and the fan. The shaft may end anywhere from inside the
+clutch to the adapter's front face. It must not enter the hub: a shaft in the hub's D bore would lock the fan to the shaft and
+defeat the clutch. The adapter's 10 mm bore clears it.
 
-**Assembly.**
+**Assembly.** The adapter's bolts into the hub cannot be reached once the adapter is on the clutch, and the adapter and the
+hub cover the clutch's own bolt heads, so work in this order.
 
 1. Fit the blades to the hub, as above.
-2. Assemble the clutch off the shaft (see the clutch's README).
-3. Hang the clamp ring loosely round the shaft, then press the clutch on, back plate first: the back plate (33.4 mm across)
-   passes through the clamp ring (34.5 mm across). Tighten the clutch's three bolts.
-4. Hold the clamp ring against the ring's back end, its holes on the ear bores. Slide an M2 nut into each slot from the rim.
-5. Set the flange against the ring's front end, the pockets over the ears, between the blades. Push the three M2 x 25 bolts
-   through the flange, the ears and the clamp ring into the nuts. Tighten them from the front with a 1.5 mm hex key between
-   the blades.
+2. Slide an M2 nut into each of the hub's two adapter slots from the round face. Set the hub on the adapter's front face,
+   with the adapter's face pockets toward the back, and drive two M2 × 10 bolts from the adapter's rear pockets into the nuts.
+3. Assemble the clutch off the shaft (see the clutch's README), press it on the shaft and tighten its three bolts. The
+   2.6 mm access holes in the adapter pass a 1.5 mm hex key to those heads if you need to retighten them.
+4. Hold an M2 nut in each of the ring's three rear ear pockets, set the adapter against the ring's front end and drive the
+   three M2 × 25 ear bolts from the front between the blades with a 1.5 mm hex key.
 
-**Printing.** Print the hub back face (the flange) down, axis vertical, with no supports. Print the clamp ring on either face.
+**Printing.** The hub prints the same way as the plain hub: front face down, axis vertical, no supports.
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/clutch-hub.png" alt="Hub with flange" width="240"> | Hub with flange (printed), in place of the plain hub |
-| <img src="images/parts/clamp-ring.png" alt="Clamp ring" width="240"> | Clamp ring (printed) |
-| <img src="images/parts/ear-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the ear bolts |
+| <img src="images/parts/adapter-bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2: the adapter bolts |
+| <img src="images/parts/ear-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the ear bolts, with the adapter |
 
-The clutch mount also takes three more M2 nuts ([`models/m2nut`](../m2nut)) for the ear bolts and needs no set screw. The
-blades, blade bolts and blade nuts are the same as above.
+The clutch mount takes the hub, blades, blade bolts and blade nuts above, the adapter ring from the one-way clutch (printed,
+`onewayclutch.BuildAdapter`), two M2 × 10 adapter bolts and two M2 nuts for them ([`models/m2nut`](../m2nut)), and the three
+M2 × 25 ear bolts and three nuts that hold the adapter to the clutch. It needs no set screw. The hub's set screw hole and
+slot stay empty.
 
 ## Parameters
 
@@ -155,15 +159,15 @@ that names it.
 
 | Parameter | 605ZZ (default) | 608ZZ | Limit |
 | --- | --- | --- | --- |
-| `ShaftDiameter` | 5 | 8 | Above 0; keeps a 1.6 mm wall to the blade sockets (at most 8.1); in `ClutchMount` a 0.8 mm wall (at most 8.7) |
+| `ShaftDiameter` | 5 | 8 | Above 0; keeps a 1.6 mm wall to the blade sockets (at most 8.1) |
 | `FlatDepth` | 0.5 | 0.75 | Above 0, at most a quarter of `ShaftDiameter`, and leaving the shaft's flat 2 mm and the bore's flat 2.8 mm wide |
 | `BoreClearance` | 0.05 | 0.05 | 0.05 to 0.5; for the 8 mm shaft 0.05 to 0.1 |
 | `BladePitch` | 25° | 25° | 10° to 40°, the blade angle at 48 mm |
 | `Hand` | `RightHand` | `RightHand` | `RightHand` or `LeftHand` |
-| `Mount` | `ShaftMount` | `ShaftMount` | `ShaftMount` or `ClutchMount`; `ClutchMount` bolts the hub to a clutch's ring and ignores `FlatDepth` |
+| `Mount` | `ShaftMount` | `ShaftMount` | `ShaftMount` or `ClutchMount`; `ClutchMount` bolts the hub to a clutch's adapter ring and leaves out the set screw |
 | `Placement` | none | none | A valid frame |
 
-The hub is a cylinder 28 mm across and 20 mm long. The rotor is 128 mm across.
+The hub is a cylinder 28 mm across and 20 mm long. The rotor is 128 mm across. One hub serves both mounts.
 
 ## Printing
 

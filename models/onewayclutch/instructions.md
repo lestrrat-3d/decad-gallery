@@ -88,8 +88,9 @@ any geometry. `BuildParts` and `Build` need a document from `NewDocument` (a cha
 | `PlateChamfer`, `HubChamfer` | 0.5, 0.25 | outer-face chamfer; the 605ZZ hub's face chamfer (see "Surface edge finishing") |
 | `BoltCircle`, `BoltAngles`, `BoltLength` | 8.1, 30° 150° 270°, 16 | three M2 x 16 through bolts |
 | `AdapterFrom`, `AdapterThickness`, `AdapterTo` | 20.0, 6.0, 26.0 | the adapter ring: one `Seam` in front of the ring, a head pocket plus 4 mm under it |
-| `AdapterInner`, `AdapterRadius` | 17.9, 25.7 | adapter bore (1.5 mm from each head pocket) and outside radius (`EarReach`; OD 51.4) |
+| `AdapterInner`, `AdapterRadius` | 5.0, 25.7 | adapter bore (clears the 8 mm shaft by 1.0, Loose, and the 5 mm shaft by 2.5) and outside radius (`EarReach`; OD 51.4) |
 | `MountLength` | 25 | M2 x 25 adapter bolts, `m2bolt.StandardLengths()` |
+| `FaceCircle`, `FaceLength`, `FaceNutDepth` | 9.5, 10, 1.5 | the adapter's face bolts on the ear lines: circle radius, M2 x 10 (`m2bolt.StandardLengths()`), and how far into the mating part the nut slot's near face lies |
 | `PressWall` | 1.6 | least wall round a press-fit bore |
 
 ### Stack (z along the axis)
@@ -101,7 +102,7 @@ any geometry. `BuildParts` and `Build` need a document from `NewDocument` (a cha
 | Cover | 14.5 | 18.5 | boss face 14.5, annulus 14.9, rim cylinder 15.5 to 18.0, head pockets 16.5 to 18.5 |
 | Ring | -1.25 | 19.75 | symmetric about z 9.25, the hub's mid-plane; stands 1.25 past both plates |
 | Ring tooth band | 4.45 | 14.05 | 9.6 tall, inside the heads' 4.25 to 14.25 |
-| Adapter ring | 20.0 | 26.0 | 0.25 seam to the ring's front end; head pockets 24.0 to 26.0 |
+| Adapter ring | 20.0 | 26.0 | 0.25 seam to the ring's front end; ear head pockets 24.0 to 26.0, face head pockets 20.0 to 22.0 |
 
 The plates span z 0 to 18.5 and the ring z -1.25 to 19.75, so the clutch is 21.0 mm long. The local origin stays on
 the back plate's outer face. The ring is 38.2 mm across between its ears; the ear tips lie on a 51.4 mm circle, so the
@@ -232,24 +233,34 @@ look like the 33.4 mm plates or the ring.
 
 ## Adapter ring
 
-`BuildAdapter(ctx, doc, params)` builds the standard adapter that bolts to the ring's front: a plain annulus with three
-flush bolt heads. Another adapter, such as the turbine fan's, uses the same ear interface: a flat back face at
+`BuildAdapter(ctx, doc, params)` builds the standard adapter that bolts to the ring's front: a disc with a 10 mm bore and
+three flush bolt heads. Another adapter uses the same ear interface: a flat back face at
 `AdapterFrom`, `AdapterThickness` thick at each ear, a clearance hole and an `m2fastener.PocketTool` at each
-`Dimensions.MountSites` entry.
+`Dimensions.MountSites` entry. Its front interface for a part bolted to its face is `Dimensions.FaceSites`: three M2
+clearance holes with a head pocket each in the adapter's rear face, and the mating part's back face one `Seam` in front
+(z 26.25).
 
-1. Sketch on z = 20.0: the circles `AdapterRadius` (25.7) and `AdapterInner` (17.9) about the origin, and a circle of
-   `m2fastener.HoleRadius` on each ear's axis at `EarCircle`: a polar reference, an axis per angle, the centre on the axis
-   at a distance. Select the profile with four holes. Extrude 6.0 along +Z.
-2. Chamfer both faces' long loops by 0.5 in one `edgefinish.Chamfer` call. Each face is about 1000 mm² (outer circle
-   157.7 mm, inner 108.7 mm).
-3. Cut `m2fastener.PocketTool` at each mount site (z 24.0 to 26.0). The holes are in the profile.
+1. Sketch on z = 20.0: the circles `AdapterRadius` (25.7) and `AdapterInner` (5.0) about the origin, and a circle of
+   `m2fastener.HoleRadius` on each ear's axis at `EarCircle`, one on the same axis at `FaceCircle` and one over each of the
+   clutch's own bolt heads (`boltHoles`, at `BoltCircle` on the bolt axes): a polar reference, an axis per angle, the centre
+   on the axis at a distance. Select the profile with ten holes (the bore, three ear holes, three face holes and three access
+   holes). Extrude 6.0 along +Z.
+2. Chamfer both faces' long loops by 0.5 in one `edgefinish.Chamfer` call. Each face is about 1920 mm² (outer circle
+   157.7 mm, bore 31.4 mm; every hole is a short run).
+3. Cut `m2fastener.PocketTool` at each mount site (z 24.0 to 26.0) then at each face site (z 20.0 to 22.0). The holes are in
+   the profile.
 
 Each mount site is `m2fastener.Site{Head: (21.6 cos a, 21.6 sin a, 26.0), Dir: (0, 0, -1), Corner: (cos(a+30°),
-sin(a+30°), 0), Length: 25, Cavity: 25.25}` for the ear angles `a`.
+sin(a+30°), 0), Length: 25, Cavity: 25.25}` for the ear angles `a`. Each face site is `Head: (9.5 cos a, 9.5 sin a, 20.0), Dir:
+(0, 0, 1), Corner: (cos a, sin a, 0), Length: 10, Cavity: AdapterThickness + Seam + FaceNutDepth = 7.75`; the nut slot of
+the mating part (its slot plane at z 27.75, 1.5 inside a part whose back face is at 26.25) is that part's to cut. Derive
+checks each face site with `Site.Validate`, after the mount sites. Access hole centres sit over the clutch's bolt heads
+(`BoltCircle` 8.1 at 30°, 150° and 270°), 1.3 mm from the bore's chamfer and 5.4 mm from the face pockets.
 
 | Check | Seams open (model) | Seam closed (tightened) |
 | --- | --- | --- |
 | Head top | flush with the adapter's front face, z 26.0 | same |
+| Face bolt head top (a mating part's bolt) | flush with the adapter's rear face, z 20.0 | same |
 | Material under the head pocket | 4.0 | same |
 | Shank in the adapter hole and the ear bore | 0.3 radial | same |
 | Bolt tip | z -1.0, 0.25 inside the ring's rear face | z -1.25, flush with it |
@@ -259,10 +270,11 @@ The bolt must span the adapter, the 0.25 seam and the 21.0 ear and end within 0.
 need a 1.0 mm adapter, under the 3.0 that a head pocket plus 1 mm needs, and M2 x 25 needs 6.0. No nut is embedded: each
 sits in a hex pocket open to the ring's rear face, and the bolt holds it once engaged. The adapter prints front face down,
 so the head pockets open on the bed. It has no inside corner in a section. The head-pocket floor rims lie between layers
-and are retained. The adapter's inner edge (17.9) is 1.5 mm from each head pocket (1.0 after the chamfer), and its outer
-edge 1.9 mm (1.4 after the chamfer). The adapter's back face and the ring's front end are a clamped seam of 0.25, as in
-the turbine fan. The adapter turns with the ring, and its bore is outside the cover's rim (16.7), so it meets no
-shaft-side part. The cover lies 1.5 mm below it (the 1.25 standoff plus the 0.25 seam).
+and are retained, with the face pockets' floor rims, which open upward when printed front face down. The adapter's outer
+edge is 1.9 mm from each ear head pocket (1.4 after the chamfer), and every pocket keeps 1.5 mm of wall to the nearest other
+outline (1.9 measured). The adapter's back face and the ring's front end are a clamped seam of 0.25, as in the turbine fan.
+The adapter turns with the ring, and its 10 mm bore clears the 8 mm shaft by 1.0 and the 5 mm shaft by 2.5; the shaft ends
+before the part bolted to the face. The cover lies 1.5 mm below it (the 1.25 standoff plus the 0.25 seam).
 
 ## Part fits
 
@@ -331,7 +343,7 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
 | Hub, 605ZZ | each face | 405.7 to 413.4 | per pawl: arm outer arc 20.13, inner run; head run short; D loop 15.8, short | chamfer 0.25 on the long runs; head run sharp (below) |
 | Hub, 8 mm | each face | 376.7 to 383.5 | under 400 | none; the exact prism |
 | Ring | each end face | 357.4 front, 324.2 rear | outer loop; counterbore rim; ear bores and rear nut pockets, short | chamfer the outer loop 0.5 as a lead-in (kept; the pockets are cut after it); the counterbore rim by the tool's lead-in |
-| Adapter | each face | 1022.8 | outer circle 157.7; inner circle 108.7; holes short | chamfer 0.5 (one call) |
+| Adapter | each face | about 1919 | outer circle 157.7; bore 31.4; holes short | chamfer 0.5 (one call) |
 
 The 605ZZ hub's two faces, 405.7 to 413.4 mm², are over the 400 mm² limit, so each takes a chamfer along the runs of
 20 mm or more, and the head run stays sharp so the head keeps its 0.4 tip round and its lock contact. The 8 mm hubs'
@@ -372,7 +384,7 @@ reads it.
 | Ring | the six corners of each of the three mount nut pockets (18), edges vertical | Mating corners: they match the M2 nut's sharp corners, as the back plate's do. | read in the z -1.25 to 0.75 run: 60° inside turns; exempt with `cornercheck.Annulus` about each mount site, radius 2.51 ± 0.3 |
 | Ring | the ceiling rim of each mount nut pocket at z 0.75 | As the back plate's. | between layers, not read |
 | Ring | the six ear root rounds (1.5), ear end rounds and bores | Rounded as the rule asks: 1.5 is above half the 2.0 mm wall. | passes |
-| Adapter | the head pocket floor rims (between layers) | The 0.3 mm head clearance leaves no room. | between layers, not read |
+| Adapter | the head pocket floor rims, front and rear (between layers) | The 0.3 mm head clearance leaves no room. | between layers, not read |
 
 The test also checks each press-fit ring's wall: in every layer run, the hub's, back plate's and cover's bore lies
 1.6 mm or more from every other outline.
