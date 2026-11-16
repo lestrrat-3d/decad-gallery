@@ -10,6 +10,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
+	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,8 +55,12 @@ func requireFanOnClutch(t *testing.T, cp onewayclutch.Params) {
 	cdm, err := cp.Derive()
 	require.NoError(t, err)
 	require.Equal(t, cp.Freewheel, fp.Hand.Freewheel())
+	// The hub's bore flat (-Y in the fan frame) points where the clutch's shaft flat does (+Y in the clutch frame).
+	mount, err := r3.FromFrame(*fp.Placement)
+	require.NoError(t, err)
+	require.InDelta(t, 0, mount.ApplyDir(r3.Vec{Y: -1}).Sub(r3.Vec{Y: 1}).Len(), 1e-9, "bore flat direction")
 	for k, site := range fan.AdapterSites {
-		want := cdm.FaceSites[k]
+		want := cdm.FaceSites[k+1] // the fan holes lie at clutch angles 210 and 330; face hole 1 (90) stays empty
 		require.InDelta(t, 0, site.Head.Sub(want.Head).Len(), 1e-9, "adapter bolt %d head", k+1)
 		require.InDelta(t, 0, site.Dir.Sub(want.Dir).Len(), 1e-9, "adapter bolt %d direction", k+1)
 		require.InDelta(t, 0, site.Corner.Sub(want.Corner).Len(), 1e-9, "adapter bolt %d corner", k+1)

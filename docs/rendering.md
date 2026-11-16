@@ -76,8 +76,8 @@ its radial line, each blade bolt 30 mm out of the front face, each blade nut 18 
 visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. `turbinefan/clutch`, `clutch-back`,
 `clutch-cutaway` and `clutch-exploded` draw the clutch-mount fan (`ParamsForClutch` of the default clutch) on the real default
 one-way clutch with its adapter ring, both in the clutch frame: `clutch` from the front, right and above, `clutch-back` from behind, `clutch-cutaway`
-cuts every body by the plane x = 0, which holds ear 1, adapter bolt 1 and the clutch's 270 degree bolt, removes the +X half
-and looks from +X. `clutch-exploded` runs the shaft axis left to right and pulls the parts apart along it: the ear nuts
+cuts every body by the plane through the axis and the 330 degree direction, which holds ear 3, adapter bolt 2 and the
+clutch's 150 degree bolt, removes the half toward 60 degrees and looks from there. `clutch-exploded` runs the shaft axis left to right and pulls the parts apart along it: the ear nuts
 30 mm behind the clutch (also 14 mm out along their ear), the clutch in place, the adapter 20 mm ahead, the adapter bolts 6 mm
 ahead (between the clutch and the adapter), the hub and blades 40 mm ahead (each blade 35 mm and each blade nut 18 mm out
 along its radial line, each adapter nut 18 mm out along its line), the blade bolts 70 mm and the ear bolts 110 mm ahead. The

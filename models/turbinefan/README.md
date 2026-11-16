@@ -98,9 +98,9 @@ The 605ZZ hub (left) and the 608ZZ hub (right), from behind. They differ in the 
 With `Mount` set to `ClutchMount` (`ParamsForClutch` fills it in from a clutch), the fan uses the same hub, with no flange and
 no clamp ring, but it holds no shaft. Two M2 × 10 bolts from the rear of the [one-way clutch's](../onewayclutch/) adapter ring
 run into nuts in the hub's two adapter slots, and the adapter bolts to the clutch's ears as its own README describes. The
-shaft drives the fan through the clutch, and the fan coasts when the shaft stops or turns back. The fan is turned 60 degrees
-from the clutch, so each ear bolt lies midway between two blades and a hex key reaches it from the front. The pictures show the
-fan on the default (605ZZ, clockwise) clutch with its adapter.
+shaft drives the fan through the clutch, and the fan coasts when the shaft stops or turns back. The fan is turned 180 degrees
+from the clutch, so the hub's bore flat and the shaft's flat point the same way and each ear bolt lies midway between two
+blades. A hex key reaches it from the front. The pictures show the fan on the default (605ZZ, clockwise) clutch with its adapter.
 
 ![The clutch-mount fan on the one-way clutch and its adapter ring, seen from the front and above](images/clutch.png)
 
@@ -122,7 +122,7 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 | `RightHand` | `CounterClockwise` | the shaft drives the fan backward, toward the mechanism (mismatched) |
 | `LeftHand` | `Clockwise` | backward, as above (mismatched) |
 
-`ParamsForClutch` always returns a matched pair; a hand-built pair is not checked.
+`ParamsForClutch` takes `WithBladePitch` to keep a chosen pitch. It always returns a matched pair; a hand-built pair is not checked.
 
 **Mounting space.** Leave room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 mm at the ring's
 rear face). In front are the adapter (51.4 mm across, 6 mm thick) and the fan. The shaft may end anywhere from inside the
@@ -165,7 +165,7 @@ that names it.
 | `BladePitch` | 25° | 25° | 10° to 40°, the blade angle at 48 mm |
 | `Hand` | `RightHand` | `RightHand` | `RightHand` or `LeftHand` |
 | `Mount` | `ShaftMount` | `ShaftMount` | `ShaftMount` or `ClutchMount`; `ClutchMount` bolts the hub to a clutch's adapter ring and leaves out the set screw |
-| `Placement` | none | none | A valid frame |
+| `Placement` | none | none | A valid frame; it puts the hub's front face (`ShaftMount`) or the clutch cover's outer face (`ClutchMount`) on its origin. None leaves the parts in the build frame |
 
 The hub is a cylinder 28 mm across and 20 mm long. The rotor is 128 mm across. One hub serves both mounts.
 

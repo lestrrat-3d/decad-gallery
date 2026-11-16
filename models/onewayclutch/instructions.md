@@ -157,7 +157,7 @@ at `BoltCircle` on 30°, 150° and 270°. Extrude 4.0 along +Z. Then:
 1. Chamfer the outer face (back plate z = 0, cover z = 18.5) by 0.5 in one call: its outer circle, plus the whole D loop
    when `BoreLoop >= 20` (the 8 mm presets; the 5 mm loop is 15.8). The bolt-hole and head-pocket loops are short.
 2. Cut the inner-face tool, a revolved meridian `(r, z)`. Back plate: (9.5, 5.0), (9.5, 3.4), (10.3, 3.6), (16.1, 3.6),
-   (17.7, 2.0), (17.7, 5.0). Cover: (9.5, 13.5), (9.5, 14.1), (10.3, 14.9), (16.1, 14.9), (17.7, 16.5), (17.7, 13.5).
+   (17.7, 2.0), (17.7, 5.0). Cover: (9.5, 13.5), (9.5, 15.1), (10.3, 14.9), (16.1, 14.9), (17.7, 16.5), (17.7, 13.5).
    It leaves the boss (radius 9.9 at the face, a 0.4 mm 45° bevel), the recessed annulus out to r 16.1 and a 45° cone
    to the rim.
 3. Back plate: cut `m2fastener.HexPocketTool` at each site (z 0 to 2.0, open to the outer face; the chamfer in step 1
