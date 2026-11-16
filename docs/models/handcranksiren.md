@@ -34,7 +34,8 @@ three cases with:
 go test ./models/handcranksiren -timeout 40m
 ```
 
-CI runs the cases in jobs `siren-default`, `siren-slots12`, and `siren-slots24` (`.github/workflows/repository.yml`).
+CI runs the cases in jobs `siren-default`, `siren-spike`, `siren-slots12`, and `siren-slots24`
+(`.github/workflows/repository.yml`).
 It runs the shared packages' tests in the mesh helper step.
 
 Render the images with `go -C tools/render run . -model handcranksiren -shot readme -out ../../models/handcranksiren/images`.
