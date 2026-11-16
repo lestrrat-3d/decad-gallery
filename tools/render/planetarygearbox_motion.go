@@ -17,7 +17,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
-	"github.com/lestrrat-3d/units"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
@@ -50,69 +49,33 @@ type planetaryMover struct {
 	move func(input float64) (r3.Transform, error)
 }
 
-// planetaryMovers pairs every body with how it moves when the input shaft turns by an angle. The ring and
-// the covers are fixed. The input shaft and the first sun turn with the input. A carrier turns at
-// Zs/(Zs+Zr) of its sun's angle, and the next stage's sun turns with it, as do its pins. A planet is carried around by its
-// carrier and turns on its pin at -Zr/Zp of the carrier's angle, relative to the carrier, because it rolls
-// inside the fixed ring.
+// planetaryMovers pairs every body with how it moves when the input shaft turns by an angle. The kinematics are
+// planetarygearbox.Motion's, driven by the sun: the ring and the covers are fixed, the input shaft and the first sun
+// turn with the input, and each later part turns as that type describes.
 func planetaryMovers(ctx context.Context, box planetarygearbox.Gearbox, p planetarygearbox.Params) ([]planetaryMover, error) {
-	axis := r3.NewVec(0, 0, 1)
-	about := func(angle float64) (r3.Transform, error) { return r3.Rotation(axis, units.Radians(angle)) }
-	ratio := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth)
-	orbit := p.Module * float64(p.SunTeeth+p.PlanetTeeth) / 2
-
+	motion, err := planetarygearbox.NewMotion(p, planetarygearbox.SunDriven)
+	if err != nil {
+		return nil, err
+	}
 	var movers []planetaryMover
-	add := func(body planetaryBody, move func(float64) (r3.Transform, error)) error {
+	for _, body := range planetaryBodies(box) {
 		mesh, err := planetaryMesh(ctx, body)
 		if err != nil {
-			return err
-		}
-		movers = append(movers, planetaryMover{body: body, mesh: mesh, move: move})
-		return nil
-	}
-	for _, body := range planetaryBodies(box) {
-		var move func(float64) (r3.Transform, error)
-		switch body.name {
-		case planetarygearbox.InputShaftName:
-			move = about
-		default:
-			for k, stage := range box.Stages {
-				sunAngle := func(input float64) float64 { return input * math.Pow(ratio, float64(k)) }
-				carrierAngle := func(input float64) float64 { return sunAngle(input) * ratio }
-				switch body.body {
-				case stage.Sun:
-					move = func(input float64) (r3.Transform, error) { return about(sunAngle(input)) }
-				case stage.Carrier, stage.Shaft:
-					move = func(input float64) (r3.Transform, error) { return about(carrierAngle(input)) }
-				}
-				for i := range stage.Planets {
-					if body.body == stage.Pins[i] {
-						move = func(input float64) (r3.Transform, error) { return about(carrierAngle(input)) }
-						continue
-					}
-					if body.body != stage.Planets[i] && body.body != stage.Bearings[i] {
-						continue
-					}
-					phi := planetarygearbox.PlanetOrbitAngle(p, i)
-					center := r3.NewVec(orbit*math.Cos(phi), orbit*math.Sin(phi), 0)
-					move = func(input float64) (r3.Transform, error) {
-						carried := carrierAngle(input)
-						spin, err := r3.RotationAround(center, axis, units.Radians(-float64(p.RingTeeth)/float64(p.PlanetTeeth)*carried))
-						if err != nil {
-							return r3.Transform{}, err
-						}
-						around, err := about(carried)
-						if err != nil {
-							return r3.Transform{}, err
-						}
-						return spin.Then(around)
-					}
-				}
-			}
-		}
-		if err := add(body, move); err != nil {
 			return nil, err
 		}
+		name := body.name
+		_, moves, err := motion.Transform(name, 0)
+		if err != nil {
+			return nil, err
+		}
+		var move func(float64) (r3.Transform, error)
+		if moves {
+			move = func(input float64) (r3.Transform, error) {
+				t, _, err := motion.Transform(name, input)
+				return t, err
+			}
+		}
+		movers = append(movers, planetaryMover{body: body, mesh: mesh, move: move})
 	}
 	return movers, nil
 }
@@ -258,7 +221,10 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 	for frame := frames - 2; frame > 0; frame-- {
 		order = append(order, frame)
 	}
-	ratio := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth)
+	motion, err := planetarygearbox.NewMotion(p, planetarygearbox.SunDriven)
+	if err != nil {
+		return err
+	}
 	background := solidlens.RGB(.94, .96, .98).NRGBA()
 	face := basicfont.Face7x13
 	var rendered []image.Image
@@ -294,7 +260,7 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 			draw.Draw(canvas, at, images[i], image.Point{}, draw.Src)
 			caption(canvas, face, panel.caption, i*panelWidth+6, planetaryCaptionHeight-5)
 		}
-		output := input * math.Pow(ratio, float64(len(box.Stages)))
+		output := motion.OutputAngle(input)
 		caption(canvas, face, fmt.Sprintf("Input shaft %5.0f deg    Output shaft %5.1f deg    (%.1f to 1)",
 			math.Mod(input*180/math.Pi, 3600), output*180/math.Pi, p.Ratio()), 6, height-6)
 		rendered = append(rendered, canvas)
