@@ -134,16 +134,16 @@ func (r *run) armSketch() (*sketch.Sketch, error) {
 	return s, nil
 }
 
-// slitTool extrudes the slit's cutter from z = -1 through the arm: x within ±SlitWidth/2 from 2 mm past the end arc up
-// to SlitInBore past the bore's wall, closed there by a half circle of radius SlitWidth/2. The round end lies inside the
-// bore's outline, so it shows only in the bore's floor.
+// slitTool extrudes the slit's cutter from z = -1 through the hub: x within ±SlitWidth/2 from 2 mm past the end arc up
+// to SlitInBore past the bore's wall on -Y, closed there by a half circle of radius SlitWidth/2. The round end lies
+// inside the bore's outline, so it shows only in the bore's floor.
 func (r *run) slitTool() (*decad.Body, error) {
 	s, err := r.sketchOn(across(0, -1))
 	if err != nil {
 		return nil, err
 	}
 	half := SlitWidth / 2
-	y0, y1 := -r.dm.Reach-2, -r.dm.BoreRadius+SlitInBore
+	y0, y1 := -r.dm.Reach-2, -r.dm.BoreBack+SlitInBore
 	yc := y1 - half
 	a := sketchcheck.DimensionPoint(s, half, y0)
 	// The arc's ends are placed by height: placing their x at ±half would meet the circle at a tangent, a singular solve.
@@ -156,11 +156,12 @@ func (r *run) slitTool() (*decad.Body, error) {
 	s.CreateLine(a, b)
 	s.CreateLine(c, d)
 	s.CreateLine(d, a)
-	return r.extrude(s, 0, ArmThickness+2)
+	return r.extrude(s, 0, HubLength+2)
 }
 
-// boreTool extrudes the D bore's cutter from 1 before the back face to the bore's floor: an arc of radius r_b the
-// long way round through -Y, closed by its flat at y = +f_b, toward the pin.
+// boreTool extrudes the bore's cutter from 1 before the back face to the bore's floor. A single D bore is an arc of
+// radius r_b the long way round through -Y, closed by its flat at y = +f_b, toward the pin. With DoubleFlat it is two
+// arcs of radius r_b, closed by two flats at y = ±f_b.
 func (r *run) boreTool() (*decad.Body, error) {
 	s, err := r.sketchOn(across(0, -1))
 	if err != nil {
@@ -169,11 +170,52 @@ func (r *run) boreTool() (*decad.Body, error) {
 	rb, fb := r.dm.BoreRadius, r.dm.BoreFlat
 	w := math.Sqrt(rb*rb - fb*fb)
 	o := s.Origin()
+	length := 1 + HubLength - BoreFloor
+	if !r.p.DoubleFlat {
+		q1, q2 := s.CreatePoint(-w, fb), s.CreatePoint(w, fb)
+		bore := s.CreateArc(o, q1, q2)
+		flat := s.CreateLine(q2, q1)
+		s.AddConstraint(sketch.NewRadius(bore, rb), sketch.NewHorizontal(flat), sketch.NewDistancePointLine(o, flat, fb))
+		return r.extrude(s, 0, length)
+	}
 	q1, q2 := s.CreatePoint(-w, fb), s.CreatePoint(w, fb)
-	bore := s.CreateArc(o, q1, q2)
-	flat := s.CreateLine(q2, q1)
-	s.AddConstraint(sketch.NewRadius(bore, rb), sketch.NewHorizontal(flat), sketch.NewDistancePointLine(o, flat, fb))
-	return r.extrude(s, 0, 1+ArmThickness-BoreFloor)
+	q3, q4 := s.CreatePoint(w, -fb), s.CreatePoint(-w, -fb)
+	arcR := s.CreateArc(o, q3, q2)
+	top := s.CreateLine(q2, q1)
+	arcL := s.CreateArc(o, q1, q4)
+	bottom := s.CreateLine(q4, q3)
+	s.AddConstraint(
+		sketch.NewRadius(arcR, rb), sketch.NewRadius(arcL, rb),
+		sketch.NewHorizontal(top), sketch.NewHorizontal(bottom),
+		sketch.NewDistancePointLine(o, top, fb), sketch.NewDistancePointLine(o, bottom, fb),
+	)
+	return r.extrude(s, 0, length)
+}
+
+// reliefTool extrudes the cutter that turns the hub's full-height block into the boss and its ramp: a prism across the
+// arm whose side profile, in the plane x = -(ArmRadius+1) with sketch (u, v) the local (y, z), runs from the ramp's foot
+// on the outer face out past the pin's end and up past the boss top, and back along the ramp's plane. The 30 degree
+// ramp passes through (ArmRadius, HubLength).
+func (r *run) reliefTool() (*decad.Body, error) {
+	f, err := r3.NewFrame(r3.Vec{X: -(ArmRadius + 1)}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	if err != nil {
+		return nil, err
+	}
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, err
+	}
+	farY := r.p.Throw + ArmRadius + 1
+	top := HubLength + 1
+	a := sketchcheck.DimensionPoint(s, r.dm.RampFoot, ArmThickness)
+	b := sketchcheck.DimensionPoint(s, farY, ArmThickness)
+	c := sketchcheck.DimensionPoint(s, farY, top)
+	d := sketchcheck.DimensionPoint(s, ArmRadius-1/math.Tan(RampAngle*math.Pi/180), top)
+	s.CreateLine(a, b)
+	s.CreateLine(b, c)
+	s.CreateLine(c, d)
+	s.CreateLine(d, a)
+	return r.extrude(s, 0, 2*ArmRadius+2)
 }
 
 // handle revolves HandleProfile about the pin axis. The sketch plane holds the axis: U runs along it (+Z) and V is the

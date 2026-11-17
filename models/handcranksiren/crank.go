@@ -2,6 +2,7 @@ package handcranksiren
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
@@ -9,8 +10,8 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// The crank is models/crankhandle's 608-2RS crank: an arm that an M2 x 16 clamp bolt pinches onto the crank shaft's
-// D-flat, a pin whose hexagonal stub one M2 x 10 bolt and nut clamp in the arm and whose two printed halves two M2 x 6
+// The crank is models/crankhandle's 608-2RS crank: an arm that two M2 x 16 clamp bolts pinch onto the crank shaft's
+// double flat, a pin whose hexagonal stub one M2 x 10 bolt and nut clamp in the arm and whose two printed halves two M2 x 6
 // cross bolts clamp, and a handle that turns on the pin. It is built at CrankAngle 0, with the arm pointing up (+Z)
 // from C.
 const armFace = 38.6 // the arm's inner face
@@ -33,8 +34,8 @@ func crankParams() crankhandle.Params {
 }
 
 // crankSites returns the crank's bolts at CrankAngle 0, carried from crankhandle's local frame by crankPlacement: the pin
-// bolt from the arm's back face into the pin's stub, the two cross bolts that clamp the pin's halves, and the clamp bolt
-// across the arm's hub. It returns no site when crankhandle rejects the preset; crank then fails the build with
+// bolt from the arm's back face into the pin's stub, the two cross bolts that clamp the pin's halves, and the two clamp
+// bolts across the arm's hub. It returns no site when crankhandle rejects the preset; crank then fails the build with
 // crankhandle's own error.
 func crankSites() []fastenerSite {
 	dm, err := crankhandle.Params6082RS().Derive()
@@ -54,7 +55,11 @@ func crankSites() []fastenerSite {
 		sites = append(sites, place(fmt.Sprintf("crank-cross-bolt-%d", i+1), fmt.Sprintf("crank-cross-nut-%d", i+1),
 			"crank-pin", "crank-pin", s))
 	}
-	return append(sites, place("crank-clamp-bolt", "crank-clamp-nut", "crank-arm", "crank-arm", dm.ClampSite))
+	for i, s := range dm.ClampSites {
+		sites = append(sites, place(fmt.Sprintf("crank-clamp-bolt-%d", i+1), fmt.Sprintf("crank-clamp-nut-%d", i+1),
+			"crank-arm", "crank-arm", s))
+	}
+	return sites
 }
 
 // crank builds the arm, the pin, the handle and the crank's bolts and nuts.
@@ -65,7 +70,8 @@ func (b *builder) crank() {
 			return parts
 		}
 		p := crankParams()
-		if p.ShaftDiameter != 2*shaftRadius || p.ShaftDiameter/2-p.FlatDepth != flatOffset {
+		if p.ShaftDiameter != 2*shaftRadius || p.ShaftDiameter/2-p.FlatDepth != flatOffset || !p.DoubleFlat ||
+			math.Abs(armFace+crankhandle.HubLength-crankhandle.BoreFloor-0.25-crankShaftTo) > 1e-9 {
 			b.fail("build crank", fmt.Errorf("crankhandle's 608-2RS shaft does not match the crank shaft"))
 			return nil
 		}
@@ -103,7 +109,7 @@ func (b *builder) crank() {
 // in the pocket, hole and cavity crankhandle cut for it.
 func sameSites(parts *crankhandle.Parts) error {
 	want := append([]m2fastener.Site{parts.Site}, parts.CrossSites[:]...)
-	want = append(want, parts.ClampSite)
+	want = append(want, parts.ClampSites[:]...)
 	got := sitesNamed("crank-")
 	if len(got) != len(want) {
 		return fmt.Errorf("%d crank fastener sites, crankhandle has %d", len(got), len(want))

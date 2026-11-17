@@ -59,7 +59,7 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
 	}
 	corner := crankhandle.PocketFlats / math.Sqrt(3)
-	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
+	floor := crankhandle.ArmRadius - dm.ClampSites[0].Cavity
 	return map[string][]cornercheck.Exempt{
 		"crank-arm": {{
 			Reason: "hexagonal pocket corners",
@@ -182,8 +182,8 @@ func requirePressFitWalls(t *testing.T, p handcranksiren.Params, parts map[strin
 // requireArmWall measures the crank arm's wall round its D bore as models/crankhandle does: the slit joins the bore to
 // the outline, so the bore is the section's points within r_b + 0.1 of the axis outside the slit, read in crankhandle's
 // local frame, and the wall runs from them to every edge that is neither the bore nor the slit. It cuts the arm at Y
-// 40.0 and 45.1 (local z 1.4 and 6.5), below and above the clamp bolt's hole, whose 1.05 mm web over the slit is a
-// listed exception (instructions.md, "Retained sharp corners").
+// 40.0, 45.1, 48.6 and 53.6 (local z 1.4, 6.5, 10 and 15), between the clamp bolts' holes, whose webs over the slit are
+// 1.80 mm with the double flat.
 func requireArmWall(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
 	t.Helper()
 	toLocal, err := handcranksiren.CrankLocal(p)
@@ -191,7 +191,7 @@ func requireArmWall(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
 	dm, err := crankhandle.Params6082RS().Derive()
 	require.NoError(t, err)
 	half := crankhandle.SlitWidth / 2
-	for _, y := range []float64{40.0, 45.1} {
+	for _, y := range []float64{40.0, 45.1, 48.6, 53.6} {
 		o, err := arm.SectionOutline(t.Context(), atY(t, y), units.Millimeters(armTolerance))
 		require.NoError(t, err)
 		bound := o.OffSurface.Base() + 1e-6

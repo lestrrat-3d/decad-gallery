@@ -19,7 +19,12 @@ const (
 
 	ArmRadius    = 10.0 // the arm is 20 wide: its sides run at x = ±ArmRadius
 	ArmThickness = 8.0
-	BoreFloor    = 1.0 // the D bore is blind: 1 mm of arm closes it at the outer face
+	// HubLength is the hub boss's top face: the arm's back face to the boss top, along +Z. The boss rises from the arm's
+	// outer face under the bore and joins the 8 mm arm through a ramp.
+	HubLength = 17.0
+	// RampAngle is in degrees: the ramp from the boss top down to the arm's outer face, measured from that face.
+	RampAngle    = 30.0
+	BoreFloor    = 1.0 // the bore is blind: 1 mm of hub closes it at the boss top
 	PinHoleR     = 1.3 // the pin bolt's clearance hole through the arm
 	PocketFlats  = StubFlats + 2*TightFit
 	PocketFrom   = 3.25 // the hexagonal pocket runs from here through the outer face
@@ -55,15 +60,17 @@ const (
 	ConeAngle = 30.0
 
 	// The arm pinches the shaft. It keeps its full width past the shaft: its sides run straight on to a point
-	// ClampSideRun below the clamp bolt's axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
+	// ClampSideRun below the clamp bolts' axis, turn into ClampCornerR corners and close with one ClampEndR end arc, every
 	// join tangent. A slit SlitWidth wide runs along x = 0 from the end arc into the bore and ends in a full round in the
-	// bore's floor. The M2 x 16 clamp bolt runs along -X: its head lies flush in the +X side face,
-	// and its nut sits in a hexagonal pocket open to the -X side face. The pocket is deep enough that the nut's cavity
-	// ends where the bolt's tip does, 2 mm inside that face, so the tip never stands outside the arm. The tightened bolt
-	// holds the nut in the pocket, and the pocket's flats stop it turning.
-	ClampBolt     = 16.0
-	ClampHoleWall = 1.05 // between the clamp bolt's hole and the bore, where the hole crosses the slit
-	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut pocket's corners (2.51), with margin
+	// bore's floor, over the whole HubLength. Two M2 x 16 clamp bolts, at ClampZ, run along -X: each head lies flush in
+	// the +X side face, and each nut sits in a hexagonal pocket open to the -X side face. The pocket is deep enough that
+	// the nut's cavity ends where the bolt's tip does, 2 mm inside that face, so the tip never stands outside the arm.
+	// The tightened bolt holds the nut in the pocket, and the pocket's flats stop it turning.
+	ClampBolt = 16.0
+	// ClampHoleWall is the wall between a clamp bolt's hole and a single D bore, where the hole crosses the slit: 1.05 mm.
+	// A double flat leaves 1.80 mm, because the bore's wall on that side is its flat.
+	ClampHoleWall = 1.05
+	ClampSideRun  = 3.6 // 1 mm past the head pocket's ring (2.2) and the nut pocket's corners (2.51), with margin
 	ClampCornerR  = 4.5
 	ClampEndR     = 22.0
 	SlitWidth     = 1.5
@@ -77,6 +84,10 @@ const (
 // CrossZ are the cross bolts' distances along the pin from the arm's back face: one past the pin bolt's hole and one
 // short of the head cone.
 var CrossZ = [2]float64{17, 49}
+
+// ClampZ are the clamp bolts' heights along the shaft from the arm's back face: one 4 mm above the back face and one
+// 4 mm below the bore's floor.
+var ClampZ = [2]float64{4, 12}
 
 // HandleProfile is the handle's meridian: (distance along the pin from the sketch origin at HandleFrom, radius). A small
 // barrel with a waist and a flared outer end, with a bore for the pin's shank and a counterbore for its head. Every
@@ -98,8 +109,10 @@ type Params struct {
 	// BoreClearance is the radial clearance of the arm's D bore round the shaft, on the round and on the flat.
 	BoreClearance float64
 	// Throw is the distance from the shaft axis to the pin axis.
-	Throw     float64
-	Placement *r3.Frame
+	Throw float64
+	// DoubleFlat gives the bore a second flat, FlatDepth deep, opposite the first (on -Y). The shaft must have both.
+	DoubleFlat bool
+	Placement  *r3.Frame
 }
 
 // Params605ZZ returns a crank for the 5 mm shaft of a 605ZZ bearing (ballbearing.Params605ZZ), with the planetary
@@ -110,10 +123,10 @@ func Params605ZZ() Params {
 }
 
 // Params6082RS returns a crank for the 8 mm shaft of a 608-2RS bearing (ballbearing.Params6082RS), with a 0.75 mm
-// flat: the hand-crank siren's crank. A 608ZZ has the same bore.
+// flat on both sides: the hand-crank siren's crank. A 608ZZ has the same bore.
 func Params6082RS() Params {
 	return Params{ShaftDiameter: ballbearing.Params6082RS().BoreDiameter, FlatDepth: 0.75,
-		BoreClearance: ballbearing.PressFitClearance, Throw: 55}
+		BoreClearance: ballbearing.PressFitClearance, Throw: 55, DoubleFlat: true}
 }
 
 // DefaultParams returns Params605ZZ.
@@ -123,19 +136,25 @@ func DefaultParams() Params { return Params605ZZ() }
 type Dimensions struct {
 	BoreRadius float64 // r_b: ShaftDiameter/2 + BoreClearance
 	BoreFlat   float64 // f_b: distance from the axis to the bore's flat, on the +Y side
-	BoreLoop   float64 // length of the bore's outline in the back face: its arc the long way round plus its flat
+	BoreLoop   float64 // length of the bore's outline in the back face: its arcs plus its flat or flats
+	// BoreBack is the distance from the axis to the bore's wall on -Y, where the slit enters: BoreFlat with DoubleFlat,
+	// BoreRadius otherwise.
+	BoreBack float64
+	// RampFoot is the y where the ramp meets the arm's outer face (z = ArmThickness):
+	// ArmRadius + (HubLength - ArmThickness)/tan(RampAngle).
+	RampFoot float64
 	// Site is the pin bolt: its head's top face is flush with the arm's back face at the pin axis, and it runs along
 	// +Z into the nut cavity in the pin's stub.
 	Site m2fastener.Site
 	// CrossSites are the two cross bolts that clamp the pin's halves, at CrossZ.
 	CrossSites [2]m2fastener.Site
-	// ClampY is the clamp bolt's axis, y = -(r_b + 1.3 + ClampHoleWall), at mid thickness. SideEnd is where the arm's
+	// ClampY is the clamp bolts' axis, y = -(r_b + 1.3 + ClampHoleWall), at each bolt's ClampZ. SideEnd is where the arm's
 	// sides stop being straight, ClampY - ClampSideRun. Reach is how far the end arc runs behind the shaft axis.
 	ClampY, SideEnd, Reach float64
-	// ClampSite is the clamp bolt: its head's top face is flush with the +X side face at (ArmRadius, ClampY), and it
-	// runs along -X. Its Cavity is the nut pocket's floor, NutCavityHeight inside the -X side face, so CavityFar and
-	// the bolt's tip both lie on that face.
-	ClampSite m2fastener.Site
+	// ClampSites are the clamp bolts at ClampZ: each head's top face is flush with the +X side face at (ArmRadius,
+	// ClampY), and it runs along -X. Its Cavity is the nut pocket's floor, NutCavityHeight inside the -X side face, so
+	// CavityFar and the bolt's tip both lie on that face.
+	ClampSites [2]m2fastener.Site
 }
 
 // CornerCenter is the centre of the right corner arc; the left one is its mirror in x = 0. EndCenter is the centre of
@@ -179,13 +198,24 @@ func (p Params) Derive() (Dimensions, error) {
 		BoreFlat:   p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance,
 	}
 	half := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
+	dm.BoreBack = dm.BoreRadius
 	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + 2*half
+	if p.DoubleFlat {
+		dm.BoreBack = dm.BoreFlat
+		dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-2*math.Acos(dm.BoreFlat/dm.BoreRadius)) + 4*half
+	}
+	dm.RampFoot = ArmRadius + (HubLength-ArmThickness)/math.Tan(RampAngle*math.Pi/180)
 	if ArmRadius-dm.BoreRadius < PressWall {
 		return Dimensions{}, fmt.Errorf("crankhandle: ShaftDiameter leaves less than a %.1f mm wall in the %g mm arm",
 			PressWall, 2*ArmRadius)
 	}
-	if p.Throw < 2*ArmRadius {
-		return Dimensions{}, fmt.Errorf("crankhandle: Throw must be at least %g mm", 2*ArmRadius)
+	handleRadius := 0.0
+	for _, pt := range HandleProfile {
+		handleRadius = math.Max(handleRadius, pt[1])
+	}
+	if p.Throw < dm.RampFoot+handleRadius+RegularFit {
+		return Dimensions{}, fmt.Errorf("crankhandle: Throw must be at least %.2f mm",
+			math.Ceil((dm.RampFoot+handleRadius+RegularFit)*100)/100)
 	}
 	if p.Placement != nil && !p.Placement.IsValid() {
 		return Dimensions{}, errors.New("crankhandle: Placement must be a valid frame")
@@ -203,18 +233,22 @@ func (p Params) Derive() (Dimensions, error) {
 	dm.ClampY = -(dm.BoreRadius + m2fastener.HoleRadius + ClampHoleWall)
 	dm.SideEnd = dm.ClampY - ClampSideRun
 	dm.Reach = ClampEndR - dm.EndCenter().Y
-	dm.ClampSite = m2fastener.Site{
-		Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: ArmThickness / 2},
-		Dir:    r3.Vec{X: -1},
-		Corner: r3.Vec{Z: 1},
-		Length: ClampBolt,
-		Cavity: m2fastener.HeadPocketDepth + ClampBolt - m2fastener.NutCavityHeight,
-	}
-	if err := dm.ClampSite.Validate(); err != nil {
-		return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt: %w", err)
-	}
-	if dm.ClampSite.Tip() != dm.ClampSite.CavityFar() || dm.ClampSite.Tip() >= 2*ArmRadius {
-		return Dimensions{}, errors.New("crankhandle: clamp bolt: its tip must end at the nut cavity's far face, inside the -X side face")
+	for i, z := range ClampZ {
+		site := m2fastener.Site{
+			Head:   r3.Vec{X: ArmRadius, Y: dm.ClampY, Z: z},
+			Dir:    r3.Vec{X: -1},
+			Corner: r3.Vec{Z: 1},
+			Length: ClampBolt,
+			Cavity: m2fastener.HeadPocketDepth + ClampBolt - m2fastener.NutCavityHeight,
+		}
+		if err := site.Validate(); err != nil {
+			return Dimensions{}, fmt.Errorf("crankhandle: clamp bolt %d: %w", i+1, err)
+		}
+		if site.Tip() != site.CavityFar() || site.Tip() >= 2*ArmRadius {
+			return Dimensions{}, fmt.Errorf(
+				"crankhandle: clamp bolt %d: its tip must end at the nut cavity's far face, inside the -X side face", i+1)
+		}
+		dm.ClampSites[i] = site
 	}
 	for i, z := range CrossZ {
 		dm.CrossSites[i] = m2fastener.Site{
