@@ -124,3 +124,29 @@ func TestSplitShafts(t *testing.T) {
 	t.Run("default", func(t *testing.T) { requireSplitShafts(t, posedArbors(t, DefaultParams().Phase)) })
 	t.Run("phase 0.6", func(t *testing.T) { requireSplitShafts(t, posedArbors(t, otherPhase)) })
 }
+
+// builtArbors returns the three arbors of the built movement at phase, with the pose angle Build turned each by.
+func builtArbors(t *testing.T, phase float64) []posedArbor {
+	t.Helper()
+	_, m := sharedAt(t, phase)
+	g, err := Layout(DefaultParams())
+	require.NoError(t, err)
+	table, err := poses(&g, m.State)
+	require.NoError(t, err)
+	return []posedArbor{
+		{EscapeArborName, m.EscapeArbor, g.O, table[EscapeArborName].angle, endRadius, []cornercheck.Exempt{
+			bearingStep(g.O, 0.25), bearingStep(g.O, 26.75), chordStop(g.O, 33.25)}},
+		{PalletArborName, m.PalletArbor, g.P, table[PalletArborName].angle, ArborRadius, []cornercheck.Exempt{
+			bearingStep(g.P, 0.25), bearingStep(g.P, 26.75)}},
+		{BalanceStaffName, m.BalanceStaff, g.B, table[BalanceStaffName].angle, ArborRadius, []cornercheck.Exempt{
+			bearingStep(g.B, 0.25), bearingStep(g.B, 26.75)}},
+	}
+}
+
+// TestSplitShaftsBuilt reads the arbors of the built, posed movement as halves on their cut face, at the default pose
+// and at another phase, so the check follows the pose Build gives each arbor (the lever and wheel backed off their
+// last contact), not a pose the test computes for itself.
+func TestSplitShaftsBuilt(t *testing.T) {
+	t.Run("default", func(t *testing.T) { requireSplitShafts(t, builtArbors(t, DefaultParams().Phase)) })
+	t.Run("phase 0.6", func(t *testing.T) { requireSplitShafts(t, builtArbors(t, otherPhase)) })
+}
