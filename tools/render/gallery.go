@@ -24,21 +24,22 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other thirteen models in a grid of four
-// columns beside it, five across the bottom row: the three involute gears and the bevel gear pair across the top, the planetary gearbox, cycloidal
-// drive, hand-crank fan and hand-crank siren in the middle, and the escapement, crank handle, one-way clutch, spiral spring
-// and turbine fan across the bottom.
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other fourteen models in a grid beside it:
+// the three involute gears and the bevel gear pair across the top in four columns, then two rows of five. The planetary
+// gearbox, cycloidal drive, hand-crank fan, hand-crank siren and escapement fill the middle row, and the Swiss lever
+// escapement, crank handle, one-way clutch, spiral spring and turbine fan the bottom row.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
 	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 300)},
 	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 300)},
 	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 300)},
 	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 300)},
-	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 300, 820, 600)},
-	{"cycloidal", cycloidalHero, image.Rect(820, 300, 1080, 600)},
-	{"handcrankfan", handCrankFanHero, image.Rect(1080, 300, 1340, 600)},
-	{"handcranksiren", handCrankSirenHero, image.Rect(1340, 300, 1600, 600)},
-	{"escapement", escapementHero, image.Rect(560, 600, 768, 900)},
+	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 300, 768, 600)},
+	{"cycloidal", cycloidalHero, image.Rect(768, 300, 976, 600)},
+	{"handcrankfan", handCrankFanHero, image.Rect(976, 300, 1184, 600)},
+	{"handcranksiren", handCrankSirenHero, image.Rect(1184, 300, 1392, 600)},
+	{"escapement", escapementHero, image.Rect(1392, 300, 1600, 600)},
+	{"swisslever", swissHero, image.Rect(560, 600, 768, 900)},
 	{"crankhandle", crankHandleHero, image.Rect(768, 600, 976, 900)},
 	{"onewayclutch", oneWayClutchHero, image.Rect(976, 600, 1184, 900)},
 	{"spiralspring", spiralSpringHero, image.Rect(1184, 600, 1392, 900)},
