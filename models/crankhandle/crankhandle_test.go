@@ -21,28 +21,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// crankCase is one parameter case. Every case changes the arm's outline or its bore. slitRound marks the case whose
-// held arm mesh chords the slit's end round coarsely enough for cornercheck to read it (instructions.md, "Retained
-// sharp corners and edges").
+// crankCase is one parameter case. Every case changes the arm's outline or its bore.
 type crankCase struct {
-	name      string
-	params    func() crankhandle.Params
-	slitRound bool
+	name   string
+	params func() crankhandle.Params
 }
 
 var crankCases = []crankCase{
-	{"605ZZ", crankhandle.Params605ZZ, false},
-	{"608-2RS", crankhandle.Params6082RS, false},
+	{"605ZZ", crankhandle.Params605ZZ},
+	{"608-2RS", crankhandle.Params6082RS},
 	{"regular-bore", func() crankhandle.Params {
 		p := crankhandle.Params605ZZ()
 		p.BoreClearance = 0.35
 		return p
-	}, false},
+	}},
 	{"long-throw", func() crankhandle.Params {
 		p := crankhandle.Params6082RS()
 		p.Throw = 80
 		return p
-	}, true},
+	}},
 }
 
 type builtCase struct {
@@ -53,8 +50,8 @@ type builtCase struct {
 // builtCases holds each case's build, shared by the tests: Build takes seconds and the tests only read its bodies.
 var builtCases = map[string]builtCase{}
 
-// built builds a case on first use and checks what every case shares: eleven bodies (the arm, the pin, the handle, four
-// bolts and four nuts), each in its container, and every sketch fully constrained.
+// built builds a case on first use and checks what every case shares: thirteen bodies (the arm, the pin, the handle, five
+// bolts and five nuts), each in its container, and every sketch fully constrained.
 func built(t *testing.T, c crankCase) (*crankhandle.Model, *decad.Document) {
 	t.Helper()
 	if b, ok := builtCases[c.name]; ok {
@@ -63,7 +60,7 @@ func built(t *testing.T, c crankCase) (*crankhandle.Model, *decad.Document) {
 	doc := crankhandle.NewDocument()
 	m, err := crankhandle.Build(t.Context(), doc, c.params())
 	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 11)
+	require.Len(t, doc.Bodies(), 13)
 	require.NotEmpty(t, m.Sketches)
 	for _, s := range m.Sketches {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s))
@@ -131,8 +128,8 @@ func TestCrankHandleContainers(t *testing.T) {
 				crankhandle.ArmContainerName:    {m.Arm},
 				crankhandle.PinContainerName:    {m.Pin},
 				crankhandle.HandleContainerName: {m.Handle},
-				crankhandle.BoltsContainerName:  {m.Bolt.Body, m.CrossBolts[0].Body, m.CrossBolts[1].Body, m.ClampBolt.Body},
-				crankhandle.NutsContainerName:   {m.Nut.Body, m.CrossNuts[0].Body, m.CrossNuts[1].Body, m.ClampNut.Body},
+				crankhandle.BoltsContainerName:  {m.Bolt.Body, m.CrossBolts[0].Body, m.CrossBolts[1].Body, m.ClampBolts[0].Body, m.ClampBolts[1].Body},
+				crankhandle.NutsContainerName:   {m.Nut.Body, m.CrossNuts[0].Body, m.CrossNuts[1].Body, m.ClampNuts[0].Body, m.ClampNuts[1].Body},
 			}
 			children := doc.Root().Children()
 			require.Len(t, children, len(want))
@@ -163,7 +160,7 @@ func TestCrankHandleDefault(t *testing.T) {
 	require.NoError(t, err)
 	require.InDelta(t, -m.Dimensions.Reach, armBox.Min.Y, armBox.Bound.Base()+1e-3, "the end arc's reach")
 	for name, want := range map[string][2]r3.Vec{
-		"arm":    {{X: -10, Y: -10, Z: 0}, {X: 10, Y: 65, Z: 8}},
+		"arm":    {{X: -10, Y: -10, Z: 0}, {X: 10, Y: 65, Z: crankhandle.HubLength}},
 		"pin":    {{X: -crankhandle.HeadR, Y: 55 - crankhandle.HeadR, Z: crankhandle.StubFrom}, {X: crankhandle.HeadR, Y: 55 + crankhandle.HeadR, Z: 58}},
 		"handle": {{X: -9.3, Y: 55 - 9.3, Z: 8.4}, {X: 9.3, Y: 55 + 9.3, Z: 58.4}},
 	} {
@@ -183,7 +180,7 @@ func TestCrankHandleDefault(t *testing.T) {
 
 // TestCrankHandleBoreFit measures the D bore against the nominal shaft: every point of the bore lies BoreClearance
 // outside the shaft's D section, the bore's floor is 1 mm thick apart from the slit's round end, and the wall round the
-// bore is at least 1.6 mm, except the ClampHoleWall web over the clamp bolt's hole at mid thickness. The slit joins the
+// bore is at least 1.6 mm, except the web over a clamp bolt's hole at that hole's height. The slit joins the
 // bore to the outline, so the bore is read as the points within r_b of the axis outside the slit.
 func TestCrankHandleBoreFit(t *testing.T) {
 	for _, c := range crankCases {
@@ -192,7 +189,11 @@ func TestCrankHandleBoreFit(t *testing.T) {
 			m, _ := built(t, c)
 			rs, fs := p.ShaftDiameter/2, p.ShaftDiameter/2-p.FlatDepth
 			half := crankhandle.SlitWidth / 2
-			for z, least := range map[float64]float64{1: crankhandle.PressWall, 4: crankhandle.ClampHoleWall, 6.5: crankhandle.PressWall} {
+			web := math.Min(crankhandle.PressWall, -m.Dimensions.ClampY-m2fastener.HoleRadius-m.Dimensions.BoreBack)
+			for z, least := range map[float64]float64{
+				1: crankhandle.PressWall, crankhandle.ClampZ[0]: web, 6.5: crankhandle.PressWall, 10: crankhandle.PressWall,
+				crankhandle.ClampZ[1]: web, 15: crankhandle.PressWall,
+			} {
 				o := section(t, m.Arm, atZ(t, z))
 				bound := o.OffSurface.Base() + 1e-6
 				inSlit := func(v r3.Vec) bool { return math.Abs(v.X) <= half+bound && v.Y < 0 }
@@ -211,6 +212,9 @@ func TestCrankHandleBoreFit(t *testing.T) {
 					// Outside the shaft's convex D section, the distance is at least the larger of the distances outside
 					// the round and outside the flat's half plane.
 					gap := math.Max(math.Hypot(v.X, v.Y)-rs, v.Y-fs)
+					if p.DoubleFlat {
+						gap = math.Max(gap, -v.Y-fs)
+					}
 					lo, hi = math.Min(lo, gap), math.Max(hi, gap)
 				}
 				require.GreaterOrEqual(t, lo, p.BoreClearance-bound, "z %g", z)
@@ -230,8 +234,8 @@ func TestCrankHandleBoreFit(t *testing.T) {
 				}
 				require.GreaterOrEqual(t, wall, least-bound, "z %g: wall round the bore", z)
 			}
-			// At the outer face the floor closes the bore everywhere but the slit's round end.
-			o := section(t, m.Arm, atZ(t, crankhandle.ArmThickness-0.25))
+			// At the boss top the floor closes the bore everywhere but the slit's round end.
+			o := section(t, m.Arm, atZ(t, crankhandle.HubLength-0.25))
 			bound := o.OffSurface.Base() + 1e-3
 			for _, l := range o.Loops {
 				for _, v := range l {
@@ -269,14 +273,14 @@ func TestCrankHandleSlit(t *testing.T) {
 			gap := math.Inf(1)
 			for _, l := range o.Loops {
 				for _, v := range l {
-					if v.Y < -dm.Reach+1.5 || v.Y > -dm.BoreRadius-0.3 {
+					if v.Y < -dm.Reach+1.5 || v.Y > -dm.BoreBack-0.3 {
 						continue
 					}
 					gap = math.Min(gap, math.Abs(v.X))
 				}
 			}
 			require.InDelta(t, half, gap, bound, "the slit's walls")
-			floor := section(t, m.Arm, atZ(t, crankhandle.ArmThickness-0.5))
+			floor := section(t, m.Arm, atZ(t, crankhandle.HubLength-0.5))
 			top := math.Inf(-1)
 			for _, l := range floor.Loops {
 				for _, v := range l {
@@ -285,7 +289,7 @@ func TestCrankHandleSlit(t *testing.T) {
 					}
 				}
 			}
-			require.InDelta(t, -dm.BoreRadius+crankhandle.SlitInBore, top, floor.OffSurface.Base()+1e-3, "the slit's round end")
+			require.InDelta(t, -dm.BoreBack+crankhandle.SlitInBore, top, floor.OffSurface.Base()+1e-3, "the slit's round end")
 		})
 	}
 }
@@ -357,7 +361,9 @@ func TestCrankHandleFasteners(t *testing.T) {
 			require.GreaterOrEqual(t, crankhandle.StubFlats/2-m2fastener.NutCavityRadius, 1.0)
 			require.GreaterOrEqual(t, crankhandle.PocketFrom-m2fastener.HeadPocketDepth, 1.0)
 			requireCrossBolts(t, p, m)
-			requireClampBolt(t, m)
+			for i := range m.ClampSites {
+				requireClampBolt(t, m, i)
+			}
 		})
 	}
 }
@@ -526,41 +532,73 @@ func TestCrankHandleSplitPin(t *testing.T) {
 	}
 }
 
-// TestCrankHandleEdgeFinishing checks the 0.5 mm chamfer on both faces' outlines: a section 0.25 mm inside a face is
-// 0.25 mm short of the arm's ends and of its sides, round the pin's end and the clamp's end arc alike.
+// TestCrankHandleEdgeFinishing checks the 0.5 mm chamfers on the arm's faces. A section 0.25 mm inside the back face is
+// 0.25 mm short of the arm's ends and sides all round. At the same depth below the 8 mm outer face the pin's end and the
+// sides beyond the ramp's foot are 0.25 mm in. A section 0.25 mm under the boss top is short of the clamp's end arc as
+// before and of the sides; and 0.1 mm under the boss top the ramp's edge is chamfered, which pulls its largest y in.
 func TestCrankHandleEdgeFinishing(t *testing.T) {
 	for _, c := range crankCases {
 		t.Run(c.name, func(t *testing.T) {
 			p := c.params()
 			m, _ := built(t, c)
-			for _, z := range []float64{0.25, crankhandle.ArmThickness - 0.25} {
+			for _, z := range []float64{0.25, crankhandle.ArmThickness - 0.25, crankhandle.HubLength - 0.25} {
 				o := section(t, m.Arm, atZ(t, z))
 				bound := o.OffSurface.Base() + 1e-3
 				lo, hi := math.Inf(1), math.Inf(-1)
 				left, right := math.Inf(1), math.Inf(-1)
 				for _, l := range o.Loops {
 					for _, v := range l {
+						if z == crankhandle.ArmThickness-0.25 && v.Y <= m.Dimensions.RampFoot+1 {
+							continue
+						}
 						lo, hi = math.Min(lo, v.Y), math.Max(hi, v.Y)
 						left, right = math.Min(left, v.X), math.Max(right, v.X)
 					}
 				}
-				require.InDelta(t, -m.Dimensions.Reach+0.25, lo, bound, "z %g: end arc", z)
-				require.InDelta(t, p.Throw+crankhandle.ArmRadius-0.25, hi, bound, "z %g: pin end", z)
+				if z == crankhandle.ArmThickness-0.25 {
+					require.InDelta(t, p.Throw+crankhandle.ArmRadius-0.25, hi, bound, "z %g: pin end", z)
+					require.InDelta(t, -crankhandle.ArmRadius+0.25, left, bound, "z %g: -X side", z)
+					require.InDelta(t, crankhandle.ArmRadius-0.25, right, bound, "z %g: +X side", z)
+					continue
+				}
+				// The slit cuts the end arc's lowest point away: the section's lowest point lies on the arc at the slit's wall.
+				arcR, half := crankhandle.ClampEndR-0.25, crankhandle.SlitWidth/2
+				sag := arcR - math.Sqrt(arcR*arcR-half*half)
+				require.InDelta(t, -m.Dimensions.Reach+0.25+sag, lo, bound, "z %g: end arc", z)
+				if z < crankhandle.ArmThickness {
+					require.InDelta(t, p.Throw+crankhandle.ArmRadius-0.25, hi, bound, "z %g: pin end", z)
+				}
 				require.InDelta(t, -crankhandle.ArmRadius+0.25, left, bound, "z %g: -X side", z)
 				require.InDelta(t, crankhandle.ArmRadius-0.25, right, bound, "z %g: +X side", z)
 			}
+			// The boss top ends at the ramp's top edge, y = ArmRadius: the 0.5 mm chamfer there, between the top and the 30
+			// degree ramp, pulls the section 0.1 mm under the top back to ArmRadius - s + 0.1 (s + s cos 30)/(s sin 30), where
+			// s = ChamferSize. Unchamfered it would read ArmRadius + 0.173.
+			s := crankhandle.ChamferSize
+			rad := crankhandle.RampAngle * math.Pi / 180
+			want := crankhandle.ArmRadius - s + 0.1*(s+s*math.Cos(rad))/(s*math.Sin(rad))
+			o := section(t, m.Arm, atZ(t, crankhandle.HubLength-0.1))
+			top := math.Inf(-1)
+			for _, l := range o.Loops {
+				for _, v := range l {
+					top = math.Max(top, v.Y)
+				}
+			}
+			require.InDelta(t, want, top, o.OffSurface.Base()+1e-3, "the ramp top's chamfer")
 		})
 	}
 }
 
 // TestCrankHandleBoreRim checks the 0.5 mm chamfer on the bore's rim in the back face, which the slit opens into two
-// arcs and the flat. A section z above the face runs along the arc of radius r_b + d - z and along the flat at
-// f_b + d - z, where d is the chamfer size, and the bevel meets each slit wall where that arc does.
+// arcs and the flat, or with DoubleFlat two arcs and both flats. A section z above the face runs along the arc of radius
+// r_b + d - z and along the flat at f_b + d - z (and -(f_b + d - z)), where d is the chamfer size. The bevel meets each
+// slit wall where that arc does, or with DoubleFlat on the -Y flat at y = -(f_b + d - z).
 func TestCrankHandleBoreRim(t *testing.T) {
 	for _, c := range crankCases {
 		t.Run(c.name, func(t *testing.T) {
 			m, _ := built(t, c)
 			rb, fb := m.Dimensions.BoreRadius, m.Dimensions.BoreFlat
+			double := c.params().DoubleFlat
 			half := crankhandle.SlitWidth / 2
 			for _, z := range []float64{0.05, 0.25, 0.45} {
 				d := crankhandle.ChamferSize - z
@@ -586,8 +624,11 @@ func TestCrankHandleBoreRim(t *testing.T) {
 				arcs, flats := 0, 0
 				for _, v := range rim {
 					r := math.Hypot(v.X, v.Y)
-					onArc := math.Abs(r-(rb+d)) <= tol && v.Y <= fb+d+tol
+					onArc := math.Abs(r-(rb+d)) <= tol && v.Y <= fb+d+tol && (!double || v.Y >= -(fb+d)-tol)
 					onFlat := math.Abs(v.Y-(fb+d)) <= tol && r <= rb+d+tol
+					if double {
+						onFlat = onFlat || math.Abs(v.Y+(fb+d)) <= tol && r <= rb+d+tol
+					}
 					require.True(t, onArc || onFlat, "z %g: rim point %v is off the arc (r %g) and the flat (y %g)", z, v, rb+d, fb+d)
 					if onArc {
 						arcs++
@@ -599,6 +640,9 @@ func TestCrankHandleBoreRim(t *testing.T) {
 				require.Positive(t, arcs, "z %g: arc points", z)
 				require.Positive(t, flats, "z %g: flat points", z)
 				want := -math.Sqrt((rb+d)*(rb+d) - half*half)
+				if double {
+					want = -(fb + d)
+				}
 				meets := 0
 				for _, v := range walls {
 					if math.Abs(v.Y-want) <= tol {
@@ -635,7 +679,7 @@ func TestCrankHandleCorners(t *testing.T) {
 				up     r3.Vec
 				exempt []cornercheck.Exempt
 			}{
-				"arm":    {m.Arm, r3.Vec{Z: 1}, armExempt(c, m, pocket)},
+				"arm":    {m.Arm, r3.Vec{Z: 1}, armExempt(m, pocket)},
 				"pin":    {m.Pin, m.SplitNormal, crossPocketCorners(p, m)},
 				"handle": {m.Handle, r3.Vec{Z: 1}, nil},
 			} {
@@ -647,33 +691,31 @@ func TestCrankHandleCorners(t *testing.T) {
 	}
 }
 
-// armExempt lists the arm's retained corners for case c: the hexagonal pocket, the clamp bolt's head pocket floor rim,
-// and in a case marked slitRound the slit's end round in the bore's floor.
-func armExempt(c crankCase, m *crankhandle.Model, pocket cornercheck.Exempt) []cornercheck.Exempt {
+// armExempt lists the arm's retained corners: the hexagonal pocket, clamp nut pocket 1's floor round cut at a slant and
+// each clamp bolt's head pocket floor rim. The slit's end round reads no finding at the 1.5 mm slit.
+func armExempt(m *crankhandle.Model, pocket cornercheck.Exempt) []cornercheck.Exempt {
 	dm := m.Dimensions
-	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
-	out := []cornercheck.Exempt{pocket, {
-		// The pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm round of the
-		// floor's outline at a slant and reads it as a turn over 45 degrees (instructions.md, "Retained sharp corners").
-		Reason: "clamp nut pocket floor round cut at a slant",
-		Near: func(v r3.Vec) bool {
-			return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
-				math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.NutCavityRadius+0.05
-		},
-	}, {
-		Reason: "clamp head pocket floor rim",
-		Near: func(v r3.Vec) bool {
-			return math.Abs(v.X-(crankhandle.ArmRadius-m2fastener.HeadPocketDepth)) < 0.05 &&
-				math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
-		},
-	}}
-	if c.slitRound {
-		half := crankhandle.SlitWidth / 2
+	out := []cornercheck.Exempt{pocket}
+	for i, site := range dm.ClampSites {
+		floor, z := crankhandle.ArmRadius-site.Cavity, site.Head.Z
+		if i == 0 {
+			// The pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm round of the
+			// floor's outline at a slant and reads it as a turn over 45 degrees (instructions.md, "Retained sharp
+			// corners"). Only pocket 1's layers read it: no layer section reads pocket 2's round, and an exemption that
+			// claims no finding fails cornercheck.
+			out = append(out, cornercheck.Exempt{
+				Reason: "clamp nut pocket 1 floor round cut at a slant",
+				Near: func(v r3.Vec) bool {
+					return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
+						math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.NutCavityRadius+0.05
+				},
+			})
+		}
 		out = append(out, cornercheck.Exempt{
-			Reason: "slit end round in the bore's floor",
+			Reason: fmt.Sprintf("clamp head pocket %d floor rim", i+1),
 			Near: func(v r3.Vec) bool {
-				return math.Hypot(v.X, v.Y-(-dm.BoreRadius+crankhandle.SlitInBore-half)) <= half+0.05 &&
-					v.Z > crankhandle.ArmThickness-crankhandle.BoreFloor
+				return math.Abs(v.X-(crankhandle.ArmRadius-m2fastener.HeadPocketDepth)) < 0.05 &&
+					math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.HeadPocketRadius+0.05
 			},
 		})
 	}
@@ -752,8 +794,8 @@ func TestCrankHandlePlacement(t *testing.T) {
 		"bolt": {local.Bolt.Body, placed.Bolt.Body}, "nut": {local.Nut.Body, placed.Nut.Body},
 		"cross bolt": {local.CrossBolts[1].Body, placed.CrossBolts[1].Body},
 		"cross nut":  {local.CrossNuts[1].Body, placed.CrossNuts[1].Body},
-		"clamp bolt": {local.ClampBolt.Body, placed.ClampBolt.Body},
-		"clamp nut":  {local.ClampNut.Body, placed.ClampNut.Body},
+		"clamp bolt": {local.ClampBolts[0].Body, placed.ClampBolts[0].Body},
+		"clamp nut":  {local.ClampNuts[0].Body, placed.ClampNuts[0].Body},
 	} {
 		lv, err := pair[0].Volume()
 		require.NoError(t, err)
@@ -773,7 +815,7 @@ func TestCrankHandlePlacement(t *testing.T) {
 	}
 	require.InDelta(t, 0, placed.Site.Head.Sub(xf.Apply(local.Site.Head)).Len(), 1e-9)
 	require.InDelta(t, 0, placed.CrossSites[0].Head.Sub(xf.Apply(local.CrossSites[0].Head)).Len(), 1e-9)
-	require.InDelta(t, 0, placed.ClampSite.Head.Sub(xf.Apply(local.ClampSite.Head)).Len(), 1e-9)
+	require.InDelta(t, 0, placed.ClampSites[0].Head.Sub(xf.Apply(local.ClampSites[0].Head)).Len(), 1e-9)
 	require.InDelta(t, 0, placed.SplitNormal.Sub(xf.ApplyDir(local.SplitNormal)).Len(), 1e-12)
 }
 
@@ -791,7 +833,7 @@ func TestCrankHandleRejectsInvalidInputs(t *testing.T) {
 		{"press-clearance", func(p *crankhandle.Params) { p.BoreClearance = 0.04 }},
 		{"loose-clearance", func(p *crankhandle.Params) { p.BoreClearance = 0.51 }},
 		{"shaft-too-wide", func(p *crankhandle.Params) { p.ShaftDiameter = 16.8 }},
-		{"short-throw", func(p *crankhandle.Params) { p.Throw = 19.9 }},
+		{"short-throw", func(p *crankhandle.Params) { p.Throw = 35.2 }},
 		{"invalid-frame", func(p *crankhandle.Params) { p.Placement = &r3.Frame{} }},
 	} {
 		t.Run(item.name, func(t *testing.T) {
@@ -804,6 +846,11 @@ func TestCrankHandleRejectsInvalidInputs(t *testing.T) {
 			require.Empty(t, doc.Bodies())
 		})
 	}
+	t.Run("min-throw-accepted", func(t *testing.T) {
+		p := def
+		p.Throw = 35.3
+		require.NoError(t, p.Validate())
+	})
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	doc := decad.New()
@@ -824,17 +871,17 @@ func atX(t *testing.T, x float64) r3.Frame {
 	return f
 }
 
-// requireClampBolt checks the clamp bolt across the arm's hub: an M2 x 16 whose head's top face is flush with the +X
+// requireClampBolt checks clamp bolt i across the arm's hub: an M2 x 16 whose head's top face is flush with the +X
 // side face and inside its pocket, which crosses the slit and whose tip ends inside the -X side face, and whose nut
 // lies inside its hexagonal pocket, below the -X side face; neither bolt nor nut shares volume with the arm in sections
 // along and across the bolt. It also checks the pocket: open to the -X side face, a hexagon whose flats the nut's
 // corners cannot pass, so the nut cannot turn, with room for the nut's corners.
-func requireClampBolt(t *testing.T, m *crankhandle.Model) {
+func requireClampBolt(t *testing.T, m *crankhandle.Model, i int) {
 	t.Helper()
-	dm, site := m.Dimensions, m.ClampSite
-	mid := crankhandle.ArmThickness / 2
+	dm, site := m.Dimensions, m.ClampSites[i]
+	mid := site.Head.Z
 	floor := crankhandle.ArmRadius - site.Cavity // the nut pocket's floor
-	bb, err := m.ClampBolt.Body.Bounds()
+	bb, err := m.ClampBolts[i].Body.Bounds()
 	require.NoError(t, err)
 	tol := bb.Bound.Base() + 2e-3
 	require.Equal(t, crankhandle.ClampBolt, site.Length)
@@ -845,7 +892,7 @@ func requireClampBolt(t *testing.T, m *crankhandle.Model) {
 	require.Less(t, math.Max(math.Max(bb.Max.Y-dm.ClampY, dm.ClampY-bb.Min.Y), math.Max(bb.Max.Z-mid, mid-bb.Min.Z)),
 		m2fastener.HeadPocketRadius, "clamp bolt: head inside its pocket")
 	require.Less(t, bb.Min.X, -crankhandle.SlitWidth/2, "clamp bolt crosses the slit")
-	nb, err := m.ClampNut.Body.Bounds()
+	nb, err := m.ClampNuts[i].Body.Bounds()
 	require.NoError(t, err)
 	ntol := nb.Bound.Base() + 2e-3
 	require.GreaterOrEqual(t, nb.Min.X, floor-m2fastener.NutCavityHeight-ntol, "clamp nut below the -X side face")
@@ -858,17 +905,17 @@ func requireClampBolt(t *testing.T, m *crankhandle.Model) {
 		require.LessOrEqual(t, math.Abs(d), m2fastener.NutCavityRadius*math.Sqrt(3)/2+ntol,
 			"clamp nut: flats inside its pocket")
 	}
-	requireClampPocket(t, m)
+	requireClampPocket(t, m, i)
 	frames := map[string]r3.Frame{}
-	for _, z := range []float64{2.3, 3.2, 4, 4.8, 5.7} {
-		frames[fmt.Sprintf("z %g", z)] = atZ(t, z)
+	for _, dz := range []float64{-1.7, -0.8, 0, 0.8, 1.7} {
+		frames[fmt.Sprintf("z %g", mid+dz)] = atZ(t, mid+dz)
 	}
 	for _, x := range []float64{9.5, 8.5, 6, 3, 0, -3, -6, -7.9, -8.3, -9, -9.7} {
 		frames[fmt.Sprintf("x %g", x)] = atX(t, x)
 	}
 	for name, f := range frames {
 		a := section(t, m.Arm, f)
-		for _, part := range []*decad.Body{m.ClampBolt.Body, m.ClampNut.Body} {
+		for _, part := range []*decad.Body{m.ClampBolts[i].Body, m.ClampNuts[i].Body} {
 			b := section(t, part, f)
 			if len(a.Loops) == 0 || len(b.Loops) == 0 {
 				continue
@@ -901,11 +948,11 @@ func inSection(o decad.SectionOutline, uv func(r3.Vec) (float64, float64), u, v 
 // circle through the pocket's corners, and its least distance is under the nut's corner radius, so the nut cannot turn
 // in it while its corners keep their room. Along the bolt at mid thickness, the pocket opens to the -X side face and
 // the arm is solid beyond its floor and beyond its corners.
-func requireClampPocket(t *testing.T, m *crankhandle.Model) {
+func requireClampPocket(t *testing.T, m *crankhandle.Model, i int) {
 	t.Helper()
 	dm := m.Dimensions
-	mid := crankhandle.ArmThickness / 2
-	floor := crankhandle.ArmRadius - m.ClampSite.Cavity
+	mid := m.ClampSites[i].Head.Z
+	floor := crankhandle.ArmRadius - m.ClampSites[i].Cavity
 	across := section(t, m.Arm, atX(t, -crankhandle.ArmRadius+1))
 	bound := across.OffSurface.Base() + 1e-3
 	near, far := math.Inf(1), math.Inf(-1)
@@ -984,24 +1031,91 @@ func TestCrankHandleClampWalls(t *testing.T) {
 			require.NoError(t, err)
 			rad := m2fastener.NutCavityRadius
 			flat := rad * math.Sqrt(3) / 2
-			floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
+			floor := crankhandle.ArmRadius - dm.ClampSites[0].Cavity
 			pocketOutline := math.Inf(1)
 			for _, y := range []float64{dm.ClampY - flat, dm.ClampY + flat} {
 				pocketOutline = math.Min(pocketOutline, clampOutlineDistance(dm, floor, y))
 			}
-			mid := crankhandle.ArmThickness / 2
+			gap := crankhandle.ClampZ[1] - crankhandle.ClampZ[0]
 			for name, wall := range map[string]float64{
-				"between the hole and the bore":                  -dm.ClampY - m2fastener.HoleRadius - dm.BoreRadius,
+				"between the nut pockets":                        gap - 2*rad,
+				"between the head pockets":                       gap - 2*m2fastener.HeadPocketRadius,
+				"between nut pocket 1 and the back face":         crankhandle.ClampZ[0] - rad,
+				"between nut pocket 2 and the boss top":          crankhandle.HubLength - crankhandle.ClampZ[1] - rad,
+				"between head pocket 1 and the back face":        crankhandle.ClampZ[0] - m2fastener.HeadPocketRadius,
+				"between head pocket 2 and the boss top":         crankhandle.HubLength - crankhandle.ClampZ[1] - m2fastener.HeadPocketRadius,
+				"between the hole and the bore":                  -dm.ClampY - m2fastener.HoleRadius - dm.BoreBack,
 				"between the nut pocket and the bore":            math.Hypot(floor, math.Min(0, dm.ClampY+flat)) - dm.BoreRadius,
 				"between the nut pocket's floor and the outline": pocketOutline,
-				"between the nut pocket and each face":           mid - rad,
-				"of -X side face beyond the nut pocket":          dm.ClampY - flat - dm.SideEnd,
-				"of side face beyond the head pocket":            dm.ClampY - m2fastener.HeadPocketRadius - dm.SideEnd,
-				"between the head pocket and each face":          mid - m2fastener.HeadPocketRadius,
+
+				"of -X side face beyond the nut pocket": dm.ClampY - flat - dm.SideEnd,
+				"of side face beyond the head pocket":   dm.ClampY - m2fastener.HeadPocketRadius - dm.SideEnd,
+
 				"under the head pocket to the slit": crankhandle.ArmRadius - m2fastener.HeadPocketDepth -
 					crankhandle.SlitWidth/2,
 			} {
 				require.GreaterOrEqual(t, wall, 1.0-1e-9, "material %s", name)
+			}
+		})
+	}
+}
+
+// TestCrankHandleGrip pins the geometry that sets the clamp's grip on the shaft, so the capacity estimate in
+// instructions.md ("Clamp capacity") cannot fall without a test failing: two clamp bolts at ClampZ, the bore's depth to
+// within BoreFloor of the boss top, with DoubleFlat a second flat opposite the first, and the estimate's torque.
+func TestCrankHandleGrip(t *testing.T) {
+	for _, c := range crankCases {
+		t.Run(c.name, func(t *testing.T) {
+			p := c.params()
+			m, _ := built(t, c)
+			require.Len(t, m.ClampSites, 2)
+			for i, site := range m.ClampSites {
+				require.InDelta(t, crankhandle.ClampZ[i], site.Head.Z, 1e-9, "clamp bolt %d", i+1)
+			}
+			rb, fb := m.Dimensions.BoreRadius, m.Dimensions.BoreFlat
+			depth := crankhandle.HubLength - crankhandle.BoreFloor
+			// The bore ends at its floor: a section just under it holds bore points, one just over holds none within
+			// BoreRadius - 0.5 of the axis outside the slit band.
+			bore := func(z float64) int {
+				o := section(t, m.Arm, atZ(t, z))
+				n := 0
+				for _, l := range o.Loops {
+					for _, v := range l {
+						if math.Hypot(v.X, v.Y) >= rb-0.5 && math.Hypot(v.X, v.Y) <= rb+0.1 && math.Abs(v.X) > crankhandle.SlitWidth/2+0.05 {
+							n++
+						}
+					}
+				}
+				return n
+			}
+			require.Positive(t, bore(depth-0.1), "bore points under the floor")
+			require.Zero(t, bore(depth+0.1), "bore points over the floor")
+			if p.DoubleFlat {
+				w := math.Sqrt(rb*rb - fb*fb)
+				o := section(t, m.Arm, atZ(t, 8))
+				tol := o.OffSurface.Base() + 1e-3
+				for _, side := range []float64{1, -1} {
+					found := false
+					for _, l := range o.Loops {
+						for _, v := range l {
+							found = found || math.Abs(v.Y-side*fb) <= tol && math.Abs(v.X) <= w-0.2
+						}
+					}
+					require.True(t, found, "bore flat at y %g", side*fb)
+				}
+			}
+			// The capacity estimate: form fit on the flats plus friction from the bolts' preload, in N.mm.
+			l := crankhandle.HubLength - crankhandle.BoreFloor - 0.25 - crankhandle.ChamferSize
+			r := p.ShaftDiameter / 2
+			w2 := r*r - (r-p.FlatDepth)*(r-p.FlatDepth)
+			k := 1.0
+			if p.DoubleFlat {
+				k = 2
+			}
+			torque := k*30*l*w2/3 + 0.3*2*2*200*r
+			require.GreaterOrEqual(t, l, 15.25, "engagement")
+			if p.DoubleFlat {
+				require.GreaterOrEqual(t, torque, 2600.0, "estimated holding torque, N.mm")
 			}
 		})
 	}

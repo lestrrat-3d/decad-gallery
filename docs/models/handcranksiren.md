@@ -8,7 +8,7 @@ handle come from [`models/crankhandle`](crankhandle.md) (`Params6082RS`).
 
 Import `github.com/lestrrat-3d/decad-gallery/models/handcranksiren`.
 `Build(ctx, doc, params)` needs a document from `NewDocument`, which carries a chain tolerance of 0.01 mm that the
-rotor's unions and the gears' bores need. It returns an `Assembly` of 79 named solid parts, whatever the slot count,
+rotor's unions and the gears' bores need. It returns an `Assembly` of 81 named solid parts, whatever the slot count,
 every Sketch it used, and the `State`. `Motion(params)` computes the pose without building bodies.
 `PitchHz(slots, crankRevPerSecond)` returns the tone: `Slots x Ratio x crank turns per second`, 400 Hz for the default.
 
@@ -21,8 +21,8 @@ The held pose fixes the axes: operator forward is -X (the horn points there), op
 and up is +Z; the table is Z = 0. The
 rotor axis is `(0, y, 84)`, the crank axis `(60, y, 84)` and the intermediate axis `(28.19, y, 46.08)`, all along Y.
 The gears are `models/spurgear` bodies of module 1.5, and the ratio is exactly 10. The bolts are `models/m2bolt` bodies
-and the nuts `models/m2nut` bodies: 27 of each, with every head flush in a pocket and every nut in an enclosed
-cavity, except the crank arm's clamp nut and the crank pin's two cross nuts, which sit in hexagonal pockets open to a face. The crank's four bolts (the pin bolt, two cross bolts across the split pin and the clamp bolt across the arm's
+and the nuts `models/m2nut` bodies: 28 of each, with every head flush in a pocket and every nut in an enclosed
+cavity, except the crank arm's two clamp nuts and the crank pin's two cross nuts, which sit in hexagonal pockets open to a face. The crank's five bolts (the pin bolt, two cross bolts across the split pin and the two clamp bolts across the arm's
 hub) sit at the sites `models/crankhandle` cut them for, carried through the siren's placement. The shared build steps live in `internal/gearroot`, `internal/edgefinish` and `internal/m2fastener`.
 The `split shafts` check runs `internal/splitcheck` on each shaft and on the crank pin, as
 [Split shafts](../model-pipeline.md#split-shafts) requires.

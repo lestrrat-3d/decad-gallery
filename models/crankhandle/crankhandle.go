@@ -1,10 +1,11 @@
 // Package crankhandle builds a printed crank for a D-flat shaft: an arm that pinches the shaft, a pin clamped in the
-// arm, and a handle that turns freely on the pin, held on by the pin's head. A slit through the arm's hub and an M2
-// bolt across it close the arm's D bore on the shaft; one M2 bolt and nut clamp the pin. The hand-crank siren imports
-// it for its crank.
+// arm, and a handle that turns freely on the pin, held on by the pin's head. The arm's hub is a boss HubLength long
+// under the bore, joined to the thinner arm by a ramp. A slit through the hub and two M2 bolts across it close the
+// arm's D bore on the shaft; one M2 bolt and nut clamp the pin. The hand-crank siren imports it for its crank.
 //
 // The local frame has its origin on the shaft axis in the arm's back face, the face toward the mechanism. +Z runs
-// along the shaft axis away from the mechanism, the arm runs along +Y to the pin, and the bore's flat faces +Y.
+// along the shaft axis away from the mechanism, the arm runs along +Y to the pin, and the bore's flat faces +Y (with
+// DoubleFlat, a second flat faces -Y).
 package crankhandle
 
 import (
@@ -42,23 +43,23 @@ type Parts struct {
 	Site m2fastener.Site
 	// CrossSites are the two cross bolts that clamp the pin's halves, in the world frame.
 	CrossSites [2]m2fastener.Site
-	// ClampSite is the clamp bolt across the arm's hub, in the world frame.
-	ClampSite m2fastener.Site
+	// ClampSites are the clamp bolts across the arm's hub, in the world frame.
+	ClampSites [2]m2fastener.Site
 	// SplitNormal is the unit normal, in the world frame, of the plane through the pin axis that splits the pin into
 	// its two printed halves. It runs along the arm, from the shaft toward the pin.
 	SplitNormal r3.Vec
 }
 
 // Model is a built crank: its parts, the pin bolt and nut, the cross bolts and nuts that clamp the pin's halves, and
-// the clamp bolt and nut that close the arm on the shaft.
+// the two clamp bolts and nuts that close the arm on the shaft.
 type Model struct {
 	Parts
 	Bolt       *m2bolt.Model
 	Nut        *m2nut.Model
 	CrossBolts [2]*m2bolt.Model
 	CrossNuts  [2]*m2nut.Model
-	ClampBolt  *m2bolt.Model
-	ClampNut   *m2nut.Model
+	ClampBolts [2]*m2bolt.Model
+	ClampNuts  [2]*m2nut.Model
 }
 
 // BuildParts adds the arm, the pin and the handle to doc and returns them. It puts them in no container, so an
@@ -104,8 +105,10 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 			return nil, fmt.Errorf("crankhandle: place cross bolt %d: %w", i+1, err)
 		}
 	}
-	if out.ClampSite, err = placeSite(dm.ClampSite, p.Placement); err != nil {
-		return nil, fmt.Errorf("crankhandle: place clamp bolt: %w", err)
+	for i, site := range dm.ClampSites {
+		if out.ClampSites[i], err = placeSite(site, p.Placement); err != nil {
+			return nil, fmt.Errorf("crankhandle: place clamp bolt %d: %w", i+1, err)
+		}
 	}
 	out.SplitNormal = r3.Vec{Y: 1}
 	if p.Placement != nil {
@@ -149,13 +152,15 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		}
 		bodies = append(bodies, filed{BoltsContainerName, m.CrossBolts[i].Body}, filed{NutsContainerName, m.CrossNuts[i].Body})
 	}
-	if m.ClampBolt, err = m2fastener.PlaceBolt(ctx, doc, m.ClampSite); err != nil {
-		return nil, fmt.Errorf("crankhandle: clamp bolt: %w", err)
+	for i, site := range m.ClampSites {
+		if m.ClampBolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
+			return nil, fmt.Errorf("crankhandle: clamp bolt %d: %w", i+1, err)
+		}
+		if m.ClampNuts[i], err = m2fastener.PlaceNut(ctx, doc, site); err != nil {
+			return nil, fmt.Errorf("crankhandle: clamp nut %d: %w", i+1, err)
+		}
+		bodies = append(bodies, filed{BoltsContainerName, m.ClampBolts[i].Body}, filed{NutsContainerName, m.ClampNuts[i].Body})
 	}
-	if m.ClampNut, err = m2fastener.PlaceNut(ctx, doc, m.ClampSite); err != nil {
-		return nil, fmt.Errorf("crankhandle: clamp nut: %w", err)
-	}
-	bodies = append(bodies, filed{BoltsContainerName, m.ClampBolt.Body}, filed{NutsContainerName, m.ClampNut.Body})
 	for _, c := range bodies {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
@@ -168,24 +173,36 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	return m, nil
 }
 
-// arm extrudes the arm's outline, chamfers both faces' outlines, and cuts, in this order: the slit, the blind D bore,
-// the hexagonal pocket for the pin's stub from the outer face, the pin bolt's head pocket in the back face, and the
-// clamp bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The slit goes first: the bore cut on the
-// chamfered body holds a coarser mesh bound round its rim than the slit's cut admits through the document's chain
-// tolerance, while the bore's cut admits the slit's finer rim. The bore's rim in the back face is chamfered last
-// (chamferBoreRim). The nut pocket's floor is rounded on its tool (NutPocketRound).
+// arm extrudes the arm's outline to HubLength, chamfers both faces' outlines, cuts the relief that leaves the 8 mm arm
+// beyond the boss's ramp, chamfers the new outer face's outline (chamferOuterFace), and cuts, in this order: the slit,
+// the blind bore, the hexagonal pocket for the pin's stub from the outer face, the pin bolt's head pocket in the back
+// face, and each clamp bolt's hexagonal nut pocket in the -X side face, head pocket and hole. The slit goes before the
+// bore: the bore cut on the chamfered body holds a coarser mesh bound round its rim than the slit's cut admits through
+// the document's chain tolerance, while the bore's cut admits the slit's finer rim. The relief goes first because its
+// rims are far from every later cut and the stub pocket opens through the face it creates. The bore's rim in the back
+// face is chamfered last (chamferBoreRim). The nut pockets' floors are rounded on their tools (NutPocketRound).
 func (r *run) arm() (*decad.Body, error) {
 	s, err := r.armSketch()
 	if err != nil {
 		return nil, err
 	}
-	body, err := r.extrude(s, 1, ArmThickness)
+	body, err := r.extrude(s, 1, HubLength)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
 	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body)))
 	if body, err = decad.Chamfer(r.ctx, body, loops, units.Millimeters(ChamferSize)); err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
+	}
+	relief, err := r.reliefTool()
+	if err != nil {
+		return nil, fmt.Errorf("relief tool: %w", err)
+	}
+	if body, err = decad.Cut(r.ctx, body, relief); err != nil {
+		return nil, fmt.Errorf("cut relief: %w", err)
+	}
+	if body, err = r.chamferOuterFace(body); err != nil {
+		return nil, err
 	}
 	slit, err := r.slitTool()
 	if err != nil {
@@ -204,11 +221,15 @@ func (r *run) arm() (*decad.Body, error) {
 		return nil, fmt.Errorf("head pocket tool: %w", err)
 	}
 	r.sketches = append(r.sketches, hs)
-	clamp, err := r.clampTools()
-	if err != nil {
-		return nil, err
+	tools := []*decad.Body{slit, bore, pocket, head}
+	for i, site := range r.dm.ClampSites {
+		clamp, err := r.clampTools(site)
+		if err != nil {
+			return nil, fmt.Errorf("clamp bolt %d: %w", i+1, err)
+		}
+		tools = append(tools, clamp...)
 	}
-	for _, tool := range append([]*decad.Body{slit, bore, pocket, head}, clamp...) {
+	for _, tool := range tools {
 		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
@@ -216,11 +237,73 @@ func (r *run) arm() (*decad.Body, error) {
 	return r.chamferBoreRim(body)
 }
 
-// chamferBoreRim chamfers the bore's rim in the back face by ChamferSize. The slit opens the rim into three edges, two
-// arcs and the flat, each arc ending at a slit wall, so the rim is a partial run of the back face's loop. It runs last:
-// no later cut meets the rim. A Boolean result's edges carry no selector name, so each rim edge is named by both its
-// stored end points, which Edges returns as stored (a faceted body's vertices sit a few ulps off the exact values, so
-// the end points cannot be computed). Anything but two arcs and one line is an error.
+// chamferOuterFace chamfers by ChamferSize the outline of the arm's 8 mm outer face (its two sides and the pin end's
+// arc, without the ramp's foot and the pin hole's rim) and the ramp's top edge with the boss top. A Boolean result's
+// edges carry no selector name, so each is named by both its stored end points, as chamferBoreRim does. The outline is
+// a tangent chain and the ramp's top edge is not, and decad refuses one selection that mixes the two, so each is
+// chamfered by its own call.
+func (r *run) chamferOuterFace(body *decad.Body) (*decad.Body, error) {
+	var edges, top *decad.EdgeQuery
+	lines, arcs, tops := 0, 0, 0
+	near := func(v float64, to float64) bool { return math.Abs(v-to) <= rimPlane }
+	for _, e := range body.Edges() {
+		a, b := e.Start().Position().Value, e.End().Position().Value
+		switch {
+		case near(a.Z, ArmThickness) && near(b.Z, ArmThickness):
+			if a.Y < r.dm.RampFoot-rimPlane || b.Y < r.dm.RampFoot-rimPlane {
+				continue
+			}
+			if near(a.Y, r.dm.RampFoot) && near(b.Y, r.dm.RampFoot) {
+				continue
+			}
+			if math.Hypot(a.X, a.Y-r.p.Throw) <= PinHoleR+rimPlane && math.Hypot(b.X, b.Y-r.p.Throw) <= PinHoleR+rimPlane {
+				continue
+			}
+			switch e.Curve().(type) {
+			case decad.Line3:
+				lines++
+			case decad.Arc3:
+				arcs++
+			default:
+				return nil, fmt.Errorf("outer face: unexpected %T edge at %v", e.Curve(), a)
+			}
+		case near(a.Z, HubLength) && near(b.Z, HubLength) && near(a.Y, ArmRadius) && near(b.Y, ArmRadius):
+			if _, ok := e.Curve().(decad.Line3); !ok {
+				return nil, fmt.Errorf("ramp top: unexpected %T edge at %v", e.Curve(), a)
+			}
+			tops++
+			top = decad.Edges(decad.EndpointAt(a), decad.EndpointAt(b))
+			continue
+		default:
+			continue
+		}
+		preds := []decad.EdgePredicate{decad.EndpointAt(a), decad.EndpointAt(b)}
+		if edges == nil {
+			edges = decad.Edges(preds...)
+			continue
+		}
+		edges = edges.Or(preds...)
+	}
+	if lines != 2 || arcs != 1 || tops != 1 {
+		return nil, fmt.Errorf("outer face: found %d side lines, %d arcs and %d ramp top lines, want 2, 1 and 1",
+			lines, arcs, tops)
+	}
+	body, err := decad.Chamfer(r.ctx, body, edges, units.Millimeters(ChamferSize))
+	if err != nil {
+		return nil, fmt.Errorf("chamfer outer face: %w", err)
+	}
+	if body, err = decad.Chamfer(r.ctx, body, top, units.Millimeters(ChamferSize)); err != nil {
+		return nil, fmt.Errorf("chamfer ramp top: %w", err)
+	}
+	return body, nil
+}
+
+// chamferBoreRim chamfers the bore's rim in the back face by ChamferSize. The slit opens the rim into edges: two arcs
+// and the flat of a single D bore, or two arcs and three lines with DoubleFlat, where the slit splits the -Y flat.
+// Each arc ends at a slit wall, so the rim is a partial run of the back face's loop. It runs last: no later cut meets
+// the rim. A Boolean result's edges carry no selector name, so each rim edge is named by both its stored end points,
+// which Edges returns as stored (a faceted body's vertices sit a few ulps off the exact values, so the end points
+// cannot be computed). Any other count is an error.
 func (r *run) chamferBoreRim(body *decad.Body) (*decad.Body, error) {
 	var rim *decad.EdgeQuery
 	arcs, lines := 0, 0
@@ -245,8 +328,12 @@ func (r *run) chamferBoreRim(body *decad.Body) (*decad.Body, error) {
 		}
 		rim = rim.Or(preds...)
 	}
-	if arcs != 2 || lines != 1 {
-		return nil, fmt.Errorf("bore rim: found %d arcs and %d lines, want 2 and 1", arcs, lines)
+	wantLines := 1
+	if r.p.DoubleFlat {
+		wantLines = 3
+	}
+	if arcs != 2 || lines != wantLines {
+		return nil, fmt.Errorf("bore rim: found %d arcs and %d lines, want 2 and %d", arcs, lines, wantLines)
 	}
 	body, err := decad.Chamfer(r.ctx, body, rim, units.Millimeters(ChamferSize))
 	if err != nil {
@@ -274,10 +361,9 @@ func (r *run) nutPocketCutter(site m2fastener.Site, depth float64) (*decad.Body,
 	return pocket, nil
 }
 
-// clampTools builds the clamp bolt's cutters: the hexagonal nut pocket with its floor's outline rounded by
+// clampTools builds a clamp bolt's cutters: the hexagonal nut pocket with its floor's outline rounded by
 // NutPocketRound, the head pocket, and the clearance hole, which runs out through the nut pocket.
-func (r *run) clampTools() ([]*decad.Body, error) {
-	site := r.dm.ClampSite
+func (r *run) clampTools(site m2fastener.Site) ([]*decad.Body, error) {
 	pocket, err := r.nutPocketCutter(site, 2*ArmRadius-site.Cavity+m2fastener.Stock)
 	if err != nil {
 		return nil, fmt.Errorf("clamp nut pocket tool: %w", err)

@@ -61,8 +61,8 @@ var handCrankSirenViews = []sirenView{
 // +230 clear of the rear plate, so its hub shows beside it, and its parts are pulled apart from there along the pin
 // axis (+Y), as models/crankhandle's exploded view pulls them: the pin bolt 18 back out of the arm, the pin nut 16 and
 // the handle 32 out, and the pin 95 out, clear of the handle, with its cross bolts 14 further along arm, the posed
-// direction from the shaft to the pin, and their nuts 14 back. The clamp bolt pulls 30 out of the arm's side face, and
-// the clamp nut 25 the other way along the bolt's line, out of its pocket in the far side face.
+// direction from the shaft to the pin, and their nuts 14 back. Each clamp bolt pulls 30 out of the arm's side face, and
+// each clamp nut 25 the other way along the bolt's line, out of its pocket in the far side face.
 func handCrankSirenExplode(name string, arm r3.Vec) r3.Vec {
 	armY := r3.Vec{Y: 230}
 	pin := armY.Add(r3.Vec{Y: 95})
@@ -73,9 +73,9 @@ func handCrankSirenExplode(name string, arm r3.Vec) r3.Vec {
 		return pin.Add(arm.Scale(14))
 	case strings.HasPrefix(name, "crank-cross-nut-"):
 		return pin.Add(arm.Scale(-14))
-	case name == "crank-clamp-bolt":
+	case strings.HasPrefix(name, "crank-clamp-bolt-"):
 		return armY.Add(side.Scale(30))
-	case name == "crank-clamp-nut":
+	case strings.HasPrefix(name, "crank-clamp-nut-"):
 		return armY.Add(side.Scale(-25))
 	case strings.HasPrefix(name, "gearbox-front-bolt-"):
 		return r3.Vec{Y: -25}
@@ -260,7 +260,7 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"grip-bolt", "grip-bolt-1", []string{"grip-nut-1"}, sirenSide},
 	{"crank-pin-bolt", "crank-pin-bolt", []string{"crank-pin-nut"}, sirenSide},
 	{"crank-cross-bolt", "crank-cross-bolt-1", []string{"crank-cross-nut-1"}, sirenSide},
-	{"crank-clamp-bolt", "crank-clamp-bolt", []string{"crank-clamp-nut"}, sirenSide},
+	{"crank-clamp-bolt", "crank-clamp-bolt-1", []string{"crank-clamp-nut-1"}, sirenSide},
 }
 
 func init() {

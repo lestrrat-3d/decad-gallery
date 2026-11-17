@@ -40,51 +40,14 @@ func requireCorners(t *testing.T, p handcranksiren.Params, parts map[string]hand
 			fs, err := cornercheck.Check(t.Context(), parts[name].Body, axis, exempt[name])
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 5))
-			if name == "crank-arm" {
-				requireSlitRound(t, p, parts[name].Body)
-			}
 		})
-	}
-}
-
-// slitRoundReadMax is the most a section of the arm may read on the slit's end round, in degrees: the round's real 45.8
-// degree turn per 0.4 mm window plus the chord error of a 0.0202 mm mesh bound. It sits 10 degrees over the limit, so a
-// sharper slit end still fails.
-const slitRoundReadMax = 60.0
-
-// slitRoundY is the local Y of the slit end round's center.
-func slitRoundY(dm crankhandle.Dimensions) float64 {
-	return -dm.BoreRadius + crankhandle.SlitInBore - crankhandle.SlitWidth/2
-}
-
-// requireSlitRound checks the slit end round that crankExempt claims: its real turn over the window is under the
-// limit, and no section of the arm reads it above slitRoundReadMax.
-func requireSlitRound(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
-	t.Helper()
-	require.Less(t, cornercheck.InsideWindow/(crankhandle.SlitWidth/2)*180/math.Pi, cornercheck.InsideMaxTurn)
-	toLocal, err := handcranksiren.CrankLocal(p)
-	require.NoError(t, err)
-	dm, err := crankhandle.Params6082RS().Derive()
-	require.NoError(t, err)
-	heights, err := cornercheck.MidHeights(arm, r3.Vec{Y: 1})
-	require.NoError(t, err)
-	for _, h := range heights {
-		fs, err := cornercheck.Section(t.Context(), arm, r3.Vec{Y: 1}, h)
-		require.NoError(t, err)
-		for _, f := range fs {
-			v := toLocal.Apply(f.At)
-			if v.Y >= slitRoundY(dm)-0.1 && math.Hypot(v.X, v.Y-slitRoundY(dm)) <= crankhandle.SlitWidth/2+0.1 {
-				require.LessOrEqual(t, f.Turn, slitRoundReadMax, "slit end round at height %.2f", h)
-			}
-		}
 	}
 }
 
 // crankExempt lists the crank's retained corners as models/crankhandle lists them for its 608-2RS crank, read in
 // crankhandle's local frame (+Z out of the mechanism, +Y along the arm to the pin): the arm's hexagonal pocket, which
-// matches the pin's stub (Mating corners), the clamp bolt's head pocket floor rim, and the six corners of each cross
-// nut's hexagonal pocket in the pin's halves. crankhandle lists the slit's end round only for its long-throw crank, so
-// the siren's 55 mm crank has none.
+// matches the pin's stub (Mating corners), each clamp bolt's head pocket floor rim, and the six corners of each cross
+// nut's hexagonal pocket in the pin's halves. No slit end round is listed: at the 1.5 mm slit it reads no finding.
 func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck.Exempt {
 	t.Helper()
 	toLocal, err := handcranksiren.CrankLocal(p)
@@ -96,36 +59,34 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
 	}
 	corner := crankhandle.PocketFlats / math.Sqrt(3)
-	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
-	return map[string][]cornercheck.Exempt{
-		"crank-arm": {{
-			// The slit's end is a full round of radius SlitWidth/2 (0.5 mm), a real turn of 0.4 / 0.5 rad = 45.8 degrees
-			// over the 0.4 mm window, under the 50 degree limit. The arm's cuts hold a mesh bound of 0.0202 mm in the
-			// siren's 0.1 mm chain-tolerance document (0.0101 at 0.01 mm), so the section's chords on that round are
-			// about 0.28 mm long and a window can read up to slitRoundReadMax degrees. requireSlitRound bounds the
-			// reading; no other corner is claimed here.
-			Reason: "slit end round read on a coarse mesh",
-			Near: local(func(v r3.Vec) bool {
-				return v.Y >= slitRoundY(dm)-0.1 && math.Hypot(v.X, v.Y-slitRoundY(dm)) <= crankhandle.SlitWidth/2+0.1
-			}),
-		}, {
-			Reason: "hexagonal pocket corners",
-			Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
-		}, {
+	arm := []cornercheck.Exempt{{
+		Reason: "hexagonal pocket corners",
+		Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
+	}}
+	for i, site := range dm.ClampSites {
+		floor, z := crankhandle.ArmRadius-site.Cavity, site.Head.Z
+		if i == 0 {
 			// The clamp pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm
-			// round of the floor's outline at a slant and reads it as a turn over 45 degrees, as in crankhandle.
-			Reason: "clamp nut pocket floor round cut at a slant",
-			Near: local(func(v r3.Vec) bool {
-				return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
-					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.NutCavityRadius+0.05
-			}),
-		}, {
-			Reason: "clamp head pocket floor rim",
+			// round of the floor's outline at a slant and reads it as a turn over 45 degrees, as in crankhandle. Only
+			// pocket 1's round is read; an exemption that claims no finding fails cornercheck.
+			arm = append(arm, cornercheck.Exempt{
+				Reason: "clamp nut pocket 1 floor round cut at a slant",
+				Near: local(func(v r3.Vec) bool {
+					return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
+						math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.NutCavityRadius+0.05
+				}),
+			})
+		}
+		arm = append(arm, cornercheck.Exempt{
+			Reason: fmt.Sprintf("clamp head pocket %d floor rim", i+1),
 			Near: local(func(v r3.Vec) bool {
 				return math.Abs(v.X-(crankhandle.ArmRadius-m2fastener.HeadPocketDepth)) < 0.05 &&
-					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
+					math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.HeadPocketRadius+0.05
 			}),
-		}},
+		})
+	}
+	return map[string][]cornercheck.Exempt{
+		"crank-arm": arm,
 		"crank-pin": crossPocketCorners(local, throw),
 	}
 }
@@ -229,8 +190,8 @@ func requirePressFitWalls(t *testing.T, p handcranksiren.Params, parts map[strin
 // requireArmWall measures the crank arm's wall round its D bore as models/crankhandle does: the slit joins the bore to
 // the outline, so the bore is the section's points within r_b + 0.1 of the axis outside the slit, read in crankhandle's
 // local frame, and the wall runs from them to every edge that is neither the bore nor the slit. It cuts the arm at Y
-// 40.0 and 45.1 (local z 1.4 and 6.5), below and above the clamp bolt's hole, whose 1.05 mm web over the slit is a
-// listed exception (instructions.md, "Retained sharp corners").
+// 40.0, 45.1, 48.6 and 53.6 (local z 1.4, 6.5, 10 and 15), between the clamp bolts' holes, whose webs over the slit are
+// 1.80 mm with the double flat.
 func requireArmWall(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
 	t.Helper()
 	toLocal, err := handcranksiren.CrankLocal(p)
@@ -238,7 +199,7 @@ func requireArmWall(t *testing.T, p handcranksiren.Params, arm *decad.Body) {
 	dm, err := crankhandle.Params6082RS().Derive()
 	require.NoError(t, err)
 	half := crankhandle.SlitWidth / 2
-	for _, y := range []float64{40.0, 45.1} {
+	for _, y := range []float64{40.0, 45.1, 48.6, 53.6} {
 		o, err := arm.SectionOutline(t.Context(), atY(t, y), units.Millimeters(armTolerance))
 		require.NoError(t, err)
 		bound := o.OffSurface.Base() + 1e-6
