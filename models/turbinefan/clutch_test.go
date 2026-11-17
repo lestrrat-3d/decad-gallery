@@ -106,6 +106,16 @@ func TestTurbineFanClutchHub(t *testing.T) {
 // and of each ear bolt's line, so a 1.5 mm hex key reaches every ear bolt head from the front between the blades, and the
 // clutch mount reuses the ShaftMount blades.
 func TestTurbineFanClutchAccess(t *testing.T) {
+	earLo, earHi := math.Inf(1), math.Inf(-1)
+	for _, shaft := range onewayclutch.Shafts() {
+		for _, c := range []float64{0.05, 0.5} {
+			p := onewayclutch.DefaultParams()
+			p.Shaft, p.BoreClearance = shaft.Name, c
+			dm, err := p.Derive()
+			require.NoError(t, err)
+			earLo, earHi = math.Min(earLo, dm.EarCircle), math.Max(earHi, dm.EarCircle)
+		}
+	}
 	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		for k, blade := range m.Blades {
 			for _, v := range meshOf(t, blade, 0.1).Vertices() {
@@ -113,7 +123,13 @@ func TestTurbineFanClutchAccess(t *testing.T) {
 				require.GreaterOrEqual(t, v.Z, 0.0, "blade %d at %v: behind the hub's back face", k+1, v)
 				for e := 1; e <= onewayclutch.Ears; e++ {
 					a := turbinefan.EarBoltAngle(e)
-					line := r3.Vec{X: onewayclutch.EarCircle * math.Cos(a), Y: onewayclutch.EarCircle * math.Sin(a)}
+					// The ear bolt sits at EarCircle, which grows with the 8 mm clutch's bore clearance: keep clear of the
+					// whole path from the 605ZZ clutch's ear circle to the largest one.
+					lo := r3.Vec{X: earLo * math.Cos(a), Y: earLo * math.Sin(a)}
+					hi := r3.Vec{X: earHi * math.Cos(a), Y: earHi * math.Sin(a)}
+					seg := hi.Sub(lo)
+					u := math.Max(0, math.Min(1, v.Sub(lo).Dot(seg)/seg.Dot(seg)))
+					line := lo.Add(seg.Scale(u))
 					require.False(t, math.Hypot(v.X-line.X, v.Y-line.Y) < m2fastener.HeadPocketRadius+0.5 && v.Z >= 0 && v.Z <= 25,
 						"blade %d vertex %v blocks ear bolt %d's path", k+1, v, e)
 				}

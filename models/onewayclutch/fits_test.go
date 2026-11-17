@@ -27,11 +27,15 @@ const (
 	fitCut = 7.0
 	// midHub is the hub's mid-height; the ring's tooth band shares it.
 	midHub = (onewayclutch.HubFrom + onewayclutch.HubFrom + onewayclutch.HubHeight) / 2
-	// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore: from the end of the
-	// plate's outer chamfer (z 0.5) to the cone's start on the plate's rim (z 3.0); the cover's is its mirror in midHub.
-	fitBackRimZ = (onewayclutch.PlateChamfer + onewayclutch.BackPlateThickness - onewayclutch.Recess -
-		(onewayclutch.PlateRadius - onewayclutch.ToothRoot)) / 2
 )
+
+// fitBackRimZ is the middle of the back plate's rim where it overlaps the ring's counterbore: from the end of the
+// plate's outer chamfer (z 0.5) to the cone's start on the plate's rim (z 3.0 on the 605ZZ clutch); the cover's is its
+// mirror in midHub.
+func fitBackRimZ(dm onewayclutch.Dimensions) float64 {
+	return (onewayclutch.PlateChamfer + onewayclutch.BackPlateThickness - onewayclutch.Recess -
+		(dm.PlateRadius - dm.ToothRoot)) / 2
+}
 
 // fitSectionTols are the chord tolerances fitSection tries, finest first.
 var fitSectionTols = []float64{0.01, 0.02, fitMeshTol, fitCoarseTol}
@@ -219,7 +223,7 @@ func requireFitPairs(t *testing.T, m *onewayclutch.Model) {
 	for name, body := range bodies {
 		names = append(names, name)
 		tol := fitMeshTol
-		if name == "hub" && m.Dimensions.Shaft.Name == "605ZZ" {
+		if name == "hub" && hubChamfered(t, m) {
 			tol = fitCoarseTol
 		}
 		if len(name) == 5 { // a bolt or a nut: a 0.05 mm mesh is fine
@@ -291,15 +295,16 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	const regular = onewayclutch.RegularFit - onewayclutch.FitMargin
 
 	// The annulus floor is the plate's vertices from the boss bevel out to the cone.
-	annulusLo, annulusHi := onewayclutch.BossRadius+0.3, onewayclutch.ToothRoot-0.1
+	dm := m.Dimensions
+	annulusLo, annulusHi := dm.BossRadius+0.3, dm.ToothRoot-0.1
 	_, backTop, n := fitZRange(fitRadial(back, annulusLo, annulusHi), 0, midHub)
 	require.NotZero(t, n)
 	coverBottom, _, n := fitZRange(fitRadial(cover, annulusLo, annulusHi), midHub, 30)
 	require.NotZero(t, n)
 	// The ring's tooth end faces: its vertices from the tooth tips out to the root radius.
-	toothLo, _, n := fitZRange(fitRadial(ring, onewayclutch.ToothTip-0.1, onewayclutch.ToothRoot+0.01), 0, midHub)
+	toothLo, _, n := fitZRange(fitRadial(ring, dm.ToothTip-0.1, dm.ToothRoot+0.01), 0, midHub)
 	require.NotZero(t, n)
-	_, toothHi, n := fitZRange(fitRadial(ring, onewayclutch.ToothTip-0.1, onewayclutch.ToothRoot+0.01), midHub, 30)
+	_, toothHi, n := fitZRange(fitRadial(ring, dm.ToothTip-0.1, dm.ToothRoot+0.01), midHub, 30)
 	require.NotZero(t, n)
 
 	off := func(a, b decad.SectionOutline) float64 { return a.OffSurface.Base() + b.OffSurface.Base() }
@@ -317,7 +322,7 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 	for name, plate := range map[string]decad.SectionOutline{"back": back, "cover": cover} {
 		best, found := math.Inf(1), 0
 		for _, p := range fitPoints(plate) {
-			if r := p.Dot(plane.U()); math.Abs(r-onewayclutch.ToothRoot) <= 0.02 {
+			if r := p.Dot(plane.U()); math.Abs(r-dm.ToothRoot) <= 0.02 {
 				best, found = math.Min(best, fitNearest(p, ring.Loops)), found+1
 			}
 		}
@@ -332,10 +337,11 @@ func fitAxialFits(t *testing.T, m *onewayclutch.Model) (bandHeight float64) {
 // fitRimFits measures R2, the ring counterbore to each plate rim, in the section through the middle of the rim.
 func fitRimFits(t *testing.T, m *onewayclutch.Model) {
 	t.Helper()
+	rimZ := fitBackRimZ(m.Dimensions)
 	for name, c := range map[string]struct {
 		plate *decad.Body
 		z     float64
-	}{"back": {m.BackPlate, fitBackRimZ}, "cover": {m.Cover, 2*midHub - fitBackRimZ}} {
+	}{"back": {m.BackPlate, rimZ}, "cover": {m.Cover, 2*midHub - rimZ}} {
 		plane := fitPlane(t, c.z)
 		plate, ring := fitSection(t, c.plate, plane), fitSection(t, m.Ring, plane)
 		gap, err := plate.Clearance(ring)
@@ -353,12 +359,13 @@ func fitMapAngle(sigma, layoutDeg float64) float64 { return 90 + sigma*(layoutDe
 func fitArmFits(t *testing.T, m *onewayclutch.Model) {
 	t.Helper()
 	plane := fitPlane(t, midHub)
+	dm := m.Dimensions
 	hub, ring := fitSection(t, m.Hub, plane), fitSection(t, m.Ring, plane)
 	var arcs [][]r3.Vec // the arc segments, two-point loops, so fitNearest reads them as one segment each way
 	for _, loop := range hub.Loops {
 		for i, a := range loop {
 			b := loop[(i+1)%len(loop)]
-			if math.Abs(math.Hypot(a.X, a.Y)-onewayclutch.ArmOuter) < 0.02 && math.Abs(math.Hypot(b.X, b.Y)-onewayclutch.ArmOuter) < 0.02 {
+			if math.Abs(math.Hypot(a.X, a.Y)-dm.ArmOuter) < 0.02 && math.Abs(math.Hypot(b.X, b.Y)-dm.ArmOuter) < 0.02 {
 				arcs = append(arcs, []r3.Vec{a, b})
 			}
 		}
@@ -366,7 +373,7 @@ func fitArmFits(t *testing.T, m *onewayclutch.Model) {
 	require.NotEmpty(t, arcs)
 	best, tips := math.Inf(1), 0
 	for _, p := range fitPoints(ring) {
-		if math.Abs(math.Hypot(p.X, p.Y)-onewayclutch.ToothTip) < 0.02 {
+		if math.Abs(math.Hypot(p.X, p.Y)-dm.ToothTip) < 0.02 {
 			best, tips = math.Min(best, fitNearest(p, arcs)), tips+1
 		}
 	}
@@ -427,29 +434,28 @@ func fitCrossings(s decad.SectionOutline, deg float64) []float64 {
 func fitAngle(p r3.Vec) float64 { return math.Atan2(p.Y, p.X) * 180 / math.Pi }
 
 func TestOneWayClutchPawls(t *testing.T) {
-	// The values that come from Dimensions alone do not depend on the case.
-	dm, err := onewayclutch.DefaultParams().Derive()
-	require.NoError(t, err)
-	arm := onewayclutch.ArmOuter - onewayclutch.ArmInner
-	require.GreaterOrEqual(t, arm, onewayclutch.MinArmThickness-1e-9, "arm thickness: 1.5 mm minimum")
-	require.InDelta(t, onewayclutch.ArmThickness, arm, 1e-9)
-	margin := onewayclutch.SlotWidth - dm.HeadTravel
-	require.GreaterOrEqual(t, margin, 0.25, "slot margin s - delta")
-	flankAngle := fitAngle(dm.FlankEnd)
-	span := flankAngle - onewayclutch.SlotAngle
-	length := span * math.Pi / 180 * (onewayclutch.ArmInner + onewayclutch.ArmOuter) / 2
-	strain := 3 * arm * dm.HeadTravel / (2 * length * length)
-	require.LessOrEqual(t, strain, 0.012, "arm strain at full travel")
-	contact := dm.TipCenter.Y - onewayclutch.ToothTip
-	require.GreaterOrEqual(t, contact, 0.8, "lock face contact, radial")
-	require.GreaterOrEqual(t, onewayclutch.BandTo-onewayclutch.BandFrom, 9.6-1e-9, "lock face contact, axial")
-	t.Logf("from Dimensions: arm %.3f, slot margin %.3f, strain %.3f%%, arm length %.1f over %.1f deg, contact %.3f",
-		arm, margin, strain*100, length, span, contact)
-
 	for _, c := range fitCases() {
 		t.Run(c.name, func(t *testing.T) {
 			m := fitBuild(t, c)
-			sigma := m.Dimensions.Sign
+			dm := m.Dimensions
+			// The values that come from Dimensions alone.
+			arm := dm.ArmOuter - dm.ArmInner
+			require.GreaterOrEqual(t, arm, onewayclutch.MinArmThickness-1e-9, "arm thickness: 1.5 mm minimum")
+			require.InDelta(t, onewayclutch.ArmThickness, arm, 1e-9)
+			margin := dm.SlotWidth - dm.HeadTravel
+			require.GreaterOrEqual(t, margin, 0.25, "slot margin s - delta")
+			flankAngle := fitAngle(dm.FlankEnd)
+			armSpan := flankAngle - onewayclutch.SlotAngle
+			length := armSpan * math.Pi / 180 * (dm.ArmInner + dm.ArmOuter) / 2
+			strain := 3 * arm * dm.HeadTravel / (2 * length * length)
+			require.LessOrEqual(t, strain, 0.012, "arm strain at full travel")
+			contact := dm.TipCenter.Y - dm.ToothTip
+			require.GreaterOrEqual(t, contact, 0.8, "lock face contact, radial")
+			require.GreaterOrEqual(t, onewayclutch.BandTo-onewayclutch.BandFrom, 9.6-1e-9, "lock face contact, axial")
+			t.Logf("from Dimensions: arm %.3f, slot margin %.3f, strain %.3f%%, arm length %.1f over %.1f deg, contact %.3f",
+				arm, margin, strain*100, length, armSpan, contact)
+
+			sigma := dm.Sign
 			plane := fitPlane(t, midHub)
 			hub, ring := fitSection(t, m.Hub, plane), fitSection(t, m.Ring, plane)
 			off := hub.OffSurface.Base() + 1e-6
@@ -463,7 +469,7 @@ func TestOneWayClutchPawls(t *testing.T) {
 				n := len(cr)
 				got, slot := cr[n-1]-cr[n-2], cr[n-2]-cr[n-3]
 				require.InDelta(t, onewayclutch.ArmThickness, got, 2*off+0.005, "arm thickness at layout %g", layout)
-				require.InDelta(t, onewayclutch.SlotWidth, slot, 2*off+0.005, "slot width at layout %g", layout)
+				require.InDelta(t, dm.SlotWidth, slot, 2*off+0.005, "slot width at layout %g", layout)
 				slotMin = math.Min(slotMin, slot)
 			}
 
@@ -473,23 +479,23 @@ func TestOneWayClutchPawls(t *testing.T) {
 			for _, p := range fitPoints(hub) {
 				r := math.Hypot(p.X, p.Y)
 				reach = math.Max(reach, r)
-				if math.Abs(r-onewayclutch.ArmOuter) < 0.02 {
+				if math.Abs(r-dm.ArmOuter) < 0.02 {
 					layout := fitMapAngle(sigma, fitAngle(p)) // the map is its own inverse
 					if layout > -20+0.5 && layout < 90 {
 						armMax = math.Max(armMax, layout)
 					}
 				}
 			}
-			travel := reach - onewayclutch.ToothTip
+			travel := reach - dm.ToothTip
 			require.InDelta(t, dm.HeadReach, reach, off+0.005, "head reach")
 			require.GreaterOrEqual(t, slotMin-travel-2*off, 0.25, "slot margin from the section")
 			require.InDelta(t, flankAngle, armMax, 0.3, "the arm's outer arc ends at the flank")
-			l := (armMax - onewayclutch.SlotAngle) * math.Pi / 180 * (onewayclutch.ArmInner + onewayclutch.ArmOuter) / 2
+			l := (armMax - onewayclutch.SlotAngle) * math.Pi / 180 * (dm.ArmInner + dm.ArmOuter) / 2
 			sectionStrain := 3 * (onewayclutch.ArmThickness - 2*off) * travel / (2 * l * l)
 			require.LessOrEqual(t, sectionStrain, 0.012, "strain from the section")
 
 			// Web width: from the slot's end round to the web's back face.
-			centre := onewayclutch.CoreRadius + onewayclutch.SlotWidth/2
+			centre := dm.CoreRadius + dm.SlotWidth/2
 			slotEnd := r3.Vec{
 				X: centre * math.Cos(fitMapAngle(sigma, onewayclutch.SlotAngle)*math.Pi/180),
 				Y: centre * math.Sin(fitMapAngle(sigma, onewayclutch.SlotAngle)*math.Pi/180),
@@ -497,7 +503,7 @@ func TestOneWayClutchPawls(t *testing.T) {
 			ws, wc := math.Sincos(fitMapAngle(sigma, onewayclutch.WebAngle) * math.Pi / 180)
 			web, rounds := math.Inf(1), 0
 			for _, p := range fitPoints(hub) {
-				if math.Abs(math.Hypot(p.X-slotEnd.X, p.Y-slotEnd.Y)-onewayclutch.SlotWidth/2) < 0.02 {
+				if math.Abs(math.Hypot(p.X-slotEnd.X, p.Y-slotEnd.Y)-dm.SlotWidth/2) < 0.02 {
 					web, rounds = math.Min(web, math.Abs(wc*p.Y-ws*p.X)), rounds+1
 				}
 			}

@@ -141,10 +141,10 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 // run at the concave 11.43 degree corner beside the head's flank, where the bevel tapers out on the flank's plane, and
 // at the convex corners at the web and the lock face. The hub has no Boolean.
 //
-// Only the 605ZZ hub is chamfered. Its faces are 384.1 to 413.9 mm², over the 400 mm² of "Surface edge finishing".
-// The 8 mm presets' faces are 376.7 to 383.5 mm², under it, so edgefinish finds no edge and the hub stays the exact
-// prism. The chamfer is 0.25 mm, not 0.5: the flank's plane, carried back over the arm's outer arc, can cap a bevel of
-// at most R - D = 13.2 - 12.938 = 0.262 mm at that corner, which is the smaller chamfer "required by functional
+// Every hub is chamfered: the 605ZZ faces are 384.1 to 413.9 mm² and the grown 8 mm faces 442.1 to 466.7 mm², over the
+// 400 mm² of "Surface edge finishing". The chamfer is Dimensions.HubChamfer, at most 0.25 mm and not 0.5: the flank's
+// plane, carried back over the arm's outer arc, caps a bevel at ArmOuter - FlankDistance there (0.262 mm on the 605ZZ
+// hub), and HubChamfer stays HubChamferMargin under that cap. That is the smaller chamfer "required by functional
 // geometry".
 func (r *run) hub() (*decad.Body, error) {
 	s, err := r.hubSketch()
@@ -156,7 +156,7 @@ func (r *run) hub() (*decad.Body, error) {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
 	chamfered, _, err := edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Z: 1}, []float64{HubFrom, HubFrom + HubHeight},
-		edgefinish.Long(edgefinish.All), edgefinish.Long(edgefinish.Inner), HubChamfer)
+		edgefinish.Long(edgefinish.All), edgefinish.Long(edgefinish.Inner), r.dm.HubChamfer)
 	if errors.Is(err, edgefinish.ErrNoEdge) {
 		return body, nil
 	}
@@ -183,7 +183,8 @@ func (r *run) ring() (*decad.Body, error) {
 		edgefinish.Long(edgefinish.Outer), RingChamfer); err != nil {
 		return nil, fmt.Errorf("chamfer outer loop: %w", err)
 	}
-	for i, meridian := range [][][2]float64{RingBackTool[:], RingFrontTool[:]} {
+	back, front := r.dm.RingBackTool(), r.dm.RingFrontTool()
+	for i, meridian := range [][][2]float64{back[:], front[:]} {
 		tool, err := r.meridian(meridian)
 		if err != nil {
 			return nil, fmt.Errorf("counterbore tool %d: %w", i+1, err)
@@ -241,14 +242,16 @@ func (r *run) plate(z, length float64, outerZ float64, inner [][2]float64,
 
 // backPlate is the plate on the mechanism side: z 0 to 3.5, with a hex nut pocket open to its outer face at each bolt.
 func (r *run) backPlate() (*decad.Body, error) {
-	return r.plate(0, BackPlateThickness, 0, BackPlateInner[:], func() ([]*decad.Body, error) {
+	inner := r.dm.BackPlateInner()
+	return r.plate(0, BackPlateThickness, 0, inner[:], func() ([]*decad.Body, error) {
 		return r.fastenerTools(hexPocket)
 	})
 }
 
 // cover is the plate on the front side: z 14 to 18, with a head pocket at each bolt.
 func (r *run) cover() (*decad.Body, error) {
-	return r.plate(CoverFrom, CoverThickness, CoverTo, CoverInner[:], func() ([]*decad.Body, error) {
+	inner := r.dm.CoverInner()
+	return r.plate(CoverFrom, CoverThickness, CoverTo, inner[:], func() ([]*decad.Body, error) {
 		return r.fastenerTools(m2fastener.PocketTool)
 	})
 }
@@ -267,36 +270,6 @@ func (r *run) fastenerTools(build func(context.Context, *decad.Document, m2faste
 	}
 	return tools, nil
 }
-
-// RingBackTool and RingFrontTool are the ring's counterbore tools, closed meridians (r, z) revolved a full turn about Z
-// and cut from the extruded outline. Each takes the plate's rim in a counterbore of radius RingCounter, with a 45 degree
-// lead-in at the ring's end face and a 45 degree cone that holds the ring axially. The tool's flat at BandFrom or BandTo
-// is the teeth's end face. The front tool is the back one mirrored in the hub's mid-plane.
-var (
-	RingBackTool = [...][2]float64{
-		{ToothTip - 1.5, RingFrom - 1}, {RingCounter + 1.5, RingFrom - 1}, {RingCounter, RingFrom + RingChamfer},
-		{RingCounter, BandFrom - (RingCounter - ToothRoot)}, {ToothRoot, BandFrom}, {ToothTip - 1.5, BandFrom},
-	}
-	RingFrontTool = [...][2]float64{
-		{ToothTip - 1.5, RingTo + 1}, {RingCounter + 1.5, RingTo + 1}, {RingCounter, RingTo - RingChamfer},
-		{RingCounter, BandTo + (RingCounter - ToothRoot)}, {ToothRoot, BandTo}, {ToothTip - 1.5, BandTo},
-	}
-)
-
-// BackPlateInner and CoverInner are the plates' inner-face tools (r, z): the boss, its bevel, the recessed annulus and
-// the 45 degree cone to the rim.
-var (
-	BackPlateInner = [...][2]float64{
-		{BossRadius - 0.9, BackPlateThickness + 1}, {BossRadius - 0.9, BackPlateThickness - 0.6},
-		{BossRadius - 0.1, BackPlateThickness - Recess}, {ToothRoot, BackPlateThickness - Recess},
-		{PlateRadius + 1, BackPlateThickness - Recess - (PlateRadius + 1 - ToothRoot)}, {PlateRadius + 1, BackPlateThickness + 1},
-	}
-	CoverInner = [...][2]float64{
-		{BossRadius - 0.9, CoverFrom - 1}, {BossRadius - 0.9, CoverFrom + 0.6}, {BossRadius - 0.1, CoverFrom + Recess},
-		{ToothRoot, CoverFrom + Recess}, {PlateRadius + 1, CoverFrom + Recess + (PlateRadius + 1 - ToothRoot)},
-		{PlateRadius + 1, CoverFrom - 1},
-	}
-)
 
 // placeSite carries a local bolt site through the placement.
 func placeSite(s m2fastener.Site, f *r3.Frame) (m2fastener.Site, error) {

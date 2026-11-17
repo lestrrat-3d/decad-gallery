@@ -18,16 +18,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestOneWayClutchAdapter builds the default clutch and its standard adapter in one document and checks the adapter, its
+// TestOneWayClutchAdapter builds the 605ZZ and 608ZZ clutches and its standard adapter in one document and checks the adapter, its
 // fasteners and every pair they meet: the adapter's shape and edge finishing, flush heads, nuts inside their pockets,
 // bolt tips, the clearances round each shank, the seam, and the wall round each pocket.
 func TestOneWayClutchAdapter(t *testing.T) {
+	for _, shaft := range []string{"605ZZ", "608ZZ"} {
+		t.Run(shaft, func(t *testing.T) {
+			p := onewayclutch.DefaultParams()
+			p.Shaft = shaft
+			requireAdapter(t, p)
+		})
+	}
+}
+
+// requireAdapter runs the adapter checks for the clutch p.
+func requireAdapter(t *testing.T, p onewayclutch.Params) {
 	// The cached default clutch lives in its own document, so this test builds its own pair.
 	doc := onewayclutch.NewDocument()
-	m, err := onewayclutch.Build(t.Context(), doc, onewayclutch.DefaultParams())
+	m, err := onewayclutch.Build(t.Context(), doc, p)
 	require.NoError(t, err)
-	a, err := onewayclutch.BuildAdapter(t.Context(), doc, onewayclutch.DefaultParams())
+	a, err := onewayclutch.BuildAdapter(t.Context(), doc, p)
 	require.NoError(t, err)
+	dm := m.Dimensions
 
 	t.Run("bodies and containers", func(t *testing.T) {
 		require.Len(t, doc.Bodies(), 17)
@@ -74,8 +86,8 @@ func TestOneWayClutchAdapter(t *testing.T) {
 		tol := box.Bound.Base() + 1e-3
 		require.InDelta(t, onewayclutch.AdapterFrom, box.Min.Z, tol)
 		require.InDelta(t, onewayclutch.AdapterTo, box.Max.Z, tol)
-		require.InDelta(t, onewayclutch.AdapterRadius, box.Max.Y, tol, "an ear tip's radius, at 90 degrees")
-		require.InDelta(t, -onewayclutch.AdapterRadius, box.Min.Y, tol)
+		require.InDelta(t, dm.AdapterRadius, box.Max.Y, tol, "an ear tip's radius, at 90 degrees")
+		require.InDelta(t, -dm.AdapterRadius, box.Min.Y, tol)
 		// Both faces are chamfered 0.5 mm, so a section 0.25 mm inside each is a circle 0.25 mm in.
 		for name, z := range map[string]float64{"back": onewayclutch.AdapterFrom + 0.25, "front": onewayclutch.AdapterTo - 0.25} {
 			s := fitSection(t, a.Body, fitPlane(t, z))
@@ -85,15 +97,15 @@ func TestOneWayClutchAdapter(t *testing.T) {
 				if r > 20 {
 					outer = math.Max(outer, r)
 				}
-				if r > 3 && r < 7 {
+				if r > 3 && r < dm.AdapterInner+1 { // the access holes start at BoltCircle - HoleRadius
 					inner = math.Min(inner, r)
 				}
 			}
-			require.InDelta(t, onewayclutch.AdapterRadius-0.25, outer, 0.03, "%s face: outer edge", name)
-			require.InDelta(t, onewayclutch.AdapterInner+0.25, inner, 0.03, "%s face: inner edge", name)
+			require.InDelta(t, dm.AdapterRadius-0.25, outer, 0.03, "%s face: outer edge", name)
+			require.InDelta(t, dm.AdapterInner+0.25, inner, 0.03, "%s face: inner edge", name)
 		}
 		// The face is over 400 mm², so the chamfer is required.
-		area := math.Pi*(onewayclutch.AdapterRadius*onewayclutch.AdapterRadius-onewayclutch.AdapterInner*onewayclutch.AdapterInner) -
+		area := math.Pi*(dm.AdapterRadius*dm.AdapterRadius-dm.AdapterInner*dm.AdapterInner) -
 			9*math.Pi*m2fastener.HoleRadius*m2fastener.HoleRadius
 		require.Greater(t, area, 400.0)
 	})
@@ -256,8 +268,6 @@ func TestOneWayClutchAdapter(t *testing.T) {
 	})
 
 	t.Run("face interface and access holes", func(t *testing.T) {
-		dm, err := onewayclutch.DefaultParams().Derive()
-		require.NoError(t, err)
 		// A section through the rear face pockets: each face hole's head pocket is a circle about its site, and the wall
 		// to every other loop is 1.5 mm or more.
 		z := dm.FaceSites[0].At(m2fastener.HeadPocketDepth / 2).Z
@@ -318,7 +328,7 @@ func TestOneWayClutchAdapter(t *testing.T) {
 		}
 		// No access hole or face hole breaks into the bore: 1.5 mm of material remains to the bore's chamfer.
 		for _, c := range centres {
-			require.GreaterOrEqual(t, math.Hypot(c.X, c.Y)-m2fastener.HoleRadius-onewayclutch.AdapterInner, 1.5)
+			require.GreaterOrEqual(t, math.Hypot(c.X, c.Y)-m2fastener.HoleRadius-dm.AdapterInner, 1.5)
 		}
 	})
 

@@ -20,12 +20,12 @@ type ringLoops struct {
 	pockets      [onewayclutch.Ears][]r3.Vec
 }
 
-func earCentre(k int) r3.Vec {
+func earCentre(earCircle float64, k int) r3.Vec {
 	s, c := math.Sincos(onewayclutch.EarAngles[k] * math.Pi / 180)
-	return r3.Vec{X: onewayclutch.EarCircle * c, Y: onewayclutch.EarCircle * s}
+	return r3.Vec{X: earCircle * c, Y: earCircle * s}
 }
 
-func splitRing(t *testing.T, loops [][]r3.Vec) ringLoops {
+func splitRing(t *testing.T, loops [][]r3.Vec, dm onewayclutch.Dimensions) ringLoops {
 	t.Helper()
 	var out ringLoops
 	for _, loop := range loops {
@@ -35,7 +35,7 @@ func splitRing(t *testing.T, loops [][]r3.Vec) ringLoops {
 		}
 		placed := false
 		for k := range out.bores {
-			c := earCentre(k)
+			c := earCentre(dm.EarCircle, k)
 			switch d := math.Hypot(loop[0].X-c.X, loop[0].Y-c.Y); {
 			case d < 2:
 				require.Nil(t, out.bores[k], "one bore loop at ear %d", k+1)
@@ -49,7 +49,7 @@ func splitRing(t *testing.T, loops [][]r3.Vec) ringLoops {
 		}
 		switch {
 		case placed:
-		case hi > 20:
+		case hi > dm.RingCounter+1:
 			require.Nil(t, out.outer, "one outer loop")
 			out.outer = loop
 		default:
@@ -92,18 +92,19 @@ func TestOneWayClutchEars(t *testing.T) {
 	for _, c := range fitCases() {
 		t.Run(c.name, func(t *testing.T) {
 			m := fitBuild(t, c)
+			dm := m.Dimensions
 			// Layer runs of the ring: the back and front counterbore runs, and the tooth band between them.
 			for name, z := range map[string]float64{
-				"back counterbore": (onewayclutch.RingFrom + onewayclutch.BandFrom - (onewayclutch.RingCounter - onewayclutch.ToothRoot) +
+				"back counterbore": (onewayclutch.RingFrom + onewayclutch.BandFrom - (dm.RingCounter - dm.ToothRoot) +
 					onewayclutch.RingChamfer) / 2,
 				"band": (onewayclutch.RingFrom + onewayclutch.RingTo) / 2,
-				"front counterbore": (onewayclutch.RingTo + onewayclutch.BandTo + (onewayclutch.RingCounter - onewayclutch.ToothRoot) -
+				"front counterbore": (onewayclutch.RingTo + onewayclutch.BandTo + (dm.RingCounter - dm.ToothRoot) -
 					onewayclutch.RingChamfer) / 2,
 			} {
-				rl := splitRing(t, fitSection(t, m.Ring, fitPlane(t, z)).Loops)
+				rl := splitRing(t, fitSection(t, m.Ring, fitPlane(t, z)).Loops, dm)
 				for k, a := range onewayclutch.EarAngles {
-					require.InDelta(t, onewayclutch.EarReach, loopRadiusAlong(rl.outer, a), 0.03, "%s: ear %d tip", name, k+1)
-					c := earCentre(k)
+					require.InDelta(t, dm.EarReach, loopRadiusAlong(rl.outer, a), 0.03, "%s: ear %d tip", name, k+1)
+					c := earCentre(dm.EarCircle, k)
 					for _, p := range rl.bores[k] {
 						require.InDelta(t, 1.3, math.Hypot(p.X-c.X, p.Y-c.Y), 0.02, "%s: ear %d bore radius", name, k+1)
 					}
@@ -146,31 +147,32 @@ func TestOneWayClutchRingEdgeFinishing(t *testing.T) {
 	for _, c := range fitCases()[:6] {
 		t.Run(c.name, func(t *testing.T) {
 			m := fitBuild(t, c)
+			dm := m.Dimensions
 			for name, z := range map[string]float64{
 				"back face":  onewayclutch.RingFrom + depth,
 				"front face": onewayclutch.RingTo - depth,
 			} {
 				s := fitSection(t, m.Ring, fitPlane(t, z))
-				rl := splitRing(t, s.Loops)
+				rl := splitRing(t, s.Loops, dm)
 				if name == "back face" {
 					// The rear nut pockets open on this face: three unchamfered hexagons and no bore loops.
-					requirePocketLoops(t, s)
+					requirePocketLoops(t, s, dm.EarCircle)
 				}
 				// Between the ears the outside is a circle 0.25 mm inside RingOuter.
 				for _, deg := range []float64{30, 150, 270} {
-					require.InDelta(t, onewayclutch.RingOuter-depth, loopRadiusAlong(rl.outer, deg), 0.03,
+					require.InDelta(t, dm.RingOuter-depth, loopRadiusAlong(rl.outer, deg), 0.03,
 						"%s: outside at %g degrees", name, deg)
 				}
 				for k, a := range onewayclutch.EarAngles {
-					require.InDelta(t, onewayclutch.EarReach-depth, loopRadiusAlong(rl.outer, a), 0.03,
+					require.InDelta(t, dm.EarReach-depth, loopRadiusAlong(rl.outer, a), 0.03,
 						"%s: ear %d tip", name, k+1)
-					cen := earCentre(k)
+					cen := earCentre(dm.EarCircle, k)
 					for _, p := range rl.bores[k] { // none at the back face
 						require.InDelta(t, 1.3, math.Hypot(p.X-cen.X, p.Y-cen.Y), 0.02, "%s: bore %d not chamfered", name, k+1)
 					}
 				}
 				for _, p := range rl.inner {
-					require.InDelta(t, onewayclutch.RingCounter+depth, math.Hypot(p.X, p.Y), 0.03, "%s: counterbore", name)
+					require.InDelta(t, dm.RingCounter+depth, math.Hypot(p.X, p.Y), 0.03, "%s: counterbore", name)
 				}
 			}
 		})
@@ -181,23 +183,23 @@ func TestOneWayClutchRingEdgeFinishing(t *testing.T) {
 // run to z 0.75). The face's chamfer ends at z -0.75, so the section is above it.
 func requireMountPockets(t *testing.T, m *onewayclutch.Model) {
 	t.Helper()
-	requirePocketLoops(t, fitSection(t, m.Ring, fitPlane(t, onewayclutch.RingFrom+1.0)))
+	requirePocketLoops(t, fitSection(t, m.Ring, fitPlane(t, onewayclutch.RingFrom+1.0)), m.Dimensions.EarCircle)
 }
 
 // requirePocketLoops requires the section of the ring's rear end to hold, besides the outer and counterbore loops, one
 // loop per ear: its nut pocket's hexagon, with its corners on the NutCavityRadius circle about the ear's axis and a flat
 // toward the ring's axis. Each keeps 1.0 mm or more of wall to every other loop.
-func requirePocketLoops(t *testing.T, s decad.SectionOutline) {
+func requirePocketLoops(t *testing.T, s decad.SectionOutline, earCircle float64) {
 	t.Helper()
 	require.Len(t, s.Loops, 2+onewayclutch.Ears, "outer, counterbore, and a hexagon at each ear")
 	flat := m2fastener.NutCavityRadius * math.Sqrt(3) / 2
 	found := 0
 	for i, loop := range s.Loops {
-		c := earCentre(0)
+		c := earCentre(earCircle, 0)
 		isPocket := false
 		for k := range onewayclutch.EarAngles {
-			if math.Hypot(loop[0].X-earCentre(k).X, loop[0].Y-earCentre(k).Y) < 3 {
-				c, isPocket = earCentre(k), true
+			if math.Hypot(loop[0].X-earCentre(earCircle, k).X, loop[0].Y-earCentre(earCircle, k).Y) < 3 {
+				c, isPocket = earCentre(earCircle, k), true
 			}
 		}
 		if !isPocket {
@@ -220,7 +222,7 @@ func requirePocketLoops(t *testing.T, s decad.SectionOutline) {
 		for _, p := range loop {
 			nearest = math.Min(nearest, math.Hypot(p.X, p.Y))
 		}
-		require.GreaterOrEqual(t, nearest, onewayclutch.EarCircle-flat-0.03, "a flat faces the axis")
+		require.GreaterOrEqual(t, nearest, earCircle-flat-0.03, "a flat faces the axis")
 		wall := math.Inf(1)
 		for j, other := range s.Loops {
 			if j == i {
