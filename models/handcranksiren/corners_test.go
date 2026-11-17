@@ -46,7 +46,7 @@ func requireCorners(t *testing.T, p handcranksiren.Params, parts map[string]hand
 
 // crankExempt lists the crank's retained corners as models/crankhandle lists them for its 608-2RS crank, read in
 // crankhandle's local frame (+Z out of the mechanism, +Y along the arm to the pin): the arm's hexagonal pocket, which
-// matches the pin's stub (Mating corners), the clamp bolt's head pocket floor rim, and the six corners of each cross
+// matches the pin's stub (Mating corners), each clamp bolt's head pocket floor rim, and the six corners of each cross
 // nut's hexagonal pocket in the pin's halves. No slit end round is listed: at the 1.5 mm slit it reads no finding.
 func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck.Exempt {
 	t.Helper()
@@ -59,26 +59,34 @@ func crankExempt(t *testing.T, p handcranksiren.Params) map[string][]cornercheck
 		return func(v r3.Vec) bool { return near(toLocal.Apply(v)) }
 	}
 	corner := crankhandle.PocketFlats / math.Sqrt(3)
-	floor := crankhandle.ArmRadius - dm.ClampSites[0].Cavity
-	return map[string][]cornercheck.Exempt{
-		"crank-arm": {{
-			Reason: "hexagonal pocket corners",
-			Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
-		}, {
+	arm := []cornercheck.Exempt{{
+		Reason: "hexagonal pocket corners",
+		Near:   local(cornercheck.Annulus(r3.Vec{Y: throw}, r3.Vec{Z: 1}, corner-0.3, corner+0.3)),
+	}}
+	for i, site := range dm.ClampSites {
+		floor, z := crankhandle.ArmRadius-site.Cavity, site.Head.Z
+		if i == 0 {
 			// The clamp pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm
-			// round of the floor's outline at a slant and reads it as a turn over 45 degrees, as in crankhandle.
-			Reason: "clamp nut pocket floor round cut at a slant",
-			Near: local(func(v r3.Vec) bool {
-				return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
-					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.NutCavityRadius+0.05
-			}),
-		}, {
-			Reason: "clamp head pocket floor rim",
+			// round of the floor's outline at a slant and reads it as a turn over 45 degrees, as in crankhandle. Only
+			// pocket 1's round is read; an exemption that claims no finding fails cornercheck.
+			arm = append(arm, cornercheck.Exempt{
+				Reason: "clamp nut pocket 1 floor round cut at a slant",
+				Near: local(func(v r3.Vec) bool {
+					return v.X < floor-0.05 && v.X > floor-crankhandle.NutPocketRound-0.1 &&
+						math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.NutCavityRadius+0.05
+				}),
+			})
+		}
+		arm = append(arm, cornercheck.Exempt{
+			Reason: fmt.Sprintf("clamp head pocket %d floor rim", i+1),
 			Near: local(func(v r3.Vec) bool {
 				return math.Abs(v.X-(crankhandle.ArmRadius-m2fastener.HeadPocketDepth)) < 0.05 &&
-					math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
+					math.Hypot(v.Y-dm.ClampY, v.Z-z) <= m2fastener.HeadPocketRadius+0.05
 			}),
-		}},
+		})
+	}
+	return map[string][]cornercheck.Exempt{
+		"crank-arm": arm,
 		"crank-pin": crossPocketCorners(local, throw),
 	}
 }

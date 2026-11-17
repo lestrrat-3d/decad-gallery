@@ -60,14 +60,16 @@ func (s sectionAt) contains(offset r3.Vec) bool {
 }
 
 // openPocketNut names the nuts that sit in a hexagonal pocket open to their part's face instead of an enclosed cavity:
-// the crank arm's clamp nut and the crank pin's two cross nuts, which their bolts hold in (models/crankhandle). A
-// pocket runs from CavityNear to the face at CavityFar, and the bolt's tip ends flush with that face. The clamp nut's
+// the crank arm's two clamp nuts and the crank pin's two cross nuts, which their bolts hold in (models/crankhandle). A
+// pocket runs from CavityNear to the face at CavityFar, and the bolt's tip ends flush with that face. Each clamp nut's
 // pocket runs deeper: it reaches the face 2 mm past CavityFar (pocketFace), and the bolt's tip ends at CavityFar,
 // inside the pocket.
-var openPocketNut = map[string]struct{}{"crank-clamp-nut": {}, "crank-cross-nut-1": {}, "crank-cross-nut-2": {}}
+var openPocketNut = map[string]struct{}{
+	"crank-clamp-nut-1": {}, "crank-clamp-nut-2": {}, "crank-cross-nut-1": {}, "crank-cross-nut-2": {},
+}
 
 // pocketFace gives the distance from Head to the face an openPocketNut's pocket opens on, where it is not CavityFar.
-var pocketFace = map[string]float64{"crank-clamp-nut": 20}
+var pocketFace = map[string]float64{"crank-clamp-nut-1": 20, "crank-clamp-nut-2": 20}
 
 // requireFasteners proves for each fastener: the head ends flush with its part's face, the nut sits inside the cavity
 // its part encloses (or, for an openPocketNut, inside its hexagonal pocket below the face), the part keeps 1 mm of material
@@ -76,7 +78,7 @@ var pocketFace = map[string]float64{"crank-clamp-nut": 20}
 func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	all, err := handcranksiren.Fasteners(p)
 	require.NoError(t, err)
-	require.Len(t, all, 27)
+	require.Len(t, all, 28)
 	request := decad.ContactRequest{
 		PointResolution:  units.Millimeters(0.01),
 		NormalResolution: units.Radians(0.01),

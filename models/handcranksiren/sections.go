@@ -346,3 +346,25 @@ func (b *builder) dBoreTool(a shaftAxis, from, length, clearance float64) *decad
 func (b *builder) dShaft(a shaftAxis, from, to float64) *decad.Body {
 	return b.dShape(a, from, to-from, flatOffset, shaftRadius)
 }
+
+// backFlatTool builds the cutter of the crank shaft's second flat: everything more than flatOffset below the axis (toward
+// -Z, opposite dShaft's flat) from Y crankBackFlatFrom to past the shaft's end, ending toward the mechanism in a 30
+// degree ramp. Its side profile lies in the plane x = -boxHalf from the axis, with sketch (u, v) the (Y, Z) offsets from
+// the point on the axis at Y crankBackFlatFrom, and is extruded across the shaft.
+func (b *builder) backFlatTool(a shaftAxis) *decad.Body {
+	s := b.section(frame(a.point.Add(r3.Vec{X: -boxHalf, Y: crankBackFlatFrom}), r3.Vec{Y: 1}, r3.Vec{Z: 1}))
+	if s == nil {
+		return nil
+	}
+	end := crankShaftTo + 1 - crankBackFlatFrom
+	lowV := -flatOffset - flatReach
+	pa := sketchcheck.DimensionPoint(s, 0, -flatOffset)
+	pb := sketchcheck.DimensionPoint(s, end, -flatOffset)
+	pc := sketchcheck.DimensionPoint(s, end, lowV)
+	pd := sketchcheck.DimensionPoint(s, -flatReach/math.Tan(30*math.Pi/180), lowV)
+	s.CreateLine(pa, pb)
+	s.CreateLine(pb, pc)
+	s.CreateLine(pc, pd)
+	s.CreateLine(pd, pa)
+	return b.extrude(s, 0, 2*boxHalf)
+}

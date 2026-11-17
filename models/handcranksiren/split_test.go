@@ -27,10 +27,11 @@ func requireSplitShafts(t *testing.T, a *handcranksiren.Assembly, parts map[stri
 		point  r3.Vec
 		angle  float64
 		height float64 // the larger of the shaft and collar radii
+		flats  int     // flat planes along the whole shaft
 	}{
-		{"crank-shaft", s.Crank, s.CrankAngle, 5.5},
-		{"intermediate-shaft", s.Intermediate, s.IntermediateAngle, 4.0},
-		{"rotor-shaft", s.Rotor, s.RotorAngle, 5.5},
+		{"crank-shaft", s.Crank, s.CrankAngle, 5.5, 2},
+		{"intermediate-shaft", s.Intermediate, s.IntermediateAngle, 4.0, 1},
+		{"rotor-shaft", s.Rotor, s.RotorAngle, 5.5, 1},
 	} {
 		t.Run(shaft.name, func(t *testing.T) {
 			r, err := splitcheck.Check(t.Context(), splitcheck.Shaft{
@@ -40,7 +41,7 @@ func requireSplitShafts(t *testing.T, a *handcranksiren.Assembly, parts map[stri
 			}, splitTolerance)
 			require.NoError(t, err)
 			require.Empty(t, r.Violations)
-			require.Equal(t, 1, r.Flats, "one flat along the whole shaft")
+			require.Equal(t, shaft.flats, r.Flats, "flats along the whole shaft")
 			want := r3.Vec{X: math.Cos(shaft.angle), Z: math.Sin(shaft.angle)}
 			require.InDelta(t, 1, math.Abs(r.Normal.Dot(want)), 1e-9, "split normal %v", r.Normal)
 			for i, h := range r.HalfHeights {

@@ -337,6 +337,8 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	// arm's hexagonal pocket. The arm is cut at armTolerance.
 	c.atLeast("T5", "crank-arm / crank-shaft", sectionGapMixed(t, body("crank-arm"), armTolerance, body("crank-shaft"),
 		roundFitTolerance, atY(t, 41.0)), pressFit)
+	c.atLeast("T5", "crank-arm / crank-shaft boss", sectionGapMixed(t, body("crank-arm"), armTolerance, body("crank-shaft"),
+		roundFitTolerance, atY(t, 48.6)), pressFit)
 	c.atLeast("T6", "crank-arm / crank-shaft floor axial",
 		boreFloorGap(t, body("crank-arm"), body("crank-shaft"), axialPlane(t, p, "crank", state.Crank), false,
 			armTolerance), tight)
@@ -347,8 +349,9 @@ func requireClearances(t *testing.T, p handcranksiren.Params, parts map[string]h
 	exact("R3", "crank-handle", "crank-pin", atY(t, 70), regular)
 	exact("R3", "crank-handle", "crank-pin", atY(t, 95), regular)
 	exact("R3", "crank-handle", "crank-pin", pinPlane, regular)
-	// R4: the arm against the handle's inner end.
-	axial("R4", "crank-arm", "crank-handle", 1, regular)
+	// R4: the arm against the handle's inner end, in the pin-axis plane: the hub's boss overlaps the handle's axial
+	// bounds, so the gap is read where the two face each other.
+	section("R4", "crank-arm", "crank-handle", pinPlane, regular)
 	// L5: the arm against the rear plate.
 	axial("L5", "gearbox-rear", "crank-arm", 1, loose)
 	c.done()

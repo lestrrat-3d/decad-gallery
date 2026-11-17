@@ -195,7 +195,7 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 	crankAxis, err := handcranksiren.PosePoint(p, "crank", r3.Vec{X: 60, Z: 84})
 	require.NoError(t, err)
 	requireChamferedExcept(t, "crank-arm", parts["crank-arm"].Body, r3.Vec{Y: 1}, crankAxis, edgefinish.Outer,
-		armSharpEdge(t, p), 38.6, 46.6)
+		armSharpEdge(t, p), 38.6, 46.6, 55.6)
 
 	// 48T and 50T gears: a 0.2 cap chamfer pulls the tips in 0.1 inside each cap.
 	state, err := handcranksiren.Motion(p)
@@ -232,8 +232,8 @@ func requireEdgeFinishing(t *testing.T, p handcranksiren.Params, parts map[strin
 }
 
 // armSharpEdge reports whether an edge of the crank arm's faces is one crankhandle keeps sharp: both its ends, read in
-// crankhandle's local frame, lie on the slit's walls or end round (within SlitWidth/2 of x = 0, behind the shaft axis)
-// or on the D bore's outline (within r_b of the axis).
+// crankhandle's local frame, lie on the slit's walls or end round (within SlitWidth/2 of x = 0, behind the shaft axis),
+// on the bore's outline (within r_b of the axis), or on the ramp's foot (y = RampFoot, z = ArmThickness: a concave edge).
 func armSharpEdge(t *testing.T, p handcranksiren.Params) func(*decad.Edge) bool {
 	t.Helper()
 	toLocal, err := handcranksiren.CrankLocal(p)
@@ -246,8 +246,20 @@ func armSharpEdge(t *testing.T, p handcranksiren.Params) func(*decad.Edge) bool 
 		inSlit := math.Abs(l.X) <= crankhandle.SlitWidth/2+slack && l.Y < 0
 		return inSlit || math.Hypot(l.X, l.Y) <= dm.BoreRadius+slack
 	}
+	foot := func(v r3.Vec) bool {
+		l := toLocal.Apply(v)
+		return math.Abs(l.Y-dm.RampFoot) <= slack && math.Abs(l.Z-crankhandle.ArmThickness) <= slack
+	}
+	// The boss top's edge with the ramp is chamfered, but its 15 degree chamfer face is nearly parallel to the top, past
+	// bevelled's 0.9 limit on the cosine, so the check cannot read it. crankhandle's TestCrankHandleEdgeFinishing proves
+	// that chamfer in a section 0.1 mm under the top.
+	rampTop := func(v r3.Vec) bool {
+		l := toLocal.Apply(v)
+		return math.Abs(l.Y-(crankhandle.ArmRadius-crankhandle.ChamferSize)) <= slack && math.Abs(l.Z-crankhandle.HubLength) <= slack
+	}
 	return func(e *decad.Edge) bool {
-		return sharp(e.Start().Position().Value) && sharp(e.End().Position().Value)
+		a, b := e.Start().Position().Value, e.End().Position().Value
+		return sharp(a) && sharp(b) || foot(a) && foot(b) || rampTop(a) && rampTop(b)
 	}
 }
 
