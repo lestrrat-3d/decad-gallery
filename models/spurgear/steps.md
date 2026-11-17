@@ -175,6 +175,18 @@ the base point scaled to the root circle, computing each coordinate as
 ordinary Step 7 with its supplied length; the float `filletRoots` wrapper
 converts its radius with `units.Millimeters`. `filletEmbedded` implements
 the embedded Step 7 selector with the supplied length.
+
+Emit `rootContact` in `involute.go` with this exact implementation:
+
+```go
+func rootContact(basePoint point, d dimensions) point {
+    return point{basePoint.x * d.root / d.base, basePoint.y * d.root / d.base}
+}
+```
+
+`variant.go` calls `rootContact` directly, so omitting this helper prevents the
+package from compiling.
+
 `toothAngle` returns `2*pi*k/p.Teeth`. `sampleFlanks` implements Tooth flank
 with samples ranging from `start` to `tip`, returning left then right arrays. Its
 `backlash` is `j`, and it computes `δ = backlash/(2*pitch)` for the flank rotation.
@@ -296,6 +308,8 @@ Implement `buildGearProfile`. Dispatch to Step 4 when `d.base < d.root`; otherwi
    points by scaling their base samples according to Ordinary construction; compute
    each coordinate as `x*d.root/d.base` (multiply, then divide), never with a
    precomputed `d.root/d.base` factor. Create the left root before the right root.
+   Every right-flank point, including `rightPoints[0]`, must use
+   `DimensionPoint`; never use `DimensionArcEnd` for a right-flank point.
 4. Save right root then left root coordinates for each tooth in a `2N`-entry list.
 5. Except on tooth zero, call `s.CreateArc(center,previousLeftRoot,rightRoot)`.
    Save tooth zero's right root for final closure.
@@ -318,6 +332,7 @@ solid fillets after the join.
 
 1. Create a sketch on the requested plane. Draw every tooth's two original
    fit splines and tip arc with the samples and constraints from Step 3.
+   Every right-flank point must use `DimensionPoint`, including its base point.
 2. Omit radial lines and individual root arcs. Call
    `s.CreateCircle(s.Origin(),d.root)` and add its radius constraint.
 3. Solve and verify before extracting regions.
