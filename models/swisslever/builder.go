@@ -39,6 +39,9 @@ type builder struct {
 	// skipDartRoot leaves the lever's dart root unrounded, so a test can read the rest of the lever while decad refuses
 	// that fillet.
 	skipDartRoot bool
+	// skipBalanceBoss leaves the balance wheel's hub boss off, so a test can read the rest of the movement while decad
+	// refuses the boss with its root round.
+	skipBalanceBoss bool
 }
 
 func newBuilder(ctx context.Context, doc *decad.Document, g Geometry) *builder {

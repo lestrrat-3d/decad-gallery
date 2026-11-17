@@ -82,10 +82,12 @@ func (b *builder) buildBalanceWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	face := decad.Faces(decad.FaceCreatedBy(decad.CapEnd(wheel))).Exactly(1)
-	if wheel, err = b.boss(wheel, face, r3.NewVec(0, 0, balanceHigh), 2*balanceBossRadius, balanceBossHeight,
-		"balance boss"); err != nil {
-		return nil, err
+	if !b.skipBalanceBoss {
+		face := decad.Faces(decad.FaceCreatedBy(decad.CapEnd(wheel))).Exactly(1)
+		if wheel, err = b.boss(wheel, face, r3.NewVec(0, 0, balanceHigh), 2*balanceBossRadius, balanceBossHeight,
+			"balance boss"); err != nil {
+			return nil, err
+		}
 	}
 	tool, err := b.dTool("balance bore", 0, 0, balanceLow-balanceBoreReach, BodyBoreRadius, BodyBoreFlat,
 		balanceBoreLength)
