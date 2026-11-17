@@ -214,9 +214,16 @@ Extrude 5. `boss` on `CapEnd` (front face `z 18.40`): diameter 14, height 1.0, a
 body family at `z 12.65`, length 7.5; cut. `finish(body, {13.40, 18.40}, outer loops or inner loops of more than 4
 edges)`. Check: mass 13.1 g at 1.24 g/cm³ (± 2 %); inertia within 2 % of the `Layout` value.
 
-With decad P6 the boss with its root round and the D bore build. The rim and window chamfer is still refused
-("cannot select a decad.FacetedCurve edge at {42 0 13.4}"). Production code keeps the call and fails with that error.
-The test-only `builder.skipBalanceChamfer` leaves the chamfer off, so the assembly tests read the rest of the movement;
+With decad P6 the boss with its root round and the D bore build. The chamfer takes every edge of the outer loop and of
+each inner loop of more than 4 edges, except the four edges where the boss's root round meets the front face: the
+round is tangent to the face there (its edges lie on the circle of radius 7.5 at `z 18.40`, one per arm, where the root
+circle leaves the window arcs), so they are not corners and decad cannot chamfer them. `builder.finishExcept` takes the
+`bossRootEdge` predicate and calls `edgefinish.ChamferExcept`; `TestBalanceChamferSelection` pins the set (4 edges
+left out, 1 rim edge and 28 window edges on the front face, 1 rim edge and 32 window edges on the rear face).
+
+Decad still refuses the chamfer of the window side edges, which are faceted curves ("cannot select a decad.FacetedCurve
+edge at {25.29 -22.46 13.4}"). Production code keeps the call and fails with that error. The test-only
+`builder.skipBalanceChamfer` leaves the chamfer off, so the assembly tests read the rest of the movement;
 `movementSwitches` in `shared_internal_test.go` turns it on only while decad gives that one refusal at the
 `balance wheel edges` step, and the balance wheel's volume-drop check is not measured meanwhile.
 

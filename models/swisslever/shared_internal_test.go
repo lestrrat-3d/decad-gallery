@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// chamferRefusal is the decad refusal the balance wheel's rim and window chamfer gets until decad chamfers the edges
-// the wheel's boss leaves as faceted curves.
+// chamferRefusal is the decad refusal the balance wheel's rim and window chamfer gets until decad chamfers the window
+// side edges, which the wheel's boss root round leaves as faceted curves.
 const chamferRefusal = "cannot select a decad.FacetedCurve edge"
 
 // switches records whether decad refuses the balance wheel's chamfer today: it holds the refusal text, or is empty

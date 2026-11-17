@@ -235,3 +235,56 @@ func TestRetainer(t *testing.T) {
 	require.GreaterOrEqual(t, retainerRadius-BodyBoreRadius, 1.6)
 	requireCorners(t, ring)
 }
+
+// TestBalanceChamferSelection requires the chamfer's edge set to leave out the four edges where the hub boss's root
+// round meets the front face tangent, and to keep the rim and the window edges on both faces.
+func TestBalanceChamferSelection(t *testing.T) {
+	b := partBuilder(t)
+	b.skipBalanceChamfer = true
+	wheel, err := b.buildBalanceWheel()
+	require.NoError(t, err)
+	keep := func(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
+	type tally struct{ rim, windows, skipped int }
+	got := map[float64]*tally{balanceLow: {}, balanceHigh: {}}
+	for _, f := range wheel.Faces() {
+		plane, ok := f.Surface().(decad.Plane)
+		if !ok {
+			continue
+		}
+		z := plane.Frame.Origin().Z
+		n := got[z]
+		area, err := f.Area()
+		require.NoError(t, err)
+		if n == nil || area.Value.Base() < 400 {
+			continue
+		}
+		for _, l := range f.Loops() {
+			edges := l.Edges()
+			if !keep(l, edges) {
+				continue
+			}
+			for _, e := range edges {
+				switch {
+				case bossRootEdge(e):
+					n.skipped++
+					// The root edges sit on the front face, on the circle of radius 7.5, and are faceted curves.
+					require.InDelta(t, balanceHigh, z, 1e-6)
+					require.IsType(t, decad.FacetedCurve{}, e.Curve())
+				case l.IsOuter():
+					n.rim++
+					p := e.Start().Position().Value
+					require.InDelta(t, balanceRimOuter, math.Hypot(p.X, p.Y), 1e-3)
+				default:
+					n.windows++
+				}
+			}
+		}
+	}
+	require.Equal(t, 4, got[balanceHigh].skipped, "the four boss root edges, one per arm, are left out")
+	require.Zero(t, got[balanceLow].skipped)
+	for z, n := range got {
+		require.Equal(t, 1, n.rim, "rim edge on the face at z %v", z)
+	}
+	require.Equal(t, 32-4, got[balanceHigh].windows, "front face: the window loop's other 28 edges")
+	require.Equal(t, 4*8, got[balanceLow].windows, "rear face: four windows of eight edges")
+}

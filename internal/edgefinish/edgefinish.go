@@ -97,6 +97,26 @@ func Chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []flo
 	})
 }
 
+// ChamferExcept is Chamfer that leaves out the edges of a kept loop for which skip is true. A loop that touches a
+// fillet or another smooth wall has edges where the cap meets that wall tangent, and decad cannot chamfer a smooth edge;
+// the caller names them with skip. skip may be nil.
+func ChamferExcept(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []float64, keep LoopFilter,
+	skip func(*decad.Edge) bool, size float64) (*decad.Body, int, error) {
+	return chamfer(ctx, body, normal, offsets, size, func(loop *decad.Loop) ([]*decad.Edge, []*decad.Edge) {
+		edges := loop.Edges()
+		if !keep(loop, edges) {
+			return nil, nil
+		}
+		var out []*decad.Edge
+		for _, e := range edges {
+			if skip == nil || !skip(e) {
+				out = append(out, e)
+			}
+		}
+		return out, nil
+	})
+}
+
 // ChamferRuns is Chamfer for faces whose outline mixes long and short tangent-continuous runs. It splits each loop
 // that keep accepts into runs (see Runs) and chamfers the edges of the runs of LongEdgeRun or more, so the short
 // runs, such as a tooth head, stay sharp. A loop that whole accepts is chamfered whole instead, however its runs

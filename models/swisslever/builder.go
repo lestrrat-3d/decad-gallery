@@ -226,6 +226,16 @@ func (b *builder) finish(body *decad.Body, offsets []float64, keep edgefinish.Lo
 	return out, err
 }
 
+// finishExcept is finish that leaves out the edges skip names: the edges where a root round meets the face tangent.
+func (b *builder) finishExcept(body *decad.Body, offsets []float64, keep edgefinish.LoopFilter,
+	skip func(*decad.Edge) bool) (*decad.Body, error) {
+	if b.plain {
+		return body, nil
+	}
+	out, _, err := edgefinish.ChamferExcept(b.ctx, body, zAxis, offsets, keep, skip, edgefinish.MinChamfer)
+	return out, err
+}
+
 // outerLoops keeps only the outer loops of a face.
 func outerLoops(l *decad.Loop, _ []*decad.Edge) bool { return l.IsOuter() }
 

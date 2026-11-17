@@ -634,7 +634,7 @@ Faces of 400 mm² or more and their 0.5 chamfers, all through `internal/edgefini
 | Back plate, Front plate | outer loop and every window on both faces; pocket rims (`r 7.05`) on the inner face; lip-bore rims (`r 5`) on the outer face | pillar holes, cavities, head pockets (runs under 20 mm) |
 | Escape Wheel | the five window loops on both faces | tooth outline (no 20 mm run) |
 | Lever | outer loop at `z 3.30` and at `z 9.80` (the band S and band F outlines) | slots (each side under 20 mm, sharp corners); the dart top at `z 5.80` (under 400 mm²) |
-| Balance Wheel | outer loop (`r 42`) and the four window loops on both faces | the boss face (154 mm²) |
+| Balance Wheel | outer loop (`r 42`) and the four window loops on both faces, less the four edges on the circle `r 7.5` where the boss's root round meets the front face | the boss face (154 mm²); those four edges, where the round is tangent to the face and there is no corner to chamfer |
 | Roller Table, Safety Roller, Retainer, Knob, Knob Collar, Stones, Arbors | none | faces under 400 mm² (roller table 380, knob 380) |
 | Hairspring | its caps, by `models/spiralspring` | |
 

@@ -99,7 +99,24 @@ func (b *builder) buildBalanceWheel() (*decad.Body, error) {
 		return wheel, nil
 	}
 	keep := func(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
-	return b.finishWith(wheel, []float64{balanceLow, balanceHigh}, keep, "balance wheel edges")
+	out, err := b.finishExcept(wheel, []float64{balanceLow, balanceHigh}, keep, bossRootEdge)
+	if err != nil {
+		return nil, fmt.Errorf("balance wheel edges: %w", err)
+	}
+	return out, nil
+}
+
+// bossRootEdge reports whether e is an edge where the hub boss's root round meets the wheel's front face: both its
+// ends lie on the circle of radius balanceBossRadius + rootRound about the staff. The round is tangent to the face
+// there, so the edge cannot be chamfered and is not a corner of the face.
+func bossRootEdge(e *decad.Edge) bool {
+	const want = balanceBossRadius + rootRound
+	for _, p := range []r3.Vec{e.Start().Position().Value, e.End().Position().Value} {
+		if math.Abs(math.Hypot(p.X, p.Y)-want) > 1e-3 || math.Abs(p.Z-balanceHigh) > 1e-3 {
+			return false
+		}
+	}
+	return true
 }
 
 // finishWith is finish with the error naming the step.
