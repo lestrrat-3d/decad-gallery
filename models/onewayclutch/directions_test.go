@@ -2,10 +2,12 @@ package onewayclutch_test
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
@@ -28,6 +30,19 @@ func dirCases() []dirCase {
 			p := onewayclutch.DefaultParams()
 			p.Shaft, p.Freewheel = shaft.Name, dir
 			out = append(out, dirCase{name: shaft.Name + " " + dir.String(), params: p})
+		}
+	}
+	return out
+}
+
+// wideBoreCases are the 8 mm presets in both directions at the largest BoreClearance, 0.5 mm.
+func wideBoreCases() []dirCase {
+	var out []dirCase
+	for _, name := range []string{"608ZZ", "608ZZ-gearbox"} {
+		for _, dir := range []onewayclutch.Direction{onewayclutch.Clockwise, onewayclutch.CounterClockwise} {
+			p := onewayclutch.DefaultParams()
+			p.Shaft, p.Freewheel, p.BoreClearance = name, dir, 0.5
+			out = append(out, dirCase{name: name + " " + dir.String() + " bore 0.5", params: p})
 		}
 	}
 	return out
@@ -59,8 +74,6 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		{"clearance NaN", with(func(p *onewayclutch.Params) { p.BoreClearance = math.NaN() }), "BoreClearance must be"},
 		{"clearance +Inf", with(func(p *onewayclutch.Params) { p.BoreClearance = math.Inf(1) }), "BoreClearance must be"},
 		{"clearance -Inf", with(func(p *onewayclutch.Params) { p.BoreClearance = math.Inf(-1) }), "BoreClearance must be"},
-		{"wall to the nut pockets", with(func(p *onewayclutch.Params) { p.Shaft, p.BoreClearance = "608ZZ", 0.35 }),
-			"leaves less than 1.6 mm of wall between the bore and the nut pockets"},
 		{"invalid placement", with(func(p *onewayclutch.Params) { p.Placement = &r3.Frame{} }),
 			"Placement must be a valid frame"},
 	}
@@ -92,8 +105,6 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		p.Freewheel = onewayclutch.Clockwise
 		require.ErrorContains(t, p.Validate(), "BoreClearance must be")
 		p.BoreClearance = 0.35
-		require.ErrorContains(t, p.Validate(), "wall between the bore and the nut pockets")
-		p.Shaft = "605ZZ"
 		require.ErrorContains(t, p.Validate(), "Placement must be a valid frame")
 		p.Placement = nil
 		require.NoError(t, p.Validate())
@@ -103,8 +114,10 @@ func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 		p := onewayclutch.DefaultParams()
 		p.BoreClearance = 0.5
 		require.NoError(t, p.Validate(), "605ZZ takes the largest clearance")
-		p.Shaft, p.BoreClearance = "608ZZ", 0.326
-		require.NoError(t, p.Validate(), "608ZZ takes a clearance up to 0.326")
+		for _, name := range []string{"608ZZ", "608ZZ-gearbox"} {
+			p.Shaft = name
+			require.NoError(t, p.Validate(), "%s takes the largest clearance", name)
+		}
 		for _, shaft := range onewayclutch.Shafts() {
 			p := onewayclutch.DefaultParams()
 			p.Shaft = shaft.Name
@@ -265,12 +278,12 @@ func tessellate(t *testing.T, b *decad.Body, name string) *decad.Mesh {
 // countInside counts the points, taken at a radius past the tooth tips and moved to mid-band, that lie inside the closed
 // mesh. A point is inside
 // when a ray along +X crosses the mesh an odd number of times.
-func countInside(points []r3.Vec, mesh *decad.Mesh) int {
+func countInside(points []r3.Vec, mesh *decad.Mesh, toothTip float64) int {
 	const midBand = (onewayclutch.BandFrom + onewayclutch.BandTo) / 2
 	vertices, triangles := mesh.Vertices(), mesh.Triangles()
 	count := 0
 	for _, p := range points {
-		if math.Hypot(p.X, p.Y) < onewayclutch.ToothTip+0.05 {
+		if math.Hypot(p.X, p.Y) < toothTip+0.05 {
 			continue
 		}
 		// The hub is a prism taller than the tooth band, so its vertices lie above and below the teeth: query at mid-band.
@@ -317,6 +330,9 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			parts, err := onewayclutch.BuildParts(t.Context(), doc, p)
 			require.NoError(t, err)
 			sigma := dir.Sign()
+			dm, err := p.Derive()
+			require.NoError(t, err)
+			toothTip := dm.ToothTip
 
 			// The hub is turned, not the ring: a ring made by a Boolean is a mesh that Intersect cannot take, and turning the hub
 			// by an angle equals turning the ring by its opposite.
@@ -335,11 +351,12 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			// Intersect cannot take, so the test counts hub vertices inside the ring's mesh.
 			ring := tessellate(t, parts.Ring, "ring")
 			locked := tessellate(t, rotated(sigma*turn), "locked hub")
-			require.Positive(t, countInside(locked.Vertices(), ring), "the locked hub reaches into the ring")
+			require.Positive(t, countInside(locked.Vertices(), ring, toothTip), "the locked hub reaches into the ring")
 
 			// The ring turned by +sigma*turn (the hub by -sigma*turn): the heads ride up the ramps and stay clear. The
-			// design requires 0.05 mm left after 2 degrees and at 1.5 degrees. Measured on the 605ZZ hub: 0.166 mm at 1.5
-			// degrees and 0.104 at 2.0 (clockwise), 0.161 and 0.099 (counter-clockwise); on the 8 mm hubs 0.141 and 0.079.
+			// design requires 0.05 mm left after 2 degrees and at 1.5 degrees. Measured on the 605ZZ hub: 0.188 mm at 1.5
+			// degrees and 0.126 at 2.0, in both directions; on the 8 mm hubs 0.176 and 0.112 (BoreClearance 0.05), and at
+			// least 0.157 and 0.093 (0.5).
 			for _, free := range []struct{ angle, clearance float64 }{{1.5, 0.05}, {turn, 0.05}} {
 				hub := rotated(-sigma * free.angle)
 				gap, clear, err := meshOf(t, hub, "free hub").Exceeds(meshOf(t, parts.Ring, "ring"), free.clearance)
@@ -347,7 +364,7 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 				t.Logf("free way, hub turned %g degrees: proven gap %.3f mm", free.angle, gap)
 				require.True(t, clear, "the hub turned %g degrees the free way clears the ring by %g mm (gap bound %g)",
 					free.angle, free.clearance, gap)
-				require.Zero(t, countInside(tessellate(t, hub, "free hub").Vertices(), ring))
+				require.Zero(t, countInside(tessellate(t, hub, "free hub").Vertices(), ring, toothTip))
 			}
 
 			// The unturned ring clears the hub by at least the head gap's smaller share.
@@ -409,5 +426,56 @@ func TestOneWayClutchPlacement(t *testing.T) {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
 		})
+	}
+}
+
+// TestOneWayClutchDerivedRadii checks the radii Derive grows with the shaft: the walls round the bolts, the slot margin
+// and the arm and tooth relations hold for every preset and clearance, and the 605ZZ clutch keeps its former size.
+func TestOneWayClutchDerivedRadii(t *testing.T) {
+	const eps = 1e-9
+	for _, shaft := range onewayclutch.Shafts() {
+		for _, c := range []float64{0.05, 0.3, 0.326, 0.35, 0.5} {
+			t.Run(fmt.Sprintf("%s c %g", shaft.Name, c), func(t *testing.T) {
+				p := onewayclutch.DefaultParams()
+				p.Shaft, p.BoreClearance = shaft.Name, c
+				dm, err := p.Derive()
+				require.NoError(t, err)
+				require.GreaterOrEqual(t, dm.CoreRadius-dm.BoltCircle-m2fastener.HoleRadius, onewayclutch.PressWall-eps,
+					"hole to core")
+				pocket := math.Max(m2fastener.HeadPocketRadius, m2fastener.NutCavityRadius*math.Sqrt(3)/2)
+				require.GreaterOrEqual(t, dm.BoltCircle-pocket-dm.BoreRadius, onewayclutch.PressWall-eps,
+					"bore to the bolt pockets")
+				for i, a := range onewayclutch.BoltAngles {
+					centre := r3.Vec{X: dm.BoltCircle * math.Cos(a*math.Pi/180), Y: dm.BoltCircle * math.Sin(a*math.Pi/180)}
+					require.GreaterOrEqual(t, distanceToBore(centre.X, centre.Y, dm.BoreRadius, dm.BoreFlat)-pocket, onewayclutch.PressWall-eps,
+						"bolt %d: bore to its pockets", i+1)
+				}
+				require.GreaterOrEqual(t, dm.SlotWidth-dm.HeadTravel, 0.25, "slot margin")
+				require.InDelta(t, onewayclutch.ArmThickness, dm.ArmOuter-dm.ArmInner, eps)
+				require.InDelta(t, onewayclutch.LooseFit, dm.ToothTip-dm.ArmOuter, eps)
+				require.Greater(t, dm.HubChamfer, 0.0)
+				require.InDelta(t, dm.EarReach, dm.AdapterRadius, eps)
+				require.InDelta(t, shaft.Diameter/2+onewayclutch.AdapterShaftGap, dm.AdapterInner, eps)
+				require.InDelta(t, dm.CoreRadius+onewayclutch.BossStep, dm.BossRadius, eps)
+				if shaft.Name != "605ZZ" {
+					return
+				}
+				want := map[string]float64{
+					"CoreRadius": 10.1, "SlotWidth": 1.6, "ArmOuter": 13.2, "ToothTip": 13.75, "ToothRoot": 16.1,
+					"RingCounter": 17.1, "RingOuter": 19.1, "EarCircle": 21.6, "PlateRadius": 16.7, "BossRadius": 10.4,
+					"HubChamfer": 0.25, "BoltCircle": 7.15, "AdapterInner": 3.5, "AdapterRadius": 25.7, "Growth": 0,
+				}
+				got := map[string]float64{
+					"CoreRadius": dm.CoreRadius, "SlotWidth": dm.SlotWidth, "ArmOuter": dm.ArmOuter, "ToothTip": dm.ToothTip,
+					"ToothRoot": dm.ToothRoot, "RingCounter": dm.RingCounter, "RingOuter": dm.RingOuter,
+					"EarCircle": dm.EarCircle, "PlateRadius": dm.PlateRadius, "BossRadius": dm.BossRadius,
+					"HubChamfer": dm.HubChamfer, "BoltCircle": dm.BoltCircle, "AdapterInner": dm.AdapterInner,
+					"AdapterRadius": dm.AdapterRadius, "Growth": dm.Growth,
+				}
+				for name, v := range want {
+					require.InDelta(t, v, got[name], 1e-6, name)
+				}
+			})
+		}
 	}
 }

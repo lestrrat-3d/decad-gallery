@@ -136,7 +136,7 @@ func (s clutchSet) models(at r3.Vec, pull map[string]r3.Vec, clip *solidlens.Cli
 	return out, nil
 }
 
-// clipRemovesAll reports whether an axis-aligned clip plane leaves nothing of the mesh, because the whole mesh lies on
+// clipRemovesAll reports whether a clip plane leaves nothing of the mesh, because the whole mesh lies on
 // the removed side.
 func clipRemovesAll(mesh *decad.Mesh, clip solidlens.ClipPlane) bool {
 	low, _ := meshBounds(mesh)
@@ -146,7 +146,14 @@ func clipRemovesAll(mesh *decad.Mesh, clip solidlens.ClipPlane) bool {
 	case clip.Normal.X == 1:
 		return low.X >= clip.Origin.X
 	}
-	return false
+	// Any other normal: every vertex lies on the removed side.
+	n, o := r3.Vec(clip.Normal), r3.Vec(clip.Origin)
+	for _, v := range mesh.Vertices() {
+		if v.Sub(o).Dot(n) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // The exploded view pulls the parts apart along the shaft axis, in the order they go together: the nuts out of the back

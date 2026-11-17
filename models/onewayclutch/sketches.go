@@ -143,14 +143,14 @@ func (r *run) boreLoop(s *sketch.Sketch) {
 // boltHoles adds the three bolt holes: each centre on its axis at BoltCircle, radius m2fastener.HoleRadius.
 func (r *run) boltHoles(s *sketch.Sketch, ps *polarSketch) {
 	for _, a := range BoltAngles {
-		pos := polar(BoltCircle, a)
+		pos := polar(r.dm.BoltCircle, a)
 		// The bolt angles are symmetric about x = 0, so they need no mirror.
 		end := s.CreatePoint(axisLength*math.Cos(a*math.Pi/180), axisLength*math.Sin(a*math.Pi/180))
 		axis := s.CreateLine(s.Origin(), end)
 		axis.SetConstruction(true)
 		s.AddConstraint(sketch.NewAngle(ps.ref, axis, a), sketch.NewDistance(s.Origin(), end, axisLength))
 		center := s.CreatePoint(pos.X, pos.Y)
-		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, BoltCircle))
+		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, r.dm.BoltCircle))
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, m2fastener.HoleRadius), m2fastener.HoleRadius))
 	}
 }
@@ -162,7 +162,7 @@ func (r *run) plateSketch(z float64) (*sketch.Sketch, error) {
 		return nil, err
 	}
 	ps := r.newPolar(s)
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), PlateRadius), PlateRadius))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), r.dm.PlateRadius), r.dm.PlateRadius))
 	r.boreLoop(s)
 	r.boltHoles(s, ps)
 	return s, nil
@@ -177,17 +177,17 @@ func (r *run) adapterSketch() (*sketch.Sketch, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), AdapterRadius), AdapterRadius))
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), AdapterInner), AdapterInner))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), r.dm.AdapterRadius), r.dm.AdapterRadius))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), r.dm.AdapterInner), r.dm.AdapterInner))
 	ps := r.newPolar(s)
 	for _, a := range EarAngles {
-		pos := polar(EarCircle, a)
+		pos := polar(r.dm.EarCircle, a)
 		end := s.CreatePoint(axisLength*math.Cos(a*math.Pi/180), axisLength*math.Sin(a*math.Pi/180))
 		axis := s.CreateLine(s.Origin(), end)
 		axis.SetConstruction(true)
 		s.AddConstraint(sketch.NewAngle(ps.ref, axis, a), sketch.NewDistance(s.Origin(), end, axisLength))
 		center := s.CreatePoint(pos.X, pos.Y)
-		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, EarCircle))
+		s.AddConstraint(sketch.NewPointOnLine(center, axis), sketch.NewDistance(s.Origin(), center, r.dm.EarCircle))
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(center, m2fastener.HoleRadius), m2fastener.HoleRadius))
 		fpos := polar(FaceCircle, a)
 		fc := s.CreatePoint(fpos.X, fpos.Y)
@@ -214,7 +214,7 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 		m := r.mirror(turn(v, deg))
 		return s.CreatePoint(m.X, m.Y)
 	}
-	slotC := polar((CoreRadius+ArmInner)/2, SlotAngle)
+	slotC := polar((r.dm.CoreRadius+r.dm.ArmInner)/2, SlotAngle)
 	type pawl struct {
 		a, w, hf, apex, hl, sIn, tCore, c *sketch.Point
 		coreArc, outerArc, innerArc       *sketch.Arc
@@ -225,13 +225,13 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 	for k := range pw {
 		d := 120.0 * float64(k)
 		pw[k] = pawl{
-			a:     pt(polar(CoreRadius, WebAngle), d),
-			w:     pt(polar(ArmOuter, WebAngle), d),
+			a:     pt(polar(r.dm.CoreRadius, WebAngle), d),
+			w:     pt(polar(r.dm.ArmOuter, WebAngle), d),
 			hf:    pt(dm.FlankEnd, d),
 			apex:  pt(dm.Apex, d),
 			hl:    pt(dm.LockEnd, d),
-			sIn:   pt(polar(ArmInner, SlotAngle), d),
-			tCore: pt(polar(CoreRadius, SlotAngle), d),
+			sIn:   pt(polar(r.dm.ArmInner, SlotAngle), d),
+			tCore: pt(polar(r.dm.CoreRadius, SlotAngle), d),
 			c:     pt(slotC, d),
 		}
 	}
@@ -252,8 +252,8 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 		cur := &pw[k]
 		webAxis, slotAxis, lockAxis := ps.axis(WebAngle+d), ps.axis(SlotAngle+d), ps.axis(LockAngle+d)
 		s.AddConstraint(
-			sketch.NewRadius(cur.coreArc, CoreRadius), sketch.NewRadius(cur.outerArc, ArmOuter),
-			sketch.NewRadius(cur.innerArc, ArmInner),
+			sketch.NewRadius(cur.coreArc, r.dm.CoreRadius), sketch.NewRadius(cur.outerArc, r.dm.ArmOuter),
+			sketch.NewRadius(cur.innerArc, r.dm.ArmInner),
 			sketch.NewParallel(webAxis, cur.webLine), sketch.NewPointOnLine(cur.w, webAxis),
 			sketch.NewAngle(ps.ref, cur.flankLine, r.angle(dm.RampAngle+d)),
 			sketch.NewDistancePointLine(o, cur.flankLine, dm.FlankDistance),
@@ -289,7 +289,8 @@ func (r *run) ringSketch() (*sketch.Sketch, error) {
 	}
 	o := s.Origin()
 	ps := r.newPolar(s)
-	root := math.Sqrt(RingOuter*RingOuter - EarRadius*EarRadius) // where an ear side meets the outside circle, along the ear
+	// root is where an ear side meets the outside circle, along the ear.
+	root := math.Sqrt(r.dm.RingOuter*r.dm.RingOuter - EarRadius*EarRadius)
 	type ear struct {
 		bRight, tRight, tLeft, bLeft, c *sketch.Point
 		right, left                     *sketch.Line
@@ -304,8 +305,8 @@ func (r *run) ringSketch() (*sketch.Sketch, error) {
 			return s.CreatePoint(v.X, v.Y)
 		}
 		ears[k] = ear{
-			bRight: at(root, -EarRadius), tRight: at(EarCircle, -EarRadius),
-			tLeft: at(EarCircle, EarRadius), bLeft: at(root, EarRadius), c: at(EarCircle, 0),
+			bRight: at(root, -EarRadius), tRight: at(r.dm.EarCircle, -EarRadius),
+			tLeft: at(r.dm.EarCircle, EarRadius), bLeft: at(root, EarRadius), c: at(r.dm.EarCircle, 0),
 		}
 	}
 	var outside [Ears]*sketch.Arc
@@ -323,8 +324,8 @@ func (r *run) ringSketch() (*sketch.Sketch, error) {
 		axis.SetConstruction(true)
 		s.AddConstraint(
 			sketch.NewAngle(ps.ref, axis, a), sketch.NewDistance(o, axis.End, axisLength),
-			sketch.NewPointOnLine(e.c, axis), sketch.NewDistance(o, e.c, EarCircle),
-			sketch.NewRadius(e.end, EarRadius), sketch.NewRadius(outside[k], RingOuter),
+			sketch.NewPointOnLine(e.c, axis), sketch.NewDistance(o, e.c, r.dm.EarCircle),
+			sketch.NewRadius(e.end, EarRadius), sketch.NewRadius(outside[k], r.dm.RingOuter),
 			sketch.NewParallel(axis, e.right), sketch.NewTangent(e.right, e.end),
 			sketch.NewParallel(axis, e.left), sketch.NewTangent(e.left, e.end),
 		)
@@ -361,7 +362,7 @@ func (r *run) toothLoop(s *sketch.Sketch, ps *polarSketch) error {
 	}
 	var tip, root [Teeth]*sketch.Point
 	for j := range tip {
-		tip[j], root[j] = at(ToothTip, j), at(ToothRoot, j)
+		tip[j], root[j] = at(r.dm.ToothTip, j), at(r.dm.ToothRoot, j)
 	}
 	var lock, ramp [Teeth]*sketch.Line
 	for j := range lock {
@@ -371,7 +372,7 @@ func (r *run) toothLoop(s *sketch.Sketch, ps *polarSketch) error {
 	for j := range lock {
 		axis := ps.axis(LockAngle + pitch*float64(j))
 		s.AddConstraint(
-			sketch.NewPointOnLine(tip[j], axis), sketch.NewDistance(o, tip[j], ToothTip),
+			sketch.NewPointOnLine(tip[j], axis), sketch.NewDistance(o, tip[j], r.dm.ToothTip),
 			sketch.NewParallel(axis, lock[j]), sketch.NewDistancePointLine(o, ramp[j], rampDistance),
 		)
 	}

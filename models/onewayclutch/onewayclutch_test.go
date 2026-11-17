@@ -121,14 +121,15 @@ func TestOneWayClutchDefault(t *testing.T) {
 
 	// Each body's bounds, from the amended stack (ears design section 3.2). The ring's three ears, at 90, 210 and 330
 	// degrees, reach EarReach on +Y and, with their end rounds, EarCircle*cos(30) + EarRadius on both sides of x = 0.
-	earX := onewayclutch.EarCircle*math.Cos(30*math.Pi/180) + onewayclutch.EarRadius
+	dm := m.Dimensions
+	earX := dm.EarCircle*math.Cos(30*math.Pi/180) + onewayclutch.EarRadius
 	want := map[string][2]r3.Vec{
-		"back plate": {{X: -onewayclutch.PlateRadius, Y: -onewayclutch.PlateRadius, Z: 0}, {X: onewayclutch.PlateRadius, Y: onewayclutch.PlateRadius, Z: onewayclutch.BackPlateThickness}},
+		"back plate": {{X: -dm.PlateRadius, Y: -dm.PlateRadius, Z: 0}, {X: dm.PlateRadius, Y: dm.PlateRadius, Z: onewayclutch.BackPlateThickness}},
 		"hub": {{X: -16, Y: -16, Z: onewayclutch.HubFrom},
 			{X: 16, Y: 16, Z: onewayclutch.HubFrom + onewayclutch.HubHeight}},
-		"cover": {{X: -onewayclutch.PlateRadius, Y: -onewayclutch.PlateRadius, Z: onewayclutch.CoverFrom}, {X: onewayclutch.PlateRadius, Y: onewayclutch.PlateRadius, Z: onewayclutch.CoverTo}},
-		"ring": {{X: -earX, Y: -onewayclutch.RingOuter, Z: onewayclutch.RingFrom},
-			{X: earX, Y: onewayclutch.EarReach, Z: onewayclutch.RingTo}},
+		"cover": {{X: -dm.PlateRadius, Y: -dm.PlateRadius, Z: onewayclutch.CoverFrom}, {X: dm.PlateRadius, Y: dm.PlateRadius, Z: onewayclutch.CoverTo}},
+		"ring": {{X: -earX, Y: -dm.RingOuter, Z: onewayclutch.RingFrom},
+			{X: earX, Y: dm.EarReach, Z: onewayclutch.RingTo}},
 	}
 	meshes := map[string]meshgap.Mesh{}
 	for name, body := range partsOf(m) {
@@ -152,9 +153,9 @@ func TestOneWayClutchDefault(t *testing.T) {
 		require.GreaterOrEqual(t, box.Min.Z, lo-tol, name)
 		require.LessOrEqual(t, box.Max.Z, hi+tol, name)
 		require.LessOrEqual(t, box.Max.X, earX+tol, name)
-		require.LessOrEqual(t, box.Max.Y, onewayclutch.EarReach+tol, name)
+		require.LessOrEqual(t, box.Max.Y, dm.EarReach+tol, name)
 		require.GreaterOrEqual(t, box.Min.X, -earX-tol, name)
-		require.GreaterOrEqual(t, box.Min.Y, -onewayclutch.RingOuter-tol, name)
+		require.GreaterOrEqual(t, box.Min.Y, -dm.RingOuter-tol, name)
 		mesh, err := body.Tessellate(t.Context(), units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err, name)
 		require.True(t, mesh.BoundaryVerified(), name)
@@ -272,5 +273,25 @@ func TestOneWayClutchAdapterPlaced(t *testing.T) {
 		w := placed.Sites[i]
 		require.InDelta(t, 0, xf.Apply(site.Head).Sub(w.Head).Len(), 1e-9, "site %d head", i)
 		require.InDelta(t, 0, xf.ApplyDir(site.Dir).Sub(w.Dir).Len(), 1e-9, "site %d dir", i)
+	}
+}
+
+// TestOneWayClutchInnerTools checks the plates' inner-face tools against the vertices in instructions.md "Plates", and
+// that the cover's tool mirrors the back plate's about the plane midway between the plates' outer faces.
+func TestOneWayClutchInnerTools(t *testing.T) {
+	back := [][2]float64{{9.5, 5.0}, {9.5, 3.4}, {10.3, 3.6}, {16.1, 3.6}, {17.7, 2.0}, {17.7, 5.0}}
+	cover := [][2]float64{{9.5, 13.5}, {9.5, 15.1}, {10.3, 14.9}, {16.1, 14.9}, {17.7, 16.5}, {17.7, 13.5}}
+	dm, err := onewayclutch.DefaultParams().Derive()
+	require.NoError(t, err)
+	backInner, coverInner := dm.BackPlateInner(), dm.CoverInner()
+	require.Len(t, backInner, len(back))
+	require.Len(t, coverInner, len(cover))
+	for i := range back {
+		require.InDelta(t, back[i][0], backInner[i][0], 1e-9, "back plate vertex %d r", i)
+		require.InDelta(t, back[i][1], backInner[i][1], 1e-9, "back plate vertex %d z", i)
+		require.InDelta(t, cover[i][0], coverInner[i][0], 1e-9, "cover vertex %d r", i)
+		require.InDelta(t, cover[i][1], coverInner[i][1], 1e-9, "cover vertex %d z", i)
+		require.InDelta(t, onewayclutch.CoverTo-backInner[i][1], coverInner[i][1], 1e-9,
+			"cover vertex %d mirrors the back plate", i)
 	}
 }

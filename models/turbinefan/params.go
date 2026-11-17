@@ -37,9 +37,12 @@ const (
 
 // Fixed dimensions of the clutch mount in mm and radians. Values that another model owns are referenced.
 const (
-	ClutchTurn = math.Pi / 3                         // the fan frame's turn about Z from the clutch frame
+	ClutchTurn = math.Pi                             // the fan frame's turn about Z from the clutch frame: the bore's flat (-Y) meets the shaft's (+Y)
 	ClutchSeam = onewayclutch.Seam                   // 0.25
 	MountZ     = onewayclutch.AdapterTo + ClutchSeam // 26.25: the fan frame's origin in the clutch frame
+
+	// ClutchAnchorZ is the clutch cover's outer face in the fan frame (-7.75): the placement point of a ClutchMount fan.
+	ClutchAnchorZ = onewayclutch.CoverTo - MountZ
 )
 
 // BladeAngle returns the angle, about +Z from +X, of blade k's radial line, k = 1, 2, 3: 90, 210 and 330 degrees.
@@ -56,8 +59,11 @@ const (
 	LeftHand
 )
 
-// EarBoltAngle returns the angle about +Z from +X, in the fan frame, of ear bolt k, k = 1, 2, 3: 30, 150 and 270 degrees.
-func EarBoltAngle(k int) float64 { return onewayclutch.EarAngles[k-1]*math.Pi/180 - ClutchTurn }
+// EarBoltAngle returns the angle about +Z from +X, in the fan frame, of ear bolt k, k = 1, 2, 3: 270, 30 and 150 degrees.
+// The hub's two adapter holes lie at ear bolts 2 and 3 (30 and 150 degrees); ear bolt 1 (270) has no hole.
+func EarBoltAngle(k int) float64 {
+	return math.Mod(onewayclutch.EarAngles[k-1]*math.Pi/180-ClutchTurn+2*math.Pi, 2*math.Pi)
+}
 
 // Freewheel returns the clutch direction that drives a fan of hand h the way it blows air forward and lets it coast:
 // Clockwise for RightHand, CounterClockwise for LeftHand, 0 for any other Hand.
@@ -83,7 +89,12 @@ const (
 )
 
 // Params specifies a fan in mm and radians. The shaft runs in a purchased bearing, so its diameter equals the bearing's
-// bore. A nil Placement selects the local frame.
+// bore.
+//
+// Placement puts the fan's placement point on a frame. The placement point is the hub's front face (fan z = HubLength)
+// in ShaftMount, with the hub extending HubLength back along the frame's axis, and the clutch cover's outer face
+// (fan z = ClutchAnchorZ) in ClutchMount, with the clutch extending back and the adapter and fan in front. The point is
+// on the shaft axis. A nil Placement leaves every part in the local frame, whose origin is the hub's back face.
 type Params struct {
 	// ShaftDiameter is the diameter of the D-flat shaft the hub grips; it equals the bearing bore.
 	ShaftDiameter float64
@@ -98,6 +109,31 @@ type Params struct {
 	// Mount selects how the hub is held; the zero value is ShaftMount.
 	Mount     Mount
 	Placement *r3.Frame
+}
+
+// anchorZ returns the fan-frame z of the placement point of m.
+func (m Mount) anchorZ() float64 {
+	if m == ClutchMount {
+		return ClutchAnchorZ
+	}
+	return HubLength
+}
+
+// buildFrame returns the frame that moves the local frame to its place: Placement carried back from the placement
+// point to the local origin. It is nil when Placement is nil. Placement must be valid.
+func (p Params) buildFrame() (*r3.Frame, error) {
+	if p.Placement == nil {
+		return nil, nil
+	}
+	xf, err := r3.FromFrame(*p.Placement)
+	if err != nil {
+		return nil, fmt.Errorf("turbinefan: placement: %w", err)
+	}
+	f, err := r3.NewFrame(xf.Apply(r3.Vec{Z: -p.Mount.anchorZ()}), xf.ApplyDir(r3.Vec{X: 1}), xf.ApplyDir(r3.Vec{Y: 1}))
+	if err != nil {
+		return nil, fmt.Errorf("turbinefan: placement: %w", err)
+	}
+	return &f, nil
 }
 
 // Params605ZZ returns a fan for the 5 mm shaft of a 605ZZ bearing, with the planetary gearbox shafts' 0.5 mm flat.
@@ -121,10 +157,10 @@ func Params608ZZ() Params {
 }
 
 // MountFrame returns the Placement that seats a ClutchMount fan on a clutch built with Placement clutch (nil selects
-// the clutch's local frame).
+// the clutch's local frame). Its origin is the clutch cover's outer face, on the axis.
 func MountFrame(clutch *r3.Frame) (r3.Frame, error) {
 	sin, cos := math.Sincos(ClutchTurn)
-	local, err := r3.NewFrame(r3.Vec{Z: MountZ}, r3.Vec{X: cos, Y: sin}, r3.Vec{X: -sin, Y: cos})
+	local, err := r3.NewFrame(r3.Vec{Z: onewayclutch.CoverTo}, r3.Vec{X: cos, Y: sin}, r3.Vec{X: -sin, Y: cos})
 	if err != nil {
 		return r3.Frame{}, fmt.Errorf("turbinefan: mount frame: %w", err)
 	}
@@ -146,8 +182,9 @@ func MountFrame(clutch *r3.Frame) (r3.Frame, error) {
 }
 
 // ParamsForClutch returns a ClutchMount fan matched to the clutch c: c's shaft diameter and flat, the hand that c's
-// Freewheel drives forward, the default pitch, ballbearing.PressFitClearance, and Placement MountFrame(c.Placement).
-func ParamsForClutch(c onewayclutch.Params) (Params, error) {
+// Freewheel drives forward, the default pitch (WithBladePitch sets another), ballbearing.PressFitClearance, and
+// Placement MountFrame(c.Placement).
+func ParamsForClutch(c onewayclutch.Params, opts ...ClutchOption) (Params, error) {
 	dm, err := c.Derive()
 	if err != nil {
 		return Params{}, fmt.Errorf("turbinefan: clutch: %w", err)
@@ -160,7 +197,7 @@ func ParamsForClutch(c onewayclutch.Params) (Params, error) {
 	if c.Freewheel == onewayclutch.CounterClockwise {
 		hand = LeftHand
 	}
-	return Params{
+	out := Params{
 		ShaftDiameter: dm.Shaft.Diameter,
 		FlatDepth:     dm.Shaft.FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
@@ -168,8 +205,28 @@ func ParamsForClutch(c onewayclutch.Params) (Params, error) {
 		Hand:          hand,
 		Mount:         ClutchMount,
 		Placement:     &f,
-	}, nil
+	}
+	for _, o := range opts {
+		o.applyClutch(&out)
+	}
+	if err := out.Validate(); err != nil {
+		return Params{}, err
+	}
+	return out, nil
 }
+
+// ClutchOption changes what ParamsForClutch returns.
+type ClutchOption interface {
+	applyClutch(*Params)
+}
+
+type bladePitchOption float64
+
+func (o bladePitchOption) applyClutch(p *Params) { p.BladePitch = float64(o) }
+
+// WithBladePitch sets the fan's BladePitch, in radians, in place of DefaultBladePitch. ParamsForClutch returns an error
+// when the pitch lies outside [MinBladePitch, MaxBladePitch].
+func WithBladePitch(pitch float64) ClutchOption { return bladePitchOption(pitch) }
 
 // DefaultParams returns Params605ZZ.
 func DefaultParams() Params { return Params605ZZ() }
@@ -255,7 +312,7 @@ func (p Params) Derive() (Dimensions, error) {
 		return Dimensions{}, err
 	}
 	for i := range dm.AdapterSites {
-		a := EarBoltAngle(i + 1)
+		a := EarBoltAngle(i + 2)
 		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
 		dm.AdapterSites[i] = m2fastener.Site{
 			Head:   u.Scale(onewayclutch.FaceCircle).Add(r3.Vec{Z: -(onewayclutch.AdapterThickness + ClutchSeam)}),

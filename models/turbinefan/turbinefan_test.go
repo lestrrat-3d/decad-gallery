@@ -340,13 +340,25 @@ func TestTurbineFanBounds(t *testing.T) {
 	}
 }
 
-// TestTurbineFanPlacement checks that the placed case's bodies and sites are the default's moved by the frame.
+// anchoredTransform returns the move from the local frame that puts the point (0, 0, anchorZ) on frame f.
+func anchoredTransform(t *testing.T, f r3.Frame, anchorZ float64) r3.Transform {
+	t.Helper()
+	outer, err := r3.FromFrame(f)
+	require.NoError(t, err)
+	moved, err := r3.NewFrame(outer.Apply(r3.Vec{Z: -anchorZ}), outer.ApplyDir(r3.Vec{X: 1}), outer.ApplyDir(r3.Vec{Y: 1}))
+	require.NoError(t, err)
+	xf, err := r3.FromFrame(moved)
+	require.NoError(t, err)
+	return xf
+}
+
+// TestTurbineFanPlacement checks that the placed case's bodies and sites are the default's moved so that the hub's
+// front face (z = HubLength) lies on the frame's origin.
 func TestTurbineFanPlacement(t *testing.T) {
 	local, _ := built(t, caseNamed(t, "605ZZ"))
 	placed, _ := built(t, caseNamed(t, "placed"))
 	frame := *caseNamed(t, "placed").params().Placement
-	xf, err := r3.FromFrame(frame)
-	require.NoError(t, err)
+	xf := anchoredTransform(t, frame, turbinefan.HubLength)
 	pairs := map[string][2]*decad.Body{
 		"hub": {local.Hub, placed.Hub}, "blade 1": {local.Blades[0], placed.Blades[0]},
 		"blade 3": {local.Blades[2], placed.Blades[2]}, "blade bolt": {local.BladeBolts[1].Body, placed.BladeBolts[1].Body},
@@ -377,6 +389,23 @@ func TestTurbineFanPlacement(t *testing.T) {
 		require.InDelta(t, 0, placed.BladeSites[i].Head.Sub(xf.Apply(local.BladeSites[i].Head)).Len(), 1e-9)
 		require.InDelta(t, 0, placed.BladeSites[i].Dir.Sub(xf.ApplyDir(local.BladeSites[i].Dir)).Len(), 1e-9)
 	}
+}
+
+// TestTurbineFanPlacementPoint checks that a ShaftMount hub's front face lies on the frame's origin plane and the hub
+// extends HubLength back along the frame's axis.
+func TestTurbineFanPlacementPoint(t *testing.T) {
+	p := turbinefan.Params605ZZ()
+	f, err := r3.NewFrame(r3.Vec{X: 3, Y: 4, Z: 5}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	require.NoError(t, err)
+	p.Placement = &f
+	m, err := turbinefan.Build(t.Context(), turbinefan.NewDocument(), p)
+	require.NoError(t, err)
+	b, err := m.Hub.Bounds()
+	require.NoError(t, err)
+	tol := b.Bound.Base() + 1e-6
+	require.InDelta(t, 5, b.Max.Z, tol, "front face on the frame origin")
+	require.InDelta(t, 5-turbinefan.HubLength, b.Min.Z, tol, "back face HubLength behind it")
+	require.InDelta(t, 3, (b.Min.X+b.Max.X)/2, tol, "hub on the axis through the origin")
 }
 
 // TestTurbineFanEnvelope requires every blade vertex to lie between the hub's faces (0 <= z <= 20) and inside the

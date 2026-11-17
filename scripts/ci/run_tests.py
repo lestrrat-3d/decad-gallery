@@ -380,8 +380,12 @@ def run_wheel(case: str) -> None:
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
     "default": (
-        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams|TestGearboxSpike)$",
-        [],
+        "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams)$",
+        ["TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch", "TestGearboxParams"],
+    ),
+    "spike": (
+        "^TestGearboxSpike$",
+        ["TestGearboxSpike"],
     ),
     "slots12": (
         "^TestHandCrankSirenVariant$/^slots_12$",
@@ -495,7 +499,7 @@ def main() -> None:
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|variants> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
+        " | siren <default|spike|slots12|slots24> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 

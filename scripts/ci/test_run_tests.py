@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import re
 import unittest
 from unittest import mock
 
@@ -54,8 +55,12 @@ class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         expected = {
             "default": (
-                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams|TestGearboxSpike)$",
-                [],
+                "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams)$",
+                ["TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch", "TestGearboxParams"],
+            ),
+            "spike": (
+                "^TestGearboxSpike$",
+                ["TestGearboxSpike"],
             ),
             "slots12": (
                 "^TestHandCrankSirenVariant$/^slots_12$",
@@ -68,6 +73,20 @@ class SirenCasesTest(unittest.TestCase):
         }
         self.assertEqual(run_tests.SIREN_CASES, expected)
 
+    def test_default_and_spike_partition_previous_selection(self):
+        previous = {
+            "TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch",
+            "TestGearboxParams", "TestGearboxSpike",
+        }
+        selected = []
+        for case in ("default", "spike"):
+            pattern, expected = run_tests.SIREN_CASES[case]
+            matches = {name for name in previous if re.fullmatch(pattern, name)}
+            self.assertEqual(matches, set(expected))
+            selected.append(matches)
+        self.assertTrue(selected[0].isdisjoint(selected[1]))
+        self.assertEqual(selected[0] | selected[1], previous)
+
     def test_siren_cases_pass_expected_variant(self):
         for case, (pattern, expected) in run_tests.SIREN_CASES.items():
             with self.subTest(case=case):
@@ -76,6 +95,7 @@ class SirenCasesTest(unittest.TestCase):
                 args, kwargs = go_test.call_args
                 self.assertEqual(args[0][0], "./models/handcranksiren")
                 self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
+                self.assertEqual(args[0][-3:], ["-timeout", "40m", "-count=1"])
                 self.assertEqual(args[1], expected)
                 self.assertEqual(kwargs, {})
 

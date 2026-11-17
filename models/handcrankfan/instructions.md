@@ -314,9 +314,10 @@ clearance, from the gears' own section outlines, at each sample.
   drawn backed off (see Named exceptions). The screw's head floats in a counterbore in the hub's round face, 60° from
   blades 2 and 3, which is where a 1.5 mm key reaches it once the crank turns it to the side.
 
-`fanPlacement` maps turbinefan's local frame onto the fan at crank angle 0: its origin to the fan axis in the hub's back
+`fanLocalFrame` maps turbinefan's local frame onto the fan at crank angle 0: its origin to the fan axis in the hub's back
 face, its +Z (forward) to -Y, its +Y (blade 1) to +X and its +X to -Z. The set screw head is then at X -11.2, Y -80
-(its Dir is +X), so it points up at the default pose, and the bore's flat faces -X.
+(its Dir is +X), so it points up at the default pose, and the bore's flat faces -X. `fanPlacement` is the same frame moved
+to the hub's front face, Y -96, which is where turbinefan's `Placement` takes it.
 
 The hub is 3D-printed with its front face down and needs no print pause. The sockets and the slots are sized for a printed
 fit and may need a test print first.

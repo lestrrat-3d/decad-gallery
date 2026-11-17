@@ -36,10 +36,16 @@ const (
 // from the axis: the head sits in a pocket in the front face and the nut in a slot open to the round face.
 const boltAt = turbinefan.BladeBoltAt
 
-// fanPlacement maps turbinefan's local frame onto the fan at crank angle 0: its origin to the fan axis in the hub's
+// fanLocalFrame maps turbinefan's local frame onto the fan at crank angle 0: its origin to the fan axis in the hub's
 // back face, its +Z (forward, toward the front face) to -Y, its +Y (blade 1) to +X and its +X to -Z.
-func fanPlacement() r3.Frame {
+func fanLocalFrame() r3.Frame {
 	return frame(r3.Vec{Y: -hubBack, Z: axisHeight}, r3.Vec{Z: -1}, r3.Vec{X: 1})
+}
+
+// fanPlacement is the Placement that puts turbinefan's hub where fanLocalFrame does. turbinefan's placement point is the
+// hub's front face, so the origin lies hubLength ahead of the back face, and the axes are the same.
+func fanPlacement() r3.Frame {
+	return frame(r3.Vec{Y: -hubBack - hubLength, Z: axisHeight}, r3.Vec{Z: -1}, r3.Vec{X: 1})
 }
 
 // fanParams is turbinefan's 608ZZ fan, right-handed, at p's pitch, placed on the fan axis. The fan turns clockwise as
@@ -129,14 +135,14 @@ func sameFanSites(rotor *turbinefan.Parts) error {
 }
 
 // fanSites returns the blade bolts and the set screw at crank angle 0, carried from turbinefan's local frame by
-// fanPlacement. The pitch moves no site. It returns no site when turbinefan rejects the preset; fan then fails the build
+// fanLocalFrame. The pitch moves no site. It returns no site when turbinefan rejects the preset; fan then fails the build
 // with turbinefan's own error.
 func fanSites() []fastenerSite {
 	dm, err := turbinefan.Params608ZZ().Derive()
 	if err != nil {
 		return nil
 	}
-	xf, err := r3.FromFrame(fanPlacement())
+	xf, err := r3.FromFrame(fanLocalFrame())
 	if err != nil {
 		return nil
 	}

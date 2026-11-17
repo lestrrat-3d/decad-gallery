@@ -140,9 +140,11 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
   read from `fanParams(p)` (turbinefan's 0.75). Then `Union` with the collar, a circle of radius 6 on
   `alongMinusY(-65.8)`, extruded 10.15 (to 75.95, `hubBack - pressFit`). The flat is cut before the union, so the collar
   refills Y -74 to -75.95.
-- `fanPlacement()`: the frame with origin `(0, -76, 170)`, U = -Z, V = +X, whose normal U x V is -Y. It maps
+- `fanLocalFrame()`: the frame with origin `(0, -76, 170)`, U = -Z, V = +X, whose normal U x V is -Y. It maps
   turbinefan's local origin to the fan axis in the hub's back face, local +Z to -Y, local +Y (blade 1) to +X and local +X
   to -Z.
+- `fanPlacement()`: the same axes with origin `(0, -96, 170)`, the hub's front face. turbinefan's `Placement` puts the hub's
+  front face on its origin, so this puts the hub where `fanLocalFrame()` does.
 - `fanParams(p)`: `turbinefan.Params608ZZ()` with `BladePitch = p.BladePitch`, `Hand = RightHand` and `Placement` set to
   `fanPlacement()`.
 - `fan()`: `b.part("fan-shaft", ...)`, then one lazy `built()` that calls `turbinefan.BuildParts(ctx, doc, fanParams(p))`
@@ -162,7 +164,7 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
 at crank angle 0: a `fastenerSite` holds the bolt and nut names, the head host and nut host, the motion, the head's top
 face centre `head`, the direction `dir` from the head to the tip, the unit vector `corner` that the nut's corners lie
 on, the bolt `length` and the `cavity` offset from the head. `fanSites()` carries turbinefan's three blade sites and its
-set screw site (from `Params608ZZ().Derive()`) through `r3.FromFrame(fanPlacement())`: `Head` by `Apply`, `Dir` and `Corner` by
+set screw site (from `Params608ZZ().Derive()`) through `r3.FromFrame(fanLocalFrame())`: `Head` by `Apply`, `Dir` and `Corner` by
 `ApplyDir`. The set screw site is first moved `setScrewBackOff` (0.1) back along its own line (`Head -= 0.1 * Dir`,
 `Cavity += 0.1`), which leaves its nut where turbinefan seats it.
 

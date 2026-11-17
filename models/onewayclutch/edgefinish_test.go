@@ -8,6 +8,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -46,17 +47,20 @@ const (
 	efHole                // a bolt hole
 )
 
-func efKindOf(loop []r3.Vec) efKind {
-	lo, hi := math.Inf(1), 0.0
+// efKindOf classifies a loop of the hub's outline: a bolt hole's centre lies on the bolt circle, the bore lies inside
+// the bolt holes, and the outer loop is the rest.
+func efKindOf(loop []r3.Vec, dm onewayclutch.Dimensions) efKind {
+	lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
+	far := 0.0
 	for _, p := range loop {
-		r := math.Hypot(p.X, p.Y)
-		lo, hi = math.Min(lo, r), math.Max(hi, r)
+		lo, hi = r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y)}, r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y)}
+		far = math.Max(far, math.Hypot(p.X, p.Y))
 	}
 	switch {
-	case hi < 6:
-		return efBore
-	case lo > 6.5 && hi < 10:
+	case math.Abs(math.Hypot((lo.X+hi.X)/2, (lo.Y+hi.Y)/2)-dm.BoltCircle) < 0.3 && hi.X-lo.X < 4:
 		return efHole
+	case far < dm.BoltCircle-m2fastener.HoleRadius-0.3:
+		return efBore
 	}
 	return efOuter
 }
@@ -153,7 +157,7 @@ func (n *efNode) search(p r3.Vec, best float64) float64 {
 }
 
 // efMeasure samples the mid-height loop and reads each point's distance to the face section's loops.
-func efMeasure(mid []r3.Vec, face *efNode) efShift {
+func efMeasure(mid []r3.Vec, face *efNode, chamfer float64) efShift {
 	var out efShift
 	for i, a := range mid {
 		b := mid[(i+1)%len(mid)]
@@ -165,7 +169,7 @@ func efMeasure(mid []r3.Vec, face *efNode) efShift {
 			switch {
 			case d < efSharp:
 				out.unchanged += l
-			case math.Abs(d-(onewayclutch.HubChamfer-efDepth)) < efOffset:
+			case math.Abs(d-(chamfer-efDepth)) < efOffset:
 				out.offset += l
 			default:
 				out.other += l
@@ -190,7 +194,7 @@ func efLengthAt(loops [][]r3.Vec, r, tol float64) float64 {
 }
 
 // efArea is the area of the hub face in mm²: the outer loop less the D bore and the three bolt holes.
-func efArea(loops [][]r3.Vec) float64 {
+func efArea(loops [][]r3.Vec, dm onewayclutch.Dimensions) float64 {
 	total := 0.0
 	for _, loop := range loops {
 		a := 0.0
@@ -199,7 +203,7 @@ func efArea(loops [][]r3.Vec) float64 {
 			a += p.X*q.Y - q.X*p.Y
 		}
 		a = math.Abs(a) / 2
-		if efKindOf(loop) == efOuter {
+		if efKindOf(loop, dm) == efOuter {
 			total += a
 		} else {
 			total -= a
@@ -228,7 +232,7 @@ func efFlankTaper(m *onewayclutch.Model, loops [][]r3.Vec) float64 {
 		}
 		for _, loop := range loops {
 			for i, a := range loop {
-				if b := loop[(i+1)%len(loop)]; on(a) && on(b) && math.Hypot(a.X+b.X, a.Y+b.Y)/2 < onewayclutch.ArmOuter-0.02 {
+				if b := loop[(i+1)%len(loop)]; on(a) && on(b) && math.Hypot(a.X+b.X, a.Y+b.Y)/2 < dm.ArmOuter-0.02 {
 					total += b.Sub(a).Len()
 				}
 			}
@@ -237,25 +241,24 @@ func efFlankTaper(m *onewayclutch.Model, loops [][]r3.Vec) float64 {
 	return total
 }
 
-// TestOneWayClutchEdgeFinishing checks the hub's chamfer on both faces in sections. The 605ZZ hub's faces are over
-// 400 mm², so each has a 0.25 mm chamfer: the section 0.1 mm inside a face is the mid-height outline pulled in 0.15 mm
-// along the arm's outer arc and each inner run, with the bevel tapering out on the head flank's plane, 0.911 mm along
-// it from the arm's corner, and it leaves the head run, the bolt holes and the short D bore unchanged. The 8 mm hubs'
-// faces are under 400 mm², so they are the exact prism and every section reads the same. A volume check would not do;
-// the faceted result reads about 0.07 mm3 high per arc run.
+// TestOneWayClutchEdgeFinishing checks the hub's chamfer on both faces in sections. Every hub's faces are over 400 mm²
+// (406.1 to 413.9 on the 605ZZ clutch, 441.0 to 466.7 on the 8 mm clutches), so each has a
+// HubChamfer chamfer: the section 0.1 mm inside a face is the mid-height outline pulled in HubChamfer - 0.1 along the
+// arm's outer arc and each inner run, with the bevel tapering out on the head flank's plane, sqrt(ArmOuter² - F²) -
+// sqrt((ArmOuter - chamfer)² - F²) along it from the arm's corner (F is FlankDistance), and it leaves the head run and
+// the bolt holes unchanged. The 605ZZ's 15.8 mm D bore stays sharp; the 8 mm D bores, 25.1 to 25.3 mm, are long runs
+// and take the chamfer whole. A hub under 400 mm² would be the exact prism and every section would read the same. A
+// volume check would not do; the faceted result reads about 0.07 mm3 high per arc run.
 func TestOneWayClutchEdgeFinishing(t *testing.T) {
 	for _, c := range fitCases()[:6] {
 		t.Run(c.name, func(t *testing.T) {
 			m := fitBuild(t, c)
-			chamfered := m.Dimensions.Shaft.Name == "605ZZ"
+			dm := m.Dimensions
 			mid := efSection(t, m.Hub, midHub)
-			area := efArea(mid)
+			area := efArea(mid, dm)
+			chamfered := area >= edgefinish.LargeFaceArea
 			t.Logf("%s hub face %.1f mm2", c.name, area)
-			if chamfered {
-				require.Greater(t, area, edgefinish.LargeFaceArea, "the 605ZZ hub face is large")
-			} else {
-				require.Less(t, area, edgefinish.LargeFaceArea, "an 8 mm hub face is small")
-			}
+			require.True(t, chamfered, "every hub face is over 400 mm²")
 			for _, face := range []struct {
 				name string
 				z    float64
@@ -266,20 +269,18 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 				loops := efSection(t, m.Hub, face.z)
 				require.Len(t, loops, len(mid), "%s: loop count", face.name)
 				index := efIndex(loops)
-				if !chamfered {
-					for _, loop := range mid {
-						got := efMeasure(loop, index)
-						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: an 8 mm hub is not chamfered", face.name)
-					}
-					continue
-				}
 				var outer efShift
 				for _, loop := range mid {
-					got := efMeasure(loop, index)
-					switch efKindOf(loop) {
+					got := efMeasure(loop, index, dm.HubChamfer)
+					switch efKindOf(loop, dm) {
 					case efHole:
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: a bolt hole is not chamfered", face.name)
 					case efBore:
+						// ChamferRuns takes a hole loop of LongEdgeRun or more whole: the 8 mm D loops (25.1 to 25.3 mm).
+						if dm.BoreLoop >= edgefinish.LongEdgeRun {
+							require.Greater(t, got.offset, 0.99*got.total(), "%s: the long D bore is chamfered", face.name)
+							break
+						}
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: the short D bore stays sharp", face.name)
 					case efOuter:
 						outer = got
@@ -294,9 +295,9 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 				require.Greater(t, outer.unchanged, 3*7.1-3*3, "%s: head runs sharp", face.name)
 				require.Less(t, outer.other, 0.05*perimeter, "%s: the transitions are short", face.name)
 
-				// The arm's outer arc reads r 13.2 at mid-height and r 13.05 in the face section.
-				arm := onewayclutch.ArmOuter
-				chamfer := onewayclutch.HubChamfer - efDepth
+				// The arm's outer arc reads ArmOuter at mid-height and ArmOuter - chamfer in the face section.
+				arm := dm.ArmOuter
+				chamfer := dm.HubChamfer - efDepth
 				require.Greater(t, efLengthAt(mid, arm, 0.04), 3*20.0, "arm arcs at r %.2f at mid-height", arm)
 				require.Greater(t, efLengthAt(loops, arm-chamfer, 0.04), 3*18.0, "%s: arm arcs at r %.2f", face.name, arm-chamfer)
 				require.Less(t, efLengthAt(loops, arm, 0.04), 3*3.0, "%s: no arm arc stays at r %.2f", face.name, arm)
@@ -305,9 +306,11 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 				taper := efFlankTaper(m, loops)
 				require.Zero(t, efFlankTaper(m, mid), "%s: no taper at mid-height", face.name)
 				t.Logf("%s %s: taper along the flank's plane, three pawls: %.3f mm", c.name, face.name, taper)
-				// The faceted section reads 0.80 to 0.83 mm per pawl, 0.1 mm short of the exact 0.911; a missing taper or a square
-				// end reads 0 or 0.5.
-				require.InDelta(t, 3*0.911, taper, 3*0.15, "%s: the bevel tapers out along the flank's plane", face.name)
+				// The faceted section reads about 0.1 mm per pawl short of the exact value; a missing taper or a square end
+				// reads 0 or 0.5.
+				exact := math.Sqrt(arm*arm-dm.FlankDistance*dm.FlankDistance) -
+					math.Sqrt((arm-chamfer)*(arm-chamfer)-dm.FlankDistance*dm.FlankDistance)
+				require.InDelta(t, 3*exact, taper, 3*0.15, "%s: the bevel tapers out along the flank's plane", face.name)
 			}
 		})
 	}

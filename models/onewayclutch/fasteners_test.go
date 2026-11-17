@@ -28,6 +28,9 @@ func fastenerCases() map[string]onewayclutch.Params {
 	p := onewayclutch.DefaultParams()
 	p.BoreClearance = 0.35
 	out["fasteners 605ZZ loose"] = p
+	for _, w := range wideBoreCases() {
+		out["fasteners "+w.name] = w.params
+	}
 	return out
 }
 
@@ -41,6 +44,7 @@ func TestOneWayClutchFasteners(t *testing.T) {
 				requireSiteWalls(t, m, i, site)
 				requireSiteClear(t, m, i, site)
 			}
+			requireHubBoltWalls(t, m)
 		})
 	}
 }
@@ -146,7 +150,7 @@ func requireSiteWalls(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	require.GreaterOrEqual(t, (back.Max.Z-onewayclutch.Recess)-site.At(site.Cavity).Z, 1.0,
 		"%s: material above the cavity", label)
 	// Radial walls from the plate rim.
-	require.GreaterOrEqual(t, onewayclutch.PlateRadius-(math.Hypot(site.Head.X, site.Head.Y)+m2fastener.NutCavityRadius), 1.0,
+	require.GreaterOrEqual(t, dm.PlateRadius-(math.Hypot(site.Head.X, site.Head.Y)+m2fastener.NutCavityRadius), 1.0,
 		"%s: wall to the plate rim", label)
 
 	// Wall from the D bore to each cavity and pocket, from the bore's outline: the round arc and the flat on +Y.
@@ -155,6 +159,35 @@ func requireSiteWalls(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	// 30 degrees), which is what keeps the 8 mm presets' wall at the press wall.
 	require.GreaterOrEqual(t, d-m2fastener.NutCavityRadius*math.Sqrt(3)/2, onewayclutch.PressWall-1e-9, "%s: wall bore to nut cavity", label)
 	require.GreaterOrEqual(t, d-m2fastener.HeadPocketRadius, onewayclutch.PressWall-1e-9, "%s: wall bore to head pocket", label)
+}
+
+// requireHubBoltWalls checks the hub's section at mid-height: each bolt hole keeps the press wall (1.6 mm) to the
+// hub's outer loop, which holds the core, the slots and the arms.
+func requireHubBoltWalls(t *testing.T, m *onewayclutch.Model) {
+	t.Helper()
+	dm := m.Dimensions
+	s := fitSection(t, m.Hub, fitPlane(t, midHub))
+	var outer []r3.Vec
+	var holes [][]r3.Vec
+	for _, loop := range s.Loops {
+		switch efKindOf(loop, dm) {
+		case efOuter:
+			outer = loop
+		case efHole:
+			holes = append(holes, loop)
+		}
+	}
+	require.NotNil(t, outer, "the hub's outer loop")
+	require.Len(t, holes, len(onewayclutch.BoltAngles), "the hub's bolt holes")
+	for i, hole := range holes {
+		wall := math.Inf(1)
+		for _, p := range hole {
+			wall = math.Min(wall, fitNearest(p, [][]r3.Vec{outer}))
+		}
+		wall -= s.OffSurface.Base()
+		t.Logf("bolt hole %d: wall to the hub's outer loop %.3f", i+1, wall)
+		require.GreaterOrEqual(t, wall, onewayclutch.PressWall, "bolt hole %d: wall to the hub's outer loop", i+1)
+	}
 }
 
 // distanceToBore returns the distance from (x, y) outside the D bore, a circle of radius r cut flat at y = f, to it.
@@ -209,17 +242,11 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	}
 	for _, pr := range probes {
 		f := atZ(t, pr.z)
-		// The chamfered 605ZZ hub is faceted and holds no section finer than 0.035. Every other pair is exact and takes
-		// 0.01: a coarser chord shrinks the bolt hole's polygon and the clearance read from it (0.272 at 0.03 for the
-		// 0.3 mm of the 8 mm hub's holes).
-		tol := 0.01
-		if pr.part == m.Hub && m.Dimensions.Shaft.Name == "605ZZ" {
-			tol = fitCoarseTol
-		}
-		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(tol))
-		require.NoError(t, err, pr.name)
-		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(tol))
-		require.NoError(t, err, pr.name)
+		// Each body is cut at the finest chord it holds (fitSection), 0.01 for every part here, the faceted hubs
+		// included: a coarser chord shrinks the bolt hole's polygon and the clearance read from it (0.272 at 0.03 for
+		// the 0.3 mm of the 8 mm hub's holes).
+		a := fitSection(t, pr.with, f)
+		b := fitSection(t, pr.part, f)
 		c, err := a.Clearance(b)
 		require.NoError(t, err, pr.name)
 		require.False(t, c.Overlaps, "site %d: %s overlaps at z %g", i+1, pr.name, pr.z)
@@ -233,5 +260,5 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 		require.NoError(t, err, name)
 		require.Less(t, nb.Max.Z, ob.Min.Z+1e-3, "site %d: nut clear of the %s", i+1, name)
 	}
-	require.Less(t, math.Hypot(site.Head.X, site.Head.Y)+m2fastener.NutCavityRadius, onewayclutch.ToothRoot, "site %d: nut inside the ring teeth", i+1)
+	require.Less(t, math.Hypot(site.Head.X, site.Head.Y)+m2fastener.NutCavityRadius, m.Dimensions.ToothRoot, "site %d: nut inside the ring teeth", i+1)
 }
