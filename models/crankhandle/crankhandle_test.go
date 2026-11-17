@@ -42,7 +42,7 @@ var crankCases = []crankCase{
 		p := crankhandle.Params6082RS()
 		p.Throw = 80
 		return p
-	}, true},
+	}, false},
 }
 
 type builtCase struct {
@@ -544,7 +544,10 @@ func TestCrankHandleEdgeFinishing(t *testing.T) {
 						left, right = math.Min(left, v.X), math.Max(right, v.X)
 					}
 				}
-				require.InDelta(t, -m.Dimensions.Reach+0.25, lo, bound, "z %g: end arc", z)
+				// The slit cuts the end arc's lowest point away: the section's lowest point lies on the arc at the slit's wall.
+				arcR, half := crankhandle.ClampEndR-0.25, crankhandle.SlitWidth/2
+				sag := arcR - math.Sqrt(arcR*arcR-half*half)
+				require.InDelta(t, -m.Dimensions.Reach+0.25+sag, lo, bound, "z %g: end arc", z)
 				require.InDelta(t, p.Throw+crankhandle.ArmRadius-0.25, hi, bound, "z %g: pin end", z)
 				require.InDelta(t, -crankhandle.ArmRadius+0.25, left, bound, "z %g: -X side", z)
 				require.InDelta(t, crankhandle.ArmRadius-0.25, right, bound, "z %g: +X side", z)

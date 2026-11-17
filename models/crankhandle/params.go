@@ -66,7 +66,7 @@ const (
 	ClampSideRun  = 3.6  // 1 mm past the head pocket's ring (2.2) and the nut pocket's corners (2.51), with margin
 	ClampCornerR  = 4.5
 	ClampEndR     = 22.0
-	SlitWidth     = 1.0
+	SlitWidth     = 1.5
 	SlitInBore    = 1.0 // the slit runs this far past the bore's wall, so its round end lies in the bore's floor
 	// A nut pocket's hexagon, the clamp's or a cross bolt's, has its sharp corners on the circle of radius
 	// m2fastener.NutCavityRadius, 0.2 mm past the nut's corners. Its floor's outline is rounded by NutPocketRound on the

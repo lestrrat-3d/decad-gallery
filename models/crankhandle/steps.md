@@ -36,7 +36,7 @@ with `sketchcheck.VerifyFullyConstrained` before its profile is used.
   `NewRadius(arcR, 4.5)`, `NewTangent(right, arcR)`, `NewRadius(arcL, 4.5)`, `NewTangent(left, arcL)`,
   `NewRadius(arcB, 22)` and `NewTangentCircles(arcB, arcR, true)`, `NewTangentCircles(arcB, arcL, true)`. A circle of
   radius 1.3 about `top` with `NewRadius`. Select the profile with one hole.
-- `slitTool()` on `across(0, -1)`: with `h = 0.5`, `y0 = -Reach - 2`, `yc = -r_b + 1 - h`: `a = DimensionPoint(h, y0)`,
+- `slitTool()` on `across(0, -1)`: with `h = 0.75`, `y0 = -Reach - 2`, `yc = -r_b + 1 - h`: `a = DimensionPoint(h, y0)`,
   `b = (h, yc)` and `c = (-h, yc)` each placed by `NewVerticalDistance(O, ·, yc)`, `d = DimensionPoint(-h, y0)`,
   `center = DimensionPoint(0, yc)`, `arc = CreateArc(center, b, c)` with `NewRadius(arc, h)`, and lines a–b, c–d, d–a.
   Placing b and c by x would meet the circle at a tangent, a singular solve. Extrude 10.

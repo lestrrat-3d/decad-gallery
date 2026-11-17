@@ -36,9 +36,9 @@ The arm keeps its full 20 mm width past the shaft. Its sides run straight on, tu
 one shallow 22 mm end arc, every join smooth, so the hub has no inside corner and no step. The end reaches 13.9 mm
 behind the shaft's axis on the 605ZZ crank and 15.4 mm on the 608-2RS crank.
 
-![The arm's hub cut through the clamp bolt: the M2 x 16 bolt's head flush in its pocket in one side face, the bolt crossing the 1 mm slit, and its nut in a hexagonal pocket in the other side face, with the bolt's tip ending inside the pocket](images/clamp.png)
+![The arm's hub cut through the clamp bolt: the M2 x 16 bolt's head flush in its pocket in one side face, the bolt crossing the 1.5 mm slit, and its nut in a hexagonal pocket in the other side face, with the bolt's tip ending inside the pocket](images/clamp.png)
 
-The cut runs along the clamp bolt. A 1 mm slit runs from the arm's end into the D bore and ends in a full round in the
+The cut runs along the clamp bolt. A 1.5 mm slit runs from the arm's end into the D bore and ends in a full round in the
 bore's floor. The M2 x 16 bolt crosses the arm: its head sits flush in a pocket in one side face, and it runs
 across the slit into a nut in a hexagonal pocket in the other side face. The pocket is 4 mm deep, so the bolt's tip
 ends in it, 2 mm inside that face.
@@ -57,8 +57,8 @@ print as a bridge and the arm needs no supports and no pause.
 The clamp keeps five listed exceptions to the gallery's rules ([instructions.md](instructions.md), "Retained sharp
 corners and edges"):
 
-- The slit's edge in the front face stays sharp. The slit is the working 1 mm clamp gap, and a 0.5 mm chamfer would
-  open its mouth to 2 mm.
+- The slit's edge in the front face stays sharp. The slit is the working 1.5 mm clamp gap, and a 0.5 mm chamfer would
+  open its mouth to 2.5 mm.
 - The arm between the bore and the clamp bolt's hole is 1.05 mm, under the 1.6 mm wall a press-fit bore asks for. The
   slit makes the hub a clamp, so no pressed ring is loaded there.
 - The clamp bolt's head pocket keeps a sharp floor rim. The 0.3 mm head clearance leaves no room to round it.

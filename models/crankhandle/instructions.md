@@ -46,7 +46,7 @@ Package: `models/crankhandle`. Exported surface:
   (3.5), `ShankTo` (52.75), `HeadR` (6.45), `HeadFrom` (55), `HeadLength` (3), `HandleFrom` (7.4), `PinBolt` (10),
   `PinCavity` (4.75), `PressWall` (1.6), `ChamferSize` (0.5), `CrossBolt` (6), `CrossFlat` (4.0), `CrossFlatHalf`
   (3.25), `CrossCavity` (6.0), `ConeAngle` (30), `ClampBolt` (16), `ClampHoleWall` (1.05), `ClampSideRun` (3.6),
-  `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1), `SlitInBore` (1), `NutPocketRound` (0.6), the cross
+  `ClampCornerR` (4.5), `ClampEndR` (22), `SlitWidth` (1.5), `SlitInBore` (1), `NutPocketRound` (0.6), the cross
   bolts' positions `CrossZ` (17, 49), and `HandleProfile`, the handle's meridian.
 - The container names `ArmContainerName` (`Arm`), `PinContainerName` (`Pin`), `HandleContainerName` (`Handle`),
   `BoltsContainerName` (`Bolts`) and `NutsContainerName` (`Nuts`).
@@ -275,11 +275,10 @@ the head without a sharp step.
 | Arm | The six corners of the hexagonal pocket | Joinery: they match the sharp corners of the pin's stub. |
 | Arm | The two corners of the D bore | Mating corners of the shaft's flat. They turn 36.5 degrees (605ZZ) and 35.4 (608-2RS), so they need no round. |
 | Arm | The clamp bolt's head pocket floor rim, 2 mm into the +X side face | The 0.3 mm head clearance leaves no room to round it: a round would sit under the head. |
-| Arm | The slit's outline in the front face, a 25 mm run of two walls and the end round | Not chamfered: the slit is the 1 mm clamp gap, and a 0.5 mm chamfer each side would open its mouth to 2 mm. |
+| Arm | The slit's outline in the front face, a 25 mm run of two walls and the end round | Not chamfered: the slit is the 1.5 mm clamp gap, and a 0.5 mm chamfer each side would open its mouth to 2.5 mm. |
 | Arm | The six corners of the clamp nut's hexagonal pocket, edges along the clamp bolt in the -X side face | Mating corners: they match the sharp corners of the M2 nut, as the stub pocket's corners match the stub. They run parallel to the bed, so `cornercheck`'s layer sections do not read them. |
 | Arm | The 0.6 mm round of the clamp pocket's floor outline, where a layer cuts it at a slant | The pocket's slopes lie 30° off the bed, so a layer section chords the round into turns of 51.6° to 54.4° at the slopes. The round is the one "Corners and roots" asks for; `TestCrankHandleCorners` exempts only that floor band. |
 | Arm | The 1.05 mm web between the bore and the clamp bolt's hole, at the slit | Under the 1.6 mm press-fit wall: the slit makes the hub a clamp, so the bore carries no pressed ring's hoop stress there ("Clamp" above). |
-| Arm | The slit's R0.5 end round in the bore's floor, in the `long-throw` case only | It is the full round of half the slit's width that "Corners and roots" asks for. The longer arm's held boolean mesh chords it coarsely enough that the check reads 51.8°. |
 | Pin | The six corners of each cross nut's hex pocket, edges along the cross bolt | Mating corners: they match the M2 nut's sharp corners. Their direction is across the pin (30°, 90°, ... from local Z). |
 
 The pin carries the handle beside the arm's front face without a collar, as on the siren. [Arbor
