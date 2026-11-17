@@ -9,19 +9,33 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Rotor dimensions in mm. The hub's back face is at Y = -hubBack and its front face at Y = -(hubBack + hubLength).
-const (
-	hubRadius = turbinefan.HubRadius
-	hubLength = turbinefan.HubLength
-	hubBack   = -(fanWallY - wallThick) + fanGap
-	hubMid    = hubBack + hubLength/2
+// fanRotorDiameter is the rotor's diameter in mm: turbinefan's smallest size. A larger rotor sweeps in front of the top
+// of the grip, where the operator's wrist comes in; instructions.md "The rotor" gives the numbers.
+const fanRotorDiameter = turbinefan.MinRotorDiameter
 
-	fanTip = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
+// fanSize is the rotor's turbinefan sizes. fanRotorDiameter is a constant in range, so SizeFor cannot fail.
+var fanSize = func() turbinefan.Size {
+	sz, err := turbinefan.SizeFor(fanRotorDiameter)
+	if err != nil {
+		panic(fmt.Sprintf("handcrankfan: rotor size: %v", err))
+	}
+	return sz
+}()
+
+// Rotor dimensions in mm. The hub's back face is at Y = -hubBack and its front face at Y = -(hubBack + hubLength).
+const hubBack = -(fanWallY - wallThick) + fanGap
+
+var (
+	hubLength = fanSize.HubLength
 
 	// The shaft ends 1 mm inside the hub's front face, past the D bore's 0.5 front chamfer, and the D flat starts 1.5
 	// behind the collar's end, which the collar refills.
 	fanShaftEnd = hubBack + hubLength - 1
-	flatStart   = hubBack - 2
+)
+
+const (
+	fanTip    = 26.0 // the fan shaft's rear tip, inside the pinion and clear of the drive gear's teeth
+	flatStart = hubBack - 2
 	// collarEnd is the collar's end face: a press-fit gap from the hub's back face, as Arbor collars asks of a collar
 	// that stops a pressed part.
 	collarEnd = hubBack - pressFit
@@ -34,7 +48,7 @@ const (
 
 // The blade bolt is an M2 x 16 socket head cap screw with an M2 nut. It runs parallel to the fan axis at boltAt
 // from the axis: the head sits in a pocket in the front face and the nut in a slot open to the round face.
-const boltAt = turbinefan.BladeBoltAt
+var boltAt = fanSize.BladeBoltAt
 
 // fanLocalFrame maps turbinefan's local frame onto the fan at crank angle 0: its origin to the fan axis in the hub's
 // back face, its +Z (forward, toward the front face) to -Y, its +Y (blade 1) to +X and its +X to -Z.
@@ -48,11 +62,11 @@ func fanPlacement() r3.Frame {
 	return frame(r3.Vec{Y: -hubBack - hubLength, Z: axisHeight}, r3.Vec{Z: -1}, r3.Vec{X: 1})
 }
 
-// fanParams is turbinefan's 608ZZ fan, right-handed, at p's pitch, placed on the fan axis. The fan turns clockwise as
+// fanParams is turbinefan's 608ZZ fan at fanRotorDiameter, right-handed, at p's pitch, placed on the fan axis. The fan turns clockwise as
 // the operator sees it, which is clockwise seen from turbinefan's front.
 func fanParams(p Params) turbinefan.Params {
 	tp := turbinefan.Params608ZZ()
-	tp.BladePitch, tp.Hand = p.BladePitch, turbinefan.RightHand
+	tp.RotorDiameter, tp.BladePitch, tp.Hand = fanRotorDiameter, p.BladePitch, turbinefan.RightHand
 	f := fanPlacement()
 	tp.Placement = &f
 	return tp
@@ -138,7 +152,7 @@ func sameFanSites(rotor *turbinefan.Parts) error {
 // fanLocalFrame. The pitch moves no site. It returns no site when turbinefan rejects the preset; fan then fails the build
 // with turbinefan's own error.
 func fanSites() []fastenerSite {
-	dm, err := turbinefan.Params608ZZ().Derive()
+	dm, err := fanParams(DefaultParams()).Derive()
 	if err != nil {
 		return nil
 	}

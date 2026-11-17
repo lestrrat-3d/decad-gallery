@@ -15,7 +15,7 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// The fan stands with its shaft axis along +Z, the hub's back face at z = 0 and the front face at z = 20, blade 1 along
+// The fan stands with its shaft axis along +Z, the hub's back face at z = 0 and the front face at z = Size.HubLength, blade 1 along
 // +Y and the set screw toward -Y. Every camera has +Y up, so blade 1 points up in every view.
 var (
 	turbineHubColor      = solidlens.RGB(.16, .52, .70) // the hand-crank fan's rotor colour
@@ -48,15 +48,17 @@ func turbineScene(camera solidlens.Camera, models []solidlens.Model) solidlens.S
 
 // turbineExplode is each part's offset in the exploded view: every blade outward along its radial line, each blade bolt out
 // of the front face, each blade nut out of its slot along the radial line, the set screw out along -Y and its nut out of
-// the back face.
-func turbineExplode() map[string]r3.Vec {
-	out := map[string]r3.Vec{"hub": {}, "setscrew-bolt": {Y: -32}, "setscrew-nut": {Z: -14}}
+// the back face. The blades move 35 s, the blade bolts BladeBoltLength + 14, the blade nuts 18 j and the set screw 32 j,
+// for the blade scale s and the hub scale j of sz; the set screw's nut moves 14 (30, 30, 18 and 32 mm at 128).
+func turbineExplode(sz turbinefan.Size) map[string]r3.Vec {
+	j := sz.HubScale
+	out := map[string]r3.Vec{"hub": {}, "setscrew-bolt": {Y: -32 * j}, "setscrew-nut": {Z: -14}}
 	for k := 1; k <= turbinefan.BladeCount; k++ {
 		a := turbinefan.BladeAngle(k)
 		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
-		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35)
-		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: 30}
-		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18)
+		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35 * sz.Scale)
+		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: sz.BladeBoltLength + 14}
+		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18 * j)
 	}
 	return out
 }
@@ -180,7 +182,8 @@ func turbineFanView(ctx context.Context, name string) (solidlens.Scene, error) {
 
 // view draws one named view. large is the 608ZZ fan of the "sizes" view.
 func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene, error) {
-	hubMid := r3.Vec{Z: turbinefan.HubMid}
+	sz := c.dm.Size
+	hubMid := r3.Vec{Z: sz.HubMid}
 	switch name {
 	case "hero", "front", "back", "side", "exploded", "exploded-back":
 		dirs := map[string]r3.Vec{
@@ -189,7 +192,7 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		}
 		var pull map[string]r3.Vec
 		if strings.HasPrefix(name, "exploded") {
-			pull = turbineExplode()
+			pull = turbineExplode(c.dm.Size)
 		}
 		models, err := c.models(turbinePartOrder, r3.Vec{}, pull)
 		if err != nil {
@@ -197,12 +200,13 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		}
 		return turbineScene(fitCamera(turbineCamera(dirs[name], hubMid), models, 16.0/9, .06), models), nil
 	case "sizes":
-		// The 605ZZ hub and the 608ZZ hub, 40 mm apart along X, seen from behind.
-		models, err := c.models([]string{"hub"}, r3.Vec{X: -20}, nil)
+		// The 605ZZ hub and the 608ZZ hub, 2 HubRadius + 12 apart along X (49.8 mm at 192), seen from behind.
+		half := sz.HubRadius + 6
+		models, err := c.models([]string{"hub"}, r3.Vec{X: -half}, nil)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
-		more, err := large.models([]string{"hub"}, r3.Vec{X: 20}, nil)
+		more, err := large.models([]string{"hub"}, r3.Vec{X: half}, nil)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
@@ -220,8 +224,9 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		for i, part := range parts {
 			models[i] = clipped(models[i], turbinePartColor(part), solidlens.Vec{Z: turbinefan.SetScrewZ}, solidlens.Vec{Z: 1})
 		}
-		lo := r3.Vec{X: -20, Y: -20, Z: -1}
-		hi := r3.Vec{X: 20, Y: 20, Z: turbinefan.SetScrewZ + 1}
+		box := sz.HubRadius + 6
+		lo := r3.Vec{X: -box, Y: -box, Z: -1}
+		hi := r3.Vec{X: box, Y: box, Z: turbinefan.SetScrewZ + 1}
 		frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
 		target := r3.Vec{Z: turbinefan.SetScrewZ}
 		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: .04, Y: .06, Z: 1}, target), frame, 16.0/9, .04), models), nil
@@ -236,9 +241,11 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 		for i, part := range parts {
 			models[i] = clipped(models[i], turbinePartColor(part), solidlens.Vec{}, solidlens.Vec{X: 1})
 		}
-		lo, hi := r3.Vec{X: -1, Y: -25, Z: -2}, r3.Vec{X: 1, Y: 30, Z: 22}
+		lo := r3.Vec{X: -1, Y: -(sz.HubRadius + 11), Z: -2}
+		hi := r3.Vec{X: 1, Y: sz.HubRadius + 16, Z: sz.HubLength + 2}
 		frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
-		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: 1, Y: .01, Z: .02}, r3.Vec{Y: 2.5, Z: 10}), frame, 16.0/9, .05), models), nil
+		target := r3.Vec{Y: 2.5 * sz.HubScale, Z: sz.HubMid}
+		return turbineScene(fitCamera(turbineCamera(r3.Vec{X: 1, Y: .01, Z: .02}, target), frame, 16.0/9, .05), models), nil
 	}
 	return solidlens.Scene{}, fmt.Errorf("unknown turbine fan view %q", name)
 }
@@ -300,37 +307,44 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 // The clutch-mount views draw the real clutch with its adapter and the fan placed on it, both in the clutch frame: the
 // shaft axis along +Z, the clutch's back plate at z = 0, the adapter against the ring's front end and the hub's back face
 // one seam in front of the adapter.
-const clutchViewTarget = 12.0 // the stack's middle along Z, for the cameras
+// clutchViewTarget returns the stack's middle along Z, for the cameras: 12 at 128 and 17 at 192.
+func clutchViewTarget(sz turbinefan.Size) float64 { return 12 + (sz.HubLength-20)/2 }
+
+// clutchHubLead is how far ahead of the clutch frame the hub moves in the exploded view: 40 s for the blade scale s.
+func clutchHubLead(sz turbinefan.Size) float64 { return 40 * sz.Scale }
 
 // clutchMountExplode is each fan part's offset in the exploded view, in the order the parts go together along +Z: the
-// adapter 20 mm ahead of the clutch, the hub 40 mm ahead (each blade 35 mm and each blade nut 18 mm out along its radial
-// line), each blade bolt 70 mm ahead, each adapter bolt 6 mm ahead, which parks it between the clutch and the adapter, and
-// each adapter nut 40 mm ahead and 18 mm out along its line.
-func clutchMountExplode() map[string]r3.Vec {
-	out := map[string]r3.Vec{"hub": {Z: 40}}
+// adapter 20 mm ahead of the clutch, the hub 40 s ahead (each blade 35 s and each blade nut 18 j out along its radial
+// line), each blade bolt 40 s + BladeBoltLength + 14 ahead, each adapter bolt 6 mm ahead, which parks it between the
+// clutch and the adapter, and each adapter nut 40 s ahead and 18 mm out along its line. The scales s and j are sz's.
+func clutchMountExplode(sz turbinefan.Size) map[string]r3.Vec {
+	lead := clutchHubLead(sz)
+	out := map[string]r3.Vec{"hub": {Z: lead}}
 	for k := 1; k <= turbinefan.BladeCount; k++ {
 		a := turbinefan.BladeAngle(k) + turbinefan.ClutchTurn
 		u := r3.Vec{X: math.Cos(a), Y: math.Sin(a)}
-		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35).Add(r3.Vec{Z: 40})
-		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18).Add(r3.Vec{Z: 40})
-		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: 70}
+		out[fmt.Sprintf("blade-%d", k)] = u.Scale(35 * sz.Scale).Add(r3.Vec{Z: lead})
+		out[fmt.Sprintf("nut-%d", k)] = u.Scale(18 * sz.HubScale).Add(r3.Vec{Z: lead})
+		out[fmt.Sprintf("bolt-%d", k)] = r3.Vec{Z: lead + sz.BladeBoltLength + 14}
 	}
 	for k := 1; k <= 2; k++ {
 		a := onewayclutch.EarAngles[k] * math.Pi / 180
 		out[fmt.Sprintf("adapterbolt-%d", k)] = r3.Vec{Z: 6}
-		out[fmt.Sprintf("adapternut-%d", k)] = r3.Vec{X: 18 * math.Cos(a), Y: 18 * math.Sin(a), Z: 40}
+		out[fmt.Sprintf("adapternut-%d", k)] = r3.Vec{X: 18 * math.Cos(a), Y: 18 * math.Sin(a), Z: lead}
 	}
 	return out
 }
 
 // clutchMountSetExplode is the offset of each part of the clutch set in the exploded view: the adapter 20 mm ahead, each ear
-// nut 30 mm behind the ring and 14 mm out along its ear, each ear bolt 110 mm ahead. The clutch itself stays in place.
-func clutchMountSetExplode() map[string]r3.Vec {
+// nut 30 mm behind the ring and 14 mm out along its ear, each ear bolt max(110, the blade bolt offset + 40) ahead, so it
+// clears the blade bolts. The clutch itself stays in place.
+func clutchMountSetExplode(sz turbinefan.Size) map[string]r3.Vec {
 	out := map[string]r3.Vec{"adapter": {Z: 20}}
+	earBolt := math.Max(110, clutchHubLead(sz)+sz.BladeBoltLength+14+40)
 	for k := 1; k <= onewayclutch.Ears; k++ {
 		e := onewayclutch.EarAngles[k-1] * math.Pi / 180
 		out[fmt.Sprintf("mount nut %d", k)] = r3.Vec{X: 14 * math.Cos(e), Y: 14 * math.Sin(e), Z: -30}
-		out[fmt.Sprintf("mount bolt %d", k)] = r3.Vec{Z: 110}
+		out[fmt.Sprintf("mount bolt %d", k)] = r3.Vec{Z: earBolt}
 	}
 	return out
 }
@@ -362,7 +376,8 @@ var clutchMountCut = solidlens.ClipPlane{Normal: solidlens.Vec{X: math.Cos(math.
 func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.Scene, error) {
 	var clip *solidlens.ClipPlane
 	var pull, clutchPull map[string]r3.Vec
-	target := r3.Vec{Z: clutchViewTarget}
+	sz := fan.dm.Size
+	target := r3.Vec{Z: clutchViewTarget(sz)}
 	var camera solidlens.Camera
 	switch name {
 	case "clutch":
@@ -376,8 +391,8 @@ func clutchMountView(name string, set clutchSet, fan turbineMeshes) (solidlens.S
 		camera = solidlens.Camera{Position: solidlens.Vec(target.Add(n.Scale(turbineDistance)).Add(t.Scale(-20)).Add(r3.Vec{Z: 20})),
 			Target: solidlens.Vec(target), Up: solidlens.Vec{Z: 1}, FOV: 35}
 	case "clutch-exploded":
-		pull, clutchPull = clutchMountExplode(), clutchMountSetExplode()
-		camera = turbineCamera(r3.Vec{X: 1, Y: .25, Z: .1}, r3.Vec{Z: 40})
+		pull, clutchPull = clutchMountExplode(sz), clutchMountSetExplode(sz)
+		camera = turbineCamera(r3.Vec{X: 1, Y: .25, Z: .45}, r3.Vec{Z: 40 * sz.Scale})
 	default:
 		return solidlens.Scene{}, fmt.Errorf("unknown clutch-mount view %q", name)
 	}

@@ -12,8 +12,8 @@ so a damaged blade can be swapped, and its hub grips a flat on the fan shaft wit
 operator-facing rotor are the two orientation rules of this model.
 
 The bevel pair is the `models/bevelgear` construction, the spur gears are the `models/spurgear` construction and the
-hub and blades are the `models/turbinefan` construction (`turbinefan.BuildParts` with `Params608ZZ`), imported and not
-copied. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies.
+hub and blades are the `models/turbinefan` construction (`turbinefan.BuildParts` with `Params608ZZ` at
+`RotorDiameter` 128), imported and not copied. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies.
 
 ## Compliance with AGENTS.md
 
@@ -52,13 +52,17 @@ Defaults: `5*pi/4` and `25*pi/180`.
 - `CrankAngle` is any finite angle in radians. `Ratio*CrankAngle` must also be finite.
 - `BladePitch` lies in `[10°, 40°]`, in radians. It is the blade angle at radius 48 (75 % of the tip radius 64),
   measured from the plane of rotation. It turns the whole blade about its radial line, as a pitch bearing does.
+The rotor is turbinefan's 608ZZ fan at `RotorDiameter` 128, its smallest size, not at turbinefan's 192 default. The
+fan axis is at Z 170 and the grip's top at Z 101.15, just under the gearbox floor, so a 128 mm rotor's blades reach
+down to Z 106 and clear the grip by 5 mm. A 192 mm rotor would reach Z 74 and sweep in front of the grip, where the
+operator's wrist comes in. The axis cannot move up without a new gearbox, so a larger rotor is a separate design.
 The rotor always has `turbinefan.BladeCount` (3) blades. `Validate` also returns turbinefan's own error for the rotor's
 parameters.
 
 Reject an invalid input before the document changes.
 
 The blade, its socket tool and the hub and blade-joint constants belong to [`models/turbinefan`](../turbinefan/), which
-this model imports: `turbinefan.BuildBlade`, `BladeSocketTool`, `Beta` and the `Blade...` constants.
+this model imports: `turbinefan.BuildBlade`, `BladeSocketTool`, `Size.Beta` and the `Size` fields of `SizeFor(128)`.
 
 All lengths are mm and angles are radians. The frame is the operator's: X runs to the operator's right,
 Y runs away from the operator, and Z runs up. The operator therefore looks along +Y.
@@ -99,8 +103,8 @@ the two angular velocities satisfy ω_fan = Ratio · ω_drive along -Y. The forw
 fan about -Y by `-Ratio * CrankAngle`: clockwise as the operator sees it. The spur pair has reversed the turn, so
 the fan is `turbinefan.RightHand`, whose blades push air forward when the shaft turns clockwise seen from its front,
 which is the operator's side. The blade is turbinefan's `BuildBlade`: at radius r its chord, from trailing edge to
-leading edge, runs along `(0, sin beta(r), -cos beta(r))` in this model's frame, with `beta(r) = turbinefan.Beta(r,
-BladePitch)`. The leading edge therefore leads the motion and sits upstream (+Y), and the concave pressure face leads the
+leading edge, runs along `(0, sin beta(r), -cos beta(r))` in this model's frame, with `beta(r) = Size.Beta(r,
+BladePitch)` at 128. The leading edge therefore leads the motion and sits upstream (+Y), and the concave pressure face leads the
 motion and faces -Y, so it pushes air toward the operator. A blade at the other angles is the same blade turned about the
 fan axis. The blade's shape, station table and formulas are in [`models/turbinefan`](../turbinefan/instructions.md).
 
@@ -298,13 +302,13 @@ clearance, from the gears' own section outlines, at each sample.
     refills Y -74 to -75.95, so the flat runs from Y -75.95 to its end.
   - The collar is Y [-75.95, -65.8], 10.15 long: 0.25 (Tight) from the front bearing's face (row T5) and 0.05 from the hub's
     back face, the press-fit gap that Arbor collars asks of a collar that stops a pressed part.
-- `fan-hub`, group `rotor`: turbinefan's hub for the 608ZZ shaft (`turbinefan.Params608ZZ()`, with the pitch, the right hand
+- `fan-hub`, group `rotor`: turbinefan's hub for the 608ZZ shaft (`turbinefan.Params608ZZ()`, with `RotorDiameter` 128, the pitch, the right hand
   and the placement below), a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is
   10.3 in front of the bearing block's end (Y -65.7). The crank is lower than the fan axis, so the blades stay clear of
   its reach without a long shaft. It has a D bore (a 0.05 press fit on the round and on the flat), three sockets of radius
   3.4, three blade bolt sites with a head pocket in the front face and a hex nut slot open to the round face, and the set
   screw's counterbore, hole and nut slot. A guard test requires the parameters to equal `Params608ZZ()` apart from the
-  pitch, the hand and the placement.
+  rotor diameter (128), the pitch, the hand and the placement.
 - `fan-blade-1` .. `fan-blade-3`, group `blade`: turbinefan's blades. The first lies along +X at fan angle 0, the others
   at 120° and 240° toward +Z. Each blade's stud engages its socket from r 6.1 to r 14 with a 0.4 clearance (a Regular fit).
 - `fan-bolt-1` .. `fan-bolt-3` and `fan-nut-1` .. `fan-nut-3`, group `hardware`: one M2 x 16 bolt and one nut for each

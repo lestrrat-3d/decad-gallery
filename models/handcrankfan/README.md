@@ -25,7 +25,7 @@ toward the operator. Each blade is shaped like a small wind turbine blade: a thi
 the hub, and a taper to a thin tip, with the angle falling from the root to the tip. Its concave face leads the
 motion and faces the operator.
 
-The rotor is the [turbine fan](../turbinefan/) on the 8 mm fan shaft. The hub grips a flat on the shaft, and one M2 x 6
+The rotor is the [turbine fan](../turbinefan/), at its 128 mm size, on the 8 mm fan shaft. The hub grips a flat on the shaft, and one M2 x 6
 set screw in the hub's round face holds it there. Each blade is a separate part with a round stud that slides into a
 socket in the hub. One M2 x 16 bolt and nut hold it, so a damaged blade comes off and is replaced. Everything else is meant to be 3D-printed, except the M2 bolts
 and nuts and seven 608-2RS ball bearings, one wherever a shaft crosses a wall.

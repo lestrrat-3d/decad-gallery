@@ -85,7 +85,7 @@ func (r *run) extrudeOutline(s *sketch.Sketch, holes int, length float64) (*deca
 	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
 }
 
-// hubSketch sketches the hub's outline on the back face: the circle of radius HubRadius, the D bore (an arc of radius
+// hubSketch sketches the hub's outline on the back face: the circle of radius Size.HubRadius, the D bore (an arc of radius
 // r_b about the axis the long way round through +Y, closed by its flat at y = -f_b) and three circles of radius
 // m2fastener.HoleRadius for the blade bolts. The bore runs through, so the profile has four holes.
 func (r *run) hubSketch() (*sketch.Sketch, error) {
@@ -95,7 +95,7 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 	}
 	dm := r.dm
 	o := s.Origin()
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, HubRadius), HubRadius))
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(o, dm.Size.HubRadius), dm.Size.HubRadius))
 	w := dm.BoreFlatWidth / 2
 	qR, qL := s.CreatePoint(w, -dm.BoreFlat), s.CreatePoint(-w, -dm.BoreFlat)
 	bore := s.CreateArc(o, qR, qL)
@@ -103,7 +103,7 @@ func (r *run) hubSketch() (*sketch.Sketch, error) {
 	s.AddConstraint(sketch.NewRadius(bore, dm.BoreRadius), sketch.NewHorizontal(flat),
 		sketch.NewDistancePointLine(o, flat, dm.BoreFlat))
 	for k := 1; k <= BladeCount; k++ {
-		u, v := BladeBoltAt*math.Cos(BladeAngle(k)), BladeBoltAt*math.Sin(BladeAngle(k))
+		u, v := dm.Size.BladeBoltAt*math.Cos(BladeAngle(k)), dm.Size.BladeBoltAt*math.Sin(BladeAngle(k))
 		c := s.CreatePoint(u, v)
 		s.AddConstraint(sketch.NewHorizontalDistance(o, c, u), sketch.NewVerticalDistance(o, c, v))
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, m2fastener.HoleRadius), m2fastener.HoleRadius))
@@ -159,7 +159,7 @@ func (r *run) counterboreTool() (*decad.Body, error) {
 		t := math.Pi - (math.Pi/2)*float64(i)/8
 		vertices = append(vertices, [2]float64{rr + rr*math.Cos(t), rc - rr + rr*math.Sin(t)})
 	}
-	out := HubRadius + m2fastener.Stock - dm.CounterboreFloor
+	out := dm.Size.HubRadius + m2fastener.Stock - dm.CounterboreFloor
 	vertices = append(vertices, [2]float64{out, rc}, [2]float64{out, 0})
 	points := make([]*sketch.Point, len(vertices))
 	for i, v := range vertices {

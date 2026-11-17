@@ -67,20 +67,24 @@ sections side by side, and `sizes` puts the sections of the three shaft presets 
 clutch once, writes all of them, the index image and one 480 x 270 image of each distinct part in `parts/`, including `adapter` and `mount-bolt`:
 `go -C tools/render run . -model onewayclutch -shot readme -out ../../models/onewayclutch/images`.
 
-`turbinefan/hero` renders the default right-hand fan from the front, right and above, with blade 1 up, in the hand-crank
-fan's hub and blade colours. The `front`, `back` and `side` presets show other angles. `setscrew` clips the hub, the blade
+`turbinefan/hero` renders the default right-hand fan (192 mm rotor) from the front, right and above, with blade 1 up, in the
+hand-crank fan's hub and blade colours. Every offset below scales with the rotor: s is the blade scale (rotor diameter
+/ 128) and j the hub scale (hub radius / 14, at most 1.35), and the numbers in brackets are for 128 mm. The `front`, `back` and `side` presets show other angles. `setscrew` clips the hub, the blade
 bolts and nuts and the set screw and its nut by the plane z = 4 and looks from the front; `joint` clips the hub, blade 1, its
-bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along
-its radial line, each blade bolt 30 mm out of the front face, each blade nut 18 mm out along its radial line, the set screw
-32 mm along -Y and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
-visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. `turbinefan/clutch`, `clutch-back`,
+bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 s mm out along
+its radial line (52.5 mm at 192), each blade bolt its length + 14 mm out of the front face (39 mm; 30 mm at 128), each blade nut
+18 j mm along its radial line (24.3 mm), the set screw 32 j mm along -Y (43.2 mm) and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
+visible. `sizes` puts the 608ZZ hub beside the 605ZZ hub, 2 hub radii + 12 mm apart (49.8 mm; 40 mm at 128), from behind. `setscrew`
+clips to a box of hub radius + 6 mm, and `joint` frames the hub from hub radius + 11 mm behind blade 1's line to hub radius +
+16 mm in front of it. `turbinefan/clutch`, `clutch-back`,
 `clutch-cutaway` and `clutch-exploded` draw the clutch-mount fan (`ParamsForClutch` of the default clutch) on the real default
 one-way clutch with its adapter ring, both in the clutch frame: `clutch` from the front, right and above, `clutch-back` from behind, `clutch-cutaway`
 cuts every body by the plane through the axis and the 330 degree direction, which holds ear 3, adapter bolt 2 and the
 clutch's 150 degree bolt, removes the half toward 60 degrees and looks from there. `clutch-exploded` runs the shaft axis left to right and pulls the parts apart along it: the ear nuts
 30 mm behind the clutch (also 14 mm out along their ear), the clutch in place, the adapter 20 mm ahead, the adapter bolts 6 mm
-ahead (between the clutch and the adapter), the hub and blades 40 mm ahead (each blade 35 mm and each blade nut 18 mm out
-along its radial line, each adapter nut 18 mm out along its line), the blade bolts 70 mm and the ear bolts 110 mm ahead. The
+ahead (between the clutch and the adapter), the hub and blades 40 s mm ahead (60 mm at 192; each blade 35 s mm and each blade nut
+18 j mm out along its radial line, each adapter nut 18 mm out along its line), the blade bolts 40 s + their length + 14 mm
+(99 mm at 192; 70 mm at 128) and the ear bolts the larger of 110 mm and that + 40 mm ahead (139 mm at 192). The
 `readme` shot writes all of them, the index image and one 480 × 270 image of each part in `parts/`, including `adapter-bolt`
 and `ear-bolt`:
 `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
