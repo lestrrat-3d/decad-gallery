@@ -48,9 +48,11 @@ different sizes. The `readme` shot writes all of them and the index image:
 hand-crank siren's crank colour with a dark handle. The `side` and `back` presets show it from the side and from below.
 `cutaway` clips every body by the plane through the shaft axis and the pin axis, removes the half toward +X, and looks
 from that side. `exploded` pulls the parts along the pin axis: the bolt 18 mm down, the nut 16 mm, the handle 32 mm and
-the pin 75 mm up. `sizes` puts the 608-2RS crank 15 mm beside the default one. The `readme` shot builds each crank once
-and writes all of them, the index image and one 480 × 270 image of each part in `parts/`. `clamp-section` cuts the arm
-across the clamp nut's pocket at x = -7, and `cross-section` cuts the pin across the first cross nut's pocket at
+the pin 75 mm up; each of the two clamp bolts goes 30 mm out of the arm's +X side and each clamp nut 45 mm out of the
+-X side, far enough to clear the arm's outline in the view. `sizes` puts the 608-2RS crank 15 mm beside the default one. The `readme` shot builds each crank once
+and writes all of them, the index image and one 480 × 270 image of each part in `parts/`. The `clamp` and `clamp-nut` views show both clamp bolts and nuts, aimed at z = 8 between them and framed from z = -1
+to the hub's top. `clamp-section` cuts the arm
+across the clamp nuts' pockets at x = -7, and `cross-section` cuts the pin across the first cross nut's pocket at
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
@@ -316,8 +318,8 @@ the collector bolts -35, the front bearings +20, the plane-2 gears +40, the plan
 the rear plate and its bolts +135 (the shafts lift 160 in Z and the front bolts move -25 in Y). The crank moves +230,
 clear of the rear plate, and comes apart from there along the pin axis as the `crankhandle/exploded` preset pulls it:
 the pin bolt 18 back, the pin nut 16 and the handle 32 out, and the pin 95 out, clear of the handle. The cross bolts go
-with the pin and 14 further along the arm, their nuts 14 back toward the shaft. The clamp bolt pulls 30 out of the
-arm's side face and the clamp nut 25 the other way along its line, past the far jaw, where the arm does not hide it.
+with the pin and 14 further along the arm, their nuts 14 back toward the shaft. Each clamp bolt pulls 30 out of the
+arm's side face and each clamp nut 25 the other way along its line, past the far jaw, where the arm does not hide it.
 The `readme` shot builds the siren once and writes `hero.png`,
 `index.png` (480 × 270), `exploded.png`, `cutaway.png`, `view-rear.png`, `view-side.png`, `view-top.png` and one
 480 × 270 image per unique part (28) in `parts/`:

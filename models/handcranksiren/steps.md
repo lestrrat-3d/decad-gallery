@@ -102,10 +102,11 @@ Meridian sketches of the drum and rotor sit on origin (0, 0, 84), U = +X, V = +Y
 - `crankParams()`: `crankhandle.Params6082RS()` with `FlatDepth = GearboxParams().FlatDepth` and the placement frame
   origin (0, 38.30, 84), U (−1, 0, 0), V (0, 0, 1). `armFace` is 38.30 and `pinAxis` (0, 0, 139).
 - Build it with `crankhandle.BuildParts` once. Fail unless its `Dimensions.BoreRadius` is 4.05 and `BoreFlat` is 3.55,
-  the output shaft's D grown by 0.05. Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as
+  the output shaft's D grown by 0.05. The crank is built with `DoubleFlat` false here, because the output shaft has one
+  flat, and the longer hub (17) is the migration's: it lengthens the output shaft by 9.0 and decides on a second flat. Record its sketches with the siren's, and return its `Arm`, `Pin` and `Handle` as
   crank-arm, crank-pin and crank-handle, motion `crank`, group `Crank`.
 - `crankSites` carries crankhandle's own sites from `crankParams().Derive()` through the placement, as before. After
-  `BuildParts`, fail unless they equal the placed `Parts.Site`, `Parts.CrossSites` and `Parts.ClampSite`. Then
+  `BuildParts`, fail unless they equal the placed `Parts.Site`, `Parts.CrossSites` and `Parts.ClampSites` (two sites, `crank-clamp-bolt-1..2`). Then
   `hardware` for each `crank-` site.
 - Check: the `sweep` and `split shafts` subtests; rows T5, T6, T8, R3, R4, L5. Sections of the arm use 0.0102.
 
@@ -142,7 +143,7 @@ host:
   Union the box and the pocket, then cut. The box's sketch is a rectangle anchored to the origin by its v sides'
   distances and its u 0 side through the origin, fully constrained.
 
-Site order: ear, housing, drum, collector, throat, grip, crank-pin, crank-cross, crank-clamp. `Fasteners(p)` in
+Site order: ear, housing, drum, collector, throat, grip, crank-pin, crank-cross, crank-clamp (1 then 2). `Fasteners(p)` in
 `export_test.go` poses every site.
 
 Why no embedded nut: every new siren nut has an open seat. The housing posts take a slot because both of the posts'
@@ -165,7 +166,7 @@ One test per rule. `TestHandCrankSirenDefault` builds the default once and runs 
 | Pitch | `TestPitch` | 408, 144 and 480 Hz |
 | Ratio | `TestRatio` | `Ratio` equals the planetary CarrierDriven motion's `Ratio()` within 1e-12 |
 | Gearbox parameters | `TestGearboxParams` | the kit's bearings and teeth, Li 24.05, Lo 22.05, the placement, `Validate` nil |
-| Parts | `.../parts` | 103 parts with unique names, groups and motions as listed; no live gearbox ear bolt; `Gearbox.EarBolts` nil |
+| Parts | `.../parts` | 105 parts with unique names, groups and motions as listed; no live gearbox ear bolt; `Gearbox.EarBolts` nil |
 | Sketch constraints | `.../sketches` | every recorded sketch `FullyConstrained`, DOF 0, no redundant or conflicting constraint |
 | Body containers | `.../containers` | the container names, each body in its container, `doc.VerifyContainers().Err()` nil |
 | Motion through the gearbox | `.../gearbox pose` | each rotor part's transform maps 3 test points as the Input Shaft's does, each crank part's as the Output Shaft's, within 1e-9; the ports line up at the default |
@@ -180,7 +181,7 @@ One test per rule. `TestHandCrankSirenDefault` builds the default once and runs 
 | Solidity | `.../tessellate` | `VerifyAll` on every body |
 | Surface edge finishing | `.../edges` | the Edge finishing table, the spacers not qualifying |
 | No overlap | `.../overlap` | no two parts overlap, the gearbox's bodies included |
-| Press-fit walls | `.../press-fit walls` | rotor hub 4.95, spacers 1.7, crank arm 1.6 (1.05 web), each ring printed axis vertical |
+| Press-fit walls | `.../press-fit walls` | rotor hub 4.95, spacers 1.7, crank arm 1.6 (1.05 web at each clamp hole), each ring printed axis vertical |
 | Corners and roots | `.../corners` | `cornercheck` on every siren printed part, only the listed corners |
 | Split shafts | `.../split shafts` | `splitcheck.Check` and `cornercheck.CheckAt` on the posed Input Shaft, Output Shaft and crank pin with the listed normals |
 | Vanes | `TestHandCrankSirenVariant/.../vanes`, `TestVaneRadius` | `rv` by the formula; ≥ 1.2 between neighbouring vanes at 12, 22, 34 and 40 slots |
@@ -223,7 +224,7 @@ All in the same pull request as the geometry (AGENTS.md "Model images"):
 - `models/crankhandle` (README, instructions, `params.go` and `crankhandle.go` comments, `docs/models/crankhandle.md`):
   the siren now builds `Params6082RS()` with a 0.5 flat. The text only; no crankhandle geometry or image changes.
 - `scripts/ci/run_tests.py`, `scripts/ci/test_run_tests.py` and `.github/workflows/repository.yml`: the `slots24` case
-  becomes `slots40`, and the solid count in the comment becomes 103.
+  becomes `slots40`, and the solid count in the comment becomes 105.
 - The build status stays **Not built yet**; `UNBUILT` keeps `handcranksiren`.
 
 ### Pull requests

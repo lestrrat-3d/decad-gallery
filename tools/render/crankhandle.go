@@ -29,11 +29,11 @@ var crankHandleCameras = map[string]solidlens.Camera{
 // face, the nut out of the pin's stub, the handle off the arm, and the pin out of the handle. The cross bolts and their
 // nuts go with the pin, each pulled out along its own line: the bolts toward +Y, out of their pockets, and the nuts
 // toward -Y. Each clamp bolt pulls out of the arm's +X side face along its line, and each clamp nut out of its pocket
-// in the -X side face the other way.
+// in the -X side face the other way, far enough that the arm does not hide it from the exploded camera.
 var crankExplode = map[string]r3.Vec{
 	"arm": {}, "bolt": {Z: -18}, "nut": {Z: 16}, "handle": {Z: 32}, "pin": {Z: 75},
 	"cross-bolt-1": {Y: 14, Z: 75}, "cross-bolt-2": {Y: 14, Z: 75}, "cross-nut-1": {Y: -14, Z: 75}, "cross-nut-2": {Y: -14, Z: 75},
-	"clamp-bolt-1": {X: 30}, "clamp-bolt-2": {X: 30}, "clamp-nut-1": {X: -16}, "clamp-nut-2": {X: -16},
+	"clamp-bolt-1": {X: 30}, "clamp-bolt-2": {X: 30}, "clamp-nut-1": {X: -45}, "clamp-nut-2": {X: -45},
 }
 
 var (
@@ -55,7 +55,7 @@ var crankPartOrder = []string{
 }
 
 // clampMid is the height along the shaft midway between the two clamp bolts, where the clamp views aim.
-const clampMid = (4.0 + 12.0) / 2
+var clampMid = (crankhandle.ClampZ[0] + crankhandle.ClampZ[1]) / 2
 
 // isCrankHardware reports whether the part is a bought bolt or nut.
 func isCrankHardware(name string) bool {
