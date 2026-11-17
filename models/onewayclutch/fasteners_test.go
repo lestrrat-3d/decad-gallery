@@ -239,17 +239,11 @@ func requireSiteClear(t *testing.T, m *onewayclutch.Model, i int, site m2fastene
 	}
 	for _, pr := range probes {
 		f := atZ(t, pr.z)
-		// A chamfered hub is faceted and holds no section finer than 0.035. Every other pair is exact and takes
-		// 0.01: a coarser chord shrinks the bolt hole's polygon and the clearance read from it (0.272 at 0.03 for the
-		// 0.3 mm of the 8 mm hub's holes).
-		tol := 0.01
-		if pr.part == m.Hub && hubChamfered(t, m) {
-			tol = fitCoarseTol
-		}
-		a, err := pr.with.SectionOutline(t.Context(), f, units.Millimeters(tol))
-		require.NoError(t, err, pr.name)
-		b, err := pr.part.SectionOutline(t.Context(), f, units.Millimeters(tol))
-		require.NoError(t, err, pr.name)
+		// Each body is cut at the finest chord it holds (fitSection), 0.01 for every part here, the faceted hubs
+		// included: a coarser chord shrinks the bolt hole's polygon and the clearance read from it (0.272 at 0.03 for
+		// the 0.3 mm of the 8 mm hub's holes).
+		a := fitSection(t, pr.with, f)
+		b := fitSection(t, pr.part, f)
 		c, err := a.Clearance(b)
 		require.NoError(t, err, pr.name)
 		require.False(t, c.Overlaps, "site %d: %s overlaps at z %g", i+1, pr.name, pr.z)

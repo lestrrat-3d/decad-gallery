@@ -136,12 +136,13 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 }
 
 // hub extrudes the hub's outline, with the D bore and the bolt holes, HubHeight along +Z, then chamfers both faces by
-// HubChamfer along the runs of 20 mm or more: per pawl the arm's outer arc and the inner run. The head run (flank, tip
+// HubChamfer along the runs of 20 mm or more: per pawl the arm's outer arc and the inner run, and the whole D bore when
+// it is 20 mm or more round (the 8 mm presets). The head run (flank, tip
 // round, lock face) is 7.1 mm and stays sharp, so its 0.4 tip round and the lock contact are kept. Decad ends each
 // run at the concave 11.43 degree corner beside the head's flank, where the bevel tapers out on the flank's plane, and
 // at the convex corners at the web and the lock face. The hub has no Boolean.
 //
-// Every hub is chamfered: the 605ZZ faces are 384.1 to 413.9 mm² and the grown 8 mm faces 442.1 to 466.7 mm², over the
+// Every hub is chamfered: the 605ZZ faces are 406.1 to 413.9 mm² and the grown 8 mm faces 441.0 to 466.7 mm², over the
 // 400 mm² of "Surface edge finishing". The chamfer is Dimensions.HubChamfer, at most 0.25 mm and not 0.5: the flank's
 // plane, carried back over the arm's outer arc, caps a bevel at ArmOuter - FlankDistance there (0.262 mm on the 605ZZ
 // hub), and HubChamfer stays HubChamferMargin under that cap. That is the smaller chamfer "required by functional

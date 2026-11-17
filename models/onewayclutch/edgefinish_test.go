@@ -65,23 +65,6 @@ func efKindOf(loop []r3.Vec, dm onewayclutch.Dimensions) efKind {
 	return efOuter
 }
 
-// hubChamfered reports whether the hub's face is over the 400 mm² of "Surface edge finishing", so that it takes the
-// face chamfer. The grown 8 mm hubs' chamfer waits on a Decad fix (design T6): the tests that depend on the chamfer's
-// held and mesh bound being small fail for them until then.
-//
-// The area is read from the same clutch built in the local frame, so a placed clutch gives the same answer.
-func hubChamfered(t *testing.T, m *onewayclutch.Model) bool {
-	t.Helper()
-	dm := m.Dimensions
-	p := onewayclutch.Params{Shaft: dm.Shaft.Name, Freewheel: onewayclutch.Clockwise,
-		BoreClearance: math.Round((dm.BoreRadius-dm.Shaft.Diameter/2)*1e9) / 1e9}
-	if dm.Sign > 0 {
-		p.Freewheel = onewayclutch.CounterClockwise
-	}
-	local := fitBuild(t, fitCase{name: "hub area", p: p})
-	return efArea(efSection(t, local.Hub, midHub), dm) >= edgefinish.LargeFaceArea
-}
-
 // efShift is the length of a loop, in mm, that lies unchanged, offset by the chamfer, or neither, measured from the
 // mid-height outline to the face section.
 type efShift struct{ unchanged, offset, other float64 }
@@ -259,12 +242,13 @@ func efFlankTaper(m *onewayclutch.Model, loops [][]r3.Vec) float64 {
 }
 
 // TestOneWayClutchEdgeFinishing checks the hub's chamfer on both faces in sections. Every hub's faces are over 400 mm²
-// (384.1 to 413.9 on the 605ZZ clutch, 442.1 to 466.7 on the grown 8 mm clutches), so each has a HubChamfer chamfer: the
-// section 0.1 mm inside a face is the mid-height outline pulled in HubChamfer - 0.1 along the arm's outer arc and each
-// inner run, with the bevel tapering out on the head flank's plane, sqrt(ArmOuter² - F²) - sqrt((ArmOuter - chamfer)²
-// - F²) along it from the arm's corner (F is FlankDistance), and it leaves the head run, the bolt holes and the short
-// D bore unchanged. A hub under 400 mm² would be the exact prism and every section would read the same. A volume check
-// would not do; the faceted result reads about 0.07 mm3 high per arc run. The 8 mm cases wait on the Decad chamfer fix.
+// (406.1 to 413.9 on the 605ZZ clutch, 441.0 to 466.7 on the 8 mm clutches), so each has a
+// HubChamfer chamfer: the section 0.1 mm inside a face is the mid-height outline pulled in HubChamfer - 0.1 along the
+// arm's outer arc and each inner run, with the bevel tapering out on the head flank's plane, sqrt(ArmOuter² - F²) -
+// sqrt((ArmOuter - chamfer)² - F²) along it from the arm's corner (F is FlankDistance), and it leaves the head run and
+// the bolt holes unchanged. The 605ZZ's 15.8 mm D bore stays sharp; the 8 mm D bores, 25.1 to 25.3 mm, are long runs
+// and take the chamfer whole. A hub under 400 mm² would be the exact prism and every section would read the same. A
+// volume check would not do; the faceted result reads about 0.07 mm3 high per arc run.
 func TestOneWayClutchEdgeFinishing(t *testing.T) {
 	for _, c := range fitCases()[:6] {
 		t.Run(c.name, func(t *testing.T) {
@@ -292,6 +276,11 @@ func TestOneWayClutchEdgeFinishing(t *testing.T) {
 					case efHole:
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: a bolt hole is not chamfered", face.name)
 					case efBore:
+						// ChamferRuns takes a hole loop of LongEdgeRun or more whole: the 8 mm D loops (25.1 to 25.3 mm).
+						if dm.BoreLoop >= edgefinish.LongEdgeRun {
+							require.Greater(t, got.offset, 0.99*got.total(), "%s: the long D bore is chamfered", face.name)
+							break
+						}
 						require.Greater(t, got.unchanged, 0.99*got.total(), "%s: the short D bore stays sharp", face.name)
 					case efOuter:
 						outer = got

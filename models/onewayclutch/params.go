@@ -245,7 +245,9 @@ func polar(r, deg float64) r3.Vec {
 	return r3.Vec{X: r * c, Y: r * s}
 }
 
-// Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, Placement, each bolt site, each mount site, each face site.
+// Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, the derived
+// radii (the slot width converges and the head flank leaves room for the hub chamfer), Placement, each bolt site, each
+// mount site, each face site.
 func (p Params) Derive() (Dimensions, error) {
 	shaft, ok := LookupShaft(p.Shaft)
 	if !ok {

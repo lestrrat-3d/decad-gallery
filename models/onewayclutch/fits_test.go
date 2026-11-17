@@ -14,11 +14,11 @@ import (
 )
 
 // Tolerances of the fit measurements, in mm. A section is cut at the finest chord of fitSectionTols that its body
-// holds: the exact parts take 0.01, the ring's held mesh bound of 0.0285 takes 0.03, and the chamfered 605ZZ hub, which
-// is faceted with a bound up to 0.0303 (counter-clockwise), takes 0.035. A coarser chord makes the section less exact
-// (a bolt hole's polygon shrinks by the sagitta, and the proven off-surface bound grows into every margin). The
-// printed-part meshes are 0.03, and the 605ZZ hub's 0.035, for the same reason: at 0.035 the exact 8 mm hub to ring gap
-// reads 0.349 against the 0.35 limit.
+// holds: the exact parts and the chamfered hubs (held mesh bound 0.006) take 0.01, and the ring's held mesh bound of
+// 0.0285 takes 0.03. A coarser chord makes the section less exact (a bolt hole's polygon shrinks by the sagitta, and
+// the proven off-surface bound grows into every margin). The printed-part meshes are 0.03 for the same reason, and only
+// a body whose held bound refuses 0.03 falls back to fitCoarseTol. A mesh's bound is charged against every gap: the
+// 8 mm hub to ring gap read 0.3476 against the 0.35 limit while the hub's chamfer held 0.045, and reads 0.372 now.
 const (
 	fitMeshTol   = 0.03
 	fitCoarseTol = 0.035
@@ -194,9 +194,18 @@ func requireBoreFit(t *testing.T, name string, body *decad.Body, z float64, m *o
 	require.GreaterOrEqual(t, lo, c-off, "%s bore: least clearance", name)
 }
 
-func fitMeshOf(t *testing.T, body *decad.Body, tol float64) meshgap.Mesh {
+// fitMeshOf tessellates body at the first of tols that its held mesh bound allows.
+func fitMeshOf(t *testing.T, body *decad.Body, tols ...float64) meshgap.Mesh {
 	t.Helper()
-	mesh, err := body.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+	var mesh *decad.Mesh
+	var err error
+	for _, tol := range tols {
+		if mesh, err = body.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll)); err == nil {
+			break
+		}
+		var bound *decad.MeshBoundError
+		require.ErrorAs(t, err, &bound, "only a held mesh bound refuses a mesh")
+	}
 	require.NoError(t, err)
 	require.True(t, mesh.BoundaryVerified())
 	mg, err := meshgap.New(mesh.Vertices(), mesh.Triangles(), mesh.Bound().Base())
@@ -222,14 +231,11 @@ func requireFitPairs(t *testing.T, m *onewayclutch.Model) {
 	meshes := map[string]meshgap.Mesh{}
 	for name, body := range bodies {
 		names = append(names, name)
-		tol := fitMeshTol
-		if name == "hub" && hubChamfered(t, m) {
-			tol = fitCoarseTol
-		}
+		tols := []float64{fitMeshTol, fitCoarseTol}
 		if len(name) == 5 { // a bolt or a nut: a 0.05 mm mesh is fine
-			tol = 0.05
+			tols = []float64{0.05}
 		}
-		meshes[name] = fitMeshOf(t, body, tol)
+		meshes[name] = fitMeshOf(t, body, tols...)
 	}
 	sort.Strings(names)
 	minimum := func(a, b string) float64 {

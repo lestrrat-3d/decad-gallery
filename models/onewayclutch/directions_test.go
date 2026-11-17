@@ -341,8 +341,9 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			require.Positive(t, countInside(locked.Vertices(), ring, toothTip), "the locked hub reaches into the ring")
 
 			// The ring turned by +sigma*turn (the hub by -sigma*turn): the heads ride up the ramps and stay clear. The
-			// design requires 0.05 mm left after 2 degrees and at 1.5 degrees. Measured on the 605ZZ hub: 0.166 mm at 1.5
-			// degrees and 0.104 at 2.0 (clockwise), 0.161 and 0.099 (counter-clockwise); on the 8 mm hubs 0.141 and 0.079.
+			// design requires 0.05 mm left after 2 degrees and at 1.5 degrees. Measured on the 605ZZ hub: 0.188 mm at 1.5
+			// degrees and 0.126 at 2.0, in both directions; on the 8 mm hubs 0.176 and 0.112 (BoreClearance 0.05), and at
+			// least 0.157 and 0.093 (0.5).
 			for _, free := range []struct{ angle, clearance float64 }{{1.5, 0.05}, {turn, 0.05}} {
 				hub := rotated(-sigma * free.angle)
 				gap, clear, err := meshOf(t, hub, "free hub").Exceeds(meshOf(t, parts.Ring, "ring"), free.clearance)
