@@ -1,8 +1,12 @@
-// Package turbinefan builds a fan of three replaceable blades on one printed hub. The hub is a plain round cylinder with a
-// D bore for a D-flat shaft. One radial M2 x 6 bolt acts as a set screw: it threads through a nut in a hex slot open to the
-// back face, its tip presses the shaft's flat and its head floats, recessed, in a counterbore in the round face. Each blade
-// is this model's blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the
-// shaft, holds it in a nut that sits in a hex slot open to the round face.
+// Package turbinefan builds a fan of three replaceable blades on one printed hub. Params.RotorDiameter (128 to 224 mm,
+// 192 by default) sizes it: SizeFor derives the hub, the blades and the blade joint from it, and the hub's radius stops
+// at MaxHubRadius so the clutch mount keeps access to its ear bolts. The hub is a plain round cylinder with a D bore for
+// a D-flat shaft. One radial M2 bolt acts as a set screw: it threads through a nut in a hex slot open to the back face,
+// its tip presses the shaft's flat and its head floats, recessed, in a counterbore in the round face. Its length is the
+// longest standard M2 length whose head stays inside the round face (M2 x 10 at 192 mm). Each blade is this model's
+// blade; its round root stud slides into a radial socket in the hub and one M2 bolt, parallel to the shaft, holds it in
+// a nut that sits in a hex slot open to the round face. That bolt is the longest standard length that keeps its tip
+// above the hub's back face (M2 x 25 at 192 mm).
 //
 // The hub has two M2 x 10 bolt holes in its back face at 30 and 150 degrees, each with a hex nut slot open to the round
 // face. They are cut in both modes. With Params.Mount = ClutchMount the hub does not grip the shaft: the adapter ring of
@@ -12,7 +16,7 @@
 // clutch, and the fan coasts when the shaft stops or turns back.
 //
 // The local frame has its origin on the shaft axis in the hub's back face, the face toward the mechanism. +Z runs along
-// the shaft axis away from the mechanism to the front face at z = HubLength, and the bore's flat faces -Y, where the set
+// the shaft axis away from the mechanism to the front face at z = Size.HubLength, and the bore's flat faces -Y, where the set
 // screw enters. Blade 1 lies along +Y, blades 2 and 3 at 210 and 330 degrees. Seen from the front, a right-hand fan turns
 // clockwise and a left-hand fan counter-clockwise; either blows air forward, away from the mechanism.
 package turbinefan
@@ -85,7 +89,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("turbinefan: before creating geometry: %w", err)
 	}
-	frame, err := p.buildFrame()
+	frame, err := p.buildFrame(dm.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -199,12 +203,12 @@ func (r *run) hub() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := r.extrudeOutline(s, BladeCount+1, HubLength)
+	body, err := r.extrudeOutline(s, BladeCount+1, r.dm.Size.HubLength)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
 	// Both faces' long loops go in one call: the outer circle, and the D loop at the 8 mm shaft.
-	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{0, HubLength}, edgefinish.Long(edgefinish.All),
+	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{0, r.dm.Size.HubLength}, edgefinish.Long(edgefinish.All),
 		ChamferSize); err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
@@ -244,7 +248,7 @@ func (r *run) hub() (*decad.Body, error) {
 			return nil, fmt.Errorf("adapter bolt %d hole tool: %w", k+1, err)
 		}
 		r.sketches = append(r.sketches, ahs)
-		as, err := r.slotTool(site, site.Corner, HubRadius+m2fastener.Stock-onewayclutch.FaceCircle)
+		as, err := r.slotTool(site, site.Corner, r.dm.Size.HubRadius+m2fastener.Stock-onewayclutch.FaceCircle)
 		if err != nil {
 			return nil, fmt.Errorf("adapter bolt %d nut slot tool: %w", k+1, err)
 		}
@@ -260,11 +264,12 @@ func (r *run) hub() (*decad.Body, error) {
 
 // socketTools returns the three blade sockets' cutters and records the sketch.
 func (r *run) socketTools() ([]*decad.Body, error) {
-	socketFrame, err := r3.NewFrame(r3.Vec{Y: BladeSocketStart, Z: HubMid}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	sz := r.dm.Size
+	socketFrame, err := r3.NewFrame(r3.Vec{Y: sz.BladeSocketStart, Z: sz.HubMid}, r3.Vec{Z: 1}, r3.Vec{X: 1})
 	if err != nil {
 		return nil, fmt.Errorf("socket frame: %w", err)
 	}
-	socket, ks, err := BladeSocketTool(r.ctx, r.doc, socketFrame)
+	socket, ks, err := BladeSocketTool(r.ctx, r.doc, socketFrame, sz)
 	if err != nil {
 		return nil, fmt.Errorf("socket tool: %w", err)
 	}
@@ -279,7 +284,7 @@ func (r *run) socketTools() ([]*decad.Body, error) {
 // bladeSlotTool is blade k's nut slot: slotTool along the blade's radial line out through the hub's rim.
 func (r *run) bladeSlotTool(k int) (*decad.Body, error) {
 	u := r3.Vec{X: math.Cos(BladeAngle(k)), Y: math.Sin(BladeAngle(k))}
-	return r.slotTool(r.dm.BladeSites[k-1], u, HubRadius+m2fastener.Stock-BladeBoltAt)
+	return r.slotTool(r.dm.BladeSites[k-1], u, r.dm.Size.HubRadius+m2fastener.Stock-r.dm.Size.BladeBoltAt)
 }
 
 // ring returns body and its two copies about the shaft axis, 120 and 240 degrees on.
@@ -298,13 +303,13 @@ func (r *run) blades() ([]*decad.Body, error) {
 	if r.p.Hand == LeftHand {
 		build = BuildBladeMirrored
 	}
-	blade, err := build(r.ctx, r.doc, r.p.BladePitch)
+	blade, err := build(r.ctx, r.doc, r.p.BladePitch, r.dm.Size)
 	if err != nil {
 		return nil, err
 	}
 	r.sketches = append(r.sketches, blade.Sketches...)
 	// Blade-local Z (the radial line) becomes +Y, local Y (downstream) becomes +Z and local X becomes -X.
-	f, err := r3.NewFrame(r3.Vec{Z: HubMid}, r3.Vec{X: -1}, r3.Vec{Z: 1})
+	f, err := r3.NewFrame(r3.Vec{Z: r.dm.Size.HubMid}, r3.Vec{X: -1}, r3.Vec{Z: 1})
 	if err != nil {
 		return nil, fmt.Errorf("blade frame: %w", err)
 	}

@@ -18,13 +18,8 @@ import (
 const (
 	BladeCount = 3 // the requirement: three replaceable blades
 
-	HubRadius = 14.0 // the blade's root and stud fix it
-	HubLength = 20.0
-	HubMid    = HubLength / 2 // the sockets' and blade bolts' plane
-
 	FirstBladeAngle = math.Pi / 2 // blade 1 along +Y; the set screw lies along -Y, midway between blades 2 and 3
 
-	SetScrewBolt     = 6.0 // M2 x 6: the longest standard length whose head stays inside the round face at both presets
 	SetScrewZ        = 4.0 // the set screw's line: the counterbore keeps 1.8 to the back face, and a shaft need reach only 6 into the hub
 	SetScrewTravel   = 0.4 // gap under the head, so the screw grips before its head reaches the counterbore floor
 	CounterboreRound = 0.5 // the counterbore's floor rim round ("Corners and roots")
@@ -91,8 +86,8 @@ const (
 // Params specifies a fan in mm and radians. The shaft runs in a purchased bearing, so its diameter equals the bearing's
 // bore.
 //
-// Placement puts the fan's placement point on a frame. The placement point is the hub's front face (fan z = HubLength)
-// in ShaftMount, with the hub extending HubLength back along the frame's axis, and the clutch cover's outer face
+// Placement puts the fan's placement point on a frame. The placement point is the hub's front face (fan z = Size.HubLength)
+// in ShaftMount, with the hub extending Size.HubLength back along the frame's axis, and the clutch cover's outer face
 // (fan z = ClutchAnchorZ) in ClutchMount, with the clutch extending back and the adapter and fan in front. The point is
 // on the shaft axis. A nil Placement leaves every part in the local frame, whose origin is the hub's back face.
 type Params struct {
@@ -102,7 +97,11 @@ type Params struct {
 	FlatDepth float64
 	// BoreClearance is the radial clearance of the hub's D bore round the shaft, on the round and on the flat.
 	BoreClearance float64
-	// BladePitch is the blade angle at 48 mm radius, in radians, from MinBladePitch to MaxBladePitch.
+	// RotorDiameter is the rotor's diameter across the blade tips, from MinRotorDiameter to MaxRotorDiameter. It sets
+	// every size in Size.
+	RotorDiameter float64
+	// BladePitch is the blade angle at 75 % of the tip radius (48 mm at 128, 72 mm at 192), in radians, from
+	// MinBladePitch to MaxBladePitch.
 	BladePitch float64
 	// Hand selects the blades' hand; the zero value is RightHand.
 	Hand Hand
@@ -111,17 +110,17 @@ type Params struct {
 	Placement *r3.Frame
 }
 
-// anchorZ returns the fan-frame z of the placement point of m.
-func (m Mount) anchorZ() float64 {
+// anchorZ returns the fan-frame z of the placement point of m on a fan of size sz.
+func (m Mount) anchorZ(sz Size) float64 {
 	if m == ClutchMount {
 		return ClutchAnchorZ
 	}
-	return HubLength
+	return sz.HubLength
 }
 
 // buildFrame returns the frame that moves the local frame to its place: Placement carried back from the placement
 // point to the local origin. It is nil when Placement is nil. Placement must be valid.
-func (p Params) buildFrame() (*r3.Frame, error) {
+func (p Params) buildFrame(sz Size) (*r3.Frame, error) {
 	if p.Placement == nil {
 		return nil, nil
 	}
@@ -129,29 +128,33 @@ func (p Params) buildFrame() (*r3.Frame, error) {
 	if err != nil {
 		return nil, fmt.Errorf("turbinefan: placement: %w", err)
 	}
-	f, err := r3.NewFrame(xf.Apply(r3.Vec{Z: -p.Mount.anchorZ()}), xf.ApplyDir(r3.Vec{X: 1}), xf.ApplyDir(r3.Vec{Y: 1}))
+	f, err := r3.NewFrame(xf.Apply(r3.Vec{Z: -p.Mount.anchorZ(sz)}), xf.ApplyDir(r3.Vec{X: 1}), xf.ApplyDir(r3.Vec{Y: 1}))
 	if err != nil {
 		return nil, fmt.Errorf("turbinefan: placement: %w", err)
 	}
 	return &f, nil
 }
 
-// Params605ZZ returns a fan for the 5 mm shaft of a 605ZZ bearing, with the planetary gearbox shafts' 0.5 mm flat.
+// Params605ZZ returns a fan for the 5 mm shaft of a 605ZZ bearing, with the planetary gearbox shafts' 0.5 mm flat, at
+// DefaultRotorDiameter.
 func Params605ZZ() Params {
 	return Params{
 		ShaftDiameter: ballbearing.Params605ZZ().BoreDiameter,
 		FlatDepth:     crankhandle.Params605ZZ().FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
+		RotorDiameter: DefaultRotorDiameter,
 		BladePitch:    DefaultBladePitch,
 	}
 }
 
-// Params608ZZ returns a fan for the 8 mm shaft of a 608ZZ bearing, with a 0.75 mm flat. A 608-2RS has the same bore.
+// Params608ZZ returns a fan for the 8 mm shaft of a 608ZZ bearing, with a 0.75 mm flat, at DefaultRotorDiameter. A
+// 608-2RS has the same bore.
 func Params608ZZ() Params {
 	return Params{
 		ShaftDiameter: ballbearing.Params608ZZ().BoreDiameter,
 		FlatDepth:     crankhandle.Params6082RS().FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
+		RotorDiameter: DefaultRotorDiameter,
 		BladePitch:    DefaultBladePitch,
 	}
 }
@@ -182,8 +185,8 @@ func MountFrame(clutch *r3.Frame) (r3.Frame, error) {
 }
 
 // ParamsForClutch returns a ClutchMount fan matched to the clutch c: c's shaft diameter and flat, the hand that c's
-// Freewheel drives forward, the default pitch (WithBladePitch sets another), ballbearing.PressFitClearance, and
-// Placement MountFrame(c.Placement).
+// Freewheel drives forward, DefaultRotorDiameter (WithRotorDiameter sets another), the default pitch (WithBladePitch
+// sets another), ballbearing.PressFitClearance, and Placement MountFrame(c.Placement).
 func ParamsForClutch(c onewayclutch.Params, opts ...ClutchOption) (Params, error) {
 	dm, err := c.Derive()
 	if err != nil {
@@ -201,6 +204,7 @@ func ParamsForClutch(c onewayclutch.Params, opts ...ClutchOption) (Params, error
 		ShaftDiameter: dm.Shaft.Diameter,
 		FlatDepth:     dm.Shaft.FlatDepth,
 		BoreClearance: ballbearing.PressFitClearance,
+		RotorDiameter: DefaultRotorDiameter,
 		BladePitch:    DefaultBladePitch,
 		Hand:          hand,
 		Mount:         ClutchMount,
@@ -228,12 +232,24 @@ func (o bladePitchOption) applyClutch(p *Params) { p.BladePitch = float64(o) }
 // when the pitch lies outside [MinBladePitch, MaxBladePitch].
 func WithBladePitch(pitch float64) ClutchOption { return bladePitchOption(pitch) }
 
+type rotorDiameterOption float64
+
+func (o rotorDiameterOption) applyClutch(p *Params) { p.RotorDiameter = float64(o) }
+
+// WithRotorDiameter sets the fan's RotorDiameter, in mm, in place of DefaultRotorDiameter. ParamsForClutch returns an
+// error when the diameter lies outside [MinRotorDiameter, MaxRotorDiameter].
+func WithRotorDiameter(d float64) ClutchOption { return rotorDiameterOption(d) }
+
 // DefaultParams returns Params605ZZ.
 func DefaultParams() Params { return Params605ZZ() }
 
 // Dimensions are the values Derive computes from Params, in mm, in the local frame. rho is a distance from the shaft
 // axis along -Y.
 type Dimensions struct {
+	// Size holds the hub, blade and blade joint dimensions that follow the rotor diameter.
+	Size Size
+	// SetScrewBolt is the set screw's M2 length: the longest standard length whose head stays inside the round face.
+	SetScrewBolt     float64
 	BoreRadius       float64 // r_b: ShaftDiameter/2 + BoreClearance
 	BoreFlat         float64 // f_b: D/2 - d + c; the bore's flat lies at y = -f_b
 	BoreFlatWidth    float64 // w_b: 2 sqrt(r_b^2 - f_b^2)
@@ -267,11 +283,15 @@ func (p Params) Derive() (Dimensions, error) {
 		value float64
 	}{
 		{"ShaftDiameter", p.ShaftDiameter}, {"FlatDepth", p.FlatDepth}, {"BoreClearance", p.BoreClearance},
-		{"BladePitch", p.BladePitch},
+		{"BladePitch", p.BladePitch}, {"RotorDiameter", p.RotorDiameter},
 	} {
 		if math.IsNaN(f.value) || math.IsInf(f.value, 0) || f.value <= 0 {
 			return Dimensions{}, fmt.Errorf("turbinefan: %s must be finite and positive", f.name)
 		}
+	}
+	sz, err := SizeFor(p.RotorDiameter)
+	if err != nil {
+		return Dimensions{}, err
 	}
 	if p.FlatDepth > p.ShaftDiameter/4 {
 		return Dimensions{}, errors.New("turbinefan: FlatDepth must be at most a quarter of ShaftDiameter")
@@ -283,13 +303,14 @@ func (p Params) Derive() (Dimensions, error) {
 		return Dimensions{}, errors.New("turbinefan: Mount must be ShaftMount or ClutchMount")
 	}
 	dm := Dimensions{
+		Size:       sz,
 		BoreRadius: p.ShaftDiameter/2 + p.BoreClearance,
 		BoreFlat:   p.ShaftDiameter/2 - p.FlatDepth + p.BoreClearance,
 	}
 	dm.BoreFlatWidth = 2 * math.Sqrt(dm.BoreRadius*dm.BoreRadius-dm.BoreFlat*dm.BoreFlat)
 	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + dm.BoreFlatWidth
 	dm.ShaftFlatWidth = 2 * math.Sqrt(p.FlatDepth*(p.ShaftDiameter-p.FlatDepth))
-	if BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
+	if sz.BladeSocketStart-dm.BoreRadius < PressWall-1e-9 {
 		return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
 			PressWall)
 	}
@@ -328,11 +349,11 @@ func (p Params) Derive() (Dimensions, error) {
 	for i := range dm.BladeSites {
 		u := r3.Vec{X: math.Cos(BladeAngle(i + 1)), Y: math.Sin(BladeAngle(i + 1))}
 		dm.BladeSites[i] = m2fastener.Site{
-			Head:   u.Scale(BladeBoltAt).Add(r3.Vec{Z: HubLength}),
+			Head:   u.Scale(sz.BladeBoltAt).Add(r3.Vec{Z: sz.HubLength}),
 			Dir:    r3.Vec{Z: -1},
 			Corner: u,
-			Length: BladeBoltLength,
-			Cavity: BladeBoltCavity,
+			Length: sz.BladeBoltLength,
+			Cavity: sz.BladeBoltCavity,
 		}
 		if err := dm.BladeSites[i].Validate(); err != nil {
 			return Dimensions{}, fmt.Errorf("turbinefan: blade bolt %d: %w", i+1, err)
@@ -344,20 +365,27 @@ func (p Params) Derive() (Dimensions, error) {
 // deriveSetScrew fills the set screw's values and checks them. The hub carries the set screw's cuts in both modes.
 func (dm *Dimensions) deriveSetScrew(p Params) error {
 	dm.SetScrewTip = p.ShaftDiameter/2 - p.FlatDepth - p.BoreClearance
-	dm.SetScrewHead = dm.SetScrewTip + m2fastener.HeadPocketDepth + SetScrewBolt
+	// The head must stay inside the round face: rho_h <= sqrt(HubRadius^2 - (HeadDiameter/2)^2).
+	reach := math.Sqrt(dm.Size.HubRadius*dm.Size.HubRadius - m2bolt.HeadDiameter*m2bolt.HeadDiameter/4)
+	for _, l := range m2bolt.StandardLengths() {
+		if dm.SetScrewTip+m2fastener.HeadPocketDepth+l <= reach {
+			dm.SetScrewBolt = l
+		}
+	}
+	if dm.SetScrewBolt == 0 {
+		return errors.New("turbinefan: set screw: no standard length keeps its head inside the round face")
+	}
+	dm.SetScrewHead = dm.SetScrewTip + m2fastener.HeadPocketDepth + dm.SetScrewBolt
 	dm.CounterboreFloor = dm.SetScrewHead - m2fastener.HeadPocketDepth - SetScrewTravel
 	dm.SetScrewSite = m2fastener.Site{
 		Head:   r3.Vec{Y: -dm.SetScrewHead, Z: SetScrewZ},
 		Dir:    r3.Vec{Y: 1},
 		Corner: r3.Vec{Z: 1},
-		Length: SetScrewBolt,
+		Length: dm.SetScrewBolt,
 		Cavity: dm.SetScrewHead - dm.BoreFlat - PressWall - m2fastener.NutCavityHeight,
 	}
 	if err := dm.SetScrewSite.Validate(); err != nil {
 		return fmt.Errorf("turbinefan: set screw: %w", err)
-	}
-	if dm.SetScrewHead > math.Sqrt(HubRadius*HubRadius-m2bolt.HeadDiameter*m2bolt.HeadDiameter/4) {
-		return errors.New("turbinefan: set screw: its head would stand out of the round face")
 	}
 	if dm.SetScrewSite.Cavity-m2fastener.HeadPocketDepth-SetScrewTravel < 1-1e-9 {
 		return errors.New("turbinefan: set screw: less than 1 mm between its counterbore and its nut slot")

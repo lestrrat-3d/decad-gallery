@@ -50,8 +50,11 @@ Render the images with `go -C tools/render run . -model handcrankfan -shot readm
 
 ## Rotor
 
-The rotor is `models/turbinefan`'s 608ZZ fan (`turbinefan.BuildParts` with `Params608ZZ`, right-handed, at the fan's pitch),
+The rotor is `models/turbinefan`'s 608ZZ fan (`turbinefan.BuildParts` with `Params608ZZ` at `RotorDiameter` 128, right-handed, at the fan's pitch),
 placed on the fan axis with a `Placement` frame; this model does not copy its geometry. The blade, its mirrored twin, the
 socket cutter and the hub and blade-joint constants live there too (`BuildBlade`, `BuildBladeMirrored`,
 `BladeSocketTool`), and its tests check them. This model places the blade bolts, the set screw and their nuts itself, at
 the sites `BuildParts` returns, and draws the set screw 0.1 mm short of tight so it clears the centred shaft's flat.
+The rotor stays at turbinefan's smallest size, 128 mm, not its 192 mm default: the fan axis is at Z 170 and the grip's top
+at Z 101.15, so a 128 mm rotor clears the grip by 5 mm and a 192 mm rotor would sweep in front of it. A larger rotor
+needs a new gearbox height or a lower grip, which is a separate design.

@@ -27,14 +27,15 @@ func boreLoop(t *testing.T, loops [][]r3.Vec, limit float64) []r3.Vec {
 }
 
 // TestTurbineFanBoreFit measures the D bore against the nominal shaft: every point of the bore lies BoreClearance outside
-// the shaft's D section, the wall round the bore is at least 1.6 mm (1.65 mm through the socket floors at the 608ZZ bore,
-// and exactly 1.6 to the set screw's nut slot), and the bore runs through both faces.
+// the shaft's D section, the wall round the bore is at least 1.6 mm (1.65 mm through the socket floors at the 608ZZ bore
+// of the 128 mm rotor, 3.6 mm at 192, and exactly 1.6 to the set screw's nut slot), and the bore runs through both faces.
 func TestTurbineFanBoreFit(t *testing.T) {
 	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		p := c.params()
 		dm := m.Dimensions
+		sz := dm.Size
 		rs, fs := p.ShaftDiameter/2, p.ShaftDiameter/2-p.FlatDepth
-		for _, z := range []float64{8, 10, 15} {
+		for _, z := range []float64{sz.HubMid - 2, sz.HubMid, sz.HubMid + 5} {
 			o := section(t, m.Hub, atZ(t, z))
 			bound := o.OffSurface.Base() + 1e-6
 			bore := boreLoop(t, o.Loops, dm.BoreRadius+0.1)
@@ -61,8 +62,8 @@ func TestTurbineFanBoreFit(t *testing.T) {
 				}
 			}
 			require.GreaterOrEqual(t, wall, turbinefan.PressWall-bound, "z %g: wall round the bore", z)
-			if z == 10 {
-				require.InDelta(t, turbinefan.BladeSocketStart-dm.BoreRadius, wall, 0.05, "z 10: the least wall is the one to the socket floors")
+			if z == sz.HubMid {
+				require.InDelta(t, sz.BladeSocketStart-dm.BoreRadius, wall, 0.05, "mid plane: the least wall is the one to the socket floors")
 			}
 		}
 		// The wall between the bore's flat and the set screw's nut slot, read across the flat beside the screw's hole.
@@ -78,7 +79,7 @@ func TestTurbineFanBoreFit(t *testing.T) {
 			}
 		}
 		// The bore runs through: both faces' sections hold the bore loop.
-		for _, z := range []float64{0.75, turbinefan.HubLength - 0.75} {
+		for _, z := range []float64{0.75, sz.HubLength - 0.75} {
 			bore := boreLoop(t, section(t, m.Hub, atZ(t, z)).Loops, dm.BoreRadius+0.6)
 			require.NotEmpty(t, bore, "z %g", z)
 		}
@@ -90,8 +91,9 @@ func TestTurbineFanBoreFit(t *testing.T) {
 func TestTurbineFanEdgeFinishing(t *testing.T) {
 	eachCase(t, []string{"605ZZ", "608ZZ"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		dm := m.Dimensions
+		sz := dm.Size
 		chamfered := dm.BoreLoop >= 20
-		for _, z := range []float64{0.25, turbinefan.HubLength - 0.25} {
+		for _, z := range []float64{0.25, sz.HubLength - 0.25} {
 			o := section(t, m.Hub, atZ(t, z))
 			bound := o.OffSurface.Base() + 1e-3
 			outer := 0
@@ -100,12 +102,12 @@ func TestTurbineFanEdgeFinishing(t *testing.T) {
 				for _, v := range l {
 					far = math.Max(far, math.Hypot(v.X, v.Y))
 				}
-				if far <= 13 {
+				if far <= sz.HubRadius-1 {
 					continue
 				}
 				outer++
 				for _, v := range l {
-					require.InDelta(t, turbinefan.HubRadius-0.25, math.Hypot(v.X, v.Y), bound, "z %g: outer circle", z)
+					require.InDelta(t, sz.HubRadius-0.25, math.Hypot(v.X, v.Y), bound, "z %g: outer circle", z)
 				}
 			}
 			require.Equal(t, 1, outer, "z %g: one outer loop", z)

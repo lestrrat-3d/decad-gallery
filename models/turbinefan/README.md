@@ -5,10 +5,11 @@
 ![Three-blade turbine fan on a clamping hub, seen from the front and above](images/hero.png)
 
 A three-blade fan whose blades are shaped like small wind turbine blades: with a thick round
-root, a widest section near the hub, and a taper to a thin tip. The [hand-crank fan](../handcrankfan/) uses the same
-blades. The hub is a plain round cylinder that holds a D-flat shaft with one M2 bolt used as a set screw, and each blade bolts into the hub on its own, so a blade can
-be swapped. The same hub also bolts to the adapter ring of the [one-way clutch](../onewayclutch/) with two more M2 bolts,
-instead of gripping a shaft, so the fan coasts when the shaft stops.
+root, a widest section near the hub, and a taper to a thin tip. The rotor is 192 mm across by default, and any size from
+128 to 224 mm works. The [hand-crank fan](../handcrankfan/) uses the same blades at the 128 mm size. The hub is a plain
+round cylinder that holds a D-flat shaft with one M2 bolt used as a set screw, and each blade bolts into the hub on its
+own, so a blade can be swapped. The same hub also bolts to the adapter ring of the [one-way clutch](../onewayclutch/) with
+two more M2 bolts, instead of gripping a shaft, so the fan coasts when the shaft stops.
 
 The fan comes in two hands. Seen from the front, the right-hand fan (the default) turns clockwise and the left-hand fan
 counter-clockwise; either blows air forward, away from the mechanism. The left-hand blades are the right-hand blades
@@ -38,16 +39,16 @@ adapter nut slots open there too, nearer the back face), and the blades show the
 
 ## The set screw
 
-![The hub cut across the set screw's line: the M2 x 6 set screw in its counterbore, its nut in the slot from the back face, and its tip on the shaft's flat in the D bore](images/setscrew.png)
+![The hub cut across the set screw's line: the M2 x 10 set screw in its counterbore, its nut in the slot from the back face, and its tip on the shaft's flat in the D bore](images/setscrew.png)
 
-One M2 x 6 bolt runs into the hub from the side, through a nut in a slot open to the back face, and presses the shaft's
+One M2 x 10 bolt (M2 x 6 on the 128 mm rotor) runs into the hub from the side, through a nut in a slot open to the back face, and presses the shaft's
 flat. Its head sits below the round face, so nothing stands out of the hub. The D flat turns the hub with the shaft; the
 screw stops the hub sliding along the shaft and rattling. The gallery's rules ask for a few sharp edges to stay on the hub,
 which [instructions.md](instructions.md) lists: the D bore's two corners and the nut slot's end corner.
 
 ## Replacing a blade
 
-Each blade has a round stud that slides into a radial socket in the hub. One M2 x 16 bolt runs parallel to the shaft, from
+Each blade has a round stud that slides into a radial socket in the hub. One M2 x 25 bolt (M2 x 16 on the 128 mm rotor) runs parallel to the shaft, from
 the hub's front face through the hub and the stud into an M2 nut. The nut sits in a slot open to the round face, below the
 blade, so you can fit it with the hub on its shaft.
 
@@ -57,7 +58,7 @@ To remove a blade:
 
 1. Undo its bolt from the front face. The nut is free in its slot: take it out through the slot's mouth below the blade
    root, or leave it.
-2. Pull the blade out along its radial line. The stud leaves the socket after about 8 mm.
+2. Pull the blade out along its radial line. The stud leaves the socket after about 11 mm.
 
 To fit a blade:
 
@@ -83,13 +84,13 @@ The set screw nut sits behind the hub in that view, so the same parts are shown 
 | --- | --- |
 | <img src="images/parts/hub.png" alt="Hub" width="240"> | Hub (printed), with or without the clutch adapter |
 | <img src="images/parts/blade.png" alt="Blade" width="240"> | Blade (printed), 3 |
-| <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the blade bolts |
-| <img src="images/parts/setscrew.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1: the set screw |
+| <img src="images/parts/bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the blade bolts |
+| <img src="images/parts/setscrew.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1: the set screw |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 4 |
 
 ## Sizes
 
-The 605ZZ hub (left) and the 608ZZ hub (right), from behind. They differ in the bore.
+The 605ZZ hub (left) and the 608ZZ hub (right), from behind. They differ in the bore. Both are 37.8 mm across and 30 mm long.
 
 ![The 605ZZ hub and the 608ZZ hub side by side, from behind](images/sizes.png)
 
@@ -125,7 +126,9 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 `ParamsForClutch` takes `WithBladePitch` to keep a chosen pitch. It always returns a matched pair; a hand-built pair is not checked.
 
 **Mounting space.** Leave room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 mm at the ring's
-rear face). In front are the adapter (51.4 mm across on the 605ZZ clutch, 53.0 to 53.9 mm on the 8 mm clutch, 6 mm thick) and the fan. The shaft may end anywhere from inside the
+rear face). The hub's rim stays 2.7 mm clear of each ear bolt's line, so a bolt head and a hex key pass it from the
+front. In front are the adapter (51.4 mm across on the 605ZZ clutch, 53.0 to 53.9 mm on the 8 mm clutch, 6 mm thick) and
+the fan. The shaft may end anywhere from inside the
 clutch to the adapter's front face. It must not enter the hub: a shaft in the hub's D bore would lock the fan to the shaft and
 defeat the clutch. The adapter's bore (7 mm on the 605ZZ clutch, 10 mm on the 8 mm clutch) clears it.
 
@@ -159,26 +162,32 @@ that names it.
 
 | Parameter | 605ZZ (default) | 608ZZ | Limit |
 | --- | --- | --- | --- |
-| `ShaftDiameter` | 5 | 8 | Above 0; keeps a 1.6 mm wall to the blade sockets (at most 8.1) |
+| `ShaftDiameter` | 5 | 8 | Above 0; keeps a 1.6 mm wall to the blade sockets (at most 12.1 at 192 mm, 8.1 at 128 mm) |
 | `FlatDepth` | 0.5 | 0.75 | Above 0, at most a quarter of `ShaftDiameter`, and leaving the shaft's flat 2 mm and the bore's flat 2.8 mm wide |
 | `BoreClearance` | 0.05 | 0.05 | 0.05 to 0.5; for the 8 mm shaft 0.05 to 0.1 |
-| `BladePitch` | 25° | 25° | 10° to 40°, the blade angle at 48 mm |
+| `RotorDiameter` | 192 | 192 | 128 to 224; it sizes the hub, the blades, the blade bolts and the set screw |
+| `BladePitch` | 25° | 25° | 10° to 40°, the blade angle at 75 % of the tip radius (72 mm at 192) |
 | `Hand` | `RightHand` | `RightHand` | `RightHand` or `LeftHand` |
 | `Mount` | `ShaftMount` | `ShaftMount` | `ShaftMount` or `ClutchMount`; `ClutchMount` bolts the hub to a clutch's adapter ring and leaves out the set screw |
 | `Placement` | none | none | A valid frame; it puts the hub's front face (`ShaftMount`) or the clutch cover's outer face (`ClutchMount`) on its origin. None leaves the parts in the build frame |
 
-The hub is a cylinder 28 mm across and 20 mm long. The rotor is 128 mm across. One hub serves both mounts.
+At the default 192 mm the hub is a cylinder 37.8 mm across and 30 mm long and the rotor is 192 mm across; at 128 mm the
+hub is 28 mm across and 20 mm long. The hub's radius stops growing at 18.9 mm, so above 192 mm the hub keeps that width and
+only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bolts of the smallest
+[one-way clutch](../onewayclutch/). The set screw is M2 × 10 (M2 × 6 at 128 mm) and the blade bolts are M2 × 25 (M2 × 16 at
+128 mm), the longest standard lengths that fit. One hub serves both mounts.
 
 ## Printing
 
-Print the hub front face down, with its bore axis vertical, and each blade standing on its stud end. The hub needs no print
-pause: every nut sits in a slot open to a face, so you put the nuts in after printing.
+Print the hub front face down, with its bore axis vertical, and each blade standing on its stud end. A blade is 88 mm tall
+at 192 mm (104 mm at 224 mm) and stands on a stud end 8 mm across, so print it with a brim. The hub needs no print pause:
+every nut sits in a slot open to a face, so you put the nuts in after printing.
 
 To assemble:
 
 1. Hold the hub back face up and drop an M2 nut into the set screw slot. It stops at the slot's hexagonal end, in line with
    the hole.
-2. Push the M2 x 6 set screw into the counterbore on the side of the flat and turn it into the nut about two turns. Stop
+2. Push the M2 x 10 set screw into the counterbore on the side of the flat and turn it into the nut about two turns. Stop
    while its tip is still out of the bore (look into the bore from the back).
 3. Fit each blade as described above.
 4. Press the hub onto the shaft, flat to flat, the flat toward the set screw, at least 6 mm deep.
