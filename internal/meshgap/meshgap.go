@@ -21,13 +21,24 @@ type node struct {
 	left, right int
 }
 
+// With coordinate magnitudes, displacement bounds, and clearance at most C=2^16,
+// coordinate deltas are at most 2C=2^17 and squared box gaps are below 3*2^34<2^36.
+// The charged limit is below 3C+1e-6<2^18, so its square is below 2^36. Triangle
+// distance dot products stay below 2^36, cross components below 2^35, plane-dot
+// terms below 2^54, and their products below 2^108. The point-triangle interior
+// denominator is used only when its magnitude is at least 1e-30, keeping its
+// quotient below 2^173. A near-parallel squared-segment quotient may overflow,
+// but the code clamps it to [0,1] before using it.
+const clearanceFastPathLimit = 1 << 16
+
 // Mesh caches triangles by value so later changes to the input slices cannot
 // change a distance check. The caller must verify the source mesh and its bound.
 type Mesh struct {
-	triangles []triangle
-	nodes     []node
-	lo, hi    r3.Vec
-	bound     float64
+	triangles         []triangle
+	nodes             []node
+	lo, hi            r3.Vec
+	bound             float64
+	clearanceEligible bool
 }
 
 // New prepares a verified mesh whose displacement bound is in millimeters.
@@ -38,12 +49,17 @@ func New(vertices []r3.Vec, faces [][3]int, bound float64) (Mesh, error) {
 	if math.IsNaN(bound) || math.IsInf(bound, 0) || bound < 0 {
 		return Mesh{}, fmt.Errorf("meshgap: invalid displacement bound")
 	}
+	eligible := bound <= clearanceFastPathLimit
 	for i, p := range vertices {
 		if !finite(p.X) || !finite(p.Y) || !finite(p.Z) {
 			return Mesh{}, fmt.Errorf("meshgap: nonfinite vertex %d", i)
 		}
+		if math.Abs(p.X) > clearanceFastPathLimit || math.Abs(p.Y) > clearanceFastPathLimit ||
+			math.Abs(p.Z) > clearanceFastPathLimit {
+			eligible = false
+		}
 	}
-	m := Mesh{bound: bound, lo: vertices[0], hi: vertices[0]}
+	m := Mesh{bound: bound, lo: vertices[0], hi: vertices[0], clearanceEligible: eligible}
 	for i, face := range faces {
 		var t triangle
 		for j, index := range face {
@@ -175,6 +191,141 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 		}
 	}
 	return math.Max(0, math.Sqrt(best)-margin), true, nil
+}
+
+// ExceedsClearance returns whether the boundary gap exceeds clearance after charging both
+// verified displacement bounds and the arithmetic margin. False is inconclusive: it does not
+// prove contact, retention, or absence of material interference. Meshes outside the bounded
+// arithmetic range use Exceeds and discard its gap value.
+func (m Mesh) ExceedsClearance(other Mesh, clearance float64) (bool, error) {
+	if len(m.triangles) == 0 || len(other.triangles) == 0 ||
+		!finite(clearance) || clearance < 0 || clearance > clearanceFastPathLimit ||
+		!m.clearanceEligible || !other.clearanceEligible {
+		_, separated, err := m.Exceeds(other, clearance)
+		return separated, err
+	}
+
+	margin := m.bound + other.bound + 1e-6
+	limit := clearance + margin
+	limitSquared := limit * limit
+	box := squaredBoxGap(triangle{lo: m.lo, hi: m.hi}, triangle{lo: other.lo, hi: other.hi})
+	if !finite(limitSquared) || !finite(box) {
+		_, separated, err := m.Exceeds(other, clearance)
+		return separated, err
+	}
+	if box > limitSquared {
+		return true, nil
+	}
+
+	separated, decided := m.exceedsClearanceThreshold(other, clearance, limitSquared)
+	if decided {
+		return separated, nil
+	}
+	_, separated, err := m.Exceeds(other, clearance)
+	return separated, err
+}
+
+// exceedsClearanceThreshold reports whether the bounded DFS reached a decision. A false
+// decision flag asks the caller to repeat the query through Exceeds for identical error handling.
+func (m Mesh) exceedsClearanceThreshold(other Mesh, clearance, limitSquared float64) (bool, bool) {
+	threshold, ok := clearanceThresholdUpper(clearance, m.bound, other.bound)
+	if !ok {
+		return false, false
+	}
+	type pair struct{ a, b int }
+	pending := []pair{{0, 0}}
+	for len(pending) != 0 {
+		current := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		a, b := m.nodes[current.a], other.nodes[current.b]
+		lower, valid := lowerBoxGap(triangle{lo: a.lo, hi: a.hi}, triangle{lo: b.lo, hi: b.hi})
+		if !valid {
+			return false, false
+		}
+		if lower > threshold {
+			continue
+		}
+		if a.left >= 0 || b.left >= 0 {
+			if b.left < 0 || (a.left >= 0 && span(a) >= span(b)) {
+				pending = append(pending, pair{a.left, current.b}, pair{a.right, current.b})
+			} else {
+				pending = append(pending, pair{current.a, b.left}, pair{current.a, b.right})
+			}
+			continue
+		}
+		for _, ta := range m.triangles[a.start:a.end] {
+			for _, tb := range other.triangles[b.start:b.end] {
+				lower, valid = lowerBoxGap(ta, tb)
+				if !valid {
+					return false, false
+				}
+				if lower > threshold {
+					continue
+				}
+				distance := squaredTriangleGap(ta.p, tb.p)
+				if !finite(distance) || distance < 0 {
+					return false, false
+				}
+				if distance <= limitSquared {
+					return false, true
+				}
+			}
+		}
+	}
+	return true, true
+}
+
+func clearanceThresholdUpper(clearance, boundA, boundB float64) (float64, bool) {
+	margin := roundUp(boundA + boundB)
+	margin = roundUp(margin + 1e-6)
+	limit := roundUp(clearance + margin)
+	threshold := roundUp(limit * limit)
+	return threshold, finite(threshold) && threshold >= 0
+}
+
+func roundUp(value float64) float64 {
+	if !finite(value) {
+		return value
+	}
+	return math.Nextafter(value, math.Inf(1))
+}
+
+func lowerBoxGap(a, b triangle) (float64, bool) {
+	axisGap := func(aLo, aHi, bLo, bHi float64) (float64, bool) {
+		x := roundDownNonnegative(aLo - bHi)
+		y := roundDownNonnegative(bLo - aHi)
+		gap := math.Max(0, math.Max(x, y))
+		squared := roundDownNonnegative(gap * gap)
+		return squared, finite(squared)
+	}
+	x, ok := axisGap(a.lo.X, a.hi.X, b.lo.X, b.hi.X)
+	if !ok {
+		return 0, false
+	}
+	y, ok := axisGap(a.lo.Y, a.hi.Y, b.lo.Y, b.hi.Y)
+	if !ok {
+		return 0, false
+	}
+	z, ok := axisGap(a.lo.Z, a.hi.Z, b.lo.Z, b.hi.Z)
+	if !ok {
+		return 0, false
+	}
+	xy := roundDownNonnegative(x + y)
+	if !finite(xy) {
+		return 0, false
+	}
+	squared := roundDownNonnegative(xy + z)
+	return squared, finite(squared)
+}
+
+func roundDownNonnegative(value float64) float64 {
+	if !finite(value) {
+		return value
+	}
+	if value <= 0 {
+		return 0
+	}
+	return math.Nextafter(value, math.Inf(-1))
 }
 
 // PointDistance returns the distance from p to the nearest triangle of the mesh. It reads the triangles only and

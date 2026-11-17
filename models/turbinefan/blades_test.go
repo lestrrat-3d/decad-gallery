@@ -154,7 +154,7 @@ func TestTurbineFanReplaceBlade(t *testing.T) {
 				for _, lift := range []float64{0.5, 2 * sz.Scale, 5 * sz.Scale, 10 * sz.Scale, 18.5 * sz.Scale} {
 					moved := gapMesh(t, bolt, 0.01, r3.Vec{Z: lift})
 					for name, other := range map[string]meshgap.Mesh{"hub": hub, "blade": gapMesh(t, blade, 0.02, r3.Vec{})} {
-						_, ok, err := moved.Exceeds(other, 0.05)
+						ok, err := moved.ExceedsClearance(other, 0.05)
 						require.NoError(t, err)
 						require.True(t, ok, "the bolt lifted %g stays clear of the %s", lift, name)
 					}
