@@ -54,9 +54,37 @@ class BevelJobGroupsTest(unittest.TestCase):
 class SirenCasesTest(unittest.TestCase):
     def test_siren_cases(self):
         expected = {
-            "default": (
+            "default-fasteners": (
+                "^TestHandCrankSirenDefault$/^fasteners$",
+                ["TestHandCrankSirenDefault", "TestHandCrankSirenDefault/fasteners"],
+            ),
+            "default-rest": (
                 "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams)$",
-                ["TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch", "TestGearboxParams"],
+                [
+                    "TestHandCrankSirenDefault",
+                    "TestHandCrankSirenDefault/sketches",
+                    "TestHandCrankSirenDefault/containers",
+                    "TestHandCrankSirenDefault/ports",
+                    "TestHandCrankSirenDefault/outlet",
+                    "TestHandCrankSirenDefault/orientation",
+                    "TestHandCrankSirenDefault/overlap",
+                    "TestHandCrankSirenDefault/split_shafts",
+                    "TestHandCrankSirenDefault/corners",
+                    "TestHandCrankSirenDefault/grip",
+                    "TestHandCrankSirenDefault/knuckle_room",
+                    "TestHandCrankSirenDefault/window_height",
+                    "TestHandCrankSirenDefault/sweep",
+                    "TestHandCrankSirenDefault/tessellate",
+                    "TestHandCrankSirenDefault/edges",
+                    "TestHandCrankSirenDefault/mesh",
+                    "TestHandCrankSirenDefault/clearances",
+                    "TestHandCrankSirenDefault/marks",
+                    "TestHandCrankSirenDefault/press-fit_walls",
+                    "TestValidate",
+                    "TestMotion",
+                    "TestPitch",
+                    "TestGearboxParams",
+                ],
             ),
             "spike": (
                 "^TestGearboxSpike$",
@@ -73,19 +101,53 @@ class SirenCasesTest(unittest.TestCase):
         }
         self.assertEqual(run_tests.SIREN_CASES, expected)
 
-    def test_default_and_spike_partition_previous_selection(self):
-        previous = {
-            "TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch",
-            "TestGearboxParams", "TestGearboxSpike",
-        }
-        selected = []
-        for case in ("default", "spike"):
-            pattern, expected = run_tests.SIREN_CASES[case]
-            matches = {name for name in previous if re.fullmatch(pattern, name)}
-            self.assertEqual(matches, set(expected))
-            selected.append(matches)
-        self.assertTrue(selected[0].isdisjoint(selected[1]))
-        self.assertEqual(selected[0] | selected[1], previous)
+    def test_default_shards_partition_previous_selection(self):
+        fastener_pattern, fastener_expected = run_tests.SIREN_CASES["default-fasteners"]
+        rest_pattern, rest_expected = run_tests.SIREN_CASES["default-rest"]
+        self.assertEqual(fastener_pattern, "^TestHandCrankSirenDefault$/^fasteners$")
+        self.assertEqual(
+            set(fastener_expected),
+            {"TestHandCrankSirenDefault", "TestHandCrankSirenDefault/fasteners"},
+        )
+        self.assertEqual(len(rest_expected), 23)
+        self.assertEqual(rest_expected[0], "TestHandCrankSirenDefault")
+        self.assertEqual(
+            set(rest_expected[1:19]),
+            {
+                "TestHandCrankSirenDefault/sketches",
+                "TestHandCrankSirenDefault/containers",
+                "TestHandCrankSirenDefault/ports",
+                "TestHandCrankSirenDefault/outlet",
+                "TestHandCrankSirenDefault/orientation",
+                "TestHandCrankSirenDefault/overlap",
+                "TestHandCrankSirenDefault/split_shafts",
+                "TestHandCrankSirenDefault/corners",
+                "TestHandCrankSirenDefault/grip",
+                "TestHandCrankSirenDefault/knuckle_room",
+                "TestHandCrankSirenDefault/window_height",
+                "TestHandCrankSirenDefault/sweep",
+                "TestHandCrankSirenDefault/tessellate",
+                "TestHandCrankSirenDefault/edges",
+                "TestHandCrankSirenDefault/mesh",
+                "TestHandCrankSirenDefault/clearances",
+                "TestHandCrankSirenDefault/marks",
+                "TestHandCrankSirenDefault/press-fit_walls",
+            },
+        )
+        self.assertEqual(
+            rest_expected[19:],
+            ["TestValidate", "TestMotion", "TestPitch", "TestGearboxParams"],
+        )
+        self.assertEqual(
+            rest_pattern,
+            "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams)$",
+        )
+
+    def test_default_rest_skips_fasteners(self):
+        self.assertEqual(
+            run_tests.SIREN_SKIPS,
+            {"default-rest": "^TestHandCrankSirenDefault$/^fasteners$"},
+        )
 
     def test_siren_cases_pass_expected_variant(self):
         for case, (pattern, expected) in run_tests.SIREN_CASES.items():
@@ -95,9 +157,18 @@ class SirenCasesTest(unittest.TestCase):
                 args, kwargs = go_test.call_args
                 self.assertEqual(args[0][0], "./models/handcranksiren")
                 self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
+                if case in run_tests.SIREN_SKIPS:
+                    self.assertEqual(
+                        args[0][args[0].index("-skip") + 1], run_tests.SIREN_SKIPS[case]
+                    )
+                else:
+                    self.assertNotIn("-skip", args[0])
                 self.assertEqual(args[0][-3:], ["-timeout", "40m", "-count=1"])
                 self.assertEqual(args[1], expected)
-                self.assertEqual(kwargs, {})
+                self.assertEqual(
+                    kwargs,
+                    {"reject_skips": case.startswith("default-")},
+                )
 
 
 class EscapementTest(unittest.TestCase):
@@ -201,6 +272,44 @@ class FanVariantsTest(unittest.TestCase):
 
 
 class FinishedTestsTest(unittest.TestCase):
+    def test_go_test_requires_expected_tests_and_rejects_skip_or_failure(self):
+        cases = (
+            ([{"Action": "pass", "Test": "TestA"}], ["TestA"], 0, None),
+            ([{"Action": "pass", "Test": "TestA"}], ["TestA", "TestB"], 0, "did not pass"),
+            (
+                [
+                    {"Action": "pass", "Test": "TestA"},
+                    {"Action": "skip", "Test": "TestA/child"},
+                ],
+                ["TestA"],
+                0,
+                "skipped or failed",
+            ),
+            (
+                [
+                    {"Action": "pass", "Test": "TestA"},
+                    {"Action": "fail", "Test": "TestA/child"},
+                ],
+                ["TestA"],
+                0,
+                "skipped or failed",
+            ),
+        )
+        for events, expected, returncode, message in cases:
+            with self.subTest(message=message):
+                output = io.StringIO("".join(json.dumps(event) + "\n" for event in events))
+                process = mock.Mock(stdout=output)
+                process.wait.return_value = returncode
+                with (
+                    mock.patch.object(run_tests.subprocess, "Popen", return_value=process),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    if message is None:
+                        run_tests.go_test(["./pkg"], expected, reject_skips=True)
+                    else:
+                        with self.assertRaisesRegex(SystemExit, message):
+                            run_tests.go_test(["./pkg"], expected, reject_skips=True)
+
     def test_summary(self):
         lines = [
             json.dumps({"Action": "run", "Test": "TestA"}) + "\n",

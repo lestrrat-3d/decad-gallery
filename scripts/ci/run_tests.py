@@ -246,8 +246,13 @@ def finished_tests(lines) -> dict[str, str]:
     return finished
 
 
-def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None) -> None:
-    """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
+def go_test(
+    args: list[str],
+    expected: list[str] = (),
+    env: dict[str, str] | None = None,
+    reject_skips: bool = False,
+) -> None:
+    """Run go test with args and require every expected test to pass."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
@@ -256,9 +261,13 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
         raise SystemExit(proc.returncode)
     if not any(action != "skip" for action in finished.values()):
         raise SystemExit("go test ran no tests; check the -run pattern")
-    missing = [name for name in expected if finished.get(name) not in {"pass", "fail"}]
-    if missing:
-        raise SystemExit("go test did not run: " + ", ".join(missing))
+    incomplete = [name for name in expected if finished.get(name) != "pass"]
+    if incomplete:
+        raise SystemExit("go test did not pass: " + ", ".join(incomplete))
+    if reject_skips:
+        unsuccessful = [name for name, action in finished.items() if action != "pass"]
+        if unsuccessful:
+            raise SystemExit("go test skipped or failed: " + ", ".join(unsuccessful))
 
 
 def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: str) -> None:
@@ -379,9 +388,37 @@ def run_wheel(case: str) -> None:
 
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
 SIREN_CASES = {
-    "default": (
+    "default-fasteners": (
+        "^TestHandCrankSirenDefault$/^fasteners$",
+        ["TestHandCrankSirenDefault", "TestHandCrankSirenDefault/fasteners"],
+    ),
+    "default-rest": (
         "^(TestHandCrankSirenDefault|TestValidate|TestMotion|TestPitch|TestGearboxParams)$",
-        ["TestHandCrankSirenDefault", "TestValidate", "TestMotion", "TestPitch", "TestGearboxParams"],
+        [
+            "TestHandCrankSirenDefault",
+            "TestHandCrankSirenDefault/sketches",
+            "TestHandCrankSirenDefault/containers",
+            "TestHandCrankSirenDefault/ports",
+            "TestHandCrankSirenDefault/outlet",
+            "TestHandCrankSirenDefault/orientation",
+            "TestHandCrankSirenDefault/overlap",
+            "TestHandCrankSirenDefault/split_shafts",
+            "TestHandCrankSirenDefault/corners",
+            "TestHandCrankSirenDefault/grip",
+            "TestHandCrankSirenDefault/knuckle_room",
+            "TestHandCrankSirenDefault/window_height",
+            "TestHandCrankSirenDefault/sweep",
+            "TestHandCrankSirenDefault/tessellate",
+            "TestHandCrankSirenDefault/edges",
+            "TestHandCrankSirenDefault/mesh",
+            "TestHandCrankSirenDefault/clearances",
+            "TestHandCrankSirenDefault/marks",
+            "TestHandCrankSirenDefault/press-fit_walls",
+            "TestValidate",
+            "TestMotion",
+            "TestPitch",
+            "TestGearboxParams",
+        ],
     ),
     "spike": (
         "^TestGearboxSpike$",
@@ -397,6 +434,10 @@ SIREN_CASES = {
     ),
 }
 
+SIREN_SKIPS = {
+    "default-rest": "^TestHandCrankSirenDefault$/^fasteners$",
+}
+
 FAN_VARIANTS = {
     "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
     "steep-three": "^TestHandCrankFanVariant$/^steep-three$",
@@ -405,9 +446,14 @@ FAN_VARIANTS = {
 
 def run_siren(case: str) -> None:
     pattern, expected = SIREN_CASES[case]
+    args = ["./models/handcranksiren", "-run", pattern]
+    if case in SIREN_SKIPS:
+        args += ["-skip", SIREN_SKIPS[case]]
+    args += ["-timeout", "40m", "-count=1"]
     go_test(
-        ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
+        args,
         expected,
+        reject_skips=case.startswith("default-"),
     )
 
 
@@ -499,7 +545,7 @@ def main() -> None:
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|spike|slots12|slots24> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
+        " | siren <default-fasteners|default-rest|spike|slots12|slots24> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 
