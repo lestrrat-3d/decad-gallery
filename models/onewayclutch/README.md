@@ -5,7 +5,7 @@
 ![A one-way clutch cut at the hub's mid-height: three pawl heads seated in the teeth of the ring, the arms behind them, the back plate below, and the ring's three bolt ears outside](images/hero.png)
 
 A printed one-way clutch for a D-flat shaft. A hub with three flexing pawls presses on the shaft and meets a 38.2 mm ring
-with 18 internal teeth and three bolt ears. Turn the shaft one way and the pawls catch the teeth, so the ring turns with it. Turn the shaft
+(39.8 to 40.7 mm on the 8 mm presets) with 18 internal teeth and three bolt ears. Turn the shaft one way and the pawls catch the teeth, so the ring turns with it. Turn the shaft
 the other way and the teeth push the pawls inward, the arms bend, and the ring stays still with a click for each tooth.
 A back plate and a cover hold the ring on the hub. Three M2 × 16 bolts clamp the stack, each into a nut in a hex pocket
 in the back plate's outer face. A separate adapter ring bolts to the ears and gives the clutch a flat output face. Every printed part prints with its axis
@@ -29,8 +29,9 @@ sits just inside the back plate's outer face, and ends flush with it once the bo
 
 ![The clutch from the back: the back plate with the D bore and three nuts in hex pockets, the ring standing out round it](images/back.png)
 
-From the side, the ring's outside is 38.2 mm across between the ears, which stand out to a 51.4 mm circle. The ring's
-outer edges are chamfered, and the ring stands 1.25 mm past both plates.
+From the side, the ring's outside is 38.2 mm across between the ears, which stand out to a 51.4 mm circle (39.8 to
+40.7 mm and 53.0 to 53.9 mm on the 8 mm presets). The ring's outer edges are chamfered, and the ring stands 1.25 mm past
+both plates.
 
 ![The clutch from the side: the ring with an ear in front, standing 1.25 mm past the plates at both ends](images/side.png)
 
@@ -48,10 +49,10 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
   bending loads the printed lines along the arm, and the head clicks over the tooth.
 - A slot behind each arm gives it room to bend. The arm is 1.5 mm thick, the least that prints reliably, and it strains 1.12 % at full travel.
 - Turned the free way, each head clears the teeth: 0.17 mm after 1.5 degrees of turn and 0.10 mm after 2 degrees on
-  the 605ZZ hub (0.14 and 0.08 mm on the 8 mm hubs), measured on the built parts.
-- The 605ZZ hub's two faces, over 400 mm², carry a 0.25 mm chamfer along the arms. The 8 mm hubs' faces are under 400 mm²
-  and stay unchamfered. The chamfer is 0.25 mm because the head's flank plane can cap no larger bevel at the arm's corner.
-  The head's run stays sharp so it keeps its lock contact.
+  the 605ZZ hub (0.15 and 0.09 mm on the 8 mm hubs), measured on the built parts.
+- Every hub's two faces are over 400 mm², so each carries a chamfer along the arms: 0.25 mm on the 605ZZ hub and 0.19 to
+  0.21 mm on the 8 mm hubs. The chamfer is no larger because the head's flank plane can cap no larger bevel at the arm's
+  corner. The head's run stays sharp so it keeps its lock contact.
 
 ![The clutch cut through the shaft axis: the plates, the ring held between them by cones, a bolt and its nut in the back plate's hex pocket](images/cutaway.png)
 
@@ -65,35 +66,35 @@ The ring's two ends stand 1.25 mm past everything that turns with the shaft: bot
 tips. The ring floats 0.85 mm each way between the plates' cones, so 0.4 mm stays clear at the end of its travel.
 
 - A part that turns with the ring, such as a housing or a gear, may sit flat against either end of the ring. It must
-  clear the shaft and a 35.2 mm circle round it.
+  clear the shaft and a 35.2 mm circle round it (37.7 mm on the 8 mm presets).
 - A part that turns with the shaft, such as a collar, a spacer or a bearing's inner race, bears on a plate's face.
-  Keep it inside 32 mm across, so it never reaches the ring.
+  Keep it inside 32 mm across (33.5 mm on the 8 mm presets), so it never reaches the ring.
 - No bearing outside the clutch is needed. The plates' rims and cones carry the ring.
 
 The driven part attaches to the ring alone. Three ears run the ring's full height, each with an M2 clearance bore and a
 hex nut pocket open to the ring's rear face. Bolt the driven part to the ears through the standard adapter ring below, or
-key a housing onto them: a tight fit needs a 38.2 mm bore with three notches for the ears. The plates stay round, so
+key a housing onto them: a tight fit needs a 38.2 mm bore (up to 40.7 mm on the 8 mm presets) with three notches for the ears. The plates stay round, so
 nothing bolted to the ears reaches the parts that turn with the shaft. The [turbine fan](../turbinefan/) is an example:
 its clutch mount bolts the fan's hub to the standard adapter ring's face holes.
 
-| Ear dimension | Value |
+| Ear dimension | Value (8 mm presets in brackets) |
 | --- | ---: |
 | Ears | 3, at 90°, 210° and 330° (the same in both directions) |
-| Bore circle | 43.2 mm across |
+| Bore circle | 43.2 mm across (44.8 to 45.7 mm) |
 | Bore | 2.6 mm (M2 clearance) |
 | Ear width | 8.2 mm |
-| Tip circle | 51.4 mm across |
+| Tip circle | 51.4 mm across (53.0 to 53.9 mm) |
 | Length | 21.0 mm (the ring's full height) |
 | Nut pocket | a hexagon in each ear's rear end, open to the ring's rear face, 2.0 mm deep, a flat toward the shaft |
 
 ## Adapter ring
 
-The standard adapter ring bolts to the ears from the front and gives the clutch a flat 51.4 mm output face with a 10 mm bore
-that clears the shaft. It is a 6 mm disc with three flush bolt heads on its front face and three more, flush with its rear
+The standard adapter ring bolts to the ears from the front and gives the clutch a flat 51.4 mm output face (53.0 to 53.9 mm on the 8 mm presets) with a 7 mm bore (10 mm on the 8 mm
+presets) that clears the shaft by 1.0 mm. It is a 6 mm disc with three flush bolt heads on its front face and three more, flush with its rear
 face, for a part you bolt to its front. You can replace the ring with one that meets the same ear interface. The clutch
 itself never changes.
 
-![The clutch with its adapter ring bolted to the ears: the adapter's front face with three flush bolt heads, its 10 mm bore, three face holes and three access holes, and the ring's ears behind it](images/adapter.png)
+![The clutch with its adapter ring bolted to the ears: the adapter's front face with three flush bolt heads, its 7 mm bore, three face holes and three access holes, and the ring's ears behind it](images/adapter.png)
 
 Three M2 × 25 bolts pass the adapter and the ears from the front, and each ends in a nut in the ear's rear pocket. No nut
 is embedded: each pocket is open to the ring's rear face.
@@ -102,7 +103,7 @@ is embedded: each pocket is open to the ring's rear face.
 2.0 mm head pocket in the adapter's rear face, take a part bolted to the front. That part puts its back face one 0.25 mm
 seam in front of the adapter (z 26.25), takes M2 × 10 bolts from the adapter's rear pockets, and seats each nut in a hex
 slot open to its rim, 1.5 mm into its body. The [turbine fan](../turbinefan/) uses two of the three holes; the third stays
-empty under its solid hub. Three 2.6 mm access holes at 8.1 mm from the axis sit over the clutch's own bolt heads, so you can
+empty under its solid hub. Three 2.6 mm access holes at 7.15 mm from the axis (7.9 to 8.35 mm on the 8 mm presets) sit over the clutch's own bolt heads, so you can
 tighten those through the adapter with a 1.5 mm hex key.
 
 | Fastener check | Value |
@@ -158,7 +159,7 @@ the adapter ring, and the three M2 × 16 bolts of the plates and the three M2 ×
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover, with three head pockets (printed) |
 | <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3 |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 for the plates and 3 for the adapter |
-| <img src="images/parts/adapter.png" alt="Adapter ring" width="240"> | Adapter ring, a 6 mm disc with a 10 mm bore, three ear head pockets, three face holes with rear head pockets and three access holes (printed, `BuildAdapter` only) |
+| <img src="images/parts/adapter.png" alt="Adapter ring" width="240"> | Adapter ring, a 6 mm disc with a 7 mm bore (10 mm on the 8 mm presets), three ear head pockets, three face holes with rear head pockets and three access holes (printed, `BuildAdapter` only) |
 | <img src="images/parts/mount-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw, 3 (`BuildAdapter` only) |
 
 ## Fits
@@ -181,7 +182,9 @@ directions, less the measurement's own error bound, so it sits a little under th
 
 ## Sizes
 
-The three presets differ only in the D bore of the hub and the two plates. From the left: `605ZZ`, `608ZZ` and
+The presets differ in the D bore of the hub and the two plates. A larger bore makes the hub core grow, to keep 1.6 mm
+of wall from the bore to the bolt pockets and from each bolt hole to the core, and the arms, ring, plates and adapter
+grow with it. The 8 mm clutches are 1.6 to 2.5 mm wider than the 605ZZ one. From the left: `605ZZ`, `608ZZ` and
 `608ZZ-gearbox`.
 
 ![Three clutches cut at the hub's mid-height, with the D bores of the three shaft presets](images/sizes.png)
@@ -194,11 +197,12 @@ All dimensions are in millimeters. `Params.Validate` rejects a value outside its
 | --- | --- | --- |
 | `Shaft` | `605ZZ` | A preset name: `605ZZ` (5 mm shaft, 0.5 mm flat), `608ZZ` (8 mm, 0.75 mm flat) or `608ZZ-gearbox` (8 mm, 0.5 mm flat) |
 | `Freewheel` | `Clockwise` | `Clockwise` or `CounterClockwise`; the zero value is rejected |
-| `BoreClearance` | 0.05 | Radial clearance of every D bore, 0.05 to 0.5, and small enough to keep 1.6 mm of wall between the bore and the nut pockets (up to 0.326 on the 8 mm presets) |
+| `BoreClearance` | 0.05 | Radial clearance of every D bore, 0.05 to 0.5. A larger clearance grows the 8 mm clutch's radii a little (the core grows 0.45 mm from 0.05 to 0.5) |
 | `Placement` | none | A valid frame |
 
-The ring is 38.2 mm across between its ears and 51.4 mm across the ear tips, and the plates are 18.5 mm long, the ring 21.0 mm. None of
-these depends on the preset.
+On the 605ZZ the ring is 38.2 mm across between its ears and 51.4 mm across the ear tips. On the 8 mm presets it is
+39.8 mm (`BoreClearance` 0.05) to 40.7 mm (0.5) across and 53.0 to 53.9 mm across the ear tips. The plates are 18.5 mm
+long and the ring 21.0 mm on every preset.
 
 ## Printing
 

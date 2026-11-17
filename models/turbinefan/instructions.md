@@ -479,7 +479,7 @@ lies under the hub's solid back face and stays empty. Both frames share +Z.
 | Clutch cover outer face, cover bolt heads | -7.75 | 18.5 |
 
 The clamped faces are modeled with the clutch's 0.25 mm seam and close when the bolts are tightened, as the clutch's own
-plates do. The hub has no bore contact with the shaft: the adapter's 10 mm bore clears the shaft, and the shaft stops short
+plates do. The hub has no bore contact with the shaft: the adapter's bore (7 mm on the 605ZZ clutch, 10 mm on the 8 mm clutch) clears the shaft, and the shaft stops short
 of the hub's back face.
 
 ### Constants
@@ -580,7 +580,7 @@ ring 0.232 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt hea
 ### Mounting space, assembly and cases
 
 - Behind the ring: room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 at the ring's rear face).
-  In front: the adapter (51.4 across, clutch z 20 to 26) and the fan. The shaft may end anywhere from inside the clutch to the
+  In front: the adapter (51.4 across on the 605ZZ clutch, 53.0 on the 8 mm clutch, clutch z 20 to 26) and the fan. The shaft may end anywhere from inside the clutch to the
   adapter's front face (z 26); it must not enter the hub's back face. A shaft that entered the D bore would lock the fan to
   the shaft and defeat the clutch.
 - Assembly: (1) fit the blades; (2) slide two M2 nuts into the hub's adapter slots from the round face, set the hub on the
