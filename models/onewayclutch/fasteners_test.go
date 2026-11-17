@@ -28,6 +28,9 @@ func fastenerCases() map[string]onewayclutch.Params {
 	p := onewayclutch.DefaultParams()
 	p.BoreClearance = 0.35
 	out["fasteners 605ZZ loose"] = p
+	for _, w := range wideBoreCases() {
+		out["fasteners "+w.name] = w.params
+	}
 	return out
 }
 
