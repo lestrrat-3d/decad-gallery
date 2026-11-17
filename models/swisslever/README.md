@@ -43,6 +43,14 @@ balance and the 1.83 N·mm/rad printed hairspring the period is about 0.58 s, so
 Checks in the model's tests measure one tooth per period and two drops of at least 1.70 mm per period on the real
 wheel and stone outlines, and the pin in the fork touches a horn only while the balance is within 27.3° of rest on either side.
 
+## How it moves
+
+![The escapement over one balance period: the balance turns, the pin carries the lever across, and the escape wheel advances one tooth](images/motion.gif)
+
+The animation shows one balance period in 36 frames. The pin on the roller table carries the lever from one banking
+post to the other, and the escape wheel advances one tooth, 24°, each period. The hairspring stays relaxed in the
+animation, as it does in every pose of the model.
+
 ## Assembled
 
 | From the front | From above and the right | From behind |
