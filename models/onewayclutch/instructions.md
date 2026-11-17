@@ -271,7 +271,7 @@ Outline of one period, counter-clockwise, material on the left:
 
 The head's lock face bears on the ring's lock face over 0.84 mm radially and 9.6 mm axially, on each of three heads. The
 flexible arm runs 73.4° from the slot end to `H_f`, 15.9 mm at radius 12.6; full travel bends it to 1.12 % strain
-(1.07 to 1.10 % from the built section; the test's cap is 1.2 %). The slot leaves `SlotWidth - HeadTravel` = 0.335 mm under a fully pressed head
+(1.11 % from the built section; the test's cap is 1.2 %). The slot leaves `SlotWidth - HeadTravel` = 0.335 mm under a fully pressed head
 (0.335 by section, 0.275 after the section's `2 off` bound, against a floor of 0.25). On the 8 mm presets `SlotWidth`
 grows to keep 0.33 mm there, and the strain falls to 1.02 % (`c` 0.05) and 0.97 % (`c` 0.5). The thinnest hub walls are
 2.85 to 3.30 from the bore to a bolt hole (605ZZ, `BoreClearance` 0.5 to 0.05; 2.55 on the 8 mm presets) and 1.65 from a
@@ -333,9 +333,10 @@ sin(a+30°), 0), Length: 25, Cavity: 25.25}` for the ear angles `a`. Each face s
 (0, 0, 1), Corner: (cos a, sin a, 0), Length: 10, Cavity: AdapterThickness + Seam + FaceNutDepth = 7.75`; the nut slot of
 the mating part (its slot plane at z 27.75, 1.5 inside a part whose back face is at 26.25) is that part's to cut. Derive
 checks each face site with `Site.Validate`, after the mount sites. Access hole centres sit over the clutch's bolt heads
-(`BoltCircle` at 30°, 150° and 270°). On the 605ZZ (7.15) an access hole is 2.35 mm from the bore (1.85 after the bore's
-chamfer) and 5.1 mm from the face pockets. On the 8 mm presets the bore wall is 1.60 to 2.05 mm (1.10 to 1.55 after the
-chamfer) and the face pocket wall 5.3 to 5.5 mm.
+(`BoltCircle` at 30°, 150° and 270°). Measured in sections of the built adapters: on the 605ZZ (7.15) an access hole is
+2.35 mm from the bore (1.86 at the rear face, after the bore's chamfer) and 5.07 mm from the face pockets. On the 8 mm
+presets the bore wall is 1.60 (`c` 0.05) to 2.05 mm (`c` 0.5), 1.11 to 1.56 at the rear face, and the face pocket wall
+5.31 to 5.48 mm.
 
 | Check | Seams open (model) | Seam closed (tightened) |
 | --- | --- | --- |
@@ -360,32 +361,34 @@ before the part bolted to the face. The cover lies 1.5 mm below it (the 1.25 sta
 
 | ID | Parts | Class (min) | Modeled | Measured, proven lower bound | Measure |
 | --- | --- | --- | ---: | ---: | --- |
-| P1 | hub D bore / shaft | press fit | `c` (0.05) | 0.040 (at `c` 0.35: 0.349) | section at mid-height |
+| P1 | hub D bore / shaft | press fit | `c` (0.05) | 0.049 (at `c` 0.35: 0.349) | section at mid-height |
 | P2 | back plate, cover D bores / shaft | press fit | `c` | 0.049 (at `c` 0.35: 0.349) | as P1 |
-| T1 | hub / each plate boss | Tight 0.2 | 0.25 | 0.215 | mesh gap, placed meshes |
-| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | 0.595 | axial section, hub bounds |
+| T1 | hub / each plate boss | Tight 0.2 | 0.25 | 0.234 | mesh gap, placed meshes |
+| R1 | pawls / plate annuli | Regular 0.35 | 0.65 | 0.638 | axial section, hub bounds |
 | R2 | ring counterbores / plate rims | Regular | 0.40 radial | 0.382 | section mid-overlap (z 1.75 and 16.75); the rims overlap the counterbores over z 0.5 to 3.0 and 15.5 to 18.0 |
-| R3 | ring cones / plate cones | Regular | 0.60 normal | 0.579 | axial section |
+| R3 | ring cones / plate cones | Regular | 0.60 normal | 0.578 | axial section |
 | R4 | ring tooth ends / plate annuli | Regular | 0.85 axial | 0.827 | axial section |
 | R6 | ring end planes / every shaft-side body (plates, bolts, nuts, hub) | Regular | 1.25 | 0.40 with the ring at the end of its 0.85 play, 0.90 with the seams closed | bounds, and the ring meshes shifted past the play |
-| R5 | each head / its tooth gap, seated | Regular | 0.40 | 0.352 | `meshgap` on the placed meshes (0.357 clockwise, 0.352 counter-clockwise on the 605ZZ) |
-| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | 0.509 | section at mid-height |
+| R5 | each head / its tooth gap, seated | Regular | 0.40 | 0.372 | `meshgap` on the placed meshes (0.379 on the 605ZZ, 0.372 on the 8 mm presets, both directions) |
+| L1 | arm outer arcs / tooth tips | Loose 0.5 | 0.55 | 0.530 | section at mid-height |
 | F | bolts, nuts | fastener rules | head pocket 0.3, hole 0.3, nut 0.17 at each flat, 0.20 past each corner and to the floor; tip 0.5 inside the back face with seams open, flush when closed | | bounds, sections and no overlap |
-| A | adapter / ring front end | clamped seam | 0.25 | 0.232 | mesh gap |
+| A | adapter / ring front end | clamped seam | 0.25 | 0.231 | mesh gap |
 
 The model is **Mixed**: the bore clearance is a parameter, and the bolts and nuts keep their nominal size. The ring's
 ears and outside fit in the user's driven part or housing belong to the consumer. `TestOneWayClutchFits` measures P1 to R5 and L1 for every
-preset in both directions, for `BoreClearance` 0.35 on `605ZZ`, and the mesh gaps for a placed default. Each section is cut at the finest chord its body holds (0.01 for an exact part, 0.03 for
-the ring, 0.035 for the faceted hub). Every radius comes from `Dimensions`, so the fits hold on the grown 8 mm clutch as on the 605ZZ. The measured column is the least value over those cases, less each section's
+preset in both directions, for `BoreClearance` 0.35 on `605ZZ`, and the mesh gaps for a placed default. Each section is cut at the finest chord its body holds (0.01 for an exact part and for the
+chamfered hub, whose held mesh bound is 0.006; 0.03 for the ring). Every radius comes from `Dimensions`, so the fits hold on the grown 8 mm clutch as on the 605ZZ. The measured column is the least value over those cases, less each section's
 or mesh's proven displacement bound, so it sits a little under the modeled value. A D bore's corners stand more than `c` from the shaft's corners, since `c` is radial
 on the round and on the flat. In the head-on-pocket-floor and bolt-in-nut pairs the meshes touch by design (nominal
 pair).
 
 `TestOneWayClutchPawls` checks the arm (1.5 mm thick, the enforced minimum; 1.12 % strain at full travel on the 605ZZ,
 1.02 to 0.97 % on the 8 mm presets), the slot (1.6 mm on the 605ZZ, leaving 0.335 mm under a fully pressed head; 0.33 mm
-on the 8 mm presets), the web (1.84 mm to the slot end's round on the 605ZZ, 2.02 to 2.13 mm on the 8 mm presets, wider
-than the arm) and the lock face (0.844 mm radial contact on the 605ZZ, 0.83 to 0.84 from the sections; 0.88 to 0.90 mm on
-the 8 mm presets; 9.6 mm axial), from `Dimensions` and from sections of the built hub.
+on the 8 mm presets), the web (1.83 mm to the slot end's round on the 605ZZ, 2.00 mm (`c` 0.05) to 2.08 mm (`c` 0.5) on
+the 8 mm presets, from the sections, wider than the arm) and the lock face (0.844 mm radial contact on the 605ZZ, 0.885
+from the sections; 0.877 (`c` 0.05) to 0.895 mm (`c` 0.5) on the 8 mm presets, 0.907 from the sections at `c` 0.05;
+9.6 mm axial), from `Dimensions` and from sections of the built hub. From the sections the strain is 1.11 % on the
+605ZZ and 1.01 % on the 8 mm presets at `c` 0.05.
 
 ## Sketch constraints
 
@@ -419,17 +422,17 @@ constraints; place computed points with `sketchcheck.DimensionPoint` only in mer
 
 | Part | Face | Net area | Long runs | Action |
 | --- | --- | ---: | --- | --- |
-| Back plate | outer face | 807.6 to 811.1 (605ZZ), over 850 (8 mm, from the larger `PlateRadius`) | outer circle 104.9 (605ZZ), 109.8 to 112.8 (8 mm); D loop 25.1 to 25.3 at 8 mm; hex loops 15.06, short | chamfer 0.5 (one call) |
+| Back plate | outer face | 807.6 to 811.1 (605ZZ), 860.3 to 901.5 (8 mm, from the larger `PlateRadius`) | outer circle 104.9 (605ZZ), 109.8 to 112.8 (8 mm); D loop 25.1 to 25.3 at 8 mm; hex loops 15.06, short | chamfer 0.5 (one call) |
 | Cover | outer face | as above | as above; head pockets 13.8, short | chamfer 0.5 (one call) |
 | Plates | annulus | 481 | outer edge meets the 45° cone | the 1.1 mm cone is that edge's finish |
 | Plates | boss face | about 270 | none | small, none |
-| Hub, 605ZZ | each face | 384.1 to 413.9 | per pawl: arm outer arc 20.13, inner run; head run short; D loop 15.8, short | chamfer 0.25 on the long runs; head run sharp (below) |
-| Hub, 8 mm | each face | 442.1 (`c` 0.05) to 466.7 (`c` 0.5) | per pawl: arm outer arc, inner run; head run short; D loop 25.1 to 25.3 | chamfer `HubChamfer` (0.212 to 0.190) on the long runs; head run sharp |
+| Hub, 605ZZ | each face | 406.1 (`c` 0.5) to 413.9 (`c` 0.05) | per pawl: arm outer arc 20.13, inner run; head run short; D loop 15.8, short | chamfer 0.25 on the long runs; head run sharp (below) |
+| Hub, 8 mm | each face | 441.0 (`608ZZ-gearbox`, `c` 0.05) to 466.7 (`608ZZ`, `c` 0.5) | per pawl: arm outer arc, inner run; head run short; D loop 25.1 to 25.3 at `c` 0.05, 28.0 at `c` 0.5 | chamfer `HubChamfer` (0.212 to 0.190) on the long runs and the whole D loop; head run sharp |
 | Ring | each end face | 357.4 front, 324.2 rear | outer loop; counterbore rim; ear bores and rear nut pockets, short | chamfer the outer loop 0.5 as a lead-in (kept; the pockets are cut after it); the counterbore rim by the tool's lead-in |
 | Adapter | each face | about 1960 (605ZZ) | outer circle 157.7; bore 22.0 (605ZZ), 31.4 (8 mm); holes short | chamfer 0.5 (one call) |
 
-Every hub's two faces are over the 400 mm² limit: 384.1 to 413.9 mm² on the 605ZZ and 442.1 to 466.7 mm² on the grown 8
-mm hubs. Each takes a chamfer along the runs of 20 mm or more, and the head run stays sharp so the head keeps its 0.4 tip
+Every hub's two faces are over the 400 mm² limit: 406.1 to 413.9 mm² on the 605ZZ and 441.0 to 466.7 mm² on the grown 8
+mm hubs, measured in the mid-height section. Each takes a chamfer along the runs of 20 mm or more, and the head run stays sharp so the head keeps its 0.4 tip
 round and its lock contact. `hub()` calls `edgefinish.ChamferRuns` with `HubChamfer` and keeps the exact prism only if it
 returns `edgefinish.ErrNoEdge`, which no preset does (`TestOneWayClutchEdgeFinishing` checks every preset).
 `edgefinish.ChamferRuns` chooses the edges on the extruded prism,
@@ -478,7 +481,8 @@ The test also checks each press-fit ring's wall: in every layer run, the hub's, 
 1.6 mm or more from every other outline.
 
 Not applicable: Split shafts (no printed shaft or pin), Gear train clearances (no gears), Arbor collars (the shaft is
-the mechanism's; a collar bears on a plate's face and stays inside 32 mm across on the 605ZZ and 33.5 mm on the 8 mm presets, so it never reaches the ring).
+the mechanism's; a collar bears on a plate's face and stays inside 32 mm across on the 605ZZ and 33.5 mm on the 8 mm presets, inside the plate face's flat, which ends at
+2 * (`PlateRadius` - `PlateChamfer`): 32.4 mm on the 605ZZ and 34.0 to 34.9 mm on the 8 mm presets, so it never reaches the ring).
 
 ## Printing and assembly
 

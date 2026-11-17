@@ -125,7 +125,7 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 `ParamsForClutch` takes `WithBladePitch` to keep a chosen pitch. It always returns a matched pair; a hand-built pair is not checked.
 
 **Mounting space.** Leave room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 mm at the ring's
-rear face). In front are the adapter (51.4 mm across on the 605ZZ clutch, 53.0 mm on the 8 mm clutch, 6 mm thick) and the fan. The shaft may end anywhere from inside the
+rear face). In front are the adapter (51.4 mm across on the 605ZZ clutch, 53.0 to 53.9 mm on the 8 mm clutch, 6 mm thick) and the fan. The shaft may end anywhere from inside the
 clutch to the adapter's front face. It must not enter the hub: a shaft in the hub's D bore would lock the fan to the shaft and
 defeat the clutch. The adapter's bore (7 mm on the 605ZZ clutch, 10 mm on the 8 mm clutch) clears it.
 

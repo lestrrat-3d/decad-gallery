@@ -564,8 +564,8 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. Blade fits are unchanged.
 
 Measured by `TestTurbineFanOnClutch` (mesh gap lower bounds, 605ZZ / 608ZZ clutch): hub / adapter 0.245 / 0.242; adapter /
-ring 0.232 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt head 1.498 / 1.498; adapter bolt head / cover
-1.497 / 1.494; each blade / adapter 5.252; blade 1 / ear bolt 1 5.632.
+ring 0.231 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt head 1.498 / 1.498; adapter bolt head / cover
+1.497 / 1.493; each blade / adapter 5.251 / 5.252; blade 1 / ear bolt 1 26.316 / 27.078.
 
 ### Retained sharp corners, edge finishing and printing
 
@@ -580,7 +580,7 @@ ring 0.232 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt hea
 ### Mounting space, assembly and cases
 
 - Behind the ring: room to hold an M2 nut in each of the ring's three rear ear pockets (r 19 to 24 at the ring's rear face).
-  In front: the adapter (51.4 across on the 605ZZ clutch, 53.0 on the 8 mm clutch, clutch z 20 to 26) and the fan. The shaft may end anywhere from inside the clutch to the
+  In front: the adapter (51.4 across on the 605ZZ clutch, 53.0 to 53.9 on the 8 mm clutch, clutch z 20 to 26) and the fan. The shaft may end anywhere from inside the clutch to the
   adapter's front face (z 26); it must not enter the hub's back face. A shaft that entered the D bore would lock the fan to
   the shaft and defeat the clutch.
 - Assembly: (1) fit the blades; (2) slide two M2 nuts into the hub's adapter slots from the round face, set the hub on the

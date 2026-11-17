@@ -48,8 +48,8 @@ The picture cuts the clutch at the hub's mid-height and looks along the shaft.
 - Turning the hub the other way, the ramp presses the head inward. The arm bends in the plane of the print, so the
   bending loads the printed lines along the arm, and the head clicks over the tooth.
 - A slot behind each arm gives it room to bend. The arm is 1.5 mm thick, the least that prints reliably, and it strains 1.12 % at full travel.
-- Turned the free way, each head clears the teeth: 0.17 mm after 1.5 degrees of turn and 0.10 mm after 2 degrees on
-  the 605ZZ hub (0.15 and 0.09 mm on the 8 mm hubs), measured on the built parts.
+- Turned the free way, each head clears the teeth: 0.19 mm after 1.5 degrees of turn and 0.13 mm after 2 degrees on
+  the 605ZZ hub (at least 0.16 and 0.09 mm on the 8 mm hubs), measured on the built parts.
 - Every hub's two faces are over 400 mm², so each carries a chamfer along the arms: 0.25 mm on the 605ZZ hub and 0.19 to
   0.21 mm on the 8 mm hubs. The chamfer is no larger because the head's flank plane can cap no larger bevel at the arm's
   corner. The head's run stays sharp so it keeps its lock contact.
@@ -66,9 +66,10 @@ The ring's two ends stand 1.25 mm past everything that turns with the shaft: bot
 tips. The ring floats 0.85 mm each way between the plates' cones, so 0.4 mm stays clear at the end of its travel.
 
 - A part that turns with the ring, such as a housing or a gear, may sit flat against either end of the ring. It must
-  clear the shaft and a 35.2 mm circle round it (37.7 mm on the 8 mm presets).
+  clear the shaft and a 35.2 mm circle round it (36.8 to 37.7 mm on the 8 mm presets).
 - A part that turns with the shaft, such as a collar, a spacer or a bearing's inner race, bears on a plate's face.
-  Keep it inside 32 mm across (33.5 mm on the 8 mm presets), so it never reaches the ring.
+  Keep it inside 32 mm across (33.5 mm on the 8 mm presets), so it never reaches the ring. The plate's face is flat
+  out to 32.4 mm across on the 605ZZ and 34.0 to 34.9 mm on the 8 mm presets.
 - No bearing outside the clutch is needed. The plates' rims and cones carry the ring.
 
 The driven part attaches to the ring alone. Three ears run the ring's full height, each with an M2 clearance bore and a
@@ -169,16 +170,16 @@ directions, less the measurement's own error bound, so it sits a little under th
 
 | Pair | Modeled (mm) | Measured (mm) |
 | --- | ---: | ---: |
-| Hub, back plate and cover D bores on the shaft | `BoreClearance` (0.05) | 0.040 |
-| Hub on each plate's boss | 0.25 | 0.215 |
-| Pawls to the plates | 0.65 | 0.595 |
+| Hub, back plate and cover D bores on the shaft | `BoreClearance` (0.05) | 0.049 |
+| Hub on each plate's boss | 0.25 | 0.234 |
+| Pawls to the plates | 0.65 | 0.638 |
 | Ring counterbore to each plate's rim | 0.40 | 0.382 |
-| Ring cone to each plate's cone | 0.60 | 0.579 |
+| Ring cone to each plate's cone | 0.60 | 0.578 |
 | Ring tooth ends to the plates | 0.85 | 0.827 |
 | Ring ends past every shaft-side part, with the ring at the end of its play | 1.25 | 0.40 at the end of the play |
-| Each pawl head in its tooth gap, seated | 0.40 | 0.352 |
-| Arm outer arc to the teeth's tips | 0.55 | 0.509 |
-| Adapter ring to the ring's front end (clamped seam) | 0.25 | 0.232 |
+| Each pawl head in its tooth gap, seated | 0.40 | 0.372 |
+| Arm outer arc to the teeth's tips | 0.55 | 0.530 |
+| Adapter ring to the ring's front end (clamped seam) | 0.25 | 0.231 |
 
 ## Sizes
 
