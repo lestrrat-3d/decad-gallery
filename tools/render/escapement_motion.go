@@ -127,6 +127,13 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 			state.WheelAngle*180/math.Pi), 8, height-8)
 		rendered = append(rendered, canvas)
 	}
+	animation := encodeMotionGIF(rendered, width, height, escapementMotionDelay)
+	return writeWheelGIF(output, animation)
+}
+
+// encodeMotionGIF turns rendered frames into a looping GIF: one adaptive palette for the whole loop, and each frame
+// after the first cropped to the box that changed. delay is the time of one frame in hundredths of a second.
+func encodeMotionGIF(rendered []image.Image, width, height, delay int) *gif.GIF {
 	colors := adaptivePalette(rendered, 255)
 	clear := uint8(len(colors))
 	colors = append(colors, color.RGBA{})
@@ -154,9 +161,9 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 			frame = changedBox(full[i-1], indexed, clear)
 		}
 		animation.Image = append(animation.Image, frame)
-		animation.Delay = append(animation.Delay, escapementMotionDelay)
+		animation.Delay = append(animation.Delay, delay)
 		animation.Disposal = append(animation.Disposal, gif.DisposalNone)
 	}
 	animation.Config = image.Config{ColorModel: colors, Width: width, Height: height}
-	return writeWheelGIF(output, animation)
+	return animation
 }
