@@ -451,7 +451,7 @@ gearbox's parts follow `models/planetarygearbox/instructions.md`. The crank's ro
 | drum | the floor rims of the drum bolts' head pockets | Fasteners rule. |
 | rotor, crank-arm, rotor-spacer, crank-spacer | the two corners of each D bore | Mating corners with the shaft's flat. They turn 28.8°, so the checker does not flag them. |
 | rotor | the roots of the vanes and the hub on the disc's back face | Between layers, opening upward when the disc prints face down; air drag only. |
-| crank-arm | the stub pocket's six corners; both clamp head pockets' floor rims; the slanted cut of the clamp nut pockets' 0.6 floor rounds; the 1.05 web at the slit; the clamp nut pockets' six corners; the ramp foot and the ramp's two side edges | As in `models/crankhandle`. |
+| crank-arm | the stub pocket's six corners; both clamp head pockets' floor rims; the slanted cut of clamp nut pocket 1's 0.6 floor round; the 1.05 web at the slit; the clamp nut pockets' six corners; the ramp foot and the ramp's two side edges | As in `models/crankhandle`. |
 | crank-pin | the six corners of each cross nut's hexagonal pocket | As in `models/crankhandle`. |
 
 Rounds below half their section:

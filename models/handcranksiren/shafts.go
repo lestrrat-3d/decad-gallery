@@ -1,9 +1,6 @@
 package handcranksiren
 
-import (
-	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
-)
+import "github.com/lestrrat-3d/decad"
 
 // Shaft and collar dimensions in mm. Each shaft is a D-shaft; the rotor shaft and the crank shaft also carry a collar.
 const (
@@ -15,8 +12,9 @@ const (
 	interShaftFrom = 2.90
 	interShaftTo   = 34.70
 	crankShaftFrom = 2.90
-	// crankShaftTo is the arm's back face (armFace) plus the hub's depth to its bore floor, less 0.25.
-	crankShaftTo = armFace + crankhandle.HubLength - crankhandle.BoreFloor - 0.25
+	// crankShaftTo is the arm's back face (armFace) plus the hub's depth to its bore floor, less 0.25. crank checks it
+	// against crankhandle's HubLength.
+	crankShaftTo = 54.35
 	// crankBackFlatFrom is the Y where the crank shaft's -Z flat reaches full depth, 0.25 before the arm's back face.
 	crankBackFlatFrom = armFace - 0.25
 	crankCollar       = 19.1 // the collar spans [19.1, 20.1]

@@ -49,7 +49,7 @@ go -C tools/render run . -model crankhandle -shot readme -out ../../models/crank
 The readme shot writes `hero.png`, `index.png`, `side.png`, `back.png`, `cutaway.png`, `exploded.png`, `split.png`,
 `print.png`, `sizes.png`, `clamp.png`, `clamp-nut.png`, and `parts/arm.png`, `pin.png`, `pin-half-heads.png`,
 `pin-half-nuts.png`, `handle.png`, `bolt.png`, `cross-bolt.png`, `clamp-bolt.png` and `nut.png`. `clamp` cuts the
-arm's hub along the clamp bolt, and `clamp-nut` shows the hub from the nut's side; they are written only by the readme
+arm's hub along the clamp bolts, and `clamp-nut` shows the hub from the nuts' side; they are written only by the readme
 shot. The presets `crankhandle/hero`, `side`, `back`, `cutaway`, `exploded`,
 `split`, `print` and `sizes` render one view each. `split` and `print` clip the real pin mesh by the seam with
 `solidlens.ClipMesh`; the model keeps the pin whole.
@@ -65,7 +65,7 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
 - the bore: every point lies `BoreClearance` outside the shaft's D (or double-flat) section, it stops at its floor apart
   from the slit's round end, and the wall round it is at least 1.6 mm, or 1.05 mm over a clamp bolt's hole with a single
   D bore;
-- the slit: one section loop runs from the bore down the slit's walls, 1 mm apart, to the end arc, and the slit ends
+- the slit: one section loop runs from the bore down the slit's walls, 1.5 mm apart, to the end arc, and the slit ends
   in the floor 1 mm past the bore's wall;
 - each clamp bolt: an M2 x 16 with its head flush with the +X side face and inside its pocket, crossing the slit, its
   tip 2 mm inside the -X face, its nut inside its hexagonal pocket below that face, and no overlap with the arm in
