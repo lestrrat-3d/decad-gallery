@@ -123,11 +123,6 @@ func frameTransform(p Params) (r3.Transform, error) {
 // Build constructs the movement in doc, posed at p.Phase. Use a document made by NewDocument. It validates p before it
 // touches doc.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Movement, error) {
-	return buildWith(ctx, doc, p, nil)
-}
-
-// buildWith is Build with a hook that sets test-only switches on the builder before any body is built.
-func buildWith(ctx context.Context, doc *decad.Document, p Params, configure func(*builder)) (*Movement, error) {
 	if ctx == nil {
 		return nil, errors.New("swisslever: nil context")
 	}
@@ -150,9 +145,6 @@ func buildWith(ctx context.Context, doc *decad.Document, p Params, configure fun
 		return nil, fmt.Errorf("swisslever: %w", err)
 	}
 	b := newBuilder(ctx, doc, g)
-	if configure != nil {
-		configure(b)
-	}
 	m := &Movement{State: state}
 	if err := b.buildAll(m); err != nil {
 		return nil, fmt.Errorf("swisslever: %w", err)

@@ -13,24 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// swissRefusals are the two decad refusals that stop swisslever.Build until decad accepts the lever's dart root fillet
-// and the balance wheel's hub boss root fillet. Any other build error fails a test.
-var swissRefusals = []string{
-	"the selected edge ends at the tangent junction",
-	"the boss's root circle is not an edge of the result",
-}
-
-// swissBuildOrSkip builds the real movement. It skips the test while decad refuses one of the two known operations.
-func swissBuildOrSkip(t *testing.T) *swissBuild {
+// swissBuildOK builds the real movement.
+func swissBuildOK(t *testing.T) *swissBuild {
 	t.Helper()
 	b, err := buildSwiss(t.Context())
-	if err != nil {
-		for _, refusal := range swissRefusals {
-			if strings.Contains(err.Error(), refusal) {
-				t.Skipf("swisslever.Build is blocked by decad: %v", err)
-			}
-		}
-	}
 	require.NoError(t, err)
 	return b
 }
@@ -102,7 +88,7 @@ func TestSwissPresets(t *testing.T) {
 // TestSwissExploded checks the exploded view of the real movement: every body has an offset, the layers lie in slabs
 // that keep the gap, no two bodies overlap or touch, and the exploded parts fill at least 80% of the image.
 func TestSwissExploded(t *testing.T) {
-	b := swissBuildOrSkip(t)
+	b := swissBuildOK(t)
 	offsets, err := b.swissExplodedOffsets()
 	require.NoError(t, err)
 

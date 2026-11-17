@@ -35,9 +35,6 @@ func localParts(t *testing.T) *localMovement {
 			return
 		}
 		b := newBuilder(t.Context(), NewDocument(), g)
-		if configure := movementSwitches(t).configure(); configure != nil {
-			configure(b)
-		}
 		m := &Movement{}
 		if err := b.buildAll(m); err != nil {
 			local.err = err

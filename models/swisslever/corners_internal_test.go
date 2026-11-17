@@ -24,7 +24,7 @@ func TestCorners(t *testing.T) {
 		q := table[name].turnPt(p)
 		return r3.Vec{X: q.X, Y: q.Y}
 	}
-	// The lever's slot corners are mating corners of the stones; the bottoms of the two gap rounds read 0.1° over the
+	// The lever's slot corners are mating corners of the stones; the bottoms of the two gap rounds may read 0.1° over the
 	// inside-corner limit on the section mesh.
 	var lever []cornercheck.Exempt
 	for _, slot := range [][4]Pt{g.EntrySlot, g.ExitSlot} {
@@ -34,7 +34,7 @@ func TestCorners(t *testing.T) {
 		}
 	}
 	for _, c := range []Pt{g.GapRight, g.GapLeft} {
-		lever = append(lever, cornercheck.Exempt{Reason: "gap round bottom",
+		lever = append(lever, cornercheck.Exempt{Reason: "gap round bottom", Optional: true,
 			Near: cornercheck.Disc(at(LeverName, g.P.Add(Pt{c.X, c.Y - g.GapRadius})), z, 0.5)})
 	}
 	exempt := map[string][]cornercheck.Exempt{LeverName: lever}

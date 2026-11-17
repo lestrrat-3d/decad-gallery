@@ -36,9 +36,6 @@ type builder struct {
 	sketches []*sketch.Sketch
 	// plain skips the edge finishing, so a test can measure what the chamfers remove.
 	plain bool
-	// skipBalanceChamfer leaves the balance wheel's rim and window chamfers off, so a test can read the rest of the
-	// movement while decad refuses to chamfer that wheel.
-	skipBalanceChamfer bool
 }
 
 func newBuilder(ctx context.Context, doc *decad.Document, g Geometry) *builder {

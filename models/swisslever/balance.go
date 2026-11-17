@@ -95,15 +95,26 @@ func (b *builder) buildBalanceWheel() (*decad.Body, error) {
 	if wheel, err = b.cut(wheel, tool, "balance bore"); err != nil {
 		return nil, err
 	}
-	if b.skipBalanceChamfer {
-		return wheel, nil
-	}
-	keep := func(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
-	out, err := b.finishExcept(wheel, []float64{balanceLow, balanceHigh}, keep, bossRootEdge)
+	out, err := b.finishExcept(wheel, []float64{balanceLow, balanceHigh}, balanceChamferLoops, balanceLeftSharp)
 	if err != nil {
 		return nil, fmt.Errorf("balance wheel edges: %w", err)
 	}
 	return out, nil
+}
+
+// balanceChamferLoops keeps the rim and the window loops of the wheel's two faces.
+func balanceChamferLoops(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
+
+// balanceLeftSharp reports whether the chamfer leaves e alone: the four edges where the boss's root round meets the
+// front face, and the front face's window edges. The windows' front edges end at that round, and decad refuses an open
+// tangent chain on walls that state a displacement, so those 28 edges stay sharp. The rims on both faces and the
+// windows on the rear face are chamfered.
+func balanceLeftSharp(e *decad.Edge) bool {
+	if bossRootEdge(e) {
+		return true
+	}
+	p := e.Start().Position().Value
+	return math.Abs(p.Z-balanceHigh) < 1e-3 && math.Abs(math.Hypot(p.X, p.Y)-balanceRimOuter) > 1e-3
 }
 
 // bossRootEdge reports whether e is an edge where the hub boss's root round meets the wheel's front face: both its

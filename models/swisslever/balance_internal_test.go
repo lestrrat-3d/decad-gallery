@@ -91,16 +91,6 @@ func requireCorners(t *testing.T, body *decad.Body, exempt ...cornercheck.Exempt
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
 }
 
-// balanceBuilder returns a builder that leaves out the balance wheel's chamfer only while decad refuses it.
-func balanceBuilder(t *testing.T) *builder {
-	t.Helper()
-	b := partBuilder(t)
-	if configure := movementSwitches(t).configure(); configure != nil {
-		configure(b)
-	}
-	return b
-}
-
 // TestBalanceDisc checks the rim, the four arms and the windows before the boss: every sketch fully constrained.
 func TestBalanceDisc(t *testing.T) {
 	b := partBuilder(t)
@@ -122,7 +112,7 @@ func TestBalanceDisc(t *testing.T) {
 }
 
 func TestBalanceWheel(t *testing.T) {
-	b := balanceBuilder(t)
+	b := partBuilder(t)
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
 	require.True(t, wheel.IsSolid())
@@ -150,28 +140,38 @@ func TestBalanceWheel(t *testing.T) {
 	require.False(t, partInside(t, wheel, -3.2, 0, 15.9), "bore arc")
 }
 
-// TestBalanceInertia checks the printed wheel's mass against 13.1 g and its inertia, with the roller table and the
-// safety roller added in closed form, against the Layout value within 2 %.
+// TestBalanceInertia checks the wheel's mass against 13.1 g and its inertia, with the roller table and the safety roller
+// added in closed form, against the Layout value within 2 %. The unchamfered build is held to 2 %; the finished wheel
+// is lighter by its chamfers (about 0.2 g) and is held to 3 %.
 func TestBalanceInertia(t *testing.T) {
-	b := balanceBuilder(t)
-	wheel, err := b.buildBalanceWheel()
-	require.NoError(t, err)
-	mp, err := wheel.MassProperties(t.Context(), units.GramsPerCubicCentimeter(PLADensity*1e3))
-	require.NoError(t, err)
-	mass := mp.Mass.Value.Base() * 1e3 // kg to g
-	require.InEpsilon(t, 13.1, mass, 0.02)
-	require.InEpsilon(t, b.g.WheelMass, mass, 0.02)
-
-	inertia := mp.Inertia.ZZ.Value.Base() * 1e3 // kg mm² to g mm²
-	for _, d := range []struct{ r, h float64 }{{11, 2.5}, {SafetyRadius, 7.5}} {
-		m := PLADensity * math.Pi * d.r * d.r * d.h
-		inertia += m * d.r * d.r / 2
+	density := units.GramsPerCubicCentimeter(PLADensity * 1e3)
+	for _, c := range []struct {
+		name  string
+		plain bool
+		tol   float64
+	}{{"unchamfered", true, 0.02}, {"finished", false, 0.03}} {
+		t.Run(c.name, func(t *testing.T) {
+			b := partBuilder(t)
+			b.plain = c.plain
+			wheel, err := b.buildBalanceWheel()
+			require.NoError(t, err)
+			mp, err := wheel.MassProperties(t.Context(), density)
+			require.NoError(t, err)
+			mass := mp.Mass.Value.Base() * 1e3 // kg to g
+			require.InEpsilon(t, 13.1, mass, c.tol)
+			require.InEpsilon(t, b.g.WheelMass, mass, c.tol)
+			inertia := mp.Inertia.ZZ.Value.Base() * 1e3 // kg mm² to g mm²
+			for _, d := range []struct{ r, h float64 }{{11, 2.5}, {SafetyRadius, 7.5}} {
+				m := PLADensity * math.Pi * d.r * d.r * d.h
+				inertia += m * d.r * d.r / 2
+			}
+			require.InEpsilon(t, b.g.BalanceInertia, inertia, c.tol)
+		})
 	}
-	require.InEpsilon(t, b.g.BalanceInertia, inertia, 0.02)
 }
 
 func TestBalanceCorners(t *testing.T) {
-	b := balanceBuilder(t)
+	b := partBuilder(t)
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
 	requireCorners(t, wheel)
@@ -236,15 +236,14 @@ func TestRetainer(t *testing.T) {
 	requireCorners(t, ring)
 }
 
-// TestBalanceChamferSelection requires the chamfer's edge set to leave out the four edges where the hub boss's root
-// round meets the front face tangent, and to keep the rim and the window edges on both faces.
+// TestBalanceChamferSelection requires the chamfer's edge set to be the rim on both faces and the four rear-face window
+// loops, and to leave sharp the four boss root edges and the 28 front-face window edges.
 func TestBalanceChamferSelection(t *testing.T) {
 	b := partBuilder(t)
-	b.skipBalanceChamfer = true
+	b.plain = true
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
-	keep := func(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
-	type tally struct{ rim, windows, skipped int }
+	type tally struct{ rim, windows, sharpRoot, sharpWindows int }
 	got := map[float64]*tally{balanceLow: {}, balanceHigh: {}}
 	for _, f := range wheel.Faces() {
 		plane, ok := f.Surface().(decad.Plane)
@@ -260,16 +259,17 @@ func TestBalanceChamferSelection(t *testing.T) {
 		}
 		for _, l := range f.Loops() {
 			edges := l.Edges()
-			if !keep(l, edges) {
+			if !balanceChamferLoops(l, edges) {
 				continue
 			}
 			for _, e := range edges {
 				switch {
 				case bossRootEdge(e):
-					n.skipped++
-					// The root edges sit on the front face, on the circle of radius 7.5, and are faceted curves.
+					n.sharpRoot++
 					require.InDelta(t, balanceHigh, z, 1e-6)
 					require.IsType(t, decad.FacetedCurve{}, e.Curve())
+				case balanceLeftSharp(e):
+					n.sharpWindows++
 				case l.IsOuter():
 					n.rim++
 					p := e.Start().Position().Value
@@ -280,11 +280,12 @@ func TestBalanceChamferSelection(t *testing.T) {
 			}
 		}
 	}
-	require.Equal(t, 4, got[balanceHigh].skipped, "the four boss root edges, one per arm, are left out")
-	require.Zero(t, got[balanceLow].skipped)
-	for z, n := range got {
-		require.Equal(t, 1, n.rim, "rim edge on the face at z %v", z)
-	}
-	require.Equal(t, 32-4, got[balanceHigh].windows, "front face: the window loop's other 28 edges")
-	require.Equal(t, 4*8, got[balanceLow].windows, "rear face: four windows of eight edges")
+	front, rear := got[balanceHigh], got[balanceLow]
+	require.Equal(t, 4, front.sharpRoot, "the four boss root edges stay sharp")
+	require.Equal(t, 32-4, front.sharpWindows, "the front face's window edges stay sharp")
+	require.Zero(t, front.windows+rear.sharpRoot+rear.sharpWindows)
+	require.Equal(t, 1, front.rim, "front rim")
+	require.Equal(t, 1, rear.rim, "rear rim")
+	require.Equal(t, 4*8, rear.windows, "rear face: four windows of eight edges")
+	require.Equal(t, 34, front.rim+rear.rim+rear.windows, "one Chamfer of 34 edges")
 }

@@ -63,12 +63,8 @@ func TestEdgeFinishing(t *testing.T) {
 	_, m := sharedDefault(t)
 	g, err := Layout(DefaultParams())
 	require.NoError(t, err)
-	sw := movementSwitches(t)
 	plain := newBuilder(t.Context(), NewDocument(), g)
 	plain.plain = true
-	if configure := sw.configure(); configure != nil {
-		configure(plain)
-	}
 	table, err := poses(&g, m.State)
 	require.NoError(t, err)
 	check := func(name string, finished *decad.Body, unfinished func() (*decad.Body, error), edges float64) {
@@ -97,19 +93,16 @@ func TestEdgeFinishing(t *testing.T) {
 	bandF, _ := outerAndInner(t, m.Lever, 7.8, g.P)
 	check("lever", m.Lever, plain.buildLever, perimeter(bandS)+perimeter(bandF))
 
-	// Balance wheel: the rim and the four windows on both faces; the boss face stays sharp.
+	// Balance wheel: the rim on both faces and the four windows on the rear face; the boss face, the boss root edges and
+	// the front face's windows stay sharp (decad refuses an open tangent chain on walls that state a displacement).
 	rim, wins := outerAndInner(t, m.BalanceWheel, 15.9, g.B)
-	edges := perimeter(rim)
+	edges := 2 * perimeter(rim)
 	for _, w := range wins {
 		if extent(w, g.B) > 12 {
 			edges += perimeter(w)
 		}
 	}
-	if sw.chamfer != "" {
-		t.Logf("balance wheel chamfer not measured: decad refuses it: %s", sw.chamfer)
-	} else {
-		check("balance wheel", m.BalanceWheel, plain.buildBalanceWheel, 2*edges)
-	}
+	check("balance wheel", m.BalanceWheel, plain.buildBalanceWheel, edges)
 
 	// Kept sharp: a point 0.2 mm into the material from a slot's locking side, 0.1 mm below the lever's rear face, would
 	// be gone if the slot rim were chamfered; so would a point just inside a tooth's club face on the wheel.

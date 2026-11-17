@@ -25,20 +25,11 @@ func TestLeverSketches(t *testing.T) {
 	requireSketchesConstrained(t, b, 2)
 }
 
-// dartRootRefusal is the decad refusal the lever's dart root fillet gets until decad rounds an edge that ends at a
-// tangent junction.
-const dartRootRefusal = "the selected edge ends at the tangent junction"
-
-// TestLever builds the lever with its dart root round. It skips only on the known refusal of that fillet, so it runs
-// on its own once decad accepts it.
+// TestLever builds the lever in full, with its dart root round.
 func TestLever(t *testing.T) {
 	b := partBuilder(t)
 	body, err := b.buildLever()
-	if err != nil {
-		require.ErrorContains(t, err, "dart root fillet", "only the dart root fillet may fail")
-		require.ErrorContains(t, err, dartRootRefusal)
-		t.Skipf("blocked: %v", err)
-	}
+	require.NoError(t, err)
 	require.True(t, body.IsSolid())
 	bb, err := body.Bounds()
 	require.NoError(t, err)
@@ -175,7 +166,7 @@ func TestLeverCorners(t *testing.T) {
 		return cornercheck.Disc(r3.Vec{X: g.P.X + c.X, Y: g.P.Y + c.Y - g.GapRadius}, z, 0.5)
 	}
 	right, left := gap(g.GapRight), gap(g.GapLeft)
-	exempt = append(exempt, cornercheck.Exempt{Reason: "gap round bottom",
+	exempt = append(exempt, cornercheck.Exempt{Reason: "gap round bottom", Optional: true,
 		Near: func(p r3.Vec) bool { return right(p) || left(p) }})
 	requireCorners(t, body, exempt...)
 }

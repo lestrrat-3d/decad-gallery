@@ -211,21 +211,15 @@ Sketch `balance wheel` (`z 13.40`, origin `(0, 0)`): circle `r 42`; four windows
 `45° + 90° k` and `135° + 90° k`: hub arc `r 7`, rim arc `r 36`, side lines `NewAngle(xRef, line, arm angle)` and
 `NewDistancePointLine(origin, line, 2.0)`, the four corners `sketch.CreateFillet` radius 2.0. Valid profile: 4 holes.
 Extrude 5. `boss` on `CapEnd` (front face `z 18.40`): diameter 14, height 1.0, at `(0, 0, 18.40)`. D press bore `dTool`
-body family at `z 12.65`, length 7.5; cut. `finish(body, {13.40, 18.40}, outer loops or inner loops of more than 4
-edges)`. Check: mass 13.1 g at 1.24 g/cm³ (± 2 %); inertia within 2 % of the `Layout` value.
+body family at `z 12.65`, length 7.5; cut. `finishExcept(body, {13.40, 18.40}, outer loops or inner loops of more than
+4 edges, balanceLeftSharp)`. Check: mass 13.1 g at 1.24 g/cm³ (± 2 %); inertia within 2 % of the `Layout` value.
 
-With decad P6 the boss with its root round and the D bore build. The chamfer takes every edge of the outer loop and of
-each inner loop of more than 4 edges, except the four edges where the boss's root round meets the front face: the
-round is tangent to the face there (its edges lie on the circle of radius 7.5 at `z 18.40`, one per arm, where the root
-circle leaves the window arcs), so they are not corners and decad cannot chamfer them. `builder.finishExcept` takes the
-`bossRootEdge` predicate and calls `edgefinish.ChamferExcept`; `TestBalanceChamferSelection` pins the set (4 edges
-left out, 1 rim edge and 28 window edges on the front face, 1 rim edge and 32 window edges on the rear face).
-
-Decad still refuses the chamfer of the window side edges, which are faceted curves ("cannot select a decad.FacetedCurve
-edge at {25.29 -22.46 13.4}"). Production code keeps the call and fails with that error. The test-only
-`builder.skipBalanceChamfer` leaves the chamfer off, so the assembly tests read the rest of the movement;
-`movementSwitches` in `shared_internal_test.go` turns it on only while decad gives that one refusal at the
-`balance wheel edges` step, and the balance wheel's volume-drop check is not measured meanwhile.
+The boss with its root round and the D bore build. The chamfer is one `edgefinish.ChamferExcept` call of 34 edges: the
+rim circle on both faces and the four rear-face window loops. Four edges stay sharp because they are not corners: the
+edges where the boss's root round meets the front face, on the circle of radius 7.5 at `z 18.40`, one per arm. The
+28 other edges of the front face's window loop also stay sharp: they end at that round, and decad refuses an open
+tangent chain on walls that state a displacement. `balanceLeftSharp` names all 32; `TestBalanceChamferSelection` pins
+the set. The finished wheel is about 0.2 g lighter than the unchamfered 13.1 g, so its mass check is 3 %.
 
 ### 19. Hairspring
 
