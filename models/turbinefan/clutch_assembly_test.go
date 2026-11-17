@@ -120,7 +120,7 @@ func requireFanOnClutch(t *testing.T, cp onewayclutch.Params) {
 			if hit1 || hit2 {
 				continue
 			}
-			_, clear, err := meshes[a.name].Exceeds(meshes[b.name], 0)
+			clear, err := meshes[a.name].ExceedsClearance(meshes[b.name], 0)
 			require.NoError(t, err)
 			require.True(t, clear, "%s and %s overlap or touch", a.name, b.name)
 		}
