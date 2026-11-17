@@ -177,6 +177,15 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderEscapementMotion(ctx, output, width, height, escapementMotionFrames)
 	}
+	if model == "swisslever" && shot == "motion" {
+		if width == 0 {
+			width = swissMotionWidth
+		}
+		if height == 0 {
+			height = swissMotionHeight
+		}
+		return renderSwissMotion(ctx, output, width, height, swissMotionFrames)
+	}
 	if model == "gallery" && shot == "hero" {
 		if width == 0 {
 			width = galleryWidth
@@ -240,6 +249,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "escapement" {
 		return renderEscapementReadme(ctx, outputDir)
+	}
+	if model == "swisslever" {
+		return renderSwissReadme(ctx, outputDir)
 	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)
