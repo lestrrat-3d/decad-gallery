@@ -1,7 +1,7 @@
 # One-way clutch
 
 The model in `models/onewayclutch` constructs a printed one-way clutch for a D-flat shaft: a hub with three flexing
-pawls, a 38.2 mm ring with 18 internal teeth and three bolt ears, a back plate and a cover, and three M2 x 16 bolts with their nuts,
+pawls, a ring (38.2 mm on the 605ZZ, up to 40.7 mm on the 8 mm presets) with 18 internal teeth and three bolt ears, a back plate and a cover, and three M2 x 16 bolts with their nuts,
 each nut in a hex pocket open to the back plate's outer face. Each ear has an M2 bore and a nut pocket open to the ring's
 rear face, where the standard adapter ring bolts on. The shaft is not modeled.
 
@@ -10,8 +10,12 @@ rear face, where the standard adapter ring bolts on. The shaft is not modeled.
 `Params` holds the shaft preset's name, the freewheel `Direction`, the bore clearance and an optional `Placement`
 frame. `DefaultParams()` returns the `605ZZ` preset with `Clockwise` freewheel and `ballbearing.PressFitClearance`.
 `Shafts()` returns the three presets and `LookupShaft(name)` finds one. `Params.Derive()` returns the first failure in
-the order `instructions.md` lists, or `Dimensions`: the shaft, the direction's sign, the D bore's radius and flat, and
-the pawl values of the counter-clockwise layout. The fixed dimensions are exported constants.
+the order `instructions.md` lists, or `Dimensions`: the shaft, the direction's sign, the D bore's radius and flat, the
+radii that grow with the bore (`CoreRadius`, `BoltCircle`, `SlotWidth`, `ArmInner`, `ArmOuter`, `ToothTip`, `ToothRoot`,
+`RingCounter`, `RingOuter`, `EarCircle`, `EarReach`, `PlateRadius`, `BossRadius`, `AdapterRadius`, `AdapterInner`,
+`HubChamfer` and `Growth`) and the pawl values of the counter-clockwise layout. The ring's counterbore tools and the
+plates' inner-face tools are `Dimensions` methods. The other fixed dimensions are exported constants, and so are the rules
+the radii grow by (`BaseCoreRadius`, `BoltWall`, `MinSlotMargin` and the rest in `instructions.md`).
 
 Every hub and ring sketch is drawn in the counter-clockwise layout and mirrored in the plane x = 0 for `Clockwise`,
 through `Direction.Sign()`. The plates, bolts and nuts do not depend on the direction.
@@ -58,6 +62,8 @@ each they check:
   (`TestOneWayClutchAdapter`, `TestOneWayClutchAdapterPlaced`);
 - that a plain document refuses the clutch build (`TestOneWayClutchPlainDocumentRefusesBuild`);
 - the validation errors and that a rejected build adds no body (`TestOneWayClutchRejectsInvalidInputs`);
+- the grown radii: the walls round the bolts, the slot margin and the arm and tooth relations for every preset and
+  clearance, and the 605ZZ's former radii (`TestOneWayClutchDerivedRadii`);
 - that the clockwise hub and ring are the mirror of the counter-clockwise ones, and the plates, bolts and nuts are equal
   (`TestOneWayClutchMirror`);
 - that the ring turns freely in the freewheel direction and locks the other way, by turning a copy of the ring
@@ -72,7 +78,7 @@ each they check:
   standoff by a Regular gap (`TestOneWayClutchEnds`);
 - the ring's three ears, their bores and walls, the three mount nut pockets and that the ring's outside is the same in both
   directions (`TestOneWayClutchEars`);
-- the chamfers of the plates', the 605ZZ hub's (0.25 mm; the 8 mm hubs stay unchamfered) and the ring's faces (`TestOneWayClutchEdgeFinishing`,
+- the chamfers of the plates', the hub's (`HubChamfer`, 0.25 mm on the 605ZZ and 0.19 to 0.212 mm on the 8 mm presets) and the ring's faces (`TestOneWayClutchEdgeFinishing`,
   `TestOneWayClutchRingEdgeFinishing`);
 - `cornercheck` on the four printed parts, with the retained sharp corners of `instructions.md` listed and the back plate's and the ring's hex pocket corners exempt
   (`TestOneWayClutchCorners`).

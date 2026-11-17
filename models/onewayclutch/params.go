@@ -23,30 +23,33 @@ const (
 	Pawls = 3  // pawls on the hub, 120 degrees apart
 	Teeth = 18 // internal teeth of the ring, 20 degrees apart
 
-	ToothTip    = 13.75 // ring tooth tip radius R_tip
-	ToothRoot   = 16.1  // ring tooth root radius R_root
-	RootRound   = 0.8   // ring tooth root round, equal to HeadGap + TipRound
-	RingCounter = 17.1  // ring counterbore radius
-	RingOuter   = 19.1  // ring outside radius (OD 38.2)
-	RingChamfer = 0.5   // lead-in of the ring's outer loop and counterbores at both ends
+	RootRound   = 0.8 // ring tooth root round, equal to HeadGap + TipRound
+	RingChamfer = 0.5 // lead-in of the ring's outer loop and counterbores at both ends
 
 	// The ring's ears: three full-height lugs on its outside, each with an M2 clearance bore along the axis.
 	Ears        = 3    // ears on the ring
-	EarCircle   = 21.6 // radius of the ear bores' centres
 	EarRadius   = 4.1  // ear half width and end round radius
 	EarRound    = 1.5  // round where each ear side meets the ring's outside
-	EarReach    = EarCircle + EarRadius
 	ToothEndGap = 0.85 // axial gap from each plate's inner face (and the hub's) to the tooth band's end
 
-	CoreRadius = 10.1 // hub core R_c
-	SlotWidth  = 1.6  // slot under each arm s
-	// BossRadius is the plates' boss reference radius. It stays at the hub core's former 10.4 so the bolts' nut pockets
-	// keep clear of the boss step when CoreRadius shrinks to make room for the thicker arm.
-	BossRadius      = 10.4
-	MinArmThickness = 1.5 // least arm thickness that prints reliably
-	ArmThickness    = 1.5 // arm t
-	ArmInner        = CoreRadius + SlotWidth
-	ArmOuter        = ArmInner + ArmThickness
+	// The radii that depend on the shaft (CoreRadius, BoltCircle, SlotWidth, ArmInner, ArmOuter, ToothTip, ToothRoot,
+	// RingCounter, RingOuter, EarCircle, EarReach, PlateRadius, BossRadius, AdapterRadius, AdapterInner, HubChamfer)
+	// are Dimensions fields. These constants are the rules Derive grows them by.
+	BaseCoreRadius   = 10.1                   // least hub core radius
+	WallMargin       = FitMargin              // modeled margin over PressWall, so a section reads PressWall or more
+	BoltWall         = PressWall + WallMargin // modeled wall each side of a bolt hole and pocket
+	MinSlotWidth     = 1.6                    // least slot under an arm
+	MinSlotMargin    = 0.33                   // least SlotWidth - HeadTravel
+	ToothDepth       = 2.35                   // ToothRoot - ToothTip
+	CounterStep      = 1.0                    // RingCounter - ToothRoot (the 45 degree cone)
+	RingWall         = 2.0                    // RingOuter - RingCounter
+	EarOffset        = 2.5                    // EarCircle - RingOuter
+	MaxHubChamfer    = 0.25                   // the hub's face chamfer, unless the head flank caps it lower
+	HubChamferMargin = 0.01                   // least gap between the hub chamfer and its cap ArmOuter - FlankDistance
+	AdapterShaftGap  = 1.0                    // radial gap from the shaft to the adapter bore
+	BossStep         = 0.3                    // BossRadius - CoreRadius
+	MinArmThickness  = 1.5                    // least arm thickness that prints reliably
+	ArmThickness     = 1.5                    // arm t
 
 	// WebAngle is the angle of pawl 0's web back face and SlotAngle that of its slot end, in the counter-clockwise layout.
 	WebAngle  = -20.0
@@ -60,14 +63,11 @@ const (
 	HubHeight = 10.0 // hub and pawls
 	Seam      = TightFit
 
-	PlateRadius        = RingCounter - RegularFit // 16.7
-	Recess             = RegularFit               // annulus below the boss face
+	Recess             = RegularFit // annulus below the boss face
 	BackPlateThickness = 4.0
 	CoverThickness     = 4.0
 	PlateChamfer       = 0.5
-	HubChamfer         = 0.25 // the 605ZZ hub only: see hub()
 
-	BoltCircle = 8.1
 	BoltLength = 16.0
 	PressWall  = 1.6 // least wall round a press-fit bore (AGENTS.md "Verification")
 
@@ -90,8 +90,6 @@ const (
 	AdapterFrom      = RingTo + Seam // 20.0
 	AdapterThickness = 6.0
 	AdapterTo        = AdapterFrom + AdapterThickness // 26.0
-	AdapterInner     = 5.0                            // clears the 8 mm shaft by 1.0 (Loose) and the 5 mm shaft by 2.5
-	AdapterRadius    = EarReach                       // 25.7: OD 51.4
 	MountLength      = 25.0                           // an m2bolt.StandardLengths entry
 
 	// The adapter's front face takes a part on three more M2 bolts from its rear face, on the ear lines. A part bolted
@@ -205,6 +203,25 @@ type Dimensions struct {
 	// lies one Seam in front of it. Cavity is the nut slot's near face in that part, FaceNutDepth inside it.
 	FaceSites [3]m2fastener.Site
 
+	// Radii, in mm. They grow with the shaft's bore radius (see Derive).
+	CoreRadius    float64 // hub core R_c
+	BoltCircle    float64 // radius of the bolt holes' centres
+	SlotWidth     float64 // slot under each arm s
+	ArmInner      float64 // CoreRadius + SlotWidth
+	ArmOuter      float64 // ArmInner + ArmThickness
+	ToothTip      float64 // ring tooth tip radius R_tip: ArmOuter + LooseFit
+	ToothRoot     float64 // ring tooth root radius R_root
+	RingCounter   float64 // ring counterbore radius
+	RingOuter     float64 // ring outside radius
+	EarCircle     float64 // radius of the ear bores' centres
+	EarReach      float64 // radius of the ear tips
+	PlateRadius   float64 // plate radius
+	BossRadius    float64 // plates' boss reference radius
+	AdapterRadius float64 // adapter outside radius, equal to EarReach
+	AdapterInner  float64 // adapter bore radius
+	HubChamfer    float64 // the hub's face chamfer
+	Growth        float64 // ToothTip minus its value at the least core and slot
+
 	Apex          r3.Vec  // A: where the head's lock line meets its flank line
 	TipCenter     r3.Vec  // centre of the head's tip round
 	HeadReach     float64 // outermost head radius
@@ -228,8 +245,9 @@ func polar(r, deg float64) r3.Vec {
 	return r3.Vec{X: r * c, Y: r * s}
 }
 
-// Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, the wall
-// between the bore and the nut pockets, Placement, each bolt site, each mount site, each face site.
+// Derive validates p and computes its dimensions, checking in this order: Shaft, Freewheel, BoreClearance, the derived
+// radii (the slot width converges and the head flank leaves room for the hub chamfer), Placement, each bolt site, each
+// mount site, each face site.
 func (p Params) Derive() (Dimensions, error) {
 	shaft, ok := LookupShaft(p.Shaft)
 	if !ok {
@@ -254,10 +272,8 @@ func (p Params) Derive() (Dimensions, error) {
 		BoreRadius: shaft.Diameter/2 + c,
 		BoreFlat:   shaft.Diameter/2 - shaft.FlatDepth + c,
 	}
-	if BoltCircle-m2fastener.NutCavityRadius*math.Sqrt(3)/2-dm.BoreRadius < PressWall {
-		return Dimensions{}, fmt.Errorf(
-			"onewayclutch: BoreClearance %g leaves less than %.1f mm of wall between the bore and the nut pockets",
-			c, PressWall)
+	if err := dm.deriveRadii(); err != nil {
+		return Dimensions{}, err
 	}
 	half := math.Sqrt(dm.BoreRadius*dm.BoreRadius - dm.BoreFlat*dm.BoreFlat)
 	dm.BoreLoop = 2*dm.BoreRadius*(math.Pi-math.Acos(dm.BoreFlat/dm.BoreRadius)) + 2*half
@@ -265,7 +281,7 @@ func (p Params) Derive() (Dimensions, error) {
 		return Dimensions{}, errors.New("onewayclutch: Placement must be a valid frame")
 	}
 	for i, a := range BoltAngles {
-		pos := polar(BoltCircle, a)
+		pos := polar(dm.BoltCircle, a)
 		dm.Sites[i] = m2fastener.Site{
 			Head:   r3.Vec{X: pos.X, Y: pos.Y, Z: CoverTo},
 			Dir:    r3.Vec{Z: -1},
@@ -278,7 +294,7 @@ func (p Params) Derive() (Dimensions, error) {
 		}
 	}
 	for i, a := range EarAngles {
-		pos := polar(EarCircle, a)
+		pos := polar(dm.EarCircle, a)
 		dm.MountSites[i] = m2fastener.Site{
 			Head:   r3.Vec{X: pos.X, Y: pos.Y, Z: AdapterTo},
 			Dir:    r3.Vec{Z: -1},
@@ -303,16 +319,104 @@ func (p Params) Derive() (Dimensions, error) {
 			return Dimensions{}, fmt.Errorf("onewayclutch: face bolt %d: %w", i+1, err)
 		}
 	}
-	dm.derivePawl()
 	return dm, nil
+}
+
+// PocketReach is the least distance from a bolt's axis to the farthest point of its head pocket or nut cavity.
+var PocketReach = math.Max(m2fastener.HeadPocketRadius, m2fastener.NutCavityRadius*math.Sqrt(3)/2)
+
+// deriveRadii sets the radii from the bore radius: the core grows until every bolt hole keeps BoltWall from the core and
+// the bore keeps it from the bolt pockets, then the slot, arm, ring, plates and adapter follow.
+func (dm *Dimensions) deriveRadii() error {
+	dm.CoreRadius = math.Max(BaseCoreRadius, dm.BoreRadius+PocketReach+m2fastener.HoleRadius+2*BoltWall)
+	dm.BoltCircle = dm.CoreRadius - m2fastener.HoleRadius - BoltWall
+	// SlotWidth is the least slot that keeps MinSlotMargin under a fully pressed head. HeadTravel depends on ToothTip,
+	// which depends on SlotWidth, so iterate.
+	s := MinSlotWidth
+	converged := false
+	for range 100 {
+		dm.setPawlRadii(s)
+		dm.derivePawl()
+		next := math.Max(MinSlotWidth, dm.HeadTravel+MinSlotMargin)
+		if math.Abs(next-s) <= 1e-12 {
+			converged = true
+			break
+		}
+		s = next
+	}
+	if !converged {
+		return errors.New("onewayclutch: slot width did not converge")
+	}
+	dm.RingCounter = dm.ToothRoot + CounterStep
+	dm.RingOuter = dm.RingCounter + RingWall
+	dm.EarCircle = dm.RingOuter + EarOffset
+	dm.EarReach = dm.EarCircle + EarRadius
+	dm.PlateRadius = dm.RingCounter - RegularFit
+	dm.BossRadius = dm.CoreRadius + BossStep
+	dm.AdapterRadius = dm.EarReach
+	dm.AdapterInner = dm.Shaft.Diameter/2 + AdapterShaftGap
+	dm.Growth = dm.ToothTip - (BaseCoreRadius + MinSlotWidth + ArmThickness + LooseFit)
+	dm.HubChamfer = math.Min(MaxHubChamfer, dm.ArmOuter-dm.FlankDistance-HubChamferMargin)
+	if dm.HubChamfer <= 0 {
+		return errors.New("onewayclutch: the head flank leaves no room for the hub's face chamfer")
+	}
+	return nil
+}
+
+// setPawlRadii sets the slot and the radii that follow it.
+func (dm *Dimensions) setPawlRadii(slot float64) {
+	dm.SlotWidth = slot
+	dm.ArmInner = dm.CoreRadius + slot
+	dm.ArmOuter = dm.ArmInner + ArmThickness
+	dm.ToothTip = dm.ArmOuter + LooseFit
+	dm.ToothRoot = dm.ToothTip + ToothDepth
+}
+
+// RingBackTool and RingFrontTool are the ring's counterbore tools, closed meridians (r, z) revolved a full turn about Z
+// and cut from the extruded outline. Each takes the plate's rim in a counterbore of radius RingCounter, with a 45 degree
+// lead-in at the ring's end face and a 45 degree cone that holds the ring axially. The tool's flat at BandFrom or BandTo
+// is the teeth's end face. The front tool is the back one mirrored in the hub's mid-plane.
+func (dm *Dimensions) RingBackTool() [6][2]float64 {
+	return [6][2]float64{
+		{dm.ToothTip - 1.5, RingFrom - 1}, {dm.RingCounter + 1.5, RingFrom - 1}, {dm.RingCounter, RingFrom + RingChamfer},
+		{dm.RingCounter, BandFrom - (dm.RingCounter - dm.ToothRoot)}, {dm.ToothRoot, BandFrom}, {dm.ToothTip - 1.5, BandFrom},
+	}
+}
+
+// RingFrontTool is the front counterbore tool; see RingBackTool.
+func (dm *Dimensions) RingFrontTool() [6][2]float64 {
+	return [6][2]float64{
+		{dm.ToothTip - 1.5, RingTo + 1}, {dm.RingCounter + 1.5, RingTo + 1}, {dm.RingCounter, RingTo - RingChamfer},
+		{dm.RingCounter, BandTo + (dm.RingCounter - dm.ToothRoot)}, {dm.ToothRoot, BandTo}, {dm.ToothTip - 1.5, BandTo},
+	}
+}
+
+// BackPlateInner and CoverInner are the plates' inner-face tools (r, z): the boss, its bevel, the recessed annulus and
+// the 45 degree cone to the rim.
+func (dm *Dimensions) BackPlateInner() [6][2]float64 {
+	b, p, t := dm.BossRadius, dm.PlateRadius, dm.ToothRoot
+	return [6][2]float64{
+		{b - 0.9, BackPlateThickness + 1}, {b - 0.9, BackPlateThickness - 0.6},
+		{b - 0.1, BackPlateThickness - Recess}, {t, BackPlateThickness - Recess},
+		{p + 1, BackPlateThickness - Recess - (p + 1 - t)}, {p + 1, BackPlateThickness + 1},
+	}
+}
+
+// CoverInner is the cover's inner-face tool; see BackPlateInner.
+func (dm *Dimensions) CoverInner() [6][2]float64 {
+	b, p, t := dm.BossRadius, dm.PlateRadius, dm.ToothRoot
+	return [6][2]float64{
+		{b - 0.9, CoverFrom - 1}, {b - 0.9, CoverFrom + 0.6}, {b - 0.1, CoverFrom + Recess},
+		{t, CoverFrom + Recess}, {p + 1, CoverFrom + Recess + (p + 1 - t)}, {p + 1, CoverFrom - 1},
+	}
 }
 
 // derivePawl computes pawl 0's head from the seated tooth gap bounded by the lock face at LockAngle and the previous
 // tooth's ramp, from P (ToothTip one pitch before the lock face) to Q (ToothRoot on the lock face).
 func (dm *Dimensions) derivePawl() {
 	pitch := 360.0 / Teeth
-	p := polar(ToothTip, LockAngle-pitch)
-	q := polar(ToothRoot, LockAngle)
+	p := polar(dm.ToothTip, LockAngle-pitch)
+	q := polar(dm.ToothRoot, LockAngle)
 	ramp := q.Sub(p)
 	ramp = ramp.Scale(1 / ramp.Len())
 	dm.RampAngle = math.Atan2(ramp.Y, ramp.X) * 180 / math.Pi
@@ -328,11 +432,11 @@ func (dm *Dimensions) derivePawl() {
 	dm.Apex = r3.Vec{X: x, Y: (dm.FlankDistance - n.X*x) / n.Y}
 	dm.TipCenter = r3.Vec{X: x + TipRound, Y: (dm.FlankDistance - TipRound - n.X*(x+TipRound)) / n.Y}
 	dm.HeadReach = dm.TipCenter.Len() + TipRound
-	dm.HeadTravel = dm.HeadReach - ToothTip
-	dm.LockEnd = r3.Vec{X: x, Y: math.Sqrt(ArmInner*ArmInner - x*x)}
+	dm.HeadTravel = dm.HeadReach - dm.ToothTip
+	dm.LockEnd = r3.Vec{X: x, Y: math.Sqrt(dm.ArmInner*dm.ArmInner - x*x)}
 	// H_f: the flank meets the circle ArmOuter; take the root nearer the apex.
 	foot := n.Scale(dm.FlankDistance)
-	along := math.Sqrt(ArmOuter*ArmOuter - dm.FlankDistance*dm.FlankDistance)
+	along := math.Sqrt(dm.ArmOuter*dm.ArmOuter - dm.FlankDistance*dm.FlankDistance)
 	a, b := foot.Add(ramp.Scale(along)), foot.Sub(ramp.Scale(along))
 	dm.FlankEnd = a
 	if b.Sub(dm.Apex).Len() < a.Sub(dm.Apex).Len() {
