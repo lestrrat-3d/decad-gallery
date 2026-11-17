@@ -58,9 +58,6 @@ func (s switches) configure() func(*builder) {
 // hasBoss reports whether the built balance wheel carries its hub boss.
 func (s switches) hasBoss() bool { return s.boss == "" }
 
-// hasDartRoot reports whether the built lever carries its dart root round.
-func (s switches) hasDartRoot() bool { return s.dartRoot == "" }
-
 // buildMovement builds the movement for p as Build does, leaving out only what decad refuses.
 func buildMovement(t *testing.T, p Params) (*decad.Document, *Movement, error) {
 	t.Helper()
