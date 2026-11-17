@@ -82,12 +82,10 @@ func (b *builder) buildBalanceWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !b.skipBalanceBoss {
-		face := decad.Faces(decad.FaceCreatedBy(decad.CapEnd(wheel))).Exactly(1)
-		if wheel, err = b.boss(wheel, face, r3.NewVec(0, 0, balanceHigh), 2*balanceBossRadius, balanceBossHeight,
-			"balance boss"); err != nil {
-			return nil, err
-		}
+	face := decad.Faces(decad.FaceCreatedBy(decad.CapEnd(wheel))).Exactly(1)
+	if wheel, err = b.boss(wheel, face, r3.NewVec(0, 0, balanceHigh), 2*balanceBossRadius, balanceBossHeight,
+		"balance boss"); err != nil {
+		return nil, err
 	}
 	tool, err := b.dTool("balance bore", 0, 0, balanceLow-balanceBoreReach, BodyBoreRadius, BodyBoreFlat,
 		balanceBoreLength)
@@ -96,6 +94,9 @@ func (b *builder) buildBalanceWheel() (*decad.Body, error) {
 	}
 	if wheel, err = b.cut(wheel, tool, "balance bore"); err != nil {
 		return nil, err
+	}
+	if b.skipBalanceChamfer {
+		return wheel, nil
 	}
 	keep := func(l *decad.Loop, e []*decad.Edge) bool { return l.IsOuter() || len(e) > 4 }
 	return b.finishWith(wheel, []float64{balanceLow, balanceHigh}, keep, "balance wheel edges")

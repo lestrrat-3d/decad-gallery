@@ -91,11 +91,14 @@ func requireCorners(t *testing.T, body *decad.Body, exempt ...cornercheck.Exempt
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
 }
 
-// skipBossBlocked skips a test that needs the finished balance wheel: decad refuses the 14 mm hub boss with its 0.5 mm
-// root round on the wheel's front face (the root circle crosses the four window arcs).
-func skipBossBlocked(t *testing.T) {
+// balanceBuilder returns a builder that leaves out the balance wheel's chamfer only while decad refuses it.
+func balanceBuilder(t *testing.T) *builder {
 	t.Helper()
-	t.Skip("blocked: decad.Boss refuses the r 7 hub boss with RootFillet 0.5 on the balance wheel's front face")
+	b := partBuilder(t)
+	if configure := movementSwitches(t).configure(); configure != nil {
+		configure(b)
+	}
+	return b
 }
 
 // TestBalanceDisc checks the rim, the four arms and the windows before the boss: every sketch fully constrained.
@@ -119,8 +122,7 @@ func TestBalanceDisc(t *testing.T) {
 }
 
 func TestBalanceWheel(t *testing.T) {
-	skipBossBlocked(t)
-	b := partBuilder(t)
+	b := balanceBuilder(t)
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
 	require.True(t, wheel.IsSolid())
@@ -151,8 +153,7 @@ func TestBalanceWheel(t *testing.T) {
 // TestBalanceInertia checks the printed wheel's mass against 13.1 g and its inertia, with the roller table and the
 // safety roller added in closed form, against the Layout value within 2 %.
 func TestBalanceInertia(t *testing.T) {
-	skipBossBlocked(t)
-	b := partBuilder(t)
+	b := balanceBuilder(t)
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
 	mp, err := wheel.MassProperties(t.Context(), units.GramsPerCubicCentimeter(PLADensity*1e3))
@@ -161,7 +162,7 @@ func TestBalanceInertia(t *testing.T) {
 	require.InEpsilon(t, 13.1, mass, 0.02)
 	require.InEpsilon(t, b.g.WheelMass, mass, 0.02)
 
-	inertia := mp.Inertia.ZZ.Value.Base() * 1e3 * 1e6 // kg m² to g mm²
+	inertia := mp.Inertia.ZZ.Value.Base() * 1e3 // kg mm² to g mm²
 	for _, d := range []struct{ r, h float64 }{{11, 2.5}, {SafetyRadius, 7.5}} {
 		m := PLADensity * math.Pi * d.r * d.r * d.h
 		inertia += m * d.r * d.r / 2
@@ -170,8 +171,7 @@ func TestBalanceInertia(t *testing.T) {
 }
 
 func TestBalanceCorners(t *testing.T) {
-	skipBossBlocked(t)
-	b := partBuilder(t)
+	b := balanceBuilder(t)
 	wheel, err := b.buildBalanceWheel()
 	require.NoError(t, err)
 	requireCorners(t, wheel)

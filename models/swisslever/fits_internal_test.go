@@ -88,7 +88,6 @@ func TestFits(t *testing.T) {
 	_, m := sharedDefault(t)
 	g, err := Layout(DefaultParams())
 	require.NoError(t, err)
-	hasBoss := movementSwitches(t).hasBoss()
 
 	// T1: each arbor is exactly the 5.0 mm bore of its bearings.
 	for _, e := range []struct {
@@ -160,9 +159,7 @@ func TestFits(t *testing.T) {
 	springLo, springHi := zRange(t, m.Hairspring)
 	require.InDelta(t, springLow, springLo, 3e-3)
 	_, balanceTop := zRange(t, m.BalanceWheel)
-	if hasBoss {
-		require.InDelta(t, balanceHigh+balanceBossHeight, balanceTop, 3e-3, "the boss tops the wheel")
-	}
+	require.InDelta(t, balanceHigh+balanceBossHeight, balanceTop, 3e-3, "the boss tops the wheel")
 	require.GreaterOrEqual(t, springLo-balanceTop, 0.25-3e-3, "S3 hub to the balance wheel's top")
 	retainerLo, _ := zRange(t, m.HairspringRetainer)
 	require.InDelta(t, 0.25, retainerLo-springHi, 3e-3, "S3 hub to the retainer")

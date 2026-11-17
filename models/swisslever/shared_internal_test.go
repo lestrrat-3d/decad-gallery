@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// bossRefusal is the decad refusal the balance wheel's hub boss gets until decad fillets a boss root that crosses
-// the wheel's window arcs.
-const bossRefusal = "the boss's root circle is not an edge of the result"
+// chamferRefusal is the decad refusal the balance wheel's rim and window chamfer gets until decad chamfers the edges
+// the wheel's boss leaves as faceted curves.
+const chamferRefusal = "cannot select a decad.FacetedCurve edge"
 
-// switches records which of the two blocked operations decad refuses today. Each holds the refusal text, or is empty
-// when decad accepts the operation. Once decad accepts both, the movement is built exactly as Build builds it.
+// switches records whether decad refuses the balance wheel's chamfer today: it holds the refusal text, or is empty
+// when decad accepts it. Once it does, the movement is built exactly as Build builds it.
 type switches struct {
-	dartRoot, boss string
+	chamfer string
 }
 
 var (
@@ -24,39 +24,30 @@ var (
 	switchValue switches
 )
 
-// movementSwitches probes the lever and the balance wheel once. It tolerates only the two known refusals.
+// movementSwitches probes the lever and the balance wheel once. The lever must build; the balance wheel may fail only
+// at its edge chamfer with the one known refusal.
 func movementSwitches(t *testing.T) switches {
 	t.Helper()
 	switchOnce.Do(func() {
 		_, err := partBuilder(t).buildLever()
-		if err != nil {
-			require.ErrorContains(t, err, "dart root fillet", "only the dart root fillet may fail")
-			require.ErrorContains(t, err, dartRootRefusal)
-			switchValue.dartRoot = err.Error()
-		}
+		require.NoError(t, err, "the lever builds in full")
 		_, err = partBuilder(t).buildBalanceWheel()
 		if err != nil {
-			require.ErrorContains(t, err, "balance boss", "only the balance boss may fail")
-			require.ErrorContains(t, err, bossRefusal)
-			switchValue.boss = err.Error()
+			require.ErrorContains(t, err, "balance wheel edges", "only the balance wheel's chamfer may fail")
+			require.ErrorContains(t, err, chamferRefusal)
+			switchValue.chamfer = err.Error()
 		}
 	})
 	return switchValue
 }
 
-// configure returns the builder hook that leaves out each operation decad refuses; nil when it refuses none.
+// configure returns the builder hook that leaves out the chamfer decad refuses; nil when it refuses none.
 func (s switches) configure() func(*builder) {
-	if s.dartRoot == "" && s.boss == "" {
+	if s.chamfer == "" {
 		return nil
 	}
-	return func(b *builder) {
-		b.skipDartRoot = s.dartRoot != ""
-		b.skipBalanceBoss = s.boss != ""
-	}
+	return func(b *builder) { b.skipBalanceChamfer = true }
 }
-
-// hasBoss reports whether the built balance wheel carries its hub boss.
-func (s switches) hasBoss() bool { return s.boss == "" }
 
 // buildMovement builds the movement for p as Build does, leaving out only what decad refuses.
 func buildMovement(t *testing.T, p Params) (*decad.Document, *Movement, error) {

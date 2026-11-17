@@ -175,10 +175,8 @@ a 1.4 round; `TestEscapementAction`.
    removes the dart and the filled notch above `z 5.80`.
 3. Dart root: `decad.Fillet(ctx, lever, decad.Edges(decad.Reflex(), decad.Circular()).Exactly(1), 0.5 mm)`: the
    semicircular edge where the notch wall meets the top of band S at `z 5.80`. The radius is 0.5, not 0.6: the dart's
-   tip round has radius 0.6, so a 0.6 root round degenerates. Decad refuses this step until it rounds an edge that
-   ends at a tangent junction ("the selected edge ends at the tangent junction ... WithTangentChain selects the whole
-   chain"); `TestLever` skips on that text only, and `builder.skipDartRoot` lets the other lever tests read the lever
-   without it.
+   tip round has radius 0.6, so a 0.6 root round degenerates. With decad P6 the fillet builds, and the lever builds in
+   full (`TestLever`).
 4. D press bore: `dTool` body family at `(P, z 2.55)`, length 8.0; cut.
 5. `finish(body, {3.30, 9.80}, outer loops)`.
 
@@ -216,11 +214,11 @@ Extrude 5. `boss` on `CapEnd` (front face `z 18.40`): diameter 14, height 1.0, a
 body family at `z 12.65`, length 7.5; cut. `finish(body, {13.40, 18.40}, outer loops or inner loops of more than 4
 edges)`. Check: mass 13.1 g at 1.24 g/cm³ (± 2 %); inertia within 2 % of the `Layout` value.
 
-Decad refuses the boss's root fillet where the root circle crosses the four window arcs ("the boss's root circle is
-not an edge of the result"). Production code keeps the call and fails with that error. The test-only
-`builder.skipBalanceBoss` leaves the boss off, so the assembly tests read the rest of the movement; the tests turn
-both skip switches on only while decad gives its two known refusals (this one and the dart root), through
-`movementSwitches` in `shared_internal_test.go`.
+With decad P6 the boss with its root round and the D bore build. The rim and window chamfer is still refused
+("cannot select a decad.FacetedCurve edge at {42 0 13.4}"). Production code keeps the call and fails with that error.
+The test-only `builder.skipBalanceChamfer` leaves the chamfer off, so the assembly tests read the rest of the movement;
+`movementSwitches` in `shared_internal_test.go` turns it on only while decad gives that one refusal at the
+`balance wheel edges` step, and the balance wheel's volume-drop check is not measured meanwhile.
 
 ### 19. Hairspring
 

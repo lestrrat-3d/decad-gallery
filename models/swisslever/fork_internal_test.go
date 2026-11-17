@@ -128,8 +128,6 @@ type forkBodies struct {
 
 func newForkBodies(t *testing.T, b *builder) forkBodies {
 	t.Helper()
-	// The sweep reads the lever without its dart root round, which decad refuses (see TestLever).
-	b.skipDartRoot = true
 	lever, err := b.buildLever()
 	require.NoError(t, err)
 	table, err := b.buildRollerTable()

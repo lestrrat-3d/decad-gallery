@@ -604,7 +604,7 @@ Rule: "Corners and roots" in `docs/model-pipeline.md`. Parts are cut in their pr
 | Part | Corner | Reason |
 |---|---|---|
 | Lever | the four corners of each slot | mating corners: each stone corner sits in its slot corner |
-| Lever | the bottom of each gap round (`r 0.534`) beside the dart | the largest round the 1.07 gap between the dart and the horn holds; the section mesh reads it at 50.1°, 0.1° over the inside-corner limit |
+| Lever | the bottom of each gap round (`r 0.534`) beside the dart | the largest round the 1.07 gap between the dart and the horn holds; the section mesh reads one of the two at 50.1°, 0.1° over the inside-corner limit |
 | Knob, Knob Collar | the keyed counterbore's and ring's D corners, and the end-family socket corners | mating corners, as in the Graham model |
 | Escape Arbor | the end of the `x 1.5` flat at `z 33.25` and the Knob Collar's chord on it | mating corners (press stop) |
 | Arbors | each square step facing a bearing (`z 0.25` and `z 26.75`) | mating corner with the bearing's inner ring |

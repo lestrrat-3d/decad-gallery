@@ -36,12 +36,9 @@ type builder struct {
 	sketches []*sketch.Sketch
 	// plain skips the edge finishing, so a test can measure what the chamfers remove.
 	plain bool
-	// skipDartRoot leaves the lever's dart root unrounded, so a test can read the rest of the lever while decad refuses
-	// that fillet.
-	skipDartRoot bool
-	// skipBalanceBoss leaves the balance wheel's hub boss off, so a test can read the rest of the movement while decad
-	// refuses the boss with its root round.
-	skipBalanceBoss bool
+	// skipBalanceChamfer leaves the balance wheel's rim and window chamfers off, so a test can read the rest of the
+	// movement while decad refuses to chamfer that wheel.
+	skipBalanceChamfer bool
 }
 
 func newBuilder(ctx context.Context, doc *decad.Document, g Geometry) *builder {

@@ -46,7 +46,7 @@ func TestLever(t *testing.T) {
 	require.InDelta(t, leverHigh, bb.Max.Z, 3e-3)
 }
 
-// plainLever builds the lever without its dart root round, once.
+// plainLever builds the lever once.
 var (
 	leverOnce sync.Once
 	leverB    *builder
@@ -58,14 +58,13 @@ func plainLever(t *testing.T) (*builder, *decad.Body) {
 	t.Helper()
 	leverOnce.Do(func() {
 		leverB = partBuilder(t)
-		leverB.skipDartRoot = true
 		leverBody, leverErr = leverB.buildLever()
 	})
 	require.NoError(t, leverErr)
 	return leverB, leverBody
 }
 
-// TestLeverBody checks the lever without its dart root: bounds, the band F notch, the band S dart, the slots through
+// TestLeverBody checks the lever: bounds, the band F notch, the band S dart, the slots through
 // both bands.
 func TestLeverBody(t *testing.T) {
 	b, body := plainLever(t)
@@ -157,8 +156,8 @@ func TestStonesKeyed(t *testing.T) {
 	}
 }
 
-// TestLeverCorners reads the lever in its print orientation. The slot corners are mating corners and the gap rounds'
-// bottoms read just over the limit on the section mesh; every other corner passes.
+// TestLeverCorners reads the lever in its print orientation. The slot corners are mating corners; every other corner
+// passes, the dart root round included, but a gap round's bottom reads just over the limit on the mesh.
 func TestLeverCorners(t *testing.T) {
 	b, body := plainLever(t)
 	g := &b.g
@@ -170,9 +169,13 @@ func TestLeverCorners(t *testing.T) {
 				Near: cornercheck.Disc(r3.Vec{X: g.P.X + v.X, Y: g.P.Y + v.Y}, z, 0.5)})
 		}
 	}
-	for _, c := range []Pt{g.GapRight, g.GapLeft} {
-		exempt = append(exempt, cornercheck.Exempt{Reason: "gap round bottom",
-			Near: cornercheck.Disc(r3.Vec{X: g.P.X + c.X, Y: g.P.Y + c.Y - g.GapRadius}, z, 0.5)})
+	// The two gap rounds' bottoms (r 0.534) read 50.1 degrees on the section mesh, 0.1 degree over the limit; the mesh
+	// noise puts the reading on one of them or the other, so one exemption covers both.
+	gap := func(c Pt) func(r3.Vec) bool {
+		return cornercheck.Disc(r3.Vec{X: g.P.X + c.X, Y: g.P.Y + c.Y - g.GapRadius}, z, 0.5)
 	}
+	right, left := gap(g.GapRight), gap(g.GapLeft)
+	exempt = append(exempt, cornercheck.Exempt{Reason: "gap round bottom",
+		Near: func(p r3.Vec) bool { return right(p) || left(p) }})
 	requireCorners(t, body, exempt...)
 }
