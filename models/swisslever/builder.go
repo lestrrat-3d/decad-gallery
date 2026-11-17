@@ -36,6 +36,9 @@ type builder struct {
 	sketches []*sketch.Sketch
 	// plain skips the edge finishing, so a test can measure what the chamfers remove.
 	plain bool
+	// skipDartRoot leaves the lever's dart root unrounded, so a test can read the rest of the lever while decad refuses
+	// that fillet.
+	skipDartRoot bool
 }
 
 func newBuilder(ctx context.Context, doc *decad.Document, g Geometry) *builder {
