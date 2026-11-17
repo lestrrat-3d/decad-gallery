@@ -216,6 +216,12 @@ Extrude 5. `boss` on `CapEnd` (front face `z 18.40`): diameter 14, height 1.0, a
 body family at `z 12.65`, length 7.5; cut. `finish(body, {13.40, 18.40}, outer loops or inner loops of more than 4
 edges)`. Check: mass 13.1 g at 1.24 g/cm³ (± 2 %); inertia within 2 % of the `Layout` value.
 
+Decad refuses the boss's root fillet where the root circle crosses the four window arcs ("the boss's root circle is
+not an edge of the result"). Production code keeps the call and fails with that error. The test-only
+`builder.skipBalanceBoss` leaves the boss off, so the assembly tests read the rest of the movement; the tests turn
+both skip switches on only while decad gives its two known refusals (this one and the dart root), through
+`movementSwitches` in `shared_internal_test.go`.
+
 ### 19. Hairspring
 
 `spiralspring.Build(ctx, doc, SpringParams())` with `Placement` origin `(0, 92.5714, 19.65)` (use `Layout`'s `B`),
