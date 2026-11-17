@@ -581,7 +581,7 @@ Classes from `docs/model-pipeline.md` Part clearances: Tight 0.2, Regular 0.35, 
 | G1 | dart to the safety roller at the banking | 2D | Loose | 0.980 |
 | G2 | dart in the crescent, over the swing | 2D | Tight | 0.269 |
 | G3 | horn tips (corner rounds) to the safety roller, over the swing | 2D | Loose | 1.945 |
-| G4 | pin root round to the safety roller (both turn with the staff) | radial | Tight | 0.274 |
+| G4 | pin root round to the safety roller (both turn with the staff) | radial | Tight | 1.62 (built; 0.274 or more required) |
 | E1 | non-contact teeth to the stones, over the swing | 2D | Loose | 1.03 |
 | E2 | stones to the escape wheel root circle | 2D | Loose | 2.31 |
 | E4 | escape wheel to the lever plate; stones' front ends past the wheel's front face | axial | Loose | 0.55; 0.55 |
@@ -603,10 +603,8 @@ Rule: "Corners and roots" in `docs/model-pipeline.md`. Parts are cut in their pr
 
 | Part | Corner | Reason |
 |---|---|---|
-| Escape Wheel | each tooth's toe and heel, annulus `r 37.9` to `40.5` about `O` | engagement edges: the toe locks, the club lifts, the heel releases |
-| Entry Stone, Exit Stone | `C` and `F` | engagement edges |
-| Entry Stone, Exit Stone, Lever | the four corners of each stone and of each slot | mating corners: each stone corner sits in its slot corner |
-| Lever | `VE1`, `VE2`, `VX2`, `VX3`, `VX4` (convex, 64.9° to 153.6°) and `VE3` (9.5° turn) | above the 60° tip limit and below the 45° turn limit |
+| Lever | the four corners of each slot | mating corners: each stone corner sits in its slot corner |
+| Lever | the bottom of each gap round (`r 0.534`) beside the dart | the largest round the 1.07 gap between the dart and the horn holds; the section mesh reads it at 50.1°, 0.1° over the inside-corner limit |
 | Knob, Knob Collar | the keyed counterbore's and ring's D corners, and the end-family socket corners | mating corners, as in the Graham model |
 | Escape Arbor | the end of the `x 1.5` flat at `z 33.25` and the Knob Collar's chord on it | mating corners (press stop) |
 | Arbors | each square step facing a bearing (`z 0.25` and `z 26.75`) | mating corner with the bearing's inner ring |
@@ -620,7 +618,12 @@ banking posts' root rounds 0.5 (posts 4.0 across; the lever arm swings 0.5 from 
 
 Corners between layers that open upward take a round: the pillars', banking posts', stud's, impulse pin's and balance
 boss's roots (0.5, from `decad.Boss`), and the lever's dart root: where the band F notch semicircle meets the top of
-band S (`z 5.80`), a fillet of radius 0.6 (half the dart's 1.2 width).
+band S (`z 5.80`), a fillet of radius 0.5. Half the dart's 1.2 width would be 0.6, but the dart's tip round is
+0.6 across its radius, so a 0.6 root round degenerates against it; 0.5 is the 0.5 minimum round.
+
+The escape wheel's teeth (toe 109.5°, heel 71.5°, roots rounded 1.4) and the pallet stones (corners 64.9° and blunter)
+read no corner finding, so they carry no exemption. The toe, heel and the stones' `C` and `F` are still the engagement
+edges, kept as drawn.
 
 ## Edge finishing
 

@@ -136,7 +136,7 @@ less each section's circular segment beyond its flat; `TestSplitShafts`, `TestAr
    `NewDistance(origin, K, 31.5)` and `NewAngle(H→O, H→K, -χ)` (signs chosen so `L` and `K` fall at the `instructions.md`
    points); lines `L–T`, `T–H`, `H–K`, `K–L`. Valid profile: 0 holes. Extrude 3.
 3. `decad.PatternCopies(tooth, decad.CircularPattern{Center: O, Axis: +Z, Count: 15})`; `Union(disc, tooth, copies...)`.
-4. Root fillets: `decad.Fillet(ctx, wheel, decad.Edges(decad.ParallelTo(+Z), decad.Concave()).Exactly(30), 1.4 mm)`, as
+4. Root fillets: `decad.Fillet(ctx, wheel, decad.Edges(decad.ParallelTo(+Z), decad.Reflex()).Exactly(30), 1.4 mm)`, as
    `models/spurgear` rounds its roots.
 5. D press bore: `dTool` body family (arc `r 3.35`, chord `x 2.60`) at `z 9.60`, length 4.5; cut.
 6. `finish(body, {10.35, 13.35}, keep inner loops of more than 4 edges)` (the five windows).
@@ -151,26 +151,34 @@ a 1.4 round; `TestEscapementAction`.
    `NewAngle(xRef, line, ∠u + β_b)`; the top `G'–H'` with `NewParallel(top, C'F')`. The outline (band S version):
    - `JR`, `JL` on the arm sides; each arm side `NewVertical` with `NewDistancePointLine(origin, side, 3.0)`; `JR` and
      `JL` by `NewVerticalDistance(origin, J, 12)`.
-   - Corner rounds: arcs about `K_R`, `K_L` (polar points), `NewRadius r_c`, each tangent to its arm side
-     (`NewTangent`); each runs over the top from the arm side to its inner end on `y = K.y`.
-   - Gap rounds: arcs `NewRadius 0.53384`, each `NewTangentCircles` to its corner round and `NewTangent` to its dart side,
-     running below `y = K.y` from the corner round's inner end to the dart side.
-   - Dart sides: `NewVertical`, `NewDistancePointLine(origin, side, 0.6)`; tip arc about the polar point `T_d` (0,
-     42.15), `NewRadius 0.6`, tangent to both sides.
+   - Corner rounds: arcs about `K_R`, `K_L`, `NewRadius r_c`; the centre has `NewVerticalDistance(origin, c, K.y)` and
+     both arc ends are `NewHorizontalPoints` with it, the arm-side end lying on its arm side. Polar centres plus
+     `NewTangent` are redundant (the centre is already tangent) and sit on a double root, so they are not used. Each
+     arc runs over the top from the arm side to its inner end on `y = K.y`.
+   - Gap rounds: arcs about `G_R`, `G_L` with no radius dimension: the centre and both ends are level
+     (`NewHorizontalPoints`) with the corner round's inner end, which makes the round tangent to the corner round, and
+     the dart side's `x` fixes the radius (0.53384). `NewRadius` plus two tangencies sits on a double root. The arc runs
+     below `y = K.y` from the corner round's inner end to the dart side.
+   - Dart sides: `NewVertical`; tip arc about `T_d` (`NewHorizontalDistance 0`, `NewVerticalDistance 42.15`),
+     `NewRadius 0.6`, both ends level with the centre; the sides take their `x` from the tip arc.
    - Frame lines: `JL→VE1`, `VE1→VE2`, `VE2→VE3`, `VE3→VX1`, `VX1→VX2`, `VX2→VX3`, `VX3→VX4`, `VX4→JR`. Each line that
-     follows a slot side is `NewParallel` to it with `NewDistancePointLine(slot corner, line, 1.95)`. The two offset lines
-     that meet the outline only at vertices (entry top through `VE1`, entry back through `VE3`, exit locking side through
-     `VX1` and `VX4`) are construction lines with the same two constraints, and each such vertex is `NewPointOnLine` of
-     both its lines. The lower line
-     `VE3→VX1` and the upper lines `JL→VE1`, `VX4→JR` are fixed by their end points.
+     follows a slot side stands 1.95 outside it: each vertex `VE1`, `VE2`, `VE3`, `VX2`, `VX3`, `VX4` is placed by two
+     `NewDistancePointLine(vertex, slot side, 1.95)` (distance to the infinite line), one to each of the two slot sides
+     it lies outside, so no construction line is needed. `VX1` takes none, because its round removes it: the lower
+     line `VE3→VX1` and the upper lines `JL→VE1`, `VX4→JR` each carry `NewAngle(xRef, line, angle)` from `Layout`'s
+     points, and `VX1→VX2` is `NewParallel` to the exit slot's impulse side.
    - `sketch.CreateFillet` radius 3.0 at `JL` and `JR`, radius 1.5 at `VX1`.
    Valid profile: 2 holes. Extrude 6.5 (`z 3.30` to `9.80`).
 2. Notch tool, sketch `lever notch` (`z 5.80`, origin `P`): the notch semicircle `CreateArc(N_c, (-r_n, K.y), (r_n, K.y))`
    (centre `N_c` a polar point, `NewRadius r_n`, running under the centre); lines from `(r_n, K.y)` to `(1.0, 44.0)`, to
    `(-1.0, 44.0)`, to `(-r_n, K.y)`, the upper corners by H/V distance. Valid profile: 0 holes. Extrude 5.0; cut. This
    removes the dart and the filled notch above `z 5.80`.
-3. Dart root: `decad.Fillet(ctx, lever, decad.Edges(decad.Concave(), decad.Circular()).Exactly(1), 0.6 mm)`: the
-   semicircular edge where the notch wall meets the top of band S at `z 5.80`.
+3. Dart root: `decad.Fillet(ctx, lever, decad.Edges(decad.Reflex(), decad.Circular()).Exactly(1), 0.5 mm)`: the
+   semicircular edge where the notch wall meets the top of band S at `z 5.80`. The radius is 0.5, not 0.6: the dart's
+   tip round has radius 0.6, so a 0.6 root round degenerates. Decad refuses this step until it rounds an edge that
+   ends at a tangent junction ("the selected edge ends at the tangent junction ... WithTangentChain selects the whole
+   chain"); `TestLever` skips on that text only, and `builder.skipDartRoot` lets the other lever tests read the lever
+   without it.
 4. D press bore: `dTool` body family at `(P, z 2.55)`, length 8.0; cut.
 5. `finish(body, {3.30, 9.80}, outer loops)`.
 
