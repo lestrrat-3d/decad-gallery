@@ -21,28 +21,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// crankCase is one parameter case. Every case changes the arm's outline or its bore. slitRound marks the case whose
-// held arm mesh chords the slit's end round coarsely enough for cornercheck to read it (instructions.md, "Retained
-// sharp corners and edges").
+// crankCase is one parameter case. Every case changes the arm's outline or its bore.
 type crankCase struct {
-	name      string
-	params    func() crankhandle.Params
-	slitRound bool
+	name   string
+	params func() crankhandle.Params
 }
 
 var crankCases = []crankCase{
-	{"605ZZ", crankhandle.Params605ZZ, false},
-	{"608-2RS", crankhandle.Params6082RS, false},
+	{"605ZZ", crankhandle.Params605ZZ},
+	{"608-2RS", crankhandle.Params6082RS},
 	{"regular-bore", func() crankhandle.Params {
 		p := crankhandle.Params605ZZ()
 		p.BoreClearance = 0.35
 		return p
-	}, false},
+	}},
 	{"long-throw", func() crankhandle.Params {
 		p := crankhandle.Params6082RS()
 		p.Throw = 80
 		return p
-	}, false},
+	}},
 }
 
 type builtCase struct {
@@ -638,7 +635,7 @@ func TestCrankHandleCorners(t *testing.T) {
 				up     r3.Vec
 				exempt []cornercheck.Exempt
 			}{
-				"arm":    {m.Arm, r3.Vec{Z: 1}, armExempt(c, m, pocket)},
+				"arm":    {m.Arm, r3.Vec{Z: 1}, armExempt(m, pocket)},
 				"pin":    {m.Pin, m.SplitNormal, crossPocketCorners(p, m)},
 				"handle": {m.Handle, r3.Vec{Z: 1}, nil},
 			} {
@@ -650,12 +647,12 @@ func TestCrankHandleCorners(t *testing.T) {
 	}
 }
 
-// armExempt lists the arm's retained corners for case c: the hexagonal pocket, the clamp bolt's head pocket floor rim,
-// and in a case marked slitRound the slit's end round in the bore's floor.
-func armExempt(c crankCase, m *crankhandle.Model, pocket cornercheck.Exempt) []cornercheck.Exempt {
+// armExempt lists the arm's retained corners: the hexagonal pocket, the clamp nut pocket's floor round cut at a slant,
+// and the clamp bolt's head pocket floor rim. The slit's end round reads no finding at the 1.5 mm slit.
+func armExempt(m *crankhandle.Model, pocket cornercheck.Exempt) []cornercheck.Exempt {
 	dm := m.Dimensions
 	floor := crankhandle.ArmRadius - dm.ClampSite.Cavity
-	out := []cornercheck.Exempt{pocket, {
+	return []cornercheck.Exempt{pocket, {
 		// The pocket's pointed roof and floor slopes lie 30 degrees off the bed, so a layer cuts the 0.6 mm round of the
 		// floor's outline at a slant and reads it as a turn over 45 degrees (instructions.md, "Retained sharp corners").
 		Reason: "clamp nut pocket floor round cut at a slant",
@@ -670,17 +667,6 @@ func armExempt(c crankCase, m *crankhandle.Model, pocket cornercheck.Exempt) []c
 				math.Hypot(v.Y-dm.ClampY, v.Z-crankhandle.ArmThickness/2) <= m2fastener.HeadPocketRadius+0.05
 		},
 	}}
-	if c.slitRound {
-		half := crankhandle.SlitWidth / 2
-		out = append(out, cornercheck.Exempt{
-			Reason: "slit end round in the bore's floor",
-			Near: func(v r3.Vec) bool {
-				return math.Hypot(v.X, v.Y-(-dm.BoreRadius+crankhandle.SlitInBore-half)) <= half+0.05 &&
-					v.Z > crankhandle.ArmThickness-crankhandle.BoreFloor
-			},
-		})
-	}
-	return out
 }
 
 // crossPocketNear reports whether a finding point is at one of the six corners of cross nut pocket i: in the pocket's

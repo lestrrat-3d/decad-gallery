@@ -56,7 +56,7 @@ Tests build four cases: both presets, a 0.35 mm bore clearance, and an 80 mm thr
 
 - every sketch's full constraint, the eleven bodies and their containers;
 - `cornercheck` on the arm and the handle (axis +Z, with the hexagonal pocket's corners, the clamp pocket's floor round
-  and the clamp head pocket's floor rim listed, and the slit's end round in the 80 mm throw) and on the pin with the split normal as its print
+  and the clamp head pocket's floor rim listed) and on the pin with the split normal as its print
   axis (the cross pockets' corners listed);
 - the bore: every point lies `BoreClearance` outside the shaft's D section, it stops at its floor apart from the slit's
   round end, and the wall round it is at least 1.6 mm, or 1.05 mm over the clamp bolt's hole;
