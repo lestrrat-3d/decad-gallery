@@ -35,6 +35,19 @@ func dirCases() []dirCase {
 	return out
 }
 
+// wideBoreCases are the 8 mm presets in both directions at the largest BoreClearance, 0.5 mm.
+func wideBoreCases() []dirCase {
+	var out []dirCase
+	for _, name := range []string{"608ZZ", "608ZZ-gearbox"} {
+		for _, dir := range []onewayclutch.Direction{onewayclutch.Clockwise, onewayclutch.CounterClockwise} {
+			p := onewayclutch.DefaultParams()
+			p.Shaft, p.Freewheel, p.BoreClearance = name, dir, 0.5
+			out = append(out, dirCase{name: name + " " + dir.String() + " bore 0.5", params: p})
+		}
+	}
+	return out
+}
+
 func TestOneWayClutchRejectsInvalidInputs(t *testing.T) {
 	with := func(edit func(p *onewayclutch.Params)) onewayclutch.Params {
 		p := onewayclutch.DefaultParams()

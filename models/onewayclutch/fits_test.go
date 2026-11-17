@@ -45,7 +45,7 @@ type fitCase struct {
 	p    onewayclutch.Params
 }
 
-// fitCases lists every preset in both directions and the wide bore on the 605ZZ preset.
+// fitCases lists every preset in both directions, the wide bore on the 605ZZ preset and the 8 mm presets at 0.5 mm.
 func fitCases() []fitCase {
 	var out []fitCase
 	for _, s := range onewayclutch.Shafts() {
@@ -57,7 +57,11 @@ func fitCases() []fitCase {
 	}
 	wide := onewayclutch.DefaultParams()
 	wide.BoreClearance = 0.35
-	return append(out, fitCase{name: "605ZZ/bore-0.35", p: wide})
+	out = append(out, fitCase{name: "605ZZ/bore-0.35", p: wide})
+	for _, w := range wideBoreCases() {
+		out = append(out, fitCase{name: w.name, p: w.params})
+	}
+	return out
 }
 
 func fitBuild(t *testing.T, c fitCase) *onewayclutch.Model {

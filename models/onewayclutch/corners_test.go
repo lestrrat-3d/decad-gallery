@@ -25,7 +25,7 @@ const cornerMinWall = 1.6
 // each section's bore keeps a wall of 1.6 mm or more to every other outline.
 func TestOneWayClutchCorners(t *testing.T) {
 	axis := r3.Vec{Z: 1}
-	for _, tc := range dirCases() {
+	for _, tc := range append(dirCases(), wideBoreCases()...) {
 		t.Run(tc.name, func(t *testing.T) {
 			m, _ := buildCase(t, tc.params)
 			for _, part := range []struct {
