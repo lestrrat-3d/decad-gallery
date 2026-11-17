@@ -281,17 +281,71 @@ go -C tools/render run . -model escapement -shot readme -out ../../models/escape
 go -C tools/render run . -model escapement -shot motion -out ../../models/escapement/images/motion.gif
 ```
 
+The `swisslever/hero` preset renders the default Swiss lever escapement at its default Phase 0.25, with the balance at
+rest and the impulse pin on the line of centres, from the front and a little above and to the right. The front plate
+is in the picture, and the wheel, lever and balance show through its windows. Every swisslever preset builds the
+movement with `swisslever.Build`, the real build. The `readme` shot builds it once and writes the 480 × 270 pixel
+`index.png`, the 1600 × 900 pixel `hero.png` and `exploded.png`, the 1200 × 675 pixel `assembled-front.png`,
+`assembled-angle.png`, `assembled-side.png` and `closeup.png`, the 1000 × 1000 pixel `assembled-back.png` (from behind,
+with the lights turned to shine on the back faces), and a 480 × 270 pixel image in `parts/` for each distinct body.
+
+The `swisslever/closeup` preset is a near-orthographic view from behind, at Phase 0.25, of the pallets, the fork, the
+dart, the safety roller and the impulse pin. The pin stands out of the rear face of the roller table, so only a view from
+the rear shows it in the fork. The view leaves out the plates, the bearings, the nuts, the bolts, the balance wheel, the
+hairspring, its retainer, the knob and the knob collar.
+
+The `swisslever/exploded` preset pulls the movement apart along its depth by fixed offsets, seen from `(1, 0.3, 0.9)`.
+The three arbors stay where they are. Every later layer moves forward until it lies in a slab of its own, 16 mm in front
+of the layer behind it, and a dotted line joins each part of 13 mm or more back to the place it assembles. The layers,
+from the back, are the three arbors; the three back bearings; the back plate; the four nuts; the entry stone with the
+safety roller; the exit stone; the lever; the escape wheel with the roller table; the balance wheel; the hairspring;
+the hairspring retainer; the three front bearings; the front plate; the four bolts; the knob collar; and the winding
+knob. This order is the assembly order for the README's alt text. `TestSwissExploded` checks that every body has an
+offset, that the layers keep their gap, that no two bodies overlap or touch, and that the exploded parts fill at least
+80% of the image width or height. It skips while `swisslever.Build` is blocked by decad. `TestSwissPresets` checks the
+image sizes and that the layers and the parts table name every body once, and `TestSwissMovers` checks the animation's
+turn angles. Neither needs a build.
+
+The `part-back-plate`, `part-front-plate`, `part-bearing`, `part-escape-arbor`, `part-pallet-arbor`,
+`part-escape-wheel`, `part-lever`, `part-entry-stone`, `part-exit-stone`, `part-safety-roller`, `part-roller-table`,
+`part-balance-wheel`, `part-hairspring`, `part-hairspring-retainer`, `part-winding-knob`, `part-knob-collar`,
+`part-bolt` and `part-nut` presets render one of them alone. The six bearings, the four bolts and the four nuts are
+identical, and the Balance Staff is the Pallet Arbor built twice, so `part-pallet-arbor` stands for both.
+
+The `motion` shot writes `images/motion.gif`, 960 × 540 pixels and 36 frames, of one balance period. Frame `k` is Phase
+`k/36`. The build is made once at the default phase, and each frame turns the tessellated escape wheel, escape arbor,
+winding knob and knob collar by the change in the wheel angle, the lever and pallet arbor and both stones by the change
+in the lever angle, and the balance staff, safety roller, roller table, balance wheel and hairspring retainer by the
+change in the balance angle, each about its own axis. The change is measured from the pose `swisslever.Build` backs off
+the last contact (`BuildBackoff`). The hairspring stays relaxed. The front plate, the front bearings, the bolts, the
+knob and the knob collar are left out so the mechanism shows. A readout under the picture gives the balance, lever and
+wheel angles.
+
+Run these once `swisslever.Build` is accepted by decad. Each command builds the movement, which takes about a minute:
+
+```sh
+go -C tools/render run . -model swisslever -shot readme -out ../../models/swisslever/images
+go -C tools/render run . -model swisslever -shot motion -out ../../models/swisslever/images/motion.gif
+go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+go -C tools/render test -count=1 -run 'TestSwiss' .
+```
+
+A single preset renders with `-model swisslever -shot <name> -out <file>`, for example
+`-shot exploded -out ../../models/swisslever/images/exploded.png`.
+
 The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle, the
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the Swiss lever escapement, the crank handle, the
 one-way clutch, the spiral spring and the turbine fan one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other thirteen models fill a grid of four columns (260 × 300 pixels each, 208 × 300 in the bottom row of five): the three gears and the
-bevel gear pair across the top, the planetary gearbox, cycloidal drive, fan and siren in the middle, and the escapement,
-crank handle, one-way clutch, spiral spring and turbine fan across the bottom. Building all fourteen models takes several minutes plus the wheel
+(560 pixels wide). The other fourteen models fill a grid beside it: four columns across the top (260 × 300 pixels each)
+and two rows of five below (208 × 300 pixels each). The three gears and the bevel gear pair are across the top. The
+planetary gearbox, cycloidal drive, fan, siren and Graham escapement are in the middle, and the Swiss lever escapement,
+crank handle, one-way clutch, spiral spring and turbine fan are across the bottom. Building all fifteen models takes
+several minutes plus the wheel
 build:
 
 ```sh
