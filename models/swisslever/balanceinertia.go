@@ -23,7 +23,7 @@ func balanceInertia() (float64, float64) {
 	am := PLADensity * 4 * armLen * 5
 	for k := 0; k < 4; k++ {
 		m += am
-		i += am * (4*4/12.0 + armLen*armLen/12.0 + math.Pow(7+armLen/2, 2))
+		i += am * (4*4/12.0 + armLen*armLen/12.0 + (7+armLen/2)*(7+armLen/2))
 	}
 	disc(7, 5)
 	disc(7, 1)

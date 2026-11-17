@@ -525,7 +525,7 @@ func (g *Geometry) layoutBalance() error {
 	g.GammaF = g.GammaS + 90*deg
 	g.EyeCentre = g.B.Add(Pt{-eye.Len(), 0})
 	sp := SpringParams()
-	g.SpringRate = PETGModulus * sp.Height * math.Pow(sp.Thickness, 3) / (12 * dims.ActiveLength)
+	g.SpringRate = PETGModulus * sp.Height * sp.Thickness * sp.Thickness * sp.Thickness / (12 * dims.ActiveLength)
 	g.WheelMass, g.BalanceInertia = balanceInertia()
 	g.PinAngle = -90*deg - g.GammaF
 	g.Period = 2 * math.Pi * math.Sqrt(g.BalanceInertia*1e-9/(g.SpringRate*1e-3))
