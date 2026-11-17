@@ -128,10 +128,10 @@ type forkBodies struct {
 
 func newForkBodies(t *testing.T, b *builder) forkBodies {
 	t.Helper()
+	// The sweep reads the lever without its dart root round, which decad refuses (see TestLever).
+	b.skipDartRoot = true
 	lever, err := b.buildLever()
-	if err != nil {
-		t.Skipf("blocked: the lever body is not built yet: %v", err)
-	}
+	require.NoError(t, err)
 	table, err := b.buildRollerTable()
 	require.NoError(t, err)
 	roller, err := b.buildSafetyRoller()
@@ -161,9 +161,6 @@ func (f forkBodies) pose(g *Geometry, psi, theta float64) (leverF, leverS, pin, 
 // TestForkAction sweeps the balance over -60 to 60 degrees on both swings and checks, on sections of the real bodies,
 // that the pin never overlaps the lever by more than the section bound, touches a corner round on [θ1, θ3] and
 // [-θ3, -θ1] only, and that the fork and guard clearances F1, F2, F4 and G1 to G3 hold.
-//
-// It is skipped while decad refuses the lever's notch cut (see TestLever). It stops being skipped when buildLever
-// succeeds, so the check cannot be forgotten.
 func TestForkAction(t *testing.T) {
 	b := partBuilder(t)
 	g := &b.g
