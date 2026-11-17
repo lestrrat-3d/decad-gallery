@@ -67,3 +67,6 @@ func Fasteners(p Params) ([]Fastener, error) {
 	}
 	return out, nil
 }
+
+// FanSize is the rotor's turbinefan sizes.
+func FanSize() turbinefan.Size { return fanSize }

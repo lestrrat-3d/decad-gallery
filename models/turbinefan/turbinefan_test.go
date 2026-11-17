@@ -16,7 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fanCase is one parameter case. Every case changes the hub's bore or the blades' pitch.
+// fanCase is one parameter case. Every case changes the hub's bore, the rotor's size or the blades' pitch. A case that
+// does not set RotorDiameter builds at DefaultRotorDiameter (192).
 type fanCase struct {
 	name   string
 	params func() turbinefan.Params
@@ -38,6 +39,19 @@ var fanCases = []fanCase{
 	{"flat", func() turbinefan.Params {
 		p := turbinefan.Params605ZZ()
 		p.BladePitch = turbinefan.MinBladePitch
+		return p
+	}},
+	// compact is the smallest rotor, which rebuilds the fan as it was before RotorDiameter existed.
+	{"compact", func() turbinefan.Params {
+		p := turbinefan.Params608ZZ()
+		p.RotorDiameter = turbinefan.MinRotorDiameter
+		return p
+	}},
+	// large is the largest rotor at the steepest pitch.
+	{"large", func() turbinefan.Params {
+		p := turbinefan.Params605ZZ()
+		p.RotorDiameter = turbinefan.MaxRotorDiameter
+		p.BladePitch = turbinefan.MaxBladePitch
 		return p
 	}},
 	{"placed", func() turbinefan.Params {
@@ -131,9 +145,9 @@ func TestTurbineFanBuild(t *testing.T) {
 	}
 }
 
-// TestTurbineFanSketches requires every sketch of every case, the hub's and the blades' and each bolt's and nut's,
-// fully constrained: 27 from BuildParts (the hub's two adapter hole sketches and two adapter slot sketches among them)
-// and 20 from Build.
+// TestTurbineFanSketches requires every sketch of every case (the compact, default and large rotors), the hub's and the
+// blades' and each bolt's and nut's, fully constrained: 27 from BuildParts (the hub's two adapter hole sketches and two
+// adapter slot sketches among them) and 20 from Build. The clutch mount's sketches are in TestTurbineFanClutchSketches.
 func TestTurbineFanSketches(t *testing.T) {
 	for _, c := range fanCases {
 		t.Run(c.name, func(t *testing.T) {
@@ -299,8 +313,8 @@ func inSection(o decad.SectionOutline, uv func(r3.Vec) (float64, float64), u, v 
 // boreCases are the cases that differ in the bore; pitchCases the ones that differ in the blades' pitch. Neither holds
 // the placed case, whose bodies the placement test compares with the 605ZZ case.
 var (
-	boreCases  = []string{"605ZZ", "608ZZ", "regular-bore"}
-	pitchCases = []string{"605ZZ", "steep", "flat"}
+	boreCases  = []string{"605ZZ", "608ZZ", "regular-bore", "compact", "large"}
+	pitchCases = []string{"605ZZ", "steep", "flat", "compact", "large"}
 )
 
 // eachCase runs fn as a subtest for each named case.
@@ -315,29 +329,40 @@ func eachCase(t *testing.T, names []string, fn func(t *testing.T, c fanCase, m *
 	}
 }
 
-// TestTurbineFanBounds checks the default hub's bounds and tessellates the hub, a blade, the set screw and its nut with
-// every verification on.
+// TestTurbineFanBounds checks the hub's bounds at the compact (14 mm radius, 20 long), default (18.9, 30) and large
+// (18.9, 35) rotors and tessellates the hub, a blade, the set screw and its nut with every verification on.
 func TestTurbineFanBounds(t *testing.T) {
-	m, _ := built(t, caseNamed(t, "605ZZ"))
-	box, err := m.Hub.Bounds()
-	require.NoError(t, err)
-	tol := box.Bound.Base() + 1e-3
-	require.InDelta(t, -turbinefan.HubRadius, box.Min.X, tol)
-	require.InDelta(t, turbinefan.HubRadius, box.Max.X, tol)
-	require.InDelta(t, -turbinefan.HubRadius, box.Min.Y, tol)
-	require.InDelta(t, turbinefan.HubRadius, box.Max.Y, tol)
-	require.InDelta(t, 0, box.Min.Z, tol)
-	require.InDelta(t, turbinefan.HubLength, box.Max.Z, tol)
-	for name, item := range map[string]struct {
-		body *decad.Body
-		tol  float64
-	}{
-		"hub": {m.Hub, 0.05}, "blade": {m.Blades[0], 0.1}, "set screw": {m.SetScrew.Body, 0.01},
-		"set screw nut": {m.SetScrewNut.Body, 0.01},
-	} {
-		mesh := meshOf(t, item.body, item.tol)
-		require.True(t, mesh.BoundaryVerified(), name)
-	}
+	eachCase(t, []string{"compact", "605ZZ", "large"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		sz := m.Dimensions.Size
+		box, err := m.Hub.Bounds()
+		require.NoError(t, err)
+		tol := box.Bound.Base() + 1e-3
+		require.InDelta(t, -sz.HubRadius, box.Min.X, tol)
+		require.InDelta(t, sz.HubRadius, box.Max.X, tol)
+		require.InDelta(t, -sz.HubRadius, box.Min.Y, tol)
+		require.InDelta(t, sz.HubRadius, box.Max.Y, tol)
+		require.InDelta(t, 0, box.Min.Z, tol)
+		require.InDelta(t, sz.HubLength, box.Max.Z, tol)
+		if c.name == "compact" {
+			// The volumes of the fan before RotorDiameter existed (608ZZ hub, one blade): the 128 mm rotor rebuilds it.
+			hv, err := m.Hub.Volume()
+			require.NoError(t, err)
+			bv, err := m.Blades[0].Volume()
+			require.NoError(t, err)
+			require.InEpsilon(t, 9703.740630, hv.Value.Base(), 1e-6, "hub volume")
+			require.InEpsilon(t, 1945.996807, bv.Value.Base(), 1e-6, "blade volume")
+		}
+		for name, item := range map[string]struct {
+			body *decad.Body
+			tol  float64
+		}{
+			"hub": {m.Hub, 0.05}, "blade": {m.Blades[0], 0.1}, "set screw": {m.SetScrew.Body, 0.01},
+			"set screw nut": {m.SetScrewNut.Body, 0.01},
+		} {
+			mesh := meshOf(t, item.body, item.tol)
+			require.True(t, mesh.BoundaryVerified(), name)
+		}
+	})
 }
 
 // anchoredTransform returns the move from the local frame that puts the point (0, 0, anchorZ) on frame f.
@@ -353,12 +378,12 @@ func anchoredTransform(t *testing.T, f r3.Frame, anchorZ float64) r3.Transform {
 }
 
 // TestTurbineFanPlacement checks that the placed case's bodies and sites are the default's moved so that the hub's
-// front face (z = HubLength) lies on the frame's origin.
+// front face (z = Size.HubLength) lies on the frame's origin.
 func TestTurbineFanPlacement(t *testing.T) {
 	local, _ := built(t, caseNamed(t, "605ZZ"))
 	placed, _ := built(t, caseNamed(t, "placed"))
 	frame := *caseNamed(t, "placed").params().Placement
-	xf := anchoredTransform(t, frame, turbinefan.HubLength)
+	xf := anchoredTransform(t, frame, local.Dimensions.Size.HubLength)
 	pairs := map[string][2]*decad.Body{
 		"hub": {local.Hub, placed.Hub}, "blade 1": {local.Blades[0], placed.Blades[0]},
 		"blade 3": {local.Blades[2], placed.Blades[2]}, "blade bolt": {local.BladeBolts[1].Body, placed.BladeBolts[1].Body},
@@ -392,7 +417,7 @@ func TestTurbineFanPlacement(t *testing.T) {
 }
 
 // TestTurbineFanPlacementPoint checks that a ShaftMount hub's front face lies on the frame's origin plane and the hub
-// extends HubLength back along the frame's axis.
+// extends Size.HubLength back along the frame's axis.
 func TestTurbineFanPlacementPoint(t *testing.T) {
 	p := turbinefan.Params605ZZ()
 	f, err := r3.NewFrame(r3.Vec{X: 3, Y: 4, Z: 5}, r3.Vec{X: 1}, r3.Vec{Y: 1})
@@ -404,22 +429,23 @@ func TestTurbineFanPlacementPoint(t *testing.T) {
 	require.NoError(t, err)
 	tol := b.Bound.Base() + 1e-6
 	require.InDelta(t, 5, b.Max.Z, tol, "front face on the frame origin")
-	require.InDelta(t, 5-turbinefan.HubLength, b.Min.Z, tol, "back face HubLength behind it")
+	require.InDelta(t, 5-m.Dimensions.Size.HubLength, b.Min.Z, tol, "back face HubLength behind it")
 	require.InDelta(t, 3, (b.Min.X+b.Max.X)/2, tol, "hub on the axis through the origin")
 }
 
-// TestTurbineFanEnvelope requires every blade vertex to lie between the hub's faces (0 <= z <= 20) and inside the
-// 64 mm tip radius, at both ends of the pitch range.
+// TestTurbineFanEnvelope requires every blade vertex to lie between the hub's faces (0 <= z <= HubLength) and inside the
+// tip radius, at both ends of the pitch range, for the compact, default and large rotors.
 func TestTurbineFanEnvelope(t *testing.T) {
-	eachCase(t, []string{"steep", "flat", "605ZZ"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+	eachCase(t, []string{"steep", "flat", "605ZZ", "compact", "large"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
+		sz := m.Dimensions.Size
 		for k, blade := range m.Blades {
 			lo, hi, far := math.Inf(1), math.Inf(-1), 0.0
 			for _, v := range meshOf(t, blade, 0.1).Vertices() {
 				lo, hi, far = math.Min(lo, v.Z), math.Max(hi, v.Z), math.Max(far, math.Hypot(v.X, v.Y))
 			}
 			require.GreaterOrEqual(t, lo, 0.0, "blade %d: lowest z", k+1)
-			require.LessOrEqual(t, hi, float64(turbinefan.HubLength), "blade %d: highest z", k+1)
-			require.LessOrEqual(t, far, turbinefan.BladeTipRadius()+0.5, "blade %d: radius", k+1)
+			require.LessOrEqual(t, hi, sz.HubLength, "blade %d: highest z", k+1)
+			require.LessOrEqual(t, far, sz.TipRadius+0.5, "blade %d: radius", k+1)
 			t.Logf("%s blade %d: z from %.2f to %.2f, radius %.2f", c.name, k+1, lo, hi, far)
 		}
 	})

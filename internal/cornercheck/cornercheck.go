@@ -74,6 +74,9 @@ type Finding struct {
 type Exempt struct {
 	Reason string
 	Near   func(p r3.Vec) bool
+	// Optional lets the exemption claim no finding. Use it for a corner that reads just over the limit on some meshes
+	// of the same body and under it on others.
+	Optional bool
 }
 
 // Disc returns a test for points within radius of center, measured in the plane normal to axis. The point's
@@ -246,7 +249,7 @@ func CheckAt(ctx context.Context, body *decad.Body, axis r3.Vec, heights []float
 	}
 	var unused []string
 	for i, e := range exempt {
-		if !claimed[i] {
+		if !claimed[i] && !e.Optional {
 			unused = append(unused, e.Reason)
 		}
 	}

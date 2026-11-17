@@ -289,7 +289,7 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.Greater(t, le.Y-mid.Y, 0.0, "the leading edge is upstream at radius %g", r)
 		angle := math.Atan2(le.Y-mid.Y, le.Z-mid.Z)
 		// The blades are mirrored, so the leading edge leads toward -Z and the chord angle is pi minus beta.
-		require.InDelta(t, math.Pi-turbinefan.Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
+		require.InDelta(t, math.Pi-handcrankfan.FanSize().Beta(x, p.BladePitch), angle, 0.5*math.Pi/180, "chord angle at radius %g", x)
 	}
 }
 

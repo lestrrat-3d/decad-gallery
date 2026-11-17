@@ -22,15 +22,19 @@ func TestTurbineFanParams(t *testing.T) {
 	for _, q := range []turbinefan.Params{turbinefan.Params605ZZ(), turbinefan.Params608ZZ()} {
 		require.Equal(t, ballbearing.PressFitClearance, q.BoreClearance)
 		require.Equal(t, turbinefan.DefaultBladePitch, q.BladePitch)
+		require.Equal(t, turbinefan.DefaultRotorDiameter, q.RotorDiameter)
 		require.Nil(t, q.Placement)
 		require.Equal(t, turbinefan.RightHand, q.Hand)
 	}
 	require.InDelta(t, 0.5, p.FlatDepth, 0)
 	require.InDelta(t, 0.75, turbinefan.Params608ZZ().FlatDepth, 0)
 
-	small, err := p.Derive()
+	// At 128 mm the fan is the one built before RotorDiameter existed: these are that fan's numbers.
+	p128, p128large := turbinefan.Params605ZZ(), turbinefan.Params608ZZ()
+	p128.RotorDiameter, p128large.RotorDiameter = turbinefan.MinRotorDiameter, turbinefan.MinRotorDiameter
+	small, err := p128.Derive()
 	require.NoError(t, err)
-	large, err := turbinefan.Params608ZZ().Derive()
+	large, err := p128large.Derive()
 	require.NoError(t, err)
 	for name, want := range map[string][3]float64{
 		"bore radius": {small.BoreRadius, 2.55, 1e-12}, "bore flat": {small.BoreFlat, 2.05, 1e-12},
@@ -52,6 +56,31 @@ func TestTurbineFanParams(t *testing.T) {
 		require.InDelta(t, want[1], want[0], want[2], name)
 	}
 	require.Equal(t, small.SetScrewSite.Tip(), small.SetScrewSite.Length+m2fastener.HeadPocketDepth)
+	require.Equal(t, 6.0, small.SetScrewBolt)
+	require.Equal(t, 6.0, large.SetScrewBolt)
+	require.Equal(t, 16.0, small.BladeSites[0].Length)
+	require.InDelta(t, 15.6, small.BladeSites[0].Cavity, 1e-12)
+
+	// At the default 192 mm the hub is 18.9 mm in radius and 30 mm long, the blade bolts are M2 x 25 and the set screw
+	// M2 x 10.
+	def, err := p.Derive()
+	require.NoError(t, err)
+	big, err := turbinefan.Params608ZZ().Derive()
+	require.NoError(t, err)
+	for name, want := range map[string][3]float64{
+		"set screw bolt": {def.SetScrewBolt, 10, 0}, "large set screw bolt": {big.SetScrewBolt, 10, 0},
+		"head": {def.SetScrewHead, 13.95, 1e-12}, "floor": {def.CounterboreFloor, 11.55, 1e-12},
+		"large head": {big.SetScrewHead, 15.2, 1e-12}, "large floor": {big.CounterboreFloor, 12.8, 1e-12},
+		"screw head y": {def.SetScrewSite.Head.Y, -13.95, 1e-12}, "screw length": {def.SetScrewSite.Length, 10, 0},
+		"screw cavity": {def.SetScrewSite.Cavity, 8.3, 1e-12}, "large screw cavity": {big.SetScrewSite.Cavity, 8.3, 1e-12},
+		"blade 2 x": {def.BladeSites[1].Head.X, -11.10678, 1e-4}, "blade 2 y": {def.BladeSites[1].Head.Y, -6.4125, 1e-4},
+		"blade 3 x": {def.BladeSites[2].Head.X, 11.10678, 1e-4}, "blade 1 y": {def.BladeSites[0].Head.Y, 12.825, 1e-12},
+		"blade head z": {def.BladeSites[0].Head.Z, 30, 0}, "blade length": {def.BladeSites[0].Length, 25, 0},
+		"blade cavity": {def.BladeSites[0].Cavity, 24.6, 1e-12}, "hub radius": {def.Size.HubRadius, 18.9, 1e-12},
+		"hub length": {def.Size.HubLength, 30, 1e-12},
+	} {
+		require.InDelta(t, want[1], want[0], want[2], name)
+	}
 }
 
 // TestTurbineFanValidate rejects each bad field in the order Derive checks.
@@ -68,11 +97,21 @@ func TestTurbineFanValidate(t *testing.T) {
 		{"zero-flat", func(p *turbinefan.Params) { p.FlatDepth = 0 }, "FlatDepth must be finite and positive"},
 		{"zero-clearance", func(p *turbinefan.Params) { p.BoreClearance = 0 }, "BoreClearance must be finite and positive"},
 		{"zero-pitch", func(p *turbinefan.Params) { p.BladePitch = 0 }, "BladePitch must be finite and positive"},
+		{"zero-rotor", func(p *turbinefan.Params) { p.RotorDiameter = 0 }, "RotorDiameter must be finite and positive"},
+		{"nan-rotor", func(p *turbinefan.Params) { p.RotorDiameter = math.NaN() }, "RotorDiameter must be finite and positive"},
+		{"rotor-small", func(p *turbinefan.Params) { p.RotorDiameter = 127.9 }, "RotorDiameter must lie in [128, 224] mm"},
+		{"rotor-large", func(p *turbinefan.Params) { p.RotorDiameter = 224.1 }, "RotorDiameter must lie in [128, 224] mm"},
 		{"flat-too-deep", func(p *turbinefan.Params) { p.FlatDepth = 1.3 }, "FlatDepth must be at most a quarter"},
 		{"press-clearance", func(p *turbinefan.Params) { p.BoreClearance = 0.04 }, "BoreClearance must be from 0.05 to 0.5 mm"},
 		{"loose-clearance", func(p *turbinefan.Params) { p.BoreClearance = 0.51 }, "BoreClearance must be from 0.05 to 0.5 mm"},
-		{"shaft-too-wide", func(p *turbinefan.Params) { p.ShaftDiameter = 8.2; p.FlatDepth = 0.5 }, "less than a 1.6 mm wall"},
-		{"608-loose", func(p *turbinefan.Params) { *p = turbinefan.Params608ZZ(); p.BoreClearance = 0.11 }, "less than a 1.6 mm wall"},
+		{"shaft-too-wide", func(p *turbinefan.Params) {
+			p.RotorDiameter, p.ShaftDiameter, p.FlatDepth = turbinefan.MinRotorDiameter, 8.2, 0.5
+		}, "less than a 1.6 mm wall"},
+		{"shaft-too-wide-default", func(p *turbinefan.Params) { p.ShaftDiameter, p.FlatDepth = 12.3, 0.5 }, "less than a 1.6 mm wall"},
+		{"608-loose", func(p *turbinefan.Params) {
+			*p = turbinefan.Params608ZZ()
+			p.RotorDiameter, p.BoreClearance = turbinefan.MinRotorDiameter, 0.11
+		}, "less than a 1.6 mm wall"},
 		{"shaft-flat-narrow", func(p *turbinefan.Params) { p.FlatDepth = 0.2 }, "shaft's flat at least 2 mm wide"},
 		{"bore-flat-narrow", func(p *turbinefan.Params) { p.FlatDepth = 0.25 }, "bore's flat at least 2.8 mm wide"},
 		{"pitch-low", func(p *turbinefan.Params) { p.BladePitch = 9 * math.Pi / 180 }, "BladePitch must lie in [10°, 40°] radians"},
@@ -95,9 +134,14 @@ func TestTurbineFanValidate(t *testing.T) {
 			require.Empty(t, doc.Bodies())
 		})
 	}
-	// The 608ZZ's widest clearance that still leaves the 1.6 mm wall to the sockets.
+	// The 608ZZ's widest clearance that still leaves the 1.6 mm wall to the sockets of the 128 mm rotor.
 	edge := turbinefan.Params608ZZ()
-	edge.BoreClearance = 0.1
+	edge.RotorDiameter, edge.BoreClearance = turbinefan.MinRotorDiameter, 0.1
+	require.NoError(t, edge.Validate())
+	// The same clearance leaves far more wall at the default size, and the range ends are valid.
+	edge.RotorDiameter = turbinefan.DefaultRotorDiameter
+	require.NoError(t, edge.Validate())
+	edge.RotorDiameter = turbinefan.MaxRotorDiameter
 	require.NoError(t, edge.Validate())
 	// Each field is checked before the next: a bad first field wins.
 	both := def
@@ -132,6 +176,7 @@ func TestTurbineFanClutchParams(t *testing.T) {
 	require.Equal(t, turbinefan.ClutchMount, def.Mount)
 	require.Equal(t, ballbearing.PressFitClearance, def.BoreClearance)
 	require.Equal(t, turbinefan.DefaultBladePitch, def.BladePitch)
+	require.Equal(t, turbinefan.DefaultRotorDiameter, def.RotorDiameter)
 	mf, err := turbinefan.MountFrame(nil)
 	require.NoError(t, err)
 	require.NotNil(t, def.Placement)
@@ -226,4 +271,13 @@ func TestTurbineFanClutchBladePitch(t *testing.T) {
 	require.Equal(t, turbinefan.DefaultBladePitch, def.BladePitch)
 	_, err = turbinefan.ParamsForClutch(onewayclutch.DefaultParams(), turbinefan.WithBladePitch(turbinefan.MaxBladePitch+0.1))
 	require.ErrorContains(t, err, "BladePitch")
+}
+
+func TestTurbineFanClutchRotorDiameter(t *testing.T) {
+	large, err := turbinefan.ParamsForClutch(onewayclutch.DefaultParams(), turbinefan.WithRotorDiameter(turbinefan.MaxRotorDiameter))
+	require.NoError(t, err)
+	require.Equal(t, turbinefan.MaxRotorDiameter, large.RotorDiameter)
+	require.Equal(t, turbinefan.ClutchMount, large.Mount)
+	_, err = turbinefan.ParamsForClutch(onewayclutch.DefaultParams(), turbinefan.WithRotorDiameter(100))
+	require.ErrorContains(t, err, "RotorDiameter")
 }

@@ -279,12 +279,15 @@ func TestBevelToothRootCorners(t *testing.T) {
 }
 
 // TestFanHubIsTurbinePreset requires the fan's rotor to be turbinefan's 608ZZ preset apart from the pitch, the hand and
-// the placement, so TestTurbineFanCorners' reading of the 608ZZ hub holds for the hub built here.
+// the placement and the rotor's size (128 mm, not the preset's default), so TestTurbineFanCorners' reading of the 608ZZ
+// hub holds for the hub built here.
 func TestFanHubIsTurbinePreset(t *testing.T) {
 	got := handcrankfan.FanParams(handcrankfan.DefaultParams())
 	require.NotNil(t, got.Placement)
 	require.Equal(t, turbinefan.RightHand, got.Hand)
+	require.Equal(t, 128.0, got.RotorDiameter, "the rotor keeps turbinefan's smallest size")
 	got.Placement, got.BladePitch, got.Hand = nil, turbinefan.Params608ZZ().BladePitch, turbinefan.RightHand
+	got.RotorDiameter = turbinefan.Params608ZZ().RotorDiameter
 	require.Equal(t, turbinefan.Params608ZZ(), got)
 }
 

@@ -63,7 +63,7 @@ func TestTurbineFanClutchAdapterBolts(t *testing.T) {
 					require.LessOrEqual(t, math.Abs(d.Dot(v)), flatsHalf+ntol, "nut flats inside the slot's sides")
 					require.LessOrEqual(t, math.Abs(d.Dot(u)), m2fastener.NutCavityRadius+ntol, "nut corners inside the slot")
 				}
-				require.Less(t, out, float64(turbinefan.HubRadius), "the nut stays inside the round face")
+				require.Less(t, out, m.Dimensions.Size.HubRadius, "the nut stays inside the round face")
 				frames := map[string]r3.Frame{"axis plane": sitePlane(t, u)}
 				for _, z := range []float64{0.5, 2.5, 5.0, 6.0} {
 					frames[fmt.Sprintf("z %g", z)] = atZ(t, z)

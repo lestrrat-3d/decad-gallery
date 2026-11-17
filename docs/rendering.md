@@ -69,20 +69,24 @@ sections side by side, and `sizes` puts the sections of the three shaft presets 
 clutch once, writes all of them, the index image and one 480 x 270 image of each distinct part in `parts/`, including `adapter` and `mount-bolt`:
 `go -C tools/render run . -model onewayclutch -shot readme -out ../../models/onewayclutch/images`.
 
-`turbinefan/hero` renders the default right-hand fan from the front, right and above, with blade 1 up, in the hand-crank
-fan's hub and blade colours. The `front`, `back` and `side` presets show other angles. `setscrew` clips the hub, the blade
+`turbinefan/hero` renders the default right-hand fan (192 mm rotor) from the front, right and above, with blade 1 up, in the
+hand-crank fan's hub and blade colours. Every offset below scales with the rotor: s is the blade scale (rotor diameter
+/ 128) and j the hub scale (hub radius / 14, at most 1.35), and the numbers in brackets are for 128 mm. The `front`, `back` and `side` presets show other angles. `setscrew` clips the hub, the blade
 bolts and nuts and the set screw and its nut by the plane z = 4 and looks from the front; `joint` clips the hub, blade 1, its
-bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 mm out along
-its radial line, each blade bolt 30 mm out of the front face, each blade nut 18 mm out along its radial line, the set screw
-32 mm along -Y and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
-visible. `sizes` puts the 608ZZ hub 40 mm beside the 605ZZ hub, from behind. `turbinefan/clutch`, `clutch-back`,
+bolt and nut and the set screw and its nut by the plane x = 0 and looks from +X. `exploded` pulls each blade 35 s mm out along
+its radial line (52.5 mm at 192), each blade bolt its length + 14 mm out of the front face (39 mm; 30 mm at 128), each blade nut
+18 j mm along its radial line (24.3 mm), the set screw 32 j mm along -Y (43.2 mm) and its nut 14 mm out of the back face; `exploded-back` shows the same offsets from behind, where the nuts are
+visible. `sizes` puts the 608ZZ hub beside the 605ZZ hub, 2 hub radii + 12 mm apart (49.8 mm; 40 mm at 128), from behind. `setscrew`
+clips to a box of hub radius + 6 mm, and `joint` frames the hub from hub radius + 11 mm behind blade 1's line to hub radius +
+16 mm in front of it. `turbinefan/clutch`, `clutch-back`,
 `clutch-cutaway` and `clutch-exploded` draw the clutch-mount fan (`ParamsForClutch` of the default clutch) on the real default
 one-way clutch with its adapter ring, both in the clutch frame: `clutch` from the front, right and above, `clutch-back` from behind, `clutch-cutaway`
 cuts every body by the plane through the axis and the 330 degree direction, which holds ear 3, adapter bolt 2 and the
 clutch's 150 degree bolt, removes the half toward 60 degrees and looks from there. `clutch-exploded` runs the shaft axis left to right and pulls the parts apart along it: the ear nuts
 30 mm behind the clutch (also 14 mm out along their ear), the clutch in place, the adapter 20 mm ahead, the adapter bolts 6 mm
-ahead (between the clutch and the adapter), the hub and blades 40 mm ahead (each blade 35 mm and each blade nut 18 mm out
-along its radial line, each adapter nut 18 mm out along its line), the blade bolts 70 mm and the ear bolts 110 mm ahead. The
+ahead (between the clutch and the adapter), the hub and blades 40 s mm ahead (60 mm at 192; each blade 35 s mm and each blade nut
+18 j mm out along its radial line, each adapter nut 18 mm out along its line), the blade bolts 40 s + their length + 14 mm
+(99 mm at 192; 70 mm at 128) and the ear bolts the larger of 110 mm and that + 40 mm ahead (139 mm at 192). The
 `readme` shot writes all of them, the index image and one 480 × 270 image of each part in `parts/`, including `adapter-bolt`
 and `ear-bolt`:
 `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
@@ -283,17 +287,71 @@ go -C tools/render run . -model escapement -shot readme -out ../../models/escape
 go -C tools/render run . -model escapement -shot motion -out ../../models/escapement/images/motion.gif
 ```
 
+The `swisslever/hero` preset renders the default Swiss lever escapement at its default Phase 0.25, with the balance at
+rest and the impulse pin on the line of centres, from the front and a little above and to the right. The front plate
+is in the picture, and the wheel, lever and balance show through its windows. Every swisslever preset builds the
+movement with `swisslever.Build`, the real build. The `readme` shot builds it once and writes the 480 × 270 pixel
+`index.png`, the 1600 × 900 pixel `hero.png` and `exploded.png`, the 1200 × 675 pixel `assembled-front.png`,
+`assembled-angle.png`, `assembled-side.png` and `closeup.png`, the 1000 × 1000 pixel `assembled-back.png` (from behind,
+with the lights turned to shine on the back faces), and a 480 × 270 pixel image in `parts/` for each distinct body.
+
+The `swisslever/closeup` preset is a near-orthographic view from behind, at Phase 0.25, of the pallets, the fork, the
+dart, the safety roller and the impulse pin. The pin stands out of the rear face of the roller table, so only a view from
+the rear shows it in the fork. The view leaves out the plates, the bearings, the nuts, the bolts, the balance wheel, the
+hairspring, its retainer, the knob and the knob collar.
+
+The `swisslever/exploded` preset pulls the movement apart along its depth by fixed offsets, seen from `(1, 0.3, 0.9)`.
+The three arbors stay where they are. Every later layer moves forward until it lies in a slab of its own, 16 mm in front
+of the layer behind it, and a dotted line joins each part of 13 mm or more back to the place it assembles. The layers,
+from the back, are the three arbors; the three back bearings; the back plate; the four nuts; the entry stone with the
+safety roller; the exit stone; the lever; the escape wheel with the roller table; the balance wheel; the hairspring;
+the hairspring retainer; the three front bearings; the front plate; the four bolts; the knob collar; and the winding
+knob. This order is the assembly order for the README's alt text. `TestSwissExploded` checks that every body has an
+offset, that the layers keep their gap, that no two bodies overlap or touch, and that the exploded parts fill at least
+80% of the image width or height. It skips while `swisslever.Build` is blocked by decad. `TestSwissPresets` checks the
+image sizes and that the layers and the parts table name every body once, and `TestSwissMovers` checks the animation's
+turn angles. Neither needs a build.
+
+The `part-back-plate`, `part-front-plate`, `part-bearing`, `part-escape-arbor`, `part-pallet-arbor`,
+`part-escape-wheel`, `part-lever`, `part-entry-stone`, `part-exit-stone`, `part-safety-roller`, `part-roller-table`,
+`part-balance-wheel`, `part-hairspring`, `part-hairspring-retainer`, `part-winding-knob`, `part-knob-collar`,
+`part-bolt` and `part-nut` presets render one of them alone. The six bearings, the four bolts and the four nuts are
+identical, and the Balance Staff is the Pallet Arbor built twice, so `part-pallet-arbor` stands for both.
+
+The `motion` shot writes `images/motion.gif`, 960 × 540 pixels and 36 frames, of one balance period. Frame `k` is Phase
+`k/36`. The build is made once at the default phase, and each frame turns the tessellated escape wheel, escape arbor,
+winding knob and knob collar by the change in the wheel angle, the lever and pallet arbor and both stones by the change
+in the lever angle, and the balance staff, safety roller, roller table, balance wheel and hairspring retainer by the
+change in the balance angle, each about its own axis. The change is measured from the pose `swisslever.Build` backs off
+the last contact (`BuildBackoff`). The hairspring stays relaxed. The front plate, the front bearings, the bolts, the
+knob and the knob collar are left out so the mechanism shows. A readout under the picture gives the balance, lever and
+wheel angles.
+
+Run these once `swisslever.Build` is accepted by decad. Each command builds the movement, which takes about a minute:
+
+```sh
+go -C tools/render run . -model swisslever -shot readme -out ../../models/swisslever/images
+go -C tools/render run . -model swisslever -shot motion -out ../../models/swisslever/images/motion.gif
+go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+go -C tools/render test -count=1 -run 'TestSwiss' .
+```
+
+A single preset renders with `-model swisslever -shot <name> -out <file>`, for example
+`-shot exploded -out ../../models/swisslever/images/exploded.png`.
+
 The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the crank handle, the
+drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the Swiss lever escapement, the crank handle, the
 one-way clutch, the spiral spring and the turbine fan one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other thirteen models fill a grid of four columns (260 × 300 pixels each, 208 × 300 in the bottom row of five): the three gears and the
-bevel gear pair across the top, the planetary gearbox, cycloidal drive, fan and siren in the middle, and the escapement,
-crank handle, one-way clutch, spiral spring and turbine fan across the bottom. Building all fourteen models takes several minutes plus the wheel
+(560 pixels wide). The other fourteen models fill a grid beside it: four columns across the top (260 × 300 pixels each)
+and two rows of five below (208 × 300 pixels each). The three gears and the bevel gear pair are across the top. The
+planetary gearbox, cycloidal drive, fan, siren and Graham escapement are in the middle, and the Swiss lever escapement,
+crank handle, one-way clutch, spiral spring and turbine fan are across the bottom. Building all fifteen models takes
+several minutes plus the wheel
 build:
 
 ```sh
