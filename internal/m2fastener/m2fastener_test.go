@@ -113,3 +113,25 @@ func TestHexPocketTool(t *testing.T) {
 	area := 3 * math.Sqrt(3) / 2 * m2fastener.NutCavityRadius * m2fastener.NutCavityRadius
 	require.InEpsilon(t, area*(m2fastener.NutCavityHeight+m2fastener.Stock), vol.Value.Base(), 1e-3)
 }
+
+func TestRoundedHexPocketTool(t *testing.T) {
+	s := site()
+	s.Dir = r3.Vec{Z: -1}
+	depth := m2fastener.NutCavityHeight + m2fastener.Stock
+	sharp, _, err := m2fastener.HexPocketTool(t.Context(), decad.New(), s, depth)
+	require.NoError(t, err)
+	tool, sk, err := m2fastener.RoundedHexPocketTool(t.Context(), decad.New(), s, depth, 0.6)
+	require.NoError(t, err)
+	require.True(t, tool.IsSolid())
+	require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), sk))
+
+	vs, err := sharp.Volume()
+	require.NoError(t, err)
+	vr, err := tool.Volume()
+	require.NoError(t, err)
+	// The round takes (1 - pi/4) r^2 off each of the six floor edges, each 2 NutCavityRadius / 2 long.
+	k := (1 - math.Pi/4) * 0.6 * 0.6 * 6 * m2fastener.NutCavityRadius
+	removed := vs.Value.Base() - vr.Value.Base()
+	require.GreaterOrEqual(t, removed, 0.5*k)
+	require.LessOrEqual(t, removed, 1.5*k)
+}
