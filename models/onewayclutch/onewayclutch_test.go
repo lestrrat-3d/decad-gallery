@@ -180,9 +180,13 @@ func TestOneWayClutchDefault(t *testing.T) {
 			if isBoltNutPair(a, b) || isBoltCoverPair(a, b) {
 				continue
 			}
-			gap, clear, err := meshes[a].Exceeds(meshes[b], 0)
+			clear, err := meshes[a].ExceedsClearance(meshes[b], 0)
 			require.NoError(t, err)
-			require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", a, b, gap)
+			if !clear {
+				gap, _, err := meshes[a].Exceeds(meshes[b], 0)
+				require.NoError(t, err)
+				require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", a, b, gap)
+			}
 		}
 	}
 }

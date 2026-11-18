@@ -217,13 +217,21 @@ func requireAdapter(t *testing.T, p onewayclutch.Params) {
 				case isMountBolt(x) && len(y) == 6 && y[:4] == "nut ", isMountBolt(y) && len(x) == 6 && x[:4] == "nut ":
 					continue
 				}
-				gap, clear, err := meshes[x].Exceeds(meshes[y], 0)
-				require.NoError(t, err)
-				require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", x, y, gap)
 				if x == "adapter" && y == "ring" || y == "adapter" && x == "ring" {
+					gap, clear, err := meshes[x].Exceeds(meshes[y], 0)
+					require.NoError(t, err)
+					require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", x, y, gap)
 					// A clamped seam of 0.25 mm, proven to 0.20 or more.
 					require.GreaterOrEqual(t, gap, onewayclutch.Seam-onewayclutch.FitMargin, "the seam")
 					t.Logf("adapter / ring seam: proven at least %.3f", gap)
+					continue
+				}
+				clear, err := meshes[x].ExceedsClearance(meshes[y], 0)
+				require.NoError(t, err)
+				if !clear {
+					gap, _, err := meshes[x].Exceeds(meshes[y], 0)
+					require.NoError(t, err)
+					require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", x, y, gap)
 				}
 			}
 		}

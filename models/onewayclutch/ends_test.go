@@ -66,9 +66,14 @@ func TestOneWayClutchEnds(t *testing.T) {
 					}
 					moved, err := meshgap.New(verts, ringMesh.Triangles(), ringMesh.Bound().Base())
 					require.NoError(t, err)
-					gap, clear, err := moved.Exceeds(plateMesh[tc.plate], 0)
+					clear, err := moved.ExceedsClearance(plateMesh[tc.plate], 0)
 					require.NoError(t, err)
-					require.Equal(t, step.clear, clear, "ring moved %.2f toward the %s (gap bound %g)", step.move, tc.plate, gap)
+					if step.clear != clear {
+						gap, _, err := moved.Exceeds(plateMesh[tc.plate], 0)
+						require.NoError(t, err)
+						require.Equal(t, step.clear, clear, "ring moved %.2f toward the %s (gap bound %g)", step.move, tc.plate, gap)
+					}
+					require.Equal(t, step.clear, clear, "ring moved %.2f toward the %s", step.move, tc.plate)
 				}
 			}
 		})

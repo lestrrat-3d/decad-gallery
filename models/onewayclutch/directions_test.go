@@ -368,9 +368,15 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			}
 
 			// The unturned ring clears the hub by at least the head gap's smaller share.
-			gap, clear, err := meshOf(t, parts.Ring, "ring").Exceeds(meshOf(t, parts.Hub, "hub"), 0.2)
+			ringMesh, hubMesh := meshOf(t, parts.Ring, "ring"), meshOf(t, parts.Hub, "hub")
+			clear, err := ringMesh.ExceedsClearance(hubMesh, 0.2)
 			require.NoError(t, err)
-			require.True(t, clear, "the seated ring clears the hub by 0.2 mm (gap bound %g)", gap)
+			if !clear {
+				gap, _, err := ringMesh.Exceeds(hubMesh, 0.2)
+				require.NoError(t, err)
+				require.True(t, clear, "the seated ring clears the hub by 0.2 mm (gap bound %g)", gap)
+			}
+			require.True(t, clear, "the seated ring clears the hub by 0.2 mm")
 		})
 	}
 }

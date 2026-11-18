@@ -257,13 +257,22 @@ func requireFitPairs(t *testing.T, m *onewayclutch.Model) {
 			if isBoltNutPair(a, b) || isBoltCoverPair(a, b) {
 				continue
 			}
-			gap, clear, err := meshes[a].Exceeds(meshes[b], 0)
-			require.NoError(t, err)
-			require.True(t, clear, "%s and %s overlap or touch", a, b)
 			if want := minimum(x, y); want > 0 {
+				gap, clear, err := meshes[a].Exceeds(meshes[b], 0)
+				require.NoError(t, err)
+				require.True(t, clear, "%s and %s overlap or touch", a, b)
 				t.Logf("gap %s / %s: proven at least %.3f", a, b, gap)
 				require.GreaterOrEqual(t, gap, want, "%s to %s", a, b)
+				continue
 			}
+			clear, err := meshes[a].ExceedsClearance(meshes[b], 0)
+			require.NoError(t, err)
+			if clear {
+				continue
+			}
+			gap, _, err := meshes[a].Exceeds(meshes[b], 0)
+			require.NoError(t, err)
+			require.True(t, clear, "%s and %s overlap or touch (gap bound %g)", a, b, gap)
 		}
 	}
 }
