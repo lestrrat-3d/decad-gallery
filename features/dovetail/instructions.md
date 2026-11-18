@@ -5,11 +5,12 @@
 Cut a straight sliding dovetail socket into one host body and add the matching tail to another. The two halves
 slide together along one direction and cannot be pulled apart across it. The feature makes no part of its own: the
 caller passes two host bodies and a frame, and `Apply` returns both hosts finished. All dimensions are in
-millimeters and all angles in degrees.
+millimeters. The flank's lean is a whole-number slope, not an angle.
 
 The tail and the socket are built from one `Params`, from one profile, so they cannot drift apart. The four convex
-corners of the joint, the tail's two wide-end corners and the socket's two lips, carry a 0.5 mm chamfer. The four
-concave corners stay sharp.
+corners of the joint, the tail's two wide-end corners and the socket's two lips, carry a 0.50048828125 mm chamfer at
+the default slope. The four concave corners stay sharp. The halves meet in exact floats: every vertex of both blocks
+has a bound of zero, and `Document.Verify` reads them as sound with no interference.
 
 ## Fit: nominal size, zero gap
 
@@ -25,18 +26,29 @@ that it does.
 | Input | Meaning | Default | Valid range |
 | --- | --- | --- | --- |
 | `TailWidth` | tail width at its narrow end, the neck where it leaves its host | 10 | 3 or more |
-| `Angle` | dovetail angle: how far each flank leans from the depth direction | 10 | 5 to 20 |
+| `Slope` | how far each flank leans: `Rise` sideways for every `Run` along the depth direction | 7:24 | one of the allowed slopes below |
 | `Length` | joint length along the slide direction | 16 | 5 or more |
-| `Depth` | how far the tail stands from its host, and how deep the socket is | 6 | 3 or more |
+| `Depth` | how far the tail stands from its host, and how deep the socket is | 6 | 3 or more, and a multiple of the slope's depth step |
 | `TailOn` | host that carries the tail: `TailOnFirst` or `TailOnSecond` | `TailOnFirst` | the two values |
 
-Below 5 degrees the flanks lean too little to stop the halves pulling apart. Above 20 degrees the tail's wide end is
-much wider than its neck and the socket's lips become thin edges. The chamfer sets no new limit: at the smallest
-joint (`TailWidth` 3, `Depth` 3) the flank is 3.1 mm long and the mating face beside a lip 1.6 mm wide, both more than
-the 0.5 mm setback.
+Allowed slopes (`Rise:Run`), from the shallowest to the steepest: 19:180, 17:144, 15:112, 28:195, 13:84, 11:60,
+20:99, 9:40, 16:63, 60:221, 7:24, 52:165, 57:176 and 12:35. Each is the pair of short sides of a right triangle with a
+whole-number hypotenuse (7:24 has hypotenuse 25), and its flank leans 6.0 to 18.9 degrees from the depth direction (7:24
+leans 16.26 degrees). Below 5 degrees the flanks lean too little to stop the halves pulling apart. Above 20 degrees the
+tail's wide end is much wider than its neck and the socket's lips become thin edges. Any other slope is rejected with
+an error that lists the allowed slopes. A slope at 10 degrees, 1:6 or 1:8 has no whole-number hypotenuse, and decad
+cannot place its chamfer feet on exact floats.
 
-Derived value: the tail's width at its wide end, `TipWidth = TailWidth + 2 * Depth * tan(Angle)`. At the defaults
-it is 12.116.
+The flank moves `Depth * Rise / Run` sideways over the depth. `Validate` rejects a `Depth` for which that product is
+not an exact float, and the error names the depth step. `Depth` must be the odd part of `Run` in millimeters times a
+power of two. For 7:24 that is 3 mm times a power of two, so 3, 6, 7.5 and 12 mm work and 6.2 mm does not. Every
+corner of the profile then has an exact coordinate.
+
+The chamfer sets no new limit: at the smallest joint (`TailWidth` 3, `Depth` 3) the flank is 3.125 mm long and the
+wide-end face 4.75 mm wide, both more than the 0.5 mm setback.
+
+Derived value: the tail's width at its wide end, `TipWidth = TailWidth + 2 * Depth * Rise / Run`. At the defaults
+it is 13.5.
 
 ## Frame and hosts
 
@@ -69,7 +81,7 @@ w = `TailWidth`, W = `TipWidth` and D = `Depth`, the profile is a hexagon with t
 6. (-w/2, 0).
 
 The sides from corner 2 to 3 and from 6 to 1 are parallel to the depth direction. The flanks from 3 to 4 and from 5 to 6
-lean outward by `Angle` from them. The profile is symmetric about U = 0.
+lean outward from them by `Depth * Rise / Run` over the depth `Depth`. The profile is symmetric about U = 0.
 
 The tail is this profile extruded from V = 0 to V = `Length` and joined to the tail's host. The socket cutter is the
 same profile extruded from V = -1 to V = `Length` + 1 and cut from the socket's host. The 1 mm extensions make the cut
@@ -81,9 +93,12 @@ cut, then the socket's lip chamfer.
 
 ## Chamfers
 
-The edge-finishing rule asks for a 0.5 mm equal-setback chamfer on a convex edge, so the joint uses 0.5 mm. The
-chamfer takes 0.5 mm from each of the two faces at the corner, and each runs the whole joint length, from V = 0 to
-V = `Length`:
+The edge-finishing rule asks for a 0.5 mm equal-setback chamfer on a convex edge. The joint deviates from it on
+purpose: its chamfer setback is the smallest `H * j / 2048` mm at or above 0.5 mm, where H is the slope's hypotenuse
+and j a whole number. At 7:24, H is 25 and j is 41, so the setback is 1025/2048 = 0.50048828125 mm. With that setback,
+the chamfer's feet on the flank are exact floats, which lets the finished halves touch with exact coordinates. The
+chamfer takes that setback from each of the two faces at the corner, and each runs the whole joint length, from V = 0
+to V = `Length`:
 
 - The tail's two wide-end edges, at U = +-`TipWidth`/2, N = s `Depth`, where the wide-end face meets a flank. The
   tail body is chamfered before it joins its host.
@@ -92,12 +107,15 @@ V = `Length`:
 
 The four concave edges stay sharp: the tail's two root edges, where a flank meets the tail's host, and the socket's two
 floor edges, at the socket's widest part. A chamfer that meets a sharp concave corner of the other half leaves a small
-triangular void of 0.5 mm setback, and the flanks still touch over the rest of their length, so the fit and the grip are
-kept. Each chamfer removes `0.5 * 0.5^2 * cos(Angle)` mm squared of profile, 0.123 mm squared at the defaults, along
-`Length`, from its host. The tail's host gains the tail's volume less its two chamfers. The socket's host loses the
+triangular void of that setback, and the flanks still touch over the rest of their length, so the fit and the grip are
+kept. Each chamfer removes `0.5 * c^2 * Run / H` mm squared of profile, where c is the setback and H the hypotenuse.
+That is 0.1202 mm squared at the defaults, along `Length`, from its host. The tail's host gains the tail's volume less its two chamfers. The socket's host loses the
 tail's volume and its two lip chamfers.
 
 The chamfer uses decad's `Chamfer` on the edges, found by their end points.
+
+The tail's end face and its host's end face at each end of the joint are one planar face, with no edge between them.
+The socket host's end face at each end is one face too.
 
 ## Sketch constraints
 
@@ -106,7 +124,8 @@ midpoint of the neck's edge). It is constrained with:
 
 - horizontal lines on corners 1 to 2 and 4 to 5, and vertical lines on 2 to 3 and 6 to 1;
 - the origin as the midpoint of corners 6 and 3, with those two corners level;
-- the neck width, the 1 mm depth of the neck's root, the tail's depth, and the two flank angles.
+- the neck width, the 1 mm depth of the neck's root, the tail's depth, and the sideways distance of each flank
+(`Depth * Rise / Run`) from its lower corner to its upper one.
 
 Each sketch reports `sketch.FullyConstrained` with DOF 0, no redundant constraints and no conflicts. The demo's two
 block sketches are constrained the same way: edges horizontal or vertical, the origin at the midpoint of the V = 0
@@ -122,7 +141,7 @@ joint is applied between them. Bodies sit in two containers: `Tail Blocks` (the 
 The blocks are test fixtures for the joint, not printed parts. Their plain outer edges are not chamfered, and the
 rule on edge finishing applies to the caller's own parts. The joint's own chamfers are part of the feature, so
 `Apply` cuts them on any host. The wide-end face of the tail is a large planar surface for a long joint (at the
-large case, 24.2 mm by 30 mm), and its two long edges are the chamfered ones. Its short edges lie on the fixture
+large case, 24.5 mm by 30 mm), and its two long edges are the chamfered ones. Its short edges lie on the fixture
 block's end face, which the demo leaves plain.
 
 ## Print orientation and corners
@@ -136,15 +155,15 @@ other is sharp:
 
 | Pair | Tail block corner | Socket block corner |
 | --- | --- | --- |
-| Neck | the inside corner where each flank meets the host face at the mating plane, at U = +-`TailWidth`/2 (100 degrees of turn), sharp | the lip, the outward corner at the same place, chamfered 0.5 mm |
-| Wide end | the outward corner at the wide end, at U = +-`TipWidth`/2, chamfered 0.5 mm | the inside corner at the socket floor (100 degrees of turn), sharp |
+| Neck | the inside corner where each flank meets the host face at the mating plane, at U = +-`TailWidth`/2 (100 degrees of turn), sharp | the lip, the outward corner at the same place, chamfered |
+| Wide end | the outward corner at the wide end, at U = +-`TipWidth`/2, chamfered | the inside corner at the socket floor (100 degrees of turn), sharp |
 
 The tests list the tail block's root corners and the socket block's floor corners for `cornercheck`. A concave
 corner is kept sharp so a chamfered convex corner meeting it leaves only a small void and the flanks keep their fit.
 
-Each inside corner turns 90 + `Angle` degrees toward the material. The rule rounds an inside corner of more than 45
-degrees, unless it is a mating corner kept sharp and listed. Each chamfered outward corner turns 90 + `Angle` degrees
-away from the material in two turns of about half that, so it needs no further blunting.
+Each inside corner turns 90 + 16.26 degrees at 7:24 (90 degrees plus the flank's lean) toward the material. The rule
+rounds an inside corner of more than 45 degrees, unless it is a mating corner kept sharp and listed. Each chamfered
+outward corner turns that much away from the material in two turns of about half that, so it needs no further blunting.
 
 The blocks' outer corners are 90 degrees outward corners.
 
@@ -154,17 +173,17 @@ The feature has none. The two blocks differ by shape, and no bought part is invo
 
 ## Validation
 
-Reject a nil context, document, host or invalid frame. Reject `Angle`, `TailWidth`, `Depth` and `Length` outside the
-ranges above, a non-finite size and a `TailOn` that is neither value. Reject hosts that do not fit the joint, with the
+Reject a nil context, document, host or invalid frame. Reject a `Slope` that is not in the allowed list, a `Depth` that is not a multiple of the slope's depth step,
+`TailWidth`, `Depth` and `Length` outside the ranges above, a non-finite size and a `TailOn` that is neither value. Reject hosts that do not fit the joint, with the
 reason in the error.
 
 ## Representative cases
 
-| Case | `TailWidth` | `Angle` | `Length` | `Depth` | `TailOn` |
+| Case | `TailWidth` | `Slope` | `Length` | `Depth` | `TailOn` |
 | --- | --- | --- | --- | --- | --- |
-| default | 10 | 10 | 16 | 6 | first |
-| tail on second | 10 | 10 | 16 | 6 | second |
-| min angle | 10 | 5 | 16 | 6 | first |
-| max angle | 10 | 20 | 16 | 6 | first |
-| smallest | 3 | 15 | 5 | 3 | first |
-| large | 20 | 12 | 30 | 10 | second |
+| default | 10 | 7:24 | 16 | 6 | first |
+| tail on second | 10 | 7:24 | 16 | 6 | second |
+| shallowest slope | 10 | 19:180 | 16 | 5.625 | first |
+| steepest slope | 10 | 12:35 | 16 | 8.75 | first |
+| smallest | 3 | 7:24 | 5 | 3 | first |
+| large | 20 | 9:40 | 30 | 10 | second |

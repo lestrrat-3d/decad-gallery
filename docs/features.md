@@ -58,7 +58,8 @@ The tests run the demo for every parameter branch and check these points:
 
 - Every sketch reports `sketch.FullyConstrained`, `DOF == 0`, no redundant constraints and no conflicts. This
   includes optional sketches. See `AGENTS.md`, "Sketch constraints".
-- The mating halves assemble at the given frame and do not overlap. Use `internal/meshgap`.
+- The mating halves assemble at the given frame and do not overlap. Use `internal/meshgap` for the gap, and
+  `Document.Verify`, `decad.Intersect` and `decad.Union` for overlap when the halves touch in exact floats.
 - The bounds of each host block and each half match the parameters.
 - Similar bodies sit in named containers. See [Body containers](model-pipeline.md#body-containers).
 - Corners follow [Corners and roots](model-pipeline.md#corners-and-roots). A joinery corner that must match
