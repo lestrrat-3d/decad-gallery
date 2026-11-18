@@ -18,6 +18,18 @@ class SelectionTests(unittest.TestCase):
         paths = diff("M", "models/onewayclutch/build.go") + diff("M", "docs/images/gallery.png")
         self.assertEqual(selector.changed_models(paths, {"onewayclutch"}), {"onewayclutch"})
 
+    def test_repository_only_paths_do_not_force_broad_selection(self):
+        paths = b"".join(
+            diff("M", path)
+            for path in (
+                "README.md",
+                "models/README.md",
+                "models/plaquestand/README.md",
+                "scripts/check_repository.py",
+            )
+        )
+        self.assertEqual(selector.changed_models(paths, {"plaquestand"}), {"plaquestand"})
+
     def test_uncertain_paths_and_modes_fail_closed(self):
         for data in (
             diff("A", "models/onewayclutch/new.go", old="000000"),

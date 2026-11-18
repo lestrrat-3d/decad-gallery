@@ -121,6 +121,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py onewayclutch all
 
   clamparm:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'clamparm')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -260,6 +262,7 @@ jobs:
       - fan-motion
       - escapement
       - onewayclutch
+      - clamparm
       - turbinefan
       - escapement-exploded
       - wheel
