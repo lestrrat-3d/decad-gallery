@@ -1,6 +1,6 @@
 # Plaque stand
 
-**Build status:** Not built yet.
+**Build status:** Built and tested.
 
 ![A flat plaque leaning back in two blue brackets joined by a rail](images/hero.png)
 
