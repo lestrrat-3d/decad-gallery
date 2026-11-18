@@ -32,3 +32,5 @@ Clearance adjustment labels follow the [model fit rules](../docs/model-pipeline.
 Nominal components keep their published dimensions; adjust the custom mating part to provide the required gap.
 
 To add a model, see [adding a model](../docs/adding-models.md).
+
+Reusable shapes that cut or add material on other items' parts, such as joints, are listed in [features](../features/).

@@ -125,6 +125,13 @@ ahead (between the clutch and the adapter), the hub and blades 40 s mm ahead (60
 and `ear-bolt`:
 `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
 
+`dovetail/hero` renders the default dovetail demo (two blocks joined by the dovetail, the tail block orange and the
+socket block blue) from the front, right and above. The `end` preset looks along the slide direction at the profile,
+`rear` looks from behind and the left, and `low` from below. `exploded` pulls the first block 15 mm toward -Y and the second
+15 mm toward +Y, along the slide direction. `tail-block` and `socket-block` show one block each at 480 × 270. The
+`readme` shot writes all of them, the index image and the two block images in `parts/`:
+`go -C tools/render run . -model dovetail -shot readme -out ../../features/dovetail/images`.
+
 `pinring/hero` renders the default pin ring. The `top`, `side` and `low` presets show other angles.
 The `readme` shot writes all of them and the index image.
 
