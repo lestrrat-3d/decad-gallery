@@ -258,6 +258,7 @@ func (c *linkageCheck) pose(i int) linkageFailure {
 			if nativeShaftPassage(obstacle.part, shape, c.p.Scale) {
 				continue
 			}
+			// This zero-clearance pose query uses the bool-only meshgap check; refusals retain a numeric gap.
 			gap, clear := prepared.separation(obstacle.shape)
 			if clear {
 				continue
@@ -277,6 +278,7 @@ func (c *linkageCheck) pose(i int) linkageFailure {
 			if ra.separates(fb.collisionShape) {
 				continue
 			}
+			// This zero-clearance pose query uses the bool-only meshgap check; refusals retain a numeric gap.
 			gap, clear := ra.separation(fb)
 			if clear {
 				continue

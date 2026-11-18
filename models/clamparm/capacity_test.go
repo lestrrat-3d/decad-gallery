@@ -18,7 +18,7 @@ import (
 func TestClampArmCapacity(t *testing.T) {
 	// The friction face is an annulus from the bolt hole (radius 2.8) to the end radius (10).
 	rOut, rIn := clamparm.EndRadius, m5fastener.HoleRadius
-	rm := 2.0 / 3.0 * (math.Pow(rOut, 3) - math.Pow(rIn, 3)) / (math.Pow(rOut, 2) - math.Pow(rIn, 2))
+	rm := 2.0 / 3.0 * (rOut*rOut*rOut - rIn*rIn*rIn) / (rOut*rOut - rIn*rIn)
 	require.InDelta(t, 7.075, rm, 0.001, "r_m")
 
 	// The tongue's two faces rub against two fins: a link's fork end has two fin loops at a section across the slot.
@@ -44,8 +44,8 @@ func TestClampArmCapacity(t *testing.T) {
 
 	// F_fin: a fin is a cantilever SlotDepth long, Section wide and FinThickness thick, closed by JointFit.
 	const youngs = 3500.0 // N/mm^2
-	second := clamparm.Section * math.Pow(clamparm.FinThickness, 3) / 12
-	fFin := 3 * youngs * second * clamparm.JointFit / math.Pow(clamparm.SlotDepth, 3)
+	second := clamparm.Section * clamparm.FinThickness * clamparm.FinThickness * clamparm.FinThickness / 12
+	fFin := 3 * youngs * second * clamparm.JointFit / (clamparm.SlotDepth * clamparm.SlotDepth * clamparm.SlotDepth)
 	require.InDelta(t, 49, fFin, 1, "F_fin")
 
 	// The table: T_hold = 2 mu (F - F_fin) r_m, F = T_k / (0.2 d), d = 5.
