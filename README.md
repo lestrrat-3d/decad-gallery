@@ -20,9 +20,10 @@ with a handle that turns on its pin, a [one-way clutch](models/onewayclutch/) wi
 a [plaque stand](models/plaquestand/) that holds a flat plaque reclined on a desk or shelf,
 a [turbine fan](models/turbinefan/) with swappable blades on a round hub held on a D-flat shaft by a set screw
 (the same hub also bolts to the one-way clutch's adapter ring so the fan coasts),
+a [clamp arm](models/clamparm/) that grips a desk edge and carries a four-joint friction arm and a camera mount interface,
 M5 bolt and nut envelopes, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
-The M5 bolt and nut, the spinning wheel, the escapements, the spiral spring, the turbine fan, the plaque stand, the hand-crank fan and the hand-crank siren are not built
+The M5 bolt and nut, the clamp arm, the spinning wheel, the escapements, the spiral spring, the turbine fan, the plaque stand, the hand-crank fan and the hand-crank siren are not built
 yet: nobody has made them as physical objects and tested them. The [model table](models/) marks every model's
 build status.
 

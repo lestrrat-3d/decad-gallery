@@ -76,6 +76,20 @@ default stand once and the smallest and largest once each, and writes every imag
 part images in `parts/`:
 `go -C tools/render run . -model plaquestand -shot readme -out ../../models/plaquestand/images`.
 
+`clamparm/hero` renders the default pose of the clamp arm from the front, to the right and above, with the frame in orange,
+the swivel in teal, the links in blue, the head in purple, the adapter in yellow and the knobs in green. The `side`,
+`back` and `top` presets show it from +Y, from behind and above, and from above. `poses` puts the default, a raised
+(`Shoulder` 90, `Elbow` -30, `Wrist` -60) and a folded (`Shoulder` 100, `Elbow` -115, `Wrist` 15) arm side by side along
+X, 40 mm apart. `exploded` pulls each joint's bolt 45 mm out of its -Y face and its nut and knob out of the +Y face,
+lifts the swivel off the frame, moves link B, the head and the adapter apart along the chain, and sends the pad, the clamp
+screw and its knob down, with no two exploded bounding boxes intersecting. `clamp-section` clips the frame, pad, screw,
+jaw nut and J1 parts at y = 0 and looks from -Y; `joint-section` clips link A, link B and the J3 bolt, nut and knob by
+the plane through J3's axis, normal to link A; `interface-section` clips the head, adapter and stud parts at y = 0.
+`interface` shows the head, the stud bolt and the stud knob without an adapter, close up. `part-<name>` renders one body
+alone in its print orientation, for `frame`, `pad`, `swivel`, `link`, `head`, `adapter`, `knob`, `screw-knob`, `bolt-25`,
+`bolt-35`, `bolt-40`, `bolt-70` and `nut`. The `readme` shot writes all of them, the 480 × 270 index image and the parts in `parts/`:
+`go -C tools/render run . -model clamparm -shot readme -out ../../models/clamparm/images`.
+
 `onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
 +Z side removed, seen from the front and above, so the pawl heads in the ring's teeth, the arms and the back plate show, with the ring's
 three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
