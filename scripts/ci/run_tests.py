@@ -439,6 +439,12 @@ def run_onewayclutch() -> None:
     go_test(["./models/onewayclutch", "-timeout", "40m", "-count=1"])
 
 
+def run_clamparm() -> None:
+    """Run every test of the clamp arm and M5 fastener packages: about 4 minutes on a fast machine, so they have their
+    own job instead of the 5 minute PR job."""
+    go_test(["./models/clamparm", "./models/m5bolt", "./models/m5nut", "-timeout", "40m", "-count=1"])
+
+
 def run_fan_variant(variant: str) -> None:
     env = os.environ.copy()
     env["HANDCRANKFAN_FULL"] = "1"
@@ -504,6 +510,9 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
+    if suite == "clamparm" and not args and mode == "all":
+        run_clamparm()
+        return
     if suite == "turbinefan" and not args and mode == "all":
         run_turbinefan()
         return
@@ -512,7 +521,7 @@ def main() -> None:
         return
     raise SystemExit(
         "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|spike|slots12|slots24> | escapement all | onewayclutch all | turbinefan all | fan <flat-three|steep-three>"
+        " | siren <default|spike|slots12|slots24> | escapement all | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 
