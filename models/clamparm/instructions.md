@@ -446,10 +446,17 @@ face down.
 
 | Part | Corner or edge | Reason |
 | --- | --- | --- |
-| Every printed part with a hex pocket | The six corners of each head or nut pocket | Mating corners with the sharp corners of the M5 hardware. |
-| Every printed part with a hex pocket | The pocket floor's round (0.6, or 0.5 in the screw knob's press pocket) where a layer cuts it obliquely | A slanted section reads the round as turns; it is the round the rule asks for, so only that band is exempt. |
-| Adapter | The recess rim | The 45 degree register. |
-| Link, swivel fork, head | Round ends near the bed | An overhang note ("Link"), not a corner. |
+| Knob (J1 to J4), adapter | The six corners of the nut pocket, on the circle of radius 4.8188 | Mating corners with the sharp corners of the M5 nut. |
+| Screw knob, stud knob | The six corners of the head pocket, on the circle of radius 4.6688 | Mating corners with the sharp corners of the M5 bolt head. |
+
+| Frame, swivel, links | The six corners of each nut or head pocket | Mating corners with the sharp corners of the M5 hardware. Their edges run parallel to the bed in the print orientation, so the corner test's bed-parallel sections do not read them. |
+| Adapter | The recess rim | The 45 degree register for the camera mount, a sharp edge by design, not chamfered. |
+
+The corner test reads the knob, adapter, screw knob and stud knob pocket corners, and each exemption claims at least
+one finding. It reads no finding on the frame, swivel, links, head and pad, on the adapter's recess rim, on the pocket
+floor rounds or on the round ends near the bed. The rows for the frame, swivel and links and for the recess rim are
+retained but unread, so no exemption claims them. The round ends near the bed remain an overhang note ("Link"), not a
+corner.
 
 Only these kinds may be added when the corner test finds more: further mating corners with hardware, chamfer faces
 that edge finishing adds, and a root rounded below half its section with the reason stated. Any other `cornercheck`
