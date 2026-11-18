@@ -17,5 +17,8 @@ code, and geometry checks. The [model build pipeline](model-pipeline.md) describ
 consumer that translates the Go construction into Python code for Fusion add-ins.
 
 The repository check runs `python3 scripts/check_repository.py`. It checks the foundation files and
-requires a README, instructions, steps, hero image, Go source and tests for each item directory. Run
-`go test ./...` for the models' geometry checks; CI runs both commands.
+requires a README, instructions, steps, hero image, Go source and tests for each model directory. For each
+feature directory it also requires `images/index.png` and `images/exploded.png` and a corner test. It checks that the
+rows of `models/README.md` and `features/README.md` are in alphabetical order and that each README's build status line
+agrees with its index row and with `UNBUILT`. It fails when a name exists in both `models/` and `features/`. Run
+`go test ./...` for the geometry checks of models and features; CI runs both commands.
