@@ -7,12 +7,16 @@ slide together along one direction and cannot be pulled apart across it. The fea
 caller passes two host bodies and a frame, and `Apply` returns both hosts finished. All dimensions are in
 millimeters and all angles in degrees.
 
-The tail and the socket are built from one `Params`, from one profile, so they cannot drift apart.
+The tail and the socket are built from one `Params`, from one profile, so they cannot drift apart. The four convex
+corners of the joint, the tail's two wide-end corners and the socket's two lips, carry a 0.5 mm chamfer. The four
+concave corners stay sharp.
 
 ## Fit: nominal size, zero gap
 
-This feature builds both halves to exact nominal size. The socket has the same outline as the tail, so the halves
-touch along the two flanks, the wide end and the neck's mating plane, with no gap. Fit clearance is out of scope.
+This feature builds both halves to exact nominal size. The socket has the same outline as the tail before the
+chamfers, so the halves touch along the two flanks, the wide end and the neck's mating plane, with no gap. Each
+chamfer sits against a sharp concave corner of the other half and leaves a small triangular void there (see
+"Chamfers"). Fit clearance is out of scope.
 The user defines it separately. Until then a printed pair will not slide together, and the feature makes no claim
 that it does.
 
@@ -27,7 +31,9 @@ that it does.
 | `TailOn` | host that carries the tail: `TailOnFirst` or `TailOnSecond` | `TailOnFirst` | the two values |
 
 Below 5 degrees the flanks lean too little to stop the halves pulling apart. Above 20 degrees the tail's wide end is
-much wider than its neck and the socket's lips become thin edges.
+much wider than its neck and the socket's lips become thin edges. The chamfer sets no new limit: at the smallest
+joint (`TailWidth` 3, `Depth` 3) the flank is 3.1 mm long and the mating face beside a lip 1.6 mm wide, both more than
+the 0.5 mm setback.
 
 Derived value: the tail's width at its wide end, `TipWidth = TailWidth + 2 * Depth * tan(Angle)`. At the defaults
 it is 12.116.
@@ -70,7 +76,28 @@ same profile extruded from V = -1 to V = `Length` + 1 and cut from the socket's 
 open through both ends of the host. Only the part of the profile between v = 0 and v = D lies where the hosts meet, so
 the cut leaves a socket of exactly the tail's outline, and the join leaves a tail of exactly that outline.
 
-Feature order: tail sketch and body, socket sketch and body, then the join, then the cut.
+Feature order: tail sketch and body, socket sketch and body, the tail's wide-end chamfer, then the join, then the
+cut, then the socket's lip chamfer.
+
+## Chamfers
+
+The edge-finishing rule asks for a 0.5 mm equal-setback chamfer on a convex edge, so the joint uses 0.5 mm. The
+chamfer takes 0.5 mm from each of the two faces at the corner, and each runs the whole joint length, from V = 0 to
+V = `Length`:
+
+- The tail's two wide-end edges, at U = +-`TipWidth`/2, N = s `Depth`, where the wide-end face meets a flank. The
+  tail body is chamfered before it joins its host.
+- The socket's two lip edges, at U = +-`TailWidth`/2, N = 0, where the host's mating face meets a flank. The
+  socket's host is chamfered after the cut.
+
+The four concave edges stay sharp: the tail's two root edges, where a flank meets the tail's host, and the socket's two
+floor edges, at the socket's widest part. A chamfer that meets a sharp concave corner of the other half leaves a small
+triangular void of 0.5 mm setback, and the flanks still touch over the rest of their length, so the fit and the grip are
+kept. Each chamfer removes `0.5 * 0.5^2 * cos(Angle)` mm squared of profile, 0.123 mm squared at the defaults, along
+`Length`, from its host. The tail's host gains the tail's volume less its two chamfers. The socket's host loses the
+tail's volume and its two lip chamfers.
+
+The chamfer uses decad's `Chamfer` on the edges, found by their end points.
 
 ## Sketch constraints
 
@@ -93,24 +120,31 @@ joint is applied between them. Bodies sit in two containers: `Tail Blocks` (the 
 `Socket Blocks` (the block holding the socket).
 
 The blocks are test fixtures for the joint, not printed parts. Their plain outer edges are not chamfered, and the
-rule on edge finishing applies to the caller's own parts.
+rule on edge finishing applies to the caller's own parts. The joint's own chamfers are part of the feature, so
+`Apply` cuts them on any host. The wide-end face of the tail is a large planar surface for a long joint (at the
+large case, 24.2 mm by 30 mm), and its two long edges are the chamfered ones. Its short edges lie on the fixture
+block's end face, which the demo leaves plain.
 
 ## Print orientation and corners
 
 Print each block with the slide direction (V) upward. Each layer then shows the dovetail profile as its outline, and no
 face of the joint overhangs.
 
-Retained sharp corners: the joint has four sharp corners in each layer, listed as two mating pairs. Each pair is a
-joinery corner that must match its mate, so both stay sharp.
+Retained sharp corners: the joint keeps four sharp concave corners in each layer, listed below. The four convex
+corners carry the chamfer, so no mating pair has two sharp corners now. In each pair one mate is chamfered and the
+other is sharp:
 
 | Pair | Tail block corner | Socket block corner |
 | --- | --- | --- |
-| Neck | the inside corner where each flank meets the host face at the mating plane, at U = +-`TailWidth`/2 (100 degrees of turn) | the lip, the outward corner at the same place (80 degrees of material) |
-| Wide end | the outward corner at the wide end, at U = +-`TipWidth`/2 (80 degrees of material) | the inside corner at the socket floor (100 degrees of turn) |
+| Neck | the inside corner where each flank meets the host face at the mating plane, at U = +-`TailWidth`/2 (100 degrees of turn), sharp | the lip, the outward corner at the same place, chamfered 0.5 mm |
+| Wide end | the outward corner at the wide end, at U = +-`TipWidth`/2, chamfered 0.5 mm | the inside corner at the socket floor (100 degrees of turn), sharp |
+
+The tests list the tail block's root corners and the socket block's floor corners for `cornercheck`. A concave
+corner is kept sharp so a chamfered convex corner meeting it leaves only a small void and the flanks keep their fit.
 
 Each inside corner turns 90 + `Angle` degrees toward the material. The rule rounds an inside corner of more than 45
-degrees, unless it is a mating corner kept sharp and listed. The outward corners are 90 - `Angle` degrees wide, at least
-70 degrees for every valid angle, so they need no blunting (the rule blunts a tip sharper than 60 degrees).
+degrees, unless it is a mating corner kept sharp and listed. Each chamfered outward corner turns 90 + `Angle` degrees
+away from the material in two turns of about half that, so it needs no further blunting.
 
 The blocks' outer corners are 90 degrees outward corners.
 

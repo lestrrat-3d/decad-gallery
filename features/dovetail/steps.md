@@ -9,6 +9,7 @@ Units are millimeters and degrees. Use `Stock` = 1.0 and `MinWall` = 0.8.
   `Params.Validate()`. `Carrier` is `TailOnFirst` (0) or `TailOnSecond` (1).
 - `Apply(ctx, doc, p, f, first, second) (*Joint, error)`. `Joint` holds `First`, `Second`, `TailSketch`,
   `SocketSketch`, and the methods `Sketches()`, `TailBody(p)` and `SocketBody(p)`.
+- `ChamferSize` (0.5, `edgefinish.MinChamfer`) and `Params.ChamferCut()`, the profile area one chamfer removes.
 - `BuildDemo(ctx, doc, p) (*Demo, error)`, `DemoFrame()` and the container names `TailBlocksContainerName` and
   `SocketBlocksContainerName`.
 
@@ -47,14 +48,21 @@ Check at the boundary: the profile count is 1 and the sketch verifies.
   sweep toward +V.
 Check at the boundary: each tool is a solid body.
 
-## 4. Join and cut
+## 4. Chamfer, join and cut
 
+- Chamfer the tail body's two wide-end edges: the straight edges along V between (+-W/2, s Depth) at V = 0 and
+  V = `Length`, in the joint frame. Find each on `tail.Edges()` by its end points, name it with
+  `decad.EndpointAt(start)` and `decad.ParallelTo(direction)`, and call `decad.Chamfer(ctx, tail,
+  query.Exactly(2), units.Millimeters(ChamferSize))`. Check that the result is solid.
 - `decad.Union(ctx, tailHost, tail)`.
 - `decad.Cut(ctx, socketHost, socketCutter)`.
-Both retire their operands and return new bodies. Return them as `First` and `Second` according to `TailOn`.
+- Chamfer the cut host's two lip edges the same way: the edges along V at (+-w/2, 0), `Exactly(2)`, `ChamferSize`.
+  Check that the result is solid.
+The socket cutter is not chamfered, so the socket's floor corners stay sharp, and the tail's root edges stay sharp.
+Union and Cut retire their operands and return new bodies; so does each chamfer. Return them as `First` and `Second` according to `TailOn`.
 The 1 mm neck root inside the tail's host overlaps the host, so the join has volume to merge. The tail's end faces
 lie in the host's end faces, which Union takes as coplanar faces.
-Check at the boundary: both results are solid.
+Check at the boundary: both results are solid, and the chamfer finds exactly two edges on each body.
 
 ## 5. Demo
 
@@ -74,15 +82,22 @@ For every case in the instructions:
 - All four demo sketches verify as in step 2.
 - Bounds of each block: U within +-(`TipWidth`/2 + 4), V from 0 to `Length`, N as the instructions give, with the tail
   host reaching `Depth` past the mating plane.
-- Volumes: the tail's host equals the blank plus the tail's volume and the socket's host equals the blank minus it,
-  with the tail's volume `(TailWidth + TipWidth)/2 * Depth * Length`.
-- Profile: a section at V = `Length`/2 of each block has a vertex within 0.02 of each of the profile's four corners at
-  (+-`TailWidth`/2, 0) and (+-`TipWidth`/2, s Depth).
+- Volumes: with the profile area A = `(TailWidth + TipWidth)/2 * Depth` and the chamfer area `ChamferCut()`, the
+  tail's host equals the blank plus `(A - 2 ChamferCut()) Length`, and the socket's host equals the blank minus
+  `(A + 2 ChamferCut()) Length`.
+- Profile: a section at V = `Length`/2 of the tail block has a vertex within 0.02 of each root corner at
+  (+-`TailWidth`/2, 0) and of each chamfer end, and none within 0.1 of the wide-end corner (+-`TipWidth`/2, s Depth).
+  The socket block has a vertex at each floor corner (+-`TipWidth`/2, s Depth) and each chamfer end, and none within 0.1
+  of a lip (+-`TailWidth`/2, 0). The chamfer ends are the points `ChamferSize` from the corner along each of its two
+  faces.
+- Edges: each block has straight edges along V at the concave corners and at the four chamfer ends, and none at the
+  convex corners.
 - Mating: `meshgap` reports the blocks touch (lower bound of the gap is 0). decad's `LocatePoint` classifies a grid of
   points across the mid-length section, and no point is inside both blocks.
 - Sliding: a block moved by `Length` + 1 along V is at least 0.5 from the other.
 - Containers: names, membership and `VerifyContainers`.
-- Corners: `cornercheck.Check` with the slide direction as the print axis finds only the two exempt corners per block.
+- Corners: `cornercheck.Check` with the slide direction as the print axis finds only the two sharp concave corners per
+  block: the tail block's root corners and the socket block's floor corners.
 - Misfit hosts, invalid parameters and a moved and turned frame.
 
 ## Decad gaps

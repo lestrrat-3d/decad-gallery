@@ -190,6 +190,11 @@ func Apply(ctx context.Context, doc *decad.Document, p Params, f r3.Frame, first
 	if err != nil {
 		return nil, err
 	}
+	// The tail's wide-end edges are convex corners, so they take the chamfer before the tail joins its host.
+	tail, err = chamferEdges(ctx, tail, p.convexEdges(f, p.TipWidth()/2, p.side()*p.Depth), "tail wide end")
+	if err != nil {
+		return nil, err
+	}
 	tailed, err := decad.Union(ctx, tailHost, tail)
 	if err != nil {
 		return nil, fmt.Errorf("dovetail: add tail to its host: %w", err)
@@ -197,6 +202,12 @@ func Apply(ctx context.Context, doc *decad.Document, p Params, f r3.Frame, first
 	cut, err := decad.Cut(ctx, socketHost, socket)
 	if err != nil {
 		return nil, fmt.Errorf("dovetail: cut socket into its host: %w", err)
+	}
+	// The socket's lips are convex corners of its host, so they take the chamfer after the cut. The socket floor and
+	// the tail's root are concave corners and stay sharp.
+	cut, err = chamferEdges(ctx, cut, p.convexEdges(f, p.TailWidth/2, 0), "socket lips")
+	if err != nil {
+		return nil, err
 	}
 	j := &Joint{TailSketch: tailSketch, SocketSketch: socketSketch}
 	if p.TailOn == TailOnFirst {

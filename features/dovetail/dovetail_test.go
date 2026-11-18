@@ -80,7 +80,7 @@ func TestBoundsAndVolumes(t *testing.T) {
 			require.True(t, d.First.IsSolid())
 			require.True(t, d.Second.IsSolid())
 			h, w := d.Height, d.Width
-			tailArea := (p.TailWidth + p.TipWidth()) / 2 * p.Depth
+			area := (p.TailWidth + p.TipWidth()) / 2 * p.Depth
 			blank := w * p.Length * h
 			// First spans N from -h to 0 and Second from 0 to h, except the tail's host, which also holds the tail.
 			firstLo, firstHi, secondLo, secondHi := -h, 0.0, 0.0, h
@@ -103,13 +103,15 @@ func TestBoundsAndVolumes(t *testing.T) {
 				require.InDelta(t, c.lo, box.Min.Z, tol)
 				require.InDelta(t, c.hi, box.Max.Z, tol)
 			}
-			// The tail adds exactly the volume the socket removes.
+			// The tail adds its profile less its two wide-end chamfers. The socket loses the full profile and its two
+			// lip chamfers besides.
 			tailV, err := d.TailBlock.Volume()
 			require.NoError(t, err)
 			socketV, err := d.SocketBlock.Volume()
 			require.NoError(t, err)
-			require.InDelta(t, blank+tailArea*p.Length, tailV.Value.Base(), tailV.Bound.Base()+1e-6)
-			require.InDelta(t, blank-tailArea*p.Length, socketV.Value.Base(), socketV.Bound.Base()+1e-6)
+			require.InDelta(t, blank+(area-2*p.ChamferCut())*p.Length, tailV.Value.Base(),
+				tailV.Bound.Base()+1e-6)
+			require.InDelta(t, blank-(area+2*p.ChamferCut())*p.Length, socketV.Value.Base(), socketV.Bound.Base()+1e-6)
 		})
 	}
 }
@@ -124,24 +126,53 @@ func profileCorners(p dovetail.Params, s float64) (neck, wide [2]r3.Vec) {
 	return neck, wide
 }
 
+// chamferPoints returns the four points where each chamfer meets its two faces, in (U, N) coordinates. The tail's
+// wide-end chamfers run from the wide-end face to the flank, and the socket's lip chamfers from the mating face to the
+// flank. Each chamfer has ChamferSize setback on both faces.
+func chamferPoints(p dovetail.Params, s float64) (tail, socket []r3.Vec) {
+	a := p.Angle * math.Pi / 180
+	c, sin, cos := dovetail.ChamferSize, math.Sin(a), math.Cos(a)
+	nk, wd := p.TailWidth/2, p.TipWidth()/2
+	for _, su := range []float64{-1, 1} {
+		tail = append(tail, r3.Vec{X: su * (wd - c), Z: s * p.Depth}, r3.Vec{X: su * (wd - c*sin), Z: s * (p.Depth - c*cos)})
+		socket = append(socket, r3.Vec{X: su * (nk + c)}, r3.Vec{X: su * (nk + c*sin), Z: s * c * cos})
+	}
+	return tail, socket
+}
+
 // requireOutlineHas requires the section outline at mid-length to pass within tol of each point.
-func requireOutlineHas(t *testing.T, ctx context.Context, name string, body *decad.Body, length float64, pts []r3.Vec, tol float64) {
+func requireOutlineHas(t *testing.T, ctx context.Context, name string, body *decad.Body, length float64, pts []r3.Vec,
+	tol float64) {
 	t.Helper()
 	outline, err := cornercheck.Outline(ctx, body, r3.Vec{Y: 1}, length/2)
 	require.NoError(t, err)
 	for _, pt := range pts {
-		least := math.Inf(1)
-		for _, loop := range outline.Loops {
-			for _, v := range loop {
-				least = math.Min(least, math.Hypot(v.X-pt.X, v.Z-pt.Z))
-			}
-		}
-		require.LessOrEqual(t, least, tol, "%s: no outline vertex near (%.3f, %.3f)", name, pt.X, pt.Z)
+		require.LessOrEqual(t, nearestVertex(outline, pt), tol, "%s: no outline vertex near (%.3f, %.3f)", name, pt.X, pt.Z)
 	}
 }
 
-// TestTailAndSocketShareProfile requires the tail's four corners on the tail's host and the same four on the socket's
-// host, so the two halves come from one set of parameters at nominal size.
+// requireOutlineLacks requires the section outline at mid-length to have no vertex within clear of any point.
+func requireOutlineLacks(t *testing.T, ctx context.Context, name string, body *decad.Body, length float64, pts []r3.Vec, clear float64) {
+	t.Helper()
+	outline, err := cornercheck.Outline(ctx, body, r3.Vec{Y: 1}, length/2)
+	require.NoError(t, err)
+	for _, pt := range pts {
+		require.Greater(t, nearestVertex(outline, pt), clear, "%s: outline vertex at sharp corner (%.3f, %.3f)", name, pt.X, pt.Z)
+	}
+}
+
+func nearestVertex(outline cornercheck.SectionOutline, pt r3.Vec) float64 {
+	least := math.Inf(1)
+	for _, loop := range outline.Loops {
+		for _, v := range loop {
+			least = math.Min(least, math.Hypot(v.X-pt.X, v.Z-pt.Z))
+		}
+	}
+	return least
+}
+
+// TestTailAndSocketShareProfile requires the tail's concave neck corners and the socket's concave floor corners to stay
+// sharp at nominal size, and the tail's wide-end corners and the socket's lips to carry the chamfer.
 func TestTailAndSocketShareProfile(t *testing.T) {
 	for name, p := range cases() {
 		t.Run(name, func(t *testing.T) {
@@ -151,9 +182,64 @@ func TestTailAndSocketShareProfile(t *testing.T) {
 				s = -1
 			}
 			neck, wide := profileCorners(p, s)
-			pts := []r3.Vec{neck[0], neck[1], wide[0], wide[1]}
-			requireOutlineHas(t, t.Context(), "tail host", d.TailBlock, p.Length, pts, 0.02)
-			requireOutlineHas(t, t.Context(), "socket host", d.SocketBlock, p.Length, pts, 0.02)
+			tailChamfer, socketChamfer := chamferPoints(p, s)
+			ctx := t.Context()
+			// Tail block: sharp root (concave), chamfered wide end (convex).
+			requireOutlineHas(t, ctx, "tail block root", d.TailBlock, p.Length, neck[:], 0.02)
+			requireOutlineHas(t, ctx, "tail block chamfer", d.TailBlock, p.Length, tailChamfer, 0.02)
+			requireOutlineLacks(t, ctx, "tail block wide end", d.TailBlock, p.Length, wide[:], 0.1)
+			// Socket block: chamfered lips (convex), sharp floor corners (concave).
+			requireOutlineHas(t, ctx, "socket block floor", d.SocketBlock, p.Length, wide[:], 0.02)
+			requireOutlineHas(t, ctx, "socket block chamfer", d.SocketBlock, p.Length, socketChamfer, 0.02)
+			requireOutlineLacks(t, ctx, "socket block lip", d.SocketBlock, p.Length, neck[:], 0.1)
+		})
+	}
+}
+
+// edgeAlongV reports whether body has a straight edge along V through (u, n) in the demo frame, from V = 0 to length.
+func edgeAlongV(body *decad.Body, pt r3.Vec, length float64) bool {
+	const tol = 1e-4
+	at := func(v r3.Vec, y float64) bool {
+		return math.Abs(v.X-pt.X) < tol && math.Abs(v.Z-pt.Z) < tol && math.Abs(v.Y-y) < tol
+	}
+	for _, e := range body.Edges() {
+		a, b := e.Start().Position().Value, e.End().Position().Value
+		if at(a, 0) && at(b, length) || at(a, length) && at(b, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// TestConvexEdgesChamferedConcaveSharp reads the edges of each block: no straight edge stays at a convex joint corner,
+// one stands at each chamfer's two ends, and the concave corners keep their edges.
+func TestConvexEdgesChamferedConcaveSharp(t *testing.T) {
+	for name, p := range cases() {
+		t.Run(name, func(t *testing.T) {
+			_, d := build(t, p)
+			s := 1.0
+			if p.TailOn == dovetail.TailOnSecond {
+				s = -1
+			}
+			neck, wide := profileCorners(p, s)
+			tailChamfer, socketChamfer := chamferPoints(p, s)
+			for _, c := range []struct {
+				what  string
+				body  *decad.Body
+				pts   []r3.Vec
+				found bool
+			}{
+				{"tail block concave root", d.TailBlock, neck[:], true},
+				{"tail block convex wide end", d.TailBlock, wide[:], false},
+				{"tail block chamfer ends", d.TailBlock, tailChamfer, true},
+				{"socket block concave floor", d.SocketBlock, wide[:], true},
+				{"socket block convex lip", d.SocketBlock, neck[:], false},
+				{"socket block chamfer ends", d.SocketBlock, socketChamfer, true},
+			} {
+				for _, pt := range c.pts {
+					require.Equal(t, c.found, edgeAlongV(c.body, pt, p.Length), "%s at (%.3f, %.3f)", c.what, pt.X, pt.Z)
+				}
+			}
 		})
 	}
 }
@@ -238,9 +324,8 @@ func TestBodyContainers(t *testing.T) {
 }
 
 // TestCorners applies "Corners and roots" to each block, printed with the slide direction up so the profile lies in
-// every layer. The only sharp corners are the two mating pairs listed in instructions.md: the tail's root corners
-// against the socket's lips (the lips are 80 degree outward corners, which the rule allows), and the socket's floor
-// corners against the tail's wide-end corners.
+// every layer. The only sharp corners are the two concave pairs listed in instructions.md: the tail's root corners and
+// the socket's floor corners. The convex corners, the tail's wide end and the socket's lips, carry the chamfer.
 func TestCorners(t *testing.T) {
 	axis := r3.Vec{Y: 1}
 	for name, p := range cases() {
@@ -333,14 +418,15 @@ func TestApplyAtAnotherFrame(t *testing.T) {
 			for _, s := range j.Sketches() {
 				requireFullyConstrained(t, "joint profile", s)
 			}
-			tailArea := (p.TailWidth + p.TipWidth()) / 2 * p.Depth
+			area := (p.TailWidth + p.TipWidth()) / 2 * p.Depth
 			blank := w * p.Length * h
 			tailV, err := j.TailBody(p).Volume()
 			require.NoError(t, err)
 			socketV, err := j.SocketBody(p).Volume()
 			require.NoError(t, err)
-			require.InDelta(t, blank+tailArea*p.Length, tailV.Value.Base(), tailV.Bound.Base()+1e-6)
-			require.InDelta(t, blank-tailArea*p.Length, socketV.Value.Base(), socketV.Bound.Base()+1e-6)
+			require.InDelta(t, blank+(area-2*p.ChamferCut())*p.Length, tailV.Value.Base(),
+				tailV.Bound.Base()+1e-6)
+			require.InDelta(t, blank-(area+2*p.ChamferCut())*p.Length, socketV.Value.Base(), socketV.Bound.Base()+1e-6)
 			// The joint starts at world x = 5 and runs toward -X.
 			box, err := j.First.Bounds()
 			require.NoError(t, err)

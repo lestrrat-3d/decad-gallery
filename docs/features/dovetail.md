@@ -18,7 +18,9 @@ as `decad.Union` and `decad.Cut` do, and returns a `Joint` with the finished `Fi
 sketches in `TailSketch` and `SocketSketch`, `Sketches()`, `TailBody(p)` and `SocketBody(p)`.
 
 Both profile sketches come from one function and are verified fully constrained before they are extruded. The halves
-are built at exact nominal size with no clearance. The sketch, the tool bodies and the corner rules are in
+are built at exact nominal size with no clearance. `Apply` then chamfers the convex joint edges with `decad.Chamfer` at
+`ChamferSize` (0.5 mm): the tail's two wide-end edges before the join, and the socket host's two lip edges after the
+cut. The concave edges stay sharp. `Params.ChamferCut()` gives the profile area one chamfer removes. The sketch, the tool bodies and the corner rules are in
 [instructions.md](../../features/dovetail/instructions.md) and [steps.md](../../features/dovetail/steps.md).
 
 `BuildDemo(ctx, doc, p)` builds two blocks, each `TipWidth + 8` wide, `Length` long and `Depth + 4` tall, at the world
@@ -42,12 +44,14 @@ The tests run the demo for six cases: the defaults, the tail on the second block
 smallest joint and a large joint. For each case they check:
 
 - All four demo sketches are fully constrained with DOF 0, no redundant constraints and no conflicts.
-- The bounds of each block, and that the tail adds exactly the volume the socket removes.
-- A section at mid-length has a vertex at each of the profile's four corners on both blocks.
+- The bounds of each block, and the volumes: the tail adds its profile less two chamfers and the socket removes its
+  profile plus two chamfers.
+- A section at mid-length has a vertex at each sharp concave corner and at each chamfer end, and none at the chamfered
+  convex corners. Straight edges along the slide direction stand at the same places.
 - `meshgap` reports the halves touch with no gap, and decad's `LocatePoint` finds no point inside both blocks.
 - A block moved along the slide direction by `Length` + 1 clears the other by at least 0.5 mm.
 - The container names and membership, and `doc.VerifyContainers()`.
-- `cornercheck.Check` with the slide direction as the print axis finds only the mating corners listed in
+- `cornercheck.Check` with the slide direction as the print axis finds only the sharp concave corners listed in
   `instructions.md`.
 
 They also check `Apply` at a frame turned and moved from the world axes, the refusal of hosts that do not fit and the

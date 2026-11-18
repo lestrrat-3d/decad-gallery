@@ -9,6 +9,10 @@ sliding dovetail. It adds a tapered tail to one host body and cuts a socket of t
 two slide together along one direction and cannot be pulled apart across it. Both halves are built from one set of
 parameters, so they match exactly.
 
+The tail's two wide-end corners and the socket's two lips are chamfered 0.5 mm along the whole joint. The two
+concave corners of each half stay sharp, so a chamfer meeting a sharp mate leaves only a small void and the flanks
+still touch.
+
 The halves are built at exact nominal size. The tail and the socket touch with no gap, so a printed pair needs a fit
 clearance before it will slide. The clearance is defined separately and is not part of this feature yet.
 
@@ -19,7 +23,7 @@ joint length (16 mm), the depth (6 mm) and which block carries the tail.
 
 ## Demo blocks
 
-The demo joins two plain blocks, which are test fixtures and not printed parts. Each is 20.1 mm wide, 16 mm long and
+The demo joins two plain blocks, which are test fixtures and not printed parts. Their own edges have no chamfer. Each is 20.1 mm wide, 16 mm long and
 10 mm tall at the defaults. The tail rises 6 mm from the first block into the second, which is the tail's socket.
 
 | Block | Image | Holds |
@@ -29,7 +33,8 @@ The demo joins two plain blocks, which are test fixtures and not printed parts. 
 
 ## Views
 
-The end view looks along the slide direction at the dovetail profile.
+The end view looks along the slide direction at the dovetail profile, with the four chamfers at the tail's wide end
+and the socket's lips.
 
 ![End of the joint](images/end.png)
 
