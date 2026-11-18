@@ -4,6 +4,8 @@
 | --- | --- |
 | `models/<name>/` | One shape, pattern, or assembly per directory. |
 | `models/README.md` | The gallery index with one row per model. |
+| `features/<name>/` | One reusable shape per directory that cuts or adds material on other items' parts, such as a joint. See [features](features.md). |
+| `features/README.md` | The index with one row per feature. |
 | `docs/` | Developer documentation: [adding a model](adding-models.md), the [build pipeline](model-pipeline.md), the [renderer](rendering.md), and one page per model package under `docs/models/`. |
 | `tools/render/` | Builds model images from Decad bodies. |
 | `AGENTS.md` | Instructions for coding agents working on models. |

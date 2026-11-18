@@ -1,5 +1,8 @@
 # Adding a model
 
+A reusable shape that makes no part of its own, such as a dovetail joint, is a feature. Follow
+[Features](features.md) for it instead of this page.
+
 Put each shape, pattern, or assembly in `models/<name>/`. Give each item a `README.md` for visitors to
 the gallery: what the model is, what it looks like, and what a user can vary. Describe its Go API,
 build command, geometry checks, and any other items it uses in `docs/models/<name>.md`. Keep

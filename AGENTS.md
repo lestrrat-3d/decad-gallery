@@ -16,6 +16,13 @@
 - Treat this repository's decad construction as the source for downstream ports.
 - Keep Fusion Python add-in code and its packaging in `fusion360-gear-generator`.
 
+## Features
+
+- Put a reusable shape that only cuts or adds material on parts other items own in `features/<name>/`, for example
+  joinery. Put anything that makes bodies of its own in `models/<name>/`. See [Features](docs/features.md).
+- Give each feature a demo build, tests, images, and a `features/README.md` row. Never list a feature in `models/README.md`.
+- Apply every rule in this file that says "model" to features too, except the root `README.md` and gallery hero image rules.
+
 ## Sketch constraints
 
 - Verify every model Sketch before its geometry is consumed or the build returns.
