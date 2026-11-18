@@ -11,7 +11,7 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// The default dovetail demo: two blocks 20.1 mm wide, 16 mm long along Y and 10 mm tall, the first below z = 0 and the
+// The default dovetail demo: two blocks 21.5 mm wide, 16 mm long along Y and 10 mm tall, the first below z = 0 and the
 // second above it, the tail on the first block rising 6 mm into the second. The slide direction is +Y.
 var dovetailCameras = map[string]solidlens.Camera{
 	"hero":     {Position: solidlens.Vec{X: 38, Y: -42, Z: 30}, Target: solidlens.Vec{Y: 8}, Up: solidlens.Vec{Z: 1}, FOV: 30},
