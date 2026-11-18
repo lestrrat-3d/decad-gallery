@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/r3"
 )
 
@@ -54,11 +55,31 @@ const (
 	RootRadius    = 4.0 // r_r: round at the lip root and back-rest root on the base top
 	CornerRadius  = 2.0 // r_c: round at the base's four outer corners
 	FrontFlat     = 5.0 // F: least flat run of the base top in front of the lip root
-	BackFlat      = 5.0 // B: least flat run of the base top behind the back-rest root
 
-	StandWidthRatio = 0.6 // stand width as a share of plaque width
-	MinStandWidth   = 120.0
-	MaxStandWidth   = 200.0
+	BracketWidth = 20.0 // w_b: each bracket's extent along X
+	SpanRatio    = 0.8  // span (outer face to outer face) as a share of plaque width
+	MinSpan      = 120.0
+	// MaxSpan keeps the rail on a bed of BedSize with BedMargin free on each side.
+	MaxSpan = BedSize - 2*BedMargin
+
+	RailWidth  = 10.0 // w_r: rail cross-section width
+	RailHeight = 4.0  // h_r: rail cross-section height
+	RailRound  = 1.0  // r_q: round of the rail section's four corners
+	// RegularFit is the Regular class minimum clearance and JointFit adds FitMargin: the rail-to-channel gap on the
+	// walls and the floor.
+	RegularFit = 0.35
+	JointFit   = RegularFit + FitMargin
+	// ChannelMouthRound is r_m: the convex round where a channel wall meets the base top.
+	ChannelMouthRound = 1.0
+	// ChannelLand is the least flat base top in front of the channel (the front land).
+	ChannelLand = 2.0
+	// RearLand is the flat base top behind the channel. A shorter land leaves the profile sketch's constraint system
+	// too close to singular for sketch's conditioning check.
+	RearLand = 8.0
+	// BoltLength is the M2 bolt length, one of m2bolt.StandardLengths().
+	BoltLength = 6.0
+	// NutPocketRound rounds the hex pocket's floor outline.
+	NutPocketRound  = 0.6
 	BackHeightRatio = 0.2 // back rest height as a share of plaque height
 	MinBackHeight   = 30.0
 	MaxBackHeight   = 60.0
@@ -105,10 +126,19 @@ func DefaultParams() Params {
 }
 
 // Dimensions are the values Derive computes from Params, in mm and degrees. Every point is (y, z) on the plane x = 0,
-// stored as r3.Vec{Y, Z}. Symbols: W, H, t, c, θ from Params; T_b, L_t, B_t, r_r, r_c, F, B, φ, e from the constants.
+// stored as r3.Vec{Y, Z}. Symbols: W, H, t, c, θ from Params; T_b, L_t, B_t, r_r, r_c, F, φ, e from the constants.
 type Dimensions struct {
-	// StandWidth is W_s: clamp(StandWidthRatio·W, MinStandWidth, MaxStandWidth).
-	StandWidth float64
+	// Span is S: clamp(SpanRatio·W, MinSpan, MaxSpan), the distance between the brackets' outer faces and the rail's
+	// length.
+	Span float64
+	// ChannelWidth and ChannelHeight are w_c = RailWidth + 2·JointFit and h_c = RailHeight.
+	ChannelWidth, ChannelHeight float64
+	// ChannelBack, ChannelFront and ChannelFloor are the channel's back wall y = D − r_c − RearLand − r_m, front wall
+	// y = ChannelBack − w_c, and floor z = T_b − h_c. RailCenter is y_ch = (ChannelBack + ChannelFront)/2.
+	ChannelBack, ChannelFront, ChannelFloor, RailCenter float64
+	// Sites are the two bolts, one per bracket, in the local frame: Head (x_k + w_b/2, y_ch, T_b + JointFit), Dir −Z,
+	// Corner +X, Length BoltLength, Cavity 6.4.
+	Sites [2]m2fastener.Site
 	// BackHeight is H_b: clamp(BackHeightRatio·H, MinBackHeight, MaxBackHeight).
 	BackHeight float64
 	// SlotWidth is s: t + 2c.
@@ -132,10 +162,10 @@ type Dimensions struct {
 	// PlayAngle is α in degrees: atan(2c / h_b), the plaque's lean inside the slot clearance.
 	PlayAngle float64
 	// TipFront = atan((G_f.y - r_c)/G_f.z), TipBack = atan((D - r_c - G_b.y)/G_b.z) and
-	// TipSide = atan((W_s/2 - e)/G_f.z) are the tilt angles in degrees at which the assembly tips forward, backward and
+	// TipSide = atan((S/2 - e)/G_f.z) are the tilt angles in degrees at which the assembly tips forward, backward and
 	// sideways.
 	TipFront, TipBack, TipSide float64
-	// Outline is the stand's side profile.
+	// Outline is a bracket's side profile.
 	Outline Outline
 }
 
@@ -187,7 +217,7 @@ func (p Params) Derive() (Dimensions, error) {
 	tanPhi := math.Tan(rad(MinTipAngle))
 
 	var dm Dimensions
-	dm.StandWidth = clamp(StandWidthRatio*W, MinStandWidth, MaxStandWidth)
+	dm.Span = clamp(SpanRatio*W, MinSpan, MaxSpan)
 	dm.BackHeight = clamp(BackHeightRatio*H, MinBackHeight, MaxBackHeight)
 	dm.SlotWidth = t + 2*c
 	dm.SlotRadius = dm.SlotWidth / 2
@@ -214,13 +244,14 @@ func (p Params) Derive() (Dimensions, error) {
 	q3y := Cy + (R+Bt)*cT + l3*sT
 	gfy, gfz := Cy+(H/2)*math.Sin(thetaF), Cz+(H/2)*math.Cos(thetaF)
 	gby, gbz := Cy+(H/2)*math.Sin(thetaB), Cz+(H/2)*math.Cos(thetaB)
-	dGeom := q3y + rr*kb + BackFlat + rc
+	wc := RailWidth + 2*JointFit
+	dGeom := q3y + rr*kb + ChannelLand + 2*ChannelMouthRound + wc + RearLand + rc
 	dStab := rc + gby + gbz*tanPhi
 	dm.Depth = math.Ceil(math.Max(dGeom, dStab))
 
 	dm.TipFront = deg(math.Atan((gfy - rc) / gfz))
 	dm.TipBack = deg(math.Atan((dm.Depth - rc - gby) / gbz))
-	dm.TipSide = deg(math.Atan((dm.StandWidth/2 - e) / gfz))
+	dm.TipSide = deg(math.Atan((dm.Span/2 - e) / gfz))
 
 	n, u := dm.Normal, dm.Axis
 	c4 := r3.Vec{Y: Cy, Z: Cz}.Add(n.Scale(R + Bt/2)).Add(u.Scale(dm.BackWall))
@@ -230,9 +261,9 @@ func (p Params) Derive() (Dimensions, error) {
 	switch {
 	case dm.TipSide < MinTipAngle:
 		return Dimensions{}, fmt.Errorf("plaquestand: side tip angle %.2f degrees is under %g", dm.TipSide, MinTipAngle)
-	case dm.StandWidth > maxExtent:
-		return Dimensions{}, fmt.Errorf("plaquestand: stand width extent %.1f mm exceeds the %g mm print limit",
-			dm.StandWidth, maxExtent)
+	case dm.Span > maxExtent:
+		return Dimensions{}, fmt.Errorf("plaquestand: rail length %.1f mm exceeds the %g mm print limit",
+			dm.Span, maxExtent)
 	case dm.Depth > maxExtent:
 		return Dimensions{}, fmt.Errorf("plaquestand: stand depth extent %.1f mm exceeds the %g mm print limit",
 			dm.Depth, maxExtent)
@@ -241,9 +272,24 @@ func (p Params) Derive() (Dimensions, error) {
 			dm.Height, maxExtent)
 	}
 
+	dm.ChannelWidth, dm.ChannelHeight = wc, RailHeight
+	dm.ChannelBack = dm.Depth - rc - RearLand - ChannelMouthRound
+	dm.ChannelFront = dm.ChannelBack - wc
+	dm.ChannelFloor = Tb - RailHeight
+	dm.RailCenter = (dm.ChannelBack + dm.ChannelFront) / 2
+	for k := range dm.Sites {
+		x := BracketWidth / 2
+		if k == 1 {
+			x = dm.Span - BracketWidth/2
+		}
+		dm.Sites[k] = m2fastener.Site{Head: r3.Vec{X: x, Y: dm.RailCenter, Z: Tb + JointFit}, Dir: r3.Vec{Z: -1},
+			Corner: r3.Vec{X: 1}, Length: BoltLength, Cavity: 6 + JointFit}
+	}
+
 	dm.Outline = buildOutline(outlineInput{
 		depth: dm.Depth, seat: dm.Seat, radius: R, backWall: dm.BackWall, lipWall: dm.LipWall,
 		axis: u, normal: n, q3y: q3y, q7y: q7y, kf: kf, kb: kb,
+		channelBack: dm.ChannelBack, channelFront: dm.ChannelFront, channelFloor: dm.ChannelFloor,
 	})
 	return dm, nil
 }

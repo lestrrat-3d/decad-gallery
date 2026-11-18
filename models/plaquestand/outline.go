@@ -30,7 +30,7 @@ func (s Segment) Sweep() float64 {
 	return 2 * math.Asin(math.Min(1, s.End.Sub(s.Start).Len()/(2*s.Radius)))
 }
 
-// Outline is the stand's closed side profile: nine lines alternating with nine tangent arcs, starting with a line.
+// Outline is a bracket's closed side profile: 13 lines alternating with 13 tangent arcs, starting with a line.
 type Outline []Segment
 
 // Area returns the outline's area in mm²: the shoelace sum over every segment's chord, plus (r²/2)(φ − sin φ) for each
@@ -70,19 +70,23 @@ func (o Outline) Length() float64 {
 type outlineInput struct {
 	depth, radius, backWall, lipWall float64
 	seat, axis, normal               r3.Vec
+	// channelBack, channelFront and channelFloor are the rail channel's back wall y, front wall y and floor z.
+	channelBack, channelFront, channelFloor float64
 	// q3y and q7y are where the back rest's back line and the lip's front line meet the base top (z = BaseThickness).
 	q3y, q7y float64
 	// kf and kb are the tangent lengths per unit root radius at the lip root and the back-rest root.
 	kf, kb float64
 }
 
-// buildOutline returns the 18 segments of the stand's profile, in order, as the design lists them.
+// buildOutline returns the 26 segments of a bracket's profile, in order, as instructions.md lists them.
 func buildOutline(in outlineInput) Outline {
 	const (
 		tb, lt, bt = BaseThickness, LipThickness, BackThickness
 		rr, rc     = RootRadius, CornerRadius
 	)
 	D, R := in.depth, in.radius
+	const rm, rf = ChannelMouthRound, RailRound + JointFit
+	ycb, ycf, zf := in.channelBack, in.channelFront, in.channelFloor
 	// at returns the point P(a, b) = C + a·n + b·u.
 	at := func(a, b float64) r3.Vec { return in.seat.Add(in.normal.Scale(a)).Add(in.axis.Scale(b)) }
 	v := func(y, z float64) r3.Vec { return r3.Vec{Y: y, Z: z} }
@@ -101,7 +105,15 @@ func buildOutline(in outlineInput) Outline {
 		arc(v(D-rc, 0), v(D, rc), v(D-rc, rc), rc, true),
 		line(v(D, rc), v(D, tb-rc)),
 		arc(v(D, tb-rc), v(D-rc, tb), v(D-rc, tb-rc), rc, true),
-		line(v(D-rc, tb), backFoot),
+		line(v(D-rc, tb), v(ycb+rm, tb)),
+		arc(v(ycb+rm, tb), v(ycb, tb-rm), v(ycb+rm, tb-rm), rm, true),
+		line(v(ycb, tb-rm), v(ycb, zf+rf)),
+		arc(v(ycb, zf+rf), v(ycb-rf, zf), v(ycb-rf, zf+rf), rf, false),
+		line(v(ycb-rf, zf), v(ycf+rf, zf)),
+		arc(v(ycf+rf, zf), v(ycf, zf+rf), v(ycf+rf, zf+rf), rf, false),
+		line(v(ycf, zf+rf), v(ycf, tb-rm)),
+		arc(v(ycf, tb-rm), v(ycf-rm, tb), v(ycf-rm, tb-rm), rm, true),
+		line(v(ycf-rm, tb), backFoot),
 		arc(backFoot, backTan, v(in.q3y+rr*in.kb, tb+rr), rr, false),
 		line(backTan, at(R+bt, in.backWall)),
 		arc(at(R+bt, in.backWall), at(R, in.backWall), at(R+bt/2, in.backWall), bt/2, true),

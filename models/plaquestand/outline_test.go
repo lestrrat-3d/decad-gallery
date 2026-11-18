@@ -9,13 +9,13 @@ import (
 
 func TestPlaqueStandOutlineCases(t *testing.T) {
 	const tol = 1e-9
-	concave := map[int]bool{5: true, 9: true, 13: true}
+	concave := map[int]bool{7: true, 9: true, 13: true, 17: true, 21: true}
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.params.Derive()
 			require.NoError(t, err)
 			o := dm.Outline
-			require.Len(t, o, 18)
+			require.Len(t, o, 26)
 
 			convex, concaveSweep := 0.0, 0.0
 			for i, s := range o {

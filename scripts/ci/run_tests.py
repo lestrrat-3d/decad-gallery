@@ -167,6 +167,8 @@ MODEL_PR_TESTS = [
     "TestPlaqueStandClearance",
     "TestPlaqueStandStability",
     "TestPlaqueStandCorners",
+    "TestPlaqueStandRailFit",
+    "TestPlaqueStandFasteners",
 ]
 
 BEVEL_FULL_TESTS = [
