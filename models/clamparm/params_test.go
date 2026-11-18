@@ -277,3 +277,41 @@ func TestClampArmParamsScrewTip(t *testing.T) {
 		require.InDelta(t, 73.5, d.ScrewSite.Tip(), derivedTol, "opening %g", o)
 	}
 }
+
+// requireNoResidue requires that every entry of v within 1e-9 of 0 or of an integer is exactly it.
+func requireNoResidue(t *testing.T, what string, v r3.Vec) {
+	t.Helper()
+	for i, x := range []float64{v.X, v.Y, v.Z} {
+		near := math.Round(x)
+		if math.Abs(x-near) < derivedTol {
+			require.Equal(t, near, x, "%s entry %d is a rounding residue", what, i)
+		}
+	}
+}
+
+// TestClampArmParamsDefaultPoseExact requires the default pose's head, interface, stud knob and adapter nut frames and
+// their transforms to carry no rounding residue: a level head (70 - 90 + 20) is the identity rotation.
+func TestClampArmParamsDefaultPoseExact(t *testing.T) {
+	d, err := clamparm.DefaultParams().Derive()
+	require.NoError(t, err)
+	frames := map[string]r3.Frame{
+		"Head": d.Head, "Interface": d.Interface, "StudKnob": d.ScrewKnobFrames[1], "AdapterNut": d.AdapterNutFrame,
+	}
+	for name, f := range frames {
+		t.Run(name, func(t *testing.T) {
+			requireNoResidue(t, "origin", f.Origin())
+			requireNoResidue(t, "U", f.U())
+			requireNoResidue(t, "V", f.V())
+			xf, err := r3.FromFrame(f)
+			require.NoError(t, err)
+			b := xf.Basis()
+			requireNoResidue(t, "EX", b.EX)
+			requireNoResidue(t, "EY", b.EY)
+			requireNoResidue(t, "EZ", b.EZ)
+			requireNoResidue(t, "translation", xf.Translation())
+		})
+	}
+	// The level head's axes are exactly the world axes.
+	require.Equal(t, r3.NewVec(1, 0, 0), d.Head.U())
+	require.Equal(t, r3.NewVec(0, 1, 0), d.Head.V())
+}
