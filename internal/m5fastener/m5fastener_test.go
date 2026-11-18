@@ -7,6 +7,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -114,17 +115,18 @@ func TestPocketTools(t *testing.T) {
 		name   string
 		radius float64
 		depth  float64
+		round  float64
 		build  tool
 	}{
-		{"head", m5fastener.HeadPocketRadius, m5fastener.HeadPocketDepth,
+		{"head", m5fastener.HeadPocketRadius, m5fastener.HeadPocketDepth, m5fastener.PocketRound,
 			func(d *decad.Document, f r3.Frame) (*decad.Body, *sketch.Sketch, error) {
 				return m5fastener.HeadPocketTool(ctx, d, f)
 			}},
-		{"nut", m5fastener.NutPocketRadius, m5fastener.NutCavityHeight,
+		{"nut", m5fastener.NutPocketRadius, m5fastener.NutCavityHeight, m5fastener.PocketRound,
 			func(d *decad.Document, f r3.Frame) (*decad.Body, *sketch.Sketch, error) {
 				return m5fastener.NutPocketTool(ctx, d, f, m5fastener.NutCavityHeight)
 			}},
-		{"press", m5fastener.PressPocketRadius, m5fastener.HeadPocketDepth,
+		{"press", m5fastener.PressPocketRadius, m5fastener.HeadPocketDepth, m5fastener.PressPocketRound,
 			func(d *decad.Document, f r3.Frame) (*decad.Body, *sketch.Sketch, error) {
 				return m5fastener.PressPocketTool(ctx, d, f)
 			}},
@@ -150,13 +152,33 @@ func TestPocketTools(t *testing.T) {
 			require.Greater(t, volume(t, cut), 0.0)
 			removed := before - volume(t, cut)
 			prism := 3 * math.Sqrt(3) / 2 * tc.radius * tc.radius * tc.depth
-			// The floor round takes a ring off the prism's lower edge: less than a 0.6 mm square section round the
+			// The floor round takes a ring off the prism's lower edge: less than a square section of the pocket's round round the
 			// hexagon's perimeter (6*radius), more than a tenth of that.
-			ring := 6 * tc.radius * m5fastener.PocketRound * m5fastener.PocketRound
+			ring := 6 * tc.radius * tc.round * tc.round
 			require.Less(t, removed, prism-ring/10, "floor is rounded")
 			require.Greater(t, removed, prism-ring, "floor round is bounded")
 		})
 	}
+}
+
+// TestPressPocketRoundClearsHeadChamfer checks, from the dimensions alone, that the bolt head's 30 degree chamfer
+// clears the press pocket's floor round at the flats: no point of the head's underside lies inside the round.
+func TestPressPocketRoundClearsHeadChamfer(t *testing.T) {
+	apothem := m5fastener.PressPocketRadius * math.Sqrt(3) / 2
+	round := m5fastener.PressPocketRound
+	headFlat := m5bolt.AcrossFlats / 2
+	start := m5bolt.BearingDiameter / 2
+	slope := math.Tan(30 * math.Pi / 180)
+	require.Greater(t, apothem, headFlat, "head fits the flats")
+	center := apothem - round // radial position where the round meets the floor
+	minGap := math.Inf(1)
+	for rho := center; rho <= headFlat; rho += 1e-4 {
+		d := rho - center
+		floorZ := round - math.Sqrt(round*round-d*d) // round's surface above the floor
+		headZ := math.Max(0, slope*(rho-start))      // chamfer's underside above the floor
+		minGap = math.Min(minGap, headZ-floorZ)
+	}
+	require.GreaterOrEqual(t, minGap, 0.0, "head chamfer clears the floor round at mid-flat")
 }
 
 func TestRoundedSocketTool(t *testing.T) {
