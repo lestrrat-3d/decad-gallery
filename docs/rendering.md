@@ -39,6 +39,13 @@ The `readme` shot writes all of them.
 `m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
 The `readme` shot writes all of them.
 
+`m5bolt/hero` renders the default M5x25 bolt lying on its side with its head toward the camera.
+The `head`, `side` and `lengths` presets show other angles and all eleven standard lengths.
+The `readme` shot writes all of them and the index image.
+
+`m5nut/hero` renders the M5 nut. The `top`, `side` and `withbolt` presets show other angles and the nut on an M5x25 bolt.
+The `readme` shot writes all of them and the index image.
+
 `spiralspring/hero` renders the default spring lying flat with its axis up. The `top`, `low`, `root` and `sizes`
 presets show the spiral from above, the underside, a close-up of the hub and spoke, and three springs of
 different sizes. The `readme` shot writes all of them and the index image:

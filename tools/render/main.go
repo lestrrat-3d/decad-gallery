@@ -39,6 +39,14 @@ var presets = map[string]preset{
 	"m2bolt/side":                   {width: 1600, height: 900, scene: m2BoltViewScene("side")},
 	"m2bolt/underside":              {width: 1600, height: 900, scene: m2BoltViewScene("underside")},
 	"m2bolt/lengths":                {width: 1600, height: 900, scene: m2BoltViewScene("lengths")},
+	"m5bolt/hero":                   {width: 1600, height: 900, scene: m5BoltHero},
+	"m5bolt/head":                   {width: 1600, height: 900, scene: m5BoltViewScene("head")},
+	"m5bolt/side":                   {width: 1600, height: 900, scene: m5BoltViewScene("side")},
+	"m5bolt/lengths":                {width: 1600, height: 900, scene: m5BoltViewScene("lengths")},
+	"m5nut/hero":                    {width: 1600, height: 900, scene: m5NutHero},
+	"m5nut/top":                     {width: 1600, height: 900, scene: m5NutViewScene("top")},
+	"m5nut/side":                    {width: 1600, height: 900, scene: m5NutViewScene("side")},
+	"m5nut/withbolt":                {width: 1600, height: 900, scene: m5NutViewScene("withbolt")},
 	"crankhandle/hero":              {width: 1600, height: 900, scene: crankHandleHero},
 	"crankhandle/back":              {width: 1600, height: 900, scene: crankHandleViewScene("back")},
 	"crankhandle/side":              {width: 1600, height: 900, scene: crankHandleViewScene("side")},
@@ -261,6 +269,12 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "m2bolt" {
 		return renderM2BoltReadme(ctx, outputDir)
+	}
+	if model == "m5bolt" {
+		return renderM5BoltReadme(ctx, outputDir)
+	}
+	if model == "m5nut" {
+		return renderM5NutReadme(ctx, outputDir)
 	}
 	if model == "spiralspring" {
 		return renderSpiralSpringReadme(ctx, outputDir)

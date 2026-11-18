@@ -53,4 +53,3 @@ Every face stays exact: six flats, two bearing faces, two cones and the bore.
 Check the default build's bounds, its volume against an independent integral of the chamfers, its face kinds
 (8 planes, 2 cones, 1 cylinder, 11 faces), `VerifyAll` tessellation and the full constraint of all three sketches.
 Check that the bore equals the M5 bolt's shank diameter, a placed nut and invalid inputs.
-This change adds no image, README or `models/README.md` row for the nut; a later task does.

@@ -64,4 +64,3 @@ constraints between neighboring points.
 Check the default build's bounds, its volume against an independent integral (head, shank, tip chamfer),
 `VerifyAll` tessellation and the full constraint of both sketches.
 Check every standard length, a length between them, a placed bolt, invalid inputs and the unchanged document.
-This change adds no image, README or `models/README.md` row for the bolt; a later task does.
