@@ -22,6 +22,12 @@ CHECKS = {
     "bevel-pr": "bevelgear",
 }
 MODELS = set(CHECKS.values())
+REPOSITORY_ONLY_PATHS = {
+    "README.md",
+    "models/README.md",
+    "docs/images/gallery.png",
+    "scripts/check_repository.py",
+}
 
 
 def run(*args):
@@ -41,7 +47,7 @@ def changed_models(raw, known):
         if parts[1] != parts[0][1:] or parts[4] != "M":
             raise ValueError("addition, deletion, rename, or mode change")
         name = path.decode("utf-8")
-        if name == "docs/images/gallery.png":
+        if name in REPOSITORY_ONLY_PATHS:
             continue
         path_parts = name.split("/")
         if len(path_parts) < 3 or path_parts[0] != "models" or path_parts[1] not in known:
