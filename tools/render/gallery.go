@@ -24,16 +24,18 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other fourteen models in a grid beside it:
-// the three involute gears and the bevel gear pair across the top in four columns, then two rows of five. The planetary
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other fifteen models in a grid beside it:
+// the three involute gears, the bevel gear pair and the plaque stand across the top in five columns, then two rows of
+// five. The planetary
 // gearbox, cycloidal drive, hand-crank fan, hand-crank siren and escapement fill the middle row, and the Swiss lever
 // escapement, crank handle, one-way clutch, spiral spring and turbine fan the bottom row.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
-	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 300)},
-	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 300)},
-	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 300)},
-	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 300)},
+	{"spurgear", spurGearHero, image.Rect(560, 0, 768, 300)},
+	{"helicalgear", helicalGearHero, image.Rect(768, 0, 976, 300)},
+	{"herringbonegear", herringboneGearHero, image.Rect(976, 0, 1184, 300)},
+	{"bevelgear", bevelGearHero, image.Rect(1184, 0, 1392, 300)},
+	{"plaquestand", plaqueStandHero, image.Rect(1392, 0, 1600, 300)},
 	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 300, 768, 600)},
 	{"cycloidal", cycloidalHero, image.Rect(768, 300, 976, 600)},
 	{"handcrankfan", handCrankFanHero, image.Rect(976, 300, 1184, 600)},

@@ -126,6 +126,21 @@ func HexPocketTool(ctx context.Context, doc *decad.Document, s Site, depth float
 	return fastenertool.HexPrism(ctx, doc, f, NutCavityRadius, depth)
 }
 
+// RoundedHexPocketTool is HexPocketTool with the outline of the pocket's closed end (the tool's start cap, at Cavity)
+// rounded by round, so a layer section across a flat's edge reads a round, not a corner ("Corners and roots").
+func RoundedHexPocketTool(ctx context.Context, doc *decad.Document, s Site, depth, round float64) (*decad.Body,
+	*sketch.Sketch, error) {
+	tool, sk, err := HexPocketTool(ctx, doc, s, depth)
+	if err != nil {
+		return nil, nil, err
+	}
+	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(tool)))
+	if tool, err = decad.Fillet(ctx, tool, floor, units.Millimeters(round)); err != nil {
+		return nil, nil, fmt.Errorf("round hex pocket floor: %w", err)
+	}
+	return tool, sk, nil
+}
+
 // RoundRadius is the radius of the rounds RoundedHoleTool and RoundedCavityTool put on a tool's end corners, and
 // roundChords is the number of chords each round is drawn with. Eight chords of a 0.55 mm round turn 11.25° each,
 // 0.11 mm apart, so no 0.4 mm of a section through the line turns more than 45° ("Corners and roots" in

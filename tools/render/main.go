@@ -114,6 +114,19 @@ var presets = map[string]preset{
 	"herringbonegear/hero":          {width: 1600, height: 900, scene: herringboneGearHero},
 	"herringbonegear/top":           {width: 1600, height: 900, scene: herringboneGearTop},
 	"herringbonegear/low":           {width: 1600, height: 900, scene: herringboneGearLow},
+	"plaquestand/hero":              {width: 1600, height: 900, scene: plaqueStandHero},
+	"plaquestand/frame":             {width: 1600, height: 900, scene: plaqueStandViewScene("frame")},
+	"plaquestand/joint":             {width: 1600, height: 900, scene: plaqueStandViewScene("joint")},
+	"plaquestand/side":              {width: 1600, height: 900, scene: plaqueStandViewScene("side")},
+	"plaquestand/back":              {width: 1600, height: 900, scene: plaqueStandViewScene("back")},
+	"plaquestand/exploded":          {width: 1600, height: 900, scene: plaqueStandViewScene("exploded")},
+	"plaquestand/print":             {width: 1600, height: 900, scene: plaqueStandViewScene("print")},
+	"plaquestand/sizes":             {width: 1600, height: 900, scene: plaqueStandViewScene("sizes")},
+	"plaquestand/part-bracket":      {width: 1600, height: 900, scene: plaqueStandViewScene("part-bracket")},
+	"plaquestand/part-rail":         {width: 1600, height: 900, scene: plaqueStandViewScene("part-rail")},
+	"plaquestand/part-bolt":         {width: 1600, height: 900, scene: plaqueStandViewScene("part-bolt")},
+	"plaquestand/part-nut":          {width: 1600, height: 900, scene: plaqueStandViewScene("part-nut")},
+	"plaquestand/part-plaque":       {width: 1600, height: 900, scene: plaqueStandViewScene("part-plaque")},
 }
 
 func main() {
@@ -284,6 +297,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "turbinefan" {
 		return renderTurbineFanReadme(ctx, outputDir)
+	}
+	if model == "plaquestand" {
+		return renderPlaqueStandReadme(ctx, outputDir)
 	}
 	if model == "onewayclutch" {
 		return renderOneWayClutchReadme(ctx, outputDir)

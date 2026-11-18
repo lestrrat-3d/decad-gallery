@@ -63,6 +63,19 @@ across the clamp nuts' pockets at x = -7, and `cross-section` cuts the pin acros
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
+`plaquestand/hero` renders the default stand, blue, with the default plaque, grey, leaning in its slots, seen from the front
+left and above; the bolts and nuts use the crank handle's hardware colour. The `frame` preset shows the brackets, rail
+and hardware without the plaque, and `side` and `back` show everything from +X and from behind and above. `joint` cuts
+every body by the plane x = 10, through bracket 1's mid-plane and its bolt, removes the outer half and looks into the cut
+from -X. `exploded` pulls the parts apart: each nut 25 mm down and 30 mm outward along X, the rail 25 mm up, the bolts
+45 mm up and the plaque the back rest's height plus 80 mm along the slot axis. `print` lays bracket 1 twice on its x = 0
+face, the second one 10 mm behind the first, with the rail flat 10 mm in front. `sizes` stands the smallest (150 × 120 × 2 mm),
+the default and the largest (400 × 350 × 15 mm) plaque with their stands left to right, 40 mm between the plaques.
+`part-bracket`, `part-rail`, `part-bolt`, `part-nut` and `part-plaque` show each part alone. The `readme` shot builds the
+default stand once and the smallest and largest once each, and writes every image, the index image and the five 480 × 270
+part images in `parts/`:
+`go -C tools/render run . -model plaquestand -shot readme -out ../../models/plaquestand/images`.
+
 `onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
 +Z side removed, seen from the front and above, so the pawl heads in the ring's teeth, the arms and the back plate show, with the ring's
 three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
@@ -351,13 +364,13 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
 drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the Swiss lever escapement, the crank handle, the
-one-way clutch, the spiral spring and the turbine fan one after another. On a cache miss, it renders each model twice,
+one-way clutch, the spiral spring, the turbine fan and the plaque stand one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other fourteen models fill a grid beside it: four columns across the top (260 × 300 pixels each)
-and two rows of five below (208 × 300 pixels each). The three gears and the bevel gear pair are across the top. The
+(560 pixels wide). The other fifteen models fill a grid beside it: five columns across the top (208 × 300 pixels each)
+and two rows of five below (208 × 300 pixels each). The three gears, the bevel gear pair and the plaque stand are across the top. The
 planetary gearbox, cycloidal drive, fan, siren and Graham escapement are in the middle, and the Swiss lever escapement,
-crank handle, one-way clutch, spiral spring and turbine fan are across the bottom. Building all fifteen models takes
+crank handle, one-way clutch, spiral spring and turbine fan are across the bottom. Building all sixteen models takes
 several minutes plus the wheel
 build:
 
