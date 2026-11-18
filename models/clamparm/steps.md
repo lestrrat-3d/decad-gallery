@@ -378,3 +378,42 @@ z 0 to 15. `PrintUp` is (0, 0, 1): the mating face is on the bed.
    ends inside the pocket and never stands outside a face. This is a recorded departure from that rule.
 4. The chamfers that pass: the frame (44 edges), the pad (16), the link (8 on the Y caps, plus the tongue and fork
    faces in one call), the head (12 on the Y caps, plus the tongue faces) and the knobs (24) and the adapter (2).
+5. Assembly checks (decad 5a61e0681424): the overlap and fit checks meet the decad gaps below. Each is the smallest
+   real failing case, built from `clamparm.Build` at `DefaultParams` unless stated, with every body moved to the
+   document root (`TestClampArmFastenersNoOverlap` does the same). **These are decad gaps handed to the
+   coordinator.** Until decad fixes them, the fallback `asmMeshOverlap` in `fasteners_test.go` is the interim proof
+   of disjointness. It requires, for each refused pair, that no vertex of the hardware's mesh lies inside the part's
+   mesh, that no vertex of the part's mesh lies inside the hardware's mesh (a ray-parity test, deeper than 0.01 mm),
+   that sections normal to the hardware's axis at seven stations along it do not overlap, and that sections through
+   the axis at 0, 45, 90 and 135 degrees do not overlap (`SectionOutline` loops, as in `crankhandle`, tested by vertex
+   depth because `SectionClearance.Overlaps` reads true for outlines 0.3 mm apart where the plane meets a rim on a
+   rotated part). `TestClampArmFastenersMeshOverlapControl` shows that each of the four tests catches a bolt moved
+   0.6 mm and 0.35 mm (diagonal) off its hole in link A's tongue, and passes one moved 0.1 mm.
+   - J2 bolt against the swivel, refused in every case and both orders. `decad.Intersect(ctx, boltJ2, swivel)` (no
+     options) returns `not supported by the current evaluator: intersect's second operand holds its mesh, where this
+     pair meets, only within a bound of 0.010493700655164749 mm, coarser than this pair's chord tolerance
+     0.0019309860745953394 mm; a boolean takes no tolerance ...`. `Intersect(ctx, swivel, boltJ2)` returns the same
+     with "first operand". The swivel's held mesh (built by the J1 tongue cut, the J2 slot, hole and pocket cuts and
+     two chamfer calls) is 0.0105 mm coarser than the pair's chord tolerance.
+   - Operand-order dependence. `Intersect(ctx, boltJ1, frame)` returns `BooleanEmpty` (disjoint, as expected) and
+     `Intersect(ctx, frame, boltJ1)` returns `not supported by the current evaluator: the operands' held facets come
+     within the chord tolerance without provably interpenetrating deeper than it, so whether their true surfaces
+     touch or cross is decided by where the chords fall ...`. The same holds for the J3 bolt against link A, the J4
+     bolt against link B, the stud against the stud knob, the clamp screw against the screw knob, each knob nut
+     against its knob, the jaw nut against the frame and the adapter nut against the adapter. The checks ask with
+     the hardware first, then the part first.
+   - J4 bolt against link B in `long` (`LinkLength` 150): refused in both orders with the held-facets message
+     above (at `default` and `raised` the hardware-first order passes).
+   - J4 nut against knob J4 in `raised` (`Shoulder` 110, `Elbow` -70, `Wrist` -40): refused in both orders with the
+     held-facets message (at `default` the nut-first order passes).
+   - `Intersect` across containers: `Intersect(ctx, boltJ2, swivel)` on the model as built returns `decad:
+     operands sit in different containers: "/Bolts" and "/Swivel"`, and the same for `"/Bolts"` and `"/Frame"`.
+     The checks therefore intersect a second build whose bodies sit at the document root.
+   - `Body.DistanceToPoint` on placed bodies. On link A at `default`, `DistanceToPoint(ctx, p, tol)` for
+     `p = (100, 0, 27.36)` (0.3 mm outside its J2 tongue hole's wall) with `tol` 0.005 returns `requested tolerance
+     0.005 mm is below the faceted body's minimum mesh bound 0.0175 mm`; with `tol` 0.02 or 0.05 it returns 0.1588
+     mm, `Approximate`, error bound 0.1588 mm, so the result cannot tell 0.3 from 0.14. Bodies moved by `Transform`
+     (the placed case, and every body after a pose) hold meshes, and their bound runs from 0.05 to 0.23 mm. The fit
+     checks measure from `meshgap.Mesh.PointDistance` over a mesh tessellated as finely as the body allows instead.
+   - A bolt and its own nut are refused in both orders (the nut's bore is the shank, so the facets coincide), so that
+     pair is checked analytically (`TestClampArmFastenersBoltNutEngagement`).

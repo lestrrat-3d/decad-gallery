@@ -482,6 +482,20 @@ Print every part in the orientation its section states. The nuts go into their p
 - For each limit case below, build it and require the `meshgap` clearance between the two sides of that joint (all
   bodies proximal against all bodies distal, hardware included) to be at least 0.5. `shoulder-min` runs at `Opening`
   40, where the screw knob hangs lowest.
+- The tongue and its fork stand 0.26 apart by design (the Tight fit) at every angle, and a bolt stands 0.3 from its
+  holes, so the check leaves those mating features out, and only them, from the two printed parts that mate at the
+  joint (its fork part and its tongue part). It drops a mesh triangle only when it is one of:
+  - tongue part (J2 to J4): a face square to the axis at |y| 4, a chamfer of the tongue (|y| 3.5 to 4) or the hole
+    wall;
+  - fork part (J2 to J4): a fin's inner face (|y| 4.26), its chamfer (|y| 4.26 to 4.76) or a hole wall;
+  - J1: a face in the plane z 14, 14.26, 22.26 or 22.52, the swivel's chamfers along its two faces (z 14.26 to 14.76
+    and 21.76 to 22.26) or a J1 hole wall.
+
+  Each of these counts only within 30 mm of the joint's axis point (J1 has no limit, because its swivel rides over
+  the top jaw at the same 0.26 at every pan angle). Nothing else is left out. The check therefore measures the fold
+  band (the tongue shoulder at |y| 4.26, x 17.42, against the fins), the slot-end clearance of 0.85, the J1 gap-end
+  clearance of 0.6 and the fins' ends and outer faces, the knobs and the parts' full-width bodies. Each joint's bolt,
+  nut and knob count on its proximal side and keep every triangle.
 - A constant that fails is reduced in magnitude by whole degrees until it passes. Change it here and in `steps.md`
   first, then re-emit the Go. NEVER hand-edit emitted Go.
 - If `JointMax` would fall below 115, the default pose, `raised` and the folded render pose stay valid down to 115
@@ -510,10 +524,13 @@ Check every case above:
   each optional sketch;
 - 25 bodies, the container names and their members, and `doc.VerifyContainers().Err()` nil;
 - every fit in "Part fits", each bolt's head flush and inside its pocket, each nut inside its pocket and no fastener
-  overlapping a part it passes through. Every fastener pair uses a disjointness check except the two screw-knob and
-  bolt pairs (clamp screw, stud), because decad's `Intersect` refuses that pair. Those two use an analytic clearance
-  test: the head-to-round clearance computed from `m5bolt.BearingDiameter`, the 30 degree chamfer,
-  `PressPocketRadius` and `PressPocketRound` must be at least 0, plus the flush-head bounds check;
+  overlapping a part it passes through. Every fastener pair uses a disjointness check (`decad.Intersect` reporting
+  `BooleanEmpty`) except a bolt and its own nut, whose bore has the shank's diameter, so that pair is checked
+  analytically (coaxial, square, between the head and the tip). The two screw-knob and bolt pairs (clamp screw, stud)
+  also get an analytic clearance test: the head-to-round clearance computed from `m5bolt.BearingDiameter`, the 30
+  degree chamfer, `PressPocketRadius` and `PressPocketRound` must be at least 0, plus the flush-head bounds check.
+  Where decad refuses a pair in both operand orders, the test requires no vertex of the hardware's mesh to lie
+  inside the part;
 - the range limits ("Range of motion");
 - `internal/cornercheck` on every printed part with its `PrintUp`, exempting only the listed corners, each matching a
   finding;
