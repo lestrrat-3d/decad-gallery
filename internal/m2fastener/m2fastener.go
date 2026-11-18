@@ -12,7 +12,7 @@ import (
 	"slices"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/internal/fastenertool"
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
@@ -100,13 +100,11 @@ func HoleTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, *s
 
 func cylinderTool(ctx context.Context, doc *decad.Document, s Site, from, radius, length float64) (*decad.Body,
 	*sketch.Sketch, error) {
-	sk, err := newSketch(s, from)
+	f, err := s.Across(from)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("fastener frame: %w", err)
 	}
-	sk.AddConstraint(sketch.NewRadius(sk.CreateCircle(sk.Origin(), radius), radius))
-	body, err := extrude(ctx, doc, sk, length)
-	return body, sk, err
+	return fastenertool.Cylinder(ctx, doc, f, radius, length)
 }
 
 // CavityTool builds the nut cavity's cutter: a circle of radius NutCavityRadius, from Cavity to CavityFar.
@@ -121,29 +119,11 @@ func CavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad.Body, 
 // corners stay sharp, matching the nut's sharp corners. The sketch lies on Across(Cavity): U is Corner and V is
 // Dir x Corner, so it extrudes along Dir.
 func HexPocketTool(ctx context.Context, doc *decad.Document, s Site, depth float64) (*decad.Body, *sketch.Sketch, error) {
-	sk, err := newSketch(s, s.Cavity)
+	f, err := s.Across(s.Cavity)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("fastener frame: %w", err)
 	}
-	rad := NutCavityRadius
-	flat := rad * math.Sqrt(3) / 2
-	var corners [6]*sketch.Point
-	for i := range corners {
-		a := float64(i) * math.Pi / 3
-		corners[i] = sk.CreatePoint(rad*math.Cos(a), rad*math.Sin(a))
-	}
-	var sides [6]*sketch.Line
-	for i := range sides {
-		sides[i] = sk.CreateLine(corners[i], corners[(i+1)%6])
-		sk.AddConstraint(sketch.NewDistancePointLine(sk.Origin(), sides[i], flat))
-	}
-	// sides[1] runs from the corner at 60 degrees to the one at 120 degrees: a flat.
-	sk.AddConstraint(sketch.NewHorizontal(sides[1]))
-	for i := range 5 {
-		sk.AddConstraint(sketch.NewAngle(sides[i], sides[i+1], 60))
-	}
-	body, err := extrude(ctx, doc, sk, depth)
-	return body, sk, err
+	return fastenertool.HexPrism(ctx, doc, f, NutCavityRadius, depth)
 }
 
 // RoundRadius is the radius of the rounds RoundedHoleTool and RoundedCavityTool put on a tool's end corners, and
@@ -179,118 +159,19 @@ func RoundedCavityTool(ctx context.Context, doc *decad.Document, s Site) (*decad
 	return revolveTool(ctx, doc, s, pts)
 }
 
-// quarterRound returns the roundChords+1 points (along, radius) of the quarter round of RoundRadius about (t, r) that
-// runs from its far side's radial end to its top for start 0, or from its near side's radial end up to its top for
-// start π, in the order a meridian walks them from the axis outward and back.
+// quarterRound returns the roundChords+1 points (along, radius) of the quarter round of RoundRadius about (t, r).
 func quarterRound(t, r, start float64) [][2]float64 {
-	out := make([][2]float64, 0, roundChords+1)
-	for i := 0; i <= roundChords; i++ {
-		f := float64(i) / roundChords
-		var a float64
-		if start == 0 {
-			a = math.Pi / 2 * (1 - f) // from the top (90°) down to the far end (0°)
-		} else {
-			a = math.Pi - math.Pi/2*f // from the near end (180°) up to the top (90°)
-		}
-		out = append(out, [2]float64{t + RoundRadius*math.Cos(a), r + RoundRadius*math.Sin(a)})
-	}
-	return out
+	return fastenertool.QuarterRound(t, r, RoundRadius, start, roundChords)
 }
 
 // revolveTool revolves the closed meridian pts, each (distance along the site's line from Head, radius), about the
-// site's line. The sketch plane holds the line: U along Dir, V along Corner, its origin at Head. Every vertex is placed
-// by its horizontal and vertical distance from the origin.
+// site's line. The sketch plane holds the line: U along Dir, V along Corner, its origin at Head.
 func revolveTool(ctx context.Context, doc *decad.Document, s Site, pts [][2]float64) (*decad.Body, *sketch.Sketch, error) {
 	f, err := r3.NewFrame(s.Head, s.Dir, s.Corner)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fastener meridian frame: %w", err)
 	}
-	w := sketch.NewWorld()
-	plane, err := w.CreatePlaneFromFrame(f)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create fastener plane: %w", err)
-	}
-	sk, err := w.CreateSketch(plane)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create fastener sketch: %w", err)
-	}
-	points := make([]*sketch.Point, len(pts))
-	for i, p := range pts {
-		points[i] = sketchcheck.DimensionPoint(sk, p[0], p[1])
-	}
-	for i := range points {
-		sk.CreateLine(points[i], points[(i+1)%len(points)])
-	}
-	if _, err := sk.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve fastener sketch: %w", err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, sk); err != nil {
-		return nil, nil, fmt.Errorf("verify fastener sketch: %w", err)
-	}
-	var chosen *sketch.Profile
-	for _, p := range sk.Profiles() {
-		if !p.Valid || len(p.Holes) != 0 {
-			continue
-		}
-		if chosen != nil {
-			return nil, nil, fmt.Errorf("select fastener profile: several valid profiles")
-		}
-		chosen = p
-	}
-	if chosen == nil {
-		return nil, nil, fmt.Errorf("select fastener profile: no valid profile")
-	}
-	body, err := decad.Revolve(ctx, doc, sk, chosen, decad.ConstructionAxis{Origin: s.Head, Dir: s.Dir},
-		decad.FullRevolution{})
-	if err != nil {
-		return nil, nil, fmt.Errorf("revolve fastener tool: %w", err)
-	}
-	return body, sk, nil
-}
-
-func newSketch(s Site, t float64) (*sketch.Sketch, error) {
-	f, err := s.Across(t)
-	if err != nil {
-		return nil, fmt.Errorf("fastener frame: %w", err)
-	}
-	w := sketch.NewWorld()
-	plane, err := w.CreatePlaneFromFrame(f)
-	if err != nil {
-		return nil, fmt.Errorf("create fastener plane: %w", err)
-	}
-	sk, err := w.CreateSketch(plane)
-	if err != nil {
-		return nil, fmt.Errorf("create fastener sketch: %w", err)
-	}
-	return sk, nil
-}
-
-// extrude solves sk, requires it fully constrained and extrudes its one valid profile along the normal.
-func extrude(ctx context.Context, doc *decad.Document, sk *sketch.Sketch, length float64) (*decad.Body, error) {
-	if _, err := sk.Solve(ctx); err != nil {
-		return nil, fmt.Errorf("solve fastener sketch: %w", err)
-	}
-	if err := sketchcheck.VerifyFullyConstrained(ctx, sk); err != nil {
-		return nil, fmt.Errorf("verify fastener sketch: %w", err)
-	}
-	var chosen *sketch.Profile
-	for _, p := range sk.Profiles() {
-		if !p.Valid || len(p.Holes) != 0 {
-			continue
-		}
-		if chosen != nil {
-			return nil, fmt.Errorf("select fastener profile: several valid profiles")
-		}
-		chosen = p
-	}
-	if chosen == nil {
-		return nil, fmt.Errorf("select fastener profile: no valid profile")
-	}
-	body, err := decad.Extrude(ctx, doc, sk, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
-	if err != nil {
-		return nil, fmt.Errorf("extrude fastener tool: %w", err)
-	}
-	return body, nil
+	return fastenertool.RoundedRevolve(ctx, doc, f, pts)
 }
 
 // PlaceBolt builds an m2bolt of s.Length whose head's top face lies at s.Head and whose shank runs along s.Dir. The
