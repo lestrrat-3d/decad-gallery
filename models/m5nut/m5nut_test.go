@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/m5nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -93,7 +94,9 @@ func TestM5NutDefault(t *testing.T) {
 	require.True(t, mesh.VolumeVerified())
 }
 
-// TestM5NutFitsM5Bolt is added when models/m5bolt lands: require.Equal(t, m5bolt.ShankDiameter, m5nut.BoreDiameter).
+func TestM5NutFitsM5Bolt(t *testing.T) {
+	require.Equal(t, m5bolt.ShankDiameter, m5nut.BoreDiameter)
+}
 
 func TestM5NutPlacement(t *testing.T) {
 	doc := decad.New()
