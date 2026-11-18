@@ -9,6 +9,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      models: ${{ steps.select.outputs.models }}
+      reason: ${{ steps.select.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: github.event_name == 'pull_request'
+        with:
+          go-version-file: go.mod
+      - name: Select model checks
+        id: select
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci/select_models.py
+
   repository:
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +39,8 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
       - name: Check CI test runner
         run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
+      - name: Check model selection
+        run: python3 -m unittest discover -s scripts/ci -p 'test_select_models.py'
       - name: Check spur generation record
         run: python3 scripts/modelgen/spurgear.py check
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -37,6 +59,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py models full
 
   planetary-motion:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'planetarygearbox')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +71,8 @@ jobs:
         run: go -C tools/render test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./...
 
   wheel-motion:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'spinningwheel')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,10 +80,11 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check spinning wheel motion
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
   fan-motion:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'handcrankfan')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,10 +92,11 @@ jobs:
         with:
           go-version-file: tools/render/go.mod
       - name: Check hand-crank fan motion
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
 
   escapement:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'escapement')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -80,6 +108,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py escapement all
 
   onewayclutch:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'onewayclutch')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -102,6 +132,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py clamparm all
 
   turbinefan:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'turbinefan')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -113,6 +145,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py turbinefan all
 
   escapement-exploded:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'escapement')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -124,6 +158,8 @@ jobs:
         run: go -C tools/render test -run '^TestEscapementExploded$' -timeout 15m ./...
 
   wheel:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'spinningwheel')) }}
     strategy:
       fail-fast: false
       matrix:
@@ -150,6 +186,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
 
   siren:
+    needs: select
+    if: ${{ always() && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'handcranksiren')) }}
     strategy:
       fail-fast: false
       matrix:
@@ -170,7 +208,8 @@ jobs:
         run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
 
   bevel-pr:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    needs: select
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push') && (needs.select.result != 'success' || contains(fromJSON(needs.select.outputs.models || '[]'), 'bevelgear')) }}
     strategy:
       fail-fast: false
       matrix:
@@ -210,3 +249,27 @@ jobs:
           go-version-file: go.mod
       - name: Check full bevel coverage shard
         run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
+
+  model-checks:
+    if: ${{ always() }}
+    needs:
+      - select
+      - repository
+      - planetary-motion
+      - wheel-motion
+      - fan-motion
+      - escapement
+      - onewayclutch
+      - turbinefan
+      - escapement-exploded
+      - wheel
+      - siren
+      - bevel-pr
+      - bevel-full
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check selected job results
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/select_models.py --summary
