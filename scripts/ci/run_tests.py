@@ -157,6 +157,16 @@ MODEL_PR_TESTS = [
     "TestCrankHandleFits",
     "TestCrankHandlePlacement",
     "TestCrankHandleRejectsInvalidInputs",
+    "TestPlaqueStandParamsDefaults",
+    "TestPlaqueStandDeriveCases",
+    "TestPlaqueStandDeriveRejects",
+    "TestPlaqueStandOutlineCases",
+    "TestPlaqueStandBuildDefault",
+    "TestPlaqueStandBuildCases",
+    "TestPlaqueStandBuildRejectsInvalidInputs",
+    "TestPlaqueStandClearance",
+    "TestPlaqueStandStability",
+    "TestPlaqueStandCorners",
 ]
 
 BEVEL_FULL_TESTS = [
@@ -458,6 +468,7 @@ def run_models(mode: str) -> None:
                 "./models/planetarygearbox",
                 "./models/spiralspring",
                 "./models/crankhandle",
+                "./models/plaquestand",
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
