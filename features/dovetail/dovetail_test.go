@@ -15,20 +15,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// cases covers every parameter branch: both carriers, both ends of the angle range, and the smallest and a large joint.
+// cases covers every parameter branch: both carriers, the shallowest and steepest slopes, and the smallest and a large
+// joint. Each depth is a multiple of the slope's DepthStep, so every corner is an exact float.
 func cases() map[string]dovetail.Params {
 	second := dovetail.DefaultParams()
 	second.TailOn = dovetail.TailOnSecond
-	minAngle := dovetail.DefaultParams()
-	minAngle.Angle = dovetail.MinAngle
-	maxAngle := dovetail.DefaultParams()
-	maxAngle.Angle = dovetail.MaxAngle
-	smallest := dovetail.Params{TailWidth: dovetail.MinTailWidth, Angle: 15, Length: dovetail.MinLength,
+	shallow := dovetail.Params{TailWidth: 10, Slope: dovetail.AllowedSlopes[0], Length: 16, Depth: 5.625}
+	steep := dovetail.Params{TailWidth: 10, Slope: dovetail.AllowedSlopes[len(dovetail.AllowedSlopes)-1], Length: 16,
+		Depth: 8.75}
+	smallest := dovetail.Params{TailWidth: dovetail.MinTailWidth, Slope: dovetail.DefaultSlope, Length: dovetail.MinLength,
 		Depth: dovetail.MinDepth}
-	large := dovetail.Params{TailWidth: 20, Angle: 12, Length: 30, Depth: 10, TailOn: dovetail.TailOnSecond}
+	large := dovetail.Params{TailWidth: 20, Slope: dovetail.Slope{Rise: 9, Run: 40}, Length: 30, Depth: 10,
+		TailOn: dovetail.TailOnSecond}
 	return map[string]dovetail.Params{
-		"default": dovetail.DefaultParams(), "tail on second": second, "min angle": minAngle, "max angle": maxAngle,
-		"smallest": smallest, "large": large,
+		"default": dovetail.DefaultParams(), "tail on second": second, "shallowest slope": shallow,
+		"steepest slope": steep, "smallest": smallest, "large": large,
 	}
 }
 
@@ -54,11 +55,12 @@ func TestDefaults(t *testing.T) {
 	p := dovetail.DefaultParams()
 	require.NoError(t, p.Validate())
 	require.InDelta(t, 10, p.TailWidth, 1e-12)
-	require.InDelta(t, 10, p.Angle, 1e-12)
+	require.Equal(t, dovetail.Slope{Rise: 7, Run: 24}, p.Slope)
 	require.InDelta(t, 16, p.Length, 1e-12)
 	require.InDelta(t, 6, p.Depth, 1e-12)
 	require.Equal(t, dovetail.TailOnFirst, p.TailOn)
-	require.InDelta(t, 10+12*math.Tan(10*math.Pi/180), p.TipWidth(), 1e-12)
+	require.Equal(t, 13.5, p.TipWidth())
+	require.Equal(t, 1025.0/2048, p.ChamferSize())
 }
 
 func TestSketchesFullyConstrained(t *testing.T) {
@@ -128,10 +130,10 @@ func profileCorners(p dovetail.Params, s float64) (neck, wide [2]r3.Vec) {
 
 // chamferPoints returns the four points where each chamfer meets its two faces, in (U, N) coordinates. The tail's
 // wide-end chamfers run from the wide-end face to the flank, and the socket's lip chamfers from the mating face to the
-// flank. Each chamfer has ChamferSize setback on both faces.
+// flank. Each chamfer has the setback p.ChamferSize() on both faces.
 func chamferPoints(p dovetail.Params, s float64) (tail, socket []r3.Vec) {
-	a := p.Angle * math.Pi / 180
-	c, sin, cos := dovetail.ChamferSize, math.Sin(a), math.Cos(a)
+	h := math.Hypot(float64(p.Slope.Rise), float64(p.Slope.Run))
+	c, sin, cos := p.ChamferSize(), float64(p.Slope.Rise)/h, float64(p.Slope.Run)/h
 	nk, wd := p.TailWidth/2, p.TipWidth()/2
 	for _, su := range []float64{-1, 1} {
 		tail = append(tail, r3.Vec{X: su * (wd - c), Z: s * p.Depth}, r3.Vec{X: su * (wd - c*sin), Z: s * (p.Depth - c*cos)})
@@ -256,50 +258,93 @@ func meshOf(t *testing.T, body *decad.Body) meshgap.Mesh {
 	return mg
 }
 
-// TestHalvesMateWithoutOverlap requires the halves to touch with no gap (the nominal fit) and to share no volume.
-// meshgap reads boundary distance only, so it proves the zero gap and cannot tell touching from overlapping. Overlap
-// is excluded two ways: decad classifies a grid of points across the mid-length section and none lies inside both
-// halves, and TestBoundsAndVolumes shows the tail adds the volume the socket removes. decad's pair checks
-// (Document.Verify, Union, Intersect) refuse two halves in exact contact, so they cannot be used here.
-func TestHalvesMateWithoutOverlap(t *testing.T) {
+// TestHalvesMateExactly requires the halves, which touch along the whole joint with no gap, to share no volume, by
+// decad's own pair checks: every vertex is exact, Document.Verify reads Sound with no interference, the intersection
+// of the halves is empty, and their union has exactly the sum of their volumes.
+func TestHalvesMateExactly(t *testing.T) {
 	for name, p := range cases() {
 		t.Run(name, func(t *testing.T) {
-			_, d := build(t, p)
+			doc, d := build(t, p)
+			for _, body := range []*decad.Body{d.First, d.Second} {
+				for _, v := range body.Vertices() {
+					require.Zero(t, v.Position().Bound.Base(), "a vertex is not exact")
+				}
+			}
 			gap, separated, err := meshOf(t, d.First).Exceeds(meshOf(t, d.Second), 0)
 			require.NoError(t, err)
 			require.False(t, separated, "the halves touch: boundary gap lower bound %g", gap)
 			require.Zero(t, gap)
 
-			var insideTail, insideSocket, insideBoth int
-			const step = 0.4
-			for u := -d.Width/2 + step/2; u < d.Width/2; u += step {
-				for n := -d.Height - step/2; n < d.Height+p.Depth; n += step {
-					pt := r3.Vec{X: u, Y: p.Length / 2, Z: n}
-					inTail := locate(t, d.TailBlock, pt)
-					inSocket := locate(t, d.SocketBlock, pt)
-					if inTail == decad.PointInside {
-						insideTail++
-					}
-					if inSocket == decad.PointInside {
-						insideSocket++
-					}
-					if inTail == decad.PointInside && inSocket == decad.PointInside {
-						insideBoth++
-					}
-				}
-			}
-			require.Zero(t, insideBoth, "points inside both halves")
-			require.Greater(t, insideTail, 20)
-			require.Greater(t, insideSocket, 20)
+			report, err := doc.Verify(t.Context())
+			require.NoError(t, err)
+			require.True(t, report.Status == decad.Sound, "Verify status %s", report.Status)
+			require.Zero(t, len(report.Interferences), "interferences")
+			require.Zero(t, len(report.Diagnostics), "diagnostics")
+
+			tailV, err := d.TailBlock.Volume()
+			require.NoError(t, err)
+			socketV, err := d.SocketBlock.Volume()
+			require.NoError(t, err)
+			// The boolean operations need both halves in one container.
+			both, err := doc.Root().NewChild("Both")
+			require.NoError(t, err)
+			require.NoError(t, both.AddBody(d.TailBlock))
+			require.NoError(t, both.AddBody(d.SocketBlock))
+			_, err = decad.Intersect(t.Context(), d.TailBlock, d.SocketBlock)
+			var be *decad.BooleanError
+			require.ErrorAs(t, err, &be, "Intersect of the halves must fail as empty")
+			require.True(t, be.Code == decad.BooleanEmpty, "Intersect code %s", be.Code)
+			union, err := decad.Union(t.Context(), d.TailBlock, d.SocketBlock)
+			require.NoError(t, err)
+			unionV, err := union.Volume()
+			require.NoError(t, err)
+			require.Equal(t, tailV.Value.Base()+socketV.Value.Base(), unionV.Value.Base(), "union volume differs from the sum")
 		})
 	}
 }
 
-func locate(t *testing.T, body *decad.Body, pt r3.Vec) decad.PointLocation {
-	t.Helper()
-	loc, err := body.LocatePoint(t.Context(), pt, units.Millimeters(0.02))
-	require.NoError(t, err)
-	return loc
+// endFaces returns the faces of body that lie wholly in the plane V = v, found by the world position of their vertices.
+func endFaces(body *decad.Body, v float64) []*decad.Face {
+	var out []*decad.Face
+	for _, f := range body.Faces() {
+		edges := f.Edges()
+		flat := len(edges) > 0
+		for _, e := range edges {
+			for _, pt := range []r3.Vec{e.Start().Position().Value, e.End().Position().Value} {
+				flat = flat && math.Abs(pt.Y-v) < 1e-6
+			}
+		}
+		if flat {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// TestEndFacesHaveNoSeam requires each block to have one face at each end of the joint: the tail's end face and its
+// host's end face are one face with no edge between them, and the socket host's end face is one face too.
+func TestEndFacesHaveNoSeam(t *testing.T) {
+	for name, p := range cases() {
+		t.Run(name, func(t *testing.T) {
+			_, d := build(t, p)
+			profile := (p.TailWidth+p.TipWidth())/2*p.Depth - 2*p.ChamferCut()
+			block := d.Width * d.Height
+			for _, c := range []struct {
+				what string
+				body *decad.Body
+				area float64
+			}{{"tail block", d.TailBlock, block + profile}, {"socket block", d.SocketBlock, block - profile - 4*p.ChamferCut()}} {
+				for _, v := range []float64{0, p.Length} {
+					faces := endFaces(c.body, v)
+					require.Len(t, faces, 1, "%s: faces at V = %g", c.what, v)
+					require.Len(t, faces[0].Loops(), 1, "%s: loops of the end face at V = %g", c.what, v)
+					area, err := faces[0].Area()
+					require.NoError(t, err)
+					require.InDelta(t, c.area, area.Value.Base(), area.Bound.Base()+1e-6, "%s: end face area at V = %g", c.what, v)
+				}
+			}
+		})
+	}
 }
 
 func TestBodyContainers(t *testing.T) {
@@ -462,13 +507,17 @@ func TestApplyRefusesMisfitHosts(t *testing.T) {
 func TestRejectsInvalidInputs(t *testing.T) {
 	good := dovetail.DefaultParams()
 	bad := map[string]func(*dovetail.Params){
-		"angle low":  func(p *dovetail.Params) { p.Angle = dovetail.MinAngle - 0.1 },
-		"angle high": func(p *dovetail.Params) { p.Angle = dovetail.MaxAngle + 0.1 },
-		"angle nan":  func(p *dovetail.Params) { p.Angle = math.NaN() },
-		"width":      func(p *dovetail.Params) { p.TailWidth = dovetail.MinTailWidth - 0.1 },
-		"depth":      func(p *dovetail.Params) { p.Depth = dovetail.MinDepth - 0.1 },
-		"length":     func(p *dovetail.Params) { p.Length = dovetail.MinLength - 0.1 },
-		"carrier":    func(p *dovetail.Params) { p.TailOn = dovetail.Carrier(7) },
+		"slope zero":         func(p *dovetail.Params) { p.Slope = dovetail.Slope{} },
+		"slope not a triple": func(p *dovetail.Params) { p.Slope = dovetail.Slope{Rise: 1, Run: 6} },
+		"slope too steep":    func(p *dovetail.Params) { p.Slope = dovetail.Slope{Rise: 3, Run: 4} },
+		"slope too shallow":  func(p *dovetail.Params) { p.Slope = dovetail.Slope{Rise: 33, Run: 544} },
+		"slope scaled":       func(p *dovetail.Params) { p.Slope = dovetail.Slope{Rise: 14, Run: 48} },
+		"depth inexact":      func(p *dovetail.Params) { p.Depth = 6.2 },
+		"depth nan":          func(p *dovetail.Params) { p.Depth = math.NaN() },
+		"width":              func(p *dovetail.Params) { p.TailWidth = dovetail.MinTailWidth - 0.1 },
+		"depth":              func(p *dovetail.Params) { p.Depth = dovetail.MinDepth - 0.1 },
+		"length":             func(p *dovetail.Params) { p.Length = dovetail.MinLength - 0.1 },
+		"carrier":            func(p *dovetail.Params) { p.TailOn = dovetail.Carrier(7) },
 	}
 	for name, mutate := range bad {
 		p := good
@@ -479,6 +528,13 @@ func TestRejectsInvalidInputs(t *testing.T) {
 		require.Error(t, err, name)
 		require.Zero(t, len(doc.Bodies()), name)
 	}
+	// The error for a refused slope names the allowed ones, and for an inexact depth the depth rule.
+	p := good
+	p.Slope = dovetail.Slope{Rise: 1, Run: 6}
+	require.ErrorContains(t, p.Validate(), "7:24")
+	p = good
+	p.Depth = 6.2
+	require.ErrorContains(t, p.Validate(), "power of two")
 	_, err := dovetail.BuildDemo(t.Context(), nil, good)
 	require.ErrorContains(t, err, "document")
 	ctx, cancel := context.WithCancel(t.Context())

@@ -7,6 +7,9 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/big"
+	"slices"
+	"strings"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -15,18 +18,12 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Defaults and limits in millimeters and degrees.
+// Defaults and limits in millimeters.
 const (
 	DefaultTailWidth = 10.0
-	DefaultAngle     = 10.0
 	DefaultLength    = 16.0
 	DefaultDepth     = 6.0
 
-	// MinAngle and MaxAngle bound the dovetail angle. Below 5 degrees the tail barely resists being pulled apart
-	// across the joint. Above 20 degrees the tail's wide end is much wider than its neck, so the tail's corners at
-	// the wide end and the socket's lips turn sharper than printed layers hold.
-	MinAngle = 5.0
-	MaxAngle = 20.0
 	// MinTailWidth and MinDepth keep the neck and the tail's height printable.
 	MinTailWidth = 3.0
 	MinDepth     = 3.0
@@ -63,12 +60,77 @@ func (c Carrier) String() string {
 	return fmt.Sprintf("Carrier(%d)", int(c))
 }
 
+// Slope is a flank's lean as a whole-number ratio: the flank moves Rise sideways for every Run it moves along the depth
+// direction. Both numbers are the legs of a right triangle with a whole-number hypotenuse, so the flank's length, and
+// the chamfer set on its edges, come out as exact floats.
+type Slope struct{ Rise, Run int }
+
+// DefaultSlope leans each flank 7 sideways per 24 deep, 16.26 degrees from the depth direction.
+var DefaultSlope = Slope{Rise: 7, Run: 24}
+
+// AllowedSlopes lists every slope Validate accepts: the right triangles with a whole-number hypotenuse whose flank lies
+// 5 to 20 degrees from the depth direction, from the shallowest to the steepest. Below 5 degrees the tail barely resists
+// being pulled apart across the joint. Above 20 degrees the tail's wide end is much wider than its neck, so the tail's
+// corners at the wide end and the socket's lips turn sharper than printed layers hold.
+var AllowedSlopes = []Slope{
+	{19, 180}, {17, 144}, {15, 112}, {28, 195}, {13, 84}, {11, 60}, {20, 99}, {9, 40}, {16, 63}, {60, 221}, {7, 24},
+	{52, 165}, {57, 176}, {12, 35},
+}
+
+func (s Slope) String() string { return fmt.Sprintf("%d:%d", s.Rise, s.Run) }
+
+// hypotenuse returns the whole-number flank length of the slope's triangle, or 0 when the slope has none.
+func (s Slope) hypotenuse() int {
+	sq := s.Rise*s.Rise + s.Run*s.Run
+	h := int(math.Round(math.Sqrt(float64(sq))))
+	if h*h != sq {
+		return 0
+	}
+	return h
+}
+
+// Angle returns the flank's lean from the depth direction in degrees.
+func (s Slope) Angle() float64 { return math.Atan2(float64(s.Rise), float64(s.Run)) * 180 / math.Pi }
+
+// Lean returns how far a flank moves sideways over depth: Depth * Rise / Run. Validate requires it to be exact.
+func (p Params) Lean() float64 { return p.Depth * float64(p.Slope.Rise) / float64(p.Slope.Run) }
+
+// DepthStep returns the unit, in mm, that Depth must be a multiple of, after halving it as often as needed: Depth*Rise/Run
+// is an exact float only when Depth is the odd part of Run (in mm) times a power of two. For 7:24 that is 3 mm, so
+// 3, 6, 7.5 and 12 mm all work.
+func (s Slope) DepthStep() float64 {
+	odd := s.Run
+	for odd%2 == 0 {
+		odd /= 2
+	}
+	return float64(odd)
+}
+
+func allowedList() string {
+	names := make([]string, len(AllowedSlopes))
+	for i, s := range AllowedSlopes {
+		names[i] = s.String()
+	}
+	return strings.Join(names, ", ")
+}
+
+// exactLean reports whether Depth * Rise / Run is exactly a float64.
+func (p Params) exactLean() bool {
+	r := new(big.Rat).SetFloat64(p.Depth)
+	if r == nil {
+		return false
+	}
+	r.Mul(r, big.NewRat(int64(p.Slope.Rise), int64(p.Slope.Run)))
+	_, exact := r.Float64()
+	return exact
+}
+
 // Params specifies the joint. The tail and the socket are both built from it.
 type Params struct {
 	// TailWidth is the tail's width at its narrow end, where it leaves its host (the neck).
 	TailWidth float64
-	// Angle is the dovetail angle in degrees: each flank leans this far from the depth direction.
-	Angle float64
+	// Slope is each flank's lean from the depth direction. It must be one of AllowedSlopes.
+	Slope Slope
 	// Length is the joint's length along the slide direction.
 	Length float64
 	// Depth is how far the tail stands from the mating face, and how deep the socket is.
@@ -77,20 +139,21 @@ type Params struct {
 	TailOn Carrier
 }
 
-// DefaultParams returns a 10 mm neck, 10 degree, 16 mm long, 6 mm deep joint with the tail on the first host.
+// DefaultParams returns a 10 mm neck, 7:24 slope, 16 mm long, 6 mm deep joint with the tail on the first host.
 func DefaultParams() Params {
-	return Params{TailWidth: DefaultTailWidth, Angle: DefaultAngle, Length: DefaultLength, Depth: DefaultDepth}
+	return Params{TailWidth: DefaultTailWidth, Slope: DefaultSlope, Length: DefaultLength, Depth: DefaultDepth}
 }
 
-// TipWidth returns the tail's width at its wide end, the far end from its host: TailWidth + 2 Depth tan(Angle).
+// TipWidth returns the tail's width at its wide end, the far end from its host: TailWidth + 2 Depth Rise / Run.
 func (p Params) TipWidth() float64 {
-	return p.TailWidth + 2*p.Depth*math.Tan(p.Angle*math.Pi/180)
+	return p.TailWidth + 2*p.Lean()
 }
 
 // Validate rejects values outside the limits above.
 func (p Params) Validate() error {
-	if !(p.Angle >= MinAngle && p.Angle <= MaxAngle) {
-		return fmt.Errorf("dovetail: Angle must lie in [%g, %g] degrees, got %g", MinAngle, MaxAngle, p.Angle)
+	if !slices.Contains(AllowedSlopes, p.Slope) {
+		return fmt.Errorf("dovetail: Slope must be a right triangle with a whole-number hypotenuse, one of %s, got %s",
+			allowedList(), p.Slope)
 	}
 	if !(p.TailWidth >= MinTailWidth) {
 		return fmt.Errorf("dovetail: TailWidth must be at least %g mm, got %g", MinTailWidth, p.TailWidth)
@@ -106,6 +169,11 @@ func (p Params) Validate() error {
 	}
 	if math.IsInf(p.TailWidth+p.Depth+p.Length, 0) || math.IsNaN(p.TailWidth+p.Depth+p.Length) {
 		return fmt.Errorf("dovetail: dimensions must be finite")
+	}
+	if !p.exactLean() {
+		return fmt.Errorf("dovetail: Depth*%d/%d must be an exact float, so Depth must be %g mm times a power of two, "+
+			"such as %g or %g mm, got %g", p.Slope.Rise, p.Slope.Run, p.Slope.DepthStep(), p.Slope.DepthStep(),
+			2*p.Slope.DepthStep(), p.Depth)
 	}
 	return nil
 }
@@ -191,7 +259,8 @@ func Apply(ctx context.Context, doc *decad.Document, p Params, f r3.Frame, first
 		return nil, err
 	}
 	// The tail's wide-end edges are convex corners, so they take the chamfer before the tail joins its host.
-	tail, err = chamferEdges(ctx, tail, p.convexEdges(f, p.TipWidth()/2, p.side()*p.Depth), "tail wide end")
+	tail, err = chamferEdges(ctx, tail, p.ChamferSize(), p.convexEdges(f, p.TipWidth()/2, p.side()*p.Depth),
+		"tail wide end")
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +274,7 @@ func Apply(ctx context.Context, doc *decad.Document, p Params, f r3.Frame, first
 	}
 	// The socket's lips are convex corners of its host, so they take the chamfer after the cut. The socket floor and
 	// the tail's root are concave corners and stay sharp.
-	cut, err = chamferEdges(ctx, cut, p.convexEdges(f, p.TailWidth/2, 0), "socket lips")
+	cut, err = chamferEdges(ctx, cut, p.ChamferSize(), p.convexEdges(f, p.TailWidth/2, 0), "socket lips")
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +334,7 @@ func (p Params) checkHost(f r3.Frame, host *decad.Body, dir float64) error {
 //
 // The profile lies in the plane spanned by U and s*N, with its origin on the mating plane's centre line at V = y0 +
 // the frame origin. It is a hexagon: a neck of width TailWidth running Stock into the host behind the mating plane,
-// then flanks leaning Angle outward to the wide end Depth away. Both the tail and the socket use it, so they
+// then flanks leaning outward by Slope to the wide end Depth away. Both the tail and the socket use it, so they
 // are the same shape.
 func (p Params) tool(ctx context.Context, doc *decad.Document, f r3.Frame, y0, length float64, what string) (
 	*decad.Body, *sketch.Sketch, error) {
@@ -284,15 +353,17 @@ func (p Params) tool(ctx context.Context, doc *decad.Document, f r3.Frame, y0, l
 	if err != nil {
 		return nil, nil, fmt.Errorf("dovetail: %s sketch: %w", what, err)
 	}
-	half, tip := p.TailWidth/2, p.TipWidth()/2
+	half, lean := p.TailWidth/2, p.Lean()
+	tip := half + lean
 	a := sk.CreatePoint(-half, -Stock)
 	b := sk.CreatePoint(half, -Stock)
 	c := sk.CreatePoint(half, 0)
 	d := sk.CreatePoint(tip, p.Depth)
 	e := sk.CreatePoint(-tip, p.Depth)
 	g := sk.CreatePoint(-half, 0)
-	ab, bc, cd := sk.CreateLine(a, b), sk.CreateLine(b, c), sk.CreateLine(c, d)
-	de, eg, ga := sk.CreateLine(d, e), sk.CreateLine(e, g), sk.CreateLine(g, a)
+	ab, bc, de, ga := sk.CreateLine(a, b), sk.CreateLine(b, c), sk.CreateLine(d, e), sk.CreateLine(g, a)
+	sk.CreateLine(c, d)
+	sk.CreateLine(e, g)
 	sk.AddConstraint(
 		sketch.NewHorizontal(ab), sketch.NewHorizontal(de), sketch.NewVertical(bc), sketch.NewVertical(ga),
 		// The origin is the centre of the neck on the mating plane.
@@ -300,8 +371,9 @@ func (p Params) tool(ctx context.Context, doc *decad.Document, f r3.Frame, y0, l
 		sketch.NewDistance(g, c, p.TailWidth),
 		sketch.NewVerticalDistance(b, c, Stock),
 		sketch.NewVerticalDistance(c, d, p.Depth),
-		// The flanks lean outward by Angle from the neck's sides, the right one clockwise and the left one the other way.
-		sketch.NewAngle(bc, cd, -p.Angle), sketch.NewAngle(ga, eg, p.Angle),
+		// Each flank leans outward by Lean over Depth. A sideways distance, not an angle, lets the corner solve to an exact
+		// float.
+		sketch.NewHorizontalDistance(c, d, lean), sketch.NewHorizontalDistance(e, g, lean),
 	)
 	if _, err := sk.Solve(ctx); err != nil {
 		return nil, nil, fmt.Errorf("dovetail: solve %s sketch: %w", what, err)
