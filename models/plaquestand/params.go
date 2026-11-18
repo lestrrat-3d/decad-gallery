@@ -7,15 +7,15 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Default plaque dimensions in mm. They are placeholders until the real plaque's measurements arrive; replace only
-// these three constants.
+// Default plaque dimensions in mm: the measured size of the user's plaque. Changing them changes the geometry, so
+// regenerate every plaque stand image and the gallery image with them.
 const (
-	// DefaultPlaqueWidth is the placeholder plaque width, along X.
-	DefaultPlaqueWidth = 300.0
-	// DefaultPlaqueHeight is the placeholder plaque height, along the slot axis.
-	DefaultPlaqueHeight = 250.0
-	// DefaultPlaqueThickness is the placeholder plaque thickness.
-	DefaultPlaqueThickness = 6.0
+	// DefaultPlaqueWidth is the plaque width, along X.
+	DefaultPlaqueWidth = 250.0
+	// DefaultPlaqueHeight is the plaque height, along the slot axis.
+	DefaultPlaqueHeight = 305.0
+	// DefaultPlaqueThickness is the plaque thickness.
+	DefaultPlaqueThickness = 12.8
 )
 
 // Other defaults, in mm and degrees.

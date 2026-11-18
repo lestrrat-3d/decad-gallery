@@ -26,8 +26,8 @@ func cases() []expected {
 		}
 	}
 	return []expected{
-		{"default", p(300, 250, 6, 15, 10, 0.55), 180, 50, 19.872139, 93, 58.253249,
-			19.610016, 15.293816, 33.934962, 1136.317882, 320.343749},
+		{"default", p(250, 305, 12.8, 15, 10, 0.55), 150, 60, 24.303105, 112, 70.432523,
+			19.875977, 15.042312, 24.564636, 1403.967474, 389.025164},
 		{"min", p(150, 120, 2, 10, 6, 0.55), 120, 30, 17.280750, 51, 38.349710,
 			18.644768, 15.499808, 40.766229, 632.557129, 182.688124},
 		{"max", p(400, 350, 15, 25, 20, 1.5), 200, 60, 29.192341, 160, 66.588125,
@@ -49,9 +49,9 @@ func TestPlaqueStandParamsDefaults(t *testing.T) {
 	require.Equal(t, plaquestand.DefaultRecline, p.Recline)
 	require.Equal(t, plaquestand.DefaultLipHeight, p.LipHeight)
 	require.Equal(t, plaquestand.DefaultSlotClearance, p.SlotClearance)
-	require.Equal(t, 300.0, p.PlaqueWidth)
-	require.Equal(t, 250.0, p.PlaqueHeight)
-	require.Equal(t, 6.0, p.PlaqueThickness)
+	require.Equal(t, 250.0, p.PlaqueWidth)
+	require.Equal(t, 305.0, p.PlaqueHeight)
+	require.Equal(t, 12.8, p.PlaqueThickness)
 	require.Equal(t, 15.0, p.Recline)
 	require.Equal(t, 10.0, p.LipHeight)
 	require.Equal(t, 0.55, p.SlotClearance)
@@ -89,12 +89,12 @@ func TestPlaqueStandDeriveCases(t *testing.T) {
 	t.Run("default extras", func(t *testing.T) {
 		dm, err := plaquestand.DefaultParams().Derive()
 		require.NoError(t, err)
-		require.InDelta(t, 7.1, dm.SlotWidth, tol)
-		require.InDelta(t, 3.55, dm.SlotRadius, tol)
-		require.InDelta(t, 47, dm.BackWall, tol)
+		require.InDelta(t, 13.9, dm.SlotWidth, tol)
+		require.InDelta(t, 6.95, dm.SlotRadius, tol)
+		require.InDelta(t, 57, dm.BackWall, tol)
 		require.InDelta(t, 7.5, dm.LipWall, tol)
-		require.InDelta(t, 11.55, dm.Seat.Z, tol)
-		require.InDelta(t, 1.340720, dm.PlayAngle, tol)
+		require.InDelta(t, 14.95, dm.Seat.Z, tol)
+		require.InDelta(t, 1.105571, dm.PlayAngle, tol)
 		require.InDelta(t, math.Sin(15*math.Pi/180), dm.Axis.Y, tol)
 		require.InDelta(t, math.Cos(15*math.Pi/180), dm.Axis.Z, tol)
 		require.InDelta(t, math.Cos(15*math.Pi/180), dm.Normal.Y, tol)

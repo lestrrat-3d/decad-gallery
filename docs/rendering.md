@@ -63,7 +63,7 @@ across the clamp nuts' pockets at x = -7, and `cross-section` cuts the pin acros
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
-`plaquestand/hero` renders the default stand, blue, with the placeholder plaque, grey, leaning in its slot, seen from the
+`plaquestand/hero` renders the default stand, blue, with the default plaque, grey, leaning in its slot, seen from the
 front left and above. The `stand` preset shows the stand alone, `side` shows both from +X, and `back` shows both from
 behind and above. `exploded` lifts the plaque out of the slot by the back rest's height plus 40 mm along the slot axis.
 `print` turns the stand onto its x = 0 face, the way it prints. `sizes` stands the smallest (150 × 120 × 2 mm), the default

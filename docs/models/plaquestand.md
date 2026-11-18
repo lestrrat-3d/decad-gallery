@@ -6,9 +6,9 @@ body posed in its slot.
 ## Construction and API
 
 `Params` holds `PlaqueWidth`, `PlaqueHeight`, `PlaqueThickness`, `Recline`, `LipHeight` and `SlotClearance`.
-`DefaultParams()` returns the three placeholder plaque constants (`DefaultPlaqueWidth`, `DefaultPlaqueHeight`,
-`DefaultPlaqueThickness`: 300, 250 and 6 mm) and the 15° recline, 10 mm lip and 0.55 mm slot clearance. Only the three
-placeholder constants change when the real plaque's size is known.
+`DefaultParams()` returns the three default plaque constants (`DefaultPlaqueWidth`, `DefaultPlaqueHeight`,
+`DefaultPlaqueThickness`: 250, 305 and 12.8 mm) and the 15° recline, 10 mm lip and 0.55 mm slot clearance. Those three constants hold the
+measured size of the user's plaque.
 
 `Params.Derive()` checks the limits and returns `Dimensions`: the stand width, back rest height, slot width, seat, depth,
 height, play angle, the three tip angles and the `Outline` of 18 segments. `Params.Validate()` returns the same error.

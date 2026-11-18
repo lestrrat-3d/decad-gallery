@@ -18,11 +18,11 @@ for print exports only the `Stand` body.
 
 All lengths are in millimeters and all angles in degrees.
 
-## Placeholder dimensions
+## Default plaque dimensions
 
-The default plaque size, 300 x 250 x 6 mm, is a placeholder until the real plaque's measurements arrive. Only the three
-`DefaultPlaque*` constants change then. Replacing them changes the geometry, so regenerate every plaque stand image and
-`docs/images/gallery.png` in the same change.
+The default plaque size, 250 x 305 x 12.8 mm, is the measured size of the user's plaque. Only the three
+`DefaultPlaque*` constants change if the plaque changes. Changing them changes the geometry, so regenerate every plaque
+stand image and `docs/images/gallery.png` in the same change.
 
 ## Symbols
 
@@ -49,9 +49,9 @@ The default plaque size, 300 x 250 x 6 mm, is a placeholder until the real plaqu
 
 | Field | Default | Limit | Meaning |
 | --- | ---: | --- | --- |
-| `PlaqueWidth` | 300 | 150 to 400 | `W`, along X |
-| `PlaqueHeight` | 250 | 120 to 350 | `H`, along the slot axis |
-| `PlaqueThickness` | 6 | 2 to 15 | `t` |
+| `PlaqueWidth` | 250 | 150 to 400 | `W`, along X |
+| `PlaqueHeight` | 305 | 120 to 350 | `H`, along the slot axis |
+| `PlaqueThickness` | 12.8 | 2 to 15 | `t` |
 | `Recline` | 15 | 10 to 25 | `theta` |
 | `LipHeight` | 10 | 6 to 20 | the lip top's height above the seat, along the slot axis |
 | `SlotClearance` | 0.55 | 0.55 to 1.5 | `c`, per side; the minimum is `LooseFit + FitMargin` (0.5 + 0.05) |
@@ -240,15 +240,15 @@ The cases the tests pin to 1e-6 (width, height, thickness, recline, lip, clearan
 
 | Case | Params | `W_s` | `H_b` | `C_y` | `D` | Height | TipFront | TipBack | TipSide | Area | Length |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| default | 300, 250, 6, 15, 10, 0.55 | 180 | 50 | 19.872139 | 93 | 58.253249 | 19.610016 | 15.293816 | 33.934962 | 1136.317882 | 320.343749 |
+| default | 250, 305, 12.8, 15, 10, 0.55 | 150 | 60 | 24.303105 | 112 | 70.432523 | 19.875977 | 15.042312 | 24.564636 | 1403.967474 | 389.025164 |
 | min | 150, 120, 2, 10, 6, 0.55 | 120 | 30 | 17.280750 | 51 | 38.349710 | 18.644768 | 15.499808 | 40.766229 | 632.557129 | 182.688124 |
 | max | 400, 350, 15, 25, 20, 1.5 | 200 | 60 | 29.192341 | 160 | 66.588125 | 27.346216 | 15.206476 | 29.031289 | 1894.182043 | 509.428323 |
 | forward | 300, 350, 2, 10, 10, 0.55 | 180 | 60 | 23.828646 | 109 | 67.893943 | 15.000000 | 15.262544 | 26.130591 | 1296.557130 | 366.688124 |
 | narrow-tall | 150, 350, 15, 10, 6, 1.5 | 120 | 60 | 31.809631 | 124 | 74.050264 | 15.000000 | 15.154925 | 17.328331 | 1514.617026 | 412.092989 |
 | short-steep | 150, 120, 15, 25, 20, 1.5 | 120 | 30 | 29.192341 | 81 | 40.220496 | 32.136555 | 15.245825 | 38.859428 | 1082.182043 | 291.428323 |
 
-Other default values: `s` 7.1, `R` 3.55, `h_b` 47, `h_l` 7.5, `C_z` 11.55, `alpha` 1.340720 degrees, `C_y,geom`
-19.872139, `C_y,stab` 8.122718, `D_stab` 92.276241 and `D_geom` 41.020708.
+Other default values: `s` 13.9, `R` 6.95, `h_b` 57, `h_l` 7.5, `C_z` 14.95, `alpha` 1.105571 degrees, `C_y,geom`
+24.303105, `C_y,stab` 9.052073, `D_stab` 111.872174 and `D_geom` 48.060586.
 
 Branch coverage: `forward` and `narrow-tall` take `C_y` from `C_y,stab`, and the others from `C_y,geom`. `min` and
 `short-steep` clamp `W_s` and `H_b` low, `max` clamps them high, and `short-steep` takes the height from the lip.
