@@ -102,3 +102,48 @@ func buildKnob(ctx context.Context, doc *decad.Document, p Params) (*decad.Body,
 	}
 	return body, r.sketches, nil
 }
+
+// buildScrewKnob builds one screw knob (the clamp screw's and the stud's) in its local frame: the origin at the inner
+// face's centre on the screw axis, +Z outward and the hex corner on +X. The bolt head presses into the outer face's
+// pocket and ends flush. It returns the unplaced body and the sketches it used.
+func buildScrewKnob(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, []*sketch.Sketch, error) {
+	r := &run{ctx: ctx, doc: doc, p: p}
+	f, err := xy(0)
+	if err != nil {
+		return nil, nil, err
+	}
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, nil, err
+	}
+	lobedOutline(s)
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), m5fastener.HoleRadius), m5fastener.HoleRadius))
+	body, err := r.extrude(s, 1, ScrewKnobHeight)
+	if err != nil {
+		return nil, nil, err
+	}
+	if body, _, err = edgefinish.Chamfer(ctx, body, axisZ, []float64{0, ScrewKnobHeight}, edgefinish.Outer,
+		edgefinish.MinChamfer); err != nil {
+		return nil, nil, fmt.Errorf("clamparm: screw knob cap chamfer: %w", err)
+	}
+	floor, err := xy(pressFloor)
+	if err != nil {
+		return nil, nil, err
+	}
+	pocket, ps, err := m5fastener.PressPocketTool(ctx, doc, floor)
+	if err != nil {
+		return nil, nil, fmt.Errorf("clamparm: screw knob head pocket: %w", err)
+	}
+	r.sketches = append(r.sketches, ps)
+	marks, err := r.mark(ScrewKnobHeight, markFirst, markFirst+markStep)
+	if err != nil {
+		return nil, nil, err
+	}
+	if body, err = r.cuts(body, append([]*decad.Body{pocket}, marks...)...); err != nil {
+		return nil, nil, err
+	}
+	if !body.IsSolid() {
+		return nil, nil, fmt.Errorf("clamparm: screw knob is not a solid")
+	}
+	return body, r.sketches, nil
+}
