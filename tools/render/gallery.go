@@ -24,28 +24,29 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other fifteen models in a grid beside it:
-// the three involute gears, the bevel gear pair and the plaque stand across the top in five columns, then two rows of
-// five. The planetary
-// gearbox, cycloidal drive, hand-crank fan, hand-crank siren and escapement fill the middle row, and the Swiss lever
-// escapement, crank handle, one-way clutch, spiral spring and turbine fan the bottom row.
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other sixteen models in a grid of four
+// columns by four rows beside it (260 × 225 pixel cells), filled row by row. The top row holds the spur, helical,
+// herringbone and bevel gears. The second row holds the planetary gearbox, cycloidal drive, plaque stand and clamp
+// arm. The third row holds the hand-crank fan, hand-crank siren, Graham escapement and Swiss lever escapement. The
+// bottom row holds the crank handle, one-way clutch, spiral spring and turbine fan.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
-	{"spurgear", spurGearHero, image.Rect(560, 0, 768, 300)},
-	{"helicalgear", helicalGearHero, image.Rect(768, 0, 976, 300)},
-	{"herringbonegear", herringboneGearHero, image.Rect(976, 0, 1184, 300)},
-	{"bevelgear", bevelGearHero, image.Rect(1184, 0, 1392, 300)},
-	{"plaquestand", plaqueStandHero, image.Rect(1392, 0, 1600, 300)},
-	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 300, 768, 600)},
-	{"cycloidal", cycloidalHero, image.Rect(768, 300, 976, 600)},
-	{"handcrankfan", handCrankFanHero, image.Rect(976, 300, 1184, 600)},
-	{"handcranksiren", handCrankSirenHero, image.Rect(1184, 300, 1392, 600)},
-	{"escapement", escapementHero, image.Rect(1392, 300, 1600, 600)},
-	{"swisslever", swissHero, image.Rect(560, 600, 768, 900)},
-	{"crankhandle", crankHandleHero, image.Rect(768, 600, 976, 900)},
-	{"onewayclutch", oneWayClutchHero, image.Rect(976, 600, 1184, 900)},
-	{"spiralspring", spiralSpringHero, image.Rect(1184, 600, 1392, 900)},
-	{"turbinefan", turbineFanHero, image.Rect(1392, 600, 1600, 900)},
+	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 225)},
+	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 225)},
+	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 225)},
+	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 225)},
+	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 225, 820, 450)},
+	{"cycloidal", cycloidalHero, image.Rect(820, 225, 1080, 450)},
+	{"plaquestand", plaqueStandHero, image.Rect(1080, 225, 1340, 450)},
+	{"clamparm", clampArmView("hero"), image.Rect(1340, 225, 1600, 450)},
+	{"handcrankfan", handCrankFanHero, image.Rect(560, 450, 820, 675)},
+	{"handcranksiren", handCrankSirenHero, image.Rect(820, 450, 1080, 675)},
+	{"escapement", escapementHero, image.Rect(1080, 450, 1340, 675)},
+	{"swisslever", swissHero, image.Rect(1340, 450, 1600, 675)},
+	{"crankhandle", crankHandleHero, image.Rect(560, 675, 820, 900)},
+	{"onewayclutch", oneWayClutchHero, image.Rect(820, 675, 1080, 900)},
+	{"spiralspring", spiralSpringHero, image.Rect(1080, 675, 1340, 900)},
+	{"turbinefan", turbineFanHero, image.Rect(1340, 675, 1600, 900)},
 }
 
 const (

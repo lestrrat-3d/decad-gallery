@@ -23,7 +23,7 @@ CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
 CORNER_UNPRINTED = {"spinningwheel"}
 # Models nobody has built and tested as a physical object yet. Remove a model once someone has built it, and change its
 # README status line and its models/README.md row in the same change.
-UNBUILT = {"escapement", "handcrankfan", "handcranksiren", "m5bolt", "m5nut", "plaquestand", "spinningwheel", "spiralspring", "swisslever", "turbinefan"}
+UNBUILT = {"clamparm", "escapement", "handcrankfan", "handcranksiren", "m5bolt", "m5nut", "plaquestand", "spinningwheel", "spiralspring", "swisslever", "turbinefan"}
 
 
 def build_status_problems(models: Path) -> list[str]:

@@ -1,6 +1,6 @@
 # decad gallery
 
-![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement, a Swiss lever escapement, a crank handle, a one-way clutch, a spiral spring, a turbine fan and a plaque stand beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
+![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement, a Swiss lever escapement, a crank handle, a one-way clutch, a spiral spring, a turbine fan, a plaque stand and a clamp arm beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
@@ -20,9 +20,10 @@ with a handle that turns on its pin, a [one-way clutch](models/onewayclutch/) wi
 a [plaque stand](models/plaquestand/) that holds a flat plaque reclined on a desk or shelf,
 a [turbine fan](models/turbinefan/) with swappable blades on a round hub held on a D-flat shaft by a set screw
 (the same hub also bolts to the one-way clutch's adapter ring so the fan coasts),
+a [clamp arm](models/clamparm/) that grips a desk edge and carries a four-joint friction arm and a camera mount interface,
 M5 bolt and nut envelopes, and a [pin ring](models/pinring/) assembly aid that holds a pin in place during assembly.
 Each model's page shows rendered images and lists the inputs you can change.
-The M5 bolt and nut, the spinning wheel, the escapements, the spiral spring, the turbine fan, the plaque stand, the hand-crank fan and the hand-crank siren are not built
+The M5 bolt and nut, the clamp arm, the spinning wheel, the escapements, the spiral spring, the turbine fan, the plaque stand, the hand-crank fan and the hand-crank siren are not built
 yet: nobody has made them as physical objects and tested them. The [model table](models/) marks every model's
 build status.
 

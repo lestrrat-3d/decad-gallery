@@ -76,6 +76,20 @@ default stand once and the smallest and largest once each, and writes every imag
 part images in `parts/`:
 `go -C tools/render run . -model plaquestand -shot readme -out ../../models/plaquestand/images`.
 
+`clamparm/hero` renders the default pose of the clamp arm from the front, to the right and above, with the frame in orange,
+the swivel in teal, the links in blue, the head in purple, the adapter in yellow and the knobs in green, the screw knobs in red and the pad in dark grey. The `side`,
+`back` and `top` presets show it from +Y, from behind and above, and from above. `poses` puts the default, a raised
+(`Shoulder` 90, `Elbow` -30, `Wrist` -60) and a folded (`Shoulder` 100, `Elbow` -115, `Wrist` 15) arm side by side along
+X, 40 mm apart. `exploded` pulls the bolts of J2 to J4 45 mm out of their -Y faces and their nuts and knobs out of the +Y faces, moves the J1 bolt out to -Y and the jaw nut out to +Y, lifts the J1 nut and knob along +Z,
+lifts the swivel off the frame, moves link B, the head and the adapter apart along the chain, and sends the pad, the clamp
+screw and its knob down, with no two exploded bounding boxes intersecting. `clamp-section` clips the frame, pad, screw,
+jaw nut and J1 parts at y = 0 and looks from -Y; `joint-section` clips link A, link B and the J3 bolt, nut and knob by
+the plane through J3's axis, normal to link A; `interface-section` clips the head, adapter and stud parts at y = 0.
+`interface` shows the head, the stud bolt and the stud knob without an adapter, close up. `part-<name>` renders one body
+alone in its print orientation, for `frame`, `pad`, `swivel`, `link`, `head`, `adapter`, `knob`, `screw-knob`, `bolt-25`,
+`bolt-35`, `bolt-40`, `bolt-70` and `nut`. The `readme` shot writes all of them, the 480 × 270 index image and the parts in `parts/`:
+`go -C tools/render run . -model clamparm -shot readme -out ../../models/clamparm/images`.
+
 `onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
 +Z side removed, seen from the front and above, so the pawl heads in the ring's teeth, the arms and the back plate show, with the ring's
 three ears outside them. The `front`, `back` and `side` presets show the whole clutch. `section` looks straight down the shaft axis onto
@@ -363,15 +377,16 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the hand-crank fan, the hand-crank siren, the Graham escapement, the Swiss lever escapement, the crank handle, the
-one-way clutch, the spiral spring, the turbine fan and the plaque stand one after another. On a cache miss, it renders each model twice,
+drive, the bevel gear pair, the plaque stand, the clamp arm, the hand-crank fan, the hand-crank siren, the Graham
+escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring and the turbine fan
+one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other fifteen models fill a grid beside it: five columns across the top (208 × 300 pixels each)
-and two rows of five below (208 × 300 pixels each). The three gears, the bevel gear pair and the plaque stand are across the top. The
-planetary gearbox, cycloidal drive, fan, siren and Graham escapement are in the middle, and the Swiss lever escapement,
-crank handle, one-way clutch, spiral spring and turbine fan are across the bottom. Building all sixteen models takes
-several minutes plus the wheel
+(560 pixels wide). The other sixteen models fill a grid of four columns by four rows beside it (260 × 225 pixels per
+cell). The top row holds the spur, helical, herringbone and bevel gears. The second row holds the planetary gearbox,
+cycloidal drive, plaque stand and clamp arm. The third row holds the hand-crank fan, hand-crank siren, Graham
+escapement and Swiss lever escapement. The bottom row holds the crank handle, one-way clutch, spiral spring and
+turbine fan. Building all seventeen models takes several minutes plus the wheel
 build:
 
 ```sh
