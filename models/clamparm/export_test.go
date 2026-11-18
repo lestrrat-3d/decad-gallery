@@ -5,5 +5,7 @@ var (
 	BuildLink   = buildLink
 	BuildKnob   = buildKnob
 	SwivelBlank = swivelBlank
+	BuildSwivel = buildSwivel
+	BuildHead   = buildHead
 	ForkSite    = forkSite
 )
