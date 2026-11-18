@@ -76,7 +76,7 @@ func TestClampArmSwivel(t *testing.T) {
 
 	t.Run("J2 head pocket", func(t *testing.T) {
 		// The hex pocket is open to y = -10 and its floor is at y = -6.5.
-		requireLocated(t, body, false, r3.NewVec(70, -8, 10+3), r3.NewVec(70, -6.9, 10))
+		requireLocated(t, body, false, r3.NewVec(70, -8, 10+3), r3.NewVec(70, -6.9, 13.3))
 		requireLocated(t, body, true, r3.NewVec(70, -6.1, 13.5), r3.NewVec(70, -8, 19))
 	})
 }

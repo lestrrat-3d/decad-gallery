@@ -175,7 +175,8 @@ func (r *run) swivelTongueTool() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	pts := [][2]float64{{-12, TongueThickness}, {PanAxisX, TongueThickness}, {PanAxisX, 21}, {-12, 21}}
+	// The tongue is 30 long from the J1 axis (steps.md 7.5); it is not the pan axis offset.
+	pts := [][2]float64{{-12, TongueThickness}, {swivelTongueLength, TongueThickness}, {swivelTongueLength, 21}, {-12, 21}}
 	if err := r.outline(s, pts, []float64{0, ShoulderRound, 0, 0}); err != nil {
 		return nil, err
 	}

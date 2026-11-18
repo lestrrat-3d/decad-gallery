@@ -284,7 +284,8 @@ with `NewTangentCircles` between neighbours.
   bolt's tip ends inside it. The adapter's pocket is deep for the same reason. Part mark: 1 hole.
 - **Screw knob** (clamp screw, stud). Local origin at the inner face, +Z outward. Extrude 10 (`ScrewKnobHeight`).
   Cut a hole of diameter 5.6 through. Cut a hex head pocket open to the outer face, press fit: corner radius
-  `4.6188 + 0.05` = 4.6688, depth 3.5 (the head ends flush), Corner +X, floor outline rounded 0.6. The wall round the
+  `4.6188 + 0.05` = 4.6688, depth 3.5 (the head ends flush), Corner +X, floor outline rounded 0.5
+  (`PressPocketRound`). The wall round the
   press pocket is at least 1.6 (6.19 to the valleys). Print it with the axis vertical. Part marks: 2 holes.
 - Print each knob inner face down. Chamfer both cap outlines by 0.5.
 - Part marks sit on the outer face, which touches no part, and run through. The holes have diameter 1.5 on radius
@@ -358,9 +359,12 @@ tools. NEVER copy its geometry.
 - A head pocket is the corner circle plus 0.3 mm radial, as deep as the head is tall (3.5). A nut pocket is the
   corner circle plus 0.2 mm radial, 5.1 high where it is a cavity (4.7 plus 0.2 on each face). The clearance hole is
   diameter 5.6.
-- The head's 0.6 floor round assumes the modeled 30 degree chamfer on the head's underside (the ISO 4017 washer
+- The head's floor round assumes the modeled 30 degree chamfer on the head's underside (the ISO 4017 washer
   face). A plain underside would sit about 0.1 mm proud at the flats.
-- Hex pockets keep sharp corners (mating corners) and round their floor outline by `PocketRound` = 0.6.
+- Hex pockets keep sharp corners (mating corners) and round their floor outline by `PocketRound` = 0.6. The screw
+  knob's press pocket rounds by `PressPocketRound` = 0.5 instead: the head's chamfer would overlap a 0.6 round at the
+  flats (flat clearance 0.0433 mm; 0.6 gives -0.022, 0.5 gives +0.010). The corner rule allows the largest round that
+  keeps the fit, at least 0.5.
 - The clamp screw is a purchased bolt. A printed screw would be a printed shaft with a thread, which
   [Split shafts](../../docs/model-pipeline.md#split-shafts) forbids.
 - Joint bolts have their head in the fork's -Y fin and the knob and nut on the +Y fin, so turning the joint never turns
@@ -382,7 +386,7 @@ each body's last boolean. Names follow
 | Bolt shank in holes | Fastener rule | 0.3 radial (diameter 5.6) |
 | Hex head in pocket | Fastener rule | 0.3 past corners, flush |
 | Nut in pocket | Fastener rule | 0.2 past corners |
-| Bolt head in screw knob | Press fit | 0.05 past corners |
+| Bolt head in screw knob | Press fit | 0.05 past corners; 0.010 mm to the 0.5 floor round at the flats |
 | Pad socket on screw | Regular | 0.35 radial |
 | Pad -X face to spine | Loose | 0.5 |
 | Pad to jaw-root rounds at the `Opening` limits | Loose | at least 0.5 |
@@ -443,7 +447,7 @@ face down.
 | Part | Corner or edge | Reason |
 | --- | --- | --- |
 | Every printed part with a hex pocket | The six corners of each head or nut pocket | Mating corners with the sharp corners of the M5 hardware. |
-| Every printed part with a hex pocket | The pocket floor's 0.6 round where a layer cuts it obliquely | A slanted section reads the round as turns; it is the round the rule asks for, so only that band is exempt. |
+| Every printed part with a hex pocket | The pocket floor's round (0.6, or 0.5 in the screw knob's press pocket) where a layer cuts it obliquely | A slanted section reads the round as turns; it is the round the rule asks for, so only that band is exempt. |
 | Adapter | The recess rim | The 45 degree register. |
 | Link, swivel fork, head | Round ends near the bed | An overhang note ("Link"), not a corner. |
 
@@ -506,7 +510,10 @@ Check every case above:
   each optional sketch;
 - 25 bodies, the container names and their members, and `doc.VerifyContainers().Err()` nil;
 - every fit in "Part fits", each bolt's head flush and inside its pocket, each nut inside its pocket and no fastener
-  overlapping a part it passes through;
+  overlapping a part it passes through. Every fastener pair uses a disjointness check except the two screw-knob and
+  bolt pairs (clamp screw, stud), because decad's `Intersect` refuses that pair. Those two use an analytic clearance
+  test: the head-to-round clearance computed from `m5bolt.BearingDiameter`, the 30 degree chamfer,
+  `PressPocketRadius` and `PressPocketRound` must be at least 0, plus the flush-head bounds check;
 - the range limits ("Range of motion");
 - `internal/cornercheck` on every printed part with its `PrintUp`, exempting only the listed corners, each matching a
   finding;

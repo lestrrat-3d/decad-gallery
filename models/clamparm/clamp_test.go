@@ -1,6 +1,7 @@
 package clamparm_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -98,7 +99,7 @@ const jawTopZ = -59.5
 
 func TestClampArmClampPad(t *testing.T) {
 	for _, o := range []float64{clamparm.OpeningMin, clamparm.OpeningMax} {
-		t.Run("opening", func(t *testing.T) {
+		t.Run(fmt.Sprintf("opening %g", o), func(t *testing.T) {
 			p := clampParams(o)
 			d, err := p.Derive()
 			require.NoError(t, err)
@@ -116,10 +117,17 @@ func TestClampArmClampPad(t *testing.T) {
 			pad = place(ctx, t, pad, d.PadFrame)
 			requireBounds(t, pad, r3.NewVec(0.5, -15, -o-12), r3.NewVec(40, 15, -o))
 
-			// The pad stands 0.5 from the spine and clears the jaw root round at the lowest position.
-			separated, ok, err := clampMesh(t, pad).Exceeds(clampMesh(t, frameBody), 0.45)
+			// The pad stands exactly 0.5 from the spine, so the mesh test allows the mesh tolerance (clampMeshTol) below
+			// 0.5. The probe below checks the exact 0.5.
+			separated, ok, err := clampMesh(t, pad).Exceeds(clampMesh(t, frameBody), 0.5-clampMeshTol)
 			require.NoError(t, err)
-			require.True(t, ok, "pad is closer than 0.45 to the frame: gap bound %g", separated)
+			require.True(t, ok, "pad is closer than 0.48 to the frame: gap bound %g", separated)
+			// The closest point is on the pad's -X face next to its lower chamfer, beside the spine at Opening 40
+			// (the round starts 0.5 below the pad's underside there).
+			probe := r3.NewVec(0.5, 0, -o-11.5)
+			m, err := frameBody.DistanceToPoint(ctx, probe, units.Millimeters(clampLocTol))
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, m.Value.Base()+m.Bound.Base(), 0.5, "probe %v", probe)
 		})
 	}
 }
@@ -182,6 +190,11 @@ func buildClampScrew(t *testing.T, o float64) clampScrew {
 	return c
 }
 
+func screwBody(c clampScrew) *decad.Body { return c.bolt }
+func nutBody(c clampScrew) *decad.Body   { return c.nut }
+func frameBody(c clampScrew) *decad.Body { return c.frame }
+func padBody(c clampScrew) *decad.Body   { return c.pad }
+
 func TestClampArmClampJawNutAndScrew(t *testing.T) {
 	for _, o := range []float64{clamparm.OpeningMin, 25, clamparm.OpeningMax} {
 		c := buildClampScrew(t, o)
@@ -219,9 +232,9 @@ func TestClampArmClampJawNutAndScrew(t *testing.T) {
 			name string
 			a, b func(clampScrew) *decad.Body
 		}{
-			{"screw and frame", func(c clampScrew) *decad.Body { return c.bolt }, func(c clampScrew) *decad.Body { return c.frame }},
-			{"nut and frame", func(c clampScrew) *decad.Body { return c.nut }, func(c clampScrew) *decad.Body { return c.frame }},
-			{"screw and pad", func(c clampScrew) *decad.Body { return c.bolt }, func(c clampScrew) *decad.Body { return c.pad }},
+			{"screw and frame", screwBody, frameBody},
+			{"nut and frame", nutBody, frameBody},
+			{"screw and pad", screwBody, padBody},
 		} {
 			t.Run(pair.name, func(t *testing.T) {
 				c := buildClampScrew(t, 25)

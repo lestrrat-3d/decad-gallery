@@ -74,34 +74,33 @@ const (
 
 // Unexported dimensions, in mm.
 const (
-	swivelRise      = 14.26  // J1's swivel bottom face over the desk top
-	jawBottom       = -73.5  // the bottom jaw's underside
-	jawTop          = -59.5  // the bottom jaw's top face
-	finTop          = 28.26  // the upper fin's top face
-	gapLow          = 14.0   // the J1 gap's lower face
-	gapHigh         = 22.52  // the J1 gap's upper face
-	gapEnd          = 46.0   // the upper fin's end
-	jawEnd          = 50.0   // the top jaw's end
-	padLength       = 12.0   // pad thickness
-	padSocketRadius = 2.85   // pad socket radius
-	padSocketDepth  = 8.0    // pad socket depth
-	padSocketRound  = 0.5    // pad socket floor round
-	jawNutFloor     = -64.6  // the jaw nut pocket's floor
-	jawNutDepth     = 5.1    // the jaw nut pocket's depth
-	knobNutFloor    = 3.0    // the knob nut pocket's floor
-	knobNutDepth    = 9.0    // the knob nut pocket's depth
-	pressFloor      = 6.5    // the screw knob head pocket's floor
-	markDiameter    = 1.5    // part-mark hole diameter
-	markFirst       = 30.0   // first part-mark angle
-	markStep        = 25.0   // part-mark angle step
-	lobeRadius      = 4.0    // knob lobe radius
-	lobeCentre      = 11.0   // knob lobe centre radius
-	valleyRadius    = 3.0    // knob valley radius
-	valleyCentre    = 13.857 // knob valley centre radius
-	jointBolt       = 25.0   // M5 x 25 at J2 to J4
-	panBolt         = 35.0   // M5 x 35 at J1
-	studBolt        = 40.0   // M5 x 40 stud
-	screwBolt       = 70.0   // M5 x 70 clamp screw
+	swivelRise         = 14.26  // J1's swivel bottom face over the desk top
+	jawTop             = -59.5  // the bottom jaw's top face
+	finTop             = 28.26  // the upper fin's top face
+	gapLow             = 14.0   // the J1 gap's lower face
+	gapHigh            = 22.52  // the J1 gap's upper face
+	gapEnd             = 46.0   // the upper fin's end
+	jawEnd             = 50.0   // the top jaw's end
+	swivelTongueLength = 30.0   // the swivel tongue's end x from the J1 axis (steps.md 7.5)
+	padSocketRadius    = 2.85   // pad socket radius
+	padSocketDepth     = 8.0    // pad socket depth
+	padSocketRound     = 0.5    // pad socket floor round
+	jawNutFloor        = -64.6  // the jaw nut pocket's floor
+	jawNutDepth        = 5.1    // the jaw nut pocket's depth
+	knobNutFloor       = 3.0    // the knob nut pocket's floor
+	knobNutDepth       = 9.0    // the knob nut pocket's depth
+	pressFloor         = 6.5    // the screw knob head pocket's floor
+	markDiameter       = 1.5    // part-mark hole diameter
+	markFirst          = 30.0   // first part-mark angle
+	markStep           = 25.0   // part-mark angle step
+	lobeRadius         = 4.0    // knob lobe radius
+	lobeCentre         = 11.0   // knob lobe centre radius
+	valleyRadius       = 3.0    // knob valley radius
+	valleyCentre       = 13.857 // knob valley centre radius
+	jointBolt          = 25.0   // M5 x 25 at J2 to J4
+	panBolt            = 35.0   // M5 x 35 at J1
+	studBolt           = 40.0   // M5 x 40 stud
+	screwBolt          = 70.0   // M5 x 70 clamp screw
 )
 
 // Params are the clamp arm's inputs.

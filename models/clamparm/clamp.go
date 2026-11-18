@@ -18,6 +18,7 @@ import (
 const (
 	frameLeft    = -14.0 // the spine's outer face
 	frameBottom  = -73.5 // the bottom jaw's underside
+	lowerJawEnd  = 45.0  // the bottom jaw's end
 	frameRound   = 2.0   // round on every convex profile corner
 	jawRootRound = 7.0   // round on the two jaw roots
 	slotCentreX  = -0.74 // the J1 gap's round: centre x
@@ -99,8 +100,8 @@ func (r *run) frameProfile(s *sketch.Sketch) error {
 	origin := s.Origin()
 	type vertex struct{ x, z, round float64 }
 	vs := []vertex{
-		{frameLeft, frameBottom, frameRound}, {45, frameBottom, frameRound}, {45, jawTop, frameRound},
-		{0, jawTop, jawRootRound}, {0, 0, jawRootRound}, {50, 0, frameRound}, {50, gapLow, frameRound},
+		{frameLeft, frameBottom, frameRound}, {lowerJawEnd, frameBottom, frameRound}, {lowerJawEnd, jawTop, frameRound},
+		{0, jawTop, jawRootRound}, {0, 0, jawRootRound}, {jawEnd, 0, frameRound}, {jawEnd, gapLow, frameRound},
 		{slotCentreX, gapLow, 0}, {slotCentreX, gapHigh, 0}, {gapEnd, gapHigh, frameRound},
 		{gapEnd, finTop, frameRound}, {frameLeft, finTop, frameRound},
 	}

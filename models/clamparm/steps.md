@@ -74,13 +74,13 @@ Idioms, each checked to solve fully constrained with one valid profile and the e
   +Z, shank along -Z, head corners on X. Head height 3.5, shank diameter 5.
 - `internal/m5fastener`: constants `HeadClearance` 0.3, `NutClearance` 0.2, `HoleRadius` 2.8, `HeadPocketRadius` 4.9188,
   `HeadPocketDepth` 3.5, `NutPocketRadius` 4.8188, `NutCavityHeight` 5.1, `PressPocketRadius` 4.6688, `PocketRound` 0.6,
-  `Stock` 1. `Site{Head, Dir, Corner r3.Vec; Length float64}` with `Validate`, `At(t)`, `Across(t)` (frame at `t` from
+  `PressPocketRound` 0.5, `Stock` 1. `Site{Head, Dir, Corner r3.Vec; Length float64}` with `Validate`, `At(t)`, `Across(t)` (frame at `t` from
   `Head`, normal `Dir`, U `Corner`) and `Tip()` (`HeadPocketDepth + Length` from `Head`). `Head` is the centre of the
   head's top face. Pocket tools take a floor frame `f` (origin at the pocket floor's centre, +Z toward the opening, U the
   hex corner direction), extrude from the floor out through the opening plus `Stock`, and fillet the cutter's
   `CapStart` outer loop by `PocketRound`: `HeadPocketTool(ctx, doc, f)` (pocket depth 3.5), `NutPocketTool(ctx, doc, f,
   depth)` (`depth` is the pocket's depth from the floor to the face it opens on; the extrusion is `depth + Stock`),
-  `PressPocketTool(ctx, doc, f)` (depth 3.5). `HoleTool(ctx, doc, site)` is a cylinder of radius `HoleRadius` from `Stock`
+  `PressPocketTool(ctx, doc, f)` (depth 3.5, floor rounded by `PressPocketRound` 0.5). `HoleTool(ctx, doc, site)` is a cylinder of radius `HoleRadius` from `Stock`
   before `Head` to `Stock` past the tip. `RoundedSocketTool(ctx, doc, f, radius, depth, round)` is a blind round socket
   whose floor corner is rounded by `round` with 8 chords: `f`'s origin is the floor's centre, +Z points toward the
   opening, and the socket runs `depth + Stock` along +Z. `PlaceBolt(ctx, doc, site)
@@ -198,7 +198,8 @@ Local frame as the knob. Used for the clamp screw (`ScrewKnobFrames[0]`) and the
 1. Sketch `screwknob` as the knob's: `lobedOutline` and the hole circle; `profile(s, 1)`; extrude 10 along +Z.
 2. `edgefinish.Chamfer(ctx, body, (0,0,1), []float64{0, 10}, edgefinish.Outer, 0.5)`.
 3. Cut the head pocket: `m5fastener.PressPocketTool(ctx, doc, f)` with `f = frame((0,0,6.5), (1,0,0), (0,1,0))`: corner
-   radius 4.6688, depth 3.5, floor at z = 6.5, open to the outer face, floor outline rounded 0.6. The head ends flush.
+   radius 4.6688, depth 3.5, floor at z = 6.5, open to the outer face, floor outline rounded 0.5 (`PressPocketRound`; the
+   Task 5 contract: `PressPocketTool` now uses `PressPocketRound` 0.5, not `PocketRound`). The head ends flush.
 4. Cut the part marks, two holes: `mark(10, 30, 55)` (two sketches, 25 degrees apart).
 5. Return the `Part` as the knob, `PrintUp` placed +Z. Wall round the press pocket is at least 1.6.
 
