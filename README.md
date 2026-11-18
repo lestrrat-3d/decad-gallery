@@ -11,6 +11,12 @@ become part of a hand-crank siren or a wind turbine.
 
 The [model table](models/) lists every model with its description, image, and build status.
 
+## Features
+
+The [features](features/) are reusable shapes that cut or add material on parts that other items own. The first is a
+[dovetail joint](features/dovetail/), a sliding tail and socket built from one set of parameters. A feature is not a
+gallery model and has no image in the gallery above.
+
 ## For developers
 
 Every model directory holds two specification files. `instructions.md` states the inputs and defaults,

@@ -30,6 +30,13 @@ var presets = map[string]preset{
 	"m2nut/side":                    {width: 1600, height: 900, scene: m2NutViewScene("side")},
 	"m2nut/low":                     {width: 1600, height: 900, scene: m2NutViewScene("low")},
 	"m2nut/withbolt":                {width: 1600, height: 900, scene: m2NutViewScene("withbolt")},
+	"dovetail/hero":                 {width: 1600, height: 900, scene: dovetailHero},
+	"dovetail/end":                  {width: 1600, height: 900, scene: dovetailViewScene("end")},
+	"dovetail/rear":                 {width: 1600, height: 900, scene: dovetailViewScene("rear")},
+	"dovetail/low":                  {width: 1600, height: 900, scene: dovetailViewScene("low")},
+	"dovetail/exploded":             {width: 1600, height: 900, scene: dovetailViewScene("exploded")},
+	"dovetail/tail-block":           {width: 480, height: 270, scene: dovetailViewScene("tail-block")},
+	"dovetail/socket-block":         {width: 480, height: 270, scene: dovetailViewScene("socket-block")},
 	"pinring/hero":                  {width: 1600, height: 900, scene: pinRingHero},
 	"pinring/top":                   {width: 1600, height: 900, scene: pinRingViewScene("top")},
 	"pinring/side":                  {width: 1600, height: 900, scene: pinRingViewScene("side")},
@@ -299,6 +306,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "m2nut" {
 		return renderM2NutReadme(ctx, outputDir)
+	}
+	if model == "dovetail" {
+		return renderDovetailReadme(ctx, outputDir)
 	}
 	if model == "pinring" {
 		return renderPinRingReadme(ctx, outputDir)
