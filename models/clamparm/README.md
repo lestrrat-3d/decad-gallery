@@ -9,19 +9,19 @@ out over the desk, and the free end carries a mount interface that holds a camer
 by friction, so you aim the arm by hand and lock each joint with its knob.
 
 The arm has a swivel, two identical links and a head. The default pose has 120 mm links and a level head. The
-clamp, the joints and the mount are described below. The model ends in a placeholder adapter: a plain disc that fits
+model ends in a placeholder adapter: a plain disc that fits
 the mount interface. A real holder, such as a webcam holder, is a later model that builds against the interface.
 
-**Clearance adjustment:** Mixed. The fits between printed parts are parameters; the bolts and nuts keep their nominal
-size.
+**Clearance adjustment:** Mixed. The fits between printed parts are named constants in `params.go`, such as `JointFit` (0.26 mm per side), and change
+in source; the bolts and nuts keep their nominal size.
 
 ## Views
 
-From the side, along the joint axes, the arm shows its pose as a chain of 20 mm square parts.
+From the side, along the joint axes, the arm reads as a chain of 20 mm square parts.
 
 ![The clamp arm seen from the side](images/side.png)
 
-From behind and above, the knobs sit on the +Y side of every joint and the bolt heads on the other.
+From behind and above, the knobs of J2 to J4 sit on the +Y side and their bolt heads on the other. The J1 knob sits on top.
 
 ![The clamp arm seen from behind and above](images/back.png)
 
@@ -31,7 +31,7 @@ From above, the arm lies in one plane across the desk until the swivel turns it.
 
 ## Poses
 
-Three poses side by side: the default, a raised pose (shoulder 90, elbow -30, wrist -60) and a folded pose (shoulder
+This image shows three poses side by side: the default, a raised pose (shoulder 90, elbow -30, wrist -60) and a folded pose (shoulder
 100, elbow -115, wrist 15). The swivel turns the whole arm 125 degrees either way. The shoulder runs from -60 to 115
 degrees, the elbow from -115 to 115 and the wrist from -110 to 90.
 
@@ -44,7 +44,7 @@ through the bottom jaw, turned by a screw knob below the jaw, and pushes a pad a
 cannot turn, so it does not scrub the desk. The clamp grips desks 10 to 40 mm thick. The desk's edge goes into the
 frame against the spine. The 7 mm round at the root of each jaw keeps a square desk edge up to 7 mm away from the spine.
 
-![The clamp cut along its mid-plane: the frame, the pad on the tip of the M5 x 70 screw, the screw knob and the jaw nut, and the J1 bolt, nut and knob above the top jaw](images/clamp-section.png)
+![The clamp cut along its mid-plane: the frame, the pad on the tip of the M5 x 70 screw, the screw knob and the jaw nut, and the J1 bolt through the top jaw with its nut and knob above it, and the swivel](images/clamp-section.png)
 
 The top jaw is also the lower fin of the first joint (J1). The J1 bolt's head sits flush in a pocket in the underside
 of the top jaw, so nothing stands proud on the face that goes against the desk.
@@ -61,7 +61,7 @@ the two fins against the tongue and the friction holds the pose.
 The bolt's head sits in a hex pocket in one fin, so the bolt does not turn. The knob turns the nut, so turning a joint
 never turns a bolt in its nut. The nut sits in a hex pocket open to the knob's outer face. The bolt holds it there.
 
-Each joint is estimated to hold about 2.3 N.m at a hand-tight 0.6 N.m of knob torque (between 1.0 and 4.3). The arm's
+Each joint is estimated to hold about 2.3 N.m at a hand-tight 0.6 N.m of knob torque (1.0 to 4.3 N.m across the low and high knob torque and friction cases). The arm's
 heaviest load, the shoulder with the arm horizontal, a 200 g camera and a 30 g adapter at the mount, is about
 0.9 N.m at 120 mm links and 1.1 N.m at 150 mm. [instructions.md](instructions.md) ("Joint capacity") shows the
 estimate. A bench test settles it: lock the clamp, straighten the arm horizontally, hang masses at the stud and record
@@ -90,10 +90,10 @@ pulls the adapter onto the boss, and the cone centres it on the stud.
 
 ## Exploded
 
-<img src="images/exploded.png" alt="The clamp arm pulled apart, from the bottom of the picture: the clamp frame, the M5 x 35 J1 bolt out of the frame's underside, the swivel above the frame, the J1 nut and the J1 knob above the swivel, the jaw nut, the screw knob, the M5 x 70 clamp screw and the pad below the frame, link A with its J2 bolt, nut and knob pulled out to the sides, link B with its J3 bolt, nut and knob, the head with its J4 bolt, nut and knob, the stud knob, the M5 x 40 stud bolt and the adapter nut below and above the head, and the adapter">
+<img src="images/exploded.png" alt="The clamp arm pulled apart, from the bottom of the picture: the clamp frame, the M5 x 35 J1 bolt pulled out to the -Y side of the top jaw, the swivel above the frame, the J1 nut and the J1 knob lifted above the swivel, the jaw nut beside the bottom jaw, the screw knob, the M5 x 70 clamp screw and the pad below the frame, link A with its J2 bolt, nut and knob pulled out to the sides, link B with its J3 bolt, nut and knob, the head with its J4 bolt, nut and knob, the stud knob, the M5 x 40 stud bolt and the adapter nut below and above the head, and the adapter">
 
-The picture pulls the arm apart. Each joint's bolt leaves the -Y face and its nut and knob leave the +Y face, along
-the joint axis. The swivel lifts off the frame, link B, the head and the adapter move apart along the chain, and the
+The preset pulls the arm apart. The bolts of J2 to J4 leave the -Y face and their nuts and knobs leave the +Y face, along
+the joint axis. The J1 bolt moves out to -Y, and the jaw nut moves out to +Y; the J1 nut and knob lift along +Z. The swivel lifts off the frame, link B, the head and the adapter move apart along the chain, and the
 pad, the clamp screw and its knob go down. The parts, in assembly order:
 
 1. The clamp frame, the J1 bolt, the swivel, the J1 nut and the J1 knob.
@@ -145,7 +145,7 @@ error that names it.
 
 Print each part in the orientation [instructions.md](instructions.md) gives: the frame on its -Y face, the pad top
 face down, the swivel bottom face down, the links on their -Z face, the head bottom face down, the knobs inner face
-down and the adapter mating face down. No part needs supports or a pause. The nuts go into their pockets at assembly.
+down and the adapter mating face down. The nuts go into their pockets at assembly.
 
 To assemble:
 
