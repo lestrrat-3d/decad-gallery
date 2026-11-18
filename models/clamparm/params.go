@@ -233,9 +233,24 @@ func (b *builder) rotateZ(a float64) r3.Transform {
 
 // rotateJoint is R(a), a rotation about -Y that lifts local +X toward +Z.
 func (b *builder) rotateJoint(a float64) r3.Transform {
-	t, err := r3.Rotation(r3.NewVec(0, -1, 0), units.Degrees(a))
+	c, s := exactCosSin(a)
+	f := b.frame(r3.Vec{}, r3.NewVec(c, 0, s), r3.NewVec(0, 1, 0))
+	t, err := r3.FromFrame(f)
 	b.fail(err)
 	return t
+}
+
+// exactCosSin is cos and sin of a degrees, with exact 0 and +-1 at multiples of 90 degrees.
+func exactCosSin(a float64) (float64, float64) {
+	if q := a / 90; q == math.Trunc(q) {
+		k := int(math.Mod(q, 4))
+		if k < 0 {
+			k += 4
+		}
+		return [4]float64{1, 0, -1, 0}[k], [4]float64{0, 1, 0, -1}[k]
+	}
+	r := a * math.Pi / 180
+	return math.Cos(r), math.Sin(r)
 }
 
 // compose is the product ts[0] . ... . ts[n-1], which applies the last transform first.
@@ -304,10 +319,16 @@ func pocketFrame(site m5fastener.Site) (r3.Frame, error) {
 func (p Params) derive() (Dimensions, error) {
 	b := &builder{}
 	l, o := p.LinkLength, p.Opening
+	// Each pose is one translation to the part's joint and one rotation by the summed joint angle, so a level head
+	// (70 - 90 + 20) is the identity rotation instead of a product of three rounded rotations.
+	c1, c2, c3 := p.Shoulder, p.Shoulder+p.Elbow, p.Shoulder+p.Elbow+p.Wrist
+	cs1, sn1 := exactCosSin(c1)
+	cs2, sn2 := exactCosSin(c2)
 	s := b.compose(b.translate(PanAxisX, 0, swivelRise), b.rotateZ(p.Pan))
-	a := b.compose(s, b.translate(SwivelLength, 0, 10), b.rotateJoint(p.Shoulder))
-	bt := b.compose(a, b.translate(l, 0, 0), b.rotateJoint(p.Elbow))
-	h := b.compose(bt, b.translate(l, 0, 0), b.rotateJoint(p.Wrist))
+	base := b.compose(s, b.translate(SwivelLength, 0, 10))
+	a := b.compose(base, b.rotateJoint(c1))
+	bt := b.compose(base, b.translate(l*cs1, 0, l*sn1), b.rotateJoint(c2))
+	h := b.compose(base, b.translate(l*cs1, 0, l*sn1), b.translate(l*cs2, 0, l*sn2), b.rotateJoint(c3))
 	i := b.compose(h, b.translate(StudOffset, 0, 10))
 	if b.err != nil {
 		return Dimensions{}, fmt.Errorf("clamparm: pose chain: %w", b.err)

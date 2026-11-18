@@ -121,6 +121,10 @@ dimensions, and check `ctx.Err()` before any geometry. A rejected build adds no 
 | Head `H` | `B . T(L, 0, 0) . R(-Y, Wrist)` |
 | Interface `I` | `H . T(StudOffset = 40, 0, 10)`; the adapter's local frame is `I` |
 
+Each frame is one translation plus one rotation by the summed joint angle, so the default level head (70 - 90 + 20
+= 0 degrees) is exactly the identity rotation and no frame carries rounding residue (an entry near 0 or an integer that
+is not exactly it). The cosine and sine of a multiple of 90 degrees are exact.
+
 Each printed part is built in its local frame and placed once, after its last operation, with
 `internal/placement.Place`.
 

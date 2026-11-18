@@ -264,10 +264,21 @@ func TestClampArmFastenersBoltNutEngagement(t *testing.T) {
 // asmPair is a hardware body against a body it touches or passes.
 type asmPair struct{ a, b string }
 
+// asmRefusal is a pair in a case.
+type asmRefusal struct{ caseName, hardware, other string }
+
+// asmMeshOnly lists the pairs decad's Intersect still refuses in both operand orders on the pinned decad, each with
+// its reason (steps.md section 13 item 5). Every other pair must prove empty.
+var asmMeshOnly = map[asmRefusal]string{
+	{"pan-max", "bolt J2", "swivel"}: "the swivel's held mesh is coarser than the pair's chord tolerance",
+	{"pan-min", "bolt J2", "swivel"}: "the swivel's held mesh is coarser than the pair's chord tolerance",
+	{"raised", "nut J4", "knob J4"}:  "the held facets come within the chord tolerance",
+}
+
 // TestClampArmFastenersNoOverlap requires every hardware body to share no volume with any other body, using decad's
 // Intersect and its BooleanEmpty result. Bodies whose boxes are apart are disjoint without a call. A bolt and its own
-// nut are left out (see TestClampArmFastenersBoltNutEngagement). A pair decad refuses in both operand orders is
-// checked by the interim proof asmMeshOverlap (requireDisjointPair).
+// nut are left out (see TestClampArmFastenersBoltNutEngagement). Every pair must prove empty in one operand order,
+// except the pairs in asmMeshOnly, which decad still refuses in both orders and which asmMeshOverlap checks instead.
 func TestClampArmFastenersNoOverlap(t *testing.T) {
 	for _, c := range asmCases(t) {
 		t.Run(c.name, func(t *testing.T) {
@@ -314,7 +325,8 @@ func TestClampArmFastenersNoOverlap(t *testing.T) {
 						continue
 					}
 					checked++
-					if !requireDisjointPair(t, names[i], names[j], bodies[i], bodies[j], axes[i]) {
+					_, meshOnly := asmMeshOnly[asmRefusal{c.name, names[i], names[j]}]
+					if !requireDisjointPair(t, names[i], names[j], bodies[i], bodies[j], axes[i], meshOnly) {
 						fallbacks = append(fallbacks, names[i]+" and "+names[j])
 					}
 				}
@@ -335,11 +347,13 @@ func asmBoxesMeet(a, b decad.Box, tol float64) bool {
 }
 
 // requireDisjointPair requires a, a hardware body, and b to share no volume. It asks decad's Intersect with the
-// hardware first, then with the printed part first, and expects BooleanEmpty. Where decad refuses the pair in both
-// orders (a body that holds a coarse mesh, or facets that meet within the chord tolerance) it applies the interim
-// proof asmMeshOverlap, whose axis is the hardware's own, and returns false.
-func requireDisjointPair(t *testing.T, an, bn string, a, b *decad.Body, axis asmAxis) bool {
+// hardware first, then with the printed part first, and expects BooleanEmpty from one of them, which proves the
+// bodies disjoint. A pair in asmMeshOnly (meshOnly) is the exception: decad refuses it in both orders, so the interim
+// proof asmMeshOverlap, whose axis is the hardware's own, decides it and the function returns false. A pair not in
+// asmMeshOnly that decad refuses fails.
+func requireDisjointPair(t *testing.T, an, bn string, a, b *decad.Body, axis asmAxis, meshOnly bool) bool {
 	t.Helper()
+	var refusal error
 	for _, operands := range [][2]*decad.Body{{a, b}, {b, a}} {
 		_, err := decad.Intersect(t.Context(), operands[0], operands[1])
 		require.Error(t, err, "%s and %s share volume", an, bn)
@@ -347,7 +361,10 @@ func requireDisjointPair(t *testing.T, an, bn string, a, b *decad.Body, axis asm
 		if errors.As(err, &be) && be.Code == decad.BooleanEmpty {
 			return true
 		}
+		refusal = err
 	}
+	require.True(t, meshOnly, "%s and %s: decad refused the pair in both orders and it is not in asmMeshOnly: %v", an, bn,
+		refusal)
 	require.Empty(t, asmMeshOverlap(t, an, bn, a, b, axis), "%s and %s share volume", an, bn)
 	return false
 }

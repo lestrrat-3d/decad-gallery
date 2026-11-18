@@ -118,9 +118,16 @@ Idioms, each checked to solve fully constrained with one valid profile and the e
    `R(a)` is `r3.Rotation((0,-1,0), units.Degrees(a))`, which lifts local +X toward +Z. `compose(t1, ..., tn)` is the
    product `t1 . ... . tn`, which applies `tn` first: `tn.Then(...).Then(t1)`. `frameOf(t)` is `r3.NewFrame(t.Apply(0),
    t.ApplyDir(X), t.ApplyDir(Y))`.
-   - `S = compose(T(30,0,swivelRise), Rz(Pan))`;
-   - `A = compose(S, T(70,0,10), R(Shoulder))`, `B = compose(A, T(L,0,0), R(Elbow))`, `H = compose(B, T(L,0,0),
-     R(Wrist))`, `I = compose(H, T(40,0,10))`;
+   `cs(a), sn(a)` are the cosine and sine of `a` degrees, exactly `(1,0)`, `(0,1)`, `(-1,0)`, `(0,-1)` when `a` is a
+   multiple of 90 and `math.Cos`, `math.Sin` of `a` in radians otherwise. `R(a)` is built as `r3.FromFrame` of
+   `NewFrame(0, (cs(a), 0, sn(a)), (0,1,0))`, which equals the `-Y` rotation and is exact at multiples of 90. Each
+   pose is one translation to the part's joint and one rotation by the summed joint angle, never a product of
+   rounded rotations, so a level head (`Shoulder + Elbow + Wrist` = 0) is the identity rotation. Let `c1 = Shoulder`,
+   `c2 = Shoulder + Elbow` and `c3 = Shoulder + Elbow + Wrist`.
+   - `S = compose(T(30,0,swivelRise), Rz(Pan))`; `base = compose(S, T(70,0,10))`;
+   - `A = compose(base, R(c1))`; `B = compose(base, T(L cs(c1), 0, L sn(c1)), R(c2))`; `H = compose(base, T(L cs(c1),
+     0, L sn(c1)), T(L cs(c2), 0, L sn(c2)), R(c3))`; `I = compose(H, T(40,0,10))`. The frames equal the chained
+     `A . T(L,0,0) . R(Elbow)` form to within 3e-14 mm;
    - `Dimensions.Swivel`, `LinkA`, `LinkB`, `Head`, `Interface` are `frameOf` of those, in the model's world frame
      before `Placement`.
 5. `Joints[0] = (30, 0, 14.26)`; `Joints[1..3]` are the origins of `A`, `B` and `H`. `Axes[0] = (0,0,1)`; `Axes[1..3]` are
@@ -363,7 +370,7 @@ z 0 to 15. `PrintUp` is (0, 0, 1): the mating face is on the bed.
    `Opening`; nothing else does.
 6. Failure checks: every part sketch fully constrained; every part solid; 25 bodies; the screw knob gap at least 0.5.
 
-## 13. Decad notes (decad 5a61e0681424)
+## 13. Decad notes (decad 001517e320ed)
 
 1. `decad.Intersect` of the plan and elevation prisms refuses coplanar faces ("two operand facets overlap in one
    plane") when the plan prism spans z 0 to 20, and a tangent contact when its end is at x = 80. The steps use z
@@ -378,42 +385,36 @@ z 0 to 15. `PrintUp` is (0, 0, 1): the mating face is on the bed.
    ends inside the pocket and never stands outside a face. This is a recorded departure from that rule.
 4. The chamfers that pass: the frame (44 edges), the pad (16), the link (8 on the Y caps, plus the tongue and fork
    faces in one call), the head (12 on the Y caps, plus the tongue faces) and the knobs (24) and the adapter (2).
-5. Assembly checks (decad 5a61e0681424): the overlap and fit checks meet the decad gaps below. Each is the smallest
-   real failing case, built from `clamparm.Build` at `DefaultParams` unless stated, with every body moved to the
-   document root (`TestClampArmFastenersNoOverlap` does the same). **These are decad gaps handed to the
-   coordinator.** Until decad fixes them, the fallback `asmMeshOverlap` in `fasteners_test.go` is the interim proof
-   of disjointness. It requires, for each refused pair, that no vertex of the hardware's mesh lies inside the part's
-   mesh, that no vertex of the part's mesh lies inside the hardware's mesh (a ray-parity test, deeper than 0.01 mm),
-   that sections normal to the hardware's axis at seven stations along it do not overlap, and that sections through
-   the axis at 0, 45, 90 and 135 degrees do not overlap (`SectionOutline` loops, as in `crankhandle`, tested by vertex
-   depth because `SectionClearance.Overlaps` reads true for outlines 0.3 mm apart where the plane meets a rim on a
-   rotated part). `TestClampArmFastenersMeshOverlapControl` shows that each of the four tests catches a bolt moved
-   0.6 mm and 0.35 mm (diagonal) off its hole in link A's tongue, and passes one moved 0.1 mm.
-   - J2 bolt against the swivel, refused in every case and both orders. `decad.Intersect(ctx, boltJ2, swivel)` (no
-     options) returns `not supported by the current evaluator: intersect's second operand holds its mesh, where this
-     pair meets, only within a bound of 0.010493700655164749 mm, coarser than this pair's chord tolerance
-     0.0019309860745953394 mm; a boolean takes no tolerance ...`. `Intersect(ctx, swivel, boltJ2)` returns the same
-     with "first operand". The swivel's held mesh (built by the J1 tongue cut, the J2 slot, hole and pocket cuts and
-     two chamfer calls) is 0.0105 mm coarser than the pair's chord tolerance.
-   - Operand-order dependence. `Intersect(ctx, boltJ1, frame)` returns `BooleanEmpty` (disjoint, as expected) and
-     `Intersect(ctx, frame, boltJ1)` returns `not supported by the current evaluator: the operands' held facets come
-     within the chord tolerance without provably interpenetrating deeper than it, so whether their true surfaces
-     touch or cross is decided by where the chords fall ...`. The same holds for the J3 bolt against link A, the J4
-     bolt against link B, the stud against the stud knob, the clamp screw against the screw knob, each knob nut
-     against its knob, the jaw nut against the frame and the adapter nut against the adapter. The checks ask with
-     the hardware first, then the part first.
-   - J4 bolt against link B in `long` (`LinkLength` 150): refused in both orders with the held-facets message
-     above (at `default` and `raised` the hardware-first order passes).
-   - J4 nut against knob J4 in `raised` (`Shoulder` 110, `Elbow` -70, `Wrist` -40): refused in both orders with the
-     held-facets message (at `default` the nut-first order passes).
-   - `Intersect` across containers: `Intersect(ctx, boltJ2, swivel)` on the model as built returns `decad:
-     operands sit in different containers: "/Bolts" and "/Swivel"`, and the same for `"/Bolts"` and `"/Frame"`.
-     The checks therefore intersect a second build whose bodies sit at the document root.
+5. Assembly checks (decad 001517e320ed, which reads placed seat planes exactly in `Intersect`). Every hardware body
+   against every printed body or other hardware body whose box meets it proves empty with `decad.Intersect` and
+   `BooleanEmpty`, hardware first or part first, in all 15 cases of `asmCases` (`TestClampArmFastenersNoOverlap`, with
+   every body moved to the document root, since `Intersect` across containers returns `decad: operands sit in
+   different containers`). A refusal outside the list below fails the test. The pairs below are refused in both
+   operand orders, so `asmMeshOverlap` in `fasteners_test.go` decides them (`asmMeshOnly` lists them). It requires that
+   no vertex of the hardware's mesh lies inside the part's mesh, that no vertex of the part's mesh lies inside the
+   hardware's mesh (a ray-parity test, deeper than 0.01 mm), that sections normal to the hardware's axis at seven
+   stations along it do not overlap, and that sections through the axis at 0, 45, 90 and 135 degrees do not overlap
+   (`SectionOutline` loops, as in `crankhandle`, tested by vertex depth because `SectionClearance.Overlaps` reads true
+   for outlines 0.3 mm apart where the plane meets a rim on a rotated part).
+   `TestClampArmFastenersMeshOverlapControl` shows that each of the four tests catches a bolt moved 0.6 mm and 0.35 mm
+   (diagonal) off its hole in link A's tongue, and passes one moved 0.1 mm.
+   - Bolt J2 against the swivel in `pan-max` and `pan-min`: `Intersect` returns `not supported by the current
+     evaluator: intersect's ... operand holds its mesh, where this pair meets, only within a bound of ... mm, coarser
+     than this pair's chord tolerance` in both orders. The swivel's held mesh (built by the J1 tongue cut, the J2 slot,
+     hole and pocket cuts and two chamfer calls) is coarser than the pair's chord tolerance. At the other 13 cases the
+     pair proves empty.
+   - Nut J4 against knob J4 in `raised` (`Shoulder` 110, `Elbow` -70, `Wrist` -40): refused in both orders with `the
+     operands' held facets come within the chord tolerance without provably interpenetrating deeper than it`. At the
+     other 14 cases the pair proves empty.
+   - A bolt against its own nut (bolt J1 to J4 with nut J1 to J4, the stud with the adapter nut, the clamp screw with
+     the jaw nut) is refused in both orders in every case. The nut's bore is the shank, so the cylinders coincide and
+     the refusal is correct. `TestClampArmFastenersNoOverlap` leaves these pairs out and
+     `TestClampArmFastenersBoltNutEngagement` checks them analytically.
+   - The adapter nut against the adapter proves empty hardware first in every case, although the part-first order is
+     still refused, which the check accepts.
    - `Body.DistanceToPoint` on placed bodies. On link A at `default`, `DistanceToPoint(ctx, p, tol)` for
      `p = (100, 0, 27.36)` (0.3 mm outside its J2 tongue hole's wall) with `tol` 0.005 returns `requested tolerance
      0.005 mm is below the faceted body's minimum mesh bound 0.0175 mm`; with `tol` 0.02 or 0.05 it returns 0.1588
      mm, `Approximate`, error bound 0.1588 mm, so the result cannot tell 0.3 from 0.14. Bodies moved by `Transform`
      (the placed case, and every body after a pose) hold meshes, and their bound runs from 0.05 to 0.23 mm. The fit
      checks measure from `meshgap.Mesh.PointDistance` over a mesh tessellated as finely as the body allows instead.
-   - A bolt and its own nut are refused in both orders (the nut's bore is the shank, so the facets coincide), so that
-     pair is checked analytically (`TestClampArmFastenersBoltNutEngagement`).
