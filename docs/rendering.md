@@ -63,13 +63,17 @@ across the clamp nuts' pockets at x = -7, and `cross-section` cuts the pin acros
 y = Throw - 3; both look into the cut:
 `go -C tools/render run . -model crankhandle -shot readme -out ../../models/crankhandle/images`.
 
-`plaquestand/hero` renders the default stand, blue, with the default plaque, grey, leaning in its slot, seen from the
-front left and above. The `stand` preset shows the stand alone, `side` shows both from +X, and `back` shows both from
-behind and above. `exploded` lifts the plaque out of the slot by the back rest's height plus 40 mm along the slot axis.
-`print` turns the stand onto its x = 0 face, the way it prints. `sizes` stands the smallest (150 × 120 × 2 mm), the default
-and the largest (400 × 350 × 15 mm) plaque with their stands left to right, 40 mm between the plaques. `part-stand` and
-`part-plaque` show each part alone. The `readme` shot builds the default stand once and the smallest and largest once each,
-and writes every image, the index image and the two 480 × 270 part images in `parts/`:
+`plaquestand/hero` renders the default stand, blue, with the default plaque, grey, leaning in its slots, seen from the front
+left and above; the bolts and nuts use the crank handle's hardware colour. The `frame` preset shows the brackets, rail
+and hardware without the plaque, and `side` and `back` show everything from +X and from behind and above. `joint` cuts
+every body by the plane x = 10, through bracket 1's mid-plane and its bolt, removes the outer half and looks into the cut
+from -X. `exploded` pulls the parts apart: each nut 25 mm down and 30 mm outward along X, the rail 25 mm up, the bolts
+45 mm up and the plaque the back rest's height plus 80 mm along the slot axis. `print` lays bracket 1 twice on its x = 0
+face, the second one 10 mm behind the first, with the rail flat 10 mm in front. `sizes` stands the smallest (150 × 120 × 2 mm),
+the default and the largest (400 × 350 × 15 mm) plaque with their stands left to right, 40 mm between the plaques.
+`part-bracket`, `part-rail`, `part-bolt`, `part-nut` and `part-plaque` show each part alone. The `readme` shot builds the
+default stand once and the smallest and largest once each, and writes every image, the index image and the five 480 × 270
+part images in `parts/`:
 `go -C tools/render run . -model plaquestand -shot readme -out ../../models/plaquestand/images`.
 
 `onewayclutch/hero` renders the default clutch with every body cut by the plane z = 9.25, the hub's mid-height, and the
