@@ -13,7 +13,7 @@ Follow `instructions.md` for the API, the dimensions, the fits and the checks. E
 | `adapter.go` | the interface constants, `InterfaceRecessTool` and the placeholder adapter |
 | `clamparm.go` | package doc, container names, `Part`, `Parts`, `Model`, `BuildParts`, `Build` |
 
-Each section below is one part and names its file. Section 13 records the decad refusals found while writing this file.
+Each section below is one part and names its file. Section 13 records decad notes found while writing this file.
 
 ## Conventions
 
@@ -249,17 +249,17 @@ Local frame: origin on J1's axis in the swivel's bottom face, +X toward J2, +Z u
 1. Plan prism: sketch on `frame((0,0,-1), X, Y)`: `top = (0,10)`, `bottom = (0,-10)`, `c1 = (81,10)`, `c2 = (81,-10)`, the
    half-circle idiom with radius 10 about the origin and the far end at distance 81. Extrude 22 along +Z (z -1 to 21).
    Net area 1777.1. The prism is taller and longer than the swivel so that none of its faces lies in a plane of the
-   elevation prism or touches its curve (Section 13).
+   elevation prism or touches its curve (Section 13, item 1).
 2. Elevation prism: sketch on `frame((0,11,0), X, Z)` (normal -Y): `a = (-11,0)`, `b = (70,0)`, `c = (70,20)`, `d = (-11,20)`;
    `centre = DimensionPoint(70, 10)`; `arc = CreateArc(centre, b, c)` (through +X) with `NewRadius(arc, 10)`;
    `NewHorizontalDistance(origin, b, 70)` and `(origin, c, 70)`; the lines a-b and c-d horizontal, d-a vertical with
    `NewDistancePointLine(origin, d-a, 11)`. Net area 1777.1. Extrude 22 along the normal: y 11 to -11.
 3. `decad.Intersect(ctx, plan, elevation)`: the swivel's body, 20 thick, round about J1 in plan and about J2 in
    elevation.
-4. Edge finishing before the cuts, the design's calls (refused by decad, Section 13): `edgefinish.ChamferExcept(ctx,
-   body, (0,0,1), []float64{0, 20}, edgefinish.Outer, skipParallel((0,1,0)), 0.5)`, then `edgefinish.ChamferExcept(ctx,
-   body, (0,1,0), []float64{-10, 10}, edgefinish.Outer, notArc, 0.5)`, where `notArc` is true for every edge that is not
-   a `decad.Arc3`, so the second call chamfers only the J2 round-end arcs.
+4. Edge finishing before the cuts: one call, `edgefinish.ChamferExcept(ctx, body, (0,0,1), []float64{0, 20},
+   edgefinish.Outer, skipParallel((0,1,0)), 0.5)`. With the exact cross-plane chain support in decad ef6551497ded, this
+   call chamfers the whole closed chain, so it also covers the Y-face rims and the J2 round-end arcs. A second call
+   on the Y faces returns `ErrNoEdge`, so there is none.
 5. J1 tongue tool: sketch on `frame((0,12,0), X, Z)` (normal -Y): outline `(-12,8)`, `(30,8)`, `(30,21)`, `(-12,21)`
    with radii 0, 4, 0, 0, so the corner `(30,8)` takes a round of radius 4 whose centre is `(26,12)`. Lines: z = 8
    (distance 8), x = 30, z = 21, x = -12. Extrude 24 along the normal (through y 12 to -12). Cut it. The tongue is 8
@@ -268,7 +268,7 @@ Local frame: origin on J1's axis in the swivel's bottom face, +X toward J2, +Z u
 7. J2 fork slot: `slotCutter(70 - 21.74, 81, -1)`: the slot `|y| < 4.26`, from x = 81 back to x = 44, ended by a round of
    radius 4.26 centred at x = 48.26. Cut.
 8. J2 hole: `holeTool(forkSite(70, 10))`. J2 head pocket: `pocketTool(forkSite(70, 10))`, floor at y = -6.5. Cut both.
-9. Edge finishing after the cuts, the design's calls (refused, Section 13):
+9. Edge finishing after the cuts, passing with decad ef6551497ded:
    `edgefinish.ChamferExcept(ctx, body, (0,0,1), []float64{8}, edgefinish.Outer, skipParallel((0,1,0)), 0.5)` for the
    tongue's top face, and `edgefinish.ChamferExcept(ctx, body, (0,1,0), []float64{-4.26, 4.26}, edgefinish.Outer,
    skipParallel((0,0,1)), 0.5)` for the fork's inner faces.
@@ -286,7 +286,7 @@ Local frame: the tongue's axis at the origin, the fork's axis at `(L, 0, 0)`, jo
 3. Cuts, in this order: `tongueCutter(+1)`, `tongueCutter(-1)`, `slotCutter(L - 21.74, L + 11, -11)`, the tongue hole
    `holeTool(tongueSite(0))`, the fork hole `holeTool(forkSite(L, 0))`, the fork's head pocket
    `pocketTool(forkSite(L, 0))` (floor at y = -6.5).
-4. Edge finishing after the cuts, the design's call (refused, Section 13): `edgefinish.ChamferExcept(ctx, body, (0,1,0),
+4. Edge finishing after the cuts, the design's call (passes with decad ef6551497ded): `edgefinish.ChamferExcept(ctx, body, (0,1,0),
    []float64{-4.26, -4, 4, 4.26}, edgefinish.Outer, skipParallel((0,0,1)), 0.5)`: the tongue faces and the fork's
    inner faces.
 5. Return `Part{Body, Frame: placed LinkA or LinkB, PrintUp placed (0,0,1)}`. Failure checks: bounds `-10..L+10`,
@@ -306,7 +306,7 @@ Local frame: the J4 axis at the origin, +X along the head, +Z up. `PrintUp` is (
    radius 4 at z = 12. `decad.Union(ctx, body, boss)`.
 4. Cuts, in this order: `tongueCutter(+1)`, `tongueCutter(-1)`, the tongue hole `holeTool(tongueSite(0))`, the stud hole
    `holeTool(studLocal)` (diameter 5.6 along Z at x = 40, through the boss and the head).
-5. Edge finishing after the cuts, the design's call (refused, Section 13): `edgefinish.ChamferExcept(ctx, body, (0,1,0),
+5. Edge finishing after the cuts, the design's call (passes with decad ef6551497ded): `edgefinish.ChamferExcept(ctx, body, (0,1,0),
    []float64{-4, 4}, edgefinish.Outer, skipParallel((0,0,1)), 0.5)`: the tongue faces.
 6. Return `Part{Body, Frame: placed H, PrintUp placed (0,0,1)}`. Failure checks: bounds `-10..55`, `-10..10`, `-10..12`.
 
@@ -362,24 +362,17 @@ z 0 to 15. `PrintUp` is (0, 0, 1): the mating face is on the bed.
    `Opening`; nothing else does.
 6. Failure checks: every part sketch fully constrained; every part solid; 25 bodies; the screw knob gap at least 0.5.
 
-## 13. Known decad refusals (decad aa32b3694405)
-
-Recorded per the pipeline rule: each is the smallest real case found while writing this file. Do not work around them. Item 1 is a spec adjustment, not a workaround: the shape is unchanged.
+## 13. Decad notes (decad ef6551497ded)
 
 1. `decad.Intersect` of the plan and elevation prisms refuses coplanar faces ("two operand facets overlap in one
-   plane") when the plan prism spans z 0 to 20, and a tangent contact when its end is at x = 80. The steps above use z
-   -1 to 21 and x = 81, which leave the result's shape unchanged. With those values the Intersect and every cut of the
-   swivel pass.
-2. The swivel's before-cut chamfers (Section 7 step 4) are refused. Both
-   `ChamferExcept(..., (0,0,1), {0, 20}, Outer, skipParallel((0,1,0)), 0.5)` and the same call on the Y faces fail with
-   "the selected edge ends at the tangent junction 70,-10,20 whose continuation is not selected". The sharp edges of the
-   swivel (the z = 0 and z = 20 rims, the J1 half circle, the y = +-10 rims and the J2 arcs) form one closed chain of
-   tangent joins that spans three planes. Chamfering the whole chain with `decad.WithTangentChain` fails with "the chain's
-   edges share no base plane".
-3. The after-cut chamfers of the swivel (the tongue's top face, z = 8, and the fork's inner faces, y = +-4.26), the link
-   (the tongue faces and the fork's inner faces) and the head (the tongue faces) are refused with "the selected edge
-   ends at the tangent junction 16,-4,10 whose continuation is not selected", or the same at the slot's end. Each face's
-   outline continues, tangent, into an edge on a neighbouring face. `decad.WithTangentChain` on a seed edge fails with
-   "the tangent chain branches or cannot be decided here" (tongue) or "the chain's edges share no base plane" (fork).
-4. The chamfers that pass: the frame (44 edges), the pad (16), the link and head Y caps (8 and 12), the knobs (24) and the
-   adapter (2).
+   plane") when the plan prism spans z 0 to 20, and a tangent contact when its end is at x = 80. The steps use z
+   -1 to 21 and x = 81 for the plan prism. The result is the same shape as the design's z 0 to 20, x = 80 prism, and
+   `instructions.md` "Swivel" states the swivel's outline, not the operand. This is an operand choice, not a workaround.
+2. Edge finishing: the refusals recorded earlier ("selected edge ends at a tangent junction") are fixed by decad
+   ef6551497ded (exact cross-plane chamfer chains). Every edge-finishing call listed in Sections 7 to 9 passes. The
+   swivel's before-cut call covers the Y-face arcs, so a second call returns `ErrNoEdge`.
+3. Nut pocket depth: the J1 to J4 knob pockets are 9 mm deep and the adapter pocket runs z 4.7 to 16. AGENTS.md asks
+   for a pocket as deep as a nut cavity is high (5.1 mm for M5). The design keeps the deeper pockets so the bolt tip
+   ends inside the pocket and never stands outside a face. This is a recorded departure from that rule.
+4. The chamfers that pass: the frame (44 edges), the pad (16), the link (8 on the Y caps, plus the tongue and fork
+   faces in one call), the head (12 on the Y caps, plus the tongue faces) and the knobs (24) and the adapter (2).

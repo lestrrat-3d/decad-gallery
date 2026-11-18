@@ -232,7 +232,8 @@ At `Opening` `o`:
 - Local frame: origin on J1's axis in the swivel's bottom face, +X toward J2, +Z up (the J1 axis).
 - Body: the `decad.Intersect` of a plan prism and an elevation prism.
   - Plan (XY) outline: a half circle of radius 10 about the origin, sides y = +-10 to x = 80, and a square end.
-    Extrude z 0 to 20.
+    Extrude z 0 to 20. Decad refuses an Intersect whose operands share coplanar faces or touch tangent, so the
+    build uses a plan prism of z -1 to 21 and end x = 81; the swivel's shape is unchanged.
   - Elevation (XZ) outline: x from -11 to 70 at z 0 to 20, closed by a half circle of radius 10 about `(70, 10)`.
     Extrude y -11 to 11.
 - J1 tongue, bottom-flush: cut z 8 to 20 for x < 30, with the inside corner `(30, 8)` rounded 4 (centre `(26, 12)`),
