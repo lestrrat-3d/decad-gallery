@@ -47,6 +47,29 @@ var presets = map[string]preset{
 	"m5nut/top":                     {width: 1600, height: 900, scene: m5NutViewScene("top")},
 	"m5nut/side":                    {width: 1600, height: 900, scene: m5NutViewScene("side")},
 	"m5nut/withbolt":                {width: 1600, height: 900, scene: m5NutViewScene("withbolt")},
+	"clamparm/hero":                 {width: 1600, height: 900, scene: clampArmView("hero")},
+	"clamparm/side":                 {width: 1600, height: 900, scene: clampArmView("side")},
+	"clamparm/back":                 {width: 1600, height: 900, scene: clampArmView("back")},
+	"clamparm/top":                  {width: 1600, height: 900, scene: clampArmView("top")},
+	"clamparm/poses":                {width: 1600, height: 900, scene: clampArmView("poses")},
+	"clamparm/exploded":             {width: 1600, height: 900, scene: clampArmView("exploded")},
+	"clamparm/clamp-section":        {width: 1600, height: 900, scene: clampArmView("clamp-section")},
+	"clamparm/joint-section":        {width: 1600, height: 900, scene: clampArmView("joint-section")},
+	"clamparm/interface-section":    {width: 1600, height: 900, scene: clampArmView("interface-section")},
+	"clamparm/interface":            {width: 1600, height: 900, scene: clampArmView("interface")},
+	"clamparm/part-frame":           {width: 480, height: 270, scene: clampArmPartByShot("frame")},
+	"clamparm/part-pad":             {width: 480, height: 270, scene: clampArmPartByShot("pad")},
+	"clamparm/part-swivel":          {width: 480, height: 270, scene: clampArmPartByShot("swivel")},
+	"clamparm/part-link":            {width: 480, height: 270, scene: clampArmPartByShot("link")},
+	"clamparm/part-head":            {width: 480, height: 270, scene: clampArmPartByShot("head")},
+	"clamparm/part-adapter":         {width: 480, height: 270, scene: clampArmPartByShot("adapter")},
+	"clamparm/part-knob":            {width: 480, height: 270, scene: clampArmPartByShot("knob")},
+	"clamparm/part-screw-knob":      {width: 480, height: 270, scene: clampArmPartByShot("screw-knob")},
+	"clamparm/part-bolt-25":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-25")},
+	"clamparm/part-bolt-35":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-35")},
+	"clamparm/part-bolt-40":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-40")},
+	"clamparm/part-bolt-70":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-70")},
+	"clamparm/part-nut":             {width: 480, height: 270, scene: clampArmPartByShot("nut")},
 	"crankhandle/hero":              {width: 1600, height: 900, scene: crankHandleHero},
 	"crankhandle/back":              {width: 1600, height: 900, scene: crankHandleViewScene("back")},
 	"crankhandle/side":              {width: 1600, height: 900, scene: crankHandleViewScene("side")},
@@ -291,6 +314,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "spiralspring" {
 		return renderSpiralSpringReadme(ctx, outputDir)
+	}
+	if model == "clamparm" {
+		return renderClampArmReadme(ctx, outputDir)
 	}
 	if model == "crankhandle" {
 		return renderCrankHandleReadme(ctx, outputDir)
