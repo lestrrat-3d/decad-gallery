@@ -114,13 +114,9 @@ func TestPartClearances(t *testing.T) {
 		1e-6, "minimum stage gap above the planet bearing")
 }
 
-func TestPlanetsMeshWithSunAndRing(t *testing.T) {
-	_, box := defaultGearbox(t)
-	for i, planet := range box.Stages[0].Planets {
-		require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "planet %d inside the sun", i)
-		require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", i)
-	}
-}
+func TestFirstPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 0) }
+func TestSecondPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 1) }
+func TestThirdPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 2) }
 
 func TestGearTipRootClearance(t *testing.T) {
 	for _, module := range []float64{0.5, 1, 2, 4} {
@@ -164,8 +160,7 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 }
 
 // TestBacklashRemovesMaterial checks that more backlash thins the sun and planet teeth and widens
-// the ring's tooth spaces, so each of those bodies has less volume, and that the planets still
-// mesh without penetration.
+// the ring's tooth spaces, so each of those bodies has less volume.
 func TestBacklashRemovesMaterial(t *testing.T) {
 	_, base := defaultGearbox(t)
 	p := planetarygearbox.DefaultParams()
@@ -181,11 +176,11 @@ func TestBacklashRemovesMaterial(t *testing.T) {
 		looseVolume, looseBound := volume(t, pair[1])
 		require.Greater(t, tight-looseVolume, tightBound+looseBound, name)
 	}
-	for i, planet := range loose.Stages[0].Planets {
-		require.Zero(t, penetration(t, planet, loose.Stages[0].Sun), "planet %d inside the sun", i)
-		require.Zero(t, penetration(t, planet, loose.Ring), "planet %d inside the ring", i)
-	}
 }
+
+func TestBacklashFirstPlanetMesh(t *testing.T)  { requireBacklashPlanetMesh(t, 0) }
+func TestBacklashSecondPlanetMesh(t *testing.T) { requireBacklashPlanetMesh(t, 1) }
+func TestBacklashThirdPlanetMesh(t *testing.T)  { requireBacklashPlanetMesh(t, 2) }
 
 // TestBearingsSitInPlanetPockets checks that each planet has an empty pocket where its bearing sits, with
 // the bearing's 605ZZ envelope in it, and that the lip under the pocket is the only material cut back:
