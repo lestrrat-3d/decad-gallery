@@ -1,5 +1,7 @@
 import json
+import os
 import unittest
+from unittest import mock
 
 import gate
 
@@ -25,6 +27,56 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    def test_broad_with_full_renderer_dispatch(self):
+        suites = ["broad", "renderer-all"]
+        self.assertEqual(gate.check(needs_for(suites), "push"), [])
+        with mock.patch.dict(os.environ, {"SUITE": "renderer-all", "CASE": "0"}), \
+                mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                mock.patch.object(gate.subprocess, "run") as dispatch:
+            gate.main()
+        dispatch.assert_called_once_with(
+            ["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."], check=True,
+        )
+
+    def test_renderer_dispatch_commands(self):
+        package = "github.com/lestrrat-3d/decad-gallery/tools/render"
+        for suite, (timeout, tests) in gate.RENDER_TESTS.items():
+            events = [json.dumps({"Package": package, "Test": test, "Action": "pass"}) for test in tests]
+            proc = mock.Mock(stdout=events, returncode=0)
+            proc.wait.return_value = 0
+            with self.subTest(suite=suite), \
+                    mock.patch.dict(os.environ, {"SUITE": suite, "CASE": "0"}), \
+                    mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                    mock.patch.object(gate.subprocess, "Popen", return_value=proc) as dispatch:
+                self.assertEqual(gate.matrix_for([suite]), {"include": [{"suite": suite, "case": 0}]})
+                gate.main()
+                dispatch.assert_called_once_with(
+                    ["go", "-C", "tools/render", "test", "-json", "-run", gate.run_pattern(tests),
+                     "-timeout", timeout, "./..."], stdout=gate.subprocess.PIPE, text=True,
+                )
+
+    def test_renderer_rejects_missing_skipped_or_failed_test(self):
+        package = "github.com/lestrrat-3d/decad-gallery/tools/render"
+        for action in (None, "skip", "fail"):
+            events = [] if action is None else [json.dumps({"Package": package, "Test": "TestSwissPresets",
+                                                            "Action": action})]
+            proc = mock.Mock(stdout=events, returncode=0)
+            proc.wait.return_value = 0
+            with self.subTest(action=action), mock.patch.object(gate.subprocess, "Popen", return_value=proc):
+                with self.assertRaisesRegex(SystemExit, "TestSwissPresets"):
+                    gate.run_renderer("swiss-render", gate.commands("swiss-render")[0])
+
+    def test_renderer_rejects_skipped_subtest_of_passing_test(self):
+        package = "github.com/lestrrat-3d/decad-gallery/tools/render"
+        events = [json.dumps({"Package": package, "Test": test, "Action": "pass"})
+                  for test in gate.RENDER_TESTS["swiss-render"][1]]
+        events.append(json.dumps({"Package": package, "Test": "TestSwissExploded/child", "Action": "skip"}))
+        proc = mock.Mock(stdout=events, returncode=0)
+        proc.wait.return_value = 0
+        with mock.patch.object(gate.subprocess, "Popen", return_value=proc):
+            with self.assertRaisesRegex(SystemExit, "TestSwissExploded/child"):
+                gate.run_renderer("swiss-render", gate.commands("swiss-render")[0])
+
     def test_valid_selections(self):
         for suites, event in (([], "push"), (["cycloidal-pr"], "push"), (["broad"], "push"),
                               (["broad"], "schedule"), (["broad"], "workflow_dispatch")):

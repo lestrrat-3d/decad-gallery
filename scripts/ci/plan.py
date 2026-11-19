@@ -19,8 +19,12 @@ FEATURES = {"dovetail"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
          "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}
-RENDER = {"planetarygearbox": "planetary-motion", "spinningwheel": "wheel-motion",
-          "handcrankfan": "fan-motion", "escapement": "escapement-exploded", "clamparm": "clamparm-render"}
+RENDER = {"ballbearing": ("bearing-render",), "bevelgear": ("bevel-render",),
+          "clamparm": ("clamparm-render",), "escapement": ("escapement-exploded",),
+          "handcrankfan": ("fan-motion", "fan-view"), "handcranksiren": ("siren-render",),
+          "planetarygearbox": ("planetary-motion", "planetary-render"),
+          "spinningwheel": ("wheel-motion", "wheel-parts", "wheel-block"),
+          "swisslever": ("swiss-render",)}
 
 
 def check_wheel_inventory(root=Path(".")):
@@ -110,8 +114,17 @@ def plan(event, base, tested):
         paths = subprocess.check_output(["git", "diff", "--no-renames", "--name-only", "-z", base, tested])
         changed = [os.fsdecode(path) for path in paths.split(b"\0") if path]
         result.update(tested=tested, base=base, changed_paths=changed)
-        if all(path.lower().endswith(".md") for path in changed):
-            result.update(suites=[], reasons={}, reason="documentation-only change")
+        wheel_parts = any(path.startswith("models/spinningwheel/images/parts/") and
+                          Path(path).suffix.lower() == ".png" for path in changed)
+        def is_presentation(path):
+            return (path.lower().endswith(".md") or
+                    (path.startswith("models/spinningwheel/images/parts/") and
+                     Path(path).suffix.lower() == ".png"))
+        if all(is_presentation(path) for path in changed):
+            suites = {}
+            if wheel_parts:
+                suites["wheel-parts"] = ["check changed wheel part documentation"]
+            result.update(suites=sorted(suites), reasons=suites, reason="presentation-only change")
             return result
         code = [path for path in changed if path.endswith(".go")]
         try:
@@ -134,13 +147,17 @@ def plan(event, base, tested):
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
                 new_suites.append(prefix + parts[1])
             reason = "new packages require broad coverage and direct tests"
-            result.update(suites=["broad", *new_suites],
-                          reasons={suite: [reason] for suite in ["broad", *new_suites]}, reason=reason)
+            suites = ["broad", *new_suites]
+            if any(path.startswith("tools/render/") for path in code):
+                suites.append("renderer-all")
+            result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
             return result
-        if any(not path.lower().endswith(".md") and not path.endswith(".go") for path in changed):
+        if any(not is_presentation(path) and not path.endswith(".go") for path in changed):
             raise ValueError("unregistered or shared input changed")
         owners = affected_packages(code, before, after)
         suites = {}
+        if wheel_parts:
+            suites["wheel-parts"] = ["check changed wheel part documentation"]
         model_owners = set()
         for owner in sorted(owners):
             if owner == ROOT + "/tools/render":
@@ -164,13 +181,16 @@ def plan(event, base, tested):
                 model_owners or ROOT + "/tools/render" in owners):
             suites["renderer-compile"] = ["compile renderer against changed model APIs"]
             for name in sorted(model_owners & RENDER.keys()):
-                suites.setdefault(RENDER[name], []).append("renderer check for " + name)
-            if "spinningwheel" in model_owners:
-                suites["wheel-parts"] = ["check wheel part inventory against built bodies"]
+                for suite in RENDER[name]:
+                    suites.setdefault(suite, []).append("renderer check for " + name)
         result.update(suites=sorted(suites), reasons=suites, reason="affected packages selected")
     except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
         reason = "conservative fallback: " + str(exc)
         result.update(reason=reason, reasons={"broad": [reason]})
+    if ("broad" in result["suites"] and
+            any(path.startswith("tools/render/") and path.endswith(".go") for path in result["changed_paths"])):
+        result["suites"].append("renderer-all")
+        result["reasons"]["renderer-all"] = ["renderer source or tests changed"]
     return result
 
 

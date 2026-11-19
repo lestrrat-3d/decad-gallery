@@ -73,6 +73,20 @@ class PlanTest(unittest.TestCase):
     def test_dispatch_always_broad(self):
         self.assertEqual(plan.plan("workflow_dispatch", "", "head")["suites"], ["broad"])
 
+    def test_renderer_change_adds_full_renderer_to_broad(self):
+        renderer = plan.ROOT + "/tools/render"
+        graph = {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
+        for path in (b"tools/render/gallery.go\0", b"tools/render/readme_views_test.go\0"):
+            with self.subTest(path=path), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=path):
+                result = plan.plan("push", "base", "head")
+                self.assertEqual(result["suites"], ["broad", "renderer-all"])
+                self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+                self.assertEqual(gate.matrix_for(result["suites"]),
+                                 {"include": [{"suite": "renderer-all", "case": 0}]})
+
     def test_reverse_imports_stop_at_test_edges(self):
         graph = {
             "a": {"dir": "a", "imports": set(), "test_imports": set()},
@@ -85,6 +99,11 @@ class PlanTest(unittest.TestCase):
 
     def test_docs_only_and_unknown_inputs(self):
         for paths, expected in ((b"README.md\0docs/example.md\0", []),
+                                (b"models/clamparm/instructions.md\0", []),
+                                (b"models/spinningwheel/README.md\0", []),
+                                (b"models/spinningwheel/images/parts/a.png\0", ["wheel-parts"]),
+                                (b"models/cycloidal/images/hero.png\0", ["broad"]),
+                                (b"scripts/modelgen/spurgear.py\0", ["broad"]),
                                 (b"README.md\0unknown.sh\0", ["broad"])):
             with self.subTest(paths=paths), \
                     mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
@@ -103,11 +122,12 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", return_value=graph), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"models/turbinefan/build.go\0"):
             suites = plan.plan("push", "base", "head")["suites"]
-        self.assertEqual(set(suites), {"turbinefan", "model-handcrankfan", "fan-motion", "renderer-compile"})
+        self.assertEqual(set(suites), {"turbinefan", "model-handcrankfan", "fan-motion", "fan-view",
+                                       "renderer-compile"})
         dispatch = mock.Mock()
         for suite in suites:
             dispatch(suite)
-        self.assertEqual(dispatch.call_count, 4)
+        self.assertEqual(dispatch.call_count, 5)
         self.assertNotIn("wheel", suites)
 
     def test_deleted_or_new_package_falls_back(self):
@@ -170,7 +190,26 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", return_value=graph), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"models/spinningwheel/build.go\0"):
             suites = plan.plan("push", "base", "head")["suites"]
-        self.assertEqual(set(suites), {"wheel", "wheel-motion", "wheel-parts", "renderer-compile"})
+        self.assertEqual(set(suites), {"wheel", "wheel-motion", "wheel-parts", "wheel-block", "renderer-compile"})
+
+    def test_model_sources_select_renderer_checks(self):
+        cases = {"ballbearing": {"bearing-render"}, "bevelgear": {"bevel-render"},
+                 "clamparm": {"clamparm-render"}, "escapement": {"escapement-exploded"},
+                 "handcrankfan": {"fan-motion", "fan-view"}, "handcranksiren": {"siren-render"},
+                 "planetarygearbox": {"planetary-motion", "planetary-render"},
+                 "spinningwheel": {"wheel-motion", "wheel-parts", "wheel-block"},
+                 "swisslever": {"swiss-render"}}
+        for name, expected in cases.items():
+            owner = plan.ROOT + "/models/" + name
+            graph = {owner: {"dir": "models/" + name, "imports": set(), "test_imports": set()}}
+            with self.subTest(model=name), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output",
+                                      return_value=("models/" + name + "/build.go\0").encode()):
+                suites = plan.plan("push", "base", "head")["suites"]
+                self.assertTrue(set(expected) <= set(suites))
+                self.assertIn("renderer-compile", suites)
 
     def test_clamparm_dependencies_and_feature(self):
         bolt = plan.ROOT + "/models/m5bolt"
@@ -199,6 +238,22 @@ class PlanTest(unittest.TestCase):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", side_effect=[{}, graph]), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"features/dovetail/demo.go\0"):
-            self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad", "new-feature-dovetail"])
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(result["suites"], ["broad", "new-feature-dovetail"])
+        suites = gate.suites_from_plan(json.dumps(result))
+        matrix = gate.matrix_for(suites)
+        self.assertEqual(matrix, {"include": [{"suite": "new-feature-dovetail", "case": 0}]})
+        needs = {job: {"result": "success"} for job in gate.BROAD_JOBS}
+        needs["renderer-full"]["result"] = "skipped"
+        needs["bevel-full"]["result"] = "skipped"
+        needs.update(plan={"result": "success", "outputs": {
+            "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": "1"}},
+            repository={"result": "success"}, worker={"result": "success"})
+        self.assertEqual(gate.check(needs, "push"), [])
+        with mock.patch.dict(os.environ, {"SUITE": "new-feature-dovetail", "CASE": "0"}), \
+                mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                mock.patch.object(gate.subprocess, "run") as dispatch:
+            gate.main()
+        dispatch.assert_called_once_with(["go", "test", "./features/dovetail", "-timeout", "5m"], check=True)
 
 

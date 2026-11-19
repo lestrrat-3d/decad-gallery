@@ -44,7 +44,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     name: worker-${{ matrix.suite }}-${{ matrix.case }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: ${{ matrix.suite == 'renderer-all' && 180 || 75 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

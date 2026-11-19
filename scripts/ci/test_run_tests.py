@@ -238,6 +238,26 @@ class FanVariantsTest(unittest.TestCase):
 
 
 class FinishedTestsTest(unittest.TestCase):
+    def test_multi_package_selection_requires_each_package(self):
+        events = [json.dumps({"Package": "one", "Test": "TestA", "Action": "pass"}),
+                  json.dumps({"Package": "two", "Test": "TestA", "Action": "skip"})]
+        process = mock.Mock(stdout=events, returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with self.assertRaisesRegex(SystemExit, "two/TestA"):
+                run_tests.go_test(["./one", "./two"], qualified_expected={
+                    ("one", "TestA"), ("two", "TestA"),
+                })
+
+    def test_multi_package_selection_rejects_unexpected_skipped_subtest(self):
+        events = [json.dumps({"Package": "one", "Test": "TestA", "Action": "pass"}),
+                  json.dumps({"Package": "one", "Test": "TestA/child", "Action": "skip"})]
+        process = mock.Mock(stdout=events, returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with self.assertRaisesRegex(SystemExit, "one/TestA/child"):
+                run_tests.go_test(["./one"], qualified_expected={("one", "TestA")})
+
     def test_only_explicit_skips_are_allowed(self):
         events = [json.dumps({"Package": "p", "Test": "TestA", "Action": "pass"}),
                   json.dumps({"Package": "p", "Test": "TestB", "Action": "skip"})]
@@ -285,6 +305,61 @@ class FinishedTestsTest(unittest.TestCase):
             result = run_tests.finished_tests(lines)
         self.assertEqual(result, {"TestA": "pass", "TestB": "skip"})
         self.assertEqual(out.getvalue(), "hello\nnot json\n")
+
+
+class BroadModelSelectionTest(unittest.TestCase):
+    def test_selected_names_are_required_in_each_assigned_package(self):
+        mapping = {"cycloidal": ("TestShared", "TestParent/child"), "helicalgear": ("TestShared",)}
+        with mock.patch.object(run_tests, "MODEL_PR_PACKAGES", mapping), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_models("pr")
+        prefix = "github.com/lestrrat-3d/decad-gallery/models/"
+        self.assertEqual(go_test.call_args.kwargs["qualified_expected"], {
+            (prefix + "cycloidal", "TestShared"),
+            (prefix + "helicalgear", "TestShared"),
+            (prefix + "cycloidal", "TestParent/child"),
+        })
+
+    def test_pattern_and_package_inventory_cover_same_names(self):
+        assigned = {test for tests in run_tests.MODEL_PR_PACKAGES.values() for test in tests}
+        self.assertEqual(assigned, set(run_tests.MODEL_PR_TESTS))
+
+
+class FullModelInventoryTest(unittest.TestCase):
+    def test_full_inventory_runs_remainder_and_requires_gated_cases(self):
+        prefix = "github.com/lestrrat-3d/decad-gallery/models/"
+        bevel, fan, planetary = (prefix + name for name in ("bevelgear", "handcrankfan", "planetarygearbox"))
+
+        def listing(command, **kwargs):
+            if command[1] == "list":
+                return mock.Mock(stdout="\n".join((bevel, fan, planetary)))
+            return mock.Mock(stdout={bevel: "TestAssigned\nTestRemainder\n",
+                                     fan: "TestHandCrankFanVariant\n",
+                                     planetary: "TestKitGearboxes\n"}[command[-1]])
+
+        with mock.patch.object(run_tests, "BEVEL_TESTS", {"full": {"a": ["TestAssigned"]}}), \
+             mock.patch.object(run_tests.subprocess, "run", side_effect=listing), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_full_models()
+        self.assertEqual(go_test.call_count, 2)
+        args, kwargs = go_test.call_args_list[0]
+        self.assertIn((fan, "TestHandCrankFanVariant/flat-three"), kwargs["qualified_expected"])
+        self.assertIn((planetary, "TestKitGearboxes/planet608-shaft608"), kwargs["qualified_expected"])
+        self.assertEqual(kwargs["env"]["HANDCRANKFAN_FULL"], "1")
+        self.assertEqual(kwargs["env"]["PLANETARY_ALL_KITS"], "1")
+        self.assertEqual(go_test.call_args_list[1].args[1], ["TestRemainder"])
+
+    def test_duplicate_bevel_assignments_fail(self):
+        with mock.patch.object(run_tests, "BEVEL_TESTS", {"full": {"a": ["TestA"], "b": ["TestA"]}}), \
+             mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="pkg\n")):
+            with self.assertRaisesRegex(SystemExit, "duplicate"):
+                run_tests.run_full_models()
+
+    def test_unknown_bevel_assignment_fails(self):
+        with mock.patch.object(run_tests, "BEVEL_TESTS", {"full": {"a": ["TestMissing"]}}), \
+             mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="pkg\n")):
+            with self.assertRaisesRegex(SystemExit, "unknown full bevel shard tests: TestMissing"):
+                run_tests.run_full_models()
 
 
 class CycloidalPilotTest(unittest.TestCase):
