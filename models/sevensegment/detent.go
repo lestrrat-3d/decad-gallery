@@ -99,7 +99,7 @@ func (r *run) ratchetSketch() (*sketch.Sketch, error) {
 			return nil, fmt.Errorf("spiral spline %d: %w", j+1, err)
 		}
 	}
-	dBoreLoop(s, ratchetBoreRadius, ratchetBoreFlat)
+	doubleDBoreLoop(s, ratchetBoreRadius, ratchetBoreFlat)
 	return s, nil
 }
 
