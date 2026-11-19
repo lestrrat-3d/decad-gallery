@@ -33,6 +33,9 @@ package selection. Production and dependency changes use the normal selection to
 must skip the worker; a nonempty matrix must succeed. Broad plans run the dedicated broad jobs. The gate rejects
 missing, failed, cancelled, or unexpectedly skipped required jobs.
 
+The planetary PR suite runs one dimensions check and partitions the remaining discovered tests across twelve jobs.
+Each job checks its assigned test results. The kit test keeps its existing allowed skips unless full kits are enabled.
+
 As of 2026-11-19, the active `require-model-checks` ruleset requires the `model-checks` status check on the default
 branch, `main`. It allows repository administrators to bypass the rule. The rule does not require the branch to be
 up to date before merging. See the [ruleset](https://github.com/lestrrat-3d/decad-gallery/rules/27619075).

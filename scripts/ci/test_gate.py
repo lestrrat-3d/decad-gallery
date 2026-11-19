@@ -34,6 +34,11 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    def test_planetary_dispatch_has_every_shard(self):
+        matrix = gate.matrix_for(["model-planetarygearbox"])["include"]
+        self.assertEqual([item["case"] for item in matrix], list(range(gate.PLANETARY_PR_SHARDS)))
+        self.assertEqual(gate.commands("model-planetarygearbox")[0][-3:], ["planetary", "pr", "0"])
+
     @classmethod
     def setUpClass(cls):
         Path(".tmp").mkdir(exist_ok=True)
