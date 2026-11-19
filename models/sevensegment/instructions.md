@@ -464,8 +464,9 @@ Acceptance tests:
 - `go test ./models/sevensegment`, `go -C tools/render test -run SevenSegment .` and
   `python3 scripts/check_repository.py` pass.
 
-**Out of scope:** cams (grooves, entry channel, letters), shaft, ratchet, detent plate, walls, knob and collar ring keep
-their geometry. Fusion export, any build status change, and the two decad fixes (they belong to the decad repo) are out
+**Out of scope:** cams (grooves, entry channel, letters), shaft, walls, knob and collar ring keep their geometry. The
+ratchet wheel (the shaped flank) and the detent plate (the pawl geometry) were redesigned for this work and are specified
+below, not kept. Fusion export, any build status change, and the two decad fixes (they belong to the decad repo) are out
 of scope.
 
 ## Assumptions
@@ -479,6 +480,9 @@ of scope.
   rotor to the bottom of its journal holes (0.25) and each slider onto its groove's inner wall (0.40 below the modeled
   pose). Each b-f slider droops to its tilt limit (Kinematics).
 - Printed dimensions hold +-0.05 on radii and +-0.10 on lengths over 10 mm (the basis of the z play row).
+- Known printability risk (geometry unchanged): the black rim of a rotor in layer 1 is about 0.3 mm wide at the sides,
+  below a 0.4 mm line width, so a slicer may drop it and print that layer's rim as yellow only. The rim widens to 0.8 mm
+  at mid height, where it prints. Check the first layer of the first print before the flags are used.
 - Slicer: each flag is one object of two bodies (`Yellow Face`, `Black Body`) exported together, one filament each. The
   bodies share their boundary faces. The seven flags print on one plate, yellow face down: layers 1-12 hold yellow (the slab
   in layers 1-4, then two small yellow islands per rotor under the facets) and a black rim, so a plate takes about 24
@@ -626,8 +630,10 @@ b-f design (z 0.24, c 0.20):           unlit end -41.22, lit [33.41, 62.42]
 b-f worst (z 0.42, c 0.20):            unlit end -37.90, lit from 29.39, pin radius <= 2.89 (the slot's limit is 2.90)
 ```
 
-At the a/g/d and b-f worst cases the pin can reach its radial limit and rest on the slot end. That contact is radial and
-puts no torque on the rotor. The visibility test finds no yellow at the b-f worst-case unlit end -36.4 (the old estimate
+The pin's greatest radius is 2.73 (a, g, d) and 2.77 (b to f) at the design play, and 2.77 and 2.89 at the worst cases,
+against the slot's limit of 2.90 (`SlotEnd` 2.7 plus the pin's 0.20 in the slot). Only the b-f worst case comes within
+0.01 of it, so the pin may rest on the slot end there. That contact is radial and puts no torque on the rotor. The
+visibility test finds no yellow at the b-f worst-case unlit end -37.90 or 1 degree beyond it at -36.90 (the old estimate
 of -37.0 for where yellow first shows came from a section calculation, not from the meshes).
 
 If the bias failed, the rotor could sit at the lagging wall, 13.5 degrees further from the end pose. The design does not
@@ -791,9 +797,9 @@ limit. The cap is the turned-over rise: 0.8 groove clearance + 0.48 tolerance = 
 
 | Pair | All poses, cap 1.28 | All poses, cap 1.88 | Modeled poses |
 | --- | ---: | ---: | ---: |
-| tongue, roots, head top to yellow leg (a = 2.95) | 0.027 | 0.027 | 0.720 |
-| tongue, roots, head top to black leg (b = 2.95) | 0.145 | 0.030 | 3.05 |
-| pin to yellow leg | 0.217 | 0.217 | 0.770 |
+| tongue, roots, head top to yellow leg (a = 2.95) | 0.162 | 0.158 | 0.720 |
+| tongue, roots, head top to black leg (b = 2.95) | 0.379 | 0.299 | 3.05 |
+| pin to yellow leg | 0.262 | 0.262 | 0.770 |
 
 With the old head top (73.8) the head reaches -0.796 into the black shell at cap 1.28. Lowering it 1.0 removes that.
 
@@ -994,8 +1000,8 @@ and the axial play 0.30 (end walls 0.25 plus registration 0.05):
 | axial +-0.30 | -33.64 | -31.35 |
 | side -0.25, with or without axial +0.30 | -37.74 | -35.25 |
 
-Against the b-f worst unlit band end -36.4 the margin is 2.56 degrees at the design play (side 0.16, axial 0.30; it was
-0.17) and 1.15 degrees at the 0.25 side shift (yellow showed before). Against the design-play band end -39.7 it is 5.9.
+Against the b-f worst unlit band end -37.90 the margin is 1.42 degrees at both the 0.16 and the 0.25 side shift (the grazing
+onset is -36.48 in both). Against the b-f design-play band end -41.22 it is 4.74.
 The cause of the old thin margin: yellow shows once `h d > c - W`, where `c` is the rotor's half-size (3.75 on the long
 part, `13.75 - |u|` on the tips), `W` the window's edge, `h` the yellow edge's height above the axis and `d` the turn
 toward lit. With the window 0.8 inside the faces and 1.1 inside the pyramid edges (the long-side inset plus the axial play
@@ -1035,7 +1041,8 @@ ring; a locking feature is not designed.
 ### Captivity and stops
 
 - Rotor: journals in closed holes; u limited by the end walls (0.25).
-- Pin: engagement at least 1.0; upright, at the design play, it never reaches its radial limit (2.82 against 2.85).
+- Pin: engagement at least 1.0; at the design play it never reaches its radial limit (2.73 for a, g, d and 2.77 for b to f,
+  against 2.90).
 - Slider: its blade stays at least 5.55 (full width) deep in its tube.
 - Turned over: unlit sliders stop on the groove's outer wall (0.8); lit sliders stop on the groove wall too (0.8) and, at that rise, their blade ridge meets the tube roof: the roof is
   0.90 above the ridge as modeled and 0.80 in the physical geometry (the top plate 0.5 lower, the slider 0.4 lower), so
@@ -1285,6 +1292,15 @@ people only.
 | S1 | detent plate / front wall; plates / ribs and wall tops | clamped seam | 0.25 | bounds |
 | F | bolts, nuts | fastener rules | head 0.3, hole 0.3, nut 0.2 | bounds, no overlap |
 
+Measured on the built bodies: P1, P2 (`TestSevenSegmentBearings`), P3, T1, T2, T3, R1, R2, R4, L1, L2, L3, L4, L5, L7, L8,
+T4 and W1 (the pawl rows, in `TestSevenSegmentDetentPlate`), and the S1 and S2 rows for the detent plate, the guide plate and the
+columns (`TestSevenSegmentFits`, `TestSevenSegmentAxialFits`, `TestSevenSegmentPinClearance`). N1 is checked as no overlap
+(`TestSevenSegmentBearings`) and F by `TestSevenSegmentFasteners`. Not measured on the built bodies yet: L6 (the pawl arm to the
+rib and the guide plate), P4 (the peg collar to the cradle's mouth cone) and the S1 seam of the top plate to the cradle and of
+the plates to the wall tops. The fit table at the end of "Flag mechanism" has its own gaps: T6, R5, L9, L10 and L12 are not
+measured (L11 is measured by `TestSevenSegmentBladeRoof`). A first measurement of L9 on the sections at z 80.5 reads 0.45
+between a top plate tube and the cradle passage against the 0.55 listed, which has not been traced.
+
 Clearance adjustment: **Mixed** (fixed custom fits as constants; nominal bearings and fasteners).
 
 #### Corners and roots
@@ -1419,8 +1435,16 @@ all verify fully constrained with no computed vertex fixed. Four places still fi
   not attempted.
 - The detent plate's rectangle and the seat centre of each pawl's tip round (`detent.go`). Every other point of the
   window loop is held by constraints from the origin and the polar axes (Pawl geometry).
-- Circles and their centres: each hole, bore and pocket circle is placed by two distances from the sketch origin and sized by
-  its radius, which is an anchored dimension and not a computed point.
+- The ratchet wheel's outline (`detent.go`): each tooth's tip and its root round's tangent point, and the samples of the
+  spiral flank spline, are dimensioned from the origin. The lock faces, the root round and its centre are held by
+  constraints.
+
+Circles and their centres are not on this list: each hole, bore and pocket circle is placed by two distances from the
+sketch origin and sized by its radius, which is an anchored dimension and not a computed point.
+
+These four are exceptions only because AGENTS.md has no clause for them. Its sketch rule bans fixing every computed point to
+force `DOF == 0` and asks for geometric and dimensional constraints; it says nothing about a chord run, a spline sample
+or a dimensioned outline point that no constraint can hold.
 
 ## Turned-over b-f pose
 
