@@ -36,13 +36,13 @@ func frontFrame(y float64) r3.Frame {
 	return f
 }
 
-// flatTool is a box that cuts a flat: x from `from` to 8 across y +-4, over local z from z0 to z1.
-func (r *run) flatTool(from, z0, z1 float64) (*decad.Body, error) {
+// flatTool is a box that cuts a flat: x from x0 to x1 across y +-4, over local z from z0 to z1.
+func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
 	s, err := r.sketchOn(across(z0))
 	if err != nil {
 		return nil, err
 	}
-	polygon(s, [][2]float64{{from, -4}, {8, -4}, {8, 4}, {from, 4}})
+	polygon(s, [][2]float64{{x0, -4}, {x1, -4}, {x1, 4}, {x0, 4}})
 	return r.extrude(s, 0, z1-z0, decad.Along)
 }
 
@@ -58,13 +58,14 @@ func (r *run) shaft() (*decad.Body, error) {
 		return nil, fmt.Errorf("revolve: %w", err)
 	}
 	for _, c := range []struct {
-		name         string
-		flat, z0, z1 float64
+		name           string
+		x0, x1, z0, z1 float64
 	}{
-		{"cam flat", shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
-		{"stub flat", shaftStubFlat, shaftStubFlatFrom, shaftStubFlatTo},
+		{"cam flat", shaftCamFlat, 8, shaftCamFlatFrom, shaftCamFlatTo},
+		{"cam back flat", -8, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
+		{"stub flat", shaftStubFlat, 8, shaftStubFlatFrom, shaftStubFlatTo},
 	} {
-		tool, err := r.flatTool(c.flat, c.z0, c.z1)
+		tool, err := r.flatTool(c.x0, c.x1, c.z0, c.z1)
 		if err != nil {
 			return nil, fmt.Errorf("%s tool: %w", c.name, err)
 		}
