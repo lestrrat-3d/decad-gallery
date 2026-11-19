@@ -479,6 +479,17 @@ class FinishedTestsTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "p/TestB"):
                 run_tests.go_test(["./p"], ["TestA", "TestB"], package="p")
 
+    def test_selected_test_may_skip_only_when_explicitly_allowed(self):
+        event = json.dumps({"Package": "p", "Test": "TestA", "Action": "skip"})
+        process = mock.Mock(stdout=[event], returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            run_tests.go_test(["./p"], ["TestA"], package="p", allowed_skips=frozenset({"TestA"}))
+            with self.assertRaisesRegex(SystemExit, "p/TestA"):
+                run_tests.go_test(["./p"], ["TestA"], package="p")
+            with self.assertRaisesRegex(SystemExit, "p/TestB"):
+                run_tests.go_test(["./p"], ["TestB"], package="p", allowed_skips=frozenset({"TestA"}))
+
     def test_other_package_cannot_hide_missing_selected_test(self):
         events = [json.dumps({"Package": "other", "Test": "TestA", "Action": "pass"})]
         process = mock.Mock(stdout=events, returncode=0)

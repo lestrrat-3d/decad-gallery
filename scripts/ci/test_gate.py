@@ -55,6 +55,28 @@ class GateTest(unittest.TestCase):
             ["./models/ballbearing", "-run", "^TestBearingCatalog$", "-timeout", "5m", "-count=1"],
             ["TestBearingCatalog"], package="github.com/lestrrat-3d/decad-gallery/models/ballbearing")
 
+    def test_isolated_package_dispatch(self):
+        cases = (
+            ("isolated-internal-hexnut-TestBuildSizes", "internal/hexnut", None),
+            ("isolated-feature-dovetail-TestBuild", "features/dovetail", None),
+            ("isolated-render-TestGalleryCache", "tools/render", None),
+            ("isolated-tag-coplanar_test-spinningwheel-TestCoplanar", "models/spinningwheel", "coplanar_test"),
+        )
+        for suite, package, tag in cases:
+            with self.subTest(suite=suite):
+                command = gate.commands(suite)[0]
+                self.assertEqual(command[-2:] if tag else command[-1:], ["-tags", tag] if tag else ["-count=1"])
+                with mock.patch.dict(os.environ, {"SUITE": suite, "CASE": "0"}), \
+                        mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                        mock.patch.object(gate, "go_test") as run:
+                    gate.main()
+                self.assertEqual(run.call_args.kwargs["package"], "github.com/lestrrat-3d/decad-gallery/" + package)
+                if package == "tools/render":
+                    self.assertEqual(run.call_args.kwargs["cwd"], "tools/render")
+                    self.assertEqual(run.call_args.kwargs["module"], "tools/render")
+        with self.assertRaises(ValueError):
+            gate.commands("isolated-tag-coplanar_test-ballbearing-TestBearingCatalog")
+
     def test_renderer_records_module(self):
         event = json.dumps({"Package": gate.RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
         proc = mock.Mock(stdout=[event], returncode=0)

@@ -49,11 +49,29 @@ BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "o
 PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
+def isolated_suite(suite):
+    match = re.fullmatch(r"isolated-(?:(tag-coplanar_test)-)?(?:(internal|feature)-)?"
+                         r"([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
+    if not match:
+        return None
+    tag, kind, name, test = match.groups()
+    directory = {None: "models", "internal": "internal", "feature": "features"}[kind]
+    if kind is None and name == "render":
+        directory, name = "tools", "render"
+    if not (Path(directory) / name).is_dir():
+        return None
+    if tag and (directory, name) != ("models", "spinningwheel"):
+        return None
+    return directory, name, test, "coplanar_test" if tag else None
+
+
 def commands(suite):
-    match = re.fullmatch(r"isolated-([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
-    if match and (Path("models") / match.group(1)).is_dir():
-        return [["go", "test", "./models/" + match.group(1), "-run", "^" + match.group(2) + "$",
-                 "-timeout", "5m", "-count=1"]]
+    isolated = isolated_suite(suite)
+    if isolated:
+        directory, name, test, tag = isolated
+        package = "." if directory == "tools" else "./" + directory + "/" + name
+        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", "5m", "-count=1",
+                 *(["-tags", tag] if tag else [])]]
     if suite in WORKERS:
         return WORKERS[suite]
     for prefix, directory in (("new-model-", "models"), ("new-package-", "internal"),
@@ -177,8 +195,21 @@ def main():
         if suite == "renderer-all":
             run_renderer_full()
         elif suite.startswith("isolated-"):
-            model, test = suite.removeprefix("isolated-").split("-", 1)
-            go_test(command[2:], [test], package="github.com/lestrrat-3d/decad-gallery/models/" + model)
+            directory, name, test, _ = isolated_suite(suite)
+            package = "github.com/lestrrat-3d/decad-gallery/" + directory + "/" + name
+            allowed = frozenset()
+            if directory == "models" and name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant") \
+                    and not os.environ.get("HANDCRANKFAN_FULL"):
+                allowed = frozenset((test,))
+            if directory == "models" and name == "planetarygearbox" and test == "TestKitGearboxes" and not os.environ.get("PLANETARY_ALL_KITS"):
+                allowed = frozenset(("TestKitGearboxes/planet608-shaft605", "TestKitGearboxes/planet608-shaft608"))
+            if directory == "tools":
+                go_test(command[2:], [test], package=package, allowed_skips=allowed, cwd="tools/render",
+                        module="tools/render")
+            elif allowed:
+                go_test(command[2:], [test], package=package, allowed_skips=allowed)
+            else:
+                go_test(command[2:], [test], package=package)
         elif suite in RENDER_TESTS:
             run_renderer(suite, command)
         else:

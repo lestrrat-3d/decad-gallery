@@ -421,16 +421,20 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
 
 def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
             package: str | None = None, allowed_skips: frozenset[str] = frozenset(),
-            qualified_expected: set[tuple[str, str]] | None = None) -> None:
+            qualified_expected: set[tuple[str, str]] | None = None, cwd: str | None = None,
+            module: str = ".") -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
+    kwargs = {"stdout": subprocess.PIPE, "text": True, "env": env}
+    if cwd is not None:
+        kwargs["cwd"] = cwd
+    proc = subprocess.Popen(command, **kwargs)
     qualified = package is not None or qualified_expected is not None
-    finished = finished_tests(proc.stdout, qualified=qualified)
+    finished = finished_tests(proc.stdout, qualified=qualified, module=module)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    if not any(action != "skip" for action in finished.values()):
+    if not finished:
         raise SystemExit("go test ran no tests; check the -run pattern")
     missing = [
         f"{package}/{name}" if package else name
