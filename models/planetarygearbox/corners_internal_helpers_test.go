@@ -56,3 +56,24 @@ var cornersDefault struct {
 	box  Gearbox
 	err  error
 }
+
+func requireCornerKit(t *testing.T, name string) {
+	t.Helper()
+	p, err := DefaultParamsFor(name)
+	require.NoError(t, err)
+	requireCornerVariant(t, p)
+}
+
+func requireCornerEars(t *testing.T, count int) {
+	t.Helper()
+	p := DefaultParams()
+	p.EarCount = count
+	requireCornerVariant(t, p)
+}
+
+func requireCornerVariant(t *testing.T, p Params) {
+	t.Helper()
+	box, err := Build(t.Context(), NewDocument(), p)
+	require.NoError(t, err)
+	requireCorners(t, box, p)
+}
