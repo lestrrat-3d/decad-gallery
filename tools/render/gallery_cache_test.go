@@ -1,5 +1,7 @@
 package main
 
+// CI: isolated-tests
+
 import (
 	"bytes"
 	"context"
