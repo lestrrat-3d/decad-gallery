@@ -627,29 +627,37 @@ func TestTwoStages(t *testing.T) {
 	require.Equal(t, decad.PointInside, sectionLocate(t, secondSun, r3.NewVec(2.5, 0.3, mid)), "the second sun's bore keeps a tooth at the flat")
 	require.Equal(t, decad.PointOutside, sectionLocate(t, secondSun, r3.NewVec(-1, 0.3, mid)), "the second sun's bore is open opposite the flat")
 	requireLinkCountersink(t, linkShaft, secondSun, pitch)
-	// The second stage meshes like the first.
-	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
-	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
+	// The second stage's mesh and round sections are checked by separate tests.
+}
 
-	// With no flat and the tightest gap the carrier's hole and sockets and the thick parts are round.
-	t.Run("round sections", func(t *testing.T) {
-		q := planetarygearbox.DefaultParams()
-		q.Stages, q.FlatDepth, q.StageGap = 2, 0, 0.75
-		round, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), q)
-		require.NoError(t, err)
-		for k, stage := range round.Stages {
-			requireInnerLoopsSharp(t, planetarygearbox.CarrierName(k), stage.Carrier, q.PlanetCount+1)
-		}
-		pitch := q.GearThickness + q.CarrierThickness + 1.5
-		kz := q.GearThickness + 0.75
-		link := round.Stages[0].Shaft
-		requireSectionClearance(t, link, round.Stages[0].Carrier, kz+q.CarrierThickness/2, 0.02)
-		requireSectionClearance(t, round.Stages[1].Shaft, round.Stages[1].Carrier, pitch+kz+q.CarrierThickness/2, 0.02)
-		require.InDelta(t, pitch+q.GearThickness, bounds(t, link).Max.Z, 1e-6)
-		require.Equal(t, decad.PointInside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch-0.125)), "cone")
-		require.Equal(t, decad.PointOutside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch+1.5)), "thin rod")
-		requireLinkCountersink(t, round.Stages[0].Shaft, round.Stages[1].Sun, pitch)
-	})
+func TestTwoStagesPlanetSunMesh(t *testing.T) {
+	_, box := twoStageGearbox(t)
+	require.Zero(t, penetration(t, box.Stages[1].Planets[1], box.Stages[1].Sun))
+}
+
+func TestTwoStagesPlanetRingMesh(t *testing.T) {
+	_, box := twoStageGearbox(t)
+	require.Zero(t, penetration(t, box.Stages[1].Planets[2], box.Ring))
+}
+
+// With no flat and the tightest gap the carrier's hole and sockets and the thick parts are round.
+func TestTwoStagesRoundSections(t *testing.T) {
+	q := planetarygearbox.DefaultParams()
+	q.Stages, q.FlatDepth, q.StageGap = 2, 0, 0.75
+	round, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), q)
+	require.NoError(t, err)
+	for k, stage := range round.Stages {
+		requireInnerLoopsSharp(t, planetarygearbox.CarrierName(k), stage.Carrier, q.PlanetCount+1)
+	}
+	pitch := q.GearThickness + q.CarrierThickness + 1.5
+	kz := q.GearThickness + 0.75
+	link := round.Stages[0].Shaft
+	requireSectionClearance(t, link, round.Stages[0].Carrier, kz+q.CarrierThickness/2, 0.02)
+	requireSectionClearance(t, round.Stages[1].Shaft, round.Stages[1].Carrier, pitch+kz+q.CarrierThickness/2, 0.02)
+	require.InDelta(t, pitch+q.GearThickness, bounds(t, link).Max.Z, 1e-6)
+	require.Equal(t, decad.PointInside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch-0.125)), "cone")
+	require.Equal(t, decad.PointOutside, sectionLocate(t, link, r3.NewVec(-3, 0, pitch+1.5)), "thin rod")
+	requireLinkCountersink(t, round.Stages[0].Shaft, round.Stages[1].Sun, pitch)
 }
 
 func TestPlacedGearbox(t *testing.T) {
