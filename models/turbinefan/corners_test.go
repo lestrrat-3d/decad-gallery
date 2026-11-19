@@ -13,9 +13,10 @@ import (
 )
 
 // TestTurbineFanCorners applies "Corners and roots" to the hub, printed front face down with its axis +Z, and to each
-// blade, printed with its trailing edge down. The hub is read at the face levels MidHeights finds and at
-// z = 2.5, 4, 5.5, 5.8, BladeSocketZ - 3 j, BladeSocketZ and BladeSocketZ + 3 j. These cut the slots, counterbore
-// and sockets off their axes. Instructions.md records the allowed exemptions and their measured turns.
+// blade, printed on its stud end with its radial line vertical. The hub is read at the face levels MidHeights finds and at
+// z = 2.5, 4, 5.5, 5.8, HubMid - 3 j, HubMid and HubMid + 3 j, which cut the slots, the counterbore and the sockets off
+// their axes. Three exemptions
+// are allowed; instructions.md records their measured turns.
 func TestTurbineFanCorners(t *testing.T) {
 	eachCase(t, boreCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		dm := m.Dimensions
@@ -28,7 +29,7 @@ func TestTurbineFanCorners(t *testing.T) {
 			optional(counterboreRound(dm), setScrewSlotEndRound(dm), socketFloorRound(sz), setScrewSlotSideRounds(dm)))
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))
-		heights := []float64{2.5, 4, 5.5, 5.8, sz.BladeSocketZ() - 3*sz.HubScale, sz.BladeSocketZ(), sz.BladeSocketZ() + 3*sz.HubScale}
+		heights := []float64{2.5, 4, 5.5, 5.8, sz.HubMid - 3*sz.HubScale, sz.HubMid, sz.HubMid + 3*sz.HubScale}
 		fs, err = cornercheck.CheckAt(t.Context(), m.Hub, r3.Vec{Z: 1}, heights,
 			[]cornercheck.Exempt{counterboreRound(dm), setScrewSlotEndRound(dm), socketFloorRound(sz), setScrewSlotSideRounds(dm)})
 		require.NoError(t, err)

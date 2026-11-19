@@ -3,7 +3,6 @@ package turbinefan_test
 // CI: isolated-tests
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
@@ -13,29 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBladePrintEdge(t *testing.T) {
-	for _, d := range bladeSizes {
-		sz := mustSize(t, d)
-		for _, pitch := range bladePitches {
-			for _, mirror := range []bool{false, true} {
-				t.Run(fmt.Sprintf("%g/%g/%t", d, pitch*180/math.Pi, mirror), func(t *testing.T) {
-					build := turbinefan.BuildBlade
-					if mirror {
-						build = turbinefan.BuildBladeMirrored
-					}
-					doc := turbinefan.NewDocument()
-					blade, err := build(t.Context(), doc, pitch, sz)
-					require.NoError(t, err)
-					require.Len(t, doc.Bodies(), 1)
-					mesh := meshOf(t, blade.Body, 0.05)
-					requireBladeBedContact(t, mesh, sz, mirror)
-					requireBladePrintEdgeCorners(t, blade, sz, mirror)
-				})
-			}
-		}
-	}
-}
-
 func TestBuildBlade(t *testing.T) {
 	for _, d := range bladeSizes {
 		sz := mustSize(t, d)
@@ -44,7 +20,7 @@ func TestBuildBlade(t *testing.T) {
 			blade, err := turbinefan.BuildBlade(t.Context(), doc, pitch, sz)
 			require.NoError(t, err, "rotor %g, pitch %g", d, pitch)
 			require.True(t, blade.Body.IsSolid())
-			require.Len(t, blade.Sketches, 14)
+			require.Len(t, blade.Sketches, 12)
 			for i, s := range blade.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
@@ -114,17 +90,12 @@ func TestBladeThickness(t *testing.T) {
 		for _, r := range []float64{30, 40, 50, 60} {
 			y, ring := meshRing(verts, r*sz.Scale)
 			require.NotEmpty(t, ring, "ring near radius %g", r)
-			lo, hi := math.Inf(1), math.Inf(-1)
-			for _, v := range ring {
-				if math.Abs(v.X+sz.BladeStudRadius) < 1e-9 {
-					lo, hi = math.Min(lo, v.Z), math.Max(hi, v.Z)
-				}
-			}
-			require.InDelta(t, 2.0, hi-lo, 1e-8, "trailing flat at radius %g", y)
-			mid := r3.Vec{X: -sz.BladeStudRadius, Y: y, Z: (lo + hi) / 2}
-			le := farthest(ring, mid, nil)
-			sourceRadius := sz.Scale * (19 + (y/sz.Scale-26)*45/38)
-			requireThickness(t, turbinefan.ThicknessRatio(sourceRadius, sz), math.Atan2(-(le.Z-mid.Z), le.X-mid.X), ring, 0.03, y)
+			stack := r3.Vec{Y: y, Z: sz.HubMid}
+			te1 := farthest(ring, stack, nil)
+			le := farthest(ring, te1, nil)
+			te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
+			mid := te1.Add(te2).Scale(0.5)
+			requireThickness(t, turbinefan.ThicknessRatio(y, sz), math.Atan2(-(le.Z-mid.Z), le.X-mid.X), ring, 0.03, y)
 		}
 		// The root is nearly round.
 		y, ring := meshRing(verts, sz.RootRadius+0.6*sz.HubScale)

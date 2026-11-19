@@ -1,7 +1,6 @@
 package turbinefan_test
 
 import (
-	"errors"
 	"math"
 	"testing"
 
@@ -61,13 +60,7 @@ func turnedBox(t *testing.T, body *decad.Body, tol, angle float64) (lo, hi r3.Ve
 // mesh builds a meshgap mesh of body's tessellation at tol, moved by d.
 func gapMesh(t *testing.T, body *decad.Body, tol float64, d r3.Vec) meshgap.Mesh {
 	t.Helper()
-	mesh, err := body.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
-	var bound *decad.MeshBoundError
-	if errors.As(err, &bound) {
-		require.LessOrEqual(t, bound.Floor().Base(), 0.05, "held mesh bound")
-		mesh, err = body.Tessellate(t.Context(), bound.Floor(), decad.WithVerification(decad.VerifyAll))
-	}
-	require.NoError(t, err)
+	mesh := meshOf(t, body, tol)
 	vs := mesh.Vertices()
 	moved := make([]r3.Vec, len(vs))
 	for i, v := range vs {

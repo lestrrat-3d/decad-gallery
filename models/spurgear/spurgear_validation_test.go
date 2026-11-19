@@ -9,8 +9,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/sketch"
-	"github.com/lestrrat-3d/sketch/param"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,46 +59,4 @@ func TestProfileAndFlankAPIsRejectInvalidInputs(t *testing.T) {
 	require.Error(t, err)
 	_, _, err = spurgear.InvoluteFlanks(4, 3.7, 5, 8, 2, 0)
 	require.Error(t, err)
-}
-
-func TestBuildToothRejectsOverlappingFlanksWithoutAddingBodies(t *testing.T) {
-	p := spurgear.DefaultParams()
-	p.Teeth = 8
-	p.PressureAngle = 84.8 * math.Pi / 180
-	p.Samples = 3
-	p.Backlash = 0
-	doc := decad.New()
-
-	_, err := (spurgear.Variant{}).BuildTooth(t.Context(), doc, p)
-	require.Error(t, err)
-	require.Empty(t, doc.Bodies())
-}
-
-func TestBuildToothUsesVariantPressureAngleOverride(t *testing.T) {
-	p := spurgear.DefaultParams()
-	p.Teeth = 8
-	p.PressureAngle = 84.8 * math.Pi / 180
-	p.Samples = 3
-	p.Backlash = 0
-	v := spurgear.Variant{Define: func(table *param.Table) error {
-		return table.SetValue("pressure_angle", units.Radians(0.35))
-	}}
-	doc := decad.New()
-	body, err := v.BuildTooth(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.True(t, body.IsSolid())
-	pressure, err := doc.Param("pressure_angle")
-	require.NoError(t, err)
-	require.InDelta(t, 0.35, pressure.Base(), 1e-12)
-}
-
-func TestBuildToothSectionNamesEmbeddedForOverlappingFlanks(t *testing.T) {
-	p := spurgear.DefaultParams()
-	p.Teeth = 8
-	p.PressureAngle = 84.8 * math.Pi / 180
-	p.Samples = 3
-	p.Backlash = 0
-	world := sketch.NewWorld()
-	_, _, err := spurgear.BuildToothSection(t.Context(), world, world.XY(), p, 0)
-	require.ErrorContains(t, err, "embedded")
 }

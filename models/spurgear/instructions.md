@@ -19,14 +19,12 @@ frame's coordinates (`x` along `U`, `y` along `V`, `z` along the normal). With
 no placement, the frame is the world origin with `U=+X` and `V=+Y`, so the
 axis is world +Z and the caps are at z=0 and z=`h`.
 
-Declare the exported fields of `Params` in the order shown below. Positional Go struct literals depend on this order.
-
 | Symbol | Parameter | Type | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `m` | `Module` | float64 | 1 | Tooth module |
+| `N` | `Teeth` | int | 17 | Tooth count |
 | `α` | `PressureAngle` | float64 | `20π/180` | Pressure angle |
 | `h` | `Thickness` | float64 | 10 | Axial thickness |
-| `N` | `Teeth` | int | 17 | Tooth count |
 | `S` | `Samples` | int | 15 | Fit points per flank |
 | `b` | `BoreDiameter` | float64 | 0 | Centered through-bore diameter; zero omits bore |
 | `c` | `CapChamfer` | float64 | 0 | Equal-distance outer cap setback; zero omits chamfer |
@@ -172,16 +170,14 @@ Use this branch when `Rb < Rr`. The gear is one root disc and one natural tooth
 repeated `N` times, as in the ordinary branch, but the tooth flanks cross the
 root circle instead of ending on it.
 
-- At each radius `r` between `Rb` and `Rr`, take the mirrored involute point rotated by the backlash-adjusted
-  `β` for tooth zero. For its coordinates `(x,y)`, the tooth half-angle is `h(r) = |atan2(y,x)|` in radians.
-  Both flanks fit strictly inside the tooth sector when `h(r) < π/N`. Equality reaches the sector boundary.
-- If `h(Rb) < π/N`, use the base radius for the closing arc. Otherwise require `h(Rr) < π/N` and bisect
-  from `Rb` to `Rr` for the boundary radius `Rq`. Use `Rc = (Rq + Rr)/2` for positive root-disc overlap.
-  If both endpoint half-angles reach or exceed the limit, return an error naming the root circle before creating
-  a tooth sketch or body. Use the same dimensions and backlash as the tooth sampler after `Variant.Define`
-  has run. A custom `Variant.Tooth` supplies its own geometry and bypasses the default tooth closing rule.
-  The public `BuildToothSection` supports ordinary teeth only. It reports an error containing `embedded`
-  for an embedded input before doing any closing-radius search.
+- Let `h(r)` be the angle between the tooth axis and the left flank where the
+  flank meets radius `r`, for `Rb <= r <= Rr`. Adjacent teeth stay apart at
+  radius `r` only while `h(r) < π/N`.
+- Choose the closing radius `Rc`. If `h(Rb) < π/N`, use `Rc = Rb`. Otherwise
+  find `Rq` in `[Rb, Rr)` with `h(Rq) = π/N` (`h` falls as `r` grows) and use
+  `Rc = (Rq + Rr)/2`, so the closing arc lies strictly inside the root disc and
+  clear of the neighbouring teeth. If `h(Rr) >= π/N`, no closing radius exists:
+  return an error that names the root circle.
 - The tooth section has four curves: the right flank spline from radius `Rc`
   to the tip, the tip arc, the left flank spline from the tip back to radius
   `Rc`, and an arc about the gear axis at radius `Rc` that closes it. The flank

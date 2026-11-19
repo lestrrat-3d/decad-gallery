@@ -143,23 +143,6 @@ class SirenCasesTest(unittest.TestCase):
                 self.assertEqual(kwargs, {"package": "github.com/lestrrat-3d/decad-gallery/models/handcranksiren"})
 
 
-class TurbineFanTest(unittest.TestCase):
-    def test_turbinefan_assigns_every_discovered_test(self):
-        listing = mock.Mock(stdout="TestBladePrintEdge\nTestBuildBladeMirrored\nTestOther\nok pkg\n")
-        with mock.patch.object(run_tests.subprocess, "run", return_value=listing), \
-                mock.patch.object(run_tests, "go_test") as go_test:
-            for shard in ("print", "mirror", "rest"):
-                run_tests.run_turbinefan(shard)
-        selected = [call.args[1] for call in go_test.call_args_list]
-        self.assertEqual(selected, [["TestBladePrintEdge"], ["TestBuildBladeMirrored"], ["TestOther"]])
-
-    def test_turbinefan_requires_both_heavy_tests(self):
-        listing = mock.Mock(stdout="TestBladePrintEdge\n")
-        with mock.patch.object(run_tests.subprocess, "run", return_value=listing):
-            with self.assertRaisesRegex(SystemExit, "TestBuildBladeMirrored"):
-                run_tests.run_turbinefan("print")
-
-
 class EscapementTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -618,7 +601,8 @@ class FullModelInventoryTest(unittest.TestCase):
 
 class DedicatedModelInventoryTest(unittest.TestCase):
     def test_dedicated_jobs_inventory_every_package(self):
-        cases = ((run_tests.run_onewayclutch, ("onewayclutch",)),
+        cases = ((run_tests.run_turbinefan, ("turbinefan",)),
+                 (run_tests.run_onewayclutch, ("onewayclutch",)),
                  (run_tests.run_clamparm, ("clamparm", "m5bolt", "m5nut")))
         prefix = "github.com/lestrrat-3d/decad-gallery/models/"
         for runner, names in cases:

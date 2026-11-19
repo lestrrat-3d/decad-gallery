@@ -9,119 +9,106 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 )
 
+// Rotor size limits and the scale constants, in mm.
 const (
-	// BaseRotorDiameter is the reference rotor diameter for the blade station table, in mm.
+	// BaseRotorDiameter is the size the blade station table is written for.
 	BaseRotorDiameter = 128.0
-	// DefaultRotorDiameter is the rotor diameter used by the presets, in mm.
+	// DefaultRotorDiameter is the rotor size of every preset.
 	DefaultRotorDiameter = 192.0
-	// MinRotorDiameter is the inclusive minimum supported rotor diameter, in mm.
+	// MinRotorDiameter and MaxRotorDiameter bound Params.RotorDiameter.
 	MinRotorDiameter = 128.0
-	// MaxRotorDiameter is the inclusive maximum supported rotor diameter, in mm.
 	MaxRotorDiameter = 224.0
-	// BaseHubRadius is the hub radius at BaseRotorDiameter, in mm.
+	// BaseHubRadius is the hub radius at BaseRotorDiameter.
 	BaseHubRadius = 14.0
-	// MaxHubRadius leaves room for 605ZZ clutch ear-bolt heads and a 1.5 mm hex key at the 21.6 mm ear circle.
+	// MaxHubRadius keeps the hub rim HeadPocketRadius + 0.5 inside the 605ZZ clutch's ear circle (21.6), so the ear
+	// bolts' heads and a 1.5 mm hex key pass the hub to the adapter's ear pockets. One hub serves both mounts.
 	MaxHubRadius = 18.9
-	// BladeBoltTipFloor is the minimum blade-bolt tip height above the hub's back face, in mm.
+	// BladeBoltTipFloor is the least height of a blade bolt's tip above the back face: the nut slot keeps 2.4 of hub
+	// under it.
 	BladeBoltTipFloor = 2.0
 )
 
-// Size holds derived dimensions in mm in the fan's local frame. Scale and HubScale are dimensionless.
-// Obtain a Size with SizeFor, which requires a finite rotor diameter within the inclusive supported limits.
+// Size holds every dimension that follows the rotor diameter, in mm, in the local frame. Build it with SizeFor.
+//
+// The blade scale is s = RotorDiameter / BaseRotorDiameter. Every airfoil section, the hub length, the pitch reference
+// radius and the hold radius scale by s. The hub radius is 14 s, capped at MaxHubRadius, and the round blade root, the
+// stud, the socket and the blade bolt circle scale by HubScale j = HubRadius / BaseHubRadius.
 type Size struct {
-	// RotorDiameter is the selected rotor diameter.
 	RotorDiameter float64
-	// Scale is the rotor diameter divided by BaseRotorDiameter; airfoil sections, hub length, RefRadius and HoldRadius scale by it.
-	Scale float64
-	// HubScale is HubRadius divided by BaseHubRadius; the hub, stud, socket and blade-bolt circle dimensions scale by it.
-	HubScale float64
-	// TipRadius is RotorDiameter / 2, the outer radius of the blade.
-	TipRadius float64
-	// RootRadius is HubRadius + RegularFit, the first airfoil section radius.
-	RootRadius float64
-	// RefRadius is 48 * Scale, the rated-pitch station.
-	RefRadius float64
-	// HoldRadius is 21.5 * Scale, the inboard limit where blade twist is held constant.
-	HoldRadius float64
-	// HubRadius is min(BaseHubRadius * Scale, MaxHubRadius).
-	HubRadius float64
-	// HubLength is 20 * Scale, the physical hub height from back to front face.
-	HubLength float64
-	// HubMid is HubLength / 2, the geometric midpoint of the hub.
-	HubMid float64
+	Scale         float64 // s: RotorDiameter / BaseRotorDiameter
+	HubScale      float64 // j: HubRadius / BaseHubRadius
+	TipRadius     float64 // RotorDiameter / 2
+	RootRadius    float64 // HubRadius + RegularFit: the blade's root station
+	RefRadius     float64 // 48 s: BladePitch is the blade angle here, 75 % of the tip radius
+	HoldRadius    float64 // 21.5 s: inboard of this the blade angle stays constant
+	HubRadius     float64 // min(14 s, MaxHubRadius)
+	HubLength     float64 // 20 s
+	HubMid        float64 // HubLength / 2: the sockets' and blade bolts' plane
 
-	// BladeStudRadius is 3 * HubScale, the radius of the circular stud.
-	BladeStudRadius float64
-	// BladeStudStart is BladeSocketStart + RegularFit + 0.005, the radial start of the stud.
-	BladeStudStart float64
-	// BladeStudEnd is 16 * HubScale, a legacy outer station; the full circular stud ends at 14.6 * HubScale.
-	BladeStudEnd float64
-	// BladeSocketRadius is BladeStudRadius + RegularFit + 0.005, the radius of the socket.
-	BladeSocketRadius float64
-	// BladeSocketStart is 5.7 * HubScale, the radial socket floor.
-	BladeSocketStart float64
-	// BladeBoltAt is 9.5 * HubScale, the blade bolt's radial position from the fan axis.
-	BladeBoltAt float64
-	// BladeBoltLength is the longest standard M2 bolt length that preserves the minimum tip height above the hub back face.
-	BladeBoltLength float64
-	// BladeBoltCavity measures from the bolt head's top face to the nut slot's near face.
-	BladeBoltCavity float64
+	// BladeStudRadius is the blade's root stud, which runs from radius BladeStudStart to BladeStudEnd.
+	BladeStudRadius float64 // 3 j
+	BladeStudStart  float64 // BladeSocketStart + RegularFit
+	BladeStudEnd    float64 // 16 j
+	// BladeSocketRadius is the hub socket's radius, a Regular fit round the stud. The socket's floor is at radius
+	// BladeSocketStart.
+	BladeSocketRadius float64 // BladeStudRadius + RegularFit
+	BladeSocketStart  float64 // 5.7 j
+	// BladeBoltAt is the blade bolt's distance from the fan axis. BladeBoltLength is its M2 length and BladeBoltCavity
+	// the distance from its head's top face to the near face of the nut cavity.
+	BladeBoltAt     float64 // 9.5 j
+	BladeBoltLength float64 // the longest standard length that keeps its tip BladeBoltTipFloor above the back face
+	BladeBoltCavity float64 // BladeBoltLength - 0.4
 }
 
-// SizeFor derives the dimensions of a rotor with the given diameter in mm. The diameter must be finite and lie
-// within [MinRotorDiameter, MaxRotorDiameter].
+// SizeFor derives the sizes of a rotor of the given diameter, which must be finite and lie in
+// [MinRotorDiameter, MaxRotorDiameter].
 func SizeFor(rotorDiameter float64) (Size, error) {
 	if math.IsNaN(rotorDiameter) || math.IsInf(rotorDiameter, 0) ||
 		rotorDiameter < MinRotorDiameter || rotorDiameter > MaxRotorDiameter {
 		return Size{}, fmt.Errorf("turbinefan: RotorDiameter must lie in [%g, %g] mm", MinRotorDiameter, MaxRotorDiameter)
 	}
-
-	scale := rotorDiameter / BaseRotorDiameter
-	size := Size{RotorDiameter: rotorDiameter, Scale: scale}
-	size.HubRadius = math.Min(BaseHubRadius*scale, MaxHubRadius)
-	size.HubScale = size.HubRadius / BaseHubRadius
-	size.TipRadius = rotorDiameter / 2
-	size.RootRadius = size.HubRadius + RegularFit
-	size.RefRadius = 48 * scale
-	size.HoldRadius = 21.5 * scale
-	size.HubLength = 20 * scale
-	size.HubMid = size.HubLength / 2
-
-	j := size.HubScale
-	size.BladeStudRadius = 3 * j
-	size.BladeSocketStart = 5.7 * j
-	size.BladeStudStart = size.BladeSocketStart + RegularFit + 0.005
-	size.BladeStudEnd = 16 * j
-	size.BladeSocketRadius = size.BladeStudRadius + RegularFit + 0.005
-	size.BladeBoltAt = 9.5 * j
-	for _, length := range m2bolt.StandardLengths() {
-		if size.HubLength-m2fastener.HeadPocketDepth-length >= BladeBoltTipFloor-1e-9 {
-			size.BladeBoltLength = length
+	s := rotorDiameter / BaseRotorDiameter
+	sz := Size{RotorDiameter: rotorDiameter, Scale: s}
+	sz.HubRadius = math.Min(BaseHubRadius*s, MaxHubRadius)
+	sz.HubScale = sz.HubRadius / BaseHubRadius
+	j := sz.HubScale
+	sz.TipRadius = rotorDiameter / 2
+	sz.RootRadius = sz.HubRadius + RegularFit
+	sz.RefRadius = 48 * s
+	sz.HoldRadius = 21.5 * s
+	sz.HubLength = 20 * s
+	sz.HubMid = sz.HubLength / 2
+	sz.BladeStudRadius = 3 * j
+	sz.BladeSocketStart = 5.7 * j
+	sz.BladeStudStart = sz.BladeSocketStart + RegularFit
+	sz.BladeStudEnd = 16 * j
+	sz.BladeSocketRadius = sz.BladeStudRadius + RegularFit
+	sz.BladeBoltAt = 9.5 * j
+	for _, l := range m2bolt.StandardLengths() {
+		if sz.HubLength-m2fastener.HeadPocketDepth-l >= BladeBoltTipFloor-1e-9 {
+			sz.BladeBoltLength = l
 		}
 	}
-	if size.BladeBoltLength == 0 {
+	if sz.BladeBoltLength == 0 {
 		return Size{}, errors.New("turbinefan: no standard blade bolt length fits the hub")
 	}
-	size.BladeBoltCavity = size.BladeBoltLength - 0.4
-	if size.HubLength-size.BladeBoltCavity > size.BladeSocketZ()-size.BladeSocketRadius-1 {
+	sz.BladeBoltCavity = sz.BladeBoltLength - 0.4
+	if sz.HubLength-sz.BladeBoltCavity > sz.HubMid-sz.BladeSocketRadius-1 {
 		return Size{}, errors.New("turbinefan: blade nut slot leaves less than 1 mm of hub above the socket")
 	}
-	return size, nil
+	return sz, nil
 }
 
-// BladeSocketZ returns the assembled socket and stud axis height in mm from the hub's back face.
-// It is HubMid + 2.5 mm and is independent of blade pitch, hand and mount.
-func (size Size) BladeSocketZ() float64 { return size.HubMid + 2.5 }
-
-func (size Size) valid() bool {
-	want, err := SizeFor(size.RotorDiameter)
-	return err == nil && size == want
-}
-
-// Beta returns the blade angle in radians from the plane of rotation at radius, in mm.
-// Pitch is in radians at RefRadius. Below HoldRadius, the angle remains at the HoldRadius value;
-// pitch adjusts the sections by pitch - refPitch.
-func (size Size) Beta(radius, pitch float64) float64 {
-	return designAttack + math.Atan(math.Tan(refPitch-designAttack)*size.RefRadius/math.Max(radius, size.HoldRadius)) +
+// Beta is the blade angle at radius r, measured from the plane of rotation, for a blade angle of pitch at RefRadius.
+// The shape follows the angle of a uniform axial inflow plus designAttack, held constant across the root. The pitch
+// turns the whole blade, as on a turbine with a pitch bearing.
+func (s Size) Beta(r, pitch float64) float64 {
+	return designAttack + math.Atan(math.Tan(refPitch-designAttack)*s.RefRadius/math.Max(r, s.HoldRadius)) +
 		(pitch - refPitch)
+}
+
+// valid reports whether s is what SizeFor returns for its RotorDiameter.
+func (s Size) valid() bool {
+	want, err := SizeFor(s.RotorDiameter)
+	return err == nil && s == want
 }

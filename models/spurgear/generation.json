@@ -1,15 +1,15 @@
 {
   "inputs": {
-    "models/spurgear/instructions.md": "aa7f2f47b616a41b1408da7392b2a5e4798c9706813b3bec0fa59a3daecc83bf",
-    "models/spurgear/steps.md": "03e7d0378f3be21306bea4051e947209f0e98a90c632ca36b645877656d2e039",
+    "models/spurgear/instructions.md": "60e151c812a45ba9a2db51da7953d169be70bf1a17935af2c450ddc372210b7c",
+    "models/spurgear/steps.md": "2026a893afe63aa8a3b646bf27d165bc6b55bc881632106dda33908fbf16dcb8",
     "scripts/modelgen/spurgear_prompt.md": "c2c8d931854866387f0d4a4e91a76156f336557a44a6848cc366e14bbd10e952",
     "internal/sketchcheck/verify.go": "48d0be76858c3a2b7302e63854295fb4bc4f4deda24f74118e596bd14aff6d0c",
-    "go.mod": "89e40914d63624a1cf33cada45d894f5605427dc019e705d7ff35bfc29d84ca5",
-    "go.sum": "a01505f9a4a2b988fc60ec40eed9076411bc0aebd5d6d51ecf7acf02fda84a97"
+    "go.mod": "cc4a281b3c9f730faf23deaab91662d7145028eecdb0a3dc2ccdd667fbff22e5",
+    "go.sum": "590e3c74beab896485506c89659840fe9828f63e07503bb05c4c6b69d040808c"
   },
   "outputs": {
-    "involute.go": "22302cdff5a37a714f7b25f466f1370dc7331271db575f153c67ec239ab5ab44",
-    "spurgear.go": "082561de326ac4d6d783e73f271c555f02dc0d280271fbc3e1a8b3e69fafb53e",
-    "tooth_section.go": "5a51da0e36c96eb55ea7d6f340dc65154a098bf7371c693a6f3917cff5f2add3"
+    "involute.go": "ed9ffea1a55be12fe532b0f9d05ef506e782f5b9a2be96ac4ac5ace5047fb4e6",
+    "spurgear.go": "4151497ccfe954b5458c275f8c0377b35ee49131b5a119e1a668a3b8ed68da4e",
+    "tooth_section.go": "16795485a62c5674d86e99f0aac9484c6a1f726e1cd0073b280763cfe5c88e79"
   }
 }
