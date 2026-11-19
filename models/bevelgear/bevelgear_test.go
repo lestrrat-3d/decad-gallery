@@ -1,5 +1,7 @@
 package bevelgear_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
