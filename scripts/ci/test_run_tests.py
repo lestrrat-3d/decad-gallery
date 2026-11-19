@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -143,6 +144,10 @@ class SirenCasesTest(unittest.TestCase):
 
 
 class EscapementTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        Path(".tmp").mkdir(exist_ok=True)
+
     def test_escapement_runs_all_shards(self):
         with mock.patch.object(run_tests, "go_test_shards") as go_test_shards:
             run_tests.run_escapement()
@@ -180,7 +185,7 @@ class EscapementTest(unittest.TestCase):
         shards = (("TestA",), ("TestB",))
         list_result = mock.Mock(stdout="TestA\nTestB\n", returncode=0)
         pass_events = [
-            json.dumps({"Action": "pass", "Test": test}) + "\n"
+            json.dumps({"Action": "pass", "Package": "pkg", "Test": test}) + "\n"
             for test in ("TestA", "TestB")
         ]
 
@@ -197,11 +202,17 @@ class EscapementTest(unittest.TestCase):
                 return self.returncode
 
         with (
+            tempfile.TemporaryDirectory(dir=".tmp") as directory,
+            mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(Path(directory) / "records.jsonl")}),
             mock.patch.object(run_tests.subprocess, "run", return_value=list_result) as listing,
             mock.patch.object(run_tests.subprocess, "Popen", side_effect=FakeProcess) as popen,
             mock.patch("builtins.print"),
         ):
             run_tests.go_test_shards("./pkg", shards, "1m")
+            records = [json.loads(line) for line in (Path(directory) / "records.jsonl").read_text().splitlines()]
+
+        self.assertEqual({r["test"] for r in records if r["kind"] == "test"}, {"TestA", "TestB"})
+        self.assertEqual(len({r["invocation"] for r in records}), 2)
 
         listing.assert_called_once_with(
             ["go", "test", "-list", "^Test", "./pkg"],
@@ -315,6 +326,68 @@ class FanVariantsTest(unittest.TestCase):
 
 
 class FinishedTestsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        Path(".tmp").mkdir(exist_ok=True)
+
+    def test_optional_records_keep_packages_subtests_and_invocations(self):
+        events = [json.dumps({"Action": "output", "Output": "large output"}),
+                  json.dumps({"Package": "one", "Test": "TestA/child", "Action": "skip"}),
+                  json.dumps({"Package": "two", "Test": "TestA/child", "Action": "fail"})]
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(events)
+                run_tests.finished_tests(events[:2])
+            records = [json.loads(line) for line in path.read_text().splitlines() if '"kind":"test"' in line]
+        self.assertEqual([(r["module"], r["package"], r["test"], r["status"]) for r in records],
+                         [(".", "one", "TestA/child", "skip"), (".", "two", "TestA/child", "fail"),
+                          (".", "one", "TestA/child", "skip")])
+        self.assertEqual(records[0]["invocation"], records[1]["invocation"])
+        self.assertNotEqual(records[0]["invocation"], records[2]["invocation"])
+
+    def test_failure_still_records_terminal_events(self):
+        process = mock.Mock(stdout=[json.dumps({"Package": "p", "Test": "TestA", "Action": "fail"})],
+                            returncode=1)
+        process.wait.return_value = 1
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+                with self.assertRaises(SystemExit):
+                    run_tests.go_test(["./p"])
+            self.assertEqual(json.loads(path.read_text().splitlines()[0])["status"], "fail")
+
+    def test_metadata_package_failure_and_invalid_identity(self):
+        events = [json.dumps({"Package": "p", "Action": "fail"}),
+                  json.dumps({"Test": "TestA", "Action": "pass"}), "bad json"]
+        env = {"GITHUB_JOB": "wheel", "CI_TEST_CASE": "rest", "GITHUB_SHA": "abc",
+               "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2"}
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {**env, "CI_TEST_RECORDS": str(path)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(events)
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual([r["kind"] for r in records], ["package", "malformed", "malformed", "complete"])
+        self.assertEqual((records[0]["package"], records[0]["status"]), ("p", "fail"))
+        self.assertEqual([r["reason"] for r in records[1:3]], ["invalid_identity", "invalid_json"])
+        self.assertEqual([records[0][key] for key in ("job", "case", "revision", "run_id", "run_attempt")],
+                         ["wheel", "rest", "abc", "123", "2"])
+
+    def test_interrupted_stream_has_no_complete_marker(self):
+        def interrupted():
+            yield json.dumps({"Package": "p", "Test": "TestA", "Action": "pass"})
+            raise OSError("stream interrupted")
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}):
+                with self.assertRaises(OSError):
+                    run_tests.finished_tests(interrupted())
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual([r["kind"] for r in records], ["test"])
+
     def test_multi_package_selection_requires_each_package(self):
         events = [json.dumps({"Package": "one", "Test": "TestA", "Action": "pass"}),
                   json.dumps({"Package": "two", "Test": "TestA", "Action": "skip"})]

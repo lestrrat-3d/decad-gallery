@@ -72,7 +72,7 @@ def matrix_for(suites):
 
 def run_renderer(suite, command):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True)
-    finished = finished_tests(proc.stdout, qualified=True)
+    finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
     package = RENDER_PACKAGE
@@ -100,7 +100,7 @@ def run_renderer_full():
         raise SystemExit("renderer test inventory is empty")
     proc = subprocess.Popen(base + ["test", "-json", "-timeout", "170m", "./..."],
                             stdout=subprocess.PIPE, text=True)
-    finished = finished_tests(proc.stdout, qualified=True)
+    finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
     missing = {identity for identity in expected if finished.get(identity) != "pass"}
@@ -142,6 +142,7 @@ def check(needs, event):
 
     expected = {"worker": "success" if expected_matrix["include"] else "skipped"}
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
+    expected["records-validation"] = "success" if full else "skipped"
     for job in BROAD_JOBS:
         enabled = "broad" in suites
         if job == "bevel-pr":

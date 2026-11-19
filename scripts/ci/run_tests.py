@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 
 
 BEVEL_TESTS = {
@@ -367,21 +368,53 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False) -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".") -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
+    record_path = os.environ.get("CI_TEST_RECORDS")
+    invocation = uuid.uuid4().hex if record_path else None
+    records = open(record_path, "a", encoding="utf-8") if record_path else None
+    try:
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished)
+    finally:
+        if records is not None:
+            records.close()
+
+
+def _read_finished_tests(lines, qualified, module, invocation, records, finished):
+    metadata = {"version": 1, "invocation": invocation, "module": module,
+                "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
+                "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "")}
+
+    def record(kind, **fields):
+        if records is not None:
+            records.write(json.dumps({**metadata, "kind": kind, **fields}, separators=(",", ":")) + "\n")
+
     for line in lines:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            record("malformed", reason="invalid_json")
             sys.stdout.write(line)
+            continue
+        if not isinstance(event, dict):
+            record("malformed", reason="not_object")
             continue
         if "Output" in event:
             sys.stdout.write(event["Output"])
         test = event.get("Test")
+        if event.get("Action") in {"pass", "fail", "skip"}:
+            package = event.get("Package")
+            if not isinstance(package, str) or not package or (test is not None and
+                                                                (not isinstance(test, str) or not test)):
+                record("malformed", reason="invalid_identity")
+            else:
+                record("test" if test else "package", package=package, test=test, status=event["Action"])
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
+    record("complete")
     sys.stdout.flush()
     return finished
 

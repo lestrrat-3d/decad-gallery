@@ -37,6 +37,8 @@ class PlanTest(unittest.TestCase):
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(expected)
                 needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs["records-validation"] = {"result": "success" if event in ("schedule", "workflow_dispatch")
+                                                or "full" in expected else "skipped"}
                 if "broad" in expected:
                     full = event in ("schedule", "workflow_dispatch") or "full" in expected
                     for job in gate.BROAD_JOBS:
@@ -80,6 +82,7 @@ class PlanTest(unittest.TestCase):
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
                 needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs["records-validation"] = {"result": "success" if "full" in expected else "skipped"}
                 needs.update(plan={"result": "success", "outputs": {
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
@@ -89,6 +92,14 @@ class PlanTest(unittest.TestCase):
                     self.assertEqual(gate.check(needs, "push"), [])
                     needs["repository"]["result"] = "failure"
                     self.assertTrue(gate.check(needs, "push"))
+
+    def test_inventory_only_selects_no_geometry(self):
+        paths = (b"scripts/ci/inventory.py\0scripts/ci/test_inventory.py\0"
+                 b"scripts/ci/reconcile_records.py\0scripts/ci/test_reconcile_records.py\0"
+                 b"scripts/ci/test_workflow_records.py\0")
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
 
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
@@ -136,6 +147,7 @@ class PlanTest(unittest.TestCase):
             self.assertEqual(result["suites"], ["cycloidal-pr"])
             dispatch = mock.Mock(return_value="success")
             needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+            needs["records-validation"] = {"result": "skipped"}
             needs.update(plan={"result": "success", "outputs": {
                 "plan": json.dumps(result), "matrix": json.dumps(gate.matrix_for(result["suites"])),
                 "count": "1"}}, repository={"result": "success"}, worker={"result": "success"})
@@ -336,6 +348,7 @@ class PlanTest(unittest.TestCase):
         matrix = gate.matrix_for(suites)
         self.assertEqual(matrix, {"include": [{"suite": "new-feature-dovetail", "case": 0}]})
         needs = {job: {"result": "success"} for job in gate.BROAD_JOBS}
+        needs["records-validation"] = {"result": "skipped"}
         needs["renderer-full"]["result"] = "skipped"
         needs["bevel-full"]["result"] = "skipped"
         needs.update(plan={"result": "success", "outputs": {

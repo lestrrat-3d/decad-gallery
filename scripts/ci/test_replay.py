@@ -34,6 +34,7 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(needs["bevel-pr"]["result"], "skipped")
         self.assertTrue(all(needs[job]["result"] == "skipped" for job in replay.gate.PR_RENDER_JOBS))
         self.assertEqual(needs["worker"]["result"], "skipped")
+        self.assertEqual(needs["records-validation"]["result"], "success")
 
     def test_renderer_all_skips_individual_renderer_jobs(self):
         result = {"changed_paths": ["models/plaquestand/plaquestand.go"],
@@ -47,6 +48,7 @@ class ReplayTest(unittest.TestCase):
         self.assertTrue(all(needs[job]["result"] == "skipped" for job in replay.gate.PR_RENDER_JOBS))
         self.assertEqual(needs["bevel-pr"]["result"], "success")
         self.assertEqual(needs["worker"]["result"], "success")
+        self.assertEqual(needs["records-validation"]["result"], "skipped")
 
 
 if __name__ == "__main__":

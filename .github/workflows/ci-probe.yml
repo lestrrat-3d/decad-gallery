@@ -49,9 +49,47 @@ jobs:
       - name: Simulate dispatch failure
         run: exit 1
 
+  records:
+    strategy:
+      matrix:
+        side: [reference, candidate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Record real Go test events
+        env:
+          PROBE_MODE: record
+          CI_TEST_RECORDS: probe-records.jsonl
+          CI_TEST_CASE: ${{ matrix.side }}
+        run: python3 scripts/ci/probe.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-records-${{ matrix.side }}
+          path: probe-records.jsonl
+          if-no-files-found: error
+
+  reconcile:
+    needs: records
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: probe-records-*
+          path: probe-artifacts
+      - name: Compare records from both jobs
+        env:
+          PROBE_MODE: reconcile
+          REFERENCE_RECORDS: probe-artifacts/probe-records-reference/probe-records.jsonl
+          CANDIDATE_RECORDS: probe-artifacts/probe-records-candidate/probe-records.jsonl
+        run: python3 scripts/ci/probe.py
+
   verify:
     if: always()
-    needs: [plan, empty-worker, selected-worker, failed-worker]
+    needs: [plan, empty-worker, selected-worker, failed-worker, reconcile]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
