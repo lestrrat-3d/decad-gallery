@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import finished_tests, go_test, run_pattern
+from run_tests import PLANETARY_PR_SHARDS, finished_tests, go_test, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -29,6 +29,7 @@ RENDER_TESTS = {
 }
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
+    "model-planetarygearbox": [RUNNER + ["planetary", "pr", str(i)] for i in range(PLANETARY_PR_SHARDS)],
     "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
     "renderer-all": [["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."]],
     "feature-dovetail": [["go", "test", "./features/dovetail", "-timeout", "5m"]],
