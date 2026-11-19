@@ -272,6 +272,49 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  sevensegment:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - parts
+          - assembly
+    name: sevensegment-${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check seven-segment display shard
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('sevensegment-{0}.jsonl', matrix.shard) || '' }}
+          CI_TEST_CASE: ${{ matrix.shard }}
+        run: python3 scripts/ci/run_tests.py sevensegment ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-sevensegment-${{ matrix.shard }}
+          path: sevensegment-${{ matrix.shard }}.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  sevensegment-render:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check seven-segment renderer
+        run: python3 scripts/ci/run_tests.py sevensegment render
+
   turbinefan:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
@@ -476,7 +519,7 @@ jobs:
           overwrite: true
 
   records-validation:
-    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, turbinefan, wheel, siren, bevel-full, planetary-full]
+    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, sevensegment, turbinefan, wheel, siren, bevel-full, planetary-full]
     if: always() && needs.plan.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     runs-on: ubuntu-latest
     steps:
@@ -514,7 +557,7 @@ jobs:
   model-checks:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
-            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
+            onewayclutch, clamparm, sevensegment, sevensegment-render, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
             records-validation, planetary-full]
     runs-on: ubuntu-latest
     steps:
