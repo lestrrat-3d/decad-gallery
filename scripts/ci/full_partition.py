@@ -15,6 +15,15 @@ DEDICATED = {ROOT + "/models/" + name for name in (
 )}
 
 
+FULL_ENV = {"HANDCRANKFAN_FULL": "1", "PLANETARY_ALL_KITS": "1"}
+FULL_VARIANTS = {
+    (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/flat-three"),
+    (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
+    (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft605"),
+    (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft608"),
+}
+
+
 def select(inventory):
     """Return the ordinary package tests and unassigned bevel tests."""
     if not inventory or not DEDICATED <= inventory.keys() or BEVEL not in inventory:
@@ -43,14 +52,9 @@ def main():
         selected, expected, remainder = select(inventory)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    expected.update({
-        (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/flat-three"),
-        (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
-        (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft605"),
-        (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft608"),
-    })
+    expected.update(FULL_VARIANTS)
     env = os.environ.copy()
-    env.update(HANDCRANKFAN_FULL="1", PLANETARY_ALL_KITS="1")
+    env.update(FULL_ENV)
     run_tests.go_test([*selected, "-timeout", "60m"], env=env, qualified_expected=expected)
     if remainder:
         run_tests.go_test([BEVEL, "-run", run_tests.run_pattern(remainder), "-timeout", "60m"], remainder,

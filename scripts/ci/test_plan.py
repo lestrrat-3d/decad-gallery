@@ -90,6 +90,13 @@ class PlanTest(unittest.TestCase):
                     needs["repository"]["result"] = "failure"
                     self.assertTrue(gate.check(needs, "push"))
 
+    def test_inventory_only_selects_no_geometry(self):
+        paths = (b"scripts/ci/inventory.py\0scripts/ci/test_inventory.py\0"
+                 b"scripts/ci/reconcile_records.py\0scripts/ci/test_reconcile_records.py\0")
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
+
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", return_value=self.packages()):

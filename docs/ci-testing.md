@@ -24,6 +24,10 @@ before planning and can also fail the plan.
 must skip the worker; a nonempty matrix must succeed. Broad plans run the dedicated broad jobs. The gate rejects
 missing, failed, cancelled, or unexpectedly skipped required jobs.
 
+As of 2026-11-19, the active `require-model-checks` ruleset requires the `model-checks` status check on the default
+branch, `main`. It allows repository administrators to bypass the rule. The rule does not require the branch to be
+up to date before merging. See the [ruleset](https://github.com/lestrrat-3d/decad-gallery/rules/27619075).
+
 ## Full runs
 
 Scheduled and manually dispatched runs select broad checks and use the full path. Dependency file changes use the
@@ -47,6 +51,11 @@ The manually dispatched `ci-probe.yml` uses `probe.py` to create an empty plan a
 It exercises an empty matrix, a selected mock worker, and simulated failed, cancelled, and missing worker results.
 The failed worker intentionally exits with failure. The probe does not run geometry or demonstrate an actual changed
 file passing through the production workflow.
+
+In [probe run 44481894010](https://github.com/lestrrat-3d/decad-gallery/actions/runs/44481894010), the empty worker
+was skipped, the selected mock worker succeeded, and the intentionally failed worker failed. The verification job
+passed its gate checks for those actual job results and for simulated cancelled and missing worker results. The
+overall run concluded failure because the failed worker intentionally exited with failure.
 
 Test inventories describe discoverable Go tests, not every parameter branch or geometry property. Selected checks
 depend on registered mappings and import metadata. Broad fallback does not make an unclassified new package directly

@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import re
+import tempfile
 import unittest
 from unittest import mock
 
@@ -32,6 +33,23 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        Path(".tmp").mkdir(exist_ok=True)
+
+    def test_renderer_records_module(self):
+        event = json.dumps({"Package": gate.RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
+        proc = mock.Mock(stdout=[event], returncode=0)
+        proc.wait.return_value = 0
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    mock.patch.object(gate.subprocess, "run", side_effect=[
+                        mock.Mock(stdout=gate.RENDER_PACKAGE), mock.Mock(stdout="TestSame\n")]), \
+                    mock.patch.object(gate.subprocess, "Popen", return_value=proc):
+                gate.run_renderer_full()
+            self.assertEqual(json.loads(path.read_text().splitlines()[0])["module"], "tools/render")
+
     def test_gallery_cache_step_runs_only_on_pr_and_push(self):
         workflow = Path(".github/workflows/repository.yml").read_text()
         step = workflow.split("- name: Check gallery tile cache\n", 1)[1].split("- name:", 1)[0]
