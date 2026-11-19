@@ -36,6 +36,10 @@ RENDER = {"ballbearing": ("bearing-render",), "bevelgear": ("bevel-render",),
           "planetarygearbox": ("planetary-motion", "planetary-render"),
           "spinningwheel": ("wheel-motion", "wheel-parts", "wheel-block"),
           "swisslever": ("swiss-render",)}
+BROAD_WORKERS = {"bevel-pr", "clamparm", "escapement", "onewayclutch", "turbinefan", "wheel", "siren"}
+BROAD_PACKAGES = {"package-" + name for name in
+                  ("meshgap", "gearroot", "edgefinish", "m2fastener", "cornercheck", "splitcheck")}
+BROAD_RENDER = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
 def check_wheel_inventory(root=Path(".")):
@@ -153,38 +157,41 @@ def plan(event, base, tested):
                 raise RuntimeError("package metadata unavailable for an unregistered Go directory") from exc
             raise
         new_packages = set(after) - set(before)
-        if set(before) - set(after):
-            raise ValueError("deleted package requires broad coverage")
+        new_suites = {}
         if new_packages:
-            new_suites = []
-            registered = True
             for name in sorted(new_packages):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
                 if len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or not parts[1].isalnum():
                     raise RuntimeError("new package cannot be dispatched: " + directory)
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
-                new_suites.append(prefix + parts[1])
                 registry = {"models": MODELS, "internal": INTERNAL, "features": FEATURES}[parts[0]]
-                registered &= parts[1] in registry and name == ROOT + "/" + directory
-            if not registered:
-                reason = "new packages require broad coverage and direct tests"
-                suites = ["broad", *new_suites]
-                if any(path.startswith("tools/render/") for path in code):
-                    suites.append("renderer-all")
-                result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
-                return result
-        if any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
-               for path in changed):
-            raise ValueError("unregistered or shared input changed")
+                if parts[1] not in registry or name != ROOT + "/" + directory:
+                    new_suites[name] = prefix + parts[1]
+        if set(before) - set(after):
+            reason = "deleted package requires full coverage"
+            suites = {"broad": [reason], "full": [reason]}
+            result.update(suites=sorted(suites), reasons=suites, reason=reason)
+            return result
+        unknown_input = any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
+                            for path in changed)
         owners, production = affected_packages(code, before, after)
         owners.update(new_packages)
         suites = {}
+        if new_suites:
+            reason = "new packages require broad coverage and direct tests"
+            suites["broad"] = [reason]
+            for suite in new_suites.values():
+                suites[suite] = [reason]
+        if unknown_input:
+            suites.setdefault("broad", []).append("unregistered or shared input changed")
         if wheel_parts:
             suites["wheel-parts"] = ["check changed wheel part documentation"]
         model_owners = set()
         for owner in sorted(owners):
             if owner == ROOT + "/tools/render":
+                continue
+            if owner in new_suites:
                 continue
             if owner.startswith(ROOT + "/models/") and owner.rsplit("/", 1)[-1] in MODELS:
                 name = owner.rsplit("/", 1)[-1]
@@ -198,20 +205,41 @@ def plan(event, base, tested):
             elif owner.startswith(ROOT + "/features/") and owner.rsplit("/", 1)[-1] in FEATURES:
                 suite = "feature-" + owner.rsplit("/", 1)[-1]
             else:
-                raise ValueError("unregistered package: " + owner)
+                reason = "unregistered package requires full coverage: " + owner
+                suites.setdefault("broad", []).append(reason)
+                suites.setdefault("full", []).append(reason)
+                continue
             suites.setdefault(suite, []).append("affected package " + owner)
         if any(path.startswith("tools/render/") for path in code):
-            raise ValueError("renderer source requires broad coverage")
+            suites["renderer-all"] = ["renderer source or tests changed"]
+            if unknown_input:
+                suites.setdefault("full", []).append("renderer source and unregistered input changed")
         if model_owners or ROOT + "/tools/render" in production:
             suites["renderer-compile"] = ["compile renderer against changed model APIs"]
             for name in sorted(model_owners & RENDER.keys()):
                 for suite in RENDER[name]:
                     suites.setdefault(suite, []).append("renderer check for " + name)
+        if "full" in suites or "renderer-all" in suites:
+            covered = {suite for checks in RENDER.values() for suite in checks} | {"renderer-compile"}
+            if "full" in suites:
+                covered.add("renderer-all")
+            for suite in covered:
+                suites.pop(suite, None)
+        if "full" in suites:
+            suites = {suite: reasons for suite, reasons in suites.items()
+                      if suite in {"broad", "full"}}
+        elif "broad" in suites:
+            covered = BROAD_WORKERS | BROAD_PACKAGES
+            if "renderer-all" not in suites:
+                covered |= BROAD_RENDER
+            for suite in covered:
+                suites.pop(suite, None)
         result.update(suites=sorted(suites), reasons=suites, reason="affected packages selected")
     except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
         reason = "conservative fallback: " + str(exc)
-        result.update(reason=reason, reasons={"broad": [reason]})
-    if ("broad" in result["suites"] and
+        result.update(suites=["broad", "full"], reason=reason, reasons={"broad": [reason], "full": [reason]})
+    if ("broad" in result["suites"] and "full" not in result["suites"] and
+            "renderer-all" not in result["suites"] and
             any(path.startswith("tools/render/") and path.endswith(".go") for path in result["changed_paths"])):
         result["suites"].append("renderer-all")
         result["reasons"]["renderer-all"] = ["renderer source or tests changed"]
