@@ -461,22 +461,35 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 }
 
 // TestSevenSegmentFlagBudget is the detent budget of the built model: the detent drive over the opposing torque at every shaft
-// angle where a cam is moving a segment, over all ten steps, with the extra cam force of the pin on its slot wall and the
-// loads of the built bodies. It is at least 3.0 at friction 0.35, 1.8 at 0.45 and 1.0 at 0.5 (computed 3.416, 1.897 and 1.120).
+// angle where a cam is moving a segment, over all ten steps, with the extra cam force of the pin on its slot wall (journal
+// across its hole) and the loads of the built bodies. With the cams in phase it is at least 3.0 at friction 0.35, 1.8 at
+// 0.45 and 1.0 at 0.5 (computed 3.545, 1.830 and 1.025). With the cams leading the ratchet by the D-bores' play, as they do
+// while the pawls drive the shaft back, it is at least 2.0 at 0.35 and 1.0 at 0.45 (computed 2.058 and 1.062).
 func TestSevenSegmentFlagBudget(t *testing.T) {
 	startDigit0()
 	t.Parallel()
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
+	l := builtLoads(t)
 	for _, c := range []struct{ mu, want float64 }{{0.35, 3.0}, {0.45, 1.8}, {0.5, 1.0}} {
+		// The budget takes the drive's flag force with the journal across its hole, the larger of the two poses.
+		for _, rl := range []rotorLoad{l.a, l.b} {
+			across, _, _ := audit(c.mu, rl, true)
+			require.GreaterOrEqual(t, budgetFx(t, c.mu), across, "the budget's flag force at friction %.2f", c.mu)
+		}
 		got := worstBudget(t, dm, c.mu)
 		t.Logf("friction %.2f: worst detent budget %.3f", c.mu, got)
 		require.GreaterOrEqual(t, got, c.want, "the budget at friction %.2f", c.mu)
 	}
 	t.Logf("friction 0.40: worst detent budget %.3f", worstBudget(t, dm, 0.40))
+	swing := phaseSwing()
+	for _, c := range []struct{ mu, want float64 }{{0.35, 2.0}, {0.40, 0}, {0.45, 1.0}, {0.5, 0}} {
+		got := worstPhaseBudget(t, dm, c.mu, swing)
+		t.Logf("friction %.2f: worst detent budget with the cams %.2f degrees ahead %.3f", c.mu, swing, got)
+		require.GreaterOrEqual(t, got, c.want, "the phase budget at friction %.2f", c.mu)
+	}
 	// Knob torque: the climbing torque of both pawls at the stiff end of PETG plus the opposing torque, at friction 0.5,
 	// over the climb to the crest, every step.
-	l := builtLoads(t)
 	fx := budgetFx(t, 0.5)
 	c := pawlCompliance(dm, knobE)
 	peak := 0.0
@@ -507,15 +520,45 @@ func worstFlagBudget(t *testing.T, dm sevensegment.Dimensions, psi float64) floa
 	return worst
 }
 
-// budgetFx is the extra cam force the budget uses at friction mu: the larger of the two rotor types, settled.
+// budgetFx is the extra cam force the budget uses at friction mu: the larger of the two rotor types, with the journal fully
+// across its hole. The drive's own force pushes the stub across: at the pose of the largest force the pin's push and its
+// slot friction lean the journal load 30 degrees or more off vertical, and the stub may sit a further friction angle round
+// its hole, so it reaches 0.16 to 0.20 of the 0.20 clearance along the rotor's x, where settled assumes 0.09.
 func budgetFx(t *testing.T, mu float64) float64 {
 	t.Helper()
 	l := builtLoads(t)
 	fx := 0.0
 	for _, rl := range []rotorLoad{l.a, l.b} {
-		f, _, ok := audit(mu, rl, false)
+		f, _, ok := audit(mu, rl, true)
 		require.True(t, ok, "the drive locks at friction %.3f", mu)
 		fx = math.Max(fx, f)
 	}
 	return fx
+}
+
+// worstPhaseBudget is the least release budget over the ten steps at friction mu with each cam up to swing degrees ahead
+// of the ratchet wheel: for every cam angle c in [7.98, 29.55] the detent torque at every ratchet angle in [c - swing, c]
+// over the opposing torque at c.
+func worstPhaseBudget(t *testing.T, dm sevensegment.Dimensions, mu, swing float64) float64 {
+	t.Helper()
+	l := builtLoads(t)
+	fx := budgetFx(t, mu)
+	c := pawlCompliance(dm, pawlE)
+	const step = 0.05
+	td := make([]float64, int(30/step)+1)
+	for i := range td {
+		td[i] = detentTorque(dm, c, float64(i)*step, mu, true)
+	}
+	worst := math.Inf(1)
+	for cam := 7.98; cam <= 29.55+1e-9; cam += step {
+		load := 0.0
+		for k := range 10 {
+			ld, _ := flagLoad(dm, k, cam, mu, fx, l.ws)
+			load = math.Max(load, ld)
+		}
+		for r := math.Max(0, cam-swing); r <= cam+1e-9; r += step {
+			worst = math.Min(worst, td[int(math.Round(r/step))]/load)
+		}
+	}
+	return worst
 }
