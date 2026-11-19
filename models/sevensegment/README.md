@@ -5,7 +5,9 @@
 ![The display showing the digit 2: seven rotors turn in windows of the top plate, a yellow face toward the viewer where a segment is lit and black where it is off, on an open frame with a knob on the front](images/hero.png)
 
 A printed, mechanical digit 0 to 9. Seven rotors turn in windows of a top plate. A rotor has a yellow face and a black
-body: where a segment is lit its yellow face tips up toward you, and where it is off the black body shows. Every printed
+body: where a segment is lit its yellow face tips up toward you, and where it is off the black body shows. The tip shows
+best from above. Seen from the knob side at 30 degrees elevation, the yellow fills only 35 to 41 % of the window of a
+horizontal segment (a, g, d) across it. Every printed
 part keeps one filament color (a rotor is two bodies, a yellow one and a black one) and never changes color, so the color you see is only the angle of a rotor. Turn the knob clockwise
 and each click moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
@@ -199,10 +201,11 @@ parts is marked with these numbers: the plates carry their own holes, and the st
 Turned over, the rotors and sliders are held in place by the plates, but the geometry changes. The rotor's weight bias flips
 by 13.5 degrees. The b to f pins shift by about 1 mm and the b to f rotors turn by 16 to 22 degrees. In that pose the
 calculated tongue gaps to the notch shells are 0.16 mm (yellow shell) and 0.30 mm (black leg) in the worst-case stack of
-tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is untested:
-the test that would check it is skipped, because its pose is adjusted (a rigid turn about the groove pin and the slot, half
-the tilt limit, the rise 0.2 mm short of the full rise and the flags lowered 0.11 mm) and in that pose the b to f sliders
-touch. Do not turn the display over with the knob in motion.
+tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
+adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
+rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
+allows no vertex deeper than 0.07 mm (the mesh tolerance) and reads 0.038 mm into the top plate and 0.058 mm into the
+black body. Do not turn the display over with the knob in motion.
 
 ## Listed sharp corners
 

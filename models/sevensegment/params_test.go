@@ -183,8 +183,8 @@ func TestSevenSegmentDetent(t *testing.T) {
 	require.GreaterOrEqual(t, dm.CrestAngle-1.0, 28.05+sevensegment.TimingAllowance)
 	require.InDelta(t, 4.35, dm.LiftMax, 0.03)
 	// Nominal arm strain at the crest: the radial force that lifts the head by LiftMax (C_uu), times the lever to the root,
-	// over the root section (E cancels). The FE of the real outline reads 1.66 % at the root round (1.37 % with large
-	// deflection); design-pawl.md "Strain".
+	// over the root section (E cancels). The FE of the real outline reads 1.66 % at the root round (1.5 % with large
+	// deflection); instructions.md "Arm strain".
 	c := pawlCompliance(dm, pawlE)
 	force := dm.LiftMax / c[0][0]
 	root := sevensegment.PawlBackV + sevensegment.PawlArmLength
@@ -241,7 +241,7 @@ const (
 // pawlCompliance is one pawl's compliance at its seat in the pawl frame (seat on +u, arm along +v), rows and columns
 // (Fx, Fy, M about the seat): the straight arm from v = PawlBackV over PawlArmLength with its inner edge on PawlArmInner,
 // thickness linear from PawlArmTip to PawlArmRoot, width DetentThickness, modulus e; bending, axial and shear (1.2)
-// energy, the head rigid. The plane-stress FE of the real outline is 9 % stiffer (design-pawl.md).
+// energy, the head rigid. The plane-stress FE of the real outline is about 9 % stiffer (instructions.md, the budget table notes).
 func pawlCompliance(dm sevensegment.Dimensions, e float64) [3][3]float64 {
 	const n = 2000
 	g := e / (2 * 1.38)
@@ -270,7 +270,7 @@ func pawlCompliance(dm sevensegment.Dimensions, e float64) [3][3]float64 {
 
 // detentTorque is the torque of both pawls on the wheel at psi past a rest, in N.mm: release drives the wheel back to the
 // rest against friction mu, climb resists the knob. The contact force N (n + -mu t) on the flank of normal angle beta
-// closes the head's normal interference delta cos(beta) through the compliance c (design-pawl.md "Closed form").
+// closes the head's normal interference delta cos(beta) through the compliance c (the closed form of instructions.md).
 func detentTorque(dm sevensegment.Dimensions, c [3][3]float64, psi, mu float64, release bool) float64 {
 	delta, rc, beta := dm.PawlContact(psi)
 	if delta <= 0 {
