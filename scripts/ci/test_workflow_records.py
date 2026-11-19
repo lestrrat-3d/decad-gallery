@@ -33,7 +33,7 @@ class WorkflowRecordsTests(unittest.TestCase):
             "escapement": "escapement",
             "onewayclutch": "onewayclutch",
             "clamparm": "clamparm",
-            "turbinefan": "turbinefan",
+            "turbinefan": "turbinefan-${{ matrix.shard }}",
             "wheel": "wheel-${{ matrix.case }}",
             "siren": "siren-${{ matrix.case }}",
             "bevel-full": "bevel-full-${{ matrix.shard }}",
@@ -48,8 +48,8 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full"):
-                    case = "shard" if job == "bevel-full" else "case"
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "turbinefan"):
+                    case = "shard" if job in ("bevel-full", "turbinefan") else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 
     def test_shared_broad_jobs_only_upload_records_for_full_runs(self):

@@ -145,6 +145,10 @@ mesh is not measured (see the instructions' Open non-compliance: the bevel mesh)
   to -Z.
 - `fanPlacement()`: the same axes with origin `(0, -96, 170)`, the hub's front face. turbinefan's `Placement` puts the hub's
   front face on its origin, so this puts the hub where `fanLocalFrame()` does.
+- The compact turbine places blade and socket axes at hub-local z = 12.5 mm, world Y = −88.5 mm.
+  Use `turbinefan.Size.BladeSocketZ()` through the turbine placement for stud, socket and corner checks.
+  World Y = −86 mm is the geometric hub midpoint. Apply the fan motion to the returned parts just once.
+  The rotor's pose, shaft, collar and fastener positions derive from the hub faces and existing sites.
 - `fanParams(p)`: `turbinefan.Params608ZZ()` with `BladePitch = p.BladePitch`, `Hand = RightHand` and `Placement` set to
   `fanPlacement()`.
 - `fan()`: `b.part("fan-shaft", ...)`, then one lazy `built()` that calls `turbinefan.BuildParts(ctx, doc, fanParams(p))`
@@ -183,26 +187,124 @@ set screw site (from `Params608ZZ().Derive()`) through `r3.FromFrame(fanLocalFra
 
 ## 6. Parts set and exploded view
 
-`Assembly.Set(doc)`: `parts.NewSet(doc)`, then `Add` each part (`Manufactured` PLA, or `Purchased` steel with a `Spec`
-for the hardware and bearing groups) and `Join` each joint as a `PinInBore` with `Axis` in posed coordinates: the crank
-axis through `State.Crank` along X, the drive axis through the apex along X, the pin axis through
-`State.Crank + 55 * ArmDirection` along X, the fan axis along -Y, each shaft's axis for its bearings (each shaft in each
-bearing turns, each bearing is fixed in the gearbox), each blade's radial line, each blade bolt's line parallel to the
-fan axis at 9.5 along the blade, the set screw's posed line (its head and direction carried through the `fan` pose), each grip bolt's vertical line at X -2 or X 16, Y -23.5, each ear bolt's line through
-its ear's centre along Y and each wall bolt's line along X at Y 34.3. Every nut joins its host and its bolt along the
-bolt's line (`nutJoints`), except `gearbox-screw-nut-*` in the ground piece, which has no joint. The head-side joints of
-the pin bolt, the ear bolts and the wall bolts have `Pull` set to the direction the head comes out.
+Implement these three methods in `set.go` using `context`, `fmt`, `math`, Decad, Decad's `parts`, `r3` and `models/turbinefan`.
 
-`Assembly.Explode`: `Set.Explode` with `WithExplodeGround("gearbox-base")` and `WithExplodeStages`, each stage `ClearAll`
-along a direction, with `Together` set on the stages that carry nuts. Decad plans from boxes, which makes nested parts
-jump over each other, so the order and the directions of the lifts come from a search over the order of the pinion, the
-grip bolts and the three gears and over the directions of the driving gear and the pinion, scored on no overlap and the
-shortest largest move. The order is: `ear bolts` (-Y), `post bolts` (-X), `crank-side wall bolts` (+X), `arm` (+X, the
-default clearing), `handle` (+X), `pin` with its nut (+X), `pin bolt` (-X), `drive shaft` and `crank shaft` (-X),
-`pinion` (-X), `grip bolts` (+Z), `crank gear`, `drive gear` and `driving gear` (+Z), `crank block bearing` (+X),
-`wall bearings` and `post bearings` (-X), `fan wall bearing` (+Y), `fan block bearing` (-Y), `blade bolts` (-Y),
-`blades`, `hub` with its nuts and the set screw with its nut (-Y), `fan shaft` (-Y), `post` with nuts 1 and 3 (-X), `crank-side wall` with nuts 2 and
-4 (+X), `fan-side wall` (-X) and `grip` with its nuts (-Z).
+```go
+func (a *Assembly) Set(doc *decad.Document) (*parts.Set, error)
+func (a *Assembly) joints() []parts.Joint
+func (a *Assembly) Explode(ctx context.Context, set *parts.Set) (*parts.Exploded, error)
+```
+
+`Set` takes the document used by `Build`. Create `parts.NewSet(doc)`. In `a.Parts` order, call `set.Add` once
+per part using its `Name` and `Body`, `Kind: parts.Manufactured` and `parts.Material{Name: "PLA"}`. For group
+`bearing`, set `Kind: parts.Purchased`, material `steel` and Spec `608-2RS ball bearing`. For group `hardware` use
+`parts.Purchased`, `steel` and `fastenerSpec(part.Name)`. Then call `set.Join` for each joint in the order below.
+On either error return nil and wrap it with `add %s to the parts set: %w` or `join %s: %w` using its name.
+On success return the set and nil.
+
+### Posed joint table
+
+Use the package's `bearingSites`, `gearboxEars`, `wallScrews`, `fastenerSpec(name string) string`,
+`motionTransform(s State, motion string) (r3.Transform, error)` and `sitesNamed(prefix string) []fastenerSite`.
+Each fastener site embeds `m2fastener.Site` and has lowercase `bolt` and `nut` part names. `State.Apex`, `State.Crank`
+and `State.ArmDirection` are vectors. `fanAxis` is −Y. Build each `parts.Axis` from a point and unit direction.
+
+| Axis | Point | Direction |
+| --- | --- | --- |
+| crank | `a.State.Crank` | +X |
+| drive | `apex = a.State.Apex` | +X |
+| pin | `a.State.Crank.Add(a.State.ArmDirection.Scale(crankThrow))` | +X |
+| fan | apex | `fanAxis` |
+| vertical(dx) | `r3.Vec{X: gripX + dx, Y: gripY, Z: axisHeight}` | +Z |
+
+Use a local `add(name, a, b string, axis parts.Axis, motion parts.Motion)` that appends
+`parts.Joint{Name: name, Kind: parts.PinInBore, A: a, B: b, Axis: &axis, Motion: motion}`.
+Use a local `nutJoints(bolt, nut, host string, axis parts.Axis)` that adds two fixed joints, in order:
+`nut+" in "+host` with A=nut and B=host, then `bolt+" in "+nut` with A=bolt and B=nut.
+Numbered part and joint names below substitute decimal indices starting at 1. Use `parts.Fixed` unless a row says
+`parts.Turns`. A pull direction applies only to the specified joint.
+
+1. Iterate `bearingSites`. For `site.axis` = crankSpline, driveSpline or fanSpline use the corresponding crank/drive/fan
+   axis and shaft name `crank-shaft`, `drive-shaft` or `fan-shaft`. Add `shaft+" in "+site.name` (shaft, site.name,
+   Turns), then `site.name+" in the gearbox"` (site.name, site.holder, Fixed), on that axis.
+2. Add the following literal joints in table order. Insert the two `nutJoints` immediately after “handle on the pin”.
+
+| Joint name | A | B | Axis | Motion and pull |
+| --- | --- | --- | --- | --- |
+| crank shaft in the crank gear | crank-shaft | crank-gear | crank | Fixed |
+| drive shaft in the drive gear | drive-shaft | drive-gear | drive | Fixed |
+| drive shaft in the driving gear | drive-shaft | driving-gear | drive | Fixed |
+| crank shaft in the arm | crank-shaft | crank-arm | crank | Fixed |
+| pin in the arm | crank-pin | crank-arm | pin | Fixed |
+| pin bolt in the arm | crank-pin-bolt | crank-arm | pin | Fixed, Pull −X |
+| handle on the pin | crank-pin | crank-grip | pin | Turns |
+| nutJoints | crank-pin-bolt, crank-pin-nut | host crank-pin | pin | Fixed |
+| fan shaft in the pinion | fan-shaft | pinion | fan | Fixed |
+| hub on the fan shaft | fan-shaft | fan-hub | fan | Fixed |
+
+3. For `dx` in `[-gripScrewX,+gripScrewX]` use vertical(dx) and parts `handle-bolt-i`, `handle-nut-i`.
+   Add `grip bolt i in the floor` (bolt, gearbox-base), `grip bolt i in the grip` (bolt, handle),
+   then `nutJoints(bolt,nut,"handle",axis)`.
+4. For each `e` in `gearboxEars` take the axis through `e.centre()` along `e.dir`. Use `gearbox-bolt-i` and
+   `gearbox-nut-i`. Add `ear bolt i in <e.head>` (bolt, e.head, Pull = −e.dir), `ear bolt i in <e.nut>`
+   (bolt, e.nut), then `nutJoints(bolt,nut,e.nut,axis)`. The field `e.nut` names the receiving gearbox piece.
+5. For each `w` in `wallScrews` take the axis through `w.at(w.seam)` along `w.dir`. Add `wall bolt i in <w.head>`
+   (gearbox-screw-i, w.head, Pull = −w.dir), then `wall bolt i in <w.recv>` (gearbox-screw-i, w.recv).
+   The four `gearbox-screw-nut-i` belong to the grounded base and have no joint.
+6. Obtain `xf, err := motionTransform(a.State,"fan")`, the rigid motion used by `builder.part` to place the blades.
+   For a successfully built assembly this transform is defined. Use it for both this group and the set screw below.
+   Take `socketCenter := apex.Add(fanAxis.Scale(hubBack + fanSize.BladeSocketZ()))`. For each zero-based k below
+   `turbinefan.BladeCount`, set i=k+1 and `phi := 2*math.Pi*float64(k)/turbinefan.BladeCount` in the zero-angle pose.
+   Compute `radial := xf.ApplyDir(r3.Vec{X: math.Cos(phi), Z: math.Sin(phi)})`. The stud's axis is
+   `parts.Axis{Point: socketCenter, Dir: radial}`. The bolt's axis is `parts.Axis{Point: apex.Add(radial.Scale(boltAt)), Dir: fanAxis}`.
+   Add `blade i stud in the hub` (fan-blade-i, fan-hub) along the stud axis. Add four joints along the bolt axis:
+   `bolt i in the hub` (fan-bolt-i, fan-hub), `bolt i in the blade` (fan-bolt-i, fan-blade-i),
+   `nut i in the hub` (fan-nut-i, fan-hub), `bolt i in the nut` (fan-bolt-i, fan-nut-i).
+   Check every stud joint against its installed socket in a nonzero pose. At a valid `CrankAngle = 1e17` radians,
+   check that every pair of stud directions has dot product −0.5 within 1e-12 and that each bolt line crosses the
+   matching posed bolt site. Computing a phase by adding the blade offset to `FanAngle` loses the offset at this scale.
+7. With the same successful transform, take every site in `sitesNamed("fan-set-screw")`.
+   Add `set screw in the hub` (site.bolt, fan-hub) along `parts.Axis{Point:xf.Apply(site.Head), Dir:xf.ApplyDir(site.Dir)}`,
+   then `nutJoints(site.bolt,site.nut,"fan-hub",axis)`. If the transform fails, omit this group. Return the joint slice.
+
+### Exploded-view stage table
+
+`Explode` takes this assembly's Set. Return both results of
+`set.Explode(ctx, parts.WithExplodeGround("gearbox-base"), parts.WithExplodeStages(stages...))`. Create stages in
+the order below. Use the literal names in the first column. The helper `stage(name string, dir r3.Vec, names ...string) parts.Stage`
+sets `Name`, `Direction`, `Parts` and `Clear: parts.ClearAll`. A `together` helper with the same signature also
+sets `Together: true`. For the arm use the zero value of `Clear`. For blades use the zero `Direction` and
+`ClearAll` so each pulls along its own stud. Expand ranges in numeric order.
+
+| Stage name | Direction | Part names in order | Together |
+| --- | --- | --- | --- |
+| ear bolts | −Y | gearbox-bolt-1…4 | |
+| post bolts | −X | gearbox-screw-1, gearbox-screw-2 | |
+| crank-side wall bolts | +X | gearbox-screw-3, gearbox-screw-4 | |
+| arm | +X | crank-arm | |
+| handle | +X | crank-grip | |
+| pin | +X | crank-pin, crank-pin-nut | yes |
+| pin bolt | −X | crank-pin-bolt | |
+| drive shaft | −X | drive-shaft | |
+| crank shaft | −X | crank-shaft | |
+| pinion | −X | pinion | |
+| grip bolts | +Z | handle-bolt-1, handle-bolt-2 | |
+| crank gear | +Z | crank-gear | |
+| drive gear | +Z | drive-gear | |
+| driving gear | +Z | driving-gear | |
+| crank block bearing | +X | bearing-crank-block | |
+| wall bearings | −X | bearing-crank-wall, bearing-drive-wall | |
+| post bearings | −X | bearing-crank-post, bearing-drive-post | |
+| fan wall bearing | +Y | bearing-fan-wall | |
+| fan block bearing | −Y | bearing-fan-block | |
+| blade bolts | −Y | fan-bolt-1…BladeCount | |
+| blades | per joint | fan-blade-1…BladeCount | |
+| hub | −Y | fan-hub, fan-nut-1…BladeCount, fan-set-screw, fan-set-screw-nut | yes |
+| fan shaft | −Y | fan-shaft | |
+| post | −X | gearbox-post, gearbox-nut-1, gearbox-nut-3 | yes |
+| crank-side wall | +X | gearbox-crank-wall, gearbox-nut-2, gearbox-nut-4 | yes |
+| fan-side wall | −X | gearbox-fan-wall | |
+| grip | −Z | handle, handle-nut-1, handle-nut-2 | yes |
 
 ## 7. Pose
 
@@ -224,8 +326,13 @@ variant:
 - the blade pitch from the blade mesh: leading edge upstream and chord angle within 0.5° of `pi - beta(r)` at four
   radii (the thickness ratio against the table is checked in `models/turbinefan`);
 - the hub empty at a socket, at the head pocket and at the nut slot;
-- the crank's sweep against the blades: every vertex of the arm, pin and handle turned through a full turn about the
-  crank axis in 3° steps stays 15 clear of the blades' disc;
+- the crank's sweep against every blade: tessellate the arm, pin, grip and blades with a 0.2 mm request. Enclose
+  the crank meshes and their bounds in a cylinder about the crank X axis, extending from their minimum X to infinity.
+  For each blade triangle, bound its Y range and its minimum and maximum distance from the fan Y axis. For each of
+  180 equally spaced rotor angle midpoints, measure the distance from the middle of that radial interval and the
+  triangle's Y interval to the crank cylinder. Subtract half the radial interval, the maximum angular displacement
+  `rhoMax*pi/180`, the blade mesh bound and `1e-9` mm for arithmetic. Require every resulting lower bound to be at
+  least 15 mm. The cylinder encloses every crank angle; the angular subtraction covers every rotor angle;
 - the grip's mesh rings at Z -0.75, 58.25 and 87.25 against the table (26.75 lower than drawn), and the 15° rake;
 - for the default fan only, three subtests:
   - `fasteners` (`requireFasteners`): for each of the 15 sites, the head is flush, the part is solid beside the

@@ -58,7 +58,7 @@ Package: `models/turbinefan`. Exported surface:
   `crankhandle`: `ChamferSize`, `PressWall` and `RegularFit`. `BladeAngle(k)` is blade k's angle about +Z.
 - The size constants `BaseRotorDiameter` (128), `DefaultRotorDiameter` (192), `MinRotorDiameter` (128),
   `MaxRotorDiameter` (224), `BaseHubRadius` (14), `MaxHubRadius` (18.9) and `BladeBoltTipFloor` (2), and `SizeFor`,
-  `Size` and `Size.Beta` ("Size" below).
+  `Size`, `Size.Beta` and `Size.BladeSocketZ` ("Size" below).
 - The container names `HubContainerName` (`Hub`), `BladesContainerName` (`Blades`), `BoltsContainerName` (`Bolts`),
   `NutsContainerName` (`Nuts`).
 - The clutch-mount constants `ClutchTurn`, `ClutchSeam`, `MountZ` and `ClutchAnchorZ` (see "Clutch mount").
@@ -77,20 +77,21 @@ Package: `models/turbinefan`. Exported surface:
 - `NewDocument(opts ...decad.DocumentOption)` returns `decad.New(WithChainTolerance(0.1 mm), opts...)`. The blade's stud
   union refuses a plain document; build in such a document.
 - `BuildParts(ctx, doc, p) (*Parts, error)` adds the hub and the three blades and puts them in no container. `Parts`
-  holds `Hub`, `Blades`, every `Sketches`, `Dimensions`, and in the world frame `BladeSites`, `SetScrewSite` and
+  holds `Hub`, `Blades`, the 29 hub and blade construction sketches in `Sketches`, `Dimensions`, and in the world frame `BladeSites`, `SetScrewSite` and
   `AdapterSites`.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds `Parts`
   and holds `BladeBolts`, `BladeNuts`, `SetScrew` (`*m2bolt.Model`) and `SetScrewNut` (`*m2nut.Model`), and in
   `ClutchMount` `AdapterBolts` and `AdapterNuts` (the set screw and its nut are nil). `Build` builds neither the adapter nor
-  the clutch: the caller builds them in the clutch's own document (see "Clutch mount").
+  the clutch: the caller builds them in the clutch's own document (see "Clutch mount"). Each placed bolt and nut
+  exposes its own sketches through its fastener model.
 
-The blade exports other models use: `BuildBlade(ctx, doc, pitch, size)` returns the unplaced blade and its twelve sketches,
-`BuildBladeMirrored` the blade of the other hand (its sections not flipped and its pitch turn reversed, so it is the first
-blade reflected in the plane x = 0 of its local frame), `BladeSocketTool(ctx, doc, f, size)` builds a socket cutter, each
-with a `Size` from `SizeFor` (any other value is rejected); and `BladeSocketFloorRound`, `DefaultBladePitch`,
+`BuildBlade(ctx, doc, pitch, size)` returns the unplaced right-hand blade and its sketches.
+The blade has fourteen sketches. `BuildBladeMirrored` returns the drilled right-hand
+body reflected in the local YZ plane. `BladeSocketTool(ctx, doc, f, size)` builds the socket cutter. Each takes a
+`Size` from `SizeFor`. The joint exports `BladeSocketFloorRound`, `DefaultBladePitch`,
 `MinBladePitch` and `MaxBladePitch`. The sizes the blade and the joint need (`HubRadius`, `HubLength`, `BladeBoltAt`,
 `BladeBoltLength`, `BladeBoltCavity`, `BladeStudRadius`, `BladeStudStart`, `BladeStudEnd`, `BladeSocketRadius`,
-`BladeSocketStart`, the tip and root radii) are the fields of `Size`, and `Size.Beta(r, pitch)` is the blade angle. From
+`BladeSocketStart`, the tip and root radii) are the fields of `Size`, and `Size.Beta(r, pitch)` specifies the desired blade angle at physical radius r. From
 `crankhandle`: `PressWall`, `ChamferSize`, `RegularFit`, `Params605ZZ` and `Params6082RS`.
 
 ## Size
@@ -99,7 +100,7 @@ with a `Size` from `SizeFor` (any other value is rejected); and `BladeSocketFloo
 for a value that is not finite or lies outside that range. The blade scale is `s = D_r / 128`. The hub radius is
 `HubRadius = min(14 s, MaxHubRadius)` and the hub scale is `j = HubRadius / 14` (compute it this way, so the cap is
 exact). Every airfoil section, the hub length, the pitch reference radius and the hold radius scale by `s`; the hub
-radius, the round blade root, the stud, the socket and the blade bolt circle scale by `j`.
+radius, stud, socket and blade bolt circle scale by `j`. The finished section contains fixed dimensions at the trailing flat.
 
 | `Size` field | Formula | 128 | 192 (default) | 224 |
 | --- | --- | ---: | ---: | ---: |
@@ -110,18 +111,28 @@ radius, the round blade root, the stud, the socket and the blade bolt circle sca
 | `RootRadius` | `HubRadius + RegularFit` | 14.4 | 19.3 | 19.3 |
 | `RefRadius`, `HoldRadius` | `48 s`, `21.5 s` | 48, 21.5 | 72, 32.25 | 84, 37.625 |
 | `BladeSocketStart` | `5.7 j` | 5.7 | 7.695 | 7.695 |
-| `BladeStudStart` | `BladeSocketStart + RegularFit` | 6.1 | 8.095 | 8.095 |
+| `BladeStudStart` | `BladeSocketStart + RegularFit + 0.005` | 6.105 | 8.100 | 8.100 |
 | `BladeStudRadius` | `3 j` | 3 | 4.05 | 4.05 |
-| `BladeSocketRadius` | `BladeStudRadius + RegularFit` | 3.4 | 4.45 | 4.45 |
-| `BladeStudEnd` | `16 j` | 16 | 21.6 | 21.6 |
+| `BladeSocketRadius` | `BladeStudRadius + RegularFit + 0.005` | 3.405 | 4.455 | 4.455 |
+| `BladeStudEnd` (legacy joint dimension) | `16 j` | 16 | 21.6 | 21.6 |
 | `BladeBoltAt` | `9.5 j` | 9.5 | 12.825 | 12.825 |
-| `BladeBoltLength` | the longest `m2bolt.StandardLengths()` entry `L` with `HubLength - HeadPocketDepth - L >= BladeBoltTipFloor` (2) | 16 | 25 | 25 |
+| `BladeBoltLength` | the longest `m2bolt.StandardLengths()` entry `L` with `HubLength - HeadPocketDepth - L >= BladeBoltTipFloor - 1e-9` | 16 | 25 | 25 |
 | `BladeBoltCavity` | `BladeBoltLength - 0.4` | 15.6 | 24.6 | 24.6 |
 
+The bolt-tip floor is 2 mm. Its comparison allows 1e-9 mm for roundoff. At rotor diameter
+140.79999999999998 mm, the calculated tip clearance for an 18 mm bolt is 1.9999999999999964 mm.
+`SizeFor` selects that 18 mm bolt.
+
+`func (s Size) BladeSocketZ() float64` gives the common axial height of all three socket axes and inserted
+stud axes, measured forward from the hub's back face. Return `s.HubMid + 2.5` mm at every size and pitch,
+in both hands and both mounts. This gives 12.5, 17.5 and 20.0 mm at 128, 192 and 224 mm.
+`HubMid` denotes the geometric midplane of the hub. The 2.5 mm assembly offset puts the pitched working
+surfaces between the hub faces. Build the standalone blade in its own print frame.
+
 `SizeFor` also fails when no standard length fits, or when the blade nut slot's near face `HubLength - BladeBoltCavity`
-lies above `HubMid - BladeSocketRadius - 1` (under 1 mm of hub between the slot and the socket). The values that do not
-scale are the M2 fastener sizes, every fit clearance (0.05, 0.2, 0.35, 0.4, 0.5), `PressWall` 1.6, `ChamferSize` 0.5,
-every corner round (0.5) and the stud's 0.3 chamfer, the trailing edge's 1.0, `SetScrewZ`, `SetScrewTravel`, `sidePoints`
+lies above `BladeSocketZ() - BladeSocketRadius - 1` (under 1 mm of hub between the slot and the socket). The values that do not
+scale are the M2 fastener sizes, every fit clearance (0.05, 0.2, 0.35, 0.4, 0.405, 0.5), `PressWall` 1.6, `ChamferSize` 0.5,
+every corner round (0.5) and the stud's 0.3 chamfer, the 2 mm print face, `SetScrewZ`, `SetScrewTravel`, the ten chord divisions per foil side
 and every thickness ratio, camber and ellipse weight of the station table.
 
 `MaxHubRadius` is 18.9 because of the one-way clutch mount. The smallest clutch (605ZZ, `EarCircle` 21.6) carries its ear
@@ -130,18 +141,8 @@ bolts on a circle of 21.6. Their heads are driven from the front past the hub's 
 the same 0.5 margin the blade test uses; a hub of radius 21 (14 times 1.5) would cover the ear bolts. A test requires
 `MaxHubRadius` to equal that expression. One hub serves both mounts.
 
-Station table, with `r` and `c` in mm (the first two are the round root, scaled by `j`; the rest the airfoil, scaled by
-`s`; thickness ratio, camber and ellipse weight are as "Blade shape" gives):
-
-| Station | `r` | chord `c` |
-| --- | --- | --- |
-| 1 | `RootRadius` (14.4 j) | `8 j` |
-| 2 | `RootRadius + 1.9 j` | `8 j` |
-| 3 to 10 | `s` x (19, 21.5, 25, 30, 38, 46, 55, 64) | `s` x (11.5, 15.5, 17.8, 16.5, 14.5, 12.5, 10.5, 8.0) |
-
-The blade angle is `beta(r) = alphaD + atan(tan(p0 - alphaD) RefRadius / max(r, HoldRadius)) + (BladePitch - p0)`, so
-an airfoil section at `s r` has the angle that 128's section at `r` has: the airfoil is 128's blade enlarged `s` times
-about its stacking line. Only the round root (by `j`) and the 1.0 trailing edge differ.
+“Blade shape” defines the four circular station heights, eight source airfoils, the additional rated-pitch section, source chords and finished print face.
+Evaluate pitch at the physical radius of each section.
 
 The set screw's length `L_s` is picked by the rule in "Symbols" (M2 x 6 at 128, M2 x 10 at 192 and 224, both bores), and
 `SetScrewSite`, the counterbore and every use of the length read `Dimensions.SetScrewBolt`. A rotor with no fitting
@@ -223,9 +224,9 @@ above, with its origin in the hub's back face. Derived sites are in the local fr
 Hand: a right-hand rotor blows air forward, along +Z and away from the mechanism, when the shaft turns clockwise seen from
 the front. A left-hand rotor does the same when the shaft turns counter-clockwise: its blades are the right-hand blades
 reflected in the plane x = 0 (`BuildBladeMirrored`), which maps blade 1 to itself and swaps blades 2 and 3.
-The hub, bolts and nuts do not depend on the hand. For the right hand, a blade's chord from its trailing edge to its
-leading edge at radius r runs along `(cos beta, 0, -sin beta)` with `beta = Size.Beta(r, BladePitch)`: the leading
-edge leads toward +X at the top and sits upstream (-Z), and the concave pressure face faces the front.
+The hub, bolts and nuts use the same geometry for both hands. The right-hand blade leads toward +X at the top of the
+assembled fan and upstream along −Z. Measure its chord from the trailing-edge midpoint towards the leading edge. Its
+specified angle at physical radius r is `Size.Beta(r, BladePitch)`.
 
 ## Geometry
 
@@ -235,7 +236,7 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
    The profile has four holes: the three bolt holes and the bore. The bore runs through.
 2. **Hub body.** Extrude `HubLength` along +Z, then `edgefinish.Chamfer` of both faces by `ChamferSize`, taking the long loops: the
    outer circle on both faces and, when `L_b` is 20 or more (608ZZ), the D loop. Then cut, in this order:
-   - the three sockets: `BladeSocketTool` on the frame with origin `(0, BladeSocketStart, HubMid)`, U = +Z and V = +X
+   - the three sockets: `BladeSocketTool` on the frame with origin `(0, BladeSocketStart, BladeSocketZ())`, U = +Z and V = +X
      (normal +Y), and its two copies from `decad.PatternCopies` with a circular pattern of three about +Z;
    - for each blade k, `m2fastener.PocketTool` (head pocket, z `HubLength - 2` to `HubLength`, radius 2.2) then the blade
      nut slot (below);
@@ -259,18 +260,14 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
    `CounterboreRound` (eight chords) up to radius 2.2, out through the round face. The head (radius 1.9) floats
    `SetScrewTravel` above the floor, where the round's surface is at radius 2.19, so it clears it by 0.29.
 5. **Blades.** `BuildBlade(ctx, doc, BladePitch, Size)` (`BuildBladeMirrored` for `LeftHand`) returns blade 1 in its own
-   frame (origin on the fan axis in the hub's mid plane, +Z its radial line, +Y downstream, the blade moving toward -X).
-   `decad.Transform` by the frame with origin `(0, 0, HubMid)`, U = (-1, 0, 0) and V = (0, 0, 1) turns it into place: blade-local
+   frame (+Z along the stud, +Y downstream). Place its origin on the fan axis at the socket height.
+   `decad.Transform` by the frame with origin `(0, 0, BladeSocketZ())`, U = (-1, 0, 0) and V = (0, 0, 1) turns it into place: blade-local
    Z becomes +Y, local Y becomes +Z and local X becomes -X. `decad.PatternCopies` with the hub's pattern gives blades 2 and
    3. Do not transform blade 1 again before copying.
-6. **Blade facts.** A loft from `RootRadius` to `TipRadius` through ten stations; a stud of radius `BladeStudRadius`
-   from r `BladeStudStart` to `BladeStudEnd` with a 0.3 chamfer on its inner end; a bolt hole of radius 1.3 along the fan
-   axis at r `BladeBoltAt` through the stud, cut by a cylinder from `-(BladeStudRadius + 2)` of length `2 (BladeStudRadius +
-   2)`; sections that are NACA 4-digit mean lines blended with an ellipse at the root; a blade angle `Size.Beta(r,
-   BladePitch)` that is constant inboard of `HoldRadius`; a trailing edge 1.0 thick. The rotor is `D_r` across. Every
-   blade vertex lies between z 0 and `HubLength`. Measured z ranges (`TestTurbineFanEnvelope`): 128 mm, 5.02 to 17.72 at
-   the default pitch; at 192 mm 7.51 to 26.39 at the default pitch, 6.24 to 28.94 at 40 degrees and 8.76 to 23.10 at 10
-   degrees; at 224 mm and 40 degrees 7.27 to 33.71.
+6. **Blade geometry.** Use the four circular and nine airfoil sections in “Blade shape”. Drill the 2.6 mm through hole along the fan shaft
+   at `BladeBoltAt`. Check the completed blade at every supported size and pitch. Its axial extent must fit between
+   the two faces of the hub.
+
 7. **Containers.** `Build` files the hub, the three blades, the bolts and the nuts in their containers, each a child of the
    document root: four bolts and four nuts in `ShaftMount`, five of each in `ClutchMount`.
 
@@ -299,11 +296,12 @@ the walls and fits that the rules require.
 | Blade nut: along `u_k` r `BladeBoltAt - 2.31` to `+ 2.31`; z | 7.19 to 11.81; 2.6 to 4.2 at 128; 10.515 to 15.135; 3.6 to 5.2 at 192 | same | same |
 | Adapter bolt hole r 1.3 and nut slot (30 and 150 degrees): hole z; slot z, corner r | -6.25 to 6.75, blind; 1.5 to 3.5, 6.99 | same | same |
 | Hub under the adapter slot (to the back face); slot corner to the bore | 1.5; 4.44 | 1.5; 2.89 | 1.5; 4.14 |
-| Adapter slot to blade nut slots, to sockets | 3.9 or more, 3.5 or more at 128; 6.78 and 4 or more at 192 (the sockets lie above z 10.55, the adapter slot below z 3.5) | same | same |
-| Blade nut slot to socket (socket bottom minus slot top), back face, bore | 2.2, 2.4, 4.44 at 128; 5.15, 3.4, 4.44 at 192 | 2.2, 2.4, 2.94; 5.15, 3.4, 2.94 | 2.2, 2.4, 4.14; 5.15, 3.4, 4.14 |
+| Adapter slot to blade nut slots, to sockets | 3.9 or more, 5.595 or more at 128; 6.78 and 9.545 or more at 192 (the sockets start at z 9.095 or 13.045, the adapter slots end at z 3.5) | same | same |
+| Blade nut slot to socket (socket bottom minus slot top), back face, bore | 4.695, 2.4, 4.44 at 128; 7.645, 3.4, 4.44 at 192 | 4.695, 2.4, 2.94; 7.645, 3.4, 2.94 | 4.695, 2.4, 4.14; 7.645, 3.4, 4.14 |
+| Socket to blade bolt head pocket floor, along the hub axis | 2.095 at 128, 6.045 at 192 and 8.545 at 224 | same | same |
 | Set screw slot to blade nut slots, to blade bolt holes | 3.88, 4.76 at 128; 6.76, 7.67 at 192 (7.63 at 608ZZ) | same | same |
 | Counterbore to blade nut slots | 4.15 at 128; 7.77 at 192 | 4.76; 8.47 | 4.05; 7.63 |
-| Set screw features to sockets (lower bound) | 1.90 at 128; 4 or more at 192 (the slot's end at z 6.51 to the sockets' bottom at z 10.55) | 2.13; same | 1.94; same |
+| Set screw features to sockets (lower bound) | at least 2.585 at 128 and 6.535 at 192 (z 6.51 to the socket bottom at z 9.095 or 13.045) | same | same |
 | Blade nut slots to each other | 12.1 at 128; 17.87 at 192 | same | same |
 | Wall, bore to socket floors (r `BladeSocketStart`) | 3.15 at 128; 5.145 at 192 | 1.65; 3.645 | 2.85; 4.845 |
 | Bore flat width / shaft flat width | 3.03 / 3.00 | 4.70 / 4.66 | 3.22 / 3.00 |
@@ -343,11 +341,9 @@ Why a slot open to the back face does not work for the blade nuts: a blade bolt 
 face is a pocket coaxial with it at z 0 to 2. The bolt's tip at z 2.0 (128) does not reach a nut at z 0.2 to 1.8, and the back
 face is against the mechanism, so with the hub on its shaft the nut would fall out behind the hub whenever a blade bolt is
 undone and could not be put back. Replacing a blade with the hub on its shaft is a requirement. A slot open to the round
-face, along the blade's radial line, works: its mouth is on the rim at z 2.4 to 4.4 (128), below the blade root. At 128 the
-lowest blade point over the nut's last 4.6 mm of travel (r 13 to 19) is z 5.94 / 5.55 at 25 degrees and 5.98 / 5.22 at 40
-degrees, against the nut's top at 4.2. Beyond r 19 the steep blade comes down to z 4.20, so tweezers bring the nut in from
-below, tilted. At 192 the blade root is higher above the slot (lowest blade point 6.26 at 40 degrees against the nut's top
-at 5.2). A tangential slot was rejected: avoiding the set screw forces two slots to converge, leaving 0.79 between them.
+face, along the blade's radial line, opens below the blade root. At 128 mm the opening spans z = 2.4 to 4.4.
+Check the full insertion and extraction path of the M2 nut with the revised blade in place, including at maximum pitch.
+A tangential slot leaves 0.79 mm between two slots that must converge to avoid the set screw.
 
 Set screw notes: the tip's face (radius 0.75 inside its 0.25 chamfer; shank radius 1.0) lies within the shaft's flat (half
 width 1.5 at 605ZZ, 2.33 at 608ZZ); validation rule 7 keeps that flat 2 mm wide or more. Nothing stands proud: the head stays
@@ -373,45 +369,98 @@ The three blade slots are identical turned copies and cancel. No balance mass is
 
 ## Blade shape
 
-The blade is a smooth loft through ten sections, stacked on its radial line through the hub's mid plane and starting at
-r `RootRadius`, 0.4 outside the hub rim. A root stud of radius `BladeStudRadius`, from r `BladeStudStart` to r
-`BladeStudEnd`, is joined to it, with a bolt hole of radius 1.3 parallel to the shaft at r `BladeBoltAt`. The stud's inner
-end has a 0.3 chamfer, so its corner stays clear of the socket floor's round. The stud engages the socket from r
-`BladeStudStart` to r `HubRadius` with a 0.4 clearance (a Regular fit). The shape follows a wind turbine blade: a round
-root carries the joint, the section turns into a thick oval and an airfoil at the maximum chord (r 25 s), and the chord
-tapers to the tip. The table is written at 128 (`s` = `j` = 1); "Size" gives the scaled radii and chords.
+The radial axis is blade-local +Z. Four circular sections and the airfoil sections form one solid. The fixed M2
+cross hole passes through the round stud after lofting the working sections at the selected pitch. There is no joint between
+separate blade and stud bodies.
 
-| r | 14.4 | 16.3 | 19 | 21.5 | 25 | 30 | 38 | 46 | 55 | 64 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| chord c | 8.0 | 8.0 | 11.5 | 15.5 | 17.8 | 16.5 | 14.5 | 12.5 | 10.5 | 8.0 |
-| thickness ratio t/c | 1.00 | 1.00 | 0.60 | 0.38 | 0.26 | 0.22 | 0.19 | 0.18 | 0.17 | 0.22 |
-| camber m (of c) | 0 | 0 | 0.010 | 0.025 | 0.035 | 0.040 | 0.040 | 0.040 | 0.035 | 0.030 |
-| ellipse weight w | 1 | 1 | 0.60 | 0.25 | 0 | 0 | 0 | 0 | 0 | 0 |
+### Stud, socket and loaded root
 
-Each section, at chord fraction x from the leading edge, has the NACA 4-digit mean line `yc(x)` with camber `m` at
-`p = 0.40`. Its half thickness is `(1 - w) naca(x) + w ell(x)`, where
-`naca(x) = (t/2 - 0.15 tTE) / 0.10002 * n(x) + tTE x / 2`,
-`n(x) = 0.2969 sqrt(x) - 0.1260 x - 0.3516 x^2 + 0.2843 x^3 - 0.1036 x^4`,
-`ell(x) = t sqrt(x (1 - x)) + tTE x / 2`, `t = (t/c) c` and the trailing-edge thickness `tTE = 1.0`. It is laid off
-normal to the chord on both sides of `c yc(x)`. The blade angle is
-`beta(r) = alphaD + atan(tan(p0 - alphaD) * RefRadius / max(r, HoldRadius)) + (BladePitch - p0)`, with `alphaD = 5` degrees
-and `p0 = 25` degrees (`RefRadius` 48 s, `HoldRadius` 21.5 s): the flow angle of a uniform axial inflow plus a design angle
-of attack, constant inboard of `HoldRadius`. A
-fan adds energy where a turbine takes it, so the angle is flow plus attack, not flow minus attack. The section is turned to
-`beta(r)` at `BladePitch = 25` degrees about its stacking point, the mean-line point at chord fraction `0.40 + 0.10 w`,
-which lies on the radial line. The loft always uses the sections at 25 degrees. For another pitch the finished loft is
-turned by `BladePitch - 25` degrees about the radial line before the stud joins it, because Decad's twisted loft panics on
-some section tables that depend on the pitch. Outboard camber is held to 3 to 4 %, because Decad's loft refuses thin
-sections with more. The trailing edge is a flat 1.0 wide, which keeps its two corners more than the checker's 0.8 window
-apart (1.2 would thin the leading edge until it fails near the tip), and the tip's ratio of 0.22 gives the leading edge a
-radius above 0.4 near the tip. These two make the blade pass the Corners and roots check: the trailing edge is a blunt tip of
-at least 0.8, and the leading edge is rounded by at least 0.4.
+Let `s = RotorDiameter / 128`, `H = min(14 s, 18.9)`, `j = H / 14`, `R = 3 j` and
+`S = BladeStudStart = BladeSocketStart + RegularFit + 0.005`. All lengths are in mm. Use a physical insertion chamfer with equal radial
+and axial legs `c`, nominally 0.3 mm. The steps specify its exact-coordinate check.
+
+| Section | Radial height | Radius |
+| --- | --- | --- |
+| Stud end | S | R − c |
+| End of insertion chamfer | S + c | R |
+| Socket mouth | H | R |
+| Start of the bed strip | b = 14.6 j | R |
+
+Four quarter arcs at every circular station share the stud axis. The two equal-radius intervals form an exact
+cylinder. The socket provides 0.405 mm radial clearance and a 0.405 mm gap at the stud tip. Cut the 2.6 mm through hole at `BladeBoltAt` along
+the hub bolt axis after lofting.
+
+Let `f = 26 s`, `t = (z − b)/(f − b)` and `h(t) = 3t² − 2t³`. Between b and f the trailing flat grows from the
+cylinder tangent point (R,0) into a 2 mm strip. Its two boundaries in the canonical right-hand blade are
+`x = R, y = (T − 1 mm) h(t)` and `x = R, y = (T + 1 mm) h(t)`. Here T is the reference trailing midpoint
+defined in the steps. Interpolate the surrounding working surface with the same h(t) on its exact matched sections.
+Beyond f the flat keeps its full width until `TipRadius = 64 s`. The bed area is
+`(1 mm)(f − b) + (2 mm)(TipRadius − f)`. The tangent line on the cylindrical stud adds zero area.
+
+### Airfoil stations and print face
+
+The row coordinate `q` names the source section on the 128 mm rotor. Multiply the source chord by `s` from “Size”.
+
+| q (mm) | 19 | 21.5 | 25 | 30 | 38 | 46 | 55 | 64 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Source chord (mm) | 11.5 | 15.5 | 17.8 | 16.5 | 14.5 | 12.5 | 10.5 | 8 |
+| Thickness/chord | .60 | .38 | .26 | .22 | .19 | .18 | .17 | .22 |
+| Camber/chord | .010 | .025 | .035 | .040 | .040 | .040 | .035 | .030 |
+| Ellipse weight | .60 | .25 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Place the eight source sections at `z(a) = s [26 + 38 (a − 19)/45]`, where a is the source row q from the table.
+Add a ninth section at the rated physical radius `48 s`. Its source coordinate is `19 + 22 × 45 / 38`.
+Interpolate chord, thickness ratio, camber and ellipse weight between the adjacent source rows there.
+Evaluate the chord pitch at each physical section height z using
+`β(z,P) = 5° + atan(tan(20°) × 48 s / max(z, 21.5 s)) + (P − 25°)`, with P = BladePitch. The completed blade must give the requested pitch at
+the physical rated radius. Measure the chord through its actual leading edge and trailing midpoint.
+
+The section starts from the NACA four-digit mean line with peak camber at 40% chord. Let x run from the leading to
+the trailing edge. For thickness t, the two source half-thicknesses are
+
+```text
+N = 0.2969 sqrt(x) − 0.1260 x − 0.3516 x² + 0.2843 x³ − 0.1036 x⁴
+naca(x) = (t/2 − 0.15 mm) N / 0.10002 + 0.5 mm · x
+oval(x) = t sqrt(x(1 − x)) + 0.5 mm · x
+```
+
+Blend the two values using the ellipse weight in the table. The working surfaces follow the resulting mean line and
+thickness distribution up to the changes at the first section and trailing edge specified in the steps. A cubic control
+spline runs from one end of the trailing flat around the leading edge to the other. Three collinear segments close
+the flat.
+
+The right-hand bed plane is X = R and its outward normal is +X at every pitch. The left hand reflects the drilled
+right-hand blade in the YZ plane, so its bed is X = −R with outward normal −X. The fixed bolt axis lies parallel
+to the print bed for both hands.
+Lay that face down with the radial axis horizontal and the broad sides upright. Adhesion, support for the horizontal
+stud and airflow still require physical tests.
+
+### Blade geometry checks
+
+The 2 mm trailing strip and its growing root face give bed-contact areas of 87.40, 133.29 and 158.79 mm²
+for rotor diameters of 128, 192 and 224 mm. The stud touches the same plane along a line.
+Check the contact area on the triangulated solid, keep the full span above the bed, and measure the chord from
+the leading edge to the midpoint of the trailing flat at the rated radius.
+
+The continuous geometry test uses the exact loft section records at diameters 128, 192 and 224 mm and pitches
+10°, 25° and 40°. It requires an inward radius above the stud radius across all 20 curved root patches. Adjacent working patches must
+meet tangentially, the three flat patches must be coplanar, and the two physical edges of the flat must turn
+outward. On planes within 0.01 mm of the bed, the smooth working contours must have absolute curvature below
+1.9/mm. The 0.05 mm mesh checks cover boundary and volume. The insertion-chamfer readings are listed under
+“Retained sharp corners and edges”.
+
+In the assembled rotor, require all blade vertices between z = 0 and `HubLength`, including all three copies
+at both pitch limits. Check the stud-to-socket fit in the plane `z = BladeSocketZ()`; minimum clearance is
+0.35 mm for the nominal 0.405 mm stud and socket fit. Require that minimum for the whole placed surfaces
+after subtracting both mesh uncertainty bounds. Also check the radial section through each stud and the independent
+hub-height sections at 30%, 50% and 70% of `HubLength`. The hub's back and front faces, clutch placement anchor,
+blade bolt axes at radius `BladeBoltAt`, and head and nut seating dimensions use their own specified datums.
 
 ## Replaceable blades
 
 - To remove a blade, undo its bolt from the front face. The blade nut is free in its slot: take it out through the slot's
   mouth below the blade root, or leave it. Pull the blade out along its radial line. The stud leaves the socket after `HubRadius -
-  BladeStudStart` mm (7.9 at 128, 10.805 at 192 and 224: the stud's inner end to the hub's rim). The hub can stay on the shaft, since every blade bolt's head is
+  BladeStudStart` mm (7.895 at 128, 10.800 at 192 and 224: the stud's inner end to the hub's rim). The hub can stay on the shaft, since every blade bolt's head is
   on the front face.
 - To fit a blade, slide an M2 nut, flat, into the slot's mouth in the round face below the socket until it stops at the
   slot's end; slide the stud into the socket with the concave face toward the front face; push the bolt in from the front
@@ -431,9 +480,9 @@ The model is **Mixed**: the bore fit is adjustable and the blade fits, bolts and
 | Set screw tip on the shaft's flat | contact by design | nominal exception: the shaft is not modeled; the tip sits on the pushed shaft's flat (X2) |
 | Set screw head in its counterbore | Fastener rules | 0.3 radial, 0.4 under the head |
 | Nuts in their slots | Fastener rules | 0.17 at the flats (0.07 at the rounds), 0.2 past the corners and at each face |
-| Stud in its socket | Regular | 0.40 radial (3.4 against 3.0 at 128; 4.45 against 4.05 at 192) |
-| Stud's inner end to the socket floor | Regular | 0.40 (`BladeStudStart` against `BladeSocketStart`), with the 0.3 stud chamfer clear of the 0.5 floor round |
-| Blade root to the hub's rim | Regular | 0.40 (`RootRadius` against `HubRadius`) |
+| Stud in its socket | Regular | 0.405 radial (3.405 against 3.0 at 128; 4.455 against 4.05 at 192) |
+| Stud's inner end to the socket floor | Regular | 0.405 (`BladeStudStart` against `BladeSocketStart`), with the 0.3 stud chamfer clear of the 0.5 floor round |
+| Blade to hub rim | Regular | Measure the section clearance through the joint; its certified lower bound must be at least 0.35 mm. |
 | Bolts, shank in the stud, bolt in its nut | Fastener rules / nominal exception | head pocket 0.3, hole 0.3, cavity 0.2; the bolt in its own nut is not measured |
 
 The hub presses onto the shaft, flat to flat, and the set screw presses the flat. The shaft must reach at least 6 mm into the
@@ -478,7 +527,7 @@ The user confirms these.
 ## Retained sharp corners and edges
 
 The rule is "Corners and roots" in `docs/model-pipeline.md`. The hub prints front face down with its axis vertical, and each
-blade prints standing on its stud end with its radial line vertical.
+blade prints on its trailing flat with the radial axis horizontal.
 
 | Part | Corner or edge | Reason |
 | --- | --- | --- |
@@ -490,9 +539,9 @@ blade prints standing on its stud end with its radial line vertical.
 | Hub | The blade head pockets' floor rims | Between layers. |
 | Hub | The adapter slots' 0.5 rounds | The hexagon's three corners are rounded like the blade slots'; a layer at z 2.5 cuts them and reads no finding. |
 | Hub | The socket mouths | Between layers, out of the checker's sections. |
-| Hub | The socket floor's 0.5 round, where a layer off the socket's axis cuts it at a slant | A layer at `HubMid - 3 j` or `HubMid + 3 j` chords the round into turns of 57.8 to 59.8 degrees on the floor's outline, `BladeSocketStart` to `BladeSocketStart + 0.9` from the shaft axis; the test exempts that band only. |
-| Blade | At 128, the four corners where the bolt hole crosses the stud, at r `BladeBoltAt` and `BladeBoltAt + 0.7` | The material angle is 64 to 90 degrees; the checker adds the stud's curvature and reads tips of 125 to 130 degrees. At 192 and 224 the stud is wider (radius 4.05), the angle exceeds 60 degrees and the layers read no corner. |
-| Blade | The step where the stud meets the root face (r `RootRadius`), opening downward when printed stud end down | Between layers. |
+| Hub | The socket floor's 0.5 round, where a layer off the socket's axis cuts it at a slant | A layer at `BladeSocketZ() − 3 j` or `BladeSocketZ() + 3 j` cuts the floor round obliquely on the floor's outline, `BladeSocketStart` to `BladeSocketStart + 0.9` from the shaft axis; the test exempts that band only. |
+| Blade | Compact insertion-chamfer rim at Z = S + c (about 6.405 mm) | At X = 2.990 and 2.999 mm the 0.8 mm window covers both corners and the smooth cap. Individual material angles exceed 91°, and cap radius is at least 2.990 mm. At X = 3 the stud has only a zero-area tangent generator. |
+| Blade | Bolt-hole mouths, working-root contour and trailing flat | Check these separately at their actual print heights. The insertion-chamfer allowance applies only to its outward rim findings. |
 
 Rounds below half their section: the socket floor round only. The hub has no stressed root. Every hub wall is 1.1 mm or
 more (the 608ZZ lead-in band), elsewhere 1.3 or more (all at 128; the larger hub keeps those walls and adds more); the outward corners where the slots and the counterbore meet the round
@@ -516,10 +565,10 @@ bearing or plate. Gear train clearances: no gears.
 | Part | Prints with | Pause |
 | --- | --- | --- |
 | Hub | front face down, axis vertical | none |
-| Blade (three) | standing on the stud end, radial line vertical | none |
+| Blade (three) | 2 mm trailing flat down, radial axis horizontal | none |
 
-The blade is 87.9 mm tall from its stud end to its tip at 192 (57.9 at 128, 103.9 at 224) and stands on a stud end 8.1 mm
-across at 192 (6 at 128): print it with a brim. The set screw slot opens upward in print, its hexagonal end down. Each
+The blade is 87.9 mm long from its stud end to its tip at 192 (57.9 at 128, 103.9 at 224). The set screw slot opens
+upward in print, its hexagonal end down. Each
 blade slot's roof (z `HubLength - BladeBoltCavity - 2`) is a 4.35 wide bridge. The
 counterbore and the holes are horizontal round holes 4.4 and 2.6 across.
 
@@ -535,7 +584,7 @@ To assemble:
 
 ## Checks and images
 
-Check every case above (compact, default and large sizes alike): every sketch fully constrained (27 from `BuildParts`: the hub's own, with two adapter hole sketches
+Check every case above (compact, default and large sizes alike): every sketch fully constrained (29 from `BuildParts`: the hub's own, with two adapter hole sketches
 and two adapter slot sketches, and the blades'; 20 from `Build` in `ShaftMount`, 25 in `ClutchMount`), the twelve bodies (fourteen in `ClutchMount`) and their
 containers, the bounds at 128, 192 and 224 and the `VerifyAll` meshes, the placed fan against the local one, the blade
 envelope (every blade vertex at 0 <= z <= `HubLength` and r <= `TipRadius` + 0.5), the bore's clearance round the nominal shaft, its wall and that it runs through,
@@ -543,7 +592,8 @@ the face chamfers, the set screw (head, tip, floating head over a rounded floor,
 each blade bolt's head, tip and nut with its slot and no overlap, both adapter cuts on the `ShaftMount` hub (slot open to the
 round face, 1.5 of hub under it, the wall to the bore), access to the set screw's path and each blade nut's path,
 every Regular fit, the blades' pitch and hand, the copies turned by 120 and 240 degrees, the replacement paths, and
-`internal/cornercheck` on the hub (axis +Z) and each blade along its radial line.
+`internal/cornercheck` on the hub (axis +Z) and each blade parallel to its printing bed. Check the complete loaded-root
+surface against the root radius rule in addition to those sections.
 
 ## Clutch mount
 
@@ -610,8 +660,8 @@ fields are filled, since the hub carries its cuts, but `Build` places no set scr
    onewayclutch.Build(ctx, doc, c); onewayclutch.BuildAdapter(ctx, doc, c)`, then `turbinefan.Build(ctx, turbinefan.NewDocument(),
    ParamsForClutch(c))`. The fan builds in its own document because both models file their hub in a container named `Hub`;
    one document would put the clutch hub and the fan hub in one container.
-4. **Counts.** Bodies: 14 (hub, three blades, five bolts and five nuts). Sketches from `BuildParts`: 27 (1 hub outline, 1 socket tool, 6 blade pocket and slot tools, 3 set screw
-   tools, 2 adapter hole tools, 2 adapter slot tools and 12 blade sketches); `Build` adds 25 fastener sketches (ten for five bolts, fifteen for five nuts). Containers: `Hub`, `Blades`,
+4. **Counts.** Bodies: 14 (hub, three blades, five bolts and five nuts). The build returns 29 sketches from `BuildParts` (1 hub outline, 1 socket tool, 6 blade pocket and slot tools, 3 set screw
+   tools, 2 adapter hole tools, 2 adapter slot tools and 14 blade sketches); `Build` adds 25 fastener sketches (ten for five bolts, fifteen for five nuts). Containers: `Hub`, `Blades`,
    `Bolts` (blade bolts 1 to 3, adapter bolts 1 and 2) and `Nuts`.
 
 ### Fasteners
@@ -657,16 +707,16 @@ stopped shaft. A right-hand fan blows forward turning clockwise seen from the fr
 | Adapter bolt heads / cover | Regular | 1.50 | at least 1.45 |
 | Adapter bolt shank / adapter hole, hub hole | fastener rule | 0.30 | at least 0.28 |
 | Adapter nut / slot | fastener rule | 0.17 flats (0.07 beside the rounds), 0.12 rounded corners, 0.20 faces | clear |
-| Blades / adapter | Regular | 5.25 at 128; 7.75 at 192 | at least 5.0 |
-| Blade / ear bolt (hex key room) | Regular | 5.6 at 128; 28.8 at 192 | at least 5.0 |
+| Blades / adapter | Regular | measured lower bound 5.309 mm for each blade at 192 mm, 605ZZ | at least 5.0 |
+| Blade / ear bolt (hex key room) | Regular | measured lower bound 28.270 mm for blade 1 and ear bolt 1 at 192 mm, 605ZZ | at least 5.0 |
 | Hub rim / ear bolt line (head and key room) | Regular | 7.6 at 128 (rim 14); 2.7 at 192 (rim 18.9) | at least `HeadPocketRadius + 0.5` (2.7) |
 
 The ring floats 0.85 each way between the clutch's cones, and the bolted fan floats with it. Blade fits are unchanged.
 
-Measured by `TestTurbineFanOnClutch` at 192 mm (mesh gap lower bounds, 605ZZ / 608ZZ clutch): hub / adapter 0.244 / 0.241;
-adapter / ring 0.231 / 0.232; adapter / cover 1.495 / 1.492; adapter / the clutch bolt head 1.498 / 1.498; adapter bolt head
-/ cover 1.497 / 1.493; each blade / adapter 7.746 / 7.746; blade 1 / ear bolt 1 28.842 / 29.591. At 128 the blade / adapter
-gap was 5.251 / 5.252 and blade 1 / ear bolt 1 26.316 / 27.078. `TestTurbineFanClutchAccess` measures the hub's least gap to an
+`TestTurbineFanOnClutch` measures lower bounds on the mesh gaps. On the 192 mm rotor with the 605ZZ clutch,
+the lower bounds are 0.244 mm between hub and adapter, 0.231 mm between adapter and ring, 1.495 mm between
+adapter and cover, 1.498 mm between adapter and clutch bolt 1, and 1.497 mm between adapter bolt 1 and cover.
+`TestTurbineFanClutchAccess` measures the hub's least gap to an
 ear bolt line, over the ear circles of every clutch preset, at 2.700 (192 and 224) and 7.600 (128).
 
 The hub's radius is capped at `MaxHubRadius` because of that gap: a 21 mm rim would cover the 605ZZ clutch's ear circle

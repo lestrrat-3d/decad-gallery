@@ -3,6 +3,7 @@ package turbinefan_test
 // CI: isolated-tests
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -29,12 +30,12 @@ func TestSizeFor(t *testing.T) {
 		headPocketLow, studTravel      float64
 	}
 	for _, w := range []want{
-		{128, 1, 1, 64, 14, 20, 10, 14.4, 16.3, 8, 19, 11.5, 17.8, 48, 21.5, 3, 6.1, 16, 3.4, 5.7, 9.5, 16, 15.6, 2.0,
-			2.4, 4.4, 2.2, 18, 7.9},
-		{192, 1.5, 1.35, 96, 18.9, 30, 15, 19.3, 21.865, 10.8, 28.5, 17.25, 26.7, 72, 32.25, 4.05, 8.095, 21.6, 4.45,
-			7.695, 12.825, 25, 24.6, 3.0, 3.4, 5.4, 5.15, 28, 10.805},
-		{224, 1.75, 1.35, 112, 18.9, 35, 17.5, 19.3, 21.865, 10.8, 33.25, 20.125, 31.15, 84, 37.625, 4.05, 8.095, 21.6,
-			4.45, 7.695, 12.825, 25, 24.6, 8.0, 8.4, 10.4, 2.65, 33, 10.805},
+		{128, 1, 1, 64, 14, 20, 10, 14.4, 16.3, 8, 19, 11.5, 17.8, 48, 21.5, 3, 6.105, 16, 3.405, 5.7, 9.5, 16, 15.6, 2.0,
+			2.4, 4.4, 2.195, 18, 7.895},
+		{192, 1.5, 1.35, 96, 18.9, 30, 15, 19.3, 21.865, 10.8, 28.5, 17.25, 26.7, 72, 32.25, 4.05, 8.1, 21.6, 4.455,
+			7.695, 12.825, 25, 24.6, 3.0, 3.4, 5.4, 5.145, 28, 10.8},
+		{224, 1.75, 1.35, 112, 18.9, 35, 17.5, 19.3, 21.865, 10.8, 33.25, 20.125, 31.15, 84, 37.625, 4.05, 8.1, 21.6,
+			4.455, 7.695, 12.825, 25, 24.6, 8.0, 8.4, 10.4, 2.645, 33, 10.8},
 	} {
 		sz, err := turbinefan.SizeFor(w.diameter)
 		require.NoError(t, err, "rotor %g", w.diameter)
@@ -46,6 +47,7 @@ func TestSizeFor(t *testing.T) {
 		require.InDelta(t, w.hubRadius, sz.HubRadius, tol)
 		require.InDelta(t, w.hubLength, sz.HubLength, tol)
 		require.InDelta(t, w.hubMid, sz.HubMid, tol)
+		require.InDelta(t, w.hubMid+2.5, sz.BladeSocketZ(), tol)
 		require.InDelta(t, w.rootRadius, sz.RootRadius, tol)
 		r, chord := turbinefan.StationRadiusChord(sz, 1)
 		require.InDelta(t, w.rootRadius, r, tol)
@@ -73,7 +75,7 @@ func TestSizeFor(t *testing.T) {
 		slotHigh := sz.HubLength - sz.BladeBoltCavity
 		require.InDelta(t, w.slotLow, slotHigh-m2fastener.NutCavityHeight, tol, "nut slot low z")
 		require.InDelta(t, w.slotHigh, slotHigh, tol, "nut slot high z")
-		require.InDelta(t, w.hubBetween, sz.HubMid-sz.BladeSocketRadius-slotHigh, tol, "hub between slot and socket")
+		require.InDelta(t, w.hubBetween+2.5, sz.BladeSocketZ()-sz.BladeSocketRadius-slotHigh, tol, "hub between slot and socket")
 		require.InDelta(t, w.headPocketLow, sz.HubLength-m2fastener.HeadPocketDepth, tol, "head pocket low z")
 		require.InDelta(t, w.studTravel, sz.HubRadius-sz.BladeStudStart, tol, "stud travel out of the socket")
 	}
@@ -107,4 +109,22 @@ func TestMaxHubRadius(t *testing.T) {
 		least = math.Min(least, dm.EarCircle)
 	}
 	require.InDelta(t, least-m2fastener.HeadPocketRadius-0.5, turbinefan.MaxHubRadius, 1e-9)
+}
+
+func TestSizeForBoltLengthAtRoundingBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		diameter float64
+		length   float64
+	}{
+		{140.8, 18},
+		{153.6, 20},
+		{185.6, 25},
+	} {
+		t.Run(fmt.Sprintf("%.1f", tc.diameter), func(t *testing.T) {
+			diameter := math.Nextafter(tc.diameter, math.Inf(-1))
+			size, err := turbinefan.SizeFor(diameter)
+			require.NoError(t, err, "diameter %.17g", diameter)
+			require.Equal(t, tc.length, size.BladeBoltLength, "diameter %.17g", diameter)
+		})
+	}
 }

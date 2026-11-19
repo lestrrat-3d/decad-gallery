@@ -47,7 +47,7 @@ crank-side wall with its block, and the fan-side wall with its block, which hold
 its shaft axes vertical, so no bore lies on its side: the post on its inner face, and the two walls on the face that meets
 the base with their blocks pointing up. The seats that open onto the bed have a 45° cone for a ceiling. Four M2 x 16 bolts go
 through the post and the crank-side wall into nuts in the base's back wall, and four M2 x 10 bolts and nuts, in ears on
-the outside, join the fan-side wall to the post and the crank-side wall. The hub's blade sockets are plain 6.8 mm
+the outside, join the fan-side wall to the post and the crank-side wall. The hub's blade sockets are plain 6.81 mm
 holes, small enough to print on their side.
 
 ## Bolts, nuts and fits
@@ -80,7 +80,7 @@ The other printed parts print as follows. A part pressed on a shaft prints with 
 | Fan hub | front face down, axis vertical |
 | Fan shaft | standing on its front tip |
 | Crank handle | standing on its inner end |
-| Fan blade | standing on the stud end |
+| Fan blade | flat long edge down, stud parallel to the bed |
 
 A fan takes 15 bolts (7 of M2 x 10, 7 of M2 x 16 and 1 of M2 x 6) and 15 nuts.
 
@@ -124,6 +124,6 @@ repeated as the names say. The bought parts are the bolts, the nuts and the bear
 You can vary:
 
 - The crank angle, which also sets the fan angle at twice that value.
-- The blade pitch, from 10° to 40°, which turns each whole blade; it is the blade angle at three quarters of the radius.
+- The blade pitch, from 10° to 40°, which changes the blade sections. It is the blade angle at three quarters of the radius.
 
 For how to build it from Go, see the [developer notes](../../docs/models/handcrankfan.md).

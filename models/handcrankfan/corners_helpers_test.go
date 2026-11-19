@@ -160,34 +160,35 @@ func requireCorners(t *testing.T, p handcrankfan.Params, parts map[string]handcr
 	}
 }
 
-// requireBladeCorners checks blade k along its radial line d = (cos θ, 0, sin θ), with θ the fan angle plus the
-// blade's step. The stud is cut at the radii where its bolt hole crosses it; the hole's four corners (r 9.5 and 10.2)
-// are the one exemption, where the material angle is 64° to 90° and the checker adds the stud's curvature. The loft is
-// cut at the listed radii, because it has no planar faces to give heights. The exemption claims the hole corners only
-// if the radial line is right, so an unused exemption fails the test.
+// requireBladeCorners cuts the placed blade parallel to its local print bed.
 func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan.State, k int, parts map[string]handcrankfan.Part) {
 	t.Helper()
 	theta := state.FanAngle + 2*math.Pi*float64(k-1)/turbinefan.BladeCount
-	d := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
-	height := func(r float64) float64 { return state.Apex.Dot(d) + r }
-	body := parts[fmt.Sprintf("fan-blade-%d", k)].Body
-	// The radial line runs in the hub's mid plane, Y -86 (the model's hubMid), not through the apex at Y 0.
-	radial := state.Apex.Add(r3.Vec{Y: -86})
-
-	stud := []float64{height(7.0), height(9.5), height(10.2), height(12.5)}
-	fs, err := cornercheck.CheckAt(t.Context(), body, d, stud, []cornercheck.Exempt{
-		{Reason: "bolt hole across the stud", Near: cornercheck.Disc(radial, d, 3.1)},
-	})
-	require.NoError(t, err)
-	require.Empty(t, fs, cornercheck.Report(fs, 5))
-
-	var loft []float64
-	for _, r := range []float64{14.6, 16.5, 18, 22, 26, 30, 36, 39.2, 44, 52, 56, 60, 62, 63, 63.8} {
-		loft = append(loft, height(r))
+	radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
+	normal := r3.Vec{X: -math.Sin(theta), Z: math.Cos(theta)}
+	origin := state.Apex.Add(r3.Vec{Y: -88.5})
+	var heights []float64
+	for _, h := range []float64{-2.8, -2, -1, 0, 1, 2, 2.99, 2.999} {
+		heights = append(heights, origin.Dot(normal)+h)
 	}
-	fs, err = cornercheck.CheckAt(t.Context(), body, d, loft, nil)
+	body := parts[fmt.Sprintf("fan-blade-%d", k)].Body
+	sz, err := turbinefan.SizeFor(turbinefan.MinRotorDiameter)
 	require.NoError(t, err)
-	require.Empty(t, fs, cornercheck.Report(fs, 5))
+	fs, err := cornercheck.CheckAt(t.Context(), body, normal, heights, nil)
+	require.NoError(t, err)
+	for _, f := range fs {
+		h := f.Height - origin.Dot(normal)
+		d := f.At.Sub(origin)
+		if f.Kind != cornercheck.Tip || math.Abs(d.Dot(radial)-(sz.BladeStudStart+0.3)) > 1e-8 || h < 2.99-1e-9 || h > 3+1e-9 {
+			t.Fatalf("unexpected blade corner: %s", cornercheck.Report([]cornercheck.Finding{f}, 1))
+		}
+		// The short conical cap combines two allowed turns in the scanner's window.
+		b2 := math.Max(0, 9-h*h)
+		require.Greater(t, h, 2.7)
+		require.GreaterOrEqual(t, h, 0.4)
+		require.Less(t, 2*math.Sqrt(b2*(1+b2/9)), cornercheck.TipWindow)
+		require.LessOrEqual(t, math.Abs(d.Y), math.Sqrt(b2)+1e-7)
+	}
 }
 
 // pinionParams are the pinion's parameters as drive builds it: module 2, 14 teeth against the driving gear's 28.

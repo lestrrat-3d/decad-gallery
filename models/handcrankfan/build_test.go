@@ -281,11 +281,15 @@ func requirePitch(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 	for _, r := range []float64{30, 40, 50, 60} {
 		x, ring := meshRing(verts, r)
 		require.NotEmpty(t, ring, "ring near radius %g", r)
-		stack := r3.Vec{X: x, Y: -86, Z: 170}
-		te1 := farthest(ring, stack, nil)
-		le := farthest(ring, te1, nil)
-		te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
-		mid := te1.Add(te2).Scale(0.5)
+		lo, hi := math.Inf(1), math.Inf(-1)
+		for _, v := range ring {
+			if math.Abs(v.Z-(state.Apex.Z+3)) < 1e-8 {
+				lo, hi = math.Min(lo, v.Y), math.Max(hi, v.Y)
+			}
+		}
+		require.InDelta(t, 2, hi-lo, 1e-7, "trailing flat at radius %g", x)
+		mid := r3.Vec{X: x, Y: (lo + hi) / 2, Z: state.Apex.Z + 3}
+		le := farthest(ring, mid, nil)
 		require.Greater(t, le.Y-mid.Y, 0.0, "the leading edge is upstream at radius %g", r)
 		angle := math.Atan2(le.Y-mid.Y, le.Z-mid.Z)
 		// The blades are mirrored, so the leading edge leads toward -Z and the chord angle is pi minus beta.
@@ -304,11 +308,11 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.NoError(t, err, name)
 		return loc
 	}
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -86, Z: 170}), "the socket is empty")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -88.5, Z: 170}), "the socket is empty")
 	// The nut cavity, its roof and the head pocket sit within 0.5 mm of the hub's faces, where the faceted hub gives no
 	// decided point location. The fasteners subtest proves them with section loops.
 	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -91, Z: 175}), "the hub between two blades is solid")
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -86.2, Z: 170.3}), "the socket is empty past the bolt")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -88.7, Z: 170.3}), "the socket is empty past the bolt")
 }
 
 // requireGrip measures the grip's mesh rings at three heights: they are ovals of the table's width and length,
@@ -482,38 +486,56 @@ func requireExplode(t *testing.T, doc *decad.Document, a *handcrankfan.Assembly,
 	require.Equal(t, 7, bearings, "a bearing where each shaft crosses a wall")
 }
 
-// requireSweepClearance proves a hand on the crank handle cannot meet a blade. The crank's arm, pin and handle sweep
-// a ring about the crank axis, which sits well below the fan axis, and the blades sweep a disc about the fan axis.
-// Every vertex of the crank parts is turned about the crank axis through a full turn, and none may come within a hand's
-// width of the blades' disc.
+// requireSweepClearance bounds each blade triangle's full sweep against an
+// enclosing cylinder of the crank parts. Mesh bounds cover the original surfaces.
 func requireSweepClearance(t *testing.T, built map[string]handcrankfan.Part, state handcrankfan.State) {
-	vertices := func(name string) []r3.Vec {
-		mesh, err := built[name].Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyNone))
+	t.Helper()
+	mesh := func(name string) *decad.Mesh {
+		m, err := built[name].Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyNone))
 		require.NoError(t, err, name)
-		return mesh.Vertices()
+		return m
 	}
-	const hand = 15.0
-	front, back, disc := math.Inf(1), math.Inf(-1), 0.0
-	for k := 1; k <= turbinefan.BladeCount; k++ {
-		for _, v := range vertices(fmt.Sprintf("fan-blade-%d", k)) {
-			front, back = math.Min(front, v.Y), math.Max(back, v.Y)
-			disc = math.Max(disc, math.Hypot(v.X, v.Z-state.Apex.Z))
+	minX, maxR := math.Inf(1), 0.0
+	for _, name := range []string{"crank-arm", "crank-pin", "crank-grip"} {
+		m := mesh(name)
+		bound := m.Bound().Base()
+		for _, v := range m.Vertices() {
+			minX = math.Min(minX, v.X-bound)
+			maxR = math.Max(maxR, math.Hypot(v.Y-state.Crank.Y, v.Z-state.Crank.Z)+bound)
 		}
 	}
+	intervalDistance := func(a, b, x float64) float64 {
+		return math.Max(math.Max(a-x, x-b), 0)
+	}
+	const samples = 180
 	closest := math.Inf(1)
-	for _, name := range []string{"crank-arm", "crank-pin", "crank-grip"} {
-		for _, v := range vertices(name) {
-			radius := math.Hypot(v.Y-state.Crank.Y, v.Z-state.Crank.Z)
-			phase := math.Atan2(v.Z-state.Crank.Z, v.Y-state.Crank.Y)
-			for turn := 0.0; turn < 2*math.Pi; turn += 3 * math.Pi / 180 {
-				y, z := state.Crank.Y+radius*math.Cos(phase+turn), state.Crank.Z+radius*math.Sin(phase+turn)
-				along := math.Max(math.Max(front-y, y-back), 0)
-				across := math.Max(math.Hypot(v.X, z-state.Apex.Z)-disc, 0)
-				closest = math.Min(closest, math.Hypot(along, across))
+	for k := 1; k <= turbinefan.BladeCount; k++ {
+		m := mesh(fmt.Sprintf("fan-blade-%d", k))
+		vertices := m.Vertices()
+		for _, tri := range m.Triangles() {
+			a, b, c := vertices[tri[0]], vertices[tri[1]], vertices[tri[2]]
+			x0 := math.Min(a.X, math.Min(b.X, c.X)) - state.Apex.X
+			x1 := math.Max(a.X, math.Max(b.X, c.X)) - state.Apex.X
+			z0 := math.Min(a.Z, math.Min(b.Z, c.Z)) - state.Apex.Z
+			z1 := math.Max(a.Z, math.Max(b.Z, c.Z)) - state.Apex.Z
+			y0 := math.Min(a.Y, math.Min(b.Y, c.Y))
+			y1 := math.Max(a.Y, math.Max(b.Y, c.Y))
+			r0 := math.Hypot(intervalDistance(x0, x1, 0), intervalDistance(z0, z1, 0))
+			r1 := math.Hypot(math.Max(math.Abs(x0), math.Abs(x1)), math.Max(math.Abs(z0), math.Abs(z1)))
+			r := (r0 + r1) / 2
+			dy := intervalDistance(y0, y1, state.Crank.Y)
+			for i := range samples {
+				angle := 2 * math.Pi * (float64(i) + 0.5) / samples
+				x := state.Apex.X + r*math.Cos(angle)
+				z := state.Apex.Z + r*math.Sin(angle)
+				dx := math.Max(minX-x, 0)
+				dr := math.Max(math.Hypot(dy, z-state.Crank.Z)-maxR, 0)
+				lower := math.Hypot(dx, dr) - (r1-r0)/2 - r1*math.Pi/samples - m.Bound().Base() - 1e-9
+				closest = math.Min(closest, lower)
 			}
 		}
 	}
-	require.GreaterOrEqual(t, closest, hand, "a crank part comes within %.1f of the blades' disc", closest)
+	require.GreaterOrEqual(t, closest, 15.0, "crank sweep lower bound %.3f mm", closest)
 }
 
 // requireIdenticalBlades turns every blade and bolt back to the first one's place and compares their bounds.

@@ -395,7 +395,7 @@ func requireClearances(t *testing.T, p handcrankfan.Params, parts map[string]han
 	bevel("R3", "driving-gear", "gearbox-base", atX(t, 20.9), regular)
 	// R5: each blade's stud in the hub's socket, the stud end and the root to the rim.
 	for k := 1; k <= turbinefan.BladeCount; k++ {
-		section("R5", fmt.Sprintf("fan-blade-%d", k), "fan-hub", atY(t, -86), regular)
+		section("R5", fmt.Sprintf("fan-blade-%d", k), "fan-hub", atY(t, -88.5), regular)
 	}
 	// R6, R7: the handle on the pin and against the arm.
 	exact("R6", "crank-grip", "crank-pin", pinPlane, regular)
