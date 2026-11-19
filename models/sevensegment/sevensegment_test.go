@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
 	"github.com/lestrrat-3d/r3"
@@ -321,51 +322,185 @@ func TestSevenSegmentFasteners(t *testing.T) {
 		nlo, nhi := along(nut, site.Dir)
 		require.GreaterOrEqual(t, nlo, base+site.Cavity-tol, "nut %d lies inside its cavity", i+1)
 		require.LessOrEqual(t, nhi, base+site.CavityFar()+tol, "nut %d lies inside its cavity", i+1)
-		// No bolt vertex lies inside a part it passes, apart from the head's underside, which rests on its pocket floor.
+		centre := r3.Vec{}
+		for _, v := range nut.Vertices() {
+			centre = centre.Add(v)
+		}
+		centre = centre.Scale(1 / float64(len(nut.Vertices())))
+		// No bolt point lies inside a part it passes. A head vertex is probed 0.1 mm toward the head's middle, so that the
+		// vertices on the flush top and on the underside (which rests on the pocket floor) are read from inside the head: a
+		// head that reaches into the part beside its pocket puts those probes in the material. The shank is read at its
+		// vertices.
 		for name, grid := range grids {
 			for _, v := range bolt.Vertices() {
-				if v.Dot(site.Dir) < base+2.0+0.05 || !grid.pointIn(v) {
-					continue
+				p, depth := v, v.Sub(site.Head).Dot(site.Dir)
+				switch {
+				case depth <= m2fastener.HeadPocketDepth+0.05 && depth < m2fastener.HeadPocketDepth/2:
+					p = v.Add(site.Dir.Scale(0.1))
+				case depth <= m2fastener.HeadPocketDepth+0.05:
+					p = v.Sub(site.Dir.Scale(0.1))
 				}
-				require.Fail(t, "bolt overlaps a part", "bolt %d vertex %v inside %s", i+1, v, name)
+				if grid.pointIn(p) {
+					require.Fail(t, "bolt overlaps a part", "bolt %d vertex %v (probe %v) inside %s", i+1, v, p, name)
+				}
 			}
+			// The nut lies in its cavity: no vertex, probed 0.05 mm toward the nut's middle, is in a part, and the nut keeps
+			// at least 0.05 mm (the coarse part mesh's own bound) from every part near it.
+			for _, v := range nut.Vertices() {
+				toward := centre.Sub(v)
+				if grid.pointIn(v.Add(toward.Scale(0.05 / toward.Len()))) {
+					require.Fail(t, "nut overlaps a part", "nut %d vertex %v inside %s", i+1, v, name)
+				}
+			}
+		}
+		_, nutGap := meshOf(t, m.Nuts[i].Body, 0.01)
+		nutBox, err := m.Nuts[i].Body.Bounds()
+		require.NoError(t, err)
+		for name, b := range parts {
+			box, err := b.Bounds()
+			require.NoError(t, err)
+			if !boxesTouch(box, nutBox, 0.5) {
+				continue
+			}
+			_, partGap := meshOf(t, b, 0.05)
+			ok, err := nutGap.ExceedsClearance(partGap, 0.05)
+			require.NoError(t, err)
+			require.True(t, ok, "nut %d keeps 0.05 mm from %s", i+1, name)
 		}
 	}
 }
 
-// TestSevenSegmentPlacement moves the whole display by 100 mm along X. Decad's Transform refuses slider b for most other
-// translations (float rounding folds its held mesh through itself), so the test keeps to this one.
-func TestSevenSegmentPlacement(t *testing.T) {
-	frame, err := r3.NewFrame(r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1})
-	require.NoError(t, err)
-	p := sevensegment.DefaultParams()
-	p.Placement = &frame
-	var placed build[*sevensegment.Parts]
-	buildPlaced := func(ctx context.Context) (*sevensegment.Parts, error) {
-		return sevensegment.BuildParts(ctx, decad.New(), p)
-	}
-	placed.start(buildPlaced)
+// TestSevenSegmentBearings checks the two 605ZZ bearings against the parts around them: the wall seat grips the outer
+// race with 0.05 mm of radial clearance (P2), the shaft's journal equals the bore (N1, a nominal exception: no clearance
+// and no overlap), and no other printed part touches a bearing.
+func TestSevenSegmentBearings(t *testing.T) {
 	startDefault()
 	t.Parallel()
-	parts := placed.built(t, buildPlaced)
+	_, m := builtDefault(t)
+	parts := printed(m)
+	for i, walls := range []struct {
+		name string
+		wall *decad.Body
+	}{{"front wall", m.FrontWall}, {"rear wall", m.RearWall}} {
+		bearing := m.Bearings[i].Body
+		box, err := bearing.Bounds()
+		require.NoError(t, err)
+		mid := (box.Min.Y + box.Max.Y) / 2
+		race := sevensegment.SectionAt(t, bearing, mid)
+		require.Len(t, race, 2, "%s bearing section: outer ring and bore", walls.name)
+		outer, bore := race[:1], race[1:]
+		if radius(race[0]) < radius(race[1]) {
+			outer, bore = race[1:], race[:1]
+		}
+		seat := sevensegment.LoopsGap(outer, sevensegment.SectionAt(t, walls.wall, mid))
+		require.InDelta(t, sevensegment.PressFit, seat, 0.02, "%s seat to the outer race (P2)", walls.name)
+		journal := sevensegment.SectionAt(t, m.Shaft, mid)
+		require.InDelta(t, radius(bore[0]), radius(journal[0]), 0.01, "%s: journal and bore (N1)", walls.name)
+		// No overlap: the journal's radius never exceeds the bore's.
+		for _, p := range journal[0] {
+			require.LessOrEqual(t, p.Len(), radius(bore[0])+0.005, "%s: the journal stays inside the bore", walls.name)
+		}
+		_, bearingGap := meshOf(t, bearing, 0.05)
+		for name, b := range parts {
+			if b == walls.wall || b == m.Shaft {
+				continue
+			}
+			pbox, err := b.Bounds()
+			require.NoError(t, err)
+			if !boxesTouch(pbox, box, 0.05) {
+				continue
+			}
+			_, partGap := meshOf(t, b, 0.05)
+			ok, err := bearingGap.ExceedsClearance(partGap, 0)
+			require.NoError(t, err)
+			require.True(t, ok, "%s bearing and %s touch", walls.name, name)
+		}
+	}
+}
+
+// radius returns the mean distance of the points of a loop from the origin.
+func radius(loop []r3.Vec) float64 {
+	sum := 0.0
+	for _, p := range loop {
+		sum += p.Len()
+	}
+	return sum / float64(len(loop))
+}
+
+// TestSevenSegmentPlacement moves the whole display three ways: by 100 mm along X, by (10, 20, 30), and by a quarter turn
+// about Z. Each part's bounds and each bolt site must follow the placement. Decad builds all three (an earlier note here
+// said it refused slider b for most translations; these and several others build).
+func TestSevenSegmentPlacement(t *testing.T) {
+	type placement struct {
+		name         string
+		origin, u, v r3.Vec
+	}
+	cases := []placement{
+		{"100 along X", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+		{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+		{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
+	}
+	builds := make([]build[*sevensegment.Parts], len(cases))
+	frames := make([]r3.Frame, len(cases))
+	for i, c := range cases {
+		var err error
+		frames[i], err = r3.NewFrame(c.origin, c.u, c.v)
+		require.NoError(t, err)
+		p := sevensegment.DefaultParams()
+		p.Placement = &frames[i]
+		builds[i].start(func(ctx context.Context) (*sevensegment.Parts, error) {
+			return sevensegment.BuildParts(ctx, decad.New(), p)
+		})
+	}
+	startDefault()
+	t.Parallel()
 	_, base := builtDefault(t)
-	moved, plain := printed(&sevensegment.Model{Parts: *parts}), printed(base)
-	for name, b := range moved {
-		got, err := b.Bounds()
-		require.NoError(t, err)
-		want, err := plain[name].Bounds()
-		require.NoError(t, err)
-		require.InDelta(t, want.Min.X+100, got.Min.X, 0.02, name)
-		require.InDelta(t, want.Min.Y, got.Min.Y, 0.02, name)
-		require.InDelta(t, want.Max.Z, got.Max.Z, 0.02, name)
+	plain := printed(base)
+	for i, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			frame := frames[i]
+			p := sevensegment.DefaultParams()
+			p.Placement = &frame
+			parts := builds[i].built(t, func(ctx context.Context) (*sevensegment.Parts, error) {
+				return sevensegment.BuildParts(ctx, decad.New(), p)
+			})
+			place, err := r3.FromFrame(frame)
+			require.NoError(t, err)
+			for name, b := range printed(&sevensegment.Model{Parts: *parts}) {
+				got, err := b.Bounds()
+				require.NoError(t, err)
+				want, err := plain[name].Bounds()
+				require.NoError(t, err)
+				// The placed box is the box of the plain one's corners, which a quarter turn keeps axis-aligned.
+				lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1), Z: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1), Z: math.Inf(-1)}
+				for _, x := range []float64{want.Min.X, want.Max.X} {
+					for _, y := range []float64{want.Min.Y, want.Max.Y} {
+						for _, z := range []float64{want.Min.Z, want.Max.Z} {
+							q := place.Apply(r3.Vec{X: x, Y: y, Z: z})
+							lo = r3.Vec{X: math.Min(lo.X, q.X), Y: math.Min(lo.Y, q.Y), Z: math.Min(lo.Z, q.Z)}
+							hi = r3.Vec{X: math.Max(hi.X, q.X), Y: math.Max(hi.Y, q.Y), Z: math.Max(hi.Z, q.Z)}
+						}
+					}
+				}
+				for axis, pair := range map[string][2]float64{"x": {lo.X, got.Min.X}, "y": {lo.Y, got.Min.Y}, "z": {lo.Z, got.Min.Z},
+					"max x": {hi.X, got.Max.X}, "max y": {hi.Y, got.Max.Y}, "max z": {hi.Z, got.Max.Z}} {
+					require.InDelta(t, pair[0], pair[1], 0.02, "%s: %s", name, axis)
+				}
+			}
+			for k, s := range parts.Sites {
+				head, dir := place.Apply(base.Sites[k].Head), place.ApplyDir(base.Sites[k].Dir)
+				require.InDelta(t, head.X, s.Head.X, 1e-9, "site %d head x", k)
+				require.InDelta(t, head.Y, s.Head.Y, 1e-9, "site %d head y", k)
+				require.InDelta(t, head.Z, s.Head.Z, 1e-9, "site %d head z", k)
+				require.InDelta(t, dir.X, s.Dir.X, 1e-9, "site %d dir x", k)
+				require.InDelta(t, dir.Y, s.Dir.Y, 1e-9, "site %d dir y", k)
+				require.InDelta(t, dir.Z, s.Dir.Z, 1e-9, "site %d dir z", k)
+			}
+		})
 	}
-	for i, s := range parts.Sites {
-		require.InDelta(t, base.Sites[i].Head.X+100, s.Head.X, 1e-9)
-		require.InDelta(t, base.Sites[i].Head.Z, s.Head.Z, 1e-9)
-		require.InDelta(t, base.Sites[i].Dir.Z, s.Dir.Z, 1e-9)
-	}
+	p := sevensegment.DefaultParams()
 	p.Placement = &r3.Frame{}
-	_, err = sevensegment.BuildParts(t.Context(), decad.New(), p)
+	_, err := sevensegment.BuildParts(t.Context(), decad.New(), p)
 	require.EqualError(t, err, "sevensegment: invalid placement frame")
 }
 
