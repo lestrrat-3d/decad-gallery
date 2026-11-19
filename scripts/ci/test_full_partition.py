@@ -10,7 +10,6 @@ class FullPartitionTests(unittest.TestCase):
         return {**{package: {"TestDedicated"} for package in partition.DEDICATED},
                 partition.BEVEL: assigned | {"TestNewBevel"},
                 partition.ROOT + "/models/handcrankfan": {"TestHandCrankFanVariant"},
-                partition.ROOT + "/models/planetarygearbox": {"TestKitGearboxes"},
                 partition.ROOT + "/models/newmodel": {"TestNewModel"}}
 
     def test_selection_keeps_new_packages_and_bevel_remainder(self):
@@ -50,8 +49,7 @@ class FullPartitionTests(unittest.TestCase):
         ordinary, bevel = go_test.call_args_list
         self.assertEqual(ordinary.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(ordinary.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
-        self.assertIn((partition.ROOT + "/models/planetarygearbox",
-                       "TestKitGearboxes/planet608-shaft608"), ordinary.kwargs["qualified_expected"])
+        self.assertNotIn(partition.ROOT + "/models/planetarygearbox", ordinary.args[0])
         self.assertEqual(bevel.args[1], ["TestNewBevel"])
 
 

@@ -773,6 +773,27 @@ def run_full_models() -> None:
                 env=env, package=bevel)
 
 
+def run_planetary_full(shard: str) -> None:
+    package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = {line for line in output.splitlines() if line.startswith("Test")}
+    kit = "TestKitGearboxes"
+    if kit not in tests or len(tests) < 2:
+        raise SystemExit("planetary test inventory is incomplete")
+    selected = [kit] if shard == "kits" else sorted(tests - {kit}) if shard == "rest" else None
+    if selected is None:
+        raise SystemExit("invalid planetary shard")
+    expected = set(selected)
+    if shard == "kits":
+        expected.update(f"{kit}/{name}" for name in (
+            "planet605-shaft608", "planet608-shaft605", "planet608-shaft608"))
+    env = os.environ.copy()
+    env["PLANETARY_ALL_KITS"] = "1"
+    go_test([package, "-run", run_pattern(selected), "-timeout", "60m", "-count=1"],
+            sorted(expected), env=env, package=package)
+
+
 def run_model_pr(name: str) -> None:
     """Run every listed test in one model package and check its qualified results."""
     if not re.fullmatch(r"[a-z][a-z0-9]*", name):
@@ -803,6 +824,9 @@ def run_cycloidal_pr() -> None:
 
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    if suite == "planetary" and mode == "full" and len(args) == 1:
+        run_planetary_full(args[0])
+        return
     if suite == "cycloidal" and mode == "pr" and not args:
         run_cycloidal_pr()
         return

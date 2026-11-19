@@ -325,6 +325,29 @@ class FanVariantsTest(unittest.TestCase):
                 self.assertEqual(kwargs, {})
 
 
+class PlanetaryFullTest(unittest.TestCase):
+    def test_shards_cover_inventory_and_require_kit_variants(self):
+        inventory = "TestKitGearboxes\nTestOther\nTestNew\nok\n"
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_planetary_full("kits")
+            run_tests.run_planetary_full("rest")
+        kits, rest = go_test.call_args_list
+        self.assertEqual(kits.args[0][2], run_tests.run_pattern(["TestKitGearboxes"]))
+        self.assertEqual(rest.args[0][2], run_tests.run_pattern(["TestNew", "TestOther"]))
+        self.assertEqual(len(kits.args[1]), 4)
+        self.assertIn("TestKitGearboxes/planet608-shaft608", kits.args[1])
+        self.assertEqual(kits.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
+        self.assertEqual(rest.args[1], ["TestNew", "TestOther"])
+
+    def test_missing_kit_or_invalid_shard_fails(self):
+        for inventory, shard in (("TestOther\n", "kits"), ("TestKitGearboxes\nTestOther\n", "bad")):
+            with self.subTest(shard=shard), \
+                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                    self.assertRaises(SystemExit):
+                run_tests.run_planetary_full(shard)
+
+
 class FinishedTestsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

@@ -42,8 +42,8 @@ class PlanTest(unittest.TestCase):
                 if "broad" in expected:
                     full = event in ("schedule", "workflow_dispatch") or "full" in expected
                     for job in gate.BROAD_JOBS:
-                        enabled = job not in ("renderer-full", "bevel-full") and job not in gate.PR_RENDER_JOBS
-                        enabled |= job in ("renderer-full", "bevel-full") and full
+                        enabled = job not in ("renderer-full", "bevel-full", "planetary-full") and job not in gate.PR_RENDER_JOBS
+                        enabled |= job in ("renderer-full", "bevel-full", "planetary-full") and full
                         enabled |= job in gate.PR_RENDER_JOBS and not full and "renderer-all" not in expected
                         if job == "bevel-pr":
                             enabled = not full
