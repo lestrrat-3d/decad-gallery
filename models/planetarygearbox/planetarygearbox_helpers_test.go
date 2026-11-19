@@ -130,6 +130,30 @@ func penetration(t *testing.T, a, b *decad.Body) int {
 	return inside(t, a, b) + inside(t, b, a)
 }
 
+func requireDefaultPlanetMesh(t *testing.T, index int) {
+	t.Helper()
+	_, box := defaultGearbox(t)
+	requirePlanetMesh(t, box, index)
+}
+
+func requireBacklashPlanetMesh(t *testing.T, index int) {
+	t.Helper()
+	p := planetarygearbox.DefaultParams()
+	p.Backlash = 0.2
+	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
+	require.NoError(t, err)
+	requirePlanetMesh(t, box, index)
+}
+
+func requirePlanetMesh(t *testing.T, box planetarygearbox.Gearbox, index int) {
+	t.Helper()
+	planets := box.Stages[0].Planets
+	require.Len(t, planets, 3, "update the separate planet mesh tests when the default planet count changes")
+	planet := planets[index]
+	require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "planet %d inside the sun", index)
+	require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", index)
+}
+
 func requireSectionClearance(t *testing.T, a, b *decad.Body, z, minimum float64) {
 	t.Helper()
 	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
