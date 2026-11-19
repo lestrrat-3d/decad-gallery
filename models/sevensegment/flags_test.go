@@ -305,7 +305,9 @@ func TestSevenSegmentDriveAudit(t *testing.T) {
 
 // sweep returns the least gaps of the slider's tongue and pin to the rotor's notch walls over every pose, for a tongue
 // that spans [-al, ar] about the pin line with its top at -top and a head line at zh below the pin, and slider rises of
-// capU (unlit) and capL (lit), the pin line sitting c below its dwell, and the notch floor `floor` from the rotor axis. It is tw9.py of the design.
+// capU (unlit) and capL (lit), the pin line sitting c below its dwell, and the notch floor `floor` from the rotor axis. It
+// is the sweep of instructions.md ("Tongue, head and notch sweep"), ported from a one-off script that is not in the
+// repository.
 func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pinY float64) {
 	// The rotor, pin and slot dimensions come from the model; slot (the slot's clearance to the pin) and rj (the journal's)
 	// are the Tight fit, and ss is the slider's play along s less the settled journal (0.11), which the rotor carries along.
@@ -460,7 +462,7 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 
 // TestSevenSegmentFlagBudget is the detent budget of the built model: the detent drive over the opposing torque at every shaft
 // angle where a cam is moving a segment, over all ten steps, with the extra cam force of the pin on its slot wall and the
-// loads of the built bodies. It is at least 4.0 at friction 0.35, 1.8 at 0.45 and 1.0 at 0.5 (computed 4.572, 2.053 and 1.271).
+// loads of the built bodies. It is at least 3.0 at friction 0.35, 1.8 at 0.45 and 1.0 at 0.5 (computed 3.416, 1.897 and 1.120).
 func TestSevenSegmentFlagBudget(t *testing.T) {
 	startDigit0()
 	t.Parallel()
