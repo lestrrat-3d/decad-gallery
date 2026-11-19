@@ -1,5 +1,7 @@
 package turbinefan_test
 
+// CI: isolated-tests
+
 import (
 	"fmt"
 	"math"
@@ -13,9 +15,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-// flatsHalf is the distance from a nut slot's line to its straight sides.
-var flatsHalf = m2fastener.NutCavityRadius * math.Sqrt(3) / 2
 
 // TestTurbineFanSetScrew checks the set screw: an M2 (M2 x 10 at 192 mm) on the line x = 0, z = SetScrewZ, whose tip stands on the pushed
 // shaft's flat, whose head floats over a rounded counterbore floor and stays inside the round face, whose nut sits in a
@@ -173,21 +172,6 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 			})
 		}
 	})
-}
-
-// requireAccess requires that no vertex of blade lies in blade k's nut path, the slot's mouth below the root: radial
-// HubRadius - 1 to HubRadius + 4.7 along the radial line, within 2.81 of it sideways, and 0.3 above the slot's high
-// face.
-func requireAccess(t *testing.T, sz turbinefan.Size, blade []r3.Vec, k int) {
-	t.Helper()
-	u := bladeDir(k)
-	v := r3.Vec{X: -u.Y, Y: u.X}
-	for _, w := range blade {
-		if r := w.Dot(u); r >= sz.HubRadius-1 && r <= sz.HubRadius+4.7 && math.Abs(w.Dot(v)) <= 2.81 &&
-			w.Z < sz.HubLength-sz.BladeBoltCavity+0.3 {
-			require.FailNow(t, fmt.Sprintf("a blade %d vertex blocks its nut's path at %v", k, w))
-		}
-	}
 }
 
 // TestTurbineFanAccess requires the set screw's path from -Y and each blade's nut path to stay clear of every blade, so
