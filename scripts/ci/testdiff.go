@@ -21,7 +21,7 @@ type snapshot struct {
 	tests map[string]string
 }
 
-var testName = regexp.MustCompile(`^Test[^a-z].*`)
+var testName = regexp.MustCompile(`^Test($|[^a-z].*)`)
 
 func read(path string) (*snapshot, error) {
 	src, err := os.ReadFile(path)

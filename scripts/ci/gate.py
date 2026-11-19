@@ -49,7 +49,7 @@ PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion
 
 
 def commands(suite):
-    match = re.fullmatch(r"isolated-([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]+)", suite)
+    match = re.fullmatch(r"isolated-([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
     if match and (Path("models") / match.group(1)).is_dir():
         return [["go", "test", "./models/" + match.group(1), "-run", "^" + match.group(2) + "$",
                  "-timeout", "5m", "-count=1"]]

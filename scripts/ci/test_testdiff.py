@@ -47,6 +47,8 @@ class TestDiff(unittest.TestCase):
         self.assertEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
         path.write_text('package example\nfunc helper() {}\n')
         self.assertEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
+        path.write_text('package example\nimport "testing"\nfunc Test(t *testing.T) {}\n')
+        self.assertNotEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
         path.write_text('package example\n// CI: isolated-tests\nimport "testing"\n'
                         'func TestOne(t *testing.T) { TestTwo(t) }\n')
         self.assertNotEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)

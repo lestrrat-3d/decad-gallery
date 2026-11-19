@@ -139,7 +139,7 @@ def isolated_tests(base, tested, changed):
                 names = json.loads(subprocess.check_output([str(binary), str(root / "old.go"), str(root / "new.go")]))
                 if names is None:
                     return []
-                if not isinstance(names, list) or any(not re.fullmatch(r"Test[A-Za-z0-9_]+", n) for n in names):
+                if not isinstance(names, list) or any(not re.fullmatch(r"Test[A-Za-z0-9_]*", n) for n in names):
                     return []
                 suites.update("isolated-" + model + "-" + name for name in names)
         return sorted(suites)
