@@ -13,7 +13,7 @@ ROOT = "github.com/lestrrat-3d/decad-gallery"
 MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement handcrankfan handcranksiren "
              "helicalgear herringbonegear m2bolt m2nut m5bolt m5nut onewayclutch pinring "
              "planetarygearbox plaquestand screwgear spinningwheel spiralspring spurgear swisslever turbinefan".split())
-INTERNAL = set("hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
+INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
 FEATURES = {"dovetail"}
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
@@ -91,8 +91,8 @@ def affected_packages(changed, before, after):
     selected, production = set(), set()
     for path in changed:
         owner = directories.get(str(Path(path).parent))
-        if not owner or owner not in before or owner not in after:
-            raise ValueError("new, deleted, or unknown package: " + path)
+        if not owner or owner not in after:
+            raise ValueError("deleted or unknown package: " + path)
         selected.add(owner)
         if not path.endswith("_test.go"):
             production.add(owner)
@@ -153,8 +153,11 @@ def plan(event, base, tested):
                 raise RuntimeError("package metadata unavailable for an unregistered Go directory") from exc
             raise
         new_packages = set(after) - set(before)
+        if set(before) - set(after):
+            raise ValueError("deleted package requires broad coverage")
         if new_packages:
             new_suites = []
+            registered = True
             for name in sorted(new_packages):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
@@ -162,16 +165,20 @@ def plan(event, base, tested):
                     raise RuntimeError("new package cannot be dispatched: " + directory)
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
                 new_suites.append(prefix + parts[1])
-            reason = "new packages require broad coverage and direct tests"
-            suites = ["broad", *new_suites]
-            if any(path.startswith("tools/render/") for path in code):
-                suites.append("renderer-all")
-            result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
-            return result
+                registry = {"models": MODELS, "internal": INTERNAL, "features": FEATURES}[parts[0]]
+                registered &= parts[1] in registry and name == ROOT + "/" + directory
+            if not registered:
+                reason = "new packages require broad coverage and direct tests"
+                suites = ["broad", *new_suites]
+                if any(path.startswith("tools/render/") for path in code):
+                    suites.append("renderer-all")
+                result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
+                return result
         if any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
                for path in changed):
             raise ValueError("unregistered or shared input changed")
         owners = affected_packages(code, before, after)
+        owners.update(new_packages)
         suites = {}
         if wheel_parts:
             suites["wheel-parts"] = ["check changed wheel part documentation"]
