@@ -123,8 +123,8 @@ func (r *run) ratchetWheel() (*decad.Body, error) {
 const (
 	pawlBackV     = 2.26  // v of the point where the back flank meets the arm's inner edge (pawl frame)
 	pawlInnerSlot = 3.0   // width of the slot between the arm's inner edge and the plate at the root
-	pawlOuterSlot = 1.8   // width of the slot between the arm's outer edge and the plate at the root
-	pawlOuterOpen = 3.0   // width of that slot where it meets the window circle
+	pawlOuterSide = 3.55  // u of the outer slot side at the root, past PawlArmInner (the slot is 1.65 wide there)
+	pawlOuterOpen = 4.75  // u of the outer slot side where it meets the window circle, past PawlArmInner
 	pawlRound     = 1.0   // back-flank and window rounds
 	pawlRootIn    = 2.0   // root round on the arm's inner (tension) side
 	pawlRootOut   = 1.0   // root round on the arm's outer side
@@ -181,8 +181,8 @@ func (r *run) pawlGeometry() pawlGeom {
 	g.ri = r3.Vec{X: in, Y: g.vr}
 	g.ro = r3.Vec{X: in + PawlArmRoot, Y: g.vr}
 	g.pi = r3.Vec{X: in - pawlInnerSlot, Y: g.vr}
-	g.po = r3.Vec{X: in + PawlArmRoot + pawlOuterSlot, Y: g.vr}
-	uc, uo := in-pawlInnerSlot, in+PawlArmRoot+pawlOuterOpen
+	g.po = r3.Vec{X: in + pawlOuterSide, Y: g.vr}
+	uc, uo := in-pawlInnerSlot, in+pawlOuterOpen
 	g.jc = r3.Vec{X: uc, Y: math.Sqrt(WindowRadius*WindowRadius - uc*uc)}
 	g.jo = r3.Vec{X: uo, Y: math.Sqrt(WindowRadius*WindowRadius - uo*uo)}
 	o := r3.Vec{}
