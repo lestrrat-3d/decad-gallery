@@ -117,9 +117,7 @@ def suites_from_plan(raw):
     if (plan.get("version") != 1 or not isinstance(suites, list)
             or any(not isinstance(suite, str) for suite in suites)
             or len(set(suites)) != len(suites)
-            or ("full" in suites and "broad" not in suites)
-            or ("broad" in suites and any(suite not in ("broad", "full", "renderer-all") and not suite.startswith(
-                ("new-model-", "new-package-", "new-feature-")) for suite in suites))):
+            or ("full" in suites and "broad" not in suites)):
         raise ValueError("invalid suite selection")
     matrix_for(suites)
     return suites

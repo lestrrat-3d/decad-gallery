@@ -5,12 +5,56 @@ import subprocess
 import tempfile
 import unittest
 from unittest import mock
+from contextlib import redirect_stdout
+from io import StringIO
 
 import gate
 import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_broad_override_and_gate(self):
+        cases = (("push", "true", ["cycloidal-pr"], ["broad", "cycloidal-pr"]),
+                 ("pull_request", "true", ["model-swisslever", "swiss-render"],
+                  ["broad", "model-swisslever", "swiss-render"]),
+                 ("pull_request", "true", [], ["broad"]),
+                 ("push", "true", ["broad", "new-model-cycloidal", "renderer-all"],
+                  ["broad", "new-model-cycloidal", "renderer-all"]),
+                 ("push", "true", ["broad", "full"], ["broad", "full"]),
+                 ("push", "false", ["cycloidal-pr"], ["cycloidal-pr"]),
+                 ("schedule", "true", ["broad"], ["broad"]),
+                 ("workflow_dispatch", "true", ["broad"], ["broad"]))
+        for event, override, initial, expected in cases:
+            with self.subTest(event=event, override=override, initial=initial), \
+                    mock.patch.dict(os.environ, {"GITHUB_EVENT_NAME": event, "CI_BROAD_OVERRIDE": override},
+                                    clear=True), \
+                    mock.patch.object(plan, "check_wheel_inventory"), \
+                    mock.patch.object(plan, "plan", return_value={
+                        "version": 1, "suites": initial, "reasons": {s: ["original"] for s in initial}}), \
+                    redirect_stdout(StringIO()) as output:
+                plan.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(result["suites"], expected)
+                matrix = gate.matrix_for(expected)
+                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                if "broad" in expected:
+                    full = event in ("schedule", "workflow_dispatch") or "full" in expected
+                    for job in gate.BROAD_JOBS:
+                        enabled = job not in ("renderer-full", "bevel-full") and job not in gate.PR_RENDER_JOBS
+                        enabled |= job in ("renderer-full", "bevel-full") and full
+                        enabled |= job in gate.PR_RENDER_JOBS and not full and "renderer-all" not in expected
+                        if job == "bevel-pr":
+                            enabled = not full
+                        needs[job]["result"] = "success" if enabled else "skipped"
+                needs.update(plan={"result": "success", "outputs": {
+                    "plan": json.dumps(result), "matrix": json.dumps(matrix),
+                    "count": str(len(matrix["include"]))}}, repository={"result": "success"},
+                    worker={"result": "success" if matrix["include"] else "skipped"})
+                self.assertEqual(gate.check(needs, event), [])
+                if "broad" in expected:
+                    needs["wheel-motion" if not full and "renderer-all" not in expected else "siren"]["result"] = "failure"
+                    self.assertTrue(gate.check(needs, event))
+
     def packages(self):
         return {"github.com/lestrrat-3d/decad-gallery/models/cycloidal": {
             "dir": "models/cycloidal", "imports": set(), "test_imports": set()}}

@@ -37,6 +37,12 @@ skip the separate PR renderer jobs because `renderer-full` runs those renderer t
 
 ## Probe and limits
 
+Set the repository Actions variable `CI_BROAD_OVERRIDE` to `true` to select broad PR and push coverage.
+Delete the variable or set it to any other value to restore change-aware selection. The override preserves full
+coverage for dependency changes and every originally selected suite. Scheduled and dispatched
+runs remain full. The `model-checks` gate keeps its name and checks the selected jobs. Variable changes
+affect newly started runs; rerun or start a run to apply a change.
+
 The manually dispatched `ci-probe.yml` uses `probe.py` to create an empty plan and a mocked wheel part image change.
 It exercises an empty matrix, a selected mock worker, and simulated failed, cancelled, and missing worker results.
 The failed worker intentionally exits with failure. The probe does not run geometry or demonstrate an actual changed

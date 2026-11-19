@@ -182,7 +182,7 @@ class GateTest(unittest.TestCase):
                     self.assertTrue(gate.check(altered, event))
 
     def test_invalid_plan_or_matrix_fails(self):
-        for suites in (["unknown"], ["full"], ["broad", "cycloidal-pr"], ["cycloidal-pr", "cycloidal-pr"]):
+        for suites in (["unknown"], ["full"], ["broad", "unknown"], ["cycloidal-pr", "cycloidal-pr"]):
             self.assertTrue(gate.check(needs_for(suites), "push"))
         needs = needs_for(["cycloidal-pr"])
         needs["plan"]["outputs"]["matrix"] = '{"include":[]}'
@@ -205,6 +205,15 @@ class GateTest(unittest.TestCase):
         self.assertEqual(gate.check(needs_for(suites), "push"), [])
         self.assertEqual(gate.commands("new-model-cycloidal")[0][2], "./models/cycloidal")
         self.assertEqual(gate.commands("new-package-cornercheck")[0][2], "./internal/cornercheck")
+
+    def test_broad_preserves_selected_model_and_renderer(self):
+        suites = ["broad", "model-swisslever", "swiss-render"]
+        self.assertEqual(gate.matrix_for(suites), {"include": [
+            {"suite": "model-swisslever", "case": 0}, {"suite": "swiss-render", "case": 0}]})
+        needs = needs_for(suites)
+        self.assertEqual(gate.check(needs, "push"), [])
+        needs["worker"]["result"] = "failure"
+        self.assertTrue(gate.check(needs, "push"))
 
 
 if __name__ == "__main__":

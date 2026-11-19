@@ -217,6 +217,11 @@ def main():
     base = (event_data.get("pull_request", {}).get("base", {}).get("sha", "")
             if event == "pull_request" else event_data.get("before", ""))
     result = plan(event, base, tested)
+    if event in {"pull_request", "push"} and os.environ.get("CI_BROAD_OVERRIDE") == "true":
+        reason = "CI_BROAD_OVERRIDE selects broad PR/push coverage"
+        suites = ["broad"] + [suite for suite in result["suites"] if suite != "broad"]
+        result.update(suites=suites, reasons={suite: ([reason] if suite == "broad" else result["reasons"][suite])
+                                             for suite in suites}, reason=reason)
     encoded = json.dumps(result, sort_keys=True, separators=(",", ":"))
     print(encoded)
     if os.environ.get("GITHUB_OUTPUT"):
