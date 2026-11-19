@@ -304,16 +304,3 @@ func TestSevenSegmentLookAlike(t *testing.T) {
 		}
 	}
 }
-
-// sectionWidth is the x extent of the horizontal section of body at height z.
-func sectionWidth(t *testing.T, body *decad.Body, z float64) float64 {
-	t.Helper()
-	loops := planSection(t, body, z)
-	lo, hi := math.Inf(1), math.Inf(-1)
-	for _, l := range loops {
-		for _, p := range l {
-			lo, hi = math.Min(lo, p.X), math.Max(hi, p.X)
-		}
-	}
-	return hi - lo
-}
