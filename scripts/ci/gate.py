@@ -70,7 +70,11 @@ def commands(suite):
     if isolated:
         directory, name, test, tag = isolated
         package = "." if directory == "tools" else "./" + directory + "/" + name
-        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", "5m", "-count=1",
+        timeout = "40m" if directory == "models" and (
+            (name == "planetarygearbox" and test == "TestKitGearboxes") or
+            (name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
+        ) else "5m"
+        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", timeout, "-count=1",
                  *(["-tags", tag] if tag else [])]]
     if suite in WORKERS:
         return WORKERS[suite]

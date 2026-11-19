@@ -76,6 +76,9 @@ class GateTest(unittest.TestCase):
                     self.assertEqual(run.call_args.kwargs["module"], "tools/render")
         with self.assertRaises(ValueError):
             gate.commands("isolated-tag-coplanar_test-ballbearing-TestBearingCatalog")
+        for suite in ("isolated-planetarygearbox-TestKitGearboxes", "isolated-handcrankfan-TestHandCrankFanDefault"):
+            command = gate.commands(suite)[0]
+            self.assertEqual(command[command.index("-timeout") + 1], "40m")
 
     def test_renderer_records_module(self):
         event = json.dumps({"Package": gate.RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
