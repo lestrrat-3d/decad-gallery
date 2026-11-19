@@ -714,8 +714,9 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentSplitShaft",
     ),
     "assembly": (
-        "TestSevenSegmentAllDigits", "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive",
-        "TestSevenSegmentChannel", "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
+        "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
+        "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
+        "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDetent", "TestSevenSegmentDriveAudit",
         "TestSevenSegmentFasteners", "TestSevenSegmentFlagBudget", "TestSevenSegmentFlagKinematics",
         "TestSevenSegmentFlagRestBand", "TestSevenSegmentPlacement", "TestSevenSegmentRampGeometry",
