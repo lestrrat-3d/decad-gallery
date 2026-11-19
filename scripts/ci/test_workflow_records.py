@@ -16,6 +16,15 @@ def job_section(workflow, job):
 
 
 class WorkflowRecordsTests(unittest.TestCase):
+    def test_capacity_document_check_only_runs_for_changed_instructions(self):
+        section = job_section(WORKFLOW.read_text(), "repository")
+        step = section.split("      - name: Check clamp arm capacity documentation\n", 1)[1]
+        step = step.split("\n      - ", 1)[0]
+        self.assertIn("if: needs.plan.result == 'success' && "
+                      "contains(fromJSON(needs.plan.outputs.plan).changed_paths, "
+                      "'models/clamparm/instructions.md')", step)
+        self.assertIn("run: go test ./internal/clamparmcapacity", step)
+
     def test_full_suite_records_have_unique_paths_and_required_uploads(self):
         workflow = WORKFLOW.read_text()
         jobs = {
