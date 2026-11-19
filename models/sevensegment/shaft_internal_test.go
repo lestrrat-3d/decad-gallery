@@ -50,6 +50,27 @@ func TestSevenSegmentShaft(t *testing.T) {
 	require.InDelta(t, 2.5, maxR, 0.02)
 }
 
+// bisectY returns the y in [lo, hi] where pred of the section's largest radius changes, found by bisection on sections of
+// body: pred is false at lo and true at hi, or true at lo and false at hi.
+func bisectY(t *testing.T, body *decad.Body, lo, hi float64, pred func(float64) bool) float64 {
+	t.Helper()
+	radius := func(y float64) float64 {
+		_, _, r := extent(sectionAt(t, body, y))
+		return r
+	}
+	at := pred(radius(lo))
+	require.NotEqual(t, at, pred(radius(hi)), "the predicate changes between %.2f and %.2f", lo, hi)
+	for hi-lo > 0.004 {
+		m := (lo + hi) / 2
+		if pred(radius(m)) == at {
+			lo = m
+		} else {
+			hi = m
+		}
+	}
+	return (lo + hi) / 2
+}
+
 func TestSevenSegmentCollars(t *testing.T) {
 	_, b := buildShaft(t)
 	// Front step: diameter 6.4 just behind -49.25.
@@ -64,7 +85,15 @@ func TestSevenSegmentCollars(t *testing.T) {
 	require.InDelta(t, 7.6/2, maxR, 0.02)
 	_, _, maxR = extent(sectionAt(t, b, 42.8))
 	require.InDelta(t, 2.5, maxR, 0.02)
-	require.InDelta(t, 3.05, 42.75-39.7, 1e-9)
+	// The collar's two ends, found on the built body: the cone starts where the round section grows past 3.2, and the
+	// cylinder ends where it falls back below 3.0 (Arbor collars: at least 3.0 mm apart, 3.05 as drawn).
+	start := bisectY(t, b, 39.4, 40.5, func(r float64) bool { return r > 3.21 })
+	end := bisectY(t, b, 42.0, 43.5, func(r float64) bool { return r < 3.0 })
+	// The 0.01 of radius the probe needs on the cone's 30 degree slope puts the found start about 0.02 past the apex.
+	require.InDelta(t, 39.7, start, 0.04, "the collar's cone starts")
+	require.InDelta(t, 42.75, end, 0.01, "the collar's cylinder ends")
+	require.GreaterOrEqual(t, end-start, 3.0, "rear collar length")
+	require.InDelta(t, 3.05, end-start, 0.05, "rear collar length")
 	// Collar ring: 3.5 long, diameter 12.
 	_, ring := sharedBody(t, "collar ring", (*run).collarRing)
 	box, err := ring.Bounds()
