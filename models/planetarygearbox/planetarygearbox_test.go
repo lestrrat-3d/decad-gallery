@@ -155,8 +155,8 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 	turned, err := decad.Copy(t.Context(), planet, decad.WithCopyRotation(center, r3.NewVec(0, 0, 1),
 		units.Radians(math.Pi/float64(p.PlanetTeeth))))
 	require.NoError(t, err)
-	require.Positive(t, penetration(t, turned, box.Stages[0].Sun))
-	require.Positive(t, penetration(t, turned, box.Ring))
+	require.True(t, hasPenetration(t, turned, box.Stages[0].Sun))
+	require.True(t, hasPenetration(t, turned, box.Ring))
 }
 
 // TestBacklashRemovesMaterial checks that more backlash thins the sun and planet teeth and widens

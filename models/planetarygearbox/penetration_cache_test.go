@@ -28,4 +28,12 @@ func TestInsideCountsRepeatedProjectedVertices(t *testing.T) {
 	require.Greater(t, len(mesh.Vertices()), len(points))
 	require.Equal(t, len(mesh.Vertices()), inside(t, inner, outer))
 	require.Zero(t, inside(t, outer, inner))
+	require.Equal(t, 1, countInside(t, inner, outer, true))
+	require.True(t, hasPenetration(t, inner, outer))
+	require.True(t, hasPenetration(t, outer, inner))
+	farFrame, err := r3.NewFrame(r3.Vec{X: 10}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	require.NoError(t, err)
+	far, _, err := fastenertool.HexPrism(t.Context(), decad.New(), farFrame, 1, 2)
+	require.NoError(t, err)
+	require.False(t, hasPenetration(t, inner, far))
 }

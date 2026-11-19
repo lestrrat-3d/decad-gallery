@@ -130,6 +130,11 @@ func penetration(t *testing.T, a, b *decad.Body) int {
 	return inside(t, a, b) + inside(t, b, a)
 }
 
+func hasPenetration(t *testing.T, a, b *decad.Body) bool {
+	t.Helper()
+	return countInside(t, a, b, true) > 0 || countInside(t, b, a, true) > 0
+}
+
 func requireDefaultPlanetMesh(t *testing.T, index int) {
 	t.Helper()
 	_, box := defaultGearbox(t)
@@ -292,6 +297,11 @@ func requireFitClearances(t *testing.T, box planetarygearbox.Gearbox, p planetar
 // stands for every height.
 func inside(t *testing.T, a, b *decad.Body) int {
 	t.Helper()
+	return countInside(t, a, b, false)
+}
+
+func countInside(t *testing.T, a, b *decad.Body, stopAfterFirst bool) int {
+	t.Helper()
 	mesh, err := a.Tessellate(t.Context(), units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
 	require.NoError(t, err)
 	box := bounds(t, b)
@@ -311,6 +321,9 @@ func inside(t *testing.T, a, b *decad.Body) int {
 		}
 		if loc == decad.PointInside {
 			count++
+			if stopAfterFirst {
+				return count
+			}
 		}
 	}
 	return count
