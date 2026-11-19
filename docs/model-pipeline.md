@@ -6,6 +6,9 @@ steps, then a fresh agent emits Go from those checked steps. Geometry tests
 check the staged code against the contract. The pipeline ends at a Decad body.
 Fusion add-ins consume the Go construction downstream.
 
+Features follow the same path with `features/<name>/` in place of `models/<name>/`. See
+[Features](features.md).
+
 ## 1. Write the construction contract
 
 Create `models/<name>/instructions.md`. State the inputs and defaults, units,

@@ -10,15 +10,17 @@ import tarfile
 import tempfile
 
 ROOT = "github.com/lestrrat-3d/decad-gallery"
-MODELS = set("ballbearing bevelgear crankhandle cycloidal escapement handcrankfan handcranksiren "
+MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement handcrankfan handcranksiren "
              "helicalgear herringbonegear m2bolt m2nut m5bolt m5nut onewayclutch pinring "
              "planetarygearbox plaquestand screwgear spinningwheel spiralspring spurgear swisslever turbinefan".split())
 INTERNAL = set("hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
+FEATURES = {"dovetail"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
-         "turbinefan": "turbinefan", "spinningwheel": "wheel", "handcranksiren": "siren"}
+         "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
+         "handcranksiren": "siren"}
 RENDER = {"planetarygearbox": "planetary-motion", "spinningwheel": "wheel-motion",
-          "handcrankfan": "fan-motion", "escapement": "escapement-exploded"}
+          "handcrankfan": "fan-motion", "escapement": "escapement-exploded", "clamparm": "clamparm-render"}
 
 
 def check_wheel_inventory(root=Path(".")):
@@ -115,7 +117,8 @@ def plan(event, base, tested):
         try:
             before, after = metadata(base), metadata(tested)
         except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
-            known = {f"models/{name}" for name in MODELS} | {f"internal/{name}" for name in INTERNAL}
+            known = ({f"models/{name}" for name in MODELS} | {f"internal/{name}" for name in INTERNAL}
+                     | {f"features/{name}" for name in FEATURES})
             known.add("tools/render")
             if any(str(Path(path).parent) not in known for path in code):
                 raise RuntimeError("package metadata unavailable for an unregistered Go directory") from exc
@@ -126,9 +129,10 @@ def plan(event, base, tested):
             for name in sorted(new_packages):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
-                if len(parts) != 2 or parts[0] not in {"models", "internal"} or not parts[1].isalnum():
+                if len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or not parts[1].isalnum():
                     raise RuntimeError("new package cannot be dispatched: " + directory)
-                new_suites.append(("new-model-" if parts[0] == "models" else "new-package-") + parts[1])
+                prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
+                new_suites.append(prefix + parts[1])
             reason = "new packages require broad coverage and direct tests"
             result.update(suites=["broad", *new_suites],
                           reasons={suite: [reason] for suite in ["broad", *new_suites]}, reason=reason)
@@ -149,12 +153,15 @@ def plan(event, base, tested):
                     suite = "cycloidal-pr"
             elif owner.startswith(ROOT + "/internal/") and owner.rsplit("/", 1)[-1] in INTERNAL:
                 suite = "package-" + owner.rsplit("/", 1)[-1]
+            elif owner.startswith(ROOT + "/features/") and owner.rsplit("/", 1)[-1] in FEATURES:
+                suite = "feature-" + owner.rsplit("/", 1)[-1]
             else:
                 raise ValueError("unregistered package: " + owner)
             suites.setdefault(suite, []).append("affected package " + owner)
         if any(path.startswith("tools/render/") for path in code):
             raise ValueError("renderer source requires broad coverage")
-        if any(not path.endswith("_test.go") for path in code) and model_owners:
+        if any(not path.endswith("_test.go") for path in code) and (
+                model_owners or ROOT + "/tools/render" in owners):
             suites["renderer-compile"] = ["compile renderer against changed model APIs"]
             for name in sorted(model_owners & RENDER.keys()):
                 suites.setdefault(RENDER[name], []).append("renderer check for " + name)

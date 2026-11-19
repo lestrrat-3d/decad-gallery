@@ -141,7 +141,6 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check spinning wheel motion
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
   wheel-parts:
@@ -173,7 +172,6 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check hand-crank fan motion
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
 
   escapement:
@@ -207,6 +205,19 @@ jobs:
             tools/render/go.sum
       - name: Check one-way clutch
         run: python3 scripts/ci/run_tests.py onewayclutch all
+
+  clamparm:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check clamp arm
+        run: python3 scripts/ci/run_tests.py clamparm all
 
   turbinefan:
     needs: plan
@@ -351,7 +362,7 @@ jobs:
   gate:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
-            onewayclutch, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full]
+            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -360,3 +371,13 @@ jobs:
           NEEDS_JSON: ${{ toJSON(needs) }}
           EVENT_NAME: ${{ github.event_name }}
         run: python3 scripts/ci/gate.py
+
+  model-checks:
+    if: always()
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check aggregate result
+        env:
+          GATE_RESULT: ${{ needs.gate.result }}
+        run: test "$GATE_RESULT" = success

@@ -16,6 +16,13 @@
 - Treat this repository's decad construction as the source for downstream ports.
 - Keep Fusion Python add-in code and its packaging in `fusion360-gear-generator`.
 
+## Features
+
+- Put a reusable shape that only cuts or adds material on parts other items own in `features/<name>/`, for example
+  joinery. Put anything that makes bodies of its own in `models/<name>/`. See [Features](docs/features.md).
+- Give each feature a demo build, tests, images, and a `features/README.md` row. Never list a feature in `models/README.md`.
+- Apply every rule in this file that says "model" to features too, except the root `README.md` and gallery hero image rules.
+
 ## Sketch constraints
 
 - Verify every model Sketch before its geometry is consumed or the build returns.
@@ -89,7 +96,8 @@
 - For a multi-body assembly, include an exploded view and a table with an image and name for each distinct body.
   See `models/planetarygearbox/README.md` for an example.
 - Apply [Exploded views](docs/model-pipeline.md#exploded-views) to every exploded image: large, full-width, every part visible.
-- For every new model, update the root `README.md` overview and gallery hero image.
+- For every new model, update the root `README.md` gallery hero image. The root README's Models section only links to
+  the `models/README.md` table, so do not list models there.
 - Add every new model to `models/README.md` with its description and index image.
 - Keep the `models/README.md` rows in alphabetical order by model name. `scripts/check_repository.py` checks it.
 - Follow `docs/adding-models.md` for the model's hero and index images.

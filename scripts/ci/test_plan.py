@@ -172,4 +172,33 @@ class PlanTest(unittest.TestCase):
             suites = plan.plan("push", "base", "head")["suites"]
         self.assertEqual(set(suites), {"wheel", "wheel-motion", "wheel-parts", "renderer-compile"})
 
+    def test_clamparm_dependencies_and_feature(self):
+        bolt = plan.ROOT + "/models/m5bolt"
+        arm = plan.ROOT + "/models/clamparm"
+        feature = plan.ROOT + "/features/dovetail"
+        renderer = plan.ROOT + "/tools/render"
+        graph = {
+            bolt: {"dir": "models/m5bolt", "imports": set(), "test_imports": set()},
+            arm: {"dir": "models/clamparm", "imports": {bolt}, "test_imports": set()},
+            feature: {"dir": "features/dovetail", "imports": set(), "test_imports": set()},
+            renderer: {"dir": "tools/render", "imports": {arm, feature}, "test_imports": set()},
+        }
+        cases = ((b"models/m5bolt/bolt.go\0", {"model-m5bolt", "clamparm", "clamparm-render", "renderer-compile"}),
+                 (b"models/clamparm/arm_test.go\0", {"clamparm"}),
+                 (b"features/dovetail/dovetail.go\0", {"feature-dovetail", "renderer-compile"}))
+        for path, expected in cases:
+            with self.subTest(path=path), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=path):
+                self.assertEqual(set(plan.plan("push", "base", "head")["suites"]), expected)
+
+    def test_new_feature_gets_direct_test(self):
+        feature = plan.ROOT + "/features/dovetail"
+        graph = {feature: {"dir": "features/dovetail", "imports": set(), "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[{}, graph]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"features/dovetail/demo.go\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad", "new-feature-dovetail"])
+
 

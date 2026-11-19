@@ -37,15 +37,24 @@ func TestSpinningWheelMeshSeparation(t *testing.T) {
 		{"touching_caps", 8, 22, 1, 7, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			_, clear := ring.meshSeparation(makeShape(c.inner, c.outer, c.width, c.z))
+			other := makeShape(c.inner, c.outer, c.width, c.z)
+			gap, clear := ring.meshSeparation(other)
 			require.True(t, clear == c.clear, "clear=%t, want %t", clear, c.clear)
+			numericGap, numericClear := ring.meshSeparationBy(other, 0)
+			require.Equal(t, numericClear, clear, "optimized and numeric clearance verdicts differ")
+			if c.name == "contained_in_material" {
+				require.Zero(t, gap, "containment refusal keeps the original zero gap")
+				require.Zero(t, numericGap, "numeric containment refusal keeps the original zero gap")
+			} else if !clear {
+				require.InDelta(t, numericGap, gap, 1e-12, "optimized and numeric failure gaps differ")
+			}
 		})
 	}
 }
 
 // Boundary separation alone does not exclude containment. Test vertices of every possible component as well.
 func (s collisionShape) meshSeparation(other collisionShape) (float64, bool) {
-	return s.meshSeparationBy(other, 0)
+	return prepareShape(s).separation(prepareShape(other))
 }
 
 // meshSeparationBy is meshSeparation requiring the boundary gap to exceed limit millimetres after both bounds.
@@ -67,7 +76,30 @@ func prepareShape(s collisionShape) preparedShape {
 }
 
 func (s preparedShape) separation(other preparedShape) (float64, bool) {
-	return s.separationBy(other, 0)
+	a, err := s.mesh()
+	if err != nil {
+		return 0, false
+	}
+	b, err := other.mesh()
+	if err != nil {
+		return 0, false
+	}
+	clear, err := a.ExceedsClearance(b, 0)
+	if err != nil {
+		return 0, false
+	}
+	gap := 0.0
+	if !clear {
+		gap, _, err = a.Exceeds(b, 0)
+		if err != nil {
+			return 0, false
+		}
+		return gap, false
+	}
+	if s.contains(other) {
+		return 0, false
+	}
+	return 0, true
 }
 
 // separationBy is meshSeparationBy on shapes whose meshes may already be built.
@@ -84,19 +116,27 @@ func (s preparedShape) separationBy(other preparedShape, limit float64) (float64
 	if err != nil || !clear {
 		return gap, false
 	}
-	// Exceeds proved the surfaces apart by a margin, so no connected component of one mesh crosses the other.
+	// The surface check proved the meshes apart by a margin, so no connected component crosses the other.
 	// Each component is then wholly inside or wholly outside, and one vertex per component decides it.
+	if s.contains(other) {
+		return 0, false
+	}
+	return gap, true
+}
+
+// contains checks one vertex per component after the surface check proves that no component crosses either mesh.
+func (s preparedShape) contains(other preparedShape) bool {
 	for _, p := range componentRepresentatives(s.collisionShape) {
 		if meshContains(other.collisionShape, p) {
-			return 0, false
+			return true
 		}
 	}
 	for _, p := range componentRepresentatives(other.collisionShape) {
 		if meshContains(s.collisionShape, p) {
-			return 0, false
+			return true
 		}
 	}
-	return gap, true
+	return false
 }
 
 // componentRepresentatives returns one vertex of each connected component of the triangle mesh.

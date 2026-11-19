@@ -12,12 +12,14 @@ RUNNER = ["python3", "scripts/ci/run_tests.py"]
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
     "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
+    "feature-dovetail": [["go", "test", "./features/dovetail", "-timeout", "5m"]],
+    "clamparm-render": [["go", "-C", "tools/render", "test", "-run", "^TestClampArm", "-timeout", "40m", "./..."]],
     "wheel": [RUNNER + ["wheel", case] for case in (
         "default-verify", "default-linkage", "native", "small-seven-verify", "small-seven-linkage",
         "large-nine-verify", "large-nine-linkage", "twelve", "small-seventeen", "rest")],
     "siren": [RUNNER + ["siren", case] for case in ("default", "spike", "slots12", "slots24", "rest")],
     "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in ("abgh", "cdef", "rest")],
-    **{name: [RUNNER + [name, "all"]] for name in ("escapement", "onewayclutch", "turbinefan")},
+    **{name: [RUNNER + [name, "all"]] for name in ("clamparm", "escapement", "onewayclutch", "turbinefan")},
     **{name: [["go", "-C", "tools/render", "test", "-run", f"^{test}$", "-timeout", timeout, "./..."]]
        for name, test, timeout in (
            ("planetary-motion", "TestPlanetaryGearboxMotion", "10m"),
@@ -27,7 +29,7 @@ WORKERS = {
            ("escapement-exploded", "TestEscapementExploded", "15m"))},
 }
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
-              "turbinefan", "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
+              "clamparm", "turbinefan", "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
               "bevel-pr", "bevel-full")
 
 

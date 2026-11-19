@@ -2,3 +2,6 @@
 .worktrees/
 .DS_Store
 __pycache__/
+
+# Built by go build in tools/render; never commit it.
+/tools/render/render
