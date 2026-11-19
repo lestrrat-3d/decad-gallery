@@ -1,5 +1,7 @@
 package handcranksiren_test
 
+// CI: isolated-tests
+
 import (
 	"runtime"
 	"testing"
