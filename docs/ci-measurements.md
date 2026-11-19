@@ -9,6 +9,7 @@ These GitHub Actions runs completed on 19 November 2026. Durations are observati
 | [1204](https://github.com/lestrrat-3d/decad-gallery/actions/runs/44472791618) | PR #338 | 34 / 3 | 17m 37s | 24s | 11,218s | 7,848s |
 | [1207](https://github.com/lestrrat-3d/decad-gallery/actions/runs/44474984127) | Main after #338 | 34 / 3 | 13m 09s | 3s | 2,615s | 8,077s |
 | [1213](https://github.com/lestrrat-3d/decad-gallery/actions/runs/44481639445) | PR #339, CI-only changes | 4 / 15 | 1m 13s | 3s | 7s | 64s |
+| [1229](https://github.com/lestrrat-3d/decad-gallery/actions/runs/44490844130) | PR #345, clamp-arm capacity | 6 / 15 | 12m 46s | 18s | 12s | 868s |
 
 Elapsed time is the run's `updatedAt` minus `createdAt`. Initial wait ends when the first successful job starts.
 Job wait is `started_at` minus `created_at`; runner time is `completed_at` minus `started_at`. The sums include
@@ -24,3 +25,8 @@ Run 1213's plan classified the changes as presentation or CI-only and selected n
 `repository`, `gate`, and `model-checks` jobs succeeded; GitHub recorded 15 skipped job entries, including unexpanded
 matrix jobs. Its 1m 13s elapsed time was 11m 56s less than run 1207's 13m 09s. The runs used different revisions,
 selected workloads, and conditions, so this difference is not a controlled estimate of the selection's savings.
+
+Run 1229 succeeded with `plan`, `repository`, `worker-clamparm-0`, `worker-package-clamparmcapacity-0`, `gate`,
+and `model-checks`. The two worker jobs covered the clamp-arm model and its capacity helper. GitHub recorded 15
+skipped job entries, including unrelated model jobs and unexpanded matrices; the legacy `clamparm` job was also
+skipped. Comparison with the broader runs above is uncontrolled because revisions, workloads, and conditions differ.
