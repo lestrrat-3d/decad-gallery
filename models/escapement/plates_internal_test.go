@@ -1,5 +1,7 @@
 package escapement
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
