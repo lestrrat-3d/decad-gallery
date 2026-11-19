@@ -30,6 +30,8 @@ jobs:
             go.sum
             tools/render/go.sum
       - id: plan
+        env:
+          CI_BROAD_OVERRIDE: ${{ vars.CI_BROAD_OVERRIDE }}
         run: python3 scripts/ci/plan.py
       - id: matrix
         env:
