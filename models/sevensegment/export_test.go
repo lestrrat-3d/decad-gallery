@@ -1,6 +1,11 @@
 package sevensegment
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/r3"
+)
 
 // Internal dimensions that the physics tests read, so that they follow the model and not copies of its numbers.
 const (
@@ -46,3 +51,9 @@ func MeasureNotchFloor(t *testing.T, seg Segment) float64 {
 	}
 	return (lo + hi) / 2
 }
+
+// SectionAt cuts body with the plane y = y and returns its loops as (x, z - ShaftZ).
+func SectionAt(t *testing.T, body *decad.Body, y float64) [][]r3.Vec { return sectionAt(t, body, y) }
+
+// LoopsGap returns the least distance between the loops a and b.
+func LoopsGap(a, b [][]r3.Vec) float64 { return loopsGap(a, b) }
