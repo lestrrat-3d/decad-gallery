@@ -117,6 +117,23 @@ func splitParts(box Gearbox, p Params) []splitPart {
 	return parts
 }
 
+func requireSplitKit(t *testing.T, name string, twoStages bool) {
+	t.Helper()
+	p, err := DefaultParamsFor(name)
+	require.NoError(t, err)
+	if twoStages {
+		p.Stages = 2
+	}
+	requireSplitVariant(t, p)
+}
+
+func requireSplitVariant(t *testing.T, p Params) {
+	t.Helper()
+	box, err := Build(t.Context(), NewDocument(), p)
+	require.NoError(t, err)
+	requireSplit(t, box, p)
+}
+
 // requireSplit checks every printed shaft and pin of box against "Split shafts" in docs/model-pipeline.md. The split
 // plane holds the part's axis and the direction its flat faces, so its normal is the axis crossed with that direction.
 // Each part passes the split check, and its halves read on their cut faces with cornercheck.CheckAt at the heights
