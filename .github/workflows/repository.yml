@@ -317,7 +317,10 @@ jobs:
         include:
           - group: abgh
           - group: cdef
-          - group: rest
+          - group: rest-0
+          - group: rest-1
+          - group: rest-2
+          - group: rest-3
     name: bevel-${{ matrix.group }}
     runs-on: ubuntu-latest
     steps:
