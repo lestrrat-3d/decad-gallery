@@ -1,5 +1,7 @@
 package escapement
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -9,14 +11,6 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
-
-func anchorCases() map[string]Params {
-	p := DefaultParams()
-	wide, narrow := p, p
-	wide.LockAngle, wide.LiftAngle, wide.PendulumLength = 1.25*deg, 3*deg, 120
-	narrow.LiftAngle, narrow.PendulumLength = 2*deg, 250
-	return map[string]Params{"default": p, "wide": wide, "narrow": narrow}
-}
 
 func TestAnchor(t *testing.T) {
 	for name, p := range anchorCases() {
@@ -55,24 +49,6 @@ func TestAnchor(t *testing.T) {
 			}
 		})
 	}
-}
-
-// outerLoop2 returns the outline loop with the most extent, relative to the point origin.
-func outerLoop2(loops [][]r3.Vec, origin Pt) []Pt {
-	var best []Pt
-	far := -1.0
-	for _, l := range loops {
-		pts := loopPoints(l)
-		m := 0.0
-		for i := range pts {
-			pts[i] = pts[i].Sub(origin)
-			m = math.Max(m, pts[i].Len())
-		}
-		if m > far {
-			best, far = pts, m
-		}
-	}
-	return best
 }
 
 // TestSketchesBranches verifies the sketches of the parts that change with the parameters (the anchor outline and the
