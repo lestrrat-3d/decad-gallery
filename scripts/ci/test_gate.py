@@ -118,8 +118,9 @@ class GateTest(unittest.TestCase):
 
     def test_suite_expansion_preserves_all_shards(self):
         matrix = gate.matrix_for(["wheel", "siren", "bevel-pr", "model-cycloidal", "package-cornercheck"])
-        self.assertEqual(len(matrix["include"]), 20)
-        self.assertEqual(gate.commands("bevel-pr")[-1][-1], "rest")
+        self.assertEqual(len(matrix["include"]), 23)
+        self.assertEqual([command[-1] for command in gate.commands("bevel-pr")],
+                         ["abgh", "cdef", "rest-0", "rest-1", "rest-2", "rest-3"])
         self.assertEqual(gate.commands("model-cycloidal")[0][-3:], ["model", "pr", "cycloidal"])
         self.assertEqual(gate.commands("package-cornercheck")[0][2], "./internal/cornercheck")
         self.assertTrue(gate.check(needs_for(["wheel", "siren"]), "push") == [])

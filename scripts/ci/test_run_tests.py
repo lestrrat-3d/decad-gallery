@@ -27,11 +27,26 @@ class RunPatternTest(unittest.TestCase):
 
 class BevelJobGroupsTest(unittest.TestCase):
     def test_remainder_includes_new_tests_and_partially_selected_tests(self):
-        listing = mock.Mock(stdout="TestRealEightToothFullPatternJoin\nTestSpiralInputsMembers\nTestNew\n")
+        available = ["TestRealEightToothFullPatternJoin", "TestSpiralInputsMembers", "TestNew"]
+        shards = run_tests.bevel_remainder_shards(available)
+        self.assertEqual({test for shard in shards for test in shard}, {"TestSpiralInputsMembers", "TestNew"})
+        self.assertEqual(sum(map(len, shards)), 2)
+        self.assertEqual(shards, run_tests.bevel_remainder_shards(list(reversed(available))))
+
+    def test_remainder_skips_already_selected_subtest(self):
+        listing = mock.Mock(stdout="TestSpiralInputsMembers\n")
         with mock.patch.object(run_tests.subprocess, "run", return_value=listing), \
              mock.patch.object(run_tests, "go_test") as go_test:
-            run_tests.run_bevel("pr", "rest")
-        self.assertEqual(go_test.call_args.args[1], ["TestSpiralInputsMembers", "TestNew"])
+            run_tests.run_bevel("pr", "rest-0")
+        command, expected = go_test.call_args.args
+        self.assertEqual(expected, ["TestSpiralInputsMembers"])
+        self.assertEqual(command[command.index("-skip") + 1], "^TestSpiralInputsMembers$/^module_0_5$")
+
+    def test_empty_remainder_shard_succeeds_without_running_tests(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestNew\n")), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_bevel("pr", "rest-3")
+        go_test.assert_not_called()
 
     def test_groups_partition_all_shards_once(self):
         shards = [shard for group in run_tests.BEVEL_JOB_GROUPS.values() for shard in group]

@@ -306,6 +306,7 @@ BEVEL_JOB_GROUPS = {
     "abgh": ("a", "b", "g", "h"),
     "cdef": ("c", "d", "e", "f"),
 }
+BEVEL_REMAINDER_SHARDS = 4
 
 ESCAPEMENT_SHARDS = (
     (
@@ -487,15 +488,27 @@ def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: s
             output.close()
 
 
+def bevel_remainder_shards(available: list[str]) -> list[list[str]]:
+    """Assign every otherwise unselected top-level test to one remainder shard."""
+    assigned = {test for tests in BEVEL_TESTS["pr"].values() for test in tests if "/" not in test}
+    remainder = sorted(set(available) - assigned)
+    return [remainder[index::BEVEL_REMAINDER_SHARDS] for index in range(BEVEL_REMAINDER_SHARDS)]
+
+
 def run_bevel(mode: str, shard: str) -> None:
-    if mode == "pr" and shard == "rest":
+    if mode == "pr" and shard in {f"rest-{index}" for index in range(BEVEL_REMAINDER_SHARDS)}:
         package = "./models/bevelgear"
         listing = subprocess.run(["go", "test", "-list", "^Test", package],
                                  check=True, capture_output=True, text=True)
-        assigned = {test for tests in BEVEL_TESTS["pr"].values() for test in tests if "/" not in test}
-        tests = [line for line in listing.stdout.splitlines() if line.startswith("Test") and line not in assigned]
+        available = [line for line in listing.stdout.splitlines() if line.startswith("Test")]
+        tests = bevel_remainder_shards(available)[int(shard.removeprefix("rest-"))]
         if tests:
-            go_test([package, "-run", run_pattern(tests), "-timeout", "60m"], tests,
+            partial = [test for group in BEVEL_TESTS["pr"].values() for test in group
+                       if "/" in test and test.split("/")[0] in tests]
+            command = [package, "-run", run_pattern(tests), "-timeout", "60m"]
+            if len(partial) == 1:
+                command += ["-skip", run_pattern(partial)]
+            go_test(command, tests,
                     package="github.com/lestrrat-3d/decad-gallery/models/bevelgear")
         return
     if shard in BEVEL_JOB_GROUPS:
@@ -765,7 +778,7 @@ def main() -> None:
         run_fan_variant(mode)
         return
     raise SystemExit(
-        "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest>"
+        "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest-0..3>"
         " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
         " | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
     )

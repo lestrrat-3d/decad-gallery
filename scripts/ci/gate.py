@@ -37,7 +37,8 @@ WORKERS = {
         "default-verify", "default-linkage", "native", "small-seven-verify", "small-seven-linkage",
         "large-nine-verify", "large-nine-linkage", "twelve", "small-seventeen", "rest")],
     "siren": [RUNNER + ["siren", case] for case in ("default", "spike", "slots12", "slots24", "rest")],
-    "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in ("abgh", "cdef", "rest")],
+    "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in
+                 ("abgh", "cdef", "rest-0", "rest-1", "rest-2", "rest-3")],
     **{name: [RUNNER + [name, "all"]] for name in ("clamparm", "escapement", "onewayclutch", "turbinefan")},
 }
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
