@@ -1,5 +1,7 @@
 package onewayclutch_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -9,9 +11,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-// cornerMinWall is the press-fit wall of "Corners and roots": four 0.4 mm lines.
-const cornerMinWall = 1.6
 
 // TestOneWayClutchCorners applies "Corners and roots" to the four printed parts, each in its print orientation (axis
 // vertical, so +Z in the clutch's frame), in every preset and both directions. The one exemption is the back plate's
