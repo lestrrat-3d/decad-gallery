@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -13,6 +14,33 @@ import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_isolated_selection_works_without_existing_tmp_directory(self):
+        project = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "scripts/ci").mkdir(parents=True)
+            (root / "scripts/ci/testdiff.go").write_bytes((project / "scripts/ci/testdiff.go").read_bytes())
+            test_file = root / "models/ballbearing/catalog_test.go"
+            test_file.parent.mkdir(parents=True)
+            source = 'package ballbearing_test\n\n// CI: isolated-tests\n\nimport "testing"\n\n'
+            source += 'func TestBearingCatalog(t *testing.T) { t.Log("before") }\n'
+            test_file.write_text(source)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", str(test_file.relative_to(root))], cwd=root, check=True)
+            commit = ["git", "-c", "user.name=CI test", "-c", "user.email=ci@example.invalid",
+                      "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm"]
+            subprocess.run(commit + ["before"], cwd=root, check=True)
+            test_file.write_text(source.replace('"before"', '"after"'))
+            subprocess.run(["git", "add", str(test_file.relative_to(root))], cwd=root, check=True)
+            subprocess.run(commit + ["after"], cwd=root, check=True)
+            self.assertFalse((root / ".tmp").exists())
+            code = ('import json, plan; print(json.dumps(plan.isolated_tests('
+                    '"HEAD^", "HEAD", ["models/ballbearing/catalog_test.go"])))')
+            env = dict(os.environ, PYTHONPATH=str(project / "scripts/ci"))
+            output = subprocess.check_output([sys.executable, "-c", code], cwd=root, env=env, text=True)
+            self.assertEqual(json.loads(output), ["isolated-ballbearing-TestBearingCatalog"])
+            self.assertTrue((root / ".tmp").is_dir())
+
     def test_single_isolated_test_selects_exact_worker(self):
         path = b"models/ballbearing/catalog_test.go\0"
         suite = "isolated-ballbearing-TestBearingCatalog"
