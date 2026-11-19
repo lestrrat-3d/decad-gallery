@@ -1,17 +1,14 @@
 package screwgear_test
 
+// CI: isolated-tests
+
 import (
-	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/screwgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-var defaultWindows = sync.OnceValues(func() ([2]screwgear.WindowForTest, error) {
-	return screwgear.WindowsForTest(screwgear.DefaultParams())
-})
 
 // TestWindowSearchAtTheDefaults pins the numbers the spec quotes for both default windows.
 func TestWindowSearchAtTheDefaults(t *testing.T) {

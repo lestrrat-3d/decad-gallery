@@ -1,5 +1,7 @@
 package screwgear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -7,9 +9,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-// onPlane is how far p stands from the plane, along the plane's normal.
-func onPlane(plane r3.Frame, p r3.Vec) float64 { return p.Sub(plane.Origin()).Dot(plane.N()) }
 
 func TestSectionPair(t *testing.T) {
 	t.Parallel()
