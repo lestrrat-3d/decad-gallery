@@ -73,6 +73,23 @@ class PlanTest(unittest.TestCase):
     def test_dispatch_always_broad(self):
         self.assertEqual(plan.plan("workflow_dispatch", "", "head")["suites"], ["broad"])
 
+    def test_module_files_select_full_coverage(self):
+        for path in ("go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"):
+            for event in ("push", "pull_request"):
+                with self.subTest(path=path, event=event), \
+                     mock.patch.object(plan, "git", side_effect=lambda *args: {
+                         ("rev-parse", "HEAD"): b"head",
+                         ("rev-parse", "--verify", "head^{commit}"): b"head",
+                         ("rev-parse", "--verify", "base^{commit}"): b"base",
+                         ("rev-list", "--parents", "-n", "1", "head"): b"head base other",
+                     }[args]), \
+                     mock.patch.object(plan.subprocess, "check_output", return_value=(path + "\0README.md\0").encode()), \
+                     mock.patch.object(plan, "metadata") as metadata:
+                    result = plan.plan(event, "base", "head")
+                    self.assertEqual(result["suites"], ["broad", "full"])
+                    self.assertIn("dependency", result["reason"])
+                    metadata.assert_not_called()
+
     def test_renderer_change_adds_full_renderer_to_broad(self):
         renderer = plan.ROOT + "/tools/render"
         graph = {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}

@@ -1,7 +1,10 @@
 import contextlib
 import io
 import json
+from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 from unittest import mock
 
@@ -75,15 +78,18 @@ class BevelJobGroupsTest(unittest.TestCase):
 
 class SirenCasesTest(unittest.TestCase):
     def test_remainder_runs_unassigned_tests(self):
-        listing = mock.Mock(stdout="TestValidate\nTestHandCrankSirenVariant\nTestBuildRejectsNilDocument\nTestNew\n")
+        assigned = [test for _, names in run_tests.SIREN_CASES.values() for test in names]
+        listing = mock.Mock(stdout="\n".join({test.split("/")[0] for test in assigned} |
+                                             {"TestBuildRejectsNilDocument", "TestNew"}))
         with (
             mock.patch.object(run_tests.subprocess, "run", return_value=listing),
             mock.patch.object(run_tests, "go_test") as go_test,
         ):
             run_tests.run_siren("rest")
-        tests = ["TestBuildRejectsNilDocument", "TestNew"]
+        tests = ["TestBuildRejectsNilDocument", "TestHandCrankSirenVariant", "TestNew"]
         go_test.assert_called_once_with(
-            ["./models/handcranksiren", "-run", run_tests.run_pattern(tests), "-timeout", "40m", "-count=1"],
+            ["./models/handcranksiren", "-run", "^Test", "-skip", run_tests.run_pattern(assigned),
+             "-timeout", "40m", "-count=1"],
             tests,
             package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren",
         )
@@ -133,7 +139,7 @@ class SirenCasesTest(unittest.TestCase):
                 self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
                 self.assertEqual(args[0][-3:], ["-timeout", "40m", "-count=1"])
                 self.assertEqual(args[1], expected)
-                self.assertEqual(kwargs, {})
+                self.assertEqual(kwargs, {"package": "github.com/lestrrat-3d/decad-gallery/models/handcranksiren"})
 
 
 class EscapementTest(unittest.TestCase):
@@ -215,8 +221,32 @@ class EscapementTest(unittest.TestCase):
                 run_tests.go_test_shards("./pkg", (("TestA",),), "1m")
         popen.assert_not_called()
 
+    def test_sharded_runner_rejects_skipped_subtest(self):
+        class FakeProcess:
+            def __init__(self, command, stdout, **kwargs):
+                stdout.write(json.dumps({"Action": "skip", "Test": "TestA/child"}) + "\n")
+                stdout.write(json.dumps({"Action": "pass", "Test": "TestA"}) + "\n")
+
+            def wait(self):
+                return 0
+
+            def poll(self):
+                return 0
+
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")), \
+             mock.patch.object(run_tests.subprocess, "Popen", side_effect=FakeProcess):
+            with self.assertRaisesRegex(SystemExit, "TestA/child"):
+                run_tests.go_test_shards("./pkg", (("TestA",),), "1m")
+
 
 class WheelTest(unittest.TestCase):
+    def test_remainder_rejects_missing_or_overlapping_assignments(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")):
+            with self.assertRaisesRegex(SystemExit, "missing from inventory"):
+                run_tests.run_remainder("./models/spinningwheel", ["TestMissing/child"])
+            with self.assertRaisesRegex(SystemExit, "overlap"):
+                run_tests.run_remainder("./models/spinningwheel", ["TestA", "TestA/child"])
+
     def test_each_named_case_requires_its_expected_tests(self):
         for case in run_tests.WHEEL_CASES:
             with self.subTest(case=case), mock.patch.object(run_tests, "go_test") as go_test:
@@ -225,11 +255,43 @@ class WheelTest(unittest.TestCase):
                 self.assertTrue(go_test.call_args.args[1])
 
     def test_remainder_includes_tests_without_wheel_prefix(self):
-        with mock.patch.object(run_tests, "go_test") as go_test:
+        assigned = [test for tests in run_tests.WHEEL_EXPECTED.values() for test in tests]
+        listing = "\n".join({test.split("/")[0] for test in assigned} | {"TestNew"})
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=listing)), \
+                mock.patch.object(run_tests, "go_test") as go_test:
             run_tests.run_wheel("rest")
         command = go_test.call_args.args[0]
         self.assertEqual(command[command.index("-run") + 1], "^Test")
-        self.assertEqual(command[command.index("-skip") + 1], run_tests.WHEEL_HEAVY)
+        self.assertEqual(command[command.index("-skip") + 1], run_tests.run_pattern(assigned))
+        self.assertIn("TestNew", go_test.call_args.args[1])
+
+    def test_remainder_selects_new_nested_subtests_with_go(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            root = Path(directory)
+            (root / "go.mod").write_text("module fixture\n\ngo 1.23\n")
+            (root / "selection_test.go").write_text('''package fixture_test
+import "testing"
+func TestVariant(t *testing.T) {
+    t.Run("small", func(t *testing.T) {
+        t.Run("old", func(t *testing.T) {})
+        t.Run("new", func(t *testing.T) {})
+    })
+    t.Run("new-variant", func(t *testing.T) {})
+}
+func TestWhole(t *testing.T) { t.Fatal("assigned elsewhere") }
+func TestNew(t *testing.T) {}
+''')
+            assigned = ["TestVariant/small/old", "TestWhole"]
+            result = subprocess.run(["go", "test", "-json", "-run", "^Test", "-skip",
+                                     run_tests.run_pattern(assigned), "./..."], cwd=root,
+                                    check=True, capture_output=True, text=True)
+        events = [json.loads(line) for line in result.stdout.splitlines()]
+        passed = {event["Test"] for event in events if event.get("Action") == "pass" and "Test" in event}
+        self.assertTrue({"TestVariant/small/new", "TestVariant/new-variant", "TestNew"} <= passed)
+        started = {event["Test"] for event in events if event.get("Action") == "run" and "Test" in event}
+        self.assertFalse({"TestVariant/small/old", "TestWhole"} & started)
+        self.assertFalse([event for event in events if event.get("Action") == "skip"])
 
 
 class FanVariantsTest(unittest.TestCase):
@@ -375,6 +437,31 @@ class FullModelInventoryTest(unittest.TestCase):
              mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="pkg\n")):
             with self.assertRaisesRegex(SystemExit, "unknown full bevel shard tests: TestMissing"):
                 run_tests.run_full_models()
+
+
+class DedicatedModelInventoryTest(unittest.TestCase):
+    def test_dedicated_jobs_inventory_every_package(self):
+        cases = ((run_tests.run_turbinefan, ("turbinefan",)),
+                 (run_tests.run_onewayclutch, ("onewayclutch",)),
+                 (run_tests.run_clamparm, ("clamparm", "m5bolt", "m5nut")))
+        prefix = "github.com/lestrrat-3d/decad-gallery/models/"
+        for runner, names in cases:
+            with self.subTest(names=names), \
+                 mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestShared\n")) as listing, \
+                 mock.patch.object(run_tests, "go_test") as go_test:
+                runner()
+                self.assertEqual(listing.call_count, len(names))
+                go_test.assert_called_once_with(
+                    [*(f"./models/{name}" for name in names), "-timeout", "40m", "-count=1"],
+                    qualified_expected={(prefix + name, "TestShared") for name in names},
+                )
+
+    def test_empty_package_inventory_fails(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="")), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            with self.assertRaisesRegex(SystemExit, "model package m5bolt lists no tests"):
+                run_tests.run_model_packages(("m5bolt",))
+            go_test.assert_not_called()
 
 
 class CycloidalPilotTest(unittest.TestCase):

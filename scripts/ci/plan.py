@@ -114,6 +114,11 @@ def plan(event, base, tested):
         paths = subprocess.check_output(["git", "diff", "--no-renames", "--name-only", "-z", base, tested])
         changed = [os.fsdecode(path) for path in paths.split(b"\0") if path]
         result.update(tested=tested, base=base, changed_paths=changed)
+        dependency_files = {"go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"}
+        if dependency_files.intersection(changed):
+            reason = "module dependency files changed; full coverage required"
+            result.update(suites=["broad", "full"], reasons={"broad": [reason], "full": [reason]}, reason=reason)
+            return result
         wheel_parts = any(path.startswith("models/spinningwheel/images/parts/") and
                           Path(path).suffix.lower() == ".png" for path in changed)
         def is_presentation(path):

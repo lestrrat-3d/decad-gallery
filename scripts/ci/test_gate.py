@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import unittest
 from unittest import mock
 
@@ -12,11 +13,12 @@ def needs_for(suites, event="push"):
     except ValueError:
         matrix = {"include": []}
     needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+    full = "full" in suites or event in ("schedule", "workflow_dispatch")
     if "broad" in suites:
         for job in gate.BROAD_JOBS:
-            if job == "bevel-pr" and event not in ("push", "pull_request"):
+            if (job == "bevel-pr" or job in gate.PR_RENDER_JOBS) and full:
                 continue
-            if job in ("bevel-full", "renderer-full") and event not in ("schedule", "workflow_dispatch"):
+            if job in ("bevel-full", "renderer-full") and not full:
                 continue
             needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
@@ -27,16 +29,46 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    def test_gallery_cache_step_runs_only_on_pr_and_push(self):
+        workflow = Path(".github/workflows/repository.yml").read_text()
+        step = workflow.split("- name: Check gallery tile cache\n", 1)[1].split("- name:", 1)[0]
+        self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'", step)
+        self.assertIn("go -C tools/render test -run '^TestGalleryCache'", step)
+        renderer = workflow.split("  renderer-full:\n", 1)[1].split("\n  planetary-motion:", 1)[0]
+        self.assertIn("python3 scripts/ci/gate.py renderer-full", renderer)
+
     def test_broad_with_full_renderer_dispatch(self):
         suites = ["broad", "renderer-all"]
         self.assertEqual(gate.check(needs_for(suites), "push"), [])
         with mock.patch.dict(os.environ, {"SUITE": "renderer-all", "CASE": "0"}), \
                 mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
-                mock.patch.object(gate.subprocess, "run") as dispatch:
+                mock.patch.object(gate, "run_renderer_full") as dispatch:
             gate.main()
-        dispatch.assert_called_once_with(
-            ["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."], check=True,
-        )
+        dispatch.assert_called_once_with()
+
+    def test_full_renderer_inventory_requires_every_package_and_subtest(self):
+        packages = [gate.RENDER_PACKAGE, gate.RENDER_PACKAGE + "/extra"]
+        def run(command, **kwargs):
+            if command[-2:] == ["list", "./..."]:
+                return mock.Mock(stdout="\n".join(packages))
+            return mock.Mock(stdout="TestSame\nok\n")
+        def events(missing=None, skip=False):
+            entries = [{"Package": package, "Test": "TestSame", "Action": "pass"}
+                       for package in packages if package != missing]
+            if skip:
+                entries.append({"Package": packages[0], "Test": "TestSame/child", "Action": "skip"})
+            proc = mock.Mock(stdout=[json.dumps(entry) for entry in entries], returncode=0)
+            proc.wait.return_value = 0
+            return proc
+        for missing, skip in ((None, False), (packages[1], False), (None, True)):
+            with self.subTest(missing=missing, skip=skip), \
+                    mock.patch.object(gate.subprocess, "run", side_effect=run), \
+                    mock.patch.object(gate.subprocess, "Popen", return_value=events(missing, skip)):
+                if missing or skip:
+                    with self.assertRaisesRegex(SystemExit, "TestSame"):
+                        gate.run_renderer_full()
+                else:
+                    gate.run_renderer_full()
 
     def test_renderer_dispatch_commands(self):
         package = "github.com/lestrrat-3d/decad-gallery/tools/render"
@@ -106,8 +138,37 @@ class GateTest(unittest.TestCase):
         needs["wheel"]["result"] = "success"
         self.assertTrue(gate.check(needs, "push"))
 
+    def test_full_events_require_renderer_inventory_and_skip_duplicate_jobs(self):
+        for event in ("schedule", "workflow_dispatch"):
+            needs = needs_for(["broad"], event)
+            self.assertEqual(gate.check(needs, event), [])
+            for job in gate.PR_RENDER_JOBS:
+                with self.subTest(event=event, job=job):
+                    altered = needs_for(["broad"], event)
+                    altered[job]["result"] = "success"
+                    self.assertTrue(gate.check(altered, event))
+            needs["renderer-full"]["result"] = "skipped"
+            self.assertTrue(gate.check(needs, event))
+
+    def test_full_selection_requires_full_jobs_on_push_and_pull_request(self):
+        for event in ("push", "pull_request"):
+            suites = ["broad", "full"]
+            needs = needs_for(suites, event)
+            self.assertEqual(gate.matrix_for(suites), {"include": []})
+            self.assertEqual(gate.check(needs, event), [])
+            for job in ("renderer-full", "bevel-full"):
+                with self.subTest(event=event, job=job):
+                    altered = needs_for(suites, event)
+                    altered[job]["result"] = "skipped"
+                    self.assertTrue(gate.check(altered, event))
+            for job in gate.PR_RENDER_JOBS | {"bevel-pr"}:
+                with self.subTest(event=event, job=job):
+                    altered = needs_for(suites, event)
+                    altered[job]["result"] = "success"
+                    self.assertTrue(gate.check(altered, event))
+
     def test_invalid_plan_or_matrix_fails(self):
-        for suites in (["unknown"], ["broad", "cycloidal-pr"], ["cycloidal-pr", "cycloidal-pr"]):
+        for suites in (["unknown"], ["full"], ["broad", "cycloidal-pr"], ["cycloidal-pr", "cycloidal-pr"]):
             self.assertTrue(gate.check(needs_for(suites), "push"))
         needs = needs_for(["cycloidal-pr"])
         needs["plan"]["outputs"]["matrix"] = '{"include":[]}'

@@ -11,6 +11,7 @@ from run_tests import finished_tests, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
+RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
 RENDER_TESTS = {
     "clamparm-render": ("40m", ("TestClampArmPresets", "TestClampArmExploded")),
     "swiss-render": ("40m", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
@@ -44,6 +45,7 @@ WORKERS = {
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
               "clamparm", "turbinefan", "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
               "bevel-pr", "bevel-full")
+PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
 def commands(suite):
@@ -64,7 +66,7 @@ def commands(suite):
 
 def matrix_for(suites):
     return {"include": [{"suite": suite, "case": index}
-                        for suite in suites if suite != "broad"
+                        for suite in suites if suite not in ("broad", "full")
                         for index in range(len(commands(suite)))]}
 
 
@@ -73,7 +75,7 @@ def run_renderer(suite, command):
     finished = finished_tests(proc.stdout, qualified=True)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    package = "github.com/lestrrat-3d/decad-gallery/tools/render"
+    package = RENDER_PACKAGE
     expected = RENDER_TESTS[suite][1]
     missing = {test for test in expected if finished.get((package, test)) != "pass"}
     missing.update(test for (pkg, test), status in finished.items()
@@ -83,13 +85,40 @@ def run_renderer(suite, command):
         raise SystemExit("renderer tests did not pass: " + ", ".join(sorted(missing)[:20]))
 
 
+def run_renderer_full():
+    """Discover every renderer package and require each listed test to pass."""
+    base = ["go", "-C", "tools/render"]
+    packages = subprocess.run(base + ["list", "./..."], check=True, capture_output=True, text=True).stdout.splitlines()
+    if not packages or len(packages) != len(set(packages)):
+        raise SystemExit("renderer package inventory is empty or duplicated")
+    expected = set()
+    for package in packages:
+        output = subprocess.run(base + ["test", "-list", "^Test", package],
+                                check=True, capture_output=True, text=True).stdout
+        expected.update((package, line) for line in output.splitlines() if line.startswith("Test"))
+    if not expected:
+        raise SystemExit("renderer test inventory is empty")
+    proc = subprocess.Popen(base + ["test", "-json", "-timeout", "170m", "./..."],
+                            stdout=subprocess.PIPE, text=True)
+    finished = finished_tests(proc.stdout, qualified=True)
+    if proc.wait() != 0:
+        raise SystemExit(proc.returncode)
+    missing = {identity for identity in expected if finished.get(identity) != "pass"}
+    missing.update((package, test) for (package, test), status in finished.items()
+                   if status != "pass" and (package, test.split("/", 1)[0]) in expected)
+    if missing:
+        names = (f"tools/render:{package}:{test}" for package, test in sorted(missing)[:20])
+        raise SystemExit("renderer tests did not pass: " + ", ".join(names))
+
+
 def suites_from_plan(raw):
     plan = json.loads(raw)
     suites = plan["suites"]
     if (plan.get("version") != 1 or not isinstance(suites, list)
             or any(not isinstance(suite, str) for suite in suites)
             or len(set(suites)) != len(suites)
-            or ("broad" in suites and any(suite not in ("broad", "renderer-all") and not suite.startswith(
+            or ("full" in suites and "broad" not in suites)
+            or ("broad" in suites and any(suite not in ("broad", "full", "renderer-all") and not suite.startswith(
                 ("new-model-", "new-package-", "new-feature-")) for suite in suites))):
         raise ValueError("invalid suite selection")
     matrix_for(suites)
@@ -114,12 +143,13 @@ def check(needs, event):
         return errors + [f"planner did not report a valid selection: {exc}"]
 
     expected = {"worker": "success" if expected_matrix["include"] else "skipped"}
+    full = "full" in suites or event in ("schedule", "workflow_dispatch")
     for job in BROAD_JOBS:
         enabled = "broad" in suites
-        if job == "bevel-pr":
-            enabled &= event in ("pull_request", "push")
+        if job == "bevel-pr" or job in PR_RENDER_JOBS:
+            enabled &= not full
         if job in ("bevel-full", "renderer-full"):
-            enabled &= event in ("schedule", "workflow_dispatch")
+            enabled &= full
         expected[job] = "success" if enabled else "skipped"
     for job, status in expected.items():
         result = needs.get(job, {}).get("result", "missing")
@@ -138,10 +168,14 @@ def main():
     elif len(sys.argv) > 1 and sys.argv[1] == "run":
         suite = os.environ["SUITE"]
         command = commands(suite)[int(os.environ["CASE"])]
-        if suite in RENDER_TESTS:
+        if suite == "renderer-all":
+            run_renderer_full()
+        elif suite in RENDER_TESTS:
             run_renderer(suite, command)
         else:
             subprocess.run(command, check=True)
+    elif len(sys.argv) > 1 and sys.argv[1] == "renderer-full":
+        run_renderer_full()
     else:
         errors = check(json.loads(os.environ["NEEDS_JSON"]), os.environ["EVENT_NAME"])
         if errors:

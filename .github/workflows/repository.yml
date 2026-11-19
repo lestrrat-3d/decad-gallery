@@ -82,24 +82,24 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check gallery tile cache
-        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null
+        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
-        if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
+        if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener ./internal/cornercheck ./internal/splitcheck -timeout 5m
       - name: Check model regressions
-        if: (github.event_name == 'pull_request' || github.event_name == 'push') && contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+        if: (github.event_name == 'pull_request' || github.event_name == 'push') && contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: python3 scripts/ci/run_tests.py models pr
       - name: Check full model suite
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         env:
           HANDCRANKFAN_FULL: '1'
           PLANETARY_ALL_KITS: '1'
-        run: python3 scripts/ci/run_tests.py models full
+        run: python3 scripts/ci/full_partition.py
 
   renderer-full:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -111,11 +111,11 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check full renderer suite
-        run: go -C tools/render test -timeout 170m ./...
+        run: python3 scripts/ci/gate.py renderer-full
 
   planetary-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +130,7 @@ jobs:
 
   wheel-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -145,7 +145,7 @@ jobs:
 
   wheel-parts:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -161,7 +161,7 @@ jobs:
 
   fan-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -237,7 +237,7 @@ jobs:
 
   escapement-exploded:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -310,7 +310,7 @@ jobs:
 
   bevel-pr:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     strategy:
       fail-fast: false
       matrix:
@@ -336,7 +336,7 @@ jobs:
 
   bevel-full:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     strategy:
       fail-fast: false
       matrix:
