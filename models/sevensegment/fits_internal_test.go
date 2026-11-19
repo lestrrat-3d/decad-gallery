@@ -125,6 +125,30 @@ func TestSevenSegmentFits(t *testing.T) {
 		}
 	})
 
+	t.Run("P3 registration pegs in their holes", func(t *testing.T) {
+		_, guide := sharedBody(t, "guide plate", (*run).columnGuidePlate)
+		_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
+		_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
+		// The column pegs stand on the guide plate and the top pegs hang from the top plate. Each section is cut where the
+		// peg is a plain cylinder of radius 1.5 and the hole in the cradle a plain cylinder of radius 1.55: below the top
+		// pegs' collars and the mouth cones.
+		for _, c := range []struct {
+			name  string
+			body  *decad.Body
+			sites [2][2]float64
+			z     float64
+		}{{"column peg", guide, columnPegs, 81.0}, {"top peg", top, topPegs, 81.6}} {
+			pegs, holes := planSection(t, c.body, c.z), planSection(t, cradle, c.z)
+			for _, site := range c.sites {
+				at := r3.Vec{X: site[0], Y: site[1]}
+				peg, hole := loopAt(pegs, at, 3.0), loopAt(holes, at, 3.1)
+				require.NotNil(t, peg, "%s at %v", c.name, site)
+				require.NotNil(t, hole, "%s hole at %v", c.name, site)
+				require.InDelta(t, PressFit, loopsGap([][]r3.Vec{peg}, [][]r3.Vec{hole}), fitBound, "%s at %v", c.name, site)
+			}
+		}
+	})
+
 	t.Run("L7 detent plate to the d stem", func(t *testing.T) {
 		_, slider := sharedSlider(t, SegD)
 		stem := planSection(t, slider, 56)
@@ -136,6 +160,17 @@ func TestSevenSegmentFits(t *testing.T) {
 		}
 		require.InDelta(t, 2.45, low-detentFace, 0.011)
 	})
+}
+
+// loopAt returns the loop of a section whose centroid lies within 0.1 of at and whose extent is within 0.25 of ext, or nil.
+func loopAt(loops [][]r3.Vec, at r3.Vec, ext float64) []r3.Vec {
+	for _, l := range loops {
+		c, e := centroidExtent(l)
+		if c.Sub(at).Len() < 0.1 && math.Abs(e-ext) < 0.25 {
+			return l
+		}
+	}
+	return nil
 }
 
 // nearLoops returns the loops of a section that lie within 6 mm of the horizontal line y.
