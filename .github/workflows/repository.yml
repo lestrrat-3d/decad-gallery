@@ -470,7 +470,17 @@ jobs:
           pattern: ci-records-*
           path: ci-artifacts
       - name: Validate full execution records
-        run: python3 scripts/ci/reconcile_records.py --execution-dir ci-artifacts --inventory inventory.json --revision "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
+        run: python3 scripts/ci/reconcile_records.py --execution-dir ci-artifacts --inventory inventory.json --revision "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" > validation-summary.json
+      - name: Retain inventory and validation summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-validation-summary
+          path: |
+            inventory.json
+            validation-summary.json
+          if-no-files-found: warn
+          overwrite: true
       - name: Check producer results
         if: always()
         env:
