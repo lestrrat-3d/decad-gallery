@@ -47,7 +47,18 @@ func TestSevenSegmentFits(t *testing.T) {
 			gap := loopsGap(bore, sectionAt(t, shaft, y))
 			// The bore is 0.05 wider than the shaft's round and its flat.
 			require.InDelta(t, PressFit, gap, fitBound, "cam %s", seg)
+			requireDoubleD(t, bore, camBoreFlat, "cam "+seg.String())
 		}
+		_, ratchet := sharedBody(t, "ratchet wheel", (*run).ratchetWheel)
+		var bore [][]r3.Vec
+		for _, l := range sectionAt(t, ratchet, -43.0) {
+			if c, e := centroidExtent(l); c.Len() < 1 && e < 8 {
+				bore = append(bore, l)
+			}
+		}
+		require.Len(t, bore, 1, "ratchet wheel")
+		require.InDelta(t, PressFit, loopsGap(bore, sectionAt(t, shaft, -43.0)), fitBound, "ratchet wheel")
+		requireDoubleD(t, bore, ratchetBoreFlat, "ratchet wheel")
 	})
 
 	t.Run("L5 cam rims to the guide plate", func(t *testing.T) {
@@ -328,4 +339,18 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	require.InDelta(t, JournalRadius, stub, 0.02, "the stub radius")
 	require.InDelta(t, journalHoleRadius, hole, 0.02, "the half-hole radius")
 	require.InDelta(t, 0.20, hole-stub, 0.03, "the journal clearance (T5)")
+}
+
+// requireDoubleD requires a bore section (points (x, z - ShaftZ) at theta 0) to have both flats, at z +-flat: a single-D
+// bore lets its part turn twice as far on the shaft.
+func requireDoubleD(t *testing.T, bore [][]r3.Vec, flat float64, name string) {
+	t.Helper()
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for _, l := range bore {
+		for _, p := range l {
+			lo, hi = math.Min(lo, p.Y), math.Max(hi, p.Y)
+		}
+	}
+	require.InDelta(t, flat, hi, fitBound, "%s: the bore's top flat", name)
+	require.InDelta(t, -flat, lo, fitBound, "%s: the bore's bottom flat", name)
 }

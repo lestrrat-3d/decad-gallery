@@ -34,10 +34,18 @@ func TestSevenSegmentShaft(t *testing.T) {
 	require.NoError(t, err)
 	require.InDelta(t, -72.2, box.Min.Y, 1e-6)
 	require.InDelta(t, 48.0, box.Max.Y, 1e-6)
-	// The cam section is a D: round 3.2 below the flat, flat 2.7 above, until the flat's square end at 39.2.
-	_, maxZ, maxR := extent(sectionAt(t, b, 39.0))
+	// The cam section is a double D: round 3.2 at the sides, flats 2.7 above and below, until the flats' square end at 39.2.
+	loops := sectionAt(t, b, 39.0)
+	_, maxZ, maxR := extent(loops)
 	require.InDelta(t, shaftCamFlat, maxZ, 0.02)
 	require.InDelta(t, 3.2, maxR, 0.02)
+	minZ := math.Inf(1)
+	for _, l := range loops {
+		for _, p := range l {
+			minZ = math.Min(minZ, p.Y)
+		}
+	}
+	require.InDelta(t, -shaftCamFlat, minZ, 0.02)
 	_, maxZ, _ = extent(sectionAt(t, b, 39.4))
 	require.InDelta(t, 3.2, maxZ, 0.02)
 	_, maxZ, _ = extent(sectionAt(t, b, -58.1))
