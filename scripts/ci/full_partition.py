@@ -12,6 +12,7 @@ BEVEL = ROOT + "/models/bevelgear"
 # Dedicated jobs cover whole packages or partition their tests and remainder.
 DEDICATED = {ROOT + "/models/" + name for name in (
     "escapement", "onewayclutch", "clamparm", "turbinefan", "m5bolt", "m5nut", "spinningwheel", "handcranksiren",
+    "planetarygearbox",
 )}
 
 
@@ -19,8 +20,6 @@ FULL_ENV = {"HANDCRANKFAN_FULL": "1", "PLANETARY_ALL_KITS": "1"}
 FULL_VARIANTS = {
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/flat-three"),
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
-    (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft605"),
-    (ROOT + "/models/planetarygearbox", "TestKitGearboxes/planet608-shaft608"),
 }
 
 
