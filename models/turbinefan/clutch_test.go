@@ -1,5 +1,7 @@
 package turbinefan_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -13,16 +15,6 @@ import (
 	"github.com/lestrrat-3d/sketch"
 	"github.com/stretchr/testify/require"
 )
-
-func eachClutchCase(t *testing.T, fn func(t *testing.T, c fanCase, m *turbinefan.Model, doc *decad.Document)) {
-	t.Helper()
-	for _, c := range clutchCases {
-		t.Run(c.name, func(t *testing.T) {
-			m, doc := built(t, c)
-			fn(t, c, m, doc)
-		})
-	}
-}
 
 // TestTurbineFanClutchBuild checks the clutch mount's 14 bodies and its four containers. The adapter and the clutch are
 // the caller's to build, so the fan's document holds neither.

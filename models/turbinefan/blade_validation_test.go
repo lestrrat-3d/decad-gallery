@@ -1,5 +1,7 @@
 package turbinefan_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

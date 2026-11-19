@@ -1,5 +1,7 @@
 package onewayclutch_test
 
+// CI: isolated-tests
+
 import (
 	"fmt"
 	"testing"

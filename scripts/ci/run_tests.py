@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 
 
 BEVEL_TESTS = {
@@ -367,21 +368,53 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False) -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".") -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
+    record_path = os.environ.get("CI_TEST_RECORDS")
+    invocation = uuid.uuid4().hex if record_path else None
+    records = open(record_path, "a", encoding="utf-8") if record_path else None
+    try:
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished)
+    finally:
+        if records is not None:
+            records.close()
+
+
+def _read_finished_tests(lines, qualified, module, invocation, records, finished):
+    metadata = {"version": 1, "invocation": invocation, "module": module,
+                "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
+                "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "")}
+
+    def record(kind, **fields):
+        if records is not None:
+            records.write(json.dumps({**metadata, "kind": kind, **fields}, separators=(",", ":")) + "\n")
+
     for line in lines:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            record("malformed", reason="invalid_json")
             sys.stdout.write(line)
+            continue
+        if not isinstance(event, dict):
+            record("malformed", reason="not_object")
             continue
         if "Output" in event:
             sys.stdout.write(event["Output"])
         test = event.get("Test")
+        if event.get("Action") in {"pass", "fail", "skip"}:
+            package = event.get("Package")
+            if not isinstance(package, str) or not package or (test is not None and
+                                                                (not isinstance(test, str) or not test)):
+                record("malformed", reason="invalid_identity")
+            else:
+                record("test" if test else "package", package=package, test=test, status=event["Action"])
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
+    record("complete")
     sys.stdout.flush()
     return finished
 
@@ -472,9 +505,12 @@ def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: s
             output.seek(0)
             finished = finished_tests(output)
             failures = [test for test in shard if finished.get(test) != "pass"]
+            failures.extend(test for test, status in finished.items()
+                            if status != "pass" and any(test.startswith(parent + "/") for parent in shard))
+            failures = sorted(set(failures))
             results.append((returncode, failures))
         failed = [
-            f"shard {index} (exit {returncode}): {', '.join(failures) or 'process failed'}"
+            f"shard {index} (exit {returncode}): {', '.join(failures[:20]) or 'process failed'}"
             for index, (returncode, failures) in enumerate(results, start=1)
             if returncode != 0 or failures
         ]
@@ -548,7 +584,6 @@ WHEEL_CASES = {
     "twelve": "^TestSpinningWheelVariants$/^twelve$",
     "small-seventeen": "^TestSpinningWheelVariants$/^small-seventeen$",
 }
-WHEEL_HEAVY = "^(TestSpinningWheelDefault|TestSpinningWheelNativeDefault|TestSpinningWheelConnectorDefault|TestSpinningWheelVariants)$"
 WHEEL_EXPECTED = {
     "default-verify": ["TestSpinningWheelDefault/verify"],
     "default-linkage": ["TestSpinningWheelDefault/linkage"],
@@ -565,7 +600,9 @@ WHEEL_EXPECTED = {
 def run_wheel(case: str) -> None:
     command = ["./models/spinningwheel", "-timeout", "40m", "-count=1"]
     if case == "rest":
-        command += ["-run", "^Test", "-skip", WHEEL_HEAVY]
+        assigned = [test for tests in WHEEL_EXPECTED.values() for test in tests]
+        run_remainder("./models/spinningwheel", assigned)
+        return
     else:
         command += ["-run", WHEEL_CASES[case]]
     go_test(command, WHEEL_EXPECTED.get(case, ()),
@@ -591,8 +628,6 @@ SIREN_CASES = {
         ["TestHandCrankSirenVariant/slots_24"],
     ),
 }
-SIREN_ASSIGNED = {test.split("/")[0] for _, tests in SIREN_CASES.values() for test in tests}
-
 FAN_VARIANTS = {
     "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
     "steep-three": "^TestHandCrankFanVariant$/^steep-three$",
@@ -601,27 +636,51 @@ FAN_VARIANTS = {
 
 def run_siren(case: str) -> None:
     if case == "rest":
-        package = "./models/handcranksiren"
-        listing = subprocess.run(
-            ["go", "test", "-list", "^Test", package], check=True, capture_output=True, text=True
-        )
-        tests = [line for line in listing.stdout.splitlines()
-                 if line.startswith("Test") and line not in SIREN_ASSIGNED]
-        if not tests:
-            raise SystemExit("siren remainder lists no tests")
-        go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
-                package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren")
+        run_remainder("./models/handcranksiren", [test for _, tests in SIREN_CASES.values() for test in tests])
         return
     pattern, expected = SIREN_CASES[case]
     go_test(
         ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
-        expected,
+        expected, package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren",
     )
+
+
+def run_remainder(package: str, assigned: list[str]) -> None:
+    """Run everything except paths assigned to other jobs, including new nested subtests."""
+    if len(assigned) != len(set(assigned)) or any(
+            other.startswith(test + "/") for test in assigned for other in assigned):
+        raise SystemExit("test assignments overlap")
+    listing = subprocess.run(["go", "test", "-list", "^Test", package],
+                             check=True, capture_output=True, text=True)
+    available = {line for line in listing.stdout.splitlines() if line.startswith("Test")}
+    unknown = {test.split("/")[0] for test in assigned} - available
+    if unknown:
+        raise SystemExit("assigned tests missing from inventory: " + ", ".join(sorted(unknown)))
+    expected = sorted(available - {test for test in assigned if "/" not in test})
+    qualified = "github.com/lestrrat-3d/decad-gallery/" + package.removeprefix("./")
+    go_test([package, "-run", "^Test", "-skip", run_pattern(assigned), "-timeout", "40m", "-count=1"],
+            expected, package=qualified)
 
 
 def run_escapement() -> None:
     """Run all Graham escapement tests in two concurrent, fully covering shards."""
     go_test_shards("./models/escapement", ESCAPEMENT_SHARDS, "40m")
+
+
+def run_model_packages(names: tuple[str, ...]) -> None:
+    """Run every inventoried test in the named model packages."""
+    expected = set()
+    for name in names:
+        package = f"./models/{name}"
+        listing = subprocess.run(["go", "test", "-list", "^Test", package],
+                                 check=True, capture_output=True, text=True)
+        tests = [line for line in listing.stdout.splitlines() if line.startswith("Test")]
+        if not tests:
+            raise SystemExit(f"model package {name} lists no tests")
+        qualified = f"github.com/lestrrat-3d/decad-gallery/models/{name}"
+        expected.update((qualified, test) for test in tests)
+    go_test([*(f"./models/{name}" for name in names), "-timeout", "40m", "-count=1"],
+            qualified_expected=expected)
 
 
 def run_turbinefan(shard: str) -> None:
@@ -645,13 +704,13 @@ def run_turbinefan(shard: str) -> None:
 def run_onewayclutch() -> None:
     """Run every test of the one-way clutch package: about 12 minutes, over the 5 minute PR job limit, so it has its
     own job."""
-    go_test(["./models/onewayclutch", "-timeout", "40m", "-count=1"])
+    run_model_packages(("onewayclutch",))
 
 
 def run_clamparm() -> None:
     """Run every test of the clamp arm and M5 fastener packages: about 4 minutes on a fast machine, so they have their
     own job instead of the 5 minute PR job."""
-    go_test(["./models/clamparm", "./models/m5bolt", "./models/m5nut", "-timeout", "40m", "-count=1"])
+    run_model_packages(("clamparm", "m5bolt", "m5nut"))
 
 
 def run_fan_variant(variant: str) -> None:
@@ -727,6 +786,27 @@ def run_full_models() -> None:
                 env=env, package=bevel)
 
 
+def run_planetary_full(shard: str) -> None:
+    package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = {line for line in output.splitlines() if line.startswith("Test")}
+    kit = "TestKitGearboxes"
+    if kit not in tests or len(tests) < 2:
+        raise SystemExit("planetary test inventory is incomplete")
+    selected = [kit] if shard == "kits" else sorted(tests - {kit}) if shard == "rest" else None
+    if selected is None:
+        raise SystemExit("invalid planetary shard")
+    expected = set(selected)
+    if shard == "kits":
+        expected.update(f"{kit}/{name}" for name in (
+            "planet605-shaft608", "planet608-shaft605", "planet608-shaft608"))
+    env = os.environ.copy()
+    env["PLANETARY_ALL_KITS"] = "1"
+    go_test([package, "-run", run_pattern(selected), "-timeout", "60m", "-count=1"],
+            sorted(expected), env=env, package=package)
+
+
 def run_model_pr(name: str) -> None:
     """Run every listed test in one model package and check its qualified results."""
     if not re.fullmatch(r"[a-z][a-z0-9]*", name):
@@ -757,6 +837,9 @@ def run_cycloidal_pr() -> None:
 
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    if suite == "planetary" and mode == "full" and len(args) == 1:
+        run_planetary_full(args[0])
+        return
     if suite == "cycloidal" and mode == "pr" and not args:
         run_cycloidal_pr()
         return

@@ -1,5 +1,7 @@
 package turbinefan_test
 
+// CI: isolated-tests
+
 import (
 	"fmt"
 	"math"
@@ -13,14 +15,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-// sitePlane is the plane through the shaft axis and a site's line, U along the line outward and V along +Z.
-func sitePlane(t *testing.T, u r3.Vec) r3.Frame {
-	t.Helper()
-	f, err := r3.NewFrame(r3.Vec{}, u, r3.Vec{Z: 1})
-	require.NoError(t, err)
-	return f
-}
 
 // TestTurbineFanClutchAdapterBolts checks each adapter bolt in the fan's local frame: an M2 x 10 whose head's top face is
 // flush with the adapter's rear face (z -6.25), whose tip stays inside the hub's blind hole, whose nut lies inside the

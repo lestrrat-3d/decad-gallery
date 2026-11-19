@@ -17,8 +17,8 @@ These were measured against the decad branches the gallery builds with. They dec
 | Booleans with the long ribbon are refused | The ribbons are never operands of a boolean. They are built whole and only moved |
 | `decad.Sweep` with `WithSweepTwist` admits off-axis sections and any twist angle. Earlier it refused 35 to 55 degrees | The bore tool is one sweep with the twist `(sOut − sIn)/Λ` of about 80 degrees |
 | `decad.Cut` of a twisted tool needs the tool to overshoot the wall by at least 0.75 mm each side | The bore cut overshoots by 1 mm at each end (`sIn` and `sOut`) |
-| The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))` and `decad.WithRimSplit()`, which holds the sleeve's mesh bound at 0.033 mm or less after each cut. `Build` needs a document made by it |
-| `decad.Verify` with clearances took 108 s on the 16-tooth model, found no interference, measured 0.548 ± 0.027 mm between the ribbons, and left both ribbon-versus-cage pairs undecided | Clearance checks use `DistanceToPoint` on the cage, not `decad.Verify` |
+| The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))` and `decad.WithRimSplit()`. `Build` needs a document made by it |
+| `decad.Verify` with clearances took 108 s on the 16-tooth model, found no interference, measured 0.548 ± 0.027 mm between the ribbons, and left both ribbon-versus-cage pairs undecided | Bore checks use `ClosestPoint` on the cage, not `decad.Verify` |
 
 These capabilities landed in decad in pull requests 2629 to 2634. The gallery `go.mod` pins decad at
 `v0.0.0-20261027045205-cfe5a7e9e746` or later, the first revision that has all of them.
@@ -232,7 +232,7 @@ Run `go test ./models/screwgear`. The tests named here read the values of "Accep
 | `TestWindowSearchRoomRefusesTheBandWithNoWidth` | `CollarWall = 7` leaves no band |
 | `TestBuildDefaultMechanism` | Default build: three solid bodies, ribbon volumes, cage volume 17,088 mm³, cage bounds |
 | `TestBuildPlacementMovesTheWholeMechanism` | Placed cage bounds and volume |
-| `TestBuildBoresFollowTheRibbonSurface` | `DistanceToPoint` from the cage to ribbon points at all four crossings: 0.113 ± 0.01 mm, and 0.41 ± 0.01 mm at the roof face. The readings are lower bounds that the cage's mesh bound lowers; the mesh distances are 0.19 and 0.48 mm |
+| `TestBuildBoresFollowTheRibbonSurface` | `ClosestPoint` mesh distances from the cage to ribbon points at all four crossings: 0.19 ± 0.01 mm, and 0.79 ± 0.01 mm at the roof face, with displacement bound at most 0.05 mm |
 | `TestGearCorners` | Both ribbons, default and 16-tooth, at six heights: one outline loop of the ribbon's width, a mesh bound of 0.05 mm or less, and no corner but the listed tooth tips |
 | `TestSleeveCornersRecorded` | The sleeve at eight heights through the bores: a non-empty section with at least two inside corners turning more than 50° (the retained sharp corners) |
 | `TestSleeveEndFacesAreChamfered` | Both cage end faces at `±CageRise` keep two loops, each edge has a 45° cone beside it, and the area is below 560 mm² |
@@ -243,7 +243,7 @@ Run `go test ./models/screwgear`. The tests named here read the values of "Accep
 | `TestSectionPair/default/clearance` | `SectionOutline.Clearance` on five planes from −0.4 to +0.4 mm: no overlap, proven lower bound above 0.55 mm, closest points on the plane |
 | `TestBuildRejectsInvalidParams` | `Clearance = 0` fails with `clearance`; a nil context fails |
 
-The default build takes about 40 s. The build tests use 16 teeth in place of 68, which takes about 15 s. `TestBuildBoresFollowTheRibbonSurface` states that decad reports a
-lower bound of zero for these distances, so it checks the measured values and does not prove clearance.
+The default build takes about 40 s. The build tests use 16 teeth in place of 68, which takes about 15 s. `TestBuildBoresFollowTheRibbonSurface` checks mesh distances. Point membership is undecided, so these
+measurements do not prove clearance.
 
 Run `python3 scripts/check_repository.py` after the files exist.

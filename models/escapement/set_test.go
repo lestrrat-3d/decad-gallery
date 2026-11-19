@@ -1,5 +1,7 @@
 package escapement_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

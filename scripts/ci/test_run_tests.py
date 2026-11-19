@@ -1,7 +1,11 @@
 import contextlib
 import io
 import json
+import os
+from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 from unittest import mock
 
@@ -75,15 +79,18 @@ class BevelJobGroupsTest(unittest.TestCase):
 
 class SirenCasesTest(unittest.TestCase):
     def test_remainder_runs_unassigned_tests(self):
-        listing = mock.Mock(stdout="TestValidate\nTestHandCrankSirenVariant\nTestBuildRejectsNilDocument\nTestNew\n")
+        assigned = [test for _, names in run_tests.SIREN_CASES.values() for test in names]
+        listing = mock.Mock(stdout="\n".join({test.split("/")[0] for test in assigned} |
+                                             {"TestBuildRejectsNilDocument", "TestNew"}))
         with (
             mock.patch.object(run_tests.subprocess, "run", return_value=listing),
             mock.patch.object(run_tests, "go_test") as go_test,
         ):
             run_tests.run_siren("rest")
-        tests = ["TestBuildRejectsNilDocument", "TestNew"]
+        tests = ["TestBuildRejectsNilDocument", "TestHandCrankSirenVariant", "TestNew"]
         go_test.assert_called_once_with(
-            ["./models/handcranksiren", "-run", run_tests.run_pattern(tests), "-timeout", "40m", "-count=1"],
+            ["./models/handcranksiren", "-run", "^Test", "-skip", run_tests.run_pattern(assigned),
+             "-timeout", "40m", "-count=1"],
             tests,
             package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren",
         )
@@ -133,7 +140,7 @@ class SirenCasesTest(unittest.TestCase):
                 self.assertEqual(args[0][args[0].index("-run") + 1], pattern)
                 self.assertEqual(args[0][-3:], ["-timeout", "40m", "-count=1"])
                 self.assertEqual(args[1], expected)
-                self.assertEqual(kwargs, {})
+                self.assertEqual(kwargs, {"package": "github.com/lestrrat-3d/decad-gallery/models/handcranksiren"})
 
 
 class TurbineFanTest(unittest.TestCase):
@@ -154,6 +161,10 @@ class TurbineFanTest(unittest.TestCase):
 
 
 class EscapementTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        Path(".tmp").mkdir(exist_ok=True)
+
     def test_escapement_runs_all_shards(self):
         with mock.patch.object(run_tests, "go_test_shards") as go_test_shards:
             run_tests.run_escapement()
@@ -191,7 +202,7 @@ class EscapementTest(unittest.TestCase):
         shards = (("TestA",), ("TestB",))
         list_result = mock.Mock(stdout="TestA\nTestB\n", returncode=0)
         pass_events = [
-            json.dumps({"Action": "pass", "Test": test}) + "\n"
+            json.dumps({"Action": "pass", "Package": "pkg", "Test": test}) + "\n"
             for test in ("TestA", "TestB")
         ]
 
@@ -208,11 +219,17 @@ class EscapementTest(unittest.TestCase):
                 return self.returncode
 
         with (
+            tempfile.TemporaryDirectory(dir=".tmp") as directory,
+            mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(Path(directory) / "records.jsonl")}),
             mock.patch.object(run_tests.subprocess, "run", return_value=list_result) as listing,
             mock.patch.object(run_tests.subprocess, "Popen", side_effect=FakeProcess) as popen,
             mock.patch("builtins.print"),
         ):
             run_tests.go_test_shards("./pkg", shards, "1m")
+            records = [json.loads(line) for line in (Path(directory) / "records.jsonl").read_text().splitlines()]
+
+        self.assertEqual({r["test"] for r in records if r["kind"] == "test"}, {"TestA", "TestB"})
+        self.assertEqual(len({r["invocation"] for r in records}), 2)
 
         listing.assert_called_once_with(
             ["go", "test", "-list", "^Test", "./pkg"],
@@ -232,8 +249,32 @@ class EscapementTest(unittest.TestCase):
                 run_tests.go_test_shards("./pkg", (("TestA",),), "1m")
         popen.assert_not_called()
 
+    def test_sharded_runner_rejects_skipped_subtest(self):
+        class FakeProcess:
+            def __init__(self, command, stdout, **kwargs):
+                stdout.write(json.dumps({"Action": "skip", "Test": "TestA/child"}) + "\n")
+                stdout.write(json.dumps({"Action": "pass", "Test": "TestA"}) + "\n")
+
+            def wait(self):
+                return 0
+
+            def poll(self):
+                return 0
+
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")), \
+             mock.patch.object(run_tests.subprocess, "Popen", side_effect=FakeProcess):
+            with self.assertRaisesRegex(SystemExit, "TestA/child"):
+                run_tests.go_test_shards("./pkg", (("TestA",),), "1m")
+
 
 class WheelTest(unittest.TestCase):
+    def test_remainder_rejects_missing_or_overlapping_assignments(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")):
+            with self.assertRaisesRegex(SystemExit, "missing from inventory"):
+                run_tests.run_remainder("./models/spinningwheel", ["TestMissing/child"])
+            with self.assertRaisesRegex(SystemExit, "overlap"):
+                run_tests.run_remainder("./models/spinningwheel", ["TestA", "TestA/child"])
+
     def test_each_named_case_requires_its_expected_tests(self):
         for case in run_tests.WHEEL_CASES:
             with self.subTest(case=case), mock.patch.object(run_tests, "go_test") as go_test:
@@ -242,11 +283,43 @@ class WheelTest(unittest.TestCase):
                 self.assertTrue(go_test.call_args.args[1])
 
     def test_remainder_includes_tests_without_wheel_prefix(self):
-        with mock.patch.object(run_tests, "go_test") as go_test:
+        assigned = [test for tests in run_tests.WHEEL_EXPECTED.values() for test in tests]
+        listing = "\n".join({test.split("/")[0] for test in assigned} | {"TestNew"})
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=listing)), \
+                mock.patch.object(run_tests, "go_test") as go_test:
             run_tests.run_wheel("rest")
         command = go_test.call_args.args[0]
         self.assertEqual(command[command.index("-run") + 1], "^Test")
-        self.assertEqual(command[command.index("-skip") + 1], run_tests.WHEEL_HEAVY)
+        self.assertEqual(command[command.index("-skip") + 1], run_tests.run_pattern(assigned))
+        self.assertIn("TestNew", go_test.call_args.args[1])
+
+    def test_remainder_selects_new_nested_subtests_with_go(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            root = Path(directory)
+            (root / "go.mod").write_text("module fixture\n\ngo 1.23\n")
+            (root / "selection_test.go").write_text('''package fixture_test
+import "testing"
+func TestVariant(t *testing.T) {
+    t.Run("small", func(t *testing.T) {
+        t.Run("old", func(t *testing.T) {})
+        t.Run("new", func(t *testing.T) {})
+    })
+    t.Run("new-variant", func(t *testing.T) {})
+}
+func TestWhole(t *testing.T) { t.Fatal("assigned elsewhere") }
+func TestNew(t *testing.T) {}
+''')
+            assigned = ["TestVariant/small/old", "TestWhole"]
+            result = subprocess.run(["go", "test", "-json", "-run", "^Test", "-skip",
+                                     run_tests.run_pattern(assigned), "./..."], cwd=root,
+                                    check=True, capture_output=True, text=True)
+        events = [json.loads(line) for line in result.stdout.splitlines()]
+        passed = {event["Test"] for event in events if event.get("Action") == "pass" and "Test" in event}
+        self.assertTrue({"TestVariant/small/new", "TestVariant/new-variant", "TestNew"} <= passed)
+        started = {event["Test"] for event in events if event.get("Action") == "run" and "Test" in event}
+        self.assertFalse({"TestVariant/small/old", "TestWhole"} & started)
+        self.assertFalse([event for event in events if event.get("Action") == "skip"])
 
 
 class FanVariantsTest(unittest.TestCase):
@@ -269,7 +342,92 @@ class FanVariantsTest(unittest.TestCase):
                 self.assertEqual(kwargs, {})
 
 
+class PlanetaryFullTest(unittest.TestCase):
+    def test_shards_cover_inventory_and_require_kit_variants(self):
+        inventory = "TestKitGearboxes\nTestOther\nTestNew\nok\n"
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_planetary_full("kits")
+            run_tests.run_planetary_full("rest")
+        kits, rest = go_test.call_args_list
+        self.assertEqual(kits.args[0][2], run_tests.run_pattern(["TestKitGearboxes"]))
+        self.assertEqual(rest.args[0][2], run_tests.run_pattern(["TestNew", "TestOther"]))
+        self.assertEqual(len(kits.args[1]), 4)
+        self.assertIn("TestKitGearboxes/planet608-shaft608", kits.args[1])
+        self.assertEqual(kits.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
+        self.assertEqual(rest.args[1], ["TestNew", "TestOther"])
+
+    def test_missing_kit_or_invalid_shard_fails(self):
+        for inventory, shard in (("TestOther\n", "kits"), ("TestKitGearboxes\nTestOther\n", "bad")):
+            with self.subTest(shard=shard), \
+                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                    self.assertRaises(SystemExit):
+                run_tests.run_planetary_full(shard)
+
+
 class FinishedTestsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        Path(".tmp").mkdir(exist_ok=True)
+
+    def test_optional_records_keep_packages_subtests_and_invocations(self):
+        events = [json.dumps({"Action": "output", "Output": "large output"}),
+                  json.dumps({"Package": "one", "Test": "TestA/child", "Action": "skip"}),
+                  json.dumps({"Package": "two", "Test": "TestA/child", "Action": "fail"})]
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(events)
+                run_tests.finished_tests(events[:2])
+            records = [json.loads(line) for line in path.read_text().splitlines() if '"kind":"test"' in line]
+        self.assertEqual([(r["module"], r["package"], r["test"], r["status"]) for r in records],
+                         [(".", "one", "TestA/child", "skip"), (".", "two", "TestA/child", "fail"),
+                          (".", "one", "TestA/child", "skip")])
+        self.assertEqual(records[0]["invocation"], records[1]["invocation"])
+        self.assertNotEqual(records[0]["invocation"], records[2]["invocation"])
+
+    def test_failure_still_records_terminal_events(self):
+        process = mock.Mock(stdout=[json.dumps({"Package": "p", "Test": "TestA", "Action": "fail"})],
+                            returncode=1)
+        process.wait.return_value = 1
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+                with self.assertRaises(SystemExit):
+                    run_tests.go_test(["./p"])
+            self.assertEqual(json.loads(path.read_text().splitlines()[0])["status"], "fail")
+
+    def test_metadata_package_failure_and_invalid_identity(self):
+        events = [json.dumps({"Package": "p", "Action": "fail"}),
+                  json.dumps({"Test": "TestA", "Action": "pass"}), "bad json"]
+        env = {"GITHUB_JOB": "wheel", "CI_TEST_CASE": "rest", "GITHUB_SHA": "abc",
+               "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2"}
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {**env, "CI_TEST_RECORDS": str(path)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(events)
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual([r["kind"] for r in records], ["package", "malformed", "malformed", "complete"])
+        self.assertEqual((records[0]["package"], records[0]["status"]), ("p", "fail"))
+        self.assertEqual([r["reason"] for r in records[1:3]], ["invalid_identity", "invalid_json"])
+        self.assertEqual([records[0][key] for key in ("job", "case", "revision", "run_id", "run_attempt")],
+                         ["wheel", "rest", "abc", "123", "2"])
+
+    def test_interrupted_stream_has_no_complete_marker(self):
+        def interrupted():
+            yield json.dumps({"Package": "p", "Test": "TestA", "Action": "pass"})
+            raise OSError("stream interrupted")
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}):
+                with self.assertRaises(OSError):
+                    run_tests.finished_tests(interrupted())
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual([r["kind"] for r in records], ["test"])
+
     def test_multi_package_selection_requires_each_package(self):
         events = [json.dumps({"Package": "one", "Test": "TestA", "Action": "pass"}),
                   json.dumps({"Package": "two", "Test": "TestA", "Action": "skip"})]
@@ -392,6 +550,30 @@ class FullModelInventoryTest(unittest.TestCase):
              mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="pkg\n")):
             with self.assertRaisesRegex(SystemExit, "unknown full bevel shard tests: TestMissing"):
                 run_tests.run_full_models()
+
+
+class DedicatedModelInventoryTest(unittest.TestCase):
+    def test_dedicated_jobs_inventory_every_package(self):
+        cases = ((run_tests.run_onewayclutch, ("onewayclutch",)),
+                 (run_tests.run_clamparm, ("clamparm", "m5bolt", "m5nut")))
+        prefix = "github.com/lestrrat-3d/decad-gallery/models/"
+        for runner, names in cases:
+            with self.subTest(names=names), \
+                 mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestShared\n")) as listing, \
+                 mock.patch.object(run_tests, "go_test") as go_test:
+                runner()
+                self.assertEqual(listing.call_count, len(names))
+                go_test.assert_called_once_with(
+                    [*(f"./models/{name}" for name in names), "-timeout", "40m", "-count=1"],
+                    qualified_expected={(prefix + name, "TestShared") for name in names},
+                )
+
+    def test_empty_package_inventory_fails(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="")), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            with self.assertRaisesRegex(SystemExit, "model package m5bolt lists no tests"):
+                run_tests.run_model_packages(("m5bolt",))
+            go_test.assert_not_called()
 
 
 class CycloidalPilotTest(unittest.TestCase):

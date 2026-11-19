@@ -1,5 +1,7 @@
 package screwgear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -8,8 +10,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-func deg(d float64) float64 { return d * math.Pi / 180 }
 
 func TestParamsDefaultsAreTheSpecTable(t *testing.T) {
 	p := screwgear.DefaultParams()

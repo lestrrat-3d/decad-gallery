@@ -1,5 +1,7 @@
 package spurgear_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

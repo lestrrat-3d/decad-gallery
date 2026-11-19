@@ -1,10 +1,11 @@
 package escapement
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
 
-	"github.com/lestrrat-3d/decad"
 	"github.com/stretchr/testify/require"
 )
 
@@ -174,24 +175,4 @@ func TestSpringFits(t *testing.T) {
 	axial(t, m.SpringAnchorPin, 10.25, m.GreatWheel, 8.5, 1.75, "L7 anchor pin to the great wheel face")
 	// L8: the coils other than the eye keep 0.5 or more from the anchor pin at every height.
 	require.GreaterOrEqual(t, springGap(so, g.SpringAnchor, 4, 100, pinOutline), loose, "L8 coils to the anchor pin")
-}
-
-// springGap is the least distance from the spring's outline vertices that lie between rMin and rMax from centre to the
-// polygons other. A mainspring's outline is one long loop whose Clearance bound is wide, so fits are measured from its
-// vertices; the outline's own bound is added by the callers' tolerances.
-func springGap(so decad.SectionOutline, centre Pt, rMin, rMax float64, other [][]Pt) float64 {
-	best := math.Inf(1)
-	for _, l := range loopsBy(so) {
-		for _, v := range l {
-			if d := v.Sub(centre).Len(); d < rMin || d > rMax {
-				continue
-			}
-			for _, o := range other {
-				for j := range o {
-					best = math.Min(best, distPointSeg(v, o[j], o[(j+1)%len(o)]))
-				}
-			}
-		}
-	}
-	return best
 }
