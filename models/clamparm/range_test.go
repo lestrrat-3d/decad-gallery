@@ -113,7 +113,8 @@ var j1Planes = []float64{-0.26, 0, 8, 8.26}
 // (J1's swivel rides over the top jaw at every pan angle, so J1 has no reach limit).
 func asmMasked(t testing.TB, body *decad.Body, centre, axis r3.Vec, role maskRole, reach float64) meshgap.Mesh {
 	t.Helper()
-	_, mesh := asmFineMesh(t, body)
+	mesh := asmFineTessellation(t, body)
+	require.NoError(t, asmValidateMesh(mesh))
 	vertices, faces := asmMaskedFaces(mesh, centre, axis, role, reach)
 	mg, err := meshgap.New(vertices, faces, mesh.Bound().Base())
 	require.NoError(t, err)
