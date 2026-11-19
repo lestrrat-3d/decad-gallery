@@ -1,8 +1,9 @@
 package herringbonegear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
-	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -170,30 +171,3 @@ func TestDefaultRealHerringboneGearWithBoreAndCapChamfer(t *testing.T) {
 	require.Equal(t, 0, meshEuler(mesh), "the chamfered gear has one through-bore")
 }
 
-func meshEuler(mesh *decad.Mesh) int {
-	edges := make(map[[2]int]struct{})
-	triangles := mesh.Triangles()
-	for _, triangle := range triangles {
-		for i := range 3 {
-			a, b := triangle[i], triangle[(i+1)%3]
-			if a > b {
-				a, b = b, a
-			}
-			edges[[2]int{a, b}] = struct{}{}
-		}
-	}
-	return len(mesh.Vertices()) - len(edges) + len(triangles)
-}
-
-// filletRoles counts the distinct root fillets of gear by their face origin roles.
-func filletRoles(gear *decad.Body) int {
-	roles := map[string]struct{}{}
-	for _, face := range gear.Faces() {
-		for _, origin := range face.Origins() {
-			if strings.HasPrefix(origin.Role, "fillet(") {
-				roles[origin.Role] = struct{}{}
-			}
-		}
-	}
-	return len(roles)
-}
