@@ -26,7 +26,9 @@ func TestBuildSizes(t *testing.T) {
 			require.NoError(t, err)
 			tol := box.Bound.Base() + 1e-8
 			require.InDelta(t, size.AcrossCorners()/2, box.Max.X, tol)
+			require.InDelta(t, -size.AcrossCorners()/2, box.Min.X, tol)
 			require.InDelta(t, size.AcrossFlats/2, box.Max.Y, tol)
+			require.InDelta(t, -size.AcrossFlats/2, box.Min.Y, tol)
 			require.InDelta(t, 0, box.Min.Z, tol)
 			require.InDelta(t, size.Thickness, box.Max.Z, tol)
 		})
