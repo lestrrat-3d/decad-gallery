@@ -420,23 +420,29 @@ func asmVertexOverlap(t *testing.T, an, bn string, a, b *decad.Body) string {
 	require.NoError(t, err)
 	bb, err := b.Bounds()
 	require.NoError(t, err)
-	inside := func(of *decad.Mesh, v r3.Vec) bool {
+	inside := func(of *decad.Mesh, v r3.Vec, tree *meshgap.Mesh, ready *bool) bool {
 		if !asmInsideMesh(of, v) {
 			return false
 		}
-		mg, err := meshgap.New(of.Vertices(), of.Triangles(), of.Bound().Base())
-		require.NoError(t, err)
-		d, err := mg.PointDistance(v)
+		if !*ready {
+			var err error
+			*tree, err = meshgap.New(of.Vertices(), of.Triangles(), of.Bound().Base())
+			require.NoError(t, err)
+			*ready = true
+		}
+		d, err := tree.PointDistance(v)
 		require.NoError(t, err)
 		return d > asmDeepInside
 	}
+	var mbTree, maTree meshgap.Mesh
+	var mbTreeReady, maTreeReady bool
 	for _, v := range ma.Vertices() {
-		if asmBoxesMeet(decad.Box{Min: v, Max: v}, bb, asmPlaneTol) && inside(mb, v) {
+		if asmBoxesMeet(decad.Box{Min: v, Max: v}, bb, asmPlaneTol) && inside(mb, v, &mbTree, &mbTreeReady) {
 			return fmt.Sprintf("%s vertex %v is inside %s", an, v, bn)
 		}
 	}
 	for _, v := range mb.Vertices() {
-		if asmBoxesMeet(decad.Box{Min: v, Max: v}, ba, asmPlaneTol) && inside(ma, v) {
+		if asmBoxesMeet(decad.Box{Min: v, Max: v}, ba, asmPlaneTol) && inside(ma, v, &maTree, &maTreeReady) {
 			return fmt.Sprintf("%s vertex %v is inside %s", bn, v, an)
 		}
 	}

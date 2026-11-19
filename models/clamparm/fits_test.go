@@ -2,6 +2,8 @@ package clamparm_test
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -37,19 +39,49 @@ func requireFit(t *testing.T, body *decad.Body, p r3.Vec, want float64, what str
 // asmFineMesh tessellates the body as finely as it allows, from 0.005 mm, and returns its mesh for meshgap.
 func asmFineMesh(t testing.TB, body *decad.Body) (meshgap.Mesh, *decad.Mesh) {
 	t.Helper()
-	var err error
+	mesh := asmFineTessellation(t, body)
+	mg, err := meshgap.New(mesh.Vertices(), mesh.Triangles(), mesh.Bound().Base())
+	require.NoError(t, err)
+	return mg, mesh
+}
+
+// asmFineTessellation selects the first tolerance decad accepts, in the existing order.
+func asmFineTessellation(t testing.TB, body *decad.Body) *decad.Mesh {
+	t.Helper()
 	for _, tol := range []float64{0.005, 0.0125, 0.02, 0.0225, 0.03, 0.05} {
-		var mesh *decad.Mesh
-		if mesh = asmTryTessellate(body, tol); mesh == nil {
+		mesh := asmTryTessellate(body, tol)
+		if mesh == nil {
 			continue
 		}
-		var mg meshgap.Mesh
-		mg, err = meshgap.New(mesh.Vertices(), mesh.Triangles(), mesh.Bound().Base())
-		require.NoError(t, err)
-		return mg, mesh
+		return mesh
 	}
 	require.FailNow(t, "no tolerance tessellates the body")
-	return meshgap.Mesh{}, nil
+	return nil
+}
+
+// asmValidateMesh preserves meshgap.New's source checks without building its unused spatial tree.
+func asmValidateMesh(mesh *decad.Mesh) error {
+	vertices, faces, bound := mesh.Vertices(), mesh.Triangles(), mesh.Bound().Base()
+	if len(vertices) == 0 || len(faces) == 0 {
+		return fmt.Errorf("meshgap: empty mesh")
+	}
+	if math.IsNaN(bound) || math.IsInf(bound, 0) || bound < 0 {
+		return fmt.Errorf("meshgap: invalid displacement bound")
+	}
+	for i, p := range vertices {
+		if math.IsNaN(p.X) || math.IsInf(p.X, 0) || math.IsNaN(p.Y) || math.IsInf(p.Y, 0) ||
+			math.IsNaN(p.Z) || math.IsInf(p.Z, 0) {
+			return fmt.Errorf("meshgap: nonfinite vertex %d", i)
+		}
+	}
+	for i, face := range faces {
+		for _, index := range face {
+			if index < 0 || index >= len(vertices) {
+				return fmt.Errorf("meshgap: invalid vertex index at face %d", i)
+			}
+		}
+	}
+	return nil
 }
 
 // asmTryTessellate tessellates the body at tol through the shared cache, or returns nil when decad refuses tol.
