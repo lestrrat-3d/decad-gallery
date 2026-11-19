@@ -14,6 +14,21 @@ import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_main_push_reuses_only_a_verified_result(self):
+        import reuse_main
+        original = {"version": 1, "tested": "a" * 40, "base": "b" * 40, "changed_paths": ["x.go"],
+                    "suites": ["model-ballbearing"], "reasons": {"model-ballbearing": ["changed"]}}
+        proof = {"pull_request": 12, "run": 42, "tested": "c" * 40}
+        with mock.patch.dict(os.environ, {"GITHUB_EVENT_NAME": "push", "GITHUB_ACTIONS": "true"}, clear=True), \
+                mock.patch.object(plan, "check_wheel_inventory"), \
+                mock.patch.object(plan, "plan", return_value=original), \
+                mock.patch.object(reuse_main, "find_reusable_run", return_value=proof), \
+                redirect_stdout(StringIO()) as output:
+            plan.main()
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["suites"], [])
+        self.assertEqual(result["reused"]["suites"], ["model-ballbearing"])
+
     def test_isolated_selection_works_without_existing_tmp_directory(self):
         project = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:

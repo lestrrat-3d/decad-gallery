@@ -14,6 +14,10 @@ concurrency:
 
 jobs:
   plan:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
@@ -32,6 +36,7 @@ jobs:
       - id: plan
         env:
           CI_BROAD_OVERRIDE: ${{ vars.CI_BROAD_OVERRIDE }}
+          GH_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
         run: python3 scripts/ci/plan.py
       - id: matrix
         env:

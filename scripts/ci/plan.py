@@ -19,12 +19,12 @@ FEATURES = {"dovetail"}
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
             ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
                  "run_tests", "select_models")
     for suffix in (".py",)
 } | {
     "scripts/ci/test_" + name + ".py"
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
      "scripts/ci/check_isolated_tests.py"}
@@ -320,6 +320,13 @@ def main():
         suites = ["broad"] + [suite for suite in result["suites"] if suite != "broad"]
         result.update(suites=suites, reasons={suite: ([reason] if suite == "broad" else result["reasons"][suite])
                                              for suite in suites}, reason=reason)
+    if event == "push" and os.environ.get("GITHUB_ACTIONS") == "true":
+        from reuse_main import find_reusable_run
+        proof = find_reusable_run(result, base, result["tested"])
+        if proof:
+            proof["suites"] = result["suites"]
+            result.update(suites=[], reasons={}, reused=proof,
+                          reason="matching successful pull request already tested this tree")
     encoded = json.dumps(result, sort_keys=True, separators=(",", ":"))
     print(encoded)
     if os.environ.get("GITHUB_OUTPUT"):
