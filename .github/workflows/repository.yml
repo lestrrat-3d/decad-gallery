@@ -8,8 +8,60 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: repository-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - id: plan
+        run: python3 scripts/ci/plan.py
+      - id: matrix
+        env:
+          PLAN_JSON: ${{ steps.plan.outputs.plan }}
+        run: python3 scripts/ci/gate.py matrix
+
+  worker:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: worker-${{ matrix.suite }}-${{ matrix.case }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - name: Run selected suite
+        env:
+          SUITE: ${{ matrix.suite }}
+          CASE: ${{ matrix.case }}
+        run: python3 scripts/ci/gate.py run
+
   repository:
+    needs: plan
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,56 +71,114 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
       - name: Check CI test runner
         run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
+      - name: Check CI planner and gate
+        run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
       - name: Check spur generation record
         run: python3 scripts/modelgen/spurgear.py check
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check gallery tile cache
+        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null
         run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
         run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener ./internal/cornercheck ./internal/splitcheck -timeout 5m
       - name: Check model regressions
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: (github.event_name == 'pull_request' || github.event_name == 'push') && contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
         run: python3 scripts/ci/run_tests.py models pr
       - name: Check full model suite
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          HANDCRANKFAN_FULL: '1'
+          PLANETARY_ALL_KITS: '1'
         run: python3 scripts/ci/run_tests.py models full
 
+  renderer-full:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - name: Check full renderer suite
+        run: go -C tools/render test -timeout 170m ./...
+
   planetary-motion:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check planetary gearbox motion
         run: go -C tools/render test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./...
 
   wheel-motion:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check spinning wheel motion
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
 
+  wheel-parts:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - name: Check spinning wheel parts table
+        run: go -C tools/render test -run '^TestSpinningWheelPartsTable$' -timeout 40m ./...
+
   fan-motion:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check hand-crank fan motion
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
 
   escapement:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -76,10 +186,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check Graham escapement
         run: python3 scripts/ci/run_tests.py escapement all
 
   onewayclutch:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -87,10 +202,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check one-way clutch
         run: python3 scripts/ci/run_tests.py onewayclutch all
 
   turbinefan:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -98,10 +218,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check turbine fan
         run: python3 scripts/ci/run_tests.py turbinefan all
 
   escapement-exploded:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -109,10 +234,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/render/go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check escapement exploded view
         run: go -C tools/render test -run '^TestEscapementExploded$' -timeout 15m ./...
 
   wheel:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     strategy:
       fail-fast: false
       matrix:
@@ -135,10 +265,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check spinning wheel
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
 
   siren:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     strategy:
       fail-fast: false
       matrix:
@@ -147,6 +282,7 @@ jobs:
           - spike
           - slots12
           - slots24
+          - rest
     name: siren-${{ matrix.case }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -155,17 +291,22 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check hand-crank siren
         run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
 
   bevel-pr:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
     strategy:
       fail-fast: false
       matrix:
         include:
           - group: abgh
           - group: cdef
+          - group: rest
     name: bevel-${{ matrix.group }}
     runs-on: ubuntu-latest
     steps:
@@ -173,11 +314,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check representative bevel geometry shards
         run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.group }}
 
   bevel-full:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -197,5 +342,21 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
       - name: Check full bevel coverage shard
         run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
+
+  gate:
+    if: always()
+    needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
+            onewayclutch, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check planned results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: python3 scripts/ci/gate.py

@@ -26,6 +26,13 @@ class RunPatternTest(unittest.TestCase):
 
 
 class BevelJobGroupsTest(unittest.TestCase):
+    def test_remainder_includes_new_tests_and_partially_selected_tests(self):
+        listing = mock.Mock(stdout="TestRealEightToothFullPatternJoin\nTestSpiralInputsMembers\nTestNew\n")
+        with mock.patch.object(run_tests.subprocess, "run", return_value=listing), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_bevel("pr", "rest")
+        self.assertEqual(go_test.call_args.args[1], ["TestSpiralInputsMembers", "TestNew"])
+
     def test_groups_partition_all_shards_once(self):
         shards = [shard for group in run_tests.BEVEL_JOB_GROUPS.values() for shard in group]
         self.assertEqual(sorted(shards), list("abcdefgh"))
@@ -52,6 +59,20 @@ class BevelJobGroupsTest(unittest.TestCase):
 
 
 class SirenCasesTest(unittest.TestCase):
+    def test_remainder_runs_unassigned_tests(self):
+        listing = mock.Mock(stdout="TestValidate\nTestHandCrankSirenVariant\nTestBuildRejectsNilDocument\nTestNew\n")
+        with (
+            mock.patch.object(run_tests.subprocess, "run", return_value=listing),
+            mock.patch.object(run_tests, "go_test") as go_test,
+        ):
+            run_tests.run_siren("rest")
+        tests = ["TestBuildRejectsNilDocument", "TestNew"]
+        go_test.assert_called_once_with(
+            ["./models/handcranksiren", "-run", run_tests.run_pattern(tests), "-timeout", "40m", "-count=1"],
+            tests,
+            package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren",
+        )
+
     def test_siren_cases(self):
         expected = {
             "default": (
@@ -180,6 +201,22 @@ class EscapementTest(unittest.TestCase):
         popen.assert_not_called()
 
 
+class WheelTest(unittest.TestCase):
+    def test_each_named_case_requires_its_expected_tests(self):
+        for case in run_tests.WHEEL_CASES:
+            with self.subTest(case=case), mock.patch.object(run_tests, "go_test") as go_test:
+                run_tests.run_wheel(case)
+                self.assertEqual(go_test.call_args.args[1], run_tests.WHEEL_EXPECTED[case])
+                self.assertTrue(go_test.call_args.args[1])
+
+    def test_remainder_includes_tests_without_wheel_prefix(self):
+        with mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_wheel("rest")
+        command = go_test.call_args.args[0]
+        self.assertEqual(command[command.index("-run") + 1], "^Test")
+        self.assertEqual(command[command.index("-skip") + 1], run_tests.WHEEL_HEAVY)
+
+
 class FanVariantsTest(unittest.TestCase):
     def test_fan_variant_patterns_select_each_full_subtest(self):
         expected = {
@@ -201,6 +238,39 @@ class FanVariantsTest(unittest.TestCase):
 
 
 class FinishedTestsTest(unittest.TestCase):
+    def test_only_explicit_skips_are_allowed(self):
+        events = [json.dumps({"Package": "p", "Test": "TestA", "Action": "pass"}),
+                  json.dumps({"Package": "p", "Test": "TestB", "Action": "skip"})]
+        process = mock.Mock(stdout=events, returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            run_tests.go_test(["./p"], ["TestA", "TestB"], package="p", allowed_skips=frozenset({"TestB"}))
+            with self.assertRaisesRegex(SystemExit, "p/TestB"):
+                run_tests.go_test(["./p"], ["TestA", "TestB"], package="p")
+
+    def test_other_package_cannot_hide_missing_selected_test(self):
+        events = [json.dumps({"Package": "other", "Test": "TestA", "Action": "pass"})]
+        process = mock.Mock(stdout=events, returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with self.assertRaisesRegex(SystemExit, "TestA"):
+                run_tests.go_test(["./p"], ["TestA"], package="p")
+
+    def test_package_qualified_results_do_not_collide(self):
+        lines = [json.dumps({"Package": "one", "Test": "TestA", "Action": "pass"}),
+                 json.dumps({"Package": "two", "Test": "TestA", "Action": "skip"})]
+        self.assertEqual(run_tests.finished_tests(lines, qualified=True),
+                         {("one", "TestA"): "pass", ("two", "TestA"): "skip"})
+
+    def test_qualified_runner_rejects_skipped_subtest(self):
+        events = [json.dumps({"Package": "p", "Test": "TestA/child", "Action": "skip"}),
+                  json.dumps({"Package": "p", "Test": "TestA", "Action": "pass"})]
+        process = mock.Mock(stdout=events, returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with self.assertRaisesRegex(SystemExit, "p/TestA/child"):
+                run_tests.go_test(["./p"], ["TestA"], package="p")
+
     def test_summary(self):
         lines = [
             json.dumps({"Action": "run", "Test": "TestA"}) + "\n",
@@ -215,6 +285,76 @@ class FinishedTestsTest(unittest.TestCase):
             result = run_tests.finished_tests(lines)
         self.assertEqual(result, {"TestA": "pass", "TestB": "skip"})
         self.assertEqual(out.getvalue(), "hello\nnot json\n")
+
+
+class CycloidalPilotTest(unittest.TestCase):
+    def test_gated_skips_are_scoped_to_model_and_environment(self):
+        cases = {
+            "handcrankfan": {"TestHandCrankFanDefault", "TestHandCrankFanVariant"},
+            "planetarygearbox": {"TestKitGearboxes/planet608-shaft605", "TestKitGearboxes/planet608-shaft608"},
+        }
+        for name, expected in cases.items():
+            with self.subTest(name=name), mock.patch.dict(run_tests.os.environ, {}, clear=True), \
+                 mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")), \
+                 mock.patch.object(run_tests, "go_test") as go_test, mock.patch("builtins.print"):
+                run_tests.run_model_pr(name)
+                self.assertEqual(go_test.call_args.kwargs["allowed_skips"], expected)
+
+    def test_runs_all_listed_tests_with_package_qualified_results(self):
+        listing = mock.Mock(stdout="TestA\nTestB\nok  package\n")
+        with (
+            mock.patch.object(run_tests.subprocess, "run", return_value=listing),
+            mock.patch.object(run_tests, "go_test") as go_test,
+            mock.patch("builtins.print"),
+        ):
+            run_tests.run_cycloidal_pr()
+        go_test.assert_called_once_with(
+            ["./models/cycloidal", "-timeout", "60m", "-count=1"],
+            ["TestA", "TestB"],
+            package="github.com/lestrrat-3d/decad-gallery/models/cycloidal",
+            allowed_skips=frozenset(),
+        )
+
+    def test_rejects_empty_inventory(self):
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="")):
+            with self.assertRaisesRegex(SystemExit, "lists no tests"):
+                run_tests.run_cycloidal_pr()
+
+    def test_main_dispatches_pilot(self):
+        with (
+            mock.patch.object(run_tests.sys, "argv", ["run_tests.py", "cycloidal", "pr"]),
+            mock.patch.object(run_tests, "run_cycloidal_pr") as pilot,
+        ):
+            run_tests.main()
+        pilot.assert_called_once_with()
+
+    def test_generic_model_runs_listed_tests_in_its_package(self):
+        with (
+            mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestA\n")),
+            mock.patch.object(run_tests, "go_test") as go_test,
+            mock.patch("builtins.print"),
+        ):
+            run_tests.run_model_pr("spurgear")
+        go_test.assert_called_once_with(
+            ["./models/spurgear", "-timeout", "60m", "-count=1"],
+            ["TestA"],
+            package="github.com/lestrrat-3d/decad-gallery/models/spurgear",
+            allowed_skips=frozenset(),
+        )
+
+    def test_generic_model_rejects_invalid_path(self):
+        with mock.patch.object(run_tests.subprocess, "run") as listing:
+            with self.assertRaisesRegex(SystemExit, "invalid model package name"):
+                run_tests.run_model_pr("../other")
+        listing.assert_not_called()
+
+    def test_main_dispatches_generic_model(self):
+        with (
+            mock.patch.object(run_tests.sys, "argv", ["run_tests.py", "model", "pr", "spurgear"]),
+            mock.patch.object(run_tests, "run_model_pr") as model,
+        ):
+            run_tests.main()
+        model.assert_called_once_with("spurgear")
 
 
 if __name__ == "__main__":
