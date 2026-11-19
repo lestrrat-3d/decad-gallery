@@ -117,9 +117,26 @@ class GateTest(unittest.TestCase):
             self.assertTrue(gate.check(needs, "push"))
         with mock.patch.dict(os.environ, {"SUITE": "renderer-all", "CASE": "0"}), \
                 mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
-                mock.patch.object(gate, "run_renderer_full") as dispatch:
+                mock.patch.object(gate, "run_renderer_pr") as dispatch:
             gate.main()
-        dispatch.assert_called_once_with()
+        dispatch.assert_called_once_with("0")
+
+    def test_renderer_shards_cover_each_package_test_once(self):
+        inventory = {"p1": ["TestA", "TestB"], "p2": ["TestA", "TestC"]}
+        def discover(command, **kwargs):
+            if command[-2:] == ["list", "./..."]:
+                return mock.Mock(stdout="p1\np2\n")
+            return mock.Mock(stdout="\n".join(inventory[command[-1]]) + "\nok\n")
+        with mock.patch.object(gate.subprocess, "run", side_effect=discover), \
+                mock.patch.object(gate, "go_test") as run:
+            for shard in range(gate.RENDER_PR_SHARDS):
+                gate.run_renderer_pr(str(shard))
+        selected = [(call.kwargs["package"], test) for call in run.call_args_list for test in call.args[1]]
+        expected = [(package, test) for package, tests in inventory.items() for test in tests]
+        self.assertCountEqual(selected, expected)
+        self.assertEqual(len(selected), len(set(selected)))
+        with self.assertRaisesRegex(SystemExit, "invalid renderer"):
+            gate.run_renderer_pr(str(gate.RENDER_PR_SHARDS))
 
     def test_full_renderer_inventory_requires_every_package_and_subtest(self):
         packages = [gate.RENDER_PACKAGE, gate.RENDER_PACKAGE + "/extra"]

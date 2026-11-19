@@ -12,6 +12,7 @@ from run_tests import PLANETARY_PR_SHARDS, finished_tests, go_test, run_pattern
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
 RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
+RENDER_PR_SHARDS = 16
 RENDER_TESTS = {
     "clamparm-render": ("40m", ("TestClampArmPresets", "TestClampArmExploded")),
     "swiss-render": ("40m", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
@@ -31,7 +32,7 @@ WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
     "model-planetarygearbox": [RUNNER + ["planetary", "pr", str(i)] for i in range(PLANETARY_PR_SHARDS)],
     "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
-    "renderer-all": [["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."]],
+    "renderer-all": [["renderer-pr", str(i)] for i in range(RENDER_PR_SHARDS)],
     "feature-dovetail": [["go", "test", "./features/dovetail", "-timeout", "5m"]],
     **{name: [["go", "-C", "tools/render", "test", "-json", "-run", run_pattern(tests),
                "-timeout", timeout, "./..."]] for name, (timeout, tests) in RENDER_TESTS.items()},
@@ -70,7 +71,7 @@ def commands(suite):
     if isolated:
         directory, name, test, tag = isolated
         package = "." if directory == "tools" else "./" + directory + "/" + name
-        timeout = "40m" if directory == "models" and (
+        timeout = "40m" if directory == "tools" or directory == "models" and (
             (name == "planetarygearbox" and test == "TestKitGearboxes") or
             (name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
         ) else "5m"
@@ -138,6 +139,28 @@ def run_renderer_full():
         raise SystemExit("renderer tests did not pass: " + ", ".join(names))
 
 
+def run_renderer_pr(shard):
+    """Run a disjoint share of all discovered renderer tests."""
+    if not shard.isdigit() or not 0 <= int(shard) < RENDER_PR_SHARDS:
+        raise SystemExit("invalid renderer PR shard")
+    base = ["go", "-C", "tools/render"]
+    packages = subprocess.run(base + ["list", "./..."], check=True, capture_output=True, text=True).stdout.splitlines()
+    if not packages or len(packages) != len(set(packages)):
+        raise SystemExit("renderer package inventory is empty or duplicated")
+    inventory = []
+    for package in packages:
+        output = subprocess.run(base + ["test", "-list", "^Test", package],
+                                check=True, capture_output=True, text=True).stdout
+        inventory.extend((package, line) for line in output.splitlines() if line.startswith("Test"))
+    if not inventory or len(inventory) != len(set(inventory)):
+        raise SystemExit("renderer test inventory is empty or duplicated")
+    selected = sorted(inventory)[int(shard)::RENDER_PR_SHARDS]
+    for package in sorted({item[0] for item in selected}):
+        tests = [test for pkg, test in selected if pkg == package]
+        go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
+                package=package, cwd="tools/render", module="tools/render")
+
+
 def suites_from_plan(raw):
     plan = json.loads(raw)
     suites = plan["suites"]
@@ -197,7 +220,7 @@ def main():
         suite = os.environ["SUITE"]
         command = commands(suite)[int(os.environ["CASE"])]
         if suite == "renderer-all":
-            run_renderer_full()
+            run_renderer_pr(os.environ["CASE"])
         elif suite.startswith("isolated-"):
             directory, name, test, _ = isolated_suite(suite)
             package = "github.com/lestrrat-3d/decad-gallery/" + directory + "/" + name
