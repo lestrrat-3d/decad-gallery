@@ -1,5 +1,7 @@
 package meshgap
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
