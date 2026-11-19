@@ -43,13 +43,13 @@ func TestTurbineFanBuild(t *testing.T) {
 }
 
 // TestTurbineFanSketches requires every sketch of every case (the compact, default and large rotors), the hub's and the
-// blades' and each bolt's and nut's, fully constrained: 28 from BuildParts (the hub's two adapter hole sketches and two
+// blades' and each bolt's and nut's, fully constrained: 29 from BuildParts (the hub's two adapter hole sketches and two
 // adapter slot sketches among them) and 20 from Build. The clutch mount's sketches are in TestTurbineFanClutchSketches.
 func TestTurbineFanSketches(t *testing.T) {
 	for _, c := range fanCases {
 		t.Run(c.name, func(t *testing.T) {
 			m, _ := built(t, c)
-			require.Len(t, m.Sketches, 28)
+			require.Equal(t, 29, len(m.Sketches))
 			for i, s := range m.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
@@ -88,8 +88,8 @@ func TestTurbineFanBounds(t *testing.T) {
 			require.NoError(t, err)
 			bv, err := m.Blades[0].Volume()
 			require.NoError(t, err)
-			require.InEpsilon(t, 9703.740630, hv.Value.Base(), 1e-6, "hub volume")
-			require.InEpsilon(t, 1968.166101784, bv.Value.Base(), 1e-6, "blade volume")
+			require.InEpsilon(t, 9701.314382354, hv.Value.Base(), 1e-6, "hub volume")
+			require.InEpsilon(t, 1968.024799767, bv.Value.Base(), 1e-6, "blade volume")
 		}
 		for name, item := range map[string]struct {
 			body *decad.Body
@@ -164,16 +164,15 @@ func TestTurbineFanPlacementPoint(t *testing.T) {
 // tip radius, at both ends of the pitch range, for the compact, default and large rotors.
 func TestTurbineFanEnvelope(t *testing.T) {
 	eachCase(t, []string{"steep", "flat", "605ZZ", "compact", "large"}, func(t *testing.T, c fanCase, m *turbinefan.Model) {
-		sz := m.Dimensions.Size
-		for k, blade := range m.Blades {
-			lo, hi, far := math.Inf(1), math.Inf(-1), 0.0
-			for _, v := range meshOf(t, blade, 0.1).Vertices() {
-				lo, hi, far = math.Min(lo, v.Z), math.Max(hi, v.Z), math.Max(far, math.Hypot(v.X, v.Y))
-			}
-			require.GreaterOrEqual(t, lo, 0.0, "blade %d: lowest z", k+1)
-			require.LessOrEqual(t, hi, sz.HubLength, "blade %d: highest z", k+1)
-			require.LessOrEqual(t, far, sz.TipRadius+0.5, "blade %d: radius", k+1)
-			t.Logf("%s blade %d: z from %.2f to %.2f, radius %.2f", c.name, k+1, lo, hi, far)
-		}
+		requireFanEnvelope(t, c.name, m)
 	})
+}
+
+func TestTurbineFanEnvelopeCompactSteep(t *testing.T) {
+	p := turbinefan.Params608ZZ()
+	p.RotorDiameter = turbinefan.MinRotorDiameter
+	p.BladePitch = turbinefan.MaxBladePitch
+	m, err := turbinefan.Build(t.Context(), turbinefan.NewDocument(), p)
+	require.NoError(t, err)
+	requireFanEnvelope(t, "compact-steep", m)
 }

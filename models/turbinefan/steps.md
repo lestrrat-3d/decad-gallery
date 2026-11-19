@@ -14,12 +14,49 @@ instructions.md "Fasteners" says why each slot works and why a back-face slot do
 
 `SizeFor(D_r)` (size.go) makes no geometry calls. With `s = D_r / 128`: `HubRadius = min(14 s, 18.9)`, `j = HubRadius / 14`,
 `HubLength = 20 s`, `HubMid = HubLength / 2`, `TipRadius = D_r / 2`, `RootRadius = HubRadius + 0.4`, `RefRadius = 48 s`,
-`HoldRadius = 21.5 s`, `BladeSocketStart = 5.7 j`, `BladeStudStart = BladeSocketStart + 0.4`, `BladeStudRadius = 3 j`,
-`BladeSocketRadius = BladeStudRadius + 0.4`, `BladeStudEnd = 16 j`, `BladeBoltAt = 9.5 j`, `BladeBoltLength` = the longest
-`m2bolt.StandardLengths()` entry `L` with `HubLength - HeadPocketDepth - L >= 2`, `BladeBoltCavity = BladeBoltLength - 0.4`.
-It fails for a diameter outside [128, 224] or not finite, when no length fits, and when `HubLength - BladeBoltCavity` is
-above `HubMid - BladeSocketRadius - 1`. `Size.Beta(r, pitch) = 5 deg + atan(tan(25 deg - 5 deg) RefRadius / max(r,
+`HoldRadius = 21.5 s`, `BladeSocketStart = 5.7 j`, `BladeStudStart = BladeSocketStart + RegularFit + 0.005`, `BladeStudRadius = 3 j`,
+`BladeSocketRadius = BladeStudRadius + RegularFit + 0.005`, `BladeStudEnd = 16 j`, `BladeBoltAt = 9.5 j`, `BladeBoltLength` = the longest
+`m2bolt.StandardLengths()` entry `L` with
+`HubLength - m2fastener.HeadPocketDepth - L >= BladeBoltTipFloor - 1e-9`, `BladeBoltCavity = BladeBoltLength - 0.4`.
+Keep the subtraction order and apply the 1e-9 mm allowance only to this comparison.
+`SizeFor(140.79999999999998)` must return `BladeBoltLength == 18`.
+Implement `func (s Size) BladeSocketZ() float64 { return s.HubMid + 2.5 }`. The method is a derived
+dimension in mm and adds no field to the public `Size` layout. Use it for the socket plane, assembled blade plane
+and socket-to-slot wall estimate. Keep the physical hub bounds at [0, HubLength], with midpoint HubMid.
+`SizeFor` fails for a diameter outside [128, 224] or not finite, when no length fits, and when `HubLength - BladeBoltCavity` is
+above `BladeSocketZ() - BladeSocketRadius - 1`. `Size.Beta(r, pitch) = 5 deg + atan(tan(25 deg - 5 deg) RefRadius / max(r,
 HoldRadius)) + (pitch - 25 deg)`.
+
+Write Go documentation on the exported size constants, `Size` and its public fields, `SizeFor`, `Beta` and
+`BladeSocketZ`. Use the local-frame dimensions in the “Size” table of instructions.md. Document the following meanings.
+
+- `BaseRotorDiameter` sets the blade station table's reference size. `DefaultRotorDiameter` sets the preset size.
+  `MinRotorDiameter` and `MaxRotorDiameter` bound the diameter inclusively. `BaseHubRadius` is the hub radius
+  at the base size. `MaxHubRadius` leaves room for the 605ZZ clutch's ear bolt heads and a 1.5 mm hex key at the
+  21.6 mm ear circle. `BladeBoltTipFloor` is the minimum blade-bolt tip height above the hub's back face.
+- `Size` holds the derived local dimensions in mm, with dimensionless `Scale` and `HubScale`. Obtain it from
+  `SizeFor`, which requires a finite diameter within the inclusive limits. Explain the formula and physical meaning
+  beside each field. Distinguish the geometric midpoint `HubMid` from the socket-axis height `BladeSocketZ()`.
+  Identify `RefRadius` as the rated-pitch station and `HoldRadius` as the inboard limit of twist.
+- Identify the full circular stud's outer station at `14.6 * HubScale`, the legacy `BladeStudEnd` at
+  `16 * HubScale`, and `BladeSocketStart` as the radial socket floor. `BladeBoltAt` is the radial bolt position.
+  `BladeBoltCavity` measures from the bolt head's top face to the nut slot's near face.
+- `Beta` returns the angle in radians from the plane of rotation at radius r in mm, with pitch in radians at
+  `RefRadius`. State the inboard angle hold and the pitch adjustment to the blade sections.
+  `BladeSocketZ` returns the assembled socket and stud axis height in mm from the hub's back face.
+
+In `params.go`, document `RegularFit` as the 0.40 mm base allowance from crankhandle. Both the actual
+radial stud clearance and axial stud-tip gap include the 0.005 mm addition in `SizeFor` and measure 0.405 mm.
+
+Blade construction checks that the supplied dimensions match every field returned by `SizeFor`. Implement the private
+method in `size.go` with exact Go struct equality.
+
+```go
+func (s Size) valid() bool {
+	want, err := SizeFor(s.RotorDiameter)
+	return err == nil && s == want
+}
+```
 
 `Derive` makes no geometry calls. It runs the rules of instructions.md in order, stores `Size`, and fills the bore values
 and the set screw: `BoreRadius`, `BoreFlat`, `BoreFlatWidth = 2 sqrt(r_b^2 - f_b^2)`, `BoreLoop`, `ShaftFlatWidth = 2
@@ -31,6 +68,36 @@ u_k, Length: BladeBoltLength, Cavity: BladeBoltCavity`. `AdapterSites[k]` (k = 0
 1), Corner: u, Length: 10, Cavity: 7.75`, both validated; `Derive` fills it and the set screw's values in both mounts.
 
 ## 2. Sketches (sketches.go)
+
+The private `run` and these helpers belong to `sketches.go`. The parts assembler shares the same run throughout
+one build. Use the following field names and callable signatures.
+
+```go
+type run struct {
+    ctx      context.Context
+    doc      *decad.Document
+    p        Params
+    dm       Dimensions
+    sketches []*sketch.Sketch
+}
+
+func across(z float64) r3.Frame
+func newSketch(f r3.Frame) (*sketch.Sketch, error)
+func (r *run) sketchOn(f r3.Frame) (*sketch.Sketch, error)
+func (r *run) profile(s *sketch.Sketch, holes int) (*sketch.Profile, error)
+func (r *run) extrudeOutline(s *sketch.Sketch, holes int, length float64) (*decad.Body, error)
+func (r *run) hubSketch() (*sketch.Sketch, error)
+func (r *run) nutSlotSketch(f r3.Frame, reach float64) (*sketch.Sketch, error)
+func (r *run) counterboreTool() (*decad.Body, error)
+func (r *run) setScrewSlotTool() (*decad.Body, error)
+func (r *run) slotTool(site m2fastener.Site, u r3.Vec, reach float64) (*decad.Body, error)
+```
+
+`across` returns the plane at local z with U = +X and V = +Y. `sketchOn` creates and records a sketch.
+`profile` solves it, verifies its constraints and selects a single valid profile with the requested hole count.
+`extrudeOutline` uses that profile and extrudes along the plane normal. These run helpers record their driving
+sketches. In `BuildParts`, record each hub cutter's driving sketch once, including cutters from
+`m2fastener`, and append the fourteen construction sketches from the single blade before patterning it.
 
 Each sketch is on a fresh `sketch.NewWorld()` plane made from an `r3.Frame`, recorded in the run, solved, and checked with
 `sketchcheck.VerifyFullyConstrained` before its profile is used.
@@ -66,15 +133,89 @@ Tools, each recording its sketch:
 
 ## 3. Parts (turbinefan.go)
 
+Provide the following assembly entry points and local helpers in `turbinefan.go`. Use the `run` from “Sketches”.
+
+Write a Go package comment beginning `Package turbinefan` immediately before the package clause. Describe
+three replaceable blades, the 128–224 mm rotor range, the 192 mm default and the hub-radius cap for clutch bolt access.
+Describe the D bore, the radial set screw seated in an open nut slot and the axial M2 bolts retaining the blades'
+radial studs. In the default size these are M2 × 10 and M2 × 25 respectively. Describe the two common adapter
+holes at 30° and 150°, the two M2 × 10 bolts and the 180° frame rotation for the clutch mount. The caller builds
+the adapter and clutch. State the local frame: origin at the hub back face on the shaft, +Z toward the front,
+−Y toward the shaft flat, first blade along +Y, and the other blades at 210° and 330°. Viewed from the front,
+the right hand turns clockwise and the left hand counterclockwise to blow forward.
+
+Give the following exported declarations Go documentation at their definitions.
+
+- Document the body container constants `HubContainerName`, `BladesContainerName`, `BoltsContainerName`
+  and `NutsContainerName`, whose literal values are `Hub`, `Blades`, `Bolts` and `Nuts` respectively.
+- `Parts` contains the placed printed hub and three blades. Document `Sketches` as their 29 fully constrained
+  construction sketches, `Dimensions` as the local dimensions, and `BladeSites`, `SetScrewSite` and `AdapterSites`
+  as world-frame sites available in both mounts.
+- `Model` embeds `Parts` and adds the three blade bolt and nut pairs. In `ShaftMount`, `SetScrew` and
+  `SetScrewNut` are present and the entries in `AdapterBolts` and `AdapterNuts` are nil. In `ClutchMount`,
+  both adapter pairs are present and the set screw fields are nil. Fastener models own their construction sketches.
+- `BuildParts` adds and returns the placed hub and three blades. The caller controls their containers.
+  `Build` files the complete fan including its mount-specific hardware under the four named containers.
+  State on each function that it requires a nonnil context and document. State on `Build` that the caller
+  builds the clutch and adapter separately.
+
+```go
+type Parts struct {
+    Hub          *decad.Body
+    Blades       [BladeCount]*decad.Body
+    Sketches     []*sketch.Sketch
+    Dimensions   Dimensions
+    BladeSites   [BladeCount]m2fastener.Site
+    SetScrewSite m2fastener.Site
+    AdapterSites [2]m2fastener.Site
+}
+
+type Model struct {
+    Parts
+    BladeBolts  [BladeCount]*m2bolt.Model
+    BladeNuts   [BladeCount]*m2nut.Model
+    SetScrew    *m2bolt.Model
+    SetScrewNut *m2nut.Model
+    AdapterBolts [2]*m2bolt.Model
+    AdapterNuts  [2]*m2nut.Model
+}
+
+func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error)
+func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)
+func (r *run) hub() (*decad.Body, error)
+func (r *run) socketTools() ([]*decad.Body, error)
+func (r *run) bladeSlotTool(k int) (*decad.Body, error)
+func (r *run) ring(body *decad.Body) ([]*decad.Body, error)
+func (r *run) blades() ([]*decad.Body, error)
+func placeSite(s m2fastener.Site, f *r3.Frame) (m2fastener.Site, error)
+```
+
+`BuildParts` calls `p.Derive()` for the dimensions and `p.buildFrame(dm.Size)` for the optional placement.
+Initialize `run{ctx: ctx, doc: doc, p: p, dm: dm}`. `bladeSlotTool(k)` takes a one-based blade index.
+`ring` returns the input body first, then its 120° and 240° copies. `socketTools` returns that sequence for
+the rounded cutter, and `blades` returns it for blade 1 after assembly placement.
+`BuildParts` verifies and places each solid using `placement.Place(ctx, body, frame)`. It returns the
+placed hub, three placed blades, collected sketches, dimensions and sites. `placeSite` with a nil frame
+returns the original site. With a frame it transforms `Head` as a point and `Dir` and `Corner` as directions.
+
+For hub finishing use
+`edgefinish.Chamfer(ctx, body, normal, offsets, edgefinish.Long(edgefinish.All), ChamferSize)`;
+it returns the new body, matched edge count and error. Both `m2fastener.PocketTool(ctx, doc, site)` and
+`m2fastener.HoleTool(ctx, doc, site)` return the cutter, its driving sketch and an error.
+
 1. Hub: extrude the outline `HubLength` along +Z (profile with four holes); `edgefinish.Chamfer` of both faces by 0.5 over the long
    loops; then `decad.Cut`, in this order, the socket tool and its two pattern copies, for each blade site `m2fastener.PocketTool`
    then `bladeSlotTool` (a call of `slotTool`), then `counterboreTool`, `m2fastener.HoleTool(SetScrewSite)` and `setScrewSlotTool`, then for each adapter site
    `m2fastener.HoleTool(AdapterSites[k])` and `slotTool(AdapterSites[k], Corner, HubRadius + 1 - 9.5)`. The socket tool is
-   `BladeSocketTool` on `r3.NewFrame((0, BladeSocketStart, HubMid), (0, 0, 1), (1, 0, 0))`; its copies come from
+   `BladeSocketTool` on `r3.NewFrame((0, BladeSocketStart, BladeSocketZ()), (0, 0, 1), (1, 0, 0))`; its copies come from
    `decad.PatternCopies` with `decad.CircularPattern{Axis: (0, 0, 1), Count: 3}`. Record every tool's sketch.
 2. Blades: `BuildBlade(ctx, doc, BladePitch, Size)` (`BuildBladeMirrored` when `Hand` is `LeftHand`); record its
-   sketches; `decad.Transform` by `r3.FromFrame(r3.NewFrame((0, 0, HubMid), (-1, 0, 0), (0, 0, 1)))`; `decad.PatternCopies` with
-   the same circular pattern.
+   sketches; `decad.Transform` by `r3.FromFrame(r3.NewFrame((0, 0, BladeSocketZ()), (-1, 0, 0), (0, 0, 1)))`; `decad.PatternCopies` with
+   the same circular pattern. A blade-local point (x, y, z) on blade 1 becomes
+   (−x, z, BladeSocketZ() + y). Apply this placement once, after the individual blade and its bolt hole are complete.
+   The axis of that hole remains coaxial with the axial hub bolt. Build the head pockets and nut slots at their
+   specified hub-face depths. Check the stud in its socket at `BladeSocketZ()`, including socket corner sections at
+   `BladeSocketZ() ± 3*HubScale`. Retain the separate 30%, 50% and 70% hub-height clearance checks.
 3. Require each part solid, then `placement.Place(ctx, body, f)`, where `f` is `Placement` moved back from the placement point
    to the local origin: origin `Placement.Apply((0, 0, -anchor))` with `Placement`'s U and V (anchor `HubLength` in `ShaftMount`,
    `ClutchAnchorZ` in `ClutchMount`; `f` is nil when `Placement` is nil). Carry each site's `Head` through `f` with
@@ -83,7 +224,10 @@ Tools, each recording its sketch:
 `Build` then calls `m2fastener.PlaceBolt` and `PlaceNut` at each placed blade site and, in `ShaftMount`, at the set screw site
 or, in `ClutchMount`, at each placed adapter site, and adds each body to `doc.Root().ChildNamed(name)` with `AddBody`: the hub
 in `Hub`, the blades in `Blades`, blade bolts 1 to 3 then the set screw or adapter bolts 1 and 2 in `Bolts`, and their nuts in
-the same order in `Nuts`.
+the same order in `Nuts`. Return the 29 `Parts.Sketches` collected by `BuildParts` (15 hub outline and cutter
+sketches plus 14 blade sketches). Each placed bolt owns its `Profile` and `Socket` sketches, and each placed
+nut owns its `Hexagon`, `LowerChamfer` and `UpperChamfer` sketches. Verify these through their respective
+fastener fields, separately from `Parts.Sketches`: 20 in `ShaftMount` and 25 in `ClutchMount`.
 
 ## 4. Blade (blade.go)
 
@@ -180,7 +324,7 @@ when rounding to binary64 and converting the result back to an exact rational gi
    an error with S and R. Verify the accepted tuple on each build.
 4. Subtract O from physical XY coordinates when authoring sketches. Keep the physical stud axis at (0,0).
    Verify the solved centre, endpoints, radii and equal axial and radial chamfer legs as exact rational values.
-   For compact dimensions this gives Z1 = 6.4 and c = 0.2999999999999998 mm.
+   For compact dimensions Z1 is approximately 6.405 mm. Use the accepted binary64 value for the chamfer rim.
 5. Try each origin directly in the caller's document. A polar-angle refusal occurs before Decad registers a body.
    Retry that failure with the next origin and the same physical geometry. Propagate other errors. Keep the first
    admitted loft and cut its bolt bore once.

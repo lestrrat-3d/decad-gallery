@@ -45,11 +45,11 @@ func TestTurbineFanClutchBuild(t *testing.T) {
 	})
 }
 
-// TestTurbineFanClutchSketches requires 28 fully constrained sketches from BuildParts, the hub's own among them, and the
+// TestTurbineFanClutchSketches requires 29 fully constrained sketches from BuildParts, the hub's own among them, and the
 // adapter fasteners' own.
 func TestTurbineFanClutchSketches(t *testing.T) {
 	eachClutchCase(t, func(t *testing.T, _ fanCase, m *turbinefan.Model, _ *decad.Document) {
-		require.Len(t, m.Sketches, 28)
+		require.Equal(t, 29, len(m.Sketches))
 		for i, s := range m.Sketches {
 			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 		}

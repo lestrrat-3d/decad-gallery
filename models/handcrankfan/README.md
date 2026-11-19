@@ -47,7 +47,7 @@ crank-side wall with its block, and the fan-side wall with its block, which hold
 its shaft axes vertical, so no bore lies on its side: the post on its inner face, and the two walls on the face that meets
 the base with their blocks pointing up. The seats that open onto the bed have a 45° cone for a ceiling. Four M2 x 16 bolts go
 through the post and the crank-side wall into nuts in the base's back wall, and four M2 x 10 bolts and nuts, in ears on
-the outside, join the fan-side wall to the post and the crank-side wall. The hub's blade sockets are plain 6.8 mm
+the outside, join the fan-side wall to the post and the crank-side wall. The hub's blade sockets are plain 6.81 mm
 holes, small enough to print on their side.
 
 ## Bolts, nuts and fits

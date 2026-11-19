@@ -80,7 +80,7 @@ func TestTurbineFanCopies(t *testing.T) {
 		for k := 1; k <= turbinefan.BladeCount; k++ {
 			u := bladeDir(k)
 			for _, r := range []float64{7 * sz.HubScale, 12 * sz.HubScale} {
-				require.Equal(t, decad.PointOutside, locate(u.Scale(r).Add(r3.Vec{Z: sz.HubMid})),
+				require.Equal(t, decad.PointOutside, locate(u.Scale(r).Add(r3.Vec{Z: sz.BladeSocketZ()})),
 					"socket %d is empty at radius %g", k, r)
 			}
 		}
@@ -116,7 +116,7 @@ func TestTurbineFanReplaceBlade(t *testing.T) {
 				// about the radial line, so these two planes bound every gap between it and the socket, and the root beyond
 				// the rim only moves away from the hub. (A mesh-to-mesh check of the whole blade reads the coincident bolt
 				// holes of the stud and the hub as undecided.)
-				for _, plane := range []r3.Frame{radial(t, k), atZ(t, sz.HubMid)} {
+				for _, plane := range []r3.Frame{radial(t, k), atZ(t, sz.BladeSocketZ())} {
 					hubOutline, bladeOutline := section(t, m.Hub, plane), section(t, blade, plane)
 					for _, s := range []float64{0.5, 1.7, 4, 6.3, 8, 8.5} {
 						slide := s * sz.HubScale
@@ -141,7 +141,7 @@ func TestTurbineFanReplaceBlade(t *testing.T) {
 				// The radial plane through the blade's axis shows the hole: the blade's point location is undecided there.
 				plane := section(t, blade, radial(t, k))
 				uv := func(v r3.Vec) (float64, float64) { return v.X*u.X + v.Y*u.Y, v.Z }
-				solid := func(r float64) bool { return inSection(plane, uv, r, sz.HubMid) }
+				solid := func(r float64) bool { return inSection(plane, uv, r, sz.BladeSocketZ()) }
 				shank := sz.BladeBoltAt
 				require.True(t, solid(shank-1.5), "the stud's wall inside the shank")
 				require.False(t, solid(shank-1.0), "the shank's inner side lies in the hole")
@@ -193,11 +193,15 @@ func TestTurbineFanLeftHand(t *testing.T) {
 	verts := meshOf(t, parts.Blades[0], 0.1).Vertices()
 	sz := parts.Dimensions.Size
 	y, ring := meshRing(verts, 40*sz.Scale)
-	stack := r3.Vec{Y: y, Z: sz.HubMid}
-	te1 := farthest(ring, stack, nil)
-	le := farthest(ring, te1, nil)
-	te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
-	mid := te1.Add(te2).Scale(0.5)
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for _, v := range ring {
+		if math.Abs(v.X-sz.BladeStudRadius) < 1e-9 {
+			lo, hi = math.Min(lo, v.Z), math.Max(hi, v.Z)
+		}
+	}
+	require.InDelta(t, 2, hi-lo, 1e-8, "left-hand trailing flat")
+	mid := r3.Vec{X: sz.BladeStudRadius, Y: y, Z: (lo + hi) / 2}
+	le := farthest(ring, mid, nil)
 	require.Less(t, le.X-mid.X, 0.0)
 	require.Less(t, le.Z-mid.Z, 0.0)
 	require.InDelta(t, sz.Beta(y, p.BladePitch), math.Atan2(-(le.Z-mid.Z), -(le.X-mid.X)), 0.5*math.Pi/180)

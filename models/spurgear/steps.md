@@ -20,7 +20,7 @@ Generate package `spurgear` at
 | `tooth_section_test.go` | Public signed tooth-section tests |
 | `placement_test.go` | Public placed-gear tests |
 
-Declare `Params` using the contract's Inputs table. Expose these signatures:
+Declare the fields of `Params` in the order given in the contract's Inputs table. Expose these signatures:
 
 ```go
 func DefaultParams() Params
@@ -360,12 +360,18 @@ If a trim is not certified, return an error that names the tooth.
 Implement an internal `buildEmbeddedTooth(ctx,world,plane,p,d)` for the embedded
 branch, with its closing-radius helper:
 
-1. Compute `Rc` from the Embedded tooth rule in `instructions.md`. Evaluate
-   the half-angle `h(r)` with the Tooth flank formulas: rotate the mirrored
-   involute point at radius `r` by the same `beta` as the sampler and take
-   `math.Atan2` of the rotated point. Bisect `[d.base,d.root]` for `Rq` with a
-   fixed 200 iterations. Return an error naming the root circle when no `Rc`
-   exists.
+1. In the default embedded-tooth branch, compute the closing radius before creating the tooth sketch or body.
+   Both `Variant.BuildTooth` and the full gear build first apply `Variant.Define` to the spur parameters and
+   read the effective dimensions. Use the same `d.pitch`, `d.base`, `d.root`, `d.tip`, `d.backlash` and
+   tooth count as the tooth sampler. The shared input validator has no variant context; keep the closing-radius
+   search out of it. Dispatch a custom `Variant.Tooth` before checking the default spur tooth geometry.
+   `BuildToothSection` returns its own `embedded` error for the embedded branch.
+   Rotate the mirrored involute point at radius r by the sampler's backlash-adjusted
+   `beta` for tooth zero. Use `h(r) = math.Abs(math.Atan2(y, x))` on that rotated point at every comparison.
+   Set `limit = math.Pi / float64(p.Teeth)`. Use `Rc = d.base` when `h(d.base) < limit`.
+   Otherwise return an error naming the root circle if `h(d.root) >= limit`. In the remaining case start
+   `lo = d.base`, `hi = d.root`; perform 200 bisections. For `mid = (lo+hi)/2`, set `lo = mid` when
+   `h(mid) >= limit`, and `hi = mid` otherwise. Set `Rq = (lo+hi)/2` and `Rc = (Rq+d.root)/2`.
 2. Sample the flanks from `Rc` to `d.tip` with the same involute and `beta` as
    `sampleFlanks`, at angle 0, with `p.Samples` samples.
 3. Create every right point with both coordinate dimensions. Create every left

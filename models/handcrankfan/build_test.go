@@ -308,11 +308,11 @@ func requireJoint(t *testing.T, p handcrankfan.Params, parts map[string]handcran
 		require.NoError(t, err, name)
 		return loc
 	}
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -86, Z: 170}), "the socket is empty")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 8, Y: -88.5, Z: 170}), "the socket is empty")
 	// The nut cavity, its roof and the head pocket sit within 0.5 mm of the hub's faces, where the faceted hub gives no
 	// decided point location. The fasteners subtest proves them with section loops.
 	require.Equal(t, decad.PointInside, locate("fan-hub", r3.Vec{X: 10, Y: -91, Z: 175}), "the hub between two blades is solid")
-	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -86.2, Z: 170.3}), "the socket is empty past the bolt")
+	require.Equal(t, decad.PointOutside, locate("fan-hub", r3.Vec{X: 9.6, Y: -88.7, Z: 170.3}), "the socket is empty past the bolt")
 }
 
 // requireGrip measures the grip's mesh rings at three heights: they are ovals of the table's width and length,

@@ -166,18 +166,20 @@ func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan
 	theta := state.FanAngle + 2*math.Pi*float64(k-1)/turbinefan.BladeCount
 	radial := r3.Vec{X: math.Cos(theta), Z: math.Sin(theta)}
 	normal := r3.Vec{X: -math.Sin(theta), Z: math.Cos(theta)}
-	origin := state.Apex.Add(r3.Vec{Y: -86})
+	origin := state.Apex.Add(r3.Vec{Y: -88.5})
 	var heights []float64
 	for _, h := range []float64{-2.8, -2, -1, 0, 1, 2, 2.99, 2.999} {
 		heights = append(heights, origin.Dot(normal)+h)
 	}
 	body := parts[fmt.Sprintf("fan-blade-%d", k)].Body
+	sz, err := turbinefan.SizeFor(turbinefan.MinRotorDiameter)
+	require.NoError(t, err)
 	fs, err := cornercheck.CheckAt(t.Context(), body, normal, heights, nil)
 	require.NoError(t, err)
 	for _, f := range fs {
 		h := f.Height - origin.Dot(normal)
 		d := f.At.Sub(origin)
-		if f.Kind != cornercheck.Tip || math.Abs(d.Dot(radial)-6.4) > 1e-8 || h < 2.99-1e-9 || h > 3+1e-9 {
+		if f.Kind != cornercheck.Tip || math.Abs(d.Dot(radial)-(sz.BladeStudStart+0.3)) > 1e-8 || h < 2.99-1e-9 || h > 3+1e-9 {
 			t.Fatalf("unexpected blade corner: %s", cornercheck.Report([]cornercheck.Finding{f}, 1))
 		}
 		// The short conical cap combines two allowed turns in the scanner's window.
