@@ -1,5 +1,7 @@
 package helicalgear_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
@@ -8,13 +10,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-func smallPlacedParams() helicalgear.Params {
-	p := helicalgear.DefaultParams()
-	p.Teeth, p.Samples, p.Thickness = 8, 5, 2
-	p.BoreDiameter, p.CapChamfer = 1, 0.1
-	return p
-}
 
 func TestPlacedHelicalGearMatchesWorldGear(t *testing.T) {
 	p := smallPlacedParams()
