@@ -16,7 +16,8 @@ CASES = {
     "b8974b264": ({"models/clamparm/fits_test.go"}, {"clamparm"}, {"broad", "wheel", "siren"}),
     "9f71de90c": ({"go.mod", "go.sum"}, {"broad", "full"}, set()),
     "3e38f7503": ({".github/workflows/repository.yml"}, set(), {"broad"}),
-    "b2200f3eb": ({"models/plaquestand/plaquestand.go"}, {"broad", "new-model-plaquestand"}, set()),
+    "b2200f3eb": ({"models/plaquestand/plaquestand.go"}, {"broad", "full"},
+                   {"model-plaquestand", "renderer-all"}),
 }
 
 

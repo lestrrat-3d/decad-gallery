@@ -41,6 +41,8 @@ class ReplayTest(unittest.TestCase):
                   "suites": ["broad", "new-model-plaquestand", "renderer-all"]}
         with mock.patch.object(replay.subprocess, "check_output", side_effect=["head", "base"]), \
                 mock.patch.object(replay.plan, "plan", return_value=result), \
+                mock.patch.dict(replay.CASES, {"b2200f3eb": (
+                    {"models/plaquestand/plaquestand.go"}, {"broad", "new-model-plaquestand"}, set())}), \
                 mock.patch.object(replay.gate, "check", return_value=[]) as check:
             _, errors = replay.replay("b2200f3eb")
         self.assertEqual(errors, [])

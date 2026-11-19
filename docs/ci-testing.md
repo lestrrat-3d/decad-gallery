@@ -14,13 +14,13 @@ model, feature, package, and renderer checks. Production changes can also select
 renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
-registered packages select their tests and affected consumers. Unregistered packages select broad checks and direct
-tests. Renderer Go changes select broad checks and
-the full renderer suite. A change to either module's `go.mod` or `go.sum` selects `broad` and the `full` marker,
-which runs the full root and renderer checks. Unknown shared inputs, unregistered owners, invalid revision information, or unavailable
-metadata trigger broad fallback where the planner can safely dispatch it. A new Go directory that cannot be
-classified when metadata is unavailable fails planning instead. The wheel README part-image inventory is checked
-before planning and can also fail the plan.
+registered packages select their tests and affected consumers. New unregistered packages select broad checks and
+direct tests alongside affected known packages. Renderer Go changes select the full renderer suite. A change to either
+module's `go.mod` or `go.sum` selects `broad` and the `full` marker, which runs the full root and renderer checks.
+Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unregistered existing
+owners, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
+unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
+the plan. Suites already covered by selected broad or full jobs are not dispatched twice.
 
 `gate.py` turns the plan into a worker matrix and checks the plan, matrix, and expected job results. An empty matrix
 must skip the worker; a nonempty matrix must succeed. Broad plans run the dedicated broad jobs. The gate rejects
