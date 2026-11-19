@@ -341,6 +341,56 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	require.InDelta(t, 0.20, hole-stub, 0.03, "the journal clearance (T5)")
 }
 
+// TestSevenSegmentStackPlay bounds the cam stack's play along the shaft (instructions.md "Cam stack, axial play"), read on
+// the built bodies. Rearward the stack stops where cam a's D chord meets the square end of the shaft's flats, each part
+// PressFit behind the next, so a cam can move back by the gaps behind it (cam d 0.35). Forward nothing but the pin tips
+// stops it. Pushed fully back, with its slider leaned forward as far as the stem slot and the blade hole allow, every groove
+// pin keeps 0.75 or more of engagement in its groove (computed 0.77, cam d unlit).
+func TestSevenSegmentStackPlay(t *testing.T) {
+	r := newTestRun(t)
+	_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
+	gbox, err := guide.Bounds()
+	require.NoError(t, err)
+	_, ratchet := sharedBody(t, "ratchet wheel", (*run).ratchetWheel)
+	rbox, err := ratchet.Bounds()
+	require.NoError(t, err)
+	// The flats' square end: the cam section is a double D just inside it and round just past it.
+	_, shaft := sharedBody(t, "shaft", (*run).shaft)
+	_, maxZ, _ := extent(sectionAt(t, shaft, shaftCamFlatTo-0.02))
+	require.InDelta(t, shaftCamFlat, maxZ, 0.02)
+	_, maxZ, _ = extent(sectionAt(t, shaft, shaftCamFlatTo+0.02))
+	require.InDelta(t, shaftCamRadius, maxZ, 0.02)
+	back, rear := shaftCamFlatTo, 0.0
+	worst := math.Inf(1)
+	for i := len(stationOrder) - 1; i >= 0; i-- {
+		seg := stationOrder[i]
+		_, cam := sharedCam(t, seg)
+		box, err := cam.Bounds()
+		require.NoError(t, err)
+		require.InDelta(t, PressFit, back-box.Max.Y, 0.01, "gap behind cam %s", seg)
+		rear += back - box.Max.Y
+		back = box.Min.Y
+		_, slider := sharedSlider(t, seg)
+		sbox, err := slider.Bounds()
+		require.NoError(t, err)
+		_, _, horizontal := segmentCentre(seg)
+		blade := bladeAlong
+		if horizontal {
+			blade = bladeAcross
+		}
+		for _, lift := range []float64{0, Travel} {
+			pin, ridge := sliderPinZ+lift, bladeRidgeZ+lift
+			lean := TightFit + (TightFit+blade)*(gbox.Min.Z-pin)/(ridge-gbox.Min.Z)
+			engage := sbox.Max.Y - (r.dm.camDiscFace(seg) + rear) - lean
+			t.Logf("cam %s lift %.0f: back %.2f, slider lean %.3f, engagement %.3f", seg, lift, rear, lean, engage)
+			worst = math.Min(worst, engage)
+		}
+	}
+	require.InDelta(t, PressFit, back-rbox.Max.Y, 0.01, "gap between cam d and the ratchet wheel")
+	require.InDelta(t, 0.35, rear, 0.02, "cam d's rearward travel")
+	require.GreaterOrEqual(t, worst, 0.75, "the least groove pin engagement")
+}
+
 // requireDoubleD requires a bore section (points (x, z - ShaftZ) at theta 0) to have both flats, at z +-flat: a single-D
 // bore lets its part turn twice as far on the shaft.
 func requireDoubleD(t *testing.T, bore [][]r3.Vec, flat float64, name string) {
