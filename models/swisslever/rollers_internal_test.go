@@ -1,5 +1,7 @@
 package swisslever
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
