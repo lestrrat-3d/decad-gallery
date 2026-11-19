@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import PLANETARY_PR_SHARDS, finished_tests, go_test, run_pattern
+from run_tests import FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -30,6 +30,7 @@ RENDER_TESTS = {
 }
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
+    "model-handcrankfan": [RUNNER + ["fan", "pr", str(i)] for i in range(FAN_PR_SHARDS)],
     "model-planetarygearbox": [RUNNER + ["planetary", "pr", str(i)] for i in range(PLANETARY_PR_SHARDS)],
     "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
     "renderer-all": [["renderer-pr", str(i)] for i in range(RENDER_PR_SHARDS)],
