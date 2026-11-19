@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
@@ -23,6 +24,46 @@ func mustSize(t *testing.T, d float64) turbinefan.Size {
 	return sz
 }
 
+func TestBladePrintEdgeCorners(t *testing.T) {
+	sz := mustSize(t, 128)
+	blade, err := turbinefan.BuildBlade(t.Context(), turbinefan.NewDocument(), turbinefan.DefaultBladePitch, sz)
+	require.NoError(t, err)
+	findings, err := cornercheck.CheckAt(t.Context(), blade.Body, r3.Vec{X: 1},
+		[]float64{-2.8, -2, -1, 0, 1, 2, 3}, nil)
+	require.NoError(t, err)
+	require.Empty(t, findings, cornercheck.Report(findings, 5))
+}
+
+func TestBladePrintEdge(t *testing.T) {
+	for _, d := range bladeSizes {
+		sz := mustSize(t, d)
+		for _, pitch := range bladePitches {
+			for _, mirror := range []bool{false, true} {
+				build := turbinefan.BuildBlade
+				angle := pitch - turbinefan.DefaultBladePitch
+				if mirror {
+					build = turbinefan.BuildBladeMirrored
+					angle = -angle
+				}
+				blade, err := build(t.Context(), turbinefan.NewDocument(), pitch, sz)
+				require.NoError(t, err)
+				flatTip := false
+				for _, v := range meshOf(t, blade.Body, 0.05).Vertices() {
+					x := v.X*math.Cos(angle) + v.Y*math.Sin(angle)
+					if mirror {
+						x = -x
+					}
+					require.GreaterOrEqual(t, x, -sz.BladeStudRadius-0.05)
+					if math.Abs(x+sz.BladeStudRadius) < 0.05 && v.Z > sz.TipRadius-1 {
+						flatTip = true
+					}
+				}
+				require.True(t, flatTip, "rotor %g, pitch %g, mirrored %t: print face must reach tip", d, pitch, mirror)
+			}
+		}
+	}
+}
+
 func TestBuildBlade(t *testing.T) {
 	for _, d := range bladeSizes {
 		sz := mustSize(t, d)
@@ -31,7 +72,7 @@ func TestBuildBlade(t *testing.T) {
 			blade, err := turbinefan.BuildBlade(t.Context(), doc, pitch, sz)
 			require.NoError(t, err, "rotor %g, pitch %g", d, pitch)
 			require.True(t, blade.Body.IsSolid())
-			require.Len(t, blade.Sketches, 12)
+			require.Len(t, blade.Sketches, 13)
 			for i, s := range blade.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}

@@ -84,7 +84,7 @@ Package: `models/turbinefan`. Exported surface:
   `ClutchMount` `AdapterBolts` and `AdapterNuts` (the set screw and its nut are nil). `Build` builds neither the adapter nor
   the clutch: the caller builds them in the clutch's own document (see "Clutch mount").
 
-The blade exports other models use: `BuildBlade(ctx, doc, pitch, size)` returns the unplaced blade and its twelve sketches,
+The blade exports other models use: `BuildBlade(ctx, doc, pitch, size)` returns the unplaced blade and its thirteen sketches,
 `BuildBladeMirrored` the blade of the other hand (its sections not flipped and its pitch turn reversed, so it is the first
 blade reflected in the plane x = 0 of its local frame), `BladeSocketTool(ctx, doc, f, size)` builds a socket cutter, each
 with a `Size` from `SizeFor` (any other value is rejected); and `BladeSocketFloorRound`, `DefaultBladePitch`,
@@ -373,6 +373,11 @@ The three blade slots are identical turned copies and cancel. No balance mass is
 
 ## Blade shape
 
+Trim the long edge of the loft with a plane parallel to its radial line. At the reference pitch the plane is at local
+x = -`BladeStudRadius` for the right-hand blade, and x = `BladeStudRadius` for the mirrored blade. Turn the trimmed loft
+to the requested pitch. Keep the stud round. Print each blade with the flat edge on the bed and its radial line
+horizontal. Check that the flat reaches the tip and that the stud and bolt hole still fit the hub.
+
 The blade is a smooth loft through ten sections, stacked on its radial line through the hub's mid plane and starting at
 r `RootRadius`, 0.4 outside the hub rim. A root stud of radius `BladeStudRadius`, from r `BladeStudStart` to r
 `BladeStudEnd`, is joined to it, with a bolt hole of radius 1.3 parallel to the shaft at r `BladeBoltAt`. The stud's inner
@@ -516,10 +521,10 @@ bearing or plate. Gear train clearances: no gears.
 | Part | Prints with | Pause |
 | --- | --- | --- |
 | Hub | front face down, axis vertical | none |
-| Blade (three) | standing on the stud end, radial line vertical | none |
+| Blade (three) | flat edge down, radial line horizontal; root corners need work | none |
 
-The blade is 87.9 mm tall from its stud end to its tip at 192 (57.9 at 128, 103.9 at 224) and stands on a stud end 8.1 mm
-across at 192 (6 at 128): print it with a brim. The set screw slot opens upward in print, its hexagonal end down. Each
+The blade is 87.9 mm long from its stud end to its tip at 192 (57.9 at 128, 103.9 at 224). The set screw slot opens
+upward in print, its hexagonal end down. Each
 blade slot's roof (z `HubLength - BladeBoltCavity - 2`) is a 4.35 wide bridge. The
 counterbore and the holes are horizontal round holes 4.4 and 2.6 across.
 

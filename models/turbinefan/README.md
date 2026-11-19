@@ -179,8 +179,9 @@ only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bo
 
 ## Printing
 
-Print the hub front face down, with its bore axis vertical, and each blade standing on its stud end. A blade is 88 mm tall
-at 192 mm (104 mm at 224 mm) and stands on a stud end 8 mm across, so print it with a brim. The hub needs no print pause:
+Print the hub front face down, with its bore axis vertical. The blade's flat long edge is intended to lie on the bed,
+with the stud and radial line parallel to the bed. The root corners still need work before this orientation is ready.
+The hub needs no print pause:
 every nut sits in a slot open to a face, so you put the nuts in after printing.
 
 To assemble:

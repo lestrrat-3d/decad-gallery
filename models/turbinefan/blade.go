@@ -2,366 +2,324 @@ package turbinefan
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
 
-// Blade and joint dimensions in mm. Other models build a hub and a blade joint from them.
-const (
-	// BladeSocketFloorRound rounds the outline of the hub socket's floor (the socket's size is in Size).
-	BladeSocketFloorRound = 0.5
-	// DefaultBladePitch is the blade angle at 75 % of the tip radius that the sections are drawn at. A blade's pitch lies in
-	// [MinBladePitch, MaxBladePitch].
-	DefaultBladePitch = refPitch
-	MinBladePitch     = 10 * math.Pi / 180
-	MaxBladePitch     = 40 * math.Pi / 180
-
-	studChamfer = 0.3 // chamfer on the stud's inner end
-)
-
-// Blade section constants.
-const (
-	designAttack = 5 * math.Pi / 180  // design angle of attack of the cambered section
-	refPitch     = 25 * math.Pi / 180 // the pitch the sections are drawn at; the finished blade is turned from it
-	camberAt     = 0.40               // chord fraction of the maximum camber
-	edgeThick    = 1.0                // trailing-edge thickness
-	sidePoints   = 10                 // fit points per surface, besides the leading edge
-)
-
-// station is one blade section: radius, chord, thickness ratio, maximum camber as a fraction of the chord, and the
-// weight of the ellipse in the shape (1 is an ellipse or the round root, 0 is the airfoil).
-type station struct{ r, chord, ratio, camber, ellipse float64 }
-
-// stationsFor returns the section table for sz. The first two stations are the round root and scale by the hub scale;
-// the others are the airfoil and scale by the blade scale. Thickness ratio, camber and ellipse weight do not change.
-func stationsFor(sz Size) [10]station {
-	j, s := sz.HubScale, sz.Scale
-	return [10]station{
-		{sz.RootRadius, 8.0 * j, 1.00, 0.000, 1.00},
-		{sz.RootRadius + 1.9*j, 8.0 * j, 1.00, 0.000, 1.00},
-		{19.0 * s, 11.5 * s, 0.60, 0.010, 0.60},
-		{21.5 * s, 15.5 * s, 0.38, 0.025, 0.25},
-		{25.0 * s, 17.8 * s, 0.26, 0.035, 0},
-		{30.0 * s, 16.5 * s, 0.22, 0.040, 0},
-		{38.0 * s, 14.5 * s, 0.19, 0.040, 0},
-		{46.0 * s, 12.5 * s, 0.18, 0.040, 0},
-		{55.0 * s, 10.5 * s, 0.17, 0.035, 0},
-		{sz.TipRadius, 8.0 * s, 0.22, 0.030, 0},
-	}
-}
-
-// bladeBody lofts blade 1 through the sections drawn at refPitch, turns it to pitch and joins a drilled root stud to
-// it. The body is in the blade's local frame: Z is its radial line, X the direction of motion and Y downstream.
-func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	w := sketch.NewWorld()
-	stations := stationsFor(b.sz)
-	sections := make([]decad.LoftSection, len(stations))
-	for i, st := range stations {
-		sections[i] = b.bladeSection(w, st)
-	}
-	if b.err != nil {
-		return nil
-	}
-	// Decad's twisted loft panics for some section tables when the pitch changes the sections, so every pitch
-	// lofts the same sections and the finished loft is turned about the stacking line.
-	loft, err := decad.LoftSections(b.ctx, b.doc, sections...)
-	if err != nil {
-		b.fail("loft blade", err)
-		return nil
-	}
-	if turn := pitch - refPitch; math.Abs(turn) > 1e-12 {
-		if b.mirror {
-			turn = -turn
-		}
-		xf, err := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(turn))
-		if err != nil {
-			b.fail("create pitch rotation", err)
-			return nil
-		}
-		if loft, err = decad.Transform(b.ctx, loft, xf); err != nil {
-			b.fail("turn blade to pitch", err)
-			return nil
-		}
-	}
-	// Local Z is the blade's radial line, local X the direction of motion and local Y downstream.
-	stud := b.cylinder(frame(r3.Vec{Z: b.sz.BladeStudStart}, r3.Vec{X: 1}, r3.Vec{Y: 1}), b.sz.BladeStudRadius,
-		b.sz.BladeStudEnd-b.sz.BladeStudStart)
-	// A 0.3 chamfer on the inner end keeps the stud's corner clear of the socket floor's round.
-	stud = b.chamferStart(stud, studChamfer)
-	reach := b.sz.BladeStudRadius + 2 // the bolt hole's cutter starts and ends this far from the stud's axis
-	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -reach, Z: b.sz.BladeBoltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}),
-		m2fastener.HoleRadius, 2*reach))
-	return b.union(loft, stud)
-}
-
-func camberLine(x, m float64) float64 {
-	if x < camberAt {
-		return m / (camberAt * camberAt) * (2*camberAt*x - x*x)
-	}
-	return m / ((1 - camberAt) * (1 - camberAt)) * ((1 - 2*camberAt) + 2*camberAt*x - x*x)
-}
-
-// pivotAt is the chord fraction of the stacking point: 0.4 for an airfoil, 0.5 for the round root.
-func pivotAt(st station) float64 { return camberAt + st.ellipse*(0.5-camberAt) }
-
-// halfThickness is the half thickness at chord fraction x: the NACA 4-digit shape blended with an ellipse, plus a
-// linear trailing-edge ramp.
-func halfThickness(x float64, st station) float64 {
-	thick := st.ratio * st.chord
-	n := 0.2969*math.Sqrt(x) - 0.1260*x - 0.3516*x*x + 0.2843*x*x*x - 0.1036*x*x*x*x
-	naca := (thick/2-0.3*edgeThick/2)/0.10002*n + edgeThick/2*x
-	ellipse := thick*math.Sqrt(x*(1-x)) + edgeThick/2*x
-	return (1-st.ellipse)*naca + st.ellipse*ellipse
-}
-
-// sectionPoints returns the section's fit points from the trailing edge along the suction side, round the leading
-// edge and back along the pressure side, in the plane local to the stacking point and turned to the blade angle.
-func sectionPoints(st station, angle float64) [][2]float64 {
-	pivot := pivotAt(st)
-	etaPivot := st.chord * camberLine(pivot, st.camber)
-	cosB, sinB := math.Cos(angle), math.Sin(angle)
-	local := func(x, eta float64) [2]float64 {
-		du, dv := pivot*st.chord-x*st.chord, eta-etaPivot
-		return [2]float64{du*cosB - dv*sinB, -du*sinB - dv*cosB}
-	}
-	chordFraction := func(k int) float64 { return (1 - math.Cos(math.Pi*float64(k)/sidePoints)) / 2 }
-	var pts [][2]float64
-	for k := sidePoints; k >= 1; k-- {
-		x := chordFraction(k)
-		pts = append(pts, local(x, st.chord*camberLine(x, st.camber)+halfThickness(x, st)))
-	}
-	pts = append(pts, local(0, 0))
-	for k := 1; k <= sidePoints; k++ {
-		x := chordFraction(k)
-		pts = append(pts, local(x, st.chord*camberLine(x, st.camber)-halfThickness(x, st)))
-	}
-	return pts
-}
-
-// bladeSection sketches one station on the world XY plane at height r: a fit spline through the section's points
-// closed by two trailing-edge lines that meet at the midpoint of the edge. The sketch origin is the stacking point.
-func (b *bladeBuilder) bladeSection(w *sketch.World, st station) decad.LoftSection {
-	if b.err != nil {
-		return decad.LoftSection{}
-	}
-	plane, err := w.CreateOffsetPlane(w.XY(), st.r)
-	if err != nil {
-		b.fail("create blade plane", err)
-		return decad.LoftSection{}
-	}
-	sk, err := w.CreateSketch(plane)
-	if err != nil {
-		b.fail("create blade section", err)
-		return decad.LoftSection{}
-	}
-	b.sketches = append(b.sketches, sk)
-	pts := sectionPoints(st, b.sz.Beta(st.r, refPitch))
-	// The blades are mirrored: the spur pair reverses the crank's turn, so the fan turns the other way round and its
-	// blades must lead with the other face.
-	if !b.mirror {
-		for i := range pts {
-			pts[i][0] = -pts[i][0]
-		}
-	}
-	fit := make([]*sketch.Point, len(pts))
-	for i, p := range pts {
-		fit[i] = sketchcheck.DimensionPoint(sk, p[0], p[1])
-	}
-	first, last := fit[0], fit[len(fit)-1]
-	tail := sk.CreatePoint((pts[0][0]+pts[len(pts)-1][0])/2, (pts[0][1]+pts[len(pts)-1][1])/2)
-	sk.AddConstraint(sketch.NewMidpointOf(tail, first, last))
-	if _, err := sk.CreateFitSpline(fit...); err != nil {
-		b.fail("create blade spline", err)
-		return decad.LoftSection{}
-	}
-	sk.CreateLine(last, tail)
-	sk.CreateLine(tail, first)
-	if _, err := sk.Solve(b.ctx); err != nil {
-		b.fail("solve blade section", err)
-		return decad.LoftSection{}
-	}
-	if err := sketchcheck.VerifyFullyConstrained(b.ctx, sk); err != nil {
-		b.fail("verify blade section", fmt.Errorf("radius %g: %w", st.r, err))
-		return decad.LoftSection{}
-	}
-	for _, profile := range sk.Profiles() {
-		if profile.Valid && len(profile.Holes) == 0 && len(profile.Outer) == 3 {
-			return decad.LoftSection{Sketch: sk, Profile: profile}
-		}
-	}
-	b.fail("select blade profile", fmt.Errorf("radius %g: no valid profile of three edges", st.r))
-	return decad.LoftSection{}
-}
-
-// Blade is one blade in its local frame: the origin on the fan axis in the hub's mid plane, +Z the blade's radial line,
-// +Y downstream along the fan axis, and the blade moving toward -X. Sketches are every sketch it was built from, each
-// fully constrained.
 type Blade struct {
 	Body     *decad.Body
 	Sketches []*sketch.Sketch
 }
 
-// BuildBlade lofts the blade at pitch (MinBladePitch to MaxBladePitch), joins its drilled root stud and returns it
-// unplaced. sz comes from SizeFor. doc needs a chain tolerance of 0.1 mm (NewDocument): the stud union refuses a plain document. ctx and doc
-// must not be nil.
-func BuildBlade(ctx context.Context, doc *decad.Document, pitch float64, sz Size) (*Blade, error) {
-	return buildBlade(ctx, doc, pitch, sz, false)
+const (
+	designAttack          = 5 * math.Pi / 180
+	refPitch              = 25 * math.Pi / 180
+	DefaultBladePitch     = refPitch
+	MinBladePitch         = 10 * math.Pi / 180
+	MaxBladePitch         = 40 * math.Pi / 180
+	BladeSocketFloorRound = 0.5
+)
+
+type bladeStation struct{ r, chord, ratio, camber, ellipse float64 }
+
+var bladeAirfoil = [...]bladeStation{
+	{19, 11.5, .60, .010, .60}, {21.5, 15.5, .38, .025, .25}, {25, 17.8, .26, .035, 0},
+	{30, 16.5, .22, .040, 0}, {38, 14.5, .19, .040, 0}, {46, 12.5, .18, .040, 0},
+	{55, 10.5, .17, .035, 0}, {64, 8, .22, .030, 0},
 }
 
-// BuildBladeMirrored builds the blade of the opposite hand: BuildBlade's blade reflected in the plane x = 0 of the
-// blade's local frame, so it moves toward +X and its concave face still faces the way the air goes. Its stud and bolt
-// hole are on that plane and do not change. The arguments are BuildBlade's.
-func BuildBladeMirrored(ctx context.Context, doc *decad.Document, pitch float64, sz Size) (*Blade, error) {
-	return buildBlade(ctx, doc, pitch, sz, true)
+func bladeStations(size Size) []bladeStation {
+	out := []bladeStation{
+		{size.RootRadius, size.HubScale * 8, 1, 0, 1},
+		{size.RootRadius + 1.9*size.HubScale, size.HubScale * 8, 1, 0, 1},
+	}
+	for _, a := range bladeAirfoil {
+		a.r *= size.Scale
+		a.chord *= size.Scale
+		out = append(out, a)
+	}
+	return out
 }
 
-func buildBlade(ctx context.Context, doc *decad.Document, pitch float64, sz Size, mirror bool) (*Blade, error) {
-	if ctx == nil || doc == nil {
-		return nil, errors.New("turbinefan: context and document must not be nil")
+func stationsFor(size Size) []bladeStation { return bladeStations(size) }
+
+func bladeMeanLine(x, m float64) (float64, float64) {
+	p := .4
+	if x < p {
+		return m / (p * p) * (2*p*x - x*x), 2 * m / (p * p) * (p - x)
 	}
-	if math.IsNaN(pitch) || pitch < MinBladePitch || pitch > MaxBladePitch {
-		return nil, errors.New("turbinefan: pitch must lie in [10°, 40°] radians")
-	}
-	if !sz.valid() {
-		return nil, errors.New("turbinefan: sz must come from SizeFor")
-	}
-	b := &bladeBuilder{ctx: ctx, doc: doc, sz: sz, mirror: mirror}
-	body := b.bladeBody(pitch)
-	if b.err != nil {
-		return nil, b.err
-	}
-	if body == nil || !body.IsSolid() {
-		return nil, errors.New("turbinefan: blade is not a solid")
-	}
-	return &Blade{Body: body, Sketches: b.sketches}, nil
+	return m / ((1 - p) * (1 - p)) * ((1 - 2*p) + 2*p*x - x*x), 2 * m / ((1 - p) * (1 - p)) * (p - x)
 }
 
-// BladeSocketTool builds one blade socket's cutter: a cylinder of radius sz.BladeSocketRadius from f's origin, the socket
-// floor's centre, along f's normal (the radial line, outward) for sz.HubRadius + 1 - sz.BladeSocketStart, its start cap's
-// outer loop rounded by BladeSocketFloorRound. It returns the cutter and its sketch, fully constrained.
-func BladeSocketTool(ctx context.Context, doc *decad.Document, f r3.Frame, sz Size) (*decad.Body, *sketch.Sketch, error) {
-	if !sz.valid() {
-		return nil, nil, errors.New("turbinefan: sz must come from SizeFor")
+func bladePoint(st bladeStation, beta, xi float64, suction bool) (float64, float64) {
+	c := st.chord
+	if xi < 0 {
+		xi = 0
 	}
-	b := &bladeBuilder{ctx: ctx, doc: doc, sz: sz}
-	body := b.roundStart(b.cylinder(f, sz.BladeSocketRadius, sz.HubRadius+1-sz.BladeSocketStart), BladeSocketFloorRound)
-	if b.err != nil {
-		return nil, nil, b.err
+	if xi >= 1 {
+		xi = 1 - 1e-8
 	}
-	if len(b.sketches) != 1 {
-		return nil, nil, fmt.Errorf("turbinefan: socket tool made %d sketches", len(b.sketches))
+	yc, _ := bladeMeanLine(xi, st.camber)
+	t := st.ratio * c
+	n := (t/2-.15)*(.2969*math.Sqrt(xi)-.1260*xi-.3516*xi*xi+.2843*xi*xi*xi-.1036*math.Pow(xi, 4))/.10002 + xi/2
+	ell := t*math.Sqrt(xi*(1-xi)) + xi/2
+	delta := (1-st.ellipse)*n + st.ellipse*ell
+	if !suction {
+		delta = -delta
 	}
-	return body, b.sketches[0], nil
+	eta := c*yc + delta
+	xiMM := c * xi
+	stackX := c * (.4 + .1*st.ellipse)
+	stackYFraction, _ := bladeMeanLine(.4+.1*st.ellipse, st.camber)
+	stackY := c * stackYFraction
+	a, b := stackX-xiMM, eta-stackY
+	return a*math.Cos(beta) - b*math.Sin(beta), -a*math.Sin(beta) - b*math.Cos(beta)
 }
 
-// bladeBuilder builds a blade or a socket tool. The first failure stops every later step.
-type bladeBuilder struct {
-	ctx      context.Context
-	doc      *decad.Document
-	sz       Size
-	sketches []*sketch.Sketch
-	err      error
-	// mirror builds the blade of the opposite hand: its sections are not flipped and its pitch turn is reversed.
-	mirror bool
+func bladeBeta(size Size, r, pitch float64) float64 {
+	return designAttack + math.Atan(math.Tan(refPitch-designAttack)*size.RefRadius/math.Max(r, size.HoldRadius)) + (pitch - refPitch)
 }
 
-func (b *bladeBuilder) fail(operation string, err error) {
-	if err != nil && b.err == nil {
-		b.err = fmt.Errorf("turbinefan: blade %s: %w", operation, err)
+// BladeSocketTool builds a rounded socket cutter and its driving sketch.
+func BladeSocketTool(ctx context.Context, doc *decad.Document, f r3.Frame, size Size) (*decad.Body, *sketch.Sketch, error) {
+	if !size.valid() {
+		return nil, nil, fmt.Errorf("turbinefan: invalid blade size")
 	}
-}
-
-// cylinder extrudes a disc of radius r centred on f's origin along f's normal.
-func (b *bladeBuilder) cylinder(f r3.Frame, r, length float64) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	s, err := newSketch(f)
+	w := sketch.NewWorld()
+	pl, err := w.CreatePlaneFromFrame(f)
 	if err != nil {
-		b.fail("create section", err)
-		return nil
+		return nil, nil, err
 	}
-	b.sketches = append(b.sketches, s)
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), r), r))
-	if _, err := s.Solve(b.ctx); err != nil {
-		b.fail("solve section", err)
-		return nil
+	s, err := w.CreateSketch(pl)
+	if err != nil {
+		return nil, nil, err
 	}
-	if err := sketchcheck.VerifyFullyConstrained(b.ctx, s); err != nil {
-		b.fail("verify section", err)
-		return nil
+	circle := s.CreateCircle(s.Origin(), size.BladeSocketRadius)
+	s.AddConstraint(sketch.NewRadius(circle, size.BladeSocketRadius))
+	if _, err = s.Solve(ctx); err != nil {
+		return nil, nil, err
 	}
-	var chosen *sketch.Profile
-	for _, pr := range s.Profiles() {
-		if !pr.Valid || len(pr.Holes) != 0 {
-			continue
+	if err = sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+		return nil, nil, err
+	}
+	profiles := s.Profiles()
+	if len(profiles) != 1 || !profiles[0].Valid || len(profiles[0].Holes) != 0 {
+		return nil, nil, fmt.Errorf("turbinefan: invalid blade socket profile")
+	}
+	body, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{D: units.Millimeters(size.HubRadius + 1 - size.BladeSocketStart), Dir: decad.Along})
+	if err != nil {
+		return nil, nil, err
+	}
+	body, err = decad.Fillet(ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Exactly(1), units.Millimeters(BladeSocketFloorRound))
+	if err != nil {
+		return nil, nil, err
+	}
+	return body, s, nil
+}
+
+func BuildBlade(ctx context.Context, doc *decad.Document, pitch float64, size Size) (*Blade, error) {
+	return buildBlade(ctx, doc, pitch, size, false)
+}
+func BuildBladeMirrored(ctx context.Context, doc *decad.Document, pitch float64, size Size) (*Blade, error) {
+	return buildBlade(ctx, doc, pitch, size, true)
+}
+func buildBlade(ctx context.Context, doc *decad.Document, pitch float64, size Size, mirror bool) (*Blade, error) {
+	if doc == nil {
+		return nil, fmt.Errorf("turbinefan: nil document")
+	}
+	if math.IsNaN(pitch) || math.IsInf(pitch, 0) || pitch < MinBladePitch || pitch > MaxBladePitch {
+		return nil, fmt.Errorf("turbinefan: blade pitch out of range")
+	}
+	if !size.valid() {
+		return nil, fmt.Errorf("turbinefan: invalid blade size")
+	}
+	w := sketch.NewWorld()
+	xy := w.XY()
+	sections := make([]decad.LoftSection, 0, 10)
+	sketches := make([]*sketch.Sketch, 0, 13)
+	for _, st := range bladeStations(size) {
+		pl, err := w.CreateOffsetPlane(xy, st.r)
+		if err != nil {
+			return nil, err
 		}
-		if chosen != nil {
-			b.fail("select section profile", errors.New("several valid profiles"))
-			return nil
+		s, err := w.CreateSketch(pl)
+		if err != nil {
+			return nil, err
 		}
-		chosen = pr
+		beta := bladeBeta(size, st.r, 25*math.Pi/180)
+		points := make([]*sketch.Point, 0, 21)
+		for k := 10; k >= 1; k-- {
+			x := (1 - math.Cos(math.Pi*float64(k)/10)) / 2
+			u, v := bladePoint(st, beta, x, true)
+			if !mirror {
+				u = -u
+			}
+			points = append(points, sketchcheck.DimensionPoint(s, u, v))
+		}
+		x0, y0 := bladePoint(st, beta, 0, false)
+		if !mirror {
+			x0 = -x0
+		}
+		leading := sketchcheck.DimensionPoint(s, x0, y0)
+		points = append(points, leading)
+		for k := 1; k <= 10; k++ {
+			x := (1 - math.Cos(math.Pi*float64(k)/10)) / 2
+			u, v := bladePoint(st, beta, x, false)
+			if !mirror {
+				u = -u
+			}
+			points = append(points, sketchcheck.DimensionPoint(s, u, v))
+		}
+		first, last := points[0], points[len(points)-1]
+		tail := s.CreatePoint((first.X()+last.X())/2, (first.Y()+last.Y())/2)
+		s.AddConstraint(sketch.NewMidpointOf(tail, first, last))
+		if _, err = s.CreateFitSpline(points...); err != nil {
+			return nil, err
+		}
+		s.CreateLine(last, tail)
+		s.CreateLine(tail, first)
+		if _, err = s.Solve(ctx); err != nil {
+			return nil, err
+		}
+		if err = sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
+			return nil, err
+		}
+		profiles := s.Profiles()
+		if len(profiles) != 1 || !profiles[0].Valid || len(profiles[0].Holes) != 0 || len(profiles[0].Outer) != 3 {
+			return nil, fmt.Errorf("turbinefan: invalid blade station profile")
+		}
+		sections = append(sections, decad.LoftSection{Sketch: s, Profile: profiles[0]})
+		sketches = append(sketches, s)
 	}
-	if chosen == nil {
-		b.fail("select section profile", errors.New("no valid profile"))
-		return nil
+	loft, err := decad.LoftSections(ctx, doc, sections...)
+	if err != nil {
+		return nil, err
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
-	b.fail("extrude section", err)
-	return body
-}
-
-// roundStart rounds the outer loop of the start cap of an extruded body.
-func (b *bladeBuilder) roundStart(body *decad.Body, radius float64) *decad.Body {
-	if b.err != nil || body == nil {
-		return nil
+	cut, err := w.CreateSketch(xy)
+	if err != nil {
+		return nil, err
 	}
-	rounded, err := decad.Fillet(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(radius))
-	b.fail("round start", err)
-	return rounded
-}
-
-// chamferStart chamfers the outer loop of the start cap of an extruded body.
-func (b *bladeBuilder) chamferStart(body *decad.Body, size float64) *decad.Body {
-	if b.err != nil || body == nil {
-		return nil
+	xlo, xhi := -100*size.Scale, -size.BladeStudRadius
+	if mirror {
+		xlo, xhi = size.BladeStudRadius, 100*size.Scale
 	}
-	cut, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(size))
-	b.fail("chamfer start", err)
-	return cut
-}
-
-func (b *bladeBuilder) cut(host, tool *decad.Body) *decad.Body {
-	if b.err != nil {
-		return nil
+	corners := []r3.Vec{{X: xlo, Y: -100 * size.Scale}, {X: xhi, Y: -100 * size.Scale}, {X: xhi, Y: 100 * size.Scale}, {X: xlo, Y: 100 * size.Scale}}
+	pts := make([]*sketch.Point, 4)
+	for i, p := range corners {
+		pts[i] = sketchcheck.DimensionPoint(cut, p.X, p.Y)
 	}
-	body, err := decad.Cut(b.ctx, host, tool)
-	b.fail("cut solid", err)
-	return body
-}
-
-func (b *bladeBuilder) union(a, c *decad.Body) *decad.Body {
-	if b.err != nil {
-		return nil
+	for i := range pts {
+		cut.CreateLine(pts[i], pts[(i+1)%len(pts)])
 	}
-	body, err := decad.Union(b.ctx, a, c)
-	b.fail("union solid", err)
-	return body
-}
-
-// frame returns the frame at origin with axes u and v, which are unit and perpendicular.
-func frame(origin, u, v r3.Vec) r3.Frame {
-	f, _ := r3.NewFrame(origin, u, v)
-	return f
+	if _, err = cut.Solve(ctx); err != nil {
+		return nil, err
+	}
+	if err = sketchcheck.VerifyFullyConstrained(ctx, cut); err != nil {
+		return nil, err
+	}
+	cp := cut.Profiles()
+	if len(cp) != 1 || len(cp[0].Holes) != 0 {
+		return nil, fmt.Errorf("turbinefan: invalid blade trim profile")
+	}
+	tool, err := decad.Extrude(ctx, doc, cut, cp[0], decad.Distance{D: units.Millimeters(size.TipRadius + 1), Dir: decad.Along})
+	if err != nil {
+		return nil, err
+	}
+	sketches = append(sketches, cut)
+	body, err := decad.Cut(ctx, loft, tool)
+	if err != nil {
+		return nil, err
+	}
+	if pitch != 25*math.Pi/180 {
+		angle := pitch - 25*math.Pi/180
+		if mirror {
+			angle = -angle
+		}
+		rot, e := r3.RotationAround(r3.Vec{}, r3.Vec{Z: 1}, units.Radians(angle))
+		if e != nil {
+			return nil, e
+		}
+		body, err = decad.Transform(ctx, body, rot)
+		if err != nil {
+			return nil, err
+		}
+	}
+	studFrame, err := r3.NewFrame(r3.Vec{Z: size.BladeStudStart}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	if err != nil {
+		return nil, err
+	}
+	studPlane, err := w.CreatePlaneFromFrame(studFrame)
+	if err != nil {
+		return nil, err
+	}
+	studSketch, err := w.CreateSketch(studPlane)
+	if err != nil {
+		return nil, err
+	}
+	circle := studSketch.CreateCircle(studSketch.Origin(), size.BladeStudRadius)
+	studSketch.AddConstraint(sketch.NewRadius(circle, size.BladeStudRadius))
+	if _, err = studSketch.Solve(ctx); err != nil {
+		return nil, err
+	}
+	if err = sketchcheck.VerifyFullyConstrained(ctx, studSketch); err != nil {
+		return nil, err
+	}
+	sp := studSketch.Profiles()
+	if len(sp) != 1 {
+		return nil, fmt.Errorf("turbinefan: invalid stud profile")
+	}
+	stud, err := decad.Extrude(ctx, doc, studSketch, sp[0], decad.Distance{D: units.Millimeters(size.BladeStudEnd - size.BladeStudStart), Dir: decad.Along})
+	if err != nil {
+		return nil, err
+	}
+	sketches = append(sketches, studSketch)
+	stud, err = decad.Chamfer(ctx, stud,
+		decad.Edges(decad.OuterLoopOf(decad.CapStart(stud))).Exactly(1), units.Millimeters(.3))
+	if err != nil {
+		return nil, err
+	}
+	boltFrame, err := r3.NewFrame(r3.Vec{Y: -(size.BladeStudRadius + 2), Z: size.BladeBoltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	if err != nil {
+		return nil, err
+	}
+	boltPlane, err := w.CreatePlaneFromFrame(boltFrame)
+	if err != nil {
+		return nil, err
+	}
+	boltSketch, err := w.CreateSketch(boltPlane)
+	if err != nil {
+		return nil, err
+	}
+	bc := boltSketch.CreateCircle(boltSketch.Origin(), 1.3)
+	boltSketch.AddConstraint(sketch.NewRadius(bc, 1.3))
+	if _, err = boltSketch.Solve(ctx); err != nil {
+		return nil, err
+	}
+	if err = sketchcheck.VerifyFullyConstrained(ctx, boltSketch); err != nil {
+		return nil, err
+	}
+	bp := boltSketch.Profiles()
+	if len(bp) != 1 {
+		return nil, fmt.Errorf("turbinefan: invalid bolt profile")
+	}
+	hole, err := decad.Extrude(ctx, doc, boltSketch, bp[0], decad.Distance{D: units.Millimeters(2 * (size.BladeStudRadius + 2)), Dir: decad.Along})
+	if err != nil {
+		return nil, err
+	}
+	stud, err = decad.Cut(ctx, stud, hole)
+	if err != nil {
+		return nil, err
+	}
+	sketches = append(sketches, boltSketch)
+	body, err = decad.Union(ctx, body, stud)
+	if err != nil {
+		return nil, err
+	}
+	return &Blade{Body: body, Sketches: sketches}, nil
 }

@@ -89,14 +89,16 @@ The blade's stud union needs a document with a chain tolerance of 0.1 mm; `NewDo
 
 ## 4. Blade (blade.go)
 
-`BuildBlade(ctx, doc, pitch, size)` builds blade 1 in the blade frame and returns its body and its twelve sketches: the ten
-sections, the stud circle and the bolt-hole circle, in that order. `BuildBladeMirrored` differs only in `mirror`. The
+`BuildBlade(ctx, doc, pitch, size)` builds blade 1 in the blade frame and returns its body and its thirteen sketches: the ten
+sections, trim rectangle, stud circle and bolt-hole circle, in that order. `BuildBladeMirrored` differs only in `mirror`. The
 first failing step stops the rest.
 
 - Blade frame: sections on world-XY planes at Z = r (radius) with the sketch origin on the stacking line; local Z is the
   radial line, local X the blade's direction of motion and local Y downstream. A local point `(u, v)` of a section at
   angle `beta` for chord position `xi` (mm from the leading edge) and offset `eta` toward the suction side is
-  `(xiP - xi)(cos beta, -sin beta) + (eta - etaP)(-sin beta, -cos beta)`, with `xiP = c/2` and `etaP = c yc(0.5)`.
+  `(xiP - xi)(cos beta, -sin beta) + (eta - etaP)(-sin beta, -cos beta)`, with
+  `xiP = c (0.4 + 0.1 w)` and `etaP = c yc(0.4 + 0.1 w)`. For the two surfaces, use
+  `xi = c x` and `eta = c yc(x) +/- halfThickness(x)`. Do not multiply the half thickness by c again.
 - Sections: one `sketch.NewWorld()`. For each of the ten stations of the instructions' table (`stationsFor(size)`: stations 1
   and 2 from `RootRadius` and `HubScale`, stations 3 to 10 from the airfoil table times `Scale`), a sketch on
   `CreateOffsetPlane(XY, r)`. It holds 21 fit points, each made by `sketchcheck.DimensionPoint`, in the order suction
@@ -105,8 +107,12 @@ first failing step stops the rest.
   through the 21 points and the lines `last -> tail` and `tail -> first`. Solve, require `sketchcheck.VerifyFullyConstrained`,
   and select the valid profile with no holes and three outer edges. The sections are always drawn at the 25 degree blade
   angle, with every X coordinate negated for `BuildBlade` (not for `BuildBladeMirrored`).
-- Loft: `decad.LoftSections` through the ten sections in ascending r. When the pitch is not 25 degrees, `decad.Transform`
-  the loft by `r3.RotationAround(origin, +Z, -(pitch - 25 degrees))` (the opposite turn when mirrored).
+- Loft: `decad.LoftSections` through the ten sections in ascending r. Cut the loft with a rectangle extruded from XY at
+  z = 0 to z = `TipRadius + 1`. Its x limits are `-100*Scale` and `-BladeStudRadius` for the ordinary blade, and
+  `BladeStudRadius` and `100*Scale` for the mirrored blade; its y limits are `-100*Scale` and `100*Scale`. Dimension
+  each corner with `sketchcheck.DimensionPoint`, connect the four corners, solve and verify the sketch, select its valid
+  profile without holes, extrude along +Z and `decad.Cut` the loft. When the pitch is not 25 degrees, `decad.Transform`
+  the cut loft by `r3.RotationAround(origin, +Z, pitch - 25 degrees)` (the opposite turn when mirrored).
 - Root stud: a circle of radius `BladeStudRadius` on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
   `BladeStudEnd - BladeStudStart`. `decad.Chamfer` its start cap's outer loop with 0.3. `Cut` it by a circle of radius 1.3
   on the frame origin `(0, -(BladeStudRadius + 2), BladeBoltAt)`, U = +Z, V = +X, extruded `2 (BladeStudRadius + 2)` (the

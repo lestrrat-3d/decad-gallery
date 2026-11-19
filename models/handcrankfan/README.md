@@ -80,7 +80,7 @@ The other printed parts print as follows. A part pressed on a shaft prints with 
 | Fan hub | front face down, axis vertical |
 | Fan shaft | standing on its front tip |
 | Crank handle | standing on its inner end |
-| Fan blade | standing on the stud end |
+| Fan blade | flat long edge down, stud parallel to the bed |
 
 A fan takes 15 bolts (7 of M2 x 10, 7 of M2 x 16 and 1 of M2 x 6) and 15 nuts.
 
