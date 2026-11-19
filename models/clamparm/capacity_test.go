@@ -1,5 +1,7 @@
 package clamparm_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"os"
