@@ -28,7 +28,8 @@ def needs_for(suites, event="push"):
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps({"version": 1, "suites": suites}),
         "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
-        repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"})
+        repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
+        **{"records-validation": {"result": "success" if full else "skipped"}})
     return needs
 
 
@@ -181,6 +182,18 @@ class GateTest(unittest.TestCase):
                     self.assertTrue(gate.check(altered, event))
             needs["renderer-full"]["result"] = "skipped"
             self.assertTrue(gate.check(needs, event))
+
+    def test_record_validation_required_only_for_full_runs(self):
+        for suites, event in ((["broad"], "schedule"), (["broad"], "workflow_dispatch"),
+                              (["broad", "full"], "push"), (["broad", "full"], "pull_request")):
+            for result in ("failure", "cancelled", "skipped", "missing"):
+                with self.subTest(event=event, result=result):
+                    needs = needs_for(suites, event)
+                    needs["records-validation"]["result"] = result
+                    self.assertTrue(gate.check(needs, event))
+        needs = needs_for([], "pull_request")
+        needs["records-validation"]["result"] = "success"
+        self.assertTrue(gate.check(needs, "pull_request"))
 
     def test_full_selection_requires_full_jobs_on_push_and_pull_request(self):
         for event in ("push", "pull_request"):

@@ -1,4 +1,5 @@
 import contextlib
+from collections import Counter
 import io
 import json
 import os
@@ -184,6 +185,88 @@ func TestSingle(t *testing.T) {}
                 result = reconcile_records.reconcile([records], [records], inventory_path=inventory)
                 self.assertFalse(result["ok"])
                 self.assertTrue(result["inventory_error"])
+
+    def test_single_execution_checks_artifacts_metadata_and_inventory(self):
+        directory = self.root / "execution"
+        directory.mkdir(exist_ok=True)
+        inventory = self.root / "execution-inventory.json"
+        inventory.write_text(json.dumps({"version": 1,
+            "modules": {"root": {"example.com/fixture": ["TestParent", "TestSingle"]},
+                        "renderer": {"example.com/fixture/empty": []}},
+            "required_variants": [{"package": "example.com/fixture", "test": "TestParent/first"}]}))
+        jobs = {"repository": ("",), "renderer-full": ("",), "wheel": ("native",)}
+        root_events = [line for line in self.events if json.loads(line).get("Test") != "TestSingle"]
+        wheel_events = [line for line in self.events
+                        if not json.loads(line).get("Test", "").startswith("TestParent")]
+        for job, case, events, module in (("repository", "", root_events, "."),
+                                           ("renderer-full", "", self.empty_events, "tools/render"),
+                                           ("wheel", "native", wheel_events, ".")):
+            name = job + (f"-{case}" if case else "")
+            artifact = directory / f"ci-records-{name}"
+            artifact.mkdir(exist_ok=True)
+            path = artifact / f"{name}.jsonl"
+            path.unlink(missing_ok=True)
+            env = {"CI_TEST_RECORDS": str(path), "GITHUB_JOB": job, "CI_TEST_CASE": case,
+                   "GITHUB_SHA": "abc", "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}
+            with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(events, module=module)
+        with mock.patch.object(reconcile_records, "FULL_JOBS", jobs):
+            verify = lambda: reconcile_records.verify_execution(directory, inventory, "abc", "123", "1")
+            result = verify()
+            self.assertTrue(result["ok"], result)
+            previous_attempt = reconcile_records.verify_execution(directory, inventory, "abc", "123", "2")
+            self.assertTrue(previous_attempt["ok"], previous_attempt)
+            self.assertEqual(result["duplicate_count"], 0)
+            matrix = directory / "ci-records-wheel-native" / "wheel-native.jsonl"
+            original = matrix.read_text()
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(matrix), "GITHUB_JOB": "wheel",
+                                              "CI_TEST_CASE": "native", "GITHUB_SHA": "abc",
+                                              "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests(wheel_events)
+            duplicate_result = verify()
+            self.assertFalse(duplicate_result["ok"])
+            self.assertEqual(duplicate_result["duplicate_count"], 1)
+            matrix.write_text(original)
+            for field in ("job", "case", "module", "revision", "run_id", "run_attempt"):
+                with self.subTest(field=field):
+                    self.edit(matrix, lambda rows: [{**row, field: "wrong"} for row in rows])
+                    self.assertIn("unexpected metadata", verify()["errors"])
+                    matrix.write_text(original)
+            for attempt in ("0", "3", "01", "-1"):
+                with self.subTest(attempt=attempt):
+                    self.edit(matrix, lambda rows: [{**row, "run_attempt": attempt} for row in rows])
+                    result = reconcile_records.verify_execution(directory, inventory, "abc", "123", "2")
+                    self.assertIn("unexpected metadata", result["errors"])
+                    matrix.write_text(original)
+            self.edit(matrix, lambda rows: [rows[0], *[{**row, "run_attempt": "2"} for row in rows[1:]]])
+            result = reconcile_records.verify_execution(directory, inventory, "abc", "123", "2")
+            self.assertIn("unexpected metadata", result["errors"])
+            matrix.write_text(original)
+            self.edit(matrix, lambda rows: [row for row in rows if row.get("test") != "TestSingle"])
+            root = directory / "ci-records-repository" / "repository.jsonl"
+            self.edit(root, lambda rows: [row for row in rows if row.get("test") != "TestSingle"])
+            self.assertEqual(verify()["missing_inventory_tests_count"], 1)
+            self.edit(root, lambda rows: [row for row in rows if row["kind"] != "complete"])
+            self.assertIn("incomplete invocation", verify()["errors"])
+            (directory / "ci-records-unexpected").mkdir(exist_ok=True)
+            self.assertEqual(verify()["extra_artifacts_count"], 1)
+            (matrix.parent / "extra.jsonl").touch()
+            self.assertEqual(verify()["invalid_artifact_contents_count"], 1)
+            matrix.unlink()
+            self.assertIn("unreadable file", verify()["errors"])
+
+    def test_single_execution_bounds_duplicate_examples(self):
+        duplicates = Counter({(".", "example.com/p", f"Test{i}", "pass"): 2 for i in range(25)})
+        directory = self.root / "empty-execution"
+        directory.mkdir(exist_ok=True)
+        with mock.patch.object(reconcile_records, "FULL_JOBS", {}), \
+                mock.patch.object(reconcile_records, "read_records", return_value=(duplicates, set(), set(), {}, {})), \
+                mock.patch.object(reconcile_records, "load_inventory", return_value=(set(), set())):
+            result = reconcile_records.verify_execution(directory, "unused", "abc", "123", "1")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["duplicate_count"], 25)
+        self.assertEqual(len(result["duplicate_sample"]), 10)
 
 
 if __name__ == "__main__":

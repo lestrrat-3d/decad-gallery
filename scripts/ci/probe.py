@@ -64,7 +64,8 @@ def needs_for(selection, worker):
     needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps(selection), "matrix": json.dumps(matrix),
-        "count": str(len(matrix["include"]))}}, repository={"result": "success"})
+        "count": str(len(matrix["include"]))}}, repository={"result": "success"},
+        **{"records-validation": {"result": "skipped"}})
     if worker is not None:
         needs["worker"] = {"result": worker}
     return needs

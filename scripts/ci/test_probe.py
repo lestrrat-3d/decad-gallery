@@ -10,6 +10,7 @@ import probe
 class ProbeTest(unittest.TestCase):
     def test_real_planner_and_gate(self):
         empty, selected = probe.selections()
+        self.assertEqual(probe.needs_for(selected, "success")["records-validation"]["result"], "skipped")
         self.assertEqual(gate.check(probe.needs_for(empty, "skipped"), "push"), [])
         self.assertEqual(gate.check(probe.needs_for(selected, "success"), "push"), [])
         for result in ("failure", "cancelled", None):

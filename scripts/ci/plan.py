@@ -25,7 +25,7 @@ CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"
     "scripts/ci/test_" + name + ".py"
     for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay",
                  "run_tests", "select_models")
-}
+} | {"scripts/ci/test_workflow_records.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
          "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}

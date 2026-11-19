@@ -4,6 +4,7 @@
 import argparse
 from collections import Counter, defaultdict
 import json
+from pathlib import Path
 import re
 import sys
 
@@ -11,6 +12,15 @@ import sys
 SAMPLE_LIMIT = 10
 IDENTITY = re.compile(r"^[^\s\x00-\x1f\x7f]+$")
 META = ("version", "invocation", "module", "job", "case", "revision", "run_id", "run_attempt")
+FULL_JOBS = {
+    "repository": ("",), "renderer-full": ("",), "escapement": ("",),
+    "onewayclutch": ("",), "clamparm": ("",), "turbinefan": ("",),
+    "wheel": ("default-verify", "default-linkage", "native", "small-seven-verify",
+              "small-seven-linkage", "large-nine-verify", "large-nine-linkage", "twelve",
+              "small-seventeen", "rest"),
+    "siren": ("default", "spike", "slots12", "slots24", "rest"),
+    "bevel-full": tuple("abcdefgh"),
+}
 
 
 def valid_id(value):
@@ -23,7 +33,7 @@ def valid_package(value):
             not any(char in value for char in "\\:"))
 
 
-def read_records(paths):
+def read_records(paths, expected_metadata=None, max_attempt=None):
     """Return leaf outcomes and bounded errors for complete invocation streams."""
     invocations = {}
     errors = Counter()
@@ -35,6 +45,7 @@ def read_records(paths):
             examples[reason].append(str(detail)[:200])
 
     for path in paths:
+        artifact_attempt = None
         try:
             stream = open(path, encoding="utf-8", errors="replace")
         except OSError as exc:
@@ -60,6 +71,18 @@ def read_records(paths):
                 if any(not isinstance(record.get(key), str) for key in META[3:]):
                     error("invalid metadata", location)
                     continue
+                if expected_metadata is not None:
+                    expected = expected_metadata[path]
+                    if any(record.get(key) != value for key, value in expected.items()):
+                        error("unexpected metadata", location)
+                        continue
+                    attempt = record.get("run_attempt")
+                    if (not isinstance(attempt, str) or not re.fullmatch(r"[1-9][0-9]*", attempt) or
+                            (len(attempt), attempt) > (len(max_attempt), max_attempt) or
+                            (artifact_attempt is not None and artifact_attempt != attempt)):
+                        error("unexpected metadata", location)
+                        continue
+                    artifact_attempt = attempt
                 state = invocations.setdefault(invocation, {"metadata": metadata, "complete": False,
                                                               "tests": [], "packages": set()})
                 if state["metadata"] != metadata or state["complete"]:
@@ -153,6 +176,61 @@ def load_inventory(path):
     return tests, packages
 
 
+def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
+    """Validate the downloaded artifacts of one full-suite run against its inventory."""
+    directory = Path(directory)
+    expected = {}
+    for job, cases in FULL_JOBS.items():
+        for case in cases:
+            name = job + (f"-{case}" if case else "")
+            path = directory / f"ci-records-{name}" / f"{name}.jsonl"
+            expected[path] = {"job": job, "case": case, "revision": revision,
+                              "run_id": run_id,
+                              "module": "tools/render" if job == "renderer-full" else "."}
+    if (not valid_id(revision) or not valid_id(run_id) or not isinstance(run_attempt, str) or
+            not re.fullmatch(r"[1-9][0-9]*", run_attempt)):
+        raise ValueError("revision and run ID must be nonempty identities and run attempt must be positive")
+    expected_dirs = {path.parent.name for path in expected}
+    try:
+        actual_dirs = {path.name for path in directory.iterdir()}
+    except OSError:
+        actual_dirs = set()
+    missing_artifacts = expected_dirs - actual_dirs
+    extra_artifacts = actual_dirs - expected_dirs
+    invalid_contents = []
+    for path in expected:
+        if path.parent.name in actual_dirs:
+            try:
+                if {entry.name for entry in path.parent.iterdir()} != {path.name}:
+                    invalid_contents.append(path.parent.name)
+            except OSError:
+                invalid_contents.append(path.parent.name)
+    leaves, passed, packages, errors, examples = read_records(list(expected), expected, run_attempt)
+    inventory_error = None
+    try:
+        inventory_tests, inventory_packages = load_inventory(inventory_path)
+    except ValueError as exc:
+        inventory_error = str(exc)
+        inventory_tests, inventory_packages = set(), set()
+    missing_tests = inventory_tests - passed
+    missing_packages = inventory_packages - packages
+    duplicates = {key: count for key, count in leaves.items() if count > 1}
+    return {"ok": not (missing_artifacts or extra_artifacts or invalid_contents or errors or inventory_error or
+                       missing_tests or missing_packages or duplicates),
+            "errors": dict(errors), "examples": examples, "inventory_error": inventory_error,
+            "missing_artifacts_count": len(missing_artifacts),
+            "missing_artifacts_sample": sorted(missing_artifacts)[:SAMPLE_LIMIT],
+            "extra_artifacts_count": len(extra_artifacts),
+            "extra_artifacts_sample": sorted(extra_artifacts)[:SAMPLE_LIMIT],
+            "invalid_artifact_contents_count": len(invalid_contents),
+            "invalid_artifact_contents_sample": sorted(invalid_contents)[:SAMPLE_LIMIT],
+            "missing_inventory_tests_count": len(missing_tests),
+            "missing_inventory_tests_sample": sorted(missing_tests)[:SAMPLE_LIMIT],
+            "missing_inventory_packages_count": len(missing_packages),
+            "missing_inventory_packages_sample": sorted(missing_packages)[:SAMPLE_LIMIT],
+            "duplicate_count": len(duplicates), "duplicate_sample": sorted(duplicates.items())[:SAMPLE_LIMIT]}
+
+
 def reconcile(reference_paths, candidate_paths, required=(), inventory_path=None):
     reference, ref_passed, ref_packages, ref_errors, ref_examples = read_records(reference_paths)
     candidate, passed, cand_packages, cand_errors, cand_examples = read_records(candidate_paths)
@@ -194,11 +272,27 @@ def reconcile(reference_paths, candidate_paths, required=(), inventory_path=None
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reference", action="append", required=True, metavar="JSONL")
-    parser.add_argument("--candidate", action="append", required=True, metavar="JSONL")
+    parser.add_argument("--reference", action="append", metavar="JSONL")
+    parser.add_argument("--candidate", action="append", metavar="JSONL")
+    parser.add_argument("--execution-dir", metavar="DIR", help="validate one downloaded full-suite execution")
+    parser.add_argument("--revision")
+    parser.add_argument("--run-id")
+    parser.add_argument("--run-attempt")
     parser.add_argument("--require", action="append", default=[], metavar="MODULE:PACKAGE:TEST")
     parser.add_argument("--inventory", metavar="JSON", help="require both executions to cover this inventory")
     args = parser.parse_args()
+    if args.execution_dir:
+        if (args.reference or args.candidate or args.require or not args.inventory or
+                not all((args.revision, args.run_id, args.run_attempt))):
+            parser.error("--execution-dir requires --inventory, --revision, --run-id and --run-attempt")
+        try:
+            result = verify_execution(args.execution_dir, args.inventory, args.revision, args.run_id, args.run_attempt)
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["ok"] else 1
+    if not args.reference or not args.candidate or any((args.revision, args.run_id, args.run_attempt)):
+        parser.error("comparison requires --reference and --candidate")
     required = []
     for value in args.require:
         parts = value.split(":")

@@ -101,7 +101,15 @@ jobs:
         env:
           HANDCRANKFAN_FULL: '1'
           PLANETARY_ALL_KITS: '1'
+          CI_TEST_RECORDS: repository.jsonl
         run: python3 scripts/ci/full_partition.py
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-repository
+          path: repository.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   renderer-full:
     needs: plan
@@ -117,7 +125,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check full renderer suite
+        env:
+          CI_TEST_RECORDS: renderer-full.jsonl
         run: python3 scripts/ci/gate.py renderer-full
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-renderer-full
+          path: renderer-full.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   planetary-motion:
     needs: plan
@@ -194,7 +211,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check Graham escapement
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'escapement.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py escapement all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-escapement
+          path: escapement.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   onewayclutch:
     needs: plan
@@ -210,7 +236,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check one-way clutch
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'onewayclutch.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py onewayclutch all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-onewayclutch
+          path: onewayclutch.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   clamparm:
     needs: plan
@@ -223,7 +258,16 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check clamp arm
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'clamparm.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py clamparm all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-clamparm
+          path: clamparm.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   turbinefan:
     needs: plan
@@ -239,7 +283,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check turbine fan
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'turbinefan.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py turbinefan all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-turbinefan
+          path: turbinefan.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   escapement-exploded:
     needs: plan
@@ -286,7 +339,17 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check spinning wheel
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('wheel-{0}.jsonl', matrix.case) || '' }}
+          CI_TEST_CASE: ${{ matrix.case }}
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-wheel-${{ matrix.case }}
+          path: wheel-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   siren:
     needs: plan
@@ -312,7 +375,17 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check hand-crank siren
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('siren-{0}.jsonl', matrix.case) || '' }}
+          CI_TEST_CASE: ${{ matrix.case }}
         run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-siren-${{ matrix.case }}
+          path: siren-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   bevel-pr:
     needs: plan
@@ -366,12 +439,50 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check full bevel coverage shard
+        env:
+          CI_TEST_RECORDS: bevel-full-${{ matrix.shard }}.jsonl
+          CI_TEST_CASE: ${{ matrix.shard }}
         run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-bevel-full-${{ matrix.shard }}
+          path: bevel-full-${{ matrix.shard }}.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  records-validation:
+    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, turbinefan, wheel, siren, bevel-full]
+    if: always() && needs.plan.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - name: Discover full test inventory
+        run: python3 scripts/ci/inventory.py > inventory.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ci-records-*
+          path: ci-artifacts
+      - name: Validate full execution records
+        run: python3 scripts/ci/reconcile_records.py --execution-dir ci-artifacts --inventory inventory.json --revision "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
+      - name: Check producer results
+        if: always()
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 -c 'import json, os, sys; results = json.loads(os.environ["NEEDS_JSON"]); failed = [name for name, job in results.items() if job["result"] != "success"]; print("Unsuccessful producers:", ", ".join(failed)); sys.exit(bool(failed))'
 
   gate:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
-            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full]
+            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
+            records-validation]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

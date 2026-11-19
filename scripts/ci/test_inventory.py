@@ -18,12 +18,19 @@ class InventoryTests(unittest.TestCase):
             self.assertTrue(kwargs["check"])
             if args[-2:] == ["list", "./..."]:
                 return mock.Mock(stdout="example/a\nexample/b\n")
-            self.assertEqual(args[-4:-1], ["test", "-list", "^Test"])
+            self.assertEqual(args[-4:-1], ["test", "-list", "^(Test|Example|Fuzz)"])
             return mock.Mock(stdout="TestExample\nok  example/a\n")
 
         with mock.patch.object(inventory.subprocess, "run", side_effect=run):
             self.assertEqual(inventory.discover(["go"]), {"example/a": ["TestExample"],
                                                            "example/b": ["TestExample"]})
+
+    def test_discovery_rejects_examples_and_fuzz_tests(self):
+        for name in ("ExampleThing", "FuzzThing"):
+            with self.subTest(name=name), mock.patch.object(inventory.subprocess, "run", side_effect=[
+                    mock.Mock(stdout="example/a\n"), mock.Mock(stdout=name + "\n")]):
+                with self.assertRaisesRegex(ValueError, name):
+                    inventory.discover(["go"])
 
     def test_report_uses_runner_assignments_and_names_unknown_subtests(self):
         root = {package: ["TestDedicated"] for package in full_partition.DEDICATED}

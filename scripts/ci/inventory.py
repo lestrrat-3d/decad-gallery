@@ -15,9 +15,14 @@ def discover(base):
         raise ValueError("package inventory is empty or duplicated")
     result = {}
     for package in sorted(packages):
-        output = subprocess.run(base + ["test", "-list", "^Test", package],
+        output = subprocess.run(base + ["test", "-list", "^(Test|Example|Fuzz)", package],
                                 check=True, capture_output=True, text=True).stdout
-        result[package] = sorted(line for line in output.splitlines() if line.startswith("Test"))
+        names = output.splitlines()
+        unsupported = [name for name in names if name.startswith(("Example", "Fuzz"))]
+        if unsupported:
+            raise ValueError(f"{package} has examples or fuzz tests outside the CI inventory: "
+                             + ", ".join(unsupported))
+        result[package] = sorted(line for line in names if line.startswith("Test"))
     return result
 
 

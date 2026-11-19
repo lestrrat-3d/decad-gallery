@@ -58,7 +58,8 @@ def replay(revision):
                 needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
-        repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"})
+        repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
+        **{"records-validation": {"result": "success" if "full" in result["suites"] else "skipped"}})
     errors.extend(gate.check(needs, "push"))
     return result, errors
 
