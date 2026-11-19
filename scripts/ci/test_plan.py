@@ -13,6 +13,16 @@ import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_single_isolated_test_selects_exact_worker(self):
+        path = b"models/ballbearing/catalog_test.go\0"
+        suite = "isolated-ballbearing-TestBearingCatalog"
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=path), \
+                mock.patch.object(plan, "isolated_tests", return_value=[suite]):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(result["suites"], [suite])
+        self.assertEqual(gate.matrix_for(result["suites"])["include"], [{"suite": suite, "case": 0}])
+
     def test_broad_override_and_gate(self):
         cases = (("push", "true", ["cycloidal-pr"], ["broad", "cycloidal-pr"]),
                  ("pull_request", "true", ["model-swisslever", "swiss-render"],

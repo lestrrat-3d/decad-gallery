@@ -26,7 +26,8 @@ CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"
     "scripts/ci/test_" + name + ".py"
     for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay",
                  "run_tests", "select_models")
-} | {"scripts/ci/test_workflow_records.py"}
+} | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
+     "scripts/ci/check_isolated_tests.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
          "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}
@@ -110,6 +111,35 @@ def affected_packages(changed, before, after):
     return selected, production
 
 
+def isolated_tests(base, tested, changed):
+    """Select changed tests only when both revisions opt in and helpers are unchanged."""
+    code = [path for path in changed if path.endswith(".go") and path not in CI_FILES]
+    if len(code) != 1:
+        return []
+    path = code[0]
+    parts = Path(path).parts
+    if len(parts) != 3 or parts[0] != "models" or parts[1] not in MODELS or not path.endswith("_test.go"):
+        return []
+    try:
+        old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
+        new = subprocess.check_output(["git", "show", f"{tested}:{path}"], stderr=subprocess.PIPE)
+        if b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new:
+            return []
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            root = Path(directory)
+            (root / "old.go").write_bytes(old)
+            (root / "new.go").write_bytes(new)
+            binary = root / "testdiff"
+            subprocess.run(["go", "build", "-o", str(binary), "scripts/ci/testdiff.go"], check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            names = json.loads(subprocess.check_output([str(binary), str(root / "old.go"), str(root / "new.go")]))
+        if not isinstance(names, list) or not names or any(not re.fullmatch(r"Test[A-Za-z0-9_]+", n) for n in names):
+            return []
+        return ["isolated-" + parts[1] + "-" + name for name in names]
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return []
+
+
 def plan(event, base, tested):
     result = {"version": 1, "tested": tested, "base": base, "changed_paths": [],
               "suites": ["broad"], "reasons": {"broad": ["event requires broad coverage"]},
@@ -146,7 +176,14 @@ def plan(event, base, tested):
                 suites["wheel-parts"] = ["check changed wheel part documentation"]
             result.update(suites=sorted(suites), reasons=suites, reason="presentation or CI-only change")
             return result
-        code = [path for path in changed if path.endswith(".go")]
+        if not wheel_parts and all(is_presentation(path) or path in CI_FILES or path.endswith("_test.go")
+                                   for path in changed):
+            isolated = isolated_tests(base, tested, changed)
+            if isolated:
+                reason = "changed isolated test functions"
+                result.update(suites=isolated, reasons={suite: [reason] for suite in isolated}, reason=reason)
+                return result
+        code = [path for path in changed if path.endswith(".go") and path not in CI_FILES]
         try:
             before, after = metadata(base), metadata(tested)
         except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:

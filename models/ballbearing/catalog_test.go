@@ -1,5 +1,7 @@
 package ballbearing_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
