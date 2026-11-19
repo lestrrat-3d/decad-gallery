@@ -223,6 +223,10 @@ jobs:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [print, mirror, rest]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -233,7 +237,7 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check turbine fan
-        run: python3 scripts/ci/run_tests.py turbinefan all
+        run: python3 scripts/ci/run_tests.py turbinefan ${{ matrix.shard }}
 
   escapement-exploded:
     needs: plan

@@ -124,6 +124,6 @@ repeated as the names say. The bought parts are the bolts, the nuts and the bear
 You can vary:
 
 - The crank angle, which also sets the fan angle at twice that value.
-- The blade pitch, from 10° to 40°, which turns each whole blade; it is the blade angle at three quarters of the radius.
+- The blade pitch, from 10° to 40°, which changes the blade sections. It is the blade angle at three quarters of the radius.
 
 For how to build it from Go, see the [developer notes](../../docs/models/handcrankfan.md).

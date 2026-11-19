@@ -54,14 +54,23 @@ func TestTurbineFanPitch(t *testing.T) {
 	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		p, sz := c.params(), m.Dimensions.Size
 		verts := meshOf(t, m.Blades[0], 0.1).Vertices()
-		for _, r := range []float64{30, 40, 50, 60} {
+		for _, r := range []float64{30, 40, 48, 50, 60} {
 			y, ring := meshRing(verts, r*sz.Scale)
 			require.NotEmpty(t, ring, "ring near radius %g", r*sz.Scale)
-			stack := r3.Vec{Y: y, Z: sz.HubMid}
-			te1 := farthest(ring, stack, nil)
-			le := farthest(ring, te1, nil)
-			te2 := farthest(ring, le, func(v r3.Vec) bool { return v.Sub(te1).Len() < 0.2 })
-			mid := te1.Add(te2).Scale(0.5)
+			if r == 48 {
+				require.InDelta(t, sz.RefRadius, y, 1e-6, "rated-radius section")
+			}
+			// The trailing edge is the two-millimetre flat on local +X.
+			// Blade 1 maps that plane to world X = -stud radius.
+			lo, hi := math.Inf(1), math.Inf(-1)
+			for _, v := range ring {
+				if math.Abs(v.X+sz.BladeStudRadius) <= 1e-9 {
+					lo, hi = math.Min(lo, v.Z), math.Max(hi, v.Z)
+				}
+			}
+			require.InDelta(t, 2.0, hi-lo, 1e-8, "trailing flat at radius %g", y)
+			mid := r3.Vec{X: -sz.BladeStudRadius, Y: y, Z: (lo + hi) / 2}
+			le := farthest(ring, mid, nil)
 			dx, dz := le.X-mid.X, le.Z-mid.Z
 			require.Greater(t, dx, 0.0, "the leading edge leads toward +X at radius %g", y)
 			require.Less(t, dz, 0.0, "the leading edge is upstream at radius %g", y)

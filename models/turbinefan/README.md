@@ -179,10 +179,11 @@ only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bo
 
 ## Printing
 
-Print the hub front face down, with its bore axis vertical. The blade's flat long edge is intended to lie on the bed,
-with the stud and radial line parallel to the bed. The root corners still need work before this orientation is ready.
-The hub needs no print pause:
-every nut sits in a slot open to a face, so you put the nuts in after printing.
+Lay each blade lengthwise on its flat trailing edge. The round stud lies parallel to the bed and the broad airfoil
+faces stand upright. The contact strip widens from the root to 2 mm and continues at that width to the tip.
+Both blade hands print this way. The modeled contact area is 133.29 mm² per blade on the default 192 mm rotor.
+
+Print the hub front face down with its bore vertical. Insert the nuts through their open slots after printing.
 
 To assemble:
 

@@ -344,13 +344,13 @@ func TestTurbineFanBounds(t *testing.T) {
 		require.InDelta(t, 0, box.Min.Z, tol)
 		require.InDelta(t, sz.HubLength, box.Max.Z, tol)
 		if c.name == "compact" {
-			// The volumes of the fan before RotorDiameter existed (608ZZ hub, one blade): the 128 mm rotor rebuilds it.
+			// The compact hub and blade volumes pin this 128 mm build.
 			hv, err := m.Hub.Volume()
 			require.NoError(t, err)
 			bv, err := m.Blades[0].Volume()
 			require.NoError(t, err)
 			require.InEpsilon(t, 9703.740630, hv.Value.Base(), 1e-6, "hub volume")
-			require.InEpsilon(t, 1945.996807, bv.Value.Base(), 1e-6, "blade volume")
+			require.InEpsilon(t, 1968.166101784, bv.Value.Base(), 1e-6, "blade volume")
 		}
 		for name, item := range map[string]struct {
 			body *decad.Body

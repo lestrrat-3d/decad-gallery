@@ -224,8 +224,13 @@ variant:
 - the blade pitch from the blade mesh: leading edge upstream and chord angle within 0.5° of `pi - beta(r)` at four
   radii (the thickness ratio against the table is checked in `models/turbinefan`);
 - the hub empty at a socket, at the head pocket and at the nut slot;
-- the crank's sweep against the blades: every vertex of the arm, pin and handle turned through a full turn about the
-  crank axis in 3° steps stays 15 clear of the blades' disc;
+- the crank's sweep against every blade: tessellate the arm, pin, grip and blades with a 0.2 mm request. Enclose
+  the crank meshes and their bounds in a cylinder about the crank X axis, extending from their minimum X to infinity.
+  For each blade triangle, bound its Y range and its minimum and maximum distance from the fan Y axis. For each of
+  180 equally spaced rotor angle midpoints, measure the distance from the middle of that radial interval and the
+  triangle's Y interval to the crank cylinder. Subtract half the radial interval, the maximum angular displacement
+  `rhoMax*pi/180`, the blade mesh bound and `1e-9` mm for arithmetic. Require every resulting lower bound to be at
+  least 15 mm. The cylinder encloses every crank angle; the angular subtraction covers every rotor angle;
 - the grip's mesh rings at Z -0.75, 58.25 and 87.25 against the table (26.75 lower than drawn), and the 15° rake;
 - for the default fan only, three subtests:
   - `fasteners` (`requireFasteners`): for each of the 15 sites, the head is flush, the part is solid beside the

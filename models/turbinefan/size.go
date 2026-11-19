@@ -45,10 +45,10 @@ type Size struct {
 	HubLength     float64 // 20 s
 	HubMid        float64 // HubLength / 2: the sockets' and blade bolts' plane
 
-	// BladeStudRadius is the blade's root stud, which runs from radius BladeStudStart to BladeStudEnd.
+	// BladeStudRadius is the radius of the root stud. Its cylindrical portion ends at 14.6 j.
 	BladeStudRadius float64 // 3 j
 	BladeStudStart  float64 // BladeSocketStart + RegularFit
-	BladeStudEnd    float64 // 16 j
+	BladeStudEnd    float64 // 16 j: legacy joint dimension
 	// BladeSocketRadius is the hub socket's radius, a Regular fit round the stud. The socket's floor is at radius
 	// BladeSocketStart.
 	BladeSocketRadius float64 // BladeStudRadius + RegularFit

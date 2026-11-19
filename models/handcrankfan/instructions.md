@@ -51,7 +51,7 @@ Defaults: `5*pi/4` and `25*pi/180`.
 
 - `CrankAngle` is any finite angle in radians. `Ratio*CrankAngle` must also be finite.
 - `BladePitch` lies in `[10°, 40°]`, in radians. It is the blade angle at radius 48 (75 % of the tip radius 64),
-  measured from the plane of rotation. It turns the whole blade about its radial line, as a pitch bearing does.
+  measured from the plane of rotation. It changes the blade sections while the stud, bolt hole and print bed stay fixed.
 The rotor is turbinefan's 608ZZ fan at `RotorDiameter` 128, its smallest size, not at turbinefan's 192 default. The
 fan axis is at Z 170 and the grip's top at Z 101.15, just under the gearbox floor, so a 128 mm rotor's blades reach
 down to Z 106 and clear the grip by 5 mm. A 192 mm rotor would reach Z 74 and sweep in front of the grip, where the
@@ -85,8 +85,8 @@ need that tolerance.
 - The fan faces the operator. The fan shaft lies on the line through the apex along Y and runs toward -Y. The
   rotor has smaller Y than every other part except the fan shaft and the grip's raked base, and its blades blow air
   toward -Y.
-- The crank handle never meets a blade. The arm, the pin and the handle reach 65 from the crank axis. Turned through a
-  full turn about the crank axis, none of their vertices comes within 15 of the disc the blades sweep.
+- The crank handle never meets a blade. The arm, pin and handle reach 65 from the crank axis. Their swept bodies
+  stay at least 15 mm from every blade through every crank and rotor angle.
 
 ## Crank turn and fan turn
 
@@ -601,9 +601,10 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
   because a shaft that met a gear's tooth would share material with it. The pairs the `fasteners` subtest proves (a bolt
   with its head host and with its own nut) and the meshing gears are left out. The meshing gears are checked only
   against the shafts and the bearings.
-- A hand on the crank handle cannot meet a blade. Every vertex of the arm, the pin and the handle is turned through a
-  full turn about the crank axis in steps of 3°, and none comes within 15 of the blades' disc, taken as the Y range of
-  the blades and the largest distance of a blade vertex from the fan axis.
+- A hand on the crank handle cannot meet a blade. For every combination of crank and rotor angles, the arm, pin and
+  grip stay at least 15 mm from every blade. The check encloses the three crank meshes in a cylinder swept around the
+  crank axis. It bounds each blade triangle's entire rotor sweep against that cylinder, including mesh uncertainty,
+  and requires the resulting lower bound to be at least 15 mm.
 - Blades 2 and 3, bolts 2 and 3 and nuts 2 and 3 match the first, turned by `2 pi (k-1) / 3`, within 0.05.
 - The exploded view, checked at the default pose, puts the arm, the handle and the pin in that order along the crank
   axis, slides the shafts and the pinion to the left, lifts the three gears, moves each joined nut with its piece, keeps
@@ -618,8 +619,8 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
   overlaps a part it passes through. Each gap between a fastener and its pocket, hole or cavity has a proven lower bound
   of 0.05 or more.
 - The `clearances` subtest proves every row of the fit table (see Fits). The `mesh` subtest proves the spur pair (see
-  Spur pair). Both run for the default parameters only: `BladePitch` turns each blade about its radial line and `CrankAngle` turns each
-  part about its own axis, and neither changes a fit against the housing or within one motion group.
+  Spur pair). Both run for the default parameters only. `BladePitch` changes the blade sections, and `CrankAngle` turns
+  the moving parts about their axes.
 - The corner test checks every printed part in its print orientation, as Retained sharp corners lists, and requires each
   listed corner to match a finding. `TestPressFitWalls` requires at least 1.6 mm of wall round the bore of the hub
   (through its socket floors, 1.65), the arm and the two spur gears, from the section outline.
