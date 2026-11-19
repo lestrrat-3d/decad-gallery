@@ -358,6 +358,16 @@ class FanShardTest(unittest.TestCase):
 
 
 class PlanetaryFullTest(unittest.TestCase):
+    def test_pr_shard_balancing_is_deterministic_and_separates_heavy_tests(self):
+        tests = ["TestKitGearboxes", "TestBacklashFirstPlanetMesh", "TestFirstPlanetMesh",
+                 "TestCornersEarCount0"] + [f"TestCase{i:02d}" for i in range(40)]
+        shards = run_tests.planetary_test_shards(tests)
+        self.assertEqual(shards, run_tests.planetary_test_shards(list(reversed(tests))))
+        for shard in shards:
+            heavy = [name for name in shard if run_tests.planetary_test_weight(name) >= 200]
+            self.assertLessEqual(len(heavy), 1)
+        self.assertCountEqual([name for shard in shards for name in shard], tests)
+
     def test_pr_shards_partition_every_test_once(self):
         tests = ["TestDefaultDimensionsUnchanged", "TestKitGearboxes"] + [f"TestCase{i:02d}" for i in range(30)]
         with mock.patch.dict(run_tests.os.environ, {}, clear=True), \
@@ -373,7 +383,8 @@ class PlanetaryFullTest(unittest.TestCase):
             self.assertIn("TestKitGearboxes/planet608-shaft605", call.kwargs["allowed_skips"])
 
     def test_pr_shards_reject_missing_inventory_and_invalid_shard(self):
-        for inventory, shard in (("TestOther\n", "0"), ("", "0"), ("TestDefaultDimensionsUnchanged\n", "13")):
+        for inventory, shard in (("TestOther\n", "0"), ("", "0"),
+                                 ("TestDefaultDimensionsUnchanged\n", str(run_tests.PLANETARY_PR_SHARDS))):
             with self.subTest(shard=shard, inventory=inventory), \
                     mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
                     self.assertRaises(SystemExit):

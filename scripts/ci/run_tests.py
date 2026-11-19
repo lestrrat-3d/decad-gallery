@@ -777,8 +777,33 @@ def run_full_models() -> None:
                 env=env, package=bevel)
 
 
-PLANETARY_PR_SHARDS = 13
+PLANETARY_PR_SHARDS = 25
 FAN_PR_SHARDS = 10
+
+
+def planetary_test_weight(name: str) -> int:
+    """Estimate relative cost from the observed PR tests; never use this to select tests."""
+    if name in {"TestKitGearboxes", "TestTwoStages", "TestBacklashRemovesMaterial"}:
+        return 240
+    if "PlanetMesh" in name or name in {"TestTwoStagesPlanetSunMesh", "TestTwoStagesPlanetRingMesh"}:
+        return 200
+    if name.startswith(("TestCorners", "TestSplit")):
+        return 100
+    if name in {"TestPartClearances", "TestRingWithoutEars", "TestFastenersFitTheirPockets",
+                "TestBearingsSitInPlanetPockets", "TestHousing", "TestWrongPhaseIsDetected"}:
+        return 100
+    return 45
+
+
+def planetary_test_shards(tests: list[str]) -> list[list[str]]:
+    """Balance discovered tests without relying on estimates for coverage."""
+    shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
+    weights = [0] * len(shards)
+    for name in sorted(tests, key=lambda item: (-planetary_test_weight(item), item)):
+        index = min(range(len(shards)), key=lambda item: (weights[item], item))
+        shards[index].append(name)
+        weights[index] += planetary_test_weight(name)
+    return shards
 
 
 def run_fan_pr(shard: str) -> None:
@@ -819,7 +844,7 @@ def run_planetary_pr(shard: str) -> None:
     if smoke not in tests:
         raise SystemExit("planetary smoke test is missing")
     tests.remove(smoke)
-    selected = [smoke] if int(shard) == 0 else tests[int(shard) - 1::PLANETARY_PR_SHARDS - 1]
+    selected = [smoke] if int(shard) == 0 else planetary_test_shards(tests)[int(shard) - 1]
     if not selected:
         print(f"planetary PR shard {shard} has no tests")
         return
