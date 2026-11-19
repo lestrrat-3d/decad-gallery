@@ -16,7 +16,8 @@ MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement ha
 INTERNAL = set("hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
 FEATURES = {"dovetail"}
-CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"} | {
+CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
+            ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
     for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay",
                  "run_tests", "select_models")

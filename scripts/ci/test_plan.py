@@ -64,6 +64,7 @@ class PlanTest(unittest.TestCase):
     def test_ci_changes_select_only_needed_jobs(self):
         # PR #339 changes the CI workflows, documentation and these scripts.
         ci_paths = [".github/workflows/ci-probe.yml", ".github/workflows/repository.yml",
+                    ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml",
                     "docs/ci-measurements.md", "docs/ci-testing.md"] + sorted(
                         path for path in plan.CI_FILES if path.startswith("scripts/ci/"))
         cases = (([], []), (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
@@ -92,6 +93,14 @@ class PlanTest(unittest.TestCase):
                     self.assertEqual(gate.check(needs, "push"), [])
                     needs["repository"]["result"] = "failure"
                     self.assertTrue(gate.check(needs, "push"))
+
+    def test_each_existing_workflow_selects_no_geometry(self):
+        for name in ("fan-variants.yml", "update-decad.yml"):
+            with self.subTest(name=name), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan.subprocess, "check_output",
+                                      return_value=(".github/workflows/" + name + "\0").encode()):
+                self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
 
     def test_inventory_only_selects_no_geometry(self):
         paths = (b"scripts/ci/inventory.py\0scripts/ci/test_inventory.py\0"
