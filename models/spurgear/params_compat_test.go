@@ -1,5 +1,7 @@
 package spurgear
 
+// CI: isolated-tests
+
 import "testing"
 
 func TestParamsPositionalFieldOrder(t *testing.T) {
