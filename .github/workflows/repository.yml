@@ -81,6 +81,10 @@ jobs:
           cache-dependency-path: |
             go.sum
             tools/render/go.sum
+      - name: Check workflow syntax
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          "$(go env GOPATH)/bin/actionlint"
       - name: Check gallery tile cache
         if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
         run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...

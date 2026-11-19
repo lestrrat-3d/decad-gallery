@@ -15,6 +15,37 @@ class PlanTest(unittest.TestCase):
         return {"github.com/lestrrat-3d/decad-gallery/models/cycloidal": {
             "dir": "models/cycloidal", "imports": set(), "test_imports": set()}}
 
+    def test_ci_changes_select_only_needed_jobs(self):
+        # PR #339 changes the CI workflows, documentation and these scripts.
+        ci_paths = [".github/workflows/ci-probe.yml", ".github/workflows/repository.yml",
+                    "docs/ci-measurements.md", "docs/ci-testing.md"] + sorted(
+                        path for path in plan.CI_FILES if path.startswith("scripts/ci/"))
+        cases = (([], []), (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
+                 ([".github/workflows/unknown.yml"], ["broad"]),
+                 (["scripts/ci/unknown.py"], ["broad"]), (["go.mod"], ["broad", "full"]),
+                 (["tools/render/gallery.go"], ["broad", "renderer-all"]))
+        renderer = plan.ROOT + "/tools/render"
+        packages = self.packages() | {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
+        for extra, expected in cases:
+            with self.subTest(extra=extra), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=packages), \
+                    mock.patch.object(plan.subprocess, "check_output",
+                                      return_value=("\0".join(ci_paths + extra) + "\0").encode()):
+                result = plan.plan("push", "base", "head")
+                self.assertEqual(result["suites"], expected)
+                matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
+                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs.update(plan={"result": "success", "outputs": {
+                    "plan": json.dumps(result), "matrix": json.dumps(matrix),
+                    "count": str(len(matrix["include"]))}}, repository={"result": "success"},
+                    worker={"result": "success" if matrix["include"] else "skipped"})
+                if not extra:
+                    self.assertEqual(matrix["include"], [])
+                    self.assertEqual(gate.check(needs, "push"), [])
+                    needs["repository"]["result"] = "failure"
+                    self.assertTrue(gate.check(needs, "push"))
+
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", return_value=self.packages()):
