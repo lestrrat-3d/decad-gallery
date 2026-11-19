@@ -114,28 +114,35 @@ def affected_packages(changed, before, after):
 def isolated_tests(base, tested, changed):
     """Select changed tests only when both revisions opt in and helpers are unchanged."""
     code = [path for path in changed if path.endswith(".go") and path not in CI_FILES]
-    if len(code) != 1:
-        return []
-    path = code[0]
-    parts = Path(path).parts
-    if len(parts) != 3 or parts[0] != "models" or parts[1] not in MODELS or not path.endswith("_test.go"):
+    if not code:
         return []
     try:
-        old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
-        new = subprocess.check_output(["git", "show", f"{tested}:{path}"], stderr=subprocess.PIPE)
-        if b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new:
-            return []
+        inputs = []
+        for path in code:
+            parts = Path(path).parts
+            if len(parts) != 3 or parts[0] != "models" or parts[1] not in MODELS or not path.endswith("_test.go"):
+                return []
+            old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
+            new = subprocess.check_output(["git", "show", f"{tested}:{path}"], stderr=subprocess.PIPE)
+            if b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new:
+                return []
+            inputs.append((parts[1], old, new))
+        suites = set()
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             root = Path(directory)
-            (root / "old.go").write_bytes(old)
-            (root / "new.go").write_bytes(new)
             binary = root / "testdiff"
             subprocess.run(["go", "build", "-o", str(binary), "scripts/ci/testdiff.go"], check=True,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            names = json.loads(subprocess.check_output([str(binary), str(root / "old.go"), str(root / "new.go")]))
-        if not isinstance(names, list) or not names or any(not re.fullmatch(r"Test[A-Za-z0-9_]+", n) for n in names):
-            return []
-        return ["isolated-" + parts[1] + "-" + name for name in names]
+            for model, old, new in inputs:
+                (root / "old.go").write_bytes(old)
+                (root / "new.go").write_bytes(new)
+                names = json.loads(subprocess.check_output([str(binary), str(root / "old.go"), str(root / "new.go")]))
+                if names is None:
+                    return []
+                if not isinstance(names, list) or any(not re.fullmatch(r"Test[A-Za-z0-9_]+", n) for n in names):
+                    return []
+                suites.update("isolated-" + model + "-" + name for name in names)
+        return sorted(suites)
     except (OSError, ValueError, subprocess.CalledProcessError):
         return []
 

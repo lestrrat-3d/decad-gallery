@@ -22,11 +22,11 @@ owners, and planning errors select full coverage. A new Go directory that cannot
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
 the plan. Suites already covered by selected broad or full jobs are not dispatched twice.
 
-A test-only change in one model file marked `// CI: isolated-tests` runs the changed top-level tests individually.
+Test-only changes in model files marked `// CI: isolated-tests` run the changed top-level tests individually.
 Both revisions must carry the marker. CI checks that marked files contain only imports and test functions, and rejects
 references to other test functions inside them. Tests in marked files must not depend on another test's side effects.
 New model test files containing tests must carry the marker. Helper-only files do not need it.
-Changes to imports, helpers, compiler directives, deleted tests, multiple Go files, or unmarked files use the normal
+Changes to imports, helpers, compiler directives, deleted tests, or unmarked files use the normal
 package selection. Production and dependency changes use the normal selection too.
 
 `gate.py` turns the plan into a worker matrix and checks the plan, matrix, and expected job results. An empty matrix
