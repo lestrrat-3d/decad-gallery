@@ -1,20 +1,14 @@
 package clamparmcapacity_test
 
+// CI: isolated-tests
+
 import (
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/clamparmcapacity"
 	"github.com/stretchr/testify/require"
 )
-
-func documentation(t *testing.T) string {
-	t.Helper()
-	data, err := os.ReadFile("../../models/clamparm/instructions.md")
-	require.NoError(t, err)
-	return string(data)
-}
 
 func TestDocumentation(t *testing.T) {
 	require.NoError(t, clamparmcapacity.Check(documentation(t)))
