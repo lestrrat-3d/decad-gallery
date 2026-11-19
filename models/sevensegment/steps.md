@@ -377,14 +377,14 @@ Check: `TestSevenSegmentDetentPlate`.
 ### Walls (`Walls`: Front Wall, Rear Wall)
 
 Front wall sketch frame origin (0, −49.5, 28), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
-(0, 43.0, 28), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−27, 27], v ∈ [−28, 51.75]
-(z 0..79.75).
+(0, 43.0, 28), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−28, 53.25]
+(z 0..81.25): the plate is 57 wide and the ribs end 1.5 inside its edges (|x| 27, z 79.75).
 
 1. Extrude the plate; union four rib boxes at |x| ∈ [20, 27] extending inward from the inner face: ledge ribs
    z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the front ledge ribs, 18.7 (to y −30.8).
    Ribs are unioned before any chamfer so no chamfer notch is left where a rib meets the plate rim.
-2. Chamfer 0.5: the outer face's outer loop (`edgefinish.Chamfer`, `Long(Outer)`), and on the inner face the runs
-   of 20 mm or more of its outer loop (`edgefinish.ChamferRuns`, `Long(Outer)`), which skips the short rib-end runs.
+2. Chamfer 0.5 the outer loop of each face (`edgefinish.Chamfer`, `Long(Outer)`, one call for the outer face and one for
+   the inner face). The ribs stand 1.5 inside the plate's edges, so they do not cut into the inner face's outer loop.
 3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±20
    edges; top flange: bottom and x = ±20 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
 4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
