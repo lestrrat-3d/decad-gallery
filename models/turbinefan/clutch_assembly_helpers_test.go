@@ -129,11 +129,10 @@ func requireFanOnClutch(t *testing.T, cp onewayclutch.Params) {
 		{"blade 3", "adapter", 5.0},
 		{"blade 1", "ear bolt 1", 5.0}, // hex key room between the blades
 	} {
-		gap, separated, err := meshes[g.a].Exceeds(meshes[g.b], g.least)
+		gap, _, err := meshes[g.a].Exceeds(meshes[g.b], 50)
 		require.NoError(t, err)
 		t.Logf("gap lower bound %s / %s: %.3f", g.a, g.b, gap)
-		require.True(t, separated, "%s / %s: could not prove %.3f mm clearance (lower bound %.3f)",
-			g.a, g.b, g.least, gap)
+		require.GreaterOrEqual(t, gap, g.least, "%s / %s", g.a, g.b)
 	}
 
 	// Axial z of the stack: the adapter's rear face (head tops flush) and front face, and the hub's back face.

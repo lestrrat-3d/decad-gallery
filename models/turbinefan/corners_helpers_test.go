@@ -69,28 +69,33 @@ func socketFloorRound(sz turbinefan.Size) cornercheck.Exempt {
 	}
 }
 
-// requireBladeCorners cuts the placed blade parallel to its print bed.
+// requireBladeCorners checks blade k along its radial line d, in the hub's mid plane. The stud is cut at the radii where
+// its bolt hole crosses it; the hole's four corners (r 9.5 and 10.2) are the one exemption, where the material angle is
+// 64 to 90 degrees and the checker adds the stud's curvature. The loft is cut at radii read from the station table
+// (the root's and the airfoil's, each scaled with its station), because it has no planar faces to give heights. The step
+// where the stud meets the root face (RootRadius) is a corner between layers, which no section reads; instructions.md
+// lists it.
 func requireBladeCorners(t *testing.T, m *turbinefan.Model, k int) {
 	t.Helper()
 	sz := m.Dimensions.Size
+	j, s := sz.HubScale, sz.Scale
 	d := bladeDir(k)
-	normal := r3.Vec{X: -d.Y, Y: d.X}
-	r := sz.BladeStudRadius
-	heights := []float64{-r + 0.2, -2 * r / 3, -r / 3, 0, r / 3, 2 * r / 3, r - 0.01, r - 0.001}
-	fs, err := cornercheck.CheckAt(t.Context(), m.Blades[k-1], normal, heights, nil)
+	centre := r3.Vec{Z: sz.HubMid}
+	body := m.Blades[k-1]
+	// The bolt hole's radius is fixed, so the layers through it lie at its centre and 0.7 off it, not scaled.
+	stud := []float64{7.0 * j, sz.BladeBoltAt, sz.BladeBoltAt + 0.7, 12.5 * j}
+	fs, err := cornercheck.CheckAt(t.Context(), body, d, stud, []cornercheck.Exempt{
+		// At 128 the four corners read as tips of 125 to 130 degrees. A stud of radius 4.05 (192, 224) meets the hole at
+		// a wider angle and reads none, so the exemption need not claim a finding.
+		{Reason: "bolt hole across the stud", Near: cornercheck.Disc(centre, d, sz.BladeStudRadius+0.1), Optional: true},
+	})
 	require.NoError(t, err)
-	for _, f := range fs {
-		h := f.Height
-		if f.Kind != cornercheck.Tip || math.Abs(f.At.Dot(d)-(sz.BladeStudStart+0.3)) > 1e-8 ||
-			(h != r-0.01 && h != r-0.001) {
-			t.Fatalf("unexpected blade corner: %s", cornercheck.Report([]cornercheck.Finding{f}, 1))
-		}
-		// The narrow conical cap can combine two permitted turns in one tip window.
-		b2 := r*r - h*h
-		require.Greater(t, h, r-0.3)
-		require.GreaterOrEqual(t, h, 0.4)
-		require.GreaterOrEqual(t, b2, 0.0)
-		require.Less(t, 2*math.Sqrt(b2*(1+b2/(r*r))), cornercheck.TipWindow)
-		require.LessOrEqual(t, math.Abs(f.At.Z-sz.BladeSocketZ()), math.Sqrt(b2)+1e-7)
+	require.Empty(t, fs, cornercheck.Report(fs, 5))
+	loft := []float64{sz.RootRadius + 0.2*j, sz.RootRadius + 2.1*j}
+	for _, r := range []float64{18, 22, 26, 30, 36, 39.2, 44, 52, 56, 60, 62, 63, 63.8} {
+		loft = append(loft, r*s)
 	}
+	fs, err = cornercheck.CheckAt(t.Context(), body, d, loft, nil)
+	require.NoError(t, err)
+	require.Empty(t, fs, cornercheck.Report(fs, 5))
 }

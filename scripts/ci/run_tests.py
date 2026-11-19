@@ -687,22 +687,9 @@ def run_model_packages(names: tuple[str, ...]) -> None:
             qualified_expected=expected)
 
 
-def run_turbinefan(shard: str) -> None:
-    """Assign every discovered test to one runner, with the two largest tests separate."""
-    package = "./models/turbinefan"
-    listing = subprocess.run(
-        ["go", "test", "-list", "^Test", package], check=True, capture_output=True, text=True,
-    )
-    available = {line for line in listing.stdout.splitlines() if line.startswith("Test")}
-    heavy = ("TestBladePrintEdge", "TestBuildBladeMirrored")
-    missing = sorted(set(heavy) - available)
-    if missing:
-        raise SystemExit("missing turbine fan tests: " + ", ".join(missing))
-    shards = {"print": (heavy[0],), "mirror": (heavy[1],), "rest": tuple(sorted(available - set(heavy)))}
-    selected = shards[shard]
-    if not selected:
-        raise SystemExit("empty turbine fan shard: " + shard)
-    go_test([package, "-run", run_pattern(list(selected)), "-timeout", "40m", "-count=1"], list(selected))
+def run_turbinefan() -> None:
+    """Run every test of the turbine fan package: about 5 minutes on a busy runner, so it has its own job."""
+    run_model_packages(("turbinefan",))
 
 
 def run_onewayclutch() -> None:
@@ -929,8 +916,8 @@ def main() -> None:
     if suite == "clamparm" and not args and mode == "all":
         run_clamparm()
         return
-    if suite == "turbinefan" and not args and mode in {"print", "mirror", "rest"}:
-        run_turbinefan(mode)
+    if suite == "turbinefan" and not args and mode == "all":
+        run_turbinefan()
         return
     if suite == "fan" and not args and mode in FAN_VARIANTS:
         run_fan_variant(mode)
@@ -938,7 +925,7 @@ def main() -> None:
     raise SystemExit(
         "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest-0..3>"
         " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
-        " | onewayclutch all | clamparm all | turbinefan <print|mirror|rest> | fan <flat-three|steep-three>"
+        " | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 

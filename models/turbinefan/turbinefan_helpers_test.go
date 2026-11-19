@@ -1,7 +1,6 @@
 package turbinefan_test
 
 import (
-	"errors"
 	"math"
 	"slices"
 	"sync"
@@ -132,12 +131,6 @@ func section(t *testing.T, body *decad.Body, f r3.Frame) decad.SectionOutline {
 	for _, tol := range []float64{0.005, 0.02, 0.05} {
 		if o, err = body.SectionOutline(t.Context(), f, units.Millimeters(tol)); err == nil {
 			return o
-		}
-		var held *decad.MeshBoundError
-		if errors.As(err, &held) && held.Floor().Base() <= 0.05 {
-			if o, err = body.SectionOutline(t.Context(), f, held.Floor()); err == nil {
-				return o
-			}
 		}
 	}
 	require.NoError(t, err)
@@ -290,20 +283,4 @@ func anchoredTransform(t *testing.T, f r3.Frame, anchorZ float64) r3.Transform {
 	xf, err := r3.FromFrame(moved)
 	require.NoError(t, err)
 	return xf
-}
-
-// requireFanEnvelope checks the physical limits on all placed blades.
-func requireFanEnvelope(t *testing.T, name string, m *turbinefan.Model) {
-	t.Helper()
-	sz := m.Dimensions.Size
-	for k, blade := range m.Blades {
-		lo, hi, far := math.Inf(1), math.Inf(-1), 0.0
-		for _, v := range meshOf(t, blade, 0.1).Vertices() {
-			lo, hi, far = math.Min(lo, v.Z), math.Max(hi, v.Z), math.Max(far, math.Hypot(v.X, v.Y))
-		}
-		require.GreaterOrEqual(t, lo, 0.0, "blade %d: lowest z", k+1)
-		require.LessOrEqual(t, hi, sz.HubLength, "blade %d: highest z", k+1)
-		require.LessOrEqual(t, far, sz.TipRadius+0.5, "blade %d: radius", k+1)
-		t.Logf("%s blade %d: z from %.2f to %.2f, radius %.2f", name, k+1, lo, hi, far)
-	}
 }

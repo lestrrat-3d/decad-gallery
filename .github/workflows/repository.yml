@@ -282,10 +282,6 @@ jobs:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [print, mirror, rest]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -297,14 +293,13 @@ jobs:
             tools/render/go.sum
       - name: Check turbine fan
         env:
-          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('turbinefan-{0}.jsonl', matrix.shard) || '' }}
-          CI_TEST_CASE: ${{ matrix.shard }}
-        run: python3 scripts/ci/run_tests.py turbinefan ${{ matrix.shard }}
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'turbinefan.jsonl' || '' }}
+        run: python3 scripts/ci/run_tests.py turbinefan all
       - uses: actions/upload-artifact@v4
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
         with:
-          name: ci-records-turbinefan-${{ matrix.shard }}
-          path: turbinefan-${{ matrix.shard }}.jsonl
+          name: ci-records-turbinefan
+          path: turbinefan.jsonl
           if-no-files-found: error
           overwrite: true
 

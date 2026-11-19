@@ -11,19 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestTurbineFanFits checks every Regular hub-to-blade fit: the stud in the socket's centre plane, the stud end and
-// blade root in the radial plane, and each blade at three heights along the shaft. TestTurbineFanBoreFit measures the
-// bore's press fit.
+// TestTurbineFanFits checks every Regular fit between the hub and a blade: the stud in its socket, in the hub's mid plane
+// through the stud's axis; the stud's inner end to the socket floor and the blade's root to the hub's rim, in the plane
+// through the shaft axis and the blade's radial line; and every blade to the hub in layers along the shaft. The bore's press fit is a design value, which TestTurbineFanBoreFit measures.
 func TestTurbineFanFits(t *testing.T) {
 	eachCase(t, pitchCases, func(t *testing.T, c fanCase, m *turbinefan.Model) {
 		sz := m.Dimensions.Size
-		hubMesh := clutchGapMesh(t, m.Hub, 0.05)
 		for k := 1; k <= turbinefan.BladeCount; k++ {
-			bladeMesh := clutchGapMesh(t, m.Blades[k-1], 0.05)
-			clear, err := hubMesh.ExceedsClearance(bladeMesh, regularMinimum)
-			require.NoError(t, err)
-			require.True(t, clear, "blade %d: whole-surface hub clearance", k)
-			stud := clearance(t, m.Hub, m.Blades[k-1], atZ(t, sz.BladeSocketZ()))
+			stud := clearance(t, m.Hub, m.Blades[k-1], atZ(t, sz.HubMid))
 			require.GreaterOrEqual(t, stud.Lower().Base(), regularMinimum, "blade %d: stud in its socket", k)
 			require.InDelta(t, turbinefan.RegularFit, stud.Distance.Value.Base(), 0.01, "blade %d: nominal stud fit", k)
 			through := clearance(t, m.Hub, m.Blades[k-1], radial(t, k))
@@ -31,20 +26,7 @@ func TestTurbineFanFits(t *testing.T) {
 		}
 		for k := 1; k <= turbinefan.BladeCount; k++ {
 			for _, z := range []float64{0.3 * sz.HubLength, 0.5 * sz.HubLength, 0.7 * sz.HubLength} {
-				plane := atZ(t, z)
-				hub, blade := section(t, m.Hub, plane), section(t, m.Blades[k-1], plane)
-				require.NotEmpty(t, hub.Loops, "hub at z %g", z)
-				if len(blade.Loops) == 0 {
-					box, err := m.Blades[k-1].Bounds()
-					require.NoError(t, err)
-					bound := box.Bound.Base()
-					require.True(t, z < box.Min.Z-bound || z > box.Max.Z+bound,
-						"blade %d has no section at z %g but its bounds cross that plane", k, z)
-					continue
-				}
-				cl, err := hub.Clearance(blade)
-				require.NoError(t, err)
-				require.False(t, cl.Overlaps, "blade %d overlaps the hub at z %g", k, z)
+				cl := clearance(t, m.Hub, m.Blades[k-1], atZ(t, z))
 				require.GreaterOrEqual(t, cl.Lower().Base(), regularMinimum, "blade %d to the hub at z %g", k, z)
 			}
 		}

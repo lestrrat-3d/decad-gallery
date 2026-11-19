@@ -51,7 +51,7 @@ Defaults: `5*pi/4` and `25*pi/180`.
 
 - `CrankAngle` is any finite angle in radians. `Ratio*CrankAngle` must also be finite.
 - `BladePitch` lies in `[10°, 40°]`, in radians. It is the blade angle at radius 48 (75 % of the tip radius 64),
-  measured from the plane of rotation. It changes the blade sections while the stud, bolt hole and print bed stay fixed.
+  measured from the plane of rotation. It turns the whole blade about its radial line, as a pitch bearing does.
 The rotor is turbinefan's 608ZZ fan at `RotorDiameter` 128, its smallest size, not at turbinefan's 192 default. The
 fan axis is at Z 170 and the grip's top at Z 101.15, just under the gearbox floor, so a 128 mm rotor's blades reach
 down to Z 106 and clear the grip by 5 mm. A 192 mm rotor would reach Z 74 and sweep in front of the grip, where the
@@ -85,8 +85,8 @@ need that tolerance.
 - The fan faces the operator. The fan shaft lies on the line through the apex along Y and runs toward -Y. The
   rotor has smaller Y than every other part except the fan shaft and the grip's raked base, and its blades blow air
   toward -Y.
-- The crank handle never meets a blade. The arm, pin and handle reach 65 from the crank axis. Their swept bodies
-  stay at least 15 mm from every blade through every crank and rotor angle.
+- The crank handle never meets a blade. The arm, the pin and the handle reach 65 from the crank axis. Turned through a
+  full turn about the crank axis, none of their vertices comes within 15 of the disc the blades sweep.
 
 ## Crank turn and fan turn
 
@@ -306,13 +306,11 @@ clearance, from the gears' own section outlines, at each sample.
   and the placement below), a disc of radius 14 on the fan axis, Y [-96, -76], mid plane Y -86. The hub's back face is
   10.3 in front of the bearing block's end (Y -65.7). The crank is lower than the fan axis, so the blades stay clear of
   its reach without a long shaft. It has a D bore (a 0.05 press fit on the round and on the flat), three sockets of radius
-  3.405, three blade bolt sites with a head pocket in the front face and a hex nut slot open to the round face, and the set
+  3.4, three blade bolt sites with a head pocket in the front face and a hex nut slot open to the round face, and the set
   screw's counterbore, hole and nut slot. A guard test requires the parameters to equal `Params608ZZ()` apart from the
   rotor diameter (128), the pitch, the hand and the placement.
 - `fan-blade-1` .. `fan-blade-3`, group `blade`: turbinefan's blades. The first lies along +X at fan angle 0, the others
-  at 120° and 240° toward +Z. The stud and socket axes share world Y = −88.5 mm at every pitch:
-  the turbine hub back is at Y = −76 mm and the compact turbine's socket plane is 12.5 mm forward along −Y.
-  Each blade's stud engages its socket from r 6.105 to r 14. The radial clearance and stud-tip gap are both 0.405 mm.
+  at 120° and 240° toward +Z. Each blade's stud engages its socket from r 6.1 to r 14 with a 0.4 clearance (a Regular fit).
 - `fan-bolt-1` .. `fan-bolt-3` and `fan-nut-1` .. `fan-nut-3`, group `hardware`: one M2 x 16 bolt and one nut for each
   blade, at turbinefan's blade sites. The bolt runs from the front face through the hub, the blade's stud and the hub
   again to the nut slot. Undoing the bolt from the front frees the blade; the nut stays in its slot.
@@ -373,7 +371,7 @@ full run, in mm. It is a dated illustration, and the test owns the number.
 | R2 | `driving-gear` and the crank wall, `pinion` and the fan wall | gear back face to the wall | Regular | 0.424 |
 | R3 | `driving-gear` and `gearbox-base` | gear to the back wall, at the heel | Regular | 4.75 |
 | R4 | `bearing-drive-wall` and `driving-gear`, `bearing-fan-wall` and `pinion` | bearing face to the gear back | Regular | 0.427 |
-| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket at Y −88.5, stud end, root to the rim | Regular | require at least 0.35 |
+| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket, stud end, root to the rim | Regular | 0.377 |
 | R6 | `crank-grip` and `crank-pin` | handle bore, counterbore and head face | Regular | 0.390 |
 | R7 | `crank-arm` and `crank-grip` | handle end to the arm | Regular | 0.395 |
 | L1 | `crank-gear` and `drive-gear` with `gearbox-post` | gear to the post | Loose | 1.08 |
@@ -471,7 +469,7 @@ Corners and roots reads each part in its print orientation. The first six pieces
 | `crank-shaft`, `drive-shaft` | standing on the collar end | X |
 | `fan-shaft` | standing on its front tip, so the collar's hub-side face is the overhang and its bearing-side face stays clean | Y |
 | `crank-grip` (handle barrel) | standing on its inner end | X |
-| `fan-blade-k` | 2 mm trailing flat down, radial line horizontal | normal to the trailing flat |
+| `fan-blade-k` | standing on the stud end, radial line vertical | the blade's radial line |
 
 Every separate printed part pressed on a shaft prints with its axis vertical: the arm, the four gears and the hub.
 
@@ -552,13 +550,6 @@ joint is a `PinInBore`, with its axis stated in the posed coordinates, because t
 - each nut in the piece that holds it and on its bolt, except the nuts in `gearbox-base`, which have no joint: the base
   is the ground, and a captive nut does not leave its piece.
 
-Each fixed blade-stud joint passes through the center of its installed socket. All three joint lines meet the fan
-shaft at `State.Apex + fanAxis * (hubBack + fanSize.BladeSocketZ())`, at world Y = −88.5 mm.
-At zero fan angle the three radial directions lie at 0°, 120° and 240° from +X toward +Z.
-Apply the same fan motion transform used to place the bodies to each of those three directions. Use each posed
-direction for its stud axis and the radial location of its blade bolt. This preserves their 120° spacing even when
-the fan angle is large enough that adding 120° rounds back to the same angle.
-
 `Assembly.Explode(ctx, set)` runs `Set.Explode` with the gearbox's base as the ground. The pin bolt's joint declares a
 pull toward the shaft, because its head is on the arm's inner face. A stage marked together carries the nuts held by its
 part. Decad plans the explosion from boxes, which makes nested parts jump over each other, so the order and the
@@ -566,18 +557,18 @@ directions of the lifts are the result of a search that leaves no two parts shar
 the largest move shortest. The stages run in this order:
 
 1. the four ear bolts (-Y), then the two wall bolts of the post (-X) and the two of the crank-side wall (+X);
-2. the arm (+X), the rotating crank grip (`crank-grip`, +X), then the pin with its nut (+X).
-   The crank grip slides over the pin's stub end. The pin bolt goes toward −X;
+2. the arm (+X), the handle (+X), the pin with its nut (+X): the handle slides over the pin's stub end, so along the
+   crank axis the arm, the handle and the pin follow in that order with gaps between them; the pin bolt goes toward -X;
 3. the drive shaft and the crank shaft, which slide out to the left through the post;
 4. the pinion, which slides off to the left;
 5. the two grip bolts, the crank gear, the drive gear and the driving gear, which lift out of the open top in that order;
 6. the bearings: the crank block's goes toward +X, the two in the crank-side wall and the two in the post toward -X,
    the fan wall's toward +Y and the fan block's toward -Y;
-7. the blade bolts (−Y), each blade along its radial stud, then the hub with its nuts and the set screw and its nut
-   (−Y), then the fan shaft (−Y);
+7. the blade bolts, the blades, the hub with its nuts and the set screw (which stays in its nut in the hub) and the fan
+   shaft, which come off along the fan axis (-Y);
 8. the post with its two nuts, which goes toward -X, the crank-side wall with its two nuts, which goes toward +X, and the
    fan-side wall, which goes toward -X;
-9. the stationary handle (`handle`) with its two nuts, which drops toward −Z.
+9. the grip with its two nuts, which drops.
 
 The explosion is checked at the default pose only: Decad's boxes depend on the crank angle.
 
@@ -610,10 +601,9 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
   because a shaft that met a gear's tooth would share material with it. The pairs the `fasteners` subtest proves (a bolt
   with its head host and with its own nut) and the meshing gears are left out. The meshing gears are checked only
   against the shafts and the bearings.
-- A hand on the crank handle cannot meet a blade. For every combination of crank and rotor angles, the arm, pin and
-  grip stay at least 15 mm from every blade. The check encloses the three crank meshes in a cylinder swept around the
-  crank axis. It bounds each blade triangle's entire rotor sweep against that cylinder, including mesh uncertainty,
-  and requires the resulting lower bound to be at least 15 mm.
+- A hand on the crank handle cannot meet a blade. Every vertex of the arm, the pin and the handle is turned through a
+  full turn about the crank axis in steps of 3°, and none comes within 15 of the blades' disc, taken as the Y range of
+  the blades and the largest distance of a blade vertex from the fan axis.
 - Blades 2 and 3, bolts 2 and 3 and nuts 2 and 3 match the first, turned by `2 pi (k-1) / 3`, within 0.05.
 - The exploded view, checked at the default pose, puts the arm, the handle and the pin in that order along the crank
   axis, slides the shafts and the pinion to the left, lifts the three gears, moves each joined nut with its piece, keeps
@@ -628,8 +618,8 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
   overlaps a part it passes through. Each gap between a fastener and its pocket, hole or cavity has a proven lower bound
   of 0.05 or more.
 - The `clearances` subtest proves every row of the fit table (see Fits). The `mesh` subtest proves the spur pair (see
-  Spur pair). Both run for the default parameters only. `BladePitch` changes the blade sections, and `CrankAngle` turns
-  the moving parts about their axes.
+  Spur pair). Both run for the default parameters only: `BladePitch` turns each blade about its radial line and `CrankAngle` turns each
+  part about its own axis, and neither changes a fit against the housing or within one motion group.
 - The corner test checks every printed part in its print orientation, as Retained sharp corners lists, and requires each
   listed corner to match a finding. `TestPressFitWalls` requires at least 1.6 mm of wall round the bore of the hub
   (through its socket floors, 1.65), the arm and the two spur gears, from the section outline.
