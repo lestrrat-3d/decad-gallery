@@ -1,5 +1,7 @@
 package planetarygearbox
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
