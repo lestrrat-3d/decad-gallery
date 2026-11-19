@@ -161,6 +161,22 @@ func dBoreLoop(s *sketch.Sketch, rb, fb float64) {
 	s.AddConstraint(sketch.NewRadius(bore, rb), sketch.NewHorizontal(flat), sketch.NewDistancePointLine(o, flat, fb))
 }
 
+// doubleDBoreLoop adds a double-D bore to s: two arcs of radius rb about the origin, closed by flats at v = +fb and
+// v = -fb.
+func doubleDBoreLoop(s *sketch.Sketch, rb, fb float64) {
+	w := math.Sqrt(rb*rb - fb*fb)
+	o := s.Origin()
+	q1, q2 := s.CreatePoint(-w, fb), s.CreatePoint(w, fb)
+	q3, q4 := s.CreatePoint(w, -fb), s.CreatePoint(-w, -fb)
+	right := s.CreateArc(o, q3, q2)
+	top := s.CreateLine(q2, q1)
+	left := s.CreateArc(o, q1, q4)
+	bottom := s.CreateLine(q4, q3)
+	s.AddConstraint(sketch.NewRadius(right, rb), sketch.NewRadius(left, rb),
+		sketch.NewHorizontal(top), sketch.NewDistancePointLine(o, top, fb),
+		sketch.NewHorizontal(bottom), sketch.NewDistancePointLine(o, bottom, fb))
+}
+
 // circleSketch cuts a round hole: a sketch on across(z0) with one circle of radius rad centred at (x, y), the centre
 // placed by horizontal and vertical distances from the origin. It extrudes the circle by length along +Z.
 func (r *run) holeTool(z0, x, y, rad, length float64) (*decad.Body, error) {

@@ -108,7 +108,7 @@ func (r *run) camBore() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	dBoreLoop(s, camBoreRadius, camBoreFlat)
+	doubleDBoreLoop(s, camBoreRadius, camBoreFlat)
 	return r.extrude(s, 0, CamThickness+1+camHubTop+1, decad.Along)
 }
 
