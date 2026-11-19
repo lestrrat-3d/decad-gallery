@@ -170,6 +170,18 @@ def suites_from_plan(raw):
             or len(set(suites)) != len(suites)
             or ("full" in suites and "broad" not in suites)):
         raise ValueError("invalid suite selection")
+    if "reused" in plan:
+        proof = plan["reused"]
+        if (suites or not isinstance(proof, dict) or
+                type(proof.get("pull_request")) is not int or proof["pull_request"] <= 0 or
+                type(proof.get("run")) is not int or proof["run"] <= 0 or
+                not isinstance(proof.get("tested"), str) or not re.fullmatch(r"[0-9a-f]{40}", proof["tested"]) or
+                not isinstance(proof.get("suites"), list) or not proof["suites"] or
+                any(not isinstance(suite, str) for suite in proof["suites"]) or
+                len(set(proof["suites"])) != len(proof["suites"]) or
+                {"broad", "full"}.intersection(proof["suites"])):
+            raise ValueError("invalid reused pull request proof")
+        matrix_for(proof["suites"])
     matrix_for(suites)
     return suites
 
@@ -183,6 +195,8 @@ def check(needs, event):
     try:
         outputs = needs["plan"]["outputs"]
         suites = suites_from_plan(outputs["plan"])
+        if "reused" in json.loads(outputs["plan"]) and event != "push":
+            raise ValueError("pull request reuse is only valid for a push")
         expected_matrix = matrix_for(suites)
         if json.loads(outputs["matrix"]) != expected_matrix or outputs["count"] != str(len(expected_matrix["include"])):
             raise ValueError("matrix does not match plan")

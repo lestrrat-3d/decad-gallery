@@ -78,3 +78,14 @@ overall run concluded failure because the failed worker intentionally exited wit
 Test inventories describe discoverable Go tests, not every parameter branch or geometry property. Selected checks
 depend on registered mappings and import metadata. Broad fallback does not make an unclassified new package directly
 testable. See [CI measurements](ci-measurements.md) for observed run times and their limits.
+
+
+## Reusing a pull request run on main
+
+After a squash merge, the main push can reuse a successful pull request's selected suites.
+The planner checks the merged PR, its successful first workflow attempt, its checkout log, and the plan, gate and
+model-checks jobs. The tested merge must have the push base and PR head as its parents. Its tree, changed paths,
+and selected suites must match the main push. The push plan records the PR number, run ID, tested commit and suites.
+
+The repository and aggregate checks still run on main. Direct pushes, broad or full plans, CI changes, and
+missing or inconsistent evidence run the usual push checks. Set `CI_BROAD_OVERRIDE` to `true` to force broad coverage.

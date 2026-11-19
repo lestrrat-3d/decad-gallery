@@ -34,6 +34,18 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    def test_reused_plan_requires_a_valid_push_proof(self):
+        needs = needs_for([])
+        plan = json.loads(needs["plan"]["outputs"]["plan"])
+        plan["reused"] = {"pull_request": 12, "run": 42, "tested": "a" * 40,
+                          "suites": ["model-ballbearing"]}
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertEqual(gate.check(needs, "push"), [])
+        self.assertTrue(gate.check(needs, "pull_request"))
+        plan["reused"]["tested"] = "not-a-sha"
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertTrue(gate.check(needs, "push"))
+
     def test_planetary_dispatch_has_every_shard(self):
         matrix = gate.matrix_for(["model-planetarygearbox"])["include"]
         self.assertEqual([item["case"] for item in matrix], list(range(gate.PLANETARY_PR_SHARDS)))
