@@ -50,7 +50,7 @@ func TestRegistryJobPathsAreDistinct(t *testing.T) {
 			require.True(t, isShot || isPreset, "job shot %s/%s does not exist", m.Name, j.Shot)
 		}
 	}
-	require.Len(t, paths, 35)
+	require.Len(t, paths, 37)
 }
 
 func TestRegistryOnlyPlanetaryAcceptsKit(t *testing.T) {
