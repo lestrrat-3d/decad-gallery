@@ -34,8 +34,9 @@ package selection. Production and dependency changes use the normal selection to
 must skip the worker; a nonempty matrix must succeed. Broad plans run the dedicated broad jobs. The gate rejects
 missing, failed, cancelled, or unexpectedly skipped required jobs.
 
-The planetary PR suite runs one dimensions check and partitions the remaining discovered tests across twelve jobs.
-Each job checks its assigned test results. The kit test keeps its existing allowed skips unless full kits are enabled.
+The planetary PR suite runs one dimensions check and balances the remaining discovered tests across twenty-four jobs.
+Cost estimates only affect placement. Each job checks its assigned test results. The kit test keeps its existing
+allowed skips unless full kits are enabled.
 Renderer PR checks partition the discovered package tests across sixteen jobs. Each job requires its assigned tests
 and their subtests to pass. Scheduled and manual runs keep the complete renderer job.
 The fan PR suite runs one validation test and partitions the remaining discovered tests across nine jobs.
