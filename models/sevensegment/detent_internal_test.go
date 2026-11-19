@@ -95,16 +95,48 @@ func TestSevenSegmentDetentPlate(t *testing.T) {
 		var edges []float64
 		u0 := r.dm.PawlArmInner - 1
 		prev := insideLoops(pl, rotate(r3.Vec{X: u0, Y: v}, PawlAngle))
-		for u := u0; u < r.dm.PawlArmInner+PawlArmRoot+1; u += 0.002 {
+		for u := u0; u < r.dm.PawlArmInner+pawlOuterOpen+0.5; u += 0.002 {
 			cur := insideLoops(pl, rotate(r3.Vec{X: u, Y: v}, PawlAngle))
 			if cur != prev {
 				edges = append(edges, u)
 			}
 			prev = cur
 		}
-		require.Len(t, edges, 2, "window void, arm, slot void at v %.2f", v)
+		require.GreaterOrEqual(t, len(edges), 2, "window void, arm, slot void at v %.2f", v)
 		require.InDelta(t, r.dm.PawlArmInner, edges[0], sectionBound)
 		require.InDelta(t, PawlArmTip+(PawlArmRoot-PawlArmTip)*(v-g.lk.Y)/(g.vr-g.lk.Y), edges[1]-edges[0], sectionBound)
+		// The outer slot's side, on the line from its root corner to where it meets the window circle, where the slot
+		// runs straight (past the window, before the root rounds).
+		if v > g.jo.Y && v < g.vr-1.0 {
+			require.Len(t, edges, 3, "window void, arm, slot void, plate at v %.2f", v)
+			// The side stays where it was for the 1.75 mm root: 3.55 past the inner edge at the root, 4.75 at the window.
+			u0, u1 := r.dm.PawlArmInner+3.55, r.dm.PawlArmInner+4.75
+			side := u0 + (u1-u0)*(v-g.vr)/(g.jo.Y-g.vr)
+			require.InDelta(t, side, edges[2], sectionBound, "the outer slot side at v %.2f", v)
+		}
+	}
+	// The outer slots keep their sides when the arms thicken: in the section through the head pockets, the window loop
+	// keeps 1 mm or more of material round each D head pocket (pawl B's outer slot passes D2).
+	pockets := sectionAt(t, plate, detentFace-1.0)
+	var window [][]r3.Vec
+	for _, l := range pockets {
+		if c, e := centroidExtent(l); c.Len() < 3 && e > 30 {
+			window = append(window, l)
+		}
+	}
+	require.Len(t, window, 1, "the window loop")
+	for _, site := range r.dm.Sites[8:] {
+		centre := r3.Vec{X: site.Head.X, Y: site.Head.Z - ShaftZ}
+		var pocket [][]r3.Vec
+		for _, l := range pockets {
+			if c, e := centroidExtent(l); c.Sub(centre).Len() < 0.5 && e < 6 {
+				pocket = append(pocket, l)
+			}
+		}
+		require.Len(t, pocket, 1, "the head pocket at x %.0f", site.Head.X)
+		gap := loopsGap(window, pocket)
+		t.Logf("window to the head pocket at x %.0f: %.3f", site.Head.X, gap)
+		require.GreaterOrEqual(t, gap, 1.0-sectionBound, "material between the window and the pocket at x %.0f", site.Head.X)
 	}
 	// The window circle, on the ray half way between the pawls.
 	edge := 0.0
