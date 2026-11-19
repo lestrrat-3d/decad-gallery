@@ -123,13 +123,12 @@ func TestSevenSegmentCorners(t *testing.T) {
 // largeFace is the net area in mm2 at which "Surface edge finishing" asks for chamfers.
 const largeFace = 400.0
 
-// largePlanes returns the planar faces of body of at least largeFace mm2 and the planar faces whose normal makes 45
-// degrees with up, which are the 0.5 mm chamfers.
-func largePlanes(t *testing.T, body *decad.Body, up r3.Vec) (large, chamfers int) {
+// largePlanes returns the number of planar faces of body of at least largeFace mm2.
+func largePlanes(t *testing.T, body *decad.Body) int {
 	t.Helper()
+	large := 0
 	for _, f := range body.Faces() {
-		plane, ok := f.Surface().(decad.Plane)
-		if !ok {
+		if _, ok := f.Surface().(decad.Plane); !ok {
 			continue
 		}
 		area, err := f.Area()
@@ -137,39 +136,103 @@ func largePlanes(t *testing.T, body *decad.Body, up r3.Vec) (large, chamfers int
 		if area.Value.Base() >= largeFace {
 			large++
 		}
-		if d := plane.Frame.N().Dot(up); d > 0.6 && d < 0.8 || d < -0.6 && d > -0.8 {
-			chamfers++
-		}
 	}
-	return large, chamfers
+	return large
 }
 
-// TestSevenSegmentEdgeFinishing checks "Surface edge finishing": the walls and plates carry the 0.5 mm chamfers of their
-// outer loops (their 45 degree faces), and every part with no chamfer has no planar face of 400 mm2 or more.
+// chamferFace is one face of a part whose outer loop carries the 0.5 mm chamfer: its level on the part's axis, and
+// the sign of the direction from the face into the part.
+type chamferFace struct {
+	level  float64
+	inward float64
+}
+
+// chamferSpec describes how to measure the chamfers of one part: the sections of the part normal to its axis and the
+// faces whose outer loops are chamfered. A part with round rims is read by radius, any other by the four sides of its
+// outline.
+type chamferSpec struct {
+	section func(t *testing.T, body *decad.Body, h float64) [][]r3.Vec
+	faces   func(r *run, body *decad.Body) []chamferFace
+	round   bool
+}
+
+// chamferSpecs lists the parts that carry chamfers on the outer loops of their faces. It is read from the geometry
+// the builders use: the wall, plate and cam levels follow the constants the builders use.
+func chamferSpecs() map[string]chamferSpec {
+	alongY := func(t *testing.T, b *decad.Body, y float64) [][]r3.Vec { return sectionAt(t, b, y) }
+	alongZ := func(t *testing.T, b *decad.Body, z float64) [][]r3.Vec { return planSection(t, b, z) }
+	two := func(lo, hi float64) func(*run, *decad.Body) []chamferFace {
+		return func(*run, *decad.Body) []chamferFace { return []chamferFace{{lo, 1}, {hi, -1}} }
+	}
+	specs := map[string]chamferSpec{
+		"front wall":   {section: alongY, faces: two(frontInnerY-WallThickness, frontInnerY)},
+		"rear wall":    {section: alongY, faces: two(rearInnerY, rearInnerY+WallThickness)},
+		"detent plate": {section: alongY, faces: two(detentFace-DetentThickness, detentFace)},
+		"guide plate":  {section: alongZ, faces: two(54, 58)},
+		"cradle plate": {section: alongZ, faces: two(cradleFrom, cradleFrom+cradleThick)},
+		"top plate":    {section: alongZ, faces: two(topFrom, flagFaceZ)},
+		"knob": {section: alongY, round: true, faces: func(_ *run, b *decad.Body) []chamferFace {
+			box, _ := b.Bounds()
+			return []chamferFace{{box.Min.Y, 1}, {box.Max.Y, -1}}
+		}},
+	}
+	for _, seg := range Segments() {
+		specs["cam "+seg.String()] = chamferSpec{section: alongY, round: true,
+			faces: func(r *run, _ *decad.Body) []chamferFace {
+				face := r.dm.camDiscFace(seg)
+				return []chamferFace{{face, 1}, {face + CamThickness, -1}}
+			}}
+	}
+	return specs
+}
+
+// outlineReach returns the extreme coordinates of the loops of a section: the least and greatest x and y, and the
+// greatest radius about the origin.
+func outlineReach(loops [][]r3.Vec) (minX, maxX, minY, maxY, maxR float64) {
+	minX, minY = math.Inf(1), math.Inf(1)
+	maxX, maxY = math.Inf(-1), math.Inf(-1)
+	for _, l := range loops {
+		for _, p := range l {
+			minX, maxX = math.Min(minX, p.X), math.Max(maxX, p.X)
+			minY, maxY = math.Min(minY, p.Y), math.Max(maxY, p.Y)
+			maxR = math.Max(maxR, p.Len())
+		}
+	}
+	return
+}
+
+// TestSevenSegmentEdgeFinishing checks "Surface edge finishing" on the built bodies. Each face loop that carries the
+// 0.5 mm chamfer is read from two sections, 0.1 and 1.0 inside its face: the chamfer pulls the outline in by
+// 0.5 - 0.1 = 0.4 at the first, on every side of a plate and all round a cam or the knob. Every other part has no
+// planar face of 400 mm2 or more.
 func TestSevenSegmentEdgeFinishing(t *testing.T) {
+	specs := chamferSpecs()
 	for _, c := range partCases() {
 		t.Run(c.name, func(t *testing.T) {
 			if c.pending != "" {
 				t.Skip(c.pending)
 			}
-			_, body := sharedBody(t, c.name, c.build)
-			large, chamfers := largePlanes(t, body, c.up)
-			if chamfers == 0 && c.name == "cradle plate" {
-				// A body with many Booleans is faceted and its planes are not analytic: read the chamfers from sections,
-				// which are narrower 0.1 above the bottom face than at its middle by 2 x (0.5 - 0.1).
-				chamfers = 4
-				z0 := 80.0
-				lo := sectionWidth(t, body, z0+0.1)
-				mid := sectionWidth(t, body, z0+1.3)
-				require.InDelta(t, 2*(0.5-0.1), mid-lo, 0.1, "the bottom face's outer loop is chamfered")
+			r, body := sharedBody(t, c.name, c.build)
+			spec, ok := specs[c.name]
+			require.Equal(t, c.chamfered, ok, "the part's chamfer flag and its chamfer spec agree")
+			if !ok {
+				require.Zero(t, largePlanes(t, body), "no face of 400 mm2 or more needs a chamfer")
+				return
 			}
-			plate := c.name == "front wall" || c.name == "rear wall" || c.name == "detent plate" ||
-				c.name == "guide plate" || c.name == "cradle plate" || c.name == "top plate"
-			switch {
-			case plate:
-				require.GreaterOrEqual(t, chamfers, 4, "outer loops of both faces are chamfered")
-			case !c.chamfered:
-				require.Zero(t, large, "no face of 400 mm2 or more needs a chamfer")
+			faces := spec.faces(r, body)
+			require.Len(t, faces, 2, "both faces carry a chamfer")
+			for _, f := range faces {
+				nMinX, nMaxX, nMinY, nMaxY, nR := outlineReach(spec.section(t, body, f.level+f.inward*0.1))
+				dMinX, dMaxX, dMinY, dMaxY, dR := outlineReach(spec.section(t, body, f.level+f.inward*1.0))
+				const want = 0.5 - 0.1
+				if spec.round {
+					require.InDelta(t, want, dR-nR, 0.05, "the rim at face %.2f is chamfered all round", f.level)
+					continue
+				}
+				require.InDelta(t, want, nMinX-dMinX, 0.05, "the -x side at face %.2f is chamfered", f.level)
+				require.InDelta(t, want, dMaxX-nMaxX, 0.05, "the +x side at face %.2f is chamfered", f.level)
+				require.InDelta(t, want, nMinY-dMinY, 0.05, "the -y side at face %.2f is chamfered", f.level)
+				require.InDelta(t, want, dMaxY-nMaxY, 0.05, "the +y side at face %.2f is chamfered", f.level)
 			}
 		})
 	}
