@@ -25,6 +25,7 @@ the plan. Suites already covered by selected broad or full jobs are not dispatch
 A test-only change in one model file marked `// CI: isolated-tests` runs the changed top-level tests individually.
 Both revisions must carry the marker. CI checks that marked files contain only imports and test functions, and rejects
 references to other test functions inside them. Tests in marked files must not depend on another test's side effects.
+New model test files containing tests must carry the marker. Helper-only files do not need it.
 Changes to imports, helpers, compiler directives, deleted tests, multiple Go files, or unmarked files use the normal
 package selection. Production and dependency changes use the normal selection too.
 

@@ -38,6 +38,19 @@ class TestDiff(unittest.TestCase):
         result = self.compare(source, source.replace('// CI: isolated-tests', ''))
         self.assertNotEqual(result.returncode, 0)
 
+    def test_layout_requires_isolation_for_new_test_files(self):
+        path = self.root / 'layout.go'
+        path.write_text('package example\nimport "testing"\nfunc TestOne(t *testing.T) {}\n')
+        self.assertNotEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
+        path.write_text('package example\n// CI: isolated-tests\nimport "testing"\n'
+                        'func TestOne(t *testing.T) {}\n')
+        self.assertEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
+        path.write_text('package example\nfunc helper() {}\n')
+        self.assertEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
+        path.write_text('package example\n// CI: isolated-tests\nimport "testing"\n'
+                        'func TestOne(t *testing.T) { TestTwo(t) }\n')
+        self.assertNotEqual(subprocess.run([str(self.binary), '--layout', str(path)]).returncode, 0)
+
 
 if __name__ == '__main__':
     unittest.main()
