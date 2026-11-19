@@ -1,5 +1,7 @@
 package spurgear
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -101,16 +103,6 @@ func TestBoreProfileIsFullyConstrained(t *testing.T) {
 	s, _, err := buildBoreProfile(t.Context(), sketch.NewWorld(), p, 1)
 	require.NoError(t, err)
 	requireSpurSketchFullyConstrained(t, s)
-}
-
-func requireSpurSketchFullyConstrained(t *testing.T, s *sketch.Sketch) {
-	t.Helper()
-	report := s.Verify(t.Context())
-	require.Equal(t, sketch.FullyConstrained, report.Status)
-	require.Zero(t, report.DOF)
-	require.Empty(t, report.Redundant)
-	require.Empty(t, report.Conflicts)
-	require.NoError(t, report.Check())
 }
 
 // The ordinary gear built from a root disc and N lofted teeth must enclose the
