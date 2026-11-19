@@ -38,6 +38,18 @@ class GateTest(unittest.TestCase):
     def setUpClass(cls):
         Path(".tmp").mkdir(exist_ok=True)
 
+    def test_isolated_test_dispatch(self):
+        suite = "isolated-ballbearing-TestBearingCatalog"
+        self.assertEqual(gate.matrix_for([suite]), {"include": [{"suite": suite, "case": 0}]})
+        self.assertEqual(gate.check(needs_for([suite]), "push"), [])
+        with mock.patch.dict(os.environ, {"SUITE": suite, "CASE": "0"}), \
+                mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                mock.patch.object(gate, "go_test") as run:
+            gate.main()
+        run.assert_called_once_with(
+            ["./models/ballbearing", "-run", "^TestBearingCatalog$", "-timeout", "5m", "-count=1"],
+            ["TestBearingCatalog"], package="github.com/lestrrat-3d/decad-gallery/models/ballbearing")
+
     def test_renderer_records_module(self):
         event = json.dumps({"Package": gate.RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
         proc = mock.Mock(stdout=[event], returncode=0)

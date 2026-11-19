@@ -67,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -84,6 +86,10 @@ jobs:
         run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
       - name: Check CI planner and gate
         run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+      - name: Check isolated test files
+        env:
+          PLAN_JSON: ${{ needs.plan.outputs.plan }}
+        run: python3 scripts/ci/check_isolated_tests.py
       - name: Check spur generation record
         run: python3 scripts/modelgen/spurgear.py check
       - name: Check workflow syntax

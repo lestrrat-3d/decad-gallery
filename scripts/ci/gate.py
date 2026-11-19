@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import finished_tests, run_pattern
+from run_tests import finished_tests, go_test, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -49,6 +49,10 @@ PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion
 
 
 def commands(suite):
+    match = re.fullmatch(r"isolated-([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
+    if match and (Path("models") / match.group(1)).is_dir():
+        return [["go", "test", "./models/" + match.group(1), "-run", "^" + match.group(2) + "$",
+                 "-timeout", "5m", "-count=1"]]
     if suite in WORKERS:
         return WORKERS[suite]
     for prefix, directory in (("new-model-", "models"), ("new-package-", "internal"),
@@ -171,6 +175,9 @@ def main():
         command = commands(suite)[int(os.environ["CASE"])]
         if suite == "renderer-all":
             run_renderer_full()
+        elif suite.startswith("isolated-"):
+            model, test = suite.removeprefix("isolated-").split("-", 1)
+            go_test(command[2:], [test], package="github.com/lestrrat-3d/decad-gallery/models/" + model)
         elif suite in RENDER_TESTS:
             run_renderer(suite, command)
         else:
