@@ -273,12 +273,18 @@ func inside(t *testing.T, a, b *decad.Body) int {
 	box := bounds(t, b)
 	mid := (box.Min.Z + box.Max.Z) / 2
 	count := 0
+	locations := make(map[[2]float64]decad.PointLocation)
 	for _, v := range mesh.Vertices() {
 		if v.X < box.Min.X || v.X > box.Max.X || v.Y < box.Min.Y || v.Y > box.Max.Y {
 			continue
 		}
-		loc, err := b.LocatePoint(t.Context(), r3.NewVec(v.X, v.Y, mid), units.Millimeters(0.02))
-		require.NoError(t, err)
+		key := [2]float64{v.X, v.Y}
+		loc, ok := locations[key]
+		if !ok {
+			loc, err = b.LocatePoint(t.Context(), r3.NewVec(v.X, v.Y, mid), units.Millimeters(0.02))
+			require.NoError(t, err)
+			locations[key] = loc
+		}
 		if loc == decad.PointInside {
 			count++
 		}
