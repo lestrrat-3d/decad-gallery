@@ -11,21 +11,27 @@ horizontal segment (a, g, d) across it. Every printed
 part keeps one filament color (a rotor is two bodies, a yellow one and a black one) and never changes color, so the color you see is only the angle of a rotor. Turn the knob clockwise
 and each click moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
-**Not built yet.** That every rest position of the knob shows one digit is a calculated result, not a measured one: nobody
-has printed and tried this model. The torque that pushes a released knob back to its digit, from two printed PETG pawls,
-is compared with a friction budget at every shaft angle where a cam is still moving a segment. A finite-element contact
-model of the pawls gives 3.67 times the budget at friction 0.35, 2.06 at 0.45 and 1.50 at 0.5 (the design asks for at
-least 1.8 at 0.45 and 1.0 at 0.5). The simpler closed form that the tests check gives 3.42, 1.90 and 1.12. The drive arm
-of each rotor is at least 1.38 times its friction arms at 0.5. So the display is determinate by calculation up to
-friction 0.45. The budget counts the weight of the sliders, the friction of their stems, guides and rotor journals, and
-the drag of the two bearings, with the pawls at a modulus of 1.8 GPa, the low end for printed PETG. A built part has
-other losses, such as warped pawls, rough grooves and dust.
+**Not built yet.** That every rest position of the knob shows one digit is a calculated result, not a measured one:
+nobody has printed and tried this model. The torque that pushes a released knob back to its digit, from two printed
+PETG pawls, is compared with a friction budget at every shaft angle where a cam is still moving a segment. Each cam
+and the ratchet wheel can turn 1.7 degrees on the shaft in its double-D bore, so while the pawls push the shaft
+back a cam can lead the wheel by 3.4 degrees. With that lead the pawls beat the budget by 2.06 times at friction
+0.35, 1.50 at 0.40 and 1.06 at 0.45. With the cams in step with the wheel they beat it by 3.55, 1.83 and 1.03 at
+friction 0.35, 0.45 and 0.5 (the design asks for at least 3.0, 1.8 and 1.0). So the display is determinate by
+calculation up to friction 0.45, with little margin at 0.45: at every rest each cam sits within 0.05 mm of its dwell
+at friction 0.35 and within 0.07 mm at 0.45. At friction 0.5 it is shown only with the cams in step. The drive arm of
+each rotor is at least 1.38 times its friction arms at 0.5. The budget counts the weight of the sliders, the
+friction of their stems, guides and rotor journals, with each journal pushed across its hole by the drive, and the
+drag of the two bearings, with the pawls at a modulus of 1.8 GPa, the low end for printed PETG. A built part has
+other losses, such as warped pawls, rough grooves and dust. Stand the display level: tilted toward the knob, the
+cams rest on the slider pins and each degree of tilt lowers the margins by about 1.5 %.
 
-**Hand feel.** Expect the knob to take about 10.4 N at its rim to climb a tooth at friction 0.5 (207 N.mm of peak
-torque with stiff PETG) and about 8.5 N at friction 0.35. The wheel turns about 8 degrees past the top of a tooth before it
-clicks into the next notch.
+**Hand feel.** Expect the knob to take about 12.4 N at its rim to climb a tooth at friction 0.5 (about 248 N.mm of
+peak torque with stiff PETG) and about 10.2 N at friction 0.35. These come from a finite-element model of the
+earlier 1.75 mm pawl arms, scaled by the 1.2 times stiffer 1.90 mm arms; the model was not run again. The wheel
+turns about 8 degrees past the top of a tooth before it clicks into the next notch.
 
-**Pawl strain.** Each pawl arm bends to a nominal 1.42 % strain at the top of a tooth, and about 1.5 % at its
+**Pawl strain.** Each pawl arm bends to a nominal 1.45 % strain at the top of a tooth, and about 1.5 % at its
 peak. That is above the 1.0 % the design aimed for and below the yield strain of printed PETG (5 to 6 %). No fatigue
 data exist for an arm printed this way, so a print test decides it: turn 2 000 to 20 000 clicks and look for cracks at
 the arm roots or a drop in the knob torque.
@@ -107,7 +113,7 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/guide-plate.png" alt="Guide plate" width="240"> | Guide plate | 1 | - | Seven slots that guide the sliders' stems, and the columns and pegs that locate the cradle plate. |
 | <img src="images/parts/cradle-plate.png" alt="Cradle plate" width="240"> | Cradle plate | 1 | - | Seven passages for the sliders and half-holes that carry the rotors' journals. |
 | <img src="images/parts/top-plate.png" alt="Top plate" width="240"> | Top plate | 1 | - | The display face with seven windows (5.9 mm wide, pointed at the ends), and a tube over each slider's blade. The plate under the window edge is 0.70 mm thick, 0.49 mm at the pointed ends: thinner than the usual 0.8 mm, and listed in the instructions. |
-| <img src="images/parts/shaft.png" alt="Shaft" width="240"> | Shaft | 1 | - | D-flat camshaft, printed as two halves. |
+| <img src="images/parts/shaft.png" alt="Shaft" width="240"> | Shaft | 1 | - | Double-D camshaft (two opposite flats where the cams and the ratchet wheel sit), printed as two halves. |
 | <img src="images/parts/ratchet-wheel.png" alt="Ratchet wheel" width="240"> | Ratchet wheel | 1 | - | Ten teeth. |
 | <img src="images/parts/collar-ring.png" alt="Collar ring" width="240"> | Collar ring | 1 | - | Sits 0.4 mm from the front wall's outer face; the knob stands about 3.95 mm from it. |
 | <img src="images/parts/knob.png" alt="Knob" width="240"> | Knob | 1 | - | Turn it clockwise only. |
@@ -168,11 +174,11 @@ parts is marked with these numbers: the plates carry their own holes, and the st
 
 
 1. Lay the two printed halves of the shaft together along their cut faces. No glue and no cross bolt hold them: the
-   cams, the ratchet wheel and the two bearings clamp them. Press the cams onto the shaft from the front end, groove faces
-   toward the front, in order a, f, b, g, c, e, d. Press the ratchet wheel on next, with its steep tooth faces counter-clockwise seen from the knob side. Nothing locks the cams
-   and the ratchet wheel along the shaft: the gaps of 0.05 between their hubs and against the shaft's shoulders add up to about
-   0.4 mm of axial play in the stack, enough for a groove floor to rub a slider's pin tip if the stack slides. This play is not
-   in the friction budget. Push the whole stack toward the rear against the rear collar when you fit the collar ring.
+   cams, the ratchet wheel and the two bearings clamp them. Press the cams onto the shaft from the front end, groove
+   faces toward the front, in order a, f, b, g, c, e, d, then the ratchet wheel, with its steep tooth faces
+   counter-clockwise seen from the knob side. Push them all toward the rear until cam a stops on the end of the shaft's
+   flats. Nothing else holds them along the shaft: the stack can slide forward until a groove floor touches its
+   slider's pin tip, which costs nothing while the display stands level.
 2. Bolt the detent plate to the front wall with two M2 x 18 bolts, the nuts in the wall's outer-face pockets.
 3. Slide the front bearing onto the front journal and the front wall over it, each pawl head in a tooth gap. Slide the
    rear bearing on and press the rear wall onto it.
