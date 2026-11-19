@@ -171,11 +171,137 @@ MODEL_PR_TESTS = [
     "TestPlaqueStandFasteners",
 ]
 
-BEVEL_FULL_TESTS = [
-    test
-    for shard in BEVEL_TESTS["full"].values()
-    for test in shard
-]
+MODEL_PR_PACKAGES = {
+    "cycloidal": (
+        "TestDefaultParamsAreValid",
+        "TestPatternedLoopClosesOnSharedPoints",
+        "TestProblems",
+        "TestUndercutBound",
+        "TestParameterTableMatchesResolve",
+        "TestBuildDefaultDrive",
+        "TestCorners",
+    ),
+    "helicalgear": (
+        "TestHelixAngleRange",
+        "TestZeroHelixRejectedBeforeAddingBodies",
+        "TestSmallRealHelicalGear",
+        "TestSmallRealHelicalGearThroughBore",
+        "TestSmallHelicalToothAndRootDiscVerifyIndividually",
+        "TestDefaultRealHelicalGear",
+        "TestDefaultRealHelicalGearThroughBore",
+        "TestPlacedHelicalGearMatchesWorldGear",
+        "TestInvalidPlacementIsRejected",
+        "TestCorners",
+    ),
+    "herringbonegear": (
+        "TestHerringboneMirrorPlaneIsHalfThickness",
+        "TestOutOfRangeHelixRejectedBeforeAddingBodies",
+        "TestSmallRealHerringboneGear",
+        "TestSmallRealHerringboneGearWithBoreAndCapChamfer",
+        "TestPlacedHerringboneGearMatchesWorldGear",
+        "TestInvalidPlacementIsRejected",
+        "TestCorners",
+    ),
+    "screwgear": (
+        "TestBuildPlacementMovesTheWholeMechanism",
+        "TestBuildRejectsInvalidParams",
+        "TestFramePairAtTheDefaults",
+        "TestFrameAngleAndSectionCoordinates",
+        "TestFramePlacementCarriesThePair",
+        "TestFrameBoreRoofsAtTheDefaults",
+        "TestParamsDefaultsAreTheSpecTable",
+        "TestParamsDerivedValues",
+        "TestParamsValidateRangeChecks",
+        "TestParamsValidateOrder",
+        "TestParamsValidateSleeveBounds",
+        "TestSleeveChannelSeparationAtTheDefaults",
+        "TestSleeveChannelSeparationShrinksWithTheWall",
+        "TestSleeveWindowFacingsFollowTheCrossingAngle",
+        "TestWindowSearchAtTheDefaults",
+        "TestWindowSearchKeepsCollarWallToTheFlankingBores",
+        "TestWindowSearchRoomRefusesTheBandWithNoWidth",
+        "TestSectionPair/default/cuts-both-ribbons",
+        "TestSectionPair/default/plane-outside-gear-a",
+        "TestSectionPair/placed",
+        "TestSectionPair/default/clearance",
+        "TestRibbonDefaultIsOneVerifiedLoft",
+    ),
+    "spurgear": (
+        "TestBuildRejectsInvalidParamsBeforeAddingBodies",
+        "TestProfileAndFlankAPIsRejectInvalidInputs",
+        "TestGearProfilesAreFullyConstrained",
+        "TestBoreProfileIsFullyConstrained",
+        "TestSmallGeneratedGear",
+        "TestPlacedGearMatchesWorldGear",
+        "TestPlacedEmbeddedGearWithRootFilletsAndBore",
+        "TestInvalidPlacementIsRejected",
+        "TestCorners",
+    ),
+    "ballbearing": (
+        "TestBearing608Envelope",
+        "TestBearing605Envelope",
+        "TestBearingPlacedAndRepeated",
+        "TestBearingCustomDimensions",
+        "TestBearingRejectsInvalidInputs",
+        "TestBearingCatalog",
+    ),
+    "pinring": (
+        "TestCorners",
+    ),
+    "planetarygearbox": (
+        "TestExplodedGearbox",
+        "TestDefaultDimensionsUnchanged",
+        "TestParameterTableMatchesDerive",
+        "TestDerivePerRole",
+        "TestSupportedCombinationsAreValid",
+        "TestProblemsNameForcedMinimums",
+        "TestNewFitChecks",
+        "TestCorners",
+        "TestSplitShafts",
+    ),
+    "spiralspring": (
+        "TestSpiralSpringDefault",
+        "TestSpiralSpringBranches",
+        "TestSpiralSpringFits",
+        "TestSpiralSpringPlacement",
+        "TestSpiralSpringRejectsInvalidInputs",
+        "TestSpiralSpringClearance",
+        "TestSpiralSpringParamsDefaults",
+        "TestSpiralSpringParamsThicknessFloor",
+        "TestSpiralSpringParamsTurnBoundary",
+        "TestSpiralSpringParamsRoot",
+        "TestSpiralSpringParamsRootRoom",
+        "TestSpiralSpringCorners",
+        "TestSpiralSpringRootThickness",
+        "TestSpiralSpringParamsEyeFloor",
+    ),
+    "crankhandle": (
+        "TestCrankHandleCorners",
+        "TestCrankHandleContainers",
+        "TestCrankHandleDefault",
+        "TestCrankHandleBoreFit",
+        "TestCrankHandleFasteners",
+        "TestCrankHandleEdgeFinishing",
+        "TestCrankHandleFits",
+        "TestCrankHandlePlacement",
+        "TestCrankHandleRejectsInvalidInputs",
+    ),
+    "plaquestand": (
+        "TestPlaqueStandParamsDefaults",
+        "TestPlaqueStandDeriveCases",
+        "TestPlaqueStandDeriveRejects",
+        "TestPlaqueStandOutlineCases",
+        "TestPlaqueStandBuildDefault",
+        "TestPlaqueStandBuildCases",
+        "TestPlaqueStandBuildRejectsInvalidInputs",
+        "TestPlaqueStandClearance",
+        "TestPlaqueStandStability",
+        "TestPlaqueStandCorners",
+        "TestPlaqueStandRailFit",
+        "TestPlaqueStandFasteners",
+    ),
+}
+
 BEVEL_JOB_GROUPS = {
     "abgh": ("a", "b", "g", "h"),
     "cdef": ("c", "d", "e", "f"),
@@ -260,12 +386,14 @@ def finished_tests(lines, qualified: bool = False) -> dict[str | tuple[str, str]
 
 
 def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
-            package: str | None = None, allowed_skips: frozenset[str] = frozenset()) -> None:
+            package: str | None = None, allowed_skips: frozenset[str] = frozenset(),
+            qualified_expected: set[tuple[str, str]] | None = None) -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
-    finished = finished_tests(proc.stdout, qualified=package is not None)
+    qualified = package is not None or qualified_expected is not None
+    finished = finished_tests(proc.stdout, qualified=qualified)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
     if not any(action != "skip" for action in finished.values()):
@@ -276,6 +404,10 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
         if finished.get((package, name) if package else name) != "pass"
         and not (name in allowed_skips and finished.get((package, name) if package else name) == "skip")
     ]
+    if qualified_expected is not None:
+        missing.extend(f"{pkg}/{name}" for pkg, name in qualified_expected
+                       if finished.get((pkg, name)) != "pass")
+        missing.extend(f"{pkg}/{name}" for (pkg, name), status in finished.items() if status != "pass")
     if package:
         missing.extend(f"{pkg}/{name}" for (pkg, name), status in finished.items()
                        if status != "pass" and not (pkg == package and status == "skip" and name in allowed_skips))
@@ -372,7 +504,11 @@ def run_bevel(mode: str, shard: str) -> None:
         return
     tests = BEVEL_TESTS[mode][shard]
     timeout = "15m" if mode == "pr" else "60m"
-    go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests)
+    if mode == "full":
+        go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests,
+                package="github.com/lestrrat-3d/decad-gallery/models/bevelgear")
+    else:
+        go_test(["./models/bevelgear", "-run", run_pattern(tests), "-timeout", timeout], tests)
 
 
 # The spinning wheel builds roughly 190 solids and verifies every pair, so each case gets its own job and
@@ -511,30 +647,58 @@ def run_fan_variant(variant: str) -> None:
 
 def run_models(mode: str) -> None:
     if mode == "pr":
+        packages = MODEL_PR_PACKAGES
+        qualified_expected = {(f"github.com/lestrrat-3d/decad-gallery/models/{name}", test)
+                              for name, tests in packages.items() for test in tests}
         go_test(
             [
-                "./models/cycloidal",
-                "./models/helicalgear",
-                "./models/herringbonegear",
-                "./models/screwgear",
-                "./models/spurgear",
-                "./models/ballbearing",
-                "./models/pinring",
-                "./models/planetarygearbox",
-                "./models/spiralspring",
-                "./models/crankhandle",
-                "./models/plaquestand",
+                *(f"./models/{name}" for name in packages),
                 "-run",
                 run_pattern(MODEL_PR_TESTS),
                 "-timeout",
                 "5m",
             ],
-            MODEL_PR_TESTS,
+            qualified_expected=qualified_expected,
         )
         return
 
-    pattern = "^(" + "|".join(BEVEL_FULL_TESTS) + ")$"
-    subprocess.run(["go", "test", "-skip", pattern, "-timeout", "60m", "./..."], check=True)
+    run_full_models()
+
+
+def run_full_models() -> None:
+    """Check the root module inventory and run every test outside the bevel shards."""
+    listing = subprocess.run(["go", "list", "./..."], check=True, capture_output=True, text=True)
+    packages = listing.stdout.splitlines()
+    if not packages:
+        raise SystemExit("root module lists no packages")
+    bevel = "github.com/lestrrat-3d/decad-gallery/models/bevelgear"
+    assigned = [test for tests in BEVEL_TESTS["full"].values() for test in tests]
+    if len(assigned) != len(set(assigned)):
+        raise SystemExit("full bevel shards contain duplicate test names")
+    inventory = {}
+    for package in packages:
+        result = subprocess.run(["go", "test", "-list", "^Test", package],
+                                check=True, capture_output=True, text=True)
+        inventory[package] = {line for line in result.stdout.splitlines() if line.startswith("Test")}
+    unknown = sorted(set(assigned) - inventory.get(bevel, set()))
+    if unknown:
+        raise SystemExit("unknown full bevel shard tests: " + ", ".join(unknown))
+    expected = {(package, test) for package, tests in inventory.items() if package != bevel for test in tests}
+    prefix = "github.com/lestrrat-3d/decad-gallery/models/"
+    expected.update({
+        (prefix + "handcrankfan", "TestHandCrankFanVariant/flat-three"),
+        (prefix + "handcrankfan", "TestHandCrankFanVariant/steep-three"),
+        (prefix + "planetarygearbox", "TestKitGearboxes/planet608-shaft605"),
+        (prefix + "planetarygearbox", "TestKitGearboxes/planet608-shaft608"),
+    })
+    env = os.environ.copy()
+    env.update(HANDCRANKFAN_FULL="1", PLANETARY_ALL_KITS="1")
+    other_packages = [package for package in packages if package != bevel]
+    go_test([*other_packages, "-timeout", "60m"], env=env, qualified_expected=expected)
+    remainder = sorted(inventory.get(bevel, set()) - set(assigned))
+    if remainder:
+        go_test([bevel, "-run", run_pattern(remainder), "-timeout", "60m"], remainder,
+                env=env, package=bevel)
 
 
 def run_model_pr(name: str) -> None:
