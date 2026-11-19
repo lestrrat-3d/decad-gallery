@@ -16,6 +16,14 @@ MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement ha
 INTERNAL = set("hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
 FEATURES = {"dovetail"}
+CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"} | {
+    "scripts/ci/" + name + suffix
+    for name in ("full_partition", "gate", "plan", "probe", "replay", "run_tests", "select_models")
+    for suffix in (".py",)
+} | {
+    "scripts/ci/test_" + name + ".py"
+    for name in ("full_partition", "gate", "plan", "probe", "replay", "run_tests", "select_models")
+}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
          "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}
@@ -114,17 +122,22 @@ def plan(event, base, tested):
         paths = subprocess.check_output(["git", "diff", "--no-renames", "--name-only", "-z", base, tested])
         changed = [os.fsdecode(path) for path in paths.split(b"\0") if path]
         result.update(tested=tested, base=base, changed_paths=changed)
+        dependency_files = {"go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"}
+        if dependency_files.intersection(changed):
+            reason = "module dependency files changed; full coverage required"
+            result.update(suites=["broad", "full"], reasons={"broad": [reason], "full": [reason]}, reason=reason)
+            return result
         wheel_parts = any(path.startswith("models/spinningwheel/images/parts/") and
                           Path(path).suffix.lower() == ".png" for path in changed)
         def is_presentation(path):
             return (path.lower().endswith(".md") or
                     (path.startswith("models/spinningwheel/images/parts/") and
                      Path(path).suffix.lower() == ".png"))
-        if all(is_presentation(path) for path in changed):
+        if all(is_presentation(path) or path in CI_FILES for path in changed):
             suites = {}
             if wheel_parts:
                 suites["wheel-parts"] = ["check changed wheel part documentation"]
-            result.update(suites=sorted(suites), reasons=suites, reason="presentation-only change")
+            result.update(suites=sorted(suites), reasons=suites, reason="presentation or CI-only change")
             return result
         code = [path for path in changed if path.endswith(".go")]
         try:
@@ -152,7 +165,8 @@ def plan(event, base, tested):
                 suites.append("renderer-all")
             result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
             return result
-        if any(not is_presentation(path) and not path.endswith(".go") for path in changed):
+        if any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
+               for path in changed):
             raise ValueError("unregistered or shared input changed")
         owners = affected_packages(code, before, after)
         suites = {}

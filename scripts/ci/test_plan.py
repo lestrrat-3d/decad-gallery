@@ -15,6 +15,37 @@ class PlanTest(unittest.TestCase):
         return {"github.com/lestrrat-3d/decad-gallery/models/cycloidal": {
             "dir": "models/cycloidal", "imports": set(), "test_imports": set()}}
 
+    def test_ci_changes_select_only_needed_jobs(self):
+        # PR #339 changes the CI workflows, documentation and these scripts.
+        ci_paths = [".github/workflows/ci-probe.yml", ".github/workflows/repository.yml",
+                    "docs/ci-measurements.md", "docs/ci-testing.md"] + sorted(
+                        path for path in plan.CI_FILES if path.startswith("scripts/ci/"))
+        cases = (([], []), (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
+                 ([".github/workflows/unknown.yml"], ["broad"]),
+                 (["scripts/ci/unknown.py"], ["broad"]), (["go.mod"], ["broad", "full"]),
+                 (["tools/render/gallery.go"], ["broad", "renderer-all"]))
+        renderer = plan.ROOT + "/tools/render"
+        packages = self.packages() | {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
+        for extra, expected in cases:
+            with self.subTest(extra=extra), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=packages), \
+                    mock.patch.object(plan.subprocess, "check_output",
+                                      return_value=("\0".join(ci_paths + extra) + "\0").encode()):
+                result = plan.plan("push", "base", "head")
+                self.assertEqual(result["suites"], expected)
+                matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
+                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs.update(plan={"result": "success", "outputs": {
+                    "plan": json.dumps(result), "matrix": json.dumps(matrix),
+                    "count": str(len(matrix["include"]))}}, repository={"result": "success"},
+                    worker={"result": "success" if matrix["include"] else "skipped"})
+                if not extra:
+                    self.assertEqual(matrix["include"], [])
+                    self.assertEqual(gate.check(needs, "push"), [])
+                    needs["repository"]["result"] = "failure"
+                    self.assertTrue(gate.check(needs, "push"))
+
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", return_value=self.packages()):
@@ -72,6 +103,23 @@ class PlanTest(unittest.TestCase):
 
     def test_dispatch_always_broad(self):
         self.assertEqual(plan.plan("workflow_dispatch", "", "head")["suites"], ["broad"])
+
+    def test_module_files_select_full_coverage(self):
+        for path in ("go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"):
+            for event in ("push", "pull_request"):
+                with self.subTest(path=path, event=event), \
+                     mock.patch.object(plan, "git", side_effect=lambda *args: {
+                         ("rev-parse", "HEAD"): b"head",
+                         ("rev-parse", "--verify", "head^{commit}"): b"head",
+                         ("rev-parse", "--verify", "base^{commit}"): b"base",
+                         ("rev-list", "--parents", "-n", "1", "head"): b"head base other",
+                     }[args]), \
+                     mock.patch.object(plan.subprocess, "check_output", return_value=(path + "\0README.md\0").encode()), \
+                     mock.patch.object(plan, "metadata") as metadata:
+                    result = plan.plan(event, "base", "head")
+                    self.assertEqual(result["suites"], ["broad", "full"])
+                    self.assertIn("dependency", result["reason"])
+                    metadata.assert_not_called()
 
     def test_renderer_change_adds_full_renderer_to_broad(self):
         renderer = plan.ROOT + "/tools/render"
