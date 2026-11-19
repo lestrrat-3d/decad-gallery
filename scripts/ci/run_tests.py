@@ -240,9 +240,9 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines) -> dict[str, str]:
+def finished_tests(lines, qualified: bool = False) -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
-    finished: dict[str, str] = {}
+    finished: dict[str | tuple[str, str], str] = {}
     for line in lines:
         try:
             event = json.loads(line)
@@ -253,24 +253,36 @@ def finished_tests(lines) -> dict[str, str]:
             sys.stdout.write(event["Output"])
         test = event.get("Test")
         if test and event.get("Action") in {"pass", "fail", "skip"}:
-            finished[test] = event["Action"]
+            key = (event.get("Package", ""), test) if qualified else test
+            finished[key] = event["Action"]
     sys.stdout.flush()
     return finished
 
 
-def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None) -> None:
+def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
+            package: str | None = None, allowed_skips: frozenset[str] = frozenset()) -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
-    finished = finished_tests(proc.stdout)
+    finished = finished_tests(proc.stdout, qualified=package is not None)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
     if not any(action != "skip" for action in finished.values()):
         raise SystemExit("go test ran no tests; check the -run pattern")
-    missing = [name for name in expected if finished.get(name) not in {"pass", "fail"}]
+    missing = [
+        f"{package}/{name}" if package else name
+        for name in expected
+        if finished.get((package, name) if package else name) != "pass"
+        and not (name in allowed_skips and finished.get((package, name) if package else name) == "skip")
+    ]
+    if package:
+        missing.extend(f"{pkg}/{name}" for (pkg, name), status in finished.items()
+                       if status != "pass" and not (pkg == package and status == "skip" and name in allowed_skips))
+    missing = sorted(set(missing))
     if missing:
-        raise SystemExit("go test did not run: " + ", ".join(missing))
+        suffix = f" (and {len(missing) - 20} more)" if len(missing) > 20 else ""
+        raise SystemExit("go test did not pass: " + ", ".join(missing[:20]) + suffix)
 
 
 def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: str) -> None:
@@ -344,6 +356,16 @@ def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: s
 
 
 def run_bevel(mode: str, shard: str) -> None:
+    if mode == "pr" and shard == "rest":
+        package = "./models/bevelgear"
+        listing = subprocess.run(["go", "test", "-list", "^Test", package],
+                                 check=True, capture_output=True, text=True)
+        assigned = {test for tests in BEVEL_TESTS["pr"].values() for test in tests if "/" not in test}
+        tests = [line for line in listing.stdout.splitlines() if line.startswith("Test") and line not in assigned]
+        if tests:
+            go_test([package, "-run", run_pattern(tests), "-timeout", "60m"], tests,
+                    package="github.com/lestrrat-3d/decad-gallery/models/bevelgear")
+        return
     if shard in BEVEL_JOB_GROUPS:
         for member in BEVEL_JOB_GROUPS[shard]:
             run_bevel(mode, member)
@@ -365,7 +387,7 @@ def run_bevel(mode: str, shard: str) -> None:
 # The default, small-seven and large-nine cases are split this way, so the two jobs of one case together
 # run exactly the checks the unsplit test ran. The twelve and small-seventeen cases skip the linkage check
 # on purpose (it repeats a scale already checked), so one job runs all of their verify checks.
-# "native" runs the native and connector default builds. "rest" runs every other TestSpinningWheel test.
+# "native" runs the native and connector default builds. "rest" runs every other package test.
 WHEEL_CASES = {
     "default-verify": "^TestSpinningWheelDefault$/^verify$",
     "default-linkage": "^TestSpinningWheelDefault$/^linkage$",
@@ -378,15 +400,27 @@ WHEEL_CASES = {
     "small-seventeen": "^TestSpinningWheelVariants$/^small-seventeen$",
 }
 WHEEL_HEAVY = "^(TestSpinningWheelDefault|TestSpinningWheelNativeDefault|TestSpinningWheelConnectorDefault|TestSpinningWheelVariants)$"
+WHEEL_EXPECTED = {
+    "default-verify": ["TestSpinningWheelDefault/verify"],
+    "default-linkage": ["TestSpinningWheelDefault/linkage"],
+    "native": ["TestSpinningWheelNativeDefault", "TestSpinningWheelConnectorDefault"],
+    "small-seven-verify": ["TestSpinningWheelVariants/small-seven/verify"],
+    "small-seven-linkage": ["TestSpinningWheelVariants/small-seven/linkage"],
+    "large-nine-verify": ["TestSpinningWheelVariants/large-nine/verify"],
+    "large-nine-linkage": ["TestSpinningWheelVariants/large-nine/linkage"],
+    "twelve": ["TestSpinningWheelVariants/twelve"],
+    "small-seventeen": ["TestSpinningWheelVariants/small-seventeen"],
+}
 
 
 def run_wheel(case: str) -> None:
     command = ["./models/spinningwheel", "-timeout", "40m", "-count=1"]
     if case == "rest":
-        command += ["-run", "^TestSpinningWheel", "-skip", WHEEL_HEAVY]
+        command += ["-run", "^Test", "-skip", WHEEL_HEAVY]
     else:
         command += ["-run", WHEEL_CASES[case]]
-    go_test(command)
+    go_test(command, WHEEL_EXPECTED.get(case, ()),
+            package="github.com/lestrrat-3d/decad-gallery/models/spinningwheel")
 
 
 # The hand-crank siren builds 73 solids and verifies every pair; each case gets its own job.
@@ -408,6 +442,7 @@ SIREN_CASES = {
         ["TestHandCrankSirenVariant/slots_24"],
     ),
 }
+SIREN_ASSIGNED = {test.split("/")[0] for _, tests in SIREN_CASES.values() for test in tests}
 
 FAN_VARIANTS = {
     "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
@@ -416,6 +451,18 @@ FAN_VARIANTS = {
 
 
 def run_siren(case: str) -> None:
+    if case == "rest":
+        package = "./models/handcranksiren"
+        listing = subprocess.run(
+            ["go", "test", "-list", "^Test", package], check=True, capture_output=True, text=True
+        )
+        tests = [line for line in listing.stdout.splitlines()
+                 if line.startswith("Test") and line not in SIREN_ASSIGNED]
+        if not tests:
+            raise SystemExit("siren remainder lists no tests")
+        go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
+                package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren")
+        return
     pattern, expected = SIREN_CASES[case]
     go_test(
         ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
@@ -490,8 +537,42 @@ def run_models(mode: str) -> None:
     subprocess.run(["go", "test", "-skip", pattern, "-timeout", "60m", "./..."], check=True)
 
 
+def run_model_pr(name: str) -> None:
+    """Run every listed test in one model package and check its qualified results."""
+    if not re.fullmatch(r"[a-z][a-z0-9]*", name):
+        raise SystemExit("invalid model package name")
+    package = f"./models/{name}"
+    listing = subprocess.run(
+        ["go", "test", "-list", "^Test", package], check=True, capture_output=True, text=True
+    )
+    tests = [line for line in listing.stdout.splitlines() if line.startswith("Test")]
+    if not tests:
+        raise SystemExit(f"model package {name} lists no tests")
+    qualified_package = f"github.com/lestrrat-3d/decad-gallery/models/{name}"
+    allowed_skips = set()
+    if name == "handcrankfan" and not os.environ.get("HANDCRANKFAN_FULL"):
+        allowed_skips.update(("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
+    if name == "planetarygearbox" and not os.environ.get("PLANETARY_ALL_KITS"):
+        allowed_skips.update(("TestKitGearboxes/planet608-shaft605", "TestKitGearboxes/planet608-shaft608"))
+    go_test([package, "-timeout", "60m", "-count=1"], tests,
+            package=qualified_package, allowed_skips=frozenset(allowed_skips))
+    for test in tests:
+        if test not in allowed_skips:
+            print(f"PASS {qualified_package} {test}")
+
+
+def run_cycloidal_pr() -> None:
+    run_model_pr("cycloidal")
+
+
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    if suite == "cycloidal" and mode == "pr" and not args:
+        run_cycloidal_pr()
+        return
+    if suite == "model" and mode == "pr" and len(args) == 1:
+        run_model_pr(args[0])
+        return
     if suite == "models" and mode in {"pr", "full"} and not args:
         run_models(mode)
         return
@@ -501,7 +582,7 @@ def main() -> None:
     if suite == "wheel" and not args and (mode in WHEEL_CASES or mode == "rest"):
         run_wheel(mode)
         return
-    if suite == "siren" and not args and mode in SIREN_CASES:
+    if suite == "siren" and not args and (mode in SIREN_CASES or mode == "rest"):
         run_siren(mode)
         return
     if suite == "escapement" and not args and mode == "all":
@@ -520,8 +601,9 @@ def main() -> None:
         run_fan_variant(mode)
         return
     raise SystemExit(
-        "usage: run_tests.py models <pr|full> | bevel <pr|full> <a-h> | wheel <case|rest>"
-        " | siren <default|spike|slots12|slots24> | escapement all | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
+        "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest>"
+        " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
+        " | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
     )
 
 
