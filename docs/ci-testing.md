@@ -36,6 +36,8 @@ missing, failed, cancelled, or unexpectedly skipped required jobs.
 
 The planetary PR suite runs one dimensions check and partitions the remaining discovered tests across twelve jobs.
 Each job checks its assigned test results. The kit test keeps its existing allowed skips unless full kits are enabled.
+Renderer PR checks partition the discovered package tests across sixteen jobs. Each job requires its assigned tests
+and their subtests to pass. Scheduled and manual runs keep the complete renderer job.
 
 As of 2026-11-19, the active `require-model-checks` ruleset requires the `model-checks` status check on the default
 branch, `main`. It allows repository administrators to bypass the rule. The rule does not require the branch to be

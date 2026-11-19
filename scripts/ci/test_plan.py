@@ -208,7 +208,7 @@ class PlanTest(unittest.TestCase):
                 expected = ["renderer-all"]
                 self.assertEqual(result["suites"], expected)
                 self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
-                self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), len(expected))
+                self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), gate.RENDER_PR_SHARDS)
 
     def test_reverse_imports_stop_at_test_edges(self):
         graph = {
