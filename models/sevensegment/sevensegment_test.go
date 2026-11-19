@@ -163,6 +163,11 @@ func TestSevenSegmentDefault(t *testing.T) {
 	for n := range meshes {
 		names = append(names, n)
 	}
+	pressed := map[string]struct{}{"ratchet wheel": {}, "collar ring": {}, "knob": {}}
+	for _, seg := range sevensegment.Segments() {
+		pressed["cam "+seg.String()] = struct{}{}
+	}
+	shaftPairs := 0
 	for i, a := range names {
 		for _, b := range names[i+1:] {
 			if !boxesTouch(boxes[a], boxes[b], 0.05) {
@@ -172,14 +177,35 @@ func TestSevenSegmentDefault(t *testing.T) {
 				strings.HasPrefix(b, "yellow face ") && a == "black body "+strings.TrimPrefix(b, "yellow face ") {
 				continue // the two bodies of one flag share their boundary faces
 			}
-			if a == "shaft" || b == "shaft" {
-				continue // the press fits (0.05 mm) are measured in TestSevenSegmentFits and TestSevenSegmentPressWalls
+			// Every pair is checked, the shaft's too. The parts pressed on the shaft keep its 0.05 mm press fit; their
+			// meshes are read at a finer chord (0.005 mm) so that the proven bound is tighter than the fit. No other pair
+			// overlaps by design, so there is no allow-list beyond the two bodies of one flag above.
+			ma, mb, clearance := meshes[a], meshes[b], 0.0
+			if other, ok := shaftMate(a, b); ok {
+				if _, ok := pressed[other]; ok {
+					_, ma = meshOf(t, printed(m)[a], 0.005)
+					_, mb = meshOf(t, printed(m)[b], 0.005)
+					clearance = 0.03 // the 0.05 mm press fit less the meshes' 0.02 mm allowance
+					shaftPairs++
+				}
 			}
-			sep, err := meshes[a].ExceedsClearance(meshes[b], 0)
+			sep, err := ma.ExceedsClearance(mb, clearance)
 			require.NoError(t, err)
-			require.True(t, sep, "%s and %s overlap or touch", a, b)
+			require.True(t, sep, "%s and %s overlap or touch, or keep less than %.2f mm", a, b, clearance)
 		}
 	}
+	require.Equal(t, len(pressed), shaftPairs, "every part pressed on the shaft is checked against it")
+}
+
+// shaftMate returns the other body of the pair a, b when one of them is the shaft.
+func shaftMate(a, b string) (string, bool) {
+	switch {
+	case a == "shaft":
+		return b, true
+	case b == "shaft":
+		return a, true
+	}
+	return "", false
 }
 
 // boxesTouch reports whether two boxes lie within margin of each other.
