@@ -207,8 +207,8 @@ class PlanTest(unittest.TestCase):
             "c": {"dir": "c", "imports": set(), "test_imports": {"b"}},
             "d": {"dir": "d", "imports": {"c"}, "test_imports": set()},
         }
-        self.assertEqual(plan.affected_packages(["a/file.go"], graph, graph), {"a", "b", "c"})
-        self.assertEqual(plan.affected_packages(["a/file_test.go"], graph, graph), {"a"})
+        self.assertEqual(plan.affected_packages(["a/file.go"], graph, graph), ({"a", "b", "c"}, {"a", "b"}))
+        self.assertEqual(plan.affected_packages(["a/file_test.go"], graph, graph), ({"a"}, set()))
 
     def test_docs_only_and_unknown_inputs(self):
         for paths, expected in ((b"README.md\0docs/example.md\0", []),
@@ -245,7 +245,42 @@ class PlanTest(unittest.TestCase):
 
     def test_deleted_or_new_package_falls_back(self):
         with self.assertRaises(ValueError):
-            plan.affected_packages(["models/new/build.go"], {}, self.packages())
+            plan.affected_packages(["models/new/build.go"], self.packages(), {})
+
+    def test_registered_new_package_and_mixed_model_dispatch(self):
+        helper = plan.ROOT + "/internal/clamparmcapacity"
+        arm = plan.ROOT + "/models/clamparm"
+        bolt = plan.ROOT + "/models/m5bolt"
+        before = {arm: {"dir": "models/clamparm", "imports": set(), "test_imports": set()},
+                  bolt: {"dir": "models/m5bolt", "imports": set(), "test_imports": set()}}
+        after = dict(before, **{helper: {"dir": "internal/clamparmcapacity", "imports": set(),
+                                        "test_imports": set()}})
+        after[arm] = {"dir": "models/clamparm", "imports": set(), "test_imports": {helper}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[before, after]), \
+                mock.patch.object(plan.subprocess, "check_output",
+                                  return_value=b"internal/clamparmcapacity/check.go\0models/m5bolt/bolt_test.go\0"):
+            result = plan.plan("push", "base", "head")
+        expected = {"package-clamparmcapacity", "clamparm", "model-m5bolt"}
+        self.assertEqual(set(result["suites"]), expected)
+        matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
+        dispatch = mock.Mock()
+        for entry in matrix["include"]:
+            dispatch(entry["suite"])
+        self.assertEqual({call.args[0] for call in dispatch.call_args_list}, expected)
+
+    def test_registered_new_package_mixed_unknown_or_deleted_falls_back(self):
+        helper = plan.ROOT + "/internal/clamparmcapacity"
+        arm = plan.ROOT + "/models/clamparm"
+        before = {arm: {"dir": "models/clamparm", "imports": set(), "test_imports": set()}}
+        added = {helper: {"dir": "internal/clamparmcapacity", "imports": set(), "test_imports": set()}}
+        for after, paths in ((dict(before, **added), b"internal/clamparmcapacity/check.go\0unknown.sh\0"),
+                             (added, b"internal/clamparmcapacity/check.go\0")):
+            with self.subTest(paths=paths), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", side_effect=[before, after]), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+                self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad"])
 
     def test_new_model_dispatches_broad_and_direct_test(self):
         graph = self.packages()
@@ -276,7 +311,8 @@ class PlanTest(unittest.TestCase):
         model = plan.ROOT + "/models/cycloidal"
         graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
                  model: {"dir": "models/cycloidal", "imports": set(), "test_imports": {helper}}}
-        self.assertEqual(plan.affected_packages(["internal/cornercheck/check.go"], graph, graph), {helper, model})
+        self.assertEqual(plan.affected_packages(["internal/cornercheck/check.go"], graph, graph),
+                         ({helper, model}, {helper}))
         with self.assertRaises(ValueError):
             plan.affected_packages(["internal/cornercheck/check.go"], graph, {model: graph[model]})
 
@@ -345,6 +381,24 @@ class PlanTest(unittest.TestCase):
                     mock.patch.object(plan.subprocess, "check_output", return_value=path):
                 self.assertEqual(set(plan.plan("push", "base", "head")["suites"]), expected)
 
+    def test_clamparm_capacity_dispatch(self):
+        helper = plan.ROOT + "/internal/clamparmcapacity"
+        arm = plan.ROOT + "/models/clamparm"
+        graph = {
+            helper: {"dir": "internal/clamparmcapacity", "imports": {arm}, "test_imports": set()},
+            arm: {"dir": "models/clamparm", "imports": set(), "test_imports": {helper}},
+        }
+        cases = ((b"models/clamparm/instructions.md\0", set()),
+                 (b"internal/clamparmcapacity/check_test.go\0", {"package-clamparmcapacity"}),
+                 (b"internal/clamparmcapacity/check.go\0", {"package-clamparmcapacity", "clamparm"}),
+                 (b"models/clamparm/capacity_test.go\0", {"clamparm"}))
+        for path, expected in cases:
+            with self.subTest(path=path), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=path):
+                self.assertEqual(set(plan.plan("push", "base", "head")["suites"]), expected)
+
     def test_new_feature_gets_direct_test(self):
         feature = plan.ROOT + "/features/dovetail"
         graph = {feature: {"dir": "features/dovetail", "imports": set(), "test_imports": set()}}
@@ -352,16 +406,16 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", side_effect=[{}, graph]), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"features/dovetail/demo.go\0"):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(result["suites"], ["broad", "new-feature-dovetail"])
+        self.assertEqual(result["suites"], ["feature-dovetail"])
         suites = gate.suites_from_plan(json.dumps(result))
         matrix = gate.matrix_for(suites)
-        self.assertEqual(matrix, {"include": [{"suite": "new-feature-dovetail", "case": 0}]})
-        needs = {job: {"result": "success"} for job in gate.BROAD_JOBS}
+        self.assertEqual({entry["suite"] for entry in matrix["include"]}, set(result["suites"]))
+        needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
         needs["records-validation"] = {"result": "skipped"}
         needs["renderer-full"]["result"] = "skipped"
         needs["bevel-full"]["result"] = "skipped"
         needs.update(plan={"result": "success", "outputs": {
-            "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": "1"}},
+            "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
             repository={"result": "success"}, worker={"result": "success"})
         self.assertEqual(gate.check(needs, "push"), [])
         with mock.patch.dict(os.environ, {"SUITE": "new-feature-dovetail", "CASE": "0"}), \

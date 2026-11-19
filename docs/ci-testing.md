@@ -2,7 +2,8 @@
 
 `.github/workflows/repository.yml` runs on pull requests, pushes to `main`, a daily schedule, and manual dispatch.
 The `model-checks` job reports the aggregate gate result. Repository layout and CI Python tests run in the
-`repository` job even when the selected worker matrix is empty.
+`repository` job even when the selected worker matrix is empty. That job also checks the clamp-arm capacity table
+against model dimensions without building geometry.
 
 ## Pull requests and pushes
 
@@ -13,7 +14,8 @@ model, feature, package, and renderer checks. Production changes can also select
 renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
-registered package directories select broad checks and direct tests. Renderer Go changes select broad checks and
+registered packages select their tests and affected consumers. Unregistered packages select broad checks and direct
+tests. Renderer Go changes select broad checks and
 the full renderer suite. A change to either module's `go.mod` or `go.sum` selects `broad` and the `full` marker,
 which runs the full root and renderer checks. Unknown shared inputs, unregistered owners, invalid revision information, or unavailable
 metadata trigger broad fallback where the planner can safely dispatch it. A new Go directory that cannot be

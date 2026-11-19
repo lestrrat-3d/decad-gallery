@@ -75,6 +75,9 @@ jobs:
             tools/render/go.sum
       - name: Check repository layout
         run: python3 scripts/check_repository.py
+      - name: Check clamp arm capacity documentation
+        if: needs.plan.result == 'success' && contains(fromJSON(needs.plan.outputs.plan).changed_paths, 'models/clamparm/instructions.md')
+        run: go test ./internal/clamparmcapacity
       - name: Check dependency updater rollback
         run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
       - name: Check CI test runner
