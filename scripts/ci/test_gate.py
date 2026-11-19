@@ -39,6 +39,11 @@ class GateTest(unittest.TestCase):
         self.assertEqual([item["case"] for item in matrix], list(range(gate.PLANETARY_PR_SHARDS)))
         self.assertEqual(gate.commands("model-planetarygearbox")[0][-3:], ["planetary", "pr", "0"])
 
+    def test_fan_dispatch_has_every_shard(self):
+        matrix = gate.matrix_for(["model-handcrankfan"])["include"]
+        self.assertEqual([item["case"] for item in matrix], list(range(gate.FAN_PR_SHARDS)))
+        self.assertEqual(gate.commands("model-handcrankfan")[0][-3:], ["fan", "pr", "0"])
+
     @classmethod
     def setUpClass(cls):
         Path(".tmp").mkdir(exist_ok=True)

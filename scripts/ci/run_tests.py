@@ -791,6 +791,31 @@ def run_full_models() -> None:
 
 
 PLANETARY_PR_SHARDS = 13
+FAN_PR_SHARDS = 10
+
+
+def run_fan_pr(shard: str) -> None:
+    """Run one disjoint share of the discovered fan tests."""
+    if not shard.isdigit() or not 0 <= int(shard) < FAN_PR_SHARDS:
+        raise SystemExit("invalid fan PR shard")
+    package = "github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = sorted(line for line in output.splitlines() if line.startswith("Test"))
+    if not tests or len(tests) != len(set(tests)):
+        raise SystemExit("fan test inventory is empty or duplicated")
+    smoke = "TestValidate"
+    if smoke not in tests:
+        raise SystemExit("fan smoke test is missing")
+    tests.remove(smoke)
+    selected = [smoke] if int(shard) == 0 else tests[int(shard) - 1::FAN_PR_SHARDS - 1]
+    if not selected:
+        print(f"fan PR shard {shard} has no tests")
+        return
+    allowed = frozenset() if os.environ.get("HANDCRANKFAN_FULL") else frozenset((
+        "TestHandCrankFanDefault", "TestHandCrankFanVariant"))
+    go_test([package, "-run", run_pattern(selected), "-timeout", "40m", "-count=1"],
+            selected, package=package, allowed_skips=allowed)
 
 
 def run_planetary_pr(shard: str) -> None:
@@ -868,6 +893,9 @@ def run_cycloidal_pr() -> None:
 
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    if suite == "fan" and mode == "pr" and len(args) == 1:
+        run_fan_pr(args[0])
+        return
     if suite == "planetary" and mode == "pr" and len(args) == 1:
         run_planetary_pr(args[0])
         return

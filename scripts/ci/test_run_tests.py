@@ -342,6 +342,38 @@ class FanVariantsTest(unittest.TestCase):
                 self.assertEqual(kwargs, {})
 
 
+class FanShardTest(unittest.TestCase):
+    def test_shards_partition_tests_and_allow_only_known_skips(self):
+        tests = ["TestValidate", "TestHandCrankFanDefault", "TestHandCrankFanVariant"] + [
+            f"TestCase{i:02d}" for i in range(20)]
+        with mock.patch.dict(run_tests.os.environ, {}, clear=True), \
+                mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="\n".join(tests))), \
+                mock.patch.object(run_tests, "go_test") as go_test:
+            for shard in range(run_tests.FAN_PR_SHARDS):
+                run_tests.run_fan_pr(str(shard))
+        selected = [test for call in go_test.call_args_list for test in call.args[1]]
+        self.assertCountEqual(selected, tests)
+        self.assertEqual(len(selected), len(set(selected)))
+        for call in go_test.call_args_list:
+            self.assertEqual(call.args[0][2], run_tests.run_pattern(call.args[1]))
+            self.assertEqual(call.kwargs["allowed_skips"],
+                             frozenset({"TestHandCrankFanDefault", "TestHandCrankFanVariant"}))
+
+    def test_shards_reject_invalid_inventory_and_shard(self):
+        for inventory, shard in (("TestOther\n", "0"), ("", "0"), ("TestValidate\n", "10")):
+            with self.subTest(shard=shard, inventory=inventory), \
+                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                    self.assertRaises(SystemExit):
+                run_tests.run_fan_pr(shard)
+
+    def test_full_fan_does_not_allow_skips(self):
+        with mock.patch.dict(run_tests.os.environ, {"HANDCRANKFAN_FULL": "1"}), \
+                mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="TestValidate\n")), \
+                mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_fan_pr("0")
+        self.assertEqual(go_test.call_args.kwargs["allowed_skips"], frozenset())
+
+
 class PlanetaryFullTest(unittest.TestCase):
     def test_pr_shards_partition_every_test_once(self):
         tests = ["TestDefaultDimensionsUnchanged", "TestKitGearboxes"] + [f"TestCase{i:02d}" for i in range(30)]
