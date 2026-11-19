@@ -12,7 +12,7 @@ import tempfile
 ROOT = "github.com/lestrrat-3d/decad-gallery"
 MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement handcrankfan handcranksiren "
              "helicalgear herringbonegear m2bolt m2nut m5bolt m5nut onewayclutch pinring "
-             "planetarygearbox plaquestand screwgear spinningwheel spiralspring spurgear swisslever turbinefan".split())
+             "planetarygearbox plaquestand screwgear sevensegment spinningwheel spiralspring spurgear swisslever turbinefan".split())
 INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
 FEATURES = {"dovetail"}
@@ -28,12 +28,13 @@ CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
-         "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
+         "clamparm": "clamparm", "sevensegment": "sevensegment", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}
 RENDER = {"ballbearing": ("bearing-render",), "bevelgear": ("bevel-render",),
           "clamparm": ("clamparm-render",), "escapement": ("escapement-exploded",),
           "handcrankfan": ("fan-motion", "fan-view"), "handcranksiren": ("siren-render",),
           "planetarygearbox": ("planetary-motion", "planetary-render"),
+          "sevensegment": ("sevensegment-render",),
           "spinningwheel": ("wheel-motion", "wheel-parts", "wheel-block"),
           "swisslever": ("swiss-render",)}
 BROAD_WORKERS = {"bevel-pr", "clamparm", "escapement", "onewayclutch", "turbinefan", "wheel", "siren"}

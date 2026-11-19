@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import finished_tests, run_pattern
+from run_tests import SEVENSEGMENT_SHARDS, finished_tests, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -26,6 +26,8 @@ RENDER_TESTS = {
     "wheel-parts": ("40m", ("TestSpinningWheelPartsTable",)),
     "fan-motion": ("20m", ("TestHandCrankFanMotion",)),
     "escapement-exploded": ("15m", ("TestEscapementExploded",)),
+    "sevensegment-render": ("30m", ("TestSevenSegmentPresets", "TestSevenSegmentColors",
+                                    "TestSevenSegmentMotionColors")),
 }
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
@@ -41,9 +43,13 @@ WORKERS = {
     "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in
                  ("abgh", "cdef", "rest-0", "rest-1", "rest-2", "rest-3")],
     **{name: [RUNNER + [name, "all"]] for name in ("clamparm", "escapement", "onewayclutch", "turbinefan")},
+    "sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
+    # A new model package would run in one job; the model's own shards split it, as for the targeted suite.
+    "new-model-sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
 }
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
-              "clamparm", "turbinefan", "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
+              "clamparm", "sevensegment", "sevensegment-render", "turbinefan",
+              "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
               "bevel-pr", "bevel-full", "planetary-full")
 PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 

@@ -24,17 +24,17 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other sixteen models in a grid of four
-// columns by four rows beside it (260 × 225 pixel cells), filled row by row. The top row holds the spur, helical,
-// herringbone and bevel gears. The second row holds the planetary gearbox, cycloidal drive, plaque stand and clamp
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other seventeen models in a grid of four rows beside it, filled row by row. The top row holds five 208 × 225 pixel cells: the spur, helical,
+// herringbone and bevel gears and the seven-segment display. The other rows have four 260 × 225 pixel cells. The second row holds the planetary gearbox, cycloidal drive, plaque stand and clamp
 // arm. The third row holds the hand-crank fan, hand-crank siren, Graham escapement and Swiss lever escapement. The
 // bottom row holds the crank handle, one-way clutch, spiral spring and turbine fan.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
-	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 225)},
-	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 225)},
-	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 225)},
-	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 225)},
+	{"spurgear", spurGearHero, image.Rect(560, 0, 768, 225)},
+	{"helicalgear", helicalGearHero, image.Rect(768, 0, 976, 225)},
+	{"herringbonegear", herringboneGearHero, image.Rect(976, 0, 1184, 225)},
+	{"bevelgear", bevelGearHero, image.Rect(1184, 0, 1392, 225)},
+	{"sevensegment", sevenSegmentHero, image.Rect(1392, 0, 1600, 225)},
 	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 225, 820, 450)},
 	{"cycloidal", cycloidalHero, image.Rect(820, 225, 1080, 450)},
 	{"plaquestand", plaqueStandHero, image.Rect(1080, 225, 1340, 450)},

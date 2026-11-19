@@ -12,6 +12,12 @@ from unittest import mock
 import run_tests
 
 
+class SevenSegmentShardsTest(unittest.TestCase):
+    def test_shards_cover_the_package(self):
+        # The same check the CI job runs: the shards are disjoint and list every test of the package.
+        run_tests.check_sevensegment_coverage()
+
+
 class RunPatternTest(unittest.TestCase):
     def test_single_test(self):
         self.assertEqual(run_tests.run_pattern(["TestA"]), "^TestA$")

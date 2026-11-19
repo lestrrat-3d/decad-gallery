@@ -385,15 +385,15 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
 drive, the bevel gear pair, the plaque stand, the clamp arm, the hand-crank fan, the hand-crank siren, the Graham
-escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring and the turbine fan
+escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring, the turbine fan and the seven-segment display
 one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other sixteen models fill a grid of four columns by four rows beside it (260 × 225 pixels per
-cell). The top row holds the spur, helical, herringbone and bevel gears. The second row holds the planetary gearbox,
+(560 pixels wide). The other seventeen models fill a grid of four rows beside it. The top row holds five cells (208 × 225 pixels): the spur,
+helical, herringbone and bevel gears and the seven-segment display. The other rows have four cells (260 × 225 pixels). The second row holds the planetary gearbox,
 cycloidal drive, plaque stand and clamp arm. The third row holds the hand-crank fan, hand-crank siren, Graham
 escapement and Swiss lever escapement. The bottom row holds the crank handle, one-way clutch, spiral spring and
-turbine fan. Building all seventeen models takes several minutes plus the wheel
+turbine fan. Building all eighteen models takes several minutes plus the wheel
 build:
 
 ```sh
@@ -456,3 +456,27 @@ way round, and the fan parts about the fan axis by twice the crank angle, so the
 ```sh
 go -C tools/render run . -model handcrankfan -shot animation -out ../../models/handcrankfan/images/motion.gif
 ```
+
+## Seven-segment display
+
+`sevensegment/hero` renders the default display (digit 2) from the front right above. The other presets are `top` (straight
+down on the face), `oblique45` and `oblique30` (the face from the front, 45 and 30 degrees above it), `front` (knob side),
+`side` and `cutaway` (from +X, the cutaway clipped at x = 0), `detent` (clipped at the detent plate's mid-plane
+y = -43.25), `digits` (digits 0 to 9 in a 5 x 2 grid seen at an angle), `cams`, `exploded` and `exploded-camshaft` (the
+camshaft alone, its parts pulled off the front). Each is 1600 x 900. Every part has one fixed color: the yellow slab of
+each rotor is yellow, its black body and every slider black, and nothing changes color with the digit or the angle. The
+`readme` shot builds the display once and writes every README image and the per-part images in `parts/`:
+
+```sh
+go -C tools/render run . -model sevensegment -shot readme -out ../../models/sevensegment/images
+```
+
+The `motion` shot writes the animation, 120 frames of one camshaft turn at 3 degrees a frame, 960 x 540 pixels, with the
+face seen at 45 degrees on the left and a cut through the axis on the right. The rotors turn by `FlagAngle` and the
+sliders follow the cams by their lift:
+
+```sh
+go -C tools/render run . -model sevensegment -shot motion -out ../../models/sevensegment/images/motion.gif
+```
+
+The `cams` preset draws the seven cams from behind, so their engraved letters show.
