@@ -1,7 +1,10 @@
 """Check record uploads without running the geometry suites."""
 
 from pathlib import Path
+import os
 import re
+import subprocess
+import tempfile
 import unittest
 
 
@@ -63,6 +66,34 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertIn("if: always()", section)
         self.assertIn("job[\"result\"] != \"success\"", section)
         self.assertIn("records-validation", job_section(workflow, "gate").split("runs-on:", 1)[0])
+
+    def test_summary_upload_and_validator_exit_status(self):
+        section = job_section(WORKFLOW.read_text(), "records-validation")
+        command = re.search(r"        run: (python3 scripts/ci/reconcile_records.py .* )> validation-summary.json", section)
+        self.assertIsNotNone(command)
+        upload = section.split("      - name: Retain inventory and validation summary\n", 1)[1]
+        upload = upload.split("\n      - ", 1)[0]
+        self.assertIn("if: always()", upload)
+        self.assertIn("name: ci-validation-summary", upload)
+        self.assertIn("inventory.json", upload)
+        self.assertIn("validation-summary.json", upload)
+        self.assertIn("overwrite: true", upload)
+        self.assertIn("if-no-files-found: warn", upload)
+        scratch = WORKFLOW.parents[2] / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as directory:
+            root = Path(directory)
+            executable = root / "python3"
+            env = dict(os.environ, PATH=f"{root}:{os.environ['PATH']}", GITHUB_SHA="revision",
+                       GITHUB_RUN_ID="123", GITHUB_RUN_ATTEMPT="1")
+            for status, value in ((0, "true"), (1, "false")):
+                with self.subTest(status=status):
+                    executable.write_text(f'#!/bin/sh\nprintf \'{{"ok": {value}}}\\n\'\nexit {status}\n')
+                    executable.chmod(0o755)
+                    result = subprocess.run(command.group(0).removeprefix("        run: "), shell=True, cwd=root,
+                                            env=env, check=False)
+                    self.assertEqual(result.returncode, status)
+                    self.assertEqual((root / "validation-summary.json").read_text(), f'{{"ok": {value}}}\n')
 
 
 if __name__ == "__main__":
