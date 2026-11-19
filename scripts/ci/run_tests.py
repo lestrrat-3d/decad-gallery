@@ -695,7 +695,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentLookAlike", "TestSevenSegmentPinClearance", "TestSevenSegmentPlates",
         "TestSevenSegmentPressWalls", "TestSevenSegmentRatchet", "TestSevenSegmentRotor", "TestSevenSegmentRotorAll",
         "TestSevenSegmentSegmentGrid", "TestSevenSegmentShaft", "TestSevenSegmentSliders",
-        "TestSevenSegmentSplitShaft",
+        "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay",
     ),
     "assembly": (
         "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
