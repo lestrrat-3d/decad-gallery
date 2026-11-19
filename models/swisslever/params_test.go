@@ -1,5 +1,7 @@
 package swisslever_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -8,8 +10,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
-
-const deg = math.Pi / 180
 
 func TestValidate(t *testing.T) {
 	require.NoError(t, swisslever.DefaultParams().Validate())
