@@ -120,13 +120,28 @@ def isolated_tests(base, tested, changed):
         inputs = []
         for path in code:
             parts = Path(path).parts
-            if len(parts) != 3 or parts[0] != "models" or parts[1] not in MODELS or not path.endswith("_test.go"):
+            if not path.endswith("_test.go"):
+                return []
+            if len(parts) == 3 and parts[0] == "models" and parts[1] in MODELS:
+                owner = parts[1]
+            elif len(parts) == 3 and parts[0] == "internal" and parts[1] in INTERNAL:
+                owner = "internal-" + parts[1]
+            elif len(parts) == 3 and parts[0] == "features" and parts[1] in FEATURES:
+                owner = "feature-" + parts[1]
+            elif len(parts) == 3 and parts[:2] == ("tools", "render"):
+                owner = "render"
+            else:
                 return []
             old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
             new = subprocess.check_output(["git", "show", f"{tested}:{path}"], stderr=subprocess.PIPE)
             if b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new:
                 return []
-            inputs.append((parts[1], old, new))
+            tagged = any(tag in text for text in (old, new) for tag in (b"//go:build", b"// +build"))
+            if tagged and path != "models/spinningwheel/head_leg_coplanar_test.go":
+                return []
+            if tagged:
+                owner = "tag-coplanar_test-" + owner
+            inputs.append((owner, old, new))
         suites = set()
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             root = Path(directory)
