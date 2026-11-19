@@ -53,7 +53,8 @@ def replay(revision):
         for job in gate.BROAD_JOBS:
             if (job not in ("renderer-full", "bevel-full", "bevel-pr", *gate.PR_RENDER_JOBS) or
                     (full and job in ("renderer-full", "bevel-full")) or
-                    (not full and job in ("bevel-pr", *gate.PR_RENDER_JOBS))):
+                    (not full and job == "bevel-pr") or
+                    (not full and "renderer-all" not in result["suites"] and job in gate.PR_RENDER_JOBS)):
                 needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},

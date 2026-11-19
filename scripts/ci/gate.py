@@ -146,8 +146,10 @@ def check(needs, event):
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
     for job in BROAD_JOBS:
         enabled = "broad" in suites
-        if job == "bevel-pr" or job in PR_RENDER_JOBS:
+        if job == "bevel-pr":
             enabled &= not full
+        if job in PR_RENDER_JOBS:
+            enabled &= not full and "renderer-all" not in suites
         if job in ("bevel-full", "renderer-full"):
             enabled &= full
         expected[job] = "success" if enabled else "skipped"

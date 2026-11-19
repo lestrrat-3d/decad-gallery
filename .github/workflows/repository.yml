@@ -82,7 +82,7 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check gallery tile cache
-        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
         run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
         if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
@@ -115,7 +115,7 @@ jobs:
 
   planetary-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +130,7 @@ jobs:
 
   wheel-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -145,7 +145,7 @@ jobs:
 
   wheel-parts:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -161,7 +161,7 @@ jobs:
 
   fan-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -237,7 +237,7 @@ jobs:
 
   escapement-exploded:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

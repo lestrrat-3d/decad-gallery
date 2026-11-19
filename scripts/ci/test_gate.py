@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import unittest
 from unittest import mock
 
@@ -16,7 +17,9 @@ def needs_for(suites, event="push"):
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
     if "broad" in suites:
         for job in gate.BROAD_JOBS:
-            if (job == "bevel-pr" or job in gate.PR_RENDER_JOBS) and full:
+            if job == "bevel-pr" and full:
+                continue
+            if job in gate.PR_RENDER_JOBS and (full or "renderer-all" in suites):
                 continue
             if job in ("bevel-full", "renderer-full") and not full:
                 continue
@@ -33,13 +36,24 @@ class GateTest(unittest.TestCase):
         workflow = Path(".github/workflows/repository.yml").read_text()
         step = workflow.split("- name: Check gallery tile cache\n", 1)[1].split("- name:", 1)[0]
         self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'", step)
+        self.assertIn("!contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')", step)
         self.assertIn("go -C tools/render test -run '^TestGalleryCache'", step)
         renderer = workflow.split("  renderer-full:\n", 1)[1].split("\n  planetary-motion:", 1)[0]
         self.assertIn("python3 scripts/ci/gate.py renderer-full", renderer)
+        for job in gate.PR_RENDER_JOBS:
+            job_body = re.split(r"\n  [a-z][a-z-]*:\n", workflow.split(f"  {job}:\n", 1)[1], maxsplit=1)[0]
+            self.assertIn("!contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')", job_body)
 
     def test_broad_with_full_renderer_dispatch(self):
         suites = ["broad", "renderer-all"]
         self.assertEqual(gate.check(needs_for(suites), "push"), [])
+        needs = needs_for(suites)
+        needs["worker"]["result"] = "skipped"
+        self.assertTrue(gate.check(needs, "push"))
+        for job in gate.PR_RENDER_JOBS:
+            needs = needs_for(suites)
+            needs[job]["result"] = "success"
+            self.assertTrue(gate.check(needs, "push"))
         with mock.patch.dict(os.environ, {"SUITE": "renderer-all", "CASE": "0"}), \
                 mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
                 mock.patch.object(gate, "run_renderer_full") as dispatch:
