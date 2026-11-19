@@ -41,7 +41,7 @@ const (
 	PawlFlankGap     = 0.10 // the seated tip round's gap to the flank (TightFit to the lock face)
 	PawlAngle        = 95.0 // front-view angle of pawl A's seat at theta = 0; pawl B is at PawlAngle + 180
 	PawlArmLength    = 22.0 // free length of the straight arm, from the back-flank point to the root
-	PawlArmRoot      = 1.75 // arm thickness at the root
+	PawlArmRoot      = 1.90 // arm thickness at the root
 	PawlArmTip       = 1.2  // arm thickness at the head (the 1.2 mm minimum for a part that bends)
 	WindowRadius     = 18.8
 	DetentThickness  = 12.0
