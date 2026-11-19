@@ -1,7 +1,8 @@
 package bevelgear_test
 
+// CI: isolated-tests
+
 import (
-	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -9,8 +10,6 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
-
-const degrees = math.Pi / 180
 
 // A spiral member takes any module, tooth counts and shaft angle. The volumes below are what the serial
 // route reads for each member, and its bound is wide because each of the serial unions adds to it.

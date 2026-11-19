@@ -1,5 +1,7 @@
 package bevelgear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -113,14 +115,4 @@ func TestBackConeToothPlaneWithSpacing(t *testing.T) {
 		normal := frame.U().Cross(frame.V())
 		require.InDelta(t, coneDist, math.Abs(normal.Dot(frame.Origin())), 1e-8)
 	}
-}
-
-func requireFullyConstrained(t *testing.T, s *sketch.Sketch) {
-	t.Helper()
-	report := s.Verify(t.Context())
-	require.Equal(t, sketch.FullyConstrained, report.Status)
-	require.Zero(t, report.DOF)
-	require.Empty(t, report.Redundant)
-	require.Empty(t, report.Conflicts)
-	require.NoError(t, report.Check())
 }
