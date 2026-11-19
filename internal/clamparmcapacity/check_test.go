@@ -28,6 +28,8 @@ func TestCheck(t *testing.T) {
 		{"duplicate row", "| Low |", "| Nominal |", "duplicate"},
 		{"malformed row", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "| Low | 0.2 | 0.4 | 400 |", "malformed"},
 		{"invalid number", "| Low | 0.2 |", "| Low | NaN |", "invalid number"},
+		{"zero torque", "| Low | 0.2 | 0.4 |", "| Low | 0.2 | 0 |", "invalid number in column 3"},
+		{"negative force", "| Low | 0.2 | 0.4 | 400 |", "| Low | 0.2 | 0.4 | -400 |", "invalid number in column 4"},
 		{"wrong force", "| Low | 0.2 | 0.4 | 400 |", "| Low | 0.2 | 0.4 | 401 |", "F does not"},
 		{"wrong capacity", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "| Low | 0.2 | 0.4 | 400 | 1.10 |", "T_hold"},
 	}
