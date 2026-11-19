@@ -103,7 +103,7 @@ def affected_packages(changed, before, after):
         production.update(more)
     selected.update(production)
     selected.update(name for name, item in graph.items() if item["test_imports"] & production)
-    return selected
+    return selected, production
 
 
 def plan(event, base, tested):
@@ -177,7 +177,7 @@ def plan(event, base, tested):
         if any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
                for path in changed):
             raise ValueError("unregistered or shared input changed")
-        owners = affected_packages(code, before, after)
+        owners, production = affected_packages(code, before, after)
         owners.update(new_packages)
         suites = {}
         if wheel_parts:
@@ -188,7 +188,8 @@ def plan(event, base, tested):
                 continue
             if owner.startswith(ROOT + "/models/") and owner.rsplit("/", 1)[-1] in MODELS:
                 name = owner.rsplit("/", 1)[-1]
-                model_owners.add(name)
+                if owner in production:
+                    model_owners.add(name)
                 suite = HEAVY.get(name, "model-" + name)
                 if name == "cycloidal":
                     suite = "cycloidal-pr"
@@ -201,8 +202,7 @@ def plan(event, base, tested):
             suites.setdefault(suite, []).append("affected package " + owner)
         if any(path.startswith("tools/render/") for path in code):
             raise ValueError("renderer source requires broad coverage")
-        if any(not path.endswith("_test.go") for path in code) and (
-                model_owners or ROOT + "/tools/render" in owners):
+        if model_owners or ROOT + "/tools/render" in production:
             suites["renderer-compile"] = ["compile renderer against changed model APIs"]
             for name in sorted(model_owners & RENDER.keys()):
                 for suite in RENDER[name]:

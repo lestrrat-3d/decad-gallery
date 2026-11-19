@@ -207,8 +207,8 @@ class PlanTest(unittest.TestCase):
             "c": {"dir": "c", "imports": set(), "test_imports": {"b"}},
             "d": {"dir": "d", "imports": {"c"}, "test_imports": set()},
         }
-        self.assertEqual(plan.affected_packages(["a/file.go"], graph, graph), {"a", "b", "c"})
-        self.assertEqual(plan.affected_packages(["a/file_test.go"], graph, graph), {"a"})
+        self.assertEqual(plan.affected_packages(["a/file.go"], graph, graph), ({"a", "b", "c"}, {"a", "b"}))
+        self.assertEqual(plan.affected_packages(["a/file_test.go"], graph, graph), ({"a"}, set()))
 
     def test_docs_only_and_unknown_inputs(self):
         for paths, expected in ((b"README.md\0docs/example.md\0", []),
@@ -261,8 +261,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output",
                                   return_value=b"internal/clamparmcapacity/check.go\0models/m5bolt/bolt_test.go\0"):
             result = plan.plan("push", "base", "head")
-        expected = {"package-clamparmcapacity", "clamparm", "model-m5bolt", "clamparm-render",
-                    "renderer-compile"}
+        expected = {"package-clamparmcapacity", "clamparm", "model-m5bolt"}
         self.assertEqual(set(result["suites"]), expected)
         matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
         dispatch = mock.Mock()
@@ -312,7 +311,8 @@ class PlanTest(unittest.TestCase):
         model = plan.ROOT + "/models/cycloidal"
         graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
                  model: {"dir": "models/cycloidal", "imports": set(), "test_imports": {helper}}}
-        self.assertEqual(plan.affected_packages(["internal/cornercheck/check.go"], graph, graph), {helper, model})
+        self.assertEqual(plan.affected_packages(["internal/cornercheck/check.go"], graph, graph),
+                         ({helper, model}, {helper}))
         with self.assertRaises(ValueError):
             plan.affected_packages(["internal/cornercheck/check.go"], graph, {model: graph[model]})
 
@@ -390,8 +390,7 @@ class PlanTest(unittest.TestCase):
         }
         cases = ((b"models/clamparm/instructions.md\0", set()),
                  (b"internal/clamparmcapacity/check_test.go\0", {"package-clamparmcapacity"}),
-                 (b"internal/clamparmcapacity/check.go\0", {"package-clamparmcapacity", "clamparm",
-                                                               "clamparm-render", "renderer-compile"}),
+                 (b"internal/clamparmcapacity/check.go\0", {"package-clamparmcapacity", "clamparm"}),
                  (b"models/clamparm/capacity_test.go\0", {"clamparm"}))
         for path, expected in cases:
             with self.subTest(path=path), \
