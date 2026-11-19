@@ -100,7 +100,7 @@ CamRadius 25.0, CamThickness 3.8, HubRadius 5.0, OffRadius 18.0, OnRadius 21.0, 
 RampStart 8.0, RampEnd 29.5, RampRound 2.5, EntryAngle 18.0, PinRadius 1.5, PinLength 2.05, StemWidth 7.0,
 StemThickness 3.6, StemRound 0.3, RatchetTeeth 10, RatchetRoot 6.5, RatchetTip 11.876
 (= flank(36), an exported var because it is not constant-foldable), RatchetRootRound 0.6,
-RatchetThickness 10.65, PawlTipRound 0.4, PawlFlankGap 0.10, PawlAngle 95.0, PawlArmLength 22.0, PawlArmRoot 1.75,
+RatchetThickness 10.65, PawlTipRound 0.4, PawlFlankGap 0.10, PawlAngle 95.0, PawlArmLength 22.0, PawlArmRoot 1.90,
 PawlArmTip 1.2, WindowRadius 18.8, DetentThickness 12.0, WallThickness 8.0,
 WallHalfWidth 27.0, Seam 0.25,
 PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, KnobRadius 20.0,
@@ -176,15 +176,17 @@ Revolve this meridian `(z, r)` about local Z with `decad.FullRevolution{}` (patt
 (40.739, 3.8) (42.75, 3.8) (42.75, 2.5) (47.7, 2.5) (48.0, 2.2) (48.0, 0)
 ```
 
-Then cut two flat tools (box prisms in the local frame, extruded symmetric ±4 along local y):
+Then cut three flat tools (box prisms in the local frame, extruded symmetric ±4 along local y)
+(`flatTool(x0, x1, z0, z1)`: x from x0 to x1):
 
 - Cam flat: `x ≥ 2.7` over `z ∈ [−50.25, 39.2]`; square end at z 39.2 (cam a's D chord stops on it).
+- Cam back flat: `x ≤ −2.7` over the same span; square end at z 39.2.
 - Stub flat: `x ≥ 2.0` over `z ∈ [−73.2, −57.85]`; square end at z −57.85 (the collar ring's D chord stops on it,
   0.05 short of the ring's back face at −57.9). No run-out: both flats end square as D-chord stops, listed as
   mating pairs (split-shaft "Corners").
 
 Sections: knob stub r 2.5 D (flat 2.0) [−72.2, −57.85]; front journal r 2.5 round [−57.85, −49.25] through the lip
-hole and the front bearing; cam section r 3.2 D (flat 2.7) [−49.25, 39.2]; rear collar r 3.8; rear journal r 2.5
+hole and the front bearing; cam section r 3.2 double D (flats ±2.7) [−49.25, 39.2]; rear collar r 3.8; rear journal r 2.5
 round in the rear bearing. End chamfers 0.3 at both ends. Length 120.2.
 
 Failure: return `sevensegment: shaft: <op>: <err>`.
@@ -200,8 +202,9 @@ z ∈ [−3.8, 0], hub toward local +z.
 1. Revolve meridian `(r, z)`: `(0,−3.8) (24.5,−3.8) (25,−3.3) (25,−0.5) (24.5,0) (5.5,0)`, then an 8-chord quarter
    round about (5.5, 0.5) from (5.5, 0) to (5.0, 0.5) (pattern: `m2fastener.quarterRound`), then `(5.0,7.15) (0,7.15)`.
    Rim chamfers 0.5 are in the meridian; the hub root round 0.5 is a corner between layers.
-2. Cut the D bore: profile on local z = −4.8, circle arc r 3.25 the long way through −V, flat at v = +2.75; extrude
-   12.95 along +z. Flat on local +V (world +Z at θ = 0) on every D bore in the model.
+2. Cut the double-D bore: profile on local z = −4.8, two arcs r 3.25 joined by flats at v = ±2.75
+   (doubleDBoreLoop); extrude 12.95 along +z. The first flat is on local +V (world +Z at θ = 0) on every D bore in
+   the model; the cam and ratchet bores add the opposite flat.
 3. Cut the groove tool (next section): profile on local z = +1.0, extrude `decad.Against` 2.9 (to z −1.9).
 4. Cut the look-alike holes: circles r 0.75 at radius 12 (front cams) or 8 (rear cams) on angles 270°, 295°,
    320°, 345° (count per cam, "Look-alike parts"), extruded through local z ∈ [−4.8, 1.0]. Each hole has its own
@@ -266,7 +269,7 @@ Check: `TestSevenSegmentCam` (cams b and e first), `TestSevenSegmentCamInscripti
 Local frame: origin (0, −37.85, 28) (back face), U = +X, V = +Z, N = −Y; extrude `Along` 10.65 (to world y −48.5).
 Printed with its axis vertical, either face down.
 
-Outline (one closed loop) plus the D bore hole (r 3.25, flat 2.75 on +V). Ten teeth, tooth j occupying wheel-local
+Outline (one closed loop) plus the double-D bore hole (r 3.25, flats at ±2.75 along V). Ten teeth, tooth j occupying wheel-local
 angles `[φ_j, φ_j + 36]`, `φ_j = LockPhase + 36 j`, `LockPhase = PawlAngle − SeatAngle` (≈ 90.295°, from Derive) so
 the pawl A head seats on angle `PawlAngle` 95°:
 
@@ -326,13 +329,16 @@ above the wheel), pawl B by 275°.
 - Arm: a straight cantilever tangent to the wheel at the head, anchored counter-clockwise of it, so friction pulls the
   arm along its length and the head lifts radially. Inner edge on u = `PawlArmInner` = `RatchetTip` + `LooseFit` =
   12.426 from B to the root at v = 2.26 + `PawlArmLength` 22.0 = 24.26. Outer edge: a line from the lock flank's outer
-  end (thickness `PawlArmTip` 1.2) to (`PawlArmInner` + `PawlArmRoot` 1.75, 24.26). `PawlArmOuter` = 14.176, the outer
+  end (thickness `PawlArmTip` 1.2) to (`PawlArmInner` + `PawlArmRoot` 1.90, 24.26). `PawlArmOuter` = 14.326, the outer
   edge at the root.
-- Root rounds: 2.0 on the inner (tension) side, 1.0 on the outer side.
-- Slots: the inner slot is 3.0 wide (its side on u = `PawlArmInner` − 3.0); the outer slot is 1.8 wide at the root and
-  3.0 where it meets the window circle. Slot-end rounds 0.5.
+- Root rounds: 2.0 on the inner (tension) side, 1.0 on the outer side (at least half of 1.90).
+- Slots: the inner slot is 3.0 wide (its side on u = `PawlArmInner` − 3.0); the outer slot's side lies on
+  u = `PawlArmInner` + 3.55 at the root and + 4.75 where it meets the window circle (`pawlOuterSide`, `pawlOuterOpen`),
+  so the slot is 1.65 wide at the root and 2.85 at the window; the side did not move when the arm thickened. Slot-end
+  rounds 0.5.
 - Window: circle `WindowRadius` 18.8 joining the four slot sides, rounds 1.0 where they meet. At `PawlAngle` 95°,
-  pawl A's slot end lies 1.44 from the plate edge (x −25.56) and pawl B's outer slot keeps 1.13 to the D2 head pocket.
+  pawl A's slot end lies 1.44 from the plate edge (x −25.56) and pawl B's outer slot keeps 1.22 to the D2 head
+  pocket in the section 1 mm into the pocket (`TestSevenSegmentDetentPlate` requires 1.0).
 - Sketch constraints: every line is held from the origin or the polar axes. With `arm` = the axis at the pawl's angle
   + 90°: outer slot side and arm outer edge by `NewDistancePointLine` from the origin and `NewAngle(arm, line, a)` (two
   point distances were near-singular); root lines `NewPerpendicular(arm, line)` plus distance 24.26; arm inner edge and

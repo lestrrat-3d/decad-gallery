@@ -20,7 +20,8 @@ knob shows exactly one valid digit 0-9. Units are millimetres and degrees. Input
   `internal/m2fastener`). No purchased springs, no purchased shafts.
 - Detent torque budget assumptions (instructions.md states them): sliding friction µ = 0.35, slider weight
   ≤ 0.03 N (≤ 3.0 g, PETG 1.27 g/cm³), bearing drag 0.1 N·mm per bearing, the friction of each slider in its guides
-  (lever 1.77), and two straight pawl arms of PETG with E = 1800 MPa, the low end of printed PETG's 1.8-2.0 GPa and the
+  (lever 1.77), the rotor journals pushed across their holes, the cams up to 3.42° ahead of the ratchet (D-bore play),
+  and two straight pawl arms of PETG with E = 1800 MPa, the low end of printed PETG's 1.8-2.0 GPa and the
   design floor. The knob torque uses E = 2100 MPa, the stiff end.
 - Fit margin convention follows `onewayclutch`: `TightFit 0.25`, `RegularFit 0.40`, `LooseFit 0.55`,
   `PressFit 0.05`, `Seam 0.25` (clamped seam, closed when bolts are tight).
@@ -65,7 +66,7 @@ Stack along Y (world):
 | Cam i hub | y_i − 4.8 | y_i + 2.35 | r 5.0; front end 0.05 from cam i−1 (or the ratchet) |
 | Slider i | y_i − 1.8 | y_i + 1.8 | stem; pin to y_i + 3.85 |
 | Cam i disc | y_i + 2.35 | y_i + 6.15 | groove on the −Y face; 0.55 (Loose) to the slider |
-| Shaft flat end | 39.2 | | square end of the d 6.4 flat; cam a's D chord stops here |
+| Shaft flat end | 39.2 | | square ends of the two flats; cam a's chords stop here |
 | Rear collar | 39.7 | 42.75 | cone 39.7→40.739 (r 3.2→3.8), cylinder r 3.8 |
 | Rear bearing 605ZZ | 43.0 | 48.0 | |
 | Rear wall | 43.0 | 51.0 | seat [43.0, 48.0], lip [48.0, 51.0] |
@@ -154,7 +155,8 @@ Max pressure angle 33.0°. Max slope 13.34 mm/rad. Lift differs from its dwell b
 
 ### Determinacy
 
-Claim: the camshaft can rest only where every cam is within 0.05 mm of a dwell.
+Claim: at friction up to 0.45 the camshaft can rest only where every cam is within 0.07 mm of a dwell (0.05 mm at
+0.35), with the D-bore play below included. At 0.5 this is shown only with the cams in step with the ratchet.
 
 - The ratchet (see Detent) has 10 teeth at the digit angles. Relative to digit k (`ψ' = θ − 36k`):
   - Float band: the pawl head floats in its notch (no contact). Backward travel stops on the lock face between −1.0
@@ -167,11 +169,22 @@ Claim: the camshaft can rest only where every cam is within 0.05 mm of a dwell.
     at ψ' ≈ 39.5-40. A released knob can rest in the crest band from 37.3 (µ 0.5) or 37.8 (µ 0.35) up to the drop.
   - After the drop the head floats in notch k+1; the next cam ramp starts at 42.5 (`RampStart` 8.0 past digit k+1,
     less the 1.5 timing allowance).
-- Detent release torque beats every opposing torque by ≥ 3.0× at friction 0.35, 1.8× at 0.45 and 1.0× at 0.5 for
-  `ψ' ∈ [7.98, 29.55]` (budget below; calculated, not measured). So the shaft cannot rest in `[7.98, 29.55]`.
-- Rest set ⊂ `[−1.5, 7.98) ∪ (29.55, 40]`. The crest band `[37.3, 40]` is `ψ'` 1.3 to 4.0 of digit k+1.
-- Cams are out of dwell only in `[9.48, 28.05]`. With a ±1.5° timing allowance (slider X play in its guides) that is
-  `[7.98, 29.55]`, which is disjoint from the rest set. The test requires the geometric crest less 1.0 to stay ≥ 29.55.
+- D-bore play. Each cam and the ratchet wheel sits on the shaft's double-D cam section with `PressFit` 0.05 radial
+  clearance and can turn 1.71° either way (`TestSevenSegmentBorePlay`; a single-D bore of the same fit turns 3.51°,
+  because a part that carries torque shifts off its flat until the round bears opposite). A part a torque drives
+  lags its driver. The knob drives the cams and the wheel alike, so they stay in step. While the pawls drive the shaft
+  back, a cam leads the wheel by up to 3.42°. Where friction locks the pawls before the crest (release torque ≤ 0
+  from ψ' 30.56 at µ 0.35, 30.21 at 0.45), nothing flips. Past the crest, where the pawls drive the shaft on, a cam
+  lags the wheel by up to 3.42°.
+- `TestSevenSegmentRestAngles` walks one step with that phase and the ±1.5° timing allowance (slider X play). Where
+  a cam is more than 0.05 off its dwell, the detent drives the shaft out: while the pawls drive back, by ≥ 1.8×
+  (computed 2.071) at µ 0.35 and ≥ 1.0× (1.068) at 0.45. The shaft can rest only where every cam is within 0.05 of
+  its dwell at µ 0.35 (computed 0.000) and within 0.07 at 0.45 (0.061, during the head's descent past the crest).
+- Release budget with the cams leading by 3.42°: ≥ 2.0 at µ 0.35 and ≥ 1.0 at 0.45 (computed 2.058 / 1.499 /
+  1.062 / 0.722 at 0.35 / 0.40 / 0.45 / 0.5). In step, for `ψ' ∈ [7.98, 29.55]`: ≥ 3.0 / 1.8 / 1.0 at 0.35 / 0.45 /
+  0.5 (computed 3.545 / 2.583 / 1.830 / 1.025). Calculated, not measured.
+- Cams are out of dwell only in `[9.48, 28.05]`, `[7.98, 29.55]` with the timing allowance. The test still
+  requires the geometric crest less 1.0 to stay ≥ 29.55.
 - Segment travel between rests happens only during the ramp window, synchronously for every changing segment.
   Released inside the window, the pawls drive the shaft back to digit k; past the crest they finish the step.
 
@@ -180,13 +193,14 @@ here):
 
 ```
 C        = one pawl's 3x3 compliance at its seat, pawl frame, rows and columns (F_u, F_v, M):
-           straight arm from v = 2.26 over 22.0, inner edge on PawlArmInner, thickness 1.2 -> 1.75,
+           straight arm from v = 2.26 over 22.0, inner edge on PawlArmInner, thickness 1.2 -> 1.90,
            b = DetentThickness 12, E 1800 MPa, G = E / 2.76; bending, axial and shear (factor 1.2) energy, head rigid
 δ, r_c, β = PawlContact(ψ')          radial lift, contact radius, contact normal from the radial (clockwise +)
 f        = (cos β ± µ sin β, −sin β ± µ cos β),  M = ∓ PawlTipRound µ    per unit normal force
 N        = δ cos β / ((cos β, −sin β) · C (f, M))
 T_d      = 2 N r_c (sin β ∓ µ cos β)                                     2 pawls; upper sign release, lower sign climb
 T_opp    = 7 µ W 19.5 + 2 · 0.1 + n (W + F_x) h'max + n µ F_x 19.5 + n µ 1.77 tan(a) (W + F_x) h'max   (flagLoad)
+           F_x with the rotor journal across its hole (budgetFx)
 require T_d(release) >= {3.0, 1.8, 1.0} T_opp at µ {0.35, 0.45, 0.5}, ψ' in [7.98, 29.55], every step
 ```
 
@@ -195,25 +209,26 @@ head's interference along the contact normal through the arm's compliance, with 
 and `a` (the greatest pressure angle) run over the segments whose cams are moving within ±1.5° of ψ'. The last `T_opp`
 term is the guide friction: the cam pushes each slider sideways by `(W + F_x) tan(a)`, and its stem slot and blade tube
 react that with a lever of 1.77. Expected: `δ(7.98)` ≈ 1.15, `r_c` ≈ 8.81, `β` ≈ 48.0°; one pawl's radial stiffness
-`1 / C_uu` ≈ 1.49 N/mm. The closed form ignores the head's drag lag. It reads 0-10 % below the FE path model at the
+`1 / C_uu` ≈ 1.78 N/mm. The closed form ignores the head's drag lag. It reads 0-10 % below the FE path model at the
 budget's worst point.
 
 Peak knob torque (`TestSevenSegmentFlagBudget`): the climbing `T_d` at E 2100 MPa and friction 0.5 plus `T_opp`, over the
-climb to the crest at every step, is 141.7 N·mm in the closed form; the test requires ≤ 250. The FE path model, which
-follows the head's drag lag past the geometric crest, gives 207 N·mm (10.4 N at the 20 mm knob rim) at friction 0.5 and
-E 2.1 GPa, 178 N·mm (8.9 N) at E 1.8 GPa, and 170 N·mm (8.5 N) at friction 0.35 and E 2.1 GPa. Use the path model's
-numbers for the hand feel.
+climb to the crest at every step, is 166.8 N·mm in the closed form; the test requires ≤ 250. The FE path model, run on the
+1.75 mm arms, gave 207 N·mm at friction 0.5 and E 2.1 GPa, 178 N·mm at E 1.8 GPa and 170 N·mm at friction 0.35; scaled
+by the 1.90 mm arm's radial stiffness ratio 1.197 these are about 248 N·mm (12.4 N at the 20 mm rim), 213 N·mm (10.7 N)
+and 203 N·mm (10.2 N). Use the scaled numbers for the hand feel.
 
 Arm strain: the radial force that lifts one head by `LiftMax` (`LiftMax / C_uu`) times the lever to the root
-(v 24.26), over the root section `b t²/6` with t = 1.75, is a nominal 1.423 % (E cancels); the test caps it at 1.45 %. The
-FE of the real outline reads 1.66 % at the inner root round, about 1.5 % with large deflection. The design accepts this
-strain, above the 1.0 % target, until a durability print checks it: turn 2 000 steps, inspect the inner root rounds,
-repeat to 20 000 steps and re-measure the climbing torque; a crack or a 20 % torque loss means the strain is too high.
+(v 24.26), over the root section `b t²/6` with t = 1.90, is a nominal 1.445 % (E cancels); the test caps it at 1.45 %. The
+FE of the 1.75 mm outline read 1.66 % at the inner root round and about 1.5 % with large deflection; scaled to 1.90 mm,
+about 1.69 % and 1.52 %. The design accepts this strain, above the 1.0 % target, until a durability print checks it:
+turn 2 000 steps, inspect the inner root rounds, repeat to 20 000 steps and re-measure the climbing torque; a crack or
+a 20 % torque loss means the strain is too high.
 
-Shaft shear at the path model's 207 N·mm: 8.4 MPa on the solid Ø5 journal, 10.0 MPa on the D stub (r 2.5, flat 2.0), and
-16-17 MPa if the two printed halves carry the torque independently (no shear across the seam). The bearing race and the
-knob and collar D bores hold the halves; their seam friction is unknown, so the design takes 16-17 MPa as the bound and
-accepts it with the halves unglued.
+Shaft shear at the scaled 248 N·mm: 10.1 MPa on the solid Ø5 journal, 12.0 MPa on the D stub (r 2.5, flat 2.0), and
+19-20 MPa if the two printed halves carry the torque independently (no shear across the seam). The bearing race and the
+knob and collar D bores hold the halves; their seam friction is unknown, so the design takes 19-20 MPa as the bound and
+accepts it with the halves unglued. The double-D cam section (5.4 across the flats) is stronger than the journal.
 
 Follow-ups, none of them tried:
 
@@ -222,8 +237,8 @@ Follow-ups, none of them tried:
   the lubricant.
 - A larger plate or a second pawl plate would allow longer arms; reaching 1.0 % needs about 1.4 times the arm length.
 - Enlarging the knob stub to D r 3.2 would lower the split-shaft shear; it needs a new collar and knob bore.
-- Thickening the arm root to 1.85 gives a budget of 1.92 at 1.5 GPa and µ 0.45, for printed PETG that measures below
-  the 1.8 GPa floor.
+- The arm root was thickened from 1.75 to 1.90 to hold the margins with the rotor journal across its hole; a root over
+  1.92 passes the 1.45 % strain cap.
 
 ### Camshaft
 
@@ -245,15 +260,16 @@ Revolve this meridian `(z, r)` about local Z with `decad.FullRevolution{}` (patt
 (40.739, 3.8) (42.75, 3.8) (42.75, 2.5) (47.7, 2.5) (48.0, 2.2) (48.0, 0)
 ```
 
-Then cut two flat tools (box prisms in the local frame, extruded symmetric ±4 along local y):
+Then cut three flat tools (box prisms in the local frame, extruded symmetric ±4 along local y):
 
 - Cam flat: `x ≥ 2.7` over `z ∈ [−50.25, 39.2]`; square end at z 39.2 (cam a's D chord stops on it).
+- Cam back flat: `x ≤ −2.7` over the same span, square end at z 39.2 (cam a's second chord stops on it).
 - Stub flat: `x ≥ 2.0` over `z ∈ [−73.2, −57.85]`; square end at z −57.85 (the collar ring's D chord stops on it,
   0.05 short of the ring's back face at −57.9). No run-out: both flats end square as D-chord stops, listed as
   mating pairs (split-shaft "Corners").
 
 Sections: knob stub r 2.5 D (flat 2.0) [−72.2, −57.85]; front journal r 2.5 round [−57.85, −49.25] through the lip
-hole and the front bearing; cam section r 3.2 D (flat 2.7) [−49.25, 39.2]; rear collar r 3.8; rear journal r 2.5
+hole and the front bearing; cam section r 3.2 double D (flats ±2.7) [−49.25, 39.2]; rear collar r 3.8; rear journal r 2.5
 round in the rear bearing. End chamfers 0.3 at both ends. Length 120.2.
 
 Failure: return `sevensegment: shaft: <op>: <err>`.
@@ -266,8 +282,9 @@ z ∈ [−3.8, 0], hub toward local +z.
 1. Revolve meridian `(r, z)`: `(0,−3.8) (24.5,−3.8) (25,−3.3) (25,−0.5) (24.5,0) (5.5,0)`, then an 8-chord quarter
    round about (5.5, 0.5) from (5.5, 0) to (5.0, 0.5) (pattern: `m2fastener.quarterRound`), then `(5.0,7.15) (0,7.15)`.
    Rim chamfers 0.5 are in the meridian; the hub root round 0.5 is a corner between layers.
-2. Cut the D bore: profile on local z = −4.8, circle arc r 3.25 the long way through −V, flat at v = +2.75; extrude
-   12.95 along +z. Flat on local +V (world +Z at θ = 0) on every D bore in the model.
+2. Cut the double-D bore: profile on local z = −4.8, two arcs r 3.25 joined by flats at v = ±2.75
+   (doubleDBoreLoop); extrude 12.95 along +z. The first flat is on local +V (world +Z at θ = 0) on every D bore in
+   the model; the cam and ratchet bores add the opposite flat.
 3. Cut the groove tool (next section): profile on local z = +1.0, extrude `decad.Against` 2.9 (to z −1.9).
 4. Cut the look-alike holes: circles r 0.75 at radius 12 (front cams) or 8 (rear cams) on angles 270°, 295°,
    320°, 345° (count per cam, "Look-alike parts"), extruded through local z ∈ [−4.8, 1.0]. Each hole has its own
@@ -326,7 +343,7 @@ axis vertical); no other orientation prints the groove and hub without support.
 Local frame: origin (0, −37.85, 28) (back face), U = +X, V = +Z, N = −Y; extrude `Along` 10.65 (to world y −48.5).
 Printed with its axis vertical, either face down.
 
-Outline (one closed loop) plus the D bore hole (r 3.25, flat 2.75 on +V). Ten teeth, tooth j occupying wheel-local
+Outline (one closed loop) plus the double-D bore hole (r 3.25, flats at ±2.75 along V). Ten teeth, tooth j occupying wheel-local
 angles `[φ_j, φ_j + 36]`, `φ_j = LockPhase + 36 j`, `LockPhase = PawlAngle − SeatAngle` (≈ 90.295°, from Derive) so
 the pawl A head seats on angle `PawlAngle` 95°:
 
@@ -379,13 +396,16 @@ above the wheel), pawl B by 275°.
 - Arm: a straight cantilever tangent to the wheel at the head, anchored counter-clockwise of it, so friction pulls the
   arm along its length and the head lifts radially. Inner edge on u = `PawlArmInner` = `RatchetTip` + `LooseFit` =
   12.426 from B to the root at v = 2.26 + `PawlArmLength` 22.0 = 24.26. Outer edge: a line from the lock flank's outer
-  end (thickness `PawlArmTip` 1.2) to (`PawlArmInner` + `PawlArmRoot` 1.75, 24.26). `PawlArmOuter` = 14.176, the outer
+  end (thickness `PawlArmTip` 1.2) to (`PawlArmInner` + `PawlArmRoot` 1.90, 24.26). `PawlArmOuter` = 14.326, the outer
   edge at the root.
-- Root rounds: 2.0 on the inner (tension) side, 1.0 on the outer side.
-- Slots: the inner slot is 3.0 wide (its side on u = `PawlArmInner` − 3.0); the outer slot is 1.8 wide at the root and
-  3.0 where it meets the window circle. Slot-end rounds 0.5.
+- Root rounds: 2.0 on the inner (tension) side, 1.0 on the outer side (at least half of 1.90).
+- Slots: the inner slot is 3.0 wide (its side on u = `PawlArmInner` − 3.0); the outer slot's side lies on
+  u = `PawlArmInner` + 3.55 at the root and + 4.75 where it meets the window circle (`pawlOuterSide`, `pawlOuterOpen`),
+  so the slot is 1.65 wide at the root and 2.85 at the window; the side did not move when the arm thickened. Slot-end
+  rounds 0.5.
 - Window: circle `WindowRadius` 18.8 joining the four slot sides, rounds 1.0 where they meet. At `PawlAngle` 95°,
-  pawl A's slot end lies 1.44 from the plate edge (x −25.56) and pawl B's outer slot keeps 1.13 to the D2 head pocket.
+  pawl A's slot end lies 1.44 from the plate edge (x −25.56) and pawl B's outer slot keeps 1.22 to the D2 head
+  pocket in the section 1 mm into the pocket (`TestSevenSegmentDetentPlate` requires 1.0).
 - Sketch constraints: every line is held from the origin or the polar axes. With `arm` = the axis at the pawl's angle
   + 90°: outer slot side and arm outer edge by `NewDistancePointLine` from the origin and `NewAngle(arm, line, a)` (two
   point distances were near-singular); root lines `NewPerpendicular(arm, line)` plus distance 24.26; arm inner edge and
@@ -457,8 +477,9 @@ Acceptance tests:
   the journal settled and 1.35 with it fully across (computed 1.554 and 1.382).
 - Determinacy: the budget (the detent drive over the opposing torque at every shaft angle where a cam is moving a
   segment, over all ten steps, on the built loads, guide friction included) is at least 1.8 at friction 0.45, 1.0 at 0.5
-  and 3.0 at 0.35 (computed 1.897, 1.120 and 3.416; 2.568 at 0.40). These are calculated on the built dimensions and not
-  measured on a print. The drive is determinate by calculation up to friction 0.45.
+  and 3.0 at 0.35 (computed in step 1.830, 1.025 and 3.545; 2.583 at 0.40; with the D-bore lead 2.058 at 0.35 and
+  1.062 at 0.45). These are calculated on the built dimensions and not measured on a print. The drive is determinate
+  by calculation up to friction 0.45.
 - Captive at every digit, upright and turned over; turning the knob in either orientation meets no contact other than
   the designed ones.
 - `go test ./models/sevensegment`, `go -C tools/render test -run SevenSegment .` and
@@ -925,6 +946,10 @@ Drive ratio (the drive arm over the friction arms) at friction 0.5: 1.554 settle
 (`TestSevenSegmentDriveAudit` asserts at least 1.50 and 1.35). F_x at friction 0.5: A 0.0288 settled and 0.0409 across,
 B 0.0387 settled and 0.0547 across. The design this replaces had a ratio of 1.250 (1.040 across) at 0.5.
 
+The budget takes F_x with the journal fully across (budgetFx). The drive's own force pushes the stub across: a load-set
+model (the stub against its hole along the pin force plus the weight, turned by up to the friction angle) puts it 0.157 to
+0.188 of the 0.20 clearance toward the pin at the pose of the largest F_x and gives F_x 5 to 9 % below the across value.
+
 ### Determinacy budget (`flagBudgetRatio()` in `params_test.go`, every step k at theta = 36k + psi)
 
 ```
@@ -937,16 +962,15 @@ for psi in [7.98, 29.55]
 
 | mu | 0.35 | 0.40 | 0.45 | 0.50 |
 | --- | ---: | ---: | ---: | ---: |
-| flags, worst step, built loads, Go closed form (`TestSevenSegmentFlagBudget`) | 3.416 | 2.568 | 1.897 | 1.120 |
-| same, FE compliance and frictional contact path model (design scratch model) | 3.67 | 2.77 | 2.06 | 1.50 |
+| in step, journal across, 1.90 mm arms, Go closed form (`TestSevenSegmentFlagBudget`) | 3.545 | 2.583 | 1.830 | 1.025 |
+| cams leading by the D-bore swing 3.42°, same (`TestSevenSegmentFlagBudget`) | 2.058 | 1.499 | 1.062 | 0.722 |
+| history: settled journal, 1.75 mm arms, Go closed form | 3.416 | 2.568 | 1.897 | 1.120 |
+| history: same, FE path model (design scratch model) | 3.67 | 2.77 | 2.06 | 1.50 |
 
-The test asserts at least 3.0 at 0.35, 1.8 at 0.45 and 1.0 at 0.5. The values are calculated on the built dimensions (rotor
-weights and centres of mass, slider weights and centres of mass, the pin on its slot wall, the slider guide friction, and
-the straight arm's beam compliance at E 1800 MPa), and not measured on a print. The closed form ignores the head's drag
-lag and uses beam rather than FE compliance (the FE of the real outline is about 9 % stiffer), so it reads below the path
-model. At µ 0.45 the path model gives 1.72 / 2.29 / 2.40 at E 1.5 / 2.0 / 2.1 GPa; the budget scales linearly with E.
-The drive is therefore determinate by calculation up to friction 0.45 with the margin of 1.8 (1.897 at 0.45), and still
-pushes a released knob on at 0.5 (1.120), against a margin of 1.0.
+The test asserts in step at least 3.0 / 1.8 / 1.0 at 0.35 / 0.45 / 0.5 and with the lead at least 2.0 / 1.0 at 0.35 /
+0.45. The values are calculated on the built dimensions and not measured on a print. The closed form ignores the head's
+drag lag and uses beam rather than FE compliance, so it reads below the path model. The drive is determinate by
+calculation up to friction 0.45 with the D-bore play included (1.062 at 0.45), and at 0.5 only in step (1.025).
 
 The curved pawls this replaces were budgeted with a straight-cantilever stiffness about 3.5 times too soft and without the
 guide friction. A frictional FE contact model of them showed that friction drags each head clockwise and the C-shaped arm
@@ -1032,11 +1056,24 @@ there. The b-f pins sit 0.05 below their droop to buy the b-f margin.
 
 ### Cam stack, axial play
 
-Nothing holds the cam stack along the shaft: each hub is 0.05 from the next (the press fit's 0.05 radial clearance is a
-sliding fit), the ratchet wheel's front face is 0.75 from the shaft's front shoulder, and cam a is 0.55 from the rear collar's
-cone. The stack can slide about 0.4 mm until a groove floor reaches a slider's pin tip (R2: the pin tip is 0.4 from the groove
-floor). This play is not in the friction budget. The README assembly says to push the stack to the rear when fitting the collar
-ring; a locking feature is not designed.
+The stack is held rearward only. Cam a's chords stop on the square ends of the shaft's flats at y 39.2, 0.05 behind
+its back face, and each hub stands 0.05 behind the next part (the ratchet wheel 0.05 in front of cam d). Pushed
+rearward, a cam moves back by the gaps behind it: a 0.05, f 0.10, b 0.15, g 0.20, c 0.25, e 0.30, d 0.35, the
+wheel 0.40. The rear collar's cone (0.55 behind cam a) is not reached. Forward nothing stops the stack before the
+pin tips: the shaft's front step (r 3.2) lies inside the wheel's bore (r 3.25), so the wheel could move 1.0 to the
+front bearing and wall, which "Arbor collars" allows for a pressed part's fitting side. A groove pin's engagement
+(pin tip y_i + 3.85 past the groove face y_i + 2.35) is 1.5 as modeled. With the stack fully back and the slider
+leaned forward as far as its stem slot (0.25 at z 54) and its blade hole (0.25 across for a, g, d; 0.35 along for b
+to f, at the ridge) allow, it is at least 0.765 (cam d unlit), and 0.90 with the slider only shifted 0.25
+(`TestSevenSegmentStackPlay` requires 0.75). The pin tip stands 0.40 from the groove floor as modeled. The slider's
+own lean (up to 0.41 for b to f) can close that with the stack in place, and the stack sliding forward closes it
+too; the floor then rubs the pin tip. On a level shaft nothing presses that contact along the shaft, so it adds no
+torque. Tilted toward the knob by θ, the cams' weight (0.58 N) presses each floor on its pin tip and friction at the
+groove radius adds about µ·0.58·sin θ·21 N·mm, which lowers the budget by 1 to 1.5 % per degree. No locking feature
+is designed. A collar ring in front of the wheel would face the front bearing's inner ring (diameter 8), leaving at
+most 1.45 of wall round its bore against the 1.6 minimum, in a 1.0 gap against the 3.0 collar minimum. A collar of
+the shaft's own body there would stop the cams being pressed on from the front. A lock would also not stop the
+slider's lean from reaching the floor.
 
 ### Captivity and stops
 
@@ -1270,7 +1307,7 @@ people only.
 
 | ID | Parts | Class | Modeled | Measure |
 | --- | --- | --- | ---: | --- |
-| P1 | cam, ratchet, collar ring, knob D bores / shaft | press | 0.05 radial | section mid-bore |
+| P1 | cam and ratchet double-D bores, collar ring and knob D bores / shaft | press | 0.05 radial | section mid-bore |
 | P2 | wall seats / 605ZZ outer race | bearing seat | 0.05 radial | section |
 | N1 | shaft journals / 605ZZ bore | nominal exception | 0 | — |
 | T1 | front step / front bearing inner face | Tight | 0.25 | bounds |
@@ -1288,7 +1325,7 @@ people only.
 | L5 | cam rims / guide plate | Loose | 1.0 | bounds |
 | L6 | arm outer wall (x 17.9) / rib inner edge (x 20); arm lower end (OFF) / guide plate top | Loose | 1.2; 1.0 | bounds, section |
 | L7 | detent plate inner face / slider d stem | Loose | 2.45 | bounds |
-| L8 | stub flat end / collar ring D chord; cam flat end / cam a D chord | press | 0.05 | bounds |
+| L8 | stub flat end / collar ring D chord; cam flats' ends / cam a's chords | press | 0.05 | bounds |
 | S1 | detent plate / front wall; plates / ribs and wall tops | clamped seam | 0.25 | bounds |
 | F | bolts, nuts | fastener rules | head 0.3, hole 0.3, nut 0.2 | bounds, no overlap |
 
@@ -1335,7 +1372,7 @@ Corners recorded but not exempted (they pass the checker or lie between layers; 
 | Sliders | tongue roots 0.7, blade roots 0.6, arm root 1.25 | rounded |
 
 Split-shaft exemptions (`cornercheck.CheckAt`): front step and rear collar rear face (square, facing a purchased
-bearing), cam flat's square end with cam a's D chord, stub flat's square end with the collar ring's D chord
+bearing), cam flats' square ends with cam a's chords, stub flat's square end with the collar ring's D chord
 (mating pairs).
 
 Rounded as required: groove concave walls 0.6, window tips 0.6, slot corners 0.55, pawl roots 2.0 on the inner
@@ -1361,6 +1398,8 @@ ratchet 3.25, collar ring 3.45, knob ≥ 3.
 | --- | --- | --- |
 | Shaft | x = 0: holds the axis and the flats' normal +Z | two 605ZZ bearings + press-fit bores (cams, ratchet, collar ring, knob); no cross bolts |
 
+The cam section carries a double flat (±2.7), which "Flats" allows; the knob stub keeps one flat facing +Z.
+
 Tests: `splitcheck.Check` (no `Normal`; flats name the plane) and `cornercheck.CheckAt` at
 `cornercheck.SplitHeights(point, normal, 2.5)`, exempting only the split-shaft exemptions above. Run both on the
 posed shaft of Digit 0 and Digit 2 (θ 0 and 72); require the split normal to be the rotated +X.
@@ -1369,11 +1408,16 @@ posed shaft of Digit 0 and Digit 2 (θ 0 and 72); require the split normal to be
 
 | Collar | Carried part | Flush side | Extent (Y) | Length | Diameter | Option |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| Front step | ratchet wheel (fitting side) | front bearing inner face −49.5 | step at −49.25 | — | 6.4 | two-bearing step rule; ratchet face 1.0 from the bearing |
+| Front step | ratchet wheel (fitting side) | front bearing inner face −49.5 | step at −49.25 | — | 6.4 | two-bearing step rule; ratchet face 1.0 from the bearing; the step lies inside the wheel's bore, so the wheel is stopped only on its rear side (Cam stack, axial play) |
 | Rear collar | cam a | rear bearing inner face 43.0 | [39.7, 42.75], cone [39.7, 40.739] | 3.05 | 7.6 | 1: gap 3.85 less 0.25 and 0.55 |
 | Collar ring | knob (end outside the frame) | front wall outer face −57.5 | [−61.4, −57.9] | 3.5 | 12 | 1, separate ring located by the stub flat's square end: the front bearing slides on from the front end, so a body collar there would block it |
 
 Rear collar diameter 7.6 < 605ZZ inner race 8. Front step radius 3.2 ≥ 2.5 + 0.3 chamfer clearance + 0.3.
+
+Listed exception: the front step (r 3.2) is narrower than the ratchet wheel's bore (r 3.25), so it is not a collar for
+the wheel by the rule's "wider than the carried part's bore". The wheel is pressed on the flat and stopped on its rear
+side through the cam hubs and cam a's chords; its front face stands 1.0 from the front bearing and wall, which it can
+reach only if the stack is pushed forward. On a level shaft nothing pushes it.
 
 
 ## Printing and assembly
@@ -1381,8 +1425,8 @@ Rear collar diameter 7.6 < 605ZZ inner race 8. Front step radius 3.2 ≥ 2.5 + 0
 Assembly (README and instructions.md):
 
 1. Press cams onto the shaft from the front end, groove faces toward the front, in order a, f, b, g, c, e, d; cam a's
-   D chord stops on the flat's end. Press the ratchet wheel next (steep tooth faces counter-clockwise seen from the
-   knob side).
+   chords stop on the flats' ends; push the stack rearward to that stop. Press the ratchet wheel next (steep tooth
+   faces counter-clockwise seen from the knob side).
 2. Bolt the detent plate to the front wall (2 × M2 × 18, nuts in the wall's outer-face pockets).
 3. Slide the front bearing onto the front journal; slide the front wall over it with each pawl head in a tooth gap.
    Slide the rear bearing on and press the rear wall onto it.
