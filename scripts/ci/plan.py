@@ -143,6 +143,7 @@ def isolated_tests(base, tested, changed):
                 owner = "tag-coplanar_test-" + owner
             inputs.append((owner, old, new))
         suites = set()
+        Path(".tmp").mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             root = Path(directory)
             binary = root / "testdiff"
