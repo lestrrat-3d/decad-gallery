@@ -699,6 +699,68 @@ def run_model_packages(names: tuple[str, ...]) -> None:
             qualified_expected=expected)
 
 
+# Two shards by what the tests build: "parts" holds the part tests (each part is built once and shared across them) and
+# "assembly" the tests of the assembled display (the digit 0, default and placed builds, started together and shared).
+# With 4 CPUs they take about 2 and 3 minutes; the whole package about 5.
+SEVENSEGMENT_SHARDS = {
+    "parts": (
+        "TestSevenSegmentBladeRoof", "TestSevenSegmentBuiltKinematics", "TestSevenSegmentCam",
+        "TestSevenSegmentCamInscription", "TestSevenSegmentCollars", "TestSevenSegmentCorners",
+        "TestSevenSegmentDetentPlate", "TestSevenSegmentEdgeFinishing", "TestSevenSegmentFits",
+        "TestSevenSegmentFlagPlates", "TestSevenSegmentFrame", "TestSevenSegmentJournalFit", "TestSevenSegmentKnob",
+        "TestSevenSegmentLookAlike", "TestSevenSegmentPinClearance", "TestSevenSegmentPlates",
+        "TestSevenSegmentPressWalls", "TestSevenSegmentRatchet", "TestSevenSegmentRotor", "TestSevenSegmentRotorAll",
+        "TestSevenSegmentSegmentGrid", "TestSevenSegmentShaft", "TestSevenSegmentSliders",
+        "TestSevenSegmentSplitShaft",
+    ),
+    "assembly": (
+        "TestSevenSegmentAllDigits", "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive",
+        "TestSevenSegmentChannel", "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
+        "TestSevenSegmentDefault", "TestSevenSegmentDetent", "TestSevenSegmentDriveAudit",
+        "TestSevenSegmentFasteners", "TestSevenSegmentFlagBudget", "TestSevenSegmentFlagKinematics",
+        "TestSevenSegmentFlagRestBand", "TestSevenSegmentPlacement", "TestSevenSegmentRampGeometry",
+        "TestSevenSegmentRestAngles", "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
+        "TestSevenSegmentTongueSweep", "TestSevenSegmentTruthTable", "TestSevenSegmentValidate",
+        "TestSevenSegmentVisibility", "TestSevenSegmentWindowLip", "TestSevenSegmentWindowYellow",
+    ),
+}
+
+
+def check_sevensegment_coverage() -> None:
+    """Require the seven-segment shards to be disjoint and to cover every test of the package."""
+    flattened = [test for tests in SEVENSEGMENT_SHARDS.values() for test in tests]
+    if len(flattened) != len(set(flattened)):
+        raise SystemExit("seven-segment shards contain duplicate test names")
+    listing = subprocess.run(
+        ["go", "test", "-list", "^Test", "./models/sevensegment"], check=True, capture_output=True, text=True
+    )
+    available = {line for line in listing.stdout.splitlines() if line.startswith("Test")}
+    if available != set(flattened):
+        raise SystemExit(
+            "seven-segment shard coverage does not match the package: unassigned "
+            + ", ".join(sorted(available - set(flattened)))
+            + "; unknown "
+            + ", ".join(sorted(set(flattened) - available))
+        )
+
+
+def run_sevensegment(shard: str) -> None:
+    """Run one shard of the seven-segment tests.
+
+    Every test belongs to exactly one shard; each shard checks that the shards together cover the package.
+    """
+    if shard not in SEVENSEGMENT_SHARDS:
+        raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_SHARDS) + ">")
+    check_sevensegment_coverage()
+    tests = list(SEVENSEGMENT_SHARDS[shard])
+    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], expected=tests)
+
+
+def run_sevensegment_render() -> None:
+    """Run the seven-segment renderer tests from the root module."""
+    go_test(["./tools/render", "-run", "SevenSegment", "-timeout", "30m", "-count=1"], module="tools/render")
+
+
 def run_turbinefan() -> None:
     """Run every test of the turbine fan package: about 5 minutes on a busy runner, so it has its own job."""
     run_model_packages(("turbinefan",))
@@ -1008,6 +1070,12 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
+    if suite == "sevensegment" and not args and mode in SEVENSEGMENT_SHARDS:
+        run_sevensegment(mode)
+        return
+    if suite == "sevensegment" and not args and mode == "render":
+        run_sevensegment_render()
+        return
     if suite == "clamparm" and not args and mode == "all":
         run_clamparm()
         return
@@ -1020,7 +1088,7 @@ def main() -> None:
     raise SystemExit(
         "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest-0..3>"
         " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
-        " | onewayclutch all | clamparm all | turbinefan all | fan <flat-three|steep-three>"
+        " | onewayclutch all | clamparm all | sevensegment <parts|assembly|render> | turbinefan all | fan <flat-three|steep-three>"
     )
 
 

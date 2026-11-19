@@ -55,6 +55,9 @@ def report(root, renderer):
     for case, (_, tests) in run_tests.SIREN_CASES.items():
         for test in tests:
             add(full_partition.ROOT + "/models/handcranksiren", test, "siren/" + case)
+    for shard, tests in run_tests.SEVENSEGMENT_SHARDS.items():
+        for test in tests:
+            add(full_partition.ROOT + "/models/sevensegment", test, "sevensegment/" + shard)
 
     for package, label in ((full_partition.ROOT + "/models/spinningwheel", "wheel/rest"),
                            (full_partition.ROOT + "/models/handcranksiren", "siren/rest")):
