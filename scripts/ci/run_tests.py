@@ -715,7 +715,7 @@ SEVENSEGMENT_SHARDS = {
     ),
     "assembly": (
         "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
-        "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
+        "TestSevenSegmentBorePlay", "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDetent", "TestSevenSegmentDriveAudit",
         "TestSevenSegmentFasteners", "TestSevenSegmentFlagBudget", "TestSevenSegmentFlagKinematics",

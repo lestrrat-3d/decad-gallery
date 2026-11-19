@@ -1,52 +1,27 @@
 package sevensegment_test
 
 import (
-	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
 	"github.com/stretchr/testify/require"
 )
 
-// TestSevenSegmentRestAngles proves, from Dimensions alone, that the camshaft cannot rest on a digit-less angle: at every
-// angle psi past a digit's rest angle, either every segment sits within 0.05 mm of its dwell height all through the
-// 1.5 degree timing allowance, or the detent drives the shaft (lift of the pawl above zero, drive at least 1.8 times
-// the opposing torque of the flag mechanism, below the crest band). Where the shaft can rest, the heights are those of the nearest digit.
+// TestSevenSegmentRestAngles proves, from Dimensions and the built loads, that a released knob leaves every cam on its
+// dwell: over one step, with each cam turned against the ratchet wheel by the D-bores' play as the drive sets it
+// (phaseRest), every angle where a cam is more than 0.05 off its dwell is one the detent drives the shaft out of, at
+// friction 0.35 with a margin of 1.8 while the pawls drive back. At friction 0.45 the shaft can rest only where every cam
+// is within 0.07 of its dwell (computed 0.061, while the pawls carry the shaft past the crest).
 func TestSevenSegmentRestAngles(t *testing.T) {
 	startDigit0()
 	t.Parallel()
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
-	restSteps, drivenSteps := 0, 0
-	for psi := -1.4; psi < 34.6; psi += 0.05 {
-		dwell := true
-		for _, e := range []float64{-sevensegment.TimingAllowance, 0, sevensegment.TimingAllowance} {
-			digit := int(math.Round((psi + e) / 36))
-			for _, s := range sevensegment.Segments() {
-				for k := range 10 {
-					got := dm.Lift(s, 36*float64(k)+psi+e)
-					// The digit this angle belongs to for digit index k is k + digit.
-					lit, _ := sevensegment.Lit((k+digit+10)%10, s)
-					w := 0.0
-					if lit {
-						w = sevensegment.Travel
-					}
-					if math.Abs(got-w) > 0.05 {
-						dwell = false
-					}
-				}
-			}
-		}
-		if dwell {
-			restSteps++
-			continue
-		}
-		delta, _ := dm.PawlDeflection(psi)
-		require.Greater(t, delta, 0.0, "angle %.2f is neither a dwell nor driven: no pawl lift", psi)
-		require.Less(t, psi, dm.CrestAngle-1.0, "angle %.2f is in the crest band", psi)
-		require.GreaterOrEqual(t, worstFlagBudget(t, dm, psi), 1.8, "angle %.2f is not driven back with margin", psi)
-		drivenSteps++
+	swing := phaseSwing()
+	for _, c := range []struct{ mu, maxOff, minRelease float64 }{{0.35, 0.05, 1.8}, {0.45, 0.07, 1.0}} {
+		off, release := phaseRest(t, dm, c.mu, swing)
+		t.Logf("friction %.2f: worst cam offset at a rest %.3f, least release budget %.3f", c.mu, off, release)
+		require.LessOrEqual(t, off, c.maxOff, "friction %.2f: a cam rests off its dwell", c.mu)
+		require.GreaterOrEqual(t, release, c.minRelease, "friction %.2f: the pawls drive the shaft back without margin", c.mu)
 	}
-	require.Greater(t, restSteps, 0)
-	require.Greater(t, drivenSteps, 0)
 }
