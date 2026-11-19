@@ -1,5 +1,7 @@
 package pinring_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
