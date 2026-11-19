@@ -73,6 +73,20 @@ class PlanTest(unittest.TestCase):
     def test_dispatch_always_broad(self):
         self.assertEqual(plan.plan("workflow_dispatch", "", "head")["suites"], ["broad"])
 
+    def test_renderer_change_adds_full_renderer_to_broad(self):
+        renderer = plan.ROOT + "/tools/render"
+        graph = {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
+        for path in (b"tools/render/gallery.go\0", b"tools/render/readme_views_test.go\0"):
+            with self.subTest(path=path), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=path):
+                result = plan.plan("push", "base", "head")
+                self.assertEqual(result["suites"], ["broad", "renderer-all"])
+                self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+                self.assertEqual(gate.matrix_for(result["suites"]),
+                                 {"include": [{"suite": "renderer-all", "case": 0}]})
+
     def test_reverse_imports_stop_at_test_edges(self):
         graph = {
             "a": {"dir": "a", "imports": set(), "test_imports": set()},
@@ -184,7 +198,7 @@ class PlanTest(unittest.TestCase):
                  "handcrankfan": {"fan-motion", "fan-view"}, "handcranksiren": {"siren-render"},
                  "planetarygearbox": {"planetary-motion", "planetary-render"},
                  "spinningwheel": {"wheel-motion", "wheel-parts", "wheel-block"},
-                 "spurgear": {"spur-render"}, "swisslever": {"swiss-render"}}
+                 "swisslever": {"swiss-render"}}
         for name, expected in cases.items():
             owner = plan.ROOT + "/models/" + name
             graph = {owner: {"dir": "models/" + name, "imports": set(), "test_imports": set()}}

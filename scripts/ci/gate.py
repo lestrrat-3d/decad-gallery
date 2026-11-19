@@ -19,7 +19,6 @@ RENDER_TESTS = {
     "planetary-render": ("40m", ("TestPlanetaryMotionUsesBuiltGearbox", "TestPlanetaryKitParts")),
     "wheel-block": ("40m", ("TestSpinningWheelBlockOfEveryPart",)),
     "bevel-render": ("40m", ("TestBevelPairsRealBuild",)),
-    "spur-render": ("40m", ("TestGalleryCacheRealSpurGear",)),
     "bearing-render": ("40m", ("TestDirectRenderMatchesPNGForClippedBearing",)),
     "planetary-motion": ("10m", ("TestPlanetaryGearboxMotion",)),
     "wheel-motion": ("30m", ("TestSpinningWheelMotion",)),
@@ -30,6 +29,7 @@ RENDER_TESTS = {
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
     "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
+    "renderer-all": [["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."]],
     "feature-dovetail": [["go", "test", "./features/dovetail", "-timeout", "5m"]],
     **{name: [["go", "-C", "tools/render", "test", "-json", "-run", run_pattern(tests),
                "-timeout", timeout, "./..."]] for name, (timeout, tests) in RENDER_TESTS.items()},
@@ -88,7 +88,7 @@ def suites_from_plan(raw):
     if (plan.get("version") != 1 or not isinstance(suites, list)
             or any(not isinstance(suite, str) for suite in suites)
             or len(set(suites)) != len(suites)
-            or ("broad" in suites and any(suite != "broad" and not suite.startswith(
+            or ("broad" in suites and any(suite not in ("broad", "renderer-all") and not suite.startswith(
                 ("new-model-", "new-package-", "new-feature-")) for suite in suites))):
         raise ValueError("invalid suite selection")
     matrix_for(suites)

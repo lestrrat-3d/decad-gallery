@@ -27,6 +27,17 @@ def needs_for(suites, event="push"):
 
 
 class GateTest(unittest.TestCase):
+    def test_broad_with_full_renderer_dispatch(self):
+        suites = ["broad", "renderer-all"]
+        self.assertEqual(gate.check(needs_for(suites), "push"), [])
+        with mock.patch.dict(os.environ, {"SUITE": "renderer-all", "CASE": "0"}), \
+                mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                mock.patch.object(gate.subprocess, "run") as dispatch:
+            gate.main()
+        dispatch.assert_called_once_with(
+            ["go", "-C", "tools/render", "test", "-timeout", "170m", "./..."], check=True,
+        )
+
     def test_renderer_dispatch_commands(self):
         package = "github.com/lestrrat-3d/decad-gallery/tools/render"
         for suite, (timeout, tests) in gate.RENDER_TESTS.items():

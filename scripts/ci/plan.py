@@ -24,7 +24,7 @@ RENDER = {"ballbearing": ("bearing-render",), "bevelgear": ("bevel-render",),
           "handcrankfan": ("fan-motion", "fan-view"), "handcranksiren": ("siren-render",),
           "planetarygearbox": ("planetary-motion", "planetary-render"),
           "spinningwheel": ("wheel-motion", "wheel-parts", "wheel-block"),
-          "spurgear": ("spur-render",), "swisslever": ("swiss-render",)}
+          "swisslever": ("swiss-render",)}
 
 
 def check_wheel_inventory(root=Path(".")):
@@ -147,8 +147,10 @@ def plan(event, base, tested):
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
                 new_suites.append(prefix + parts[1])
             reason = "new packages require broad coverage and direct tests"
-            result.update(suites=["broad", *new_suites],
-                          reasons={suite: [reason] for suite in ["broad", *new_suites]}, reason=reason)
+            suites = ["broad", *new_suites]
+            if any(path.startswith("tools/render/") for path in code):
+                suites.append("renderer-all")
+            result.update(suites=suites, reasons={suite: [reason] for suite in suites}, reason=reason)
             return result
         if any(not is_presentation(path) and not path.endswith(".go") for path in changed):
             raise ValueError("unregistered or shared input changed")
@@ -185,6 +187,10 @@ def plan(event, base, tested):
     except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
         reason = "conservative fallback: " + str(exc)
         result.update(reason=reason, reasons={"broad": [reason]})
+    if ("broad" in result["suites"] and
+            any(path.startswith("tools/render/") and path.endswith(".go") for path in result["changed_paths"])):
+        result["suites"].append("renderer-all")
+        result["reasons"]["renderer-all"] = ["renderer source or tests changed"]
     return result
 
 
