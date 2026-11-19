@@ -15,7 +15,7 @@ META = ("version", "invocation", "module", "job", "case", "revision", "run_id", 
 FULL_JOBS = {
     "repository": ("",), "renderer-full": ("",), "escapement": ("",),
     "planetary-full": ("kits", "rest"),
-    "onewayclutch": ("",), "clamparm": ("",), "turbinefan": ("",),
+    "onewayclutch": ("",), "clamparm": ("",), "sevensegment": ("parts", "assembly"), "turbinefan": ("",),
     "wheel": ("default-verify", "default-linkage", "native", "small-seven-verify",
               "small-seven-linkage", "large-nine-verify", "large-nine-linkage", "twelve",
               "small-seventeen", "rest"),
