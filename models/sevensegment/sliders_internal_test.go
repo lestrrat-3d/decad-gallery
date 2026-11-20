@@ -1,5 +1,7 @@
 package sevensegment
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
