@@ -87,6 +87,7 @@ The set screw nut sits behind the hub in that view, so the same parts are shown 
 | <img src="images/parts/bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/fastener`](../fastener)), 3: the blade bolts |
 | <img src="images/parts/setscrew.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/fastener`](../fastener)), 1: the set screw |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/fastener`](../fastener)), 4 |
+| <img src="images/parts/harness.png" alt="Print cradle" width="240"> | Print cradle (printed with each blade, removed and discarded) |
 
 ## Sizes
 
@@ -179,9 +180,33 @@ only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bo
 
 ## Printing
 
-Print the hub front face down, with its bore axis vertical, and each blade standing on its stud end. A blade is 88 mm tall
-at 192 mm (104 mm at 224 mm) and stands on a stud end 8 mm across, so print it with a brim. The hub needs no print pause:
-every nut sits in a slot open to a face, so you put the nuts in after printing.
+Print the hub front face down, with its bore axis vertical. The hub needs no print pause: every nut sits in a slot open to a
+face, so you put the nuts in after printing.
+
+Print each blade lying on the bed, leading edge down, in a cradle the model builds with it. The blade's root end is
+tilted about 12° up from the bed (11.4° at 128 mm, 11.8° at 192 mm, 12.5° at 224 mm), so it rests on the bed at two
+small spots: the corner of the stud's end and the leading edge near the widest part of the blade. The layers then run
+along the blade, which is the strong direction for the load it carries in use. The cradle is one piece that stands on
+the bed beside and under the blade. It follows the blade's shape up to the blade's widest line on each side, 0.2 mm
+below it and 0.4 mm to the side, so the slicer prints the contact as a support surface that peels off. There is no raft.
+
+![The blade lying in its cradle, seen from the stud end on the pressure side: the cradle wall follows the blade's concave face up to its widest line](images/print.png)
+
+![The same print seen from the suction side, tip on the left: the lower cradle wall follows the blade's lower face, and the blade rests on the bed at its stud corner and its leading edge](images/print-side.png)
+
+![The print seen from the tip end: the cradle holds the blade from both sides in a trough that fits its section](images/print-end.png)
+
+To print a blade:
+
+1. Build the blade and its cradle with `BuildBladePrint` (see the [developer notes](../../docs/models/turbinefan.md)) and
+   load them as one object, as built. Turn slicer supports off. Use 0.2 mm layers or thinner.
+2. PLA and PETG need no brim. If the stud corner lifts, add a 3 mm brim on the blade's two bed spots; it leaves marks on
+   the stud end and the leading edge. With ABS or ASA, add a 5 mm brim on the cradle only.
+3. After printing, lift the blade straight up out of the cradle; its two bed spots come off the bed with it. Peel the
+   cradle off the bed and throw it away.
+4. The faces the cradle held show support marks: most of the concave face, the leading edge, the lower part of the convex
+   face, the root and the underside of the stud. Sand them along the chord with 400 grit, and lightly sand the two bed
+   spots. Check that the stud slides into a hub socket.
 
 To assemble:
 

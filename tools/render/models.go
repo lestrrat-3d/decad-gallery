@@ -556,6 +556,9 @@ func turbinefanModel() renderkit.Model {
 		"clutch-back":     {Width: 1600, Height: 900, Scene: turbineClutchViewScene("clutch-back")},
 		"clutch-cutaway":  {Width: 1600, Height: 900, Scene: turbineClutchViewScene("clutch-cutaway")},
 		"clutch-exploded": {Width: 1600, Height: 900, Scene: turbineClutchViewScene("clutch-exploded")},
+		"print":           {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print")},
+		"print-side":      {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print-side")},
+		"print-end":       {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print-end")},
 	}
 	return renderkit.Model{
 		Name:    "turbinefan",

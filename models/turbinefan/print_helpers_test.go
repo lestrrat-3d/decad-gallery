@@ -1,0 +1,245 @@
+package turbinefan_test
+
+import (
+	"math"
+	"sync"
+	"testing"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
+	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
+	"github.com/stretchr/testify/require"
+)
+
+// poseTransform returns the transform of PrintPoseFor(sz, pitch, hand, tilt).
+func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbinefan.Hand, tilt float64) (r3.Frame,
+	r3.Transform) {
+	t.Helper()
+	f, err := turbinefan.PrintPoseFor(sz, pitch, hand, tilt)
+	require.NoError(t, err)
+	xf, err := r3.FromFrame(f)
+	require.NoError(t, err)
+	return f, xf
+}
+
+// posedBlade builds the blade of hand at rotor d and pitch in a fresh NewDocument, finds its rest tilt, moves it into
+// the print pose and returns the document, the posed blade and the tilt.
+func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Document, *decad.Body, float64) {
+	t.Helper()
+	sz := mustSize(t, d)
+	doc := turbinefan.NewDocument()
+	build := turbinefan.BuildBlade
+	if hand == turbinefan.LeftHand {
+		build = turbinefan.BuildBladeMirrored
+	}
+	blade, err := build(t.Context(), doc, pitch, sz)
+	require.NoError(t, err)
+	tilt, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, pitch, hand)
+	require.NoError(t, err)
+	_, xf := poseTransform(t, sz, pitch, hand, tilt)
+	posed, err := decad.Transform(t.Context(), blade.Body, xf)
+	require.NoError(t, err)
+	return doc, posed, tilt
+}
+
+// sectionAt cuts body with the plane z = h of the print frame at the finest chord the body allows. The cradle's held
+// mesh bound is up to 0.14 mm, so it takes 0.2.
+func sectionAt(t *testing.T, body *decad.Body, h float64) decad.SectionOutline {
+	t.Helper()
+	var o decad.SectionOutline
+	var err error
+	for _, tol := range []float64{0.02, 0.05, 0.2} {
+		if o, err = body.SectionOutline(t.Context(), atZ(t, h), units.Millimeters(tol)); err == nil {
+			return o
+		}
+	}
+	require.NoError(t, err)
+	return o
+}
+
+// loopArea returns the area of a closed polyline in the XY plane, and its centroid.
+func loopArea(l []r3.Vec) (float64, r3.Vec) {
+	a, cx, cy := 0.0, 0.0, 0.0
+	for i := range l {
+		p, q := l[i], l[(i+1)%len(l)]
+		c := p.X*q.Y - q.X*p.Y
+		a += c
+		cx += (p.X + q.X) * c
+		cy += (p.Y + q.Y) * c
+	}
+	if a == 0 {
+		return 0, l[0]
+	}
+	return math.Abs(a) / 2, r3.Vec{X: cx / (3 * a), Y: cy / (3 * a)}
+}
+
+// insideLoop reports whether (x, y) lies inside the closed polyline, by the even-odd rule.
+func insideLoop(l []r3.Vec, x, y float64) bool {
+	in := false
+	for i := range l {
+		a, c := l[i], l[(i+len(l)-1)%len(l)]
+		if (a.Y > y) != (c.Y > y) && x < (c.X-a.X)*(y-a.Y)/(c.Y-a.Y)+a.X {
+			in = !in
+		}
+	}
+	return in
+}
+
+// requireBoxNear requires two boxes to agree within tol on every face; mirror negates y of want first.
+func requireBoxNear(t *testing.T, want, got decad.Box, tol float64, mirror bool, name string) {
+	t.Helper()
+	lo, hi := want.Min, want.Max
+	if mirror {
+		lo.Y, hi.Y = -want.Max.Y, -want.Min.Y
+	}
+	for i, pair := range [][2]float64{
+		{lo.X, got.Min.X}, {lo.Y, got.Min.Y}, {lo.Z, got.Min.Z}, {hi.X, got.Max.X}, {hi.Y, got.Max.Y}, {hi.Z, got.Max.Z},
+	} {
+		require.InDelta(t, pair[0], pair[1], tol, "%s bound %d", name, i)
+	}
+}
+
+// cradleCase is one harness case: rotor, pitch in degrees and hand.
+type cradleCase struct {
+	name     string
+	rotor    float64
+	pitchDeg float64
+	hand     turbinefan.Hand
+}
+
+// cradleCases are the harness cases. The left hand at 192 / 25 pairs with the right hand for the mirror check.
+var cradleCases = []cradleCase{
+	{"128", 128, 25, turbinefan.RightHand},
+	{"192", 192, 25, turbinefan.RightHand},
+	{"192-left", 192, 25, turbinefan.LeftHand},
+	{"192-steep-left", 192, 40, turbinefan.LeftHand},
+	{"224-left", 224, 25, turbinefan.LeftHand},
+	{"224-steep-left", 224, 40, turbinefan.LeftHand},
+}
+
+// builtCradle is one built harness case: its document, the posed blade, its rest tilt and the harness.
+type builtCradle struct {
+	doc     *decad.Document
+	blade   *decad.Body
+	tilt    float64
+	harness *turbinefan.BladeHarness
+	sz      turbinefan.Size
+	hand    turbinefan.Hand
+	err     error
+}
+
+var (
+	builtCradleMu    sync.Mutex
+	builtCradleCases = map[string]*builtCradle{}
+)
+
+// cradleFor builds a harness case on first use and shares it between the tests, which only read it. A build takes 12 to
+// 30 s.
+func cradleFor(t *testing.T, c cradleCase) *builtCradle {
+	t.Helper()
+	builtCradleMu.Lock()
+	defer builtCradleMu.Unlock()
+	if b, ok := builtCradleCases[c.name]; ok {
+		require.NoError(t, b.err, c.name)
+		return b
+	}
+	sz := mustSize(t, c.rotor)
+	doc, blade, tilt := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
+	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand, tilt)
+	b := &builtCradle{doc: doc, blade: blade, tilt: tilt, harness: h, sz: sz, hand: c.hand, err: err}
+	builtCradleCases[c.name] = b
+	require.NoError(t, err, c.name)
+	return b
+}
+
+// eachCradle runs fn as a subtest for each harness case.
+func eachCradle(t *testing.T, fn func(t *testing.T, c cradleCase, b *builtCradle)) {
+	t.Helper()
+	for _, c := range cradleCases {
+		t.Run(c.name, func(t *testing.T) { fn(t, c, cradleFor(t, c)) })
+	}
+}
+
+// shadowSectionCount returns the number of shadow sections: the Sections from the step zone's lead-in on.
+func shadowSectionCount(h *turbinefan.BladeHarness) int {
+	n := 0
+	for _, c := range h.Sections {
+		if c.X >= h.StepZone[0]-1.0-1e-9 {
+			n++
+		}
+	}
+	return n
+}
+
+// lowestCrossing returns the lowest z where the vertical line y meets the closed polyline (y, z taken from the points'
+// Y and Z), and whether it meets it.
+func lowestCrossing(l []r3.Vec, y float64) (float64, bool) {
+	best, ok := math.Inf(1), false
+	for i := range l {
+		a, c := l[i], l[(i+1)%len(l)]
+		if (a.Y-y)*(c.Y-y) > 0 || a.Y == c.Y {
+			continue
+		}
+		if z := a.Z + (y-a.Y)/(c.Y-a.Y)*(c.Z-a.Z); z < best {
+			best, ok = z, true
+		}
+	}
+	return best, ok
+}
+
+// lowestLoop returns the loop holding the lowest point of the outline.
+func lowestLoop(o decad.SectionOutline) []r3.Vec {
+	var best []r3.Vec
+	low := math.Inf(1)
+	for _, l := range o.Loops {
+		for _, p := range l {
+			if p.Z < low {
+				best, low = l, p.Z
+			}
+		}
+	}
+	return best
+}
+
+// inStepReach reports whether x lies where the step zone's copied sections and the walls' smoothing reach: from the
+// shadow tool's lead-in, less the smoothing half-width and a section, to the zone's end plus the same.
+func inStepReach(h *turbinefan.BladeHarness, x float64) bool {
+	reach := turbinefan.CradleTopSmooth + turbinefan.CradleStep
+	return x >= h.StepZone[0]-1.0-reach && x <= h.StepZone[1]+reach
+}
+
+// frame3 is the plane x = const of the print frame, U along +Y and V along +Z.
+func frame3(x float64) r3.Frame {
+	f, _ := r3.NewFrame(r3.Vec{X: x}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	return f
+}
+
+// sectionAround interpolates the widest points of the two sections around x; false outside the sections' x range.
+func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSection, bool) {
+	s := h.Sections
+	if x < s[0].X || x > s[len(s)-1].X {
+		return turbinefan.CradleSection{}, false
+	}
+	for i := 1; i < len(s); i++ {
+		if x > s[i].X {
+			continue
+		}
+		a, c := s[i-1], s[i]
+		f := (x - a.X) / (c.X - a.X)
+		lerp := func(p, q float64) float64 { return p + f*(q-p) }
+		return turbinefan.CradleSection{X: x, LeftY: lerp(a.LeftY, c.LeftY), LeftZ: lerp(a.LeftZ, c.LeftZ),
+			RightY: lerp(a.RightY, c.RightY), RightZ: lerp(a.RightZ, c.RightZ)}, true
+	}
+	return s[len(s)-1], true
+}
+
+// downward returns a triangle's angle from vertical, in degrees, and whether it points down more than 45 degrees
+// (its unit normal's z below -sin 45° - slack).
+func downward(v [3]r3.Vec, slack float64) (float64, bool) {
+	n, ok := v[1].Sub(v[0]).Cross(v[2].Sub(v[0])).Normalize()
+	if !ok || n.Z >= -math.Sin(math.Pi/4)-slack {
+		return 0, false
+	}
+	return math.Asin(math.Min(1, -n.Z)) * 180 / math.Pi, true
+}

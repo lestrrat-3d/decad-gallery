@@ -99,3 +99,74 @@ func requireBladeCorners(t *testing.T, m *turbinefan.Model, k int) {
 	require.NoError(t, err)
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
 }
+
+// requireBladePrintCorners checks a fresh blade lying in its print pose at its rest tilt, read across the bed (+Z) at
+// every 1 mm from z 0.5 to its top: no planar face lies parallel to the bed, so MidHeights gives no height. Three
+// listed corner groups are exempt:
+//   - the step where the stud meets the root face: inside corners whose blade-local radius lies within 1.0 of
+//     RootRadius. Lying, the step is inside the layers; it waits on a root fillet (instructions.md). required makes the
+//     exemption claim a finding.
+//   - the edges cut obliquely: a layer cuts the leading edge and the trailing-edge flat at the rest tilt, so each loop
+//     ends in a stretched tip. Findings within 1.5 mm in x of their loop's least or greatest x are exempt.
+//   - the bolt hole across the stud, the corner the radial-line check lists too: lying, the layers cut the hole's walls
+//     where it crosses the stud. Findings whose blade-local radius lies within HoleRadius + 0.5 of BladeBoltAt.
+func requireBladePrintCorners(t *testing.T, d, pitch float64, hand turbinefan.Hand, required bool) {
+	t.Helper()
+	sz := mustSize(t, d)
+	_, blade, tilt := posedBlade(t, d, pitch, hand)
+	pose, err := turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, hand, tilt)
+	require.NoError(t, err)
+	radial := pose.U().Cross(pose.V())
+	box, err := blade.Bounds()
+	require.NoError(t, err)
+	var heights []float64
+	for h := 0.5; h < box.Max.Z; h += 1 {
+		heights = append(heights, h)
+	}
+	ends := map[float64][][2]float64{} // per height, each loop's least and greatest x
+	for _, h := range heights {
+		o, err := cornercheck.Outline(t.Context(), blade, r3.Vec{Z: 1}, h)
+		require.NoError(t, err)
+		for _, l := range o.Loops {
+			lo, hi := math.Inf(1), math.Inf(-1)
+			for _, p := range l {
+				lo, hi = math.Min(lo, p.X), math.Max(hi, p.X)
+			}
+			ends[h] = append(ends[h], [2]float64{lo, hi})
+		}
+	}
+	step := cornercheck.Exempt{
+		Reason:   "stud-to-root step inside the layers",
+		Optional: !required,
+		Near: func(p r3.Vec) bool {
+			return math.Abs(p.Sub(pose.Origin()).Dot(radial)-sz.RootRadius) <= 1.0
+		},
+	}
+	oblique := cornercheck.Exempt{
+		Reason:   "edge cut obliquely by a layer",
+		Optional: true,
+		Near: func(p r3.Vec) bool {
+			for h, loops := range ends {
+				if math.Abs(p.Z-h) > 1e-6 {
+					continue
+				}
+				for _, e := range loops {
+					if math.Abs(p.X-e[0]) <= 1.5 || math.Abs(p.X-e[1]) <= 1.5 {
+						return true
+					}
+				}
+			}
+			return false
+		},
+	}
+	hole := cornercheck.Exempt{
+		Reason:   "bolt hole across the stud",
+		Optional: true,
+		Near: func(p r3.Vec) bool {
+			return math.Abs(p.Sub(pose.Origin()).Dot(radial)-sz.BladeBoltAt) <= m2fastener.HoleRadius+0.5
+		},
+	}
+	fs, err := cornercheck.CheckAt(t.Context(), blade, r3.Vec{Z: 1}, heights, []cornercheck.Exempt{step, oblique, hole})
+	require.NoError(t, err)
+	require.Empty(t, fs, cornercheck.Report(fs, 8))
+}

@@ -1,10 +1,12 @@
 # Turbine fan Decad steps
 
-Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has seven files:
+Follow instructions.md for the API, the dimensions, the presets and the validation order. The package has nine files:
 `params.go` (constants, `Hand`, `Params`, the presets, `Validate`, `Derive`, `Dimensions`), `size.go` (the rotor size
 constants, `Size`, `SizeFor`, `Size.Beta`), `document.go`
 (`NewDocument`), `blade.go` (the blade and its joint), `sketches.go` (the build run, the hub's outline sketch, the nut slot sketch and the tools) and
-`turbinefan.go` (package doc, container names, `Parts`, `Model`, `BuildParts`, `Build`, the hub and the blades). Every error
+`turbinefan.go` (package doc, container names, `Parts`, `Model`, `BuildParts`, `Build`, the hub and the blades),
+`print.go` (the print pose, `RestTilt`, `PrintPoseFor`, `BladePrint`, `BuildBladePrint`) and `harness.go` (the print
+cradle, `BuildBladeHarness`). Every error
 message starts with `turbinefan: `.
 
 No nut is embedded: the set screw's nut, the blade nuts and the adapter nuts sit in hex slots open to a face (AGENTS.md "Fasteners");
@@ -93,6 +95,9 @@ The blade's stud union needs a document with a chain tolerance of 0.1 mm; `NewDo
 sections, the stud circle and the bolt-hole circle, in that order. `BuildBladeMirrored` differs only in `mirror`. The
 first failing step stops the rest.
 
+- `sectionLocal(st, beta, x, eta)` returns one section point in the stacking-point frame before the right hand's X
+  negation; `sectionPoints` calls it for every fit point, and the print cradle reads the tip's edge points from it.
+  `bladeBuilder.what` names the part in its errors (`"blade"` when empty, `"harness"` for the cradle).
 - Blade frame: sections on world-XY planes at Z = r (radius) with the sketch origin on the stacking line; local Z is the
   radial line, local X the blade's direction of motion and local Y downstream. A local point `(u, v)` of a section at
   angle `beta` for chord position `xi` (mm from the leading edge) and offset `eta` toward the suction side is
@@ -106,7 +111,7 @@ first failing step stops the rest.
   and select the valid profile with no holes and three outer edges. The sections are always drawn at the 25 degree blade
   angle, with every X coordinate negated for `BuildBlade` (not for `BuildBladeMirrored`).
 - Loft: `decad.LoftSections` through the ten sections in ascending r. When the pitch is not 25 degrees, `decad.Transform`
-  the loft by `r3.RotationAround(origin, +Z, -(pitch - 25 degrees))` (the opposite turn when mirrored).
+  the loft by `r3.RotationAround(origin, +Z, +(pitch - 25 degrees))` (`-(pitch - 25 degrees)` when mirrored).
 - Root stud: a circle of radius `BladeStudRadius` on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
   `BladeStudEnd - BladeStudStart`. `decad.Chamfer` its start cap's outer loop with 0.3. `Cut` it by a circle of radius 1.3
   on the frame origin `(0, -(BladeStudRadius + 2), BladeBoltAt)`, U = +Z, V = +X, extruded `2 (BladeStudRadius + 2)` (the
@@ -134,3 +139,55 @@ instructions.md "Clutch mount" for the numbers.
   `onewayclutch.BuildAdapter` in the clutch's own `onewayclutch.NewDocument()`, and the fan in its own document, because both
   models file their hub in a container named `Hub`. The adapter's `FaceSites[1]` and `FaceSites[2]` are the fan's
   `AdapterSites[0]` and `[1]` through `MountFrame` and the anchor offset; `FaceSites[0]` stays empty.
+
+## 6. Print pose (print.go)
+
+- `RestTilt(ctx, blade, size, pitch, hand)`: check the pose arguments, `blade.Tessellate(0.05, VerifyNone)`, keep the
+  vertices with local Z > `RootRadius + 0.5`, and bisect 50 times on [`RestTiltMin`, `RestTiltMax`] for
+  `zc(t) = min over vertices of (sin t v.Z + cos t v . u)`, raising the lower bound while `zc(t)` minus that minimum is
+  positive. Fail when the bracket does not change sign.
+- `PrintPoseFor(size, pitch, hand, tilt)`: `u` from the chord at `RefRadius` turned by `PrintLean` (both mirrored for
+  `LeftHand`), `v = Z x u`; `imgX = u.X (-sin t, 0, cos t) + v.X (0, -1, 0)`, `imgY = u.Y (-sin t, 0, cos t) + v.Y (0, -1,
+  0)`; require `imgX x imgY = (cos t, 0, sin t)`; `r3.NewFrame((-BladeStudStart cos t, 0, PrintLift - zc(t)), imgX, imgY)`.
+- `BuildBladePrint(ctx, doc, p)`: reject a nil context or document, `p.Derive()`, check the pose arguments, build the
+  blade (`BuildBlade` or `BuildBladeMirrored`), `RestTilt`, `PrintPoseFor`, `decad.Transform` the blade into place,
+  `BuildBladeHarness`, and add the posed blade to `doc.Root().ChildNamed("Blades")` and the cradle to
+  `ChildNamed("Harness")`.
+
+## 7. Print cradle (harness.go)
+
+`BuildBladeHarness(ctx, doc, blade, size, hand, tilt)` runs one `bladeBuilder` with `what: "harness"`; the first
+failure stops the rest. Every step reads instructions.md "Print pose and cradle" for its numbers.
+
+1. Validate as instructions.md lists; `F = PrintPoseFor(size, DefaultBladePitch, hand, tilt)`.
+2. `sections`: `blade.SectionOutline` on `frame((x, 0, 0), +Y, +Z)` every `SectionStep` across the blade's bounds, at 0.02,
+   retried at 0.05.
+3. Range: `xs` = the greatest x of the posed stud end rim (72 points) + 0.5; `xe` = the least x of station 10's
+   `sectionLocal` points at chord fractions 0 and 1 (X negated for `RightHand`) at `TipRadius` through `F`, less
+   `CradleTipMargin`.
+4. `cradleSections(secs, xs, xe, z0)`: per section the window of `low()` loops within `CradleStep`, the widest points, the
+   lower envelope (`lowerAt` on the `CradleYStep` grid), the anisotropic offset, the monotone filter, `polarResample` to
+   `CradleFitPoints` points, and `LeftLimit`/`RightLimit` from the window's outline segments sampled at 11 points each.
+5. `StepZone` from `F.Apply((0, 0, RootRadius)).X` and `h = 4 HubScale sin tilt`.
+6. `shadowTool`: one `shadowSection` sketch per section from `StepZone[0] - 1.0` on, on
+   `sketch.NewWorld().CreateOffsetPlane(XY, x)`: `DimensionPoint` fit points at `(y, z - z0)`, two top points at
+   `zTop - z0`, `CreateFitSpline` and three lines; solve, `sketchcheck.VerifyFullyConstrained`, the valid profile of four
+   edges. `decad.LoftSections`, then `decad.Transform` by `r3.FromFrame(frame((0, 0, z0), +Y, +Z))`.
+7. `studTool`: the slot polygon by `DimensionPoint` on `frame(F.Apply((0, 0, BladeStudStart - 1)), (-sin t, 0, cos t),
+   (0, -1, 0))`, extruded `RootRadius + 0.5 - BladeStudStart + 1`.
+8. `block(h, wallSections(h), zTop)`: `wallSections` copies the first clean section's values into the step zone and its
+   lead-in; `wallTop` smooths each side's limits (`CradleTopPasses` passes of a `CradleTopSmooth` average, each lowered
+   back under the limits) into `WallTop`. The plan prism by `extrudePolygon` on `frame((0,0,0), +X, +Y)` to the highest
+   top + 2, its start cap's outer loop chamfered by `ChamferSize` in one `decad.Chamfer`; the profile slab on
+   `frame((0, ymax + 2, 0), +X, +Z)` from z = -1 up to 0.5 over the higher wall top; `decad.Intersect`. Each cap: a plan
+   band from z = 1 and a slab from the wall top up to `zTop + 1`, both 1 mm past the block's ends, intersected and cut
+   from the block.
+9. `decad.Cut` the block by the stud slot, then by the shadow tool; require one lump (`turbinefan: harness cradle: %d
+   pieces`).
+
+The harness's sketches: the shadow sections, then the stud slot, the block's plan and profile, and each cap's plan and
+profile. Exported: `CradleGapZ`, `CradleGapXY`, `CradleWall`, `CradleTopDrop`, `CradleTopBand`, `CradleTopSmooth`,
+`CradleTopPasses`, `CradleStep`, `CradleFitPoints`, `CradleYStep`, `CradleTipMargin`, `CradlePlanWindow`, `StudSlotFlats`,
+`SectionStep`, `RestTilt`, `RestTiltMin`, `RestTiltMax`, `PrintPoseFor`, `PrintLean`, `PrintLift`, `CradleSection`,
+`StepZone`, `BladeHarness`, `BuildBladeHarness`, `BladePrint`, `BuildBladePrint`, `HarnessContainerName`. The near-bed
+band, where the blade is under 0.6 mm over the bed, has no cradle under it.

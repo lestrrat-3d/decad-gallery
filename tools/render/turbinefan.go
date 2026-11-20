@@ -22,6 +22,7 @@ var (
 	turbineHubColor      = solidlens.RGB(.16, .52, .70) // the hand-crank fan's rotor colour
 	turbineBladeColor    = solidlens.RGB(.30, .68, .85) // the hand-crank fan's blade colour
 	turbineHardwareColor = solidlens.RGB(.55, .57, .60)
+	turbineHarnessColor  = solidlens.RGB(.80, .80, .78)
 )
 
 // turbineDistance is the camera's distance from its target, in mm.
@@ -251,6 +252,68 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 	return solidlens.Scene{}, fmt.Errorf("unknown turbine fan view %q", name)
 }
 
+// turbinePrint is one blade and its print harness, meshed, in the print frame: bed z = 0, +Z up, +X from stud to tip.
+type turbinePrint struct {
+	blade, harness *decad.Mesh
+}
+
+// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm
+// and the harness at 0.2 mm.
+func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
+	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
+	if err != nil {
+		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
+	}
+	var out turbinePrint
+	// The cradle's cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14; it meshes at 0.2.
+	for _, part := range []struct {
+		body *decad.Body
+		mesh **decad.Mesh
+		tol  float64
+	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}} {
+		mesh, err := part.body.Tessellate(ctx, units.Millimeters(part.tol), decad.WithVerification(decad.VerifyNone))
+		if err != nil {
+			return turbinePrint{}, fmt.Errorf("mesh turbine blade print: %w", err)
+		}
+		*part.mesh = mesh
+	}
+	return out, nil
+}
+
+func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, error) {
+	return func(ctx context.Context) (solidlens.Scene, error) {
+		p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
+		if err != nil {
+			return solidlens.Scene{}, err
+		}
+		return p.view(name)
+	}
+}
+
+// view draws the print job toward the bodies' bounds centre, +Z up: "print" from the stud end, the pressure side and
+// above; "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the
+// stud on the right; "print-end" from the
+// tip end along the radial line, a little from above.
+func (p turbinePrint) view(name string) (solidlens.Scene, error) {
+	dirs := map[string]r3.Vec{
+		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: 1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
+	}
+	dir, ok := dirs[name]
+	if !ok {
+		return solidlens.Scene{}, fmt.Errorf("unknown turbine print view %q", name)
+	}
+	models := []solidlens.Model{turbineModel(p.blade, turbineBladeColor), turbineModel(p.harness, turbineHarnessColor)}
+	lo, hi := meshBounds(p.harness)
+	blo, bhi := meshBounds(p.blade)
+	lo = r3.Vec{X: math.Min(lo.X, blo.X), Y: math.Min(lo.Y, blo.Y), Z: math.Min(lo.Z, blo.Z)}
+	hi = r3.Vec{X: math.Max(hi.X, bhi.X), Y: math.Max(hi.Y, bhi.Y), Z: math.Max(hi.Z, bhi.Z)}
+	center := lo.Add(hi).Scale(.5)
+	d, _ := dir.Normalize()
+	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(d.Scale(4 * hi.Sub(lo).Len()))),
+		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
+}
+
 // renderTurbineFanReadme builds the default fan once, and the 608ZZ fan once for the size comparison, and writes every
 // README image.
 func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
@@ -302,7 +365,36 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
+	if err := renderTurbinePrintReadme(ctx, outputDir); err != nil {
+		return err
+	}
 	return renderTurbineClutchReadme(ctx, outputDir)
+}
+
+// renderTurbinePrintReadme builds the default blade's print job once and writes its three views and the cradle's part
+// image, seen like the other parts.
+func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
+	p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
+	if err != nil {
+		return err
+	}
+	for _, view := range []string{"print", "print-side", "print-end"} {
+		scene, err := p.view(view)
+		if err != nil {
+			return err
+		}
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, view+".png"), scene, 1600, 900); err != nil {
+			return err
+		}
+	}
+	low, high := meshBounds(p.harness)
+	center := low.Add(high).Scale(.5)
+	span := high.Sub(low).Len()
+	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
+		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+	models := []solidlens.Model{turbineModel(p.harness, turbineHarnessColor)}
+	scene := turbineScene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
+	return renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", "harness.png"), scene, 480, 270)
 }
 
 // The clutch-mount views draw the real clutch with its adapter and the fan placed on it, both in the clutch frame: the

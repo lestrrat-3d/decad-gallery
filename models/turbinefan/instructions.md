@@ -47,6 +47,10 @@ joint: it exports `SizeFor`, `BuildBlade`, `BuildBladeMirrored` and the blade so
 | `rho_f` | the counterbore's floor | `rho_h - HeadPocketDepth - SetScrewTravel` |
 | `u_k`, `v_k` | blade k's radial direction and its counter-clockwise tangent | `(cos t_k, sin t_k, 0)`, `(-sin t_k, cos t_k, 0)`, `t_k = 90 + 120 (k - 1)` degrees |
 
+| `PrintTilt` | the blade's radial line above the bed in the print pose: its rest tilt | `RestTilt`, 11.4, 11.8 and 12.5 degrees at 128, 192 and 224 |
+| `PrintLean` | the chord at `RefRadius` turned from vertical toward the pressure face in the print pose | -15 degrees |
+| `PrintLift` | the z of the blade's stud end corner in the print pose: on the bed | 0 |
+
 `rho` is always the distance from the shaft axis along -Y.
 
 ## API
@@ -92,6 +96,25 @@ with a `Size` from `SizeFor` (any other value is rejected); and `BladeSocketFloo
 `BladeBoltLength`, `BladeBoltCavity`, `BladeStudRadius`, `BladeStudStart`, `BladeStudEnd`, `BladeSocketRadius`,
 `BladeSocketStart`, the tip and root radii) are the fields of `Size`, and `Size.Beta(r, pitch)` is the blade angle. From
 `crankhandle`: `PressWall`, `ChamferSize`, `RegularFit`, `Params605ZZ` and `Params6082RS`.
+
+The blade's print aid ("Print pose and cradle" below), in `print.go` and `harness.go`:
+
+- The pose constants `PrintLean` (-15 degrees), `PrintLift` (0), `RestTiltMin` (5 degrees) and `RestTiltMax` (20 degrees),
+  and the cradle constants `CradleGapZ` (0.2), `CradleGapXY` (0.4), `CradleWall` (2.0), `CradleTopDrop` (0.3),
+  `CradleTopBand` (0.1), `CradleTopSmooth` (1.0), `CradleTopPasses` (8), `CradleStep` (0.5), `CradleFitPoints` (33),
+  `CradleYStep` (0.05), `CradleTipMargin` (1.0), `CradlePlanWindow` (1.0), `StudSlotFlats` (16) and `SectionStep` (0.25),
+  and the container name `HarnessContainerName` (`Harness`).
+- `RestTilt(ctx, blade, size, pitch, hand) (float64, error)` returns the tilt at which a blade from `BuildBlade` or
+  `BuildBladeMirrored` rests on both its stud end corner and its leading edge. `PrintPoseFor(size, pitch, hand, tilt)
+  (r3.Frame, error)` returns the frame that moves that blade into the print frame.
+- `CradleSection` (`X`, `Outline`, `LeftY`, `LeftZ`, `RightY`, `RightZ`, `LeftLimit`, `RightLimit`) and `BladeHarness`
+  (`Body`, `Sketches`, `Sections`, `XStart`, `XEnd`, `StepZone`, `WallTop`).
+- `BuildBladeHarness(ctx, doc, blade, size, hand, tilt) (*BladeHarness, error)` builds the cradle for a posed blade and
+  puts it in no container.
+- `BladePrint` (`Blade`, `BladeSketches`, `Harness`, `Pose`, `Tilt`) and `BuildBladePrint(ctx, doc, p) (*BladePrint,
+  error)`, which validates `p` (`Params.Derive`), builds the blade of `p.Hand` at `p.BladePitch`, finds its `RestTilt`,
+  poses it, builds its cradle and files them in `Blades` and `Harness`. It ignores `Mount` and `Placement`. A rejected
+  build adds no body; a later geometry failure may leave bodies in the document, which the caller discards.
 
 ## Size
 
@@ -450,6 +473,9 @@ The user confirms these.
   set screw's job; it stands outside no outer face.
 - X3. The set screw's 2.6 hole crosses the 1.6 press-fit wall round the bore, at z 2.7 to 5.3. The wall is 1.6 or more
   everywhere else over the pressed length.
+- X4. The print cradle's gap to the blade (`CradleGapZ` 0.2 up, `CradleGapXY` 0.4 sideways) is a support interface, not a
+  part fit, so "Part clearances" does not apply to it. The cradle and the blade are proven apart (`decad.Intersect`
+  empty); the slicer prints the gap as a peelable interface.
 
 ## Valid range
 
@@ -475,10 +501,115 @@ The user confirms these.
   run for the right hand.
 - Placed: the frame with origin `(10, -5, 7)`, U `(0, 1, 0)` and V `(0, 0, 1)`.
 
+## Print pose and cradle
+
+The blade prints lying down, its radial line rising toward the tip, so layers run along the blade and take the
+sideways force it carries in use. It rests on the bed at two points, the stud end corner and the leading edge near
+stations 4 and 5, and lies in a one-piece cradle that fits its contour below its widest lines, like a mold half. The
+cradle is a separate body offset from the blade by a support gap, so the slicer prints the contact as a peelable
+interface. There is no raft.
+
+### Pose
+
+The pose is set from the blade's own chord at `RefRadius`: `u`, the in-section up, is that chord (leading to trailing
+edge, X negated for `LeftHand`) turned by `PrintLean` (-15 degrees, mirrored for `LeftHand`) toward the pressure face, so
+the leading edge points down. The radial line rises at the tilt `t` from the bed. `PrintPoseFor(size, pitch, hand, t)`
+maps the blade's local `u` to `(-sin t, 0, cos t)` and `-Y` (the in-section side) to `-y`, with frame origin
+`(-BladeStudStart cos t, 0, -zc(t))`, `zc(t) = (BladeStudStart + 0.3) sin t - BladeStudRadius cos t`, so the stud end
+corner (the stud's chamfered rim on the down side) lies at z = 0 (`PrintLift`). The posed loft does not depend on the
+pitch, because the pose follows the chord; only the bolt hole turns. The left hand is the right hand reflected in y = 0.
+
+`RestTilt` finds the tilt at which the loft's lowest point reaches the bed too: it meshes the blade at 0.05, keeps the
+vertices beyond r `RootRadius + 0.5`, and bisects 50 times on [`RestTiltMin`, `RestTiltMax`] for
+`zc(t) = min (sin t v.Z + cos t v . u)`. It reads 0.198526, 0.206587 and 0.218303 rad (11.4, 11.8 and 12.5 degrees) at 128,
+192 and 224, the same at every pitch and hand. The blade then touches the bed at the stud corner (0.67 to 0.76 mm2 in the
+first layer) and the leading edge near stations 4 and 5 (3.4, 5.3 and 6.2 mm2 at 128, 192 and 224).
+
+### Constants
+
+| Name | Value | Reason |
+| --- | --- | --- |
+| `CradleGapZ` | 0.2 | vertical support gap: one 0.2 mm layer, the usual support top distance |
+| `CradleGapXY` | 0.4 | horizontal support gap: about one line width; two paths closer than that fuse |
+| `CradleWall` | 2.0 | wall beyond each widest line: five lines |
+| `CradleTopDrop` | 0.3 | each wall's top under its smoothed limit, so no cradle stands at or above the widest line |
+| `CradleTopBand` | 0.1 | the wall's limit is the lowest blade outline point within this of the widest y, steady on a near-vertical face |
+| `CradleTopSmooth`, `CradleTopPasses` | 1.0, 8 | each wall top is averaged over 1.0 either side and lowered back under its limit, 8 times |
+| `CradleStep` | 0.5 | cradle section spacing along x |
+| `CradleFitPoints` | 33 | fit points per shadow section; the twisted loft allows 32 spans |
+| `CradleYStep` | 0.05 | y spacing of the lower envelope's samples |
+| `CradleTipMargin` | 1.0 | the cradle ends this far before the tip cap's lowest point |
+| `CradlePlanWindow` | 1.0 | the plan's outer edge takes the widest point within this in x, so the bed face has no notch narrower than its chamfer |
+| `StudSlotFlats` | 16 | flats of the stud slot's half polygon |
+| `SectionStep` | 0.25 | spacing of the blade sections the layout reads |
+
+### Construction (`BuildBladeHarness`)
+
+The blade must already be posed. `F` is `PrintPoseFor(size, DefaultBladePitch, hand, t)`.
+
+1. **Validate**: nil context, document or blade; a `Size` that `SizeFor` did not make; a hand that is neither; a tilt
+   outside [`RestTiltMin`, `RestTiltMax`].
+2. **Sections**: cut the posed blade by planes x = const every `SectionStep` (`SectionOutline` at 0.02, retried at
+   0.05). `low(x)` is the loop holding a slice's lowest point.
+3. **Range**: from 0.5 past the stud end rim's greatest x to `CradleTipMargin` before the least x of station 10's
+   leading and trailing points at `TipRadius`.
+4. **Cradle sections** (`CradleSection`) every `CradleStep`: over the slices within `CradleStep`, the min-y and max-y
+   points (the widest points), the lower envelope on a `CradleYStep` grid, offset by `(n_y CradleGapXY, n_z
+   CradleGapZ)` along its outward normal (the ends straight out by `CradleGapXY`), resampled at `CradleFitPoints` equal
+   polar angles about `(0, z0)`, `z0 = box.Max.Z + 2`, so the twisted loft's sections stay star-shaped. `LeftLimit` and
+   `RightLimit` are the lowest outline points within `CradleTopBand` of each widest y, read along every outline segment.
+5. **Step zone** (`StepZone`): `[x_root - h - CradleStep, x_root + h + CradleStep]`, `h = 4 j sin t`, round the root step.
+6. **Shadow tool**: `decad.LoftSections` through the sections from `StepZone[0] - 1.0` on, each on a world-XY plane at its
+   x, its offset outline closed up to `zTop = box.Max.Z + 3`; the sections before `StepZone[1]` copy the first section past
+   it. Turned by the frame `((0, 0, z0), +Y, +Z)` into place.
+7. **Stud slot**: a half polygon of `StudSlotFlats` flats round a half circle of radius `BladeStudRadius + CradleGapXY`,
+   `CradleGapXY - CradleGapZ` under the stud axis, carried straight up, extruded along the axis from 1 before the stud end
+   to 0.5 past the root.
+8. **Block**: the sections but the first and last, those from `StepZone[0] - 1.0` to `StepZone[1]` taking the first clean
+   section's values, as the shadow tool does (a raw section there would raise a fin on each wall). The plan runs
+   `CradleWall` outside the widest lines widened over `CradlePlanWindow`, on z = 0, its bed loop chamfered 0.5; the
+   profile slab starts at z = -1 and stands 0.5 over the higher wall top. Each wall's top (`WallTop`) is its limit
+   smoothed `CradleTopPasses` times (averaged over `CradleTopSmooth`, then lowered back under the limit) less
+   `CradleTopDrop`; a cap on each side cuts what lies beyond that side's widest line and above its wall top.
+9. **Cradle**: the block cut by the stud slot, then by the shadow tool. It must be one piece. Near the bed contacts the
+   shadow cuts it down to the bed: under the leading-edge contact its bed face has a hole (13 to 24 mm2), and under the
+   stud's first 2 mm there is no cradle. Where the blade is under 0.6 mm over the bed (the near-bed band, `CradleGapZ`
+   plus two layers) the cradle cannot fit under it; those surfaces start one or two layers up and sag onto the bed
+   slightly.
+
+The harness has the shadow sections (from `StepZone[0] - 1.0` on) plus 7 sketches: the stud slot, the block's
+plan and profile, and each cap's plan and profile, all fully constrained. Sampled points are placed by
+`sketchcheck.DimensionPoint`: they are sampled data with no geometric relation to constrain.
+
+### Overhangs and fit
+
+Every cradle face points up, stands vertical or lies on the bed; every blade face pointing down more than 45 degrees rests
+over the cradle (within 1.0, 2.2 in the step zone and its lead-in), lies in the bolt hole's band, on the stud end's 0.3
+chamfer (45 to 51 degrees, within 0.9 mm of the bed, before the cradle starts), past the cradle's tip end
+(the last 2 to 4 mm of the tip, a short cantilever) or in the near-bed band. The cradle stays within `CradleGapXY + 0.3` of
+the blade below its widest lines (0.608 at most outside the step zone, measured on the cradle's 0.09 to 0.14 mesh), 2.2
+in the step zone, except the bolt hole's band, the root step's face (which faces the stud end and needs no support) and
+the near-bed band. No cradle stands above either widest line.
+
+### Removal and cleanup
+
+1. Lift the blade straight up out of the cradle; its two bed patches come off the bed with it.
+2. Peel the cradle off the bed and discard it.
+3. Every face the cradle supported shows support-interface texture: most of the pressure face, the leading edge, the
+   lower suction face, the root and the stud's underside. Sand along the chord with 400 grit. Lightly sand the two bed
+   patches (elephant's foot on the stud corner and the leading edge). Check that the stud slides into a hub socket.
+
+## Print aids
+
+The print cradle (`BuildBladeHarness`, `BuildBladePrint`) is a print aid: a body printed with the blade only to support
+it while printing, then removed and discarded. "Corners and roots" exempts it (`docs/model-pipeline.md`); its walls,
+lips and bed-face cuts have sharp corners by design.
+
 ## Retained sharp corners and edges
 
-The rule is "Corners and roots" in `docs/model-pipeline.md`. The hub prints front face down with its axis vertical, and each
-blade prints standing on its stud end with its radial line vertical.
+The rule is "Corners and roots" in `docs/model-pipeline.md`. The hub prints front face down with its axis vertical. Each
+blade prints lying in its print pose ("Print pose and cradle"); the test reads it both across its radial line and lying,
+at every 1 mm above the bed. The cradle is a print aid ("Print aids") and is exempt.
 
 | Part | Corner or edge | Reason |
 | --- | --- | --- |
@@ -492,7 +623,9 @@ blade prints standing on its stud end with its radial line vertical.
 | Hub | The socket mouths | Between layers, out of the checker's sections. |
 | Hub | The socket floor's 0.5 round, where a layer off the socket's axis cuts it at a slant | A layer at `HubMid - 3 j` or `HubMid + 3 j` chords the round into turns of 57.8 to 59.8 degrees on the floor's outline, `BladeSocketStart` to `BladeSocketStart + 0.9` from the shaft axis; the test exempts that band only. |
 | Blade | At 128, the four corners where the bolt hole crosses the stud, at r `BladeBoltAt` and `BladeBoltAt + 0.7` | The material angle is 64 to 90 degrees; the checker adds the stud's curvature and reads tips of 125 to 130 degrees. At 192 and 224 the stud is wider (radius 4.05), the angle exceeds 60 degrees and the layers read no corner. |
-| Blade | The step where the stud meets the root face (r `RootRadius`), opening downward when printed stud end down | Between layers. |
+| Blade | The step where the stud meets the root face (r `RootRadius`) | Lying, the step lies inside the layers and reads inside corners of 75 to 107 degrees, within 1.0 of r `RootRadius`. Retained pending a root fillet, not an exemption: the model is on `CORNER_PENDING` and `CORNER_PARTIAL` in `scripts/check_repository.py` until a 1.0 stud-root fillet lands. |
+| Blade | The leading edge and the trailing-edge flat where a layer cuts them obliquely | Lying at the rest tilt, a layer cuts each edge at 11 to 21 degrees, so each section's loop ends in a stretched tip (122 to 165 degrees) within 1.5 of the loop's least or greatest x. The edges are smooth and pass when read across the radial line. |
+| Blade | The bolt hole where it crosses the stud, read lying | Lying, the layers cut the hole's walls where it crosses the stud and read inside corners of 82 to 110 degrees and tips of 123 to 165 degrees, within 1.8 of r `BladeBoltAt`; the same corner as the row above, at every size. |
 
 Rounds below half their section: the socket floor round only. The hub has no stressed root. Every hub wall is 1.1 mm or
 more (the 608ZZ lead-in band), elsewhere 1.3 or more (all at 128; the larger hub keeps those walls and adds more); the outward corners where the slots and the counterbore meet the round
@@ -505,8 +638,14 @@ Surface edge finishing: both faces are large (about 570 mm2 on the back face and
 608ZZ, at 128; about 1100 mm2 at 192). One `edgefinish.Chamfer` call chamfers both faces' outer circles by 0.5, and both D loops when 20 or longer (608ZZ,
 25.1). Short runs are left sharp: the bolt holes (8.2), the blade head pockets (13.8), the set screw slot's mouth (12.7), and
 the 605ZZ and `regular-bore` D loops (15.8, 17.7). None of these runs scales with the size. The round face and the cuts in it are not planar.
+The print cradle's bed face is large (534 mm2 at 128, 1059 at 192, 1383 at 224): its outer loop is chamfered 0.5 on the
+plan prism before the block is cut. Its largest other planar run, the tip-end face, is under 400 mm2 (207 to 252), so the
+rest of the cradle takes no chamfer. Two bed-face edges stay sharp: the rim of the hole the blade's shadow cuts under the
+leading-edge contact, and the edge where the stud slot cuts the cradle's stud end down to the bed. The blade sets their
+angle, and the chamfer cannot reach them.
 
-Body containers: `Hub`, `Blades`, `Bolts` and `Nuts`. Look-alike part marks: none; the bolts and nuts are bought parts. Split
+Body containers: `Hub`, `Blades`, `Bolts` and `Nuts`; `BuildBladePrint` files the posed blade in `Blades` and its cradle,
+one piece, in `Harness`. Look-alike part marks: none; the bolts and nuts are bought parts. Split
 shafts: the model has no printed shaft, arbor, axle or pin; the blade's stud is part of the blade. Arbor collars: no
 printed shaft either. The consuming mechanism's shaft carries the hub and owns the collar between the hub's back face and its
 bearing or plate. Gear train clearances: no gears.
@@ -516,10 +655,12 @@ bearing or plate. Gear train clearances: no gears.
 | Part | Prints with | Pause |
 | --- | --- | --- |
 | Hub | front face down, axis vertical | none |
-| Blade (three) | standing on the stud end, radial line vertical | none |
+| Blade (three) | lying on the bed in its print cradle, leading edge down ("Print pose and cradle") | none |
 
-The blade is 87.9 mm tall from its stud end to its tip at 192 (57.9 at 128, 103.9 at 224) and stands on a stud end 8.1 mm
-across at 192 (6 at 128): print it with a brim. The set screw slot opens upward in print, its hexagonal end down. Each
+The blade lies on the bed at its rest tilt, touching it at its stud end corner and its leading edge, in a cradle that
+fits its contour; slicer supports stay off. No brim is needed with PLA or PETG. If the stud corner lifts, a 3 mm slicer
+brim on the blade's two bed patches fixes it but marks the stud end and the leading edge; with ABS or ASA, put a 5 mm brim
+on the cradle only. The set screw slot opens upward in print, its hexagonal end down. Each
 blade slot's roof (z `HubLength - BladeBoltCavity - 2`) is a 4.35 wide bridge. The
 counterbore and the holes are horizontal round holes 4.4 and 2.6 across.
 
@@ -543,7 +684,17 @@ the face chamfers, the set screw (head, tip, floating head over a rounded floor,
 each blade bolt's head, tip and nut with its slot and no overlap, both adapter cuts on the `ShaftMount` hub (slot open to the
 round face, 1.5 of hub under it, the wall to the bore), access to the set screw's path and each blade nut's path,
 every Regular fit, the blades' pitch and hand, the copies turned by 120 and 240 degrees, the replacement paths, and
-`internal/cornercheck` on the hub (axis +Z) and each blade along its radial line.
+`internal/cornercheck` on the hub (axis +Z) and each blade along its radial line and lying in its print pose.
+
+The print aid's checks run on six cases built once each (128/25 right, 192/25 right, 192/25 left, 192/40 left, 224/25
+left, 224/40 left): `TestPrintPose` (the rest tilt per size, the same at every pitch and hand, the stud corner on the
+bed), `TestBuildBladeHarness` (one solid piece on the bed, every sketch fully constrained, the bed face over 400 mm2, the
+left hand mirroring the right), `TestBladeHarnessVerifyAll`, `TestBladeHarnessSeparate` (`decad.Intersect` empty),
+`TestBladePrintBedContact` (two bed patches), `TestBladeHarnessBedFace` (one outline, at most one hole under the
+leading edge), `TestBladeHarnessWallTop` (under the widest line, no fin, no zigzag), `TestBladeHarnessContour` (the
+cradle within `CradleGapXY + 0.3` of the blade), `TestBladeHarnessNothingAbove`, `TestBladeHarnessOverhangs` and
+`TestBuildBladePrint`. The images `print.png`, `print-side.png`, `print-end.png` and `parts/harness.png` show the
+print job.
 
 ## Clutch mount
 
@@ -675,7 +826,7 @@ The hub's radius is capped at `MaxHubRadius` because of that gap: a 21 mm rim wo
 ### Retained sharp corners, edge finishing and printing
 
 - Hub: the same part as in `ShaftMount`: prints front face down, axis vertical, no supports. Each adapter slot roof (z 3.5)
-  is a 4.35 bridge. The blades print as in `ShaftMount`, with a brim.
+  is a 4.35 bridge. The blades print as in `ShaftMount`, lying in their cradle.
 - Retained sharp corners: as the hub's, plus the adapter slots' faces at z 1.5 and 3.5 (between layers) and the adapter holes'
   blind ends (z 6.75).
 - Short runs left sharp: the adapter holes (8.2).

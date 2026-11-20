@@ -1,5 +1,7 @@
 package turbinefan
 
+import "github.com/lestrrat-3d/r3"
+
 // ThicknessRatio is the table's thickness ratio at radius r for the rotor sz, interpolated linearly between stations.
 func ThicknessRatio(r float64, sz Size) float64 {
 	stations := stationsFor(sz)
@@ -16,4 +18,42 @@ func ThicknessRatio(r float64, sz Size) float64 {
 func StationRadiusChord(sz Size, k int) (float64, float64) {
 	st := stationsFor(sz)[k-1]
 	return st.r, st.chord
+}
+
+// SectionSurfacePoints returns station k's (1 to 10) pressure and suction surface points at chord fraction 0.4, in the
+// right-hand blade's local section plane (X negated) at the reference pitch.
+func SectionSurfacePoints(sz Size, k int) ([2]float64, [2]float64) {
+	st := stationsFor(sz)[k-1]
+	beta := sz.Beta(st.r, refPitch)
+	mean := st.chord * camberLine(0.4, st.camber)
+	half := halfThickness(0.4, st)
+	pressure := sectionLocal(st, beta, 0.4, mean-half)
+	suction := sectionLocal(st, beta, 0.4, mean+half)
+	pressure[0], suction[0] = -pressure[0], -suction[0]
+	return pressure, suction
+}
+
+// PosedEdgePoints returns the posed stud end corner on the in-section down side, and the posed leading-edge points of
+// stations 4 and 5, for hand at tilt (pose of DefaultBladePitch).
+func PosedEdgePoints(sz Size, hand Hand, tilt float64) (r3.Vec, r3.Vec, r3.Vec) {
+	f, err := PrintPoseFor(sz, DefaultBladePitch, hand, tilt)
+	if err != nil {
+		panic(err)
+	}
+	xf, err := r3.FromFrame(f)
+	if err != nil {
+		panic(err)
+	}
+	u := poseUp(sz, DefaultBladePitch, hand)
+	corner := xf.Apply(u.Scale(-sz.BladeStudRadius).Add(r3.Vec{Z: sz.BladeStudStart + studChamfer}))
+	var le [2]r3.Vec
+	for i, k := range []int{4, 5} {
+		st := stationsFor(sz)[k-1]
+		p := sectionLocal(st, sz.Beta(st.r, refPitch), 0, 0)
+		if hand == RightHand {
+			p[0] = -p[0]
+		}
+		le[i] = xf.Apply(r3.Vec{X: p[0], Y: p[1], Z: st.r})
+	}
+	return corner, le[0], le[1]
 }
