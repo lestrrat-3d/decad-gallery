@@ -37,9 +37,9 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 	burnished := solidlens.RGB(.76, .551, .273)
 	wheels := []ornamentalWheel{
 		{60, rosette, r3.NewVec(-96, 49, 0), bronze, brass, burnished},
-		{24, compass, r3.NewVec(-5, 17, 0), brass, burnished, bronze},
-		{22, vanes, r3.NewVec(45, -12, 0), brass, bronze, burnished},
-		{17, honeycomb, r3.NewVec(83, -41, 0), bronze, brass, burnished},
+		{36, compass, r3.NewVec(110, -67, 0), brass, burnished, bronze},
+		{22, vanes, r3.NewVec(38, -58, 0), brass, bronze, burnished},
+		{17, honeycomb, r3.NewVec(101, 25, 0), bronze, brass, burnished},
 	}
 	scene := solidlens.Scene{
 		Camera: solidlens.Camera{Position: r3.NewVec(7, -9, 255), Target: r3.NewVec(7, -9, 2),

@@ -63,7 +63,7 @@ func TestCompassVaneAndHoneycombWindows(t *testing.T) {
 		ornament                                wheelOrnament
 		teeth, windows, outerEdges, windowEdges int
 	}{
-		{"compass", compass, 24, 8, 16, 3},
+		{"compass", compass, 36, 8, 16, 3},
 		{"vanes", vanes, 22, 6, 1, 4},
 		{"honeycomb", honeycomb, 17, 18, 6, 6},
 	} {
