@@ -23,6 +23,8 @@ class PlanTest(unittest.TestCase):
             ("pull_request", [isolated], tests, False),
             ("push", [isolated, "isolated-planetarygearbox-TestHousing"], tests + helper, False),
             ("pull_request", [model], helper, False),
+            ("pull_request", [model], helper + ["models/planetarygearbox/instructions.md"], False),
+            ("pull_request", [isolated], tests + ["README.md"], False),
             ("pull_request", [model, isolated], tests + helper, True),
             ("push", ["broad", isolated], tests, True),
             ("pull_request", [isolated], tests + ["scripts/ci/plan.py"], True),

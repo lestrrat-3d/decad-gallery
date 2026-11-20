@@ -312,9 +312,9 @@ def needs_gallery_cache(event, result):
     if "broad" in suites or (any(s.startswith("isolated-") for s in suites) and
                              not all(s.startswith("isolated-") for s in suites)):
         return True
-    # The renderer builds and hashes production packages. Go test files do not enter those builds.
-    paths = result.get("changed_paths", [])
-    return not paths or not all(p.endswith("_test.go") and str(Path(p).parent) in TEST_PACKAGE_DIRS for p in paths)
+    # Gallery tiles use production packages. Markdown documentation and Go tests are outside those builds.
+    inputs = [path for path in result.get("changed_paths", []) if not path.lower().endswith(".md")]
+    return not inputs or not all(p.endswith("_test.go") and str(Path(p).parent) in TEST_PACKAGE_DIRS for p in inputs)
 
 
 def main():
