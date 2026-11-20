@@ -14,30 +14,40 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Each wheel has circular through-bores beneath a pierced, scalloped faceplate.
-// The opposite slants of the two sets of almond-shaped windows give the wheels
-// different handedness. Dimensions below are fractions of the pitch radius.
+type wheelOrnament int
+
+const (
+	rosette wheelOrnament = iota
+	compass
+	vanes
+	honeycomb
+)
+
+// Dimensions of the ornament and its backing are fractions of the pitch radius.
 type ornamentalWheel struct {
-	teeth, petals     int
-	slant             float64
+	teeth             int
+	ornament          wheelOrnament
 	center            r3.Vec
 	base, plate, trim solidlens.Color
 }
 
 func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
+	brass := solidlens.RGB(.54, .353, .142)
+	bronze := solidlens.RGB(.151, .081, .038)
+	burnished := solidlens.RGB(.76, .551, .273)
 	wheels := []ornamentalWheel{
-		{30, 7, 0.48, r3.NewVec(-24, -9, 0),
-			solidlens.RGB(.045, .20, .20), solidlens.RGB(.81, .49, .18), solidlens.RGB(.96, .72, .36)},
-		{22, 5, -.46, r3.NewVec(30, 11, 0),
-			solidlens.RGB(.48, .19, .09), solidlens.RGB(.17, .48, .46), solidlens.RGB(.93, .58, .31)},
+		{30, rosette, r3.NewVec(-37, -5, 0), bronze, brass, burnished},
+		{24, compass, r3.NewVec(18, 18, 0), brass, burnished, bronze},
+		{22, vanes, r3.NewVec(61, -10, 0), brass, bronze, burnished},
+		{17, honeycomb, r3.NewVec(7, -37, 0), bronze, brass, burnished},
 	}
 	scene := solidlens.Scene{
-		Camera: solidlens.Camera{Position: r3.NewVec(-2, -85, 129), Target: r3.NewVec(-2, -4, 2),
-			Up: r3.NewVec(0, 0, 1), FOV: 29},
-		Background: solidlens.RGB(.009, .018, .028),
+		Camera: solidlens.Camera{Position: r3.NewVec(7, -121, 186), Target: r3.NewVec(7, -9, 2),
+			Up: r3.NewVec(0, 0, 1), FOV: 26},
+		Background: solidlens.RGB(.016, .015, .013),
 		DirectionalLights: []solidlens.DirectionalLight{
 			{Direction: r3.NewVec(.15, .65, -.88), Color: solidlens.RGB(1, .92, .8), Intensity: .87},
-			{Direction: r3.NewVec(-.9, -.2, -.5), Color: solidlens.RGB(.58, .79, 1), Intensity: .51},
+			{Direction: r3.NewVec(-.9, -.2, -.5), Color: solidlens.RGB(.83, .87, .92), Intensity: .51},
 		},
 	}
 	for _, wheel := range wheels {
@@ -57,40 +67,18 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 	p.Module, p.Teeth = 2, w.teeth
 	r := p.Module * float64(p.Teeth) / 2
 	p.BoreDiameter, p.Thickness = .18*r, .135*r
+	if w.ornament != rosette {
+		// The pierced plate spans the opening and joins the toothed rim.
+		p.BoreDiameter = 1.424 * r
+	}
 	gear, err := spurgear.Build(ctx, doc, p)
 	if err != nil {
 		return nil, err
 	}
-	base, err := world.CreateSketch(world.XY())
-	if err != nil {
-		return nil, err
-	}
-	step := 2 * math.Pi / float64(w.petals)
-	for i := range w.petals {
-		a := float64(i) * step
-		for _, drill := range []struct{ radial, phi, radius float64 }{
-			{.53 * r, a, .207 * r}, {.737 * r, a + step/2, .046 * r},
-		} {
-			x, y := polarPoint(drill.radial, drill.phi)
-			center := sketchcheck.DimensionPoint(base, x, y)
-			base.AddConstraint(sketch.NewRadius(base.CreateCircle(center, drill.radius), drill.radius))
-		}
-	}
-	profiles, err := ornamentalProfiles(ctx, base)
-	if err != nil {
-		return nil, fmt.Errorf("drill sketch: %w", err)
-	}
-	if len(profiles) != 2*w.petals {
-		return nil, fmt.Errorf("drill sketch has %d profiles, expected %d", len(profiles), 2*w.petals)
-	}
-	for i, profile := range profiles {
-		tool, err := decad.Extrude(ctx, doc, base, profile, decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along})
+	if w.ornament == rosette {
+		gear, err = drillRosette(ctx, doc, world, gear, r, p.Thickness)
 		if err != nil {
-			return nil, fmt.Errorf("drill %d: %w", i, err)
-		}
-		gear, err = decad.Cut(ctx, gear, tool)
-		if err != nil {
-			return nil, fmt.Errorf("cut opening %d: %w", i, err)
+			return nil, err
 		}
 	}
 
@@ -113,32 +101,35 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 	if err != nil {
 		return nil, fmt.Errorf("turned rim: %w", err)
 	}
-	eyelet, err := turnedOrnament(ctx, doc, world, r, p.Thickness, [][2]float64{
-		{.046, 0}, {.063, 0}, {.062, .008}, {.058, .012}, {.051, .012}, {.046, .007},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("eyelet: %w", err)
-	}
 	var models []solidlens.Model
-	for _, part := range []struct {
+	parts := []struct {
+		name  string
 		body  *decad.Body
 		color solidlens.Color
-	}{{gear, w.base}, {plate, w.plate}, {rim, w.trim}, {hub, w.trim}, {eyelet, w.trim}} {
-		mesh, err := part.body.Tessellate(ctx, units.Millimeters(.04), decad.WithVerification(decad.VerifyAll))
+	}{{"gear", gear, w.base}, {"faceplate", plate, w.plate}, {"rim", rim, w.trim}, {"hub", hub, w.trim}}
+	for _, part := range parts {
+		mesh, err := part.body.Tessellate(ctx, units.Millimeters(.02), decad.WithVerification(decad.VerifyAll))
 		if err != nil {
-			return nil, fmt.Errorf("tessellate ornamented wheel: %w", err)
+			return nil, fmt.Errorf("tessellate %s: %w", part.name, err)
 		}
-		draw := func(offset r3.Vec) {
-			models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: offset},
-				Material: solidlens.Matte(part.color)})
+		models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: w.center},
+			Material: solidlens.Matte(part.color)})
+	}
+	if w.ornament == rosette {
+		eyelet, err := turnedOrnament(ctx, doc, world, r, p.Thickness, [][2]float64{
+			{.046, 0}, {.063, 0}, {.062, .008}, {.058, .012}, {.051, .012}, {.046, .007},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("eyelet: %w", err)
 		}
-		if part.body == eyelet {
-			for i := range w.petals {
-				x, y := polarPoint(.737*r, (float64(i)+.5)*step)
-				draw(w.center.Add(r3.NewVec(x, y, 0)))
-			}
-		} else {
-			draw(w.center)
+		mesh, err := eyelet.Tessellate(ctx, units.Millimeters(.04), decad.WithVerification(decad.VerifyAll))
+		if err != nil {
+			return nil, fmt.Errorf("tessellate eyelet: %w", err)
+		}
+		for i := range rosettePetals {
+			x, y := polarPoint(.737*r, (float64(i)+.5)*2*math.Pi/rosettePetals)
+			models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: w.center.Add(r3.NewVec(x, y, 0))},
+				Material: solidlens.Matte(w.trim)})
 		}
 	}
 	return models, nil
@@ -171,9 +162,39 @@ func (w ornamentalWheel) faceplate(ctx context.Context, doc *decad.Document, wor
 	if err != nil {
 		return nil, err
 	}
-	step := 2 * math.Pi / float64(w.petals)
+	var openings int
+	switch w.ornament {
+	case rosette:
+		openings = drawRosette(s, r)
+	case compass:
+		openings = drawCompass(s, r)
+	case vanes:
+		openings = drawVanes(s, r)
+	case honeycomb:
+		openings = drawHoneycomb(s, r)
+	default:
+		return nil, fmt.Errorf("unknown wheel ornament %d", w.ornament)
+	}
+	bore := s.CreateCircle(s.Origin(), .09*r)
+	s.AddConstraint(sketch.NewRadius(bore, .09*r))
+	profiles, err := ornamentalProfiles(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+	for _, profile := range profiles {
+		if len(profile.Holes) == openings+1 {
+			return decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(thickness), Dir: decad.Along})
+		}
+	}
+	return nil, fmt.Errorf("no profile contains the bore and %d windows", openings)
+}
+
+const rosettePetals = 7
+
+func drawRosette(s *sketch.Sketch, r float64) int {
+	const step = 2 * math.Pi / rosettePetals
 	valley, crest := .53*r, .775*r
-	points := make([]*sketch.Point, w.petals)
+	points := make([]*sketch.Point, rosettePetals)
 	for i := range points {
 		x, y := polarPoint(valley, (float64(i)-.5)*step)
 		points[i] = sketchcheck.DimensionPoint(s, x, y)
@@ -187,25 +208,50 @@ func (w ornamentalWheel) faceplate(ctx context.Context, doc *decad.Document, wor
 		ornamentArc(s, from, points[(i+1)%len(points)], cx, cy, dx, dy)
 
 		x, y := polarPoint(.53*r, a)
-		dx, dy = polarPoint(.199*r, a+w.slant)
+		dx, dy = polarPoint(.199*r, a+.48)
 		almondWindow(s, x, y, dx, dy, .72)
 
 		x, y = polarPoint(.354*r, a+step/2)
-		dx, dy = polarPoint(.105*r, a+step/2-w.slant)
+		dx, dy = polarPoint(.105*r, a+step/2-.48)
 		almondWindow(s, x, y, dx, dy, 1.32)
 	}
-	bore := s.CreateCircle(s.Origin(), .09*r)
-	s.AddConstraint(sketch.NewRadius(bore, .09*r))
-	profiles, err := ornamentalProfiles(ctx, s)
+	return 2 * rosettePetals
+}
+
+func drillRosette(ctx context.Context, doc *decad.Document, world *sketch.World, gear *decad.Body, r, height float64) (*decad.Body, error) {
+	base, err := world.CreateSketch(world.XY())
 	if err != nil {
 		return nil, err
 	}
-	for _, profile := range profiles {
-		if len(profile.Holes) == 2*w.petals+1 {
-			return decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(thickness), Dir: decad.Along})
+	const step = 2 * math.Pi / rosettePetals
+	for i := range rosettePetals {
+		a := float64(i) * step
+		for _, drill := range []struct{ radial, phi, radius float64 }{
+			{.53 * r, a, .207 * r}, {.737 * r, a + step/2, .046 * r},
+		} {
+			x, y := polarPoint(drill.radial, drill.phi)
+			center := sketchcheck.DimensionPoint(base, x, y)
+			base.AddConstraint(sketch.NewRadius(base.CreateCircle(center, drill.radius), drill.radius))
 		}
 	}
-	return nil, fmt.Errorf("no profile contains the bore and %d windows", 2*w.petals)
+	profiles, err := ornamentalProfiles(ctx, base)
+	if err != nil {
+		return nil, fmt.Errorf("drill sketch: %w", err)
+	}
+	if len(profiles) != 2*rosettePetals {
+		return nil, fmt.Errorf("drill sketch has %d profiles, expected %d", len(profiles), 2*rosettePetals)
+	}
+	for i, profile := range profiles {
+		tool, err := decad.Extrude(ctx, doc, base, profile, decad.Distance{D: units.Millimeters(height), Dir: decad.Along})
+		if err != nil {
+			return nil, fmt.Errorf("drill %d: %w", i, err)
+		}
+		gear, err = decad.Cut(ctx, gear, tool)
+		if err != nil {
+			return nil, fmt.Errorf("cut opening %d: %w", i, err)
+		}
+	}
+	return gear, nil
 }
 
 func almondWindow(s *sketch.Sketch, x, y, dx, dy, offset float64) {

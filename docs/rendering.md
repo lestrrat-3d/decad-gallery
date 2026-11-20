@@ -379,10 +379,11 @@ go -C tools/render test -count=1 -run 'TestSwiss' .
 A single preset renders with `-model swisslever -shot <name> -out <file>`, for example
 `-shot exploded -out ../../models/swisslever/images/exploded.png`.
 
-The `gallery/hero` preset renders the root README's two ornamental spur gears at 1600 × 900.
-It builds the wheels with `models/spurgear`, drills circular openings and fits a pierced,
-scalloped faceplate to each wheel. The brass and teal plates carry seven and five curved
-petals. Revolved profiles form the stepped hubs and the double ridges around the rims.
+The `gallery/hero` preset renders four ornamental spur gears in antique brass and dark bronze at 1600 × 900.
+It builds each toothed wheel with `models/spurgear`. The largest wheel has a seven-petal rosette above
+two rings of drilled openings. The other wheels have an eight-point compass rose with triangular openings,
+six swept vanes, and a hexagonal grille with eighteen cells. Revolved profiles form the stepped hubs,
+double ridges around the rims, and eyelets around the rosette.
 Regenerate the image when the spur gear geometry or this scene changes. The renderer module uses a newer
 Decad revision than the root module for the repeated through-cuts in this scene.
 
