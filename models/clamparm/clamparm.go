@@ -5,7 +5,7 @@
 // provides. One placeholder pad adapter ships with the model; real tool holders are separate items that import this
 // package's interface constants and [InterfaceRecessTool].
 //
-// Every pivot and fastener is an M5 hex bolt and nut ([m5bolt], [m5nut]). Joints are knuckles: a tongue in a fork,
+// Every pivot and fastener is an M5 hex bolt and nut (the M5 preset of [fastener]). Joints are knuckles: a tongue in a fork,
 // closed by a lobed knob on a bolt, so the bolt never turns in its nut.
 //
 // [BuildParts] builds the 13 printed bodies, posed in the world frame; [Build] adds the six bolts and six nuts and files
@@ -20,8 +20,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m5nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
@@ -64,9 +63,9 @@ type Parts struct {
 type Model struct {
 	Parts
 	// Bolts are the J1, J2, J3, J4, stud and clamp screw bolts, in that order.
-	Bolts [6]*m5bolt.Model
+	Bolts [6]*fastener.Bolt
 	// Nuts are the J1 to J4 knob nuts, the jaw nut and the adapter nut, in that order.
-	Nuts [6]*m5nut.Model
+	Nuts [6]*fastener.Nut
 }
 
 // placedFrame is f moved by at, or f when at is nil.

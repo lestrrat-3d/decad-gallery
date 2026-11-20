@@ -10,8 +10,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/clamparm"
-	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m5nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -191,8 +189,8 @@ func TestClampArmFitsBoltShankInHoles(t *testing.T) {
 			}
 			for _, h := range holes {
 				s := sites[h.bolt]
-				p := s.head.Add(s.dir.Scale(h.t)).Add(s.corner.Scale(m5bolt.ShankDiameter / 2))
-				requireFit(t, h.part.Body, p, m5fastener.HoleRadius-m5bolt.ShankDiameter/2, "shank")
+				p := s.head.Add(s.dir.Scale(h.t)).Add(s.corner.Scale(m5fastener.BoltSize.ShankDiameter / 2))
+				requireFit(t, h.part.Body, p, m5fastener.HoleRadius-m5fastener.BoltSize.ShankDiameter/2, "shank")
 			}
 		})
 	}
@@ -213,13 +211,13 @@ func TestClampArmFitsHeadsAndNuts(t *testing.T) {
 			const wall = 0.8660254037844386 // cos 30
 			wantHead := [6]float64{0.3 * wall, 0.3 * wall, 0.3 * wall, 0.3 * wall, 0.05 * wall, 0.05 * wall}
 			for i, s := range sites {
-				p := s.head.Add(s.dir.Scale(m5bolt.HeadHeight / 2)).Add(s.corner.Scale(asmHexCorner))
+				p := s.head.Add(s.dir.Scale(m5fastener.BoltSize.HeadHeight / 2)).Add(s.corner.Scale(asmHexCorner))
 				requireFit(t, boltPocketPart(m, i).Body, p, wantHead[i], "head corner")
 			}
 			frames := asmWorldNutFrames(t, c, m.Dimensions)
 			for i, f := range frames {
 				part, _ := nutPocketPart(m, i)
-				p := f.origin.Add(f.dir.Scale(m5nut.Thickness / 2)).Add(f.ref.Scale(asmHexCorner))
+				p := f.origin.Add(f.dir.Scale(m5fastener.NutSize.Thickness / 2)).Add(f.ref.Scale(asmHexCorner))
 				requireFit(t, part.Body, p, m5fastener.NutClearance*wall, "nut corner")
 			}
 		})
@@ -237,7 +235,7 @@ func TestClampArmFitsPad(t *testing.T) {
 			o := c.params.Opening
 			screw := asmWorldSites(t, c, m.Dimensions)[5]
 			// The socket is 8 deep: its mid-height is 4 above the pad's underside at z = -o - 12.
-			p := screw.head.Add(screw.dir.Scale(69.5)).Add(screw.corner.Scale(m5bolt.ShankDiameter / 2))
+			p := screw.head.Add(screw.dir.Scale(69.5)).Add(screw.corner.Scale(m5fastener.BoltSize.ShankDiameter / 2))
 			requireFit(t, m.Pad.Body, p, 0.35, "pad socket")
 			// A point on the pad's -X face, half way up it.
 			face := asmMove(t, m.Pad.Frame, r3.NewVec(-24.5, 0, -6))

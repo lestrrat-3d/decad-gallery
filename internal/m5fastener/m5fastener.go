@@ -11,14 +11,31 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/fastenertool"
-	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m5nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
 
-// Fastener dimensions in mm.
+// PresetName is the models/fastener catalog name of the M5 size.
+const PresetName = "M5"
+
+// BoltSize and NutSize are the M5 preset's dimensions from the models/fastener catalog. Treat both as read-only.
+var (
+	BoltSize = mustPreset(PresetName).Bolt
+	NutSize  = mustPreset(PresetName).Nut
+)
+
+// mustPreset returns the catalog preset called name and panics when the catalog has none.
+func mustPreset(name string) fastener.Preset {
+	p, ok := fastener.Lookup(name)
+	if !ok {
+		panic(fmt.Sprintf("m5fastener: catalog has no %s preset", name))
+	}
+	return p
+}
+
+// Fastener dimensions in mm. TestDimensionsMatchPreset pins each to the preset.
 const (
 	HeadClearance     = 0.3    // radial clearance round a head and a shank
 	NutClearance      = 0.2    // radial clearance past a nut's corners
@@ -40,7 +57,7 @@ const (
 const roundChords = 8
 
 // Site is one bolt. Head is the centre of the head's top face. Dir is the unit vector from the head toward the tip.
-// Corner is the unit vector across Dir on which the head's corners lie. Length is one of m5bolt.StandardLengths().
+// Corner is the unit vector across Dir on which the head's corners lie. Length is one of BoltSize.StandardLengths.
 type Site struct {
 	Head, Dir, Corner r3.Vec
 	Length            float64
@@ -54,7 +71,7 @@ func (s Site) Validate() error {
 	if math.Abs(s.Dir.Dot(s.Corner)) > unitTolerance {
 		return fmt.Errorf("fastener site: Corner must be perpendicular to Dir")
 	}
-	if !slices.Contains(m5bolt.StandardLengths(), s.Length) {
+	if !slices.Contains(BoltSize.StandardLengths, s.Length) {
 		return fmt.Errorf("fastener site: length %g is not a standard M5 length", s.Length)
 	}
 	return nil
@@ -128,22 +145,22 @@ func RoundedSocketTool(ctx context.Context, doc *decad.Document, f r3.Frame, rad
 	return fastenertool.RoundedRevolve(ctx, doc, mf, pts)
 }
 
-// PlaceBolt builds an m5bolt of s.Length whose head's top face lies at s.Head and whose shank runs along s.Dir.
-func PlaceBolt(ctx context.Context, doc *decad.Document, s Site) (*m5bolt.Model, error) {
+// PlaceBolt builds an M5 bolt of s.Length whose head's top face lies at s.Head and whose shank runs along s.Dir.
+func PlaceBolt(ctx context.Context, doc *decad.Document, s Site) (*fastener.Bolt, error) {
 	f, err := r3.NewFrame(s.At(HeadPocketDepth), s.Corner, s.Dir.Scale(-1).Cross(s.Corner))
 	if err != nil {
 		return nil, fmt.Errorf("bolt frame: %w", err)
 	}
-	m, err := m5bolt.Build(ctx, doc, m5bolt.Params{Length: s.Length, Placement: &f})
+	m, err := fastener.BuildBolt(ctx, doc, fastener.BoltParams{Preset: PresetName, Length: s.Length, Placement: &f})
 	if err != nil {
 		return nil, fmt.Errorf("build bolt: %w", err)
 	}
 	return m, nil
 }
 
-// PlaceNut builds an m5nut whose lower face lies on f, with its corners on f's U.
-func PlaceNut(ctx context.Context, doc *decad.Document, f r3.Frame) (*m5nut.Model, error) {
-	m, err := m5nut.Build(ctx, doc, m5nut.Params{Placement: &f})
+// PlaceNut builds an M5 nut whose lower face lies on f, with its corners on f's U.
+func PlaceNut(ctx context.Context, doc *decad.Document, f r3.Frame) (*fastener.Nut, error) {
+	m, err := fastener.BuildNut(ctx, doc, fastener.NutParams{Preset: PresetName, Placement: &f})
 	if err != nil {
 		return nil, fmt.Errorf("build nut: %w", err)
 	}

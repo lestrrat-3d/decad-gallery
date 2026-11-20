@@ -7,7 +7,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -166,8 +166,8 @@ func TestPocketTools(t *testing.T) {
 func TestPressPocketRoundClearsHeadChamfer(t *testing.T) {
 	apothem := m5fastener.PressPocketRadius * math.Sqrt(3) / 2
 	round := m5fastener.PressPocketRound
-	headFlat := m5bolt.AcrossFlats / 2
-	start := m5bolt.BearingDiameter / 2
+	headFlat := m5fastener.BoltSize.Hex.AcrossFlats / 2
+	start := m5fastener.BoltSize.Hex.BearingDiameter / 2
 	slope := math.Tan(30 * math.Pi / 180)
 	require.Greater(t, apothem, headFlat, "head fits the flats")
 	center := apothem - round // radial position where the round meets the floor
@@ -211,4 +211,16 @@ func TestPlacement(t *testing.T) {
 	require.InDelta(t, 6, nb.Min.Z, 1e-3)
 	require.InDelta(t, 10.7, nb.Max.Z, 1e-3)
 	require.InDelta(t, 4.6188, nb.Max.X, 1e-3, "corners on U")
+}
+
+func TestDimensionsMatchPreset(t *testing.T) {
+	require.Equal(t, "M5", m5fastener.PresetName)
+	require.Equal(t, fastener.HeadHex, m5fastener.BoltSize.Head)
+	require.InDelta(t, m5fastener.BoltSize.ShankDiameter/2+m5fastener.HeadClearance, m5fastener.HoleRadius, 1e-12)
+	require.InDelta(t, m5fastener.BoltSize.HeadHeight, m5fastener.HeadPocketDepth, 1e-12)
+	corner := m5fastener.BoltSize.Hex.AcrossCorners() / 2
+	require.InDelta(t, corner+m5fastener.HeadClearance, m5fastener.HeadPocketRadius, 1e-4)
+	require.InDelta(t, m5fastener.NutSize.AcrossCorners()/2+m5fastener.NutClearance, m5fastener.NutPocketRadius, 1e-4)
+	require.InDelta(t, m5fastener.NutSize.Thickness+0.4, m5fastener.NutCavityHeight, 1e-12)
+	require.InDelta(t, corner+0.05, m5fastener.PressPocketRadius, 1e-4)
 }
