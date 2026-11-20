@@ -56,12 +56,12 @@ func drawGalleryLogo(canvas *image.RGBA) error {
 		return err
 	}
 	scale := float64(canvas.Bounds().Dx()) / 1600
-	mainFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 158 * scale, DPI: 72, Hinting: font.HintingFull})
+	mainFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 185 * scale, DPI: 72, Hinting: font.HintingFull})
 	if err != nil {
 		return err
 	}
 	defer func() { _ = mainFace.Close() }()
-	subFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 47 * scale, DPI: 72, Hinting: font.HintingFull})
+	subFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 55 * scale, DPI: 72, Hinting: font.HintingFull})
 	if err != nil {
 		return err
 	}
