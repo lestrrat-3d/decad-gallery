@@ -47,7 +47,8 @@ must skip the worker; a nonempty matrix must succeed. Broad plans run the dedica
 missing, failed, cancelled, or unexpectedly skipped required jobs.
 
 The planetary PR suite runs one dimensions check and balances the remaining discovered tests across twenty jobs.
-Checks that read the same gearbox share a test process. The three default planet mesh checks run on separate workers.
+Checks that read the same gearbox share a test process. The second planet's sun and ring contacts run on separate
+workers that both build the default gearbox.
 Cost estimates only affect placement. Each job checks its assigned test results. The kit test keeps its existing
 allowed skips unless full kits are enabled.
 Renderer PR checks partition the discovered package tests across sixteen jobs. Each job requires its assigned tests
