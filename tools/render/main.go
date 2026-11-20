@@ -19,6 +19,7 @@ type preset struct {
 var galleryFresh bool
 
 var presets = map[string]preset{
+	"gallery/hero":                  {width: 1600, height: 900, scene: ornamentalGears},
 	"spinningwheel/hero":            {width: 1600, height: 900, scene: spinningWheelView("hero")},
 	"spinningwheel/rear":            {width: 1600, height: 900, scene: spinningWheelView("rear")},
 	"handcrankfan/hero":             {width: 1600, height: 900, scene: handCrankFanHero},
@@ -149,7 +150,7 @@ func main() {
 	height := flag.Int("height", 0, "override preset height in pixels")
 	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
 	kit := flag.String("kit", "", "planetary gearbox bearing kit; empty selects the default")
-	flag.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore existing gallery tile cache entries")
+	flag.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore cached gallery contact-sheet tiles")
 	flag.Parse()
 	if err := checkKitFlag(*name, *kit); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -219,14 +220,19 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 		}
 		return renderSwissMotion(ctx, output, width, height, swissMotionFrames)
 	}
-	if model == "gallery" && shot == "hero" {
+	if model == "gallery" && (shot == "contact-sheet" || shot == "hero") {
 		if width == 0 {
 			width = galleryWidth
 		}
 		if height == 0 {
 			height = width * galleryHeight / galleryWidth
 		}
-		return renderGallery(ctx, output, width, height)
+		if width <= 0 || height <= 0 || width*galleryHeight != height*galleryWidth {
+			return fmt.Errorf("gallery image must have positive 16:9 dimensions, got %d × %d", width, height)
+		}
+		if shot == "contact-sheet" {
+			return renderGallery(ctx, output, width, height)
+		}
 	}
 	selected, ok := presets[model+"/"+shot]
 	if !ok {
@@ -247,6 +253,9 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	scene, err := selected.scene(ctx)
 	if err != nil {
 		return fmt.Errorf("build %s/%s scene: %w", model, shot, err)
+	}
+	if model == "gallery" && shot == "hero" {
+		return renderGalleryHero(ctx, output, scene, width, height)
 	}
 	return renderPNG(ctx, output, scene, width, height)
 }

@@ -32,7 +32,7 @@ All lengths are in millimeters and all angles in degrees.
 
 The default plaque size, 250 x 305 x 12.8 mm, is the measured size of the user's plaque. Only the three
 `DefaultPlaque*` constants change if the plaque changes. Changing them changes the geometry, so regenerate every plaque
-stand image and `docs/images/gallery.png` in the same change.
+stand image in the same change.
 
 ## Symbols
 

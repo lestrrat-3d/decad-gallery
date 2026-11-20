@@ -8,8 +8,7 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Default plaque dimensions in mm: the measured size of the user's plaque. Changing them changes the geometry, so
-// regenerate every plaque stand image and the gallery image with them.
+// Default plaque dimensions in mm match the measured plaque. Regenerate the plaque stand images when they change.
 const (
 	// DefaultPlaqueWidth is the plaque width, along X.
 	DefaultPlaqueWidth = 250.0
