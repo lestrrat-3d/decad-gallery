@@ -136,7 +136,7 @@ func fastenerBoltView(ctx context.Context, set fastenerSet, name string) (solidl
 		}
 		models = append(models, fastenerMeshModel(mesh))
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models), nil
 }
 
 // fastenerNutView builds one view of the nut, or of the nut on a bolt for "withbolt".
@@ -179,7 +179,7 @@ func fastenerNutView(ctx context.Context, set fastenerSet, name string) (solidle
 		}
 		models = append(models, fastenerMeshModel(mesh))
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models), nil
 }
 
 // renderFastenerReadme writes the index image and every README view.

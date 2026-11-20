@@ -41,7 +41,7 @@ func pinRingView(ctx context.Context, name string) (solidlens.Scene, error) {
 	}
 	models := []solidlens.Model{{Mesh: mesh, Material: solidlens.Matte(solidlens.RGB(.5, .52, .56)),
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models), nil
 }
 
 // renderPinRingReadme writes the index image and every README view.

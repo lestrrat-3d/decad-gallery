@@ -89,7 +89,7 @@ func spinningWheelExplodedScene(meshes []wheelMesh) solidlens.Scene {
 		models = append(models, model)
 	}
 	aspect := float64(wheelExplodedWidth) / wheelExplodedHeight
-	return bevelScene(fitCamera(wheelExplodedCamera, models, aspect, .06), models)
+	return renderkit.Scene(renderkit.FitCamera(wheelExplodedCamera, models, aspect, .06), models)
 }
 
 // wheelKind is one distinct body of the wheel with every identical body that shares its row of the parts table.
@@ -141,7 +141,7 @@ func wheelKinds(meshes []wheelMesh) ([]wheelKind, error) {
 	return kinds, nil
 }
 
-// wheelPartCamera looks at one part from the front and above; fitCamera frames it.
+// wheelPartCamera looks at one part from the front and above; renderkit.FitCamera frames it.
 var wheelPartCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 110},
 	Up:       solidlens.Vec{Z: 1},
@@ -161,7 +161,7 @@ func spinningWheelPartScene(kind wheelKind) solidlens.Scene {
 		camera.Position = solidlens.Vec{X: c.X + d*.35, Y: c.Y - d*.75, Z: c.Z + d*.55}
 	}
 	models := []solidlens.Model{model}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 }
 
 // renderSpinningWheelExploded writes the exploded view and one image per distinct body into out and out/parts.

@@ -122,7 +122,7 @@ func spinningWheelScene(meshes []wheelMesh, shot string) solidlens.Scene {
 		camera.Position = solidlens.Vec{X: 300, Y: -1000, Z: 940}
 		camera.Target = solidlens.Vec{X: -140, Y: 50, Z: 690}
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models)
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models)
 }
 
 func spinningWheelView(shot string) func(context.Context) (solidlens.Scene, error) {

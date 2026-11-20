@@ -9,6 +9,7 @@ import (
 	"image/gif"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/escapement"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -115,7 +116,7 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 		if err != nil {
 			return err
 		}
-		img, err := solidlens.Render(ctx, bevelScene(camera, models), solidlens.Settings{Width: width, Height: height})
+		img, err := solidlens.Render(ctx, renderkit.Scene(camera, models), solidlens.Settings{Width: width, Height: height})
 		if err != nil {
 			return fmt.Errorf("render frame %d: %w", frame, err)
 		}

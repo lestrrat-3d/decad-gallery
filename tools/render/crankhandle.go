@@ -190,7 +190,7 @@ func (c crankMeshes) view(name string, large *crankMeshes) (solidlens.Scene, err
 			}
 		}
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // renderCrankHandleReadme builds the default crank once, and the 608-2RS crank once for the size comparison, and
@@ -237,7 +237,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
 			Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
 		models := []solidlens.Model{crankModel(mesh, crankPartColor(name))}
-		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+		scene := renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 		file := strings.TrimSuffix(name, "-1")
 		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
 			return err
@@ -284,7 +284,7 @@ func (c crankMeshes) renderPinHalves(ctx context.Context, dir string) error {
 		camera := solidlens.Camera{Position: solidlens.Vec{X: 10, Y: -45, Z: 55}, Target: solidlens.Vec{X: 31, Z: 2},
 			Up: solidlens.Vec{Z: 1}, FOV: 35}
 		models := []solidlens.Model{model}
-		scene := bevelScene(fitCamera(camera, models, 16.0/9, .08), models)
+		scene := renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models)
 		if err := renderkit.RenderPNG(ctx, filepath.Join(dir, half.file), scene, 480, 270); err != nil {
 			return err
 		}
@@ -382,7 +382,7 @@ func (c crankMeshes) splitView(name string) (solidlens.Scene, error) {
 		camera = solidlens.Camera{Position: solidlens.Vec{X: -40, Y: -70, Z: 55}, Target: solidlens.Vec{X: 28, Z: 2},
 			Up: solidlens.Vec{Z: 1}, FOV: 30}
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // clampView draws the arm's hub, with both clamp bolts and nuts and none of the pin's parts:
@@ -427,7 +427,7 @@ func (c crankMeshes) clampView(name string) (solidlens.Scene, error) {
 		hi = r3.Vec{X: -crankhandle.ArmRadius + 4, Y: c.dm.ClampY + 7, Z: crankhandle.HubLength + 1}
 	}
 	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
-	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, frame, 16.0/9, .06), models), nil
 }
 
 // pocketSectionView cuts across a nut's hexagonal pocket, through the nut and the bolt, and looks into the cut:
@@ -471,10 +471,10 @@ func (c crankMeshes) pocketSectionView(name string) (solidlens.Scene, error) {
 		models = append(models, m)
 	}
 	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
-	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, frame, 16.0/9, .06), models), nil
 }
 
-// boxCorners is the eight corners of the box from lo to hi, a vertex set fitCamera can frame.
+// boxCorners is the eight corners of the box from lo to hi, a vertex set renderkit.FitCamera can frame.
 type boxCorners [2]r3.Vec
 
 func (b boxCorners) Vertices() []r3.Vec {

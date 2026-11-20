@@ -158,7 +158,7 @@ func cycloidalScene(ctx context.Context, drive cycloidal.Drive, camera solidlens
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
 func cycloidalHero(ctx context.Context) (solidlens.Scene, error) {
@@ -207,7 +207,7 @@ func cycloidalPartScene(ctx context.Context, drive cycloidal.Drive, part cycloid
 			Up:       solidlens.Vec{Z: 1},
 			FOV:      35,
 		}
-		return bevelScene(fitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
+		return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
 	}
 	return solidlens.Scene{}, fmt.Errorf("cycloidal part %q not found", part.name)
 }

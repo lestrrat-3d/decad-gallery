@@ -254,7 +254,7 @@ func clampCamera(models []solidlens.Model, target r3.Vec, dir r3.Vec, up r3.Vec,
 	u, _ := dir.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(target.Add(u.Scale(1500))), Target: solidlens.Vec(target),
 		Up: solidlens.Vec(up), FOV: 30, Near: 1, Far: 8000}
-	return fitCamera(camera, models, aspect, margin)
+	return renderkit.FitCamera(camera, models, aspect, margin)
 }
 
 // centreOf returns the middle of the models' bounds.
@@ -282,7 +282,7 @@ func (a *clampArm) clampExplodedScene() (solidlens.Scene, error) {
 		return solidlens.Scene{}, err
 	}
 	camera := clampCamera(models, centreOf(models), clampExplodedDir, clampZ, 16.0/9, 0.04)
-	return bevelScene(camera, models), nil
+	return renderkit.Scene(camera, models), nil
 }
 
 // capped returns m clipped by plane, with a lit cap in a lighter shade of the part's colour.
@@ -305,7 +305,7 @@ func (a *clampArm) clampSection(names []string, plane solidlens.ClipPlane, dir, 
 	}
 	frame := []solidlens.Model{{Mesh: boxCorners{lo, hi}}}
 	camera := clampCamera(frame, lo.Add(hi).Scale(0.5), dir, up, 16.0/9, 0.04)
-	return bevelScene(camera, models), nil
+	return renderkit.Scene(camera, models), nil
 }
 
 // view draws one full-size view of the default pose.
@@ -337,7 +337,7 @@ func (a *clampArm) view(name string) (solidlens.Scene, error) {
 		}
 		frame := []solidlens.Model{{Mesh: boxCorners{i.Add(r3.NewVec(-55, -22, -26)), i.Add(r3.NewVec(35, 22, 22))}}}
 		camera := clampCamera(frame, i, r3.NewVec(0.8, -1, 0.6), clampZ, 16.0/9, 0.04)
-		return bevelScene(camera, models), nil
+		return renderkit.Scene(camera, models), nil
 	}
 	dirs := map[string]r3.Vec{"hero": clampHeroDir, "side": clampSideDir, "back": clampBackDir, "top": clampTopDir}
 	dir, ok := dirs[name]
@@ -352,7 +352,7 @@ func (a *clampArm) view(name string) (solidlens.Scene, error) {
 	if name == "top" {
 		up = clampY
 	}
-	return bevelScene(clampCamera(models, centreOf(models), dir, up, 16.0/9, 0.05), models), nil
+	return renderkit.Scene(clampCamera(models, centreOf(models), dir, up, 16.0/9, 0.05), models), nil
 }
 
 // clampPosesScene draws the arms of the default, raised and folded poses side by side along +X, 40 mm apart.
@@ -373,7 +373,7 @@ func clampPosesScene(arms []*clampArm) (solidlens.Scene, error) {
 		models = append(models, part...)
 		x += high.X - low.X + 40
 	}
-	return bevelScene(clampCamera(models, centreOf(models), r3.NewVec(0.2, -1, 0.3), clampZ, 16.0/9, 0.04), models), nil
+	return renderkit.Scene(clampCamera(models, centreOf(models), r3.NewVec(0.2, -1, 0.3), clampZ, 16.0/9, 0.04), models), nil
 }
 
 // partScene draws one body alone in its own frame, the way it prints.
@@ -393,7 +393,7 @@ func (a *clampArm) partScene(name string) (solidlens.Scene, error) {
 	centre := low.Add(high).Scale(0.5)
 	camera := solidlens.Camera{Position: solidlens.Vec(centre.Add(r3.Vec{X: 0.9 * span, Y: -0.9 * span, Z: 0.8 * span})),
 		Target: solidlens.Vec(centre), Up: solidlens.Vec{Z: 1}, FOV: 35}
-	return bevelScene(fitCamera(camera, models, 16.0/9, 0.1), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, 0.1), models), nil
 }
 
 // clampArmView returns the preset scene of one full-size view. "poses" builds all three poses.

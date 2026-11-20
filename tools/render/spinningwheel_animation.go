@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -94,7 +95,7 @@ func renderSpinningWheelAnimation(ctx context.Context, meshes []wheelMesh, base 
 		if shot == "hero" {
 			scene.Camera = turnCameraHalf(scene.Camera, wheelTurnAxis)
 		}
-		cameras[i] = fitCamera(scene.Camera, scene.Models, float64(width/2)/float64(height-110), .14)
+		cameras[i] = renderkit.FitCamera(scene.Camera, scene.Models, float64(width/2)/float64(height-110), .14)
 	}
 	animation := &gif.GIF{LoopCount: 0, Config: image.Config{ColorModel: color.Palette(palette.Plan9), Width: width, Height: height}}
 	for frame := range frames {

@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/draw"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/solidlens"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -126,7 +127,7 @@ func renderSpinningWheelSheet(ctx context.Context, meshes []wheelMesh, shot, out
 		if shot == "whorl" && i == 1 {
 			continue
 		}
-		panels[i].scene.Camera = fitCamera(panels[i].scene.Camera, panels[i].scene.Models, float64(width/2)/float64(height-110), .08)
+		panels[i].scene.Camera = renderkit.FitCamera(panels[i].scene.Camera, panels[i].scene.Models, float64(width/2)/float64(height-110), .08)
 	}
 	face, err := wheelCaptionFont(18)
 	if err != nil {
