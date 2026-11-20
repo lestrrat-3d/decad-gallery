@@ -46,7 +46,7 @@ func compressionSpringView(ctx context.Context, name string) (solidlens.Scene, e
 	models := []solidlens.Model{{Mesh: mesh, Material: solidlens.Matte(solidlens.RGB(.72, .76, .79)),
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}}
 	camera := solidlens.Camera{Position: eye, Target: solidlens.Vec{Y: p.InstalledLength / 2}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 func renderCompressionSpringReadme(ctx context.Context, outputDir string) error {
