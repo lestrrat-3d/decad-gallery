@@ -134,14 +134,17 @@ def isolated_tests(base, tested, changed):
                 return []
             old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
             new = subprocess.check_output(["git", "show", f"{tested}:{path}"], stderr=subprocess.PIPE)
-            if b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new:
+            predicate = all(b"// CI: isolated-predicate" in text for text in (old, new))
+            if predicate and len(code) != 1:
+                return []
+            if not predicate and (b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new):
                 return []
             tagged = any(tag in text for text in (old, new) for tag in (b"//go:build", b"// +build"))
             if tagged and path != "models/spinningwheel/head_leg_coplanar_test.go":
                 return []
             if tagged:
                 owner = "tag-coplanar_test-" + owner
-            inputs.append((owner, old, new))
+            inputs.append((owner, path, predicate, old, new))
         suites = set()
         Path(".tmp").mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
@@ -149,10 +152,18 @@ def isolated_tests(base, tested, changed):
             binary = root / "testdiff"
             subprocess.run(["go", "build", "-o", str(binary), "scripts/ci/testdiff.go"], check=True,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            for model, old, new in inputs:
+            for model, path, predicate, old, new in inputs:
                 (root / "old.go").write_bytes(old)
                 (root / "new.go").write_bytes(new)
-                names = json.loads(subprocess.check_output([str(binary), str(root / "old.go"), str(root / "new.go")]))
+                args = [str(binary)]
+                if predicate:
+                    # Inspect the exact tested package, including files outside this diff.
+                    package = str(Path(path).parent)
+                    archive = subprocess.check_output(["git", "archive", tested, package])
+                    with tarfile.open(fileobj=io.BytesIO(archive)) as tree:
+                        tree.extractall(root, filter="data")
+                    args.extend(["--predicate", str(root / package), Path(path).name])
+                names = json.loads(subprocess.check_output(args + [str(root / "old.go"), str(root / "new.go")]))
                 if names is None:
                     return []
                 if not isinstance(names, list) or any(not re.fullmatch(r"Test[A-Za-z0-9_]*", n) for n in names):
@@ -203,7 +214,7 @@ def plan(event, base, tested):
                                    for path in changed):
             isolated = isolated_tests(base, tested, changed)
             if isolated:
-                reason = "changed isolated test functions"
+                reason = "changed isolated tests or test predicates"
                 result.update(suites=isolated, reasons={suite: [reason] for suite in isolated}, reason=reason)
                 return result
         code = [path for path in changed if path.endswith(".go") and path not in CI_FILES]

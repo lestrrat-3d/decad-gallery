@@ -11,7 +11,7 @@ import tempfile
 def main():
     roots = ("models", "internal", "features", "tools/render")
     files = [path for root in roots for path in Path(root).rglob("*_test.go")
-             if "// CI: isolated-tests" in path.read_text(encoding="utf-8")]
+             if "// CI: isolated-" in path.read_text(encoding="utf-8")]
     plan = json.loads(os.environ.get("PLAN_JSON", "{}"))
     if os.environ.get("GITHUB_EVENT_NAME") in {"push", "pull_request"} and plan.get("changed_paths"):
         diff = subprocess.check_output(["git", "diff", "--no-renames", "--diff-filter=A", "--name-only", "-z",
