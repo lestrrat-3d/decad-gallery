@@ -1,6 +1,6 @@
 # decad gallery
 
-![Four antique brass and dark bronze spur gears with a rosette, compass rose, swept vanes and honeycomb grille](docs/images/gallery.png)
+![Four antique brass and dark bronze spur gears with a cropped rosette, compass rose, swept vanes and honeycomb grille](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
