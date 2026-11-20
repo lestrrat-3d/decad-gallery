@@ -777,7 +777,7 @@ def run_full_models() -> None:
                 env=env, package=bevel)
 
 
-PLANETARY_PR_SHARDS = 25
+PLANETARY_PR_SHARDS = 21
 FAN_PR_SHARDS = 10
 
 
@@ -789,9 +789,19 @@ def planetary_test_weight(name: str) -> int:
         return 200
     if name.startswith(("TestCorners", "TestSplit")):
         return 100
-    if name in {"TestPartClearances", "TestRingWithoutEars", "TestFastenersFitTheirPockets",
-                "TestBearingsSitInPlanetPockets", "TestHousing", "TestWrongPhaseIsDetected"}:
+    if name in {"TestRingWithoutEars", "TestFastenersFitTheirPockets",
+                "TestBearingsSitInPlanetPockets", "TestHousing"}:
         return 100
+    if name in {"TestPlacedGearbox", "TestSeatChamfer", "TestPartClearances", "TestWrongPhaseIsDetected"}:
+        return 180
+    if name in {"TestBuildPartsFilesNothing", "TestEarBoreAndCount"}:
+        return 90
+    if name in {"TestDefaultDimensionsUnchanged", "TestClearanceLimits", "TestDerivePerRole", "TestEdgeChamferLimits",
+                "TestEarSpacingCountsRootRounds", "TestFastenerFitRules", "TestInsideCountsRepeatedProjectedVertices",
+                "TestInvalidParams", "TestNewFitChecks", "TestNewMotionRejects", "TestParameterTableMatchesDerive",
+                "TestPhaseAngles", "TestProblemsNameForcedMinimums", "TestRootRoundArea",
+                "TestSunBoreWallDimensions", "TestSupportedCombinationsAreValid"} or name.startswith("TestMotion"):
+        return 1
     return 45
 
 
@@ -799,10 +809,44 @@ def planetary_test_shards(tests: list[str]) -> list[list[str]]:
     """Balance discovered tests without relying on estimates for coverage."""
     shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
     weights = [0] * len(shards)
-    for name in sorted(tests, key=lambda item: (-planetary_test_weight(item), item)):
-        index = min(range(len(shards)), key=lambda item: (weights[item], item))
-        shards[index].append(name)
-        weights[index] += planetary_test_weight(name)
+    # Each group reads the same process-local gearbox. Keep the three expensive
+    # planet mesh checks on different workers, each with cheap default-body checks.
+    fixture_groups = (
+        ("TestFirstPlanetMesh", "TestBodyContainers", "TestFastenersSitFlush", "TestDefaultGearbox",
+         "TestCarrierPins", "TestExplodedGearbox", "TestInputShaftCollar"),
+        ("TestSecondPlanetMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
+         "TestOutputShaft", "TestCarrierIsATriangle"),
+        ("TestThirdPlanetMesh", "TestGearTipRootClearance", "TestEdgeFinishing", "TestShaftFlat",
+         "TestBearingsSitInPlanetPockets"),
+        ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
+        ("TestTwoStages", "TestExplodedTwoStageGearbox"),
+        ("TestCorners", "TestSplitShafts"),
+    )
+    remaining = set(tests)
+    groups = []
+    for candidates in fixture_groups:
+        group = tuple(name for name in candidates if name in remaining)
+        if group:
+            groups.append(group)
+            remaining.difference_update(group)
+    groups.extend((name,) for name in remaining)
+    # Rotating copies adds live bodies to the default document. Its body-count
+    # checks must see the original inventory, regardless of Go test order.
+    body_counts = {"TestDefaultGearbox", "TestBodyContainers"}
+    append_copies = {"TestGearTipRootClearance", "TestWrongPhaseIsDetected"}
+    for group in sorted(groups, key=lambda group: (-max(map(planetary_test_weight, group)), group)):
+        incompatible = set()
+        if body_counts.intersection(group):
+            incompatible = append_copies
+        elif append_copies.intersection(group):
+            incompatible = body_counts
+        eligible = (i for i, shard in enumerate(shards) if incompatible.isdisjoint(shard))
+        index = min(eligible, key=lambda item: (weights[item], item))
+        shards[index].extend(group)
+        weights[index] += max(map(planetary_test_weight, group))
+    assigned = [name for shard in shards for name in shard]
+    if sorted(assigned) != sorted(tests):
+        raise ValueError("planetary shards must assign every discovered test exactly once")
     return shards
 
 
