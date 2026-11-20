@@ -9,141 +9,100 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
+// BuildToothSection draws one ordinary tooth section at the signed angle on
+// plane: right radial line, right flank, tip arc, left flank, left radial line,
+// closed by the short root arc. It returns the solved, verified sketch and its
+// six-curve profile. A gear whose flanks begin inside the root circle has no
+// standalone tooth section; such requests return an error.
+func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+	p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
+	if ctx == nil {
+		return nil, nil, fmt.Errorf("spurgear: nil context")
+	}
+	if world == nil {
+		return nil, nil, fmt.Errorf("spurgear: nil sketch world")
+	}
+	if plane == nil {
+		return nil, nil, fmt.Errorf("spurgear: nil sketch plane")
+	}
 	if err := validate(p); err != nil {
 		return nil, nil, err
 	}
-	if ctx == nil || world == nil || plane == nil {
-		return nil, nil, fmt.Errorf("tooth section requires context, world and plane")
-	}
 	if math.IsNaN(angle) || math.IsInf(angle, 0) {
-		return nil, nil, fmt.Errorf("tooth angle must be finite")
+		return nil, nil, fmt.Errorf("spurgear: tooth section angle %g is not finite", angle)
 	}
-	d := derive(p)
+	d, err := deriveChecked(p)
+	if err != nil {
+		return nil, nil, fmt.Errorf("spurgear: derive dimensions: %w", err)
+	}
 	if d.base < d.root {
-		return nil, nil, fmt.Errorf("embedded tooth section is not supported")
+		return nil, nil, fmt.Errorf("spurgear: tooth section: embedded flanks (base radius %g below root radius %g) have no standalone tooth section",
+			d.base, d.root)
 	}
 	return buildToothSection(ctx, world, plane, p, d, angle)
 }
 
-// buildToothSection constructs one closed, ordinary tooth in the supplied frame.
-func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
+// buildToothSection draws the six-curve ordinary tooth section at angle.
+func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+	p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
 	s, err := world.CreateSketch(plane)
 	if err != nil {
-		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
+		return nil, nil, fmt.Errorf("spurgear: tooth section: create sketch: %w", err)
 	}
+	center := s.Origin()
 	left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), d.backlash, p.Samples, angle)
-	leftRoot, rightRoot := rootContact(left[0], d), rootContact(right[0], d)
-	rp := make([]*sketch.Point, len(right))
-	lp := make([]*sketch.Point, len(left))
-	for i, v := range right {
-		rp[i] = sketchcheck.DimensionPoint(s, v.x, v.y)
+	rightPts, leftPts := flankPoints(s, left, right, false)
+	lr := rootContact(left[0], d)
+	rr := rootContact(right[0], d)
+	leftRoot := sketchcheck.DimensionArcEnd(s, lr.x, lr.y)
+	rightRoot := sketchcheck.DimensionPoint(s, rr.x, rr.y)
+	if err := ordinaryToothCurves(s, 0, rightRoot, rightPts, leftPts, leftRoot); err != nil {
+		return nil, nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	for i, v := range left {
-		if i == len(left)-1 {
-			lp[i] = sketchcheck.DimensionArcEnd(s, v.x, v.y)
-		} else {
-			lp[i] = sketchcheck.DimensionPoint(s, v.x, v.y)
-		}
+	s.CreateArc(center, rightRoot, leftRoot)
+	if err := solveAndVerify(ctx, s, "tooth section"); err != nil {
+		return nil, nil, err
 	}
-	rr := sketchcheck.DimensionPoint(s, rightRoot.x, rightRoot.y)
-	lr := sketchcheck.DimensionArcEnd(s, leftRoot.x, leftRoot.y)
-	s.CreateLine(rr, rp[0])
-	if _, err = s.CreateFitSpline(rp...); err != nil {
-		return nil, nil, fmt.Errorf("right flank spline: %w", err)
-	}
-	s.CreateArc(s.Origin(), rp[len(rp)-1], lp[len(lp)-1])
-	if _, err = s.CreateFitSpline(lp...); err != nil {
-		return nil, nil, fmt.Errorf("left flank spline: %w", err)
-	}
-	s.CreateLine(lp[0], lr)
-	s.CreateArc(s.Origin(), rr, lr)
-	if _, err = s.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve tooth sketch: %w", err)
-	}
-	if err = sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return nil, nil, fmt.Errorf("verify tooth sketch: %w", err)
-	}
-	profiles := s.Profiles()
-	if len(profiles) != 1 || !profiles[0].Valid {
-		return nil, nil, fmt.Errorf("tooth profile count %d, expected one valid profile", len(profiles))
-	}
-	if len(profiles[0].Outer) != 6 {
-		return nil, nil, fmt.Errorf("tooth profile has %d curves, expected 6", len(profiles[0].Outer))
-	}
-	return s, profiles[0], nil
-}
-
-func buildEmbeddedTooth(ctx context.Context, world *sketch.World, plane *sketch.Plane, p Params, d dimensions) (*sketch.Sketch, *sketch.Profile, error) {
-	rc, err := embeddedClosingRadius(p, d)
+	profile, err := singleProfile(s, "tooth section", 6)
 	if err != nil {
 		return nil, nil, err
 	}
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create embedded tooth sketch: %w", err)
-	}
-	left, right := sampleFlanks(d.pitch, d.base, rc, d.tip, float64(p.Teeth), d.backlash, p.Samples, 0)
-	rp, lp := make([]*sketch.Point, len(right)), make([]*sketch.Point, len(left))
-	for i, v := range right {
-		rp[i] = sketchcheck.DimensionPoint(s, v.x, v.y)
-	}
-	for i, v := range left {
-		if i == 0 || i == len(left)-1 {
-			lp[i] = sketchcheck.DimensionArcEnd(s, v.x, v.y)
-		} else {
-			lp[i] = sketchcheck.DimensionPoint(s, v.x, v.y)
-		}
-	}
-	if _, err = s.CreateFitSpline(rp...); err != nil {
-		return nil, nil, fmt.Errorf("embedded right flank spline: %w", err)
-	}
-	s.CreateArc(s.Origin(), rp[len(rp)-1], lp[len(lp)-1])
-	if _, err = s.CreateFitSpline(lp...); err != nil {
-		return nil, nil, fmt.Errorf("embedded left flank spline: %w", err)
-	}
-	s.CreateArc(s.Origin(), rp[0], lp[0])
-	if _, err = s.Solve(ctx); err != nil {
-		return nil, nil, fmt.Errorf("solve embedded tooth: %w", err)
-	}
-	if err = sketchcheck.VerifyFullyConstrained(ctx, s); err != nil {
-		return nil, nil, fmt.Errorf("verify embedded tooth: %w", err)
-	}
-	profiles := s.Profiles()
-	if len(profiles) != 1 || !profiles[0].Valid {
-		return nil, nil, fmt.Errorf("embedded tooth profile count %d, expected one valid profile", len(profiles))
-	}
-	if len(profiles[0].Outer) != 4 {
-		return nil, nil, fmt.Errorf("embedded tooth has %d curves, expected 4", len(profiles[0].Outer))
-	}
-	return s, profiles[0], nil
+	return s, profile, nil
 }
 
-func embeddedClosingRadius(p Params, d dimensions) (float64, error) {
-	half := func(r float64) float64 {
-		v := involute(d.base, r)
-		v.y = -v.y
-		pitchPoint := involute(d.base, d.pitch)
-		pitchPoint.y = -pitchPoint.y
-		beta := math.Pi/(2*float64(p.Teeth)) - d.backlash/(2*d.pitch) - math.Atan2(pitchPoint.y, pitchPoint.x)
-		v = rotate(v.x, v.y, beta)
-		return math.Abs(math.Atan2(v.y, v.x))
+// flankPoints creates the dimensioned flank points. Every right point gets both
+// coordinate dimensions; every left point gets both except its tip, which gets
+// one, and, when leftFirstOnArc is set, its first point, which also gets one.
+func flankPoints(s *sketch.Sketch, left, right []point, leftFirstOnArc bool) ([]*sketch.Point, []*sketch.Point) {
+	n := len(right)
+	rightPts := make([]*sketch.Point, n)
+	for i, q := range right {
+		rightPts[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
 	}
-	limit := math.Pi / float64(p.Teeth)
-	if half(d.root) >= limit {
-		return 0, fmt.Errorf("no embedded tooth closing radius inside root circle")
-	}
-	if half(d.base) < limit {
-		return d.base, nil
-	}
-	lo, hi := d.base, d.root
-	for i := 0; i < 200; i++ {
-		mid := (lo + hi) / 2
-		if half(mid) >= limit {
-			lo = mid
-		} else {
-			hi = mid
+	leftPts := make([]*sketch.Point, n)
+	for i, q := range left {
+		if i == n-1 || (i == 0 && leftFirstOnArc) {
+			leftPts[i] = sketchcheck.DimensionArcEnd(s, q.x, q.y)
+			continue
 		}
+		leftPts[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
 	}
-	return ((lo+hi)/2 + d.root) / 2, nil
+	return rightPts, leftPts
+}
+
+// ordinaryToothCurves draws the right radial line, right flank spline, tip arc,
+// left flank spline and left radial line of tooth k, reusing the given points.
+func ordinaryToothCurves(s *sketch.Sketch, k int, rightRoot *sketch.Point, rightPts, leftPts []*sketch.Point,
+	leftRoot *sketch.Point) error {
+	n := len(rightPts)
+	s.CreateLine(rightRoot, rightPts[0])
+	if _, err := s.CreateFitSpline(rightPts...); err != nil {
+		return fmt.Errorf("tooth %d right flank: %w", k, err)
+	}
+	s.CreateArc(s.Origin(), rightPts[n-1], leftPts[n-1])
+	if _, err := s.CreateFitSpline(leftPts...); err != nil {
+		return fmt.Errorf("tooth %d left flank: %w", k, err)
+	}
+	s.CreateLine(leftPts[0], leftRoot)
+	return nil
 }
