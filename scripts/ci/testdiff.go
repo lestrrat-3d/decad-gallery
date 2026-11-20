@@ -210,7 +210,7 @@ func checkedPackage(fset *token.FileSet, files []*ast.File) (*types.Info, bool) 
 	lookup := func(path string) (io.ReadCloser, error) { return os.Open(exports[path]) }
 	config := types.Config{Importer: importer.ForCompiler(fset, "gc", lookup)}
 	info := &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
-	_, err = config.Check(files[0].Name.Name, fset, files, info)
+	_, err = config.Check("gallery.invalid/predicate-check/"+files[0].Name.Name, fset, files, info)
 	return info, err == nil
 }
 

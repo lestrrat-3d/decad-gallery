@@ -31,7 +31,8 @@ A private test predicate can opt in with a `// CI: isolated-predicate` doc comme
 parameters and one boolean return expression using only its parameters, literals, comparisons, signs, and boolean
 operators. Its result may only guard a single `testing.T.Errorf` call with scalar diagnostic values. Every test
 in the package must follow the isolated-test rule above. A helper must neither store a test callback nor depend
-on another test's state. Put one marked predicate in a file.
+on another test's state. Tests must exercise a predicate through Go calls and must not inspect its source or binary.
+Put one marked predicate in a file.
 
 A change confined to one marked predicate body runs every isolated top-level test that calls it through private
 test helpers. CI examines both revisions, type-checks the tested package, and follows direct calls across files
