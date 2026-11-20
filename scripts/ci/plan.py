@@ -42,6 +42,7 @@ RENDER = {"ballbearing": ("bearing-render",), "bevelgear": ("bevel-render",),
 BROAD_WORKERS = {"bevel-pr", "clamparm", "escapement", "onewayclutch", "turbinefan", "wheel", "siren"}
 BROAD_PACKAGES = {"package-" + name for name in
                   ("meshgap", "gearroot", "edgefinish", "m2fastener", "cornercheck", "splitcheck")}
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 BROAD_RENDER = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
@@ -203,9 +204,10 @@ def plan(event, base, tested):
         wheel_parts = any(path.startswith("models/spinningwheel/images/parts/") and
                           Path(path).suffix.lower() == ".png" for path in changed)
         def is_presentation(path):
+            # No test reads gallery images; tests write images to temporary directories.
+            # Images under testdata stay inputs, because a test could read them as fixtures.
             return (path.lower().endswith(".md") or
-                    (path.startswith("models/spinningwheel/images/parts/") and
-                     Path(path).suffix.lower() == ".png"))
+                    (Path(path).suffix.lower() in IMAGE_SUFFIXES and "testdata" not in Path(path).parts))
         if all(is_presentation(path) or path in CI_FILES for path in changed):
             suites = {}
             if wheel_parts:
