@@ -13,6 +13,19 @@ from run_tests import FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_tes
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
 MODULE = "github.com/lestrrat-3d/decad-gallery"
 RENDER_PR_SHARDS = 16
+RENDER_TOOL_SHARDS = 16
+# Tests that build a full assembly. Each runs as its own job in the item's render suite; the rest share one job.
+RENDER_HEAVY = {
+    "bevelgear": ("TestBevelPairsRealBuild",),
+    "clamparm": ("TestClampArmPresets", "TestClampArmExploded"),
+    "escapement": ("TestEscapementExploded",),
+    "handcrankfan": ("TestHandCrankFanMotion", "TestHandCrankFanView"),
+    "handcranksiren": ("TestHandCrankSirenView",),
+    "planetarygearbox": ("TestPlanetaryGearboxMotion", "TestPlanetaryKitParts",
+                         "TestPlanetaryMotionUsesBuiltGearbox"),
+    "spinningwheel": ("TestSpinningWheelMotion", "TestSpinningWheelPartsTable", "TestSpinningWheelBlockOfEveryPart"),
+    "swisslever": ("TestSwissExploded",),
+}
 RENDER_TESTS = {
     "clamparm-render": ("40m", "tools/render", ("TestClampArmPresets", "TestClampArmExploded")),
     "swiss-render": ("40m", "tools/render", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
@@ -52,12 +65,15 @@ PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion
 
 
 def isolated_suite(suite):
-    match = re.fullmatch(r"isolated-(?:(tag-coplanar_test)-)?(?:(internal|feature)-)?"
+    match = re.fullmatch(r"isolated-(?:(tag-coplanar_test)-)?(?:(internal|feature|modelrender|featurerender)-)?"
                          r"([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
     if not match:
         return None
     tag, kind, name, test = match.groups()
-    directory = {None: "models", "internal": "internal", "feature": "features"}[kind]
+    directory = {None: "models", "internal": "internal", "feature": "features",
+                 "modelrender": "models", "featurerender": "features"}[kind]
+    if kind in ("modelrender", "featurerender"):
+        name += "/render"
     if kind is None and name == "render":
         directory, name = "tools", "render"
     if not (Path(directory) / name).is_dir():
@@ -67,7 +83,24 @@ def isolated_suite(suite):
     return directory, name, test, "coplanar_test" if tag else None
 
 
+def render_directory(name):
+    """Return the render package directory of an item, preferring models over features."""
+    for kind in ("models", "features"):
+        directory = f"{kind}/{name}/render"
+        if Path(directory).is_dir():
+            return directory
+    raise ValueError(f"unregistered suite: render-{name}")
+
+
 def commands(suite):
+    if suite == "render-tool":
+        return [["render-tool", str(index)] for index in range(RENDER_TOOL_SHARDS)]
+    match = re.fullmatch(r"render-([a-z][a-z0-9]*)", suite)
+    if match and suite not in WORKERS:
+        name = match.group(1)
+        directory = render_directory(name)
+        return ([["render-package", directory, test] for test in RENDER_HEAVY.get(name, ())] +
+                [["render-package", directory, "rest"]])
     isolated = isolated_suite(suite)
     if isolated:
         directory, name, test, tag = isolated
@@ -139,11 +172,32 @@ def run_renderer_full():
         raise SystemExit("renderer tests did not pass: " + ", ".join(names))
 
 
-def run_renderer_pr(shard):
-    """Run a disjoint share of all discovered renderer tests."""
-    if not shard.isdigit() or not 0 <= int(shard) < RENDER_PR_SHARDS:
+def run_render_case(directory, which):
+    """Run one heavy test of an item's render package, or all its other tests when which is "rest"."""
+    package = MODULE + "/" + directory
+    name = directory.split("/")[1]
+    heavy = RENDER_HEAVY.get(name, ())
+    if which != "rest":
+        if which not in heavy:
+            raise SystemExit(f"{which} is not a heavy test of {directory}")
+        go_test([f"./{directory}", "-run", f"^{which}$", "-timeout", "40m", "-count=1"], [which],
+                package=package, module="tools/render")
+        return
+    listing = subprocess.run(["go", "test", "-list", "^Test", f"./{directory}"],
+                             check=True, capture_output=True, text=True).stdout
+    tests = [line for line in listing.splitlines() if line.startswith("Test") and line not in heavy]
+    if not tests:
+        print(f"{directory} has no tests outside the heavy cases")
+        return
+    go_test([f"./{directory}", "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
+            package=package, module="tools/render")
+
+
+def run_renderer_pr(shard, packages=None, shards=RENDER_PR_SHARDS):
+    """Run a disjoint share of the discovered tests of packages (default: every renderer package)."""
+    if not shard.isdigit() or not 0 <= int(shard) < shards:
         raise SystemExit("invalid renderer PR shard")
-    packages = renderer_packages()
+    packages = renderer_packages() if packages is None else packages
     if not packages or len(packages) != len(set(packages)):
         raise SystemExit("renderer package inventory is empty or duplicated")
     inventory = []
@@ -153,7 +207,7 @@ def run_renderer_pr(shard):
         inventory.extend((package, line) for line in output.splitlines() if line.startswith("Test"))
     if not inventory or len(inventory) != len(set(inventory)):
         raise SystemExit("renderer test inventory is empty or duplicated")
-    selected = sorted(inventory)[int(shard)::RENDER_PR_SHARDS]
+    selected = sorted(inventory)[int(shard)::shards]
     for package in sorted({item[0] for item in selected}):
         tests = [test for pkg, test in selected if pkg == package]
         go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
@@ -234,6 +288,10 @@ def main():
         command = commands(suite)[int(os.environ["CASE"])]
         if suite == "renderer-all":
             run_renderer_pr(os.environ["CASE"])
+        elif suite == "render-tool":
+            run_renderer_pr(os.environ["CASE"], [MODULE + "/tools/render"], RENDER_TOOL_SHARDS)
+        elif command[0] == "render-package":
+            run_render_case(command[1], command[2])
         elif suite == "renderer-compile":
             subprocess.run(["go", "test", "-run", "^$", *renderer_packages()], check=True)
         elif suite.startswith("isolated-"):

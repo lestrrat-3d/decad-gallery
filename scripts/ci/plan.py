@@ -17,7 +17,11 @@ INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearro
                "placement rootcheck sketchcheck renderkit".split())
 FEATURES = {"dovetail"}
 TEST_PACKAGE_DIRS = ({"models/" + name for name in MODELS} | {"internal/" + name for name in INTERNAL} |
-                    {"features/" + name for name in FEATURES} | {"tools/render"})
+                    {"features/" + name for name in FEATURES} | {"tools/render"} |
+                    {"models/" + name + "/render" for name in MODELS} |
+                    {"features/" + name + "/render" for name in FEATURES})
+R_CORE = ROOT + "/internal/renderkit"
+R_TOOL = ROOT + "/tools/render"
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
             ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
@@ -44,6 +48,29 @@ BROAD_PACKAGES = {"package-" + name for name in
                   ("meshgap", "gearroot", "edgefinish", "m2fastener", "cornercheck", "splitcheck")}
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 BROAD_RENDER = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
+
+
+def render_pkg(owner):
+    """Return the item name when owner is a registered item's render package, else None."""
+    match = re.fullmatch(re.escape(ROOT) + r"/(models|features)/([a-z0-9]+)/render", owner)
+    if not match:
+        return None
+    return match.group(2) if match.group(2) in {"models": MODELS, "features": FEATURES}[match.group(1)] else None
+
+
+def render_dependents(seeds, before, after):
+    """Return the render packages that import a seed, directly or through other render packages."""
+    graph = {}
+    for snapshot in (before, after):
+        for name, item in snapshot.items():
+            graph.setdefault(name, set()).update(item["imports"])
+    found = set(seeds)
+    while True:
+        more = {name for name, imports in graph.items()
+                if render_pkg(name) and name not in found and imports & found}
+        if not more:
+            return found
+        found |= more
 
 
 def check_wheel_inventory(root=Path(".")):
@@ -135,6 +162,10 @@ def isolated_tests(base, tested, changed):
                 owner = "feature-" + parts[1]
             elif len(parts) == 3 and parts[:2] == ("tools", "render"):
                 owner = "render"
+            elif len(parts) == 4 and parts[0] == "models" and parts[1] in MODELS and parts[2] == "render":
+                owner = "modelrender-" + parts[1]
+            elif len(parts) == 4 and parts[0] == "features" and parts[1] in FEATURES and parts[2] == "render":
+                owner = "featurerender-" + parts[1]
             else:
                 return []
             old = subprocess.check_output(["git", "show", f"{base}:{path}"], stderr=subprocess.PIPE)
@@ -232,10 +263,14 @@ def plan(event, base, tested):
             raise
         new_packages = set(after) - set(before)
         new_suites = {}
+        new_render = set()
         if new_packages:
             for name in sorted(new_packages):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
+                if render_pkg(name) and name == ROOT + "/" + directory:
+                    new_render.add(parts[1])
+                    continue
                 if len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or not parts[1].isalnum():
                     raise RuntimeError("new package cannot be dispatched: " + directory)
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
@@ -248,7 +283,7 @@ def plan(event, base, tested):
             result.update(suites=sorted(suites), reasons=suites, reason=reason)
             return result
         unknown_input = any(not is_presentation(path) and not path.endswith(".go") and path not in CI_FILES
-                            for path in changed)
+                            and not path.startswith("tools/render/fonts/") for path in changed)
         owners, production = affected_packages(code, before, after)
         owners.update(new_packages)
         suites = {}
@@ -263,7 +298,7 @@ def plan(event, base, tested):
             suites["wheel-parts"] = ["check changed wheel part documentation"]
         model_owners = set()
         for owner in sorted(owners):
-            if owner == ROOT + "/tools/render":
+            if owner == R_TOOL or render_pkg(owner):
                 continue
             if owner in new_suites:
                 continue
@@ -289,19 +324,43 @@ def plan(event, base, tested):
             suites["renderer-all"] = ["shared render core changed"]
             if unknown_input:
                 suites.setdefault("full", []).append("renderer source and unregistered input changed")
-        if any(path.startswith("tools/render/") for path in code):
-            suites["renderer-all"] = ["renderer source or tests changed"]
-            if unknown_input:
-                suites.setdefault("full", []).append("renderer source and unregistered input changed")
-        if model_owners or ROOT + "/tools/render" in production:
+        render_suites = {}
+        seeds = set()
+        for path in code:
+            parent = Path(path).parent
+            for owner in (ROOT + "/" + str(parent),):
+                name = render_pkg(owner)
+                if name:
+                    render_suites.setdefault(name, "changed render package " + owner)
+                    if not path.endswith("_test.go"):
+                        seeds.add(owner)
+        for owner in sorted(render_dependents(seeds, before, after) - seeds):
+            render_suites.setdefault(render_pkg(owner), "imports a changed render package")
+        for name in sorted(new_render):
+            render_suites.setdefault(name, "new render package")
+        for path in code:
+            parts = Path(path).parts
+            if (len(parts) == 3 and parts[0] in ("models", "features") and not path.endswith("_test.go")
+                    and ROOT + "/" + parts[0] + "/" + parts[1] + "/render" in after):
+                render_suites.setdefault(parts[1], "renderer check for " + parts[1])
+        for name, reason in sorted(render_suites.items()):
+            suites.setdefault("render-" + name, []).append(reason)
+        if any(path.startswith("tools/render/") and (path.endswith(".go") or path.startswith("tools/render/fonts/"))
+               for path in changed):
+            suites["render-tool"] = ["render tool source or fonts changed"]
+        if model_owners or R_TOOL in production:
             suites["renderer-compile"] = ["compile renderer against changed model APIs"]
             for name in sorted(model_owners & RENDER.keys()):
                 for suite in RENDER[name]:
                     suites.setdefault(suite, []).append("renderer check for " + name)
+        for name in list(RENDER):
+            if "render-" + name in suites:
+                for suite in RENDER[name]:
+                    suites.pop(suite, None)
         if "full" in suites or "renderer-all" in suites:
             covered = {suite for checks in RENDER.values() for suite in checks} | {"renderer-compile"}
             if "renderer-all" in suites:
-                covered.add("package-renderkit")
+                covered |= {"package-renderkit"} | {suite for suite in suites if suite.startswith("render-")}
             if "full" in suites:
                 covered.add("renderer-all")
             for suite in covered:
@@ -319,17 +378,12 @@ def plan(event, base, tested):
     except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
         reason = "conservative fallback: " + str(exc)
         result.update(suites=["broad", "full"], reason=reason, reasons={"broad": [reason], "full": [reason]})
-    if ("broad" in result["suites"] and "full" not in result["suites"] and
-            "renderer-all" not in result["suites"] and
-            any(path.startswith("tools/render/") and path.endswith(".go") for path in result["changed_paths"])):
-        result["suites"].append("renderer-all")
-        result["reasons"]["renderer-all"] = ["renderer source or tests changed"]
     return result
 
 
 def needs_gallery_cache(event, result):
     suites = result["suites"]
-    if event not in {"pull_request", "push"} or not suites or {"full", "renderer-all"}.intersection(suites):
+    if event not in {"pull_request", "push"} or not suites or {"full", "renderer-all", "render-tool"}.intersection(suites):
         return False
     if "broad" in suites or (any(s.startswith("isolated-") for s in suites) and
                              not all(s.startswith("isolated-") for s in suites)):

@@ -150,7 +150,7 @@ class PlanTest(unittest.TestCase):
         cases = (([], []), (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
                  ([".github/workflows/unknown.yml"], ["broad"]),
                  (["scripts/ci/unknown.py"], ["broad"]), (["go.mod"], ["broad", "full"]),
-                 (["tools/render/gallery.go"], ["renderer-all"]))
+                 (["tools/render/gallery.go"], ["render-tool", "renderer-compile"]))
         renderer = plan.ROOT + "/tools/render"
         packages = self.packages() | {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
         for extra, expected in cases:
@@ -272,7 +272,7 @@ class PlanTest(unittest.TestCase):
                     self.assertIn("dependency", result["reason"])
                     metadata.assert_not_called()
 
-    def test_renderer_change_adds_full_renderer_to_broad(self):
+    def test_render_tool_source_change_selects_render_tool(self):
         renderer = plan.ROOT + "/tools/render"
         graph = {renderer: {"dir": "tools/render", "imports": set(), "test_imports": set()}}
         for path in (b"tools/render/gallery.go\0", b"tools/render/readme_views_test.go\0"):
@@ -281,10 +281,10 @@ class PlanTest(unittest.TestCase):
                     mock.patch.object(plan, "metadata", return_value=graph), \
                     mock.patch.object(plan.subprocess, "check_output", return_value=path):
                 result = plan.plan("push", "base", "head")
-                expected = ["renderer-all"]
+                expected = ["render-tool", "renderer-compile"] if path.endswith(b"gallery.go\0") else ["render-tool"]
                 self.assertEqual(result["suites"], expected)
-                self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
-                self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), gate.RENDER_PR_SHARDS)
+                with mock.patch.object(Path, "is_dir", return_value=True):
+                    self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
     def test_reverse_imports_stop_at_test_edges(self):
         graph = {
@@ -403,11 +403,122 @@ class PlanTest(unittest.TestCase):
                 result = plan.plan("push", "base", "head")
             expected = {"broad", "new-model-newpart", "package-clamparmcapacity"}
             if extra.startswith(b"tools/render/"):
-                expected.add("renderer-all")
+                expected |= {"render-tool", "renderer-compile"}
             self.assertEqual(set(result["suites"]), expected)
             self.assertEqual(len(result["suites"]), len(expected))
             with mock.patch.object(Path, "is_dir", return_value=True):
                 self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+
+    def render_graph(self, names, extra=None):
+        """Graph where tools/render imports every render package and every render package imports the core."""
+        core = plan.ROOT + "/internal/renderkit"
+        graph = {core: {"dir": "internal/renderkit", "imports": set(), "test_imports": set()}}
+        tool = plan.ROOT + "/tools/render"
+        graph[tool] = {"dir": "tools/render", "imports": {core}, "test_imports": set()}
+        for name in names:
+            kind = "features" if name in plan.FEATURES else "models"
+            item = f"{plan.ROOT}/{kind}/{name}"
+            graph[item] = {"dir": f"{kind}/{name}", "imports": set(), "test_imports": set()}
+            graph[item + "/render"] = {"dir": f"{kind}/{name}/render", "imports": {core, item},
+                                       "test_imports": set()}
+            graph[tool]["imports"] |= {item + "/render"}
+        for package, imports in (extra or {}).items():
+            graph[plan.ROOT + "/" + package]["imports"] |= {plan.ROOT + "/" + name for name in imports}
+        return graph
+
+    def plan_for(self, paths, graph):
+        data = "".join(path + "\0" for path in paths).encode()
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=data):
+            return plan.plan("push", "base", "head")
+
+    def test_render_package_change_selects_only_its_suite(self):
+        graph = self.render_graph(["clamparm", "pinring"])
+        result = self.plan_for(["models/clamparm/render/clamparm.go"], graph)
+        self.assertEqual(set(result["suites"]), {"render-clamparm", "renderer-compile"})
+        self.assertNotIn("renderer-all", result["suites"])
+
+    def test_render_change_reaches_importing_render_packages(self):
+        graph = self.render_graph(["onewayclutch", "turbinefan"],
+                                  {"models/turbinefan/render": ["models/onewayclutch/render"]})
+        result = self.plan_for(["models/onewayclutch/render/onewayclutch.go"], graph)
+        self.assertEqual(set(result["suites"]), {"render-onewayclutch", "render-turbinefan", "renderer-compile"})
+
+    def test_render_test_change_does_not_reach_importers(self):
+        graph = self.render_graph(["onewayclutch", "turbinefan"],
+                                  {"models/turbinefan/render": ["models/onewayclutch/render"]})
+        result = self.plan_for(["models/onewayclutch/render/extra_test.go"], graph)
+        self.assertEqual(set(result["suites"]), {"render-onewayclutch"})
+
+    def test_model_change_selects_its_render_suite_not_the_named_one(self):
+        graph = self.render_graph(["clamparm"])
+        graph[plan.ROOT + "/models/clamparm/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
+        graph[plan.ROOT + "/tools/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
+        result = self.plan_for(["models/clamparm/clamparm.go"], graph)
+        self.assertEqual(set(result["suites"]), {"clamparm", "render-clamparm", "renderer-compile"})
+
+    def test_shared_model_change_selects_only_the_owning_render_suite(self):
+        graph = self.render_graph(["fastener", "crankhandle", "plaquestand"])
+        fastener = plan.ROOT + "/models/fastener"
+        crank = plan.ROOT + "/models/crankhandle"
+        for name in ("models/fastener/render", "models/crankhandle", "models/crankhandle/render"):
+            graph[plan.ROOT + "/" + name]["imports"].add(fastener)
+        graph[plan.ROOT + "/models/plaquestand/render"]["imports"].add(crank + "/render")
+        result = self.plan_for(["models/fastener/fastener.go"], graph)
+        renders = {suite for suite in result["suites"] if suite.startswith("render-")}
+        self.assertEqual(renders, {"render-fastener"})
+        result = self.plan_for(["models/crankhandle/crankhandle.go"], graph)
+        renders = {suite for suite in result["suites"] if suite.startswith("render-")}
+        self.assertEqual(renders, {"render-crankhandle"})
+
+    def test_shared_core_with_unknown_input_selects_full(self):
+        graph = self.render_graph(["clamparm"])
+        self.assertEqual(self.plan_for(["internal/renderkit/scene.go"], graph)["suites"], ["renderer-all"])
+        self.assertEqual(self.plan_for(["internal/renderkit/scene.go", "unknown.sh"], graph)["suites"],
+                         ["broad", "full"])
+
+    def test_tool_font_change_selects_render_tool_without_broad(self):
+        graph = self.render_graph(["clamparm"])
+        self.assertEqual(self.plan_for(["tools/render/fonts/DejaVuSerif.ttf"], graph)["suites"], ["render-tool"])
+        result = self.plan_for(["tools/render/fonts/DejaVuSerif.ttf", "unknown.sh"], graph)
+        self.assertEqual(set(result["suites"]), {"broad", "render-tool"})
+
+    def test_new_render_package_selects_its_suite_without_broad(self):
+        before = self.render_graph(["clamparm", "pinring"])
+        del before[plan.ROOT + "/models/pinring/render"]
+        after = self.render_graph(["clamparm", "pinring"])
+        data = b"models/pinring/render/pinring.go\0"
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[before, after]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=data):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"render-pinring", "renderer-compile"})
+
+    def test_marked_render_test_selects_isolated_suite(self):
+        project = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "scripts/ci").mkdir(parents=True)
+            (root / "scripts/ci/testdiff.go").write_bytes((project / "scripts/ci/testdiff.go").read_bytes())
+            test_file = root / "models/clamparm/render/model_test.go"
+            test_file.parent.mkdir(parents=True)
+            source = 'package render_test\n\n// CI: isolated-tests\n\nimport "testing"\n\n'
+            source += 'func TestModel(t *testing.T) { t.Log("before") }\n'
+            test_file.write_text(source)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", str(test_file.relative_to(root))], cwd=root, check=True)
+            commit = ["git", "-c", "user.name=CI test", "-c", "user.email=ci@example.invalid",
+                      "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm"]
+            subprocess.run(commit + ["before"], cwd=root, check=True)
+            test_file.write_text(source.replace('"before"', '"after"'))
+            subprocess.run(["git", "add", str(test_file.relative_to(root))], cwd=root, check=True)
+            subprocess.run(commit + ["after"], cwd=root, check=True)
+            code = ('import json, plan; print(json.dumps(plan.isolated_tests('
+                    '"HEAD^", "HEAD", ["models/clamparm/render/model_test.go"])))')
+            env = dict(os.environ, PYTHONPATH=str(project / "scripts/ci"))
+            output = subprocess.check_output([sys.executable, "-c", code], cwd=root, env=env, text=True)
+            self.assertEqual(json.loads(output), ["isolated-modelrender-clamparm-TestModel"])
 
     def test_shared_render_core_change_selects_renderer_all(self):
         core = plan.ROOT + "/internal/renderkit"
@@ -464,12 +575,13 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output",
                                   return_value=b"tools/render/gallery.go\0models/swisslever/build.go\0unknown.sh\0"):
             result = plan.plan("push", "base", "head")
-        expected = {"broad", "full"}
+        expected = {"broad", "model-swisslever", "render-tool", "renderer-compile", "swiss-render"}
         self.assertEqual(set(result["suites"]), expected)
         self.assertEqual(len(result["suites"]), len(expected))
-        self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
-    def test_renderer_all_covers_selected_model_renderer_checks(self):
+    def test_renderer_tool_change_selects_render_tool(self):
         model = plan.ROOT + "/models/swisslever"
         renderer = plan.ROOT + "/tools/render"
         graph = {model: {"dir": "models/swisslever", "imports": set(), "test_imports": set()},
@@ -479,8 +591,9 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output",
                                   return_value=b"tools/render/gallery.go\0models/swisslever/build.go\0"):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(result["suites"], ["model-swisslever", "renderer-all"])
-        self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+        self.assertEqual(set(result["suites"]), {"model-swisslever", "render-tool", "renderer-compile", "swiss-render"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
     def test_deleted_package_full_covers_new_package_and_renderer(self):
         old = plan.ROOT + "/internal/oldpart"

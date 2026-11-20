@@ -75,6 +75,53 @@ class GateTest(unittest.TestCase):
             ["./models/ballbearing", "-run", "^TestBearingCatalog$", "-timeout", "5m", "-count=1"],
             ["TestBearingCatalog"], package="github.com/lestrrat-3d/decad-gallery/models/ballbearing")
 
+    def test_render_suites_expand_heavy_tests_and_rest(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            planetary = gate.commands("render-planetarygearbox")
+            self.assertEqual(len(planetary), 4)
+            self.assertEqual([case[2] for case in planetary],
+                             list(gate.RENDER_HEAVY["planetarygearbox"]) + ["rest"])
+            self.assertEqual(len(gate.commands("render-pinring")), 1)
+            self.assertEqual(len(gate.commands("render-tool")), 16)
+            for suite in ("render-planetarygearbox", "render-pinring", "render-tool"):
+                matrix = gate.matrix_for([suite])
+                self.assertEqual(len(matrix["include"]), len(gate.commands(suite)))
+                self.assertEqual(gate.suites_from_plan(json.dumps({"version": 1, "suites": [suite]})), [suite])
+
+    def test_render_suite_rejects_unknown_directory(self):
+        with mock.patch.object(Path, "is_dir", return_value=False), self.assertRaises(ValueError):
+            gate.commands("render-nothing")
+
+    def test_render_package_case_runs_one_heavy_test_or_the_rest(self):
+        with mock.patch.object(Path, "is_dir", return_value=True), \
+                mock.patch.object(gate, "go_test") as run, \
+                mock.patch.object(gate.subprocess, "run", return_value=mock.Mock(
+                    stdout="TestModel\nTestSwissExploded\nTestOther\nok\n")):
+            gate.run_render_case("models/swisslever/render", "TestSwissExploded")
+            self.assertEqual(run.call_args.args[1], ["TestSwissExploded"])
+            self.assertEqual(run.call_args.args[0][:3], ["./models/swisslever/render", "-run", "^TestSwissExploded$"])
+            gate.run_render_case("models/swisslever/render", "rest")
+            self.assertEqual(run.call_args.args[1], ["TestModel", "TestOther"])
+            with self.assertRaises(SystemExit):
+                gate.run_render_case("models/swisslever/render", "TestModel")
+
+    def test_render_dispatch_runs_the_case_from_the_command(self):
+        with mock.patch.object(Path, "is_dir", return_value=True), \
+                mock.patch.dict(os.environ, {"SUITE": "render-pinring", "CASE": "0"}), \
+                mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
+                mock.patch.object(gate, "run_render_case") as run:
+            gate.main()
+        run.assert_called_once_with("models/pinring/render", "rest")
+
+    def test_isolated_render_suites_map_to_render_packages(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.isolated_suite("isolated-modelrender-clamparm-TestModel"),
+                             ("models", "clamparm/render", "TestModel", None))
+            self.assertEqual(gate.isolated_suite("isolated-featurerender-dovetail-TestModel"),
+                             ("features", "dovetail/render", "TestModel", None))
+            command = gate.commands("isolated-modelrender-clamparm-TestModel")[0]
+            self.assertEqual(command[:3], ["go", "test", "./models/clamparm/render"])
+
     def test_isolated_package_dispatch(self):
         cases = (
             ("isolated-internal-hexnut-TestBuildSizes", "internal/hexnut", None),
