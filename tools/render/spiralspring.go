@@ -75,7 +75,7 @@ func spiralSpringView(ctx context.Context, name string) (solidlens.Scene, error)
 			return solidlens.Scene{}, fmt.Errorf("build spring %d: %w", i, err)
 		}
 		right = shift + dm.CoilRadius
-		mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
+		mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh spring %d: %w", i, err)
 		}

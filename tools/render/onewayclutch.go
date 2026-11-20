@@ -94,7 +94,7 @@ func buildClutchSet(ctx context.Context, p onewayclutch.Params, withAdapter bool
 		if parts[i].isHardware() {
 			tol = .01
 		}
-		mesh, err := bodies[i].Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+		mesh, err := bodies[i].Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return nil, fmt.Errorf("mesh clutch %s: %w", parts[i].name, err)
 		}

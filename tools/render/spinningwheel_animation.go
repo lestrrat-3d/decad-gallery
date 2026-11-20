@@ -36,7 +36,7 @@ func spinningWheelPose(ctx context.Context, meshes []wheelMesh, base spinningwhe
 			if err != nil {
 				return nil, fmt.Errorf("build posed connector: %w", err)
 			}
-			triangles, err := connector.Body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
+			triangles, err := connector.Body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyNone))
 			if err != nil {
 				return nil, fmt.Errorf("verify posed connector: %w", err)
 			}

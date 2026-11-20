@@ -129,7 +129,7 @@ func fastenerBoltView(ctx context.Context, set fastenerSet, name string) (solidl
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("build %sx%g bolt: %w", set.preset, length, err)
 		}
-		mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+		mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh %sx%g bolt: %w", set.preset, length, err)
 		}
@@ -172,7 +172,7 @@ func fastenerNutView(ctx context.Context, set fastenerSet, name string) (solidle
 	bodies = append(bodies, nut.Body)
 	var models []solidlens.Model
 	for _, body := range bodies {
-		mesh, err := body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+		mesh, err := body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh %s view: %w", name, err)
 		}

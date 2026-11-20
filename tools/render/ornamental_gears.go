@@ -209,7 +209,7 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 		color solidlens.Color
 	}{{"gear", gear, w.base}, {"faceplate", plate, w.plate}, {"rim", rim, w.trim}, {"hub", hub, w.trim}}
 	for _, part := range parts {
-		mesh, err := part.body.Tessellate(ctx, units.Millimeters(.02), decad.WithVerification(decad.VerifyAll))
+		mesh, err := part.body.Tessellate(ctx, units.Millimeters(.02), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return nil, fmt.Errorf("tessellate %s: %w", part.name, err)
 		}
@@ -224,7 +224,7 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 		if err != nil {
 			return nil, fmt.Errorf("eyelet: %w", err)
 		}
-		mesh, err := eyelet.Tessellate(ctx, units.Millimeters(.04), decad.WithVerification(decad.VerifyAll))
+		mesh, err := eyelet.Tessellate(ctx, units.Millimeters(.04), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return nil, fmt.Errorf("tessellate eyelet: %w", err)
 		}

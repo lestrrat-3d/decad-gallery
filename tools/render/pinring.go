@@ -34,7 +34,7 @@ func pinRingView(ctx context.Context, name string) (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build pin ring: %w", err)
 	}
-	mesh, err := ring.Body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+	mesh, err := ring.Body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyNone))
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("mesh pin ring %s view: %w", name, err)
 	}

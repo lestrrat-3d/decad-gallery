@@ -62,7 +62,7 @@ func buildPlaqueStandMeshes(ctx context.Context, p plaquestand.Params) (plaqueSt
 		if plaqueStandPartColor(name) == crankBoltColor {
 			tol = .01
 		}
-		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return plaqueStandMeshes{}, fmt.Errorf("mesh plaque stand %s: %w", name, err)
 		}

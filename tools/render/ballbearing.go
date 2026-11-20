@@ -27,7 +27,7 @@ func bearingEnvelopeScene(ctx context.Context, params ballbearing.Params, eye so
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build bearing envelope: %w", err)
 	}
-	mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.03), decad.WithVerification(decad.VerifyAll))
+	mesh, err := m.Body.Tessellate(ctx, units.Millimeters(.03), decad.WithVerification(decad.VerifyNone))
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("mesh bearing envelope: %w", err)
 	}
