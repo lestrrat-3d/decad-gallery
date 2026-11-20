@@ -56,12 +56,12 @@ func drawGalleryLogo(canvas *image.RGBA) error {
 		return err
 	}
 	scale := float64(canvas.Bounds().Dx()) / 1600
-	mainFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 185 * scale, DPI: 72, Hinting: font.HintingFull})
+	mainFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 225 * scale, DPI: 72, Hinting: font.HintingFull})
 	if err != nil {
 		return err
 	}
 	defer func() { _ = mainFace.Close() }()
-	subFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 55 * scale, DPI: 72, Hinting: font.HintingFull})
+	subFace, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: 68 * scale, DPI: 72, Hinting: font.HintingFull})
 	if err != nil {
 		return err
 	}
@@ -70,10 +70,10 @@ func drawGalleryLogo(canvas *image.RGBA) error {
 	center := canvas.Bounds().Dx() / 2
 	title := "DECAD"
 	titleWidth := font.MeasureString(mainFace, title).Round()
-	d := font.Drawer{Dst: canvas, Src: ink, Face: mainFace, Dot: fixed.P(center-titleWidth/2, int(425*scale))}
+	d := font.Drawer{Dst: canvas, Src: ink, Face: mainFace, Dot: fixed.P(center-titleWidth/2, int(488*scale))}
 	d.DrawString(title)
 	subtitle := []rune("GALLERY")
-	tracking := int(10 * scale)
+	tracking := int(12 * scale)
 	width := 0
 	for _, r := range subtitle {
 		width += font.MeasureString(subFace, string(r)).Round()
@@ -82,13 +82,13 @@ func drawGalleryLogo(canvas *image.RGBA) error {
 	x := center - width/2
 	d.Face = subFace
 	for _, r := range subtitle {
-		d.Dot = fixed.P(x, int(492*scale))
+		d.Dot = fixed.P(x, int(582*scale))
 		d.DrawString(string(r))
 		x += font.MeasureString(subFace, string(r)).Round() + tracking
 	}
-	lineY := int(476 * scale)
-	lineHeight := max(1, int(2*scale))
-	for _, line := range [][2]int{{int(480 * scale), center - width/2 - int(30*scale)}, {center + width/2 + int(30*scale), int(1120 * scale)}} {
+	lineY := int(560 * scale)
+	lineHeight := max(1, int(3*scale))
+	for _, line := range [][2]int{{center - titleWidth/2, center - width/2 - int(36*scale)}, {center + width/2 + int(36*scale), center + titleWidth/2}} {
 		draw.Draw(canvas, image.Rect(line[0], lineY, line[1], lineY+lineHeight), ink, image.Point{}, draw.Src)
 	}
 	return nil
