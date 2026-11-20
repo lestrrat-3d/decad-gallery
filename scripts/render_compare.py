@@ -113,13 +113,15 @@ def build_binaries(base):
 
 
 def list_jobs(head, models):
-    command = [str(head), "-list"]
-    for model in models:
-        command += ["-model", model]
-    proc = subprocess.run(command, cwd=ROOT / "tools/render", capture_output=True, text=True)
-    if proc.returncode != 0 or not proc.stdout.strip():
-        raise SystemExit("head binary has no -list; run after Task 3\n" + proc.stderr.strip())
-    return parse_jobs(proc.stdout)
+    """Return the jobs of each named model (every model when none is named); -list takes one -model per call."""
+    jobs = []
+    for model in models or [None]:
+        command = [str(head), "-list"] + (["-model", model] if model else [])
+        proc = subprocess.run(command, cwd=ROOT / "tools/render", capture_output=True, text=True)
+        if proc.returncode != 0 or not proc.stdout.strip():
+            raise SystemExit("head binary has no -list; run after Task 3\n" + proc.stderr.strip())
+        jobs += parse_jobs(proc.stdout)
+    return jobs
 
 
 def main(argv=None):
