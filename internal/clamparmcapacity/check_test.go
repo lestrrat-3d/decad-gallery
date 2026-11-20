@@ -16,14 +16,18 @@ func TestDocumentation(t *testing.T) {
 
 func TestCheck(t *testing.T) {
 	actual := documentation(t)
+	const section = "## Joint capacity"
+	const header = "| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |"
 	cases := []struct {
 		name, old, replacement, message string
 	}{
-		{"missing section", "## Joint capacity", "## Capacity", "section"},
+		{"missing section", section, "## Capacity", "section"},
+		{"duplicate section", section, section + "\n\n" + section, "expected exactly one Joint capacity section"},
 		{"missing row", "| High |", "| Other |", "unexpected capacity row"},
-		{"missing table header", "| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |", "prose", "header"},
-		{"header in prose", "| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |", "prose | Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |", "header"},
-		{"fenced table", "| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |", "```markdown\n| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |", "header"},
+		{"missing table header", header, "prose", "header"},
+		{"duplicate table header", header, header + "\n" + header, "expected exactly one capacity table header"},
+		{"header in prose", header, "prose " + header, "header"},
+		{"fenced table", header, "```markdown\n" + header, "header"},
 		{"separated rows", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "\n| Low | 0.2 | 0.4 | 400 | 1.00 |", "rows"},
 		{"duplicate row", "| Low |", "| Nominal |", "duplicate"},
 		{"malformed row", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "| Low | 0.2 | 0.4 | 400 |", "malformed"},
