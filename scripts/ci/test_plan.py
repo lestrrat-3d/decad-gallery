@@ -295,7 +295,9 @@ class PlanTest(unittest.TestCase):
                                 (b"models/clamparm/instructions.md\0", []),
                                 (b"models/spinningwheel/README.md\0", []),
                                 (b"models/spinningwheel/images/parts/a.png\0", ["wheel-parts"]),
-                                (b"models/cycloidal/images/hero.png\0", ["broad"]),
+                                (b"models/cycloidal/images/hero.png\0", []),
+                                (b"docs/images/gallery.png\0models/cycloidal/README.md\0", []),
+                                (b"models/cycloidal/testdata/golden.png\0", ["broad"]),
                                 (b"scripts/modelgen/spurgear.py\0", ["broad"]),
                                 (b"README.md\0unknown.sh\0", ["broad"])):
             with self.subTest(paths=paths), \
