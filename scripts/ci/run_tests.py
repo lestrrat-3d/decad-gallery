@@ -821,6 +821,10 @@ def planetary_test_shards(tests: list[str]) -> list[list[str]]:
         ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
         ("TestTwoStages", "TestExplodedTwoStageGearbox"),
         ("TestCorners", "TestSplitShafts"),
+        ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
+        ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
+        ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
+        ("TestCornersTwoStages", "TestSplitTwoStages"),
     )
     remaining = set(tests)
     groups = []
