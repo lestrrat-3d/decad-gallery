@@ -1,6 +1,6 @@
 # decad gallery
 
-![A border of small spur gears around four cropped brass and bronze gears with rosette, compass, vane and honeycomb ornaments](docs/images/gallery.png)
+![The words DECAD GALLERY surrounded by small spur gears and four cropped ornamental gears](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from

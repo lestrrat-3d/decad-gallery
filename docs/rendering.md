@@ -380,6 +380,7 @@ A single preset renders with `-model swisslever -shot <name> -out <file>`, for e
 `-shot exploded -out ../../models/swisslever/images/exploded.png`.
 
 The `gallery/hero` preset renders four ornamental spur gears in antique brass and dark bronze at 1600 × 900.
+A centered DECAD GALLERY wordmark uses the bundled DejaVu Serif font.
 The top view crops each gear against an image edge: gear 1 at the upper left, gear 2 at the lower right,
 gear 3 at the lower left, and gear 4 at the upper right. Smaller spur gears of varied sizes, rotations and ornaments scatter along the remaining frame edges.
 It builds each toothed wheel with `models/spurgear`. The largest wheel has a seven-petal rosette above

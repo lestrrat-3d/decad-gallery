@@ -272,6 +272,9 @@ func run(ctx context.Context, model, shot, output string, width, height int) err
 	if err != nil {
 		return fmt.Errorf("build %s/%s scene: %w", model, shot, err)
 	}
+	if model == "gallery" && shot == "hero" {
+		return renderGalleryHero(ctx, output, scene, width, height)
+	}
 	return renderPNG(ctx, output, scene, width, height)
 }
 
