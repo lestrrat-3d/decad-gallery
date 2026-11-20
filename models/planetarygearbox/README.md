@@ -141,7 +141,7 @@ The cover windows have rounded corners too.
 
 ## How the housing is bolted
 
-Eight M2 bolts and eight M2 nuts ([`models/m2bolt`](../m2bolt), [`models/m2nut`](../m2nut)) hold the covers to the
+Eight M2 bolts and eight M2 nuts ([`models/fastener`](../fastener), [`models/fastener`](../fastener)) hold the covers to the
 ring, four bolts and four nuts per cover. Each bolt head lies flush with its cover's outer face. Each nut sits in a
 closed cavity inside the ring wall, so the ring holds the nut and it cannot fall out. The section is cut along the plane
 through the axis and one bolt of each cover, in the one-stage gearbox.

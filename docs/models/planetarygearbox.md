@@ -75,8 +75,8 @@ because the chamfer meets tooth-space facets held to about 0.0034 mm. With `EarC
 `EarCount` (default 3) and `EarBoreDiameter` (default 2.6 mm) set the M2 mounting ears on the ring. The ears are spread
 evenly, the first on +Y, and each runs the whole ring length with an M2 clearance bore parallel to the axis. Each ear
 has a head pocket in its rear face and a closed nut cavity near its front face (`cutRingPockets`), and holds one bolt
-(`Gearbox.EarBolts`, `EarBoltName`) and one nut (`Gearbox.EarNuts`, `EarNutName`) from `models/m2bolt` and
-`models/m2nut`. The bolt is the longest standard length whose tip stays in the ear (`earBoltLength`: M2 x 10 for one
+(`Gearbox.EarBolts`, `EarBoltName`) and one nut (`Gearbox.EarNuts`, `EarNutName`) from the M2 preset of
+`models/fastener`. The bolt is the longest standard length whose tip stays in the ear (`earBoltLength`: M2 x 10 for one
 stage, M2 x 25 for two). The nut cavity starts 1.8 mm inside the front face, the same layers as the front housing nuts,
 unless the bolt's tip ends further in (`earNutFloor`). Each ear meets the ring in
 two rounds of half the thinner of the ring wall and the ear's width (3.55 mm by default), drawn with `sketch.CreateFillet`
@@ -104,7 +104,7 @@ its upper face. Each planet's bearing is `ballbearing.Build` with the planet bea
 with four bolt holes, three spokes and a hub, so its section has eight holes) joined to a bearing boss; the ring blank
 has the same four bolt holes as inner loops of its section. A cover then has four round pockets cut for the M2 bolt heads,
 and the ring blank has eight closed hex cavities cut for the M2 nuts, before the tooth spaces are cut. The bolts and nuts are built
-once by `models/m2bolt` and `models/m2nut` and copied into place (`fasteners.go`). The ring is a cylinder, with three mounting ears when `EarCount` is above zero, and has the tooth spaces cut out by a 71-tooth
+once by the M2 preset of `models/fastener` and copied into place (`fasteners.go`). The ring is a cylinder, with three mounting ears when `EarCount` is above zero, and has the tooth spaces cut out by a 71-tooth
 spur gear whose root circle is the ring's tip circle and whose tip circle is the ring's root circle (`ringTool` in
 `gears.go`). `phase.go` turns each planet, and the ring tool, so their teeth enter the sun's and the ring's gaps.
 Each distinct part is built once at the origin and copied into place, because the spur union fails on gears built

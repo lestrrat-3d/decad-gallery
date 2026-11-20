@@ -57,8 +57,8 @@ channels; the two M2 × 6 bolts above the rail; and the plaque lifted out of the
 | --- | --- |
 | ![The bracket](images/parts/bracket.png) | Bracket (printed, 2) |
 | ![The rail](images/parts/rail.png) | Rail (printed, 1) |
-| ![The M2 bolt](images/parts/bolt.png) | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt/)), 2 |
-| ![The M2 nut](images/parts/nut.png) | M2 hex nut ([`models/m2nut`](../m2nut/)), 2 |
+| ![The M2 bolt](images/parts/bolt.png) | M2 × 6 socket head cap screw ([`models/fastener`](../fastener/)), 2 |
+| ![The M2 nut](images/parts/nut.png) | M2 hex nut ([`models/fastener`](../fastener/)), 2 |
 | ![The plaque](images/parts/plaque.png) | Plaque (not printed), shown at the default size |
 
 ## Sizes

@@ -23,8 +23,8 @@ rules an adapter follows.
 
 ## Items used
 
-- `models/m5bolt`: the six hex head bolts (M5 x 35, three M5 x 25, M5 x 40 and M5 x 70).
-- `models/m5nut`: the six M5 nuts.
+- the M5 preset of `models/fastener`: the six hex head bolts (M5 x 35, three M5 x 25, M5 x 40 and M5 x 70) and the
+  six M5 nuts.
 
 `internal/m5fastener` places them from each bolt's `Site`. The model references their constructions and does not copy
 their geometry.

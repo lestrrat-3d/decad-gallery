@@ -12,7 +12,7 @@ of 6 and 2 crank turns per second the rotor turns 12 rev/s (720 rpm) and the pit
 pitch runs from 144 Hz to 480 Hz at that crank speed.
 
 The gearbox is `models/planetarygearbox`, the crank is `models/crankhandle`, the bearings are `models/ballbearing`, the
-bolts are `models/m2bolt` and the nuts `models/m2nut`, all imported and not copied. Printed parts: everything except
+bolts and nuts are the M2 preset of `models/fastener`, all imported and not copied. Printed parts: everything except
 the 7 bearings (5 in the gearbox), 35 bolts and 35 nuts (8 bolts and 11 nuts in the gearbox).
 
 The gearbox keeps its own construction, fits and checks. This contract owns how the siren sets its parameters, places

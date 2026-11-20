@@ -84,9 +84,9 @@ The set screw nut sits behind the hub in that view, so the same parts are shown 
 | --- | --- |
 | <img src="images/parts/hub.png" alt="Hub" width="240"> | Hub (printed), with or without the clutch adapter |
 | <img src="images/parts/blade.png" alt="Blade" width="240"> | Blade (printed), 3 |
-| <img src="images/parts/bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the blade bolts |
-| <img src="images/parts/setscrew.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1: the set screw |
-| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 4 |
+| <img src="images/parts/bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/fastener`](../fastener)), 3: the blade bolts |
+| <img src="images/parts/setscrew.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/fastener`](../fastener)), 1: the set screw |
+| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/fastener`](../fastener)), 4 |
 
 ## Sizes
 
@@ -147,11 +147,11 @@ hub cover the clutch's own bolt heads, so work in this order.
 
 | Image | Name |
 | --- | --- |
-| <img src="images/parts/adapter-bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2: the adapter bolts |
-| <img src="images/parts/ear-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3: the ear bolts, with the adapter |
+| <img src="images/parts/adapter-bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/fastener`](../fastener)), 2: the adapter bolts |
+| <img src="images/parts/ear-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/fastener`](../fastener)), 3: the ear bolts, with the adapter |
 
 The clutch mount takes the hub, blades, blade bolts and blade nuts above, the adapter ring from the one-way clutch (printed,
-`onewayclutch.BuildAdapter`), two M2 × 10 adapter bolts and two M2 nuts for them ([`models/m2nut`](../m2nut)), and the three
+`onewayclutch.BuildAdapter`), two M2 × 10 adapter bolts and two M2 nuts for them ([`models/fastener`](../fastener)), and the three
 M2 × 25 ear bolts and three nuts that hold the adapter to the clutch. It needs no set screw. The hub's set screw hole and
 slot stay empty.
 

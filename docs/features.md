@@ -14,7 +14,7 @@ Features live in `features/<name>/`. The gallery of finished products stays in `
 | Only shapes bodies that a caller passes in, such as a dovetail cut into two boards | `features/<name>/` |
 
 A model that other models import stays a model. `models/crankhandle` and `models/spurgear` already work this
-way. A feature may import a model, as `internal/m2fastener` imports `models/m2bolt`.
+way. A feature may import a model, as `internal/m2fastener` imports the M2 preset of `models/fastener`.
 
 A feature never becomes a gallery entry. A feature's name must differ from every model name, because image
 presets are named `<name>/<shot>` and share one list.

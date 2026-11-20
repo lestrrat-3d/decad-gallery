@@ -16,7 +16,7 @@ instructions.md "Fasteners" says why each slot works and why a back-face slot do
 `HubLength = 20 s`, `HubMid = HubLength / 2`, `TipRadius = D_r / 2`, `RootRadius = HubRadius + 0.4`, `RefRadius = 48 s`,
 `HoldRadius = 21.5 s`, `BladeSocketStart = 5.7 j`, `BladeStudStart = BladeSocketStart + 0.4`, `BladeStudRadius = 3 j`,
 `BladeSocketRadius = BladeStudRadius + 0.4`, `BladeStudEnd = 16 j`, `BladeBoltAt = 9.5 j`, `BladeBoltLength` = the longest
-`m2bolt.StandardLengths()` entry `L` with `HubLength - HeadPocketDepth - L >= 2`, `BladeBoltCavity = BladeBoltLength - 0.4`.
+`m2fastener.BoltSize.StandardLengths` entry `L` with `HubLength - HeadPocketDepth - L >= 2`, `BladeBoltCavity = BladeBoltLength - 0.4`.
 It fails for a diameter outside [128, 224] or not finite, when no length fits, and when `HubLength - BladeBoltCavity` is
 above `HubMid - BladeSocketRadius - 1`. `Size.Beta(r, pitch) = 5 deg + atan(tan(25 deg - 5 deg) RefRadius / max(r,
 HoldRadius)) + (pitch - 25 deg)`.

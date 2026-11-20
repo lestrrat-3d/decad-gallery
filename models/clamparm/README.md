@@ -118,11 +118,11 @@ part carries no mark.
 | <img src="images/parts/adapter.png" alt="Adapter" width="240"> | Adapter (printed) | 1 | - |
 | <img src="images/parts/knob.png" alt="Knob" width="240"> | Knob, for J1 to J4 (printed) | 4 | 1 |
 | <img src="images/parts/screw-knob.png" alt="Screw Knob" width="240"> | Screw Knob, for the clamp screw and the stud (printed) | 2 | 2 |
-| <img src="images/parts/bolt-25.png" alt="M5 x 25 hex bolt" width="240"> | M5 × 25 hex head bolt ([`models/m5bolt`](../m5bolt)), the J2, J3 and J4 bolts | 3 | - |
-| <img src="images/parts/bolt-35.png" alt="M5 x 35 hex bolt" width="240"> | M5 × 35 hex head bolt ([`models/m5bolt`](../m5bolt)), the J1 bolt | 1 | - |
-| <img src="images/parts/bolt-40.png" alt="M5 x 40 hex bolt" width="240"> | M5 × 40 hex head bolt ([`models/m5bolt`](../m5bolt)), the stud | 1 | - |
-| <img src="images/parts/bolt-70.png" alt="M5 x 70 hex bolt" width="240"> | M5 × 70 hex head bolt ([`models/m5bolt`](../m5bolt)), the clamp screw | 1 | - |
-| <img src="images/parts/nut.png" alt="M5 nut" width="240"> | M5 hex nut ([`models/m5nut`](../m5nut)), four in knobs, one in the bottom jaw, one in the adapter | 6 | - |
+| <img src="images/parts/bolt-25.png" alt="M5 x 25 hex bolt" width="240"> | M5 × 25 hex head bolt ([`models/fastener`](../fastener)), the J2, J3 and J4 bolts | 3 | - |
+| <img src="images/parts/bolt-35.png" alt="M5 x 35 hex bolt" width="240"> | M5 × 35 hex head bolt ([`models/fastener`](../fastener)), the J1 bolt | 1 | - |
+| <img src="images/parts/bolt-40.png" alt="M5 x 40 hex bolt" width="240"> | M5 × 40 hex head bolt ([`models/fastener`](../fastener)), the stud | 1 | - |
+| <img src="images/parts/bolt-70.png" alt="M5 x 70 hex bolt" width="240"> | M5 × 70 hex head bolt ([`models/fastener`](../fastener)), the clamp screw | 1 | - |
+| <img src="images/parts/nut.png" alt="M5 nut" width="240"> | M5 hex nut ([`models/fastener`](../fastener)), four in knobs, one in the bottom jaw, one in the adapter | 6 | - |
 
 ## Parameters
 

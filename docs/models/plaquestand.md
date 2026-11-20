@@ -15,7 +15,7 @@ play angle, the three tip angles, the channel's walls, floor and centre, the two
 segments. `Params.Validate()` returns the same error. Every error starts with `plaquestand: `.
 
 `Build(ctx, doc, params)` returns a `Model` with the two `Brackets`, the `Rail`, the `Bolts` and `Nuts`
-(`models/m2bolt`, `models/m2nut`, placed with `internal/m2fastener`), the `Plaque`, every `Sketches` entry (12) and the
+(the M2 preset of `models/fastener`, placed with `internal/m2fastener`), the `Plaque`, every `Sketches` entry (12) and the
 `Dimensions`. It adds eight bodies, each in its container (`Brackets`, `Rail`, `Bolts`, `Nuts`, `Plaque`). A bracket is
 one fully constrained profile sketch extruded 20 mm along +X, with both side faces' outlines chamfered by 0.5 mm and
 the nut pocket and bolt hole cut. The rail is a rounded rectangle extruded along the span, with a head pocket and hole

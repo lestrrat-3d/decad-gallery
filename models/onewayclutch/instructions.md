@@ -89,8 +89,8 @@ any geometry. `BuildParts` and `Build` need a document from `NewDocument` (a cha
 | `PlateChamfer` | 0.5 | outer-face chamfer |
 | `BoltAngles`, `BoltLength` | 30° 150° 270°, 16 | three M2 x 16 through bolts |
 | `AdapterFrom`, `AdapterThickness`, `AdapterTo` | 20.0, 6.0, 26.0 | the adapter ring: one `Seam` in front of the ring, a head pocket plus 4 mm under it |
-| `MountLength` | 25 | M2 x 25 adapter bolts, `m2bolt.StandardLengths()` |
-| `FaceCircle`, `FaceLength`, `FaceNutDepth` | 9.5, 10, 1.5 | the adapter's face bolts on the ear lines: circle radius, M2 x 10 (`m2bolt.StandardLengths()`), and how far into the mating part the nut slot's near face lies |
+| `MountLength` | 25 | M2 x 25 adapter bolts, `m2fastener.BoltSize.StandardLengths` |
+| `FaceCircle`, `FaceLength`, `FaceNutDepth` | 9.5, 10, 1.5 | the adapter's face bolts on the ear lines: circle radius, M2 x 10 (`m2fastener.BoltSize.StandardLengths`), and how far into the mating part the nut slot's near face lies |
 | `PressWall` | 1.6 | least wall round a press-fit bore |
 
 ### Derived dimensions
@@ -287,7 +287,7 @@ The bolt passes the cover, the hub and the back plate. The nut sits in a hexagon
 Tightening the bolts closes both 0.25 mm seams, so the tip moves 0.5 mm toward the back face: it ends flush with the
 back plate's outer face and 0.4 mm past the nut's outer face (the nut sits on its pocket's floor), so the nut is fully
 engaged and the tip never stands outside a face. The tightened state rules. The bolt holds the nut in its pocket, and
-the pocket's flats stop it turning. The pocket's floor is 1.6 mm below the annulus. M2 x 16 is in `m2bolt.StandardLengths()`.
+the pocket's flats stop it turning. The pocket's floor is 1.6 mm below the annulus. M2 x 16 is in `m2fastener.BoltSize.StandardLengths`.
 
 ## Bodies and containers
 

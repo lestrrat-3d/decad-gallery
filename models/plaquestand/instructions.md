@@ -11,8 +11,8 @@ fits a 256 x 256 x 256 mm build volume at every allowed size. Everything the sta
 | --- | --- | --- | --- |
 | Bracket | 2, identical | bracket k spans x from `x_k` to `x_k + w_b`, `x_1` = 0, `x_2` = `S - w_b` | on either side face, profile in the bed plane |
 | Rail | 1 | x from 0 to `S`, centred at y = `y_ch`, z from `T_b - h_r + j` to `T_b + j` | flat on its bottom face, head pockets up |
-| M2 x 6 bolt | 2 (`models/m2bolt`) | one per bracket, head flush with the rail top | bought |
-| M2 nut | 2 (`models/m2nut`) | in the hex pocket open to the bracket's bottom face | bought |
+| M2 x 6 bolt | 2 (the M2 preset of `models/fastener`) | one per bracket, head flush with the rail top | bought |
+| M2 nut | 2 (the M2 preset of `models/fastener`) | in the hex pocket open to the bracket's bottom face | bought |
 | Plaque | 1 reference | centred on the span: `x0 = (S - W)/2` | not printed |
 
 Each bracket is a slice of one profile: a base slab with a rail channel in its rear top, a front lip, a slot reclined at
@@ -95,7 +95,7 @@ largest size (about 16 kg) would put about 50 MPa on two back rests, which is to
 The fixed dimensions are constants, not parameters: `BaseThickness` 8, `LipThickness` 5, `BackThickness` 6, `RootRadius`
 4, `CornerRadius` 2, `FrontFlat` 5, `BracketWidth` 20, `SpanRatio` 0.8, `MinSpan` 120, `MaxSpan` 246, `RailWidth` 10,
 `RailHeight` 4, `RailRound` 1, `RegularFit` 0.35, `JointFit` 0.40 (`RegularFit + FitMargin`), `ChannelMouthRound` 1,
-`ChannelLand` 2, `RearLand` 8, `BoltLength` 6 (in `m2bolt.StandardLengths()`), `NutPocketRound` 0.6,
+`ChannelLand` 2, `RearLand` 8, `BoltLength` 6 (in `m2fastener.BoltSize.StandardLengths`), `NutPocketRound` 0.6,
 `BackHeightRatio` 0.2, `MinBackHeight` 30, `MaxBackHeight` 60, `MinTipAngle` 15, `ChamferSize` 0.5, `BedSize` 256 and
 `BedMargin` 5.
 
@@ -215,7 +215,7 @@ theta)`.
 
 ## Joinery and the fastener stack
 
-Each bracket holds one M2 x 6 bolt (`BoltLength`, in `m2bolt.StandardLengths()`) and one M2 nut. The bolt runs down
+Each bracket holds one M2 x 6 bolt (`BoltLength`, in `m2fastener.BoltSize.StandardLengths`) and one M2 nut. The bolt runs down
 through a head pocket and hole in the rail and a hole in the bracket's channel floor, into a hex nut pocket open to the
 bracket's bottom face. The pocket's flats stop the nut turning, and the tightened bolt holds the nut there.
 

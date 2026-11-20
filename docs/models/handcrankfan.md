@@ -22,7 +22,7 @@ X runs to the operator's right, Y away from the operator and Z up. The drive sha
 fan shaft along -Y, meeting at the apex `(0, 0, 170)`. The crank shaft runs along +X 40 below the drive shaft, and a
 pair of spur gears in the tray joins them. Each shaft is 8 mm across with three grooves that the gears, the arm and the pinion
 sit on by three teeth in their bores (the fan shaft carries the hub on a D flat instead), and seven bought 608-2RS ball bearings carry the shafts where they cross the
-gearbox's walls. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies: 15 of each, with
+gearbox's walls. The bolts are M2 `models/fastener` bodies: 15 of each, with
 every head flush in a pocket and every nut in an enclosed cavity, except the rotor's nuts, which sit in slots open to a face. The gearbox is four printed pieces cut at its walls,
 so each piece prints with its shaft axes vertical and no bore prints on its side. The model's document has a chain tolerance of 0.1 mm, which the bevel gears need for their bores.
 

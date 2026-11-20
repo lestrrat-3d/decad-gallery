@@ -17,8 +17,8 @@ any other mechanism build it from one construction. The parts are:
 
 The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
 in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
-[`models/ballbearing`](../ballbearing/). The bolt and nut are [`models/m2bolt`](../m2bolt/) and
-[`models/m2nut`](../m2nut/), placed with `internal/m2fastener`. [`models/handcranksiren`](../handcranksiren/) builds its
+[`models/ballbearing`](../ballbearing/). The bolt and nut are the M2 preset of
+[`models/fastener`](../fastener/), placed with `internal/m2fastener`. [`models/handcranksiren`](../handcranksiren/) builds its
 crank with `BuildParts(Params6082RS())`.
 
 All dimensions are in millimeters.
@@ -69,8 +69,8 @@ Package: `models/crankhandle`. Exported surface:
   bolts' `CrossSites`, the clamp bolts' `ClampSites` and `SplitNormal`, the unit normal of the plane that splits the
   pin.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds
-  `Parts` and holds `Bolt *m2bolt.Model`, `Nut *m2nut.Model`, `CrossBolts [2]*m2bolt.Model`,
-  `CrossNuts [2]*m2nut.Model`, `ClampBolts [2]*m2bolt.Model` and `ClampNuts [2]*m2nut.Model`.
+  `Parts` and holds `Bolt *fastener.Bolt`, `Nut *fastener.Nut`, `CrossBolts [2]*fastener.Bolt`,
+  `CrossNuts [2]*fastener.Nut`, `ClampBolts [2]*fastener.Bolt` and `ClampNuts [2]*fastener.Nut`.
 
 ## Presets and defaults
 
@@ -174,7 +174,7 @@ mm) where it crosses the slit, with a single D bore, and 1.80 mm with the double
 flat at `b = f_b`. Each site is `m2fastener.Site{Head: (ArmRadius, y_c, ClampZ[i]), Dir: (-1, 0, 0), Corner: (0, 0, 1),
 Length: 16, Cavity: HeadPocketDepth + ClampBolt - NutCavityHeight}`, so `Cavity` is 16 and both `CavityFar` and the bolt's
 tip lie 18 from the head, 2 mm inside the -X side face. Derive rejects a site whose tip is not at `CavityFar` or not
-inside that face (message `clamp bolt %d: ...`). M2 x 16 is in `m2bolt.StandardLengths()`. M2 x 18 would end flush with
+inside that face (message `clamp bolt %d: ...`). M2 x 16 is in `m2fastener.BoltSize.StandardLengths`. M2 x 18 would end flush with
 the face, and M2 x 20 would stand 2 mm proud.
 
 - The head pocket (`m2fastener.PocketTool`, radius 2.2, 2 deep) sinks each head flush in the +X side face.

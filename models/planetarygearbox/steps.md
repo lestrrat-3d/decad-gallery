@@ -37,7 +37,7 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    and four bolt-hole circles of diameter `db'` (bound to `bolt_hole_diameter`), each centered on the bolt
    circle at angle `π/4 + iπ/2` and dimensioned from the origin. Select the one valid profile with `4 + EarCount`
    holes and extrude it `L` upward. Cut the fastener pockets from the blank (`cutRingPockets`). The nut tool is a circle
-   of diameter `2 (s / √3 + c)` (`s` = `m2nut.AcrossFlats`, `c = 0.2`), extruded `m2nut.Thickness + 2c` up from its
+   of diameter `2 (s / √3 + c)` (`s` = `m2fastener.NutSize.AcrossFlats`, `c = 0.2`), extruded `m2fastener.NutSize.Thickness + 2c` up from its
    plane, copied to the four bolt angles at each end. Place the front cavities' lower face 1.8 mm above the front face and
    the rear cavities' upper face 1.8 mm below the rear face. Copy the same tool to each ear's bore center with its lower
    face `earNutFloor(L)` above the front face. Then cut one head pocket per ear (see **Ear pockets**). The bolt hole or the
@@ -141,17 +141,17 @@ Build each distinct part once about the local origin and +Z. A gear union fails 
    - Boss root (`roundBossRoot`): `decad.Fillet` of the circular edge of radius `cover_boss_diameter / 2` in the plane
      `z = Tv`, found by radius and height and selected by its start point as in **Seat chamfer**, by
      `min(carrier_wall, Tv) / 2` (1.5 mm by default). Require a solid.
-   - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2bolt.HeadDiameter`, `c = 0.3`) on the
-     plane `z = Tv - m2bolt.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
+   - Head pockets (`cutHeadPockets`): a circle of diameter `Dk + 2c` (`Dk` = `m2fastener.BoltSize.SocketCap.HeadDiameter`, `c = 0.3`) on the
+     plane `z = Tv - m2fastener.BoltSize.HeadHeight`, extruded up `HeadHeight + 1`, copied to the four bolt angles and cut from
      the cover's +Z face, so the pocket is as deep as the head is tall.
    - Chamfer the boss pocket's entrance (see **Seat chamfer** below). Check: one solid.
 
-   **Fasteners** (`buildFasteners`). Build `m2bolt.Build` with `Length = 6` and `m2nut.Build` once each, and copy
+   **Fasteners** (`buildFasteners`). Build `fastener.BuildBolt` with `Length = 6` and `fastener.BuildNut` once each, and copy
    them into place. A front bolt is turned over about X so its shank points into the ring, with its head's underside
    on the pocket floor `HeadHeight` inside the cover's outer face. A rear bolt keeps its orientation. Each nut sits in its
    cavity with `c = 0.2` below it, its flats toward the bolt circle's radius. Four bolts and nuts per cover. Cover rim inner radius
    is measured from the head pocket's edge, not the hole's. With ears (`buildEarFasteners`), build one more
-   `m2bolt.Build` with `Length = earBoltLength(L)` and copy a nut: at each ear's bore center the bolt keeps its
+   `fastener.BuildBolt` with `Length = earBoltLength(L)` and copy a nut: at each ear's bore center the bolt keeps its
    orientation with its head's underside on the ear's head pocket floor, `HeadHeight` below the ring's rear face, and
    the nut sits `c` above its cavity's floor, its flats toward the ear's radius.
 
@@ -176,7 +176,7 @@ arc that precedes the ear to the clockwise straight edge. With one ear those two
 adds the two tangencies and the radius dimension. The sketch must report fully constrained with DOF 0. Ear bores are
 inner loops of the section.
 
-**Ear pockets.** `earBoltLength(L)` is the longest of `m2bolt.StandardLengths()` no longer than `L - HeadHeight`, and
+**Ear pockets.** `earBoltLength(L)` is the longest of `m2fastener.BoltSize.StandardLengths` no longer than `L - HeadHeight`, and
 `earNutFloor(L) = max(1.8, L - HeadHeight - earBoltLength(L) - 0.2)`. The head pocket tool is the cover's: a circle of
 diameter `Dk + 0.6` on the plane `HeadHeight` below the blank's rear face, extruded up `HeadHeight + 1`, copied to each
 ear's bore center. The nut cavities share the housing nuts' tool (see **Ring**). Cut both after the housing nut cavities

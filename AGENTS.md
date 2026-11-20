@@ -52,12 +52,13 @@
   model's `steps.md` why none works. Drop the nut in during a print pause.
   Models built before this rule keep their enclosed cavities until their fasteners change.
 - In a split shaft or pin, a nut cavity the seam cuts in half counts as enclosed when the halves, clamped by hardware, close it on all sides except the bolt hole. Drop the nut into one half before assembly. See [Split shafts](docs/model-pipeline.md#split-shafts).
-- Use `models/m2bolt` and `models/m2nut` for M2 fasteners; reference them, do not copy their geometry.
-- Use `models/m5bolt` and `models/m5nut` for M5 fasteners; reference them, do not copy their geometry.
+- Use the `M2` and `M5` presets of `models/fastener` for M2 and M5 bolts and nuts; reference them, do not copy their
+  geometry.
+- Add a fastener size only as a preset in `models/fastener/catalog.go` with a cited standard. NEVER invent dimensions.
 - Size a head pocket from the head diameter plus 0.3 mm radial clearance. Make it as deep as the head is tall.
 - Size a nut cavity as a circle through the nut's corners plus 0.2 mm radial clearance (radius 2.51 mm for M2). Make it as high as the nut is thick plus 0.2 mm on each face (2.0 mm for M2).
 - Size the bolt clearance hole from the shank diameter plus 0.3 mm radial clearance (2.6 mm for M2). Keep 1 mm or more of material under a head pocket and around any pocket.
-- Pick a standard bolt length from `m2bolt.StandardLengths()`. A housing too long for one bolt takes shorter bolts from each end, each into a nut cavity near the end of the middle part, not a custom length.
+- Pick a standard bolt length from the preset's `Bolt.StandardLengths` (`m2fastener.BoltSize.StandardLengths` for M2). A housing too long for one bolt takes shorter bolts from each end, each into a nut cavity near the end of the middle part, not a custom length.
 - The tip of a bolt may stay inside a hole beyond its nut. It must not stand outside a face.
 - Test that each head ends flush and each nut sits inside its cavity (bounds), and that no fastener overlaps the parts it passes through.
 
