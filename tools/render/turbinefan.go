@@ -257,18 +257,21 @@ type turbinePrint struct {
 	blade, harness *decad.Mesh
 }
 
-// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates both at 0.05 mm.
+// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm
+// and the harness at 0.1 mm.
 func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
 	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
 	if err != nil {
 		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
 	}
 	var out turbinePrint
+	// The cradle's cuts cross two faceted tools, so its held mesh is coarser than 0.05; it meshes at 0.1.
 	for _, part := range []struct {
 		body *decad.Body
 		mesh **decad.Mesh
-	}{{bp.Blade, &out.blade}, {bp.Harness.Body, &out.harness}} {
-		mesh, err := part.body.Tessellate(ctx, units.Millimeters(.05), decad.WithVerification(decad.VerifyNone))
+		tol  float64
+	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .1}} {
+		mesh, err := part.body.Tessellate(ctx, units.Millimeters(part.tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return turbinePrint{}, fmt.Errorf("mesh turbine blade print: %w", err)
 		}
@@ -288,11 +291,12 @@ func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, 
 }
 
 // view draws the print job toward the bodies' bounds centre, +Z up: "print" from the stud end, the pressure side and
-// above; "print-side" from the pressure side (-Y), a little from above, stud left and tip right; "print-end" from the
+// above; "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the
+// stud on the right; "print-end" from the
 // tip end along the radial line, a little from above.
 func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	dirs := map[string]r3.Vec{
-		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: -1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
+		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: 1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
 	}
 	dir, ok := dirs[name]
 	if !ok {

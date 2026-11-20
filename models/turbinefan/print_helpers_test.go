@@ -2,10 +2,10 @@ package turbinefan_test
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -53,79 +53,72 @@ func requireBoxNear(t *testing.T, want, got decad.Box, tol float64, mirror bool,
 	}
 }
 
-// insideFootprint reports whether (x, y) lies inside the keel's plan outline.
-func insideFootprint(fp [][2]float64, x, y float64) bool {
-	in := false
-	for i := range fp {
-		a, c := fp[i], fp[(i+len(fp)-1)%len(fp)]
-		if (a[1] > y) != (c[1] > y) && x < (c[0]-a[0])*(y-a[1])/(c[1]-a[1])+a[0] {
-			in = !in
-		}
-	}
-	return in
+// cradleCase is one harness case: rotor, pitch in degrees and hand.
+type cradleCase struct {
+	name     string
+	rotor    float64
+	pitchDeg float64
+	hand     turbinefan.Hand
 }
 
-// requireHarnessBuild builds and checks one harness and returns it.
-func requireHarnessBuild(t *testing.T, d, pitch float64, hand turbinefan.Hand) *turbinefan.BladeHarness {
+// cradleCases are the harness cases. The left hand at 192 / 25 pairs with the right hand for the mirror check.
+var cradleCases = []cradleCase{
+	{"128", 128, 25, turbinefan.RightHand},
+	{"192", 192, 25, turbinefan.RightHand},
+	{"192-left", 192, 25, turbinefan.LeftHand},
+	{"192-steep-left", 192, 40, turbinefan.LeftHand},
+	{"224-left", 224, 25, turbinefan.LeftHand},
+	{"224-steep-left", 224, 40, turbinefan.LeftHand},
+}
+
+// builtCradle is one built harness case: its document, the posed blade and the harness.
+type builtCradle struct {
+	doc     *decad.Document
+	blade   *decad.Body
+	harness *turbinefan.BladeHarness
+	sz      turbinefan.Size
+	err     error
+}
+
+var (
+	builtCradleMu    sync.Mutex
+	builtCradleCases = map[string]*builtCradle{}
+)
+
+// cradleFor builds a harness case on first use and shares it between the tests, which only read it. A build takes 17 to
+// 45 s.
+func cradleFor(t *testing.T, c cradleCase) *builtCradle {
 	t.Helper()
-	sz := mustSize(t, d)
-	doc, blade := posedBlade(t, d, pitch, hand)
-	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, hand)
-	require.NoError(t, err, "rotor %g, pitch %g, hand %v", d, pitch, hand)
-	require.True(t, h.Body.IsSolid())
-	require.Equal(t, 23, len(h.Sketches))
-	for i, s := range h.Sketches {
-		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
+	builtCradleMu.Lock()
+	defer builtCradleMu.Unlock()
+	if b, ok := builtCradleCases[c.name]; ok {
+		require.NoError(t, b.err, c.name)
+		return b
 	}
-	// Transform retires the blade it moves, so the document holds the posed blade and the harness.
-	require.Equal(t, 2, len(doc.Bodies()), "posed blade and harness")
-	box, err := h.Body.Bounds()
-	require.NoError(t, err)
-	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-6)
+	sz := mustSize(t, c.rotor)
+	doc, blade := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
+	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand)
+	b := &builtCradle{doc: doc, blade: blade, harness: h, sz: sz, err: err}
+	builtCradleCases[c.name] = b
+	require.NoError(t, err, c.name)
+	return b
+}
 
-	pressure := -1.0
-	if hand == turbinefan.LeftHand {
-		pressure = 1
+// eachCradle runs fn as a subtest for each harness case.
+func eachCradle(t *testing.T, fn func(t *testing.T, c cradleCase, b *builtCradle)) {
+	t.Helper()
+	for _, c := range cradleCases {
+		t.Run(c.name, func(t *testing.T) { fn(t, c, cradleFor(t, c)) })
 	}
-	require.Equal(t, pressure, h.Walls[0].Side)
-	require.Equal(t, -pressure, h.Walls[1].Side)
-	require.True(t, h.Walls[0].Pressure)
-	require.False(t, h.Walls[1].Pressure)
-	_, xf := poseTransform(t, sz, pitch, hand)
-	xs := xf.Apply(r3.Vec{Z: sz.BladeStudStart}).X
-	for i, w := range h.Walls {
-		require.InDelta(t, xs, w.Inner[0][0], 1e-6, "wall %d start", i)
-		require.InDelta(t, h.Gates[5].Contact.X+turbinefan.HarnessMargin, w.Inner[len(w.Inner)-1][0], 1e-6, "wall %d end", i)
-	}
+}
 
-	head := turbinefan.GateEmbed + turbinefan.GateNeckLength + turbinefan.GateTaper
-	for i, g := range h.Gates[:6] {
-		require.InDelta(t, -math.Sin(turbinefan.GateRise), g.Dir.Z, 1e-9, "gate %d rise", i)
-		require.InDelta(t, 0, g.Dir.X, 1e-9, "gate %d plane", i)
-		inner, ok := h.Walls[0].InnerAt(g.Contact.X)
-		require.True(t, ok, "gate %d over the wall", i)
-		cone := math.Abs(g.Contact.Y-inner) - head*math.Cos(turbinefan.GateRise) -
-			turbinefan.GateRadius*math.Sin(turbinefan.GateRise)
-		require.GreaterOrEqual(t, cone, turbinefan.GateConeClearance-1e-9, "gate %d cone clearance", i)
-	}
-	for i := 6; i < 12; i++ {
-		g, w := h.Gates[i], h.Walls[1]
-		if i == 6 {
-			w = h.Walls[0]
+// shadowSectionCount returns the number of shadow sections: the Sections from the step zone's lead-in on.
+func shadowSectionCount(h *turbinefan.BladeHarness) int {
+	n := 0
+	for _, c := range h.Sections {
+		if c.X >= h.StepZone[0]-1.0-1e-9 {
+			n++
 		}
-		require.InDelta(t, 0, g.Dir.X, 1e-9, "tab %d", i)
-		require.InDelta(t, w.Side, g.Dir.Y, 1e-9, "tab %d", i)
-		require.InDelta(t, 0, g.Dir.Z, 1e-9, "tab %d", i)
-		inner, ok := w.InnerAt(g.Contact.X)
-		require.True(t, ok, "tab %d over the wall", i)
-		widen := g.Contact.Y + w.Side*(turbinefan.TabNeckLength+turbinefan.TabWidth/2-turbinefan.GateNeckRadius)
-		require.GreaterOrEqual(t, w.Side*(inner-widen), turbinefan.TabWideningClearance-1e-9, "tab %d widening", i)
 	}
-	for i, q := range h.KeelTop {
-		require.GreaterOrEqual(t, q[1], turbinefan.HarnessPlateThickness+turbinefan.KeelMinRise, "keel top %d", i)
-	}
-	for i, g := range h.Gates[12:] {
-		require.True(t, insideFootprint(h.KeelFootprint, g.Contact.X, g.Contact.Y), "pin %d on the keel", 12+i)
-	}
-	return h
+	return n
 }

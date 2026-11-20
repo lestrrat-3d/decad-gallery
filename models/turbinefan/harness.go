@@ -1,148 +1,71 @@
 package turbinefan
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"math"
-	"slices"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
 
-// Print harness sizes, in mm or radians. They are print-process sizes, not standard dimensions; instructions.md
-// "Print pose and harness" gives each one's reason.
+// Print cradle sizes, in mm. They are print-process sizes, not standard dimensions; instructions.md "Print pose and
+// cradle" gives each one's reason. CradleGapZ is in print.go.
 const (
-	// KeelWidth is the keel's width past the cradle: eight 0.4 mm lines.
-	KeelWidth = 3.2
-	// KeelStep is the spacing of the keel top's vertices along x.
-	KeelStep = 0.5
-	// KeelMinRise is the least keel height above the plate; the keel ends where it would be lower.
-	KeelMinRise = 0.4
-	// KeelGateEmbed is how far a keel pin runs into the blade above the blade's lowest point.
-	KeelGateEmbed = 0.4
-	// WallThickness is the wall's thickness: five lines.
-	WallThickness = 2.0
-	// WallCover is how far the wall's top stands above each strut's end disc.
-	WallCover = 1.0
-	// GateNeckRadius is the radius of a gate's neck, the narrow part that meets the blade.
-	GateNeckRadius = 0.3
-	// GateNeckLength is a trailing-edge gate's neck length past its contact point.
-	GateNeckLength = 2.0
-	// GateRadius is the radius of a strut.
-	GateRadius = 0.8
-	// GateTaper is the length of the cone from the neck to the strut.
-	GateTaper = 3.0
-	// GateEmbed is how far a trailing-edge gate's neck runs on into the blade along its axis.
-	GateEmbed = 0.2
-	// GateRise is a strut's angle above the bed.
-	GateRise = 60 * math.Pi / 180
-	// GateConeClearance is the least distance from any strut's cone to the wall's near face; it sets the wall's place.
-	GateConeClearance = 1.0
-	// TipGateDrop is the tip gate's contact below the tip radius.
-	TipGateDrop = 1.0
-	// HarnessMargin is how far the plate reaches past everything, and the wall past its end gates.
+	// CradleGapXY is the horizontal support gap between the cradle and the blade: about one line width.
+	CradleGapXY = 0.4
+	// CradleWall is the cradle wall's width beyond each of the blade's widest lines: five lines.
+	CradleWall = 2.0
+	// CradleTopDrop is how far each wall's top stands under its widest point.
+	CradleTopDrop = 0.3
+	// CradleStep is the spacing along x of the cradle's sections.
+	CradleStep = 0.5
+	// CradleFitPoints is the number of fit points in each shadow section; the twisted loft allows 32 spans at most.
+	CradleFitPoints = 33
+	// CradleYStep is the y spacing of the lower envelope's samples.
+	CradleYStep = 0.05
+	// CradleTipMargin is how far before the tip cap's lowest point the cradle ends.
+	CradleTipMargin = 1.0
+	// StudSlotFlats is the number of flats of the stud slot's half polygon.
+	StudSlotFlats = 16
+	// HarnessMargin is how far the plate reaches past everything.
 	HarnessMargin = 3.0
 	// SectionStep is the spacing along x of the blade sections the layout reads.
 	SectionStep = 0.25
-	// WallGap is the least plan distance from a cradle wall's inner face to the blade; it is also a tab's bridge length.
-	WallGap = 2.0
-	// WallStep is the spacing along x of a wall's plan vertices.
-	WallStep = 1.0
-	// TabHeight is a tab's height: four layers.
-	TabHeight = 0.8
-	// TabWidth is a tab body's width, the same as a strut's.
-	TabWidth = 1.6
-	// TabNeckLength is a tab's 0.6 mm wide neck past its contact point.
-	TabNeckLength = 1.0
-	// TabWideningClearance is the least gap from a tab's widening end to its wall's inner face.
-	TabWideningClearance = 0.4
-	// HarnessGateCount is the number of gates: six trailing-edge struts, six tabs and four keel pins.
-	HarnessGateCount = 16
 )
 
-// HarnessGate is one gate. Contact is the blade point the neck axis enters; Dir is the unit axis from Contact out of
-// the blade; Root is the gate's harness end (on its wall's mid plane for a strut or a tab, 0.5 inside the keel for a
-// pin).
-type HarnessGate struct{ Contact, Dir, Root r3.Vec }
-
-// HarnessWall is one cradle wall in the print frame. Side is the outward y sign (-1 or +1). Inner is the inner face's
-// plan polyline (x, y), from the stud end to the far end; the wall is WallThickness thick outward from it. Top is the
-// side profile (x, z) of its top. Pressure is true for the wall that carries the trailing-edge struts.
-type HarnessWall struct {
-	Side     float64
-	Inner    [][2]float64
-	Top      [][2]float64
-	Pressure bool
+// CradleSection is one sampled cross-section of the cradle at plane x: the offset lower outline (y, z) from the left
+// widest point to the right one, and those points.
+type CradleSection struct {
+	X              float64
+	Outline        [][2]float64 // CradleFitPoints points, y strictly increasing
+	LeftY, LeftZ   float64      // offset widest point, min y side
+	RightY, RightZ float64      // offset widest point, max y side
 }
 
-// InnerAt interpolates the inner face's y at x; false outside its x range.
-func (w HarnessWall) InnerAt(x float64) (float64, bool) {
-	return polylineAt(w.Inner, x)
-}
-
-// polylineAt interpolates the polyline of (x, value) vertices, sorted by x, at x; false outside its x range.
-func polylineAt(line [][2]float64, x float64) (float64, bool) {
-	if len(line) < 2 || x < line[0][0] || x > line[len(line)-1][0] {
-		return 0, false
-	}
-	for i := 1; i < len(line); i++ {
-		if x <= line[i][0] {
-			a, c := line[i-1], line[i]
-			if c[0]-a[0] < 1e-12 {
-				return c[1], true
-			}
-			return a[1] + (c[1]-a[1])*(x-a[0])/(c[0]-a[0]), true
-		}
-	}
-	return line[len(line)-1][1], true
-}
-
-// BladeHarness is the harness in the print frame: a plate, a keel and two cradle walls. Gates 0..5 are the
-// trailing-edge struts (stations 5..9, tip) from the pressure wall; 6 is the pressure wall's root tab (station 2); 7..11
-// the suction wall's tabs (station 2, then stations 6..9); 12..15 the keel pins (stud, station 2, station 7,
-// station 9). KeelFootprint is the keel's plan outline (x, y), KeelTop its top profile (x, z), KeelTopAt interpolates
-// it. Walls[0] is the pressure wall and Walls[1] the suction wall. PlateMin/PlateMax are the plate corners.
-// CradleWidth is the keel's width under the stud and root.
+// BladeHarness is the cradle and plate in the print frame. The cradle is a block on the plate minus the blade's upward
+// shadow, offset from the blade by CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest lines
+// and the blade lifts straight up out of it.
 type BladeHarness struct {
 	Body *decad.Body
-	// Sketches are the 23 sketches in build order: keel footprint, keel profile; pressure wall 6 struts, 1 tab,
-	// profile, plan; suction wall 5 tabs, profile, plan; 4 pins; plate.
-	Sketches      []*sketch.Sketch
-	Gates         [HarnessGateCount]HarnessGate
-	KeelFootprint [][2]float64
-	KeelTop       [][2]float64
-	Walls         [2]HarnessWall
-	PlateMin      r3.Vec
-	PlateMax      r3.Vec
-	CradleWidth   float64
+	// Sketches are in build order: shadow sections, stud slot, block plan, block profile, left cap plan, left cap
+	// profile, right cap plan, right cap profile, plate.
+	Sketches []*sketch.Sketch
+	// Sections are every sampled section, x ascending; Sections[0].X is the cradle's start past the stud end.
+	Sections []CradleSection
+	// XStart and XEnd are the block's x range: Sections[1].X and Sections[len-2].X.
+	XStart, XEnd float64
+	// StepZone is the x range where the shadow tool copies its first clean section, past the root step.
+	StepZone [2]float64
+	PlateMin r3.Vec
+	PlateMax r3.Vec
 }
 
-// KeelTopAt returns the keel top's z at x, interpolated between KeelTop's vertices, and false outside its x range.
-func (h *BladeHarness) KeelTopAt(x float64) (float64, bool) {
-	return keelTopAt(h.KeelTop, x)
-}
-
-func keelTopAt(top [][2]float64, x float64) (float64, bool) {
-	if len(top) < 2 || x < top[0][0] || x > top[len(top)-1][0] {
-		return 0, false
-	}
-	for i := 1; i < len(top); i++ {
-		if x <= top[i][0] {
-			t := (x - top[i-1][0]) / (top[i][0] - top[i-1][0])
-			return top[i-1][1] + t*(top[i][1]-top[i-1][1]), true
-		}
-	}
-	return top[len(top)-1][1], true
-}
-
-// BuildBladeHarness builds the harness for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand)
+// BuildBladeHarness builds the cradle for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand)
 // gives. It reads the blade with SectionOutline. It puts the harness in no container. ctx, doc and blade must not be nil.
 func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand) (*BladeHarness, error) {
 	if ctx == nil || doc == nil || blade == nil {
@@ -187,17 +110,35 @@ func (s bladeSections) near(x float64) [][]r3.Vec {
 	return s.loops[i]
 }
 
-// ridge returns the lowest outline point of the section nearest x.
-func (s bladeSections) ridge(x float64) r3.Vec {
-	best := r3.Vec{Z: math.Inf(1)}
+// low returns the loop of the section nearest x that holds its lowest point: the outer loop, or below a through bolt
+// hole the piece under the hole.
+func (s bladeSections) low(x float64) []r3.Vec {
+	var best []r3.Vec
+	lowest := math.Inf(1)
 	for _, l := range s.near(x) {
 		for _, p := range l {
-			if p.Z < best.Z {
-				best = p
+			if p.Z < lowest {
+				best, lowest = l, p.Z
 			}
 		}
 	}
 	return best
+}
+
+// lowerAt returns the lowest z where the vertical line y meets loop's boundary, and whether it meets it.
+func lowerAt(loop []r3.Vec, y float64) (float64, bool) {
+	best, ok := math.Inf(1), false
+	for i := range loop {
+		a, c := loop[i], loop[(i+1)%len(loop)]
+		if (a.Y-y)*(c.Y-y) > 0 || a.Y == c.Y {
+			continue
+		}
+		z := a.Z + (y-a.Y)/(c.Y-a.Y)*(c.Z-a.Z)
+		if z < best {
+			best, ok = z, true
+		}
+	}
+	return best, ok
 }
 
 // sections cuts the blade at every SectionStep across its x range (step 2).
@@ -222,15 +163,11 @@ func (b *bladeBuilder) sections(blade *decad.Body, box decad.Box) bladeSections 
 	return s
 }
 
-// harness runs construction steps 2 to 14.
+// harness runs construction steps 2 to 10.
 func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *BladeHarness {
 	box, err := blade.Bounds()
 	if err != nil {
 		b.fail("measure blade", err)
-		return nil
-	}
-	if box.Min.Z < PrintLift-box.Bound.Base()-1e-6 {
-		b.fail("check pose", errors.New("blade dips below its stud corner"))
 		return nil
 	}
 	secs := b.sections(blade, box)
@@ -242,430 +179,382 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *Bla
 		b.fail("pose", err)
 		return nil
 	}
-	xr := func(r float64) float64 { return xf.Apply(r3.Vec{Z: r}).X }
-	h := &BladeHarness{CradleWidth: 8 * b.sz.HubScale * math.Sin(math.Pi/4)}
-	stations := stationsFor(b.sz)
-
-	h.KeelFootprint = keelFootprint(b.keelSpine(secs, xr, stations, h.CradleWidth))
-	h.KeelTop = b.keelTop(secs, h.KeelFootprint)
-	if b.err != nil {
-		return nil
+	sz := b.sz
+	// 3: the cradle runs from 0.5 past the stud end rim to CradleTipMargin before the tip cap's lowest edge point.
+	xs := math.Inf(-1)
+	for k := range 72 {
+		a := 2 * math.Pi * float64(k) / 72
+		p := xf.Apply(r3.Vec{X: sz.BladeStudRadius * math.Cos(a), Y: sz.BladeStudRadius * math.Sin(a), Z: sz.BladeStudStart})
+		xs = math.Max(xs, p.X)
 	}
-	keel := b.keel(h.KeelFootprint, h.KeelTop)
-
-	contacts := trailingContacts(b.sz, xf, stations, hand)
-	pressure := -1.0 // the pressure face faces -y for the right hand
-	if hand == LeftHand {
-		pressure = 1
-	}
-	xs, xe := xr(b.sz.BladeStudStart), contacts[5].X+HarnessMargin
-	xt := xr(stations[1].r)
-	var walls [2]*decad.Body
-	var parts [2][]*decad.Body
-	walls[0], parts[0] = b.cradleWall(h, secs, 0, pressure, xs, xe, contacts[:], []int{0, 1, 2, 3, 4, 5}, []float64{xt}, 6)
-	walls[1], parts[1] = b.cradleWall(h, secs, 1, -pressure, xs, xe, nil, nil,
-		[]float64{xt, xr(stations[5].r), xr(stations[6].r), xr(stations[7].r), xr(stations[8].r)}, 7)
-	pins := b.keelPins(h, secs, xr, stations)
-	plate := b.plate(h, box)
-	if b.err != nil {
-		return nil
-	}
-
-	// Join in small chains, each branch then the base: the keel with its pins, the plate with the keel, then each wall
-	// with its struts and tabs, and the base with that wall.
-	for i, pin := range pins {
-		keel = b.join(keel, pin, fmt.Sprintf("keel pin %d", 12+i))
-	}
-	body := b.join(plate, keel, "keel")
-	for w := range walls {
-		wall := walls[w]
-		for i, part := range parts[w] {
-			wall = b.join(wall, part, fmt.Sprintf("wall %d part %d", w, i))
-		}
-		body = b.join(body, wall, fmt.Sprintf("wall %d", w))
-	}
-	h.Body = body
-	return h
-}
-
-// keelSpine returns the keel track's vertices with their half widths (step 4): the stud end, stations 2 and 4 to 9 and
-// the tip, with a taper vertex after station 5 where the cradle narrows to KeelWidth at 45 degrees.
-func (b *bladeBuilder) keelSpine(secs bladeSections, xr func(float64) float64, stations [10]station,
-	cradle float64) [][3]float64 {
-	radii := []float64{b.sz.BladeStudStart, stations[1].r, stations[3].r, stations[4].r, stations[5].r, stations[6].r,
-		stations[7].r, stations[8].r, b.sz.TipRadius}
-	var track []r3.Vec
-	for i, r := range radii {
-		x := xr(r)
-		switch i {
-		case 0:
-			x += 0.6
-		case len(radii) - 1:
-			x -= 0.6
-		}
-		y := secs.ridge(x).Y
-		if i == 0 {
-			y = 0 // the stud's bottom lies under its axis, which the pose puts at y = 0
-		}
-		track = append(track, r3.Vec{X: x, Y: y})
-	}
-	var spine [][3]float64
-	for i, t := range track {
-		hw := KeelWidth / 2
-		if i <= 3 {
-			hw = cradle / 2
-		}
-		spine = append(spine, [3]float64{t.X, t.Y, hw})
-		if i == 3 {
-			d, _ := track[4].Sub(t).Normalize()
-			e := t.Add(d.Scale((cradle - KeelWidth) / 2))
-			spine = append(spine, [3]float64{e.X, e.Y, KeelWidth / 2})
-		}
-	}
-	return spine
-}
-
-// keelFootprint offsets the spine (x, y, half width) to both sides (step 5): the left side forward, the right side
-// backward, mitred at interior vertices.
-func keelFootprint(spine [][3]float64) [][2]float64 {
-	off := func(i int, side float64) r3.Vec {
-		var d0, d1 r3.Vec
-		if i > 0 {
-			d0, _ = r3.Vec{X: spine[i][0] - spine[i-1][0], Y: spine[i][1] - spine[i-1][1]}.Normalize()
-		}
-		if i+1 < len(spine) {
-			d1, _ = r3.Vec{X: spine[i+1][0] - spine[i][0], Y: spine[i+1][1] - spine[i][1]}.Normalize()
-		}
-		if i == 0 {
-			d0 = d1
-		}
-		if i+1 == len(spine) {
-			d1 = d0
-		}
-		n0, n1 := r3.Vec{Z: 1}.Cross(d0), r3.Vec{Z: 1}.Cross(d1)
-		m, _ := n0.Add(n1).Normalize()
-		return r3.Vec{X: spine[i][0], Y: spine[i][1]}.Add(m.Scale(side * spine[i][2] / m.Dot(n0)))
-	}
-	var fp [][2]float64
-	for i := range spine {
-		q := off(i, 1)
-		fp = append(fp, [2]float64{q.X, q.Y})
-	}
-	for i := len(spine) - 1; i >= 0; i-- {
-		q := off(i, -1)
-		fp = append(fp, [2]float64{q.X, q.Y})
-	}
-	return fp
-}
-
-// insidePolygon reports whether (x, y) lies inside the polygon, by the even-odd rule.
-func insidePolygon(poly [][2]float64, x, y float64) bool {
-	in := false
-	for i := range poly {
-		a, c := poly[i], poly[(i+len(poly)-1)%len(poly)]
-		if (a[1] > y) != (c[1] > y) && x < (c[0]-a[0])*(y-a[1])/(c[1]-a[1])+a[0] {
-			in = !in
-		}
-	}
-	return in
-}
-
-// keelTop returns the keel top profile (step 6): at every KeelStep along the track, the lowest blade point inside the
-// footprint within KeelStep of x, less KeelGap. Leading and trailing vertices with no point or too low are dropped.
-func (b *bladeBuilder) keelTop(secs bladeSections, fp [][2]float64) [][2]float64 {
-	if b.err != nil {
-		return nil
-	}
-	// The track runs from the stud end's vertex to the tip's: the midpoints of the footprint's first and last pairs.
-	first, last := (fp[0][0]+fp[len(fp)-1][0])/2, (fp[len(fp)/2-1][0]+fp[len(fp)/2][0])/2
-	floor := HarnessPlateThickness + KeelMinRise
-	var top [][2]float64
-	n := int(math.Floor((last-first)/KeelStep + 1e-9))
-	for i := 0; i <= n; i++ {
-		x := first + float64(i)*KeelStep
-		lo := math.Inf(1)
-		for xx := x - KeelStep; xx <= x+KeelStep+1e-9; xx += SectionStep {
-			for _, l := range secs.near(xx) {
-				for pi := range l {
-					p0, p1 := l[pi], l[(pi+1)%len(l)]
-					for k := 0; k <= 10; k++ {
-						p := p0.Add(p1.Sub(p0).Scale(float64(k) / 10))
-						if insidePolygon(fp, p.X, p.Y) {
-							lo = math.Min(lo, p.Z)
-						}
-					}
-				}
-			}
-		}
-		top = append(top, [2]float64{x, lo - KeelGap})
-	}
-	low := func(q [2]float64) bool { return math.IsInf(q[1], 0) || q[1] < floor }
-	for len(top) > 0 && low(top[0]) {
-		top = top[1:]
-	}
-	for len(top) > 0 && low(top[len(top)-1]) {
-		top = top[:len(top)-1]
-	}
-	if len(top) < 2 {
-		b.fail("keel top", errors.New("fewer than two keel top vertices"))
-		return nil
-	}
-	for _, q := range top {
-		if low(q) {
-			b.fail("keel top", fmt.Errorf("keel top %.2f at x %.2f under the plate", q[1], q[0]))
-			return nil
-		}
-	}
-	return top
-}
-
-// keel intersects the footprint's vertical prism with the top profile's horizontal slab (steps 5 and 7). The prism
-// starts at a quarter of the plate's thickness and the slab at half of it, so no faces coincide.
-func (b *bladeBuilder) keel(fp, top [][2]float64) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	maxTop, ymin, ymax := 0.0, math.Inf(1), math.Inf(-1)
-	for _, q := range top {
-		maxTop = math.Max(maxTop, q[1])
-	}
-	for _, q := range fp {
-		ymin, ymax = math.Min(ymin, q[1]), math.Max(ymax, q[1])
-	}
-	t := HarnessPlateThickness
-	prism := b.extrudePolygon(frame(r3.Vec{Z: t / 4}, r3.Vec{X: 1}, r3.Vec{Y: 1}), fp, maxTop+1, "keel footprint")
-	side := [][2]float64{{top[0][0], t / 2}, {top[len(top)-1][0], t / 2}}
-	for i := len(top) - 1; i >= 0; i-- {
-		side = append(side, top[i])
-	}
-	slab := b.extrudePolygon(frame(r3.Vec{Y: ymax + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}), side, ymax-ymin+2, "keel profile")
-	if b.err != nil {
-		return nil
-	}
-	keel, err := decad.Intersect(b.ctx, prism, slab)
-	b.fail("intersect keel", err)
-	return keel
-}
-
-// trailingContacts returns the trailing-edge gates' contacts in the print frame (step 8): the trailing-edge midpoint of
-// stations 5 to 9, and of station 10 at TipGateDrop under the tip.
-func trailingContacts(sz Size, xf r3.Transform, stations [10]station, hand Hand) [6]r3.Vec {
-	var out [6]r3.Vec
-	for i := range out {
-		st := stations[4+i]
-		p := sectionLocal(st, sz.Beta(st.r, refPitch), 1, 0)
+	xs += 0.5
+	tip := stationsFor(sz)[9]
+	xe := math.Inf(1)
+	for _, x := range []float64{0, 1} {
+		p := sectionLocal(tip, sz.Beta(tip.r, refPitch), x, 0)
 		if hand == RightHand {
 			p[0] = -p[0]
 		}
-		r := st.r
-		if i == 5 {
-			r = sz.TipRadius - TipGateDrop
+		xe = math.Min(xe, xf.Apply(r3.Vec{X: p[0], Y: p[1], Z: sz.TipRadius}).X)
+	}
+	xe -= CradleTipMargin
+	zTop := box.Max.Z + 3
+	z0 := box.Max.Z + 2
+
+	h := &BladeHarness{}
+	h.Sections = b.cradleSections(secs, xs, xe, z0)
+	if b.err != nil {
+		return nil
+	}
+	if len(h.Sections) < 4 {
+		b.fail("cradle sections", fmt.Errorf("%d sections from x %.2f to %.2f", len(h.Sections), xs, xe))
+		return nil
+	}
+	h.XStart, h.XEnd = h.Sections[1].X, h.Sections[len(h.Sections)-2].X
+	// 5: the root step, where the stud meets the root face.
+	xRoot := xf.Apply(r3.Vec{Z: sz.RootRadius}).X
+	half := 4 * sz.HubScale * math.Sin(PrintTilt)
+	h.StepZone = [2]float64{xRoot - half - CradleStep, xRoot + half + CradleStep}
+
+	shadow := b.shadowTool(h, z0, zTop)
+	stud := b.studTool(xf, zTop)
+	block := b.block(h.Sections[1:len(h.Sections)-1], zTop)
+	// 9: the cradle.
+	if b.err != nil {
+		return nil
+	}
+	cradle, err := decad.Cut(b.ctx, block, stud)
+	b.fail("cut stud slot", err)
+	if b.err != nil {
+		return nil
+	}
+	cradle, err = decad.Cut(b.ctx, cradle, shadow)
+	b.fail("cut blade shadow", err)
+	plate := b.plate(h, box)
+	h.Body = b.join(plate, cradle, "cradle")
+	return h
+}
+
+// cradleSections samples the cradle's sections from xs to xe every CradleStep (step 4): the offset lower envelope of the
+// blade over the slices within CradleStep, from its min-y to its max-y point, resampled at equal polar angles about
+// (0, z0).
+func (b *bladeBuilder) cradleSections(secs bladeSections, xs, xe, z0 float64) []CradleSection {
+	var out []CradleSection
+	n := int(math.Floor((xe-xs)/CradleStep + 1e-9))
+	for k := 0; k <= n; k++ {
+		x := xs + float64(k)*CradleStep
+		var win [][]r3.Vec
+		left, right := r3.Vec{Y: math.Inf(1)}, r3.Vec{Y: math.Inf(-1)}
+		for xx := x - CradleStep; xx <= x+CradleStep+1e-9; xx += SectionStep {
+			l := secs.low(xx)
+			if l == nil {
+				b.fail("cradle sections", fmt.Errorf("no blade section near x %.2f", xx))
+				return nil
+			}
+			win = append(win, l)
+			for _, p := range l {
+				if p.Y < left.Y {
+					left = p
+				}
+				if p.Y > right.Y {
+					right = p
+				}
+			}
 		}
-		out[i] = xf.Apply(r3.Vec{X: p[0], Y: p[1], Z: r})
+		chain := [][2]float64{{left.Y, left.Z}}
+		for y := left.Y; y <= right.Y+1e-9; y += CradleYStep {
+			z := math.Inf(1)
+			for _, l := range win {
+				if v, ok := lowerAt(l, y); ok {
+					z = math.Min(z, v)
+				}
+			}
+			if !math.IsInf(z, 1) {
+				chain = append(chain, [2]float64{y, z})
+			}
+		}
+		chain = append(chain, [2]float64{right.Y, right.Z})
+		chain = increasing(chain)
+		// Offset along the outward normal (down for a left-to-right walk), by CradleGapXY across and CradleGapZ up; the
+		// two ends straight out.
+		off := make([][2]float64, len(chain))
+		for i := range chain {
+			a, c := chain[max(i-1, 0)], chain[min(i+1, len(chain)-1)]
+			ty, tz := c[0]-a[0], c[1]-a[1]
+			l := math.Hypot(ty, tz)
+			off[i] = [2]float64{chain[i][0] + tz/l*CradleGapXY, chain[i][1] - ty/l*CradleGapZ}
+		}
+		last := len(chain) - 1
+		off[0] = [2]float64{chain[0][0] - CradleGapXY, chain[0][1]}
+		off[last] = [2]float64{chain[last][0] + CradleGapXY, chain[last][1]}
+		mono := [][2]float64{off[0]}
+		for _, q := range off[1:last] {
+			if q[0] > mono[len(mono)-1][0]+1e-6 && q[0] < off[last][0]-1e-6 {
+				mono = append(mono, q)
+			}
+		}
+		mono = append(mono, off[last])
+		pts := polarResample(mono, z0)
+		out = append(out, CradleSection{X: x, Outline: pts, LeftY: pts[0][0], LeftZ: pts[0][1],
+			RightY: pts[len(pts)-1][0], RightZ: pts[len(pts)-1][1]})
 	}
 	return out
 }
 
-// cradleWall builds cradle wall h.Walls[wall] on side (the outward y sign), from xs to xe (steps 9a to 9e): its struts
-// to contacts, written to h.Gates[strutGates[i]], and its tabs at tabX, written to h.Gates[firstTab+i]. It returns the
-// wall and its struts and tabs in join order. The wall is the intersection of a vertical prism over its plan, a band
-// WallThickness wide WallGap outside the blade, and a horizontal slab under its top profile, which runs through every
-// gate's required height.
-func (b *bladeBuilder) cradleWall(h *BladeHarness, secs bladeSections, wall int, side, xs, xe float64, contacts []r3.Vec,
-	strutGates []int, tabX []float64, firstTab int) (*decad.Body, []*decad.Body) {
-	if b.err != nil {
-		return nil, nil
-	}
-	o := side
-	w := &h.Walls[wall]
-	w.Side, w.Pressure = side, len(contacts) > 0
-	head := GateEmbed + GateNeckLength + GateTaper
-	dmin := GateConeClearance + head*math.Cos(GateRise) + WallThickness/2 + GateRadius*math.Sin(GateRise)
-
-	// 9a: tab contacts at the section nearest each tab x, on the blade's lateral extreme, at the middle of the outline
-	// band within 0.05 of it.
-	tabs := make([]r3.Vec, len(tabX))
-	for i, x := range tabX {
-		loops := secs.near(x)
-		extreme, px := math.Inf(-1), x
-		for _, l := range loops {
-			for _, p := range l {
-				if o*p.Y > extreme {
-					extreme, px = o*p.Y, p.X
-				}
-			}
-		}
-		if math.IsInf(extreme, -1) {
-			b.fail("tab", fmt.Errorf("gate %d: no blade section at x %.2f", firstTab+i, x))
-			return nil, nil
-		}
-		zlo, zhi := math.Inf(1), math.Inf(-1)
-		for _, l := range loops {
-			for _, p := range l {
-				if o*p.Y >= extreme-0.05 {
-					zlo, zhi = math.Min(zlo, p.Z), math.Max(zhi, p.Z)
-				}
-			}
-		}
-		tabs[i] = r3.Vec{X: px, Y: o * extreme, Z: (zlo + zhi) / 2}
-	}
-
-	// 9b: the inner face's plan.
-	var xsamples []float64
-	for x := xs; x < xe; x += WallStep {
-		xsamples = append(xsamples, x)
-	}
-	xsamples = append(xsamples, xe)
-	for _, t := range tabs {
-		xsamples = append(xsamples, t.X)
-	}
-	for _, c := range contacts {
-		xsamples = append(xsamples, c.X, c.X-GateRadius-WallStep, c.X+GateRadius+WallStep)
-	}
-	slices.Sort(xsamples)
-	for _, x := range xsamples {
-		if n := len(w.Inner); n > 0 && x-w.Inner[n-1][0] <= 1e-6 {
+// increasing drops chain points within 1e-6 of the previous one or with a smaller y.
+func increasing(chain [][2]float64) [][2]float64 {
+	var out [][2]float64
+	for _, q := range chain {
+		if n := len(out); n > 0 && (math.Hypot(q[0]-out[n-1][0], q[1]-out[n-1][1]) < 1e-6 || q[0] < out[n-1][0]) {
 			continue
 		}
-		extreme := math.Inf(-1)
-		for xx := x - WallStep; xx <= x+WallStep+1e-9; xx += SectionStep {
-			for _, l := range secs.near(xx) {
-				for _, p := range l {
-					extreme = math.Max(extreme, o*p.Y)
-				}
-			}
-		}
-		if math.IsInf(extreme, -1) {
-			b.fail("wall plan", fmt.Errorf("wall %d: no blade section near x %.2f", wall, x))
-			return nil, nil
-		}
-		y := o * (extreme + WallGap)
-		for _, c := range contacts {
-			if math.Abs(c.X-x) <= GateRadius+WallStep+1e-9 {
-				if need := c.Y + o*(dmin-WallThickness/2); o*need > o*y {
-					y = need
-				}
-			}
-		}
-		w.Inner = append(w.Inner, [2]float64{x, y})
+		out = append(out, q)
 	}
-	mid := func(x float64) float64 {
-		y, _ := w.InnerAt(x)
-		return y + o*WallThickness/2
-	}
-
-	// 9c: struts.
-	var parts []*decad.Body
-	var tops [][2]float64
-	for i, c := range contacts {
-		d := math.Abs(c.Y - mid(c.X))
-		if cone := d - head*math.Cos(GateRise) - WallThickness/2 - GateRadius*math.Sin(GateRise); cone < GateConeClearance-1e-9 {
-			b.fail("place wall", fmt.Errorf("gate %d cone is %.2f mm from the wall, under GateConeClearance", strutGates[i],
-				cone))
-			return nil, nil
-		}
-		s := r3.Vec{X: c.X, Y: mid(c.X), Z: c.Z - d*math.Tan(GateRise)}
-		dir, _ := s.Sub(c).Normalize()
-		t := c.Sub(dir.Scale(GateEmbed))
-		length := s.Sub(t).Len()
-		v, _ := r3.Vec{Z: 1}.Cross(dir).Normalize()
-		n := GateEmbed + GateNeckLength
-		parts = append(parts, b.revolvePolygon(frame(t, dir, v), [][2]float64{
-			{0, 0}, {0, GateNeckRadius}, {n, GateNeckRadius}, {n + GateTaper, GateRadius}, {length, GateRadius}, {length, 0},
-		}, "strut"))
-		h.Gates[strutGates[i]] = HarnessGate{Contact: c, Dir: dir, Root: s}
-		tops = append(tops, [2]float64{c.X, s.Z + GateRadius*math.Cos(GateRise) + WallCover})
-	}
-
-	// 9d: tabs, flat slabs from the wall's mid plane through a 0.6 mm neck into the blade.
-	for i, p := range tabs {
-		a0, a1 := p.Y-o*GateEmbed, p.Y+o*TabNeckLength
-		a2, a3 := a1+o*(TabWidth/2-GateNeckRadius), mid(p.X)
-		if inner, _ := w.InnerAt(p.X); o*(inner-a2) < TabWideningClearance {
-			b.fail("tab", fmt.Errorf("gate %d widens %.2f mm from the wall, under TabWideningClearance", firstTab+i,
-				o*(inner-a2)))
-			return nil, nil
-		}
-		rn, hw := GateNeckRadius, TabWidth/2
-		parts = append(parts, b.extrudePolygon(frame(r3.Vec{Z: p.Z - TabHeight/2}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
-			[][2]float64{{p.X - rn, a0}, {p.X - rn, a1}, {p.X - hw, a2}, {p.X - hw, a3}, {p.X + hw, a3}, {p.X + hw, a2},
-				{p.X + rn, a1}, {p.X + rn, a0}}, TabHeight, "tab"))
-		h.Gates[firstTab+i] = HarnessGate{Contact: p, Dir: r3.Vec{Y: o}, Root: r3.Vec{X: p.X, Y: mid(p.X), Z: p.Z}}
-		tops = append(tops, [2]float64{p.X, p.Z + TabHeight/2 + WallCover})
-	}
-
-	// 9e: the top profile through every required point, and the wall as prism ∩ slab.
-	slices.SortFunc(tops, func(a, c [2]float64) int { return cmp.Compare(a[0], c[0]) })
-	w.Top = append([][2]float64{{xs, tops[0][1]}}, tops...)
-	w.Top = append(w.Top, [2]float64{xe, tops[len(tops)-1][1]})
-	maxTop, ymin, ymax := 0.0, math.Inf(1), math.Inf(-1)
-	for _, q := range w.Top {
-		maxTop = math.Max(maxTop, q[1])
-	}
-	plan := slices.Clone(w.Inner)
-	for i := len(w.Inner) - 1; i >= 0; i-- {
-		plan = append(plan, [2]float64{w.Inner[i][0], w.Inner[i][1] + o*WallThickness})
-	}
-	for _, q := range plan {
-		ymin, ymax = math.Min(ymin, q[1]), math.Max(ymax, q[1])
-	}
-	t := HarnessPlateThickness
-	last := w.Top[len(w.Top)-1][1]
-	profile := [][2]float64{{xs - 1, t / 2}, {xe + 1, t / 2}, {xe + 1, last}}
-	for i := len(w.Top) - 1; i >= 0; i-- {
-		profile = append(profile, w.Top[i])
-	}
-	profile = append(profile, [2]float64{xs - 1, w.Top[0][1]})
-	slab := b.extrudePolygon(frame(r3.Vec{Y: ymax + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}), profile, ymax-ymin+2, "wall profile")
-	prism := b.extrudePolygon(frame(r3.Vec{Z: t / 4}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, maxTop+1, "wall plan")
-	if b.err != nil {
-		return nil, nil
-	}
-	body, err := decad.Intersect(b.ctx, prism, slab)
-	b.fail(fmt.Sprintf("intersect wall %d", wall), err)
-	return body, parts
+	return out
 }
 
-// keelPins builds the four keel pins (step 11): vertical circles of GateNeckRadius from 0.5 under the keel top up to
-// KeelGateEmbed above the blade's lowest point, between the bolt hole and the root, and at stations 2, 7 and 9.
-func (b *bladeBuilder) keelPins(h *BladeHarness, secs bladeSections, xr func(float64) float64,
-	stations [10]station) []*decad.Body {
+// polarResample resamples the polyline at CradleFitPoints equal polar angles about (0, z0), so every section's point k
+// lies near one ray and the twisted loft's interpolated sections stay star-shaped.
+func polarResample(line [][2]float64, z0 float64) [][2]float64 {
+	ang := make([]float64, len(line))
+	for i, q := range line {
+		ang[i] = math.Atan2(q[1]-z0, q[0])
+		if i == 0 {
+			continue
+		}
+		for ang[i] < ang[i-1]-math.Pi {
+			ang[i] += 2 * math.Pi
+		}
+		for ang[i] > ang[i-1]+math.Pi {
+			ang[i] -= 2 * math.Pi
+		}
+	}
+	out := make([][2]float64, CradleFitPoints)
+	j := 0
+	for k := range out {
+		th := ang[0] + (ang[len(ang)-1]-ang[0])*float64(k)/float64(CradleFitPoints-1)
+		for j+1 < len(ang)-1 && ang[j+1] < th {
+			j++
+		}
+		t := 0.0
+		if ang[j+1] != ang[j] {
+			t = (th - ang[j]) / (ang[j+1] - ang[j])
+		}
+		t = math.Max(0, math.Min(1, t))
+		out[k] = [2]float64{line[j][0] + t*(line[j+1][0]-line[j][0]), line[j][1] + t*(line[j+1][1]-line[j][1])}
+	}
+	return out
+}
+
+// shadowTool lofts the blade's upward shadow from the root to the tip (step 6) through the sections from the step zone's
+// lead-in on; those before the step zone's end copy the first section past it. Each section is on a world XY plane at
+// its x, its offset lower outline closed upward to zTop, lofted with Z along world x and turned into place.
+func (b *bladeBuilder) shadowTool(h *BladeHarness, z0, zTop float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	radii := []float64{(b.sz.BladeBoltAt + m2fastener.HoleRadius + b.sz.RootRadius) / 2, stations[1].r, stations[6].r,
-		stations[8].r}
-	var pins []*decad.Body
-	for i, r := range radii {
-		p := secs.ridge(xr(r))
-		top, ok := h.KeelTopAt(p.X)
-		if !ok || !insidePolygon(h.KeelFootprint, p.X, p.Y) {
-			b.fail("keel pin", fmt.Errorf("pin %d at %v lies off the keel", 12+i, p))
+	var clean *CradleSection
+	for i := range h.Sections {
+		if h.Sections[i].X >= h.StepZone[1] {
+			clean = &h.Sections[i]
+			break
+		}
+	}
+	if clean == nil {
+		b.fail("shadow tool", errors.New("no section past the root step"))
+		return nil
+	}
+	var loft []decad.LoftSection
+	for _, c := range h.Sections {
+		if c.X < h.StepZone[0]-1.0-1e-9 {
+			continue
+		}
+		src := c
+		if c.X < h.StepZone[1] {
+			src = *clean
+		}
+		loft = append(loft, b.shadowSection(c.X, src, z0, zTop))
+		if b.err != nil {
 			return nil
 		}
-		root := r3.Vec{X: p.X, Y: p.Y, Z: top - 0.5}
-		pins = append(pins, b.cylinder(frame(root, r3.Vec{X: 1}, r3.Vec{Y: 1}), GateNeckRadius, p.Z+KeelGateEmbed-root.Z))
-		h.Gates[12+i] = HarnessGate{Contact: p, Dir: r3.Vec{Z: -1}, Root: root}
 	}
-	return pins
+	body, err := decad.LoftSections(b.ctx, b.doc, loft...)
+	if err != nil {
+		b.fail("loft blade shadow", err)
+		return nil
+	}
+	xf, err := r3.FromFrame(frame(r3.Vec{Z: z0}, r3.Vec{Y: 1}, r3.Vec{Z: 1}))
+	if err != nil {
+		b.fail("blade shadow frame", err)
+		return nil
+	}
+	out, err := decad.Transform(b.ctx, body, xf)
+	b.fail("place blade shadow", err)
+	return out
 }
 
-// plate builds the plate (step 12): a rectangle under the blade, the keel and both walls, HarnessMargin beyond them,
-// chamfered on both caps.
+// shadowSection sketches one shadow section on the world XY plane at height x: a fit spline through src's outline,
+// shifted down by z0, closed by lines up to zTop and across.
+func (b *bladeBuilder) shadowSection(x float64, src CradleSection, z0, zTop float64) decad.LoftSection {
+	w := sketch.NewWorld()
+	plane, err := w.CreateOffsetPlane(w.XY(), x)
+	if err != nil {
+		b.fail("create shadow plane", err)
+		return decad.LoftSection{}
+	}
+	s, err := w.CreateSketch(plane)
+	if err != nil {
+		b.fail("create shadow section", err)
+		return decad.LoftSection{}
+	}
+	b.sketches = append(b.sketches, s)
+	fit := make([]*sketch.Point, len(src.Outline))
+	for i, p := range src.Outline {
+		fit[i] = sketchcheck.DimensionPoint(s, p[0], p[1]-z0)
+	}
+	right := sketchcheck.DimensionPoint(s, src.RightY, zTop-z0)
+	left := sketchcheck.DimensionPoint(s, src.LeftY, zTop-z0)
+	if _, err := s.CreateFitSpline(fit...); err != nil {
+		b.fail("create shadow spline", err)
+		return decad.LoftSection{}
+	}
+	s.CreateLine(fit[len(fit)-1], right)
+	s.CreateLine(right, left)
+	s.CreateLine(left, fit[0])
+	if _, err := s.Solve(b.ctx); err != nil {
+		b.fail("solve shadow section", err)
+		return decad.LoftSection{}
+	}
+	if err := sketchcheck.VerifyFullyConstrained(b.ctx, s); err != nil {
+		b.fail("verify shadow section", fmt.Errorf("x %.2f: %w", x, err))
+		return decad.LoftSection{}
+	}
+	for _, pr := range s.Profiles() {
+		if pr.Valid && len(pr.Holes) == 0 && len(pr.Outer) == 4 {
+			return decad.LoftSection{Sketch: s, Profile: pr}
+		}
+	}
+	b.fail("select shadow profile", fmt.Errorf("x %.2f: no valid profile of four edges", x))
+	return decad.LoftSection{}
+}
+
+// studTool is the stud's U slot (step 7): a half polygon of StudSlotFlats flats circumscribing a half circle of radius
+// BladeStudRadius + CradleGapXY, centred CradleGapXY - CradleGapZ under the stud axis, carried straight up, extruded along
+// the axis from 1 mm before the stud end to 0.5 past the root.
+func (b *bladeBuilder) studTool(xf r3.Transform, zTop float64) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	sz, t := b.sz, PrintTilt
+	f := frame(xf.Apply(r3.Vec{Z: sz.BladeStudStart - 1}), r3.Vec{X: -math.Sin(t), Z: math.Cos(t)}, r3.Vec{Y: -1})
+	rr := sz.BladeStudRadius + CradleGapXY
+	h0 := -(CradleGapXY - CradleGapZ)
+	rv := rr / math.Cos(math.Pi/(2*StudSlotFlats))
+	vertices := [][2]float64{{h0, rr}}
+	for k := range StudSlotFlats {
+		a := math.Pi/2 + math.Pi*(float64(k)+0.5)/StudSlotFlats
+		vertices = append(vertices, [2]float64{h0 + rv*math.Cos(a), rv * math.Sin(a)})
+	}
+	vertices = append(vertices, [2]float64{h0, -rr}, [2]float64{zTop + 5, -rr}, [2]float64{zTop + 5, rr})
+	return b.extrudePolygon(f, vertices, sz.RootRadius+0.5-sz.BladeStudStart+1, "stud slot")
+}
+
+// block builds the cradle's block (step 8): the plan from CradleWall outside each widest line, intersected with a slab
+// 0.5 over the higher wall top, then cut by a cap on each side that removes what lies beyond that side's widest line and
+// above its wall top.
+func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	var plan, bandL, bandR, topMax, capL, capR [][2]float64
+	for _, c := range blk {
+		plan = append(plan, [2]float64{c.X, c.LeftY - CradleWall})
+		bandL = append(bandL, [2]float64{c.X, c.LeftY - CradleWall - 1})
+		bandR = append(bandR, [2]float64{c.X, c.RightY - 0.3})
+		topMax = append(topMax, [2]float64{c.X, math.Max(c.LeftZ, c.RightZ) - CradleTopDrop + 0.5})
+		capL = append(capL, [2]float64{c.X, c.LeftZ - CradleTopDrop})
+		capR = append(capR, [2]float64{c.X, c.RightZ - CradleTopDrop})
+	}
+	for i := len(blk) - 1; i >= 0; i-- {
+		plan = append(plan, [2]float64{blk[i].X, blk[i].RightY + CradleWall})
+		bandL = append(bandL, [2]float64{blk[i].X, blk[i].LeftY + 0.3})
+		bandR = append(bandR, [2]float64{blk[i].X, blk[i].RightY + CradleWall + 1})
+	}
+	ymin, ymax, zmax := math.Inf(1), math.Inf(-1), 0.0
+	for _, q := range plan {
+		ymin, ymax = math.Min(ymin, q[1]), math.Max(ymax, q[1])
+	}
+	for _, q := range topMax {
+		zmax = math.Max(zmax, q[1])
+	}
+	t := HarnessPlateThickness
+	// slab is the XZ polygon between the lower and upper polylines, extruded across the plan's y range.
+	slab := func(lo, hi [][2]float64, name string) *decad.Body {
+		poly := append([][2]float64{}, lo...)
+		for i := len(hi) - 1; i >= 0; i-- {
+			poly = append(poly, hi[i])
+		}
+		return b.extrudePolygon(frame(r3.Vec{Y: ymax + 2}, r3.Vec{X: 1}, r3.Vec{Z: 1}), poly, ymax-ymin+4, name)
+	}
+	flat := func(z float64, src [][2]float64) [][2]float64 {
+		out := make([][2]float64, len(src))
+		for i, q := range src {
+			out[i] = [2]float64{q[0], z}
+		}
+		return out
+	}
+	prism := b.extrudePolygon(frame(r3.Vec{Z: t / 4}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+1, "block plan")
+	top := slab(flat(t/2, topMax), topMax, "block profile")
+	if b.err != nil {
+		return nil
+	}
+	body, err := decad.Intersect(b.ctx, prism, top)
+	b.fail("intersect block", err)
+	// The caps reach 1 mm past the block's ends, so no end faces coincide.
+	stretch := func(band [][2]float64) [][2]float64 {
+		n := len(band) / 2
+		band[0][0] -= 1
+		band[n-1][0] += 1
+		band[n][0] += 1
+		band[len(band)-1][0] -= 1
+		return band
+	}
+	extend := func(l [][2]float64) [][2]float64 {
+		out := append([][2]float64{{l[0][0] - 1, l[0][1]}}, l...)
+		return append(out, [2]float64{l[len(l)-1][0] + 1, l[len(l)-1][1]})
+	}
+	for _, c := range []struct {
+		band, line [][2]float64
+		name       string
+	}{{stretch(bandL), extend(capL), "left cap"}, {stretch(bandR), extend(capR), "right cap"}} {
+		capPlan := b.extrudePolygon(frame(r3.Vec{Z: 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), c.band, zTop+2, c.name+" plan")
+		capTop := slab(c.line, flat(zTop+1, c.line), c.name+" profile")
+		if b.err != nil {
+			return nil
+		}
+		cp, err := decad.Intersect(b.ctx, capPlan, capTop)
+		b.fail("intersect "+c.name, err)
+		if b.err != nil {
+			return nil
+		}
+		body, err = decad.Cut(b.ctx, body, cp)
+		b.fail("cut "+c.name, err)
+		if b.err != nil {
+			return nil
+		}
+	}
+	return body
+}
+
+// plate builds the plate (step 10): a rectangle under the blade and the cradle, HarnessMargin beyond them, chamfered on
+// both caps.
 func (b *bladeBuilder) plate(h *BladeHarness, box decad.Box) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
 	ylo, yhi := box.Min.Y, box.Max.Y
-	for _, w := range h.Walls {
-		for _, q := range w.Inner {
-			for _, y := range []float64{q[1], q[1] + w.Side*WallThickness} {
-				ylo, yhi = math.Min(ylo, y), math.Max(yhi, y)
-			}
-		}
-	}
-	for _, q := range h.KeelFootprint {
-		ylo, yhi = math.Min(ylo, q[1]), math.Max(yhi, q[1])
+	for _, c := range h.Sections {
+		ylo, yhi = math.Min(ylo, c.LeftY-CradleWall), math.Max(yhi, c.RightY+CradleWall)
 	}
 	h.PlateMin = r3.Vec{X: box.Min.X - HarnessMargin, Y: ylo - HarnessMargin}
 	h.PlateMax = r3.Vec{X: box.Max.X + HarnessMargin, Y: yhi + HarnessMargin, Z: HarnessPlateThickness}
@@ -734,19 +623,6 @@ func (b *bladeBuilder) extrudePolygon(f r3.Frame, vertices [][2]float64, depth f
 		return nil
 	}
 	return b.extrudeProfile(s, 0, depth, name)
-}
-
-// revolvePolygon revolves the closed polygon of vertices on f a full turn about the line through f's origin along U.
-func (b *bladeBuilder) revolvePolygon(f r3.Frame, vertices [][2]float64, name string) *decad.Body {
-	s := b.sketchPolygon(f, vertices, name)
-	pr := b.profile(s, 0, name)
-	if pr == nil {
-		return nil
-	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, pr, decad.ConstructionAxis{Origin: f.Origin(), Dir: f.U()},
-		decad.FullRevolution{})
-	b.fail("revolve "+name, err)
-	return body
 }
 
 // extrudeProfile solves s, requires it fully constrained and extrudes its one valid profile with the given holes by

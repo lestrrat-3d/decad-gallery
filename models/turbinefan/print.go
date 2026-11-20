@@ -21,11 +21,10 @@ const (
 	PrintLean = -15 * math.Pi / 180
 	// HarnessPlateThickness is the harness plate's thickness on the bed.
 	HarnessPlateThickness = 1.2
-	// KeelGap is the vertical gap from a support interface (the keel's top, the plate under the stud) to the blade: one
-	// 0.2 mm layer.
-	KeelGap = 0.2
+	// CradleGapZ is the vertical support gap from the cradle and the plate to the blade: one 0.2 mm layer.
+	CradleGapZ = 0.2
 	// PrintLift is the z of the blade's lowest point, the stud corner, in the print pose: one gap over the plate.
-	PrintLift = HarnessPlateThickness + KeelGap
+	PrintLift = HarnessPlateThickness + CradleGapZ
 )
 
 // HarnessContainerName is the container BuildBladePrint files the harness in.
