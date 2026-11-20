@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/screwgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -244,12 +245,12 @@ func renderScrewGearReadme(ctx context.Context, outputDir string) error {
 		{"low.png", "low", 1600, 900},
 	} {
 		scene := screwGearScene(screwGearCameras[image.shot], models, 16.0/9)
-		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render screwgear %s: %w", image.name, err)
 		}
 	}
 	exploded := screwGearExplodedScene(models)
-	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, 1600, 900); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, 1600, 900); err != nil {
 		return fmt.Errorf("render screwgear exploded.png: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Join(outputDir, "parts"), 0o755); err != nil {
@@ -257,12 +258,12 @@ func renderScrewGearReadme(ctx context.Context, outputDir string) error {
 	}
 	for i, name := range screwGearPartNames {
 		path := filepath.Join(outputDir, "parts", name+".png")
-		if err := renderPNG(ctx, path, screwGearPartScene(models, i), 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, path, screwGearPartScene(models, i), 480, 270); err != nil {
 			return fmt.Errorf("render screwgear parts/%s.png: %w", name, err)
 		}
 	}
 	cutaway := screwGearScene(screwGearCameras["cutaway"], screwGearCutaway(models), 16.0/9)
-	if err := renderPNG(ctx, filepath.Join(outputDir, "cutaway.png"), cutaway, 1600, 900); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "cutaway.png"), cutaway, 1600, 900); err != nil {
 		return fmt.Errorf("render screwgear cutaway.png: %w", err)
 	}
 	return nil

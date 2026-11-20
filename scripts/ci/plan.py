@@ -14,7 +14,7 @@ MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement ha
              "fastener helicalgear herringbonegear onewayclutch pinring "
              "planetarygearbox plaquestand screwgear spinningwheel spiralspring spurgear swisslever turbinefan".split())
 INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
-               "placement rootcheck sketchcheck".split())
+               "placement rootcheck sketchcheck renderkit".split())
 FEATURES = {"dovetail"}
 TEST_PACKAGE_DIRS = ({"models/" + name for name in MODELS} | {"internal/" + name for name in INTERNAL} |
                     {"features/" + name for name in FEATURES} | {"tools/render"})
@@ -284,6 +284,11 @@ def plan(event, base, tested):
                 suites.setdefault("full", []).append(reason)
                 continue
             suites.setdefault(suite, []).append("affected package " + owner)
+        core = [path for path in code if path.startswith("internal/renderkit/") and not path.endswith("_test.go")]
+        if core:
+            suites["renderer-all"] = ["shared render core changed"]
+            if unknown_input:
+                suites.setdefault("full", []).append("renderer source and unregistered input changed")
         if any(path.startswith("tools/render/") for path in code):
             suites["renderer-all"] = ["renderer source or tests changed"]
             if unknown_input:
@@ -295,6 +300,8 @@ def plan(event, base, tested):
                     suites.setdefault(suite, []).append("renderer check for " + name)
         if "full" in suites or "renderer-all" in suites:
             covered = {suite for checks in RENDER.values() for suite in checks} | {"renderer-compile"}
+            if "renderer-all" in suites:
+                covered.add("package-renderkit")
             if "full" in suites:
                 covered.add("renderer-all")
             for suite in covered:

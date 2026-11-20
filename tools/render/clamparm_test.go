@@ -15,9 +15,9 @@ import (
 // parts table name every body of the clamp arm.
 func TestClampArmPresets(t *testing.T) {
 	for _, view := range clampViews {
-		p, ok := presets["clamparm/"+view]
+		p, ok := clamparmModel().Presets[view]
 		require.True(t, ok, "preset %s", view)
-		require.Equal(t, [2]int{1600, 900}, [2]int{p.width, p.height}, "size of %s", view)
+		require.Equal(t, [2]int{1600, 900}, [2]int{p.Width, p.Height}, "size of %s", view)
 	}
 
 	names := map[string]struct{}{}
@@ -40,9 +40,9 @@ func TestClampArmPresets(t *testing.T) {
 
 	shown := map[string]struct{}{}
 	for _, part := range clampParts {
-		p, ok := presets["clamparm/part-"+part.shot]
+		p, ok := clamparmModel().Presets["part-"+part.shot]
 		require.True(t, ok, "preset for part %s", part.shot)
-		require.Equal(t, [2]int{480, 270}, [2]int{p.width, p.height}, "size of part %s", part.shot)
+		require.Equal(t, [2]int{480, 270}, [2]int{p.Width, p.Height}, "size of part %s", part.shot)
 		for _, n := range part.bodies {
 			_, known := names[n]
 			require.True(t, known, "part %s names the unknown body %q", part.shot, n)

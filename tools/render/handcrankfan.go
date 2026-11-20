@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -81,10 +82,10 @@ var handCrankFanViews = []handCrankFanView{
 		Up: solidlens.Vec{Z: 1}, FOV: 35}},
 }
 
-func init() {
+func addHandCrankFanViewPresets(presets map[string]renderkit.Preset) {
 	for _, view := range handCrankFanViews {
-		presets["handcrankfan/view-"+view.shot] = preset{width: 1200, height: 675,
-			scene: func(ctx context.Context) (solidlens.Scene, error) {
+		presets["view-"+view.shot] = renderkit.Preset{Width: 1200, Height: 675,
+			Scene: func(ctx context.Context) (solidlens.Scene, error) {
 				fan, err := buildHandCrankFan(ctx)
 				if err != nil {
 					return solidlens.Scene{}, err
@@ -169,9 +170,9 @@ var handCrankFanParts = []handCrankFanPart{
 	{"fan-set-screw", "fan-set-screw", []string{"fan-set-screw-nut"}, partFront},
 }
 
-func init() {
+func addHandCrankFanPartPresets(presets map[string]renderkit.Preset) {
 	for _, part := range handCrankFanParts {
-		presets["handcrankfan/part-"+part.shot] = preset{width: 480, height: 270, scene: handCrankFanPartPreset(part)}
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270, Scene: handCrankFanPartPreset(part)}
 	}
 }
 
@@ -241,7 +242,7 @@ func renderHandCrankFanReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}
@@ -250,7 +251,7 @@ func renderHandCrankFanReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "view-"+view.shot+".png"), scene, 1200, 675); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "view-"+view.shot+".png"), scene, 1200, 675); err != nil {
 			return fmt.Errorf("render hand-crank fan view %s: %w", view.shot, err)
 		}
 	}
@@ -259,7 +260,7 @@ func renderHandCrankFanReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
 			return fmt.Errorf("render hand-crank fan part %s: %w", part.shot, err)
 		}
 	}

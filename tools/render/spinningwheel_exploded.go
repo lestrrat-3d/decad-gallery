@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 )
@@ -55,9 +56,9 @@ func wheelBlockOf(name, group, motion string) wheelBlock {
 	return wheelBlockFrame
 }
 
-func init() {
-	presets["spinningwheel/exploded"] = preset{width: wheelExplodedWidth, height: wheelExplodedHeight,
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
+func addSpinningWheelExplodedPreset(presets map[string]renderkit.Preset) {
+	presets["exploded"] = renderkit.Preset{Width: wheelExplodedWidth, Height: wheelExplodedHeight,
+		Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			meshes, _, err := spinningWheelModels(ctx)
 			if err != nil {
 				return solidlens.Scene{}, err
@@ -166,7 +167,7 @@ func spinningWheelPartScene(kind wheelKind) solidlens.Scene {
 // renderSpinningWheelExploded writes the exploded view and one image per distinct body into out and out/parts.
 func renderSpinningWheelExploded(ctx context.Context, meshes []wheelMesh, out string) error {
 	name := filepath.Join(out, "exploded.png")
-	if err := renderPNG(ctx, name, spinningWheelExplodedScene(meshes), wheelExplodedWidth, wheelExplodedHeight); err != nil {
+	if err := renderkit.RenderPNG(ctx, name, spinningWheelExplodedScene(meshes), wheelExplodedWidth, wheelExplodedHeight); err != nil {
 		return fmt.Errorf("render spinning wheel exploded view: %w", err)
 	}
 	kinds, err := wheelKinds(meshes)
@@ -175,7 +176,7 @@ func renderSpinningWheelExploded(ctx context.Context, meshes []wheelMesh, out st
 	}
 	for _, kind := range kinds {
 		name := filepath.Join(out, "parts", kind.slug+".png")
-		if err := renderPNG(ctx, name, spinningWheelPartScene(kind), 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, spinningWheelPartScene(kind), 480, 270); err != nil {
 			return fmt.Errorf("render spinning wheel part %s: %w", kind.slug, err)
 		}
 	}

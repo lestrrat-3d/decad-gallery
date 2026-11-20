@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -323,7 +324,7 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}
@@ -337,7 +338,7 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, 1600, 900); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, 1600, 900); err != nil {
 			return err
 		}
 	}
@@ -366,7 +367,7 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, 1600, 900); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, 1600, 900); err != nil {
 			return err
 		}
 	}
@@ -390,7 +391,7 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 			models := []solidlens.Model{clutchModel(part.mesh, part.color)}
 			scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
 			file := strings.TrimSuffix(strings.ReplaceAll(name, " ", "-"), "-1")
-			if err := renderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
+			if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
 				return err
 			}
 		}

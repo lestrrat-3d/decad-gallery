@@ -1,14 +1,14 @@
-package main_test
+package main
 
 // CI: isolated-tests
 
 import (
 	"image/gif"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,10 +16,8 @@ import (
 // cover one full turn.
 func TestHandCrankFanMotion(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "motion.gif")
-	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "handcrankfan", "-shot", "animation",
-		"-frames", "4", "-out", path)
-	result, err := cmd.CombinedOutput()
-	require.NoError(t, err, "%s", result)
+	err := renderkit.Run(t.Context(), handcrankfanModel(), "animation", renderkit.Options{Frames: 4, Output: path})
+	require.NoError(t, err)
 	file, err := os.Open(path)
 	require.NoError(t, err)
 	defer func() { _ = file.Close() }()

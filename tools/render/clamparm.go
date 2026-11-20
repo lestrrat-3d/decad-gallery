@@ -8,6 +8,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/clamparm"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -445,7 +446,7 @@ func renderClampArmReadme(ctx context.Context, outputDir string) error {
 	}
 	a := arms[0]
 	write := func(file string, scene solidlens.Scene, width, height int) error {
-		return renderPNG(ctx, filepath.Join(outputDir, file), scene, width, height)
+		return renderkit.RenderPNG(ctx, filepath.Join(outputDir, file), scene, width, height)
 	}
 	for _, view := range clampViews {
 		var scene solidlens.Scene

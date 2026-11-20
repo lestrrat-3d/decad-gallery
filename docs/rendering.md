@@ -4,7 +4,21 @@ This page documents `tools/render`.
 
 This package of the repository's Go module builds gallery models with Decad and renders their
 tessellated meshes with SolidLens. Each image preset names a model and a shot.
-Add a scene builder and a preset entry in `main.go` for another model or shot.
+Each model is a `renderkit.Model` that `registry()` in `models.go` returns: its single-image presets, its custom shots
+(such as `readme`), whether it accepts `-kit`, and the committed outputs (`Jobs`) that `-all` regenerates. The shared
+dispatch, scene and PNG helpers live in `internal/renderkit`. Add a scene builder and a preset entry in the model's
+function in `models.go` for another model or shot.
+
+Two flags work on the whole registry. `-list` prints one tab-separated line per committed output (model, shot,
+kit or `-`, and the path relative to the repository root). `-all` regenerates every committed output, or those of an
+explicitly given `-model`, and `-root DIR` sets the repository root (default: the nearest ancestor holding `go.mod`).
+`-all` keeps going after a failed job and exits non-zero with the failed jobs listed. Both reject `-shot`, `-out`,
+`-width`, `-height`, `-kit` and `-frames`.
+
+```sh
+go -C tools/render run . -list
+go -C tools/render run . -all -model ballbearing
+```
 
 The spinning wheel also has an explicit work-in-progress mode:
 

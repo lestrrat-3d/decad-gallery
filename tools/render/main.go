@@ -3,380 +3,133 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"path"
 	"path/filepath"
 
-	"github.com/lestrrat-3d/solidlens"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 )
-
-type preset struct {
-	width, height int
-	scene         func(context.Context) (solidlens.Scene, error)
-}
 
 var galleryFresh bool
 
-var presets = map[string]preset{
-	"gallery/hero":                  {width: 1600, height: 900, scene: ornamentalGears},
-	"spinningwheel/hero":            {width: 1600, height: 900, scene: spinningWheelView("hero")},
-	"spinningwheel/rear":            {width: 1600, height: 900, scene: spinningWheelView("rear")},
-	"handcrankfan/hero":             {width: 1600, height: 900, scene: handCrankFanHero},
-	"handcrankfan/exploded":         {width: 1600, height: 900, scene: handCrankFanExploded},
-	"ballbearing/hero":              {width: 1600, height: 900, scene: bearing608Hero},
-	"ballbearing/605zz":             {width: 1600, height: 900, scene: bearing605Hero},
-	"dovetail/hero":                 {width: 1600, height: 900, scene: dovetailHero},
-	"dovetail/end":                  {width: 1600, height: 900, scene: dovetailViewScene("end")},
-	"dovetail/rear":                 {width: 1600, height: 900, scene: dovetailViewScene("rear")},
-	"dovetail/low":                  {width: 1600, height: 900, scene: dovetailViewScene("low")},
-	"dovetail/exploded":             {width: 1600, height: 900, scene: dovetailViewScene("exploded")},
-	"dovetail/tail-block":           {width: 480, height: 270, scene: dovetailViewScene("tail-block")},
-	"dovetail/socket-block":         {width: 480, height: 270, scene: dovetailViewScene("socket-block")},
-	"pinring/hero":                  {width: 1600, height: 900, scene: pinRingHero},
-	"pinring/top":                   {width: 1600, height: 900, scene: pinRingViewScene("top")},
-	"pinring/side":                  {width: 1600, height: 900, scene: pinRingViewScene("side")},
-	"pinring/low":                   {width: 1600, height: 900, scene: pinRingViewScene("low")},
-	"clamparm/hero":                 {width: 1600, height: 900, scene: clampArmView("hero")},
-	"clamparm/side":                 {width: 1600, height: 900, scene: clampArmView("side")},
-	"clamparm/back":                 {width: 1600, height: 900, scene: clampArmView("back")},
-	"clamparm/top":                  {width: 1600, height: 900, scene: clampArmView("top")},
-	"clamparm/poses":                {width: 1600, height: 900, scene: clampArmView("poses")},
-	"clamparm/exploded":             {width: 1600, height: 900, scene: clampArmView("exploded")},
-	"clamparm/clamp-section":        {width: 1600, height: 900, scene: clampArmView("clamp-section")},
-	"clamparm/joint-section":        {width: 1600, height: 900, scene: clampArmView("joint-section")},
-	"clamparm/interface-section":    {width: 1600, height: 900, scene: clampArmView("interface-section")},
-	"clamparm/interface":            {width: 1600, height: 900, scene: clampArmView("interface")},
-	"clamparm/part-frame":           {width: 480, height: 270, scene: clampArmPartByShot("frame")},
-	"clamparm/part-pad":             {width: 480, height: 270, scene: clampArmPartByShot("pad")},
-	"clamparm/part-swivel":          {width: 480, height: 270, scene: clampArmPartByShot("swivel")},
-	"clamparm/part-link":            {width: 480, height: 270, scene: clampArmPartByShot("link")},
-	"clamparm/part-head":            {width: 480, height: 270, scene: clampArmPartByShot("head")},
-	"clamparm/part-adapter":         {width: 480, height: 270, scene: clampArmPartByShot("adapter")},
-	"clamparm/part-knob":            {width: 480, height: 270, scene: clampArmPartByShot("knob")},
-	"clamparm/part-screw-knob":      {width: 480, height: 270, scene: clampArmPartByShot("screw-knob")},
-	"clamparm/part-bolt-25":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-25")},
-	"clamparm/part-bolt-35":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-35")},
-	"clamparm/part-bolt-40":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-40")},
-	"clamparm/part-bolt-70":         {width: 480, height: 270, scene: clampArmPartByShot("bolt-70")},
-	"clamparm/part-nut":             {width: 480, height: 270, scene: clampArmPartByShot("nut")},
-	"crankhandle/hero":              {width: 1600, height: 900, scene: crankHandleHero},
-	"crankhandle/back":              {width: 1600, height: 900, scene: crankHandleViewScene("back")},
-	"crankhandle/side":              {width: 1600, height: 900, scene: crankHandleViewScene("side")},
-	"crankhandle/sizes":             {width: 1600, height: 900, scene: crankHandleViewScene("sizes")},
-	"crankhandle/cutaway":           {width: 1600, height: 900, scene: crankHandleViewScene("cutaway")},
-	"crankhandle/exploded":          {width: 1600, height: 900, scene: crankHandleViewScene("exploded")},
-	"crankhandle/split":             {width: 1600, height: 900, scene: crankHandleViewScene("split")},
-	"crankhandle/print":             {width: 1600, height: 900, scene: crankHandleViewScene("print")},
-	"crankhandle/clamp":             {width: 1600, height: 900, scene: crankHandleViewScene("clamp")},
-	"crankhandle/clamp-nut":         {width: 1600, height: 900, scene: crankHandleViewScene("clamp-nut")},
-	"crankhandle/clamp-section":     {width: 1600, height: 900, scene: crankHandleViewScene("clamp-section")},
-	"crankhandle/cross-section":     {width: 1600, height: 900, scene: crankHandleViewScene("cross-section")},
-	"turbinefan/hero":               {width: 1600, height: 900, scene: turbineFanHero},
-	"turbinefan/front":              {width: 1600, height: 900, scene: turbineFanViewScene("front")},
-	"turbinefan/back":               {width: 1600, height: 900, scene: turbineFanViewScene("back")},
-	"turbinefan/side":               {width: 1600, height: 900, scene: turbineFanViewScene("side")},
-	"turbinefan/setscrew":           {width: 1600, height: 900, scene: turbineFanViewScene("setscrew")},
-	"turbinefan/joint":              {width: 1600, height: 900, scene: turbineFanViewScene("joint")},
-	"turbinefan/exploded":           {width: 1600, height: 900, scene: turbineFanViewScene("exploded")},
-	"turbinefan/exploded-back":      {width: 1600, height: 900, scene: turbineFanViewScene("exploded-back")},
-	"turbinefan/sizes":              {width: 1600, height: 900, scene: turbineFanViewScene("sizes")},
-	"turbinefan/clutch":             {width: 1600, height: 900, scene: turbineClutchViewScene("clutch")},
-	"turbinefan/clutch-back":        {width: 1600, height: 900, scene: turbineClutchViewScene("clutch-back")},
-	"turbinefan/clutch-cutaway":     {width: 1600, height: 900, scene: turbineClutchViewScene("clutch-cutaway")},
-	"turbinefan/clutch-exploded":    {width: 1600, height: 900, scene: turbineClutchViewScene("clutch-exploded")},
-	"onewayclutch/hero":             {width: 1600, height: 900, scene: oneWayClutchHero},
-	"onewayclutch/front":            {width: 1600, height: 900, scene: oneWayClutchView("front")},
-	"onewayclutch/back":             {width: 1600, height: 900, scene: oneWayClutchView("back")},
-	"onewayclutch/side":             {width: 1600, height: 900, scene: oneWayClutchView("side")},
-	"onewayclutch/section":          {width: 1600, height: 900, scene: oneWayClutchView("section")},
-	"onewayclutch/cutaway":          {width: 1600, height: 900, scene: oneWayClutchView("cutaway")},
-	"onewayclutch/exploded":         {width: 1600, height: 900, scene: oneWayClutchView("exploded")},
-	"onewayclutch/adapter":          {width: 1600, height: 900, scene: oneWayClutchAdapterView("adapter")},
-	"onewayclutch/adapter-exploded": {width: 1600, height: 900, scene: oneWayClutchAdapterView("adapter-exploded")},
-	"onewayclutch/directions":       {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchDirectionParams)},
-	"onewayclutch/sizes":            {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchSizeParams)},
-	"spiralspring/hero":             {width: 1600, height: 900, scene: spiralSpringHero},
-	"spiralspring/top":              {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
-	"spiralspring/low":              {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
-	"spiralspring/root":             {width: 1600, height: 900, scene: spiralSpringViewScene("root")},
-	"spiralspring/sizes":            {width: 1600, height: 900, scene: spiralSpringViewScene("sizes")},
-	"screwgear/hero":                {width: 1600, height: 900, scene: screwGearView("hero")},
-	"screwgear/top":                 {width: 1600, height: 900, scene: screwGearView("top")},
-	"screwgear/low":                 {width: 1600, height: 900, scene: screwGearView("low")},
-	"screwgear/cutaway":             {width: 1600, height: 900, scene: screwGearView("cutaway")},
-	"screwgear/exploded":            {width: 1600, height: 900, scene: screwGearView("exploded")},
-	"spurgear/hero":                 {width: 1600, height: 900, scene: spurGearHero},
-	"spurgear/top":                  {width: 1600, height: 900, scene: spurGearTop},
-	"spurgear/low":                  {width: 1600, height: 900, scene: spurGearLow},
-	"bevelgear/hero":                {width: 1600, height: 900, scene: bevelGearHero},
-	"bevelgear/top":                 {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearTop},
-	"bevelgear/low":                 {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearLow},
-	"bevelgear/high":                {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearHigh},
-	"bevelgear/straight-top":        {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightTop},
-	"bevelgear/straight-low":        {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightLow},
-	"bevelgear/straight-high":       {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearStraightHigh},
-	"bevelgear/exploded-spiral":     {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearExplodedSpiral},
-	"bevelgear/exploded-straight":   {width: bevelViewWidth, height: bevelViewHeight, scene: bevelGearExplodedStraight},
-	"cycloidal/hero":                {width: 1600, height: 900, scene: cycloidalHero},
-	"cycloidal/exploded":            {width: 1600, height: 900, scene: cycloidalExploded},
-	"planetarygearbox/hero":         {width: 1600, height: 900, scene: planetaryGearboxHero},
-	"helicalgear/hero":              {width: 1600, height: 900, scene: helicalGearHero},
-	"helicalgear/top":               {width: 1600, height: 900, scene: helicalGearTop},
-	"helicalgear/low":               {width: 1600, height: 900, scene: helicalGearLow},
-	"herringbonegear/hero":          {width: 1600, height: 900, scene: herringboneGearHero},
-	"herringbonegear/top":           {width: 1600, height: 900, scene: herringboneGearTop},
-	"herringbonegear/low":           {width: 1600, height: 900, scene: herringboneGearLow},
-	"plaquestand/hero":              {width: 1600, height: 900, scene: plaqueStandHero},
-	"plaquestand/frame":             {width: 1600, height: 900, scene: plaqueStandViewScene("frame")},
-	"plaquestand/joint":             {width: 1600, height: 900, scene: plaqueStandViewScene("joint")},
-	"plaquestand/side":              {width: 1600, height: 900, scene: plaqueStandViewScene("side")},
-	"plaquestand/back":              {width: 1600, height: 900, scene: plaqueStandViewScene("back")},
-	"plaquestand/exploded":          {width: 1600, height: 900, scene: plaqueStandViewScene("exploded")},
-	"plaquestand/print":             {width: 1600, height: 900, scene: plaqueStandViewScene("print")},
-	"plaquestand/sizes":             {width: 1600, height: 900, scene: plaqueStandViewScene("sizes")},
-	"plaquestand/part-bracket":      {width: 1600, height: 900, scene: plaqueStandViewScene("part-bracket")},
-	"plaquestand/part-rail":         {width: 1600, height: 900, scene: plaqueStandViewScene("part-rail")},
-	"plaquestand/part-bolt":         {width: 1600, height: 900, scene: plaqueStandViewScene("part-bolt")},
-	"plaquestand/part-nut":          {width: 1600, height: 900, scene: plaqueStandViewScene("part-nut")},
-	"plaquestand/part-plaque":       {width: 1600, height: 900, scene: plaqueStandViewScene("part-plaque")},
-}
-
 func main() {
-	name := flag.String("model", "spurgear", "model directory name")
-	shot := flag.String("shot", "hero", "image preset")
-	output := flag.String("out", "", "PNG output path (required)")
-	width := flag.Int("width", 0, "override preset width in pixels")
-	height := flag.Int("height", 0, "override preset height in pixels")
-	frames := flag.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
-	kit := flag.String("kit", "", "planetary gearbox bearing kit; empty selects the default")
-	flag.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore cached gallery contact-sheet tiles")
-	flag.Parse()
-	if err := checkKitFlag(*name, *kit); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	planetaryKit = *kit
-	if *frames > 0 {
-		fanAnimationFrames = *frames
-	}
-	if err := run(context.Background(), *name, *shot, *output, *width, *height); err != nil {
+	if err := runCLI(context.Background(), os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, model, shot, output string, width, height int) error {
-	if model == "spinningwheel-preview" {
-		return renderSpinningWheelPreview(ctx, shot, output, width, height)
+// runCLI parses args and renders. -all and -list work on the registry; otherwise one shot of one model is rendered.
+func runCLI(ctx context.Context, args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("render", flag.ContinueOnError)
+	name := flags.String("model", "spurgear", "model directory name")
+	shot := flags.String("shot", "hero", "image preset")
+	output := flags.String("out", "", "PNG output path (required)")
+	width := flags.Int("width", 0, "override preset width in pixels")
+	height := flags.Int("height", 0, "override preset height in pixels")
+	frames := flags.Int("frames", 0, "frames in the hand-crank fan animation, 0 for the preset")
+	kit := flags.String("kit", "", "planetary gearbox bearing kit; empty selects the default")
+	all := flags.Bool("all", false, "regenerate every committed image, or those of an explicit -model")
+	list := flags.Bool("list", false, "print one line per committed image job")
+	root := flags.String("root", "", "output root for -all; default is the nearest ancestor holding go.mod")
+	flags.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore cached gallery contact-sheet tiles")
+	if err := flags.Parse(args); err != nil {
+		return err
 	}
-	if shot == "readme" {
-		if width != 0 || height != 0 {
-			return fmt.Errorf("readme output uses fixed image sizes")
-		}
-		return renderReadme(ctx, model, output)
+	set := map[string]bool{}
+	flags.Visit(func(f *flag.Flag) { set[f.Name] = true })
+	if *all || *list {
+		return runBatch(ctx, flags, set, *all, *list, *name, *root, stdout)
 	}
-	if model == "spinningwheel" {
-		switch shot {
-		case "front-back", "layout", "flyer", "brake", "whorl":
-			return runSpinningWheelSheet(ctx, shot, output, width, height)
-		case "animation":
-			return runSpinningWheelAnimation(ctx, output, width, height)
-		}
+	if set["root"] {
+		return errors.New("-root applies only with -all")
 	}
-	if model == "handcrankfan" && shot == "animation" {
-		if width == 0 {
-			width = 1000
-		}
-		if height == 0 {
-			height = 560
-		}
-		return renderHandCrankFanAnimation(ctx, output, width, height, fanAnimationFrames)
-	}
-	if model == "planetarygearbox" && shot == "motion" {
-		if width == 0 {
-			width = planetaryMotionWidth
-		}
-		if height == 0 {
-			height = planetaryMotionHeight
-		}
-		return renderPlanetaryMotion(ctx, output, width, height, planetaryMotionFrames)
-	}
-	if model == "escapement" && shot == "motion" {
-		if width == 0 {
-			width = escapementMotionWidth
-		}
-		if height == 0 {
-			height = escapementMotionHeight
-		}
-		return renderEscapementMotion(ctx, output, width, height, escapementMotionFrames)
-	}
-	if model == "swisslever" && shot == "motion" {
-		if width == 0 {
-			width = swissMotionWidth
-		}
-		if height == 0 {
-			height = swissMotionHeight
-		}
-		return renderSwissMotion(ctx, output, width, height, swissMotionFrames)
-	}
-	if model == "gallery" && (shot == "contact-sheet" || shot == "hero") {
-		if width == 0 {
-			width = galleryWidth
-		}
-		if height == 0 {
-			height = width * galleryHeight / galleryWidth
-		}
-		if width <= 0 || height <= 0 || width*galleryHeight != height*galleryWidth {
-			return fmt.Errorf("gallery image must have positive 16:9 dimensions, got %d × %d", width, height)
-		}
-		if shot == "contact-sheet" {
-			return renderGallery(ctx, output, width, height)
-		}
-	}
-	selected, ok := presets[model+"/"+shot]
+	m, ok := lookup(*name)
 	if !ok {
-		return fmt.Errorf("unknown image preset %q for model %q", shot, model)
+		if *shot == "readme" {
+			return fmt.Errorf("unknown model %q", *name)
+		}
+		return fmt.Errorf("unknown image preset %q for model %q", *shot, *name)
 	}
-	if output == "" {
-		return fmt.Errorf("-out is required")
-	}
-	if width < 0 || height < 0 {
-		return fmt.Errorf("image dimensions must be positive")
-	}
-	if width == 0 {
-		width = selected.width
-	}
-	if height == 0 {
-		height = selected.height
-	}
-	scene, err := selected.scene(ctx)
-	if err != nil {
-		return fmt.Errorf("build %s/%s scene: %w", model, shot, err)
-	}
-	if model == "gallery" && shot == "hero" {
-		return renderGalleryHero(ctx, output, scene, width, height)
-	}
-	return renderPNG(ctx, output, scene, width, height)
+	return renderkit.Run(ctx, m, *shot, renderkit.Options{
+		Output: *output, Width: *width, Height: *height, Frames: *frames, Kit: *kit,
+	})
 }
 
-// renderReadme builds a model once and writes its index image and extra views.
-func renderReadme(ctx context.Context, model, outputDir string) error {
-	if outputDir == "" {
-		return fmt.Errorf("-out is required")
+// runBatch handles -all and -list.
+func runBatch(ctx context.Context, flags *flag.FlagSet, set map[string]bool, all, list bool, name, root string,
+	stdout io.Writer) error {
+	if all && list {
+		return errors.New("-all and -list cannot be combined")
 	}
-	if model == "spinningwheel" {
-		return renderSpinningWheelReadme(ctx, outputDir)
-	}
-	if model == "bevelgear" {
-		return renderBevelReadme(ctx, outputDir)
-	}
-	if model == "cycloidal" {
-		return renderCycloidalReadme(ctx, outputDir)
-	}
-	if model == "planetarygearbox" {
-		if planetaryKit != "" {
-			return renderPlanetaryKitReadme(ctx, outputDir)
-		}
-		return renderPlanetaryGearboxReadme(ctx, outputDir)
-	}
-	if model == "screwgear" {
-		return renderScrewGearReadme(ctx, outputDir)
-	}
-	if model == "handcrankfan" {
-		return renderHandCrankFanReadme(ctx, outputDir)
-	}
-	if model == "handcranksiren" {
-		return renderHandCrankSirenReadme(ctx, outputDir)
-	}
-	if model == "escapement" {
-		return renderEscapementReadme(ctx, outputDir)
-	}
-	if model == "swisslever" {
-		return renderSwissReadme(ctx, outputDir)
-	}
-	if model == "fastener" {
-		return renderFastenerReadme(ctx, outputDir)
-	}
-	if model == "dovetail" {
-		return renderDovetailReadme(ctx, outputDir)
-	}
-	if model == "pinring" {
-		return renderPinRingReadme(ctx, outputDir)
-	}
-	if model == "spiralspring" {
-		return renderSpiralSpringReadme(ctx, outputDir)
-	}
-	if model == "clamparm" {
-		return renderClampArmReadme(ctx, outputDir)
-	}
-	if model == "crankhandle" {
-		return renderCrankHandleReadme(ctx, outputDir)
-	}
-	if model == "turbinefan" {
-		return renderTurbineFanReadme(ctx, outputDir)
-	}
-	if model == "plaquestand" {
-		return renderPlaqueStandReadme(ctx, outputDir)
-	}
-	if model == "onewayclutch" {
-		return renderOneWayClutchReadme(ctx, outputDir)
-	}
-	if model == "ballbearing" {
-		return renderBearingReadme(ctx, outputDir)
-	}
-	hero, ok := presets[model+"/hero"]
-	if !ok {
-		return fmt.Errorf("unknown model %q", model)
-	}
-	scene, err := hero.scene(ctx)
-	if err != nil {
-		return fmt.Errorf("build %s/hero scene: %w", model, err)
-	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "index.png"), scene, 480, 270); err != nil {
-		return fmt.Errorf("render %s index image: %w", model, err)
-	}
-	var cameras map[string]solidlens.Camera
-	switch model {
-	case "helicalgear":
-		cameras = helicalCameras
-	case "herringbonegear":
-		cameras = herringboneCameras
-	}
-	for _, shot := range []string{"top", "low", "high"} {
-		camera, ok := cameras[shot]
-		if !ok {
+	allowed := map[string]bool{"all": true, "list": true, "model": true, "root": all, "gallery-fresh": true}
+	for flagName := range set {
+		if allowed[flagName] {
 			continue
 		}
-		scene.Camera = camera
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot+".png"), scene, 1600, 900); err != nil {
-			return fmt.Errorf("render %s/%s image: %w", model, shot, err)
+		if all {
+			return errors.New("-all takes only -model and -root")
+		}
+		return errors.New("-list takes only -model")
+	}
+	models := registry()
+	if set["model"] {
+		m, ok := lookup(name)
+		if !ok {
+			return fmt.Errorf("unknown model %q", name)
+		}
+		models = []renderkit.Model{m}
+	}
+	if list {
+		for _, m := range models {
+			for _, j := range m.Jobs {
+				kit := j.Kit
+				if kit == "" {
+					kit = "-"
+				}
+				if _, err := fmt.Fprintf(stdout, "%s\t%s\t%s\t%s\n", m.Name, j.Shot, kit, path.Join(m.Dir, j.Out)); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	if root == "" {
+		var err error
+		if root, err = moduleRoot(); err != nil {
+			return err
 		}
 	}
-	return nil
+	return renderkit.RenderAll(ctx, root, models, stdout)
 }
 
-func renderPNG(ctx context.Context, output string, scene solidlens.Scene, width, height int) error {
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
-		return fmt.Errorf("create output directory: %w", err)
+func lookup(name string) (renderkit.Model, bool) {
+	for _, m := range registry() {
+		if m.Name == name {
+			return m, true
+		}
 	}
-	file, err := os.CreateTemp(filepath.Dir(output), ".render-*.png")
+	return renderkit.Model{}, false
+}
+
+// moduleRoot returns the nearest ancestor of the working directory that holds go.mod.
+func moduleRoot() (string, error) {
+	dir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("create temporary image: %w", err)
+		return "", err
 	}
-	defer func() { _ = os.Remove(file.Name()) }()
-	defer func() { _ = file.Close() }()
-	if err := solidlens.RenderPNG(ctx, file, scene, solidlens.Settings{Width: width, Height: height}); err != nil {
-		return fmt.Errorf("render PNG: %w", err)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", errors.New("no go.mod above the working directory; pass -root")
+		}
+		dir = parent
 	}
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close rendered PNG: %w", err)
-	}
-	if err := os.Chmod(file.Name(), 0o644); err != nil {
-		return fmt.Errorf("set rendered PNG permissions: %w", err)
-	}
-	if err := os.Rename(file.Name(), output); err != nil {
-		return fmt.Errorf("save rendered PNG: %w", err)
-	}
-	return nil
 }

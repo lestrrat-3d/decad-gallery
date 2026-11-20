@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -33,23 +34,12 @@ var planetaryEdges = solidlens.Edges{
 	Width:   1.5,
 }
 
-// planetaryKit is the bearing kit the images show. The -kit flag sets it; empty selects the default.
-var planetaryKit string
-
-// checkKitFlag returns an error when kit is set for a model other than the planetary gearbox.
-func checkKitFlag(model, kit string) error {
-	if kit != "" && model != "planetarygearbox" {
-		return errors.New("-kit applies only to -model planetarygearbox")
-	}
-	return nil
-}
-
-// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count, in the -kit kit.
+// buildPlanetaryGearbox builds the gearbox every image shows with the given stage count, in the -kit kit (read from the context options).
 func buildPlanetaryGearbox(ctx context.Context, stages int) (planetarygearbox.Gearbox, planetarygearbox.Params, error) {
 	params := planetarygearbox.DefaultParams()
-	if planetaryKit != "" {
+	if kit := renderkit.OptionsFrom(ctx).Kit; kit != "" {
 		var err error
-		if params, err = planetarygearbox.DefaultParamsFor(planetaryKit); err != nil {
+		if params, err = planetarygearbox.DefaultParamsFor(kit); err != nil {
 			return planetarygearbox.Gearbox{}, params, err
 		}
 	}
@@ -174,9 +164,9 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, p
 	return bevelScene(fitCamera(camera, models, float64(width)/float64(height), bevelViewMargin), models), nil
 }
 
-func init() {
-	presets["planetarygearbox/exploded"] = preset{width: planetaryExplodedWidth, height: planetaryExplodedHeight,
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
+func addPlanetaryExplodedPreset(presets map[string]renderkit.Preset) {
+	presets["exploded"] = renderkit.Preset{Width: planetaryExplodedWidth, Height: planetaryExplodedHeight,
+		Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			box, params, err := buildPlanetaryGearbox(ctx, 2)
 			if err != nil {
 				return solidlens.Scene{}, err
@@ -287,10 +277,10 @@ func planetaryAssembledScene(ctx context.Context, box planetarygearbox.Gearbox, 
 	return bevelScene(fitCamera(view.camera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
-func init() {
+func addPlanetaryViewPresets(presets map[string]renderkit.Preset) {
 	for _, view := range planetaryViews {
-		presets["planetarygearbox/assembled-"+view.shot] = preset{width: 1200, height: 675,
-			scene: func(ctx context.Context) (solidlens.Scene, error) {
+		presets["assembled-"+view.shot] = renderkit.Preset{Width: 1200, Height: 675,
+			Scene: func(ctx context.Context) (solidlens.Scene, error) {
 				box, _, err := buildPlanetaryGearbox(ctx, 2)
 				if err != nil {
 					return solidlens.Scene{}, err
@@ -340,9 +330,9 @@ var planetaryParts = []planetaryPart{
 	{"collar", func(b planetarygearbox.Gearbox) *decad.Body { return b.RearCollar }, planetaryCollarColor, frontView},
 }
 
-func init() {
+func addPlanetaryPartPresets(presets map[string]renderkit.Preset) {
 	for _, part := range planetaryParts {
-		presets["planetarygearbox/part-"+part.shot] = preset{width: 480, height: 270, scene: planetaryPartPreset(part)}
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270, Scene: planetaryPartPreset(part)}
 	}
 }
 
@@ -441,7 +431,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 		name          string
 		width, height int
 	}{{"index.png", 480, 270}, {"hero.png", 1600, 900}} {
-		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render planetary gearbox %s: %w", image.name, err)
 		}
 	}
@@ -451,7 +441,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 		name := filepath.Join(outputDir, "parts", part.shot+".png")
-		if err := renderPNG(ctx, name, scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, scene, 480, 270); err != nil {
 			return fmt.Errorf("render planetary gearbox part %s: %w", part.shot, err)
 		}
 	}
@@ -461,7 +451,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 		name := filepath.Join(outputDir, "assembled-"+view.shot+".png")
-		if err := renderPNG(ctx, name, scene, 1200, 675); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, scene, 1200, 675); err != nil {
 			return fmt.Errorf("render planetary gearbox assembled %s: %w", view.shot, err)
 		}
 	}
@@ -476,7 +466,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	for name, scene := range map[string]solidlens.Scene{
 		"fasteners-section.png": section, "fasteners-exploded.png": fastenerExploded, "ear-section.png": ear,
 	} {
-		if err := renderPNG(ctx, filepath.Join(outputDir, name), scene, 1600, 900); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, name), scene, 1600, 900); err != nil {
 			return fmt.Errorf("render planetary gearbox %s: %w", name, err)
 		}
 	}
@@ -485,7 +475,7 @@ func renderPlanetaryGearboxReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryExplodedWidth,
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryExplodedWidth,
 		planetaryExplodedHeight); err != nil {
 		return fmt.Errorf("render planetary gearbox exploded view: %w", err)
 	}
@@ -525,7 +515,7 @@ func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "hero.png"), hero, 1600, 900); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "hero.png"), hero, 1600, 900); err != nil {
 		return fmt.Errorf("render planetary gearbox kit hero: %w", err)
 	}
 	for _, part := range planetaryKitParts(params) {
@@ -533,7 +523,7 @@ func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
 			return fmt.Errorf("render planetary gearbox kit part %s: %w", part.shot, err)
 		}
 	}
@@ -542,7 +532,7 @@ func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "assembled-"+view.shot+".png"), scene, 1200, 675); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "assembled-"+view.shot+".png"), scene, 1200, 675); err != nil {
 			return fmt.Errorf("render planetary gearbox kit assembled %s: %w", view.shot, err)
 		}
 	}
@@ -551,7 +541,7 @@ func renderPlanetaryKitReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryExplodedWidth,
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "exploded.png"), exploded, planetaryExplodedWidth,
 		planetaryExplodedHeight); err != nil {
 		return fmt.Errorf("render planetary gearbox kit exploded view: %w", err)
 	}

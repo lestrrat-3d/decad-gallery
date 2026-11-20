@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/cycloidal"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -68,14 +69,14 @@ var cycloidalParts = []cycloidalPart{
 	{"output-pin-6", cycloidal.OutputPinName(5)},
 }
 
-func init() {
+func addCycloidalPresets(presets map[string]renderkit.Preset) {
 	for _, view := range cycloidalViews {
-		presets["cycloidal/assembled-"+view.shot] = preset{width: 1200, height: 675,
-			scene: cycloidalAssembledPreset(view)}
+		presets["assembled-"+view.shot] = renderkit.Preset{Width: 1200, Height: 675,
+			Scene: cycloidalAssembledPreset(view)}
 	}
 	for _, part := range cycloidalParts {
-		presets["cycloidal/part-"+part.shot] = preset{width: 480, height: 270,
-			scene: cycloidalPartPreset(part)}
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270,
+			Scene: cycloidalPartPreset(part)}
 	}
 }
 
@@ -244,7 +245,7 @@ func renderCycloidalReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, image.name), scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render cycloidal %s: %w", image.name, err)
 		}
 	}
@@ -254,7 +255,7 @@ func renderCycloidalReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 		name := filepath.Join(outputDir, "assembled-"+view.shot+".png")
-		if err := renderPNG(ctx, name, scene, 1200, 675); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, scene, 1200, 675); err != nil {
 			return fmt.Errorf("render cycloidal assembled %s: %w", view.shot, err)
 		}
 	}
@@ -264,7 +265,7 @@ func renderCycloidalReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 		name := filepath.Join(outputDir, "parts", part.shot+".png")
-		if err := renderPNG(ctx, name, scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, scene, 480, 270); err != nil {
 			return fmt.Errorf("render cycloidal part %s: %w", part.name, err)
 		}
 	}

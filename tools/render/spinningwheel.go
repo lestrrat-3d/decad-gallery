@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
@@ -152,13 +153,13 @@ func renderSpinningWheelReadme(ctx context.Context, out string) error {
 // height size the hero and rear images; sheets use a 2000 by 1100 canvas scaled with them.
 func renderSpinningWheelReadmeStills(ctx context.Context, meshes []wheelMesh, out string, width, height int) error {
 	hero := spinningWheelScene(meshes, "hero")
-	if err := renderPNG(ctx, filepath.Join(out, "hero.png"), hero, width, height); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(out, "hero.png"), hero, width, height); err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(out, "index.png"), hero, 480, 270); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(out, "index.png"), hero, 480, 270); err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(out, "rear.png"), spinningWheelScene(meshes, "rear"), width, height); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(out, "rear.png"), spinningWheelScene(meshes, "rear"), width, height); err != nil {
 		return err
 	}
 	for _, shot := range []string{"front-back", "layout", "flyer", "brake", "whorl"} {

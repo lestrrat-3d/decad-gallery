@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/bevelgear"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -242,7 +243,7 @@ func renderBevelReadme(ctx context.Context, outputDir string) error {
 		{"parts/straight-pinion.png", bevelPartScene(pairs.straight.pinion, straightColor), bevelPartWidth, bevelPartHeight},
 	}
 	for _, image := range images {
-		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render bevelgear %s: %w", image.name, err)
 		}
 	}
