@@ -17,7 +17,7 @@ CORNER_PENDING = {
     "bevelgear", "handcrankfan", "screwgear",
 }
 # Models that build only purchased or standard parts kept at nominal size.
-CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut", "m5bolt", "m5nut"}
+CORNER_NOMINAL = {"ballbearing", "fastener", "m2bolt", "m2nut", "m5bolt", "m5nut"}
 # Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
 # stays in CORNER_PENDING until the test skips nothing.
 CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}

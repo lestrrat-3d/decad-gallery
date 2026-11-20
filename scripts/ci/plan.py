@@ -11,7 +11,7 @@ import tempfile
 
 ROOT = "github.com/lestrrat-3d/decad-gallery"
 MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement handcrankfan handcranksiren "
-             "helicalgear herringbonegear m2bolt m2nut m5bolt m5nut onewayclutch pinring "
+             "fastener helicalgear herringbonegear m2bolt m2nut m5bolt m5nut onewayclutch pinring "
              "planetarygearbox plaquestand screwgear spinningwheel spiralspring spurgear swisslever turbinefan".split())
 INTERNAL = set("hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
