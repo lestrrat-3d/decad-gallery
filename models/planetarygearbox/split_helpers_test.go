@@ -129,9 +129,7 @@ func requireSplitKit(t *testing.T, name string, twoStages bool) {
 
 func requireSplitVariant(t *testing.T, p Params) {
 	t.Helper()
-	box, err := Build(t.Context(), NewDocument(), p)
-	require.NoError(t, err)
-	requireSplit(t, box, p)
+	requireSplit(t, cornerSplitVariant(t, p), p)
 }
 
 // requireSplit checks every printed shaft and pin of box against "Split shafts" in docs/model-pipeline.md. The split

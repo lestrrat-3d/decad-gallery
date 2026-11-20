@@ -371,7 +371,11 @@ class PlanetaryFullTest(unittest.TestCase):
     def test_shared_gearboxes_stay_in_one_process(self):
         groups = (("TestBodyContainers", "TestFastenersSitFlush", "TestFirstPlanetMesh"),
                   ("TestSplitShafts", "TestCorners"), ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
-                  ("TestExplodedTwoStageGearbox", "TestTwoStages"))
+                  ("TestExplodedTwoStageGearbox", "TestTwoStages"),
+                  ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
+                  ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
+                  ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
+                  ("TestCornersTwoStages", "TestSplitTwoStages"))
         tests = [name for group in groups for name in group] + ["TestNewCase"]
         shards = run_tests.planetary_test_shards(tests)
         self.assertCountEqual([name for shard in shards for name in shard], tests)

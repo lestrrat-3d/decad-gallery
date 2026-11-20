@@ -68,12 +68,43 @@ func requireCornerEars(t *testing.T, count int) {
 	t.Helper()
 	p := DefaultParams()
 	p.EarCount = count
-	requireCornerVariant(t, p)
+	// Only the corner check uses this variant. Leave the paired shaft fixture in its slot.
+	requireCorners(t, buildCornerSplitVariant(t, p), p)
+}
+
+// Corners and split shafts inspect the same assembly without changing its bodies.
+// Keep just the most recent unplaced variant so a full package run does not
+// retain every gearbox. Placed variants always get a fresh build.
+var lastCornerSplitVariant struct {
+	mu     sync.Mutex
+	params Params
+	box    Gearbox
+}
+
+func cornerSplitVariant(t *testing.T, p Params) Gearbox {
+	t.Helper()
+	if p.Placement != nil {
+		return buildCornerSplitVariant(t, p)
+	}
+	lastCornerSplitVariant.mu.Lock()
+	defer lastCornerSplitVariant.mu.Unlock()
+	if lastCornerSplitVariant.box.Ring != nil && lastCornerSplitVariant.params == p {
+		return lastCornerSplitVariant.box
+	}
+	lastCornerSplitVariant.box = Gearbox{}
+	lastCornerSplitVariant.box = buildCornerSplitVariant(t, p)
+	lastCornerSplitVariant.params = p
+	return lastCornerSplitVariant.box
+}
+
+func buildCornerSplitVariant(t *testing.T, p Params) Gearbox {
+	t.Helper()
+	box, err := Build(t.Context(), NewDocument(), p)
+	require.NoError(t, err)
+	return box
 }
 
 func requireCornerVariant(t *testing.T, p Params) {
 	t.Helper()
-	box, err := Build(t.Context(), NewDocument(), p)
-	require.NoError(t, err)
-	requireCorners(t, box, p)
+	requireCorners(t, cornerSplitVariant(t, p), p)
 }
