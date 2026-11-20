@@ -7,8 +7,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -43,7 +41,7 @@ func along(box decad.Box, d r3.Vec) (lo, hi float64) {
 }
 
 // headPocketMid is the distance from the head top to the middle of the head pocket.
-const headPocketMid = m2bolt.HeadHeight / 2
+const headPocketMid = m2fastener.HeadPocketDepth / 2
 
 // acrossPlane is the plane at distance t from the head across the shaft, with the corner direction as its U axis.
 func acrossPlane(t *testing.T, f handcrankfan.Fastener, d float64) r3.Frame {
@@ -184,7 +182,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		// The nut floats in its cavity, and the part encloses the cavity on every side but the bolt hole.
 		nutBox := bounds(t, parts[f.Nut])
 		lo, hi := along(nutBox, f.Dir)
-		require.InDelta(t, m2nut.Thickness, hi-lo, 2e-3+nutBox.Bound.Base(), "%s thickness", f.Nut)
+		require.InDelta(t, m2fastener.NutSize.Thickness, hi-lo, 2e-3+nutBox.Bound.Base(), "%s thickness", f.Nut)
 		mid := (f.CavityNear + f.CavityFar) / 2
 		centre := f.Head.Add(f.Dir.Scale(mid))
 		got := r3.Vec{X: (nutBox.Min.X + nutBox.Max.X) / 2, Y: (nutBox.Min.Y + nutBox.Max.Y) / 2, Z: (nutBox.Min.Z + nutBox.Max.Z) / 2}
@@ -209,7 +207,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 			require.True(t, layer.contains(f.Corner.Scale(1.6)), "%s: the %s of the cavity is solid", f.Nut, name)
 			require.False(t, layer.contains(r3.Vec{}), "%s: the %s has the bolt hole", f.Nut, name)
 		}
-		tip := m2bolt.HeadHeight + f.Length
+		tip := m2fastener.BoltSize.HeadHeight + f.Length
 		require.True(t, host(f, nutHost, tip-0.3).contains(f.Corner.Scale(1.6)), "%s: the tip is held by the part", f.Bolt)
 		require.True(t, host(f, nutHost, tip+0.3).contains(f.Corner.Scale(1.6)), "%s: the tip stays inside the part", f.Bolt)
 

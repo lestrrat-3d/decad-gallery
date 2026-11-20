@@ -5,9 +5,8 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/handcranksiren"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -28,7 +27,7 @@ func extent(t *testing.T, body *decad.Body, d r3.Vec) (lo, hi, bound float64) {
 }
 
 // headPocketMid is the distance from the head top to the middle of the head pocket.
-const headPocketMid = m2bolt.HeadHeight / 2
+const headPocketMid = m2fastener.HeadPocketDepth / 2
 
 // acrossPlane is the plane at distance t from the head across the shaft, with the corner direction as its U axis.
 func acrossPlane(t *testing.T, f handcranksiren.Fastener, d float64) r3.Frame {
@@ -111,7 +110,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		for k := range 12 {
 			angle := float64(k) * math.Pi / 6
 			ring := f.Corner.Scale(math.Cos(angle)).Add(f.Dir.Cross(f.Corner).Scale(math.Sin(angle)))
-			require.True(t, pocket.contains(ring.Scale(m2bolt.HeadDiameter/2+0.3+material)),
+			require.True(t, pocket.contains(ring.Scale(m2fastener.HeadPocketRadius+material)),
 				"%s: the part keeps 1 mm round the head pocket at %d degrees", f.Bolt, k*30)
 		}
 
@@ -123,7 +122,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		for i, d := range []r3.Vec{f.Dir, f.Corner, flat} {
 			lo, hi, bound := extent(t, nut, d)
 			if i == 0 {
-				require.InDelta(t, m2nut.Thickness, hi-lo, 2e-3+bound, "%s thickness", f.Nut)
+				require.InDelta(t, m2fastener.NutSize.Thickness, hi-lo, 2e-3+bound, "%s thickness", f.Nut)
 			}
 			off[i] = (lo+hi)/2 - centre.Dot(d)
 			require.Less(t, math.Abs(off[i]), 0.01+bound, "%s is centred in its cavity", f.Nut)
@@ -137,7 +136,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		require.True(t, wall.contains(flat.Scale(2.6)), "%s: the cavity's flat wall is solid", f.Nut)
 		require.False(t, wall.contains(f.Corner.Scale(2.4)), "%s: the cavity has the nut's room", f.Nut)
 		// Round the cavity the part keeps 1 mm beyond its radius (the circle through the nut's corners plus 0.2 mm).
-		cavityRadius := m2nut.AcrossFlats/math.Sqrt(3) + 0.2
+		cavityRadius := m2fastener.NutCavityRadius
 		for k := range 12 {
 			angle := float64(k) * math.Pi / 6
 			ring := f.Corner.Scale(math.Cos(angle)).Add(flat.Scale(math.Sin(angle)))
@@ -153,7 +152,7 @@ func requireFasteners(t *testing.T, doc *decad.Document, p handcranksiren.Params
 			require.True(t, layer.contains(f.Corner.Scale(1.6)), "%s: the %s of the cavity is solid", f.Nut, name)
 			require.False(t, layer.contains(r3.Vec{}), "%s: the %s has the bolt hole", f.Nut, name)
 		}
-		tip := m2bolt.HeadHeight + f.Length
+		tip := m2fastener.BoltSize.HeadHeight + f.Length
 		if open {
 			// The pocket opens to the face at CavityFar: the part ends there, the nut ends below it, and the bolt's tip
 			// ends flush with it, through the whole nut.

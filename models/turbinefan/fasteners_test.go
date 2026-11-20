@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
@@ -26,7 +24,7 @@ func TestTurbineFanSetScrew(t *testing.T) {
 		sz := dm.Size
 		z0 := float64(turbinefan.SetScrewZ)
 		require.Equal(t, dm.SetScrewBolt, site.Length)
-		require.Contains(t, m2bolt.StandardLengths(), site.Length)
+		require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length)
 
 		bb, err := m.SetScrew.Body.Bounds()
 		require.NoError(t, err)
@@ -38,7 +36,7 @@ func TestTurbineFanSetScrew(t *testing.T) {
 		for _, d := range []float64{bb.Min.X, bb.Max.X, bb.Min.Z - z0, bb.Max.Z - z0} {
 			require.Less(t, math.Abs(d), m2fastener.HeadPocketRadius, "head inside its counterbore")
 		}
-		require.LessOrEqual(t, m2bolt.ShankDiameter, dm.ShaftFlatWidth, "the tip lies within the shaft's flat")
+		require.LessOrEqual(t, m2fastener.BoltSize.ShankDiameter, dm.ShaftFlatWidth, "the tip lies within the shaft's flat")
 
 		// Nothing stands out: every vertex of the bolt is inside the round face.
 		out := 0.0
@@ -91,7 +89,7 @@ func TestTurbineFanSetScrew(t *testing.T) {
 			}
 		}
 		require.InDelta(t, flatsHalf, least, abound, "the slot's straight sides")
-		require.Less(t, least, m2nut.AcrossCorners()/2, "the nut's corners cannot pass the sides")
+		require.Less(t, least, m2fastener.NutSize.AcrossCorners()/2, "the nut's corners cannot pass the sides")
 
 		frames := map[string]r3.Frame{"x 0": atX(t, 0), "x -1": atX(t, -1), "x 1": atX(t, 1), "z": atZ(t, z0),
 			"z-1": atZ(t, z0-1), "z+1": atZ(t, z0+1), "y flat": atY(t, -(dm.BoreFlat + 0.8)), "y slot": atY(t, slotY),
@@ -122,7 +120,7 @@ func TestTurbineFanBladeBolts(t *testing.T) {
 				line := r3.Vec{X: u.X * sz.BladeBoltAt, Y: u.Y * sz.BladeBoltAt}
 				bolt, nut := m.BladeBolts[k-1].Body, m.BladeNuts[k-1].Body
 				require.Equal(t, sz.BladeBoltLength, site.Length)
-				require.Contains(t, m2bolt.StandardLengths(), site.Length)
+				require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length)
 				bb, err := bolt.Bounds()
 				require.NoError(t, err)
 				tol := bb.Bound.Base() + 2e-3
@@ -220,7 +218,7 @@ func TestTurbineFanAdapterCuts(t *testing.T) {
 			u := site.Corner
 			v := r3.Vec{X: -u.Y, Y: u.X}
 			line := r3.Vec{X: site.Head.X, Y: site.Head.Y}
-			require.Contains(t, m2bolt.StandardLengths(), site.Length)
+			require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length)
 			require.InDelta(t, onewayclutch.FaceCircle, line.Len(), 1e-9)
 			// The slot spans z 1.5 to 3.5: FaceNutDepth under the back face's seam, below the set screw's line (z 4) and
 			// the blade slots' faces (in other directions).

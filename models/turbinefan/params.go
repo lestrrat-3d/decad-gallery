@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 )
@@ -314,7 +313,7 @@ func (p Params) Derive() (Dimensions, error) {
 		return Dimensions{}, fmt.Errorf("turbinefan: ShaftDiameter leaves less than a %.1f mm wall to the blade sockets",
 			PressWall)
 	}
-	if dm.ShaftFlatWidth < m2bolt.ShankDiameter-1e-9 {
+	if dm.ShaftFlatWidth < m2fastener.BoltSize.ShankDiameter-1e-9 {
 		return Dimensions{}, errors.New("turbinefan: FlatDepth must leave the shaft's flat at least 2 mm wide for the set screw's tip")
 	}
 	if dm.BoreFlatWidth < 2*(m2fastener.HoleRadius+0.1)-1e-9 {
@@ -366,8 +365,8 @@ func (p Params) Derive() (Dimensions, error) {
 func (dm *Dimensions) deriveSetScrew(p Params) error {
 	dm.SetScrewTip = p.ShaftDiameter/2 - p.FlatDepth - p.BoreClearance
 	// The head must stay inside the round face: rho_h <= sqrt(HubRadius^2 - (HeadDiameter/2)^2).
-	reach := math.Sqrt(dm.Size.HubRadius*dm.Size.HubRadius - m2bolt.HeadDiameter*m2bolt.HeadDiameter/4)
-	for _, l := range m2bolt.StandardLengths() {
+	reach := math.Sqrt(dm.Size.HubRadius*dm.Size.HubRadius - m2fastener.BoltSize.SocketCap.HeadDiameter*m2fastener.BoltSize.SocketCap.HeadDiameter/4)
+	for _, l := range m2fastener.BoltSize.StandardLengths {
 		if dm.SetScrewTip+m2fastener.HeadPocketDepth+l <= reach {
 			dm.SetScrewBolt = l
 		}

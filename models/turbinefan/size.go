@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 )
 
 // Rotor size limits and the scale constants, in mm.
@@ -84,7 +83,7 @@ func SizeFor(rotorDiameter float64) (Size, error) {
 	sz.BladeStudEnd = 16 * j
 	sz.BladeSocketRadius = sz.BladeStudRadius + RegularFit
 	sz.BladeBoltAt = 9.5 * j
-	for _, l := range m2bolt.StandardLengths() {
+	for _, l := range m2fastener.BoltSize.StandardLengths {
 		if sz.HubLength-m2fastener.HeadPocketDepth-l >= BladeBoltTipFloor-1e-9 {
 			sz.BladeBoltLength = l
 		}

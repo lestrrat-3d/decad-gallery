@@ -14,8 +14,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/splitcheck"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -493,9 +491,9 @@ func requireCrossPocket(t *testing.T, p crankhandle.Params, m *crankhandle.Model
 		require.InDelta(t, m2fastener.NutCavityRadius, across0, bound, "nut pocket %d: corners across the pin", i+1)
 		require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, along0, bound, "nut pocket %d: flats along the pin", i+1)
 		require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, near, bound, "nut pocket %d: its flats", i+1)
-		require.Less(t, near, m2nut.AcrossCorners()/2, "nut pocket %d: the nut's corners cannot pass its flats", i+1)
+		require.Less(t, near, m2fastener.NutSize.AcrossCorners()/2, "nut pocket %d: the nut's corners cannot pass its flats", i+1)
 		require.LessOrEqual(t, far, m2fastener.NutCavityRadius+bound, "nut pocket %d: its corners", i+1)
-		require.Greater(t, far, m2nut.AcrossCorners()/2+0.05, "nut pocket %d: room for the nut's corners", i+1)
+		require.Greater(t, far, m2fastener.NutSize.AcrossCorners()/2+0.05, "nut pocket %d: room for the nut's corners", i+1)
 		flatY := seam - crankhandle.CrossFlat
 		require.False(t, inSection(along, zy, z+1.8, flatY+0.1), "nut pocket %d open to the -Y flat", i+1)
 		require.True(t, inSection(along, zy, z+m2fastener.NutCavityRadius+0.5, flatY+0.1),
@@ -885,7 +883,7 @@ func requireClampBolt(t *testing.T, m *crankhandle.Model, i int) {
 	require.NoError(t, err)
 	tol := bb.Bound.Base() + 2e-3
 	require.Equal(t, crankhandle.ClampBolt, site.Length)
-	require.Contains(t, m2bolt.StandardLengths(), site.Length)
+	require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length)
 	require.InDelta(t, crankhandle.ArmRadius, bb.Max.X, tol, "clamp bolt: head top flush with the +X side face")
 	require.InDelta(t, crankhandle.ArmRadius-site.Tip(), bb.Min.X, tol, "clamp bolt: tip")
 	require.Greater(t, bb.Min.X, -crankhandle.ArmRadius+m2fastener.Stock, "clamp bolt: tip inside the -X side face")
@@ -982,9 +980,9 @@ func requireClampPocket(t *testing.T, m *crankhandle.Model, i int) {
 	require.InDelta(t, m2fastener.NutCavityRadius, up, bound, "nut pocket: a corner up and one down")
 	require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, side, bound, "nut pocket: flats on the sides")
 	require.InDelta(t, m2fastener.NutCavityRadius*math.Sqrt(3)/2, near, bound, "nut pocket: its flats")
-	require.Less(t, near, m2nut.AcrossCorners()/2, "nut pocket: the nut's corners cannot pass its flats")
+	require.Less(t, near, m2fastener.NutSize.AcrossCorners()/2, "nut pocket: the nut's corners cannot pass its flats")
 	require.LessOrEqual(t, far, m2fastener.NutCavityRadius+bound, "nut pocket: its corners")
-	require.Greater(t, far, m2nut.AcrossCorners()/2+0.05, "nut pocket: room for the nut's corners")
+	require.Greater(t, far, m2fastener.NutSize.AcrossCorners()/2+0.05, "nut pocket: room for the nut's corners")
 	along := section(t, m.Arm, atZ(t, mid))
 	xy := func(v r3.Vec) (float64, float64) { return v.X, v.Y }
 	require.False(t, inSection(along, xy, -crankhandle.ArmRadius+0.3, dm.ClampY+1.8), "nut pocket open to the -X side face")

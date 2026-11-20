@@ -11,7 +11,7 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// Fastener sites in mm. Every bolt is an m2bolt body and every nut an m2nut body, sized and cut by internal/m2fastener. A
+// Fastener sites in mm. Every bolt is an M2 bolt body from models/fastener and every nut an M2 nut body from models/fastener, sized and cut by internal/m2fastener. A
 // head sinks into a pocket of its part and ends flush with the part's face. A nut sits in a cavity its part encloses
 // apart from the bolt hole, so the part retains it; it drops in during a print pause. The crank arm's clamp nut and the
 // crank pin's two cross-bolt nuts sit in hexagonal pockets open to a face instead, held there by their bolts
@@ -121,7 +121,7 @@ func (b *builder) hardware(s fastenerSite) {
 	b.part(s.nut, NutsContainerName, s.motion, func() *decad.Body { return b.placeNut(s) })
 }
 
-// placeBolt builds an m2bolt body whose head's top face is at s.Head and whose shank runs along s.Dir.
+// placeBolt builds an M2 bolt body from models/fastener whose head's top face is at s.Head and whose shank runs along s.Dir.
 func (b *builder) placeBolt(s fastenerSite) *decad.Body {
 	if b.err != nil {
 		return nil
@@ -135,7 +135,7 @@ func (b *builder) placeBolt(s fastenerSite) *decad.Body {
 	return m.Body
 }
 
-// placeNut builds an m2nut body in the site's cavity.
+// placeNut builds an M2 nut body from models/fastener in the site's cavity.
 func (b *builder) placeNut(s fastenerSite) *decad.Body {
 	if b.err != nil {
 		return nil

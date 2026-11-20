@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -69,8 +68,8 @@ func insideAt(t *testing.T, body *decad.Body, z float64) func(x, y float64) bool
 // the head.
 func earBoltLength(ringLength float64) float64 {
 	best := 0.0
-	for _, l := range m2bolt.StandardLengths() {
-		if l <= ringLength-m2bolt.HeadHeight {
+	for _, l := range m2fastener.BoltSize.StandardLengths {
+		if l <= ringLength-m2fastener.BoltSize.HeadHeight {
 			best = math.Max(best, l)
 		}
 	}
@@ -80,14 +79,14 @@ func earBoltLength(ringLength float64) float64 {
 // earNutFloor mirrors the height of an ear nut cavity's floor above the ring's front face: 1.8 mm, or where the nut's
 // lower face meets a bolt tip that ends further in.
 func earNutFloor(ringLength float64) float64 {
-	return math.Max(1.8, ringLength-m2bolt.HeadHeight-earBoltLength(ringLength)-0.2)
+	return math.Max(1.8, ringLength-m2fastener.BoltSize.HeadHeight-earBoltLength(ringLength)-0.2)
 }
 
 // Ear pocket radii: the head pocket is the head plus 0.3 mm radially, the nut cavity the circle through the nut's
 // corners plus 0.2 mm.
 var (
-	earHeadPocket = m2bolt.HeadDiameter/2 + 0.3
-	earNutCavity  = m2nut.AcrossCorners()/2 + 0.2
+	earHeadPocket = m2fastener.HeadPocketRadius
+	earNutCavity  = m2fastener.NutSize.AcrossCorners()/2 + 0.2
 )
 
 // requireEars checks the mounting ears of ring: each stands beyond the outer wall, runs the whole ring length, has
