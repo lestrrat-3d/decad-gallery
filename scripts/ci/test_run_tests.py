@@ -622,7 +622,41 @@ class BroadModelSelectionTest(unittest.TestCase):
         self.assertEqual(assigned, set(run_tests.MODEL_PR_TESTS))
 
 
+class RendererPackageTest(unittest.TestCase):
+    prefix = "github.com/lestrrat-3d/decad-gallery/"
+
+    def test_pattern_matches_the_five_renderer_shapes_only(self):
+        for name in ("tools/render", "tools/render/fonts", "internal/renderkit", "models/ballbearing/render",
+                     "features/dovetail/render"):
+            self.assertTrue(run_tests.RENDERER_PACKAGE.match(self.prefix + name), name)
+        for name in ("models/spurgear", "models/spurgear/render/extra", "internal/renderkitx", "tools/other",
+                     "features/dovetail"):
+            self.assertFalse(run_tests.RENDERER_PACKAGE.match(self.prefix + name), name)
+
+    def test_renderer_packages_lists_sorted_matches(self):
+        listing = "\n".join(self.prefix + name for name in ("tools/render", "models/spurgear", "internal/renderkit"))
+        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=listing)):
+            self.assertEqual(run_tests.renderer_packages(),
+                             [self.prefix + "internal/renderkit", self.prefix + "tools/render"])
+
+
 class FullModelInventoryTest(unittest.TestCase):
+    def test_full_inventory_excludes_renderer_packages(self):
+        prefix = "github.com/lestrrat-3d/decad-gallery/"
+        bevel, render = prefix + "models/bevelgear", prefix + "tools/render"
+
+        def listing(command, **kwargs):
+            if command[1] == "list":
+                return mock.Mock(stdout=bevel + "\n" + render)
+            return mock.Mock(stdout="TestOne\n")
+
+        with mock.patch.object(run_tests, "BEVEL_TESTS", {"full": {"a": ["TestOne"]}}), \
+             mock.patch.object(run_tests.subprocess, "run", side_effect=listing), \
+             mock.patch.object(run_tests, "go_test") as go_test:
+            run_tests.run_full_models()
+        self.assertEqual(go_test.call_count, 1)
+        self.assertNotIn(render, go_test.call_args.args[0])
+
     def test_full_inventory_runs_remainder_and_requires_gated_cases(self):
         prefix = "github.com/lestrrat-3d/decad-gallery/models/"
         bevel, fan, planetary = (prefix + name for name in ("bevelgear", "handcrankfan", "planetarygearbox"))

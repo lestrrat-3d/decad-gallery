@@ -38,9 +38,12 @@ class FullPartitionTests(unittest.TestCase):
     def test_dispatch_sets_full_variants_and_passes_remainder(self):
         inventory = self.inventory()
 
+        renderer = partition.ROOT + "/tools/render"
+
         def command(args, **_kwargs):
-            output = "\n".join(inventory) if args[1] == "list" else "\n".join(inventory[args[-1]])
-            return mock.Mock(stdout=output)
+            if args[1] == "list":
+                return mock.Mock(stdout="\n".join([*inventory, renderer]))
+            return mock.Mock(stdout="\n".join(inventory[args[-1]]))
 
         with mock.patch.object(partition.subprocess, "run", side_effect=command), \
                 mock.patch.object(partition.run_tests, "go_test") as go_test:
@@ -50,6 +53,7 @@ class FullPartitionTests(unittest.TestCase):
         self.assertEqual(ordinary.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(ordinary.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
         self.assertNotIn(partition.ROOT + "/models/planetarygearbox", ordinary.args[0])
+        self.assertNotIn(renderer, ordinary.args[0])
         self.assertEqual(bevel.args[1], ["TestNewBevel"])
 
 

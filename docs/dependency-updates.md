@@ -1,11 +1,11 @@
 # Decad dependency updates
 
-Run `python3 scripts/update_decad.py` from a checkout to update both Go modules.
-The command asks Go to resolve Decad's `main` branch directly from its VCS source once, then uses that version for the root
-and `tools/render` modules. Go updates and tidies both `go.mod`/`go.sum` pairs.
+Run `python3 scripts/update_decad.py` from a checkout to update the Go module.
+The command asks Go to resolve Decad's `main` branch directly from its VCS source once, then uses that version for the
+root module, which includes `tools/render`. Go updates and tidies `go.mod` and `go.sum`.
 Only the revision lookup uses `GOPROXY=direct`; immutable module downloads retain the caller's proxy configuration.
-The command verifies both declared and selected versions, rejects local Decad replacements, and checks both checksums.
-If a Go command or verification fails, it restores all four manifests to their previous contents.
+The command verifies the declared and selected versions, rejects local Decad replacements, and checks the checksums.
+If a Go command or verification fails, it restores `go.mod` and `go.sum` to their previous contents.
 Use `--revision <published-commit-or-version>` to reproduce a specific dependency update.
 
 This command also bootstraps an update on an existing feature branch before the automation is on `main`.

@@ -61,7 +61,7 @@ def git(*args):
 
 
 def metadata(revision):
-    """Read package and test imports from both modules at one revision."""
+    """Read package and test imports from every module that exists at one revision."""
     archive = subprocess.check_output(["git", "archive", revision], stderr=subprocess.PIPE)
     Path(".tmp").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=".tmp") as tmp:
@@ -71,6 +71,8 @@ def metadata(revision):
         packages = {}
         env = dict(os.environ, GOFLAGS="-mod=readonly", GOWORK="off")
         for module in (".", "tools/render"):
+            if not (root / module / "go.mod").is_file():
+                continue
             data = subprocess.check_output(["go", "list", "-json", "./..."], cwd=root / module,
                                            env=env, stderr=subprocess.PIPE).decode()
             decoder = json.JSONDecoder()
@@ -196,7 +198,7 @@ def plan(event, base, tested):
         paths = subprocess.check_output(["git", "diff", "--no-renames", "--name-only", "-z", base, tested])
         changed = [os.fsdecode(path) for path in paths.split(b"\0") if path]
         result.update(tested=tested, base=base, changed_paths=changed)
-        dependency_files = {"go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"}
+        dependency_files = {"go.mod", "go.sum"}
         if dependency_files.intersection(changed):
             reason = "module dependency files changed; full coverage required"
             result.update(suites=["broad", "full"], reasons={"broad": [reason], "full": [reason]}, reason=reason)

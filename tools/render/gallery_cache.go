@@ -114,7 +114,7 @@ func galleryFingerprint(packages map[string]galleryPackage, renderer galleryPack
 			_, _ = fmt.Fprintln(base, setting.Key, setting.Value)
 		}
 	}
-	for _, file := range []string{"go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"} {
+	for _, file := range []string{"go.mod", "go.sum"} {
 		if err := galleryHashFile(base, filepath.Join(root, file)); err != nil {
 			return "", err
 		}

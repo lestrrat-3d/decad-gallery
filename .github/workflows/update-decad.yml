@@ -43,13 +43,11 @@ jobs:
           commit-message: update Decad modules
           draft: true
           body: |
-            - Keep the root and renderer modules on one published Decad main revision.
+            - Move the root module to one published Decad main revision.
             - Require fresh spur-model emission and existing geometry checks before merging.
           add-paths: |
             go.mod
             go.sum
-            tools/render/go.mod
-            tools/render/go.sum
       - name: Run checks on the generated pull request head
         if: steps.update.outputs.pull-request-operation == 'created' || steps.update.outputs.pull-request-operation == 'updated'
         env:

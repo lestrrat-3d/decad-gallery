@@ -1,4 +1,4 @@
-"""Failure injection for the updater's four-file rollback boundary."""
+"""Failure injection for the updater's two-file rollback boundary."""
 
 from pathlib import Path
 import shutil
@@ -45,7 +45,7 @@ class UpdateDecadTests(unittest.TestCase):
             version = "v1.2.3"
             if self.failure == "stale-proxy" and "@main" in arguments[-1] and not direct:
                 version = "v1.2.2"
-            if self.failure == "selection" and directory == self.project / "tools/render" and "@" not in arguments[-1]:
+            if self.failure == "selection" and directory == self.project and "@" not in arguments[-1]:
                 version = "v1.2.4"
             return {"Path": update_decad.MODULE, "Version": version}
         if arguments[0] == "get":
@@ -54,16 +54,16 @@ class UpdateDecadTests(unittest.TestCase):
             (directory / "go.sum").write_text(
                 f"{update_decad.MODULE} v1.2.3 h1:test\n{update_decad.MODULE} v1.2.3/go.mod h1:test\n"
             )
-            if directory == self.project / "tools/render" and self.failure == "renderer":
+            if directory == self.project and self.failure == "get":
                 raise subprocess.CalledProcessError(1, ["go", *arguments])
         return None
 
-    def test_second_module_failure_restores_both_modules(self):
-        self.failure = "renderer"
+    def test_get_failure_restores_module_files(self):
+        self.failure = "get"
         with patch.object(update_decad, "run_go", self.go_with_failure):
             with self.assertRaises(subprocess.CalledProcessError):
                 update_decad.update(self.project, "main")
-        self.assertEqual(self.get_calls, 2)
+        self.assertEqual(self.get_calls, 1)
         self.assert_restored()
 
     def test_resolution_failure_restores_its_checksum_write(self):
@@ -74,12 +74,12 @@ class UpdateDecadTests(unittest.TestCase):
         self.assertEqual(self.get_calls, 0)
         self.assert_restored()
 
-    def test_selection_mismatch_restores_both_modules(self):
+    def test_selection_mismatch_restores_module_files(self):
         self.failure = "selection"
         with patch.object(update_decad, "run_go", self.go_with_failure):
             with self.assertRaisesRegex(ValueError, "does not select published Decad"):
                 update_decad.update(self.project, "main")
-        self.assertEqual(self.get_calls, 2)
+        self.assertEqual(self.get_calls, 1)
         self.assert_restored()
 
     def test_local_override_refuses_before_updating(self):

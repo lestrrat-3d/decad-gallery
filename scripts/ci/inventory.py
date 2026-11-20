@@ -74,13 +74,20 @@ def report(root, renderer):
         },
         "full_environment": full_partition.FULL_ENV,
         "required_variants": variants,
-        "renderer_named_checks": {name: list(tests) for name, (_, tests) in gate.RENDER_TESTS.items()},
+        "renderer_named_checks": {name: list(tests) for name, (_, _, tests) in gate.RENDER_TESTS.items()},
         "subtests": "Only explicitly named subtests are shown; other subtests are discovered at runtime.",
     }
 
 
+def split_renderer(discovered):
+    """Split a root-module inventory into ordinary root packages and the renderer group."""
+    root = {package: tests for package, tests in discovered.items() if not run_tests.RENDERER_PACKAGE.match(package)}
+    renderer = {package: tests for package, tests in discovered.items() if run_tests.RENDERER_PACKAGE.match(package)}
+    return root, renderer
+
+
 def main():
-    print(json.dumps(report(discover(["go"]), discover(["go", "-C", "tools/render"])), indent=2, sort_keys=True))
+    print(json.dumps(report(*split_renderer(discover(["go"]))), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ import sys
 
 
 MODULE = "github.com/lestrrat-3d/decad"
-MODULE_ROOTS = (".", "tools/render")
+MODULE_ROOTS = (".",)
 
 
 def run_go(directory, *arguments, capture=False, direct=False):

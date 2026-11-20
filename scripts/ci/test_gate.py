@@ -33,6 +33,9 @@ def needs_for(suites, event="push"):
     return needs
 
 
+RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
+
+
 class GateTest(unittest.TestCase):
     def test_reused_plan_requires_a_valid_push_proof(self):
         needs = needs_for([])
@@ -89,8 +92,9 @@ class GateTest(unittest.TestCase):
                     gate.main()
                 self.assertEqual(run.call_args.kwargs["package"], "github.com/lestrrat-3d/decad-gallery/" + package)
                 if package == "tools/render":
-                    self.assertEqual(run.call_args.kwargs["cwd"], "tools/render")
+                    self.assertNotIn("cwd", run.call_args.kwargs)
                     self.assertEqual(run.call_args.kwargs["module"], "tools/render")
+                    self.assertIn("./tools/render", command)
         with self.assertRaises(ValueError):
             gate.commands("isolated-tag-coplanar_test-ballbearing-TestBearingCatalog")
         for suite in ("isolated-planetarygearbox-TestKitGearboxes", "isolated-handcrankfan-TestHandCrankFanDefault"):
@@ -98,14 +102,14 @@ class GateTest(unittest.TestCase):
             self.assertEqual(command[command.index("-timeout") + 1], "40m")
 
     def test_renderer_records_module(self):
-        event = json.dumps({"Package": gate.RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
+        event = json.dumps({"Package": RENDER_PACKAGE, "Test": "TestSame", "Action": "pass"})
         proc = mock.Mock(stdout=[event], returncode=0)
         proc.wait.return_value = 0
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             path = Path(directory) / "records.jsonl"
             with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
                     mock.patch.object(gate.subprocess, "run", side_effect=[
-                        mock.Mock(stdout=gate.RENDER_PACKAGE), mock.Mock(stdout="TestSame\n")]), \
+                        mock.Mock(stdout=RENDER_PACKAGE), mock.Mock(stdout="TestSame\n")]), \
                     mock.patch.object(gate.subprocess, "Popen", return_value=proc):
                 gate.run_renderer_full()
             self.assertEqual(json.loads(path.read_text().splitlines()[0])["module"], "tools/render")
@@ -139,10 +143,11 @@ class GateTest(unittest.TestCase):
         dispatch.assert_called_once_with("0")
 
     def test_renderer_shards_cover_each_package_test_once(self):
-        inventory = {"p1": ["TestA", "TestB"], "p2": ["TestA", "TestC"]}
+        p1, p2 = RENDER_PACKAGE, RENDER_PACKAGE + "/extra"
+        inventory = {p1: ["TestA", "TestB"], p2: ["TestA", "TestC"]}
         def discover(command, **kwargs):
             if command[-2:] == ["list", "./..."]:
-                return mock.Mock(stdout="p1\np2\n")
+                return mock.Mock(stdout=p1 + "\n" + p2 + "\nexample/other\n")
             return mock.Mock(stdout="\n".join(inventory[command[-1]]) + "\nok\n")
         with mock.patch.object(gate.subprocess, "run", side_effect=discover), \
                 mock.patch.object(gate, "go_test") as run:
@@ -156,7 +161,7 @@ class GateTest(unittest.TestCase):
             gate.run_renderer_pr(str(gate.RENDER_PR_SHARDS))
 
     def test_full_renderer_inventory_requires_every_package_and_subtest(self):
-        packages = [gate.RENDER_PACKAGE, gate.RENDER_PACKAGE + "/extra"]
+        packages = [RENDER_PACKAGE, RENDER_PACKAGE + "/extra"]
         def run(command, **kwargs):
             if command[-2:] == ["list", "./..."]:
                 return mock.Mock(stdout="\n".join(packages))
@@ -181,7 +186,7 @@ class GateTest(unittest.TestCase):
 
     def test_renderer_dispatch_commands(self):
         package = "github.com/lestrrat-3d/decad-gallery/tools/render"
-        for suite, (timeout, tests) in gate.RENDER_TESTS.items():
+        for suite, (timeout, directory, tests) in gate.RENDER_TESTS.items():
             events = [json.dumps({"Package": package, "Test": test, "Action": "pass"}) for test in tests]
             proc = mock.Mock(stdout=events, returncode=0)
             proc.wait.return_value = 0
@@ -192,8 +197,8 @@ class GateTest(unittest.TestCase):
                 self.assertEqual(gate.matrix_for([suite]), {"include": [{"suite": suite, "case": 0}]})
                 gate.main()
                 dispatch.assert_called_once_with(
-                    ["go", "-C", "tools/render", "test", "-json", "-run", gate.run_pattern(tests),
-                     "-timeout", timeout, "./..."], stdout=gate.subprocess.PIPE, text=True,
+                    ["go", "test", "-json", "-run", gate.run_pattern(tests),
+                     "-timeout", timeout, "./" + directory], stdout=gate.subprocess.PIPE, text=True,
                 )
 
     def test_renderer_rejects_missing_skipped_or_failed_test(self):
@@ -210,7 +215,7 @@ class GateTest(unittest.TestCase):
     def test_renderer_rejects_skipped_subtest_of_passing_test(self):
         package = "github.com/lestrrat-3d/decad-gallery/tools/render"
         events = [json.dumps({"Package": package, "Test": test, "Action": "pass"})
-                  for test in gate.RENDER_TESTS["swiss-render"][1]]
+                  for test in gate.RENDER_TESTS["swiss-render"][2]]
         events.append(json.dumps({"Package": package, "Test": "TestSwissExploded/child", "Action": "skip"}))
         proc = mock.Mock(stdout=events, returncode=0)
         proc.wait.return_value = 0

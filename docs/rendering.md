@@ -2,7 +2,7 @@
 
 This page documents `tools/render`.
 
-This separate Go module builds gallery models with Decad and renders their
+This package of the repository's Go module builds gallery models with Decad and renders their
 tessellated meshes with SolidLens. Each image preset names a model and a shot.
 Add a scene builder and a preset entry in `main.go` for another model or shot.
 
@@ -380,8 +380,7 @@ It builds each toothed wheel with `models/spurgear`. The largest wheel has a sev
 two rings of drilled openings. The other wheels have an eight-point compass rose with triangular openings,
 six swept vanes, and a hexagonal grille with eighteen cells. Revolved profiles form the stepped hubs,
 double ridges around the rims, and eyelets around the rosette.
-Regenerate the image when the spur gear geometry or this scene changes. The renderer module uses a newer
-Decad revision than the root module for the repeated through-cuts in this scene.
+Regenerate the image when the spur gear geometry or this scene changes.
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png

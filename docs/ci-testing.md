@@ -16,7 +16,9 @@ renderer checks. The plan records selected suites and reasons.
 Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
 registered packages select their tests and affected consumers. New unregistered packages select broad checks and
 direct tests alongside affected known packages. Renderer Go changes select the full renderer suite. A change to either
-module's `go.mod` or `go.sum` selects `broad` and the `full` marker, which runs the full root and renderer checks.
+`go.mod` or `go.sum` selects `broad` and the `full` marker, which runs the full root and renderer checks. The
+renderer group is the set of root-module packages under `tools/render`; `run_tests.py` lists them with
+`renderer_packages()`, and the root-module suites skip them.
 Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unregistered existing
 owners, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
