@@ -154,11 +154,16 @@ func requireBacklashPlanetMesh(t *testing.T, index int) {
 	requirePlanetMesh(t, backlashGearbox(t), index)
 }
 
-func requirePlanetMesh(t *testing.T, box planetarygearbox.Gearbox, index int) {
+func meshPlanet(t *testing.T, box planetarygearbox.Gearbox, index int) *decad.Body {
 	t.Helper()
 	planets := box.Stages[0].Planets
 	require.Len(t, planets, 3, "update the separate planet mesh tests when the default planet count changes")
-	planet := planets[index]
+	return planets[index]
+}
+
+func requirePlanetMesh(t *testing.T, box planetarygearbox.Gearbox, index int) {
+	t.Helper()
+	planet := meshPlanet(t, box, index)
 	require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "planet %d inside the sun", index)
 	require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", index)
 }

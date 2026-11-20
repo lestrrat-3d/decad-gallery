@@ -786,7 +786,7 @@ FAN_PR_SHARDS = 10
 PLANETARY_TEST_SECONDS = {
     "TestBacklashFirstPlanetMesh": 180, "TestBacklashSecondPlanetMesh": 155,
     "TestKit605Shaft608FirstPlanetMesh": 145, "TestKit605Shaft608SecondPlanetMesh": 200,
-    "TestKit605Shaft608ThirdPlanetMesh": 155, "TestTwoStagesPlanetRingMesh": 150,
+    "TestKit605Shaft608ThirdPlanetMesh": 155, "TestTwoStagesPlanetRingMesh": 190,
     "TestWrongPhaseIsDetected": 190, "TestPartClearances": 110,
     "TestKitGearboxes": 95, "TestSeatChamfer": 90, "TestRingWithoutEars": 95,
     "TestFastenersFitTheirPockets": 90, "TestTwoStagesRoundSections": 60,
@@ -814,13 +814,14 @@ def planetary_test_shards(tests: list[str]) -> list[list[str]]:
     fixture_groups = (
         (180, ("TestFirstPlanetMesh", "TestBodyContainers", "TestFastenersSitFlush", "TestDefaultGearbox",
                "TestCarrierPins", "TestExplodedGearbox", "TestInputShaftCollar")),
-        (220, ("TestSecondPlanetMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
+        (190, ("TestSecondPlanetRingMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
                "TestOutputShaft", "TestCarrierIsATriangle")),
         (195, ("TestThirdPlanetMesh", "TestGearTipRootClearance", "TestEdgeFinishing", "TestShaftFlat",
                "TestBearingsSitInPlanetPockets")),
         (155, ("TestPlacedGearbox", "TestExplodedPlacedGearbox")),
         (100, ("TestTwoStages", "TestExplodedTwoStageGearbox", "TestTwoStagesPlanetSunMesh")),
-        (205, ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial")),
+        # The material check builds both the default and high-backlash assemblies.
+        (220, ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial", "TestSecondPlanetSunMesh")),
         (60, ("TestCorners", "TestSplitShafts")),
         (60, ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608")),
         (75, ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605")),

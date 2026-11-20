@@ -370,9 +370,10 @@ class PlanetaryFullTest(unittest.TestCase):
 
     def test_shared_gearboxes_stay_in_one_process(self):
         groups = (("TestBodyContainers", "TestFastenersSitFlush", "TestFirstPlanetMesh"),
+                  ("TestSecondPlanetRingMesh", "TestCollarRings"),
                   ("TestSplitShafts", "TestCorners"), ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
                   ("TestExplodedTwoStageGearbox", "TestTwoStages", "TestTwoStagesPlanetSunMesh"),
-                  ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial"),
+                  ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial", "TestSecondPlanetSunMesh"),
                   ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
                   ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
                   ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
@@ -382,6 +383,8 @@ class PlanetaryFullTest(unittest.TestCase):
         self.assertCountEqual([name for shard in shards for name in shard], tests)
         for group in groups:
             self.assertTrue(any(set(group) <= set(shard) for shard in shards), group)
+        for shard in shards:
+            self.assertFalse({"TestSecondPlanetRingMesh", "TestSecondPlanetSunMesh"} <= set(shard))
 
     def test_each_paired_variant_gets_its_own_cache_slot(self):
         variants = ("Planet605Shaft608", "Planet608Shaft605", "Planet608Shaft608", "TwoStages")

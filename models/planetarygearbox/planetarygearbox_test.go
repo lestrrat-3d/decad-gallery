@@ -114,9 +114,21 @@ func TestPartClearances(t *testing.T) {
 		1e-6, "minimum stage gap above the planet bearing")
 }
 
-func TestFirstPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 0) }
-func TestSecondPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 1) }
-func TestThirdPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 2) }
+func TestFirstPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 0) }
+
+func TestSecondPlanetSunMesh(t *testing.T) {
+	_, box := defaultGearbox(t)
+	planet := meshPlanet(t, box, 1)
+	require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "second planet inside the sun")
+}
+
+func TestSecondPlanetRingMesh(t *testing.T) {
+	_, box := defaultGearbox(t)
+	planet := meshPlanet(t, box, 1)
+	require.Zero(t, penetration(t, planet, box.Ring), "second planet inside the ring")
+}
+
+func TestThirdPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 2) }
 
 func TestGearTipRootClearance(t *testing.T) {
 	for _, module := range []float64{0.5, 1, 2, 4} {
