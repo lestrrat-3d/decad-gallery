@@ -62,8 +62,8 @@ assembly checks read the rest of the movement, and `TestLever` skips on that err
 The package uses `internal/edgefinish` for every chamfer, `internal/m2fastener` for the four bolt sites, and
 `internal/sketchcheck`, `internal/cornercheck`, `internal/splitcheck` and `internal/meshgap` in its tests. The hairspring
 is a `models/spiralspring` body built by `spiralspring.Build` with the constants of `SpringParams()`, and not copied.
-The bearings are `models/ballbearing` bodies of the 605ZZ size, and the bolts and nuts are `models/m2bolt` and
-`models/m2nut` bodies.
+The bearings are `models/ballbearing` bodies of the 605ZZ size, and the bolts and nuts are the M2 preset of
+`models/fastener` bodies.
 
 ## Checks
 

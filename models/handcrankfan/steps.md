@@ -168,10 +168,10 @@ set screw site (from `Params608ZZ().Derive()`) through `r3.FromFrame(fanLocalFra
 `ApplyDir`. The set screw site is first moved `setScrewBackOff` (0.1) back along its own line (`Head -= 0.1 * Dir`,
 `Cavity += 0.1`), which leaves its nut where turbinefan seats it.
 
-- `placeBolt(site)`: `m2bolt.Build` with `Length` and a `Placement` frame whose origin is `head + dir * 2.0` (the head
+- `placeBolt(site)`: `fastener.BuildBolt` with `Length` and a `Placement` frame whose origin is `head + dir * 2.0` (the head
   pocket depth), U = `corner` and V = `(-dir) x corner`, so the bolt's local +Z (underside to head) points back to the
   head. It appends the bolt's `Profile` and `Socket` sketches to `Assembly.Sketches`.
-- `placeNut(site)`: `m2nut.Build` with a `Placement` frame whose origin lies at `head + dir * (cavity + 0.2)`, U = `corner`
+- `placeNut(site)`: `fastener.BuildNut` with a `Placement` frame whose origin lies at `head + dir * (cavity + 0.2)`, U = `corner`
   and V = `dir x corner`. It appends the nut's `Hexagon`, `LowerChamfer` and `UpperChamfer` sketches.
 - `fastenerCuts(host, site, pocket, hole, cavity)` cuts the features whose flag is true. The pocket is a cylinder of
   radius 2.2 from 1 outside the face to 2.0 inside. The hole is a cylinder of radius 1.3 from 1 outside the face to 1
@@ -217,7 +217,7 @@ variant:
 
 - the parameter and `Motion` checks (no build);
 - part names, solids, and no leftover tool bodies;
-- every Sketch fully constrained, the `m2bolt` and `m2nut` sketches included;
+- every Sketch fully constrained, the `models/fastener` M2 sketches included;
 - `Tessellate` with `VerifyAll` for the handle, the four gearbox pieces, crank shaft (at 0.2 mm), crank arm, pin, crank
   gear, handle, hub, blade 1, bolt 1 and the nuts `gearbox-nut-1` and `handle-nut-1`;
 - the orientation rules by bounds;

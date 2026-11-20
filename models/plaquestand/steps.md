@@ -70,8 +70,8 @@ several). A `Verify` failure is a blocker: add no point-fixing constraint to for
 
 ## 3. Build (plaquestand.go)
 
-`Build(ctx, doc, p) (*Model, error)`; `Model` holds `Brackets` [2], `Rail`, `Bolts` [2]`*m2bolt.Model`, `Nuts`
-[2]`*m2nut.Model`, `Plaque`, `Sketches` and `Dimensions`.
+`Build(ctx, doc, p) (*Model, error)`; `Model` holds `Brackets` [2], `Rail`, `Bolts` [2]`*fastener.Bolt`, `Nuts`
+[2]`*fastener.Nut`, `Plaque`, `Sketches` and `Dimensions`.
 
 1. A nil `ctx` returns `plaquestand: context must not be nil`, and a nil `doc` returns `plaquestand: document must not
    be nil`.

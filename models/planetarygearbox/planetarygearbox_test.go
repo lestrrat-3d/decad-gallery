@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/decad-gallery/models/spurgear"
 	"github.com/lestrrat-3d/r3"
@@ -451,7 +451,7 @@ func TestHousing(t *testing.T) {
 		// less the head pocket radius (the head's radius plus 0.1 mm) and 1.5 mm of material. Each of the
 		// three windows reaches out to that radius and no further.
 		coverOuter := bounds(t, body).Max.X
-		rimInner := coverOuter - p.RingWall/2 - (m2bolt.HeadDiameter/2 + 0.3) - 1.5
+		rimInner := coverOuter - p.RingWall/2 - m2fastener.HeadPocketRadius - 1.5
 		sectionZ := bounds(t, body).Min.Z + 0.5
 		if name == "front" {
 			sectionZ = bounds(t, body).Max.Z - 0.5

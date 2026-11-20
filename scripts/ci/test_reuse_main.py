@@ -78,7 +78,7 @@ class ReuseMainTest(unittest.TestCase):
             lambda: self.jobs[1].update(conclusion="failure"),
             lambda: self.jobs[2].update(conclusion="skipped"),
             lambda: self.prior.update(base="f" * 40),
-            lambda: self.prior.update(suites=["model-m2bolt"]),
+            lambda: self.prior.update(suites=["model-fastener"]),
             lambda: self.prior.update(changed_paths=["models/ballbearing/other.go"]),
             lambda: self.tested_parents.__setitem__(1, "f" * 40),
             lambda: self.trees.update({self.tested: "different"}),

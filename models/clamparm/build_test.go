@@ -39,7 +39,7 @@ func TestClampArmBuildCases(t *testing.T) {
 				require.True(t, body.IsSolid(), "hardware %d", i)
 			}
 			for i, b := range m.Bolts {
-				requireFullyConstrained(t, []*sketch.Sketch{b.Head, b.Shank})
+				requireFullyConstrained(t, []*sketch.Sketch{b.Head, b.Profile})
 				require.NotEmpty(t, boltNames[i])
 			}
 			for i, n := range m.Nuts {

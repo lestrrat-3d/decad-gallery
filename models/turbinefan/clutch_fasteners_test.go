@@ -9,7 +9,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
@@ -21,7 +20,7 @@ import (
 // hub's slot, which is open to the round face and closed above and below, and neither bolt nor nut shares volume with the
 // hub.
 func TestTurbineFanClutchAdapterBolts(t *testing.T) {
-	require.Contains(t, m2bolt.StandardLengths(), float64(onewayclutch.FaceLength))
+	require.Contains(t, m2fastener.BoltSize.StandardLengths, float64(onewayclutch.FaceLength))
 	eachClutchCase(t, func(t *testing.T, _ fanCase, m *turbinefan.Model, _ *decad.Document) {
 		for k := 1; k <= 2; k++ {
 			t.Run(fmt.Sprintf("adapter-%d", k), func(t *testing.T) {

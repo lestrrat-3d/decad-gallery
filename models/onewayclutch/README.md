@@ -158,8 +158,8 @@ the adapter ring, and the three M2 × 16 bolts of the plates and the three M2 ×
 | <img src="images/parts/ring.png" alt="Ring" width="240"> | Ring with 18 internal teeth and three bolt ears, each with a rear hex nut pocket (printed) |
 | <img src="images/parts/back-plate.png" alt="Back plate" width="240"> | Back plate, with three hex nut pockets in its outer face (printed) |
 | <img src="images/parts/cover.png" alt="Cover" width="240"> | Cover, with three head pockets (printed) |
-| <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 3 |
-| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 3 for the plates and 3 for the adapter |
+| <img src="images/parts/bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/fastener`](../fastener)), 3 |
+| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/fastener`](../fastener)), 3 for the plates and 3 for the adapter |
 | <img src="images/parts/adapter.png" alt="Adapter ring" width="240"> | Adapter ring, a 6 mm disc with a 7 mm bore (10 mm on the 8 mm presets), three ear head pockets, three face holes with rear head pockets and three access holes (printed, `BuildAdapter` only) |
 | <img src="images/parts/mount-bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw, 3 (`BuildAdapter` only) |
 

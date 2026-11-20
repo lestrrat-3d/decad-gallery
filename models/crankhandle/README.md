@@ -134,10 +134,10 @@ Each half prints lying on its cut face, with no supports.
 | <img src="images/parts/pin-half-heads.png" alt="Pin half with the head pockets" width="240"> | Pin half with the cross bolts' head pockets (printed) |
 | <img src="images/parts/pin-half-nuts.png" alt="Pin half with the nut pockets" width="240"> | Pin half with the cross bolts' nut pockets (printed) |
 | <img src="images/parts/handle.png" alt="Handle" width="240"> | Handle (printed) |
-| <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/m2bolt`](../m2bolt)), 1 |
-| <img src="images/parts/cross-bolt.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2 |
-| <img src="images/parts/clamp-bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/m2bolt`](../m2bolt)), 2, the clamp bolts |
-| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/m2nut`](../m2nut)), 5 |
+| <img src="images/parts/bolt.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/fastener`](../fastener)), 1 |
+| <img src="images/parts/cross-bolt.png" alt="M2 x 6 bolt" width="240"> | M2 × 6 socket head cap screw ([`models/fastener`](../fastener)), 2 |
+| <img src="images/parts/clamp-bolt.png" alt="M2 x 16 bolt" width="240"> | M2 × 16 socket head cap screw ([`models/fastener`](../fastener)), 2, the clamp bolts |
+| <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/fastener`](../fastener)), 5 |
 
 ## Sizes
 

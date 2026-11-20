@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 )
 
 // Problems returns every way p is invalid, in check order. Each names the failing rule; a bearing-forced minimum
@@ -188,11 +187,11 @@ func fitProblems(p Params, d dims) []string {
 	}
 	if p.BoltHoleDiameter < minBoltHoleDiameter {
 		add("bolt hole diameter %v is under the %v clearance hole for the M2 bolt shank %v",
-			p.BoltHoleDiameter, minBoltHoleDiameter, m2bolt.ShankDiameter)
+			p.BoltHoleDiameter, minBoltHoleDiameter, m2fastener.BoltSize.ShankDiameter)
 	}
-	if p.CoverThickness < m2bolt.HeadHeight+coverFloor {
+	if p.CoverThickness < m2fastener.BoltSize.HeadHeight+coverFloor {
 		add("cover thickness %v leaves less than %v under a %v tall bolt head",
-			p.CoverThickness, float64(coverFloor), m2bolt.HeadHeight)
+			p.CoverThickness, float64(coverFloor), m2fastener.BoltSize.HeadHeight)
 	}
 	if reach := math.Max(nutPocketDiameter(), headPocketDiameter()) / 2; d.boltCircle-reach < d.ringRoot+pocketMargin ||
 		d.boltCircle+reach > d.ringOuter-pocketMargin {
@@ -289,10 +288,10 @@ func earProblems(p Params, d dims) []string {
 		return nil
 	}
 	var probs []string
-	if p.EarBoreDiameter < minBoltHoleDiameter || p.EarBoreDiameter >= m2nut.AcrossFlats {
+	if p.EarBoreDiameter < minBoltHoleDiameter || p.EarBoreDiameter >= m2fastener.NutSize.AcrossFlats {
 		probs = append(probs, fmt.Sprintf(
 			"ear bore diameter %v must be an M2 clearance hole, at least %v and narrower than the %v mm nut across its flats",
-			p.EarBoreDiameter, minBoltHoleDiameter, m2nut.AcrossFlats))
+			p.EarBoreDiameter, minBoltHoleDiameter, m2fastener.NutSize.AcrossFlats))
 	}
 	if earBoltLength(d.ringLength) == 0 {
 		probs = append(probs, fmt.Sprintf(

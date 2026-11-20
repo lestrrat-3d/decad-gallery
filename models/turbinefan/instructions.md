@@ -23,8 +23,8 @@ no clamp ring. The parts are:
 
 The shaft is not modeled. It belongs to the mechanism, and its diameter equals the bore of the purchased bearing it runs
 in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The presets read that bore from
-[`models/ballbearing`](../ballbearing/). The bolts and nuts are [`models/m2bolt`](../m2bolt/) and
-[`models/m2nut`](../m2nut/), placed with `internal/m2fastener`.
+[`models/ballbearing`](../ballbearing/). The bolts and nuts are the M2 preset of
+[`models/fastener`](../fastener/), placed with `internal/m2fastener`.
 
 All dimensions are in millimeters; angles are radians in code and degrees in prose. The model owns the blade and its
 joint: it exports `SizeFor`, `BuildBlade`, `BuildBladeMirrored` and the blade socket tool, and
@@ -42,7 +42,7 @@ joint: it exports `SizeFor`, `BuildBlade`, `BuildBladeMirrored` and the blade so
 | `w_s` | width of the shaft's flat | `2 sqrt(d (D - d))` |
 | `rho_t` | the set screw's tip, as a distance from the axis along -Y | `D/2 - d - c` |
 | `s`, `j` | blade scale and hub scale | `s = D_r / 128`, `j = HubRadius / 14` |
-| `L_s` | the set screw's length, `Dimensions.SetScrewBolt` | the longest `m2bolt.StandardLengths()` entry with `rho_t + HeadPocketDepth + L_s <= sqrt(HubRadius^2 - (HeadDiameter/2)^2)` |
+| `L_s` | the set screw's length, `Dimensions.SetScrewBolt` | the longest `m2fastener.BoltSize.StandardLengths` entry with `rho_t + HeadPocketDepth + L_s <= sqrt(HubRadius^2 - (HeadDiameter/2)^2)` |
 | `rho_h` | the set screw's head top | `rho_t + HeadPocketDepth + L_s` |
 | `rho_f` | the counterbore's floor | `rho_h - HeadPocketDepth - SetScrewTravel` |
 | `u_k`, `v_k` | blade k's radial direction and its counter-clockwise tangent | `(cos t_k, sin t_k, 0)`, `(-sin t_k, cos t_k, 0)`, `t_k = 90 + 120 (k - 1)` degrees |
@@ -80,7 +80,7 @@ Package: `models/turbinefan`. Exported surface:
   holds `Hub`, `Blades`, every `Sketches`, `Dimensions`, and in the world frame `BladeSites`, `SetScrewSite` and
   `AdapterSites`.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts, the bolts and the nuts, each in its container. `Model` embeds `Parts`
-  and holds `BladeBolts`, `BladeNuts`, `SetScrew` (`*m2bolt.Model`) and `SetScrewNut` (`*m2nut.Model`), and in
+  and holds `BladeBolts`, `BladeNuts`, `SetScrew` (`*fastener.Bolt`) and `SetScrewNut` (`*fastener.Nut`), and in
   `ClutchMount` `AdapterBolts` and `AdapterNuts` (the set screw and its nut are nil). `Build` builds neither the adapter nor
   the clutch: the caller builds them in the clutch's own document (see "Clutch mount").
 
@@ -115,7 +115,7 @@ radius, the round blade root, the stud, the socket and the blade bolt circle sca
 | `BladeSocketRadius` | `BladeStudRadius + RegularFit` | 3.4 | 4.45 | 4.45 |
 | `BladeStudEnd` | `16 j` | 16 | 21.6 | 21.6 |
 | `BladeBoltAt` | `9.5 j` | 9.5 | 12.825 | 12.825 |
-| `BladeBoltLength` | the longest `m2bolt.StandardLengths()` entry `L` with `HubLength - HeadPocketDepth - L >= BladeBoltTipFloor` (2) | 16 | 25 | 25 |
+| `BladeBoltLength` | the longest `m2fastener.BoltSize.StandardLengths` entry `L` with `HubLength - HeadPocketDepth - L >= BladeBoltTipFloor` (2) | 16 | 25 | 25 |
 | `BladeBoltCavity` | `BladeBoltLength - 0.4` | 15.6 | 24.6 | 24.6 |
 
 `SizeFor` also fails when no standard length fits, or when the blade nut slot's near face `HubLength - BladeBoltCavity`
@@ -188,7 +188,7 @@ Every message starts with `turbinefan: `. Derive checks in this order and return
 5. `Mount` is `ShaftMount` or `ClutchMount`, else `Mount must be ShaftMount or ClutchMount`.
 6. `BladeSocketStart - r_b >= PressWall`, so 1.6 mm stays between the bore and the socket floors: `r_b` at most 4.1 at 128
    (`BladeSocketStart` 5.7) and 6.095 at 192 and 224 (7.695). Both mounts take this rule: one hub serves both.
-7. `w_s >= m2bolt.ShankDiameter`, else `FlatDepth must leave the shaft's flat at least 2 mm wide for the
+7. `w_s >= m2fastener.BoltSize.ShankDiameter`, else `FlatDepth must leave the shaft's flat at least 2 mm wide for the
    set screw's tip`.
 8. `w_b >= 2 (HoleRadius + 0.1)`, else `FlatDepth must leave the bore's flat at least 2.8 mm wide for the
    set screw's hole`. The 0.1 keeps the hole's cylinder off the bore's round.
@@ -591,7 +591,7 @@ of the hub's back face.
 | `ClutchAnchorZ` | -7.75 | `onewayclutch.CoverTo - MountZ`: the placement point of a `ClutchMount` fan, in the fan frame |
 
 The adapter's own constants are in [`models/onewayclutch`](../onewayclutch/instructions.md): `FaceCircle` 9.5, `FaceLength` 10
-(an `m2bolt.StandardLengths()` entry) and `FaceNutDepth` 1.5. The fan reads them; it does not redefine them.
+(an `m2fastener.BoltSize.StandardLengths` entry) and `FaceNutDepth` 1.5. The fan reads them; it does not redefine them.
 
 ### Validation
 

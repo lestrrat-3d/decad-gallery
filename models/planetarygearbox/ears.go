@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/sketch"
 )
 
@@ -37,8 +37,8 @@ func earRootRound(p Params) float64 {
 // length fits.
 func earBoltLength(ringLength float64) float64 {
 	best := 0.0
-	for _, l := range m2bolt.StandardLengths() {
-		if l <= ringLength-m2bolt.HeadHeight+1e-9 {
+	for _, l := range m2fastener.BoltSize.StandardLengths {
+		if l <= ringLength-m2fastener.BoltSize.HeadHeight+1e-9 {
 			best = math.Max(best, l)
 		}
 	}
@@ -49,7 +49,7 @@ func earBoltLength(ringLength float64) float64 {
 // the face, as the front housing nuts' cavities do, unless the bolt is too short to pass through a nut there: it then
 // starts where the nut's lower face meets the bolt's tip, so the bolt runs through the whole nut.
 func earNutFloor(ringLength float64) float64 {
-	tip := ringLength - m2bolt.HeadHeight - earBoltLength(ringLength)
+	tip := ringLength - m2fastener.BoltSize.HeadHeight - earBoltLength(ringLength)
 	return math.Max(nutRoof, tip-nutClearance)
 }
 

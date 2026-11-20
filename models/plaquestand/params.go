@@ -76,7 +76,7 @@ const (
 	// RearLand is the flat base top behind the channel. A shorter land leaves the profile sketch's constraint system
 	// too close to singular for sketch's conditioning check.
 	RearLand = 8.0
-	// BoltLength is the M2 bolt length, one of m2bolt.StandardLengths().
+	// BoltLength is the M2 bolt length, one of m2fastener.BoltSize.StandardLengths.
 	BoltLength = 6.0
 	// NutPocketRound rounds the hex pocket's floor outline.
 	NutPocketRound  = 0.6

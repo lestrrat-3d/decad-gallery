@@ -90,13 +90,13 @@ const (
 	AdapterFrom      = RingTo + Seam // 20.0
 	AdapterThickness = 6.0
 	AdapterTo        = AdapterFrom + AdapterThickness // 26.0
-	MountLength      = 25.0                           // an m2bolt.StandardLengths entry
+	MountLength      = 25.0                           // an m2fastener.BoltSize.StandardLengths entry
 
 	// The adapter's front face takes a part on three more M2 bolts from its rear face, on the ear lines. A part bolted
 	// there puts its back face one Seam in front of the adapter, takes the bolts into hex nut slots open to its rim,
 	// and seats each nut FaceNutDepth into its body.
 	FaceCircle   = 9.5  // the face bolts' circle: clear of the 10 mm bore's chamfer and of the ear holes
-	FaceLength   = 10.0 // an m2bolt.StandardLengths entry
+	FaceLength   = 10.0 // an m2fastener.BoltSize.StandardLengths entry
 	FaceNutDepth = 1.5  // how far the nut slot's near face lies inside the mating part
 )
 

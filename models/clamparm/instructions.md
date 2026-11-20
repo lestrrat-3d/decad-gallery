@@ -18,7 +18,7 @@ The parts are:
 - a placeholder pad adapter that fits the interface.
 
 Hardware is M5 throughout: one size for the joints, the clamp screw and the stud. The bolts and nuts are
-[`models/m5bolt`](../m5bolt/) and [`models/m5nut`](../m5nut/), placed with `internal/m5fastener`. Reference them; do
+the M5 preset of [`models/fastener`](../fastener/), placed with `internal/m5fastener`. Reference them; do
 not copy their geometry. The desk is not modeled.
 
 All dimensions are in millimeters and angles in degrees.
@@ -71,7 +71,7 @@ Package: `models/clamparm`. Error prefix `clamparm: `. Exported surface:
   (the frame part), `Pad`, `Swivel`, `Links [2]`, `Head`, `Adapter`, `Knobs [4]`, `ScrewKnobs [2]` (each a `Part`) and
   `Dimensions`.
 - `Build(ctx, doc, p) (*Model, error)` adds the parts and the hardware, each in its container. `Model` embeds `Parts`
-  and holds `Bolts [6]*m5bolt.Model` (order J1, J2, J3, J4, stud, screw) and `Nuts [6]*m5nut.Model` (order J1 to J4
+  and holds `Bolts [6]*fastener.Bolt` (order J1, J2, J3, J4, stud, screw) and `Nuts [6]*fastener.Nut` (order J1 to J4
   knobs, jaw, adapter).
 - `InterfaceRecessTool(ctx, doc, f r3.Frame) (*decad.Body, *sketch.Sketch, error)` ("Mount interface" below).
 
@@ -352,14 +352,14 @@ tools. NEVER copy its geometry.
 
 | Part | Qty | Item | Site |
 | --- | --- | --- | --- |
-| M5 x 35 hex bolt | 1 | `m5bolt` | J1 |
-| M5 x 25 hex bolt | 3 | `m5bolt` | J2, J3, J4 |
-| M5 x 40 hex bolt | 1 | `m5bolt` | stud |
-| M5 x 70 hex bolt | 1 | `m5bolt` | clamp screw |
-| M5 nut | 6 | `m5nut` | 4 knobs, bottom jaw, adapter |
+| M5 x 35 hex bolt | 1 | `fastener` (M5) | J1 |
+| M5 x 25 hex bolt | 3 | `fastener` (M5) | J2, J3, J4 |
+| M5 x 40 hex bolt | 1 | `fastener` (M5) | stud |
+| M5 x 70 hex bolt | 1 | `fastener` (M5) | clamp screw |
+| M5 nut | 6 | `fastener` (M5) | 4 knobs, bottom jaw, adapter |
 
 - Bolts are hex head (ISO 4017, fully threaded), so a hex pocket stops the head turning while a knob turns the nut.
-  Nuts are ISO 4032 M5. Thread is not modeled. Every length is in `m5bolt.StandardLengths()`.
+  Nuts are ISO 4032 M5. Thread is not modeled. Every length is in `m5fastener.BoltSize.StandardLengths`.
 - A head pocket is the corner circle plus 0.3 mm radial, as deep as the head is tall (3.5). A nut pocket is the
   corner circle plus 0.2 mm radial, 5.1 high where it is a cavity (4.7 plus 0.2 on each face). The clearance hole is
   diameter 5.6.
@@ -538,7 +538,7 @@ Check every case above:
   overlapping a part it passes through. Every fastener pair uses a disjointness check (`decad.Intersect` reporting
   `BooleanEmpty`) except a bolt and its own nut, whose bore has the shank's diameter, so that pair is checked
   analytically (coaxial, square, between the head and the tip). The two screw-knob and bolt pairs (clamp screw, stud)
-  also get an analytic clearance test: the head-to-round clearance computed from `m5bolt.BearingDiameter`, the 30
+  also get an analytic clearance test: the head-to-round clearance computed from `m5fastener.BoltSize.Hex.BearingDiameter`, the 30
   degree chamfer, `PressPocketRadius` and `PressPocketRound` must be at least 0, plus the flush-head bounds check.
   Where decad refuses a pair in both operand orders, the test requires no vertex of the hardware's mesh to lie
   inside the part;

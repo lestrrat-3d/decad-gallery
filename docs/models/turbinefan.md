@@ -22,7 +22,7 @@ hold radii, the stud and socket, the blade bolt's circle, length and nut cavity.
 128. Every airfoil section, the hub length and the pitch reference radius scale with it. The hub radius is 14 times that
 scale but stops at `MaxHubRadius` (18.9), so the clutch mount keeps hex-key access to its ear bolts; the round blade root,
 the stud, the socket and the blade bolt circle scale by the hub radius over 14. `Size.Beta(r, pitch)` is the blade angle.
-The blade bolt and the set screw lengths are the longest `m2bolt.StandardLengths()` entry that fits. `Size` replaces the
+The blade bolt and the set screw lengths are the longest `m2fastener.BoltSize.StandardLengths` entry that fits. `Size` replaces the
 fixed hub and blade-joint constants this package exported before `RotorDiameter` existed (`HubRadius`, `HubLength`,
 `HubMid`, `BladeBoltAt`, `BladeBoltLength`, `BladeBoltCavity`, `BladeStud...`, `BladeSocketRadius`, `BladeSocketStart`,
 `SetScrewBolt`, `BladeRootRadius()`, `BladeTipRadius()` and `Beta`).

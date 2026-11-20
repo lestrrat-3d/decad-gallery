@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -282,7 +282,7 @@ func requireFitClearances(t *testing.T, box planetarygearbox.Gearbox, p planetar
 	requireSectionTouch(t, planetBearing, stage.Pins[0], bearingMid)
 	frontFace := -p.StageGap - p.CoverThickness
 	requireSectionClearance(t, box.Bolts[0], box.FrontCover,
-		frontFace+m2bolt.HeadHeight/2, minimumFastenerGapBound)
+		frontFace+m2fastener.BoltSize.HeadHeight/2, minimumFastenerGapBound)
 	requireSectionClearance(t, box.Bolts[0], box.Ring, 0, minimumFastenerGapBound)
 	nut := bounds(t, box.Nuts[0])
 	requireSectionClearance(t, box.Nuts[0], box.Ring, (nut.Min.Z+nut.Max.Z)/2, minimumFastenerGapBound)

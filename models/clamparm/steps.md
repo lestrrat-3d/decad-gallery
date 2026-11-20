@@ -66,11 +66,12 @@ Idioms, each checked to solve fully constrained with one valid profile and the e
 - `internal/fastenertool`: `Cylinder(ctx, doc, f, radius, length)` (circle on `f`, extruded along `f`'s normal);
   `HexPrism(ctx, doc, f, cornerRadius, depth)` (first corner on `f`'s U, sharp corners); `RoundedRevolve(ctx, doc, f,
   pts)`; `QuarterRound(t, r, radius, start, chords)`. Each builder returns `(*decad.Body, *sketch.Sketch, error)`.
-- `models/m5nut`: ISO 4032 M5, `Params{Placement *r3.Frame}`, `Build(ctx, doc, p) (*Model, error)`, `Model{Body,
-  Hexagon, LowerChamfer, UpperChamfer *sketch.Sketch}`. Local frame: lower face centre, +Z up, corners on X. Thickness
+- the M5 preset of `models/fastener` (nut): ISO 4032 M5, `NutParams{Preset, Placement *r3.Frame}`,
+  `BuildNut(ctx, doc, p) (*Nut, error)`, `Nut{Body, Hexagon, LowerChamfer, UpperChamfer *sketch.Sketch}`. Local frame: lower face centre, +Z up, corners on X. Thickness
   4.7, across flats 8, `AcrossCorners()` 9.2376.
-- `models/m5bolt`: ISO 4017 M5 hex bolt, `Params{Length, Placement}`, `StandardLengths()` (16, 20, 25, 30, 35, 40, 45,
-  50, 60, 70, 80), `Build` returning `Model{Body, Head, Shank}`. Local frame: centre of the head's underside, head along
+- the M5 preset of `models/fastener` (bolt): ISO 4017 M5 hex bolt, `BoltParams{Preset, Length, Placement}`,
+  `m5fastener.BoltSize.StandardLengths` (16, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80), `BuildBolt` returning
+  `Bolt{Body, Head, Profile}`. Local frame: centre of the head's underside, head along
   +Z, shank along -Z, head corners on X. Head height 3.5, shank diameter 5.
 - `internal/m5fastener`: constants `HeadClearance` 0.3, `NutClearance` 0.2, `HoleRadius` 2.8, `HeadPocketRadius` 4.9188,
   `HeadPocketDepth` 3.5, `NutPocketRadius` 4.8188, `NutCavityHeight` 5.1, `PressPocketRadius` 4.6688, `PocketRound` 0.6,
@@ -84,8 +85,8 @@ Idioms, each checked to solve fully constrained with one valid profile and the e
   before `Head` to `Stock` past the tip. `RoundedSocketTool(ctx, doc, f, radius, depth, round)` is a blind round socket
   whose floor corner is rounded by `round` with 8 chords: `f`'s origin is the floor's centre, +Z points toward the
   opening, and the socket runs `depth + Stock` along +Z. `PlaceBolt(ctx, doc, site)
-  (*m5bolt.Model, error)` puts the bolt's head top face at `site.Head`: its frame origin is `site.At(3.5)`, U is
-  `Corner` and V is `(-Dir) x Corner`. `PlaceNut(ctx, doc, f) (*m5nut.Model, error)` puts the nut's lower face on `f`
+  (*fastener.Bolt, error)` puts the bolt's head top face at `site.Head`: its frame origin is `site.At(3.5)`, U is
+  `Corner` and V is `(-Dir) x Corner`. `PlaceNut(ctx, doc, f) (*fastener.Nut, error)` puts the nut's lower face on `f`
   with its corners on `f`'s U.
 - `pocketFrame(site)` (a `params.go` helper) is the head pocket's floor frame: `r3.NewFrame(site.At(3.5), site.Corner,
   site.Dir.Scale(-1).Cross(site.Corner))`, whose normal is `-Dir`, toward the opening.
@@ -349,7 +350,7 @@ z 0 to 15. `PrintUp` is (0, 0, 1): the mating face is on the bed.
 1. Package doc, container names in this order (`Frame`, `Pad`, `Swivel`, `Links`, `Head`, `Adapter`, `Knobs`,
    `Screw Knobs`, `Bolts`, `Nuts`), `Part{Body *decad.Body; Frame r3.Frame; PrintUp r3.Vec; Sketches
    []*sketch.Sketch}`, `Parts{Clamp, Pad, Swivel Part; Links [2]Part; Head, Adapter Part; Knobs [4]Part; ScrewKnobs
-   [2]Part; Dimensions Dimensions}`, `Model{Parts; Bolts [6]*m5bolt.Model; Nuts [6]*m5nut.Model}`.
+   [2]Part; Dimensions Dimensions}`, `Model{Parts; Bolts [6]*fastener.Bolt; Nuts [6]*fastener.Nut}`.
 2. `BuildParts(ctx, doc, p)`: reject a nil `ctx` and a nil `doc` (`clamparm: context must not be nil`, `clamparm: document
    must not be nil`), call `p.Derive()`, check `ctx.Err()` (`clamparm: before creating geometry: %w`). Build in this
    order, each with its own `run`: frame, pad, swivel, link A, link B, head, adapter, knobs J1 to J4, screw knobs (clamp

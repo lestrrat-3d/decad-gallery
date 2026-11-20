@@ -13,7 +13,7 @@ operator-facing rotor are the two orientation rules of this model.
 
 The bevel pair is the `models/bevelgear` construction, the spur gears are the `models/spurgear` construction and the
 hub and blades are the `models/turbinefan` construction (`turbinefan.BuildParts` with `Params608ZZ` at
-`RotorDiameter` 128), imported and not copied. The bolts are `models/m2bolt` bodies and the nuts `models/m2nut` bodies.
+`RotorDiameter` 128), imported and not copied. The bolts are M2 `models/fastener` bodies.
 
 ## Compliance with AGENTS.md
 
@@ -398,7 +398,7 @@ test proves the head seat with a contact query and requires its gap to be at mos
 
 ### Fasteners
 
-Every bolt is a `models/m2bolt` body and every nut a `models/m2nut` body at nominal size. Each bolt site is a
+Every bolt is a `models/fastener` M2 body at nominal size. Each bolt site is a
 head pocket, a clearance hole and a nut cavity cut into the parts, and the clearances around a head, a shank and a nut
 are the Fasteners rule's (`internal/m2fastener`), not a fit class.
 
@@ -426,7 +426,7 @@ are the Fasteners rule's (`internal/m2fastener`), not a fit class.
 
 A fan has 15 bolts and 15 nuts. Seven of the bolts are M2 x 10, seven are M2 x 16 (four for the walls and three for the
 blades) and one is the M2 x 6 set screw. The parts list holds each nut right after its bolt. The bolt lengths come from
-`m2bolt.StandardLengths()`.
+`m2fastener.BoltSize.StandardLengths`.
 
 #### Print pause
 
@@ -623,6 +623,6 @@ the line through the apex along -Y by `-Ratio*CrankAngle`. The gearbox pieces, t
 - The corner test checks every printed part in its print orientation, as Retained sharp corners lists, and requires each
   listed corner to match a finding. `TestPressFitWalls` requires at least 1.6 mm of wall round the bore of the hub
   (through its socket floors, 1.65), the arm and the two spur gears, from the section outline.
-- Sketch coverage: the fan's own sketches, the bearing sketches and every `m2bolt` and `m2nut` sketch are in
+- Sketch coverage: the fan's own sketches, the bearing sketches and every `models/fastener` M2 sketch are in
   `Assembly.Sketches`, which the test verifies for each case. `spurgear` and `bevelgear` verify each of their sketches
   inside `Build` and `BuildPair`, so a build that passes covers them. `BladePitch` and `CrankAngle` change no sketch.

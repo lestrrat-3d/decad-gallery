@@ -6,8 +6,8 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -20,7 +20,7 @@ const (
 	// face.
 	nutClearance = 0.2
 	// minBoltHoleDiameter is the smallest bolt hole: the M2 shank with headClearance all round.
-	minBoltHoleDiameter = m2bolt.ShankDiameter + 2*headClearance
+	minBoltHoleDiameter = 2 * m2fastener.HoleRadius
 	// coverFloor is the cover material kept under a bolt head's pocket.
 	coverFloor = 1
 	// pocketMargin is the material kept between a fastener pocket and the ring's tooth roots or outer wall.
@@ -59,14 +59,14 @@ func FrontNutName(i int) string { return fmt.Sprintf("Front Nut %d", i+1) }
 func RearNutName(i int) string { return fmt.Sprintf("Rear Nut %d", i+1) }
 
 // headPocketDiameter is the diameter of the pocket that sinks a bolt head in a cover.
-func headPocketDiameter() float64 { return m2bolt.HeadDiameter + 2*headClearance }
+func headPocketDiameter() float64 { return 2 * m2fastener.HeadPocketRadius }
 
 // nutPocketDiameter is the diameter of the round cavity that holds a nut in the ring: the circle through the nut's
 // corners, with nutClearance added to its radius.
-func nutPocketDiameter() float64 { return 2 * (m2nut.AcrossFlats/math.Sqrt(3) + nutClearance) }
+func nutPocketDiameter() float64 { return 2 * m2fastener.NutCavityRadius }
 
 // nutCavityHeight is the axial height of the cavity that holds a nut: the nut's thickness and the clearance at each face.
-func nutCavityHeight() float64 { return m2nut.Thickness + 2*nutClearance }
+func nutCavityHeight() float64 { return m2fastener.NutCavityHeight }
 
 // buildHeadPocketTool builds the cutter for one bolt-head pocket about the local axis: a circle of the head pocket
 // diameter on the plane at z, the pocket's floor, extruded up the head height and fastenerStock past the face.
@@ -86,7 +86,7 @@ func (r *run) buildHeadPocketTool(ctx context.Context, z float64) (*decad.Body, 
 		return nil, err
 	}
 	tool, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(m2bolt.HeadHeight + fastenerStock), Dir: decad.Along})
+		decad.Distance{D: units.Millimeters(m2fastener.BoltSize.HeadHeight + fastenerStock), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("head pocket: extrude: %w", err)
 	}
@@ -122,7 +122,7 @@ func cutAt(ctx context.Context, what string, body, tool *decad.Body, at []r3.Vec
 // cutHeadPockets cuts the cover's four head pockets into the +Z (outer) face of the frame so the
 // bolt head ends level with the face.
 func (r *run) cutHeadPockets(ctx context.Context, cover *decad.Body) (*decad.Body, error) {
-	tool, err := r.buildHeadPocketTool(ctx, r.p.CoverThickness-m2bolt.HeadHeight)
+	tool, err := r.buildHeadPocketTool(ctx, r.p.CoverThickness-m2fastener.BoltSize.HeadHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (r *run) cutRingPockets(ctx context.Context, blank *decad.Body) (*decad.Bod
 	if r.p.EarCount == 0 {
 		return blank, nil
 	}
-	head, err := r.buildHeadPocketTool(ctx, float64(ringMargin)+r.d.ringLength-m2bolt.HeadHeight)
+	head, err := r.buildHeadPocketTool(ctx, float64(ringMargin)+r.d.ringLength-m2fastener.BoltSize.HeadHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -236,21 +236,21 @@ func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 	sites := r.fastenerSites()
 	// A nut rests in its cavity with the clearance below it.
 	frontNutZ := -p.StageGap + nutRoof + nutClearance
-	rearNutZ := ringEnd - nutRoof - nutClearance - m2nut.Thickness
+	rearNutZ := ringEnd - nutRoof - nutClearance - m2fastener.NutSize.Thickness
 	var err error
 
-	bolt, err := m2bolt.Build(ctx, r.doc, m2bolt.Params{Length: fastenerLength})
+	bolt, err := fastener.BuildBolt(ctx, r.doc, fastener.BoltParams{Preset: m2fastener.PresetName, Length: fastenerLength})
 	if err != nil {
 		return fmt.Errorf("M2 bolt: %w", err)
 	}
-	nut, err := m2nut.Build(ctx, r.doc, m2nut.DefaultParams())
+	nut, err := fastener.BuildNut(ctx, r.doc, fastener.NutParams{Preset: m2fastener.PresetName})
 	if err != nil {
 		return fmt.Errorf("M2 nut: %w", err)
 	}
 
 	// Front bolts are turned over so the shank points into the ring; the head's underside rests on the pocket floor.
-	frontFloor := -(p.StageGap + p.CoverThickness) + m2bolt.HeadHeight
-	rearFloor := ringEnd + p.CoverThickness - m2bolt.HeadHeight
+	frontFloor := -(p.StageGap + p.CoverThickness) + m2fastener.BoltSize.HeadHeight
+	rearFloor := ringEnd + p.CoverThickness - m2fastener.BoltSize.HeadHeight
 	var boltMoves, nutMoves []r3.Transform
 	for _, s := range sites {
 		m, err := poseFlippedAt(r.frame, s.x, s.y, frontFloor)
@@ -300,11 +300,11 @@ func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 func (r *run) buildEarFasteners(ctx context.Context, box *Gearbox, nut *decad.Body) error {
 	p, d := r.p, r.d
 	ringEnd := d.ringLength - p.StageGap
-	bolt, err := m2bolt.Build(ctx, r.doc, m2bolt.Params{Length: earBoltLength(d.ringLength)})
+	bolt, err := fastener.BuildBolt(ctx, r.doc, fastener.BoltParams{Preset: m2fastener.PresetName, Length: earBoltLength(d.ringLength)})
 	if err != nil {
 		return fmt.Errorf("M2 ear bolt: %w", err)
 	}
-	floor := ringEnd - m2bolt.HeadHeight
+	floor := ringEnd - m2fastener.BoltSize.HeadHeight
 	nutZ := -p.StageGap + earNutFloor(d.ringLength) + nutClearance
 	var boltMoves, nutMoves []r3.Transform
 	for _, s := range r.earSites() {

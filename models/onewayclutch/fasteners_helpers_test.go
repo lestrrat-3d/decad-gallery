@@ -7,8 +7,6 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -39,7 +37,7 @@ func fastenerCases() map[string]onewayclutch.Params {
 func requireSiteFastener(t *testing.T, m *onewayclutch.Model, i int, site m2fastener.Site) {
 	t.Helper()
 	label := fmt.Sprintf("site %d", i+1)
-	require.Contains(t, m2bolt.StandardLengths(), site.Length, label)
+	require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length, label)
 	require.Equal(t, 0.0, site.Dir.X, label)
 	require.Equal(t, 0.0, site.Dir.Y, label)
 	require.Equal(t, -1.0, site.Dir.Z, label)
@@ -62,13 +60,13 @@ func requireSiteFastener(t *testing.T, m *onewayclutch.Model, i int, site m2fast
 	require.InDelta(t, back0.Min.Z+2*onewayclutch.Seam, bb.Min.Z, tol, "%s: the tip lies 2*Seam inside the back face", label)
 	require.GreaterOrEqual(t, bb.Min.Z-2*onewayclutch.Seam, back0.Min.Z-tol, "%s: the tightened tip is not outside the back face", label)
 	floorZ := site.At(site.Cavity).Z
-	require.LessOrEqual(t, bb.Min.Z-2*onewayclutch.Seam, floorZ-m2nut.Thickness+tol, "%s: the tightened tip is past the nut", label)
+	require.LessOrEqual(t, bb.Min.Z-2*onewayclutch.Seam, floorZ-m2fastener.NutSize.Thickness+tol, "%s: the tightened tip is past the nut", label)
 	require.Less(t, bb.Min.Z, site.At(site.Cavity+m2fastener.NutClearance).Z, "%s: tip reaches the nut", label)
 	// Head inside its pocket: the bolt's radius from the site's line stays within the pocket.
 	for _, d := range []float64{bb.Max.X - site.Head.X, site.Head.X - bb.Min.X, bb.Max.Y - site.Head.Y, site.Head.Y - bb.Min.Y} {
 		require.LessOrEqual(t, d, m2fastener.HeadPocketRadius, "%s: head inside its pocket", label)
 	}
-	require.InDelta(t, m2bolt.HeadDiameter/2, bb.Max.X-site.Head.X, tol, "%s: bolt centred on the site", label)
+	require.InDelta(t, m2fastener.BoltSize.SocketCap.HeadDiameter/2, bb.Max.X-site.Head.X, tol, "%s: bolt centred on the site", label)
 
 	nb, err := m.Nuts[i].Body.Bounds()
 	require.NoError(t, err)

@@ -37,7 +37,7 @@ def report(root, renderer):
         for test in root[package]:
             add(package, test, "repository")
     for name, job in (("onewayclutch", "onewayclutch"), ("turbinefan", "turbinefan"),
-                      ("clamparm", "clamparm"), ("m5bolt", "clamparm"), ("m5nut", "clamparm")):
+                      ("clamparm", "clamparm"), ("fastener", "clamparm")):
         package = full_partition.ROOT + "/models/" + name
         for test in root[package]:
             add(package, test, job)

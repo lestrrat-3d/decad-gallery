@@ -330,18 +330,18 @@ class PlanTest(unittest.TestCase):
     def test_registered_new_package_and_mixed_model_dispatch(self):
         helper = plan.ROOT + "/internal/clamparmcapacity"
         arm = plan.ROOT + "/models/clamparm"
-        bolt = plan.ROOT + "/models/m5bolt"
+        bolt = plan.ROOT + "/models/fastener"
         before = {arm: {"dir": "models/clamparm", "imports": set(), "test_imports": set()},
-                  bolt: {"dir": "models/m5bolt", "imports": set(), "test_imports": set()}}
+                  bolt: {"dir": "models/fastener", "imports": set(), "test_imports": set()}}
         after = dict(before, **{helper: {"dir": "internal/clamparmcapacity", "imports": set(),
                                         "test_imports": set()}})
         after[arm] = {"dir": "models/clamparm", "imports": set(), "test_imports": {helper}}
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", side_effect=[before, after]), \
                 mock.patch.object(plan.subprocess, "check_output",
-                                  return_value=b"internal/clamparmcapacity/check.go\0models/m5bolt/bolt_test.go\0"):
+                                  return_value=b"internal/clamparmcapacity/check.go\0models/fastener/bolt_test.go\0"):
             result = plan.plan("push", "base", "head")
-        expected = {"package-clamparmcapacity", "clamparm", "model-m5bolt"}
+        expected = {"package-clamparmcapacity", "clamparm", "model-fastener"}
         self.assertEqual(set(result["suites"]), expected)
         matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
         dispatch = mock.Mock()
@@ -570,17 +570,17 @@ class PlanTest(unittest.TestCase):
                 self.assertIn("renderer-compile", suites)
 
     def test_clamparm_dependencies_and_feature(self):
-        bolt = plan.ROOT + "/models/m5bolt"
+        bolt = plan.ROOT + "/models/fastener"
         arm = plan.ROOT + "/models/clamparm"
         feature = plan.ROOT + "/features/dovetail"
         renderer = plan.ROOT + "/tools/render"
         graph = {
-            bolt: {"dir": "models/m5bolt", "imports": set(), "test_imports": set()},
+            bolt: {"dir": "models/fastener", "imports": set(), "test_imports": set()},
             arm: {"dir": "models/clamparm", "imports": {bolt}, "test_imports": set()},
             feature: {"dir": "features/dovetail", "imports": set(), "test_imports": set()},
             renderer: {"dir": "tools/render", "imports": {arm, feature}, "test_imports": set()},
         }
-        cases = ((b"models/m5bolt/bolt.go\0", {"model-m5bolt", "clamparm", "clamparm-render", "renderer-compile"}),
+        cases = ((b"models/fastener/bolt.go\0", {"model-fastener", "clamparm", "clamparm-render", "renderer-compile"}),
                  (b"models/clamparm/arm_test.go\0", {"clamparm"}),
                  (b"features/dovetail/dovetail.go\0", {"feature-dovetail", "renderer-compile"}))
         for path, expected in cases:

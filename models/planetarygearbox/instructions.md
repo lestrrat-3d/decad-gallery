@@ -22,7 +22,7 @@ they hold no bearing. The ring and the covers are the fixed housing.
 
 The housing is the ring gear and two end covers. The covers are open frames, a rim, spokes and a
 bearing hub, so they use little material. Eight M2 bolts and eight M2 nuts hold the housing together, four
-bolts per cover, built from `models/m2bolt` and `models/m2nut`. Each cover's four bolts have 6 mm length (the shortest
+bolts per cover, built from the M2 preset of `models/fastener`. Each cover's four bolts have 6 mm length (the shortest
 standard length), so the bolt length does not depend on the stage count. A bolt's head sits in a round pocket in the
 cover's outer face and ends level with that face. Its nut sits in a closed round cavity in the ring wall, 1.8 mm behind
 the ring's end face, so the ring holds the nut and it cannot fall out; the bolt hole is the cavity's only opening. The nut
@@ -32,7 +32,7 @@ Fasteners).
 
 The ring carries M2 mounting ears so the gearbox can be fixed in place. The ears are tabs on the ring's outside, each with
 an M2 clearance bore through it parallel to the gearbox axis. Each ear holds one M2 bolt and one M2 nut from
-`models/m2bolt` and `models/m2nut`. The bolt's head sits in a round pocket in the ear's rear face and ends level with
+the M2 preset of `models/fastener`. The bolt's head sits in a round pocket in the ear's rear face and ends level with
 that face. Its nut sits in a closed round cavity near the ear's front face, dropped in during the same print pause as the
 front housing nuts, and the bolt runs through the whole nut. The bolt's tip stays inside the ear. The gallery's bolt
 clamps nothing else: the ear is the nut side of a mounting joint. A part mounted against the ears' front faces takes an
@@ -138,8 +138,8 @@ A nil `Placement` is the one exception.
 | Cover boss root round | `min(wc, Tv) / 2` (1.5 by default) |
 | Bolt circle radius | (ring root radius + ring outer radius) / 2 |
 | Cover rim inner radius | bolt circle radius `-` head pocket radius `- 1.5` |
-| Head pocket diameter | `m2bolt.HeadDiameter + 0.6` (depth `m2bolt.HeadHeight`) |
-| Nut cavity diameter | `2 (m2nut.AcrossFlats / √3 + 0.2)`, the circle through the nut's corners plus 0.2 mm radially (height `m2nut.Thickness + 0.4`, starting 1.8 mm behind the ring's end face) |
+| Head pocket diameter | `2 * m2fastener.HeadPocketRadius` (depth `m2fastener.BoltSize.HeadHeight`) |
+| Nut cavity diameter | `2 (m2fastener.NutSize.AcrossFlats / √3 + 0.2)`, the circle through the nut's corners plus 0.2 mm radially (height `m2fastener.NutSize.Thickness + 0.4`, starting 1.8 mm behind the ring's end face) |
 | Cover boss diameter | cover pocket diameter `+ 2 wc` |
 | Cover hub diameter | cover boss diameter `+ 2 wc` |
 | Planet bearing bore, outside diameter, width `dbp`, `Dbp`, `Wbp` | The planet bearing's catalog entry (5, 14, 5 for the default 605ZZ) |
@@ -157,7 +157,7 @@ A nil `Placement` is the one exception.
 | Cone length | `√3` times the radius change: 2.078 mm for the 1.2 mm from the rod to the shaft collar or the pin collar, 3.811 mm for the 2.2 mm from the 6 mm sun section to the 10.4 mm thick part of a 608ZZ shaft. A cone is at 30° to the axis |
 | Free-end flat end | `0.25 + 1` = 1.25 outside each cover's bearing boss: the collar ring's gap to the bearing and its relief |
 | Collar ring | `4` long; face diameter the shaft collar diameter `ds + 2.4` (7.4); outside diameter `ds + 0.1 + 2 × 1.7` (8.5; 11.5 for a 608ZZ shaft); D bore the shaft's D grown 0.05 radially (5.1); relief `ds + 0.8` (5.8) across, 1 deep with its 30° cone |
-| Ear bolt length `le` | The longest of `m2bolt.StandardLengths()` no longer than `L - m2bolt.HeadHeight`: 10 for one stage (`L` 14), 25 for two (`L` 27) |
+| Ear bolt length `le` | The longest of `m2fastener.BoltSize.StandardLengths` no longer than `L - m2fastener.BoltSize.HeadHeight`: 10 for one stage (`L` 14), 25 for two (`L` 27) |
 | Ear nut cavity floor | `max(1.8, L - 2 - le - 0.2)` above the ring's front face: 1.8 for one and two stages, so the cavity is `[1.8, 3.8]` as the front housing nuts' are; deeper when the bolt's tip ends further in |
 | Sun countersink | The link shaft's cone moved out by 0.25 mm normal to it, `0.25 / cos 30°` = 0.289 mm along the radius, up to the sun's bore radius (see Gears) |
 | Pin socket | The pin's thick D (pin collar diameter) grown 0.05 radially |
@@ -197,10 +197,10 @@ the same gap normal to their circular and flat faces.
   face: `boss/2 - (dpc/2 + 0.05) - Ec < 0.5`.
 - Reject bolt holes that leave less than 1.5 mm of material between a hole and the ring's tooth
   roots or outer wall, and a cover bearing hub too wide for spokes inside the rim.
-- Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2bolt.HeadHeight + 1`, head or nut pockets that
+- Reject `db'` below the M2 shank diameter plus 0.2 mm, a cover thinner than `m2fastener.BoltSize.HeadHeight + 1`, head or nut pockets that
   leave less than 1 mm of ring wall toward the tooth roots or the outer wall, and a ring too short for a nut cavity at each end.
 - Reject `Ne < 0`, a nonfinite `de`, and `de <= 0` when `Ne > 0`. With ears, reject `de < 2.6` (the M2 clearance hole)
-  and `de >= m2nut.AcrossFlats`, so the nut cannot pass the bore, and a ring too short for the shortest standard bolt
+  and `de >= m2fastener.NutSize.AcrossFlats`, so the nut cannot pass the bore, and a ring too short for the shortest standard bolt
   (`L - 2 < 6`).
 - Reject `Li < 5.25` or `Lo < 5.25`: each free end must hold its collar ring and stand 1 mm beyond it.
 - Reject ears whose bore centers are closer than `2 we + 2 re + 1` (`2 Re sin(π/Ne) < 2 we + 2 re + 1`), so the root

@@ -55,7 +55,7 @@ The package uses `internal/gearroot` for the pinion's and the great wheel's deep
 chamfer, and `internal/m2fastener` for the four bolt sites: the head pockets, clearance holes, nut cavities and the bolts
 and nuts themselves. The mainspring is a `models/spiralspring` body, built by `spiralspring.Build` with the constants of `SpringParams()` and not
 copied. The gears are `models/spurgear` bodies; the bearings are `models/ballbearing` bodies of the 605ZZ
-size, and the bolts and nuts are `models/m2bolt` and `models/m2nut` bodies.
+size, and the bolts and nuts are the M2 preset of `models/fastener` bodies.
 
 ## Checks
 

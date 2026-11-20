@@ -11,7 +11,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -104,14 +103,14 @@ func requireAdapter(t *testing.T, p onewayclutch.Params) {
 		require.NoError(t, err)
 		for i, site := range a.Sites {
 			label := fmt.Sprintf("mount site %d", i+1)
-			require.Contains(t, m2bolt.StandardLengths(), site.Length, label)
+			require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length, label)
 			bb, err := a.Bolts[i].Body.Bounds()
 			require.NoError(t, err)
 			tol := bb.Bound.Base() + 2e-3
 			// The head is flush with the adapter's front face and inside its pocket.
 			require.InDelta(t, adapter.Max.Z, bb.Max.Z, tol, "%s: head flush", label)
 			require.InDelta(t, onewayclutch.AdapterTo, bb.Max.Z, tol, "%s: head at the front face", label)
-			require.InDelta(t, m2bolt.HeadDiameter/2, bb.Max.X-site.Head.X, tol, "%s: bolt centred", label)
+			require.InDelta(t, m2fastener.BoltSize.SocketCap.HeadDiameter/2, bb.Max.X-site.Head.X, tol, "%s: bolt centred", label)
 			require.LessOrEqual(t, bb.Max.X-site.Head.X, m2fastener.HeadPocketRadius, "%s: head inside its pocket", label)
 			// With the seams open the tip stands 0.25 inside the ring's rear face and never outside it. Tightened, the
 			// seam closes and the tip ends flush.
@@ -284,7 +283,7 @@ func requireAdapter(t *testing.T, p onewayclutch.Params) {
 		require.Equal(t, onewayclutch.Ears, pockets)
 		// Each face bolt's head would end flush with the rear face, and 1 mm or more of material lies under its pocket.
 		for i, site := range dm.FaceSites {
-			require.Contains(t, m2bolt.StandardLengths(), site.Length, "face site %d", i+1)
+			require.Contains(t, m2fastener.BoltSize.StandardLengths, site.Length, "face site %d", i+1)
 			require.InDelta(t, onewayclutch.AdapterFrom, site.Head.Z, 1e-9, "face site %d: head flush with the rear face", i+1)
 			require.GreaterOrEqual(t, onewayclutch.AdapterThickness-m2fastener.HeadPocketDepth, 1.0-1e-9, "material under a pocket")
 		}

@@ -9,8 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/clamparm"
-	"github.com/lestrrat-3d/decad-gallery/models/m5bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m5nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
 )
@@ -106,7 +105,7 @@ func TestClampArmFastenersNuts(t *testing.T) {
 				}
 				// The nut's lower face is on the pocket floor and its upper face 4.7 above it.
 				require.InDelta(t, 0, lowest, asmPlaneTol, names[i])
-				require.InDelta(t, m5nut.Thickness, highest, asmPlaneTol, names[i])
+				require.InDelta(t, m5fastener.NutSize.Thickness, highest, asmPlaneTol, names[i])
 				require.InDelta(t, asmHexCorner, reach, 0.01, names[i])
 				// It ends below the face: the pocket is deeper than the nut is thick.
 				require.Less(t, highest, depth-asmPlaneTol, names[i])
@@ -144,7 +143,7 @@ func TestClampArmFastenersBoltNutEngagement(t *testing.T) {
 				require.InDelta(t, 1, math.Abs(n.dir.Dot(s.dir)), 1e-9, names[i])
 				low := axis.along(n.origin)
 				require.GreaterOrEqual(t, low, m5fastener.HeadPocketDepth, names[i])
-				require.LessOrEqual(t, low+m5nut.Thickness, s.tip(), names[i])
+				require.LessOrEqual(t, low+m5fastener.NutSize.Thickness, s.tip(), names[i])
 			}
 		})
 	}
@@ -265,9 +264,9 @@ func TestClampArmFastenersMeshOverlapControl(t *testing.T) {
 // the bearing circle to the flat, and the pocket floor is flat out to the floor round, a quarter circle. The distance
 // between the two outlines must be at least 0.
 func TestClampArmFastenersPressHeadClearance(t *testing.T) {
-	flat := m5bolt.AcrossFlats / 2
-	bearing := m5bolt.BearingDiameter / 2
-	chamfer := math.Tan(m5bolt.ChamferAngle * math.Pi / 180)
+	flat := m5fastener.BoltSize.Hex.AcrossFlats / 2
+	bearing := m5fastener.BoltSize.Hex.BearingDiameter / 2
+	chamfer := math.Tan(fastener.HexChamferAngle * math.Pi / 180)
 	wall := m5fastener.PressPocketRadius * math.Cos(math.Pi/6)
 	round := m5fastener.PressPocketRound
 	require.Greater(t, wall, flat, "the pocket's flat must clear the head's flat")

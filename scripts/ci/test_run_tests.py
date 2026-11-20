@@ -663,7 +663,7 @@ class DedicatedModelInventoryTest(unittest.TestCase):
     def test_dedicated_jobs_inventory_every_package(self):
         cases = ((run_tests.run_turbinefan, ("turbinefan",)),
                  (run_tests.run_onewayclutch, ("onewayclutch",)),
-                 (run_tests.run_clamparm, ("clamparm", "m5bolt", "m5nut")))
+                 (run_tests.run_clamparm, ("clamparm", "fastener")))
         prefix = "github.com/lestrrat-3d/decad-gallery/models/"
         for runner, names in cases:
             with self.subTest(names=names), \
@@ -679,8 +679,8 @@ class DedicatedModelInventoryTest(unittest.TestCase):
     def test_empty_package_inventory_fails(self):
         with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="")), \
              mock.patch.object(run_tests, "go_test") as go_test:
-            with self.assertRaisesRegex(SystemExit, "model package m5bolt lists no tests"):
-                run_tests.run_model_packages(("m5bolt",))
+            with self.assertRaisesRegex(SystemExit, "model package fastener lists no tests"):
+                run_tests.run_model_packages(("fastener",))
             go_test.assert_not_called()
 
 

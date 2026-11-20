@@ -699,9 +699,9 @@ def run_onewayclutch() -> None:
 
 
 def run_clamparm() -> None:
-    """Run every test of the clamp arm and M5 fastener packages: about 4 minutes on a fast machine, so they have their
+    """Run every test of the clamp arm and fastener packages: about 4 minutes on a fast machine, so they have their
     own job instead of the 5 minute PR job."""
-    run_model_packages(("clamparm", "m5bolt", "m5nut"))
+    run_model_packages(("clamparm", "fastener"))
 
 
 def run_fan_variant(variant: str) -> None:
