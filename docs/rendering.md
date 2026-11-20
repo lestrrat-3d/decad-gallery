@@ -383,7 +383,8 @@ The `gallery/hero` preset renders the root README's two ornamental spur gears at
 It builds the wheels with `models/spurgear`, drills circular openings and fits a pierced,
 scalloped faceplate to each wheel. The brass and teal plates carry seven and five curved
 petals. Revolved profiles form the stepped hubs and the double ridges around the rims.
-Regenerate the image when the spur gear geometry or this scene changes.
+Regenerate the image when the spur gear geometry or this scene changes. The renderer module uses a newer
+Decad revision than the root module for the repeated through-cuts in this scene.
 
 ```sh
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
