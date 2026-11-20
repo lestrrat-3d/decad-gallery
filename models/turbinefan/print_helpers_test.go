@@ -171,3 +171,46 @@ func shadowSectionCount(h *turbinefan.BladeHarness) int {
 	}
 	return n
 }
+
+// lowestCrossing returns the lowest z where the vertical line y meets the closed polyline (y, z taken from the points'
+// Y and Z), and whether it meets it.
+func lowestCrossing(l []r3.Vec, y float64) (float64, bool) {
+	best, ok := math.Inf(1), false
+	for i := range l {
+		a, c := l[i], l[(i+1)%len(l)]
+		if (a.Y-y)*(c.Y-y) > 0 || a.Y == c.Y {
+			continue
+		}
+		if z := a.Z + (y-a.Y)/(c.Y-a.Y)*(c.Z-a.Z); z < best {
+			best, ok = z, true
+		}
+	}
+	return best, ok
+}
+
+// lowestLoop returns the loop holding the lowest point of the outline.
+func lowestLoop(o decad.SectionOutline) []r3.Vec {
+	var best []r3.Vec
+	low := math.Inf(1)
+	for _, l := range o.Loops {
+		for _, p := range l {
+			if p.Z < low {
+				best, low = l, p.Z
+			}
+		}
+	}
+	return best
+}
+
+// inStepReach reports whether x lies where the step zone's copied sections and the walls' smoothing reach: from the
+// shadow tool's lead-in, less the smoothing half-width and a section, to the zone's end plus the same.
+func inStepReach(h *turbinefan.BladeHarness, x float64) bool {
+	reach := turbinefan.CradleTopSmooth + turbinefan.CradleStep
+	return x >= h.StepZone[0]-1.0-reach && x <= h.StepZone[1]+reach
+}
+
+// frame3 is the plane x = const of the print frame, U along +Y and V along +Z.
+func frame3(x float64) r3.Frame {
+	f, _ := r3.NewFrame(r3.Vec{X: x}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	return f
+}

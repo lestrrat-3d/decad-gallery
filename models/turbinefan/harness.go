@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -28,6 +29,13 @@ const (
 	CradleFitPoints = 33
 	// CradleYStep is the y spacing of the lower envelope's samples.
 	CradleYStep = 0.05
+	// CradleTopBand is how far inside a widest point the blade's outline is read for the wall's height: the wall top is
+	// set from the lowest outline point within this of the widest y, which a near-vertical face leaves steady.
+	CradleTopBand = 0.1
+	// CradleTopSmooth is the half-width, in mm along x, of the moving average that smooths each wall's top.
+	CradleTopSmooth = 1.0
+	// CradleTopPasses is the number of smoothing passes; each averages, then lowers every point back under its limit.
+	CradleTopPasses = 8
 	// CradleTipMargin is how far before the tip cap's lowest point the cradle ends.
 	CradleTipMargin = 1.0
 	// StudSlotFlats is the number of flats of the stud slot's half polygon.
@@ -46,6 +54,9 @@ type CradleSection struct {
 	Outline        [][2]float64 // CradleFitPoints points, y strictly increasing
 	LeftY, LeftZ   float64      // offset widest point, min y side
 	RightY, RightZ float64      // offset widest point, max y side
+	// LeftLimit and RightLimit are the lowest blade outline points within CradleTopBand of each widest y: the highest a
+	// wall may stand there.
+	LeftLimit, RightLimit float64
 }
 
 // BladeHarness is the cradle in the print frame. The cradle is one solid standing on the bed: a block minus the blade's
@@ -63,6 +74,9 @@ type BladeHarness struct {
 	XStart, XEnd float64
 	// StepZone is the x range where the shadow tool copies its first clean section, past the root step.
 	StepZone [2]float64
+	// WallTop is the top profile (x, z) of the left (min y) and the right wall over the block's sections: CradleTopDrop
+	// under the smoothed limit, the step zone's sections taking the first clean section's values.
+	WallTop [2][][2]float64
 }
 
 // BuildBladeHarness builds the cradle for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand,
@@ -219,7 +233,7 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt
 
 	shadow := b.shadowTool(h, z0, zTop)
 	stud := b.studTool(xf, zTop, tilt)
-	block := b.block(h.Sections[1:len(h.Sections)-1], zTop)
+	block := b.block(h, wallSections(h), zTop)
 	// 9: the cradle.
 	if b.err != nil {
 		return nil
@@ -302,8 +316,25 @@ func (b *bladeBuilder) cradleSections(secs bladeSections, xs, xe, z0 float64) []
 		}
 		mono = append(mono, off[last])
 		pts := polarResample(mono, z0)
+		// Each wall's limit is the lowest point of the window's outlines within CradleTopBand of that side's widest y,
+		// read along every outline segment, so a near-vertical face gives a steady height on both sides alike.
+		leftLimit, rightLimit := math.Inf(1), math.Inf(1)
+		for _, l := range win {
+			for i := range l {
+				p0, p1 := l[i], l[(i+1)%len(l)]
+				for k := 0; k <= 10; k++ {
+					p := p0.Add(p1.Sub(p0).Scale(float64(k) / 10))
+					if p.Y <= left.Y+CradleTopBand {
+						leftLimit = math.Min(leftLimit, p.Z)
+					}
+					if p.Y >= right.Y-CradleTopBand {
+						rightLimit = math.Min(rightLimit, p.Z)
+					}
+				}
+			}
+		}
 		out = append(out, CradleSection{X: x, Outline: pts, LeftY: pts[0][0], LeftZ: pts[0][1],
-			RightY: pts[len(pts)-1][0], RightZ: pts[len(pts)-1][1]})
+			RightY: pts[len(pts)-1][0], RightZ: pts[len(pts)-1][1], LeftLimit: leftLimit, RightLimit: rightLimit})
 	}
 	return out
 }
@@ -466,13 +497,70 @@ func (b *bladeBuilder) studTool(xf r3.Transform, zTop, t float64) *decad.Body {
 	return b.extrudePolygon(f, vertices, sz.RootRadius+0.5-sz.BladeStudStart+1, "stud slot")
 }
 
+// wallSections returns the block's sections (all but the first and last) for the walls: those in the shadow tool's
+// copied range, the step zone and its lead-in, take the first clean section's widest points and limits, as the shadow
+// tool takes its outline. A raw section there mixes the stud's and the root's slices and would raise a fin on each
+// wall.
+func wallSections(h *BladeHarness) []CradleSection {
+	blk := slices.Clone(h.Sections[1 : len(h.Sections)-1])
+	var clean *CradleSection
+	for i := range h.Sections {
+		if h.Sections[i].X >= h.StepZone[1] {
+			clean = &h.Sections[i]
+			break
+		}
+	}
+	if clean == nil {
+		return blk
+	}
+	for i, c := range blk {
+		if c.X >= h.StepZone[0]-1.0-1e-9 && c.X < h.StepZone[1] {
+			blk[i] = *clean
+			blk[i].X = c.X
+		}
+	}
+	return blk
+}
+
+// wallTop returns a wall's top profile over blk (step 8): the limits limit(c), smoothed under themselves, less
+// CradleTopDrop. Each of CradleTopPasses passes averages the profile over CradleTopSmooth and then lowers every point
+// that rose above its own limit back to it, so the top stays CradleTopDrop under each section's limit and between
+// sections under the straight line between their limits.
+func wallTop(blk []CradleSection, limit func(CradleSection) float64) [][2]float64 {
+	lim := make([]float64, len(blk))
+	for i, c := range blk {
+		lim[i] = limit(c)
+	}
+	z := slices.Clone(lim)
+	for range CradleTopPasses {
+		next := make([]float64, len(z))
+		for i := range blk {
+			sum, n := 0.0, 0
+			for j := range blk {
+				if math.Abs(blk[i].X-blk[j].X) <= CradleTopSmooth+1e-9 {
+					sum, n = sum+z[j], n+1
+				}
+			}
+			next[i] = math.Min(sum/float64(n), lim[i])
+		}
+		z = next
+	}
+	out := make([][2]float64, len(blk))
+	for i, c := range blk {
+		out[i] = [2]float64{c.X, z[i] - CradleTopDrop}
+	}
+	return out
+}
+
 // block builds the cradle's block (step 8): the plan from CradleWall outside each widest line, intersected with a slab
 // 0.5 over the higher wall top, then cut by a cap on each side that removes what lies beyond that side's widest line and
 // above its wall top.
-func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
+func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
+	h.WallTop[0] = wallTop(blk, func(c CradleSection) float64 { return c.LeftLimit })
+	h.WallTop[1] = wallTop(blk, func(c CradleSection) float64 { return c.RightLimit })
 	// The plan's outer edge takes the widest point within CradlePlanWindow, so the bed face's outline has no notch
 	// narrower than its chamfer.
 	outer := func(x, side float64) float64 {
@@ -489,14 +577,13 @@ func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
 		}
 		return side * v
 	}
-	var plan, bandL, bandR, topMax, capL, capR [][2]float64
-	for _, c := range blk {
+	var plan, bandL, bandR, topMax [][2]float64
+	capL, capR := slices.Clone(h.WallTop[0]), slices.Clone(h.WallTop[1])
+	for i, c := range blk {
 		plan = append(plan, [2]float64{c.X, outer(c.X, -1) - CradleWall})
 		bandL = append(bandL, [2]float64{c.X, outer(c.X, -1) - CradleWall - 1})
 		bandR = append(bandR, [2]float64{c.X, c.RightY - 0.3})
-		topMax = append(topMax, [2]float64{c.X, math.Max(c.LeftZ, c.RightZ) - CradleTopDrop + 0.5})
-		capL = append(capL, [2]float64{c.X, c.LeftZ - CradleTopDrop})
-		capR = append(capR, [2]float64{c.X, c.RightZ - CradleTopDrop})
+		topMax = append(topMax, [2]float64{c.X, math.Max(capL[i][1], capR[i][1]) + 0.5})
 	}
 	for i := len(blk) - 1; i >= 0; i-- {
 		plan = append(plan, [2]float64{blk[i].X, outer(blk[i].X, 1) + CradleWall})
