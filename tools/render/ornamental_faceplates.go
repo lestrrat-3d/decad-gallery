@@ -106,3 +106,31 @@ func drawHoneycomb(s *sketch.Sketch, r float64) int {
 	}
 	return 18
 }
+
+// Eight round openings decorate the faceplate around its central bore.
+func drawPerforated(s *sketch.Sketch, r float64) int {
+	const count = 8
+	outer := s.CreateCircle(s.Origin(), .792*r)
+	s.AddConstraint(sketch.NewRadius(outer, .792*r))
+	for i := range count {
+		x, y := polarPoint(.49*r, (float64(i)+.2)*2*math.Pi/count)
+		center := sketchcheck.DimensionPoint(s, x, y)
+		hole := s.CreateCircle(center, .13*r)
+		s.AddConstraint(sketch.NewRadius(hole, .13*r))
+	}
+	return count
+}
+
+// Six diamond-shaped windows radiate from the central hub.
+func drawDiamonds(s *sketch.Sketch, r float64) int {
+	const count = 6
+	outer := s.CreateCircle(s.Origin(), .792*r)
+	s.AddConstraint(sketch.NewRadius(outer, .792*r))
+	for i := range count {
+		a := (float64(i) + .17) * 2 * math.Pi / count
+		points := []platePoint{platePolar(.29*r, a), platePolar(.49*r, a-.17),
+			platePolar(.69*r, a), platePolar(.49*r, a+.17)}
+		platePolygon(s, points)
+	}
+	return count
+}

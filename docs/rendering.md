@@ -381,7 +381,7 @@ A single preset renders with `-model swisslever -shot <name> -out <file>`, for e
 
 The `gallery/hero` preset renders four ornamental spur gears in antique brass and dark bronze at 1600 × 900.
 The top view crops each gear against an image edge: gear 1 at the upper left, gear 2 at the lower right,
-gear 3 at the lower left, and gear 4 at the upper right. Smaller spur gears tile the remaining frame edges.
+gear 3 at the lower left, and gear 4 at the upper right. Smaller spur gears of varied sizes and ornaments tile the remaining frame edges.
 It builds each toothed wheel with `models/spurgear`. The largest wheel has a seven-petal rosette above
 two rings of drilled openings. The other wheels have an eight-point compass rose with triangular openings,
 six swept vanes, and a hexagonal grille with eighteen cells. Revolved profiles form the stepped hubs,

@@ -113,3 +113,29 @@ func TestCompassVaneAndHoneycombWindows(t *testing.T) {
 		})
 	}
 }
+
+func TestBorderOrnamentWindows(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		ornament wheelOrnament
+		windows  int
+	}{
+		{"perforated", perforated, 8},
+		{"diamonds", diamonds, 6},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			wheel := ornamentalWheel{teeth: 17, ornament: tc.ornament}
+			plate, err := wheel.faceplate(t.Context(), decad.New(), sketch.NewWorld(), 17, 0, 1)
+			require.NoError(t, err)
+			for _, cap := range []decad.FeatureRef{decad.CapStart(plate), decad.CapEnd(plate)} {
+				faces, err := decad.Faces(decad.FaceCreatedBy(cap)).Exactly(1).SelectFaces(plate)
+				require.NoError(t, err)
+				require.Len(t, faces[0].Loops(), tc.windows+2)
+			}
+			mesh, err := plate.Tessellate(t.Context(), units.Millimeters(.02), decad.WithVerification(decad.VerifyAll))
+			require.NoError(t, err)
+			require.True(t, mesh.BoundaryVerified())
+			require.True(t, mesh.VolumeVerified())
+		})
+	}
+}

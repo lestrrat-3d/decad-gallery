@@ -21,6 +21,8 @@ const (
 	compass
 	vanes
 	honeycomb
+	perforated
+	diamonds
 )
 
 // Dimensions of the ornament and its backing are fractions of the pitch radius.
@@ -50,14 +52,30 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 			{Direction: r3.NewVec(-.9, -.2, -.5), Color: solidlens.RGB(.83, .87, .92), Intensity: .51},
 		},
 	}
+	var templates [][]solidlens.Model
 	for _, wheel := range wheels {
 		models, err := wheel.models(ctx)
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("%d-tooth ornamental spur gear: %w", wheel.teeth, err)
 		}
 		scene.Models = append(scene.Models, models...)
+		templates = append(templates, models)
 	}
-	border, err := borderGears(ctx)
+	extra := ornamentalWheel{17, perforated, r3.NewVec(0, 0, 0), bronze, brass, burnished}
+	extraModels, err := extra.models(ctx)
+	if err != nil {
+		return solidlens.Scene{}, fmt.Errorf("perforated border gear: %w", err)
+	}
+	wheels = append(wheels, extra)
+	templates = append(templates, extraModels)
+	extra = ornamentalWheel{17, diamonds, r3.NewVec(0, 0, 0), brass, burnished, bronze}
+	extraModels, err = extra.models(ctx)
+	if err != nil {
+		return solidlens.Scene{}, fmt.Errorf("diamond border gear: %w", err)
+	}
+	wheels = append(wheels, extra)
+	templates = append(templates, extraModels)
+	border, err := borderGears(wheels, templates)
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("border gears: %w", err)
 	}
@@ -65,33 +83,33 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 	return scene, nil
 }
 
-func borderGears(ctx context.Context) ([]solidlens.Model, error) {
-	p := spurgear.DefaultParams()
-	p.Module, p.Thickness, p.BoreDiameter = .5, 1, 1
-	body, err := spurgear.Build(ctx, decad.New(), p)
-	if err != nil {
-		return nil, err
+// borderGears reuses the verified ornament meshes at varied sizes and positions.
+func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]solidlens.Model, error) {
+	type borderGear struct {
+		x, y, radius float64
+		style        int
 	}
-	mesh, err := body.Tessellate(ctx, units.Millimeters(.02), decad.WithVerification(decad.VerifyAll))
-	if err != nil {
-		return nil, err
+	gears := []borderGear{
+		{-25, 48, 4.2, 4}, {-13, 46, 5.0, 2}, {1, 49, 4.4, 5}, {15, 47, 5.3, 3},
+		{29, 49, 4.0, 0}, {43, 46, 5.1, 4}, {57, 49, 4.4, 2}, {72, 47, 5.0, 1},
+		{-47, -65, 4.6, 1}, {-34, -67, 5.2, 3}, {-20, -64, 4.3, 4}, {-7, -67, 5.1, 5},
+		{7, -65, 4.0, 0}, {20, -67, 5.2, 1}, {34, -64, 4.5, 4}, {47, -67, 5.0, 3},
+		{61, -65, 4.4, 2}, {109, 9, 4.8, 5}, {107, -5, 5.1, 4}, {110, -20, 4.4, 1},
+		{-95, -23, 5.0, 2},
 	}
-	var positions []r3.Vec
-	for x := -24.0; x <= 72; x += 12 {
-		positions = append(positions, r3.NewVec(x, 49, 0))
-	}
-	for x := -47.0; x <= 61; x += 12 {
-		positions = append(positions, r3.NewVec(x, -67, 0))
-	}
-	for y := -23.0; y <= 13; y += 12 {
-		positions = append(positions, r3.NewVec(110, y, 0))
-	}
-	positions = append(positions, r3.NewVec(-96, -23, 0))
-	models := make([]solidlens.Model, 0, len(positions))
-	for _, pos := range positions {
-		models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: pos},
-			Material: solidlens.Matte(solidlens.RGB(.54, .353, .142)),
-			Edges:    solidlens.Edges{Enabled: true, Color: solidlens.RGB(.16, .09, .045), Width: 1.4}})
+	var models []solidlens.Model
+	for _, gear := range gears {
+		pos := r3.NewVec(gear.x, gear.y, 0)
+		scale := gear.radius / float64(wheels[gear.style].teeth)
+		for _, part := range templates[gear.style] {
+			mesh, ok := part.Mesh.(placedMesh)
+			if !ok {
+				return nil, fmt.Errorf("border template is not a placed mesh")
+			}
+			part.Mesh = placedMesh{TriangleSource: mesh.TriangleSource, scale: scale,
+				offset: pos.Add(mesh.offset.Sub(wheels[gear.style].center).Scale(scale))}
+			models = append(models, part)
+		}
 	}
 	return models, nil
 }
@@ -210,6 +228,10 @@ func (w ornamentalWheel) faceplate(ctx context.Context, doc *decad.Document, wor
 		openings = drawVanes(s, r)
 	case honeycomb:
 		openings = drawHoneycomb(s, r)
+	case perforated:
+		openings = drawPerforated(s, r)
+	case diamonds:
+		openings = drawDiamonds(s, r)
 	default:
 		return nil, fmt.Errorf("unknown wheel ornament %d", w.ornament)
 	}
