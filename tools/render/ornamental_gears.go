@@ -90,15 +90,21 @@ func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]sol
 		style        int
 	}
 	gears := []borderGear{
-		{-25, 48, 4.2, 4}, {-13, 46, 5.0, 2}, {1, 49, 4.4, 5}, {15, 47, 5.3, 3},
-		{29, 49, 4.0, 0}, {43, 46, 5.1, 4}, {57, 49, 4.4, 2}, {72, 47, 5.0, 1},
-		{-47, -65, 4.6, 1}, {-34, -67, 5.2, 3}, {-20, -64, 4.3, 4}, {-7, -67, 5.1, 5},
-		{7, -65, 4.0, 0}, {20, -67, 5.2, 1}, {34, -64, 4.5, 4}, {47, -67, 5.0, 3},
-		{61, -65, 4.4, 2}, {109, 9, 4.8, 5}, {107, -5, 5.1, 4}, {110, -20, 4.4, 1},
-		{-95, -23, 5.0, 2},
+		{-25, 48, 5.0, 4}, {-12, 40, 3.4, 2}, {0, 49, 7.0, 5}, {14, 42, 3.0, 3},
+		{25, 50, 5.2, 0}, {37, 43, 4.0, 4}, {50, 50, 6.4, 2}, {64, 40, 5.0, 1},
+		{76, 49, 3.2, 3}, {-19, 35, 3.0, 1}, {8, 33, 3.0, 4}, {33, 33, 3.2, 5},
+		{56, 33, 2.8, 0}, {-47, -66, 6.0, 1}, {-33, -59, 3.4, 3}, {-20, -68, 6.8, 4},
+		{-5, -60, 3.0, 5}, {7, -67, 5.8, 0}, {20, -60, 4.2, 1}, {34, -68, 7.1, 4},
+		{49, -61, 3.1, 3}, {61, -67, 5.2, 2}, {-40, -52, 2.6, 5}, {-12, -52, 2.8, 2},
+		{14, -51, 2.7, 4}, {42, -51, 2.8, 0}, {109, 10, 6.4, 5}, {102, -3, 3.0, 4},
+		{111, -15, 5.4, 1}, {101, -22, 3.0, 3}, {-95, -23, 6.2, 2},
 	}
 	var models []solidlens.Model
-	for _, gear := range gears {
+	for i, gear := range gears {
+		turn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(float64(i)*.71))
+		if err != nil {
+			return nil, fmt.Errorf("rotate border gear %d: %w", i, err)
+		}
 		pos := r3.NewVec(gear.x, gear.y, 0)
 		scale := gear.radius / float64(wheels[gear.style].teeth)
 		for _, part := range templates[gear.style] {
@@ -106,12 +112,29 @@ func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]sol
 			if !ok {
 				return nil, fmt.Errorf("border template is not a placed mesh")
 			}
-			part.Mesh = placedMesh{TriangleSource: mesh.TriangleSource, scale: scale,
-				offset: pos.Add(mesh.offset.Sub(wheels[gear.style].center).Scale(scale))}
+			part.Mesh = borderMesh{TriangleSource: mesh.TriangleSource, scale: scale, turn: turn,
+				origin: mesh.offset.Sub(wheels[gear.style].center), offset: pos}
 			models = append(models, part)
 		}
 	}
 	return models, nil
+}
+
+// borderMesh rotates and places a reused ornamental mesh.
+type borderMesh struct {
+	solidlens.TriangleSource
+	scale          float64
+	turn           r3.Transform
+	origin, offset r3.Vec
+}
+
+func (m borderMesh) Vertices() []r3.Vec {
+	source := m.TriangleSource.Vertices()
+	vertices := make([]r3.Vec, len(source))
+	for i, v := range source {
+		vertices[i] = m.turn.Apply(v.Add(m.origin)).Scale(m.scale).Add(m.offset)
+	}
+	return vertices
 }
 
 func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) {
