@@ -212,17 +212,17 @@ class PlanTest(unittest.TestCase):
                 self.assertIn("renderer-compile", suites)
 
     def test_clamparm_dependencies_and_feature(self):
-        bolt = plan.ROOT + "/models/m5bolt"
+        bolt = plan.ROOT + "/models/fastener"
         arm = plan.ROOT + "/models/clamparm"
         feature = plan.ROOT + "/features/dovetail"
         renderer = plan.ROOT + "/tools/render"
         graph = {
-            bolt: {"dir": "models/m5bolt", "imports": set(), "test_imports": set()},
+            bolt: {"dir": "models/fastener", "imports": set(), "test_imports": set()},
             arm: {"dir": "models/clamparm", "imports": {bolt}, "test_imports": set()},
             feature: {"dir": "features/dovetail", "imports": set(), "test_imports": set()},
             renderer: {"dir": "tools/render", "imports": {arm, feature}, "test_imports": set()},
         }
-        cases = ((b"models/m5bolt/bolt.go\0", {"model-m5bolt", "clamparm", "clamparm-render", "renderer-compile"}),
+        cases = ((b"models/fastener/bolt.go\0", {"model-fastener", "clamparm", "clamparm-render", "renderer-compile"}),
                  (b"models/clamparm/arm_test.go\0", {"clamparm"}),
                  (b"features/dovetail/dovetail.go\0", {"feature-dovetail", "renderer-compile"}))
         for path, expected in cases:
