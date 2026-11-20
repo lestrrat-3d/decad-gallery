@@ -130,7 +130,7 @@ func swissCamera(models []solidlens.Model, dir r3.Vec, aspect float64) solidlens
 		Position: solidlens.Vec(centre.Add(u.Scale(1200))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 30, Near: 1, Far: 6000,
 	}
-	return fitCamera(camera, models, aspect, swissMargin)
+	return renderkit.FitCamera(camera, models, aspect, swissMargin)
 }
 
 var (
@@ -150,7 +150,7 @@ func (b *swissBuild) viewScene(dir r3.Vec) (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	return bevelScene(swissCamera(models, dir, 16.0/9), models), nil
+	return renderkit.Scene(swissCamera(models, dir, 16.0/9), models), nil
 }
 
 // backScene looks at the movement from behind. The shared lights shine toward -Z, so they leave the back faces dark;
@@ -160,7 +160,7 @@ func (b *swissBuild) backScene() (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	scene := bevelScene(swissCamera(models, swissBackDir, 1), models)
+	scene := renderkit.Scene(swissCamera(models, swissBackDir, 1), models)
 	for i := range scene.DirectionalLights {
 		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
 	}
@@ -194,7 +194,7 @@ func (b *swissBuild) closeupScene() (solidlens.Scene, error) {
 		Position: solidlens.Vec(centre.Add(r3.NewVec(0, 0, -distance))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 2 * math.Atan(swissCloseupHalfHeight/distance) * 180 / math.Pi, Near: 1, Far: 6000,
 	}
-	scene := bevelScene(camera, models)
+	scene := renderkit.Scene(camera, models)
 	// The shared lights shine toward -Z and leave the rear faces dark, so turn them to shine toward +Z.
 	for i := range scene.DirectionalLights {
 		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
@@ -241,7 +241,7 @@ func (b *swissBuild) partScene(part swissPart) (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	return bevelScene(swissCamera(models, part.dir, 16.0/9), models), nil
+	return renderkit.Scene(swissCamera(models, part.dir, 16.0/9), models), nil
 }
 
 // swissSceneOf adapts a scene method of a fresh build to a preset.

@@ -84,9 +84,9 @@ func spiralSpringView(ctx context.Context, name string) (solidlens.Scene, error)
 			Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}})
 	}
 	if name != "root" {
-		camera = fitCamera(camera, models, 16.0/9, .1)
+		camera = renderkit.FitCamera(camera, models, 16.0/9, .1)
 	}
-	return bevelScene(camera, models), nil
+	return renderkit.Scene(camera, models), nil
 }
 
 // renderSpiralSpringReadme writes the index image and every README view.

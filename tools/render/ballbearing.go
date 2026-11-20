@@ -36,7 +36,7 @@ func bearingEnvelopeScene(ctx context.Context, params ballbearing.Params, eye so
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}}
 	camera := solidlens.Camera{Position: eye,
 		Target: solidlens.Vec{Z: params.Width / 2}, Up: solidlens.Vec{Z: 1}, FOV: 35}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 func renderBearingReadme(ctx context.Context, outputDir string) error {

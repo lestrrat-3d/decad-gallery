@@ -200,7 +200,7 @@ func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, 
 			}
 		}
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
 func handCrankSirenPreset(camera solidlens.Camera, exploded, cutaway bool) func(context.Context) (solidlens.Scene, error) {
@@ -310,7 +310,7 @@ func (s handCrankSiren) partScene(ctx context.Context, part handCrankSirenPart) 
 	direction, _ := part.from.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(centre.Add(direction.Scale(3 * high.Sub(low).Len()))),
 		Target: solidlens.Vec(centre), Up: solidlens.Vec{Z: 1}, FOV: 35}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // renderHandCrankSirenReadme writes the hero, the index, the exploded view, the cutaway, the other views and one image per

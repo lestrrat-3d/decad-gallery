@@ -90,7 +90,7 @@ func dovetailView(ctx context.Context, name string) (solidlens.Scene, error) {
 	if name == "exploded" {
 		margin = .04
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, margin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, margin), models), nil
 }
 
 // renderDovetailReadme writes the index image and every README view.

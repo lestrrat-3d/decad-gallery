@@ -82,7 +82,7 @@ func moveBy(v r3.Vec) r3.Transform {
 	return t
 }
 
-// camera returns the named view's camera in the stand's local frame, as the starting point for fitCamera.
+// camera returns the named view's camera in the stand's local frame, as the starting point for renderkit.FitCamera.
 func (m plaqueStandMeshes) camera(name string) (solidlens.Camera, error) {
 	s, d := m.dm.Span, m.dm.Depth
 	up := solidlens.Vec{Z: 1}
@@ -193,7 +193,7 @@ func (m plaqueStandMeshes) view(name string, small, large *plaqueStandMeshes) (s
 		part := strings.TrimPrefix(name, "part-")
 		models = m.models(r3.Vec{}, nil, func(n string) bool { return n == part || n == part+"-1" })
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // jointView cuts every body by the plane x = BracketWidth/2, through bracket 1's mid-plane and its bolt, removes the
@@ -212,7 +212,7 @@ func (m plaqueStandMeshes) jointView(camera solidlens.Camera) solidlens.Scene {
 		{X: plaquestand.BracketWidth/2 - 1, Y: -1, Z: -1},
 		{X: plaquestand.BracketWidth/2 + 1, Y: m.dm.Depth + 1, Z: m.dm.Height + 10},
 	}}}
-	return bevelScene(fitCamera(camera, frame, 16.0/9, .06), models)
+	return renderkit.Scene(renderkit.FitCamera(camera, frame, 16.0/9, .06), models)
 }
 
 // printModels lays the printed parts as they print: bracket 1 twice on its x = 0 face with its profile in the bed

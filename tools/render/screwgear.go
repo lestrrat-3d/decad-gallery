@@ -23,7 +23,7 @@ const (
 )
 
 // screwGearCameras look at the default mechanism. The sleeve sits at the origin with its axis along Z, and the
-// two ribbons cross it at 80 degrees. fitCamera centers and sizes each view on the sleeve and the stretch of
+// two ribbons cross it at 80 degrees. renderkit.FitCamera centers and sizes each view on the sleeve and the stretch of
 // ribbon next to it (see screwGearFocus).
 var screwGearCameras = map[string]solidlens.Camera{
 	"hero": {
@@ -130,7 +130,7 @@ func screwGearScene(camera solidlens.Camera, models []solidlens.Model, aspect fl
 		}
 	}
 	focus := []solidlens.Model{{Mesh: pointCloud(near)}}
-	return bevelScene(fitCamera(camera, focus, aspect, bevelViewMargin), models)
+	return renderkit.Scene(renderkit.FitCamera(camera, focus, aspect, bevelViewMargin), models)
 }
 
 // screwGearExplode pulls each ribbon out along its own axis and lifts the two apart along the sleeve's axis.
@@ -185,7 +185,7 @@ func screwGearCutaway(models []solidlens.Model) []solidlens.Model {
 // screwGearExplodedScene frames every vertex of the pulled-apart mechanism, unlike the other views.
 func screwGearExplodedScene(models []solidlens.Model) solidlens.Scene {
 	models = screwGearExplode(models, screwgear.DefaultParams().CrossAngle)
-	return bevelScene(fitCamera(screwGearCameras["exploded"], models, 16.0/9, bevelViewMargin), models)
+	return renderkit.Scene(renderkit.FitCamera(screwGearCameras["exploded"], models, 16.0/9, bevelViewMargin), models)
 }
 
 // screwGearPartScene shows one body alone. The sleeve is framed like the assembled views. A ribbon is framed whole
@@ -206,7 +206,7 @@ func screwGearPartScene(models []solidlens.Model, i int) solidlens.Scene {
 		FOV:      30,
 	}
 	own := models[i : i+1]
-	return bevelScene(fitCamera(camera, own, 16.0/9, bevelViewMargin), own)
+	return renderkit.Scene(renderkit.FitCamera(camera, own, 16.0/9, bevelViewMargin), own)
 }
 
 func screwGearView(shot string) func(context.Context) (solidlens.Scene, error) {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/spinningwheel"
 	"github.com/lestrrat-3d/solidlens"
 	"golang.org/x/image/font"
@@ -70,7 +71,7 @@ func renderSpinningWheelPreview(ctx context.Context, shot, output string, width,
 				panels[i].title = "PREVIEW: " + panels[i].title
 				panels[i].caption = fmt.Sprintf("Unfinished joints; %d omissions. See preview-status.json.", len(report.Omitted))
 				if view != "whorl" || i != 1 {
-					panels[i].scene.Camera = fitCamera(panels[i].scene.Camera, panels[i].scene.Models, 1000.0/990, .08)
+					panels[i].scene.Camera = renderkit.FitCamera(panels[i].scene.Camera, panels[i].scene.Models, 1000.0/990, .08)
 				}
 			}
 			face, err := wheelCaptionFont(18)
@@ -109,7 +110,7 @@ func previewWheelPNG(ctx context.Context, output string, scene solidlens.Scene, 
 	if width < 160 || height <= header+80 {
 		return fmt.Errorf("preview image is too small")
 	}
-	scene.Camera = fitCamera(scene.Camera, scene.Models, float64(width)/float64(height-header), .08)
+	scene.Camera = renderkit.FitCamera(scene.Camera, scene.Models, float64(width)/float64(height-header), .08)
 	native, err := solidlens.Render(ctx, scene, solidlens.Settings{Width: width, Height: height - header})
 	if err != nil {
 		return err

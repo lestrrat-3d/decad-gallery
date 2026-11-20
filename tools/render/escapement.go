@@ -176,7 +176,7 @@ func escapementCamera(models []solidlens.Model, dir r3.Vec, aspect float64) soli
 		Position: solidlens.Vec(centre.Add(u.Scale(900))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 30, Near: 1, Far: 4000,
 	}
-	return fitCamera(camera, models, aspect, escapementMargin)
+	return renderkit.FitCamera(camera, models, aspect, escapementMargin)
 }
 
 func modelBounds(models []solidlens.Model) (low, high r3.Vec) {
@@ -205,19 +205,19 @@ var (
 // heroScene shows the whole movement at the default pose: the open plates let the wheel, anchor and drive show through.
 func (b *escapementBuild) heroScene() solidlens.Scene {
 	models := b.models(everything, nil)
-	return bevelScene(escapementCamera(models, escapementHeroDir, 16.0/9), models)
+	return renderkit.Scene(escapementCamera(models, escapementHeroDir, 16.0/9), models)
 }
 
 func (b *escapementBuild) viewScene(dir r3.Vec) solidlens.Scene {
 	models := b.models(everything, nil)
-	return bevelScene(escapementCamera(models, dir, 16.0/9), models)
+	return renderkit.Scene(escapementCamera(models, dir, 16.0/9), models)
 }
 
 // backScene looks at the movement from behind. The shared lights shine toward -Z, so they leave the back faces dark;
 // this scene turns them to shine toward +Z. The frame is square because the movement is taller than it is wide.
 func (b *escapementBuild) backScene() solidlens.Scene {
 	models := b.models(everything, nil)
-	scene := bevelScene(escapementCamera(models, escapementBackDir, 1), models)
+	scene := renderkit.Scene(escapementCamera(models, escapementBackDir, 1), models)
 	for i := range scene.DirectionalLights {
 		scene.DirectionalLights[i].Direction.Z = -scene.DirectionalLights[i].Direction.Z
 	}
@@ -237,7 +237,7 @@ func (b *escapementBuild) explodedScene(ctx context.Context) (solidlens.Scene, e
 		return solidlens.Scene{}, err
 	}
 	models := b.models(everything, layout)
-	scene := bevelScene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
+	scene := renderkit.Scene(escapementCamera(models, escapementExplodeDir, 16.0/9), models)
 	for _, guide := range layout.Guides {
 		size, err := guide.Size.In(units.Millimeter)
 		if err != nil {
@@ -274,7 +274,7 @@ func (b *escapementBuild) closeupScene() (solidlens.Scene, error) {
 		Position: solidlens.Vec(centre.Add(r3.NewVec(0, 0, distance))), Target: solidlens.Vec(centre),
 		Up: solidlens.Vec{Y: 1}, FOV: 2 * math.Atan(halfHeight/distance) * 180 / math.Pi, Near: 1, Far: 4000,
 	}
-	return bevelScene(camera, models), nil
+	return renderkit.Scene(camera, models), nil
 }
 
 // escapementPart names one image of a distinct body.
@@ -313,7 +313,7 @@ func (b *escapementBuild) partScene(part escapementPart) solidlens.Scene {
 		keep[n] = struct{}{}
 	}
 	models := b.models(func(name string) bool { _, ok := keep[name]; return ok }, nil)
-	return bevelScene(escapementCamera(models, part.dir, 16.0/9), models)
+	return renderkit.Scene(escapementCamera(models, part.dir, 16.0/9), models)
 }
 
 func addEscapementPresets(presets map[string]renderkit.Preset) {

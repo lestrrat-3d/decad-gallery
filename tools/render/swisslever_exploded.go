@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/swisslever"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -94,7 +95,7 @@ func (b *swissBuild) explodedScene() (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	scene := bevelScene(swissCamera(models, swissExplodedDir, float64(swissExplodedWidth)/swissExplodedHeight), models)
+	scene := renderkit.Scene(swissCamera(models, swissExplodedDir, float64(swissExplodedWidth)/swissExplodedHeight), models)
 	for _, nb := range b.named {
 		offset := offsets[nb.Name]
 		if offset == (r3.Vec{}) {

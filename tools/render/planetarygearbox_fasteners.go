@@ -54,7 +54,7 @@ func planetaryCutScene(ctx context.Context, parts []planetaryFastenerPart, norma
 		model.Clip.Normal = normal
 		models = append(models, model)
 	}
-	return bevelScene(camera, models), nil
+	return renderkit.Scene(camera, models), nil
 }
 
 // planetaryFastenerCamera looks square at the cut from distance, aimed at the point on the cut plane at

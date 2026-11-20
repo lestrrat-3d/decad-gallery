@@ -217,7 +217,7 @@ func (s clutchSet) view(name string) (solidlens.Scene, error) {
 	if err != nil {
 		return solidlens.Scene{}, err
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // sideBySide draws the section of each clutch in the sets, the sets spaced 60 mm apart along +X, seen from above.
@@ -233,7 +233,7 @@ func sideBySide(sets []clutchSet) (solidlens.Scene, error) {
 	mid := float64(len(sets)-1) * 30
 	camera := solidlens.Camera{Position: solidlens.Vec{X: mid, Z: 240}, Target: solidlens.Vec{X: mid, Z: clutchMidPlane},
 		Up: solidlens.Vec{Y: 1}, FOV: 30}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
 // oneWayClutchAdapterView returns the preset for a view of the default clutch with its standard adapter.
@@ -389,7 +389,7 @@ func renderOneWayClutchReadme(ctx context.Context, outputDir string) error {
 				Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: lift})),
 				Target:   solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
 			models := []solidlens.Model{clutchModel(part.mesh, part.color)}
-			scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+			scene := renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 			file := strings.TrimSuffix(strings.ReplaceAll(name, " ", "-"), "-1")
 			if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
 				return err

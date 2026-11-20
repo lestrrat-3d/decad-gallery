@@ -12,6 +12,7 @@ import (
 	"math"
 	"slices"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -218,7 +219,7 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 		if err != nil {
 			return err
 		}
-		cameras[i] = fitCamera(panel.camera, rest, float64(panelWidth)/float64(panelHeight), bevelViewMargin)
+		cameras[i] = renderkit.FitCamera(panel.camera, rest, float64(panelWidth)/float64(panelHeight), bevelViewMargin)
 	}
 	step := math.Pi / float64(p.SunTeeth)
 	// The frames play forward and then back, not repeating the rest pose or the farthest pose.
@@ -249,7 +250,7 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 			if err != nil {
 				return nil, err
 			}
-			scene := bevelScene(cameras[i], models)
+			scene := renderkit.Scene(cameras[i], models)
 			img, err := solidlens.Render(ctx, scene, solidlens.Settings{Width: panelWidth, Height: panelHeight})
 			if err != nil {
 				return nil, fmt.Errorf("render frame %d panel %d: %w", frame, i, err)

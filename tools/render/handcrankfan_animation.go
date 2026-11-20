@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -73,9 +74,9 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 			}
 		}
 	}
-	crankSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: 700, Y: -260, Z: 200},
+	crankSide := renderkit.FitCamera(solidlens.Camera{Position: solidlens.Vec{X: 700, Y: -260, Z: 200},
 		Target: solidlens.Vec{X: 30, Y: -30, Z: 125}, Up: solidlens.Vec{Z: 1}, FOV: 30}, upper, aspect, .04)
-	gearSide := fitCamera(solidlens.Camera{Position: solidlens.Vec{X: -330, Y: 380, Z: 520},
+	gearSide := renderkit.FitCamera(solidlens.Camera{Position: solidlens.Vec{X: -330, Y: 380, Z: 520},
 		Target: solidlens.Vec{X: 5, Y: -10, Z: 145}, Up: solidlens.Vec{Z: 1}, FOV: 30}, box, aspect, .1)
 
 	animation := &gif.GIF{LoopCount: 0, Config: image.Config{ColorModel: color.Palette(palette.Plan9), Width: width, Height: height}}
@@ -98,8 +99,8 @@ func renderHandCrankFanAnimation(ctx context.Context, out string, width, height,
 			}
 			open = append(open, posed[i])
 		}
-		panels[0].scene = bevelScene(crankSide, posed)
-		panels[1].scene = bevelScene(gearSide, open)
+		panels[0].scene = renderkit.Scene(crankSide, posed)
+		panels[1].scene = renderkit.Scene(gearSide, open)
 		crank := math.Mod(turn*180/math.Pi, 360)
 		panels[0].title = "Crank side: one turn of the arm"
 		panels[0].caption = fmt.Sprintf("Crank %03.0f deg. The fan turns twice as fast.", crank)

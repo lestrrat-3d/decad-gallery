@@ -130,7 +130,7 @@ func spreadPlanetaryParts(offsets map[string]r3.Vec, box planetarygearbox.Gearbo
 
 // planetaryExplodedCamera looks at the exploded gearbox from the front, nearly level, at 50 degrees round the axis from
 // the first planet. From there the three planets of a stage and their bearings and pins show side by side, and none
-// lines up with the sun; fitCamera frames it.
+// lines up with the sun; renderkit.FitCamera frames it.
 var planetaryExplodedCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 309, Y: -368, Z: 110},
 	Target:   solidlens.Vec{Z: 66},
@@ -161,7 +161,7 @@ func planetaryExplodedScene(ctx context.Context, box planetarygearbox.Gearbox, p
 		model.Mesh = placedMesh{TriangleSource: mesh, scale: 1, offset: offset}
 		models = append(models, model)
 	}
-	return bevelScene(fitCamera(camera, models, float64(width)/float64(height), bevelViewMargin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, float64(width)/float64(height), bevelViewMargin), models), nil
 }
 
 func addPlanetaryExplodedPreset(presets map[string]renderkit.Preset) {
@@ -214,7 +214,7 @@ func planetaryModel(mesh solidlens.TriangleSource, body planetaryBody, cut bool)
 	return model
 }
 
-// planetaryHeroCamera looks at the assembled gearbox from the cut side, in front and above; fitCamera
+// planetaryHeroCamera looks at the assembled gearbox from the cut side, in front and above; renderkit.FitCamera
 // frames it.
 var planetaryHeroCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 60, Y: -300, Z: 130},
@@ -234,7 +234,7 @@ func planetaryHeroScene(ctx context.Context, box planetarygearbox.Gearbox) (soli
 		}
 		models = append(models, planetaryModel(mesh, body, true))
 	}
-	return bevelScene(fitCamera(planetaryHeroCamera, models, 16.0/9, bevelViewMargin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(planetaryHeroCamera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
 func planetaryGearboxHero(ctx context.Context) (solidlens.Scene, error) {
@@ -274,7 +274,7 @@ func planetaryAssembledScene(ctx context.Context, box planetarygearbox.Gearbox, 
 		}
 		models = append(models, planetaryModel(mesh, body, false))
 	}
-	return bevelScene(fitCamera(view.camera, models, 16.0/9, bevelViewMargin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(view.camera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
 func addPlanetaryViewPresets(presets map[string]renderkit.Preset) {
@@ -336,7 +336,7 @@ func addPlanetaryPartPresets(presets map[string]renderkit.Preset) {
 	}
 }
 
-// planetaryPartCamera looks at one part from the front and above; fitCamera frames it.
+// planetaryPartCamera looks at one part from the front and above; renderkit.FitCamera frames it.
 var planetaryPartCamera = solidlens.Camera{
 	Position: solidlens.Vec{X: 70, Y: -150, Z: 110},
 	Target:   solidlens.Vec{},
@@ -375,7 +375,7 @@ func planetaryPartScene(ctx context.Context, box planetarygearbox.Gearbox, part 
 	case belowView:
 		camera = planetaryPartBelowCamera
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, bevelViewMargin), models), nil
 }
 
 // planetaryPartPreset builds a part preset that builds the two-stage gearbox for that one part.

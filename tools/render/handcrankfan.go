@@ -122,7 +122,7 @@ func (f handCrankFan) sceneFrom(ctx context.Context, exploded bool, camera solid
 			models[i].Mesh = placedMesh{TriangleSource: mesh.model.Mesh, scale: 1, offset: offsets[mesh.part.Name]}
 		}
 	}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
 // handCrankFanPart is one unique part of the fan, as the README's parts table lists it: the image's name, the part of
@@ -210,7 +210,7 @@ func (f handCrankFan) partScene(ctx context.Context, part handCrankFanPart) (sol
 	direction, _ := part.from.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(centre.Add(direction.Scale(3 * high.Sub(low).Len()))),
 		Target: solidlens.Vec(centre), Up: solidlens.Vec{Z: 1}, FOV: 35}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .08), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .08), models), nil
 }
 
 // handCrankFanPartPreset builds the fan for that one part.

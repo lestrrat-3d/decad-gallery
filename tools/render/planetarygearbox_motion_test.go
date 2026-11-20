@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -132,7 +133,7 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 	require.Equal(t, 3, housingCount)
 	originalRest, err := planetaryPoseModels(movers, 0, true)
 	require.NoError(t, err)
-	camera := fitCamera(planetaryHeroCamera, originalRest, 1, bevelViewMargin)
+	camera := renderkit.FitCamera(planetaryHeroCamera, originalRest, 1, bevelViewMargin)
 	for _, angle := range []float64{0, 0.2} {
 		original, err := planetaryPoseModels(movers, angle, true)
 		require.NoError(t, err)
@@ -144,9 +145,9 @@ func TestPlanetaryGearboxMotion(t *testing.T) {
 			}
 		}
 		settings := solidlens.Settings{Width: 160, Height: 160}
-		want, err := solidlens.Render(t.Context(), bevelScene(camera, original), settings)
+		want, err := solidlens.Render(t.Context(), renderkit.Scene(camera, original), settings)
 		require.NoError(t, err)
-		got, err := solidlens.Render(t.Context(), bevelScene(camera, clipped), settings)
+		got, err := solidlens.Render(t.Context(), renderkit.Scene(camera, clipped), settings)
 		require.NoError(t, err)
 		for y := range 160 {
 			for x := range 160 {
