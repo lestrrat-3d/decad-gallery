@@ -42,8 +42,8 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 		{17, honeycomb, r3.NewVec(7, -37, 0), bronze, brass, burnished},
 	}
 	scene := solidlens.Scene{
-		Camera: solidlens.Camera{Position: r3.NewVec(7, -121, 186), Target: r3.NewVec(7, -9, 2),
-			Up: r3.NewVec(0, 0, 1), FOV: 26},
+		Camera: solidlens.Camera{Position: r3.NewVec(7, -9, 255), Target: r3.NewVec(7, -9, 2),
+			Up: r3.NewVec(0, 1, 0), FOV: 26},
 		Background: solidlens.RGB(.95, .93, .87),
 		DirectionalLights: []solidlens.DirectionalLight{
 			{Direction: r3.NewVec(.15, .65, -.88), Color: solidlens.RGB(1, .92, .8), Intensity: .87},
@@ -113,7 +113,8 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 			return nil, fmt.Errorf("tessellate %s: %w", part.name, err)
 		}
 		models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: w.center},
-			Material: solidlens.Matte(part.color)})
+			Material: solidlens.Matte(part.color),
+			Edges:    solidlens.Edges{Enabled: true, Color: solidlens.RGB(.16, .09, .045), Width: 1.4}})
 	}
 	if w.ornament == rosette {
 		eyelet, err := turnedOrnament(ctx, doc, world, r, p.Thickness, [][2]float64{
@@ -129,7 +130,8 @@ func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) 
 		for i := range rosettePetals {
 			x, y := polarPoint(.737*r, (float64(i)+.5)*2*math.Pi/rosettePetals)
 			models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: w.center.Add(r3.NewVec(x, y, 0))},
-				Material: solidlens.Matte(w.trim)})
+				Material: solidlens.Matte(w.trim),
+				Edges:    solidlens.Edges{Enabled: true, Color: solidlens.RGB(.16, .09, .045), Width: 1.4}})
 		}
 	}
 	return models, nil
