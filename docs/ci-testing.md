@@ -15,11 +15,29 @@ renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
 registered packages select their tests and affected consumers. New unregistered packages select broad checks and
-direct tests alongside affected known packages. Renderer Go changes select the full renderer suite. A production change to the shared render core in
-`internal/renderkit` selects `renderer-all`; a test-only change selects `package-renderkit`. A change to either
-`go.mod` or `go.sum` selects `broad` and the `full` marker, which runs the full root and renderer checks. The
-renderer group is the set of root-module packages under `tools/render`; `run_tests.py` lists them with
-`renderer_packages()`, and the root-module suites skip them.
+direct tests alongside affected known packages. A change to either `go.mod` or `go.sum` selects `broad` and the
+`full` marker, which runs the full root and renderer checks. The renderer group is the set of root-module packages
+that `RENDERER_PACKAGE` in `run_tests.py` matches (`tools/render`, `internal/renderkit` and each item's `render`
+package); `renderer_packages()` lists them, and the root-module suites skip them.
+
+Render code selects these suites:
+
+- A `.go` change in `models/<name>/render` or `features/<name>/render` selects `render-<name>` and
+  `renderer-compile`. A production change there also selects `render-<other>` for every render package that imports it.
+- A production change in `models/<name>` or `features/<name>` selects `render-<name>` when the item has a render
+  package. It replaces the item's named renderer suites, such as `swiss-render`. Items reached only through imports keep
+  those named suites.
+- A new render package of a registered item selects `render-<name>` without `broad`.
+- A `.go` change in `tools/render`, or any change under `tools/render/fonts`, selects `render-tool`. The tool's
+  gallery tile cache test runs there, so the separate cache step is skipped.
+- A production change in `internal/renderkit` selects `renderer-all`, the 16-shard suite over every renderer package.
+  A test-only change there selects `package-renderkit`. With an unknown input it selects `broad` and `full`.
+- `renderer-all` is the only suite that runs every renderer test. It runs for the rule above, for `full` (as
+  `renderer-full`) and for scheduled or dispatched runs. `CI_BROAD_OVERRIDE` does not add it. When it runs, it replaces
+  `renderer-compile`, `package-renderkit`, the named renderer suites and every `render-*` suite.
+
+A `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
+`rest` job with every other test of the package. A test that builds a full assembly belongs in `RENDER_HEAVY`.
 Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unregistered existing
 owners, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail

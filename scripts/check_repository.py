@@ -128,6 +128,12 @@ def missing_item_files(root: Path, files: tuple[str, ...]) -> list[str]:
                 missing.append(f"{item.relative_to(ROOT)}/*.go")
             if not any(item.glob("*_test.go")):
                 missing.append(f"{item.relative_to(ROOT)}/*_test.go")
+            render = item / "render"
+            if render.is_dir():
+                if not any(not path.name.endswith("_test.go") for path in render.glob("*.go")):
+                    missing.append(f"{render.relative_to(ROOT)}/*.go")
+                if not any(render.glob("*_test.go")):
+                    missing.append(f"{render.relative_to(ROOT)}/*_test.go")
     return missing
 
 
