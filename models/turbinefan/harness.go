@@ -1,10 +1,12 @@
 package turbinefan
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
@@ -49,27 +51,74 @@ const (
 	HarnessMargin = 3.0
 	// SectionStep is the spacing along x of the blade sections the layout reads.
 	SectionStep = 0.25
-	// HarnessGateCount is the number of gates: six on the trailing edge and four keel pins.
-	HarnessGateCount = 10
+	// WallGap is the least plan distance from a cradle wall's inner face to the blade; it is also a tab's bridge length.
+	WallGap = 2.0
+	// WallStep is the spacing along x of a wall's plan vertices.
+	WallStep = 1.0
+	// TabHeight is a tab's height: four layers.
+	TabHeight = 0.8
+	// TabWidth is a tab body's width, the same as a strut's.
+	TabWidth = 1.6
+	// TabNeckLength is a tab's 0.6 mm wide neck past its contact point.
+	TabNeckLength = 1.0
+	// TabWideningClearance is the least gap from a tab's widening end to its wall's inner face.
+	TabWideningClearance = 0.4
+	// HarnessGateCount is the number of gates: six trailing-edge struts, six tabs and four keel pins.
+	HarnessGateCount = 16
 )
 
 // HarnessGate is one gate. Contact is the blade point the neck axis enters; Dir is the unit axis from Contact out of
-// the blade; Root is the gate's harness end (on the wall's mid plane for a trailing-edge gate, 0.5 inside the keel for a
+// the blade; Root is the gate's harness end (on its wall's mid plane for a strut or a tab, 0.5 inside the keel for a
 // pin).
 type HarnessGate struct{ Contact, Dir, Root r3.Vec }
 
-// BladeHarness is the harness in the print frame. Gates 0..5 are the trailing-edge gates (stations 5..9, tip), 6..9
-// the keel pins (stud, station 2, station 7, station 9). KeelFootprint is the keel's plan outline (x, y), KeelTop its
-// top profile (x, z), KeelTopAt interpolates it. WallY is the wall's mid plane, PlateMin/PlateMax the plate corners.
+// HarnessWall is one cradle wall in the print frame. Side is the outward y sign (-1 or +1). Inner is the inner face's
+// plan polyline (x, y), from the stud end to the far end; the wall is WallThickness thick outward from it. Top is the
+// side profile (x, z) of its top. Pressure is true for the wall that carries the trailing-edge struts.
+type HarnessWall struct {
+	Side     float64
+	Inner    [][2]float64
+	Top      [][2]float64
+	Pressure bool
+}
+
+// InnerAt interpolates the inner face's y at x; false outside its x range.
+func (w HarnessWall) InnerAt(x float64) (float64, bool) {
+	return polylineAt(w.Inner, x)
+}
+
+// polylineAt interpolates the polyline of (x, value) vertices, sorted by x, at x; false outside its x range.
+func polylineAt(line [][2]float64, x float64) (float64, bool) {
+	if len(line) < 2 || x < line[0][0] || x > line[len(line)-1][0] {
+		return 0, false
+	}
+	for i := 1; i < len(line); i++ {
+		if x <= line[i][0] {
+			a, c := line[i-1], line[i]
+			if c[0]-a[0] < 1e-12 {
+				return c[1], true
+			}
+			return a[1] + (c[1]-a[1])*(x-a[0])/(c[0]-a[0]), true
+		}
+	}
+	return line[len(line)-1][1], true
+}
+
+// BladeHarness is the harness in the print frame: a plate, a keel and two cradle walls. Gates 0..5 are the
+// trailing-edge struts (stations 5..9, tip) from the pressure wall; 6 is the pressure wall's root tab (station 2); 7..11
+// the suction wall's tabs (station 2, then stations 6..9); 12..15 the keel pins (stud, station 2, station 7,
+// station 9). KeelFootprint is the keel's plan outline (x, y), KeelTop its top profile (x, z), KeelTopAt interpolates
+// it. Walls[0] is the pressure wall and Walls[1] the suction wall. PlateMin/PlateMax are the plate corners.
 // CradleWidth is the keel's width under the stud and root.
 type BladeHarness struct {
 	Body *decad.Body
-	// Sketches are the 14 sketches in build order: keel footprint, keel profile, wall, 6 struts, 4 pins, plate.
+	// Sketches are the 23 sketches in build order: keel footprint, keel profile; pressure wall 6 struts, 1 tab,
+	// profile, plan; suction wall 5 tabs, profile, plan; 4 pins; plate.
 	Sketches      []*sketch.Sketch
 	Gates         [HarnessGateCount]HarnessGate
 	KeelFootprint [][2]float64
 	KeelTop       [][2]float64
-	WallY         float64
+	Walls         [2]HarnessWall
 	PlateMin      r3.Vec
 	PlateMax      r3.Vec
 	CradleWidth   float64
@@ -205,23 +254,37 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *Bla
 	keel := b.keel(h.KeelFootprint, h.KeelTop)
 
 	contacts := trailingContacts(b.sz, xf, stations, hand)
-	wall, struts := b.wallAndStruts(h, contacts, hand)
+	pressure := -1.0 // the pressure face faces -y for the right hand
+	if hand == LeftHand {
+		pressure = 1
+	}
+	xs, xe := xr(b.sz.BladeStudStart), contacts[5].X+HarnessMargin
+	xt := xr(stations[1].r)
+	var walls [2]*decad.Body
+	var parts [2][]*decad.Body
+	walls[0], parts[0] = b.cradleWall(h, secs, 0, pressure, xs, xe, contacts[:], []int{0, 1, 2, 3, 4, 5}, []float64{xt}, 6)
+	walls[1], parts[1] = b.cradleWall(h, secs, 1, -pressure, xs, xe, nil, nil,
+		[]float64{xt, xr(stations[5].r), xr(stations[6].r), xr(stations[7].r), xr(stations[8].r)}, 7)
 	pins := b.keelPins(h, secs, xr, stations)
 	plate := b.plate(h, box)
 	if b.err != nil {
 		return nil
 	}
 
-	// Join in small chains, each branch then the base: the keel with its pins, the plate with the keel, the wall with
-	// its struts, then the base with the wall.
+	// Join in small chains, each branch then the base: the keel with its pins, the plate with the keel, then each wall
+	// with its struts and tabs, and the base with that wall.
 	for i, pin := range pins {
-		keel = b.join(keel, pin, fmt.Sprintf("keel pin %d", 6+i))
+		keel = b.join(keel, pin, fmt.Sprintf("keel pin %d", 12+i))
 	}
 	body := b.join(plate, keel, "keel")
-	for i, strut := range struts {
-		wall = b.join(wall, strut, fmt.Sprintf("strut %d", i))
+	for w := range walls {
+		wall := walls[w]
+		for i, part := range parts[w] {
+			wall = b.join(wall, part, fmt.Sprintf("wall %d part %d", w, i))
+		}
+		body = b.join(body, wall, fmt.Sprintf("wall %d", w))
 	}
-	h.Body = b.join(body, wall, "wall")
+	h.Body = body
 	return h
 }
 
@@ -403,54 +466,164 @@ func trailingContacts(sz Size, xf r3.Transform, stations [10]station, hand Hand)
 	return out
 }
 
-// wallAndStruts places the wall on the pressure side and builds it and the six struts (steps 9 and 10).
-func (b *bladeBuilder) wallAndStruts(h *BladeHarness, contacts [6]r3.Vec, hand Hand) (*decad.Body, []*decad.Body) {
+// cradleWall builds cradle wall h.Walls[wall] on side (the outward y sign), from xs to xe (steps 9a to 9e): its struts
+// to contacts, written to h.Gates[strutGates[i]], and its tabs at tabX, written to h.Gates[firstTab+i]. It returns the
+// wall and its struts and tabs in join order. The wall is the intersection of a vertical prism over its plan, a band
+// WallThickness wide WallGap outside the blade, and a horizontal slab under its top profile, which runs through every
+// gate's required height.
+func (b *bladeBuilder) cradleWall(h *BladeHarness, secs bladeSections, wall int, side, xs, xe float64, contacts []r3.Vec,
+	strutGates []int, tabX []float64, firstTab int) (*decad.Body, []*decad.Body) {
 	if b.err != nil {
 		return nil, nil
 	}
+	o := side
+	w := &h.Walls[wall]
+	w.Side, w.Pressure = side, len(contacts) > 0
 	head := GateEmbed + GateNeckLength + GateTaper
 	dmin := GateConeClearance + head*math.Cos(GateRise) + WallThickness/2 + GateRadius*math.Sin(GateRise)
-	h.WallY = math.Inf(1)
-	if hand == LeftHand {
-		h.WallY = math.Inf(-1)
-	}
-	for _, c := range contacts {
-		if hand == LeftHand {
-			h.WallY = math.Max(h.WallY, c.Y+dmin)
-			continue
+
+	// 9a: tab contacts at the section nearest each tab x, on the blade's lateral extreme, at the middle of the outline
+	// band within 0.05 of it.
+	tabs := make([]r3.Vec, len(tabX))
+	for i, x := range tabX {
+		loops := secs.near(x)
+		extreme, px := math.Inf(-1), x
+		for _, l := range loops {
+			for _, p := range l {
+				if o*p.Y > extreme {
+					extreme, px = o*p.Y, p.X
+				}
+			}
 		}
-		h.WallY = math.Min(h.WallY, c.Y-dmin)
-	}
-	var struts []*decad.Body
-	tops := make([][2]float64, len(contacts))
-	for i, c := range contacts {
-		d := math.Abs(c.Y - h.WallY)
-		if cone := d - head*math.Cos(GateRise) - WallThickness/2 - GateRadius*math.Sin(GateRise); cone < GateConeClearance-1e-9 {
-			b.fail("place wall", fmt.Errorf("gate %d cone is %.2f mm from the wall, under GateConeClearance", i, cone))
+		if math.IsInf(extreme, -1) {
+			b.fail("tab", fmt.Errorf("gate %d: no blade section at x %.2f", firstTab+i, x))
 			return nil, nil
 		}
-		s := r3.Vec{X: c.X, Y: h.WallY, Z: c.Z - d*math.Tan(GateRise)}
-		w, _ := s.Sub(c).Normalize()
-		t := c.Sub(w.Scale(GateEmbed))
+		zlo, zhi := math.Inf(1), math.Inf(-1)
+		for _, l := range loops {
+			for _, p := range l {
+				if o*p.Y >= extreme-0.05 {
+					zlo, zhi = math.Min(zlo, p.Z), math.Max(zhi, p.Z)
+				}
+			}
+		}
+		tabs[i] = r3.Vec{X: px, Y: o * extreme, Z: (zlo + zhi) / 2}
+	}
+
+	// 9b: the inner face's plan.
+	var xsamples []float64
+	for x := xs; x < xe; x += WallStep {
+		xsamples = append(xsamples, x)
+	}
+	xsamples = append(xsamples, xe)
+	for _, t := range tabs {
+		xsamples = append(xsamples, t.X)
+	}
+	for _, c := range contacts {
+		xsamples = append(xsamples, c.X, c.X-GateRadius-WallStep, c.X+GateRadius+WallStep)
+	}
+	slices.Sort(xsamples)
+	for _, x := range xsamples {
+		if n := len(w.Inner); n > 0 && x-w.Inner[n-1][0] <= 1e-6 {
+			continue
+		}
+		extreme := math.Inf(-1)
+		for xx := x - WallStep; xx <= x+WallStep+1e-9; xx += SectionStep {
+			for _, l := range secs.near(xx) {
+				for _, p := range l {
+					extreme = math.Max(extreme, o*p.Y)
+				}
+			}
+		}
+		if math.IsInf(extreme, -1) {
+			b.fail("wall plan", fmt.Errorf("wall %d: no blade section near x %.2f", wall, x))
+			return nil, nil
+		}
+		y := o * (extreme + WallGap)
+		for _, c := range contacts {
+			if math.Abs(c.X-x) <= GateRadius+WallStep+1e-9 {
+				if need := c.Y + o*(dmin-WallThickness/2); o*need > o*y {
+					y = need
+				}
+			}
+		}
+		w.Inner = append(w.Inner, [2]float64{x, y})
+	}
+	mid := func(x float64) float64 {
+		y, _ := w.InnerAt(x)
+		return y + o*WallThickness/2
+	}
+
+	// 9c: struts.
+	var parts []*decad.Body
+	var tops [][2]float64
+	for i, c := range contacts {
+		d := math.Abs(c.Y - mid(c.X))
+		if cone := d - head*math.Cos(GateRise) - WallThickness/2 - GateRadius*math.Sin(GateRise); cone < GateConeClearance-1e-9 {
+			b.fail("place wall", fmt.Errorf("gate %d cone is %.2f mm from the wall, under GateConeClearance", strutGates[i],
+				cone))
+			return nil, nil
+		}
+		s := r3.Vec{X: c.X, Y: mid(c.X), Z: c.Z - d*math.Tan(GateRise)}
+		dir, _ := s.Sub(c).Normalize()
+		t := c.Sub(dir.Scale(GateEmbed))
 		length := s.Sub(t).Len()
-		v, _ := r3.Vec{Z: 1}.Cross(w).Normalize()
+		v, _ := r3.Vec{Z: 1}.Cross(dir).Normalize()
 		n := GateEmbed + GateNeckLength
-		struts = append(struts, b.revolvePolygon(frame(t, w, v), [][2]float64{
+		parts = append(parts, b.revolvePolygon(frame(t, dir, v), [][2]float64{
 			{0, 0}, {0, GateNeckRadius}, {n, GateNeckRadius}, {n + GateTaper, GateRadius}, {length, GateRadius}, {length, 0},
 		}, "strut"))
-		h.Gates[i] = HarnessGate{Contact: c, Dir: w, Root: s}
-		tops[i] = [2]float64{c.X, s.Z + GateRadius*math.Cos(GateRise) + WallCover}
+		h.Gates[strutGates[i]] = HarnessGate{Contact: c, Dir: dir, Root: s}
+		tops = append(tops, [2]float64{c.X, s.Z + GateRadius*math.Cos(GateRise) + WallCover})
+	}
+
+	// 9d: tabs, flat slabs from the wall's mid plane through a 0.6 mm neck into the blade.
+	for i, p := range tabs {
+		a0, a1 := p.Y-o*GateEmbed, p.Y+o*TabNeckLength
+		a2, a3 := a1+o*(TabWidth/2-GateNeckRadius), mid(p.X)
+		if inner, _ := w.InnerAt(p.X); o*(inner-a2) < TabWideningClearance {
+			b.fail("tab", fmt.Errorf("gate %d widens %.2f mm from the wall, under TabWideningClearance", firstTab+i,
+				o*(inner-a2)))
+			return nil, nil
+		}
+		rn, hw := GateNeckRadius, TabWidth/2
+		parts = append(parts, b.extrudePolygon(frame(r3.Vec{Z: p.Z - TabHeight/2}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+			[][2]float64{{p.X - rn, a0}, {p.X - rn, a1}, {p.X - hw, a2}, {p.X - hw, a3}, {p.X + hw, a3}, {p.X + hw, a2},
+				{p.X + rn, a1}, {p.X + rn, a0}}, TabHeight, "tab"))
+		h.Gates[firstTab+i] = HarnessGate{Contact: p, Dir: r3.Vec{Y: o}, Root: r3.Vec{X: p.X, Y: mid(p.X), Z: p.Z}}
+		tops = append(tops, [2]float64{p.X, p.Z + TabHeight/2 + WallCover})
+	}
+
+	// 9e: the top profile through every required point, and the wall as prism ∩ slab.
+	slices.SortFunc(tops, func(a, c [2]float64) int { return cmp.Compare(a[0], c[0]) })
+	w.Top = append([][2]float64{{xs, tops[0][1]}}, tops...)
+	w.Top = append(w.Top, [2]float64{xe, tops[len(tops)-1][1]})
+	maxTop, ymin, ymax := 0.0, math.Inf(1), math.Inf(-1)
+	for _, q := range w.Top {
+		maxTop = math.Max(maxTop, q[1])
+	}
+	plan := slices.Clone(w.Inner)
+	for i := len(w.Inner) - 1; i >= 0; i-- {
+		plan = append(plan, [2]float64{w.Inner[i][0], w.Inner[i][1] + o*WallThickness})
+	}
+	for _, q := range plan {
+		ymin, ymax = math.Min(ymin, q[1]), math.Max(ymax, q[1])
 	}
 	t := HarnessPlateThickness
-	x0, x1 := contacts[0].X-HarnessMargin, contacts[5].X+HarnessMargin
-	outline := [][2]float64{{x0, t / 2}, {x1, t / 2}, {x1, tops[5][1]}}
-	for i := len(tops) - 1; i >= 0; i-- {
-		outline = append(outline, tops[i])
+	last := w.Top[len(w.Top)-1][1]
+	profile := [][2]float64{{xs - 1, t / 2}, {xe + 1, t / 2}, {xe + 1, last}}
+	for i := len(w.Top) - 1; i >= 0; i-- {
+		profile = append(profile, w.Top[i])
 	}
-	outline = append(outline, [2]float64{x0, tops[0][1]})
-	wall := b.extrudePolygon(frame(r3.Vec{Y: h.WallY + WallThickness/2}, r3.Vec{X: 1}, r3.Vec{Z: 1}), outline,
-		WallThickness, "wall")
-	return b.chamferCaps(wall, "wall"), struts
+	profile = append(profile, [2]float64{xs - 1, w.Top[0][1]})
+	slab := b.extrudePolygon(frame(r3.Vec{Y: ymax + 1}, r3.Vec{X: 1}, r3.Vec{Z: 1}), profile, ymax-ymin+2, "wall profile")
+	prism := b.extrudePolygon(frame(r3.Vec{Z: t / 4}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, maxTop+1, "wall plan")
+	if b.err != nil {
+		return nil, nil
+	}
+	body, err := decad.Intersect(b.ctx, prism, slab)
+	b.fail(fmt.Sprintf("intersect wall %d", wall), err)
+	return body, parts
 }
 
 // keelPins builds the four keel pins (step 11): vertical circles of GateNeckRadius from 0.5 under the keel top up to
@@ -467,24 +640,30 @@ func (b *bladeBuilder) keelPins(h *BladeHarness, secs bladeSections, xr func(flo
 		p := secs.ridge(xr(r))
 		top, ok := h.KeelTopAt(p.X)
 		if !ok || !insidePolygon(h.KeelFootprint, p.X, p.Y) {
-			b.fail("keel pin", fmt.Errorf("pin %d at %v lies off the keel", 6+i, p))
+			b.fail("keel pin", fmt.Errorf("pin %d at %v lies off the keel", 12+i, p))
 			return nil
 		}
 		root := r3.Vec{X: p.X, Y: p.Y, Z: top - 0.5}
 		pins = append(pins, b.cylinder(frame(root, r3.Vec{X: 1}, r3.Vec{Y: 1}), GateNeckRadius, p.Z+KeelGateEmbed-root.Z))
-		h.Gates[6+i] = HarnessGate{Contact: p, Dir: r3.Vec{Z: -1}, Root: root}
+		h.Gates[12+i] = HarnessGate{Contact: p, Dir: r3.Vec{Z: -1}, Root: root}
 	}
 	return pins
 }
 
-// plate builds the plate (step 12): a rectangle under the blade, the keel and the wall, HarnessMargin beyond them,
+// plate builds the plate (step 12): a rectangle under the blade, the keel and both walls, HarnessMargin beyond them,
 // chamfered on both caps.
 func (b *bladeBuilder) plate(h *BladeHarness, box decad.Box) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	ylo := math.Min(h.WallY-WallThickness/2, box.Min.Y)
-	yhi := math.Max(h.WallY+WallThickness/2, box.Max.Y)
+	ylo, yhi := box.Min.Y, box.Max.Y
+	for _, w := range h.Walls {
+		for _, q := range w.Inner {
+			for _, y := range []float64{q[1], q[1] + w.Side*WallThickness} {
+				ylo, yhi = math.Min(ylo, y), math.Max(yhi, y)
+			}
+		}
+	}
 	for _, q := range h.KeelFootprint {
 		ylo, yhi = math.Min(ylo, q[1]), math.Max(yhi, q[1])
 	}

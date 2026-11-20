@@ -68,11 +68,12 @@ func insideFootprint(fp [][2]float64, x, y float64) bool {
 // requireHarnessBuild builds and checks one harness and returns it.
 func requireHarnessBuild(t *testing.T, d, pitch float64, hand turbinefan.Hand) *turbinefan.BladeHarness {
 	t.Helper()
+	sz := mustSize(t, d)
 	doc, blade := posedBlade(t, d, pitch, hand)
-	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, mustSize(t, d), hand)
+	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, hand)
 	require.NoError(t, err, "rotor %g, pitch %g, hand %v", d, pitch, hand)
 	require.True(t, h.Body.IsSolid())
-	require.Len(t, h.Sketches, 14)
+	require.Equal(t, 23, len(h.Sketches))
 	for i, s := range h.Sketches {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 	}
@@ -81,19 +82,50 @@ func requireHarnessBuild(t *testing.T, d, pitch float64, hand turbinefan.Hand) *
 	box, err := h.Body.Bounds()
 	require.NoError(t, err)
 	require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-6)
+
+	pressure := -1.0
+	if hand == turbinefan.LeftHand {
+		pressure = 1
+	}
+	require.Equal(t, pressure, h.Walls[0].Side)
+	require.Equal(t, -pressure, h.Walls[1].Side)
+	require.True(t, h.Walls[0].Pressure)
+	require.False(t, h.Walls[1].Pressure)
+	_, xf := poseTransform(t, sz, pitch, hand)
+	xs := xf.Apply(r3.Vec{Z: sz.BladeStudStart}).X
+	for i, w := range h.Walls {
+		require.InDelta(t, xs, w.Inner[0][0], 1e-6, "wall %d start", i)
+		require.InDelta(t, h.Gates[5].Contact.X+turbinefan.HarnessMargin, w.Inner[len(w.Inner)-1][0], 1e-6, "wall %d end", i)
+	}
+
 	head := turbinefan.GateEmbed + turbinefan.GateNeckLength + turbinefan.GateTaper
 	for i, g := range h.Gates[:6] {
 		require.InDelta(t, -math.Sin(turbinefan.GateRise), g.Dir.Z, 1e-9, "gate %d rise", i)
 		require.InDelta(t, 0, g.Dir.X, 1e-9, "gate %d plane", i)
-		cone := math.Abs(g.Contact.Y-h.WallY) - head*math.Cos(turbinefan.GateRise) - turbinefan.WallThickness/2 -
+		inner, ok := h.Walls[0].InnerAt(g.Contact.X)
+		require.True(t, ok, "gate %d over the wall", i)
+		cone := math.Abs(g.Contact.Y-inner) - head*math.Cos(turbinefan.GateRise) -
 			turbinefan.GateRadius*math.Sin(turbinefan.GateRise)
 		require.GreaterOrEqual(t, cone, turbinefan.GateConeClearance-1e-9, "gate %d cone clearance", i)
+	}
+	for i := 6; i < 12; i++ {
+		g, w := h.Gates[i], h.Walls[1]
+		if i == 6 {
+			w = h.Walls[0]
+		}
+		require.InDelta(t, 0, g.Dir.X, 1e-9, "tab %d", i)
+		require.InDelta(t, w.Side, g.Dir.Y, 1e-9, "tab %d", i)
+		require.InDelta(t, 0, g.Dir.Z, 1e-9, "tab %d", i)
+		inner, ok := w.InnerAt(g.Contact.X)
+		require.True(t, ok, "tab %d over the wall", i)
+		widen := g.Contact.Y + w.Side*(turbinefan.TabNeckLength+turbinefan.TabWidth/2-turbinefan.GateNeckRadius)
+		require.GreaterOrEqual(t, w.Side*(inner-widen), turbinefan.TabWideningClearance-1e-9, "tab %d widening", i)
 	}
 	for i, q := range h.KeelTop {
 		require.GreaterOrEqual(t, q[1], turbinefan.HarnessPlateThickness+turbinefan.KeelMinRise, "keel top %d", i)
 	}
-	for i, g := range h.Gates[6:] {
-		require.True(t, insideFootprint(h.KeelFootprint, g.Contact.X, g.Contact.Y), "pin %d on the keel", 6+i)
+	for i, g := range h.Gates[12:] {
+		require.True(t, insideFootprint(h.KeelFootprint, g.Contact.X, g.Contact.Y), "pin %d on the keel", 12+i)
 	}
 	return h
 }
