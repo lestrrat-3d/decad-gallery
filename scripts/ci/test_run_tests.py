@@ -368,6 +368,20 @@ class PlanetaryFullTest(unittest.TestCase):
             self.assertLessEqual(len(heavy), 1)
         self.assertCountEqual([name for shard in shards for name in shard], tests)
 
+    def test_shared_gearboxes_stay_in_one_process(self):
+        groups = (("TestBodyContainers", "TestFastenersSitFlush", "TestFirstPlanetMesh"),
+                  ("TestSplitShafts", "TestCorners"), ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
+                  ("TestExplodedTwoStageGearbox", "TestTwoStages"))
+        tests = [name for group in groups for name in group] + ["TestNewCase"]
+        shards = run_tests.planetary_test_shards(tests)
+        self.assertCountEqual([name for shard in shards for name in shard], tests)
+        for group in groups:
+            self.assertTrue(any(set(group) <= set(shard) for shard in shards), group)
+
+    def test_duplicate_discovered_test_cannot_disappear_in_grouping(self):
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            run_tests.planetary_test_shards(["TestBodyContainers", "TestBodyContainers"])
+
     def test_pr_shards_partition_every_test_once(self):
         tests = ["TestDefaultDimensionsUnchanged", "TestKitGearboxes"] + [f"TestCase{i:02d}" for i in range(30)]
         with mock.patch.dict(run_tests.os.environ, {}, clear=True), \
