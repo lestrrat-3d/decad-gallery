@@ -16,6 +16,8 @@ MODELS = set("ballbearing bevelgear clamparm crankhandle cycloidal escapement ha
 INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
                "placement rootcheck sketchcheck".split())
 FEATURES = {"dovetail"}
+TEST_PACKAGE_DIRS = ({"models/" + name for name in MODELS} | {"internal/" + name for name in INTERNAL} |
+                    {"features/" + name for name in FEATURES} | {"tools/render"})
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
             ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
@@ -210,10 +212,7 @@ def plan(event, base, tested):
         try:
             before, after = metadata(base), metadata(tested)
         except (subprocess.CalledProcessError, ValueError, OSError, KeyError, tarfile.TarError) as exc:
-            known = ({f"models/{name}" for name in MODELS} | {f"internal/{name}" for name in INTERNAL}
-                     | {f"features/{name}" for name in FEATURES})
-            known.add("tools/render")
-            if any(str(Path(path).parent) not in known for path in code):
+            if any(str(Path(path).parent) not in TEST_PACKAGE_DIRS for path in code):
                 raise RuntimeError("package metadata unavailable for an unregistered Go directory") from exc
             raise
         new_packages = set(after) - set(before)
@@ -306,6 +305,18 @@ def plan(event, base, tested):
     return result
 
 
+def needs_gallery_cache(event, result):
+    suites = result["suites"]
+    if event not in {"pull_request", "push"} or not suites or {"full", "renderer-all"}.intersection(suites):
+        return False
+    if "broad" in suites or (any(s.startswith("isolated-") for s in suites) and
+                             not all(s.startswith("isolated-") for s in suites)):
+        return True
+    # The renderer builds and hashes production packages. Go test files do not enter those builds.
+    paths = result.get("changed_paths", [])
+    return not paths or not all(p.endswith("_test.go") and str(Path(p).parent) in TEST_PACKAGE_DIRS for p in paths)
+
+
 def main():
     check_wheel_inventory()
     event_path = os.environ.get("GITHUB_EVENT_PATH")
@@ -327,6 +338,7 @@ def main():
             proof["suites"] = result["suites"]
             result.update(suites=[], reasons={}, reused=proof,
                           reason="matching successful pull request already tested this tree")
+    result["check_gallery_cache"] = needs_gallery_cache(event, result)
     encoded = json.dumps(result, sort_keys=True, separators=(",", ":"))
     print(encoded)
     if os.environ.get("GITHUB_OUTPUT"):

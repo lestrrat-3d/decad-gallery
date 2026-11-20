@@ -14,6 +14,31 @@ import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_gallery_cache_selection(self):
+        isolated = "isolated-internal-clamparmcapacity-TestCheck"
+        tests = ["internal/clamparmcapacity/check_test.go"]
+        helper = ["models/planetarygearbox/planetarygearbox_helpers_test.go"]
+        model = "model-planetarygearbox"
+        cases = (
+            ("pull_request", [isolated], tests, False),
+            ("push", [isolated, "isolated-planetarygearbox-TestHousing"], tests + helper, False),
+            ("pull_request", [model], helper, False),
+            ("pull_request", [model, isolated], tests + helper, True),
+            ("push", ["broad", isolated], tests, True),
+            ("pull_request", [isolated], tests + ["scripts/ci/plan.py"], True),
+            ("pull_request", [model], helper + ["models/planetarygearbox/params.go"], True),
+            ("pull_request", [model], ["unregistered/helper_test.go"], True),
+            ("pull_request", [model], [], True),
+            ("push", [], tests, False),
+            ("pull_request", ["broad", "full"], helper, False),
+            ("push", ["renderer-all"], ["tools/render/gallery_cache.go"], False),
+            ("schedule", ["broad"], [], False),
+            ("workflow_dispatch", ["broad"], [], False),
+        )
+        for event, suites, paths, expected in cases:
+            with self.subTest(event=event, suites=suites, paths=paths):
+                self.assertEqual(plan.needs_gallery_cache(event, {"suites": suites, "changed_paths": paths}), expected)
+
     def test_main_push_reuses_only_a_verified_result(self):
         import reuse_main
         original = {"version": 1, "tested": "a" * 40, "base": "b" * 40, "changed_paths": ["x.go"],

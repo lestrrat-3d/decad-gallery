@@ -113,8 +113,8 @@ class GateTest(unittest.TestCase):
     def test_gallery_cache_step_runs_only_on_pr_and_push(self):
         workflow = Path(".github/workflows/repository.yml").read_text()
         step = workflow.split("- name: Check gallery tile cache\n", 1)[1].split("- name:", 1)[0]
-        self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'", step)
-        self.assertIn("!contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')", step)
+        self.assertEqual(step.splitlines()[0].strip(),
+                         "if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).check_gallery_cache")
         self.assertIn("go -C tools/render test -run '^TestGalleryCache'", step)
         renderer = workflow.split("  renderer-full:\n", 1)[1].split("\n  planetary-motion:", 1)[0]
         self.assertIn("python3 scripts/ci/gate.py renderer-full", renderer)
