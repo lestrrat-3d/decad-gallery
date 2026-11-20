@@ -27,7 +27,19 @@ top-level tests individually. The spinning wheel's coplanar tests run with their
 Both revisions must carry the marker. CI checks that marked files contain only imports and test functions, and rejects
 references to other test functions inside them. Tests in marked files must not depend on another test's side effects.
 New test files in these directories containing tests must carry the marker. Helper-only files do not need it.
-Changes to imports, helpers, compiler directives, deleted tests, or unmarked files use the normal
+A private test predicate can opt in with a `// CI: isolated-predicate` doc comment. Give it built-in scalar
+parameters and one boolean return expression using only its parameters, literals, comparisons, signs, and boolean
+operators. Its result may only guard a single `testing.T.Errorf` call with scalar diagnostic values. Every test
+in the package must follow the isolated-test rule above. A helper must neither store a test callback nor depend
+on another test's state. Tests must exercise a predicate through Go calls and must not inspect its source or binary.
+Put one marked predicate in a file.
+
+A change confined to one marked predicate body runs every isolated top-level test that calls it through private
+test helpers. CI examines both revisions, type-checks the tested package, and follows direct calls across files
+and inside `testing.T.Run` callbacks. Other changes in the same Go diff, indirect calls, uses from initializers
+or methods, build constraints, and packages with a `TestMain` use the normal package selection.
+
+Changes to imports, other helpers, compiler directives, deleted tests, or unmarked files use the normal
 package selection. Production and dependency changes use the normal selection too.
 
 `gate.py` turns the plan into a worker matrix and checks the plan, matrix, and expected job results. An empty matrix
