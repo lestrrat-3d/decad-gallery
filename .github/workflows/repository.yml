@@ -32,7 +32,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - id: plan
         env:
           CI_BROAD_OVERRIDE: ${{ vars.CI_BROAD_OVERRIDE }}
@@ -59,7 +58,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Run selected suite
         env:
           SUITE: ${{ matrix.suite }}
@@ -79,7 +77,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check repository layout
         run: python3 scripts/check_repository.py
       - name: Check clamp arm capacity documentation
@@ -134,10 +131,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check full renderer suite
         env:
           CI_TEST_RECORDS: renderer-full.jsonl
@@ -158,12 +154,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check planetary gearbox motion
-        run: go -C tools/render test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./...
+        run: go test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./tools/render
 
   wheel-motion:
     needs: plan
@@ -173,12 +168,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check spinning wheel motion
-        run: go -C tools/render test -run '^TestSpinningWheelMotion$' -timeout 30m ./...
+        run: go test -run '^TestSpinningWheelMotion$' -timeout 30m ./tools/render
 
   wheel-parts:
     needs: plan
@@ -189,12 +183,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check spinning wheel parts table
-        run: go -C tools/render test -run '^TestSpinningWheelPartsTable$' -timeout 40m ./...
+        run: go test -run '^TestSpinningWheelPartsTable$' -timeout 40m ./tools/render
 
   fan-motion:
     needs: plan
@@ -204,12 +197,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check hand-crank fan motion
-        run: go -C tools/render test -run '^TestHandCrankFanMotion$' -timeout 20m ./...
+        run: go test -run '^TestHandCrankFanMotion$' -timeout 20m ./tools/render
 
   escapement:
     needs: plan
@@ -223,7 +215,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check Graham escapement
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'escapement.jsonl' || '' }}
@@ -248,7 +239,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check one-way clutch
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'onewayclutch.jsonl' || '' }}
@@ -295,7 +285,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check turbine fan
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'turbinefan.jsonl' || '' }}
@@ -317,12 +306,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: tools/render/go.mod
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check escapement exploded view
-        run: go -C tools/render test -run '^TestEscapementExploded$' -timeout 15m ./...
+        run: go test -run '^TestEscapementExploded$' -timeout 15m ./tools/render
 
   wheel:
     needs: plan
@@ -351,7 +339,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check spinning wheel
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('wheel-{0}.jsonl', matrix.case) || '' }}
@@ -387,7 +374,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check hand-crank siren
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('siren-{0}.jsonl', matrix.case) || '' }}
@@ -423,7 +409,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check representative bevel geometry shards
         run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.group }}
 
@@ -451,7 +436,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Check full bevel coverage shard
         env:
           CI_TEST_RECORDS: bevel-full-${{ matrix.shard }}.jsonl
@@ -503,7 +487,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            tools/render/go.sum
       - name: Discover full test inventory
         run: python3 scripts/ci/inventory.py > inventory.json
       - uses: actions/download-artifact@v4

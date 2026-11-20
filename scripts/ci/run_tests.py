@@ -10,6 +10,18 @@ import tempfile
 import uuid
 
 
+# Packages whose tests form the renderer group: the CLI and, as they move, per-item render packages and the shared core.
+RENDERER_PACKAGE = re.compile(
+    r"^github\.com/lestrrat-3d/decad-gallery/"
+    r"(tools/render(/.*)?|internal/renderkit|models/[a-z0-9]+/render|features/[a-z0-9]+/render)$")
+
+
+def renderer_packages() -> list[str]:
+    """Return sorted root-module packages matching RENDERER_PACKAGE (`go list ./...` from the repo root)."""
+    listing = subprocess.run(["go", "list", "./..."], check=True, capture_output=True, text=True)
+    return sorted(package for package in listing.stdout.splitlines() if RENDERER_PACKAGE.match(package))
+
+
 BEVEL_TESTS = {
     "pr": {
         "a": [
@@ -744,7 +756,7 @@ def run_models(mode: str) -> None:
 def run_full_models() -> None:
     """Check the root module inventory and run every test outside the bevel shards."""
     listing = subprocess.run(["go", "list", "./..."], check=True, capture_output=True, text=True)
-    packages = listing.stdout.splitlines()
+    packages = [package for package in listing.stdout.splitlines() if not RENDERER_PACKAGE.match(package)]
     if not packages:
         raise SystemExit("root module lists no packages")
     bevel = "github.com/lestrrat-3d/decad-gallery/models/bevelgear"

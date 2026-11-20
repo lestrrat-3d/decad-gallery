@@ -37,13 +37,21 @@ class InventoryTests(unittest.TestCase):
         root[full_partition.BEVEL] = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
         root[full_partition.BEVEL].append("TestRemainder")
         root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanVariant"]
-        result = inventory.report(root, {"renderer": ["TestRender"]})
+        renderer_package = full_partition.ROOT + "/tools/render"
+        result = inventory.report(root, {renderer_package: ["TestRender"]})
         self.assertEqual(result["known_assignments"]["root"][full_partition.BEVEL]["TestRemainder"],
                          ["repository/bevel-remainder"])
         self.assertEqual(result["full_environment"], full_partition.FULL_ENV)
         self.assertIn("discovered at runtime", result["subtests"])
-        self.assertEqual(result["modules"]["renderer"]["renderer"], ["TestRender"])
-        self.assertEqual(result["known_assignments"]["renderer"]["renderer"]["TestRender"], ["renderer-full"])
+        self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])
+        self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full"])
+
+    def test_split_renderer_separates_render_packages(self):
+        root_package = full_partition.ROOT + "/models/ballbearing"
+        renderer_package = full_partition.ROOT + "/tools/render"
+        root, renderer = inventory.split_renderer({root_package: ["TestA"], renderer_package: ["TestB"]})
+        self.assertEqual(root, {root_package: ["TestA"]})
+        self.assertEqual(renderer, {renderer_package: ["TestB"]})
 
 
 if __name__ == "__main__":

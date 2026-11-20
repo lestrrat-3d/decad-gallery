@@ -7,36 +7,36 @@ import re
 import subprocess
 import sys
 
-from run_tests import FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, run_pattern
+from run_tests import FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
-RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
+MODULE = "github.com/lestrrat-3d/decad-gallery"
 RENDER_PR_SHARDS = 16
 RENDER_TESTS = {
-    "clamparm-render": ("40m", ("TestClampArmPresets", "TestClampArmExploded")),
-    "swiss-render": ("40m", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
-    "siren-render": ("40m", ("TestHandCrankSirenView",)),
-    "fan-view": ("40m", ("TestHandCrankFanView",)),
-    "planetary-render": ("40m", ("TestPlanetaryMotionUsesBuiltGearbox", "TestPlanetaryKitParts")),
-    "wheel-block": ("40m", ("TestSpinningWheelBlockOfEveryPart",)),
-    "bevel-render": ("40m", ("TestBevelPairsRealBuild",)),
-    "bearing-render": ("40m", ("TestDirectRenderMatchesPNGForClippedBearing",)),
-    "planetary-motion": ("10m", ("TestPlanetaryGearboxMotion",)),
-    "wheel-motion": ("30m", ("TestSpinningWheelMotion",)),
-    "wheel-parts": ("40m", ("TestSpinningWheelPartsTable",)),
-    "fan-motion": ("20m", ("TestHandCrankFanMotion",)),
-    "escapement-exploded": ("15m", ("TestEscapementExploded",)),
+    "clamparm-render": ("40m", "tools/render", ("TestClampArmPresets", "TestClampArmExploded")),
+    "swiss-render": ("40m", "tools/render", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
+    "siren-render": ("40m", "tools/render", ("TestHandCrankSirenView",)),
+    "fan-view": ("40m", "tools/render", ("TestHandCrankFanView",)),
+    "planetary-render": ("40m", "tools/render", ("TestPlanetaryMotionUsesBuiltGearbox", "TestPlanetaryKitParts")),
+    "wheel-block": ("40m", "tools/render", ("TestSpinningWheelBlockOfEveryPart",)),
+    "bevel-render": ("40m", "tools/render", ("TestBevelPairsRealBuild",)),
+    "bearing-render": ("40m", "tools/render", ("TestDirectRenderMatchesPNGForClippedBearing",)),
+    "planetary-motion": ("10m", "tools/render", ("TestPlanetaryGearboxMotion",)),
+    "wheel-motion": ("30m", "tools/render", ("TestSpinningWheelMotion",)),
+    "wheel-parts": ("40m", "tools/render", ("TestSpinningWheelPartsTable",)),
+    "fan-motion": ("20m", "tools/render", ("TestHandCrankFanMotion",)),
+    "escapement-exploded": ("15m", "tools/render", ("TestEscapementExploded",)),
 }
 WORKERS = {
     "cycloidal-pr": [RUNNER + ["cycloidal", "pr"]],
     "model-handcrankfan": [RUNNER + ["fan", "pr", str(i)] for i in range(FAN_PR_SHARDS)],
     "model-planetarygearbox": [RUNNER + ["planetary", "pr", str(i)] for i in range(PLANETARY_PR_SHARDS)],
-    "renderer-compile": [["go", "-C", "tools/render", "test", "-run", "^$", "./..."]],
+    "renderer-compile": [["renderer-compile"]],
     "renderer-all": [["renderer-pr", str(i)] for i in range(RENDER_PR_SHARDS)],
     "feature-dovetail": [["go", "test", "./features/dovetail", "-timeout", "5m"]],
-    **{name: [["go", "-C", "tools/render", "test", "-json", "-run", run_pattern(tests),
-               "-timeout", timeout, "./..."]] for name, (timeout, tests) in RENDER_TESTS.items()},
+    **{name: [["go", "test", "-json", "-run", run_pattern(tests),
+               "-timeout", timeout, "./" + directory]] for name, (timeout, directory, tests) in RENDER_TESTS.items()},
     "wheel": [RUNNER + ["wheel", case] for case in (
         "default-verify", "default-linkage", "native", "small-seven-verify", "small-seven-linkage",
         "large-nine-verify", "large-nine-linkage", "twelve", "small-seventeen", "rest")],
@@ -71,7 +71,7 @@ def commands(suite):
     isolated = isolated_suite(suite)
     if isolated:
         directory, name, test, tag = isolated
-        package = "." if directory == "tools" else "./" + directory + "/" + name
+        package = "./" + directory + "/" + name
         timeout = "40m" if directory == "tools" or directory == "models" and (
             (name == "planetarygearbox" and test == "TestKitGearboxes") or
             (name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
@@ -104,8 +104,8 @@ def run_renderer(suite, command):
     finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    package = RENDER_PACKAGE
-    expected = RENDER_TESTS[suite][1]
+    package = MODULE + "/" + RENDER_TESTS[suite][1]
+    expected = RENDER_TESTS[suite][2]
     missing = {test for test in expected if finished.get((package, test)) != "pass"}
     missing.update(test for (pkg, test), status in finished.items()
                    if pkg == package and status != "pass" and
@@ -116,18 +116,17 @@ def run_renderer(suite, command):
 
 def run_renderer_full():
     """Discover every renderer package and require each listed test to pass."""
-    base = ["go", "-C", "tools/render"]
-    packages = subprocess.run(base + ["list", "./..."], check=True, capture_output=True, text=True).stdout.splitlines()
+    packages = renderer_packages()
     if not packages or len(packages) != len(set(packages)):
         raise SystemExit("renderer package inventory is empty or duplicated")
     expected = set()
     for package in packages:
-        output = subprocess.run(base + ["test", "-list", "^Test", package],
+        output = subprocess.run(["go", "test", "-list", "^Test", package],
                                 check=True, capture_output=True, text=True).stdout
         expected.update((package, line) for line in output.splitlines() if line.startswith("Test"))
     if not expected:
         raise SystemExit("renderer test inventory is empty")
-    proc = subprocess.Popen(base + ["test", "-json", "-timeout", "170m", "./..."],
+    proc = subprocess.Popen(["go", "test", "-json", "-timeout", "170m", *packages],
                             stdout=subprocess.PIPE, text=True)
     finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
     if proc.wait() != 0:
@@ -144,13 +143,12 @@ def run_renderer_pr(shard):
     """Run a disjoint share of all discovered renderer tests."""
     if not shard.isdigit() or not 0 <= int(shard) < RENDER_PR_SHARDS:
         raise SystemExit("invalid renderer PR shard")
-    base = ["go", "-C", "tools/render"]
-    packages = subprocess.run(base + ["list", "./..."], check=True, capture_output=True, text=True).stdout.splitlines()
+    packages = renderer_packages()
     if not packages or len(packages) != len(set(packages)):
         raise SystemExit("renderer package inventory is empty or duplicated")
     inventory = []
     for package in packages:
-        output = subprocess.run(base + ["test", "-list", "^Test", package],
+        output = subprocess.run(["go", "test", "-list", "^Test", package],
                                 check=True, capture_output=True, text=True).stdout
         inventory.extend((package, line) for line in output.splitlines() if line.startswith("Test"))
     if not inventory or len(inventory) != len(set(inventory)):
@@ -159,7 +157,7 @@ def run_renderer_pr(shard):
     for package in sorted({item[0] for item in selected}):
         tests = [test for pkg, test in selected if pkg == package]
         go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
-                package=package, cwd="tools/render", module="tools/render")
+                package=package, module="tools/render")
 
 
 def suites_from_plan(raw):
@@ -236,6 +234,8 @@ def main():
         command = commands(suite)[int(os.environ["CASE"])]
         if suite == "renderer-all":
             run_renderer_pr(os.environ["CASE"])
+        elif suite == "renderer-compile":
+            subprocess.run(["go", "test", "-run", "^$", *renderer_packages()], check=True)
         elif suite.startswith("isolated-"):
             directory, name, test, _ = isolated_suite(suite)
             package = "github.com/lestrrat-3d/decad-gallery/" + directory + "/" + name
@@ -246,8 +246,7 @@ def main():
             if directory == "models" and name == "planetarygearbox" and test == "TestKitGearboxes" and not os.environ.get("PLANETARY_ALL_KITS"):
                 allowed = frozenset(("TestKitGearboxes/planet608-shaft605", "TestKitGearboxes/planet608-shaft608"))
             if directory == "tools":
-                go_test(command[2:], [test], package=package, allowed_skips=allowed, cwd="tools/render",
-                        module="tools/render")
+                go_test(command[2:], [test], package=package, allowed_skips=allowed, module="tools/render")
             elif allowed:
                 go_test(command[2:], [test], package=package, allowed_skips=allowed)
             else:

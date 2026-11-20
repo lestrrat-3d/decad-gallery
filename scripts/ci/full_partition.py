@@ -39,7 +39,9 @@ def select(inventory):
 
 
 def main():
-    packages = subprocess.run(["go", "list", "./..."], check=True, capture_output=True, text=True).stdout.splitlines()
+    packages = [package for package in subprocess.run(["go", "list", "./..."], check=True, capture_output=True,
+                                                      text=True).stdout.splitlines()
+                if not run_tests.RENDERER_PACKAGE.match(package)]
     if len(packages) != len(set(packages)):
         raise SystemExit("root module inventory contains duplicate packages")
     inventory = {}

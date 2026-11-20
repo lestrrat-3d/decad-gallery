@@ -250,7 +250,7 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(plan.plan("workflow_dispatch", "", "head")["suites"], ["broad"])
 
     def test_module_files_select_full_coverage(self):
-        for path in ("go.mod", "go.sum", "tools/render/go.mod", "tools/render/go.sum"):
+        for path in ("go.mod", "go.sum"):
             for event in ("push", "pull_request"):
                 with self.subTest(path=path, event=event), \
                      mock.patch.object(plan, "git", side_effect=lambda *args: {

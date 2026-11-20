@@ -21,4 +21,5 @@ requires a README, instructions, steps, hero image, Go source and tests for each
 feature directory it also requires `images/index.png` and `images/exploded.png` and a corner test. It checks that the
 rows of `models/README.md` and `features/README.md` are in alphabetical order and that each README's build status line
 agrees with its index row and with `UNBUILT`. It fails when a name exists in both `models/` and `features/`. Run
-`go test ./...` for the geometry checks of models and features; CI runs both commands.
+`go test ./...` for the geometry checks of models and features; it also runs the renderer tests under
+`tools/render`. CI runs both commands.
