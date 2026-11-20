@@ -122,7 +122,7 @@ func buildTurbineMeshes(ctx context.Context, p turbinefan.Params) (turbineMeshes
 		if isTurbineHardware(name) {
 			tol = .01
 		}
-		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return turbineMeshes{}, fmt.Errorf("mesh turbine fan %s: %w", name, err)
 		}

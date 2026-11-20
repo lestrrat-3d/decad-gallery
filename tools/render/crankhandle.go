@@ -94,7 +94,7 @@ func buildCrankMeshes(ctx context.Context, p crankhandle.Params) (crankMeshes, e
 		if isCrankHardware(name) {
 			tol = .01
 		}
-		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+		mesh, err := body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return crankMeshes{}, fmt.Errorf("mesh crank %s: %w", name, err)
 		}

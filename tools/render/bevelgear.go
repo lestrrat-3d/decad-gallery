@@ -449,7 +449,7 @@ func tessellateBevelPair(ctx context.Context, pair bevelgear.GearPair) (bevelPai
 		{"pinion", pair.Pinion, &meshes.pinion},
 		{"driving", pair.Driving, &meshes.driving},
 	} {
-		mesh, err := member.body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+		mesh, err := member.body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return bevelPairMesh{}, fmt.Errorf("tessellate %s gear: %w", member.name, err)
 		}

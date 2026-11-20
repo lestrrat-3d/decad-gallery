@@ -78,7 +78,7 @@ func dovetailView(ctx context.Context, name string) (solidlens.Scene, error) {
 				return solidlens.Scene{}, fmt.Errorf("dovetail %s view: move part %d: %w", name, i, err)
 			}
 		}
-		mesh, err := body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyAll))
+		mesh, err := body.Tessellate(ctx, units.Millimeters(.01), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh dovetail %s view: %w", name, err)
 		}

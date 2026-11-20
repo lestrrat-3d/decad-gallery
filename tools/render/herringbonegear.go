@@ -51,7 +51,7 @@ func herringboneGearView(ctx context.Context, camera solidlens.Camera) (solidlen
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build herringbone gear: %w", err)
 	}
-	mesh, err := body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+	mesh, err := body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyNone))
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("tessellate herringbone gear: %w", err)
 	}

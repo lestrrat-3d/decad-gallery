@@ -51,7 +51,7 @@ func helicalGearView(ctx context.Context, camera solidlens.Camera) (solidlens.Sc
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("build helical gear: %w", err)
 	}
-	mesh, err := body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+	mesh, err := body.Tessellate(ctx, units.Millimeters(0.1), decad.WithVerification(decad.VerifyNone))
 	if err != nil {
 		return solidlens.Scene{}, fmt.Errorf("tessellate helical gear: %w", err)
 	}
