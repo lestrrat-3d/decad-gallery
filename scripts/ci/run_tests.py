@@ -830,8 +830,18 @@ def planetary_test_shards(tests: list[str]) -> list[list[str]]:
             groups.append(group)
             remaining.difference_update(group)
     groups.extend((name,) for name in remaining)
+    # Rotating copies adds live bodies to the default document. Its body-count
+    # checks must see the original inventory, regardless of Go test order.
+    body_counts = {"TestDefaultGearbox", "TestBodyContainers"}
+    append_copies = {"TestGearTipRootClearance", "TestWrongPhaseIsDetected"}
     for group in sorted(groups, key=lambda group: (-max(map(planetary_test_weight, group)), group)):
-        index = min(range(len(shards)), key=lambda item: (weights[item], item))
+        incompatible = set()
+        if body_counts.intersection(group):
+            incompatible = append_copies
+        elif append_copies.intersection(group):
+            incompatible = body_counts
+        eligible = (i for i, shard in enumerate(shards) if incompatible.isdisjoint(shard))
+        index = min(eligible, key=lambda item: (weights[item], item))
         shards[index].extend(group)
         weights[index] += max(map(planetary_test_weight, group))
     assigned = [name for shard in shards for name in shard]

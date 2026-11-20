@@ -378,6 +378,16 @@ class PlanetaryFullTest(unittest.TestCase):
         for group in groups:
             self.assertTrue(any(set(group) <= set(shard) for shard in shards), group)
 
+    def test_body_counts_never_share_a_default_document_with_rotated_copies(self):
+        counts = {"TestDefaultGearbox", "TestBodyContainers"}
+        copies = {"TestWrongPhaseIsDetected", "TestGearTipRootClearance"}
+        tests = sorted(counts | copies) + ["TestFirstPlanetMesh", "TestThirdPlanetMesh"]
+        with mock.patch.object(run_tests, "PLANETARY_PR_SHARDS", 3):
+            shards = run_tests.planetary_test_shards(tests)
+        self.assertCountEqual([name for shard in shards for name in shard], tests)
+        for shard in shards:
+            self.assertFalse(counts.intersection(shard) and copies.intersection(shard))
+
     def test_duplicate_discovered_test_cannot_disappear_in_grouping(self):
         with self.assertRaisesRegex(ValueError, "exactly once"):
             run_tests.planetary_test_shards(["TestBodyContainers", "TestBodyContainers"])
