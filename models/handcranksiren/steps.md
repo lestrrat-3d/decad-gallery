@@ -218,7 +218,6 @@ All in the same pull request as the geometry (AGENTS.md "Model images"):
 - `models/handcranksiren/README.md`: the summary, How it works (ratio 6, 34 slots, 408 Hz), the holding and
   fastener text, the print table, the parts table and the exploded alt text.
 - `models/README.md`: the siren row's description and its index image.
-- `README.md`: the overview line and `docs/images/gallery.png` (`gallery/hero` preset).
 - `docs/models/handcranksiren.md`, the siren paragraph of `docs/rendering.md`, and `tools/render/handcranksiren.go`
   (part list, groups, exploded offsets) with `handcranksiren_views_test.go`.
 - `models/crankhandle` (README, instructions, `params.go` and `crankhandle.go` comments, `docs/models/crankhandle.md`):

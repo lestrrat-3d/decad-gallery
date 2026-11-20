@@ -373,16 +373,23 @@ Run these once `swisslever.Build` is accepted by decad. Each command builds the 
 ```sh
 go -C tools/render run . -model swisslever -shot readme -out ../../models/swisslever/images
 go -C tools/render run . -model swisslever -shot motion -out ../../models/swisslever/images/motion.gif
-go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
 go -C tools/render test -count=1 -run 'TestSwiss' .
 ```
 
 A single preset renders with `-model swisslever -shot <name> -out <file>`, for example
 `-shot exploded -out ../../models/swisslever/images/exploded.png`.
 
-The `gallery/hero` preset does not include the ball bearing or screw gear.
+The `gallery/hero` preset renders the root README's two ornamental spur gears at 1600 × 900.
+It builds the wheels with `models/spurgear`, drills circular openings and fits a pierced,
+scalloped faceplate to each wheel. The brass and teal plates carry seven and five curved
+petals. Revolved profiles form the stepped hubs and the double ridges around the rims.
+Regenerate the image when the spur gear geometry or this scene changes.
 
-The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
+```sh
+go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+```
+
+The `gallery/contact-sheet` preset renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
 drive, the bevel gear pair, the plaque stand, the clamp arm, the hand-crank fan, the hand-crank siren, the Graham
 escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring and the turbine fan
@@ -397,7 +404,7 @@ turbine fan. Building all seventeen models takes several minutes plus the wheel
 build:
 
 ```sh
-go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
+go -C tools/render run . -model gallery -shot contact-sheet -out ../../.tmp/contact-sheet.png
 ```
 
 The renderer stores finished tiles in `.tmp/gallery-cache/` in the checkout. It invalidates every tile when any

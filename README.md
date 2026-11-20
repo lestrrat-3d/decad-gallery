@@ -1,6 +1,6 @@
 # decad gallery
 
-![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement, a Swiss lever escapement, a crank handle, a one-way clutch, a spiral spring, a turbine fan, a plaque stand and a clamp arm beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
+![Two ornamental spur gears with pierced flower-shaped faceplates, turned rims and stepped hubs](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from
@@ -14,8 +14,7 @@ The [model table](models/) lists every model with its description, image, and bu
 ## Features
 
 The [features](features/) are reusable shapes that cut or add material on parts that other items own. The first is a
-[dovetail joint](features/dovetail/), a sliding tail and socket built from one set of parameters. A feature is not a
-gallery model and has no image in the gallery above.
+[dovetail joint](features/dovetail/), a sliding tail and socket built from one set of parameters.
 
 ## For developers
 

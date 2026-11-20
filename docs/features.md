@@ -79,8 +79,6 @@ halves apart along the direction they slide together. Size and place the explode
 - Regenerate the images in the same change as any geometry change.
 - A change to a feature regenerates the images of every model that imports it.
 
-The root `README.md` gallery and `docs/images/gallery.png` show models only. A feature does not appear in them.
-
 ## Index
 
 `features/README.md` lists every feature in alphabetical order by name. Its columns are the feature name linked

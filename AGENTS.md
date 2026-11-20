@@ -100,8 +100,7 @@
 - For a multi-body assembly, include an exploded view and a table with an image and name for each distinct body.
   See `models/planetarygearbox/README.md` for an example.
 - Apply [Exploded views](docs/model-pipeline.md#exploded-views) to every exploded image: large, full-width, every part visible.
-- For every new model, update the root `README.md` gallery hero image. The root README's Models section only links to
-  the `models/README.md` table, so do not list models there.
+- Keep the root README's Models section linked to the `models/README.md` table. List new models in that table.
 - Add every new model to `models/README.md` with its description and index image.
 - Keep the `models/README.md` rows in alphabetical order by model name. `scripts/check_repository.py` checks it.
 - Follow `docs/adding-models.md` for the model's hero and index images.
@@ -110,5 +109,6 @@
 - A geometry change includes edits to a model's construction, parameters, defaults, or a reused item or decad version that alters its shape.
 - Regenerate the changed model's images in its `images/` directory and check its `README.md` still matches them.
 - Regenerate the index image that `models/README.md` shows for the changed model, and check its row still matches.
-- Regenerate `docs/images/gallery.png` when a changed model appears in it (`gallery/hero` preset in `docs/rendering.md`), and check the root `README.md` still matches.
+- Regenerate `docs/images/gallery.png` when the spur gear geometry or the `gallery/hero` scene changes.
+  Use the command in `docs/rendering.md` and check the root README's alt text against the image.
 - A change to a reused item regenerates the images of every model that consumes it.
