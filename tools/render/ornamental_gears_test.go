@@ -13,7 +13,7 @@ import (
 )
 
 func TestOrnamentalFaceplateWindows(t *testing.T) {
-	wheel := ornamentalWheel{teeth: 30, ornament: rosette}
+	wheel := ornamentalWheel{teeth: 60, ornament: rosette}
 	r := float64(wheel.teeth)
 	plate, err := wheel.faceplate(t.Context(), decad.New(), sketch.NewWorld(), r, 0, 1)
 	require.NoError(t, err)
