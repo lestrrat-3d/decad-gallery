@@ -4,6 +4,7 @@ package turbinefan_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/cornercheck"
@@ -13,7 +14,7 @@ import (
 )
 
 // TestTurbineFanCorners applies "Corners and roots" to the hub, printed front face down with its axis +Z, and to each
-// blade, printed on its stud end with its radial line vertical. The hub is read at the face levels MidHeights finds and at
+// blade, read across its radial line and, as it prints, lying in its print pose on the bed (requireBladePrintCorners). The hub is read at the face levels MidHeights finds and at
 // z = 2.5, 4, 5.5, 5.8, HubMid - 3 j, HubMid and HubMid + 3 j, which cut the slots, the counterbore and the sockets off
 // their axes. Three exemptions
 // are allowed; instructions.md records their measured turns.
@@ -40,4 +41,17 @@ func TestTurbineFanCorners(t *testing.T) {
 			t.Run(fmt.Sprintf("blade-%d", k), func(t *testing.T) { requireBladeCorners(t, m, k) })
 		}
 	})
+	for _, c := range []struct {
+		rotor, pitchDeg float64
+		hand            turbinefan.Hand
+		required        bool
+	}{
+		{128, 25, turbinefan.RightHand, false}, {192, 10, turbinefan.RightHand, false},
+		{192, 25, turbinefan.RightHand, true}, {192, 40, turbinefan.RightHand, false},
+		{224, 40, turbinefan.RightHand, false}, {192, 25, turbinefan.LeftHand, false},
+	} {
+		t.Run(fmt.Sprintf("print-%g-%g-%d", c.rotor, c.pitchDeg, c.hand), func(t *testing.T) {
+			requireBladePrintCorners(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand, c.required)
+		})
+	}
 }

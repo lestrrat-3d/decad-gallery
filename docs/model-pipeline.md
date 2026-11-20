@@ -290,6 +290,8 @@ Chamfer every qualifying convex boundary edge on a large planar surface:
 
 This rule applies to every printed part in the gallery. Purchased and standard parts kept at their nominal size,
 such as bolts, nuts and bearings, are exempt, as [Part clearances](#part-clearances) keeps them.
+A print aid, a body printed with a part only to support it while printing and then removed and discarded, and listed
+under "Print aids" in the model's `instructions.md`, is exempt from this rule, including Root width.
 A model whose `instructions.md` has a Materials section stating that no part is printed, such as the timber
 spinning wheel, is not checked.
 

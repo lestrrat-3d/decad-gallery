@@ -214,3 +214,32 @@ func frame3(x float64) r3.Frame {
 	f, _ := r3.NewFrame(r3.Vec{X: x}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	return f
 }
+
+// sectionAround interpolates the widest points of the two sections around x; false outside the sections' x range.
+func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSection, bool) {
+	s := h.Sections
+	if x < s[0].X || x > s[len(s)-1].X {
+		return turbinefan.CradleSection{}, false
+	}
+	for i := 1; i < len(s); i++ {
+		if x > s[i].X {
+			continue
+		}
+		a, c := s[i-1], s[i]
+		f := (x - a.X) / (c.X - a.X)
+		lerp := func(p, q float64) float64 { return p + f*(q-p) }
+		return turbinefan.CradleSection{X: x, LeftY: lerp(a.LeftY, c.LeftY), LeftZ: lerp(a.LeftZ, c.LeftZ),
+			RightY: lerp(a.RightY, c.RightY), RightZ: lerp(a.RightZ, c.RightZ)}, true
+	}
+	return s[len(s)-1], true
+}
+
+// downward returns a triangle's angle from vertical, in degrees, and whether it points down more than 45 degrees
+// (its unit normal's z below -sin 45° - slack).
+func downward(v [3]r3.Vec, slack float64) (float64, bool) {
+	n, ok := v[1].Sub(v[0]).Cross(v[2].Sub(v[0])).Normalize()
+	if !ok || n.Z >= -math.Sin(math.Pi/4)-slack {
+		return 0, false
+	}
+	return math.Asin(math.Min(1, -n.Z)) * 180 / math.Pi, true
+}

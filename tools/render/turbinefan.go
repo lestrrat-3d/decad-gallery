@@ -365,7 +365,36 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
+	if err := renderTurbinePrintReadme(ctx, outputDir); err != nil {
+		return err
+	}
 	return renderTurbineClutchReadme(ctx, outputDir)
+}
+
+// renderTurbinePrintReadme builds the default blade's print job once and writes its three views and the cradle's part
+// image, seen like the other parts.
+func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
+	p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
+	if err != nil {
+		return err
+	}
+	for _, view := range []string{"print", "print-side", "print-end"} {
+		scene, err := p.view(view)
+		if err != nil {
+			return err
+		}
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, view+".png"), scene, 1600, 900); err != nil {
+			return err
+		}
+	}
+	low, high := meshBounds(p.harness)
+	center := low.Add(high).Scale(.5)
+	span := high.Sub(low).Len()
+	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
+		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+	models := []solidlens.Model{turbineModel(p.harness, turbineHarnessColor)}
+	scene := turbineScene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
+	return renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", "harness.png"), scene, 480, 270)
 }
 
 // The clutch-mount views draw the real clutch with its adapter and the fan placed on it, both in the clutch frame: the

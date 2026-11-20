@@ -44,6 +44,24 @@ hole and hex nut slot. The counterbore is a
 revolved meridian with a rounded floor; each nut slot is a hexagon with two straight walls running out through a face, with
 its corners and edges rounded by 0.5.
 
+## Print pose and cradle
+
+Each blade prints lying on the bed, leading edge down, at its rest tilt, in a one-piece cradle that fits its contour.
+`RestTilt(ctx, blade, size, pitch, hand)` finds the tilt at which a blade from `BuildBlade` or `BuildBladeMirrored` rests on
+both its stud end corner and its leading edge (11.4, 11.8 and 12.5 degrees at 128, 192 and 224 mm, at every pitch and
+hand). `PrintPoseFor(size, pitch, hand, tilt)` returns the frame that moves the blade into the print frame, the stud end
+corner on the bed. `BuildBladeHarness(ctx, doc, blade, size, hand, tilt)` builds the cradle for a posed blade: a block on
+the bed minus the blade's upward shadow, offset by `CradleGapZ` (0.2) up and `CradleGapXY` (0.4) sideways, with each wall
+ending smoothly under the blade's widest line. `BuildBladePrint(ctx, doc, params)` does all three and files the blade in
+`Blades` and the cradle in `Harness` (`HarnessContainerName`). The cradle is a print aid, exempt from "Corners and roots";
+`instructions.md` "Print pose and cradle" gives the construction and the constants.
+
+The tests `TestPrintPose`, `TestBuildBladeHarness`, `TestBladeHarnessVerifyAll`, `TestBladeHarnessSeparate`,
+`TestBladePrintBedContact`, `TestBladeHarnessBedFace`, `TestBladeHarnessWallTop`, `TestBladeHarnessContour`,
+`TestBladeHarnessNothingAbove`, `TestBladeHarnessOverhangs` and `TestBuildBladePrint` cover it, on six cases built once
+each, and `TestTurbineFanCorners` reads each blade lying in its pose. A build takes about 12 s at 128 mm, 20 s at 192 and
+27 s at 224.
+
 ## Clutch mount
 
 `Params.Mount = ClutchMount` bolts the hub to the standard adapter ring (`onewayclutch.BuildAdapter`) instead of gripping the
@@ -70,9 +88,10 @@ go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbin
 ```
 
 The readme shot writes `hero.png`, `index.png`, `front.png`, `back.png`, `side.png`, `setscrew.png`, `joint.png`,
-`exploded.png`, `exploded-back.png`, `sizes.png` and `parts/hub.png`, `blade.png`, `bolt.png`, `setscrew.png` and `nut.png`.
-The presets `turbinefan/hero`, `front`, `back`, `side`, `setscrew`, `joint`, `exploded`, `exploded-back` and `sizes` render one
-view each.
+`exploded.png`, `exploded-back.png`, `sizes.png`, `print.png`, `print-side.png`, `print-end.png` and `parts/hub.png`,
+`blade.png`, `bolt.png`, `setscrew.png`, `nut.png` and `harness.png`. The presets `turbinefan/hero`, `front`, `back`,
+`side`, `setscrew`, `joint`, `exploded`, `exploded-back`, `sizes`, `print`, `print-side` and `print-end` render one view
+each.
 
 ## Verification
 

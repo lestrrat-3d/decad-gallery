@@ -14,13 +14,13 @@ FEATURE_FILES = MODEL_FILES + ("images/index.png", "images/exploded.png")
 # Models whose printed parts are not yet held to "Corners and roots" (docs/model-pipeline.md).
 # Remove a model in the change that adds its corner test.
 CORNER_PENDING = {
-    "bevelgear", "handcrankfan", "screwgear",
+    "bevelgear", "handcrankfan", "screwgear", "turbinefan",
 }
 # Models that build only purchased or standard parts kept at nominal size.
 CORNER_NOMINAL = {"ballbearing", "compressionspring", "fastener"}
 # Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
 # stays in CORNER_PENDING until the test skips nothing.
-CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
+CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear", "turbinefan"}
 # Models whose instructions.md states, under Materials, that no part is printed.
 CORNER_UNPRINTED = {"spinningwheel"}
 # Models and features nobody has built and tested as a physical object yet. Remove one once someone has built it, and

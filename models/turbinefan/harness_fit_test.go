@@ -150,3 +150,110 @@ func TestBladeHarnessContour(t *testing.T) {
 		require.Zero(t, over, "samples farther from the cradle than allowed")
 	})
 }
+
+// TestBladeHarnessNothingAbove requires no cradle beyond either widest line to stand above it: every harness vertex
+// outside the step zone and its lead-in that lies past a widest y, interpolated between the sections around its x,
+// stays at or under that widest point's z, both within the harness mesh's bound and 0.05.
+func TestBladeHarnessNothingAbove(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		h := b.harness
+		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err)
+		tol := 0.05 + hm.Bound().Base()
+		bad, worst := 0, 0.0
+		for _, v := range hm.Vertices() {
+			if v.X >= h.StepZone[0]-1.5 && v.X <= h.StepZone[1] {
+				continue
+			}
+			s, ok := sectionAround(h, v.X)
+			if !ok {
+				continue
+			}
+			for _, side := range []struct{ y, z, sign float64 }{{s.LeftY, s.LeftZ, -1}, {s.RightY, s.RightZ, 1}} {
+				if side.sign*(v.Y-side.y) > tol && v.Z > side.z+tol {
+					bad++
+					worst = math.Max(worst, v.Z-side.z)
+				}
+			}
+		}
+		require.Zero(t, bad, "%d harness vertices beyond a widest line stand above it, worst by %.3f mm", bad, worst)
+	})
+}
+
+// TestBladeHarnessOverhangs requires printable faces. Every harness face pointing down more than 45 degrees lies on the
+// bed. Every such blade face rests over the cradle (its centroid within 1.0 of the harness mesh, 2.2 in the step zone
+// and its lead-in), or lies in the bolt hole's band, on the stud end's chamfer, past the cradle's tip end, or in the
+// near-bed band (every vertex under 0.6 mm).
+func TestBladeHarnessOverhangs(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		h := b.harness
+		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err)
+		bound := hm.Bound().Base()
+		hv := hm.Vertices()
+		bad, worst := 0, 0.0
+		for _, tri := range hm.Triangles() {
+			v := [3]r3.Vec{hv[tri[0]], hv[tri[1]], hv[tri[2]]}
+			angle, down := downward(v, 0.01)
+			if !down {
+				continue
+			}
+			if v[0].Z <= bound && v[1].Z <= bound && v[2].Z <= bound {
+				continue
+			}
+			bad++
+			worst = math.Max(worst, angle)
+		}
+		require.Zero(t, bad, "%d harness overhangs off the bed, worst %.1f°", bad, worst)
+
+		g, err := meshgap.New(hm.Vertices(), hm.Triangles(), bound)
+		require.NoError(t, err)
+		bm, err := b.blade.Tessellate(t.Context(), units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err)
+		pose, err := turbinefan.PrintPoseFor(b.sz, turbinefan.DefaultBladePitch, c.hand, b.tilt)
+		require.NoError(t, err)
+		radial := pose.U().Cross(pose.V())
+		bv := bm.Vertices()
+		counts := map[string]int{}
+		bad, worst = 0, 0.0
+		farthest := 0.0
+		for _, tri := range bm.Triangles() {
+			v := [3]r3.Vec{bv[tri[0]], bv[tri[1]], bv[tri[2]]}
+			angle, down := downward(v, 1e-3)
+			if !down {
+				continue
+			}
+			cen := v[0].Add(v[1]).Add(v[2]).Scale(1.0 / 3)
+			switch {
+			case v[0].Z < 0.6 && v[1].Z < 0.6 && v[2].Z < 0.6:
+				counts["near bed"]++
+				continue
+			case math.Abs(cen.Sub(pose.Origin()).Dot(radial)-b.sz.BladeBoltAt) <= m2fastener.HoleRadius+0.1:
+				counts["bolt hole"]++
+				continue
+			case cen.X > h.XEnd:
+				counts["tip"]++
+				continue
+			case cen.Sub(pose.Origin()).Dot(radial) <= b.sz.BladeStudStart+0.35:
+				// The stud end's 0.3 chamfer, tilted by the rest tilt, reads 45 to 51 degrees within 0.9 mm of the bed.
+				counts["stud chamfer"]++
+				continue
+			}
+			limit := 1.0
+			if cen.X >= h.StepZone[0]-1.5 && cen.X <= h.StepZone[1] {
+				limit = 2.2
+			}
+			d, err := g.PointDistance(cen)
+			require.NoError(t, err)
+			if d <= limit {
+				counts["over the cradle"]++
+				farthest = math.Max(farthest, d)
+				continue
+			}
+			bad++
+			worst = math.Max(worst, angle)
+		}
+		t.Logf("%s: blade overhangs %v, farthest over the cradle %.3f mm", c.name, counts, farthest)
+		require.Zero(t, bad, "%d blade overhangs unsupported, worst %.1f°", bad, worst)
+	})
+}
