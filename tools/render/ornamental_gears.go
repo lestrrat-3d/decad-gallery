@@ -44,7 +44,7 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 	scene := solidlens.Scene{
 		Camera: solidlens.Camera{Position: r3.NewVec(7, -121, 186), Target: r3.NewVec(7, -9, 2),
 			Up: r3.NewVec(0, 0, 1), FOV: 26},
-		Background: solidlens.RGB(.016, .015, .013),
+		Background: solidlens.RGB(.95, .93, .87),
 		DirectionalLights: []solidlens.DirectionalLight{
 			{Direction: r3.NewVec(.15, .65, -.88), Color: solidlens.RGB(1, .92, .8), Intensity: .87},
 			{Direction: r3.NewVec(-.9, -.2, -.5), Color: solidlens.RGB(.83, .87, .92), Intensity: .51},
