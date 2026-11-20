@@ -126,6 +126,9 @@ var presets = map[string]preset{
 	"onewayclutch/directions":        {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchDirectionParams)},
 	"onewayclutch/sizes":             {width: 1600, height: 900, scene: oneWayClutchSideBySide(clutchSizeParams)},
 	"spiralspring/hero":              {width: 1600, height: 900, scene: spiralSpringHero},
+	"compressionspring/hero":         {width: 1600, height: 900, scene: compressionSpringHero},
+	"compressionspring/side":         {width: 1600, height: 900, scene: compressionSpringViewScene("side")},
+	"compressionspring/pressed":      {width: 1600, height: 900, scene: compressionSpringViewScene("pressed")},
 	"spiralspring/top":               {width: 1600, height: 900, scene: spiralSpringViewScene("top")},
 	"spiralspring/low":               {width: 1600, height: 900, scene: spiralSpringViewScene("low")},
 	"spiralspring/root":              {width: 1600, height: 900, scene: spiralSpringViewScene("root")},
@@ -345,6 +348,9 @@ func renderReadme(ctx context.Context, model, outputDir string) error {
 	}
 	if model == "spiralspring" {
 		return renderSpiralSpringReadme(ctx, outputDir)
+	}
+	if model == "compressionspring" {
+		return renderCompressionSpringReadme(ctx, outputDir)
 	}
 	if model == "clamparm" {
 		return renderClampArmReadme(ctx, outputDir)

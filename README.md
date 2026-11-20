@@ -1,6 +1,6 @@
 # decad gallery
 
-![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement, a Swiss lever escapement, a crank handle, a one-way clutch, a spiral spring, a turbine fan, a plaque stand, a clamp arm and a seven-segment display beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
+![A spinning wheel, a hand-crank fan, a hand-crank siren, a Graham escapement, a Swiss lever escapement, a crank handle, a one-way clutch, a spiral spring, a compression spring, a turbine fan, a plaque stand, a clamp arm and a seven-segment display beside spur, helical, herringbone, planetary, cycloidal and bevel gears](docs/images/gallery.png)
 
 A gallery of parametric 3D shapes, patterns, and assemblies built with
 [decad](https://github.com/lestrrat-3d/decad). Each model is a solid body whose dimensions come from

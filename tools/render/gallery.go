@@ -24,10 +24,7 @@ type galleryTile struct {
 	cell  image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other seventeen models in a grid of four rows beside it, filled row by row. The top row holds five 208 × 225 pixel cells: the spur, helical,
-// herringbone and bevel gears and the seven-segment display. The other rows have four 260 × 225 pixel cells. The second row holds the planetary gearbox, cycloidal drive, plaque stand and clamp
-// arm. The third row holds the hand-crank fan, hand-crank siren, Graham escapement and Swiss lever escapement. The
-// bottom row holds the crank handle, one-way clutch, spiral spring and turbine fan.
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other eighteen models in four rows beside it, filled row by row.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
 	{"spurgear", spurGearHero, image.Rect(560, 0, 768, 225)},
@@ -43,10 +40,11 @@ var galleryTiles = []galleryTile{
 	{"handcranksiren", handCrankSirenHero, image.Rect(820, 450, 1080, 675)},
 	{"escapement", escapementHero, image.Rect(1080, 450, 1340, 675)},
 	{"swisslever", swissHero, image.Rect(1340, 450, 1600, 675)},
-	{"crankhandle", crankHandleHero, image.Rect(560, 675, 820, 900)},
-	{"onewayclutch", oneWayClutchHero, image.Rect(820, 675, 1080, 900)},
-	{"spiralspring", spiralSpringHero, image.Rect(1080, 675, 1340, 900)},
-	{"turbinefan", turbineFanHero, image.Rect(1340, 675, 1600, 900)},
+	{"crankhandle", crankHandleHero, image.Rect(560, 675, 768, 900)},
+	{"onewayclutch", oneWayClutchHero, image.Rect(768, 675, 976, 900)},
+	{"spiralspring", spiralSpringHero, image.Rect(976, 675, 1184, 900)},
+	{"turbinefan", turbineFanHero, image.Rect(1184, 675, 1392, 900)},
+	{"compressionspring", compressionSpringHero, image.Rect(1392, 675, 1600, 900)},
 }
 
 const (

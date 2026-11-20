@@ -17,7 +17,7 @@ CORNER_PENDING = {
     "bevelgear", "handcrankfan", "screwgear",
 }
 # Models that build only purchased or standard parts kept at nominal size.
-CORNER_NOMINAL = {"ballbearing", "m2bolt", "m2nut", "m5bolt", "m5nut"}
+CORNER_NOMINAL = {"ballbearing", "compressionspring", "m2bolt", "m2nut", "m5bolt", "m5nut"}
 # Pending models whose corner test already runs but skips parts that wait on decad. Each must have a corner test, and
 # stays in CORNER_PENDING until the test skips nothing.
 CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
@@ -25,7 +25,7 @@ CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear"}
 CORNER_UNPRINTED = {"spinningwheel"}
 # Models and features nobody has built and tested as a physical object yet. Remove one once someone has built it, and
 # change its README status line and its models/README.md or features/README.md row in the same change.
-UNBUILT = {"clamparm", "dovetail", "escapement", "handcrankfan", "handcranksiren", "m5bolt", "m5nut", "sevensegment", "spinningwheel", "spiralspring", "swisslever", "turbinefan"}
+UNBUILT = {"clamparm", "compressionspring", "dovetail", "escapement", "handcrankfan", "handcranksiren", "m5bolt", "m5nut", "sevensegment", "spinningwheel", "spiralspring", "swisslever", "turbinefan"}
 
 
 def index_rows(path: Path) -> dict[str, str]:

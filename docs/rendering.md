@@ -51,6 +51,11 @@ presets show the spiral from above, the underside, a close-up of the hub and spo
 different sizes. The `readme` shot writes all of them and the index image:
 `go -C tools/render run . -model spiralspring -shot readme -out ../../models/spiralspring/images`.
 
+`compressionspring/hero` renders the Lee LC 024C 14 M at its default 43.8 mm installed length. `side` looks across the
+spring axis. `pressed` renders the Lee LC 026D 16 S at its 18.94 mm fully pressed length. The `readme` shot writes
+the hero, index, side and pressed images:
+`go -C tools/render run . -model compressionspring -shot readme -out ../../models/compressionspring/images`.
+
 `crankhandle/hero` renders the default 605ZZ crank lying on the arm's back face with the handle standing up, in the
 hand-crank siren's crank colour with a dark handle. The `side` and `back` presets show it from the side and from below.
 `cutaway` clips every body by the plane through the shaft axis and the pin axis, removes the half toward +X, and looks
@@ -385,15 +390,14 @@ The `gallery/hero` preset does not include the ball bearing or screw gear.
 The `gallery/hero` preset writes the repository's hero image, `docs/images/gallery.png`. It renders the hero
 scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
 drive, the bevel gear pair, the plaque stand, the clamp arm, the hand-crank fan, the hand-crank siren, the Graham
-escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring, the turbine fan and the seven-segment display
+escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring, the turbine fan,
+the compression spring and the seven-segment display
 one after another. On a cache miss, it renders each model twice,
 once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
 so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other seventeen models fill a grid of four rows beside it. The top row holds five cells (208 × 225 pixels): the spur,
-helical, herringbone and bevel gears and the seven-segment display. The other rows have four cells (260 × 225 pixels). The second row holds the planetary gearbox,
-cycloidal drive, plaque stand and clamp arm. The third row holds the hand-crank fan, hand-crank siren, Graham
-escapement and Swiss lever escapement. The bottom row holds the crank handle, one-way clutch, spiral spring and
-turbine fan. Building all eighteen models takes several minutes plus the wheel
+(560 pixels wide). The other eighteen models fill a grid of four rows beside it. The top row holds five 208 × 225
+pixel cells, the next two rows hold four 260 × 225 pixel cells each, and the bottom row holds five 208 × 225 pixel
+cells. Building all nineteen models takes several minutes plus the wheel
 build:
 
 ```sh
