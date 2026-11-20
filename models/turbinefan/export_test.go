@@ -17,3 +17,16 @@ func StationRadiusChord(sz Size, k int) (float64, float64) {
 	st := stationsFor(sz)[k-1]
 	return st.r, st.chord
 }
+
+// SectionSurfacePoints returns station k's (1 to 10) pressure and suction surface points at chord fraction 0.4, in the
+// right-hand blade's local section plane (X negated) at the reference pitch.
+func SectionSurfacePoints(sz Size, k int) ([2]float64, [2]float64) {
+	st := stationsFor(sz)[k-1]
+	beta := sz.Beta(st.r, refPitch)
+	mean := st.chord * camberLine(0.4, st.camber)
+	half := halfThickness(0.4, st)
+	pressure := sectionLocal(st, beta, 0.4, mean-half)
+	suction := sectionLocal(st, beta, 0.4, mean+half)
+	pressure[0], suction[0] = -pressure[0], -suction[0]
+	return pressure, suction
+}

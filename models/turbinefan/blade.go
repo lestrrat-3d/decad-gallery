@@ -128,13 +128,7 @@ func halfThickness(x float64, st station) float64 {
 // sectionPoints returns the section's fit points from the trailing edge along the suction side, round the leading
 // edge and back along the pressure side, in the plane local to the stacking point and turned to the blade angle.
 func sectionPoints(st station, angle float64) [][2]float64 {
-	pivot := pivotAt(st)
-	etaPivot := st.chord * camberLine(pivot, st.camber)
-	cosB, sinB := math.Cos(angle), math.Sin(angle)
-	local := func(x, eta float64) [2]float64 {
-		du, dv := pivot*st.chord-x*st.chord, eta-etaPivot
-		return [2]float64{du*cosB - dv*sinB, -du*sinB - dv*cosB}
-	}
+	local := func(x, eta float64) [2]float64 { return sectionLocal(st, angle, x, eta) }
 	chordFraction := func(k int) float64 { return (1 - math.Cos(math.Pi*float64(k)/sidePoints)) / 2 }
 	var pts [][2]float64
 	for k := sidePoints; k >= 1; k-- {
@@ -147,6 +141,16 @@ func sectionPoints(st station, angle float64) [][2]float64 {
 		pts = append(pts, local(x, st.chord*camberLine(x, st.camber)-halfThickness(x, st)))
 	}
 	return pts
+}
+
+// sectionLocal returns the point of station st at chord fraction x, offset eta (mm) toward the suction side, in the
+// plane local to the stacking point and turned to the blade angle, before the right hand's X negation.
+func sectionLocal(st station, angle, x, eta float64) [2]float64 {
+	pivot := pivotAt(st)
+	etaPivot := st.chord * camberLine(pivot, st.camber)
+	cosB, sinB := math.Cos(angle), math.Sin(angle)
+	du, dv := pivot*st.chord-x*st.chord, eta-etaPivot
+	return [2]float64{du*cosB - dv*sinB, -du*sinB - dv*cosB}
 }
 
 // bladeSection sketches one station on the world XY plane at height r: a fit spline through the section's points
@@ -274,11 +278,17 @@ type bladeBuilder struct {
 	err      error
 	// mirror builds the blade of the opposite hand: its sections are not flipped and its pitch turn is reversed.
 	mirror bool
+	// what names the part in error messages: "blade" when empty.
+	what string
 }
 
 func (b *bladeBuilder) fail(operation string, err error) {
 	if err != nil && b.err == nil {
-		b.err = fmt.Errorf("turbinefan: blade %s: %w", operation, err)
+		what := b.what
+		if what == "" {
+			what = "blade"
+		}
+		b.err = fmt.Errorf("turbinefan: %s %s: %w", what, operation, err)
 	}
 }
 
