@@ -94,7 +94,14 @@ def find_reusable_run(result, before, after):
                                              "--json", "jobs").read_text())
                 jobs = details["jobs"]
                 plan_job = completed_job(jobs, "plan")
-                if not plan_job or not completed_job(jobs, "gate") or not completed_job(jobs, "model-checks"):
+                required = completed_job(jobs, "model-checks")
+                if not plan_job or not required:
+                    continue
+                if any(job.get("name") == "gate" for job in jobs):
+                    if not completed_job(jobs, "gate"):
+                        continue
+                elif not completed_job(required.get("steps", []), "Check planned results"):
+                    # An older forwarding job alone cannot prove the planned checks passed.
                     continue
                 log = gh_file(directory, "plan.log", "run", "view", "--job", str(plan_job["databaseId"]), "--log")
                 prior = plan_from_log(log, match.group(1))
