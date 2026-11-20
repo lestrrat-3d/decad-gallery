@@ -84,6 +84,8 @@ jobs:
         run: go test ./internal/clamparmcapacity
       - name: Check dependency updater rollback
         run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
+      - name: Check render comparison script
+        run: python3 -m unittest discover -s scripts -p 'test_render_compare.py'
       - name: Check CI test runner
         run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
       - name: Check CI planner and gate
