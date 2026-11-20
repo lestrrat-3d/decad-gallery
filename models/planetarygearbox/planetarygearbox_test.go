@@ -114,9 +114,21 @@ func TestPartClearances(t *testing.T) {
 		1e-6, "minimum stage gap above the planet bearing")
 }
 
-func TestFirstPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 0) }
-func TestSecondPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 1) }
-func TestThirdPlanetMesh(t *testing.T)  { requireDefaultPlanetMesh(t, 2) }
+func TestFirstPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 0) }
+
+func TestSecondPlanetSunMesh(t *testing.T) {
+	_, box := defaultGearbox(t)
+	planet := meshPlanet(t, box, 1)
+	require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "second planet inside the sun")
+}
+
+func TestSecondPlanetRingMesh(t *testing.T) {
+	_, box := defaultGearbox(t)
+	planet := meshPlanet(t, box, 1)
+	require.Zero(t, penetration(t, planet, box.Ring), "second planet inside the ring")
+}
+
+func TestThirdPlanetMesh(t *testing.T) { requireDefaultPlanetMesh(t, 2) }
 
 func TestGearTipRootClearance(t *testing.T) {
 	for _, module := range []float64{0.5, 1, 2, 4} {
@@ -163,10 +175,7 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 // the ring's tooth spaces, so each of those bodies has less volume.
 func TestBacklashRemovesMaterial(t *testing.T) {
 	_, base := defaultGearbox(t)
-	p := planetarygearbox.DefaultParams()
-	p.Backlash = 0.2
-	loose, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
-	require.NoError(t, err)
+	loose := backlashGearbox(t)
 	for name, pair := range map[string][2]*decad.Body{
 		"sun":    {base.Stages[0].Sun, loose.Stages[0].Sun},
 		"planet": {base.Stages[0].Planets[0], loose.Stages[0].Planets[0]},

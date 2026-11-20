@@ -30,8 +30,12 @@ func requireTableMatchesDerive(t *testing.T, p Params) {
 	} {
 		v, err := doc.Param(c.name)
 		require.NoError(t, err, c.name)
-		if math.Abs(v.Base()-c.want) > 1e-9 {
-			t.Errorf("table %s = %v, derive = %v", c.name, v.Base(), c.want)
+		got := v.Base()
+		if tableValueDiffers(math.Abs(got - c.want)) {
+			t.Errorf("table %s = %v, derive = %v", c.name, got, c.want)
 		}
 	}
 }
+
+// CI: isolated-predicate
+func tableValueDiffers(distance float64) bool { return distance > 1e-9 }

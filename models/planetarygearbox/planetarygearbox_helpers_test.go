@@ -79,7 +79,7 @@ func (s *sharedBuild) get(t *testing.T, p planetarygearbox.Params) (*decad.Docum
 	return s.doc, s.box
 }
 
-var defaultBuild, twoStageBuild, placedBuild sharedBuild
+var defaultBuild, twoStageBuild, placedBuild, backlashBuild sharedBuild
 
 // defaultGearbox builds the default gearbox once for the tests that read it.
 func defaultGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
@@ -141,20 +141,29 @@ func requireDefaultPlanetMesh(t *testing.T, index int) {
 	requirePlanetMesh(t, box, index)
 }
 
-func requireBacklashPlanetMesh(t *testing.T, index int) {
+func backlashGearbox(t *testing.T) planetarygearbox.Gearbox {
 	t.Helper()
 	p := planetarygearbox.DefaultParams()
 	p.Backlash = 0.2
-	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
-	require.NoError(t, err)
-	requirePlanetMesh(t, box, index)
+	_, box := backlashBuild.get(t, p)
+	return box
+}
+
+func requireBacklashPlanetMesh(t *testing.T, index int) {
+	t.Helper()
+	requirePlanetMesh(t, backlashGearbox(t), index)
+}
+
+func meshPlanet(t *testing.T, box planetarygearbox.Gearbox, index int) *decad.Body {
+	t.Helper()
+	planets := box.Stages[0].Planets
+	require.Len(t, planets, 3, "update the separate planet mesh tests when the default planet count changes")
+	return planets[index]
 }
 
 func requirePlanetMesh(t *testing.T, box planetarygearbox.Gearbox, index int) {
 	t.Helper()
-	planets := box.Stages[0].Planets
-	require.Len(t, planets, 3, "update the separate planet mesh tests when the default planet count changes")
-	planet := planets[index]
+	planet := meshPlanet(t, box, index)
 	require.Zero(t, penetration(t, planet, box.Stages[0].Sun), "planet %d inside the sun", index)
 	require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", index)
 }
