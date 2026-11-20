@@ -174,6 +174,12 @@ class PlanTest(unittest.TestCase):
                     needs["repository"]["result"] = "failure"
                     self.assertTrue(gate.check(needs, "push"))
 
+    def test_render_compare_files_select_no_suites(self):
+        paths = "scripts/render_compare.py\0scripts/test_render_compare.py\0"
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=paths.encode()):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
+
     def test_each_existing_workflow_selects_no_geometry(self):
         for name in ("fan-variants.yml", "update-decad.yml"):
             with self.subTest(name=name), \

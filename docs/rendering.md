@@ -460,3 +460,19 @@ way round, and the fan parts about the fan axis by twice the crank angle, so the
 ```sh
 go -C tools/render run . -model handcrankfan -shot animation -out ../../models/handcrankfan/images/motion.gif
 ```
+
+## Checking output is unchanged
+
+A refactor of the renderer must not change any image. `scripts/render_compare.py` renders every job (or the models
+named by `--model`) with the renderer at a base revision and at the working tree, then compares the files byte for byte:
+
+```sh
+python3 scripts/render_compare.py --base origin/main
+python3 scripts/render_compare.py --base origin/main --model ballbearing --model fastener
+```
+
+The jobs come from `go run ./tools/render -list`, so the head renderer must support `-list`. A job that fails on both
+sides passes and prints both errors. A job that fails on one side, or writes different files or bytes, is a mismatch and
+the script exits 1. When bytes differ, the script renders the base again. A file that also differs between the two base
+runs is reported as `nondeterministic`: open both images and confirm they look the same. Never regenerate committed
+images to make the check pass. Output goes to `.tmp/render-compare/`.
