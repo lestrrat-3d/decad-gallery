@@ -1,5 +1,7 @@
 package fastener_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -7,13 +9,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/stretchr/testify/require"
 )
-
-func mustLookup(t *testing.T, name string) fastener.Preset {
-	t.Helper()
-	p, ok := fastener.Lookup(name)
-	require.True(t, ok, name)
-	return p
-}
 
 func TestCatalogNames(t *testing.T) {
 	require.Equal(t, []string{"M2", "M5"}, fastener.Names())
