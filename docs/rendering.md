@@ -32,19 +32,12 @@ go -C tools/render run . -model ballbearing -shot readme -out ../../models/ballb
 The readme shot also writes `605zz.png` at 1600 × 900, plus `top.png` (looking down the bore)
 and `side.png` (looking at the outer surface) of the 608-2RS at the same size.
 
-`m2bolt/hero` renders the default M2x10 bolt lying on its side with its head toward the camera.
-The `head`, `side`, `underside` and `lengths` presets show other angles and all six standard lengths.
-The `readme` shot writes all of them.
-
-`m2nut/hero` renders the M2 nut. The `top`, `side`, `low` and `withbolt` presets show other angles and the nut on an M2x10 bolt.
-The `readme` shot writes all of them.
-
-`m5bolt/hero` renders the default M5x25 bolt lying on its side with its head toward the camera.
-The `head`, `side` and `lengths` presets show other angles and all eleven standard lengths.
-The `readme` shot writes all of them and the index image.
-
-`m5nut/hero` renders the M5 nut. The `top`, `side` and `withbolt` presets show other angles and the nut on an M5x25 bolt.
-The `readme` shot writes all of them and the index image.
+`fastener/<shot>` renders the bolts and nuts of `models/fastener`. The shots are `hero` (the default M2x10 bolt lying on
+its side with its head toward the camera), `m2-bolt-head`, `m2-bolt-side`, `m2-bolt-underside`, `m2-bolt-lengths`,
+`m2-nut-hero`, `m2-nut-top`, `m2-nut-side`, `m2-nut-low`, `m2-nut-withbolt`, `m5-bolt-hero`, `m5-bolt-head`,
+`m5-bolt-side`, `m5-bolt-lengths`, `m5-nut-hero`, `m5-nut-top`, `m5-nut-side` and `m5-nut-withbolt`. The `lengths`
+shots show every standard length and the `withbolt` shots show the nut on an M2x10 or M5x25 bolt. The `readme` shot
+writes all of them and the index image.
 
 `spiralspring/hero` renders the default spring lying flat with its axis up. The `top`, `low`, `root` and `sizes`
 presets show the spiral from above, the underside, a close-up of the hub and spoke, and three springs of

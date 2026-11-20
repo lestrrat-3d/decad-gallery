@@ -17,3 +17,5 @@ diameter, so the model gives each part's envelope for fitting holes and parts. I
 tolerance or strength class.
 
 **Clearance adjustment:** Nominal. Adjust custom mating geometry to provide fit clearance.
+
+For how to build these from Go, see the [developer notes](../../docs/models/fastener.md).
