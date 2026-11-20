@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/rand"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
@@ -86,22 +87,45 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 // borderGears reuses the verified ornament meshes at varied sizes and positions.
 func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]solidlens.Model, error) {
 	type borderGear struct {
-		x, y, radius float64
-		style        int
+		x, y, radius, angle float64
+		style               int
 	}
-	gears := []borderGear{
-		{-25, 48, 5.0, 4}, {-12, 40, 3.4, 2}, {0, 49, 7.0, 5}, {14, 42, 3.0, 3},
-		{25, 50, 5.2, 0}, {37, 43, 4.0, 4}, {50, 50, 6.4, 2}, {64, 40, 5.0, 1},
-		{76, 49, 3.2, 3}, {-19, 35, 3.0, 1}, {8, 33, 3.0, 4}, {33, 33, 3.2, 5},
-		{56, 33, 2.8, 0}, {-47, -66, 6.0, 1}, {-33, -59, 3.4, 3}, {-20, -68, 6.8, 4},
-		{-5, -60, 3.0, 5}, {7, -67, 5.8, 0}, {20, -60, 4.2, 1}, {34, -68, 7.1, 4},
-		{49, -61, 3.1, 3}, {61, -67, 5.2, 2}, {-40, -52, 2.6, 5}, {-12, -52, 2.8, 2},
-		{14, -51, 2.7, 4}, {42, -51, 2.8, 0}, {109, 10, 6.4, 5}, {102, -3, 3.0, 4},
-		{111, -15, 5.4, 1}, {101, -22, 3.0, 3}, {-95, -23, 6.2, 2},
+	rng := rand.New(rand.NewSource(41))
+	var gears []borderGear
+	// Keep a seeded layout so regeneration produces the same image.
+	for attempts := 0; len(gears) < 55 && attempts < 5000; attempts++ {
+		gear := borderGear{radius: 1.8 + 6.0*rng.Float64(), angle: 2 * math.Pi * rng.Float64(), style: rng.Intn(len(templates))}
+		switch rng.Intn(4) {
+		case 0:
+			gear.x, gear.y = -96+206*rng.Float64(), 32+24*rng.Float64()
+		case 1:
+			gear.x, gear.y = -96+206*rng.Float64(), -74+24*rng.Float64()
+		case 2:
+			gear.x, gear.y = -103+24*rng.Float64(), -67+116*rng.Float64()
+		case 3:
+			gear.x, gear.y = 94+24*rng.Float64(), -67+116*rng.Float64()
+		}
+		clear := true
+		for _, wheel := range wheels[:4] {
+			if math.Hypot(gear.x-wheel.center.X, gear.y-wheel.center.Y) < gear.radius+float64(wheel.teeth)+2.5 {
+				clear = false
+				break
+			}
+		}
+		for _, other := range gears {
+			if math.Hypot(gear.x-other.x, gear.y-other.y) < gear.radius+other.radius+1 {
+				clear = false
+				break
+			}
+		}
+		if clear {
+			gears = append(gears, gear)
+		}
 	}
+
 	var models []solidlens.Model
 	for i, gear := range gears {
-		turn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(float64(i)*.71))
+		turn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(gear.angle))
 		if err != nil {
 			return nil, fmt.Errorf("rotate border gear %d: %w", i, err)
 		}
