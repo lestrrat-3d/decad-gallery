@@ -13,32 +13,53 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/fastenertool"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 )
 
-// Fastener dimensions in mm.
+// PresetName is the models/fastener catalog name of the M2 size.
+const PresetName = "M2"
+
+// BoltSize and NutSize are the M2 preset's dimensions from the models/fastener catalog. Treat both as read-only.
+var (
+	BoltSize = mustPreset(PresetName).Bolt
+	NutSize  = mustPreset(PresetName).Nut
+)
+
+// mustPreset returns the catalog preset called name and panics when the catalog has none.
+func mustPreset(name string) fastener.Preset {
+	p, ok := fastener.Lookup(name)
+	if !ok {
+		panic(fmt.Sprintf("m2fastener: catalog has no %s preset", name))
+	}
+	return p
+}
+
+// Fastener dimensions in mm. The pocket dimensions are literals that TestDimensionsFromPreset pins to the preset.
 const (
-	HeadClearance    = 0.3                                    // AGENTS.md radial clearance round a head and a shank
-	NutClearance     = 0.2                                    // AGENTS.md clearance round a nut: radial past its corners, axial at each face
-	HoleRadius       = m2bolt.ShankDiameter/2 + HeadClearance // 1.3, the clearance hole 2.6 across
-	HeadPocketRadius = m2bolt.HeadDiameter/2 + HeadClearance  // 2.2
-	HeadPocketDepth  = m2bolt.HeadHeight                      // 2.0: the head ends flush
-	NutCavityHeight  = m2nut.Thickness + 2*NutClearance       // 2.0
-	Stock            = 1.0                                    // a tool's reach past a face it opens
-	NutSpec          = "M2 hex nut"                           // the bought part a nut is
-	unitTolerance    = 1e-9                                   // how far a direction may stray from unit length
+	HeadClearance = 0.3 // AGENTS.md radial clearance round a head and a shank
+	NutClearance  = 0.2 // AGENTS.md clearance round a nut: radial past its corners, axial at each face
+	// HoleRadius is the clearance hole's radius, 2.6 across: BoltSize.ShankDiameter/2 + HeadClearance.
+	HoleRadius = 1.3
+	// HeadPocketRadius is BoltSize.SocketCap.HeadDiameter/2 + HeadClearance.
+	HeadPocketRadius = 2.2
+	// HeadPocketDepth is BoltSize.HeadHeight: the head ends flush.
+	HeadPocketDepth = 2.0
+	// NutCavityHeight is NutSize.Thickness + 2*NutClearance.
+	NutCavityHeight = 2.0
+	Stock           = 1.0          // a tool's reach past a face it opens
+	NutSpec         = "M2 hex nut" // the bought part a nut is
+	unitTolerance   = 1e-9         // how far a direction may stray from unit length
 )
 
 // NutCavityRadius is the radius of the nut cavity: the circle through the nut's corners, plus NutClearance (2.51).
-var NutCavityRadius = m2nut.AcrossFlats/math.Sqrt(3) + NutClearance
+var NutCavityRadius = NutSize.AcrossFlats/math.Sqrt(3) + NutClearance
 
 // Site is one bolt and its captive nut. Head is the centre of the head's top face. Dir is the unit vector from the head
 // toward the tip. Corner is the unit vector across Dir on which the nut's corners lie; the cavity is round. Length is one of
-// m2bolt.StandardLengths(). Cavity is the nut cavity's near face, measured from Head along Dir.
+// BoltSize.StandardLengths. Cavity is the nut cavity's near face, measured from Head along Dir.
 type Site struct {
 	Head, Dir, Corner r3.Vec
 	Length, Cavity    float64
@@ -52,7 +73,7 @@ func (s Site) Validate() error {
 	if math.Abs(s.Dir.Dot(s.Corner)) > unitTolerance {
 		return fmt.Errorf("fastener site: Corner must be perpendicular to Dir")
 	}
-	if !slices.Contains(m2bolt.StandardLengths(), s.Length) {
+	if !slices.Contains(BoltSize.StandardLengths, s.Length) {
 		return fmt.Errorf("fastener site: length %g is not a standard M2 length", s.Length)
 	}
 	if !(s.Cavity > HeadPocketDepth) {
@@ -189,27 +210,27 @@ func revolveTool(ctx context.Context, doc *decad.Document, s Site, pts [][2]floa
 	return fastenertool.RoundedRevolve(ctx, doc, f, pts)
 }
 
-// PlaceBolt builds an m2bolt of s.Length whose head's top face lies at s.Head and whose shank runs along s.Dir. The
+// PlaceBolt builds an M2 bolt of s.Length whose head's top face lies at s.Head and whose shank runs along s.Dir. The
 // bolt frame's origin is At(HeadPocketDepth), U is Corner and V is (-Dir) x Corner.
-func PlaceBolt(ctx context.Context, doc *decad.Document, s Site) (*m2bolt.Model, error) {
+func PlaceBolt(ctx context.Context, doc *decad.Document, s Site) (*fastener.Bolt, error) {
 	f, err := r3.NewFrame(s.At(HeadPocketDepth), s.Corner, s.Dir.Scale(-1).Cross(s.Corner))
 	if err != nil {
 		return nil, fmt.Errorf("bolt frame: %w", err)
 	}
-	m, err := m2bolt.Build(ctx, doc, m2bolt.Params{Length: s.Length, Placement: &f})
+	m, err := fastener.BuildBolt(ctx, doc, fastener.BoltParams{Preset: PresetName, Length: s.Length, Placement: &f})
 	if err != nil {
 		return nil, fmt.Errorf("build bolt: %w", err)
 	}
 	return m, nil
 }
 
-// PlaceNut builds an m2nut whose lower face lies NutClearance beyond the cavity's near face, corners on s.Corner.
-func PlaceNut(ctx context.Context, doc *decad.Document, s Site) (*m2nut.Model, error) {
+// PlaceNut builds an M2 nut whose lower face lies NutClearance beyond the cavity's near face, corners on s.Corner.
+func PlaceNut(ctx context.Context, doc *decad.Document, s Site) (*fastener.Nut, error) {
 	f, err := s.Across(s.Cavity + NutClearance)
 	if err != nil {
 		return nil, fmt.Errorf("nut frame: %w", err)
 	}
-	m, err := m2nut.Build(ctx, doc, m2nut.Params{Placement: &f})
+	m, err := fastener.BuildNut(ctx, doc, fastener.NutParams{Preset: PresetName, Placement: &f})
 	if err != nil {
 		return nil, fmt.Errorf("build nut: %w", err)
 	}

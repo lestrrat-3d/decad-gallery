@@ -7,6 +7,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/stretchr/testify/require"
@@ -134,4 +135,15 @@ func TestRoundedHexPocketTool(t *testing.T) {
 	removed := vs.Value.Base() - vr.Value.Base()
 	require.GreaterOrEqual(t, removed, 0.5*k)
 	require.LessOrEqual(t, removed, 1.5*k)
+}
+
+func TestDimensionsFromPreset(t *testing.T) {
+	require.Equal(t, "M2", m2fastener.PresetName)
+	require.Equal(t, fastener.HeadSocketCap, m2fastener.BoltSize.Head)
+	const tol = 1e-12
+	require.InDelta(t, m2fastener.BoltSize.ShankDiameter/2+m2fastener.HeadClearance, m2fastener.HoleRadius, tol)
+	require.InDelta(t, m2fastener.BoltSize.SocketCap.HeadDiameter/2+m2fastener.HeadClearance, m2fastener.HeadPocketRadius, tol)
+	require.InDelta(t, m2fastener.BoltSize.HeadHeight, m2fastener.HeadPocketDepth, tol)
+	require.InDelta(t, m2fastener.NutSize.Thickness+2*m2fastener.NutClearance, m2fastener.NutCavityHeight, tol)
+	require.Equal(t, 4/math.Sqrt(3)+0.2, m2fastener.NutCavityRadius)
 }

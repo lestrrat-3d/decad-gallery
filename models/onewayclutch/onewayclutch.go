@@ -20,8 +20,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
@@ -48,8 +47,8 @@ type Parts struct {
 // Model is a built clutch: its parts, bolts and nuts.
 type Model struct {
 	Parts
-	Bolts [3]*m2bolt.Model
-	Nuts  [3]*m2nut.Model
+	Bolts [3]*fastener.Bolt
+	Nuts  [3]*fastener.Nut
 }
 
 // BuildParts adds the hub, the ring, the back plate and the cover to doc and returns them. It puts them in no

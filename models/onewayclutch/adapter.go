@@ -9,8 +9,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 )
@@ -25,8 +24,8 @@ const AdapterContainerName = "Adapter"
 // takes M2 x FaceLength bolts into hex nut slots open to its rim, and the ring's bore clears the shaft.
 type Adapter struct {
 	Body  *decad.Body
-	Bolts [3]*m2bolt.Model
-	Nuts  [3]*m2nut.Model
+	Bolts [3]*fastener.Bolt
+	Nuts  [3]*fastener.Nut
 	// Sites are the three bolts in the world frame.
 	Sites [3]m2fastener.Site
 	// Sketches are every sketch the adapter was built from, each fully constrained.

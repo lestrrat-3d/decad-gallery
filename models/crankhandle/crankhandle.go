@@ -17,8 +17,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -54,12 +53,12 @@ type Parts struct {
 // the two clamp bolts and nuts that close the arm on the shaft.
 type Model struct {
 	Parts
-	Bolt       *m2bolt.Model
-	Nut        *m2nut.Model
-	CrossBolts [2]*m2bolt.Model
-	CrossNuts  [2]*m2nut.Model
-	ClampBolts [2]*m2bolt.Model
-	ClampNuts  [2]*m2nut.Model
+	Bolt       *fastener.Bolt
+	Nut        *fastener.Nut
+	CrossBolts [2]*fastener.Bolt
+	CrossNuts  [2]*fastener.Nut
+	ClampBolts [2]*fastener.Bolt
+	ClampNuts  [2]*fastener.Nut
 }
 
 // BuildParts adds the arm, the pin and the handle to doc and returns them. It puts them in no container, so an

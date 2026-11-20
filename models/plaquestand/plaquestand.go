@@ -21,8 +21,7 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
@@ -45,8 +44,8 @@ type Model struct {
 	// Rail is the printed rail, in container Rail.
 	Rail *decad.Body
 	// Bolts and Nuts are the bought M2 x 6 bolts and nuts, one pair per bracket, in containers Bolts and Nuts.
-	Bolts [2]*m2bolt.Model
-	Nuts  [2]*m2nut.Model
+	Bolts [2]*fastener.Bolt
+	Nuts  [2]*fastener.Nut
 	// Plaque is the reference plaque, not printed, in container Plaque.
 	Plaque *decad.Body
 	// Sketches are every sketch the bodies were built from, each fully constrained, in build order.

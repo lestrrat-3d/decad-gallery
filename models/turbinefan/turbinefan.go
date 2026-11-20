@@ -31,8 +31,7 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
-	"github.com/lestrrat-3d/decad-gallery/models/m2bolt"
-	"github.com/lestrrat-3d/decad-gallery/models/m2nut"
+	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -64,14 +63,14 @@ type Parts struct {
 // two adapter bolts and nuts (ClutchMount).
 type Model struct {
 	Parts
-	BladeBolts  [BladeCount]*m2bolt.Model
-	BladeNuts   [BladeCount]*m2nut.Model
-	SetScrew    *m2bolt.Model
-	SetScrewNut *m2nut.Model
+	BladeBolts  [BladeCount]*fastener.Bolt
+	BladeNuts   [BladeCount]*fastener.Nut
+	SetScrew    *fastener.Bolt
+	SetScrewNut *fastener.Nut
 	// AdapterBolts and AdapterNuts are the clutch mount's adapter bolts and nuts; nil in ShaftMount, where SetScrew and
 	// SetScrewNut are set instead.
-	AdapterBolts [2]*m2bolt.Model
-	AdapterNuts  [2]*m2nut.Model
+	AdapterBolts [2]*fastener.Bolt
+	AdapterNuts  [2]*fastener.Nut
 }
 
 // BuildParts adds the hub and the three blades to doc and returns them. It puts them in no container. ctx and doc must not be nil.
