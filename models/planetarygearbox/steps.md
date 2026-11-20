@@ -294,7 +294,7 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   The `TestCorners` variant tests do the same for the other kits, `EarCount` 0, 1 and 6, and two stages.
 - Split shafts: `TestSplitShafts` runs `splitcheck.Check` and then `cornercheck.CheckAt` along the split normal at the
   `cornercheck.SplitHeights` heights on the input shaft, the output shaft and every carrier pin of the default build, with only
-  the bearing-facing steps and the input shaft's square flat start exempt. `TestSplitShaftsVariants` does the same for the
+  the bearing-facing steps and the input shaft's square flat start exempt. The `TestSplit` variant tests do the same for the
   other kits, two stages (with the link shaft) and `Sf = 0`.
 - Ear roots: the section has material in each root round and none beside it; two stages' worth of ear volume matches
   the ear section plus two root rounds.
