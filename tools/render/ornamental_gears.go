@@ -38,7 +38,7 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 	wheels := []ornamentalWheel{
 		{60, rosette, r3.NewVec(-96, 49, 0), bronze, brass, burnished},
 		{36, compass, r3.NewVec(110, -67, 0), brass, burnished, bronze},
-		{22, vanes, r3.NewVec(-70, -58, 0), brass, bronze, burnished},
+		{22, vanes, r3.NewVec(-80, -58, 0), brass, bronze, burnished},
 		{17, honeycomb, r3.NewVec(98.5, 37.5, 0), bronze, brass, burnished},
 	}
 	scene := solidlens.Scene{
@@ -57,7 +57,43 @@ func ornamentalGears(ctx context.Context) (solidlens.Scene, error) {
 		}
 		scene.Models = append(scene.Models, models...)
 	}
+	border, err := borderGears(ctx)
+	if err != nil {
+		return solidlens.Scene{}, fmt.Errorf("border gears: %w", err)
+	}
+	scene.Models = append(scene.Models, border...)
 	return scene, nil
+}
+
+func borderGears(ctx context.Context) ([]solidlens.Model, error) {
+	p := spurgear.DefaultParams()
+	p.Module, p.Thickness, p.BoreDiameter = .5, 1, 1
+	body, err := spurgear.Build(ctx, decad.New(), p)
+	if err != nil {
+		return nil, err
+	}
+	mesh, err := body.Tessellate(ctx, units.Millimeters(.02), decad.WithVerification(decad.VerifyAll))
+	if err != nil {
+		return nil, err
+	}
+	var positions []r3.Vec
+	for x := -24.0; x <= 72; x += 12 {
+		positions = append(positions, r3.NewVec(x, 49, 0))
+	}
+	for x := -47.0; x <= 61; x += 12 {
+		positions = append(positions, r3.NewVec(x, -67, 0))
+	}
+	for y := -23.0; y <= 13; y += 12 {
+		positions = append(positions, r3.NewVec(110, y, 0))
+	}
+	positions = append(positions, r3.NewVec(-96, -23, 0))
+	models := make([]solidlens.Model, 0, len(positions))
+	for _, pos := range positions {
+		models = append(models, solidlens.Model{Mesh: placedMesh{TriangleSource: mesh, scale: 1, offset: pos},
+			Material: solidlens.Matte(solidlens.RGB(.54, .353, .142)),
+			Edges:    solidlens.Edges{Enabled: true, Color: solidlens.RGB(.16, .09, .045), Width: 1.4}})
+	}
+	return models, nil
 }
 
 func (w ornamentalWheel) models(ctx context.Context) ([]solidlens.Model, error) {
