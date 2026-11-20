@@ -1,5 +1,7 @@
 package spiralspring_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"

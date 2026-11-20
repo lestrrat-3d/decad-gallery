@@ -1,5 +1,7 @@
 package cycloidal
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -29,15 +31,6 @@ func TestHousingContour(t *testing.T) {
 	require.InDelta(t, d.pinCircleRadius-d.pinRadius, low, 0.1)
 	require.InDelta(t, d.pinCircleRadius-d.pinRadius+2*p.Eccentricity, high, 0.1)
 	require.Less(t, high, d.housingOuter/2-p.HousingWall+1e-9)
-}
-
-// contourConfigs are drives the contour tests sweep.
-var contourConfigs = map[string]func(p *Params){
-	"default":       func(p *Params) {},
-	"twelve pins":   func(p *Params) { p.PinCount = 12 },
-	"odd pins":      func(p *Params) { p.PinCount = 13 },
-	"big eccentric": func(p *Params) { p.Eccentricity = 2 },
-	"clearance":     func(p *Params) { p.DiskClearance = 0.6 },
 }
 
 // The contour from one pitch's share of the cam turn, with folded segments, stays within the profile's chord

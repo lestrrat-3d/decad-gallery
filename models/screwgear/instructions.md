@@ -324,7 +324,7 @@ cut leaves exactly one cage body.
 | Windows face ê | `CrossAngle = 100°` | First window faces `+ê`, both have room. Same volume range |
 | Mounted | `MountAngleA = 5°`, `MountAngleB = −5°` | First window faces `+k̂`, both have room. Same volume range |
 | Placed | Frame at `(10, −5, 7)` with `U = +Y`, `V = +Z`, normal `+X` | Cage bounds `10 ± CageRise` along X, `−5 ± Ro` along Y and `7 ± Ro` along Z. Cage volume 17,126 mm³ within the reported bound plus 50 |
-| Bore clearance | Default pair, 16 teeth | Distance from each bore wall to the ribbon at the crossing station is 0.19 mm at the crest, the back edge and the non-roof thickness face, and 0.48 mm at the roof face. `DistanceToPoint` reads lower bounds of 0.113 ± 0.01 mm and 0.41 ± 0.01 mm, because the sleeve's mesh bound is held at 0.033 mm or less |
+| Bore clearance | Default pair, 16 teeth | The mesh distance from each bore wall to the ribbon at the crossing station is 0.19 ± 0.01 mm at the crest, back edge and non-roof thickness face, and 0.79 ± 0.01 mm at the roof face. `ClosestPoint` bounds mesh displacement by 0.05 mm |
 | Invalid | `Clearance = 0` | Error naming `clearance`. A nil context also fails |
 
 The window search at the defaults, both windows: `lo` −4.537, `hi` 5.130, `bottom` −22.215, `top` 22.808,
@@ -342,8 +342,8 @@ The pair frame at the defaults: gear A's origin is (0, 0, −6.925) and gear B's
 - `Params.Validate` rejects each case in the input checks and reports the earlier check when an input fails two.
 - `Build` verifies every sketch it draws.
 - The cage is one solid and its volume is within the bound of the Fusion proof's 17,088 mm³ voxel count.
-- The distance from the cage to points on each ribbon at the bores' crossing stations is measured with
-  `DistanceToPoint`. The ribbons are not compared with the cage by a boolean or by `decad.Verify` clearance
+- The mesh distance from the cage to points on each ribbon at the bores' crossing stations is measured with
+  `ClosestPoint`. The ribbons are not compared with the cage by a boolean or by `decad.Verify` clearance
   checks (see [steps.md](steps.md)).
 - A placed mechanism's cage volume agrees with the unplaced one to within the reported bound plus 50 mm³, and its
   bounds are the unplaced bounds moved onto the frame.

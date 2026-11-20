@@ -1,5 +1,7 @@
 package main_test
 
+// CI: isolated-tests
+
 import (
 	"image/png"
 	"os"

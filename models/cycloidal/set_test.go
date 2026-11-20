@@ -1,5 +1,7 @@
 package cycloidal_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"

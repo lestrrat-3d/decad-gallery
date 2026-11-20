@@ -1,13 +1,13 @@
 package clamparm_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"os"
-	"regexp"
-	"strconv"
 	"testing"
 
-	"github.com/lestrrat-3d/decad-gallery/internal/m5fastener"
+	"github.com/lestrrat-3d/decad-gallery/internal/clamparmcapacity"
 	"github.com/lestrrat-3d/decad-gallery/models/clamparm"
 	"github.com/stretchr/testify/require"
 )
@@ -17,8 +17,7 @@ import (
 // that follows from them.
 func TestClampArmCapacity(t *testing.T) {
 	// The friction face is an annulus from the bolt hole (radius 2.8) to the end radius (10).
-	rOut, rIn := clamparm.EndRadius, m5fastener.HoleRadius
-	rm := 2.0 / 3.0 * (rOut*rOut*rOut - rIn*rIn*rIn) / (rOut*rOut - rIn*rIn)
+	rm, fFin := clamparmcapacity.Inputs()
 	require.InDelta(t, 7.075, rm, 0.001, "r_m")
 
 	// The tongue's two faces rub against two fins: a link's fork end has two fin loops at a section across the slot.
@@ -43,25 +42,10 @@ func TestClampArmCapacity(t *testing.T) {
 	require.InDelta(t, clamparm.EndRadius-clamparm.ForkGap/2, clamparm.FinThickness, 1e-9)
 
 	// F_fin: a fin is a cantilever SlotDepth long, Section wide and FinThickness thick, closed by JointFit.
-	const youngs = 3500.0 // N/mm^2
-	second := clamparm.Section * clamparm.FinThickness * clamparm.FinThickness * clamparm.FinThickness / 12
-	fFin := 3 * youngs * second * clamparm.JointFit / (clamparm.SlotDepth * clamparm.SlotDepth * clamparm.SlotDepth)
 	require.InDelta(t, 49, fFin, 1, "F_fin")
 
 	// The table: T_hold = 2 mu (F - F_fin) r_m, F = T_k / (0.2 d), d = 5.
 	text, err := os.ReadFile("instructions.md")
 	require.NoError(t, err)
-	row := regexp.MustCompile(`(?m)^\| (Low|Nominal|High) \| ([0-9.]+) \| ([0-9.]+) \| ([0-9.]+) \| ([0-9.]+) \|$`)
-	rows := row.FindAllStringSubmatch(string(text), -1)
-	require.Len(t, rows, 3, "the T_hold table")
-	num := func(s string) float64 {
-		v, err := strconv.ParseFloat(s, 64)
-		require.NoError(t, err)
-		return v
-	}
-	for _, r := range rows {
-		mu, tk, f, hold := num(r[2]), num(r[3]), num(r[4]), num(r[5])
-		require.InDelta(t, tk/(0.2*5)*1000, f, 1e-9, "%s: F", r[1])
-		require.InDelta(t, hold, 2*mu*(f-fFin)*rm/1000, 0.01, "%s: T_hold", r[1])
-	}
+	require.NoError(t, clamparmcapacity.Check(string(text)))
 }

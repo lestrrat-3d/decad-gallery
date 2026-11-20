@@ -1,5 +1,7 @@
 package helicalgear
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

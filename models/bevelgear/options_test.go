@@ -1,5 +1,7 @@
 package bevelgear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -9,39 +11,6 @@ import (
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
-
-type memberResult struct {
-	volume float64
-	bound  float64
-	xmin   float64
-	xmax   float64
-	ymax   float64
-}
-
-func buildStraightMemberFor(t *testing.T, p bevelgear.Params) memberResult {
-	t.Helper()
-	doc := decad.New()
-	gear, err := bevelgear.Build(t.Context(), doc, p)
-	require.NoError(t, err)
-	require.Len(t, doc.Bodies(), 1)
-	require.True(t, gear.IsSolid())
-	mesh, err := gear.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, err)
-	require.True(t, mesh.BoundaryVerified())
-	require.True(t, mesh.VolumeVerified())
-	require.Equal(t, 2, meshEuler(mesh), "the unbored member has one closed outer shell")
-	volume, err := gear.Volume()
-	require.NoError(t, err)
-	box, err := gear.Bounds()
-	require.NoError(t, err)
-	return memberResult{volume: volume.Value.Base(), bound: volume.Bound.Base(),
-		xmin: box.Min.X, xmax: box.Max.X, ymax: box.Max.Y}
-}
-
-func optionBase() bevelgear.Params {
-	return bevelgear.Params{Module: 1, Teeth: 8, MateTeeth: 8, ShaftAngle: math.Pi / 2,
-		PressureAngle: 20 * math.Pi / 180, Samples: 5}
-}
 
 // Each option of the Fusion add-in builds a verified closed member, and moves the geometry the way the
 // option says. Lengths are millimeters; the baseline is a Module 1 member with 8 teeth, whose default base

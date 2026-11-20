@@ -14,6 +14,10 @@ concurrency:
 
 jobs:
   plan:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
@@ -30,6 +34,9 @@ jobs:
             go.sum
             tools/render/go.sum
       - id: plan
+        env:
+          CI_BROAD_OVERRIDE: ${{ vars.CI_BROAD_OVERRIDE }}
+          GH_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
         run: python3 scripts/ci/plan.py
       - id: matrix
         env:
@@ -65,41 +72,62 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check repository layout
-        run: python3 scripts/check_repository.py
-      - name: Check dependency updater rollback
-        run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
-      - name: Check CI test runner
-        run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
-      - name: Check CI planner and gate
-        run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
-      - name: Check spur generation record
-        run: python3 scripts/modelgen/spurgear.py check
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
             tools/render/go.sum
+      - name: Check repository layout
+        run: python3 scripts/check_repository.py
+      - name: Check clamp arm capacity documentation
+        if: needs.plan.result == 'success' && contains(fromJSON(needs.plan.outputs.plan).changed_paths, 'models/clamparm/instructions.md')
+        run: go test ./internal/clamparmcapacity
+      - name: Check dependency updater rollback
+        run: python3 -m unittest discover -s scripts -p 'test_update_decad.py'
+      - name: Check CI test runner
+        run: python3 -m unittest discover -s scripts/ci -p 'test_run_tests.py'
+      - name: Check CI planner and gate
+        run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+      - name: Check isolated test files
+        env:
+          PLAN_JSON: ${{ needs.plan.outputs.plan }}
+        run: python3 scripts/ci/check_isolated_tests.py
+      - name: Check spur generation record
+        run: python3 scripts/modelgen/spurgear.py check
+      - name: Check workflow syntax
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          "$(go env GOPATH)/bin/actionlint"
       - name: Check gallery tile cache
-        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).suites[0] != null
+        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).check_gallery_cache
         run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
-        if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
+        if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener ./internal/cornercheck ./internal/splitcheck -timeout 5m
       - name: Check model regressions
-        if: (github.event_name == 'pull_request' || github.event_name == 'push') && contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+        if: (github.event_name == 'pull_request' || github.event_name == 'push') && contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: python3 scripts/ci/run_tests.py models pr
       - name: Check full model suite
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         env:
           HANDCRANKFAN_FULL: '1'
           PLANETARY_ALL_KITS: '1'
-        run: python3 scripts/ci/run_tests.py models full
+          CI_TEST_RECORDS: repository.jsonl
+        run: python3 scripts/ci/full_partition.py
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-repository
+          path: repository.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   renderer-full:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -111,11 +139,20 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check full renderer suite
-        run: go -C tools/render test -timeout 170m ./...
+        env:
+          CI_TEST_RECORDS: renderer-full.jsonl
+        run: python3 scripts/ci/gate.py renderer-full
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-renderer-full
+          path: renderer-full.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   planetary-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +167,7 @@ jobs:
 
   wheel-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -145,7 +182,7 @@ jobs:
 
   wheel-parts:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -161,7 +198,7 @@ jobs:
 
   fan-motion:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -188,7 +225,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check Graham escapement
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'escapement.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py escapement all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-escapement
+          path: escapement.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   onewayclutch:
     needs: plan
@@ -204,7 +250,16 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check one-way clutch
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'onewayclutch.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py onewayclutch all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-onewayclutch
+          path: onewayclutch.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   clamparm:
     needs: plan
@@ -217,7 +272,16 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Check clamp arm
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'clamparm.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py clamparm all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-clamparm
+          path: clamparm.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   turbinefan:
     needs: plan
@@ -233,11 +297,20 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check turbine fan
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'turbinefan.jsonl' || '' }}
         run: python3 scripts/ci/run_tests.py turbinefan all
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-turbinefan
+          path: turbinefan.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   escapement-exploded:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'renderer-all')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -280,7 +353,17 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check spinning wheel
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('wheel-{0}.jsonl', matrix.case) || '' }}
+          CI_TEST_CASE: ${{ matrix.case }}
         run: python3 scripts/ci/run_tests.py wheel ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-wheel-${{ matrix.case }}
+          path: wheel-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   siren:
     needs: plan
@@ -306,11 +389,21 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check hand-crank siren
+        env:
+          CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('siren-{0}.jsonl', matrix.case) || '' }}
+          CI_TEST_CASE: ${{ matrix.case }}
         run: python3 scripts/ci/run_tests.py siren ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+        with:
+          name: ci-records-siren-${{ matrix.case }}
+          path: siren-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
 
   bevel-pr:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
     strategy:
       fail-fast: false
       matrix:
@@ -336,7 +429,7 @@ jobs:
 
   bevel-full:
     needs: plan
-    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     strategy:
       fail-fast: false
       matrix:
@@ -360,12 +453,87 @@ jobs:
             go.sum
             tools/render/go.sum
       - name: Check full bevel coverage shard
+        env:
+          CI_TEST_RECORDS: bevel-full-${{ matrix.shard }}.jsonl
+          CI_TEST_CASE: ${{ matrix.shard }}
         run: python3 scripts/ci/run_tests.py bevel full ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-bevel-full-${{ matrix.shard }}
+          path: bevel-full-${{ matrix.shard }}.jsonl
+          if-no-files-found: error
+          overwrite: true
 
-  gate:
+  planetary-full:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [kits, rest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check planetary gearbox
+        env:
+          CI_TEST_RECORDS: planetary-full-${{ matrix.case }}.jsonl
+          CI_TEST_CASE: ${{ matrix.case }}
+        run: python3 scripts/ci/run_tests.py planetary full ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-planetary-full-${{ matrix.case }}
+          path: planetary-full-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  records-validation:
+    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, turbinefan, wheel, siren, bevel-full, planetary-full]
+    if: always() && needs.plan.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/render/go.sum
+      - name: Discover full test inventory
+        run: python3 scripts/ci/inventory.py > inventory.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ci-records-*
+          path: ci-artifacts
+      - name: Validate full execution records
+        run: python3 scripts/ci/reconcile_records.py --execution-dir ci-artifacts --inventory inventory.json --revision "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" > validation-summary.json
+      - name: Retain inventory and validation summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-validation-summary
+          path: |
+            inventory.json
+            validation-summary.json
+          if-no-files-found: warn
+          overwrite: true
+      - name: Check producer results
+        if: always()
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 -c 'import json, os, sys; results = json.loads(os.environ["NEEDS_JSON"]); failed = [name for name, job in results.items() if job["result"] != "success"]; print("Unsuccessful producers:", ", ".join(failed)); sys.exit(bool(failed))'
+
+  model-checks:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
-            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full]
+            onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
+            records-validation, planetary-full]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -374,13 +542,3 @@ jobs:
           NEEDS_JSON: ${{ toJSON(needs) }}
           EVENT_NAME: ${{ github.event_name }}
         run: python3 scripts/ci/gate.py
-
-  model-checks:
-    if: always()
-    needs: gate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check aggregate result
-        env:
-          GATE_RESULT: ${{ needs.gate.result }}
-        run: test "$GATE_RESULT" = success

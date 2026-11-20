@@ -1,5 +1,7 @@
 package ballbearing_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 
@@ -27,6 +29,9 @@ func TestBearingCatalog(t *testing.T) {
 	got, ok := ballbearing.Lookup("608ZZ")
 	require.True(t, ok)
 	require.Equal(t, "608ZZ", got.Name)
+	got, ok = ballbearing.Lookup("605ZZ")
+	require.True(t, ok)
+	require.Equal(t, ballbearing.Params605ZZ(), got.Params())
 	_, ok = ballbearing.Lookup("609ZZ")
 	require.False(t, ok)
 	_, ok = ballbearing.Lookup("605zz")
@@ -34,4 +39,7 @@ func TestBearingCatalog(t *testing.T) {
 
 	cat[0].Name = "changed"
 	require.Equal(t, "605ZZ", ballbearing.Catalog()[0].Name)
+	unchanged, ok := ballbearing.Lookup("605ZZ")
+	require.True(t, ok)
+	require.Equal(t, "605ZZ", unchanged.Name)
 }

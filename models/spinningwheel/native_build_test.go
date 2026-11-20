@@ -1,5 +1,7 @@
 package spinningwheel_test
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

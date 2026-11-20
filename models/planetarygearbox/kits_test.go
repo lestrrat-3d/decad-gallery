@@ -1,5 +1,7 @@
 package planetarygearbox_test
 
+// CI: isolated-tests
+
 import (
 	"os"
 	"testing"
@@ -12,8 +14,8 @@ import (
 )
 
 // TestKitGearboxes builds every non-default kit once, one at a time, and applies the default gearbox's fit, edge,
-// container, fastener, gear-clearance and explode checks to it. The default kit has its own tests. The kits with a
-// 608ZZ planet bearing are skipped, not passed, unless PLANETARY_ALL_KITS is set.
+// container, fastener, gear-clearance and explode checks to it. Separate tests check the 605/608 kit's planet mesh.
+// The default kit has its own tests. The kits with a 608ZZ planet bearing are skipped unless PLANETARY_ALL_KITS is set.
 func TestKitGearboxes(t *testing.T) {
 	for _, kit := range planetarygearbox.SupportedCombinations() {
 		if kit.Name == "planet605-shaft605" {
@@ -71,9 +73,11 @@ func TestKitGearboxes(t *testing.T) {
 			requireEdgeFinishing(t, box, p)
 			requireFastenersFlush(t, box, p)
 			requireCollarRings(t, box, p)
-			for i, planet := range stage.Planets {
-				require.Zero(t, penetration(t, planet, stage.Sun), "planet %d inside the sun", i)
-				require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", i)
+			if kit.Name != "planet605-shaft608" {
+				for i, planet := range stage.Planets {
+					require.Zero(t, penetration(t, planet, stage.Sun), "planet %d inside the sun", i)
+					require.Zero(t, penetration(t, planet, box.Ring), "planet %d inside the ring", i)
+				}
 			}
 			requireTipRootClearance(t, box, p)
 			requireExplodedGearbox(t, doc, box, p)
@@ -82,3 +86,7 @@ func TestKitGearboxes(t *testing.T) {
 		})
 	}
 }
+
+func TestKit605Shaft608FirstPlanetMesh(t *testing.T)  { requireKit605Shaft608PlanetMesh(t, 0) }
+func TestKit605Shaft608SecondPlanetMesh(t *testing.T) { requireKit605Shaft608PlanetMesh(t, 1) }
+func TestKit605Shaft608ThirdPlanetMesh(t *testing.T)  { requireKit605Shaft608PlanetMesh(t, 2) }

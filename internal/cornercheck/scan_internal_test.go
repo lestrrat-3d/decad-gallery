@@ -1,5 +1,7 @@
 package cornercheck
 
+// CI: isolated-tests
+
 import (
 	"testing"
 

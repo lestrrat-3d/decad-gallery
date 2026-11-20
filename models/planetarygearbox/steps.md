@@ -291,10 +291,10 @@ The tests in `planetarygearbox_test.go` implement the acceptance cases:
   `g = 0.75` succeeds.
 - Corners: `TestCorners` cuts every printed body of the default along +Z at the middle of each run of layers with
   `internal/cornercheck` and requires no finding outside "Retained sharp corners" in `instructions.md`.
-  `TestCornersVariants` does the same for the other kits, `EarCount` 0, 1 and 6, and two stages.
+  The `TestCorners` variant tests do the same for the other kits, `EarCount` 0, 1 and 6, and two stages.
 - Split shafts: `TestSplitShafts` runs `splitcheck.Check` and then `cornercheck.CheckAt` along the split normal at the
   `cornercheck.SplitHeights` heights on the input shaft, the output shaft and every carrier pin of the default build, with only
-  the bearing-facing steps and the input shaft's square flat start exempt. `TestSplitShaftsVariants` does the same for the
+  the bearing-facing steps and the input shaft's square flat start exempt. The `TestSplit` variant tests do the same for the
   other kits, two stages (with the link shaft) and `Sf = 0`.
 - Ear roots: the section has material in each root round and none beside it; two stages' worth of ear volume matches
   the ear section plus two root rounds.

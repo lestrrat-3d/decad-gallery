@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 
 
 BEVEL_TESTS = {
@@ -367,37 +368,73 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False) -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".") -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
+    record_path = os.environ.get("CI_TEST_RECORDS")
+    invocation = uuid.uuid4().hex if record_path else None
+    records = open(record_path, "a", encoding="utf-8") if record_path else None
+    try:
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished)
+    finally:
+        if records is not None:
+            records.close()
+
+
+def _read_finished_tests(lines, qualified, module, invocation, records, finished):
+    metadata = {"version": 1, "invocation": invocation, "module": module,
+                "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
+                "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "")}
+
+    def record(kind, **fields):
+        if records is not None:
+            records.write(json.dumps({**metadata, "kind": kind, **fields}, separators=(",", ":")) + "\n")
+
     for line in lines:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            record("malformed", reason="invalid_json")
             sys.stdout.write(line)
+            continue
+        if not isinstance(event, dict):
+            record("malformed", reason="not_object")
             continue
         if "Output" in event:
             sys.stdout.write(event["Output"])
         test = event.get("Test")
+        if event.get("Action") in {"pass", "fail", "skip"}:
+            package = event.get("Package")
+            if not isinstance(package, str) or not package or (test is not None and
+                                                                (not isinstance(test, str) or not test)):
+                record("malformed", reason="invalid_identity")
+            else:
+                record("test" if test else "package", package=package, test=test, status=event["Action"])
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
+    record("complete")
     sys.stdout.flush()
     return finished
 
 
 def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
             package: str | None = None, allowed_skips: frozenset[str] = frozenset(),
-            qualified_expected: set[tuple[str, str]] | None = None) -> None:
+            qualified_expected: set[tuple[str, str]] | None = None, cwd: str | None = None,
+            module: str = ".") -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
+    kwargs = {"stdout": subprocess.PIPE, "text": True, "env": env}
+    if cwd is not None:
+        kwargs["cwd"] = cwd
+    proc = subprocess.Popen(command, **kwargs)
     qualified = package is not None or qualified_expected is not None
-    finished = finished_tests(proc.stdout, qualified=qualified)
+    finished = finished_tests(proc.stdout, qualified=qualified, module=module)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    if not any(action != "skip" for action in finished.values()):
+    if not finished:
         raise SystemExit("go test ran no tests; check the -run pattern")
     missing = [
         f"{package}/{name}" if package else name
@@ -472,9 +509,12 @@ def go_test_shards(package: str, shards: tuple[tuple[str, ...], ...], timeout: s
             output.seek(0)
             finished = finished_tests(output)
             failures = [test for test in shard if finished.get(test) != "pass"]
+            failures.extend(test for test, status in finished.items()
+                            if status != "pass" and any(test.startswith(parent + "/") for parent in shard))
+            failures = sorted(set(failures))
             results.append((returncode, failures))
         failed = [
-            f"shard {index} (exit {returncode}): {', '.join(failures) or 'process failed'}"
+            f"shard {index} (exit {returncode}): {', '.join(failures[:20]) or 'process failed'}"
             for index, (returncode, failures) in enumerate(results, start=1)
             if returncode != 0 or failures
         ]
@@ -548,7 +588,6 @@ WHEEL_CASES = {
     "twelve": "^TestSpinningWheelVariants$/^twelve$",
     "small-seventeen": "^TestSpinningWheelVariants$/^small-seventeen$",
 }
-WHEEL_HEAVY = "^(TestSpinningWheelDefault|TestSpinningWheelNativeDefault|TestSpinningWheelConnectorDefault|TestSpinningWheelVariants)$"
 WHEEL_EXPECTED = {
     "default-verify": ["TestSpinningWheelDefault/verify"],
     "default-linkage": ["TestSpinningWheelDefault/linkage"],
@@ -565,7 +604,9 @@ WHEEL_EXPECTED = {
 def run_wheel(case: str) -> None:
     command = ["./models/spinningwheel", "-timeout", "40m", "-count=1"]
     if case == "rest":
-        command += ["-run", "^Test", "-skip", WHEEL_HEAVY]
+        assigned = [test for tests in WHEEL_EXPECTED.values() for test in tests]
+        run_remainder("./models/spinningwheel", assigned)
+        return
     else:
         command += ["-run", WHEEL_CASES[case]]
     go_test(command, WHEEL_EXPECTED.get(case, ()),
@@ -591,8 +632,6 @@ SIREN_CASES = {
         ["TestHandCrankSirenVariant/slots_24"],
     ),
 }
-SIREN_ASSIGNED = {test.split("/")[0] for _, tests in SIREN_CASES.values() for test in tests}
-
 FAN_VARIANTS = {
     "flat-three": "^TestHandCrankFanVariant$/^flat-three$",
     "steep-three": "^TestHandCrankFanVariant$/^steep-three$",
@@ -601,22 +640,30 @@ FAN_VARIANTS = {
 
 def run_siren(case: str) -> None:
     if case == "rest":
-        package = "./models/handcranksiren"
-        listing = subprocess.run(
-            ["go", "test", "-list", "^Test", package], check=True, capture_output=True, text=True
-        )
-        tests = [line for line in listing.stdout.splitlines()
-                 if line.startswith("Test") and line not in SIREN_ASSIGNED]
-        if not tests:
-            raise SystemExit("siren remainder lists no tests")
-        go_test([package, "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], tests,
-                package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren")
+        run_remainder("./models/handcranksiren", [test for _, tests in SIREN_CASES.values() for test in tests])
         return
     pattern, expected = SIREN_CASES[case]
     go_test(
         ["./models/handcranksiren", "-run", pattern, "-timeout", "40m", "-count=1"],
-        expected,
+        expected, package="github.com/lestrrat-3d/decad-gallery/models/handcranksiren",
     )
+
+
+def run_remainder(package: str, assigned: list[str]) -> None:
+    """Run everything except paths assigned to other jobs, including new nested subtests."""
+    if len(assigned) != len(set(assigned)) or any(
+            other.startswith(test + "/") for test in assigned for other in assigned):
+        raise SystemExit("test assignments overlap")
+    listing = subprocess.run(["go", "test", "-list", "^Test", package],
+                             check=True, capture_output=True, text=True)
+    available = {line for line in listing.stdout.splitlines() if line.startswith("Test")}
+    unknown = {test.split("/")[0] for test in assigned} - available
+    if unknown:
+        raise SystemExit("assigned tests missing from inventory: " + ", ".join(sorted(unknown)))
+    expected = sorted(available - {test for test in assigned if "/" not in test})
+    qualified = "github.com/lestrrat-3d/decad-gallery/" + package.removeprefix("./")
+    go_test([package, "-run", "^Test", "-skip", run_pattern(assigned), "-timeout", "40m", "-count=1"],
+            expected, package=qualified)
 
 
 def run_escapement() -> None:
@@ -624,21 +671,37 @@ def run_escapement() -> None:
     go_test_shards("./models/escapement", ESCAPEMENT_SHARDS, "40m")
 
 
+def run_model_packages(names: tuple[str, ...]) -> None:
+    """Run every inventoried test in the named model packages."""
+    expected = set()
+    for name in names:
+        package = f"./models/{name}"
+        listing = subprocess.run(["go", "test", "-list", "^Test", package],
+                                 check=True, capture_output=True, text=True)
+        tests = [line for line in listing.stdout.splitlines() if line.startswith("Test")]
+        if not tests:
+            raise SystemExit(f"model package {name} lists no tests")
+        qualified = f"github.com/lestrrat-3d/decad-gallery/models/{name}"
+        expected.update((qualified, test) for test in tests)
+    go_test([*(f"./models/{name}" for name in names), "-timeout", "40m", "-count=1"],
+            qualified_expected=expected)
+
+
 def run_turbinefan() -> None:
     """Run every test of the turbine fan package: about 5 minutes on a busy runner, so it has its own job."""
-    go_test(["./models/turbinefan", "-timeout", "40m", "-count=1"])
+    run_model_packages(("turbinefan",))
 
 
 def run_onewayclutch() -> None:
     """Run every test of the one-way clutch package: about 12 minutes, over the 5 minute PR job limit, so it has its
     own job."""
-    go_test(["./models/onewayclutch", "-timeout", "40m", "-count=1"])
+    run_model_packages(("onewayclutch",))
 
 
 def run_clamparm() -> None:
     """Run every test of the clamp arm and fastener packages: about 4 minutes on a fast machine, so they have their
     own job instead of the 5 minute PR job."""
-    go_test(["./models/clamparm", "./models/fastener", "-timeout", "40m", "-count=1"])
+    run_model_packages(("clamparm", "fastener"))
 
 
 def run_fan_variant(variant: str) -> None:
@@ -714,6 +777,152 @@ def run_full_models() -> None:
                 env=env, package=bevel)
 
 
+PLANETARY_PR_SHARDS = 21
+FAN_PR_SHARDS = 10
+
+
+def planetary_test_weight(name: str) -> int:
+    """Estimate relative cost from the observed PR tests; never use this to select tests."""
+    if name in {"TestKitGearboxes", "TestTwoStages", "TestBacklashRemovesMaterial"}:
+        return 240
+    if "PlanetMesh" in name or name in {"TestTwoStagesPlanetSunMesh", "TestTwoStagesPlanetRingMesh"}:
+        return 200
+    if name.startswith(("TestCorners", "TestSplit")):
+        return 100
+    if name in {"TestRingWithoutEars", "TestFastenersFitTheirPockets",
+                "TestBearingsSitInPlanetPockets", "TestHousing"}:
+        return 100
+    if name in {"TestPlacedGearbox", "TestSeatChamfer", "TestPartClearances", "TestWrongPhaseIsDetected"}:
+        return 180
+    if name in {"TestBuildPartsFilesNothing", "TestEarBoreAndCount"}:
+        return 90
+    if name in {"TestDefaultDimensionsUnchanged", "TestClearanceLimits", "TestDerivePerRole", "TestEdgeChamferLimits",
+                "TestEarSpacingCountsRootRounds", "TestFastenerFitRules", "TestInsideCountsRepeatedProjectedVertices",
+                "TestInvalidParams", "TestNewFitChecks", "TestNewMotionRejects", "TestParameterTableMatchesDerive",
+                "TestPhaseAngles", "TestProblemsNameForcedMinimums", "TestRootRoundArea",
+                "TestSunBoreWallDimensions", "TestSupportedCombinationsAreValid"} or name.startswith("TestMotion"):
+        return 1
+    return 45
+
+
+def planetary_test_shards(tests: list[str]) -> list[list[str]]:
+    """Balance discovered tests without relying on estimates for coverage."""
+    shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
+    weights = [0] * len(shards)
+    # Each group reads the same process-local gearbox. Keep the three expensive
+    # planet mesh checks on different workers, each with cheap default-body checks.
+    fixture_groups = (
+        ("TestFirstPlanetMesh", "TestBodyContainers", "TestFastenersSitFlush", "TestDefaultGearbox",
+         "TestCarrierPins", "TestExplodedGearbox", "TestInputShaftCollar"),
+        ("TestSecondPlanetMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
+         "TestOutputShaft", "TestCarrierIsATriangle"),
+        ("TestThirdPlanetMesh", "TestGearTipRootClearance", "TestEdgeFinishing", "TestShaftFlat",
+         "TestBearingsSitInPlanetPockets"),
+        ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
+        ("TestTwoStages", "TestExplodedTwoStageGearbox"),
+        ("TestCorners", "TestSplitShafts"),
+        ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
+        ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
+        ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
+        ("TestCornersTwoStages", "TestSplitTwoStages"),
+    )
+    remaining = set(tests)
+    groups = []
+    for candidates in fixture_groups:
+        group = tuple(name for name in candidates if name in remaining)
+        if group:
+            groups.append(group)
+            remaining.difference_update(group)
+    groups.extend((name,) for name in remaining)
+    # Rotating copies adds live bodies to the default document. Its body-count
+    # checks must see the original inventory, regardless of Go test order.
+    body_counts = {"TestDefaultGearbox", "TestBodyContainers"}
+    append_copies = {"TestGearTipRootClearance", "TestWrongPhaseIsDetected"}
+    for group in sorted(groups, key=lambda group: (-max(map(planetary_test_weight, group)), group)):
+        incompatible = set()
+        if body_counts.intersection(group):
+            incompatible = append_copies
+        elif append_copies.intersection(group):
+            incompatible = body_counts
+        eligible = (i for i, shard in enumerate(shards) if incompatible.isdisjoint(shard))
+        index = min(eligible, key=lambda item: (weights[item], item))
+        shards[index].extend(group)
+        weights[index] += max(map(planetary_test_weight, group))
+    assigned = [name for shard in shards for name in shard]
+    if sorted(assigned) != sorted(tests):
+        raise ValueError("planetary shards must assign every discovered test exactly once")
+    return shards
+
+
+def run_fan_pr(shard: str) -> None:
+    """Run one disjoint share of the discovered fan tests."""
+    if not shard.isdigit() or not 0 <= int(shard) < FAN_PR_SHARDS:
+        raise SystemExit("invalid fan PR shard")
+    package = "github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = sorted(line for line in output.splitlines() if line.startswith("Test"))
+    if not tests or len(tests) != len(set(tests)):
+        raise SystemExit("fan test inventory is empty or duplicated")
+    smoke = "TestValidate"
+    if smoke not in tests:
+        raise SystemExit("fan smoke test is missing")
+    tests.remove(smoke)
+    selected = [smoke] if int(shard) == 0 else tests[int(shard) - 1::FAN_PR_SHARDS - 1]
+    if not selected:
+        print(f"fan PR shard {shard} has no tests")
+        return
+    allowed = frozenset() if os.environ.get("HANDCRANKFAN_FULL") else frozenset((
+        "TestHandCrankFanDefault", "TestHandCrankFanVariant"))
+    go_test([package, "-run", run_pattern(selected), "-timeout", "40m", "-count=1"],
+            selected, package=package, allowed_skips=allowed)
+
+
+def run_planetary_pr(shard: str) -> None:
+    """Run one disjoint share of the discovered planetary tests."""
+    if not shard.isdigit() or not 0 <= int(shard) < PLANETARY_PR_SHARDS:
+        raise SystemExit("invalid planetary PR shard")
+    package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = sorted(line for line in output.splitlines() if line.startswith("Test"))
+    if not tests or len(tests) != len(set(tests)):
+        raise SystemExit("planetary test inventory is empty or duplicated")
+    smoke = "TestDefaultDimensionsUnchanged"
+    if smoke not in tests:
+        raise SystemExit("planetary smoke test is missing")
+    tests.remove(smoke)
+    selected = [smoke] if int(shard) == 0 else planetary_test_shards(tests)[int(shard) - 1]
+    if not selected:
+        print(f"planetary PR shard {shard} has no tests")
+        return
+    allowed = frozenset() if os.environ.get("PLANETARY_ALL_KITS") else frozenset((
+        "TestKitGearboxes/planet608-shaft605", "TestKitGearboxes/planet608-shaft608"))
+    go_test([package, "-run", run_pattern(selected), "-timeout", "40m", "-count=1"],
+            selected, package=package, allowed_skips=allowed)
+
+
+def run_planetary_full(shard: str) -> None:
+    package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = {line for line in output.splitlines() if line.startswith("Test")}
+    kit = "TestKitGearboxes"
+    if kit not in tests or len(tests) < 2:
+        raise SystemExit("planetary test inventory is incomplete")
+    selected = [kit] if shard == "kits" else sorted(tests - {kit}) if shard == "rest" else None
+    if selected is None:
+        raise SystemExit("invalid planetary shard")
+    expected = set(selected)
+    if shard == "kits":
+        expected.update(f"{kit}/{name}" for name in (
+            "planet605-shaft608", "planet608-shaft605", "planet608-shaft608"))
+    env = os.environ.copy()
+    env["PLANETARY_ALL_KITS"] = "1"
+    go_test([package, "-run", run_pattern(selected), "-timeout", "60m", "-count=1"],
+            sorted(expected), env=env, package=package)
+
+
 def run_model_pr(name: str) -> None:
     """Run every listed test in one model package and check its qualified results."""
     if not re.fullmatch(r"[a-z][a-z0-9]*", name):
@@ -744,6 +953,15 @@ def run_cycloidal_pr() -> None:
 
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    if suite == "fan" and mode == "pr" and len(args) == 1:
+        run_fan_pr(args[0])
+        return
+    if suite == "planetary" and mode == "pr" and len(args) == 1:
+        run_planetary_pr(args[0])
+        return
+    if suite == "planetary" and mode == "full" and len(args) == 1:
+        run_planetary_full(args[0])
+        return
     if suite == "cycloidal" and mode == "pr" and not args:
         run_cycloidal_pr()
         return

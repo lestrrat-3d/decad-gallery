@@ -1,0 +1,155 @@
+package planetarygearbox_test
+
+import (
+	"math"
+	"testing"
+
+	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
+	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+	"github.com/lestrrat-3d/r3"
+	"github.com/stretchr/testify/require"
+)
+
+// earWall mirrors the material the ears keep around a bore.
+const earWall = 3
+
+// earRootRound mirrors the radius of the rounds where an ear meets the ring: half the thinner of the ring wall and
+// the ear's width.
+func earRootRound(p planetarygearbox.Params) float64 {
+	return math.Min(p.RingWall, 2*(p.EarBoreDiameter/2+earWall)) / 2
+}
+
+// rootRoundArea is the area one root round adds: the region between the line that is half from an ear's axis, the
+// circle of radius outer about the origin, and the round of radius r tangent to both. It is the quadrilateral from
+// the old corner P, the round's tangent point T1 on the line, its center C and its tangent point T2 on the circle,
+// less the round's sector between T1 and T2 and the outer circle's segment between T2 and P.
+func rootRoundArea(outer, half, r float64) float64 {
+	cx, cy := math.Sqrt((outer+r)*(outer+r)-(half+r)*(half+r)), half+r
+	px, py := math.Sqrt(outer*outer-half*half), half
+	t1x, t1y := cx, half
+	t2x, t2y := cx*outer/(outer+r), cy*outer/(outer+r)
+	quad := math.Abs((px*t1y-t1x*py)+(t1x*cy-cx*t1y)+(cx*t2y-t2x*cy)+(t2x*py-px*t2y)) / 2
+	sector := r * r * math.Acos(cy/(outer+r)) / 2
+	phi := math.Atan2(cy, cx) - math.Asin(half/outer)
+	segment := outer * outer * (phi - math.Sin(phi)) / 2
+	return quad - sector - segment
+}
+
+// ringOuterRadius is the ring's outer wall for the default module: the ring root radius plus the wall.
+func ringOuterRadius(p planetarygearbox.Params) float64 {
+	return p.Module*float64(p.RingTeeth)/2 + p.Module + minimumGearRootClearance(p.Module) + p.RingWall
+}
+
+// insideAt returns a classifier of points in the plane z against the section of body, by even-odd crossings.
+func insideAt(t *testing.T, body *decad.Body, z float64) func(x, y float64) bool {
+	t.Helper()
+	plane, err := r3.NewFrame(r3.NewVec(0, 0, z), r3.NewVec(1, 0, 0), r3.NewVec(0, 1, 0))
+	require.NoError(t, err)
+	section := sectionOutline(t, body, plane)
+	return func(x, y float64) bool {
+		crossings := 0
+		for _, loop := range section.Loops {
+			for i, a := range loop {
+				b := loop[(i+1)%len(loop)]
+				if (a.Y > y) == (b.Y > y) {
+					continue
+				}
+				if x < a.X+(y-a.Y)/(b.Y-a.Y)*(b.X-a.X) {
+					crossings++
+				}
+			}
+		}
+		return crossings%2 == 1
+	}
+}
+
+// earBoltLength mirrors the length of an ear's bolt: the longest standard M2 length that fits the ring length less
+// the head.
+func earBoltLength(ringLength float64) float64 {
+	best := 0.0
+	for _, l := range m2fastener.BoltSize.StandardLengths {
+		if l <= ringLength-m2fastener.BoltSize.HeadHeight {
+			best = math.Max(best, l)
+		}
+	}
+	return best
+}
+
+// earNutFloor mirrors the height of an ear nut cavity's floor above the ring's front face: 1.8 mm, or where the nut's
+// lower face meets a bolt tip that ends further in.
+func earNutFloor(ringLength float64) float64 {
+	return math.Max(1.8, ringLength-m2fastener.BoltSize.HeadHeight-earBoltLength(ringLength)-0.2)
+}
+
+// Ear pocket radii: the head pocket is the head plus 0.3 mm radially, the nut cavity the circle through the nut's
+// corners plus 0.2 mm.
+var (
+	earHeadPocket = m2fastener.HeadPocketRadius
+	earNutCavity  = m2fastener.NutSize.AcrossCorners()/2 + 0.2
+)
+
+// requireEars checks the mounting ears of ring: each stands beyond the outer wall, runs the whole ring length, has
+// its bore through it and nothing else, and clears the covers' outer wall by the ear's bore wall. Each also has a
+// head pocket in its rear face and a closed nut cavity near its front face, with the ear's wall round both.
+func requireEars(t *testing.T, box planetarygearbox.Gearbox, p planetarygearbox.Params) {
+	t.Helper()
+	outer := ringOuterRadius(p)
+	half := p.EarBoreDiameter/2 + earWall
+	center := outer + half
+	first, last := -p.StageGap, float64(p.Stages)*(p.GearThickness+p.CarrierThickness+2*p.StageGap)
+	cover := bounds(t, box.FrontCover)
+	require.InDelta(t, outer, cover.Max.X, 0.05)
+	require.GreaterOrEqual(t, center-p.EarBoreDiameter/2-cover.Max.X, float64(earWall)-0.05,
+		"the bore is closer to the covers' outer wall than the ear's wall")
+	require.Greater(t, center-earHeadPocket, cover.Max.X, "the head pocket lies beyond the covers")
+
+	// The pockets: the head pocket's middle height, under the rear face, and the nut cavity's.
+	nutMid := first + earNutFloor(last-first) + 1
+	for _, c := range []struct {
+		what   string
+		z, rad float64
+	}{{"head pocket", last - 1, earHeadPocket}, {"nut cavity", nutMid, earNutCavity}} {
+		inside := insideAt(t, box.Ring, c.z)
+		for i := range p.EarCount {
+			sin, cos := math.Sincos(math.Pi/2 + 2*math.Pi*float64(i)/float64(p.EarCount))
+			at := func(along, side float64) bool { return inside(along*cos-side*sin, along*sin+side*cos) }
+			require.False(t, at(center+c.rad-0.3, 0), "ear %d %s is open toward the tip", i+1, c.what)
+			require.False(t, at(center, c.rad-0.3), "ear %d %s is open sideways", i+1, c.what)
+			require.True(t, at(center+c.rad+0.3, 0), "ear %d wall beyond the %s", i+1, c.what)
+			require.True(t, at(center, c.rad+0.3), "ear %d wall beside the %s", i+1, c.what)
+			// The ear keeps the 1 mm Fasteners margin round each pocket.
+			require.GreaterOrEqual(t, half-c.rad, 1.0, "ear %d wall round the %s", i+1, c.what)
+		}
+	}
+
+	// The bore alone, between the pockets and in the nut cavity's roof.
+	for _, z := range []float64{first + 1, (first + last) / 2} {
+		inside := insideAt(t, box.Ring, z)
+		for i := range p.EarCount {
+			angle := math.Pi/2 + 2*math.Pi*float64(i)/float64(p.EarCount)
+			sin, cos := math.Sincos(angle)
+			at := func(along, side float64) bool { return inside(along*cos-side*sin, along*sin+side*cos) }
+			for name, want := range map[string]struct {
+				along, side float64
+				material    bool
+			}{
+				"bore center":               {center, 0, false},
+				"bore edge toward the ring": {center - p.EarBoreDiameter/2 + 0.3, 0, false},
+				"bore edge toward the tip":  {center + p.EarBoreDiameter/2 - 0.3, 0, false},
+				"bore edge sideways":        {center, p.EarBoreDiameter/2 - 0.3, false},
+				"wall toward the ring":      {center - p.EarBoreDiameter/2 - 0.3, 0, true},
+				"wall toward the tip":       {center + p.EarBoreDiameter/2 + 0.3, 0, true},
+				"wall sideways":             {center, p.EarBoreDiameter/2 + 0.3, true},
+				"between the wall and ring": {outer + 0.5, 0, true},
+				"inside the ring wall":      {outer - 0.5, 0, true},
+				"beyond the tip":            {center + half + 0.3, 0, false},
+				"beyond the side":           {center, half + 0.3, false},
+				"in the root round":         {outer + 0.3, half + 0.3, true},
+				"beside the root round":     {outer + 0.5, half + earRootRound(p) + 0.3, false},
+			} {
+				require.Equal(t, want.material, at(want.along, want.side), "ear %d at z=%v: %s", i+1, z, name)
+			}
+		}
+	}
+}

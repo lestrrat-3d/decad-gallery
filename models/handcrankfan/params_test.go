@@ -1,5 +1,7 @@
 package handcrankfan_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"

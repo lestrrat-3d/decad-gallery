@@ -69,6 +69,10 @@
 
 ## Verification
 
+- Put new tests in files marked `// CI: isolated-tests` after the package clause.
+- Keep only imports and independent `Test...` functions in marked files. Put helpers and shared fixtures in unmarked
+  `_test.go` files. NEVER call one test from another or rely on another test's side effects.
+- Keep existing unmarked test files on whole-package CI selection until they meet this rule.
 - Apply [Part clearances](docs/model-pipeline.md#part-clearances) to every modeled part fit.
 - Give every shaft or pin through a purchased bearing zero clearance: its diameter equals the bearing bore. See
   [Part clearances](docs/model-pipeline.md#part-clearances).

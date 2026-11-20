@@ -1,0 +1,47 @@
+package clamparmcapacity_test
+
+// CI: isolated-tests
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/lestrrat-3d/decad-gallery/internal/clamparmcapacity"
+	"github.com/stretchr/testify/require"
+)
+
+func TestDocumentation(t *testing.T) {
+	require.NoError(t, clamparmcapacity.Check(documentation(t)))
+}
+
+func TestCheck(t *testing.T) {
+	actual := documentation(t)
+	const section = "## Joint capacity"
+	const header = "| Inputs | `mu` | `T_k` (N.m) | `F` (N) | `T_hold` (N.m) |"
+	cases := []struct {
+		name, old, replacement, message string
+	}{
+		{"missing section", section, "## Capacity", "section"},
+		{"duplicate section", section, section + "\n\n" + section, "expected exactly one Joint capacity section"},
+		{"missing row", "| High |", "| Other |", "unexpected capacity row"},
+		{"missing table header", header, "prose", "header"},
+		{"duplicate table header", header, header + "\n" + header, "expected exactly one capacity table header"},
+		{"header in prose", header, "prose " + header, "header"},
+		{"fenced table", header, "```markdown\n" + header, "header"},
+		{"separated rows", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "\n| Low | 0.2 | 0.4 | 400 | 1.00 |", "rows"},
+		{"duplicate row", "| Low |", "| Nominal |", "duplicate"},
+		{"malformed row", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "| Low | 0.2 | 0.4 | 400 |", "malformed"},
+		{"invalid number", "| Low | 0.2 |", "| Low | NaN |", "invalid number"},
+		{"zero torque", "| Low | 0.2 | 0.4 |", "| Low | 0.2 | 0 |", "invalid number in column 3"},
+		{"negative force", "| Low | 0.2 | 0.4 | 400 |", "| Low | 0.2 | 0.4 | -400 |", "invalid number in column 4"},
+		{"wrong force", "| Low | 0.2 | 0.4 | 400 |", "| Low | 0.2 | 0.4 | 401 |", "F does not"},
+		{"wrong capacity", "| Low | 0.2 | 0.4 | 400 | 1.00 |", "| Low | 0.2 | 0.4 | 400 | 1.10 |", "T_hold"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Contains(t, actual, tc.old)
+			err := clamparmcapacity.Check(strings.Replace(actual, tc.old, tc.replacement, 1))
+			require.ErrorContains(t, err, tc.message)
+		})
+	}
+}

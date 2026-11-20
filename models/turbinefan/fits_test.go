@@ -1,5 +1,7 @@
 package turbinefan_test
 
+// CI: isolated-tests
+
 import (
 	"fmt"
 	"testing"
@@ -8,10 +10,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/stretchr/testify/require"
 )
-
-// regularMinimum is the Regular fit class minimum of docs/model-pipeline.md "Part clearances". The test does not read
-// the model's nominal value: it proves the placed parts meet this bound.
-const regularMinimum = 0.35
 
 // TestTurbineFanFits checks every Regular fit between the hub and a blade: the stud in its socket, in the hub's mid plane
 // through the stud's axis; the stud's inner end to the socket floor and the blade's root to the hub's rim, in the plane

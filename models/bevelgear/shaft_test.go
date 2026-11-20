@@ -1,5 +1,7 @@
 package bevelgear
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"math/big"

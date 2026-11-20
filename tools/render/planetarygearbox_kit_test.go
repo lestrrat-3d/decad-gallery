@@ -1,19 +1,13 @@
 package main
 
+// CI: isolated-tests
+
 import (
 	"slices"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 )
-
-func shotsOf(parts []planetaryPart) []string {
-	var shots []string
-	for _, p := range parts {
-		shots = append(shots, p.shot)
-	}
-	return shots
-}
 
 func TestPlanetaryKitParts(t *testing.T) {
 	defaults := shotsOf(planetaryParts)

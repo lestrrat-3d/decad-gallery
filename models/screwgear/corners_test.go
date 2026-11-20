@@ -1,5 +1,7 @@
 package screwgear_test
 
+// CI: isolated-tests
+
 import (
 	"math"
 	"testing"
@@ -72,19 +74,6 @@ func TestGearCorners(t *testing.T) {
 			}
 		})
 	}
-}
-
-// loopSpan is the largest distance between two points of the loop in the plane square to axis.
-func loopSpan(loop []r3.Vec, axis r3.Vec) float64 {
-	var span float64
-	for i := range loop {
-		for j := i + 1; j < len(loop); j++ {
-			d := loop[i].Sub(loop[j])
-			d = d.Sub(axis.Scale(d.Dot(axis)))
-			span = math.Max(span, d.Len())
-		}
-	}
-	return span
 }
 
 // TestSleeveCornersRecorded records that the sleeve keeps sharp corners that "Corners and roots" requires rounded.
