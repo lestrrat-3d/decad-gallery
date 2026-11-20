@@ -258,19 +258,19 @@ type turbinePrint struct {
 }
 
 // buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm
-// and the harness at 0.1 mm.
+// and the harness at 0.2 mm.
 func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
 	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
 	if err != nil {
 		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
 	}
 	var out turbinePrint
-	// The cradle's cuts cross two faceted tools, so its held mesh is coarser than 0.05; it meshes at 0.1.
+	// The cradle's cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14; it meshes at 0.2.
 	for _, part := range []struct {
 		body *decad.Body
 		mesh **decad.Mesh
 		tol  float64
-	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .1}} {
+	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}} {
 		mesh, err := part.body.Tessellate(ctx, units.Millimeters(part.tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return turbinePrint{}, fmt.Errorf("mesh turbine blade print: %w", err)

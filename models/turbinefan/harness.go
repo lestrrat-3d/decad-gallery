@@ -32,8 +32,9 @@ const (
 	CradleTipMargin = 1.0
 	// StudSlotFlats is the number of flats of the stud slot's half polygon.
 	StudSlotFlats = 16
-	// HarnessMargin is how far the plate reaches past everything.
-	HarnessMargin = 3.0
+	// CradlePlanWindow is the x window over which the cradle plan's outer edge takes the widest point, so the bed face's
+	// outline has no notch narrower than its chamfer.
+	CradlePlanWindow = 1.0
 	// SectionStep is the spacing along x of the blade sections the layout reads.
 	SectionStep = 0.25
 )
@@ -47,13 +48,14 @@ type CradleSection struct {
 	RightY, RightZ float64      // offset widest point, max y side
 }
 
-// BladeHarness is the cradle and plate in the print frame. The cradle is a block on the plate minus the blade's upward
-// shadow, offset from the blade by CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest lines
-// and the blade lifts straight up out of it.
+// BladeHarness is the cradle in the print frame. The cradle is one solid standing on the bed: a block minus the blade's
+// upward shadow, offset from the blade by CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest
+// lines and the blade lifts straight up out of it. Where the blade is less than a few layers over the bed, near its
+// stud end corner and its leading edge, the shadow cuts the cradle down to the bed.
 type BladeHarness struct {
 	Body *decad.Body
 	// Sketches are in build order: shadow sections, stud slot, block plan, block profile, left cap plan, left cap
-	// profile, right cap plan, right cap profile, plate.
+	// profile, right cap plan, right cap profile.
 	Sketches []*sketch.Sketch
 	// Sections are every sampled section, x ascending; Sections[0].X is the cradle's start past the stud end.
 	Sections []CradleSection
@@ -61,13 +63,12 @@ type BladeHarness struct {
 	XStart, XEnd float64
 	// StepZone is the x range where the shadow tool copies its first clean section, past the root step.
 	StepZone [2]float64
-	PlateMin r3.Vec
-	PlateMax r3.Vec
 }
 
-// BuildBladeHarness builds the cradle for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand)
-// gives. It reads the blade with SectionOutline. It puts the harness in no container. ctx, doc and blade must not be nil.
-func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand) (*BladeHarness, error) {
+// BuildBladeHarness builds the cradle for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand,
+// tilt) gives. It reads the blade with SectionOutline. It puts the harness in no container. ctx, doc and blade must not be nil.
+func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand,
+	tilt float64) (*BladeHarness, error) {
 	if ctx == nil || doc == nil || blade == nil {
 		return nil, errors.New("turbinefan: context, document and blade must not be nil")
 	}
@@ -78,12 +79,12 @@ func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Bo
 		return nil, errors.New("turbinefan: hand must be RightHand or LeftHand")
 	}
 	// The posed loft does not depend on the pitch, so the analytic points use the default pitch's pose.
-	pose, err := PrintPoseFor(sz, DefaultBladePitch, hand)
+	pose, err := PrintPoseFor(sz, DefaultBladePitch, hand, tilt)
 	if err != nil {
 		return nil, err
 	}
 	b := &bladeBuilder{ctx: ctx, doc: doc, sz: sz, mirror: hand == LeftHand, what: "harness"}
-	h := b.harness(blade, pose, hand)
+	h := b.harness(blade, pose, hand, tilt)
 	if b.err != nil {
 		return nil, b.err
 	}
@@ -164,7 +165,7 @@ func (b *bladeBuilder) sections(blade *decad.Body, box decad.Box) bladeSections 
 }
 
 // harness runs construction steps 2 to 10.
-func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *BladeHarness {
+func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt float64) *BladeHarness {
 	box, err := blade.Bounds()
 	if err != nil {
 		b.fail("measure blade", err)
@@ -213,11 +214,11 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *Bla
 	h.XStart, h.XEnd = h.Sections[1].X, h.Sections[len(h.Sections)-2].X
 	// 5: the root step, where the stud meets the root face.
 	xRoot := xf.Apply(r3.Vec{Z: sz.RootRadius}).X
-	half := 4 * sz.HubScale * math.Sin(PrintTilt)
+	half := 4 * sz.HubScale * math.Sin(tilt)
 	h.StepZone = [2]float64{xRoot - half - CradleStep, xRoot + half + CradleStep}
 
 	shadow := b.shadowTool(h, z0, zTop)
-	stud := b.studTool(xf, zTop)
+	stud := b.studTool(xf, zTop, tilt)
 	block := b.block(h.Sections[1:len(h.Sections)-1], zTop)
 	// 9: the cradle.
 	if b.err != nil {
@@ -230,8 +231,14 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand) *Bla
 	}
 	cradle, err = decad.Cut(b.ctx, cradle, shadow)
 	b.fail("cut blade shadow", err)
-	plate := b.plate(h, box)
-	h.Body = b.join(plate, cradle, "cradle")
+	if b.err != nil {
+		return nil
+	}
+	if n := len(cradle.Lumps()); n != 1 {
+		b.fail("cradle", fmt.Errorf("%d pieces", n))
+		return nil
+	}
+	h.Body = cradle
 	return h
 }
 
@@ -441,11 +448,11 @@ func (b *bladeBuilder) shadowSection(x float64, src CradleSection, z0, zTop floa
 // studTool is the stud's U slot (step 7): a half polygon of StudSlotFlats flats circumscribing a half circle of radius
 // BladeStudRadius + CradleGapXY, centred CradleGapXY - CradleGapZ under the stud axis, carried straight up, extruded along
 // the axis from 1 mm before the stud end to 0.5 past the root.
-func (b *bladeBuilder) studTool(xf r3.Transform, zTop float64) *decad.Body {
+func (b *bladeBuilder) studTool(xf r3.Transform, zTop, t float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	sz, t := b.sz, PrintTilt
+	sz := b.sz
 	f := frame(xf.Apply(r3.Vec{Z: sz.BladeStudStart - 1}), r3.Vec{X: -math.Sin(t), Z: math.Cos(t)}, r3.Vec{Y: -1})
 	rr := sz.BladeStudRadius + CradleGapXY
 	h0 := -(CradleGapXY - CradleGapZ)
@@ -466,19 +473,35 @@ func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
+	// The plan's outer edge takes the widest point within CradlePlanWindow, so the bed face's outline has no notch
+	// narrower than its chamfer.
+	outer := func(x, side float64) float64 {
+		v := math.Inf(-1)
+		for _, c := range blk {
+			if math.Abs(c.X-x) > CradlePlanWindow+1e-9 {
+				continue
+			}
+			y := c.RightY
+			if side < 0 {
+				y = -c.LeftY
+			}
+			v = math.Max(v, y)
+		}
+		return side * v
+	}
 	var plan, bandL, bandR, topMax, capL, capR [][2]float64
 	for _, c := range blk {
-		plan = append(plan, [2]float64{c.X, c.LeftY - CradleWall})
-		bandL = append(bandL, [2]float64{c.X, c.LeftY - CradleWall - 1})
+		plan = append(plan, [2]float64{c.X, outer(c.X, -1) - CradleWall})
+		bandL = append(bandL, [2]float64{c.X, outer(c.X, -1) - CradleWall - 1})
 		bandR = append(bandR, [2]float64{c.X, c.RightY - 0.3})
 		topMax = append(topMax, [2]float64{c.X, math.Max(c.LeftZ, c.RightZ) - CradleTopDrop + 0.5})
 		capL = append(capL, [2]float64{c.X, c.LeftZ - CradleTopDrop})
 		capR = append(capR, [2]float64{c.X, c.RightZ - CradleTopDrop})
 	}
 	for i := len(blk) - 1; i >= 0; i-- {
-		plan = append(plan, [2]float64{blk[i].X, blk[i].RightY + CradleWall})
+		plan = append(plan, [2]float64{blk[i].X, outer(blk[i].X, 1) + CradleWall})
 		bandL = append(bandL, [2]float64{blk[i].X, blk[i].LeftY + 0.3})
-		bandR = append(bandR, [2]float64{blk[i].X, blk[i].RightY + CradleWall + 1})
+		bandR = append(bandR, [2]float64{blk[i].X, outer(blk[i].X, 1) + CradleWall + 1})
 	}
 	ymin, ymax, zmax := math.Inf(1), math.Inf(-1), 0.0
 	for _, q := range plan {
@@ -487,7 +510,6 @@ func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
 	for _, q := range topMax {
 		zmax = math.Max(zmax, q[1])
 	}
-	t := HarnessPlateThickness
 	// slab is the XZ polygon between the lower and upper polylines, extruded across the plan's y range.
 	slab := func(lo, hi [][2]float64, name string) *decad.Body {
 		poly := append([][2]float64{}, lo...)
@@ -503,8 +525,10 @@ func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
 		}
 		return out
 	}
-	prism := b.extrudePolygon(frame(r3.Vec{Z: t / 4}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+1, "block plan")
-	top := slab(flat(t/2, topMax), topMax, "block profile")
+	// The prism stands on the bed and gives the bed face, chamfered (Surface edge finishing); the slab starts under the
+	// bed, so no faces coincide.
+	prism := b.chamferStartCap(b.extrudePolygon(frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+2, "block plan"))
+	top := slab(flat(-1, topMax), topMax, "block profile")
 	if b.err != nil {
 		return nil
 	}
@@ -546,52 +570,15 @@ func (b *bladeBuilder) block(blk []CradleSection, zTop float64) *decad.Body {
 	return body
 }
 
-// plate builds the plate (step 10): a rectangle under the blade and the cradle, HarnessMargin beyond them, chamfered on
-// both caps.
-func (b *bladeBuilder) plate(h *BladeHarness, box decad.Box) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	ylo, yhi := box.Min.Y, box.Max.Y
-	for _, c := range h.Sections {
-		ylo, yhi = math.Min(ylo, c.LeftY-CradleWall), math.Max(yhi, c.RightY+CradleWall)
-	}
-	h.PlateMin = r3.Vec{X: box.Min.X - HarnessMargin, Y: ylo - HarnessMargin}
-	h.PlateMax = r3.Vec{X: box.Max.X + HarnessMargin, Y: yhi + HarnessMargin, Z: HarnessPlateThickness}
-	s, err := newSketch(frame(h.PlateMin, r3.Vec{X: 1}, r3.Vec{Y: 1}))
-	if err != nil {
-		b.fail("create plate", err)
-		return nil
-	}
-	b.sketches = append(b.sketches, s)
-	w, d := h.PlateMax.X-h.PlateMin.X, h.PlateMax.Y-h.PlateMin.Y
-	o := s.Origin()
-	p1, p2, p3 := s.CreatePoint(w, 0), s.CreatePoint(w, d), s.CreatePoint(0, d)
-	l1, l2, l3, l4 := s.CreateLine(o, p1), s.CreateLine(p1, p2), s.CreateLine(p2, p3), s.CreateLine(p3, o)
-	s.AddConstraint(sketch.NewHorizontal(l1), sketch.NewVertical(l2), sketch.NewHorizontal(l3), sketch.NewVertical(l4),
-		sketch.NewHorizontalDistance(o, p1, w), sketch.NewVerticalDistance(o, p3, d))
-	return b.chamferCaps(b.extrudeProfile(s, 0, HarnessPlateThickness, "plate"), "plate")
-}
-
-// chamferCaps chamfers both caps' outer loops of an extruded body by ChamferSize in one call.
-func (b *bladeBuilder) chamferCaps(body *decad.Body, name string) *decad.Body {
+// chamferStartCap chamfers the start cap's outer loop of an extruded body by ChamferSize.
+func (b *bladeBuilder) chamferStartCap(body *decad.Body) *decad.Body {
 	if b.err != nil || body == nil {
 		return nil
 	}
-	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body)))
-	out, err := decad.Chamfer(b.ctx, body, loops, units.Millimeters(ChamferSize))
-	b.fail("chamfer "+name, err)
+	out, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))),
+		units.Millimeters(ChamferSize))
+	b.fail("chamfer bed face", err)
 	return out
-}
-
-// join unions part into body; name tells the part in an error.
-func (b *bladeBuilder) join(body, part *decad.Body, name string) *decad.Body {
-	if b.err != nil {
-		return nil
-	}
-	joined, err := decad.Union(b.ctx, body, part)
-	b.fail("union "+name, err)
-	return joined
 }
 
 // sketchPolygon starts a sketch on f and draws the closed polygon of vertices, each placed by

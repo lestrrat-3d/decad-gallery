@@ -11,17 +11,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPrintPose puts blades in the print pose: the posed loft is the same at every pitch, the left hand is the right
-// hand reflected in y = 0, the stud corner is the lowest point at PrintLift, the stud axis lies in y = 0 and the pressure
+// TestPrintPose puts blades in the print pose at their rest tilt: the tilt matches the measured value for each size and
+// does not change with pitch or hand, the stud corner and the blade's lowest point sit on the bed, the posed loft is the
+// same at every pitch, the left hand is the right hand reflected in y = 0, the stud axis lies in y = 0 and the pressure
 // face faces -y. Bad inputs are rejected.
 func TestPrintPose(t *testing.T) {
+	rest := map[float64]float64{128: 0.198526, 192: 0.206587, 224: 0.218303}
 	for _, d := range bladeSizes {
 		sz := mustSize(t, d)
-		_, ref := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.RightHand)
+		_, ref, tilt := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.RightHand)
+		require.InDelta(t, rest[d], tilt, 1e-4, "rotor %g rest tilt", d)
 		rb, err := ref.Bounds()
 		require.NoError(t, err)
 		require.InDelta(t, turbinefan.PrintLift, rb.Min.Z, rb.Bound.Base()+1e-3, "rotor %g lowest point", d)
-		_, xf := poseTransform(t, sz, turbinefan.DefaultBladePitch, turbinefan.RightHand)
+		corner, _, _ := turbinefan.PosedEdgePoints(sz, turbinefan.RightHand, tilt)
+		require.InDelta(t, 0, corner.Z, 1e-9, "rotor %g stud corner", d)
+		_, xf := poseTransform(t, sz, turbinefan.DefaultBladePitch, turbinefan.RightHand, tilt)
 		for _, r := range []float64{sz.BladeStudStart, sz.BladeStudEnd} {
 			require.InDelta(t, 0, xf.Apply(r3.Vec{Z: r}).Y, 1e-9, "rotor %g stud axis at %g", d, r)
 		}
@@ -29,12 +34,14 @@ func TestPrintPose(t *testing.T) {
 			continue
 		}
 		for _, pitch := range []float64{turbinefan.MinBladePitch, turbinefan.MaxBladePitch} {
-			_, b := posedBlade(t, d, pitch, turbinefan.RightHand)
+			_, b, ptilt := posedBlade(t, d, pitch, turbinefan.RightHand)
+			require.InDelta(t, tilt, ptilt, 1e-6, "pitch %g rest tilt", pitch)
 			bb, err := b.Bounds()
 			require.NoError(t, err)
 			requireBoxNear(t, rb, bb, 2*math.Max(rb.Bound.Base(), bb.Bound.Base())+1e-3, false, "pitch")
 		}
-		_, left := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.LeftHand)
+		_, left, ltilt := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.LeftHand)
+		require.InDelta(t, tilt, ltilt, 1e-6, "left hand rest tilt")
 		lb, err := left.Bounds()
 		require.NoError(t, err)
 		requireBoxNear(t, rb, lb, rb.Bound.Base()+lb.Bound.Base()+1e-3, true, "left hand")
@@ -51,10 +58,15 @@ func TestPrintPose(t *testing.T) {
 	}
 
 	sz := mustSize(t, 192)
-	_, err := turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, turbinefan.Hand(2))
+	tilt := rest[192]
+	_, err := turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, turbinefan.Hand(2), tilt)
 	require.Error(t, err)
-	_, err = turbinefan.PrintPoseFor(sz, 9*math.Pi/180, turbinefan.RightHand)
+	_, err = turbinefan.PrintPoseFor(sz, 9*math.Pi/180, turbinefan.RightHand, tilt)
 	require.Error(t, err)
-	_, err = turbinefan.PrintPoseFor(turbinefan.Size{}, turbinefan.DefaultBladePitch, turbinefan.RightHand)
+	_, err = turbinefan.PrintPoseFor(turbinefan.Size{}, turbinefan.DefaultBladePitch, turbinefan.RightHand, tilt)
 	require.Error(t, err)
+	for _, bad := range []float64{turbinefan.RestTiltMin - 1e-3, turbinefan.RestTiltMax + 1e-3, math.NaN()} {
+		_, err = turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, turbinefan.RightHand, bad)
+		require.Error(t, err, "tilt %g", bad)
+	}
 }

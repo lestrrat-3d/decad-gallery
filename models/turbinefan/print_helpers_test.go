@@ -8,22 +8,24 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
-// poseTransform returns the transform of PrintPoseFor(sz, pitch, hand).
-func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbinefan.Hand) (r3.Frame, r3.Transform) {
+// poseTransform returns the transform of PrintPoseFor(sz, pitch, hand, tilt).
+func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbinefan.Hand, tilt float64) (r3.Frame,
+	r3.Transform) {
 	t.Helper()
-	f, err := turbinefan.PrintPoseFor(sz, pitch, hand)
+	f, err := turbinefan.PrintPoseFor(sz, pitch, hand, tilt)
 	require.NoError(t, err)
 	xf, err := r3.FromFrame(f)
 	require.NoError(t, err)
 	return f, xf
 }
 
-// posedBlade builds the blade of hand at rotor d and pitch in a fresh NewDocument, moves it into the print pose and
-// returns the document and the posed blade.
-func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Document, *decad.Body) {
+// posedBlade builds the blade of hand at rotor d and pitch in a fresh NewDocument, finds its rest tilt, moves it into
+// the print pose and returns the document, the posed blade and the tilt.
+func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Document, *decad.Body, float64) {
 	t.Helper()
 	sz := mustSize(t, d)
 	doc := turbinefan.NewDocument()
@@ -33,10 +35,55 @@ func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Do
 	}
 	blade, err := build(t.Context(), doc, pitch, sz)
 	require.NoError(t, err)
-	_, xf := poseTransform(t, sz, pitch, hand)
+	tilt, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, pitch, hand)
+	require.NoError(t, err)
+	_, xf := poseTransform(t, sz, pitch, hand, tilt)
 	posed, err := decad.Transform(t.Context(), blade.Body, xf)
 	require.NoError(t, err)
-	return doc, posed
+	return doc, posed, tilt
+}
+
+// sectionAt cuts body with the plane z = h of the print frame at the finest chord the body allows. The cradle's held
+// mesh bound is up to 0.14 mm, so it takes 0.2.
+func sectionAt(t *testing.T, body *decad.Body, h float64) decad.SectionOutline {
+	t.Helper()
+	var o decad.SectionOutline
+	var err error
+	for _, tol := range []float64{0.02, 0.05, 0.2} {
+		if o, err = body.SectionOutline(t.Context(), atZ(t, h), units.Millimeters(tol)); err == nil {
+			return o
+		}
+	}
+	require.NoError(t, err)
+	return o
+}
+
+// loopArea returns the area of a closed polyline in the XY plane, and its centroid.
+func loopArea(l []r3.Vec) (float64, r3.Vec) {
+	a, cx, cy := 0.0, 0.0, 0.0
+	for i := range l {
+		p, q := l[i], l[(i+1)%len(l)]
+		c := p.X*q.Y - q.X*p.Y
+		a += c
+		cx += (p.X + q.X) * c
+		cy += (p.Y + q.Y) * c
+	}
+	if a == 0 {
+		return 0, l[0]
+	}
+	return math.Abs(a) / 2, r3.Vec{X: cx / (3 * a), Y: cy / (3 * a)}
+}
+
+// insideLoop reports whether (x, y) lies inside the closed polyline, by the even-odd rule.
+func insideLoop(l []r3.Vec, x, y float64) bool {
+	in := false
+	for i := range l {
+		a, c := l[i], l[(i+len(l)-1)%len(l)]
+		if (a.Y > y) != (c.Y > y) && x < (c.X-a.X)*(y-a.Y)/(c.Y-a.Y)+a.X {
+			in = !in
+		}
+	}
+	return in
 }
 
 // requireBoxNear requires two boxes to agree within tol on every face; mirror negates y of want first.
@@ -71,12 +118,14 @@ var cradleCases = []cradleCase{
 	{"224-steep-left", 224, 40, turbinefan.LeftHand},
 }
 
-// builtCradle is one built harness case: its document, the posed blade and the harness.
+// builtCradle is one built harness case: its document, the posed blade, its rest tilt and the harness.
 type builtCradle struct {
 	doc     *decad.Document
 	blade   *decad.Body
+	tilt    float64
 	harness *turbinefan.BladeHarness
 	sz      turbinefan.Size
+	hand    turbinefan.Hand
 	err     error
 }
 
@@ -85,8 +134,8 @@ var (
 	builtCradleCases = map[string]*builtCradle{}
 )
 
-// cradleFor builds a harness case on first use and shares it between the tests, which only read it. A build takes 17 to
-// 45 s.
+// cradleFor builds a harness case on first use and shares it between the tests, which only read it. A build takes 12 to
+// 30 s.
 func cradleFor(t *testing.T, c cradleCase) *builtCradle {
 	t.Helper()
 	builtCradleMu.Lock()
@@ -96,9 +145,9 @@ func cradleFor(t *testing.T, c cradleCase) *builtCradle {
 		return b
 	}
 	sz := mustSize(t, c.rotor)
-	doc, blade := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
-	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand)
-	b := &builtCradle{doc: doc, blade: blade, harness: h, sz: sz, err: err}
+	doc, blade, tilt := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
+	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand, tilt)
+	b := &builtCradle{doc: doc, blade: blade, tilt: tilt, harness: h, sz: sz, hand: c.hand, err: err}
 	builtCradleCases[c.name] = b
 	require.NoError(t, err, c.name)
 	return b
