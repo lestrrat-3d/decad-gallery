@@ -57,6 +57,18 @@ class ReuseMainTest(unittest.TestCase):
     def test_reuses_only_the_exact_successful_run(self):
         self.assertEqual(self.proof(), {"pull_request": 12, "run": 42, "tested": self.tested})
 
+    def test_requires_successful_direct_validation_without_a_gate_job(self):
+        del self.jobs[1]
+        required = self.jobs[-1]
+        self.assertIsNone(self.proof())
+        step = {"name": "Check planned results", "status": "completed", "conclusion": "success"}
+        required["steps"] = [step]
+        self.assertIsNotNone(self.proof())
+        for conclusion in ("failure", "cancelled", "skipped"):
+            with self.subTest(conclusion=conclusion):
+                step["conclusion"] = conclusion
+                self.assertIsNone(self.proof())
+
     def test_rejects_missing_or_different_evidence(self):
         cases = (
             lambda: self.pr["mergeCommit"].update(oid="f" * 40),

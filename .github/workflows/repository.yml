@@ -529,7 +529,7 @@ jobs:
         run: |
           python3 -c 'import json, os, sys; results = json.loads(os.environ["NEEDS_JSON"]); failed = [name for name, job in results.items() if job["result"] != "success"]; print("Unsuccessful producers:", ", ".join(failed)); sys.exit(bool(failed))'
 
-  gate:
+  model-checks:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
             onewayclutch, clamparm, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
@@ -542,13 +542,3 @@ jobs:
           NEEDS_JSON: ${{ toJSON(needs) }}
           EVENT_NAME: ${{ github.event_name }}
         run: python3 scripts/ci/gate.py
-
-  model-checks:
-    if: always()
-    needs: gate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check aggregate result
-        env:
-          GATE_RESULT: ${{ needs.gate.result }}
-        run: test "$GATE_RESULT" = success

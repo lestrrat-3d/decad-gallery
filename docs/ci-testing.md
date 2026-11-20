@@ -1,7 +1,7 @@
 # CI test selection
 
 `.github/workflows/repository.yml` runs on pull requests, pushes to `main`, a daily schedule, and manual dispatch.
-The `model-checks` job reports the aggregate gate result. Repository layout and CI Python tests run in the
+The `model-checks` job runs the aggregate checks. Repository layout and CI Python tests run in the
 `repository` job even when the selected worker matrix is empty. That job also checks the clamp-arm capacity table
 against model dimensions without building geometry.
 
@@ -84,8 +84,9 @@ testable. See [CI measurements](ci-measurements.md) for observed run times and t
 ## Reusing a pull request run on main
 
 After a squash merge, the main push can reuse a successful pull request's selected suites.
-The planner checks the merged PR, its successful first workflow attempt, its checkout log, and the plan, gate and
-model-checks jobs. The tested merge must have the push base and PR head as its parents. Its tree, changed paths,
+The planner checks the merged PR, its successful first workflow attempt, its checkout log, and the plan and
+model-checks jobs. It verifies the successful "Check planned results" step or the separate gate job in older runs.
+The tested merge must have the push base and PR head as its parents. Its tree, changed paths,
 and selected suites must match the main push. The push plan records the PR number, run ID, tested commit and suites.
 
 The repository and aggregate checks still run on main. Direct pushes, broad or full plans, CI changes, and

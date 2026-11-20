@@ -75,7 +75,7 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertIn('--run-attempt "$GITHUB_RUN_ATTEMPT"', section)
         self.assertIn("if: always()", section)
         self.assertIn("job[\"result\"] != \"success\"", section)
-        self.assertIn("records-validation", job_section(workflow, "gate").split("runs-on:", 1)[0])
+        self.assertIn("records-validation", job_section(workflow, "model-checks").split("runs-on:", 1)[0])
 
     def test_summary_upload_and_validator_exit_status(self):
         section = job_section(WORKFLOW.read_text(), "records-validation")
