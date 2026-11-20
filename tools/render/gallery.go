@@ -24,29 +24,27 @@ type galleryTile struct {
 	cell image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other sixteen models in a grid of four
-// columns by four rows beside it (260 × 225 pixel cells), filled row by row. The top row holds the spur, helical,
-// herringbone and bevel gears. The second row holds the planetary gearbox, cycloidal drive, plaque stand and clamp
-// arm. The third row holds the hand-crank fan, hand-crank siren, Graham escapement and Swiss lever escapement. The
-// bottom row holds the crank handle, one-way clutch, spiral spring and turbine fan.
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other seventeen models in four columns
+// by five rows beside it (260 × 180 pixel cells), filled row by row.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", image.Rect(0, 0, 560, 900)},
-	{"spurgear", image.Rect(560, 0, 820, 225)},
-	{"helicalgear", image.Rect(820, 0, 1080, 225)},
-	{"herringbonegear", image.Rect(1080, 0, 1340, 225)},
-	{"bevelgear", image.Rect(1340, 0, 1600, 225)},
-	{"planetarygearbox", image.Rect(560, 225, 820, 450)},
-	{"cycloidal", image.Rect(820, 225, 1080, 450)},
-	{"plaquestand", image.Rect(1080, 225, 1340, 450)},
-	{"clamparm", image.Rect(1340, 225, 1600, 450)},
-	{"handcrankfan", image.Rect(560, 450, 820, 675)},
-	{"handcranksiren", image.Rect(820, 450, 1080, 675)},
-	{"escapement", image.Rect(1080, 450, 1340, 675)},
-	{"swisslever", image.Rect(1340, 450, 1600, 675)},
-	{"crankhandle", image.Rect(560, 675, 820, 900)},
-	{"onewayclutch", image.Rect(820, 675, 1080, 900)},
-	{"spiralspring", image.Rect(1080, 675, 1340, 900)},
-	{"turbinefan", image.Rect(1340, 675, 1600, 900)},
+	{"spurgear", image.Rect(560, 0, 820, 180)},
+	{"helicalgear", image.Rect(820, 0, 1080, 180)},
+	{"herringbonegear", image.Rect(1080, 0, 1340, 180)},
+	{"bevelgear", image.Rect(1340, 0, 1600, 180)},
+	{"planetarygearbox", image.Rect(560, 180, 820, 360)},
+	{"cycloidal", image.Rect(820, 180, 1080, 360)},
+	{"plaquestand", image.Rect(1080, 180, 1340, 360)},
+	{"clamparm", image.Rect(1340, 180, 1600, 360)},
+	{"handcrankfan", image.Rect(560, 360, 820, 540)},
+	{"handcranksiren", image.Rect(820, 360, 1080, 540)},
+	{"escapement", image.Rect(1080, 360, 1340, 540)},
+	{"swisslever", image.Rect(1340, 360, 1600, 540)},
+	{"crankhandle", image.Rect(560, 540, 820, 720)},
+	{"onewayclutch", image.Rect(820, 540, 1080, 720)},
+	{"spiralspring", image.Rect(1080, 540, 1340, 720)},
+	{"turbinefan", image.Rect(1340, 540, 1600, 720)},
+	{"compressionspring", image.Rect(560, 720, 820, 900)},
 }
 
 const (
@@ -59,7 +57,7 @@ const (
 )
 
 // renderGallery builds every model's hero scene, renders each to fill its cell, and writes them as one PNG. The
-// layout scales with width; height must keep the 16:9 shape of the tiles.
+// layout scales with width; height must keep the 16:9 shape of the image.
 func renderGallery(ctx context.Context, output string, width, height int) error {
 	scenes := make(map[string]renderkit.SceneFunc, len(galleryTiles))
 	for _, m := range registry() {

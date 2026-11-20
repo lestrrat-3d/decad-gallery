@@ -13,6 +13,7 @@ func registry() []renderkit.Model {
 		ballbearingModel(),
 		bevelgearModel(),
 		clamparmModel(),
+		compressionspringModel(),
 		crankhandleModel(),
 		cycloidalModel(),
 		dovetailModel(),
@@ -117,6 +118,25 @@ func clamparmModel() renderkit.Model {
 		Presets: presets,
 		Shots: map[string]renderkit.ShotFunc{
 			"readme": readmeShot(renderClampArmReadme),
+		},
+		Jobs: []renderkit.Job{
+			{Shot: "readme", Out: "images"},
+		},
+	}
+}
+
+func compressionspringModel() renderkit.Model {
+	presets := map[string]renderkit.Preset{
+		"hero":    {Width: 1600, Height: 900, Scene: compressionSpringHero},
+		"side":    {Width: 1600, Height: 900, Scene: compressionSpringViewScene("side")},
+		"pressed": {Width: 1600, Height: 900, Scene: compressionSpringViewScene("pressed")},
+	}
+	return renderkit.Model{
+		Name:    "compressionspring",
+		Dir:     "models/compressionspring",
+		Presets: presets,
+		Shots: map[string]renderkit.ShotFunc{
+			"readme": readmeShot(renderCompressionSpringReadme),
 		},
 		Jobs: []renderkit.Job{
 			{Shot: "readme", Out: "images"},
