@@ -93,7 +93,7 @@ func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]sol
 	rng := rand.New(rand.NewSource(41))
 	var gears []borderGear
 	// Keep a seeded layout so regeneration produces the same image.
-	for attempts := 0; len(gears) < 55 && attempts < 5000; attempts++ {
+	for attempts := 0; len(gears) < 95 && attempts < 25000; attempts++ {
 		gear := borderGear{radius: 1.8 + 6.0*rng.Float64(), angle: 2 * math.Pi * rng.Float64(), style: rng.Intn(len(templates))}
 		switch rng.Intn(4) {
 		case 0:
@@ -113,7 +113,7 @@ func borderGears(wheels []ornamentalWheel, templates [][]solidlens.Model) ([]sol
 			}
 		}
 		for _, other := range gears {
-			if math.Hypot(gear.x-other.x, gear.y-other.y) < gear.radius+other.radius+1 {
+			if math.Hypot(gear.x-other.x, gear.y-other.y) < gear.radius+other.radius+.4 {
 				clear = false
 				break
 			}
