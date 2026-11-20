@@ -1,14 +1,14 @@
-package main_test
+package main
 
 // CI: isolated-tests
 
 import (
 	"image/png"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,10 +17,9 @@ import (
 // and differ only in their camera.
 func TestHandCrankSirenView(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "view.png")
-	cmd := exec.CommandContext(t.Context(), "go", "run", ".", "-model", "handcranksiren", "-shot", "view-side",
-		"-width", "320", "-height", "180", "-out", path)
-	result, err := cmd.CombinedOutput()
-	require.NoError(t, err, "%s", result)
+	err := renderkit.Run(t.Context(), handcranksirenModel(), "view-side",
+		renderkit.Options{Width: 320, Height: 180, Output: path})
+	require.NoError(t, err)
 	file, err := os.Open(path)
 	require.NoError(t, err)
 	defer func() { _ = file.Close() }()

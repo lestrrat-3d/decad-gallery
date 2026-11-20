@@ -21,7 +21,7 @@ import (
 // fanAnimationFrames is the number of frames in one crank turn. The 32-tooth gear has a tooth pitch of 11.25°, so a
 // step well below it keeps the teeth from seeming to run backward. It is a variable so that the -frames flag can
 // shorten the animation for tests.
-var fanAnimationFrames = 72
+const fanAnimationFrames = 72
 
 // handCrankFanAnimation turns the crank one full turn, and so the fan two turns, in two panels: the crank side on the
 // left and the gear box from above and behind on the right. The meshes come from one build of the real fan; each frame

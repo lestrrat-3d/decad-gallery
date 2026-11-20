@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/plaquestand"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -296,7 +297,7 @@ func renderPlaqueStandReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}

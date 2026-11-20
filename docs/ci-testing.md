@@ -15,7 +15,8 @@ renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
 registered packages select their tests and affected consumers. New unregistered packages select broad checks and
-direct tests alongside affected known packages. Renderer Go changes select the full renderer suite. A change to either
+direct tests alongside affected known packages. Renderer Go changes select the full renderer suite. A production change to the shared render core in
+`internal/renderkit` selects `renderer-all`; a test-only change selects `package-renderkit`. A change to either
 `go.mod` or `go.sum` selects `broad` and the `full` marker, which runs the full root and renderer checks. The
 renderer group is the set of root-module packages under `tools/render`; `run_tests.py` lists them with
 `renderer_packages()`, and the root-module suites skip them.

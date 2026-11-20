@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/features/dovetail"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
@@ -99,5 +100,5 @@ func renderDovetailReadme(ctx context.Context, outputDir string) error {
 		{"end", "end.png", 1600, 900}, {"rear", "rear.png", 1600, 900}, {"low", "low.png", 1600, 900},
 		{"exploded", "exploded.png", 1600, 900},
 		{"tail-block", "parts/tail-block.png", 480, 270}, {"socket-block", "parts/socket-block.png", 480, 270},
-	}, dovetailView, renderPNG)
+	}, dovetailView, renderkit.RenderPNG)
 }

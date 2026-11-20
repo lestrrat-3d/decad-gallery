@@ -15,6 +15,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/stretchr/testify/require"
 )
@@ -32,16 +33,16 @@ func TestGalleryCacheRealSpurGear(t *testing.T) {
 	require.NotEmpty(t, cache.keys["spurgear"])
 	cache.dir = filepath.Join(dir, "cache")
 	count := 0
-	tile := galleryTile{name: "spurgear", cell: image.Rect(0, 0, 560, 900),
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
-			count++
-			return spurGearHero(ctx)
-		}}
+	tile := galleryTile{name: "spurgear", cell: image.Rect(0, 0, 560, 900)}
+	scenes := map[string]renderkit.SceneFunc{"spurgear": func(ctx context.Context) (solidlens.Scene, error) {
+		count++
+		return spurGearHero(ctx)
+	}}
 	cold := filepath.Join(dir, "cold.png")
 	warm := filepath.Join(dir, "warm.png")
-	require.NoError(t, renderGalleryWithCache(t.Context(), cold, 1600, 900, []galleryTile{tile}, cache))
+	require.NoError(t, renderGalleryWithCache(t.Context(), cold, 1600, 900, []galleryTile{tile}, scenes, cache))
 	require.Equal(t, 1, count)
-	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, cache))
+	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, scenes, cache))
 	require.Equal(t, 1, count, "warm render should skip the real scene builder")
 	coldPNG, err := os.ReadFile(cold)
 	require.NoError(t, err)
@@ -51,10 +52,10 @@ func TestGalleryCacheRealSpurGear(t *testing.T) {
 
 	file := cache.filename(tile.name, 1600, 900, tile.cell)
 	require.NoError(t, os.WriteFile(file, []byte("invalid"), 0o644))
-	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, cache))
+	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, scenes, cache))
 	require.Equal(t, 2, count, "invalid entry should rebuild the scene")
 	cache.fresh = true
-	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, cache))
+	require.NoError(t, renderGalleryWithCache(t.Context(), warm, 1600, 900, []galleryTile{tile}, scenes, cache))
 	require.Equal(t, 3, count, "fresh render should rebuild the scene")
 }
 

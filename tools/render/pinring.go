@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/pinring"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
@@ -48,5 +49,5 @@ func renderPinRingReadme(ctx context.Context, outputDir string) error {
 	return renderReadmeViews(ctx, outputDir, []readmeView{
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270},
 		{"top", "top.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"low", "low.png", 1600, 900},
-	}, pinRingView, renderPNG)
+	}, pinRingView, renderkit.RenderPNG)
 }

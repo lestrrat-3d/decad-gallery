@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/escapement"
 	"github.com/lestrrat-3d/decad/parts"
 	"github.com/lestrrat-3d/r3"
@@ -315,7 +316,7 @@ func (b *escapementBuild) partScene(part escapementPart) solidlens.Scene {
 	return bevelScene(escapementCamera(models, part.dir, 16.0/9), models)
 }
 
-func init() {
+func addEscapementPresets(presets map[string]renderkit.Preset) {
 	cached := func(f func(*escapementBuild) solidlens.Scene) func(context.Context) (solidlens.Scene, error) {
 		return func(ctx context.Context) (solidlens.Scene, error) {
 			b, err := buildEscapement(ctx)
@@ -325,20 +326,20 @@ func init() {
 			return f(b), nil
 		}
 	}
-	presets["escapement/hero"] = preset{width: 1600, height: 900, scene: cached((*escapementBuild).heroScene)}
-	presets["escapement/index"] = preset{width: 480, height: 270, scene: cached((*escapementBuild).heroScene)}
-	presets["escapement/assembled-front"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementFrontDir) })}
-	presets["escapement/assembled-angle"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementAngleDir) })}
-	presets["escapement/assembled-side"] = preset{width: 1200, height: 675, scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementSideDir) })}
-	presets["escapement/assembled-back"] = preset{width: 1000, height: 1000, scene: cached((*escapementBuild).backScene)}
-	presets["escapement/closeup"] = preset{width: 1200, height: 675, scene: func(ctx context.Context) (solidlens.Scene, error) {
+	presets["hero"] = renderkit.Preset{Width: 1600, Height: 900, Scene: cached((*escapementBuild).heroScene)}
+	presets["index"] = renderkit.Preset{Width: 480, Height: 270, Scene: cached((*escapementBuild).heroScene)}
+	presets["assembled-front"] = renderkit.Preset{Width: 1200, Height: 675, Scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementFrontDir) })}
+	presets["assembled-angle"] = renderkit.Preset{Width: 1200, Height: 675, Scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementAngleDir) })}
+	presets["assembled-side"] = renderkit.Preset{Width: 1200, Height: 675, Scene: cached(func(b *escapementBuild) solidlens.Scene { return b.viewScene(escapementSideDir) })}
+	presets["assembled-back"] = renderkit.Preset{Width: 1000, Height: 1000, Scene: cached((*escapementBuild).backScene)}
+	presets["closeup"] = renderkit.Preset{Width: 1200, Height: 675, Scene: func(ctx context.Context) (solidlens.Scene, error) {
 		b, err := buildEscapement(ctx)
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		return b.closeupScene()
 	}}
-	presets["escapement/exploded"] = preset{width: 1600, height: 900, scene: func(ctx context.Context) (solidlens.Scene, error) {
+	presets["exploded"] = renderkit.Preset{Width: 1600, Height: 900, Scene: func(ctx context.Context) (solidlens.Scene, error) {
 		b, err := buildEscapement(ctx)
 		if err != nil {
 			return solidlens.Scene{}, err
@@ -346,8 +347,8 @@ func init() {
 		return b.explodedScene(ctx)
 	}}
 	for _, part := range escapementParts {
-		presets["escapement/part-"+part.shot] = preset{width: 480, height: 270,
-			scene: cached(func(b *escapementBuild) solidlens.Scene { return b.partScene(part) })}
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270,
+			Scene: cached(func(b *escapementBuild) solidlens.Scene { return b.partScene(part) })}
 	}
 }
 
@@ -382,24 +383,15 @@ func renderEscapementReadme(ctx context.Context, outputDir string) error {
 		{"closeup.png", 1200, 675, closeup},
 		{"exploded.png", 1600, 900, exploded},
 	} {
-		if err := renderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, image.name), image.scene, image.width, image.height); err != nil {
 			return fmt.Errorf("render escapement %s: %w", image.name, err)
 		}
 	}
 	for _, part := range escapementParts {
 		name := filepath.Join(outputDir, "parts", part.shot+".png")
-		if err := renderPNG(ctx, name, b.partScene(part), 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, name, b.partScene(part), 480, 270); err != nil {
 			return fmt.Errorf("render escapement part %s: %w", part.shot, err)
 		}
 	}
 	return nil
-}
-
-// escapementHero builds the movement and returns the hero scene, for the gallery tile.
-func escapementHero(ctx context.Context) (solidlens.Scene, error) {
-	b, err := buildEscapement(ctx)
-	if err != nil {
-		return solidlens.Scene{}, err
-	}
-	return b.heroScene(), nil
 }

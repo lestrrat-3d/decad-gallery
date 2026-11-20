@@ -409,6 +409,22 @@ class PlanTest(unittest.TestCase):
             with mock.patch.object(Path, "is_dir", return_value=True):
                 self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
+    def test_shared_render_core_change_selects_renderer_all(self):
+        core = plan.ROOT + "/internal/renderkit"
+        renderer = plan.ROOT + "/tools/render"
+        graph = {core: {"dir": "internal/renderkit", "imports": set(), "test_imports": set()},
+                 renderer: {"dir": "tools/render", "imports": {core}, "test_imports": set()}}
+        cases = ((b"internal/renderkit/renderkit.go\0", ["renderer-all"]),
+                 (b"internal/renderkit/renderkit.go\0unknown.sh\0", ["broad", "full"]),
+                 (b"internal/renderkit/renderkit_test.go\0", ["package-renderkit"]))
+        for paths, expected in cases:
+            with self.subTest(paths=paths), \
+                    mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", return_value=graph), \
+                    mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+                result = plan.plan("push", "base", "head")
+            self.assertEqual(result["suites"], expected)
+
     def test_unknown_input_keeps_model_and_renderer_checks(self):
         model = plan.ROOT + "/models/swisslever"
         graph = {model: {"dir": "models/swisslever", "imports": set(), "test_imports": set()}}

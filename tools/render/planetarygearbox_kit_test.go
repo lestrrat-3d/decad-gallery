@@ -35,15 +35,3 @@ func TestPlanetaryKitParts(t *testing.T) {
 		t.Fatalf("mixed bearings: got %v, want %v", got, want)
 	}
 }
-
-func TestCheckKitFlag(t *testing.T) {
-	if err := checkKitFlag("planetarygearbox", "planet605-shaft608"); err != nil {
-		t.Fatal(err)
-	}
-	if err := checkKitFlag("spurgear", "planet605-shaft608"); err == nil {
-		t.Fatal("-kit with another model succeeded")
-	}
-	if err := checkKitFlag("spurgear", ""); err != nil {
-		t.Fatal(err)
-	}
-}

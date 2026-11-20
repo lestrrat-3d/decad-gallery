@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/solidlens"
 	"github.com/lestrrat-3d/units"
@@ -49,7 +50,7 @@ func renderBearingReadme(ctx context.Context, outputDir string) error {
 	}{
 		{"hero.png", 1600, 900}, {"index.png", 480, 270},
 	} {
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}
@@ -65,7 +66,7 @@ func renderBearingReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, view.name), scene, 1600, 900); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, view.name), scene, 1600, 900); err != nil {
 			return err
 		}
 	}
@@ -73,7 +74,7 @@ func renderBearingReadme(ctx context.Context, outputDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := renderPNG(ctx, filepath.Join(outputDir, "605zz.png"), other, 1600, 900); err != nil {
+	if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "605zz.png"), other, 1600, 900); err != nil {
 		return err
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/spiralspring"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -102,7 +103,7 @@ func renderSpiralSpringReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}

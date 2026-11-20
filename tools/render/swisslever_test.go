@@ -17,14 +17,14 @@ import (
 // table cover the movement's bodies exactly.
 func TestSwissPresets(t *testing.T) {
 	for name, size := range map[string][2]int{
-		"swisslever/hero": {1600, 900}, "swisslever/index": {480, 270},
-		"swisslever/assembled-front": {1200, 675}, "swisslever/assembled-angle": {1200, 675},
-		"swisslever/assembled-side": {1200, 675}, "swisslever/assembled-back": {1000, 1000},
-		"swisslever/closeup": {1200, 675}, "swisslever/exploded": {1600, 900},
+		"hero": {1600, 900}, "index": {480, 270},
+		"assembled-front": {1200, 675}, "assembled-angle": {1200, 675},
+		"assembled-side": {1200, 675}, "assembled-back": {1000, 1000},
+		"closeup": {1200, 675}, "exploded": {1600, 900},
 	} {
-		p, ok := presets[name]
+		p, ok := swissleverModel().Presets[name]
 		require.True(t, ok, "preset %s", name)
-		require.Equal(t, size, [2]int{p.width, p.height}, "size of %s", name)
+		require.Equal(t, size, [2]int{p.Width, p.Height}, "size of %s", name)
 	}
 	require.GreaterOrEqual(t, swissExplodedWidth, 1600)
 	require.GreaterOrEqual(t, swissExplodedHeight, 900)
@@ -47,9 +47,9 @@ func TestSwissPresets(t *testing.T) {
 
 	shown := map[string]struct{}{}
 	for _, part := range swissParts {
-		p, ok := presets["swisslever/part-"+part.shot]
+		p, ok := swissleverModel().Presets["part-"+part.shot]
 		require.True(t, ok, "preset for part %s", part.shot)
-		require.Equal(t, [2]int{480, 270}, [2]int{p.width, p.height})
+		require.Equal(t, [2]int{480, 270}, [2]int{p.Width, p.Height})
 		for _, n := range part.bodies {
 			_, known := names[n]
 			require.True(t, known, "part %s names the unknown body %q", part.shot, n)

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/crankhandle"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -223,7 +224,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}
@@ -238,7 +239,7 @@ func renderCrankHandleReadme(ctx context.Context, outputDir string) error {
 		models := []solidlens.Model{crankModel(mesh, crankPartColor(name))}
 		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
 		file := strings.TrimSuffix(name, "-1")
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", file+".png"), scene, 480, 270); err != nil {
 			return err
 		}
 	}
@@ -284,7 +285,7 @@ func (c crankMeshes) renderPinHalves(ctx context.Context, dir string) error {
 			Up: solidlens.Vec{Z: 1}, FOV: 35}
 		models := []solidlens.Model{model}
 		scene := bevelScene(fitCamera(camera, models, 16.0/9, .08), models)
-		if err := renderPNG(ctx, filepath.Join(dir, half.file), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(dir, half.file), scene, 480, 270); err != nil {
 			return err
 		}
 	}

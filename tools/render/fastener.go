@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -73,9 +74,9 @@ var fastenerShots = []fastenerShot{
 	{"m5-nut-withbolt", "m5", "nut", "withbolt"},
 }
 
-func init() {
+func addFastenerPresets(presets map[string]renderkit.Preset) {
 	for _, s := range fastenerShots {
-		presets["fastener/"+s.shot] = preset{width: 1600, height: 900, scene: fastenerScene(s)}
+		presets[s.shot] = renderkit.Preset{Width: 1600, Height: 900, Scene: fastenerScene(s)}
 	}
 }
 
@@ -83,7 +84,7 @@ func fastenerScene(s fastenerShot) func(context.Context) (solidlens.Scene, error
 	return func(ctx context.Context) (solidlens.Scene, error) { return fastenerView(ctx, s) }
 }
 
-func fastenerModel(mesh *decad.Mesh) solidlens.Model {
+func fastenerMeshModel(mesh *decad.Mesh) solidlens.Model {
 	return solidlens.Model{Mesh: mesh, Material: solidlens.Matte(solidlens.RGB(.5, .52, .56)),
 		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}
 }
@@ -133,7 +134,7 @@ func fastenerBoltView(ctx context.Context, set fastenerSet, name string) (solidl
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh %sx%g bolt: %w", set.preset, length, err)
 		}
-		models = append(models, fastenerModel(mesh))
+		models = append(models, fastenerMeshModel(mesh))
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models), nil
 }
@@ -176,7 +177,7 @@ func fastenerNutView(ctx context.Context, set fastenerSet, name string) (solidle
 		if err != nil {
 			return solidlens.Scene{}, fmt.Errorf("mesh %s view: %w", name, err)
 		}
-		models = append(models, fastenerModel(mesh))
+		models = append(models, fastenerMeshModel(mesh))
 	}
 	return bevelScene(fitCamera(camera, models, 16.0/9, .1), models), nil
 }
@@ -200,5 +201,5 @@ func renderFastenerReadme(ctx context.Context, outputDir string) error {
 			return solidlens.Scene{}, fmt.Errorf("unknown fastener shot %q", shot)
 		}
 		return fastenerView(ctx, s)
-	}, renderPNG)
+	}, renderkit.RenderPNG)
 }

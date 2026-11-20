@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/swisslever"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -254,22 +255,22 @@ func swissSceneOf(f func(*swissBuild) (solidlens.Scene, error)) func(context.Con
 	}
 }
 
-func init() {
+func addSwissPresets(presets map[string]renderkit.Preset) {
 	view := func(dir r3.Vec) func(*swissBuild) (solidlens.Scene, error) {
 		return func(b *swissBuild) (solidlens.Scene, error) { return b.viewScene(dir) }
 	}
-	presets["swisslever/hero"] = preset{width: 1600, height: 900, scene: swissSceneOf((*swissBuild).heroScene)}
-	presets["swisslever/index"] = preset{width: 480, height: 270, scene: swissSceneOf((*swissBuild).heroScene)}
-	presets["swisslever/assembled-front"] = preset{width: 1200, height: 675, scene: swissSceneOf(view(swissFrontDir))}
-	presets["swisslever/assembled-angle"] = preset{width: 1200, height: 675, scene: swissSceneOf(view(swissAngleDir))}
-	presets["swisslever/assembled-side"] = preset{width: 1200, height: 675, scene: swissSceneOf(view(swissSideDir))}
-	presets["swisslever/assembled-back"] = preset{width: 1000, height: 1000, scene: swissSceneOf((*swissBuild).backScene)}
-	presets["swisslever/closeup"] = preset{width: 1200, height: 675, scene: swissSceneOf((*swissBuild).closeupScene)}
-	presets["swisslever/exploded"] = preset{width: swissExplodedWidth, height: swissExplodedHeight,
-		scene: swissSceneOf((*swissBuild).explodedScene)}
+	presets["hero"] = renderkit.Preset{Width: 1600, Height: 900, Scene: swissSceneOf((*swissBuild).heroScene)}
+	presets["index"] = renderkit.Preset{Width: 480, Height: 270, Scene: swissSceneOf((*swissBuild).heroScene)}
+	presets["assembled-front"] = renderkit.Preset{Width: 1200, Height: 675, Scene: swissSceneOf(view(swissFrontDir))}
+	presets["assembled-angle"] = renderkit.Preset{Width: 1200, Height: 675, Scene: swissSceneOf(view(swissAngleDir))}
+	presets["assembled-side"] = renderkit.Preset{Width: 1200, Height: 675, Scene: swissSceneOf(view(swissSideDir))}
+	presets["assembled-back"] = renderkit.Preset{Width: 1000, Height: 1000, Scene: swissSceneOf((*swissBuild).backScene)}
+	presets["closeup"] = renderkit.Preset{Width: 1200, Height: 675, Scene: swissSceneOf((*swissBuild).closeupScene)}
+	presets["exploded"] = renderkit.Preset{Width: swissExplodedWidth, Height: swissExplodedHeight,
+		Scene: swissSceneOf((*swissBuild).explodedScene)}
 	for _, part := range swissParts {
-		presets["swisslever/part-"+part.shot] = preset{width: 480, height: 270,
-			scene: swissSceneOf(func(b *swissBuild) (solidlens.Scene, error) { return b.partScene(part) })}
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270,
+			Scene: swissSceneOf(func(b *swissBuild) (solidlens.Scene, error) { return b.partScene(part) })}
 	}
 }
 
@@ -306,14 +307,9 @@ func renderSwissReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return fmt.Errorf("scene of swisslever %s: %w", img.name, err)
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, img.name), scene, img.width, img.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, img.name), scene, img.width, img.height); err != nil {
 			return fmt.Errorf("render swisslever %s: %w", img.name, err)
 		}
 	}
 	return nil
-}
-
-// swissHero builds the movement and returns the hero scene, for the gallery tile.
-func swissHero(ctx context.Context) (solidlens.Scene, error) {
-	return swissSceneOf((*swissBuild).heroScene)(ctx)
 }

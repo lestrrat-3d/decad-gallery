@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/solidlens"
 )
 
@@ -19,9 +20,8 @@ import (
 // every model takes the same share of the image whatever the size and shape of its scene.
 type galleryTile struct {
 	// name identifies the tile in the cache.
-	name  string
-	scene func(context.Context) (solidlens.Scene, error)
-	cell  image.Rectangle
+	name string
+	cell image.Rectangle
 }
 
 // galleryTiles puts the spinning wheel in a tall cell on the left and the other sixteen models in a grid of four
@@ -30,23 +30,23 @@ type galleryTile struct {
 // arm. The third row holds the hand-crank fan, hand-crank siren, Graham escapement and Swiss lever escapement. The
 // bottom row holds the crank handle, one-way clutch, spiral spring and turbine fan.
 var galleryTiles = []galleryTile{
-	{"spinningwheel", spinningWheelView("hero"), image.Rect(0, 0, 560, 900)},
-	{"spurgear", spurGearHero, image.Rect(560, 0, 820, 225)},
-	{"helicalgear", helicalGearHero, image.Rect(820, 0, 1080, 225)},
-	{"herringbonegear", herringboneGearHero, image.Rect(1080, 0, 1340, 225)},
-	{"bevelgear", bevelGearHero, image.Rect(1340, 0, 1600, 225)},
-	{"planetarygearbox", planetaryGearboxHero, image.Rect(560, 225, 820, 450)},
-	{"cycloidal", cycloidalHero, image.Rect(820, 225, 1080, 450)},
-	{"plaquestand", plaqueStandHero, image.Rect(1080, 225, 1340, 450)},
-	{"clamparm", clampArmView("hero"), image.Rect(1340, 225, 1600, 450)},
-	{"handcrankfan", handCrankFanHero, image.Rect(560, 450, 820, 675)},
-	{"handcranksiren", handCrankSirenHero, image.Rect(820, 450, 1080, 675)},
-	{"escapement", escapementHero, image.Rect(1080, 450, 1340, 675)},
-	{"swisslever", swissHero, image.Rect(1340, 450, 1600, 675)},
-	{"crankhandle", crankHandleHero, image.Rect(560, 675, 820, 900)},
-	{"onewayclutch", oneWayClutchHero, image.Rect(820, 675, 1080, 900)},
-	{"spiralspring", spiralSpringHero, image.Rect(1080, 675, 1340, 900)},
-	{"turbinefan", turbineFanHero, image.Rect(1340, 675, 1600, 900)},
+	{"spinningwheel", image.Rect(0, 0, 560, 900)},
+	{"spurgear", image.Rect(560, 0, 820, 225)},
+	{"helicalgear", image.Rect(820, 0, 1080, 225)},
+	{"herringbonegear", image.Rect(1080, 0, 1340, 225)},
+	{"bevelgear", image.Rect(1340, 0, 1600, 225)},
+	{"planetarygearbox", image.Rect(560, 225, 820, 450)},
+	{"cycloidal", image.Rect(820, 225, 1080, 450)},
+	{"plaquestand", image.Rect(1080, 225, 1340, 450)},
+	{"clamparm", image.Rect(1340, 225, 1600, 450)},
+	{"handcrankfan", image.Rect(560, 450, 820, 675)},
+	{"handcranksiren", image.Rect(820, 450, 1080, 675)},
+	{"escapement", image.Rect(1080, 450, 1340, 675)},
+	{"swisslever", image.Rect(1340, 450, 1600, 675)},
+	{"crankhandle", image.Rect(560, 675, 820, 900)},
+	{"onewayclutch", image.Rect(820, 675, 1080, 900)},
+	{"spiralspring", image.Rect(1080, 675, 1340, 900)},
+	{"turbinefan", image.Rect(1340, 675, 1600, 900)},
 }
 
 const (
@@ -61,11 +61,19 @@ const (
 // renderGallery builds every model's hero scene, renders each to fill its cell, and writes them as one PNG. The
 // layout scales with width; height must keep the 16:9 shape of the tiles.
 func renderGallery(ctx context.Context, output string, width, height int) error {
+	scenes := make(map[string]renderkit.SceneFunc, len(galleryTiles))
+	for _, m := range registry() {
+		if hero, ok := m.Presets["hero"]; ok {
+			scenes[m.Name] = hero.Scene
+		}
+	}
 	cache := newGalleryCache(ctx, galleryFresh)
-	return renderGalleryWithCache(ctx, output, width, height, galleryTiles, cache)
+	return renderGalleryWithCache(ctx, output, width, height, galleryTiles, scenes, cache)
 }
 
-func renderGalleryWithCache(ctx context.Context, output string, width, height int, tiles []galleryTile, cache galleryCache) error {
+// renderGalleryWithCache renders tiles with the scene builder scenes holds for each tile name.
+func renderGalleryWithCache(ctx context.Context, output string, width, height int, tiles []galleryTile,
+	scenes map[string]renderkit.SceneFunc, cache galleryCache) error {
 	if output == "" {
 		return fmt.Errorf("-out is required")
 	}
@@ -81,7 +89,11 @@ func renderGalleryWithCache(ctx context.Context, output string, width, height in
 		margin := galleryMargin * width / galleryWidth
 		rendered, background, ok := cache.read(tile.name, width, height, tile.cell)
 		if !ok {
-			scene, err := tile.scene(ctx)
+			build, ok := scenes[tile.name]
+			if !ok {
+				return fmt.Errorf("gallery tile %d has no hero scene for %q", i, tile.name)
+			}
+			scene, err := build(ctx)
 			if err != nil {
 				return fmt.Errorf("build gallery tile %d scene: %w", i, err)
 			}
@@ -163,7 +175,7 @@ func drawForeground(dst *image.RGBA, src image.Image, area image.Rectangle, orig
 	}
 }
 
-// writePNG writes img to output through a temporary file, as renderPNG does.
+// writePNG writes img to output through a temporary file, as renderkit.RenderPNG does.
 func writePNG(output string, img image.Image) error {
 	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)

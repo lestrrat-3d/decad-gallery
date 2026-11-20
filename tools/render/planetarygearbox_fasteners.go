@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -136,22 +137,22 @@ func planetaryEarSection(ctx context.Context, box planetarygearbox.Gearbox) (sol
 	return planetaryCutScene(ctx, parts, solidlens.Vec{X: 1}, camera)
 }
 
-func init() {
-	presets["planetarygearbox/ear-section"] = preset{width: 1600, height: 900,
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
+func addPlanetaryFastenerPresets(presets map[string]renderkit.Preset) {
+	presets["ear-section"] = renderkit.Preset{Width: 1600, Height: 900,
+		Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			box, _, err := buildPlanetaryGearbox(ctx, 1)
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
 			return planetaryEarSection(ctx, box)
 		}}
-	presets["planetarygearbox/fasteners-section"] = preset{width: 1600, height: 900,
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
+	presets["fasteners-section"] = renderkit.Preset{Width: 1600, Height: 900,
+		Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			section, _, err := planetaryFastenerScenes(ctx)
 			return section, err
 		}}
-	presets["planetarygearbox/fasteners-exploded"] = preset{width: 1600, height: 900,
-		scene: func(ctx context.Context) (solidlens.Scene, error) {
+	presets["fasteners-exploded"] = renderkit.Preset{Width: 1600, Height: 900,
+		Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			_, exploded, err := planetaryFastenerScenes(ctx)
 			return exploded, err
 		}}

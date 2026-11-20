@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/handcranksiren"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -202,11 +203,6 @@ func (s handCrankSiren) sceneFrom(ctx context.Context, camera solidlens.Camera, 
 	return bevelScene(fitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
-// handCrankSirenHero is the siren's hero scene, drawn as a tile of the gallery image.
-func handCrankSirenHero(ctx context.Context) (solidlens.Scene, error) {
-	return handCrankSirenPreset(handCrankSirenHeroCamera, false, false)(ctx)
-}
-
 func handCrankSirenPreset(camera solidlens.Camera, exploded, cutaway bool) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
 		siren, err := buildHandCrankSiren(ctx)
@@ -263,15 +259,15 @@ var handCrankSirenParts = []handCrankSirenPart{
 	{"crank-clamp-bolt", "crank-clamp-bolt-1", []string{"crank-clamp-nut-1"}, sirenSide},
 }
 
-func init() {
-	presets["handcranksiren/hero"] = preset{width: 1600, height: 900, scene: handCrankSirenPreset(handCrankSirenHeroCamera, false, false)}
-	presets["handcranksiren/cutaway"] = preset{width: 1600, height: 900, scene: handCrankSirenPreset(handCrankSirenCutawayCamera, false, true)}
-	presets["handcranksiren/exploded"] = preset{width: 1600, height: 900, scene: handCrankSirenPreset(handCrankSirenExplodedCamera, true, false)}
+func addHandCrankSirenPresets(presets map[string]renderkit.Preset) {
+	presets["hero"] = renderkit.Preset{Width: 1600, Height: 900, Scene: handCrankSirenPreset(handCrankSirenHeroCamera, false, false)}
+	presets["cutaway"] = renderkit.Preset{Width: 1600, Height: 900, Scene: handCrankSirenPreset(handCrankSirenCutawayCamera, false, true)}
+	presets["exploded"] = renderkit.Preset{Width: 1600, Height: 900, Scene: handCrankSirenPreset(handCrankSirenExplodedCamera, true, false)}
 	for _, view := range handCrankSirenViews {
-		presets["handcranksiren/view-"+view.shot] = preset{width: 1200, height: 675, scene: handCrankSirenPreset(view.camera, false, false)}
+		presets["view-"+view.shot] = renderkit.Preset{Width: 1200, Height: 675, Scene: handCrankSirenPreset(view.camera, false, false)}
 	}
 	for _, part := range handCrankSirenParts {
-		presets["handcranksiren/part-"+part.shot] = preset{width: 480, height: 270, scene: func(ctx context.Context) (solidlens.Scene, error) {
+		presets["part-"+part.shot] = renderkit.Preset{Width: 480, Height: 270, Scene: func(ctx context.Context) (solidlens.Scene, error) {
 			siren, err := buildHandCrankSiren(ctx)
 			if err != nil {
 				return solidlens.Scene{}, err
@@ -339,7 +335,7 @@ func renderHandCrankSirenReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.name), scene, shot.width, shot.height); err != nil {
 			return fmt.Errorf("render hand-crank siren %s: %w", shot.name, err)
 		}
 	}
@@ -348,7 +344,7 @@ func renderHandCrankSirenReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "view-"+view.shot+".png"), scene, 1200, 675); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "view-"+view.shot+".png"), scene, 1200, 675); err != nil {
 			return fmt.Errorf("render hand-crank siren view %s: %w", view.shot, err)
 		}
 	}
@@ -357,7 +353,7 @@ func renderHandCrankSirenReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", part.shot+".png"), scene, 480, 270); err != nil {
 			return fmt.Errorf("render hand-crank siren part %s: %w", part.shot, err)
 		}
 	}

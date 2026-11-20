@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/onewayclutch"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
@@ -277,7 +278,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, shot.file), scene, shot.width, shot.height); err != nil {
 			return err
 		}
 	}
@@ -297,7 +298,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 		}
 		models := []solidlens.Model{turbineModel(mesh, turbinePartColor(name))}
 		scene := turbineScene(fitCamera(camera, models, 16.0/9, .1), models)
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err
 		}
 	}
@@ -446,7 +447,7 @@ func renderTurbineClutchReadme(ctx context.Context, outputDir string) error {
 		if err != nil {
 			return err
 		}
-		if err := renderPNG(ctx, filepath.Join(outputDir, view+".png"), scene, 1600, 900); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, view+".png"), scene, 1600, 900); err != nil {
 			return err
 		}
 	}
@@ -468,7 +469,7 @@ func renderTurbineClutchReadme(ctx context.Context, outputDir string) error {
 			Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
 		models := []solidlens.Model{turbineModel(mesh, turbineHardwareColor)}
 		scene := turbineScene(fitCamera(camera, models, 16.0/9, .1), models)
-		if err := renderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
+		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", item[1]+".png"), scene, 480, 270); err != nil {
 			return err
 		}
 	}
