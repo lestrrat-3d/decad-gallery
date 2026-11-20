@@ -79,7 +79,7 @@ func (s *sharedBuild) get(t *testing.T, p planetarygearbox.Params) (*decad.Docum
 	return s.doc, s.box
 }
 
-var defaultBuild, twoStageBuild, placedBuild sharedBuild
+var defaultBuild, twoStageBuild, placedBuild, backlashBuild sharedBuild
 
 // defaultGearbox builds the default gearbox once for the tests that read it.
 func defaultGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
@@ -141,13 +141,17 @@ func requireDefaultPlanetMesh(t *testing.T, index int) {
 	requirePlanetMesh(t, box, index)
 }
 
-func requireBacklashPlanetMesh(t *testing.T, index int) {
+func backlashGearbox(t *testing.T) planetarygearbox.Gearbox {
 	t.Helper()
 	p := planetarygearbox.DefaultParams()
 	p.Backlash = 0.2
-	box, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
-	require.NoError(t, err)
-	requirePlanetMesh(t, box, index)
+	_, box := backlashBuild.get(t, p)
+	return box
+}
+
+func requireBacklashPlanetMesh(t *testing.T, index int) {
+	t.Helper()
+	requirePlanetMesh(t, backlashGearbox(t), index)
 }
 
 func requirePlanetMesh(t *testing.T, box planetarygearbox.Gearbox, index int) {

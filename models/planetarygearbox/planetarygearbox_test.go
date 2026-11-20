@@ -163,10 +163,7 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 // the ring's tooth spaces, so each of those bodies has less volume.
 func TestBacklashRemovesMaterial(t *testing.T) {
 	_, base := defaultGearbox(t)
-	p := planetarygearbox.DefaultParams()
-	p.Backlash = 0.2
-	loose, err := planetarygearbox.Build(t.Context(), planetarygearbox.NewDocument(), p)
-	require.NoError(t, err)
+	loose := backlashGearbox(t)
 	for name, pair := range map[string][2]*decad.Body{
 		"sun":    {base.Stages[0].Sun, loose.Stages[0].Sun},
 		"planet": {base.Stages[0].Planets[0], loose.Stages[0].Planets[0]},

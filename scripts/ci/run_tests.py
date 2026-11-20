@@ -781,73 +781,82 @@ PLANETARY_PR_SHARDS = 21
 FAN_PR_SHARDS = 10
 
 
+# Rounded seconds for independent checks in CI run 44645021393. A new test
+# gets one minute until measured. Discovery still determines coverage.
+PLANETARY_TEST_SECONDS = {
+    "TestBacklashFirstPlanetMesh": 180, "TestBacklashSecondPlanetMesh": 155,
+    "TestKit605Shaft608FirstPlanetMesh": 145, "TestKit605Shaft608SecondPlanetMesh": 200,
+    "TestKit605Shaft608ThirdPlanetMesh": 155, "TestTwoStagesPlanetRingMesh": 150,
+    "TestWrongPhaseIsDetected": 190, "TestPartClearances": 110,
+    "TestKitGearboxes": 95, "TestSeatChamfer": 90, "TestRingWithoutEars": 95,
+    "TestFastenersFitTheirPockets": 90, "TestTwoStagesRoundSections": 60,
+    "TestEarBoreAndCount": 65, "TestBuildPartsFilesNothing": 60,
+    "TestCornersEarCount0": 40, "TestCornersEarCount1": 45, "TestCornersEarCount6": 90,
+    "TestSplitNoFlat": 60, "TestSplitTwoStages608Shaft": 60,
+}
+
+
 def planetary_test_weight(name: str) -> int:
-    """Estimate relative cost from the observed PR tests; never use this to select tests."""
-    if name in {"TestKitGearboxes", "TestTwoStages", "TestBacklashRemovesMaterial"}:
-        return 240
-    if "PlanetMesh" in name or name in {"TestTwoStagesPlanetSunMesh", "TestTwoStagesPlanetRingMesh"}:
-        return 200
-    if name.startswith(("TestCorners", "TestSplit")):
-        return 100
-    if name in {"TestRingWithoutEars", "TestFastenersFitTheirPockets",
-                "TestBearingsSitInPlanetPockets", "TestHousing"}:
-        return 100
-    if name in {"TestPlacedGearbox", "TestSeatChamfer", "TestPartClearances", "TestWrongPhaseIsDetected"}:
-        return 180
-    if name in {"TestBuildPartsFilesNothing", "TestEarBoreAndCount"}:
-        return 90
     if name in {"TestDefaultDimensionsUnchanged", "TestClearanceLimits", "TestDerivePerRole", "TestEdgeChamferLimits",
                 "TestEarSpacingCountsRootRounds", "TestFastenerFitRules", "TestInsideCountsRepeatedProjectedVertices",
                 "TestInvalidParams", "TestNewFitChecks", "TestNewMotionRejects", "TestParameterTableMatchesDerive",
                 "TestPhaseAngles", "TestProblemsNameForcedMinimums", "TestRootRoundArea",
                 "TestSunBoreWallDimensions", "TestSupportedCombinationsAreValid"} or name.startswith("TestMotion"):
         return 1
-    return 45
+    return PLANETARY_TEST_SECONDS.get(name, 60)
 
 
 def planetary_test_shards(tests: list[str]) -> list[list[str]]:
     """Balance discovered tests without relying on estimates for coverage."""
     shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
     weights = [0] * len(shards)
-    # Each group reads the same process-local gearbox. Keep the three expensive
-    # planet mesh checks on different workers, each with cheap default-body checks.
+    # Charge the time for the entire group, including the shared build once.
     fixture_groups = (
-        ("TestFirstPlanetMesh", "TestBodyContainers", "TestFastenersSitFlush", "TestDefaultGearbox",
-         "TestCarrierPins", "TestExplodedGearbox", "TestInputShaftCollar"),
-        ("TestSecondPlanetMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
-         "TestOutputShaft", "TestCarrierIsATriangle"),
-        ("TestThirdPlanetMesh", "TestGearTipRootClearance", "TestEdgeFinishing", "TestShaftFlat",
-         "TestBearingsSitInPlanetPockets"),
-        ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
-        ("TestTwoStages", "TestExplodedTwoStageGearbox"),
-        ("TestCorners", "TestSplitShafts"),
-        ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
-        ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
-        ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
-        ("TestCornersTwoStages", "TestSplitTwoStages"),
+        (180, ("TestFirstPlanetMesh", "TestBodyContainers", "TestFastenersSitFlush", "TestDefaultGearbox",
+               "TestCarrierPins", "TestExplodedGearbox", "TestInputShaftCollar")),
+        (220, ("TestSecondPlanetMesh", "TestMountingEars", "TestHousing", "TestCollarRings",
+               "TestOutputShaft", "TestCarrierIsATriangle")),
+        (195, ("TestThirdPlanetMesh", "TestGearTipRootClearance", "TestEdgeFinishing", "TestShaftFlat",
+               "TestBearingsSitInPlanetPockets")),
+        (155, ("TestPlacedGearbox", "TestExplodedPlacedGearbox")),
+        (100, ("TestTwoStages", "TestExplodedTwoStageGearbox", "TestTwoStagesPlanetSunMesh")),
+        (205, ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial")),
+        (60, ("TestCorners", "TestSplitShafts")),
+        (60, ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608")),
+        (75, ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605")),
+        (60, ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608")),
+        (80, ("TestCornersTwoStages", "TestSplitTwoStages")),
     )
+    # Each worker caches a single nondefault corner/shaft assembly.
+    # Co-locating two pairs can evict the first fixture before its shaft check.
+    corner_variants = {group[0] for _, group in fixture_groups
+                       if group[0].startswith("TestCorners") and group[0] != "TestCorners"}
     remaining = set(tests)
     groups = []
-    for candidates in fixture_groups:
+    for seconds, candidates in fixture_groups:
         group = tuple(name for name in candidates if name in remaining)
         if group:
-            groups.append(group)
+            groups.append((seconds, group))
             remaining.difference_update(group)
-    groups.extend((name,) for name in remaining)
+    groups.extend((planetary_test_weight(name), (name,)) for name in remaining)
     # Rotating copies adds live bodies to the default document. Its body-count
     # checks must see the original inventory, regardless of Go test order.
     body_counts = {"TestDefaultGearbox", "TestBodyContainers"}
     append_copies = {"TestGearTipRootClearance", "TestWrongPhaseIsDetected"}
-    for group in sorted(groups, key=lambda group: (-max(map(planetary_test_weight, group)), group)):
+    # Reserve a worker for the untouched document before assigning either copy test.
+    ordered = sorted(groups, key=lambda item: (body_counts.isdisjoint(item[1]), -item[0], item[1]))
+    for seconds, group in ordered:
         incompatible = set()
         if body_counts.intersection(group):
             incompatible = append_copies
         elif append_copies.intersection(group):
             incompatible = body_counts
+        elif corner_variants.intersection(group):
+            incompatible = corner_variants
         eligible = (i for i, shard in enumerate(shards) if incompatible.isdisjoint(shard))
         index = min(eligible, key=lambda item: (weights[item], item))
         shards[index].extend(group)
-        weights[index] += max(map(planetary_test_weight, group))
+        weights[index] += seconds
     assigned = [name for shard in shards for name in shard]
     if sorted(assigned) != sorted(tests):
         raise ValueError("planetary shards must assign every discovered test exactly once")

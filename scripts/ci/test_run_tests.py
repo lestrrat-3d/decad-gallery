@@ -364,14 +364,15 @@ class PlanetaryFullTest(unittest.TestCase):
         shards = run_tests.planetary_test_shards(tests)
         self.assertEqual(shards, run_tests.planetary_test_shards(list(reversed(tests))))
         for shard in shards:
-            heavy = [name for name in shard if run_tests.planetary_test_weight(name) >= 200]
+            heavy = [name for name in shard if "PlanetMesh" in name]
             self.assertLessEqual(len(heavy), 1)
         self.assertCountEqual([name for shard in shards for name in shard], tests)
 
     def test_shared_gearboxes_stay_in_one_process(self):
         groups = (("TestBodyContainers", "TestFastenersSitFlush", "TestFirstPlanetMesh"),
                   ("TestSplitShafts", "TestCorners"), ("TestPlacedGearbox", "TestExplodedPlacedGearbox"),
-                  ("TestExplodedTwoStageGearbox", "TestTwoStages"),
+                  ("TestExplodedTwoStageGearbox", "TestTwoStages", "TestTwoStagesPlanetSunMesh"),
+                  ("TestBacklashThirdPlanetMesh", "TestBacklashRemovesMaterial"),
                   ("TestCornersPlanet605Shaft608", "TestSplitPlanet605Shaft608"),
                   ("TestCornersPlanet608Shaft605", "TestSplitPlanet608Shaft605"),
                   ("TestCornersPlanet608Shaft608", "TestSplitPlanet608Shaft608"),
@@ -381,6 +382,23 @@ class PlanetaryFullTest(unittest.TestCase):
         self.assertCountEqual([name for shard in shards for name in shard], tests)
         for group in groups:
             self.assertTrue(any(set(group) <= set(shard) for shard in shards), group)
+
+    def test_each_paired_variant_gets_its_own_cache_slot(self):
+        variants = ("Planet605Shaft608", "Planet608Shaft605", "Planet608Shaft608", "TwoStages")
+        pairs = [{f"TestCorners{variant}", f"TestSplit{variant}"} for variant in variants]
+        tests = sorted(set.union(*pairs)) + ["TestBacklashFirstPlanetMesh", "TestWrongPhaseIsDetected"]
+        with mock.patch.object(run_tests, "PLANETARY_PR_SHARDS", 5):
+            shards = run_tests.planetary_test_shards(tests)
+        for shard in shards:
+            self.assertEqual(sum(pair <= set(shard) for pair in pairs), 1)
+        self.assertCountEqual([name for shard in shards for name in shard], tests)
+
+    def test_fastener_pockets_avoid_the_slow_backlash_mesh_worker(self):
+        tests = ["TestFastenersFitTheirPockets", "TestBacklashFirstPlanetMesh", "TestKitGearboxes"]
+        with mock.patch.object(run_tests, "PLANETARY_PR_SHARDS", 3):
+            first, second = run_tests.planetary_test_shards(tests)
+        self.assertEqual(first, ["TestBacklashFirstPlanetMesh"])
+        self.assertCountEqual(second, ["TestFastenersFitTheirPockets", "TestKitGearboxes"])
 
     def test_body_counts_never_share_a_default_document_with_rotated_copies(self):
         counts = {"TestDefaultGearbox", "TestBodyContainers"}
