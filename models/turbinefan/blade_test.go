@@ -20,7 +20,8 @@ func TestBuildBlade(t *testing.T) {
 			blade, err := turbinefan.BuildBlade(t.Context(), doc, pitch, sz)
 			require.NoError(t, err, "rotor %g, pitch %g", d, pitch)
 			require.True(t, blade.Body.IsSolid())
-			require.Len(t, blade.Sketches, 12)
+			// Ten sections, the stud, the bolt hole and the stud flat's cutter.
+			require.Len(t, blade.Sketches, 13)
 			for i, s := range blade.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
