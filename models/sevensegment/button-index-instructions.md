@@ -1,8 +1,7 @@
 # Seven-segment Geneva index boundary
 
-This is a scoped construction contract for the first production boundary of the
-push-button drive. It does not define a complete button. The complete button
-contract remains in `button-instructions.md` and `button-steps.md`.
+This contract covers the Geneva index and its fit with the existing display.
+The full push-button assembly is outside its scope.
 
 Use millimetres and degrees. Build the actual ten-slot Geneva wheel, overhung
 crank, retained drive rivet, input shaft and transverse crank key described in
