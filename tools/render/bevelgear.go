@@ -161,17 +161,7 @@ const (
 	bevelPartHeight = 270
 )
 
-func meshBounds(mesh *decad.Mesh) (low, high r3.Vec) {
-	for i, v := range mesh.Vertices() {
-		if i == 0 {
-			low, high = v, v
-			continue
-		}
-		low = r3.NewVec(math.Min(low.X, v.X), math.Min(low.Y, v.Y), math.Min(low.Z, v.Z))
-		high = r3.NewVec(math.Max(high.X, v.X), math.Max(high.Y, v.Y), math.Max(high.Z, v.Z))
-	}
-	return low, high
-}
+func meshBounds(mesh *decad.Mesh) (r3.Vec, r3.Vec) { return renderkit.MeshBounds(mesh) }
 
 func bevelModel(source solidlens.TriangleSource, color solidlens.Color) solidlens.Model {
 	return solidlens.Model{

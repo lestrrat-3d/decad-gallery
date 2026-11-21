@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"image/gif"
 	"math"
@@ -135,36 +134,5 @@ func renderEscapementMotion(ctx context.Context, output string, width, height, f
 // encodeMotionGIF turns rendered frames into a looping GIF: one adaptive palette for the whole loop, and each frame
 // after the first cropped to the box that changed. delay is the time of one frame in hundredths of a second.
 func encodeMotionGIF(rendered []image.Image, width, height, delay int) *gif.GIF {
-	colors := adaptivePalette(rendered, 255)
-	clear := uint8(len(colors))
-	colors = append(colors, color.RGBA{})
-	nearest := map[color.RGBA]uint8{}
-	var full []*image.Paletted
-	for _, img := range rendered {
-		indexed := image.NewPaletted(img.Bounds(), colors)
-		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
-			for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
-				c := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
-				index, ok := nearest[c]
-				if !ok {
-					index = uint8(colors.Index(c))
-					nearest[c] = index
-				}
-				indexed.SetColorIndex(x, y, index)
-			}
-		}
-		full = append(full, indexed)
-	}
-	animation := &gif.GIF{LoopCount: 0}
-	for i, indexed := range full {
-		frame := indexed
-		if i > 0 {
-			frame = changedBox(full[i-1], indexed, clear)
-		}
-		animation.Image = append(animation.Image, frame)
-		animation.Delay = append(animation.Delay, delay)
-		animation.Disposal = append(animation.Disposal, gif.DisposalNone)
-	}
-	animation.Config = image.Config{ColorModel: colors, Width: width, Height: height}
-	return animation
+	return renderkit.EncodeMotionGIF(rendered, width, height, delay)
 }

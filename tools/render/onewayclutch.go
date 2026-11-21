@@ -105,8 +105,7 @@ func buildClutchSet(ctx context.Context, p onewayclutch.Params, withAdapter bool
 }
 
 func clutchModel(mesh solidlens.TriangleSource, color solidlens.Color) solidlens.Model {
-	return solidlens.Model{Mesh: mesh, Material: solidlens.Matte(color),
-		Edges: solidlens.Edges{Enabled: true, Color: solidlens.RGB(.04, .06, .08), Width: 1.2}}
+	return renderkit.PartModel(mesh, color)
 }
 
 // clutchCut returns a clip plane whose cap is a lighter shade of the part's colour.
@@ -140,21 +139,7 @@ func (s clutchSet) models(at r3.Vec, pull map[string]r3.Vec, clip *solidlens.Cli
 // clipRemovesAll reports whether a clip plane leaves nothing of the mesh, because the whole mesh lies on
 // the removed side.
 func clipRemovesAll(mesh *decad.Mesh, clip solidlens.ClipPlane) bool {
-	low, _ := meshBounds(mesh)
-	switch {
-	case clip.Normal.Z == 1:
-		return low.Z >= clip.Origin.Z
-	case clip.Normal.X == 1:
-		return low.X >= clip.Origin.X
-	}
-	// Any other normal: every vertex lies on the removed side.
-	n, o := r3.Vec(clip.Normal), r3.Vec(clip.Origin)
-	for _, v := range mesh.Vertices() {
-		if v.Sub(o).Dot(n) < 0 {
-			return false
-		}
-	}
-	return true
+	return renderkit.ClipRemovesAll(mesh, clip)
 }
 
 // The exploded view pulls the parts apart along the shaft axis, in the order they go together: the nuts out of the back

@@ -9,7 +9,6 @@ import (
 	"image/draw"
 	"image/gif"
 	"math"
-	"os"
 	"path/filepath"
 
 	"github.com/lestrrat-3d/decad"
@@ -224,23 +223,5 @@ func dashedAnimationLine(dst draw.Image, a, b image.Point, c color.Color) {
 }
 
 func writeWheelGIF(output string, animation *gif.GIF) error {
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
-		return err
-	}
-	file, err := os.CreateTemp(filepath.Dir(output), ".animation-*.gif")
-	if err != nil {
-		return err
-	}
-	defer func() { _ = os.Remove(file.Name()) }()
-	defer func() { _ = file.Close() }()
-	if err := gif.EncodeAll(file, animation); err != nil {
-		return err
-	}
-	if err := file.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(file.Name(), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(file.Name(), output)
+	return renderkit.WriteGIF(output, animation)
 }
