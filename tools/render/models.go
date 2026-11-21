@@ -592,21 +592,20 @@ func spinningwheelPreviewModel() renderkit.Model {
 	}
 }
 
-// galleryModel renders the gallery hero image and the contact sheet of every model's hero scene.
+// galleryModel renders the gallery hero image.
 func galleryModel() renderkit.Model {
 	return renderkit.Model{
 		Name: "gallery",
 		Dir:  "docs",
 		Shots: map[string]renderkit.ShotFunc{
-			"hero":          galleryShot(false),
-			"contact-sheet": galleryShot(true),
+			"hero": galleryShot(),
 		},
 		Jobs: []renderkit.Job{{Shot: "hero", Out: "images/gallery.png"}},
 	}
 }
 
-// galleryShot renders the hero image, or the contact sheet when sheet is set. Both are 16:9.
-func galleryShot(sheet bool) renderkit.ShotFunc {
+// galleryShot renders the 16:9 hero image.
+func galleryShot() renderkit.ShotFunc {
 	return func(ctx context.Context, opts renderkit.Options) error {
 		width, height := opts.Width, opts.Height
 		if width == 0 {
@@ -617,9 +616,6 @@ func galleryShot(sheet bool) renderkit.ShotFunc {
 		}
 		if width <= 0 || height <= 0 || width*galleryHeight != height*galleryWidth {
 			return fmt.Errorf("gallery image must have positive 16:9 dimensions, got %d × %d", width, height)
-		}
-		if sheet {
-			return renderGallery(ctx, opts.Output, width, height)
 		}
 		scene, err := ornamentalGears(ctx)
 		if err != nil {

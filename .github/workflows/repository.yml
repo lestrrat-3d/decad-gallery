@@ -100,9 +100,6 @@ jobs:
         run: |
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
           "$(go env GOPATH)/bin/actionlint"
-      - name: Check gallery tile cache
-        if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).check_gallery_cache
-        run: go -C tools/render test -run '^TestGalleryCache' -timeout 5m ./...
       - name: Check mesh geometry helpers
         if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(fromJSON(needs.plan.outputs.plan).suites, 'full')
         run: go test ./internal/meshgap ./internal/gearroot ./internal/edgefinish ./internal/m2fastener ./internal/cornercheck ./internal/splitcheck -timeout 5m

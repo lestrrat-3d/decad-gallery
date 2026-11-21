@@ -382,18 +382,6 @@ def plan(event, base, tested):
     return result
 
 
-def needs_gallery_cache(event, result):
-    suites = result["suites"]
-    if event not in {"pull_request", "push"} or not suites or {"full", "renderer-all", "render-tool"}.intersection(suites):
-        return False
-    if "broad" in suites or (any(s.startswith("isolated-") for s in suites) and
-                             not all(s.startswith("isolated-") for s in suites)):
-        return True
-    # Gallery tiles use production packages. Markdown documentation and Go tests are outside those builds.
-    inputs = [path for path in result.get("changed_paths", []) if not path.lower().endswith(".md")]
-    return not inputs or not all(p.endswith("_test.go") and str(Path(p).parent) in TEST_PACKAGE_DIRS for p in inputs)
-
-
 def main():
     check_wheel_inventory()
     event_path = os.environ.get("GITHUB_EVENT_PATH")
@@ -415,7 +403,6 @@ def main():
             proof["suites"] = result["suites"]
             result.update(suites=[], reasons={}, reused=proof,
                           reason="matching successful pull request already tested this tree")
-    result["check_gallery_cache"] = needs_gallery_cache(event, result)
     encoded = json.dumps(result, sort_keys=True, separators=(",", ":"))
     print(encoded)
     if os.environ.get("GITHUB_OUTPUT"):

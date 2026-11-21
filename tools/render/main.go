@@ -14,8 +14,6 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 )
 
-var galleryFresh bool
-
 func main() {
 	if err := runCLI(context.Background(), os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -36,7 +34,6 @@ func runCLI(ctx context.Context, args []string, stdout io.Writer) error {
 	all := flags.Bool("all", false, "regenerate every committed image, or those of an explicit -model")
 	list := flags.Bool("list", false, "print one line per committed image job")
 	root := flags.String("root", "", "output root for -all; default is the nearest ancestor holding go.mod")
-	flags.BoolVar(&galleryFresh, "gallery-fresh", false, "ignore cached gallery contact-sheet tiles")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -66,7 +63,7 @@ func runBatch(ctx context.Context, flags *flag.FlagSet, set map[string]bool, all
 	if all && list {
 		return errors.New("-all and -list cannot be combined")
 	}
-	allowed := map[string]bool{"all": true, "list": true, "model": true, "root": all, "gallery-fresh": true}
+	allowed := map[string]bool{"all": true, "list": true, "model": true, "root": all}
 	for flagName := range set {
 		if allowed[flagName] {
 			continue
