@@ -79,8 +79,8 @@ def render_dependents(seeds, before, after):
 def registration_only(old, new, name):
     """Accept only one model import, registration, gallery tile and job-count change."""
     def lines(text):
-        return [line for line in text.splitlines() if line.strip() and
-                not line.startswith("// galleryTiles puts the spinning wheel in a tall cell")]
+        return [line for line in text.splitlines()
+                if not line.startswith("// galleryTiles puts the spinning wheel in a tall cell")]
 
     old_models, new_models = lines(old["models.go"]), lines(new["models.go"])
     imports = [line for line in new_models if re.fullmatch(
