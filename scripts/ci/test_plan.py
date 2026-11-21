@@ -147,7 +147,8 @@ class PlanTest(unittest.TestCase):
                     ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml",
                     "docs/ci-measurements.md", "docs/ci-testing.md"] + sorted(
                         path for path in plan.CI_FILES if path.startswith("scripts/ci/"))
-        cases = (([], []), (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
+        cases = (([], []), (["scripts/check_repository.py"], []),
+                 (["models/cycloidal/build_test.go"], ["cycloidal-pr"]),
                  ([".github/workflows/unknown.yml"], ["broad"]),
                  (["scripts/ci/unknown.py"], ["broad"]), (["go.mod"], ["broad", "full"]),
                  (["tools/render/gallery.go"], ["render-tool", "renderer-compile"]))

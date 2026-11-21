@@ -40,7 +40,7 @@ RENDER_TESTS = {
     "wheel-parts": ("40m", "tools/render", ("TestSpinningWheelPartsTable",)),
     "fan-motion": ("20m", "tools/render", ("TestHandCrankFanMotion",)),
     "escapement-exploded": ("15m", "tools/render", ("TestEscapementExploded",)),
-    "sevensegment-render": ("30m", "tools/render", ("TestSevenSegmentPresets", "TestSevenSegmentColors",
+    "sevensegment-render": ("30m", "models/sevensegment/render", ("TestSevenSegmentPresets", "TestSevenSegmentColors",
                                     "TestSevenSegmentMotionColors")),
 }
 WORKERS = {
