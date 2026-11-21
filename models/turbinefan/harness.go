@@ -1,7 +1,6 @@
 package turbinefan
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -41,28 +40,12 @@ const (
 	CradleTipMargin = 1.0
 	// StudSlotFlats is the number of flats of the stud slot's half polygon.
 	StudSlotFlats = 16
-	// CradlePlanWindow is the x window over which the cradle plan's outer edge takes the widest point, which keeps the
-	// flange and plan outline free of notches.
+	// CradlePlanWindow is the x window over which the cradle plan's outer edge takes the widest point, so the bed face's
+	// outline has no notch narrower than its chamfer.
 	CradlePlanWindow = 1.0
 	// SectionStep is the spacing along x of the blade sections the layout reads.
 	SectionStep = 0.25
-	// CradleBrimWidth is how far the cradle's built-in flange reaches beyond each of the plan's long sides.
-	CradleBrimWidth = 6.0
-	// CradleBrimHeight is the flange's thickness: two layers, thin enough to peel and thick enough to hold together.
-	CradleBrimHeight = 0.4
-	// BrimPadWidth is how far each brim pad reaches past its blade bed patch's bounding box.
-	BrimPadWidth = 4.0
-	// BrimPadHeight is a brim pad's thickness: one layer, like a slicer brim, so it fuses with the blade's first layer
-	// only.
-	BrimPadHeight = 0.2
-	// PadClearanceTop is the top of the clearance cut from the cradle over each brim pad: 0.1 over the pad and the
-	// support gap, which keeps it off the flange's top plane.
-	PadClearanceTop = BrimPadHeight + CradleGapZ + 0.1
 )
-
-// padPatchZ is the height of the section that reads the blade's bed patches: the middle of the first layer, which is
-// what the slicer prints.
-const padPatchZ = 0.1
 
 // CradleSection is one sampled cross-section of the cradle at plane x: the offset lower outline (y, z) from the left
 // widest point to the right one, and those points.
@@ -76,23 +59,14 @@ type CradleSection struct {
 	LeftLimit, RightLimit float64
 }
 
-// BladeHarness is the cradle and the brim pads in the print frame. The cradle is one solid standing on the bed: a block
-// on a flange CradleBrimWidth wide along its long sides, minus the blade's upward shadow, offset from the blade by
-// CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest lines and the blade lifts straight up out
-// of it. Where the blade is less than a few layers over the bed, near its stud end corner and its leading edge, the
-// shadow cuts the cradle down to the bed. Each of the blade's two bed patches gets a brim pad, a separate body
-// BrimPadHeight thick that hugs the patch; the cradle keeps CradleGapXY from each pad up to PadClearanceTop.
+// BladeHarness is the cradle in the print frame. The cradle is one solid standing on the bed: a block minus the blade's
+// upward shadow, offset from the blade by CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest
+// lines and the blade lifts straight up out of it. Where the blade is less than a few layers over the bed, near its
+// stud end corner and its leading edge, the shadow cuts the cradle down to the bed.
 type BladeHarness struct {
 	Body *decad.Body
-	// Pads are the brim pads, the stud corner's first, then the leading edge's.
-	Pads []*decad.Body
-	// PadPatches are the blade's bed patches the pads' holes follow, in the order of Pads: the loops of the blade's
-	// section at z = 0.1.
-	PadPatches [][]r3.Vec
-	// PadOutlines are the pads' outer rectangles (x, y), in the order of Pads.
-	PadOutlines [][4][2]float64
-	// Sketches are in build order: shadow sections, stud slot, flange, block plan, block profile, left cap plan, left cap
-	// profile, right cap plan, right cap profile, then each pad's sketch followed by its clearance's.
+	// Sketches are in build order: shadow sections, stud slot, block plan, block profile, left cap plan, left cap
+	// profile, right cap plan, right cap profile.
 	Sketches []*sketch.Sketch
 	// Sections are every sampled section, x ascending; Sections[0].X is the cradle's start past the stud end.
 	Sections []CradleSection
@@ -105,9 +79,8 @@ type BladeHarness struct {
 	WallTop [2][][2]float64
 }
 
-// BuildBladeHarness builds the cradle and the brim pads for blade, which must already be in the print pose
-// PrintPoseFor(sz, pitch, hand, tilt) gives. It reads the blade with SectionOutline. It puts the cradle and the pads in
-// no container. ctx, doc and blade must not be nil.
+// BuildBladeHarness builds the cradle for blade, which must already be in the print pose PrintPoseFor(sz, pitch, hand,
+// tilt) gives. It reads the blade with SectionOutline. It puts the harness in no container. ctx, doc and blade must not be nil.
 func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand,
 	tilt float64) (*BladeHarness, error) {
 	if ctx == nil || doc == nil || blade == nil {
@@ -131,11 +104,6 @@ func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Bo
 	}
 	if h.Body == nil || !h.Body.IsSolid() {
 		return nil, errors.New("turbinefan: harness is not a solid")
-	}
-	for i, pad := range h.Pads {
-		if pad == nil || !pad.IsSolid() {
-			return nil, fmt.Errorf("turbinefan: harness brim pad %d is not a solid", i)
-		}
 	}
 	h.Sketches = b.sketches
 	return h, nil
@@ -277,11 +245,6 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt
 	}
 	cradle, err = decad.Cut(b.ctx, cradle, shadow)
 	b.fail("cut blade shadow", err)
-	if b.err != nil {
-		return nil
-	}
-	// 10: the brim pads, and their clearances cut from the cradle.
-	cradle = b.pads(h, blade, cradle)
 	if b.err != nil {
 		return nil
 	}
@@ -589,17 +552,17 @@ func wallTop(blk []CradleSection, limit func(CradleSection) float64) [][2]float6
 	return out
 }
 
-// block builds the cradle's block (step 8): the plan from CradleWall outside each widest line, standing on a flange
-// CradleBrimWidth wider along each long side, intersected with a slab 0.5 over the higher wall top, then cut by a cap on
-// each side that removes what lies beyond that side's widest line and above its wall top.
+// block builds the cradle's block (step 8): the plan from CradleWall outside each widest line, intersected with a slab
+// 0.5 over the higher wall top, then cut by a cap on each side that removes what lies beyond that side's widest line and
+// above its wall top.
 func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
 	h.WallTop[0] = wallTop(blk, func(c CradleSection) float64 { return c.LeftLimit })
 	h.WallTop[1] = wallTop(blk, func(c CradleSection) float64 { return c.RightLimit })
-	// The plan's outer edge takes the widest point within CradlePlanWindow, which keeps the flange and plan outline free
-	// of notches.
+	// The plan's outer edge takes the widest point within CradlePlanWindow, so the bed face's outline has no notch
+	// narrower than its chamfer.
 	outer := func(x, side float64) float64 {
 		v := math.Inf(-1)
 		for _, c := range blk {
@@ -627,18 +590,8 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 		bandL = append(bandL, [2]float64{blk[i].X, blk[i].LeftY + 0.3})
 		bandR = append(bandR, [2]float64{blk[i].X, outer(blk[i].X, 1) + CradleWall + 1})
 	}
-	// The flange is the plan with its left (min y) side moved CradleBrimWidth toward -y and its right side toward +y; its
-	// ends stay on the plan's.
-	flange := make([][2]float64, len(plan))
-	for i, q := range plan {
-		dy := CradleBrimWidth
-		if i < len(blk) {
-			dy = -CradleBrimWidth
-		}
-		flange[i] = [2]float64{q[0], q[1] + dy}
-	}
 	ymin, ymax, zmax := math.Inf(1), math.Inf(-1), 0.0
-	for _, q := range flange {
+	for _, q := range plan {
 		ymin, ymax = math.Min(ymin, q[1]), math.Max(ymax, q[1])
 	}
 	for _, q := range topMax {
@@ -659,21 +612,14 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 		}
 		return out
 	}
-	// The flange stands on the bed and gives the bed face; the plan prism starts inside it, and the slab under the bed,
-	// so no bed faces coincide.
-	base := b.extrudePolygon(frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}), flange, CradleBrimHeight, "flange")
-	prism := b.extrudePolygon(frame(r3.Vec{Z: CradleBrimHeight / 2}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+2,
-		"block plan")
+	// The prism stands on the bed and gives the bed face, chamfered (Surface edge finishing); the slab starts under the
+	// bed, so no faces coincide.
+	prism := b.chamferStartCap(b.extrudePolygon(frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+2, "block plan"))
 	top := slab(flat(-1, topMax), topMax, "block profile")
 	if b.err != nil {
 		return nil
 	}
-	base, err := decad.Union(b.ctx, base, prism)
-	b.fail("union flange", err)
-	if b.err != nil {
-		return nil
-	}
-	body, err := decad.Intersect(b.ctx, base, top)
+	body, err := decad.Intersect(b.ctx, prism, top)
 	b.fail("intersect block", err)
 	// The caps reach 1 mm past the block's ends, so no end faces coincide.
 	stretch := func(band [][2]float64) [][2]float64 {
@@ -711,97 +657,15 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 	return body
 }
 
-// pads builds a brim pad round each of the blade's two bed patches (step 10) and returns cradle less each pad's
-// clearance. A pad's outline is the patch's bounding box grown by BrimPadWidth; its hole is the patch itself, the loop
-// the blade's section at z = 0.1 gives, so pad and blade print side by side in the first layer and fuse. The clearance
-// is the outline grown by CradleGapXY, from under the bed up to PadClearanceTop.
-func (b *bladeBuilder) pads(h *BladeHarness, blade, cradle *decad.Body) *decad.Body {
-	if b.err != nil {
+// chamferStartCap chamfers the start cap's outer loop of an extruded body by ChamferSize.
+func (b *bladeBuilder) chamferStartCap(body *decad.Body) *decad.Body {
+	if b.err != nil || body == nil {
 		return nil
 	}
-	f := frame(r3.Vec{Z: padPatchZ}, r3.Vec{X: 1}, r3.Vec{Y: 1})
-	o, err := blade.SectionOutline(b.ctx, f, units.Millimeters(0.02))
-	if err != nil {
-		o, err = blade.SectionOutline(b.ctx, f, units.Millimeters(0.05))
-	}
-	if err != nil {
-		b.fail("brim pads", fmt.Errorf("section blade: %w", err))
-		return nil
-	}
-	if n := len(o.Loops); n != 2 {
-		b.fail("brim pads", fmt.Errorf("%d bed patches", n))
-		return nil
-	}
-	loops := make([][]r3.Vec, 0, 2)
-	for _, l := range o.Loops {
-		loops = append(loops, cleanLoop(l))
-	}
-	// The stud corner's patch lies nearer the stud end, at the smaller x.
-	slices.SortFunc(loops, func(p, q []r3.Vec) int { return cmp.Compare(meanX(p), meanX(q)) })
-	bed := frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1})
-	for i, l := range loops {
-		name := fmt.Sprintf("brim pad %d", i)
-		lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
-		for _, p := range l {
-			lo = r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y)}
-			hi = r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y)}
-		}
-		rect := func(m float64) [][2]float64 {
-			return [][2]float64{{lo.X - m, lo.Y - m}, {hi.X + m, lo.Y - m}, {hi.X + m, hi.Y + m}, {lo.X - m, hi.Y + m}}
-		}
-		s := b.sketchPolygon(bed, rect(BrimPadWidth), name)
-		if s == nil {
-			return nil
-		}
-		// The patch is sampled data, so every point of its loop is placed by DimensionPoint.
-		hole := make([]*sketch.Point, len(l))
-		for k, p := range l {
-			hole[k] = sketchcheck.DimensionPoint(s, p.X, p.Y)
-		}
-		for k := range hole {
-			s.CreateLine(hole[k], hole[(k+1)%len(hole)])
-		}
-		pad := b.extrudeProfile(s, 1, BrimPadHeight, name)
-		clearance := b.extrudePolygon(frame(r3.Vec{Z: -1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), rect(BrimPadWidth+CradleGapXY),
-			1+PadClearanceTop, name+" clearance")
-		if b.err != nil {
-			return nil
-		}
-		cradle, err = decad.Cut(b.ctx, cradle, clearance)
-		b.fail("cut "+name+" clearance", err)
-		if b.err != nil {
-			return nil
-		}
-		h.Pads = append(h.Pads, pad)
-		h.PadPatches = append(h.PadPatches, l)
-		h.PadOutlines = append(h.PadOutlines, [4][2]float64(rect(BrimPadWidth)))
-	}
-	return cradle
-}
-
-// cleanLoop drops the points of a section loop within 0.01 of the previous one, and the closing duplicate, so the loop
-// sketches as a closed polygon.
-func cleanLoop(l []r3.Vec) []r3.Vec {
-	var out []r3.Vec
-	for _, p := range l {
-		if len(out) > 0 && p.Sub(out[len(out)-1]).Len() < 0.01 {
-			continue
-		}
-		out = append(out, p)
-	}
-	for len(out) > 3 && out[len(out)-1].Sub(out[0]).Len() < 0.01 {
-		out = out[:len(out)-1]
-	}
+	out, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))),
+		units.Millimeters(ChamferSize))
+	b.fail("chamfer bed face", err)
 	return out
-}
-
-// meanX returns the mean x of the points of l.
-func meanX(l []r3.Vec) float64 {
-	sum := 0.0
-	for _, p := range l {
-		sum += p.X
-	}
-	return sum / float64(len(l))
 }
 
 // sketchPolygon starts a sketch on f and draws the closed polygon of vertices, each placed by

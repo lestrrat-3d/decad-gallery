@@ -14,24 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuildBladeHarness builds the cradle for every case: one solid standing on the bed with a first layer of at least
-// cradleFirstLayerMin, a flange CradleBrimWidth wide along both long sides, two solid brim pads, every sketch fully
-// constrained, sections of CradleFitPoints points with y strictly increasing, the step zone inside the block's range,
-// and the left hand at 192 mirroring the right. Bad inputs are rejected and add no body.
+// TestBuildBladeHarness builds the cradle for every case: one solid standing on the bed with a first layer over
+// 400 mm², every sketch fully constrained, sections of CradleFitPoints points with y strictly increasing, the step zone
+// inside the block's range, and the left hand at 192 mirroring the right. Bad inputs are rejected and add no body.
 func TestBuildBladeHarness(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
 		require.True(t, h.Body.IsSolid())
 		require.Equal(t, 1, len(h.Body.Lumps()), "one piece")
-		require.Equal(t, shadowSectionCount(h)+12, len(h.Sketches), "sketch count")
-		require.Equal(t, 2, len(h.Pads), "brim pads")
-		require.Equal(t, 2, len(h.PadPatches), "pad patches")
-		require.Equal(t, 2, len(h.PadOutlines), "pad outlines")
-		for i, pad := range h.Pads {
-			require.True(t, pad.IsSolid(), "pad %d", i)
-			_, err := pad.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
-			require.NoError(t, err, "pad %d", i)
-		}
+		require.Equal(t, shadowSectionCount(h)+7, len(h.Sketches), "sketch count")
 		for i, s := range h.Sketches {
 			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 		}
@@ -44,37 +35,20 @@ func TestBuildBladeHarness(t *testing.T) {
 		require.Less(t, h.XStart, h.XEnd)
 		require.Less(t, h.XStart, h.StepZone[0])
 		require.Less(t, h.StepZone[1], h.XEnd)
-		// The shared case document also holds the copies other tests make, so membership is checked here and the count
-		// in TestBuildBladePrint.
-		inDoc := map[*decad.Body]struct{}{}
-		for _, body := range b.doc.Bodies() {
-			inDoc[body] = struct{}{}
-		}
-		for i, body := range append([]*decad.Body{b.blade, h.Body}, h.Pads...) {
-			_, ok := inDoc[body]
-			require.True(t, ok, "body %d in the document", i)
-		}
+		require.Equal(t, 2, len(b.doc.Bodies()), "posed blade and harness")
 		box, err := h.Body.Bounds()
 		require.NoError(t, err)
 		require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-6)
 		// The bed face is its largest loop less the others, which are holes in it (TestBladeHarnessBedFace).
-		bed := sectionAt(t, h.Body, 0.1)
 		area, largest := 0.0, 0.0
-		for _, l := range bed.Loops {
+		for _, l := range sectionAt(t, h.Body, 0.1).Loops {
 			a, _ := loopArea(l)
 			area -= a
 			largest = max(largest, a)
 		}
 		area += 2 * largest
 		t.Logf("%s: rest tilt %.4f rad, first-layer outline area %.0f mm²", c.name, b.tilt, area)
-		require.GreaterOrEqual(t, area, cradleFirstLayerMin[c.rotor], "first layer")
-		// The caps start at z = 1, so the section at z = 0.6 is the plan; the flange reaches CradleBrimWidth past it on
-		// each long side.
-		bedLo, bedHi := loopsYRange(bed)
-		planLo, planHi := loopsYRange(sectionAt(t, h.Body, 0.6))
-		t.Logf("%s: flange beyond the plan %.3f mm (min y), %.3f mm (max y)", c.name, planLo-bedLo, bedHi-planHi)
-		require.InDelta(t, turbinefan.CradleBrimWidth, planLo-bedLo, 0.1, "flange at min y")
-		require.InDelta(t, turbinefan.CradleBrimWidth, bedHi-planHi, 0.1, "flange at max y")
+		require.Greater(t, area, 400.0, "first layer")
 	})
 
 	right, left := cradleFor(t, cradleCases[1]).harness, cradleFor(t, cradleCases[2]).harness

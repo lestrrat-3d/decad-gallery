@@ -559,7 +559,6 @@ func turbinefanModel() renderkit.Model {
 		"print":           {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print")},
 		"print-side":      {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print-side")},
 		"print-end":       {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print-end")},
-		"print-bed":       {Width: 1600, Height: 900, Scene: turbinePrintViewScene("print-bed")},
 	}
 	return renderkit.Model{
 		Name:    "turbinefan",

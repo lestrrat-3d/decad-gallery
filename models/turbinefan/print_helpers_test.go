@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -233,81 +232,6 @@ func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSect
 			RightY: lerp(a.RightY, c.RightY), RightZ: lerp(a.RightZ, c.RightZ)}, true
 	}
 	return s[len(s)-1], true
-}
-
-// cradleFirstLayerMin is the least first-layer area of the cradle, in mm², by rotor diameter: the v6 probe measured
-// 1065, 1948 and 2462 mm² with the flange and the pad clearances.
-var cradleFirstLayerMin = map[float64]float64{128: 1000, 192: 1850, 224: 2300}
-
-// loopsYRange returns the least and the greatest y over every point of the outline's loops.
-func loopsYRange(o decad.SectionOutline) (float64, float64) {
-	lo, hi := math.Inf(1), math.Inf(-1)
-	for _, l := range o.Loops {
-		for _, p := range l {
-			lo, hi = math.Min(lo, p.Y), math.Max(hi, p.Y)
-		}
-	}
-	return lo, hi
-}
-
-// loopBox returns the least and the greatest corner of a loop's bounding box in the XY plane.
-func loopBox(l []r3.Vec) (r3.Vec, r3.Vec) {
-	lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
-	for _, p := range l {
-		lo = r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y)}
-		hi = r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y)}
-	}
-	return lo, hi
-}
-
-// inPadRect reports whether (x, y) lies strictly inside the axis-aligned pad rectangle r grown by grow.
-func inPadRect(r [4][2]float64, grow, x, y float64) bool {
-	lo, hi := [2]float64{math.Inf(1), math.Inf(1)}, [2]float64{math.Inf(-1), math.Inf(-1)}
-	for _, q := range r {
-		lo = [2]float64{math.Min(lo[0], q[0]), math.Min(lo[1], q[1])}
-		hi = [2]float64{math.Max(hi[0], q[0]), math.Max(hi[1], q[1])}
-	}
-	return x > lo[0]-grow && x < hi[0]+grow && y > lo[1]-grow && y < hi[1]+grow
-}
-
-// harnessGaps returns distance meshes of the harness's support: the cradle meshed at 0.2 mm and each brim pad at
-// 0.1 mm, all with every mesh verification on, and the cradle mesh's bound.
-func harnessGaps(t *testing.T, h *turbinefan.BladeHarness) ([]meshgap.Mesh, float64) {
-	t.Helper()
-	var out []meshgap.Mesh
-	var cradleBound float64
-	for i, body := range append([]*decad.Body{h.Body}, h.Pads...) {
-		tol := 0.1
-		if i == 0 {
-			tol = 0.2
-		}
-		m, err := body.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
-		require.NoError(t, err, "harness body %d", i)
-		if i == 0 {
-			cradleBound = m.Bound().Base()
-		}
-		g, err := meshgap.New(m.Vertices(), m.Triangles(), m.Bound().Base())
-		require.NoError(t, err, "harness body %d", i)
-		out = append(out, g)
-	}
-	return out, cradleBound
-}
-
-// supportDistance returns the distance from p to the nearest support among gs, which harnessGaps returned for h: the
-// cradle anywhere, and a brim pad only when p lies over that pad's outline grown by CradleGapXY, where the cradle stands
-// back to PadClearanceTop.
-func supportDistance(t *testing.T, h *turbinefan.BladeHarness, gs []meshgap.Mesh, p r3.Vec) float64 {
-	t.Helper()
-	best := math.Inf(1)
-	for i, g := range gs {
-		if i > 0 && !inPadRect(h.PadOutlines[i-1], turbinefan.CradleGapXY, p.X, p.Y) {
-			continue
-		}
-		d, err := g.PointDistance(p)
-		require.NoError(t, err)
-		best = math.Min(best, d)
-	}
-	return best
 }
 
 // downward returns a triangle's angle from vertical, in degrees, and whether it points down more than 45 degrees
