@@ -27,6 +27,8 @@ RENDER_HEAVY = {
     "swisslever": ("TestSwissExploded",),
 }
 RENDER_TESTS = {
+    "render-registration": ("5m", "tools/render", ("TestRegistryNamesAreUniqueAndSorted",
+        "TestRegistryDirectoriesExist", "TestRegistryJobPathsAreDistinct", "TestRegistryOnlyPlanetaryAcceptsKit")),
     "clamparm-render": ("40m", "tools/render", ("TestClampArmPresets", "TestClampArmExploded")),
     "swiss-render": ("40m", "tools/render", ("TestSwissPresets", "TestSwissExploded", "TestSwissMovers")),
     "siren-render": ("40m", "tools/render", ("TestHandCrankSirenView",)),

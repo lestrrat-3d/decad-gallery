@@ -14,6 +14,25 @@ import plan
 
 
 class PlanTest(unittest.TestCase):
+    def test_new_model_registration_only_accepts_narrow_additions(self):
+        old = {
+            "models.go": 'package main\nimport (\n"example.org/existing"\n)\nfunc registry() {\nexisting.Model(),\n}\n',
+            "gallery.go": 'package main\nvar tiles = []tile{\n{"existing", image.Rect(0, 0, 1, 1)},\n}\n',
+            "registry_test.go": 'func TestJobs(t *testing.T) {\nrequire.Len(t, paths, 5)\n}\n',
+        }
+        new = dict(old)
+        new["models.go"] = new["models.go"].replace('"example.org/existing"',
+            '"example.org/existing"\nnewrender "' + plan.ROOT + '/models/newmodel/render"')
+        new["models.go"] = new["models.go"].replace('existing.Model(),', 'existing.Model(),\nnewrender.Model(),')
+        new["gallery.go"] = new["gallery.go"].replace('}\n', '{"newmodel", image.Rect(1, 0, 2, 1)},\n}\n')
+        new["registry_test.go"] = new["registry_test.go"].replace('paths, 5', 'paths, 6')
+        self.assertTrue(plan.registration_only(old, new, "newmodel"))
+        for filename in new:
+            changed = dict(new)
+            changed[filename] += "func unexpected() {}\n"
+            self.assertFalse(plan.registration_only(old, changed, "newmodel"), filename)
+        self.assertFalse(plan.registration_only(old, new, "other"))
+
     def test_gallery_cache_selection(self):
         isolated = "isolated-internal-clamparmcapacity-TestCheck"
         tests = ["internal/clamparmcapacity/check_test.go"]
