@@ -13,6 +13,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestButtonIndexPhase60(t *testing.T) {
+	doc := decad.New()
+	index, err := buildButtonIndex(t.Context(), doc, 60)
+	require.NoError(t, err)
+	require.NoError(t, doc.VerifyContainers().Err())
+	for _, body := range []*decad.Body{index.Wheel, index.Crank, index.Rivet, index.Shaft, index.Key} {
+		require.NotNil(t, body)
+		_ = buttonIndexData(t, body)
+	}
+	frame, err := indexFrame(0)
+	require.NoError(t, err)
+	a := math.Atan2(24, 10)
+	throw := 26 * math.Sin(math.Pi/10)
+	point := frame.Origin().Add(r3.Vec{X: throw * math.Cos(a), Y: 2, Z: throw * math.Sin(a)})
+	turn, err := r3.RotationAround(frame.Origin(), r3.Vec{Y: -1}, units.Degrees(60))
+	require.NoError(t, err)
+	identity, err := r3.Translation(r3.Vec{})
+	require.NoError(t, err)
+	require.True(t, buttonIndexInside(buttonIndexData(t, index.Rivet), identity, turn.Apply(point)))
+}
+
 func TestButtonIndexInvalid(t *testing.T) {
 	for _, phase := range []float64{-1, 361, math.NaN(), math.Inf(1)} {
 		_, err := buildButtonIndex(t.Context(), decad.New(), phase)

@@ -394,7 +394,7 @@ func buildButtonIndex(ctx context.Context, doc *decad.Document, phase float64) (
 	if math.IsNaN(phase) || math.IsInf(phase, 0) || phase < 0 || phase > 360 {
 		return nil, fmt.Errorf("button index phase %g outside 0..360", phase)
 	}
-	frame, err := indexFrame(phase)
+	frame, err := indexFrame(0)
 	if err != nil {
 		return nil, fmt.Errorf("input frame: %w", err)
 	}
@@ -421,6 +421,26 @@ func buildButtonIndex(ctx context.Context, doc *decad.Document, phase float64) (
 	rivet, err := indexRivet(ctx, doc, frame)
 	if err != nil {
 		return nil, err
+	}
+	inputTurn, err := r3.RotationAround(frame.Origin(), r3.Vec{Y: -1}, units.Degrees(phase))
+	if err != nil {
+		return nil, fmt.Errorf("input rotation: %w", err)
+	}
+	shaft, err = decad.Transform(ctx, shaft, inputTurn)
+	if err != nil {
+		return nil, fmt.Errorf("rotate input shaft: %w", err)
+	}
+	key, err = decad.Transform(ctx, key, inputTurn)
+	if err != nil {
+		return nil, fmt.Errorf("rotate crank key: %w", err)
+	}
+	crank, err = decad.Transform(ctx, crank, inputTurn)
+	if err != nil {
+		return nil, fmt.Errorf("rotate crank: %w", err)
+	}
+	rivet, err = decad.Transform(ctx, rivet, inputTurn)
+	if err != nil {
+		return nil, fmt.Errorf("rotate drive rivet: %w", err)
 	}
 	out := &buttonIndex{Wheel: wheel, Crank: crank, Rivet: rivet, Shaft: shaft, Key: key}
 	container, err := doc.Root().NewUniqueChild("Button Index")

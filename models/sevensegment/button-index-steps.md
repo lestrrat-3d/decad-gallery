@@ -15,8 +15,9 @@ The output centre O is world (X,Z)=(0,28). The crank centre C is (10,52),
 B=atan2(20 sin A−24, 20 cos A−10). For the crank and its shaft let local U
 point along (cos B,0,sin B), V along (−sin B,0,cos B), and local W toward −Y.
 The crank origin is (10,−69.75,52). Define driver phase φ in degrees, with
-zero at the parked 9 position, and apply a positive rotation in its local UV
-plane about W. Driver shaft, key, crank and rivet move together. Use the same
+zero at the parked 9 position. Construct and finish the shaft, key, crank and
+rivet at phase zero before applying any rotation. Rotate those four finished
+bodies together by φ about the world −Y axis through (10,−69.75,52). Use the same
 frame for the Ø5 input shaft, whose positive axial station s points toward −Y.
 
 For output increment q, use q=0 for φ≤108°, q=36° for φ≥252°, and otherwise
