@@ -2,6 +2,16 @@
 
 **Build status:** Not built yet.
 
+## Button mechanism prototype review
+
+The [3D model (GLB)](prototype/button-review/button-display.glb), [open view](prototype/button-review/open.png), and
+[transparent hood view](prototype/button-review/transparent-hood.png) show a partial home-position prototype.
+The export includes the cap, rack, yoke, index, detent cam, and release crank. It omits the detent follower, primary
+return spring, full ratchet and lock chain, newer output shaft and clamps, and complete release supports and mounting
+hardware. The press cycle has not been verified. The images below show the existing manual display.
+
+![Partial button prototype beside the display, shown through a transparent hood](prototype/button-review/transparent-hood.png)
+
 ![The display showing the digit 2: seven rotors turn in windows of the top plate, a yellow face toward the viewer where a segment is lit and black where it is off, on an open frame with a knob on the front](images/hero.png)
 
 A printed, mechanical digit 0 to 9. Seven rotors turn in windows of a top plate. A rotor has a yellow face and a black
