@@ -195,11 +195,8 @@ y -19.88 to 26.95 (`-RingOuter` to `EarReach`).
    moves out with `RingOuter` by the same amount, so these walls hold on every preset. The pockets are cut after the chamfer, so
    their hexagons stay sharp. No nut is embedded: each pocket is open to a face (AGENTS.md "Fasteners").
 
-The ring needs a document from `NewDocument()`, which carries a chain tolerance of 0.02 mm. The mount nut pockets at
-the ears' rear ends meet held facets just past a plain document's gate (a held bound of 0.001328 mm against the
-gate's 0.001324 mm for the third pocket, and 0.0010075 against 0.00095 for the back plate's cut). `decad.New()` makes
-`Build` fail with `decad.ErrUnsupported` there (`TestOneWayClutchPlainDocumentRefusesBuild`). The ring's held bound is
-0.0285 mm (volume 9845.74 ± 5.43 mm³).
+Use `NewDocument()`, which carries a chain tolerance of 0.02 mm, for the supported parameter range. The default build
+also succeeds with `decad.New()`; `TestOneWayClutchPlainDocument` verifies its printed bodies.
 
 The tooth loop is the whole void inside the teeth, one closed loop. Counter-clockwise layout: lock face `j` lies on the
 radial axis at `φ_j = 90° + 20°j`, from `Q_j = R_root∠φ_j` in to `P_j = R_tip∠φ_j`; the ramp of tooth `j` runs from

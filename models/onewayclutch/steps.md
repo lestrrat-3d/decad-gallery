@@ -5,8 +5,8 @@ Follow instructions.md for the API, the dimensions, the presets and the validati
 run and its sketches), `onewayclutch.go` (package doc, container names, `Parts`, `Model`, `BuildParts`, `Build`, the
 four part builders and the meridian tables), `adapter.go` (`Adapter`, `BuildAdapter` and the adapter's builder) and
 `document.go` (`NewDocument`). Every error message starts with `onewayclutch: `. Build the clutch in a document from
-`onewayclutch.NewDocument()`, which carries a chain tolerance of 0.02 mm: a plain `decad.New()` refuses the back plate's
-cut after the ring's mount pockets. `BuildAdapter` alone needs no chain tolerance.
+`onewayclutch.NewDocument()`, which carries a chain tolerance of 0.02 mm. The default build also succeeds with a plain
+`decad.New()`. `BuildAdapter` alone needs no chain tolerance.
 
 ## 1. Validate and derive (params.go)
 
