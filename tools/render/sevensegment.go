@@ -278,7 +278,7 @@ func sevenSegmentView(s clutchSet, name string) (solidlens.Scene, error) {
 	if strings.HasPrefix(name, "exploded") {
 		margin = .03 // the exploded view fills at least 80% of the frame
 	}
-	return bevelScene(fitCamera(camera, models, aspect, margin), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, aspect, margin), models), nil
 }
 
 // sevenFaceBolt reports whether name is one of the four top-plate bolts, whose heads lie flush in the face.
@@ -330,7 +330,7 @@ func sevenSegmentDigits(s clutchSet) (solidlens.Scene, error) {
 	}
 	camera := solidlens.Camera{Position: solidlens.Vec{X: 132, Y: -460, Z: 330}, Target: solidlens.Vec{X: 132, Y: -62, Z: 84},
 		Up: solidlens.Vec{Z: 1}, FOV: 30}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .04), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .04), models), nil
 }
 
 // sevenUnposed returns the model of a camshaft part turned back from the digit's pose, so its letters stand upright.
@@ -366,7 +366,7 @@ func sevenSegmentCams(s clutchSet) (solidlens.Scene, error) {
 	}
 	camera := solidlens.Camera{Position: solidlens.Vec{Y: 500, Z: -3}, Target: solidlens.Vec{Y: 20, Z: -3},
 		Up: solidlens.Vec{Z: 1}, FOV: 30}
-	return bevelScene(fitCamera(camera, models, 16.0/9, .05), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .05), models), nil
 }
 
 // sevenSegmentPreset returns the preset for a named view of the default display.
@@ -482,7 +482,7 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 			}
 			models = append(models, clutchModel(part.mesh, part.color))
 		}
-		scene := bevelScene(fitCamera(camera, models, 16.0/9, .1), models)
+		scene := renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", img.file+".png"), scene, 480, 270); err != nil {
 			return err
 		}
