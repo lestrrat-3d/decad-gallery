@@ -150,13 +150,15 @@ func TestOneWayClutchContainers(t *testing.T) {
 	}
 }
 
-// TestOneWayClutchPlainDocumentRefusesBuild pins the reason for NewDocument: the ring's mount nut pockets and the back
-// plate's cut meet held facets just past a plain document's chain gate (the back plate's held bound is 0.0010075 mm
-// against the gate's 0.00095), so decad refuses the build there. A document from NewDocument builds it.
-func TestOneWayClutchPlainDocumentRefusesBuild(t *testing.T) {
-	_, err := onewayclutch.Build(t.Context(), decad.New(), onewayclutch.DefaultParams())
-	require.ErrorIs(t, err, decad.ErrUnsupported)
-	require.ErrorContains(t, err, "back plate")
+func TestOneWayClutchPlainDocument(t *testing.T) {
+	m, err := onewayclutch.Build(t.Context(), decad.New(), onewayclutch.DefaultParams())
+	require.NoError(t, err)
+	for name, body := range map[string]*decad.Body{
+		"hub": m.Hub, "ring": m.Ring, "back plate": m.BackPlate, "cover": m.Cover,
+	} {
+		_, err := body.Tessellate(t.Context(), units.Millimeters(.04), decad.WithVerification(decad.VerifyAll))
+		require.NoError(t, err, name)
+	}
 }
 
 // TestOneWayClutchAdapterPlaced builds the adapter alone, in a plain document and in a placed frame: it needs no chain
