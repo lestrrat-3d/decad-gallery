@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"strings"
 
+	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/solidlens"
@@ -102,7 +103,7 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height,
 		if err != nil {
 			return err
 		}
-		cameras[i] = fitCamera(sevenCameras[name], models, float64(half)/float64(height), .06)
+		cameras[i] = renderkit.FitCamera(sevenCameras[name], models, float64(half)/float64(height), .06)
 	}
 	background := solidlens.RGB(.94, .96, .98).NRGBA()
 	var rendered []image.Image
@@ -118,7 +119,7 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height,
 			if err != nil {
 				return err
 			}
-			img, err := solidlens.Render(ctx, bevelScene(cameras[i], models), solidlens.Settings{Width: half, Height: height})
+			img, err := solidlens.Render(ctx, renderkit.Scene(cameras[i], models), solidlens.Settings{Width: half, Height: height})
 			if err != nil {
 				return fmt.Errorf("render frame %d: %w", frame, err)
 			}
