@@ -41,6 +41,20 @@ func TestButtonDetentRealFit(t *testing.T) {
 		require.NoError(t, err)
 		require.InDelta(t, 1, shaftDistance, .005+shaft.Bound(), "shaft hole at %.1f", station)
 		require.InDelta(t, 1, keyDistance, .005+key.Bound(), "key at %.1f", station)
+		inKey, err := detent.Key.LocatePoint(ctx, point, units.Millimeters(.005))
+		require.NoError(t, err)
+		require.Equal(t, decad.PointInside, inKey, "key at %.1f", station)
+		// Each ball reaches the next point without touching the shaft boundary.
+		// The final point is outside the shaft, so the whole chain is outside.
+		const step = .25
+		for x := station; x < 6; x += step {
+			distance, err := shaft.PointDistance(center.Add(axis.Scale(x)))
+			require.NoError(t, err)
+			require.Greater(t, distance, step+shaft.Bound()+1e-8, "shaft path at %.2f", x)
+		}
+		outside, err := index.Shaft.LocatePoint(ctx, center.Add(axis.Scale(6)), units.Millimeters(.005))
+		require.NoError(t, err)
+		require.Equal(t, decad.PointOutside, outside, "shaft exterior")
 	}
 	for _, sign := range []float64{-1, 1} {
 		move, err := r3.Translation(axis.Scale(sign * .30))
