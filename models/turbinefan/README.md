@@ -211,7 +211,8 @@ each blade. The rib is a thin wall that stands on the bed under the leading edge
 At 192 mm it holds the leading edge from about r 43 mm to r 93 mm. The stretch from r 40 to 43 mm and the last 2 to 3 mm
 of the tip have no support. The rib takes 1,180 mm³ at 192 mm, about 0.2 times the blade.
 
-The rib itself has not been printed yet. To print a blade with it:
+A 192 mm rotor's blade has been printed with the rib, and it came out with the best quality of any blade print so far.
+To print a blade with it:
 
 1. Build the blade and its rib with `BuildBladePrint` (see the [developer notes](../../docs/models/turbinefan.md)).
    Load them as two separate objects, not as parts of one object, so each takes its own brim setting.
