@@ -762,7 +762,7 @@ def run_sevensegment(shard: str) -> None:
 
 def run_sevensegment_render() -> None:
     """Run the seven-segment renderer tests from the root module."""
-    go_test(["./tools/render", "-run", "SevenSegment", "-timeout", "30m", "-count=1"], module="tools/render")
+    go_test(["./models/sevensegment/render", "-run", "SevenSegment", "-timeout", "30m", "-count=1"], module="tools/render")
 
 
 def run_turbinefan() -> None:

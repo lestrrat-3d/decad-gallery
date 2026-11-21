@@ -1,4 +1,4 @@
-package main
+package render
 
 // CI: isolated-tests
 
@@ -12,8 +12,7 @@ import (
 )
 
 func TestSevenSegmentPresets(t *testing.T) {
-	m, found := lookup("sevensegment")
-	require.True(t, found)
+	m := Model()
 	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "detent", "digits",
 		"cams", "exploded", "exploded-camshaft"} {
 		p, ok := m.Presets[name]

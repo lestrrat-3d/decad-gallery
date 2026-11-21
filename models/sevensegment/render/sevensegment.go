@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"context"
@@ -36,17 +36,17 @@ func sevenCut(plane solidlens.ClipPlane, c solidlens.Color) *solidlens.ClipPlane
 
 // sevenModels returns the parts moved by pull, cut by clip when it is not nil; a part wholly on the removed side is
 // left out. Each part keeps its one colour, and its cut face has that colour too.
-func sevenModels(s clutchSet, pull map[string]r3.Vec, clip *solidlens.ClipPlane) ([]solidlens.Model, error) {
+func sevenModels(s partSet, pull map[string]r3.Vec, clip *solidlens.ClipPlane) ([]solidlens.Model, error) {
 	var out []solidlens.Model
 	for _, part := range s {
-		if clip != nil && clipRemovesAll(part.mesh, *clip) {
+		if clip != nil && renderkit.ClipRemovesAll(part.mesh, *clip) {
 			continue
 		}
 		move, err := r3.Translation(pull[part.name])
 		if err != nil {
 			return nil, err
 		}
-		m := clutchModel(rotatedMesh{TriangleSource: part.mesh, move: move}, part.color)
+		m := renderkit.PartModel(renderkit.TransformedMesh{TriangleSource: part.mesh, Transform: move}, part.color)
 		if clip != nil {
 			m.Clip = sevenCut(*clip, part.color)
 		}
@@ -129,7 +129,7 @@ var sevenCamshaftOrder = []string{"Cam a", "Cam f", "Cam b", "Cam g", "Cam c", "
 	"Collar Ring", "Knob"}
 
 // sevenSet builds the default display once and tessellates its 60 bodies.
-func buildSevenSegmentSet(ctx context.Context) (clutchSet, error) {
+func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 	doc := decad.New()
 	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
 	if err != nil {
@@ -162,7 +162,7 @@ func buildSevenSegmentSet(ctx context.Context) (clutchSet, error) {
 		parts = append(parts, named{fmt.Sprintf("Bolt %d", i+1), m.Bolts[i].Body, sevenHardware},
 			named{fmt.Sprintf("Nut %d", i+1), m.Nuts[i].Body, sevenHardware})
 	}
-	set := make(clutchSet, 0, len(parts))
+	set := make(partSet, 0, len(parts))
 	for _, p := range parts {
 		tol := .04
 		if strings.HasPrefix(p.name, "Bolt") || strings.HasPrefix(p.name, "Nut") {
@@ -172,7 +172,7 @@ func buildSevenSegmentSet(ctx context.Context) (clutchSet, error) {
 		if err != nil {
 			return nil, fmt.Errorf("mesh %s: %w", p.name, err)
 		}
-		set = append(set, clutchPart{p.name, mesh, p.color})
+		set = append(set, part{p.name, mesh, p.color})
 	}
 	// The exploded offsets of the fasteners follow the part they sit in.
 	dm := m.Dimensions
@@ -233,7 +233,7 @@ func sevenCamshaftPull() map[string]r3.Vec {
 }
 
 // view draws one named view of the display.
-func sevenSegmentView(s clutchSet, name string) (solidlens.Scene, error) {
+func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 	camera, ok := sevenCameras[name]
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown seven-segment view %q", name)
@@ -288,7 +288,7 @@ func sevenFaceBolt(name string) bool {
 
 // sevenDigitModels returns the face of the display showing digit k, placed at at: the top plate, its four bolts and the rotors, each
 // rotor turned from its built angle to the one the digit asks of it. Every part keeps its one colour.
-func sevenDigitModels(s clutchSet, dm sevensegment.Dimensions, k int, at r3.Vec) ([]solidlens.Model, error) {
+func sevenDigitModels(s partSet, dm sevensegment.Dimensions, k int, at r3.Vec) ([]solidlens.Model, error) {
 	var models []solidlens.Model
 	place, err := r3.Translation(at)
 	if err != nil {
@@ -306,16 +306,16 @@ func sevenDigitModels(s clutchSet, dm sevensegment.Dimensions, k int, at r3.Vec)
 			if err != nil {
 				return nil, err
 			}
-			src = rotatedMesh{TriangleSource: src, move: turn}
+			src = renderkit.TransformedMesh{TriangleSource: src, Transform: turn}
 		}
-		models = append(models, clutchModel(rotatedMesh{TriangleSource: src, move: place}, p.color))
+		models = append(models, renderkit.PartModel(renderkit.TransformedMesh{TriangleSource: src, Transform: place}, p.color))
 	}
 	return models, nil
 }
 
 // sevenSegmentDigits draws digits 0 to 9 in a 5 by 2 grid, seen from the front at an angle so the turned rotors show
 // their yellow faces.
-func sevenSegmentDigits(s clutchSet) (solidlens.Scene, error) {
+func sevenSegmentDigits(s partSet) (solidlens.Scene, error) {
 	dm, err := sevensegment.DefaultParams().Derive()
 	if err != nil {
 		return solidlens.Scene{}, err
@@ -334,7 +334,7 @@ func sevenSegmentDigits(s clutchSet) (solidlens.Scene, error) {
 }
 
 // sevenUnposed returns the model of a camshaft part turned back from the digit's pose, so its letters stand upright.
-func sevenUnposed(p clutchPart, dx, dz float64) (solidlens.Model, error) {
+func sevenUnposed(p part, dx, dz float64) (solidlens.Model, error) {
 	turn, err := r3.RotationAround(r3.Vec{Z: sevensegment.ShaftZ}, r3.Vec{Y: 1},
 		units.Degrees(-36*float64(sevenDigitDefault)))
 	if err != nil {
@@ -344,13 +344,13 @@ func sevenUnposed(p clutchPart, dx, dz float64) (solidlens.Model, error) {
 	if err != nil {
 		return solidlens.Model{}, err
 	}
-	return clutchModel(rotatedMesh{TriangleSource: rotatedMesh{TriangleSource: p.mesh, move: turn}, move: shift},
+	return renderkit.PartModel(renderkit.TransformedMesh{TriangleSource: renderkit.TransformedMesh{TriangleSource: p.mesh, Transform: turn}, Transform: shift},
 		sevenCamColor), nil
 }
 
 // sevenSegmentCams draws the seven cams side by side, a to d on the top row and e to g below, seen from behind so each cam's engraved
 // letter shows on its back face.
-func sevenSegmentCams(s clutchSet) (solidlens.Scene, error) {
+func sevenSegmentCams(s partSet) (solidlens.Scene, error) {
 	var models []solidlens.Model
 	for k, seg := range sevensegment.Segments() {
 		for _, p := range s {
@@ -447,7 +447,7 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 		return err
 	}
 	for _, img := range sevenPartImages {
-		var found []clutchPart
+		var found []part
 		for _, name := range img.parts {
 			for _, part := range s {
 				if part.name == name {
@@ -458,9 +458,9 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 		if len(found) != len(img.parts) {
 			return fmt.Errorf("seven-segment part image %s: parts %v not all in the set", img.file, img.parts)
 		}
-		low, high := meshBounds(found[0].mesh)
+		low, high := renderkit.MeshBounds(found[0].mesh)
 		for _, part := range found[1:] {
-			l, h := meshBounds(part.mesh)
+			l, h := renderkit.MeshBounds(part.mesh)
 			low = r3.Vec{X: min(low.X, l.X), Y: min(low.Y, l.Y), Z: min(low.Z, l.Z)}
 			high = r3.Vec{X: max(high.X, h.X), Y: max(high.Y, h.Y), Z: max(high.Z, h.Z)}
 		}
@@ -480,7 +480,7 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 				models = append(models, m)
 				continue
 			}
-			models = append(models, clutchModel(part.mesh, part.color))
+			models = append(models, renderkit.PartModel(part.mesh, part.color))
 		}
 		scene := renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 		if err := renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", img.file+".png"), scene, 480, 270); err != nil {

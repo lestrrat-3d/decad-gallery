@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"context"
@@ -26,7 +26,7 @@ const (
 
 // sevenMotionModels returns the models of the set at camshaft angle theta, the camshaft parts turned and the sliders
 // lifted from the pose they were built in (the default digit).
-func sevenMotionModels(s clutchSet, dm sevensegment.Dimensions, theta float64, top bool) ([]solidlens.Model, error) {
+func sevenMotionModels(s partSet, dm sevensegment.Dimensions, theta float64, top bool) ([]solidlens.Model, error) {
 	turn, err := r3.RotationAround(r3.Vec{Z: sevensegment.ShaftZ}, r3.Vec{Y: 1}, units.Degrees(theta-dm.Theta))
 	if err != nil {
 		return nil, err
@@ -40,20 +40,20 @@ func sevenMotionModels(s clutchSet, dm sevensegment.Dimensions, theta float64, t
 		if top && !isFlag && p.name != "Top Plate" && !sevenFaceBolt(p.name) {
 			continue
 		}
-		if !top && !onShaft && clipRemovesAll(p.mesh, sevenAxisCut) {
+		if !top && !onShaft && renderkit.ClipRemovesAll(p.mesh, sevenAxisCut) {
 			continue // wholly on the removed side of the cut
 		}
 		var src solidlens.TriangleSource = p.mesh
 		switch {
 		case onShaft:
-			src = rotatedMesh{TriangleSource: p.mesh, move: turn}
+			src = renderkit.TransformedMesh{TriangleSource: p.mesh, Transform: turn}
 		case isFlag:
 			seg := sevenFlagSegment(p.name)
 			turn, err := sevenFlagMove(seg, dm.FlagAngle(seg, theta)-dm.FlagAngle(seg, dm.Theta))
 			if err != nil {
 				return nil, err
 			}
-			src = rotatedMesh{TriangleSource: p.mesh, move: turn}
+			src = renderkit.TransformedMesh{TriangleSource: p.mesh, Transform: turn}
 		case isSlider:
 			seg := sevensegment.Segments()[p.name[len(p.name)-1]-'a']
 			built, _ := sevensegment.Lit(dm.Digit, seg)
@@ -65,9 +65,9 @@ func sevenMotionModels(s clutchSet, dm sevensegment.Dimensions, theta float64, t
 			if err != nil {
 				return nil, err
 			}
-			src = rotatedMesh{TriangleSource: p.mesh, move: move}
+			src = renderkit.TransformedMesh{TriangleSource: p.mesh, Transform: move}
 		}
-		m := clutchModel(src, p.color)
+		m := renderkit.PartModel(src, p.color)
 		if !top {
 			m.Clip = sevenCut(sevenAxisCut, p.color)
 		}
@@ -125,9 +125,9 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height,
 			}
 			draw.Draw(canvas, image.Rect(i*half, 0, (i+1)*half, height), img, image.Point{}, draw.Over)
 		}
-		caption(canvas, basicfont.Face7x13, fmt.Sprintf("Camshaft %5.1f deg    Digit %s", theta, sevenRestDigit(theta)), 8,
+		renderkit.Caption(canvas, basicfont.Face7x13, fmt.Sprintf("Camshaft %5.1f deg    Digit %s", theta, sevenRestDigit(theta)), 8,
 			height-8)
 		rendered = append(rendered, canvas)
 	}
-	return writeWheelGIF(output, encodeMotionGIF(rendered, width, height, sevenMotionDelay))
+	return renderkit.WriteGIF(output, renderkit.EncodeMotionGIF(rendered, width, height, sevenMotionDelay))
 }
