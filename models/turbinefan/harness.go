@@ -1,6 +1,7 @@
 package turbinefan
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -41,11 +42,30 @@ const (
 	// StudSlotFlats is the number of flats of the stud slot's half polygon.
 	StudSlotFlats = 16
 	// CradlePlanWindow is the x window over which the cradle plan's outer edge takes the widest point, so the bed face's
-	// outline has no notch narrower than its chamfer.
+	// outline has no narrow notch.
 	CradlePlanWindow = 1.0
 	// SectionStep is the spacing along x of the blade sections the layout reads.
 	SectionStep = 0.25
+	// BrimClearance is the free bed the cradle leaves round each of the blade's bed spots over the first two layers, for
+	// the slicer's brim on the blade: a 5 mm brim, its 0.1 gap to the object, half a line where its last loop spills
+	// over, and 0.45 for first-layer squish.
+	BrimClearance = 6.0
+	// PocketFirstLayers is how far above the bed a brim pocket still clears BrimClearance: two layers.
+	PocketFirstLayers = 0.4
+	// PocketSlope is a brim pocket wall's angle from vertical, so the cradle over it prints without support.
+	PocketSlope = 45 * math.Pi / 180
+	// CollarWidth is the width of the ring round each brim pocket that closes it in the cradle's first layer.
+	CollarWidth = 3.0
+	// CollarHeight is a collar's height: four layers, under the caps' z = 1 plane.
+	CollarHeight = 0.8
+	// CollarInset is how far the collar's inner edge stands outside the pocket's edge at the bed, so the pocket's wall
+	// meets no collar face there.
+	CollarInset = 0.2
 )
+
+// spotZ is the height of the section that reads the blade's bed spots: the middle of the first layer, which is what the
+// slicer prints.
+const spotZ = 0.1
 
 // CradleSection is one sampled cross-section of the cradle at plane x: the offset lower outline (y, z) from the left
 // widest point to the right one, and those points.
@@ -62,20 +82,28 @@ type CradleSection struct {
 // BladeHarness is the cradle in the print frame. The cradle is one solid standing on the bed: a block minus the blade's
 // upward shadow, offset from the blade by CradleGapZ and CradleGapXY, so it fits the blade's contour below its widest
 // lines and the blade lifts straight up out of it. Where the blade is less than a few layers over the bed, near its
-// stud end corner and its leading edge, the shadow cuts the cradle down to the bed.
+// stud end corner and its leading edge, the shadow cuts the cradle down to the bed. Round each of the blade's two bed
+// spots the cradle leaves a brim pocket, BrimClearance clear of the spot over the first two layers, so the slicer's brim
+// on the blade fits there; its walls rise inward at PocketSlope, and a collar ring closes it in the first layer.
 type BladeHarness struct {
 	Body *decad.Body
-	// Sketches are in build order: shadow sections, stud slot, block plan, block profile, left cap plan, left cap
-	// profile, right cap plan, right cap profile.
+	// Sketches are in build order: shadow sections, stud slot, block plan, stud collar, leading-edge collar, block
+	// profile, left cap plan, left cap profile, right cap plan, right cap profile, bed box, then each pocket's XZ and YZ
+	// trapezoids, the stud pocket's first.
 	Sketches []*sketch.Sketch
-	// Sections are every sampled section, x ascending; Sections[0].X is the cradle's start past the stud end.
+	// Spots are the blade's bed spots, the loops of its section at z = 0.1: the stud corner's, then the leading edge's.
+	Spots [2][]r3.Vec
+	// Pockets are the brim pockets' rectangles at the bed, each as its least and greatest corner, in the order of Spots.
+	Pockets [2][2]r3.Vec
+	// Sections are every sampled section, x ascending; Sections[0].X is the shadow's start past the stud end.
 	Sections []CradleSection
-	// XStart and XEnd are the block's x range: Sections[1].X and Sections[len-2].X.
+	// XStart and XEnd are the block's x range: XStart lies half a CradleStep past the first section beyond the stud
+	// pocket, and XEnd is Sections[len-2].X.
 	XStart, XEnd float64
 	// StepZone is the x range where the shadow tool copies its first clean section, past the root step.
 	StepZone [2]float64
-	// WallTop is the top profile (x, z) of the left (min y) and the right wall over the block's sections: CradleTopDrop
-	// under the smoothed limit, the step zone's sections taking the first clean section's values.
+	// WallTop is the top profile (x, z) of the left (min y) and the right wall over the block's sections, from XStart:
+	// CradleTopDrop under the smoothed limit, the step zone's sections taking the first clean section's values.
 	WallTop [2][][2]float64
 }
 
@@ -225,15 +253,25 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt
 		b.fail("cradle sections", fmt.Errorf("%d sections from x %.2f to %.2f", len(h.Sections), xs, xe))
 		return nil
 	}
-	h.XStart, h.XEnd = h.Sections[1].X, h.Sections[len(h.Sections)-2].X
+	h.XEnd = h.Sections[len(h.Sections)-2].X
 	// 5: the root step, where the stud meets the root face.
 	xRoot := xf.Apply(r3.Vec{Z: sz.RootRadius}).X
 	half := 4 * sz.HubScale * math.Sin(tilt)
 	h.StepZone = [2]float64{xRoot - half - CradleStep, xRoot + half + CradleStep}
+	b.spots(h, blade)
+	blk := blockSections(h, wallSections(h))
+	if b.err != nil {
+		return nil
+	}
+	if len(blk) < 4 {
+		b.fail("block sections", fmt.Errorf("%d sections past the stud pocket", len(blk)))
+		return nil
+	}
+	h.XStart = blk[0].X
 
 	shadow := b.shadowTool(h, z0, zTop)
 	stud := b.studTool(xf, zTop, tilt)
-	block := b.block(h, wallSections(h), zTop)
+	block := b.block(h, blk, zTop)
 	// 9: the cradle.
 	if b.err != nil {
 		return nil
@@ -561,8 +599,8 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 	}
 	h.WallTop[0] = wallTop(blk, func(c CradleSection) float64 { return c.LeftLimit })
 	h.WallTop[1] = wallTop(blk, func(c CradleSection) float64 { return c.RightLimit })
-	// The plan's outer edge takes the widest point within CradlePlanWindow, so the bed face's outline has no notch
-	// narrower than its chamfer.
+	// The plan's outer edge takes the widest point within CradlePlanWindow, so the bed face's outline has no narrow
+	// notch.
 	outer := func(x, side float64) float64 {
 		v := math.Inf(-1)
 		for _, c := range blk {
@@ -597,6 +635,8 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 	for _, q := range topMax {
 		zmax = math.Max(zmax, q[1])
 	}
+	// The slabs reach 20 mm past the plan's y range, so the profile slab does not trim the collars.
+	ymin, ymax = ymin-20, ymax+20
 	// slab is the XZ polygon between the lower and upper polylines, extruded across the plan's y range.
 	slab := func(lo, hi [][2]float64, name string) *decad.Body {
 		poly := append([][2]float64{}, lo...)
@@ -612,10 +652,23 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 		}
 		return out
 	}
-	// The prism stands on the bed and gives the bed face, chamfered (Surface edge finishing); the slab starts under the
-	// bed, so no faces coincide.
-	prism := b.chamferStartCap(b.extrudePolygon(frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+2, "block plan"))
-	top := slab(flat(-1, topMax), topMax, "block profile")
+	// The prism and the collars start under the bed, and the profile slab under them, reaching 20 mm past the block's
+	// ends at the end heights, so it trims no collar; the bed box gives the single bed face after the caps. No faces
+	// coincide.
+	prism := b.extrudePolygon(frame(r3.Vec{Z: -1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), plan, zmax+2, "block plan")
+	for i := range h.Spots {
+		collar := b.collar(h, i)
+		if b.err != nil {
+			return nil
+		}
+		var err error
+		prism, err = decad.Union(b.ctx, prism, collar)
+		b.fail(fmt.Sprintf("join collar %d", i), err)
+	}
+	n := len(topMax)
+	reach := append([][2]float64{{topMax[0][0] - 20, topMax[0][1]}}, topMax...)
+	reach = append(reach, [2]float64{topMax[n-1][0] + 20, topMax[n-1][1]})
+	top := slab(flat(-2, reach), reach, "block profile")
 	if b.err != nil {
 		return nil
 	}
@@ -654,18 +707,154 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 			return nil
 		}
 	}
+	// The bed box keeps what lies over the bed: its own extent is the block's bounds grown by 5 mm.
+	box, err := body.Bounds()
+	if err != nil {
+		b.fail("measure block", err)
+		return nil
+	}
+	bedBox := b.extrudePolygon(frame(r3.Vec{}, r3.Vec{X: 1}, r3.Vec{Y: 1}), [][2]float64{
+		{box.Min.X - 5, box.Min.Y - 5}, {box.Max.X + 5, box.Min.Y - 5}, {box.Max.X + 5, box.Max.Y + 5},
+		{box.Min.X - 5, box.Max.Y + 5},
+	}, box.Max.Z+5, "bed box")
+	if b.err != nil {
+		return nil
+	}
+	body, err = decad.Intersect(b.ctx, body, bedBox)
+	b.fail("intersect bed box", err)
+	for i := range h.Spots {
+		pocket := b.pocket(h, i)
+		if b.err != nil {
+			return nil
+		}
+		body, err = decad.Cut(b.ctx, body, pocket)
+		b.fail(fmt.Sprintf("cut brim pocket %d", i), err)
+		if b.err != nil {
+			return nil
+		}
+	}
 	return body
 }
 
-// chamferStartCap chamfers the start cap's outer loop of an extruded body by ChamferSize.
-func (b *bladeBuilder) chamferStartCap(body *decad.Body) *decad.Body {
-	if b.err != nil || body == nil {
+// spots reads the blade's two bed spots, its section loops at z = 0.1, into h.Spots, the stud corner's first, and sets
+// h.Pockets: each spot's bounding box grown by BrimClearance + PocketFirstLayers.
+func (b *bladeBuilder) spots(h *BladeHarness, blade *decad.Body) {
+	if b.err != nil {
+		return
+	}
+	f := frame(r3.Vec{Z: spotZ}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	o, err := blade.SectionOutline(b.ctx, f, units.Millimeters(0.02))
+	if err != nil {
+		o, err = blade.SectionOutline(b.ctx, f, units.Millimeters(0.05))
+	}
+	if err != nil {
+		b.fail("bed spots", fmt.Errorf("section blade: %w", err))
+		return
+	}
+	if n := len(o.Loops); n != 2 {
+		b.fail("bed spots", fmt.Errorf("%d bed spots", n))
+		return
+	}
+	loops := slices.Clone(o.Loops)
+	// The stud corner's spot lies nearer the stud end, at the smaller x.
+	slices.SortFunc(loops, func(p, q []r3.Vec) int { return cmp.Compare(meanX(p), meanX(q)) })
+	d := BrimClearance + PocketFirstLayers
+	for i, l := range loops {
+		lo, hi := loopBox(l)
+		h.Spots[i] = l
+		h.Pockets[i] = [2]r3.Vec{{X: lo.X - d, Y: lo.Y - d}, {X: hi.X + d, Y: hi.Y + d}}
+	}
+}
+
+// blockSections returns the block's sections from blk: those from the first one at least 0.5 past the stud pocket's
+// end, the first moved on by CradleStep/2, so the block leaves no wall sliver over the pocket's slope and its start
+// face lies between the shadow loft's section planes.
+func blockSections(h *BladeHarness, blk []CradleSection) []CradleSection {
+	x0 := h.Pockets[0][1].X + 0.5
+	for len(blk) > 0 && blk[0].X < x0 {
+		blk = blk[1:]
+	}
+	if len(blk) == 0 {
 		return nil
 	}
-	out, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))),
-		units.Millimeters(ChamferSize))
-	b.fail("chamfer bed face", err)
+	blk = slices.Clone(blk)
+	blk[0].X += CradleStep / 2
+	return blk
+}
+
+// collar builds the ring round brim pocket i, from z = -1 to CollarHeight: the pocket's bed rectangle grown by
+// CollarInset is its hole, grown by CollarInset + CollarWidth its outline.
+func (b *bladeBuilder) collar(h *BladeHarness, i int) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	name := fmt.Sprintf("collar %d", i)
+	outline := rectAround(h.Pockets[i], CollarInset+CollarWidth)
+	s := b.sketchPolygon(frame(r3.Vec{Z: -1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), outline, name)
+	if s == nil {
+		return nil
+	}
+	hole := rectAround(h.Pockets[i], CollarInset)
+	points := make([]*sketch.Point, len(hole))
+	for k, p := range hole {
+		points[k] = sketchcheck.DimensionPoint(s, p[0], p[1])
+	}
+	for k := range points {
+		s.CreateLine(points[k], points[(k+1)%len(points)])
+	}
+	return b.extrudeProfile(s, 1, 1+CollarHeight, name)
+}
+
+// pocket builds brim pocket i: a frustum from z = -1 up to the spot's box at height BrimClearance + PocketFirstLayers,
+// whose walls rise inward at PocketSlope from the pocket's bed rectangle. It is an XZ trapezoid extruded along y
+// intersected with a YZ trapezoid extruded along x, so every face is planar.
+func (b *bladeBuilder) pocket(h *BladeHarness, i int) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	d := BrimClearance + PocketFirstLayers
+	// PocketSlope is from vertical, so a wall runs inward tan(PocketSlope) per mm of height.
+	run := d * math.Tan(PocketSlope) // from the bed up to height d
+	under := math.Tan(PocketSlope)   // from z = -1 up to the bed
+	lo, hi := h.Pockets[i][0], h.Pockets[i][1]
+	name := fmt.Sprintf("brim pocket %d", i)
+	alongY := b.extrudePolygon(frame(r3.Vec{Y: hi.Y + 5}, r3.Vec{X: 1}, r3.Vec{Z: 1}), [][2]float64{
+		{lo.X - under, -1}, {hi.X + under, -1}, {hi.X - run, d}, {lo.X + run, d},
+	}, hi.Y-lo.Y+10, name+" xz")
+	alongX := b.extrudePolygon(frame(r3.Vec{X: lo.X - 5}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), [][2]float64{
+		{lo.Y - under, -1}, {hi.Y + under, -1}, {hi.Y - run, d}, {lo.Y + run, d},
+	}, hi.X-lo.X+10, name+" yz")
+	if b.err != nil {
+		return nil
+	}
+	out, err := decad.Intersect(b.ctx, alongY, alongX)
+	b.fail("intersect "+name, err)
 	return out
+}
+
+// rectAround returns the rectangle r (least and greatest corner) grown by m, counter-clockwise from its least corner.
+func rectAround(r [2]r3.Vec, m float64) [][2]float64 {
+	lo, hi := r[0], r[1]
+	return [][2]float64{{lo.X - m, lo.Y - m}, {hi.X + m, lo.Y - m}, {hi.X + m, hi.Y + m}, {lo.X - m, hi.Y + m}}
+}
+
+// loopBox returns the least and the greatest corner of a loop's bounding box in the XY plane.
+func loopBox(l []r3.Vec) (r3.Vec, r3.Vec) {
+	lo, hi := r3.Vec{X: math.Inf(1), Y: math.Inf(1)}, r3.Vec{X: math.Inf(-1), Y: math.Inf(-1)}
+	for _, p := range l {
+		lo = r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y)}
+		hi = r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y)}
+	}
+	return lo, hi
+}
+
+// meanX returns the mean x of the points of l.
+func meanX(l []r3.Vec) float64 {
+	sum := 0.0
+	for _, p := range l {
+		sum += p.X
+	}
+	return sum / float64(len(l))
 }
 
 // sketchPolygon starts a sketch on f and draws the closed polygon of vertices, each placed by

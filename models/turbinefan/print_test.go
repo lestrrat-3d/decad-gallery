@@ -33,7 +33,7 @@ func TestBuildBladePrint(t *testing.T) {
 			require.True(t, any(bodies[0]) == want, name)
 		}
 		require.Equal(t, 12, len(bp.BladeSketches))
-		require.Equal(t, shadowSectionCount(bp.Harness)+7, len(bp.Harness.Sketches))
+		require.Equal(t, shadowSectionCount(bp.Harness)+14, len(bp.Harness.Sketches))
 
 		build := turbinefan.BuildBlade
 		if hand == turbinefan.LeftHand {

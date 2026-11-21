@@ -290,13 +290,22 @@ func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, 
 	}
 }
 
-// view draws the print job toward the bodies' bounds centre, +Z up: "print" from the stud end, the pressure side and
-// above; "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the
-// stud on the right; "print-end" from the
-// tip end along the radial line, a little from above.
+// The "print-bed" view cuts the blade just over the middle of its first layer, so it shows its bed spots, and the cradle
+// over its collars and under its caps (CollarHeight 0.8, caps from z = 1), so it shows the brim pockets and the collars.
+const (
+	turbinePrintBedBladeClip  = 0.15
+	turbinePrintBedCradleClip = 0.9
+)
+
+// view draws the print job toward the bodies' bounds centre: "print" from the stud end, the pressure side and above;
+// "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the stud on
+// the right; "print-end" from the tip end along the radial line, a little from above; these three with +Z up.
+// "print-bed" looks straight down on the first layer, the tip on the right, with the blade and the cradle cut at
+// turbinePrintBedBladeClip and turbinePrintBedCradleClip.
 func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	dirs := map[string]r3.Vec{
 		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: 1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
+		"print-bed": {Z: 1},
 	}
 	dir, ok := dirs[name]
 	if !ok {
@@ -308,9 +317,16 @@ func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	lo = r3.Vec{X: math.Min(lo.X, blo.X), Y: math.Min(lo.Y, blo.Y), Z: math.Min(lo.Z, blo.Z)}
 	hi = r3.Vec{X: math.Max(hi.X, bhi.X), Y: math.Max(hi.Y, bhi.Y), Z: math.Max(hi.Z, bhi.Z)}
 	center := lo.Add(hi).Scale(.5)
+	up := solidlens.Vec{Z: 1}
+	if name == "print-bed" {
+		center.Z, up = 0, solidlens.Vec{Y: 1}
+		models[0] = clipped(models[0], turbineBladeColor, solidlens.Vec{Z: turbinePrintBedBladeClip}, solidlens.Vec{Z: 1})
+		models[1] = clipped(models[1], turbineHarnessColor, solidlens.Vec{Z: turbinePrintBedCradleClip},
+			solidlens.Vec{Z: 1})
+	}
 	d, _ := dir.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(d.Scale(4 * hi.Sub(lo).Len()))),
-		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+		Target: solidlens.Vec(center), Up: up, FOV: 35}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
@@ -371,14 +387,14 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 	return renderTurbineClutchReadme(ctx, outputDir)
 }
 
-// renderTurbinePrintReadme builds the default blade's print job once and writes its three views and the cradle's part
+// renderTurbinePrintReadme builds the default blade's print job once and writes its four views and the cradle's part
 // image, seen like the other parts.
 func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
 	p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
 	if err != nil {
 		return err
 	}
-	for _, view := range []string{"print", "print-side", "print-end"} {
+	for _, view := range []string{"print", "print-side", "print-end", "print-bed"} {
 		scene, err := p.view(view)
 		if err != nil {
 			return err

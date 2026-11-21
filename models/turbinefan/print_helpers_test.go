@@ -234,6 +234,40 @@ func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSect
 	return s[len(s)-1], true
 }
 
+// cradleFirstLayerMin is the least first-layer area of the cradle, in mm², by rotor diameter: the v7 probe's 605, 1125
+// and 1447 mm², less 5%.
+var cradleFirstLayerMin = map[float64]float64{128: 570, 192: 1060, 224: 1370}
+
+// inRect reports whether (x, y) lies inside the rectangle r, given as its least and greatest corner.
+func inRect(r [2]r3.Vec, x, y float64) bool {
+	return x >= r[0].X && x <= r[1].X && y >= r[0].Y && y <= r[1].Y
+}
+
+// pointSegment returns the distance in the XY plane from p to the segment a-c.
+func pointSegment(p, a, c r3.Vec) float64 {
+	dx, dy := c.X-a.X, c.Y-a.Y
+	t := 0.0
+	if l := dx*dx + dy*dy; l > 0 {
+		t = math.Max(0, math.Min(1, ((p.X-a.X)*dx+(p.Y-a.Y)*dy)/l))
+	}
+	return math.Hypot(p.X-a.X-t*dx, p.Y-a.Y-t*dy)
+}
+
+// loopDistance returns the least distance in the XY plane between two closed polylines that do not cross: the least
+// distance from any vertex of one to any segment of the other.
+func loopDistance(p, q []r3.Vec) float64 {
+	best := math.Inf(1)
+	for _, pair := range [][2][]r3.Vec{{p, q}, {q, p}} {
+		from, to := pair[0], pair[1]
+		for _, v := range from {
+			for k := range to {
+				best = math.Min(best, pointSegment(v, to[k], to[(k+1)%len(to)]))
+			}
+		}
+	}
+	return best
+}
+
 // downward returns a triangle's angle from vertical, in degrees, and whether it points down more than 45 degrees
 // (its unit normal's z below -sin 45° - slack).
 func downward(v [3]r3.Vec, slack float64) (float64, bool) {
