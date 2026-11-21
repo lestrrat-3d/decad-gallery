@@ -197,6 +197,20 @@ class PlanTest(unittest.TestCase):
                     mock.patch.object(plan.subprocess, "check_output", return_value=paths):
                 self.assertEqual(plan.plan("push", "base", "head")["suites"], expected)
 
+    def test_spurgear_generator_only_selects_no_suites(self):
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"scripts/modelgen/spurgear.py\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(result["suites"], [])
+        self.assertNotIn("broad", result["reasons"])
+
+    def test_spurgear_generator_with_unknown_input(self):
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=self.packages()), \
+                mock.patch.object(plan.subprocess, "check_output",
+                                  return_value=b"scripts/modelgen/spurgear.py\0unknown.sh\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad"])
+
     def test_each_existing_workflow_selects_no_geometry(self):
         for name in ("fan-variants.yml", "update-decad.yml"):
             with self.subTest(name=name), \
@@ -321,7 +335,7 @@ class PlanTest(unittest.TestCase):
                                 (b"models/cycloidal/images/hero.png\0", []),
                                 (b"docs/images/gallery.png\0models/cycloidal/README.md\0", []),
                                 (b"models/cycloidal/testdata/golden.png\0", ["broad"]),
-                                (b"scripts/modelgen/spurgear.py\0", ["broad"]),
+                                (b"scripts/modelgen/spurgear.py\0", []),
                                 (b"README.md\0unknown.sh\0", ["broad"])):
             with self.subTest(paths=paths), \
                     mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
