@@ -24,7 +24,7 @@ const (
 	// Keyed hub: pressed on the stub's D flat. A cup whose wall carries the keys of the rotor's skirt.
 	hubBaseY       = -57.9
 	hubBaseLength  = 3.5
-	hubRimY        = -67.5 // the rotor's lower stop, 0.1 below its plate at the full 2.0 drop
+	hubRimY        = -67.3 // the rotor's lower stop, 0.1 short of its plate at the full 2.0 drop
 	hubRadius      = 10.5
 	hubWallInner   = 9.0
 	hubKeyInner    = 8.05

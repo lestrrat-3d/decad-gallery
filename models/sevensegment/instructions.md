@@ -58,7 +58,7 @@ Stack along Y (world):
 | Button | −81.4 | −74.95 | head r 11, 23.9 above the wall at rest; flush with the bezel (−75.4) at the bottom of its 6.0 stroke |
 | Housing | −75.4 | −57.75 | bezel at −75.4; base r 26 on the wall, 0.25 (Seam) from its outer face |
 | Rotor | −75.0 | −63.9 | slides 2.0 toward the wall |
-| Hub | −67.5 | −57.9 | keyed hub; 0.4 (Regular) to the front wall's outer face |
+| Hub | −67.3 | −57.9 | keyed hub; 0.4 (Regular) to the front wall's outer face |
 | Spring | −69.4 | −61.4 | Lee LC 022D 03 S |
 | Shaft stub flat end | −57.85 | | square end of the stub flat; the hub's D chord stops here (0.05) |
 | Front wall | −57.5 | −49.5 | 8 thick; lip [−57.5, −54.5], seat [−54.5, −49.5] |
@@ -274,7 +274,7 @@ at digit 0 and rest; up is -Y):
 
 | Part | Container | Axis range (Y) | What it is |
 |---|---|---|---|
-| Hub | `Hub` | -67.5 to -57.9 | Keyed hub, pressed on the stub's D flat (replaces the collar ring). Base 3.5 long with the D bore (r 2.55, flat 2.05), a cup wall r 9 to 10.5 up to the rim at -67.5, three keys r 8.05 to 9.5, 2.0 wide. The rim is the rotor's lower stop. |
+| Hub | `Hub` | -67.3 to -57.9 | Keyed hub, pressed on the stub's D flat (replaces the collar ring). Base 3.5 long with the D bore (r 2.55, flat 2.05), a cup wall r 9 to 10.5 up to the rim at -67.3, three keys r 8.05 to 9.5, 2.0 wide. The rim is the rotor's lower stop. |
 | Spring | `Spring` | -69.4 to -61.4 | Lee LC 022D 03 S (`compressionspring.LeeLC022D03S`), 7.96 mm installed at rest (5.9 N), 5.96 pressed (7.4 N). It stands on the hub's base and pushes the rotor's plate up. |
 | Rotor | `Rotor` | -75.0 to -63.9 | Skirt r 4.05 to 8.45 with three slots that take the hub's keys (Tight 0.2 a side), a plate r 3 to 14.2, inner teeth r 3.2 to 11 (4.0 tall) that meet the button, outer teeth r 12.8 to 14 (1.6 tall) that lock in the crown. Slides 2.0 mm along the axis. |
 | Housing | `Housing` | -75.4 to -57.75 | Base flange r 14.55 to 26, 4.0 thick, on the front wall (two M2x10 bolts H1, H2 at x +-21, heads sunk in the base, nuts in hex pockets open to the wall's inner face); tube r 14.55 to 16.55; fixed crown ring r 11.55 to 14.55 with ten notches; three slots r 11.05 to 12.7, 3.0 wide, for the button's lugs. Its top, the bezel, is 17.9 above the wall. |
