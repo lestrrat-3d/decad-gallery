@@ -20,7 +20,8 @@ import (
 // block's start when the block starts inside the zone or its lead-in, where the smoothing sees one side only), and it
 // does not zigzag: no two neighbouring second differences of more than 0.1 mm have opposite signs. The wall top follows
 // the blade's own widest line, which turns sharply where the bolt hole crosses the stud's sides and where the root
-// flares into the airfoil, so points where that line's own second difference exceeds 0.3 mm, the step zone's reach and the two sections at each end are not read for zigzags.
+// flares into the airfoil, so points where that line's own second difference exceeds 0.3 mm, the step zone's reach and
+// the two sections at each end are not read for zigzags.
 func TestBladeHarnessWallTop(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
