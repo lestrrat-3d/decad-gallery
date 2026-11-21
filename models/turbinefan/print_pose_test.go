@@ -17,8 +17,9 @@ import (
 // reflected in y = 0, the stud axis lies in y = 0 and the pressure face faces -y. Bad inputs are rejected.
 func TestPrintPose(t *testing.T) {
 	// v5-v7 rested the stud corner on the bed at 0.198526 / 0.206587 / 0.218303; the 0.5 mm stud flat tilts the blade
-	// further, to where the cut-away corner lies StudFlatDepth under the leading edge's lowest point.
-	rest := map[float64]float64{128: 0.228600, 192: 0.225695, 224: 0.234055}
+	// further, to where the cut-away corner lies StudFlatDepth under the leading edge's lowest point. The hexagonal
+	// stud reaches less far toward the bed than the round one, so the blade rests at a slightly smaller tilt.
+	rest := map[float64]float64{128: 0.225201, 192: 0.224158, 224: 0.232787}
 	for _, d := range bladeSizes {
 		sz := mustSize(t, d)
 		_, ref, tilt := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.RightHand)
@@ -37,10 +38,13 @@ func TestPrintPose(t *testing.T) {
 		}
 		for _, pitch := range []float64{turbinefan.MinBladePitch, turbinefan.MaxBladePitch} {
 			_, b, ptilt := posedBlade(t, d, pitch, turbinefan.RightHand)
-			require.InDelta(t, tilt, ptilt, 1e-6, "pitch %g rest tilt", pitch)
+			// The hexagon reaches toward the bed by an amount that turns with the pose's up direction, so the tilt moves
+			// with the pitch by under a degree (0.012 rad at 40 degrees).
+			require.InDelta(t, tilt, ptilt, 0.015, "pitch %g rest tilt", pitch)
 			bb, err := b.Bounds()
 			require.NoError(t, err)
-			requireBoxNear(t, rb, bb, 2*math.Max(rb.Bound.Base(), bb.Bound.Base())+1e-3, false, "pitch")
+			// The tilt's shift with the pitch moves the posed tip by the tilt change times the 100 mm span: 1.2 mm.
+			requireBoxNear(t, rb, bb, 2*math.Max(rb.Bound.Base(), bb.Bound.Base())+1.5, false, "pitch")
 		}
 		_, left, ltilt := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.LeftHand)
 		require.InDelta(t, tilt, ltilt, 1e-6, "left hand rest tilt")

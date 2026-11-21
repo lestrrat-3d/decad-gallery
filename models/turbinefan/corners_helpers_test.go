@@ -66,6 +66,8 @@ func setScrewSlotSideRounds(dm turbinefan.Dimensions) cornercheck.Exempt {
 func socketFloorRound(sz turbinefan.Size) cornercheck.Exempt {
 	return cornercheck.Exempt{
 		Reason: "blade socket floor round cut at a slant",
+		// The hexagonal socket's floor round reads no finding in some hubs.
+		Optional: true,
 		Near: func(v r3.Vec) bool {
 			for k := 1; k <= turbinefan.BladeCount; k++ {
 				d := bladeDir(k)

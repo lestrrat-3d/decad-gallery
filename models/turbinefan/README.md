@@ -49,7 +49,7 @@ which [instructions.md](instructions.md) lists: the D bore's two corners and the
 
 ## Replacing a blade
 
-Each blade has a round stud that slides into a radial socket in the hub. One M2 x 25 bolt (M2 x 16 on the 128 mm rotor) runs parallel to the shaft, from
+Each blade has a hexagonal stud that slides into a radial socket of the same shape in the hub, with 0.25 mm between their flats in the hub. One M2 x 25 bolt (M2 x 16 on the 128 mm rotor) runs parallel to the shaft, from
 the hub's front face through the hub and the stud into an M2 nut. The nut sits in a slot open to the round face, below the
 blade, so you can fit it with the hub on its shaft.
 
@@ -64,7 +64,7 @@ To remove a blade:
 To fit a blade:
 
 1. Slide an M2 nut, flat, into the slot's mouth in the round face below the socket until it stops at the slot's end.
-2. Slide the stud into the socket with the blade's concave face toward the front face. The stud is round, so a blade also
+2. Slide the stud into the socket with the blade's concave face toward the front face. The stud is a hexagon, so a blade also
    goes in turned half a turn, but then it faces the wrong way.
 3. Push the bolt in from the front through the stud into the nut and tighten it.
 
@@ -184,8 +184,8 @@ only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bo
 Print the hub front face down, with its bore axis vertical. The hub needs no print pause: every nut sits in a slot open to a
 face, so you put the nuts in after printing.
 
-Print each blade lying on the bed, leading edge down. The blade's root end is tilted about 13° up from the bed (13.10°
-at 128 mm, 12.93° at 192 mm, 13.41° at 224 mm), so it rests on the bed at two small spots: a flat on the end of the
+Print each blade lying on the bed, leading edge down. The blade's root end is tilted about 13° up from the bed (12.90°
+at 128 mm, 12.84° at 192 mm, 13.34° at 224 mm, at the default pitch), so it rests on the bed at two small spots: a flat on the end of the
 stud, and the leading edge near the widest part of the blade. The layers then run along the blade, which is the strong
 direction for the load it carries in use. There is no raft.
 

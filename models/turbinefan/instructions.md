@@ -8,7 +8,7 @@ Construct a fan of three replaceable blades on one printed hub, sized by its rot
 at 192, M2 x 6 at 128): it threads through a nut in a hex slot open to the hub's back face, and its tip presses the
 shaft's flat. Its head floats, recessed, in a counterbore cut into the round face, so nothing stands outside the hub's
 radius except the three blades. Each blade is this model's blade
-(`blade.go`), with its round root stud that slides into a radial socket in the hub and one M2
+(`blade.go`), with its hexagonal root stud that slides into a radial socket in the hub and one M2
 bolt that runs parallel to the shaft through the hub and the stud into a nut. That nut sits in a hex slot open to the round
 face, below the blade, so no nut is embedded and the hub needs no print pause. The same hub also has two blind M2 bolt
 holes in its back face, each with a hex nut slot open to the round face: they take the two M2 x 10 bolts that hold it to
@@ -28,7 +28,7 @@ in ([Part clearances](../../docs/model-pipeline.md#part-clearances)). The preset
 
 All dimensions are in millimeters; angles are radians in code and degrees in prose. The model owns the blade and its
 joint: it exports `SizeFor`, `BuildBlade`, `BuildBladeMirrored` and the blade socket tool, and
-[`models/handcrankfan`](../handcrankfan/) imports them with `Params608ZZ` at `RotorDiameter` 128. It reads `PressWall`, `ChamferSize`, `RegularFit` and the shaft flats from `crankhandle`.
+[`models/handcrankfan`](../handcrankfan/) imports them with `Params608ZZ` at `RotorDiameter` 128. It reads `PressWall`, `ChamferSize`, `RegularFit`, `TightFit` and the shaft flats from `crankhandle`.
 
 ## Symbols
 
@@ -46,7 +46,7 @@ joint: it exports `SizeFor`, `BuildBlade`, `BuildBladeMirrored` and the blade so
 | `rho_h` | the set screw's head top | `rho_t + HeadPocketDepth + L_s` |
 | `rho_f` | the counterbore's floor | `rho_h - HeadPocketDepth - SetScrewTravel` |
 | `u_k`, `v_k` | blade k's radial direction and its counter-clockwise tangent | `(cos t_k, sin t_k, 0)`, `(-sin t_k, cos t_k, 0)`, `t_k = 90 + 120 (k - 1)` degrees |
-| `PrintTilt` | the blade's radial line above the bed in the print pose: its rest tilt | `RestTilt`, 13.10, 12.93 and 13.41 degrees at 128, 192 and 224 |
+| `PrintTilt` | the blade's radial line above the bed in the print pose: its rest tilt | `RestTilt`, 12.90, 12.84 and 13.34 degrees at 128, 192 and 224 at the default pitch |
 | `PrintLean` | the chord at `RefRadius` turned from vertical toward the pressure face in the print pose | -15 degrees |
 | `PrintLift` | the z of the blade's stud flat in the print pose: on the bed. The stud end corner the flat cuts away lies `StudFlatDepth` under it. | 0 |
 
@@ -58,7 +58,7 @@ Package: `models/turbinefan`. Exported surface:
 
 - The fixed dimensions as constants: `BladeCount` (3), `FirstBladeAngle` (90 degrees), `SetScrewZ` (4), `SetScrewTravel`
   (0.4), `CounterboreRound` (0.5), `NutSlotRound` (0.5), `BladeSocketFloorRound` (0.5), and the values it takes from
-  `crankhandle`: `ChamferSize`, `PressWall` and `RegularFit`. `BladeAngle(k)` is blade k's angle about +Z.
+  `crankhandle`: `ChamferSize`, `PressWall`, `RegularFit` and `TightFit`. `BladeAngle(k)` is blade k's angle about +Z.
 - The size constants `BaseRotorDiameter` (128), `DefaultRotorDiameter` (192), `MinRotorDiameter` (128),
   `MaxRotorDiameter` (224), `BaseHubRadius` (14), `MaxHubRadius` (18.9) and `BladeBoltTipFloor` (2), and `SizeFor`,
   `Size` and `Size.Beta` ("Size" below).
@@ -98,7 +98,7 @@ with a `Size` from `SizeFor` (any other value is rejected); and `BladeSocketFloo
 
 The blade's print aid ("Print pose and nose rib" below), in `print.go` and `harness.go`:
 
-- The pose constants `PrintLean` (-15 degrees), `PrintLift` (0), `StudFlatDepth` (0.5), `StudFlatRootClearance` (0.2),
+- The pose constants `PrintLean` (-15 degrees), `PrintLift` (0), `StudFlatDepth` (0.4), `StudFlatRootClearance` (0.2),
   `RestTiltMin` (5 degrees) and `RestTiltMax` (20 degrees); the nose rib constants `RibGapZ` (0.16), `RibTopWidth` (1.2),
   `RibTopBand` (0.2), `RibSideAngle` (6 degrees), `RibTipMargin` (1.0), `RibEndOver` (1.0), `RibMinHeight` (0.4),
   `BrimClearance` (6.0) and `SectionStep` (0.25); and the container name `HarnessContainerName` (`Harness`).
@@ -131,8 +131,8 @@ radius, the round blade root, the stud, the socket and the blade bolt circle sca
 | `RefRadius`, `HoldRadius` | `48 s`, `21.5 s` | 48, 21.5 | 72, 32.25 | 84, 37.625 |
 | `BladeSocketStart` | `5.7 j` | 5.7 | 7.695 | 7.695 |
 | `BladeStudStart` | `BladeSocketStart + RegularFit` | 6.1 | 8.095 | 8.095 |
-| `BladeStudRadius` | `3 j` | 3 | 4.05 | 4.05 |
-| `BladeSocketRadius` | `BladeStudRadius + RegularFit` | 3.4 | 4.45 | 4.45 |
+| `BladeStudRadius` | `3 j`, the hexagon's corner radius | 3 | 4.05 | 4.05 |
+| `BladeSocketRadius` | `BladeStudRadius + TightFit / cos 30 degrees` | 3.289 | 4.339 | 4.339 |
 | `BladeStudEnd` | `16 j` | 16 | 21.6 | 21.6 |
 | `BladeBoltAt` | `9.5 j` | 9.5 | 12.825 | 12.825 |
 | `BladeBoltLength` | the longest `m2fastener.BoltSize.StandardLengths` entry `L` with `HubLength - HeadPocketDepth - L >= BladeBoltTipFloor` (2) | 16 | 25 | 25 |
@@ -283,7 +283,7 @@ edge leads toward +X at the top and sits upstream (-Z), and the concave pressure
    `decad.Transform` by the frame with origin `(0, 0, HubMid)`, U = (-1, 0, 0) and V = (0, 0, 1) turns it into place: blade-local
    Z becomes +Y, local Y becomes +Z and local X becomes -X. `decad.PatternCopies` with the hub's pattern gives blades 2 and
    3. Do not transform blade 1 again before copying.
-6. **Blade facts.** A loft from `RootRadius` to `TipRadius` through ten stations; a stud of radius `BladeStudRadius`
+6. **Blade facts.** A loft from `RootRadius` to `TipRadius` through ten stations; a hexagonal stud with corners on the circle of radius `BladeStudRadius`
    from r `BladeStudStart` to `BladeStudEnd` with a 0.3 chamfer on its inner end; a bolt hole of radius 1.3 along the fan
    axis at r `BladeBoltAt` through the stud, cut by a cylinder from `-(BladeStudRadius + 2)` of length `2 (BladeStudRadius +
    2)`; sections that are NACA 4-digit mean lines blended with an ellipse at the root; a blade angle `Size.Beta(r,
@@ -394,11 +394,12 @@ The three blade slots are identical turned copies and cancel. No balance mass is
 ## Blade shape
 
 The blade is a smooth loft through ten sections, stacked on its radial line through the hub's mid plane and starting at
-r `RootRadius`, 0.4 outside the hub rim. A root stud of radius `BladeStudRadius`, from r `BladeStudStart` to r
+r `RootRadius`, 0.4 outside the hub rim. A hexagonal root stud with its corners on the circle of radius `BladeStudRadius`, from r `BladeStudStart` to r
 `BladeStudEnd`, is joined to it, with a bolt hole of radius 1.3 parallel to the shaft at r `BladeBoltAt`. The stud's inner
 end has a 0.3 chamfer, so its corner stays clear of the socket floor's round, and a flat that the blade stands on in
 print ("Stud flat" under "Print pose and nose rib"). The stud engages the socket from r
-`BladeStudStart` to r `HubRadius` with a 0.4 clearance (a Regular fit). The shape follows a wind turbine blade: a round
+`BladeStudStart` to r `HubRadius` with its flats a Tight fit (`TightFit`, 0.25) from the socket's. The hexagon stops the blade turning about its radial line and
+keeps it from rocking more than the fit allows. The shape follows a wind turbine blade: a round
 root carries the joint, the section turns into a thick oval and an airfoil at the maximum chord (r 25 s), and the chord
 tapers to the tip. The table is written at 128 (`s` = `j` = 1); "Size" gives the scaled radii and chords.
 
@@ -438,8 +439,9 @@ at least 0.8, and the leading edge is rounded by at least 0.4.
   slot's end; slide the stud into the socket with the concave face toward the front face; push the bolt in from the front
   through the stud into the nut and tighten it. All three blades are one part, and any blade fits any socket.
 - A left-hand blade is a different part from a right-hand one: a fan takes three of one hand.
-- The stud is round, so a blade also goes in turned half a turn about its radial line. That blade faces the wrong way. The
-  README tells the builder which way it goes; the model has no key.
+- The stud is a hexagon with the bolt hole across two flats, so it enters the socket in only two ways: the right one and
+  turned half a turn about its radial line, which faces the blade the wrong way. The README tells the builder which way
+  it goes; the model has no key.
 - To take the hub off its shaft, loosen the set screw about two turns; it stays in its nut.
 
 ## Part fits
@@ -452,7 +454,7 @@ The model is **Mixed**: the bore fit is adjustable and the blade fits, bolts and
 | Set screw tip on the shaft's flat | contact by design | nominal exception: the shaft is not modeled; the tip sits on the pushed shaft's flat (X2) |
 | Set screw head in its counterbore | Fastener rules | 0.3 radial, 0.4 under the head |
 | Nuts in their slots | Fastener rules | 0.17 at the flats (0.07 at the rounds), 0.2 past the corners and at each face |
-| Stud in its socket | Regular | 0.40 radial (3.4 against 3.0 at 128; 4.45 against 4.05 at 192) |
+| Stud in its socket | Tight | 0.25 between the flats; 0.289 between the corners (3.289 against 3.0 at 128; 4.339 against 4.05 at 192). The hexagon keeps the blade from turning in the socket |
 | Stud's inner end to the socket floor | Regular | 0.40 (`BladeStudStart` against `BladeSocketStart`), with the 0.3 stud chamfer clear of the 0.5 floor round |
 | Blade root to the hub's rim | Regular | 0.40 (`RootRadius` against `HubRadius`) |
 | Bolts, shank in the stud, bolt in its nut | Fastener rules / nominal exception | head pocket 0.3, hole 0.3, cavity 0.2; the bolt in its own nut is not measured |
@@ -518,24 +520,28 @@ edge, X negated for `LeftHand`) turned by `PrintLean` (-15 degrees, mirrored for
 the leading edge points down. The radial line rises at the tilt `t` from the bed. `PrintPoseFor(size, pitch, hand, t)`
 maps the blade's local `u` to `(-sin t, 0, cos t)` and `-Y` (the in-section side) to `-y`, with frame origin
 `(-BladeStudStart cos t, 0, PrintLift - StudFlatDepth - zc(t))`, `zc(t) = (BladeStudStart + 0.3) sin t -
-BladeStudRadius cos t`. The stud end corner (the stud's chamfered rim on the down side), which the flat cuts away, then
-lies at z = `-StudFlatDepth`, and the flat lies on the bed (z = `PrintLift`). The posed loft does not depend on the
-pitch, because the pose follows the chord; only the bolt hole turns. The left hand is the right hand reflected in y = 0.
+reach cos t`, `reach = BladeStudRadius max_i cos(angle_i)` over the hexagon's corners. The stud end corner (the stud's chamfered rim on the down side), which the flat cuts away, then
+lies at z = `-StudFlatDepth`, and the flat lies on the bed (z = `PrintLift`). The posed loft follows the chord, so it
+changes with the pitch only through the rest tilt, which moves under 1 degree with the hexagonal stud's reach; the bolt hole turns. The left hand is the right hand reflected in y = 0.
 
 `RestTilt` finds the tilt at which the loft's lowest point reaches the bed too. It meshes the blade at 0.05, keeps the
 vertices beyond r `RootRadius + 0.5` (the loft), and bisects 50 times on [`RestTiltMin`, `RestTiltMax`] for the tilt at
-which `zc(t) + StudFlatDepth = min (sin t v.Z + cos t v . u)` over those vertices. It reads 13.10, 12.93 and 13.41
-degrees at 128, 192 and 224, the same at every pitch and hand. It fails in two cases:
+which `zc(t) + StudFlatDepth = min (sin t v.Z + cos t v . u)` over those vertices. It reads 12.90, 12.84 and 13.34
+degrees at 128, 192 and 224 at the default pitch. The hexagon reaches toward the bed by `R cos` of the angle between the
+pose's down direction and its nearest corner, so the tilt moves by under 1 degree with the pitch (13.7 degrees at 128 and
+40 degrees pitch); the hand does not change it. It fails in two cases:
 
 - The bracket does not change sign: `turbinefan: rest tilt: the stud corner and the loft do not cross between 5° and
   20°`.
 - The round root's lowest point (vertices from r `RootRadius` to `RootRadius + 2 j`) stands less than
   `StudFlatRootClearance` over the bed: `turbinefan: rest tilt: the root stands %.2f mm over the bed, under 0.2`. At
-  the rest tilt the root stands 0.315, 0.601 and 0.693 mm over the bed at 128, 192 and 224.
+  the rest tilt the root stands 0.34, 0.63 and 0.72 mm over the bed at 128, 192 and 224 at the default pitch (0.23 at 128
+and 40 degrees, the least).
 
 The blade touches the bed at its stud flat and at its leading edge near stations 4 and 5. In the first layer (z 0.1) the
-stud's spot is 7.74, 9.17 and 8.92 mm2 and the whole blade 11.13, 14.47 and 15.15 mm2 at 128, 192 and 224; the
-leading-edge spot is 5.3 mm2 at 192.
+stud's spot is 2.78, 2.79 and 2.71 mm2 and the whole blade 6.18, 8.08 and 8.94 mm2 at 128, 192 and 224 at the default
+pitch. The spot is the least, 2.5 mm2, at 10 degrees pitch, where a corner of the hexagon faces the bed, and it is the
+largest, 7.5 mm2, at 40 degrees. The flat's face is at least 1.5 mm2 at every size and pitch.
 
 ### Stud flat
 
@@ -556,7 +562,7 @@ Every constant here is a print-process size, not a standard dimension, so none c
 | --- | --- | --- |
 | `PrintLean` | -15 degrees | turns the chord at `RefRadius` toward the pressure face, so the leading edge points down |
 | `PrintLift` | 0 | the stud flat's z in the pose: on the bed |
-| `StudFlatDepth` | 0.5 | the stud end corner lies this far under the flat's plane, so the blade rests on a flat patch instead of a corner sliver |
+| `StudFlatDepth` | 0.4 | the stud end's lowest point lies this far under the flat's plane, so the blade rests on a flat patch instead of a corner sliver. A deeper flat leaves the round root under `StudFlatRootClearance` at 128 mm and 40 degrees |
 | `StudFlatRootClearance` | 0.2 | the round root's least height over the bed at the rest tilt: one layer, so the root prints no stray island in the first layer |
 | `RestTiltMin`, `RestTiltMax` | 5, 20 degrees | bracket the tilt `RestTilt` searches and `PrintPoseFor` accepts |
 | `RibGapZ` | 0.16 | vertical gap under the nose: 2 layers of 0.08. A modelled gap snaps to whole layers. 0.08 bonds PETG to PETG. Orca's 0.2 default becomes 0.24 at 0.08 layers. |

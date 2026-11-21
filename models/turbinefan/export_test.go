@@ -56,7 +56,7 @@ func PosedEdgePointsAt(sz Size, pitch float64, hand Hand, tilt float64) (r3.Vec,
 		panic(err)
 	}
 	u := poseUp(sz, pitch, hand)
-	corner := xf.Apply(u.Scale(-sz.BladeStudRadius).Add(r3.Vec{Z: sz.BladeStudStart + studChamfer}))
+	corner := xf.Apply(u.Scale(-studReach(sz, u)).Add(r3.Vec{Z: sz.BladeStudStart + studChamfer}))
 	var le [2]r3.Vec
 	for i, k := range []int{4, 5} {
 		st := stationsFor(sz)[k-1]

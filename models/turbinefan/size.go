@@ -44,13 +44,14 @@ type Size struct {
 	HubLength     float64 // 20 s
 	HubMid        float64 // HubLength / 2: the sockets' and blade bolts' plane
 
-	// BladeStudRadius is the blade's root stud, which runs from radius BladeStudStart to BladeStudEnd.
+	// BladeStudRadius is the circumradius of the blade's hexagonal root stud, which runs from radius BladeStudStart to
+	// BladeStudEnd. Two of its corners lie on the blade's local X axis, and its flats face local Y.
 	BladeStudRadius float64 // 3 j
 	BladeStudStart  float64 // BladeSocketStart + RegularFit
 	BladeStudEnd    float64 // 16 j
-	// BladeSocketRadius is the hub socket's radius, a Regular fit round the stud. The socket's floor is at radius
-	// BladeSocketStart.
-	BladeSocketRadius float64 // BladeStudRadius + RegularFit
+	// BladeSocketRadius is the circumradius of the hub's hexagonal socket, whose flats stand a Tight fit from the stud's.
+	// The socket's floor is at radius BladeSocketStart.
+	BladeSocketRadius float64 // BladeStudRadius + TightFit / cos 30 degrees
 	BladeSocketStart  float64 // 5.7 j
 	// BladeBoltAt is the blade bolt's distance from the fan axis. BladeBoltLength is its M2 length and BladeBoltCavity
 	// the distance from its head's top face to the near face of the nut cavity.
@@ -81,7 +82,7 @@ func SizeFor(rotorDiameter float64) (Size, error) {
 	sz.BladeSocketStart = 5.7 * j
 	sz.BladeStudStart = sz.BladeSocketStart + RegularFit
 	sz.BladeStudEnd = 16 * j
-	sz.BladeSocketRadius = sz.BladeStudRadius + RegularFit
+	sz.BladeSocketRadius = sz.BladeStudRadius + TightFit/math.Cos(math.Pi/6)
 	sz.BladeBoltAt = 9.5 * j
 	for _, l := range m2fastener.BoltSize.StandardLengths {
 		if sz.HubLength-m2fastener.HeadPocketDepth-l >= BladeBoltTipFloor-1e-9 {

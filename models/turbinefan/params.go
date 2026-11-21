@@ -26,7 +26,8 @@ const (
 
 	ChamferSize = crankhandle.ChamferSize // 0.5, the hub's face chamfer
 	PressWall   = crankhandle.PressWall   // 1.6, the least wall round a press-fit bore
-	RegularFit  = crankhandle.RegularFit  // 0.40: the stud in its socket
+	RegularFit  = crankhandle.RegularFit  // 0.40: the stud's end gap to the socket floor, and the root's gap to the hub
+	TightFit    = crankhandle.TightFit    // 0.25: the hexagonal stud's flats in the hexagonal socket
 )
 
 // Fixed dimensions of the clutch mount in mm and radians. Values that another model owns are referenced.

@@ -88,13 +88,14 @@ func TestTurbineFanBounds(t *testing.T) {
 			// round-ended cutter such as a blade socket at half the chord (hub 9703.740630 before, now 0.145 mm^3 less),
 			// and 3179532fc3 (#3385) chords a through-cut target no coarser than its own size (blade 1945.996807
 			// before, now 0.005 mm^3 more). The stud flat for printing (StudFlatDepth) then took 1.278 mm^3 off the blade
-			// (1946.001321 before).
+			// (1946.001321 before). The hexagonal stud and its Tight socket then put 184.126 mm^3 back in the hub and took
+			// 35.0 mm^3 off the blade.
 			hv, err := m.Hub.Volume()
 			require.NoError(t, err)
 			bv, err := m.Blades[0].Volume()
 			require.NoError(t, err)
-			require.InEpsilon(t, 9703.596022, hv.Value.Base(), 1e-6, "hub volume")
-			require.InEpsilon(t, 1944.723761, bv.Value.Base(), 1e-6, "blade volume")
+			require.InEpsilon(t, 9887.722043, hv.Value.Base(), 1e-6, "hub volume")
+			require.InEpsilon(t, 1908.721335, bv.Value.Base(), 1e-6, "blade volume")
 		}
 		for name, item := range map[string]struct {
 			body *decad.Body
