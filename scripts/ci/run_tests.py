@@ -708,6 +708,7 @@ SEVENSEGMENT_SHARDS = {
         "TestButtonDetentInvalid", "TestButtonDetentPitchContinuity",
         "TestButtonIndexContact", "TestButtonIndexCrankKeyFit", "TestButtonIndexInvalid",
         "TestButtonIndexKeyShaft", "TestButtonIndexMotion", "TestButtonIndexPhase60", "TestButtonIndexRivetStops",
+        "TestReleaseCrankRejectsInvalidInputs",
         "TestSevenSegmentBladeRoof", "TestSevenSegmentBuiltKinematics", "TestSevenSegmentCam",
         "TestSevenSegmentCamInscription", "TestSevenSegmentCollars", "TestSevenSegmentCorners",
         "TestSevenSegmentDetentPlate", "TestSevenSegmentEdgeFinishing", "TestSevenSegmentFits",
@@ -720,6 +721,7 @@ SEVENSEGMENT_SHARDS = {
     "assembly": (
         "TestButtonDetentRealFit",
         "TestButtonIndexDisplay",
+        "TestReleaseCrankRealAssembly",
         "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
         "TestSevenSegmentBorePlay", "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
