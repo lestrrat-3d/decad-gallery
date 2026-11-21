@@ -704,6 +704,8 @@ def run_model_packages(names: tuple[str, ...]) -> None:
 # With 4 CPUs they take about 2 and 3 minutes; the whole package about 5.
 SEVENSEGMENT_SHARDS = {
     "parts": (
+        "TestButtonIndexContact", "TestButtonIndexCrankKeyFit", "TestButtonIndexInvalid",
+        "TestButtonIndexKeyShaft", "TestButtonIndexMotion", "TestButtonIndexPhase60", "TestButtonIndexRivetStops",
         "TestSevenSegmentBladeRoof", "TestSevenSegmentBuiltKinematics", "TestSevenSegmentCam",
         "TestSevenSegmentCamInscription", "TestSevenSegmentCollars", "TestSevenSegmentCorners",
         "TestSevenSegmentDetentPlate", "TestSevenSegmentEdgeFinishing", "TestSevenSegmentFits",
@@ -714,6 +716,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay",
     ),
     "assembly": (
+        "TestButtonIndexDisplay",
         "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
         "TestSevenSegmentBorePlay", "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
