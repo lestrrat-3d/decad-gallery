@@ -34,7 +34,7 @@ CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
      "scripts/ci/check_isolated_tests.py", "scripts/render_compare.py", "scripts/test_render_compare.py",
-     "scripts/check_repository.py"}
+     "scripts/check_repository.py", "scripts/modelgen/spurgear.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
          "clamparm": "clamparm", "turbinefan": "turbinefan", "spinningwheel": "wheel",
          "handcranksiren": "siren"}
