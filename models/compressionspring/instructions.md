@@ -39,3 +39,7 @@ solid is 15.93 N. The same constant-pitch end approximation applies.
 The button compresses it from 55.50 to 18.94 mm. Its nominal force rises
 from 2.40 to 13.368 N, leaving 6.77 mm above solid at full press.
 [Lee Spring product data](https://www.leespring.com/product/compression-spring-lc026d16s-stainless-steel)
+
+The seven-segment click indexer uses stainless Lee LC 022D 03 S: 7.62 mm outside diameter, 0.56 mm wire, 15.88 mm free
+length, 5.25 total turns, 3.25 active turns, 0.736 N/mm, 3.10 mm solid height and 9.27 N at solid. The same
+constant-pitch end approximation applies. [Lee Spring product data](https://www.leespring.com/product/compression-spring-lc022d03s-stainless-steel)

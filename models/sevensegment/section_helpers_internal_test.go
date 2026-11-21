@@ -43,28 +43,3 @@ func nearest(p r3.Vec, loops [][]r3.Vec) float64 {
 	}
 	return best
 }
-
-func turnLoops(loops [][]r3.Vec, deg float64) [][]r3.Vec {
-	out := make([][]r3.Vec, len(loops))
-	for i, l := range loops {
-		for _, p := range l {
-			out[i] = append(out[i], rotate(p, deg))
-		}
-	}
-	return out
-}
-
-// overlaps reports whether a boundary point of either section lies in the other's material, by more than inset.
-func overlaps(a, b [][]r3.Vec) bool {
-	for _, p := range densify(a, 0.05) {
-		if insideLoops(b, p) && nearest(p, b) > 0.01 {
-			return true
-		}
-	}
-	for _, p := range densify(b, 0.05) {
-		if insideLoops(a, p) && nearest(p, a) > 0.01 {
-			return true
-		}
-	}
-	return false
-}

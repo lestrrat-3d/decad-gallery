@@ -27,6 +27,14 @@ type partCase struct {
 // partCases lists every printed body: two walls, three plates, the shaft, the ratchet wheel, collar ring, knob, seven
 // cams and seven sliders.
 func partCases() []partCase {
+	// faceTeethExempt lists the face teeth's corners: the tips are engagement edges and the roots retained sharp corners, a
+	// documented exception for face teeth only ("Retained sharp corners" in instructions.md).
+	faceTeethExempt := func(rMin, rMax float64) func(*run) []cornercheck.Exempt {
+		return func(*run) []cornercheck.Exempt {
+			return []cornercheck.Exempt{{Reason: "face teeth: tips are engagement edges, roots retained sharp corners", Optional: true,
+				Near: cornercheck.Annulus(r3.Vec{Z: ShaftZ}, r3.Vec{Y: 1}, rMin, rMax)}}
+		}
+	}
 	hexAnnulus := func(r *run, sites []int, axis r3.Vec) []cornercheck.Exempt {
 		var out []cornercheck.Exempt
 		for _, i := range sites {
@@ -60,23 +68,20 @@ func partCases() []partCase {
 			up: r3.Vec{Y: 1}, exempt: wallExempt([]int{0, 1, 4, 5}, true), chamfered: true},
 		{name: "rear wall", build: func(r *run) (*decad.Body, error) { return r.wall(false) }, up: r3.Vec{Y: -1},
 			exempt: wallExempt([]int{2, 3, 6, 7}, false), chamfered: true},
-		{name: "detent plate", build: (*run).detentPlate, up: r3.Vec{Y: 1}, chamfered: true},
 		{name: "guide plate", build: (*run).columnGuidePlate, up: r3.Vec{Z: 1}, chamfered: true,
 			exempt: func(r *run) []cornercheck.Exempt { return hexAnnulus(r, []int{4, 5, 6, 7}, r3.Vec{Z: 1}) }},
 		{name: "cradle plate", build: (*run).cradlePlate, up: r3.Vec{Z: 1}, chamfered: true},
 		{name: "top plate", build: (*run).flagTopPlate, up: r3.Vec{Z: -1}, chamfered: true},
-		{name: "ratchet wheel", build: (*run).ratchetWheel, up: r3.Vec{Y: 1},
-			exempt: func(r *run) []cornercheck.Exempt {
-				var out []cornercheck.Exempt
-				for j := range RatchetTeeth {
-					tip := rotate(r3.Vec{X: RatchetTip}, r.dm.LockPhase+36*float64(j))
-					out = append(out, cornercheck.Exempt{Reason: "ratchet tooth tip: engagement corner",
-						Near: cornercheck.Disc(r3.Vec{X: tip.X, Z: ShaftZ + tip.Y}, r3.Vec{Y: 1}, 0.6)})
-				}
-				return out
-			}},
-		{name: "collar ring", build: (*run).collarRing, up: r3.Vec{Y: 1}},
-		{name: "knob", build: (*run).knob, up: r3.Vec{Y: 1}, chamfered: true},
+		{name: "hub", build: (*run).hub, up: r3.Vec{Y: 1}, exempt: func(*run) []cornercheck.Exempt {
+			return []cornercheck.Exempt{{Reason: "hub key roots: mating corners with the rotor skirt's slots", Optional: true,
+				Near: cornercheck.Annulus(r3.Vec{Z: ShaftZ}, r3.Vec{Y: 1}, 7.9, 9.7)}}
+		}},
+		{name: "rotor", build: (*run).rotor, up: r3.Vec{Y: 1}, chamfered: true, exempt: faceTeethExempt(3.0, 14.4)},
+		{name: "housing", build: (*run).housing, up: r3.Vec{Y: -1}, chamfered: true, exempt: faceTeethExempt(12.5, 15.0)},
+		{name: "button", build: (*run).button, up: r3.Vec{Y: -1}, exempt: func(r *run) []cornercheck.Exempt {
+			return append(faceTeethExempt(3.0, 11.2)(r), cornercheck.Exempt{Reason: "key lug corners: mating corners with the housing's slots", Optional: true,
+				Near: cornercheck.Annulus(r3.Vec{Z: ShaftZ}, r3.Vec{Y: -1}, 11.2, 12.6)})
+		}},
 	}
 	for _, seg := range Segments() {
 		cases = append(cases, partCase{name: "cam " + seg.String(), up: r3.Vec{Y: -1}, chamfered: true,
@@ -147,13 +152,15 @@ func chamferSpecs() map[string]chamferSpec {
 	specs := map[string]chamferSpec{
 		"front wall":   {section: alongY, faces: two(frontInnerY-WallThickness, frontInnerY)},
 		"rear wall":    {section: alongY, faces: two(rearInnerY, rearInnerY+WallThickness)},
-		"detent plate": {section: alongY, faces: two(detentFace-DetentThickness, detentFace)},
 		"guide plate":  {section: alongZ, faces: two(54, 58)},
 		"cradle plate": {section: alongZ, faces: two(cradleFrom, cradleFrom+cradleThick)},
 		"top plate":    {section: alongZ, faces: two(topFrom, flagFaceZ)},
-		"knob": {section: alongY, round: true, faces: func(_ *run, b *decad.Body) []chamferFace {
-			box, _ := b.Bounds()
-			return []chamferFace{{box.Min.Y, 1}, {box.Max.Y, -1}}
+		"rotor": {section: alongY, round: true, faces: func(*run, *decad.Body) []chamferFace {
+			return []chamferFace{{rotorPlateY + rotorPlateThick, -1}}
+		}},
+		"housing": {section: alongY, round: true, faces: func(*run, *decad.Body) []chamferFace {
+			// The flange's two faces and the bezel: every large face of the housing.
+			return []chamferFace{{housingBaseY - housingBaseThick, 1}, {housingBaseY, -1}, {housingBezelY, 1}}
 		}},
 	}
 	for _, seg := range Segments() {

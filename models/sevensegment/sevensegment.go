@@ -23,31 +23,35 @@ import (
 
 // Container names, one per kind of body.
 const (
-	FrameContainerName        = "Frame"
-	WallsContainerName        = "Walls"
-	PlatesContainerName       = "Plates"
-	DetentPlateContainerName  = "Detent Plate"
-	CamshaftContainerName     = "Camshaft"
-	ShaftContainerName        = "Shaft"
-	CamsContainerName         = "Cams"
-	RatchetWheelContainerName = "Ratchet Wheel"
-	CollarRingContainerName   = "Collar Ring"
-	KnobContainerName         = "Knob"
-	SlidersContainerName      = "Segment Sliders"
-	BearingsContainerName     = "Bearings"
-	BoltsContainerName        = "Bolts"
-	NutsContainerName         = "Nuts"
-	FlagsContainerName        = "Flags"
-	FlagUnitName              = "Flag"
-	YellowFaceContainerName   = "Yellow Face"
-	BlackBodyContainerName    = "Black Body"
+	FrameContainerName      = "Frame"
+	WallsContainerName      = "Walls"
+	PlatesContainerName     = "Plates"
+	CamshaftContainerName   = "Camshaft"
+	ShaftContainerName      = "Shaft"
+	CamsContainerName       = "Cams"
+	ClickerContainerName    = "Click Indexer"
+	HubContainerName        = "Hub"
+	RotorContainerName      = "Rotor"
+	HousingContainerName    = "Housing"
+	ButtonContainerName     = "Button"
+	SpringContainerName     = "Spring"
+	SlidersContainerName    = "Segment Sliders"
+	BearingsContainerName   = "Bearings"
+	BoltsContainerName      = "Bolts"
+	NutsContainerName       = "Nuts"
+	FlagsContainerName      = "Flags"
+	FlagUnitName            = "Flag"
+	YellowFaceContainerName = "Yellow Face"
+	BlackBodyContainerName  = "Black Body"
 )
 
 // Parts are the printed bodies, posed and placed, without the bought parts.
 type Parts struct {
-	FrontWall, RearWall, DetentPlate, GuidePlate, CradlePlate, TopPlate *decad.Body
-	Shaft, RatchetWheel, CollarRing, Knob                               *decad.Body
-	Cams, Sliders                                                       [7]*decad.Body // indexed by Segment
+	FrontWall, RearWall, GuidePlate, CradlePlate, TopPlate *decad.Body
+	Shaft                                                  *decad.Body
+	// The click indexer: the keyed hub and the rotor turn with the shaft; the housing and the button do not.
+	Hub, Rotor, Housing, Button, Spring *decad.Body
+	Cams, Sliders                       [7]*decad.Body // indexed by Segment
 	// Flags are the seven two-colour rotors, indexed by Segment.
 	Flags [7]Flag
 	// Sketches are every sketch the parts were built from, each fully constrained.
@@ -93,14 +97,15 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	steps := []step{
 		{"front wall", func() (*decad.Body, error) { return r.wall(true) }, &out.FrontWall, nil},
 		{"rear wall", func() (*decad.Body, error) { return r.wall(false) }, &out.RearWall, nil},
-		{"detent plate", r.detentPlate, &out.DetentPlate, nil},
 		{"guide plate", r.columnGuidePlate, &out.GuidePlate, nil},
 		{"cradle plate", r.cradlePlate, &out.CradlePlate, nil},
 		{"top plate", r.flagTopPlate, &out.TopPlate, nil},
 		{"shaft", r.shaft, &out.Shaft, spin},
-		{"ratchet wheel", r.ratchetWheel, &out.RatchetWheel, spin},
-		{"collar ring", r.collarRing, &out.CollarRing, spin},
-		{"knob", r.knob, &out.Knob, spin},
+		{"hub", r.hub, &out.Hub, spin},
+		{"rotor", r.rotor, &out.Rotor, spin},
+		{"housing", r.housing, &out.Housing, nil},
+		{"button", r.button, &out.Button, nil},
+		{"spring", func() (*decad.Body, error) { return r.spring(SpringRestLength) }, &out.Spring, spin},
 	}
 	for _, seg := range Segments() {
 		steps = append(steps,
@@ -178,7 +183,7 @@ func (r *run) camshaftTurn() r3.Transform {
 	return t
 }
 
-// Build adds every body to doc, each in its container: 60 bodies. ctx and doc must not be nil.
+// Build adds every body to doc, each in its container: 61 bodies. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -206,11 +211,12 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		{FrameContainerName, WallsContainerName, m.FrontWall}, {FrameContainerName, WallsContainerName, m.RearWall},
 		{FrameContainerName, PlatesContainerName, m.GuidePlate}, {FrameContainerName, PlatesContainerName, m.CradlePlate},
 		{FrameContainerName, PlatesContainerName, m.TopPlate},
-		{FrameContainerName, DetentPlateContainerName, m.DetentPlate},
 		{CamshaftContainerName, ShaftContainerName, m.Shaft},
-		{CamshaftContainerName, RatchetWheelContainerName, m.RatchetWheel},
-		{CamshaftContainerName, CollarRingContainerName, m.CollarRing},
-		{CamshaftContainerName, KnobContainerName, m.Knob},
+		{ClickerContainerName, HubContainerName, m.Hub},
+		{ClickerContainerName, RotorContainerName, m.Rotor},
+		{ClickerContainerName, HousingContainerName, m.Housing},
+		{ClickerContainerName, ButtonContainerName, m.Button},
+		{ClickerContainerName, SpringContainerName, m.Spring},
 	}
 	for _, seg := range Segments() {
 		files = append(files, filed{CamshaftContainerName, CamsContainerName, m.Cams[seg]},

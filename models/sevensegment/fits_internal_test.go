@@ -34,16 +34,6 @@ func TestSevenSegmentFits(t *testing.T) {
 			require.InDelta(t, PressFit, gap, fitBound, "cam %s", seg)
 			requireDoubleD(t, bore, camBoreFlat, "cam "+seg.String())
 		}
-		_, ratchet := sharedBody(t, "ratchet wheel", (*run).ratchetWheel)
-		var bore [][]r3.Vec
-		for _, l := range sectionAt(t, ratchet, -43.0) {
-			if c, e := centroidExtent(l); c.Len() < 1 && e < 8 {
-				bore = append(bore, l)
-			}
-		}
-		require.Len(t, bore, 1, "ratchet wheel")
-		require.InDelta(t, PressFit, loopsGap(bore, sectionAt(t, shaft, -43.0)), fitBound, "ratchet wheel")
-		requireDoubleD(t, bore, ratchetBoreFlat, "ratchet wheel")
 	})
 
 	t.Run("L5 cam rims to the guide plate", func(t *testing.T) {
@@ -144,22 +134,10 @@ func TestSevenSegmentFits(t *testing.T) {
 			}
 		}
 	})
-
-	t.Run("L7 detent plate to the d stem", func(t *testing.T) {
-		_, slider := sharedSlider(t, SegD)
-		stem := planSection(t, slider, 56)
-		low := math.Inf(1)
-		for _, l := range stem {
-			for _, p := range l {
-				low = math.Min(low, p.Y)
-			}
-		}
-		require.InDelta(t, 2.45, low-detentFace, 0.011)
-	})
 }
 
-// TestSevenSegmentPressWalls requires 1.6 mm or more of wall round each press-fit bore: the cam hubs, ratchet wheel,
-// collar ring and knob, read at sections through the bore.
+// TestSevenSegmentPressWalls requires 1.6 mm or more of wall round each press-fit bore: the cam hubs and the keyed hub,
+// read at sections through the bore.
 func TestSevenSegmentPressWalls(t *testing.T) {
 	r := newTestRun(t)
 	check := func(name string, body *decad.Body, y float64) {
@@ -180,12 +158,8 @@ func TestSevenSegmentPressWalls(t *testing.T) {
 		// The hub, away from the disc: its wall is the hub radius less the bore (the marks lie in the disc).
 		check("cam hub "+seg.String(), cam, r.dm.camDiscFace(seg)-3)
 	}
-	_, ratchet := sharedBody(t, "ratchet wheel", (*run).ratchetWheel)
-	check("ratchet wheel", ratchet, -43.0)
-	_, ring := sharedBody(t, "collar ring", (*run).collarRing)
-	check("collar ring", ring, -59.5)
-	_, knob := sharedBody(t, "knob", (*run).knob)
-	check("knob", knob, -65)
+	_, hub := sharedBody(t, "hub", (*run).hub)
+	check("hub", hub, -59.5)
 }
 
 // TestSevenSegmentPinClearance sweeps the camshaft through a whole turn in 3 degree steps and checks, for every cam, that
@@ -283,9 +257,6 @@ func TestSevenSegmentStackPlay(t *testing.T) {
 	_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 	gbox, err := guide.Bounds()
 	require.NoError(t, err)
-	_, ratchet := sharedBody(t, "ratchet wheel", (*run).ratchetWheel)
-	rbox, err := ratchet.Bounds()
-	require.NoError(t, err)
 	// The flats' square end: the cam section is a double D just inside it and round just past it.
 	_, shaft := sharedBody(t, "shaft", (*run).shaft)
 	_, maxZ, _ := extent(sectionAt(t, shaft, shaftCamFlatTo-0.02))
@@ -318,7 +289,6 @@ func TestSevenSegmentStackPlay(t *testing.T) {
 			worst = math.Min(worst, engage)
 		}
 	}
-	require.InDelta(t, PressFit, back-rbox.Max.Y, 0.01, "gap between cam d and the ratchet wheel")
 	require.InDelta(t, 0.35, rear, 0.02, "cam d's rearward travel")
 	require.GreaterOrEqual(t, worst, 0.75, "the least groove pin engagement")
 }
