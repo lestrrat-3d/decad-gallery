@@ -11,7 +11,7 @@ import (
 )
 
 // TestBuildBladePrint builds the default blade and its cradle in both hands: two bodies, one in each of the Blades and
-// Harness containers, the blade's 12 sketches, the harness's sketches, and the rest tilt. A nil context, a nil
+// Harness containers, the blade's 13 sketches, the harness's sketches, and the rest tilt. A nil context, a nil
 // document and a rotor outside the valid range are rejected before any geometry.
 func TestBuildBladePrint(t *testing.T) {
 	for _, hand := range []turbinefan.Hand{turbinefan.RightHand, turbinefan.LeftHand} {
@@ -32,7 +32,7 @@ func TestBuildBladePrint(t *testing.T) {
 			require.Equal(t, 1, len(bodies), name)
 			require.True(t, any(bodies[0]) == want, name)
 		}
-		require.Equal(t, 12, len(bp.BladeSketches))
+		require.Equal(t, 13, len(bp.BladeSketches), "ten sections, the stud, the bolt hole and the stud flat's cutter")
 		require.Equal(t, shadowSectionCount(bp.Harness)+14, len(bp.Harness.Sketches))
 
 		build := turbinefan.BuildBlade

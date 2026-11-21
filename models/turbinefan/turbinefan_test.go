@@ -43,13 +43,13 @@ func TestTurbineFanBuild(t *testing.T) {
 }
 
 // TestTurbineFanSketches requires every sketch of every case (the compact, default and large rotors), the hub's and the
-// blades' and each bolt's and nut's, fully constrained: 27 from BuildParts (the hub's two adapter hole sketches and two
-// adapter slot sketches among them) and 20 from Build. The clutch mount's sketches are in TestTurbineFanClutchSketches.
+// blades' and each bolt's and nut's, fully constrained: 28 from BuildParts (the hub's two adapter hole sketches and two
+// adapter slot sketches among them, and the blade's stud flat cutter) and 20 from Build. The clutch mount's sketches are in TestTurbineFanClutchSketches.
 func TestTurbineFanSketches(t *testing.T) {
 	for _, c := range fanCases {
 		t.Run(c.name, func(t *testing.T) {
 			m, _ := built(t, c)
-			require.Len(t, m.Sketches, 27)
+			require.Len(t, m.Sketches, 28)
 			for i, s := range m.Sketches {
 				require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 			}
@@ -87,13 +87,14 @@ func TestTurbineFanBounds(t *testing.T) {
 			// Decad 7cb5dd46b60c meshes the boolean operands closer to their surfaces: b11d7e1658 (#3371) chords a
 			// round-ended cutter such as a blade socket at half the chord (hub 9703.740630 before, now 0.145 mm^3 less),
 			// and 3179532fc3 (#3385) chords a through-cut target no coarser than its own size (blade 1945.996807
-			// before, now 0.005 mm^3 more).
+			// before, now 0.005 mm^3 more). The stud flat for printing (StudFlatDepth) then took 1.278 mm^3 off the blade
+			// (1946.001321 before).
 			hv, err := m.Hub.Volume()
 			require.NoError(t, err)
 			bv, err := m.Blades[0].Volume()
 			require.NoError(t, err)
 			require.InEpsilon(t, 9703.596022, hv.Value.Base(), 1e-6, "hub volume")
-			require.InEpsilon(t, 1946.001321, bv.Value.Base(), 1e-6, "blade volume")
+			require.InEpsilon(t, 1944.723761, bv.Value.Base(), 1e-6, "blade volume")
 		}
 		for name, item := range map[string]struct {
 			body *decad.Body

@@ -12,11 +12,13 @@ import (
 )
 
 // TestPrintPose puts blades in the print pose at their rest tilt: the tilt matches the measured value for each size and
-// does not change with pitch or hand, the stud corner and the blade's lowest point sit on the bed, the posed loft is the
-// same at every pitch, the left hand is the right hand reflected in y = 0, the stud axis lies in y = 0 and the pressure
-// face faces -y. Bad inputs are rejected.
+// does not change with pitch or hand, the blade's lowest point (the stud flat) sits on the bed and the stud end corner
+// the flat cut away StudFlatDepth under it, the posed loft is the same at every pitch, the left hand is the right hand
+// reflected in y = 0, the stud axis lies in y = 0 and the pressure face faces -y. Bad inputs are rejected.
 func TestPrintPose(t *testing.T) {
-	rest := map[float64]float64{128: 0.198526, 192: 0.206587, 224: 0.218303}
+	// v5-v7 rested the stud corner on the bed at 0.198526 / 0.206587 / 0.218303; the 0.5 mm stud flat tilts the blade
+	// further, to where the cut-away corner lies StudFlatDepth under the leading edge's lowest point.
+	rest := map[float64]float64{128: 0.228600, 192: 0.225695, 224: 0.234055}
 	for _, d := range bladeSizes {
 		sz := mustSize(t, d)
 		_, ref, tilt := posedBlade(t, d, turbinefan.DefaultBladePitch, turbinefan.RightHand)
@@ -25,7 +27,7 @@ func TestPrintPose(t *testing.T) {
 		require.NoError(t, err)
 		require.InDelta(t, turbinefan.PrintLift, rb.Min.Z, rb.Bound.Base()+1e-3, "rotor %g lowest point", d)
 		corner, _, _ := turbinefan.PosedEdgePoints(sz, turbinefan.RightHand, tilt)
-		require.InDelta(t, 0, corner.Z, 1e-9, "rotor %g stud corner", d)
+		require.InDelta(t, -turbinefan.StudFlatDepth, corner.Z, 1e-9, "rotor %g stud corner", d)
 		_, xf := poseTransform(t, sz, turbinefan.DefaultBladePitch, turbinefan.RightHand, tilt)
 		for _, r := range []float64{sz.BladeStudStart, sz.BladeStudEnd} {
 			require.InDelta(t, 0, xf.Apply(r3.Vec{Z: r}).Y, 1e-9, "rotor %g stud axis at %g", d, r)
