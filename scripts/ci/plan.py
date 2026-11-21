@@ -78,8 +78,8 @@ def render_dependents(seeds, before, after):
 def registration_only(old, new, name):
     """Accept only one model import, registration, gallery tile and job-count change."""
     def lines(text):
-        return [line for line in text.splitlines() if line.strip() and
-                not line.startswith("// galleryTiles puts the spinning wheel in a tall cell")]
+        return [line for line in text.splitlines()
+                if not line.startswith("// galleryTiles puts the spinning wheel in a tall cell")]
 
     old_models, new_models = lines(old["models.go"]), lines(new["models.go"])
     imports = [line for line in new_models if re.fullmatch(
@@ -445,6 +445,15 @@ def needs_gallery_cache(event, result):
     suites = result["suites"]
     if event not in {"pull_request", "push"} or not suites or {"full", "renderer-all", "render-tool"}.intersection(suites):
         return False
+    if "render-registration" in suites and "broad" not in suites:
+        render_names = [suite.removeprefix("render-") for suite in suites
+                        if suite.startswith("render-") and suite != "render-registration"]
+        if len(render_names) == 1:
+            model_prefix = "models/" + render_names[0] + "/"
+            registration = {"tools/render/models.go", "tools/render/gallery.go", "tools/render/registry_test.go"}
+            if all(path.startswith(model_prefix) or path in registration or path in CI_FILES or
+                   path.lower().endswith(".md") for path in result.get("changed_paths", [])):
+                return False
     if "broad" in suites or (any(s.startswith("isolated-") for s in suites) and
                              not all(s.startswith("isolated-") for s in suites)):
         return True

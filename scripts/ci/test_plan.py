@@ -32,6 +32,9 @@ class PlanTest(unittest.TestCase):
             changed[filename] += "func unexpected() {}\n"
             self.assertFalse(plan.registration_only(old, changed, "newmodel"), filename)
         self.assertFalse(plan.registration_only(old, new, "other"))
+        changed = dict(new)
+        changed["models.go"] += "\n"
+        self.assertFalse(plan.registration_only(old, changed, "newmodel"))
 
     def test_gallery_cache_selection(self):
         isolated = "isolated-internal-clamparmcapacity-TestCheck"
@@ -53,6 +56,12 @@ class PlanTest(unittest.TestCase):
             ("push", [], tests, False),
             ("pull_request", ["broad", "full"], helper, False),
             ("push", ["renderer-all"], ["tools/render/gallery_cache.go"], False),
+            ("pull_request", ["render-registration", "render-sevensegment", "renderer-compile"],
+             ["models/sevensegment/render/model.go", "tools/render/gallery.go"], False),
+            ("pull_request", ["render-registration", "render-sevensegment", "renderer-compile"],
+             ["models/sevensegment/render/model.go", "tools/render/gallery_cache.go"], True),
+            ("pull_request", ["broad", "render-registration", "render-sevensegment"],
+             ["models/sevensegment/render/model.go", "tools/render/gallery.go"], True),
             ("schedule", ["broad"], [], False),
             ("workflow_dispatch", ["broad"], [], False),
         )
