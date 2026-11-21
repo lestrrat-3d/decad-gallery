@@ -45,7 +45,7 @@ func TestCombinedMergedButton(t *testing.T) {
 			}
 			// The shaft and detent key have a line-to-line fit; their sampled
 			// containment is checked separately by the detent fit test.
-			for _, pair := range [][2]int{{3, 5}, {4, 5}} {
+			for _, pair := range [][2]int{{3, 5}, {6, 5}} {
 				am := combinedMesh(t, others[pair[0]].body)
 				bm := combinedMesh(t, others[pair[1]].body)
 				gap, ok, e := am.Exceeds(bm, 0)
@@ -54,7 +54,10 @@ func TestCombinedMergedButton(t *testing.T) {
 					t.Errorf("mating %s vs %s boundary %.6f", others[pair[0]].name, others[pair[1]].name, gap)
 				}
 			}
-			for _, a := range others[:3] {
+			for _, a := range []struct {
+				name string
+				body *decad.Body
+			}{others[0], others[1], others[2], others[4]} {
 				am := combinedMesh(t, a.body)
 				for _, b := range others[5:] {
 					bm := combinedMesh(t, b.body)
