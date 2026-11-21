@@ -161,12 +161,8 @@ class GateTest(unittest.TestCase):
                 gate.run_renderer_full()
             self.assertEqual(json.loads(path.read_text().splitlines()[0])["module"], "tools/render")
 
-    def test_gallery_cache_step_runs_only_on_pr_and_push(self):
+    def test_renderer_jobs_do_not_duplicate_full_renderer(self):
         workflow = Path(".github/workflows/repository.yml").read_text()
-        step = workflow.split("- name: Check gallery tile cache\n", 1)[1].split("- name:", 1)[0]
-        self.assertEqual(step.splitlines()[0].strip(),
-                         "if: needs.plan.result == 'success' && fromJSON(needs.plan.outputs.plan).check_gallery_cache")
-        self.assertIn("go -C tools/render test -run '^TestGalleryCache'", step)
         renderer = workflow.split("  renderer-full:\n", 1)[1].split("\n  planetary-motion:", 1)[0]
         self.assertIn("python3 scripts/ci/gate.py renderer-full", renderer)
         for job in gate.PR_RENDER_JOBS:

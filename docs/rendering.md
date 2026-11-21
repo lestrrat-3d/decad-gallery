@@ -411,32 +411,6 @@ Regenerate the image when the spur gear geometry or this scene changes.
 go -C tools/render run . -model gallery -shot hero -out ../../docs/images/gallery.png
 ```
 
-The `gallery/contact-sheet` preset renders the hero
-scenes of the spinning wheel, the spur, helical and herringbone gears, the planetary gearbox, the cycloidal
-drive, the bevel gear pair, the plaque stand, the clamp arm, the hand-crank fan, the hand-crank siren, the Graham
-escapement, the Swiss lever escapement, the crank handle, the one-way clutch, the spiral spring, the turbine fan and
-the compression spring
-one after another. On a cache miss, it renders each model twice,
-once to measure the pixels it draws and once at the scale that fits them to a cell of the 1600 × 900 pixel canvas,
-so every model fills its cell alike. The wheel takes a tall cell on the left
-(560 pixels wide). The other seventeen models fill four columns by five rows beside it (260 × 180 pixel cells), with
-the compression spring in the final row. The top row holds the spur, helical, herringbone and bevel gears. The second
-row holds the planetary gearbox,
-cycloidal drive, plaque stand and clamp arm. The third row holds the hand-crank fan, hand-crank siren, Graham
-escapement and Swiss lever escapement. The bottom row holds the crank handle, one-way clutch, spiral spring and
-turbine fan. Building all eighteen models takes several minutes plus the wheel
-build:
-
-```sh
-go -C tools/render run . -model gallery -shot contact-sheet -out ../../.tmp/contact-sheet.png
-```
-
-The renderer stores finished tiles in `.tmp/gallery-cache/` in the checkout. It invalidates every tile when any
-renderer or dependency source, module manifest, toolchain or build setting changes. Changing the gallery dimensions
-invalidates the tiles too. It skips the cache when `go list` cannot discover the dependencies or the running executable
-does not match the current renderer build. Add `-gallery-fresh` to rebuild every tile and update the cache. Deleting
-`.tmp/gallery-cache/` also forces a rebuild.
-
 The `handcranksiren/hero` preset builds the default siren once and renders it from the front, left and above (camera at (-250, -650, 330)), with each
 part coloured by its group. Operator forward is -X and the crank is on the right (+Y). The `handcranksiren/view-rear`,
 `view-side` and `view-top` presets render the whole siren from behind the operator, from the right and from above, with
