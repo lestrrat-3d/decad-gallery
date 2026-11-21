@@ -13,7 +13,8 @@ selects affected owners and production consumers, and stops propagation at test 
 model, feature, package, and renderer checks. Production changes can also select renderer compilation and named
 renderer checks. The plan records selected suites and reasons.
 
-Markdown-only changes select no worker suite. Changes to spinning wheel part PNGs select `wheel-parts`. New
+Markdown-only changes select no worker suite. A change to `scripts/check_repository.py` alone also selects none, because only the `repository`
+job runs it. Changes to spinning wheel part PNGs select `wheel-parts`. New
 registered packages select their tests and affected consumers. New unregistered packages select broad checks and
 direct tests alongside affected known packages. A change to either `go.mod` or `go.sum` selects `broad` and the
 `full` marker, which runs the full root and renderer checks. The renderer group is the set of root-module packages
