@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
+	sevenrender "github.com/lestrrat-3d/decad-gallery/models/sevensegment/render"
 )
 
 // registry returns every model the tool renders, in alphabetical order by name with the gallery last.
@@ -28,6 +29,7 @@ func registry() []renderkit.Model {
 		planetarygearboxModel(),
 		plaquestandModel(),
 		screwgearModel(),
+		sevenrender.Model(),
 		spinningwheelModel(),
 		spinningwheelPreviewModel(),
 		spiralspringModel(),

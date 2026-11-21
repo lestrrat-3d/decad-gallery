@@ -1,0 +1,199 @@
+package sevensegment_test
+
+// CI: isolated-tests
+
+import (
+	"math"
+	"testing"
+
+	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSevenSegmentFlagKinematics(t *testing.T) {
+	dm, err := sevensegment.DefaultParams().Derive()
+	require.NoError(t, err)
+	// The rotor's angle at the unlit and lit dwells from the pin line: the pin sits PinOffset from the axis along s and
+	// (lift - Travel/2 - 0.25 + raise) above it, the lift being 0 (unlit) or Travel (lit); the 0.25 is the pin line's
+	// modelled position below the middle of the stroke.
+	want := map[sevensegment.Segment][2]float64{}
+	for _, s := range sevensegment.Segments() {
+		raise := sevensegment.RaiseOf(s)
+		want[s] = [2]float64{
+			math.Atan2(-sevensegment.Travel/2-0.25+raise, sevensegment.PinOffset) * 180 / math.Pi,
+			math.Atan2(sevensegment.Travel/2-0.25+raise, sevensegment.PinOffset) * 180 / math.Pi,
+		}
+	}
+	for _, s := range sevensegment.Segments() {
+		for k := range 10 {
+			lit, _ := sevensegment.Lit(k, s)
+			w := want[s][0]
+			if lit {
+				w = want[s][1]
+			}
+			require.InDelta(t, w, dm.FlagAngle(s, 36*float64(k)), 0.01, "segment %s digit %d", s, k)
+		}
+		for th := 0.0; th < 360; th += 0.1 {
+			lift := dm.Lift(s, th)
+			a := dm.FlagAngle(s, th)
+			for _, dwell := range []struct{ lift, angle float64 }{{0, want[s][0]}, {3, want[s][1]}} {
+				if math.Abs(lift-dwell.lift) <= 0.05 {
+					require.InDelta(t, dwell.angle, a, 1.2, "segment %s theta %.1f", s, th)
+				}
+			}
+		}
+		for _, r := range dm.Ramps[s] {
+			prev := dm.FlagAngle(s, r.Start-90)
+			for psi := r.Start; psi <= r.End+1e-9; psi += 0.1 {
+				cur := dm.FlagAngle(s, psi-90)
+				if r.Rising {
+					require.GreaterOrEqual(t, cur, prev-1e-9)
+				} else {
+					require.LessOrEqual(t, cur, prev+1e-9)
+				}
+				prev = cur
+			}
+		}
+	}
+}
+
+// restBands are the rest bands of a class at its dwell offset c (0.15 for a, g, d; 0.15 plus the lowering of the b-f pins
+// for b to f), at the slot clearance of the model.
+func TestSevenSegmentFlagRestBand(t *testing.T) {
+	cAGD, cBF := 0.15, 0.15+sevensegment.RaiseBelowDroop
+	um, uw, lw, lm, rmax := bands(sevensegment.PinLinePlay, 0.24, slotClear, cAGD)
+	require.InDelta(t, -66.7, um, 0.1)
+	require.InDelta(t, -40.33, uw, 0.1)
+	require.InDelta(t, 34.47, lw, 0.1)
+	require.InDelta(t, 63.12, lm, 0.1)
+	require.LessOrEqual(t, rmax, 2.75)
+	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.30, slotClear, cAGD) // a, g, d worst case
+	require.InDelta(t, -39.23, uw, 0.1)
+	require.InDelta(t, 33.20, lw, 0.1)
+	require.LessOrEqual(t, rmax, 2.80)
+	_, uw, lw, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClear, cBF) // b to f design
+	require.InDelta(t, -41.22, uw, 0.1)
+	require.InDelta(t, 33.41, lw, 0.1)
+	require.InDelta(t, 62.42, lm, 0.1)
+	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.42, slotClear, cBF) // b to f worst case
+	require.InDelta(t, -37.90, uw, 0.1)
+	require.InDelta(t, 29.39, lw, 0.1)
+	require.LessOrEqual(t, rmax, sevensegment.SlotEnd+slotClear, "the pin stays inside the slot's end")
+}
+
+// TestSevenSegmentRestBias checks that gravity holds a rotor at its end pose against its journal friction at friction 0.5:
+// the bias ratio at the worst-case ends of the rest bands (a, g, d at z play 0.30, b to f at 0.42) stays above 1.50 (A) and
+// 1.75 (B). The rotor's weight and centre of mass come from the built bodies.
+func TestSevenSegmentRestBias(t *testing.T) {
+	startDigit0()
+	t.Parallel()
+	l := builtLoads(t)
+	_, uwA, lwA, _, _ := bands(sevensegment.PinLinePlay, 0.30, slotClear, 0.15)
+	_, uwB, lwB, _, _ := bands(sevensegment.PinLinePlay, 0.42, slotClear, 0.15+sevensegment.RaiseBelowDroop)
+	for _, phi := range []float64{uwA, lwA} {
+		require.GreaterOrEqual(t, bias(0.5, l.a, phi), 1.50, "A at %.1f", phi)
+	}
+	for _, phi := range []float64{uwB, lwB} {
+		require.GreaterOrEqual(t, bias(0.5, l.b, phi), 1.75, "B at %.1f", phi)
+	}
+}
+
+// TestSevenSegmentDriveAudit audits the drive on the built rotors and sliders with the pin on one wall of its slot: at
+// friction 0.5 the drive arm is at least 1.50 times the friction arms with the journal settled and 1.35 with it fully
+// across (the computed 1.554 and 1.382). The loads are logged.
+func TestSevenSegmentDriveAudit(t *testing.T) {
+	startDigit0()
+	t.Parallel()
+	l := builtLoads(t)
+	t.Logf("rotor A: weight %.5f N, com %.3f at %.1f deg; rotor B: weight %.5f N, com %.3f at %.1f deg; slider %.5f N",
+		l.a.wr, l.a.e, l.a.bc, l.b.wr, l.b.e, l.b.bc, l.ws)
+	for _, c := range []struct {
+		name string
+		l    rotorLoad
+	}{{"A", l.a}, {"B", l.b}} {
+		for _, across := range []bool{false, true} {
+			fx, ratio, ok := audit(0.5, c.l, across)
+			t.Logf("rotor %s at friction 0.5 (journal across %v): drive arm / friction arm %.3f, F_x %.4f", c.name, across, ratio, fx)
+			require.True(t, ok, "the drive locks")
+			want := 1.50
+			if across {
+				want = 1.35
+			}
+			require.GreaterOrEqual(t, ratio, want, "rotor %s, journal across %v", c.name, across)
+		}
+	}
+}
+
+func TestSevenSegmentTongueSweep(t *testing.T) {
+	headLine := sevensegment.SliderHeadTop - sevensegment.PinAxisZ
+	cAGD, cBF := 0.15, 0.15+sevensegment.RaiseBelowDroop
+	// The notch floor is measured on the built rotor, and the sweep runs on it: a notch cut shallower than designed shrinks
+	// the gaps below.
+	floor := sevensegment.MeasureNotchFloor(t, sevensegment.SegG)
+	require.InDelta(t, sevensegment.NotchFloor, floor, 0.02, "the built notch floor")
+	require.InDelta(t, sevensegment.NotchFloor, sevensegment.MeasureNotchFloor(t, sevensegment.SegB), 0.02, "the built notch floor of type B")
+	// The cap is the turned-over rise: 1.28 for a, g, d, and 1.88 for b to f (the tilt reverses: twice the droop of about 0.30).
+	for _, c := range []struct {
+		name         string
+		cap, dwell   float64
+		yellow       float64 // the least tongue to yellow shell gap, +-0.005
+		black        float64 // the tongue to the black leg
+		pinYellowMin float64
+	}{{"a, g, d", 1.28, cAGD, 0.164, 0.381, 0.25}, {"b to f", 1.88, cBF, 0.160, 0.303, 0.25}} {
+		ty, tb, py := sweep(sevensegment.TongueWidth, 0.0, sevensegment.TongueTopGap, headLine, c.cap, c.cap, c.dwell, floor)
+		t.Logf("%s turned over (rise %.2f): tongue to the yellow shell %.3f, to the black leg %.3f, pin %.3f", c.name, c.cap, ty, tb, py)
+		require.InDelta(t, c.yellow, ty, 0.005, "%s: tongue to the yellow shell", c.name)
+		require.InDelta(t, c.black, tb, 0.005, "%s: tongue to the black leg", c.name)
+		require.GreaterOrEqual(t, py, c.pinYellowMin, "%s: the pin's gap to the pocket walls", c.name)
+	}
+	// With the head line 1.0 lower than it is (the old 73.8 top) the black leg is entered: why the top is 72.8.
+	_, tb, _ := sweep(sevensegment.TongueWidth, 0.0, sevensegment.TongueTopGap, headLine+1, 1.28, 1.28, cAGD, floor)
+	require.Less(t, tb, 0.0)
+}
+
+// TestSevenSegmentFlagBudget is the detent budget of the built model: the detent drive over the opposing torque at every shaft
+// angle where a cam is moving a segment, over all ten steps, with the extra cam force of the pin on its slot wall (journal
+// across its hole) and the loads of the built bodies. With the cams in phase it is at least 3.0 at friction 0.35, 1.8 at
+// 0.45 and 1.0 at 0.5 (computed 3.545, 1.830 and 1.025). With the cams leading the ratchet by the D-bores' play, as they do
+// while the pawls drive the shaft back, it is at least 2.0 at 0.35 and 1.0 at 0.45 (computed 2.058 and 1.062).
+func TestSevenSegmentFlagBudget(t *testing.T) {
+	startDigit0()
+	t.Parallel()
+	dm, err := sevensegment.DefaultParams().Derive()
+	require.NoError(t, err)
+	l := builtLoads(t)
+	for _, c := range []struct{ mu, want float64 }{{0.35, 3.0}, {0.45, 1.8}, {0.5, 1.0}} {
+		// The budget takes the drive's flag force with the journal across its hole, the larger of the two poses.
+		for _, rl := range []rotorLoad{l.a, l.b} {
+			across, _, _ := audit(c.mu, rl, true)
+			require.GreaterOrEqual(t, budgetFx(t, c.mu), across, "the budget's flag force at friction %.2f", c.mu)
+		}
+		got := worstBudget(t, dm, c.mu)
+		t.Logf("friction %.2f: worst detent budget %.3f", c.mu, got)
+		require.GreaterOrEqual(t, got, c.want, "the budget at friction %.2f", c.mu)
+	}
+	t.Logf("friction 0.40: worst detent budget %.3f", worstBudget(t, dm, 0.40))
+	swing := phaseSwing()
+	for _, c := range []struct{ mu, want float64 }{{0.35, 2.0}, {0.40, 0}, {0.45, 1.0}, {0.5, 0}} {
+		got := worstPhaseBudget(t, dm, c.mu, swing)
+		t.Logf("friction %.2f: worst detent budget with the cams %.2f degrees ahead %.3f", c.mu, swing, got)
+		require.GreaterOrEqual(t, got, c.want, "the phase budget at friction %.2f", c.mu)
+	}
+	// Knob torque: the climbing torque of both pawls at the stiff end of PETG plus the opposing torque, at friction 0.5,
+	// over the climb to the crest, every step.
+	fx := budgetFx(t, 0.5)
+	c := pawlCompliance(dm, knobE)
+	peak := 0.0
+	for psi := 0.0; psi <= dm.CrestAngle; psi += 0.1 {
+		climb := detentTorque(dm, c, psi, 0.5, false)
+		for k := range 10 {
+			load := 2 * 0.1
+			if psi >= 7.98 && psi <= 29.55 {
+				load, _ = flagLoad(dm, k, psi, 0.5, fx, l.ws)
+			}
+			peak = math.Max(peak, climb+load)
+		}
+	}
+	t.Logf("peak knob torque at friction 0.5: %.1f N.mm (%.2f N at the knob rim)", peak, peak/sevensegment.KnobRadius)
+	require.LessOrEqual(t, peak, 250.0)
+}

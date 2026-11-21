@@ -232,8 +232,8 @@ class GateTest(unittest.TestCase):
                     gate.run_renderer_full()
 
     def test_renderer_dispatch_commands(self):
-        package = "github.com/lestrrat-3d/decad-gallery/tools/render"
         for suite, (timeout, directory, tests) in gate.RENDER_TESTS.items():
+            package = gate.MODULE + "/" + directory
             events = [json.dumps({"Package": package, "Test": test, "Action": "pass"}) for test in tests]
             proc = mock.Mock(stdout=events, returncode=0)
             proc.wait.return_value = 0

@@ -24,7 +24,7 @@ type galleryTile struct {
 	cell image.Rectangle
 }
 
-// galleryTiles puts the spinning wheel in a tall cell on the left and the other seventeen models in four columns
+// galleryTiles puts the spinning wheel in a tall cell on the left and the other eighteen models in four columns
 // by five rows beside it (260 × 180 pixel cells), filled row by row.
 var galleryTiles = []galleryTile{
 	{"spinningwheel", image.Rect(0, 0, 560, 900)},
@@ -45,6 +45,7 @@ var galleryTiles = []galleryTile{
 	{"spiralspring", image.Rect(1080, 540, 1340, 720)},
 	{"turbinefan", image.Rect(1340, 540, 1600, 720)},
 	{"compressionspring", image.Rect(560, 720, 820, 900)},
+	{"sevensegment", image.Rect(820, 720, 1080, 900)},
 }
 
 const (

@@ -11,7 +11,7 @@ ROOT = "github.com/lestrrat-3d/decad-gallery"
 BEVEL = ROOT + "/models/bevelgear"
 # Dedicated jobs cover whole packages or partition their tests and remainder.
 DEDICATED = {ROOT + "/models/" + name for name in (
-    "escapement", "onewayclutch", "clamparm", "turbinefan", "fastener", "spinningwheel", "handcranksiren",
+    "escapement", "onewayclutch", "clamparm", "sevensegment", "turbinefan", "fastener", "spinningwheel", "handcranksiren",
     "planetarygearbox",
 )}
 
