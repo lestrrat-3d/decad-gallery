@@ -16,12 +16,12 @@ import (
 )
 
 // TestBladeHarnessWallTop checks each wall's top over the block's sections: it stays CradleTopDrop under the widest
-// line, it raises no fin in the step zone above the root's clean wall (0.05 mm; 0.1 within CradleTopSmooth of the
-// block's start when the block starts inside the zone or its lead-in, where the smoothing sees one side only), and it
-// does not zigzag: no two neighbouring second differences of more than 0.1 mm have opposite signs. The wall top follows
-// the blade's own widest line, which turns sharply where the bolt hole crosses the stud's sides and where the root
-// flares into the airfoil, so points where that line's own second difference exceeds 0.3 mm, the step zone's reach and
-// the two sections at each end are not read for zigzags.
+// line, it raises no fin in the step zone above the root's clean wall where the block reaches it (0.05 mm; 0.1 within
+// CradleTopSmooth of the block's start when the block starts inside the zone or its lead-in, where the smoothing sees
+// one side only), and it does not zigzag: no two neighbouring second differences of more than 0.1 mm have opposite
+// signs. The wall top follows the blade's own widest line, which turns sharply where the bolt hole crosses the stud's
+// sides and where the root flares into the airfoil, so points where that line's own second difference exceeds 0.3 mm,
+// the step zone's reach and the two sections at each end are not read for zigzags.
 func TestBladeHarnessWallTop(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
@@ -54,8 +54,8 @@ func TestBladeHarnessWallTop(t *testing.T) {
 					cleanTop = math.Max(cleanTop, q[1])
 				}
 			}
-			// fin is read past the smoothing's reach from the block's start, startFin within it; at 128 the block starts
-			// in the step zone, and its first section stands 0.067 over the clean wall.
+			// fin is read past the smoothing's reach from the block's start, startFin within it, where the smoothing sees
+			// one side only (before the stud flat, the 128 block started in the step zone 0.067 over the clean wall).
 			fin, finX, startFin, read := math.Inf(-1), 0.0, math.Inf(-1), 0
 			startsInZone := inZone(blk[0].X)
 			limits := make([]float64, len(top))
@@ -111,7 +111,9 @@ func TestBladeHarnessWallTop(t *testing.T) {
 				"over the clean wall %.3f mm at x %.2f, %.3f mm near the block's start at %.2f", c.name, w, zigzags, worst,
 				len(top)-6-skipped, skipped, fin, finX, startFin, h.XStart)
 			require.Zero(t, zigzags, "wall %d zigzags", w)
-			require.Positive(t, read, "wall %d step-zone points read", w)
+			if h.StepZone[1] > h.XStart {
+				require.Positive(t, read, "wall %d step-zone points read", w)
+			}
 			require.LessOrEqual(t, fin, 0.05, "wall %d fin in the step zone", w)
 			require.LessOrEqual(t, startFin, 0.1, "wall %d fin in the step zone near the block's start", w)
 		}

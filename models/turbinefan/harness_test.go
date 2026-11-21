@@ -17,15 +17,23 @@ import (
 
 // TestBuildBladeHarness builds the cradle for every case: one solid standing on the bed with a first layer over
 // 400 mm², two bed spots, the stud corner's first, every sketch fully constrained, sections of CradleFitPoints points
-// with y strictly increasing, the step zone ending inside the block, and the left hand at 192 mirroring the right. Bad
-// inputs are rejected and add no body.
+// with y strictly increasing, the step zone ending before the block does, and the left hand at 192 mirroring the
+// right. Bad inputs are rejected and add no body.
 func TestBuildBladeHarness(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
 		require.True(t, h.Body.IsSolid())
 		require.Equal(t, 1, len(h.Body.Lumps()), "one piece")
-		// v5's seven, two collars, four pocket trapezoids and the bed box.
-		require.Equal(t, shadowSectionCount(h)+14, len(h.Sketches), "sketch count")
+		// v5's seven, two collars, four pocket trapezoids and the bed box, then one per wall relief and floating piece.
+		require.Equal(t, shadowSectionCount(h)+14+len(h.Reliefs)+len(h.Removed), len(h.Sketches), "sketch count")
+		// At most one floating piece is cut away, smaller than 10 mm³: its grown box bounds it.
+		require.LessOrEqual(t, len(h.Removed), 1, "floating pieces")
+		for _, r := range h.Removed {
+			d := r[1].Sub(r[0])
+			t.Logf("%s: removed a floating piece in a %.2f × %.2f × %.2f mm box", c.name, d.X, d.Y, d.Z)
+			require.Less(t, d.X*d.Y*d.Z, 10.0, "floating piece box volume")
+		}
+		t.Logf("%s: %d wall reliefs, block from x %.2f", c.name, len(h.Reliefs), h.XStart)
 		for i, spot := range h.Spots {
 			require.NotEmpty(t, spot, "spot %d", i)
 		}
@@ -42,8 +50,8 @@ func TestBuildBladeHarness(t *testing.T) {
 			}
 		}
 		require.Less(t, h.XStart, h.XEnd)
-		// The block starts past the stud pocket, which at 128 reaches into the step zone.
-		require.Less(t, h.XStart, h.StepZone[1])
+		// The block starts past the stud pocket, which reaches into the step zone (192, 224) or past it (128, since the
+		// stud flat's larger spot).
 		require.Less(t, h.StepZone[1], h.XEnd)
 		require.Equal(t, 2, len(b.doc.Bodies()), "posed blade and harness")
 		box, err := h.Body.Bounds()
@@ -135,13 +143,14 @@ func TestBladePrintBedContact(t *testing.T) {
 	})
 }
 
-// TestCradleFirstLayer checks the cradle's first layer, its section at z = 0.1: one outline with exactly two holes, the
-// brim pockets, each holding its blade bed spot, and an area of at least cradleFirstLayerMin.
+// TestCradleFirstLayer checks the cradle's first layer, its section at z = 0.1: one outline with one or two holes, the
+// brim pockets, every blade bed spot in one, two spots in two holes in different ones (at 128 the pockets merge into
+// one hole), and an area of at least cradleFirstLayerMin.
 func TestCradleFirstLayer(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
 		loops := sectionAt(t, h.Body, 0.1).Loops
-		require.Equal(t, 3, len(loops), "outline and two pockets")
+		require.Contains(t, []int{2, 3}, len(loops), "outline and one or two pockets")
 		outer, best := -1, 0.0
 		for i, l := range loops {
 			if a, _ := loopArea(l); a > best {
@@ -171,7 +180,16 @@ func TestCradleFirstLayer(t *testing.T) {
 			}
 			require.Equal(t, 1, held, "spot %d in a pocket", i)
 		}
-		require.NotEqual(t, pocketOf[0], pocketOf[1], "each spot in its own pocket")
+		// The pockets make one hole exactly where their bed rectangles overlap (at 128).
+		p0, p1 := h.Pockets[0], h.Pockets[1]
+		overlap := p0[0].X < p1[1].X && p1[0].X < p0[1].X && p0[0].Y < p1[1].Y && p1[0].Y < p0[1].Y
+		if overlap {
+			require.Equal(t, 1, len(holes), "merged pocket")
+		} else {
+			require.Equal(t, 2, len(holes), "separate pockets")
+			require.NotEqual(t, pocketOf[0], pocketOf[1], "each spot in its own pocket")
+		}
+		t.Logf("%s: %d pocket holes", c.name, len(holes))
 		t.Logf("%s: cradle first layer %.0f mm²", c.name, area)
 		require.GreaterOrEqual(t, area, cradleFirstLayerMin[c.rotor], "first layer")
 	})

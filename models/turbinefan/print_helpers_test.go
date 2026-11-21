@@ -234,9 +234,9 @@ func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSect
 	return s[len(s)-1], true
 }
 
-// cradleFirstLayerMin is the least first-layer area of the cradle, in mm², by rotor diameter: the v7 probe's 605, 1125
-// and 1447 mm², less 5%.
-var cradleFirstLayerMin = map[float64]float64{128: 570, 192: 1060, 224: 1370}
+// cradleFirstLayerMin is the least first-layer area of the cradle, in mm², by rotor diameter: the v8 probe measured 584,
+// 1110 and 1434 mm² with the stud flat's larger stud pocket.
+var cradleFirstLayerMin = map[float64]float64{128: 550, 192: 1050, 224: 1350}
 
 // inRect reports whether (x, y) lies inside the rectangle r, given as its least and greatest corner.
 func inRect(r [2]r3.Vec, x, y float64) bool {

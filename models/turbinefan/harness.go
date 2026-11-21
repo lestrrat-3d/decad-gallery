@@ -90,12 +90,17 @@ type BladeHarness struct {
 	Body *decad.Body
 	// Sketches are in build order: shadow sections, stud slot, block plan, stud collar, leading-edge collar, block
 	// profile, left cap plan, left cap profile, right cap plan, right cap profile, bed box, then each pocket's XZ and YZ
-	// trapezoids, the stud pocket's first.
+	// trapezoids and its wall reliefs, the stud pocket's first, then one per removed floating piece.
 	Sketches []*sketch.Sketch
 	// Spots are the blade's bed spots, the loops of its section at z = 0.1: the stud corner's, then the leading edge's.
 	Spots [2][]r3.Vec
 	// Pockets are the brim pockets' rectangles at the bed, each as its least and greatest corner, in the order of Spots.
+	// Where they overlap (at 128) the two cuts make one hole holding both spots.
 	Pockets [2][2]r3.Vec
+	// Reliefs are the rectangles where the walls beyond the widest lines are cut away at full height inside a pocket.
+	Reliefs [][2]r3.Vec
+	// Removed are the boxes that cut away pieces of the cradle left floating off the bed.
+	Removed [][2]r3.Vec
 	// Sections are every sampled section, x ascending; Sections[0].X is the shadow's start past the stud end.
 	Sections []CradleSection
 	// XStart and XEnd are the block's x range: XStart lies half a CradleStep past the first section beyond the stud
@@ -207,7 +212,7 @@ func (b *bladeBuilder) sections(blade *decad.Body, box decad.Box) bladeSections 
 	return s
 }
 
-// harness runs construction steps 2 to 10.
+// harness runs construction steps 2 to 11.
 func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt float64) *BladeHarness {
 	box, err := blade.Bounds()
 	if err != nil {
@@ -284,6 +289,11 @@ func (b *bladeBuilder) harness(blade *decad.Body, pose r3.Frame, hand Hand, tilt
 	}
 	cradle, err = decad.Cut(b.ctx, cradle, shadow)
 	b.fail("cut blade shadow", err)
+	if b.err != nil {
+		return nil
+	}
+	// 11: pieces left floating between the pockets' slopes, the block's start face and the blade.
+	cradle = b.removeFloating(h, cradle)
 	if b.err != nil {
 		return nil
 	}
@@ -745,8 +755,142 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 		if b.err != nil {
 			return nil
 		}
+		body = b.relieveWalls(h, i, body, zTop)
+		if b.err != nil {
+			return nil
+		}
 	}
 	return body
+}
+
+// relieveWalls cuts, inside brim pocket i's bed rectangle inset by 0.3, the cradle's walls beyond the widest lines at
+// full height, so no wall piece is left standing on the pocket's slope. A side's relief reaches from the pocket's edge
+// to the extreme widest y over the rectangle's x range (the least LeftY, the greatest RightY), so it never cuts under
+// the blade; a side where that leaves less than 0.5 mm is skipped. Each relief's rectangle goes to h.Reliefs.
+func (b *bladeBuilder) relieveWalls(h *BladeHarness, i int, body *decad.Body, zTop float64) *decad.Body {
+	lo, hi := h.Pockets[i][0], h.Pockets[i][1]
+	x0, x1 := lo.X+0.3, hi.X-0.3
+	left, right := math.Inf(1), math.Inf(-1)
+	for _, c := range h.Sections {
+		if c.X >= x0-CradleStep && c.X <= x1+CradleStep {
+			left, right = math.Min(left, c.LeftY), math.Max(right, c.RightY)
+		}
+	}
+	var rects [][2]r3.Vec
+	if y := lo.Y + 0.3; left > y+0.5 {
+		rects = append(rects, [2]r3.Vec{{X: x0, Y: y}, {X: x1, Y: left}})
+	}
+	if y := hi.Y - 0.3; right < y-0.5 {
+		rects = append(rects, [2]r3.Vec{{X: x0, Y: right}, {X: x1, Y: y}})
+	}
+	for k, r := range rects {
+		name := fmt.Sprintf("brim pocket %d wall relief %d", i, k)
+		cutter := b.extrudePolygon(frame(r3.Vec{Z: -1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), rectAround(r, 0), zTop+5, name)
+		if b.err != nil {
+			return nil
+		}
+		var err error
+		body, err = decad.Cut(b.ctx, body, cutter)
+		b.fail("cut "+name, err)
+		if b.err != nil {
+			return nil
+		}
+		h.Reliefs = append(h.Reliefs, r)
+	}
+	return body
+}
+
+// removeFloating cuts away every piece of the cradle that does not reach the bed (step 11). It meshes the cradle at
+// 0.2 mm, joins the mesh's vertices welded at 1e-3 into connected pieces, and cuts each piece whose lowest z is over
+// 1e-3 by its bounding box grown 0.05, after checking that no other piece has a vertex in that box. Each cut box goes
+// to h.Removed.
+func (b *bladeBuilder) removeFloating(h *BladeHarness, cradle *decad.Body) *decad.Body {
+	if b.err != nil || len(cradle.Lumps()) == 1 {
+		return cradle
+	}
+	mesh, err := cradle.Tessellate(b.ctx, units.Millimeters(0.2), decad.WithVerification(decad.VerifyNone))
+	if err != nil {
+		b.fail("mesh cradle for floating pieces", err)
+		return nil
+	}
+	vs := mesh.Vertices()
+	piece := meshPieces(vs, mesh.Triangles())
+	type box struct{ lo, hi r3.Vec }
+	boxes := map[int]*box{}
+	var order []int
+	for i, v := range vs {
+		bx := boxes[piece[i]]
+		if bx == nil {
+			bx = &box{lo: v, hi: v}
+			boxes[piece[i]] = bx
+			order = append(order, piece[i])
+		}
+		bx.lo = r3.Vec{X: math.Min(bx.lo.X, v.X), Y: math.Min(bx.lo.Y, v.Y), Z: math.Min(bx.lo.Z, v.Z)}
+		bx.hi = r3.Vec{X: math.Max(bx.hi.X, v.X), Y: math.Max(bx.hi.Y, v.Y), Z: math.Max(bx.hi.Z, v.Z)}
+	}
+	const grow = 0.05
+	for _, p := range order {
+		bx := boxes[p]
+		if bx.lo.Z <= 1e-3 {
+			continue
+		}
+		g := r3.Vec{X: grow, Y: grow, Z: grow}
+		lo, hi := bx.lo.Sub(g), bx.hi.Add(g)
+		for i, v := range vs {
+			if piece[i] != p && v.X >= lo.X && v.X <= hi.X && v.Y >= lo.Y && v.Y <= hi.Y && v.Z >= lo.Z && v.Z <= hi.Z {
+				b.fail("remove floating piece", fmt.Errorf("its box %v..%v holds another piece's vertex %v", lo, hi, v))
+				return nil
+			}
+		}
+		r := [2]r3.Vec{lo, hi}
+		cutter := b.extrudePolygon(frame(r3.Vec{Z: lo.Z}, r3.Vec{X: 1}, r3.Vec{Y: 1}), rectAround(r, 0), hi.Z-lo.Z,
+			"floating piece")
+		if b.err != nil {
+			return nil
+		}
+		cradle, err = decad.Cut(b.ctx, cradle, cutter)
+		b.fail("cut floating piece", err)
+		if b.err != nil {
+			return nil
+		}
+		h.Removed = append(h.Removed, r)
+	}
+	return cradle
+}
+
+// meshPieces returns, for each vertex, the index of its connected piece: vertices within 1e-3 are welded, and the
+// triangles join them.
+func meshPieces(vs []r3.Vec, tris [][3]int) []int {
+	id := map[[3]int64]int{}
+	weld := make([]int, len(vs))
+	var parent []int
+	for i, v := range vs {
+		k := [3]int64{int64(math.Round(v.X * 1e3)), int64(math.Round(v.Y * 1e3)), int64(math.Round(v.Z * 1e3))}
+		j, ok := id[k]
+		if !ok {
+			j = len(parent)
+			id[k] = j
+			parent = append(parent, j)
+		}
+		weld[i] = j
+	}
+	find := func(i int) int {
+		for parent[i] != i {
+			parent[i] = parent[parent[i]]
+			i = parent[i]
+		}
+		return i
+	}
+	for _, t := range tris {
+		a := find(weld[t[0]])
+		parent[find(weld[t[1]])] = a
+		parent[find(weld[t[2]])] = a
+	}
+	out := make([]int, len(vs))
+	for i := range vs {
+		out[i] = find(weld[i])
+	}
+	return out
 }
 
 // spots reads the blade's two bed spots, its section loops at z = 0.1, into h.Spots, the stud corner's first, and sets
