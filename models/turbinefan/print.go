@@ -25,8 +25,12 @@ const (
 	RestTiltMax = 20 * math.Pi / 180
 )
 
-// HarnessContainerName is the container BuildBladePrint files the harness in.
-const HarnessContainerName = "Harness"
+// HarnessContainerName is the container BuildBladePrint files the cradle in, and BrimPadsContainerName the one it files
+// the brim pads in.
+const (
+	HarnessContainerName  = "Harness"
+	BrimPadsContainerName = "Brim Pads"
+)
 
 // checkPose validates the pose arguments shared by RestTilt and PrintPoseFor.
 func checkPose(sz Size, pitch float64, hand Hand) error {
@@ -132,7 +136,8 @@ func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, er
 	return f, nil
 }
 
-// BladePrint is a blade and its harness in the print frame, filed in BladesContainerName and HarnessContainerName.
+// BladePrint is a blade and its harness in the print frame, filed in BladesContainerName, HarnessContainerName (the
+// cradle) and BrimPadsContainerName (the brim pads).
 type BladePrint struct {
 	Blade         *decad.Body
 	BladeSketches []*sketch.Sketch
@@ -184,10 +189,15 @@ func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*Blade
 	if err != nil {
 		return nil, err
 	}
-	for _, c := range []struct {
+	type filed struct {
 		name string
 		body *decad.Body
-	}{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}} {
+	}
+	bodies := []filed{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}}
+	for _, pad := range harness.Pads {
+		bodies = append(bodies, filed{BrimPadsContainerName, pad})
+	}
+	for _, c := range bodies {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
 			return nil, fmt.Errorf("turbinefan: container %s: %w", c.name, err)

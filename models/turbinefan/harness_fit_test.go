@@ -3,12 +3,12 @@ package turbinefan_test
 // CI: isolated-tests
 
 import (
+	"errors"
 	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
@@ -96,16 +96,14 @@ func TestBladeHarnessWallTop(t *testing.T) {
 	})
 }
 
-// TestBladeHarnessContour requires the cradle to follow the blade: below the widest line every sampled blade surface
-// point is within CradleGapXY + 0.3 of the cradle's mesh, or 2.2 in the step zone and its lead-in. The bolt hole's band,
-// the root step's face and the near-bed band (blade under 0.6 mm) are exempt.
+// TestBladeHarnessContour requires the harness to follow the blade: below the widest line every sampled blade surface
+// point is within CradleGapXY + 0.3 of the cradle's mesh, or of a brim pad's when over it, or 2.2 in the step zone and
+// its lead-in. Over a pad the cradle stands back to PadClearanceTop, so the pad is the nearest support there. The bolt
+// hole's band, the root step's face and the near-bed band (blade under 0.6 mm) are exempt.
 func TestBladeHarnessContour(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
-		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
-		require.NoError(t, err)
-		g, err := meshgap.New(hm.Vertices(), hm.Triangles(), hm.Bound().Base())
-		require.NoError(t, err)
+		gs, bound := harnessGaps(t, h)
 		pose, err := turbinefan.PrintPoseFor(b.sz, turbinefan.DefaultBladePitch, c.hand, b.tilt)
 		require.NoError(t, err)
 		radial := pose.U().Cross(pose.V())
@@ -134,8 +132,7 @@ func TestBladeHarnessContour(t *testing.T) {
 				if math.Abs(r-b.sz.BladeBoltAt) <= m2fastener.HoleRadius+0.5 || math.Abs(r-b.sz.RootRadius) <= 0.1 {
 					continue
 				}
-				d, err := g.PointDistance(p)
-				require.NoError(t, err)
+				d := supportDistance(t, h, gs, p)
 				samples++
 				if !step && d > worst {
 					worst, worstX = d, s.X
@@ -146,7 +143,7 @@ func TestBladeHarnessContour(t *testing.T) {
 			}
 		}
 		t.Logf("%s: %d samples, worst %.3f mm at x %.2f outside the step zone (mesh bound %.3f), %d over the limit", c.name,
-			samples, worst, worstX, hm.Bound().Base(), over)
+			samples, worst, worstX, bound, over)
 		require.Zero(t, over, "samples farther from the cradle than allowed")
 	})
 }
@@ -180,10 +177,98 @@ func TestBladeHarnessNothingAbove(t *testing.T) {
 	})
 }
 
-// TestBladeHarnessOverhangs requires printable faces. Every harness face pointing down more than 45 degrees lies on the
-// bed. Every such blade face rests over the cradle (its centroid within 1.0 of the harness mesh, 2.2 in the step zone
-// and its lead-in), or lies in the bolt hole's band, on the stud end's chamfer, past the cradle's tip end, or in the
-// near-bed band (every vertex under 0.6 mm).
+// TestBladePadsTouch requires the brim pads in order, stud corner first, and each to hug its blade bed patch: the pad's
+// first-layer section has exactly one hole, whose area matches the blade's patch within 0.05 mm² and whose bounding box
+// matches within 0.05 mm, and the pad overlaps the blade only between z 0.1 and 0.2, by more than 0 and less than
+// 0.5 mm³.
+func TestBladePadsTouch(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		islands := sectionAt(t, b.blade, 0.1).Loops
+		require.Equal(t, 2, len(islands), "blade bed patches")
+		// The stud corner's pad comes first: its patch lies nearer the stud end and is the smaller one.
+		require.Equal(t, 2, len(b.harness.PadPatches))
+		studArea, studCen := loopArea(b.harness.PadPatches[0])
+		edgeArea, edgeCen := loopArea(b.harness.PadPatches[1])
+		require.Less(t, studCen.X, edgeCen.X, "pad order along x")
+		require.Less(t, studArea, edgeArea, "pad order by patch area")
+		for i, pad := range b.harness.Pads {
+			loops := sectionAt(t, pad, 0.1).Loops
+			require.Equal(t, 2, len(loops), "pad %d loops", i)
+			outer, hole := loops[0], loops[1]
+			outerArea, _ := loopArea(outer)
+			if a, _ := loopArea(hole); a > outerArea {
+				outer, hole = hole, outer
+			}
+			require.True(t, insideLoop(outer, hole[0].X, hole[0].Y), "pad %d hole inside its outline", i)
+			holeArea, holeCen := loopArea(hole)
+			island, best := []r3.Vec(nil), math.Inf(1)
+			for _, l := range islands {
+				_, cen := loopArea(l)
+				if d := math.Hypot(cen.X-holeCen.X, cen.Y-holeCen.Y); d < best {
+					island, best = l, d
+				}
+			}
+			islandArea, _ := loopArea(island)
+			hlo, hhi := loopBox(hole)
+			ilo, ihi := loopBox(island)
+			t.Logf("%s: pad %d hole %.3f mm², blade patch %.3f mm²", c.name, i, holeArea, islandArea)
+			require.InDelta(t, islandArea, holeArea, 0.05, "pad %d hole area", i)
+			for k, pair := range [][2]float64{{ilo.X, hlo.X}, {ilo.Y, hlo.Y}, {ihi.X, hhi.X}, {ihi.Y, hhi.Y}} {
+				require.InDelta(t, pair[0], pair[1], 0.05, "pad %d hole box %d", i, k)
+			}
+			// Intersect retires its operands, so it runs on copies.
+			bladeCopy, err := decad.Copy(t.Context(), b.blade)
+			require.NoError(t, err)
+			padCopy, err := decad.Copy(t.Context(), pad)
+			require.NoError(t, err)
+			in, err := decad.Intersect(t.Context(), bladeCopy, padCopy)
+			require.NoError(t, err, "pad %d", i)
+			v, err := in.Volume()
+			require.NoError(t, err)
+			t.Logf("%s: pad %d overlaps the blade by %.4f mm³", c.name, i, v.Value.Base())
+			require.Greater(t, v.Value.Base(), 0.0, "pad %d overlap", i)
+			require.Less(t, v.Value.Base(), 0.5, "pad %d overlap", i)
+		}
+	})
+}
+
+// TestBladePadsClear requires the cradle to keep clear of each brim pad: they share no volume, and the cradle's section
+// at z = 0.3 has no point inside any pad's outline grown by CradleGapXY - 0.05, sampled every 0.1 mm along its loops.
+func TestBladePadsClear(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		h := b.harness
+		for i, pad := range h.Pads {
+			padCopy, err := decad.Copy(t.Context(), pad)
+			require.NoError(t, err)
+			cradleCopy, err := decad.Copy(t.Context(), h.Body)
+			require.NoError(t, err)
+			_, err = decad.Intersect(t.Context(), padCopy, cradleCopy)
+			var be *decad.BooleanError
+			require.True(t, errors.As(err, &be) && be.Code == decad.BooleanEmpty, "pad %d intersect: %v", i, err)
+		}
+		inside := 0
+		for _, l := range sectionAt(t, h.Body, 0.3).Loops {
+			for k := range l {
+				p, q := l[k], l[(k+1)%len(l)]
+				n := max(1, int(math.Ceil(q.Sub(p).Len()/0.1)))
+				for j := range n {
+					s := p.Add(q.Sub(p).Scale(float64(j) / float64(n)))
+					for _, r := range h.PadOutlines {
+						if inPadRect(r, turbinefan.CradleGapXY-0.05, s.X, s.Y) {
+							inside++
+						}
+					}
+				}
+			}
+		}
+		require.Zero(t, inside, "cradle points at z 0.3 inside a pad's clearance")
+	})
+}
+
+// TestBladeHarnessOverhangs requires printable faces. Every cradle face pointing down more than 45 degrees lies on the
+// bed, or over a brim pad at PadClearanceTop. Every such blade face rests over the harness (its centroid within 1.0 of
+// the cradle's mesh, or of a brim pad's when over it, 2.2 in the step zone and its lead-in), or lies in the bolt hole's
+// band, on the stud end's chamfer, past the cradle's tip end, or in the near-bed band (every vertex under 0.6 mm).
 func TestBladeHarnessOverhangs(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
@@ -201,13 +286,25 @@ func TestBladeHarnessOverhangs(t *testing.T) {
 			if v[0].Z <= bound && v[1].Z <= bound && v[2].Z <= bound {
 				continue
 			}
+			// The cradle over a pad prints on it across the support gap.
+			overPad := true
+			for _, p := range v {
+				onTop := math.Abs(p.Z-turbinefan.PadClearanceTop) <= bound
+				inPad := false
+				for _, r := range h.PadOutlines {
+					inPad = inPad || inPadRect(r, turbinefan.CradleGapXY+bound, p.X, p.Y)
+				}
+				overPad = overPad && onTop && inPad
+			}
+			if overPad {
+				continue
+			}
 			bad++
 			worst = math.Max(worst, angle)
 		}
 		require.Zero(t, bad, "%d harness overhangs off the bed, worst %.1f°", bad, worst)
 
-		g, err := meshgap.New(hm.Vertices(), hm.Triangles(), bound)
-		require.NoError(t, err)
+		gs, _ := harnessGaps(t, h)
 		bm, err := b.blade.Tessellate(t.Context(), units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err)
 		pose, err := turbinefan.PrintPoseFor(b.sz, turbinefan.DefaultBladePitch, c.hand, b.tilt)
@@ -243,17 +340,15 @@ func TestBladeHarnessOverhangs(t *testing.T) {
 			if cen.X >= h.StepZone[0]-1.5 && cen.X <= h.StepZone[1] {
 				limit = 2.2
 			}
-			d, err := g.PointDistance(cen)
-			require.NoError(t, err)
-			if d <= limit {
-				counts["over the cradle"]++
+			if d := supportDistance(t, h, gs, cen); d <= limit {
+				counts["over the harness"]++
 				farthest = math.Max(farthest, d)
 				continue
 			}
 			bad++
 			worst = math.Max(worst, angle)
 		}
-		t.Logf("%s: blade overhangs %v, farthest over the cradle %.3f mm", c.name, counts, farthest)
+		t.Logf("%s: blade overhangs %v, farthest over the harness %.3f mm", c.name, counts, farthest)
 		require.Zero(t, bad, "%d blade overhangs unsupported, worst %.1f°", bad, worst)
 	})
 }

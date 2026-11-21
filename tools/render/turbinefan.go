@@ -255,22 +255,28 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 // turbinePrint is one blade and its print harness, meshed, in the print frame: bed z = 0, +Z up, +X from stud to tip.
 type turbinePrint struct {
 	blade, harness *decad.Mesh
+	pads           []*decad.Mesh
 }
 
-// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm
-// and the harness at 0.2 mm.
+// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm,
+// the cradle at 0.2 mm and the brim pads at 0.1 mm.
 func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
 	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
 	if err != nil {
 		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
 	}
-	var out turbinePrint
-	// The cradle's cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14; it meshes at 0.2.
-	for _, part := range []struct {
+	out := turbinePrint{pads: make([]*decad.Mesh, len(bp.Harness.Pads))}
+	type part struct {
 		body *decad.Body
 		mesh **decad.Mesh
 		tol  float64
-	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}} {
+	}
+	// The cradle's cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14; it meshes at 0.2.
+	parts := []part{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}}
+	for i, pad := range bp.Harness.Pads {
+		parts = append(parts, part{pad, &out.pads[i], .1})
+	}
+	for _, part := range parts {
 		mesh, err := part.body.Tessellate(ctx, units.Millimeters(part.tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return turbinePrint{}, fmt.Errorf("mesh turbine blade print: %w", err)
@@ -279,6 +285,11 @@ func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbineP
 	}
 	return out, nil
 }
+
+// turbinePrintBedClip is the height of the plane the "print-bed" view clips every body at: just over the cradle's flange
+// (CradleBrimHeight) and under the cradle's clearance over the pads (PadClearanceTop), so the pads and the flange show
+// whole and the blade and the cradle's block show their outlines near the bed.
+const turbinePrintBedClip = 0.45
 
 func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, error) {
 	return func(ctx context.Context) (solidlens.Scene, error) {
@@ -290,27 +301,47 @@ func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, 
 	}
 }
 
-// view draws the print job toward the bodies' bounds centre, +Z up: "print" from the stud end, the pressure side and
-// above; "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the
-// stud on the right; "print-end" from the
-// tip end along the radial line, a little from above.
+// view draws the print job toward the bodies' bounds centre, the brim pads in the cradle's colour: "print" from the stud
+// end, the pressure side and above; "print-side" from the right hand's suction side (+Y), a little from above, so the tip
+// is on the left and the stud on the right; "print-end" from the tip end along the radial line, a little from above;
+// "print-bed" straight down on the first layer, every body clipped at turbinePrintBedClip, the tip on the right. The
+// first three have +Z up.
 func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	dirs := map[string]r3.Vec{
 		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: 1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
+		"print-bed": {Z: 1},
 	}
 	dir, ok := dirs[name]
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown turbine print view %q", name)
 	}
 	models := []solidlens.Model{turbineModel(p.blade, turbineBladeColor), turbineModel(p.harness, turbineHarnessColor)}
+	for _, pad := range p.pads {
+		models = append(models, turbineModel(pad, turbineHarnessColor))
+	}
 	lo, hi := meshBounds(p.harness)
-	blo, bhi := meshBounds(p.blade)
-	lo = r3.Vec{X: math.Min(lo.X, blo.X), Y: math.Min(lo.Y, blo.Y), Z: math.Min(lo.Z, blo.Z)}
-	hi = r3.Vec{X: math.Max(hi.X, bhi.X), Y: math.Max(hi.Y, bhi.Y), Z: math.Max(hi.Z, bhi.Z)}
+	for _, m := range append([]*decad.Mesh{p.blade}, p.pads...) {
+		mlo, mhi := meshBounds(m)
+		lo = r3.Vec{X: math.Min(lo.X, mlo.X), Y: math.Min(lo.Y, mlo.Y), Z: math.Min(lo.Z, mlo.Z)}
+		hi = r3.Vec{X: math.Max(hi.X, mhi.X), Y: math.Max(hi.Y, mhi.Y), Z: math.Max(hi.Z, mhi.Z)}
+	}
 	center := lo.Add(hi).Scale(.5)
+	up := solidlens.Vec{Z: 1}
+	if name == "print-bed" {
+		center.Z = 0
+		up = solidlens.Vec{Y: 1}
+		colors := []solidlens.Color{turbineBladeColor, turbineHarnessColor}
+		for i := range models {
+			c := turbineHarnessColor
+			if i < len(colors) {
+				c = colors[i]
+			}
+			models[i] = clipped(models[i], c, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
+		}
+	}
 	d, _ := dir.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(d.Scale(4 * hi.Sub(lo).Len()))),
-		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
+		Target: solidlens.Vec(center), Up: up, FOV: 35}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .06), models), nil
 }
 
@@ -371,14 +402,14 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 	return renderTurbineClutchReadme(ctx, outputDir)
 }
 
-// renderTurbinePrintReadme builds the default blade's print job once and writes its three views and the cradle's part
-// image, seen like the other parts.
+// renderTurbinePrintReadme builds the default blade's print job once and writes its four views and the harness's part
+// image (the cradle and the brim pads), seen like the other parts.
 func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
 	p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
 	if err != nil {
 		return err
 	}
-	for _, view := range []string{"print", "print-side", "print-end"} {
+	for _, view := range []string{"print", "print-side", "print-end", "print-bed"} {
 		scene, err := p.view(view)
 		if err != nil {
 			return err
@@ -393,6 +424,9 @@ func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
 		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
 	models := []solidlens.Model{turbineModel(p.harness, turbineHarnessColor)}
+	for _, pad := range p.pads {
+		models = append(models, turbineModel(pad, turbineHarnessColor))
+	}
 	scene := turbineScene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 	return renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", "harness.png"), scene, 480, 270)
 }
