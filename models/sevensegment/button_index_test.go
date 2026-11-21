@@ -14,7 +14,7 @@ import (
 )
 
 func TestButtonIndexPhase60(t *testing.T) {
-	doc := decad.New()
+	doc := NewDocument()
 	index, err := buildButtonIndex(t.Context(), doc, 60)
 	require.NoError(t, err)
 	require.NoError(t, doc.VerifyContainers().Err())
@@ -196,7 +196,7 @@ func TestButtonIndexKeyShaft(t *testing.T) {
 }
 
 func TestButtonIndexDisplay(t *testing.T) {
-	doc := decad.New()
+	doc := NewDocument()
 	display, err := Build(t.Context(), doc, Params{Digit: 9})
 	require.NoError(t, err)
 	require.NotNil(t, display)

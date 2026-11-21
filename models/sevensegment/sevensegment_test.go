@@ -20,7 +20,7 @@ func TestSevenSegmentDefault(t *testing.T) {
 	startDefault()
 	t.Parallel()
 	doc, m := builtDefault(t)
-	require.Len(t, doc.Bodies(), 60)
+	require.Len(t, doc.Bodies(), 61)
 	for _, b := range doc.Bodies() {
 		require.True(t, b.IsSolid())
 	}
@@ -35,7 +35,7 @@ func TestSevenSegmentDefault(t *testing.T) {
 	meshes := map[string]meshgap.Mesh{}
 	boxes := map[string]decad.Box{}
 	for name, b := range printed(m) {
-		_, meshes[name] = meshOf(t, b, 0.05)
+		_, meshes[name] = meshOf(t, b, partTol(name))
 		box, err := b.Bounds()
 		require.NoError(t, err)
 		boxes[name] = box
@@ -44,7 +44,7 @@ func TestSevenSegmentDefault(t *testing.T) {
 	for n := range meshes {
 		names = append(names, n)
 	}
-	pressed := map[string]struct{}{"ratchet wheel": {}, "collar ring": {}, "knob": {}}
+	pressed := map[string]struct{}{"hub": {}}
 	for _, seg := range sevensegment.Segments() {
 		pressed["cam "+seg.String()] = struct{}{}
 	}
@@ -53,6 +53,9 @@ func TestSevenSegmentDefault(t *testing.T) {
 		for _, b := range names[i+1:] {
 			if !boxesTouch(boxes[a], boxes[b], 0.05) {
 				continue
+			}
+			if isToothMate(a, b) {
+				continue // the click indexer's mating teeth keep their land gaps: TestClickerLandGaps proves them
 			}
 			if strings.HasPrefix(a, "yellow face ") && b == "black body "+strings.TrimPrefix(a, "yellow face ") ||
 				strings.HasPrefix(b, "yellow face ") && a == "black body "+strings.TrimPrefix(b, "yellow face ") {
@@ -64,9 +67,9 @@ func TestSevenSegmentDefault(t *testing.T) {
 			ma, mb, clearance := meshes[a], meshes[b], 0.0
 			if other, ok := shaftMate(a, b); ok {
 				if _, ok := pressed[other]; ok {
-					_, ma = meshOf(t, printed(m)[a], 0.005)
-					_, mb = meshOf(t, printed(m)[b], 0.005)
-					clearance = 0.03 // the 0.05 mm press fit less the meshes' 0.02 mm allowance
+					_, ma = meshOf(t, printed(m)[a], pressTol(a))
+					_, mb = meshOf(t, printed(m)[b], pressTol(b))
+					clearance = 0.025 // the 0.05 mm press fit less the meshes' 0.025 mm allowance
 					shaftPairs++
 				}
 			}
@@ -84,16 +87,16 @@ func TestSevenSegmentContainers(t *testing.T) {
 	doc, m := builtDefault(t)
 	require.NoError(t, doc.VerifyContainers().Err())
 	want := map[string]struct{ parent, kind string }{
-		"front wall":    {sevensegment.FrameContainerName, sevensegment.WallsContainerName},
-		"rear wall":     {sevensegment.FrameContainerName, sevensegment.WallsContainerName},
-		"guide plate":   {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
-		"cradle plate":  {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
-		"top plate":     {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
-		"detent plate":  {sevensegment.FrameContainerName, sevensegment.DetentPlateContainerName},
-		"shaft":         {sevensegment.CamshaftContainerName, sevensegment.ShaftContainerName},
-		"ratchet wheel": {sevensegment.CamshaftContainerName, sevensegment.RatchetWheelContainerName},
-		"collar ring":   {sevensegment.CamshaftContainerName, sevensegment.CollarRingContainerName},
-		"knob":          {sevensegment.CamshaftContainerName, sevensegment.KnobContainerName},
+		"front wall":   {sevensegment.FrameContainerName, sevensegment.WallsContainerName},
+		"rear wall":    {sevensegment.FrameContainerName, sevensegment.WallsContainerName},
+		"guide plate":  {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
+		"cradle plate": {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
+		"top plate":    {sevensegment.FrameContainerName, sevensegment.PlatesContainerName},
+		"shaft":        {sevensegment.CamshaftContainerName, sevensegment.ShaftContainerName},
+		"hub":          {sevensegment.ClickerContainerName, sevensegment.HubContainerName},
+		"rotor":        {sevensegment.ClickerContainerName, sevensegment.RotorContainerName},
+		"housing":      {sevensegment.ClickerContainerName, sevensegment.HousingContainerName},
+		"button":       {sevensegment.ClickerContainerName, sevensegment.ButtonContainerName},
 	}
 	for _, s := range sevensegment.Segments() {
 		want["cam "+s.String()] = struct{ parent, kind string }{sevensegment.CamshaftContainerName,
@@ -148,7 +151,7 @@ func TestSevenSegmentFasteners(t *testing.T) {
 	pmeshes := map[string]*decad.Mesh{}
 	grids := map[string]*crossingGrid{}
 	for name, b := range parts {
-		pmeshes[name], _ = meshOf(t, b, 0.05)
+		pmeshes[name], _ = meshOf(t, b, partTol(name))
 		grids[name] = newCrossingGrid(pmeshes[name])
 	}
 	for i, site := range m.Sites {
@@ -293,7 +296,7 @@ func TestSevenSegmentPlacement(t *testing.T) {
 		p := sevensegment.DefaultParams()
 		p.Placement = &frames[i]
 		builds[i].start(func(ctx context.Context) (*sevensegment.Parts, error) {
-			return sevensegment.BuildParts(ctx, decad.New(), p)
+			return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), p)
 		})
 	}
 	startDefault()
@@ -306,7 +309,7 @@ func TestSevenSegmentPlacement(t *testing.T) {
 			p := sevensegment.DefaultParams()
 			p.Placement = &frame
 			parts := builds[i].built(t, func(ctx context.Context) (*sevensegment.Parts, error) {
-				return sevensegment.BuildParts(ctx, decad.New(), p)
+				return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), p)
 			})
 			place, err := r3.FromFrame(frame)
 			require.NoError(t, err)
@@ -344,7 +347,7 @@ func TestSevenSegmentPlacement(t *testing.T) {
 	}
 	p := sevensegment.DefaultParams()
 	p.Placement = &r3.Frame{}
-	_, err := sevensegment.BuildParts(t.Context(), decad.New(), p)
+	_, err := sevensegment.BuildParts(t.Context(), sevensegment.NewDocument(), p)
 	require.EqualError(t, err, "sevensegment: invalid placement frame")
 }
 

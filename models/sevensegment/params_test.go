@@ -12,9 +12,9 @@ import (
 )
 
 func TestSevenSegmentTruthTable(t *testing.T) {
-	// a b c d e f g per digit, as in instructions.md "Truth table and ramp table".
+	// a b c d e f g per digit, with the a-d, b-e, c-f roles swapped for the knob-up stance (instructions.md "Truth table and ramp table").
 	want := [10]string{
-		"1111110", "0110000", "1101101", "1111001", "0110011", "1011011", "1011111", "1110000", "1111111", "1111011",
+		"1111110", "0000110", "1101101", "1001111", "0010111", "1011011", "1111011", "0001110", "1111111", "1011111",
 	}
 	for digit, row := range want {
 		for i, s := range sevensegment.Segments() {
@@ -106,9 +106,7 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 	samples := map[float64]float64{8: 0, 9: 0.023, 10: 0.092, 12: 0.307, 14: 0.550, 16: 0.824, 18: 1.128, 20: 1.467,
 		22: 1.843, 24: 2.258, 26: 2.696, 28: 2.946, 29: 2.994, 29.5: 3.0}
 	for off, lift := range samples {
-		got := dm.GrooveRadius(sevensegment.SegB, 90+36*4+off+0) // segment b, step 4->5 is falling
-		_ = got
-		rise := dm.GrooveRadius(sevensegment.SegB, 90+36*6+off) - sevensegment.OffRadius // step 6->7 rises
+		rise := dm.GrooveRadius(sevensegment.SegE, 90+36*6+off) - sevensegment.OffRadius // segment e, step 6->7 rises
 		require.InDelta(t, lift, rise, 0.005, "offset %g", off)
 	}
 }
@@ -117,76 +115,13 @@ func TestSevenSegmentRampGeometry(t *testing.T) {
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
 	// Step 0->1 falls for cam a; step 1->2 rises (window starts at 134).
-	rise := dm.Ramps[sevensegment.SegA][1].Geometry()
+	rise := dm.Ramps[sevensegment.SegD][1].Geometry()
 	require.InDelta(t, 20.5*math.Cos(134*math.Pi/180), rise.C1.X, 1e-9)
 	require.InDelta(t, 18.5, math.Hypot(rise.C2.X, rise.C2.Y), 1e-9)
 	require.InDelta(t, 5.6372, rise.LineLength, 1e-3)
-	fall := dm.Ramps[sevensegment.SegA][0].Geometry()
+	fall := dm.Ramps[sevensegment.SegD][0].Geometry()
 	require.InDelta(t, 18.5, math.Hypot(fall.C1.X, fall.C1.Y), 1e-9)
 	require.InDelta(t, 20.5, math.Hypot(fall.C2.X, fall.C2.Y), 1e-9)
-}
-
-func TestSevenSegmentDetent(t *testing.T) {
-	startDigit0() // the driven-back budget reads the built rotors
-	t.Parallel()
-	dm, err := sevensegment.DefaultParams().Derive()
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, dm.SeatAngle, 4.5)
-	require.LessOrEqual(t, dm.SeatAngle, 5.0)
-	require.InDelta(t, sevensegment.PawlAngle-dm.SeatAngle, dm.LockPhase, 1e-12)
-	require.InDelta(t, sevensegment.RatchetTip+sevensegment.LooseFit, dm.PawlArmInner, 1e-9)
-	require.InDelta(t, dm.PawlArmInner+sevensegment.PawlArmRoot, dm.PawlArmOuter, 1e-9)
-	require.InDelta(t, 11.876, sevensegment.RatchetTip, 0.001)
-	require.InDelta(t, 50, sevensegment.FlankAngle(10), 1e-9)
-	require.InDelta(t, 33.036, sevensegment.FlankAngle(31.25), 1e-3)
-	// The seat: TightFit past the tip round from the lock face line, PawlFlankGap from the flank (pawl frame: lock face on
-	// the ray at -SeatAngle).
-	seat := r3.Vec{X: dm.SeatRadius}
-	lock := r3.Vec{X: math.Cos(-dm.SeatAngle * math.Pi / 180), Y: math.Sin(-dm.SeatAngle * math.Pi / 180)}
-	require.InDelta(t, sevensegment.PawlTipRound+sevensegment.TightFit, math.Abs(lock.X*seat.Y-lock.Y*seat.X), 0.005)
-	best := math.Inf(1)
-	for rel := 0.0; rel <= 36; rel += 0.005 {
-		rr := dm.RatchetRadius(dm.LockPhase + rel)
-		a := (rel - dm.SeatAngle) * math.Pi / 180
-		best = math.Min(best, seat.Sub(r3.Vec{X: rr * math.Cos(a), Y: rr * math.Sin(a)}).Len())
-	}
-	require.InDelta(t, sevensegment.PawlTipRound+sevensegment.PawlFlankGap, best, 0.005)
-	// Root round: the 0.6 round's centre lies 0.6 from the lock face and the flank; the seat is farther from the corner.
-	require.Greater(t, seat.Len(), sevensegment.RatchetRoot+0.6)
-
-	delta0, _ := dm.PawlDeflection(0)
-	require.Zero(t, delta0)
-	contact := math.NaN()
-	prev := 0.0
-	for psi := 0.0; psi <= dm.CrestAngle+1e-9; psi += 0.05 {
-		d, _ := dm.PawlDeflection(psi)
-		require.GreaterOrEqual(t, d, prev-2e-4, "psi %.2f", psi)
-		prev = d
-		if math.IsNaN(contact) && d > 1e-3 {
-			contact = psi
-		}
-	}
-	require.GreaterOrEqual(t, contact, 0.5)
-	require.LessOrEqual(t, contact, 2.0)
-	require.GreaterOrEqual(t, dm.CrestAngle-1.0, 28.05+sevensegment.TimingAllowance)
-	require.InDelta(t, 4.35, dm.LiftMax, 0.03)
-	// Nominal arm strain at the crest: the radial force that lifts the head by LiftMax (C_uu), times the lever to the root,
-	// over the root section (E cancels). The FE of the real outline reads 1.66 % at the root round (1.5 % with large
-	// deflection); instructions.md "Arm strain".
-	c := pawlCompliance(dm, pawlE)
-	force := dm.LiftMax / c[0][0]
-	root := sevensegment.PawlBackV + sevensegment.PawlArmLength
-	tr := sevensegment.PawlArmRoot
-	strain := 6 * force * root / (sevensegment.DetentThickness * tr * tr) / pawlE
-	t.Logf("crest force %.2f N, nominal root strain %.3f %%", force, 100*strain)
-	require.LessOrEqual(t, strain, 0.0145)
-
-	// Budget at friction 0.35 over [7.98, 29.55].
-	worst := math.Inf(1)
-	for psi := 7.98; psi <= 29.55; psi += 0.1 {
-		worst = math.Min(worst, worstFlagBudget(t, dm, psi))
-	}
-	require.GreaterOrEqual(t, worst, 3.0, "detent budget at friction 0.35")
 }
 
 func TestSevenSegmentChannel(t *testing.T) {

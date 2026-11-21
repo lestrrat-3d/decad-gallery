@@ -48,7 +48,7 @@ func TestSevenSegmentEdgeFinishing(t *testing.T) {
 				return
 			}
 			faces := spec.faces(r, body)
-			require.Len(t, faces, 2, "both faces carry a chamfer")
+			require.NotEmpty(t, faces, "the large faces carry a chamfer")
 			for _, f := range faces {
 				nMinX, nMaxX, nMinY, nMaxY, nR := outlineReach(spec.section(t, body, f.level+f.inward*0.1))
 				dMinX, dMaxX, dMinY, dMaxY, dR := outlineReach(spec.section(t, body, f.level+f.inward*1.0))

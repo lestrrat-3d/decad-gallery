@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sync"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
 	"github.com/lestrrat-3d/r3"
@@ -33,20 +32,8 @@ const (
 	StemThickness = 3.6
 	StemRound     = 0.3
 
-	RatchetTeeth     = 10
-	RatchetRoot      = 6.5
-	RatchetRootRound = 0.6
-	RatchetThickness = 10.65
-	PawlTipRound     = 0.4
-	PawlFlankGap     = 0.10 // the seated tip round's gap to the flank (TightFit to the lock face)
-	PawlAngle        = 95.0 // front-view angle of pawl A's seat at theta = 0; pawl B is at PawlAngle + 180
-	PawlArmLength    = 22.0 // free length of the straight arm, from the back-flank point to the root
-	PawlArmRoot      = 1.90 // arm thickness at the root
-	PawlArmTip       = 1.2  // arm thickness at the head (the 1.2 mm minimum for a part that bends)
-	WindowRadius     = 18.8
-	DetentThickness  = 12.0
-	WallThickness    = 8.0
-	WallHalfWidth    = 27.0
+	WallThickness = 8.0
+	WallHalfWidth = 27.0
 
 	Seam            = 0.25
 	PressFit        = 0.05
@@ -62,23 +49,8 @@ const (
 	JournalRadius   = 0.6
 	PinOffset       = 1.5 // distance of the slider pin line from the rotor axis, along the rotor's x
 
-	KnobRadius       = 20.0
-	KnobThickness    = 12.0
-	CollarRingRadius = 6.0
-	CollarRingLength = 3.5
 	RearCollarRadius = 3.8
 )
-
-// FlankKnot is one knot of the ratchet flank: the flank angle Alpha (degrees between the flank and the circle through
-// it) at Rel degrees past the lock face. The angle is linear in Rel between knots.
-type FlankKnot struct{ Rel, Alpha float64 }
-
-// RatchetFlank is the flank of every tooth, from the lock face (Rel 0) to the tip (Rel 36).
-var RatchetFlank = [...]FlankKnot{{0, 50}, {18, 50}, {20, 42.5}, {22, 38}, {24, 35.3}, {26, 34.2}, {30, 33.4}, {35.5, 31.8},
-	{36, 15}}
-
-// RatchetTip is the flank's outer radius, flank(36).
-var RatchetTip = flank(36)
 
 // Segment names one of the seven segments.
 type Segment int
@@ -105,18 +77,20 @@ func (s Segment) String() string {
 // Segments returns the segments a to g.
 func Segments() [7]Segment { return [7]Segment{SegA, SegB, SegC, SegD, SegE, SegF, SegG} }
 
-// truth lists the lit segments a..g of each digit.
+// truth lists the lit segments a..g of each digit. The box stands on its back wall with the button end up, so the model's
+// segment a, at +Y, is the bottom of the digit as the viewer reads it: the roles of a and d, b and e, and c and f are
+// swapped against the usual order, and each digit reads upright.
 var truth = [10][7]bool{
 	{true, true, true, true, true, true, false},
-	{false, true, true, false, false, false, false},
+	{false, false, false, false, true, true, false},
 	{true, true, false, true, true, false, true},
-	{true, true, true, true, false, false, true},
-	{false, true, true, false, false, true, true},
+	{true, false, false, true, true, true, true},
+	{false, false, true, false, true, true, true},
 	{true, false, true, true, false, true, true},
-	{true, false, true, true, true, true, true},
-	{true, true, true, false, false, false, false},
-	{true, true, true, true, true, true, true},
 	{true, true, true, true, false, true, true},
+	{false, false, false, true, true, true, false},
+	{true, true, true, true, true, true, true},
+	{true, false, true, true, true, true, true},
 }
 
 // Lit reports whether segment s is raised for digit.
@@ -281,16 +255,7 @@ type Dimensions struct {
 	Theta float64 // degrees
 	// Ramps lists each segment's ramps in increasing Start.
 	Ramps [7][]Ramp
-	// SeatAngle is how far the pawl head's centre lies past the lock face, degrees.
-	SeatAngle  float64
-	SeatRadius float64
-	// LockPhase is the wheel-local angle of lock face 0 at theta = 0: PawlAngle - SeatAngle.
-	LockPhase                  float64
-	PawlArmInner, PawlArmOuter float64
-	// CrestAngle is the relative angle of maximum pawl lift and LiftMax the lift there.
-	CrestAngle float64
-	LiftMax    float64
-	// Sites are T1..T4, G1..G4, D1, D2 in the world frame, before Placement.
+	// Sites are T1..T4, G1..G4, H1, H2 in the world frame, before Placement.
 	Sites [10]m2fastener.Site
 }
 
@@ -314,14 +279,6 @@ func (p Params) Derive() (Dimensions, error) {
 			d.Ramps[s] = append(d.Ramps[s], Ramp{From: k, Rising: b, Start: start, End: start + RampEnd - RampStart})
 		}
 	}
-	det, err := solveDetent()
-	if err != nil {
-		return Dimensions{}, err
-	}
-	d.SeatAngle, d.SeatRadius, d.LockPhase = det.seatAngle, det.seatRadius, PawlAngle-det.seatAngle
-	d.PawlArmInner = RatchetTip + LooseFit
-	d.PawlArmOuter = d.PawlArmInner + PawlArmRoot
-	d.CrestAngle, d.LiftMax = det.crest, det.liftMax
 	var err2 error
 	if d.Sites, err2 = sites(); err2 != nil {
 		return Dimensions{}, err2
@@ -329,7 +286,7 @@ func (p Params) Derive() (Dimensions, error) {
 	return d, nil
 }
 
-// sites returns T1..T4, G1..G4, D1, D2.
+// sites returns T1..T4, G1..G4, H1, H2.
 func sites() ([10]m2fastener.Site, error) {
 	var out [10]m2fastener.Site
 	gy := [4]float64{-34.2, -34.2, 38.0, 38.0}
@@ -340,9 +297,11 @@ func sites() ([10]m2fastener.Site, error) {
 		out[4+i] = m2fastener.Site{Head: r3.Vec{X: xs[i], Y: gy[i], Z: 49.75}, Dir: r3.Vec{Z: 1}, Corner: r3.Vec{Y: 1},
 			Length: 6, Cavity: 6.25}
 	}
+	// H1, H2 hold the click indexer's housing on the front wall: the head sinks in the housing's base, the nut sits in a hex
+	// pocket open to the wall's inner face.
 	for i, x := range [2]float64{-21, 21} {
-		out[8+i] = m2fastener.Site{Head: r3.Vec{X: x, Y: -37.25, Z: 10}, Dir: r3.Vec{Y: -1}, Corner: r3.Vec{Z: 1},
-			Length: 18, Cavity: 18.25}
+		out[8+i] = m2fastener.Site{Head: r3.Vec{X: x, Y: housingBaseY - housingBaseThick, Z: ShaftZ}, Dir: r3.Vec{Y: 1},
+			Corner: r3.Vec{Z: 1}, Length: 10, Cavity: 10.25}
 	}
 	for i, s := range out {
 		if err := s.Validate(); err != nil {
@@ -406,204 +365,6 @@ func (d Dimensions) groove(s Segment, psi float64) (float64, float64) {
 // Lift returns segment s's lift at camshaft angle theta (degrees): GrooveRadius(s, 90+theta) - OffRadius.
 func (d Dimensions) Lift(s Segment, theta float64) float64 {
 	return d.GrooveRadius(s, 90+theta) - OffRadius
-}
-
-// flank returns the ratchet's radius at angle rel degrees past a lock face, rel in [0, 36]: RatchetRoot times
-// exp(integral of tan(alpha) d(rel)), alpha linear between the RatchetFlank knots, each piece -ln(cos(a + b x)) / b.
-func flank(rel float64) float64 {
-	ln := 0.0
-	for i := 0; i+1 < len(RatchetFlank); i++ {
-		k0, k1 := RatchetFlank[i], RatchetFlank[i+1]
-		lo, hi := k0.Rel*math.Pi/180, k1.Rel*math.Pi/180
-		a0, a1 := k0.Alpha*math.Pi/180, k1.Alpha*math.Pi/180
-		x := math.Max(0, math.Min(rel*math.Pi/180, hi)-lo)
-		if b := (a1 - a0) / (hi - lo); math.Abs(b) < 1e-12 {
-			ln += math.Tan(a0) * x
-		} else {
-			ln -= (math.Log(math.Cos(a0+b*x)) - math.Log(math.Cos(a0))) / b
-		}
-	}
-	return RatchetRoot * math.Exp(ln)
-}
-
-// FlankAngle returns the flank angle in degrees at rel degrees past a lock face.
-func FlankAngle(rel float64) float64 {
-	for i := 0; i+1 < len(RatchetFlank); i++ {
-		k0, k1 := RatchetFlank[i], RatchetFlank[i+1]
-		if rel <= k1.Rel {
-			f := math.Max(0, (rel-k0.Rel)/(k1.Rel-k0.Rel))
-			return k0.Alpha + f*(k1.Alpha-k0.Alpha)
-		}
-	}
-	return RatchetFlank[len(RatchetFlank)-1].Alpha
-}
-
-// RatchetRadius returns the ratchet outline's radius at wheel-local angle psi (degrees), the spiral without root rounds.
-func (d Dimensions) RatchetRadius(psi float64) float64 {
-	rel := psi - d.LockPhase
-	rel -= 36 * math.Floor(rel/36)
-	return flank(rel)
-}
-
-// outline is the wheel outline of teeth -1, 0 and 1 as a polyline, wheel-local, with the lock face of tooth 0 on the ray
-// at angle lock degrees.
-func outline(lock float64) []r3.Vec {
-	var pts []r3.Vec
-	for j := -1; j <= 1; j++ {
-		phi := lock + 36*float64(j)
-		pts = append(pts, polar(RatchetTip, phi), polar(RatchetRoot, phi))
-		for i := 1; i <= 360; i++ {
-			rel := float64(i) * 0.1
-			pts = append(pts, polar(flank(rel), phi+rel))
-		}
-	}
-	return pts
-}
-
-// closest returns the distance from p to the polyline and the closest point.
-func closest(poly []r3.Vec, p r3.Vec) (float64, r3.Vec) {
-	best, at := math.Inf(1), r3.Vec{}
-	for i := 0; i+1 < len(poly); i++ {
-		a, b := poly[i], poly[i+1]
-		ab := b.Sub(a)
-		den := ab.Dot(ab)
-		t := 0.0
-		if den > 0 {
-			t = math.Max(0, math.Min(1, p.Sub(a).Dot(ab)/den))
-		}
-		q := a.Add(ab.Scale(t))
-		if dist := p.Sub(q).Len(); dist < best {
-			best, at = dist, q
-		}
-	}
-	return best, at
-}
-
-type detent struct {
-	seatAngle, seatRadius float64
-	crest, liftMax        float64
-	poly                  []r3.Vec
-}
-
-var (
-	detentOnce sync.Once
-	detentVal  detent
-	detentErr  error
-)
-
-// solveDetent solves the seat once and the lift curve's crest.
-func solveDetent() (detent, error) {
-	detentOnce.Do(func() { detentVal, detentErr = computeDetent() })
-	return detentVal, detentErr
-}
-
-// computeDetent finds the seat S: the point PawlTipRound+TightFit from the lock face line and PawlTipRound+PawlFlankGap
-// from tooth 0's flank, on the counter-clockwise side of the lock face.
-func computeDetent() (detent, error) {
-	want := PawlTipRound + TightFit
-	wantFlank := PawlTipRound + PawlFlankGap
-	var spir []r3.Vec
-	for i := 0; i <= 3600; i++ {
-		rel := float64(i) * 0.01
-		spir = append(spir, polar(flank(rel), rel))
-	}
-	f := func(a float64) float64 {
-		r := want / math.Sin(a*math.Pi/180)
-		dist, _ := closest(spir, polar(r, a))
-		return dist - wantFlank
-	}
-	lo, hi := 0.0, 0.0
-	prev := f(2)
-	for a := 2.1; a < 12; a += 0.1 {
-		cur := f(a)
-		if prev*cur <= 0 {
-			lo, hi = a-0.1, a
-			break
-		}
-		prev = cur
-	}
-	if hi == 0 {
-		return detent{}, errors.New("sevensegment: pawl seat: no solution")
-	}
-	flo := f(lo)
-	for range 50 {
-		mid := (lo + hi) / 2
-		if fm := f(mid); fm*flo <= 0 {
-			hi = mid
-		} else {
-			lo, flo = mid, fm
-		}
-	}
-	a := (lo + hi) / 2
-	dt := detent{seatAngle: a, seatRadius: want / math.Sin(a*math.Pi/180)}
-	dt.poly = outline(-a)
-	for psi := 0.0; psi <= 36; psi += 0.05 {
-		dl, _ := dt.deflection(psi)
-		if dl > dt.liftMax {
-			dt.liftMax, dt.crest = dl, psi
-		}
-	}
-	return dt, nil
-}
-
-// deflection returns the pawl head's radial lift and the radius of the wheel's contact point at relative angle psi.
-func (dt detent) deflection(psi float64) (float64, float64) {
-	d, at := dt.contact(psi)
-	return d, at.Len()
-}
-
-// contact returns the head's radial lift and the wheel's contact point at relative angle psi.
-func (dt detent) contact(psi float64) (float64, r3.Vec) {
-	head := func(delta float64) (bool, r3.Vec) {
-		h := polar(dt.seatRadius+delta, psi)
-		dist, at := closest(dt.poly, h)
-		outer := ratchetRadiusAt(-dt.seatAngle, psi)
-		return h.Len() >= outer && dist >= PawlTipRound, at
-	}
-	if ok, at := head(0); ok {
-		return 0, at
-	}
-	lo, hi := 0.0, 7.0
-	for range 40 {
-		mid := (lo + hi) / 2
-		if ok, _ := head(mid); ok {
-			hi = mid
-		} else {
-			lo = mid
-		}
-	}
-	_, at := head(hi)
-	return hi, at
-}
-
-// ratchetRadiusAt is the spiral radius at wheel-local angle psi for a wheel whose lock face is at angle lock.
-func ratchetRadiusAt(lock, psi float64) float64 {
-	rel := psi - lock
-	rel -= 36 * math.Floor(rel/36)
-	return flank(rel)
-}
-
-// PawlDeflection returns the pawl head's radial lift and the contact radius at angle psiRel past digit k's rest angle.
-func (d Dimensions) PawlDeflection(psiRel float64) (float64, float64) {
-	dt, err := solveDetent()
-	if err != nil {
-		return math.NaN(), math.NaN()
-	}
-	return dt.deflection(psiRel)
-}
-
-// PawlContact returns the pawl head's radial lift, the contact radius and the angle in degrees of the contact normal
-// from the radial direction through the head (positive where it leans clockwise, as on a flank) at psiRel past a rest.
-func (d Dimensions) PawlContact(psiRel float64) (delta, rc, beta float64) {
-	dt, err := solveDetent()
-	if err != nil {
-		return math.NaN(), math.NaN(), math.NaN()
-	}
-	delta, at := dt.contact(psiRel)
-	h := polar(dt.seatRadius+delta, psiRel)
-	n := h.Sub(at).Scale(1 / h.Sub(at).Len())
-	er := h.Scale(1 / h.Len())
-	return delta, at.Len(), math.Atan2(-(er.X*n.Y-er.Y*n.X), n.Dot(er)) * 180 / math.Pi
 }
 
 // journalSettle is the side play of the rotor journal settled in its hole: the clearance (hole less stub) times

@@ -13,7 +13,7 @@ import (
 )
 
 func TestReleaseCrankRealAssembly(t *testing.T) {
-	doc := decad.New()
+	doc := NewDocument()
 	_, err := Build(t.Context(), doc, Params{Digit: 9})
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +84,7 @@ func TestReleaseCrankRealAssembly(t *testing.T) {
 			}
 			skip := false
 			for p := c; p != nil; p = p.Parent() {
-				if p.Name() == "Knob" || p.Name() == "Ratchet Wheel" || p.Name() == "Detent Plate" {
+				if p.Name() == "Click Indexer" {
 					skip = true
 				}
 			}

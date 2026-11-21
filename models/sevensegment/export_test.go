@@ -21,17 +21,14 @@ const (
 	BladeAcross   = bladeAcross
 	SlotRadius    = slotRadius
 	JournalHoleR  = journalHoleRadius
-	PawlBackV     = pawlBackV
 	PinStationAGD = pinStationAGD
 	PinStationBC  = pinStationBC
 	PinStationEF  = pinStationEF
 
-	ShaftCamRadius    = shaftCamRadius
-	ShaftCamFlat      = shaftCamFlat
-	CamBoreRadius     = camBoreRadius
-	CamBoreFlat       = camBoreFlat
-	RatchetBoreRadius = ratchetBoreRadius
-	RatchetBoreFlat   = ratchetBoreFlat
+	ShaftCamRadius = shaftCamRadius
+	ShaftCamFlat   = shaftCamFlat
+	CamBoreRadius  = camBoreRadius
+	CamBoreFlat    = camBoreFlat
 )
 
 // RaiseOf returns the droop that segment s's pin height has built in.

@@ -54,7 +54,7 @@ type defaultModel struct {
 var defaultBuild build[defaultModel]
 
 func buildDefault(ctx context.Context) (defaultModel, error) {
-	doc := decad.New()
+	doc := sevensegment.NewDocument()
 	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
 	return defaultModel{doc, m}, err
 }
@@ -72,9 +72,9 @@ func builtDefault(t *testing.T) (*decad.Document, *sevensegment.Model) {
 // printed returns the printed bodies of m by name.
 func printed(m *sevensegment.Model) map[string]*decad.Body {
 	out := map[string]*decad.Body{
-		"front wall": m.FrontWall, "rear wall": m.RearWall, "detent plate": m.DetentPlate, "guide plate": m.GuidePlate,
-		"cradle plate": m.CradlePlate, "top plate": m.TopPlate, "shaft": m.Shaft, "ratchet wheel": m.RatchetWheel, "collar ring": m.CollarRing,
-		"knob": m.Knob,
+		"front wall": m.FrontWall, "rear wall": m.RearWall, "guide plate": m.GuidePlate,
+		"cradle plate": m.CradlePlate, "top plate": m.TopPlate, "shaft": m.Shaft, "hub": m.Hub, "rotor": m.Rotor, "housing": m.Housing,
+		"button": m.Button,
 	}
 	for _, s := range sevensegment.Segments() {
 		out["cam "+s.String()] = m.Cams[s]
@@ -88,7 +88,7 @@ func printed(m *sevensegment.Model) map[string]*decad.Body {
 var digit0Build build[*sevensegment.Parts]
 
 func buildDigit0(ctx context.Context) (*sevensegment.Parts, error) {
-	return sevensegment.BuildParts(ctx, decad.New(), sevensegment.Params{Digit: 0})
+	return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), sevensegment.Params{Digit: 0})
 }
 
 // startDigit0 begins the digit 0 build for a test about to call t.Parallel.

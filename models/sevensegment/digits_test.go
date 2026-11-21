@@ -9,21 +9,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSevenSegmentRestAngles proves, from Dimensions and the built loads, that a released knob leaves every cam on its
-// dwell: over one step, with each cam turned against the ratchet wheel by the D-bores' play as the drive sets it
-// (phaseRest), every angle where a cam is more than 0.05 off its dwell is one the detent drives the shaft out of, at
-// friction 0.35 with a margin of 1.8 while the pawls drive back. At friction 0.45 the shaft can rest only where every cam
-// is within 0.07 of its dwell (computed 0.061, while the pawls carry the shaft past the crest).
-func TestSevenSegmentRestAngles(t *testing.T) {
-	startDigit0()
-	t.Parallel()
-	dm, err := sevensegment.DefaultParams().Derive()
-	require.NoError(t, err)
-	swing := phaseSwing()
-	for _, c := range []struct{ mu, maxOff, minRelease float64 }{{0.35, 0.05, 1.8}, {0.45, 0.07, 1.0}} {
-		off, release := phaseRest(t, dm, c.mu, swing)
-		t.Logf("friction %.2f: worst cam offset at a rest %.3f, least release budget %.3f", c.mu, off, release)
-		require.LessOrEqual(t, off, c.maxOff, "friction %.2f: a cam rests off its dwell", c.mu)
-		require.GreaterOrEqual(t, release, c.minRelease, "friction %.2f: the pawls drive the shaft back without margin", c.mu)
+// TestSevenSegmentDigitsUpright checks the truth table in the knob-up stance. The box stands on its back wall with the button
+// end up, so segment a (at +Y) is the bottom of the digit and each pair a-d, b-e, c-f swaps its role against the usual order.
+func TestSevenSegmentDigitsUpright(t *testing.T) {
+	// The lit segments of each digit as the viewer reads them: top, upper right, lower right, bottom, lower left, upper
+	// left and middle, written as letters of the usual order.
+	usual := [10]string{"abcdef", "bc", "abdeg", "abcdg", "bcfg", "acdfg", "acdefg", "abc", "abcdefg", "abcdfg"}
+	swap := map[rune]sevensegment.Segment{'a': sevensegment.SegD, 'b': sevensegment.SegE, 'c': sevensegment.SegF,
+		'd': sevensegment.SegA, 'e': sevensegment.SegB, 'f': sevensegment.SegC, 'g': sevensegment.SegG}
+	for digit, letters := range usual {
+		want := map[sevensegment.Segment]bool{}
+		for _, l := range letters {
+			want[swap[l]] = true
+		}
+		for _, s := range sevensegment.Segments() {
+			lit, err := sevensegment.Lit(digit, s)
+			require.NoError(t, err)
+			require.Equal(t, want[s], lit, "digit %d segment %s", digit, s)
+		}
 	}
 }
