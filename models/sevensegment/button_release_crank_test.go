@@ -162,7 +162,7 @@ func TestReleaseCrankRejectsInvalidInputs(t *testing.T) {
 			t.Fatalf("lift %g accepted", lift)
 		}
 	}
-	if _, err := buildButtonReleaseCrank(nil, decad.New(), 0); err == nil {
+	if _, err := buildButtonReleaseCrank(nil, decad.New(), 0); err == nil { //nolint:staticcheck // Test the nil-context contract.
 		t.Fatal("nil context accepted")
 	}
 	if _, err := buildButtonReleaseCrank(t.Context(), nil, 0); err == nil {
