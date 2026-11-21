@@ -153,7 +153,7 @@ func buildButtonReleaseCrank(ctx context.Context, doc *decad.Document, lift floa
 	if err != nil {
 		return nil, fmt.Errorf("button release crank: blank: %w", err)
 	}
-	for _, hole := range [][3]float64{{-26, 10, 1.65}, {-26, 20, 1}, {-36, 10, 1}, {-26, 15, 1}} {
+	for _, hole := range [][3]float64{{-26, 10, 1.88}, {-26, 20, 1.36}, {-36, 10, 1.36}, {-26, 15, 1.36}} {
 		tool, e := releaseDrill(ctx, doc, -46.1, hole[0], hole[1], hole[2], 3.2)
 		if e != nil {
 			return nil, fmt.Errorf("button release crank: bore: %w", e)
@@ -164,8 +164,8 @@ func buildButtonReleaseCrank(ctx context.Context, doc *decad.Document, lift floa
 		}
 	}
 	for _, hole := range [][2]float64{{-26, 20}, {-36, 10}, {-26, 15}} {
-		for _, x := range []float64{-46.1, -43.5} {
-			tool, e := releaseDrill(ctx, doc, x, hole[0], hole[1], 1.55, 0.6)
+		for _, x := range []float64{-46.1, -43.84} {
+			tool, e := releaseDrill(ctx, doc, x, hole[0], hole[1], 2.18, 0.94)
 			if e != nil {
 				return nil, fmt.Errorf("button release crank: counterbore: %w", e)
 			}
@@ -175,11 +175,11 @@ func buildButtonReleaseCrank(ctx context.Context, doc *decad.Document, lift floa
 			}
 		}
 	}
-	input := [][2]float64{{0, -45.95}, {1.4, -45.95}, {1.4, -45.54}, {.98, -45.54}, {.98, -43.46}, {1.4, -43.46}, {1.4, -43.05}, {1, -43.05}, {1, -39.5}, {0, -39.5}}
+	input := [][2]float64{{0, -45.95}, {1.8, -45.95}, {1.8, -45.54}, {.98, -45.54}, {.98, -43.46}, {1.8, -43.46}, {1.8, -43.05}, {1, -43.05}, {1, -39.5}, {0, -39.5}}
 	negative := func(end float64) [][2]float64 {
-		return [][2]float64{{0, end}, {1, end}, {1, -45.95}, {1.4, -45.95}, {1.4, -45.54}, {.98, -45.54}, {.98, -43.46}, {1.4, -43.46}, {1.4, -43.05}, {0, -43.05}}
+		return [][2]float64{{0, end}, {1, end}, {1, -45.95}, {1.8, -45.95}, {1.8, -45.54}, {.98, -45.54}, {.98, -43.46}, {1.8, -43.46}, {1.8, -43.05}, {0, -43.05}}
 	}
-	pivot := [][2]float64{{0, -48.95}, {2, -48.95}, {2, -48.63}, {1.5, -48.63}, {1.5, -42.91}, {2, -42.91}, {2, -42.56}, {0, -42.56}}
+	pivot := [][2]float64{{0, -48.95}, {2, -48.95}, {2, -48.63}, {1.5, -48.63}, {1.5, -42.62}, {2.3, -42.62}, {2.3, -42.27}, {0, -42.27}}
 	bodies := []*decad.Body{crank}
 	for _, spec := range []struct {
 		y, z   float64

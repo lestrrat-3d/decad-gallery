@@ -2,8 +2,8 @@
 
 This scoped contract defines the actual machined release bell crank, its three
 retained working pins and its separate pivot journal. It extends the private
-index boundary and does not define a complete button. The complete mechanism
-contract is `button-instructions.md` and `button-steps.md`.
+index boundary and does not define a complete button. The fork, plunger,
+spring, and pivot bracket have not yet been specified in this repository.
 
 Use millimetres and degrees. Build the five actual metal bodies specified in
 `button-release-crank-steps.md`. Verify the three pins against the real crank,
@@ -25,13 +25,17 @@ DOF, no redundancy and no conflicts. Use real `VerifyAll` meshes and charge
 their reported bounds in clearance and contact checks. Document the intentionally
 modeled axial fits and physical staking, load, wear and assembly limitations.
 
-The working pins have 0.02 mm radial clearance in their bores and 0.15 mm
-radial clearance at each head. Their heads leave 0.08 mm total axial float
-around the crank web. The pivot journal has 0.15 mm radial clearance in its
-bore. These are modeled working fits and do not meet the gallery's standard
-clearance classes.
+The working pins and pivot use the Regular fit class. The nominal radial
+clearance is at least 0.36 mm and the head-to-web axial clearance is 0.38 mm
+on each side. The pivot's right head clears the crank face by 0.38 mm. The
+minimum crank ligaments at the input end, output end, and between working
+counterbores are 0.52, 0.62, and 0.64 mm respectively. The remaining web is
+1.32 mm thick.
 
 Install and form each working pin before fitting the crank to its bracket.
 The model does not establish the supplier stock, staking die, head strength,
 heat treatment, loaded wear, or the pivot bracket's retention. It also does
 not establish fork or plunger engagement, spring return, or anti-rotation.
+Pivot and pin radial play can displace a working tip by up to 0.76 mm before
+angular and assembly errors. Recheck engagement and bracket clearance when
+those parts are designed.

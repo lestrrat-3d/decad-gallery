@@ -72,7 +72,7 @@ func TestReleaseCrankRealAssembly(t *testing.T) {
 			}
 		}
 		for i := 1; i < len(bodies); i++ {
-			gap, ok, e := meshes[0].Exceeds(meshes[i], 0)
+			gap, ok, e := meshes[0].Exceeds(meshes[i], 0.35)
 			if e != nil || !ok {
 				t.Fatalf("pin %d clearance %g: %v", i, gap, e)
 			}
@@ -110,10 +110,10 @@ func TestReleaseCrankRealAssembly(t *testing.T) {
 			t.Fatal(e)
 		}
 		for i, center := range [][2]float64{{-26, 20}, {-36, 10}, {-26, 15}} {
-			for _, v := range []struct{ x, shift float64 }{{-45.45, .15}, {-43.55, -.15}} {
-				p := rot.Apply(r3.NewVec(v.x, center[0]+1.15, center[1]))
+			for _, v := range []struct{ x, shift float64 }{{-45.1, .55}, {-43.9, -.55}} {
+				p := rot.Apply(r3.NewVec(v.x, center[0]+1.55, center[1]))
 				world := frame.ToWorld(p)
-				anchor := frame.ToWorld(rot.Apply(r3.NewVec(-44.5, center[0]+2, center[1])))
+				anchor := frame.ToWorld(rot.Apply(r3.NewVec(-44.5, center[0]+2.4, center[1])))
 				loc, e := release.Crank.LocatePoint(t.Context(), anchor, units.Millimeters(.002))
 				if e != nil || loc != decad.PointInside {
 					t.Fatalf("anchor %d %v %v", i, loc, e)
