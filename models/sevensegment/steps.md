@@ -42,39 +42,32 @@ type Dimensions struct {
     Digit      int
     Theta      float64      // degrees
     Ramps      [7][]Ramp    // indexed by Segment, in increasing Start
-    SeatAngle  float64      // pawl head centre past the lock face, degrees
-    SeatRadius float64
-    LockPhase  float64      // wheel-local angle of lock face 0 at θ = 0: PawlAngle − SeatAngle
-    PawlArmInner, PawlArmOuter float64 // RatchetTip + LooseFit, + PawlArmRoot (outer edge at the root)
-    CrestAngle float64      // ψ' of maximum pawl lift
-    LiftMax    float64      // δ at the crest
-    Sites      [10]m2fastener.Site // T1..T4, G1..G4, D1, D2 in the world frame (before Placement)
+    Sites      [10]m2fastener.Site // T1..T4, G1..G4, H1, H2 in the world frame (before Placement)
 }
 func (d Dimensions) Station(s Segment) float64             // y_i
 func (d Dimensions) GrooveRadius(s Segment, psi float64) float64
 func (d Dimensions) Lift(s Segment, theta float64) float64 // GrooveRadius(s, 90+theta) - OffRadius
 func (d Dimensions) PressureAngle(s Segment, psi float64) float64
-func (d Dimensions) RatchetRadius(psi float64) float64     // outline radius at wheel-local ψ (front view)
-func (d Dimensions) PawlDeflection(psiRel float64) (delta, contactRadius float64)
-func (d Dimensions) PawlContact(psiRel float64) (delta, rc, beta float64) // beta: contact normal from the radial, clockwise +
 
-// Ratchet flank
-type FlankKnot struct{ Rel, Alpha float64 } // flank angle Alpha (degrees) at Rel degrees past a lock face
-var RatchetFlank = [...]FlankKnot{{0, 50}, {18, 50}, {20, 42.5}, {22, 38}, {24, 35.3}, {26, 34.2}, {30, 33.4},
-    {35.5, 31.8}, {36, 15}}
-func FlankAngle(rel float64) float64         // linear between the knots
+// Click indexer motion (clicker_motion.go)
+func PressTurn() float64     // shaft turn at the bottom of a press, derived from the tooth specs
+func TimingMargin() float64  // PressTurn() - SegmentsDoneBy
+func ReleaseTurn() float64   // 36 - PressTurn()
+func PressPose(s float64) (drop, turn float64)
+func ReleasePose(s float64) (drop, turn float64)
 
 // Build
 const (
-    FrameContainerName, WallsContainerName, PlatesContainerName, DetentPlateContainerName,
-    CamshaftContainerName, ShaftContainerName, CamsContainerName, RatchetWheelContainerName,
-    CollarRingContainerName, KnobContainerName, SlidersContainerName, BearingsContainerName,
-    BoltsContainerName, NutsContainerName = "Frame", "Walls", "Plates", "Detent Plate", "Camshaft", "Shaft",
-    "Cams", "Ratchet Wheel", "Collar Ring", "Knob", "Segment Sliders", "Bearings", "Bolts", "Nuts"
+    FrameContainerName, WallsContainerName, PlatesContainerName, CamshaftContainerName, ShaftContainerName,
+    CamsContainerName, ClickerContainerName, HubContainerName, RotorContainerName, HousingContainerName,
+    ButtonContainerName, SpringContainerName, SlidersContainerName, BearingsContainerName,
+    BoltsContainerName, NutsContainerName = "Frame", "Walls", "Plates", "Camshaft", "Shaft", "Cams",
+    "Click Indexer", "Hub", "Rotor", "Housing", "Button", "Spring", "Segment Sliders", "Bearings", "Bolts", "Nuts"
 )
 type Parts struct {
-    FrontWall, RearWall, DetentPlate, GuidePlate, TopPlate *decad.Body
-    Shaft, RatchetWheel, CollarRing, Knob                  *decad.Body
+    FrontWall, RearWall, GuidePlate, TopPlate *decad.Body
+    Shaft                                      *decad.Body
+    Hub, Rotor, Housing, Button, Spring        *decad.Body
     Cams, Sliders                                          [7]*decad.Body // indexed by Segment
     Sketches   []*sketch.Sketch
     Dimensions Dimensions
@@ -90,21 +83,18 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)
 ```
 
-`NewDocument(opts ...decad.DocumentOption) *decad.Document` is added only if a Boolean refuses with
-`decad.ErrUnsupported` at a held-bound gate (onewayclutch `document.go` pattern, with the measured bound in its
-comment). Any other decad failure stops the task.
+`NewDocument() *decad.Document` makes the display's document with `decad.WithChainTolerance(0.02 mm)`: the face teeth's
+Booleans need it (see "Face teeth"). Any other decad failure stops the task.
 
 Exported constants (values above): `SegmentSpan 33, SegmentLength 30, SegmentWidth 6, SegmentGap 1.5,
 Travel 3.0, FaceZ 88.25, ShaftZ 28.0, StationPitch 11.0,
 CamRadius 25.0, CamThickness 3.8, HubRadius 5.0, OffRadius 18.0, OnRadius 21.0, GrooveWidth 3.8, GrooveDepth 1.9,
 RampStart 8.0, RampEnd 29.5, RampRound 2.5, EntryAngle 18.0, PinRadius 1.5, PinLength 2.05, StemWidth 7.0,
-StemThickness 3.6, StemRound 0.3, RatchetTeeth 10, RatchetRoot 6.5, RatchetTip 11.876
-(= flank(36), an exported var because it is not constant-foldable), RatchetRootRound 0.6,
-RatchetThickness 10.65, PawlTipRound 0.4, PawlFlankGap 0.10, PawlAngle 95.0, PawlArmLength 22.0, PawlArmRoot 1.90,
-PawlArmTip 1.2, WindowRadius 18.8, DetentThickness 12.0, WallThickness 8.0,
+StemThickness 3.6, StemRound 0.3, WallThickness 8.0,
 WallHalfWidth 27.0, Seam 0.25,
-PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, KnobRadius 20.0,
-KnobThickness 12.0, CollarRingRadius 6.0, CollarRingLength 3.5, RearCollarRadius 3.8`.
+PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, RearCollarRadius 3.8,
+ClickerSteps 10, ClickerStep 36, RampAngle 32.5, ToothHeight 4.0, CrownHeight 1.6, CrownBack 30, RotorTravel 2.0,
+ButtonStroke 6.0, SpringRestLength 7.96, SegmentsDoneBy 29.55, ChainTolerance 0.02`.
 
 Validation (first failure wins, prefix `sevensegment: `):
 
@@ -115,9 +105,10 @@ Validation (first failure wins, prefix `sevensegment: `):
 then check `ctx.Err()` before geometry. Every geometry error is wrapped `sevensegment: <part>: <op>: %w`. A body that
 is not `IsSolid()` fails `sevensegment: <part> is not a solid`.
 
-Files (package): `params.go` (constants, Segment, truth table, Params, Validate, Derive, Dimensions methods, ramp and
-detent math, sites), `sketches.go` (run, sketch helpers, polar helpers, meridian, extrude/profile),
-`cams.go`, `detent.go` (ratchet wheel, detent plate), `shaft.go` (shaft, collar ring, knob), `sliders.go`,
+Files (package): `params.go` (constants, Segment, truth table, Params, Validate, Derive, Dimensions methods, ramp
+math, sites), `sketches.go` (run, sketch helpers, polar helpers, meridian, extrude/profile),
+`cams.go`, `shaft.go` (shaft), `clicker.go` (hub, rotor, housing, button, spring), `facetooth.go` (face teeth),
+`clicker_motion.go`, `sliders.go`,
 `frame.go` (walls, guide plate, top plate), `sevensegment.go` (package doc, containers, Parts, Model, BuildParts,
 Build, pose). Tests use testify `require` and `t.Context()`. Tests of the public API and the assembled model are in
 the external package `sevensegment_test`. Per-part tests in Tasks 4-8 need the unexported builders before `BuildParts`
@@ -125,8 +116,7 @@ exists, so they are internal test files (`*_internal_test.go`, `package sevenseg
 no per-part builder is exported.
 
 Check: `TestSevenSegmentTruthTable`, `TestSevenSegmentValidate`, `TestSevenSegmentCamProfile`,
-`TestSevenSegmentDetent`, `TestSevenSegmentChannel` (params_test.go), all without geometry. Derive solves the pawl
-seat numerically and `PawlDeflection` by bisection as in the deflection model.
+`TestSevenSegmentChannel` (params_test.go), `TestSevenSegmentDigitsUpright`, all without geometry.
 
 
 ### Flag API (added with the flag mechanism)
@@ -181,11 +171,11 @@ Then cut three flat tools (box prisms in the local frame, extruded symmetric ±4
 
 - Cam flat: `x ≥ 2.7` over `z ∈ [−50.25, 39.2]`; square end at z 39.2 (cam a's D chord stops on it).
 - Cam back flat: `x ≤ −2.7` over the same span; square end at z 39.2.
-- Stub flat: `x ≥ 2.0` over `z ∈ [−73.2, −57.85]`; square end at z −57.85 (the collar ring's D chord stops on it,
+- Stub flat: `x ≥ 2.0` over `z ∈ [−73.2, −57.85]`; square end at z −57.85 (the hub's D chord stops on it,
   0.05 short of the ring's back face at −57.9). No run-out: both flats end square as D-chord stops, listed as
   mating pairs (split-shaft "Corners").
 
-Sections: knob stub r 2.5 D (flat 2.0) [−72.2, −57.85]; front journal r 2.5 round [−57.85, −49.25] through the lip
+Sections: button stub r 2.5 D (flat 2.0) [−72.2, −57.85]; front journal r 2.5 round [−57.85, −49.25] through the lip
 hole and the front bearing; cam section r 3.2 double D (flats ±2.7) [−49.25, 39.2]; rear collar r 3.8; rear journal r 2.5
 round in the rear bearing. End chamfers 0.3 at both ends. Length 120.2.
 
@@ -204,7 +194,7 @@ z ∈ [−3.8, 0], hub toward local +z.
    Rim chamfers 0.5 are in the meridian; the hub root round 0.5 is a corner between layers.
 2. Cut the double-D bore: profile on local z = −4.8, two arcs r 3.25 joined by flats at v = ±2.75
    (doubleDBoreLoop); extrude 12.95 along +z. The first flat is on local +V (world +Z at θ = 0) on every D bore in
-   the model; the cam and ratchet bores add the opposite flat.
+   the model; the cam bores add the opposite flat.
 3. Cut the groove tool (next section): profile on local z = +1.0, extrude `decad.Against` 2.9 (to z −1.9).
 4. Cut the look-alike holes: circles r 0.75 at radius 12 (front cams) or 8 (rear cams) on angles 270°, 295°,
    320°, 345° (count per cam, "Look-alike parts"), extruded through local z ∈ [−4.8, 1.0]. Each hole has its own
@@ -262,121 +252,40 @@ axis vertical); no other orientation prints the groove and hub without support.
    `decad.Faces(decad.Facing(-Z))`, the one planar face looking along local -Z.
 Check: `TestSevenSegmentCam` (cams b and e first), `TestSevenSegmentCamInscription`.
 
-## 5. Ratchet wheel (detent.go)
+## 5. Click indexer (clicker.go, facetooth.go, clicker_motion.go)
 
-### Ratchet wheel (`Ratchet Wheel`)
+Follow instructions.md "Click indexer". Bodies: `Hub`, `Rotor`, `Housing`, `Button` and the `Spring`
+(`compressionspring.Build` with `LeeLC022D03S`, turned half a turn about X and moved onto the shaft). The rotor, hub and
+spring turn with the shaft (`spin`); the housing and button do not.
 
-Local frame: origin (0, −37.85, 28) (back face), U = +X, V = +Z, N = −Y; extrude `Along` 10.65 (to world y −48.5).
-Printed with its axis vertical, either face down.
+### Face teeth
 
-Outline (one closed loop) plus the double-D bore hole (r 3.25, flats at ±2.75 along V). Ten teeth, tooth j occupying wheel-local
-angles `[φ_j, φ_j + 36]`, `φ_j = LockPhase + 36 j`, `LockPhase = PawlAngle − SeatAngle` (≈ 90.295°, from Derive) so
-the pawl A head seats on angle `PawlAngle` 95°:
+Decad's `Coil` builds a helicoid ramp, but `Union` refuses a Coil result against a ring, and a `LoftSections` tooth is not an
+admitted family. The recipe that builds (all booleans on analytic parts or on one tooth):
 
-- Lock face: radial line on the ray φ_j from `RatchetTip` (11.876) in to `RatchetRoot` 6.5.
-- Root round: arc `RatchetRootRound` 0.6 tangent to the lock face and to the flank (centre and end computed in
-  `rootRound`; placed with `DimensionPoint`, as the spur gear's root contacts are placed). It stays outside the seated
-  head (`TestSevenSegmentDetent` checks the seat lies past it); it is below half the tooth section, so it is listed. On
-  the 50° flank it lifts the lowest outline point to 7.41.
-- Flank: `r(rel) = RatchetRoot · exp(∫ tan α d rel)`, rel = ψ − φ_j in degrees, where the flank angle α (between the
-  flank and the circle through it) is linear in rel between the `RatchetFlank` knots (rel°, α°): (0, 50) (18, 50)
-  (20, 42.5) (22, 38) (24, 35.3) (26, 34.2) (30, 33.4) (35.5, 31.8) (36, 15). Each piece integrates in closed form,
-  `−(ln cos(a₀ + b x) − ln cos a₀) / b` with b = dα/d rel in rad/rad, or `tan(a₀) x` where b = 0 (`flank` in
-  `params.go`; `FlankAngle` interpolates the knots). The knots are tuned so the release budget is nearly flat over
-  `ψ' ∈ [7.98, 29.55]`. The flank runs from the root round's end to rel 36 (r 11.876), drawn as a `CreateFitSpline`
-  through 17 samples placed with `sketchcheck.DimensionPoint` (pattern: `models/spurgear/tooth_section.go` flank
-  splines). `RatchetRoot` 6.5 is the flank's start radius on the lock
-  face ray; the outline itself stays above 6.5 because of the root round.
-- Tip: the flank meets the next lock face at a sharp corner (engagement corner of a ratchet tooth, exempt).
+1. Make the document with `NewDocument()` (chain tolerance 0.02 mm).
+2. Build every ring in a local frame whose Z is the shaft axis and whose angle runs counter-clockwise about +Z. A part
+   whose teeth reach toward -Y is placed with `frontFrame` (its angle runs against the shaft's forward turn: shift the
+   ring by the negative of the design angle). A part whose teeth reach toward +Y is placed with the frame
+   (U = +Z, V = +X, N = +Y): its angle is the forward angle.
+3. Tooth 0 is a partial `Revolve` of the rectangle (radii R0..R1, heights Bot..H - Tip) over the angle between the two ramps'
+   feet, cut by one raw rising `Coil` (right-handed) and one raw falling `Coil` (left-handed about the axis pointing the
+   other way). Each tool spans the radii R0 - 0.3 to R1 + 0.3 and starts or ends one degree outside the blank, so no tool cap
+   touches material.
+4. Each tool's profile is a plain rectangle, fully constrained (`Sketch.Verify` in every build). Decad's `Coil` chords long straight
+   profile lines itself (pin `9fb7f30d8f5e` or later), so the profile edges need no splitting.
+5. Copy tooth 0 nine times with `decad.Copy` and `WithCopyPlacement` (a turn of 36k degrees) and `Union` each into the ring's
+   plate, one at a time. The plate is a revolve whose top lies `Plate` above the valley and buries the blanks' bottoms.
+6. Never let a tooth wall lie on a plate wall: oversize the plate or the tooth ring, so a wall meets a face, not a wall.
+   Decad refuses a wall on a wall ("operand facets overlap in one plane"). The button's teeth end at r 10.85 on a head of
+   r 11.0; the rotor's plate reaches r 14.2 past the teeth at 14.0 and its bore r 3.0 lies inside the teeth at 3.2; the
+   crown's teeth run 0.3 into the tube.
+7. Union joins that Decad refuses on a toothed body (the button's keys) are done on the plain plate first.
 
-No orientation key: a reversed wheel makes the knob turn counter-clockwise, which the README's assembly check catches.
-Check: `TestSevenSegmentRatchet`.
+Lands. A tip is cut back by `Tip` (0.05) and a root stands `Plate` above its valley (0.03 for every ring): the smallest lands that build. They leave the gaps `TestClickerLandGaps` reads and take 0.81 degrees of the press turn.
 
-## 6. Collar ring (shaft.go)
-
-### Collar ring (`Collar Ring`)
-
-Local frame origin (0, −57.9, 28), U = +X, V = +Z. Circle r 6 with a D hole (r 2.55, flat 2.05 on +V); extrude
-`Along` 3.5. Pressed on the knob stub until its D chord stops on the stub flat's square end (0.05 gap modeled), which
-leaves it 0.4 from the front wall's outer face; the knob sits 0.05 in front of it. Printed axis vertical.
-
-## 7. Knob (shaft.go)
-
-### Knob (`Knob`)
-
-Local frame origin (0, −61.45, 28), U = +X, V = +Z. Revolve meridian `(r, z)`: `(0,0) (19.5,0) (20,0.5) (20,11.5)
-(19.5,12) (0,12)`. Cut a blind D bore (r 2.55, flat 2.05 on +V) over local z ∈ [−1, 10.8] (floor 1.2 thick; shaft
-end 0.05 short of it). Printed front face down.
-
-## 8. Detent plate (detent.go)
-
-### Detent
-
-### Pawl geometry (in the detent plate)
-
-Front-view sketch coordinates (u, v) = (x, z − 28), origin on the shaft axis, at θ = 0. Each pawl is drawn in its own
-pawl frame: seat on +u, arm along +v, origin on the shaft axis. Pawl A is that frame turned by `PawlAngle` 95° (head
-above the wheel), pawl B by 275°.
-
-- Seat: tip round radius `PawlTipRound` 0.4 centred at `S`, the point at distance 0.4 + `TightFit` (0.65) from the lock
-  face line and 0.4 + `PawlFlankGap` (0.50) from the flank of tooth 0 (wheel at θ = 0). Derive solves it numerically:
-  `SeatAngle` 4.705° past the lock face, `SeatRadius` 7.924. The 0.10 float to the flank is a working-contact float
-  (instructions.md Part fits), so the head meets the flank between ψ' 0.5 and 2.0 and lifts early.
-- Lock flank: line parallel to the lock face ray at distance 0.25 on its counter-clockwise side, tangent to the tip
-  round, from the tip round out to the arm's outer edge (u = `PawlArmInner` + 1.2, v ≈ −0.86).
-- Back flank: line tangent to the tip round on its other side, to `B = (PawlArmInner, 2.26)` (`pawlBackV`); round 1.0
-  at B.
-- Arm: a straight cantilever tangent to the wheel at the head, anchored counter-clockwise of it, so friction pulls the
-  arm along its length and the head lifts radially. Inner edge on u = `PawlArmInner` = `RatchetTip` + `LooseFit` =
-  12.426 from B to the root at v = 2.26 + `PawlArmLength` 22.0 = 24.26. Outer edge: a line from the lock flank's outer
-  end (thickness `PawlArmTip` 1.2) to (`PawlArmInner` + `PawlArmRoot` 1.90, 24.26). `PawlArmOuter` = 14.326, the outer
-  edge at the root.
-- Root rounds: 2.0 on the inner (tension) side, 1.0 on the outer side (at least half of 1.90).
-- Slots: the inner slot is 3.0 wide (its side on u = `PawlArmInner` − 3.0); the outer slot's side lies on
-  u = `PawlArmInner` + 3.55 at the root and + 4.75 where it meets the window circle (`pawlOuterSide`, `pawlOuterOpen`),
-  so the slot is 1.65 wide at the root and 2.85 at the window; the side did not move when the arm thickened. Slot-end
-  rounds 0.5.
-- Window: circle `WindowRadius` 18.8 joining the four slot sides, rounds 1.0 where they meet. At `PawlAngle` 95°,
-  pawl A's slot end lies 1.44 from the plate edge (x −25.56) and pawl B's outer slot keeps 1.22 to the D2 head
-  pocket in the section 1 mm into the pocket (`TestSevenSegmentDetentPlate` requires 1.0).
-- Sketch constraints: every line is held from the origin or the polar axes. With `arm` = the axis at the pawl's angle
-  + 90°: outer slot side and arm outer edge by `NewDistancePointLine` from the origin and `NewAngle(arm, line, a)` (two
-  point distances were near-singular); root lines `NewPerpendicular(arm, line)` plus distance 24.26; arm inner edge and
-  inner slot side `NewParallel(arm, line)` plus distance; lock flank parallel to the axis at `LockPhase` (+180° for pawl
-  B) and tangent to the tip arc; back flank tangent to the tip arc plus its distance from the origin; tip arc and window
-  arcs by radius. Only the seat centre is a `DimensionPoint`. The rounds are `sketch.CreateFillet` calls, one per
-  corner.
-
-Deflection model (`Dimensions.PawlDeflection(ψ')` and `Dimensions.PawlContact(ψ')`, used by tests and the budget):
-
-```
-pawl frame: lock face of tooth 0 on the ray at −SeatAngle, seat on +u
-wheel outline W: polyline of one tooth (lock face, root round, flank at 0.1° steps), repeated for teeth -1, 0, 1
-head centre H(δ, ψ') = (SeatRadius + δ) ∠ (ψ')        # turning θ by ψ' moves the head to +ψ' against the wheel
-δ(ψ') = least δ >= 0 with dist(H, W) >= PawlTipRound  # bisection on [0, 7], 40 steps
-r_c(ψ') = |closest point P of W to H(δ(ψ'), ψ')|
-β(ψ') = angle of the normal H − P from the radial through H, positive clockwise (PawlContact)
-crest = argmax δ
-```
-
-Expected (`TestSevenSegmentDetent` asserts the contact angle, the crest and the lift): first contact between 0.5 and
-2.0 (δ(1.0) 0.003), δ(8) 1.15, δ(12) 1.88, δ(24) 3.51, crest 31.3°, δ_max 4.35 (asserted 4.35 ± 0.03). Arm strain and
-the budget are under instructions.md Determinacy. Derive exposes `PawlArmInner`, `PawlArmOuter` and `LockPhase` as
-`Dimensions` fields (they depend on the computed `RatchetTip` and `SeatAngle`).
-
-### Detent plate (`Detent Plate`)
-
-Sketch frame origin (0, −37.25, 28), U = +X, V = +Z, N = −Y; extrude `Along` 12 (to y −49.25).
-
-1. Profile: rectangle u ∈ [−27, 27], v ∈ [−28, 21] (z 0..49); holes: the window loop (Pawl geometry: the circle
-   `WindowRadius` 18.8 with two slots, each holding a straight arm whose root joins the plate at the slot's end) and two
-   bolt holes r 1.3 at (±21, −18) (world (±21, z 10)). Select the profile with 3 holes.
-2. Chamfer both faces' outer loop 0.5 (`edgefinish.Chamfer`, `Long(Outer)`). The window loop's face edges get no
-   chamfer (pawl contact and bending section; listed).
-3. Cut `m2fastener.PocketTool` at sites D1, D2 (head pockets in the inner face, y −37.25 to −39.25).
-
-Printed inner face down; pawls bend in the print plane. Recommend PETG.
-Check: `TestSevenSegmentDetentPlate`.
+Check: `TestClickerBodies` (one lump, ten teeth in every ring), `TestClickerHeights`, `TestClickerPoseClearances`,
+`TestClickerLandGaps`, `TestClickerPressTurn`, `TestClickerPoses`, `TestClickerRadialFits`, `TestSevenSegmentDigitsUpright`.
 
 ## 10. Walls (frame.go)
 
@@ -438,14 +347,14 @@ open (0.25); tips end 0.25 inside a face with the seam open and flush when tight
 | --- | --- | --- | --- | --- | --- | ---: | --- |
 | T1-T4 | top plate → top flange ribs | M2 × 10 | (∓23.2, −44.5, 88.25) and (∓23.2, 38.0, 88.25) | (0,0,−1) | (0,1,0) | 10.5 | rib underside z [75.75, 77.75] |
 | G1-G4 | ledge ribs → guide plate | M2 × 6 | (∓23.2, −34.2, 49.75) and (∓23.2, 38.0, 49.75) | (0,0,1) | (0,1,0) | 6.25 | guide plate top z [56, 58] |
-| D1-D2 | detent plate → front wall | M2 × 18 | (∓21, −37.25, 10) | (0,−1,0) | (0,0,1) | 18.25 | front wall outer face y [−57.5, −55.5] |
+| H1-H2 | housing → front wall | M2 × 10 | (∓21, −61.75, 28) | (0,1,0) | (0,0,1) | 10.25 | front wall outer face y [−57.5, −55.5] |
 
 Order T1..T4, G1..G4, D1..D2; within T and G: −x front, +x front, −x rear, +x rear.
 Tips: T at z 76.25, G at z 57.75, D at y −57.25. Each nut is 1.55 of 1.6 engaged open, fully when closed.
 Material round pockets, measured after the 0.5 chamfers: top plate head pockets reach x 25.4 → 1.1 to the
 chamfered edge; guide plate hex pockets (flats ±2.174) reach x 25.374 → 1.13; rib pockets 1.026 to the rib's
 x = 20 side and 1.626 to x 27; G head pockets in the front ledge ribs end at y −32.0, 1.2 from the rib end (−30.8).
-G1/G2 heads are fitted from below between the detent plate's inner face (y −37.25) and cam d's disc
+G1/G2 heads are fitted from below past cam d's disc
 (y ≥ −30.65); nothing occupies z 41-49.75 at x ±23.2 there. No nut is embedded; every pocket opens to a face.
 
 ### Bearings
@@ -460,7 +369,7 @@ Check: `TestSevenSegmentFasteners`.
 ### Pose and placement
 
 1. Build every part in its frame (above).
-2. Camshaft group (shaft, cams, ratchet wheel, collar ring, knob): `decad.Transform` by
+2. Camshaft group (shaft, cams, hub, rotor, spring): `decad.Transform` by
    `r3.RotationAround((0,0,28), (0,1,0), θ)`, θ = 36 · Digit.
 3. Sliders: translate +3.0 Z where `Lit(Digit, s)`.
 4. Every printed body and both bearings: `placement.Place(ctx, body, p.Placement)`. Fastener sites are carried
@@ -474,13 +383,10 @@ Check: `TestSevenSegmentFasteners`.
 | `Frame` (root) | — (unit) |
 | `Walls` (Frame) | Front Wall, Rear Wall |
 | `Plates` (Frame) | Guide Plate, Cradle Plate, Top Plate |
-| `Detent Plate` (Frame) | Detent Plate |
 | `Camshaft` (root) | — (unit) |
 | `Shaft` (Camshaft) | Shaft |
 | `Cams` (Camshaft) | 7 cams |
-| `Ratchet Wheel` (Camshaft) | Ratchet Wheel |
-| `Collar Ring` (Camshaft) | Collar Ring |
-| `Knob` (Camshaft) | Knob |
+| `Hub`, `Rotor`, `Housing`, `Button`, `Spring` (Click Indexer) | one body each |
 | `Segment Sliders` (root) | 7 sliders |
 | `Flags` (root) | 7 `Flag` units, each with a `Yellow Face` and a `Black Body` |
 | `Bearings` (root) | 2 × 605ZZ |

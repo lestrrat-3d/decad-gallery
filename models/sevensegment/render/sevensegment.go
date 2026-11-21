@@ -23,7 +23,10 @@ var (
 	sevenCamColor     = solidlens.RGB(.20, .56, .60) // cams and ratchet wheel
 	sevenYellow       = solidlens.RGB(1.0, .78, .05) // the yellow slab of every rotor
 	sevenBlack        = solidlens.RGB(.08, .08, .09) // the black body of every rotor and every slider
-	sevenShaftColor   = solidlens.RGB(.16, .17, .20) // shaft, collar ring and knob
+	sevenShaftColor   = solidlens.RGB(.16, .17, .20) // shaft and hub
+	sevenHousingColor = solidlens.RGB(.28, .55, .35) // click-indexer housing
+	sevenRotorColor   = solidlens.RGB(.55, .38, .72) // click-indexer rotor
+	sevenButtonColor  = solidlens.RGB(.86, .38, .12) // button
 	sevenHardware     = solidlens.RGB(.55, .57, .60) // bought bearings, bolts and nuts
 	sevenDigitDefault = sevensegment.DefaultParams().Digit
 )
@@ -66,9 +69,11 @@ var sevenExplode = map[string]r3.Vec{
 	// The sliders stand beside the stack, each pair stepped up in Z, so that none hides another or sits behind a plate: a, g
 	// and d farthest out on +X, b and c on +X, e and f on -X, f higher (checked by eye on the rendered image).
 	"Slider a": {X: 105}, "Slider g": {X: 105, Z: 45}, "Slider d": {X: 105, Z: 90}, "Slider b": {X: 60}, "Slider c": {X: 60, Z: 45},
-	"Slider e": {X: -85, Z: 30}, "Slider f": {X: -85, Z: 100}, "Front Wall": {Y: -50}, "Detent Plate": {Y: -30},
+	"Slider e": {X: -85, Z: 30}, "Slider f": {X: -85, Z: 100}, "Front Wall": {Y: -50},
+	// The click indexer comes off the front end in order, each part past the one before: hub, housing, spring, rotor, button.
+	"Hub": {Y: -62}, "Housing": {Y: -80}, "Spring": {Y: -100}, "Rotor": {Y: -122}, "Button": {Y: -160},
 	// The front bearing drops below the shaft, so the front wall does not hide it.
-	"Front Bearing": {Y: -40, Z: -55}, "Collar Ring": {Y: -60}, "Knob": {Y: -75}, "Rear Wall": {Y: 45}, "Rear Bearing": {Y: 25},
+	"Front Bearing": {Y: -40, Z: -55}, "Rear Wall": {Y: 45}, "Rear Bearing": {Y: 25},
 }
 
 // sevenSegmentCentre is the middle of segment s in plan.
@@ -125,12 +130,16 @@ func sevenFlagMove(seg sevensegment.Segment, dphi float64) (r3.Transform, error)
 }
 
 // sevenCamshaftOrder lists the parts that slide off the shaft, rear first.
-var sevenCamshaftOrder = []string{"Cam a", "Cam f", "Cam b", "Cam g", "Cam c", "Cam e", "Cam d", "Ratchet Wheel",
-	"Collar Ring", "Knob"}
+var sevenCamshaftOrder = []string{"Cam a", "Cam f", "Cam b", "Cam g", "Cam c", "Cam e", "Cam d", "Hub", "Spring", "Rotor"}
 
 // sevenSet builds the default display once and tessellates its 60 bodies.
 func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
-	doc := decad.New()
+	return buildSevenSegmentSetOpt(ctx, false)
+}
+
+// buildSevenSegmentSetOpt builds the set; preview leaves the click indexer's teeth as separate wedge parts.
+func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
+	doc := sevensegment.NewDocument()
 	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
 	if err != nil {
 		return nil, fmt.Errorf("build seven-segment display: %w", err)
@@ -142,10 +151,10 @@ func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 	}
 	parts := []named{
 		{"Front Wall", m.FrontWall, sevenWallColor}, {"Rear Wall", m.RearWall, sevenWallColor},
-		{"Detent Plate", m.DetentPlate, sevenWallColor}, {"Guide Plate", m.GuidePlate, sevenPlateColor},
+		{"Housing", m.Housing, sevenHousingColor}, {"Guide Plate", m.GuidePlate, sevenPlateColor},
 		{"Top Plate", m.TopPlate, sevenPlateColor}, {"Cradle Plate", m.CradlePlate, sevenWallColor}, {"Shaft", m.Shaft, sevenShaftColor},
-		{"Ratchet Wheel", m.RatchetWheel, sevenCamColor}, {"Collar Ring", m.CollarRing, sevenShaftColor},
-		{"Knob", m.Knob, sevenShaftColor}, {"Front Bearing", m.Bearings[0].Body, sevenHardware},
+		{"Hub", m.Hub, sevenShaftColor}, {"Rotor", m.Rotor, sevenRotorColor}, {"Button", m.Button, sevenButtonColor},
+		{"Spring", m.Spring, sevenHardware}, {"Front Bearing", m.Bearings[0].Body, sevenHardware},
 		{"Rear Bearing", m.Bearings[1].Body, sevenHardware},
 	}
 	for _, s := range sevensegment.Segments() {
@@ -165,6 +174,9 @@ func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 	set := make(partSet, 0, len(parts))
 	for _, p := range parts {
 		tol := .04
+		if p.name == "Rotor" || p.name == "Button" || p.name == "Housing" {
+			tol = .1 // the helicoid teeth mesh no finer
+		}
 		if strings.HasPrefix(p.name, "Bolt") || strings.HasPrefix(p.name, "Nut") {
 			tol = .01
 		}
@@ -189,7 +201,7 @@ func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 				headIn = "Rear Wall"
 			}
 		default:
-			headIn, nutIn = "Detent Plate", "Front Wall"
+			headIn, nutIn = "Housing", "Front Wall"
 		}
 		dir := r3.Vec(site.Dir)
 		sevenExplode[fmt.Sprintf("Bolt %d", i+1)] = sevenExplode[headIn].Sub(dir.Scale(15))
@@ -199,17 +211,17 @@ func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 }
 
 var sevenCameras = map[string]solidlens.Camera{
-	"hero": {Position: solidlens.Vec{X: 110, Y: -125, Z: 235}, Target: sevenCenter, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"top":  {Position: solidlens.Vec{Y: -3, Z: 320}, Target: solidlens.Vec{Y: -3, Z: 84}, Up: solidlens.Vec{Y: 1}, FOV: 30},
+	"hero": {Position: solidlens.Vec{X: 110, Y: -125, Z: 235}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
+	"top":  {Position: solidlens.Vec{Y: -3, Z: 320}, Target: solidlens.Vec{Y: -3, Z: 84}, Up: solidlens.Vec{Y: -1}, FOV: 30},
 	"oblique45": {Position: solidlens.Vec{Y: -3 - 160, Z: 84 + 160}, Target: solidlens.Vec{Y: -3, Z: 84},
-		Up: solidlens.Vec{Z: 1}, FOV: 30},
+		Up: solidlens.Vec{Y: -1}, FOV: 30},
 	"oblique30": {Position: solidlens.Vec{Y: -3 - 190, Z: 84 + 110}, Target: solidlens.Vec{Y: -3, Z: 84},
-		Up: solidlens.Vec{Z: 1}, FOV: 30},
+		Up: solidlens.Vec{Y: -1}, FOV: 30},
 	"front": {Position: solidlens.Vec{Y: -300, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"side":  {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"cutaway": {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Z: 1},
+	"side":  {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
+	"cutaway": {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1},
 		FOV: 35},
-	"detent": {Position: solidlens.Vec{Y: -160, Z: 28}, Target: solidlens.Vec{Y: -43.25, Z: 28}, Up: solidlens.Vec{Z: 1},
+	"indexer": {Position: solidlens.Vec{X: 260, Y: -66, Z: 28}, Target: solidlens.Vec{Y: -66, Z: 28}, Up: solidlens.Vec{Y: -1},
 		FOV: 30},
 	"exploded": {Position: solidlens.Vec{X: 330, Y: -330, Z: 230}, Target: solidlens.Vec{Y: -3, Z: 62},
 		Up: solidlens.Vec{Z: 1}, FOV: 35},
@@ -218,8 +230,7 @@ var sevenCameras = map[string]solidlens.Camera{
 }
 
 var (
-	sevenAxisCut   = solidlens.ClipPlane{Normal: solidlens.Vec{X: 1}}
-	sevenDetentCut = solidlens.ClipPlane{Origin: solidlens.Vec{Y: -43.25}, Normal: solidlens.Vec{Y: -1}}
+	sevenAxisCut = solidlens.ClipPlane{Normal: solidlens.Vec{X: 1}}
 )
 
 // sevenCamshaftPull spreads the parts on the shaft along -Y, 12 mm per part from the rear.
@@ -243,8 +254,8 @@ func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 	switch name {
 	case "cutaway":
 		clip = &sevenAxisCut
-	case "detent":
-		clip = &sevenDetentCut
+	case "indexer":
+		clip = &sevenAxisCut
 	case "exploded":
 		pull = sevenExplode
 	case "exploded-camshaft":
@@ -254,8 +265,16 @@ func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 	if name == "exploded-camshaft" { // the frame, bearings and fasteners are left out so the shaft and every cam show
 		set = nil
 		for _, p := range s {
-			if p.name == "Shaft" || p.name == "Ratchet Wheel" || p.name == "Collar Ring" || p.name == "Knob" ||
-				strings.HasPrefix(p.name, "Cam ") {
+			if p.name == "Shaft" || p.name == "Hub" || p.name == "Rotor" || p.name == "Spring" || strings.HasPrefix(p.name, "Cam ") {
+				set = append(set, p)
+			}
+		}
+	}
+	if name == "indexer" { // the indexer and the front wall
+		set = nil
+		for _, p := range s {
+			switch p.name {
+			case "Hub", "Rotor", "Housing", "Button", "Spring", "Front Wall":
 				set = append(set, p)
 			}
 		}
@@ -322,14 +341,14 @@ func sevenSegmentDigits(s partSet) (solidlens.Scene, error) {
 	}
 	var models []solidlens.Model
 	for k := range 10 {
-		m, err := sevenDigitModels(s, dm, k, r3.Vec{X: float64(k%5) * 66, Y: -float64(k/5) * 118})
+		m, err := sevenDigitModels(s, dm, k, r3.Vec{X: float64(k%5) * 66, Y: float64(k/5) * 118})
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		models = append(models, m...)
 	}
-	camera := solidlens.Camera{Position: solidlens.Vec{X: 132, Y: -460, Z: 330}, Target: solidlens.Vec{X: 132, Y: -62, Z: 84},
-		Up: solidlens.Vec{Z: 1}, FOV: 30}
+	camera := solidlens.Camera{Position: solidlens.Vec{X: 132, Y: -460, Z: 330}, Target: solidlens.Vec{X: 132, Y: 56, Z: 84},
+		Up: solidlens.Vec{Y: -1}, FOV: 30}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .04), models), nil
 }
 
@@ -394,9 +413,10 @@ var sevenPartImages = []struct {
 	parts []string
 }{
 	{"front-wall", []string{"Front Wall"}}, {"rear-wall", []string{"Rear Wall"}},
-	{"detent-plate", []string{"Detent Plate"}}, {"guide-plate", []string{"Guide Plate"}},
+	{"guide-plate", []string{"Guide Plate"}},
 	{"cradle-plate", []string{"Cradle Plate"}}, {"top-plate", []string{"Top Plate"}}, {"shaft", []string{"Shaft"}},
-	{"ratchet-wheel", []string{"Ratchet Wheel"}}, {"collar-ring", []string{"Collar Ring"}}, {"knob", []string{"Knob"}},
+	{"hub", []string{"Hub"}}, {"rotor", []string{"Rotor"}}, {"housing", []string{"Housing"}}, {"button", []string{"Button"}},
+	{"spring", []string{"Spring"}},
 	{"cam-a", []string{"Cam a"}}, {"cam-b", []string{"Cam b"}}, {"cam-c", []string{"Cam c"}}, {"cam-d", []string{"Cam d"}},
 	{"cam-e", []string{"Cam e"}}, {"cam-f", []string{"Cam f"}}, {"cam-g", []string{"Cam g"}},
 	{"slider-a-g-d", []string{"Slider a"}}, {"slider-b-c", []string{"Slider b"}}, {"slider-e-f", []string{"Slider e"}},
@@ -404,7 +424,7 @@ var sevenPartImages = []struct {
 	{"rotor-a-black", []string{"Flag a Black"}}, {"rotor-b", []string{"Flag b Yellow", "Flag b Black"}},
 	{"rotor-b-yellow", []string{"Flag b Yellow"}}, {"rotor-b-black", []string{"Flag b Black"}},
 	{"bearing", []string{"Front Bearing"}}, {"bolt-m2x10", []string{"Bolt 1"}},
-	{"bolt-m2x6", []string{"Bolt 5"}}, {"bolt-m2x18", []string{"Bolt 9"}},
+	{"bolt-m2x6", []string{"Bolt 5"}},
 	{"nut", []string{"Nut 1"}},
 }
 
@@ -421,7 +441,7 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 		{"hero", "hero.png", 1600, 900}, {"hero", "index.png", 480, 270}, {"top", "top.png", 1600, 900},
 		{"oblique45", "oblique45.png", 1600, 900}, {"oblique30", "oblique30.png", 1600, 900},
 		{"front", "front.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"cutaway", "cutaway.png", 1600, 900},
-		{"detent", "detent.png", 1600, 900}, {"exploded", "exploded.png", 1600, 900},
+		{"indexer", "indexer.png", 1600, 900}, {"exploded", "exploded.png", 1600, 900},
 		{"exploded-camshaft", "exploded-camshaft.png", 1600, 900},
 	} {
 		scene, err := sevenSegmentView(s, shot.view)

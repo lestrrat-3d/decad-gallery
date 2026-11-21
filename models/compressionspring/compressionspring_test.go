@@ -69,3 +69,25 @@ func TestReturnSpringLimits(t *testing.T) {
 		require.Error(t, err)
 	}
 }
+
+func TestClickIndexerSpring(t *testing.T) {
+	spec := compressionspring.LeeLC022D03S()
+	require.Equal(t, "Lee Spring LC 022D 03 S", spec.Name)
+	for _, tc := range []struct {
+		name          string
+		length, force float64
+	}{
+		{"rest", 8.0, 0.736 * (15.88 - 8.0)}, {"pressed", 6.0, 0.736 * (15.88 - 6.0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := compressionspring.Build(t.Context(), decad.New(), compressionspring.Params{Spec: spec, InstalledLength: tc.length})
+			require.NoError(t, err)
+			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.Profile))
+			box, err := m.Body.Bounds()
+			require.NoError(t, err)
+			require.InDelta(t, tc.length, box.Max.Y-box.Min.Y, .02)
+			require.InDelta(t, 7.62, box.Max.X-box.Min.X, .02)
+			require.InDelta(t, tc.force, m.Force, 1e-10)
+		})
+	}
+}

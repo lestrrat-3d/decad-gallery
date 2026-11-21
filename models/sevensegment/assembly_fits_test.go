@@ -13,7 +13,7 @@ import (
 
 // TestSevenSegmentAxialFits reads the axial fits of the default display from the built bodies: each gap is the
 // distance between two faces, one measured on each part (the bearings by their bounds, the shaft by its sections, the walls
-// by bisection on their meshes). It covers T1, T2, R4, L3, L4, L8 and S1 (detent plate and guide plate) and S2 of the part
+// by bisection on their meshes). It covers T1, T2, R4, L3, L4, L8 and S1 (guide plate) and S2 of the part
 // fits table in instructions.md.
 func TestSevenSegmentAxialFits(t *testing.T) {
 	startDefault()
@@ -46,8 +46,8 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 	coneStart := shaftEdge(t, m.Shaft, 39.4, 40.5, func(_, maxR float64) bool { return maxR < 3.21 })
 	camFlatEnd := shaftEdge(t, m.Shaft, 38.9, 39.5, func(minR, _ float64) bool { return minR < 3.0 })
 	stubFlatEnd := shaftEdge(t, m.Shaft, -58.2, -57.5, func(minR, _ float64) bool { return minR < 2.25 })
-	camA, ring, ratchet := bounds(m.Cams[sevensegment.SegA]), bounds(m.CollarRing), bounds(m.RatchetWheel)
-	detent, guide := bounds(m.DetentPlate), bounds(m.GuidePlate)
+	camA, ring := bounds(m.Cams[sevensegment.SegA]), bounds(m.Hub)
+	guide := bounds(m.GuidePlate)
 	// The ledge ribs' top faces, read inside a rib of each wall: the first of a few x positions that lies in the rib's
 	// material, clear of the bolt pockets.
 	ledge := func(g *crossingGrid, y float64) float64 {
@@ -70,13 +70,10 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 	}{
 		{"T1 front step to the front bearing's inner face", frontStep - front.Max.Y, sevensegment.TightFit},
 		{"T2 rear collar face to the rear bearing's inner face", rear.Min.Y - rearCollar, sevensegment.TightFit},
-		{"R4 collar ring to the front wall's outer face", frontOuter - ring.Max.Y, sevensegment.RegularFit},
-		{"L3 ratchet front face to the front bearing", ratchet.Min.Y - front.Max.Y, 1.0},
-		{"L3 ratchet front face to the front wall", ratchet.Min.Y - frontInner, 1.0},
+		{"R4 hub to the front wall's outer face", frontOuter - ring.Max.Y, sevensegment.RegularFit},
 		{"L4 cam a back face to the rear collar cone", coneStart - camA.Max.Y, sevensegment.LooseFit},
-		{"L8 stub flat end to the collar ring", stubFlatEnd - ring.Max.Y, sevensegment.PressFit},
+		{"L8 stub flat end to the hub", stubFlatEnd - ring.Max.Y, sevensegment.PressFit},
 		{"L8 cam flat end to cam a", camFlatEnd - camA.Max.Y, sevensegment.PressFit},
-		{"S1 detent plate to the front wall", detent.Min.Y - frontInner, sevensegment.Seam},
 		{"S1 guide plate to the front ledge ribs", guide.Min.Z - frontLedge, sevensegment.Seam},
 		{"S1 guide plate to the rear ledge ribs", guide.Min.Z - rearLedge, sevensegment.Seam},
 		{"S2 columns to the cradle plate", cradle.Min.Z - columnTop, 0.85},

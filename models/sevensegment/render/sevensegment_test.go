@@ -6,14 +6,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSevenSegmentPresets(t *testing.T) {
 	m := Model()
-	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "detent", "digits",
+	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "indexer", "digits",
 		"cams", "exploded", "exploded-camshaft"} {
 		p, ok := m.Presets[name]
 		require.True(t, ok, name)
@@ -25,7 +27,7 @@ func TestSevenSegmentPresets(t *testing.T) {
 		require.False(t, seen[img.file], img.file)
 		seen[img.file] = true
 	}
-	// 10 plain printed parts, 7 cams, 3 slider types, 2 rotor images and 4 rotor bodies, bearing, 3 bolts, nut.
+	// 11 plain printed or bought parts, 7 cams, 3 slider types, 2 rotor images and 4 rotor bodies, bearing, 2 bolts, nut.
 	require.Len(t, sevenPartImages, 31)
 }
 
@@ -51,23 +53,31 @@ func TestSevenSegmentColors(t *testing.T) {
 	}
 }
 
-// TestSevenSegmentMotionColors checks the motion clip's models: every part keeps one colour at every camshaft angle, in
-// the angled view and in the cut, and only the rotors' yellow bodies are yellow.
+// TestSevenSegmentMotionColors checks the motion clip's models: every part keeps one colour in every pose of the press cycle,
+// in the face view and in the cut, and only the rotors' yellow bodies are yellow.
 func TestSevenSegmentMotionColors(t *testing.T) {
 	s, err := buildSevenSegmentSet(context.Background())
 	require.NoError(t, err)
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
-	for _, top := range []bool{true, false} {
-		base, err := sevenMotionModels(s, dm, 0, top)
+	springs := map[float64]*decad.Mesh{}
+	for _, l := range []float64{6, 7, 8} {
+		body, err := sevensegment.BuildSpring(context.Background(), decad.New(), l)
+		require.NoError(t, err)
+		springs[l], err = body.Tessellate(context.Background(), units.Millimeters(.05))
+		require.NoError(t, err)
+	}
+	states := motionStates()
+	for _, face := range []bool{true, false} {
+		base, err := motionModels(s, springs, dm, states[0], face)
 		require.NoError(t, err)
 		require.NotEmpty(t, base)
-		for _, theta := range []float64{36, 150, 215, 330} {
-			got, err := sevenMotionModels(s, dm, theta, top)
+		for _, st := range []clickerState{states[3], states[6], states[40], states[len(states)-1]} {
+			got, err := motionModels(s, springs, dm, st, face)
 			require.NoError(t, err)
-			require.Len(t, got, len(base), "theta %.0f top %v", theta, top)
+			require.Len(t, got, len(base), "state %+v face %v", st, face)
 			for i := range base {
-				require.Equal(t, base[i].Material.Color, got[i].Material.Color, "model %d at theta %.0f top %v", i, theta, top)
+				require.Equal(t, base[i].Material.Color, got[i].Material.Color, "model %d at %+v face %v", i, st, face)
 			}
 		}
 		yellows := 0
@@ -76,8 +86,8 @@ func TestSevenSegmentMotionColors(t *testing.T) {
 				yellows++
 			}
 		}
-		if top {
-			require.Equal(t, 7, yellows, "the angled view draws the seven yellow bodies")
+		if face {
+			require.Equal(t, 7, yellows, "the face view draws the seven yellow bodies")
 		}
 	}
 }

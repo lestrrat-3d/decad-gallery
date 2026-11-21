@@ -35,6 +35,15 @@ func LeeLC026D16S() Spec {
 		SolidHeight: 12.17, LoadAtSolid: 15.93}
 }
 
+// LeeLC022D03S is the stainless click-indexer return spring, the Lee Spring catalog values at
+// https://www.leespring.com/product/compression-spring-lc022d03s-stainless-steel: 7.62 mm outside diameter, 0.56 mm
+// wire, 15.88 mm free length, 5.25 total and 3.25 active coils, 0.736 N/mm, 3.1 mm solid height, 9.27 N at solid.
+func LeeLC022D03S() Spec {
+	return Spec{Name: "Lee Spring LC 022D 03 S", OutsideDiameter: 7.62, WireDiameter: 0.56,
+		FreeLength: 15.88, TotalTurns: 5.25, ActiveTurns: 3.25, Rate: 0.736,
+		SolidHeight: 3.10, LoadAtSolid: 9.27}
+}
+
 type Params struct {
 	Spec            Spec
 	InstalledLength float64

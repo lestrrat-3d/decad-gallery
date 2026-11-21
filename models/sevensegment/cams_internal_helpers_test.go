@@ -15,7 +15,7 @@ func newTestRun(t *testing.T) *run {
 	t.Helper()
 	dm, err := DefaultParams().Derive()
 	require.NoError(t, err)
-	return &run{ctx: t.Context(), doc: decad.New(), p: DefaultParams(), dm: dm}
+	return &run{ctx: t.Context(), doc: NewDocument(), p: DefaultParams(), dm: dm}
 }
 
 // sectionAt cuts body with the plane y = y, with U = +X and V = +Z about the shaft axis, and returns its loops: the

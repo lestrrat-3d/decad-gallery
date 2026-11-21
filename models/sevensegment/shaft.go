@@ -6,7 +6,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/sketch"
 )
 
 // Shaft and camshaft part dimensions that are not exported.
@@ -74,46 +73,5 @@ func (r *run) shaft() (*decad.Body, error) {
 		}
 	}
 	f := camshaftFrame(0)
-	return placement.Place(r.ctx, body, &f)
-}
-
-// collarRing builds the separate collar ring pressed on the knob stub: a disc of CollarRingRadius with a D hole,
-// CollarRingLength long from world Y -57.9 toward -Y.
-func (r *run) collarRing() (*decad.Body, error) {
-	f := frontFrame(-57.9)
-	s, err := r.sketchOn(across(0))
-	if err != nil {
-		return nil, err
-	}
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), CollarRingRadius), CollarRingRadius))
-	dBoreLoop(s, boreStubRadius, boreStubFlat)
-	body, err := r.extrude(s, 1, CollarRingLength, decad.Along)
-	if err != nil {
-		return nil, fmt.Errorf("extrude: %w", err)
-	}
-	return placement.Place(r.ctx, body, &f)
-}
-
-// knob builds the knob: a revolved disc with a blind D bore from its back face.
-func (r *run) knob() (*decad.Body, error) {
-	pts := [][2]float64{{0, 0}, {KnobRadius - 0.5, 0}, {KnobRadius, 0.5}, {KnobRadius, KnobThickness - 0.5},
-		{KnobRadius - 0.5, KnobThickness}, {0, KnobThickness}}
-	body, err := r.meridian(pts)
-	if err != nil {
-		return nil, fmt.Errorf("revolve: %w", err)
-	}
-	s, err := r.sketchOn(across(-1))
-	if err != nil {
-		return nil, err
-	}
-	dBoreLoop(s, boreStubRadius, boreStubFlat)
-	bore, err := r.extrude(s, 0, 11.8, decad.Along)
-	if err != nil {
-		return nil, fmt.Errorf("bore tool: %w", err)
-	}
-	if body, err = decad.Cut(r.ctx, body, bore); err != nil {
-		return nil, fmt.Errorf("cut bore: %w", err)
-	}
-	f := frontFrame(-61.45)
 	return placement.Place(r.ctx, body, &f)
 }

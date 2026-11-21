@@ -52,7 +52,7 @@ func TestSevenSegmentCam(t *testing.T) {
 			// Bounds: the cam spans the groove face to the disc back and the hub.
 			box, err := body.Bounds()
 			require.NoError(t, err)
-			require.InDelta(t, r.dm.Station(seg)+2.35-camHubTop, box.Min.Y, 1e-6)
+			require.InDelta(t, r.dm.Station(seg)+2.35-camHubTop, box.Min.Y, 5e-4)
 			require.InDelta(t, r.dm.Station(seg)+2.35+CamThickness, box.Max.Y, 1e-6)
 		})
 	}

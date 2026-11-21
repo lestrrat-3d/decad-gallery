@@ -11,6 +11,7 @@ outside diameter and turn count while the pitch changes with compression.
 | --- | --- | ---: | ---: | ---: |
 | LC 024C 14 M | Music wire | 6.10 mm | 50.80 mm | 0.49 N/mm |
 | LC 026D 16 S | Stainless steel | 7.62 mm | 63.50 mm | 0.30 N/mm |
+| LC 022D 03 S | Stainless steel | 7.62 mm | 15.88 mm | 0.736 N/mm |
 
 **Clearance adjustment:** Nominal. Size the mating guides around the purchased spring.
 

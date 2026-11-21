@@ -37,7 +37,7 @@ func sharedRun(t *testing.T, p Params, key string, build func(r *run, e *sharedE
 			e.err = err
 			return
 		}
-		e.r = &run{ctx: t.Context(), doc: decad.New(), p: p, dm: dm}
+		e.r = &run{ctx: t.Context(), doc: NewDocument(), p: p, dm: dm}
 		// The run's context ends with the test that built it: a later build in a shared run fails instead of adding to
 		// it, so tests take every part from these helpers.
 		e.err = build(e.r, e)
