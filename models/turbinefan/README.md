@@ -1,6 +1,7 @@
 # Turbine fan
 
-**Build status:** Not built yet. No physical copy of this model has been made and tested, so its dimensions and fits are unproven.
+**Build status:** Built and tested. A blade for the 192 mm rotor has been printed with its nose rib, with the best
+quality of any blade print so far.
 
 ![Three-blade turbine fan on a clamping hub, seen from the front and above](images/hero.png)
 
