@@ -12,12 +12,11 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Print pose and print-process sizes, in mm or radians. instructions.md "Print pose and cradle" gives each one's reason.
+// Print pose and print-process sizes, in mm or radians. instructions.md "Print pose and nose rib" gives each one's
+// reason.
 const (
 	// PrintLean turns the chord at RefRadius from vertical toward the pressure face (negative values).
 	PrintLean = -15 * math.Pi / 180
-	// CradleGapZ is the vertical support gap from the cradle to the blade: one 0.2 mm layer.
-	CradleGapZ = 0.2
 	// PrintLift is the z of the blade's stud flat in the print pose: the flat sits on the bed, and the stud end corner
 	// the flat cut away StudFlatDepth under it.
 	PrintLift = 0.0

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuildBladePrint builds the default blade and its cradle in both hands: two bodies, one in each of the Blades and
+// TestBuildBladePrint builds the default blade and its nose rib in both hands: two bodies, one in each of the Blades and
 // Harness containers, the blade's 13 sketches, the harness's sketches, and the rest tilt. A nil context, a nil
 // document and a rotor outside the valid range are rejected before any geometry.
 func TestBuildBladePrint(t *testing.T) {
@@ -33,8 +33,7 @@ func TestBuildBladePrint(t *testing.T) {
 			require.True(t, any(bodies[0]) == want, name)
 		}
 		require.Equal(t, 13, len(bp.BladeSketches), "ten sections, the stud, the bolt hole and the stud flat's cutter")
-		require.Equal(t, shadowSectionCount(bp.Harness)+14+len(bp.Harness.Reliefs)+len(bp.Harness.Removed),
-			len(bp.Harness.Sketches))
+		require.Equal(t, 2, len(bp.Harness.Sketches), "the rib's wedge and profile slab")
 
 		build := turbinefan.BuildBlade
 		if hand == turbinefan.LeftHand {

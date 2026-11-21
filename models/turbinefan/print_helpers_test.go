@@ -43,8 +43,7 @@ func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Do
 	return doc, posed, tilt
 }
 
-// sectionAt cuts body with the plane z = h of the print frame at the finest chord the body allows. The cradle's held
-// mesh bound is up to 0.14 mm, so it takes 0.2.
+// sectionAt cuts body with the plane z = h of the print frame at the finest chord the body allows, 0.02 to 0.2.
 func sectionAt(t *testing.T, body *decad.Body, h float64) decad.SectionOutline {
 	t.Helper()
 	var o decad.SectionOutline
@@ -161,17 +160,6 @@ func eachCradle(t *testing.T, fn func(t *testing.T, c cradleCase, b *builtCradle
 	}
 }
 
-// shadowSectionCount returns the number of shadow sections: the Sections from the step zone's lead-in on.
-func shadowSectionCount(h *turbinefan.BladeHarness) int {
-	n := 0
-	for _, c := range h.Sections {
-		if c.X >= h.StepZone[0]-1.0-1e-9 {
-			n++
-		}
-	}
-	return n
-}
-
 // lowestCrossing returns the lowest z where the vertical line y meets the closed polyline (y, z taken from the points'
 // Y and Z), and whether it meets it.
 func lowestCrossing(l []r3.Vec, y float64) (float64, bool) {
@@ -188,59 +176,10 @@ func lowestCrossing(l []r3.Vec, y float64) (float64, bool) {
 	return best, ok
 }
 
-// lowestLoop returns the loop holding the lowest point of the outline.
-func lowestLoop(o decad.SectionOutline) []r3.Vec {
-	var best []r3.Vec
-	low := math.Inf(1)
-	for _, l := range o.Loops {
-		for _, p := range l {
-			if p.Z < low {
-				best, low = l, p.Z
-			}
-		}
-	}
-	return best
-}
-
-// inStepReach reports whether x lies where the step zone's copied sections and the walls' smoothing reach: from the
-// shadow tool's lead-in, less the smoothing half-width and a section, to the zone's end plus the same.
-func inStepReach(h *turbinefan.BladeHarness, x float64) bool {
-	reach := turbinefan.CradleTopSmooth + turbinefan.CradleStep
-	return x >= h.StepZone[0]-1.0-reach && x <= h.StepZone[1]+reach
-}
-
 // frame3 is the plane x = const of the print frame, U along +Y and V along +Z.
 func frame3(x float64) r3.Frame {
 	f, _ := r3.NewFrame(r3.Vec{X: x}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	return f
-}
-
-// sectionAround interpolates the widest points of the two sections around x; false outside the sections' x range.
-func sectionAround(h *turbinefan.BladeHarness, x float64) (turbinefan.CradleSection, bool) {
-	s := h.Sections
-	if x < s[0].X || x > s[len(s)-1].X {
-		return turbinefan.CradleSection{}, false
-	}
-	for i := 1; i < len(s); i++ {
-		if x > s[i].X {
-			continue
-		}
-		a, c := s[i-1], s[i]
-		f := (x - a.X) / (c.X - a.X)
-		lerp := func(p, q float64) float64 { return p + f*(q-p) }
-		return turbinefan.CradleSection{X: x, LeftY: lerp(a.LeftY, c.LeftY), LeftZ: lerp(a.LeftZ, c.LeftZ),
-			RightY: lerp(a.RightY, c.RightY), RightZ: lerp(a.RightZ, c.RightZ)}, true
-	}
-	return s[len(s)-1], true
-}
-
-// cradleFirstLayerMin is the least first-layer area of the cradle, in mm², by rotor diameter: the v8 probe measured 584,
-// 1110 and 1434 mm² with the stud flat's larger stud pocket.
-var cradleFirstLayerMin = map[float64]float64{128: 550, 192: 1050, 224: 1350}
-
-// inRect reports whether (x, y) lies inside the rectangle r, given as its least and greatest corner.
-func inRect(r [2]r3.Vec, x, y float64) bool {
-	return x >= r[0].X && x <= r[1].X && y >= r[0].Y && y <= r[1].Y
 }
 
 // pointSegment returns the distance in the XY plane from p to the segment a-c.
@@ -268,10 +207,7 @@ func loopDistance(p, q []r3.Vec) float64 {
 	return best
 }
 
-// printLayer is the layer height the layer check slices at.
-const printLayer = 0.2
-
-// layerCheck is what slicing a body at every printLayer found: the number of layers, the loops with nothing in the
+// layerCheck is what slicing a body at every layer found: the number of layers, the loops with nothing in the
 // layer below, and the outline point reaching farthest past the layer below.
 type layerCheck struct {
 	layers, islands int
@@ -280,10 +216,11 @@ type layerCheck struct {
 	worstAt         r3.Vec
 }
 
-// checkLayers slices body at the middle of every printLayer from the bed up and compares each layer with the one below.
+// checkLayers slices body at the middle of every layer of the given height from the bed up and compares each layer
+// with the one below.
 // A loop with no point inside the layer below, and no point of the layer below inside it, is an island; for every
 // outline point outside the layer below it records the distance to that layer's outline.
-func checkLayers(t *testing.T, body *decad.Body) layerCheck {
+func checkLayers(t *testing.T, body *decad.Body, layer float64) layerCheck {
 	t.Helper()
 	box, err := body.Bounds()
 	require.NoError(t, err)
@@ -298,7 +235,7 @@ func checkLayers(t *testing.T, body *decad.Body) layerCheck {
 	}
 	var out layerCheck
 	var below [][]r3.Vec
-	for z := printLayer / 2; z < box.Max.Z; z += printLayer {
+	for z := layer / 2; z < box.Max.Z; z += layer {
 		loops := sectionAt(t, body, z).Loops
 		out.layers++
 		for _, l := range loops {
@@ -354,4 +291,40 @@ func downward(v [3]r3.Vec, slack float64) (float64, bool) {
 		return 0, false
 	}
 	return math.Asin(math.Min(1, -n.Z)) * 180 / math.Pi, true
+}
+
+// r3Lowest returns the lowest point of an outline's loops.
+func r3Lowest(o decad.SectionOutline) r3.Vec {
+	low := r3.Vec{Z: math.Inf(1)}
+	for _, l := range o.Loops {
+		for _, p := range l {
+			if p.Z < low.Z {
+				low = p
+			}
+		}
+	}
+	return low
+}
+
+// maxTop returns the greatest z of a top profile (x, z).
+func maxTop(top [][2]float64) float64 {
+	z := math.Inf(-1)
+	for _, q := range top {
+		z = math.Max(z, q[1])
+	}
+	return z
+}
+
+// loopSpanAtX returns the least and the greatest y where the line x = const meets the closed polyline in the XY plane.
+func loopSpanAtX(l []r3.Vec, x float64) (float64, float64) {
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for i := range l {
+		a, c := l[i], l[(i+1)%len(l)]
+		if (a.X-x)*(c.X-x) > 0 || a.X == c.X {
+			continue
+		}
+		y := a.Y + (x-a.X)/(c.X-a.X)*(c.Y-a.Y)
+		lo, hi = math.Min(lo, y), math.Max(hi, y)
+	}
+	return lo, hi
 }

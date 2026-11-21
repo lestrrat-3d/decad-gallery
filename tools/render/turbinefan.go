@@ -252,20 +252,20 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 	return solidlens.Scene{}, fmt.Errorf("unknown turbine fan view %q", name)
 }
 
-// turbinePrint is one blade and its print harness, meshed, in the print frame: bed z = 0, +Z up, +X from stud to tip.
+// turbinePrint is one blade and its nose rib, meshed, in the print frame: bed z = 0, +Z up, +X from stud to tip.
 type turbinePrint struct {
 	blade, harness *decad.Mesh
 }
 
-// buildTurbinePrintMeshes builds the blade and harness of p with BuildBladePrint and tessellates the blade at 0.05 mm
-// and the harness at 0.2 mm.
+// buildTurbinePrintMeshes builds the blade and nose rib of p with BuildBladePrint and tessellates the blade at 0.05 mm
+// and the rib at 0.2 mm.
 func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
 	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
 	if err != nil {
 		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
 	}
 	var out turbinePrint
-	// The cradle's cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14; it meshes at 0.2.
+	// The rib meshes at 0.2, like every print aid.
 	for _, part := range []struct {
 		body *decad.Body
 		mesh **decad.Mesh
@@ -290,18 +290,15 @@ func turbinePrintViewScene(name string) func(context.Context) (solidlens.Scene, 
 	}
 }
 
-// The "print-bed" view cuts the blade just over the middle of its first layer, so it shows its bed spots, and the cradle
-// over its collars and under its caps (CollarHeight 0.8, caps from z = 1), so it shows the brim pockets and the collars.
-const (
-	turbinePrintBedBladeClip  = 0.15
-	turbinePrintBedCradleClip = 0.9
-)
+// turbinePrintBedClip is where the "print-bed" view cuts the blade and the nose rib: just over the middle of the first
+// layer, so it shows the blade's bed spots and the rib's footprint.
+const turbinePrintBedClip = 0.15
 
 // view draws the print job toward the bodies' bounds centre: "print" from the stud end, the pressure side and above;
 // "print-side" from the right hand's suction side (+Y), a little from above, so the tip is on the left and the stud on
 // the right; "print-end" from the tip end along the radial line, a little from above; these three with +Z up.
-// "print-bed" looks straight down on the first layer, the tip on the right, with the blade and the cradle cut at
-// turbinePrintBedBladeClip and turbinePrintBedCradleClip.
+// "print-bed" looks straight down on the first layer, the tip on the right, with the blade and the rib cut at
+// turbinePrintBedClip.
 func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	dirs := map[string]r3.Vec{
 		"print": {X: -.6, Y: -1, Z: .55}, "print-side": {X: 0, Y: 1, Z: .2}, "print-end": {X: 1, Y: -.05, Z: .25},
@@ -320,9 +317,8 @@ func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	up := solidlens.Vec{Z: 1}
 	if name == "print-bed" {
 		center.Z, up = 0, solidlens.Vec{Y: 1}
-		models[0] = clipped(models[0], turbineBladeColor, solidlens.Vec{Z: turbinePrintBedBladeClip}, solidlens.Vec{Z: 1})
-		models[1] = clipped(models[1], turbineHarnessColor, solidlens.Vec{Z: turbinePrintBedCradleClip},
-			solidlens.Vec{Z: 1})
+		models[0] = clipped(models[0], turbineBladeColor, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
+		models[1] = clipped(models[1], turbineHarnessColor, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
 	}
 	d, _ := dir.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(d.Scale(4 * hi.Sub(lo).Len()))),
@@ -387,7 +383,7 @@ func renderTurbineFanReadme(ctx context.Context, outputDir string) error {
 	return renderTurbineClutchReadme(ctx, outputDir)
 }
 
-// renderTurbinePrintReadme builds the default blade's print job once and writes its four views and the cradle's part
+// renderTurbinePrintReadme builds the default blade's print job once and writes its four views and the rib's part
 // image, seen like the other parts.
 func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
 	p, err := buildTurbinePrintMeshes(ctx, turbinefan.DefaultParams())
