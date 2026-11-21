@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"image/draw"
 	"image/gif"
 	"math"
-	"slices"
 
 	"github.com/lestrrat-3d/decad-gallery/internal/renderkit"
 	"github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
@@ -18,7 +16,6 @@ import (
 	"github.com/lestrrat-3d/solidlens"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
 )
 
 // planetaryMotionFrames is the number of input angles the animation turns through, counting the rest pose. Each
@@ -313,76 +310,16 @@ func renderPlanetaryMotionFrom(ctx context.Context, output string, width, height
 // pixels in the box that do not differ set to the transparent palette index clear. A frame that did not change
 // at all becomes one transparent pixel.
 func changedBox(before, next *image.Paletted, clear uint8) *image.Paletted {
-	bounds := next.Bounds()
-	box := image.Rectangle{Min: bounds.Max, Max: bounds.Min}
-	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			if before.ColorIndexAt(x, y) == next.ColorIndexAt(x, y) {
-				continue
-			}
-			box.Min.X, box.Min.Y = min(box.Min.X, x), min(box.Min.Y, y)
-			box.Max.X, box.Max.Y = max(box.Max.X, x+1), max(box.Max.Y, y+1)
-		}
-	}
-	if box.Empty() {
-		box = image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Min.X+1, bounds.Min.Y+1)
-	}
-	out := image.NewPaletted(box, next.Palette)
-	for y := box.Min.Y; y < box.Max.Y; y++ {
-		for x := box.Min.X; x < box.Max.X; x++ {
-			if before.ColorIndexAt(x, y) == next.ColorIndexAt(x, y) {
-				out.SetColorIndex(x, y, clear)
-				continue
-			}
-			out.SetColorIndex(x, y, next.ColorIndexAt(x, y))
-		}
-	}
-	return out
+	return renderkit.ChangedBox(before, next, clear)
 }
 
 // caption draws text with its baseline at (x, y).
 func caption(canvas draw.Image, face font.Face, text string, x, y int) {
-	drawer := font.Drawer{Dst: canvas, Src: image.NewUniform(color.RGBA{R: 26, G: 38, B: 46, A: 255}), Face: face,
-		Dot: fixed.P(x, y)}
-	drawer.DrawString(text)
+	renderkit.Caption(canvas, face, text, x, y)
 }
 
 // adaptivePalette returns the size colors that the images use most, found by grouping colors into buckets of
 // their top five bits per channel and averaging each popular bucket.
 func adaptivePalette(images []image.Image, size int) color.Palette {
-	type bucket struct {
-		count   int
-		r, g, b int
-	}
-	buckets := make(map[uint16]*bucket)
-	for _, img := range images {
-		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
-			for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
-				c := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
-				key := uint16(c.R>>3)<<10 | uint16(c.G>>3)<<5 | uint16(c.B>>3)
-				b := buckets[key]
-				if b == nil {
-					b = &bucket{}
-					buckets[key] = b
-				}
-				b.count++
-				b.r += int(c.R)
-				b.g += int(c.G)
-				b.b += int(c.B)
-			}
-		}
-	}
-	popular := make([]*bucket, 0, len(buckets))
-	for _, b := range buckets {
-		popular = append(popular, b)
-	}
-	slices.SortFunc(popular, func(a, b *bucket) int { return cmp.Compare(b.count, a.count) })
-	if len(popular) > size {
-		popular = popular[:size]
-	}
-	colors := make(color.Palette, 0, len(popular))
-	for _, b := range popular {
-		colors = append(colors, color.RGBA{R: uint8(b.r / b.count), G: uint8(b.g / b.count), B: uint8(b.b / b.count), A: 255})
-	}
-	return colors
+	return renderkit.AdaptivePalette(images, size)
 }

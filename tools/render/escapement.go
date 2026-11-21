@@ -85,12 +85,7 @@ type rotatedMesh struct {
 }
 
 func (m rotatedMesh) Vertices() []r3.Vec {
-	source := m.TriangleSource.Vertices()
-	out := make([]r3.Vec, len(source))
-	for i, v := range source {
-		out[i] = m.move.Apply(v)
-	}
-	return out
+	return (renderkit.TransformedMesh{TriangleSource: m.TriangleSource, Transform: m.move}).Vertices()
 }
 
 // escapementModel returns the model of one body, moved by move and offset along Z.
