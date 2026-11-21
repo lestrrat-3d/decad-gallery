@@ -84,7 +84,8 @@ type CradleSection struct {
 // lines and the blade lifts straight up out of it. Where the blade is less than a few layers over the bed, near its
 // stud end corner and its leading edge, the shadow cuts the cradle down to the bed. Round each of the blade's two bed
 // spots the cradle leaves a brim pocket, BrimClearance clear of the spot over the first two layers, so the slicer's brim
-// on the blade fits there; its walls rise inward at PocketSlope, and a collar ring closes it in the first layer.
+// on the blade fits there; its walls rise inward at PocketSlope, except a side reaching past the block's outer face,
+// which stays vertical, and a collar ring closes it in the first layer.
 type BladeHarness struct {
 	Body *decad.Body
 	// Sketches are in build order: shadow sections, stud slot, block plan, stud collar, leading-edge collar, block
@@ -723,7 +724,19 @@ func (b *bladeBuilder) block(h *BladeHarness, blk []CradleSection, zTop float64)
 	body, err = decad.Intersect(b.ctx, body, bedBox)
 	b.fail("intersect bed box", err)
 	for i := range h.Spots {
-		pocket := b.pocket(h, i)
+		// A pocket side whose bed edge lies past the plan's outer edge anywhere over the pocket's x range is open: a
+		// sloped wall there would start outside the block and meet its outer face above the bed, leaving a fin with
+		// nothing under its lowest edge.
+		var open [2]bool
+		lo, hi := h.Pockets[i][0], h.Pockets[i][1]
+		for _, c := range blk {
+			if c.X < lo.X || c.X > hi.X {
+				continue
+			}
+			open[0] = open[0] || outer(c.X, -1)-CradleWall > lo.Y
+			open[1] = open[1] || outer(c.X, 1)+CradleWall < hi.Y
+		}
+		pocket := b.pocket(h, i, open)
 		if b.err != nil {
 			return nil
 		}
@@ -806,9 +819,10 @@ func (b *bladeBuilder) collar(h *BladeHarness, i int) *decad.Body {
 }
 
 // pocket builds brim pocket i: a frustum from z = -1 up to the spot's box at height BrimClearance + PocketFirstLayers,
-// whose walls rise inward at PocketSlope from the pocket's bed rectangle. It is an XZ trapezoid extruded along y
-// intersected with a YZ trapezoid extruded along x, so every face is planar.
-func (b *bladeBuilder) pocket(h *BladeHarness, i int) *decad.Body {
+// whose walls rise inward at PocketSlope from the pocket's bed rectangle. A side open[0] (min y) or open[1] (max y)
+// marks stays vertical at the pocket's edge instead. It is an XZ trapezoid extruded along y intersected with a YZ
+// trapezoid extruded along x, so every face is planar.
+func (b *bladeBuilder) pocket(h *BladeHarness, i int, open [2]bool) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
@@ -821,9 +835,14 @@ func (b *bladeBuilder) pocket(h *BladeHarness, i int) *decad.Body {
 	alongY := b.extrudePolygon(frame(r3.Vec{Y: hi.Y + 5}, r3.Vec{X: 1}, r3.Vec{Z: 1}), [][2]float64{
 		{lo.X - under, -1}, {hi.X + under, -1}, {hi.X - run, d}, {lo.X + run, d},
 	}, hi.Y-lo.Y+10, name+" xz")
-	alongX := b.extrudePolygon(frame(r3.Vec{X: lo.X - 5}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), [][2]float64{
-		{lo.Y - under, -1}, {hi.Y + under, -1}, {hi.Y - run, d}, {lo.Y + run, d},
-	}, hi.X-lo.X+10, name+" yz")
+	yz := [][2]float64{{lo.Y - under, -1}, {hi.Y + under, -1}, {hi.Y - run, d}, {lo.Y + run, d}}
+	if open[0] {
+		yz[0], yz[3] = [2]float64{lo.Y, -1}, [2]float64{lo.Y, d}
+	}
+	if open[1] {
+		yz[1], yz[2] = [2]float64{hi.Y, -1}, [2]float64{hi.Y, d}
+	}
+	alongX := b.extrudePolygon(frame(r3.Vec{X: lo.X - 5}, r3.Vec{Y: 1}, r3.Vec{Z: 1}), yz, hi.X-lo.X+10, name+" yz")
 	if b.err != nil {
 		return nil
 	}

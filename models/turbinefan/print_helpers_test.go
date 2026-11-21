@@ -268,6 +268,84 @@ func loopDistance(p, q []r3.Vec) float64 {
 	return best
 }
 
+// printLayer is the layer height the layer check slices at.
+const printLayer = 0.2
+
+// layerCheck is what slicing a body at every printLayer found: the number of layers, the loops with nothing in the
+// layer below, and the outline point reaching farthest past the layer below.
+type layerCheck struct {
+	layers, islands int
+	islandAt        []r3.Vec // up to three island centroids, z set to the layer
+	worst           float64
+	worstAt         r3.Vec
+}
+
+// checkLayers slices body at the middle of every printLayer from the bed up and compares each layer with the one below.
+// A loop with no point inside the layer below, and no point of the layer below inside it, is an island; for every
+// outline point outside the layer below it records the distance to that layer's outline.
+func checkLayers(t *testing.T, body *decad.Body) layerCheck {
+	t.Helper()
+	box, err := body.Bounds()
+	require.NoError(t, err)
+	inside := func(loops [][]r3.Vec, x, y float64) bool {
+		in := false
+		for _, l := range loops {
+			if insideLoop(l, x, y) {
+				in = !in
+			}
+		}
+		return in
+	}
+	var out layerCheck
+	var below [][]r3.Vec
+	for z := printLayer / 2; z < box.Max.Z; z += printLayer {
+		loops := sectionAt(t, body, z).Loops
+		out.layers++
+		for _, l := range loops {
+			if below == nil {
+				break
+			}
+			rests := false
+			for _, p := range l {
+				if rests = inside(below, p.X, p.Y); rests {
+					break
+				}
+			}
+			for _, bl := range below {
+				for _, p := range bl {
+					if rests {
+						break
+					}
+					rests = insideLoop(l, p.X, p.Y)
+				}
+			}
+			if !rests {
+				out.islands++
+				if len(out.islandAt) < 3 {
+					_, cen := loopArea(l)
+					out.islandAt = append(out.islandAt, r3.Vec{X: cen.X, Y: cen.Y, Z: z})
+				}
+			}
+			for _, p := range l {
+				if inside(below, p.X, p.Y) {
+					continue
+				}
+				d := math.Inf(1)
+				for _, bl := range below {
+					for k := range bl {
+						d = math.Min(d, pointSegment(p, bl[k], bl[(k+1)%len(bl)]))
+					}
+				}
+				if d > out.worst {
+					out.worst, out.worstAt = d, r3.Vec{X: p.X, Y: p.Y, Z: z}
+				}
+			}
+		}
+		below = loops
+	}
+	return out
+}
+
 // downward returns a triangle's angle from vertical, in degrees, and whether it points down more than 45 degrees
 // (its unit normal's z below -sin 45° - slack).
 func downward(v [3]r3.Vec, slack float64) (float64, bool) {

@@ -309,3 +309,17 @@ func TestBladeHarnessOverhangs(t *testing.T) {
 		require.Zero(t, bad, "%d blade overhangs unsupported, worst %.1f°", bad, worst)
 	})
 }
+
+// TestCradleLayers slices the cradle at the middle of every 0.2 mm layer and requires each layer to rest on the one
+// below: no loop with nothing under it, and no outline point more than 0.25 mm (45 degrees, plus section error) past
+// the layer below. A face-angle check cannot see a fin whose lowest edge hangs in the air between faces that each slope
+// 45 degrees or less, as v7's first pockets left where a pocket reached past the block's outer face.
+func TestCradleLayers(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		r := checkLayers(t, b.harness.Body)
+		t.Logf("%s: %d layers, %d islands %v, worst reach past the layer below %.3f mm at %.2f", c.name, r.layers,
+			r.islands, r.islandAt, r.worst, r.worstAt)
+		require.Zero(t, r.islands, "islands with nothing below")
+		require.LessOrEqual(t, r.worst, 0.25, "reach past the layer below at %.2f", r.worstAt)
+	})
+}
