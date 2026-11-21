@@ -58,13 +58,25 @@ func setScrewSlotSideRounds(dm turbinefan.Dimensions) cornercheck.Exempt {
 }
 
 // socketFloorRound is a blade socket's 0.5 floor round, which a layer off the socket's axis cuts at a slant and reads
-// as a turn of about 58 degrees on the floor's outline, BladeSocketStart to BladeSocketStart + 0.9 from the shaft axis.
+// as a turn of 52 to 62 degrees near where the round meets the socket wall. It covers the round in each socket's own
+// frame: BladeSocketStart to BladeSocketStart + BladeSocketFloorRound along the socket's axis, and BladeSocketRadius -
+// BladeSocketFloorRound to BladeSocketRadius from it, each widened by 0.05 for the mesh. A layer far off the axis
+// (z 12.375 on compact) meets that band up to BladeSocketRadius sideways, so the distance from the shaft axis alone
+// does not bound it.
 func socketFloorRound(sz turbinefan.Size) cornercheck.Exempt {
 	return cornercheck.Exempt{
 		Reason: "blade socket floor round cut at a slant",
 		Near: func(v r3.Vec) bool {
-			r := math.Hypot(v.X, v.Y)
-			return r >= sz.BladeSocketStart-0.05 && r <= sz.BladeSocketStart+0.9
+			for k := 1; k <= turbinefan.BladeCount; k++ {
+				d := bladeDir(k)
+				along := v.X*d.X + v.Y*d.Y
+				off := math.Hypot(v.Y*d.X-v.X*d.Y, v.Z-sz.HubMid)
+				if along >= sz.BladeSocketStart-0.05 && along <= sz.BladeSocketStart+turbinefan.BladeSocketFloorRound+0.05 &&
+					off >= sz.BladeSocketRadius-turbinefan.BladeSocketFloorRound-0.05 && off <= sz.BladeSocketRadius+0.05 {
+					return true
+				}
+			}
+			return false
 		},
 	}
 }
