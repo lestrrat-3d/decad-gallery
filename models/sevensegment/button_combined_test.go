@@ -7,19 +7,8 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
-	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
-
-func combinedMesh(t *testing.T, b *decad.Body) meshgap.Mesh {
-	t.Helper()
-	m, e := b.Tessellate(t.Context(), units.Millimeters(.05), decad.WithVerification(decad.VerifyAll))
-	require.NoError(t, e)
-	out, e := meshgap.New(m.Vertices(), m.Triangles(), m.Bound().Base())
-	require.NoError(t, e)
-	return out
-}
 
 // TestCombinedMergedButton samples independent input phases and release lifts.
 // It checks these components only; it does not model the complete button cycle.
@@ -55,7 +44,7 @@ func TestCombinedMergedButton(t *testing.T) {
 				}
 			}
 			// The shaft and detent key have a line-to-line fit; their sampled
-			// containment is checked separately in TestButtonDetentRealFit.
+			// containment is checked separately by the detent fit test.
 			for _, pair := range [][2]int{{3, 5}, {4, 5}} {
 				am := combinedMesh(t, others[pair[0]].body)
 				bm := combinedMesh(t, others[pair[1]].body)
