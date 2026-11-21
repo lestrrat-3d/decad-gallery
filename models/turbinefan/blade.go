@@ -59,7 +59,8 @@ func stationsFor(sz Size) [10]station {
 }
 
 // bladeBody lofts blade 1 through the sections drawn at refPitch, turns it to pitch and joins a drilled root stud to
-// it. The body is in the blade's local frame: Z is its radial line, X the direction of motion and Y downstream.
+// it, with a flat on the stud's inner end for printing. The body is in the blade's local frame: Z is its radial line, X
+// the direction of motion and Y downstream.
 func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
 	if b.err != nil {
 		return nil
@@ -102,7 +103,47 @@ func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
 	reach := b.sz.BladeStudRadius + 2 // the bolt hole's cutter starts and ends this far from the stud's axis
 	stud = b.cut(stud, b.cylinder(frame(r3.Vec{Y: -reach, Z: b.sz.BladeBoltAt}, r3.Vec{Z: 1}, r3.Vec{X: 1}),
 		m2fastener.HoleRadius, 2*reach))
+	// The flat is cut before the union, so the stud stays exact and the blade's held mesh bound stays small.
+	stud = b.studFlat(stud, loft, pitch)
 	return b.union(loft, stud)
+}
+
+// studFlat cuts the flat on the stud's inner end: the stud material under the bed in the print pose at the rest tilt
+// that restTilt finds from the turned loft, where the stud end corner lies StudFlatDepth under the bed. In the local
+// frame the bed is the plane n·p = c, with n = sin th Z + cos th u the pose's up direction and c the loft's lowest pose
+// height. The cutter is a square of side 4 BladeStudRadius on that plane, centred on the stud end's projection,
+// extruded 2 BladeStudRadius along -n.
+func (b *bladeBuilder) studFlat(stud, loft *decad.Body, pitch float64) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	mesh, err := loft.Tessellate(b.ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyNone))
+	if err != nil {
+		b.fail("mesh loft for the stud flat", err)
+		return nil
+	}
+	hand := RightHand
+	if b.mirror {
+		hand = LeftHand
+	}
+	tilt, c, err := restTilt(mesh.Vertices(), b.sz, pitch, hand, StudFlatDepth)
+	if err != nil {
+		b.fail("stud flat", err)
+		return nil
+	}
+	n := r3.Vec{Z: math.Sin(tilt)}.Add(poseUp(b.sz, pitch, hand).Scale(math.Cos(tilt)))
+	end := r3.Vec{Z: b.sz.BladeStudStart}
+	origin := end.Add(n.Scale(c - n.Dot(end)))
+	// v is local Z's direction in the plane; u = n × v makes the frame's normal u × v = -n.
+	v, ok := r3.Vec{Z: 1}.Sub(n.Scale(n.Z)).Normalize()
+	if !ok {
+		b.fail("stud flat", errors.New("the flat's plane is normal to the radial line"))
+		return nil
+	}
+	half := 2 * b.sz.BladeStudRadius
+	square := [][2]float64{{-half, -half}, {half, -half}, {half, half}, {-half, half}}
+	cutter := b.extrudePolygon(frame(origin, n.Cross(v), v), square, b.sz.BladeStudRadius*2, "stud flat")
+	return b.cut(stud, cutter)
 }
 
 func camberLine(x, m float64) float64 {

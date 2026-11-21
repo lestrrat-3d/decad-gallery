@@ -1,9 +1,11 @@
 package turbinefan_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
+	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/stretchr/testify/require"
@@ -36,4 +38,33 @@ func requireThickness(t *testing.T, want, angle float64, ring []r3.Vec, tol, y f
 		}
 	}
 	require.InDelta(t, want, (hi[1]-lo[1])/(hi[0]-lo[0]), tol, "thickness ratio at radius %g", y)
+}
+
+// drilledStudArea returns the exact area of the round stud's section across its axis through the bolt hole's axis: the
+// stud's disc less the band the hole cuts across it.
+func drilledStudArea(sz turbinefan.Size, holeRadius float64) float64 {
+	r, a := sz.BladeStudRadius, holeRadius
+	return math.Pi*r*r - 2*(a*math.Sqrt(r*r-a*a)+r*r*math.Asin(a/r))
+}
+
+// loopsArea returns the summed area of an outline's loops and the area of the loop whose centroid has the least x.
+func loopsArea(o decad.SectionOutline) (float64, float64) {
+	total, first, firstX := 0.0, 0.0, math.Inf(1)
+	for _, l := range o.Loops {
+		a, cen := loopArea(l)
+		total += a
+		if cen.X < firstX {
+			first, firstX = a, cen.X
+		}
+	}
+	return total, first
+}
+
+// mustName names a blade case: rotor diameter, pitch in degrees and hand.
+func mustName(d, pitch float64, hand turbinefan.Hand) string {
+	h := "R"
+	if hand == turbinefan.LeftHand {
+		h = "L"
+	}
+	return fmt.Sprintf("%g/%.0f/%s", d, pitch*180/math.Pi, h)
 }

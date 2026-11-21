@@ -14,60 +14,71 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuildBladeHarness builds the cradle for every case: one solid standing on the bed with a first layer over
-// 400 mm², every sketch fully constrained, sections of CradleFitPoints points with y strictly increasing, the step zone
-// inside the block's range, and the left hand at 192 mirroring the right. Bad inputs are rejected and add no body.
+// TestBuildBladeHarness builds the nose rib for every case: one solid lump standing on the bed, two fully constrained
+// sketches, two bed spots, the rib's x range on the section planes from BrimClearance past the leading-edge spot to
+// RibTipMargin before the tip, one top point per plane, the blade's lowest point near the track, a volume of at most a
+// quarter of the blade's, and the left hand at 192 mirroring the right. Bad inputs are rejected and add no body.
 func TestBuildBladeHarness(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
 		require.True(t, h.Body.IsSolid())
 		require.Equal(t, 1, len(h.Body.Lumps()), "one piece")
-		require.Equal(t, shadowSectionCount(h)+7, len(h.Sketches), "sketch count")
+		require.Equal(t, 2, len(h.Sketches), "the wedge's and the profile slab's sketches")
 		for i, s := range h.Sketches {
 			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 		}
-		for i, s := range h.Sections {
-			require.Equal(t, turbinefan.CradleFitPoints, len(s.Outline), "section %d", i)
-			for j := 1; j < len(s.Outline); j++ {
-				require.Greater(t, s.Outline[j][0], s.Outline[j-1][0], "section %d point %d", i, j)
-			}
+		for i, spot := range h.Spots {
+			require.NotEmpty(t, spot, "spot %d", i)
 		}
-		require.Less(t, h.XStart, h.XEnd)
-		require.Less(t, h.XStart, h.StepZone[0])
-		require.Less(t, h.StepZone[1], h.XEnd)
-		require.Equal(t, 2, len(b.doc.Bodies()), "posed blade and harness")
+		require.Equal(t, 2, len(b.doc.Bodies()), "posed blade and rib")
 		box, err := h.Body.Bounds()
 		require.NoError(t, err)
-		require.InDelta(t, 0, box.Min.Z, box.Bound.Base()+1e-6)
-		// The bed face is its largest loop less the others, which are holes in it (TestBladeHarnessBedFace).
-		area, largest := 0.0, 0.0
-		for _, l := range sectionAt(t, h.Body, 0.1).Loops {
-			a, _ := loopArea(l)
-			area -= a
-			largest = max(largest, a)
+		require.InDelta(t, 0, box.Min.Z, 1e-6, "on the bed")
+
+		// The range rule: the first plane at or past the leading-edge spot's end + BrimClearance, the last at or before
+		// the blade's greatest x - RibTipMargin.
+		blade, err := b.blade.Bounds()
+		require.NoError(t, err)
+		edge := math.Inf(-1)
+		for _, p := range h.Spots[1] {
+			edge = math.Max(edge, p.X)
 		}
-		area += 2 * largest
-		t.Logf("%s: rest tilt %.4f rad, first-layer outline area %.0f mm²", c.name, b.tilt, area)
-		require.Greater(t, area, 400.0, "first layer")
+		onPlane := func(x float64) bool {
+			return math.Abs(x/turbinefan.SectionStep-math.Round(x/turbinefan.SectionStep)) < 1e-9
+		}
+		require.True(t, onPlane(h.XStart) && onPlane(h.XEnd), "range on the section planes")
+		require.GreaterOrEqual(t, h.XStart, edge+turbinefan.BrimClearance-1e-9, "start")
+		require.Less(t, h.XStart-turbinefan.SectionStep, edge+turbinefan.BrimClearance, "start")
+		require.LessOrEqual(t, h.XEnd, blade.Max.X-turbinefan.RibTipMargin+1e-9, "end")
+		require.Greater(t, h.XEnd+turbinefan.SectionStep, blade.Max.X-turbinefan.RibTipMargin, "end")
+		require.Equal(t, int(math.Round((h.XEnd-h.XStart)/turbinefan.SectionStep))+1, len(h.Top), "one top point per plane")
+
+		// The blade's lowest point stays within the band the top reads.
+		worst := 0.0
+		for x := h.XStart; x <= h.XEnd; x++ {
+			low := r3Lowest(section(t, b.blade, frame3(x)))
+			worst = math.Max(worst, math.Abs(low.Y-(h.TrackY0+h.TrackSlope*x)))
+		}
+		require.LessOrEqual(t, worst, turbinefan.RibTopWidth/2+turbinefan.RibTopBand, "nose off the track")
+
+		rv, err := h.Body.Volume()
+		require.NoError(t, err)
+		bv, err := b.blade.Volume()
+		require.NoError(t, err)
+		t.Logf("%s: rib x %.2f..%.2f, top z %.2f..%.2f, volume %.0f mm³ (%.3f of the blade's), nose off the track %.2f mm",
+			c.name, h.XStart, h.XEnd, h.Top[0][1], maxTop(h.Top), rv.Value.Base(), rv.Value.Base()/bv.Value.Base(), worst)
+		require.LessOrEqual(t, rv.Value.Base(), 0.25*bv.Value.Base(), "rib volume")
 	})
 
-	right, left := cradleFor(t, cradleCases[1]).harness, cradleFor(t, cradleCases[2]).harness
-	require.Equal(t, len(right.Sections), len(left.Sections))
-	for i := range right.Sections {
-		r, l := right.Sections[i], left.Sections[i]
-		require.InDelta(t, r.X, l.X, 1e-9, "section %d x", i)
-		// The left hand's outline runs the other way along y; its widest points swap sides. A widest point's z sits where
-		// the outline turns vertical, so the section's 0.02 mm chords move it up to 0.32 mm between the hands (measured
-		// at 192 in v4); its y holds within 0.002.
-		require.InDelta(t, -r.LeftY, l.RightY, 0.05, "section %d y", i)
-		require.InDelta(t, -r.RightY, l.LeftY, 0.05, "section %d y", i)
-		require.InDelta(t, r.LeftZ, l.RightZ, 0.4, "section %d z", i)
-		require.InDelta(t, r.RightZ, l.LeftZ, 0.4, "section %d z", i)
-	}
+	right, err := cradleFor(t, cradleCases[1]).harness.Body.Bounds()
+	require.NoError(t, err)
+	left, err := cradleFor(t, cradleCases[2]).harness.Body.Bounds()
+	require.NoError(t, err)
+	requireBoxNear(t, right, left, 0.05, true, "left hand")
 
 	sz := mustSize(t, 192)
 	doc, blade, tilt := posedBlade(t, 192, turbinefan.DefaultBladePitch, turbinefan.RightHand)
-	_, err := turbinefan.BuildBladeHarness(t.Context(), doc, nil, sz, turbinefan.RightHand, tilt)
+	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, nil, sz, turbinefan.RightHand, tilt)
 	require.Error(t, err)
 	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, blade, turbinefan.Size{}, turbinefan.RightHand, tilt)
 	require.Error(t, err)
@@ -76,8 +87,7 @@ func TestBuildBladeHarness(t *testing.T) {
 	require.Equal(t, 1, len(doc.Bodies()), "only the posed blade")
 }
 
-// TestBladeHarnessVerifyAll tessellates every case's harness at 0.2 mm with every mesh verification on. The cradle's
-// cuts cross two faceted tools, so its held mesh bound is 0.09 to 0.14 mm.
+// TestBladeHarnessVerifyAll tessellates every case's nose rib at 0.2 mm with every mesh verification on.
 func TestBladeHarnessVerifyAll(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		_, err := b.harness.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
@@ -85,8 +95,8 @@ func TestBladeHarnessVerifyAll(t *testing.T) {
 	})
 }
 
-// TestBladeHarnessSeparate requires the cradle and the blade to share no volume: Intersect reports an empty result.
-// At 224 the harness's mesh bound exceeds the smallest gap, so a mesh distance cannot prove it; Intersect is exact.
+// TestBladeHarnessSeparate requires the nose rib and the blade to share no volume: Intersect reports an empty result.
+// The least gap (0.15 mm) is near the meshes' bounds, so a mesh distance cannot prove it; Intersect is exact.
 func TestBladeHarnessSeparate(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		// Intersect retires its operands, so it runs on copies.
@@ -100,8 +110,8 @@ func TestBladeHarnessSeparate(t *testing.T) {
 	})
 }
 
-// TestBladePrintBedContact requires the posed blade to touch the bed at two patches: its stud end corner and its
-// leading edge near stations 4 and 5, each 0.5 mm² or more in the first layer.
+// TestBladePrintBedContact requires the posed blade to touch the bed at two patches: its stud flat, by the cut-away
+// stud end corner, and its leading edge near stations 4 and 5, each 0.5 mm² or more in the first layer.
 func TestBladePrintBedContact(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		corner, le4, le5 := turbinefan.PosedEdgePoints(b.sz, b.hand, b.tilt)
@@ -125,36 +135,42 @@ func TestBladePrintBedContact(t *testing.T) {
 	})
 }
 
-// TestBladeHarnessBedFace checks the cradle's bed face: one outline with at most one hole, under the leading-edge
-// contact, where the blade's shadow cuts down to the bed; the outline starts at or after the stud slot's cut.
-func TestBladeHarnessBedFace(t *testing.T) {
+// TestCradleFirstLayer checks the nose rib's first layer, its section at z = 0.1: one loop with no hole, of 60 mm² or
+// more, at least RibTopWidth wide across the track at every 1 mm from XStart + 0.5. That width holds only because the
+// rib keeps its bed edges sharp: a 0.5 mm chamfer each side would take its low end under 1.2 mm.
+func TestCradleFirstLayer(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		h := b.harness
-		_, le4, le5 := turbinefan.PosedEdgePoints(b.sz, b.hand, b.tilt)
 		loops := sectionAt(t, h.Body, 0.1).Loops
-		outer, best := -1, 0.0
-		for i, l := range loops {
-			if a, _ := loopArea(l); a > best {
-				outer, best = i, a
+		require.Equal(t, 1, len(loops), "one loop")
+		area, _ := loopArea(loops[0])
+		across := math.Cos(math.Atan(h.TrackSlope))
+		narrowest := math.Inf(1)
+		for x := h.XStart + 0.5; x <= h.XEnd; x++ {
+			lo, hi := loopSpanAtX(loops[0], x)
+			narrowest = math.Min(narrowest, (hi-lo)*across)
+		}
+		t.Logf("%s: rib first layer %.1f mm², narrowest %.3f mm across the track", c.name, area, narrowest)
+		require.GreaterOrEqual(t, area, 60.0, "first layer")
+		require.GreaterOrEqual(t, narrowest, turbinefan.RibTopWidth, "first layer width")
+	})
+}
+
+// TestBladeBrimClearance requires BrimClearance of free bed round each blade bed spot over the first two layers: at
+// z = 0.1 and 0.3 the rib's section stays at least BrimClearance from the spot's outline in the XY plane.
+func TestBladeBrimClearance(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		h := b.harness
+		for _, z := range []float64{0.1, 0.3} {
+			loops := sectionAt(t, h.Body, z).Loops
+			for i, spot := range h.Spots {
+				d := math.Inf(1)
+				for _, l := range loops {
+					d = math.Min(d, loopDistance(spot, l))
+				}
+				t.Logf("%s: spot %d to the rib at z %.1f: %.3f mm", c.name, i, z, d)
+				require.GreaterOrEqual(t, d, turbinefan.BrimClearance, "spot %d at z %.1f", i, z)
 			}
 		}
-		require.GreaterOrEqual(t, outer, 0)
-		holes := 0
-		for i, l := range loops {
-			if i == outer {
-				continue
-			}
-			require.True(t, insideLoop(loops[outer], l[0].X, l[0].Y), "loop %d is a second outline", i)
-			holes++
-			_, cen := loopArea(l)
-			require.GreaterOrEqual(t, cen.X, min(le4.X, le5.X)-3, "hole at x %.2f", cen.X)
-			require.LessOrEqual(t, cen.X, max(le4.X, le5.X)+3, "hole at x %.2f", cen.X)
-		}
-		require.LessOrEqual(t, holes, 1)
-		minX := loops[outer][0].X
-		for _, p := range loops[outer] {
-			minX = min(minX, p.X)
-		}
-		require.GreaterOrEqual(t, minX, h.Sections[1].X-0.6, "bed face start")
 	})
 }

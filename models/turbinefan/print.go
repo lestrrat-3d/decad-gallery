@@ -12,14 +12,20 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// Print pose and print-process sizes, in mm or radians. instructions.md "Print pose and cradle" gives each one's reason.
+// Print pose and print-process sizes, in mm or radians. instructions.md "Print pose and nose rib" gives each one's
+// reason.
 const (
 	// PrintLean turns the chord at RefRadius from vertical toward the pressure face (negative values).
 	PrintLean = -15 * math.Pi / 180
-	// CradleGapZ is the vertical support gap from the cradle to the blade: one 0.2 mm layer.
-	CradleGapZ = 0.2
-	// PrintLift is the z of the blade's stud end corner in the print pose: the corner sits on the bed.
+	// PrintLift is the z of the blade's stud flat in the print pose: the flat sits on the bed, and the stud end corner
+	// the flat cut away StudFlatDepth under it.
 	PrintLift = 0.0
+	// StudFlatDepth is how far the flat on the stud's inner end reaches into the stud: the stud end corner lies this far
+	// under the flat's plane, so the blade rests on a flat patch instead of a corner sliver.
+	StudFlatDepth = 0.5
+	// StudFlatRootClearance is the least height of the round root's lowest point over the bed at the rest tilt: one
+	// layer, so the root prints no stray island in the first layer.
+	StudFlatRootClearance = 0.2
 	// RestTiltMin and RestTiltMax bracket the rest tilt RestTilt finds, and the tilt PrintPoseFor takes.
 	RestTiltMin = 5 * math.Pi / 180
 	RestTiltMax = 20 * math.Pi / 180
@@ -60,8 +66,10 @@ func studCornerZ(sz Size, tilt float64) float64 {
 }
 
 // RestTilt returns the tilt of the radial line above the bed at which the blade, posed with PrintLean, rests on both
-// its stud end corner and its loft's lowest point. blade is the body BuildBlade or BuildBladeMirrored returned (local
-// frame). The tilt depends only on sz; pitch and hand are checked like PrintPoseFor's. ctx and blade must not be nil.
+// its stud flat and its loft's lowest point: the stud end corner the flat cut away lies StudFlatDepth under the loft's
+// lowest point. blade is the body BuildBlade or BuildBladeMirrored returned (local frame); the blade's flat was cut at
+// the same tilt. The tilt depends only on sz; pitch and hand are checked like PrintPoseFor's. It fails when the round
+// root would stand less than StudFlatRootClearance over the bed. ctx and blade must not be nil.
 func RestTilt(ctx context.Context, blade *decad.Body, sz Size, pitch float64, hand Hand) (float64, error) {
 	if ctx == nil || blade == nil {
 		return 0, errors.New("turbinefan: context and blade must not be nil")
@@ -73,24 +81,38 @@ func RestTilt(ctx context.Context, blade *decad.Body, sz Size, pitch float64, ha
 	if err != nil {
 		return 0, fmt.Errorf("turbinefan: rest tilt: %w", err)
 	}
-	var loft []r3.Vec
-	for _, v := range mesh.Vertices() {
+	tilt, _, err := restTilt(mesh.Vertices(), sz, pitch, hand, StudFlatDepth)
+	return tilt, err
+}
+
+// restTilt solves the rest tilt from a blade's or its loft's mesh vertices in the local frame: the tilt th at which the
+// stud end corner stands depth under the loft's lowest point (vertices with Z over RootRadius + 0.5). It returns th
+// and the loft's lowest pose height before the lift, sin th Z + cos th u·p, which is where the flat's plane lies. It
+// fails when the round root's lowest point (vertices with Z from RootRadius to RootRadius + 2 HubScale) would stand less
+// than StudFlatRootClearance over the bed.
+func restTilt(vertices []r3.Vec, sz Size, pitch float64, hand Hand, depth float64) (float64, float64, error) {
+	var loft, root []r3.Vec
+	for _, v := range vertices {
 		if v.Z > sz.RootRadius+0.5 {
 			loft = append(loft, v)
 		}
+		if v.Z > sz.RootRadius-0.01 && v.Z < sz.RootRadius+2*sz.HubScale {
+			root = append(root, v)
+		}
 	}
 	u := poseUp(sz, pitch, hand)
-	// over returns how far the stud corner stands over the loft's lowest point at tilt th.
-	over := func(th float64) float64 {
+	lowest := func(vs []r3.Vec, th float64) float64 {
 		low := math.Inf(1)
-		for _, v := range loft {
+		for _, v := range vs {
 			low = math.Min(low, math.Sin(th)*v.Z+math.Cos(th)*v.Dot(u))
 		}
-		return studCornerZ(sz, th) - low
+		return low
 	}
+	// over returns how far the stud end corner, lowered by depth, stands over the loft's lowest point at tilt th.
+	over := func(th float64) float64 { return studCornerZ(sz, th) + depth - lowest(loft, th) }
 	lo, hi := RestTiltMin, RestTiltMax
 	if over(lo) <= 0 || over(hi) >= 0 {
-		return 0, errors.New("turbinefan: rest tilt: the stud corner and the loft do not cross between 5° and 20°")
+		return 0, 0, errors.New("turbinefan: rest tilt: the stud corner and the loft do not cross between 5° and 20°")
 	}
 	for range 50 {
 		m := (lo + hi) / 2
@@ -100,15 +122,21 @@ func RestTilt(ctx context.Context, blade *decad.Body, sz Size, pitch float64, ha
 		}
 		hi = m
 	}
-	return (lo + hi) / 2, nil
+	th := (lo + hi) / 2
+	plane := lowest(loft, th)
+	if h := lowest(root, th) - plane; h < StudFlatRootClearance {
+		return 0, 0, fmt.Errorf("turbinefan: rest tilt: the root stands %.2f mm over the bed, under %g", h,
+			StudFlatRootClearance)
+	}
+	return th, plane, nil
 }
 
 // PrintPoseFor returns the frame that moves a blade built by BuildBlade (hand RightHand) or BuildBladeMirrored
-// (LeftHand) at pitch and sz from its local frame to the print frame at tilt: bed z = 0, +Z up, the stud end corner on
-// the bed, +X along the bed from stud to tip, leading edge down. tilt must lie in [RestTiltMin, RestTiltMax]; RestTilt
-// gives the tilt at which the leading edge reaches the bed too. Apply the frame with xf, _ := r3.FromFrame(f);
-// decad.Transform(ctx, body, xf). The pose is set from the blade's own chord at RefRadius, so the posed loft is the same
-// at every pitch; the left hand is the right hand reflected in y = 0.
+// (LeftHand) at pitch and sz from its local frame to the print frame at tilt: bed z = 0, +Z up, the stud end corner the
+// flat cut away at z = -StudFlatDepth, +X along the bed from stud to tip, leading edge down. tilt must lie in
+// [RestTiltMin, RestTiltMax]; at the tilt RestTilt gives, the stud flat lies on the bed and the leading edge reaches it.
+// Apply the frame with xf, _ := r3.FromFrame(f); decad.Transform(ctx, body, xf). The pose is set from the blade's own
+// chord at RefRadius, so the posed loft is the same at every pitch; the left hand is the right hand reflected in y = 0.
 func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, error) {
 	if err := checkPose(sz, pitch, hand); err != nil {
 		return r3.Frame{}, err
@@ -125,7 +153,8 @@ func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, er
 	if n := imgX.Cross(imgY); n.Sub(r3.Vec{X: math.Cos(tilt), Z: math.Sin(tilt)}).Len() > 1e-9 {
 		return r3.Frame{}, fmt.Errorf("turbinefan: print pose: radial line maps to %v", n)
 	}
-	f, err := r3.NewFrame(r3.Vec{X: -sz.BladeStudStart * math.Cos(tilt), Z: PrintLift - studCornerZ(sz, tilt)}, imgX, imgY)
+	origin := r3.Vec{X: -sz.BladeStudStart * math.Cos(tilt), Z: PrintLift - StudFlatDepth - studCornerZ(sz, tilt)}
+	f, err := r3.NewFrame(origin, imgX, imgY)
 	if err != nil {
 		return r3.Frame{}, fmt.Errorf("turbinefan: print pose: %w", err)
 	}

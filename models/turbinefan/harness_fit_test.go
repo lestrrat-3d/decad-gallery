@@ -7,253 +7,104 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/decad-gallery/models/turbinefan"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
-// TestBladeHarnessWallTop checks each wall's top: it stays CradleTopDrop under the widest line, it raises no fin in the
-// step zone above the root's clean wall, and it does not zigzag: no two neighbouring second differences of more than
-// 0.1 mm have opposite signs. The wall top follows the blade's own widest line, which turns sharply where the bolt hole
-// crosses the stud's sides and where the root flares into the airfoil, so points where that line's own second
-// difference exceeds 0.3 mm, the step zone's reach and the two sections at each end are not read for zigzags.
-func TestBladeHarnessWallTop(t *testing.T) {
-	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
-		h := b.harness
-		var clean turbinefan.CradleSection
-		for _, s := range h.Sections {
-			if s.X >= h.StepZone[1] {
-				clean = s
-				break
-			}
-		}
-		blk := h.Sections[1 : len(h.Sections)-1]
-		inZone := func(x float64) bool { return x >= h.StepZone[0]-1.0-1e-9 && x < h.StepZone[1] }
-		for w, top := range h.WallTop {
-			require.Equal(t, len(blk), len(top), "wall %d points", w)
-			pick := func(s turbinefan.CradleSection) (float64, float64) {
-				if w == 0 {
-					return s.LeftZ, s.LeftLimit
-				}
-				return s.RightZ, s.RightLimit
-			}
-			cleanTop := math.Inf(-1)
-			for i, q := range top {
-				if blk[i].X >= h.StepZone[1] && blk[i].X <= h.StepZone[1]+3 {
-					cleanTop = math.Max(cleanTop, q[1])
-				}
-			}
-			fin := math.Inf(-1)
-			limits := make([]float64, len(top))
-			for i, q := range top {
-				src := blk[i]
-				if inZone(src.X) {
-					src = clean
-				}
-				widest, limit := pick(src)
-				limits[i] = limit
-				require.LessOrEqual(t, q[1], widest-turbinefan.CradleTopDrop+1e-9, "wall %d at x %.2f above the widest line",
-					w, q[0])
-				if inZone(blk[i].X) || blk[i].X == h.StepZone[1] {
-					fin = math.Max(fin, q[1]-cleanTop)
-				}
-			}
-			second := func(v []float64, i int) float64 {
-				if i <= 0 || i >= len(v)-1 {
-					return 0
-				}
-				return v[i+1] - 2*v[i] + v[i-1]
-			}
-			heights := make([]float64, len(top))
-			for i, q := range top {
-				heights[i] = q[1]
-			}
-			zigzags, skipped, worst := 0, 0, 0.0
-			for i := 3; i+3 < len(top); i++ {
-				kink := false
-				for j := i - 1; j <= i+2; j++ {
-					kink = kink || math.Abs(second(limits, j)) > 0.3
-				}
-				if kink || inStepReach(h, top[i][0]) || inStepReach(h, top[i+1][0]) {
-					skipped++
-					continue
-				}
-				a, n := second(heights, i), second(heights, i+1)
-				worst = math.Max(worst, math.Abs(a))
-				if a*n < 0 && math.Abs(a) > 0.1 && math.Abs(n) > 0.1 {
-					zigzags++
-					t.Logf("%s wall %d zigzag at x %.2f: %.3f then %.3f", c.name, w, top[i][0], a, n)
-				}
-			}
-			t.Logf("%s wall %d: %d zigzags, worst second difference %.3f mm over %d points (%d skipped), step-zone height "+
-				"over the clean wall %.3f mm", c.name, w, zigzags, worst, len(top)-6-skipped, skipped, fin)
-			require.Zero(t, zigzags, "wall %d zigzags", w)
-			require.LessOrEqual(t, fin, 0.05, "wall %d fin in the step zone", w)
-		}
-	})
-}
-
-// TestBladeHarnessContour requires the cradle to follow the blade: below the widest line every sampled blade surface
-// point is within CradleGapXY + 0.3 of the cradle's mesh, or 2.2 in the step zone and its lead-in. The bolt hole's band,
-// the root step's face and the near-bed band (blade under 0.6 mm) are exempt.
-func TestBladeHarnessContour(t *testing.T) {
-	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
-		h := b.harness
-		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
-		require.NoError(t, err)
-		g, err := meshgap.New(hm.Vertices(), hm.Triangles(), hm.Bound().Base())
-		require.NoError(t, err)
-		pose, err := turbinefan.PrintPoseFor(b.sz, turbinefan.DefaultBladePitch, c.hand, b.tilt)
-		require.NoError(t, err)
-		radial := pose.U().Cross(pose.V())
-		worst, worstX, over, samples := 0.0, 0.0, 0, 0
-		for _, s := range h.Sections[2 : len(h.Sections)-2] {
-			loop := lowestLoop(section(t, b.blade, frame3(s.X)))
-			require.NotNil(t, loop, "blade section at x %.2f", s.X)
-			lo, hi := math.Inf(1), math.Inf(-1)
-			for _, p := range loop {
-				lo, hi = math.Min(lo, p.Y), math.Max(hi, p.Y)
-			}
-			limit := turbinefan.CradleGapXY + 0.3
-			step := s.X >= h.StepZone[0]-1.5 && s.X <= h.StepZone[1]
-			if step {
-				limit = 2.2
-			}
-			for y := lo + 0.3; y <= hi-0.3; y += 0.25 {
-				z, ok := lowestCrossing(loop, y)
-				if !ok || z < 0.6 {
-					continue
-				}
-				p := r3.Vec{X: s.X, Y: y, Z: z}
-				// The bolt hole's band, and the root step's face (blade-local radius RootRadius), which faces the stud
-				// end, tilted down only by the rest tilt, and needs no support.
-				r := p.Sub(pose.Origin()).Dot(radial)
-				if math.Abs(r-b.sz.BladeBoltAt) <= m2fastener.HoleRadius+0.5 || math.Abs(r-b.sz.RootRadius) <= 0.1 {
-					continue
-				}
-				d, err := g.PointDistance(p)
-				require.NoError(t, err)
-				samples++
-				if !step && d > worst {
-					worst, worstX = d, s.X
-				}
-				if d > limit {
-					over++
-				}
-			}
-		}
-		t.Logf("%s: %d samples, worst %.3f mm at x %.2f outside the step zone (mesh bound %.3f), %d over the limit", c.name,
-			samples, worst, worstX, hm.Bound().Base(), over)
-		require.Zero(t, over, "samples farther from the cradle than allowed")
-	})
-}
-
-// TestBladeHarnessNothingAbove requires no cradle beyond either widest line to stand above it: every harness vertex
-// outside the step zone and its lead-in that lies past a widest y, interpolated between the sections around its x,
-// stays at or under that widest point's z, both within the harness mesh's bound and 0.05.
-func TestBladeHarnessNothingAbove(t *testing.T) {
-	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
-		h := b.harness
-		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
-		require.NoError(t, err)
-		tol := 0.05 + hm.Bound().Base()
-		bad, worst := 0, 0.0
-		for _, v := range hm.Vertices() {
-			if v.X >= h.StepZone[0]-1.5 && v.X <= h.StepZone[1] {
-				continue
-			}
-			s, ok := sectionAround(h, v.X)
-			if !ok {
-				continue
-			}
-			for _, side := range []struct{ y, z, sign float64 }{{s.LeftY, s.LeftZ, -1}, {s.RightY, s.RightZ, 1}} {
-				if side.sign*(v.Y-side.y) > tol && v.Z > side.z+tol {
-					bad++
-					worst = math.Max(worst, v.Z-side.z)
-				}
-			}
-		}
-		require.Zero(t, bad, "%d harness vertices beyond a widest line stand above it, worst by %.3f mm", bad, worst)
-	})
-}
-
-// TestBladeHarnessOverhangs requires printable faces. Every harness face pointing down more than 45 degrees lies on the
-// bed. Every such blade face rests over the cradle (its centroid within 1.0 of the harness mesh, 2.2 in the step zone
-// and its lead-in), or lies in the bolt hole's band, on the stud end's chamfer, past the cradle's tip end, or in the
-// near-bed band (every vertex under 0.6 mm).
+// TestBladeHarnessOverhangs requires the nose rib to print without support: every face pointing down more than 45
+// degrees lies on the bed.
 func TestBladeHarnessOverhangs(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
-		h := b.harness
-		hm, err := h.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
+		mesh, err := b.harness.Body.Tessellate(t.Context(), units.Millimeters(0.2), decad.WithVerification(decad.VerifyAll))
 		require.NoError(t, err)
-		bound := hm.Bound().Base()
-		hv := hm.Vertices()
+		vs := mesh.Vertices()
 		bad, worst := 0, 0.0
-		for _, tri := range hm.Triangles() {
-			v := [3]r3.Vec{hv[tri[0]], hv[tri[1]], hv[tri[2]]}
-			angle, down := downward(v, 0.01)
-			if !down {
-				continue
-			}
-			if v[0].Z <= bound && v[1].Z <= bound && v[2].Z <= bound {
-				continue
-			}
-			bad++
-			worst = math.Max(worst, angle)
-		}
-		require.Zero(t, bad, "%d harness overhangs off the bed, worst %.1f°", bad, worst)
-
-		g, err := meshgap.New(hm.Vertices(), hm.Triangles(), bound)
-		require.NoError(t, err)
-		bm, err := b.blade.Tessellate(t.Context(), units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
-		require.NoError(t, err)
-		pose, err := turbinefan.PrintPoseFor(b.sz, turbinefan.DefaultBladePitch, c.hand, b.tilt)
-		require.NoError(t, err)
-		radial := pose.U().Cross(pose.V())
-		bv := bm.Vertices()
-		counts := map[string]int{}
-		bad, worst = 0, 0.0
-		farthest := 0.0
-		for _, tri := range bm.Triangles() {
-			v := [3]r3.Vec{bv[tri[0]], bv[tri[1]], bv[tri[2]]}
+		for _, tri := range mesh.Triangles() {
+			v := [3]r3.Vec{vs[tri[0]], vs[tri[1]], vs[tri[2]]}
 			angle, down := downward(v, 1e-3)
-			if !down {
-				continue
-			}
-			cen := v[0].Add(v[1]).Add(v[2]).Scale(1.0 / 3)
-			switch {
-			case v[0].Z < 0.6 && v[1].Z < 0.6 && v[2].Z < 0.6:
-				counts["near bed"]++
-				continue
-			case math.Abs(cen.Sub(pose.Origin()).Dot(radial)-b.sz.BladeBoltAt) <= m2fastener.HoleRadius+0.1:
-				counts["bolt hole"]++
-				continue
-			case cen.X > h.XEnd:
-				counts["tip"]++
-				continue
-			case cen.Sub(pose.Origin()).Dot(radial) <= b.sz.BladeStudStart+0.35:
-				// The stud end's 0.3 chamfer, tilted by the rest tilt, reads 45 to 51 degrees within 0.9 mm of the bed.
-				counts["stud chamfer"]++
-				continue
-			}
-			limit := 1.0
-			if cen.X >= h.StepZone[0]-1.5 && cen.X <= h.StepZone[1] {
-				limit = 2.2
-			}
-			d, err := g.PointDistance(cen)
-			require.NoError(t, err)
-			if d <= limit {
-				counts["over the cradle"]++
-				farthest = math.Max(farthest, d)
+			if !down || (v[0].Z <= 1e-6 && v[1].Z <= 1e-6 && v[2].Z <= 1e-6) {
 				continue
 			}
 			bad++
 			worst = math.Max(worst, angle)
 		}
-		t.Logf("%s: blade overhangs %v, farthest over the cradle %.3f mm", c.name, counts, farthest)
-		require.Zero(t, bad, "%d blade overhangs unsupported, worst %.1f°", bad, worst)
+		require.Zero(t, bad, "%d rib faces overhang off the bed, worst %.1f°", bad, worst)
+	})
+}
+
+// TestCradleLayers slices the nose rib at the middle of every 0.08 mm layer and requires each layer to rest on the one
+// below: no loop with nothing under it, and no outline point more than 0.1 mm past the layer below.
+func TestCradleLayers(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		r := checkLayers(t, b.harness.Body, 0.08)
+		t.Logf("%s: %d layers, %d islands %v, worst reach past the layer below %.3f mm at %.2f", c.name, r.layers,
+			r.islands, r.islandAt, r.worst, r.worstAt)
+		require.Zero(t, r.islands, "islands with nothing below")
+		require.LessOrEqual(t, r.worst, 0.1, "reach past the layer below at %.2f", r.worstAt)
+	})
+}
+
+// TestRibGap requires the rib's top to follow the nose: at every 0.1 mm of x from XStart + 0.05 to XEnd, the blade's
+// lowest point over the rib's section stands RibGapZ over the rib's highest point (within -0.005 and +0.01), and the
+// rib's top is RibTopWidth wide (within -0.01 and +0.15).
+func TestRibGap(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		h := b.harness
+		gapLo, gapHi, widthLo, widthHi := math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
+		for x := h.XStart + 0.05; x <= h.XEnd; x += 0.1 {
+			rib := section(t, h.Body, frame3(x)).Loops
+			require.Equal(t, 1, len(rib), "rib section at x %.2f", x)
+			blade := section(t, b.blade, frame3(x)).Loops
+			ylo, yhi, top := math.Inf(1), math.Inf(-1), math.Inf(-1)
+			for _, p := range rib[0] {
+				ylo, yhi, top = math.Min(ylo, p.Y), math.Max(yhi, p.Y), math.Max(top, p.Z)
+			}
+			nose := math.Inf(1)
+			for y := ylo; y <= yhi+1e-9; y += 0.02 {
+				for _, l := range blade {
+					if z, ok := lowestCrossing(l, y); ok {
+						nose = math.Min(nose, z)
+					}
+				}
+			}
+			tlo, thi := math.Inf(1), math.Inf(-1)
+			for _, p := range rib[0] {
+				if p.Z >= top-0.02 {
+					tlo, thi = math.Min(tlo, p.Y), math.Max(thi, p.Y)
+				}
+			}
+			gap, width := nose-top, thi-tlo
+			gapLo, gapHi = math.Min(gapLo, gap), math.Max(gapHi, gap)
+			widthLo, widthHi = math.Min(widthLo, width), math.Max(widthHi, width)
+			require.InDelta(t, turbinefan.RibGapZ+0.0025, gap, 0.0075, "gap at x %.2f", x)
+			require.GreaterOrEqual(t, width, turbinefan.RibTopWidth-0.01, "top width at x %.2f", x)
+			require.LessOrEqual(t, width, turbinefan.RibTopWidth+0.15, "top width at x %.2f", x)
+		}
+		t.Logf("%s: gap %.4f..%.4f mm, top width %.3f..%.3f mm", c.name, gapLo, gapHi, widthLo, widthHi)
+	})
+}
+
+// TestRibLayerGap requires the rib and the blade to stay 0.4 mm apart in every 0.08 mm layer they share: their
+// sections at the middle of each layer up to the rib's top.
+func TestRibLayerGap(t *testing.T) {
+	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
+		box, err := b.harness.Body.Bounds()
+		require.NoError(t, err)
+		least, at := math.Inf(1), 0.0
+		for z := 0.04; z < box.Max.Z; z += 0.08 {
+			rib := sectionAt(t, b.harness.Body, z).Loops
+			blade := sectionAt(t, b.blade, z).Loops
+			for _, r := range rib {
+				for _, l := range blade {
+					if d := loopDistance(r, l); d < least {
+						least, at = d, z
+					}
+				}
+			}
+		}
+		t.Logf("%s: rib to blade in a shared layer at least %.3f mm (z %.2f)", c.name, least, at)
+		require.GreaterOrEqual(t, least, 0.4, "rib to blade at z %.2f", at)
 	})
 }

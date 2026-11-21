@@ -133,10 +133,12 @@ clutch's 150 degree bolt, removes the half toward 60 degrees and looks from ther
 ahead (between the clutch and the adapter), the hub and blades 40 s mm ahead (60 mm at 192; each blade 35 s mm and each blade nut
 18 j mm out along its radial line, each adapter nut 18 mm out along its line), the blade bolts 40 s + their length + 14 mm
 (99 mm at 192; 70 mm at 128) and the ear bolts the larger of 110 mm and that + 40 mm ahead (139 mm at 192). The
-`turbinefan/print`, `print-side` and `print-end` draw the default blade lying in its print cradle (`BuildBladePrint`), +Z
+`turbinefan/print`, `print-side` and `print-end` draw the default blade lying beside its nose rib (`BuildBladePrint`), +Z
 up, toward the bodies' bounds centre: `print` from the stud end, the pressure side and above, `print-side` from the
-suction side a little from above (tip on the left), `print-end` from the tip end along the radial line. The cradle is
-meshed at 0.2 mm, its held mesh being coarser than 0.05. The
+suction side a little from above (tip on the left), `print-end` from the tip end along the radial line. `print-bed`
+looks straight down on the bed, tip on the right, with both bodies cut at z = 0.15 (`turbinePrintBedClip`), just over
+the middle of the first layer, so it shows the blade's two bed spots and the rib's footprint. The rib is meshed at
+0.2 mm, the blade at 0.05. The
 `readme` shot writes all of them, the index image and one 480 × 270 image of each part in `parts/`, including `adapter-bolt`,
 `ear-bolt` and `harness`:
 `go -C tools/render run . -model turbinefan -shot readme -out ../../models/turbinefan/images`.
