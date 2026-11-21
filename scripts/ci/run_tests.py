@@ -719,7 +719,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay",
     ),
     "assembly": (
-        "TestButtonDetentRealFit",
+        "TestButtonDetentRealFit", "TestCombinedMergedButton",
         "TestButtonIndexDisplay",
         "TestReleaseCrankRealAssembly",
         "TestSevenSegmentAllDigits", "TestSevenSegmentAxialFits", "TestSevenSegmentBearings",
