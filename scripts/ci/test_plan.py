@@ -489,6 +489,74 @@ class PlanTest(unittest.TestCase):
         result = self.plan_for(["tools/render/fonts/DejaVuSerif.ttf", "unknown.sh"], graph)
         self.assertEqual(set(result["suites"]), {"broad", "render-tool"})
 
+    def registration_files(self, tile=False, models_extra="", gallery_extra=""):
+        imp = '\tsevenrender "' + plan.ROOT + '/models/sevensegment/render"\n'
+        base = {"models.go": "import (\n\tother \"x\"\n)\nvar m = []M{\n\tother.Model(),\n}\n",
+                "gallery.go": "var tiles = []T{\n\t{\"other\", image.Rect(0, 0, 1, 1)},\n}\n",
+                "registry_test.go": "func T() {\n\trequire.Len(t, paths, 3)\n}\n"}
+        head = {"models.go": base["models.go"].replace("import (\n", "import (\n" + imp).replace(
+                    "}\n", "\tsevenrender.Model(),\n}\n") + models_extra,
+                "gallery.go": base["gallery.go"] + gallery_extra,
+                "registry_test.go": base["registry_test.go"].replace("3)", "4)")}
+        if tile:
+            head["gallery.go"] = head["gallery.go"].replace(
+                "}\n", "\t{\"sevensegment\", image.Rect(0, 0, 2, 2)},\n}\n")
+        return base, head
+
+    def registration_result(self, base, head, changed):
+        def show(cmd, **kwargs):
+            rev, path = cmd[2].split(":", 1)
+            return (base if rev == "base" else head)[Path(path).name].encode()
+
+        paths = {"tools/render/" + name for name in changed}
+        with mock.patch.object(plan.subprocess, "check_output", side_effect=show):
+            return plan.only_new_registration("base", "head", paths, {"sevensegment"})
+
+    def test_registration_without_gallery_tile_is_accepted(self):
+        base, head = self.registration_files()
+        self.assertTrue(self.registration_result(base, head, ["models.go", "registry_test.go"]))
+
+    def test_registration_with_one_gallery_tile_is_accepted(self):
+        base, head = self.registration_files(tile=True)
+        self.assertTrue(self.registration_result(base, head, ["models.go", "gallery.go", "registry_test.go"]))
+
+    def test_registration_with_unrelated_models_edit_is_rejected(self):
+        base, head = self.registration_files(models_extra="var extra = 1\n")
+        self.assertFalse(self.registration_result(base, head, ["models.go", "registry_test.go"]))
+
+    def test_registration_with_gallery_edit_that_is_not_one_tile_is_rejected(self):
+        base, head = self.registration_files(gallery_extra="var extra = 1\n")
+        self.assertFalse(self.registration_result(base, head, ["models.go", "gallery.go", "registry_test.go"]))
+        base, head = self.registration_files(tile=True, gallery_extra="var extra = 1\n")
+        self.assertFalse(self.registration_result(base, head, ["models.go", "gallery.go", "registry_test.go"]))
+
+    def test_registration_without_models_or_test_change_is_rejected(self):
+        base, head = self.registration_files()
+        self.assertFalse(self.registration_result(base, head, ["models.go"]))
+        self.assertFalse(self.registration_result(base, head, ["models.go", "gallery.go"]))
+
+    def test_registration_without_tile_selects_registration_suite(self):
+        base, head = self.registration_files()
+        graph = self.render_graph(["clamparm"])
+        after = self.render_graph(["clamparm", "sevensegment"])
+        paths = "tools/render/models.go\0tools/render/registry_test.go\0models/sevensegment/render/r.go\0"
+
+        def run(files):
+            def show(cmd, **kwargs):
+                rev, path = cmd[2].split(":", 1)
+                return files[rev == "base"][Path(path).name].encode()
+            with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                    mock.patch.object(plan, "metadata", side_effect=[graph, after]), \
+                    mock.patch.object(plan.subprocess, "check_output", side_effect=lambda cmd, **kw: (
+                        paths.encode() if cmd[:2] == ["git", "diff"] else show(cmd))):
+                return plan.plan("push", "base", "head")
+
+        result = run({True: base, False: head})
+        self.assertIn("render-registration", result["suites"])
+        self.assertNotIn("render-tool", result["suites"])
+        base, head = self.registration_files(models_extra="var extra = 1\n")
+        self.assertIn("render-tool", run({True: base, False: head})["suites"])
+
     def test_new_render_package_selects_its_suite_without_broad(self):
         before = self.render_graph(["clamparm", "pinring"])
         del before[plan.ROOT + "/models/pinring/render"]

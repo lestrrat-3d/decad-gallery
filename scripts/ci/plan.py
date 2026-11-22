@@ -77,7 +77,11 @@ def render_dependents(seeds, before, after):
 
 
 def registration_only(old, new, name):
-    """Accept only one model import, registration, gallery tile and job-count change."""
+    """Accept only one model import, registration and job-count change, plus at most one gallery tile.
+
+    The gallery tile is optional: a model may have no tile. old and new hold the file texts by base name;
+    new["gallery.go"] may equal old["gallery.go"] or add exactly one tile line for the model.
+    """
     def lines(text):
         return [line for line in text.splitlines()
                 if not line.startswith("// galleryTiles puts the spinning wheel in a tall cell")]
@@ -99,9 +103,10 @@ def registration_only(old, new, name):
     old_gallery, new_gallery = lines(old["gallery.go"]), lines(new["gallery.go"])
     tile = [line for line in new_gallery if re.fullmatch(
         r'\s*\{"' + re.escape(name) + r'", image\.Rect\(\d+, \d+, \d+, \d+\)\},', line)]
-    if len(tile) != 1:
+    if len(tile) > 1:
         return False
-    new_gallery.remove(tile[0])
+    if tile:
+        new_gallery.remove(tile[0])
     if new_gallery != old_gallery:
         return False
 
@@ -117,15 +122,20 @@ def registration_only(old, new, name):
 
 
 def only_new_registration(base, tested, code, new_render):
-    paths = {"tools/render/models.go", "tools/render/gallery.go", "tools/render/registry_test.go"}
+    """Accept a change that only registers one new model renderer, with or without a gallery tile."""
+    required = {"tools/render/models.go", "tools/render/registry_test.go"}
+    paths = required | {"tools/render/gallery.go"}
     tool_code = {path for path in code if path.startswith("tools/render/")}
-    if len(new_render) != 1 or tool_code != paths:
+    if len(new_render) != 1 or tool_code not in (required, paths):
         return False
+    paths = tool_code
     try:
         snapshots = []
         for rev in (base, tested):
             snapshots.append({Path(path).name: subprocess.check_output(
                 ["git", "show", f"{rev}:{path}"], stderr=subprocess.PIPE).decode() for path in paths})
+        for snapshot in snapshots:
+            snapshot.setdefault("gallery.go", "")
         return registration_only(*snapshots, next(iter(new_render)))
     except (OSError, UnicodeError, subprocess.CalledProcessError):
         return False
@@ -406,7 +416,7 @@ def plan(event, base, tested):
                for path in changed):
             if not any(path.startswith("tools/render/fonts/") for path in changed) and \
                     only_new_registration(base, tested, code, new_render):
-                suites["render-registration"] = ["new model registry and gallery entry"]
+                suites["render-registration"] = ["new model registry entry"]
             else:
                 suites["render-tool"] = ["render tool source or fonts changed"]
         if model_owners or R_TOOL in production:
