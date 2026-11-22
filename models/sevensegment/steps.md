@@ -255,7 +255,7 @@ Check: `TestSevenSegmentCam` (cams b and e first), `TestSevenSegmentCamInscripti
 ## 5. Click indexer (clicker.go, facetooth.go, clicker_motion.go)
 
 Follow instructions.md "Click indexer". Bodies: `Hub`, `Rotor`, `Housing`, `Button` and the `Spring`
-(`compressionspring.Build` with `LesjoforsStock2353`, turned half a turn about X and moved onto the shaft). The rotor, hub and
+(`compressionspring.Build` with `KSSC1087`, turned half a turn about X and moved onto the shaft). The rotor, hub and
 spring turn with the shaft (`spin`); the housing and button do not.
 
 ### Face teeth

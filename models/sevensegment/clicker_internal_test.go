@@ -86,10 +86,10 @@ func TestClickerPoses(t *testing.T) {
 }
 
 // TestClickerRadialFits reads the radial fits of the click indexer from its dimensions: the rotor's plate to the tube
-// (Regular 0.35), the rotor's skirt on the spring (Tight 0.2), the hub's keys in the skirt's slots (Tight 0.2 a side), the
+// (Regular 0.35), the rotor's skirt on the spring (at least Tight 0.2), the hub's keys in the skirt's slots (Tight 0.2 a side), the
 // button's head to the crown ring and its lugs in the slots (Loose 0.5).
 func TestClickerRadialFits(t *testing.T) {
-	springR := compressionspring.LesjoforsStock2353().OutsideDiameter / 2
+	springR := compressionspring.KSSC1087().OutsideDiameter / 2
 	for _, c := range []struct {
 		name      string
 		got, want float64
