@@ -58,6 +58,18 @@ func LesjoforsStock2353() Spec {
 		SolidHeight: 3.78, LoadAtSolid: 9.65}
 }
 
+// KSSC1087 is the KSSC K series 1087 compression spring sold by MonotaRO (order code 01353223,
+// https://www.monotaro.com/p/0135/3223/). The page's spec table gives: SUS304WPB stainless steel, 0.60 mm wire,
+// 7.0 mm outside diameter, 14.0 mm free length, 6.5 total turns, both ends not ground, 0.9408 N/mm, 4.5 mm solid
+// height and an allowable load of 7.15 N at 6.4 mm length. The page does not publish the inside diameter, the active
+// turns or the load at solid, so ActiveTurns is zero and the load at solid 8.94 N is computed:
+// 0.9408 x (14.0 - 4.5). Fatigue life is not published.
+func KSSC1087() Spec {
+	return Spec{Name: "KSSC 1087 (MonotaRO 01353223)", OutsideDiameter: 7.0, WireDiameter: 0.60,
+		FreeLength: 14.0, TotalTurns: 6.5, ActiveTurns: 0, Rate: 0.9408,
+		SolidHeight: 4.5, LoadAtSolid: 8.94}
+}
+
 type Params struct {
 	Spec            Spec
 	InstalledLength float64

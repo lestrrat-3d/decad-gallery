@@ -153,3 +153,38 @@ func TestSpecActiveTurnsRule(t *testing.T) {
 		})
 	}
 }
+
+func TestKSSC1087Values(t *testing.T) {
+	spec := compressionspring.KSSC1087()
+	require.Equal(t, "KSSC 1087 (MonotaRO 01353223)", spec.Name)
+	require.Equal(t, 7.0, spec.OutsideDiameter)
+	require.Equal(t, 0.60, spec.WireDiameter)
+	require.Equal(t, 14.0, spec.FreeLength)
+	require.Equal(t, 6.5, spec.TotalTurns)
+	require.Equal(t, 0.9408, spec.Rate)
+	require.Equal(t, 4.5, spec.SolidHeight)
+	require.Zero(t, spec.ActiveTurns, "the page does not publish active turns")
+	// Computed, not published: rate x (free length - solid height).
+	require.InDelta(t, 0.9408*(14.0-4.5), spec.LoadAtSolid, 5e-3)
+}
+
+func TestKSSC1087Installed(t *testing.T) {
+	spec := compressionspring.KSSC1087()
+	for _, tc := range []struct {
+		name          string
+		length, force float64
+	}{
+		{"rest", 8.0, 0.9408 * (14.0 - 8.0)}, {"pressed", 6.0, 0.9408 * (14.0 - 6.0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := compressionspring.Build(t.Context(), decad.New(), compressionspring.Params{Spec: spec, InstalledLength: tc.length})
+			require.NoError(t, err)
+			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.Profile))
+			box, err := m.Body.Bounds()
+			require.NoError(t, err)
+			require.InDelta(t, tc.length, box.Max.Y-box.Min.Y, .02)
+			require.InDelta(t, 7.0, box.Max.X-box.Min.X, .02)
+			require.InDelta(t, tc.force, m.Force, 1e-10)
+		})
+	}
+}

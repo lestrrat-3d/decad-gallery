@@ -5,7 +5,8 @@ Follow `instructions.md`. Emit one Go file `compressionspring.go` with package
 `WireDiameter`, `FreeLength`, `TotalTurns`, `ActiveTurns`, `Rate`, `SolidHeight`
 and `LoadAtSolid` as float64. Define `LeeLC024C14M() Spec`, `LeeLC026D16S() Spec` and `LeeLC022D03S() Spec` with the values in
 instructions.md. Define `LesjoforsStock2353() Spec` the same way; its `ActiveTurns` is zero because the catalogue
-does not publish it, and its outside diameter, solid height and load at solid are computed (see instructions.md). Define `Params` with `Spec Spec` and `InstalledLength float64`.
+does not publish it, and its outside diameter, solid height and load at solid are computed (see instructions.md). Define `KSSC1087() Spec` the same way; its `ActiveTurns` is zero because the supplier page does not publish it, and
+its load at solid is computed (see instructions.md). Define `Params` with `Spec Spec` and `InstalledLength float64`.
 `DefaultParams` selects the Lee part at 43.8 mm. Define `Model` with `Body
 *decad.Body`, `Profile *sketch.Sketch`, and `Pitch` and `Force` float64.
 
