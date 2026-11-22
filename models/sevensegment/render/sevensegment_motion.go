@@ -174,8 +174,9 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height 
 	// from +X, close on the indexer.
 	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 70, Y: -40, Z: 330}, Target: solidlens.Vec{Y: -30, Z: 40},
 		Up: solidlens.Vec{Y: -1}, FOV: 30}
-	cutCam := solidlens.Camera{Position: solidlens.Vec{X: 300, Y: -66, Z: 28}, Target: solidlens.Vec{Y: -66, Z: 28},
-		Up: solidlens.Vec{Y: -1}, FOV: 30}
+	cutCam := solidlens.Camera{Position: solidlens.Vec{X: 300, Y: -66, Z: sevensegment.ShaftZ},
+		Target: solidlens.Vec{Y: -66, Z: sevensegment.ShaftZ},
+		Up:     solidlens.Vec{Y: -1}, FOV: 30}
 	rest := states[0]
 	rest.buttonDrop = 0
 	var cams [2]solidlens.Camera

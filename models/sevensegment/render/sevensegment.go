@@ -59,7 +59,7 @@ func sevenModels(s partSet, pull map[string]r3.Vec, clip *solidlens.ClipPlane) (
 }
 
 // sevenCenter is the middle of the model, where the cameras look.
-var sevenCenter = solidlens.Vec{Y: -3, Z: 42}
+var sevenCenter = solidlens.Vec{Y: -3, Z: 43.5}
 
 // sevenExplode is each part's offset in the exploded view, from "Rendering" in the design: the plates up in Z, the
 // walls, detent plate, bearings, collar ring and knob out along Y. Bolts follow the part their head sits in, 15 mm
@@ -221,12 +221,12 @@ var sevenCameras = map[string]solidlens.Camera{
 	"side":  {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
 	"cutaway": {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1},
 		FOV: 35},
-	"indexer": {Position: solidlens.Vec{X: 260, Y: -66, Z: 28}, Target: solidlens.Vec{Y: -66, Z: 28}, Up: solidlens.Vec{Y: -1},
-		FOV: 30},
+	"indexer": {Position: solidlens.Vec{X: 260, Y: -66, Z: sevensegment.ShaftZ},
+		Target: solidlens.Vec{Y: -66, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Y: -1}, FOV: 30},
 	"exploded": {Position: solidlens.Vec{X: 330, Y: -330, Z: 230}, Target: solidlens.Vec{Y: -3, Z: 62},
 		Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"exploded-camshaft": {Position: solidlens.Vec{X: 330, Y: -330, Z: 170}, Target: solidlens.Vec{Y: -70, Z: 28},
-		Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"exploded-camshaft": {Position: solidlens.Vec{X: 330, Y: -330, Z: 170},
+		Target: solidlens.Vec{Y: -70, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
 }
 
 var (
@@ -383,7 +383,7 @@ func sevenSegmentCams(s partSet) (solidlens.Scene, error) {
 			models = append(models, m)
 		}
 	}
-	camera := solidlens.Camera{Position: solidlens.Vec{Y: 500, Z: -3}, Target: solidlens.Vec{Y: 20, Z: -3},
+	camera := solidlens.Camera{Position: solidlens.Vec{Y: 500, Z: -1.5}, Target: solidlens.Vec{Y: 20, Z: -1.5},
 		Up: solidlens.Vec{Z: 1}, FOV: 30}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .05), models), nil
 }
