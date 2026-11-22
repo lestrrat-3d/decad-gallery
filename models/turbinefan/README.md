@@ -88,7 +88,7 @@ The set screw nut sits behind the hub in that view, so the same parts are shown 
 | <img src="images/parts/bolt.png" alt="M2 x 25 bolt" width="240"> | M2 × 25 socket head cap screw ([`models/fastener`](../fastener)), 3: the blade bolts |
 | <img src="images/parts/setscrew.png" alt="M2 x 10 bolt" width="240"> | M2 × 10 socket head cap screw ([`models/fastener`](../fastener)), 1: the set screw |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 hex nut ([`models/fastener`](../fastener)), 4 |
-| <img src="images/parts/harness.png" alt="Nose rib, a thin wedge-shaped wall that is taller at one end" width="240"> | Nose rib (printed with each blade, removed and discarded) |
+| <img src="images/parts/harness.png" alt="Nose rib, a thin wedge-shaped wall that is taller at one end, and the stud pad, a thin disc, apart" width="240"> | Nose rib and stud pad (printed with each blade, removed and discarded) |
 
 ## Sizes
 
@@ -195,7 +195,7 @@ direction for the load it carries in use. There is no raft.
 
 ![The print seen from the tip end: the nose rib, a narrow wall that is wider at the bed, stands under the blade's leading edge](images/print-end.png)
 
-![The first layer seen from above, tip on the right: the blade's two bed spots, on the stud flat and on the leading edge, and the long, narrow footprint of the nose rib, which widens toward the tip](images/print-bed.png)
+![The first layer seen from above, tip on the right: the blade's two bed spots, on the stud flat and on the leading edge, the stud pad, a disc round the stud flat's spot, and the long, narrow footprint of the nose rib, which widens toward the tip](images/print-bed.png)
 
 A blade has printed and come out usable with this setup:
 
@@ -213,16 +213,20 @@ At 192 mm it holds the leading edge from about r 43 mm to r 93 mm. The stretch f
 of the tip have no support. The rib takes 1,180 mm³ at 192 mm, about 0.2 times the blade.
 
 A 192 mm rotor's blade has been printed with the rib, and it came out with the best quality of any blade print so far.
-To print a blade with it:
+The stud pad has not been printed yet. It is a thin disc under the stud end: the stud flat touches the bed on only
+5.3 mm² at the default pitch (2.9 mm² at 40°), and the pad widens that to about 78 mm² of first layer, which holds the
+stud end down. It is 0.16 mm high, so it overlaps the blade only on the stud flat and stays under the round root.
+To print a blade with them:
 
 1. Build the blade and its rib with `BuildBladePrint` (see the [developer notes](../../docs/models/turbinefan.md)).
-   Load them as two separate objects, not as parts of one object, so each takes its own brim setting.
+   Load the rib as its own object so it takes its own brim setting. Load the stud pad as a part of the blade's object,
+   so the slicer fuses the two and the brim runs round both.
 2. Keep the settings above for the blade. In the object list, set the rib's brim type to "No-brim". The rib starts 6.05
    to 6.24 mm from the blade's leading-edge spot, so the blade's brim does not reach it.
 3. Print the rib in the blade's filament, so it needs no filament change.
 4. Use 0.08 mm layers when you print the rib, so its 0.16 mm gap is two whole layers.
-5. After printing, lift the blade off. Pull the rib away sideways, then peel the brim. Lightly sand the line the rib
-   leaves along the leading edge. Check that the stud slides into a hub socket.
+5. After printing, lift the blade off. Pull the rib away sideways, cut the stud pad off the stud end and peel
+   the brim. Lightly sand the line the rib leaves along the leading edge. Check that the stud slides into a hub socket.
 
 To assemble:
 

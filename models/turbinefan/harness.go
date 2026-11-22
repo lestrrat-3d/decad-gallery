@@ -38,17 +38,27 @@ const (
 	BrimClearance = 6.0
 	// SectionStep is the spacing along x of the blade sections the rib reads.
 	SectionStep = 0.25
+	// StudPadRadius is the radius of the stud pad, the disc under the stud end that widens its first layer.
+	StudPadRadius = 5.0
+	// StudPadThickness is the stud pad's height: two 0.08 mm layers, under the 0.2 mm the round root keeps over the bed
+	// (StudFlatRootClearance), so the pad touches the blade only on the stud flat and the stud's slope.
+	StudPadThickness = 0.16
 )
 
 // spotZ is the height of the section that reads the blade's bed spots: the middle of the first layer, which is what the
 // slicer prints.
 const spotZ = 0.1
 
-// BladeHarness is the nose rib in the print frame: a wedge-shaped wall on the bed whose top follows the blade's
-// leading-edge nose RibGapZ under it, from BrimClearance past the leading-edge bed spot to RibTipMargin before the tip.
+// BladeHarness is the blade's print aids in the print frame: the nose rib, a wedge-shaped wall on the bed whose top
+// follows the blade's leading-edge nose RibGapZ under it, from BrimClearance past the leading-edge bed spot to
+// RibTipMargin before the tip; and the stud pad under the stud end.
 type BladeHarness struct {
 	Body *decad.Body
-	// Sketches are the wedge's trapezoid, then the profile slab's polygon.
+	// Pad is the stud pad: a disc of StudPadRadius and StudPadThickness on the bed, centred on the stud flat's bed spot.
+	// It overlaps the blade on that spot, so the slicer fuses the two into one first layer; it is cut away after the
+	// print. It stands clear of the rib.
+	Pad *decad.Body
+	// Sketches are the wedge's trapezoid, then the profile slab's polygon, then the pad's circle.
 	Sketches []*sketch.Sketch
 	// Spots are the blade's bed spots, its section loops at z = 0.1: the stud flat's, then the leading edge's.
 	Spots [2][]r3.Vec
@@ -61,8 +71,8 @@ type BladeHarness struct {
 	XStart, XEnd float64
 }
 
-// BuildBladeHarness builds the nose rib for blade, which must already be in the print pose PrintPoseFor(sz, pitch,
-// hand, tilt) gives. It reads the blade with SectionOutline. It puts the rib in no container. ctx, doc and blade must not
+// BuildBladeHarness builds the nose rib and the stud pad for blade, which must already be in the print pose
+// PrintPoseFor(sz, pitch, hand, tilt) gives. It reads the blade with SectionOutline. It puts them in no container. ctx, doc and blade must not
 // be nil.
 func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand,
 	tilt float64) (*BladeHarness, error) {
@@ -84,7 +94,7 @@ func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Bo
 	if b.err != nil {
 		return nil, b.err
 	}
-	if h.Body == nil || !h.Body.IsSolid() {
+	if h.Body == nil || !h.Body.IsSolid() || h.Pad == nil || !h.Pad.IsSolid() {
 		return nil, errors.New("turbinefan: harness is not a solid")
 	}
 	h.Sketches = b.sketches
@@ -173,7 +183,26 @@ func (b *bladeBuilder) harness(blade *decad.Body) *BladeHarness {
 		return nil
 	}
 	h.Body = rib
+	h.Pad = b.studPad(h)
 	return h
+}
+
+// studPad builds the stud pad (step 9): a disc of StudPadRadius, StudPadThickness high, on the bed with its axis through
+// the middle of the stud flat's bed spot (the centre of the spot's bounding box).
+func (b *bladeBuilder) studPad(h *BladeHarness) *decad.Body {
+	if b.err != nil {
+		return nil
+	}
+	lo, hi := loopBox(h.Spots[0])
+	c := r3.Vec{X: (lo.X + hi.X) / 2, Y: (lo.Y + hi.Y) / 2}
+	s, err := newSketch(frame(c, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+	if err != nil {
+		b.fail("create stud pad", err)
+		return nil
+	}
+	b.sketches = append(b.sketches, s)
+	s.AddConstraint(sketch.NewRadius(s.CreateCircle(s.Origin(), StudPadRadius), StudPadRadius))
+	return b.extrudeProfile(s, 0, StudPadThickness, "stud pad")
 }
 
 // ribTrack fits the rib's centre line (step 4): the least-squares line through the lowest vertex of each section from

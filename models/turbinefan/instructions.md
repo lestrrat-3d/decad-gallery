@@ -101,16 +101,17 @@ The blade's print aid ("Print pose and nose rib" below), in `print.go` and `harn
 - The pose constants `PrintLean` (-15 degrees), `PrintLift` (0), `StudFlatDepth` (0.45), `StudFlatRootClearance` (0.2),
   `RestTiltMin` (5 degrees) and `RestTiltMax` (20 degrees); the nose rib constants `RibGapZ` (0.16), `RibTopWidth` (1.2),
   `RibTopBand` (0.2), `RibSideAngle` (6 degrees), `RibTipMargin` (1.0), `RibEndOver` (1.0), `RibMinHeight` (0.4),
-  `BrimClearance` (6.0) and `SectionStep` (0.25); and the container name `HarnessContainerName` (`Harness`).
+  `BrimClearance` (6.0) and `SectionStep` (0.25); the stud pad constants `StudPadRadius` (5.0) and `StudPadThickness`
+  (0.16); and the container name `HarnessContainerName` (`Harness`).
 - `RestTilt(ctx, blade, size, pitch, hand) (float64, error)` returns the tilt at which a blade from `BuildBlade` or
   `BuildBladeMirrored` rests on both its stud flat and its loft's lowest point. `PrintPoseFor(size, pitch, hand, tilt)
   (r3.Frame, error)` returns the frame that moves that blade into the print frame.
-- `BladeHarness` (`Body`, `Sketches`, `Spots`, `TrackY0`, `TrackSlope`, `Top`, `XStart`, `XEnd`).
-- `BuildBladeHarness(ctx, doc, blade, size, hand, tilt) (*BladeHarness, error)` builds the nose rib for a posed blade and
-  puts it in no container.
+- `BladeHarness` (`Body`, `Pad`, `Sketches`, `Spots`, `TrackY0`, `TrackSlope`, `Top`, `XStart`, `XEnd`).
+- `BuildBladeHarness(ctx, doc, blade, size, hand, tilt) (*BladeHarness, error)` builds the nose rib and the stud pad for a posed
+  blade and puts them in no container.
 - `BladePrint` (`Blade`, `BladeSketches`, `Harness`, `Pose`, `Tilt`) and `BuildBladePrint(ctx, doc, p) (*BladePrint,
   error)`, which validates `p` (`Params.Derive`), builds the blade of `p.Hand` at `p.BladePitch`, finds its `RestTilt`,
-  poses it, builds its nose rib and files them in `Blades` and `Harness`. It ignores `Mount` and `Placement`. A rejected
+  poses it, builds its nose rib and stud pad and files the blade in `Blades` and the other two in `Harness`. It ignores `Mount` and `Placement`. A rejected
   build adds no body; a later geometry failure may leave bodies in the document, which the caller discards.
 
 ## Size
@@ -510,6 +511,12 @@ edge near stations 4 and 5. A nose rib, a separate body built with the blade, st
 nose, `RibGapZ` (0.16) below it. The model builds nothing under the root and the stud: the slicer's own support, build
 plate only, holds them up ("Printing"). There is no raft.
 
+The stud flat's bed spot is small (5.3 mm² at the default pitch, 2.9 mm² at 40 degrees), so a stud pad, a second print
+aid, widens it: a disc of radius `StudPadRadius` (5.0) and height `StudPadThickness` (0.16, two 0.08 layers) on the bed,
+centred on the spot. The pad overlaps the blade only where the stud flat and the stud's slope reach into its two
+layers (0.4 to 0.8 mm³), so the slicer fuses them into one first layer of about 78 mm² under the stud end. The pad
+stays under `StudFlatRootClearance`, so it never touches the round root. It is the only print aid that touches the blade.
+
 The rib exists because a print with slicer support only drooped 1 to 2 mm along the nose, from about r 40 to the tip.
 The slicer made no support there: the nose strip that faces down is only 0.3 to 1.4 mm wide.
 
@@ -574,6 +581,8 @@ Every constant here is a print-process size, not a standard dimension, so none c
 | `RibMinHeight` | 0.4 | the least top height at the rib's start (5 layers). Measured: 1.36 to 1.65. |
 | `BrimClearance` | 6.0 | free bed round each bed spot: 5 mm brim + 0.1 brim gap + 0.45 squish + 0.45 margin |
 | `SectionStep` | 0.25 | spacing of the blade sections the rib reads |
+| `StudPadRadius` | 5.0 | the stud pad's radius: about 78 mm² of first layer under the stud end, 15 times the stud flat's spot, and the brim clear of the rib (18 to 34 mm away) |
+| `StudPadThickness` | 0.16 | the pad's height: two 0.08 layers, under the 0.2 `StudFlatRootClearance`, so only the stud flat's spot and the stud's slope reach into it |
 
 ### Construction (`BuildBladeHarness`)
 
@@ -650,15 +659,15 @@ These values come from the design probe, with the real blade at its rest tilt:
 ### Removal and cleanup
 
 1. Lift the blade off the bed.
-2. Pull the rib away sideways, then peel the brim.
+2. Pull the rib away sideways, cut the stud pad off the stud end, then peel the brim.
 3. Sand the nose line, the rib's support-texture mark, lightly. The root and the stud keep the slicer support's marks.
    Check that the stud slides into a hub socket.
 
 ## Print aids
 
-The nose rib (`BuildBladeHarness`, `BuildBladePrint`) is a print aid: a body printed with the blade only to hold up
-its leading-edge nose while printing, then removed and discarded. "Corners and roots" exempts it
-(`docs/model-pipeline.md`), so its corners stay sharp.
+The nose rib and the stud pad (`BuildBladeHarness`, `BuildBladePrint`) are print aids: bodies printed with the blade
+only to hold up its leading-edge nose and to widen its stud-end first layer, then removed and discarded. "Corners and
+roots" exempts them (`docs/model-pipeline.md`), so their corners stay sharp.
 
 ## Retained sharp corners and edges
 
@@ -682,6 +691,7 @@ below records the edges it keeps sharp against "Surface edge finishing".
 | Blade | The step where the stud meets the root face (r `RootRadius`) | Lying, the step lies inside the layers and reads inside corners of 75 to 107 degrees, within 1.0 of r `RootRadius`. Retained pending a root fillet, not an exemption: the model is on `CORNER_PENDING` and `CORNER_PARTIAL` in `scripts/check_repository.py` until a 1.0 stud-root fillet lands. |
 | Blade | The leading edge and the trailing-edge flat where a layer cuts them obliquely | Lying at the rest tilt, a layer cuts each edge at 11 to 21 degrees, so each section's loop ends in a stretched tip (122 to 165 degrees) within 1.5 of the loop's least or greatest x. The edges are smooth and pass when read across the radial line. |
 | Blade | The bolt hole where it crosses the stud, read lying | Lying, the layers cut the hole's walls where it crosses the stud and read inside corners of 82 to 110 degrees and tips of 123 to 165 degrees, within 1.8 of r `BladeBoltAt`; the same corner as the row above, at every size. |
+| Stud pad | Every edge | A print aid, 0.16 mm high: a chamfer or round would take most of its height. |
 | Nose rib | Every edge, including the two bed edges of its side faces (about 480 mm2 at 192) | Minimum material: the rib's base is 1.5 mm wide at its start, and a 0.5 chamfer on each side would leave about 0.5 mm, a single line. `TestCradleFirstLayer` checks that the first layer stays at least `RibTopWidth` wide along the rib, which a 0.5 chamfer would break at the low end. |
 
 Rounds below half their section: the socket floor round only. The hub has no stressed root. Every hub wall is 1.1 mm or
@@ -700,7 +710,7 @@ minimum material ("Retained sharp corners and edges"). The stud flat on the blad
 400 mm2.
 
 Body containers: `Hub`, `Blades`, `Bolts` and `Nuts`; `BuildBladePrint` files the posed blade in `Blades` and its nose
-rib, one piece, in `Harness`. Look-alike part marks: none; the bolts and nuts are bought parts. Split
+rib and stud pad, one piece each, in `Harness`. Look-alike part marks: none; the bolts and nuts are bought parts. Split
 shafts: the model has no printed shaft, arbor, axle or pin; the blade's stud is part of the blade. Arbor collars: no
 printed shaft either. The consuming mechanism's shaft carries the hub and owns the collar between the hub's back face and its
 bearing or plate. Gear train clearances: no gears.
@@ -712,10 +722,12 @@ bearing or plate. Gear train clearances: no gears.
 | Hub | front face down, axis vertical | none |
 | Blade (three) | lying on the bed at its rest tilt, leading edge down, on its stud flat and its leading edge ("Print pose and nose rib") | none |
 | Nose rib (one per blade) | standing on the bed under the blade's nose, as its own object, in the blade's filament | none |
+| Stud pad (one per blade) | flat on the bed under the stud end, as a part of the blade's object, in the blade's filament | none |
 
 The blade lies on the bed at its rest tilt, touching it at its stud flat and its leading edge. Slicer support, build
 plate only, holds up the root and the stud, and the nose rib holds up the nose. The blade takes an outer-only 5 mm brim
-with a 0.1 brim gap; the rib takes no brim, and `BrimClearance` keeps it clear of the blade's brim. Print the rib in
+with a 0.1 brim gap; the rib takes no brim, and `BrimClearance` keeps it clear of the blade's brim. The stud pad is a part of the blade's object, so
+the brim runs round the blade and the pad together. Print the rib in
 0.08 mm layers, so its `RibGapZ` (0.16) gap is two whole layers. The README's "Printing" section gives the slicer
 setup and says which parts of it a print has confirmed. The set screw slot opens upward in print, its hexagonal end down. Each
 blade slot's roof (z `HubLength - BladeBoltCavity - 2`) is a 4.35 wide bridge. The
@@ -756,7 +768,7 @@ The stud flat's checks build blades at 128, 192 and 224, with other pitches and 
 The nose rib's checks run on six cases built once each (128/25 right, 192/25 right, 192/25 left, 192/40 left, 224/25
 left, 224/40 left):
 
-- `TestBuildBladeHarness`: one solid lump on the bed, two fully constrained sketches, two bed spots, the x range by the
+- `TestBuildBladeHarness`: one solid lump on the bed, three fully constrained sketches, two bed spots, the x range by the
   range rule, one top point per plane, the blade's lowest point within `RibTopWidth/2 + RibTopBand` of the track, a
   volume of at most 0.25 times the blade's, the left hand at 192 mirroring the right, and bad inputs rejected.
 - `TestBladeHarnessVerifyAll`: the rib meshed at 0.2 with every verification on.
@@ -771,9 +783,13 @@ left, 224/40 left):
 - `TestRibGap`: at every 0.1 mm of x, the gap over the rib's top lies between `RibGapZ - 0.005` and `RibGapZ + 0.01`,
   and the top is between `RibTopWidth - 0.01` and `RibTopWidth + 0.15` wide.
 - `TestRibLayerGap`: the rib and the blade stay 0.4 or more apart in every 0.08 mm layer they share.
-- `TestBuildBladePrint`: the blade in `Blades` and the rib in `Harness`, the blade's 13 sketches and the rib's 2.
+- `TestStudPad`: the pad is one solid disc on the bed, `StudPadThickness` high, with a 78 mm² first-layer loop that holds the
+  stud flat's spot, `BrimClearance` or more from the rib, and an overlap with the blade of about the spot's area times
+  `StudPadThickness`.
+- `TestBuildBladePrint`: the blade in `Blades`, the rib and the pad in `Harness`, the blade's 13 sketches and the harness's 3.
 
-The images `print.png`, `print-side.png`, `print-end.png`, `print-bed.png` and `parts/harness.png` show the print job.
+The images `print.png`, `print-side.png`, `print-end.png`, `print-bed.png` and `parts/harness.png` show the print job,
+the pad included.
 
 ## Clutch mount
 

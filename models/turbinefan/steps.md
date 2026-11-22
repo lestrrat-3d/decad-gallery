@@ -168,10 +168,10 @@ reach(u) cos t` (`studCornerZ`), where `reach(u)` (`studReach`) is the largest o
   the bed.
 - `BuildBladePrint(ctx, doc, p)`: reject a nil context or document, `p.Derive()`, check the pose arguments, build the
   blade (`BuildBlade` or `BuildBladeMirrored`), `RestTilt`, `PrintPoseFor`, `decad.Transform` the blade into place,
-  `BuildBladeHarness`, and add the posed blade to `doc.Root().ChildNamed("Blades")` and the nose rib to
-  `ChildNamed("Harness")`.
+  `BuildBladeHarness`, and add the posed blade to `doc.Root().ChildNamed("Blades")` and the nose rib and the stud pad
+  to `ChildNamed("Harness")`.
 
-## 7. Nose rib (harness.go)
+## 7. Nose rib and stud pad (harness.go)
 
 `BuildBladeHarness(ctx, doc, blade, size, hand, tilt)` validates as instructions.md lists, including
 `PrintPoseFor(size, DefaultBladePitch, hand, tilt)` to reject a bad tilt, then runs `harness(blade)` on one
@@ -196,11 +196,14 @@ and nose rib" for its numbers.
    `NewHorizontalDistance(TR, BR, Hv tan RibSideAngle)`. `extrudeProfile(s, 0, (xb - xa) / u.X * k, "rib wedge")`.
 7. `ribSlab`: `extrudePolygon(frame((0, yhi, 0), +X, +Z), [(XStart, 0), (XEnd, 0), Top reversed], yhi - ylo, "rib
    profile")`, with `ylo`/`yhi` the track's y at `xa` and `xb` less/plus `RibTopWidth/2 + Hv tan RibSideAngle + 2`.
-8. `decad.Intersect(wedge, slab)`; fail `rib` unless solid with one lump. `BuildBladeHarness` then requires
-   `h.Body` solid and sets `h.Sketches`.
+8. `decad.Intersect(wedge, slab)`; fail `rib` unless solid with one lump.
+9. `studPad(h)`: the centre is the middle of `Spots[0]`'s bounding box (`loopBox`). Sketch on `frame(centre, +X, +Y)`: a
+   circle at the sketch origin with `NewRadius(c, StudPadRadius)`; `extrudeProfile(s, 0, StudPadThickness, "stud pad")`.
+   `BuildBladeHarness` then requires `h.Body` and `h.Pad` solid and sets `h.Sketches`.
 
 `profile` solves each sketch and requires `sketchcheck.VerifyFullyConstrained` before extruding. The rib's sketches:
-the wedge's trapezoid, then the slab's polygon. Exported: `StudFlatDepth`, `StudFlatRootClearance`, `RestTilt`,
+the wedge's trapezoid, then the slab's polygon, then the pad's circle. Exported: `StudFlatDepth`, `StudFlatRootClearance`, `RestTilt`,
 `RestTiltMin`, `RestTiltMax`, `PrintPoseFor`, `PrintLean`, `PrintLift`, `RibGapZ`, `RibTopWidth`, `RibTopBand`,
-`RibSideAngle`, `RibTipMargin`, `RibEndOver`, `RibMinHeight`, `BrimClearance`, `SectionStep`, `BladeHarness`,
+`RibSideAngle`, `RibTipMargin`, `RibEndOver`, `RibMinHeight`, `BrimClearance`, `SectionStep`, `StudPadRadius`,
+`StudPadThickness`, `BladeHarness`,
 `BuildBladeHarness`, `BladePrint`, `BuildBladePrint`, `HarnessContainerName`.

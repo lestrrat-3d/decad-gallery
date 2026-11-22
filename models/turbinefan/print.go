@@ -173,7 +173,7 @@ func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, er
 	return f, nil
 }
 
-// BladePrint is a blade and its harness in the print frame, filed in BladesContainerName and HarnessContainerName.
+// BladePrint is a blade and its harness (nose rib and stud pad) in the print frame, filed in BladesContainerName and HarnessContainerName.
 type BladePrint struct {
 	Blade         *decad.Body
 	BladeSketches []*sketch.Sketch
@@ -184,7 +184,7 @@ type BladePrint struct {
 }
 
 // BuildBladePrint validates p (Derive), builds the blade of p.Hand at p.BladePitch and SizeFor(p.RotorDiameter),
-// finds its RestTilt, moves it to PrintPoseFor at that tilt and builds its harness. It ignores Mount and Placement. doc must come from NewDocument.
+// finds its RestTilt, moves it to PrintPoseFor at that tilt and builds its harness (rib and stud pad). It ignores Mount and Placement. doc must come from NewDocument.
 // A rejected build adds no body; a later geometry failure may leave bodies in doc, which the caller discards.
 func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*BladePrint, error) {
 	if ctx == nil || doc == nil {
@@ -228,7 +228,7 @@ func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*Blade
 	for _, c := range []struct {
 		name string
 		body *decad.Body
-	}{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}} {
+	}{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}, {HarnessContainerName, harness.Pad}} {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
 			return nil, fmt.Errorf("turbinefan: container %s: %w", c.name, err)
