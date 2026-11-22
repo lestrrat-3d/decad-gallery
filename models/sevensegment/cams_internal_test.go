@@ -37,8 +37,8 @@ func TestSevenSegmentCam(t *testing.T) {
 				require.InDelta(t, GrooveWidth, hi-lo, 0.05, "digit %d", k)
 			}
 			// The entry channel is open to the rim at 18 degrees.
-			require.False(t, insideLoops(loops, polar(24.5, EntryAngle)))
-			require.True(t, insideLoops(loops, polar(24.5, EntryAngle+20)))
+			require.False(t, insideLoops(loops, polar(CamRadius-1.0, EntryAngle)))
+			require.True(t, insideLoops(loops, polar(CamRadius-1.0, EntryAngle+20)))
 			// Marks.
 			n, radius := camMarks(seg)
 			count := 0

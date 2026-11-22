@@ -27,8 +27,8 @@ func TestSevenSegmentFollowerDrive(t *testing.T) {
 	t.Logf("summed shaft torque at 0.35: %.1f N.mm (step %d to %d), press share %.1f N", nominal.maxTorque,
 		nominal.step, nominal.step+1, press)
 
-	require.GreaterOrEqual(t, nominal.minRatio[0], 1.53)
-	require.GreaterOrEqual(t, nominal.minRatio[1], 1.27)
-	require.GreaterOrEqual(t, lock[0], 0.44)
-	require.GreaterOrEqual(t, lock[1], 0.40)
+	require.GreaterOrEqual(t, nominal.minRatio[0], 1.40)
+	require.GreaterOrEqual(t, nominal.minRatio[1], 1.17)
+	require.GreaterOrEqual(t, lock[0], 0.42)
+	require.GreaterOrEqual(t, lock[1], 0.38)
 }

@@ -14,13 +14,13 @@ const (
 	SegmentSpan   = 33.0
 	Travel        = 3.0
 	FaceZ         = flagFaceZ
-	ShaftZ        = 28.0
+	ShaftZ        = 29.5
 	StationPitch  = 11.0
-	CamRadius     = 25.0
+	CamRadius     = 23.5
 	CamThickness  = 3.8
 	HubRadius     = 5.0
-	OffRadius     = 18.0
-	OnRadius      = 21.0
+	OffRadius     = 16.5
+	OnRadius      = 19.5
 	GrooveWidth   = 3.8
 	GrooveDepth   = 1.9
 	RampStart     = 8.0

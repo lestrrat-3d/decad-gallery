@@ -29,8 +29,8 @@ func TestSevenSegmentFrame(t *testing.T) {
 				require.InDelta(t, 33.0, box.Min.Y, 1e-6) // the ribs reach 10 mm in from the inner face at 43
 				require.InDelta(t, 51.0, box.Max.Y, 1e-6)
 			}
-			require.InDelta(t, 81.25, box.Max.Z, 1e-6)
-			require.InDelta(t, 0, box.Min.Z, 1e-6)
+			require.InDelta(t, wallTopZ, box.Max.Z, 1e-6)
+			require.InDelta(t, wallBottomZ, box.Min.Z, 1e-6)
 		})
 	}
 }

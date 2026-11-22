@@ -99,12 +99,12 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 			}
 		}
 	}
-	require.LessOrEqual(t, maxPressure, 33.5)
-	require.GreaterOrEqual(t, activeLo, 9.4)
-	require.LessOrEqual(t, activeHi, 28.1)
+	require.LessOrEqual(t, maxPressure, 35.5)
+	require.GreaterOrEqual(t, activeLo, 9.5)
+	require.LessOrEqual(t, activeHi, 28.0)
 	// Rising lift samples, "Truth table and ramp table".
-	samples := map[float64]float64{8: 0, 9: 0.023, 10: 0.092, 12: 0.307, 14: 0.550, 16: 0.824, 18: 1.128, 20: 1.467,
-		22: 1.843, 24: 2.258, 26: 2.696, 28: 2.946, 29: 2.994, 29.5: 3.0}
+	samples := map[float64]float64{8: 0, 9: 0.019, 10: 0.078, 12: 0.297, 14: 0.555, 16: 0.842, 18: 1.161, 20: 1.514,
+		22: 1.904, 24: 2.335, 26: 2.743, 28: 2.954, 29: 2.995, 29.5: 3.0}
 	for off, lift := range samples {
 		rise := dm.GrooveRadius(sevensegment.SegE, 90+36*6+off) - sevensegment.OffRadius // segment e, step 6->7 rises
 		require.InDelta(t, lift, rise, 0.005, "offset %g", off)
@@ -116,12 +116,12 @@ func TestSevenSegmentRampGeometry(t *testing.T) {
 	require.NoError(t, err)
 	// Step 0->1 falls for cam a; step 1->2 rises (window starts at 134).
 	rise := dm.Ramps[sevensegment.SegD][1].Geometry()
-	require.InDelta(t, 20.5*math.Cos(134*math.Pi/180), rise.C1.X, 1e-9)
-	require.InDelta(t, 18.5, math.Hypot(rise.C2.X, rise.C2.Y), 1e-9)
-	require.InDelta(t, 5.6372, rise.LineLength, 1e-3)
+	require.InDelta(t, (sevensegment.OffRadius+sevensegment.RampRound)*math.Cos(134*math.Pi/180), rise.C1.X, 1e-9)
+	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(rise.C2.X, rise.C2.Y), 1e-9)
+	require.InDelta(t, 4.8939, rise.LineLength, 1e-3)
 	fall := dm.Ramps[sevensegment.SegD][0].Geometry()
-	require.InDelta(t, 18.5, math.Hypot(fall.C1.X, fall.C1.Y), 1e-9)
-	require.InDelta(t, 20.5, math.Hypot(fall.C2.X, fall.C2.Y), 1e-9)
+	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(fall.C1.X, fall.C1.Y), 1e-9)
+	require.InDelta(t, sevensegment.OffRadius+sevensegment.RampRound, math.Hypot(fall.C2.X, fall.C2.Y), 1e-9)
 }
 
 func TestSevenSegmentChannel(t *testing.T) {
@@ -129,7 +129,7 @@ func TestSevenSegmentChannel(t *testing.T) {
 	t.Parallel()
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
-	half := math.Asin(1.9/22.9) * 180 / math.Pi
+	half := math.Asin((sevensegment.GrooveWidth/2)/(sevensegment.OnRadius+sevensegment.GrooveWidth/2)) * 180 / math.Pi
 	// The entry channel is at the follower when psi = EntryAngle + 360*n; it lies inside digit 8's dwell [11.5, 26].
 	for _, s := range sevensegment.Segments() {
 		for _, psi := range []float64{sevensegment.EntryAngle - half, sevensegment.EntryAngle, sevensegment.EntryAngle + half} {

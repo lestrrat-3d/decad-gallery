@@ -6,6 +6,7 @@ import (
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
+	"github.com/lestrrat-3d/decad-gallery/models/sevensegment"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func teethAround(t *testing.T, body *decad.Body, y, r float64) int {
 	g := newCrossingGrid(mesh)
 	inside := func(deg float64) bool {
 		a := deg * math.Pi / 180
-		return g.pointIn(r3.Vec{X: r * math.Cos(a), Y: y, Z: 28 + r*math.Sin(a)})
+		return g.pointIn(r3.Vec{X: r * math.Cos(a), Y: y, Z: sevensegment.ShaftZ + r*math.Sin(a)})
 	}
 	runs := 0
 	prev := inside(359.75)
@@ -43,7 +44,7 @@ func teethAround(t *testing.T, body *decad.Body, y, r float64) int {
 func movedMesh(t *testing.T, body *decad.Body, tol, turn, drop float64) meshgap.Mesh {
 	t.Helper()
 	mesh, _ := meshOf(t, body, tol)
-	rot, err := r3.RotationAround(r3.Vec{Z: 28}, r3.Vec{Y: 1}, units.Degrees(turn))
+	rot, err := r3.RotationAround(r3.Vec{Z: sevensegment.ShaftZ}, r3.Vec{Y: 1}, units.Degrees(turn))
 	require.NoError(t, err)
 	src := mesh.Vertices()
 	out := make([]r3.Vec, len(src))

@@ -17,12 +17,12 @@ import (
 
 // Frame dimensions in mm that are not exported.
 const (
-	wallTop        = 53.25 // v of the wall's upper edge (z 81.25): ribs end 1.5 below it
-	wallHalf       = 28.5  // wall plate half width: ribs end 1.5 inside it
-	wallBottom     = -28.0 // v of the wall's lower edge (z 0)
-	ribInner       = 20.0  // |x| where a rib starts
-	ledgeFrom      = 49.75 // z of a ledge rib's underside
-	flangeFrom     = 75.75 // z of a top flange rib's underside
+	wallTopZ       = 81.25                    // z of the wall's upper edge: ribs end 1.5 below it
+	wallHalf       = 28.5                     // wall plate half width: ribs end 1.5 inside it
+	wallBottomZ    = ShaftZ - CamRadius - 3.0 // z of the wall's lower edge, 3.0 below the cams' rims
+	ribInner       = 20.0                     // |x| where a rib starts
+	ledgeFrom      = 49.75                    // z of a ledge rib's underside
+	flangeFrom     = 75.75                    // z of a top flange rib's underside
 	ribHeight      = 4.0
 	ribDepth       = 10.0
 	frontLedgeDeep = 18.7
@@ -66,7 +66,7 @@ func (r *run) wall(front bool) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	rectOn(s, -wallHalf, wallHalf, wallBottom, wallTop)
+	rectOn(s, -wallHalf, wallHalf, wallBottomZ-ShaftZ, wallTopZ-ShaftZ)
 	body, err := r.extrude(s, 0, WallThickness, decad.Along)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)

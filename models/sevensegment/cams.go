@@ -23,7 +23,7 @@ const (
 	camMarkRadius = 0.75 // look-alike hole radius (1.5 across)
 	camMarkStep   = 25.0 // degrees between marks
 	camMarkFirst  = 270.0
-	channelCap    = 26.0 // entry channel cap line distance
+	channelCap    = CamRadius + 1.0 // entry channel cap line, 1.0 outside the rim so the channel opens through it
 )
 
 // camDiscFace is the Y of a cam's groove face: the station plus the hub reach.

@@ -60,7 +60,7 @@ func insideLoops(loops [][]r3.Vec, p r3.Vec) bool {
 func voidRun(loops [][]r3.Vec, psi float64) (float64, float64, bool) {
 	lo, hi, found := 0.0, 0.0, false
 	prev := true
-	for r := 14.0; r < 25.0; r += 0.005 {
+	for r := 14.0; r < CamRadius; r += 0.005 {
 		p := polar(r, psi)
 		cur := insideLoops(loops, p)
 		if prev && !cur && !found {
