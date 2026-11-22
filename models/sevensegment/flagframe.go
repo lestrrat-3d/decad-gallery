@@ -85,7 +85,7 @@ func circleAt(s *sketch.Sketch, x, y, rad float64) {
 // cradle to the top flange ribs.
 func flagSites() [4]m2fastener.Site {
 	var out [4]m2fastener.Site
-	for i, p := range [][2]float64{{-23.2, -44.5}, {23.2, -44.5}, {-23.2, 38}, {23.2, 38}} {
+	for i, p := range [][2]float64{{-frameBoltX, -44.5}, {frameBoltX, -44.5}, {-frameBoltX, 38}, {frameBoltX, 38}} {
 		out[i] = m2fastener.Site{Head: r3.Vec{X: p[0], Y: p[1], Z: flagFaceZ}, Dir: r3.Vec{Z: -1}, Corner: r3.Vec{Y: 1},
 			Length: 10, Cavity: 10.5}
 	}

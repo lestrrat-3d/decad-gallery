@@ -33,7 +33,7 @@ const (
 	StemRound     = 0.3
 
 	WallThickness = 8.0
-	WallHalfWidth = 27.0
+	WallHalfWidth = 23.4 // plates x +-23.4; the b, c, e, f bores (x +-22.046) keep 0.85 inside the 0.5 chamfer
 
 	Seam            = 0.25
 	PressFit        = 0.05
@@ -51,6 +51,10 @@ const (
 
 	RearCollarRadius = 3.8
 )
+
+// frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
+// inside WallHalfWidth.
+const frameBoltX = WallHalfWidth - 3.8 // 19.6
 
 // Segment names one of the seven segments.
 type Segment int
@@ -291,7 +295,7 @@ func sites() ([10]m2fastener.Site, error) {
 	var out [10]m2fastener.Site
 	// G3/G4 at y 32 stand between the discs of cams f and a, so no cam lies under their heads.
 	gy := [4]float64{-34.2, -34.2, 32.0, 32.0}
-	xs := [4]float64{-23.2, 23.2, -23.2, 23.2}
+	xs := [4]float64{-frameBoltX, frameBoltX, -frameBoltX, frameBoltX}
 	ts := flagSites()
 	copy(out[:4], ts[:])
 	for i := range 4 {

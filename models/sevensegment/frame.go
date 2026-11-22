@@ -18,9 +18,9 @@ import (
 // Frame dimensions in mm that are not exported.
 const (
 	wallTopZ       = 81.25                    // z of the wall's upper edge: ribs end 1.5 below it
-	wallHalf       = 28.5                     // wall plate half width: ribs end 1.5 inside it
+	wallHalf       = WallHalfWidth + 1.5      // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
 	wallBottomZ    = ShaftZ - CamRadius - 3.0 // z of the wall's lower edge, 3.0 below the cams' rims
-	ribInner       = 20.0                     // |x| where a rib starts
+	ribInner       = 16.4                     // |x| where a rib starts: 1.026 inside the nut pockets' flats (19.6 - 2.174)
 	ledgeFrom      = 49.75                    // z of a ledge rib's underside
 	flangeFrom     = 75.75                    // z of a top flange rib's underside
 	ribHeight      = 4.0

@@ -54,7 +54,7 @@ const (
 	housingBezelY    = -75.4 // 17.9 above the wall: the button's head ends flush with it
 	housingTubeInner = 14.55
 	housingTubeOuter = 16.55
-	housingFlangeR   = 26.0
+	housingFlangeR   = 24.8 // base flange: inside the walls (x +-24.9); 1.1 round the H head pockets after the chamfer
 	housingCrownR0   = 11.55
 	housingCrownY    = -72.5 // underside of the ring, above the crown's teeth
 	housingSlotOuter = 12.7
