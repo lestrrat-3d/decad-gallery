@@ -29,4 +29,4 @@ look-alike marks and split shaft on the built bodies.
 
 ## Uses
 
-`models/ballbearing` (605ZZ), `models/compressionspring` (Lee LC 022D 03 S), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.
+`models/ballbearing` (605ZZ), `models/compressionspring` (Lesjofors Cat.no 2353), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.

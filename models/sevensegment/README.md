@@ -22,7 +22,7 @@ The teeth of the three toothed parts have ten teeth each, and their mating faces
 between tip and root: the print must hold that, or the teeth will bind. Stand the display on its back wall: lying down, the cams rest on the
 slider pins.
 
-**Hand feel.** Expect a press of about 10 to 13 N: the spring (a Lee LC 022D 03 S, 5.9 N at rest and 7.4 N pressed) plus the
+**Hand feel.** Expect a press of about 11 to 14 N: the spring (a Lesjofors Cat.no 2353, 6.02 N at rest and 7.74 N pressed) plus the
 ramps' friction. While the cams move the segments they add up to about 5.6 N. The head stands 23.9 mm above the
 front wall at rest and ends flush with the housing's bezel, 17.9 mm
 above it, at the bottom of its stroke. These numbers are calculated, not measured.
@@ -109,7 +109,7 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/rotor.png" alt="Rotor" width="240"> | Rotor | 1 | - | Slides 2.0 mm on the hub's keys. Ten inner teeth meet the button, ten outer teeth lock in the housing's crown. |
 | <img src="images/parts/housing.png" alt="Housing" width="240"> | Housing | 1 | - | Base bolted to the front wall, tube and bezel, a fixed crown with ten notches, and three slots for the button's lugs. |
 | <img src="images/parts/button.png" alt="Button" width="240"> | Button | 1 | - | Head 22 mm across with ten teeth under it and three lugs that slide in the housing's slots. |
-| <img src="images/parts/spring.png" alt="Spring" width="240"> | Spring | 1 | - | Bought: Lee Spring LC 022D 03 S, stainless, 7.62 mm outside diameter, 15.88 mm free length. It stands on the hub and pushes the rotor up. |
+| <img src="images/parts/spring.png" alt="Spring" width="240"> | Spring | 1 | - | Bought: Lesjofors Cat.no 2353, stainless, 7.45 mm outside diameter (computed from the catalogue's mean diameter and wire), 15 mm free length, from the Lesjofors Stock Spring Catalogue 2025, page 30. Check that it is sold in your country. It stands on the hub and pushes the rotor up. |
 | <img src="images/parts/cam-d.png" alt="Cam d" width="240"> | Cam d | 1 | 1 | Front cam, the letter d engraved on its back face. |
 | <img src="images/parts/cam-e.png" alt="Cam e" width="240"> | Cam e | 1 | 2 | Front cam, the letter E engraved on its back face. |
 | <img src="images/parts/cam-c.png" alt="Cam c" width="240"> | Cam c | 1 | 3 | Front cam, the letter C engraved on its back face. |
@@ -154,7 +154,7 @@ bolt or nut is bought.
 - 6 x M2 x 10 bolt
 - 4 x M2 x 6 bolt
 - 10 x M2 nut
-- 1 x Lee Spring LC 022D 03 S compression spring
+- 1 x Lesjofors Cat.no 2353 compression spring (Stock Spring Catalogue 2025, page 30; check availability in your country)
 - Yellow and black filament for the rotors
 
 ## Assembly

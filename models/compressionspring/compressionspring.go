@@ -17,10 +17,12 @@ type Spec struct {
 	WireDiameter    float64
 	FreeLength      float64
 	TotalTurns      float64
-	ActiveTurns     float64
-	Rate            float64
-	SolidHeight     float64
-	LoadAtSolid     float64
+	// ActiveTurns is the number of active coils. Zero means the supplier does not publish it. A positive value must
+	// not exceed TotalTurns; a negative or non-finite value is an error.
+	ActiveTurns float64
+	Rate        float64
+	SolidHeight float64
+	LoadAtSolid float64
 }
 
 func LeeLC024C14M() Spec {
@@ -42,6 +44,18 @@ func LeeLC022D03S() Spec {
 	return Spec{Name: "Lee Spring LC 022D 03 S", OutsideDiameter: 7.62, WireDiameter: 0.56,
 		FreeLength: 15.88, TotalTurns: 5.25, ActiveTurns: 3.25, Rate: 0.736,
 		SolidHeight: 3.10, LoadAtSolid: 9.27}
+}
+
+// LesjoforsStock2353 is the Lesjofors stock spring Cat.no 2353, stainless steel ISO 6931-1, from the Lesjofors Stock
+// Spring Catalogue 2025, page 30: 0.60 mm wire, 6.85 mm mean diameter (6.00 mm minimum inside diameter), 15 mm free
+// length, 6.3 total coils, 0.86 N/mm, 3/4 of the end coils ground. The catalogue does not publish the active coils, so
+// ActiveTurns is zero. Three values are computed, not published: the outside diameter 7.45 mm (mean diameter plus
+// wire), the solid height 3.78 mm (wire times total coils, the catalogue's own Lst = dt x nt) and the load at solid
+// 9.65 N (0.86 x (15 - 3.78)). The catalogue's permitted loaded length is 4.5 mm, where it gives 8.9 N.
+func LesjoforsStock2353() Spec {
+	return Spec{Name: "Lesjofors Cat.no 2353", OutsideDiameter: 7.45, WireDiameter: 0.60,
+		FreeLength: 15, TotalTurns: 6.3, ActiveTurns: 0, Rate: 0.86,
+		SolidHeight: 3.78, LoadAtSolid: 9.65}
 }
 
 type Params struct {
@@ -74,7 +88,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	}{
 		{"outside diameter", s.OutsideDiameter}, {"wire diameter", s.WireDiameter},
 		{"free length", s.FreeLength}, {"total turns", s.TotalTurns},
-		{"active turns", s.ActiveTurns}, {"rate", s.Rate},
+		{"rate", s.Rate},
 		{"solid height", s.SolidHeight}, {"load at solid", s.LoadAtSolid},
 		{"installed length", p.InstalledLength},
 	}
@@ -82,6 +96,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		if math.IsNaN(v.value) || math.IsInf(v.value, 0) || v.value <= 0 {
 			return nil, fmt.Errorf("compressionspring: %s must be finite and positive", v.name)
 		}
+	}
+	if math.IsNaN(s.ActiveTurns) || math.IsInf(s.ActiveTurns, 0) || s.ActiveTurns < 0 {
+		return nil, fmt.Errorf("compressionspring: active turns must be finite and not negative")
 	}
 	if s.ActiveTurns > s.TotalTurns {
 		return nil, fmt.Errorf("compressionspring: active turns exceed total turns")

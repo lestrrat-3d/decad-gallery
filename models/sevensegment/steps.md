@@ -94,7 +94,7 @@ StemThickness 3.6, StemRound 0.3, WallThickness 8.0,
 WallHalfWidth 23.4, Seam 0.25,
 PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, RearCollarRadius 3.8,
 ClickerSteps 10, ClickerStep 36, RampAngle 32.5, ToothHeight 4.0, CrownHeight 1.6, CrownBack 30, RotorTravel 2.0,
-ButtonStroke 6.0, SpringRestLength 7.96, SegmentsDoneBy 29.55, ChainTolerance 0.02`.
+ButtonStroke 6.0, SpringRestLength 8.0, SegmentsDoneBy 29.55, ChainTolerance 0.02`.
 
 Validation (first failure wins, prefix `sevensegment: `):
 
@@ -255,7 +255,7 @@ Check: `TestSevenSegmentCam` (cams b and e first), `TestSevenSegmentCamInscripti
 ## 5. Click indexer (clicker.go, facetooth.go, clicker_motion.go)
 
 Follow instructions.md "Click indexer". Bodies: `Hub`, `Rotor`, `Housing`, `Button` and the `Spring`
-(`compressionspring.Build` with `LeeLC022D03S`, turned half a turn about X and moved onto the shaft). The rotor, hub and
+(`compressionspring.Build` with `LesjoforsStock2353`, turned half a turn about X and moved onto the shaft). The rotor, hub and
 spring turn with the shaft (`spin`); the housing and button do not.
 
 ### Face teeth

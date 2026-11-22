@@ -14,8 +14,9 @@ must not be used to prove spring seating. The winding hand is a modeling
 choice because the manufacturer chooses it.
 
 The input is the catalog data and installed length in millimeters. Reject
-nonfinite or nonpositive dimensions, outside diameter at or below twice the
-wire diameter, nonpositive turns or rate, installed length greater than free
+nonfinite or nonpositive dimensions (active turns may be zero, meaning the supplier does not publish them),
+outside diameter at or below twice the wire diameter, nonpositive total turns or rate, negative or nonfinite active
+turns, active turns greater than total turns, installed length greater than free
 length, and installed length at or below solid height. The coil's pitch is
 `(installed length - wire diameter) / total turns`. Reject pitch at or below
 wire diameter. Return one solid and its fully constrained section sketch.
@@ -43,3 +44,11 @@ from 2.40 to 13.368 N, leaving 6.77 mm above solid at full press.
 The seven-segment click indexer uses stainless Lee LC 022D 03 S: 7.62 mm outside diameter, 0.56 mm wire, 15.88 mm free
 length, 5.25 total turns, 3.25 active turns, 0.736 N/mm, 3.10 mm solid height and 9.27 N at solid. The same
 constant-pitch end approximation applies. [Lee Spring product data](https://www.leespring.com/product/compression-spring-lc022d03s-stainless-steel)
+
+The metric click-indexer spring is the Lesjofors stock spring Cat.no 2353, stainless steel ISO 6931-1, from the
+Lesjofors Stock Spring Catalogue 2025, page 30. Published: 0.60 mm wire, 6.85 mm mean diameter, 6.00 mm minimum inside
+diameter, 15 mm free length, 6.3 total turns, 0.86 N/mm, 3/4 of the end coils ground, and 8.9 N at the permitted loaded
+length of 4.5 mm. The catalogue does not publish the active turns, so `ActiveTurns` is zero. Three values are computed
+here, not published: outside diameter 7.45 mm (mean diameter plus wire), solid height 3.78 mm (wire times total turns,
+the catalogue's own definition) and load at solid 9.65 N (0.86 x (15 - 3.78)). The same constant-pitch end
+approximation applies. Availability in a given country is not confirmed.
