@@ -19,7 +19,8 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 - Digit glyphs: 6 and 9 with tails (6 lights a, 9 lights d); 7 lights a, b, c only.
 - Input is a button pressed 6.0 mm along the shaft axis, one digit per press 0→1→…→9→0. The segments' roles are swapped against the usual order (a and d, b and e, c and f) so each digit reads upright with the button end up.
 - Purchased parts: two 605ZZ bearings (`ballbearing.Lookup("605ZZ")`), M2 bolts and nuts (`fastener` via
-  `internal/m2fastener`). No purchased springs, no purchased shafts.
+  `internal/m2fastener`), and one KSSC K series 1087 compression spring (`compressionspring.KSSC1087`). No
+  purchased shafts.
 - Click indexer assumptions: a press needs 5.64 to 7.53 N of spring force plus the ramps' friction (about 3 to 6 N at
   friction 0.35 to 0.5), peak about 11 to 14 N; the cams and sliders take up to 41 N.mm at the shaft while five segments change together,
   about 5.6 N of press (Cam follower drive). The spring is a
