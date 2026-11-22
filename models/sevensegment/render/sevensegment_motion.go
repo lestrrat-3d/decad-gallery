@@ -77,17 +77,7 @@ func motionModels(s partSet, springs map[float64]*decad.Mesh, dm sevensegment.Di
 		}
 		out = append(out, m)
 	}
-	keep := func(name string) bool {
-		switch {
-		case face:
-			return true
-		case strings.HasPrefix(name, "Slider ") || strings.HasPrefix(name, "Flag ") || strings.HasPrefix(name, "Cam ") ||
-			strings.HasPrefix(name, "Bolt") || strings.HasPrefix(name, "Nut") || name == "Guide Plate" ||
-			name == "Top Plate" || name == "Cradle Plate" || name == "Rear Wall" || name == "Rear Bearing":
-			return false
-		}
-		return true
-	}
+	keep := func(string) bool { return true } // the cut shows every part, the cams and sliders too
 	if face {
 		keep = func(name string) bool {
 			if name == "Spring" || name == "Hub" || name == "Rotor" {
@@ -97,8 +87,8 @@ func motionModels(s partSet, springs map[float64]*decad.Mesh, dm sevensegment.Di
 		}
 	}
 	for _, p := range s {
-		if !keep(p.name) {
-			continue
+		if !keep(p.name) || (!face && renderkit.ClipRemovesAll(p.mesh, sevenAxisCut)) {
+			continue // a part wholly on the removed side of the cut is left out
 		}
 		if strings.HasPrefix(p.name, "Spring") {
 			continue
@@ -170,13 +160,11 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height 
 	}
 	states := motionStates()
 	half := width / 2
-	// Knob end up: the camera's up is -Y. Left: the face from +Z, turned a little toward +X. Right: the cut through the axis
-	// from +X, close on the indexer.
+	// Knob end up: the camera's up is -Y. Left: the face from +Z, turned a little toward +X. Right: the whole display cut through
+	// the axis from +X, so the cams turning and the sliders rising show.
 	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 70, Y: -40, Z: 330}, Target: solidlens.Vec{Y: -30, Z: 40},
 		Up: solidlens.Vec{Y: -1}, FOV: 30}
-	cutCam := solidlens.Camera{Position: solidlens.Vec{X: 300, Y: -66, Z: sevensegment.ShaftZ},
-		Target: solidlens.Vec{Y: -66, Z: sevensegment.ShaftZ},
-		Up:     solidlens.Vec{Y: -1}, FOV: 30}
+	cutCam := sevenCameras["cutaway"]
 	rest := states[0]
 	rest.buttonDrop = 0
 	var cams [2]solidlens.Camera
@@ -184,13 +172,6 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height 
 		models, err := motionModels(s, springs, dm, rest, i == 0)
 		if err != nil {
 			return err
-		}
-		if i == 1 { // fit the cut to the indexer only
-			var near []solidlens.Model
-			for _, m := range models {
-				near = append(near, m)
-			}
-			models = near
 		}
 		cams[i] = renderkit.FitCamera(base, models, float64(half)/float64(height), .06)
 	}

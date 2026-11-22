@@ -72,11 +72,12 @@ angles differ:
 
 ![Digits 0 to 9 in two rows of five seen at an angle: lit segments show a yellow face, the others a black body](images/digits.png)
 
-Ten presses, digit 0 up to 9 and back to 0, with the face on the left and a cut through the axis on the right. The button
-drops 6 mm and the display changes during the downstroke; the release finishes the step. The
+Ten presses, digit 0 up to 9 and back to 0, with the face on the left and the whole display cut through the axis on the
+right. The button drops 6 mm and the display changes during the downstroke; the release finishes the step. In the cut the
+cams turn with the shaft and each slider rises or drops as its cam's groove moves its pin. The
 colors never change:
 
-![Ten presses of the button: the digit changes from 0 up to 9 and back to 0 while the head drops 6 mm and returns, with the cut through the axis on the right](images/motion.gif)
+![Ten presses of the button: the digit changes from 0 up to 9 and back to 0 while the head drops 6 mm and returns, with the cams turning and the sliders moving in the cut through the axis on the right](images/motion.gif)
 
 ## Parts
 
