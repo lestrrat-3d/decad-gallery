@@ -17,7 +17,7 @@ instructions.md "Fasteners" says why each slot works and why a back-face slot do
 `SizeFor(D_r)` (size.go) makes no geometry calls. With `s = D_r / 128`: `HubRadius = min(14 s, 18.9)`, `j = HubRadius / 14`,
 `HubLength = 20 s`, `HubMid = HubLength / 2`, `TipRadius = D_r / 2`, `RootRadius = HubRadius + 0.4`, `RefRadius = 48 s`,
 `HoldRadius = 21.5 s`, `BladeSocketStart = 5.7 j`, `BladeStudStart = BladeSocketStart + 0.4`, `BladeStudRadius = 3 j`,
-`BladeSocketRadius = BladeStudRadius + 0.4`, `BladeStudEnd = 16 j`, `BladeBoltAt = 9.5 j`, `BladeBoltLength` = the longest
+`BladeSocketRadius = BladeStudRadius + 0.25 / cos 30 degrees` (`TightFit`: the hexagonal socket's flats stand 0.25 from the stud's), `BladeStudEnd = 16 j`, `BladeBoltAt = 9.5 j`, `BladeBoltLength` = the longest
 `m2fastener.BoltSize.StandardLengths` entry `L` with `HubLength - HeadPocketDepth - L >= 2`, `BladeBoltCavity = BladeBoltLength - 0.4`.
 It fails for a diameter outside [128, 224] or not finite, when no length fits, and when `HubLength - BladeBoltCavity` is
 above `HubMid - BladeSocketRadius - 1`. `Size.Beta(r, pitch) = 5 deg + atan(tan(25 deg - 5 deg) RefRadius / max(r,
@@ -112,13 +112,14 @@ differs only in `mirror`. The first failing step stops the rest.
   angle, with every X coordinate negated for `BuildBlade` (not for `BuildBladeMirrored`).
 - Loft: `decad.LoftSections` through the ten sections in ascending r. When the pitch is not 25 degrees, `decad.Transform`
   the loft by `r3.RotationAround(origin, +Z, +(pitch - 25 degrees))` (`-(pitch - 25 degrees)` when mirrored).
-- Root stud: a circle of radius `BladeStudRadius` on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
+- Root stud: a regular hexagon with its corners on the circle of radius `BladeStudRadius`, at 30 + 60 i degrees (two on local Y), on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
   `BladeStudEnd - BladeStudStart`. `decad.Chamfer` its start cap's outer loop with 0.3. `Cut` it by a circle of radius 1.3
   on the frame origin `(0, -(BladeStudRadius + 2), BladeBoltAt)`, U = +Z, V = +X, extruded `2 (BladeStudRadius + 2)` (the
   bolt hole). The cut happens before the union, so the faceted loft never takes part in it.
 - `studFlat(stud, loft, pitch)` cuts the flat on the stud's inner end, also before the union (section 6).
 - `Union` the loft and the stud: they overlap in volume and share no face.
-- `BladeSocketTool(ctx, doc, f, size)`: a circle of radius `BladeSocketRadius` on `f`, extruded `HubRadius + 1 -
+- `BladeSocketTool(ctx, doc, f, size)`: a regular hexagon with its corners on the circle of radius `BladeSocketRadius` on `f`
+  turned so that two corners lie on `f`'s U (the shaft) and its flats face `f`'s V (the tangent), extruded `HubRadius + 1 -
   BladeSocketStart`, with `decad.Fillet` of its
   start cap's outer loop by 0.5. It makes one sketch.
 - The document must come from `NewDocument`: without its chain tolerance, Decad refuses the blade-stud union because the
@@ -144,7 +145,8 @@ instructions.md "Clutch mount" for the numbers.
 ## 6. Print pose and stud flat (print.go, blade.go)
 
 Every step reads instructions.md "Print pose and nose rib" for its numbers. `zc(t) = (BladeStudStart + 0.3) sin t -
-BladeStudRadius cos t` (`studCornerZ`).
+reach(u) cos t` (`studCornerZ`), where `reach(u)` (`studReach`) is the largest of `-BladeStudRadius (cos(i 60 deg) u.X + sin(i
+60 deg) u.Y)` over the hexagon's six corners i = 0..5, with 30 degrees added to each corner angle: `-BladeStudRadius (cos(30 + i 60 deg) u.X + sin(30 + i 60 deg) u.Y)`.
 
 - `restTilt(vertices, size, pitch, hand, depth)` returns the tilt and the flat's plane height. Keep the vertices with
   local Z > `RootRadius + 0.5` (the loft) and those with local Z in (`RootRadius - 0.01`, `RootRadius + 2 HubScale`) (the
@@ -166,10 +168,10 @@ BladeStudRadius cos t` (`studCornerZ`).
   the bed.
 - `BuildBladePrint(ctx, doc, p)`: reject a nil context or document, `p.Derive()`, check the pose arguments, build the
   blade (`BuildBlade` or `BuildBladeMirrored`), `RestTilt`, `PrintPoseFor`, `decad.Transform` the blade into place,
-  `BuildBladeHarness`, and add the posed blade to `doc.Root().ChildNamed("Blades")` and the nose rib to
-  `ChildNamed("Harness")`.
+  `BuildBladeHarness`, and add the posed blade to `doc.Root().ChildNamed("Blades")` and the nose rib and the stud pad
+  to `ChildNamed("Harness")`.
 
-## 7. Nose rib (harness.go)
+## 7. Nose rib and stud pad (harness.go)
 
 `BuildBladeHarness(ctx, doc, blade, size, hand, tilt)` validates as instructions.md lists, including
 `PrintPoseFor(size, DefaultBladePitch, hand, tilt)` to reject a bad tilt, then runs `harness(blade)` on one
@@ -194,11 +196,14 @@ and nose rib" for its numbers.
    `NewHorizontalDistance(TR, BR, Hv tan RibSideAngle)`. `extrudeProfile(s, 0, (xb - xa) / u.X * k, "rib wedge")`.
 7. `ribSlab`: `extrudePolygon(frame((0, yhi, 0), +X, +Z), [(XStart, 0), (XEnd, 0), Top reversed], yhi - ylo, "rib
    profile")`, with `ylo`/`yhi` the track's y at `xa` and `xb` less/plus `RibTopWidth/2 + Hv tan RibSideAngle + 2`.
-8. `decad.Intersect(wedge, slab)`; fail `rib` unless solid with one lump. `BuildBladeHarness` then requires
-   `h.Body` solid and sets `h.Sketches`.
+8. `decad.Intersect(wedge, slab)`; fail `rib` unless solid with one lump.
+9. `studPad(h)`: the centre is the middle of `Spots[0]`'s bounding box (`loopBox`). Sketch on `frame(centre, +X, +Y)`: a
+   circle at the sketch origin with `NewRadius(c, StudPadRadius)`; `extrudeProfile(s, 0, StudPadThickness, "stud pad")`.
+   `BuildBladeHarness` then requires `h.Body` and `h.Pad` solid and sets `h.Sketches`.
 
 `profile` solves each sketch and requires `sketchcheck.VerifyFullyConstrained` before extruding. The rib's sketches:
-the wedge's trapezoid, then the slab's polygon. Exported: `StudFlatDepth`, `StudFlatRootClearance`, `RestTilt`,
+the wedge's trapezoid, then the slab's polygon, then the pad's circle. Exported: `StudFlatDepth`, `StudFlatRootClearance`, `RestTilt`,
 `RestTiltMin`, `RestTiltMax`, `PrintPoseFor`, `PrintLean`, `PrintLift`, `RibGapZ`, `RibTopWidth`, `RibTopBand`,
-`RibSideAngle`, `RibTipMargin`, `RibEndOver`, `RibMinHeight`, `BrimClearance`, `SectionStep`, `BladeHarness`,
+`RibSideAngle`, `RibTipMargin`, `RibEndOver`, `RibMinHeight`, `BrimClearance`, `SectionStep`, `StudPadRadius`,
+`StudPadThickness`, `BladeHarness`,
 `BuildBladeHarness`, `BladePrint`, `BuildBladePrint`, `HarnessContainerName`.

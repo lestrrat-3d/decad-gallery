@@ -22,7 +22,7 @@ const (
 	PrintLift = 0.0
 	// StudFlatDepth is how far the flat on the stud's inner end reaches into the stud: the stud end corner lies this far
 	// under the flat's plane, so the blade rests on a flat patch instead of a corner sliver.
-	StudFlatDepth = 0.5
+	StudFlatDepth = 0.45
 	// StudFlatRootClearance is the least height of the round root's lowest point over the bed at the rest tilt: one
 	// layer, so the root prints no stray island in the first layer.
 	StudFlatRootClearance = 0.2
@@ -60,15 +60,27 @@ func poseUp(sz Size, pitch float64, hand Hand) r3.Vec {
 	return r3.Vec{X: c.X*math.Cos(l) - c.Y*math.Sin(l), Y: c.X*math.Sin(l) + c.Y*math.Cos(l)}
 }
 
-// studCornerZ returns the stud end corner's height over the radial line's foot at tilt, before the lift.
-func studCornerZ(sz Size, tilt float64) float64 {
-	return (sz.BladeStudStart+studChamfer)*math.Sin(tilt) - sz.BladeStudRadius*math.Cos(tilt)
+// studReach returns how far the hexagonal stud's outline reaches from the radial line toward -up: its corners lie on
+// the local Y axis and 60 degrees round it, at radius BladeStudRadius.
+func studReach(sz Size, up r3.Vec) float64 {
+	reach := 0.0
+	for i := range 6 {
+		t := math.Pi/6 + float64(i)*math.Pi/3
+		reach = math.Max(reach, -sz.BladeStudRadius*(math.Cos(t)*up.X+math.Sin(t)*up.Y))
+	}
+	return reach
+}
+
+// studCornerZ returns the stud end's lowest height over the radial line's foot at tilt, before the lift, where up is the
+// pose's up direction: the chamfered outline's furthest point toward the bed.
+func studCornerZ(sz Size, tilt float64, up r3.Vec) float64 {
+	return (sz.BladeStudStart+studChamfer)*math.Sin(tilt) - studReach(sz, up)*math.Cos(tilt)
 }
 
 // RestTilt returns the tilt of the radial line above the bed at which the blade, posed with PrintLean, rests on both
 // its stud flat and its loft's lowest point: the stud end corner the flat cut away lies StudFlatDepth under the loft's
 // lowest point. blade is the body BuildBlade or BuildBladeMirrored returned (local frame); the blade's flat was cut at
-// the same tilt. The tilt depends only on sz; pitch and hand are checked like PrintPoseFor's. It fails when the round
+// the same tilt. The tilt depends on sz and, through the hexagonal stud's reach toward the bed, a little on pitch; hand is checked like PrintPoseFor's. It fails when the round
 // root would stand less than StudFlatRootClearance over the bed. ctx and blade must not be nil.
 func RestTilt(ctx context.Context, blade *decad.Body, sz Size, pitch float64, hand Hand) (float64, error) {
 	if ctx == nil || blade == nil {
@@ -109,7 +121,7 @@ func restTilt(vertices []r3.Vec, sz Size, pitch float64, hand Hand, depth float6
 		return low
 	}
 	// over returns how far the stud end corner, lowered by depth, stands over the loft's lowest point at tilt th.
-	over := func(th float64) float64 { return studCornerZ(sz, th) + depth - lowest(loft, th) }
+	over := func(th float64) float64 { return studCornerZ(sz, th, u) + depth - lowest(loft, th) }
 	lo, hi := RestTiltMin, RestTiltMax
 	if over(lo) <= 0 || over(hi) >= 0 {
 		return 0, 0, errors.New("turbinefan: rest tilt: the stud corner and the loft do not cross between 5° and 20°")
@@ -153,7 +165,7 @@ func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, er
 	if n := imgX.Cross(imgY); n.Sub(r3.Vec{X: math.Cos(tilt), Z: math.Sin(tilt)}).Len() > 1e-9 {
 		return r3.Frame{}, fmt.Errorf("turbinefan: print pose: radial line maps to %v", n)
 	}
-	origin := r3.Vec{X: -sz.BladeStudStart * math.Cos(tilt), Z: PrintLift - StudFlatDepth - studCornerZ(sz, tilt)}
+	origin := r3.Vec{X: -sz.BladeStudStart * math.Cos(tilt), Z: PrintLift - StudFlatDepth - studCornerZ(sz, tilt, u)}
 	f, err := r3.NewFrame(origin, imgX, imgY)
 	if err != nil {
 		return r3.Frame{}, fmt.Errorf("turbinefan: print pose: %w", err)
@@ -161,7 +173,7 @@ func PrintPoseFor(sz Size, pitch float64, hand Hand, tilt float64) (r3.Frame, er
 	return f, nil
 }
 
-// BladePrint is a blade and its harness in the print frame, filed in BladesContainerName and HarnessContainerName.
+// BladePrint is a blade and its harness (nose rib and stud pad) in the print frame, filed in BladesContainerName and HarnessContainerName.
 type BladePrint struct {
 	Blade         *decad.Body
 	BladeSketches []*sketch.Sketch
@@ -172,7 +184,7 @@ type BladePrint struct {
 }
 
 // BuildBladePrint validates p (Derive), builds the blade of p.Hand at p.BladePitch and SizeFor(p.RotorDiameter),
-// finds its RestTilt, moves it to PrintPoseFor at that tilt and builds its harness. It ignores Mount and Placement. doc must come from NewDocument.
+// finds its RestTilt, moves it to PrintPoseFor at that tilt and builds its harness (rib and stud pad). It ignores Mount and Placement. doc must come from NewDocument.
 // A rejected build adds no body; a later geometry failure may leave bodies in doc, which the caller discards.
 func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*BladePrint, error) {
 	if ctx == nil || doc == nil {
@@ -216,7 +228,7 @@ func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*Blade
 	for _, c := range []struct {
 		name string
 		body *decad.Body
-	}{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}} {
+	}{{BladesContainerName, posed}, {HarnessContainerName, harness.Body}, {HarnessContainerName, harness.Pad}} {
 		box, err := doc.Root().ChildNamed(c.name)
 		if err != nil {
 			return nil, fmt.Errorf("turbinefan: container %s: %w", c.name, err)

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuildBladeHarness builds the nose rib for every case: one solid lump standing on the bed, two fully constrained
+// TestBuildBladeHarness builds the nose rib for every case: one solid lump standing on the bed, three fully constrained
 // sketches, two bed spots, the rib's x range on the section planes from BrimClearance past the leading-edge spot to
 // RibTipMargin before the tip, one top point per plane, the blade's lowest point near the track, a volume of at most a
 // quarter of the blade's, and the left hand at 192 mirroring the right. Bad inputs are rejected and add no body.
@@ -23,14 +23,14 @@ func TestBuildBladeHarness(t *testing.T) {
 		h := b.harness
 		require.True(t, h.Body.IsSolid())
 		require.Equal(t, 1, len(h.Body.Lumps()), "one piece")
-		require.Equal(t, 2, len(h.Sketches), "the wedge's and the profile slab's sketches")
+		require.Equal(t, 3, len(h.Sketches), "the wedge's, the profile slab's and the pad's sketches")
 		for i, s := range h.Sketches {
 			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s), "sketch %d", i)
 		}
 		for i, spot := range h.Spots {
 			require.NotEmpty(t, spot, "spot %d", i)
 		}
-		require.Equal(t, 2, len(b.doc.Bodies()), "posed blade and rib")
+		require.Equal(t, 3, len(b.doc.Bodies()), "posed blade, rib and stud pad")
 		box, err := h.Body.Bounds()
 		require.NoError(t, err)
 		require.InDelta(t, 0, box.Min.Z, 1e-6, "on the bed")

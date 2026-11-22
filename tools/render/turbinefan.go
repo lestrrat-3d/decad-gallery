@@ -252,25 +252,26 @@ func (c turbineMeshes) view(name string, large *turbineMeshes) (solidlens.Scene,
 	return solidlens.Scene{}, fmt.Errorf("unknown turbine fan view %q", name)
 }
 
-// turbinePrint is one blade and its nose rib, meshed, in the print frame: bed z = 0, +Z up, +X from stud to tip.
+// turbinePrint is one blade, its nose rib and its stud pad, meshed, in the print frame: bed z = 0, +Z up, +X from stud
+// to tip.
 type turbinePrint struct {
-	blade, harness *decad.Mesh
+	blade, harness, pad *decad.Mesh
 }
 
-// buildTurbinePrintMeshes builds the blade and nose rib of p with BuildBladePrint and tessellates the blade at 0.05 mm
-// and the rib at 0.2 mm.
+// buildTurbinePrintMeshes builds the blade, nose rib and stud pad of p with BuildBladePrint and tessellates the blade at
+// 0.05 mm and the rib and the pad at 0.2 mm.
 func buildTurbinePrintMeshes(ctx context.Context, p turbinefan.Params) (turbinePrint, error) {
 	bp, err := turbinefan.BuildBladePrint(ctx, turbinefan.NewDocument(), p)
 	if err != nil {
 		return turbinePrint{}, fmt.Errorf("build turbine blade print: %w", err)
 	}
 	var out turbinePrint
-	// The rib meshes at 0.2, like every print aid.
+	// The rib and the pad mesh at 0.2, like every print aid.
 	for _, part := range []struct {
 		body *decad.Body
 		mesh **decad.Mesh
 		tol  float64
-	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}} {
+	}{{bp.Blade, &out.blade, .05}, {bp.Harness.Body, &out.harness, .2}, {bp.Harness.Pad, &out.pad, .2}} {
 		mesh, err := part.body.Tessellate(ctx, units.Millimeters(part.tol), decad.WithVerification(decad.VerifyNone))
 		if err != nil {
 			return turbinePrint{}, fmt.Errorf("mesh turbine blade print: %w", err)
@@ -308,17 +309,22 @@ func (p turbinePrint) view(name string) (solidlens.Scene, error) {
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown turbine print view %q", name)
 	}
-	models := []solidlens.Model{turbineModel(p.blade, turbineBladeColor), turbineModel(p.harness, turbineHarnessColor)}
+	models := []solidlens.Model{turbineModel(p.blade, turbineBladeColor), turbineModel(p.harness, turbineHarnessColor),
+		turbineModel(p.pad, turbineHarnessColor)}
 	lo, hi := meshBounds(p.harness)
-	blo, bhi := meshBounds(p.blade)
-	lo = r3.Vec{X: math.Min(lo.X, blo.X), Y: math.Min(lo.Y, blo.Y), Z: math.Min(lo.Z, blo.Z)}
-	hi = r3.Vec{X: math.Max(hi.X, bhi.X), Y: math.Max(hi.Y, bhi.Y), Z: math.Max(hi.Z, bhi.Z)}
+	for _, m := range []*decad.Mesh{p.blade, p.pad} {
+		blo, bhi := meshBounds(m)
+		lo = r3.Vec{X: math.Min(lo.X, blo.X), Y: math.Min(lo.Y, blo.Y), Z: math.Min(lo.Z, blo.Z)}
+		hi = r3.Vec{X: math.Max(hi.X, bhi.X), Y: math.Max(hi.Y, bhi.Y), Z: math.Max(hi.Z, bhi.Z)}
+	}
 	center := lo.Add(hi).Scale(.5)
 	up := solidlens.Vec{Z: 1}
 	if name == "print-bed" {
 		center.Z, up = 0, solidlens.Vec{Y: 1}
 		models[0] = clipped(models[0], turbineBladeColor, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
-		models[1] = clipped(models[1], turbineHarnessColor, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
+		for i := 1; i <= 2; i++ {
+			models[i] = clipped(models[i], turbineHarnessColor, solidlens.Vec{Z: turbinePrintBedClip}, solidlens.Vec{Z: 1})
+		}
 	}
 	d, _ := dir.Normalize()
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(d.Scale(4 * hi.Sub(lo).Len()))),
@@ -400,11 +406,14 @@ func renderTurbinePrintReadme(ctx context.Context, outputDir string) error {
 		}
 	}
 	low, high := meshBounds(p.harness)
+	plow, phigh := meshBounds(p.pad)
+	low = r3.Vec{X: math.Min(low.X, plow.X), Y: math.Min(low.Y, plow.Y), Z: math.Min(low.Z, plow.Z)}
+	high = r3.Vec{X: math.Max(high.X, phigh.X), Y: math.Max(high.Y, phigh.Y), Z: math.Max(high.Z, phigh.Z)}
 	center := low.Add(high).Scale(.5)
 	span := high.Sub(low).Len()
 	camera := solidlens.Camera{Position: solidlens.Vec(center.Add(r3.Vec{X: .9 * span, Y: -.9 * span, Z: .8 * span})),
 		Target: solidlens.Vec(center), Up: solidlens.Vec{Z: 1}, FOV: 35}
-	models := []solidlens.Model{turbineModel(p.harness, turbineHarnessColor)}
+	models := []solidlens.Model{turbineModel(p.harness, turbineHarnessColor), turbineModel(p.pad, turbineHarnessColor)}
 	scene := turbineScene(renderkit.FitCamera(camera, models, 16.0/9, .1), models)
 	return renderkit.RenderPNG(ctx, filepath.Join(outputDir, "parts", "harness.png"), scene, 480, 270)
 }

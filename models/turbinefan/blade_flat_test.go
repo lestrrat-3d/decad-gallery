@@ -15,9 +15,9 @@ import (
 )
 
 // TestStudFlat builds blades at every size and pitch, and the left hand at 192, and poses each at its rest tilt. The
-// stud's flat lies on the bed: a planar face facing straight down at z = 0 of 6 mm² or more, and a stud island in the
-// first layer (z = 0.1) of 7 mm² or more. The stud's section through the bolt hole keeps the round stud's area, and the
-// round root stays StudFlatRootClearance or more over the bed.
+// stud's flat lies on the bed: a planar face facing straight down at z = 0 of 2 mm² or more, and a stud island in
+// the first layer (z = 0.1) of 2.9 mm² or more: a hexagon flat faces the bed at the low pitches, and a corner nears it at
+// 40 degrees, which leaves the least flat. The stud's section through the bolt hole keeps the hexagonal stud's area, and the round root stays StudFlatRootClearance or more over the bed.
 func TestStudFlat(t *testing.T) {
 	type flatCase struct {
 		d     float64
@@ -86,8 +86,8 @@ func TestStudFlat(t *testing.T) {
 		t.Logf("%s: rest tilt %.6f rad (%.3f°), flat face %.2f mm², stud island %.2f mm², first layer %.2f mm², root "+
 			"%.3f mm over the bed, stud section at the bolt line %.3f mm² (round %.3f)", mustName(c.d, c.pitch, c.hand),
 			tilt, tilt*180/math.Pi, flat, stud, total, root, studArea, drilledStudArea(sz, m2fastener.HoleRadius))
-		require.GreaterOrEqual(t, flat, 6.0, name("flat face"))
-		require.GreaterOrEqual(t, stud, 7.0, name("stud island"))
+		require.GreaterOrEqual(t, flat, 2.0, name("flat face"))
+		require.GreaterOrEqual(t, stud, 2.9, name("stud island"))
 		require.GreaterOrEqual(t, root, turbinefan.StudFlatRootClearance, name("root clearance"))
 		require.InDelta(t, drilledStudArea(sz, m2fastener.HoleRadius), studArea, 0.05, name("stud section"))
 	}

@@ -176,7 +176,8 @@ func requireBladeCorners(t *testing.T, p handcrankfan.Params, state handcrankfan
 
 	stud := []float64{height(7.0), height(9.5), height(10.2), height(12.5)}
 	fs, err := cornercheck.CheckAt(t.Context(), body, d, stud, []cornercheck.Exempt{
-		{Reason: "bolt hole across the stud", Near: cornercheck.Disc(radial, d, 3.1)},
+		// Optional: the hexagonal stud leaves no finding at the bolt hole in some layers.
+		{Reason: "bolt hole across the stud", Near: cornercheck.Disc(radial, d, 3.1), Optional: true},
 	})
 	require.NoError(t, err)
 	require.Empty(t, fs, cornercheck.Report(fs, 5))
