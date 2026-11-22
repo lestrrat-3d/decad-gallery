@@ -31,8 +31,11 @@ const (
 
 // pegSites are the registration pegs: the first two stand on the guide plate's columns and the last two on the top plate.
 var (
-	columnPegs = [2][2]float64{{12, -45}, {-16, 39}}
-	topPegs    = [2][2]float64{{-12, -45}, {16, 39}}
+	columnPegs = [2][2]float64{{12, -45}, {-13.55, 39}}
+	topPegs    = [2][2]float64{{-12, -45}, {14.5, 39}}
+	// columnHalf are the columns' half widths (x, y), in the order of columnPegs. The rear column is 4.6 wide so it keeps
+	// LooseFit from the rear top flange rib (x -16.4) and rotor a's pyramid never reaches it.
+	columnHalf = [2][2]float64{{2.5, 2.5}, {2.3, 2.5}}
 )
 
 // plan maps (u, s) about a segment's centre to world XY.
@@ -442,15 +445,16 @@ func (r *run) flagWindows(body *decad.Body) (*decad.Body, error) {
 	return body, nil
 }
 
-// columnGuidePlate builds today's guide plate with two columns and their pegs: each column is 5 x 5 from z 58 to 79.15 with a
-// 45 degree root, and carries a peg that registers the cradle.
+// columnGuidePlate builds today's guide plate with two columns and their pegs: each column is 5 x 5, the rear one 4.6 x 5,
+// from z 58 to 79.15 with a 45 degree root, and carries a peg that registers the cradle.
 func (r *run) columnGuidePlate() (*decad.Body, error) {
 	body, err := r.guidePlate()
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range columnPegs {
-		col, err := r.rootedPost(p[0]-2.5, p[0]+2.5, p[1]-2.5, p[1]+2.5, 58, columnTop, 0.1, 0.5)
+	for i, p := range columnPegs {
+		h := columnHalf[i]
+		col, err := r.rootedPost(p[0]-h[0], p[0]+h[0], p[1]-h[1], p[1]+h[1], 58, columnTop, 0.1, 0.5)
 		if err != nil {
 			return nil, fmt.Errorf("column: %w", err)
 		}

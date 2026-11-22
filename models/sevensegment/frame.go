@@ -26,6 +26,7 @@ const (
 	ribHeight      = 4.0
 	ribDepth       = 10.0
 	frontLedgeDeep = 18.7
+	rearLedgeDeep  = 14.2 // rear ledge ribs reach y 28.8: 1.0 past the G3/G4 head pockets (y 32 - 2.2)
 	ribRound       = 0.5
 	wallChamfer    = 0.5
 	frontInnerY    = -49.5
@@ -115,6 +116,9 @@ func (r *run) wall(front bool) (*decad.Body, error) {
 func depth(front, ledge bool) float64 {
 	if front && ledge {
 		return frontLedgeDeep
+	}
+	if ledge {
+		return rearLedgeDeep
 	}
 	return ribDepth
 }

@@ -26,11 +26,13 @@ func TestSevenSegmentFrame(t *testing.T) {
 				require.InDelta(t, -57.5, box.Min.Y, 1e-6)
 				require.InDelta(t, -30.8, box.Max.Y, 1e-6)
 			} else {
-				require.InDelta(t, 33.0, box.Min.Y, 1e-6) // the ribs reach 10 mm in from the inner face at 43
+				require.InDelta(t, rearInnerY-rearLedgeDeep, box.Min.Y, 1e-6) // the rear ledge ribs reach 14.2 in from the inner face at 43
 				require.InDelta(t, 51.0, box.Max.Y, 1e-6)
 			}
 			require.InDelta(t, wallTopZ, box.Max.Z, 1e-6)
 			require.InDelta(t, wallBottomZ, box.Min.Z, 1e-6)
+			require.InDelta(t, -wallHalf, box.Min.X, 1e-6)
+			require.InDelta(t, wallHalf, box.Max.X, 1e-6)
 		})
 	}
 }
@@ -72,6 +74,10 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 	require.InDelta(t, 77.4, tb.Min.Z, 0.01)
 	require.InDelta(t, flagFaceZ, tb.Max.Z, 0.01)
 	require.InDelta(t, 54.0, gb.Min.Z, 0.01)
+	for name, box := range map[string]decad.Box{"cradle": cb, "top": tb, "guide": gb} {
+		require.InDelta(t, -WallHalfWidth, box.Min.X, 0.01, name)
+		require.InDelta(t, WallHalfWidth, box.Max.X, 0.01, name)
+	}
 	require.InDelta(t, columnTop+2.6, gb.Max.Z, 0.01)
 
 	// Sections normal to u through segment g's centre (u = X): the bore, the journal half-holes, the lip and the blade hole.

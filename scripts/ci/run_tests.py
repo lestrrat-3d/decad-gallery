@@ -725,7 +725,8 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentFlagRestBand", "TestSevenSegmentPlacement", "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
         "TestSevenSegmentTongueSweep", "TestSevenSegmentTruthTable", "TestSevenSegmentValidate",
-        "TestSevenSegmentVisibility", "TestSevenSegmentWindowLip", "TestSevenSegmentWindowYellow",
+        "TestSevenSegmentVisibility", "TestSevenSegmentWidthMargins", "TestSevenSegmentWindowLip",
+        "TestSevenSegmentWindowYellow",
     ),
 }
 

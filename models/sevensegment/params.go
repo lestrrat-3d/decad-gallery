@@ -289,7 +289,8 @@ func (p Params) Derive() (Dimensions, error) {
 // sites returns T1..T4, G1..G4, H1, H2.
 func sites() ([10]m2fastener.Site, error) {
 	var out [10]m2fastener.Site
-	gy := [4]float64{-34.2, -34.2, 38.0, 38.0}
+	// G3/G4 at y 32 stand between the discs of cams f and a, so no cam lies under their heads.
+	gy := [4]float64{-34.2, -34.2, 32.0, 32.0}
 	xs := [4]float64{-23.2, 23.2, -23.2, 23.2}
 	ts := flagSites()
 	copy(out[:4], ts[:])
