@@ -3,7 +3,7 @@
 Follow `instructions.md`. Emit one Go file `compressionspring.go` with package
 `compressionspring`. Define `Spec` with `Name string`, `OutsideDiameter`,
 `WireDiameter`, `FreeLength`, `TotalTurns`, `ActiveTurns`, `Rate`, `SolidHeight`
-and `LoadAtSolid` as float64. Define `LeeLC024C14M() Spec` and `LeeLC026D16S() Spec` with the values in
+and `LoadAtSolid` as float64. Define `LeeLC024C14M() Spec`, `LeeLC026D16S() Spec` and `LeeLC022D03S() Spec` with the values in
 instructions.md. Define `Params` with `Spec Spec` and `InstalledLength float64`.
 `DefaultParams` selects the Lee part at 43.8 mm. Define `Model` with `Body
 *decad.Body`, `Profile *sketch.Sketch`, and `Pitch` and `Force` float64.

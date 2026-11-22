@@ -17,6 +17,7 @@ CHECKS = {
     "escapement-exploded": "escapement",
     "onewayclutch": "onewayclutch",
     "clamparm": "clamparm",
+    "sevensegment": "sevensegment",
     "turbinefan": "turbinefan",
     "wheel": "spinningwheel",
     "siren": "handcranksiren",
