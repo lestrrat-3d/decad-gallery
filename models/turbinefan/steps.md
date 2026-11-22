@@ -112,14 +112,14 @@ differs only in `mirror`. The first failing step stops the rest.
   angle, with every X coordinate negated for `BuildBlade` (not for `BuildBladeMirrored`).
 - Loft: `decad.LoftSections` through the ten sections in ascending r. When the pitch is not 25 degrees, `decad.Transform`
   the loft by `r3.RotationAround(origin, +Z, +(pitch - 25 degrees))` (`-(pitch - 25 degrees)` when mirrored).
-- Root stud: a regular hexagon with its corners on the circle of radius `BladeStudRadius`, two on local X, on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
+- Root stud: a regular hexagon with its corners on the circle of radius `BladeStudRadius`, at 30 + 60 i degrees (two on local Y), on the frame origin `(0, 0, BladeStudStart)`, U = +X, V = +Y, extruded
   `BladeStudEnd - BladeStudStart`. `decad.Chamfer` its start cap's outer loop with 0.3. `Cut` it by a circle of radius 1.3
   on the frame origin `(0, -(BladeStudRadius + 2), BladeBoltAt)`, U = +Z, V = +X, extruded `2 (BladeStudRadius + 2)` (the
   bolt hole). The cut happens before the union, so the faceted loft never takes part in it.
 - `studFlat(stud, loft, pitch)` cuts the flat on the stud's inner end, also before the union (section 6).
 - `Union` the loft and the stud: they overlap in volume and share no face.
 - `BladeSocketTool(ctx, doc, f, size)`: a regular hexagon with its corners on the circle of radius `BladeSocketRadius` on `f`
-  turned so that two corners lie on `f`'s V (the tangent) and its flats face `f`'s U (the shaft), extruded `HubRadius + 1 -
+  turned so that two corners lie on `f`'s U (the shaft) and its flats face `f`'s V (the tangent), extruded `HubRadius + 1 -
   BladeSocketStart`, with `decad.Fillet` of its
   start cap's outer loop by 0.5. It makes one sketch.
 - The document must come from `NewDocument`: without its chain tolerance, Decad refuses the blade-stud union because the
@@ -146,7 +146,7 @@ instructions.md "Clutch mount" for the numbers.
 
 Every step reads instructions.md "Print pose and nose rib" for its numbers. `zc(t) = (BladeStudStart + 0.3) sin t -
 reach(u) cos t` (`studCornerZ`), where `reach(u)` (`studReach`) is the largest of `-BladeStudRadius (cos(i 60 deg) u.X + sin(i
-60 deg) u.Y)` over the hexagon's six corners i = 0..5.
+60 deg) u.Y)` over the hexagon's six corners i = 0..5, with 30 degrees added to each corner angle: `-BladeStudRadius (cos(30 + i 60 deg) u.X + sin(30 + i 60 deg) u.Y)`.
 
 - `restTilt(vertices, size, pitch, hand, depth)` returns the tilt and the flat's plane height. Keep the vertices with
   local Z > `RootRadius + 0.5` (the loft) and those with local Z in (`RootRadius - 0.01`, `RootRadius + 2 HubScale`) (the

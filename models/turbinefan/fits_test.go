@@ -4,7 +4,6 @@ package turbinefan_test
 
 import (
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -21,9 +20,8 @@ func TestTurbineFanFits(t *testing.T) {
 		for k := 1; k <= turbinefan.BladeCount; k++ {
 			stud := clearance(t, m.Hub, m.Blades[k-1], atZ(t, sz.HubMid))
 			require.GreaterOrEqual(t, stud.Lower().Base(), tightMinimum, "blade %d: stud in its socket", k)
-			// The plane through the stud's corners meets the socket's corners, TightFit / cos 30 degrees apart.
-			require.InDelta(t, turbinefan.TightFit/math.Cos(math.Pi/6), stud.Distance.Value.Base(), 0.01,
-				"blade %d: nominal stud fit", k)
+			// The hub's mid plane cuts the stud across its flats, TightFit apart.
+			require.InDelta(t, turbinefan.TightFit, stud.Distance.Value.Base(), 0.01, "blade %d: nominal stud fit", k)
 			through := clearance(t, m.Hub, m.Blades[k-1], radial(t, k))
 			require.GreaterOrEqual(t, through.Lower().Base(), tightMinimum, "blade %d: stud sides, end and root", k)
 		}

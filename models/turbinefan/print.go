@@ -22,7 +22,7 @@ const (
 	PrintLift = 0.0
 	// StudFlatDepth is how far the flat on the stud's inner end reaches into the stud: the stud end corner lies this far
 	// under the flat's plane, so the blade rests on a flat patch instead of a corner sliver.
-	StudFlatDepth = 0.4
+	StudFlatDepth = 0.45
 	// StudFlatRootClearance is the least height of the round root's lowest point over the bed at the rest tilt: one
 	// layer, so the root prints no stray island in the first layer.
 	StudFlatRootClearance = 0.2
@@ -61,11 +61,11 @@ func poseUp(sz Size, pitch float64, hand Hand) r3.Vec {
 }
 
 // studReach returns how far the hexagonal stud's outline reaches from the radial line toward -up: its corners lie on
-// the local X axis and 60 degrees round it, at radius BladeStudRadius.
+// the local Y axis and 60 degrees round it, at radius BladeStudRadius.
 func studReach(sz Size, up r3.Vec) float64 {
 	reach := 0.0
 	for i := range 6 {
-		t := float64(i) * math.Pi / 3
+		t := math.Pi/6 + float64(i)*math.Pi/3
 		reach = math.Max(reach, -sz.BladeStudRadius*(math.Cos(t)*up.X+math.Sin(t)*up.Y))
 	}
 	return reach

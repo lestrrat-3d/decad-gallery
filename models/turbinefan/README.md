@@ -184,8 +184,8 @@ only grows longer (35 mm at 224 mm). The cap keeps a hex key's way to the ear bo
 Print the hub front face down, with its bore axis vertical. The hub needs no print pause: every nut sits in a slot open to a
 face, so you put the nuts in after printing.
 
-Print each blade lying on the bed, leading edge down. The blade's root end is tilted about 13° up from the bed (12.90°
-at 128 mm, 12.84° at 192 mm, 13.34° at 224 mm, at the default pitch), so it rests on the bed at two small spots: a flat on the end of the
+Print each blade lying on the bed, leading edge down. The blade's root end is tilted about 13° up from the bed (13.54°
+at 128 mm, 13.35° at 192 mm, 13.75° at 224 mm, at the default pitch), so it rests on the bed at two small spots: a flat on the end of the
 stud, and the leading edge near the widest part of the blade. The layers then run along the blade, which is the strong
 direction for the load it carries in use. There is no raft.
 

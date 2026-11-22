@@ -300,7 +300,7 @@ func BladeSocketTool(ctx context.Context, doc *decad.Document, f r3.Frame, sz Si
 		return nil, nil, errors.New("turbinefan: sz must come from SizeFor")
 	}
 	b := &bladeBuilder{ctx: ctx, doc: doc, sz: sz}
-	// The hexagon's corners lie on the tangent V of f and its flats face the shaft's direction U, as the stud's do.
+	// The hexagon's corners lie on the shaft's direction U of f and its flats face the tangent V, as the stud's do.
 	g := frame(f.Origin(), f.V(), f.U().Scale(-1))
 	body := b.roundStart(b.hexPrism(g, sz.BladeSocketRadius, sz.HubRadius+1-sz.BladeSocketStart), BladeSocketFloorRound)
 	if b.err != nil {
@@ -351,7 +351,7 @@ func (b *bladeBuilder) cylinder(f r3.Frame, r, length float64) *decad.Body {
 }
 
 // hexPrism extrudes a regular hexagon about f's origin along f's normal. Its corners lie on the circle of radius r, two
-// of them on f's U axis, so its flats stand at +-r sqrt(3)/2 on V. Every flat is held at that distance from the origin
+// of them on f's V axis, so its flats stand at +-r sqrt(3)/2 on U. Every flat is held at that distance from the origin
 // and each next flat turns 60 degrees from the one before, as nutSlotSketch draws a hexagon.
 func (b *bladeBuilder) hexPrism(f r3.Frame, r, length float64) *decad.Body {
 	if b.err != nil {
@@ -366,14 +366,14 @@ func (b *bladeBuilder) hexPrism(f r3.Frame, r, length float64) *decad.Body {
 	a := r * math.Sqrt(3) / 2
 	var corners [6]*sketch.Point
 	for i := range corners {
-		t := float64(i) * math.Pi / 3
+		t := math.Pi/6 + float64(i)*math.Pi/3
 		corners[i] = s.CreatePoint(r*math.Cos(t), r*math.Sin(t))
 	}
 	var sides [6]*sketch.Line
 	for i := range sides {
 		sides[i] = s.CreateLine(corners[i], corners[(i+1)%6])
 	}
-	s.AddConstraint(sketch.NewHorizontal(sides[1]))
+	s.AddConstraint(sketch.NewVertical(sides[5]))
 	for i := range sides {
 		s.AddConstraint(sketch.NewDistancePointLine(s.Origin(), sides[i], a))
 	}

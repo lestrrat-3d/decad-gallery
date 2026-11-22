@@ -45,7 +45,7 @@ type Size struct {
 	HubMid        float64 // HubLength / 2: the sockets' and blade bolts' plane
 
 	// BladeStudRadius is the circumradius of the blade's hexagonal root stud, which runs from radius BladeStudStart to
-	// BladeStudEnd. Two of its corners lie on the blade's local X axis, and its flats face local Y.
+	// BladeStudEnd. Two of its corners lie on the blade's local Y axis, along the bolt hole, and its flats face local X.
 	BladeStudRadius float64 // 3 j
 	BladeStudStart  float64 // BladeSocketStart + RegularFit
 	BladeStudEnd    float64 // 16 j

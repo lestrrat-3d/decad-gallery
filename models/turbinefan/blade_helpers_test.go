@@ -41,11 +41,11 @@ func requireThickness(t *testing.T, want, angle float64, ring []r3.Vec, tol, y f
 }
 
 // drilledStudArea returns the exact area of the hexagonal stud's section across its axis through the bolt hole's axis:
-// the hexagon's area less the band 2 holeRadius wide that the hole cuts across it along the flats' normal. The band lies
-// within the hexagon's straight middle, which needs holeRadius <= BladeStudRadius / 2.
+// the hexagon's area less the band 2 holeRadius wide that the hole cuts across it, between the two corners on local Y.
+// The band lies within the hexagon's flats, which needs holeRadius <= BladeStudRadius sqrt(3) / 2.
 func drilledStudArea(sz turbinefan.Size, holeRadius float64) float64 {
-	r := sz.BladeStudRadius
-	return 3*math.Sqrt(3)/2*r*r - 2*holeRadius*math.Sqrt(3)*r
+	r, h := sz.BladeStudRadius, holeRadius
+	return 3*math.Sqrt(3)/2*r*r - 4*(r*h-h*h/(2*math.Sqrt(3)))
 }
 
 // loopsArea returns the summed area of an outline's loops and the area of the loop whose centroid has the least x.
