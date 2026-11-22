@@ -57,7 +57,7 @@ Stack along Y (world):
 | Part | Y from | Y to | Notes |
 | --- | ---: | ---: | --- |
 | Button | −81.4 | −74.95 | head r 11, 23.9 above the wall at rest; flush with the bezel (−75.4) at the bottom of its 6.0 stroke |
-| Housing | −75.4 | −57.75 | bezel at −75.4; base r 26 on the wall, 0.25 (Seam) from its outer face |
+| Housing | −75.4 | −57.75 | bezel at −75.4; base r 24.8 on the wall, 0.25 (Seam) from its outer face |
 | Rotor | −75.0 | −63.9 | slides 2.0 toward the wall |
 | Hub | −67.3 | −57.9 | keyed hub; 0.4 (Regular) to the front wall's outer face |
 | Spring | −69.4 | −61.4 | Lee LC 022D 03 S |
@@ -88,13 +88,14 @@ Stack along Z:
 | Top plate (display face at 88.25) | 82.85 | 88.25 |
 | Slider pin centre (OFF / ON) | 46.0 / 49.0 | |
 
-X: the walls span x ∈ [−28.5, 28.5]; the guide plate, cradle plate and top plate span x ∈ [−27, 27].
+X: the walls span x ∈ [−24.9, 24.9]; the guide plate, cradle plate and top plate span x ∈ [−23.4, 23.4].
 
-Overall: 57 (X) × 108.5 (Y, frame [−57.5, 51.0]) × 85.25 (Z, z [3.0, 88.25]), the button end 23.9 more toward −Y.
+Overall: 49.8 (X) × 108.5 (Y, frame [−57.5, 51.0]) × 85.25 (Z, z [3.0, 88.25]), the button end 23.9 more toward −Y.
 
-Ribs (all at |x| ∈ [20, 27], part of the walls): front ledge ribs y [−49.5, −30.8], front top flange ribs
-y [−49.5, −39.5], rear ledge and top flange ribs y [33.0, 43.0]. The front guide-plate bolts G1/G2 at y −34.2 are
-inserted from below past cam d (cam d at |x| 23.2 reaches only z 33.2).
+Ribs (all at |x| ∈ [16.4, 23.4], part of the walls): front ledge ribs y [−49.5, −30.8], front top flange ribs
+y [−49.5, −39.5], rear ledge ribs y [28.8, 43.0], rear top flange ribs y [33.0, 43.0]. The guide-plate bolts go in
+from below beside the cams: G1/G2 at y −34.2 in front of cam d's disc, G3/G4 at y 32.0 between the discs of cams f
+and a. No cam lies under a G head.
 
 ### Digit geometry
 
@@ -278,7 +279,7 @@ at digit 0 and rest; up is -Y):
 | Hub | `Hub` | -67.3 to -57.9 | Keyed hub, pressed on the stub's D flat (replaces the collar ring). Base 3.5 long with the D bore (r 2.55, flat 2.05), a cup wall r 9 to 10.5 up to the rim at -67.3, three keys r 8.05 to 9.5, 2.0 wide. The rim is the rotor's lower stop. |
 | Spring | `Spring` | -69.4 to -61.4 | Lee LC 022D 03 S (`compressionspring.LeeLC022D03S`), 7.96 mm installed at rest (5.9 N), 5.96 pressed (7.4 N). It stands on the hub's base and pushes the rotor's plate up. |
 | Rotor | `Rotor` | -75.0 to -63.9 | Skirt r 4.05 to 8.45 with three slots that take the hub's keys (Tight 0.2 a side), a plate r 3 to 14.2, inner teeth r 3.2 to 11 (4.0 tall) that meet the button, outer teeth r 12.8 to 14 (1.6 tall) that lock in the crown. Slides 2.0 mm along the axis. |
-| Housing | `Housing` | -75.4 to -57.75 | Base flange r 14.55 to 26, 4.0 thick, on the front wall (two M2x10 bolts H1, H2 at x +-21, heads sunk in the base, nuts in hex pockets open to the wall's inner face); tube r 14.55 to 16.55; fixed crown ring r 11.55 to 14.55 with ten notches; three slots r 11.05 to 12.7, 3.0 wide, for the button's lugs. Its top, the bezel, is 17.9 above the wall. |
+| Housing | `Housing` | -75.4 to -57.75 | Base flange r 14.55 to 24.8, 4.0 thick, on the front wall (two M2x10 bolts H1, H2 at x +-21, heads sunk in the base, nuts in hex pockets open to the wall's inner face); tube r 14.55 to 16.55; fixed crown ring r 11.55 to 14.55 with ten notches; three slots r 11.05 to 12.7, 3.0 wide, for the button's lugs. Its top, the bezel, is 17.9 above the wall. |
 | Button | `Button` | -81.4 to -74.95 | Head r 11.0, 2.5 thick, with a recess r 3.2 and 1.4 deep under it (the stub's tip is at -72.2); ten teeth under it, r 3.4 to 10.85, 4.0 tall; three lugs r 11.4 to 12.2, 2.0 wide, hanging 3.8 below the head's underside. |
 
 The head stands 23.9 above the front wall at rest and 17.9 at the bottom of its 6.0 mm stroke, flush with the bezel.
@@ -385,7 +386,7 @@ of scope.
   `sigma = 1.5 MPa` against about 20 MPa layer bond: a factor of 13, about 7 with a sharp root. The pin breaks at about 0.53 N. Nothing in the drive
   limits the force when a rotor jams: the hand on the button can exceed 0.53 N, and the pin then breaks before the rotor,
   the cradle or the cam. The pin is the intended weak link; the fix is reprinting one slider (about 1.2 g).
-- The unit's sides (x = +-27) are open (only the front and rear walls exist), so the b-f arms can be reached from the
+- The unit's sides (x = +-23.4) are open (only the front and rear walls exist), so the b-f arms can be reached from the
   side during assembly.
 
 ## Approach
@@ -442,7 +443,7 @@ c -11, d -33, e -22, f 22, g 0.
 | Item | Z |
 | --- | --- |
 | Guide plate (position unchanged, does not move) | 54-58 |
-| Columns (5 x 5, 45-degree roots 0.5) / column pegs (Ø3.0) | 58-79.15 / 79.15-81.75 |
+| Columns (5 x 5 front, 4.6 x 5 rear, 45-degree roots 0.5) / column pegs (Ø3.0) | 58-79.15 / 79.15-81.75 |
 | Cradle plate (2.6 = 13 layers) | 80.0-82.6 [79.75-82.35] |
 | Rotor axis | 82.6 [82.35 clamped, 82.1 settled] |
 | Top plate (5.4 = 27 layers) / tubes / top-plate pegs (Ø3.0) | 82.85-88.25 / 77.4-82.85 / 81.25-82.85 [-0.5] |
@@ -695,19 +696,19 @@ With the old head top (73.8) the head reaches -0.796 into the black shell at cap
 
 Built in this order (proven in a one-off scratch build; `TestSevenSegmentFlagPlates` checks the result):
 
-1. Sketch on z 80.0: rectangle x +-27, y [-49.25, 42.75]. Holes: four T bolt holes r 1.3; four registration holes
-   r 1.55, at (12, -45) and (-16, 39) for the column pegs, and at (-12, -45) and (16, 39) for the top-plate pegs.
+1. Sketch on z 80.0: rectangle x +-23.4, y [-49.25, 42.75]. Holes: four T bolt holes r 1.3; four registration holes
+   r 1.55, at (12, -45) and (-13.55, 39) for the column pegs, and at (-12, -45) and (14.5, 39) for the top-plate pegs.
    Extrude 2.6 (eight holes in the profile).
 2. Seven passages, each cut on its own: rounded rectangle (corners 0.5) on z 79, extruded 5. Each is the slider's and
    tube's plan footprint + `LooseFit` 0.55:
    a/g/d `x [-5.1, 5.1], y [y_i - 9.4, y_i + 4.4]`; b/c `x [-4.05, 18.45], y [y_i - 3.4, y_i + 4.6]`;
    e/f `x [-20.05, 4.05]`, same y.
 3. Cut each rotor's bore tool at z 82.6.
-4. Mouth cones at (-12, -45) and (16, 39): a circle r 2.45 on z 82.7, extruded -Z 1.0 with
+4. Mouth cones at (-12, -45) and (14.5, 39): a circle r 2.45 on z 82.7, extruded -Z 1.0 with
    `decad.WithTaper(units.Degrees(45))` (r 2.35 at the top face, r 1.55 at z 81.8). Cut each.
 5. `edgefinish.Chamfer` 0.5 on the outer loops of both faces (z 80 and 82.6).
 
-Results: one solid, 6634.80 mm^3, walls of 0.799 or more in sections at z 80.02, 80.6, 81.4, 81.85, 82.2, 82.5, 82.58,
+Results: one solid, walls of 0.799 or more in sections at z 80.02, 80.6, 81.4, 81.85, 82.2, 82.5, 82.58,
 `cornercheck` (bottom down) no finding, tessellates at 0.05.
 
 Inner loops. Top face (seam face): every inner loop stays sharp by design, mouths aside. Bottom face: every inner loop
@@ -743,7 +744,7 @@ Built in this order (proven in a one-off scratch build; `TestSevenSegmentFlagPla
    (`windowHalfWidth` 2.95, `windowChamfer` 12.65: `|s| + |u| <= 12.65`, `windowEnd` 11.696), drawn by `polygon()`: each side is held
    by its direction and its distance from an anchor, and no vertex is fixed. The window is 5.9 wide and 23.39 long (area 130.0). Its long sides stand 0.8 inside the rotor's faces
    and its chamfers 1.1 inside the pyramid edges, so no yellow shows when the rotor is unlit. Extrude each loop without holes 7 along +Z and cut it on its own.
-5. Pegs at (-12, -45) and (16, 39): revolve `(0, -1.6) (1.2, -1.6) (1.5, -1.3) (1.5, -0.5) (2.0, 0) (2.0, 0.1) (0, 0.1)`
+5. Pegs at (-12, -45) and (14.5, 39): revolve `(0, -1.6) (1.2, -1.6) (1.5, -1.3) (1.5, -0.5) (2.0, 0) (2.0, 0.1) (0, 0.1)`
    about Z, translate to z 82.85, union. The 45-degree collar enters the cradle's mouth cone.
 6. Blade holes: rounded rectangle (corners `bladeHoleRound` 0.50) on z 77.0, extruded to 87.45, cut. The blade plus
    `bladeAcross` 0.25 across it and `bladeAlong` 0.35 along it: a/g/d `x [-3.85, 3.85], y [cy - 8.05, cy - 6.45]`; b/c
@@ -751,7 +752,7 @@ Built in this order (proven in a one-off scratch build; `TestSevenSegmentFlagPla
 7. `edgefinish.Chamfer` 0.5 on the outer loops of both faces.
 8. `m2fastener.PocketTool` at T1-T4, cut.
 
-Results: one solid, 18846.34 mm^3, tessellates at 0.05. In sections at 18 heights from 77.45 to 88.2 the thinnest wall
+Results: one solid, tessellates at 0.05. In sections at 18 heights from 77.45 to 88.2 the thinnest wall
 is 0.800: the tube walls, which are 0.80 by design. Tests compare walls against 0.799. The rotor-side tube wall to the
 bore is `6.35 - 5.546 = 0.804` (with the old bore 5.496 and hole edge 6.3 it was 0.80; the bore grew for the round, so
 the blade and hole moved 0.05 away from the rotor). `cornercheck`
@@ -767,12 +768,13 @@ junctions (0.919 with the old bore 5.496), 4.0 between b-c and e-f.
 
 Built in this order (proven in a one-off scratch build). The base `guidePlate()` (slots, G holes, outer chamfers, hex pockets), then:
 
-1. Two columns, 5 x 5, centred at (12, -45) and (-16, 39), from z 58 to 79.15: `rootedPost(x0, x1, y0, y1, zFace 58,
+1. Two columns from z 58 to 79.15: 5 x 5 centred at (12, -45) and 4.6 (x) x 5 (y) centred at (-13.55, 39):
+   `rootedPost(x0, x1, y0, y1, zFace 58,
    ztop 79.15, ov 0.1, c 0.5)`, the upward twin of `rootedBox`: profile
    `(x0-0.6, 57.9) (x1+0.6, 57.9) (x1, 58.5) (x1, 79.15) (x0, 79.15) (x0, 58.5)` in (x, z) and in (y, z), intersected.
    Union.
 2. Pegs: revolve `(0, -0.1) (2.0, -0.1) (2.0, 0) (1.5, 0.5) (1.5, 2.3) (1.2, 2.6) (0, 2.6)` about Z, translate to
-   (12, -45, 79.15) and (-16, 39, 79.15). Union.
+   (12, -45, 79.15) and (-13.55, 39, 79.15). Union.
 
 Results: one solid, tessellates at 0.05. `cornercheck` (bottom down) reports only the 24 existing hex-pocket corners,
 which the existing `hexAnnulus` exemption covers.
@@ -780,8 +782,10 @@ which the existing `hexAnnulus` exemption covers.
 Clearances when clamped: column top 79.15 to cradle bottom 79.75 (0.60); peg collar top 79.65 to cradle bottom (0.10);
 peg engagement 79.75-81.75 (2.0); peg tip to top plate 0.60. The top-plate peg collar in the cradle's mouth cone keeps
 0.60 radial modeled and 0.35 clamped (0.25 normal). Its tip (80.75 clamped) stays in the through hole. Nothing bottoms
-out before the seams close, so the journal half-holes close. The columns are clear of the ribs (|x| >= 20 against
-column |x| <= 19.1 at the root), of the G nut pockets (1.6), and of every slider and rotor.
+out before the seams close, so the journal half-holes close. The rear column keeps 0.55 (LooseFit) to the rear top
+flange rib (x −15.85 against −16.4) and the front column 1.9; the rear column is 4.6 wide so rotor a's pyramid never
+reaches it (0.69 to its swept envelope with 0.25 end play at the settled axis 82.1, `TestSevenSegmentWidthMargins`).
+Both stay 2.8 or more from the G nut pockets, and clear of every slider and rotor.
 
 ### Friction audit (every contact; `audit()` in `flags_test.go`)
 
@@ -1022,14 +1026,14 @@ outlines.
 
 1. Assemble walls, camshaft, bearings, the click indexer and guide plate (with its columns) as today. Press the button to
    digit 8 (all lit: least droop).
-2. Press the cradle onto the column pegs through its holes at (12, -45) and (-16, 39). It rests on the top flange ribs,
+2. Press the cradle onto the column pegs through its holes at (12, -45) and (-13.55, 39). It rests on the top flange ribs,
    0.85 above the columns.
 3. On the bench, join each rotor to its slider: rotor yellow face up and 2.0 along +u from its place, notch over the
    tongue, then slide it -u so the pin enters the pocket. Type A (one notch) goes to a, g, d; type B (two notches) to
    b, c, e, f.
 4. Lower each unit through its cradle passage and guide slot, groove pin first through the slot's pin notch, into its
    cam's entry channel. The stubs settle into the cradle's half-holes.
-5. Lower the top plate, pegs over the cradle's holes at (-12, -45) and (16, 39). The a/g/d blades stand upright. Each
+5. Lower the top plate, pegs over the cradle's holes at (-12, -45) and (14.5, 39). The a/g/d blades stand upright. Each
    b-f arm sags by up to about 1 mm at its blade ridge; the blade gable (0.6) and the hole clearance (0.25) catch 0.85.
    Reach in from the open side (b/c from +x, e/f from -x) and lift each b-f arm's outer end until its blade enters its
    tube, then let the plate down. Fit four M2 x 10 bolts from the top.
@@ -1099,16 +1103,18 @@ Each decad item below describes its repro; the scratch builds that held them are
 #### Walls (`Walls`: Front Wall, Rear Wall)
 
 Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
-(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−26.5, 51.75]
-(z 3.0 to 81.25; the code's `wallHalf` 28.5, `wallBottomZ` 3.0 and `wallTopZ` 81.25; the plate is 57 wide).
+(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−24.9, 24.9], v ∈ [−26.5, 51.75]
+(z 3.0 to 81.25; the code's `wallHalf` 24.9 (`WallHalfWidth` + 1.5), `wallBottomZ` 3.0 and `wallTopZ` 81.25; the plate is
+49.8 wide).
 
-1. Extrude the plate; union four rib boxes at |x| ∈ [20, 27] extending inward from the inner face: ledge ribs
-   z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the front ledge ribs, 18.7 (to y −30.8).
+1. Extrude the plate; union four rib boxes at |x| ∈ [16.4, 23.4] extending inward from the inner face: ledge ribs
+   z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the ledge ribs: front 18.7 (to y −30.8),
+   rear 14.2 (to y 28.8).
    Ribs are unioned before any chamfer so no chamfer notch is left where a rib meets the plate rim.
 2. Chamfer 0.5: the outer face's outer loop (`edgefinish.Chamfer`, `Long(Outer)`), and on the inner face the runs
    of 20 mm or more of its outer loop (`edgefinish.ChamferRuns`, `Long(Outer)`), which skips the short rib-end runs.
-3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±20
-   edges; top flange: bottom and x = ±20 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
+3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±16.4
+   edges; top flange: bottom and x = ±16.4 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
 4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
    through the wall to the outer face (d 8): `(0,−1) (7.55,−1) (7.55,0) (7.05,0.5) (7.05,5.0) (4.5,5.0) (4.5,7.5)
    (5.0,8.0) (5.0,9.0) (0,9.0)`. Seat r 7.05 (605ZZ `SeatDiameter/2`) 5 deep with a 0.5 lead-in at the inner face,
@@ -1123,9 +1129,10 @@ Printed outer face down; ribs rise from the plate; rib pockets print sideways wi
 
 ### Fasteners
 
-T1-T4: head `(-+23.2, -44.5, 88.25)` and `(-+23.2, 38.0, 88.25)`, Dir -Z, Corner +Y, `Length 10`, `Cavity 10.5`. They
+T1-T4: head `(-+19.6, -44.5, 88.25)` and `(-+19.6, 38.0, 88.25)`, Dir -Z, Corner +Y, `Length 10`, `Cavity 10.5`. They
 clamp the top plate and the cradle to the top flange ribs (nut pockets unchanged). The tip is at 76.25 modeled and 75.75
-clamped. There is 3.4 of plate under each head. G1-G4 and D1-D2 are unchanged.
+clamped. There is 3.4 of plate under each head.
+G1-G4: heads `(-+19.6, -34.2, 49.75)` and `(-+19.6, 32.0, 49.75)`. D1-D2 are unchanged.
 
 
 ### Bearings
@@ -1208,7 +1215,7 @@ people only.
 | L1 | stem / own cam face | Loose | 0.55 | bounds |
 | L4 | cam a back face / rear collar cone | Loose | 0.55 axial | bounds |
 | L5 | cam rims / guide plate | Loose | 1.0 | bounds |
-| L6 | arm outer wall (x 17.9) / rib inner edge (x 20); arm lower end (OFF) / guide plate top | Loose | 1.2; 1.0 | bounds, section |
+| L6 | b-f arm outer ends (x 17.9, −19.5) / ribs: no common y (arms within y ±26.05, ribs beyond y ±28.8); arm lower end (OFF) / guide plate top | Loose | 2.75; 1.0 | bounds, section |
 | L8 | stub flat end / hub D chord; cam flats' ends / cam a's chords | press | 0.05 | bounds |
 | S1 | plates / ribs and wall tops | clamped seam | 0.25 | bounds |
 | F | bolts, nuts | fastener rules | head 0.3, hole 0.3, nut 0.2 | bounds, no overlap |
@@ -1310,7 +1317,7 @@ Assembly (README and instructions.md):
 4. Bolt the housing to the front wall's outer face with two M2 x 10 bolts, heads in the base's pockets, nuts in the
    wall's inner-face pockets (drop each nut in before the bolt). The rotor's outer teeth must sit in the crown's notches.
 5. Bolt the guide plate onto the ledge ribs from below (4 × M2 × 6, nuts dropped into its top pockets). The two
-   front bolts go up past the first cam.
+   front bolts go up in front of cam d's disc, the two rear bolts between the discs of cams f and a.
 6. Slide the button into the housing, its three lugs in the housing's slots, teeth down. Turn the shaft by pressing the
    button until all seven entry channels are at the top (digit 8). Drop each slider through its guide slot,
    pin first, into its cam's channel.
@@ -1319,9 +1326,9 @@ Assembly (README and instructions.md):
 
 ## Wall inset (decad constraint)
 
-The wall plates are 57 wide (x +-28.5) and 78.25 tall, z 3.0 to 81.25, so every rib ends 1.5 mm inside the plate's sides and
+The wall plates are 49.8 wide (x +-24.9) and 78.25 tall, z 3.0 to 81.25, so every rib ends 1.5 mm inside the plate's sides and
 top. The inner face's outer loop is then a plain rectangle that decad chamfers whole, and each rib root is one closed
-loop that decad rounds with a complete-loop fillet (selected with `decad.Reflex()`). The top plate is 54 wide and sits
+loop that decad rounds with a complete-loop fillet (selected with `decad.Reflex()`). The top plate is 46.8 wide and sits
 between the walls (y -49.25 to 42.75, as the guide plate does), on the top flange ribs at z 79.75 with a 0.25 seam.
 
 ## Blade corners (design changed by the implementer)

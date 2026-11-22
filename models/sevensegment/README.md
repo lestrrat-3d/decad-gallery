@@ -91,7 +91,7 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 
 ![The seven cams in two rows seen from behind, with the letters A, b, C, d, E, F and G engraved in their back faces](images/cams.png)
 
-![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its four columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
+![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
 The camshaft alone, with the frame left out, its parts pulled off the front end along the shaft. From the rear: the shaft, cam a, f, b, g, c, e and d, the hub, the spring and the rotor:
 
@@ -179,17 +179,17 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    dropped into each hex pocket on the wall's inner face before its bolt. The rotor's outer teeth must sit in the crown's
    notches. Slide the button in, its three lugs in the housing's slots and its teeth down.
 5. Bolt the guide plate to the ledge ribs from below with four M2 x 6 bolts, the nuts dropped into its top pockets. The two
-   front bolts go in past cam d. The two rear bolts, at y 38, go in past cam a, whose rim reaches only
-   z 33.2 at that x while the bolt heads are at z 49.75, so there is 16.5 mm of room under each head: use a 1.5 mm hex key with
-   a short arm of about 6 mm and let the long arm point out sideways (the sides of the frame are open). This follows from the
-   dimensions and has not been tried on a print. Press the button until all seven entry channels face up (digit 8).
+   front bolts go in just in front of cam d. The two rear bolts, at y 32, go in between cams f and a, with no cam
+   under their heads: use a 1.5 mm hex key and let its long arm point out sideways (the sides of the frame are open).
+   This follows from the dimensions and has not been tried on a
+   print. Press the button until all seven entry channels face up (digit 8).
 6. Press the cradle plate onto the guide plate's column pegs through its two registration holes at (12, -45), near the front
-   edge on the right, and (-16, 39), near the back edge on the left (the other two holes are for the top plate's pegs).
+   edge on the right, and (-13.55, 39), near the back edge on the left (the other two holes are for the top plate's pegs).
 7. On the bench, join each rotor to its slider: yellow face up, 2.0 mm along +u from its place (+u as defined above), notch over the tongue, then
    slide it -u so the pin enters the pocket. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
 8. Lower each unit through its cradle passage and guide slot, the groove pin first, into its cam's entry channel. The
    journal stubs settle into the cradle's half-holes.
-9. Lower the top plate over the cradle's pegs at (-12, -45), near the front edge on the left, and (16, 39), near the back edge on the
+9. Lower the top plate over the cradle's pegs at (-12, -45), near the front edge on the left, and (14.5, 39), near the back edge on the
    right. The a, g and d blades stand upright. Each b to f
    arm sags by up to about 1 mm at its blade: reach in from the open side and lift the arm's outer end until its blade
    enters its tube, then let the plate down. The four top-plate nuts sit in hex pockets that open downward under the top

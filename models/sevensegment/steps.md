@@ -91,7 +91,7 @@ Travel 3.0, FaceZ 88.25, ShaftZ 29.5, StationPitch 11.0,
 CamRadius 23.5, CamThickness 3.8, HubRadius 5.0, OffRadius 16.5, OnRadius 19.5, GrooveWidth 3.8, GrooveDepth 1.9,
 RampStart 8.0, RampEnd 29.5, RampRound 2.5, EntryAngle 18.0, PinRadius 1.5, PinLength 2.05, StemWidth 7.0,
 StemThickness 3.6, StemRound 0.3, WallThickness 8.0,
-WallHalfWidth 27.0, Seam 0.25,
+WallHalfWidth 23.4, Seam 0.25,
 PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, RearCollarRadius 3.8,
 ClickerSteps 10, ClickerStep 36, RampAngle 32.5, ToothHeight 4.0, CrownHeight 1.6, CrownBack 30, RotorTravel 2.0,
 ButtonStroke 6.0, SpringRestLength 7.96, SegmentsDoneBy 29.55, ChainTolerance 0.02`.
@@ -292,16 +292,18 @@ Check: `TestClickerBodies` (one lump, ten teeth in every ring), `TestClickerHeig
 ### Walls (`Walls`: Front Wall, Rear Wall)
 
 Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
-(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−26.5, 51.75]
-(z 3.0 to 81.25; the code's `wallHalf` 28.5, `wallBottomZ` 3.0 and `wallTopZ` 81.25): the plate is 57 wide and the ribs end 1.5 inside its edges (|x| 27, z 79.75).
+(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−24.9, 24.9], v ∈ [−26.5, 51.75]
+(z 3.0 to 81.25; the code's `wallHalf` 24.9, `wallBottomZ` 3.0 and `wallTopZ` 81.25): the plate is 49.8 wide and the ribs end
+1.5 inside its edges (|x| 23.4, z 79.75).
 
-1. Extrude the plate; union four rib boxes at |x| ∈ [20, 27] extending inward from the inner face: ledge ribs
-   z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the front ledge ribs, 18.7 (to y −30.8).
+1. Extrude the plate; union four rib boxes at |x| ∈ [16.4, 23.4] extending inward from the inner face: ledge ribs
+   z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the ledge ribs: front 18.7 (to y −30.8),
+   rear 14.2 (to y 28.8).
    Ribs are unioned before any chamfer so no chamfer notch is left where a rib meets the plate rim.
 2. Chamfer 0.5 the outer loop of each face (`edgefinish.Chamfer`, `Long(Outer)`, one call for the outer face and one for
    the inner face). The ribs stand 1.5 inside the plate's edges, so they do not cut into the inner face's outer loop.
-3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±20
-   edges; top flange: bottom and x = ±20 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
+3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±16.4
+   edges; top flange: bottom and x = ±16.4 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
 4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
    through the wall to the outer face (d 8): `(0,−1) (7.55,−1) (7.55,0) (7.05,0.5) (7.05,5.0) (4.5,5.0) (4.5,7.5)
    (5.0,8.0) (5.0,9.0) (0,9.0)`. Seat r 7.05 (605ZZ `SeatDiameter/2`) 5 deep with a 0.5 lead-in at the inner face,
@@ -345,17 +347,17 @@ open (0.25); tips end 0.25 inside a face with the seam open and flush when tight
 
 | Sites | Joins | Bolt | Head (centre of head top) | Dir | Corner | Cavity | Nut pocket |
 | --- | --- | --- | --- | --- | --- | ---: | --- |
-| T1-T4 | top plate → top flange ribs | M2 × 10 | (∓23.2, −44.5, 88.25) and (∓23.2, 38.0, 88.25) | (0,0,−1) | (0,1,0) | 10.5 | rib underside z [75.75, 77.75] |
-| G1-G4 | ledge ribs → guide plate | M2 × 6 | (∓23.2, −34.2, 49.75) and (∓23.2, 38.0, 49.75) | (0,0,1) | (0,1,0) | 6.25 | guide plate top z [56, 58] |
+| T1-T4 | top plate → top flange ribs | M2 × 10 | (∓19.6, −44.5, 88.25) and (∓19.6, 38.0, 88.25) | (0,0,−1) | (0,1,0) | 10.5 | rib underside z [75.75, 77.75] |
+| G1-G4 | ledge ribs → guide plate | M2 × 6 | (∓19.6, −34.2, 49.75) and (∓19.6, 32.0, 49.75) | (0,0,1) | (0,1,0) | 6.25 | guide plate top z [56, 58] |
 | H1-H2 | housing → front wall | M2 × 10 | (∓21, −61.75, 29.5) | (0,1,0) | (0,0,1) | 10.25 | front wall outer face y [−57.5, −55.5] |
 
 Order T1..T4, G1..G4, D1..D2; within T and G: −x front, +x front, −x rear, +x rear.
 Tips: T at z 76.25, G at z 57.75, D at y −57.25. Each nut is 1.55 of 1.6 engaged open, fully when closed.
-Material round pockets, measured after the 0.5 chamfers: top plate head pockets reach x 25.4 → 1.1 to the
-chamfered edge; guide plate hex pockets (flats ±2.174) reach x 25.374 → 1.13; rib pockets 1.026 to the rib's
-x = 20 side and 1.626 to x 27; G head pockets in the front ledge ribs end at y −32.0, 1.2 from the rib end (−30.8).
-G1/G2 heads are fitted from below past cam d's disc
-(y ≥ −30.65); nothing occupies z 33.3-49.75 at x ±23.2 there. No nut is embedded; every pocket opens to a face.
+Material round pockets, measured after the 0.5 chamfers: top plate head pockets reach x 21.8 → 1.1 to the
+chamfered edge; guide plate hex pockets (flats ±2.174) reach x 21.774 → 1.13; rib pockets 1.026 to the rib's x = 16.4
+side and 1.626 to x 23.4; G head pockets end 1.2 from the front ledge rib end (y −32.0 against −30.8) and 1.0 from the
+rear one (y 29.8 against 28.8). G1/G2 go in from below in front of cam d's disc (y ≥ −30.65), G3/G4 between the discs of
+cams f (y ≤ 28.15) and a (y ≥ 35.35); no cam stands under a G head. No nut is embedded; every pocket opens to a face.
 
 ### Bearings
 
@@ -406,6 +408,6 @@ Rule tests (fits, corners, edge finishing, look-alike, split shaft) follow instr
 
 ## Wall inset note
 
-Walls: plate rectangle u +-28.5, v -26.5 to 51.75 (z 3.0 to 81.25); ribs unchanged at |x| 20 to 27. Chamfer both faces' whole
+Walls: plate rectangle u +-24.9, v -26.5 to 51.75 (z 3.0 to 81.25); ribs at |x| 16.4 to 23.4. Chamfer both faces' whole
 outer loop with `edgefinish.Chamfer(Long(Outer))`. Round each rib root with `decad.Reflex()` edges in one call per rib.
 Top plate: y -49.25 to 42.75.
