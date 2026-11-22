@@ -87,8 +87,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)
 Booleans need it (see "Face teeth"). Any other decad failure stops the task.
 
 Exported constants (values above): `SegmentSpan 33, SegmentLength 30, SegmentWidth 6, SegmentGap 1.5,
-Travel 3.0, FaceZ 88.25, ShaftZ 28.0, StationPitch 11.0,
-CamRadius 25.0, CamThickness 3.8, HubRadius 5.0, OffRadius 18.0, OnRadius 21.0, GrooveWidth 3.8, GrooveDepth 1.9,
+Travel 3.0, FaceZ 88.25, ShaftZ 29.5, StationPitch 11.0,
+CamRadius 23.5, CamThickness 3.8, HubRadius 5.0, OffRadius 16.5, OnRadius 19.5, GrooveWidth 3.8, GrooveDepth 1.9,
 RampStart 8.0, RampEnd 29.5, RampRound 2.5, EntryAngle 18.0, PinRadius 1.5, PinLength 2.05, StemWidth 7.0,
 StemThickness 3.6, StemRound 0.3, WallThickness 8.0,
 WallHalfWidth 27.0, Seam 0.25,
@@ -157,7 +157,7 @@ Check: every sketch built in every test is fully constrained.
 
 ### Shaft (`Shaft`, printed, split)
 
-Local frame: origin (0, 0, 28), U = +Z, V = +X, N = +Y (local z = world y; local +x = world +Z, the flat normal).
+Local frame: origin (0, 0, 29.5), U = +Z, V = +X, N = +Y (local z = world y; local +x = world +Z, the flat normal).
 
 Revolve this meridian `(z, r)` about local Z with `decad.FullRevolution{}` (pattern: onewayclutch `meridian`):
 
@@ -186,10 +186,10 @@ Check: `TestSevenSegmentShaft`, `TestSevenSegmentCollars`.
 
 ### Cams (`Cams`, 7 bodies)
 
-Local frame per cam: origin (0, y_i + 2.35, 28) (the groove face), U = +X, V = +Z, N = −Y. Disc at local
+Local frame per cam: origin (0, y_i + 2.35, 29.5) (the groove face), U = +X, V = +Z, N = −Y. Disc at local
 z ∈ [−3.8, 0], hub toward local +z.
 
-1. Revolve meridian `(r, z)`: `(0,−3.8) (24.5,−3.8) (25,−3.3) (25,−0.5) (24.5,0) (5.5,0)`, then an 8-chord quarter
+1. Revolve meridian `(r, z)`: `(0,−3.8) (23,−3.8) (23.5,−3.3) (23.5,−0.5) (23,0) (5.5,0)`, then an 8-chord quarter
    round about (5.5, 0.5) from (5.5, 0) to (5.0, 0.5) (pattern: `m2fastener.quarterRound`), then `(5.0,7.15) (0,7.15)`.
    Rim chamfers 0.5 are in the meridian; the hub root round 0.5 is a corner between layers.
 2. Cut the double-D bore: profile on local z = −4.8, two arcs r 3.25 joined by flats at v = ±2.75
@@ -203,24 +203,24 @@ z ∈ [−3.8, 0], hub toward local +z.
 Groove (one sketch per cam; profile with one hole):
 
 - Walls are offsets of the centreline by ±`GrooveWidth/2` = ±1.9. Groove depth `GrooveDepth` 1.9.
-- Dwell arcs about the origin: inner wall r − 1.9, outer wall r + 1.9 (OFF: 16.1 / 19.9; ON: 19.1 / 22.9).
+- Dwell arcs about the origin: inner wall r − 1.9, outer wall r + 1.9 (OFF: 14.6 / 18.4; ON: 17.6 / 21.4).
 - Each ramp is arc–line–arc on the centreline with `RampRound` ρ = 2.5:
-  - Rising ramp from ψ_a to ψ_b = ψ_a + 21.5: arc 1 centre `C1 = 20.5∠ψ_a` (outside, r_off + ρ), arc 2 centre
-    `C2 = 18.5∠ψ_b` (inside, r_on − ρ), joined by their internal common tangent. With ψ_a = 8°: C1 (20.3005, 2.8530),
-    C2 (16.1016, 9.1098), tangent points T1 (17.8231, 3.1883) at 18.106∠10.142°, T2 (18.5790, 8.7746) at
-    20.547∠25.281°, line length 5.6372. Unit normal n of the line satisfies `n·(C2 − C1) = 2ρ`, `T1 = C1 + ρn`,
+  - Rising ramp from ψ_a to ψ_b = ψ_a + 21.5: arc 1 centre `C1 = 19.0∠ψ_a` (outside, r_off + ρ), arc 2 centre
+    `C2 = 17.0∠ψ_b` (inside, r_on − ρ), joined by their internal common tangent. With ψ_a = 8°: C1 (18.8151, 2.6443),
+    C2 (14.7960, 8.3712), tangent points T1 (16.3574, 3.1022) at 16.649∠10.739°, T2 (17.2538, 7.9133) at
+    18.982∠24.638°, line length 4.8939. Unit normal n of the line satisfies `n·(C2 − C1) = 2ρ`, `T1 = C1 + ρn`,
     `T2 = C2 − ρn`, pick the root whose tangent points lie inside (ψ_a, ψ_b) in order (see "Ramp geometry algorithm").
-  - Falling ramp: mirror of the rising ramp about the window's mid-angle: `C1 = 18.5∠ψ_a`, `C2 = 20.5∠ψ_b`,
-    T1 at 20.547∠(ψ_a + 4.219°), T2 at 18.106∠(ψ_a + 19.358°).
+  - Falling ramp: mirror of the rising ramp about the window's mid-angle: `C1 = 17.0∠ψ_a`, `C2 = 19.0∠ψ_b`,
+    T1 at 18.982∠(ψ_a + 4.862°), T2 at 16.649∠(ψ_a + 18.761°).
   - Wall radii: an arc whose centre is outside the centreline (away from the origin) has inner wall ρ + 1.9 = 4.4 and
     outer wall ρ − 1.9 = 0.6; an arc whose centre is inside has inner 0.6 and outer 4.4. Lines offset ±1.9.
 - Entry channel (outer wall only): radial slot on the ray `EntryAngle` 18.0°, width 3.8 (sides parallel to the ray at
-  ±1.9), from the outer wall's ON dwell arc (r 22.9) out to a cap line at distance 26.0 from the origin. It lies in
-  the dwell [11.5, 26] of every cam (all ON at digit 8); its sides meet r 22.9 at 18.0 ± 4.76°.
+  ±1.9), from the outer wall's ON dwell arc (r 21.4) out to a cap line at distance 24.5 from the origin. It lies in
+  the dwell [11.5, 26] of every cam (all ON at digit 8); its sides meet r 21.4 at 18.0 ± 5.09°.
 - Sketch constraints (no point in the groove sketch is placed with `DimensionPoint`):
   - Polar construction per onewayclutch `newPolar`/`axis`: a horizontal reference line, one construction ray per
     ramp boundary angle (ψ_a, ψ_b) and one at `EntryAngle`.
-  - Each ramp centre: `NewPointOnLine(C, ray)` + `NewDistance(origin, C, d)` (d = 20.5 or 18.5).
+  - Each ramp centre: `NewPointOnLine(C, ray)` + `NewDistance(origin, C, d)` (d = 19.0 or 17.0).
   - Each dwell–ramp junction point J (both walls): `NewPointOnLine(J, ray)`; its radius comes from the dwell arc.
   - Each dwell arc: centre = sketch origin; `NewRadius` on the arc (fixes its start); its end radius follows from
     the arc's own equal-radius property. Do not also dimension J's distance (redundant).
@@ -229,7 +229,7 @@ Groove (one sketch per cam; profile with one hole):
     are then fixed by tangency plus the arc's equal-radius property.
   - Channel: side lines `NewParallel(entryRay, side)` + `NewDistancePointLine(origin, side, 1.9)`; side's inner end
     is the end point of the split ON dwell arcs; outer ends lie on the cap line (`NewPerpendicular(entryRay, cap)`,
-    `NewDistancePointLine(origin, cap, 26.0)`).
+    `NewDistancePointLine(origin, cap, 24.5)`).
   - If `Verify` reports redundancy at a tangent junction, drop that junction's tangency (the geometry is already
     tangent by construction) and record the case in steps.md; do not add fixed points.
 - Ramp geometry algorithm (Derive, no sketch):
@@ -243,9 +243,9 @@ Groove (one sketch per cam; profile with one hole):
       accept the first φ1 meeting all three
   ```
 - Pressure angle: angle between the centreline's tangent and the circumferential direction at the follower point;
-  max 33.0°.
+  max 35.2°.
 
-Cam local→world: frame origin (0, y_i + 2.35, 28), U = +X, V = +Z. Printed back face down (groove face and hub up,
+Cam local→world: frame origin (0, y_i + 2.35, 29.5), U = +X, V = +Z. Printed back face down (groove face and hub up,
 axis vertical); no other orientation prints the groove and hub without support.
 5. Engrave the letter: draw its outline loops on the back face's plane (horizontal and vertical lines, each held by its distance
    from the axis), take the profile with the counter as its hole, and `decad.Emboss` it engraved 0.5 mm with
@@ -291,9 +291,9 @@ Check: `TestClickerBodies` (one lump, ten teeth in every ring), `TestClickerHeig
 
 ### Walls (`Walls`: Front Wall, Rear Wall)
 
-Front wall sketch frame origin (0, −49.5, 28), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
-(0, 43.0, 28), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−28, 53.25]
-(z 0..81.25): the plate is 57 wide and the ribs end 1.5 inside its edges (|x| 27, z 79.75).
+Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
+(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−26.5, 51.75]
+(z 3.0 to 81.25; the code's `wallHalf` 28.5, `wallBottomZ` 3.0 and `wallTopZ` 81.25): the plate is 57 wide and the ribs end 1.5 inside its edges (|x| 27, z 79.75).
 
 1. Extrude the plate; union four rib boxes at |x| ∈ [20, 27] extending inward from the inner face: ledge ribs
    z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the front ledge ribs, 18.7 (to y −30.8).
@@ -347,7 +347,7 @@ open (0.25); tips end 0.25 inside a face with the seam open and flush when tight
 | --- | --- | --- | --- | --- | --- | ---: | --- |
 | T1-T4 | top plate → top flange ribs | M2 × 10 | (∓23.2, −44.5, 88.25) and (∓23.2, 38.0, 88.25) | (0,0,−1) | (0,1,0) | 10.5 | rib underside z [75.75, 77.75] |
 | G1-G4 | ledge ribs → guide plate | M2 × 6 | (∓23.2, −34.2, 49.75) and (∓23.2, 38.0, 49.75) | (0,0,1) | (0,1,0) | 6.25 | guide plate top z [56, 58] |
-| H1-H2 | housing → front wall | M2 × 10 | (∓21, −61.75, 28) | (0,1,0) | (0,0,1) | 10.25 | front wall outer face y [−57.5, −55.5] |
+| H1-H2 | housing → front wall | M2 × 10 | (∓21, −61.75, 29.5) | (0,1,0) | (0,0,1) | 10.25 | front wall outer face y [−57.5, −55.5] |
 
 Order T1..T4, G1..G4, D1..D2; within T and G: −x front, +x front, −x rear, +x rear.
 Tips: T at z 76.25, G at z 57.75, D at y −57.25. Each nut is 1.55 of 1.6 engaged open, fully when closed.
@@ -355,12 +355,12 @@ Material round pockets, measured after the 0.5 chamfers: top plate head pockets 
 chamfered edge; guide plate hex pockets (flats ±2.174) reach x 25.374 → 1.13; rib pockets 1.026 to the rib's
 x = 20 side and 1.626 to x 27; G head pockets in the front ledge ribs end at y −32.0, 1.2 from the rib end (−30.8).
 G1/G2 heads are fitted from below past cam d's disc
-(y ≥ −30.65); nothing occupies z 41-49.75 at x ±23.2 there. No nut is embedded; every pocket opens to a face.
+(y ≥ −30.65); nothing occupies z 33.3-49.75 at x ±23.2 there. No nut is embedded; every pocket opens to a face.
 
 ### Bearings
 
-`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 28),
-U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 28), U = +Z, V = +X (toward +Y). Bearings do not turn
+`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 29.5),
+U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 29.5), U = +Z, V = +X (toward +Y). Bearings do not turn
 with θ.
 Check: `TestSevenSegmentFasteners`.
 
@@ -370,7 +370,7 @@ Check: `TestSevenSegmentFasteners`.
 
 1. Build every part in its frame (above).
 2. Camshaft group (shaft, cams, hub, rotor, spring): `decad.Transform` by
-   `r3.RotationAround((0,0,28), (0,1,0), θ)`, θ = 36 · Digit.
+   `r3.RotationAround((0,0,29.5), (0,1,0), θ)`, θ = 36 · Digit.
 3. Sliders: translate +3.0 Z where `Lit(Digit, s)`.
 4. Every printed body and both bearings: `placement.Place(ctx, body, p.Placement)`. Fastener sites are carried
    through the placement with onewayclutch `placeSite`; bolts and nuts are built from the placed sites with
@@ -406,6 +406,6 @@ Rule tests (fits, corners, edge finishing, look-alike, split shaft) follow instr
 
 ## Wall inset note
 
-Walls: plate rectangle u +-28.5, v -28 to 53.25 (z 81.25); ribs unchanged at |x| 20 to 27. Chamfer both faces' whole
+Walls: plate rectangle u +-28.5, v -26.5 to 51.75 (z 3.0 to 81.25); ribs unchanged at |x| 20 to 27. Chamfer both faces' whole
 outer loop with `edgefinish.Chamfer(Long(Outer))`. Round each rib root with `decad.Reflex()` edges in one call per rib.
 Top plate: y -49.25 to 42.75.

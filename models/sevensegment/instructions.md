@@ -21,7 +21,8 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 - Purchased parts: two 605ZZ bearings (`ballbearing.Lookup("605ZZ")`), M2 bolts and nuts (`fastener` via
   `internal/m2fastener`). No purchased springs, no purchased shafts.
 - Click indexer assumptions: a press needs 5.9 to 7.4 N of spring force plus the ramps' friction (about 3 to 6 N at
-  friction 0.35 to 0.5), peak about 10 to 13 N; the display's flag drag is a few N.mm at the shaft. The spring is a
+  friction 0.35 to 0.5), peak about 10 to 13 N; the cams and sliders take up to 41 N.mm at the shaft while five segments change together,
+  about 5.6 N of press (Cam follower drive). The spring is a
   purchased Lee LC 022D 03 S (`compressionspring.LeeLC022D03S`).
 - Fit margin convention follows `onewayclutch`: `TightFit 0.25`, `RegularFit 0.40`, `LooseFit 0.55`,
   `PressFit 0.05`, `Seam 0.25` (clamped seam, closed when bolts are tight).
@@ -39,9 +40,9 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 
 World frame (the model's local frame before `Placement`):
 
-- Origin on the table under the digit centre. +Z up. +Y toward the digit's top (segment a), −Y toward the viewer
+- Origin under the digit centre, 3.0 below the walls' lower edges. +Z up. +Y toward the digit's top (segment a), −Y toward the viewer
   and the button end (segment d). +X to the right seen from the button side.
-- Shaft axis: line `x = 0, z = ShaftZ (28.0)`, along +Y.
+- Shaft axis: line `x = 0, z = ShaftZ (29.5)`, along +Y.
 - Front view = looking along +Y from −Y: +X right, +Z up. Clockwise in the front view is right-hand rotation about +Y.
 - Camshaft angle `θ`, degrees, right-hand about +Y (clockwise seen from the button end). Digit k rests at `θ = 36k`.
 - A part frame with `U = +X, V = +Z` has normal `−Y`; "cam-local angle ψ" is measured in such a frame from +U toward
@@ -78,8 +79,8 @@ Stack along Z:
 
 | Part | Z from | Z to |
 | --- | ---: | ---: |
-| Cams (r 25 about z 28) | 3.0 | 53.0 |
-| Walls | 0 | 81.25 |
+| Cams (r 23.5 about z 29.5) | 6.0 | 53.0 |
+| Walls | 3.0 | 81.25 |
 | Ledge ribs (guide plate seats) | 49.75 | 53.75 |
 | Guide plate | 54.0 | 58.0 |
 | Top flange ribs | 75.75 | 79.75 |
@@ -89,11 +90,11 @@ Stack along Z:
 
 X: the walls span x ∈ [−28.5, 28.5]; the guide plate, cradle plate and top plate span x ∈ [−27, 27].
 
-Overall: 57 (X) × 108.5 (Y, frame [−57.5, 51.0]) × 88.25 (Z), the button end 23.9 more toward −Y.
+Overall: 57 (X) × 108.5 (Y, frame [−57.5, 51.0]) × 85.25 (Z, z [3.0, 88.25]), the button end 23.9 more toward −Y.
 
 Ribs (all at |x| ∈ [20, 27], part of the walls): front ledge ribs y [−49.5, −30.8], front top flange ribs
 y [−49.5, −39.5], rear ledge and top flange ribs y [33.0, 43.0]. The front guide-plate bolts G1/G2 at y −34.2 are
-inserted from below past cam d (cam d at |x| 23.2 reaches only z 36.5).
+inserted from below past cam d (cam d at |x| 23.2 reaches only z 33.2).
 
 ### Digit geometry
 
@@ -117,8 +118,8 @@ Lit segments (1 = ON):
 | 8 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 | 9 | 1 | 1 | 1 | 1 | 0 | 1 | 1 |
 
-Groove centreline radius `R_s(ψ)` (cam-local ψ): `OffRadius 18.0` where the segment is OFF, `OnRadius 21.0` where ON.
-Lift = `R − 18`. The transition k→k+1 (when the state changes) is a ramp over `ψ ∈ [ψ_k + RampStart, ψ_k + RampEnd]`
+Groove centreline radius `R_s(ψ)` (cam-local ψ): `OffRadius 16.5` where the segment is OFF, `OnRadius 19.5` where ON.
+Lift = `R − 16.5`. The transition k→k+1 (when the state changes) is a ramp over `ψ ∈ [ψ_k + RampStart, ψ_k + RampEnd]`
 = `[ψ_k + 8.0, ψ_k + 29.5]`. Everything else is dwell. Dwell around digit k: `[ψ_k − 6.5, ψ_k + 8.0]` (14.5°).
 
 Ramp windows (cam-local, degrees, mod 360):
@@ -147,10 +148,10 @@ Rising ramp lift vs. angle after its window start (shape from "Cams"; falling is
 
 | ψ − ψ_k | 8 | 9 | 10 | 12 | 14 | 16 | 18 | 20 | 22 | 24 | 26 | 28 | 29 | 29.5 |
 | --- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- |
-| lift | 0 | 0.023 | 0.092 | 0.307 | 0.550 | 0.824 | 1.128 | 1.467 | 1.843 | 2.258 | 2.696 | 2.946 | 2.994 | 3.000 |
+| lift | 0 | 0.019 | 0.078 | 0.297 | 0.555 | 0.842 | 1.161 | 1.514 | 1.904 | 2.335 | 2.743 | 2.954 | 2.995 | 3.000 |
 
-Max pressure angle 33.0°. Max slope 13.34 mm/rad. Lift differs from its dwell by more than 0.05 only for
-`ψ − ψ_k ∈ [9.48, 28.05]` (the "active zone").
+Max pressure angle 35.2°. Max slope 13.38 mm/rad. Lift differs from its dwell by more than 0.05 only for
+`ψ − ψ_k ∈ [9.61, 27.93]` (the "active zone").
 
 ### Detent and rest angles
 
@@ -179,7 +180,7 @@ that part to a local frame the same way before reporting a decad failure.
 
 #### Shaft (`Shaft`, printed, split)
 
-Local frame: origin (0, 0, 28), U = +Z, V = +X, N = +Y (local z = world y; local +x = world +Z, the flat normal).
+Local frame: origin (0, 0, 29.5), U = +Z, V = +X, N = +Y (local z = world y; local +x = world +Z, the flat normal).
 
 Revolve this meridian `(z, r)` about local Z with `decad.FullRevolution{}` (pattern: onewayclutch `meridian`):
 
@@ -204,10 +205,10 @@ Failure: return `sevensegment: shaft: <op>: <err>`.
 
 #### Cams (`Cams`, 7 bodies)
 
-Local frame per cam: origin (0, y_i + 2.35, 28) (the groove face), U = +X, V = +Z, N = −Y. Disc at local
+Local frame per cam: origin (0, y_i + 2.35, 29.5) (the groove face), U = +X, V = +Z, N = −Y. Disc at local
 z ∈ [−3.8, 0], hub toward local +z.
 
-1. Revolve meridian `(r, z)`: `(0,−3.8) (24.5,−3.8) (25,−3.3) (25,−0.5) (24.5,0) (5.5,0)`, then an 8-chord quarter
+1. Revolve meridian `(r, z)`: `(0,−3.8) (23,−3.8) (23.5,−3.3) (23.5,−0.5) (23,0) (5.5,0)`, then an 8-chord quarter
    round about (5.5, 0.5) from (5.5, 0) to (5.0, 0.5) (pattern: `m2fastener.quarterRound`), then `(5.0,7.15) (0,7.15)`.
    Rim chamfers 0.5 are in the meridian; the hub root round 0.5 is a corner between layers.
 2. Cut the double-D bore: profile on local z = −4.8, two arcs r 3.25 joined by flats at v = ±2.75
@@ -221,24 +222,24 @@ z ∈ [−3.8, 0], hub toward local +z.
 Groove (one sketch per cam; profile with one hole):
 
 - Walls are offsets of the centreline by ±`GrooveWidth/2` = ±1.9. Groove depth `GrooveDepth` 1.9.
-- Dwell arcs about the origin: inner wall r − 1.9, outer wall r + 1.9 (OFF: 16.1 / 19.9; ON: 19.1 / 22.9).
+- Dwell arcs about the origin: inner wall r − 1.9, outer wall r + 1.9 (OFF: 14.6 / 18.4; ON: 17.6 / 21.4).
 - Each ramp is arc–line–arc on the centreline with `RampRound` ρ = 2.5:
-  - Rising ramp from ψ_a to ψ_b = ψ_a + 21.5: arc 1 centre `C1 = 20.5∠ψ_a` (outside, r_off + ρ), arc 2 centre
-    `C2 = 18.5∠ψ_b` (inside, r_on − ρ), joined by their internal common tangent. With ψ_a = 8°: C1 (20.3005, 2.8530),
-    C2 (16.1016, 9.1098), tangent points T1 (17.8231, 3.1883) at 18.106∠10.142°, T2 (18.5790, 8.7746) at
-    20.547∠25.281°, line length 5.6372. Unit normal n of the line satisfies `n·(C2 − C1) = 2ρ`, `T1 = C1 + ρn`,
+  - Rising ramp from ψ_a to ψ_b = ψ_a + 21.5: arc 1 centre `C1 = 19.0∠ψ_a` (outside, r_off + ρ), arc 2 centre
+    `C2 = 17.0∠ψ_b` (inside, r_on − ρ), joined by their internal common tangent. With ψ_a = 8°: C1 (18.8151, 2.6443),
+    C2 (14.7960, 8.3712), tangent points T1 (16.3574, 3.1022) at 16.649∠10.739°, T2 (17.2538, 7.9133) at
+    18.982∠24.638°, line length 4.8939. Unit normal n of the line satisfies `n·(C2 − C1) = 2ρ`, `T1 = C1 + ρn`,
     `T2 = C2 − ρn`, pick the root whose tangent points lie inside (ψ_a, ψ_b) in order (see "Ramp geometry algorithm").
-  - Falling ramp: mirror of the rising ramp about the window's mid-angle: `C1 = 18.5∠ψ_a`, `C2 = 20.5∠ψ_b`,
-    T1 at 20.547∠(ψ_a + 4.219°), T2 at 18.106∠(ψ_a + 19.358°).
+  - Falling ramp: mirror of the rising ramp about the window's mid-angle: `C1 = 17.0∠ψ_a`, `C2 = 19.0∠ψ_b`,
+    T1 at 18.982∠(ψ_a + 4.862°), T2 at 16.649∠(ψ_a + 18.761°).
   - Wall radii: an arc whose centre is outside the centreline (away from the origin) has inner wall ρ + 1.9 = 4.4 and
     outer wall ρ − 1.9 = 0.6; an arc whose centre is inside has inner 0.6 and outer 4.4. Lines offset ±1.9.
 - Entry channel (outer wall only): radial slot on the ray `EntryAngle` 18.0°, width 3.8 (sides parallel to the ray at
-  ±1.9), from the outer wall's ON dwell arc (r 22.9) out to a cap line at distance 26.0 from the origin. It lies in
-  the dwell [11.5, 26] of every cam (all ON at digit 8); its sides meet r 22.9 at 18.0 ± 4.76°.
+  ±1.9), from the outer wall's ON dwell arc (r 21.4) out to a cap line at distance 24.5 from the origin. It lies in
+  the dwell [11.5, 26] of every cam (all ON at digit 8); its sides meet r 21.4 at 18.0 ± 5.09°.
 - Sketch constraints (no point in the groove sketch is placed with `DimensionPoint`):
   - Polar construction per onewayclutch `newPolar`/`axis`: a horizontal reference line, one construction ray per
     ramp boundary angle (ψ_a, ψ_b) and one at `EntryAngle`.
-  - Each ramp centre: `NewPointOnLine(C, ray)` + `NewDistance(origin, C, d)` (d = 20.5 or 18.5).
+  - Each ramp centre: `NewPointOnLine(C, ray)` + `NewDistance(origin, C, d)` (d = 19.0 or 17.0).
   - Each dwell–ramp junction point J (both walls): `NewPointOnLine(J, ray)`; its radius comes from the dwell arc.
   - Each dwell arc: centre = sketch origin; `NewRadius` on the arc (fixes its start); its end radius follows from
     the arc's own equal-radius property. Do not also dimension J's distance (redundant).
@@ -247,7 +248,7 @@ Groove (one sketch per cam; profile with one hole):
     are then fixed by tangency plus the arc's equal-radius property.
   - Channel: side lines `NewParallel(entryRay, side)` + `NewDistancePointLine(origin, side, 1.9)`; side's inner end
     is the end point of the split ON dwell arcs; outer ends lie on the cap line (`NewPerpendicular(entryRay, cap)`,
-    `NewDistancePointLine(origin, cap, 26.0)`).
+    `NewDistancePointLine(origin, cap, 24.5)`).
   - If `Verify` reports redundancy at a tangent junction, drop that junction's tangency (the geometry is already
     tangent by construction) and record the case in steps.md; do not add fixed points.
 - Ramp geometry algorithm (Derive, no sketch):
@@ -261,9 +262,9 @@ Groove (one sketch per cam; profile with one hole):
       accept the first φ1 meeting all three
   ```
 - Pressure angle: angle between the centreline's tangent and the circumferential direction at the follower point;
-  max 33.0°.
+  max 35.2°.
 
-Cam local→world: frame origin (0, y_i + 2.35, 28), U = +X, V = +Z. Printed back face down (groove face and hub up,
+Cam local→world: frame origin (0, y_i + 2.35, 29.5), U = +X, V = +Z. Printed back face down (groove face and hub up,
 axis vertical); no other orientation prints the groove and hub without support.
 
 ### Click indexer
@@ -377,7 +378,7 @@ of scope.
 - Split shafts: the rule covers printed shafts and pins. These are integral features of larger parts and stay whole:
   the rotor's journal stubs (Ø1.2), the slider rotor pins (Ø1.0), the slider groove pins (Ø3.0), and the registration
   pegs (Ø3.0) on the top plate and on the guide plate columns. None carries a part, a bearing or torque. Splitting any
-  of them means splitting its whole parent part. Loads: rotor pin 0.020 N, groove pin 0.05 N, stubs 0.012 N, pegs only
+  of them means splitting its whole parent part. Loads: rotor pin 0.020 N, groove pin up to 0.8 N (Cam follower drive), stubs 0.012 N, pegs only
   locate (the M2 bolts clamp the plates). The rotor itself was accepted as exempt in review.
 - Pin strength. The rotor pin is Ø1.0 and 3.6 long. On the a/g/d slider it stands upright in print, so bending loads
   the layer bonds; on b-f it also points up. At 0.040 N (the larger F_x of the drive at friction 0.5), `M = 0.144 N.mm` and
@@ -801,7 +802,7 @@ stroke and the play, -1.89 to 1.59; the pin radius `rho <= 2.90`; the true conta
 | 5 | blade in its tube | sliding | lateral `H = N(|sin phi| + mu|cos phi|)` | drag `mu*H*(1 + 2*2/25)` |
 | 6 | offset load couple | sliding | pin 18 (e/f), 15 (b/c), 1.5 (a/g/d) from the stem | drag `2*mu*(x/25)*V` |
 | 7 | slider weight couple | sliding | centre of mass 7 from the stem (b-f) | drag `2*mu*(7/25)*W_s` |
-| 8 | groove pin in groove | sliding | r ~19.5 on the cam | in the budget |
+| 8 | groove pin in groove | sliding | r 16.5 to 19.5 on the cam | see Cam follower drive |
 | 9 | tongue, roots, head, pin tip, rotor/bore, tube/rotor, slider/passage | none | gaps > 0 at every pose | - |
 
 Drive balance: `N (sqrt(rho^2 - 0.04) - mu*0.70 - mu'*0.6*sqrt(1+mu^2)) = mu'*0.6*W_r + W_r*e*|cos(beta_c + phi)|`.
@@ -816,11 +817,56 @@ The budget takes F_x with the journal fully across (budgetFx). The drive's own f
 model (the stub against its hole along the pin force plus the weight, turned by up to the friction angle) puts it 0.157 to
 0.188 of the 0.20 clearance toward the pin at the pose of the largest F_x and gives F_x 5 to 9 % below the across value.
 
+### Cam follower drive (TestSevenSegmentFollowerDrive)
+
+Model: a rigid slider with Coulomb friction. The slider's contacts are the guide plate's underside (z 54) and the blade
+ridge (83.55 + lift), the lean that `TestSevenSegmentStackPlay` uses. Each changing slider needs 0.067 N: the friction
+audit's largest F_x (friction 0.5, journal across, 0.0547 N) plus the heaviest slider (0.0124 N).
+
+- The groove pin's contact band (groove face 2.35 to the pin's chamfer 3.55 from the stem's centre plane) acts at
+  e = 2.95 along +y.
+- The stem's x contact can sit anywhere on its flat face (|y| <= 1.5, inside the 0.3 chamfers). The blade's x contact
+  sits at most at y -7.8 (a, g, d: the blade's far face) or -1.8 (b to f: the print face). What yaw moment those
+  contacts cannot carry goes to the stem's long faces as a couple 6.4 apart (stem width 7.0 less the chamfers). Shared
+  with the blade instead (9.25 apart), the b-f ratio would be about 5 % higher.
+- The test asserts at the nominal friction 0.35. At 0.5 every variant locks, today's 18/21 included.
+
+Per unit groove-wall load at pressure angle α and friction µ: `F_v = cos α − µ sin α` along the stem, `H = sin α +
+µ cos α` across it (along x). With `a = 54 − (46 + lift)`, `L = 83.55 + lift − 54`, `e` = 2.95 and `y_b` the blade
+offset (−7.8 a/g/d, −1.8 b-f):
+
+```
+R1 = H (1 + a/L)                    stem on the slot wall at z 54
+R2 = H a / L                        blade on its tube wall at the ridge
+M  = max(0, e H + y_b R2 − 1.5 R1)  yaw the x contacts cannot carry
+D   = F_v (1 − 2µe/L) / (µ (H (1 + 2a/L) + 2 M / 6.4))
+net = F_v (1 − 2µe/L) − µ (H (1 + 2a/L) + 2 M / 6.4)
+groove-wall load = 0.067 / net;  shaft torque per slider = load · H · R  (R the groove centreline radius)
+```
+
+D <= 1 locks the slider at any wall load. For a/g/d, M is 0 (the blade's far contact carries the yaw). Values from this
+model, sampled every 0.05°:
+
+| Radii | max α | D a/g/d at 0.35 | D b-f at 0.35 | D a/g/d, b-f at 0.5 | lock friction a/g/d, b-f |
+| --- | --- | ---: | ---: | --- | --- |
+| 18/21 (before) | 33.0° | 1.545 | 1.279 | 0.797, 0.661 | 0.445, 0.402 |
+| 16.5/19.5 | 35.2° | 1.420 | 1.179 | 0.726, 0.603 | 0.425, 0.384 |
+
+| Radii | wall load a/g/d, b-f at 0.35 | summed shaft torque at 0.35 (step) | press share |
+| --- | --- | --- | ---: |
+| 18/21 (before) | 0.313, 0.505 N | 30.4 N·mm (6→7) | 4.2 N |
+| 16.5/19.5 | 0.393, 0.765 N | 40.6 N·mm (6→7) | 5.6 N |
+
+Press share = torque × `PressTurn()` (31.69°, in radians) / (`ButtonStroke − RotorTravel` = 4.0 mm), an ideal ramp; ramp
+friction adds to it. Step 6→7 moves five sliders, four of them b-f. A locked slider stalls the button: a 13 N press
+less the 7.4 N spring gives the shaft at most 40 N·mm, about 2.6 N on one groove wall at r 17.4, which bends the groove
+pin's root (lever 1.15) to about 1.1 MPa against about 20 MPa of layer bond. No part breaks.
+
 ### Determinacy budget
 
 The stiff detent is gone, so there is no detent budget to balance against the flag drag. The indexer's only requirement
 is the timing margin of `TimingMargin()` (see Detent and rest angles). The flag drag of the display is carried by the
-button press: it is a few N.mm at the shaft, far below what the 5.9 to 7.4 N spring and the ramps deliver.
+button press: it is up to 41 N.mm at the shaft, about 5.6 N of press on an ideal ramp (Cam follower drive).
 
 ### Visibility (section across the flag, physical geometry; the tables of this first part come from a one-off script)
 
@@ -909,8 +955,8 @@ to f, at the ridge) allow, it is at least 0.765 (cam d unlit), and 0.90 with the
 (`TestSevenSegmentStackPlay` requires 0.75). The pin tip stands 0.40 from the groove floor as modeled. The slider's
 own lean (up to 0.41 for b to f) can close that with the stack in place, and the stack sliding forward closes it
 too; the floor then rubs the pin tip. On a level shaft nothing presses that contact along the shaft, so it adds no
-torque. Tilted toward the button end by θ, the cams' weight (0.58 N) presses each floor on its pin tip and friction at the
-groove radius adds about µ·0.58·sin θ·21 N·mm, which lowers the budget by 1 to 1.5 % per degree. No locking feature
+torque. Tilted toward the button end by θ, the cams' weight (about 0.51 N) presses each floor on its pin tip and friction at the
+groove radius adds about µ·0.51·sin θ·19.5 N·mm, about 0.06 N·mm per degree at friction 0.35. No locking feature
 is designed. A collar ring in front of the wheel would face the front bearing's inner ring (diameter 8), leaving at
 most 1.45 of wall round its bore against the 1.6 minimum, in a 1.0 gap against the 3.0 collar minimum. A collar of
 the shaft's own body there would stop the cams being pressed on from the front. A lock would also not stop the
@@ -1052,9 +1098,9 @@ Each decad item below describes its repro; the scratch builds that held them are
 
 #### Walls (`Walls`: Front Wall, Rear Wall)
 
-Front wall sketch frame origin (0, −49.5, 28), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
-(0, 43.0, 28), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−27, 27], v ∈ [−28, 51.75]
-(z 0..81.25: the code's `wallTop` 53.25 and `wallHalf` 28.5; the plate is 57 wide).
+Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, extrude `Along` 8. Rear wall origin
+(0, 43.0, 29.5), U = −X, V = +Z (N = +Y), extrude `Along` 8. Sketch rectangle u ∈ [−28.5, 28.5], v ∈ [−26.5, 51.75]
+(z 3.0 to 81.25; the code's `wallHalf` 28.5, `wallBottomZ` 3.0 and `wallTopZ` 81.25; the plate is 57 wide).
 
 1. Extrude the plate; union four rib boxes at |x| ∈ [20, 27] extending inward from the inner face: ledge ribs
    z [49.75, 53.75], top flange ribs z [75.75, 79.75]; depth 10 except the front ledge ribs, 18.7 (to y −30.8).
@@ -1084,15 +1130,15 @@ clamped. There is 3.4 of plate under each head. G1-G4 and D1-D2 are unchanged.
 
 ### Bearings
 
-`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 28),
-U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 28), U = +Z, V = +X (toward +Y). Bearings do not turn
+`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 29.5),
+U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 29.5), U = +Z, V = +X (toward +Y). Bearings do not turn
 with θ.
 
 ### Pose and placement
 
 1. Build every part in its frame (above).
 2. Camshaft group (shaft, cams, hub, rotor, spring): `decad.Transform` by
-   `r3.RotationAround((0,0,28), (0,1,0), θ)`, θ = 36 · Digit.
+   `r3.RotationAround((0,0,29.5), (0,1,0), θ)`, θ = 36 · Digit.
 3. Sliders: translate +3.0 Z where `Lit(Digit, s)`. Flags: turn by `FlagAngle(s, theta)` about the rotor axis.
 4. Every printed body and both bearings: `placement.Place(ctx, body, p.Placement)`. Fastener sites are carried
    through the placement with onewayclutch `placeSite`; bolts and nuts are built from the placed sites with
@@ -1142,7 +1188,8 @@ mm from the cam axis straight up in the cam's local frame (the sketch reads from
 correctly from the rear). Each outline is a closed run of horizontal and vertical lines, each held by its distance from the
 sketch origin on the cam's axis, so the sketch is fully constrained with no point fixed. The letter lies between r 11.7 and
 r 16.3: clear of the bore (3.25), the hub (5), the mark holes (radius 8 or 12 at 270 degrees and beyond), the groove (which
-is on the other face) and the rim (25). The mark holes stay: "Look-alike part marks" requires them, and the letter is for
+is on the other face) and the rim (23.5). Behind the groove (r 14.6 to 16.3) 1.4 mm of disc stays between the letter's
+floor and the groove's floor. The mark holes stay: "Look-alike part marks" requires them, and the letter is for
 people only.
 
 #### Part fits
@@ -1272,7 +1319,7 @@ Assembly (README and instructions.md):
 
 ## Wall inset (decad constraint)
 
-The wall plates are 57 wide (x +-28.5) and 109.25 tall to z 81.25, so every rib ends 1.5 mm inside the plate's sides and
+The wall plates are 57 wide (x +-28.5) and 78.25 tall, z 3.0 to 81.25, so every rib ends 1.5 mm inside the plate's sides and
 top. The inner face's outer loop is then a plain rectangle that decad chamfers whole, and each rib root is one closed
 loop that decad rounds with a complete-loop fillet (selected with `decad.Reflex()`). The top plate is 54 wide and sits
 between the walls (y -49.25 to 42.75, as the guide plate does), on the top flange ribs at z 79.75 with a 0.25 seam.

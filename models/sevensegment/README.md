@@ -23,7 +23,8 @@ between tip and root: the print must hold that, or the teeth will bind. Stand th
 slider pins.
 
 **Hand feel.** Expect a press of about 10 to 13 N: the spring (a Lee LC 022D 03 S, 5.9 N at rest and 7.4 N pressed) plus the
-ramps' friction. The head stands 23.9 mm above the front wall at rest and ends flush with the housing's bezel, 17.9 mm
+ramps' friction. While the cams move the segments they add up to about 5.6 N. The head stands 23.9 mm above the
+front wall at rest and ends flush with the housing's bezel, 17.9 mm
 above it, at the bottom of its stroke. These numbers are calculated, not measured.
 
 **Clearance adjustment:** Mixed. The custom fits are fixed constants; the bearings, bolts and nuts keep their nominal size.
@@ -52,8 +53,8 @@ A camshaft runs along the digit under the face. It carries seven cams, one for e
 cam has a closed groove cut in its face. A pin on the segment's slider rides in that groove, so the cam pushes the slider
 up and pulls it down: no springs are needed. The slider's tongue sits in a notch of the rotor above it and a pin on the
 tongue rides in a radial slot of the rotor, so the slider's rise of 3 mm turns the rotor by about 90 degrees (89.2 for a, g and d and 90.0 for b, c, e and f; b to f are
-given a small extra lift so their rest angles stay in range). A groove sits at 18 mm from the shaft where the segment is unlit
-and 21 mm where it is lit, with a smooth ramp between.
+given a small extra lift so their rest angles stay in range). A groove sits at 16.5 mm from the shaft where the segment is unlit
+and 19.5 mm where it is lit, with a smooth ramp between.
 
 ![The display cut through the middle: the camshaft, the cams and the sliders, each part in its own color, the cut faces in the same colors](images/cutaway.png)
 
@@ -158,7 +159,7 @@ bolt or nut is bought.
 
 ## Assembly
 
-Positions below are in millimetres in the model's frame: the origin is on the table under the middle of the digit, x runs to
+Positions below are in millimetres in the model's frame: the origin is under the middle of the digit, 3 mm below the walls' lower edges, x runs to
 the right seen from the button side, y runs away from the button toward segment a, and z runs up. The exploded view above shows every
 part in its place. A rotor's axis `u` runs along x for the horizontal segments (a, g, d) and along y for the vertical ones
 (b, c, e, f); `+u` is to the right for a, g and d and toward the back (away from the button) for the others. Nothing on the printed
@@ -179,7 +180,7 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    notches. Slide the button in, its three lugs in the housing's slots and its teeth down.
 5. Bolt the guide plate to the ledge ribs from below with four M2 x 6 bolts, the nuts dropped into its top pockets. The two
    front bolts go in past cam d. The two rear bolts, at y 38, go in past cam a, whose rim reaches only
-   z 37.3 at that x while the bolt heads are at z 49.75, so there is 12.4 mm of room under each head: use a 1.5 mm hex key with
+   z 33.2 at that x while the bolt heads are at z 49.75, so there is 16.5 mm of room under each head: use a 1.5 mm hex key with
    a short arm of about 6 mm and let the long arm point out sideways (the sides of the frame are open). This follows from the
    dimensions and has not been tried on a print. Press the button until all seven entry channels face up (digit 8).
 6. Press the cradle plate onto the guide plate's column pegs through its two registration holes at (12, -45), near the front
