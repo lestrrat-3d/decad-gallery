@@ -13,9 +13,14 @@ outside diameter and turn count while the pitch changes with compression.
 | Lee Spring LC 026D 16 S | Stainless steel | 7.62 mm | 63.50 mm | 0.30 N/mm |
 | Lee Spring LC 022D 03 S | Stainless steel | 7.62 mm | 15.88 mm | 0.736 N/mm |
 | Lesjofors Cat.no 2353 (metric) | Stainless steel | 7.45 mm (computed) | 15 mm | 0.86 N/mm |
+| KSSC K series 1087 (MonotaRO 01353223) | Stainless steel (SUS304WPB) | 7.0 mm | 14.0 mm | 0.9408 N/mm |
 
 Lesjofors Cat.no 2353 comes from the Lesjofors Stock Spring Catalogue 2025, page 30. Its outside diameter is the
 catalogue's mean diameter plus the wire diameter. Check that your country's Lesjofors shop or distributor sells it.
+
+KSSC K series 1087 is sold in Japan by [MonotaRO](https://www.monotaro.com/p/0135/3223/) under order code 01353223.
+Its values come from the page's spec table. Its ends are not ground. The page gives an allowable load of 7.15 N at
+6.4 mm length and does not publish fatigue life.
 
 **Clearance adjustment:** Nominal. Size the mating guides around the purchased spring.
 

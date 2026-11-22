@@ -52,3 +52,10 @@ length of 4.5 mm. The catalogue does not publish the active turns, so `ActiveTur
 here, not published: outside diameter 7.45 mm (mean diameter plus wire), solid height 3.78 mm (wire times total turns,
 the catalogue's own definition) and load at solid 9.65 N (0.86 x (15 - 3.78)). The same constant-pitch end
 approximation applies. Availability in a given country is not confirmed.
+
+The click-indexer spring sold in Japan is the KSSC K series 1087 from MonotaRO, order code 01353223
+(`KSSC1087`, https://www.monotaro.com/p/0135/3223/). The page's spec table publishes: SUS304WPB stainless steel,
+0.60 mm wire, 7.0 mm outside diameter, 14.0 mm free length, 6.5 total turns, both ends not ground, 0.9408 N/mm,
+4.5 mm solid height, and an allowable load of 7.15 N at 6.4 mm length. It does not publish the inside diameter, the
+active turns (`ActiveTurns` is zero), the load at solid or the fatigue life. The load at solid 8.94 N is computed
+here: 0.9408 x (14.0 - 4.5). The same constant-pitch end approximation applies.
