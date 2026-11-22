@@ -20,10 +20,11 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 - Input is a button pressed 6.0 mm along the shaft axis, one digit per press 0→1→…→9→0. The segments' roles are swapped against the usual order (a and d, b and e, c and f) so each digit reads upright with the button end up.
 - Purchased parts: two 605ZZ bearings (`ballbearing.Lookup("605ZZ")`), M2 bolts and nuts (`fastener` via
   `internal/m2fastener`). No purchased springs, no purchased shafts.
-- Click indexer assumptions: a press needs 5.9 to 7.4 N of spring force plus the ramps' friction (about 3 to 6 N at
-  friction 0.35 to 0.5), peak about 10 to 13 N; the cams and sliders take up to 41 N.mm at the shaft while five segments change together,
+- Click indexer assumptions: a press needs 6.02 to 7.74 N of spring force plus the ramps' friction (about 3 to 6 N at
+  friction 0.35 to 0.5), peak about 11 to 14 N; the cams and sliders take up to 41 N.mm at the shaft while five segments change together,
   about 5.6 N of press (Cam follower drive). The spring is a
-  purchased Lee LC 022D 03 S (`compressionspring.LeeLC022D03S`).
+  purchased Lesjofors Cat.no 2353 (`compressionspring.LesjoforsStock2353`, Stock Spring Catalogue 2025, page 30;
+  availability in a given country is not confirmed).
 - Fit margin convention follows `onewayclutch`: `TightFit 0.25`, `RegularFit 0.40`, `LooseFit 0.55`,
   `PressFit 0.05`, `Seam 0.25` (clamped seam, closed when bolts are tight).
 - Inputs are `Digit` and `Placement` only. The exported constants and `Dimensions` fields are exactly those in
@@ -60,7 +61,7 @@ Stack along Y (world):
 | Housing | −75.4 | −57.75 | bezel at −75.4; base r 24.8 on the wall, 0.25 (Seam) from its outer face |
 | Rotor | −75.0 | −63.9 | slides 2.0 toward the wall |
 | Hub | −67.3 | −57.9 | keyed hub; 0.4 (Regular) to the front wall's outer face |
-| Spring | −69.4 | −61.4 | Lee LC 022D 03 S |
+| Spring | −69.4 | −61.4 | Lesjofors Cat.no 2353 |
 | Shaft stub flat end | −57.85 | | square end of the stub flat; the hub's D chord stops here (0.05) |
 | Front wall | −57.5 | −49.5 | 8 thick; lip [−57.5, −54.5], seat [−54.5, −49.5] |
 | Front bearing 605ZZ | −54.5 | −49.5 | outer race in the seat |
@@ -277,7 +278,7 @@ at digit 0 and rest; up is -Y):
 | Part | Container | Axis range (Y) | What it is |
 |---|---|---|---|
 | Hub | `Hub` | -67.3 to -57.9 | Keyed hub, pressed on the stub's D flat (replaces the collar ring). Base 3.5 long with the D bore (r 2.55, flat 2.05), a cup wall r 9 to 10.5 up to the rim at -67.3, three keys r 8.05 to 9.5, 2.0 wide. The rim is the rotor's lower stop. |
-| Spring | `Spring` | -69.4 to -61.4 | Lee LC 022D 03 S (`compressionspring.LeeLC022D03S`), 7.96 mm installed at rest (5.9 N), 5.96 pressed (7.4 N). It stands on the hub's base and pushes the rotor's plate up. |
+| Spring | `Spring` | -69.4 to -61.4 | Lesjofors Cat.no 2353 (`compressionspring.LesjoforsStock2353`, Stock Spring Catalogue 2025, page 30), 8.0 mm installed at rest (6.02 N, 0.86 x (15 - 8.0)), 6.0 pressed (7.74 N). Its outside diameter 7.45 mm is computed (mean diameter 6.85 plus wire 0.60); the skirt's bore leaves 0.325 mm radial clearance to it. It stands on the hub's base and pushes the rotor's plate up. |
 | Rotor | `Rotor` | -75.0 to -63.9 | Skirt r 4.05 to 8.45 with three slots that take the hub's keys (Tight 0.2 a side), a plate r 3 to 14.2, inner teeth r 3.2 to 11 (4.0 tall) that meet the button, outer teeth r 12.8 to 14 (1.6 tall) that lock in the crown. Slides 2.0 mm along the axis. |
 | Housing | `Housing` | -75.4 to -57.75 | Base flange r 14.55 to 24.8, 4.0 thick, on the front wall (two M2x10 bolts H1, H2 at x +-21, heads sunk in the base, nuts in hex pockets open to the wall's inner face); tube r 14.55 to 16.55; fixed crown ring r 11.55 to 14.55 with ten notches; three slots r 11.05 to 12.7, 3.0 wide, for the button's lugs. Its top, the bezel, is 17.9 above the wall. |
 | Button | `Button` | -81.4 to -74.95 | Head r 11.0, 2.5 thick, with a recess r 3.2 and 1.4 deep under it (the stub's tip is at -72.2); ten teeth under it, r 3.4 to 10.85, 4.0 tall; three lugs r 11.4 to 12.2, 2.0 wide, hanging 3.8 below the head's underside. |
@@ -863,7 +864,7 @@ model, sampled every 0.05°:
 
 Press share = torque × `PressTurn()` (31.69°, in radians) / (`ButtonStroke − RotorTravel` = 4.0 mm), an ideal ramp; ramp
 friction adds to it. Step 6→7 moves five sliders, four of them b-f. A locked slider stalls the button: a 13 N press
-less the 7.4 N spring gives the shaft at most 40 N·mm, about 2.6 N on one groove wall at r 17.4, which bends the groove
+less the 7.7 N spring gives the shaft at most 40 N·mm, about 2.6 N on one groove wall at r 17.4, which bends the groove
 pin's root (lever 1.15) to about 1.1 MPa against about 20 MPa of layer bond. No part breaks.
 
 ### Determinacy budget
@@ -1220,7 +1221,7 @@ people only.
 | S1 | plates / ribs and wall tops | clamped seam | 0.25 | bounds |
 | F | bolts, nuts | fastener rules | head 0.3, hole 0.3, nut 0.2 | bounds, no overlap |
 | K1 | rotor plate / housing tube | Regular | 0.35 | dimensions (`TestClickerRadialFits`) |
-| K2 | rotor skirt / spring | Tight | 0.24 | dimensions |
+| K2 | rotor skirt / spring | Tight | 0.325 | dimensions (`TestClickerRadialFits`) |
 | K3 | hub key / rotor skirt slot | Tight | 0.2 a side | dimensions |
 | K4 | button head / crown ring; lug / housing slot | Loose | 0.55; 0.5 | dimensions |
 | K5 | mating teeth: tip against root | land gap | 0.02 | specs (`TestClickerLandGaps`) |

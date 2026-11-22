@@ -38,7 +38,7 @@ const (
 	rotorPlateThick  = 1.5
 	rotorPlateRadius = 14.2
 	rotorBoreRadius  = 3.0
-	rotorSkirtInner  = 4.05 // spring outside radius 3.81 plus Tight 0.2
+	rotorSkirtInner  = 4.05 // spring outside radius 3.725 plus 0.325, over the Tight 0.2
 	rotorSkirtOuter  = 8.45
 	rotorSkirtLength = 5.5
 	rotorSlotDepthTo = 7.85 // radius of a skirt slot's floor
@@ -329,10 +329,10 @@ func (r *run) button() (*decad.Body, error) {
 	return placement.Place(r.ctx, body, &f)
 }
 
-// spring builds the click indexer's return spring, a Lee LC 022D 03 S of the given installed length: its axis the shaft's, its
+// spring builds the click indexer's return spring, a Lesjofors Cat.no 2353 of the given installed length: its axis the shaft's, its
 // first end on the hub's top face and its second end length away toward the rotor (-Y).
 func (r *run) spring(length float64) (*decad.Body, error) {
-	m, err := compressionspring.Build(r.ctx, r.doc, compressionspring.Params{Spec: compressionspring.LeeLC022D03S(),
+	m, err := compressionspring.Build(r.ctx, r.doc, compressionspring.Params{Spec: compressionspring.LesjoforsStock2353(),
 		InstalledLength: length})
 	if err != nil {
 		return nil, err
@@ -347,7 +347,7 @@ func (r *run) spring(length float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	lift, err := r3.Translation(r3.Vec{Y: hubSpringFloor - compressionspring.LeeLC022D03S().WireDiameter/2, Z: ShaftZ})
+	lift, err := r3.Translation(r3.Vec{Y: hubSpringFloor - compressionspring.LesjoforsStock2353().WireDiameter/2, Z: ShaftZ})
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +388,7 @@ func BuildClicker(ctx context.Context, doc *decad.Document) (*Clicker, error) {
 	return out, nil
 }
 
-// BuildSpring adds the return spring at the given installed length, from 3.1 (solid) to 15.88 (free) mm, to doc.
+// BuildSpring adds the return spring at the given installed length, from 3.78 (solid) to 15 (free) mm, to doc.
 func BuildSpring(ctx context.Context, doc *decad.Document, length float64) (*decad.Body, error) {
 	dm, err := DefaultParams().Derive()
 	if err != nil {

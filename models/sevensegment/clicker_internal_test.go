@@ -6,6 +6,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/lestrrat-3d/decad-gallery/models/compressionspring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,7 +89,7 @@ func TestClickerPoses(t *testing.T) {
 // (Regular 0.35), the rotor's skirt on the spring (Tight 0.2), the hub's keys in the skirt's slots (Tight 0.2 a side), the
 // button's head to the crown ring and its lugs in the slots (Loose 0.5).
 func TestClickerRadialFits(t *testing.T) {
-	const springR = 7.62 / 2
+	springR := compressionspring.LesjoforsStock2353().OutsideDiameter / 2
 	for _, c := range []struct {
 		name      string
 		got, want float64
