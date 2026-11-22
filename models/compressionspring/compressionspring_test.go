@@ -91,3 +91,65 @@ func TestClickIndexerSpring(t *testing.T) {
 		})
 	}
 }
+
+func TestLesjoforsStock2353Values(t *testing.T) {
+	spec := compressionspring.LesjoforsStock2353()
+	require.Equal(t, "Lesjofors Cat.no 2353", spec.Name)
+	require.Equal(t, 0.60, spec.WireDiameter)
+	require.Equal(t, 15.0, spec.FreeLength)
+	require.Equal(t, 6.3, spec.TotalTurns)
+	require.Equal(t, 0.86, spec.Rate)
+	require.Zero(t, spec.ActiveTurns, "the catalogue does not publish active coils")
+	// Computed, not published: Dm + wire, wire x total coils, rate x (free length - solid height).
+	require.InDelta(t, 6.85+0.60, spec.OutsideDiameter, 1e-12)
+	require.InDelta(t, 0.60*6.3, spec.SolidHeight, 1e-12)
+	require.InDelta(t, 0.86*(15-3.78), spec.LoadAtSolid, 5e-3)
+}
+
+func TestLesjoforsStock2353Installed(t *testing.T) {
+	spec := compressionspring.LesjoforsStock2353()
+	for _, tc := range []struct {
+		name          string
+		length, force float64
+	}{
+		{"rest", 8.0, 0.86 * (15 - 8.0)}, {"pressed", 6.0, 0.86 * (15 - 6.0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := compressionspring.Build(t.Context(), decad.New(), compressionspring.Params{Spec: spec, InstalledLength: tc.length})
+			require.NoError(t, err)
+			require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), m.Profile))
+			box, err := m.Body.Bounds()
+			require.NoError(t, err)
+			require.InDelta(t, tc.length, box.Max.Y-box.Min.Y, .02)
+			require.InDelta(t, 7.45, box.Max.X-box.Min.X, .02)
+			require.InDelta(t, tc.force, m.Force, 1e-10)
+		})
+	}
+}
+
+func TestSpecActiveTurnsRule(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		active  float64
+		wantErr bool
+	}{
+		{"not published", 0, false},
+		{"equal to total", 6.3, false},
+		{"below total", 4.3, false},
+		{"above total", 6.4, true},
+		{"negative", -1, true},
+		{"NaN", math.NaN(), true},
+		{"infinite", math.Inf(1), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := compressionspring.LesjoforsStock2353()
+			spec.ActiveTurns = tc.active
+			_, err := compressionspring.Build(t.Context(), decad.New(), compressionspring.Params{Spec: spec, InstalledLength: 8})
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}

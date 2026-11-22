@@ -5,7 +5,7 @@ The default is a Lee LC 024C 14 M detent spring installed at 43.80 mm.
 
 ## Construction and API
 
-`LeeLC024C14M()`, `LeeLC026D16S()` and `LeeLC022D03S()` return independent catalog specifications.
+`LeeLC024C14M()`, `LeeLC026D16S()`, `LeeLC022D03S()` and `LesjoforsStock2353()` return independent catalog specifications.
 Pass a `Params{Spec: spec, InstalledLength: length}` to `Build(ctx, doc, params)`. Lengths are in millimeters.
 The model places the first wire-section center in the XZ plane on the positive X side and winds around the +Y axis.
 The first end extends half a wire diameter below Y = 0. Use a rigid placement to position the body in an assembly.
@@ -20,10 +20,18 @@ fatigue life. The constant-pitch ends approximate the squared and ground ends of
 | LC 024C 14 M | 0.61 mm | 19.64 | 17.64 | 12.32 mm | 19.13 N |
 | LC 026D 16 S | 0.66 mm | 18.33 | 16.33 | 12.17 mm | 15.93 N |
 | LC 022D 03 S | 0.56 mm | 5.25 | 3.25 | 3.10 mm | 9.27 N |
+| Lesjofors Cat.no 2353 | 0.60 mm | 6.3 | not published | 3.78 mm (computed) | 9.65 N (computed) |
+
+`Spec.ActiveTurns` is optional. Zero means the supplier does not publish it. `Build` returns an error for a negative or
+non-finite value, or one above `TotalTurns`. For Lesjofors Cat.no 2353 the outside diameter 7.45 mm is the catalogue's
+mean diameter 6.85 mm plus the wire diameter. Its solid height is the wire times the total turns, and its load at solid is
+0.86 N/mm x (15 mm - 3.78 mm).
 
 The catalog pages specify the variants. [Music-wire detent spring](https://www.leespring.com/product/compression-spring-lc024c14m-music-wire)
-[stainless return spring](https://www.leespring.com/product/compression-spring-lc026d16s-stainless-steel) and
-[stainless click-indexer spring](https://www.leespring.com/product/compression-spring-lc022d03s-stainless-steel).
+[stainless return spring](https://www.leespring.com/product/compression-spring-lc026d16s-stainless-steel),
+[stainless click-indexer spring](https://www.leespring.com/product/compression-spring-lc022d03s-stainless-steel) and
+the metric [Lesjofors stock spring Cat.no 2353](https://www.lesjofors.com/siteassets/corporate-page-blocks-media-and-files/products/products-categories/stock-springs/stock_spring-catalog_2025_stock-spring-catalog.pdf)
+(Stock Spring Catalogue 2025, page 30).
 
 ## Build and checks
 

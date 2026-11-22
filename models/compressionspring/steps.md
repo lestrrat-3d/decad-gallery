@@ -4,14 +4,16 @@ Follow `instructions.md`. Emit one Go file `compressionspring.go` with package
 `compressionspring`. Define `Spec` with `Name string`, `OutsideDiameter`,
 `WireDiameter`, `FreeLength`, `TotalTurns`, `ActiveTurns`, `Rate`, `SolidHeight`
 and `LoadAtSolid` as float64. Define `LeeLC024C14M() Spec`, `LeeLC026D16S() Spec` and `LeeLC022D03S() Spec` with the values in
-instructions.md. Define `Params` with `Spec Spec` and `InstalledLength float64`.
+instructions.md. Define `LesjoforsStock2353() Spec` the same way; its `ActiveTurns` is zero because the catalogue
+does not publish it, and its outside diameter, solid height and load at solid are computed (see instructions.md). Define `Params` with `Spec Spec` and `InstalledLength float64`.
 `DefaultParams` selects the Lee part at 43.8 mm. Define `Model` with `Body
 *decad.Body`, `Profile *sketch.Sketch`, and `Pitch` and `Force` float64.
 
 `Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error)`
 checks nil context and document and validates all numeric inputs before
-creating geometry. Check all spec fields are finite and positive, active
-turns no greater than total turns, and the inequalities in instructions.md.
+creating geometry. Check all spec fields except `ActiveTurns` are finite and positive. Check `ActiveTurns` is
+finite, not negative and no greater than total turns; zero means not published. Check the inequalities in
+instructions.md.
 Return contextual errors with the prefix `compressionspring:`. Compute pitch
 and force using instructions.md.
 
