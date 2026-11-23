@@ -58,6 +58,17 @@ and 19.5 mm where it is lit, with a smooth ramp between.
 
 ![The display cut through the middle: the camshaft, the cams and the sliders, each part in its own color, the cut faces in the same colors](images/cutaway.png)
 
+Each rotor turns on two printed pivot blocks, one at each end. A block is 3.2 x 3.1 x 2.0 mm and carries a 0.8 mm pin.
+The pin stands in a 1.2 mm blind bore in the rotor's end, which leaves 0.20 mm all round, and the block's inner face
+stays 0.25 mm from the rotor's end face. The block is pressed 0.05 mm into a square pocket that the seam between the
+cradle plate and the top plate splits: the pocket's floor lies 1.6 mm under the axis in the cradle and its roof 1.6 mm
+over the seam in the top plate. The view below is a cut through rotor a's axis at its +x end, with every part
+in its own color and the cut faces in the same colors. The block (orange) fills its pocket between the cradle plate
+(below the seam) and the top plate (above it). The pin runs left into the bore, with the 0.20 mm gap above and below it
+and the 0.25 mm end gap between the block's face and the rotor's end:
+
+![Rotor a's +x end cut through its axis: the orange pivot block in its pocket between the cradle plate and the top plate, its pin in the rotor's end bore with a 0.20 mm gap round it and a 0.25 mm gap at the rotor's end](images/pivot-section.png)
+
 The click indexer, on the front end of the shaft, works like the one in a pen. A keyed hub is pressed on the stub of the
 shaft; a rotor slides on the hub and is held up by a spring in a fixed crown with ten notches. The button's ten teeth
 press on the rotor's ten inner teeth. A press pushes the rotor clear of the crown, then the matching helical ramps turn the
@@ -93,6 +104,12 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 ![The seven cams in two rows seen from behind, with the letters A, b, C, d, E, F and G engraved in their back faces](images/cams.png)
 
 ![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
+
+The pivot of rotor a taken apart: the rotor in the middle with its two pivot blocks slid out along its axis, the pins
+facing the rotor's end bores, the cradle plate pulled down and the top plate pulled up so that the seam faces and the
+halves of the pockets show. The plates are cut to a strip around the rotor; the sliders and the other rotors are left out:
+
+![The pivot of rotor a: the black rotor with its yellow tip in the middle, an orange pivot block on each side with its pin toward the rotor's end bore, the top plate above with the upper halves of the pockets facing down, the cradle plate below with the lower halves facing up](images/exploded-pivot.png)
 
 The camshaft alone, with the frame left out, its parts pulled off the front end along the shaft. From the rear: the shaft, cam a, f, b, g, c, e and d, the hub, the spring and the rotor:
 

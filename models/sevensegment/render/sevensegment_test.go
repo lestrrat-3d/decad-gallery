@@ -16,7 +16,7 @@ import (
 func TestSevenSegmentPresets(t *testing.T) {
 	m := Model()
 	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "indexer", "digits",
-		"cams", "exploded", "exploded-camshaft"} {
+		"cams", "exploded", "exploded-camshaft", "exploded-pivot", "pivot-section"} {
 		p, ok := m.Presets[name]
 		require.True(t, ok, name)
 		require.Equal(t, 1600, p.Width, name)
