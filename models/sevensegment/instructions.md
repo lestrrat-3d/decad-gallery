@@ -37,6 +37,21 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 - Containers follow the nesting rule: units `Frame` and `Camshaft` hold their kinds.
 - Model README name and `models/README.md` row title: "Seven-segment display".
 
+## Scale
+
+`Scale` (`params.go`) is the size of the display against its base design; the numbers in this document are those of
+`Scale` 1.0. Every shape (the layout, the rotors, the sliders, the cams, the frame and the pivot blocks) is written in
+the code as `Scale` times its base size in mm. These keep their size in mm at any scale, and the code adds them outside
+the product:
+
+- Fits and clearances (`TightFit`, `RegularFit`, `LooseFit`, `PressFit`, `Seam`, the 0.2 journal clearance, the 0.25 end gap).
+- Print limits: the 0.8 shells and tube walls, the tip flats, and the 0.5 edge chamfer and inside-corner round.
+- Plate thicknesses that are whole layers (the cradle and top plates).
+- Purchased hardware: the M2 bolts and nuts, the bearings and the click indexer's spring, with the click indexer's size.
+
+A value that is a size plus a fit, such as the rotor bore `RB` (swept circle 5.096 plus 0.45), is written as
+`Scale*size + fit`, so a change of `Scale` moves the size and leaves the fit.
+
 ## Design
 
 ### Coordinates and layout

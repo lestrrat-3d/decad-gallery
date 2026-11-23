@@ -14,7 +14,7 @@ import (
 )
 
 // axisLength is the length of the construction lines that hold polar directions.
-const axisLength = 30.0
+const axisLength = Scale * 30.0
 
 // run builds the parts in their local frames. It records every sketch.
 type run struct {
