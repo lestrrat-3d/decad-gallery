@@ -200,6 +200,7 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 	slot, rj := slotClear, sevensegment.JournalRadius-sevensegment.JournalPinR
 	d, s0, rp, hullR := sevensegment.RotorHalfWidth, sevensegment.PinOffset, sevensegment.TonguePinR, sevensegment.TongueHullR
 	segEnd, ss := sevensegment.SlotEnd, sevensegment.PinLinePlay-(sevensegment.JournalRadius-sevensegment.JournalPinR)*0.4472135955
+	rr, dip := sevensegment.TongueRootR, sevensegment.TongueRootDip
 	r2 := 1 / math.Sqrt2
 	type pt struct{ x, y float64 }
 	var circle []pt
@@ -218,8 +219,8 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 	}
 	for a := 0; a <= 90; a += 5 {
 		r := float64(a) * math.Pi / 180
-		pts = append(pts, pt{ar + 0.7 - 0.7*math.Cos(r), zh + 0.67 - 0.7*math.Sin(r)},
-			pt{-al - 0.7 + 0.7*math.Cos(r), zh + 0.67 - 0.7*math.Sin(r)})
+		pts = append(pts, pt{ar + rr - rr*math.Cos(r), zh + rr - dip - rr*math.Sin(r)},
+			pt{-al - rr + rr*math.Cos(r), zh + rr - dip - rr*math.Sin(r)})
 	}
 	var pin []pt
 	for a := 0; a < 360; a += 3 {

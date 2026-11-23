@@ -694,30 +694,33 @@ Its strip spans `[sL, sR]` in the horizontal axis normal to u (world Y for a/g/d
 | b/c | Y | y_i-1.8, y_i-0.2 | 15.0, 16.4, 15.0 | 81.05 |
 | e/f | Y | y_i-1.8, y_i-0.2 | -18.0, -16.6, -18.0 | 81.10 |
 
-1. Hull prism p1. Sketch in (s, z) on the plane u = ua; extrude along +u to `ue + 3.8`. Points: feet at z 72.0 at
-   `sR+0.8` and `sL-0.8`; up to 72.77; 8-chord quarter rounds r 0.7 about `(sR+0.7, 73.47)` (270 to 180 degrees) and
-   `(sL-0.7, 73.47)` (0 to -90 degrees) (`quarterRound`, every vertex a `DimensionPoint`). The rounds bottom out 0.03
-   inside the head and cross its top in their first chord. Then the strip sides up to `zp - 1.2`, and two hull lines
+1. Hull prism p1. Sketch in (s, z) on the plane u = ua; extrude along +u to `ue + 3.8`. Points: feet at z 71.9 at
+   `sR+0.9` and `sL-0.9`; up to 72.77; 8-chord quarter rounds r 0.8 about `(sR+0.8, 73.57)` (270 to 180 degrees) and
+   `(sL-0.8, 73.57)` (0 to -90 degrees) (`quarterRound`, every vertex a `DimensionPoint`). The rounds bottom out 0.03
+   inside the head. The first chord rises only 0.015, so the head top (72.8) crosses each round in its second chord,
+   which leaves a 16.9 degree crease there. The chords are 0.157 long, so a corner check window at the crease holds
+   that crease and at most two chord vertices (39.4 degrees), under the 50 degree rule. With r 0.7 the chords were
+   0.137 long, the window held three vertices and the sum was 50.6 degrees, which failed. Then the strip sides up to `zp - 1.2`, and two hull lines
    tangent to an arc of radius 0.6 about `(sc, zp)`. Arc constraints: `NewRadius(arc, 0.6)`, `NewTangent(lineR, arc)`,
    `NewTangent(lineL, arc)`. The tangent points are `CreatePoint` (not fixed), placed by `tangentPoint`.
 2. End cutter. Polygon in (u, z) on the plane s = sL - 1.5, extruded along s by `sR - sL + 3.0`:
-   `(ue, zp+1.5)`, an 8-chord quarter round r 0.7 about `(ue+0.7, 73.47)` from 180 to 270 degrees,
-   `(ue+0.8, 72.77) (ue+0.8, 71.5) (ue+4.0, 71.5) (ue+4.0, zp+1.5)`.
+   `(ue, zp+1.5)`, an 8-chord quarter round r 0.8 about `(ue+0.8, 73.57)` from 180 to 270 degrees,
+   `(ue+0.9, 72.77) (ue+0.9, 71.5) (ue+4.0, 71.5) (ue+4.0, zp+1.5)`.
 3. Pin. A circle r 0.50 at `(sc, zp)` on the plane u = ue - 0.1 (`DimensionPoint` centre, `NewRadius`), extruded 3.7
    along +u. `decad.Chamfer` 0.2 on its far circular edge (select the circular edge whose start lies at u = ue + 3.6).
-4. `cutter = Cut(cutter, pin)`, `tongue = Cut(p1, cutter)`. The result is the tongue with r 0.7 roots on three sides,
+4. `cutter = Cut(cutter, pin)`, `tongue = Cut(p1, cutter)`. The result is the tongue with r 0.8 roots on three sides,
    a sharp pin root (Decad item D2), and a Ø1.0 pin 3.6 long with a 0.2 tip chamfer.
 
 Results (`TestSevenSegmentSliders`): solids, tessellate at 0.05, `cornercheck` along each print axis with no finding.
-Volumes 986.46 (a/g/d), 986.54 (b/c), 1000.91 (e/f) mm^3, under the 1069 bound (0.013 N).
+Volumes 978.76 (a/g/d), 981.00 (b/c), 995.37 (e/f) mm^3, under the 1069 bound (0.013 N).
 
-Root sizes against the fits: tongue roots reach 73.47 (76.47 lit), at least 6.1 below the rotor axis at every upright
+Root sizes against the fits: tongue roots reach 73.57 (76.57 lit), at least 6.1 below the rotor axis at every upright
 pose and outside the 5.096 swept circle; `TestSevenSegmentTongueSweep` covers the turned-over poses. The blade root round tops out at 76.4 at
 lit, 1.0 below the tube bottom.
 
 ### Tongue, head and notch sweep (`sweep()` in `flags_test.go`)
 
-`sweep()` (ported from a one-off script) covers the head or arm top line and the tongue roots. Poses: slider s +-0.38 and z
+`sweep()` (ported from a one-off script; it reads the tongue root radius and dip from the model) covers the head or arm top line and the tongue roots. Poses: slider s +-0.38 and z
 from 0.24 below rest to `cap` above it, rotor anywhere in its 0.25 journal play, pin at either slot wall and within its
 limit. The cap is the turned-over rise: 0.8 groove clearance + 0.48 tolerance = 1.28 (a/g/d), plus the b-f tilt reversal
 0.6 = 1.88. Raw distances:
@@ -1139,7 +1142,7 @@ outlines.
   - peg collars (45-degree, 0.5);
   - pivot pin roots (45-degree cone, leg 0.25) and tips (chamfer 0.1), the bore countersink (45 degrees) and the notch mouth chamfer of type B (0.7).
 - Rounded:
-  - tongue roots 0.7 (8 chords; three sides);
+  - tongue roots 0.8 (8 chords; three sides);
   - blade roots 0.6, extension root 1.0, arm root 1.25;
   - pocket floor 0.6, bore cylinder/cone 0.8, the pivot pockets' corners 0.5 (the block's 0.45);
   - passage corners 0.5.
@@ -1343,7 +1346,7 @@ Corners recorded but not exempted (they pass the checker or lie between layers; 
 | Top plate, housing | head pocket floor rims | between layers; 0.3 head clearance leaves no room |
 | Cams | engraved letter: the 90 degree corners of 0.9 mm strokes, too thin for a 0.5 mm round | listed and exempt: `Disc` r 4.2 about the letter's centre |
 | Cams | groove floor rims, entry channel floor rims | between layers; a round would reach the pin (0.4 tip gap) |
-| Sliders | tongue roots 0.7, blade roots 0.6, arm root 1.25 | rounded |
+| Sliders | tongue roots 0.8, blade roots 0.6, arm root 1.25 | rounded |
 
 Split-shaft exemptions (`cornercheck.CheckAt`): front step and rear collar rear face (square, facing a purchased
 bearing), cam flats' square ends with cam a's chords, stub flat's square end with the hub's D chord
