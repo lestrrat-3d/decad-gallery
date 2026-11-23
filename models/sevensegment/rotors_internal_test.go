@@ -20,11 +20,11 @@ func TestSevenSegmentRotor(t *testing.T) {
 		com, beta  float64
 		notchProbe [][2]float64 // local (u, 0) of each notch's empty probe, and of each pocket
 	}{
-		{SegG, 865.94, 0.712, 92.0, nil},
-		{SegB, 665.62, 0.909, 94.0, nil},
+		{SegG, 856.22, 0.712, 92.0, nil},
+		{SegB, 655.90, 0.909, 94.0, nil},
 	} {
 		t.Run(tc.seg.String(), func(t *testing.T) {
-			// Before the flat, notches and stubs the two bodies hold the rotor: their volumes add up to it.
+			// Before the flat, notches and bores the two bodies hold the rotor: their volumes add up to it.
 			y0, b0, rv := sharedRotorSplit(t)
 			yv, err := y0.Volume()
 			require.NoError(t, err)
@@ -83,15 +83,6 @@ func TestSevenSegmentRotor(t *testing.T) {
 						Near: func(q r3.Vec) bool { return q.Sub(p).Len() < 0.25 }})
 				}
 			}
-			axisDir := fr.N()
-			origin := fr.Origin()
-			ex = append(ex, cornercheck.Exempt{Reason: "stub root: the 45 degree cone read obliquely", Optional: true,
-				Near: func(q r3.Vec) bool {
-					d := q.Sub(origin)
-					along := d.Dot(axisDir)
-					radial := d.Sub(axisDir.Scale(along)).Len()
-					return math.Abs(math.Abs(along)-12.85) < 0.15 && radial < 1.2
-				}})
 			fs, err = cornercheck.Check(t.Context(), f.Black, up, ex)
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 8))
@@ -108,11 +99,11 @@ func TestSevenSegmentRotorAll(t *testing.T) {
 		require.NoError(t, err)
 		cx, cy, horizontal := segmentCentre(s)
 		if horizontal {
-			require.InDelta(t, cx-RotorHalfLength-2, box.Min.X, 0.05)
-			require.InDelta(t, cx+RotorHalfLength+2, box.Max.X, 0.05)
+			require.InDelta(t, cx-RotorHalfLength, box.Min.X, 0.05)
+			require.InDelta(t, cx+RotorHalfLength, box.Max.X, 0.05)
 		} else {
-			require.InDelta(t, cy-RotorHalfLength-2, box.Min.Y, 0.05)
-			require.InDelta(t, cy+RotorHalfLength+2, box.Max.Y, 0.05)
+			require.InDelta(t, cy-RotorHalfLength, box.Min.Y, 0.05)
+			require.InDelta(t, cy+RotorHalfLength, box.Max.Y, 0.05)
 		}
 	}
 }

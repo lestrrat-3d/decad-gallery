@@ -213,38 +213,38 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 	}
 }
 
-// TestSevenSegmentJournalFit (T5) measures the journal fit on the built bodies: the radius of segment g's stub in the black
-// body and the radius of its half-hole in the cradle plate, each found by bisection along a radius at u = 13 (the middle
-// of the stub). Their difference is the Tight minimum 0.20, to the tessellation bound.
+// TestSevenSegmentJournalFit (T5) measures the pivot fit on the built bodies: the radius of segment g's end bore in the
+// black body (found by bisection along the yellow face's normal at u = 11.5, where the bore is a plain cylinder) and the
+// radius of the block's pin (along local x at u = 12.0). Their difference is the Tight minimum 0.20, to the tessellation bound.
 func TestSevenSegmentJournalFit(t *testing.T) {
 	f := sharedFlag(t, SegG)
-	_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
-	// The stub: material inside the radius, along the a axis of the rotor at u = 13.
+	_, block := sharedBody(t, "pivot block", (*run).pivotBlock)
+	// The bore: void inside the radius, material outside it.
 	lo, hi := 0.3, 0.9
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, f.Black, rotorPoint(SegG, m, 0, 13.0)) {
-			lo = m
-		} else {
+		if inBody(t, f.Black, rotorPoint(SegG, m, 0, 11.5)) {
 			hi = m
+		} else {
+			lo = m
 		}
 	}
-	stub := (lo + hi) / 2
-	// The half-hole: void inside the radius below the axis, material outside it.
-	lo, hi = 0.5, 1.3
+	bore := (lo + hi) / 2
+	// The pin: material inside the radius, void outside it.
+	lo, hi = 0.2, 0.7
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, cradle, r3.Vec{X: 13.0, Y: 0, Z: RotorAxisZ - m}) {
-			hi = m
-		} else {
+		if inBody(t, block, r3.Vec{X: m, Z: 12.0}) {
 			lo = m
+		} else {
+			hi = m
 		}
 	}
-	hole := (lo + hi) / 2
-	t.Logf("stub radius %.3f, half-hole radius %.3f, clearance %.3f", stub, hole, hole-stub)
-	require.InDelta(t, JournalRadius, stub, 0.02, "the stub radius")
-	require.InDelta(t, journalHoleRadius, hole, 0.02, "the half-hole radius")
-	require.InDelta(t, 0.20, hole-stub, 0.03, "the journal clearance (T5)")
+	pin := (lo + hi) / 2
+	t.Logf("bore radius %.3f, pin radius %.3f, clearance %.3f", bore, pin, bore-pin)
+	require.InDelta(t, JournalRadius, bore, 0.02, "the bore radius")
+	require.InDelta(t, pivotPinRadius, pin, 0.02, "the pin radius")
+	require.InDelta(t, 0.20, bore-pin, 0.03, "the pivot clearance (T5)")
 }
 
 // TestSevenSegmentStackPlay bounds the cam stack's play along the shaft (instructions.md "Cam stack, axial play"), read on

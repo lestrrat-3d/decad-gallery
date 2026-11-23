@@ -136,14 +136,14 @@ func builtLoads(t *testing.T) flagLoads {
 // slotClear is the pin's clearance in its pocket's slot.
 const slotClear = sevensegment.SlotRadius - sevensegment.TonguePinR
 
-// journalAcross is the extra side play when the journal sits fully across its hole instead of settled (0.11).
+// journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.11).
 const journalAcross = sevensegment.JournalAcross
 
 // audit is the friction audit of the drive with the pin bearing on one wall of its slot: the worst extra cam force F_x over
 // the pin's poses (the side from smin to 3 - smin, the height over the stroke and the play) and the least ratio of drive
 // arm to friction arms. The rotor's angle is the pin's polar angle plus or minus asin(cl / rho), the contact normal and the
-// imbalance torque follow it, and the friction arm of the slot wall is the pocket radius. across takes the journal fully
-// across its hole (a further 0.11 of side play). It returns ok false when the drive locks.
+// imbalance torque follow it, and the friction arm of the slot wall is the pocket radius. across takes the rotor fully
+// across its pins (a further 0.11 of side play). It returns ok false when the drive locks.
 func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool) {
 	const length = 25.0
 	rj, cl, w := sevensegment.JournalRadius, slotClear, sevensegment.SlotRadius
@@ -184,7 +184,7 @@ func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool)
 	return fx, minRatio, ok
 }
 
-// bias is the ratio of the gravity torque holding a rotor at its end pose to its journal friction at mu.
+// bias is the ratio of the gravity torque holding a rotor at its end pose to the friction of its end bores on the pins at mu.
 func bias(mu float64, l rotorLoad, phi float64) float64 {
 	return l.e * math.Abs(math.Cos((l.bc+phi)*math.Pi/180)) / (math.Sin(math.Atan(mu)) * sevensegment.JournalRadius)
 }
@@ -197,9 +197,9 @@ func bias(mu float64, l rotorLoad, phi float64) float64 {
 func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pinY float64) {
 	// The rotor, pin and slot dimensions come from the model; slot (the slot's clearance to the pin) and rj (the journal's)
 	// are the Tight fit, and ss is the slider's play along s less the settled journal (0.11), which the rotor carries along.
-	slot, rj := slotClear, sevensegment.JournalHoleR-sevensegment.JournalRadius
+	slot, rj := slotClear, sevensegment.JournalRadius-sevensegment.JournalPinR
 	d, s0, rp, hullR := sevensegment.RotorHalfWidth, sevensegment.PinOffset, sevensegment.TonguePinR, sevensegment.TongueHullR
-	segEnd, ss := sevensegment.SlotEnd, sevensegment.PinLinePlay-(sevensegment.JournalHoleR-sevensegment.JournalRadius)*0.4472135955
+	segEnd, ss := sevensegment.SlotEnd, sevensegment.PinLinePlay-(sevensegment.JournalRadius-sevensegment.JournalPinR)*0.4472135955
 	r2 := 1 / math.Sqrt2
 	type pt struct{ x, y float64 }
 	var circle []pt

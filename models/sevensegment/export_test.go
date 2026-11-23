@@ -20,7 +20,7 @@ const (
 	RotorEdgeR    = rotorEdgeRound
 	BladeAcross   = bladeAcross
 	SlotRadius    = slotRadius
-	JournalHoleR  = journalHoleRadius
+	JournalPinR   = pivotPinRadius
 	PinStationAGD = pinStationAGD
 	PinStationBC  = pinStationBC
 	PinStationEF  = pinStationEF

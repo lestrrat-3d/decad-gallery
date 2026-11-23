@@ -93,20 +93,19 @@ func flagSites() [4]m2fastener.Site {
 }
 
 // boreTool builds segment seg's rotor bore: a revolve about the rotor axis at height axisZ. The meridian (r, u) is symmetric in
-// u: the cylinder RB = 5.546, a round of 0.8 into the cone that follows the rotor's pyramid, the end wall at u 12.5 and
-// the journal hole of radius 0.80 (the stub's 0.60 plus 0.20) to u 14.5.
+// u: the cylinder RB = 5.546, a round of 0.8 into the cone that follows the rotor's pyramid and the end wall at u 12.5.
+// The pivot block's pocket (pivotPocketTool) opens through the end wall.
 func (r *run) boreTool(seg Segment, axisZ float64) (*decad.Body, error) {
 	rc := boreRadius - boreRound
 	uc := (5.496 + math.Sqrt2*10.354 - (boreRadius - boreRound) - math.Sqrt(3)*boreRound) / math.Sqrt2
 	half := quarterRound(rc, uc, boreRound, 0, math.Atan(math.Sqrt2)*180/math.Pi, 8)
-	half = append(half, [2]float64{2.461, 12.5}, [2]float64{journalHoleRadius + 0.5, 12.5}, [2]float64{journalHoleRadius, 13.0}, [2]float64{journalHoleRadius, 14.0})
-	half = append(half, quarterRound(journalHoleRadius-0.5, 14.0, 0.5, 0, 90, 8)[1:]...)
-	pts := [][2]float64{{0, -14.5}}
+	half = append(half, [2]float64{2.461, pivotBlockFrom})
+	pts := [][2]float64{{0, -pivotBlockFrom}}
 	for i := len(half) - 1; i >= 0; i-- {
 		pts = append(pts, [2]float64{half[i][0], -half[i][1]})
 	}
 	pts = append(pts, half...)
-	pts = append(pts, [2]float64{0, 14.5})
+	pts = append(pts, [2]float64{0, pivotBlockFrom})
 	b, err := r.meridian(pts)
 	if err != nil {
 		return nil, fmt.Errorf("bore %s: %w", seg, err)
@@ -245,6 +244,9 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 		if body, err = decad.Cut(r.ctx, body, b); err != nil {
 			return nil, fmt.Errorf("cut bore %s: %w", seg, err)
 		}
+		if body, err = r.cutPivotPockets(body, seg); err != nil {
+			return nil, err
+		}
 	}
 	for _, p := range topPegs {
 		cone, err := r.mouthCone(p[0], p[1], cradleFrom+cradleThick, pegHole, 0.8)
@@ -261,9 +263,6 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 	}
 	return body, nil
 }
-
-// journalHoleRadius is the radius of the journal holes in the cradle and the top plate: the stub's 0.60 plus 0.20.
-const journalHoleRadius = 0.80
 
 // The blade keeps bladeAcross from the walls of its hole across its thin side (this sets the pin line's side play) and
 // bladeAlong along its length; the tube keeps tubeWall around the hole. The hole's corners are rounded bladeHoleRound, the
@@ -334,6 +333,9 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		}
 		if body, err = decad.Cut(r.ctx, body, b); err != nil {
 			return nil, fmt.Errorf("cut bore %s: %w", seg, err)
+		}
+		if body, err = r.cutPivotPockets(body, seg); err != nil {
+			return nil, err
 		}
 	}
 	if body, err = r.flagWindows(body); err != nil {

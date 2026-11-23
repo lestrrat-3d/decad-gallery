@@ -30,11 +30,13 @@ const (
 	slotStart       = 1.0
 	slotEnd         = 2.7
 	slotRadius      = 0.7 // the pin pocket's radius: the pin's 0.5 plus 0.20
+	pocketFloorR    = 0.6 // the pin pocket's floor round
+	notchMouth      = 0.7 // the mouth chamfer of a notch end within 0.8 of the tip slant, on hidden face 315
 	yellowDepth     = 0.8
 	yellowHalfWidth = 2.95
 	yellowTipK      = 12.95 // the yellow's chamfer |b| + |u| <= yellowTipK runs 0.8 inside the pyramid edges (13.75)
 	yellowTipInner  = 12.95 // the yellow's inner face a >= yellowTipInner - |u| runs 0.8 under the facet (13.75 - |u|)
-	yellowTipEnd    = 11.6  // the yellow ends at |u| = yellowTipEnd, clear of the stub's root disc (from 11.75)
+	yellowTipEnd    = 11.6  // the yellow ends at |u| = yellowTipEnd, clear of the pivot bore's mouth
 )
 
 // rotorNotches lists a rotor type's notches as (u0, u1, pocket end) in the rotor's local u. Type A (segments a, g, d) has one
@@ -215,7 +217,37 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 	if tool, err = decad.Intersect(r.ctx, tool, box); err != nil {
 		return nil, fmt.Errorf("apex box: %w", err)
 	}
+	if u0 > -rotorSquareHalf && u0+rotorSquareHalf < 0.8 {
+		m, err := r.mouthTool(u0)
+		if err != nil {
+			return nil, err
+		}
+		if tool, err = decad.Union(r.ctx, tool, m); err != nil {
+			return nil, fmt.Errorf("mouth: %w", err)
+		}
+	}
 	return tool, nil
+}
+
+// mouthTool chamfers the edge where a notch's u0 end meets hidden face 315 (b = -3.75), leg notchMouth along u.
+func (r *run) mouthTool(u0 float64) (*decad.Body, error) {
+	k := 1 / math.Sqrt2
+	kk := u0 - notchMouth + RotorHalfWidth // the chamfer plane u - b = kk
+	aLo, top := -1.0, u0+1.0
+	p1, err := r.polyBody(local(axisA.Scale(aLo), axisB, axisZ), [][2]float64{{-4.5, -4.5 + kk}, {-4.5, top}, {top - kk, top}},
+		decad.Distance{D: units.Millimeters(notchFloor - aLo), Dir: decad.Along})
+	if err != nil {
+		return nil, fmt.Errorf("mouth prism: %w", err)
+	}
+	tdir := axisB.Scale(-k).Add(axisZ.Scale(k))
+	o := axisB.Scale(-RotorHalfWidth).Add(axisZ.Scale(-RotorHalfWidth + kk))
+	af := notchFloor - notchEnd
+	p3, err := r.polyBody(local(o, axisA, tdir), [][2]float64{{aLo - 1, -1}, {af - 1, -1}, {af + 2, 2}, {aLo - 1, 2}},
+		symmetric(30))
+	if err != nil {
+		return nil, fmt.Errorf("mouth taper: %w", err)
+	}
+	return decad.Intersect(r.ctx, p1, p3)
 }
 
 // pocketTool builds a pin pocket's cutter: a stadium along local x from slotStart to slotEnd, radius slotRadius, from local
@@ -264,7 +296,7 @@ func (r *run) pocketTool(z0, length float64) (*decad.Body, error) {
 	if n == 0 {
 		return nil, fmt.Errorf("no pocket floor edge")
 	}
-	if b, err = decad.Fillet(r.ctx, b, sel.Exactly(n), units.Millimeters(0.5)); err != nil {
+	if b, err = decad.Fillet(r.ctx, b, sel.Exactly(n), units.Millimeters(pocketFloorR)); err != nil {
 		return nil, fmt.Errorf("round the pocket floor (%d edges): %w", n, err)
 	}
 	return b, nil
@@ -303,22 +335,21 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 			return Flag{}, wrap(fmt.Sprintf("cut pocket %d", i+1), err)
 		}
 	}
-	// 7. The journal stubs, with a 45 degree root chamfer of leg 0.6 that starts inside the body.
+	// 7. Each end's pivot bore: the revolved bore with its floor round and 45 degree mouth, then the teardrop roof.
 	for _, sgn := range []float64{1, -1} {
-		e := RotorHalfLength
-		pts := [][2]float64{{0, sgn * (e - 0.5)}, {1.3, sgn * (e - 0.5)}, {1.3, sgn * (e - 0.1)}, {JournalRadius, sgn * (e + 0.6)},
-			{JournalRadius, sgn * (e + 1.7)}, {0.3, sgn * (e + 2.0)}, {0, sgn * (e + 2.0)}}
-		if sgn < 0 {
-			for i, j := 0, len(pts)-1; i < j; i, j = i+1, j-1 {
-				pts[i], pts[j] = pts[j], pts[i]
-			}
-		}
-		stub, err := r.meridian(pts)
+		bore, err := r.pivotBoreTool(sgn)
 		if err != nil {
-			return Flag{}, wrap("stub", err)
+			return Flag{}, wrap("pivot bore tool", err)
 		}
-		if black, err = decad.Union(r.ctx, black, stub); err != nil {
-			return Flag{}, wrap("union stub", err)
+		if black, err = decad.Cut(r.ctx, black, bore); err != nil {
+			return Flag{}, wrap("cut pivot bore", err)
+		}
+		roof, err := r.pivotRoofTool(sgn)
+		if err != nil {
+			return Flag{}, wrap("pivot roof tool", err)
+		}
+		if black, err = decad.Cut(r.ctx, black, roof); err != nil {
+			return Flag{}, wrap("cut pivot roof", err)
 		}
 	}
 	return Flag{Yellow: yellow, Black: black}, nil

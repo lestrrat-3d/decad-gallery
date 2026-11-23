@@ -28,6 +28,7 @@ var (
 	sevenRotorColor   = solidlens.RGB(.55, .38, .72) // click-indexer rotor
 	sevenButtonColor  = solidlens.RGB(.86, .38, .12) // button
 	sevenHardware     = solidlens.RGB(.55, .57, .60) // bought bearings, bolts and nuts
+	sevenPivotColor   = solidlens.RGB(.88, .48, .20) // the 14 pivot blocks
 	sevenDigitDefault = sevensegment.DefaultParams().Digit
 )
 
@@ -101,6 +102,20 @@ func sevenFlagName(seg sevensegment.Segment, kind string) string {
 	return "Flag " + seg.String() + " " + kind
 }
 
+// sevenBlockName is the part name of segment seg's pivot block at its -u (end 0) or +u (end 1) end.
+func sevenBlockName(seg sevensegment.Segment, end int) string {
+	return "Pivot Block " + seg.String() + [2]string{" -u", " +u"}[end]
+}
+
+// sevenSegmentAxis reports whether segment s's rotor axis runs along X (a, g, d).
+func sevenSegmentAxis(s sevensegment.Segment) (x, y float64, horizontal bool) {
+	switch s {
+	case sevensegment.SegA, sevensegment.SegG, sevensegment.SegD:
+		return 1, 0, true
+	}
+	return 0, 1, false
+}
+
 // sevenFlagSegment returns the segment a "Flag x Kind" part belongs to.
 func sevenFlagSegment(name string) sevensegment.Segment { return sevensegment.Segments()[name[5]-'a'] }
 
@@ -132,7 +147,7 @@ func sevenFlagMove(seg sevensegment.Segment, dphi float64) (r3.Transform, error)
 // sevenCamshaftOrder lists the parts that slide off the shaft, rear first.
 var sevenCamshaftOrder = []string{"Cam a", "Cam f", "Cam b", "Cam g", "Cam c", "Cam e", "Cam d", "Hub", "Spring", "Rotor"}
 
-// sevenSet builds the default display once and tessellates its 60 bodies.
+// sevenSet builds the default display once and tessellates its 75 bodies.
 func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 	return buildSevenSegmentSetOpt(ctx, false)
 }
@@ -164,6 +179,19 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 			named{sevenFlagName(s, "Black"), m.Flags[s].Black, sevenBlack})
 		// The rotors rise 30 and spread outward from the middle of the face, so that none hides another.
 		cx, cy := sevenSegmentCentre(s)
+		_, _, horizontal := sevenSegmentAxis(s)
+		for end, sgn := range []float64{-1, 1} {
+			name := sevenBlockName(s, end)
+			parts = append(parts, named{name, m.PivotBlocks[s][end], sevenPivotColor})
+			// Each block stays with its rotor and slides 14 along the axis, out past the rotor's end.
+			out := r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
+			if horizontal {
+				out.X += 14 * sgn
+			} else {
+				out.Y += 14 * sgn
+			}
+			sevenExplode[name] = out
+		}
 		sevenExplode[sevenFlagName(s, "Yellow")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
 		sevenExplode[sevenFlagName(s, "Black")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
 	}
@@ -426,6 +454,7 @@ var sevenPartImages = []struct {
 	{"bearing", []string{"Front Bearing"}}, {"bolt-m2x10", []string{"Bolt 1"}},
 	{"bolt-m2x6", []string{"Bolt 5"}},
 	{"nut", []string{"Nut 1"}},
+	{"pivot-block", []string{"Pivot Block g -u"}},
 }
 
 // renderSevenSegmentReadme builds the display once and writes every README image.

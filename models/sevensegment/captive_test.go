@@ -16,7 +16,7 @@ import (
 
 // TestSevenSegmentCaptive turns the unit over at every digit. Against the settled rest the flags rise 0.5, the sliders 0.8 and
 // the b-f sliders a further 2 raise at the pin (the tilt reverses); settled, the flags sit 0.5 and the sliders 0.4 below
-// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every journal stays in its hole (the flag does not touch the plates), every pin
+// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every pin
 // in its pocket and every blade in its tube (the slider does not touch the black body or the plates).
 func TestSevenSegmentCaptive(t *testing.T) {
 	startDigit0()
@@ -27,6 +27,7 @@ func TestSevenSegmentCaptive(t *testing.T) {
 	var sliders, yellows, blacks [7]*decad.Mesh
 	var blackGrids [7]*crossingGrid
 	var plates [3]meshgap.Mesh
+	var blocks [7][2]meshgap.Mesh
 	for _, s := range sevensegment.Segments() {
 		sliders[s], _ = meshOf(t, parts.Sliders[s], 0.05)
 		yellows[s], _ = meshOf(t, parts.Flags[s].Yellow, 0.05)
@@ -41,6 +42,13 @@ func TestSevenSegmentCaptive(t *testing.T) {
 	_, plates[2] = meshOf(t, parts.GuidePlate, 0.05)
 	plates[0] = posed(t, topMesh, shaft, r3.Vec{Y: 1}, 0, -0.5)
 	plates[1] = posed(t, cradleMesh, shaft, r3.Vec{Y: 1}, 0, -0.25)
+	// The blocks are pressed in the cradle's and the top plate's pockets, which close on the seam: they sit with the cradle.
+	for _, s := range sevensegment.Segments() {
+		for end := range 2 {
+			blockMesh, _ := meshOf(t, parts.PivotBlocks[s][end], 0.05)
+			blocks[s][end] = posed(t, blockMesh, shaft, r3.Vec{Y: 1}, 0, -0.25)
+		}
+	}
 	for k := range 10 {
 		for _, s := range sevensegment.Segments() {
 			was, _ := sevensegment.Lit(0, s)
@@ -76,10 +84,18 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			// The rotor follows its pin: the pin line is 0.4 higher (and 2 raise more on b-f), which turns the rotor.
 			zrel := dm.Lift(s, 36*float64(k)) - 1.75 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + slideraise(s)/2
 			dphi := math.Atan2(zrel, sevensegment.PinOffset)*180/math.Pi - dm.FlagAngle(s, 0)
-			// At the full 0.5 rise the stub touches the hole's roof by design (gap 0), which a mesh cannot prove separated:
-			// the flags are posed 0.11 short of it (the journal holes are 0.80, 0.05 smaller than the 0.85 they had), the mesh bound.
+			// At the full rise the bore's roof meets the pin by design (gap 0), which a mesh cannot prove separated: the flags
+			// are posed 0.11 low, the mesh bound. The pin axis is 0.25 below the modeled axis once clamped and the bore leaves
+			// 0.2 round the pin, so the roof stands 0.05 under the modeled axis, 0.06 above this pose.
 			black := posed(t, blacks[s], point, axis, dphi, -0.11)
 			yellow := posed(t, yellows[s], point, axis, dphi, -0.11)
+			for _, block := range blocks[s] {
+				for _, flag := range []meshgap.Mesh{black, yellow} {
+					ok, err := block.ExceedsClearance(flag, 0)
+					require.NoError(t, err)
+					require.True(t, ok, "digit %d: turned over, flag %s touches a pivot block (its pin left its bore)", k, s)
+				}
+			}
 			for _, plate := range plates[:2] {
 				for _, flag := range []meshgap.Mesh{black, yellow} {
 					ok, err := plate.ExceedsClearance(flag, 0)

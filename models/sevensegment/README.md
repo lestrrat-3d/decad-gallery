@@ -92,7 +92,7 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 
 ![The seven cams in two rows seen from behind, with the letters A, b, C, d, E, F and G engraved in their back faces](images/cams.png)
 
-![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
+![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
 The camshaft alone, with the frame left out, its parts pulled off the front end along the shaft. From the rear: the shaft, cam a, f, b, g, c, e and d, the hub, the spring and the rotor:
 
@@ -103,7 +103,7 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/front-wall.png" alt="Front wall" width="240"> | Front wall | 1 | 1 | Holds the front 605ZZ, the housing's two nuts and the ledge and flange ribs. |
 | <img src="images/parts/rear-wall.png" alt="Rear wall" width="240"> | Rear wall | 1 | 2 | Holds the rear 605ZZ and carries its own ribs. |
 | <img src="images/parts/guide-plate.png" alt="Guide plate" width="240"> | Guide plate | 1 | - | Seven slots that guide the sliders' stems, and the columns and pegs that locate the cradle plate. |
-| <img src="images/parts/cradle-plate.png" alt="Cradle plate" width="240"> | Cradle plate | 1 | - | Seven passages for the sliders and half-holes that carry the rotors' journals. |
+| <img src="images/parts/cradle-plate.png" alt="Cradle plate" width="240"> | Cradle plate | 1 | - | Seven passages for the sliders and the lower halves of the 14 pivot pockets, each 1.0 mm above the plate's bottom face. |
 | <img src="images/parts/top-plate.png" alt="Top plate" width="240"> | Top plate | 1 | - | The display face with seven windows (5.9 mm wide, pointed at the ends), and a tube over each slider's blade. The plate under the window edge is 0.70 mm thick, 0.49 mm at the pointed ends: thinner than the usual 0.8 mm, and listed in the instructions. |
 | <img src="images/parts/shaft.png" alt="Shaft" width="240"> | Shaft | 1 | - | Double-D camshaft (two opposite flats where the cams sit), printed as two halves. |
 | <img src="images/parts/hub.png" alt="Keyed hub" width="240"> | Keyed hub | 1 | - | Pressed on the stub's flat, 0.4 mm from the front wall's outer face. A cup with three keys for the rotor's skirt. |
@@ -127,6 +127,7 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/rotor-b.png" alt="Rotor B" width="240"> | Rotor B | 4 | - | For segments b, c, e, f: two notches. Two bodies, listed next. |
 | <img src="images/parts/rotor-b-yellow.png" alt="Rotor B yellow face and tips" width="240"> | Rotor B yellow face and tips | 4 | - | Yellow filament. The face slab continues onto the 45 degree tips. Prints face down. |
 | <img src="images/parts/rotor-b-black.png" alt="Rotor B black body" width="240"> | Rotor B black body | 4 | - | Black filament. |
+| <img src="images/parts/pivot-block.png" alt="Pivot block" width="240"> | Pivot block | 14 | - | Two per rotor, all identical. A 3.2 x 3.1 x 2.0 mm block with a 0.8 mm pin on one face. It is pressed 0.05 mm into a pocket split between the cradle plate and the top plate; the pin turns in the rotor's end bore. Prints on its outer face with the pin up, no support. |
 | <img src="images/parts/bearing.png" alt="605ZZ bearing" width="240"> | 605ZZ bearing | 2 | - | Bought. |
 | <img src="images/parts/bolt-m2x10.png" alt="M2 x 10 bolt" width="240"> | M2 x 10 bolt | 6 | - | Bought. The top plate's four bolts, heads sunk flush, and the housing's two. |
 | <img src="images/parts/bolt-m2x6.png" alt="M2 x 6 bolt" width="240"> | M2 x 6 bolt | 4 | - | Bought. |
@@ -145,8 +146,9 @@ Each rotor is two bodies, a yellow body (the face slab and the two tips) and a b
 on a printer that changes between two filaments of one polymer (both bodies share their faces, so they must be the same
 polymer, for example PETG, to bond). A pause for a filament change does not work: the yellow takes the first 12 layers
 and the black rim is printed in the same layers, so a pause would turn the rim and the tips yellow. A plate of seven rotors needs
-about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 7.5 mm square and its journal
-stubs are 1.2 mm across and overhang by 1.4 mm (accepted in the instructions; check the first print). The rotors, sliders, stubs and pegs print whole, not split, and the instructions say why. A bearing,
+about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 7.5 mm square and has a 1.2 mm bore
+in each end (a teardrop roof, so it needs no support). Print the 14 pivot blocks on their outer faces with the 0.8 mm pins
+up; check the first block against the pocket before printing the rest. The rotors, sliders, pivot pins and pegs print whole, not split, and the instructions say why. A bearing,
 bolt or nut is bought.
 
 ## Bill of materials
@@ -188,8 +190,10 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    edge on the right, and (-13.55, 39), near the back edge on the left (the other two holes are for the top plate's pegs).
 7. On the bench, join each rotor to its slider: yellow face up, 2.0 mm along +u from its place (+u as defined above), notch over the tongue, then
    slide it -u so the pin enters the pocket. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
-8. Lower each unit through its cradle passage and guide slot, the groove pin first, into its cam's entry channel. The
-   journal stubs settle into the cradle's half-holes.
+8. Push a pivot block onto each end of every rotor, its pin into the end bore. Keep the unit level, lower it through its cradle
+   passage and guide slot, the groove pin first, into its cam's entry channel, and let the blocks drop into the cradle's open
+   half-pockets. Press each block down with a finger until it seats. A block can slip off its pin if the unit tilts before it
+   is seated.
 9. Lower the top plate over the cradle's pegs at (-12, -45), near the front edge on the left, and (14.5, 39), near the back edge on the
    right. The a, g and d blades stand upright. Each b to f
    arm sags by up to about 1 mm at its blade: reach in from the open side and lift the arm's outer end until its blade

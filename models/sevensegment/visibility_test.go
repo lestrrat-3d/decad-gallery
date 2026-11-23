@@ -79,7 +79,8 @@ func TestSevenSegmentWindowLip(t *testing.T) {
 	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
-	topMesh, _ := meshOf(t, parts.TopPlate, 0.01)
+	// 0.015: the pivot pockets' rounds meet the bore's faceted cone, and decad holds that body's mesh to 0.0148 at best.
+	topMesh, _ := meshOf(t, parts.TopPlate, 0.015)
 	plate := trisOf(topMesh, nil, r3.Vec{}, kindPlate)
 	var near []rayTri
 	for _, tr := range plate {
