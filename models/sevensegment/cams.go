@@ -15,19 +15,22 @@ import (
 
 // Cam dimensions that are not exported.
 const (
-	camBoreRadius = 3.25 // D bore: shaft radius 3.2 plus PressFit
-	camBoreFlat   = 2.75 // flat 2.7 plus PressFit
-	camHubTop     = 7.15 // hub end, local z
-	camRoundR     = 0.5  // hub root round
-	camChamfer    = 0.5  // rim chamfer
-	camMarkRadius = 0.75 // look-alike hole radius (1.5 across)
-	camMarkStep   = 25.0 // degrees between marks
+	camBoreRadius = shaftCamRadius + PressFit          // D bore: shaft radius 3.2 plus PressFit
+	camBoreFlat   = shaftCamFlat + PressFit            // flat 2.7 plus PressFit
+	camHubTop     = StationPitch - CamThickness - 0.05 // hub end, local z: 0.05 short of the next cam's back face
+	camRoundR     = 0.5                                // hub root round
+	camChamfer    = 0.5                                // rim chamfer
+	camMarkRadius = 0.75                               // look-alike hole radius (1.5 across)
+	camMarkStep   = 25.0                               // degrees between marks
 	camMarkFirst  = 270.0
 	channelCap    = CamRadius + 1.0 // entry channel cap line, 1.0 outside the rim so the channel opens through it
 )
 
 // camDiscFace is the Y of a cam's groove face: the station plus the hub reach.
-func (d Dimensions) camDiscFace(s Segment) float64 { return d.Station(s) + 2.35 }
+func (d Dimensions) camDiscFace(s Segment) float64 { return d.Station(s) + camFaceOffset }
+
+// camFaceOffset is how far a cam's groove face stands from its slider's centre plane: half the stem and a Loose gap.
+const camFaceOffset = StemThickness/2 + LooseFit
 
 // camFrame is the cam's local frame in the world: origin on the groove face and the shaft axis, U = +X, V = +Z, so the
 // cam's local +Z runs along world -Y.
@@ -41,19 +44,19 @@ func (d Dimensions) camFrame(s Segment) r3.Frame {
 func camMarks(s Segment) (int, float64) {
 	switch s {
 	case SegD:
-		return 1, 12
+		return 1, Scale * 12
 	case SegE:
-		return 2, 12
+		return 2, Scale * 12
 	case SegC:
-		return 3, 12
+		return 3, Scale * 12
 	case SegG:
-		return 1, 8
+		return 1, Scale * 8
 	case SegB:
-		return 2, 8
+		return 2, Scale * 8
 	case SegF:
-		return 3, 8
+		return 3, Scale * 8
 	default:
-		return 4, 8
+		return 4, Scale * 8
 	}
 }
 
@@ -203,7 +206,7 @@ func (r *run) grooveTool(seg Segment) (*decad.Body, error) {
 			s.AddConstraint(sketch.NewRadius(s.CreateArc(o, from, to), rd))
 		}
 	}
-	return r.extrude(s, 1, 2.9, decad.Against)
+	return r.extrude(s, 1, 1.0+GrooveDepth, decad.Against)
 }
 
 // channelInside reports whether the entry channel, centred at EntryAngle, lies inside the dwell from angle a to b.
@@ -247,11 +250,11 @@ func (r *run) channel(s *sketch.Sketch, entry *sketch.Line, from, to *sketch.Poi
 // hexadecimal letters of a seven-segment display), each outline a closed run of horizontal and vertical lines held by
 // its distance from the cam's axis, so the sketch is fully constrained without fixing a point.
 const (
-	inscriptionStroke = 0.9  // stroke width, mm: above the 0.8 mm printable minimum
-	inscriptionWidth  = 3.2  // letter width, mm
-	inscriptionHeight = 4.6  // letter height, mm
-	inscriptionDepth  = 0.5  // engraving depth, mm
-	inscriptionRadius = 14.0 // the letter's centre from the cam axis, straight up (local +Y) from it
+	inscriptionStroke = 0.9          // stroke width, mm: above the 0.8 mm printable minimum
+	inscriptionWidth  = Scale * 3.2  // letter width, mm
+	inscriptionHeight = Scale * 4.6  // letter height, mm
+	inscriptionDepth  = 0.5          // engraving depth, mm
+	inscriptionRadius = Scale * 14.0 // the letter's centre from the cam axis, straight up (local +Y) from it
 )
 
 // letterSegments names the display segments each cam letter lights, a to g as in the truth table.

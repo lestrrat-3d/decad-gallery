@@ -14,26 +14,26 @@ import (
 // pressed into a square pocket split by the seam between the cradle plate and the top plate. A Ø0.8 pin stands on its
 // rotor-side face and turns in the rotor's end bore. All lengths are in mm and measured along u from the rotor's middle.
 const (
-	pivotPinRadius  = 0.4  // the pin; the rotor's end bore (JournalRadius 0.6) leaves 0.2, the Tight minimum
-	pivotBlockSide  = 3.2  // the block's width, along s
-	pivotBlockHigh  = 3.1  // the block's height, along z: 1.0 of cradle stays under its pocket, and the pin axis stays put
-	pivotBlockFrom  = 12.5 // the end wall: the block's rotor-side face (T6 0.25 from the rotor's end face)
-	pivotBlockLong  = 2.0
-	pivotPinTip     = 11.25 // the pin stands 1.25 from the block's face
-	pivotRootLeg    = 0.25  // the pin's 45 degree root cone, inside the end gap
-	pivotTipLeg     = 0.1   // the pin's tip chamfer
-	pivotCornerR    = 0.45  // the block's rounds; the pocket's are 0.5, PressFit larger
-	pivotPocketR    = pivotCornerR + PressFit
-	pivotPocketHalf = pivotBlockSide/2 + PressFit // the pocket's half width along s
-	pivotPocketLow  = 1.6                         // the pocket's floor, below the axis: 1.0 of cradle under it
-	pivotPocketHigh = Seam + 1.6                  // its roof, above the axis: 1.6 into the top plate, over the seam
+	pivotPinRadius  = Scale * 0.4                        // the pin; the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
+	pivotBlockSide  = Scale * 3.2                        // the block's width, along s
+	pivotBlockHigh  = Scale * 3.1                        // the block's height, along z: 1.0 of cradle stays under its pocket, and the pin axis stays put
+	pivotBlockFrom  = RotorHalfLength + 0.25             // the end wall: the block's rotor-side face (T6 0.25 from the rotor's end face)
+	pivotBlockLong  = Scale * 2.0                        //
+	pivotPinTip     = pivotBlockFrom - Scale*1.25        // the pin stands 1.25 from the block's face
+	pivotRootLeg    = 0.25                               // the pin's 45 degree root cone, inside the end gap
+	pivotTipLeg     = 0.1                                // the pin's tip chamfer
+	pivotCornerR    = Scale * 0.45                       // the block's rounds; the pocket's are 0.5, PressFit larger
+	pivotPocketR    = pivotCornerR + PressFit            //
+	pivotPocketHalf = pivotBlockSide/2 + PressFit        // the pocket's half width along s
+	pivotPocketLow  = pivotBlockHigh/2 + PressFit        // the pocket's floor, below the axis: 1.0 of cradle under it
+	pivotPocketHigh = Seam + pivotBlockHigh/2 + PressFit // its roof, above the axis: 1.6 into the top plate, over the seam
 
 	// The rotor's end bore: radius JournalRadius from the floor at pivotBoreFloor to the end face, a 0.5 round at the floor,
 	// a teardrop roof truncated at pivotRoofTop from the axis, and a 45 degree countersink to pivotMouthR at the end face.
-	pivotBoreFloor = 10.8
-	pivotFloorRond = 0.5
-	pivotRoofTop   = 0.70
-	pivotMouthR    = 0.93
+	pivotBoreFloor = Scale * 10.8
+	pivotFloorRond = Scale * 0.5
+	pivotRoofTop   = Scale * 0.70
+	pivotMouthR    = Scale * 0.93
 )
 
 // pivotBoreTool builds the revolved part of one rotor end's pivot bore in the rotor's local frame: end sgn (+1 for +u).

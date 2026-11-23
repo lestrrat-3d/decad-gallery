@@ -10,16 +10,21 @@ import (
 
 // Shaft and camshaft part dimensions that are not exported.
 const (
-	shaftCamRadius    = 3.2 // cam section
-	shaftCamFlat      = 2.7 // cam section flat, from the axis
-	shaftStubRadius   = 2.5 // knob stub, journals
-	shaftStubFlat     = 2.0 // knob stub flat
-	shaftCamFlatFrom  = -50.25
-	shaftCamFlatTo    = 39.2
-	shaftStubFlatFrom = -73.2
-	shaftStubFlatTo   = -57.85
-	boreStubRadius    = 2.55 // knob and collar ring bore
-	boreStubFlat      = 2.05
+	shaftCamRadius    = Scale * 3.2                                           // cam section
+	shaftCamFlat      = Scale * 2.7                                           // cam section flat, from the axis
+	shaftJournal      = 2.5                                                   // the journals: half the bearing's bore, so it does not scale
+	shaftStubRadius   = shaftJournal                                          // knob stub
+	shaftStubFlat     = 2.0                                                   // knob stub flat
+	shaftCamFrom      = frontInnerY + 0.25                                    // the cam section starts 0.25 inside the front wall
+	shaftCamEnd       = SegmentSpan + camFaceOffset + CamThickness + LooseFit // the last cam's back face and a Loose gap
+	shaftRearFrom     = rearInnerY - 0.25                                     // the rear collar ends 0.25 inside the rear wall
+	shaftFrontEnd     = frontWallOuterY - 14.7                                // the knob end
+	shaftCamFlatFrom  = shaftCamFrom - 1.0
+	shaftCamFlatTo    = shaftCamEnd - 0.5
+	shaftStubFlatFrom = shaftFrontEnd - 1.0
+	shaftStubFlatTo   = frontWallOuterY - 0.35
+	boreStubRadius    = shaftStubRadius + PressFit // knob and collar ring bore
+	boreStubFlat      = shaftStubFlat + PressFit
 )
 
 // camshaftFrame is a frame whose local Z runs along world +Y through the shaft axis at the given world Y, with local x
@@ -41,16 +46,19 @@ func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	polygon(s, [][2]float64{{x0, -4}, {x1, -4}, {x1, 4}, {x0, 4}})
+	polygon(s, [][2]float64{{x0, Scale * -4}, {x1, Scale * -4}, {x1, Scale * 4}, {x0, Scale * 4}})
 	return r.extrude(s, 0, z1-z0, decad.Along)
 }
 
 // shaft builds the printed camshaft in its local frame (axis on local Z = world +Y, flats toward local +x = world +Z) and
 // places it in the world at theta = 0.
 func (r *run) shaft() (*decad.Body, error) {
+	// The journals and their chamfers are the bearings' size, 5 wide at the rear (the bearing's width does not scale).
 	pts := [][2]float64{ // (r, z) in world Y
-		{0, -72.2}, {2.2, -72.2}, {2.5, -71.9}, {2.5, -49.25}, {3.2, -49.25}, {3.2, 39.7}, {3.8, 40.739}, {3.8, 42.75},
-		{2.5, 42.75}, {2.5, 47.7}, {2.2, 48.0}, {0, 48.0},
+		{0, shaftFrontEnd}, {shaftJournal - 0.3, shaftFrontEnd}, {shaftJournal, shaftFrontEnd + 0.3}, {shaftJournal, shaftCamFrom},
+		{shaftCamRadius, shaftCamFrom}, {shaftCamRadius, shaftCamEnd}, {RearCollarRadius, shaftCamEnd + Scale*1.039},
+		{RearCollarRadius, shaftRearFrom}, {shaftJournal, shaftRearFrom}, {shaftJournal, rearInnerY + 4.7},
+		{shaftJournal - 0.3, rearInnerY + 5.0}, {0, rearInnerY + 5.0},
 	}
 	body, err := r.meridian(pts)
 	if err != nil {
@@ -60,9 +68,9 @@ func (r *run) shaft() (*decad.Body, error) {
 		name           string
 		x0, x1, z0, z1 float64
 	}{
-		{"cam flat", shaftCamFlat, 8, shaftCamFlatFrom, shaftCamFlatTo},
-		{"cam back flat", -8, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
-		{"stub flat", shaftStubFlat, 8, shaftStubFlatFrom, shaftStubFlatTo},
+		{"cam flat", shaftCamFlat, Scale * 8, shaftCamFlatFrom, shaftCamFlatTo},
+		{"cam back flat", Scale * -8, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
+		{"stub flat", shaftStubFlat, Scale * 8, shaftStubFlatFrom, shaftStubFlatTo},
 	} {
 		tool, err := r.flatTool(c.x0, c.x1, c.z0, c.z1)
 		if err != nil {

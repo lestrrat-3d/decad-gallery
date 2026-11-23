@@ -19,24 +19,27 @@ type Flag struct{ Yellow, Black *decad.Body }
 
 // Rotor dimensions that are not exported, in mm. The rotor is built in a local frame: local x is the rotor's x (the face
 // normal at turn 0 is along it), local y is up, and local z is the axis u.
+//
+// The shells under the faces and the yellow's inset (0.8), the chamfer legs (0.5, 0.7, 0.8) and the pin pocket's play (0.20)
+// are print limits and fits: they keep their size in mm at any Scale.
 const (
-	rotorEdgeRound  = 0.5   // long edges; swept radius 3.25*sqrt2 + 0.5 = 5.096
-	rotorSquareHalf = 10.0  // the section is square for |u| <= 10
-	rotorTipB       = 12.35 // prism B's end points, so the pyramid edges stay sharp
-	rotorFlat       = -2.3  // the black body keeps y >= -2.3
-	notchFloor      = 2.95  // shells under both faces are 0.8
-	notchEnd        = 0.5   // notch end chamfer leg
-	notchApex       = 0.8   // apex chamfer leg
-	slotStart       = 1.0
-	slotEnd         = 2.7
-	slotRadius      = 0.7 // the pin pocket's radius: the pin's 0.5 plus 0.20
-	pocketFloorR    = 0.6 // the pin pocket's floor round
-	notchMouth      = 0.7 // the mouth chamfer of a notch end within 0.8 of the tip slant, on hidden face 315
-	yellowDepth     = 0.8
-	yellowHalfWidth = 2.95
-	yellowTipK      = 12.95 // the yellow's chamfer |b| + |u| <= yellowTipK runs 0.8 inside the pyramid edges (13.75)
-	yellowTipInner  = 12.95 // the yellow's inner face a >= yellowTipInner - |u| runs 0.8 under the facet (13.75 - |u|)
-	yellowTipEnd    = 11.6  // the yellow ends at |u| = yellowTipEnd, clear of the pivot bore's mouth
+	rotorEdgeRound  = Scale * 0.5                            // long edges; swept radius 3.25*sqrt2 + 0.5 = 5.096
+	rotorSquareHalf = Scale * 10.0                           // the section is square for |u| <= 10
+	rotorTipB       = Scale * 12.35                          // prism B's end points, so the pyramid edges stay sharp
+	rotorFlat       = Scale * -2.3                           // the black body keeps y >= -2.3
+	notchFloor      = RotorHalfWidth - 0.8                   // shells under both faces are 0.8
+	notchEnd        = 0.5                                    // notch end chamfer leg
+	notchApex       = 0.8                                    // apex chamfer leg
+	slotStart       = Scale * 1.0                            //
+	slotEnd         = Scale * 2.7                            //
+	slotRadius      = flagPinRadius + 0.2                    // the pin pocket's radius: the pin's 0.5 plus 0.20
+	pocketFloorR    = Scale * 0.6                            // the pin pocket's floor round
+	notchMouth      = 0.7                                    // the mouth chamfer of a notch end within 0.8 of the tip slant, on hidden face 315
+	yellowDepth     = 0.8                                    //
+	yellowHalfWidth = RotorHalfWidth - 0.8                   //
+	yellowTipK      = RotorHalfWidth + rotorSquareHalf - 0.8 // the yellow's chamfer |b| + |u| <= yellowTipK runs 0.8 inside the pyramid edges (13.75)
+	yellowTipInner  = yellowTipK                             // the yellow's inner face a >= yellowTipInner - |u| runs 0.8 under the facet (13.75 - |u|)
+	yellowTipEnd    = Scale * 11.6                           // the yellow ends at |u| = yellowTipEnd, clear of the pivot bore's mouth
 )
 
 // rotorNotches lists a rotor type's notches as (u0, u1, pocket end) in the rotor's local u. Type A (segments a, g, d) has one
@@ -44,9 +47,9 @@ const (
 func rotorNotches(s Segment) [][3]float64 {
 	switch s {
 	case SegA, SegG, SegD:
-		return [][3]float64{{-5.6, -0.2, 2.8}}
+		return [][3]float64{{Scale * -5.6, Scale * -0.2, Scale * 2.8}}
 	}
-	return [][3]float64{{-9.4, -4.0, -1.0}, {1.6, 7.0, 10.0}}
+	return [][3]float64{{Scale * -9.4, Scale * -4.0, Scale * -1.0}, {Scale * 1.6, Scale * 7.0, Scale * 10.0}}
 }
 
 // rotorFrame is the rotor's local frame in the world at turn 0: origin on the axis at the rotor's middle, local x along s,
@@ -106,11 +109,11 @@ func octagon(c, cend, uend float64) [][2]float64 {
 func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err error) {
 	wrap := func(what string, e error) error { return fmt.Errorf("rotor %s: %w", what, e) }
 	// 1. The pyramid tips: two prisms intersected.
-	pa, err := r.polyBody(local(r3.Vec{}, axisA, axisZ), octagon(4.25, 1.5, RotorHalfLength), symmetric(14))
+	pa, err := r.polyBody(local(r3.Vec{}, axisA, axisZ), octagon(Scale*4.25, Scale*1.5, RotorHalfLength), symmetric(Scale*14))
 	if err != nil {
 		return nil, nil, 0, wrap("prism A", err)
 	}
-	pb, err := r.polyBody(local(r3.Vec{}, axisB, axisZ), octagon(4.25, 1.4, rotorTipB), symmetric(14))
+	pb, err := r.polyBody(local(r3.Vec{}, axisB, axisZ), octagon(Scale*4.25, Scale*1.4, rotorTipB), symmetric(Scale*14))
 	if err != nil {
 		return nil, nil, 0, wrap("prism B", err)
 	}
@@ -119,7 +122,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 		return nil, nil, 0, wrap("tips", err)
 	}
 	// 2. The rounded square section: four lines held by their distance from the axis and their angle, filleted.
-	s, err := r.sketchOn(local(r3.Vec{Z: -13}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
+	s, err := r.sketchOn(local(r3.Vec{Z: Scale * -13}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
 	if err != nil {
 		return nil, nil, 0, wrap("section sketch", err)
 	}
@@ -143,7 +146,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 			return nil, nil, 0, wrap(fmt.Sprintf("section round %d", i+1), err)
 		}
 	}
-	section, err := r.extrude(s, 0, 26, decad.Along)
+	section, err := r.extrude(s, 0, Scale*26, decad.Along)
 	if err != nil {
 		return nil, nil, 0, wrap("section", err)
 	}
@@ -159,7 +162,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 	// P1 in (a, u): the slab floor, the inner face under the facet, and the end at |u| = yellowTipEnd.
 	e, k := yellowTipEnd, yellowTipInner-yellowTipEnd
 	p1, err := r.polyBody(local(r3.Vec{}, axisA, axisZ), [][2]float64{{notchFloor, -(yellowTipInner - notchFloor)},
-		{notchFloor, yellowTipInner - notchFloor}, {k, e}, {6, e}, {6, -e}, {k, -e}}, symmetric(14))
+		{notchFloor, yellowTipInner - notchFloor}, {k, e}, {Scale * 6, e}, {Scale * 6, -e}, {k, -e}}, symmetric(Scale*14))
 	if err != nil {
 		return nil, nil, 0, wrap("P1", err)
 	}
@@ -167,7 +170,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 	w := yellowHalfWidth
 	cu, cb := yellowTipK-yellowHalfWidth, yellowTipK-yellowTipEnd-0.5 // chamfer ends: (w, cu) and (cb, yellowTipK - cb)
 	p2, err := r.polyBody(local(r3.Vec{}, axisB, axisZ), [][2]float64{{w, -cu}, {w, cu}, {cb, yellowTipK - cb},
-		{-cb, yellowTipK - cb}, {-w, cu}, {-w, -cu}, {-cb, -(yellowTipK - cb)}, {cb, -(yellowTipK - cb)}}, symmetric(14))
+		{-cb, yellowTipK - cb}, {-w, cu}, {-w, -cu}, {-cb, -(yellowTipK - cb)}, {cb, -(yellowTipK - cb)}}, symmetric(Scale*14))
 	if err != nil {
 		return nil, nil, 0, wrap("P2", err)
 	}
@@ -194,13 +197,13 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 
 // notchTool builds the cutter of one notch [u0, u1]: the two slanted profiles intersected, trimmed by the apex box.
 func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
-	prof := [][2]float64{{notchFloor, u0 + notchEnd}, {notchFloor, u1 - notchEnd}, {notchFloor - notchEnd, u1}, {-6, u1},
-		{-6, u0}, {notchFloor - notchEnd, u0}}
-	sa, err := r.polyBody(local(r3.Vec{}, axisA, axisZ), prof, symmetric(14))
+	prof := [][2]float64{{notchFloor, u0 + notchEnd}, {notchFloor, u1 - notchEnd}, {notchFloor - notchEnd, u1}, {Scale * -6, u1},
+		{Scale * -6, u0}, {notchFloor - notchEnd, u0}}
+	sa, err := r.polyBody(local(r3.Vec{}, axisA, axisZ), prof, symmetric(Scale*14))
 	if err != nil {
 		return nil, fmt.Errorf("slant A: %w", err)
 	}
-	sb, err := r.polyBody(local(r3.Vec{}, axisB, axisZ), prof, symmetric(14))
+	sb, err := r.polyBody(local(r3.Vec{}, axisB, axisZ), prof, symmetric(Scale*14))
 	if err != nil {
 		return nil, fmt.Errorf("slant B: %w", err)
 	}
@@ -209,7 +212,8 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 		return nil, fmt.Errorf("slant A x B: %w", err)
 	}
 	ya := (2*notchFloor - notchApex) / math.Sqrt2
-	box, err := r.polyBody(local(r3.Vec{Z: u0 - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}), [][2]float64{{-7, -7}, {7, -7}, {7, ya}, {-7, ya}},
+	box, err := r.polyBody(local(r3.Vec{Z: u0 - 1}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+		[][2]float64{{Scale * -7, Scale * -7}, {Scale * 7, Scale * -7}, {Scale * 7, ya}, {Scale * -7, ya}},
 		decad.Distance{D: units.Millimeters(u1 - u0 + 2), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("apex box: %w", err)
@@ -217,7 +221,7 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 	if tool, err = decad.Intersect(r.ctx, tool, box); err != nil {
 		return nil, fmt.Errorf("apex box: %w", err)
 	}
-	if u0 > -rotorSquareHalf && u0+rotorSquareHalf < 0.8 {
+	if u0 > -rotorSquareHalf && u0+rotorSquareHalf < 0.8 { // the notch ends within the 0.8 print limit of the tip slant
 		m, err := r.mouthTool(u0)
 		if err != nil {
 			return nil, err
@@ -234,7 +238,7 @@ func (r *run) mouthTool(u0 float64) (*decad.Body, error) {
 	k := 1 / math.Sqrt2
 	kk := u0 - notchMouth + RotorHalfWidth // the chamfer plane u - b = kk
 	aLo, top := -1.0, u0+1.0
-	p1, err := r.polyBody(local(axisA.Scale(aLo), axisB, axisZ), [][2]float64{{-4.5, -4.5 + kk}, {-4.5, top}, {top - kk, top}},
+	p1, err := r.polyBody(local(axisA.Scale(aLo), axisB, axisZ), [][2]float64{{Scale * -4.5, Scale*-4.5 + kk}, {Scale * -4.5, top}, {top - kk, top}},
 		decad.Distance{D: units.Millimeters(notchFloor - aLo), Dir: decad.Along})
 	if err != nil {
 		return nil, fmt.Errorf("mouth prism: %w", err)
@@ -243,7 +247,7 @@ func (r *run) mouthTool(u0 float64) (*decad.Body, error) {
 	o := axisB.Scale(-RotorHalfWidth).Add(axisZ.Scale(-RotorHalfWidth + kk))
 	af := notchFloor - notchEnd
 	p3, err := r.polyBody(local(o, axisA, tdir), [][2]float64{{aLo - 1, -1}, {af - 1, -1}, {af + 2, 2}, {aLo - 1, 2}},
-		symmetric(30))
+		symmetric(Scale*30))
 	if err != nil {
 		return nil, fmt.Errorf("mouth taper: %w", err)
 	}
@@ -310,8 +314,9 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 	}
 	wrap := func(what string, e error) error { return fmt.Errorf("rotor %s: %w", what, e) }
 	// 4. The flat under the bottom: black only.
-	flat, err := r.polyBody(local(r3.Vec{Z: -14}, r3.Vec{X: 1}, r3.Vec{Y: 1}), [][2]float64{{-7, -7}, {7, -7}, {7, rotorFlat}, {-7, rotorFlat}},
-		decad.Distance{D: units.Millimeters(28), Dir: decad.Along})
+	flat, err := r.polyBody(local(r3.Vec{Z: Scale * -14}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+		[][2]float64{{Scale * -7, Scale * -7}, {Scale * 7, Scale * -7}, {Scale * 7, rotorFlat}, {Scale * -7, rotorFlat}},
+		decad.Distance{D: units.Millimeters(Scale * 28), Dir: decad.Along})
 	if err != nil {
 		return Flag{}, wrap("flat tool", err)
 	}
@@ -327,7 +332,7 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 		if black, err = decad.Cut(r.ctx, black, tool); err != nil {
 			return Flag{}, wrap(fmt.Sprintf("cut notch %d", i+1), err)
 		}
-		pocket, err := r.pocketTool(n[1]-0.6, n[2]-n[1]+0.6)
+		pocket, err := r.pocketTool(n[1]-Scale*0.6, n[2]-n[1]+Scale*0.6)
 		if err != nil {
 			return Flag{}, wrap(fmt.Sprintf("pocket %d tool", i+1), err)
 		}

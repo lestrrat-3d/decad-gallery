@@ -16,26 +16,27 @@ import (
 // Plates of the flag mechanism, in mm. The cradle plate holds the rotors' journals from below and the top plate from
 // above; the guide plate gains two columns that carry pegs registering the cradle.
 const (
-	flagFaceZ    = 88.25 // the display face
-	cradleFrom   = 80.0
-	cradleThick  = 2.6 // 13 layers: the seam plane carries the rotor axes
+	flagFaceZ    = topFrom + topThick // the display face
+	cradleFrom   = Scale * 80.0
+	cradleThick  = 2.6 // 13 layers: the seam plane carries the rotor axes; whole layers, so not scaled
 	topFrom      = cradleFrom + cradleThick + Seam
-	topThick     = 5.4 // 27 layers
-	tubeFrom     = 77.4
-	bladeHoleTop = 87.45
-	columnTop    = 79.15
-	pegHole      = 1.55 // registration hole radius; pegs are r 1.5
-	boreRadius   = 5.546
-	boreRound    = 0.8
+	topThick     = 5.4                     // 27 layers; whole layers, so not scaled
+	tubeFrom     = RotorAxisZ - Scale*5.2  // the tubes hang from the top plate to the sliders' heads
+	bladeHoleTop = flagFaceZ - 0.8         // the tube roof: 0.8 of top plate over the blade hole
+	columnTop    = cradleFrom - Scale*0.85 // the columns end this far under the cradle
+	pegRadius    = Scale * 1.5
+	pegHole      = pegRadius + PressFit // registration hole radius
+	boreRadius   = Scale*5.096 + 0.45   // the rotor's swept circle (5.096) plus the Regular-fit play 0.45
+	boreRound    = Scale * 0.8
 )
 
 // pegSites are the registration pegs: the first two stand on the guide plate's columns and the last two on the top plate.
 var (
-	columnPegs = [2][2]float64{{12, -45}, {-13.55, 39}}
-	topPegs    = [2][2]float64{{-12, -45}, {14.5, 39}}
+	columnPegs = [2][2]float64{{Scale * 12, Scale * -45}, {Scale * -13.55, Scale * 39}}
+	topPegs    = [2][2]float64{{Scale * -12, Scale * -45}, {Scale * 14.5, Scale * 39}}
 	// columnHalf are the columns' half widths (x, y), in the order of columnPegs. The rear column is 4.6 wide so it keeps
 	// LooseFit from the rear top flange rib (x -16.4) and rotor a's pyramid never reaches it.
-	columnHalf = [2][2]float64{{2.5, 2.5}, {2.3, 2.5}}
+	columnHalf = [2][2]float64{{Scale * 2.5, Scale * 2.5}, {ribInner - Scale*13.55 - LooseFit, Scale * 2.5}}
 )
 
 // plan maps (u, s) about a segment's centre to world XY.
@@ -85,21 +86,31 @@ func circleAt(s *sketch.Sketch, x, y, rad float64) {
 // cradle to the top flange ribs.
 func flagSites() [4]m2fastener.Site {
 	var out [4]m2fastener.Site
-	for i, p := range [][2]float64{{-frameBoltX, -44.5}, {frameBoltX, -44.5}, {-frameBoltX, 38}, {frameBoltX, 38}} {
+	for i, p := range [][2]float64{{-frameBoltX, Scale * -44.5}, {frameBoltX, Scale * -44.5}, {-frameBoltX, Scale * 38}, {frameBoltX, Scale * 38}} {
 		out[i] = m2fastener.Site{Head: r3.Vec{X: p[0], Y: p[1], Z: flagFaceZ}, Dir: r3.Vec{Z: -1}, Corner: r3.Vec{Y: 1},
 			Length: 10, Cavity: 10.5}
 	}
 	return out
 }
 
+// boreCone is the constant of the bore's cone r + sqrt2*u = boreCone: the line stands 0.40 (the Regular fit) from the rotor's
+// pyramid edge r + sqrt2*u = sqrt2*(RotorHalfWidth + rotorSquareHalf), so it moves out with the rotor by sqrt2 per mm of scale
+// and the fit stays. boreCone1 is its value at Scale 1.
+const (
+	boreConeFit = 0.4 * 1.7320508075688772 // the fit 0.40 measured along r, sqrt3 times the distance normal to the cone
+	boreCone1   = 5.496 + math.Sqrt2*10.354
+	boreCone    = Scale*(boreCone1-boreConeFit) + boreConeFit
+)
+
 // boreTool builds segment seg's rotor bore: a revolve about the rotor axis at height axisZ. The meridian (r, u) is symmetric in
 // u: the cylinder RB = 5.546, a round of 0.8 into the cone that follows the rotor's pyramid and the end wall at u 12.5.
 // The pivot block's pocket (pivotPocketTool) opens through the end wall.
 func (r *run) boreTool(seg Segment, axisZ float64) (*decad.Body, error) {
 	rc := boreRadius - boreRound
-	uc := (5.496 + math.Sqrt2*10.354 - (boreRadius - boreRound) - math.Sqrt(3)*boreRound) / math.Sqrt2
+	uc := (boreCone - (boreRadius - boreRound) - math.Sqrt(3)*boreRound) / math.Sqrt2
 	half := quarterRound(rc, uc, boreRound, 0, math.Atan(math.Sqrt2)*180/math.Pi, 8)
-	half = append(half, [2]float64{2.461, pivotBlockFrom})
+	// The cone ends on the end wall at r 2.461 at Scale 1; it moves with the cone and the wall.
+	half = append(half, [2]float64{2.461 + (boreCone - boreCone1) - math.Sqrt2*(pivotBlockFrom-12.5), pivotBlockFrom})
 	pts := [][2]float64{{0, -pivotBlockFrom}}
 	for i := len(half) - 1; i >= 0; i-- {
 		pts = append(pts, [2]float64{half[i][0], -half[i][1]})
@@ -193,11 +204,11 @@ func (r *run) mouthCone(x, y, z, rh, d float64) (*decad.Body, error) {
 func cradlePassage(seg Segment, yi float64) [4]float64 {
 	switch seg {
 	case SegA, SegG, SegD:
-		return [4]float64{-5.1, 5.1, yi - 9.4, yi + 4.4}
+		return [4]float64{-(Scale*4.55 + LooseFit), Scale*4.55 + LooseFit, yi - (Scale*8.85 + LooseFit), yi + Scale*3.85 + LooseFit}
 	case SegB, SegC:
-		return [4]float64{-4.05, 18.45, yi - 3.4, yi + 4.6}
+		return [4]float64{-(Scale*3.5 + LooseFit), Scale*17.9 + LooseFit, yi - (Scale*2.85 + LooseFit), yi + Scale*4.05 + LooseFit}
 	}
-	return [4]float64{-20.05, 4.05, yi - 3.4, yi + 4.6}
+	return [4]float64{-(Scale*19.5 + LooseFit), Scale*3.5 + LooseFit, yi - (Scale*2.85 + LooseFit), yi + Scale*4.05 + LooseFit}
 }
 
 // cradlePlate builds the cradle plate: z 80.0 to 82.6 with the four T holes, four registration holes, seven passages, seven
@@ -228,7 +239,7 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 		if err := rrect(ps, q[0], q[1], q[2], q[3], 0.5); err != nil {
 			return nil, fmt.Errorf("passage %s: %w", seg, err)
 		}
-		tool, err := r.extrude(ps, 0, 5, decad.Along)
+		tool, err := r.extrude(ps, 0, cradleThick+2.4, decad.Along)
 		if err != nil {
 			return nil, fmt.Errorf("passage tool %s: %w", seg, err)
 		}
@@ -282,11 +293,11 @@ func tubeFootprint(seg Segment, yi float64) [4]float64 {
 	_, cy, _ := segmentCentre(seg)
 	switch seg {
 	case SegA, SegG, SegD:
-		return [4]float64{h[0] - tubeWall, h[1] + tubeWall, h[2] - tubeWall, cy - 4.9}
+		return [4]float64{h[0] - tubeWall, h[1] + tubeWall, h[2] - tubeWall, cy - Scale*4.9}
 	case SegB, SegC:
-		return [4]float64{h[0] - tubeWall, 11.55, h[2] - tubeWall, h[3] + tubeWall}
+		return [4]float64{h[0] - tubeWall, Scale * 11.55, h[2] - tubeWall, h[3] + tubeWall}
 	}
-	return [4]float64{-11.55, h[1] + tubeWall, h[2] - tubeWall, h[3] + tubeWall}
+	return [4]float64{Scale * -11.55, h[1] + tubeWall, h[2] - tubeWall, h[3] + tubeWall}
 }
 
 // bladeHole is a segment's blade hole through the tube and the plate: the blade plus bladeAcross across it and bladeAlong
@@ -296,11 +307,11 @@ func bladeHole(seg Segment, yi float64) [4]float64 {
 	across, along := bladeAcross, bladeAlong
 	switch seg {
 	case SegA, SegG, SegD:
-		return [4]float64{-3.5 - along, 3.5 + along, cy - 7.8 - across, cy - 6.7 + across}
+		return [4]float64{Scale*-3.5 - along, Scale*3.5 + along, cy - Scale*7.8 - across, cy - Scale*6.7 + across}
 	case SegB, SegC:
-		return [4]float64{8.7 - across, 9.8 + across, yi - 1.8 - along, yi + 3.0 + along}
+		return [4]float64{Scale*8.7 - across, Scale*9.8 + across, yi - StemThickness/2 - along, yi + Scale*3.0 + along}
 	}
-	return [4]float64{-9.8 - across, -8.7 + across, yi - 1.8 - along, yi + 3.0 + along}
+	return [4]float64{Scale*-9.8 - across, Scale*-8.7 + across, yi - StemThickness/2 - along, yi + Scale*3.0 + along}
 }
 
 // flagTopPlate builds the top plate: 5.4 thick from z 82.85 to the display face, with seven tubes hanging from its underside,
@@ -342,7 +353,8 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		return nil, err
 	}
 	for _, p := range topPegs {
-		peg, err := r.meridian([][2]float64{{0, -1.6}, {1.2, -1.6}, {1.5, -1.3}, {1.5, -0.5}, {2.0, 0}, {2.0, 0.1}, {0, 0.1}})
+		peg, err := r.meridian([][2]float64{{0, Scale * -1.6}, {pegRadius - 0.3, Scale * -1.6}, {pegRadius, Scale*-1.6 + 0.3},
+			{pegRadius, Scale * -0.5}, {pegRadius + 0.5, 0}, {pegRadius + 0.5, 0.1}, {0, 0.1}})
 		if err != nil {
 			return nil, fmt.Errorf("peg: %w", err)
 		}
@@ -359,14 +371,14 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 	}
 	for _, seg := range Segments() {
 		h := bladeHole(seg, r.dm.Station(seg))
-		hs, err := r.sketchOn(xyFrame(77.0))
+		hs, err := r.sketchOn(xyFrame(tubeFrom - 0.4))
 		if err != nil {
 			return nil, err
 		}
 		if err := rrect(hs, h[0], h[1], h[2], h[3], bladeHoleRound); err != nil {
 			return nil, fmt.Errorf("blade hole sketch %s: %w", seg, err)
 		}
-		hole, err := r.extrude(hs, 0, bladeHoleTop-77.0, decad.Along)
+		hole, err := r.extrude(hs, 0, bladeHoleTop-(tubeFrom-0.4), decad.Along)
 		if err != nil {
 			return nil, fmt.Errorf("blade hole %s: %w", seg, err)
 		}
@@ -395,19 +407,22 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 // stand 0.8 inside the rotor's faces and the chamfers 1.1 inside its pyramid edges, so no yellow shows when a rotor is
 // unlit (instructions.md "Visibility").
 const (
-	windowHalfWidth = 2.95
-	windowChamfer   = 12.65
-	windowEnd       = 11.696
+	windowHalfWidth = RotorHalfWidth - 0.8                   // 0.8 inside the rotor's faces
+	windowChamfer   = RotorHalfWidth + rotorSquareHalf - 1.1 // 1.1 inside its pyramid edges
+	windowEnd       = Scale * 11.696
 )
+
+// windowFrom is the plane the window and T-hole sketch lies on, 0.85 under the top plate's underside.
+const windowFrom = topFrom - 0.85
 
 // flagWindows cuts the seven windows and the four T holes: one sketch holds every loop (a frame rectangle, the T circles and
 // the window octagons), and each loop without a hole is extruded and cut on its own.
 func (r *run) flagWindows(body *decad.Body) (*decad.Body, error) {
-	s, err := r.sketchOn(xyFrame(82.0))
+	s, err := r.sketchOn(xyFrame(windowFrom))
 	if err != nil {
 		return nil, err
 	}
-	rectOn(s, -30, 30, -52, 46)
+	rectOn(s, Scale*-30, Scale*30, Scale*-52, Scale*46)
 	for _, st := range flagSites() {
 		circleAt(s, st.Head.X, st.Head.Y, m2fastener.HoleRadius)
 	}
@@ -432,7 +447,7 @@ func (r *run) flagWindows(body *decad.Body) (*decad.Body, error) {
 		if !pr.Valid || len(pr.Holes) != 0 {
 			continue
 		}
-		tool, err := decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(7), Dir: decad.Along})
+		tool, err := decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(flagFaceZ + 0.75 - windowFrom), Dir: decad.Along})
 		if err != nil {
 			return nil, fmt.Errorf("window tool: %w", err)
 		}
@@ -456,14 +471,15 @@ func (r *run) columnGuidePlate() (*decad.Body, error) {
 	}
 	for i, p := range columnPegs {
 		h := columnHalf[i]
-		col, err := r.rootedPost(p[0]-h[0], p[0]+h[0], p[1]-h[1], p[1]+h[1], 58, columnTop, 0.1, 0.5)
+		col, err := r.rootedPost(p[0]-h[0], p[0]+h[0], p[1]-h[1], p[1]+h[1], guideTop, columnTop, 0.1, 0.5)
 		if err != nil {
 			return nil, fmt.Errorf("column: %w", err)
 		}
 		if body, err = decad.Union(r.ctx, body, col); err != nil {
 			return nil, fmt.Errorf("union column: %w", err)
 		}
-		peg, err := r.meridian([][2]float64{{0, -0.1}, {2.0, -0.1}, {2.0, 0}, {1.5, 0.5}, {1.5, 2.3}, {1.2, 2.6}, {0, 2.6}})
+		peg, err := r.meridian([][2]float64{{0, -0.1}, {pegRadius + 0.5, -0.1}, {pegRadius + 0.5, 0}, {pegRadius, 0.5},
+			{pegRadius, Scale*2.6 - 0.3}, {pegRadius - 0.3, Scale * 2.6}, {0, Scale * 2.6}})
 		if err != nil {
 			return nil, fmt.Errorf("column peg: %w", err)
 		}

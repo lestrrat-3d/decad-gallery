@@ -16,25 +16,26 @@ import (
 
 // The click indexer sits on the knob end of the camshaft. The box stands on its back wall, so model -Y points up, and the
 // indexer's parts stack along -Y from the front wall. Every Y below is a world Y at digit 0 and rest; a local frame has its
-// Z along -Y (frontFrame), so a part's local Z is its height above its reference plane.
+// Z along -Y (frontFrame), so a part's local Z is its height above its reference plane. The click indexer is bought hardware
+// (its spring) and a size set by the hand, so it does not scale: every Y below is an offset from the front wall's outer face.
 const (
-	frontWallOuterY = -57.5
+	frontWallOuterY = frontInnerY - WallThickness
 	chamfer         = 0.5 // "Surface edge finishing": the equal-setback chamfer of a large face's rim
 
 	// Keyed hub: pressed on the stub's D flat. A cup whose wall carries the keys of the rotor's skirt.
-	hubBaseY       = -57.9
+	hubBaseY       = frontWallOuterY - 0.4
 	hubBaseLength  = 3.5
-	hubRimY        = -67.3 // the rotor's lower stop, 0.1 short of its plate at the full 2.0 drop
+	hubRimY        = frontWallOuterY - 9.8 // the rotor's lower stop, 0.1 short of its plate at the full 2.0 drop
 	hubRadius      = 10.5
 	hubWallInner   = 9.0
 	hubKeyInner    = 8.05
 	hubKeyWidth    = 2.0
 	hubKeyCount    = 3
-	hubSpringFloor = hubBaseY - hubBaseLength // y of the base's top face, where the spring stands: -61.4
+	hubSpringFloor = hubBaseY - hubBaseLength // y of the base's top face, where the spring stands
 
 	// Rotor: skirt keyed in the hub, a plate with the inner teeth that meet the button and the outer teeth that lock in the
 	// fixed crown. Local Z is height above the plate's top face at rotorPlateY.
-	rotorPlateY      = -70.9
+	rotorPlateY      = frontWallOuterY - 13.4
 	rotorPlateThick  = 1.5
 	rotorPlateRadius = 14.2
 	rotorBoreRadius  = 3.0
@@ -49,19 +50,19 @@ const (
 	rotorOuterR1     = 14.0
 
 	// Housing: base on the front wall, tube and a bezel, a fixed crown ring that holds the rotor's outer teeth.
-	housingBaseY     = -57.75
+	housingBaseY     = frontWallOuterY - 0.25
 	housingBaseThick = 4.0
-	housingBezelY    = -75.4 // 17.9 above the wall: the button's head ends flush with it
+	housingBezelY    = frontWallOuterY - 17.9 // 17.9 above the wall: the button's head ends flush with it
 	housingTubeInner = 14.55
 	housingTubeOuter = 16.55
 	housingFlangeR   = 24.8 // base flange: inside the walls (x +-24.9); 1.1 round the H head pockets after the chamfer
 	housingCrownR0   = 11.55
-	housingCrownY    = -72.5 // underside of the ring, above the crown's teeth
+	housingCrownY    = frontWallOuterY - 15.0 // underside of the ring, above the crown's teeth
 	housingSlotOuter = 12.7
 	housingSlotWidth = 3.0
 
 	// Button: head, ten teeth under it, three keys that slide in the housing's slots.
-	buttonUndersideY = -78.9
+	buttonUndersideY = frontWallOuterY - 21.4
 	buttonHeadThick  = 2.5
 	buttonRadius     = 11.0
 	buttonRecessR    = 3.2

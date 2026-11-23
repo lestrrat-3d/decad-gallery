@@ -17,21 +17,26 @@ import (
 
 // Frame dimensions in mm that are not exported.
 const (
-	wallTopZ       = 81.25                    // z of the wall's upper edge: ribs end 1.5 below it
-	wallHalf       = WallHalfWidth + 1.5      // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
-	wallBottomZ    = ShaftZ - CamRadius - 3.0 // z of the wall's lower edge, 3.0 below the cams' rims
-	ribInner       = 16.4                     // |x| where a rib starts: 1.026 inside the nut pockets' flats (19.6 - 2.174)
-	ledgeFrom      = 49.75                    // z of a ledge rib's underside
-	flangeFrom     = 75.75                    // z of a top flange rib's underside
-	ribHeight      = 4.0
-	ribDepth       = 10.0
-	frontLedgeDeep = 18.7
-	rearLedgeDeep  = 14.2 // rear ledge ribs reach y 28.8: 1.0 past the G3/G4 head pockets (y 32 - 2.2)
+	wallTopZ       = flangeFrom + ribHeight + 1.5   // z of the wall's upper edge: ribs end 1.5 below it
+	wallHalf       = WallHalfWidth + 1.5            // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
+	wallBottomZ    = ShaftZ - CamRadius - Scale*3.0 // z of the wall's lower edge, 3.0 below the cams' rims
+	ribInner       = Scale * 16.4                   // |x| where a rib starts, inside the nut pockets' flats
+	ledgeFrom      = guideFrom - Seam - ribHeight   // z of a ledge rib's underside: the guide plate stands on it over a seam
+	flangeFrom     = cradleFrom - Seam - ribHeight  // z of a top flange rib's underside: the cradle plate stands on it over a seam
+	ribHeight      = Scale * 4.0
+	ribDepth       = Scale * 10.0
+	frontLedgeDeep = Scale*-34.2 + 3.4 - frontInnerY // front ledge ribs reach 1.2 past the G1/G2 head pockets (y -34.2 + 2.2)
+	rearLedgeDeep  = rearInnerY - (Scale*32.0 - 3.2) // rear ledge ribs reach y 28.8: 1.0 past the G3/G4 head pockets (y 32 - 2.2)
 	ribRound       = 0.5
 	wallChamfer    = 0.5
-	frontInnerY    = -49.5
-	rearInnerY     = 43.0
-	markRadius     = 10.0 // look-alike hole circle on the walls
+	frontInnerY    = Scale * -49.5
+	rearInnerY     = Scale * 43.0
+	markRadius     = Scale * 10.0 // look-alike hole circle on the walls
+
+	// The guide plate: z 54 to 58 at Scale 1.
+	guideFrom  = Scale * 54.0
+	guideThick = Scale * 4.0
+	guideTop   = guideFrom + guideThick
 )
 
 // wallFrame is a wall's sketch frame: origin on the shaft axis in its inner face, V = +Z and N outward.
@@ -126,8 +131,10 @@ func depth(front, ledge bool) float64 {
 // seatTool is the revolved cutter for the 605ZZ seat and the lip hole, in the wall's local frame (axis Z, depth d along
 // +Z from the inner face).
 func (r *run) seatTool() (*decad.Body, error) {
-	return r.meridian([][2]float64{{0, -1}, {7.55, -1}, {7.55, 0}, {7.05, 0.5}, {7.05, 5.0}, {4.5, 5.0}, {4.5, 7.5},
-		{5.0, 8.0}, {5.0, 9.0}, {0, 9.0}})
+	// The seat, the lip and the lead-ins belong to the bearing, which is purchased: they keep their size at any Scale. The lip
+	// ends at the outer face, WallThickness from the inner one.
+	return r.meridian([][2]float64{{0, -1}, {7.55, -1}, {7.55, 0}, {7.05, 0.5}, {7.05, 5.0}, {4.5, 5.0}, {4.5, WallThickness - 0.5},
+		{5.0, WallThickness}, {5.0, WallThickness + 1}, {0, WallThickness + 1}})
 }
 
 // wallFasteners cuts the fastener tools of the wall's sites: front wall T1, T2, G1, G2, D1, D2; rear wall T3, T4, G3, G4.
@@ -287,8 +294,12 @@ func roundRoot(ctx context.Context, body *decad.Body, side, level, innerY float6
 // horizontal or vertical at its distance from the origin.
 func slotLoop(s *sketch.Sketch, y float64) error {
 	o := s.Origin()
-	v := [][2]float64{{-3.75, y - 2.05}, {3.75, y - 2.05}, {3.75, y + 2.05}, {1.9, y + 2.05}, {1.9, y + 4.25},
-		{-1.9, y + 4.25}, {-1.9, y + 2.05}, {-3.75, y + 2.05}}
+	// The slot is the stem's section (7.0 by 3.6) with the Tight fit round it; the notch passes the groove pin: the stem's
+	// narrow part (3.6) with 0.1 each side, and the pin's length with 0.4.
+	sx, sy := Scale*3.5+TightFit, StemThickness/2+TightFit
+	nx, ny := Scale*1.8+0.1, StemThickness/2+PinLength+0.4
+	v := [][2]float64{{-sx, y - sy}, {sx, y - sy}, {sx, y + sy}, {nx, y + sy}, {nx, y + ny},
+		{-nx, y + ny}, {-nx, y + sy}, {-sx, y + sy}}
 	pts := make([]*sketch.Point, len(v))
 	for i, q := range v {
 		pts[i] = s.CreatePoint(q[0], q[1])
@@ -323,7 +334,7 @@ const (
 // guidePlate builds the guide plate: seven slots with pin notches, four bolt holes, outer-loop chamfers and nut pockets
 // open to the top face at the G sites.
 func (r *run) guidePlate() (*decad.Body, error) {
-	s, err := r.sketchOn(xyFrame(54))
+	s, err := r.sketchOn(xyFrame(guideFrom))
 	if err != nil {
 		return nil, err
 	}
@@ -337,11 +348,11 @@ func (r *run) guidePlate() (*decad.Body, error) {
 		c := sketchcheck.DimensionPoint(s, site.Head.X, site.Head.Y)
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, m2fastener.HoleRadius), m2fastener.HoleRadius))
 	}
-	body, err := r.extrude(s, 11, 4, decad.Along)
+	body, err := r.extrude(s, 11, guideThick, decad.Along)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
-	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{54, 58}, edgefinish.Long(edgefinish.Outer),
+	if body, _, err = edgefinish.Chamfer(r.ctx, body, r3.Vec{Z: 1}, []float64{guideFrom, guideTop}, edgefinish.Long(edgefinish.Outer),
 		wallChamfer); err != nil {
 		return nil, fmt.Errorf("chamfer outer loops: %w", err)
 	}

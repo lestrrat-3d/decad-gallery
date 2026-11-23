@@ -9,31 +9,36 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
+// Scale is the size of the display against its base design, which Scale 1.0 is. Every shape (layout, rotors, sliders, cams,
+// frame, pivot) is written as Scale times its base size in mm. Fits, clearances, print limits, layer-bound thicknesses and
+// purchased hardware keep their size in mm and are added outside the product (see instructions.md "Scale").
+const Scale = 1.0
+
 // Fixed dimensions in mm and degrees. See instructions.md for what each one is.
 const (
-	SegmentSpan   = 33.0
-	Travel        = 3.0
+	SegmentSpan   = Scale * 33.0
+	Travel        = Scale * 3.0
 	FaceZ         = flagFaceZ
-	ShaftZ        = 29.5
-	StationPitch  = 11.0
-	CamRadius     = 23.5
-	CamThickness  = 3.8
-	HubRadius     = 5.0
-	OffRadius     = 16.5
-	OnRadius      = 19.5
-	GrooveWidth   = 3.8
-	GrooveDepth   = 1.9
-	RampStart     = 8.0
+	ShaftZ        = Scale * 29.5
+	StationPitch  = Scale * 11.0
+	CamRadius     = Scale * 23.5
+	CamThickness  = Scale * 3.8
+	HubRadius     = Scale * 5.0
+	OffRadius     = Scale * 16.5
+	OnRadius      = Scale * 19.5
+	GrooveWidth   = 2*sliderPinR + 0.8 // the groove pin's diameter plus a 0.8 fit
+	GrooveDepth   = Scale * 1.9
+	RampStart     = 8.0 // degrees
 	RampEnd       = 29.5
-	RampRound     = 2.5
+	RampRound     = Scale * 2.5
 	EntryAngle    = 18.0
-	PinRadius     = 1.5
-	PinLength     = 2.05
-	StemThickness = 3.6
-	StemRound     = 0.3
+	PinRadius     = Scale * 1.5
+	PinLength     = Scale*1.9 + 0.15 // the groove depth plus a 0.15 end gap
+	StemThickness = Scale * 3.6
+	StemRound     = Scale * 0.3
 
-	WallThickness = 8.0
-	WallHalfWidth = 23.4 // plates x +-23.4; the b, c, e, f bores (x +-22.046) keep 0.85 inside the 0.5 chamfer
+	WallThickness = Scale * 8.0
+	WallHalfWidth = Scale * 23.4 // plates x +-23.4; the b, c, e, f bores (x +-22.046) keep 0.85 inside the 0.5 chamfer
 
 	Seam            = 0.25
 	PressFit        = 0.05
@@ -43,17 +48,17 @@ const (
 	TimingAllowance = 1.5
 
 	// The flag mechanism: each segment is a two-colour rotor on two printed pivot blocks, turned by its slider.
-	RotorAxisZ      = 82.6 // modeled height of every rotor axis
-	RotorHalfWidth  = 3.75 // distance of a rotor face from its axis
-	RotorHalfLength = 12.25
-	JournalRadius   = 0.6 // the rotor's end bore, its turning surface; the pivot pin (r 0.4) turns in it
-	PinOffset       = 1.5 // distance of the slider pin line from the rotor axis, along the rotor's x
+	RotorAxisZ      = cradleFrom + cradleThick // modeled height of every rotor axis: the seam plane
+	RotorHalfWidth  = Scale * 3.75             // distance of a rotor face from its axis
+	RotorHalfLength = Scale * 12.25
+	JournalRadius   = pivotPinRadius + 0.2 // the rotor's end bore, its turning surface; the pivot pin turns in it with 0.2 to spare
+	PinOffset       = Scale * 1.5          // distance of the slider pin line from the rotor axis, along the rotor's x
 
-	RearCollarRadius = 3.8
+	RearCollarRadius = Scale * 3.8
 )
 
 // frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
-// inside WallHalfWidth.
+// inside WallHalfWidth. The hardware does not scale, so the offset does not.
 const frameBoltX = WallHalfWidth - 3.8 // 19.6
 
 // Segment names one of the seven segments.
@@ -294,17 +299,17 @@ func (p Params) Derive() (Dimensions, error) {
 func sites() ([10]m2fastener.Site, error) {
 	var out [10]m2fastener.Site
 	// G3/G4 at y 32 stand between the discs of cams f and a, so no cam lies under their heads.
-	gy := [4]float64{-34.2, -34.2, 32.0, 32.0}
+	gy := [4]float64{Scale * -34.2, Scale * -34.2, Scale * 32.0, Scale * 32.0}
 	xs := [4]float64{-frameBoltX, frameBoltX, -frameBoltX, frameBoltX}
 	ts := flagSites()
 	copy(out[:4], ts[:])
 	for i := range 4 {
-		out[4+i] = m2fastener.Site{Head: r3.Vec{X: xs[i], Y: gy[i], Z: 49.75}, Dir: r3.Vec{Z: 1}, Corner: r3.Vec{Y: 1},
+		out[4+i] = m2fastener.Site{Head: r3.Vec{X: xs[i], Y: gy[i], Z: ledgeFrom}, Dir: r3.Vec{Z: 1}, Corner: r3.Vec{Y: 1},
 			Length: 6, Cavity: 6.25}
 	}
 	// H1, H2 hold the click indexer's housing on the front wall: the head sinks in the housing's base, the nut sits in a hex
 	// pocket open to the wall's inner face.
-	for i, x := range [2]float64{-21, 21} {
+	for i, x := range [2]float64{-21, 21} { // the click indexer keeps its size, so its bolts do
 		out[8+i] = m2fastener.Site{Head: r3.Vec{X: x, Y: housingBaseY - housingBaseThick, Z: ShaftZ}, Dir: r3.Vec{Y: 1},
 			Corner: r3.Vec{Z: 1}, Length: 10, Cavity: 10.25}
 	}
@@ -320,7 +325,7 @@ func sites() ([10]m2fastener.Site, error) {
 func (d Dimensions) Station(s Segment) float64 {
 	for i, o := range stationOrder {
 		if o == s {
-			return -33 + StationPitch*float64(i)
+			return -SegmentSpan + StationPitch*float64(i)
 		}
 	}
 	return math.NaN()
@@ -407,5 +412,5 @@ func raise(s Segment) float64 {
 // FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 1.75 +
 // raise, PinOffset). The pin line is 1.5 from the rotor axis and the slider's lift is 0 to 3.
 func (d Dimensions) FlagAngle(s Segment, theta float64) float64 {
-	return math.Atan2(d.Lift(s, theta)-1.75+raise(s), PinOffset) * 180 / math.Pi
+	return math.Atan2(d.Lift(s, theta)-Scale*1.75+raise(s), PinOffset) * 180 / math.Pi
 }
