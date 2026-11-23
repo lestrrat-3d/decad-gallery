@@ -119,8 +119,11 @@ func tangentPoint(p, c [2]float64, rad, side float64) [2]float64 {
 
 // The tongue's root rounds and the feet where they meet the head.
 const (
-	tongueRootR = Scale * 0.8
-	tongueFoot  = Scale * 0.9
+	// 1.5 x 0.7 and 1.5 x 0.8, not 1.5 x 0.8 and 1.5 x 0.9 (1.2 and 1.35): decad refuses the 0.5 chamfer of the stem faces
+	// ("a partial chamfer's cutter meets or comes within bounds of another face") on the head-top run next to a root round of
+	// about 1.15 or more, and builds it at 1.1 and under.
+	tongueRootR = 1.05
+	tongueFoot  = 1.2
 )
 
 // tongueOutline draws the tongue's hull in (s, z): feet at the head, 8-chord root rounds of r 0.8 that bottom out inside

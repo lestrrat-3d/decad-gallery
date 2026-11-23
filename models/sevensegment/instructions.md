@@ -753,7 +753,7 @@ Its strip spans `[sL, sR]` in the horizontal axis normal to u (world Y for a/g/d
    inside the head. The first chord rises only 0.015, so the head top (72.8) crosses each round in its second chord,
    which leaves a 16.9 degree crease there. The chords are 0.157 long, so a corner check window at the crease holds
    that crease and at most two chord vertices (39.4 degrees), under the 50 degree rule. With r 0.7 the chords were
-   0.137 long, the window held three vertices and the sum was 50.6 degrees, which failed. Then the strip sides up to `zp - 1.2`, and two hull lines
+   0.137 long, the window held three vertices and the sum was 50.6 degrees, which failed. At Scale 1.5 the roots are r 1.05 with feet at `sR+1.2` (1.5 x 0.7 and 1.5 x 0.8, not the 1.5 x 0.8 and 1.5 x 0.9 that Scale 1.5 would give): the chords are 0.206 long, so the window holds at most two vertices, and decad refuses the 0.5 chamfer of the stem faces beside a root of about 1.15 or more (it builds at 1.1). Then the strip sides up to `zp - 1.2`, and two hull lines
    tangent to an arc of radius 0.6 about `(sc, zp)`. Arc constraints: `NewRadius(arc, 0.6)`, `NewTangent(lineR, arc)`,
    `NewTangent(lineL, arc)`. The tangent points are `CreatePoint` (not fixed), placed by `tangentPoint`.
 2. End cutter. Polygon in (u, z) on the plane s = sL - 1.5, extruded along s by `sR - sL + 3.0`:

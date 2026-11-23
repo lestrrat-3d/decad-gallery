@@ -6,8 +6,8 @@
 
 A printed, mechanical digit 0 to 9. Seven rotors turn in windows of a top plate. A rotor has a yellow face and a black
 body: where a segment is lit its yellow face tips up toward you, and where it is off the black body shows. The tip shows
-best from above. Seen from the button side at 30 degrees elevation, the yellow fills only part of the window of a
-horizontal segment (a, g, d) across it (35 to 41 % at the base size, not re-measured at 1.5). Every printed
+best from above. Seen from the button side at 30 degrees elevation, the yellow fills only 50 to 54 % of the window of a
+horizontal segment (a, g, d) across it (measured at 1.5 times the base size, where it was 35 to 41 %). Every printed
 part keeps one filament color (a rotor is two bodies, a yellow one and a black one) and never changes color, so the color you see is only the angle of a rotor. The display stands on its back wall, so the
 face looks toward you and the button end is the top; press the button and the display moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
