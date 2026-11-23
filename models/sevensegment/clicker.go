@@ -51,8 +51,8 @@ const (
 
 	// Housing: base on the front wall, tube and a bezel, a fixed crown ring that holds the rotor's outer teeth.
 	housingBaseY     = frontWallOuterY - 0.25
-	housingBaseThick = 4.0
-	housingBezelY    = frontWallOuterY - 17.9 // 17.9 above the wall: the button's head ends flush with it
+	housingBaseThick = 6.0
+	housingBezelY    = frontWallOuterY - 21.9 // 21.9 above the wall: the button's head ends flush with it
 	housingTubeInner = 14.55
 	housingTubeOuter = 16.55
 	housingFlangeR   = 24.8 // base flange: inside the walls (x +-24.9); 1.1 round the H head pockets after the chamfer
@@ -62,7 +62,7 @@ const (
 	housingSlotWidth = 3.0
 
 	// Button: head, ten teeth under it, three keys that slide in the housing's slots.
-	buttonUndersideY = frontWallOuterY - 21.4
+	buttonUndersideY = frontWallOuterY - 29.4 // 8.0 (ToothHeight) above the rotor teeth tips at rest
 	buttonHeadThick  = 2.5
 	buttonRadius     = 11.0
 	buttonRecessR    = 3.2
@@ -71,9 +71,9 @@ const (
 	buttonKeyInner   = 11.4
 	buttonKeyOuter   = 12.2
 	buttonKeyWidth   = 2.0
-	buttonKeyDrop    = 3.8 // a key hangs this far below the head's underside
+	buttonKeyDrop    = 7.8 // a key hangs this far below the head's underside
 	// ButtonStroke is how far the head goes down, from its rest to flush with the bezel.
-	ButtonStroke = 6.0
+	ButtonStroke = 10.0
 
 	// The click indexer's ten steps.
 	ClickerSteps = 10
@@ -84,7 +84,7 @@ const (
 	// RampAngle is the button's ramp over one press, degrees. The release adds ClickerStep - RampAngle.
 	RampAngle = 32.5
 	// ToothHeight is the height of the inner teeth, mm.
-	ToothHeight = 4.0
+	ToothHeight = 8.0
 	// CrownHeight is the height of the outer teeth, mm.
 	CrownHeight = 1.6
 	// CrownBack is the fixed crown's long back ramp, degrees: the rotor tips run up to it, then the short ramp turns the rotor on.

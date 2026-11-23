@@ -12,7 +12,7 @@ import (
 // Scale is the size of the display against its base design, which Scale 1.0 is. Every shape (layout, rotors, sliders, cams,
 // frame, pivot) is written as Scale times its base size in mm. Fits, clearances, print limits, layer-bound thicknesses and
 // purchased hardware keep their size in mm and are added outside the product (see instructions.md "Scale").
-const Scale = 1.0
+const Scale = 1.5
 
 // Fixed dimensions in mm and degrees. See instructions.md for what each one is.
 const (
@@ -55,6 +55,17 @@ const (
 	PinOffset       = Scale * 1.5          // distance of the slider pin line from the rotor axis, along the rotor's x
 
 	RearCollarRadius = Scale * 3.8
+)
+
+// The shaft bearings are two 608ZZ (ballbearing.Lookup("608ZZ"): bore 8, outside 22, width 7, inner ring face 12). The
+// constants are pinned to the catalog by a test; a catalog has no bore chamfer, and the 0.3 that the shaft's steps clear is an
+// assumption (instructions.md "Bearings").
+const (
+	bearingBoreR       = 4.0   // half the bore: the shaft's journals
+	bearingWidth       = 7.0   //
+	bearingSeatR       = 11.05 // half the outside diameter plus the 0.05 seat fit
+	bearingRaceR       = 6.0   // half the inner ring's face: the least a collar facing the bearing may reach
+	bearingBoreChamfer = 0.3   // assumed, not in the catalog
 )
 
 // frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
@@ -305,13 +316,13 @@ func sites() ([10]m2fastener.Site, error) {
 	copy(out[:4], ts[:])
 	for i := range 4 {
 		out[4+i] = m2fastener.Site{Head: r3.Vec{X: xs[i], Y: gy[i], Z: ledgeFrom}, Dir: r3.Vec{Z: 1}, Corner: r3.Vec{Y: 1},
-			Length: 6, Cavity: 6.25}
+			Length: 10, Cavity: guideTop - ledgeFrom - m2fastener.NutCavityHeight}
 	}
 	// H1, H2 hold the click indexer's housing on the front wall: the head sinks in the housing's base, the nut sits in a hex
 	// pocket open to the wall's inner face.
 	for i, x := range [2]float64{-21, 21} { // the click indexer keeps its size, so its bolts do
 		out[8+i] = m2fastener.Site{Head: r3.Vec{X: x, Y: housingBaseY - housingBaseThick, Z: ShaftZ}, Dir: r3.Vec{Y: 1},
-			Corner: r3.Vec{Z: 1}, Length: 10, Cavity: 10.25}
+			Corner: r3.Vec{Z: 1}, Length: 16, Cavity: frontInnerY - (housingBaseY - housingBaseThick) - m2fastener.NutCavityHeight}
 	}
 	for i, s := range out {
 		if err := s.Validate(); err != nil {

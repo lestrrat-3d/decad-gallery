@@ -17,7 +17,7 @@ func TestSevenSegmentCam(t *testing.T) {
 			require.True(t, body.IsSolid())
 			// Every sketch was verified fully constrained by r.profile before its geometry was used.
 			require.NotEmpty(t, r.sketches)
-			y := r.dm.camDiscFace(seg) + 0.95
+			y := r.dm.camDiscFace(seg) + GrooveDepth/2
 			loops := sectionAt(t, body, y)
 			for k := range 10 {
 				lit, _ := Lit(k, seg)
@@ -52,8 +52,8 @@ func TestSevenSegmentCam(t *testing.T) {
 			// Bounds: the cam spans the groove face to the disc back and the hub.
 			box, err := body.Bounds()
 			require.NoError(t, err)
-			require.InDelta(t, r.dm.Station(seg)+2.35-camHubTop, box.Min.Y, 5e-4)
-			require.InDelta(t, r.dm.Station(seg)+2.35+CamThickness, box.Max.Y, 1e-6)
+			require.InDelta(t, r.dm.Station(seg)+camFaceOffset-camHubTop, box.Min.Y, 5e-4)
+			require.InDelta(t, r.dm.Station(seg)+camFaceOffset+CamThickness, box.Max.Y, 1e-6)
 		})
 	}
 }
@@ -111,7 +111,7 @@ func TestSevenSegmentCamInscription(t *testing.T) {
 		n, radius := camMarks(seg)
 		for _, l := range in {
 			for _, p := range l {
-				require.Greater(t, p.Len(), 3.25+1.6, "cam %s letter is too near the bore", seg)
+				require.Greater(t, p.Len(), camBoreRadius+1.6, "cam %s letter is too near the bore", seg)
 				require.Less(t, p.Len(), CamRadius-1.5, "cam %s letter is too near the rim", seg)
 				for i := range n {
 					require.Greater(t, p.Sub(polar(radius, camMarkFirst+camMarkStep*float64(i))).Len(), camMarkRadius+1.0,

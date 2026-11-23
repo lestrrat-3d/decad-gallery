@@ -16,13 +16,13 @@ import (
 func bands(s, z, cl, c float64) (um, uw, lw, lm, rmax float64) {
 	uw, lw = -99, 99
 	for i := 0; i <= 20; i++ {
-		si := 1.5 - s + 2*s*float64(i)/20
+		si := sevensegment.PinOffset - s + 2*s*float64(i)/20
 		for j := 0; j <= 20; j++ {
 			z0 := -z + 2*z*float64(j)/20
 			for _, lit := range []bool{false, true} {
-				zz := -1.5 - c + z0
+				zz := -sevensegment.Travel/2 - c + z0
 				if lit {
-					zz = 1.5 - c + z0
+					zz = sevensegment.Travel/2 - c + z0
 				}
 				rho := math.Hypot(si, zz)
 				sl := math.Asin(cl/rho) * 180 / math.Pi
@@ -137,7 +137,10 @@ func builtLoads(t *testing.T) flagLoads {
 const slotClear = sevensegment.SlotRadius - sevensegment.TonguePinR
 
 // journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.11).
-const journalAcross = sevensegment.JournalAcross
+const (
+	journalAcross = sevensegment.JournalAcross
+	Scale         = sevensegment.Scale
+)
 
 // audit is the friction audit of the drive with the pin bearing on one wall of its slot: the worst extra cam force F_x over
 // the pin's poses (the side from smin to 3 - smin, the height over the stroke and the play) and the least ratio of drive
@@ -145,14 +148,14 @@ const journalAcross = sevensegment.JournalAcross
 // imbalance torque follow it, and the friction arm of the slot wall is the pocket radius. across takes the rotor fully
 // across its pins (a further 0.11 of side play). It returns ok false when the drive locks.
 func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool) {
-	const length = 25.0
+	const length = Scale * 25.0
 	rj, cl, w := sevensegment.JournalRadius, slotClear, sevensegment.SlotRadius
 	smin := sevensegment.PinOffset - sevensegment.PinLinePlay
 	if across {
 		smin -= journalAcross
 	}
 	smax := 2*sevensegment.PinOffset - smin
-	zlo, zhi := -sevensegment.PinOffset-0.15-0.24, sevensegment.PinOffset-0.15+0.24
+	zlo, zhi := -sevensegment.Travel/2-0.15-0.24, sevensegment.Travel/2-0.15+0.24
 	mup := math.Sin(math.Atan(mu))
 	minRatio, ok = 99, true
 	for i := 0; i <= 40; i++ {
@@ -176,7 +179,7 @@ func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool)
 				n := (mup*rj*l.wr + l.wr*l.e*math.Abs(math.Cos(l.bc*math.Pi/180+phi))) / k
 				v := n * (math.Abs(math.Cos(phi)) + mu*math.Abs(math.Sin(phi)))
 				h := n * (math.Abs(math.Sin(phi)) + mu*math.Abs(math.Cos(phi)))
-				f := v*(1+2*mu*l.xoff/length) + mu*h*(1+2*2.0/length) + l.ws*2*mu*l.xcg/length
+				f := v*(1+2*mu*l.xoff/length) + mu*h*(1+2*Scale*2.0/length) + l.ws*2*mu*l.xcg/length
 				fx = math.Max(fx, f)
 			}
 		}
@@ -211,11 +214,11 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 	pts := convexHull(append([]pt{{-al, -top}, {ar, -top}}, circle...))
 	for i := 0; i <= 90; i++ {
 		for _, x := range []float64{-al, ar} {
-			pts = append(pts, pt{x, -top - 9*float64(i)/90})
+			pts = append(pts, pt{x, -top - Scale*9*float64(i)/90})
 		}
 	}
 	for i := 0; i <= 240; i++ {
-		pts = append(pts, pt{-6 + 12*float64(i)/240, zh})
+		pts = append(pts, pt{Scale * (-6 + 12*float64(i)/240), zh})
 	}
 	for a := 0; a <= 90; a += 5 {
 		r := float64(a) * math.Pi / 180
@@ -230,7 +233,7 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 	type pose struct{ sp, zp, phi float64 }
 	var poses []pose
 	rmax := segEnd + slot
-	for _, c := range []struct{ zn, cap float64 }{{-sevensegment.PinOffset - c - 0.24, capU}, {sevensegment.PinOffset - c - 0.24, capL}} {
+	for _, c := range []struct{ zn, cap float64 }{{-sevensegment.Travel/2 - c - 0.24, capU}, {sevensegment.Travel/2 - c - 0.24, capL}} {
 		for i := 0; i < 9; i++ {
 			sOff := -ss + 2*ss*float64(i)/8
 			for k := 0; k < 12; k++ {
@@ -252,7 +255,7 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 		}
 	}
 	for i := 0; i <= 60; i++ {
-		zp := -1.5 + 3*float64(i)/60
+		zp := -sevensegment.Travel/2 + sevensegment.Travel*float64(i)/60
 		rho := math.Hypot(s0, zp)
 		b := math.Asin(slot / rho)
 		for ib := -1; ib <= 1; ib++ {

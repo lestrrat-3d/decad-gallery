@@ -22,13 +22,13 @@ func TestClickerBodies(t *testing.T) {
 		"housing": len(m.Housing.Lumps()), "button": len(m.Button.Lumps())} {
 		require.Equal(t, 1, lumps, name)
 	}
-	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Rotor, -70.86-2, 7), "rotor inner teeth")
-	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Rotor, -70.86-0.8, 13.4), "rotor outer teeth")
-	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Housing, -72.5+0.8, 13.7), "crown teeth")
-	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Button, -78.9+2, 7), "button teeth")
+	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Rotor, sevensegment.RotorPlateY+0.04-2, 7), "rotor inner teeth")
+	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Rotor, sevensegment.RotorPlateY+0.04-0.8, 13.4), "rotor outer teeth")
+	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Housing, sevensegment.HousingCrownY+0.8, 13.7), "crown teeth")
+	require.Equal(t, sevensegment.ClickerSteps, teethAround(t, m.Button, sevensegment.ButtonUndersideY+2, 7), "button teeth")
 }
 
-// TestClickerHeights reads the button's heights from the built bodies: the head stands 23.9 mm above the front wall at rest
+// TestClickerHeights reads the button's heights from the built bodies: the head stands 31.9 mm above the front wall at rest (23.9 with the 4.0 mm teeth)
 // and ends flush with the housing's bezel at the bottom of its stroke.
 func TestClickerHeights(t *testing.T) {
 	startDefault()
@@ -40,8 +40,8 @@ func TestClickerHeights(t *testing.T) {
 	require.NoError(t, err)
 	housing, err := m.Housing.Bounds()
 	require.NoError(t, err)
-	require.InDelta(t, 23.9, wall.Min.Y-button.Min.Y, 1e-6, "the head's height above the front wall at rest")
-	require.InDelta(t, 17.9, wall.Min.Y-housing.Min.Y, 1e-6, "the bezel's height above the front wall")
+	require.InDelta(t, 31.9, wall.Min.Y-button.Min.Y, 1e-6, "the head's height above the front wall at rest")
+	require.InDelta(t, 21.9, wall.Min.Y-housing.Min.Y, 1e-6, "the bezel's height above the front wall")
 	require.InDelta(t, housing.Min.Y, button.Min.Y+sevensegment.ButtonStroke, 1e-6, "the head is flush with the bezel at the bottom")
 }
 
@@ -53,11 +53,11 @@ func TestClickerPoseClearances(t *testing.T) {
 	_, m := builtDefault(t)
 	type pose struct{ s, drop, turn float64 }
 	var poses []pose
-	for _, s := range []float64{0, 2, 4, 6} {
+	for _, s := range []float64{0, 2, 6, 10} {
 		d, tn := sevensegment.PressPose(s)
 		poses = append(poses, pose{s, d, tn})
 	}
-	for _, s := range []float64{4, 2, 0.5} {
+	for _, s := range []float64{8, 4, 0.5} {
 		d, tn := sevensegment.ReleasePose(s)
 		poses = append(poses, pose{s, d, tn})
 	}

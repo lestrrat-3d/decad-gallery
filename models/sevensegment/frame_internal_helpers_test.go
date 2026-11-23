@@ -11,6 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Section heights that the tests read: the middle of the guide plate, and a level in the tubes between their bottom and the
+// top plate (z 56 and 81 at Scale 1), and the extent that tells a cam's bore from its other loops.
+const (
+	guideMidZ    = guideFrom + guideThick/2
+	tubeSectionZ = tubeFrom + Scale*3.6
+	boreExtent   = 2*camBoreRadius + 1
+)
+
 func polar2(x, y float64) r3.Vec { return r3.Vec{X: x, Y: y} }
 
 // planSection cuts body with the horizontal plane z and returns its loops as (x, y).

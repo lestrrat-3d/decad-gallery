@@ -32,8 +32,8 @@ func TestSevenSegmentSplitShaft(t *testing.T) {
 		heights, err := cornercheck.SplitHeights(point, rep.Normal, 2.5)
 		require.NoError(t, err)
 		fs, err := cornercheck.CheckAt(t.Context(), shaft, rep.Normal, heights, []cornercheck.Exempt{
-			atY("front step facing the front bearing", -49.25), atY("rear collar's rear face facing the rear bearing", 42.75),
-			atY("cam flat's square end under cam a's D chord", 39.2), atY("stub flat's square end under the collar ring", -57.85),
+			atY("front step facing the front bearing", shaftCamFrom), atY("rear collar's rear face facing the rear bearing", shaftRearFrom),
+			atY("cam flat's square end under cam a's D chord", shaftCamFlatTo), atY("stub flat's square end under the collar ring", shaftStubFlatTo),
 		})
 		require.NoError(t, err)
 		require.Empty(t, fs, cornercheck.Report(fs, 8))

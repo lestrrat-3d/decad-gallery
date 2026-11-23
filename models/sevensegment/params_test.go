@@ -92,7 +92,7 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 				if !r.Rising {
 					dwell = sevensegment.Travel
 				}
-				if math.Abs(lift-dwell) > 0.05 && math.Abs(lift-(sevensegment.Travel-dwell)) > 0.05 {
+				if math.Abs(lift-dwell) > sevensegment.Scale*0.05 && math.Abs(lift-(sevensegment.Travel-dwell)) > sevensegment.Scale*0.05 {
 					off := math.Mod(psi-(90+base)+720, 36) // angle past psi_k
 					activeLo, activeHi = math.Min(activeLo, off), math.Max(activeHi, off)
 				}
@@ -107,7 +107,7 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 		22: 1.904, 24: 2.335, 26: 2.743, 28: 2.954, 29: 2.995, 29.5: 3.0}
 	for off, lift := range samples {
 		rise := dm.GrooveRadius(sevensegment.SegE, 90+36*6+off) - sevensegment.OffRadius // segment e, step 6->7 rises
-		require.InDelta(t, lift, rise, 0.005, "offset %g", off)
+		require.InDelta(t, lift*sevensegment.Scale, rise, 0.005*sevensegment.Scale, "offset %g", off)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestSevenSegmentRampGeometry(t *testing.T) {
 	rise := dm.Ramps[sevensegment.SegD][1].Geometry()
 	require.InDelta(t, (sevensegment.OffRadius+sevensegment.RampRound)*math.Cos(134*math.Pi/180), rise.C1.X, 1e-9)
 	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(rise.C2.X, rise.C2.Y), 1e-9)
-	require.InDelta(t, 4.8939, rise.LineLength, 1e-3)
+	require.InDelta(t, 4.8939*sevensegment.Scale, rise.LineLength, 1e-3*sevensegment.Scale)
 	fall := dm.Ramps[sevensegment.SegD][0].Geometry()
 	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(fall.C1.X, fall.C1.Y), 1e-9)
 	require.InDelta(t, sevensegment.OffRadius+sevensegment.RampRound, math.Hypot(fall.C2.X, fall.C2.Y), 1e-9)

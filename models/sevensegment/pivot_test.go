@@ -36,17 +36,17 @@ func TestSevenSegmentPivotBlocks(t *testing.T) {
 			if horizontal {
 				lo, hi = box.Min.X, box.Max.X
 			}
-			// The pin tip at 11.25 from the rotor's middle and the block's outer face at 14.5, on the end's side.
+			// The pin tip and the block's outer face, from the rotor's middle, on the end's side.
 			centre := cx
 			if !horizontal {
 				centre = cy
 			}
 			if sgn > 0 {
-				require.InDelta(t, centre+11.25, lo, 0.01, "segment %s tip", s)
-				require.InDelta(t, centre+14.5, hi, 0.01, "segment %s outer face", s)
+				require.InDelta(t, centre+sevensegment.PivotPinTip, lo, 0.01, "segment %s tip", s)
+				require.InDelta(t, centre+sevensegment.PivotBlockFrom+sevensegment.PivotBlockLong, hi, 0.01, "segment %s outer face", s)
 			} else {
-				require.InDelta(t, centre-14.5, lo, 0.01, "segment %s outer face", s)
-				require.InDelta(t, centre-11.25, hi, 0.01, "segment %s tip", s)
+				require.InDelta(t, centre-sevensegment.PivotBlockFrom-sevensegment.PivotBlockLong, lo, 0.01, "segment %s outer face", s)
+				require.InDelta(t, centre-sevensegment.PivotPinTip, hi, 0.01, "segment %s tip", s)
 			}
 			_, bm := meshOf(t, b, 0.05)
 			for i, flag := range flags {

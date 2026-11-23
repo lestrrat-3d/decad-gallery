@@ -18,9 +18,9 @@ import (
 const (
 	flagFaceZ    = topFrom + topThick // the display face
 	cradleFrom   = Scale * 80.0
-	cradleThick  = 2.6 // 13 layers: the seam plane carries the rotor axes; whole layers, so not scaled
+	cradleThick  = 4.0 // 20 layers: the seam plane carries the rotor axes; whole layers (2.6 at Scale 1, 1.5 x 2.6 is 3.9)
 	topFrom      = cradleFrom + cradleThick + Seam
-	topThick     = 5.4                     // 27 layers; whole layers, so not scaled
+	topThick     = 8.0                     // 40 layers; whole layers (5.4 at Scale 1, 1.5 x 5.4 is 8.1)
 	tubeFrom     = RotorAxisZ - Scale*5.2  // the tubes hang from the top plate to the sliders' heads
 	bladeHoleTop = flagFaceZ - 0.8         // the tube roof: 0.8 of top plate over the blade hole
 	columnTop    = cradleFrom - Scale*0.85 // the columns end this far under the cradle
@@ -88,7 +88,7 @@ func flagSites() [4]m2fastener.Site {
 	var out [4]m2fastener.Site
 	for i, p := range [][2]float64{{-frameBoltX, Scale * -44.5}, {frameBoltX, Scale * -44.5}, {-frameBoltX, Scale * 38}, {frameBoltX, Scale * 38}} {
 		out[i] = m2fastener.Site{Head: r3.Vec{X: p[0], Y: p[1], Z: flagFaceZ}, Dir: r3.Vec{Z: -1}, Corner: r3.Vec{Y: 1},
-			Length: 10, Cavity: 10.5}
+			Length: 16, Cavity: flagFaceZ - flangeFrom - m2fastener.NutCavityHeight}
 	}
 	return out
 }

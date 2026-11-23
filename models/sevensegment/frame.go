@@ -31,7 +31,7 @@ const (
 	wallChamfer    = 0.5
 	frontInnerY    = Scale * -49.5
 	rearInnerY     = Scale * 43.0
-	markRadius     = Scale * 10.0 // look-alike hole circle on the walls
+	markRadius     = 13.5 // look-alike hole circle on the walls: off the housing flange (1.5 x 10 is 15, under the flange)
 
 	// The guide plate: z 54 to 58 at Scale 1.
 	guideFrom  = Scale * 54.0
@@ -128,13 +128,14 @@ func depth(front, ledge bool) float64 {
 	return ribDepth
 }
 
-// seatTool is the revolved cutter for the 605ZZ seat and the lip hole, in the wall's local frame (axis Z, depth d along
+// seatTool is the revolved cutter for the 608ZZ seat and the lip hole, in the wall's local frame (axis Z, depth d along
 // +Z from the inner face).
 func (r *run) seatTool() (*decad.Body, error) {
 	// The seat, the lip and the lead-ins belong to the bearing, which is purchased: they keep their size at any Scale. The lip
-	// ends at the outer face, WallThickness from the inner one.
-	return r.meridian([][2]float64{{0, -1}, {7.55, -1}, {7.55, 0}, {7.05, 0.5}, {7.05, 5.0}, {4.5, 5.0}, {4.5, WallThickness - 0.5},
-		{5.0, WallThickness}, {5.0, WallThickness + 1}, {0, WallThickness + 1}})
+	// hole stands 0.5 outside the inner ring's face and ends at the outer face, WallThickness from the inner one.
+	return r.meridian([][2]float64{{0, -1}, {bearingSeatR + 0.5, -1}, {bearingSeatR + 0.5, 0}, {bearingSeatR, 0.5},
+		{bearingSeatR, bearingWidth}, {bearingRaceR + 0.5, bearingWidth}, {bearingRaceR + 0.5, WallThickness - 0.5},
+		{bearingRaceR + 1.0, WallThickness}, {bearingRaceR + 1.0, WallThickness + 1}, {0, WallThickness + 1}})
 }
 
 // wallFasteners cuts the fastener tools of the wall's sites: front wall T1, T2, G1, G2, D1, D2; rear wall T3, T4, G3, G4.

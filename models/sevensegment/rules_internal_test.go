@@ -97,12 +97,12 @@ func TestSevenSegmentLookAlike(t *testing.T) {
 				_, body := sharedBody(t, c.name, c.build)
 				box, err := body.Bounds()
 				require.NoError(t, err)
-				radius := 10.0
+				radius := markRadius
 				switch name {
 				case "cam d", "cam e", "cam c":
-					radius = 12
+					radius = Scale * 12
 				case "cam g", "cam b", "cam f", "cam a":
-					radius = 8
+					radius = Scale * 8
 				}
 				// Sections just inside each face of the plate or disc show every hole: it goes through the whole part.
 				ys := []float64{box.Max.Y - 0.3, box.Max.Y - CamThickness/2, box.Max.Y - CamThickness + 0.3}

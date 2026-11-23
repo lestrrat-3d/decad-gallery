@@ -3,6 +3,7 @@ package sevensegment
 // CI: isolated-tests
 
 import (
+	"math"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -23,11 +24,11 @@ func TestSevenSegmentFrame(t *testing.T) {
 			box, err := w.Bounds()
 			require.NoError(t, err)
 			if front {
-				require.InDelta(t, -57.5, box.Min.Y, 1e-6)
-				require.InDelta(t, -30.8, box.Max.Y, 1e-6)
+				require.InDelta(t, frontWallOuterY, box.Min.Y, 1e-6)
+				require.InDelta(t, frontInnerY+frontLedgeDeep, box.Max.Y, 1e-6)
 			} else {
-				require.InDelta(t, rearInnerY-rearLedgeDeep, box.Min.Y, 1e-6) // the rear ledge ribs reach 14.2 in from the inner face at 43
-				require.InDelta(t, 51.0, box.Max.Y, 1e-6)
+				require.InDelta(t, rearInnerY-rearLedgeDeep, box.Min.Y, 1e-6) // the rear ledge ribs reach rearLedgeDeep in from the inner face
+				require.InDelta(t, rearInnerY+WallThickness, box.Max.Y, 1e-6)
 			}
 			require.InDelta(t, wallTopZ, box.Max.Z, 1e-6)
 			require.InDelta(t, wallBottomZ, box.Min.Z, 1e-6)
@@ -43,15 +44,16 @@ func TestSevenSegmentPlates(t *testing.T) {
 	require.True(t, g.IsSolid())
 	box, err := g.Bounds()
 	require.NoError(t, err)
-	require.InDelta(t, 54, box.Min.Z, 1e-6)
-	require.InDelta(t, 58, box.Max.Z, 1e-6)
+	require.InDelta(t, guideFrom, box.Min.Z, 1e-6)
+	require.InDelta(t, guideTop, box.Max.Z, 1e-6)
 	// Slot a: the pin notch is open at the station's +Y side.
-	loops := planSection(t, g, 56)
+	loops := planSection(t, g, guideMidZ)
 	y := r.dm.Station(SegA)
+	notchX, notchY, slotX := Scale*1.8+0.1, StemThickness/2+PinLength+0.4, Scale*3.5+TightFit // the notch's half width and reach, the slot's half width
 	require.False(t, insideLoops(loops, polar2(0, y)))
-	require.False(t, insideLoops(loops, polar2(0, y+3.5)))
-	require.True(t, insideLoops(loops, polar2(2.8, y+3.5)))
-	require.False(t, insideLoops(loops, polar2(3.0, y)))
+	require.False(t, insideLoops(loops, polar2(0, y+notchY-0.75)))
+	require.True(t, insideLoops(loops, polar2(notchX+0.9, y+notchY-0.75)))
+	require.False(t, insideLoops(loops, polar2(slotX-0.75, y)))
 }
 
 // TestSevenSegmentFlagPlates builds the cradle, top plate and guide plate of the flag mechanism and checks their bounds,
@@ -69,55 +71,62 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 		return box
 	}
 	cb, tb, gb := bounds(cradle), bounds(top), bounds(guide)
-	require.InDelta(t, 80.0, cb.Min.Z, 0.01)
-	require.InDelta(t, 82.6, cb.Max.Z, 0.01)
-	require.InDelta(t, 77.4, tb.Min.Z, 0.01)
+	require.InDelta(t, cradleFrom, cb.Min.Z, 0.01)
+	require.InDelta(t, RotorAxisZ, cb.Max.Z, 0.01)
+	require.InDelta(t, tubeFrom, tb.Min.Z, 0.01)
 	require.InDelta(t, flagFaceZ, tb.Max.Z, 0.01)
-	require.InDelta(t, 54.0, gb.Min.Z, 0.01)
+	require.InDelta(t, guideFrom, gb.Min.Z, 0.01)
 	for name, box := range map[string]decad.Box{"cradle": cb, "top": tb, "guide": gb} {
 		require.InDelta(t, -WallHalfWidth, box.Min.X, 0.01, name)
 		require.InDelta(t, WallHalfWidth, box.Max.X, 0.01, name)
 	}
-	require.InDelta(t, columnTop+2.6, gb.Max.Z, 0.01)
+	require.InDelta(t, columnTop+Scale*2.6, gb.Max.Z, 0.01)
 
 	// Sections normal to u through segment g's centre (u = X): the bore, the pivot pockets, the lip and the blade hole.
 	o := r3.Vec{Z: RotorAxisZ}
-	// Bore in the cradle at x = 0: void 5.2 across at z 81.0 (the chord is 5.31), material beyond 5.42.
+	// Bore in the cradle at x = 0: at 1.6 Scale under the axis the chord is 5.31 at Scale 1; void 0.11 inside it, material 0.11 beyond.
 	cl := planeSection(t, cradle, o, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	at := func(y, z float64) r3.Vec { return r3.Vec{X: y, Y: z - RotorAxisZ} }
-	require.False(t, insideLoops(cl, at(5.2, 81.0)), "bore")
-	require.True(t, insideLoops(cl, at(5.42, 81.0)), "bore wall")
+	dz := Scale * 1.6
+	chord := math.Sqrt(boreRadius*boreRadius - dz*dz)
+	require.False(t, insideLoops(cl, at(chord-0.11, RotorAxisZ-dz)), "bore")
+	require.True(t, insideLoops(cl, at(chord+0.11, RotorAxisZ-dz)), "bore wall")
 	// Pivot pockets at u = 13.5: the cradle's half is open upward and 1.0 deep under the axis's seam (floor at z 81.0), the top
 	// plate's open downward and reaches z 84.45 (1.6 above its underside); both are 3.3 wide, with the corners rounded 0.5.
-	j := r3.Vec{X: 13.5, Z: RotorAxisZ}
+	floor := RotorAxisZ - pivotPocketLow
+	up := pivotPocketHigh - Seam // the roof above the top plate's underside
+	j := r3.Vec{X: pivotBlockFrom + Scale*1.0, Z: RotorAxisZ}
 	cj := planeSection(t, cradle, j, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	require.False(t, insideLoops(cj, at(0, 81.2)), "cradle pocket")
-	require.False(t, insideLoops(cj, at(1.6, 82.2)), "cradle pocket side")
-	require.True(t, insideLoops(cj, at(0, 80.9)), "cradle under the pocket")
-	require.True(t, insideLoops(cj, at(1.7, 82.2)), "cradle beside the pocket")
-	require.True(t, insideLoops(cj, at(1.6, 81.05)), "cradle in the pocket's rounded corner")
-	tj := planeSection(t, top, r3.Vec{X: 13.5, Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	require.False(t, insideLoops(tj, r3.Vec{X: 0, Y: 1.5}), "top plate pocket")
-	require.False(t, insideLoops(tj, r3.Vec{X: 1.6, Y: 0.5}), "top plate pocket side")
-	require.True(t, insideLoops(tj, r3.Vec{X: 0, Y: 1.7}), "top plate over the pocket")
-	require.True(t, insideLoops(tj, r3.Vec{X: 1.7, Y: 0.5}), "top plate beside the pocket")
+	require.False(t, insideLoops(cj, at(0, floor+0.2)), "cradle pocket")
+	require.False(t, insideLoops(cj, at(pivotPocketHalf-0.05, RotorAxisZ-0.4)), "cradle pocket side")
+	require.True(t, insideLoops(cj, at(0, floor-0.1)), "cradle under the pocket")
+	require.True(t, insideLoops(cj, at(pivotPocketHalf+0.05, RotorAxisZ-0.4)), "cradle beside the pocket")
+	require.True(t, insideLoops(cj, at(pivotPocketHalf-0.05, floor+0.05)), "cradle in the pocket's rounded corner")
+	tj := planeSection(t, top, r3.Vec{X: pivotBlockFrom + Scale*1.0, Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	require.False(t, insideLoops(tj, r3.Vec{X: 0, Y: up - 0.1}), "top plate pocket")
+	require.False(t, insideLoops(tj, r3.Vec{X: pivotPocketHalf - 0.05, Y: 0.5}), "top plate pocket side")
+	require.True(t, insideLoops(tj, r3.Vec{X: 0, Y: up + 0.1}), "top plate over the pocket")
+	require.True(t, insideLoops(tj, r3.Vec{X: pivotPocketHalf + 0.05, Y: 0.5}), "top plate beside the pocket")
 	// Window lip: the window half-width is 2.95 and the bore chord at 2.95 leaves a lip of 0.704 under the display face (listed
 	// in instructions.md as thinner than 0.8).
 	tw := planeSection(t, top, r3.Vec{Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	z := func(v float64) float64 { return v - topFrom }
-	require.False(t, insideLoops(tw, r3.Vec{X: 2.85, Y: z(87.8)}), "window")
-	require.True(t, insideLoops(tw, r3.Vec{X: 3.05, Y: z(87.8)}), "lip")
-	require.False(t, insideLoops(tw, r3.Vec{X: 3.05, Y: z(87.3)}), "bore under the lip") // the bore surface is at 87.48 there
-	// Blade hole of a, g, d: y in [-8.05, -6.35] for g (cy 0), up to z 87.45.
-	require.False(t, insideLoops(tw, r3.Vec{X: -7.2, Y: z(85)}), "blade hole")
-	require.True(t, insideLoops(tw, r3.Vec{X: -7.2, Y: z(87.6)}), "blade hole roof")
-	require.True(t, insideLoops(tw, r3.Vec{X: -6.0, Y: z(85)}), "tube wall beside the blade hole")
+	lipBore := topFrom + math.Sqrt(boreRadius*boreRadius-(windowHalfWidth+0.1)*(windowHalfWidth+0.1)) // the bore's surface at the lip: 87.48 at Scale 1
+	require.False(t, insideLoops(tw, r3.Vec{X: windowHalfWidth - 0.1, Y: z(lipBore + 0.32)}), "window")
+	require.True(t, insideLoops(tw, r3.Vec{X: windowHalfWidth + 0.1, Y: z(lipBore + 0.32)}), "lip")
+	require.False(t, insideLoops(tw, r3.Vec{X: windowHalfWidth + 0.1, Y: z(lipBore - 0.18)}), "bore under the lip")
+	// Blade hole of a, g, d: y in [-8.05, -6.35] for g (cy 0) at Scale 1, up to the tube roof.
+	require.False(t, insideLoops(tw, r3.Vec{X: Scale * -7.2, Y: z(topFrom + Scale*2.15)}), "blade hole")
+	require.True(t, insideLoops(tw, r3.Vec{X: Scale * -7.2, Y: z(flagFaceZ - 0.65)}), "blade hole roof")
+	require.True(t, insideLoops(tw, r3.Vec{X: Scale * -6.0, Y: z(topFrom + Scale*2.15)}), "tube wall beside the blade hole")
 
 	// Walls of 0.799 or more between holes, at the heights of each plate.
-	for _, h := range []float64{80.02, 80.6, 81.4, 81.85, 82.2, 82.5, 82.58} {
+	for _, off := range []float64{0.02, 0.6, 1.4, 1.85, 2.2, 2.5, 2.58} { // heights over the cradle's underside at Scale 1 (2.6 thick)
+		h := cradleFrom + off*cradleThick/2.6
 		require.GreaterOrEqual(t, minWall(t, cradle, h, 1.5), 0.799, "cradle z %.2f", h)
 	}
-	for _, h := range []float64{77.45, 79.0, 81.0, 82.4, 83.5, 85.5, 86.85, 87.4, 88.2} {
+	for _, off := range []float64{0.05, 1.6, 3.6, 5.0, 6.1, 8.1, 9.45, 10.0, 10.8} { // over the tubes' bottom at Scale 1 (10.85 to the face)
+		h := tubeFrom + off*(flagFaceZ-tubeFrom)/10.85
 		require.GreaterOrEqual(t, minWall(t, top, h, 1.5), 0.799, "top plate z %.2f", h)
 	}
 

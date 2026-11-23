@@ -20,8 +20,8 @@ func TestSevenSegmentRotor(t *testing.T) {
 		com, beta  float64
 		notchProbe [][2]float64 // local (u, 0) of each notch's empty probe, and of each pocket
 	}{
-		{SegG, 856.22, 0.712, 92.0, nil},
-		{SegB, 655.90, 0.909, 94.0, nil},
+		{SegG, 2820.51, 1.029, 92.0, nil},
+		{SegB, 2075.00, 1.2646, 94.0, nil},
 	} {
 		t.Run(tc.seg.String(), func(t *testing.T) {
 			// Before the flat, notches and bores the two bodies hold the rotor: their volumes add up to it.
@@ -31,7 +31,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 			bv, err := b0.Volume()
 			require.NoError(t, err)
 			require.InDelta(t, rv, yv.Value.Base()+bv.Value.Base(), 0.1)
-			require.InDelta(t, 1252.29, rv, 0.5)
+			require.InDelta(t, 4226.47, rv, 0.5)
 
 			f := sharedFlag(t, tc.seg)
 			require.True(t, f.Yellow.IsSolid())
@@ -40,7 +40,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 			require.NoError(t, err)
 			b, err := f.Black.Volume()
 			require.NoError(t, err)
-			require.InDelta(t, 105.41, y.Value.Base(), 0.5) // the slab and the tips (93.46 before the tips)
+			require.InDelta(t, 259.44, y.Value.Base(), 0.5) // the slab and the tips: 105.41 at Scale 1 (the 0.8 inset does not scale)
 			require.InDelta(t, tc.total, y.Value.Base()+b.Value.Base(), 1.0)
 
 			// Centre of mass of the two bodies, in the rotor's x and y, as a distance and an angle from x.
@@ -56,18 +56,18 @@ func TestSevenSegmentRotor(t *testing.T) {
 			require.InDelta(t, tc.beta, math.Atan2(yr, xr)*180/math.Pi, 1.0)
 
 			// Probes: yellow on the yellow face's slab, black beside it, empty in the notches and pockets.
-			require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, 3.4, 0, 0)))
-			require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, 3.4, 3.4, 0)))
+			require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, Scale*3.4, 0, 0)))
+			require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, Scale*3.4, Scale*3.4, 0)))
 			// The tips: yellow inside the chamfer, a black rim beside it, black past the yellow's end.
 			for _, sa := range []float64{-1, 1} {
-				require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, 2.4, 0, sa*10.9)), "tip yellow")
-				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, 2.4, 2.3, sa*10.9)), "tip rim")
-				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, 1.6, 0, sa*11.9)), "past the yellow end")
+				require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, yellowTipInner-Scale*10.9+0.35, 0, sa*Scale*10.9)), "tip yellow")
+				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, yellowTipInner-Scale*10.9+0.35, yellowTipK-Scale*10.9+0.25, sa*Scale*10.9)), "tip rim")
+				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, Scale*1.6, 0, sa*(yellowTipEnd+0.3))), "past the yellow end")
 			}
 			for _, n := range rotorNotches(tc.seg) {
 				mid := (n[0] + n[1]) / 2
-				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 0, -2, mid)), "notch")
-				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 1.8, 0, (n[1]+n[2])/2)), "pocket")
+				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 0, Scale*-2, mid)), "notch")
+				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, Scale*1.8, 0, (n[1]+n[2])/2)), "pocket")
 			}
 
 			// Corners, print axis away from the yellow face.
@@ -78,7 +78,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 			var ex []cornercheck.Exempt
 			for _, sa := range []float64{-1, 1} {
 				for _, sb := range []float64{-1, 1} {
-					p := rotorPoint(tc.seg, 3.35, sb*2.55, sa*10.4) // where the black rim meets the yellow chamfer
+					p := rotorPoint(tc.seg, RotorHalfWidth-0.4, sb*(RotorHalfWidth-1.2), sa*(yellowTipK-(RotorHalfWidth-1.2))) // where the black rim meets the yellow chamfer
 					ex = append(ex, cornercheck.Exempt{Reason: "shared boundary with the yellow body",
 						Near: func(q r3.Vec) bool { return q.Sub(p).Len() < 0.25 }})
 				}

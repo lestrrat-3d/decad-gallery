@@ -193,19 +193,19 @@ func posed(t *testing.T, mesh *decad.Mesh, point, dir r3.Vec, deg, dz float64) m
 func segmentAxis(s sevensegment.Segment) (r3.Vec, r3.Vec) {
 	switch s {
 	case sevensegment.SegA:
-		return r3.Vec{Y: 33, Z: sevensegment.RotorAxisZ}, r3.Vec{X: 1}
+		return r3.Vec{Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, r3.Vec{X: 1}
 	case sevensegment.SegG:
 		return r3.Vec{Z: sevensegment.RotorAxisZ}, r3.Vec{X: 1}
 	case sevensegment.SegD:
-		return r3.Vec{Y: -33, Z: sevensegment.RotorAxisZ}, r3.Vec{X: 1}
+		return r3.Vec{Y: -sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, r3.Vec{X: 1}
 	case sevensegment.SegB:
-		return r3.Vec{X: 16.5, Y: 16.5, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
+		return r3.Vec{X: sevensegment.SegmentSpan / 2, Y: sevensegment.SegmentSpan / 2, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
 	case sevensegment.SegC:
-		return r3.Vec{X: 16.5, Y: -16.5, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
+		return r3.Vec{X: sevensegment.SegmentSpan / 2, Y: -sevensegment.SegmentSpan / 2, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
 	case sevensegment.SegE:
-		return r3.Vec{X: -16.5, Y: -16.5, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
+		return r3.Vec{X: -sevensegment.SegmentSpan / 2, Y: -sevensegment.SegmentSpan / 2, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
 	}
-	return r3.Vec{X: -16.5, Y: 16.5, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
+	return r3.Vec{X: -sevensegment.SegmentSpan / 2, Y: sevensegment.SegmentSpan / 2, Z: sevensegment.RotorAxisZ}, r3.Vec{Y: 1}
 }
 
 func b2f(b bool) float64 {

@@ -12,8 +12,10 @@ import (
 const (
 	shaftCamRadius    = Scale * 3.2                                           // cam section
 	shaftCamFlat      = Scale * 2.7                                           // cam section flat, from the axis
-	shaftJournal      = 2.5                                                   // the journals: half the bearing's bore, so it does not scale
-	shaftStubRadius   = shaftJournal                                          // knob stub
+	shaftJournal      = bearingBoreR                                          // the journals: half the bearing's bore, so it does not scale
+	shaftStubRadius   = 2.5                                                   // knob stub: the click indexer's size, as the spring fits round it
+	shaftStubStepFrom = frontInnerY - bearingWidth - 0.25                     // the stub's cone starts 0.25 outside the front bearing
+	shaftStubStepTo   = shaftStubStepFrom - 2.6                               // 30 degrees or less over the 1.5 step
 	shaftStubFlat     = 2.0                                                   // knob stub flat
 	shaftCamFrom      = frontInnerY + 0.25                                    // the cam section starts 0.25 inside the front wall
 	shaftCamEnd       = SegmentSpan + camFaceOffset + CamThickness + LooseFit // the last cam's back face and a Loose gap
@@ -53,14 +55,19 @@ func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
 // shaft builds the printed camshaft in its local frame (axis on local Z = world +Y, flats toward local +x = world +Z) and
 // places it in the world at theta = 0.
 func (r *run) shaft() (*decad.Body, error) {
-	// The journals and their chamfers are the bearings' size, 5 wide at the rear (the bearing's width does not scale).
+	// The journals are the bearings' size, 7 wide (the bearing's width does not scale). The knob stub steps down to the
+	// click indexer's size inside the front wall's lip hole.
 	pts := [][2]float64{ // (r, z) in world Y
-		{0, shaftFrontEnd}, {shaftJournal - 0.3, shaftFrontEnd}, {shaftJournal, shaftFrontEnd + 0.3}, {shaftJournal, shaftCamFrom},
+		{0, shaftFrontEnd}, {shaftStubRadius - 0.3, shaftFrontEnd}, {shaftStubRadius, shaftFrontEnd + 0.3},
+		{shaftStubRadius, shaftStubStepTo}, {shaftJournal, shaftStubStepFrom}, {shaftJournal, shaftCamFrom},
 		{shaftCamRadius, shaftCamFrom}, {shaftCamRadius, shaftCamEnd}, {RearCollarRadius, shaftCamEnd + Scale*1.039},
-		{RearCollarRadius, shaftRearFrom}, {shaftJournal, shaftRearFrom}, {shaftJournal, rearInnerY + 4.7},
-		{shaftJournal - 0.3, rearInnerY + 5.0}, {0, rearInnerY + 5.0},
+		{RearCollarRadius, shaftRearFrom}, {shaftJournal, shaftRearFrom}, {shaftJournal, rearInnerY + bearingWidth - 0.3},
+		{shaftJournal - 0.3, rearInnerY + bearingWidth}, {0, rearInnerY + bearingWidth},
 	}
-	body, err := r.meridian(pts)
+	// The shaft is long, so its sketch is anchored at the display's centre plane (y 0), not at the shortest sides (a chamfer at
+	// an end): from there the constraint system keeps a conditioning above the sketch checker's 4e-05. The anchor is off the
+	// axis: on it, its distance to the axis line is a redundant constraint.
+	body, err := r.meridianAt(pts, &[2]float64{2, 0})
 	if err != nil {
 		return nil, fmt.Errorf("revolve: %w", err)
 	}

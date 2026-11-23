@@ -14,9 +14,9 @@ import (
 // pressed into a square pocket split by the seam between the cradle plate and the top plate. A Ø0.8 pin stands on its
 // rotor-side face and turns in the rotor's end bore. All lengths are in mm and measured along u from the rotor's middle.
 const (
-	pivotPinRadius  = Scale * 0.4                        // the pin; the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
+	pivotPinRadius  = 0.7                                // option B: Ø1.4 (1.5 x 0.4 is 0.6); the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
 	pivotBlockSide  = Scale * 3.2                        // the block's width, along s
-	pivotBlockHigh  = Scale * 3.1                        // the block's height, along z: 1.0 of cradle stays under its pocket, and the pin axis stays put
+	pivotBlockHigh  = 2 * (cradleThick - 1.0 - PressFit) // the block's height, along z: 1.0 of cradle stays under its pocket (3.1 at Scale 1, 5.9 at 1.5)
 	pivotBlockFrom  = RotorHalfLength + 0.25             // the end wall: the block's rotor-side face (T6 0.25 from the rotor's end face)
 	pivotBlockLong  = Scale * 2.0                        //
 	pivotPinTip     = pivotBlockFrom - Scale*1.25        // the pin stands 1.25 from the block's face
@@ -32,7 +32,7 @@ const (
 	// a teardrop roof truncated at pivotRoofTop from the axis, and a 45 degree countersink to pivotMouthR at the end face.
 	pivotBoreFloor = Scale * 10.8
 	pivotFloorRond = Scale * 0.5
-	pivotRoofTop   = Scale * 0.70
+	pivotRoofTop   = 1.00 // 1.5 x 0.70 is 1.05
 	pivotMouthR    = Scale * 0.93
 )
 

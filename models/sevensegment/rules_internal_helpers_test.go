@@ -90,7 +90,7 @@ func partCases() []partCase {
 			// so its corners stay sharp. Listed under "Retained sharp corners" in instructions.md.
 			exempt: func(*run) []cornercheck.Exempt {
 				return []cornercheck.Exempt{{Reason: "engraved cam letter: strokes too thin to round",
-					Near: cornercheck.Disc(r3.Vec{Z: ShaftZ + inscriptionRadius}, r3.Vec{Y: -1}, 4.2)}}
+					Near: cornercheck.Disc(r3.Vec{Z: ShaftZ + inscriptionRadius}, r3.Vec{Y: -1}, Scale*4.2)}}
 			}})
 	}
 	for _, seg := range Segments() {
@@ -152,7 +152,7 @@ func chamferSpecs() map[string]chamferSpec {
 	specs := map[string]chamferSpec{
 		"front wall":   {section: alongY, faces: two(frontInnerY-WallThickness, frontInnerY)},
 		"rear wall":    {section: alongY, faces: two(rearInnerY, rearInnerY+WallThickness)},
-		"guide plate":  {section: alongZ, faces: two(54, 58)},
+		"guide plate":  {section: alongZ, faces: two(guideFrom, guideTop)},
 		"cradle plate": {section: alongZ, faces: two(cradleFrom, cradleFrom+cradleThick)},
 		"top plate":    {section: alongZ, faces: two(topFrom, flagFaceZ)},
 		"rotor": {section: alongY, round: true, faces: func(*run, *decad.Body) []chamferFace {
