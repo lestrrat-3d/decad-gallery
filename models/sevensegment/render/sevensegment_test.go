@@ -27,8 +27,8 @@ func TestSevenSegmentPresets(t *testing.T) {
 		require.False(t, seen[img.file], img.file)
 		seen[img.file] = true
 	}
-	// 11 plain printed or bought parts, 7 cams, 3 slider types, 2 rotor images and 4 rotor bodies, bearing, 2 bolts, nut.
-	require.Len(t, sevenPartImages, 31)
+	// 11 plain printed or bought parts, 7 cams, 3 slider types, 2 rotor images and 4 rotor bodies, bearing, 2 bolts, nut, pivot block.
+	require.Len(t, sevenPartImages, 32)
 }
 
 // TestSevenSegmentColors checks that every part has one fixed colour: digits 1 and 8 draw the same parts in the same

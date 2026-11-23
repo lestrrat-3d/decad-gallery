@@ -42,11 +42,11 @@ const (
 	LooseFit        = 0.55
 	TimingAllowance = 1.5
 
-	// The flag mechanism: each segment is a two-colour rotor on two journal stubs, turned by its slider.
+	// The flag mechanism: each segment is a two-colour rotor on two printed pivot blocks, turned by its slider.
 	RotorAxisZ      = 82.6 // modeled height of every rotor axis
 	RotorHalfWidth  = 3.75 // distance of a rotor face from its axis
 	RotorHalfLength = 12.25
-	JournalRadius   = 0.6
+	JournalRadius   = 0.6 // the rotor's end bore, its turning surface; the pivot pin (r 0.4) turns in it
 	PinOffset       = 1.5 // distance of the slider pin line from the rotor axis, along the rotor's x
 
 	RearCollarRadius = 3.8
@@ -372,16 +372,16 @@ func (d Dimensions) Lift(s Segment, theta float64) float64 {
 	return d.GrooveRadius(s, 90+theta) - OffRadius
 }
 
-// journalSettle is the side play of the rotor journal settled in its hole: the clearance (hole less stub) times
-// sin(atan 0.5), the slope at which the settled stub rests. journalAcross is the extra when it sits fully across.
+// journalSettle is the side play of the rotor on its pivot pins, settled: the clearance (bore less pin) times
+// sin(atan 0.5), the slope at which the settled rotor rests. journalExtra is the extra when it sits fully across.
 const (
-	journalSettle = (journalHoleRadius - JournalRadius) * 0.4472135955
-	journalExtra  = (journalHoleRadius - JournalRadius) - journalSettle
+	journalSettle = (JournalRadius - pivotPinRadius) * 0.4472135955
+	journalExtra  = (JournalRadius - pivotPinRadius) - journalSettle
 )
 
 // PinLinePlay is the play of a rotor's pin line along the rotor's x (+-), the sum of its sources: the blade across its hole
 // (bladeAcross), the top plate to the cradle (pegs 0.05), the yaw of the stem in its slot (0.08) and the rotor journal
-// settled in its hole (journalSettle). The tests take the rest bands, the drive audit and the tongue sweep from it.
+// settled on its pins (journalSettle). The tests take the rest bands, the drive audit and the tongue sweep from it.
 const PinLinePlay = bladeAcross + 0.05 + 0.08 + journalSettle
 
 // JournalAcross is the extra side play when the journal sits fully across its hole instead of settled.

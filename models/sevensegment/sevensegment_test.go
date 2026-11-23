@@ -20,7 +20,7 @@ func TestSevenSegmentDefault(t *testing.T) {
 	startDefault()
 	t.Parallel()
 	doc, m := builtDefault(t)
-	require.Len(t, doc.Bodies(), 61)
+	require.Len(t, doc.Bodies(), 75)
 	for _, b := range doc.Bodies() {
 		require.True(t, b.IsSolid())
 	}
@@ -53,6 +53,9 @@ func TestSevenSegmentDefault(t *testing.T) {
 		for _, b := range names[i+1:] {
 			if !boxesTouch(boxes[a], boxes[b], 0.05) {
 				continue
+			}
+			if isPivotPress(a, b) {
+				continue // a pivot block is pressed 0.05 in its pocket: TestSevenSegmentPivotBlocks measures it on finer meshes
 			}
 			if isToothMate(a, b) {
 				continue // the click indexer's mating teeth keep their land gaps: TestClickerLandGaps proves them
@@ -104,7 +107,8 @@ func TestSevenSegmentContainers(t *testing.T) {
 		want["slider "+s.String()] = struct{ parent, kind string }{"", sevensegment.SlidersContainerName}
 	}
 	for name, b := range printed(m) {
-		if strings.HasPrefix(name, "yellow face") || strings.HasPrefix(name, "black body") {
+		if strings.HasPrefix(name, "yellow face") || strings.HasPrefix(name, "black body") ||
+			strings.HasPrefix(name, "pivot block") {
 			continue // checked below
 		}
 		c, err := doc.ContainerOf(b)
@@ -125,6 +129,15 @@ func TestSevenSegmentContainers(t *testing.T) {
 			require.Equal(t, kind, c.Name())
 			require.True(t, strings.HasPrefix(c.Parent().Name(), sevensegment.FlagUnitName), "segment %s", s)
 			require.Equal(t, sevensegment.FlagsContainerName, c.Parent().Parent().Name())
+		}
+	}
+	// The 14 pivot blocks all sit in one Pivot Blocks container under the root.
+	for _, s := range sevensegment.Segments() {
+		for end, b := range m.PivotBlocks[s] {
+			c, err := doc.ContainerOf(b)
+			require.NoError(t, err, "pivot block %s %d", s, end)
+			require.Equal(t, sevensegment.PivotBlocksContainerName, c.Name())
+			require.Equal(t, doc.Root(), c.Parent())
 		}
 	}
 	for i, b := range m.Bearings {

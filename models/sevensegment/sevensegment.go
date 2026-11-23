@@ -23,26 +23,27 @@ import (
 
 // Container names, one per kind of body.
 const (
-	FrameContainerName      = "Frame"
-	WallsContainerName      = "Walls"
-	PlatesContainerName     = "Plates"
-	CamshaftContainerName   = "Camshaft"
-	ShaftContainerName      = "Shaft"
-	CamsContainerName       = "Cams"
-	ClickerContainerName    = "Click Indexer"
-	HubContainerName        = "Hub"
-	RotorContainerName      = "Rotor"
-	HousingContainerName    = "Housing"
-	ButtonContainerName     = "Button"
-	SpringContainerName     = "Spring"
-	SlidersContainerName    = "Segment Sliders"
-	BearingsContainerName   = "Bearings"
-	BoltsContainerName      = "Bolts"
-	NutsContainerName       = "Nuts"
-	FlagsContainerName      = "Flags"
-	FlagUnitName            = "Flag"
-	YellowFaceContainerName = "Yellow Face"
-	BlackBodyContainerName  = "Black Body"
+	FrameContainerName       = "Frame"
+	WallsContainerName       = "Walls"
+	PlatesContainerName      = "Plates"
+	CamshaftContainerName    = "Camshaft"
+	ShaftContainerName       = "Shaft"
+	CamsContainerName        = "Cams"
+	ClickerContainerName     = "Click Indexer"
+	HubContainerName         = "Hub"
+	RotorContainerName       = "Rotor"
+	HousingContainerName     = "Housing"
+	ButtonContainerName      = "Button"
+	SpringContainerName      = "Spring"
+	SlidersContainerName     = "Segment Sliders"
+	BearingsContainerName    = "Bearings"
+	BoltsContainerName       = "Bolts"
+	NutsContainerName        = "Nuts"
+	FlagsContainerName       = "Flags"
+	FlagUnitName             = "Flag"
+	YellowFaceContainerName  = "Yellow Face"
+	BlackBodyContainerName   = "Black Body"
+	PivotBlocksContainerName = "Pivot Blocks"
 )
 
 // Parts are the printed bodies, posed and placed, without the bought parts.
@@ -54,6 +55,8 @@ type Parts struct {
 	Cams, Sliders                       [7]*decad.Body // indexed by Segment
 	// Flags are the seven two-colour rotors, indexed by Segment.
 	Flags [7]Flag
+	// PivotBlocks are the 14 pivot blocks, indexed by Segment and then 0 for the rotor's -u end, 1 for its +u end.
+	PivotBlocks [7][2]*decad.Body
 	// Sketches are every sketch the parts were built from, each fully constrained.
 	Sketches   []*sketch.Sketch
 	Dimensions Dimensions
@@ -151,6 +154,9 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 			}
 		}
 	}
+	if out.PivotBlocks, err = r.pivotBlocks(); err != nil {
+		return nil, fmt.Errorf("sevensegment: pivot blocks: %w", err)
+	}
 	for _, st := range steps {
 		body, err := st.build()
 		if err != nil {
@@ -183,7 +189,7 @@ func (r *run) camshaftTurn() r3.Transform {
 	return t
 }
 
-// Build adds every body to doc, each in its container: 61 bodies. ctx and doc must not be nil.
+// Build adds every body to doc, each in its container: 75 bodies. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -274,6 +280,17 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 			}
 			if err := box.AddBody(k.body); err != nil {
 				return nil, fmt.Errorf("sevensegment: add body to %s: %w", k.kind, err)
+			}
+		}
+	}
+	blocks, err := root.NewChild(PivotBlocksContainerName)
+	if err != nil {
+		return nil, fmt.Errorf("sevensegment: container %s: %w", PivotBlocksContainerName, err)
+	}
+	for _, seg := range Segments() {
+		for _, b := range m.PivotBlocks[seg] {
+			if err := blocks.AddBody(b); err != nil {
+				return nil, fmt.Errorf("sevensegment: add body to %s: %w", PivotBlocksContainerName, err)
 			}
 		}
 	}

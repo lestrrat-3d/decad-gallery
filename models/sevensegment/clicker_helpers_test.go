@@ -2,6 +2,7 @@ package sevensegment_test
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -68,3 +69,10 @@ func partTol(name string) float64 {
 
 // pressTol is the finer tolerance of the parts pressed on the shaft: the document's chain tolerance holds a mesh to 0.01 mm.
 func pressTol(string) float64 { return 0.01 }
+
+// isPivotPress reports whether a and b are a pivot block and the plate whose pocket holds it.
+func isPivotPress(a, b string) bool {
+	block := func(n string) bool { return strings.HasPrefix(n, "pivot block ") }
+	plate := func(n string) bool { return n == "cradle plate" || n == "top plate" }
+	return block(a) && plate(b) || block(b) && plate(a)
+}

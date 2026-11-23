@@ -127,7 +127,7 @@ const (
 	RotorAxisZ      = 82.6
 	RotorHalfWidth  = 3.75
 	RotorHalfLength = 12.25
-	JournalRadius   = 0.6
+	JournalRadius   = 0.6 // the rotor's end bore
 	PinOffset       = 1.5
 
 	FlagsContainerName      = "Flags"
@@ -326,13 +326,19 @@ one-off scratch build before the port, which is not in the repository; a decad r
 - `rotors.go`: `flag(seg)` builds the two bodies of one flag in a local frame (axis on local Z): tips by `decad.Intersect` of
   two octagonal prisms, the rounded-square section, the yellow slab and tips (P1 and P2 with `yellowTipK` 12.95,
   `yellowTipInner` 12.95 and `yellowTipEnd` 11.6) split by `Intersect`/`Cut`, the flat, the notches, the pocket stadium
-  sketch and the revolved stubs (instructions.md "Rotor"). Then each body is placed in two steps: a `decad.Transform` by
+  sketch, the two end bores (a revolve with a floor round and a countersink) and their teardrop roofs (a prism on a fully
+  constrained pentagon sketch), the 0.6 pocket floor round and the 0.7 mouth chamfer of type B's first notch
+  (instructions.md "Rotor"). Then each body is placed in two steps: a `decad.Transform` by
   the frame origin's local coordinates and `placement.Place` with the rotation-only frame (decad item D3).
 - `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and pin (`rootedTongue`),
   the 0.3 stem chamfers and the groove pin.
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 2.95, `windowChamfer` 12.65 and
   `windowEnd` 11.696) and `columnGuidePlate()` with `boreTool`, `rootedBox`, `rootedPost`,
   `mouthCone` and `flagSites()`.
+- `pivot.go`: `pivotBlock()` (the rounded 3.2 x 3.1 x 2.0 body from `roundedPrism`, unioned with the revolved Ø0.8 pin and its
+  45-degree root, tip chamfered 0.1), `pivotPocketTool(seg, sgn)` (the same `roundedPrism` offset by `PressFit`, cut from
+  the cradle and the top plate by `cutPivotPockets`) and `pivotBlocks()` (the prototype and 13 `decad.Copy` placed at the 14
+  rotor ends). `boreTool` now ends at the end wall at u 12.5 with no journal hole.
 - `params.go`: the exported flag constants and `Dimensions.FlagAngle`.
 
 Checks: `TestSevenSegmentFlag*`, `TestSevenSegmentRotor*`, `TestSevenSegmentSlider*`, `TestSevenSegmentFrame`,
@@ -395,7 +401,7 @@ Check: `TestSevenSegmentFasteners`.
 | `Bolts` (root) | 4 × M2 × 10, 4 × M2 × 6, 2 × M2 × 18 |
 | `Nuts` (root) | 10 × M2 nut |
 
-60 bodies. Use `NewChild` for units, `ChildNamed` for kinds, `AddBody`; require `doc.VerifyContainers().Err() == nil`.
+75 bodies, with `Pivot Blocks` (root) holding the 14 blocks. Use `NewChild` for units, `ChildNamed` for kinds, `AddBody`; require `doc.VerifyContainers().Err() == nil`.
 The body set never changes with `Digit`.
 Check: `TestSevenSegmentDefault`, `TestSevenSegmentContainers`,
 `TestSevenSegmentAllDigits`, `TestSevenSegmentPlacement`.

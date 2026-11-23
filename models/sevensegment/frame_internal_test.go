@@ -55,7 +55,7 @@ func TestSevenSegmentPlates(t *testing.T) {
 }
 
 // TestSevenSegmentFlagPlates builds the cradle, top plate and guide plate of the flag mechanism and checks their bounds,
-// their bores and half-holes, the window lip and the blade holes, their walls and their corners.
+// their bores and pivot pockets, the window lip and the blade holes, their walls and their corners.
 func TestSevenSegmentFlagPlates(t *testing.T) {
 	_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
 	_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
@@ -80,22 +80,27 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 	}
 	require.InDelta(t, columnTop+2.6, gb.Max.Z, 0.01)
 
-	// Sections normal to u through segment g's centre (u = X): the bore, the journal half-holes, the lip and the blade hole.
+	// Sections normal to u through segment g's centre (u = X): the bore, the pivot pockets, the lip and the blade hole.
 	o := r3.Vec{Z: RotorAxisZ}
 	// Bore in the cradle at x = 0: void 5.2 across at z 81.0 (the chord is 5.31), material beyond 5.42.
 	cl := planeSection(t, cradle, o, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	at := func(y, z float64) r3.Vec { return r3.Vec{X: y, Y: z - RotorAxisZ} }
 	require.False(t, insideLoops(cl, at(5.2, 81.0)), "bore")
 	require.True(t, insideLoops(cl, at(5.42, 81.0)), "bore wall")
-	// Journal half-holes at u = 13.5: the cradle's open upward, the top plate's open downward.
+	// Pivot pockets at u = 13.5: the cradle's half is open upward and 1.0 deep under the axis's seam (floor at z 81.0), the top
+	// plate's open downward and reaches z 84.45 (1.6 above its underside); both are 3.3 wide, with the corners rounded 0.5.
 	j := r3.Vec{X: 13.5, Z: RotorAxisZ}
 	cj := planeSection(t, cradle, j, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	require.False(t, insideLoops(cj, at(0, 82.2)), "cradle half-hole")
-	require.True(t, insideLoops(cj, at(0, 81.6)), "cradle under the half-hole")
-	require.True(t, insideLoops(cj, at(0.95, 82.2)), "cradle beside the half-hole")
+	require.False(t, insideLoops(cj, at(0, 81.2)), "cradle pocket")
+	require.False(t, insideLoops(cj, at(1.6, 82.2)), "cradle pocket side")
+	require.True(t, insideLoops(cj, at(0, 80.9)), "cradle under the pocket")
+	require.True(t, insideLoops(cj, at(1.7, 82.2)), "cradle beside the pocket")
+	require.True(t, insideLoops(cj, at(1.6, 81.05)), "cradle in the pocket's rounded corner")
 	tj := planeSection(t, top, r3.Vec{X: 13.5, Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	require.False(t, insideLoops(tj, r3.Vec{X: 0, Y: 0.4}), "top plate half-hole")
-	require.True(t, insideLoops(tj, r3.Vec{X: 0, Y: 1.0}), "top plate over the half-hole")
+	require.False(t, insideLoops(tj, r3.Vec{X: 0, Y: 1.5}), "top plate pocket")
+	require.False(t, insideLoops(tj, r3.Vec{X: 1.6, Y: 0.5}), "top plate pocket side")
+	require.True(t, insideLoops(tj, r3.Vec{X: 0, Y: 1.7}), "top plate over the pocket")
+	require.True(t, insideLoops(tj, r3.Vec{X: 1.7, Y: 0.5}), "top plate beside the pocket")
 	// Window lip: the window half-width is 2.95 and the bore chord at 2.95 leaves a lip of 0.704 under the display face (listed
 	// in instructions.md as thinner than 0.8).
 	tw := planeSection(t, top, r3.Vec{Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
