@@ -6,8 +6,8 @@
 
 A printed, mechanical digit 0 to 9. Seven rotors turn in windows of a top plate. A rotor has a yellow face and a black
 body: where a segment is lit its yellow face tips up toward you, and where it is off the black body shows. The tip shows
-best from above. Seen from the button side at 30 degrees elevation, the yellow fills only 35 to 41 % of the window of a
-horizontal segment (a, g, d) across it. Every printed
+best from above. Seen from the button side at 30 degrees elevation, the yellow fills only part of the window of a
+horizontal segment (a, g, d) across it (35 to 41 % at the base size, not re-measured at 1.5). Every printed
 part keeps one filament color (a rotor is two bodies, a yellow one and a black one) and never changes color, so the color you see is only the angle of a rotor. The display stands on its back wall, so the
 face looks toward you and the button end is the top; press the button and the display moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
@@ -107,7 +107,7 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 
 ![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
-The pivot of rotor a taken apart: the rotor in the middle, an orange pivot block 3 mm out of each end along its axis, so
+The pivot of rotor a taken apart: the rotor in the middle, an orange pivot block 4.5 mm out of each end along its axis, so
 each pin is free of its end bore and each block stands level with its own pocket. The cradle plate is pulled down and the
 top plate up, so the lower and upper halves of the pockets face the blocks. The plates are cut to a block round the
 rotor; the sliders and the other rotors are left out:

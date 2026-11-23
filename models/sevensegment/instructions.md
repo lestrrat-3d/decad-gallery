@@ -91,11 +91,15 @@ Checks at Scale 1.5, all from the tests:
   Nobody has measured it, and a printed 1.5x camshaft's dwell drag, and the torque at which a r 2.5 printed stub breaks, are not known.
 - The crown's long ramp is 12.8 degrees, under the friction angle (19.3 degrees at friction 0.35). A rotor let go early therefore
   does not slide back to the old digit by the spring alone, at either scale; "Detent and rest angles" below says it does, and is wrong.
-- Surface edge finishing: at 1.5 two planar faces of every slider (the stem's side faces, 402 to 562 mm2) reach 400 mm2 and carry the 0.5
-  chamfer on every long run of their outer loops (`edgefinish.ChamferRuns`), made before the groove pin is added. The stem's vertical
-  edges are among those runs, so the 0.3 bevels of Scale 1.0 are now 0.5 (`stemChamfer`), because Fusion cannot chamfer an edge that
-  already carries a smaller bevel. a, g and d build and pass; b to f wait on a decad fix (the tongue's flank is a Faceted face 0.0006 to
-  0.0027 mm inside the stem's print face instead of merging with it).
+- Surface edge finishing: at 1.5 two planar faces of every slider (the stem's side faces, 402 to 614 mm2) reach 400 mm2 and carry the
+  0.5 chamfer on every run of 20 mm or more of their outer loops (`edgefinish.ChamferRuns`, made before the groove pin is added):
+  the stem's vertical edges, the head's and arm's long runs and the blade's outline. The tongue's runs (9.5 and 6.8 mm) and the
+  short ends stay sharp, as the 20 mm rule allows. The stem's vertical edges are among those runs, so the 0.3 bevels of Scale 1.0
+  are now 0.5 (`stemChamfer`), because Fusion cannot chamfer an edge that already carries a smaller bevel. a, g and d fall under
+  400 mm2 after it; b to f stay over it (482 and 532 mm2, they keep the chamfer on their runs), and
+  `TestSevenSegmentEdgeFinishing` reads the two x sides of the stem for every slider. A b slider has 551 faces, 493 of them
+  Faceted: decad cuts a chamfer along a round (the stem-to-arm root round and the blade's root rounds) as chord strips. The
+  tongue's print flank merges with the stem's print face since decad PRs #3405 to #3408.
 
 ## Design
 

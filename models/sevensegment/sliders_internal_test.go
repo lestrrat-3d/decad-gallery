@@ -16,7 +16,11 @@ import (
 // pin, blade and head, and their corners along the print axis (a, g, d: the -X face down; b-f: the -Y face down).
 func TestSevenSegmentSliders(t *testing.T) {
 	r := newTestRun(t)
-	want := map[Segment]float64{SegA: 3301.86, SegG: 3301.86, SegD: 3301.86, SegB: 3325.76, SegC: 3325.76, SegE: 3374.40, SegF: 3374.40}
+	// The volumes at Scale 1.5 with the 0.5 chamfers of "Surface edge finishing" on the stem faces. Each is the same build without
+	// the chamfers (a, g, d 3325.76; b, c 3335.59; e, f 3384.44) less the chamfers: 0.5 x 0.5 / 2 = 0.125 mm2 of section along
+	// every run of 20 mm or more of the two faces' outer loops (168.2, 271.3 and 278.5 mm), 21.0, 33.9 and 34.8 mm3. The built
+	// removal is 23.8, 34.0 and 34.9: it agrees to 0.1 for b to f, and a, g and d lose 2.8 more where their runs meet.
+	want := map[Segment]float64{SegA: 3301.94, SegG: 3301.94, SegD: 3301.94, SegB: 3301.62, SegC: 3301.62, SegE: 3349.56, SegF: 3349.56}
 	vols := map[Segment]float64{}
 	for _, seg := range Segments() {
 		t.Run(seg.String(), func(t *testing.T) {

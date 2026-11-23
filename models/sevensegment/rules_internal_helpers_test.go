@@ -99,7 +99,7 @@ func partCases() []partCase {
 		if _, _, horizontal := segmentCentre(seg); horizontal {
 			up = r3.Vec{X: 1}
 		}
-		cases = append(cases, partCase{name: "slider " + seg.String(), up: up,
+		cases = append(cases, partCase{name: "slider " + seg.String(), up: up, chamfered: true,
 			build: func(r *run) (*decad.Body, error) { return r.flagSlider(seg) }})
 	}
 	return cases
@@ -139,6 +139,9 @@ type chamferSpec struct {
 	section func(t *testing.T, body *decad.Body, h float64) [][]r3.Vec
 	faces   func(r *run, body *decad.Body) []chamferFace
 	round   bool
+	// xSides reads only the two sides along x: a slider's chamfer runs along the long runs (20 mm or more) of its faces' outer
+	// loops, the stem's vertical edges, and not along its short bottom, arm-end and tongue edges.
+	xSides bool
 }
 
 // chamferSpecs lists the parts that carry chamfers on the outer loops of their faces. It is read from the geometry
@@ -168,6 +171,30 @@ func chamferSpecs() map[string]chamferSpec {
 			faces: func(r *run, _ *decad.Body) []chamferFace {
 				face := r.dm.camDiscFace(seg)
 				return []chamferFace{{face, 1}, {face + CamThickness, -1}}
+			}}
+	}
+	for _, seg := range Segments() {
+		specs["slider "+seg.String()] = chamferSpec{xSides: true,
+			// The section across the stem, below the arm and the head: the loops of the whole slider at a height reach out along the
+			// arm, so the points above the stem's top are left out.
+			section: func(t *testing.T, b *decad.Body, y float64) [][]r3.Vec {
+				var out [][]r3.Vec
+				for _, l := range sectionAt(t, b, y) {
+					var kept []r3.Vec
+					for _, p := range l {
+						if p.Y+ShaftZ < sliderHeadTop-6 {
+							kept = append(kept, p)
+						}
+					}
+					if len(kept) > 0 {
+						out = append(out, kept)
+					}
+				}
+				return out
+			},
+			faces: func(r *run, _ *decad.Body) []chamferFace {
+				yi := r.dm.Station(seg)
+				return []chamferFace{{yi - StemThickness/2, 1}, {yi + StemThickness/2, -1}}
 			}}
 	}
 	return specs

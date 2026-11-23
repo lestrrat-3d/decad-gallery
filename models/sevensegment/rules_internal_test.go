@@ -59,6 +59,9 @@ func TestSevenSegmentEdgeFinishing(t *testing.T) {
 				}
 				require.InDelta(t, want, nMinX-dMinX, 0.05, "the -x side at face %.2f is chamfered", f.level)
 				require.InDelta(t, want, dMaxX-nMaxX, 0.05, "the +x side at face %.2f is chamfered", f.level)
+				if spec.xSides {
+					continue
+				}
 				require.InDelta(t, want, nMinY-dMinY, 0.05, "the -y side at face %.2f is chamfered", f.level)
 				require.InDelta(t, want, dMaxY-nMaxY, 0.05, "the +y side at face %.2f is chamfered", f.level)
 			}
