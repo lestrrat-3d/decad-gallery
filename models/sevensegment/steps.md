@@ -3,6 +3,14 @@
 Governing geometry: `instructions.md`. Each section names the operations in build order and its check.
 Every sketch is verified fully constrained before its geometry is used. A decad refusal stops the work.
 
+Scale. Every length below is the base design's, at `Scale` 1.0. The code writes each shape as `Scale` times its base size (1.5
+as built) and adds fits, print limits, whole-layer thicknesses and purchased hardware outside the product;
+`instructions.md` "Scale" and "Scale 1.5 values" list what is not a plain product: the 608ZZ bearings (seat r 11.05, 7 deep, lip hole r 6.5,
+wall 12), the shaft's r 4.0 journals and its knob-stub cone, bolts M2 x 16 / 10 / 16, the pivot block 4.8 x 5.9 x 3.0 with a Ø1.4 pin
+and the click indexer's 8.0 teeth and 10.0 stroke. The shaft's sketch is anchored at the display's centre plane, off the axis
+(`meridianAt`): the default anchor, among the shortest sides, leaves the 172 mm shaft's constraint system poorly conditioned, and
+an anchor on the axis duplicates a constraint.
+
 ## 1. Validate and derive (params.go)
 
 ### Go API
@@ -306,7 +314,7 @@ Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, ext
    edges; top flange: bottom and x = ±16.4 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
 4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
    through the wall to the outer face (d 8): `(0,−1) (7.55,−1) (7.55,0) (7.05,0.5) (7.05,5.0) (4.5,5.0) (4.5,7.5)
-   (5.0,8.0) (5.0,9.0) (0,9.0)`. Seat r 7.05 (605ZZ `SeatDiameter/2`) 5 deep with a 0.5 lead-in at the inner face,
+   (5.0,8.0) (5.0,9.0) (0,9.0)`. Seat r 7.05 (605ZZ `SeatDiameter/2`; 608ZZ r 11.05, 7 deep at Scale 1.5) 5 deep with a 0.5 lead-in at the inner face,
    lip 3 thick with hole r 4.5 and a 0.5 chamfer at the outer face.
 5. Cut fastener tools: ledge ribs `m2fastener.PocketTool` (G sites, head pockets from the rib underside) and
    `HoleTool`; top flange ribs `HexPocketTool(site, NutCavityHeight + Stock)` (T sites) and `HoleTool`; front wall
@@ -335,7 +343,7 @@ one-off scratch build before the port, which is not in the repository; a decad r
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 2.95, `windowChamfer` 12.65 and
   `windowEnd` 11.696) and `columnGuidePlate()` with `boreTool`, `rootedBox`, `rootedPost`,
   `mouthCone` and `flagSites()`.
-- `pivot.go`: `pivotBlock()` (the rounded 3.2 x 3.1 x 2.0 body from `roundedPrism`, unioned with the revolved Ø0.8 pin and its
+- `pivot.go`: `pivotBlock()` (the rounded 3.2 x 3.1 x 2.0 body (4.8 x 5.9 x 3.0 at Scale 1.5) from `roundedPrism`, unioned with the revolved Ø0.8 pin (Ø1.4) and its
   45-degree root, tip chamfered 0.1), `pivotPocketTool(seg, sgn)` (the same `roundedPrism` offset by `PressFit`, cut from
   the cradle and the top plate by `cutPivotPockets`) and `pivotBlocks()` (the prototype and 13 `decad.Copy` placed at the 14
   rotor ends). `boreTool` now ends at the end wall at u 12.5 with no journal hole.
@@ -367,7 +375,7 @@ cams f (y ≤ 28.15) and a (y ≥ 35.35); no cam stands under a G head. No nut i
 
 ### Bearings
 
-`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 29.5),
+`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)` (`Params608ZZ` at Scale 1.5): front placement origin (0, −49.5, 29.5),
 U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 29.5), U = +Z, V = +X (toward +Y). Bearings do not turn
 with θ.
 Check: `TestSevenSegmentFasteners`.
@@ -397,7 +405,7 @@ Check: `TestSevenSegmentFasteners`.
 | `Hub`, `Rotor`, `Housing`, `Button`, `Spring` (Click Indexer) | one body each |
 | `Segment Sliders` (root) | 7 sliders |
 | `Flags` (root) | 7 `Flag` units, each with a `Yellow Face` and a `Black Body` |
-| `Bearings` (root) | 2 × 605ZZ |
+| `Bearings` (root) | 2 × 608ZZ (605ZZ at Scale 1.0) |
 | `Bolts` (root) | 4 × M2 × 10, 4 × M2 × 6, 2 × M2 × 18 |
 | `Nuts` (root) | 10 × M2 nut |
 

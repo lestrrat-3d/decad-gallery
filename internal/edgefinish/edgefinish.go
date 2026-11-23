@@ -329,7 +329,8 @@ func matchOffset(offsets []float64, d float64) (float64, bool) {
 	return 0, false
 }
 
-// predicates names one edge by its start point and its kind: a circle or arc, or a line along its direction.
+// predicates names one edge by its start point and its kind: a circle or arc, a line along its direction, or a faceted curve
+// by both of its end points.
 func predicates(e *decad.Edge) ([]decad.EdgePredicate, error) {
 	start := e.Start().Position().Value
 	switch c := e.Curve().(type) {
@@ -341,6 +342,9 @@ func predicates(e *decad.Edge) ([]decad.EdgePredicate, error) {
 			return nil, fmt.Errorf("zero-length line edge at %v", start)
 		}
 		return []decad.EdgePredicate{decad.EndpointAt(start), decad.ParallelTo(dir)}, nil
+	case decad.FacetedCurve:
+		// A chord run of a faceted round has no direction of its own: its two end points name it.
+		return []decad.EdgePredicate{decad.EndpointAt(start), decad.EndpointAt(e.End().Position().Value)}, nil
 	default:
 		return nil, fmt.Errorf("cannot select a %T edge at %v", c, start)
 	}

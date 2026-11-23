@@ -16,7 +16,7 @@ import (
 // pin, blade and head, and their corners along the print axis (a, g, d: the -X face down; b-f: the -Y face down).
 func TestSevenSegmentSliders(t *testing.T) {
 	r := newTestRun(t)
-	want := map[Segment]float64{SegA: 3317.11, SegG: 3317.11, SegD: 3317.11, SegB: 3325.76, SegC: 3325.76, SegE: 3374.40, SegF: 3374.40}
+	want := map[Segment]float64{SegA: 3301.86, SegG: 3301.86, SegD: 3301.86, SegB: 3325.76, SegC: 3325.76, SegE: 3374.40, SegF: 3374.40}
 	vols := map[Segment]float64{}
 	for _, seg := range Segments() {
 		t.Run(seg.String(), func(t *testing.T) {

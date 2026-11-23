@@ -18,12 +18,13 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
   face when lit, a black face when unlit. Every printed body is one filament colour (printed on a multi-filament printer).
 - Digit glyphs: 6 and 9 with tails (6 lights a, 9 lights d); 7 lights a, b, c only.
 - Input is a button pressed 6.0 mm along the shaft axis, one digit per press 0→1→…→9→0. The segments' roles are swapped against the usual order (a and d, b and e, c and f) so each digit reads upright with the button end up.
-- Purchased parts: two 605ZZ bearings (`ballbearing.Lookup("605ZZ")`), M2 bolts and nuts (`fastener` via
+- Purchased parts: two 608ZZ bearings (`ballbearing.Lookup("608ZZ")`), M2 bolts and nuts (`fastener` via
   `internal/m2fastener`), and one KSSC K series 1087 compression spring (`compressionspring.KSSC1087`). No
   purchased shafts.
-- Click indexer assumptions: a press needs 5.64 to 7.53 N of spring force plus the ramps' friction (about 3 to 6 N at
-  friction 0.35 to 0.5), peak about 11 to 14 N; the cams and sliders take up to 41 N.mm at the shaft while five segments change together,
-  about 5.6 N of press (Cam follower drive). The spring is a
+- Click indexer assumptions: a press needs 5.64 to 7.53 N of spring force plus the ramps' friction, and the cams' share. At
+  Scale 1.0 that was friction 3 to 6 N, peak about 11 to 14 N, and up to 41 N.mm at the shaft, about 5.6 N of press. At Scale 1.5
+  the cams and sliders take up to 201.1 N.mm at the shaft while five segments change together, about 14.1 N of press on an
+  ideal ramp (Cam follower drive), so a press is about 20 to 22 N and up to about 35 N with friction. The spring is a
   purchased KSSC K series 1087 from MonotaRO, order code 01353223 (`compressionspring.KSSC1087`). The supplier's
   allowable load is 7.15 N at 6.4 mm length, so the pressed length of 6.0 mm is 0.4 mm past it, and fatigue life is
   not published.
@@ -39,8 +40,10 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 
 ## Scale
 
-`Scale` (`params.go`) is the size of the display against its base design; the numbers in this document are those of
-`Scale` 1.0. Every shape (the layout, the rotors, the sliders, the cams, the frame and the pivot blocks) is written in
+`Scale` (`params.go`) is the size of the display against its base design. It is 1.5. Unless a line says "at Scale 1.5", the
+lengths, heights and volumes in the sections below are the base design's, at `Scale` 1.0; multiply a shape by 1.5 and leave its
+fits, print limits, whole-layer thicknesses and purchased hardware alone. "Scale 1.5 values" below lists what is not a plain
+product. Every shape (the layout, the rotors, the sliders, the cams, the frame and the pivot blocks) is written in
 the code as `Scale` times its base size in mm. These keep their size in mm at any scale, and the code adds them outside
 the product:
 
@@ -51,6 +54,48 @@ the product:
 
 A value that is a size plus a fit, such as the rotor bore `RB` (swept circle 5.096 plus 0.45), is written as
 `Scale*size + fit`, so a change of `Scale` moves the size and leaves the fit.
+
+### Scale 1.5 values
+
+What differs from a plain 1.5 times the base design, and why:
+
+| Item | Scale 1.0 | Scale 1.5 | Why |
+| --- | --- | --- | --- |
+| Cradle / top plate thickness | 2.6 / 5.4 | 4.0 / 8.0 | whole layers (1.5 x 2.6 is 3.9, 1.5 x 5.4 is 8.1) |
+| Rotor axis `RotorAxisZ`, display face | 82.6, 88.25 | 124.0, 132.25 | cradle bottom 120.0 + 4.0, + 0.25 seam + 8.0; every height of the flag mechanism hangs from them |
+| Wall thickness | 8.0 | 12.0 | 1.5 x 8.0 |
+| Bearings | 2 x 605ZZ (Ø5 bore, 5 wide) | 2 x 608ZZ (`ballbearing.Lookup("608ZZ")`: bore 8, outside 22, 7 wide, inner ring face 12) | a Ø5 journal cannot scale; the catalog lists no bore chamfer, so a local 0.3 is assumed (`bearingBoreChamfer`) |
+| Bearing seat | r 7.05, 5 deep, lip hole r 4.5 | r 11.05, 7 deep, lip hole r 6.5, lip 5.0 thick | seat = outside radius + 0.05; lip hole 0.5 outside the inner ring's face radius 6.0 |
+| Shaft | journal r 2.5, cam section r 3.2, rear collar r 3.8 | journal r 4.0, cam section r 4.8, collar r 5.7, knob stub r 2.5 | journal = bearing bore; the click indexer keeps its size, and its spring (inside radius 2.9) does not fit a r 4.0 stub |
+| Knob stub step | none | cone r 4.0 to 2.5 over y -81.5 to -84.1 (29.98 degrees) | inside the front wall's lip hole; it starts 0.25 outside the bearing's face (the shaft's end play); it is not a collar (nothing faces it) |
+| Front step, rear collar | r 3.2 / 3.8 | r 4.8 / 5.7, rear collar 5.25 long from the cone's start | inside the inner ring's face r 6.0 (1.2 and 0.3), clear of the bore chamfer (4.0 + 0.3 + 0.3 = 4.6) |
+| Pivot block | 3.2 x 3.1 x 2.0, pin Ø0.8 in a Ø1.2 bore | 4.8 x 5.9 x 3.0, pin Ø1.4 in a Ø1.8 bore | study option B; the block's height is `2*(cradleThick - 1.0 - PressFit)`, so 1.0 of cradle stays under the pocket floor; bore roof truncated at 1.00 |
+| Bolts | T M2 x 10, G M2 x 6, H M2 x 10 | T M2 x 16, G M2 x 10, H M2 x 16 | standard lengths (`BoltSize.StandardLengths`); cavities follow from the plate stacks |
+| Housing base thickness | 4.0 | 6.0 | the H bolts: no standard length fits a 12 mm wall with a 4.0 base (tip 12 is short of the nut, 18 stands out of the wall) |
+| Click indexer | teeth 4.0, stroke 6.0 | teeth 8.0, stroke 10.0 | design change: the cams' load grows 5.1 times in torque, the spring and the bought parts do not, so the ramps are made half as steep |
+| Wall look-alike hole circle | r 10 | r 13.5 | 1.5 x 10 is under the housing flange (r 14.55 to 24.8) |
+| Cam hub length | 7.15 | 10.75 | pitch less cam thickness less the 0.05 stack gap |
+| Window | 5.9 wide, lip 0.704 / 0.487 | 9.65 wide, lip 1.512 / 1.248 | the 0.8 inset from the rotor's faces and 1.1 from its pyramid edges do not scale; the lip is over the 0.8 minimum, so the exception for it is dropped |
+
+Checks at Scale 1.5, all from the tests:
+
+- Rest bands (slot clearance 0.20, `PinLinePlay` 0.469 unchanged): a, g, d design unlit [-59.60, -41.76], lit [37.85, 56.63];
+  worst case unlit end -41.01, lit start 37.02, pin radius 3.832 (limit 4.15 asserted); b to f design unlit end -42.37, lit
+  [37.16, 56.09]; worst case -40.12 and 34.55, pin radius 3.954 against the slot's limit 4.25.
+- Drive: ratio 1.423 (a, g, d) and 1.186 (b to f) at friction 0.35 (needs 1.40 and 1.17); lock friction 0.426 and 0.385 (needs
+  0.42 and 0.38), with the stem's vertical edges chamfered 0.5. Peak shaft torque 201.1 N.mm at step 6 to 7; the cams and sliders weigh 3.375 times as much (`followerLoad` x 3.375).
+- Rotor centre of mass 1.029 (A) and 1.265 (B) from the axis, at the same angles; the rest bias passes at 1.50 (A) and 1.75 (B).
+- Tongue sweep, turned over: tongue to the yellow shell 0.843 (b to f 0.832), to the black leg 2.325 (1.945); pin to the pocket 0.943 (0.932).
+- Click indexer: press turn 32.09 degrees, release turn 3.91, timing margin 2.54 against 29.55; ramp rate 4.0625 degrees per mm;
+  the press share of the cams on an ideal ramp is 201.1 N.mm x 32.09 degrees / 8.0 mm = 14.1 N, plus the spring's 5.64 to 7.53 N.
+  Nobody has measured it, and a printed 1.5x camshaft's dwell drag, and the torque at which a r 2.5 printed stub breaks, are not known.
+- The crown's long ramp is 12.8 degrees, under the friction angle (19.3 degrees at friction 0.35). A rotor let go early therefore
+  does not slide back to the old digit by the spring alone, at either scale; "Detent and rest angles" below says it does, and is wrong.
+- Surface edge finishing: at 1.5 two planar faces of every slider (the stem's side faces, 402 to 562 mm2) reach 400 mm2 and carry the 0.5
+  chamfer on every long run of their outer loops (`edgefinish.ChamferRuns`), made before the groove pin is added. The stem's vertical
+  edges are among those runs, so the 0.3 bevels of Scale 1.0 are now 0.5 (`stemChamfer`), because Fusion cannot chamfer an edge that
+  already carries a smaller bevel. a, g and d build and pass; b to f wait on a decad fix (the tongue's flank is a Faceted face 0.0006 to
+  0.0027 mm inside the stem's print face instead of merging with it).
 
 ## Design
 
@@ -74,21 +119,21 @@ Stack along Y (world):
 
 | Part | Y from | Y to | Notes |
 | --- | ---: | ---: | --- |
-| Button | −81.4 | −74.95 | head r 11, 23.9 above the wall at rest; flush with the bezel (−75.4) at the bottom of its 6.0 stroke |
+| Button | −81.4 | −74.95 | head r 11, 23.9 above the wall at rest; flush with the bezel (−75.4) at the bottom of its 6.0 stroke (Scale 1.5: −118.15 to −107.65, 31.9 above the wall, flush with the bezel at −108.15 after 10.0) |
 | Housing | −75.4 | −57.75 | bezel at −75.4; base r 24.8 on the wall, 0.25 (Seam) from its outer face |
 | Rotor | −75.0 | −63.9 | slides 2.0 toward the wall |
 | Hub | −67.3 | −57.9 | keyed hub; 0.4 (Regular) to the front wall's outer face |
 | Spring | −69.4 | −61.4 | KSSC 1087 |
 | Shaft stub flat end | −57.85 | | square end of the stub flat; the hub's D chord stops here (0.05) |
 | Front wall | −57.5 | −49.5 | 8 thick; lip [−57.5, −54.5], seat [−54.5, −49.5] |
-| Front bearing 605ZZ | −54.5 | −49.5 | outer race in the seat |
+| Front bearing 605ZZ (608ZZ at 1.5) | −54.5 | −49.5 | outer race in the seat |
 | Shaft front step | −49.25 | | d 6.4 → 5, 0.25 (Tight) from the bearing's inner face |
 | Cam i hub | y_i − 4.8 | y_i + 2.35 | r 5.0; front end 0.05 from cam i−1 |
 | Slider i | y_i − 1.8 | y_i + 1.8 | stem; pin to y_i + 3.85 |
 | Cam i disc | y_i + 2.35 | y_i + 6.15 | groove on the −Y face; 0.55 (Loose) to the slider |
 | Shaft flat end | 39.2 | | square ends of the two flats; cam a's chords stop here |
 | Rear collar | 39.7 | 42.75 | cone 39.7→40.739 (r 3.2→3.8), cylinder r 3.8 |
-| Rear bearing 605ZZ | 43.0 | 48.0 | |
+| Rear bearing 605ZZ (608ZZ at 1.5) | 43.0 | 48.0 | |
 | Rear wall | 43.0 | 51.0 | seat [43.0, 48.0], lip [48.0, 51.0] |
 
 Cam a disc is [35.35, 39.15], cam d disc [−30.65, −26.85], cam d hub [−37.8, −30.65].
@@ -179,13 +224,16 @@ one step. Nothing in the camshaft is a stiff detent, so there is no climbing tor
 guarantee instead is timing: by the end of a press the shaft has turned far enough that every cam has finished moving its
 segment, so the new digit shows on the downstroke.
 
-- Press turn: `PressTurn()` = 32.5 degrees (the ramp) less what the tooth lands take, 8.125 degrees per mm of height
-  times (tip cut + the larger of the mating tip cut and root land): 0.81, so 31.69 degrees.
+- Press turn: `PressTurn()` = 32.5 degrees (the ramp) less what the tooth lands take, 4.0625 degrees per mm of height
+  (8.0 mm teeth; 8.125 and 4.0 mm at Scale 1.0) times (tip cut + the larger of the mating tip cut and root land): 0.41, so
+  32.09 degrees (31.69 at Scale 1.0).
 - Cams finished: `SegmentsDoneBy` 29.55 (the cam ramp end `RampEnd` 29.5 plus 0.05 of play).
-- Timing margin: `TimingMargin()` = 31.69 - 29.55 = 2.14 degrees. `TestClickerPressTurn` derives it from the tooth specs.
-- Release turn: 36 - 31.69 = 4.31 degrees, driven by the fixed crown's short ramp. It never turns the shaft back.
-- Early release: if the button is let go before the rotor passes the crown's tip (30 degrees), the rotor slides back along
-  the long ramp to the old digit, and the segments that started moving go back with it.
+- Timing margin: `TimingMargin()` = 32.09 - 29.55 = 2.54 degrees (2.14 at Scale 1.0). `TestClickerPressTurn` derives it from the tooth specs.
+- Release turn: 36 - 32.09 = 3.91 degrees, driven by the fixed crown's short ramp. It never turns the shaft back.
+- Early release: if the button is let go before the rotor passes the crown's tip (30 degrees), the rotor is on the crown's
+  long ramp, 12.8 degrees at r 13.4. That is under the friction angle (19.3 degrees at friction 0.35), so the spring alone does
+  not slide it back to the old digit: the rotor stays where it stopped on the ramp, and a second press finishes the step. This
+  corrects the earlier claim that it slides back.
 - The stub's D-bore play stays closed: the rotor drives the shaft forward in every phase and nothing turns it back.
 
 ### Camshaft
@@ -300,7 +348,7 @@ at digit 0 and rest; up is -Y):
 | Housing | `Housing` | -75.4 to -57.75 | Base flange r 14.55 to 24.8, 4.0 thick, on the front wall (two M2x10 bolts H1, H2 at x +-21, heads sunk in the base, nuts in hex pockets open to the wall's inner face); tube r 14.55 to 16.55; fixed crown ring r 11.55 to 14.55 with ten notches; three slots r 11.05 to 12.7, 3.0 wide, for the button's lugs. Its top, the bezel, is 17.9 above the wall. |
 | Button | `Button` | -81.4 to -74.95 | Head r 11.0, 2.5 thick, with a recess r 3.2 and 1.4 deep under it (the stub's tip is at -72.2); ten teeth under it, r 3.4 to 10.85, 4.0 tall; three lugs r 11.4 to 12.2, 2.0 wide, hanging 3.8 below the head's underside. |
 
-The head stands 23.9 above the front wall at rest and 17.9 at the bottom of its 6.0 mm stroke, flush with the bezel.
+The head stands 23.9 above the front wall at rest and 17.9 at the bottom of its 6.0 mm stroke, flush with the bezel (at Scale 1.5, 31.9 and 21.9, stroke 10.0, teeth 8.0, the housing base 6.0 thick, the lugs 7.8 below the head; all click indexer offsets from the front wall move with the wall: its outer face is at −86.25).
 
 Teeth. Every ring has ten sawtooth teeth with helicoid ramps about the shaft axis. A tooth rises from its sharp valley
 over `Rise` degrees to its peak and falls over `Fall` degrees; `Rise + Fall` is 36.
@@ -318,8 +366,8 @@ One press:
 
 1. Rest: the spring holds the rotor up, its outer teeth in the crown's notches. The digit is locked.
 2. The first 2.0 mm: the button pushes the rotor down, clear of the crown, onto the hub's rim stop.
-3. The next 4.0 mm: the ramps turn the rotor 31.69 degrees, and the hub and the shaft with it.
-4. Release: the spring lifts the rotor onto the crown's short ramp, which turns it the last 4.31 degrees into the next notch.
+3. The next 8.0 mm (4.0 at Scale 1.0): the ramps turn the rotor 32.09 degrees (31.69), and the hub and the shaft with it.
+4. Release: the spring lifts the rotor onto the crown's short ramp, which turns it the last 3.91 degrees (4.31) into the next notch.
 
 Land gaps. Where a tip meets a root the lands leave a gap (`TestClickerLandGaps`): 0.02 mm between the rotor's outer teeth
 and the crown at rest, and 0.02 mm between the rotor's inner teeth and the button at the bottom of the press. The ramps
@@ -363,7 +411,7 @@ Acceptance tests:
     f) and 2.75 (a, g, d).
 - Drive: at friction 0.5 the true drive arm (the pin on one wall of its slot) is at least 1.50 times the friction arms with
   the rotor settled on its pins and 1.35 with it fully across (computed 1.554 and 1.382).
-- Timing: a press turns the shaft `PressTurn()` 31.69 degrees, 2.14 past the 29.55 by which every cam has finished
+- Timing: a press turns the shaft `PressTurn()` 32.09 degrees (31.69 at Scale 1.0), 2.54 past the 29.55 by which every cam has finished
   (`TimingMargin()`, derived from the tooth specs in `TestClickerPressTurn`). This is calculated on the built
   dimensions and not measured on a print.
 - Captive at every digit, upright and turned over; pressing the button in either orientation meets no contact other than
@@ -395,16 +443,17 @@ of scope.
   in layers 1-4, then two small yellow islands per rotor under the facets) and a black rim, so a plate takes about 24
   filament changes (about 8 without the tips).
 - Split shafts: the rule covers printed shafts and pins. These are integral features of larger parts and stay whole:
-  the pivot pins (Ø0.8) of the 14 pivot blocks, the slider rotor pins (Ø1.0), the slider groove pins (Ø3.0), and the
-  registration pegs (Ø3.0) on the top plate and on the guide plate columns. None carries a part, a bearing or torque.
-  Splitting any of them means splitting its whole parent part. Each is below the 4 mm size that the rule asks for; the
-  pivot pin is listed with the slider's Ø1.0 pin as an integral pin (it stands upright in print, on its block, so the
+  the pivot pins (Ø1.4 at Scale 1.5, Ø0.8 at 1.0) of the 14 pivot blocks, the slider rotor pins (Ø1.5), the slider groove pins (Ø4.5), and the
+  registration pegs (Ø4.5) on the top plate and on the guide plate columns. None carries a part, a bearing or torque.
+  Splitting any of them means splitting its whole parent part. Each is below the 4 mm size that the rule asks for (the Ø1.4 pivot pin joins the integral-pin exemption: nothing under the bias
+  cap, a pin of Ø1.6 at most, reaches 4 mm); the
+  pivot pin is listed with the slider's rotor pin as an integral pin (it stands upright in print, on its block, so the
   layers do not run along it). Loads: rotor pin 0.020 N, groove pin up to 0.8 N (Cam follower drive), pivot pins 0.012 N
   (up to 0.03 N while the pin lifts the rotor), pegs only locate (the M2 bolts clamp the plates). The rotor itself was
   accepted as exempt in review.
-- Pivot pin strength. A Ø0.8 pin stands upright on its block and bends across the layer bonds. At 0.012 N on a 1.25
-  lever the stress is 0.30 MPa against about 20 MPa layer bond: a factor of 67 (37 at 0.03 N on 0.9). The pin breaks at
-  about 0.8 N of finger force, like the slider's Ø1.0 pin (0.53 N). The pin can lift the rotor while it rises, near phi -30:
+- Pivot pin strength. A pin stands upright on its block and bends across the layer bonds. At Scale 1.0 (Ø0.8): 0.012 N on a 1.25
+  lever, 0.30 MPa against about 20 MPa layer bond, a factor of 67 (37 at 0.03 N on 0.9), breaking at about 0.8 N of finger force.
+  At Scale 1.5 (Ø1.4, 1.875 lever, load 3.375 times as large, 0.0405 N): 0.28 MPa, a factor of 71, breaking at about 2.9 N. The pin can lift the rotor while it rises, near phi -30:
   the drive and slot friction then push up harder than the rotor's weight, so the pin is loaded on every side at some
   point of the swing (0.014 N on rotor A, 0.013 N on B).
 - Pin strength. The rotor pin is Ø1.0 and 3.6 long. On the a/g/d slider it stands upright in print, so bending loads
@@ -419,7 +468,7 @@ of scope.
 
 Each segment is a square-section two-colour **rotor** (7.5 x 7.5, long edges rounded 0.5, pyramid tips to +-12.25)
 on two printed **pivot blocks**, one at each end. Each block is pressed into a square pocket split between a new
-**cradle plate** and the rewritten **top plate**, and a Ø0.8 pin on its rotor-side face turns in a Ø1.2 bore in the
+**cradle plate** and the rewritten **top plate**, and a pin (Ø0.8 at Scale 1.0, Ø1.4 at 1.5) on its rotor-side face turns in a bore (Ø1.2, Ø1.8) in the
 rotor's end. The rotor's top face shows through a window in the top plate. The yellow is a 0.8 slab on the face that
 continues onto the 45 degree facet at each end (0.8 inside the facet's edges, to `|u| = 11.6`), so it follows the
 window's pointed ends; it is a separate yellow body and the rest is black.
@@ -839,7 +888,8 @@ is 0.800: the tube walls, which are 0.80 by design. Tests compare walls against 
 bore is `6.35 - 5.546 = 0.804` (with the old bore 5.496 and hole edge 6.3 it was 0.80; the bore grew for the round, so
 the blade and hole moved 0.05 away from the rotor). `cornercheck`
 (display face down) finds nothing. Window lip `5.4 - sqrt(5.546^2 - 2.95^2) = 0.704` along the long sides and 0.487 at the shoulders of the
-pointed ends (0.495 on the mesh, `TestSevenSegmentWindowLip`): thinner than 0.8, accepted and listed (below). The lip is a
+pointed ends at Scale 1.0 (0.495 on the mesh): thinner than 0.8, accepted and listed there. At Scale 1.5 the lip is
+1.512 and 1.248 (`TestSevenSegmentWindowLip`), above 0.8, so it is not listed. The lip is a
 vertical thickness (at least 3.5 layers, the plate prints face down); no horizontal wall section is thinner than 0.8. Window rims and seam-face inner
 loops stay sharp (listed: the lip is too thin for a 0.5 chamfer).
 
@@ -943,7 +993,7 @@ model, sampled every 0.05°:
 | 18/21 (before) | 0.313, 0.505 N | 30.4 N·mm (6→7) | 4.2 N |
 | 16.5/19.5 | 0.393, 0.765 N | 40.6 N·mm (6→7) | 5.6 N |
 
-Press share = torque × `PressTurn()` (31.69°, in radians) / (`ButtonStroke − RotorTravel` = 4.0 mm), an ideal ramp; ramp
+Press share = torque × `PressTurn()` (32.09° at Scale 1.5, 31.69° at 1.0, in radians) / (`ButtonStroke − RotorTravel` = 8.0 mm at 1.5, 4.0 at 1.0), an ideal ramp; ramp
 friction adds to it. Step 6→7 moves five sliders, four of them b-f. A locked slider stalls the button: a 13 N press
 less the 7.5 N spring gives the shaft at most 40 N·mm, about 2.6 N on one groove wall at r 17.4, which bends the groove
 pin's root (lever 1.15) to about 1.1 MPa against about 20 MPa of layer bond. No part breaks.
@@ -1129,7 +1179,7 @@ outlines.
 - Print orientations: rotors yellow face down; pivot blocks outer face down, pin up; a/g/d sliders -X face down, b-f sliders -Y face down; cradle bottom
   down, top plate display face down, guide plate bottom down.
 - Retained sharp corners (listed):
-  - window rims (lip 0.704 along the long sides, 0.487 at the shoulders of the pointed ends; accepted, under 0.8);
+  - (window rims: listed at Scale 1.0, lip 0.704 / 0.487; at Scale 1.5 the lip is 1.512 / 1.248, over 0.8, so nothing is listed);
   - seam-face inner loops of the cradle and the top plate;
   - cradle bottom-face inner loops (decad item D1);
   - pin roots on the tongues (decad item D2);
@@ -1202,7 +1252,7 @@ Front wall sketch frame origin (0, −49.5, 29.5), U = +X, V = +Z, N = −Y, ext
 4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
    through the wall to the outer face (d 8): `(0,−1) (7.55,−1) (7.55,0) (7.05,0.5) (7.05,5.0) (4.5,5.0) (4.5,7.5)
    (5.0,8.0) (5.0,9.0) (0,9.0)`. Seat r 7.05 (605ZZ `SeatDiameter/2`) 5 deep with a 0.5 lead-in at the inner face,
-   lip 3 thick with hole r 4.5 and a 0.5 chamfer at the outer face.
+   lip 3 thick with hole r 4.5 (at Scale 1.5: 608ZZ, seat r 11.05 7 deep, lip 5 thick with hole r 6.5, wall 12) and a 0.5 chamfer at the outer face.
 5. Cut fastener tools: ledge ribs `m2fastener.PocketTool` (G sites, head pockets from the rib underside) and
    `HoleTool`; top flange ribs `HexPocketTool(site, NutCavityHeight + Stock)` (T sites) and `HoleTool`; front wall
    only: `HexPocketTool` + `HoleTool` at D1, D2 (nut pockets open to the outer face).
@@ -1213,7 +1263,7 @@ Printed outer face down; ribs rise from the plate; rib pockets print sideways wi
 
 ### Fasteners
 
-T1-T4: head `(-+19.6, -44.5, 88.25)` and `(-+19.6, 38.0, 88.25)`, Dir -Z, Corner +Y, `Length 10`, `Cavity 10.5`. They
+T1-T4: head `(-+19.6, -44.5, 88.25)` and `(-+19.6, 38.0, 88.25)`, Dir -Z, Corner +Y, `Length 10`, `Cavity 10.5` (`Length 16`, `Cavity 16.5` at Scale 1.5). They
 clamp the top plate and the cradle to the top flange ribs (nut pockets unchanged). The tip is at 76.25 modeled and 75.75
 clamped. There is 3.4 of plate under each head.
 G1-G4: heads `(-+19.6, -34.2, 49.75)` and `(-+19.6, 32.0, 49.75)`. D1-D2 are unchanged.
@@ -1221,7 +1271,7 @@ G1-G4: heads `(-+19.6, -34.2, 49.75)` and `(-+19.6, 32.0, 49.75)`. D1-D2 are unc
 
 ### Bearings
 
-`ballbearing.Build(ctx, doc, ballbearing.Params605ZZ() + Placement)`: front placement origin (0, −49.5, 29.5),
+`ballbearing.Build(ctx, doc, ballbearing.Params608ZZ() + Placement)` (`Params605ZZ` at Scale 1.0): front placement origin (0, −49.5, 29.5),
 U = +X, V = +Z (extrudes toward −Y); rear origin (0, 43.0, 29.5), U = +Z, V = +X (toward +Y). Bearings do not turn
 with θ.
 
@@ -1289,8 +1339,8 @@ people only.
 | ID | Parts | Class | Modeled | Measure |
 | --- | --- | --- | ---: | --- |
 | P1 | cam double-D bores and the hub's D bore / shaft | press | 0.05 radial | section mid-bore |
-| P2 | wall seats / 605ZZ outer race | bearing seat | 0.05 radial | section |
-| N1 | shaft journals / 605ZZ bore | nominal exception | 0 | — |
+| P2 | wall seats / 608ZZ outer race | bearing seat | 0.05 radial | section |
+| N1 | shaft journals / 608ZZ bore | nominal exception | 0 | — |
 | T1 | front step / front bearing inner face | Tight | 0.25 | bounds |
 | T2 | rear collar face / rear bearing inner face | Tight | 0.25 | bounds |
 | T3 | slider stem / guide slot | Tight | 0.25 | section z 56 |
@@ -1361,7 +1411,7 @@ hub roots 0.5, stem corners 0.3 (convex). Press-fit walls ≥ 1.6: cam hubs 1.75
 | --- | --- | --- |
 | Walls | outer and inner faces | 0.5 chamfer on the outer face loop and the inner face's long runs; seat and lip rims 0.5 (in the tool) |
 | Guide plate | both faces | outer loop 0.5; slot rims retained (guide length) |
-| Top plate | both faces | outer loop 0.5; window rims retained (lip 0.704 / 0.487, see Retained sharp corners) |
+| Top plate | both faces | outer loop 0.5; window rims retained (lip 1.512 / 1.248 at Scale 1.5, over 0.8) |
 | Cams | both disc faces | rim 0.5 (meridian); groove and channel rims retained (pin bearing depth) |
 | Housing | base flange faces | outer loop 0.5 |
 | Sliders, shaft, hub, rotor, button | none ≥ 400 (largest slider face ≈ 235) | none |
@@ -1370,7 +1420,7 @@ hub roots 0.5, stem corners 0.3 (convex). Press-fit walls ≥ 1.6: cam hubs 1.75
 
 | Part | Split plane (θ = 0) | Held by |
 | --- | --- | --- |
-| Shaft | x = 0: holds the axis and the flats' normal +Z | two 605ZZ bearings + press-fit bores (cams, hub); no cross bolts |
+| Shaft | x = 0: holds the axis and the flats' normal +Z | two 608ZZ bearings + press-fit bores (cams, hub); no cross bolts |
 
 The cam section carries a double flat (±2.7), which "Flats" allows; the stub keeps one flat facing +Z.
 
@@ -1386,7 +1436,7 @@ posed shaft of Digit 0 and Digit 2 (θ 0 and 72); require the split normal to be
 | Rear collar | cam a | rear bearing inner face 43.0 | [39.7, 42.75], cone [39.7, 40.739] | 3.05 | 7.6 | 1: gap 3.85 less 0.25 and 0.55 |
 | Hub | rotor (end outside the frame) | front wall outer face −57.5 | [−61.4, −57.9] | 3.5 | 21 | 1, separate keyed hub located by the stub flat's square end: the front bearing slides on from the front end, so a body collar there would block it |
 
-Rear collar diameter 7.6 < 605ZZ inner race 8. Front step radius 3.2 ≥ 2.5 + 0.3 chamfer clearance + 0.3.
+Rear collar diameter 11.4 < 608ZZ inner ring face 12. Front step radius 4.8 ≥ 4.0 + 0.3 chamfer clearance + 0.3.
 
 
 ## Printing and assembly

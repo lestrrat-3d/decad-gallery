@@ -12,19 +12,21 @@ part keeps one filament color (a rotor is two bodies, a yellow one and a black o
 face looks toward you and the button end is the top; press the button and the display moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
 **Not built yet.** That each press shows the next digit and locks it is a calculated result, not a measured one:
-nobody has printed and tried this model. A press pushes the button 6.0 mm. The first 2.0 mm lets the rotor drop clear of
-the fixed crown, and the next 4.0 mm turn the rotor, the hub and the shaft 31.7 degrees on the matching helical ramps. Every cam
-has finished moving its segment by 29.55 degrees, so the new digit shows on the downstroke with a margin of 2.14 degrees.
-The release adds the last 4.3 degrees, into the next notch. The margin is the ramp's 32.5 degrees less 0.81 degrees that the
+nobody has printed and tried this model. A press pushes the button 10.0 mm. The first 2.0 mm lets the rotor drop clear of
+the fixed crown, and the next 8.0 mm turn the rotor, the hub and the shaft 32.1 degrees on the matching helical ramps. Every cam
+has finished moving its segment by 29.55 degrees, so the new digit shows on the downstroke with a margin of 2.54 degrees.
+The release adds the last 3.9 degrees, into the next notch. The margin is the ramp's 32.5 degrees less 0.41 degrees that the
 smallest tooth lands Decad can build take; a print has its own tolerance on top of that. If the button is let go before the
 rotor passes the crown's tip, the rotor slides back to the old digit and nothing jams. Nothing turns the shaft backward.
 The teeth of the three toothed parts have ten teeth each, and their mating faces keep a gap of 0.02 mm
 between tip and root: the print must hold that, or the teeth will bind. Stand the display on its back wall: lying down, the cams rest on the
 slider pins.
 
-**Hand feel.** Expect a press of about 11 to 14 N: the spring (a KSSC 1087, 5.64 N at rest and 7.53 N pressed) plus the
-ramps' friction. While the cams move the segments they add up to about 5.6 N. The head stands 23.9 mm above the
-front wall at rest and ends flush with the housing's bezel, 17.9 mm
+**Hand feel.** Expect a firm press, about 20 to 22 N on an ideal ramp and up to about 35 N with the ramps' friction: the
+spring (a KSSC 1087, 5.64 N at rest and 7.53 N pressed) plus the cams, which add up to about 14.1 N while they move the
+segments. The display is 1.5 times its base size, so its cams and sliders weigh 3.4 times as much while the spring is the
+same; the teeth are 8.0 mm tall and the stroke 10.0 mm so that the ramps are half as steep. The head stands
+31.9 mm above the front wall at rest and ends flush with the housing's bezel, 21.9 mm
 above it, at the bottom of its stroke. These numbers are calculated, not measured.
 
 **Clearance adjustment:** Mixed. The custom fits are fixed constants; the bearings, bolts and nuts keep their nominal size.
@@ -49,19 +51,19 @@ Rotors b, c, e and f stand on the sides and a, g and d lie across.
 
 ## How it works
 
-A camshaft runs along the digit under the face. It carries seven cams, one for each segment, stacked 11 mm apart. Each
+A camshaft runs along the digit under the face. It carries seven cams, one for each segment, stacked 16.5 mm apart. Each
 cam has a closed groove cut in its face. A pin on the segment's slider rides in that groove, so the cam pushes the slider
 up and pulls it down: no springs are needed. The slider's tongue sits in a notch of the rotor above it and a pin on the
-tongue rides in a radial slot of the rotor, so the slider's rise of 3 mm turns the rotor by about 90 degrees (89.2 for a, g and d and 90.0 for b, c, e and f; b to f are
-given a small extra lift so their rest angles stay in range). A groove sits at 16.5 mm from the shaft where the segment is unlit
-and 19.5 mm where it is lit, with a smooth ramp between.
+tongue rides in a radial slot of the rotor, so the slider's rise of 4.5 mm turns the rotor by about 90 degrees (89.2 for a, g and d and 90.0 for b, c, e and f; b to f are
+given a small extra lift so their rest angles stay in range). A groove sits at 24.75 mm from the shaft where the segment is unlit
+and 29.25 mm where it is lit, with a smooth ramp between.
 
 ![The display cut through the middle: the camshaft, the cams and the sliders, each part in its own color, the cut faces in the same colors](images/cutaway.png)
 
-Each rotor turns on two printed pivot blocks, one at each end. A block is 3.2 x 3.1 x 2.0 mm and carries a 0.8 mm pin.
-The pin stands in a 1.2 mm blind bore in the rotor's end, which leaves 0.20 mm all round, and the block's inner face
+Each rotor turns on two printed pivot blocks, one at each end. A block is 4.8 x 5.9 x 3.0 mm and carries a 1.4 mm pin.
+The pin stands in a 1.8 mm blind bore in the rotor's end, which leaves 0.20 mm all round, and the block's inner face
 stays 0.25 mm from the rotor's end face. The block is pressed 0.05 mm into a square pocket that the seam between the
-cradle plate and the top plate splits: the pocket's floor lies 1.6 mm under the axis in the cradle and its roof 1.6 mm
+cradle plate and the top plate splits: the pocket's floor lies 3.0 mm under the axis in the cradle, which leaves 1.0 mm of the 4.0 mm cradle under it, and its roof 3.0 mm
 over the seam in the top plate. The view below is a cut through rotor a's axis at its +x end, with every part
 in its own color and the cut faces in the same colors. The block (orange) fills its pocket between the cradle plate
 (below the seam) and the top plate (above it). The pin runs left into the bore, with the 0.20 mm gap above and below it
@@ -84,11 +86,11 @@ angles differ:
 ![Digits 0 to 9 in two rows of five seen at an angle: lit segments show a yellow face, the others a black body](images/digits.png)
 
 Ten presses, digit 0 up to 9 and back to 0, with the face on the left and the whole display cut through the axis on the
-right. The button drops 6 mm and the display changes during the downstroke; the release finishes the step. In the cut the
+right. The button drops 10 mm and the display changes during the downstroke; the release finishes the step. In the cut the
 cams turn with the shaft and each slider rises or drops as its cam's groove moves its pin. The
 colors never change:
 
-![Ten presses of the button: the digit changes from 0 up to 9 and back to 0 while the head drops 6 mm and returns, with the cams turning and the sliders moving in the cut through the axis on the right](images/motion.gif)
+![Ten presses of the button: the digit changes from 0 up to 9 and back to 0 while the head drops 10 mm and returns, with the cams turning and the sliders moving in the cut through the axis on the right](images/motion.gif)
 
 ## Parts
 
@@ -118,11 +120,11 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 
 | Image | Part | Count | Look-alike holes | Notes |
 | --- | --- | ---: | ---: | --- |
-| <img src="images/parts/front-wall.png" alt="Front wall" width="240"> | Front wall | 1 | 1 | Holds the front 605ZZ, the housing's two nuts and the ledge and flange ribs. |
-| <img src="images/parts/rear-wall.png" alt="Rear wall" width="240"> | Rear wall | 1 | 2 | Holds the rear 605ZZ and carries its own ribs. |
+| <img src="images/parts/front-wall.png" alt="Front wall" width="240"> | Front wall | 1 | 1 | Holds the front 608ZZ, the housing's two nuts and the ledge and flange ribs. |
+| <img src="images/parts/rear-wall.png" alt="Rear wall" width="240"> | Rear wall | 1 | 2 | Holds the rear 608ZZ and carries its own ribs. |
 | <img src="images/parts/guide-plate.png" alt="Guide plate" width="240"> | Guide plate | 1 | - | Seven slots that guide the sliders' stems, and the columns and pegs that locate the cradle plate. |
 | <img src="images/parts/cradle-plate.png" alt="Cradle plate" width="240"> | Cradle plate | 1 | - | Seven passages for the sliders and the lower halves of the 14 pivot pockets, each 1.0 mm above the plate's bottom face. |
-| <img src="images/parts/top-plate.png" alt="Top plate" width="240"> | Top plate | 1 | - | The display face with seven windows (5.9 mm wide, pointed at the ends), and a tube over each slider's blade. The plate under the window edge is 0.70 mm thick, 0.49 mm at the pointed ends: thinner than the usual 0.8 mm, and listed in the instructions. |
+| <img src="images/parts/top-plate.png" alt="Top plate" width="240"> | Top plate | 1 | - | The display face with seven windows (9.65 mm wide, pointed at the ends), and a tube over each slider's blade. The plate under the window edge is 1.51 mm thick, 1.25 mm at the pointed ends. |
 | <img src="images/parts/shaft.png" alt="Shaft" width="240"> | Shaft | 1 | - | Double-D camshaft (two opposite flats where the cams sit), printed as two halves. |
 | <img src="images/parts/hub.png" alt="Keyed hub" width="240"> | Keyed hub | 1 | - | Pressed on the stub's flat, 0.4 mm from the front wall's outer face. A cup with three keys for the rotor's skirt. |
 | <img src="images/parts/rotor.png" alt="Rotor" width="240"> | Rotor | 1 | - | Slides 2.0 mm on the hub's keys. Ten inner teeth meet the button, ten outer teeth lock in the housing's crown. |
@@ -145,10 +147,10 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/rotor-b.png" alt="Rotor B" width="240"> | Rotor B | 4 | - | For segments b, c, e, f: two notches. Two bodies, listed next. |
 | <img src="images/parts/rotor-b-yellow.png" alt="Rotor B yellow face and tips" width="240"> | Rotor B yellow face and tips | 4 | - | Yellow filament. The face slab continues onto the 45 degree tips. Prints face down. |
 | <img src="images/parts/rotor-b-black.png" alt="Rotor B black body" width="240"> | Rotor B black body | 4 | - | Black filament. |
-| <img src="images/parts/pivot-block.png" alt="Pivot block" width="240"> | Pivot block | 14 | - | Two per rotor, all identical. A 3.2 x 3.1 x 2.0 mm block with a 0.8 mm pin on one face. It is pressed 0.05 mm into a pocket split between the cradle plate and the top plate; the pin turns in the rotor's end bore. Prints on its outer face with the pin up, no support. |
-| <img src="images/parts/bearing.png" alt="605ZZ bearing" width="240"> | 605ZZ bearing | 2 | - | Bought. |
-| <img src="images/parts/bolt-m2x10.png" alt="M2 x 10 bolt" width="240"> | M2 x 10 bolt | 6 | - | Bought. The top plate's four bolts, heads sunk flush, and the housing's two. |
-| <img src="images/parts/bolt-m2x6.png" alt="M2 x 6 bolt" width="240"> | M2 x 6 bolt | 4 | - | Bought. |
+| <img src="images/parts/pivot-block.png" alt="Pivot block" width="240"> | Pivot block | 14 | - | Two per rotor, all identical. A 4.8 x 5.9 x 3.0 mm block with a 1.4 mm pin on one face. It is pressed 0.05 mm into a pocket split between the cradle plate and the top plate; the pin turns in the rotor's end bore. Prints on its outer face with the pin up, no support. |
+| <img src="images/parts/bearing.png" alt="608ZZ bearing" width="240"> | 608ZZ bearing | 2 | - | Bought. |
+| <img src="images/parts/bolt-m2x16.png" alt="M2 x 16 bolt" width="240"> | M2 x 16 bolt | 6 | - | Bought. The top plate's four bolts, heads sunk flush, and the housing's two. |
+| <img src="images/parts/bolt-m2x10.png" alt="M2 x 10 bolt" width="240"> | M2 x 10 bolt | 4 | - | Bought. |
 | <img src="images/parts/nut.png" alt="M2 nut" width="240"> | M2 nut | 10 | - | Bought. |
 
 ## Printing
@@ -164,23 +166,23 @@ Each rotor is two bodies, a yellow body (the face slab and the two tips) and a b
 on a printer that changes between two filaments of one polymer (both bodies share their faces, so they must be the same
 polymer, for example PETG, to bond). A pause for a filament change does not work: the yellow takes the first 12 layers
 and the black rim is printed in the same layers, so a pause would turn the rim and the tips yellow. A plate of seven rotors needs
-about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 7.5 mm square and has a 1.2 mm bore
-in each end (a teardrop roof, so it needs no support). Print the 14 pivot blocks on their outer faces with the 0.8 mm pins
+about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 11.25 mm square and has a 1.8 mm bore
+in each end (a teardrop roof, so it needs no support). Print the 14 pivot blocks on their outer faces with the 1.4 mm pins
 up; check the first block against the pocket before printing the rest. The rotors, sliders, pivot pins and pegs print whole, not split, and the instructions say why. A bearing,
 bolt or nut is bought.
 
 ## Bill of materials
 
-- 2 x 605ZZ ball bearing
-- 6 x M2 x 10 bolt
-- 4 x M2 x 6 bolt
+- 2 x 608ZZ ball bearing
+- 6 x M2 x 16 bolt
+- 4 x M2 x 10 bolt
 - 10 x M2 nut
 - 1 x KSSC K series 1087 compression spring, MonotaRO order code 01353223 (allowable load 7.15 N at 6.4 mm length; pressed length 6.0 mm is 0.4 mm past it; fatigue life not published)
 - Yellow and black filament for the rotors
 
 ## Assembly
 
-Positions below are in millimetres in the model's frame: the origin is under the middle of the digit, 3 mm below the walls' lower edges, x runs to
+Positions below are in millimetres in the model's frame: the origin is under the middle of the digit, 4.5 mm below the walls' lower edges, x runs to
 the right seen from the button side, y runs away from the button toward segment a, and z runs up. The exploded view above shows every
 part in its place. A rotor's axis `u` runs along x for the horizontal segments (a, g, d) and along y for the vertical ones
 (b, c, e, f); `+u` is to the right for a, g and d and toward the back (away from the button) for the others. Nothing on the printed
@@ -196,38 +198,38 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    rear wall onto it.
 3. Press the hub onto the stub until it stops on the end of the stub's flat. Drop the spring over the stub, into the hub's
    cup, then the rotor, its skirt's slots over the hub's keys and its teeth up.
-4. Bolt the housing to the front wall's outer face with two M2 x 10 bolts, the heads in the base's pockets and a nut
+4. Bolt the housing to the front wall's outer face with two M2 x 16 bolts, the heads in the base's pockets and a nut
    dropped into each hex pocket on the wall's inner face before its bolt. The rotor's outer teeth must sit in the crown's
    notches. Slide the button in, its three lugs in the housing's slots and its teeth down.
-5. Bolt the guide plate to the ledge ribs from below with four M2 x 6 bolts, the nuts dropped into its top pockets. The two
-   front bolts go in just in front of cam d. The two rear bolts, at y 32, go in between cams f and a, with no cam
+5. Bolt the guide plate to the ledge ribs from below with four M2 x 10 bolts, the nuts dropped into its top pockets. The two
+   front bolts go in just in front of cam d. The two rear bolts, at y 48, go in between cams f and a, with no cam
    under their heads: use a 1.5 mm hex key and let its long arm point out sideways (the sides of the frame are open).
    This follows from the dimensions and has not been tried on a
    print. Press the button until all seven entry channels face up (digit 8).
-6. Press the cradle plate onto the guide plate's column pegs through its two registration holes at (12, -45), near the front
-   edge on the right, and (-13.55, 39), near the back edge on the left (the other two holes are for the top plate's pegs).
+6. Press the cradle plate onto the guide plate's column pegs through its two registration holes at (18, -67.5), near the front
+   edge on the right, and (-20.3, 58.5), near the back edge on the left (the other two holes are for the top plate's pegs).
 7. On the bench, join each rotor to its slider: yellow face up, 2.0 mm along +u from its place (+u as defined above), notch over the tongue, then
    slide it -u so the pin enters the pocket. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
 8. Push a pivot block onto each end of every rotor, its pin into the end bore. Keep the unit level, lower it through its cradle
    passage and guide slot, the groove pin first, into its cam's entry channel, and let the blocks drop into the cradle's open
    half-pockets. Press each block down with a finger until it seats. A block can slip off its pin if the unit tilts before it
    is seated.
-9. Lower the top plate over the cradle's pegs at (-12, -45), near the front edge on the left, and (14.5, 39), near the back edge on the
+9. Lower the top plate over the cradle's pegs at (-18, -67.5), near the front edge on the left, and (21.75, 58.5), near the back edge on the
    right. The a, g and d blades stand upright. Each b to f
-   arm sags by up to about 1 mm at its blade: reach in from the open side and lift the arm's outer end until its blade
+   arm sags by up to about 1.5 mm at its blade: reach in from the open side and lift the arm's outer end until its blade
    enters its tube, then let the plate down. The four top-plate nuts sit in hex pockets that open downward under the top
-   flange ribs: drop a nut into each pocket from the open side and hold it there while the four M2 x 10 bolts go in from the top.
+   flange ribs: drop a nut into each pocket from the open side and hold it there while the four M2 x 16 bolts go in from the top.
 10. Press through 0 to 9 and check each digit. Each press must turn the display one digit forward.
 
 ## Turning the display over
 
 Turned over, the rotors and sliders are held in place by the plates, but the geometry changes. The rotor's weight bias flips
 by 13.5 degrees. The b to f pins shift by about 1 mm and the b to f rotors turn by 16 to 22 degrees. In that pose the
-calculated tongue gaps to the notch shells are 0.16 mm (yellow shell) and 0.30 mm (black leg) in the worst-case stack of
+calculated tongue gaps to the notch shells are 0.83 mm (yellow shell) and 1.9 mm (black leg) in the worst-case stack of
 tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
 adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
 rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
-allows no vertex deeper than 0.07 mm (the mesh tolerance) and reads 0.038 mm into the top plate and 0.058 mm into the
+allows no vertex deeper than 0.07 mm (the mesh tolerance); at scale 1 it read 0.038 mm into the top plate and 0.058 mm into the
 black body. Do not turn the display over with the button in motion.
 
 ## Listed sharp corners
@@ -235,8 +237,8 @@ black body. Do not turn the display over with the button in motion.
 The face teeth of the rotor, button and housing are listed: their tips are engagement edges, and their roots are retained sharp corners
 (a land of 0.03 mm above the valley), because the 0.5 mm root round of the corner rule does not fit a 26 degree valley at 3.2 mm radius.
 
-Eight kinds of sharp corner or thin rim stay, and the instructions list each: the window rims of the top plate (the plate
-under the window edge is 0.70 mm thick along the long sides and 0.49 mm at the shoulders of the pointed ends); the inner
+Seven kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
+thick along the long sides and 1.25 mm at the shoulders, above the 0.8 mm minimum, so the window rims need no listing): the inner
 loops of the seam faces of the cradle and the top plate; the inner loops of the cradle plate's bottom face; the root of each
 pin on a slider's tongue; the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
 120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops and the pin roots yet.

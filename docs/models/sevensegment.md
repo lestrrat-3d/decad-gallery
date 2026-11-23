@@ -11,7 +11,7 @@ doc := sevensegment.NewDocument() // the face teeth need its chain tolerance
 m, err := sevensegment.Build(ctx, doc, sevensegment.Params{Digit: 2})
 ```
 
-`Params` has two fields: `Digit` (0 to 9, default 2) and `Placement` (a frame; nil keeps the world frame in which +Z is
+The display is 1.5 times its base size (`Scale`, an exported constant in `params.go`; the base design is `Scale` 1.0). `Params` has two fields: `Digit` (0 to 9, default 2) and `Placement` (a frame; nil keeps the world frame in which +Z is
 up, +Y runs toward segment a and the button is toward -Y; the box stands on its back wall, button end up). `Build` adds 75 bodies in named containers: `Frame` (`Walls`,
 `Plates` with the guide, cradle and top plates), `Camshaft` (`Shaft`, `Cams`), `Click Indexer` (`Hub`, `Rotor`,
 `Housing`, `Button`, `Spring`), `Segment Sliders`, `Flags` (one `Flag` unit per segment, each with a `Yellow Face` and a
@@ -29,4 +29,4 @@ look-alike marks and split shaft on the built bodies.
 
 ## Uses
 
-`models/ballbearing` (605ZZ), `models/compressionspring` (KSSC 1087, MonotaRO 01353223), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.
+`models/ballbearing` (608ZZ), `models/compressionspring` (KSSC 1087, MonotaRO 01353223), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.

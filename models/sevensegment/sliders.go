@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -82,7 +83,7 @@ const (
 	bladeRidgeZ     = sliderHeadTop + Scale*10.75 // top of the blade's gable
 	bladeShoulderZ  = sliderHeadTop + Scale*10.15 //
 	bladeExtOverlap = 0.1                         //
-	stemChamfer     = 0.3                         //
+	stemChamfer     = wallChamfer                 //
 	tongueEndGap    = Scale * 1.3                 // the end cutter's lower line lies this far below the head top
 	pinStationAGD   = Scale * 1.5                 // the rotor pin's distance from the stem along s, a, g, d
 	pinStationBC    = Scale * 15.0                // along x, b and c
@@ -172,16 +173,27 @@ func tongueOutline(s *sketch.Sketch, sL, sR, sc, zp float64) {
 // axis is at (sc, zp). The result has r 0.8 roots on three sides, a sharp pin root (decad item D2) and a Ø1.0 pin 3.6
 // long with a 0.2 tip chamfer.
 func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Body, error) {
-	// 1. The hull prism: the outline in (s, z), extruded along u from ua to ue + 3.8.
-	f1, d1 := slFrame(uIsX, ua)
+	// 1. The hull prism: the outline in (s, z), extruded along u from ua to ue + 3.8. Its chord runs make its end cap a faceted
+	// face that decad places 0.0027 off the plane it was drawn on, so the prism starts 1.0 early and a box cuts it back to
+	// ua: the end face is then the exact plane of the stem's print face, and the two merge.
+	f1, d1 := slFrame(uIsX, ua-1.0)
 	s1, err := r.sketchOn(f1)
 	if err != nil {
 		return nil, err
 	}
 	tongueOutline(s1, sL, sR, sc, zp)
-	p1, err := r.extrude(s1, 0, ue+(flagPinLength+0.2)-ua, d1)
+	p1, err := r.extrude(s1, 0, ue+(flagPinLength+0.2)-ua+1.0, d1)
 	if err != nil {
 		return nil, fmt.Errorf("tongue hull prism: %w", err)
+	}
+	fb, _ := slFrame(uIsX, ua-3.0)
+	cutBack, err := r.polyBody(fb, [][2]float64{{sL - 4, sliderStemFrom - 1}, {sR + 4, sliderStemFrom - 1}, {sR + 4, zp + 4}, {sL - 4, zp + 4}},
+		decad.Distance{D: units.Millimeters(3.0), Dir: d1})
+	if err != nil {
+		return nil, fmt.Errorf("tongue hull cut-back box: %w", err)
+	}
+	if p1, err = decad.Cut(r.ctx, p1, cutBack); err != nil {
+		return nil, fmt.Errorf("tongue hull cut-back: %w", err)
 	}
 	// 2. The end cutter in (u, z), extruded along s over [sL - 1.5, sR + 1.5].
 	var f2 r3.Frame
@@ -262,33 +274,6 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 		return nil, fmt.Errorf("tongue end cut: %w", err)
 	}
 	return tongue, nil
-}
-
-// stemVerticals chamfers 0.3 the stem's four convex vertical edges (the ones that start at z 42.5).
-func (r *run) stemVerticals(body *decad.Body) (*decad.Body, error) {
-	edges, err := decad.Edges(decad.Convex(), decad.ParallelTo(r3.Vec{Z: 1})).SelectEdges(body)
-	if err != nil {
-		return nil, fmt.Errorf("select stem edges: %w", err)
-	}
-	var q *decad.EdgeQuery
-	n := 0
-	for _, e := range edges {
-		a, b := e.Start().Position().Value, e.End().Position().Value
-		if math.Abs(math.Min(a.Z, b.Z)-sliderStemFrom) > 1e-6 {
-			continue
-		}
-		p := []decad.EdgePredicate{decad.Convex(), decad.EndpointAt(a), decad.ParallelTo(r3.Vec{Z: 1})}
-		if q == nil {
-			q = decad.Edges(p...)
-		} else {
-			q = q.Or(p...)
-		}
-		n++
-	}
-	if n != 4 {
-		return nil, fmt.Errorf("stem has %d convex vertical edges at the foot, want 4", n)
-	}
-	return decad.Chamfer(r.ctx, body, q.Exactly(n), units.Millimeters(stemChamfer))
 }
 
 // bfProfile draws the b-f slider's main profile (stem, arm, head and blade) in (x, z) on y = yi - 1.8 and extrudes it 3.6. The
@@ -415,9 +400,13 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 
 // finishSlider chamfers the stem's vertical edges and adds the groove pin.
 func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Body, error) {
-	body, err := r.stemVerticals(body)
+	// The 0.5 chamfers of "Surface edge finishing" on the stem's two large faces: every long run of their outer loops, the stem's
+	// vertical edges included, so the 0.3 bevels that the stem had at Scale 1.0 are these chamfers (Fusion cannot chamfer an
+	// edge that already carries a smaller bevel).
+	body, _, err := edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Y: 1}, []float64{yi - StemThickness/2, yi + StemThickness/2},
+		edgefinish.Outer, func(*decad.Loop, []*decad.Edge) bool { return false }, wallChamfer)
 	if err != nil {
-		return nil, fmt.Errorf("stem vertical chamfers: %w", err)
+		return nil, fmt.Errorf("stem face chamfers: %w", err)
 	}
 	gp, err := r.pin(yi + StemThickness/2)
 	if err != nil {
