@@ -258,10 +258,10 @@ var sevenCameras = map[string]solidlens.Camera{
 	// Segment a's rotor axis runs along X at y = SegmentSpan. The exploded view looks at it from the front, a little to the
 	// right and level with the axis, so the plate halves pulled above and below show their seam faces; the section
 	// looks into the cut through the axis from -Y, at the +X end.
-	"exploded-pivot": {Position: solidlens.Vec{X: 120, Y: -150, Z: sevensegment.RotorAxisZ + 6},
+	"exploded-pivot": {Position: solidlens.Vec{X: 110, Y: -150, Z: sevensegment.RotorAxisZ + 4},
 		Target: solidlens.Vec{Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"pivot-section": {Position: solidlens.Vec{X: 11, Y: -100, Z: sevensegment.RotorAxisZ},
-		Target: solidlens.Vec{X: 11, Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, Up: solidlens.Vec{Z: 1}, FOV: 5.5},
+	"pivot-section": {Position: solidlens.Vec{X: 12.6, Y: -100, Z: sevensegment.RotorAxisZ + .7},
+		Target: solidlens.Vec{X: 12.6, Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ + .7}, Up: solidlens.Vec{Z: 1}, FOV: 4},
 }
 
 var (
@@ -339,79 +339,100 @@ func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 }
 
 // sevenPivotExplode is each part's offset in the pivot exploded view of segment a: the cradle plate down, the top plate
-// up, the slider farther down, and the two blocks out along the rotor axis, level with the rotor.
+// up, and each block 3 mm out along the rotor axis, which frees its pin from the bore and leaves the block level with its own
+// pocket.
 var sevenPivotExplode = map[string]r3.Vec{
-	"Cradle Plate": {Z: -17}, "Top Plate": {Z: 17},
-	"Pivot Block a -u": {X: -12}, "Pivot Block a +u": {X: 12},
+	"Cradle Plate": {Z: -8}, "Top Plate": {Z: 14},
+	"Pivot Block a -u": {X: -3}, "Pivot Block a +u": {X: 3},
 }
 
-// sevenPivotParts lists the parts of the pivot views, from segment a: its rotor, blocks and slider, and the plate halves.
+// sevenPivotParts lists the parts of the pivot views, from segment a: its rotor, blocks and the plate halves.
 var sevenPivotParts = []string{"Flag a Yellow", "Flag a Black", "Pivot Block a -u", "Pivot Block a +u",
 	"Cradle Plate", "Top Plate"}
 
-// sevenFitMesh reports only the vertices of a part that keep returns true for, so that FitCamera frames a part as
-// cut by a clip plane.
-type sevenFitMesh struct {
+// sevenShrunk draws a mesh scaled by factor about the centre of its bounds.
+type sevenShrunk struct {
 	solidlens.TriangleSource
-	keep func(r3.Vec) bool
+	centre r3.Vec
+	factor float64
 }
 
-func (m sevenFitMesh) Vertices() []r3.Vec {
-	var out []r3.Vec
-	for _, v := range m.TriangleSource.Vertices() {
-		if m.keep(v) {
-			out = append(out, v)
-		}
+func (m sevenShrunk) Vertices() []r3.Vec {
+	source := m.TriangleSource.Vertices()
+	out := make([]r3.Vec, len(source))
+	for i, v := range source {
+		out[i] = m.centre.Add(v.Sub(m.centre).Scale(m.factor))
 	}
 	return out
 }
 
-// sevenPivotView draws segment a's rotor end and its pivot block with the two plate halves that hold the block.
-// Exploded pulls the parts apart, the plates cut to a strip of 22 mm round the rotor so the pockets show large;
-// otherwise every part is cut by the plane through the rotor axis, the -Y half removed, and the camera looks into the cut.
+// sevenPivotView draws segment a's rotor end and its pivot blocks with the two plate halves that hold them.
+//
+// The plates are cut to a block 42 mm long, 18 mm deep and about 10 mm high round the rotor so the pockets show large. Exploded pulls the parts
+// apart; pivot-section instead cuts every part by the plane through the rotor axis, the -Y half removed, and looks into
+// the cut. Every cut is made on the mesh (solidlens.ClipMesh) and the inside is drawn in the part's own color.
+//
+// The yellow body of a rotor shares its faces with the black body. Where the camera looks through the cut, the yellow
+// body's back face and the black body's front face lie in the same place and fight for the pixel (speckle). The section
+// scales the yellow body down by 0.5 % about its centre, which leaves the shared face 0.03 mm clear on the yellow side,
+// so the cut faces of both bodies win cleanly.
 func sevenPivotView(s partSet, name string) (solidlens.Scene, error) {
-	var set partSet
-	for _, p := range s {
-		for _, want := range sevenPivotParts {
-			if p.name == want {
-				set = append(set, p)
-			}
-		}
-	}
-	var models, fit []solidlens.Model
 	axisY := sevensegment.SegmentSpan
-	for _, p := range set {
+	exploded := name == "exploded-pivot"
+	var models []solidlens.Model
+	for _, p := range s {
+		found := false
+		for _, want := range sevenPivotParts {
+			found = found || p.name == want
+		}
+		if !found {
+			continue
+		}
 		var src solidlens.TriangleSource = p.mesh
-		var clip *solidlens.ClipPlane
-		if name == "exploded-pivot" {
+		var planes []solidlens.ClipPlane
+		if exploded {
 			move, err := r3.Translation(sevenPivotExplode[p.name])
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
 			src = renderkit.TransformedMesh{TriangleSource: src, Transform: move}
 			if p.name == "Cradle Plate" || p.name == "Top Plate" {
-				clip = sevenCut(solidlens.ClipPlane{Origin: solidlens.Vec{Y: axisY - 9}, Normal: solidlens.Vec{Y: -1}}, p.color)
+				// Each plate keeps 4.5 mm of its thickness beyond the pocket's floor or roof.
+				z, normal := sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z-4.5, -1.0
+				if p.name == "Top Plate" {
+					z, normal = sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z+5.5, 1
+				}
+				planes = []solidlens.ClipPlane{
+					{Origin: solidlens.Vec{Y: axisY - 9}, Normal: solidlens.Vec{Y: -1}},
+					{Origin: solidlens.Vec{Y: axisY + 9}, Normal: solidlens.Vec{Y: 1}},
+					{Origin: solidlens.Vec{X: -21}, Normal: solidlens.Vec{X: -1}},
+					{Origin: solidlens.Vec{X: 21}, Normal: solidlens.Vec{X: 1}},
+					{Origin: solidlens.Vec{Z: z}, Normal: solidlens.Vec{Z: normal}},
+				}
 			}
 		} else {
-			clip = sevenCut(solidlens.ClipPlane{Origin: solidlens.Vec{Y: axisY}, Normal: solidlens.Vec{Y: -1}}, p.color)
+			if p.name == "Flag a Yellow" {
+				low, high := renderkit.MeshBounds(p.mesh)
+				src = sevenShrunk{TriangleSource: src, centre: low.Add(high).Scale(.5), factor: .995}
+			}
+			planes = []solidlens.ClipPlane{{Origin: solidlens.Vec{Y: axisY}, Normal: solidlens.Vec{Y: -1}}}
+		}
+		for _, plane := range planes {
+			clipped, err := solidlens.ClipMesh(src, plane)
+			if err != nil {
+				return solidlens.Scene{}, fmt.Errorf("%s: %w", p.name, err)
+			}
+			src = clipped
 		}
 		m := renderkit.PartModel(src, p.color)
-		m.Clip = clip
+		m.BackMaterial = &solidlens.Material{Color: p.color, Unlit: true}
 		models = append(models, m)
-		if clip == nil {
-			fit = append(fit, m)
-			continue
-		}
-		keepY := clip.Origin.Y
-		fm := m
-		fm.Mesh = sevenFitMesh{TriangleSource: src, keep: func(v r3.Vec) bool { return float64(v.Y) >= keepY }}
-		fit = append(fit, fm)
 	}
 	camera := sevenCameras[name]
-	if name == "pivot-section" {
+	if !exploded {
 		return renderkit.Scene(camera, models), nil
 	}
-	return renderkit.Scene(renderkit.FitCamera(camera, fit, 16.0/9, .03), models), nil
+	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .03), models), nil
 }
 
 // sevenFaceBolt reports whether name is one of the four top-plate bolts, whose heads lie flush in the face.

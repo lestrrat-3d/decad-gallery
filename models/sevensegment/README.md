@@ -65,7 +65,7 @@ cradle plate and the top plate splits: the pocket's floor lies 1.6 mm under the 
 over the seam in the top plate. The view below is a cut through rotor a's axis at its +x end, with every part
 in its own color and the cut faces in the same colors. The block (orange) fills its pocket between the cradle plate
 (below the seam) and the top plate (above it). The pin runs left into the bore, with the 0.20 mm gap above and below it
-and the 0.25 mm end gap between the block's face and the rotor's end:
+and the 0.25 mm end gap between the block's face and the rotor's end. The rotor is on the left, its yellow face on top:
 
 ![Rotor a's +x end cut through its axis: the orange pivot block in its pocket between the cradle plate and the top plate, its pin in the rotor's end bore with a 0.20 mm gap round it and a 0.25 mm gap at the rotor's end](images/pivot-section.png)
 
@@ -105,11 +105,12 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 
 ![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
-The pivot of rotor a taken apart: the rotor in the middle with its two pivot blocks slid out along its axis, the pins
-facing the rotor's end bores, the cradle plate pulled down and the top plate pulled up so that the seam faces and the
-halves of the pockets show. The plates are cut to a strip around the rotor; the sliders and the other rotors are left out:
+The pivot of rotor a taken apart: the rotor in the middle, an orange pivot block 3 mm out of each end along its axis, so
+each pin is free of its end bore and each block stands level with its own pocket. The cradle plate is pulled down and the
+top plate up, so the lower and upper halves of the pockets face the blocks. The plates are cut to a block round the
+rotor; the sliders and the other rotors are left out:
 
-![The pivot of rotor a: the black rotor with its yellow tip in the middle, an orange pivot block on each side with its pin toward the rotor's end bore, the top plate above with the upper halves of the pockets facing down, the cradle plate below with the lower halves facing up](images/exploded-pivot.png)
+![The pivot of rotor a: the black rotor with a yellow tip in the middle, its end bore facing the orange pivot block on the right; an orange pivot block on each side with its pin toward the rotor, the top plate above with the upper halves of the pockets facing down, the cradle plate below with the lower halves facing up](images/exploded-pivot.png)
 
 The camshaft alone, with the frame left out, its parts pulled off the front end along the shaft. From the rear: the shaft, cam a, f, b, g, c, e and d, the hub, the spring and the rotor:
 
