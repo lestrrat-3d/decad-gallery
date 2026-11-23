@@ -72,10 +72,10 @@ type BladeHarness struct {
 }
 
 // BuildBladeHarness builds the nose rib and the stud pad for blade, which must already be in the print pose
-// PrintPoseFor(sz, pitch, hand, tilt) gives. It reads the blade with SectionOutline. It puts them in no container. ctx, doc and blade must not
+// PrintPoseFor(sz, pitch, hand, tilt, depth) gives. It reads the blade with SectionOutline. It puts them in no container. ctx, doc and blade must not
 // be nil.
 func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Body, sz Size, hand Hand,
-	tilt float64) (*BladeHarness, error) {
+	tilt, depth float64) (*BladeHarness, error) {
 	if ctx == nil || doc == nil || blade == nil {
 		return nil, errors.New("turbinefan: context, document and blade must not be nil")
 	}
@@ -86,7 +86,7 @@ func BuildBladeHarness(ctx context.Context, doc *decad.Document, blade *decad.Bo
 		return nil, errors.New("turbinefan: hand must be RightHand or LeftHand")
 	}
 	// The pose is not read, but a tilt PrintPoseFor rejects is rejected here too.
-	if _, err := PrintPoseFor(sz, DefaultBladePitch, hand, tilt); err != nil {
+	if _, err := PrintPoseFor(sz, DefaultBladePitch, hand, tilt, depth); err != nil {
 		return nil, err
 	}
 	b := &bladeBuilder{ctx: ctx, doc: doc, sz: sz, mirror: hand == LeftHand, what: "harness"}

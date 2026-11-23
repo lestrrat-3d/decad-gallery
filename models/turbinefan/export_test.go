@@ -38,16 +38,16 @@ func SectionSurfacePoints(sz Size, k int) ([2]float64, [2]float64) {
 }
 
 // PosedEdgePoints returns the posed stud end corner on the in-section down side, which the stud flat cuts away
-// (z = -StudFlatDepth at the rest tilt), and the posed leading-edge points of stations 4 and 5, for hand at tilt (pose
+// (z = -depth at the rest tilt), and the posed leading-edge points of stations 4 and 5, for hand at tilt (pose
 // of DefaultBladePitch).
-func PosedEdgePoints(sz Size, hand Hand, tilt float64) (r3.Vec, r3.Vec, r3.Vec) {
-	return PosedEdgePointsAt(sz, DefaultBladePitch, hand, tilt)
+func PosedEdgePoints(sz Size, hand Hand, tilt, depth float64) (r3.Vec, r3.Vec, r3.Vec) {
+	return PosedEdgePointsAt(sz, DefaultBladePitch, hand, tilt, depth)
 }
 
 // PosedEdgePointsAt is PosedEdgePoints for a blade at pitch: the stud corner turns with the pose's up direction, and
 // the leading-edge points with the blade's pitch turn.
-func PosedEdgePointsAt(sz Size, pitch float64, hand Hand, tilt float64) (r3.Vec, r3.Vec, r3.Vec) {
-	f, err := PrintPoseFor(sz, pitch, hand, tilt)
+func PosedEdgePointsAt(sz Size, pitch float64, hand Hand, tilt, depth float64) (r3.Vec, r3.Vec, r3.Vec) {
+	f, err := PrintPoseFor(sz, pitch, hand, tilt, depth)
 	if err != nil {
 		panic(err)
 	}

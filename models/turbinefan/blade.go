@@ -109,7 +109,7 @@ func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
 }
 
 // studFlat cuts the flat on the stud's inner end: the stud material under the bed in the print pose at the rest tilt
-// that restTilt finds from the turned loft, where the stud end corner lies StudFlatDepth under the bed. In the local
+// that restTiltFitted finds from the turned loft, where the stud end corner lies the fitted depth (StudFlatDepth or less) under the bed. In the local
 // frame the bed is the plane n·p = c, with n = sin th Z + cos th u the pose's up direction and c the loft's lowest pose
 // height. The cutter is a square of side 4 BladeStudRadius on that plane, centred on the stud end's projection,
 // extruded 2 BladeStudRadius along -n.
@@ -126,7 +126,7 @@ func (b *bladeBuilder) studFlat(stud, loft *decad.Body, pitch float64) *decad.Bo
 	if b.mirror {
 		hand = LeftHand
 	}
-	tilt, c, err := restTilt(mesh.Vertices(), b.sz, pitch, hand, StudFlatDepth)
+	tilt, c, _, err := restTiltFitted(mesh.Vertices(), b.sz, pitch, hand)
 	if err != nil {
 		b.fail("stud flat", err)
 		return nil

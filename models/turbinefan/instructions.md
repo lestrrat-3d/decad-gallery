@@ -103,11 +103,13 @@ The blade's print aid ("Print pose and nose rib" below), in `print.go` and `harn
   `RibTopBand` (0.2), `RibSideAngle` (6 degrees), `RibTipMargin` (1.0), `RibEndOver` (1.0), `RibMinHeight` (0.4),
   `BrimClearance` (6.0) and `SectionStep` (0.25); the stud pad constants `StudPadRadius` (5.0) and `StudPadThickness`
   (0.16); and the container name `HarnessContainerName` (`Harness`).
-- `RestTilt(ctx, blade, size, pitch, hand) (float64, error)` returns the tilt at which a blade from `BuildBlade` or
-  `BuildBladeMirrored` rests on both its stud flat and its loft's lowest point. `PrintPoseFor(size, pitch, hand, tilt)
-  (r3.Frame, error)` returns the frame that moves that blade into the print frame.
+- `RestTilt(ctx, blade, size, pitch, hand) (tilt, depth float64, err error)` returns the tilt at which a blade from
+  `BuildBlade` or `BuildBladeMirrored` rests on both its stud flat and its loft's lowest point, and the depth of that
+  flat: `StudFlatDepth`, or less where that depth would leave the round root under `StudFlatRootClearance`.
+  `PrintPoseFor(size, pitch, hand, tilt, depth) (r3.Frame, error)` returns the frame that moves that blade into the
+  print frame.
 - `BladeHarness` (`Body`, `Pad`, `Sketches`, `Spots`, `TrackY0`, `TrackSlope`, `Top`, `XStart`, `XEnd`).
-- `BuildBladeHarness(ctx, doc, blade, size, hand, tilt) (*BladeHarness, error)` builds the nose rib and the stud pad for a posed
+- `BuildBladeHarness(ctx, doc, blade, size, hand, tilt, depth) (*BladeHarness, error)` builds the nose rib and the stud pad for a posed
   blade and puts them in no container.
 - `BladePrint` (`Blade`, `BladeSketches`, `Harness`, `Pose`, `Tilt`) and `BuildBladePrint(ctx, doc, p) (*BladePrint,
   error)`, which validates `p` (`Params.Derive`), builds the blade of `p.Hand` at `p.BladePitch`, finds its `RestTilt`,
@@ -524,19 +526,25 @@ The slicer made no support there: the nose strip that faces down is only 0.3 to 
 
 The pose is set from the blade's own chord at `RefRadius`: `u`, the in-section up, is that chord (leading to trailing
 edge, X negated for `LeftHand`) turned by `PrintLean` (-15 degrees, mirrored for `LeftHand`) toward the pressure face, so
-the leading edge points down. The radial line rises at the tilt `t` from the bed. `PrintPoseFor(size, pitch, hand, t)`
+the leading edge points down. The radial line rises at the tilt `t` from the bed. `PrintPoseFor(size, pitch, hand, t, depth)`
 maps the blade's local `u` to `(-sin t, 0, cos t)` and `-Y` (the in-section side) to `-y`, with frame origin
-`(-BladeStudStart cos t, 0, PrintLift - StudFlatDepth - zc(t))`, `zc(t) = (BladeStudStart + 0.3) sin t -
+`(-BladeStudStart cos t, 0, PrintLift - depth - zc(t))`, `zc(t) = (BladeStudStart + 0.3) sin t -
 reach cos t`, `reach = BladeStudRadius max_i cos(angle_i)` over the hexagon's corners, at 30 + 60 i degrees from local X. The stud end corner (the stud's chamfered rim on the down side), which the flat cuts away, then
-lies at z = `-StudFlatDepth`, and the flat lies on the bed (z = `PrintLift`). The posed loft follows the chord, so it
+lies at z = `-depth`, and the flat lies on the bed (z = `PrintLift`). The posed loft follows the chord, so it
 changes with the pitch only through the rest tilt, which moves under 1 degree with the hexagonal stud's reach; the bolt hole turns. The left hand is the right hand reflected in y = 0.
 
 `RestTilt` finds the tilt at which the loft's lowest point reaches the bed too. It meshes the blade at 0.05, keeps the
 vertices beyond r `RootRadius + 0.5` (the loft), and bisects 50 times on [`RestTiltMin`, `RestTiltMax`] for the tilt at
-which `zc(t) + StudFlatDepth = min (sin t v.Z + cos t v . u)` over those vertices. It reads 12.90, 12.84 and 13.34
+which `zc(t) + depth = min (sin t v.Z + cos t v . u)` over those vertices. It reads 12.90, 12.84 and 13.34
 degrees at 128, 192 and 224 at the default pitch. The hexagon reaches toward the bed by `R cos` of the angle between the
 pose's down direction and its nearest corner, so the tilt moves by under 1 degree with the pitch (13.9 degrees at 128 and
-10 degrees pitch, 12.96 at 40 degrees); the hand does not change it. It fails in two cases:
+10 degrees pitch, 12.96 at 40 degrees); the hand does not change it.
+
+`RestTilt` solves at `StudFlatDepth` first. Where the root then stands under `StudFlatRootClearance` (128 mm at 11 to 19
+degrees pitch, 0.14 mm at 15 degrees), it bisects 60 times on [`RestTiltMin`, that tilt] for the largest tilt that
+leaves the root `StudFlatRootClearance` up, and takes the depth `min (sin t v.Z + cos t v . u) - zc(t)` at that tilt
+(0.336 at 128 mm and 15 degrees). The flat is cut at that tilt and depth, `PrintPoseFor` takes the depth, and a
+shallower flat still leaves a 5.5 mm2 flat face. It fails in two cases:
 
 - The bracket does not change sign: `turbinefan: rest tilt: the stud corner and the loft do not cross between 5° and
   20°`.
@@ -569,7 +577,7 @@ Every constant here is a print-process size, not a standard dimension, so none c
 | --- | --- | --- |
 | `PrintLean` | -15 degrees | turns the chord at `RefRadius` toward the pressure face, so the leading edge points down |
 | `PrintLift` | 0 | the stud flat's z in the pose: on the bed |
-| `StudFlatDepth` | 0.45 | the stud end's lowest point lies this far under the flat's plane, so the blade rests on a flat patch instead of a corner sliver. A deeper flat leaves the round root under `StudFlatRootClearance` at 128 mm and 10 degrees |
+| `StudFlatDepth` | 0.45 | the most the stud end's lowest point lies under the flat's plane, so the blade rests on a flat patch instead of a corner sliver. A deeper flat leaves the round root under `StudFlatRootClearance` at 128 mm from 10 to 19 degrees pitch, so `RestTilt` returns a shallower depth there: the one whose tilt leaves the root exactly `StudFlatRootClearance` up (0.336 at 128 mm and 15 degrees). Every other blade, and the default pitch, keeps 0.45 |
 | `StudFlatRootClearance` | 0.2 | the round root's least height over the bed at the rest tilt: one layer, so the root prints no stray island in the first layer |
 | `RestTiltMin`, `RestTiltMax` | 5, 20 degrees | bracket the tilt `RestTilt` searches and `PrintPoseFor` accepts |
 | `RibGapZ` | 0.16 | vertical gap under the nose: 2 layers of 0.08. A modelled gap snaps to whole layers. 0.08 bonds PETG to PETG. Orca's 0.2 default becomes 0.24 at 0.08 layers. |
@@ -758,10 +766,10 @@ every Regular fit, the blades' pitch and hand, the copies turned by 120 and 240 
 The stud flat's checks build blades at 128, 192 and 224, with other pitches and the left hand:
 
 - `TestPrintPose`: the rest tilt per size, the same at every pitch and hand; the flat on the bed and the cut-away stud
-  end corner `StudFlatDepth` under it.
+  end corner `RestTilt`'s depth under it.
 - `TestStudFlat`: a planar face facing straight down at z = 0 of 6 mm2 or more, a stud spot in the first layer
   (z = 0.1) of 7 mm2 or more, the stud's section through the bolt hole as large as the round stud's, and the round root
-  `StudFlatRootClearance` or more over the bed.
+  `StudFlatRootClearance` or more over the bed. It also runs 12 and 15 degrees, where the flat is shallower than `StudFlatDepth` at 128 mm.
 - `TestStudFlatRootClearance`: a flat deep enough to bring the root under `StudFlatRootClearance` makes the rest tilt
   fail.
 

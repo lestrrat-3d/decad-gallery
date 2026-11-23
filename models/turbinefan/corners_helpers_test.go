@@ -127,8 +127,8 @@ func requireBladeCorners(t *testing.T, m *turbinefan.Model, k int) {
 func requireBladePrintCorners(t *testing.T, d, pitch float64, hand turbinefan.Hand, required bool) {
 	t.Helper()
 	sz := mustSize(t, d)
-	_, blade, tilt := posedBlade(t, d, pitch, hand)
-	pose, err := turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, hand, tilt)
+	_, blade, tilt, depth := posedBlade(t, d, pitch, hand)
+	pose, err := turbinefan.PrintPoseFor(sz, turbinefan.DefaultBladePitch, hand, tilt, depth)
 	require.NoError(t, err)
 	radial := pose.U().Cross(pose.V())
 	box, err := blade.Bounds()

@@ -44,7 +44,7 @@ func TestBuildBladePrint(t *testing.T) {
 		sz := mustSize(t, p.RotorDiameter)
 		blade, err := build(t.Context(), turbinefan.NewDocument(), p.BladePitch, sz)
 		require.NoError(t, err)
-		tilt, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, p.BladePitch, hand)
+		tilt, _, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, p.BladePitch, hand)
 		require.NoError(t, err)
 		require.InDelta(t, tilt, bp.Tilt, 1e-12, "rest tilt")
 	}

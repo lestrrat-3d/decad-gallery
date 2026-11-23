@@ -371,7 +371,7 @@ full run, in mm. It is a dated illustration, and the test owns the number.
 | R2 | `driving-gear` and the crank wall, `pinion` and the fan wall | gear back face to the wall | Regular | 0.424 |
 | R3 | `driving-gear` and `gearbox-base` | gear to the back wall, at the heel | Regular | 4.75 |
 | R4 | `bearing-drive-wall` and `driving-gear`, `bearing-fan-wall` and `pinion` | bearing face to the gear back | Regular | 0.427 |
-| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket, stud end, root to the rim | Regular | 0.377 |
+| R5 | each `fan-blade-k` and `fan-hub` | stud in the socket, stud end, root to the rim | Tight | 0.228 |
 | R6 | `crank-grip` and `crank-pin` | handle bore, counterbore and head face | Regular | 0.390 |
 | R7 | `crank-arm` and `crank-grip` | handle end to the arm | Regular | 0.395 |
 | L1 | `crank-gear` and `drive-gear` with `gearbox-post` | gear to the post | Loose | 1.08 |
