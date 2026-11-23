@@ -77,7 +77,7 @@ func MeasureNotchFloor(t *testing.T, seg Segment) float64 {
 	f := sharedFlag(t, seg)
 	n := rotorNotches(seg)[0]
 	mid := (n[0] + n[1]) / 2
-	lo, hi := Scale*2.0, Scale*3.6 // empty at lo (inside the notch), material at hi (the shell under the face)
+	lo, hi := 3.0, 5.4 // empty at lo (inside the notch), material at hi (the shell under the face)
 	if inBody(t, f.Black, rotorPoint(seg, 0, lo, mid)) || !inBody(t, f.Black, rotorPoint(seg, 0, hi, mid)) {
 		t.Fatalf("notch floor is not between %.1f and %.1f", lo, hi)
 	}

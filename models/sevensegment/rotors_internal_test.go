@@ -40,7 +40,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 			require.NoError(t, err)
 			b, err := f.Black.Volume()
 			require.NoError(t, err)
-			require.InDelta(t, 259.44, y.Value.Base(), 0.5) // the slab and the tips: 105.41 at Scale 1 (the 0.8 inset does not scale)
+			require.InDelta(t, 259.44, y.Value.Base(), 0.5) // the slab and the tips: 105.41 in the original 1.0x design (the 0.8 inset is a fit and stays)
 			require.InDelta(t, tc.total, y.Value.Base()+b.Value.Base(), 1.0)
 
 			// Centre of mass of the two bodies, in the rotor's x and y, as a distance and an angle from x.
@@ -56,18 +56,18 @@ func TestSevenSegmentRotor(t *testing.T) {
 			require.InDelta(t, tc.beta, math.Atan2(yr, xr)*180/math.Pi, 1.0)
 
 			// Probes: yellow on the yellow face's slab, black beside it, empty in the notches and pockets.
-			require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, Scale*3.4, 0, 0)))
-			require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, Scale*3.4, Scale*3.4, 0)))
+			require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, 5.1, 0, 0)))
+			require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, 5.1, 5.1, 0)))
 			// The tips: yellow inside the chamfer, a black rim beside it, black past the yellow's end.
 			for _, sa := range []float64{-1, 1} {
-				require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, yellowTipInner-Scale*10.9+0.35, 0, sa*Scale*10.9)), "tip yellow")
-				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, yellowTipInner-Scale*10.9+0.35, yellowTipK-Scale*10.9+0.25, sa*Scale*10.9)), "tip rim")
-				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, Scale*1.6, 0, sa*(yellowTipEnd+0.3))), "past the yellow end")
+				require.True(t, inBody(t, f.Yellow, rotorPoint(tc.seg, yellowTipInner-16.35+0.35, 0, sa*16.35)), "tip yellow")
+				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, yellowTipInner-16.35+0.35, yellowTipK-16.35+0.25, sa*16.35)), "tip rim")
+				require.True(t, inBody(t, f.Black, rotorPoint(tc.seg, 2.4, 0, sa*(yellowTipEnd+0.3))), "past the yellow end")
 			}
 			for _, n := range rotorNotches(tc.seg) {
 				mid := (n[0] + n[1]) / 2
-				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 0, Scale*-2, mid)), "notch")
-				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, Scale*1.8, 0, (n[1]+n[2])/2)), "pocket")
+				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 0, -3.0, mid)), "notch")
+				require.False(t, inBody(t, f.Black, f.fromLocal(tc.seg, 2.7, 0, (n[1]+n[2])/2)), "pocket")
 			}
 
 			// Corners, print axis away from the yellow face.

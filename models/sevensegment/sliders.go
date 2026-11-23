@@ -14,12 +14,12 @@ import (
 
 // Groove pin and stem dimensions that are not exported, in mm.
 const (
-	sliderStemFrom = sliderPinZ - Scale*3.5 // z where the stem starts
-	sliderPinZ     = ShaftZ + OffRadius     // z of the groove pin's axis at the unlit pose: on the groove's off radius
+	sliderStemFrom = sliderPinZ - 5.25  // z where the stem starts
+	sliderPinZ     = ShaftZ + OffRadius // z of the groove pin's axis at the unlit pose: on the groove's off radius
 	sliderPinR     = PinRadius
 	sliderPinRound = 0.5
 	sliderPinChamf = 0.3
-	sliderHalfWide = Scale * 3.5 // half the stem's width along the rotor axis of a, g and d, and along x of b to f
+	sliderHalfWide = 5.25 // half the stem's width along the rotor axis of a, g and d, and along x of b to f
 )
 
 // segmentCentre returns the segment's centre in the XY plane and whether its long axis is X.
@@ -75,22 +75,22 @@ func (r *run) pin(y0 float64) (*decad.Body, error) {
 
 // Flag slider dimensions that are not exported, in mm.
 const (
-	sliderHeadTop   = pinAxisZ - Scale*8.05       // head or arm top at the build pose (unlit)
-	tongueRootDip   = 0.03                        // how far the tongue's root rounds bottom out inside the head
-	tongueHullR     = flagPinRadius + 0.1         // radius of the hull round about the pin axis
-	flagPinRadius   = Scale * 0.50                // the rotor pin, Ø1.0
-	flagPinLength   = Scale * 3.6                 //
-	bladeRidgeZ     = sliderHeadTop + Scale*10.75 // top of the blade's gable
-	bladeShoulderZ  = sliderHeadTop + Scale*10.15 //
-	bladeExtOverlap = 0.1                         //
-	stemChamfer     = wallChamfer                 //
-	tongueEndGap    = Scale * 1.3                 // the end cutter's lower line lies this far below the head top
-	pinStationAGD   = Scale * 1.5                 // the rotor pin's distance from the stem along s, a, g, d
-	pinStationBC    = Scale * 15.0                // along x, b and c
-	pinStationEF    = Scale * 18.0                // along x, e and f
-	tongueWidth     = Scale * 1.4                 // the tongue strip's width along s
-	tongueTopGap    = Scale * 1.2                 // the tongue's top edge lies this far below the pin axis
-	pinAxisZ        = RotorAxisZ - Scale*1.75     // the rotor pin's axis at the unlit build pose of a, g and d
+	sliderHeadTop   = pinAxisZ - 12.075      // head or arm top at the build pose (unlit)
+	tongueRootDip   = 0.03                   // how far the tongue's root rounds bottom out inside the head
+	tongueHullR     = flagPinRadius + 0.1    // radius of the hull round about the pin axis
+	flagPinRadius   = 0.75                   // the rotor pin, Ø1.0
+	flagPinLength   = 5.4                    //
+	bladeRidgeZ     = sliderHeadTop + 16.125 // top of the blade's gable
+	bladeShoulderZ  = sliderHeadTop + 15.225 //
+	bladeExtOverlap = 0.1                    //
+	stemChamfer     = wallChamfer            //
+	tongueEndGap    = 1.95                   // the end cutter's lower line lies this far below the head top
+	pinStationAGD   = 2.25                   // the rotor pin's distance from the stem along s, a, g, d
+	pinStationBC    = 22.5                   // along x, b and c
+	pinStationEF    = 27.0                   // along x, e and f
+	tongueWidth     = 2.1                    // the tongue strip's width along s
+	tongueTopGap    = 1.8                    // the tongue's top edge lies this far below the pin axis
+	pinAxisZ        = RotorAxisZ - 2.625     // the rotor pin's axis at the unlit build pose of a, g and d
 )
 
 // slFrame returns the sketch frame and extrusion direction for a profile drawn in (w, z): w is world Y with the
@@ -202,13 +202,13 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	var f2 r3.Frame
 	var d2 decad.Direction
 	if uIsX {
-		f2, _ = r3.NewFrame(r3.Vec{Y: sL - Scale*1.5}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+		f2, _ = r3.NewFrame(r3.Vec{Y: sL - 2.25}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 		d2 = decad.Against
 	} else {
-		f2, _ = r3.NewFrame(r3.Vec{X: sL - Scale*1.5}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+		f2, _ = r3.NewFrame(r3.Vec{X: sL - 2.25}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 		d2 = decad.Along
 	}
-	ztop := zp + Scale*1.5
+	ztop := zp + 2.25
 	zcE := sliderHeadTop + tongueRootR - tongueRootDip
 	cv := [][2]float64{{ue, ztop}}
 	cv = append(cv, quarterRound(ue+tongueRootR, zcE, tongueRootR, 180, 270, 8)...)
@@ -219,7 +219,7 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 		return nil, err
 	}
 	polyLoop(s2, cv)
-	cut, err := r.extrude(s2, 0, sR-sL+Scale*3.0, d2)
+	cut, err := r.extrude(s2, 0, sR-sL+4.5, d2)
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cutter: %w", err)
 	}
@@ -287,17 +287,17 @@ func (r *run) bfProfile(ef bool, yi float64) (*decad.Body, float64, float64, err
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	bL, bR := Scale*8.7, Scale*9.8 // the blade is 1.1 thick: its rotor-side face stands 0.1 back from the old 9.9
-	zh, za := sliderHeadTop, sliderHeadTop-Scale*2.5
+	bL, bR := 13.05, 14.7 // the blade is 1.1 thick: its rotor-side face stands 0.1 back from the old 9.9
+	zh, za := sliderHeadTop, sliderHeadTop-3.75
 	h := sliderHalfWide
 	var v [][2]float64
 	if !ef {
-		v = [][2]float64{{-h, sliderStemFrom}, {h, sliderStemFrom}, {h, za}, {Scale * 17.9, za}, {Scale * 17.9, zh},
+		v = [][2]float64{{-h, sliderStemFrom}, {h, sliderStemFrom}, {h, za}, {26.85, za}, {26.85, zh},
 			{bR, zh}, {bR, bladeShoulderZ}, {(bL + bR) / 2, bladeRidgeZ}, {bL, bladeShoulderZ}, {bL, zh}, {-h, zh}}
 	} else {
-		bL, bR = Scale*-9.8, Scale*-8.7
+		bL, bR = -14.7, -13.05
 		v = [][2]float64{{-h, sliderStemFrom}, {h, sliderStemFrom}, {h, zh}, {bR, zh}, {bR, bladeShoulderZ}, {(bL + bR) / 2, bladeRidgeZ},
-			{bL, bladeShoulderZ}, {bL, zh}, {Scale * -19.5, zh}, {Scale * -19.5, za}, {-h, za}}
+			{bL, bladeShoulderZ}, {bL, zh}, {-29.25, zh}, {-29.25, za}, {-h, za}}
 	}
 	ps, ls := polygon(s, v)
 	n := len(v)
@@ -305,9 +305,9 @@ func (r *run) bfProfile(ef bool, yi float64) (*decad.Body, float64, float64, err
 		i   int
 		rad float64
 	}
-	rounds := []round{{2, Scale * 1.25}, {5, Scale * 0.6}, {9, Scale * 0.6}}
+	rounds := []round{{2, 1.875}, {5, 0.9}, {9, 0.9}}
 	if ef {
-		rounds = []round{{3, Scale * 0.6}, {7, Scale * 0.6}, {10, Scale * 1.25}}
+		rounds = []round{{3, 0.9}, {7, 0.9}, {10, 1.875}}
 	}
 	for _, q := range rounds {
 		prev := ls[(q.i-1+n)%n]
@@ -338,7 +338,7 @@ func (r *run) bfSlider(seg Segment) (*decad.Body, error) {
 		return nil, err
 	}
 	polyLoop(es, [][2]float64{{bL, zh}, {bR, zh}, {bR, bladeShoulderZ}, {(bL + bR) / 2, bladeRidgeZ}, {bL, bladeShoulderZ}})
-	ext, err := r.extrude(es, 0, Scale*1.2+bladeExtOverlap, ed2)
+	ext, err := r.extrude(es, 0, 1.8+bladeExtOverlap, ed2)
 	if err != nil {
 		return nil, fmt.Errorf("blade extension: %w", err)
 	}
@@ -350,7 +350,7 @@ func (r *run) bfSlider(seg Segment) (*decad.Body, error) {
 	if ef {
 		sL, sR, sc = -pinStationEF, -pinStationEF+tongueWidth, -pinStationEF
 	}
-	tg, err := r.rootedTongue(false, yi-StemThickness/2, yi-Scale*0.2, sL, sR, sc, zp)
+	tg, err := r.rootedTongue(false, yi-StemThickness/2, yi-0.3, sL, sR, sc, zp)
 	if err != nil {
 		return nil, err
 	}
@@ -375,14 +375,14 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 	}
 	zh := sliderHeadTop
 	sh := StemThickness / 2
-	v := [][2]float64{{-sh, sliderStemFrom}, {sh, sliderStemFrom}, {sh, zh - Scale*1.65}, {Scale * 2.4, zh - Scale*1.05}, {Scale * 2.4, zh},
-		{Scale * -6.7, zh}, {Scale * -6.7, bladeShoulderZ}, {Scale * -7.25, bladeRidgeZ}, {Scale * -7.8, bladeShoulderZ},
-		{Scale * -7.8, zh}, {Scale * -8.6, zh}, {Scale * -8.6, zh - Scale*2.0}, {-sh, zh - Scale*2.0}}
+	v := [][2]float64{{-sh, sliderStemFrom}, {sh, sliderStemFrom}, {sh, zh - 2.475}, {3.6, zh - 1.575}, {3.6, zh},
+		{-10.05, zh}, {-10.05, bladeShoulderZ}, {-10.875, bladeRidgeZ}, {-11.7, bladeShoulderZ},
+		{-11.7, zh}, {-12.9, zh}, {-12.9, zh - 3.0}, {-sh, zh - 3.0}}
 	ps, ls := polygon(s, v)
 	for _, c := range []struct {
 		a, b int
 		rad  float64
-	}{{4, 5, Scale * 0.6}, {8, 9, Scale * 0.6}, {11, 12, Scale * 1.0}} {
+	}{{4, 5, 0.9}, {8, 9, 0.9}, {11, 12, 1.5}} {
 		if _, err := sketch.CreateFillet(s, ls[c.a], ls[c.b], ps[c.b], c.rad); err != nil {
 			return nil, fmt.Errorf("profile round %d: %w", c.b, err)
 		}
@@ -391,7 +391,7 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("main profile: %w", err)
 	}
-	tg, err := r.rootedTongue(true, -sliderHalfWide, Scale*-1.9, yi+pinStationAGD-tongueWidth, yi+pinStationAGD, yi+pinStationAGD, pinAxisZ)
+	tg, err := r.rootedTongue(true, -sliderHalfWide, -2.85, yi+pinStationAGD-tongueWidth, yi+pinStationAGD, yi+pinStationAGD, pinAxisZ)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +404,7 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 // finishSlider chamfers the stem's vertical edges and adds the groove pin.
 func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Body, error) {
 	// The 0.5 chamfers of "Surface edge finishing" on the stem's two large faces: every long run of their outer loops, the stem's
-	// vertical edges included, so the 0.3 bevels that the stem had at Scale 1.0 are these chamfers (Fusion cannot chamfer an
+	// vertical edges included, so the 0.3 bevels that the stem had in the original 1.0x design are these chamfers (Fusion cannot chamfer an
 	// edge that already carries a smaller bevel).
 	body, _, err := edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Y: 1}, []float64{yi - StemThickness/2, yi + StemThickness/2},
 		edgefinish.Outer, func(*decad.Loop, []*decad.Edge) bool { return false }, wallChamfer)

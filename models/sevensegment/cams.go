@@ -44,19 +44,19 @@ func (d Dimensions) camFrame(s Segment) r3.Frame {
 func camMarks(s Segment) (int, float64) {
 	switch s {
 	case SegD:
-		return 1, Scale * 12
+		return 1, 18.0
 	case SegE:
-		return 2, Scale * 12
+		return 2, 18.0
 	case SegC:
-		return 3, Scale * 12
+		return 3, 18.0
 	case SegG:
-		return 1, Scale * 8
+		return 1, 12.0
 	case SegB:
-		return 2, Scale * 8
+		return 2, 12.0
 	case SegF:
-		return 3, Scale * 8
+		return 3, 12.0
 	default:
-		return 4, Scale * 8
+		return 4, 12.0
 	}
 }
 
@@ -250,11 +250,11 @@ func (r *run) channel(s *sketch.Sketch, entry *sketch.Line, from, to *sketch.Poi
 // hexadecimal letters of a seven-segment display), each outline a closed run of horizontal and vertical lines held by
 // its distance from the cam's axis, so the sketch is fully constrained without fixing a point.
 const (
-	inscriptionStroke = 0.9          // stroke width, mm: above the 0.8 mm printable minimum
-	inscriptionWidth  = Scale * 3.2  // letter width, mm
-	inscriptionHeight = Scale * 4.6  // letter height, mm
-	inscriptionDepth  = 0.5          // engraving depth, mm
-	inscriptionRadius = Scale * 14.0 // the letter's centre from the cam axis, straight up (local +Y) from it
+	inscriptionStroke = 0.9  // stroke width, mm: above the 0.8 mm printable minimum
+	inscriptionWidth  = 4.8  // letter width, mm
+	inscriptionHeight = 6.9  // letter height, mm
+	inscriptionDepth  = 0.5  // engraving depth, mm
+	inscriptionRadius = 21.0 // the letter's centre from the cam axis, straight up (local +Y) from it
 )
 
 // letterSegments names the display segments each cam letter lights, a to g as in the truth table.

@@ -162,7 +162,7 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height 
 	half := width / 2
 	// Knob end up: the camera's up is -Y. Left: the face from +Z, turned a little toward +X. Right: the whole display cut through
 	// the axis from +X, so the cams turning and the sliders rising show.
-	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 70 * sevenScale, Y: -40 * sevenScale, Z: 330 * sevenScale}, Target: solidlens.Vec{Y: -30 * sevenScale, Z: 40 * sevenScale},
+	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 105.0, Y: -60.0, Z: 495.0}, Target: solidlens.Vec{Y: -45.0, Z: 60.0},
 		Up: solidlens.Vec{Y: -1}, FOV: 30}
 	cutCam := sevenCameras["cutaway"]
 	rest := states[0]

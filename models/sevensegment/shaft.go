@@ -10,8 +10,8 @@ import (
 
 // Shaft and camshaft part dimensions that are not exported.
 const (
-	shaftCamRadius    = Scale * 3.2                                           // cam section
-	shaftCamFlat      = Scale * 2.7                                           // cam section flat, from the axis
+	shaftCamRadius    = 4.8                                                   // cam section
+	shaftCamFlat      = 4.05                                                  // cam section flat, from the axis
 	shaftJournal      = bearingBoreR                                          // the journals: half the bearing's bore, so it does not scale
 	shaftStubRadius   = 2.5                                                   // knob stub: the click indexer's size, as the spring fits round it
 	shaftStubStepFrom = frontInnerY - bearingWidth - 0.25                     // the stub's cone starts 0.25 outside the front bearing
@@ -48,7 +48,7 @@ func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	polygon(s, [][2]float64{{x0, Scale * -4}, {x1, Scale * -4}, {x1, Scale * 4}, {x0, Scale * 4}})
+	polygon(s, [][2]float64{{x0, -6.0}, {x1, -6.0}, {x1, 6.0}, {x0, 6.0}})
 	return r.extrude(s, 0, z1-z0, decad.Along)
 }
 
@@ -60,7 +60,7 @@ func (r *run) shaft() (*decad.Body, error) {
 	pts := [][2]float64{ // (r, z) in world Y
 		{0, shaftFrontEnd}, {shaftStubRadius - 0.3, shaftFrontEnd}, {shaftStubRadius, shaftFrontEnd + 0.3},
 		{shaftStubRadius, shaftStubStepTo}, {shaftJournal, shaftStubStepFrom}, {shaftJournal, shaftCamFrom},
-		{shaftCamRadius, shaftCamFrom}, {shaftCamRadius, shaftCamEnd}, {RearCollarRadius, shaftCamEnd + Scale*1.039},
+		{shaftCamRadius, shaftCamFrom}, {shaftCamRadius, shaftCamEnd}, {RearCollarRadius, shaftCamEnd + 1.5585},
 		{RearCollarRadius, shaftRearFrom}, {shaftJournal, shaftRearFrom}, {shaftJournal, rearInnerY + bearingWidth - 0.3},
 		{shaftJournal - 0.3, rearInnerY + bearingWidth}, {0, rearInnerY + bearingWidth},
 	}
@@ -75,9 +75,9 @@ func (r *run) shaft() (*decad.Body, error) {
 		name           string
 		x0, x1, z0, z1 float64
 	}{
-		{"cam flat", shaftCamFlat, Scale * 8, shaftCamFlatFrom, shaftCamFlatTo},
-		{"cam back flat", Scale * -8, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
-		{"stub flat", shaftStubFlat, Scale * 8, shaftStubFlatFrom, shaftStubFlatTo},
+		{"cam flat", shaftCamFlat, 12.0, shaftCamFlatFrom, shaftCamFlatTo},
+		{"cam back flat", -12.0, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
+		{"stub flat", shaftStubFlat, 12.0, shaftStubFlatFrom, shaftStubFlatTo},
 	} {
 		tool, err := r.flatTool(c.x0, c.x1, c.z0, c.z1)
 		if err != nil {

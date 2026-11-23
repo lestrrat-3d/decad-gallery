@@ -74,18 +74,18 @@ func TestSevenSegmentVisibility(t *testing.T) {
 
 // TestSevenSegmentWindowLip measures the plate's lip under the window edge of segment g, on the plate mesh, by a ray
 // going up from inside the bore 0.01 outside the edge: 0.704 along the long sides (half-width 2.95), and 0.49 at the
-// shoulders of the pointed ends. At Scale 1 they were 0.704 and 0.49, under 0.8 and listed as an exception in instructions.md; at Scale 1.5 both pass 0.8.
+// shoulders of the pointed ends. In the original 1.0x design they were 0.704 and 0.49, under 0.8 and listed as an exception in instructions.md; here both pass 0.8.
 func TestSevenSegmentWindowLip(t *testing.T) {
 	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	// 0.025: the pivot pockets' rounds meet the bore's faceted cone, and decad holds that body's mesh to 0.0148 at best at
-	// Scale 1 and to 0.0208 at Scale 1.5.
+	// 1.0x design and to 0.0208 here.
 	topMesh, _ := meshOf(t, parts.TopPlate, 0.025)
 	plate := trisOf(topMesh, nil, r3.Vec{}, kindPlate)
 	var near []rayTri
 	for _, tr := range plate {
-		if tr.hi.X > -Scale*14 && tr.lo.X < Scale*14 && tr.hi.Y > -Scale*6 && tr.lo.Y < Scale*6 && tr.hi.Z > sevensegment.TopFrom-0.85 {
+		if tr.hi.X > -21.0 && tr.lo.X < 21.0 && tr.hi.Y > -9.0 && tr.lo.Y < 9.0 && tr.hi.Z > sevensegment.TopFrom-0.85 {
 			near = append(near, tr)
 		}
 	}
@@ -97,14 +97,14 @@ func TestSevenSegmentWindowLip(t *testing.T) {
 		dist, kind := firstHitDist(near, r3.Vec{X: u, Y: sv, Z: rayZ}, r3.Vec{X: 1e-9, Y: 1e-9, Z: 1})
 		require.Equal(t, kindPlate, kind, "u %.2f", u)
 		lip := sevensegment.FaceZ - (rayZ + dist)
-		if u < Scale*9.0 {
+		if u < 13.5 {
 			long = math.Min(long, lip)
-		} else if u >= Scale*9.7 && u <= Scale*10.7 {
+		} else if u >= 14.55 && u <= 16.05 {
 			shoulder = math.Min(shoulder, lip)
 		}
 	}
 	t.Logf("lip along the long sides %.3f, at the shoulders %.3f", long, shoulder)
-	// At Scale 1 the lips were 0.704 and 0.49, under 0.8; at Scale 1.5 they are 1.512 and 1.248, above it.
+	// In the original 1.0x design the lips were 0.704 and 0.49, under 0.8; here they are 1.512 and 1.248, above it.
 	require.InDelta(t, 1.512, long, 0.03)
 	require.InDelta(t, 1.248, shoulder, 0.03)
 }
@@ -144,13 +144,13 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		cx, cy := point.X, point.Y
 		var near []rayTri
 		for _, tr := range plate {
-			if tr.hi.X < cx-Scale*26 || tr.lo.X > cx+Scale*26 || tr.hi.Y < cy-Scale*26 || tr.lo.Y > cy+Scale*26 || tr.hi.Z < sevensegment.TopFrom-0.85 {
+			if tr.hi.X < cx-39.0 || tr.lo.X > cx+39.0 || tr.hi.Y < cy-39.0 || tr.lo.Y > cy+39.0 || tr.hi.Z < sevensegment.TopFrom-0.85 {
 				continue
 			}
 			near = append(near, tr)
 		}
 		entries := openingEntries(newRayTree(near), s, sevensegment.FaceZ)
-		// The opening, read from the mesh, is the designed window: 9.65 wide, 322.5 mm2 (5.9 and 130.0 at Scale 1).
+		// The opening, read from the mesh, is the designed window: 9.65 wide, 322.5 mm2 (5.9 and 130.0 in the original 1.0x design).
 		maxS := 0.0
 		for _, q := range entries {
 			maxS = math.Max(maxS, math.Abs((r3.Vec{X: q[0], Y: q[1]}).Sub(r3.Vec{X: cx, Y: cy}).Dot(sAxis)))

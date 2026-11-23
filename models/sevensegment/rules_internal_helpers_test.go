@@ -90,7 +90,7 @@ func partCases() []partCase {
 			// so its corners stay sharp. Listed under "Retained sharp corners" in instructions.md.
 			exempt: func(*run) []cornercheck.Exempt {
 				return []cornercheck.Exempt{{Reason: "engraved cam letter: strokes too thin to round",
-					Near: cornercheck.Disc(r3.Vec{Z: ShaftZ + inscriptionRadius}, r3.Vec{Y: -1}, Scale*4.2)}}
+					Near: cornercheck.Disc(r3.Vec{Z: ShaftZ + inscriptionRadius}, r3.Vec{Y: -1}, 6.3)}}
 			}})
 	}
 	for _, seg := range Segments() {

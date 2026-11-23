@@ -229,7 +229,7 @@ calculated tongue gaps to the notch shells are 0.83 mm (yellow shell) and 1.9 mm
 tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
 adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
 rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
-allows no vertex deeper than 0.07 mm (the mesh tolerance); at scale 1 it read 0.038 mm into the top plate and 0.058 mm into the
+allows no vertex deeper than 0.07 mm (the mesh tolerance); in the 1.0x design it read 0.038 mm into the top plate and 0.058 mm into the
 black body. Do not turn the display over with the button in motion.
 
 ## Listed sharp corners

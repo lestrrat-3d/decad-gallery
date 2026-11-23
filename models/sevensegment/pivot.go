@@ -15,14 +15,14 @@ import (
 // rotor-side face and turns in the rotor's end bore. All lengths are in mm and measured along u from the rotor's middle.
 const (
 	pivotPinRadius  = 0.7                                // option B: Ø1.4 (1.5 x 0.4 is 0.6); the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
-	pivotBlockSide  = Scale * 3.2                        // the block's width, along s
-	pivotBlockHigh  = 2 * (cradleThick - 1.0 - PressFit) // the block's height, along z: 1.0 of cradle stays under its pocket (3.1 at Scale 1, 5.9 at 1.5)
+	pivotBlockSide  = 4.8                                // the block's width, along s
+	pivotBlockHigh  = 2 * (cradleThick - 1.0 - PressFit) // the block's height, along z: 1.0 of cradle stays under its pocket (3.1 in the original 1.0x design, 5.9 here)
 	pivotBlockFrom  = RotorHalfLength + 0.25             // the end wall: the block's rotor-side face (T6 0.25 from the rotor's end face)
-	pivotBlockLong  = Scale * 2.0                        //
-	pivotPinTip     = pivotBlockFrom - Scale*1.25        // the pin stands 1.25 from the block's face
+	pivotBlockLong  = 3.0                                //
+	pivotPinTip     = pivotBlockFrom - 1.875             // the pin stands 1.25 from the block's face
 	pivotRootLeg    = 0.25                               // the pin's 45 degree root cone, inside the end gap
 	pivotTipLeg     = 0.1                                // the pin's tip chamfer
-	pivotCornerR    = Scale * 0.45                       // the block's rounds; the pocket's are 0.5, PressFit larger
+	pivotCornerR    = 0.675                              // the block's rounds; the pocket's are 0.5, PressFit larger
 	pivotPocketR    = pivotCornerR + PressFit            //
 	pivotPocketHalf = pivotBlockSide/2 + PressFit        // the pocket's half width along s
 	pivotPocketLow  = pivotBlockHigh/2 + PressFit        // the pocket's floor, below the axis: 1.0 of cradle under it
@@ -30,10 +30,10 @@ const (
 
 	// The rotor's end bore: radius JournalRadius from the floor at pivotBoreFloor to the end face, a 0.5 round at the floor,
 	// a teardrop roof truncated at pivotRoofTop from the axis, and a 45 degree countersink to pivotMouthR at the end face.
-	pivotBoreFloor = Scale * 10.8
-	pivotFloorRond = Scale * 0.5
+	pivotBoreFloor = 16.2
+	pivotFloorRond = 0.75
 	pivotRoofTop   = 1.00 // 1.5 x 0.70 is 1.05
-	pivotMouthR    = Scale * 0.93
+	pivotMouthR    = 1.395
 )
 
 // pivotBoreTool builds the revolved part of one rotor end's pivot bore in the rotor's local frame: end sgn (+1 for +u).

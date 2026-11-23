@@ -92,7 +92,7 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 				if !r.Rising {
 					dwell = sevensegment.Travel
 				}
-				if math.Abs(lift-dwell) > sevensegment.Scale*0.05 && math.Abs(lift-(sevensegment.Travel-dwell)) > sevensegment.Scale*0.05 {
+				if math.Abs(lift-dwell) > 0.075 && math.Abs(lift-(sevensegment.Travel-dwell)) > 0.075 {
 					off := math.Mod(psi-(90+base)+720, 36) // angle past psi_k
 					activeLo, activeHi = math.Min(activeLo, off), math.Max(activeHi, off)
 				}
@@ -103,11 +103,11 @@ func TestSevenSegmentCamProfile(t *testing.T) {
 	require.GreaterOrEqual(t, activeLo, 9.5)
 	require.LessOrEqual(t, activeHi, 28.0)
 	// Rising lift samples, "Truth table and ramp table".
-	samples := map[float64]float64{8: 0, 9: 0.019, 10: 0.078, 12: 0.297, 14: 0.555, 16: 0.842, 18: 1.161, 20: 1.514,
-		22: 1.904, 24: 2.335, 26: 2.743, 28: 2.954, 29: 2.995, 29.5: 3.0}
+	samples := map[float64]float64{8: 0, 9: 0.0285, 10: 0.117, 12: 0.4455, 14: 0.8325, 16: 1.263, 18: 1.7415, 20: 2.271,
+		22: 2.856, 24: 3.5025, 26: 4.1145, 28: 4.431, 29: 4.4925, 29.5: 4.5}
 	for off, lift := range samples {
 		rise := dm.GrooveRadius(sevensegment.SegE, 90+36*6+off) - sevensegment.OffRadius // segment e, step 6->7 rises
-		require.InDelta(t, lift*sevensegment.Scale, rise, 0.005*sevensegment.Scale, "offset %g", off)
+		require.InDelta(t, lift, rise, 0.0075, "offset %g", off)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestSevenSegmentRampGeometry(t *testing.T) {
 	rise := dm.Ramps[sevensegment.SegD][1].Geometry()
 	require.InDelta(t, (sevensegment.OffRadius+sevensegment.RampRound)*math.Cos(134*math.Pi/180), rise.C1.X, 1e-9)
 	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(rise.C2.X, rise.C2.Y), 1e-9)
-	require.InDelta(t, 4.8939*sevensegment.Scale, rise.LineLength, 1e-3*sevensegment.Scale)
+	require.InDelta(t, 7.34085, rise.LineLength, 0.0015)
 	fall := dm.Ramps[sevensegment.SegD][0].Geometry()
 	require.InDelta(t, sevensegment.OnRadius-sevensegment.RampRound, math.Hypot(fall.C1.X, fall.C1.Y), 1e-9)
 	require.InDelta(t, sevensegment.OffRadius+sevensegment.RampRound, math.Hypot(fall.C2.X, fall.C2.Y), 1e-9)

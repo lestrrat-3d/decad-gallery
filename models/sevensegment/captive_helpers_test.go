@@ -46,24 +46,24 @@ func pinAndTongue(s sevensegment.Segment, yi float64, m *decad.Mesh) (pin, tongu
 	_, _, horizontal := segmentCentreOf(s)
 	for _, v := range m.Vertices() {
 		if horizontal {
-			if v.Z < sevensegment.SliderHeadTop+0.1 || v.Y < yi-Scale*1.0 {
+			if v.Z < sevensegment.SliderHeadTop+0.1 || v.Y < yi-1.5 {
 				continue
 			}
 			switch {
-			case v.X > Scale*-1.9+0.05 && v.Z > sevensegment.PinAxisZ-Scale*1.85:
+			case v.X > -2.85+0.05 && v.Z > sevensegment.PinAxisZ-2.775:
 				pin = append(pin, v)
-			case v.X <= Scale*-1.9+0.05 && v.X >= -Scale*3.5:
+			case v.X <= -2.85+0.05 && v.X >= -5.25:
 				tongue = append(tongue, v)
 			}
 			continue
 		}
-		if v.Z < sevensegment.SliderHeadTop+0.1 || math.Abs(v.X) < Scale*12 {
+		if v.Z < sevensegment.SliderHeadTop+0.1 || math.Abs(v.X) < 18.0 {
 			continue
 		}
 		switch {
-		case v.Y > yi-Scale*0.2+0.05 && v.Z > sevensegment.PinAxisZ-Scale*1.85:
+		case v.Y > yi-0.3+0.05 && v.Z > sevensegment.PinAxisZ-2.775:
 			pin = append(pin, v)
-		case v.Y <= yi-Scale*0.2+0.05 && v.Y >= yi-sevensegment.StemThickness/2:
+		case v.Y <= yi-0.3+0.05 && v.Y >= yi-sevensegment.StemThickness/2:
 			tongue = append(tongue, v)
 		}
 	}

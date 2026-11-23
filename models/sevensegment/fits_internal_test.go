@@ -43,7 +43,7 @@ func TestSevenSegmentFits(t *testing.T) {
 		_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 		gbox, err := guide.Bounds()
 		require.NoError(t, err)
-		require.InDelta(t, Scale*1.0, gbox.Min.Z-box.Max.Z, 0.01)
+		require.InDelta(t, 1.5, gbox.Min.Z-box.Max.Z, 0.01)
 	})
 
 	t.Run("R2 pin tip to the groove floor", func(t *testing.T) {
@@ -123,7 +123,7 @@ func TestSevenSegmentFits(t *testing.T) {
 			body  *decad.Body
 			sites [2][2]float64
 			z     float64
-		}{{"column peg", guide, columnPegs, cradleFrom + Scale*1.0}, {"top peg", top, topPegs, topFrom - Scale*1.25}} {
+		}{{"column peg", guide, columnPegs, cradleFrom + 1.5}, {"top peg", top, topPegs, topFrom - 1.875}} {
 			pegs, holes := planSection(t, c.body, c.z), planSection(t, cradle, c.z)
 			for _, site := range c.sites {
 				at := r3.Vec{X: site[0], Y: site[1]}
@@ -209,21 +209,21 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 			}
 		}
 		gap := (lo+hi)/2 - (box.Max.Z + Travel)
-		require.InDelta(t, topThick+Seam-0.8-Scale*3.95, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
+		require.InDelta(t, topThick+Seam-0.8-5.925, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
 	}
 }
 
 // TestSevenSegmentJournalFit (T5) measures the pivot fit on the built bodies: the radius of segment g's end bore in the
-// black body (found by bisection along the yellow face's normal at u = 11.5 Scale, where the bore is a plain cylinder) and the
+// black body (found by bisection along the yellow face's normal at u = 17.25, where the bore is a plain cylinder) and the
 // radius of the block's pin (along local x at u = 12.0). Their difference is the Tight minimum 0.20, to the tessellation bound.
 func TestSevenSegmentJournalFit(t *testing.T) {
 	f := sharedFlag(t, SegG)
 	_, block := sharedBody(t, "pivot block", (*run).pivotBlock)
 	// The bore: void inside the radius, material outside it.
-	lo, hi := Scale*0.3, Scale*0.9
+	lo, hi := 0.45, 1.35
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, f.Black, rotorPoint(SegG, m, 0, Scale*11.5)) {
+		if inBody(t, f.Black, rotorPoint(SegG, m, 0, 17.25)) {
 			hi = m
 		} else {
 			lo = m
@@ -231,10 +231,10 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	}
 	bore := (lo + hi) / 2
 	// The pin: material inside the radius, void outside it.
-	lo, hi = Scale*0.2, Scale*0.7
+	lo, hi = 0.3, 1.05
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, block, r3.Vec{X: m, Z: Scale * 12.0}) {
+		if inBody(t, block, r3.Vec{X: m, Z: 18.0}) {
 			lo = m
 		} else {
 			hi = m

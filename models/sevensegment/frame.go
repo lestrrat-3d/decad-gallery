@@ -17,25 +17,25 @@ import (
 
 // Frame dimensions in mm that are not exported.
 const (
-	wallTopZ       = flangeFrom + ribHeight + 1.5   // z of the wall's upper edge: ribs end 1.5 below it
-	wallHalf       = WallHalfWidth + 1.5            // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
-	wallBottomZ    = ShaftZ - CamRadius - Scale*3.0 // z of the wall's lower edge, 3.0 below the cams' rims
-	ribInner       = Scale * 16.4                   // |x| where a rib starts, inside the nut pockets' flats
-	ledgeFrom      = guideFrom - Seam - ribHeight   // z of a ledge rib's underside: the guide plate stands on it over a seam
-	flangeFrom     = cradleFrom - Seam - ribHeight  // z of a top flange rib's underside: the cradle plate stands on it over a seam
-	ribHeight      = Scale * 4.0
-	ribDepth       = Scale * 10.0
-	frontLedgeDeep = Scale*-34.2 + 3.4 - frontInnerY // front ledge ribs reach 1.2 past the G1/G2 head pockets (y -34.2 + 2.2)
-	rearLedgeDeep  = rearInnerY - (Scale*32.0 - 3.2) // rear ledge ribs reach y 28.8: 1.0 past the G3/G4 head pockets (y 32 - 2.2)
+	wallTopZ       = flangeFrom + ribHeight + 1.5  // z of the wall's upper edge: ribs end 1.5 below it
+	wallHalf       = WallHalfWidth + 1.5           // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
+	wallBottomZ    = ShaftZ - CamRadius - 4.5      // z of the wall's lower edge, 3.0 below the cams' rims
+	ribInner       = 24.6                          // |x| where a rib starts, inside the nut pockets' flats
+	ledgeFrom      = guideFrom - Seam - ribHeight  // z of a ledge rib's underside: the guide plate stands on it over a seam
+	flangeFrom     = cradleFrom - Seam - ribHeight // z of a top flange rib's underside: the cradle plate stands on it over a seam
+	ribHeight      = 6.0
+	ribDepth       = 15.0
+	frontLedgeDeep = -47.9 - frontInnerY // -51.3 + 3.4: front ledge ribs reach this far past the G1/G2 head pockets
+	rearLedgeDeep  = rearInnerY - 44.8   // 48.0 - 3.2: rear ledge ribs reach y 44.8, past the G3/G4 head pockets
 	ribRound       = 0.5
 	wallChamfer    = 0.5
-	frontInnerY    = Scale * -49.5
-	rearInnerY     = Scale * 43.0
+	frontInnerY    = -74.25
+	rearInnerY     = 64.5
 	markRadius     = 13.5 // look-alike hole circle on the walls: off the housing flange (1.5 x 10 is 15, under the flange)
 
-	// The guide plate: z 54 to 58 at Scale 1.
-	guideFrom  = Scale * 54.0
-	guideThick = Scale * 4.0
+	// The guide plate: z 54 to 58 in the original 1.0x design.
+	guideFrom  = 81.0
+	guideThick = 6.0
 	guideTop   = guideFrom + guideThick
 )
 
@@ -131,7 +131,7 @@ func depth(front, ledge bool) float64 {
 // seatTool is the revolved cutter for the 608ZZ seat and the lip hole, in the wall's local frame (axis Z, depth d along
 // +Z from the inner face).
 func (r *run) seatTool() (*decad.Body, error) {
-	// The seat, the lip and the lead-ins belong to the bearing, which is purchased: they keep their size at any Scale. The lip
+	// The seat, the lip and the lead-ins belong to the bearing, which is purchased: they keep their size. The lip
 	// hole stands 0.5 outside the inner ring's face and ends at the outer face, WallThickness from the inner one.
 	return r.meridian([][2]float64{{0, -1}, {bearingSeatR + 0.5, -1}, {bearingSeatR + 0.5, 0}, {bearingSeatR, 0.5},
 		{bearingSeatR, bearingWidth}, {bearingRaceR + 0.5, bearingWidth}, {bearingRaceR + 0.5, WallThickness - 0.5},
@@ -297,8 +297,8 @@ func slotLoop(s *sketch.Sketch, y float64) error {
 	o := s.Origin()
 	// The slot is the stem's section (7.0 by 3.6) with the Tight fit round it; the notch passes the groove pin: the stem's
 	// narrow part (3.6) with 0.1 each side, and the pin's length with 0.4.
-	sx, sy := Scale*3.5+TightFit, StemThickness/2+TightFit
-	nx, ny := Scale*1.8+0.1, StemThickness/2+PinLength+0.4
+	sx, sy := 5.25+TightFit, StemThickness/2+TightFit
+	nx, ny := 2.8, StemThickness/2+PinLength+0.4 // 2.8 is 2.7 + 0.1
 	v := [][2]float64{{-sx, y - sy}, {sx, y - sy}, {sx, y + sy}, {nx, y + sy}, {nx, y + ny},
 		{-nx, y + ny}, {-nx, y + sy}, {-sx, y + sy}}
 	pts := make([]*sketch.Point, len(v))

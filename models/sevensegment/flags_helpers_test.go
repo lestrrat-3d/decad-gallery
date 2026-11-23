@@ -139,7 +139,6 @@ const slotClear = sevensegment.SlotRadius - sevensegment.TonguePinR
 // journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.11).
 const (
 	journalAcross = sevensegment.JournalAcross
-	Scale         = sevensegment.Scale
 )
 
 // audit is the friction audit of the drive with the pin bearing on one wall of its slot: the worst extra cam force F_x over
@@ -148,7 +147,7 @@ const (
 // imbalance torque follow it, and the friction arm of the slot wall is the pocket radius. across takes the rotor fully
 // across its pins (a further 0.11 of side play). It returns ok false when the drive locks.
 func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool) {
-	const length = Scale * 25.0
+	const length = 37.5
 	rj, cl, w := sevensegment.JournalRadius, slotClear, sevensegment.SlotRadius
 	smin := sevensegment.PinOffset - sevensegment.PinLinePlay
 	if across {
@@ -179,7 +178,7 @@ func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool)
 				n := (mup*rj*l.wr + l.wr*l.e*math.Abs(math.Cos(l.bc*math.Pi/180+phi))) / k
 				v := n * (math.Abs(math.Cos(phi)) + mu*math.Abs(math.Sin(phi)))
 				h := n * (math.Abs(math.Sin(phi)) + mu*math.Abs(math.Cos(phi)))
-				f := v*(1+2*mu*l.xoff/length) + mu*h*(1+2*Scale*2.0/length) + l.ws*2*mu*l.xcg/length
+				f := v*(1+2*mu*l.xoff/length) + mu*h*(1+2*3.0/length) + l.ws*2*mu*l.xcg/length
 				fx = math.Max(fx, f)
 			}
 		}
@@ -214,11 +213,11 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 	pts := convexHull(append([]pt{{-al, -top}, {ar, -top}}, circle...))
 	for i := 0; i <= 90; i++ {
 		for _, x := range []float64{-al, ar} {
-			pts = append(pts, pt{x, -top - Scale*9*float64(i)/90})
+			pts = append(pts, pt{x, -top - 13.5*float64(i)/90})
 		}
 	}
 	for i := 0; i <= 240; i++ {
-		pts = append(pts, pt{Scale * (-6 + 12*float64(i)/240), zh})
+		pts = append(pts, pt{-9.0 + 18.0*float64(i)/240, zh})
 	}
 	for a := 0; a <= 90; a += 5 {
 		r := float64(a) * math.Pi / 180

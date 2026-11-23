@@ -100,7 +100,7 @@ func windowNear(tris []rayTri, s sevensegment.Segment) []rayTri {
 	cx, cy, _ := windowCentre(s)
 	var near []rayTri
 	for _, t := range tris {
-		if t.hi.X < cx-Scale*26 || t.lo.X > cx+Scale*26 || t.hi.Y < cy-Scale*26 || t.lo.Y > cy+Scale*26 {
+		if t.hi.X < cx-39.0 || t.lo.X > cx+39.0 || t.hi.Y < cy-39.0 || t.lo.Y > cy+39.0 {
 			continue
 		}
 		near = append(near, t)
@@ -137,7 +137,7 @@ func windowShares(tree *rayTree, s sevensegment.Segment, faceZ, elev float64, di
 	d := r3.Vec{X: -dir.X * math.Cos(e), Y: -dir.Y * math.Cos(e), Z: -math.Sin(e)}
 	total, flags, yellows := 0, 0, 0
 	const step = 0.4
-	for u := -Scale * 9.9; u <= Scale*9.9; u += step {
+	for u := -14.85; u <= 14.85; u += step {
 		for sv := -(sevensegment.WindowHalfWidth - 0.05); sv <= sevensegment.WindowHalfWidth-0.05; sv += step { // inside the window
 			var x, y float64
 			if horizontal {
@@ -160,7 +160,7 @@ func windowShares(tree *rayTree, s sevensegment.Segment, faceZ, elev float64, di
 	return float64(flags) / float64(total), float64(yellows) / math.Max(float64(flags), 1)
 }
 
-// openingEntries returns the plan points of segment s's window opening on a 0.05 grid over |s| <= 4 Scale and |u| <= 13 Scale: those where
+// openingEntries returns the plan points of segment s's window opening on a 0.05 grid over |s| <= 6 and |u| <= 19.5: those where
 // a ray going straight down from above the display face passes the face plane, that is, where the plate has no material.
 // The opening is read from the plate mesh, so a window that is cut wider than designed shows more of the rotor.
 func openingEntries(plate *rayTree, s sevensegment.Segment, faceZ float64) [][2]float64 {
@@ -169,8 +169,8 @@ func openingEntries(plate *rayTree, s sevensegment.Segment, faceZ float64) [][2]
 	var out [][2]float64
 	// The grid is offset by half a step, so that no ray lies in the plane u = +-10 or s = 0: those planes hold the mesh edges of
 	// both bodies and a ray in them can slip through a crack between triangles and report yellow that is not there.
-	for u := -Scale*13.0 + step/2; u <= Scale*13.0; u += step {
-		for sv := -Scale*4.0 + step/2; sv <= Scale*4.0; sv += step {
+	for u := -19.5 + step/2; u <= 19.5; u += step {
+		for sv := -6.0 + step/2; sv <= 6.0; sv += step {
 			x, y := cx-sv, cy+u
 			if horizontal {
 				x, y = cx+u, cy+sv

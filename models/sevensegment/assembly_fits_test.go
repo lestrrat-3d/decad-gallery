@@ -31,7 +31,7 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 		return newCrossingGrid(mesh)
 	}
 	// A point in the plate of a wall, clear of its ribs, seat, holes and bolt pockets, at the given y.
-	probe := func(y float64) r3.Vec { return r3.Vec{X: -22, Y: y, Z: sevensegment.ShaftZ - 12} } // 22 and 12 clear the seat at any Scale
+	probe := func(y float64) r3.Vec { return r3.Vec{X: -22, Y: y, Z: sevensegment.ShaftZ - 12} } // 22 and 12 clear the seat
 	frontG, rearG := wallGrid(frontWall), wallGrid(rearWall)
 	fi, ro := sevensegment.FrontInnerY, sevensegment.RearInnerY
 	frontInner := faceCoord(t, frontG, probe(fi-2.5), probe(fi+0.5)).Y
@@ -54,8 +54,7 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 	// material, clear of the bolt pockets.
 	ledge := func(g *crossingGrid, y float64) float64 {
 		top := sevensegment.LedgeFrom + sevensegment.RibHeight
-		for _, x := range []float64{21, 22, 23, 24, 25, 26} {
-			x *= sevensegment.Scale
+		for _, x := range []float64{31.5, 33, 34.5, 36, 37.5, 39} {
 			if g.pointIn(r3.Vec{X: x, Y: y, Z: top - 1.75}) && !g.pointIn(r3.Vec{X: x, Y: y, Z: top + 1.25}) {
 				return faceCoord(t, g, r3.Vec{X: x, Y: y, Z: top - 1.75}, r3.Vec{X: x, Y: y, Z: top + 1.25}).Z
 			}
@@ -65,10 +64,10 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 	}
 	// A column's top face, read at a corner of its 5 x 5 section, clear of the peg that stands on it.
 	ct := sevensegment.ColumnTop
-	columnTop := faceCoord(t, wallGrid(m.GuidePlate), r3.Vec{X: sevensegment.Scale * 14.3, Y: sevensegment.Scale * -42.7, Z: ct - 1.15},
-		r3.Vec{X: sevensegment.Scale * 14.3, Y: sevensegment.Scale * -42.7, Z: ct + 1.25}).Z
+	columnTop := faceCoord(t, wallGrid(m.GuidePlate), r3.Vec{X: 21.45, Y: -64.05, Z: ct - 1.15},
+		r3.Vec{X: 21.45, Y: -64.05, Z: ct + 1.25}).Z
 	cradle := bounds(m.CradlePlate)
-	frontLedge, rearLedge := ledge(frontG, frontInner+sevensegment.Scale*4), ledge(rearG, rearInner-sevensegment.Scale*4)
+	frontLedge, rearLedge := ledge(frontG, frontInner+6.0), ledge(rearG, rearInner-6.0)
 
 	for _, c := range []struct {
 		id        string
@@ -82,7 +81,7 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 		{"L8 cam flat end to cam a", camFlatEnd - camA.Max.Y, sevensegment.PressFit},
 		{"S1 guide plate to the front ledge ribs", guide.Min.Z - frontLedge, sevensegment.Seam},
 		{"S1 guide plate to the rear ledge ribs", guide.Min.Z - rearLedge, sevensegment.Seam},
-		{"S2 columns to the cradle plate", cradle.Min.Z - columnTop, sevensegment.Scale * 0.85},
+		{"S2 columns to the cradle plate", cradle.Min.Z - columnTop, 1.275},
 	} {
 		t.Logf("%s: %.3f (modeled %.2f)", c.id, c.got, c.want)
 		// The cone's start is read 0.017 past its apex, where the section has grown by the probe's 0.01.

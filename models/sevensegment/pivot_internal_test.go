@@ -24,11 +24,11 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 	require.InDelta(t, pivotBlockHigh/2, box.Max.Y, 0.01)
 	require.InDelta(t, pivotPinTip, box.Min.Z, 0.01, "pin tip")
 	require.InDelta(t, pivotBlockFrom+pivotBlockLong, box.Max.Z, 0.01, "outer face")
-	// 3.25 tall in print at Scale 1: 2.0 of block and 1.25 of pin.
-	require.InDelta(t, pivotBlockLong+Scale*1.25, box.Max.Z-box.Min.Z, 0.01)
+	// 3.25 tall in print in the original 1.0x design: 2.0 of block and 1.25 of pin.
+	require.InDelta(t, pivotBlockLong+1.875, box.Max.Z-box.Min.Z, 0.01)
 	// The pin stands on the block's rotor-side face, on its centre: the root cone is r 0.65 at u 12.5.
 	pin := func(u float64) float64 {
-		lo, hi := Scale*0.1, Scale*1.0
+		lo, hi := 0.15, 1.5
 		for hi-lo > 0.002 {
 			m := (lo + hi) / 2
 			if inBody(t, block, r3.Vec{X: m, Z: u}) {
@@ -39,7 +39,7 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 		}
 		return (lo + hi) / 2
 	}
-	require.InDelta(t, pivotPinRadius, pin(pivotPinTip+Scale*0.75), 0.01, "pin radius")
+	require.InDelta(t, pivotPinRadius, pin(pivotPinTip+1.125), 0.01, "pin radius")
 	require.InDelta(t, pivotPinRadius+pivotRootLeg-0.1, pin(pivotBlockFrom-0.1), 0.01, "root cone, 45 degrees")
 	require.InDelta(t, pivotPinRadius-pivotTipLeg+0.05, pin(pivotPinTip+0.05), 0.01, "tip chamfer")
 
@@ -105,8 +105,8 @@ func TestSevenSegmentPivotPinInBore(t *testing.T) {
 			block := placedPivotBlock(t, r, seg, end)
 			sgn := float64(2*end - 1)
 			// A section through the pin's middle: its disc lies inside the bore with 0.20 round it.
-			pl := pivotSection(t, block, seg, sgn*(pivotPinTip+Scale*0.65))
-			bl := pivotSection(t, f.Black, seg, sgn*(pivotPinTip+Scale*0.65))
+			pl := pivotSection(t, block, seg, sgn*(pivotPinTip+0.975))
+			bl := pivotSection(t, f.Black, seg, sgn*(pivotPinTip+0.975))
 			gap := loopsGap(pl, bl)
 			t.Logf("%s end %d: pin to bore %.3f", seg, end, gap)
 			require.GreaterOrEqual(t, gap, 0.2-0.04, "%s end %d", seg, end)
