@@ -9,7 +9,7 @@ import (
 // Model returns the display rendering presets and jobs.
 func Model() renderkit.Model {
 	presets := map[string]renderkit.Preset{}
-	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "indexer", "digits", "cams", "exploded", "exploded-camshaft"} {
+	for _, name := range []string{"hero", "top", "oblique45", "oblique30", "front", "side", "cutaway", "indexer", "digits", "cams", "exploded", "exploded-camshaft", "exploded-pivot", "pivot-section"} {
 		presets[name] = renderkit.Preset{Width: 1600, Height: 900, Scene: sevenSegmentPreset(name)}
 	}
 	return renderkit.Model{

@@ -255,6 +255,13 @@ var sevenCameras = map[string]solidlens.Camera{
 		Up: solidlens.Vec{Z: 1}, FOV: 35},
 	"exploded-camshaft": {Position: solidlens.Vec{X: 330, Y: -330, Z: 170},
 		Target: solidlens.Vec{Y: -70, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	// Segment a's rotor axis runs along X at y = SegmentSpan. The exploded view looks at it from the front, a little to the
+	// right and level with the axis, so the plate halves pulled above and below show their seam faces; the section
+	// looks into the cut through the axis from -Y, at the +X end.
+	"exploded-pivot": {Position: solidlens.Vec{X: 120, Y: -150, Z: sevensegment.RotorAxisZ + 6},
+		Target: solidlens.Vec{Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"pivot-section": {Position: solidlens.Vec{X: 11, Y: -100, Z: sevensegment.RotorAxisZ},
+		Target: solidlens.Vec{X: 11, Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, Up: solidlens.Vec{Z: 1}, FOV: 5.5},
 }
 
 var (
@@ -273,6 +280,9 @@ func sevenCamshaftPull() map[string]r3.Vec {
 
 // view draws one named view of the display.
 func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
+	if name == "exploded-pivot" || name == "pivot-section" {
+		return sevenPivotView(s, name)
+	}
 	camera, ok := sevenCameras[name]
 	if !ok {
 		return solidlens.Scene{}, fmt.Errorf("unknown seven-segment view %q", name)
@@ -326,6 +336,82 @@ func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 		margin = .03 // the exploded view fills at least 80% of the frame
 	}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, aspect, margin), models), nil
+}
+
+// sevenPivotExplode is each part's offset in the pivot exploded view of segment a: the cradle plate down, the top plate
+// up, the slider farther down, and the two blocks out along the rotor axis, level with the rotor.
+var sevenPivotExplode = map[string]r3.Vec{
+	"Cradle Plate": {Z: -17}, "Top Plate": {Z: 17},
+	"Pivot Block a -u": {X: -12}, "Pivot Block a +u": {X: 12},
+}
+
+// sevenPivotParts lists the parts of the pivot views, from segment a: its rotor, blocks and slider, and the plate halves.
+var sevenPivotParts = []string{"Flag a Yellow", "Flag a Black", "Pivot Block a -u", "Pivot Block a +u",
+	"Cradle Plate", "Top Plate"}
+
+// sevenFitMesh reports only the vertices of a part that keep returns true for, so that FitCamera frames a part as
+// cut by a clip plane.
+type sevenFitMesh struct {
+	solidlens.TriangleSource
+	keep func(r3.Vec) bool
+}
+
+func (m sevenFitMesh) Vertices() []r3.Vec {
+	var out []r3.Vec
+	for _, v := range m.TriangleSource.Vertices() {
+		if m.keep(v) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// sevenPivotView draws segment a's rotor end and its pivot block with the two plate halves that hold the block.
+// Exploded pulls the parts apart, the plates cut to a strip of 22 mm round the rotor so the pockets show large;
+// otherwise every part is cut by the plane through the rotor axis, the -Y half removed, and the camera looks into the cut.
+func sevenPivotView(s partSet, name string) (solidlens.Scene, error) {
+	var set partSet
+	for _, p := range s {
+		for _, want := range sevenPivotParts {
+			if p.name == want {
+				set = append(set, p)
+			}
+		}
+	}
+	var models, fit []solidlens.Model
+	axisY := sevensegment.SegmentSpan
+	for _, p := range set {
+		var src solidlens.TriangleSource = p.mesh
+		var clip *solidlens.ClipPlane
+		if name == "exploded-pivot" {
+			move, err := r3.Translation(sevenPivotExplode[p.name])
+			if err != nil {
+				return solidlens.Scene{}, err
+			}
+			src = renderkit.TransformedMesh{TriangleSource: src, Transform: move}
+			if p.name == "Cradle Plate" || p.name == "Top Plate" {
+				clip = sevenCut(solidlens.ClipPlane{Origin: solidlens.Vec{Y: axisY - 9}, Normal: solidlens.Vec{Y: -1}}, p.color)
+			}
+		} else {
+			clip = sevenCut(solidlens.ClipPlane{Origin: solidlens.Vec{Y: axisY}, Normal: solidlens.Vec{Y: -1}}, p.color)
+		}
+		m := renderkit.PartModel(src, p.color)
+		m.Clip = clip
+		models = append(models, m)
+		if clip == nil {
+			fit = append(fit, m)
+			continue
+		}
+		keepY := clip.Origin.Y
+		fm := m
+		fm.Mesh = sevenFitMesh{TriangleSource: src, keep: func(v r3.Vec) bool { return float64(v.Y) >= keepY }}
+		fit = append(fit, fm)
+	}
+	camera := sevenCameras[name]
+	if name == "pivot-section" {
+		return renderkit.Scene(camera, models), nil
+	}
+	return renderkit.Scene(renderkit.FitCamera(camera, fit, 16.0/9, .03), models), nil
 }
 
 // sevenFaceBolt reports whether name is one of the four top-plate bolts, whose heads lie flush in the face.
@@ -472,6 +558,7 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 		{"front", "front.png", 1600, 900}, {"side", "side.png", 1600, 900}, {"cutaway", "cutaway.png", 1600, 900},
 		{"indexer", "indexer.png", 1600, 900}, {"exploded", "exploded.png", 1600, 900},
 		{"exploded-camshaft", "exploded-camshaft.png", 1600, 900},
+		{"exploded-pivot", "exploded-pivot.png", 1600, 900}, {"pivot-section", "pivot-section.png", 1600, 900},
 	} {
 		scene, err := sevenSegmentView(s, shot.view)
 		if err != nil {
