@@ -77,12 +77,12 @@ func TestBuildBladeHarness(t *testing.T) {
 	requireBoxNear(t, right, left, 0.05, true, "left hand")
 
 	sz := mustSize(t, 192)
-	doc, blade, tilt := posedBlade(t, 192, turbinefan.DefaultBladePitch, turbinefan.RightHand)
-	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, nil, sz, turbinefan.RightHand, tilt)
+	doc, blade, tilt, depth := posedBlade(t, 192, turbinefan.DefaultBladePitch, turbinefan.RightHand)
+	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, nil, sz, turbinefan.RightHand, tilt, depth)
 	require.Error(t, err)
-	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, blade, turbinefan.Size{}, turbinefan.RightHand, tilt)
+	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, blade, turbinefan.Size{}, turbinefan.RightHand, tilt, depth)
 	require.Error(t, err)
-	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, turbinefan.RightHand, turbinefan.RestTiltMax+1e-3)
+	_, err = turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, turbinefan.RightHand, turbinefan.RestTiltMax+1e-3, depth)
 	require.Error(t, err)
 	require.Equal(t, 1, len(doc.Bodies()), "only the posed blade")
 }
@@ -114,7 +114,7 @@ func TestBladeHarnessSeparate(t *testing.T) {
 // stud end corner, and its leading edge near stations 4 and 5, each 0.5 mm² or more in the first layer.
 func TestBladePrintBedContact(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
-		corner, le4, le5 := turbinefan.PosedEdgePoints(b.sz, b.hand, b.tilt)
+		corner, le4, le5 := turbinefan.PosedEdgePoints(b.sz, b.hand, b.tilt, b.depth)
 		loops := sectionAt(t, b.blade, 0.1).Loops
 		require.Equal(t, 2, len(loops), "bed patches")
 		lo, hi := min(le4.X, le5.X)-2, max(le4.X, le5.X)+2

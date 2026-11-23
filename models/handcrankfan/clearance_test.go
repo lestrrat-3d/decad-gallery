@@ -393,9 +393,11 @@ func requireClearances(t *testing.T, p handcrankfan.Params, parts map[string]han
 	bevel("R4", "pinion", "bearing-fan-wall", fanLine.axial(t, p), regular)
 	// R3: the driving gear to the back wall, taken at its heel, 0.1 inside the back face, where its radius is largest.
 	bevel("R3", "driving-gear", "gearbox-base", atX(t, 20.9), regular)
-	// R5: each blade's stud in the hub's socket, the stud end and the root to the rim.
+	// R5: each blade's stud in the hub's socket, the stud end and the root to the rim. The hexagonal stud sits in a
+	// socket whose flats stand TightFit from the stud's flats, so this section is held to the Tight class, as
+	// turbinefan's own fits test is.
 	for k := 1; k <= turbinefan.BladeCount; k++ {
-		section("R5", fmt.Sprintf("fan-blade-%d", k), "fan-hub", atY(t, -86), regular)
+		section("R5", fmt.Sprintf("fan-blade-%d", k), "fan-hub", atY(t, -86), tight)
 	}
 	// R6, R7: the handle on the pin and against the arm.
 	exact("R6", "crank-grip", "crank-pin", pinPlane, regular)

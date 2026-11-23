@@ -17,7 +17,8 @@ import (
 // TestStudFlat builds blades at every size and pitch, and the left hand at 192, and poses each at its rest tilt. The
 // stud's flat lies on the bed: a planar face facing straight down at z = 0 of 2 mm² or more, and a stud island in
 // the first layer (z = 0.1) of 2.9 mm² or more: a hexagon flat faces the bed at the low pitches, and a corner nears it at
-// 40 degrees, which leaves the least flat. The stud's section through the bolt hole keeps the hexagonal stud's area, and the round root stays StudFlatRootClearance or more over the bed.
+// 40 degrees, which leaves the least flat. At 12 and 15 degrees the flat is shallower than StudFlatDepth where that depth
+// would tilt the blade too far to leave the root clear. The stud's section through the bolt hole keeps the hexagonal stud's area, and the round root stays StudFlatRootClearance or more over the bed.
 func TestStudFlat(t *testing.T) {
 	type flatCase struct {
 		d     float64
@@ -29,6 +30,11 @@ func TestStudFlat(t *testing.T) {
 		for _, pitch := range bladePitches {
 			cases = append(cases, flatCase{d, pitch, turbinefan.RightHand})
 		}
+		// A flat StudFlatDepth deep leaves the round root of the 128 mm blade under StudFlatRootClearance over the bed at
+		// every pitch from 11 to 19 degrees (0.14 mm at 15), so the flat is shallower there.
+		for _, deg := range []float64{12, 15} {
+			cases = append(cases, flatCase{d, deg * math.Pi / 180, turbinefan.RightHand})
+		}
 	}
 	cases = append(cases, flatCase{192, turbinefan.DefaultBladePitch, turbinefan.LeftHand})
 	for _, c := range cases {
@@ -39,9 +45,9 @@ func TestStudFlat(t *testing.T) {
 		}
 		blade, err := build(t.Context(), turbinefan.NewDocument(), c.pitch, sz)
 		require.NoError(t, err)
-		tilt, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, c.pitch, c.hand)
+		tilt, depth, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, c.pitch, c.hand)
 		require.NoError(t, err)
-		_, xf := poseTransform(t, sz, c.pitch, c.hand, tilt)
+		_, xf := poseTransform(t, sz, c.pitch, c.hand, tilt, depth)
 		name := func(what string) string { return what + " at rotor " + mustName(c.d, c.pitch, c.hand) }
 
 		// The round root's lowest point, read from the unposed blade's mesh by its local radius.
@@ -59,7 +65,7 @@ func TestStudFlat(t *testing.T) {
 		require.NoError(t, err)
 		studArea, _ := loopsArea(section(t, blade.Body, bolt))
 
-		corner, _, _ := turbinefan.PosedEdgePointsAt(sz, c.pitch, c.hand, tilt)
+		corner, _, _ := turbinefan.PosedEdgePointsAt(sz, c.pitch, c.hand, tilt, depth)
 		copied, err := decad.Copy(t.Context(), blade.Body)
 		require.NoError(t, err)
 		posed, err := decad.Transform(t.Context(), copied, xf)
@@ -71,7 +77,7 @@ func TestStudFlat(t *testing.T) {
 				continue
 			}
 			// Most faces report no centroid, so each planar face is read at its point nearest the stud end corner the
-			// flat cut away, which lies StudFlatDepth under the flat's end.
+			// flat cut away, which lies depth under the flat's end.
 			cp, err := f.ClosestPoint(t.Context(), corner, units.Millimeters(0.02))
 			require.NoError(t, err)
 			n, err := f.NormalAt(cp.Point)
@@ -83,9 +89,10 @@ func TestStudFlat(t *testing.T) {
 			require.NoError(t, err)
 			flat = math.Max(flat, a.Value.Base())
 		}
-		t.Logf("%s: rest tilt %.6f rad (%.3f°), flat face %.2f mm², stud island %.2f mm², first layer %.2f mm², root "+
+		t.Logf("%s: rest tilt %.6f rad (%.3f°), flat depth %.3f, flat face %.2f mm², stud island %.2f mm², first layer %.2f mm², root "+
 			"%.3f mm over the bed, stud section at the bolt line %.3f mm² (round %.3f)", mustName(c.d, c.pitch, c.hand),
-			tilt, tilt*180/math.Pi, flat, stud, total, root, studArea, drilledStudArea(sz, m2fastener.HoleRadius))
+			tilt, tilt*180/math.Pi, depth, flat, stud, total, root, studArea, drilledStudArea(sz, m2fastener.HoleRadius))
+		require.LessOrEqual(t, depth, turbinefan.StudFlatDepth, name("flat depth"))
 		require.GreaterOrEqual(t, flat, 2.0, name("flat face"))
 		require.GreaterOrEqual(t, stud, 2.9, name("stud island"))
 		require.GreaterOrEqual(t, root, turbinefan.StudFlatRootClearance, name("root clearance"))

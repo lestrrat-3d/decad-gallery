@@ -47,14 +47,14 @@ its corners and edges rounded by 0.5.
 ## Print pose and nose rib
 
 Each blade prints lying on the bed, leading edge down, at its rest tilt. `BuildBlade` and `BuildBladeMirrored` cut a
-flat on the stud's inner end (`StudFlatDepth` 0.5 into the stud), so the blade stands on that flat and on its leading
-edge. `RestTilt(ctx, blade, size, pitch, hand)` finds the tilt at which the loft's lowest point reaches the bed with the
+flat on the stud's inner end (`StudFlatDepth` 0.45 into the stud, less where that tilts the root too far), so the blade stands on that flat and on its leading
+edge. `RestTilt(ctx, blade, size, pitch, hand)` finds the tilt and flat depth at which the loft's lowest point reaches the bed with the
 flat on it: 13.10, 12.93 and 13.41 degrees at 128, 192 and 224 mm, at every pitch and hand. It fails when the round root
-would stand less than `StudFlatRootClearance` (0.2) over the bed. `PrintPoseFor(size, pitch, hand, tilt)` returns the
+would stand less than `StudFlatRootClearance` (0.2) over the bed. `PrintPoseFor(size, pitch, hand, tilt, depth)` returns the
 frame that moves the blade into the print frame, with the flat on the bed and the stud end corner the flat cut away
-`StudFlatDepth` under it.
+the flat depth under it.
 
-`BuildBladeHarness(ctx, doc, blade, size, hand, tilt)` builds the nose rib for a posed blade: a wedge-shaped wall on the
+`BuildBladeHarness(ctx, doc, blade, size, hand, tilt, depth)` builds the nose rib for a posed blade: a wedge-shaped wall on the
 bed whose top follows the leading-edge nose `RibGapZ` (0.16) under it, `RibTopWidth` (1.2) wide, from `BrimClearance`
 past the leading-edge bed spot to `RibTipMargin` before the tip. It is the intersection of a sheared wedge and a profile
 slab, with two fully constrained sketches. `BuildBladePrint(ctx, doc, params)` does all of this and files the blade in

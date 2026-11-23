@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// poseTransform returns the transform of PrintPoseFor(sz, pitch, hand, tilt).
-func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbinefan.Hand, tilt float64) (r3.Frame,
+// poseTransform returns the transform of PrintPoseFor(sz, pitch, hand, tilt, depth).
+func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbinefan.Hand, tilt, depth float64) (r3.Frame,
 	r3.Transform) {
 	t.Helper()
-	f, err := turbinefan.PrintPoseFor(sz, pitch, hand, tilt)
+	f, err := turbinefan.PrintPoseFor(sz, pitch, hand, tilt, depth)
 	require.NoError(t, err)
 	xf, err := r3.FromFrame(f)
 	require.NoError(t, err)
@@ -24,8 +24,8 @@ func poseTransform(t *testing.T, sz turbinefan.Size, pitch float64, hand turbine
 }
 
 // posedBlade builds the blade of hand at rotor d and pitch in a fresh NewDocument, finds its rest tilt, moves it into
-// the print pose and returns the document, the posed blade and the tilt.
-func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Document, *decad.Body, float64) {
+// the print pose and returns the document, the posed blade, the tilt and the flat depth.
+func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Document, *decad.Body, float64, float64) {
 	t.Helper()
 	sz := mustSize(t, d)
 	doc := turbinefan.NewDocument()
@@ -35,12 +35,12 @@ func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Do
 	}
 	blade, err := build(t.Context(), doc, pitch, sz)
 	require.NoError(t, err)
-	tilt, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, pitch, hand)
+	tilt, depth, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, pitch, hand)
 	require.NoError(t, err)
-	_, xf := poseTransform(t, sz, pitch, hand, tilt)
+	_, xf := poseTransform(t, sz, pitch, hand, tilt, depth)
 	posed, err := decad.Transform(t.Context(), blade.Body, xf)
 	require.NoError(t, err)
-	return doc, posed, tilt
+	return doc, posed, tilt, depth
 }
 
 // sectionAt cuts body with the plane z = h of the print frame at the finest chord the body allows, 0.02 to 0.2.
@@ -117,11 +117,12 @@ var cradleCases = []cradleCase{
 	{"224-steep-left", 224, 40, turbinefan.LeftHand},
 }
 
-// builtCradle is one built harness case: its document, the posed blade, its rest tilt and the harness.
+// builtCradle is one built harness case: its document, the posed blade, its rest tilt and flat depth and the harness.
 type builtCradle struct {
 	doc     *decad.Document
 	blade   *decad.Body
 	tilt    float64
+	depth   float64
 	harness *turbinefan.BladeHarness
 	sz      turbinefan.Size
 	hand    turbinefan.Hand
@@ -144,9 +145,9 @@ func cradleFor(t *testing.T, c cradleCase) *builtCradle {
 		return b
 	}
 	sz := mustSize(t, c.rotor)
-	doc, blade, tilt := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
-	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand, tilt)
-	b := &builtCradle{doc: doc, blade: blade, tilt: tilt, harness: h, sz: sz, hand: c.hand, err: err}
+	doc, blade, tilt, depth := posedBlade(t, c.rotor, c.pitchDeg*math.Pi/180, c.hand)
+	h, err := turbinefan.BuildBladeHarness(t.Context(), doc, blade, sz, c.hand, tilt, depth)
+	b := &builtCradle{doc: doc, blade: blade, tilt: tilt, depth: depth, harness: h, sz: sz, hand: c.hand, err: err}
 	builtCradleCases[c.name] = b
 	require.NoError(t, err, c.name)
 	return b
