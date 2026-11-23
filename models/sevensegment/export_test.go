@@ -17,6 +17,8 @@ const (
 	TongueTopGap  = tongueTopGap
 	PinAxisZ      = pinAxisZ
 	SliderHeadTop = sliderHeadTop
+	TongueRootR   = tongueRootR
+	TongueRootDip = tongueRootDip
 	RotorEdgeR    = rotorEdgeRound
 	BladeAcross   = bladeAcross
 	SlotRadius    = slotRadius

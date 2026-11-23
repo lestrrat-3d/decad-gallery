@@ -118,11 +118,11 @@ func tangentPoint(p, c [2]float64, rad, side float64) [2]float64 {
 
 // The tongue's root rounds and the feet where they meet the head.
 const (
-	tongueRootR = Scale * 0.7
-	tongueFoot  = Scale * 0.8
+	tongueRootR = Scale * 0.8
+	tongueFoot  = Scale * 0.9
 )
 
-// tongueOutline draws the tongue's hull in (s, z): feet at the head, 8-chord root rounds of r 0.7 that bottom out inside
+// tongueOutline draws the tongue's hull in (s, z): feet at the head, 8-chord root rounds of r 0.8 that bottom out inside
 // the head, the strip sides up to the pin, and two hull lines tangent to the circle of radius 0.6 about the pin axis.
 func tongueOutline(s *sketch.Sketch, sL, sR, sc, zp float64) {
 	dp := func(x, y float64) *sketch.Point { return sketchcheck.DimensionPoint(s, x, y) }
@@ -169,7 +169,7 @@ func tongueOutline(s *sketch.Sketch, sL, sR, sc, zp float64) {
 
 // rootedTongue builds the tongue and its pin. u is the rotor axis direction (world X when uIsX, else world Y); the tongue runs
 // along +u from ua, the print face, to ue, the pin face; its strip spans [sL, sR] in the other horizontal axis; the pin
-// axis is at (sc, zp). The result has r 0.7 roots on three sides, a sharp pin root (decad item D2) and a Ø1.0 pin 3.6
+// axis is at (sc, zp). The result has r 0.8 roots on three sides, a sharp pin root (decad item D2) and a Ø1.0 pin 3.6
 // long with a 0.2 tip chamfer.
 func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Body, error) {
 	// 1. The hull prism: the outline in (s, z), extruded along u from ua to ue + 3.8.
