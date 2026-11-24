@@ -72,31 +72,14 @@ func (r *run) cam(s Segment) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("revolve: %w", err)
 	}
-	bore, err := r.camBore()
-	if err != nil {
-		return nil, fmt.Errorf("bore tool: %w", err)
-	}
-	if body, err = decad.Cut(r.ctx, body, bore); err != nil {
+	if body, err = r.cutCamBore(body); err != nil {
 		return nil, fmt.Errorf("cut D bore: %w", err)
 	}
-	groove, err := r.grooveTool(s)
-	if err != nil {
-		return nil, fmt.Errorf("groove: %w", err)
-	}
-	if body, err = decad.Cut(r.ctx, body, groove); err != nil {
+	if body, err = r.cutGroove(body, s); err != nil {
 		return nil, fmt.Errorf("cut groove: %w", err)
 	}
-	n, radius := camMarks(s)
-	for i := range n {
-		a := (camMarkFirst + camMarkStep*float64(i)) * math.Pi / 180
-		hole, err := r.holeTool(-CamThickness-1, radius*math.Cos(a), radius*math.Sin(a), camMarkRadius,
-			CamThickness+camHubTop+1+1)
-		if err != nil {
-			return nil, fmt.Errorf("mark %d: %w", i+1, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, hole); err != nil {
-			return nil, fmt.Errorf("cut mark %d: %w", i+1, err)
-		}
+	if body, err = r.cutCamMarks(body, s); err != nil {
+		return nil, fmt.Errorf("cut marks: %w", err)
 	}
 	if body, err = r.inscribe(body, s); err != nil {
 		return nil, fmt.Errorf("inscription: %w", err)
@@ -105,22 +88,38 @@ func (r *run) cam(s Segment) (*decad.Body, error) {
 	return placement.Place(r.ctx, body, &f)
 }
 
-// camBore cuts the D bore through the whole cam: profile on local z = -4.8, extruded 12.95 along +z.
-func (r *run) camBore() (*decad.Body, error) {
+// cutCamBore cuts the D bore through the whole cam: profile on local z = -4.8, cut 12.95 along +z.
+func (r *run) cutCamBore(body *decad.Body) (*decad.Body, error) {
 	s, err := r.sketchOn(across(-CamThickness - 1))
 	if err != nil {
 		return nil, err
 	}
 	doubleDBoreLoop(s, camBoreRadius, camBoreFlat)
-	return r.extrude(s, 0, CamThickness+1+camHubTop+1, decad.Along)
+	return r.cutExtrude(body, s, 0, 1, CamThickness+1+camHubTop+1, decad.Along)
+}
+
+// cutCamMarks cuts segment seg's look-alike holes through the whole cam: one circle each in one sketch on local z =
+// -4.8, each centre placed by its distances from the origin, cut 12.95 along +z in one call.
+func (r *run) cutCamMarks(body *decad.Body, seg Segment) (*decad.Body, error) {
+	n, radius := camMarks(seg)
+	s, err := r.sketchOn(across(-CamThickness - 1))
+	if err != nil {
+		return nil, err
+	}
+	for i := range n {
+		a := (camMarkFirst + camMarkStep*float64(i)) * math.Pi / 180
+		c := sketchcheck.DimensionPoint(s, radius*math.Cos(a), radius*math.Sin(a))
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, camMarkRadius), camMarkRadius))
+	}
+	return r.cutExtrude(body, s, 0, n, CamThickness+camHubTop+1+1, decad.Along)
 }
 
 // grooveWall is one wall's points of one ramp.
 type grooveWall struct{ j1, t1, t2, j2 *sketch.Point }
 
-// grooveTool builds the groove's cutter: the groove profile on local z = +1.0 extruded 2.9 against its normal, to z -1.9.
+// cutGroove cuts the groove from body: the groove profile on local z = +1.0 cut 2.9 against its normal, to z -1.9.
 // The profile is the outer wall (dwell arcs, ramp arcs and lines, entry channel) with the inner wall as its hole.
-func (r *run) grooveTool(seg Segment) (*decad.Body, error) {
+func (r *run) cutGroove(body *decad.Body, seg Segment) (*decad.Body, error) {
 	s, err := r.sketchOn(across(1.0))
 	if err != nil {
 		return nil, err
@@ -206,7 +205,7 @@ func (r *run) grooveTool(seg Segment) (*decad.Body, error) {
 			s.AddConstraint(sketch.NewRadius(s.CreateArc(o, from, to), rd))
 		}
 	}
-	return r.extrude(s, 1, 1.0+GrooveDepth, decad.Against)
+	return r.cutExtrude(body, s, 1, 1, 1.0+GrooveDepth, decad.Against)
 }
 
 // channelInside reports whether the entry channel, centred at EntryAngle, lies inside the dwell from angle a to b.

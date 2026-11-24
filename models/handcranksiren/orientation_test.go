@@ -58,15 +58,24 @@ func requireOrientation(t *testing.T, p handcranksiren.Params, parts map[string]
 	require.Less(t, math.Hypot(centre.X-want.X, centre.Z-want.Z), 0.5, "the pin lies on the arm")
 }
 
-// requireNoOverlap runs the document's pairwise check. A bolt in its head host and in its own nut is proved in the
-// fasteners subtest, and the two meshing pairs share space by design (the mesh subtest proves them).
+// requireNoOverlap runs the document's pairwise check on every pair but the exempt ones, which Verify skips: a bolt
+// in its head host is proved in the fasteners subtest, and a bolt in its own nut and the two meshing pairs share
+// space by design (the mesh subtest proves the meshing pairs). Verify must name exactly the exempt pairs as
+// skipped, and every other pair must be free of interference.
 func requireNoOverlap(t *testing.T, doc *decad.Document, p handcranksiren.Params, parts map[string]handcranksiren.Part) {
 	names := map[*decad.Body]string{}
 	for name, part := range parts {
 		names[part.Body] = name
 	}
 	exempt := map[[2]string]struct{}{}
-	add := func(a, b string) { exempt[[2]string{a, b}], exempt[[2]string{b, a}] = struct{}{}, struct{}{} }
+	var skips []decad.VerifyOption
+	add := func(a, b string) {
+		if _, ok := exempt[[2]string{a, b}]; ok {
+			return
+		}
+		exempt[[2]string{a, b}], exempt[[2]string{b, a}] = struct{}{}, struct{}{}
+		skips = append(skips, decad.WithSkippedPair(parts[a].Body, parts[b].Body))
+	}
 	add("crank-gear", "intermediate-pinion")
 	add("intermediate-gear", "rotor-pinion")
 	fasteners, err := handcranksiren.Fasteners(p)
@@ -75,21 +84,24 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcranksiren.Params
 		add(f.Bolt, f.HeadHost)
 		add(f.Bolt, f.Nut)
 	}
-	report, err := doc.Verify(t.Context())
+	report, err := doc.Verify(t.Context(), skips...)
 	require.NoError(t, err)
-	for _, pair := range report.Interferences {
+	require.Len(t, report.SkippedPairs, len(skips), "Verify skips every exempt pair once")
+	for _, pair := range report.SkippedPairs {
 		_, ok := exempt[[2]string{names[pair.A], names[pair.B]}]
-		require.True(t, ok, "%s and %s share material", names[pair.A], names[pair.B])
+		require.True(t, ok, "%s and %s are skipped but not exempt", names[pair.A], names[pair.B])
+	}
+	for _, pair := range report.Interferences {
+		require.Failf(t, "interference", "%s and %s share material", names[pair.A], names[pair.B])
 	}
 	for _, d := range report.Diagnostics {
 		if d.Pair == nil {
 			continue
 		}
-		_, ok := exempt[[2]string{names[d.Pair.A], names[d.Pair.B]}]
 		// A shaft equals its bearing's bore, so the two touch and Decad cannot decide the pair. The T4 rows of the
 		// clearances subtest prove their sections meet with no gap, and the pair is still checked for interference.
 		touching := bearingShaft(names[d.Pair.A], names[d.Pair.B])
-		require.True(t, ok || touching && d.Code == decad.DiagUnsupportedPairContact,
+		require.True(t, touching && d.Code == decad.DiagUnsupportedPairContact,
 			"%s and %s are undecided: %s", names[d.Pair.A], names[d.Pair.B], d.Code)
 	}
 }
