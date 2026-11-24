@@ -40,7 +40,7 @@ func (d Dimensions) camFrame(s Segment) r3.Frame {
 }
 
 // camMarks returns the number of look-alike holes and their circle radius: front cams d, e, c take 1, 2, 3 at radius
-// 12; rear cams g, b, f, a take 1 to 4 at radius 8.
+// 18; rear cams g, b, f, a take 1 to 4 at radius 12.
 func camMarks(s Segment) (int, float64) {
 	switch s {
 	case SegD:

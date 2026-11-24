@@ -16,7 +16,7 @@ import (
 // TestSevenSegmentVisibility casts rays at the real meshes in the physical geometry (clamped and settled: the cradle and
 // the flags 0.25 lower and the flags a further 0.25 lower, the top plate 0.50 lower) with every flag turned to the band
 // ends and to the nominal rests. Lit, across the flag, the flag fills at least 90 / 55 / 20 % of the rays that enter at
-// |u| <= 9.9 at elevations 90 / 45 / 30 degrees and yellow at least 65 % of those; unlit, no ray hits a yellow body. Azimuths
+// |u| <= 14.85 at elevations 90 / 45 / 30 degrees and yellow at least 65 % of those; unlit, no ray hits a yellow body. Azimuths
 // along u and the whole-window share are reported, not asserted.
 func TestSevenSegmentVisibility(t *testing.T) {
 	startDigit0()

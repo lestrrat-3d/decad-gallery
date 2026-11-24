@@ -129,7 +129,7 @@ func windowCentre(s sevensegment.Segment) (cx, cy float64, horizontal bool) {
 
 // windowShares casts a ray grid over segment s's window, entering at the display face, at elevation elev degrees with
 // the horizontal part of the ray along dir (a unit horizontal vector), and returns over the rays whose entry point has
-// |u| <= 9.9: the share that first hits a flag body, and the share of those that first hit yellow. tree holds the
+// |u| <= 14.85: the share that first hits a flag body, and the share of those that first hit yellow. tree holds the
 // triangles near the window (windowNear).
 func windowShares(tree *rayTree, s sevensegment.Segment, faceZ, elev float64, dir r3.Vec) (flag, yellow float64) {
 	cx, cy, horizontal := windowCentre(s)

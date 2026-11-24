@@ -186,7 +186,7 @@ func TestSevenSegmentPinClearance(t *testing.T) {
 }
 
 // TestSevenSegmentBladeRoof reads the gap between a slider's blade ridge, lifted to its lit height, and the roof of its
-// tube's hole in the top plate, both from the built bodies: 0.90 by design (modeled; 0.80 in the physical geometry).
+// tube's hole in the top plate, both from the built bodies: 1.525 by design (modeled; 1.425 in the physical geometry).
 // A blade built taller than designed closes it.
 func TestSevenSegmentBladeRoof(t *testing.T) {
 	r := newTestRun(t)

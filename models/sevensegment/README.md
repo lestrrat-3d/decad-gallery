@@ -160,7 +160,7 @@ Print the shaft as two halves split along its axis, each on its cut face. Print 
 with the outer face down, the top plate with the display face down, the cradle plate with its bottom face down, the
 guide plate with its bottom face down, the a, g and d sliders with the -X face
 down, the b, c, e and f sliders with the -Y face down, and the hub and rotor flat with the teeth up, the button with its head down and teeth up, and the housing with its bezel face down and the crown's teeth up.
-The teeth need no supports: the ramps lie at 45 to 60 degrees and the notch walls are vertical. Print the rotor, button and housing at 0.1 mm layers or finer.
+The teeth need no supports: the teeth print facing up. The 8.0 mm inner teeth have ramps at 52 to 89 degrees to the layers and the 1.6 mm crown teeth have ramps at 12 to 50 degrees. Print the rotor, button and housing at 0.1 mm layers or finer.
 
 Each rotor is two bodies, a yellow body (the face slab and the two tips) and a black body, printed face down in one job
 on a printer that changes between two filaments of one polymer (both bodies share their faces, so they must be the same

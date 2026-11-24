@@ -37,8 +37,8 @@ const (
 	notchMouth      = 0.7                                    // the mouth chamfer of a notch end within 0.8 of the tip slant, on hidden face 315
 	yellowDepth     = 0.8                                    //
 	yellowHalfWidth = RotorHalfWidth - 0.8                   //
-	yellowTipK      = RotorHalfWidth + rotorSquareHalf - 0.8 // the yellow's chamfer |b| + |u| <= yellowTipK runs 0.8 inside the pyramid edges (13.75)
-	yellowTipInner  = yellowTipK                             // the yellow's inner face a >= yellowTipInner - |u| runs 0.8 under the facet (13.75 - |u|)
+	yellowTipK      = RotorHalfWidth + rotorSquareHalf - 0.8 // the yellow's chamfer |b| + |u| <= yellowTipK runs 0.8 inside the pyramid edges (19.825)
+	yellowTipInner  = yellowTipK                             // the yellow's inner face a >= yellowTipInner - |u| runs 0.8 under the facet (19.825 - |u|)
 	yellowTipEnd    = 17.4                                   // the yellow ends at |u| = yellowTipEnd, clear of the pivot bore's mouth
 )
 
@@ -368,8 +368,7 @@ func (r *run) flag(s Segment) (Flag, error) {
 	}
 	frame := rotorFrame(s)
 	// Place both bodies in two steps: translate by the origin's coordinates in the local frame, then rotate about the world
-	// origin. The result is the single placement's rigid motion, but decad refuses the single placement of rotor B's black
-	// body once the yellow has tips (decad item D3).
+	// origin. The result is the single placement's rigid motion; a single placement works too (decad item D3).
 	o := frame.Origin()
 	shift, err := r3.Translation(r3.Vec{X: o.Dot(frame.U()), Y: o.Dot(frame.V()), Z: o.Dot(frame.N())})
 	if err != nil {

@@ -346,7 +346,11 @@ are united into the ring's plate one at a time. The document is made with `NewDo
 Each tool's profile is a plain rectangle: Decad's `Coil` (pin `9fb7f30d8f5e`) chords long straight lines itself.
 
 Printing. Rotor: flat, teeth up. Button: head down, teeth up. Housing: bezel face down, crown teeth up, base last. Hub: flat.
-Face teeth are printed without supports: the ramps lie at 45 to 60 degrees to the layers and the notch walls are vertical.
+Face teeth are printed with the teeth up and without supports, so no ramp faces downward. The ramps are helicoids, so
+their angle to the layers changes with the radius: `atan(tooth height / (radius x ramp span in radians))`. The 8.0 mm
+inner teeth of the rotor and the button have long ramps (32.5 degrees round the axis) at 52 to 77 degrees to the layers
+from the outer to the inner radius, and short ramps (3.5 degrees) at 85 to 89 degrees. The 1.6 mm crown and outer teeth
+have long back ramps (30 degrees) at 12 to 13 degrees and short ramps (6 degrees) at 46 to 50 degrees.
 
 ## Flag mechanism
 
@@ -373,9 +377,10 @@ Acceptance tests:
     (-41.01; -40.12) and a 1 degree margin beyond it (-40.01; -39.12), with the rotor centred, 0.16 or 0.25 to either
     side and 0.30 along the axis either way, from elevations 90, 45 and 30 at four azimuths; at the margin poses with the
     0.25 side shift also from elevations 60 and 20 at 24 azimuths, grazing views included. Yellow first shows, for the
-    onset harness (yellow sample points, views facing above 5 degrees), at -33.84 (0.16 side) and -35.25 (0.25 side);
-    with grazing views counted the onset stops at -36.48, because the face then lies edge-on. The margins to the worst unlit band end at a 0.25 side shift with grazing views are 3.64 degrees (b to
-    f) and 4.53 (a, g, d).
+    onset harness (yellow sample points, views facing above 5 degrees or grazing; both give the same onset), at -36.23
+    with the rotor centred, at -34.61 and -33.73 with it 0.16 and 0.25 to the lit side, and at -37.89 and -38.83 with it
+    0.16 and 0.25 to the other side (the worst case; the axial shift changes nothing). The margins from the 0.25 side onset
+    (-38.83) to the worst unlit band end are 1.29 degrees (b to f) and 2.18 (a, g, d).
 - Drive: at friction 0.5 the true drive arm (the pin on one wall of its slot) is at least 1.50 times the friction arms with
   the rotor settled on its pins and 1.35 with it fully across (computed 1.913 and 1.792).
 - Timing: a press turns the shaft `PressTurn()` 32.09 degrees, 2.54 past the 29.55 by which every cam has finished
@@ -412,10 +417,12 @@ of scope.
 - Split shafts: the rule covers printed shafts and pins. These are integral features of larger parts and stay whole:
   the pivot pins (Ø1.4) of the 14 pivot blocks, the slider rotor pins (Ø1.5), the slider groove pins (Ø4.5), and the
   registration pegs (Ø4.5) on the top plate and on the guide plate columns. None carries a part, a bearing or torque.
-  Splitting any of them means splitting its whole parent part. Each is below the 4 mm size that the rule asks for (the Ø1.4 pivot pin joins the integral-pin exemption: nothing under the bias
-  cap, a pin of Ø1.6 at most, reaches 4 mm); the
-  pivot pin is listed with the slider's rotor pin as an integral pin (it stands upright in print, on its block, so the
-  layers do not run along it). Loads: rotor pin 0.037 N, groove pin up to 2.5 N (Cam follower drive), pivot pins 0.0405 N
+  Splitting any of them means splitting its whole parent part, a slider or a plate, whose layers must run as its own
+  faces set them. So none is split, and each is listed here as a part the split rule does not reach. The Ø1.4 pivot
+  pins and the Ø1.5 rotor pins are under the 4 mm that the rule's Size item asks for; the pivot pin stands upright in
+  print, on its block, so the layers do not run along it. The Ø4.5 groove pins and registration pegs are over 4 mm, so
+  Size does not exempt them: they stay whole only because each is a feature of a larger part, and the rule's written
+  text has no such exemption. Loads: rotor pin 0.037 N, groove pin up to 2.5 N (Cam follower drive), pivot pins 0.0405 N
   (up to 0.10 N while the pin lifts the rotor), pegs only locate (the M2 bolts clamp the plates). The rotor itself was
   accepted as exempt in review.
 - Pivot pin strength. A pin (Ø1.4) stands upright on its block and bends across the layer bonds: 0.0405 N on a 1.875
@@ -515,8 +522,9 @@ raise_s = 0 (a, g, d), 0.20 (b, c), 0.25 (e, f)    the unlit droop less 0.05 (Ra
 FlagAngle phi_m(L) = atan2(L - 2.625 + raise_s, 2.25)
   a/g/d -49.40 (L 0) / +39.81 (L 4.5); b/c -47.14 / +42.68; e/f -46.55 / +43.36
 physical rest: slider -0.40, rotor axis -0.50, b-f droop -(raise_s + 0.05)
-               -> pin relative to the settled axis: -2.525 (unlit) / +1.975 (lit); dwell offset c = 0.15 toward unlit
-                  (a, g, d) and 0.20 (b to f, the pin 0.05 below its droop)
+               -> pin relative to the settled axis (`bands()`): -/+ Travel/2 less the dwell offset c toward unlit:
+                  c = 0.15 (a, g, d) gives -2.40 (unlit) / +2.10 (lit); c = 0.20 (b to f, the pin 0.05 below its
+                  droop) gives -2.45 / +2.05
 d phi / d z = s/rho^2: 10.8 deg/mm at unlit, 15.0 deg/mm at lit (0.05 mm of lift = 0.75 degrees)
 ```
 
@@ -576,8 +584,8 @@ cover that case; the bias margin above is its guard, and visibility_test.go repo
 Build in a local frame (local x = x_r, local y = y_r, local z = u, origin on the axis at the rotor's middle), then one
 `decad.Transform` to world, a turn by `FlagAngle` about u, and `placement.Place` (pattern: `cams.go`). Each body is
 placed in two steps, the translation `(o.U, o.V, o.N)` (the frame origin's coordinates in the local frame) and then
-`placement.Place` with the rotation-only frame at the world origin: the same rigid motion as one `placement.Place`, but
-decad refuses the single placement of rotor B's black body once the yellow has tips (item D3, below). Booleans retire
+`placement.Place` with the rotation-only frame at the world origin: the same rigid motion as one `placement.Place`, and
+a single placement works too (item D3, below). Booleans retire
 their operands, so take `decad.Copy` before any operand is used twice.
 
 | Name | Value | Note |
@@ -664,7 +672,7 @@ floors, end chamfers and the apex chamfer face up or at 45 degrees. Each end's �
 is a 45-degree teardrop with a 0.55 flat, a bridge, and the countersink is at 45 degrees. No support is needed.
 
 Walls: slot to the yellow face and to hidden face 315: 1.81. Slot end to the beta-0 edge round: 2.64. Slot to the bottom
-flat: 2.50. Pin at its limit to the notch's yellow floor: 0.21. Notch shells and the edge strip: 0.80.
+flat: 2.50. Pin at its limit (centre 4.25 from the axis, on a slot wall) to the notch's yellow floor: 0.93. Notch shells and the edge strip: 0.80.
 
 ### Sliders (`sliders.go`, rewritten above the guide plate)
 
@@ -740,11 +748,11 @@ from 0.24 below rest to `cap` above it, rotor anywhere in its 0.25 journal play,
 limit. The cap is the turned-over rise: 0.8 groove clearance + 0.48 tolerance = 1.28 (a/g/d), plus the b-f tilt reversal
 0.6 = 1.88. Raw distances:
 
-| Pair | All poses, cap 1.28 | All poses, cap 1.88 | Modeled poses |
-| --- | ---: | ---: | ---: |
-| tongue, roots, head top to yellow leg (a = 4.825) | 0.843 | 0.832 | 0.720 |
-| tongue, roots, head top to black leg (b = 4.825) | 2.325 | 1.945 | 3.05 |
-| pin to yellow leg | 0.943 | 0.932 | 0.770 |
+| Pair | All poses, cap 1.28 | All poses, cap 1.88 |
+| --- | ---: | ---: |
+| tongue, roots, head top to yellow leg (a = 4.825) | 0.843 | 0.832 |
+| tongue, roots, head top to black leg (b = 4.825) | 2.325 | 1.945 |
+| pin to yellow leg | 0.943 | 0.932 |
 
 With the head top 2.0 higher (111.3) the head reaches -0.69 into the black shell at cap 1.28.
 
@@ -820,7 +828,7 @@ wall and clear of the 1.97 bore walls, and 3.6 or more from the neighbouring bor
 T-bolt pockets.
 
 Clearances: cylinder 8.094 - 7.644 = 0.45; cone 0.400 normal to the sharp pyramid envelope; 0.326 at the round (R5,
-Regular minimum 0.35). End wall 0.25 from the rotor's end face. Bore r 0.9 on a pin r 0.7: 0.20, the Tight minimum. The
+under the Regular minimum 0.35, accepted). End wall 0.25 from the rotor's end face. Bore r 0.9 on a pin r 0.7: 0.20, the Tight minimum. The
 cylinder-to-cone round (R 1.2) reads no finding in `cornercheck`.
 
 ### Top plate (`frame.go`, rewritten)
@@ -913,8 +921,8 @@ Drive ratio (the drive arm over the friction arms) at friction 0.5: 1.913 settle
 B 0.0739 settled and 0.0838 across.
 
 The budget takes F_x with the journal fully across (budgetFx). The drive's own force pushes the bore across its pin: a load-set
-model (the bore against its pin along the pin force plus the weight, turned by up to the friction angle) puts it 0.157 to
-0.188 of the 0.20 clearance toward the pin at the pose of the largest F_x and gives F_x 5 to 9 % below the across value.
+model (the bore against its pin along the pin force plus the weight, turned by up to the friction angle) gives a
+smaller F_x than the across value, so the budget's value is the larger one.
 
 ### Cam follower drive (TestSevenSegmentFollowerDrive)
 
@@ -928,7 +936,7 @@ weighs 0.0417 N.
 - The stem's x contact can sit anywhere on its flat face (|y| <= 2.2, inside the 0.5 chamfers). The blade's x contact
   sits at most at y -11.7 (a, g, d: the blade's far face) or -2.7 (b to f: the print face). What yaw moment those
   contacts cannot carry goes to the stem's long faces as a couple 9.5 apart (stem width 10.5 less the chamfers). Shared
-  with the blade instead (13.875 apart), the b-f ratio would be about 5 % higher.
+  with the blade instead (13.875 apart), the b-f ratio at friction 0.35 would be about 6 % higher (1.252 against 1.186).
 - The test asserts at the nominal friction 0.35. At 0.5 the slider locks.
 
 Per unit groove-wall load at pressure angle α and friction µ: `F_v = cos α − µ sin α` along the stem, `H = sin α +
@@ -1039,15 +1047,12 @@ own lean (up to 0.41 for b to f) can close that with the stack in place, and the
 too; the floor then rubs the pin tip. On a level shaft nothing presses that contact along the shaft, so it adds no
 torque. Tilted toward the button end by θ, the cams' weight (about 1.76 N) presses each floor on its pin tip and friction at the
 groove radius adds about µ·1.76·sin θ·29.25 N·mm, about 0.31 N·mm per degree at friction 0.35. No locking feature
-is designed. A collar ring in front of the wheel would face the front bearing's inner ring (diameter 12), leaving at
-most 1.95 of wall round its bore against the 1.6 minimum, in a 17.25 gap against the 3.0 collar minimum. A collar of
-the shaft's own body there would stop the cams being pressed on from the front. A lock would also not stop the
-slider's lean from reaching the floor.
+is designed. A lock would not stop the slider's lean from reaching the floor.
 
 ### Captivity and stops
 
 - Rotor: its bores on the pins of two blocks pressed in the plates; u limited by the end walls (0.25), the pin engaged 1.375 at the worst end play and its tip 0.30 off the floor at the other.
-- Pin: engagement at least 1.0; at the design play it never reaches its radial limit (3.79 for a, g, d and 3.83 for b to f,
+- Pin: engaged 2.85 as modeled and at least 1.85 with the 1.0 u play (0.65 or more from the pocket floor); at the design play it never reaches its radial limit (3.79 for a, g, d and 3.83 for b to f,
   against 4.25).
 - Slider: its blade stays at least 8.325 (full width) deep in its tube.
 - Turned over: unlit sliders stop on the groove's outer wall (0.8); lit sliders stop on the groove wall too (0.8). Their blade ridge stays clear of the tube roof: the roof is
@@ -1070,7 +1075,7 @@ slider's lean from reaching the floor.
 | P5 | pivot blocks / pockets | press | 0.05 on four sides (the roof's 0.05 once the seam closes) | sections at u 20.125 |
 | T6 | rotor end faces / end walls | Tight | 0.25 | bounds |
 | T7 | pin / pocket walls | Tight minimum | 0.20 | section normal to u at the pocket middle |
-| T8 | tongue / notch shells | Tight | >= 0.72 | section normal to u at the tongue's middle |
+| T8 | tongue / notch shells | Tight | >= 1.53 | section normal to u at the tongue's middle (to the yellow shell 1.79 to 1.90 for a to f, 1.53 for g; to the black shell 2.13 or more) |
 | T9 | blade / tube | Tight across, 0.35 along (see "Blade corners") | 0.25 across, >= 0.20 at the corners (0.21) | section z 121.6 |
 | R5 | rotor / bore | Regular | 0.45 cylinder, 0.40 normal on cones, 0.326 at the round | sections |
 | L9 | slider and tube / cradle passage | Loose | 0.55 | section z 120.5 |
@@ -1082,14 +1087,14 @@ slider's lean from reaching the floor.
 | S1 | cradle / ribs, top plate / cradle | clamped seam | 0.25 | bounds |
 | S2 | columns / cradle | locating only | 1.275 [1.025] | bounds |
 
-R3 (cap/window) is deleted. R5 at the round (0.326) is under the pipeline's Regular minimum of 0.35; the repo constant
+R3 (cap/window) is deleted. R5 at the round (0.326) is under the pipeline's Regular minimum of 0.35 and is accepted with the round of R 1.2; the repo constant
 `RegularFit` 0.40 is the nominal, not the minimum.
 
 Uncertainty of the Tight-minimum fits. "Part clearances" asks for a lower bound that includes the measurement uncertainty.
 Three fits sit at the Tight minimum 0.2 by their dimensions: the rotor's end bores (bore 0.90 less pin 0.70), the pin in its
 pocket (0.95 less 0.75) and the blade corners (0.21, from the sketch dimensions). `TestSevenSegmentJournalFit` measures the
 pivot on the built bodies (bore against pin, 0.20). T7 and T8 are measured on meshes that carry a
-tessellation bound of 0.04, so the tests check 0.2 - 0.04 and 0.7 - 0.04: they prove a lower bound of 0.16 for T7, not 0.20,
+tessellation bound of 0.04, so the tests check 0.2 - 0.04 and 0.7 - 0.04 (T8's measured least is 1.53, far above it): they prove a lower bound of 0.16 for T7, not 0.20,
 and the value 0.20 rests on the analytic radii. The blade corners are checked on sections to 0.20 (modeled 0.21). These
 three fits therefore do not reach the Tight class with the uncertainty included; they are accepted at the Tight minimum
 and listed here.
@@ -1134,6 +1139,7 @@ outlines.
   - notch end chamfers (0.5) and apex chamfer (0.8);
   - tube roots and column roots (built-in 45-degree, leg 0.5);
   - peg collars (45-degree, 0.5);
+  - window octagon corners (45-degree turns, no round; the rims are retained sharp);
   - pivot pin roots (45-degree cone, leg 0.25) and tips (chamfer 0.1), the bore countersink (45 degrees) and the notch mouth chamfer of type B (0.7).
 - Rounded:
   - tongue roots 1.05 (8 chords; three sides);
@@ -1159,23 +1165,21 @@ Each decad item below describes its repro; the scratch builds that held them are
     revolve cuts.
   - Meanwhile: the loops stay sharp and are listed.
 - **D2. Pin root collar on the tongue.**
-  - Repro (a one-off test): a bar is cut by a box from which an extruded Ø1.1 pin and a 45-degree tapered collar
-    (r 1.2, 0.75 long) were subtracted. It is refused with "cut's tool holds its mesh ... within a bound of 0.00046 mm,
-    coarser than this pair's chord tolerance 0.000176 mm". Without the collar it builds.
-  - Other refusals:
-    - a revolved root, or a clipped collar unioned to the tongue: "mesh bound ... coarser than chord tolerance";
-    - `Fillet` or `Chamfer` of the root circle after the union: "cap-loop chamfer's ruled patches cannot be certified
-      disjoint", because the tongue face is only 0.05 wider than the pin at the top.
+  - Repro: not reproduced. A bar cut by a box from which an extruded pin (Ø1.5, or Ø1.1) and a 45-degree tapered
+    collar (r 1.2, 0.75 long) were subtracted builds with the current decad, with the collar clipped by the bar's face
+    0.05 or 0.10 above the pin. Whether the earlier refusal still occurs on the tongue's own collar is unknown.
+  - Untested on the current decad: a revolved root, or a clipped collar unioned to the tongue, and a `Fillet` or
+    `Chamfer` of the root circle after the union. A chamfer or fillet of the tongue's pin circles today fails with other
+    messages (an empty circular wall, a blend that consumes the plane face).
   - Cost: unknown. It needs exact cone-plane intersection curves through a third boolean.
   - Meanwhile: the root stays sharp and is listed. `cornercheck` does not see it (its edge lies in the bed plane, round
     the vertical pin).
 - **D3. Placement of rotor B's black body.**
-  - Repro: build `flagBodies(SegB)` with the yellow chamfer 12.65, then `decad.Transform` the black body by the
-    translation `(-16.5, 82.6, 16.5)`. It is refused with "the result's float rounding folds its held mesh through itself,
-    and the bounded float-box search did not clear it". Today's black body accepts all such moves, and so do the
-    translations `(16.5, 16.5, 0)`, `(0, 82.6, 0)`, `(0, 0, 16.5)` and `(-16.5, 0, 0)`.
-  - With the chamfer 12.95 the direct `placement.Place` fails for segments e and f only.
-  - Meanwhile: each body is placed in two steps (translation, then rotation), which builds for all seven rotors.
+  - Repro: build `flagBodies(SegB)`, then `decad.Transform` its black body by the translation `(-24.75, 124.0, 24.75)`,
+    or place it with one `placement.Place` of the rotor frame.
+  - Both build for all seven rotors with both bodies, at the yellow chamfer 19.825 and for rotor B at 19.525, so D3
+    needs no decad fix.
+  - The model still places each body in two steps (translation, then rotation); a single placement works too.
 
 ### Frame
 
@@ -1200,7 +1204,7 @@ is 73.2 wide).
    inner face, lip 5 thick with hole r 6.5 and a 0.5 chamfer at the outer face.
 5. Cut fastener tools: ledge ribs `m2fastener.PocketTool` (G sites, head pockets from the rib underside) and
    `HoleTool`; top flange ribs `HexPocketTool(site, NutCavityHeight + Stock)` (T sites) and `HoleTool`; front wall
-   only: `HexPocketTool` + `HoleTool` at D1, D2 (nut pockets open to the outer face).
+   only: `HexPocketTool` + `HoleTool` at H1, H2 (nut pockets open to the outer face).
 6. Cut look-alike holes (r 0.75, through): front 1 hole, rear 2 holes, on radius 10 about the shaft axis at 270°,
    295° (front-view angles), one sketch per hole as for the cams.
 
@@ -1211,7 +1215,7 @@ Printed outer face down; ribs rise from the plate; rib pockets print sideways wi
 T1-T4: head `(-+31.3, -66.75, 132.25)` and `(-+31.3, 57.0, 132.25)`, Dir -Z, Corner +Y, `Length 16`, `Cavity 16.5`.
 They clamp the top plate and the cradle to the top flange ribs. The tip is at 114.25 modeled and 113.75
 clamped. There is 6.0 of plate under each head.
-G1-G4: heads `(-+31.3, -51.3, 74.75)` and `(-+31.3, 48.0, 74.75)`, `Length 10`. D1-D2: heads `(-+21, -92.5, 44.25)`,
+G1-G4: heads `(-+31.3, -51.3, 74.75)` and `(-+31.3, 48.0, 74.75)`, `Length 10`. H1-H2: heads `(-+21, -92.5, 44.25)`,
 Dir +Y, Corner +Z, `Length 16`.
 
 
@@ -1348,7 +1352,7 @@ Split-shaft exemptions (`cornercheck.CheckAt`): front step and rear collar rear 
 bearing), cam flats' square ends with cam a's chords, stub flat's square end with the hub's D chord
 (mating pairs).
 
-Rounded as required: groove concave walls 1.1, window tips 0.6, slot corners 0.55, rib roots 0.5,
+Rounded as required: groove concave walls 1.1, slot corners 0.55, rib roots 0.5,
 hub roots 0.5, stem edges chamfered 0.5 (convex). Press-fit walls ≥ 1.6: cam hubs 2.65, keyed hub 7.95 or more.
 
 #### Surface edge finishing

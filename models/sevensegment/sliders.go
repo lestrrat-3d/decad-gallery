@@ -78,7 +78,7 @@ const (
 	sliderHeadTop   = pinAxisZ - 12.075      // head or arm top at the build pose (unlit)
 	tongueRootDip   = 0.03                   // how far the tongue's root rounds bottom out inside the head
 	tongueHullR     = flagPinRadius + 0.1    // radius of the hull round about the pin axis
-	flagPinRadius   = 0.75                   // the rotor pin, Ø1.0
+	flagPinRadius   = 0.75                   // the rotor pin, Ø1.5
 	flagPinLength   = 5.4                    //
 	bladeRidgeZ     = sliderHeadTop + 16.125 // top of the blade's gable
 	bladeShoulderZ  = sliderHeadTop + 15.225 //
@@ -173,7 +173,7 @@ func tongueOutline(s *sketch.Sketch, sL, sR, sc, zp float64) {
 
 // rootedTongue builds the tongue and its pin. u is the rotor axis direction (world X when uIsX, else world Y); the tongue runs
 // along +u from ua, the print face, to ue, the pin face; its strip spans [sL, sR] in the other horizontal axis; the pin
-// axis is at (sc, zp). The result has r 0.8 roots on three sides, a sharp pin root (decad item D2) and a Ø1.0 pin 3.6
+// axis is at (sc, zp). The result has r 0.8 roots on three sides, a sharp pin root (decad item D2) and a Ø1.5 pin 5.4
 // long with a 0.2 tip chamfer.
 func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Body, error) {
 	// 1. The hull prism: the outline in (s, z), extruded along u from ua to ue + 3.8. Its chord runs make its end cap a faceted
@@ -287,7 +287,7 @@ func (r *run) bfProfile(ef bool, yi float64) (*decad.Body, float64, float64, err
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	bL, bR := 13.05, 14.7 // the blade is 1.1 thick: its rotor-side face stands 0.1 back from the old 9.9
+	bL, bR := 13.05, 14.7 // the blade is 1.65 thick
 	zh, za := sliderHeadTop, sliderHeadTop-3.75
 	h := sliderHalfWide
 	var v [][2]float64

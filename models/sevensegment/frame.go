@@ -19,7 +19,7 @@ import (
 const (
 	wallTopZ       = flangeFrom + ribHeight + 1.5  // z of the wall's upper edge: ribs end 1.5 below it
 	wallHalf       = WallHalfWidth + 1.5           // wall plate half width: ribs end 1.5 inside it ("Wall inset (decad constraint)")
-	wallBottomZ    = ShaftZ - CamRadius - 4.5      // z of the wall's lower edge, 3.0 below the cams' rims
+	wallBottomZ    = ShaftZ - CamRadius - 4.5      // z of the wall's lower edge, 4.5 below the cams' rims
 	ribInner       = 24.6                          // |x| where a rib starts, inside the nut pockets' flats
 	ledgeFrom      = guideFrom - Seam - ribHeight  // z of a ledge rib's underside: the guide plate stands on it over a seam
 	flangeFrom     = cradleFrom - Seam - ribHeight // z of a top flange rib's underside: the cradle plate stands on it over a seam
@@ -138,18 +138,18 @@ func (r *run) seatTool() (*decad.Body, error) {
 		{bearingRaceR + 1.0, WallThickness}, {bearingRaceR + 1.0, WallThickness + 1}, {0, WallThickness + 1}})
 }
 
-// wallFasteners cuts the fastener tools of the wall's sites: front wall T1, T2, G1, G2, D1, D2; rear wall T3, T4, G3, G4.
+// wallFasteners cuts the fastener tools of the wall's sites: front wall T1, T2, G1, G2, H1, H2; rear wall T3, T4, G3, G4.
 func (r *run) wallFasteners(body *decad.Body, front bool) (*decad.Body, error) {
 	type job struct {
 		site  m2fastener.Site
-		kind  string // "T" nut pocket and hole, "G" head pocket and hole, "D" nut pocket and hole
+		kind  string // "T" nut pocket and hole, "G" head pocket and hole, "H" nut pocket and hole
 		label string
 	}
 	var jobs []job
 	sites := r.dm.Sites
 	if front {
 		jobs = []job{{sites[0], "T", "T1"}, {sites[1], "T", "T2"}, {sites[4], "G", "G1"}, {sites[5], "G", "G2"},
-			{sites[8], "D", "D1"}, {sites[9], "D", "D2"}}
+			{sites[8], "H", "H1"}, {sites[9], "H", "H2"}}
 	} else {
 		jobs = []job{{sites[2], "T", "T3"}, {sites[3], "T", "T4"}, {sites[6], "G", "G3"}, {sites[7], "G", "G4"}}
 	}
@@ -295,7 +295,7 @@ func roundRoot(ctx context.Context, body *decad.Body, side, level, innerY float6
 // horizontal or vertical at its distance from the origin.
 func slotLoop(s *sketch.Sketch, y float64) error {
 	o := s.Origin()
-	// The slot is the stem's section (7.0 by 3.6) with the Tight fit round it; the notch passes the groove pin: the stem's
+	// The slot is the stem's section (10.5 by 5.4) with the Tight fit round it; the notch passes the groove pin: the stem's
 	// narrow part (3.6) with 0.1 each side, and the pin's length with 0.4.
 	sx, sy := 5.25+TightFit, StemThickness/2+TightFit
 	nx, ny := 2.8, StemThickness/2+PinLength+0.4 // 2.8 is 2.7 + 0.1
@@ -328,7 +328,7 @@ func slotLoop(s *sketch.Sketch, y float64) error {
 
 // plateBox is the guide and top plates' y range: between the walls' inner faces with a seam each side.
 const (
-	plateFrom = frontInnerY + Seam // -49.25
+	plateFrom = frontInnerY + Seam // -74.0
 	plateTo   = rearInnerY - Seam  // 42.75
 )
 

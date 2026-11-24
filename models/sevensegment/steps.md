@@ -90,7 +90,7 @@ Exported constants (values above): `SegmentSpan 49.5,
 Travel 4.5, FaceZ 132.25, ShaftZ 44.25, StationPitch 16.5,
 CamRadius 35.25, CamThickness 5.7, HubRadius 7.5, OffRadius 24.75, OnRadius 29.25, GrooveWidth 5.3, GrooveDepth 2.85,
 RampStart 8.0, RampEnd 29.5, RampRound 3.75, EntryAngle 18.0, PinRadius 2.25, PinLength 3.0,
-StemThickness 5.4, StemRound 0.45, WallThickness 12.0,
+StemThickness 5.4, WallThickness 12.0,
 WallHalfWidth 35.1, Seam 0.25,
 PressFit 0.05, TightFit 0.25, RegularFit 0.40, LooseFit 0.55, TimingAllowance 1.5, RearCollarRadius 5.7,
 ClickerSteps 10, ClickerStep 36, RampAngle 32.5, ToothHeight 8.0, CrownHeight 1.6, CrownBack 30, RotorTravel 2.0,
@@ -321,7 +321,7 @@ ribs end 1.5 inside its edges (|x| 35.1, z 119.75).
    lip 5 thick with hole r 6.5 (0.5 outside the inner ring's face radius 6.0) and a 0.5 chamfer at the outer face.
 5. Cut fastener tools: ledge ribs `m2fastener.PocketTool` (G sites, head pockets from the rib underside) and
    `HoleTool` (G bolts M2 x 10); top flange ribs `HexPocketTool(site, NutCavityHeight + Stock)` (T sites) and
-   `HoleTool`; front wall only: `HexPocketTool` + `HoleTool` at D1, D2 (nut pockets open to the outer face). The T and D
+   `HoleTool`; front wall only: `HexPocketTool` + `HoleTool` at H1, H2 (nut pockets open to the outer face). The T and H
    bolts are M2 x 16.
    Cut the fastener tools before the step 4 seat tool: after the revolve cut, the front wall's G head pockets
    meet a held mesh coarser than their chord tolerance and decad refuses them.
@@ -341,7 +341,7 @@ one-off scratch build before the port, which is not in the repository; a decad r
   sketch, the two end bores (a revolve with a floor round and a countersink) and their teardrop roofs (a prism on a fully
   constrained pentagon sketch), the 0.9 pocket floor round and the 0.7 mouth chamfer of type B's first notch
   (instructions.md "Rotor"). Then each body is placed in two steps: a `decad.Transform` by
-  the frame origin's local coordinates and `placement.Place` with the rotation-only frame (decad item D3).
+  the frame origin's local coordinates and `placement.Place` with the rotation-only frame (a single placement works too; decad item D3).
 - `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and pin (`rootedTongue`),
   the 0.5 stem chamfers and the groove pin.
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 4.825, `windowChamfer` 19.525 and
@@ -369,8 +369,8 @@ open (0.25); tips end 0.25 inside a face with the seam open and flush when tight
 | G1-G4 | ledge ribs → guide plate | M2 × 10 | (∓31.3, −51.3, 74.75) and (∓31.3, 48.0, 74.75) | (0,0,1) | (0,1,0) | 10.25 | guide plate top z [85, 87] |
 | H1-H2 | housing → front wall | M2 × 16 | (∓21, −92.5, 44.25) | (0,1,0) | (0,0,1) | 16.25 | front wall inner face y [−76.25, −74.25] |
 
-Order T1..T4, G1..G4, D1..D2; within T and G: −x front, +x front, −x rear, +x rear.
-Tips: T at z 114.25, G at z 86.75, D at y −74.5. Each nut is 1.55 of 1.6 engaged open, fully when closed.
+Order T1..T4, G1..G4, H1..H2; within T and G: −x front, +x front, −x rear, +x rear.
+Tips: T at z 114.25, G at z 86.75, H at y −74.5. Each nut is 1.55 of 1.6 engaged open, fully when closed.
 Material round pockets, measured after the 0.5 chamfers: top plate head pockets reach x 33.5 → 1.1 to the
 chamfered edge; guide plate hex pockets (flats ±2.174) reach x 33.474 → 1.13; rib pockets 4.526 to the rib's x = 24.6
 side and 1.626 to x 35.1; G head pockets end 1.2 from the front ledge rib end (y −49.1 against −47.9) and 1.0 from the

@@ -31,10 +31,9 @@ const (
 	PinRadius     = 2.25
 	PinLength     = 3.0 // 2.85 groove depth + 0.15 end gap
 	StemThickness = 5.4
-	StemRound     = 0.45
 
 	WallThickness = 12.0
-	WallHalfWidth = 35.1 // plates x +-23.4; the b, c, e, f bores (x +-22.046) keep 0.85 inside the 0.5 chamfer
+	WallHalfWidth = 35.1 // plates x +-35.1
 
 	Seam            = 0.25
 	PressFit        = 0.05
@@ -66,7 +65,7 @@ const (
 
 // frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
 // inside WallHalfWidth. The hardware has a fixed size, so the offset is fixed.
-const frameBoltX = WallHalfWidth - 3.8 // 19.6
+const frameBoltX = WallHalfWidth - 3.8 // 31.3
 
 // Segment names one of the seven segments.
 type Segment int
@@ -416,8 +415,8 @@ func raise(s Segment) float64 {
 	return 0
 }
 
-// FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 1.75 +
-// raise, PinOffset). The pin line is 1.5 from the rotor axis and the slider's lift is 0 to 3.
+// FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 2.625 +
+// raise, PinOffset). The pin line is 2.25 from the rotor axis and the slider's lift is 0 to 4.5.
 func (d Dimensions) FlagAngle(s Segment, theta float64) float64 {
 	return math.Atan2(d.Lift(s, theta)-2.625+raise(s), PinOffset) * 180 / math.Pi
 }
