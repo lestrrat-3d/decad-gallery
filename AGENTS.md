@@ -29,6 +29,14 @@
 - Treat this repository's decad construction as the source for downstream ports.
 - Keep Fusion Python add-in code and its packaging in `fusion360-gear-generator`.
 
+## Pull requests
+
+- Put a change to an item that other items consume (for example `models/fastener`, `features/`, or a reused
+  construction) in its own pull request. Do this most of all for a far-reaching change.
+- Stack dependent pull requests on it: base each on the shared item's branch, then retarget to `main` once it merges.
+- Never mix a shared item's change with a consumer's change. A shared change runs CI for every consumer.
+- Put a decad version bump in its own pull request, below any shared-item change that needs it.
+
 ## Features
 
 - Put a reusable shape that only cuts or adds material on parts other items own in `features/<name>/`, for example
