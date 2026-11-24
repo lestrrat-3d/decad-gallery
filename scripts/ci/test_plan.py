@@ -468,7 +468,7 @@ class PlanTest(unittest.TestCase):
         result = self.plan_for(["models/clamparm/clamparm.go"], graph)
         self.assertEqual(set(result["suites"]), {"clamparm", "render-clamparm", "renderer-compile"})
 
-    def test_shared_model_change_selects_only_the_owning_render_suite(self):
+    def test_shared_model_change_selects_affected_render_suites(self):
         graph = self.render_graph(["fastener", "crankhandle", "plaquestand"])
         fastener = plan.ROOT + "/models/fastener"
         crank = plan.ROOT + "/models/crankhandle"
@@ -477,10 +477,10 @@ class PlanTest(unittest.TestCase):
         graph[plan.ROOT + "/models/plaquestand/render"]["imports"].add(crank + "/render")
         result = self.plan_for(["models/fastener/fastener.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-fastener"})
+        self.assertEqual(renders, {"render-fastener", "render-crankhandle", "render-plaquestand"})
         result = self.plan_for(["models/crankhandle/crankhandle.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-crankhandle"})
+        self.assertEqual(renders, {"render-crankhandle", "render-plaquestand"})
 
     def test_shared_core_with_unknown_input_selects_full(self):
         graph = self.render_graph(["clamparm"])
@@ -720,6 +720,87 @@ class PlanTest(unittest.TestCase):
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 3)
 
+    def test_discovered_consumers_select_their_renderers(self):
+        helper = plan.ROOT + "/internal/newhelper"
+        model = plan.ROOT + "/models/newpart"
+        feature = plan.ROOT + "/features/newfeature"
+        graph = {helper: {"dir": "internal/newhelper", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/newpart", "imports": {helper}, "test_imports": set()},
+                 feature: {"dir": "features/newfeature", "imports": {model}, "test_imports": set()},
+                 model + "/render": {"dir": "models/newpart/render", "imports": {model}, "test_imports": set()},
+                 feature + "/render": {"dir": "features/newfeature/render", "imports": {feature},
+                                       "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/newhelper/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-package-newhelper", "new-model-newpart",
+                                                 "new-feature-newfeature", "render-newpart",
+                                                 "render-feature-newfeature", "renderer-compile"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
+
+    def test_registered_consumers_without_named_checks_select_renderers(self):
+        helper = plan.ROOT + "/internal/cornercheck"
+        model = plan.ROOT + "/models/pinring"
+        feature = plan.ROOT + "/features/dovetail"
+        graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/pinring", "imports": {helper}, "test_imports": set()},
+                 feature: {"dir": "features/dovetail", "imports": {helper}, "test_imports": set()},
+                 model + "/render": {"dir": "models/pinring/render", "imports": {model}, "test_imports": set()},
+                 feature + "/render": {"dir": "features/dovetail/render", "imports": {feature},
+                                       "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"package-cornercheck", "model-pinring", "feature-dovetail",
+                                                 "render-pinring", "render-feature-dovetail", "renderer-compile"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
+
+    def test_named_renderer_consumer_reaches_dependent_renderer(self):
+        helper = plan.ROOT + "/internal/cornercheck"
+        model = plan.ROOT + "/models/clamparm"
+        renderer = model + "/render"
+        dependent = plan.ROOT + "/models/pinring/render"
+        graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/clamparm", "imports": {helper}, "test_imports": set()},
+                 renderer: {"dir": "models/clamparm/render", "imports": {model}, "test_imports": set()},
+                 dependent: {"dir": "models/pinring/render", "imports": {renderer}, "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"package-cornercheck", "clamparm", "clamparm-render",
+                                                 "render-pinring", "renderer-compile"})
+
+    def test_new_model_and_feature_renderers_keep_distinct_consumers(self):
+        model = plan.ROOT + "/models/newpart"
+        feature = plan.ROOT + "/features/newpart"
+        consumer = plan.ROOT + "/models/pinring/render"
+        before = {consumer: {"dir": "models/pinring/render", "imports": set(), "test_imports": set()}}
+        after = dict(before)
+        for kind, owner in (("models", model), ("features", feature)):
+            after[owner] = {"dir": f"{kind}/newpart", "imports": set(), "test_imports": set()}
+            after[owner + "/render"] = {"dir": f"{kind}/newpart/render", "imports": {owner},
+                                        "test_imports": set()}
+        after[consumer] = {"dir": "models/pinring/render", "imports": {feature + "/render"},
+                           "test_imports": set()}
+        paths = (b"models/newpart/build.go\0models/newpart/render/render.go\0"
+                 b"features/newpart/build.go\0features/newpart/render/render.go\0")
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[before, after]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-model-newpart", "new-feature-newpart",
+                                                 "render-newpart", "render-feature-newpart", "render-pinring"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-feature-newpart"),
+                             [["render-package", "features/newpart/render", "rest"]])
+            self.assertEqual(gate.commands("render-newpart"),
+                             [["render-package", "models/newpart/render", "rest"]])
+
     def test_undispatchable_existing_package_selects_full(self):
         package = plan.ROOT + "/internal/nested/helper"
         graph = {package: {"dir": "internal/nested/helper", "imports": set(), "test_imports": set()}}
@@ -727,6 +808,15 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", return_value=graph), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/nested/helper/check.go\0"):
             self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad", "full"])
+
+    def test_invalid_new_renderer_path_fails_planning(self):
+        package = plan.ROOT + "/models/bad-name/render"
+        after = {package: {"dir": "models/bad-name/render", "imports": set(), "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[{}, after]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"models/bad-name/render/x.go\0"):
+            with self.assertRaisesRegex(RuntimeError, "new package cannot be dispatched"):
+                plan.plan("push", "base", "head")
 
     def test_missing_metadata_fails_closed_for_unknown_package(self):
         for path, raises in ((b"models/newpart/build.go\0", True),

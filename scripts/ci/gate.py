@@ -103,6 +103,12 @@ def render_directory(name):
 def commands(suite):
     if suite == "render-tool":
         return [["render-tool", str(index)] for index in range(RENDER_TOOL_SHARDS)]
+    feature = re.fullmatch(r"render-feature-([a-z][a-z0-9]*)", suite)
+    if feature:
+        directory = f"features/{feature.group(1)}/render"
+        if not Path(directory).is_dir():
+            raise ValueError(f"unregistered suite: {suite}")
+        return [["render-package", directory, "rest"]]
     match = re.fullmatch(r"render-([a-z][a-z0-9]*)", suite)
     if match and suite not in WORKERS:
         name = match.group(1)
@@ -184,7 +190,7 @@ def run_render_case(directory, which):
     """Run one heavy test of an item's render package, or all its other tests when which is "rest"."""
     package = MODULE + "/" + directory
     name = directory.split("/")[1]
-    heavy = RENDER_HEAVY.get(name, ())
+    heavy = RENDER_HEAVY.get(name, ()) if directory.startswith("models/") else ()
     if which != "rest":
         if which not in heavy:
             raise SystemExit(f"{which} is not a heavy test of {directory}")

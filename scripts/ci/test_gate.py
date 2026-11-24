@@ -92,6 +92,15 @@ class GateTest(unittest.TestCase):
         with mock.patch.object(Path, "is_dir", return_value=False), self.assertRaises(ValueError):
             gate.commands("render-nothing")
 
+    def test_feature_renderer_does_not_inherit_same_named_model_heavy_tests(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-feature-planetarygearbox"),
+                             [["render-package", "features/planetarygearbox/render", "rest"]])
+        with mock.patch.object(gate, "go_test") as run, \
+                mock.patch.object(gate.subprocess, "run", return_value=mock.Mock(stdout="TestModel\nok\n")):
+            gate.run_render_case("features/planetarygearbox/render", "rest")
+        self.assertEqual(run.call_args.args[1], ["TestModel"])
+
     def test_render_package_case_runs_one_heavy_test_or_the_rest(self):
         with mock.patch.object(Path, "is_dir", return_value=True), \
                 mock.patch.object(gate, "go_test") as run, \

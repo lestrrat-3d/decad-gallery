@@ -53,11 +53,11 @@ BROAD_RENDER = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion",
 
 
 def render_pkg(owner):
-    """Return the item name when owner is a registered item's render package, else None."""
-    match = re.fullmatch(re.escape(ROOT) + r"/(models|features)/([a-z0-9]+)/render", owner)
+    """Return the kind and name of a directly dispatchable render package."""
+    match = re.fullmatch(re.escape(ROOT) + r"/(models|features)/([a-z][a-z0-9]*)/render", owner)
     if not match:
         return None
-    return match.group(2) if match.group(2) in {"models": MODELS, "features": FEATURES}[match.group(1)] else None
+    return match.group(1), match.group(2)
 
 
 def render_dependents(seeds, before, after):
@@ -336,7 +336,7 @@ def plan(event, base, tested):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
                 if render_pkg(name) and name == ROOT + "/" + directory:
-                    new_render.add(parts[1])
+                    new_render.add((parts[0], parts[1]))
                     continue
                 if (len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or
                         not re.fullmatch(r"[a-z][a-z0-9]*", parts[1]) or name != ROOT + "/" + directory):
@@ -412,19 +412,32 @@ def plan(event, base, tested):
                         seeds.add(owner)
         for owner in sorted(render_dependents(seeds, before, after) - seeds):
             render_suites.setdefault(render_pkg(owner), "imports a changed render package")
-        for name in sorted(new_render):
-            render_suites.setdefault(name, "new render package")
+        for item in sorted(new_render):
+            render_suites.setdefault(item, "new render package")
         for path in code:
             parts = Path(path).parts
             if (len(parts) == 3 and parts[0] in ("models", "features") and not path.endswith("_test.go")
                     and ROOT + "/" + parts[0] + "/" + parts[1] + "/render" in after):
-                render_suites.setdefault(parts[1], "renderer check for " + parts[1])
-        for name, reason in sorted(render_suites.items()):
-            suites.setdefault("render-" + name, []).append(reason)
+                render_suites.setdefault((parts[0], parts[1]), "renderer check for " + parts[1])
+        for owner in production:
+            item = after.get(owner)
+            parts = item["dir"].split("/") if item else []
+            if (len(parts) == 2 and parts[0] in ("models", "features") and
+                    owner == ROOT + "/" + item["dir"] and
+                    (parts[0] == "features" or parts[1] not in RENDER) and
+                    render_pkg(owner + "/render") and owner + "/render" in after):
+                render_suites.setdefault((parts[0], parts[1]), "renderer check for affected " + owner)
+        renderer_seeds = seeds | {owner + "/render" for owner in production
+                                  if owner + "/render" in after and render_pkg(owner + "/render")}
+        for owner in render_dependents(renderer_seeds, before, after) - renderer_seeds:
+            render_suites.setdefault(render_pkg(owner), "imports an affected render package")
+        for (kind, name), reason in sorted(render_suites.items()):
+            suite = "render-" + ("feature-" if kind == "features" else "") + name
+            suites.setdefault(suite, []).append(reason)
         if any(path.startswith("tools/render/") and (path.endswith(".go") or path.startswith("tools/render/fonts/"))
                for path in changed):
             if not any(path.startswith("tools/render/fonts/") for path in changed) and \
-                    only_new_registration(base, tested, code, new_render):
+                    only_new_registration(base, tested, code, {name for kind, name in new_render if kind == "models"}):
                 suites["render-registration"] = ["new model registry entry"]
             else:
                 suites["render-tool"] = ["render tool source or fonts changed"]

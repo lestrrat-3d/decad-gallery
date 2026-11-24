@@ -23,12 +23,12 @@ package); `renderer_packages()` lists them, and the root-module suites skip them
 
 Render code selects these suites:
 
-- A `.go` change in `models/<name>/render` or `features/<name>/render` selects `render-<name>` and
-  `renderer-compile`. A production change there also selects `render-<other>` for every render package that imports it.
+- A `.go` change in `models/<name>/render` selects `render-<name>`; a change in `features/<name>/render` selects
+  `render-feature-<name>`. A production change there also selects every render package that imports it.
 - A production change in `models/<name>` or `features/<name>` selects `render-<name>` when the item has a render
   package. It replaces the item's named renderer suites, such as `swiss-render`. Items reached only through imports keep
   those named suites.
-- A new render package of a registered item selects `render-<name>` without `broad`.
+- A new model or feature render package selects its item-specific render suite without registration.
 - A `.go` change in `tools/render`, or any change under `tools/render/fonts`, selects `render-tool`. The tool's
   gallery tile cache test runs there, so the separate cache step is skipped.
 - A production change in `internal/renderkit` selects `renderer-all`, the 16-shard suite over every renderer package.
@@ -37,8 +37,9 @@ Render code selects these suites:
   `renderer-full`) and for scheduled or dispatched runs. `CI_BROAD_OVERRIDE` does not add it. When it runs, it replaces
   `renderer-compile`, `package-renderkit`, the named renderer suites and every `render-*` suite.
 
-A `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
+A model's `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
 `rest` job with every other test of the package. A test that builds a full assembly belongs in `RENDER_HEAVY`.
+The `render-feature-<name>` suite runs the feature's render package in one job.
 Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unsupported package
 layouts, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
