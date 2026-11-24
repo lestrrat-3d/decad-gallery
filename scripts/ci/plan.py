@@ -489,7 +489,8 @@ def main():
         suites = ["broad"] + [suite for suite in result["suites"] if suite != "broad"]
         result.update(suites=suites, reasons={suite: ([reason] if suite == "broad" else result["reasons"][suite])
                                              for suite in suites}, reason=reason)
-    if event == "push" and os.environ.get("GITHUB_ACTIONS") == "true":
+    if (event == "push" and os.environ.get("GITHUB_ACTIONS") == "true" and
+            os.environ.get("CI_BROAD_OVERRIDE") != "true"):
         from reuse_main import find_reusable_run
         proof = find_reusable_run(result, base, result["tested"])
         if proof:

@@ -29,6 +29,18 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(result["suites"], [])
         self.assertEqual(result["reused"]["suites"], ["model-ballbearing"])
 
+    def test_override_disables_pull_request_reuse(self):
+        import reuse_main
+        result = {"version": 1, "tested": "a" * 40, "suites": ["broad", "full"],
+                  "reasons": {"broad": ["changed"], "full": ["changed"]}}
+        env = {"GITHUB_EVENT_NAME": "push", "GITHUB_ACTIONS": "true", "CI_BROAD_OVERRIDE": "true"}
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(plan, "check_wheel_inventory"), \
+                mock.patch.object(plan, "plan", return_value=result), \
+                mock.patch.object(reuse_main, "find_reusable_run") as find, redirect_stdout(StringIO()) as output:
+            plan.main()
+        find.assert_not_called()
+        self.assertEqual(json.loads(output.getvalue())["suites"], ["broad", "full"])
+
     def test_isolated_selection_works_without_existing_tmp_directory(self):
         project = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:

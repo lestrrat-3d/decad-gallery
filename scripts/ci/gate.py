@@ -269,7 +269,7 @@ def suites_from_plan(raw):
                 not isinstance(proof.get("suites"), list) or not proof["suites"] or
                 any(not isinstance(suite, str) for suite in proof["suites"]) or
                 len(set(proof["suites"])) != len(proof["suites"]) or
-                {"broad", "full"}.intersection(proof["suites"])):
+                ({"broad", "full"}.intersection(proof["suites"]) and proof["suites"] != ["broad", "full"])):
             raise ValueError("invalid reused pull request proof")
         matrix_for(proof["suites"])
     matrix_for(suites)

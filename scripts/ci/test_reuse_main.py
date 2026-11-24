@@ -42,6 +42,7 @@ class ReuseMainTest(unittest.TestCase):
             if name == "plan.log":
                 path.write_text("plan\tRun actions/checkout@v4\t2026-01-01Z [command]git fetch origin "
                                 f"+{self.tested}:refs/remotes/pull/12/merge\n"
+                                "plan\tRun actions/checkout@v4\t2026-01-01Z [command]/usr/bin/git log -1 --format=%H\n"
                                 f"plan\tRun actions/checkout@v4\t2026-01-01Z {self.checkout}\n"
                                 "plan\tRun python3 scripts/ci/plan.py\t2026-01-01Z " + json.dumps(self.prior) + "\n")
             else:
@@ -89,9 +90,59 @@ class ReuseMainTest(unittest.TestCase):
                 case()
                 self.assertIsNone(self.proof())
 
-    def test_never_reuses_full_or_ci_changes(self):
-        for result in ({"suites": ["broad", "full"], "changed_paths": ["go.mod"]},
+    def test_never_reuses_broad_only_or_ci_changes(self):
+        for result in ({"suites": ["broad"], "changed_paths": ["go.mod"]},
                        {"suites": ["model-ballbearing"], "changed_paths": ["scripts/ci/gate.py"]}):
             with self.subTest(result=result):
                 self.result = copy.deepcopy(result)
                 self.assertIsNone(self.proof())
+
+    def test_full_reuse_requires_successful_validation_steps(self):
+        self.result = {"suites": ["broad", "full"], "changed_paths": ["go.mod"]}
+        self.prior.update(suites=self.result["suites"], changed_paths=self.result["changed_paths"])
+        def step(name):
+            return {"name": name, "status": "completed", "conclusion": "success"}
+        self.jobs[0]["steps"] = [step("Run actions/checkout@v4"), step("Run python3 scripts/ci/plan.py")]
+        self.jobs[-1]["steps"] = [step("Check planned results")]
+        validation = {**step("records-validation"), "steps": [step("Validate full execution records"),
+                                                              step("Check producer results")]}
+        self.jobs.append(validation)
+        self.assertIsNotNone(self.proof())
+        for item in (self.jobs[0]["steps"][0], self.jobs[-2]["steps"][0], validation,
+                     *validation["steps"]):
+            with self.subTest(item=item["name"]):
+                item["conclusion"] = "skipped"
+                self.assertIsNone(self.proof())
+                item["conclusion"] = "success"
+
+    def test_unknown_step_log_requires_unambiguous_bounded_evidence(self):
+        def row(message):
+            return "plan\tUNKNOWN STEP\t2026-01-01Z " + message + "\n"
+        log = (row("##[group]Run actions/checkout@v4") +
+               row(f"[command]/usr/bin/git fetch origin +{self.tested}:refs/remotes/pull/12/merge") +
+               row("[command]/usr/bin/git log -1 --format=%H") + row(self.tested) +
+               row("##[group]Run actions/setup-go@v1") +
+               row("##[group]Run python3 scripts/ci/plan.py") + row(json.dumps(self.prior)) +
+               row("##[group]Run python3 scripts/ci/gate.py matrix") +
+               row("  PLAN_JSON: " + json.dumps(self.prior)))
+        with self.subTest("valid"), unittest.mock.patch.object(Path, "read_text", return_value=log):
+            self.assertEqual(reuse_main.plan_from_log(Path("unused"), "12"), self.prior)
+        for changed in (log.replace(self.tested, "f" * 40, 1),
+                        log.replace(row(self.tested), ""),
+                        log.replace(row(json.dumps(self.prior)), row(json.dumps(self.prior)) * 2),
+                        log.replace("##[group]Run actions/setup-go@v1", "##[group]Run actions/checkout@v4"),
+                        log.replace("##[group]Run python3 scripts/ci/gate.py matrix", "not a step")):
+            with self.subTest(changed=changed), unittest.mock.patch.object(Path, "read_text", return_value=changed):
+                self.assertIsNone(reuse_main.plan_from_log(Path("unused"), "12"))
+
+    def test_named_step_log_rejects_environment_echo_and_unbound_checkout(self):
+        checkout = "plan\tRun actions/checkout@v4\t2026-01-01Z "
+        planner = "plan\tRun python3 scripts/ci/plan.py\t2026-01-01Z "
+        fetch = checkout + f"[command]/usr/bin/git fetch origin +{self.tested}:refs/remotes/pull/12/merge\n"
+        command = checkout + "[command]/usr/bin/git log -1 --format=%H\n"
+        sha = checkout + self.tested + "\n"
+        output = planner + json.dumps(self.prior) + "\n"
+        for text in (fetch + sha + output, fetch + command + sha + planner + "  PLAN_JSON: " + json.dumps(self.prior),
+                     fetch * 2 + command + sha + output, fetch + command + sha + command + sha + output):
+            with self.subTest(text=text), mock.patch.object(Path, "read_text", return_value=text):
+                self.assertIsNone(reuse_main.plan_from_log(Path("unused"), "12"))

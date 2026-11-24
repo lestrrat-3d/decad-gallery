@@ -52,6 +52,14 @@ class GateTest(unittest.TestCase):
         needs["plan"]["outputs"]["plan"] = json.dumps(plan)
         self.assertEqual(gate.check(needs, "push"), [])
         self.assertTrue(gate.check(needs, "pull_request"))
+        plan["reused"]["suites"] = ["broad", "full"]
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertEqual(gate.check(needs, "push"), [])
+        self.assertTrue(gate.check(needs, "pull_request"))
+        plan["reused"]["suites"] = ["broad"]
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertTrue(gate.check(needs, "push"))
+        plan["reused"]["suites"] = ["broad", "full"]
         plan["reused"]["tested"] = "not-a-sha"
         needs["plan"]["outputs"]["plan"] = json.dumps(plan)
         self.assertTrue(gate.check(needs, "push"))

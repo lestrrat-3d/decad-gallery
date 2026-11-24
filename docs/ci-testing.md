@@ -143,5 +143,7 @@ model-checks jobs. It verifies the successful "Check planned results" step or th
 The tested merge must have the push base and PR head as its parents. Its tree, changed paths,
 and selected suites must match the main push. The push plan records the PR number, run ID, tested commit and suites.
 
-The repository and aggregate checks still run on main. Direct pushes, broad or full plans, CI changes, and
-missing or inconsistent evidence run the usual push checks. Set `CI_BROAD_OVERRIDE` to `true` to force broad coverage.
+For a full plan, the pull request must also have passed full execution record validation and its producer check.
+The repository and aggregate checks still run on main. Direct pushes, broad-only plans, CI changes, and missing or
+inconsistent evidence run the usual push checks. Set `CI_BROAD_OVERRIDE` to `true` to force broad coverage and disable
+reuse.
