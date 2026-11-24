@@ -20,6 +20,13 @@ def job_section(workflow, job):
 
 
 class WorkflowRecordsTests(unittest.TestCase):
+    def test_sevensegment_cases_match_record_validator_and_dispatch(self):
+        section = job_section(WORKFLOW.read_text(), "sevensegment")
+        matrix = section.split("        shard:\n", 1)[1].split("    name:", 1)[0]
+        cases = re.findall(r"          - ([a-z-]+)", matrix)
+        self.assertEqual(tuple(cases), reconcile_records.FULL_JOBS["sevensegment"])
+        self.assertEqual(tuple(cases), gate.SEVENSEGMENT_CASES)
+
     def test_swiss_cases_match_record_validator(self):
         section = job_section(WORKFLOW.read_text(), "swisslever-full")
         cases = re.search(r"case: \[([^]]+)\]", section).group(1).split(", ")

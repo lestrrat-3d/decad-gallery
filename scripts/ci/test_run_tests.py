@@ -22,6 +22,18 @@ class SevenSegmentShardsTest(unittest.TestCase):
         self.assertEqual(run_tests.SEVENSEGMENT_SHARDS["placement"], ("TestSevenSegmentPlacement",))
         self.assertNotIn("TestSevenSegmentPlacement", run_tests.SEVENSEGMENT_SHARDS["assembly"])
 
+    def test_each_placement_case_requires_its_subtest_and_case_guard(self):
+        with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
+                mock.patch.object(run_tests, "go_test") as execute:
+            for case in run_tests.SEVENSEGMENT_PLACEMENTS:
+                run_tests.run_sevensegment(case)
+        for (case, (_, name)), call in zip(run_tests.SEVENSEGMENT_PLACEMENTS.items(), execute.call_args_list):
+            test = "TestSevenSegmentPlacement/" + name
+            self.assertEqual(call.kwargs["expected"], [test], case)
+            self.assertEqual(call.args[0][2], run_tests.run_pattern([test]))
+            self.assertEqual(call.kwargs["env"]["SEVENSEGMENT_PLACEMENTS"],
+                             "|".join(value[0] for value in run_tests.SEVENSEGMENT_PLACEMENTS.values()))
+
 
 class RunPatternTest(unittest.TestCase):
     def test_empty_partition_records_real_package_outcome(self):

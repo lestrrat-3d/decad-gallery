@@ -49,6 +49,12 @@ class InventoryTests(unittest.TestCase):
         self.assertIn("discovered at runtime", result["subtests"])
         self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])
         self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full/0"])
+        segment = full_partition.ROOT + "/models/sevensegment"
+        self.assertEqual(result["known_assignments"]["root"][segment]["TestSevenSegmentPlacement"],
+                         ["sevensegment/" + case for case in run_tests.SEVENSEGMENT_PLACEMENTS])
+        for _, name in run_tests.SEVENSEGMENT_PLACEMENTS.values():
+            self.assertIn({"package": segment, "test": "TestSevenSegmentPlacement/" + name},
+                          result["required_variants"])
         self.assertEqual(result["known_assignments"]["root"][swiss]["TestForkAction"], ["swisslever-full/fork"])
         self.assertEqual(result["known_assignments"]["root"][swiss]["TestOther"], ["swisslever-full/rest"])
         self.assertEqual(result["known_assignments"]["root"][planetary]["TestKitGearboxes"],

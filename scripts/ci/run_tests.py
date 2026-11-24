@@ -750,6 +750,12 @@ SEVENSEGMENT_SHARDS = {
     ),
     "placement": ("TestSevenSegmentPlacement",),
 }
+SEVENSEGMENT_PLACEMENTS = {
+    "placement-x": ("100 along X", "100_along_X"),
+    "placement-offset": ("offset 10, 20, 30", "offset_10,_20,_30"),
+    "placement-quarter": ("quarter turn about Z", "quarter_turn_about_Z"),
+}
+SEVENSEGMENT_CASES = ("parts", "assembly", *SEVENSEGMENT_PLACEMENTS)
 
 
 def check_sevensegment_coverage() -> None:
@@ -775,12 +781,17 @@ def run_sevensegment(shard: str) -> None:
 
     Every test belongs to exactly one shard; each shard checks that the shards together cover the package.
     """
-    if shard not in SEVENSEGMENT_SHARDS:
-        raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_SHARDS) + ">")
+    if shard not in SEVENSEGMENT_CASES:
+        raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_CASES) + ">")
     check_sevensegment_coverage()
-    tests = list(SEVENSEGMENT_SHARDS[shard])
+    tests = list(SEVENSEGMENT_SHARDS["placement" if shard in SEVENSEGMENT_PLACEMENTS else shard])
+    env = os.environ.copy()
+    if shard in SEVENSEGMENT_PLACEMENTS:
+        env["SEVENSEGMENT_PLACEMENTS"] = "|".join(name for name, _ in SEVENSEGMENT_PLACEMENTS.values())
+        tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1]]
     parallel = ["-parallel", "2"] if shard == "assembly" else []
-    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel], expected=tests)
+    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel],
+            expected=tests, env=env)
 
 
 def run_sevensegment_render() -> None:
@@ -1109,7 +1120,7 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
-    if suite == "sevensegment" and not args and mode in SEVENSEGMENT_SHARDS:
+    if suite == "sevensegment" and not args and mode in SEVENSEGMENT_CASES:
         run_sevensegment(mode)
         return
     if suite == "sevensegment" and not args and mode == "render":

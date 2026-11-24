@@ -75,7 +75,9 @@ def report(root, renderer):
             add(full_partition.ROOT + "/models/handcranksiren", test, "siren/" + case)
     for shard, tests in run_tests.SEVENSEGMENT_SHARDS.items():
         for test in tests:
-            add(full_partition.ROOT + "/models/sevensegment", test, "sevensegment/" + shard)
+            cases = run_tests.SEVENSEGMENT_PLACEMENTS if shard == "placement" else (shard,)
+            for case in cases:
+                add(full_partition.ROOT + "/models/sevensegment", test, "sevensegment/" + case)
 
     for package, label in ((full_partition.ROOT + "/models/spinningwheel", "wheel/rest"),
                            (full_partition.ROOT + "/models/handcranksiren", "siren/rest")):
@@ -87,6 +89,9 @@ def report(root, renderer):
     variants = [{"package": package, "test": test} for package, test in sorted(full_partition.FULL_VARIANTS)]
     variants.extend({"package": planetary, "test": "TestKitGearboxes/" + kit}
                     for kit in run_tests.PLANETARY_KITS)
+    variants.extend({"package": full_partition.ROOT + "/models/sevensegment",
+                     "test": "TestSevenSegmentPlacement/" + name}
+                    for _, name in run_tests.SEVENSEGMENT_PLACEMENTS.values())
     renderer_shards = gate.renderer_full_shards(renderer)
     return {
         "version": 1,

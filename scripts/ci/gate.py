@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import SEVENSEGMENT_SHARDS, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
+from run_tests import SEVENSEGMENT_CASES, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -73,9 +73,9 @@ WORKERS = {
     "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in
                  ("abgh", "cdef", "rest-0", "rest-1", "rest-2", "rest-3")],
     **{name: [RUNNER + [name, "all"]] for name in ("clamparm", "escapement", "onewayclutch", "turbinefan")},
-    "sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
+    "sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_CASES],
     # A new model package would run in one job; the model's own shards split it, as for the targeted suite.
-    "new-model-sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
+    "new-model-sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_CASES],
 }
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
               "clamparm", "sevensegment", "sevensegment-render", "turbinefan",

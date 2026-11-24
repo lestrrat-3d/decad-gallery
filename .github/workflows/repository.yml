@@ -288,7 +288,9 @@ jobs:
         shard:
           - parts
           - assembly
-          - placement
+          - placement-x
+          - placement-offset
+          - placement-quarter
     name: sevensegment-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
