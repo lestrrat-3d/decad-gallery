@@ -12,7 +12,6 @@ import (
 
 // TestClickerBodies requires every click-indexer body to be one solid lump, and each tooth ring to have ten teeth.
 func TestClickerBodies(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	for name, b := range map[string]*decad.Body{"hub": m.Hub, "rotor": m.Rotor, "housing": m.Housing, "button": m.Button} {
@@ -31,7 +30,6 @@ func TestClickerBodies(t *testing.T) {
 // TestClickerHeights reads the button's heights from the built bodies: the head stands 31.9 mm above the front wall at rest (23.9 with the 4.0 mm teeth)
 // and ends flush with the housing's bezel at the bottom of its stroke.
 func TestClickerHeights(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	wall, err := m.FrontWall.Bounds()
@@ -48,7 +46,6 @@ func TestClickerHeights(t *testing.T) {
 // TestClickerPoseClearances moves the parts through a press and a release and requires the parts that are not mating teeth to
 // keep their fits: the rotor to the hub's keys and walls, the button's lugs to the housing's slots.
 func TestClickerPoseClearances(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	type pose struct{ s, drop, turn float64 }

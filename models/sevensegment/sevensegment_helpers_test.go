@@ -14,33 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// build is one assembly build shared by the tests that read it. A test starts it before t.Parallel, so the builds of
-// every test that will run begin at once and overlap (each in a document of its own: decad documents are independent,
-// and the bodies they hand out are immutable and safe to read from anywhere); built waits for it.
+// build caches one immutable assembly for tests in this process.
 type build[T any] struct {
 	once sync.Once
-	done chan struct{}
 	val  T
 	err  error
 }
 
-// start begins the build in the background, the first time it is called.
-func (b *build[T]) start(f func(context.Context) (T, error)) {
-	b.once.Do(func() {
-		b.done = make(chan struct{})
-		go func() {
-			defer close(b.done)
-			// The build outlives the test that started it, so it runs under no test's context.
-			b.val, b.err = f(context.Background())
-		}()
-	})
-}
-
-// built starts the build if no test has, waits for it and returns it.
 func (b *build[T]) built(t *testing.T, f func(context.Context) (T, error)) T {
 	t.Helper()
-	b.start(f)
-	<-b.done
+	b.once.Do(func() { b.val, b.err = f(context.Background()) })
 	require.NoError(t, b.err)
 	return b.val
 }
@@ -58,9 +41,6 @@ func buildDefault(ctx context.Context) (defaultModel, error) {
 	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
 	return defaultModel{doc, m}, err
 }
-
-// startDefault begins the default build for a test about to call t.Parallel.
-func startDefault() { defaultBuild.start(buildDefault) }
 
 // builtDefault returns the default display, built once and shared: the tests only read it.
 func builtDefault(t *testing.T) (*decad.Document, *sevensegment.Model) {
@@ -93,9 +73,6 @@ func buildDigit0(ctx context.Context) (*sevensegment.Parts, error) {
 	return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), sevensegment.Params{Digit: 0})
 }
 
-// startDigit0 begins the digit 0 build for a test about to call t.Parallel.
-func startDigit0() { digit0Build.start(buildDigit0) }
-
 // builtDigit0 returns the printed parts at digit 0, built once and shared: the tests read them and move copies of their
 // meshes, never the bodies.
 func builtDigit0(t *testing.T) *sevensegment.Parts {
@@ -109,30 +86,45 @@ type meshKey struct {
 	tol  float64
 }
 
-// meshEntry is one cached tessellation and its gap mesh.
+// meshEntry holds a cached tessellation and its optional gap mesh.
 type meshEntry struct {
-	once sync.Once
-	mesh *decad.Mesh
-	mg   meshgap.Mesh
-	err  error
+	meshOnce sync.Once
+	mesh     *decad.Mesh
+	meshErr  error
+	gapOnce  sync.Once
+	mg       meshgap.Mesh
+	gapErr   error
 }
 
 var meshCache sync.Map // meshKey -> *meshEntry
+
+// meshEntryOf returns the cached entry for b and tol after verifying its tessellation.
+func meshEntryOf(t *testing.T, b *decad.Body, tol float64) *meshEntry {
+	t.Helper()
+	v, _ := meshCache.LoadOrStore(meshKey{b, tol}, &meshEntry{})
+	e := v.(*meshEntry)
+	e.meshOnce.Do(func() {
+		e.mesh, e.meshErr = b.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+	})
+	require.NoError(t, e.meshErr)
+	return e
+}
+
+// rawMeshOf returns the verified tessellation without constructing a gap mesh.
+func rawMeshOf(t *testing.T, b *decad.Body, tol float64) *decad.Mesh {
+	t.Helper()
+	return meshEntryOf(t, b, tol).mesh
+}
 
 // meshOf returns the mesh of b at tol and its gap mesh, each computed once per body and tolerance and shared. Callers
 // read them only: a test that moves a mesh copies its vertices first.
 func meshOf(t *testing.T, b *decad.Body, tol float64) (*decad.Mesh, meshgap.Mesh) {
 	t.Helper()
-	v, _ := meshCache.LoadOrStore(meshKey{b, tol}, &meshEntry{})
-	e := v.(*meshEntry)
-	e.once.Do(func() {
-		e.mesh, e.err = b.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
-		if e.err != nil {
-			return
-		}
-		e.mg, e.err = meshgap.New(e.mesh.Vertices(), e.mesh.Triangles(), e.mesh.Bound().Base())
+	e := meshEntryOf(t, b, tol)
+	e.gapOnce.Do(func() {
+		e.mg, e.gapErr = meshgap.New(e.mesh.Vertices(), e.mesh.Triangles(), e.mesh.Bound().Base())
 	})
-	require.NoError(t, e.err)
+	require.NoError(t, e.gapErr)
 	return e.mesh, e.mg
 }
 

@@ -3,7 +3,6 @@ package sevensegment_test
 // CI: isolated-tests
 
 import (
-	"context"
 	"math"
 	"strings"
 	"testing"
@@ -17,7 +16,6 @@ import (
 )
 
 func TestSevenSegmentDefault(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	doc, m := builtDefault(t)
 	require.Len(t, doc.Bodies(), 75)
@@ -85,7 +83,6 @@ func TestSevenSegmentDefault(t *testing.T) {
 }
 
 func TestSevenSegmentContainers(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	doc, m := builtDefault(t)
 	require.NoError(t, doc.VerifyContainers().Err())
@@ -156,7 +153,6 @@ func TestSevenSegmentContainers(t *testing.T) {
 }
 
 func TestSevenSegmentFasteners(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	const tol = 0.02
@@ -243,7 +239,6 @@ func TestSevenSegmentFasteners(t *testing.T) {
 // race with 0.05 mm of radial clearance (P2), the shaft's journal equals the bore (N1, a nominal exception: no clearance
 // and no overlap), and no other printed part touches a bearing.
 func TestSevenSegmentBearings(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	parts := printed(m)
@@ -300,30 +295,17 @@ func TestSevenSegmentPlacement(t *testing.T) {
 		{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
 		{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
 	}
-	builds := make([]build[*sevensegment.Parts], len(cases))
-	frames := make([]r3.Frame, len(cases))
-	for i, c := range cases {
-		var err error
-		frames[i], err = r3.NewFrame(c.origin, c.u, c.v)
-		require.NoError(t, err)
-		p := sevensegment.DefaultParams()
-		p.Placement = &frames[i]
-		builds[i].start(func(ctx context.Context) (*sevensegment.Parts, error) {
-			return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), p)
-		})
-	}
-	startDefault()
 	t.Parallel()
 	_, base := builtDefault(t)
 	plain := printed(base)
-	for i, c := range cases {
+	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			frame := frames[i]
+			frame, err := r3.NewFrame(c.origin, c.u, c.v)
+			require.NoError(t, err)
 			p := sevensegment.DefaultParams()
 			p.Placement = &frame
-			parts := builds[i].built(t, func(ctx context.Context) (*sevensegment.Parts, error) {
-				return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), p)
-			})
+			parts, err := sevensegment.BuildParts(t.Context(), sevensegment.NewDocument(), p)
+			require.NoError(t, err)
 			place, err := r3.FromFrame(frame)
 			require.NoError(t, err)
 			for name, b := range printed(&sevensegment.Model{Parts: *parts}) {
@@ -368,17 +350,16 @@ func TestSevenSegmentPlacement(t *testing.T) {
 // turned. It checks every cam against its slider (the pin keeps the Regular minimum from the groove), every slider
 // against the plates, the other sliders and its own flag, and every flag against the plates and the other flags.
 func TestSevenSegmentAllDigits(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	dm := parts.Dimensions
 	var cams, sliders, yellows, blacks [7]*decad.Mesh
 	var fixed [3]meshgap.Mesh
 	for _, s := range sevensegment.Segments() {
-		cams[s], _ = meshOf(t, parts.Cams[s], 0.05)
-		sliders[s], _ = meshOf(t, parts.Sliders[s], 0.05)
-		yellows[s], _ = meshOf(t, parts.Flags[s].Yellow, 0.05)
-		blacks[s], _ = meshOf(t, parts.Flags[s].Black, 0.05)
+		cams[s] = rawMeshOf(t, parts.Cams[s], 0.05)
+		sliders[s] = rawMeshOf(t, parts.Sliders[s], 0.05)
+		yellows[s] = rawMeshOf(t, parts.Flags[s].Yellow, 0.05)
+		blacks[s] = rawMeshOf(t, parts.Flags[s].Black, 0.05)
 	}
 	_, fixed[0] = meshOf(t, parts.TopPlate, 0.05)
 	_, fixed[1] = meshOf(t, parts.GuidePlate, 0.05)

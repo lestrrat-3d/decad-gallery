@@ -85,7 +85,6 @@ func TestSevenSegmentFlagRestBand(t *testing.T) {
 // the bias ratio at the worst-case ends of the rest bands (a, g, d at z play 0.30, b to f at 0.42) stays above 1.50 (A) and
 // 1.75 (B). The rotor's weight and centre of mass come from the built bodies.
 func TestSevenSegmentRestBias(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	l := builtLoads(t)
 	_, uwA, lwA, _, _ := bands(sevensegment.PinLinePlay, 0.30, slotClear, 0.15)
@@ -102,7 +101,6 @@ func TestSevenSegmentRestBias(t *testing.T) {
 // friction 0.5 the drive arm is at least 1.50 times the friction arms with the journal settled and 1.35 with it fully
 // across (the computed 1.554 and 1.382). The loads are logged.
 func TestSevenSegmentDriveAudit(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	l := builtLoads(t)
 	t.Logf("rotor A: weight %.5f N, com %.3f at %.1f deg; rotor B: weight %.5f N, com %.3f at %.1f deg; slider %.5f N",

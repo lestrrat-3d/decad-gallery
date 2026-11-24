@@ -125,7 +125,6 @@ func TestSevenSegmentRampGeometry(t *testing.T) {
 }
 
 func TestSevenSegmentChannel(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)

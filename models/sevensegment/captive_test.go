@@ -19,7 +19,6 @@ import (
 // the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every pin
 // in its pocket and every blade in its tube (the slider does not touch the black body or the plates).
 func TestSevenSegmentCaptive(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	var worstTop, worstBlack float64
 	parts := builtDigit0(t)
@@ -140,7 +139,6 @@ func TestSevenSegmentCaptive(t *testing.T) {
 // measures the tongue's gap to the black body (T8, at least 0.7) and the pin's gap to the pocket walls (T7, at least 0.2)
 // as point distances from the slider's pin and tongue vertices to the black mesh.
 func TestSevenSegmentSweep(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	dm := parts.Dimensions
