@@ -375,10 +375,10 @@ func TestSevenSegmentAllDigits(t *testing.T) {
 	var cams, sliders, yellows, blacks [7]*decad.Mesh
 	var fixed [3]meshgap.Mesh
 	for _, s := range sevensegment.Segments() {
-		cams[s], _ = meshOf(t, parts.Cams[s], 0.05)
-		sliders[s], _ = meshOf(t, parts.Sliders[s], 0.05)
-		yellows[s], _ = meshOf(t, parts.Flags[s].Yellow, 0.05)
-		blacks[s], _ = meshOf(t, parts.Flags[s].Black, 0.05)
+		cams[s] = rawMeshOf(t, parts.Cams[s], 0.05)
+		sliders[s] = rawMeshOf(t, parts.Sliders[s], 0.05)
+		yellows[s] = rawMeshOf(t, parts.Flags[s].Yellow, 0.05)
+		blacks[s] = rawMeshOf(t, parts.Flags[s].Black, 0.05)
 	}
 	_, fixed[0] = meshOf(t, parts.TopPlate, 0.05)
 	_, fixed[1] = meshOf(t, parts.GuidePlate, 0.05)
