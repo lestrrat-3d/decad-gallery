@@ -152,8 +152,22 @@ def validate_manifest(manifest):
     if not package.startswith(prefix):
         raise ValueError("invalid case package")
     name = package.removeprefix(prefix)
-    if discover(name) != manifest:
+    current = discover(name)
+    if current is None:
+        raise ValueError("case manifest no longer has approved sources")
+    planned_attempt = manifest["identity"]["attempt"]
+    if not attempt_between(planned_attempt, "1", current["identity"]["attempt"]):
+        raise ValueError("case plan attempt is newer than this worker")
+    current["identity"]["attempt"] = planned_attempt
+    if current != manifest:
         raise ValueError("case manifest does not match the current checkout and execution profile")
+
+
+def attempt_between(value, first, last):
+    if not all(isinstance(attempt, str) and re.fullmatch(r"[1-9][0-9]*", attempt)
+               for attempt in (first, value, last)):
+        return False
+    return (len(first), first) <= (len(value), value) <= (len(last), last)
 
 
 def build_plan(manifest):
@@ -190,7 +204,8 @@ def run_planned(plan, case):
     receipt_path = os.environ.get("CI_CASE_RECEIPT")
     if receipt_path:
         encoded = json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
-        receipt = {"version": 1, "case": case, "kind": job["kind"],
+        receipt = {"version": 2, "producer_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
+                   "case": case, "kind": job["kind"],
                    "plan_sha256": hashlib.sha256(encoded).hexdigest(), "identity": plan["manifest"]["identity"]}
         if job["kind"] != "audit":
             receipt["record_sha256"] = record_digest(Path(os.environ["CI_TEST_RECORDS"]))
@@ -243,9 +258,9 @@ def verify_worker_records(path, expected_digest, metadata):
     return passed
 
 
-def verify_execution(plan, receipts, records):
+def verify_execution(plan, receipts, records, max_attempt=None):
     """Require every planned case, audit, remainder and record exactly once."""
-    if plan != build_plan(plan["manifest"]):
+    if plan != {"version": 1, "manifest": plan["manifest"], "jobs": assignments(plan["manifest"])}:
         raise ValueError("case plan is incomplete or altered")
     jobs = {job["case"]: job for job in plan["jobs"]}
     if set(receipts) != set(jobs) or set(records) != {case for case, job in jobs.items() if job["kind"] != "audit"}:
@@ -254,6 +269,8 @@ def verify_execution(plan, receipts, records):
     digest = hashlib.sha256(encoded).hexdigest()
     identity = plan["manifest"]["identity"]
     package = plan["manifest"]["package"]
+    if max_attempt is None:
+        max_attempt = identity["attempt"]
     parents = set(plan["manifest"]["parents"])
     expected_remainder = set(plan["manifest"]["tests"]) - parents
     all_leaves = {}
@@ -263,6 +280,12 @@ def verify_execution(plan, receipts, records):
             raise ValueError("case receipt is too large")
         receipt = json.loads(path.read_text())
         expected = {"version": 1, "case": case, "kind": job["kind"], "plan_sha256": digest, "identity": identity}
+        producer_attempt = identity["attempt"]
+        if receipt.get("version") == 2:
+            producer_attempt = receipt.get("producer_attempt")
+            expected.update(version=2, producer_attempt=producer_attempt)
+        if not attempt_between(producer_attempt, identity["attempt"], max_attempt):
+            raise ValueError("case receipt has an invalid producer attempt")
         if job["kind"] != "audit":
             expected["record_sha256"] = receipt.get("record_sha256")
         if receipt != expected:
@@ -271,9 +294,9 @@ def verify_execution(plan, receipts, records):
             continue
         path = Path(records[case])
         metadata = {path: {"job": "case-workers", "case": case, "revision": identity["revision"],
-                           "run_id": identity["run_id"], "run_attempt": identity["attempt"], "module": "."}}
+                           "run_id": identity["run_id"], "run_attempt": producer_attempt, "module": "."}}
         verify_worker_records(path, receipt["record_sha256"], {**metadata[path], "package": package})
-        leaves, passed, packages, errors, _ = reconcile_records.read_records([path], metadata, identity["attempt"])
+        leaves, passed, packages, errors, _ = reconcile_records.read_records([path], metadata, producer_attempt)
         if errors or packages != {(".", package)}:
             raise ValueError("case records are invalid")
         tests = {test for module, pkg, test in passed if module == "." and pkg == package}

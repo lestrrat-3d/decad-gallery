@@ -109,6 +109,7 @@ def report(root, renderer, case_plan=None):
     renderer_shards = gate.renderer_full_shards(renderer)
     return {
         "version": 1,
+        "case_plan": case_plan,
         "modules": {"root": root, "renderer": renderer},
         "known_assignments": {
             "root": assignments,
@@ -132,7 +133,12 @@ def split_renderer(discovered):
 
 
 def main():
-    print(json.dumps(report(*split_renderer(discover(["go"])), case_plan=json.loads(os.environ.get("CASE_PLAN", "null"))), indent=2, sort_keys=True))
+    case_plan = json.loads(os.environ.get("CASE_PLAN", "null"))
+    if "CASE_PLAN" in os.environ and case_plan is None:
+        import case_inventory
+        if case_inventory.discover("cycloidal") is not None:
+            raise ValueError("reviewed cycloidal package requires its case plan")
+    print(json.dumps(report(*split_renderer(discover(["go"])), case_plan=case_plan), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
