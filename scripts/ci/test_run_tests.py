@@ -10,6 +10,7 @@ import unittest
 from unittest import mock
 
 import run_tests
+import reconcile_records
 
 
 class SevenSegmentShardsTest(unittest.TestCase):
@@ -19,6 +20,21 @@ class SevenSegmentShardsTest(unittest.TestCase):
 
 
 class RunPatternTest(unittest.TestCase):
+    def test_empty_partition_records_real_package_outcome(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        package = "github.com/lestrrat-3d/decad-gallery/internal/hexnut"
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            records = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(records)}):
+                run_tests.go_test([package, "-run", "^$"], package=package, require_empty_package=True)
+            rows = [json.loads(line) for line in records.read_text().splitlines()]
+            leaves, _, packages, errors, _ = reconcile_records.read_records([records])
+        self.assertEqual([row["kind"] for row in rows], ["package", "complete"])
+        self.assertEqual((rows[0]["package"], rows[0]["status"]), (package, "pass"))
+        self.assertFalse(leaves)
+        self.assertEqual(packages, {(".", package)})
+        self.assertFalse(errors)
+
     def test_single_test(self):
         self.assertEqual(run_tests.run_pattern(["TestA"]), "^TestA$")
 

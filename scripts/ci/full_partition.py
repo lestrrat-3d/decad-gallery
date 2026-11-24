@@ -60,7 +60,8 @@ def main(mode="repository"):
         run_tests.go_test([*selected, "-timeout", "60m"], env=env, qualified_expected=expected)
     elif mode == "bevel-remainder":
         pattern = run_tests.run_pattern(remainder) if remainder else "^$"
-        run_tests.go_test([BEVEL, "-run", pattern, "-timeout", "60m"], remainder, env=env, package=BEVEL)
+        run_tests.go_test([BEVEL, "-run", pattern, "-timeout", "60m"], remainder, env=env, package=BEVEL,
+                          require_empty_package=not remainder)
     elif mode in ("handcrankfan", "swisslever"):
         package = ROOT + "/models/" + mode
         required = set(inventory[package])

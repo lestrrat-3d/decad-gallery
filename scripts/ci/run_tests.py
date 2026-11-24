@@ -380,20 +380,20 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False, module: str = ".") -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".", package_outcomes=None) -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
     record_path = os.environ.get("CI_TEST_RECORDS")
     invocation = uuid.uuid4().hex if record_path else None
     records = open(record_path, "a", encoding="utf-8") if record_path else None
     try:
-        return _read_finished_tests(lines, qualified, module, invocation, records, finished)
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes)
     finally:
         if records is not None:
             records.close()
 
 
-def _read_finished_tests(lines, qualified, module, invocation, records, finished):
+def _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes):
     metadata = {"version": 1, "invocation": invocation, "module": module,
                 "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
                 "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
@@ -423,6 +423,8 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                 record("malformed", reason="invalid_identity")
             else:
                 record("test" if test else "package", package=package, test=test, status=event["Action"])
+                if not test and package_outcomes is not None:
+                    package_outcomes[package] = event["Action"]
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
@@ -434,7 +436,7 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
 def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
             package: str | None = None, allowed_skips: frozenset[str] = frozenset(),
             qualified_expected: set[tuple[str, str]] | None = None, cwd: str | None = None,
-            module: str = ".") -> None:
+            module: str = ".", require_empty_package: bool = False) -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
@@ -443,10 +445,14 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
         kwargs["cwd"] = cwd
     proc = subprocess.Popen(command, **kwargs)
     qualified = package is not None or qualified_expected is not None
-    finished = finished_tests(proc.stdout, qualified=qualified, module=module)
+    outcomes = {} if require_empty_package else None
+    finished = finished_tests(proc.stdout, qualified=qualified, module=module, package_outcomes=outcomes)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    if not finished:
+    if require_empty_package:
+        if not package or finished or outcomes != {package: "pass"}:
+            raise SystemExit("empty partition did not produce exactly one passing package and no tests")
+    elif not finished:
         raise SystemExit("go test ran no tests; check the -run pattern")
     missing = [
         f"{package}/{name}" if package else name
