@@ -7,15 +7,16 @@ import (
 	"github.com/lestrrat-3d/decad"
 )
 
-// point is a planar sketch coordinate in millimeters.
+// point is a planar coordinate in the gear's sketch frame.
 type point struct{ x, y float64 }
 
-// dimensions holds the derived radii and backlash read from the parameter table.
+// dimensions holds the derived radii and the backlash read from the
+// parameter table, all in millimeters.
 type dimensions struct {
 	pitch, base, root, tip, fillet, backlash float64
 }
 
-// readDimensions reads the derived dimensions from the document's parameter table.
+// readDimensions reads the derived dimensions from the document's table.
 func readDimensions(doc *decad.Document) (dimensions, error) {
 	var d dimensions
 	targets := []struct {
@@ -39,8 +40,8 @@ func readDimensions(doc *decad.Document) (dimensions, error) {
 	return d, nil
 }
 
-// derive computes the gear dimensions through a scratch document. It returns a
-// zero dimensions value when the parameters cannot be defined or read.
+// derive computes the dimensions of p through a scratch document. It returns
+// a zero value when the parameter table cannot be defined or read.
 func derive(p Params) dimensions {
 	doc := decad.New()
 	if err := defineParameters(doc.Params(), p); err != nil {
@@ -53,99 +54,72 @@ func derive(p Params) dimensions {
 	return d
 }
 
-// filletRadius returns the root fillet radius of the derived dimensions.
+// filletRadius returns the root fillet radius of d.
 func filletRadius(p Params, d dimensions) float64 {
 	return d.fillet
 }
 
-// rotate turns (x, y) about the origin by theta radians.
+// rotate turns (x, y) by theta about the origin.
 func rotate(x, y, theta float64) point {
-	c, s := math.Cos(theta), math.Sin(theta)
+	s, c := math.Sincos(theta)
 	return point{x*c - y*s, x*s + y*c}
 }
 
-// rootContact scales a base-circle point onto the root circle. Each coordinate
-// is multiplied by the root radius before it is divided by the base radius.
+// rootContact scales a base-circle point out to the root circle.
 func rootContact(basePoint point, d dimensions) point {
 	return point{basePoint.x * d.root / d.base, basePoint.y * d.root / d.base}
 }
 
-// toothAngle returns the angular position of tooth k.
+// toothAngle returns the angle of tooth k.
 func toothAngle(p Params, k int) float64 {
 	return 2 * math.Pi * float64(k) / float64(p.Teeth)
 }
 
-// involutePoint evaluates the original involute of a base circle at radius r.
+// involutePoint returns the original involute point at radius r, mirrored
+// across X (negative Y).
 func involutePoint(base, r float64) point {
 	ratio := base / r
 	if ratio > 1 {
 		ratio = 1
 	}
 	t := math.Tan(math.Acos(ratio))
-	return point{
-		base * (math.Cos(t) + t*math.Sin(t)),
-		base * (math.Sin(t) - t*math.Cos(t)),
-	}
+	x := base * (math.Cos(t) + t*math.Sin(t))
+	y := base * (math.Sin(t) - t*math.Cos(t))
+	return point{x, -y}
 }
 
-// flankShift returns the rotation that places the mirrored involute's pitch
-// crossing at pi/(2*teeth) - backlash/(2*pitch) from the tooth axis.
-func flankShift(pitch, base, teeth, backlash float64) float64 {
-	pp := involutePoint(base, pitch)
-	py := -pp.y
+// flankRotation returns the angle beta that turns the mirrored involute so its
+// pitch crossing lies at pi/(2*teeth) - backlash/(2*pitch).
+func flankRotation(pitch, base, teeth, backlash float64) float64 {
 	delta := backlash / (2 * pitch)
-	return math.Pi/(2*teeth) - delta - math.Atan2(py, pp.x)
+	pp := involutePoint(base, pitch)
+	return math.Pi/(2*teeth) - delta - math.Atan2(pp.y, pp.x)
 }
 
-// sampleFlanks samples both flanks of one tooth from radius start to tip. It
-// returns the left array then the right array, each running start-to-tip, both
-// turned by angle. teeth may be non-integral.
+// flankHalfAngle returns the angle between the tooth axis and the left flank
+// where the flank meets radius r.
+func flankHalfAngle(pitch, base, teeth, backlash, r float64) float64 {
+	beta := flankRotation(pitch, base, teeth, backlash)
+	ip := involutePoint(base, r)
+	q := rotate(ip.x, ip.y, beta)
+	return math.Atan2(q.y, q.x)
+}
+
+// sampleFlanks samples the left and right flanks of one tooth from radius
+// start to radius tip, both ends included, and turns them by angle. Both
+// arrays run from start to tip. It returns the left array then the right one.
 func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int,
 	angle float64) ([]point, []point) {
-	beta := flankShift(pitch, base, teeth, backlash)
+	beta := flankRotation(pitch, base, teeth, backlash)
 	left := make([]point, samples)
 	right := make([]point, samples)
 	for i := 0; i < samples; i++ {
 		r := start + (tip-start)*float64(i)/float64(samples-1)
 		ip := involutePoint(base, r)
-		l := rotate(ip.x, -ip.y, beta)
+		l := rotate(ip.x, ip.y, beta)
 		rt := point{l.x, -l.y}
 		left[i] = rotate(l.x, l.y, angle)
 		right[i] = rotate(rt.x, rt.y, angle)
 	}
 	return left, right
-}
-
-// InvoluteFlanks samples the left and right involute flanks of one tooth with
-// caller-supplied radii and a real-valued effective tooth count. Both arrays
-// run from the base circle to the tip circle and are turned by angle. No
-// backlash is applied.
-func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
-	angle float64) ([][2]float64, [][2]float64, error) {
-	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, nil, fmt.Errorf("involute flanks: nonfinite input")
-		}
-	}
-	switch {
-	case base <= 0:
-		return nil, nil, fmt.Errorf("involute flanks: base radius %g must be positive", base)
-	case pitch <= base:
-		return nil, nil, fmt.Errorf("involute flanks: pitch radius %g must exceed base radius %g", pitch, base)
-	case tip <= pitch:
-		return nil, nil, fmt.Errorf("involute flanks: tip radius %g must exceed pitch radius %g", tip, pitch)
-	case effectiveTeeth <= 0:
-		return nil, nil, fmt.Errorf("involute flanks: effective teeth %g must be positive", effectiveTeeth)
-	case samples < 3:
-		return nil, nil, fmt.Errorf("involute flanks: samples %d must be at least 3", samples)
-	}
-	left, right := sampleFlanks(pitch, base, base, tip, effectiveTeeth, 0, samples, angle)
-	toPairs := func(in []point) [][2]float64 {
-		out := make([][2]float64, len(in))
-		for i, q := range in {
-			out[i] = [2]float64{q.x, q.y}
-		}
-		return out
-	}
-	return toPairs(left), toPairs(right), nil
 }
