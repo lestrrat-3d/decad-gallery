@@ -95,6 +95,7 @@ assigned paths; the remainder checks for overlapping assignments and missing top
 listed test results and explicitly checks the configured fan and planetary variants. Each `renderer-full` job lists
 renderer packages and tests, then requires its assigned tests and their subtests to pass. Full runs skip the separate
 PR renderer jobs because the `renderer-full` jobs run those renderer tests.
+Seven-segment checks run the placement test separately from the remaining assembly tests and the part tests.
 
 The full planetary suite runs each non-default kit in its own job and requires its named subtest. Five further jobs
 partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation

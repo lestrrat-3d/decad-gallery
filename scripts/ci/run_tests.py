@@ -719,8 +719,7 @@ def run_model_packages(names: tuple[str, ...]) -> None:
             qualified_expected=expected)
 
 
-# Two shards by what the tests build: "parts" holds the part tests (each part is built once and shared across them) and
-# "assembly" the tests of the assembled display (the digit 0 and default builds are shared).
+# Group part tests and assembly tests around their shared builds. Run placement separately because it builds each pose.
 SEVENSEGMENT_SHARDS = {
     "parts": (
         "TestClickerLandGaps", "TestClickerPoses", "TestClickerPressTurn", "TestClickerRadialFits",
@@ -742,13 +741,14 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDriveAudit",
         "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFlagReuse", "TestSevenSegmentFollowerDrive",
-        "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks", "TestSevenSegmentPlacement",
+        "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks",
         "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
         "TestSevenSegmentTongueSweep", "TestSevenSegmentTruthTable", "TestSevenSegmentValidate",
         "TestSevenSegmentVisibility", "TestSevenSegmentWindowLip",
         "TestSevenSegmentWindowYellow",
     ),
+    "placement": ("TestSevenSegmentPlacement",),
 }
 
 
@@ -1127,7 +1127,7 @@ def main() -> None:
     raise SystemExit(
         "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest-0..3>"
         " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
-        " | onewayclutch all | clamparm all | sevensegment <parts|assembly|render> | turbinefan all | fan <flat-three|steep-three>"
+        " | onewayclutch all | clamparm all | sevensegment <parts|assembly|placement|render> | turbinefan all | fan <flat-three|steep-three>"
     )
 
 

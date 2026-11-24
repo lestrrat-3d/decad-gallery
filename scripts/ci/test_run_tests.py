@@ -18,6 +18,10 @@ class SevenSegmentShardsTest(unittest.TestCase):
         # The same check the CI job runs: the shards are disjoint and list every test of the package.
         run_tests.check_sevensegment_coverage()
 
+    def test_placement_has_its_own_shard(self):
+        self.assertEqual(run_tests.SEVENSEGMENT_SHARDS["placement"], ("TestSevenSegmentPlacement",))
+        self.assertNotIn("TestSevenSegmentPlacement", run_tests.SEVENSEGMENT_SHARDS["assembly"])
+
 
 class RunPatternTest(unittest.TestCase):
     def test_empty_partition_records_real_package_outcome(self):
