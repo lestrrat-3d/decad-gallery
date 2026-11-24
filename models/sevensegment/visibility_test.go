@@ -122,7 +122,7 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 	t.Parallel()
 	parts := builtDigit0(t)
 	dm := parts.Dimensions
-	topMesh, _ := meshOf(t, parts.TopPlate, 0.05)
+	topMesh := rawMeshOf(t, parts.TopPlate, 0.05)
 	plate := trisOf(topMesh, nil, r3.Vec{}, kindPlate)
 	for _, c := range []struct {
 		seg    sevensegment.Segment
@@ -134,8 +134,8 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		{sevensegment.SegB, [3]float64{-41.22, -37.90, -36.90}, map[float64]float64{45: 0.95, 33.41: 0.82, 29.39: 0.76}, "b to f"},
 	} {
 		s := c.seg
-		yMesh, _ := meshOf(t, parts.Flags[s].Yellow, 0.02)
-		bMesh, _ := meshOf(t, parts.Flags[s].Black, 0.02)
+		yMesh := rawMeshOf(t, parts.Flags[s].Yellow, 0.02)
+		bMesh := rawMeshOf(t, parts.Flags[s].Black, 0.02)
 		point, axis := segmentAxis(s)
 		sAxis := r3.Vec{Z: 1}.Cross(axis)
 		cx, cy := point.X, point.Y
