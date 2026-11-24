@@ -68,31 +68,35 @@ func TestDriveClearances(t *testing.T) {
 // Each option the add-in offers builds a drive whose bodies all pass 0.1 mm VerifyAll.
 func TestBuildOptions(t *testing.T) {
 	t.Parallel()
-	placed, err := r3.NewFrame(r3.NewVec(10, 20, 30), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
-	require.NoError(t, err)
-	cases := []ciCase[func(*cycloidal.Params)]{
-		{"solid_cam", func(p *cycloidal.Params) { p.InputShaftDiameter = 0 }},
-		{"pin_diameters", func(p *cycloidal.Params) { p.PinDiameter, p.OutputPinDiameter = 8, 6 }},
-		{"pins_12", func(p *cycloidal.Params) { p.PinCount = 12 }},
-		{"pins_24", func(p *cycloidal.Params) { p.PinCount = 24 }},
-		{"output_pins_5", func(p *cycloidal.Params) { p.OutputPinCount = 5 }},
-		{"two_discs_pins_20", func(p *cycloidal.Params) { p.DiscCount, p.PinCount, p.DiscGap = 2, 20, 1.4 }},
-		{"two_discs_chamfered", func(p *cycloidal.Params) {
+	cases := []ciCase[func(*testing.T, *cycloidal.Params)]{
+		{"solid_cam", func(_ *testing.T, p *cycloidal.Params) { p.InputShaftDiameter = 0 }},
+		{"pin_diameters", func(_ *testing.T, p *cycloidal.Params) { p.PinDiameter, p.OutputPinDiameter = 8, 6 }},
+		{"pins_12", func(_ *testing.T, p *cycloidal.Params) { p.PinCount = 12 }},
+		{"pins_24", func(_ *testing.T, p *cycloidal.Params) { p.PinCount = 24 }},
+		{"output_pins_5", func(_ *testing.T, p *cycloidal.Params) { p.OutputPinCount = 5 }},
+		{"two_discs_pins_20", func(_ *testing.T, p *cycloidal.Params) { p.DiscCount, p.PinCount, p.DiscGap = 2, 20, 1.4 }},
+		{"two_discs_chamfered", func(_ *testing.T, p *cycloidal.Params) {
 			p.DiscCount, p.DiscGap, p.ChamferSize = 2, cycloidal.MinCamNeck, cycloidal.MinChamferSize
 		}},
-		{"pins_12_chamfered", func(p *cycloidal.Params) { p.PinCount, p.ChamferSize = 12, 0.5 }},
-		{"pins_20_chamfered", func(p *cycloidal.Params) { p.PinCount, p.ChamferSize = 20, 0.5 }},
-		{"clearances_chamfered", func(p *cycloidal.Params) {
+		{"pins_12_chamfered", func(_ *testing.T, p *cycloidal.Params) { p.PinCount, p.ChamferSize = 12, 0.5 }},
+		{"pins_20_chamfered", func(_ *testing.T, p *cycloidal.Params) { p.PinCount, p.ChamferSize = 20, 0.5 }},
+		{"clearances_chamfered", func(_ *testing.T, p *cycloidal.Params) {
 			p.DiskClearance, p.BearingClearance, p.ChamferSize = cycloidal.MinClearance, 2*cycloidal.MinClearance, cycloidal.MinChamferSize
 		}},
-		{"placement", func(p *cycloidal.Params) { p.Placement = &placed }},
-		{"thin_housing", func(p *cycloidal.Params) { p.HousingWall, p.BaseThickness, p.OutputPlateThickness = 1.6, 2, 2 }},
-		{"clearances", func(p *cycloidal.Params) { p.DiskClearance, p.BearingClearance = 0.6, 1.2 }},
+		{"placement", func(t *testing.T, p *cycloidal.Params) {
+			placed, err := r3.NewFrame(r3.NewVec(10, 20, 30), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
+			require.NoError(t, err)
+			p.Placement = &placed
+		}},
+		{"thin_housing", func(_ *testing.T, p *cycloidal.Params) {
+			p.HousingWall, p.BaseThickness, p.OutputPlateThickness = 1.6, 2, 2
+		}},
+		{"clearances", func(_ *testing.T, p *cycloidal.Params) { p.DiskClearance, p.BearingClearance = 0.6, 1.2 }},
 	}
-	ciRunCases(t, cases, func(t *testing.T, mod func(*cycloidal.Params)) {
+	ciRunCases(t, cases, func(t *testing.T, mod func(*testing.T, *cycloidal.Params)) {
 		t.Parallel()
 		p := cycloidal.DefaultParams()
-		mod(&p)
+		mod(t, &p)
 		require.Empty(t, cycloidal.Problems(p))
 		doc := chainDocument()
 		drive, err := cycloidal.Build(t.Context(), doc, p)
