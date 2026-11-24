@@ -31,8 +31,8 @@ edge is also concave. Fillet it with decad.Fillet, selecting by decad.EndpointAt
 
 Create a sketch on world.XY(), sketch.CreatePolygon(0, 0, 6, s/sqrt(3)), constrain the center coincident with the
 origin, the second side horizontal, and the distance from the center to that side to s/2.
-Verify it is fully constrained. Extrude its profile along +Z by t plus 0.5, lift it by k - t with
-r3.Translation, and decad.Cut it from the body.
+Verify it is fully constrained. Put the sketch on the plane z = k - t (the socket floor) and cut the body with
+decad.CutExtrude of its profile along +Z by t plus 0.5.
 
 ## 3. Hex-head bolt
 
