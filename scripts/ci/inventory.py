@@ -49,6 +49,15 @@ def report(root, renderer):
     for index, tests in enumerate(run_tests.ESCAPEMENT_SHARDS, 1):
         for test in tests:
             add(full_partition.ROOT + "/models/escapement", test, f"escapement/{index}")
+    planetary = full_partition.ROOT + "/models/planetarygearbox"
+    planetary_tests = root[planetary]
+    if "TestKitGearboxes" in planetary_tests:
+        add(planetary, "TestKitGearboxes", "planetary-full/kits")
+    for index, tests in enumerate(run_tests.planetary_test_shards(
+            [test for test in planetary_tests if test != "TestKitGearboxes"],
+            run_tests.PLANETARY_FULL_REST_SHARDS)):
+        for test in tests:
+            add(planetary, test, f"planetary-full/rest-{index}")
     for case, tests in run_tests.WHEEL_EXPECTED.items():
         for test in tests:
             add(full_partition.ROOT + "/models/spinningwheel", test, "wheel/" + case)

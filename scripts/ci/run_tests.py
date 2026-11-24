@@ -859,6 +859,7 @@ def run_full_models() -> None:
 
 
 PLANETARY_PR_SHARDS = 21
+PLANETARY_FULL_REST_SHARDS = 5
 FAN_PR_SHARDS = 10
 
 
@@ -887,9 +888,11 @@ def planetary_test_weight(name: str) -> int:
     return PLANETARY_TEST_SECONDS.get(name, 60)
 
 
-def planetary_test_shards(tests: list[str]) -> list[list[str]]:
+def planetary_test_shards(tests: list[str], count: int | None = None) -> list[list[str]]:
     """Balance discovered tests without relying on estimates for coverage."""
-    shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
+    if count is None:
+        count = PLANETARY_PR_SHARDS - 1
+    shards = [[] for _ in range(count)]
     weights = [0] * len(shards)
     # Charge the time for the entire group, including the shared build once.
     fixture_groups = (
@@ -997,13 +1000,17 @@ def run_planetary_full(shard: str) -> None:
     package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
     output = subprocess.run(["go", "test", "-list", "^Test", package],
                             check=True, capture_output=True, text=True).stdout
-    tests = {line for line in output.splitlines() if line.startswith("Test")}
+    tests = [line for line in output.splitlines() if line.startswith("Test")]
     kit = "TestKitGearboxes"
-    if kit not in tests or len(tests) < 2:
+    if kit not in tests or len(tests) != len(set(tests)) or len(tests) <= PLANETARY_FULL_REST_SHARDS:
         raise SystemExit("planetary test inventory is incomplete")
-    selected = [kit] if shard == "kits" else sorted(tests - {kit}) if shard == "rest" else None
+    rest = planetary_test_shards([test for test in tests if test != kit], PLANETARY_FULL_REST_SHARDS)
+    cases = {f"rest-{index}": tests for index, tests in enumerate(rest)}
+    selected = [kit] if shard == "kits" else cases.get(shard)
     if selected is None:
         raise SystemExit("invalid planetary shard")
+    if not selected:
+        raise SystemExit("planetary full shard is empty")
     expected = set(selected)
     if shard == "kits":
         expected.update(f"{kit}/{name}" for name in (

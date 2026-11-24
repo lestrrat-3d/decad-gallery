@@ -14,7 +14,7 @@ IDENTITY = re.compile(r"^[^\s\x00-\x1f\x7f]+$")
 META = ("version", "invocation", "module", "job", "case", "revision", "run_id", "run_attempt")
 FULL_JOBS = {
     "repository": ("",), "renderer-full": ("",), "escapement": ("",),
-    "planetary-full": ("kits", "rest"),
+    "planetary-full": ("kits", "rest-0", "rest-1", "rest-2", "rest-3", "rest-4"),
     "onewayclutch": ("",), "clamparm": ("",), "sevensegment": ("parts", "assembly"), "turbinefan": ("",),
     "wheel": ("default-verify", "default-linkage", "native", "small-seven-verify",
               "small-seven-linkage", "large-nine-verify", "large-nine-linkage", "twelve",

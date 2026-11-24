@@ -446,18 +446,22 @@ class PlanetaryFullTest(unittest.TestCase):
                 run_tests.run_planetary_pr(shard)
 
     def test_shards_cover_inventory_and_require_kit_variants(self):
-        inventory = "TestKitGearboxes\nTestOther\nTestNew\nok\n"
+        names = [f"TestOther{i}" for i in range(10)]
+        inventory = "TestKitGearboxes\n" + "\n".join(names) + "\nok\n"
         with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
                 mock.patch.object(run_tests, "go_test") as go_test:
             run_tests.run_planetary_full("kits")
-            run_tests.run_planetary_full("rest")
-        kits, rest = go_test.call_args_list
+            for index in range(run_tests.PLANETARY_FULL_REST_SHARDS):
+                run_tests.run_planetary_full(f"rest-{index}")
+        kits, *rest = go_test.call_args_list
         self.assertEqual(kits.args[0][2], run_tests.run_pattern(["TestKitGearboxes"]))
-        self.assertEqual(rest.args[0][2], run_tests.run_pattern(["TestNew", "TestOther"]))
         self.assertEqual(len(kits.args[1]), 4)
         self.assertIn("TestKitGearboxes/planet608-shaft608", kits.args[1])
         self.assertEqual(kits.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
-        self.assertEqual(rest.args[1], ["TestNew", "TestOther"])
+        self.assertCountEqual([name for call in rest for name in call.args[1]], names)
+        self.assertTrue(all(call.kwargs["env"]["PLANETARY_ALL_KITS"] == "1" for call in rest))
+        self.assertEqual(run_tests.planetary_test_shards(names, 5),
+                         run_tests.planetary_test_shards(list(reversed(names)), 5))
 
     def test_missing_kit_or_invalid_shard_fails(self):
         for inventory, shard in (("TestOther\n", "kits"), ("TestKitGearboxes\nTestOther\n", "bad")):
