@@ -6,9 +6,6 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// sectionBound is the allowance for the meshes of a section, in mm.
-const sectionBound = 0.03
-
 // densify adds points along every segment of the loops, at most step apart.
 func densify(loops [][]r3.Vec, step float64) []r3.Vec {
 	var out []r3.Vec

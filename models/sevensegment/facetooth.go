@@ -36,7 +36,6 @@ type faceTeeth struct {
 	SteepSplit int     // the same for the steeper ramp's tool, when not 0
 	Overhang   float64 // how far a tool's profile reaches past R0 and R1
 	Plate      float64 // height of the plate's top above the sharp valley under these teeth
-	riseFirst  bool
 	_          struct{}
 }
 
@@ -187,11 +186,6 @@ func (r *run) joinTeeth(body *decad.Body, teeth []*decad.Body) (*decad.Body, err
 		}
 	}
 	return body, nil
-}
-
-// localRing is a full revolve about the local axis of the rectangle r0..r1 by z0..z1.
-func (r *run) localRing(r0, r1, z0, z1 float64) (*decad.Body, error) {
-	return r.meridian([][2]float64{{r0, z0}, {r1, z0}, {r1, z1}, {r0, z1}})
 }
 
 // localBox is a box on the radius from r0 to r1, w wide, over local Z from z0 to z1, turned by angle degrees.
