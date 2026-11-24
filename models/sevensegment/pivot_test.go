@@ -14,7 +14,6 @@ import (
 // rotor's axis, touches no rotor, and keeps its press clearance to the cradle plate and the top plate. The rotors are
 // at their modeled turn, so the block sits in the real consuming assembly.
 func TestSevenSegmentPivotBlocks(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	_, cradle := meshOf(t, parts.CradlePlate, 0.05)

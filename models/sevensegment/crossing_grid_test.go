@@ -13,7 +13,6 @@ import (
 // TestSevenSegmentCrossingGrid checks the grid against pointIn on the top plate, the busiest mesh, at points spread over
 // and around its box and at points just off its vertices.
 func TestSevenSegmentCrossingGrid(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	mesh, _ := meshOf(t, builtDigit0(t).TopPlate, 0.05)
 	g := newCrossingGrid(mesh)

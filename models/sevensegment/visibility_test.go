@@ -19,7 +19,6 @@ import (
 // |u| <= 9.9 at elevations 90 / 45 / 30 degrees and yellow at least 65 % of those; unlit, no ray hits a yellow body. Azimuths
 // along u and the whole-window share are reported, not asserted.
 func TestSevenSegmentVisibility(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	dm := parts.Dimensions
@@ -76,7 +75,6 @@ func TestSevenSegmentVisibility(t *testing.T) {
 // going up from inside the bore 0.01 outside the edge: 0.704 along the long sides (half-width 2.95), and 0.49 at the
 // shoulders of the pointed ends. Both are under 0.8 and listed as an exception in instructions.md.
 func TestSevenSegmentWindowLip(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	// 0.015: the pivot pockets' rounds meet the bore's faceted cone, and decad holds that body's mesh to 0.0148 at best.
@@ -118,7 +116,6 @@ func TestSevenSegmentWindowLip(t *testing.T) {
 // axis either way, from elevations 90, 45 and 30 at four azimuths. At the margin poses with the 0.25 side shift the views
 // also include elevations 60 and 20 at 24 azimuths, grazing views included: a yellow face seen edge-on still counts.
 func TestSevenSegmentWindowYellow(t *testing.T) {
-	startDigit0()
 	t.Parallel()
 	parts := builtDigit0(t)
 	dm := parts.Dimensions
@@ -186,7 +183,7 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		}
 		counts := make([]int, len(jobs))
 		var wg sync.WaitGroup
-		sem := make(chan struct{}, 20)
+		sem := make(chan struct{}, 4)
 		for i, j := range jobs {
 			wg.Add(1)
 			sem <- struct{}{}
