@@ -771,9 +771,8 @@ and at b-c and e-f they point opposite ways, so only one of them could point up 
 Construction: `roundedPrism` is the intersection of a section prism (the rounded rectangle across the rotor and z) and a
 plan prism (u by s, its far corners rounded), a plain extrusion each, so no fillet is needed. The pin is a revolved meridian
 `(0, 18.725) (1.05, 18.725) (0.7, 18.375) (0.7, 16.85) (0.6, 16.75) (0, 16.75)` unioned to the block (the cone starts inside the
-block). The block is built once and 13 copies are placed through `toSegment` (a 180-degree turn about the local up axis
-for the -u end, then a translation by the rotor frame origin's coordinates in the local frame and a `placement.Place`
-with the rotor frame's rotation at the world origin).
+block). The block is built once and 13 copies are placed through `toSegment`, one `placement.Place` of the
+rotor frame (turned 180 degrees about the local up axis for the -u end).
 
 The pin axis is the rotor axis at the clamped seam plane: 123.75 physically (the cradle's 124.0 less 0.25). The pocket in the
 cradle runs from z 121.0 (1.0 of the cradle under it, 15 layers below the seam) and in the top plate to z 127.25 (15 layers above

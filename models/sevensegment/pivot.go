@@ -7,7 +7,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 )
 
 // The printed pivot block: one per rotor end, 14 in all. A block is a square 3.2 x 3.2 (s by z) and 2.0 long along u,
@@ -155,33 +154,20 @@ func (r *run) cutPivotPockets(body *decad.Body, seg Segment) (*decad.Body, error
 	return body, nil
 }
 
-// toSegment moves a body built in the rotor-local frame (z along u) to segment seg's world position at turn 0, turned
-// about the local up axis first when sgn is -1 so that it lands at the -u end.
+// toSegment places a body built in the rotor-local frame (z along u) at segment seg's world position at turn 0 with one
+// placement of the rotor frame; the frame is turned 180 degrees about the local up axis when sgn is -1, so the body
+// lands at the -u end.
 func (r *run) toSegment(seg Segment, sgn float64, b *decad.Body) (*decad.Body, error) {
-	var err error
-	if sgn < 0 {
-		turn, err := r3.RotationAround(r3.Vec{}, r3.Vec{Y: 1}, units.Degrees(180))
-		if err != nil {
-			return nil, err
-		}
-		if b, err = decad.Transform(r.ctx, b, turn); err != nil {
-			return nil, fmt.Errorf("segment %s: turn: %w", seg, err)
-		}
-	}
 	frame := rotorFrame(seg)
-	o := frame.Origin()
-	shift, err := r3.Translation(r3.Vec{X: o.Dot(frame.U()), Y: o.Dot(frame.V()), Z: o.Dot(frame.N())})
+	if sgn < 0 {
+		// The -u end is the +u block turned 180 degrees about the local up axis (v): u and n reverse.
+		var err error
+		if frame, err = r3.NewFrame(frame.Origin(), frame.U().Scale(-1), frame.V()); err != nil {
+			return nil, fmt.Errorf("segment %s: frame: %w", seg, err)
+		}
+	}
+	b, err := placement.Place(r.ctx, b, &frame)
 	if err != nil {
-		return nil, err
-	}
-	turn, err := r3.NewFrame(r3.Vec{}, frame.U(), frame.V())
-	if err != nil {
-		return nil, err
-	}
-	if b, err = decad.Transform(r.ctx, b, shift); err != nil {
-		return nil, fmt.Errorf("segment %s: shift: %w", seg, err)
-	}
-	if b, err = placement.Place(r.ctx, b, &turn); err != nil {
 		return nil, fmt.Errorf("segment %s: place: %w", seg, err)
 	}
 	return b, nil

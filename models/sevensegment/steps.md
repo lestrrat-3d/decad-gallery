@@ -349,8 +349,8 @@ one-off scratch build before the port, which is not in the repository; a decad r
   `mouthCone` and `flagSites()`.
 - `pivot.go`: `pivotBlock()` (the rounded 4.8 x 5.9 x 3.0 body from `roundedPrism`, unioned with the revolved Ø1.4 pin and its
   45-degree root, tip chamfered 0.1), `pivotPocketTool(seg, sgn)` (the same `roundedPrism` offset by `PressFit`, cut from
-  the cradle and the top plate by `cutPivotPockets`) and `pivotBlocks()` (the prototype and 13 `decad.Copy` placed at the 14
-  rotor ends). `boreTool` now ends at the end wall at u 18.625 with no journal hole.
+  the cradle and the top plate by `cutPivotPockets`) and `pivotBlocks()` (the prototype and 13 `decad.Copy`, each placed with one
+  `placement.Place` of its rotor frame at the 14 rotor ends). `boreTool` now ends at the end wall at u 18.625 with no journal hole.
 - `params.go`: the exported flag constants and `Dimensions.FlagAngle`.
 
 Checks: `TestSevenSegmentFlag*`, `TestSevenSegmentRotor*`, `TestSevenSegmentSlider*`, `TestSevenSegmentFrame`,
