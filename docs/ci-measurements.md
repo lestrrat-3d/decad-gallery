@@ -10,6 +10,12 @@ scripts and documentation, and runner conditions varied, so the elapsed differen
 The subsequent [45342936727](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45342936727) run split the
 planetary kit variants and finished in 37m 26s. Its records also matched the preceding run's leaf outcomes.
 
+The later [45405132176](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45405132176) run took 45m 50s.
+After moving package discovery into the initial plan, [45501602182](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45501602182)
+took 26m 20s. The cycloidal worker started 25m 6s into the first run and 19s into the second. The model and
+dependency sources were the same, and their recorded leaf outcomes matched. Runner availability differed; the
+measurements do not establish a repeatable time saving.
+
 ## Runs on 19 November 2026
 
 These GitHub Actions runs completed on 19 November 2026. Durations are observations, not forecasts.
