@@ -239,7 +239,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		if err != nil {
 			return nil, fmt.Errorf("sevensegment: bearing %d frame: %w", i+1, err)
 		}
-		bp := ballbearing.Params605ZZ()
+		bp := ballbearing.Params608ZZ()
 		bp.Placement = &frame
 		if p.Placement != nil {
 			lift, err := r3.FromFrame(*p.Placement)

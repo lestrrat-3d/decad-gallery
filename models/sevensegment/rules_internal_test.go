@@ -59,6 +59,9 @@ func TestSevenSegmentEdgeFinishing(t *testing.T) {
 				}
 				require.InDelta(t, want, nMinX-dMinX, 0.05, "the -x side at face %.2f is chamfered", f.level)
 				require.InDelta(t, want, dMaxX-nMaxX, 0.05, "the +x side at face %.2f is chamfered", f.level)
+				if spec.xSides {
+					continue
+				}
 				require.InDelta(t, want, nMinY-dMinY, 0.05, "the -y side at face %.2f is chamfered", f.level)
 				require.InDelta(t, want, dMaxY-nMaxY, 0.05, "the +y side at face %.2f is chamfered", f.level)
 			}
@@ -97,12 +100,12 @@ func TestSevenSegmentLookAlike(t *testing.T) {
 				_, body := sharedBody(t, c.name, c.build)
 				box, err := body.Bounds()
 				require.NoError(t, err)
-				radius := 10.0
+				radius := markRadius
 				switch name {
 				case "cam d", "cam e", "cam c":
-					radius = 12
+					radius = 18.0
 				case "cam g", "cam b", "cam f", "cam a":
-					radius = 8
+					radius = 12.0
 				}
 				// Sections just inside each face of the plate or disc show every hole: it goes through the whole part.
 				ys := []float64{box.Max.Y - 0.3, box.Max.Y - CamThickness/2, box.Max.Y - CamThickness + 0.3}

@@ -29,4 +29,4 @@ look-alike marks and split shaft on the built bodies.
 
 ## Uses
 
-`models/ballbearing` (605ZZ), `models/compressionspring` (KSSC 1087, MonotaRO 01353223), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.
+`models/ballbearing` (608ZZ), `models/compressionspring` (KSSC 1087, MonotaRO 01353223), the M2 bolt and nut from `models/fastener` through `internal/m2fastener`.

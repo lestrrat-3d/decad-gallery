@@ -16,7 +16,7 @@ import (
 // TestSevenSegmentVisibility casts rays at the real meshes in the physical geometry (clamped and settled: the cradle and
 // the flags 0.25 lower and the flags a further 0.25 lower, the top plate 0.50 lower) with every flag turned to the band
 // ends and to the nominal rests. Lit, across the flag, the flag fills at least 90 / 55 / 20 % of the rays that enter at
-// |u| <= 9.9 at elevations 90 / 45 / 30 degrees and yellow at least 65 % of those; unlit, no ray hits a yellow body. Azimuths
+// |u| <= 14.85 at elevations 90 / 45 / 30 degrees and yellow at least 65 % of those; unlit, no ray hits a yellow body. Azimuths
 // along u and the whole-window share are reported, not asserted.
 func TestSevenSegmentVisibility(t *testing.T) {
 	t.Parallel()
@@ -33,8 +33,8 @@ func TestSevenSegmentVisibility(t *testing.T) {
 		phis []float64
 	}
 	poses := []pose{
-		{"lit", true, []float64{29.39, 45, 63.12}},
-		{"unlit", false, []float64{-66.7, -55, -41.22, -37.90}},
+		{"lit", true, []float64{34.55, 45, 56.63}},
+		{"unlit", false, []float64{-59.60, -55, -42.37, -40.12}},
 	}
 	elevs := []float64{90, 45, 30}
 	litFlag := map[float64]float64{90: 0.90, 45: 0.55, 30: 0.20}
@@ -73,35 +73,37 @@ func TestSevenSegmentVisibility(t *testing.T) {
 
 // TestSevenSegmentWindowLip measures the plate's lip under the window edge of segment g, on the plate mesh, by a ray
 // going up from inside the bore 0.01 outside the edge: 0.704 along the long sides (half-width 2.95), and 0.49 at the
-// shoulders of the pointed ends. Both are under 0.8 and listed as an exception in instructions.md.
+// shoulders of the pointed ends. Both pass the 0.8 minimum.
 func TestSevenSegmentWindowLip(t *testing.T) {
 	t.Parallel()
 	parts := builtDigit0(t)
-	// 0.015: the pivot pockets' rounds meet the bore's faceted cone, and decad holds that body's mesh to 0.0148 at best.
-	topMesh, _ := meshOf(t, parts.TopPlate, 0.015)
+	// 0.025: the pivot pockets' rounds meet the bore's faceted cone, and decad holds that body's mesh to 0.0208 at best.
+	topMesh, _ := meshOf(t, parts.TopPlate, 0.025)
 	plate := trisOf(topMesh, nil, r3.Vec{}, kindPlate)
 	var near []rayTri
 	for _, tr := range plate {
-		if tr.hi.X > -14 && tr.lo.X < 14 && tr.hi.Y > -6 && tr.lo.Y < 6 && tr.hi.Z > 82 {
+		if tr.hi.X > -21.0 && tr.lo.X < 21.0 && tr.hi.Y > -9.0 && tr.lo.Y < 9.0 && tr.hi.Z > sevensegment.TopFrom-0.85 {
 			near = append(near, tr)
 		}
 	}
-	const windowHalf, windowChamfer, windowEnd = 2.95, 12.65, 11.696
+	windowHalf, windowChamfer, windowEnd := sevensegment.WindowHalfWidth, sevensegment.WindowChamfer, sevensegment.WindowEnd
+	rayZ := sevensegment.TopFrom + 0.15 // inside the bore
 	long, shoulder := math.Inf(1), math.Inf(1)
 	for u := 0.0; u <= windowEnd; u += 0.01 {
 		sv := math.Min(windowHalf, windowChamfer-u) + 0.01
-		dist, kind := firstHitDist(near, r3.Vec{X: u, Y: sv, Z: 83}, r3.Vec{X: 1e-9, Y: 1e-9, Z: 1})
+		dist, kind := firstHitDist(near, r3.Vec{X: u, Y: sv, Z: rayZ}, r3.Vec{X: 1e-9, Y: 1e-9, Z: 1})
 		require.Equal(t, kindPlate, kind, "u %.2f", u)
-		lip := sevensegment.FaceZ - (83 + dist)
-		if u < 9.0 {
+		lip := sevensegment.FaceZ - (rayZ + dist)
+		if u < 13.5 {
 			long = math.Min(long, lip)
-		} else if u >= 9.7 && u <= 10.7 {
+		} else if u >= 14.55 && u <= 16.05 {
 			shoulder = math.Min(shoulder, lip)
 		}
 	}
 	t.Logf("lip along the long sides %.3f, at the shoulders %.3f", long, shoulder)
-	require.InDelta(t, 0.704, long, 0.02)
-	require.InDelta(t, 0.49, shoulder, 0.02)
+	// The lips are 1.512 and 1.248, above the 0.8 minimum.
+	require.InDelta(t, 1.512, long, 0.03)
+	require.InDelta(t, 1.248, shoulder, 0.03)
 }
 
 // TestSevenSegmentWindowYellow casts rays through the window opening of a type A rotor (segment g) and a type B rotor
@@ -127,8 +129,8 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		lit    map[float64]float64
 		litEnd string
 	}{
-		{sevensegment.SegG, [3]float64{-40.33, -39.23, -38.23}, map[float64]float64{45: 0.95, 34.47: 0.82, 33.20: 0.82}, "a, g, d"},
-		{sevensegment.SegB, [3]float64{-41.22, -37.90, -36.90}, map[float64]float64{45: 0.95, 33.41: 0.82, 29.39: 0.76}, "b to f"},
+		{sevensegment.SegG, [3]float64{-41.76, -41.01, -40.01}, map[float64]float64{45: 0.95, 37.85: 0.82, 37.02: 0.82}, "a, g, d"},
+		{sevensegment.SegB, [3]float64{-42.37, -40.12, -39.12}, map[float64]float64{45: 0.95, 37.16: 0.82, 34.55: 0.76}, "b to f"},
 	} {
 		s := c.seg
 		yMesh := rawMeshOf(t, parts.Flags[s].Yellow, 0.02)
@@ -138,19 +140,19 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		cx, cy := point.X, point.Y
 		var near []rayTri
 		for _, tr := range plate {
-			if tr.hi.X < cx-26 || tr.lo.X > cx+26 || tr.hi.Y < cy-26 || tr.lo.Y > cy+26 || tr.hi.Z < 82 {
+			if tr.hi.X < cx-39.0 || tr.lo.X > cx+39.0 || tr.hi.Y < cy-39.0 || tr.lo.Y > cy+39.0 || tr.hi.Z < sevensegment.TopFrom-0.85 {
 				continue
 			}
 			near = append(near, tr)
 		}
 		entries := openingEntries(newRayTree(near), s, sevensegment.FaceZ)
-		// The opening, read from the mesh, is the designed window: 5.9 wide, 130.0 mm2.
+		// The opening, read from the mesh, is the designed window: 9.65 wide, 322.5 mm2.
 		maxS := 0.0
 		for _, q := range entries {
 			maxS = math.Max(maxS, math.Abs((r3.Vec{X: q[0], Y: q[1]}).Sub(r3.Vec{X: cx, Y: cy}).Dot(sAxis)))
 		}
-		require.InDelta(t, 2.95, maxS, 0.03, "segment %s: the window's half-width on the mesh", s)
-		require.InDelta(t, 130.0, float64(len(entries))*0.0025, 1.0, "segment %s: the window's area on the mesh", s)
+		require.InDelta(t, sevensegment.WindowHalfWidth, maxS, 0.03, "segment %s: the window's half-width on the mesh", s)
+		require.InDelta(t, 322.5, float64(len(entries))*0.0025, 1.5, "segment %s: the window's area on the mesh", s)
 		t.Logf("segment %s (%s): the opening holds %d entry points (%.1f mm2)", s, c.litEnd, len(entries), float64(len(entries))*0.0025)
 		pose := func(phi, ds, du float64) []rayTri {
 			turn, err := r3.RotationAround(point, axis, units.Degrees(phi-dm.FlagAngle(s, 0)))

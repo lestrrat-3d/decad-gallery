@@ -14,7 +14,7 @@ import (
 )
 
 // axisLength is the length of the construction lines that hold polar directions.
-const axisLength = Scale * 30.0
+const axisLength = 45.0
 
 // run builds the parts in their local frames. It records every sketch.
 type run struct {
@@ -120,6 +120,12 @@ func arcBetween(s *sketch.Sketch, center r3.Vec, cp *sketch.Point, a, b r3.Vec, 
 // meridian sketches the closed polygon through the (r, z) vertices on the half plane holding the Z axis: U runs along +Z
 // and V is the radius +X, so every side is held by its direction and its distance from an anchor (see polygon). It revolves the polygon a full turn about Z.
 func (r *run) meridian(vertices [][2]float64) (*decad.Body, error) {
+	return r.meridianAt(vertices, nil)
+}
+
+// meridianAt is meridian with the polygon's anchor placed at anchor, a (radius, z) point, when it is not nil: a part as long
+// as the camshaft needs its anchor near its middle for the sketch to stay well conditioned.
+func (r *run) meridianAt(vertices [][2]float64, anchor *[2]float64) (*decad.Body, error) {
 	f, err := r3.NewFrame(r3.Vec{}, r3.Vec{Z: 1}, r3.Vec{X: 1})
 	if err != nil {
 		return nil, err
@@ -132,7 +138,11 @@ func (r *run) meridian(vertices [][2]float64) (*decad.Body, error) {
 	for i, v := range vertices {
 		uv[i] = [2]float64{v[1], v[0]}
 	}
-	polygon(s, uv)
+	if anchor == nil {
+		polygon(s, uv)
+	} else {
+		polygonAnchored(s, uv, anchor[1], anchor[0])
+	}
 	pr, err := r.profile(s, 0)
 	if err != nil {
 		return nil, err
@@ -195,8 +205,12 @@ func (r *run) holeTool(z0, x, y, rad, length float64) (*decad.Body, error) {
 // measuring from it and not from the origin keeps the system well conditioned for a polygon far from the origin. It
 // returns the points and the lines, edge i from point i to point i+1.
 func polygon(s *sketch.Sketch, v [][2]float64) ([]*sketch.Point, []*sketch.Line) {
-	var ref *sketch.Line
-	// The anchor lies among the shortest sides, where the sketch has its finest features.
+	mx, my := polygonAnchor(v)
+	return polygonAnchored(s, v, mx, my)
+}
+
+// polygonAnchor returns the anchor polygon uses: the average of the midpoints of the four shortest sides, to 0.01.
+func polygonAnchor(v [][2]float64) (float64, float64) { // The anchor lies among the shortest sides, where the sketch has its finest features.
 	type side struct{ mx, my, length float64 }
 	sides := make([]side, len(v))
 	for i := range v {
@@ -210,7 +224,12 @@ func polygon(s *sketch.Sketch, v [][2]float64) ([]*sketch.Point, []*sketch.Line)
 		mx += sd.mx
 		my += sd.my
 	}
-	mx, my = math.Round(mx/float64(n)*100)/100, math.Round(my/float64(n)*100)/100
+	return math.Round(mx/float64(n)*100) / 100, math.Round(my/float64(n)*100) / 100
+}
+
+// polygonAnchored is polygon with its anchor at (mx, my).
+func polygonAnchored(s *sketch.Sketch, v [][2]float64, mx, my float64) ([]*sketch.Point, []*sketch.Line) {
+	var ref *sketch.Line
 	anchor := sketchcheck.DimensionPoint(s, mx, my)
 	// A run of short slanted sides is a faceted arc (the kernel refuses true arcs where the model uses these chords): its
 	// vertices are the arc's sample points and are placed from the anchor. Sides that touch one keep only their direction.

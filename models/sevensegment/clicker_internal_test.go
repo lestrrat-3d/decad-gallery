@@ -39,21 +39,21 @@ func TestClickerLandGaps(t *testing.T) {
 }
 
 // TestClickerPressTurn derives the press's turn and the timing margin from the tooth specs: the ramp's 32.5 degrees less
-// the turn each land takes, 8.125 degrees per mm of height.
+// the turn each land takes, 4.0625 degrees per mm of height (the teeth are 8.0 tall).
 func TestClickerPressTurn(t *testing.T) {
 	in, bt := rotorInnerTeeth(), buttonTeeth()
 	require.InDelta(t, 36, in.Rise+in.Fall, 1e-12)
 	require.InDelta(t, 36, bt.Rise+bt.Fall, 1e-12)
-	require.InDelta(t, RampAngle/ToothHeight, 8.125, 1e-12)
-	loss := 8.125 * (bt.Tip + math.Max(in.Tip, bt.Plate))
-	require.InDelta(t, 0.81, loss, 0.01)
+	require.InDelta(t, RampAngle/ToothHeight, 4.0625, 1e-12)
+	loss := 4.0625 * (bt.Tip + math.Max(in.Tip, bt.Plate))
+	require.InDelta(t, 0.41, loss, 0.01)
 	require.InDelta(t, RampAngle-loss, PressTurn(), 1e-12)
-	require.InDelta(t, 31.69, PressTurn(), 0.01)
-	require.InDelta(t, 4.31, ReleaseTurn(), 0.01)
+	require.InDelta(t, 32.09, PressTurn(), 0.01)
+	require.InDelta(t, 3.91, ReleaseTurn(), 0.01)
 	require.InDelta(t, 36, PressTurn()+ReleaseTurn(), 1e-12)
 	// The cams finish their ramps by SegmentsDoneBy, which the press must pass with room to spare.
 	require.GreaterOrEqual(t, SegmentsDoneBy, RampEnd+TimingAllowance-1.5+0.05)
-	require.InDelta(t, 2.14, TimingMargin(), 0.02)
+	require.InDelta(t, 2.54, TimingMargin(), 0.02)
 	require.GreaterOrEqual(t, TimingMargin(), 2.0)
 }
 

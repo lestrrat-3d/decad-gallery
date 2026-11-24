@@ -27,10 +27,44 @@ const (
 	PinStationBC  = pinStationBC
 	PinStationEF  = pinStationEF
 
-	ShaftCamRadius = shaftCamRadius
-	ShaftCamFlat   = shaftCamFlat
-	CamBoreRadius  = camBoreRadius
-	CamBoreFlat    = camBoreFlat
+	PivotPinTip    = pivotPinTip
+	PivotBlockFrom = pivotBlockFrom
+	PivotBlockLong = pivotBlockLong
+
+	ColumnTop        = columnTop
+	GuideFrom        = guideFrom
+	GuideTop         = guideTop
+	LedgeFrom        = ledgeFrom
+	RibHeight        = ribHeight
+	FrontInnerY      = frontInnerY
+	RearInnerY       = rearInnerY
+	FrontWallOuterY  = frontWallOuterY
+	BearingWidth     = bearingWidth
+	ShaftCamEnd      = shaftCamEnd
+	ShaftCamFrom     = shaftCamFrom
+	ShaftRearFrom    = shaftRearFrom
+	ShaftJournal     = shaftJournal
+	ShaftStubFlatTo  = shaftStubFlatTo
+	ShaftStubRadius  = shaftStubRadius
+	CamFaceOffset    = camFaceOffset
+	CradleFrom       = cradleFrom
+	TubeFrom         = tubeFrom
+	TopFrom          = topFrom
+	MarkRadius       = markRadius
+	BearingRaceR     = bearingRaceR
+	PivotPocketHalf  = pivotPocketHalf
+	HousingBezelY    = housingBezelY
+	ButtonUndersideY = buttonUndersideY
+	HubBaseY         = hubBaseY
+	WindowHalfWidth  = windowHalfWidth
+	WindowChamfer    = windowChamfer
+	WindowEnd        = windowEnd
+	HousingCrownY    = housingCrownY
+	RotorPlateY      = rotorPlateY
+	ShaftCamRadius   = shaftCamRadius
+	ShaftCamFlat     = shaftCamFlat
+	CamBoreRadius    = camBoreRadius
+	CamBoreFlat      = camBoreFlat
 )
 
 // RaiseOf returns the droop that segment s's pin height has built in.
@@ -43,7 +77,7 @@ func MeasureNotchFloor(t *testing.T, seg Segment) float64 {
 	f := sharedFlag(t, seg)
 	n := rotorNotches(seg)[0]
 	mid := (n[0] + n[1]) / 2
-	lo, hi := 2.0, 3.6 // empty at lo (inside the notch), material at hi (the shell under the face)
+	lo, hi := 3.0, 5.4 // empty at lo (inside the notch), material at hi (the shell under the face)
 	if inBody(t, f.Black, rotorPoint(seg, 0, lo, mid)) || !inBody(t, f.Black, rotorPoint(seg, 0, hi, mid)) {
 		t.Fatalf("notch floor is not between %.1f and %.1f", lo, hi)
 	}

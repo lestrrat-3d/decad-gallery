@@ -24,11 +24,11 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 	require.InDelta(t, pivotBlockHigh/2, box.Max.Y, 0.01)
 	require.InDelta(t, pivotPinTip, box.Min.Z, 0.01, "pin tip")
 	require.InDelta(t, pivotBlockFrom+pivotBlockLong, box.Max.Z, 0.01, "outer face")
-	// 3.25 tall in print: 2.0 of block and 1.25 of pin.
-	require.InDelta(t, 3.25, box.Max.Z-box.Min.Z, 0.01)
+	// 4.875 tall in print: 3.0 of block and 1.875 of pin.
+	require.InDelta(t, pivotBlockLong+1.875, box.Max.Z-box.Min.Z, 0.01)
 	// The pin stands on the block's rotor-side face, on its centre: the root cone is r 0.65 at u 12.5.
 	pin := func(u float64) float64 {
-		lo, hi := 0.1, 1.0
+		lo, hi := 0.15, 1.5
 		for hi-lo > 0.002 {
 			m := (lo + hi) / 2
 			if inBody(t, block, r3.Vec{X: m, Z: u}) {
@@ -39,8 +39,8 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 		}
 		return (lo + hi) / 2
 	}
-	require.InDelta(t, pivotPinRadius, pin(12.0), 0.01, "pin radius")
-	require.InDelta(t, pivotPinRadius+pivotRootLeg-0.1, pin(12.4), 0.01, "root cone, 45 degrees")
+	require.InDelta(t, pivotPinRadius, pin(pivotPinTip+1.125), 0.01, "pin radius")
+	require.InDelta(t, pivotPinRadius+pivotRootLeg-0.1, pin(pivotBlockFrom-0.1), 0.01, "root cone, 45 degrees")
 	require.InDelta(t, pivotPinRadius-pivotTipLeg+0.05, pin(pivotPinTip+0.05), 0.01, "tip chamfer")
 
 	fs, err := cornercheck.Check(t.Context(), block, r3.Vec{Z: -1}, nil)
@@ -67,7 +67,7 @@ func TestSevenSegmentPivotPocketFit(t *testing.T) {
 			cl, tl := pivotSection(t, cradle, seg, u), pivotSection(t, top, seg, u)
 			// Across the rotor, at the axis height of each plate's half: the block edge, then the pocket wall.
 			across := func(loops [][]r3.Vec, z, sign float64) float64 {
-				return scanEdge(loops, func(c float64) r3.Vec { return r3.Vec{X: sign * c, Y: z} }, 0, 2.5)
+				return scanEdge(loops, func(c float64) r3.Vec { return r3.Vec{X: sign * c, Y: z} }, 0, pivotBlockSide/2+0.5)
 			}
 			for _, sign := range []float64{-1, 1} {
 				b := across(bl, 0, sign)
@@ -79,13 +79,13 @@ func TestSevenSegmentPivotPocketFit(t *testing.T) {
 			up := func(loops [][]r3.Vec, from, to float64) float64 {
 				return scanEdge(loops, func(c float64) r3.Vec { return r3.Vec{Y: c} }, from, to)
 			}
-			bottom, roof := up(bl, 0, -2.5), up(bl, 0, 2.5)
+			bottom, roof := up(bl, 0, -(pivotBlockHigh/2+0.5)), up(bl, 0, pivotBlockHigh/2+0.5)
 			require.InDelta(t, -pivotBlockHigh/2, bottom, 0.02, "%s end %d: block bottom", seg, end)
 			require.InDelta(t, pivotBlockHigh/2, roof, 0.02, "%s end %d: block top", seg, end)
-			floor := up(cl, -0.5, -2.5)
+			floor := up(cl, -0.5, -(pivotPocketLow + 0.5))
 			require.InDelta(t, -pivotPocketLow, floor, 0.02, "%s end %d: cradle floor", seg, end)
 			require.InDelta(t, 1.0, floor-(cradleFrom-RotorAxisZ), 0.02, "%s end %d: cradle under the pocket", seg, end)
-			ceiling := up(tl, 0.5, 3.5)
+			ceiling := up(tl, 0.5, pivotPocketHigh+0.5)
 			require.InDelta(t, pivotPocketHigh, ceiling, 0.02, "%s end %d: top plate roof", seg, end)
 			t.Logf("%s end %d: press floor %.3f; roof %.3f once the seam (%.2f) closes", seg, end, bottom-floor,
 				ceiling-roof-Seam, Seam)
@@ -105,8 +105,8 @@ func TestSevenSegmentPivotPinInBore(t *testing.T) {
 			block := placedPivotBlock(t, r, seg, end)
 			sgn := float64(2*end - 1)
 			// A section through the pin's middle: its disc lies inside the bore with 0.20 round it.
-			pl := pivotSection(t, block, seg, sgn*11.9)
-			bl := pivotSection(t, f.Black, seg, sgn*11.9)
+			pl := pivotSection(t, block, seg, sgn*(pivotPinTip+0.975))
+			bl := pivotSection(t, f.Black, seg, sgn*(pivotPinTip+0.975))
 			gap := loopsGap(pl, bl)
 			t.Logf("%s end %d: pin to bore %.3f", seg, end, gap)
 			require.GreaterOrEqual(t, gap, 0.2-0.04, "%s end %d", seg, end)

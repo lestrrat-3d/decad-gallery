@@ -55,9 +55,8 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			lift := sevensegment.Travel * (b2f(now) - b2f(was))
 			// The b-f slider tilts the other way when the unit is turned over: a turn about its groove pin that raises the rotor
 			// pin by raise more than the modeled level pose (the droop that the model builds in reverses, so the pin is 2 raise
-			// above its settled pose) (the pin is 15 or 18 from the stem). It rises a further 0.4 over the modeled pose, 0.2 short of
-			// its tube's roof (the roof is 0.07 away at that pose; the 0.05 mesh bounds of the two bodies hide a smaller gap), which it meets by design at the end of the groove's play (a mesh cannot prove separation at
-			// contact).
+			// above its settled pose) (the pin is 15 or 18 from the stem). It rises a further 0.4 over the modeled pose; the tube's
+			// roof stands 1.525 above the lit blade ridge (TestSevenSegmentBladeRoof), so the slider stays clear of it.
 			tilt := 0.0
 			if slideraise(s) > 0 {
 				tilt = math.Atan(slideraise(s)/pinDistance(s)) * 180 / math.Pi
@@ -65,23 +64,23 @@ func TestSevenSegmentCaptive(t *testing.T) {
 					tilt = -tilt // the pin is at +x: a turn about +Y lowers it, so raising it turns the other way
 				}
 			}
-			// The tilt also lifts the blade, which is 9 from the stem, by tan(tilt) x 9: the tube's roof, 0.8 above the settled
-			// lit blade, then stops a b-f slider that much short of the groove's full 0.8 rise (the design's note that the
-			// roof is 0.90 away leaves the tilt out). The roof stops it; the pin follows from the slider's height.
-			bladeLift := math.Abs(math.Tan(tilt*math.Pi/180)) * 9
+			// The tilt also lifts the blade, which is 13.5 from the stem, by tan(tilt) x 13.5. The tube's roof stands 1.525 above
+			// the settled lit blade, more than the groove's full 0.8 rise, so the roof does not stop a b-f slider; the pin
+			// follows from the slider's height.
+			bladeLift := math.Abs(math.Tan(tilt*math.Pi/180)) * 13.5
 			// The tilt is about the stem in its guide slot (z 54), where the blade and the stem have their 0.25 play: at the
 			// limit the blade meets its tube wall by design, so the turn is taken at half of it (the meshes' 0.1 mm bound hides a smaller gap; the limit itself is covered by TestSevenSegmentTongueSweep).
 			pivotX := 0.25 // the stem rests on the slot wall that the blade's tilt leaves it against
 			if s == sevensegment.SegE || s == sevensegment.SegF {
 				pivotX = -0.25
 			}
-			groove := r3.Vec{X: pivotX, Y: dm.Station(s), Z: 54}
+			groove := r3.Vec{X: pivotX, Y: dm.Station(s), Z: sevensegment.GuideFrom}
 			tilt *= 0.5
 			slider := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift)
 			sliderPin := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift)
 			point, axis := segmentAxis(s)
 			// The rotor follows its pin: the pin line is 0.4 higher (and 2 raise more on b-f), which turns the rotor.
-			zrel := dm.Lift(s, 36*float64(k)) - 1.75 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + slideraise(s)/2
+			zrel := dm.Lift(s, 36*float64(k)) - 2.625 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + slideraise(s)/2
 			dphi := math.Atan2(zrel, sevensegment.PinOffset)*180/math.Pi - dm.FlagAngle(s, 0)
 			// At the full rise the bore's roof meets the pin by design (gap 0), which a mesh cannot prove separated: the flags
 			// are posed 0.11 low, the mesh bound. The pin axis is 0.25 below the modeled axis once clamped and the bore leaves
@@ -112,8 +111,8 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			if slideraise(s) == 0 {
 				require.True(t, ok, "digit %d: turned over, slider %s and its black body overlap", k, s)
 			}
-			// The b-f sliders meet their tube roof and their black body at about zero clearance by design, which a mesh cannot
-			// prove separated. They must not go deeper than the mesh tolerance into either.
+			// The b-f sliders meet their black body at about zero clearance by design, which a mesh cannot prove separated.
+			// They must not go deeper than the mesh tolerance into it or into their tube roof.
 			turn, err := r3.RotationAround(groove, r3.Vec{Y: 1}, units.Degrees(tilt))
 			require.NoError(t, err)
 			verts := make([]r3.Vec, 0, len(sliders[s].Vertices()))

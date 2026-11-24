@@ -7,22 +7,21 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/r3"
-	"github.com/lestrrat-3d/units"
 )
 
 // The printed pivot block: one per rotor end, 14 in all. A block is a square 3.2 x 3.2 (s by z) and 2.0 long along u,
 // pressed into a square pocket split by the seam between the cradle plate and the top plate. A Ø0.8 pin stands on its
 // rotor-side face and turns in the rotor's end bore. All lengths are in mm and measured along u from the rotor's middle.
 const (
-	pivotPinRadius  = Scale * 0.4                        // the pin; the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
-	pivotBlockSide  = Scale * 3.2                        // the block's width, along s
-	pivotBlockHigh  = Scale * 3.1                        // the block's height, along z: 1.0 of cradle stays under its pocket, and the pin axis stays put
+	pivotPinRadius  = 0.7                                // option B: Ø1.4; the rotor's end bore (JournalRadius) leaves 0.2, the Tight minimum
+	pivotBlockSide  = 4.8                                // the block's width, along s
+	pivotBlockHigh  = 2 * (cradleThick - 1.0 - PressFit) // the block's height, along z: 1.0 of cradle stays under its pocket (5.9)
 	pivotBlockFrom  = RotorHalfLength + 0.25             // the end wall: the block's rotor-side face (T6 0.25 from the rotor's end face)
-	pivotBlockLong  = Scale * 2.0                        //
-	pivotPinTip     = pivotBlockFrom - Scale*1.25        // the pin stands 1.25 from the block's face
+	pivotBlockLong  = 3.0                                //
+	pivotPinTip     = pivotBlockFrom - 1.875             // the pin stands 1.25 from the block's face
 	pivotRootLeg    = 0.25                               // the pin's 45 degree root cone, inside the end gap
 	pivotTipLeg     = 0.1                                // the pin's tip chamfer
-	pivotCornerR    = Scale * 0.45                       // the block's rounds; the pocket's are 0.5, PressFit larger
+	pivotCornerR    = 0.675                              // the block's rounds; the pocket's are 0.5, PressFit larger
 	pivotPocketR    = pivotCornerR + PressFit            //
 	pivotPocketHalf = pivotBlockSide/2 + PressFit        // the pocket's half width along s
 	pivotPocketLow  = pivotBlockHigh/2 + PressFit        // the pocket's floor, below the axis: 1.0 of cradle under it
@@ -30,10 +29,10 @@ const (
 
 	// The rotor's end bore: radius JournalRadius from the floor at pivotBoreFloor to the end face, a 0.5 round at the floor,
 	// a teardrop roof truncated at pivotRoofTop from the axis, and a 45 degree countersink to pivotMouthR at the end face.
-	pivotBoreFloor = Scale * 10.8
-	pivotFloorRond = Scale * 0.5
-	pivotRoofTop   = Scale * 0.70
-	pivotMouthR    = Scale * 0.93
+	pivotBoreFloor = 16.2
+	pivotFloorRond = 0.75
+	pivotRoofTop   = 1.00
+	pivotMouthR    = 1.395
 )
 
 // pivotBoreTool builds the revolved part of one rotor end's pivot bore in the rotor's local frame: end sgn (+1 for +u).
@@ -155,33 +154,20 @@ func (r *run) cutPivotPockets(body *decad.Body, seg Segment) (*decad.Body, error
 	return body, nil
 }
 
-// toSegment moves a body built in the rotor-local frame (z along u) to segment seg's world position at turn 0, turned
-// about the local up axis first when sgn is -1 so that it lands at the -u end.
+// toSegment places a body built in the rotor-local frame (z along u) at segment seg's world position at turn 0 with one
+// placement of the rotor frame; the frame is turned 180 degrees about the local up axis when sgn is -1, so the body
+// lands at the -u end.
 func (r *run) toSegment(seg Segment, sgn float64, b *decad.Body) (*decad.Body, error) {
-	var err error
-	if sgn < 0 {
-		turn, err := r3.RotationAround(r3.Vec{}, r3.Vec{Y: 1}, units.Degrees(180))
-		if err != nil {
-			return nil, err
-		}
-		if b, err = decad.Transform(r.ctx, b, turn); err != nil {
-			return nil, fmt.Errorf("segment %s: turn: %w", seg, err)
-		}
-	}
 	frame := rotorFrame(seg)
-	o := frame.Origin()
-	shift, err := r3.Translation(r3.Vec{X: o.Dot(frame.U()), Y: o.Dot(frame.V()), Z: o.Dot(frame.N())})
+	if sgn < 0 {
+		// The -u end is the +u block turned 180 degrees about the local up axis (v): u and n reverse.
+		var err error
+		if frame, err = r3.NewFrame(frame.Origin(), frame.U().Scale(-1), frame.V()); err != nil {
+			return nil, fmt.Errorf("segment %s: frame: %w", seg, err)
+		}
+	}
+	b, err := placement.Place(r.ctx, b, &frame)
 	if err != nil {
-		return nil, err
-	}
-	turn, err := r3.NewFrame(r3.Vec{}, frame.U(), frame.V())
-	if err != nil {
-		return nil, err
-	}
-	if b, err = decad.Transform(r.ctx, b, shift); err != nil {
-		return nil, fmt.Errorf("segment %s: shift: %w", seg, err)
-	}
-	if b, err = placement.Place(r.ctx, b, &turn); err != nil {
 		return nil, fmt.Errorf("segment %s: place: %w", seg, err)
 	}
 	return b, nil

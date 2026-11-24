@@ -20,11 +20,11 @@ func TestSevenSegmentFits(t *testing.T) {
 	t.Run("P1 cam bores on the shaft", func(t *testing.T) {
 		for _, seg := range Segments() {
 			_, cam := sharedCam(t, seg)
-			y := r.dm.camDiscFace(seg) + 3.0 // mid-disc, away from the groove
+			y := r.dm.camDiscFace(seg) + CamThickness - 0.8 // mid-disc, away from the groove
 			camLoops := sectionAt(t, cam, y)
 			var bore [][]r3.Vec
 			for _, l := range camLoops {
-				if c, e := centroidExtent(l); c.Len() < 1 && e < 8 {
+				if c, e := centroidExtent(l); c.Len() < 1 && e < boreExtent {
 					bore = append(bore, l)
 				}
 			}
@@ -43,7 +43,7 @@ func TestSevenSegmentFits(t *testing.T) {
 		_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 		gbox, err := guide.Bounds()
 		require.NoError(t, err)
-		require.InDelta(t, 1.0, gbox.Min.Z-box.Max.Z, 0.01)
+		require.InDelta(t, 1.5, gbox.Min.Z-box.Max.Z, 0.01)
 	})
 
 	t.Run("R2 pin tip to the groove floor", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestSevenSegmentFits(t *testing.T) {
 	t.Run("L1 stem to its cam face", func(t *testing.T) {
 		_, slider := sharedSlider(t, SegD)
 		face := r.dm.camDiscFace(SegD)
-		loops := planSection(t, slider, 56)
+		loops := planSection(t, slider, guideMidZ)
 		stemMax := math.Inf(-1)
 		for _, l := range loops {
 			for _, p := range l {
@@ -80,15 +80,15 @@ func TestSevenSegmentFits(t *testing.T) {
 	t.Run("T3 stems in the guide slots, T9 blades in their tubes", func(t *testing.T) {
 		_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 		_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
-		guideLoops := planSection(t, guide, 56)
-		tubeLoops := planSection(t, top, 81)
+		guideLoops := planSection(t, guide, guideMidZ)
+		tubeLoops := planSection(t, top, tubeSectionZ)
 		for _, seg := range Segments() {
 			_, slider := sharedSlider(t, seg)
-			stem := planSection(t, slider, 56)
+			stem := planSection(t, slider, guideMidZ)
 			// Only the slot of this station is near the stem.
 			near := nearLoops(guideLoops, r.dm.Station(seg))
 			require.InDelta(t, TightFit, loopsGap(stem, near), fitBound, "stem %s", seg)
-			blade := planSection(t, slider, 81)
+			blade := planSection(t, slider, tubeSectionZ)
 			tube := nearCap(tubeLoops, blade)
 			// The blade's straight walls keep 0.25 across the hole (the Tight fit; 0.35 along it). Its square corners keep at
 			// least the Tight minimum 0.2 from the hole's corner rounds of 0.50: 0.21 (instructions.md "Blade corners").
@@ -116,18 +116,18 @@ func TestSevenSegmentFits(t *testing.T) {
 		_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
 		_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
 		// The column pegs stand on the guide plate and the top pegs hang from the top plate. Each section is cut where the
-		// peg is a plain cylinder of radius 1.5 and the hole in the cradle a plain cylinder of radius 1.55: below the top
+		// peg is a plain cylinder of radius pegRadius and the hole in the cradle a plain cylinder of radius pegHole: below the top
 		// pegs' collars and the mouth cones.
 		for _, c := range []struct {
 			name  string
 			body  *decad.Body
 			sites [2][2]float64
 			z     float64
-		}{{"column peg", guide, columnPegs, 81.0}, {"top peg", top, topPegs, 81.6}} {
+		}{{"column peg", guide, columnPegs, cradleFrom + 1.5}, {"top peg", top, topPegs, topFrom - 1.875}} {
 			pegs, holes := planSection(t, c.body, c.z), planSection(t, cradle, c.z)
 			for _, site := range c.sites {
 				at := r3.Vec{X: site[0], Y: site[1]}
-				peg, hole := loopAt(pegs, at, 3.0), loopAt(holes, at, 3.1)
+				peg, hole := loopAt(pegs, at, 2*pegRadius), loopAt(holes, at, 2*pegHole)
 				require.NotNil(t, peg, "%s at %v", c.name, site)
 				require.NotNil(t, hole, "%s hole at %v", c.name, site)
 				require.InDelta(t, PressFit, loopsGap([][]r3.Vec{peg}, [][]r3.Vec{hole}), fitBound, "%s at %v", c.name, site)
@@ -144,7 +144,7 @@ func TestSevenSegmentPressWalls(t *testing.T) {
 		loops := sectionAt(t, body, y)
 		var bore, others [][]r3.Vec
 		for _, l := range loops {
-			if c, e := centroidExtent(l); c.Len() < 1 && e < 8 {
+			if c, e := centroidExtent(l); c.Len() < 1 && e < boreExtent {
 				bore = append(bore, l)
 			} else {
 				others = append(others, l)
@@ -159,7 +159,7 @@ func TestSevenSegmentPressWalls(t *testing.T) {
 		check("cam hub "+seg.String(), cam, r.dm.camDiscFace(seg)-3)
 	}
 	_, hub := sharedBody(t, "hub", (*run).hub)
-	check("hub", hub, -59.5)
+	check("hub", hub, hubBaseY-1.6)
 }
 
 // TestSevenSegmentPinClearance sweeps the camshaft through a whole turn in 3 degree steps and checks, for every cam, that
@@ -186,7 +186,7 @@ func TestSevenSegmentPinClearance(t *testing.T) {
 }
 
 // TestSevenSegmentBladeRoof reads the gap between a slider's blade ridge, lifted to its lit height, and the roof of its
-// tube's hole in the top plate, both from the built bodies: 0.90 by design (modeled; 0.80 in the physical geometry).
+// tube's hole in the top plate, both from the built bodies: 1.525 by design (modeled; 1.425 in the physical geometry).
 // A blade built taller than designed closes it.
 func TestSevenSegmentBladeRoof(t *testing.T) {
 	r := newTestRun(t)
@@ -197,7 +197,7 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 		require.NoError(t, err)
 		h := bladeHole(seg, r.dm.Station(seg))
 		cx, cy := (h[0]+h[1])/2, (h[2]+h[3])/2
-		lo, hi := 86.0, 88.0 // void at lo (the hole), material at hi (the roof)
+		lo, hi := flagFaceZ-2.25, flagFaceZ-0.25 // void at lo (the hole), material at hi (the roof)
 		require.False(t, inBody(t, top, r3.Vec{X: cx, Y: cy, Z: lo}), "blade hole %s", seg)
 		require.True(t, inBody(t, top, r3.Vec{X: cx, Y: cy, Z: hi}), "blade hole roof %s", seg)
 		for hi-lo > 0.004 {
@@ -209,21 +209,21 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 			}
 		}
 		gap := (lo+hi)/2 - (box.Max.Z + Travel)
-		require.InDelta(t, 0.90, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
+		require.InDelta(t, topThick+Seam-0.8-5.925, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
 	}
 }
 
 // TestSevenSegmentJournalFit (T5) measures the pivot fit on the built bodies: the radius of segment g's end bore in the
-// black body (found by bisection along the yellow face's normal at u = 11.5, where the bore is a plain cylinder) and the
+// black body (found by bisection along the yellow face's normal at u = 17.25, where the bore is a plain cylinder) and the
 // radius of the block's pin (along local x at u = 12.0). Their difference is the Tight minimum 0.20, to the tessellation bound.
 func TestSevenSegmentJournalFit(t *testing.T) {
 	f := sharedFlag(t, SegG)
 	_, block := sharedBody(t, "pivot block", (*run).pivotBlock)
 	// The bore: void inside the radius, material outside it.
-	lo, hi := 0.3, 0.9
+	lo, hi := 0.45, 1.35
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, f.Black, rotorPoint(SegG, m, 0, 11.5)) {
+		if inBody(t, f.Black, rotorPoint(SegG, m, 0, 17.25)) {
 			hi = m
 		} else {
 			lo = m
@@ -231,10 +231,10 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	}
 	bore := (lo + hi) / 2
 	// The pin: material inside the radius, void outside it.
-	lo, hi = 0.2, 0.7
+	lo, hi = 0.3, 1.05
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, block, r3.Vec{X: m, Z: 12.0}) {
+		if inBody(t, block, r3.Vec{X: m, Z: 18.0}) {
 			lo = m
 		} else {
 			hi = m

@@ -61,10 +61,10 @@ func TestSevenSegmentWidthMargins(t *testing.T) {
 
 	t.Run("columns clear the top flange ribs", func(t *testing.T) {
 		_, guide := sharedBody(t, "guide plate", (*run).columnGuidePlate)
-		cols := planSection(t, guide, 77)
+		cols := planSection(t, guide, columnTop-2.15)
 		for _, front := range []bool{true, false} {
 			_, wall := sharedWall(t, front)
-			gap := loopsGap(cols, planSection(t, wall, 77))
+			gap := loopsGap(cols, planSection(t, wall, columnTop-2.15))
 			t.Logf("front wall %v: column to rib gap %.3f", front, gap)
 			require.GreaterOrEqual(t, gap, LooseFit-fitBound, "front wall %v", front)
 		}

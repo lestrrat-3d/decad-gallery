@@ -27,7 +27,7 @@ func TimingMargin() float64 { return PressTurn() - SegmentsDoneBy }
 func ReleaseTurn() float64 { return ClickerStep - PressTurn() }
 
 // releaseReach is the button drop below which the rotor begins to run up the crown's short ramp.
-const releaseReach = 5.0
+const releaseReach = ButtonStroke - 1.0
 
 // PressPose returns the rotor's drop and turn at button drop s (0 to ButtonStroke) on the way down.
 func PressPose(s float64) (drop, turn float64) {

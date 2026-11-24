@@ -59,22 +59,28 @@ func sevenModels(s partSet, pull map[string]r3.Vec, clip *solidlens.ClipPlane) (
 	return out, nil
 }
 
+// sevenClickerY is the middle of the click indexer along Y. It keeps its size, but stands where the front wall's outer face
+// puts it: -94.75, which is -66 less the 28.75 that the face has moved.
+const sevenClickerY = -94.75
+
 // sevenCenter is the middle of the model, where the cameras look.
-var sevenCenter = solidlens.Vec{Y: -3, Z: 43.5}
+var sevenCenter = solidlens.Vec{Y: -4.5, Z: 65.25}
 
 // sevenExplode is each part's offset in the exploded view, from "Rendering" in the design: the plates up in Z, the
 // walls, detent plate, bearings, collar ring and knob out along Y. Bolts follow the part their head sits in, 15 mm
 // more along -Dir, and nuts follow the part their pocket is in, 15 mm more along +Dir.
 var sevenExplode = map[string]r3.Vec{
-	"Guide Plate": {Z: 10}, "Top Plate": {Z: 50}, "Cradle Plate": {Z: 15},
+	"Guide Plate": {Z: 15.0}, "Top Plate": {Z: 75.0}, "Cradle Plate": {Z: 22.5},
 	// The sliders stand beside the stack, each pair stepped up in Z, so that none hides another or sits behind a plate: a, g
 	// and d farthest out on +X, b and c on +X, e and f on -X, f higher (checked by eye on the rendered image).
-	"Slider a": {X: 105}, "Slider g": {X: 105, Z: 45}, "Slider d": {X: 105, Z: 90}, "Slider b": {X: 60}, "Slider c": {X: 60, Z: 45},
-	"Slider e": {X: -85, Z: 30}, "Slider f": {X: -85, Z: 100}, "Front Wall": {Y: -50},
+	"Slider a": {X: 157.5}, "Slider g": {X: 157.5, Z: 67.5}, "Slider d": {X: 157.5, Z: 135.0},
+	"Slider b": {X: 90.0}, "Slider c": {X: 90.0, Z: 67.5},
+	"Slider e": {X: -127.5, Z: 45.0}, "Slider f": {X: -127.5, Z: 150.0}, "Front Wall": {Y: -75.0},
 	// The click indexer comes off the front end in order, each part past the one before: hub, housing, spring, rotor, button.
-	"Hub": {Y: -62}, "Housing": {Y: -80}, "Spring": {Y: -100}, "Rotor": {Y: -122}, "Button": {Y: -160},
+	"Hub": {Y: -93.0}, "Housing": {Y: -120.0}, "Spring": {Y: -150.0}, "Rotor": {Y: -183.0},
+	"Button": {Y: -240.0},
 	// The front bearing drops below the shaft, so the front wall does not hide it.
-	"Front Bearing": {Y: -40, Z: -55}, "Rear Wall": {Y: 45}, "Rear Bearing": {Y: 25},
+	"Front Bearing": {Y: -60.0, Z: -82.5}, "Rear Wall": {Y: 67.5}, "Rear Bearing": {Y: 37.5},
 }
 
 // sevenSegmentCentre is the middle of segment s in plan.
@@ -184,16 +190,16 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 			name := sevenBlockName(s, end)
 			parts = append(parts, named{name, m.PivotBlocks[s][end], sevenPivotColor})
 			// Each block stays with its rotor and slides 14 along the axis, out past the rotor's end.
-			out := r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
+			out := r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 45.0}
 			if horizontal {
-				out.X += 14 * sgn
+				out.X += 21.0 * sgn
 			} else {
-				out.Y += 14 * sgn
+				out.Y += 21.0 * sgn
 			}
 			sevenExplode[name] = out
 		}
-		sevenExplode[sevenFlagName(s, "Yellow")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
-		sevenExplode[sevenFlagName(s, "Black")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 30}
+		sevenExplode[sevenFlagName(s, "Yellow")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 45.0}
+		sevenExplode[sevenFlagName(s, "Black")] = r3.Vec{X: .9 * cx, Y: .9 * cy, Z: 45.0}
 	}
 	for i := range m.Bolts {
 		parts = append(parts, named{fmt.Sprintf("Bolt %d", i+1), m.Bolts[i].Body, sevenHardware},
@@ -201,7 +207,7 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 	}
 	set := make(partSet, 0, len(parts))
 	for _, p := range parts {
-		tol := .04
+		tol := .05 // decad holds the sliders no finer than 0.0401
 		if p.name == "Rotor" || p.name == "Button" || p.name == "Housing" {
 			tol = .1 // the helicoid teeth mesh no finer
 		}
@@ -239,29 +245,29 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 }
 
 var sevenCameras = map[string]solidlens.Camera{
-	"hero": {Position: solidlens.Vec{X: 110, Y: -125, Z: 235}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
-	"top":  {Position: solidlens.Vec{Y: -3, Z: 320}, Target: solidlens.Vec{Y: -3, Z: 84}, Up: solidlens.Vec{Y: -1}, FOV: 30},
-	"oblique45": {Position: solidlens.Vec{Y: -3 - 160, Z: 84 + 160}, Target: solidlens.Vec{Y: -3, Z: 84},
+	"hero": {Position: solidlens.Vec{X: 165.0, Y: -187.5, Z: 352.5}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
+	"top":  {Position: solidlens.Vec{Y: -4.5, Z: 480.0}, Target: solidlens.Vec{Y: -4.5, Z: 126.0}, Up: solidlens.Vec{Y: -1}, FOV: 30},
+	"oblique45": {Position: solidlens.Vec{Y: -244.5, Z: 366.0}, Target: solidlens.Vec{Y: -4.5, Z: 126.0},
 		Up: solidlens.Vec{Y: -1}, FOV: 30},
-	"oblique30": {Position: solidlens.Vec{Y: -3 - 190, Z: 84 + 110}, Target: solidlens.Vec{Y: -3, Z: 84},
+	"oblique30": {Position: solidlens.Vec{Y: -289.5, Z: 291.0}, Target: solidlens.Vec{Y: -4.5, Z: 126.0},
 		Up: solidlens.Vec{Y: -1}, FOV: 30},
-	"front": {Position: solidlens.Vec{Y: -300, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"side":  {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
-	"cutaway": {Position: solidlens.Vec{X: 300, Y: -20, Z: 60}, Target: sevenCenter, Up: solidlens.Vec{Y: -1},
+	"front": {Position: solidlens.Vec{Y: -450.0, Z: 90.0}, Target: sevenCenter, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"side":  {Position: solidlens.Vec{X: 450.0, Y: -30.0, Z: 90.0}, Target: sevenCenter, Up: solidlens.Vec{Y: -1}, FOV: 35},
+	"cutaway": {Position: solidlens.Vec{X: 450.0, Y: -30.0, Z: 90.0}, Target: sevenCenter, Up: solidlens.Vec{Y: -1},
 		FOV: 35},
-	"indexer": {Position: solidlens.Vec{X: 260, Y: -66, Z: sevensegment.ShaftZ},
-		Target: solidlens.Vec{Y: -66, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Y: -1}, FOV: 30},
-	"exploded": {Position: solidlens.Vec{X: 330, Y: -330, Z: 230}, Target: solidlens.Vec{Y: -3, Z: 62},
+	"indexer": {Position: solidlens.Vec{X: 260, Y: sevenClickerY, Z: sevensegment.ShaftZ},
+		Target: solidlens.Vec{Y: sevenClickerY, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Y: -1}, FOV: 30},
+	"exploded": {Position: solidlens.Vec{X: 495.0, Y: -495.0, Z: 345.0}, Target: solidlens.Vec{Y: -4.5, Z: 93.0},
 		Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"exploded-camshaft": {Position: solidlens.Vec{X: 330, Y: -330, Z: 170},
-		Target: solidlens.Vec{Y: -70, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
+	"exploded-camshaft": {Position: solidlens.Vec{X: 495.0, Y: -495.0, Z: 255.0},
+		Target: solidlens.Vec{Y: -105.0, Z: sevensegment.ShaftZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
 	// Segment a's rotor axis runs along X at y = SegmentSpan. The exploded view looks at it from the front, a little to the
 	// right and level with the axis, so the plate halves pulled above and below show their seam faces; the section
 	// looks into the cut through the axis from -Y, at the +X end.
-	"exploded-pivot": {Position: solidlens.Vec{X: 110, Y: -150, Z: sevensegment.RotorAxisZ + 4},
+	"exploded-pivot": {Position: solidlens.Vec{X: 165.0, Y: -225.0, Z: sevensegment.RotorAxisZ + 6.0},
 		Target: solidlens.Vec{Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ}, Up: solidlens.Vec{Z: 1}, FOV: 35},
-	"pivot-section": {Position: solidlens.Vec{X: 12.6, Y: -100, Z: sevensegment.RotorAxisZ + .7},
-		Target: solidlens.Vec{X: 12.6, Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ + .7}, Up: solidlens.Vec{Z: 1}, FOV: 4},
+	"pivot-section": {Position: solidlens.Vec{X: 18.9, Y: -150.0, Z: sevensegment.RotorAxisZ + 1.05},
+		Target: solidlens.Vec{X: 18.9, Y: sevensegment.SegmentSpan, Z: sevensegment.RotorAxisZ + 1.05}, Up: solidlens.Vec{Z: 1}, FOV: 6.0},
 }
 
 var (
@@ -272,9 +278,9 @@ var (
 func sevenCamshaftPull() map[string]r3.Vec {
 	pull := map[string]r3.Vec{}
 	for i, name := range sevenCamshaftOrder {
-		pull[name] = r3.Vec{Y: -12 * float64(i+1)}
+		pull[name] = r3.Vec{Y: -18.0 * float64(i+1)}
 	}
-	pull["Shaft"] = r3.Vec{Y: 100} // the shaft slides out of the rear, so every cam's bore shows
+	pull["Shaft"] = r3.Vec{Y: 150.0} // the shaft slides out of the rear, so every cam's bore shows
 	return pull
 }
 
@@ -342,8 +348,8 @@ func sevenSegmentView(s partSet, name string) (solidlens.Scene, error) {
 // up, and each block 3 mm out along the rotor axis, which frees its pin from the bore and leaves the block level with its own
 // pocket.
 var sevenPivotExplode = map[string]r3.Vec{
-	"Cradle Plate": {Z: -8}, "Top Plate": {Z: 14},
-	"Pivot Block a -u": {X: -3}, "Pivot Block a +u": {X: 3},
+	"Cradle Plate": {Z: -12.0}, "Top Plate": {Z: 21.0},
+	"Pivot Block a -u": {X: -4.5}, "Pivot Block a +u": {X: 4.5},
 }
 
 // sevenPivotParts lists the parts of the pivot views, from segment a: its rotor, blocks and the plate halves.
@@ -398,15 +404,15 @@ func sevenPivotView(s partSet, name string) (solidlens.Scene, error) {
 			src = renderkit.TransformedMesh{TriangleSource: src, Transform: move}
 			if p.name == "Cradle Plate" || p.name == "Top Plate" {
 				// Each plate keeps 4.5 mm of its thickness beyond the pocket's floor or roof.
-				z, normal := sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z-4.5, -1.0
+				z, normal := sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z-6.75, -1.0
 				if p.name == "Top Plate" {
-					z, normal = sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z+5.5, 1
+					z, normal = sevensegment.RotorAxisZ+sevenPivotExplode[p.name].Z+8.25, 1
 				}
 				planes = []solidlens.ClipPlane{
-					{Origin: solidlens.Vec{Y: axisY - 9}, Normal: solidlens.Vec{Y: -1}},
-					{Origin: solidlens.Vec{Y: axisY + 9}, Normal: solidlens.Vec{Y: 1}},
-					{Origin: solidlens.Vec{X: -21}, Normal: solidlens.Vec{X: -1}},
-					{Origin: solidlens.Vec{X: 21}, Normal: solidlens.Vec{X: 1}},
+					{Origin: solidlens.Vec{Y: axisY - 13.5}, Normal: solidlens.Vec{Y: -1}},
+					{Origin: solidlens.Vec{Y: axisY + 13.5}, Normal: solidlens.Vec{Y: 1}},
+					{Origin: solidlens.Vec{X: -31.5}, Normal: solidlens.Vec{X: -1}},
+					{Origin: solidlens.Vec{X: 31.5}, Normal: solidlens.Vec{X: 1}},
 					{Origin: solidlens.Vec{Z: z}, Normal: solidlens.Vec{Z: normal}},
 				}
 			}
@@ -476,14 +482,15 @@ func sevenSegmentDigits(s partSet) (solidlens.Scene, error) {
 	}
 	var models []solidlens.Model
 	for k := range 10 {
-		m, err := sevenDigitModels(s, dm, k, r3.Vec{X: float64(k%5) * 66, Y: float64(k/5) * 118})
+		m, err := sevenDigitModels(s, dm, k, r3.Vec{X: float64(k%5) * 99.0, Y: float64(k/5) * 177.0})
 		if err != nil {
 			return solidlens.Scene{}, err
 		}
 		models = append(models, m...)
 	}
-	camera := solidlens.Camera{Position: solidlens.Vec{X: 132, Y: -460, Z: 330}, Target: solidlens.Vec{X: 132, Y: 56, Z: 84},
-		Up: solidlens.Vec{Y: -1}, FOV: 30}
+	camera := solidlens.Camera{Position: solidlens.Vec{X: 198.0, Y: -690.0, Z: 495.0},
+		Target: solidlens.Vec{X: 198.0, Y: 84.0, Z: 126.0},
+		Up:     solidlens.Vec{Y: -1}, FOV: 30}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .04), models), nil
 }
 
@@ -511,14 +518,14 @@ func sevenSegmentCams(s partSet) (solidlens.Scene, error) {
 			if p.name != "Cam "+seg.String() {
 				continue
 			}
-			m, err := sevenUnposed(p, -(float64(k%4)-1.5)*62, -float64(k/4)*62)
+			m, err := sevenUnposed(p, -(float64(k%4)-1.5)*93.0, -float64(k/4)*93.0)
 			if err != nil {
 				return solidlens.Scene{}, err
 			}
 			models = append(models, m)
 		}
 	}
-	camera := solidlens.Camera{Position: solidlens.Vec{Y: 500, Z: -1.5}, Target: solidlens.Vec{Y: 20, Z: -1.5},
+	camera := solidlens.Camera{Position: solidlens.Vec{Y: 750.0, Z: -2.25}, Target: solidlens.Vec{Y: 30.0, Z: -2.25},
 		Up: solidlens.Vec{Z: 1}, FOV: 30}
 	return renderkit.Scene(renderkit.FitCamera(camera, models, 16.0/9, .05), models), nil
 }
@@ -558,8 +565,8 @@ var sevenPartImages = []struct {
 	{"rotor-a", []string{"Flag a Yellow", "Flag a Black"}}, {"rotor-a-yellow", []string{"Flag a Yellow"}},
 	{"rotor-a-black", []string{"Flag a Black"}}, {"rotor-b", []string{"Flag b Yellow", "Flag b Black"}},
 	{"rotor-b-yellow", []string{"Flag b Yellow"}}, {"rotor-b-black", []string{"Flag b Black"}},
-	{"bearing", []string{"Front Bearing"}}, {"bolt-m2x10", []string{"Bolt 1"}},
-	{"bolt-m2x6", []string{"Bolt 5"}},
+	{"bearing", []string{"Front Bearing"}}, {"bolt-m2x16", []string{"Bolt 1"}},
+	{"bolt-m2x10", []string{"Bolt 5"}},
 	{"nut", []string{"Nut 1"}},
 	{"pivot-block", []string{"Pivot Block g -u"}},
 }

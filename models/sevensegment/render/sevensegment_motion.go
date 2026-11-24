@@ -40,10 +40,10 @@ func motionStates() []clickerState {
 			}
 			out = append(out, clickerState{theta: 36*float64(k) + turn, rotorDrop: u, buttonDrop: s, digit: shown})
 		}
-		for _, s := range []float64{0, 1.5, 3, 4.5, 6} {
+		for _, s := range []float64{0, .25 * sevensegment.ButtonStroke, .5 * sevensegment.ButtonStroke, .75 * sevensegment.ButtonStroke, sevensegment.ButtonStroke} {
 			add(s, true)
 		}
-		for _, s := range []float64{4.5, 3, 1.5, 0} {
+		for _, s := range []float64{.75 * sevensegment.ButtonStroke, .5 * sevensegment.ButtonStroke, .25 * sevensegment.ButtonStroke, 0} {
 			add(s, false)
 		}
 	}
@@ -162,7 +162,7 @@ func renderSevenSegmentMotion(ctx context.Context, output string, width, height 
 	half := width / 2
 	// Knob end up: the camera's up is -Y. Left: the face from +Z, turned a little toward +X. Right: the whole display cut through
 	// the axis from +X, so the cams turning and the sliders rising show.
-	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 70, Y: -40, Z: 330}, Target: solidlens.Vec{Y: -30, Z: 40},
+	faceCam := solidlens.Camera{Position: solidlens.Vec{X: 105.0, Y: -60.0, Z: 495.0}, Target: solidlens.Vec{Y: -45.0, Z: 60.0},
 		Up: solidlens.Vec{Y: -1}, FOV: 30}
 	cutCam := sevenCameras["cutaway"]
 	rest := states[0]

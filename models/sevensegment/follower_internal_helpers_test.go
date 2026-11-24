@@ -4,26 +4,26 @@ import "math"
 
 // The cam follower drive model of instructions.md "Cam follower drive": a rigid slider with Coulomb friction.
 const (
-	guideFloorZ      = 54.0                                                      // the guide plate's underside
-	followerOffsetY  = (2.35 + StemThickness/2 + PinLength - sliderPinChamf) / 2 // 2.95: groove face to pin chamfer
-	followerStemFace = StemThickness/2 - stemChamfer                             // 1.5: the stem's flat x face, half length
-	followerYawLever = 7.0 - 2*stemChamfer                                       // 6.4: the stem (x +-3.5) less its chamfers
-	followerLoad     = 0.067                                                     // N per changing slider
+	guideFloorZ      = guideFrom                                                          // the guide plate's underside
+	followerOffsetY  = (camFaceOffset + StemThickness/2 + PinLength - sliderPinChamf) / 2 // 4.325: groove face to pin chamfer
+	followerStemFace = StemThickness/2 - stemChamfer                                      // 1.5: the stem's flat x face, half length
+	followerYawLever = 2*sliderHalfWide - 2*stemChamfer                                   // 9.5: the stem (x +-5.25) less its chamfers
+	followerLoad     = 0.226125                                                           // N per changing slider: the weights grow as the volume
 )
 
-// followerBladeY returns how far toward -y the blade's x contact can sit, from the stem's centre plane: -7.8 for a, g
-// and d (the blade's far face), -1.8 for b to f (the print face).
+// followerBladeY returns how far toward -y the blade's x contact can sit, from the stem's centre plane: -11.7 for a, g
+// and d (the blade's far face), -2.7 for b to f (the print face).
 func followerBladeY(s Segment) float64 {
 	switch s {
 	case SegA, SegG, SegD:
-		return -7.8
+		return -11.7
 	}
-	return -1.8
+	return -StemThickness / 2
 }
 
 // followerKind returns 0 for a, g and d and 1 for b to f.
 func followerKind(s Segment) int {
-	if followerBladeY(s) == -7.8 {
+	if followerBladeY(s) == -11.7 {
 		return 0
 	}
 	return 1

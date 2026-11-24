@@ -30,38 +30,43 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 		return newCrossingGrid(mesh)
 	}
 	// A point in the plate of a wall, clear of its ribs, seat, holes and bolt pockets, at the given y.
-	probe := func(y float64) r3.Vec { return r3.Vec{X: -22, Y: y, Z: sevensegment.ShaftZ - 12} }
+	probe := func(y float64) r3.Vec { return r3.Vec{X: -22, Y: y, Z: sevensegment.ShaftZ - 12} } // 22 and 12 clear the seat
 	frontG, rearG := wallGrid(frontWall), wallGrid(rearWall)
-	frontInner := faceCoord(t, frontG, probe(-52), probe(-49)).Y
-	frontOuter := faceCoord(t, frontG, probe(-52), probe(-60)).Y
-	rearInner := faceCoord(t, rearG, probe(46), probe(40)).Y
-	require.InDelta(t, 8.0, frontInner-frontOuter, 0.01, "the front wall plate's thickness")
+	fi, ro := sevensegment.FrontInnerY, sevensegment.RearInnerY
+	frontInner := faceCoord(t, frontG, probe(fi-2.5), probe(fi+0.5)).Y
+	frontOuter := faceCoord(t, frontG, probe(fi-2.5), probe(sevensegment.FrontWallOuterY-2.5)).Y
+	rearInner := faceCoord(t, rearG, probe(ro+3), probe(ro-3)).Y
+	require.InDelta(t, sevensegment.WallThickness, frontInner-frontOuter, 0.01, "the front wall plate's thickness")
 	require.InDelta(t, front.Max.Y, frontInner, 0.01, "the front bearing is flush with the front wall's inner face")
 	require.InDelta(t, rear.Min.Y, rearInner, 0.01, "the rear bearing is flush with the rear wall's inner face")
 
 	// Faces of the shaft, found on its sections.
-	frontStep := shaftEdge(t, m.Shaft, front.Max.Y-0.4, front.Max.Y+0.4, func(_, maxR float64) bool { return maxR < 3.0 })
-	rearCollar := shaftEdge(t, m.Shaft, rear.Min.Y-0.6, rear.Min.Y+0.2, func(minR, _ float64) bool { return minR > 3.0 })
-	coneStart := shaftEdge(t, m.Shaft, 39.4, 40.5, func(_, maxR float64) bool { return maxR < 3.21 })
-	camFlatEnd := shaftEdge(t, m.Shaft, 38.9, 39.5, func(minR, _ float64) bool { return minR < 3.0 })
-	stubFlatEnd := shaftEdge(t, m.Shaft, -58.2, -57.5, func(minR, _ float64) bool { return minR < 2.25 })
+	journal, camR, collarR := sevensegment.ShaftJournal, sevensegment.ShaftCamRadius, sevensegment.RearCollarRadius
+	frontStep := shaftEdge(t, m.Shaft, front.Max.Y-0.4, front.Max.Y+0.4, func(_, maxR float64) bool { return maxR < (journal+camR)/2 })
+	rearCollar := shaftEdge(t, m.Shaft, rear.Min.Y-0.6, rear.Min.Y+0.2, func(minR, _ float64) bool { return minR > (journal+collarR)/2 })
+	coneStart := shaftEdge(t, m.Shaft, sevensegment.ShaftCamEnd-0.3, sevensegment.ShaftCamEnd+0.8, func(_, maxR float64) bool { return maxR < camR+0.01 })
+	camFlatEnd := shaftEdge(t, m.Shaft, sevensegment.ShaftCamEnd-0.8, sevensegment.ShaftCamEnd-0.2, func(minR, _ float64) bool { return minR < (sevensegment.ShaftCamFlat+camR)/2 })
+	stubFlatEnd := shaftEdge(t, m.Shaft, sevensegment.ShaftStubFlatTo-0.35, sevensegment.ShaftStubFlatTo+0.35, func(minR, _ float64) bool { return minR < 2.25 })
 	camA, ring := bounds(m.Cams[sevensegment.SegA]), bounds(m.Hub)
 	guide := bounds(m.GuidePlate)
 	// The ledge ribs' top faces, read inside a rib of each wall: the first of a few x positions that lies in the rib's
 	// material, clear of the bolt pockets.
 	ledge := func(g *crossingGrid, y float64) float64 {
-		for _, x := range []float64{21, 22, 23, 24, 25, 26} {
-			if g.pointIn(r3.Vec{X: x, Y: y, Z: 52}) && !g.pointIn(r3.Vec{X: x, Y: y, Z: 55}) {
-				return faceCoord(t, g, r3.Vec{X: x, Y: y, Z: 52}, r3.Vec{X: x, Y: y, Z: 55}).Z
+		top := sevensegment.LedgeFrom + sevensegment.RibHeight
+		for _, x := range []float64{31.5, 33, 34.5, 36, 37.5, 39} {
+			if g.pointIn(r3.Vec{X: x, Y: y, Z: top - 1.75}) && !g.pointIn(r3.Vec{X: x, Y: y, Z: top + 1.25}) {
+				return faceCoord(t, g, r3.Vec{X: x, Y: y, Z: top - 1.75}, r3.Vec{X: x, Y: y, Z: top + 1.25}).Z
 			}
 		}
 		require.Fail(t, "no ledge rib material found", "y %.1f", y)
 		return 0
 	}
 	// A column's top face, read at a corner of its 5 x 5 section, clear of the peg that stands on it.
-	columnTop := faceCoord(t, wallGrid(m.GuidePlate), r3.Vec{X: 14.3, Y: -42.7, Z: 78}, r3.Vec{X: 14.3, Y: -42.7, Z: 80.4}).Z
+	ct := sevensegment.ColumnTop
+	columnTop := faceCoord(t, wallGrid(m.GuidePlate), r3.Vec{X: 21.45, Y: -64.05, Z: ct - 1.15},
+		r3.Vec{X: 21.45, Y: -64.05, Z: ct + 1.25}).Z
 	cradle := bounds(m.CradlePlate)
-	frontLedge, rearLedge := ledge(frontG, frontInner+4), ledge(rearG, rearInner-4)
+	frontLedge, rearLedge := ledge(frontG, frontInner+6.0), ledge(rearG, rearInner-6.0)
 
 	for _, c := range []struct {
 		id        string
@@ -75,7 +80,7 @@ func TestSevenSegmentAxialFits(t *testing.T) {
 		{"L8 cam flat end to cam a", camFlatEnd - camA.Max.Y, sevensegment.PressFit},
 		{"S1 guide plate to the front ledge ribs", guide.Min.Z - frontLedge, sevensegment.Seam},
 		{"S1 guide plate to the rear ledge ribs", guide.Min.Z - rearLedge, sevensegment.Seam},
-		{"S2 columns to the cradle plate", cradle.Min.Z - columnTop, 0.85},
+		{"S2 columns to the cradle plate", cradle.Min.Z - columnTop, 1.275},
 	} {
 		t.Logf("%s: %.3f (modeled %.2f)", c.id, c.got, c.want)
 		// The cone's start is read 0.017 past its apex, where the section has grown by the probe's 0.01.

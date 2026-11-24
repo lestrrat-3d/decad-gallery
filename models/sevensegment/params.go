@@ -9,36 +9,31 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// Scale is the size of the display against its base design, which Scale 1.0 is. Every shape (layout, rotors, sliders, cams,
-// frame, pivot) is written as Scale times its base size in mm. Fits, clearances, print limits, layer-bound thicknesses and
-// purchased hardware keep their size in mm and are added outside the product (see instructions.md "Scale").
-const Scale = 1.0
-
-// Fixed dimensions in mm and degrees. See instructions.md for what each one is.
+// Fixed dimensions in mm and degrees. See instructions.md for what each one is. Fits, clearances, print limits,
+// layer-bound thicknesses and purchased hardware are separate terms, kept at their own size in mm.
 const (
-	SegmentSpan   = Scale * 33.0
-	Travel        = Scale * 3.0
+	SegmentSpan   = 49.5
+	Travel        = 4.5
 	FaceZ         = flagFaceZ
-	ShaftZ        = Scale * 29.5
-	StationPitch  = Scale * 11.0
-	CamRadius     = Scale * 23.5
-	CamThickness  = Scale * 3.8
-	HubRadius     = Scale * 5.0
-	OffRadius     = Scale * 16.5
-	OnRadius      = Scale * 19.5
+	ShaftZ        = 44.25
+	StationPitch  = 16.5
+	CamRadius     = 35.25
+	CamThickness  = 5.7
+	HubRadius     = 7.5
+	OffRadius     = 24.75
+	OnRadius      = 29.25
 	GrooveWidth   = 2*sliderPinR + 0.8 // the groove pin's diameter plus a 0.8 fit
-	GrooveDepth   = Scale * 1.9
+	GrooveDepth   = 2.85
 	RampStart     = 8.0 // degrees
 	RampEnd       = 29.5
-	RampRound     = Scale * 2.5
+	RampRound     = 3.75
 	EntryAngle    = 18.0
-	PinRadius     = Scale * 1.5
-	PinLength     = Scale*1.9 + 0.15 // the groove depth plus a 0.15 end gap
-	StemThickness = Scale * 3.6
-	StemRound     = Scale * 0.3
+	PinRadius     = 2.25
+	PinLength     = 3.0 // 2.85 groove depth + 0.15 end gap
+	StemThickness = 5.4
 
-	WallThickness = Scale * 8.0
-	WallHalfWidth = Scale * 23.4 // plates x +-23.4; the b, c, e, f bores (x +-22.046) keep 0.85 inside the 0.5 chamfer
+	WallThickness = 12.0
+	WallHalfWidth = 35.1 // plates x +-35.1
 
 	Seam            = 0.25
 	PressFit        = 0.05
@@ -49,17 +44,28 @@ const (
 
 	// The flag mechanism: each segment is a two-colour rotor on two printed pivot blocks, turned by its slider.
 	RotorAxisZ      = cradleFrom + cradleThick // modeled height of every rotor axis: the seam plane
-	RotorHalfWidth  = Scale * 3.75             // distance of a rotor face from its axis
-	RotorHalfLength = Scale * 12.25
+	RotorHalfWidth  = 5.625                    // distance of a rotor face from its axis
+	RotorHalfLength = 18.375
 	JournalRadius   = pivotPinRadius + 0.2 // the rotor's end bore, its turning surface; the pivot pin turns in it with 0.2 to spare
-	PinOffset       = Scale * 1.5          // distance of the slider pin line from the rotor axis, along the rotor's x
+	PinOffset       = 2.25                 // distance of the slider pin line from the rotor axis, along the rotor's x
 
-	RearCollarRadius = Scale * 3.8
+	RearCollarRadius = 5.7
+)
+
+// The shaft bearings are two 608ZZ (ballbearing.Lookup("608ZZ"): bore 8, outside 22, width 7, inner ring face 12). The
+// constants are pinned to the catalog by a test; a catalog has no bore chamfer, and the 0.3 that the shaft's steps clear is an
+// assumption (instructions.md "Bearings").
+const (
+	bearingBoreR       = 4.0   // half the bore: the shaft's journals
+	bearingWidth       = 7.0   //
+	bearingSeatR       = 11.05 // half the outside diameter plus the 0.05 seat fit
+	bearingRaceR       = 6.0   // half the inner ring's face: the least a collar facing the bearing may reach
+	bearingBoreChamfer = 0.3   // assumed, not in the catalog
 )
 
 // frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
-// inside WallHalfWidth. The hardware does not scale, so the offset does not.
-const frameBoltX = WallHalfWidth - 3.8 // 19.6
+// inside WallHalfWidth. The hardware has a fixed size, so the offset is fixed.
+const frameBoltX = WallHalfWidth - 3.8 // 31.3
 
 // Segment names one of the seven segments.
 type Segment int
@@ -299,19 +305,19 @@ func (p Params) Derive() (Dimensions, error) {
 func sites() ([10]m2fastener.Site, error) {
 	var out [10]m2fastener.Site
 	// G3/G4 at y 32 stand between the discs of cams f and a, so no cam lies under their heads.
-	gy := [4]float64{Scale * -34.2, Scale * -34.2, Scale * 32.0, Scale * 32.0}
+	gy := [4]float64{-51.3, -51.3, 48.0, 48.0}
 	xs := [4]float64{-frameBoltX, frameBoltX, -frameBoltX, frameBoltX}
 	ts := flagSites()
 	copy(out[:4], ts[:])
 	for i := range 4 {
 		out[4+i] = m2fastener.Site{Head: r3.Vec{X: xs[i], Y: gy[i], Z: ledgeFrom}, Dir: r3.Vec{Z: 1}, Corner: r3.Vec{Y: 1},
-			Length: 6, Cavity: 6.25}
+			Length: 10, Cavity: guideTop - ledgeFrom - m2fastener.NutCavityHeight}
 	}
 	// H1, H2 hold the click indexer's housing on the front wall: the head sinks in the housing's base, the nut sits in a hex
 	// pocket open to the wall's inner face.
 	for i, x := range [2]float64{-21, 21} { // the click indexer keeps its size, so its bolts do
 		out[8+i] = m2fastener.Site{Head: r3.Vec{X: x, Y: housingBaseY - housingBaseThick, Z: ShaftZ}, Dir: r3.Vec{Y: 1},
-			Corner: r3.Vec{Z: 1}, Length: 10, Cavity: 10.25}
+			Corner: r3.Vec{Z: 1}, Length: 16, Cavity: frontInnerY - (housingBaseY - housingBaseThick) - m2fastener.NutCavityHeight}
 	}
 	for i, s := range out {
 		if err := s.Validate(); err != nil {
@@ -409,8 +415,8 @@ func raise(s Segment) float64 {
 	return 0
 }
 
-// FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 1.75 +
-// raise, PinOffset). The pin line is 1.5 from the rotor axis and the slider's lift is 0 to 3.
+// FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 2.625 +
+// raise, PinOffset). The pin line is 2.25 from the rotor axis and the slider's lift is 0 to 4.5.
 func (d Dimensions) FlagAngle(s Segment, theta float64) float64 {
-	return math.Atan2(d.Lift(s, theta)-Scale*1.75+raise(s), PinOffset) * 180 / math.Pi
+	return math.Atan2(d.Lift(s, theta)-2.625+raise(s), PinOffset) * 180 / math.Pi
 }
