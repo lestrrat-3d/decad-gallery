@@ -552,7 +552,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        case: [default, variants, rest]
+        case: [default, flat-three, steep-three, rest]
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:

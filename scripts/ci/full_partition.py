@@ -22,7 +22,9 @@ FULL_VARIANTS = {
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/flat-three"),
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
 }
-FAN_CASES = {"default": "TestHandCrankFanDefault", "variants": "TestHandCrankFanVariant"}
+FAN_VARIANTS = ("flat-three", "steep-three")
+FAN_CASES = {"default": "TestHandCrankFanDefault",
+             **{name: "TestHandCrankFanVariant" for name in FAN_VARIANTS}}
 SWISS_FORK = "TestForkAction"
 
 
@@ -95,9 +97,12 @@ def main(mode="repository", case=None):
         if not tests:
             raise SystemExit("fan partition is empty")
         required = set(tests)
-        if case == "variants":
-            required.update(test for pkg, test in FULL_VARIANTS if pkg == package)
-        run_tests.go_test([package, "-run", run_tests.run_pattern(tests), "-timeout", "60m"],
+        pattern = run_tests.run_pattern(tests)
+        if case in FAN_VARIANTS:
+            required.add("TestHandCrankFanVariant/" + case)
+            pattern = run_tests.run_pattern(["TestHandCrankFanVariant/" + case])
+            env["HANDCRANKFAN_VARIANTS"] = ",".join(FAN_VARIANTS)
+        run_tests.go_test([package, "-run", pattern, "-timeout", "60m"],
                           sorted(required), env=env, package=package)
     elif mode == "swisslever":
         package = ROOT + "/models/" + mode

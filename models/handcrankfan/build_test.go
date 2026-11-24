@@ -4,9 +4,12 @@ package handcrankfan_test
 
 import (
 	"math"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/lestrrat-3d/decad-gallery/models/handcrankfan"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandCrankFanDefault(t *testing.T) {
@@ -22,10 +25,18 @@ func TestHandCrankFanContainers(t *testing.T) {
 
 func TestHandCrankFanVariant(t *testing.T) {
 	skipUnlessFull(t)
-	for name, p := range map[string]handcrankfan.Params{
+	variants := map[string]handcrankfan.Params{
 		"flat-three":  {CrankAngle: -0.7, BladePitch: 12 * math.Pi / 180},
 		"steep-three": {CrankAngle: 2.5, BladePitch: 40 * math.Pi / 180},
-	} {
+	}
+	if expected := os.Getenv("HANDCRANKFAN_VARIANTS"); expected != "" {
+		names := make([]string, 0, len(variants))
+		for name := range variants {
+			names = append(names, name)
+		}
+		require.ElementsMatch(t, strings.Split(expected, ","), names)
+	}
+	for name, p := range variants {
 		t.Run(name, func(t *testing.T) { checkFan(t, p) })
 	}
 }
