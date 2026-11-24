@@ -1,7 +1,10 @@
 import contextlib
 import copy
+import hashlib
 import io
 import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -54,6 +57,44 @@ class CasePlanTest(unittest.TestCase):
             with self.subTest(stream=stream), mock.patch.object(case_inventory.subprocess, "Popen", return_value=process), \
                     contextlib.redirect_stdout(io.StringIO()), self.assertRaises(ValueError):
                 case_inventory.strict_run(["go"], {}, package, ["TestA"], ["TestA", "TestA/one"])
+
+    def test_execution_gate_rejects_missing_or_wrong_case_evidence(self):
+        identity = {"revision": "a" * 40, "run_id": "123", "attempt": "1", "profile": {}}
+        manifest = {"package": "example.com/model", "parents": {"TestA": ["one", "two"]},
+                    "tests": ["TestA", "TestOther"], "identity": identity}
+        with mock.patch.object(case_inventory, "validate_manifest"):
+            plan = case_inventory.build_plan(manifest)
+            digest = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+            Path(".tmp").mkdir(exist_ok=True)
+            with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+                receipts, records = {}, {}
+                for job in plan["jobs"]:
+                    case = job["case"]
+                    receipt = Path(directory) / (case + ".receipt")
+                    receipt.write_text(json.dumps({"version": 1, "case": case, "kind": job["kind"],
+                                                   "plan_sha256": digest, "identity": identity}))
+                    receipts[case] = receipt
+                    if job["kind"] == "audit":
+                        continue
+                    tests = ([job["parent"]] + [job["parent"] + "/" + name for name in job["names"]]
+                             if job["kind"] == "group" else ["TestOther"])
+                    meta = {"version": 1, "invocation": case, "module": ".", "job": "case-workers",
+                            "case": case, "revision": identity["revision"], "run_id": "123", "run_attempt": "1"}
+                    rows = [{**meta, "kind": "test", "package": manifest["package"], "test": name, "status": "pass"}
+                            for name in tests]
+                    rows.extend([{**meta, "kind": "package", "package": manifest["package"], "status": "pass"},
+                                 {**meta, "kind": "complete"}])
+                    path = Path(directory) / (case + ".jsonl")
+                    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+                    records[case] = path
+                self.assertTrue(case_inventory.verify_execution(plan, receipts, records))
+                incomplete = dict(receipts)
+                incomplete.pop("audit")
+                with self.assertRaisesRegex(ValueError, "artifacts"):
+                    case_inventory.verify_execution(plan, incomplete, records)
+                records["TestA-0"].write_text(records["TestA-1"].read_text())
+                with self.assertRaisesRegex(ValueError, "records"):
+                    case_inventory.verify_execution(plan, receipts, records)
 
 
 if __name__ == "__main__":

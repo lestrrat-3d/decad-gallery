@@ -10,10 +10,14 @@ import subprocess
 import sys
 
 import run_tests
+import reconcile_records
 
 
 def execution_identity():
     revision = subprocess.run(["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
+    status = subprocess.run(["git", "diff", "--quiet", "HEAD", "--"], capture_output=True)
+    if status.returncode:
+        raise ValueError("checkout contains uncommitted tracked files")
     if os.environ.get("GITHUB_SHA", revision) != revision:
         raise ValueError("checkout does not match the workflow revision")
     profile = subprocess.run(["go", "env", "-json", "GOOS", "GOARCH", "CGO_ENABLED", "GOFLAGS", "GOVERSION"],
@@ -34,8 +38,12 @@ def source_digest(name):
                      Path(os.fsdecode(path)).parent == root and os.fsdecode(path).endswith("_test.go")}
     if status or tracked_tests != {str(path) for path in files}:
         raise ValueError("test sources do not match the checked-out revision")
+    return file_digest(files)
+
+
+def file_digest(files):
     digest = hashlib.sha256()
-    for path in files:
+    for path in sorted(files):
         name_bytes = path.name.encode("utf-8")
         data = path.read_bytes()
         digest.update(len(name_bytes).to_bytes(8, "big"))
@@ -43,6 +51,21 @@ def source_digest(name):
         digest.update(len(data).to_bytes(8, "big"))
         digest.update(data)
     return digest.hexdigest()
+
+
+# Both reviewed parents create a document and parameters per child. Their local
+# helpers do not access defaultDriveFixture. Pin the entire local Go package
+# so changing a parent, helper, or package initializer needs a fresh review.
+# Updating the model's inventory fingerprint alone cannot authorize a split.
+CYCLOIDAL_REVIEWED_GO = "684eafbcc84332696858c1137067d23a01b3c681b4994eb5cc50b5e18fa72309"
+
+
+def reviewed_cases(name, parents):
+    if name != "cycloidal" or parents != ["TestBuildOptions", "TestMeasuredFits"]:
+        return False
+    files = list(Path("models", name).glob("*.go"))
+    return (all(path.is_file() and not path.is_symlink() for path in files) and
+            file_digest(files) == CYCLOIDAL_REVIEWED_GO)
 
 
 def discover(name):
@@ -53,7 +76,7 @@ def discover(name):
             not isinstance(config["parents"], list) or not isinstance(config["source_sha256"], str) or
             not re.fullmatch(r"[0-9a-f]{64}", config["source_sha256"])):
         raise ValueError("invalid case configuration")
-    if source_digest(name) != config["source_sha256"]:
+    if not reviewed_cases(name, config["parents"]) or source_digest(name) != config["source_sha256"]:
         return None
     if any("TestMain" in path.read_text() for path in Path("models", name).glob("*_test.go")):
         return None
@@ -160,6 +183,51 @@ def run_planned(plan, case):
         receipt = {"version": 1, "case": case, "kind": job["kind"],
                    "plan_sha256": hashlib.sha256(encoded).hexdigest(), "identity": plan["manifest"]["identity"]}
         Path(receipt_path).write_text(json.dumps(receipt, sort_keys=True) + "\n")
+
+
+def verify_execution(plan, receipts, records):
+    """Require every planned case, audit, remainder and record exactly once."""
+    if plan != build_plan(plan["manifest"]):
+        raise ValueError("case plan is incomplete or altered")
+    jobs = {job["case"]: job for job in plan["jobs"]}
+    if set(receipts) != set(jobs) or set(records) != {case for case, job in jobs.items() if job["kind"] != "audit"}:
+        raise ValueError("case artifacts do not match the plan")
+    encoded = json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
+    digest = hashlib.sha256(encoded).hexdigest()
+    identity = plan["manifest"]["identity"]
+    package = plan["manifest"]["package"]
+    parents = set(plan["manifest"]["parents"])
+    expected_remainder = set(plan["manifest"]["tests"]) - parents
+    all_leaves = {}
+    for case, job in jobs.items():
+        path = Path(receipts[case])
+        if path.stat().st_size > 16384:
+            raise ValueError("case receipt is too large")
+        receipt = json.loads(path.read_text())
+        expected = {"version": 1, "case": case, "kind": job["kind"], "plan_sha256": digest, "identity": identity}
+        if receipt != expected:
+            raise ValueError("case receipt does not match the plan")
+        if job["kind"] == "audit":
+            continue
+        path = Path(records[case])
+        metadata = {path: {"job": "case-workers", "case": case, "revision": identity["revision"],
+                           "run_id": identity["run_id"], "run_attempt": identity["attempt"], "module": "."}}
+        leaves, passed, packages, errors, _ = reconcile_records.read_records([path], metadata, identity["attempt"])
+        if errors or packages != {(".", package)}:
+            raise ValueError("case records are invalid")
+        tests = {test for module, pkg, test in passed if module == "." and pkg == package}
+        roots = {test for test in tests if "/" not in test}
+        if job["kind"] == "group":
+            expected_tests = {job["parent"], *(job["parent"] + "/" + name for name in job["names"])}
+            if tests != expected_tests:
+                raise ValueError("case group does not match its assignment")
+        elif roots != expected_remainder:
+            raise ValueError("case remainder does not match its assignment")
+        for leaf, count in leaves.items():
+            all_leaves[leaf] = all_leaves.get(leaf, 0) + count
+    if any(count != 1 for count in all_leaves.values()):
+        raise ValueError("case execution contains duplicate leaves")
+    return True
 
 
 def strict_run(command, env, package, parents, exact_tests=None):
