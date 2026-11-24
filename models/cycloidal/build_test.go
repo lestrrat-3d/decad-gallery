@@ -70,10 +70,7 @@ func TestBuildOptions(t *testing.T) {
 	t.Parallel()
 	placed, err := r3.NewFrame(r3.NewVec(10, 20, 30), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
 	require.NoError(t, err)
-	cases := []struct {
-		name string
-		mod  func(p *cycloidal.Params)
-	}{
+	cases := []ciCase[func(*cycloidal.Params)]{
 		{"solid_cam", func(p *cycloidal.Params) { p.InputShaftDiameter = 0 }},
 		{"pin_diameters", func(p *cycloidal.Params) { p.PinDiameter, p.OutputPinDiameter = 8, 6 }},
 		{"pins_12", func(p *cycloidal.Params) { p.PinCount = 12 }},
@@ -92,23 +89,21 @@ func TestBuildOptions(t *testing.T) {
 		{"thin_housing", func(p *cycloidal.Params) { p.HousingWall, p.BaseThickness, p.OutputPlateThickness = 1.6, 2, 2 }},
 		{"clearances", func(p *cycloidal.Params) { p.DiskClearance, p.BearingClearance = 0.6, 1.2 }},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			p := cycloidal.DefaultParams()
-			tc.mod(&p)
-			require.Empty(t, cycloidal.Problems(p))
-			doc := chainDocument()
-			drive, err := cycloidal.Build(t.Context(), doc, p)
-			require.NoError(t, err)
-			for _, nb := range drive.Named() {
-				mesh, err := nb.Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
-				require.NoError(t, err, nb.Name)
-				require.True(t, mesh.BoundaryVerified(), nb.Name)
-				require.True(t, mesh.VolumeVerified(), nb.Name)
-			}
-		})
-	}
+	ciRunCases(t, cases, func(t *testing.T, mod func(*cycloidal.Params)) {
+		t.Parallel()
+		p := cycloidal.DefaultParams()
+		mod(&p)
+		require.Empty(t, cycloidal.Problems(p))
+		doc := chainDocument()
+		drive, err := cycloidal.Build(t.Context(), doc, p)
+		require.NoError(t, err)
+		for _, nb := range drive.Named() {
+			mesh, err := nb.Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
+			require.NoError(t, err, nb.Name)
+			require.True(t, mesh.BoundaryVerified(), nb.Name)
+			require.True(t, mesh.VolumeVerified(), nb.Name)
+		}
+	})
 }
 
 // ChamferSize chamfers the rotor discs, housing, cam, output plate and pins.
