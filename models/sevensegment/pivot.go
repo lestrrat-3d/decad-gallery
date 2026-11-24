@@ -35,8 +35,8 @@ const (
 	pivotMouthR    = 1.395
 )
 
-// pivotBoreTool builds the revolved part of one rotor end's pivot bore in the rotor's local frame: end sgn (+1 for +u).
-func (r *run) pivotBoreTool(sgn float64) (*decad.Body, error) {
+// cutPivotBore cuts the revolved part of one rotor end's pivot bore in the rotor's local frame: end sgn (+1 for +u).
+func (r *run) cutPivotBore(body *decad.Body, sgn float64) (*decad.Body, error) {
 	rr := pivotFloorRond
 	mouth := RotorHalfLength - (pivotMouthR - JournalRadius) // where the 45 degree countersink starts
 	pts := [][2]float64{{0, pivotBoreFloor}, {JournalRadius - rr, pivotBoreFloor}}
@@ -51,14 +51,14 @@ func (r *run) pivotBoreTool(sgn float64) (*decad.Body, error) {
 			pts[i], pts[j] = pts[j], pts[i]
 		}
 	}
-	return r.meridian(pts)
+	return r.cutMeridian(body, pts, nil)
 }
 
-// pivotRoofTool builds the teardrop roof of one end's bore: a prism along u from the bore floor to past the end face. Its
+// cutPivotRoof cuts the teardrop roof of one end's bore: a prism along u from the bore floor to past the end face. Its
 // section is the bore's tangent gable: 45 degree sides from the tangent points of the circle up to pivotRoofTop from the
 // axis, cut flat there (0.30 wide). The point faces up in print (the rotor prints yellow face down, so up is rotor-local
 // (-1, -1)). The pentagon's lower corner sits on the axis, so no side lies at the bore's own height.
-func (r *run) pivotRoofTool(sgn float64) (*decad.Body, error) {
+func (r *run) cutPivotRoof(body *decad.Body, sgn float64) (*decad.Body, error) {
 	k := 1 / math.Sqrt2
 	z0 := pivotBoreFloor
 	if sgn < 0 {
@@ -73,7 +73,7 @@ func (r *run) pivotRoofTool(sgn float64) (*decad.Body, error) {
 	t := JournalRadius * k // the tangent point, on the 45 degree line
 	h := JournalRadius*math.Sqrt2 - pivotRoofTop
 	polygon(s, [][2]float64{{0, 0}, {t, t}, {h, pivotRoofTop}, {-h, pivotRoofTop}, {-t, t}})
-	return r.extrude(s, 0, length, decad.Along)
+	return r.cutExtrude(body, s, 0, 1, length, decad.Along)
 }
 
 // pivotBlock builds one block in its own frame: local z is u, local x is s and local y is up. It stands on the rotor's

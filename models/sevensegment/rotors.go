@@ -90,6 +90,21 @@ func (r *run) polyBody(f r3.Frame, pts [][2]float64, ext decad.Extent) (*decad.B
 	return decad.Extrude(r.ctx, r.doc, s, pr, ext)
 }
 
+// cutPoly cuts body by the closed polygon on frame f swept by ext, each side held by its direction and its distance from
+// the origin.
+func (r *run) cutPoly(body *decad.Body, f r3.Frame, pts [][2]float64, ext decad.Extent) (*decad.Body, error) {
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, err
+	}
+	polygon(s, pts)
+	pr, err := r.profile(s, 0)
+	if err != nil {
+		return nil, err
+	}
+	return decad.CutExtrude(r.ctx, body, s, []*sketch.Profile{pr}, ext)
+}
+
 func symmetric(d float64) decad.Extent {
 	return decad.Symmetric{D: units.Millimeters(d), FullLength: true}
 }
@@ -317,13 +332,9 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 	}
 	wrap := func(what string, e error) error { return fmt.Errorf("rotor %s: %w", what, e) }
 	// 4. The flat under the bottom: black only.
-	flat, err := r.polyBody(local(r3.Vec{Z: -21.0}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
+	if black, err = r.cutPoly(black, local(r3.Vec{Z: -21.0}, r3.Vec{X: 1}, r3.Vec{Y: 1}),
 		[][2]float64{{-10.5, -10.5}, {10.5, -10.5}, {10.5, rotorFlat}, {-10.5, rotorFlat}},
-		decad.Distance{D: units.Millimeters(42.0), Dir: decad.Along})
-	if err != nil {
-		return Flag{}, wrap("flat tool", err)
-	}
-	if black, err = decad.Cut(r.ctx, black, flat); err != nil {
+		decad.Distance{D: units.Millimeters(42.0), Dir: decad.Along}); err != nil {
 		return Flag{}, wrap("cut flat", err)
 	}
 	// 5 and 6. Each notch, then its pin pocket.
@@ -345,18 +356,10 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 	}
 	// 7. Each end's pivot bore: the revolved bore with its floor round and 45 degree mouth, then the teardrop roof.
 	for _, sgn := range []float64{1, -1} {
-		bore, err := r.pivotBoreTool(sgn)
-		if err != nil {
-			return Flag{}, wrap("pivot bore tool", err)
-		}
-		if black, err = decad.Cut(r.ctx, black, bore); err != nil {
+		if black, err = r.cutPivotBore(black, sgn); err != nil {
 			return Flag{}, wrap("cut pivot bore", err)
 		}
-		roof, err := r.pivotRoofTool(sgn)
-		if err != nil {
-			return Flag{}, wrap("pivot roof tool", err)
-		}
-		if black, err = decad.Cut(r.ctx, black, roof); err != nil {
+		if black, err = r.cutPivotRoof(black, sgn); err != nil {
 			return Flag{}, wrap("cut pivot roof", err)
 		}
 	}

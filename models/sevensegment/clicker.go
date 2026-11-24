@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
@@ -168,11 +169,7 @@ func (r *run) boreD(body *decad.Body, y, length float64) (*decad.Body, error) {
 		return nil, err
 	}
 	dBoreLoop(s, boreStubRadius, boreStubFlat)
-	tool, err := r.extrude(s, 0, length+2, decad.Along)
-	if err != nil {
-		return nil, fmt.Errorf("bore tool: %w", err)
-	}
-	return decad.Cut(r.ctx, body, tool)
+	return r.cutExtrude(body, s, 0, 1, length+2, decad.Along)
 }
 
 // hub builds the keyed hub: the collar ring's D-bored base with a cup on it, three keys inside the cup wall.
@@ -200,6 +197,25 @@ func (r *run) hub() (*decad.Body, error) {
 	return r.boreD(body, hubBaseY, hubBaseLength)
 }
 
+// cutKeySlots cuts the hubKeyCount key slots from body in one call: boxes on the radius from r0 to r1, w wide, over local
+// Z from z0 to z1, the k-th turned by its key's angle about Z. They are the profiles of one sketch on z0.
+func (r *run) cutKeySlots(body *decad.Body, r0, r1, w, z0, z1 float64) (*decad.Body, error) {
+	s, err := r.sketchOn(across(z0))
+	if err != nil {
+		return nil, err
+	}
+	for k := range hubKeyCount {
+		a := buttonKeyAngle(k) * math.Pi / 180
+		sin, cos := math.Sincos(a)
+		corners := [][2]float64{{r0, -w / 2}, {r1, -w / 2}, {r1, w / 2}, {r0, w / 2}}
+		for i, c := range corners {
+			corners[i] = [2]float64{c[0]*cos - c[1]*sin, c[0]*sin + c[1]*cos}
+		}
+		polygon(s, corners)
+	}
+	return r.cutExtrude(body, s, 0, hubKeyCount, z1-z0, decad.Along)
+}
+
 // rotor builds the rotor in the world at its rest and digit 0, in a frame whose Z is the height above the plate's nominal
 // top face.
 func (r *run) rotor() (*decad.Body, error) {
@@ -216,15 +232,9 @@ func (r *run) rotor() (*decad.Body, error) {
 		return nil, fmt.Errorf("chamfer rim: %w", err)
 	}
 	// The skirt's slots take the hub's keys, with a Tight fit each side.
-	for k := range hubKeyCount {
-		slot, err := r.localBox(rotorSlotDepthTo, rotorSkirtOuter+0.5, rotorSlotWidth, skirtTop-rotorSkirtLength-0.5, skirtTop,
-			360/float64(hubKeyCount)*float64(k))
-		if err != nil {
-			return nil, fmt.Errorf("slot %d: %w", k+1, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, slot); err != nil {
-			return nil, fmt.Errorf("cut slot %d: %w", k+1, err)
-		}
+	if body, err = r.cutKeySlots(body, rotorSlotDepthTo, rotorSkirtOuter+0.5, rotorSlotWidth,
+		skirtTop-rotorSkirtLength-0.5, skirtTop); err != nil {
+		return nil, fmt.Errorf("cut slots: %w", err)
 	}
 	for _, ring := range []struct {
 		f     faceTeeth
@@ -255,15 +265,9 @@ func (r *run) housing() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	for k := range hubKeyCount {
-		slot, err := r.localBox(housingCrownR0-0.5, housingSlotOuter, housingSlotWidth, zOf(housingBezelY)-1, 1,
-			360/float64(hubKeyCount)*float64(k))
-		if err != nil {
-			return nil, fmt.Errorf("slot %d: %w", k+1, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, slot); err != nil {
-			return nil, fmt.Errorf("cut slot %d: %w", k+1, err)
-		}
+	if body, err = r.cutKeySlots(body, housingCrownR0-0.5, housingSlotOuter, housingSlotWidth, zOf(housingBezelY)-1,
+		1); err != nil {
+		return nil, fmt.Errorf("cut slots: %w", err)
 	}
 	teeth, err := r.faceTeethBodies(cr, 0)
 	if err != nil {

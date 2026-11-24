@@ -73,6 +73,36 @@ func (r *run) extrude(s *sketch.Sketch, holes int, length float64, dir decad.Dir
 	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: dir})
 }
 
+// profiles solves s, requires it fully constrained and returns its n valid profiles with the given number of holes.
+func (r *run) profiles(s *sketch.Sketch, holes, n int) ([]*sketch.Profile, error) {
+	if _, err := s.Solve(r.ctx); err != nil {
+		return nil, fmt.Errorf("solve sketch: %w", err)
+	}
+	if err := sketchcheck.VerifyFullyConstrained(r.ctx, s); err != nil {
+		return nil, fmt.Errorf("verify sketch: %w", err)
+	}
+	var out []*sketch.Profile
+	for _, pr := range s.Profiles() {
+		if pr.Valid && len(pr.Holes) == holes {
+			out = append(out, pr)
+		}
+	}
+	if len(out) != n {
+		return nil, fmt.Errorf("%d valid profiles with %d holes, want %d", len(out), holes, n)
+	}
+	return out, nil
+}
+
+// cutExtrude cuts body by the n valid profiles of s with the given holes, swept by length in direction dir, in one call.
+func (r *run) cutExtrude(body *decad.Body, s *sketch.Sketch, holes, n int, length float64,
+	dir decad.Direction) (*decad.Body, error) {
+	prs, err := r.profiles(s, holes, n)
+	if err != nil {
+		return nil, err
+	}
+	return decad.CutExtrude(r.ctx, body, s, prs, decad.Distance{D: units.Millimeters(length), Dir: dir})
+}
+
 // across is the plane z = const of a local frame, with U = +X and V = +Y.
 func across(z float64) r3.Frame {
 	f, _ := r3.NewFrame(r3.Vec{Z: z}, r3.Vec{X: 1}, r3.Vec{Y: 1})
@@ -126,13 +156,42 @@ func (r *run) meridian(vertices [][2]float64) (*decad.Body, error) {
 // meridianAt is meridian with the polygon's anchor placed at anchor, a (radius, z) point, when it is not nil: a part as long
 // as the camshaft needs its anchor near its middle for the sketch to stay well conditioned.
 func (r *run) meridianAt(vertices [][2]float64, anchor *[2]float64) (*decad.Body, error) {
-	f, err := r3.NewFrame(r3.Vec{}, r3.Vec{Z: 1}, r3.Vec{X: 1})
+	s, pr, err := r.meridianProfile(vertices, anchor, nil)
 	if err != nil {
 		return nil, err
 	}
-	s, err := r.sketchOn(f)
+	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{})
+}
+
+// cutMeridian cuts body by the full turn about the Z axis of the polygon through the (r, z) vertices. A non-nil at places
+// the polygon's local frame (axis Z, radius X) on at, as placement.Place would place a body built in it.
+func (r *run) cutMeridian(body *decad.Body, vertices [][2]float64, at *r3.Frame) (*decad.Body, error) {
+	s, pr, err := r.meridianProfile(vertices, nil, at)
 	if err != nil {
 		return nil, err
+	}
+	axis := decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}}
+	if at != nil {
+		axis = decad.ConstructionAxis{Origin: at.Origin(), Dir: at.N()}
+	}
+	return decad.CutRevolve(r.ctx, body, s, []*sketch.Profile{pr}, axis, decad.FullRevolution{})
+}
+
+// meridianProfile sketches the meridian polygon of meridianAt and returns its one profile.
+func (r *run) meridianProfile(vertices [][2]float64, anchor *[2]float64, at *r3.Frame) (*sketch.Sketch, *sketch.Profile,
+	error) {
+	o, u, v := r3.Vec{}, r3.Vec{Z: 1}, r3.Vec{X: 1}
+	if at != nil {
+		o, u, v = at.Origin(), at.N(), at.U()
+	}
+	f, err := r3.NewFrame(o, u, v)
+	if err != nil {
+		return nil, nil, err
+	}
+	s, err := r.sketchOn(f)
+	if err != nil {
+		return nil, nil, err
 	}
 	uv := make([][2]float64, len(vertices))
 	for i, v := range vertices {
@@ -145,10 +204,9 @@ func (r *run) meridianAt(vertices [][2]float64, anchor *[2]float64) (*decad.Body
 	}
 	pr, err := r.profile(s, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
+	return s, pr, nil
 }
 
 // quarterRound returns n+1 (r, z) points of the round of radius rad about (cr, cz) from angle a0 to a1 degrees.
@@ -185,18 +243,6 @@ func doubleDBoreLoop(s *sketch.Sketch, rb, fb float64) {
 	s.AddConstraint(sketch.NewRadius(right, rb), sketch.NewRadius(left, rb),
 		sketch.NewHorizontal(top), sketch.NewDistancePointLine(o, top, fb),
 		sketch.NewHorizontal(bottom), sketch.NewDistancePointLine(o, bottom, fb))
-}
-
-// circleSketch cuts a round hole: a sketch on across(z0) with one circle of radius rad centred at (x, y), the centre
-// placed by horizontal and vertical distances from the origin. It extrudes the circle by length along +Z.
-func (r *run) holeTool(z0, x, y, rad, length float64) (*decad.Body, error) {
-	s, err := r.sketchOn(across(z0))
-	if err != nil {
-		return nil, err
-	}
-	c := sketchcheck.DimensionPoint(s, x, y)
-	s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, rad), rad))
-	return r.extrude(s, 0, length, decad.Along)
 }
 
 // polygon draws a closed polygon whose vertices are the meeting points of its lines. Each line is held by its direction
