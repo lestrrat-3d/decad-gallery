@@ -713,7 +713,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentPivotPinInBore", "TestSevenSegmentPivotPocketFit", "TestSevenSegmentPlates",
         "TestSevenSegmentPressWalls", "TestSevenSegmentRotor", "TestSevenSegmentRotorAll",
         "TestSevenSegmentSegmentGrid", "TestSevenSegmentShaft", "TestSevenSegmentSliders",
-        "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay",
+        "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay", "TestSevenSegmentWidthMargins",
     ),
     "assembly": (
         "TestClickerBodies", "TestClickerHeights", "TestClickerPoseClearances",
@@ -726,7 +726,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
         "TestSevenSegmentTongueSweep", "TestSevenSegmentTruthTable", "TestSevenSegmentValidate",
-        "TestSevenSegmentVisibility", "TestSevenSegmentWidthMargins", "TestSevenSegmentWindowLip",
+        "TestSevenSegmentVisibility", "TestSevenSegmentWindowLip",
         "TestSevenSegmentWindowYellow",
     ),
 }
