@@ -65,7 +65,7 @@ def needs_for(selection, worker):
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps(selection), "matrix": json.dumps(matrix),
         "count": str(len(matrix["include"]))}}, repository={"result": "success"},
-        **{name: {"result": "skipped"} for name in ("records-validation", "package-plan", "package-workers")})
+        **{name: {"result": "skipped"} for name in ("records-validation", "package-workers")})
     if worker is not None:
         needs["worker"] = {"result": worker}
     return needs

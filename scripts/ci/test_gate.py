@@ -30,7 +30,7 @@ def needs_for(suites, event="push"):
         "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
         repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
         **{name: {"result": "success" if full else "skipped"}
-           for name in ("records-validation", "package-plan", "package-workers")})
+           for name in ("records-validation", "package-workers")})
     return needs
 
 
