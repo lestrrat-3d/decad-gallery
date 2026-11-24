@@ -8,6 +8,9 @@ import subprocess
 import tempfile
 import unittest
 
+import gate
+import reconcile_records
+
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github/workflows/repository.yml"
 
@@ -17,6 +20,13 @@ def job_section(workflow, job):
 
 
 class WorkflowRecordsTests(unittest.TestCase):
+    def test_renderer_shard_matrix_matches_record_validator(self):
+        section = job_section(WORKFLOW.read_text(), "renderer-full")
+        values = re.search(r"shard: \[([^]]+)\]", section).group(1).split(", ")
+        expected = [str(index) for index in range(gate.RENDER_FULL_SHARDS)]
+        self.assertEqual(values, expected)
+        self.assertEqual(reconcile_records.FULL_JOBS["renderer-full"], tuple(expected))
+
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
         step = section.split("      - name: Check clamp arm capacity documentation\n", 1)[1]
@@ -30,7 +40,7 @@ class WorkflowRecordsTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         jobs = {
             "repository": "repository",
-            "renderer-full": "renderer-full",
+            "renderer-full": "renderer-full-${{ matrix.shard }}",
             "escapement": "escapement",
             "onewayclutch": "onewayclutch",
             "clamparm": "clamparm",
@@ -52,8 +62,8 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full", "handcrankfan-full"):
-                    case = "shard" if job == "bevel-full" else "case"
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full"):
+                    case = "shard" if job in ("bevel-full", "renderer-full") else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 
     def test_shared_broad_jobs_only_upload_records_for_full_runs(self):

@@ -46,7 +46,7 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(result["full_environment"], full_partition.FULL_ENV)
         self.assertIn("discovered at runtime", result["subtests"])
         self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])
-        self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full"])
+        self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full/0"])
         self.assertEqual(result["known_assignments"]["root"][planetary]["TestKitGearboxes"],
                          ["planetary-full/" + kit for kit in run_tests.PLANETARY_KITS])
         self.assertTrue(all({"package": planetary, "test": "TestKitGearboxes/" + kit} in

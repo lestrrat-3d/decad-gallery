@@ -14,6 +14,18 @@ RUNNER = ["python3", "scripts/ci/run_tests.py"]
 MODULE = "github.com/lestrrat-3d/decad-gallery"
 RENDER_PR_SHARDS = 16
 RENDER_TOOL_SHARDS = 16
+RENDER_FULL_SHARDS = 8
+# Top-level test seconds from full run 45337031047. Unlisted tests share their package's remainder.
+RENDER_FULL_SECONDS = {
+    "TestHandCrankFanMotion": 449, "TestHandCrankFanView": 332,
+    "TestSevenSegmentMotionColors": 352, "TestSevenSegmentColors": 324,
+    "TestHandCrankSirenView": 204, "TestPlanetaryMotionUsesBuiltGearbox": 146,
+    "TestBevelPairsRealBuild": 126, "TestSwissExploded": 97,
+    "TestPlanetaryReadmeConcurrentBuilds": 87, "TestPlanetaryGearboxMotion": 74,
+    "TestEscapementExploded": 62, "TestSpinningWheelMotion": 55,
+    "TestSpinningWheelPartsTable": 50, "TestSpinningWheelBlockOfEveryPart": 50,
+    "TestClampArmExploded": 26,
+}
 # Tests that build a full assembly. Each runs as its own job in the item's render suite; the rest share one job.
 RENDER_HEAVY = {
     "bevelgear": ("TestBevelPairsRealBuild",),
@@ -149,29 +161,53 @@ def run_renderer(suite, command):
         raise SystemExit("renderer tests did not pass: " + ", ".join(sorted(missing)[:20]))
 
 
-def run_renderer_full():
+def renderer_full_shards(inventory):
+    """Assign measured expensive tests individually and keep each package's other tests together."""
+    if not inventory or any(len(tests) != len(set(tests)) for tests in inventory.values()):
+        raise ValueError("invalid renderer inventory")
+    groups = []
+    for package, tests in sorted(inventory.items()):
+        remainder = []
+        for test in sorted(tests):
+            if test in RENDER_FULL_SECONDS:
+                groups.append((RENDER_FULL_SECONDS[test], package, (test,)))
+            else:
+                remainder.append(test)
+        if remainder or not tests:
+            groups.append((max(1, len(remainder)), package, tuple(remainder)))
+    shards = [[] for _ in range(RENDER_FULL_SHARDS)]
+    weights = [0] * RENDER_FULL_SHARDS
+    for weight, package, tests in sorted(groups, key=lambda group: (-group[0], group[1], group[2])):
+        index = min(range(RENDER_FULL_SHARDS), key=lambda i: (weights[i], i))
+        shards[index].append((package, tests))
+        weights[index] += weight
+    return shards
+
+
+def run_renderer_full(shard):
     """Discover every renderer package and require each listed test to pass."""
     packages = renderer_packages()
     if not packages or len(packages) != len(set(packages)):
         raise SystemExit("renderer package inventory is empty or duplicated")
-    expected = set()
+    inventory = {}
     for package in packages:
         output = subprocess.run(["go", "test", "-list", "^Test", package],
                                 check=True, capture_output=True, text=True).stdout
-        expected.update((package, line) for line in output.splitlines() if line.startswith("Test"))
-    if not expected:
+        inventory[package] = [line for line in output.splitlines() if line.startswith("Test")]
+    if not any(inventory.values()):
         raise SystemExit("renderer test inventory is empty")
-    proc = subprocess.Popen(["go", "test", "-json", "-timeout", "170m", *packages],
-                            stdout=subprocess.PIPE, text=True)
-    finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
-    if proc.wait() != 0:
-        raise SystemExit(proc.returncode)
-    missing = {identity for identity in expected if finished.get(identity) != "pass"}
-    missing.update((package, test) for (package, test), status in finished.items()
-                   if status != "pass" and (package, test.split("/", 1)[0]) in expected)
-    if missing:
-        names = (f"tools/render:{package}:{test}" for package, test in sorted(missing)[:20])
-        raise SystemExit("renderer tests did not pass: " + ", ".join(names))
+    if not shard.isdigit() or not 0 <= int(shard) < RENDER_FULL_SHARDS:
+        raise SystemExit("invalid renderer full shard")
+    selected = renderer_full_shards(inventory)[int(shard)]
+    if not selected:
+        raise SystemExit("renderer full shard is empty")
+    grouped = {}
+    for package, tests in selected:
+        grouped.setdefault(package, []).extend(tests)
+    for package, tests in sorted(grouped.items()):
+        pattern = run_pattern(tests) if tests else "^$"
+        go_test([package, "-run", pattern, "-timeout", "170m", "-count=1"], tests,
+                package=package, module="tools/render", require_empty_package=not tests)
 
 
 def run_render_case(directory, which):
@@ -316,7 +352,7 @@ def main():
         else:
             subprocess.run(command, check=True)
     elif len(sys.argv) > 1 and sys.argv[1] == "renderer-full":
-        run_renderer_full()
+        run_renderer_full(sys.argv[2])
     else:
         errors = check(json.loads(os.environ["NEEDS_JSON"]), os.environ["EVENT_NAME"])
         if errors:

@@ -7,6 +7,8 @@ The full run at [45327807459](https://github.com/lestrrat-3d/decad-gallery/actio
 39m 37s after moving the fan, Swiss lever, and bevel remainder to separate jobs. Both runs passed record validation.
 Comparing their real test records found no missing, extra, or duplicate leaf outcomes. Their commits differ in CI
 scripts and documentation, and runner conditions varied, so the elapsed difference is not a controlled forecast.
+The subsequent [45342936727](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45342936727) run split the
+planetary kit variants and finished in 37m 26s. Its records also matched the preceding run's leaf outcomes.
 
 ## Runs on 19 November 2026
 

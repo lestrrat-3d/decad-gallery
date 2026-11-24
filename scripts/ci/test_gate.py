@@ -174,7 +174,7 @@ class GateTest(unittest.TestCase):
                     mock.patch.object(gate.subprocess, "run", side_effect=[
                         mock.Mock(stdout=RENDER_PACKAGE), mock.Mock(stdout="TestSame\n")]), \
                     mock.patch.object(gate.subprocess, "Popen", return_value=proc):
-                gate.run_renderer_full()
+                gate.run_renderer_full("0")
             self.assertEqual(json.loads(path.read_text().splitlines()[0])["module"], "tools/render")
 
     def test_renderer_jobs_do_not_duplicate_full_renderer(self):
@@ -219,29 +219,27 @@ class GateTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "invalid renderer"):
             gate.run_renderer_pr(str(gate.RENDER_PR_SHARDS))
 
-    def test_full_renderer_inventory_requires_every_package_and_subtest(self):
-        packages = [RENDER_PACKAGE, RENDER_PACKAGE + "/extra"]
-        def run(command, **kwargs):
-            if command[-2:] == ["list", "./..."]:
-                return mock.Mock(stdout="\n".join(packages))
-            return mock.Mock(stdout="TestSame\nok\n")
-        def events(missing=None, skip=False):
-            entries = [{"Package": package, "Test": "TestSame", "Action": "pass"}
-                       for package in packages if package != missing]
-            if skip:
-                entries.append({"Package": packages[0], "Test": "TestSame/child", "Action": "skip"})
-            proc = mock.Mock(stdout=[json.dumps(entry) for entry in entries], returncode=0)
-            proc.wait.return_value = 0
-            return proc
-        for missing, skip in ((None, False), (packages[1], False), (None, True)):
-            with self.subTest(missing=missing, skip=skip), \
-                    mock.patch.object(gate.subprocess, "run", side_effect=run), \
-                    mock.patch.object(gate.subprocess, "Popen", return_value=events(missing, skip)):
-                if missing or skip:
-                    with self.assertRaisesRegex(SystemExit, "TestSame"):
-                        gate.run_renderer_full()
-                else:
-                    gate.run_renderer_full()
+    def test_full_renderer_shards_assign_every_test_once(self):
+        inventory = {RENDER_PACKAGE: list(gate.RENDER_FULL_SECONDS) + ["TestOther"],
+                     RENDER_PACKAGE + "/extra": ["TestSame"]}
+        shards = gate.renderer_full_shards(inventory)
+        assigned = [(package, test) for shard in shards for package, tests in shard for test in tests]
+        self.assertCountEqual(assigned, [(package, test) for package, tests in inventory.items() for test in tests])
+        self.assertEqual(len(assigned), len(set(assigned)))
+        self.assertEqual(shards, gate.renderer_full_shards({p: list(reversed(t)) for p, t in inventory.items()}))
+        with self.assertRaises(ValueError):
+            gate.renderer_full_shards({RENDER_PACKAGE: ["TestSame", "TestSame"]})
+
+    def test_full_renderer_dispatch_checks_assigned_tests(self):
+        inventory = {RENDER_PACKAGE: list(gate.RENDER_FULL_SECONDS) + ["TestOther"]}
+        with mock.patch.object(gate, "renderer_packages", return_value=list(inventory)), \
+                mock.patch.object(gate.subprocess, "run", return_value=mock.Mock(stdout="\n".join(inventory[RENDER_PACKAGE]))), \
+                mock.patch.object(gate, "go_test") as run:
+            for shard in range(gate.RENDER_FULL_SHARDS):
+                gate.run_renderer_full(str(shard))
+        assigned = [test for call in run.call_args_list for test in call.args[1]]
+        self.assertCountEqual(assigned, inventory[RENDER_PACKAGE])
+        self.assertTrue(all(call.kwargs["module"] == "tools/render" for call in run.call_args_list))
 
     def test_renderer_dispatch_commands(self):
         for suite, (timeout, directory, tests) in gate.RENDER_TESTS.items():

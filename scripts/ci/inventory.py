@@ -86,13 +86,16 @@ def report(root, renderer):
     variants = [{"package": package, "test": test} for package, test in sorted(full_partition.FULL_VARIANTS)]
     variants.extend({"package": planetary, "test": "TestKitGearboxes/" + kit}
                     for kit in run_tests.PLANETARY_KITS)
+    renderer_shards = gate.renderer_full_shards(renderer)
     return {
         "version": 1,
         "modules": {"root": root, "renderer": renderer},
         "known_assignments": {
             "root": assignments,
-            "renderer": {package: {test: ["renderer-full"] for test in tests}
-                         for package, tests in renderer.items()},
+            "renderer": {package: {test: [f"renderer-full/{index}"]
+                                   for index, shard in enumerate(renderer_shards)
+                                   for pkg, names in shard if pkg == package for test in names}
+                         for package in renderer},
         },
         "full_environment": full_partition.FULL_ENV,
         "required_variants": variants,

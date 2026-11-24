@@ -124,6 +124,10 @@ jobs:
   renderer-full:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -135,13 +139,14 @@ jobs:
             go.sum
       - name: Check full renderer suite
         env:
-          CI_TEST_RECORDS: renderer-full.jsonl
-        run: python3 scripts/ci/gate.py renderer-full
+          CI_TEST_RECORDS: renderer-full-${{ matrix.shard }}.jsonl
+          CI_TEST_CASE: ${{ matrix.shard }}
+        run: python3 scripts/ci/gate.py renderer-full ${{ matrix.shard }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ci-records-renderer-full
-          path: renderer-full.jsonl
+          name: ci-records-renderer-full-${{ matrix.shard }}
+          path: renderer-full-${{ matrix.shard }}.jsonl
           if-no-files-found: error
           overwrite: true
 

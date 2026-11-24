@@ -75,7 +75,8 @@ workers that both build the default gearbox.
 Cost estimates only affect placement. Each job checks its assigned test results. The kit test keeps its existing
 allowed skips unless full kits are enabled.
 Renderer PR checks partition the discovered package tests across sixteen jobs. Each job requires its assigned tests
-and their subtests to pass. Scheduled and manual runs keep the complete renderer job.
+and their subtests to pass. Full runs partition renderer tests across eight jobs, using measured durations for known
+expensive tests and grouping each package's remaining tests.
 The fan PR suite runs one validation test and partitions the remaining discovered tests across nine jobs.
 Its two on-demand tests keep their existing allowed skips unless full fan testing is enabled.
 
@@ -91,9 +92,9 @@ top-level tests and runs the packages outside dedicated jobs. Dedicated jobs cov
 their packages, the eight full bevel shards, and the remaining bevel tests. Three fan jobs run the default, variant,
 and shared-fixture remainder tests; another job runs the complete Swiss lever package. Wheel and siren jobs run assigned cases plus a remainder that skips
 assigned paths; the remainder checks for overlapping assignments and missing top-level tests. The runner requires
-listed test results and explicitly checks the configured fan and planetary variants. `renderer-full` lists renderer
-packages and tests, then requires their pass events and rejects skipped or failed subtests of listed tests. Full runs
-skip the separate PR renderer jobs because `renderer-full` runs those renderer tests.
+listed test results and explicitly checks the configured fan and planetary variants. Each `renderer-full` job lists
+renderer packages and tests, then requires its assigned tests and their subtests to pass. Full runs skip the separate
+PR renderer jobs because the `renderer-full` jobs run those renderer tests.
 
 The full planetary suite runs each non-default kit in its own job and requires its named subtest. Five further jobs
 partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation
