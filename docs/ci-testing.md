@@ -103,8 +103,9 @@ checks their records with the other full-run artifacts.
 After full-run records pass validation, `records-validation` adds `timing-summary.json` to the
 `ci-validation-summary` artifact. It lists the 20 slowest test and package events separately, including job and
 case identifiers. Each value is one Go test elapsed sample in seconds. Parent test times include subtests, and
-package times include test execution and other overhead, so do not add them together. Events without valid elapsed
-values are counted separately. Run `python3 scripts/ci/report_timings.py --execution-dir ci-artifacts --limit 100`
+package times include test execution and other overhead, so do not add them together. The report excludes cached
+packages and packages whose cache status is unknown. Events without valid elapsed values are counted separately.
+Run `python3 scripts/ci/report_timings.py --execution-dir ci-artifacts --limit 100`
 on downloaded record artifacts to select a different limit, up to 1,000 per kind. Timing samples do not change
 coverage validation or job placement.
 

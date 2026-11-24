@@ -139,7 +139,9 @@ class WorkflowRecordsTests(unittest.TestCase):
             artifact = root / "ci-artifacts/ci-records-example"
             artifact.mkdir(parents=True)
             (artifact / "example.jsonl").write_text(json.dumps({"kind": "test", "elapsed": 1.25,
-                                                               "test": "TestExample"}) + "\n")
+                                                               "test": "TestExample"}) + "\n" +
+                                                    json.dumps({"kind": "package", "elapsed": 2,
+                                                                "cached": False}) + "\n")
             script = WORKFLOW.parents[2] / "scripts/ci/report_timings.py"
             command_line = command.group(1).replace("scripts/ci/report_timings.py", str(script))
             result = subprocess.run(command_line, shell=True, cwd=root, check=False)

@@ -18,6 +18,15 @@ def report(paths, limit):
     samples = {"test": [], "package": []}
     counts = {"test": 0, "package": 0}
     missing = 0
+    excluded = {"cached": 0, "unknown_cache": 0}
+    pending = {}
+
+    def retain(heap, item):
+        if len(heap) < limit:
+            heapq.heappush(heap, item)
+        elif item > heap[0]:
+            heapq.heapreplace(heap, item)
+
     for path in paths:
         with open(path, encoding="utf-8") as stream:
             for line in stream:
@@ -26,20 +35,36 @@ def report(paths, limit):
                 if kind not in samples:
                     continue
                 elapsed = record.get("elapsed")
-                if (isinstance(elapsed, bool) or not isinstance(elapsed, (int, float)) or
-                        not math.isfinite(elapsed) or elapsed < 0):
-                    missing += 1
-                    continue
-                counts[kind] += 1
+                valid = (not isinstance(elapsed, bool) and isinstance(elapsed, (int, float)) and
+                         math.isfinite(elapsed) and elapsed >= 0)
                 identity = tuple(str(record.get(key) or "") for key in
                                  ("module", "package", "test", "status", "job", "case", "invocation"))
-                item = (elapsed, identity)
-                heap = samples[kind]
-                if len(heap) < limit:
-                    heapq.heappush(heap, item)
-                elif item > heap[0]:
-                    heapq.heapreplace(heap, item)
+                key = (str(path), identity[6], identity[1])
+                state = pending.setdefault(key, {"count": 0, "missing": 0, "samples": []})
+                if kind == "test":
+                    if valid:
+                        state["count"] += 1
+                        retain(state["samples"], (elapsed, identity))
+                    else:
+                        state["missing"] += 1
+                    continue
+                cache = record.get("cached")
+                if cache is not False:
+                    excluded["cached" if cache is True else "unknown_cache"] += state["count"] + state["missing"] + 1
+                else:
+                    counts["test"] += state["count"]
+                    missing += state["missing"]
+                    for item in state["samples"]:
+                        retain(samples["test"], item)
+                    if valid:
+                        counts["package"] += 1
+                        retain(samples["package"], (elapsed, identity))
+                    else:
+                        missing += 1
+                del pending[key]
+    excluded["unknown_cache"] += sum(state["count"] + state["missing"] for state in pending.values())
     return {"counts": counts, "missing_or_invalid_elapsed": missing,
+            "excluded": excluded,
             "slowest": {kind: [{"elapsed": elapsed, "module": identity[0], "package": identity[1],
                                 "test": identity[2] or None, "status": identity[3], "job": identity[4],
                                 "case": identity[5], "invocation": identity[6]}

@@ -398,6 +398,7 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                 "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
                 "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
                 "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "")}
+    package_cache = {}
 
     def record(kind, **fields):
         if records is not None:
@@ -415,6 +416,12 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
             continue
         if "Output" in event:
             sys.stdout.write(event["Output"])
+            package = event.get("Package")
+            output = event["Output"]
+            if isinstance(package, str) and not event.get("Test") and isinstance(output, str):
+                match = re.fullmatch(r"ok\s+" + re.escape(package) + r"\s+(\(cached\)|[0-9]+(?:\.[0-9]+)?s)\s*", output)
+                if match:
+                    package_cache[package] = match.group(1) == "(cached)"
         test = event.get("Test")
         if event.get("Action") in {"pass", "fail", "skip"}:
             package = event.get("Package")
@@ -425,6 +432,8 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                 fields = {"package": package, "test": test, "status": event["Action"]}
                 if "Elapsed" in event:
                     fields["elapsed"] = event["Elapsed"]
+                if not test and package in package_cache:
+                    fields["cached"] = package_cache.pop(package)
                 record("test" if test else "package", **fields)
                 if not test and package_outcomes is not None:
                     package_outcomes[package] = event["Action"]
