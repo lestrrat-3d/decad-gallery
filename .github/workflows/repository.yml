@@ -543,6 +543,10 @@ jobs:
   handcrankfan-full:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [default, variants, rest]
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
@@ -552,13 +556,14 @@ jobs:
           go-version-file: go.mod
       - name: Run full partition
         env:
-          CI_TEST_RECORDS: handcrankfan-full.jsonl
-        run: python3 scripts/ci/full_partition.py handcrankfan
+          CI_TEST_RECORDS: handcrankfan-full-${{ matrix.case }}.jsonl
+          CI_TEST_CASE: ${{ matrix.case }}
+        run: python3 scripts/ci/full_partition.py handcrankfan ${{ matrix.case }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ci-records-handcrankfan-full
-          path: handcrankfan-full.jsonl
+          name: ci-records-handcrankfan-full-${{ matrix.case }}
+          path: handcrankfan-full-${{ matrix.case }}.jsonl
           if-no-files-found: error
           overwrite: true
 

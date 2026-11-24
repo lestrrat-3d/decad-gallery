@@ -40,7 +40,7 @@ class WorkflowRecordsTests(unittest.TestCase):
             "bevel-full": "bevel-full-${{ matrix.shard }}",
             "planetary-full": "planetary-full-${{ matrix.case }}",
             "bevel-remainder": "bevel-remainder",
-            "handcrankfan-full": "handcrankfan-full",
+            "handcrankfan-full": "handcrankfan-full-${{ matrix.case }}",
             "swisslever-full": "swisslever-full",
         }
         for job, record in jobs.items():
@@ -52,7 +52,7 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full"):
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "handcrankfan-full"):
                     case = "shard" if job == "bevel-full" else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 

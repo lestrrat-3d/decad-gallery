@@ -22,6 +22,18 @@ FULL_VARIANTS = {
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/flat-three"),
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
 }
+FAN_CASES = {"default": "TestHandCrankFanDefault", "variants": "TestHandCrankFanVariant"}
+
+
+def fan_tests(tests, case):
+    """Keep shared-fixture tests together and isolate the two full builds."""
+    if not set(FAN_CASES.values()) <= tests:
+        raise ValueError("fan inventory is missing a full build test")
+    if case in FAN_CASES:
+        return [FAN_CASES[case]]
+    if case == "rest":
+        return sorted(tests - set(FAN_CASES.values()))
+    raise ValueError("invalid fan case")
 
 
 def select(inventory):
@@ -39,7 +51,7 @@ def select(inventory):
     return packages, expected, sorted(inventory[BEVEL] - set(assigned))
 
 
-def main(mode="repository"):
+def main(mode="repository", case=None):
     packages = [package for package in subprocess.run(["go", "list", "./..."], check=True, capture_output=True,
                                                       text=True).stdout.splitlines()
                 if not run_tests.RENDERER_PACKAGE.match(package)]
@@ -62,7 +74,20 @@ def main(mode="repository"):
         pattern = run_tests.run_pattern(remainder) if remainder else "^$"
         run_tests.go_test([BEVEL, "-run", pattern, "-timeout", "60m"], remainder, env=env, package=BEVEL,
                           require_empty_package=not remainder)
-    elif mode in ("handcrankfan", "swisslever"):
+    elif mode == "handcrankfan":
+        package = ROOT + "/models/handcrankfan"
+        try:
+            tests = fan_tests(inventory[package], case)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        if not tests:
+            raise SystemExit("fan partition is empty")
+        required = set(tests)
+        if case == "variants":
+            required.update(test for pkg, test in FULL_VARIANTS if pkg == package)
+        run_tests.go_test([package, "-run", run_tests.run_pattern(tests), "-timeout", "60m"],
+                          sorted(required), env=env, package=package)
+    elif mode == "swisslever":
         package = ROOT + "/models/" + mode
         required = set(inventory[package])
         required.update(test for pkg, test in FULL_VARIANTS if pkg == package)

@@ -36,7 +36,7 @@ class InventoryTests(unittest.TestCase):
         root = {package: ["TestDedicated"] for package in full_partition.DEDICATED}
         root[full_partition.BEVEL] = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
         root[full_partition.BEVEL].append("TestRemainder")
-        root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanVariant"]
+        root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanDefault", "TestHandCrankFanVariant", "TestOther"]
         planetary = full_partition.ROOT + "/models/planetarygearbox"
         root[planetary] = ["TestKitGearboxes"] + [f"TestOther{i}" for i in range(5)]
         renderer_package = full_partition.ROOT + "/tools/render"

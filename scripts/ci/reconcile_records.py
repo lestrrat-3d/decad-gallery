@@ -14,7 +14,7 @@ IDENTITY = re.compile(r"^[^\s\x00-\x1f\x7f]+$")
 META = ("version", "invocation", "module", "job", "case", "revision", "run_id", "run_attempt")
 FULL_JOBS = {
     "repository": ("",), "renderer-full": ("",), "escapement": ("",),
-    "bevel-remainder": ("",), "handcrankfan-full": ("",), "swisslever-full": ("",),
+    "bevel-remainder": ("",), "handcrankfan-full": ("default", "variants", "rest"), "swisslever-full": ("",),
     "planetary-full": ("planet605-shaft608", "planet608-shaft605", "planet608-shaft608",
                        "rest-0", "rest-1", "rest-2", "rest-3", "rest-4"),
     "onewayclutch": ("",), "clamparm": ("",), "sevensegment": ("parts", "assembly"), "turbinefan": ("",),

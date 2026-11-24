@@ -9,7 +9,7 @@ class FullPartitionTests(unittest.TestCase):
         assigned = {test for tests in partition.run_tests.BEVEL_TESTS["full"].values() for test in tests}
         return {**{package: {"TestDedicated"} for package in partition.DEDICATED},
                 partition.BEVEL: assigned | {"TestNewBevel"},
-                partition.ROOT + "/models/handcrankfan": {"TestHandCrankFanVariant"},
+                partition.ROOT + "/models/handcrankfan": {"TestHandCrankFanDefault", "TestHandCrankFanVariant", "TestOther"},
                 partition.ROOT + "/models/newmodel": {"TestNewModel"}}
 
     def test_selection_keeps_new_packages_and_bevel_remainder(self):
@@ -49,10 +49,12 @@ class FullPartitionTests(unittest.TestCase):
                 mock.patch.object(partition.run_tests, "go_test") as go_test:
             partition.main()
             partition.main("bevel-remainder")
-            partition.main("handcrankfan")
+            partition.main("handcrankfan", "default")
+            partition.main("handcrankfan", "variants")
+            partition.main("handcrankfan", "rest")
             partition.main("swisslever")
-        self.assertEqual(go_test.call_count, 4)
-        ordinary, bevel, fan, swiss = go_test.call_args_list
+        self.assertEqual(go_test.call_count, 6)
+        ordinary, bevel, default, fan, rest, swiss = go_test.call_args_list
         self.assertEqual(ordinary.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(ordinary.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
         self.assertNotIn(partition.ROOT + "/models/planetarygearbox", ordinary.args[0])
@@ -60,9 +62,16 @@ class FullPartitionTests(unittest.TestCase):
         self.assertEqual(bevel.args[1], ["TestNewBevel"])
         self.assertIn("TestHandCrankFanVariant/flat-three", fan.args[1])
         self.assertIn("TestHandCrankFanVariant/steep-three", fan.args[1])
+        self.assertEqual(default.args[1], ["TestHandCrankFanDefault"])
+        self.assertEqual(rest.args[1], ["TestOther"])
+        self.assertEqual(fan.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(swiss.args[1], ["TestDedicated"])
         self.assertNotIn(partition.ROOT + "/models/handcrankfan", ordinary.args[0])
         self.assertNotIn(partition.ROOT + "/models/swisslever", ordinary.args[0])
+
+    def test_fan_partition_rejects_missing_full_tests(self):
+        with self.assertRaises(ValueError):
+            partition.fan_tests({"TestHandCrankFanDefault"}, "rest")
 
 
 if __name__ == "__main__":
