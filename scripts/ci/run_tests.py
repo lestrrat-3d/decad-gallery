@@ -419,6 +419,8 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                 event_audit["invalid"] = True
             record("malformed", reason="not_object")
             continue
+        if metadata["job"] == "case-workers" and event.get("Action") in {"start", "run"}:
+            record("start", package=event.get("Package"), test=event.get("Test"))
         if event_audit is not None:
             if event.get("Action") not in {"start", "output", "pass", "fail", "skip", "run", "pause", "cont"}:
                 event_audit["invalid"] = True

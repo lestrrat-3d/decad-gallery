@@ -182,7 +182,55 @@ def run_planned(plan, case):
         encoded = json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
         receipt = {"version": 1, "case": case, "kind": job["kind"],
                    "plan_sha256": hashlib.sha256(encoded).hexdigest(), "identity": plan["manifest"]["identity"]}
+        if job["kind"] != "audit":
+            receipt["record_sha256"] = record_digest(Path(os.environ["CI_TEST_RECORDS"]))
         Path(receipt_path).write_text(json.dumps(receipt, sort_keys=True) + "\n")
+
+
+def record_digest(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def verify_worker_records(path, expected_digest, metadata):
+    if record_digest(path) != expected_digest:
+        raise ValueError("worker records differ from receipt")
+    package = metadata["package"]
+    opened = set()
+    passed = set()
+    started = closed = complete = False
+    invocation = None
+    with path.open() as stream:
+        for line in stream:
+            row = json.loads(line)
+            if (complete or not isinstance(row, dict) or row.get("version") != 1 or
+                    any(row.get(k) != v for k, v in metadata.items() if k != "package") or
+                    not reconcile_records.valid_id(row.get("invocation"))):
+                raise ValueError("invalid worker records")
+            if invocation is None:
+                invocation = row["invocation"]
+            if row["invocation"] != invocation:
+                raise ValueError("mixed case invocations")
+            kind, test = row.get("kind"), row.get("test")
+            if kind == "complete" and closed:
+                complete = True
+            elif row.get("package") != package or closed:
+                raise ValueError("unexpected package in worker records")
+            elif kind == "start" and test is None and not started:
+                started = True
+            elif (kind == "start" and started and reconcile_records.valid_id(test)
+                  and test not in opened and test not in passed):
+                opened.add(test)
+            elif kind == "test" and test in opened and row.get("status") == "pass":
+                opened.remove(test)
+                passed.add(test)
+            elif kind == "package" and test is None and started and not opened and passed and row.get("status") == "pass":
+                closed = True
+            else:
+                raise ValueError("incomplete, duplicate, or unsuccessful worker records")
+    if not complete:
+        raise ValueError("incomplete worker records")
+    return passed
 
 
 def verify_execution(plan, receipts, records):
@@ -205,6 +253,8 @@ def verify_execution(plan, receipts, records):
             raise ValueError("case receipt is too large")
         receipt = json.loads(path.read_text())
         expected = {"version": 1, "case": case, "kind": job["kind"], "plan_sha256": digest, "identity": identity}
+        if job["kind"] != "audit":
+            expected["record_sha256"] = receipt.get("record_sha256")
         if receipt != expected:
             raise ValueError("case receipt does not match the plan")
         if job["kind"] == "audit":
@@ -212,6 +262,7 @@ def verify_execution(plan, receipts, records):
         path = Path(records[case])
         metadata = {path: {"job": "case-workers", "case": case, "revision": identity["revision"],
                            "run_id": identity["run_id"], "run_attempt": identity["attempt"], "module": "."}}
+        verify_worker_records(path, receipt["record_sha256"], {**metadata[path], "package": package})
         leaves, passed, packages, errors, _ = reconcile_records.read_records([path], metadata, identity["attempt"])
         if errors or packages != {(".", package)}:
             raise ValueError("case records are invalid")
