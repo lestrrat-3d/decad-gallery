@@ -40,18 +40,24 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertEqual(reconcile_records.FULL_JOBS["renderer-full"], tuple(expected))
 
     def test_package_matrix_is_only_created_and_read_for_full_runs(self):
-        section = job_section(WORKFLOW.read_text(), "package-workers")
-        self.assertIn("if: needs.plan.result == 'success'", section)
-        self.assertIn("matrix: ${{ fromJSON(needs.plan.outputs.package_matrix) }}", section)
-        plan = job_section(WORKFLOW.read_text(), "plan")
+        workflow = WORKFLOW.read_text()
+        plan = job_section(workflow, "plan")
+        step = plan.split("      - id: package-matrix\n", 1)[1].split("\n      - ", 1)[0]
+        full_events = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
+        self.assertIn(
+            f"        if: {full_events} || contains(fromJSON(steps.plan.outputs.plan).suites, 'full')\n",
+            step,
+        )
+        self.assertIn("python3 scripts/ci/full_partition.py package-matrix", step)
         self.assertIn("package_matrix: ${{ steps.package-matrix.outputs.matrix }}", plan)
-        self.assertIn("python3 scripts/ci/full_partition.py package-matrix", plan)
-        for expression in ("github.event_name == 'schedule'", "github.event_name == 'workflow_dispatch'",
-                           "contains(fromJSON("):
-            self.assertIn(expression, section)
-            self.assertIn(expression, plan)
-        self.assertIn("contains(fromJSON(steps.plan.outputs.plan).suites, 'full')", plan)
-        self.assertIn("contains(fromJSON(needs.plan.outputs.plan).suites, 'full')", section)
+        workers = job_section(workflow, "package-workers")
+        self.assertIn("    needs: plan", workers.splitlines())
+        self.assertIn(
+            f"\n    if: needs.plan.result == 'success' && "
+            f"({full_events} || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))\n",
+            workers,
+        )
+        self.assertIn("matrix: ${{ fromJSON(needs.plan.outputs.package_matrix) }}", workers)
 
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
