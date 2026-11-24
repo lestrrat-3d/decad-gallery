@@ -16,7 +16,6 @@ import (
 // by bisection on their meshes). It covers T1, T2, R4, L3, L4, L8 and S1 (guide plate) and S2 of the part
 // fits table in instructions.md.
 func TestSevenSegmentAxialFits(t *testing.T) {
-	startDefault()
 	t.Parallel()
 	_, m := builtDefault(t)
 	bounds := func(b *decad.Body) decad.Box {

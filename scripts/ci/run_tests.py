@@ -700,8 +700,7 @@ def run_model_packages(names: tuple[str, ...]) -> None:
 
 
 # Two shards by what the tests build: "parts" holds the part tests (each part is built once and shared across them) and
-# "assembly" the tests of the assembled display (the digit 0, default and placed builds, started together and shared).
-# With 4 CPUs they take about 2 and 3 minutes; the whole package about 5.
+# "assembly" the tests of the assembled display (the digit 0 and default builds are shared).
 SEVENSEGMENT_SHARDS = {
     "parts": (
         "TestClickerLandGaps", "TestClickerPoses", "TestClickerPressTurn", "TestClickerRadialFits",
@@ -760,7 +759,8 @@ def run_sevensegment(shard: str) -> None:
         raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_SHARDS) + ">")
     check_sevensegment_coverage()
     tests = list(SEVENSEGMENT_SHARDS[shard])
-    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1"], expected=tests)
+    parallel = ["-parallel", "2"] if shard == "assembly" else []
+    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel], expected=tests)
 
 
 def run_sevensegment_render() -> None:

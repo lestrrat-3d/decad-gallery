@@ -14,33 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// build is one assembly build shared by the tests that read it. A test starts it before t.Parallel, so the builds of
-// every test that will run begin at once and overlap (each in a document of its own: decad documents are independent,
-// and the bodies they hand out are immutable and safe to read from anywhere); built waits for it.
+// build caches one immutable assembly for tests in this process.
 type build[T any] struct {
 	once sync.Once
-	done chan struct{}
 	val  T
 	err  error
 }
 
-// start begins the build in the background, the first time it is called.
-func (b *build[T]) start(f func(context.Context) (T, error)) {
-	b.once.Do(func() {
-		b.done = make(chan struct{})
-		go func() {
-			defer close(b.done)
-			// The build outlives the test that started it, so it runs under no test's context.
-			b.val, b.err = f(context.Background())
-		}()
-	})
-}
-
-// built starts the build if no test has, waits for it and returns it.
 func (b *build[T]) built(t *testing.T, f func(context.Context) (T, error)) T {
 	t.Helper()
-	b.start(f)
-	<-b.done
+	b.once.Do(func() { b.val, b.err = f(context.Background()) })
 	require.NoError(t, b.err)
 	return b.val
 }
@@ -58,9 +41,6 @@ func buildDefault(ctx context.Context) (defaultModel, error) {
 	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
 	return defaultModel{doc, m}, err
 }
-
-// startDefault begins the default build for a test about to call t.Parallel.
-func startDefault() { defaultBuild.start(buildDefault) }
 
 // builtDefault returns the default display, built once and shared: the tests only read it.
 func builtDefault(t *testing.T) (*decad.Document, *sevensegment.Model) {
@@ -92,9 +72,6 @@ var digit0Build build[*sevensegment.Parts]
 func buildDigit0(ctx context.Context) (*sevensegment.Parts, error) {
 	return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), sevensegment.Params{Digit: 0})
 }
-
-// startDigit0 begins the digit 0 build for a test about to call t.Parallel.
-func startDigit0() { digit0Build.start(buildDigit0) }
 
 // builtDigit0 returns the printed parts at digit 0, built once and shared: the tests read them and move copies of their
 // meshes, never the bodies.
