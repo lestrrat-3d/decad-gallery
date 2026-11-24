@@ -866,6 +866,7 @@ def run_full_models() -> None:
 
 PLANETARY_PR_SHARDS = 21
 PLANETARY_FULL_REST_SHARDS = 5
+PLANETARY_KITS = ("planet605-shaft608", "planet608-shaft605", "planet608-shaft608")
 FAN_PR_SHARDS = 10
 
 
@@ -1004,6 +1005,10 @@ def run_planetary_pr(shard: str) -> None:
 
 def run_planetary_full(shard: str) -> None:
     package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    discovered = subprocess.run(["go", "run", "scripts/ci/planetary_kits.go"],
+                                check=True, capture_output=True, text=True).stdout.splitlines()
+    if len(discovered) != len(set(discovered)) or set(discovered) != set(PLANETARY_KITS):
+        raise SystemExit("planetary kit assignments do not match supported non-default kits")
     output = subprocess.run(["go", "test", "-list", "^Test", package],
                             check=True, capture_output=True, text=True).stdout
     tests = [line for line in output.splitlines() if line.startswith("Test")]
@@ -1012,18 +1017,18 @@ def run_planetary_full(shard: str) -> None:
         raise SystemExit("planetary test inventory is incomplete")
     rest = planetary_test_shards([test for test in tests if test != kit], PLANETARY_FULL_REST_SHARDS)
     cases = {f"rest-{index}": tests for index, tests in enumerate(rest)}
-    selected = [kit] if shard == "kits" else cases.get(shard)
+    selected = [kit] if shard in PLANETARY_KITS else cases.get(shard)
     if selected is None:
         raise SystemExit("invalid planetary shard")
     if not selected:
         raise SystemExit("planetary full shard is empty")
     expected = set(selected)
-    if shard == "kits":
-        expected.update(f"{kit}/{name}" for name in (
-            "planet605-shaft608", "planet608-shaft605", "planet608-shaft608"))
+    if shard in PLANETARY_KITS:
+        expected.add(f"{kit}/{shard}")
     env = os.environ.copy()
     env["PLANETARY_ALL_KITS"] = "1"
-    go_test([package, "-run", run_pattern(selected), "-timeout", "60m", "-count=1"],
+    pattern = f"^{kit}$/^{shard}$" if shard in PLANETARY_KITS else run_pattern(selected)
+    go_test([package, "-run", pattern, "-timeout", "60m", "-count=1"],
             sorted(expected), env=env, package=package)
 
 

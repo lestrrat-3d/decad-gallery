@@ -56,7 +56,8 @@ def report(root, renderer):
     planetary = full_partition.ROOT + "/models/planetarygearbox"
     planetary_tests = root[planetary]
     if "TestKitGearboxes" in planetary_tests:
-        add(planetary, "TestKitGearboxes", "planetary-full/kits")
+        for kit in run_tests.PLANETARY_KITS:
+            add(planetary, "TestKitGearboxes", "planetary-full/" + kit)
     for index, tests in enumerate(run_tests.planetary_test_shards(
             [test for test in planetary_tests if test != "TestKitGearboxes"],
             run_tests.PLANETARY_FULL_REST_SHARDS)):
@@ -80,6 +81,8 @@ def report(root, renderer):
                 add(package, test, label)
 
     variants = [{"package": package, "test": test} for package, test in sorted(full_partition.FULL_VARIANTS)]
+    variants.extend({"package": planetary, "test": "TestKitGearboxes/" + kit}
+                    for kit in run_tests.PLANETARY_KITS)
     return {
         "version": 1,
         "modules": {"root": root, "renderer": renderer},

@@ -464,16 +464,20 @@ class PlanetaryFullTest(unittest.TestCase):
     def test_shards_cover_inventory_and_require_kit_variants(self):
         names = [f"TestOther{i}" for i in range(10)]
         inventory = "TestKitGearboxes\n" + "\n".join(names) + "\nok\n"
-        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+        def run(command, **kwargs):
+            return mock.Mock(stdout="\n".join(run_tests.PLANETARY_KITS) if command[1] == "run" else inventory)
+        with mock.patch.object(run_tests.subprocess, "run", side_effect=run), \
                 mock.patch.object(run_tests, "go_test") as go_test:
-            run_tests.run_planetary_full("kits")
+            for kit in run_tests.PLANETARY_KITS:
+                run_tests.run_planetary_full(kit)
             for index in range(run_tests.PLANETARY_FULL_REST_SHARDS):
                 run_tests.run_planetary_full(f"rest-{index}")
-        kits, *rest = go_test.call_args_list
-        self.assertEqual(kits.args[0][2], run_tests.run_pattern(["TestKitGearboxes"]))
-        self.assertEqual(len(kits.args[1]), 4)
-        self.assertIn("TestKitGearboxes/planet608-shaft608", kits.args[1])
-        self.assertEqual(kits.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
+        kits = go_test.call_args_list[:len(run_tests.PLANETARY_KITS)]
+        rest = go_test.call_args_list[len(run_tests.PLANETARY_KITS):]
+        for name, call in zip(run_tests.PLANETARY_KITS, kits):
+            self.assertEqual(call.args[0][2], f"^TestKitGearboxes$/^{name}$")
+            self.assertCountEqual(call.args[1], ["TestKitGearboxes", "TestKitGearboxes/" + name])
+            self.assertEqual(call.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
         self.assertCountEqual([name for call in rest for name in call.args[1]], names)
         self.assertTrue(all(call.kwargs["env"]["PLANETARY_ALL_KITS"] == "1" for call in rest))
         self.assertEqual(run_tests.planetary_test_shards(names, 5),
@@ -482,9 +486,26 @@ class PlanetaryFullTest(unittest.TestCase):
     def test_missing_kit_or_invalid_shard_fails(self):
         for inventory, shard in (("TestOther\n", "kits"), ("TestKitGearboxes\nTestOther\n", "bad")):
             with self.subTest(shard=shard), \
-                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                    mock.patch.object(run_tests.subprocess, "run", side_effect=lambda command, **kwargs: mock.Mock(
+                        stdout="\n".join(run_tests.PLANETARY_KITS) if command[1] == "run" else inventory)), \
                     self.assertRaises(SystemExit):
                 run_tests.run_planetary_full(shard)
+
+    def test_full_rejects_unassigned_or_duplicate_supported_kits(self):
+        for names in (list(run_tests.PLANETARY_KITS) + ["new-kit"],
+                      list(run_tests.PLANETARY_KITS[:-1]),
+                      list(run_tests.PLANETARY_KITS) + [run_tests.PLANETARY_KITS[0]]):
+            with self.subTest(names=names), \
+                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="\n".join(names))), \
+                    mock.patch.object(run_tests, "go_test") as go_test, \
+                    self.assertRaisesRegex(SystemExit, "kit assignments"):
+                run_tests.run_planetary_full(run_tests.PLANETARY_KITS[0])
+            go_test.assert_not_called()
+
+    def test_full_kit_assignments_match_model(self):
+        result = run_tests.subprocess.run(["go", "run", "scripts/ci/planetary_kits.go"],
+                                          check=True, capture_output=True, text=True)
+        self.assertCountEqual(result.stdout.splitlines(), run_tests.PLANETARY_KITS)
 
 
 class FinishedTestsTest(unittest.TestCase):

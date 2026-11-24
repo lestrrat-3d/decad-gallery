@@ -95,6 +95,10 @@ listed test results and explicitly checks the configured fan and planetary varia
 packages and tests, then requires their pass events and rejects skipped or failed subtests of listed tests. Full runs
 skip the separate PR renderer jobs because `renderer-full` runs those renderer tests.
 
+The full planetary suite runs each non-default kit in its own job and requires its named subtest. Five further jobs
+partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation
+checks their records with the other full-run artifacts.
+
 ## Probe and limits
 
 Set the repository Actions variable `CI_BROAD_OVERRIDE` to `true` to select broad PR and push coverage.

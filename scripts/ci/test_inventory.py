@@ -37,6 +37,8 @@ class InventoryTests(unittest.TestCase):
         root[full_partition.BEVEL] = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
         root[full_partition.BEVEL].append("TestRemainder")
         root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanVariant"]
+        planetary = full_partition.ROOT + "/models/planetarygearbox"
+        root[planetary] = ["TestKitGearboxes"] + [f"TestOther{i}" for i in range(5)]
         renderer_package = full_partition.ROOT + "/tools/render"
         result = inventory.report(root, {renderer_package: ["TestRender"]})
         self.assertEqual(result["known_assignments"]["root"][full_partition.BEVEL]["TestRemainder"],
@@ -45,6 +47,10 @@ class InventoryTests(unittest.TestCase):
         self.assertIn("discovered at runtime", result["subtests"])
         self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])
         self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full"])
+        self.assertEqual(result["known_assignments"]["root"][planetary]["TestKitGearboxes"],
+                         ["planetary-full/" + kit for kit in run_tests.PLANETARY_KITS])
+        self.assertTrue(all({"package": planetary, "test": "TestKitGearboxes/" + kit} in
+                            result["required_variants"] for kit in run_tests.PLANETARY_KITS))
 
     def test_split_renderer_separates_render_packages(self):
         root_package = full_partition.ROOT + "/models/ballbearing"

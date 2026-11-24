@@ -33,6 +33,7 @@ CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml"
     for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
+     "scripts/ci/planetary_kits.go",
      "scripts/ci/check_isolated_tests.py", "scripts/render_compare.py", "scripts/test_render_compare.py",
      "scripts/check_repository.py", "scripts/modelgen/spurgear.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",

@@ -71,6 +71,19 @@ func TestSingle(t *testing.T) {}
         self.assertFalse(errors)
         self.assertEqual(leaves[(".", "example.com/fixture", "TestParent", "pass")], 1)
 
+    def test_separate_subtest_invocations_keep_distinct_leaves(self):
+        paths = []
+        for name in ("first", "second"):
+            events = subprocess.run(["go", "test", "-json", "-run", f"^TestParent$/^{name}$", "."],
+                                    cwd=self.root, check=True, capture_output=True, text=True).stdout.splitlines()
+            paths.append(self.produce("split-" + name, events))
+        leaves, passed, _, errors, _ = reconcile_records.read_records(paths)
+        self.assertFalse(errors)
+        self.assertEqual(sum(leaves.values()), 2)
+        self.assertTrue(all(count == 1 for count in leaves.values()))
+        self.assertIn((".", "example.com/fixture", "TestParent/first"), passed)
+        self.assertIn((".", "example.com/fixture", "TestParent/second"), passed)
+
     def test_missing_required_and_missing_leaf(self):
         reference = self.produce("reference")
         candidate = self.produce("candidate")

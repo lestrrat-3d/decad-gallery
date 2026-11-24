@@ -1,5 +1,15 @@
 # CI measurements
 
+## Full-suite partition on 24 November 2026
+
+The full run at [45327807459](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45327807459) took
+76m 19s. The run at [45337031047](https://github.com/lestrrat-3d/decad-gallery/actions/runs/45337031047) took
+39m 37s after moving the fan, Swiss lever, and bevel remainder to separate jobs. Both runs passed record validation.
+Comparing their real test records found no missing, extra, or duplicate leaf outcomes. Their commits differ in CI
+scripts and documentation, and runner conditions varied, so the elapsed difference is not a controlled forecast.
+
+## Runs on 19 November 2026
+
 These GitHub Actions runs completed on 19 November 2026. Durations are observations, not forecasts.
 
 | Run | Change | Successful / skipped jobs | Elapsed | Initial wait | Sum of job waits | Runner seconds |

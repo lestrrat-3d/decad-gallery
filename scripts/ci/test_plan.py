@@ -203,6 +203,11 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=paths):
             self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
 
+    def test_planetary_kit_inventory_helper_selects_no_geometry(self):
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"scripts/ci/planetary_kits.go\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
+
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", return_value=self.packages()):
