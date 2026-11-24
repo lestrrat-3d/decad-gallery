@@ -48,13 +48,3 @@ func bisectY(t *testing.T, body *decad.Body, lo, hi float64, pred func(float64) 
 	}
 	return (lo + hi) / 2
 }
-
-// voidEdge returns the first radius along the ray at angle a, from 5 outward, where the section leaves its material.
-func voidEdge(loops [][]r3.Vec, a float64) (float64, bool) {
-	for rad := 5.0; rad < 14; rad += 0.002 {
-		if !insideLoops(loops, polar(rad, a)) {
-			return rad, true
-		}
-	}
-	return 14, false
-}
