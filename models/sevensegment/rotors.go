@@ -45,11 +45,14 @@ const (
 // rotorNotches lists a rotor type's notches as (u0, u1, pocket end) in the rotor's local u. Type A (segments a, g, d) has one
 // notch; type B (b, c, e, f) has two, the first used by b and e and the second by c and f.
 func rotorNotches(s Segment) [][3]float64 {
-	switch s {
-	case SegA, SegG, SegD:
+	if horizontalRotor(s) {
 		return [][3]float64{{Scale * -5.6, Scale * -0.2, Scale * 2.8}}
 	}
 	return [][3]float64{{Scale * -9.4, Scale * -4.0, Scale * -1.0}, {Scale * 1.6, Scale * 7.0, Scale * 10.0}}
+}
+
+func horizontalRotor(s Segment) bool {
+	return s == SegA || s == SegG || s == SegD
 }
 
 // rotorFrame is the rotor's local frame in the world at turn 0: origin on the axis at the rotor's middle, local x along s,
@@ -366,6 +369,11 @@ func (r *run) flag(s Segment) (Flag, error) {
 	if err != nil {
 		return Flag{}, err
 	}
+	return r.placeFlag(s, f)
+}
+
+func (r *run) placeFlag(s Segment, f Flag) (Flag, error) {
+	var err error
 	frame := rotorFrame(s)
 	// Place both bodies in two steps: translate by the origin's coordinates in the local frame, then rotate about the world
 	// origin. The result is the single placement's rigid motion, but decad refuses the single placement of rotor B's black
@@ -397,4 +405,31 @@ func (r *run) flag(s Segment) (Flag, error) {
 func (Flag) fromLocal(s Segment, x, y, u float64) r3.Vec {
 	f := rotorFrame(s)
 	return f.Origin().Add(f.U().Scale(x)).Add(f.V().Scale(y)).Add(f.N().Scale(u))
+}
+
+func (r *run) prototypeFlag(seg Segment, prototypes *[2]Flag) (Flag, error) {
+	index, last := 1, SegF
+	if horizontalRotor(seg) {
+		index, last = 0, SegG
+	}
+	proto := &prototypes[index]
+	if proto.Yellow == nil {
+		built, err := r.flagBodies(seg)
+		if err != nil {
+			return Flag{}, err
+		}
+		*proto = built
+	}
+	if seg == last {
+		return r.placeFlag(seg, *proto)
+	}
+	yellow, err := decad.Copy(r.ctx, proto.Yellow)
+	if err != nil {
+		return Flag{}, fmt.Errorf("copy yellow: %w", err)
+	}
+	black, err := decad.Copy(r.ctx, proto.Black)
+	if err != nil {
+		return Flag{}, fmt.Errorf("copy black: %w", err)
+	}
+	return r.placeFlag(seg, Flag{Yellow: yellow, Black: black})
 }
