@@ -80,18 +80,41 @@ class CasePlanTest(unittest.TestCase):
                              if job["kind"] == "group" else ["TestOther"])
                     meta = {"version": 1, "invocation": case, "module": ".", "job": "case-workers",
                             "case": case, "revision": identity["revision"], "run_id": "123", "run_attempt": "1"}
-                    rows = [{**meta, "kind": "test", "package": manifest["package"], "test": name, "status": "pass"}
+                    rows = [{**meta, "kind": "start", "package": manifest["package"], "test": test}
+                            for test in [None, *tests]]
+                    rows += [{**meta, "kind": "test", "package": manifest["package"], "test": name, "status": "pass"}
                             for name in tests]
                     rows.extend([{**meta, "kind": "package", "package": manifest["package"], "status": "pass"},
                                  {**meta, "kind": "complete"}])
                     path = Path(directory) / (case + ".jsonl")
                     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+                    data = json.loads(receipt.read_text())
+                    data["record_sha256"] = case_inventory.record_digest(path)
+                    receipt.write_text(json.dumps(data))
                     records[case] = path
                 self.assertTrue(case_inventory.verify_execution(plan, receipts, records))
                 incomplete = dict(receipts)
                 incomplete.pop("audit")
                 with self.assertRaisesRegex(ValueError, "artifacts"):
                     case_inventory.verify_execution(plan, incomplete, records)
+                path = records["remainder"]
+                original = path.read_text()
+                rows = [json.loads(line) for line in original.splitlines()]
+                bad_rows = [[row for row in rows if row["kind"] != "test"],
+                            [{**row, "status": "skip"} if row["kind"] == "package" else row for row in rows],
+                            rows[:-1], [rows[0], *rows]]
+                original_receipt = receipts["remainder"].read_text()
+                for invalid in bad_rows:
+                    path.write_text("".join(json.dumps(row) + "\n" for row in invalid))
+                    with self.assertRaisesRegex(ValueError, "records"):
+                        case_inventory.verify_execution(plan, receipts, records)
+                    data = json.loads(original_receipt)
+                    data["record_sha256"] = case_inventory.record_digest(path)
+                    receipts["remainder"].write_text(json.dumps(data))
+                    with self.assertRaisesRegex(ValueError, "records"):
+                        case_inventory.verify_execution(plan, receipts, records)
+                    receipts["remainder"].write_text(original_receipt)
+                path.write_text(original)
                 records["TestA-0"].write_text(records["TestA-1"].read_text())
                 with self.assertRaisesRegex(ValueError, "records"):
                     case_inventory.verify_execution(plan, receipts, records)

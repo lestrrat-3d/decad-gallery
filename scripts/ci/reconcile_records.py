@@ -96,6 +96,8 @@ def read_records(paths, expected_metadata=None, max_attempt=None):
                 kind = record.get("kind")
                 if kind == "complete":
                     state["complete"] = True
+                elif kind == "start" and record["job"] == "case-workers":
+                    pass  # The case validator checks start/terminal multiplicity and ordering.
                 elif kind == "malformed":
                     error("malformed producer event", location)
                 elif kind in ("test", "package"):
