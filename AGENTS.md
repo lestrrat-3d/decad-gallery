@@ -14,6 +14,11 @@
   regeneration. Do not defer it, and do not ask for permission to do it.
 - Never list time, rebuilds, or test runs as the reason against the correct option.
 - Ask only when what is correct is unclear.
+- Fix a cause where it lives, in this repository or in a dependency (decad, sketch, or another library we own).
+  Do not work around it in the model.
+  - Decad refuses an operation that should work → fix decad first. Do not change the model to avoid the operation.
+  - CI is slow → speed up the core code first, whether it is ours or decad, sketch, or another dependency.
+    Do not reorder, split, or skip tests to hide the cost.
 
 ## Repository ownership
 
