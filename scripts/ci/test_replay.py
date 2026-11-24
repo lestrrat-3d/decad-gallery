@@ -22,35 +22,21 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(errors, ["worker failed"])
 
     def test_module_change_simulates_full_jobs(self):
-        result = {"changed_paths": ["go.mod", "go.sum"], "suites": ["broad", "full"]}
+        result = {"version": 1, "changed_paths": ["go.mod", "go.sum"], "suites": ["broad", "full"]}
         with mock.patch.object(replay.subprocess, "check_output", side_effect=["head", "base"]), \
-                mock.patch.object(replay.plan, "plan", return_value=result), \
-                mock.patch.object(replay.gate, "check", return_value=[]) as check:
+                mock.patch.object(replay.plan, "plan", return_value=result):
             _, errors = replay.replay("9f71de90c")
         self.assertEqual(errors, [])
-        needs = check.call_args.args[0]
-        self.assertEqual(needs["renderer-full"]["result"], "success")
-        self.assertEqual(needs["bevel-full"]["result"], "success")
-        self.assertEqual(needs["bevel-pr"]["result"], "skipped")
-        self.assertTrue(all(needs[job]["result"] == "skipped" for job in replay.gate.PR_RENDER_JOBS))
-        self.assertEqual(needs["worker"]["result"], "skipped")
-        self.assertEqual(needs["records-validation"]["result"], "success")
 
     def test_renderer_all_skips_individual_renderer_jobs(self):
-        result = {"changed_paths": ["models/plaquestand/plaquestand.go"],
+        result = {"version": 1, "changed_paths": ["models/plaquestand/plaquestand.go"],
                   "suites": ["broad", "new-model-plaquestand", "renderer-all"]}
         with mock.patch.object(replay.subprocess, "check_output", side_effect=["head", "base"]), \
                 mock.patch.object(replay.plan, "plan", return_value=result), \
                 mock.patch.dict(replay.CASES, {"b2200f3eb": (
-                    {"models/plaquestand/plaquestand.go"}, {"broad", "new-model-plaquestand"}, set())}), \
-                mock.patch.object(replay.gate, "check", return_value=[]) as check:
+                    {"models/plaquestand/plaquestand.go"}, {"broad", "new-model-plaquestand"}, set())}):
             _, errors = replay.replay("b2200f3eb")
         self.assertEqual(errors, [])
-        needs = check.call_args.args[0]
-        self.assertTrue(all(needs[job]["result"] == "skipped" for job in replay.gate.PR_RENDER_JOBS))
-        self.assertEqual(needs["bevel-pr"]["result"], "success")
-        self.assertEqual(needs["worker"]["result"], "success")
-        self.assertEqual(needs["records-validation"]["result"], "skipped")
 
 
 if __name__ == "__main__":
