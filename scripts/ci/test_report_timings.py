@@ -60,3 +60,19 @@ class TimingReportTest(unittest.TestCase):
             self.assertEqual(result["counts"], {"test": 0, "package": 0})
             self.assertEqual(result["excluded"], {"cached": 2, "unknown_cache": 2})
             self.assertTrue(reconcile_records.reconcile([path], [path])["ok"])
+
+    def test_failed_timed_package_is_recorded_but_fails_reconciliation(self):
+        events = [
+            {"Action": "fail", "Package": "example.com/p", "Test": "TestFailure", "Elapsed": 0.01},
+            {"Action": "output", "Package": "example.com/p", "Output": "FAIL\texample.com/p\t0.012s\n"},
+            {"Action": "fail", "Package": "example.com/p", "Elapsed": 0.012},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                run_tests.finished_tests([json.dumps(event) for event in events])
+            result = report_timings.report([path], 20)
+            self.assertEqual(result["counts"], {"test": 1, "package": 1})
+            self.assertEqual(result["slowest"]["test"][0]["status"], "fail")
+            self.assertFalse(reconcile_records.reconcile([path], [path])["ok"])

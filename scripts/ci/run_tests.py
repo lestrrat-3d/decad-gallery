@@ -419,9 +419,11 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
             package = event.get("Package")
             output = event["Output"]
             if isinstance(package, str) and not event.get("Test") and isinstance(output, str):
-                match = re.fullmatch(r"ok\s+" + re.escape(package) + r"\s+(\(cached\)|[0-9]+(?:\.[0-9]+)?s)\s*", output)
+                match = re.fullmatch(r"(ok|FAIL)\s+" + re.escape(package) +
+                                     r"\s+(\(cached\)|[0-9]+(?:\.[0-9]+)?s)\s*", output)
                 if match:
-                    package_cache[package] = match.group(1) == "(cached)"
+                    if match.group(1) == "ok" or match.group(2) != "(cached)":
+                        package_cache[package] = match.group(2) == "(cached)"
         test = event.get("Test")
         if event.get("Action") in {"pass", "fail", "skip"}:
             package = event.get("Package")
