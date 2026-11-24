@@ -722,7 +722,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDriveAudit",
-        "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFollowerDrive",
+        "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFlagReuse", "TestSevenSegmentFollowerDrive",
         "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks", "TestSevenSegmentPlacement",
         "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",

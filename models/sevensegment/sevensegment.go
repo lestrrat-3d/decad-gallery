@@ -126,8 +126,9 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 					return decad.Transform(ctx, b, lift)
 				}})
 	}
+	var prototypes [2]Flag
 	for _, seg := range Segments() {
-		f, err := r.flag(seg)
+		f, err := r.prototypeFlag(seg, &prototypes)
 		if err != nil {
 			return nil, fmt.Errorf("sevensegment: flag %s: %w", seg, err)
 		}
