@@ -229,6 +229,11 @@ func TestSingle(t *testing.T) {}
             self.assertTrue(result["ok"], result)
             previous_attempt = reconcile_records.verify_execution(directory, inventory, "abc", "123", "2")
             self.assertTrue(previous_attempt["ok"], previous_attempt)
+            argv = ["reconcile_records.py", "--execution-dir", str(directory), "--inventory", str(inventory),
+                    "--revision", "abc", "--run-id", "123", "--run-attempt", "2"]
+            with mock.patch.object(reconcile_records.sys, "argv", argv), mock.patch.dict(os.environ, {}, clear=True), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(reconcile_records.main(), 0)
             self.assertEqual(result["duplicate_count"], 0)
             matrix = directory / "ci-records-wheel-native" / "wheel-native.jsonl"
             original = matrix.read_text()

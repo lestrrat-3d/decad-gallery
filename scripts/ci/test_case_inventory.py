@@ -3,15 +3,31 @@ import copy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
 
 import case_inventory
+import reconcile_records
 
 
 class CasePlanTest(unittest.TestCase):
+    def test_retry_compares_the_original_plan_with_the_current_checkout(self):
+        first = {"package": "github.com/lestrrat-3d/decad-gallery/models/cycloidal",
+                 "identity": {"revision": "a", "run_id": "bob", "attempt": "1", "profile": {}}}
+        current = copy.deepcopy(first)
+        current["identity"]["attempt"] = "2"
+        with mock.patch.object(case_inventory, "discover", side_effect=lambda name: copy.deepcopy(current)):
+            case_inventory.validate_manifest(first)
+            for field, value in (("run_id", "different"), ("revision", "b"), ("profile", {"GOFLAGS": "-race"}),
+                                 ("attempt", "3")):
+                changed = copy.deepcopy(first)
+                changed["identity"][field] = value
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    case_inventory.validate_manifest(changed)
+
     def test_plan_assigns_every_case_once(self):
         manifest = {"parents": {"TestA": ["three", "one", "two"], "TestB": ["single"]}}
         with mock.patch.object(case_inventory, "validate_manifest"):
@@ -58,6 +74,53 @@ class CasePlanTest(unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()), self.assertRaises(ValueError):
                 case_inventory.strict_run(["go"], {}, package, ["TestA"], ["TestA", "TestA/one"])
 
+    def test_offline_cli_accepts_same_run_producers_from_two_attempts(self):
+        package = reconcile_records.full_partition.CYCLOIDAL
+        parents = {"TestBuildOptions": ["one", "two"], "TestMeasuredFits": ["one", "two"]}
+        manifest = {"package": package, "parents": parents, "tests": sorted([*parents, "TestOther"]),
+                    "identity": {"revision": "abc", "run_id": "123", "attempt": "1", "profile": {}}}
+        plan = {"version": 1, "manifest": manifest, "jobs": case_inventory.assignments(manifest)}
+        digest = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            root = Path(directory)
+            artifacts = root / "artifacts"
+            inventory = root / "inventory.json"
+            inventory.write_text(json.dumps({"version": 1, "case_plan": plan, "required_variants": [],
+                "modules": {"root": {package: manifest["tests"]}, "renderer": {"example.com/render": []}}}))
+            for index, job in enumerate(plan["jobs"]):
+                case = job["case"]
+                folder = artifacts / ("ci-records-case-workers-" + case)
+                folder.mkdir(parents=True)
+                attempt = str(1 + index % 2)
+                receipt = dict(version=2, case=case, kind=job["kind"], producer_attempt=attempt,
+                               plan_sha256=digest, identity=manifest["identity"])
+                if job["kind"] != "audit":
+                    tests = (["TestOther"] if job["kind"] == "remainder" else
+                             [job["parent"], *(job["parent"] + "/" + name for name in job["names"])])
+                    meta = dict(version=1, invocation=case, module=".", job="case-workers", case=case,
+                                revision="abc", run_id="123", run_attempt=attempt, package=package)
+                    rows = [dict(meta, kind="start", test=name) for name in [None, *tests]]
+                    rows += [dict(meta, kind="test", test=name, status="pass") for name in tests]
+                    rows += [dict(meta, kind="package", status="pass"), dict(meta, kind="complete")]
+                    path = folder / "execution.jsonl"
+                    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+                    receipt["record_sha256"] = case_inventory.record_digest(path)
+                (folder / "receipt.json").write_text(json.dumps(receipt))
+            folder = artifacts / "ci-records-renderer-full"
+            folder.mkdir()
+            meta = dict(version=1, invocation="renderer", module="tools/render", job="renderer-full", case="",
+                        revision="abc", run_id="123", run_attempt="1", package="example.com/render")
+            (folder / "renderer-full.jsonl").write_text(json.dumps(dict(meta, kind="package", status="pass")) +
+                                                       "\n" + json.dumps(dict(meta, kind="complete")) + "\n")
+            argv = ["reconcile_records.py", "--execution-dir", str(artifacts), "--inventory", str(inventory),
+                    "--revision", "abc", "--run-id", "123", "--run-attempt", "2"]
+            with mock.patch.object(reconcile_records.sys, "argv", argv), mock.patch.dict(os.environ, {}, clear=True), \
+                    mock.patch.object(reconcile_records, "FULL_JOBS", {"package-workers": (), "renderer-full": ("",)}), \
+                    mock.patch.object(reconcile_records.full_partition, "select", return_value=([package], set(), [])), \
+                    mock.patch.object(case_inventory, "discover", side_effect=AssertionError("requires checkout")), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(reconcile_records.main(), 0)
+
     def test_execution_gate_rejects_missing_or_wrong_case_evidence(self):
         identity = {"revision": "a" * 40, "run_id": "123", "attempt": "1", "profile": {}}
         manifest = {"package": "example.com/model", "parents": {"TestA": ["one", "two"]},
@@ -93,6 +156,23 @@ class CasePlanTest(unittest.TestCase):
                     receipt.write_text(json.dumps(data))
                     records[case] = path
                 self.assertTrue(case_inventory.verify_execution(plan, receipts, records))
+                case = "TestA-1"
+                path, receipt = records[case], receipts[case]
+                old_records, old_receipt = path.read_text(), receipt.read_text()
+                rows = [dict(json.loads(line), run_attempt="2") for line in old_records.splitlines()]
+                path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+                data = dict(json.loads(old_receipt), version=2, producer_attempt="2",
+                            record_sha256=case_inventory.record_digest(path))
+                receipt.write_text(json.dumps(data))
+                with mock.patch.object(case_inventory, "discover", side_effect=AssertionError("offline checkout")):
+                    self.assertTrue(case_inventory.verify_execution(plan, receipts, records, "2"))
+                with self.assertRaisesRegex(ValueError, "attempt"):
+                    case_inventory.verify_execution(plan, receipts, records, "1")
+                receipt.write_text(json.dumps(dict(data, producer_attempt="1")))
+                with self.assertRaisesRegex(ValueError, "records"):
+                    case_inventory.verify_execution(plan, receipts, records, "2")
+                path.write_text(old_records)
+                receipt.write_text(old_receipt)
                 incomplete = dict(receipts)
                 incomplete.pop("audit")
                 with self.assertRaisesRegex(ValueError, "artifacts"):

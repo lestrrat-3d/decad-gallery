@@ -4,7 +4,6 @@
 import argparse
 from collections import Counter, defaultdict
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -219,10 +218,18 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt, c
     expected_files = {}
     if case_plan is not None:
         import case_inventory
-        if case_plan != case_inventory.build_plan(case_plan["manifest"]):
+        manifest = case_plan["manifest"]
+        parents = manifest["parents"]
+        if (manifest["package"] != full_partition.CYCLOIDAL or set(parents) != {"TestBuildOptions", "TestMeasuredFits"}
+                or any(not isinstance(names, list) or len(names) < 2 or len(set(names)) != len(names) or
+                       any(not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names)
+                       for names in parents.values())
+                or manifest["tests"] != sorted(root[full_partition.CYCLOIDAL]) or not set(parents) <= set(manifest["tests"])
+                or case_plan != {"version": 1, "manifest": manifest, "jobs": case_inventory.assignments(manifest)}):
             raise ValueError("case assignments differ from the reviewed plan")
         identity = case_plan["manifest"]["identity"]
-        if (identity["revision"], identity["run_id"], identity["attempt"]) != (revision, run_id, run_attempt):
+        if ((identity["revision"], identity["run_id"]) != (revision, run_id) or
+                not case_inventory.attempt_between(identity["attempt"], "1", run_attempt)):
             raise ValueError("case plan identity mismatch")
         receipts, records = {}, {}
         for job in case_plan["jobs"]:
@@ -235,8 +242,8 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt, c
                 records[case] = path
                 expected_files[folder].add(path.name)
                 expected[path] = {"job": "case-workers", "case": case, "revision": revision,
-                                  "run_id": run_id, "run_attempt": run_attempt, "module": "."}
-        case_inventory.verify_execution(case_plan, receipts, records)
+                                  "run_id": run_id, "module": "."}
+        case_inventory.verify_execution(case_plan, receipts, records, run_attempt)
     for path in expected:
         expected_files.setdefault(path.parent, {path.name})
     expected_dirs = {folder.name for folder in expected_files}
@@ -339,13 +346,11 @@ def main():
                 not all((args.revision, args.run_id, args.run_attempt))):
             parser.error("--execution-dir requires --inventory, --revision, --run-id and --run-attempt")
         try:
-            import case_inventory
-            case_plan = json.loads(os.environ.get("CASE_PLAN", ""))
-            if case_plan is None and case_inventory.discover("cycloidal") is not None:
-                raise ValueError("reviewed cycloidal package requires its case plan")
+            with open(args.inventory, encoding="utf-8") as stream:
+                case_plan = json.load(stream).get("case_plan")
             result = verify_execution(args.execution_dir, args.inventory, args.revision, args.run_id, args.run_attempt,
                                       case_plan)
-        except ValueError as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             parser.error(str(exc))
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["ok"] else 1
