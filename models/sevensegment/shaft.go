@@ -42,14 +42,14 @@ func frontFrame(y float64) r3.Frame {
 	return f
 }
 
-// flatTool is a box that cuts a flat: x from x0 to x1 across y +-4, over local z from z0 to z1.
-func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
+// cutFlat cuts a flat from body: x from x0 to x1 across y +-6, over local z from z0 to z1.
+func (r *run) cutFlat(body *decad.Body, x0, x1, z0, z1 float64) (*decad.Body, error) {
 	s, err := r.sketchOn(across(z0))
 	if err != nil {
 		return nil, err
 	}
 	polygon(s, [][2]float64{{x0, -6.0}, {x1, -6.0}, {x1, 6.0}, {x0, 6.0}})
-	return r.extrude(s, 0, z1-z0, decad.Along)
+	return r.cutExtrude(body, s, 0, 1, z1-z0, decad.Along)
 }
 
 // shaft builds the printed camshaft in its local frame (axis on local Z = world +Y, flats toward local +x = world +Z) and
@@ -79,11 +79,7 @@ func (r *run) shaft() (*decad.Body, error) {
 		{"cam back flat", -12.0, -shaftCamFlat, shaftCamFlatFrom, shaftCamFlatTo},
 		{"stub flat", shaftStubFlat, 12.0, shaftStubFlatFrom, shaftStubFlatTo},
 	} {
-		tool, err := r.flatTool(c.x0, c.x1, c.z0, c.z1)
-		if err != nil {
-			return nil, fmt.Errorf("%s tool: %w", c.name, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = r.cutFlat(body, c.x0, c.x1, c.z0, c.z1); err != nil {
 			return nil, fmt.Errorf("cut %s: %w", c.name, err)
 		}
 	}

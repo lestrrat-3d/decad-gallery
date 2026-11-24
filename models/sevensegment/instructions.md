@@ -221,7 +221,7 @@ Revolve this meridian `(z, r)` about local Z with `decad.FullRevolution{}` (patt
 (-74.0, 4.8) (59.0, 4.8) (60.5585, 5.7) (64.25, 5.7) (64.25, 4.0) (71.2, 4.0) (71.5, 3.7) (71.5, 0)
 ```
 
-Then cut three flat tools (box prisms in the local frame, extruded symmetric ±6 along local y):
+Then cut three flats, each by one `decad.CutExtrude` of a box profile in the local frame (±6 along local y):
 
 - Cam flat: `x ≥ 4.05` over `z ∈ [−75.0, 58.5]`; square end at z 58.5 (cam a's D chord stops on it).
 - Cam back flat: `x ≤ −4.05` over the same span, square end at z 58.5 (cam a's second chord stops on it).
@@ -247,10 +247,11 @@ z ∈ [−5.7, 0], hub toward local +z.
 2. Cut the double-D bore: profile on local z = −6.7, two arcs r 4.85 joined by flats at v = ±4.1
    (doubleDBoreLoop); extrude 18.45 along +z. The first flat is on local +V (world +Z at θ = 0) on every D bore in
    the model; the cam bores add the opposite flat.
-3. Cut the groove tool (next section): profile on local z = +1.0, extrude `decad.Against` 3.85 (to z −2.85).
+3. Cut the groove (next section) with `decad.CutExtrude`: profile on local z = +1.0, `decad.Against` 3.85 (to z −2.85).
 4. Cut the look-alike holes: circles r 0.75 at radius 18 (front cams) or 12 (rear cams) on angles 270°, 295°,
-   320°, 345° (count per cam, "Look-alike parts"), extruded through local z ∈ [−6.7, 11.75]. Each hole has its own
-   sketch on the cam frame, centre placed by horizontal and vertical distances from the origin (rule text).
+   320°, 345° (count per cam, "Look-alike parts"), cut through local z ∈ [−6.7, 11.75] by one
+   `decad.CutExtrude`. The circles are profiles of one sketch on the cam frame, each centre placed by horizontal and
+   vertical distances from the origin (rule text).
 
 Groove (one sketch per cam; profile with one hole):
 
@@ -1190,7 +1191,7 @@ is 73.2 wide).
    of 20 mm or more of its outer loop (`edgefinish.ChamferRuns`, `Long(Outer)`), which skips the short rib-end runs.
 3. `decad.Fillet` radius 0.5 on every concave rib-root edge in the inner-face plane (ledge: top, bottom and x = ±24.6
    edges; top flange: bottom and x = ±24.6 edges). Pattern: `models/planetarygearbox/cover.go` `roundBossRoot`.
-4. Cut the seat/lip revolve tool about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
+4. Cut the seat/lip with one `decad.CutRevolve` about the shaft axis. Meridian `(r, d)`, d measured from the inner face (d 0)
    through the wall to the outer face (d 12): `(0,−1) (11.55,−1) (11.55,0) (11.05,0.5) (11.05,7.0) (6.5,7.0)
    (6.5,11.5) (7.0,12.0) (7.0,13.0) (0,13.0)`. Seat r 11.05 (608ZZ `SeatDiameter/2`) 7 deep with a 0.5 lead-in at the
    inner face, lip 5 thick with hole r 6.5 and a 0.5 chamfer at the outer face.
@@ -1198,7 +1199,7 @@ is 73.2 wide).
    `HoleTool`; top flange ribs `HexPocketTool(site, NutCavityHeight + Stock)` (T sites) and `HoleTool`; front wall
    only: `HexPocketTool` + `HoleTool` at H1, H2 (nut pockets open to the outer face).
 6. Cut look-alike holes (r 0.75, through): front 1 hole, rear 2 holes, on radius 10 about the shaft axis at 270°,
-   295° (front-view angles), one sketch per hole as for the cams.
+   295° (front-view angles), as profiles of one sketch cut by one `decad.CutExtrude`, as for the cams.
 
 Printed outer face down; ribs rise from the plate; rib pockets print sideways with a hex corner up.
 

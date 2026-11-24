@@ -8,7 +8,6 @@ import (
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/edgefinish"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
@@ -99,20 +98,12 @@ func (r *run) wall(front bool) (*decad.Body, error) {
 			return nil, fmt.Errorf("rib root: %w", err)
 		}
 	}
-	seat, err := r.seatTool()
-	if err != nil {
-		return nil, fmt.Errorf("seat tool: %w", err)
-	}
-	seat, err = placement.Place(r.ctx, seat, &f)
-	if err != nil {
-		return nil, fmt.Errorf("place seat tool: %w", err)
-	}
 	// The fastener tools go first: cut after the seat, the front wall's G pockets meet a held mesh coarser than
 	// their chord tolerance.
 	if body, err = r.wallFasteners(body, front); err != nil {
 		return nil, err
 	}
-	if body, err = decad.Cut(r.ctx, body, seat); err != nil {
+	if body, err = r.cutSeat(body, &f); err != nil {
 		return nil, fmt.Errorf("cut seat: %w", err)
 	}
 	return r.wallMarks(body, front, f)
@@ -128,14 +119,14 @@ func depth(front, ledge bool) float64 {
 	return ribDepth
 }
 
-// seatTool is the revolved cutter for the 608ZZ seat and the lip hole, in the wall's local frame (axis Z, depth d along
-// +Z from the inner face).
-func (r *run) seatTool() (*decad.Body, error) {
+// cutSeat cuts the 608ZZ seat and the lip hole by a revolve about the wall's axis, in the wall's frame f (axis Z, depth d
+// along +Z from the inner face).
+func (r *run) cutSeat(body *decad.Body, f *r3.Frame) (*decad.Body, error) {
 	// The seat, the lip and the lead-ins belong to the bearing, which is purchased: they keep their size. The lip
 	// hole stands 0.5 outside the inner ring's face and ends at the outer face, WallThickness from the inner one.
-	return r.meridian([][2]float64{{0, -1}, {bearingSeatR + 0.5, -1}, {bearingSeatR + 0.5, 0}, {bearingSeatR, 0.5},
+	return r.cutMeridian(body, [][2]float64{{0, -1}, {bearingSeatR + 0.5, -1}, {bearingSeatR + 0.5, 0}, {bearingSeatR, 0.5},
 		{bearingSeatR, bearingWidth}, {bearingRaceR + 0.5, bearingWidth}, {bearingRaceR + 0.5, WallThickness - 0.5},
-		{bearingRaceR + 1.0, WallThickness}, {bearingRaceR + 1.0, WallThickness + 1}, {0, WallThickness + 1}})
+		{bearingRaceR + 1.0, WallThickness}, {bearingRaceR + 1.0, WallThickness + 1}, {0, WallThickness + 1}}, f)
 }
 
 // wallFasteners cuts the fastener tools of the wall's sites: front wall T1, T2, G1, G2, H1, H2; rear wall T3, T4, G3, G4.
@@ -188,6 +179,10 @@ func (r *run) wallMarks(body *decad.Body, front bool, f r3.Frame) (*decad.Body, 
 	if front {
 		n = 1
 	}
+	s, err := r.sketchOn(shift(f, -1))
+	if err != nil {
+		return nil, err
+	}
 	for i := range n {
 		a := (camMarkFirst + camMarkStep*float64(i)) * math.Pi / 180
 		x, v := markRadius*math.Cos(a), markRadius*math.Sin(a) // front-view coordinates
@@ -195,19 +190,11 @@ func (r *run) wallMarks(body *decad.Body, front bool, f r3.Frame) (*decad.Body, 
 		if !front {
 			u = -x
 		}
-		s, err := r.sketchOn(shift(f, -1))
-		if err != nil {
-			return nil, err
-		}
 		c := sketchcheck.DimensionPoint(s, u, v)
 		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, camMarkRadius), camMarkRadius))
-		hole, err := r.extrude(s, 0, WallThickness+2, decad.Along)
-		if err != nil {
-			return nil, fmt.Errorf("mark %d: %w", i+1, err)
-		}
-		if body, err = decad.Cut(r.ctx, body, hole); err != nil {
-			return nil, fmt.Errorf("cut mark %d: %w", i+1, err)
-		}
+	}
+	if body, err = r.cutExtrude(body, s, 0, n, WallThickness+2, decad.Along); err != nil {
+		return nil, fmt.Errorf("cut marks: %w", err)
 	}
 	return body, nil
 }
