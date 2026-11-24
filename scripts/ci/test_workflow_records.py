@@ -39,10 +39,19 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertEqual(values, expected)
         self.assertEqual(reconcile_records.FULL_JOBS["renderer-full"], tuple(expected))
 
-    def test_package_matrix_is_not_read_when_plan_is_skipped(self):
+    def test_package_matrix_is_only_created_and_read_for_full_runs(self):
         section = job_section(WORKFLOW.read_text(), "package-workers")
-        self.assertIn("if: needs.package-plan.result == 'success'", section)
-        self.assertIn("matrix: ${{ fromJSON(needs.package-plan.outputs.matrix) }}", section)
+        self.assertIn("if: needs.plan.result == 'success'", section)
+        self.assertIn("matrix: ${{ fromJSON(needs.plan.outputs.package_matrix) }}", section)
+        plan = job_section(WORKFLOW.read_text(), "plan")
+        self.assertIn("package_matrix: ${{ steps.package-matrix.outputs.matrix }}", plan)
+        self.assertIn("python3 scripts/ci/full_partition.py package-matrix", plan)
+        for expression in ("github.event_name == 'schedule'", "github.event_name == 'workflow_dispatch'",
+                           "contains(fromJSON("):
+            self.assertIn(expression, section)
+            self.assertIn(expression, plan)
+        self.assertIn("contains(fromJSON(steps.plan.outputs.plan).suites, 'full')", plan)
+        self.assertIn("contains(fromJSON(needs.plan.outputs.plan).suites, 'full')", section)
 
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
