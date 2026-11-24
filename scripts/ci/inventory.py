@@ -51,8 +51,9 @@ def report(root, renderer):
         for test in full_partition.fan_tests(set(root[package]), case):
             add(package, test, "handcrankfan-full/" + case)
     package = full_partition.ROOT + "/models/swisslever"
-    for test in root[package]:
-        add(package, test, "swisslever-full")
+    for case in ("fork", "rest"):
+        for test in full_partition.swiss_tests(set(root[package]), case):
+            add(package, test, "swisslever-full/" + case)
     for index, tests in enumerate(run_tests.ESCAPEMENT_SHARDS, 1):
         for test in tests:
             add(full_partition.ROOT + "/models/escapement", test, f"escapement/{index}")

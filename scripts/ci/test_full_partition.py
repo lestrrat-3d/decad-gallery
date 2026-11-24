@@ -10,6 +10,7 @@ class FullPartitionTests(unittest.TestCase):
         return {**{package: {"TestDedicated"} for package in partition.DEDICATED},
                 partition.BEVEL: assigned | {"TestNewBevel"},
                 partition.ROOT + "/models/handcrankfan": {"TestHandCrankFanDefault", "TestHandCrankFanVariant", "TestOther"},
+                partition.ROOT + "/models/swisslever": {"TestForkAction", "TestOther"},
                 partition.ROOT + "/models/newmodel": {"TestNewModel"}}
 
     def test_selection_keeps_new_packages_and_bevel_remainder(self):
@@ -52,9 +53,10 @@ class FullPartitionTests(unittest.TestCase):
             partition.main("handcrankfan", "default")
             partition.main("handcrankfan", "variants")
             partition.main("handcrankfan", "rest")
-            partition.main("swisslever")
-        self.assertEqual(go_test.call_count, 6)
-        ordinary, bevel, default, fan, rest, swiss = go_test.call_args_list
+            partition.main("swisslever", "fork")
+            partition.main("swisslever", "rest")
+        self.assertEqual(go_test.call_count, 7)
+        ordinary, bevel, default, fan, rest, swiss_fork, swiss_rest = go_test.call_args_list
         self.assertEqual(ordinary.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(ordinary.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
         self.assertNotIn(partition.ROOT + "/models/planetarygearbox", ordinary.args[0])
@@ -65,13 +67,23 @@ class FullPartitionTests(unittest.TestCase):
         self.assertEqual(default.args[1], ["TestHandCrankFanDefault"])
         self.assertEqual(rest.args[1], ["TestOther"])
         self.assertEqual(fan.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
-        self.assertEqual(swiss.args[1], ["TestDedicated"])
+        self.assertEqual(swiss_fork.args[1], ["TestForkAction"])
+        self.assertEqual(swiss_rest.args[1], ["TestOther"])
         self.assertNotIn(partition.ROOT + "/models/handcrankfan", ordinary.args[0])
         self.assertNotIn(partition.ROOT + "/models/swisslever", ordinary.args[0])
 
     def test_fan_partition_rejects_missing_full_tests(self):
         with self.assertRaises(ValueError):
             partition.fan_tests({"TestHandCrankFanDefault"}, "rest")
+
+    def test_swiss_partitions_cover_new_tests_and_reject_invalid_input(self):
+        tests = {"TestForkAction", "TestOther", "TestNew"}
+        fork, rest = (partition.swiss_tests(tests, case) for case in ("fork", "rest"))
+        self.assertFalse(set(fork) & set(rest))
+        self.assertEqual(set(fork) | set(rest), tests)
+        for inventory, case in (({"TestOther"}, "rest"), (tests, "other")):
+            with self.assertRaises(ValueError):
+                partition.swiss_tests(inventory, case)
 
 
 if __name__ == "__main__":

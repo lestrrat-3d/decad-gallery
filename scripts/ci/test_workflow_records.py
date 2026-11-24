@@ -20,6 +20,11 @@ def job_section(workflow, job):
 
 
 class WorkflowRecordsTests(unittest.TestCase):
+    def test_swiss_cases_match_record_validator(self):
+        section = job_section(WORKFLOW.read_text(), "swisslever-full")
+        cases = re.search(r"case: \[([^]]+)\]", section).group(1).split(", ")
+        self.assertEqual(tuple(cases), reconcile_records.FULL_JOBS["swisslever-full"])
+
     def test_renderer_shard_matrix_matches_record_validator(self):
         section = job_section(WORKFLOW.read_text(), "renderer-full")
         values = re.search(r"shard: \[([^]]+)\]", section).group(1).split(", ")
@@ -51,7 +56,7 @@ class WorkflowRecordsTests(unittest.TestCase):
             "planetary-full": "planetary-full-${{ matrix.case }}",
             "bevel-remainder": "bevel-remainder",
             "handcrankfan-full": "handcrankfan-full-${{ matrix.case }}",
-            "swisslever-full": "swisslever-full",
+            "swisslever-full": "swisslever-full-${{ matrix.case }}",
         }
         for job, record in jobs.items():
             with self.subTest(job=job):
@@ -62,7 +67,7 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full"):
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full", "swisslever-full"):
                     case = "shard" if job in ("bevel-full", "renderer-full") else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 

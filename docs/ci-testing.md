@@ -90,7 +90,8 @@ Scheduled and manually dispatched runs select broad checks and use the full path
 same full path through the `full` marker. `full_partition.py` lists root-module packages and
 top-level tests and runs the packages outside dedicated jobs. Dedicated jobs cover
 their packages, the eight full bevel shards, and the remaining bevel tests. Three fan jobs run the default, variant,
-and shared-fixture remainder tests; another job runs the complete Swiss lever package. Wheel and siren jobs run assigned cases plus a remainder that skips
+and shared-fixture remainder tests. Two Swiss lever jobs run the fork sweep and shared-fixture remainder. Wheel and
+siren jobs run assigned cases plus a remainder that skips
 assigned paths; the remainder checks for overlapping assignments and missing top-level tests. The runner requires
 listed test results and explicitly checks the configured fan and planetary variants. Each `renderer-full` job lists
 renderer packages and tests, then requires its assigned tests and their subtests to pass. Full runs skip the separate

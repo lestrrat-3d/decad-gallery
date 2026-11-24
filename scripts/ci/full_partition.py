@@ -23,6 +23,18 @@ FULL_VARIANTS = {
     (ROOT + "/models/handcrankfan", "TestHandCrankFanVariant/steep-three"),
 }
 FAN_CASES = {"default": "TestHandCrankFanDefault", "variants": "TestHandCrankFanVariant"}
+SWISS_FORK = "TestForkAction"
+
+
+def swiss_tests(tests, case):
+    """Keep shared-fixture tests together and isolate the fork sweep."""
+    if SWISS_FORK not in tests:
+        raise ValueError("Swiss inventory is missing the fork sweep")
+    if case == "fork":
+        return [SWISS_FORK]
+    if case == "rest":
+        return sorted(tests - {SWISS_FORK})
+    raise ValueError("invalid Swiss case")
 
 
 def fan_tests(tests, case):
@@ -89,9 +101,14 @@ def main(mode="repository", case=None):
                           sorted(required), env=env, package=package)
     elif mode == "swisslever":
         package = ROOT + "/models/" + mode
-        required = set(inventory[package])
-        required.update(test for pkg, test in FULL_VARIANTS if pkg == package)
-        run_tests.go_test([package, "-timeout", "60m"], sorted(required), env=env, package=package)
+        try:
+            tests = swiss_tests(inventory[package], case)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        if not tests:
+            raise SystemExit("Swiss partition is empty")
+        run_tests.go_test([package, "-run", run_tests.run_pattern(tests), "-timeout", "60m"],
+                          tests, env=env, package=package)
     else:
         raise SystemExit("invalid full partition")
 
