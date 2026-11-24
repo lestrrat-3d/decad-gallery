@@ -297,6 +297,25 @@ def check(needs, event):
 
     expected = {"worker": "success" if expected_matrix["include"] else "skipped"}
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
+    case_active = False
+    if full:
+        try:
+            case_plan = json.loads(outputs["case_plan"])
+            cases = []
+            if case_plan is not None:
+                from case_inventory import assignments
+                manifest = case_plan["manifest"]
+                if (case_plan["version"] != 1 or set(manifest["parents"]) != {"TestMeasuredFits", "TestBuildOptions"} or
+                        case_plan["jobs"] != assignments(manifest) or len(case_plan["jobs"]) != 6):
+                    raise ValueError("invalid cycloidal case assignments")
+                cases = [job["case"] for job in case_plan["jobs"]]
+            if (case_plan is not None and (not cases or len(set(cases)) != len(cases))) or (
+                    json.loads(outputs["case_matrix"]) != {"include": [{"case": case} for case in cases]}):
+                raise ValueError("case matrix differs from the full-run plan")
+            case_active = bool(cases)
+        except (KeyError, TypeError, ValueError) as exc:
+            return errors + [f"invalid full-run case plan: {exc}"]
+    expected["case-workers"] = "success" if case_active else "skipped"
     expected["records-validation"] = "success" if full else "skipped"
     expected["package-workers"] = "success" if full else "skipped"
     for job in BROAD_JOBS:

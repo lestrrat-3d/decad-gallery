@@ -16,6 +16,14 @@ class FullPartitionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             partition.package_shards(["example.com/a", "example.com/a"])
 
+    def test_cycloidal_leaves_ordinary_workers_only_with_a_case_plan(self):
+        ordinary = ["example.com/ordinary", partition.CYCLOIDAL]
+        self.assertCountEqual(partition.package_shards(ordinary, None)[0], ordinary)
+        plan = {"manifest": {"package": partition.CYCLOIDAL}}
+        self.assertEqual(partition.package_shards(ordinary, plan), [["example.com/ordinary"]])
+        with self.assertRaises(ValueError):
+            partition.package_shards(ordinary, {"manifest": {"package": "example.com/ordinary"}})
+
     def test_package_shard_allows_only_empty_package_skips(self):
         process = mock.Mock(stdout=[], returncode=0)
         process.wait.return_value = 0

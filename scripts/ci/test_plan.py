@@ -101,7 +101,7 @@ class PlanTest(unittest.TestCase):
                 result = json.loads(output.getvalue())
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(expected)
-                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
                 needs["records-validation"] = {"result": "success" if event in ("schedule", "workflow_dispatch")
                                                 or "full" in expected else "skipped"}
                 needs["package-workers"] = dict(needs["records-validation"])
@@ -117,6 +117,7 @@ class PlanTest(unittest.TestCase):
                             enabled = not full
                         needs[job]["result"] = "success" if enabled else "skipped"
                 needs.update(plan={"result": "success", "outputs": {
+                    "case_plan": "null", "case_matrix": '{"include":[]}',
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
                     worker={"result": "success" if matrix["include"] else "skipped"})
@@ -151,10 +152,11 @@ class PlanTest(unittest.TestCase):
                 result = plan.plan("push", "base", "head")
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
-                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
                 needs["records-validation"] = {"result": "success" if "full" in expected else "skipped"}
                 needs["package-workers"] = dict(needs["records-validation"])
                 needs.update(plan={"result": "success", "outputs": {
+                    "case_plan": "null", "case_matrix": '{"include":[]}',
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
                     worker={"result": "success" if matrix["include"] else "skipped"})
@@ -267,7 +269,7 @@ class PlanTest(unittest.TestCase):
             self.assertEqual(result["changed_paths"], ["models/cycloidal/example_test.go"])
             self.assertEqual(result["suites"], ["cycloidal-pr"])
             dispatch = mock.Mock(return_value="success")
-            needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+            needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
             needs["records-validation"] = {"result": "skipped"}
             needs["package-workers"] = {"result": "skipped"}
             needs.update(plan={"result": "success", "outputs": {
@@ -980,7 +982,7 @@ class PlanTest(unittest.TestCase):
         suites = gate.suites_from_plan(json.dumps(result))
         matrix = gate.matrix_for(suites)
         self.assertEqual({entry["suite"] for entry in matrix["include"]}, set(result["suites"]))
-        needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+        needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
         needs["records-validation"] = {"result": "skipped"}
         needs["package-workers"] = {"result": "skipped"}
         needs["renderer-full"]["result"] = "skipped"

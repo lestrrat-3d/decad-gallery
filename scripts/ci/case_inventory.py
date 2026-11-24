@@ -71,11 +71,17 @@ def reviewed_cases(name, parents):
 def discover(name):
     if not re.fullmatch(r"[a-z][a-z0-9]*", name):
         raise ValueError("invalid model name")
-    config = json.loads(Path("models", name, "ci_cases.json").read_text())
-    if (set(config) != {"version", "parents", "source_sha256"} or config["version"] != 1 or
+    config_path = Path("models", name, "ci_cases.json")
+    if not config_path.exists():
+        return None
+    try:
+        config = json.loads(config_path.read_text())
+    except (UnicodeError, json.JSONDecodeError):
+        return None
+    if (not isinstance(config, dict) or set(config) != {"version", "parents", "source_sha256"} or config["version"] != 1 or
             not isinstance(config["parents"], list) or not isinstance(config["source_sha256"], str) or
             not re.fullmatch(r"[0-9a-f]{64}", config["source_sha256"])):
-        raise ValueError("invalid case configuration")
+        return None
     if not reviewed_cases(name, config["parents"]) or source_digest(name) != config["source_sha256"]:
         return None
     if any("TestMain" in path.read_text() for path in Path("models", name).glob("*_test.go")):
@@ -153,12 +159,16 @@ def validate_manifest(manifest):
 def build_plan(manifest):
     """Assign each discovered child exactly once, with one audit and one remainder."""
     validate_manifest(manifest)
+    return {"version": 1, "manifest": manifest, "jobs": assignments(manifest)}
+
+
+def assignments(manifest):
     jobs = [{"case": "audit", "kind": "audit"}, {"case": "remainder", "kind": "remainder"}]
     for parent, names in sorted(manifest["parents"].items()):
         for shard in range(min(2, len(names))):
             selected = sorted(names)[shard::2]
             jobs.append({"case": f"{parent}-{shard}", "kind": "group", "parent": parent, "names": selected})
-    return {"version": 1, "manifest": manifest, "jobs": jobs}
+    return jobs
 
 
 def run_planned(plan, case):
@@ -363,7 +373,16 @@ def audit_undiscovered(manifest):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--fingerprint":
+    if sys.argv[1:] == ["plan"]:
+        manifest = discover("cycloidal")
+        plan = build_plan(manifest) if manifest is not None else None
+        matrix = {"include": [{"case": job["case"]} for job in plan["jobs"]]} if plan else {"include": []}
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+            for name, value in (("plan", plan), ("matrix", matrix)):
+                print(name + "=" + json.dumps(value, separators=(",", ":")), file=output)
+    elif sys.argv[1:] == ["run"]:
+        run_planned(json.loads(os.environ["CASE_PLAN"]), os.environ["CI_TEST_CASE"])
+    elif len(sys.argv) == 3 and sys.argv[1] == "--fingerprint":
         print(source_digest(sys.argv[2]))
     else:
         print(json.dumps(discover(sys.argv[1]), sort_keys=True))

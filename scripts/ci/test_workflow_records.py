@@ -59,6 +59,20 @@ class WorkflowRecordsTests(unittest.TestCase):
         )
         self.assertIn("matrix: ${{ fromJSON(needs.plan.outputs.package_matrix) }}", workers)
 
+    def test_full_run_propagates_case_plan_and_records_to_required_jobs(self):
+        workflow = WORKFLOW.read_text()
+        plan = job_section(workflow, "plan")
+        self.assertIn("python3 scripts/ci/case_inventory.py plan", plan)
+        self.assertIn("CASE_PLAN: ${{ steps.case-plan.outputs.plan }}", plan)
+        for job in ("case-workers", "package-workers", "records-validation"):
+            self.assertIn("CASE_PLAN: ${{ needs.plan.outputs.case_plan }}", job_section(workflow, job))
+        cases = job_section(workflow, "case-workers")
+        self.assertIn("fromJSON(needs.plan.outputs.case_matrix)", cases)
+        self.assertIn("python3 scripts/ci/case_inventory.py run", cases)
+        self.assertIn("ci-records-case-workers-${{ matrix.case }}", cases)
+        for consumer in ("records-validation", "model-checks"):
+            self.assertIn("case-workers", job_section(workflow, consumer).split("runs-on:", 1)[0])
+
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
         step = section.split("      - name: Check clamp arm capacity documentation\n", 1)[1]

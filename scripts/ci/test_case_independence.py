@@ -1,9 +1,9 @@
 import contextlib
 import json
 from pathlib import Path
-import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import case_inventory
 
@@ -11,13 +11,14 @@ import case_inventory
 class CycloidalIndependenceTest(unittest.TestCase):
     def test_exact_reviewed_model_and_parents(self):
         parents = ["TestBuildOptions", "TestMeasuredFits"]
-        self.assertTrue(case_inventory.reviewed_cases("cycloidal", parents))
+        digest = case_inventory.file_digest(Path("models/cycloidal").glob("*.go"))
+        with mock.patch.object(case_inventory, "CYCLOIDAL_REVIEWED_GO", digest):
+            self.assertTrue(case_inventory.reviewed_cases("cycloidal", parents))
         self.assertFalse(case_inventory.reviewed_cases("cycloidal", parents[:1]))
         self.assertFalse(case_inventory.reviewed_cases("cycloidal", parents + ["TestBuildChamfers"]))
         self.assertFalse(case_inventory.reviewed_cases("other", parents))
 
     def test_changed_parent_or_helper_falls_back_after_inventory_refresh(self):
-        source = Path("models/cycloidal").resolve()
         examples = [
             ("build_test.go", "func TestBuildOptions(t *testing.T) {",
              "func TestBuildOptions(t *testing.T) {\n"
@@ -33,9 +34,10 @@ class CycloidalIndependenceTest(unittest.TestCase):
             with contextlib.chdir(directory):
                 model = Path("models/cycloidal")
                 model.mkdir(parents=True)
-                for path in source.glob("*.go"):
-                    shutil.copyfile(path, model / path.name)
-                config = json.loads((source / "ci_cases.json").read_text())
+                for filename, before, _ in examples:
+                    (model / filename).write_text("package cycloidal_test\n" + before + "\n")
+                approved = case_inventory.file_digest(model.glob("*.go"))
+                config = {"version": 1, "parents": ["TestBuildOptions", "TestMeasuredFits"]}
                 for filename, before, after in examples:
                     with self.subTest(filename=filename):
                         path = model / filename
@@ -44,5 +46,6 @@ class CycloidalIndependenceTest(unittest.TestCase):
                         path.write_text(original.replace(before, after, 1))
                         config["source_sha256"] = case_inventory.file_digest(model.glob("*_test.go"))
                         (model / "ci_cases.json").write_text(json.dumps(config))
-                        self.assertIsNone(case_inventory.discover("cycloidal"))
+                        with mock.patch.object(case_inventory, "CYCLOIDAL_REVIEWED_GO", approved):
+                            self.assertIsNone(case_inventory.discover("cycloidal"))
                         path.write_text(original)

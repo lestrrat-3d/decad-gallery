@@ -2,6 +2,7 @@
 """Report the scheduled Go test inventory without executing test bodies."""
 
 import json
+import os
 import subprocess
 
 import full_partition
@@ -19,21 +20,21 @@ def discover(base):
                                 check=True, capture_output=True, text=True).stdout
         names = output.splitlines()
         unsupported = [name for name in names if name.startswith(("Example", "Fuzz"))]
-        if unsupported:
+        if unsupported and package != full_partition.CYCLOIDAL:
             raise ValueError(f"{package} has examples or fuzz tests outside the CI inventory: "
                              + ", ".join(unsupported))
-        result[package] = sorted(line for line in names if line.startswith("Test"))
+        result[package] = sorted([line for line in names if line.startswith("Test")] + unsupported)
     return result
 
 
-def report(root, renderer):
+def report(root, renderer, case_plan=None):
     # Use the same partition validation as the full runner.
     ordinary, _, bevel_remainder = full_partition.select({package: set(tests) for package, tests in root.items()})
     assignments = {}
     def add(package, name, job):
         assignments.setdefault(package, {}).setdefault(name, []).append(job)
 
-    for index, packages in enumerate(full_partition.package_shards(ordinary)):
+    for index, packages in enumerate(full_partition.package_shards(ordinary, case_plan)):
         for package in packages:
             for test in root[package]:
                 add(package, test, f"package-workers/{index}")
@@ -88,6 +89,18 @@ def report(root, renderer):
                 add(package, test, label)
 
     variants = [{"package": package, "test": test} for package, test in sorted(full_partition.FULL_VARIANTS)]
+    if case_plan is not None:
+        manifest = case_plan["manifest"]
+        package = manifest["package"]
+        if sorted(root[package]) != manifest["tests"]:
+            raise ValueError("case plan disagrees with package inventory")
+        for job in case_plan["jobs"]:
+            if job["kind"] == "group":
+                add(package, job["parent"], "case-workers/" + job["case"])
+                variants.extend({"package": package, "test": job["parent"] + "/" + name} for name in job["names"])
+            elif job["kind"] == "remainder":
+                for name in set(root[package]) - manifest["parents"].keys():
+                    add(package, name, "case-workers/remainder")
     variants.extend({"package": planetary, "test": "TestKitGearboxes/" + kit}
                     for kit in run_tests.PLANETARY_KITS)
     variants.extend({"package": full_partition.ROOT + "/models/sevensegment",
@@ -119,7 +132,7 @@ def split_renderer(discovered):
 
 
 def main():
-    print(json.dumps(report(*split_renderer(discover(["go"]))), indent=2, sort_keys=True))
+    print(json.dumps(report(*split_renderer(discover(["go"])), case_plan=json.loads(os.environ.get("CASE_PLAN", "null"))), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

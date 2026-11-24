@@ -23,6 +23,8 @@ jobs:
       plan: ${{ steps.plan.outputs.plan }}
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
+      case_plan: ${{ steps.case-plan.outputs.plan }}
+      case_matrix: ${{ steps.case-plan.outputs.matrix }}
       package_matrix: ${{ steps.package-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
@@ -42,8 +44,13 @@ jobs:
         env:
           PLAN_JSON: ${{ steps.plan.outputs.plan }}
         run: python3 scripts/ci/gate.py matrix
+      - id: case-plan
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(steps.plan.outputs.plan).suites, 'full')
+        run: python3 scripts/ci/case_inventory.py plan
       - id: package-matrix
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(steps.plan.outputs.plan).suites, 'full')
+        env:
+          CASE_PLAN: ${{ steps.case-plan.outputs.plan }}
         run: python3 scripts/ci/full_partition.py package-matrix
 
   worker:
@@ -125,6 +132,7 @@ jobs:
           go-version-file: go.mod
       - name: Run package shard
         env:
+          CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
           CI_TEST_RECORDS: package-workers-${{ matrix.case }}.jsonl
           CI_TEST_CASE: ${{ matrix.case }}
         run: python3 scripts/ci/full_partition.py package-shard '${{ matrix.case }}'
@@ -133,6 +141,35 @@ jobs:
         with:
           name: ci-records-package-workers-${{ matrix.case }}
           path: package-workers-${{ matrix.case }}.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  case-workers:
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.case_plan != '' && needs.plan.outputs.case_plan != 'null'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.case_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Run planned cycloidal checks
+        env:
+          CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
+          CI_TEST_CASE: ${{ matrix.case }}
+          CI_TEST_RECORDS: execution.jsonl
+          CI_CASE_RECEIPT: receipt.json
+        run: python3 scripts/ci/case_inventory.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-records-case-workers-${{ matrix.case }}
+          path: |
+            receipt.json
+            execution.jsonl
           if-no-files-found: error
           overwrite: true
 
@@ -618,9 +655,11 @@ jobs:
           overwrite: true
 
   records-validation:
-    needs: [plan, repository, package-workers, renderer-full, escapement, onewayclutch, clamparm, sevensegment, turbinefan, wheel, siren, bevel-full, planetary-full, bevel-remainder, handcrankfan-full, swisslever-full]
+    needs: [plan, repository, case-workers, package-workers, renderer-full, escapement, onewayclutch, clamparm, sevensegment, turbinefan, wheel, siren, bevel-full, planetary-full, bevel-remainder, handcrankfan-full, swisslever-full]
     if: always() && needs.plan.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     runs-on: ubuntu-latest
+    env:
+      CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -654,11 +693,11 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          python3 -c 'import json, os, sys; results = json.loads(os.environ["NEEDS_JSON"]); failed = [name for name, job in results.items() if job["result"] != "success"]; print("Unsuccessful producers:", ", ".join(failed)); sys.exit(bool(failed))'
+          python3 -c 'import json, os, sys; results = json.loads(os.environ["NEEDS_JSON"]); failed = [name for name, job in results.items() if job["result"] != "success" and not (name == "case-workers" and os.environ["CASE_PLAN"] == "null" and job["result"] == "skipped")]; print("Unsuccessful producers:", ", ".join(failed)); sys.exit(bool(failed))'
 
   model-checks:
     if: always()
-    needs: [plan, worker, repository, package-workers, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
+    needs: [plan, worker, repository, case-workers, package-workers, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
             onewayclutch, clamparm, sevensegment, sevensegment-render, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
             records-validation, planetary-full, bevel-remainder, handcrankfan-full, swisslever-full]
     runs-on: ubuntu-latest
