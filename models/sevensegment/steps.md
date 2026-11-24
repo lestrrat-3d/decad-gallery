@@ -340,8 +340,8 @@ one-off scratch build before the port, which is not in the repository; a decad r
   `yellowTipInner` 19.825 and `yellowTipEnd` 17.4) split by `Intersect`/`Cut`, the flat, the notches, the pocket stadium
   sketch, the two end bores (a revolve with a floor round and a countersink) and their teardrop roofs (a prism on a fully
   constrained pentagon sketch), the 0.9 pocket floor round and the 0.7 mouth chamfer of type B's first notch
-  (instructions.md "Rotor"). Then each body is placed in two steps: a `decad.Transform` by
-  the frame origin's local coordinates and `placement.Place` with the rotation-only frame (a single placement works too; decad item D3).
+  (instructions.md "Rotor"). Then each body is placed in the world with one `placement.Place` of
+  the rotor frame `rotorFrame(s)`.
 - `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and pin (`rootedTongue`),
   the 0.5 stem chamfers and the groove pin.
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 4.825, `windowChamfer` 19.525 and

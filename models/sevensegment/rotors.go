@@ -367,25 +367,11 @@ func (r *run) flag(s Segment) (Flag, error) {
 		return Flag{}, err
 	}
 	frame := rotorFrame(s)
-	// Place both bodies in two steps: translate by the origin's coordinates in the local frame, then rotate about the world
-	// origin. The result is the single placement's rigid motion; a single placement works too (decad item D3).
-	o := frame.Origin()
-	shift, err := r3.Translation(r3.Vec{X: o.Dot(frame.U()), Y: o.Dot(frame.V()), Z: o.Dot(frame.N())})
-	if err != nil {
-		return Flag{}, fmt.Errorf("rotor %s: shift: %w", s, err)
-	}
-	turn, err := r3.NewFrame(r3.Vec{}, frame.U(), frame.V())
-	if err != nil {
-		return Flag{}, fmt.Errorf("rotor %s: turn frame: %w", s, err)
-	}
 	for _, b := range []struct {
 		name string
 		dst  **decad.Body
 	}{{"yellow", &f.Yellow}, {"black", &f.Black}} {
-		if *b.dst, err = decad.Transform(r.ctx, *b.dst, shift); err != nil {
-			return Flag{}, fmt.Errorf("rotor %s: shift %s: %w", s, b.name, err)
-		}
-		if *b.dst, err = placement.Place(r.ctx, *b.dst, &turn); err != nil {
+		if *b.dst, err = placement.Place(r.ctx, *b.dst, &frame); err != nil {
 			return Flag{}, fmt.Errorf("rotor %s: place %s: %w", s, b.name, err)
 		}
 	}

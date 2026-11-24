@@ -581,11 +581,9 @@ cover that case; the bias margin above is its guard, and visibility_test.go repo
 
 ### Rotor (`rotors.go`; 7 rotors, types A and B)
 
-Build in a local frame (local x = x_r, local y = y_r, local z = u, origin on the axis at the rotor's middle), then one
-`decad.Transform` to world, a turn by `FlagAngle` about u, and `placement.Place` (pattern: `cams.go`). Each body is
-placed in two steps, the translation `(o.U, o.V, o.N)` (the frame origin's coordinates in the local frame) and then
-`placement.Place` with the rotation-only frame at the world origin: the same rigid motion as one `placement.Place`, and
-a single placement works too (item D3, below). Booleans retire
+Build in a local frame (local x = x_r, local y = y_r, local z = u, origin on the axis at the rotor's middle), then place
+each body (yellow and black) in the world with one `placement.Place` of the rotor frame `rotorFrame(s)`, and turn it by
+`FlagAngle` about u (pattern: `cams.go`). Booleans retire
 their operands, so take `decad.Copy` before any operand is used twice.
 
 | Name | Value | Note |
@@ -774,7 +772,8 @@ Construction: `roundedPrism` is the intersection of a section prism (the rounded
 plan prism (u by s, its far corners rounded), a plain extrusion each, so no fillet is needed. The pin is a revolved meridian
 `(0, 18.725) (1.05, 18.725) (0.7, 18.375) (0.7, 16.85) (0.6, 16.75) (0, 16.75)` unioned to the block (the cone starts inside the
 block). The block is built once and 13 copies are placed through `toSegment` (a 180-degree turn about the local up axis
-for the -u end, the rotor frame's two-step placement, as the rotors).
+for the -u end, then a translation by the rotor frame origin's coordinates in the local frame and a `placement.Place`
+with the rotor frame's rotation at the world origin).
 
 The pin axis is the rotor axis at the clamped seam plane: 123.75 physically (the cradle's 124.0 less 0.25). The pocket in the
 cradle runs from z 121.0 (1.0 of the cradle under it, 15 layers below the seam) and in the top plate to z 127.25 (15 layers above
@@ -1174,12 +1173,6 @@ Each decad item below describes its repro; the scratch builds that held them are
   - Cost: unknown. It needs exact cone-plane intersection curves through a third boolean.
   - Meanwhile: the root stays sharp and is listed. `cornercheck` does not see it (its edge lies in the bed plane, round
     the vertical pin).
-- **D3. Placement of rotor B's black body.**
-  - Repro: build `flagBodies(SegB)`, then `decad.Transform` its black body by the translation `(-24.75, 124.0, 24.75)`,
-    or place it with one `placement.Place` of the rotor frame.
-  - Both build for all seven rotors with both bodies, at the yellow chamfer 19.825 and for rotor B at 19.525, so D3
-    needs no decad fix.
-  - The model still places each body in two steps (translation, then rotation); a single placement works too.
 
 ### Frame
 
