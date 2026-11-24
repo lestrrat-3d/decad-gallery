@@ -11,6 +11,7 @@ import run_tests
 
 
 ROOT = "github.com/lestrrat-3d/decad-gallery"
+CYCLOIDAL = ROOT + "/models/cycloidal"
 BEVEL = ROOT + "/models/bevelgear"
 # Dedicated jobs cover whole packages or partition their tests and remainder.
 DEDICATED = {ROOT + "/models/" + name for name in (
@@ -32,11 +33,18 @@ PACKAGES_PER_SHARD = 4
 MAX_PACKAGE_SHARDS = 16
 
 
-def package_shards(packages):
+def package_shards(packages, case_plan=None):
     """Assign each ordinary package to exactly one bounded, deterministic shard."""
     packages = sorted(packages)
     if not packages or len(packages) != len(set(packages)):
         raise ValueError("ordinary package inventory is empty or duplicated")
+    if case_plan is not None:
+        package = CYCLOIDAL
+        if case_plan["manifest"]["package"] != package or package not in packages:
+            raise ValueError("case plan does not own the cycloidal package")
+        packages.remove(package)
+    if not packages:
+        return []
     count = min(MAX_PACKAGE_SHARDS, math.ceil(len(packages) / PACKAGES_PER_SHARD))
     return [packages[index::count] for index in range(count)]
 
@@ -51,7 +59,7 @@ def ordinary_packages():
 
 def package_matrix():
     return {"include": [{"case": str(index), "packages": packages}
-                        for index, packages in enumerate(package_shards(ordinary_packages()))]}
+                        for index, packages in enumerate(package_shards(ordinary_packages(), json.loads(os.environ.get("CASE_PLAN", "null"))))]}
 
 
 def swiss_tests(tests, case):
@@ -97,16 +105,17 @@ def bevel_remainder(tests):
 
 
 def discover(package):
-    output = subprocess.run(["go", "test", "-list", "^Test", package],
+    prefixes = ("Test", "Example", "Fuzz") if package == CYCLOIDAL else ("Test",)
+    output = subprocess.run(["go", "test", "-list", "^(" + "|".join(prefixes) + ")", package],
                             check=True, capture_output=True, text=True).stdout
-    tests = [line for line in output.splitlines() if line.startswith("Test")]
+    tests = [line for line in output.splitlines() if line.startswith(prefixes)]
     if len(tests) != len(set(tests)):
         raise ValueError("duplicate test names in " + package)
     return set(tests)
 
 
 def run_package_shard(case):
-    shards = package_shards(ordinary_packages())
+    shards = package_shards(ordinary_packages(), json.loads(os.environ.get("CASE_PLAN", "null")))
     if not case or not case.isdigit() or str(int(case)) != case or int(case) >= len(shards):
         raise ValueError("invalid package shard")
     packages = shards[int(case)]

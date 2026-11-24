@@ -4,6 +4,7 @@
 import argparse
 from collections import Counter, defaultdict
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -162,8 +163,9 @@ def load_inventory(path):
         if not isinstance(mapping, dict) or not mapping:
             raise ValueError(f"invalid {name} package inventory")
         for package, names in mapping.items():
+            prefixes = ("Test", "Example", "Fuzz") if package == full_partition.CYCLOIDAL else ("Test",)
             if (not valid_package(package) or not isinstance(names, list) or
-                    any(not valid_id(test) or "/" in test or not test.startswith("Test") for test in names) or
+                    any(not valid_id(test) or "/" in test or not test.startswith(prefixes) for test in names) or
                     len(names) != len(set(names))):
                 raise ValueError(f"invalid {name} package or test inventory")
             packages.add((module, package))
@@ -183,7 +185,7 @@ def load_inventory(path):
     return tests, packages
 
 
-def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
+def verify_execution(directory, inventory_path, revision, run_id, run_attempt, case_plan=None):
     """Validate the downloaded artifacts of one full-suite run against its inventory."""
     directory = Path(directory)
     expected = {}
@@ -194,7 +196,7 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
             with open(inventory_path, encoding="utf-8") as stream:
                 root = json.load(stream)["modules"]["root"]
             ordinary, _, _ = full_partition.select({package: set(tests) for package, tests in root.items()})
-            shards = full_partition.package_shards(ordinary)
+            shards = full_partition.package_shards(ordinary, case_plan)
             for index, packages in enumerate(shards):
                 case = str(index)
                 name = "package-workers-" + case
@@ -214,7 +216,30 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
     if (not valid_id(revision) or not valid_id(run_id) or not isinstance(run_attempt, str) or
             not re.fullmatch(r"[1-9][0-9]*", run_attempt)):
         raise ValueError("revision and run ID must be nonempty identities and run attempt must be positive")
-    expected_dirs = {path.parent.name for path in expected}
+    expected_files = {}
+    if case_plan is not None:
+        import case_inventory
+        if case_plan != case_inventory.build_plan(case_plan["manifest"]):
+            raise ValueError("case assignments differ from the reviewed plan")
+        identity = case_plan["manifest"]["identity"]
+        if (identity["revision"], identity["run_id"], identity["attempt"]) != (revision, run_id, run_attempt):
+            raise ValueError("case plan identity mismatch")
+        receipts, records = {}, {}
+        for job in case_plan["jobs"]:
+            case = job["case"]
+            folder = directory / ("ci-records-case-workers-" + case)
+            receipts[case] = folder / "receipt.json"
+            expected_files[folder] = {"receipt.json"}
+            if job["kind"] != "audit":
+                path = folder / "execution.jsonl"
+                records[case] = path
+                expected_files[folder].add(path.name)
+                expected[path] = {"job": "case-workers", "case": case, "revision": revision,
+                                  "run_id": run_id, "run_attempt": run_attempt, "module": "."}
+        case_inventory.verify_execution(case_plan, receipts, records)
+    for path in expected:
+        expected_files.setdefault(path.parent, {path.name})
+    expected_dirs = {folder.name for folder in expected_files}
     try:
         actual_dirs = {path.name for path in directory.iterdir()}
     except OSError:
@@ -222,13 +247,13 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
     missing_artifacts = expected_dirs - actual_dirs
     extra_artifacts = actual_dirs - expected_dirs
     invalid_contents = []
-    for path in expected:
-        if path.parent.name in actual_dirs:
+    for folder, names in expected_files.items():
+        if folder.name in actual_dirs:
             try:
-                if {entry.name for entry in path.parent.iterdir()} != {path.name}:
-                    invalid_contents.append(path.parent.name)
+                if {entry.name for entry in folder.iterdir()} != names:
+                    invalid_contents.append(folder.name)
             except OSError:
-                invalid_contents.append(path.parent.name)
+                invalid_contents.append(folder.name)
     leaves, passed, packages, errors, examples = read_records(list(expected), expected, run_attempt)
     for path, required_packages in shard_packages.items():
         _, _, seen, shard_errors, _ = read_records([path], {path: expected[path]}, run_attempt)
@@ -314,7 +339,12 @@ def main():
                 not all((args.revision, args.run_id, args.run_attempt))):
             parser.error("--execution-dir requires --inventory, --revision, --run-id and --run-attempt")
         try:
-            result = verify_execution(args.execution_dir, args.inventory, args.revision, args.run_id, args.run_attempt)
+            import case_inventory
+            case_plan = json.loads(os.environ.get("CASE_PLAN", ""))
+            if case_plan is None and case_inventory.discover("cycloidal") is not None:
+                raise ValueError("reviewed cycloidal package requires its case plan")
+            result = verify_execution(args.execution_dir, args.inventory, args.revision, args.run_id, args.run_attempt,
+                                      case_plan)
         except ValueError as exc:
             parser.error(str(exc))
         print(json.dumps(result, indent=2, sort_keys=True))

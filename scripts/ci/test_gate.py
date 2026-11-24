@@ -27,10 +27,12 @@ def needs_for(suites, event="push"):
             needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps({"version": 1, "suites": suites}),
+        "case_plan": "null", "case_matrix": '{"include":[]}',
         "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
         repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
         **{name: {"result": "success" if full else "skipped"}
            for name in ("records-validation", "package-workers")})
+    needs["case-workers"] = {"result": "skipped"}
     return needs
 
 
@@ -43,6 +45,21 @@ class GateTest(unittest.TestCase):
         full = needs_for(["broad", "full"])
         full["package-workers"]["result"] = "skipped"
         self.assertTrue(any("package-workers" in error for error in gate.check(full, "push")))
+
+    def test_case_plan_requires_the_matrix_worker_and_record_validation(self):
+        needs = needs_for(["broad", "full"])
+        outputs = needs["plan"]["outputs"]
+        from case_inventory import assignments
+        manifest = {"parents": {"TestBuildOptions": ["first", "second"], "TestMeasuredFits": ["one", "two"]}}
+        jobs = assignments(manifest)
+        outputs["case_plan"] = json.dumps({"version": 1, "manifest": manifest, "jobs": jobs})
+        self.assertTrue(gate.check(needs, "push"))
+        outputs["case_matrix"] = json.dumps({"include": [{"case": job["case"]} for job in jobs]})
+        self.assertTrue(gate.check(needs, "push"))
+        needs["case-workers"]["result"] = "success"
+        self.assertEqual(gate.check(needs, "push"), [])
+        needs["records-validation"]["result"] = "failure"
+        self.assertTrue(gate.check(needs, "push"))
 
     def test_reused_plan_requires_a_valid_push_proof(self):
         needs = needs_for([])
