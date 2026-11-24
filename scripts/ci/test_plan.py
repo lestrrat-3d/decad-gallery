@@ -446,27 +446,27 @@ class PlanTest(unittest.TestCase):
     def test_render_package_change_selects_only_its_suite(self):
         graph = self.render_graph(["clamparm", "pinring"])
         result = self.plan_for(["models/clamparm/render/clamparm.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-clamparm", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-clamparm", "renderer-compile"})
         self.assertNotIn("renderer-all", result["suites"])
 
     def test_render_change_reaches_importing_render_packages(self):
         graph = self.render_graph(["onewayclutch", "turbinefan"],
                                   {"models/turbinefan/render": ["models/onewayclutch/render"]})
         result = self.plan_for(["models/onewayclutch/render/onewayclutch.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-onewayclutch", "render-turbinefan", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-onewayclutch", "render-model-turbinefan", "renderer-compile"})
 
     def test_render_test_change_does_not_reach_importers(self):
         graph = self.render_graph(["onewayclutch", "turbinefan"],
                                   {"models/turbinefan/render": ["models/onewayclutch/render"]})
         result = self.plan_for(["models/onewayclutch/render/extra_test.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-onewayclutch"})
+        self.assertEqual(set(result["suites"]), {"render-model-onewayclutch"})
 
     def test_model_change_selects_its_render_suite_not_the_named_one(self):
         graph = self.render_graph(["clamparm"])
         graph[plan.ROOT + "/models/clamparm/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
         graph[plan.ROOT + "/tools/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
         result = self.plan_for(["models/clamparm/clamparm.go"], graph)
-        self.assertEqual(set(result["suites"]), {"clamparm", "render-clamparm", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"clamparm", "render-model-clamparm", "renderer-compile"})
 
     def test_shared_model_change_selects_affected_render_suites(self):
         graph = self.render_graph(["fastener", "crankhandle", "plaquestand"])
@@ -477,10 +477,10 @@ class PlanTest(unittest.TestCase):
         graph[plan.ROOT + "/models/plaquestand/render"]["imports"].add(crank + "/render")
         result = self.plan_for(["models/fastener/fastener.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-fastener", "render-crankhandle", "render-plaquestand"})
+        self.assertEqual(renders, {"render-model-fastener", "render-model-crankhandle", "render-model-plaquestand"})
         result = self.plan_for(["models/crankhandle/crankhandle.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-crankhandle", "render-plaquestand"})
+        self.assertEqual(renders, {"render-model-crankhandle", "render-model-plaquestand"})
 
     def test_shared_core_with_unknown_input_selects_full(self):
         graph = self.render_graph(["clamparm"])
@@ -571,7 +571,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", side_effect=[before, after]), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=data):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(set(result["suites"]), {"render-pinring", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-pinring", "renderer-compile"})
 
     def test_marked_render_test_selects_isolated_suite(self):
         project = Path.cwd()
@@ -735,7 +735,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/newhelper/check.go\0"):
             result = plan.plan("push", "base", "head")
         self.assertEqual(set(result["suites"]), {"new-package-newhelper", "new-model-newpart",
-                                                 "new-feature-newfeature", "render-newpart",
+                                                 "new-feature-newfeature", "render-model-newpart",
                                                  "render-feature-newfeature", "renderer-compile"})
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
@@ -755,7 +755,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
             result = plan.plan("push", "base", "head")
         self.assertEqual(set(result["suites"]), {"package-cornercheck", "model-pinring", "feature-dovetail",
-                                                 "render-pinring", "render-feature-dovetail", "renderer-compile"})
+                                                 "render-model-pinring", "render-feature-dovetail", "renderer-compile"})
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
 
@@ -773,7 +773,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
             result = plan.plan("push", "base", "head")
         self.assertEqual(set(result["suites"]), {"package-cornercheck", "clamparm", "clamparm-render",
-                                                 "render-pinring", "renderer-compile"})
+                                                 "render-model-pinring", "renderer-compile"})
 
     def test_new_model_and_feature_renderers_keep_distinct_consumers(self):
         model = plan.ROOT + "/models/newpart"
@@ -794,11 +794,11 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=paths):
             result = plan.plan("push", "base", "head")
         self.assertEqual(set(result["suites"]), {"new-model-newpart", "new-feature-newpart",
-                                                 "render-newpart", "render-feature-newpart", "render-pinring"})
+                                                 "render-model-newpart", "render-feature-newpart", "render-model-pinring"})
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.commands("render-feature-newpart"),
                              [["render-package", "features/newpart/render", "rest"]])
-            self.assertEqual(gate.commands("render-newpart"),
+            self.assertEqual(gate.commands("render-model-newpart"),
                              [["render-package", "models/newpart/render", "rest"]])
 
     def test_undispatchable_existing_package_selects_full(self):
@@ -817,6 +817,18 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=b"models/bad-name/render/x.go\0"):
             with self.assertRaisesRegex(RuntimeError, "new package cannot be dispatched"):
                 plan.plan("push", "base", "head")
+
+    def test_model_named_registration_selects_its_renderer(self):
+        model = plan.ROOT + "/models/registration"
+        graph = {model: {"dir": "models/registration", "imports": set(), "test_imports": set()},
+                 model + "/render": {"dir": "models/registration/render", "imports": {model},
+                                      "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[{}, graph]), \
+                mock.patch.object(plan.subprocess, "check_output",
+                                  return_value=b"models/registration/build.go\0models/registration/render/x.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-model-registration", "render-model-registration"})
 
     def test_missing_metadata_fails_closed_for_unknown_package(self):
         for path, raises in ((b"models/newpart/build.go\0", True),

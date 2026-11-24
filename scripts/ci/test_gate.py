@@ -77,20 +77,27 @@ class GateTest(unittest.TestCase):
 
     def test_render_suites_expand_heavy_tests_and_rest(self):
         with mock.patch.object(Path, "is_dir", return_value=True):
-            planetary = gate.commands("render-planetarygearbox")
+            planetary = gate.commands("render-model-planetarygearbox")
             self.assertEqual(len(planetary), 4)
             self.assertEqual([case[2] for case in planetary],
                              list(gate.RENDER_HEAVY["planetarygearbox"]) + ["rest"])
-            self.assertEqual(len(gate.commands("render-pinring")), 1)
+            self.assertEqual(len(gate.commands("render-model-pinring")), 1)
             self.assertEqual(len(gate.commands("render-tool")), 16)
-            for suite in ("render-planetarygearbox", "render-pinring", "render-tool"):
+            for suite in ("render-model-planetarygearbox", "render-model-pinring", "render-tool"):
                 matrix = gate.matrix_for([suite])
                 self.assertEqual(len(matrix["include"]), len(gate.commands(suite)))
                 self.assertEqual(gate.suites_from_plan(json.dumps({"version": 1, "suites": [suite]})), [suite])
 
     def test_render_suite_rejects_unknown_directory(self):
         with mock.patch.object(Path, "is_dir", return_value=False), self.assertRaises(ValueError):
-            gate.commands("render-nothing")
+            gate.commands("render-model-nothing")
+
+    def test_registration_model_renderer_does_not_collide_with_registry_checks(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-model-registration"),
+                             [["render-package", "models/registration/render", "rest"]])
+            self.assertNotEqual(gate.commands("render-registration"), gate.commands("render-model-registration"))
+            self.assertEqual(len(gate.matrix_for(["render-registration", "render-model-registration"])["include"]), 2)
 
     def test_feature_renderer_does_not_inherit_same_named_model_heavy_tests(self):
         with mock.patch.object(Path, "is_dir", return_value=True):
@@ -116,7 +123,7 @@ class GateTest(unittest.TestCase):
 
     def test_render_dispatch_runs_the_case_from_the_command(self):
         with mock.patch.object(Path, "is_dir", return_value=True), \
-                mock.patch.dict(os.environ, {"SUITE": "render-pinring", "CASE": "0"}), \
+                mock.patch.dict(os.environ, {"SUITE": "render-model-pinring", "CASE": "0"}), \
                 mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
                 mock.patch.object(gate, "run_render_case") as run:
             gate.main()

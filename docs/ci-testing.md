@@ -23,9 +23,9 @@ package); `renderer_packages()` lists them, and the root-module suites skip them
 
 Render code selects these suites:
 
-- A `.go` change in `models/<name>/render` selects `render-<name>`; a change in `features/<name>/render` selects
+- A `.go` change in `models/<name>/render` selects `render-model-<name>`; a change in `features/<name>/render` selects
   `render-feature-<name>`. A production change there also selects every render package that imports it.
-- A production change in `models/<name>` or `features/<name>` selects `render-<name>` when the item has a render
+- A production change in `models/<name>` or `features/<name>` selects its kind-qualified render suite when it has a render
   package. It replaces the item's named renderer suites, such as `swiss-render`. Items reached only through imports keep
   those named suites.
 - A new model or feature render package selects its item-specific render suite without registration.
@@ -37,7 +37,7 @@ Render code selects these suites:
   `renderer-full`) and for scheduled or dispatched runs. `CI_BROAD_OVERRIDE` does not add it. When it runs, it replaces
   `renderer-compile`, `package-renderkit`, the named renderer suites and every `render-*` suite.
 
-A model's `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
+A model's `render-model-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
 `rest` job with every other test of the package. A test that builds a full assembly belongs in `RENDER_HEAVY`.
 The `render-feature-<name>` suite runs the feature's render package in one job.
 Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unsupported package

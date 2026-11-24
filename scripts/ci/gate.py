@@ -91,29 +91,17 @@ def isolated_suite(suite):
     return directory, name, test, "coplanar_test" if tag else None
 
 
-def render_directory(name):
-    """Return the render package directory of an item, preferring models over features."""
-    for kind in ("models", "features"):
-        directory = f"{kind}/{name}/render"
-        if Path(directory).is_dir():
-            return directory
-    raise ValueError(f"unregistered suite: render-{name}")
-
-
 def commands(suite):
     if suite == "render-tool":
         return [["render-tool", str(index)] for index in range(RENDER_TOOL_SHARDS)]
-    feature = re.fullmatch(r"render-feature-([a-z][a-z0-9]*)", suite)
-    if feature:
-        directory = f"features/{feature.group(1)}/render"
+    match = re.fullmatch(r"render-(model|feature)-([a-z][a-z0-9]*)", suite)
+    if match:
+        kind, name = match.groups()
+        directory = f"{'models' if kind == 'model' else 'features'}/{name}/render"
         if not Path(directory).is_dir():
             raise ValueError(f"unregistered suite: {suite}")
-        return [["render-package", directory, "rest"]]
-    match = re.fullmatch(r"render-([a-z][a-z0-9]*)", suite)
-    if match and suite not in WORKERS:
-        name = match.group(1)
-        directory = render_directory(name)
-        return ([["render-package", directory, test] for test in RENDER_HEAVY.get(name, ())] +
+        heavy = RENDER_HEAVY.get(name, ()) if kind == "model" else ()
+        return ([["render-package", directory, test] for test in heavy] +
                 [["render-package", directory, "rest"]])
     isolated = isolated_suite(suite)
     if isolated:

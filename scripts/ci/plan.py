@@ -432,7 +432,7 @@ def plan(event, base, tested):
         for owner in render_dependents(renderer_seeds, before, after) - renderer_seeds:
             render_suites.setdefault(render_pkg(owner), "imports an affected render package")
         for (kind, name), reason in sorted(render_suites.items()):
-            suite = "render-" + ("feature-" if kind == "features" else "") + name
+            suite = "render-" + ("feature-" if kind == "features" else "model-") + name
             suites.setdefault(suite, []).append(reason)
         if any(path.startswith("tools/render/") and (path.endswith(".go") or path.startswith("tools/render/fonts/"))
                for path in changed):
@@ -447,7 +447,7 @@ def plan(event, base, tested):
                 for suite in RENDER[name]:
                     suites.setdefault(suite, []).append("renderer check for " + name)
         for name in list(RENDER):
-            if "render-" + name in suites:
+            if "render-model-" + name in suites:
                 for suite in RENDER[name]:
                     suites.pop(suite, None)
         if "full" in suites or "renderer-all" in suites:
