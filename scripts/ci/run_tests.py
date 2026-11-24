@@ -380,20 +380,21 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False, module: str = ".", package_outcomes=None) -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".", package_outcomes=None,
+                   event_audit=None) -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
     record_path = os.environ.get("CI_TEST_RECORDS")
     invocation = uuid.uuid4().hex if record_path else None
     records = open(record_path, "a", encoding="utf-8") if record_path else None
     try:
-        return _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes)
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes, event_audit)
     finally:
         if records is not None:
             records.close()
 
 
-def _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes):
+def _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes, event_audit):
     metadata = {"version": 1, "invocation": invocation, "module": module,
                 "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
                 "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
@@ -408,17 +409,34 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            if event_audit is not None:
+                event_audit["invalid"] = True
             record("malformed", reason="invalid_json")
             sys.stdout.write(line)
             continue
         if not isinstance(event, dict):
+            if event_audit is not None:
+                event_audit["invalid"] = True
             record("malformed", reason="not_object")
             continue
+        if event_audit is not None:
+            if event.get("Action") not in {"start", "output", "pass", "fail", "skip"}:
+                event_audit["invalid"] = True
+            if event.get("Test") is not None:
+                event_audit["test"] = True
+            pkg = event.get("Package")
+            if isinstance(pkg, str) and pkg:
+                event_audit["packages"].add(pkg)
+            elif pkg is not None:
+                event_audit["invalid"] = True
         if "Output" in event:
             sys.stdout.write(event["Output"])
             package = event.get("Package")
             output = event["Output"]
             if isinstance(package, str) and not event.get("Test") and isinstance(output, str):
+                if event_audit is not None and event.get("Action") == "output" and re.fullmatch(
+                        r"\?\s+" + re.escape(package) + r"\s+\[no test files\]\s*", output):
+                    event_audit["no_tests"].add(package)
                 match = re.fullmatch(r"(ok|FAIL)\s+" + re.escape(package) +
                                      r"\s+(\(cached\)|[0-9]+(?:\.[0-9]+)?s)\s*", output)
                 if match:
@@ -429,6 +447,8 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
             package = event.get("Package")
             if not isinstance(package, str) or not package or (test is not None and
                                                                 (not isinstance(test, str) or not test)):
+                if event_audit is not None:
+                    event_audit["invalid"] = True
                 record("malformed", reason="invalid_identity")
             else:
                 fields = {"package": package, "test": test, "status": event["Action"]}
@@ -439,6 +459,8 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                 record("test" if test else "package", **fields)
                 if not test and package_outcomes is not None:
                     package_outcomes[package] = event["Action"]
+                if not test and event_audit is not None:
+                    event_audit["outcomes"].append((package, event["Action"]))
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
@@ -460,12 +482,17 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
     proc = subprocess.Popen(command, **kwargs)
     qualified = package is not None or qualified_expected is not None
     outcomes = {} if require_empty_package else None
-    finished = finished_tests(proc.stdout, qualified=qualified, module=module, package_outcomes=outcomes)
+    audit = {"test": False, "invalid": False, "packages": set(), "outcomes": [],
+             "no_tests": set()} if require_empty_package else None
+    finished = finished_tests(proc.stdout, qualified=qualified, module=module, package_outcomes=outcomes,
+                              event_audit=audit)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
     if require_empty_package:
-        if not package or finished or outcomes != {package: "pass"}:
-            raise SystemExit("empty partition did not produce exactly one passing package and no tests")
+        if (not package or finished or audit["test"] or audit["invalid"] or audit["packages"] != {package} or
+                (audit["outcomes"] != [(package, "pass")] and
+                 not (audit["outcomes"] == [(package, "skip")] and audit["no_tests"] == {package}))):
+            raise SystemExit("empty partition did not produce one successful or no-test package and no tests")
     elif not finished:
         raise SystemExit("go test ran no tests; check the -run pattern")
     missing = [

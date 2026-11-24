@@ -36,6 +36,38 @@ class SevenSegmentShardsTest(unittest.TestCase):
 
 
 class RunPatternTest(unittest.TestCase):
+    def test_real_no_test_package_records_skip(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        package = "github.com/lestrrat-3d/decad-gallery/internal/placement"
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}):
+                run_tests.go_test([package], package=package, require_empty_package=True)
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            leaves, _, packages, errors, _ = reconcile_records.read_records([path])
+        self.assertEqual([(r["kind"], r.get("status")) for r in rows], [("package", "skip"), ("complete", None)])
+        self.assertFalse(leaves)
+        self.assertEqual(packages, {(".", package)})
+        self.assertFalse(errors)
+
+    def test_empty_partition_rejects_tests_failure_and_other_packages(self):
+        def event(action, package="p", test=None):
+            return json.dumps({"Action": action, "Package": package, **({"Test": test} if test else {})})
+        cases = [([event("run", test="TestA"), event("skip")], 0),
+                 ([event("skip", test="TestA"), event("skip")], 0),
+                 ([event("fail")], 0), ([event("start", "other"), event("skip")], 0),
+                 ([event("skip")], 0), ([event("skip")], 1), ([event("fail"), event("pass")], 0),
+                 ([event("unexpected"), event("pass")], 0),
+                 ([json.dumps({"Action": "start", "Package": "p", "Output": "?\tp\t[no test files]\n"}),
+                   event("skip")], 0),
+                 ([json.dumps({"Package": "p"}), event("pass")], 0)]
+        for events, exit_code in cases:
+            with self.subTest(events=events, exit_code=exit_code):
+                proc = mock.Mock(stdout=events)
+                proc.wait.return_value = exit_code
+                with mock.patch.object(run_tests.subprocess, "Popen", return_value=proc), self.assertRaises(SystemExit):
+                    run_tests.go_test(["p"], package="p", require_empty_package=True)
+
     def test_empty_partition_records_real_package_outcome(self):
         Path(".tmp").mkdir(exist_ok=True)
         package = "github.com/lestrrat-3d/decad-gallery/internal/hexnut"
