@@ -65,7 +65,7 @@ const (
 )
 
 // frameBoltX is |x| of the T and G bolts: head pocket HeadPocketRadius 2.2, 1.1 of material and the plates' 0.5 chamfer
-// inside WallHalfWidth. The hardware does not scale, so the offset does not.
+// inside WallHalfWidth. The hardware has a fixed size, so the offset is fixed.
 const frameBoltX = WallHalfWidth - 3.8 // 19.6
 
 // Segment names one of the seven segments.

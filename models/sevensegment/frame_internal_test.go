@@ -84,7 +84,7 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 
 	// Sections normal to u through segment g's centre (u = X): the bore, the pivot pockets, the lip and the blade hole.
 	o := r3.Vec{Z: RotorAxisZ}
-	// Bore in the cradle at x = 0: at 2.4 under the axis the chord is 5.31 in the original 1.0x design; void 0.11 inside it, material 0.11 beyond.
+	// Bore in the cradle at x = 0: at 2.4 under the axis: void 0.11 inside the bore's chord, material 0.11 beyond it.
 	cl := planeSection(t, cradle, o, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	at := func(y, z float64) r3.Vec { return r3.Vec{X: y, Y: z - RotorAxisZ} }
 	dz := 2.4
@@ -111,21 +111,21 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 	// in instructions.md as thinner than 0.8).
 	tw := planeSection(t, top, r3.Vec{Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	z := func(v float64) float64 { return v - topFrom }
-	lipBore := topFrom + math.Sqrt(boreRadius*boreRadius-(windowHalfWidth+0.1)*(windowHalfWidth+0.1)) // the bore's surface at the lip: 87.48 in the original 1.0x design
+	lipBore := topFrom + math.Sqrt(boreRadius*boreRadius-(windowHalfWidth+0.1)*(windowHalfWidth+0.1)) // the bore's surface at the lip
 	require.False(t, insideLoops(tw, r3.Vec{X: windowHalfWidth - 0.1, Y: z(lipBore + 0.32)}), "window")
 	require.True(t, insideLoops(tw, r3.Vec{X: windowHalfWidth + 0.1, Y: z(lipBore + 0.32)}), "lip")
 	require.False(t, insideLoops(tw, r3.Vec{X: windowHalfWidth + 0.1, Y: z(lipBore - 0.18)}), "bore under the lip")
-	// Blade hole of a, g, d: y in [-8.05, -6.35] for g (cy 0) in the original 1.0x design, up to the tube roof.
+	// Blade hole of a, g, d: y in [-8.05, -6.35] for g (cy 0), up to the tube roof.
 	require.False(t, insideLoops(tw, r3.Vec{X: -10.8, Y: z(topFrom + 3.225)}), "blade hole")
 	require.True(t, insideLoops(tw, r3.Vec{X: -10.8, Y: z(flagFaceZ - 0.65)}), "blade hole roof")
 	require.True(t, insideLoops(tw, r3.Vec{X: -9.0, Y: z(topFrom + 3.225)}), "tube wall beside the blade hole")
 
 	// Walls of 0.799 or more between holes, at the heights of each plate.
-	for _, off := range []float64{0.02, 0.6, 1.4, 1.85, 2.2, 2.5, 2.58} { // heights over the cradle's underside in the original 1.0x design (2.6 thick)
+	for _, off := range []float64{0.02, 0.6, 1.4, 1.85, 2.2, 2.5, 2.58} { // heights over the cradle's underside, as fractions of 2.6 of its thickness
 		h := cradleFrom + off*cradleThick/2.6
 		require.GreaterOrEqual(t, minWall(t, cradle, h, 1.5), 0.799, "cradle z %.2f", h)
 	}
-	for _, off := range []float64{0.05, 1.6, 3.6, 5.0, 6.1, 8.1, 9.45, 10.0, 10.8} { // over the tubes' bottom in the original 1.0x design (10.85 to the face)
+	for _, off := range []float64{0.05, 1.6, 3.6, 5.0, 6.1, 8.1, 9.45, 10.0, 10.8} { // over the tubes' bottom, as fractions of 10.85 of their length to the face
 		h := tubeFrom + off*(flagFaceZ-tubeFrom)/10.85
 		require.GreaterOrEqual(t, minWall(t, top, h, 1.5), 0.799, "top plate z %.2f", h)
 	}

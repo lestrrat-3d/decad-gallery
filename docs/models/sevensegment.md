@@ -11,7 +11,7 @@ doc := sevensegment.NewDocument() // the face teeth need its chain tolerance
 m, err := sevensegment.Build(ctx, doc, sevensegment.Params{Digit: 2})
 ```
 
-The display is 1.5 times the size of its original design; `params.go` states every dimension as its 1.5x value. `Params` has two fields: `Digit` (0 to 9, default 2) and `Placement` (a frame; nil keeps the world frame in which +Z is
+`Params` has two fields: `Digit` (0 to 9, default 2) and `Placement` (a frame; nil keeps the world frame in which +Z is
 up, +Y runs toward segment a and the button is toward -Y; the box stands on its back wall, button end up). `Build` adds 75 bodies in named containers: `Frame` (`Walls`,
 `Plates` with the guide, cradle and top plates), `Camshaft` (`Shaft`, `Cams`), `Click Indexer` (`Hub`, `Rotor`,
 `Housing`, `Button`, `Spring`), `Segment Sliders`, `Flags` (one `Flag` unit per segment, each with a `Yellow Face` and a

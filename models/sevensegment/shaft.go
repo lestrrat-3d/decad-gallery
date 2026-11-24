@@ -12,7 +12,7 @@ import (
 const (
 	shaftCamRadius    = 4.8                                                   // cam section
 	shaftCamFlat      = 4.05                                                  // cam section flat, from the axis
-	shaftJournal      = bearingBoreR                                          // the journals: half the bearing's bore, so it does not scale
+	shaftJournal      = bearingBoreR                                          // the journals: half the bearing's bore, so it is fixed by the hardware
 	shaftStubRadius   = 2.5                                                   // knob stub: the click indexer's size, as the spring fits round it
 	shaftStubStepFrom = frontInnerY - bearingWidth - 0.25                     // the stub's cone starts 0.25 outside the front bearing
 	shaftStubStepTo   = shaftStubStepFrom - 2.6                               // 30 degrees or less over the 1.5 step
@@ -55,7 +55,7 @@ func (r *run) flatTool(x0, x1, z0, z1 float64) (*decad.Body, error) {
 // shaft builds the printed camshaft in its local frame (axis on local Z = world +Y, flats toward local +x = world +Z) and
 // places it in the world at theta = 0.
 func (r *run) shaft() (*decad.Body, error) {
-	// The journals are the bearings' size, 7 wide (the bearing's width does not scale). The knob stub steps down to the
+	// The journals are the bearings' size, 7 wide. The knob stub steps down to the
 	// click indexer's size inside the front wall's lip hole.
 	pts := [][2]float64{ // (r, z) in world Y
 		{0, shaftFrontEnd}, {shaftStubRadius - 0.3, shaftFrontEnd}, {shaftStubRadius, shaftFrontEnd + 0.3},

@@ -12,7 +12,7 @@ import (
 )
 
 // Section heights that the tests read: the middle of the guide plate, and a level in the tubes between their bottom and the
-// top plate (z 56 and 81 in the original 1.0x design), and the extent that tells a cam's bore from its other loops.
+// top plate (z 84 and 121.6), and the extent that tells a cam's bore from its other loops.
 const (
 	guideMidZ    = guideFrom + guideThick/2
 	tubeSectionZ = tubeFrom + 5.4

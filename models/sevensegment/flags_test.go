@@ -146,8 +146,7 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 		require.InDelta(t, c.black, tb, 0.005, "%s: tongue to the black leg", c.name)
 		require.GreaterOrEqual(t, py, c.pinYellowMin, "%s: the pin's gap to the pocket walls", c.name)
 	}
-	// With the head line 2.0 higher than it is the black leg is entered. In the original 1.0x design that took 1.0 (the old 73.8 top, why the top
-	// is 72.8); here it takes 1.5 and the black leg is still clear, so the margin has grown.
+	// With the head line 2.0 higher than it is the black leg is entered.
 	_, tb, _ := sweep(sevensegment.TongueWidth, 0.0, sevensegment.TongueTopGap, headLine+2.0, 1.28, 1.28, cAGD, floor)
 	require.Less(t, tb, 0.0)
 }

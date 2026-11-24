@@ -5,9 +5,9 @@ import "math"
 // The cam follower drive model of instructions.md "Cam follower drive": a rigid slider with Coulomb friction.
 const (
 	guideFloorZ      = guideFrom                                                          // the guide plate's underside
-	followerOffsetY  = (camFaceOffset + StemThickness/2 + PinLength - sliderPinChamf) / 2 // 2.95 in the original 1.0x design: groove face to pin chamfer
+	followerOffsetY  = (camFaceOffset + StemThickness/2 + PinLength - sliderPinChamf) / 2 // 4.325: groove face to pin chamfer
 	followerStemFace = StemThickness/2 - stemChamfer                                      // 1.5: the stem's flat x face, half length
-	followerYawLever = 2*sliderHalfWide - 2*stemChamfer                                   // 6.4 in the original 1.0x design: the stem (x +-3.5) less its chamfers
+	followerYawLever = 2*sliderHalfWide - 2*stemChamfer                                   // 9.5: the stem (x +-5.25) less its chamfers
 	followerLoad     = 0.226125                                                           // N per changing slider: the weights grow as the volume
 )
 

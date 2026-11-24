@@ -18,9 +18,9 @@ import (
 const (
 	flagFaceZ    = topFrom + topThick // the display face
 	cradleFrom   = 120.0
-	cradleThick  = 4.0 // 20 layers: the seam plane carries the rotor axes; whole layers (2.6 in the original 1.0x design, 1.5 x 2.6 is 3.9)
+	cradleThick  = 4.0 // 20 layers: the seam plane carries the rotor axes; whole layers
 	topFrom      = cradleFrom + cradleThick + Seam
-	topThick     = 8.0                // 40 layers; whole layers (5.4 in the original 1.0x design, 1.5 x 5.4 is 8.1)
+	topThick     = 8.0                // 40 layers; whole layers
 	tubeFrom     = RotorAxisZ - 7.8   // the tubes hang from the top plate to the sliders' heads
 	bladeHoleTop = flagFaceZ - 0.8    // the tube roof: 0.8 of top plate over the blade hole
 	columnTop    = cradleFrom - 1.275 // the columns end this far under the cradle

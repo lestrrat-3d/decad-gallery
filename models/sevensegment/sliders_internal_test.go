@@ -101,7 +101,7 @@ func TestSevenSegmentSliders(t *testing.T) {
 }
 
 // TestSevenSegmentBuiltKinematics reads the rotor pin of every built slider and checks where it stands against the
-// design's values: the pin axis at pinAxisZ (80.85 in the original 1.0x design) plus the slider's raise, and at its station beside the stem (1.5 along y for a, g,
+// design's values: the pin axis at pinAxisZ (121.375) plus the slider's raise, and at its station beside the stem (1.5 along y for a, g,
 // d from the slider's station, x 15 for b and c, x -18 for e and f). These are the contract numbers of instructions.md
 // "Kinematics and play", read from the mesh; a pin built higher or off its line moves the rotor's angles.
 func TestSevenSegmentBuiltKinematics(t *testing.T) {

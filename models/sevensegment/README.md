@@ -7,7 +7,7 @@
 A printed, mechanical digit 0 to 9. Seven rotors turn in windows of a top plate. A rotor has a yellow face and a black
 body: where a segment is lit its yellow face tips up toward you, and where it is off the black body shows. The tip shows
 best from above. Seen from the button side at 30 degrees elevation, the yellow fills only 50 to 54 % of the window of a
-horizontal segment (a, g, d) across it (measured at 1.5 times the base size, where it was 35 to 41 %). Every printed
+horizontal segment (a, g, d) across it. Every printed
 part keeps one filament color (a rotor is two bodies, a yellow one and a black one) and never changes color, so the color you see is only the angle of a rotor. The display stands on its back wall, so the
 face looks toward you and the button end is the top; press the button and the display moves to the next digit. You choose the digit the model is built showing; nothing else varies.
 
@@ -24,8 +24,8 @@ slider pins.
 
 **Hand feel.** Expect a firm press, about 20 to 22 N on an ideal ramp and up to about 35 N with the ramps' friction: the
 spring (a KSSC 1087, 5.64 N at rest and 7.53 N pressed) plus the cams, which add up to about 14.1 N while they move the
-segments. The display is 1.5 times its base size, so its cams and sliders weigh 3.4 times as much while the spring is the
-same; the teeth are 8.0 mm tall and the stroke 10.0 mm so that the ramps are half as steep. The head stands
+segments. The cams and sliders are heavy next to the spring, so the teeth are 8.0 mm tall and the stroke 10.0 mm to keep the
+ramps shallow. The head stands
 31.9 mm above the front wall at rest and ends flush with the housing's bezel, 21.9 mm
 above it, at the bottom of its stroke. These numbers are calculated, not measured.
 
@@ -229,8 +229,7 @@ calculated tongue gaps to the notch shells are 0.83 mm (yellow shell) and 1.9 mm
 tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
 adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
 rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
-allows no vertex deeper than 0.07 mm (the mesh tolerance); in the 1.0x design it read 0.038 mm into the top plate and 0.058 mm into the
-black body. Do not turn the display over with the button in motion.
+allows no vertex deeper than 0.07 mm (the mesh tolerance). Do not turn the display over with the button in motion.
 
 ## Listed sharp corners
 

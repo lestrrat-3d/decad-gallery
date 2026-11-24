@@ -40,7 +40,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 			require.NoError(t, err)
 			b, err := f.Black.Volume()
 			require.NoError(t, err)
-			require.InDelta(t, 259.44, y.Value.Base(), 0.5) // the slab and the tips: 105.41 in the original 1.0x design (the 0.8 inset is a fit and stays)
+			require.InDelta(t, 259.44, y.Value.Base(), 0.5) // the slab and the tips (the 0.8 inset is a fit)
 			require.InDelta(t, tc.total, y.Value.Base()+b.Value.Base(), 1.0)
 
 			// Centre of mass of the two bodies, in the rotor's x and y, as a distance and an angle from x.

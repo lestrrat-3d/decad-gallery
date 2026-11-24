@@ -31,9 +31,9 @@ const (
 	wallChamfer    = 0.5
 	frontInnerY    = -74.25
 	rearInnerY     = 64.5
-	markRadius     = 13.5 // look-alike hole circle on the walls: off the housing flange (1.5 x 10 is 15, under the flange)
+	markRadius     = 13.5 // look-alike hole circle on the walls: off the housing flange
 
-	// The guide plate: z 54 to 58 in the original 1.0x design.
+	// The guide plate: z 81 to 87.
 	guideFrom  = 81.0
 	guideThick = 6.0
 	guideTop   = guideFrom + guideThick

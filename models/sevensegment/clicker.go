@@ -17,7 +17,7 @@ import (
 // The click indexer sits on the knob end of the camshaft. The box stands on its back wall, so model -Y points up, and the
 // indexer's parts stack along -Y from the front wall. Every Y below is a world Y at digit 0 and rest; a local frame has its
 // Z along -Y (frontFrame), so a part's local Z is its height above its reference plane. The click indexer is bought hardware
-// (its spring) and a size set by the hand, so it does not scale: every Y below is an offset from the front wall's outer face.
+// (its spring) and a size set by the hand, so its size is fixed: every Y below is an offset from the front wall's outer face.
 const (
 	frontWallOuterY = frontInnerY - WallThickness
 	chamfer         = 0.5 // "Surface edge finishing": the equal-setback chamfer of a large face's rim

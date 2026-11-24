@@ -24,7 +24,7 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 	require.InDelta(t, pivotBlockHigh/2, box.Max.Y, 0.01)
 	require.InDelta(t, pivotPinTip, box.Min.Z, 0.01, "pin tip")
 	require.InDelta(t, pivotBlockFrom+pivotBlockLong, box.Max.Z, 0.01, "outer face")
-	// 3.25 tall in print in the original 1.0x design: 2.0 of block and 1.25 of pin.
+	// 4.875 tall in print: 3.0 of block and 1.875 of pin.
 	require.InDelta(t, pivotBlockLong+1.875, box.Max.Z-box.Min.Z, 0.01)
 	// The pin stands on the block's rotor-side face, on its centre: the root cone is r 0.65 at u 12.5.
 	pin := func(u float64) float64 {

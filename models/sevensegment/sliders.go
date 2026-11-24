@@ -119,7 +119,7 @@ func tangentPoint(p, c [2]float64, rad, side float64) [2]float64 {
 
 // The tongue's root rounds and the feet where they meet the head.
 const (
-	// 1.5 x 0.7 and 1.5 x 0.8, not 1.5 x 0.8 and 1.5 x 0.9 (1.2 and 1.35): decad refuses the 0.5 chamfer of the stem faces
+	// Root r 1.05 and feet 1.2, not a root r 1.2 with feet 1.35: decad refuses the 0.5 chamfer of the stem faces
 	// ("a partial chamfer's cutter meets or comes within bounds of another face") on the head-top run next to a root round of
 	// about 1.15 or more, and builds it at 1.1 and under.
 	tongueRootR = 1.05
@@ -404,7 +404,7 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 // finishSlider chamfers the stem's vertical edges and adds the groove pin.
 func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Body, error) {
 	// The 0.5 chamfers of "Surface edge finishing" on the stem's two large faces: every long run of their outer loops, the stem's
-	// vertical edges included, so the 0.3 bevels that the stem had in the original 1.0x design are these chamfers (Fusion cannot chamfer an
+	// vertical edges included, so the stem takes these chamfers and no smaller bevel (Fusion cannot chamfer an
 	// edge that already carries a smaller bevel).
 	body, _, err := edgefinish.ChamferRuns(r.ctx, body, r3.Vec{Y: 1}, []float64{yi - StemThickness/2, yi + StemThickness/2},
 		edgefinish.Outer, func(*decad.Loop, []*decad.Edge) bool { return false }, wallChamfer)
