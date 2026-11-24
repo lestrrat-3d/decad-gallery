@@ -7,6 +7,14 @@
 - Follow `docs/model-pipeline.md` when adding or changing models.
 - Keep construction specifications, Decad Go code, and geometry checks aligned.
 
+## Priorities
+
+- Do the correct thing first; development cost comes after that.
+- Make the correct change when one is clear, even when it needs another measurement, a full test run, or image
+  regeneration. Do not defer it, and do not ask for permission to do it.
+- Never list time, rebuilds, or test runs as the reason against the correct option.
+- Ask only when what is correct is unclear.
+
 ## Repository ownership
 
 - Put each model in `models/<name>/`; give it a `README.md`.
