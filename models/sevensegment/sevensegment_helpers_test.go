@@ -109,30 +109,45 @@ type meshKey struct {
 	tol  float64
 }
 
-// meshEntry is one cached tessellation and its gap mesh.
+// meshEntry holds a cached tessellation and its optional gap mesh.
 type meshEntry struct {
-	once sync.Once
-	mesh *decad.Mesh
-	mg   meshgap.Mesh
-	err  error
+	meshOnce sync.Once
+	mesh     *decad.Mesh
+	meshErr  error
+	gapOnce  sync.Once
+	mg       meshgap.Mesh
+	gapErr   error
 }
 
 var meshCache sync.Map // meshKey -> *meshEntry
+
+// meshEntryOf returns the cached entry for b and tol after verifying its tessellation.
+func meshEntryOf(t *testing.T, b *decad.Body, tol float64) *meshEntry {
+	t.Helper()
+	v, _ := meshCache.LoadOrStore(meshKey{b, tol}, &meshEntry{})
+	e := v.(*meshEntry)
+	e.meshOnce.Do(func() {
+		e.mesh, e.meshErr = b.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
+	})
+	require.NoError(t, e.meshErr)
+	return e
+}
+
+// rawMeshOf returns the verified tessellation without constructing a gap mesh.
+func rawMeshOf(t *testing.T, b *decad.Body, tol float64) *decad.Mesh {
+	t.Helper()
+	return meshEntryOf(t, b, tol).mesh
+}
 
 // meshOf returns the mesh of b at tol and its gap mesh, each computed once per body and tolerance and shared. Callers
 // read them only: a test that moves a mesh copies its vertices first.
 func meshOf(t *testing.T, b *decad.Body, tol float64) (*decad.Mesh, meshgap.Mesh) {
 	t.Helper()
-	v, _ := meshCache.LoadOrStore(meshKey{b, tol}, &meshEntry{})
-	e := v.(*meshEntry)
-	e.once.Do(func() {
-		e.mesh, e.err = b.Tessellate(t.Context(), units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
-		if e.err != nil {
-			return
-		}
-		e.mg, e.err = meshgap.New(e.mesh.Vertices(), e.mesh.Triangles(), e.mesh.Bound().Base())
+	e := meshEntryOf(t, b, tol)
+	e.gapOnce.Do(func() {
+		e.mg, e.gapErr = meshgap.New(e.mesh.Vertices(), e.mesh.Triangles(), e.mesh.Bound().Base())
 	})
-	require.NoError(t, e.err)
+	require.NoError(t, e.gapErr)
 	return e.mesh, e.mg
 }
 
