@@ -54,30 +54,47 @@ def select(inventory):
     """Return the ordinary package tests and unassigned bevel tests."""
     if not inventory or not DEDICATED <= inventory.keys() or BEVEL not in inventory:
         raise ValueError("root module inventory is missing a dedicated package")
+    remainder = bevel_remainder(inventory[BEVEL])
+    packages = sorted(set(inventory) - DEDICATED - {BEVEL})
+    expected = {(package, test) for package in packages for test in inventory[package]}
+    return packages, expected, remainder
+
+
+def bevel_remainder(tests):
     assigned = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
     if len(assigned) != len(set(assigned)):
         raise ValueError("full bevel shards contain duplicate test names")
-    unknown = set(assigned) - inventory[BEVEL]
+    unknown = set(assigned) - tests
     if unknown:
         raise ValueError("unknown full bevel shard tests: " + ", ".join(sorted(unknown)))
-    packages = sorted(set(inventory) - DEDICATED - {BEVEL})
-    expected = {(package, test) for package in packages for test in inventory[package]}
-    return packages, expected, sorted(inventory[BEVEL] - set(assigned))
+    return sorted(tests - set(assigned))
+
+
+def discover(package):
+    output = subprocess.run(["go", "test", "-list", "^Test", package],
+                            check=True, capture_output=True, text=True).stdout
+    tests = [line for line in output.splitlines() if line.startswith("Test")]
+    if len(tests) != len(set(tests)):
+        raise ValueError("duplicate test names in " + package)
+    return set(tests)
 
 
 def main(mode="repository", case=None):
-    packages = [package for package in subprocess.run(["go", "list", "./..."], check=True, capture_output=True,
-                                                      text=True).stdout.splitlines()
-                if not run_tests.RENDERER_PACKAGE.match(package)]
-    if len(packages) != len(set(packages)):
-        raise SystemExit("root module inventory contains duplicate packages")
-    inventory = {}
-    for package in packages:
-        output = subprocess.run(["go", "test", "-list", "^Test", package],
-                                check=True, capture_output=True, text=True).stdout
-        inventory[package] = {line for line in output.splitlines() if line.startswith("Test")}
     try:
-        selected, expected, remainder = select(inventory)
+        if mode == "repository":
+            packages = [package for package in subprocess.run(["go", "list", "./..."], check=True,
+                        capture_output=True, text=True).stdout.splitlines()
+                        if not run_tests.RENDERER_PACKAGE.match(package)]
+            if len(packages) != len(set(packages)):
+                raise ValueError("root module inventory contains duplicate packages")
+            selected, expected, _ = select({package: discover(package) for package in packages})
+        elif mode == "bevel-remainder":
+            remainder = bevel_remainder(discover(BEVEL))
+        elif mode in ("handcrankfan", "swisslever"):
+            package = ROOT + "/models/" + mode
+            inventory = {package: discover(package)}
+        else:
+            raise ValueError("invalid full partition")
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
     env = os.environ.copy()

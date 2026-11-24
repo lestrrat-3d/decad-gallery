@@ -79,6 +79,22 @@ class FullPartitionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             partition.fan_tests({"TestHandCrankFanDefault"}, "rest")
 
+    def test_dedicated_workers_discover_only_their_package(self):
+        inventory = self.inventory()
+        for mode, case, package in (("bevel-remainder", None, partition.BEVEL),
+                                    ("handcrankfan", "rest", partition.ROOT + "/models/handcrankfan"),
+                                    ("swisslever", "rest", partition.ROOT + "/models/swisslever")):
+            with self.subTest(mode=mode), \
+                    mock.patch.object(partition, "discover", return_value=inventory[package]) as discover, \
+                    mock.patch.object(partition.run_tests, "go_test"):
+                partition.main(mode, case)
+                discover.assert_called_once_with(package)
+
+    def test_discover_rejects_duplicate_names(self):
+        with mock.patch.object(partition.subprocess, "run", return_value=mock.Mock(stdout="TestA\nTestA\n")):
+            with self.assertRaises(ValueError):
+                partition.discover("example/package")
+
     def test_swiss_partitions_cover_new_tests_and_reject_invalid_input(self):
         tests = {"TestForkAction", "TestOther", "TestNew"}
         fork, rest = (partition.swiss_tests(tests, case) for case in ("fork", "rest"))

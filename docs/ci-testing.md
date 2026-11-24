@@ -88,7 +88,8 @@ up to date before merging. See the [ruleset](https://github.com/lestrrat-3d/deca
 
 Scheduled and manually dispatched runs select broad checks and use the full path. Dependency file changes use the
 same full path through the `full` marker. `full_partition.py` lists root-module packages and
-top-level tests and runs the packages outside dedicated jobs. Dedicated jobs cover
+top-level tests and runs the packages outside dedicated jobs. Each dedicated partition lists only its own package.
+Dedicated jobs cover
 their packages, the eight full bevel shards, and the remaining bevel tests. Four fan jobs run the default, each
 variant, and the shared-fixture remainder tests. Two Swiss lever jobs run the fork sweep and shared-fixture remainder. Wheel and
 siren jobs run assigned cases plus a remainder that skips
