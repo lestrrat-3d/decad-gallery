@@ -26,7 +26,7 @@ func buildSocketCapBolt(ctx context.Context, doc *decad.Document, size BoltSize,
 	if err != nil {
 		return nil, nil, err
 	}
-	if body, err = cutSocket(ctx, doc, b, size, body); err != nil {
+	if body, err = cutSocket(ctx, b, size, body); err != nil {
 		return nil, nil, err
 	}
 	return b, body, nil
@@ -118,12 +118,21 @@ func revolveBlank(ctx context.Context, doc *decad.Document, b *Bolt, size BoltSi
 }
 
 // cutSocket removes the hex socket and its conical bottom from the head of body.
-func cutSocket(ctx context.Context, doc *decad.Document, b *Bolt, size BoltSize, body *decad.Body) (*decad.Body, error) {
+func cutSocket(ctx context.Context, b *Bolt, size BoltSize, body *decad.Body) (*decad.Body, error) {
 	sc := size.SocketCap
 	floor := size.HeadHeight - sc.SocketDepth
 
+	// The socket sketch lies on the socket's floor plane, so the cut starts there and needs no lift.
 	world := sketch.NewWorld()
-	hexSketch, err := world.CreateSketch(world.XY())
+	floorFrame, err := r3.NewFrame(r3.Vec{Z: floor}, r3.Vec{X: 1}, r3.Vec{Y: 1})
+	if err != nil {
+		return nil, fmt.Errorf("fastener: create socket floor frame: %w", err)
+	}
+	floorPlane, err := world.CreatePlaneFromFrame(floorFrame)
+	if err != nil {
+		return nil, fmt.Errorf("fastener: create socket floor plane: %w", err)
+	}
+	hexSketch, err := world.CreateSketch(floorPlane)
 	if err != nil {
 		return nil, fmt.Errorf("fastener: create socket sketch: %w", err)
 	}
@@ -149,20 +158,9 @@ func cutSocket(ctx context.Context, doc *decad.Document, b *Bolt, size BoltSize,
 	if err != nil {
 		return nil, fmt.Errorf("fastener: select socket profile: %w", err)
 	}
-	prism, err := decad.Extrude(ctx, doc, hexSketch, hexProfile,
+	body, err = decad.CutExtrude(ctx, body, hexSketch, []*sketch.Profile{hexProfile},
 		decad.Distance{D: units.Millimeters(sc.SocketDepth + socketCutterRise), Dir: decad.Along})
 	if err != nil {
-		return nil, fmt.Errorf("fastener: extrude socket cutter: %w", err)
-	}
-	lift, err := r3.Translation(r3.Vec{Z: floor})
-	if err != nil {
-		return nil, fmt.Errorf("fastener: create socket lift: %w", err)
-	}
-	if prism, err = decad.Transform(ctx, prism, lift); err != nil {
-		return nil, fmt.Errorf("fastener: place socket cutter: %w", err)
-	}
-
-	if body, err = decad.Cut(ctx, body, prism); err != nil {
 		return nil, fmt.Errorf("fastener: cut socket: %w", err)
 	}
 	return body, nil
