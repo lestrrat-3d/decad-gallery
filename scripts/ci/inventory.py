@@ -45,7 +45,11 @@ def report(root, renderer):
         for test in tests:
             add(full_partition.BEVEL, test, "bevel-full/" + shard)
     for test in bevel_remainder:
-        add(full_partition.BEVEL, test, "repository/bevel-remainder")
+        add(full_partition.BEVEL, test, "bevel-remainder")
+    for name in ("handcrankfan", "swisslever"):
+        package = full_partition.ROOT + "/models/" + name
+        for test in root[package]:
+            add(package, test, name + "-full")
     for index, tests in enumerate(run_tests.ESCAPEMENT_SHARDS, 1):
         for test in tests:
             add(full_partition.ROOT + "/models/escapement", test, f"escapement/{index}")

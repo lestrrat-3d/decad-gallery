@@ -338,11 +338,12 @@ def plan(event, base, tested):
                 if render_pkg(name) and name == ROOT + "/" + directory:
                     new_render.add(parts[1])
                     continue
-                if len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or not parts[1].isalnum():
+                if (len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or
+                        not re.fullmatch(r"[a-z][a-z0-9]*", parts[1]) or name != ROOT + "/" + directory):
                     raise RuntimeError("new package cannot be dispatched: " + directory)
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
                 registry = {"models": MODELS, "internal": INTERNAL, "features": FEATURES}[parts[0]]
-                if parts[1] not in registry or name != ROOT + "/" + directory:
+                if parts[1] not in registry:
                     new_suites[name] = prefix + parts[1]
         if set(before) - set(after):
             reason = "deleted package requires full coverage"
@@ -355,8 +356,7 @@ def plan(event, base, tested):
         owners.update(new_packages)
         suites = {}
         if new_suites:
-            reason = "new packages require broad coverage and direct tests"
-            suites["broad"] = [reason]
+            reason = "new packages require direct tests"
             for suite in new_suites.values():
                 suites[suite] = [reason]
         if unknown_input:
@@ -381,10 +381,19 @@ def plan(event, base, tested):
             elif owner.startswith(ROOT + "/features/") and owner.rsplit("/", 1)[-1] in FEATURES:
                 suite = "feature-" + owner.rsplit("/", 1)[-1]
             else:
-                reason = "unregistered package requires full coverage: " + owner
-                suites.setdefault("broad", []).append(reason)
-                suites.setdefault("full", []).append(reason)
-                continue
+                item = after.get(owner)
+                directory = item["dir"] if item else ""
+                parts = directory.split("/")
+                if (len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or
+                        not re.fullmatch(r"[a-z][a-z0-9]*", parts[1]) or owner != ROOT + "/" + directory):
+                    reason = "unregistered package requires full coverage: " + owner
+                    suites.setdefault("broad", []).append(reason)
+                    suites.setdefault("full", []).append(reason)
+                    continue
+                prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
+                suite = prefix + parts[1]
+                if parts[0] == "models" and owner in production:
+                    model_owners.add(parts[1])
             suites.setdefault(suite, []).append("affected package " + owner)
         core = [path for path in code if path.startswith("internal/renderkit/") and not path.endswith("_test.go")]
         if core:

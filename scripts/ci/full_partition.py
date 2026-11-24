@@ -3,6 +3,7 @@
 
 import os
 import subprocess
+import sys
 
 import run_tests
 
@@ -12,7 +13,7 @@ BEVEL = ROOT + "/models/bevelgear"
 # Dedicated jobs cover whole packages or partition their tests and remainder.
 DEDICATED = {ROOT + "/models/" + name for name in (
     "escapement", "onewayclutch", "clamparm", "sevensegment", "turbinefan", "fastener", "spinningwheel", "handcranksiren",
-    "planetarygearbox",
+    "planetarygearbox", "handcrankfan", "swisslever",
 )}
 
 
@@ -38,7 +39,7 @@ def select(inventory):
     return packages, expected, sorted(inventory[BEVEL] - set(assigned))
 
 
-def main():
+def main(mode="repository"):
     packages = [package for package in subprocess.run(["go", "list", "./..."], check=True, capture_output=True,
                                                       text=True).stdout.splitlines()
                 if not run_tests.RENDERER_PACKAGE.match(package)]
@@ -53,14 +54,21 @@ def main():
         selected, expected, remainder = select(inventory)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    expected.update(FULL_VARIANTS)
     env = os.environ.copy()
     env.update(FULL_ENV)
-    run_tests.go_test([*selected, "-timeout", "60m"], env=env, qualified_expected=expected)
-    if remainder:
-        run_tests.go_test([BEVEL, "-run", run_tests.run_pattern(remainder), "-timeout", "60m"], remainder,
-                          env=env, package=BEVEL)
+    if mode == "repository":
+        run_tests.go_test([*selected, "-timeout", "60m"], env=env, qualified_expected=expected)
+    elif mode == "bevel-remainder":
+        pattern = run_tests.run_pattern(remainder) if remainder else "^$"
+        run_tests.go_test([BEVEL, "-run", pattern, "-timeout", "60m"], remainder, env=env, package=BEVEL)
+    elif mode in ("handcrankfan", "swisslever"):
+        package = ROOT + "/models/" + mode
+        required = set(inventory[package])
+        required.update(test for pkg, test in FULL_VARIANTS if pkg == package)
+        run_tests.go_test([package, "-timeout", "60m"], sorted(required), env=env, package=package)
+    else:
+        raise SystemExit("invalid full partition")
 
 
 if __name__ == "__main__":
-    main()
+    main(*sys.argv[1:])

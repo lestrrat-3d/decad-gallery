@@ -95,8 +95,10 @@ class PlanTest(unittest.TestCase):
                 if "broad" in expected:
                     full = event in ("schedule", "workflow_dispatch") or "full" in expected
                     for job in gate.BROAD_JOBS:
-                        enabled = job not in ("renderer-full", "bevel-full", "planetary-full") and job not in gate.PR_RENDER_JOBS
-                        enabled |= job in ("renderer-full", "bevel-full", "planetary-full") and full
+                        enabled = job not in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder",
+                                              "handcrankfan-full", "swisslever-full") and job not in gate.PR_RENDER_JOBS
+                        enabled |= job in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder",
+                                           "handcrankfan-full", "swisslever-full") and full
                         enabled |= job in gate.PR_RENDER_JOBS and not full and "renderer-all" not in expected
                         if job == "bevel-pr":
                             enabled = not full
@@ -406,7 +408,10 @@ class PlanTest(unittest.TestCase):
                     mock.patch.object(plan, "metadata", side_effect=[before, after]), \
                     mock.patch.object(plan.subprocess, "check_output", return_value=paths):
                 result = plan.plan("push", "base", "head")
-            expected = {"broad", "new-model-newpart", "package-clamparmcapacity"}
+            expected = {"new-model-newpart", "package-clamparmcapacity", "clamparm"}
+            if extra == b"unknown.sh\0":
+                expected.discard("clamparm")
+                expected.add("broad")
             if extra.startswith(b"tools/render/"):
                 expected |= {"render-tool", "renderer-compile"}
             self.assertEqual(set(result["suites"]), expected)
@@ -685,7 +690,7 @@ class PlanTest(unittest.TestCase):
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
-    def test_unregistered_existing_package_full_covers_new_package(self):
+    def test_unregistered_existing_package_and_new_package_run_directly(self):
         existing = plan.ROOT + "/internal/unregistered"
         new = plan.ROOT + "/models/newpart"
         before = {existing: {"dir": "internal/unregistered", "imports": set(), "test_imports": set()}}
@@ -695,9 +700,33 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output",
                                   return_value=b"models/newpart/build.go\0internal/unregistered/check.go\0"):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(result["suites"], ["broad", "full"])
+        self.assertEqual(result["suites"], ["new-model-newpart", "new-package-unregistered"])
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+
+    def test_discovered_package_selects_production_and_test_consumers(self):
+        helper = plan.ROOT + "/internal/newhelper"
+        feature = plan.ROOT + "/features/newfeature"
+        model = plan.ROOT + "/models/newpart"
+        graph = {helper: {"dir": "internal/newhelper", "imports": set(), "test_imports": set()},
+                 feature: {"dir": "features/newfeature", "imports": {helper}, "test_imports": set()},
+                 model: {"dir": "models/newpart", "imports": set(), "test_imports": {feature}}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/newhelper/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(result["suites"], ["new-feature-newfeature", "new-model-newpart",
+                                            "new-package-newhelper"])
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 3)
+
+    def test_undispatchable_existing_package_selects_full(self):
+        package = plan.ROOT + "/internal/nested/helper"
+        graph = {package: {"dir": "internal/nested/helper", "imports": set(), "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/nested/helper/check.go\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad", "full"])
 
     def test_missing_metadata_fails_closed_for_unknown_package(self):
         for path, raises in ((b"models/newpart/build.go\0", True),

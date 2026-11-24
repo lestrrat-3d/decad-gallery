@@ -15,8 +15,8 @@ renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. A change to `scripts/check_repository.py` or `scripts/modelgen/spurgear.py` alone also selects none,
 because only the `repository` job runs them. Changes to spinning wheel part PNGs select `wheel-parts`. New
-registered packages select their tests and affected consumers. New unregistered packages select broad checks and
-direct tests alongside affected known packages. A change to either `go.mod` or `go.sum` selects `broad` and the
+registered packages select their tests and affected consumers. Discoverable model, feature, and internal packages
+select their own tests and affected consumers without registration. A change to either `go.mod` or `go.sum` selects `broad` and the
 `full` marker, which runs the full root and renderer checks. The renderer group is the set of root-module packages
 that `RENDERER_PACKAGE` in `run_tests.py` matches (`tools/render`, `internal/renderkit` and each item's `render`
 package); `renderer_packages()` lists them, and the root-module suites skip them.
@@ -39,8 +39,8 @@ Render code selects these suites:
 
 A `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
 `rest` job with every other test of the package. A test that builds a full assembly belongs in `RENDER_HEAVY`.
-Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unregistered existing
-owners, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
+Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unsupported package
+layouts, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
 the plan. Suites already covered by selected broad or full jobs are not dispatched twice.
 
@@ -86,8 +86,9 @@ up to date before merging. See the [ruleset](https://github.com/lestrrat-3d/deca
 
 Scheduled and manually dispatched runs select broad checks and use the full path. Dependency file changes use the
 same full path through the `full` marker. `full_partition.py` lists root-module packages and
-top-level tests, runs the packages outside dedicated jobs, and runs unassigned bevel tests. Dedicated jobs cover
-their packages and the eight full bevel shards. Wheel and siren jobs run assigned cases plus a remainder that skips
+top-level tests and runs the packages outside dedicated jobs. Dedicated jobs cover
+their packages, the eight full bevel shards, and the remaining bevel tests. Separate jobs run the complete fan and
+Swiss lever packages. Wheel and siren jobs run assigned cases plus a remainder that skips
 assigned paths; the remainder checks for overlapping assignments and missing top-level tests. The runner requires
 listed test results and explicitly checks the configured fan and planetary variants. `renderer-full` lists renderer
 packages and tests, then requires their pass events and rejects skipped or failed subtests of listed tests. Full runs

@@ -68,7 +68,7 @@ WORKERS = {
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
               "clamparm", "sevensegment", "sevensegment-render", "turbinefan",
               "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
-              "bevel-pr", "bevel-full", "planetary-full")
+              "bevel-pr", "bevel-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full")
 PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
@@ -274,7 +274,7 @@ def check(needs, event):
             enabled &= not full
         if job in PR_RENDER_JOBS:
             enabled &= not full and "renderer-all" not in suites
-        if job in ("bevel-full", "renderer-full", "planetary-full"):
+        if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full"):
             enabled &= full
         expected[job] = "success" if enabled else "skipped"
     for job, status in expected.items():

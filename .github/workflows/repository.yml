@@ -518,8 +518,74 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  bevel-remainder:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Run full partition
+        env:
+          CI_TEST_RECORDS: bevel-remainder.jsonl
+        run: python3 scripts/ci/full_partition.py bevel-remainder
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-bevel-remainder
+          path: bevel-remainder.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  handcrankfan-full:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Run full partition
+        env:
+          CI_TEST_RECORDS: handcrankfan-full.jsonl
+        run: python3 scripts/ci/full_partition.py handcrankfan
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-handcrankfan-full
+          path: handcrankfan-full.jsonl
+          if-no-files-found: error
+          overwrite: true
+
+  swisslever-full:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.plan).suites, 'broad') && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Run full partition
+        env:
+          CI_TEST_RECORDS: swisslever-full.jsonl
+        run: python3 scripts/ci/full_partition.py swisslever
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-records-swisslever-full
+          path: swisslever-full.jsonl
+          if-no-files-found: error
+          overwrite: true
+
   records-validation:
-    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, sevensegment, turbinefan, wheel, siren, bevel-full, planetary-full]
+    needs: [plan, repository, renderer-full, escapement, onewayclutch, clamparm, sevensegment, turbinefan, wheel, siren, bevel-full, planetary-full, bevel-remainder, handcrankfan-full, swisslever-full]
     if: always() && needs.plan.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))
     runs-on: ubuntu-latest
     steps:
@@ -558,7 +624,7 @@ jobs:
     if: always()
     needs: [plan, worker, repository, renderer-full, planetary-motion, wheel-motion, wheel-parts, fan-motion, escapement,
             onewayclutch, clamparm, sevensegment, sevensegment-render, turbinefan, escapement-exploded, wheel, siren, bevel-pr, bevel-full,
-            records-validation, planetary-full]
+            records-validation, planetary-full, bevel-remainder, handcrankfan-full, swisslever-full]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -38,6 +38,9 @@ class WorkflowRecordsTests(unittest.TestCase):
             "siren": "siren-${{ matrix.case }}",
             "bevel-full": "bevel-full-${{ matrix.shard }}",
             "planetary-full": "planetary-full-${{ matrix.case }}",
+            "bevel-remainder": "bevel-remainder",
+            "handcrankfan-full": "handcrankfan-full",
+            "swisslever-full": "swisslever-full",
         }
         for job, record in jobs.items():
             with self.subTest(job=job):
@@ -66,7 +69,8 @@ class WorkflowRecordsTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         section = job_section(workflow, "records-validation")
         for producer in ("repository", "renderer-full", "escapement", "onewayclutch", "clamparm",
-                         "turbinefan", "wheel", "siren", "bevel-full", "planetary-full"):
+                         "turbinefan", "wheel", "siren", "bevel-full", "planetary-full",
+                         "bevel-remainder", "handcrankfan-full", "swisslever-full"):
             self.assertIn(producer, section.split("\n", 1)[0])
         self.assertIn("pattern: ci-records-*", section)
         self.assertIn("python3 scripts/ci/inventory.py > inventory.json", section)

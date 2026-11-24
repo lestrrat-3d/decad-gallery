@@ -22,7 +22,7 @@ def needs_for(suites, event="push"):
                 continue
             if job in gate.PR_RENDER_JOBS and (full or "renderer-all" in suites):
                 continue
-            if job in ("bevel-full", "renderer-full", "planetary-full") and not full:
+            if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full") and not full:
                 continue
             needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
@@ -287,7 +287,7 @@ class GateTest(unittest.TestCase):
 
     def test_broad_jobs_are_required_and_unplanned_jobs_skipped(self):
         for job in gate.BROAD_JOBS:
-            event = "schedule" if job in ("bevel-full", "renderer-full", "planetary-full") else "push"
+            event = "schedule" if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full") else "push"
             needs = needs_for(["broad"], event)
             needs[job]["result"] = "cancelled"
             self.assertTrue(gate.check(needs, event), job)
@@ -325,7 +325,7 @@ class GateTest(unittest.TestCase):
             needs = needs_for(suites, event)
             self.assertEqual(gate.matrix_for(suites), {"include": []})
             self.assertEqual(gate.check(needs, event), [])
-            for job in ("renderer-full", "bevel-full", "planetary-full"):
+            for job in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full"):
                 with self.subTest(event=event, job=job):
                     altered = needs_for(suites, event)
                     altered[job]["result"] = "skipped"

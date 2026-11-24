@@ -40,7 +40,7 @@ class InventoryTests(unittest.TestCase):
         renderer_package = full_partition.ROOT + "/tools/render"
         result = inventory.report(root, {renderer_package: ["TestRender"]})
         self.assertEqual(result["known_assignments"]["root"][full_partition.BEVEL]["TestRemainder"],
-                         ["repository/bevel-remainder"])
+                         ["bevel-remainder"])
         self.assertEqual(result["full_environment"], full_partition.FULL_ENV)
         self.assertIn("discovered at runtime", result["subtests"])
         self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])

@@ -48,13 +48,21 @@ class FullPartitionTests(unittest.TestCase):
         with mock.patch.object(partition.subprocess, "run", side_effect=command), \
                 mock.patch.object(partition.run_tests, "go_test") as go_test:
             partition.main()
-        self.assertEqual(go_test.call_count, 2)
-        ordinary, bevel = go_test.call_args_list
+            partition.main("bevel-remainder")
+            partition.main("handcrankfan")
+            partition.main("swisslever")
+        self.assertEqual(go_test.call_count, 4)
+        ordinary, bevel, fan, swiss = go_test.call_args_list
         self.assertEqual(ordinary.kwargs["env"]["HANDCRANKFAN_FULL"], "1")
         self.assertEqual(ordinary.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
         self.assertNotIn(partition.ROOT + "/models/planetarygearbox", ordinary.args[0])
         self.assertNotIn(renderer, ordinary.args[0])
         self.assertEqual(bevel.args[1], ["TestNewBevel"])
+        self.assertIn("TestHandCrankFanVariant/flat-three", fan.args[1])
+        self.assertIn("TestHandCrankFanVariant/steep-three", fan.args[1])
+        self.assertEqual(swiss.args[1], ["TestDedicated"])
+        self.assertNotIn(partition.ROOT + "/models/handcrankfan", ordinary.args[0])
+        self.assertNotIn(partition.ROOT + "/models/swisslever", ordinary.args[0])
 
 
 if __name__ == "__main__":
