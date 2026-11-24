@@ -422,7 +422,10 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
                                                                 (not isinstance(test, str) or not test)):
                 record("malformed", reason="invalid_identity")
             else:
-                record("test" if test else "package", package=package, test=test, status=event["Action"])
+                fields = {"package": package, "test": test, "status": event["Action"]}
+                if "Elapsed" in event:
+                    fields["elapsed"] = event["Elapsed"]
+                record("test" if test else "package", **fields)
                 if not test and package_outcomes is not None:
                     package_outcomes[package] = event["Action"]
         if test and event.get("Action") in {"pass", "fail", "skip"}:

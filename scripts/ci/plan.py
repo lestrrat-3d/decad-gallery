@@ -25,12 +25,12 @@ R_TOOL = ROOT + "/tools/render"
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
             ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "report_timings", "replay", "reuse_main",
                  "run_tests", "select_models")
     for suffix in (".py",)
 } | {
     "scripts/ci/test_" + name + ".py"
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "report_timings", "replay", "reuse_main",
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
      "scripts/ci/planetary_kits.go",

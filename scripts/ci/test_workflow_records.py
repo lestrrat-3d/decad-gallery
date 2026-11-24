@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import os
+import json
 import re
 import subprocess
 import tempfile
@@ -91,6 +92,7 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertIn("name: ci-validation-summary", upload)
         self.assertIn("inventory.json", upload)
         self.assertIn("validation-summary.json", upload)
+        self.assertIn("timing-summary.json", upload)
         self.assertIn("overwrite: true", upload)
         self.assertIn("if-no-files-found: warn", upload)
         scratch = WORKFLOW.parents[2] / ".tmp"
@@ -108,6 +110,32 @@ class WorkflowRecordsTests(unittest.TestCase):
                                             env=env, check=False)
                     self.assertEqual(result.returncode, status)
                     self.assertEqual((root / "validation-summary.json").read_text(), f'{{"ok": {value}}}\n')
+
+    def test_timing_report_runs_after_validation_and_reads_downloaded_artifacts(self):
+        section = job_section(WORKFLOW.read_text(), "records-validation")
+        validation = section.index("      - name: Validate full execution records")
+        report = section.index("      - name: Report test timings")
+        upload = section.index("      - name: Retain inventory and validation summary")
+        self.assertLess(validation, report)
+        self.assertLess(report, upload)
+        step = section[report:upload]
+        self.assertNotIn("if: always()", step)
+        command = re.search(r"        run: (python3 scripts/ci/report_timings.py .* > timing-summary.json)", step)
+        self.assertIsNotNone(command)
+        scratch = WORKFLOW.parents[2] / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as directory:
+            root = Path(directory)
+            artifact = root / "ci-artifacts/ci-records-example"
+            artifact.mkdir(parents=True)
+            (artifact / "example.jsonl").write_text(json.dumps({"kind": "test", "elapsed": 1.25,
+                                                               "test": "TestExample"}) + "\n")
+            script = WORKFLOW.parents[2] / "scripts/ci/report_timings.py"
+            command_line = command.group(1).replace("scripts/ci/report_timings.py", str(script))
+            result = subprocess.run(command_line, shell=True, cwd=root, check=False)
+            self.assertEqual(result.returncode, 0)
+            output = json.loads((root / "timing-summary.json").read_text())
+            self.assertEqual(output["slowest"]["test"][0]["elapsed"], 1.25)
 
 
 if __name__ == "__main__":

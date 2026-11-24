@@ -99,6 +99,14 @@ The full planetary suite runs each non-default kit in its own job and requires i
 partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation
 checks their records with the other full-run artifacts.
 
+After full-run records pass validation, `records-validation` adds `timing-summary.json` to the
+`ci-validation-summary` artifact. It lists the 20 slowest test and package events separately, including job and
+case identifiers. Each value is one Go test elapsed sample in seconds. Parent test times include subtests, and
+package times include test execution and other overhead, so do not add them together. Events without valid elapsed
+values are counted separately. Run `python3 scripts/ci/report_timings.py --execution-dir ci-artifacts --limit 100`
+on downloaded record artifacts to select a different limit, up to 1,000 per kind. Timing samples do not change
+coverage validation or job placement.
+
 ## Probe and limits
 
 Set the repository Actions variable `CI_BROAD_OVERRIDE` to `true` to select broad PR and push coverage.
