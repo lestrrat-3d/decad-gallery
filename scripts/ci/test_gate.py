@@ -29,7 +29,8 @@ def needs_for(suites, event="push"):
         "plan": json.dumps({"version": 1, "suites": suites}),
         "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
         repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
-        **{"records-validation": {"result": "success" if full else "skipped"}})
+        **{name: {"result": "success" if full else "skipped"}
+           for name in ("records-validation", "package-plan", "package-workers")})
     return needs
 
 
@@ -37,6 +38,12 @@ RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
 
 
 class GateTest(unittest.TestCase):
+    def test_package_workers_skip_only_without_full_coverage(self):
+        self.assertEqual(gate.check(needs_for([]), "push"), [])
+        full = needs_for(["broad", "full"])
+        full["package-workers"]["result"] = "skipped"
+        self.assertTrue(any("package-workers" in error for error in gate.check(full, "push")))
+
     def test_reused_plan_requires_a_valid_push_proof(self):
         needs = needs_for([])
         plan = json.loads(needs["plan"]["outputs"]["plan"])

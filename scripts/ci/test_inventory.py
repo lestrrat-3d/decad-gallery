@@ -34,6 +34,7 @@ class InventoryTests(unittest.TestCase):
 
     def test_report_uses_runner_assignments_and_names_unknown_subtests(self):
         root = {package: ["TestDedicated"] for package in full_partition.DEDICATED}
+        root[full_partition.ROOT + "/models/ordinary"] = ["TestOrdinary"]
         root[full_partition.BEVEL] = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
         root[full_partition.BEVEL].append("TestRemainder")
         root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanDefault", "TestHandCrankFanVariant", "TestOther"]

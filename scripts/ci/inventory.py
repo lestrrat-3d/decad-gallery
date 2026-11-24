@@ -33,9 +33,10 @@ def report(root, renderer):
     def add(package, name, job):
         assignments.setdefault(package, {}).setdefault(name, []).append(job)
 
-    for package in ordinary:
-        for test in root[package]:
-            add(package, test, "repository")
+    for index, packages in enumerate(full_partition.package_shards(ordinary)):
+        for package in packages:
+            for test in root[package]:
+                add(package, test, f"package-workers/{index}")
     for name, job in (("onewayclutch", "onewayclutch"), ("turbinefan", "turbinefan"),
                       ("clamparm", "clamparm"), ("fastener", "clamparm")):
         package = full_partition.ROOT + "/models/" + name

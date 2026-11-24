@@ -39,6 +39,11 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertEqual(values, expected)
         self.assertEqual(reconcile_records.FULL_JOBS["renderer-full"], tuple(expected))
 
+    def test_package_matrix_is_not_read_when_plan_is_skipped(self):
+        section = job_section(WORKFLOW.read_text(), "package-workers")
+        self.assertIn("if: needs.package-plan.result == 'success'", section)
+        self.assertIn("matrix: ${{ fromJSON(needs.package-plan.outputs.matrix) }}", section)
+
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
         step = section.split("      - name: Check clamp arm capacity documentation\n", 1)[1]
@@ -51,7 +56,7 @@ class WorkflowRecordsTests(unittest.TestCase):
     def test_full_suite_records_have_unique_paths_and_required_uploads(self):
         workflow = WORKFLOW.read_text()
         jobs = {
-            "repository": "repository",
+            "package-workers": "package-workers-${{ matrix.case }}",
             "renderer-full": "renderer-full-${{ matrix.shard }}",
             "escapement": "escapement",
             "onewayclutch": "onewayclutch",
@@ -74,7 +79,7 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full", "swisslever-full"):
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full", "swisslever-full", "package-workers"):
                     case = "shard" if job in ("bevel-full", "renderer-full") else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 

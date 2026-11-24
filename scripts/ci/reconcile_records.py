@@ -8,12 +8,14 @@ from pathlib import Path
 import re
 import sys
 
+import full_partition
+
 
 SAMPLE_LIMIT = 10
 IDENTITY = re.compile(r"^[^\s\x00-\x1f\x7f]+$")
 META = ("version", "invocation", "module", "job", "case", "revision", "run_id", "run_attempt")
 FULL_JOBS = {
-    "repository": ("",), "renderer-full": tuple(str(i) for i in range(8)), "escapement": ("",),
+    "package-workers": (), "renderer-full": tuple(str(i) for i in range(8)), "escapement": ("",),
     "bevel-remainder": ("",), "handcrankfan-full": ("default", "flat-three", "steep-three", "rest"), "swisslever-full": ("fork", "rest"),
     "planetary-full": ("planet605-shaft608", "planet608-shaft605", "planet608-shaft608",
                        "rest-0", "rest-1", "rest-2", "rest-3", "rest-4"),
@@ -183,6 +185,23 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
     """Validate the downloaded artifacts of one full-suite run against its inventory."""
     directory = Path(directory)
     expected = {}
+    shard_packages = {}
+    if "package-workers" in FULL_JOBS:
+        try:
+            load_inventory(inventory_path)
+            with open(inventory_path, encoding="utf-8") as stream:
+                root = json.load(stream)["modules"]["root"]
+            ordinary, _, _ = full_partition.select({package: set(tests) for package, tests in root.items()})
+            shards = full_partition.package_shards(ordinary)
+            for index, packages in enumerate(shards):
+                case = str(index)
+                name = "package-workers-" + case
+                path = directory / f"ci-records-{name}" / f"{name}.jsonl"
+                expected[path] = {"job": "package-workers", "case": case, "revision": revision,
+                                  "run_id": run_id, "module": "."}
+                shard_packages[path] = {(".", package) for package in packages}
+        except (OSError, ValueError, KeyError, TypeError):
+            return {"ok": False, "inventory_error": "cannot determine package shards from inventory"}
     for job, cases in FULL_JOBS.items():
         for case in cases:
             name = job + (f"-{case}" if case else "")
@@ -209,6 +228,10 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt):
             except OSError:
                 invalid_contents.append(path.parent.name)
     leaves, passed, packages, errors, examples = read_records(list(expected), expected, run_attempt)
+    for path, required_packages in shard_packages.items():
+        _, _, seen, shard_errors, _ = read_records([path], {path: expected[path]}, run_attempt)
+        if seen != required_packages or shard_errors:
+            errors["invalid package shard"] += 1
     inventory_error = None
     try:
         inventory_tests, inventory_packages = load_inventory(inventory_path)

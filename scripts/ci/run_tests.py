@@ -420,14 +420,25 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
             record("malformed", reason="not_object")
             continue
         if event_audit is not None:
-            if event.get("Action") not in {"start", "output", "pass", "fail", "skip"}:
+            if event.get("Action") not in {"start", "output", "pass", "fail", "skip", "run", "pause", "cont"}:
                 event_audit["invalid"] = True
             if event.get("Test") is not None:
                 event_audit["test"] = True
+                if isinstance(event.get("Package"), str) and isinstance(event.get("Test"), str):
+                    event_audit.setdefault("test_packages", set()).add(event["Package"])
+                    identity = (event["Package"], event["Test"])
+                    if event.get("Action") == "run":
+                        starts = event_audit.setdefault("test_starts", {})
+                        starts[identity] = starts.get(identity, 0) + 1
+                    elif event.get("Action") in {"pass", "fail", "skip"}:
+                        terminals = event_audit.setdefault("test_terminals", {})
+                        terminals[identity] = terminals.get(identity, 0) + 1
+                else:
+                    event_audit["invalid"] = True
             pkg = event.get("Package")
             if isinstance(pkg, str) and pkg:
                 event_audit["packages"].add(pkg)
-            elif pkg is not None:
+            else:
                 event_audit["invalid"] = True
         if "Output" in event:
             sys.stdout.write(event["Output"])

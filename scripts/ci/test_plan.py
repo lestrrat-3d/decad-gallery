@@ -92,6 +92,7 @@ class PlanTest(unittest.TestCase):
                 needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
                 needs["records-validation"] = {"result": "success" if event in ("schedule", "workflow_dispatch")
                                                 or "full" in expected else "skipped"}
+                needs["package-plan"] = needs["package-workers"] = dict(needs["records-validation"])
                 if "broad" in expected:
                     full = event in ("schedule", "workflow_dispatch") or "full" in expected
                     for job in gate.BROAD_JOBS:
@@ -140,6 +141,7 @@ class PlanTest(unittest.TestCase):
                 matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
                 needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
                 needs["records-validation"] = {"result": "success" if "full" in expected else "skipped"}
+                needs["package-plan"] = needs["package-workers"] = dict(needs["records-validation"])
                 needs.update(plan={"result": "success", "outputs": {
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
@@ -255,6 +257,7 @@ class PlanTest(unittest.TestCase):
             dispatch = mock.Mock(return_value="success")
             needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
             needs["records-validation"] = {"result": "skipped"}
+            needs["package-plan"] = needs["package-workers"] = {"result": "skipped"}
             needs.update(plan={"result": "success", "outputs": {
                 "plan": json.dumps(result), "matrix": json.dumps(gate.matrix_for(result["suites"])),
                 "count": "1"}}, repository={"result": "success"}, worker={"result": "success"})
@@ -967,6 +970,7 @@ class PlanTest(unittest.TestCase):
         self.assertEqual({entry["suite"] for entry in matrix["include"]}, set(result["suites"]))
         needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
         needs["records-validation"] = {"result": "skipped"}
+        needs["package-plan"] = needs["package-workers"] = {"result": "skipped"}
         needs["renderer-full"]["result"] = "skipped"
         needs["bevel-full"]["result"] = "skipped"
         needs.update(plan={"result": "success", "outputs": {

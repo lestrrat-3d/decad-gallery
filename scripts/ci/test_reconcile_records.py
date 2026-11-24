@@ -281,6 +281,32 @@ func TestSingle(t *testing.T) {}
         self.assertEqual(result["duplicate_count"], 25)
         self.assertEqual(len(result["duplicate_sample"]), 10)
 
+    def test_package_shard_requires_its_exact_packages(self):
+        directory = self.root / "package-execution"
+        artifact = directory / "ci-records-package-workers-0"
+        artifact.mkdir(parents=True, exist_ok=True)
+        path = artifact / "package-workers-0.jsonl"
+        path.unlink(missing_ok=True)
+        inventory = self.root / "package-inventory.json"
+        inventory.write_text(json.dumps({"modules": {"root": {"example.com/fixture": ["TestParent"]}}}))
+        env = {"CI_TEST_RECORDS": str(path), "GITHUB_JOB": "package-workers", "CI_TEST_CASE": "0",
+               "GITHUB_SHA": "abc", "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}
+        with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(io.StringIO()):
+            run_tests.finished_tests([line for line in self.events
+                                      if json.loads(line).get("Package") == "example.com/fixture"])
+        packages = {(".", "example.com/fixture")}
+        with mock.patch.object(reconcile_records, "FULL_JOBS", {"package-workers": ()}), \
+                mock.patch.object(reconcile_records, "load_inventory", return_value=(set(), packages)), \
+                mock.patch.object(reconcile_records.full_partition, "select",
+                                  return_value=(["example.com/fixture"], set(), [])):
+            verify = lambda: reconcile_records.verify_execution(directory, inventory, "abc", "123", "1")
+            self.assertTrue(verify()["ok"])
+            with mock.patch.object(reconcile_records.full_partition, "package_shards",
+                                   return_value=[["example.com/other"]]):
+                self.assertIn("invalid package shard", verify()["errors"])
+            (directory / "ci-records-unexpected").mkdir()
+            self.assertFalse(verify()["ok"])
+
 
 if __name__ == "__main__":
     unittest.main()

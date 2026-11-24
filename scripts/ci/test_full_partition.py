@@ -1,10 +1,76 @@
 import unittest
+import json
 from unittest import mock
 
 import full_partition as partition
 
 
 class FullPartitionTests(unittest.TestCase):
+    def test_package_shards_are_bounded_deterministic_and_complete(self):
+        packages = [f"example.com/model{i:03}" for i in range(100)]
+        shards = partition.package_shards(packages)
+        self.assertEqual(len(shards), partition.MAX_PACKAGE_SHARDS)
+        self.assertEqual(shards, partition.package_shards(list(reversed(packages))))
+        self.assertCountEqual([package for shard in shards for package in shard], packages)
+        self.assertTrue(all(shards))
+        with self.assertRaises(ValueError):
+            partition.package_shards(["example.com/a", "example.com/a"])
+
+    def test_package_shard_allows_only_empty_package_skips(self):
+        process = mock.Mock(stdout=[], returncode=0)
+        process.wait.return_value = 0
+        def finished(lines, qualified, package_outcomes, event_audit):
+            package_outcomes["example.com/a"] = "skip"
+            event_audit["packages"].add("example.com/a")
+            event_audit["outcomes"].append(("example.com/a", "skip"))
+            event_audit["no_tests"].add("example.com/a")
+            return {}
+        with mock.patch.object(partition, "ordinary_packages", return_value=["example.com/a"]), \
+                mock.patch.object(partition, "discover", return_value=set()), \
+                mock.patch.object(partition.subprocess, "Popen", return_value=process) as popen, \
+                mock.patch.object(partition.run_tests, "finished_tests", side_effect=finished):
+            partition.run_package_shard("0")
+            self.assertIn("-p=1", popen.call_args.args[0])
+            self.assertIn("-parallel=1", popen.call_args.args[0])
+            with mock.patch.object(partition, "discover", return_value={"TestExpected"}), \
+                    self.assertRaisesRegex(ValueError, "missing or failed"):
+                partition.run_package_shard("0")
+
+    def test_package_shard_rejects_bad_terminal_streams(self):
+        package = "example.com/a"
+        def event(action, **extra):
+            return json.dumps({"Action": action, "Package": package, **extra})
+        marker = event("output", Output="?   \texample.com/a\t[no test files]\n")
+        streams = ([event("skip")], [event("run", Test="TestLost"), marker, event("skip")],
+                   [marker, event("skip"), event("skip")],
+                   [marker, event("skip"), json.dumps({"Action": "output", "Package": "example.com/other"})],
+                   [marker, event("skip"), "not json"])
+        with mock.patch.object(partition, "ordinary_packages", return_value=[package]), \
+                mock.patch.object(partition, "discover", return_value=set()):
+            for stream in streams:
+                process = mock.Mock(stdout=stream)
+                process.wait.return_value = 0
+                with self.subTest(stream=stream), \
+                        mock.patch.object(partition.subprocess, "Popen", return_value=process), \
+                        self.assertRaisesRegex(ValueError, "missing or failed"):
+                    partition.run_package_shard("0")
+
+    def test_package_shard_rejects_incomplete_and_duplicate_test_events(self):
+        package = "example.com/a"
+        def event(action, test=None):
+            return json.dumps({"Action": action, "Package": package, **({"Test": test} if test else {})})
+        streams = ([event("run", "TestA"), event("run", "TestA/child"), event("pass", "TestA"), event("pass")],
+                   [event("run", "TestA"), event("pass", "TestA"), event("pass", "TestA"), event("pass")])
+        with mock.patch.object(partition, "ordinary_packages", return_value=[package]), \
+                mock.patch.object(partition, "discover", return_value={"TestA"}):
+            for stream in streams:
+                process = mock.Mock(stdout=stream)
+                process.wait.return_value = 0
+                with self.subTest(stream=stream), \
+                        mock.patch.object(partition.subprocess, "Popen", return_value=process), \
+                        self.assertRaisesRegex(ValueError, "missing or failed"):
+                    partition.run_package_shard("0")
+
     def inventory(self):
         assigned = {test for tests in partition.run_tests.BEVEL_TESTS["full"].values() for test in tests}
         return {**{package: {"TestDedicated"} for package in partition.DEDICATED},

@@ -298,6 +298,8 @@ def check(needs, event):
     expected = {"worker": "success" if expected_matrix["include"] else "skipped"}
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
     expected["records-validation"] = "success" if full else "skipped"
+    expected["package-plan"] = "success" if full else "skipped"
+    expected["package-workers"] = "success" if full else "skipped"
     for job in BROAD_JOBS:
         enabled = "broad" in suites
         if job == "bevel-pr":
