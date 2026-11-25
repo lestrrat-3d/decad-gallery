@@ -2,6 +2,7 @@ package swisslever
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -112,15 +113,33 @@ type builtPlates struct {
 	back, front *decad.Body
 }
 
-// buildPlates builds both finished plates once per test.
+var (
+	platesOnce   sync.Once
+	platesShared builtPlates
+	platesErr    error
+)
+
+// buildPlates returns both finished plates, built once for the whole test binary. Tests must only read the plates.
+// The builder it returns is a fresh one over the same layout, so a test that builds more parts does not change what
+// another test reads.
 func buildPlates(t *testing.T) builtPlates {
 	t.Helper()
-	b := plateTestBuilder(t)
-	back, err := b.buildBackPlate()
-	require.NoError(t, err)
-	front, err := b.buildFrontPlate()
-	require.NoError(t, err)
-	return builtPlates{b, back, front}
+	platesOnce.Do(func() {
+		b := plateTestBuilder(t)
+		back, err := b.buildBackPlate()
+		if err != nil {
+			platesErr = err
+			return
+		}
+		front, err := b.buildFrontPlate()
+		if err != nil {
+			platesErr = err
+			return
+		}
+		platesShared = builtPlates{back: back, front: front}
+	})
+	require.NoError(t, platesErr)
+	return builtPlates{plateTestBuilder(t), platesShared.back, platesShared.front}
 }
 
 // plateEdges returns the length of the edges the finishing chamfers on one face of a plate: the outer loop and every
