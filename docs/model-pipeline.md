@@ -271,6 +271,24 @@ the built and posed body, for every parameter case that changes the part or its 
 - Check each cross bolt as the Fasteners rules ask: the head flush with its flat, the nut inside its cavity or
   pocket, the bolt crossing the seam, and no overlap with the part.
 
+### Thin pins
+
+A printed straight cylinder with a radius under 2 mm (a diameter under 4 mm) does not print reliably, whichever way
+it lies on the bed and whatever root fillet it has. This holds for a pin that is part of a larger body, such as a
+tongue pin on a slider or a pin on a pivot block, as well as for a loose pin.
+
+Give such a feature one of these forms instead:
+
+- **Cone.** Taper the pin to a small tip, so the base is at least 4 mm across and the section thins toward the tip.
+  A cone with a small tip is allowed.
+- **Split pin.** Build the pin as a [Split shaft](#split-shafts), which prints each half on a flat side. Join the
+  halves with a crown (interlocking teeth) on each end, for example one end into a printed part and the other through
+  a bearing. The Split shafts "Size" rule still holds, so the pin is at least 4 mm across.
+- **Steel pin.** Use a purchased steel pin in a hole, where the model's rules allow a bought pin.
+
+Models built before this rule keep their thin pins until their geometry changes. List each such pin in the model's
+`instructions.md` as a known exception.
+
 ### Surface edge finishing
 
 Chamfer every qualifying convex boundary edge on a large planar surface:
