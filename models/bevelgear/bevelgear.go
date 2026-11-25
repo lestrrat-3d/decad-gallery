@@ -387,16 +387,27 @@ func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Contai
 		return nil, fmt.Errorf("pattern teeth: %w", err)
 	}
 	pattern := append([]*decad.Body{trimmedTooth}, copies...)
-	joined, err := decad.Union(ctx, blank, pattern...)
-	if err != nil {
-		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
-	}
 	// The sector join holds a 0.1 mm mesh bound at its cone caps. The corner check reads sections of the
 	// finished gear and needs a bound of 0.05 mm or less after the bore cut, which loosens the join's bound
-	// a little, so rebuild the join finer first.
+	// a little, so the join is built at the finer bound.
 	bound := joinMeshBound
 	if filleted {
 		bound = filletedJoinMeshBound
+	}
+	operands := append([]*decad.Body{blank}, pattern...)
+	joined, err := decad.UnionRefined(ctx, operands, units.Millimeters(bound))
+	switch {
+	case err == nil:
+		return joined, nil
+	case errors.Is(err, decad.ErrUnsupported):
+		// UnionRefined refuses a join it cannot build in one step at this bound, and commits nothing.
+		// Its error says to call Union, then Refine; do that.
+	default:
+		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
+	}
+	joined, err = decad.Union(ctx, blank, pattern...)
+	if err != nil {
+		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
 	}
 	refined, err := decad.Refine(ctx, joined, units.Millimeters(bound))
 	switch {
