@@ -12,6 +12,8 @@ import (
 // skip lies in the cells it reads, and each triangle is counted once.
 type crossingGrid struct {
 	mesh   *decad.Mesh
+	vs     []r3.Vec // the mesh's vertices and triangles, copied once: decad's accessors copy on every call
+	ts     [][3]int
 	lo, hi r3.Vec // the mesh's box
 	cell   float64
 	ny, nz int
@@ -23,7 +25,7 @@ const pointInMargin = 0.05
 
 func newCrossingGrid(mesh *decad.Mesh) *crossingGrid {
 	vs, ts := mesh.Vertices(), mesh.Triangles()
-	g := &crossingGrid{mesh: mesh, lo: r3.Vec{X: math.Inf(1), Y: math.Inf(1), Z: math.Inf(1)},
+	g := &crossingGrid{mesh: mesh, vs: vs, ts: ts, lo: r3.Vec{X: math.Inf(1), Y: math.Inf(1), Z: math.Inf(1)},
 		hi: r3.Vec{X: math.Inf(-1), Y: math.Inf(-1), Z: math.Inf(-1)}}
 	for _, v := range vs {
 		g.lo = r3.Vec{X: math.Min(g.lo.X, v.X), Y: math.Min(g.lo.Y, v.Y), Z: math.Min(g.lo.Z, v.Z)}
@@ -64,7 +66,7 @@ func (g *crossingGrid) pointIn(p r3.Vec) bool {
 	// A triangle registered in more than one of these cells is counted in the first cell of the window that holds it.
 	j0, k0 := g.cellOf(p.Y-pointInMargin, p.Z-pointInMargin)
 	j1, k1 := g.cellOf(p.Y+pointInMargin, p.Z+pointInMargin)
-	vs, ts := g.mesh.Vertices(), g.mesh.Triangles()
+	vs, ts := g.vs, g.ts
 	crossings := 0
 	for kk := k0; kk <= k1; kk++ {
 		for j := j0; j <= j1; j++ {

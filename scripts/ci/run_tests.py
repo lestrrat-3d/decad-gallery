@@ -773,6 +773,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentPressWalls", "TestSevenSegmentRotor", "TestSevenSegmentRotorAll",
         "TestSevenSegmentSegmentGrid", "TestSevenSegmentShaft", "TestSevenSegmentSliders",
         "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay", "TestSevenSegmentWidthMargins",
+        "TestYellowFirstCountMatchesReference",
     ),
     "assembly": (
         "TestClickerBodies", "TestClickerHeights", "TestClickerPoseClearances",

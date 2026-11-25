@@ -194,6 +194,12 @@ func windowRays(tris []rayTri, entries [][2]float64, faceZ, elev float64, dir r3
 		entry := r3.Vec{X: q[0], Y: q[1], Z: faceZ}
 		origins[i] = entry.Sub(d.Scale(8))
 	}
+	return yellowFirstCount(tris, d, origins)
+}
+
+// yellowFirstCountReference is the straightforward count yellowFirstCount must equal: it fills a grid with every
+// triangle and counts the rays whose first hit is yellow.
+func yellowFirstCountReference(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 	g := newShadowGrid(tris, d, origins)
 	yellow := 0
 	for _, o := range origins {
@@ -202,6 +208,98 @@ func windowRays(tris []rayTri, entries [][2]float64, faceZ, elev float64, dir r3
 		}
 	}
 	return yellow
+}
+
+// yellowFirstCount returns how many rays from origins along d first hit a yellow triangle, exactly as counting
+// newShadowGrid(tris, d, origins).first(o) == kindYellow does. A ray whose cell holds no yellow triangle that it hits
+// with no distance limit cannot end on yellow: hitTri with a finite best only rejects more. Only the cells of the other
+// rays are filled, with every triangle in index order as newShadowGrid fills them, and those rays run first unchanged.
+func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
+	g := newShadowGrid(nil, d, origins)
+	if g.emptyRegion {
+		return 0
+	}
+	g.tris = tris
+	ncell := g.nu * g.nv
+	// Yellow triangles by cell: few triangles, so a map.
+	ycells := map[int32][]int32{}
+	for k := range tris {
+		if tris[k].kind != kindYellow {
+			continue
+		}
+		g.visitCells(&tris[k], func(cell int32) { ycells[cell] = append(ycells[cell], int32(k)) })
+	}
+	cellOfRay := make([]int32, len(origins))
+	need := make([]int32, ncell) // 0 not needed, else 1 + dense index
+	var cand []int               // origins that hit a yellow triangle of their cell
+	nneed := int32(0)
+	for n, o := range origins {
+		i, j := g.cellOf(o.Dot(g.bu), o.Dot(g.bv))
+		cell := int32(j*g.nu + i)
+		cellOfRay[n] = cell
+		for _, k := range ycells[cell] {
+			if _, ok := hitTri(&tris[k], o, g.d, g.inv, math.Inf(1)); ok {
+				cand = append(cand, n)
+				if need[cell] == 0 {
+					nneed++
+					need[cell] = nneed
+				}
+				break
+			}
+		}
+	}
+	if len(cand) == 0 {
+		return 0
+	}
+	// Fill the needed cells in two passes (count, then place), every triangle in index order.
+	start := make([]int32, nneed+1)
+	for k := range tris {
+		g.visitCells(&tris[k], func(cell int32) {
+			if id := need[cell]; id != 0 {
+				start[id]++
+			}
+		})
+	}
+	for i := int32(1); i <= nneed; i++ {
+		start[i] += start[i-1]
+	}
+	items := make([]int32, start[nneed])
+	fill := append([]int32(nil), start[:nneed]...)
+	for k := range tris {
+		g.visitCells(&tris[k], func(cell int32) {
+			if id := need[cell]; id != 0 {
+				items[fill[id-1]] = int32(k)
+				fill[id-1]++
+			}
+		})
+	}
+	yellow := 0
+	for _, n := range cand {
+		id := need[cellOfRay[n]]
+		if g.firstOf(items[start[id-1]:start[id]], origins[n]) == kindYellow {
+			yellow++
+		}
+	}
+	return yellow
+}
+
+// visitCells calls f with each cell newShadowGrid would put t in.
+func (g *shadowGrid) visitCells(t *rayTri, f func(int32)) {
+	b, c := t.a.Add(t.e1), t.a.Add(t.e2)
+	u0, u1, u2 := t.a.Dot(g.bu), b.Dot(g.bu), c.Dot(g.bu)
+	v0, v1, v2 := t.a.Dot(g.bv), b.Dot(g.bv), c.Dot(g.bv)
+	tlu, thu := min(u0, u1, u2)-shadowMargin, max(u0, u1, u2)+shadowMargin
+	tlv, thv := min(v0, v1, v2)-shadowMargin, max(v0, v1, v2)+shadowMargin
+	if thu < g.lou || tlu > g.hiu || thv < g.lov || tlv > g.hiv {
+		return
+	}
+	i0, j0 := g.cellOf(tlu, tlv)
+	i1, j1 := g.cellOf(thu, thv)
+	for j := j0; j <= j1; j++ {
+		for i := i0; i <= i1; i++ {
+			f(int32(j*g.nu + i))
+		}
+	}
 }
 
 // indexTris numbers tris in their order, as newRayTree does: of two hits at one distance the lower index wins.
@@ -221,6 +319,7 @@ type shadowGrid struct {
 	d, inv      r3.Vec
 	bu, bv      r3.Vec // the plane across d
 	lou, lov    float64
+	hiu, hiv    float64 // the far edges of the origins' shadow, with the margin
 	nu, nv      int
 	cells       [][]int32
 	emptyRegion bool
@@ -252,8 +351,12 @@ func newShadowGrid(tris []rayTri, d r3.Vec, origins []r3.Vec) *shadowGrid {
 	}
 	g.lou, g.lov = lou-shadowMargin, lov-shadowMargin
 	hiu, hiv = hiu+shadowMargin, hiv+shadowMargin
+	g.hiu, g.hiv = hiu, hiv
 	g.nu = int((hiu-g.lou)/shadowCell) + 1
 	g.nv = int((hiv-g.lov)/shadowCell) + 1
+	if tris == nil {
+		return g
+	}
 	g.cells = make([][]int32, g.nu*g.nv)
 	for k := range tris {
 		t := &tris[k]
@@ -290,8 +393,13 @@ func (g *shadowGrid) first(o r3.Vec) int {
 		return -1
 	}
 	i, j := g.cellOf(o.Dot(g.bu), o.Dot(g.bv))
+	return g.firstOf(g.cells[j*g.nu+i], o)
+}
+
+// firstOf is first over the triangles of one cell.
+func (g *shadowGrid) firstOf(cell []int32, o r3.Vec) int {
 	best, kind, bestIdx := math.Inf(1), -1, int32(math.MaxInt32)
-	for _, k := range g.cells[j*g.nu+i] {
+	for _, k := range cell {
 		tr := &g.tris[k]
 		if dist, ok := hitTri(tr, o, g.d, g.inv, best); ok && (dist < best || dist == best && tr.idx < bestIdx) {
 			best, kind, bestIdx = dist, tr.kind, tr.idx
