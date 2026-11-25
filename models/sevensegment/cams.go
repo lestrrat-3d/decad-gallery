@@ -1,6 +1,7 @@
 package sevensegment
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"slices"
@@ -312,7 +313,14 @@ func letterLoops(s Segment) [][][2]float64 {
 		}
 	}
 	var loops [][][2]float64
-	for start := range next {
+	// Walk the loops from their lattice points in a fixed order: ranging over the map would start each loop at a
+	// random corner and make the sketch, and the engraved mesh, differ from run to run.
+	starts := make([]pt, 0, len(next))
+	for p := range next {
+		starts = append(starts, p)
+	}
+	slices.SortFunc(starts, func(a, b pt) int { return cmp.Or(cmp.Compare(a.j, b.j), cmp.Compare(a.i, b.i)) })
+	for _, start := range starts {
 		if _, ok := next[start]; !ok {
 			continue
 		}
