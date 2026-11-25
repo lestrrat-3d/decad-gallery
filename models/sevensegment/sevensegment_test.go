@@ -4,6 +4,7 @@ package sevensegment_test
 
 import (
 	"math"
+	"os"
 	"strings"
 	"testing"
 
@@ -294,6 +295,13 @@ func TestSevenSegmentPlacement(t *testing.T) {
 		{"100 along X", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
 		{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
 		{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
+	}
+	if expected := os.Getenv("SEVENSEGMENT_PLACEMENTS"); expected != "" {
+		names := make([]string, 0, len(cases))
+		for _, c := range cases {
+			names = append(names, c.name)
+		}
+		require.ElementsMatch(t, strings.Split(expected, "|"), names)
 	}
 	t.Parallel()
 	_, base := builtDefault(t)

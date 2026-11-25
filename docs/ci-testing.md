@@ -15,20 +15,20 @@ renderer checks. The plan records selected suites and reasons.
 
 Markdown-only changes select no worker suite. A change to `scripts/check_repository.py` or `scripts/modelgen/spurgear.py` alone also selects none,
 because only the `repository` job runs them. Changes to spinning wheel part PNGs select `wheel-parts`. New
-registered packages select their tests and affected consumers. New unregistered packages select broad checks and
-direct tests alongside affected known packages. A change to either `go.mod` or `go.sum` selects `broad` and the
+registered packages select their tests and affected consumers. Discoverable model, feature, and internal packages
+select their own tests and affected consumers without registration. A change to either `go.mod` or `go.sum` selects `broad` and the
 `full` marker, which runs the full root and renderer checks. The renderer group is the set of root-module packages
 that `RENDERER_PACKAGE` in `run_tests.py` matches (`tools/render`, `internal/renderkit` and each item's `render`
 package); `renderer_packages()` lists them, and the root-module suites skip them.
 
 Render code selects these suites:
 
-- A `.go` change in `models/<name>/render` or `features/<name>/render` selects `render-<name>` and
-  `renderer-compile`. A production change there also selects `render-<other>` for every render package that imports it.
-- A production change in `models/<name>` or `features/<name>` selects `render-<name>` when the item has a render
+- A `.go` change in `models/<name>/render` selects `render-model-<name>`; a change in `features/<name>/render` selects
+  `render-feature-<name>`. A production change there also selects every render package that imports it.
+- A production change in `models/<name>` or `features/<name>` selects its kind-qualified render suite when it has a render
   package. It replaces the item's named renderer suites, such as `swiss-render`. Items reached only through imports keep
   those named suites.
-- A new render package of a registered item selects `render-<name>` without `broad`.
+- A new model or feature render package selects its item-specific render suite without registration.
 - A `.go` change in `tools/render`, or any change under `tools/render/fonts`, selects `render-tool`. The tool's
   gallery tile cache test runs there, so the separate cache step is skipped.
 - A production change in `internal/renderkit` selects `renderer-all`, the 16-shard suite over every renderer package.
@@ -37,10 +37,11 @@ Render code selects these suites:
   `renderer-full`) and for scheduled or dispatched runs. `CI_BROAD_OVERRIDE` does not add it. When it runs, it replaces
   `renderer-compile`, `package-renderkit`, the named renderer suites and every `render-*` suite.
 
-A `render-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
+A model's `render-model-<name>` suite runs each test listed for the item in `RENDER_HEAVY` (`gate.py`) as its own job, plus one
 `rest` job with every other test of the package. A test that builds a full assembly belongs in `RENDER_HEAVY`.
-Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unregistered existing
-owners, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
+The `render-feature-<name>` suite runs the feature's render package in one job.
+Unknown shared inputs select broad checks alongside affected known packages. Deleted packages, unsupported package
+layouts, and planning errors select full coverage. A new Go directory that cannot be classified when metadata is
 unavailable fails planning instead. The wheel README part-image inventory is checked before planning and can also fail
 the plan. Suites already covered by selected broad or full jobs are not dispatched twice.
 
@@ -74,7 +75,8 @@ workers that both build the default gearbox.
 Cost estimates only affect placement. Each job checks its assigned test results. The kit test keeps its existing
 allowed skips unless full kits are enabled.
 Renderer PR checks partition the discovered package tests across sixteen jobs. Each job requires its assigned tests
-and their subtests to pass. Scheduled and manual runs keep the complete renderer job.
+and their subtests to pass. Full runs partition renderer tests across eight jobs, using measured durations for known
+expensive tests and grouping each package's remaining tests.
 The fan PR suite runs one validation test and partitions the remaining discovered tests across nine jobs.
 Its two on-demand tests keep their existing allowed skips unless full fan testing is enabled.
 
@@ -85,13 +87,41 @@ up to date before merging. See the [ruleset](https://github.com/lestrrat-3d/deca
 ## Full runs
 
 Scheduled and manually dispatched runs select broad checks and use the full path. Dependency file changes use the
-same full path through the `full` marker. `full_partition.py` lists root-module packages and
-top-level tests, runs the packages outside dedicated jobs, and runs unassigned bevel tests. Dedicated jobs cover
-their packages and the eight full bevel shards. Wheel and siren jobs run assigned cases plus a remainder that skips
+same full path through the `full` marker. `full_partition.py` lists root-module packages and assigns the packages
+outside dedicated jobs to at most sixteen workers. The initial plan creates the package matrix, so its workers can
+queue alongside the other full checks. Each worker runs one package and one parallel test at a time,
+and checks its package and test results. Each dedicated partition lists only its own package. Dedicated jobs cover
+their packages, the eight full bevel shards, and the remaining bevel tests. Four fan jobs run the default, each
+variant, and the shared-fixture remainder tests. Two Swiss lever jobs run the fork sweep and shared-fixture remainder. Wheel and
+siren jobs run assigned cases plus a remainder that skips
 assigned paths; the remainder checks for overlapping assignments and missing top-level tests. The runner requires
-listed test results and explicitly checks the configured fan and planetary variants. `renderer-full` lists renderer
-packages and tests, then requires their pass events and rejects skipped or failed subtests of listed tests. Full runs
-skip the separate PR renderer jobs because `renderer-full` runs those renderer tests.
+listed test results and explicitly checks the configured fan and planetary variants. Each `renderer-full` job lists
+renderer packages and tests, then requires its assigned tests and their subtests to pass. Full runs skip the separate
+PR renderer jobs because the `renderer-full` jobs run those renderer tests.
+Seven-segment checks run each placement case separately from the remaining assembly tests and the part tests.
+
+The full planetary suite runs each non-default kit in its own job and requires its named subtest. Five further jobs
+partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation
+checks their records with the other full-run artifacts.
+
+On full runs, the planner discovers the reviewed cycloidal subtests under `TestBuildOptions` and
+`TestMeasuredFits`. Four `case-workers` jobs run those subtests, one runs the rest of the package, and one
+checks whether either parent runs any subtest the planner missed. If the cycloidal Go sources differ from the
+reviewed version or the opt-in is missing or invalid, an ordinary package worker runs the whole package.
+
+`records-validation` checks every case receipt against the plan and checks the execution records against both
+their receipt and the assigned tests. On a partial retry, successful case artifacts can come from different
+attempts of the same workflow run. Each attempt must fall between the plan's attempt and the current attempt,
+and the revision, plan, and case must match.
+
+After full-run records pass validation, `records-validation` adds `timing-summary.json` to the
+`ci-validation-summary` artifact. It lists the 20 slowest test and package events separately, including job and
+case identifiers. Each value is one Go test elapsed sample in seconds. Parent test times include subtests, and
+package times include test execution and other overhead, so do not add them together. The report excludes cached
+packages and packages whose cache status is unknown. Events without valid elapsed values are counted separately.
+Run `python3 scripts/ci/report_timings.py --execution-dir ci-artifacts --limit 100`
+on downloaded record artifacts to select a different limit, up to 1,000 per kind. Timing samples do not change
+coverage validation or job placement.
 
 ## Probe and limits
 
@@ -124,5 +154,7 @@ model-checks jobs. It verifies the successful "Check planned results" step or th
 The tested merge must have the push base and PR head as its parents. Its tree, changed paths,
 and selected suites must match the main push. The push plan records the PR number, run ID, tested commit and suites.
 
-The repository and aggregate checks still run on main. Direct pushes, broad or full plans, CI changes, and
-missing or inconsistent evidence run the usual push checks. Set `CI_BROAD_OVERRIDE` to `true` to force broad coverage.
+For a full plan, the pull request must also have passed full execution record validation and its producer check.
+The repository and aggregate checks still run on main. Direct pushes, broad-only plans, CI changes, and missing or
+inconsistent evidence run the usual push checks. Set `CI_BROAD_OVERRIDE` to `true` to force broad coverage and disable
+reuse.

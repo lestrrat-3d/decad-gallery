@@ -2,10 +2,14 @@
 
 from pathlib import Path
 import os
+import json
 import re
 import subprocess
 import tempfile
 import unittest
+
+import gate
+import reconcile_records
 
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github/workflows/repository.yml"
@@ -16,6 +20,59 @@ def job_section(workflow, job):
 
 
 class WorkflowRecordsTests(unittest.TestCase):
+    def test_sevensegment_cases_match_record_validator_and_dispatch(self):
+        section = job_section(WORKFLOW.read_text(), "sevensegment")
+        matrix = section.split("        shard:\n", 1)[1].split("    name:", 1)[0]
+        cases = re.findall(r"          - ([a-z-]+)", matrix)
+        self.assertEqual(tuple(cases), reconcile_records.FULL_JOBS["sevensegment"])
+        self.assertEqual(tuple(cases), gate.SEVENSEGMENT_CASES)
+
+    def test_swiss_cases_match_record_validator(self):
+        section = job_section(WORKFLOW.read_text(), "swisslever-full")
+        cases = re.search(r"case: \[([^]]+)\]", section).group(1).split(", ")
+        self.assertEqual(tuple(cases), reconcile_records.FULL_JOBS["swisslever-full"])
+
+    def test_renderer_shard_matrix_matches_record_validator(self):
+        section = job_section(WORKFLOW.read_text(), "renderer-full")
+        values = re.search(r"shard: \[([^]]+)\]", section).group(1).split(", ")
+        expected = [str(index) for index in range(gate.RENDER_FULL_SHARDS)]
+        self.assertEqual(values, expected)
+        self.assertEqual(reconcile_records.FULL_JOBS["renderer-full"], tuple(expected))
+
+    def test_package_matrix_is_only_created_and_read_for_full_runs(self):
+        workflow = WORKFLOW.read_text()
+        plan = job_section(workflow, "plan")
+        step = plan.split("      - id: package-matrix\n", 1)[1].split("\n      - ", 1)[0]
+        full_events = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
+        self.assertIn(
+            f"        if: {full_events} || contains(fromJSON(steps.plan.outputs.plan).suites, 'full')\n",
+            step,
+        )
+        self.assertIn("python3 scripts/ci/full_partition.py package-matrix", step)
+        self.assertIn("package_matrix: ${{ steps.package-matrix.outputs.matrix }}", plan)
+        workers = job_section(workflow, "package-workers")
+        self.assertIn("    needs: plan", workers.splitlines())
+        self.assertIn(
+            f"\n    if: needs.plan.result == 'success' && "
+            f"({full_events} || contains(fromJSON(needs.plan.outputs.plan).suites, 'full'))\n",
+            workers,
+        )
+        self.assertIn("matrix: ${{ fromJSON(needs.plan.outputs.package_matrix) }}", workers)
+
+    def test_full_run_propagates_case_plan_and_records_to_required_jobs(self):
+        workflow = WORKFLOW.read_text()
+        plan = job_section(workflow, "plan")
+        self.assertIn("python3 scripts/ci/case_inventory.py plan", plan)
+        self.assertIn("CASE_PLAN: ${{ steps.case-plan.outputs.plan }}", plan)
+        for job in ("case-workers", "package-workers", "records-validation"):
+            self.assertIn("CASE_PLAN: ${{ needs.plan.outputs.case_plan }}", job_section(workflow, job))
+        cases = job_section(workflow, "case-workers")
+        self.assertIn("fromJSON(needs.plan.outputs.case_matrix)", cases)
+        self.assertIn("python3 scripts/ci/case_inventory.py run", cases)
+        self.assertIn("ci-records-case-workers-${{ matrix.case }}", cases)
+        for consumer in ("records-validation", "model-checks"):
+            self.assertIn("case-workers", job_section(workflow, consumer).split("runs-on:", 1)[0])
+
     def test_capacity_document_check_only_runs_for_changed_instructions(self):
         section = job_section(WORKFLOW.read_text(), "repository")
         step = section.split("      - name: Check clamp arm capacity documentation\n", 1)[1]
@@ -28,8 +85,8 @@ class WorkflowRecordsTests(unittest.TestCase):
     def test_full_suite_records_have_unique_paths_and_required_uploads(self):
         workflow = WORKFLOW.read_text()
         jobs = {
-            "repository": "repository",
-            "renderer-full": "renderer-full",
+            "package-workers": "package-workers-${{ matrix.case }}",
+            "renderer-full": "renderer-full-${{ matrix.shard }}",
             "escapement": "escapement",
             "onewayclutch": "onewayclutch",
             "clamparm": "clamparm",
@@ -38,6 +95,9 @@ class WorkflowRecordsTests(unittest.TestCase):
             "siren": "siren-${{ matrix.case }}",
             "bevel-full": "bevel-full-${{ matrix.shard }}",
             "planetary-full": "planetary-full-${{ matrix.case }}",
+            "bevel-remainder": "bevel-remainder",
+            "handcrankfan-full": "handcrankfan-full-${{ matrix.case }}",
+            "swisslever-full": "swisslever-full-${{ matrix.case }}",
         }
         for job, record in jobs.items():
             with self.subTest(job=job):
@@ -48,8 +108,8 @@ class WorkflowRecordsTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", section)
                 self.assertIn("overwrite: true", section)
                 self.assertIn("if: always()", section)
-                if job in ("wheel", "siren", "bevel-full", "planetary-full"):
-                    case = "shard" if job == "bevel-full" else "case"
+                if job in ("wheel", "siren", "bevel-full", "planetary-full", "renderer-full", "handcrankfan-full", "swisslever-full", "package-workers"):
+                    case = "shard" if job in ("bevel-full", "renderer-full") else "case"
                     self.assertIn(f"CI_TEST_CASE: ${{{{ matrix.{case} }}}}", section)
 
     def test_shared_broad_jobs_only_upload_records_for_full_runs(self):
@@ -66,7 +126,8 @@ class WorkflowRecordsTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         section = job_section(workflow, "records-validation")
         for producer in ("repository", "renderer-full", "escapement", "onewayclutch", "clamparm",
-                         "turbinefan", "wheel", "siren", "bevel-full", "planetary-full"):
+                         "turbinefan", "wheel", "siren", "bevel-full", "planetary-full",
+                         "bevel-remainder", "handcrankfan-full", "swisslever-full"):
             self.assertIn(producer, section.split("\n", 1)[0])
         self.assertIn("pattern: ci-records-*", section)
         self.assertIn("python3 scripts/ci/inventory.py > inventory.json", section)
@@ -87,6 +148,7 @@ class WorkflowRecordsTests(unittest.TestCase):
         self.assertIn("name: ci-validation-summary", upload)
         self.assertIn("inventory.json", upload)
         self.assertIn("validation-summary.json", upload)
+        self.assertIn("timing-summary.json", upload)
         self.assertIn("overwrite: true", upload)
         self.assertIn("if-no-files-found: warn", upload)
         scratch = WORKFLOW.parents[2] / ".tmp"
@@ -104,6 +166,34 @@ class WorkflowRecordsTests(unittest.TestCase):
                                             env=env, check=False)
                     self.assertEqual(result.returncode, status)
                     self.assertEqual((root / "validation-summary.json").read_text(), f'{{"ok": {value}}}\n')
+
+    def test_timing_report_runs_after_validation_and_reads_downloaded_artifacts(self):
+        section = job_section(WORKFLOW.read_text(), "records-validation")
+        validation = section.index("      - name: Validate full execution records")
+        report = section.index("      - name: Report test timings")
+        upload = section.index("      - name: Retain inventory and validation summary")
+        self.assertLess(validation, report)
+        self.assertLess(report, upload)
+        step = section[report:upload]
+        self.assertNotIn("if: always()", step)
+        command = re.search(r"        run: (python3 scripts/ci/report_timings.py .* > timing-summary.json)", step)
+        self.assertIsNotNone(command)
+        scratch = WORKFLOW.parents[2] / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as directory:
+            root = Path(directory)
+            artifact = root / "ci-artifacts/ci-records-example"
+            artifact.mkdir(parents=True)
+            (artifact / "example.jsonl").write_text(json.dumps({"kind": "test", "elapsed": 1.25,
+                                                               "test": "TestExample"}) + "\n" +
+                                                    json.dumps({"kind": "package", "elapsed": 2,
+                                                                "cached": False}) + "\n")
+            script = WORKFLOW.parents[2] / "scripts/ci/report_timings.py"
+            command_line = command.group(1).replace("scripts/ci/report_timings.py", str(script))
+            result = subprocess.run(command_line, shell=True, cwd=root, check=False)
+            self.assertEqual(result.returncode, 0)
+            output = json.loads((root / "timing-summary.json").read_text())
+            self.assertEqual(output["slowest"]["test"][0]["elapsed"], 1.25)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay real historical diffs through the planner and a simulated gate."""
+"""Replay historical diffs through the planner and check simulated job results."""
 import json
 import subprocess
 from unittest import mock
@@ -16,8 +16,8 @@ CASES = {
     "b8974b264": ({"models/clamparm/fits_test.go"}, {"clamparm"}, {"broad", "wheel", "siren"}),
     "9f71de90c": ({"go.mod", "go.sum"}, {"broad", "full"}, set()),
     "3e38f7503": ({".github/workflows/repository.yml"}, set(), {"broad"}),
-    "b2200f3eb": ({"models/plaquestand/plaquestand.go"}, {"broad", "full"},
-                   {"model-plaquestand", "renderer-all"}),
+    "b2200f3eb": ({"models/plaquestand/plaquestand.go"}, {"model-plaquestand", "render-tool"},
+                   {"broad", "full"}),
 }
 
 
@@ -47,20 +47,27 @@ def replay(revision):
     with mock.patch.object(plan, "git", side_effect=historical_head):
         result = plan.plan("push", base, tested)
     errors = validate(result, *CASES[revision])
-    matrix = gate.matrix_for(result["suites"])
+    suites = result["suites"]
+    matrix = gate.matrix_for(suites)
+    full = "full" in suites
     needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
-    if "broad" in result["suites"]:
-        full = "full" in result["suites"]
-        for job in gate.BROAD_JOBS:
-            if (job not in ("renderer-full", "bevel-full", "bevel-pr", *gate.PR_RENDER_JOBS) or
-                    (full and job in ("renderer-full", "bevel-full")) or
-                    (not full and job == "bevel-pr") or
-                    (not full and "renderer-all" not in result["suites"] and job in gate.PR_RENDER_JOBS)):
-                needs[job]["result"] = "success"
-    needs.update(plan={"result": "success", "outputs": {
-        "plan": json.dumps(result), "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
+    if "broad" in suites:
+        full_jobs = {"renderer-full", "bevel-full", "planetary-full", "bevel-remainder",
+                     "handcrankfan-full", "swisslever-full"}
+        enabled = set(gate.BROAD_JOBS) - full_jobs - {"bevel-pr"} - set(gate.PR_RENDER_JOBS)
+        enabled.update(full_jobs if full else {"bevel-pr"})
+        if not full and "renderer-all" not in suites:
+            enabled.update(gate.PR_RENDER_JOBS)
+        needs.update({job: {"result": "success"} for job in enabled})
+    outputs = {"plan": json.dumps(result), "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}
+    if full:
+        # Replay simulates a full run with ordinary package coverage.
+        outputs.update(case_plan="null", case_matrix=json.dumps({"include": []}))
+    needs.update(plan={"result": "success", "outputs": outputs},
         repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
-        **{"records-validation": {"result": "success" if "full" in result["suites"] else "skipped"}})
+        **{"case-workers": {"result": "skipped"}},
+        **{name: {"result": "success" if full else "skipped"}
+           for name in ("records-validation", "package-workers")})
     errors.extend(gate.check(needs, "push"))
     return result, errors
 

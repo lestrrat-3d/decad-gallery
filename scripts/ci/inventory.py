@@ -2,6 +2,7 @@
 """Report the scheduled Go test inventory without executing test bodies."""
 
 import json
+import os
 import subprocess
 
 import full_partition
@@ -19,23 +20,24 @@ def discover(base):
                                 check=True, capture_output=True, text=True).stdout
         names = output.splitlines()
         unsupported = [name for name in names if name.startswith(("Example", "Fuzz"))]
-        if unsupported:
+        if unsupported and package != full_partition.CYCLOIDAL:
             raise ValueError(f"{package} has examples or fuzz tests outside the CI inventory: "
                              + ", ".join(unsupported))
-        result[package] = sorted(line for line in names if line.startswith("Test"))
+        result[package] = sorted([line for line in names if line.startswith("Test")] + unsupported)
     return result
 
 
-def report(root, renderer):
+def report(root, renderer, case_plan=None):
     # Use the same partition validation as the full runner.
     ordinary, _, bevel_remainder = full_partition.select({package: set(tests) for package, tests in root.items()})
     assignments = {}
     def add(package, name, job):
         assignments.setdefault(package, {}).setdefault(name, []).append(job)
 
-    for package in ordinary:
-        for test in root[package]:
-            add(package, test, "repository")
+    for index, packages in enumerate(full_partition.package_shards(ordinary, case_plan)):
+        for package in packages:
+            for test in root[package]:
+                add(package, test, f"package-workers/{index}")
     for name, job in (("onewayclutch", "onewayclutch"), ("turbinefan", "turbinefan"),
                       ("clamparm", "clamparm"), ("fastener", "clamparm")):
         package = full_partition.ROOT + "/models/" + name
@@ -45,10 +47,28 @@ def report(root, renderer):
         for test in tests:
             add(full_partition.BEVEL, test, "bevel-full/" + shard)
     for test in bevel_remainder:
-        add(full_partition.BEVEL, test, "repository/bevel-remainder")
+        add(full_partition.BEVEL, test, "bevel-remainder")
+    package = full_partition.ROOT + "/models/handcrankfan"
+    for case in (*full_partition.FAN_CASES, "rest"):
+        for test in full_partition.fan_tests(set(root[package]), case):
+            add(package, test, "handcrankfan-full/" + case)
+    package = full_partition.ROOT + "/models/swisslever"
+    for case in ("fork", "rest"):
+        for test in full_partition.swiss_tests(set(root[package]), case):
+            add(package, test, "swisslever-full/" + case)
     for index, tests in enumerate(run_tests.ESCAPEMENT_SHARDS, 1):
         for test in tests:
             add(full_partition.ROOT + "/models/escapement", test, f"escapement/{index}")
+    planetary = full_partition.ROOT + "/models/planetarygearbox"
+    planetary_tests = root[planetary]
+    if "TestKitGearboxes" in planetary_tests:
+        for kit in run_tests.PLANETARY_KITS:
+            add(planetary, "TestKitGearboxes", "planetary-full/" + kit)
+    for index, tests in enumerate(run_tests.planetary_test_shards(
+            [test for test in planetary_tests if test != "TestKitGearboxes"],
+            run_tests.PLANETARY_FULL_REST_SHARDS)):
+        for test in tests:
+            add(planetary, test, f"planetary-full/rest-{index}")
     for case, tests in run_tests.WHEEL_EXPECTED.items():
         for test in tests:
             add(full_partition.ROOT + "/models/spinningwheel", test, "wheel/" + case)
@@ -57,7 +77,9 @@ def report(root, renderer):
             add(full_partition.ROOT + "/models/handcranksiren", test, "siren/" + case)
     for shard, tests in run_tests.SEVENSEGMENT_SHARDS.items():
         for test in tests:
-            add(full_partition.ROOT + "/models/sevensegment", test, "sevensegment/" + shard)
+            cases = run_tests.SEVENSEGMENT_PLACEMENTS if shard == "placement" else (shard,)
+            for case in cases:
+                add(full_partition.ROOT + "/models/sevensegment", test, "sevensegment/" + case)
 
     for package, label in ((full_partition.ROOT + "/models/spinningwheel", "wheel/rest"),
                            (full_partition.ROOT + "/models/handcranksiren", "siren/rest")):
@@ -67,13 +89,34 @@ def report(root, renderer):
                 add(package, test, label)
 
     variants = [{"package": package, "test": test} for package, test in sorted(full_partition.FULL_VARIANTS)]
+    if case_plan is not None:
+        manifest = case_plan["manifest"]
+        package = manifest["package"]
+        if sorted(root[package]) != manifest["tests"]:
+            raise ValueError("case plan disagrees with package inventory")
+        for job in case_plan["jobs"]:
+            if job["kind"] == "group":
+                add(package, job["parent"], "case-workers/" + job["case"])
+                variants.extend({"package": package, "test": job["parent"] + "/" + name} for name in job["names"])
+            elif job["kind"] == "remainder":
+                for name in set(root[package]) - manifest["parents"].keys():
+                    add(package, name, "case-workers/remainder")
+    variants.extend({"package": planetary, "test": "TestKitGearboxes/" + kit}
+                    for kit in run_tests.PLANETARY_KITS)
+    variants.extend({"package": full_partition.ROOT + "/models/sevensegment",
+                     "test": "TestSevenSegmentPlacement/" + name}
+                    for _, name in run_tests.SEVENSEGMENT_PLACEMENTS.values())
+    renderer_shards = gate.renderer_full_shards(renderer)
     return {
         "version": 1,
+        "case_plan": case_plan,
         "modules": {"root": root, "renderer": renderer},
         "known_assignments": {
             "root": assignments,
-            "renderer": {package: {test: ["renderer-full"] for test in tests}
-                         for package, tests in renderer.items()},
+            "renderer": {package: {test: [f"renderer-full/{index}"]
+                                   for index, shard in enumerate(renderer_shards)
+                                   for pkg, names in shard if pkg == package for test in names}
+                         for package in renderer},
         },
         "full_environment": full_partition.FULL_ENV,
         "required_variants": variants,
@@ -90,7 +133,12 @@ def split_renderer(discovered):
 
 
 def main():
-    print(json.dumps(report(*split_renderer(discover(["go"]))), indent=2, sort_keys=True))
+    case_plan = json.loads(os.environ.get("CASE_PLAN", "null"))
+    if "CASE_PLAN" in os.environ and case_plan is None:
+        import case_inventory
+        if case_inventory.discover("cycloidal") is not None:
+            raise ValueError("reviewed cycloidal package requires its case plan")
+    print(json.dumps(report(*split_renderer(discover(["go"])), case_plan=case_plan), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import unittest
 from unittest import mock
 
 import run_tests
+import reconcile_records
 
 
 class SevenSegmentShardsTest(unittest.TestCase):
@@ -17,8 +18,71 @@ class SevenSegmentShardsTest(unittest.TestCase):
         # The same check the CI job runs: the shards are disjoint and list every test of the package.
         run_tests.check_sevensegment_coverage()
 
+    def test_placement_has_its_own_shard(self):
+        self.assertEqual(run_tests.SEVENSEGMENT_SHARDS["placement"], ("TestSevenSegmentPlacement",))
+        self.assertNotIn("TestSevenSegmentPlacement", run_tests.SEVENSEGMENT_SHARDS["assembly"])
+
+    def test_each_placement_case_requires_its_subtest_and_case_guard(self):
+        with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
+                mock.patch.object(run_tests, "go_test") as execute:
+            for case in run_tests.SEVENSEGMENT_PLACEMENTS:
+                run_tests.run_sevensegment(case)
+        for (case, (_, name)), call in zip(run_tests.SEVENSEGMENT_PLACEMENTS.items(), execute.call_args_list):
+            test = "TestSevenSegmentPlacement/" + name
+            self.assertEqual(call.kwargs["expected"], [test], case)
+            self.assertEqual(call.args[0][2], run_tests.run_pattern([test]))
+            self.assertEqual(call.kwargs["env"]["SEVENSEGMENT_PLACEMENTS"],
+                             "|".join(value[0] for value in run_tests.SEVENSEGMENT_PLACEMENTS.values()))
+
 
 class RunPatternTest(unittest.TestCase):
+    def test_real_no_test_package_records_skip(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        package = "github.com/lestrrat-3d/decad-gallery/internal/placement"
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            path = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(path)}):
+                run_tests.go_test([package], package=package, require_empty_package=True)
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            leaves, _, packages, errors, _ = reconcile_records.read_records([path])
+        self.assertEqual([(r["kind"], r.get("status")) for r in rows], [("package", "skip"), ("complete", None)])
+        self.assertFalse(leaves)
+        self.assertEqual(packages, {(".", package)})
+        self.assertFalse(errors)
+
+    def test_empty_partition_rejects_tests_failure_and_other_packages(self):
+        def event(action, package="p", test=None):
+            return json.dumps({"Action": action, "Package": package, **({"Test": test} if test else {})})
+        cases = [([event("run", test="TestA"), event("skip")], 0),
+                 ([event("skip", test="TestA"), event("skip")], 0),
+                 ([event("fail")], 0), ([event("start", "other"), event("skip")], 0),
+                 ([event("skip")], 0), ([event("skip")], 1), ([event("fail"), event("pass")], 0),
+                 ([event("unexpected"), event("pass")], 0),
+                 ([json.dumps({"Action": "start", "Package": "p", "Output": "?\tp\t[no test files]\n"}),
+                   event("skip")], 0),
+                 ([json.dumps({"Package": "p"}), event("pass")], 0)]
+        for events, exit_code in cases:
+            with self.subTest(events=events, exit_code=exit_code):
+                proc = mock.Mock(stdout=events)
+                proc.wait.return_value = exit_code
+                with mock.patch.object(run_tests.subprocess, "Popen", return_value=proc), self.assertRaises(SystemExit):
+                    run_tests.go_test(["p"], package="p", require_empty_package=True)
+
+    def test_empty_partition_records_real_package_outcome(self):
+        Path(".tmp").mkdir(exist_ok=True)
+        package = "github.com/lestrrat-3d/decad-gallery/internal/hexnut"
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            records = Path(directory) / "records.jsonl"
+            with mock.patch.dict(os.environ, {"CI_TEST_RECORDS": str(records)}):
+                run_tests.go_test([package, "-run", "^$"], package=package, require_empty_package=True)
+            rows = [json.loads(line) for line in records.read_text().splitlines()]
+            leaves, _, packages, errors, _ = reconcile_records.read_records([records])
+        self.assertEqual([row["kind"] for row in rows], ["package", "complete"])
+        self.assertEqual((rows[0]["package"], rows[0]["status"]), (package, "pass"))
+        self.assertFalse(leaves)
+        self.assertEqual(packages, {(".", package)})
+        self.assertFalse(errors)
+
     def test_single_test(self):
         self.assertEqual(run_tests.run_pattern(["TestA"]), "^TestA$")
 
@@ -446,25 +510,50 @@ class PlanetaryFullTest(unittest.TestCase):
                 run_tests.run_planetary_pr(shard)
 
     def test_shards_cover_inventory_and_require_kit_variants(self):
-        inventory = "TestKitGearboxes\nTestOther\nTestNew\nok\n"
-        with mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+        names = [f"TestOther{i}" for i in range(10)]
+        inventory = "TestKitGearboxes\n" + "\n".join(names) + "\nok\n"
+        def run(command, **kwargs):
+            return mock.Mock(stdout="\n".join(run_tests.PLANETARY_KITS) if command[1] == "run" else inventory)
+        with mock.patch.object(run_tests.subprocess, "run", side_effect=run), \
                 mock.patch.object(run_tests, "go_test") as go_test:
-            run_tests.run_planetary_full("kits")
-            run_tests.run_planetary_full("rest")
-        kits, rest = go_test.call_args_list
-        self.assertEqual(kits.args[0][2], run_tests.run_pattern(["TestKitGearboxes"]))
-        self.assertEqual(rest.args[0][2], run_tests.run_pattern(["TestNew", "TestOther"]))
-        self.assertEqual(len(kits.args[1]), 4)
-        self.assertIn("TestKitGearboxes/planet608-shaft608", kits.args[1])
-        self.assertEqual(kits.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
-        self.assertEqual(rest.args[1], ["TestNew", "TestOther"])
+            for kit in run_tests.PLANETARY_KITS:
+                run_tests.run_planetary_full(kit)
+            for index in range(run_tests.PLANETARY_FULL_REST_SHARDS):
+                run_tests.run_planetary_full(f"rest-{index}")
+        kits = go_test.call_args_list[:len(run_tests.PLANETARY_KITS)]
+        rest = go_test.call_args_list[len(run_tests.PLANETARY_KITS):]
+        for name, call in zip(run_tests.PLANETARY_KITS, kits):
+            self.assertEqual(call.args[0][2], f"^TestKitGearboxes$/^{name}$")
+            self.assertCountEqual(call.args[1], ["TestKitGearboxes", "TestKitGearboxes/" + name])
+            self.assertEqual(call.kwargs["env"]["PLANETARY_ALL_KITS"], "1")
+        self.assertCountEqual([name for call in rest for name in call.args[1]], names)
+        self.assertTrue(all(call.kwargs["env"]["PLANETARY_ALL_KITS"] == "1" for call in rest))
+        self.assertEqual(run_tests.planetary_test_shards(names, 5),
+                         run_tests.planetary_test_shards(list(reversed(names)), 5))
 
     def test_missing_kit_or_invalid_shard_fails(self):
         for inventory, shard in (("TestOther\n", "kits"), ("TestKitGearboxes\nTestOther\n", "bad")):
             with self.subTest(shard=shard), \
-                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout=inventory)), \
+                    mock.patch.object(run_tests.subprocess, "run", side_effect=lambda command, **kwargs: mock.Mock(
+                        stdout="\n".join(run_tests.PLANETARY_KITS) if command[1] == "run" else inventory)), \
                     self.assertRaises(SystemExit):
                 run_tests.run_planetary_full(shard)
+
+    def test_full_rejects_unassigned_or_duplicate_supported_kits(self):
+        for names in (list(run_tests.PLANETARY_KITS) + ["new-kit"],
+                      list(run_tests.PLANETARY_KITS[:-1]),
+                      list(run_tests.PLANETARY_KITS) + [run_tests.PLANETARY_KITS[0]]):
+            with self.subTest(names=names), \
+                    mock.patch.object(run_tests.subprocess, "run", return_value=mock.Mock(stdout="\n".join(names))), \
+                    mock.patch.object(run_tests, "go_test") as go_test, \
+                    self.assertRaisesRegex(SystemExit, "kit assignments"):
+                run_tests.run_planetary_full(run_tests.PLANETARY_KITS[0])
+            go_test.assert_not_called()
+
+    def test_full_kit_assignments_match_model(self):
+        result = run_tests.subprocess.run(["go", "run", "scripts/ci/planetary_kits.go"],
+                                          check=True, capture_output=True, text=True)
+        self.assertCountEqual(result.stdout.splitlines(), run_tests.PLANETARY_KITS)
 
 
 class FinishedTestsTest(unittest.TestCase):

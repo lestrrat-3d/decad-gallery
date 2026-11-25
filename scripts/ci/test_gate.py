@@ -22,14 +22,17 @@ def needs_for(suites, event="push"):
                 continue
             if job in gate.PR_RENDER_JOBS and (full or "renderer-all" in suites):
                 continue
-            if job in ("bevel-full", "renderer-full", "planetary-full") and not full:
+            if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full") and not full:
                 continue
             needs[job]["result"] = "success"
     needs.update(plan={"result": "success", "outputs": {
         "plan": json.dumps({"version": 1, "suites": suites}),
+        "case_plan": "null", "case_matrix": '{"include":[]}',
         "matrix": json.dumps(matrix), "count": str(len(matrix["include"]))}},
         repository={"result": "success"}, worker={"result": "success" if matrix["include"] else "skipped"},
-        **{"records-validation": {"result": "success" if full else "skipped"}})
+        **{name: {"result": "success" if full else "skipped"}
+           for name in ("records-validation", "package-workers")})
+    needs["case-workers"] = {"result": "skipped"}
     return needs
 
 
@@ -37,6 +40,27 @@ RENDER_PACKAGE = "github.com/lestrrat-3d/decad-gallery/tools/render"
 
 
 class GateTest(unittest.TestCase):
+    def test_package_workers_skip_only_without_full_coverage(self):
+        self.assertEqual(gate.check(needs_for([]), "push"), [])
+        full = needs_for(["broad", "full"])
+        full["package-workers"]["result"] = "skipped"
+        self.assertTrue(any("package-workers" in error for error in gate.check(full, "push")))
+
+    def test_case_plan_requires_the_matrix_worker_and_record_validation(self):
+        needs = needs_for(["broad", "full"])
+        outputs = needs["plan"]["outputs"]
+        from case_inventory import assignments
+        manifest = {"parents": {"TestBuildOptions": ["first", "second"], "TestMeasuredFits": ["one", "two"]}}
+        jobs = assignments(manifest)
+        outputs["case_plan"] = json.dumps({"version": 1, "manifest": manifest, "jobs": jobs})
+        self.assertTrue(gate.check(needs, "push"))
+        outputs["case_matrix"] = json.dumps({"include": [{"case": job["case"]} for job in jobs]})
+        self.assertTrue(gate.check(needs, "push"))
+        needs["case-workers"]["result"] = "success"
+        self.assertEqual(gate.check(needs, "push"), [])
+        needs["records-validation"]["result"] = "failure"
+        self.assertTrue(gate.check(needs, "push"))
+
     def test_reused_plan_requires_a_valid_push_proof(self):
         needs = needs_for([])
         plan = json.loads(needs["plan"]["outputs"]["plan"])
@@ -45,6 +69,14 @@ class GateTest(unittest.TestCase):
         needs["plan"]["outputs"]["plan"] = json.dumps(plan)
         self.assertEqual(gate.check(needs, "push"), [])
         self.assertTrue(gate.check(needs, "pull_request"))
+        plan["reused"]["suites"] = ["broad", "full"]
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertEqual(gate.check(needs, "push"), [])
+        self.assertTrue(gate.check(needs, "pull_request"))
+        plan["reused"]["suites"] = ["broad"]
+        needs["plan"]["outputs"]["plan"] = json.dumps(plan)
+        self.assertTrue(gate.check(needs, "push"))
+        plan["reused"]["suites"] = ["broad", "full"]
         plan["reused"]["tested"] = "not-a-sha"
         needs["plan"]["outputs"]["plan"] = json.dumps(plan)
         self.assertTrue(gate.check(needs, "push"))
@@ -77,20 +109,36 @@ class GateTest(unittest.TestCase):
 
     def test_render_suites_expand_heavy_tests_and_rest(self):
         with mock.patch.object(Path, "is_dir", return_value=True):
-            planetary = gate.commands("render-planetarygearbox")
+            planetary = gate.commands("render-model-planetarygearbox")
             self.assertEqual(len(planetary), 4)
             self.assertEqual([case[2] for case in planetary],
                              list(gate.RENDER_HEAVY["planetarygearbox"]) + ["rest"])
-            self.assertEqual(len(gate.commands("render-pinring")), 1)
+            self.assertEqual(len(gate.commands("render-model-pinring")), 1)
             self.assertEqual(len(gate.commands("render-tool")), 16)
-            for suite in ("render-planetarygearbox", "render-pinring", "render-tool"):
+            for suite in ("render-model-planetarygearbox", "render-model-pinring", "render-tool"):
                 matrix = gate.matrix_for([suite])
                 self.assertEqual(len(matrix["include"]), len(gate.commands(suite)))
                 self.assertEqual(gate.suites_from_plan(json.dumps({"version": 1, "suites": [suite]})), [suite])
 
     def test_render_suite_rejects_unknown_directory(self):
         with mock.patch.object(Path, "is_dir", return_value=False), self.assertRaises(ValueError):
-            gate.commands("render-nothing")
+            gate.commands("render-model-nothing")
+
+    def test_registration_model_renderer_does_not_collide_with_registry_checks(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-model-registration"),
+                             [["render-package", "models/registration/render", "rest"]])
+            self.assertNotEqual(gate.commands("render-registration"), gate.commands("render-model-registration"))
+            self.assertEqual(len(gate.matrix_for(["render-registration", "render-model-registration"])["include"]), 2)
+
+    def test_feature_renderer_does_not_inherit_same_named_model_heavy_tests(self):
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-feature-planetarygearbox"),
+                             [["render-package", "features/planetarygearbox/render", "rest"]])
+        with mock.patch.object(gate, "go_test") as run, \
+                mock.patch.object(gate.subprocess, "run", return_value=mock.Mock(stdout="TestModel\nok\n")):
+            gate.run_render_case("features/planetarygearbox/render", "rest")
+        self.assertEqual(run.call_args.args[1], ["TestModel"])
 
     def test_render_package_case_runs_one_heavy_test_or_the_rest(self):
         with mock.patch.object(Path, "is_dir", return_value=True), \
@@ -107,7 +155,7 @@ class GateTest(unittest.TestCase):
 
     def test_render_dispatch_runs_the_case_from_the_command(self):
         with mock.patch.object(Path, "is_dir", return_value=True), \
-                mock.patch.dict(os.environ, {"SUITE": "render-pinring", "CASE": "0"}), \
+                mock.patch.dict(os.environ, {"SUITE": "render-model-pinring", "CASE": "0"}), \
                 mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
                 mock.patch.object(gate, "run_render_case") as run:
             gate.main()
@@ -158,7 +206,7 @@ class GateTest(unittest.TestCase):
                     mock.patch.object(gate.subprocess, "run", side_effect=[
                         mock.Mock(stdout=RENDER_PACKAGE), mock.Mock(stdout="TestSame\n")]), \
                     mock.patch.object(gate.subprocess, "Popen", return_value=proc):
-                gate.run_renderer_full()
+                gate.run_renderer_full("0")
             self.assertEqual(json.loads(path.read_text().splitlines()[0])["module"], "tools/render")
 
     def test_renderer_jobs_do_not_duplicate_full_renderer(self):
@@ -203,29 +251,27 @@ class GateTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "invalid renderer"):
             gate.run_renderer_pr(str(gate.RENDER_PR_SHARDS))
 
-    def test_full_renderer_inventory_requires_every_package_and_subtest(self):
-        packages = [RENDER_PACKAGE, RENDER_PACKAGE + "/extra"]
-        def run(command, **kwargs):
-            if command[-2:] == ["list", "./..."]:
-                return mock.Mock(stdout="\n".join(packages))
-            return mock.Mock(stdout="TestSame\nok\n")
-        def events(missing=None, skip=False):
-            entries = [{"Package": package, "Test": "TestSame", "Action": "pass"}
-                       for package in packages if package != missing]
-            if skip:
-                entries.append({"Package": packages[0], "Test": "TestSame/child", "Action": "skip"})
-            proc = mock.Mock(stdout=[json.dumps(entry) for entry in entries], returncode=0)
-            proc.wait.return_value = 0
-            return proc
-        for missing, skip in ((None, False), (packages[1], False), (None, True)):
-            with self.subTest(missing=missing, skip=skip), \
-                    mock.patch.object(gate.subprocess, "run", side_effect=run), \
-                    mock.patch.object(gate.subprocess, "Popen", return_value=events(missing, skip)):
-                if missing or skip:
-                    with self.assertRaisesRegex(SystemExit, "TestSame"):
-                        gate.run_renderer_full()
-                else:
-                    gate.run_renderer_full()
+    def test_full_renderer_shards_assign_every_test_once(self):
+        inventory = {RENDER_PACKAGE: list(gate.RENDER_FULL_SECONDS) + ["TestOther"],
+                     RENDER_PACKAGE + "/extra": ["TestSame"]}
+        shards = gate.renderer_full_shards(inventory)
+        assigned = [(package, test) for shard in shards for package, tests in shard for test in tests]
+        self.assertCountEqual(assigned, [(package, test) for package, tests in inventory.items() for test in tests])
+        self.assertEqual(len(assigned), len(set(assigned)))
+        self.assertEqual(shards, gate.renderer_full_shards({p: list(reversed(t)) for p, t in inventory.items()}))
+        with self.assertRaises(ValueError):
+            gate.renderer_full_shards({RENDER_PACKAGE: ["TestSame", "TestSame"]})
+
+    def test_full_renderer_dispatch_checks_assigned_tests(self):
+        inventory = {RENDER_PACKAGE: list(gate.RENDER_FULL_SECONDS) + ["TestOther"]}
+        with mock.patch.object(gate, "renderer_packages", return_value=list(inventory)), \
+                mock.patch.object(gate.subprocess, "run", return_value=mock.Mock(stdout="\n".join(inventory[RENDER_PACKAGE]))), \
+                mock.patch.object(gate, "go_test") as run:
+            for shard in range(gate.RENDER_FULL_SHARDS):
+                gate.run_renderer_full(str(shard))
+        assigned = [test for call in run.call_args_list for test in call.args[1]]
+        self.assertCountEqual(assigned, inventory[RENDER_PACKAGE])
+        self.assertTrue(all(call.kwargs["module"] == "tools/render" for call in run.call_args_list))
 
     def test_renderer_dispatch_commands(self):
         for suite, (timeout, directory, tests) in gate.RENDER_TESTS.items():
@@ -287,7 +333,7 @@ class GateTest(unittest.TestCase):
 
     def test_broad_jobs_are_required_and_unplanned_jobs_skipped(self):
         for job in gate.BROAD_JOBS:
-            event = "schedule" if job in ("bevel-full", "renderer-full", "planetary-full") else "push"
+            event = "schedule" if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full") else "push"
             needs = needs_for(["broad"], event)
             needs[job]["result"] = "cancelled"
             self.assertTrue(gate.check(needs, event), job)
@@ -325,7 +371,7 @@ class GateTest(unittest.TestCase):
             needs = needs_for(suites, event)
             self.assertEqual(gate.matrix_for(suites), {"include": []})
             self.assertEqual(gate.check(needs, event), [])
-            for job in ("renderer-full", "bevel-full", "planetary-full"):
+            for job in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full"):
                 with self.subTest(event=event, job=job):
                     altered = needs_for(suites, event)
                     altered[job]["result"] = "skipped"

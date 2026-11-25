@@ -25,14 +25,15 @@ R_TOOL = ROOT + "/tools/render"
 CI_FILES = {".github/workflows/repository.yml", ".github/workflows/ci-probe.yml",
             ".github/workflows/fan-variants.yml", ".github/workflows/update-decad.yml"} | {
     "scripts/ci/" + name + suffix
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "report_timings", "replay", "reuse_main",
                  "run_tests", "select_models")
     for suffix in (".py",)
 } | {
     "scripts/ci/test_" + name + ".py"
-    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "replay", "reuse_main",
+    for name in ("full_partition", "gate", "inventory", "plan", "probe", "reconcile_records", "report_timings", "replay", "reuse_main",
                  "run_tests", "select_models")
 } | {"scripts/ci/test_workflow_records.py", "scripts/ci/testdiff.go", "scripts/ci/test_testdiff.py",
+     "scripts/ci/planetary_kits.go",
      "scripts/ci/check_isolated_tests.py", "scripts/render_compare.py", "scripts/test_render_compare.py",
      "scripts/check_repository.py", "scripts/modelgen/spurgear.py"}
 HEAVY = {"bevelgear": "bevel-pr", "escapement": "escapement", "onewayclutch": "onewayclutch",
@@ -53,11 +54,11 @@ BROAD_RENDER = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion",
 
 
 def render_pkg(owner):
-    """Return the item name when owner is a registered item's render package, else None."""
-    match = re.fullmatch(re.escape(ROOT) + r"/(models|features)/([a-z0-9]+)/render", owner)
+    """Return the kind and name of a directly dispatchable render package."""
+    match = re.fullmatch(re.escape(ROOT) + r"/(models|features)/([a-z][a-z0-9]*)/render", owner)
     if not match:
         return None
-    return match.group(2) if match.group(2) in {"models": MODELS, "features": FEATURES}[match.group(1)] else None
+    return match.group(1), match.group(2)
 
 
 def render_dependents(seeds, before, after):
@@ -336,13 +337,14 @@ def plan(event, base, tested):
                 directory = after[name]["dir"]
                 parts = directory.split("/")
                 if render_pkg(name) and name == ROOT + "/" + directory:
-                    new_render.add(parts[1])
+                    new_render.add((parts[0], parts[1]))
                     continue
-                if len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or not parts[1].isalnum():
+                if (len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or
+                        not re.fullmatch(r"[a-z][a-z0-9]*", parts[1]) or name != ROOT + "/" + directory):
                     raise RuntimeError("new package cannot be dispatched: " + directory)
                 prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
                 registry = {"models": MODELS, "internal": INTERNAL, "features": FEATURES}[parts[0]]
-                if parts[1] not in registry or name != ROOT + "/" + directory:
+                if parts[1] not in registry:
                     new_suites[name] = prefix + parts[1]
         if set(before) - set(after):
             reason = "deleted package requires full coverage"
@@ -355,8 +357,7 @@ def plan(event, base, tested):
         owners.update(new_packages)
         suites = {}
         if new_suites:
-            reason = "new packages require broad coverage and direct tests"
-            suites["broad"] = [reason]
+            reason = "new packages require direct tests"
             for suite in new_suites.values():
                 suites[suite] = [reason]
         if unknown_input:
@@ -381,10 +382,19 @@ def plan(event, base, tested):
             elif owner.startswith(ROOT + "/features/") and owner.rsplit("/", 1)[-1] in FEATURES:
                 suite = "feature-" + owner.rsplit("/", 1)[-1]
             else:
-                reason = "unregistered package requires full coverage: " + owner
-                suites.setdefault("broad", []).append(reason)
-                suites.setdefault("full", []).append(reason)
-                continue
+                item = after.get(owner)
+                directory = item["dir"] if item else ""
+                parts = directory.split("/")
+                if (len(parts) != 2 or parts[0] not in {"models", "internal", "features"} or
+                        not re.fullmatch(r"[a-z][a-z0-9]*", parts[1]) or owner != ROOT + "/" + directory):
+                    reason = "unregistered package requires full coverage: " + owner
+                    suites.setdefault("broad", []).append(reason)
+                    suites.setdefault("full", []).append(reason)
+                    continue
+                prefix = {"models": "new-model-", "internal": "new-package-", "features": "new-feature-"}[parts[0]]
+                suite = prefix + parts[1]
+                if parts[0] == "models" and owner in production:
+                    model_owners.add(parts[1])
             suites.setdefault(suite, []).append("affected package " + owner)
         core = [path for path in code if path.startswith("internal/renderkit/") and not path.endswith("_test.go")]
         if core:
@@ -403,19 +413,32 @@ def plan(event, base, tested):
                         seeds.add(owner)
         for owner in sorted(render_dependents(seeds, before, after) - seeds):
             render_suites.setdefault(render_pkg(owner), "imports a changed render package")
-        for name in sorted(new_render):
-            render_suites.setdefault(name, "new render package")
+        for item in sorted(new_render):
+            render_suites.setdefault(item, "new render package")
         for path in code:
             parts = Path(path).parts
             if (len(parts) == 3 and parts[0] in ("models", "features") and not path.endswith("_test.go")
                     and ROOT + "/" + parts[0] + "/" + parts[1] + "/render" in after):
-                render_suites.setdefault(parts[1], "renderer check for " + parts[1])
-        for name, reason in sorted(render_suites.items()):
-            suites.setdefault("render-" + name, []).append(reason)
+                render_suites.setdefault((parts[0], parts[1]), "renderer check for " + parts[1])
+        for owner in production:
+            item = after.get(owner)
+            parts = item["dir"].split("/") if item else []
+            if (len(parts) == 2 and parts[0] in ("models", "features") and
+                    owner == ROOT + "/" + item["dir"] and
+                    (parts[0] == "features" or parts[1] not in RENDER) and
+                    render_pkg(owner + "/render") and owner + "/render" in after):
+                render_suites.setdefault((parts[0], parts[1]), "renderer check for affected " + owner)
+        renderer_seeds = seeds | {owner + "/render" for owner in production
+                                  if owner + "/render" in after and render_pkg(owner + "/render")}
+        for owner in render_dependents(renderer_seeds, before, after) - renderer_seeds:
+            render_suites.setdefault(render_pkg(owner), "imports an affected render package")
+        for (kind, name), reason in sorted(render_suites.items()):
+            suite = "render-" + ("feature-" if kind == "features" else "model-") + name
+            suites.setdefault(suite, []).append(reason)
         if any(path.startswith("tools/render/") and (path.endswith(".go") or path.startswith("tools/render/fonts/"))
                for path in changed):
             if not any(path.startswith("tools/render/fonts/") for path in changed) and \
-                    only_new_registration(base, tested, code, new_render):
+                    only_new_registration(base, tested, code, {name for kind, name in new_render if kind == "models"}):
                 suites["render-registration"] = ["new model registry entry"]
             else:
                 suites["render-tool"] = ["render tool source or fonts changed"]
@@ -425,7 +448,7 @@ def plan(event, base, tested):
                 for suite in RENDER[name]:
                     suites.setdefault(suite, []).append("renderer check for " + name)
         for name in list(RENDER):
-            if "render-" + name in suites:
+            if "render-model-" + name in suites:
                 for suite in RENDER[name]:
                     suites.pop(suite, None)
         if "full" in suites or "renderer-all" in suites:
@@ -466,7 +489,8 @@ def main():
         suites = ["broad"] + [suite for suite in result["suites"] if suite != "broad"]
         result.update(suites=suites, reasons={suite: ([reason] if suite == "broad" else result["reasons"][suite])
                                              for suite in suites}, reason=reason)
-    if event == "push" and os.environ.get("GITHUB_ACTIONS") == "true":
+    if (event == "push" and os.environ.get("GITHUB_ACTIONS") == "true" and
+            os.environ.get("CI_BROAD_OVERRIDE") != "true"):
         from reuse_main import find_reusable_run
         proof = find_reusable_run(result, base, result["tested"])
         if proof:

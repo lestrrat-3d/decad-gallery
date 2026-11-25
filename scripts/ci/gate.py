@@ -7,13 +7,25 @@ import re
 import subprocess
 import sys
 
-from run_tests import SEVENSEGMENT_SHARDS, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
+from run_tests import SEVENSEGMENT_CASES, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
 MODULE = "github.com/lestrrat-3d/decad-gallery"
 RENDER_PR_SHARDS = 16
 RENDER_TOOL_SHARDS = 16
+RENDER_FULL_SHARDS = 8
+# Top-level test seconds from full run 45337031047. Unlisted tests share their package's remainder.
+RENDER_FULL_SECONDS = {
+    "TestHandCrankFanMotion": 449, "TestHandCrankFanView": 332,
+    "TestSevenSegmentMotionColors": 352, "TestSevenSegmentColors": 324,
+    "TestHandCrankSirenView": 204, "TestPlanetaryMotionUsesBuiltGearbox": 146,
+    "TestBevelPairsRealBuild": 126, "TestSwissExploded": 97,
+    "TestPlanetaryReadmeConcurrentBuilds": 87, "TestPlanetaryGearboxMotion": 74,
+    "TestEscapementExploded": 62, "TestSpinningWheelMotion": 55,
+    "TestSpinningWheelPartsTable": 50, "TestSpinningWheelBlockOfEveryPart": 50,
+    "TestClampArmExploded": 26,
+}
 # Tests that build a full assembly. Each runs as its own job in the item's render suite; the rest share one job.
 RENDER_HEAVY = {
     "bevelgear": ("TestBevelPairsRealBuild",),
@@ -61,14 +73,14 @@ WORKERS = {
     "bevel-pr": [RUNNER + ["bevel", "pr", case] for case in
                  ("abgh", "cdef", "rest-0", "rest-1", "rest-2", "rest-3")],
     **{name: [RUNNER + [name, "all"]] for name in ("clamparm", "escapement", "onewayclutch", "turbinefan")},
-    "sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
+    "sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_CASES],
     # A new model package would run in one job; the model's own shards split it, as for the targeted suite.
-    "new-model-sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_SHARDS],
+    "new-model-sevensegment": [RUNNER + ["sevensegment", shard] for shard in SEVENSEGMENT_CASES],
 }
 BROAD_JOBS = ("planetary-motion", "wheel-motion", "fan-motion", "escapement", "onewayclutch",
               "clamparm", "sevensegment", "sevensegment-render", "turbinefan",
               "escapement-exploded", "wheel-parts", "renderer-full", "wheel", "siren",
-              "bevel-pr", "bevel-full", "planetary-full")
+              "bevel-pr", "bevel-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full")
 PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion", "escapement-exploded"}
 
 
@@ -91,23 +103,17 @@ def isolated_suite(suite):
     return directory, name, test, "coplanar_test" if tag else None
 
 
-def render_directory(name):
-    """Return the render package directory of an item, preferring models over features."""
-    for kind in ("models", "features"):
-        directory = f"{kind}/{name}/render"
-        if Path(directory).is_dir():
-            return directory
-    raise ValueError(f"unregistered suite: render-{name}")
-
-
 def commands(suite):
     if suite == "render-tool":
         return [["render-tool", str(index)] for index in range(RENDER_TOOL_SHARDS)]
-    match = re.fullmatch(r"render-([a-z][a-z0-9]*)", suite)
-    if match and suite not in WORKERS:
-        name = match.group(1)
-        directory = render_directory(name)
-        return ([["render-package", directory, test] for test in RENDER_HEAVY.get(name, ())] +
+    match = re.fullmatch(r"render-(model|feature)-([a-z][a-z0-9]*)", suite)
+    if match:
+        kind, name = match.groups()
+        directory = f"{'models' if kind == 'model' else 'features'}/{name}/render"
+        if not Path(directory).is_dir():
+            raise ValueError(f"unregistered suite: {suite}")
+        heavy = RENDER_HEAVY.get(name, ()) if kind == "model" else ()
+        return ([["render-package", directory, test] for test in heavy] +
                 [["render-package", directory, "rest"]])
     isolated = isolated_suite(suite)
     if isolated:
@@ -155,36 +161,60 @@ def run_renderer(suite, command):
         raise SystemExit("renderer tests did not pass: " + ", ".join(sorted(missing)[:20]))
 
 
-def run_renderer_full():
+def renderer_full_shards(inventory):
+    """Assign measured expensive tests individually and keep each package's other tests together."""
+    if not inventory or any(len(tests) != len(set(tests)) for tests in inventory.values()):
+        raise ValueError("invalid renderer inventory")
+    groups = []
+    for package, tests in sorted(inventory.items()):
+        remainder = []
+        for test in sorted(tests):
+            if test in RENDER_FULL_SECONDS:
+                groups.append((RENDER_FULL_SECONDS[test], package, (test,)))
+            else:
+                remainder.append(test)
+        if remainder or not tests:
+            groups.append((max(1, len(remainder)), package, tuple(remainder)))
+    shards = [[] for _ in range(RENDER_FULL_SHARDS)]
+    weights = [0] * RENDER_FULL_SHARDS
+    for weight, package, tests in sorted(groups, key=lambda group: (-group[0], group[1], group[2])):
+        index = min(range(RENDER_FULL_SHARDS), key=lambda i: (weights[i], i))
+        shards[index].append((package, tests))
+        weights[index] += weight
+    return shards
+
+
+def run_renderer_full(shard):
     """Discover every renderer package and require each listed test to pass."""
     packages = renderer_packages()
     if not packages or len(packages) != len(set(packages)):
         raise SystemExit("renderer package inventory is empty or duplicated")
-    expected = set()
+    inventory = {}
     for package in packages:
         output = subprocess.run(["go", "test", "-list", "^Test", package],
                                 check=True, capture_output=True, text=True).stdout
-        expected.update((package, line) for line in output.splitlines() if line.startswith("Test"))
-    if not expected:
+        inventory[package] = [line for line in output.splitlines() if line.startswith("Test")]
+    if not any(inventory.values()):
         raise SystemExit("renderer test inventory is empty")
-    proc = subprocess.Popen(["go", "test", "-json", "-timeout", "170m", *packages],
-                            stdout=subprocess.PIPE, text=True)
-    finished = finished_tests(proc.stdout, qualified=True, module="tools/render")
-    if proc.wait() != 0:
-        raise SystemExit(proc.returncode)
-    missing = {identity for identity in expected if finished.get(identity) != "pass"}
-    missing.update((package, test) for (package, test), status in finished.items()
-                   if status != "pass" and (package, test.split("/", 1)[0]) in expected)
-    if missing:
-        names = (f"tools/render:{package}:{test}" for package, test in sorted(missing)[:20])
-        raise SystemExit("renderer tests did not pass: " + ", ".join(names))
+    if not shard.isdigit() or not 0 <= int(shard) < RENDER_FULL_SHARDS:
+        raise SystemExit("invalid renderer full shard")
+    selected = renderer_full_shards(inventory)[int(shard)]
+    if not selected:
+        raise SystemExit("renderer full shard is empty")
+    grouped = {}
+    for package, tests in selected:
+        grouped.setdefault(package, []).extend(tests)
+    for package, tests in sorted(grouped.items()):
+        pattern = run_pattern(tests) if tests else "^$"
+        go_test([package, "-run", pattern, "-timeout", "170m", "-count=1"], tests,
+                package=package, module="tools/render", require_empty_package=not tests)
 
 
 def run_render_case(directory, which):
     """Run one heavy test of an item's render package, or all its other tests when which is "rest"."""
     package = MODULE + "/" + directory
     name = directory.split("/")[1]
-    heavy = RENDER_HEAVY.get(name, ())
+    heavy = RENDER_HEAVY.get(name, ()) if directory.startswith("models/") else ()
     if which != "rest":
         if which not in heavy:
             raise SystemExit(f"{which} is not a heavy test of {directory}")
@@ -239,7 +269,7 @@ def suites_from_plan(raw):
                 not isinstance(proof.get("suites"), list) or not proof["suites"] or
                 any(not isinstance(suite, str) for suite in proof["suites"]) or
                 len(set(proof["suites"])) != len(proof["suites"]) or
-                {"broad", "full"}.intersection(proof["suites"])):
+                ({"broad", "full"}.intersection(proof["suites"]) and proof["suites"] != ["broad", "full"])):
             raise ValueError("invalid reused pull request proof")
         matrix_for(proof["suites"])
     matrix_for(suites)
@@ -267,14 +297,34 @@ def check(needs, event):
 
     expected = {"worker": "success" if expected_matrix["include"] else "skipped"}
     full = "full" in suites or event in ("schedule", "workflow_dispatch")
+    case_active = False
+    if full:
+        try:
+            case_plan = json.loads(outputs["case_plan"])
+            cases = []
+            if case_plan is not None:
+                from case_inventory import assignments
+                manifest = case_plan["manifest"]
+                if (case_plan["version"] != 1 or set(manifest["parents"]) != {"TestMeasuredFits", "TestBuildOptions"} or
+                        case_plan["jobs"] != assignments(manifest) or len(case_plan["jobs"]) != 6):
+                    raise ValueError("invalid cycloidal case assignments")
+                cases = [job["case"] for job in case_plan["jobs"]]
+            if (case_plan is not None and (not cases or len(set(cases)) != len(cases))) or (
+                    json.loads(outputs["case_matrix"]) != {"include": [{"case": case} for case in cases]}):
+                raise ValueError("case matrix differs from the full-run plan")
+            case_active = bool(cases)
+        except (KeyError, TypeError, ValueError) as exc:
+            return errors + [f"invalid full-run case plan: {exc}"]
+    expected["case-workers"] = "success" if case_active else "skipped"
     expected["records-validation"] = "success" if full else "skipped"
+    expected["package-workers"] = "success" if full else "skipped"
     for job in BROAD_JOBS:
         enabled = "broad" in suites
         if job == "bevel-pr":
             enabled &= not full
         if job in PR_RENDER_JOBS:
             enabled &= not full and "renderer-all" not in suites
-        if job in ("bevel-full", "renderer-full", "planetary-full"):
+        if job in ("bevel-full", "renderer-full", "planetary-full", "bevel-remainder", "handcrankfan-full", "swisslever-full"):
             enabled &= full
         expected[job] = "success" if enabled else "skipped"
     for job, status in expected.items():
@@ -322,7 +372,7 @@ def main():
         else:
             subprocess.run(command, check=True)
     elif len(sys.argv) > 1 and sys.argv[1] == "renderer-full":
-        run_renderer_full()
+        run_renderer_full(sys.argv[2])
     else:
         errors = check(json.loads(os.environ["NEEDS_JSON"]), os.environ["EVENT_NAME"])
         if errors:

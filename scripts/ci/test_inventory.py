@@ -34,17 +34,35 @@ class InventoryTests(unittest.TestCase):
 
     def test_report_uses_runner_assignments_and_names_unknown_subtests(self):
         root = {package: ["TestDedicated"] for package in full_partition.DEDICATED}
+        root[full_partition.ROOT + "/models/ordinary"] = ["TestOrdinary"]
         root[full_partition.BEVEL] = [test for tests in run_tests.BEVEL_TESTS["full"].values() for test in tests]
         root[full_partition.BEVEL].append("TestRemainder")
-        root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanVariant"]
+        root[full_partition.ROOT + "/models/handcrankfan"] = ["TestHandCrankFanDefault", "TestHandCrankFanVariant", "TestOther"]
+        swiss = full_partition.ROOT + "/models/swisslever"
+        root[swiss] = ["TestForkAction", "TestOther"]
+        planetary = full_partition.ROOT + "/models/planetarygearbox"
+        root[planetary] = ["TestKitGearboxes"] + [f"TestOther{i}" for i in range(5)]
         renderer_package = full_partition.ROOT + "/tools/render"
         result = inventory.report(root, {renderer_package: ["TestRender"]})
         self.assertEqual(result["known_assignments"]["root"][full_partition.BEVEL]["TestRemainder"],
-                         ["repository/bevel-remainder"])
+                         ["bevel-remainder"])
+        self.assertIsNone(result["case_plan"])
         self.assertEqual(result["full_environment"], full_partition.FULL_ENV)
         self.assertIn("discovered at runtime", result["subtests"])
         self.assertEqual(result["modules"]["renderer"][renderer_package], ["TestRender"])
-        self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full"])
+        self.assertEqual(result["known_assignments"]["renderer"][renderer_package]["TestRender"], ["renderer-full/0"])
+        segment = full_partition.ROOT + "/models/sevensegment"
+        self.assertEqual(result["known_assignments"]["root"][segment]["TestSevenSegmentPlacement"],
+                         ["sevensegment/" + case for case in run_tests.SEVENSEGMENT_PLACEMENTS])
+        for _, name in run_tests.SEVENSEGMENT_PLACEMENTS.values():
+            self.assertIn({"package": segment, "test": "TestSevenSegmentPlacement/" + name},
+                          result["required_variants"])
+        self.assertEqual(result["known_assignments"]["root"][swiss]["TestForkAction"], ["swisslever-full/fork"])
+        self.assertEqual(result["known_assignments"]["root"][swiss]["TestOther"], ["swisslever-full/rest"])
+        self.assertEqual(result["known_assignments"]["root"][planetary]["TestKitGearboxes"],
+                         ["planetary-full/" + kit for kit in run_tests.PLANETARY_KITS])
+        self.assertTrue(all({"package": planetary, "test": "TestKitGearboxes/" + kit} in
+                            result["required_variants"] for kit in run_tests.PLANETARY_KITS))
 
     def test_split_renderer_separates_render_packages(self):
         root_package = full_partition.ROOT + "/models/ballbearing"

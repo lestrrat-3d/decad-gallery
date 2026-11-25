@@ -29,6 +29,18 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(result["suites"], [])
         self.assertEqual(result["reused"]["suites"], ["model-ballbearing"])
 
+    def test_override_disables_pull_request_reuse(self):
+        import reuse_main
+        result = {"version": 1, "tested": "a" * 40, "suites": ["broad", "full"],
+                  "reasons": {"broad": ["changed"], "full": ["changed"]}}
+        env = {"GITHUB_EVENT_NAME": "push", "GITHUB_ACTIONS": "true", "CI_BROAD_OVERRIDE": "true"}
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(plan, "check_wheel_inventory"), \
+                mock.patch.object(plan, "plan", return_value=result), \
+                mock.patch.object(reuse_main, "find_reusable_run") as find, redirect_stdout(StringIO()) as output:
+            plan.main()
+        find.assert_not_called()
+        self.assertEqual(json.loads(output.getvalue())["suites"], ["broad", "full"])
+
     def test_isolated_selection_works_without_existing_tmp_directory(self):
         project = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
@@ -89,19 +101,23 @@ class PlanTest(unittest.TestCase):
                 result = json.loads(output.getvalue())
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(expected)
-                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
                 needs["records-validation"] = {"result": "success" if event in ("schedule", "workflow_dispatch")
                                                 or "full" in expected else "skipped"}
+                needs["package-workers"] = dict(needs["records-validation"])
                 if "broad" in expected:
                     full = event in ("schedule", "workflow_dispatch") or "full" in expected
                     for job in gate.BROAD_JOBS:
-                        enabled = job not in ("renderer-full", "bevel-full", "planetary-full") and job not in gate.PR_RENDER_JOBS
-                        enabled |= job in ("renderer-full", "bevel-full", "planetary-full") and full
+                        enabled = job not in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder",
+                                              "handcrankfan-full", "swisslever-full") and job not in gate.PR_RENDER_JOBS
+                        enabled |= job in ("renderer-full", "bevel-full", "planetary-full", "bevel-remainder",
+                                           "handcrankfan-full", "swisslever-full") and full
                         enabled |= job in gate.PR_RENDER_JOBS and not full and "renderer-all" not in expected
                         if job == "bevel-pr":
                             enabled = not full
                         needs[job]["result"] = "success" if enabled else "skipped"
                 needs.update(plan={"result": "success", "outputs": {
+                    "case_plan": "null", "case_matrix": '{"include":[]}',
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
                     worker={"result": "success" if matrix["include"] else "skipped"})
@@ -136,9 +152,11 @@ class PlanTest(unittest.TestCase):
                 result = plan.plan("push", "base", "head")
                 self.assertEqual(result["suites"], expected)
                 matrix = gate.matrix_for(gate.suites_from_plan(json.dumps(result)))
-                needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+                needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
                 needs["records-validation"] = {"result": "success" if "full" in expected else "skipped"}
+                needs["package-workers"] = dict(needs["records-validation"])
                 needs.update(plan={"result": "success", "outputs": {
+                    "case_plan": "null", "case_matrix": '{"include":[]}',
                     "plan": json.dumps(result), "matrix": json.dumps(matrix),
                     "count": str(len(matrix["include"]))}}, repository={"result": "success"},
                     worker={"result": "success" if matrix["include"] else "skipped"})
@@ -201,6 +219,11 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output", return_value=paths):
             self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
 
+    def test_planetary_kit_inventory_helper_selects_no_geometry(self):
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"scripts/ci/planetary_kits.go\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], [])
+
     def test_cycloidal_only_and_mixed_changes(self):
         with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
                 mock.patch.object(plan, "metadata", return_value=self.packages()):
@@ -246,8 +269,9 @@ class PlanTest(unittest.TestCase):
             self.assertEqual(result["changed_paths"], ["models/cycloidal/example_test.go"])
             self.assertEqual(result["suites"], ["cycloidal-pr"])
             dispatch = mock.Mock(return_value="success")
-            needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+            needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
             needs["records-validation"] = {"result": "skipped"}
+            needs["package-workers"] = {"result": "skipped"}
             needs.update(plan={"result": "success", "outputs": {
                 "plan": json.dumps(result), "matrix": json.dumps(gate.matrix_for(result["suites"])),
                 "count": "1"}}, repository={"result": "success"}, worker={"result": "success"})
@@ -406,7 +430,10 @@ class PlanTest(unittest.TestCase):
                     mock.patch.object(plan, "metadata", side_effect=[before, after]), \
                     mock.patch.object(plan.subprocess, "check_output", return_value=paths):
                 result = plan.plan("push", "base", "head")
-            expected = {"broad", "new-model-newpart", "package-clamparmcapacity"}
+            expected = {"new-model-newpart", "package-clamparmcapacity", "clamparm"}
+            if extra == b"unknown.sh\0":
+                expected.discard("clamparm")
+                expected.add("broad")
             if extra.startswith(b"tools/render/"):
                 expected |= {"render-tool", "renderer-compile"}
             self.assertEqual(set(result["suites"]), expected)
@@ -441,29 +468,29 @@ class PlanTest(unittest.TestCase):
     def test_render_package_change_selects_only_its_suite(self):
         graph = self.render_graph(["clamparm", "pinring"])
         result = self.plan_for(["models/clamparm/render/clamparm.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-clamparm", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-clamparm", "renderer-compile"})
         self.assertNotIn("renderer-all", result["suites"])
 
     def test_render_change_reaches_importing_render_packages(self):
         graph = self.render_graph(["onewayclutch", "turbinefan"],
                                   {"models/turbinefan/render": ["models/onewayclutch/render"]})
         result = self.plan_for(["models/onewayclutch/render/onewayclutch.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-onewayclutch", "render-turbinefan", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-onewayclutch", "render-model-turbinefan", "renderer-compile"})
 
     def test_render_test_change_does_not_reach_importers(self):
         graph = self.render_graph(["onewayclutch", "turbinefan"],
                                   {"models/turbinefan/render": ["models/onewayclutch/render"]})
         result = self.plan_for(["models/onewayclutch/render/extra_test.go"], graph)
-        self.assertEqual(set(result["suites"]), {"render-onewayclutch"})
+        self.assertEqual(set(result["suites"]), {"render-model-onewayclutch"})
 
     def test_model_change_selects_its_render_suite_not_the_named_one(self):
         graph = self.render_graph(["clamparm"])
         graph[plan.ROOT + "/models/clamparm/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
         graph[plan.ROOT + "/tools/render"]["imports"] |= {plan.ROOT + "/models/clamparm"}
         result = self.plan_for(["models/clamparm/clamparm.go"], graph)
-        self.assertEqual(set(result["suites"]), {"clamparm", "render-clamparm", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"clamparm", "render-model-clamparm", "renderer-compile"})
 
-    def test_shared_model_change_selects_only_the_owning_render_suite(self):
+    def test_shared_model_change_selects_affected_render_suites(self):
         graph = self.render_graph(["fastener", "crankhandle", "plaquestand"])
         fastener = plan.ROOT + "/models/fastener"
         crank = plan.ROOT + "/models/crankhandle"
@@ -472,10 +499,10 @@ class PlanTest(unittest.TestCase):
         graph[plan.ROOT + "/models/plaquestand/render"]["imports"].add(crank + "/render")
         result = self.plan_for(["models/fastener/fastener.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-fastener"})
+        self.assertEqual(renders, {"render-model-fastener", "render-model-crankhandle", "render-model-plaquestand"})
         result = self.plan_for(["models/crankhandle/crankhandle.go"], graph)
         renders = {suite for suite in result["suites"] if suite.startswith("render-")}
-        self.assertEqual(renders, {"render-crankhandle"})
+        self.assertEqual(renders, {"render-model-crankhandle", "render-model-plaquestand"})
 
     def test_shared_core_with_unknown_input_selects_full(self):
         graph = self.render_graph(["clamparm"])
@@ -566,7 +593,7 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan, "metadata", side_effect=[before, after]), \
                 mock.patch.object(plan.subprocess, "check_output", return_value=data):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(set(result["suites"]), {"render-pinring", "renderer-compile"})
+        self.assertEqual(set(result["suites"]), {"render-model-pinring", "renderer-compile"})
 
     def test_marked_render_test_selects_isolated_suite(self):
         project = Path.cwd()
@@ -685,7 +712,7 @@ class PlanTest(unittest.TestCase):
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
 
-    def test_unregistered_existing_package_full_covers_new_package(self):
+    def test_unregistered_existing_package_and_new_package_run_directly(self):
         existing = plan.ROOT + "/internal/unregistered"
         new = plan.ROOT + "/models/newpart"
         before = {existing: {"dir": "internal/unregistered", "imports": set(), "test_imports": set()}}
@@ -695,9 +722,135 @@ class PlanTest(unittest.TestCase):
                 mock.patch.object(plan.subprocess, "check_output",
                                   return_value=b"models/newpart/build.go\0internal/unregistered/check.go\0"):
             result = plan.plan("push", "base", "head")
-        self.assertEqual(result["suites"], ["broad", "full"])
+        self.assertEqual(result["suites"], ["new-model-newpart", "new-package-unregistered"])
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.suites_from_plan(json.dumps(result)), result["suites"])
+
+    def test_discovered_package_selects_production_and_test_consumers(self):
+        helper = plan.ROOT + "/internal/newhelper"
+        feature = plan.ROOT + "/features/newfeature"
+        model = plan.ROOT + "/models/newpart"
+        graph = {helper: {"dir": "internal/newhelper", "imports": set(), "test_imports": set()},
+                 feature: {"dir": "features/newfeature", "imports": {helper}, "test_imports": set()},
+                 model: {"dir": "models/newpart", "imports": set(), "test_imports": {feature}}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/newhelper/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(result["suites"], ["new-feature-newfeature", "new-model-newpart",
+                                            "new-package-newhelper"])
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 3)
+
+    def test_discovered_consumers_select_their_renderers(self):
+        helper = plan.ROOT + "/internal/newhelper"
+        model = plan.ROOT + "/models/newpart"
+        feature = plan.ROOT + "/features/newfeature"
+        graph = {helper: {"dir": "internal/newhelper", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/newpart", "imports": {helper}, "test_imports": set()},
+                 feature: {"dir": "features/newfeature", "imports": {model}, "test_imports": set()},
+                 model + "/render": {"dir": "models/newpart/render", "imports": {model}, "test_imports": set()},
+                 feature + "/render": {"dir": "features/newfeature/render", "imports": {feature},
+                                       "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/newhelper/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-package-newhelper", "new-model-newpart",
+                                                 "new-feature-newfeature", "render-model-newpart",
+                                                 "render-feature-newfeature", "renderer-compile"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
+
+    def test_registered_consumers_without_named_checks_select_renderers(self):
+        helper = plan.ROOT + "/internal/cornercheck"
+        model = plan.ROOT + "/models/pinring"
+        feature = plan.ROOT + "/features/dovetail"
+        graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/pinring", "imports": {helper}, "test_imports": set()},
+                 feature: {"dir": "features/dovetail", "imports": {helper}, "test_imports": set()},
+                 model + "/render": {"dir": "models/pinring/render", "imports": {model}, "test_imports": set()},
+                 feature + "/render": {"dir": "features/dovetail/render", "imports": {feature},
+                                       "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"package-cornercheck", "model-pinring", "feature-dovetail",
+                                                 "render-model-pinring", "render-feature-dovetail", "renderer-compile"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(len(gate.matrix_for(result["suites"])["include"]), 6)
+
+    def test_named_renderer_consumer_reaches_dependent_renderer(self):
+        helper = plan.ROOT + "/internal/cornercheck"
+        model = plan.ROOT + "/models/clamparm"
+        renderer = model + "/render"
+        dependent = plan.ROOT + "/models/pinring/render"
+        graph = {helper: {"dir": "internal/cornercheck", "imports": set(), "test_imports": set()},
+                 model: {"dir": "models/clamparm", "imports": {helper}, "test_imports": set()},
+                 renderer: {"dir": "models/clamparm/render", "imports": {model}, "test_imports": set()},
+                 dependent: {"dir": "models/pinring/render", "imports": {renderer}, "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/cornercheck/check.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"package-cornercheck", "clamparm", "clamparm-render",
+                                                 "render-model-pinring", "renderer-compile"})
+
+    def test_new_model_and_feature_renderers_keep_distinct_consumers(self):
+        model = plan.ROOT + "/models/newpart"
+        feature = plan.ROOT + "/features/newpart"
+        consumer = plan.ROOT + "/models/pinring/render"
+        before = {consumer: {"dir": "models/pinring/render", "imports": set(), "test_imports": set()}}
+        after = dict(before)
+        for kind, owner in (("models", model), ("features", feature)):
+            after[owner] = {"dir": f"{kind}/newpart", "imports": set(), "test_imports": set()}
+            after[owner + "/render"] = {"dir": f"{kind}/newpart/render", "imports": {owner},
+                                        "test_imports": set()}
+        after[consumer] = {"dir": "models/pinring/render", "imports": {feature + "/render"},
+                           "test_imports": set()}
+        paths = (b"models/newpart/build.go\0models/newpart/render/render.go\0"
+                 b"features/newpart/build.go\0features/newpart/render/render.go\0")
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[before, after]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=paths):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-model-newpart", "new-feature-newpart",
+                                                 "render-model-newpart", "render-feature-newpart", "render-model-pinring"})
+        with mock.patch.object(Path, "is_dir", return_value=True):
+            self.assertEqual(gate.commands("render-feature-newpart"),
+                             [["render-package", "features/newpart/render", "rest"]])
+            self.assertEqual(gate.commands("render-model-newpart"),
+                             [["render-package", "models/newpart/render", "rest"]])
+
+    def test_undispatchable_existing_package_selects_full(self):
+        package = plan.ROOT + "/internal/nested/helper"
+        graph = {package: {"dir": "internal/nested/helper", "imports": set(), "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", return_value=graph), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"internal/nested/helper/check.go\0"):
+            self.assertEqual(plan.plan("push", "base", "head")["suites"], ["broad", "full"])
+
+    def test_invalid_new_renderer_path_fails_planning(self):
+        package = plan.ROOT + "/models/bad-name/render"
+        after = {package: {"dir": "models/bad-name/render", "imports": set(), "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[{}, after]), \
+                mock.patch.object(plan.subprocess, "check_output", return_value=b"models/bad-name/render/x.go\0"):
+            with self.assertRaisesRegex(RuntimeError, "new package cannot be dispatched"):
+                plan.plan("push", "base", "head")
+
+    def test_model_named_registration_selects_its_renderer(self):
+        model = plan.ROOT + "/models/registration"
+        graph = {model: {"dir": "models/registration", "imports": set(), "test_imports": set()},
+                 model + "/render": {"dir": "models/registration/render", "imports": {model},
+                                      "test_imports": set()}}
+        with mock.patch.object(plan, "git", side_effect=[b"head", b"head", b"base"]), \
+                mock.patch.object(plan, "metadata", side_effect=[{}, graph]), \
+                mock.patch.object(plan.subprocess, "check_output",
+                                  return_value=b"models/registration/build.go\0models/registration/render/x.go\0"):
+            result = plan.plan("push", "base", "head")
+        self.assertEqual(set(result["suites"]), {"new-model-registration", "render-model-registration"})
 
     def test_missing_metadata_fails_closed_for_unknown_package(self):
         for path, raises in ((b"models/newpart/build.go\0", True),
@@ -829,8 +982,9 @@ class PlanTest(unittest.TestCase):
         suites = gate.suites_from_plan(json.dumps(result))
         matrix = gate.matrix_for(suites)
         self.assertEqual({entry["suite"] for entry in matrix["include"]}, set(result["suites"]))
-        needs = {job: {"result": "skipped"} for job in gate.BROAD_JOBS}
+        needs = {job: {"result": "skipped"} for job in (*gate.BROAD_JOBS, "case-workers")}
         needs["records-validation"] = {"result": "skipped"}
+        needs["package-workers"] = {"result": "skipped"}
         needs["renderer-full"]["result"] = "skipped"
         needs["bevel-full"]["result"] = "skipped"
         needs.update(plan={"result": "success", "outputs": {

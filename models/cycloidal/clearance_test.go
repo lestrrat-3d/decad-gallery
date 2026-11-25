@@ -13,10 +13,7 @@ import (
 // the smallest clearances Problems accepts, with one and two discs.
 func TestMeasuredFits(t *testing.T) {
 	t.Parallel()
-	cases := []struct {
-		name string
-		mod  func(p *cycloidal.Params)
-	}{
+	cases := []ciCase[func(*cycloidal.Params)]{
 		{"one_disc", func(p *cycloidal.Params) {}},
 		{"two_discs", func(p *cycloidal.Params) { p.DiscCount = 2 }},
 		{"pins_12", func(p *cycloidal.Params) { p.PinCount = 12 }},
@@ -30,34 +27,32 @@ func TestMeasuredFits(t *testing.T) {
 			p.DiskClearance, p.BearingClearance, p.OutputPinClearance = 0.6, 1.2, 0.6
 		}},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			p := cycloidal.DefaultParams()
-			tc.mod(&p)
-			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-			require.NoError(t, err)
-			const regular, press = 0.35, 0.05
-			// The section measurement of the round pin and socket reads up to 0.03 mm under the nominal gap
-			// (measured 0.025 for a 0.05 nominal), so the press fit must be proven to this bound.
-			const pressMeasured = press - 0.03
-			for i, disc := range drive.Discs {
-				mid := float64(i)*(p.DiscThickness+p.DiscGap) + p.DiscThickness/2
-				require.GreaterOrEqual(t, sectionGap(t, disc, drive.Housing, mid), regular, "disc %d to casing", i+1)
-				require.GreaterOrEqual(t, sectionGap(t, disc, drive.Cam, mid), regular, "disc %d to cam", i+1)
-				for k, pin := range drive.OutputPins {
-					require.GreaterOrEqual(t, sectionGap(t, disc, pin, mid), regular, "disc %d to pin %d", i+1, k+1)
-				}
-			}
-			plateMid := float64(p.DiscCount)*p.DiscThickness + float64(p.DiscCount-1)*p.DiscGap + 1 + p.OutputPlateThickness/2
+	ciRunCases(t, cases, func(t *testing.T, mod func(*cycloidal.Params)) {
+		t.Parallel()
+		p := cycloidal.DefaultParams()
+		mod(&p)
+		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+		require.NoError(t, err)
+		const regular, press = 0.35, 0.05
+		// The section measurement of the round pin and socket reads up to 0.03 mm under the nominal gap
+		// (measured 0.025 for a 0.05 nominal), so the press fit must be proven to this bound.
+		const pressMeasured = press - 0.03
+		for i, disc := range drive.Discs {
+			mid := float64(i)*(p.DiscThickness+p.DiscGap) + p.DiscThickness/2
+			require.GreaterOrEqual(t, sectionGap(t, disc, drive.Housing, mid), regular, "disc %d to casing", i+1)
+			require.GreaterOrEqual(t, sectionGap(t, disc, drive.Cam, mid), regular, "disc %d to cam", i+1)
 			for k, pin := range drive.OutputPins {
-				require.GreaterOrEqual(t, sectionGap(t, drive.OutputPlate, pin, plateMid), pressMeasured, "plate to pin %d", k+1)
+				require.GreaterOrEqual(t, sectionGap(t, disc, pin, mid), regular, "disc %d to pin %d", i+1, k+1)
 			}
-			if p.DiscCount == 2 {
-				require.GreaterOrEqual(t, axialGap(t, drive.Discs[0], drive.Discs[1]), regular, "disc 1 to disc 2")
-			}
-			require.GreaterOrEqual(t, axialGap(t, drive.Discs[len(drive.Discs)-1], drive.OutputPlate), regular, "disc to plate")
-			require.GreaterOrEqual(t, axialGap(t, drive.Cam, drive.OutputPlate), regular, "cam to plate")
-		})
-	}
+		}
+		plateMid := float64(p.DiscCount)*p.DiscThickness + float64(p.DiscCount-1)*p.DiscGap + 1 + p.OutputPlateThickness/2
+		for k, pin := range drive.OutputPins {
+			require.GreaterOrEqual(t, sectionGap(t, drive.OutputPlate, pin, plateMid), pressMeasured, "plate to pin %d", k+1)
+		}
+		if p.DiscCount == 2 {
+			require.GreaterOrEqual(t, axialGap(t, drive.Discs[0], drive.Discs[1]), regular, "disc 1 to disc 2")
+		}
+		require.GreaterOrEqual(t, axialGap(t, drive.Discs[len(drive.Discs)-1], drive.OutputPlate), regular, "disc to plate")
+		require.GreaterOrEqual(t, axialGap(t, drive.Cam, drive.OutputPlate), regular, "cam to plate")
+	})
 }

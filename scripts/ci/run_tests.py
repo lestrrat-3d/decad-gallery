@@ -380,24 +380,26 @@ def run_pattern(tests: list[str]) -> str:
     )
 
 
-def finished_tests(lines, qualified: bool = False, module: str = ".") -> dict[str | tuple[str, str], str]:
+def finished_tests(lines, qualified: bool = False, module: str = ".", package_outcomes=None,
+                   event_audit=None) -> dict[str | tuple[str, str], str]:
     """Read go test -json lines, echo their output, and return each test's final action."""
     finished: dict[str | tuple[str, str], str] = {}
     record_path = os.environ.get("CI_TEST_RECORDS")
     invocation = uuid.uuid4().hex if record_path else None
     records = open(record_path, "a", encoding="utf-8") if record_path else None
     try:
-        return _read_finished_tests(lines, qualified, module, invocation, records, finished)
+        return _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes, event_audit)
     finally:
         if records is not None:
             records.close()
 
 
-def _read_finished_tests(lines, qualified, module, invocation, records, finished):
+def _read_finished_tests(lines, qualified, module, invocation, records, finished, package_outcomes, event_audit):
     metadata = {"version": 1, "invocation": invocation, "module": module,
                 "job": os.environ.get("GITHUB_JOB", ""), "case": os.environ.get("CI_TEST_CASE", ""),
                 "revision": os.environ.get("GITHUB_SHA", ""), "run_id": os.environ.get("GITHUB_RUN_ID", ""),
                 "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "")}
+    package_cache = {}
 
     def record(kind, **fields):
         if records is not None:
@@ -407,22 +409,71 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            if event_audit is not None:
+                event_audit["invalid"] = True
             record("malformed", reason="invalid_json")
             sys.stdout.write(line)
             continue
         if not isinstance(event, dict):
+            if event_audit is not None:
+                event_audit["invalid"] = True
             record("malformed", reason="not_object")
             continue
+        if metadata["job"] == "case-workers" and event.get("Action") in {"start", "run"}:
+            record("start", package=event.get("Package"), test=event.get("Test"))
+        if event_audit is not None:
+            if event.get("Action") not in {"start", "output", "pass", "fail", "skip", "run", "pause", "cont"}:
+                event_audit["invalid"] = True
+            if event.get("Test") is not None:
+                event_audit["test"] = True
+                if isinstance(event.get("Package"), str) and isinstance(event.get("Test"), str):
+                    event_audit.setdefault("test_packages", set()).add(event["Package"])
+                    identity = (event["Package"], event["Test"])
+                    if event.get("Action") == "run":
+                        starts = event_audit.setdefault("test_starts", {})
+                        starts[identity] = starts.get(identity, 0) + 1
+                    elif event.get("Action") in {"pass", "fail", "skip"}:
+                        terminals = event_audit.setdefault("test_terminals", {})
+                        terminals[identity] = terminals.get(identity, 0) + 1
+                else:
+                    event_audit["invalid"] = True
+            pkg = event.get("Package")
+            if isinstance(pkg, str) and pkg:
+                event_audit["packages"].add(pkg)
+            else:
+                event_audit["invalid"] = True
         if "Output" in event:
             sys.stdout.write(event["Output"])
+            package = event.get("Package")
+            output = event["Output"]
+            if isinstance(package, str) and not event.get("Test") and isinstance(output, str):
+                if event_audit is not None and event.get("Action") == "output" and re.fullmatch(
+                        r"\?\s+" + re.escape(package) + r"\s+\[no test files\]\s*", output):
+                    event_audit["no_tests"].add(package)
+                match = re.fullmatch(r"(ok|FAIL)\s+" + re.escape(package) +
+                                     r"\s+(\(cached\)|[0-9]+(?:\.[0-9]+)?s)\s*", output)
+                if match:
+                    if match.group(1) == "ok" or match.group(2) != "(cached)":
+                        package_cache[package] = match.group(2) == "(cached)"
         test = event.get("Test")
         if event.get("Action") in {"pass", "fail", "skip"}:
             package = event.get("Package")
             if not isinstance(package, str) or not package or (test is not None and
                                                                 (not isinstance(test, str) or not test)):
+                if event_audit is not None:
+                    event_audit["invalid"] = True
                 record("malformed", reason="invalid_identity")
             else:
-                record("test" if test else "package", package=package, test=test, status=event["Action"])
+                fields = {"package": package, "test": test, "status": event["Action"]}
+                if "Elapsed" in event:
+                    fields["elapsed"] = event["Elapsed"]
+                if not test and package in package_cache:
+                    fields["cached"] = package_cache.pop(package)
+                record("test" if test else "package", **fields)
+                if not test and package_outcomes is not None:
+                    package_outcomes[package] = event["Action"]
+                if not test and event_audit is not None:
+                    event_audit["outcomes"].append((package, event["Action"]))
         if test and event.get("Action") in {"pass", "fail", "skip"}:
             key = (event.get("Package", ""), test) if qualified else test
             finished[key] = event["Action"]
@@ -434,7 +485,7 @@ def _read_finished_tests(lines, qualified, module, invocation, records, finished
 def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | None = None,
             package: str | None = None, allowed_skips: frozenset[str] = frozenset(),
             qualified_expected: set[tuple[str, str]] | None = None, cwd: str | None = None,
-            module: str = ".") -> None:
+            module: str = ".", require_empty_package: bool = False) -> None:
     """Run go test with args and fail when it fails, runs no test, or skips a test in expected."""
     command = ["go", "test", "-json", *args]
     print("+", " ".join(command), flush=True)
@@ -443,10 +494,19 @@ def go_test(args: list[str], expected: list[str] = (), env: dict[str, str] | Non
         kwargs["cwd"] = cwd
     proc = subprocess.Popen(command, **kwargs)
     qualified = package is not None or qualified_expected is not None
-    finished = finished_tests(proc.stdout, qualified=qualified, module=module)
+    outcomes = {} if require_empty_package else None
+    audit = {"test": False, "invalid": False, "packages": set(), "outcomes": [],
+             "no_tests": set()} if require_empty_package else None
+    finished = finished_tests(proc.stdout, qualified=qualified, module=module, package_outcomes=outcomes,
+                              event_audit=audit)
     if proc.wait() != 0:
         raise SystemExit(proc.returncode)
-    if not finished:
+    if require_empty_package:
+        if (not package or finished or audit["test"] or audit["invalid"] or audit["packages"] != {package} or
+                (audit["outcomes"] != [(package, "pass")] and
+                 not (audit["outcomes"] == [(package, "skip")] and audit["no_tests"] == {package}))):
+            raise SystemExit("empty partition did not produce one successful or no-test package and no tests")
+    elif not finished:
         raise SystemExit("go test ran no tests; check the -run pattern")
     missing = [
         f"{package}/{name}" if package else name
@@ -699,8 +759,7 @@ def run_model_packages(names: tuple[str, ...]) -> None:
             qualified_expected=expected)
 
 
-# Two shards by what the tests build: "parts" holds the part tests (each part is built once and shared across them) and
-# "assembly" the tests of the assembled display (the digit 0 and default builds are shared).
+# Group part tests and assembly tests around their shared builds. Run placement separately because it builds each pose.
 SEVENSEGMENT_SHARDS = {
     "parts": (
         "TestClickerLandGaps", "TestClickerPoses", "TestClickerPressTurn", "TestClickerRadialFits",
@@ -722,14 +781,21 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDriveAudit",
         "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFlagReuse", "TestSevenSegmentFollowerDrive",
-        "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks", "TestSevenSegmentPlacement",
+        "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks",
         "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
         "TestSevenSegmentTongueSweep", "TestSevenSegmentTruthTable", "TestSevenSegmentValidate",
         "TestSevenSegmentVisibility", "TestSevenSegmentWindowLip",
         "TestSevenSegmentWindowYellow",
     ),
+    "placement": ("TestSevenSegmentPlacement",),
 }
+SEVENSEGMENT_PLACEMENTS = {
+    "placement-x": ("100 along X", "100_along_X"),
+    "placement-offset": ("offset 10, 20, 30", "offset_10,_20,_30"),
+    "placement-quarter": ("quarter turn about Z", "quarter_turn_about_Z"),
+}
+SEVENSEGMENT_CASES = ("parts", "assembly", *SEVENSEGMENT_PLACEMENTS)
 
 
 def check_sevensegment_coverage() -> None:
@@ -755,12 +821,17 @@ def run_sevensegment(shard: str) -> None:
 
     Every test belongs to exactly one shard; each shard checks that the shards together cover the package.
     """
-    if shard not in SEVENSEGMENT_SHARDS:
-        raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_SHARDS) + ">")
+    if shard not in SEVENSEGMENT_CASES:
+        raise SystemExit("usage: run_tests.py sevensegment <" + "|".join(SEVENSEGMENT_CASES) + ">")
     check_sevensegment_coverage()
-    tests = list(SEVENSEGMENT_SHARDS[shard])
+    tests = list(SEVENSEGMENT_SHARDS["placement" if shard in SEVENSEGMENT_PLACEMENTS else shard])
+    env = os.environ.copy()
+    if shard in SEVENSEGMENT_PLACEMENTS:
+        env["SEVENSEGMENT_PLACEMENTS"] = "|".join(name for name, _ in SEVENSEGMENT_PLACEMENTS.values())
+        tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1]]
     parallel = ["-parallel", "2"] if shard == "assembly" else []
-    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel], expected=tests)
+    go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel],
+            expected=tests, env=env)
 
 
 def run_sevensegment_render() -> None:
@@ -859,6 +930,8 @@ def run_full_models() -> None:
 
 
 PLANETARY_PR_SHARDS = 21
+PLANETARY_FULL_REST_SHARDS = 5
+PLANETARY_KITS = ("planet605-shaft608", "planet608-shaft605", "planet608-shaft608")
 FAN_PR_SHARDS = 10
 
 
@@ -887,9 +960,11 @@ def planetary_test_weight(name: str) -> int:
     return PLANETARY_TEST_SECONDS.get(name, 60)
 
 
-def planetary_test_shards(tests: list[str]) -> list[list[str]]:
+def planetary_test_shards(tests: list[str], count: int | None = None) -> list[list[str]]:
     """Balance discovered tests without relying on estimates for coverage."""
-    shards = [[] for _ in range(PLANETARY_PR_SHARDS - 1)]
+    if count is None:
+        count = PLANETARY_PR_SHARDS - 1
+    shards = [[] for _ in range(count)]
     weights = [0] * len(shards)
     # Charge the time for the entire group, including the shared build once.
     fixture_groups = (
@@ -995,22 +1070,30 @@ def run_planetary_pr(shard: str) -> None:
 
 def run_planetary_full(shard: str) -> None:
     package = "github.com/lestrrat-3d/decad-gallery/models/planetarygearbox"
+    discovered = subprocess.run(["go", "run", "scripts/ci/planetary_kits.go"],
+                                check=True, capture_output=True, text=True).stdout.splitlines()
+    if len(discovered) != len(set(discovered)) or set(discovered) != set(PLANETARY_KITS):
+        raise SystemExit("planetary kit assignments do not match supported non-default kits")
     output = subprocess.run(["go", "test", "-list", "^Test", package],
                             check=True, capture_output=True, text=True).stdout
-    tests = {line for line in output.splitlines() if line.startswith("Test")}
+    tests = [line for line in output.splitlines() if line.startswith("Test")]
     kit = "TestKitGearboxes"
-    if kit not in tests or len(tests) < 2:
+    if kit not in tests or len(tests) != len(set(tests)) or len(tests) <= PLANETARY_FULL_REST_SHARDS:
         raise SystemExit("planetary test inventory is incomplete")
-    selected = [kit] if shard == "kits" else sorted(tests - {kit}) if shard == "rest" else None
+    rest = planetary_test_shards([test for test in tests if test != kit], PLANETARY_FULL_REST_SHARDS)
+    cases = {f"rest-{index}": tests for index, tests in enumerate(rest)}
+    selected = [kit] if shard in PLANETARY_KITS else cases.get(shard)
     if selected is None:
         raise SystemExit("invalid planetary shard")
+    if not selected:
+        raise SystemExit("planetary full shard is empty")
     expected = set(selected)
-    if shard == "kits":
-        expected.update(f"{kit}/{name}" for name in (
-            "planet605-shaft608", "planet608-shaft605", "planet608-shaft608"))
+    if shard in PLANETARY_KITS:
+        expected.add(f"{kit}/{shard}")
     env = os.environ.copy()
     env["PLANETARY_ALL_KITS"] = "1"
-    go_test([package, "-run", run_pattern(selected), "-timeout", "60m", "-count=1"],
+    pattern = f"^{kit}$/^{shard}$" if shard in PLANETARY_KITS else run_pattern(selected)
+    go_test([package, "-run", pattern, "-timeout", "60m", "-count=1"],
             sorted(expected), env=env, package=package)
 
 
@@ -1077,7 +1160,7 @@ def main() -> None:
     if suite == "onewayclutch" and not args and mode == "all":
         run_onewayclutch()
         return
-    if suite == "sevensegment" and not args and mode in SEVENSEGMENT_SHARDS:
+    if suite == "sevensegment" and not args and mode in SEVENSEGMENT_CASES:
         run_sevensegment(mode)
         return
     if suite == "sevensegment" and not args and mode == "render":
@@ -1095,7 +1178,7 @@ def main() -> None:
     raise SystemExit(
         "usage: run_tests.py cycloidal pr | model pr <name> | models <pr|full> | bevel <pr|full> <a-h|rest-0..3>"
         " | wheel <case|rest> | siren <default|spike|slots12|slots24|rest> | escapement all"
-        " | onewayclutch all | clamparm all | sevensegment <parts|assembly|render> | turbinefan all | fan <flat-three|steep-three>"
+        " | onewayclutch all | clamparm all | sevensegment <parts|assembly|placement|render> | turbinefan all | fan <flat-three|steep-three>"
     )
 
 
