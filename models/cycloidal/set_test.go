@@ -17,9 +17,7 @@ func TestExplode(t *testing.T) {
 	for _, discs := range []int{1, 2} {
 		p := cycloidal.DefaultParams()
 		p.DiscCount, p.DiscGap = discs, cycloidal.MinCamNeck
-		doc := chainDocument()
-		drive, err := cycloidal.Build(t.Context(), doc, p)
-		require.NoError(t, err)
+		doc, drive := sharedDrive(t, p)
 		set, err := drive.Set(doc, p)
 		require.NoError(t, err)
 		require.Len(t, set.Parts(), len(drive.Named()))

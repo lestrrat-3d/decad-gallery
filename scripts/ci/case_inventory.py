@@ -54,10 +54,10 @@ def file_digest(files):
 
 
 # Both reviewed parents create a document and parameters per child. Their local
-# helpers do not access defaultDriveFixture. Pin the entire local Go package
+# helpers do not access defaultDriveFixture or twoDiscDriveFixture. Pin the entire local Go package
 # so changing a parent, helper, or package initializer needs a fresh review.
 # Updating the model's inventory fingerprint alone cannot authorize a split.
-CYCLOIDAL_REVIEWED_GO = "684eafbcc84332696858c1137067d23a01b3c681b4994eb5cc50b5e18fa72309"
+CYCLOIDAL_REVIEWED_GO = "0cbb7ab252451bfae85e8eb8b1ec8d37dbdcc49f090110e2a4f238c8b3f0e22e"
 
 
 def reviewed_cases(name, parents):

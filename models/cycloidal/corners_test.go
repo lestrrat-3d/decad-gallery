@@ -21,9 +21,8 @@ func TestCorners(t *testing.T) {
 	t.Run("two discs", func(t *testing.T) {
 		p := cycloidal.DefaultParams()
 		p.DiscCount = 2
-		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-		require.NoError(t, err)
-		requireCorners(t, p, &drive)
+		_, drive := sharedDrive(t, p)
+		requireCorners(t, p, drive)
 	})
 }
 
