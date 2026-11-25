@@ -33,11 +33,7 @@ func TestBuildDefaultDrive(t *testing.T) {
 }
 
 func TestBuildTwoDiscDrive(t *testing.T) {
-	doc := chainDocument()
-	p := cycloidal.DefaultParams()
-	p.DiscCount, p.DiscGap = 2, cycloidal.MinCamNeck
-	drive, err := cycloidal.Build(t.Context(), doc, p)
-	require.NoError(t, err)
+	_, drive := sharedDrive(t, twoDiscParams())
 	require.Len(t, drive.Discs, 2)
 	named := drive.Named()
 	require.Equal(t, "Cycloidal Disk 2", named[1].Name)
@@ -116,8 +112,7 @@ func TestBuildChamfers(t *testing.T) {
 	volumes := func(chamfer float64) map[string]float64 {
 		p := cycloidal.DefaultParams()
 		p.ChamferSize = chamfer
-		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-		require.NoError(t, err)
+		_, drive := sharedDrive(t, p)
 		out := map[string]float64{}
 		for _, nb := range drive.Named() {
 			mesh, err := nb.Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
@@ -172,13 +167,11 @@ func TestTwoDiscCam(t *testing.T) {
 func TestBuildContainers(t *testing.T) {
 	for _, discs := range []int{1, 2} {
 		t.Run(fmt.Sprintf("discs=%d", discs), func(t *testing.T) {
-			doc := chainDocument()
 			p := cycloidal.DefaultParams()
 			if discs == 2 {
 				p.DiscCount, p.DiscGap = 2, cycloidal.MinCamNeck
 			}
-			drive, err := cycloidal.Build(t.Context(), doc, p)
-			require.NoError(t, err)
+			doc, drive := sharedDrive(t, p)
 			require.NoError(t, doc.VerifyContainers().Err())
 
 			var names []string

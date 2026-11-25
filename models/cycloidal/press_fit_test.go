@@ -20,8 +20,7 @@ func TestPressFitWalls(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := cycloidal.DefaultParams()
 			p.DiscCount = discs
-			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-			require.NoError(t, err)
+			_, drive := sharedDrive(t, p)
 
 			// The plate's rim: its radius, less the socket circle's reach.
 			plate, err := drive.OutputPlate.Bounds()
