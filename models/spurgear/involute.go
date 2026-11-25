@@ -1,6 +1,7 @@
 package spurgear
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -9,11 +10,10 @@ import (
 	"github.com/lestrrat-3d/units"
 )
 
-// point is a planar coordinate in the gear frame.
+// point is a planar coordinate in the gear frame, in millimeters.
 type point struct{ x, y float64 }
 
-// dimensions holds the derived radii and the backlash read from the
-// parameter table, all in millimeters.
+// dimensions holds the derived gear radii read from the parameter table.
 type dimensions struct{ pitch, base, root, tip, fillet, backlash float64 }
 
 // defineParameters writes the spur gear parameter table into t.
@@ -69,7 +69,7 @@ func defineParameters(t *param.Table, p Params) error {
 	return nil
 }
 
-// readDimensions reads the derived radii and the backlash from the document.
+// readDimensions reads the derived radii from the document's parameter table.
 func readDimensions(doc *decad.Document) (dimensions, error) {
 	var d dimensions
 	targets := []struct {
@@ -83,18 +83,18 @@ func readDimensions(doc *decad.Document) (dimensions, error) {
 		{"fillet_radius", &d.fillet},
 		{"backlash", &d.backlash},
 	}
-	for _, t := range targets {
-		v, err := doc.Param(t.name)
+	for _, target := range targets {
+		v, err := doc.Param(target.name)
 		if err != nil {
-			return dimensions{}, fmt.Errorf("read parameter %s: %w", t.name, err)
+			return dimensions{}, fmt.Errorf("read parameter %s: %w", target.name, err)
 		}
-		*t.dst = v.Base()
+		*target.dst = v.Base()
 	}
 	return d, nil
 }
 
-// derive computes the dimensions of p on a scratch document. It returns a
-// zero dimensions value when the parameters cannot be evaluated.
+// derive computes the gear dimensions on a scratch document. It returns the
+// zero value when the parameters cannot be defined or read.
 func derive(p Params) dimensions {
 	doc := decad.New()
 	if err := defineParameters(doc.Params(), p); err != nil {
@@ -112,63 +112,64 @@ func filletRadius(_ Params, d dimensions) float64 {
 	return d.fillet
 }
 
-// rotate turns (x, y) by theta about the origin.
+// rotate turns (x, y) about the origin by theta radians.
 func rotate(x, y, theta float64) point {
-	s, c := math.Sincos(theta)
-	return point{x*c - y*s, x*s + y*c}
+	sin, cos := math.Sincos(theta)
+	return point{x*cos - y*sin, x*sin + y*cos}
 }
 
-// rootContact scales a base-circle point out to the root circle.
+// rootContact scales a base-circle point out to the root circle. The
+// multiplication runs before the division so the coordinates match the
+// helical join bit for bit.
 func rootContact(basePoint point, d dimensions) point {
 	return point{basePoint.x * d.root / d.base, basePoint.y * d.root / d.base}
 }
 
-// toothAngle returns the rotation of tooth k about the gear axis.
+// toothAngle returns the angle of tooth k.
 func toothAngle(p Params, k int) float64 {
 	return 2 * math.Pi * float64(k) / float64(p.Teeth)
 }
 
-// involutePoint returns the original involute at radius r, mirrored across X.
-func involutePoint(base, r float64) point {
+// mirroredInvolute returns the base-circle involute point at radius r,
+// mirrored across the X axis.
+func mirroredInvolute(base, r float64) point {
 	ratio := base / r
 	if ratio > 1 {
 		ratio = 1
 	}
 	t := math.Tan(math.Acos(ratio))
-	return point{
-		x: base * (math.Cos(t) + t*math.Sin(t)),
-		y: -(base * (math.Sin(t) - t*math.Cos(t))),
-	}
+	sin, cos := math.Sincos(t)
+	return point{base * (cos + t*sin), -base * (sin - t*cos)}
 }
 
-// flankShift returns the rotation that places the pitch crossing of the
-// mirrored involute at π/(2·teeth) minus the backlash half-angle.
-func flankShift(pitch, base, teeth, backlash float64) float64 {
-	pp := involutePoint(base, pitch)
+// flankRotation returns the angle that carries the mirrored involute onto the
+// left flank, so the flank crosses the pitch circle at pi/(2*teeth) - delta.
+func flankRotation(pitch, base, teeth, backlash float64) float64 {
 	delta := backlash / (2 * pitch)
+	pp := mirroredInvolute(base, pitch)
 	return math.Pi/(2*teeth) - delta - math.Atan2(pp.y, pp.x)
 }
 
-// halfAngle returns the angle between the tooth axis and the left flank at
+// flankHalfAngle returns the angle between the tooth axis and the left flank at
 // radius r.
-func halfAngle(pitch, base, teeth, backlash, r float64) float64 {
-	beta := flankShift(pitch, base, teeth, backlash)
-	q := involutePoint(base, r)
+func flankHalfAngle(pitch, base, teeth, backlash, r float64) float64 {
+	beta := flankRotation(pitch, base, teeth, backlash)
+	q := mirroredInvolute(base, r)
 	rq := rotate(q.x, q.y, beta)
 	return math.Atan2(rq.y, rq.x)
 }
 
-// sampleFlanks samples the left and right involute flanks from radius start
-// to radius tip, both ends included, and turns both by angle. Both arrays run
-// from start to tip, left array first.
+// sampleFlanks samples both flanks of one tooth from radius start to tip.
+// It returns the left array, then the right array, both running start-to-tip,
+// rotated by angle.
 func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int,
 	angle float64) ([]point, []point) {
-	beta := flankShift(pitch, base, teeth, backlash)
+	beta := flankRotation(pitch, base, teeth, backlash)
 	left := make([]point, samples)
 	right := make([]point, samples)
-	for i := 0; i < samples; i++ {
+	for i := range samples {
 		r := start + (tip-start)*float64(i)/float64(samples-1)
-		q := involutePoint(base, r)
+		q := mirroredInvolute(base, r)
 		l := rotate(q.x, q.y, beta)
 		rt := point{l.x, -l.y}
 		left[i] = rotate(l.x, l.y, angle)
@@ -177,15 +178,40 @@ func sampleFlanks(pitch, base, start, tip, teeth, backlash float64, samples int,
 	return left, right
 }
 
-// InvoluteFlanks samples the left and right involute flanks of a tooth for
-// the given pitch, base and tip radii and a real-valued effective tooth
-// count, with no backlash. Both arrays run base to tip and are turned by
-// angle.
+// closingRadius returns the radius Rc of the arc that closes an embedded tooth.
+func closingRadius(p Params, d dimensions) (float64, error) {
+	teeth := float64(p.Teeth)
+	limit := math.Pi / teeth
+	half := func(r float64) float64 {
+		return flankHalfAngle(d.pitch, d.base, teeth, d.backlash, r)
+	}
+	if half(d.root) >= limit {
+		return 0, errors.New("embedded tooth: no closing radius, the flanks of adjacent teeth meet at the root circle")
+	}
+	if half(d.base) < limit {
+		return d.base, nil
+	}
+	lo, hi := d.base, d.root
+	for range 200 {
+		mid := (lo + hi) / 2
+		if half(mid) >= limit {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	rq := (lo + hi) / 2
+	return (rq + d.root) / 2, nil
+}
+
+// InvoluteFlanks samples the left and right involute flanks of one tooth from
+// the base circle to the tip circle, rotated by angle. It applies no backlash.
+// Both arrays run base-to-tip, left first.
 func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
 	angle float64) ([][2]float64, [][2]float64, error) {
 	for _, v := range []float64{pitch, base, tip, effectiveTeeth, angle} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, nil, fmt.Errorf("involute flanks: nonfinite input")
+			return nil, nil, errors.New("involute flanks: nonfinite input")
 		}
 	}
 	switch {
@@ -198,14 +224,16 @@ func InvoluteFlanks(pitch, base, tip, effectiveTeeth float64, samples int,
 	case effectiveTeeth <= 0:
 		return nil, nil, fmt.Errorf("involute flanks: effective teeth %g must be positive", effectiveTeeth)
 	case samples < 3:
-		return nil, nil, fmt.Errorf("involute flanks: samples %d must be at least 3", samples)
+		return nil, nil, fmt.Errorf("involute flanks: %d samples, need at least 3", samples)
 	}
 	left, right := sampleFlanks(pitch, base, base, tip, effectiveTeeth, 0, samples, angle)
-	l := make([][2]float64, len(left))
-	r := make([][2]float64, len(right))
-	for i := range left {
-		l[i] = [2]float64{left[i].x, left[i].y}
-		r[i] = [2]float64{right[i].x, right[i].y}
+	return pairs(left), pairs(right), nil
+}
+
+func pairs(points []point) [][2]float64 {
+	out := make([][2]float64, len(points))
+	for i, pt := range points {
+		out[i] = [2]float64{pt.x, pt.y}
 	}
-	return l, r, nil
+	return out
 }
