@@ -60,6 +60,7 @@ func New(vertices []r3.Vec, faces [][3]int, bound float64) (Mesh, error) {
 		}
 	}
 	m := Mesh{bound: bound, lo: vertices[0], hi: vertices[0], clearanceEligible: eligible}
+	m.triangles = make([]triangle, 0, len(faces))
 	for i, face := range faces {
 		var t triangle
 		for j, index := range face {
@@ -75,11 +76,25 @@ func New(vertices []r3.Vec, faces [][3]int, bound float64) (Mesh, error) {
 		}
 		m.triangles = append(m.triangles, t)
 	}
-	m.build(0, len(m.triangles))
+	var s buildScratch
+	m.build(0, len(m.triangles), &s)
 	return m, nil
 }
 
-func (m *Mesh) build(start, end int) int {
+// buildScratch holds build's sort keys and reorder buffer, reused across nodes.
+type buildScratch struct {
+	keys []sortKey
+	tmp  []triangle
+}
+
+// sortKey is a triangle's centre on the split axis and its offset in the node. Sorting keys with the same
+// comparison runs the same pdqsort steps as sorting the triangles, so it yields the same permutation.
+type sortKey struct {
+	centre float64
+	index  int
+}
+
+func (m *Mesh) build(start, end int, s *buildScratch) int {
 	n := node{lo: m.triangles[start].lo, hi: m.triangles[start].hi, start: start, end: end, left: -1, right: -1}
 	for _, t := range m.triangles[start:end] {
 		n.lo, n.hi = extend(n.lo, n.hi, t.lo)
@@ -95,7 +110,7 @@ func (m *Mesh) build(start, end int) int {
 	if span.Y > span.X {
 		axis = 1
 	}
-	if span.Z > math.Max(span.X, span.Y) {
+	if span.Z > max(span.X, span.Y) {
 		axis = 2
 	}
 	centre := func(t triangle) float64 {
@@ -108,23 +123,32 @@ func (m *Mesh) build(start, end int) int {
 			return t.lo.Z/2 + t.hi.Z/2
 		}
 	}
-	slices.SortFunc(m.triangles[start:end], func(a, b triangle) int { return cmp.Compare(centre(a), centre(b)) })
+	keys := s.keys[:0]
+	for i, t := range m.triangles[start:end] {
+		keys = append(keys, sortKey{centre: centre(t), index: i})
+	}
+	slices.SortFunc(keys, func(a, b sortKey) int { return cmp.Compare(a.centre, b.centre) })
+	tmp := append(s.tmp[:0], m.triangles[start:end]...)
+	for i, k := range keys {
+		m.triangles[start+i] = tmp[k.index]
+	}
+	s.keys, s.tmp = keys, tmp
 	middle := start + (end-start)/2
-	left, right := m.build(start, middle), m.build(middle, end)
+	left, right := m.build(start, middle, s), m.build(middle, end, s)
 	m.nodes[index].left, m.nodes[index].right = left, right
 	return index
 }
 
 func span(n node) float64 {
 	d := n.hi.Sub(n.lo)
-	return math.Max(d.X, math.Max(d.Y, d.Z))
+	return max(d.X, max(d.Y, d.Z))
 }
 
-func finite(x float64) bool { return !math.IsNaN(x) && !math.IsInf(x, 0) }
+func finite(x float64) bool { return math.Float64bits(x)&(0x7ff<<52) != 0x7ff<<52 }
 
 func extend(lo, hi, p r3.Vec) (r3.Vec, r3.Vec) {
-	return r3.Vec{X: math.Min(lo.X, p.X), Y: math.Min(lo.Y, p.Y), Z: math.Min(lo.Z, p.Z)},
-		r3.Vec{X: math.Max(hi.X, p.X), Y: math.Max(hi.Y, p.Y), Z: math.Max(hi.Z, p.Z)}
+	return r3.Vec{X: min(lo.X, p.X), Y: min(lo.Y, p.Y), Z: min(lo.Z, p.Z)},
+		r3.Vec{X: max(hi.X, p.X), Y: max(hi.Y, p.Y), Z: max(hi.Z, p.Z)}
 }
 
 // Exceeds returns a gap lower bound and whether the boundary gap exceeds clearance after charging both
@@ -148,7 +172,7 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 		return 0, false, fmt.Errorf("meshgap: bounds exceed squared-distance range")
 	}
 	if box > limit*limit {
-		return math.Max(0, math.Sqrt(box)-margin), true, nil
+		return max(0, math.Sqrt(box)-margin), true, nil
 	}
 	best := math.Inf(1)
 	type pair struct{ a, b int }
@@ -172,7 +196,13 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 			}
 			continue
 		}
+		nodeB := triangle{lo: b.lo, hi: b.hi}
 		for _, ta := range m.triangles[a.start:a.end] {
+			// squaredBoxGap is monotone in each box and best never grows, so every pair this skips
+			// would meet squaredBoxGap(ta, tb) >= best below.
+			if squaredBoxGap(ta, nodeB) >= best {
+				continue
+			}
 			for _, tb := range other.triangles[b.start:b.end] {
 				if squaredBoxGap(ta, tb) >= best {
 					continue
@@ -181,16 +211,16 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 				if !finite(distance) || distance < 0 {
 					return 0, false, fmt.Errorf("meshgap: triangle distance is not finite and nonnegative")
 				}
-				best = math.Min(best, distance)
+				best = min(best, distance)
 				if best <= limit*limit {
 					// A close pair bounds the minimum from above. Only the whole-mesh
 					// boxes bound it from below when stopping before all pairs are searched.
-					return math.Max(0, math.Sqrt(box)-margin), false, nil
+					return max(0, math.Sqrt(box)-margin), false, nil
 				}
 			}
 		}
 	}
-	return math.Max(0, math.Sqrt(best)-margin), true, nil
+	return max(0, math.Sqrt(best)-margin), true, nil
 }
 
 // ExceedsClearance returns whether the boundary gap exceeds clearance after charging both
@@ -253,7 +283,13 @@ func (m Mesh) exceedsClearanceThreshold(other Mesh, clearance, limitSquared floa
 			}
 			continue
 		}
+		nodeB := triangle{lo: b.lo, hi: b.hi}
 		for _, ta := range m.triangles[a.start:a.end] {
+			// lowerBoxGap is monotone in each box, and tb's box lies in nodeB's, so every pair this skips
+			// has lower > threshold too. Eligible coordinates keep every lower bound finite (valid).
+			if lower, _ = lowerBoxGap(ta, nodeB); lower > threshold {
+				continue
+			}
 			for _, tb := range other.triangles[b.start:b.end] {
 				lower, valid = lowerBoxGap(ta, tb)
 				if !valid {
@@ -291,41 +327,33 @@ func roundUp(value float64) float64 {
 }
 
 func lowerBoxGap(a, b triangle) (float64, bool) {
-	axisGap := func(aLo, aHi, bLo, bHi float64) (float64, bool) {
-		x := roundDownNonnegative(aLo - bHi)
-		y := roundDownNonnegative(bLo - aHi)
-		gap := math.Max(0, math.Max(x, y))
-		squared := roundDownNonnegative(gap * gap)
-		return squared, finite(squared)
-	}
-	x, ok := axisGap(a.lo.X, a.hi.X, b.lo.X, b.hi.X)
-	if !ok {
-		return 0, false
-	}
-	y, ok := axisGap(a.lo.Y, a.hi.Y, b.lo.Y, b.hi.Y)
-	if !ok {
-		return 0, false
-	}
-	z, ok := axisGap(a.lo.Z, a.hi.Z, b.lo.Z, b.hi.Z)
-	if !ok {
-		return 0, false
-	}
-	xy := roundDownNonnegative(x + y)
-	if !finite(xy) {
-		return 0, false
-	}
-	squared := roundDownNonnegative(xy + z)
+	x := lowerAxisGap(a.lo.X, a.hi.X, b.lo.X, b.hi.X)
+	y := lowerAxisGap(a.lo.Y, a.hi.Y, b.lo.Y, b.hi.Y)
+	z := lowerAxisGap(a.lo.Z, a.hi.Z, b.lo.Z, b.hi.Z)
+	squared := roundDownOrdered(roundDownOrdered(x+y) + z)
+	// x, y, z and the sums are in [0, +Inf], so the sum is finite exactly when every term and partial sum is.
 	return squared, finite(squared)
 }
 
-func roundDownNonnegative(value float64) float64 {
-	if !finite(value) {
-		return value
-	}
+// lowerAxisGap returns the squared gap of two intervals, rounded down at the subtraction and the multiplication.
+// The coordinates are finite, so neither difference is NaN. Rounding down is monotone, so the larger difference
+// gives the larger rounded gap, and a difference at or below zero gives 0.
+func lowerAxisGap(aLo, aHi, bLo, bHi float64) float64 {
+	gap := roundDownOrdered(max(aLo-bHi, bLo-aHi))
+	return roundDownOrdered(gap * gap)
+}
+
+// roundDownOrdered returns the largest float64 below value, or 0 at and below zero, as a lower bound that absorbs
+// one rounding. +Inf stays +Inf. value is not NaN.
+func roundDownOrdered(value float64) float64 {
 	if value <= 0 {
 		return 0
 	}
-	return math.Nextafter(value, math.Inf(-1))
+	bits := math.Float64bits(value)
+	if bits == 0x7ff<<52 {
+		return value
+	}
+	return math.Float64frombits(bits - 1)
 }
 
 // PointDistance returns the distance from p to the nearest triangle of the mesh. It reads the triangles only and
@@ -355,7 +383,7 @@ func (m Mesh) PointDistance(p r3.Vec) (float64, error) {
 			if squaredBoxGap(query, t) >= best {
 				continue
 			}
-			best = math.Min(best, squaredPointTriangle(p, t.p))
+			best = min(best, squaredPointTriangle(p, t.p))
 		}
 	}
 	if !finite(best) {
@@ -368,9 +396,9 @@ func (m Mesh) PointDistance(p r3.Vec) (float64, error) {
 func (m Mesh) Bound() float64 { return m.bound }
 
 func squaredBoxGap(a, b triangle) float64 {
-	x := math.Max(0, math.Max(a.lo.X-b.hi.X, b.lo.X-a.hi.X))
-	y := math.Max(0, math.Max(a.lo.Y-b.hi.Y, b.lo.Y-a.hi.Y))
-	z := math.Max(0, math.Max(a.lo.Z-b.hi.Z, b.lo.Z-a.hi.Z))
+	x := max(0, max(a.lo.X-b.hi.X, b.lo.X-a.hi.X))
+	y := max(0, max(a.lo.Y-b.hi.Y, b.lo.Y-a.hi.Y))
+	z := max(0, max(a.lo.Z-b.hi.Z, b.lo.Z-a.hi.Z))
 	return x*x + y*y + z*z
 }
 
@@ -380,10 +408,10 @@ func squaredTriangleGap(a, b [3]r3.Vec) float64 {
 		if segmentPierces(a[i], a[(i+1)%3], b) || segmentPierces(b[i], b[(i+1)%3], a) {
 			return 0
 		}
-		best = math.Min(best, squaredPointTriangle(a[i], b))
-		best = math.Min(best, squaredPointTriangle(b[i], a))
+		best = min(best, squaredPointTriangle(a[i], b))
+		best = min(best, squaredPointTriangle(b[i], a))
 		for j := range 3 {
-			best = math.Min(best, squaredSegments(a[i], a[(i+1)%3], b[j], b[(j+1)%3]))
+			best = min(best, squaredSegments(a[i], a[(i+1)%3], b[j], b[(j+1)%3]))
 		}
 	}
 	return best
@@ -460,24 +488,24 @@ func squaredSegments(p1, q1, p2, q2 r3.Vec) float64 {
 		return r.Dot(r)
 	}
 	if a <= 1e-20 {
-		u = math.Max(0, math.Min(1, f/e))
+		u = max(0, min(1, f/e))
 	} else {
 		c := d1.Dot(r)
 		if e <= 1e-20 {
-			s = math.Max(0, math.Min(1, -c/a))
+			s = max(0, min(1, -c/a))
 		} else {
 			b := d1.Dot(d2)
 			denom := a*e - b*b
 			if denom != 0 {
-				s = math.Max(0, math.Min(1, (b*f-c*e)/denom))
+				s = max(0, min(1, (b*f-c*e)/denom))
 			}
 			u = (b*s + f) / e
 			if u < 0 {
 				u = 0
-				s = math.Max(0, math.Min(1, -c/a))
+				s = max(0, min(1, -c/a))
 			} else if u > 1 {
 				u = 1
-				s = math.Max(0, math.Min(1, (b-c)/a))
+				s = max(0, min(1, (b-c)/a))
 			}
 		}
 	}
