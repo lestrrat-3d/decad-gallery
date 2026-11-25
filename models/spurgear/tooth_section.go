@@ -9,77 +9,16 @@ import (
 	"github.com/lestrrat-3d/sketch"
 )
 
-// toothPoints holds the sketch points of one ordinary tooth.
-type toothPoints struct {
-	right, left         []*sketch.Point
-	rightRoot, leftRoot *sketch.Point
-	rightRootXY         point
-	leftRootXY          point
+// toothSketch records the corners of one tooth drawn by drawTooth.
+type toothSketch struct {
+	rightRoot, leftRoot     *sketch.Point
+	rightRootXY, leftRootXY point
 }
 
-// addToothPoints creates the dimensioned flank and root points of one ordinary tooth.
-func addToothPoints(s *sketch.Sketch, left, right []point, d dimensions) toothPoints {
-	tp := toothPoints{
-		right: make([]*sketch.Point, len(right)),
-		left:  make([]*sketch.Point, len(left)),
-	}
-	for i, q := range right {
-		tp.right[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
-	}
-	for i, q := range left {
-		if i == len(left)-1 {
-			tp.left[i] = sketchcheck.DimensionArcEnd(s, q.x, q.y)
-			continue
-		}
-		tp.left[i] = sketchcheck.DimensionPoint(s, q.x, q.y)
-	}
-	tp.leftRootXY = rootContact(left[0], d)
-	tp.rightRootXY = rootContact(right[0], d)
-	tp.leftRoot = sketchcheck.DimensionArcEnd(s, tp.leftRootXY.x, tp.leftRootXY.y)
-	tp.rightRoot = sketchcheck.DimensionPoint(s, tp.rightRootXY.x, tp.rightRootXY.y)
-	return tp
-}
-
-// drawToothCurves draws the right line, right spline, tip arc, left spline and
-// left line of one ordinary tooth.
-func drawToothCurves(s *sketch.Sketch, tp toothPoints) error {
-	last := len(tp.right) - 1
-	s.CreateLine(tp.rightRoot, tp.right[0])
-	if _, err := s.CreateFitSpline(tp.right...); err != nil {
-		return fmt.Errorf("right flank spline: %w", err)
-	}
-	s.CreateArc(s.Origin(), tp.right[last], tp.left[last])
-	if _, err := s.CreateFitSpline(tp.left...); err != nil {
-		return fmt.Errorf("left flank spline: %w", err)
-	}
-	s.CreateLine(tp.left[0], tp.leftRoot)
-	return nil
-}
-
-// buildToothSection builds one ordinary tooth section at the given angle.
-func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
-	p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
-	s, err := world.CreateSketch(plane)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
-	}
-	left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), d.backlash, p.Samples, angle)
-	tp := addToothPoints(s, left, right, d)
-	if err := drawToothCurves(s, tp); err != nil {
-		return nil, nil, fmt.Errorf("tooth section: %w", err)
-	}
-	s.CreateArc(s.Origin(), tp.rightRoot, tp.leftRoot)
-	profile, err := solveSingleProfile(ctx, s, "tooth section", 6)
-	if err != nil {
-		return nil, nil, err
-	}
-	return s, profile, nil
-}
-
-// BuildToothSection builds the six-curve section of one ordinary tooth,
-// rotated by angle, on plane. It returns a solved and verified sketch and its
-// profile. ctx, world and plane must not be nil. An embedded gear has no
-// ordinary tooth section and is rejected.
+// BuildToothSection draws one ordinary tooth, turned by angle, on plane and
+// returns its solved, verified sketch and its six-curve profile. The profile is
+// closed by the short root arc. ctx, world and plane must not be nil. An
+// embedded tooth is rejected.
 func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
 	p Params, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
 	if ctx == nil {
@@ -92,14 +31,100 @@ func BuildToothSection(ctx context.Context, world *sketch.World, plane *sketch.P
 		return nil, nil, fmt.Errorf("tooth section: nil plane")
 	}
 	if err := validate(p); err != nil {
-		return nil, nil, fmt.Errorf("tooth section: %w", err)
+		return nil, nil, err
 	}
 	if math.IsNaN(angle) || math.IsInf(angle, 0) {
-		return nil, nil, fmt.Errorf("tooth section: nonfinite angle %g", angle)
+		return nil, nil, fmt.Errorf("tooth section: angle %g must be finite", angle)
 	}
 	d := derive(p)
 	if d.base < d.root {
-		return nil, nil, fmt.Errorf("tooth section: embedded flanks have no ordinary tooth section")
+		return nil, nil, fmt.Errorf("tooth section: embedded flanks (base radius %g below root radius %g) "+
+			"have no standalone tooth section", d.base, d.root)
 	}
 	return buildToothSection(ctx, world, plane, p, d, angle)
+}
+
+// buildToothSection draws the ordinary tooth turned by angle, without
+// validating p.
+func buildToothSection(ctx context.Context, world *sketch.World, plane *sketch.Plane,
+	p Params, d dimensions, angle float64) (*sketch.Sketch, *sketch.Profile, error) {
+	left, right := sampleFlanks(d.pitch, d.base, d.base, d.tip, float64(p.Teeth), d.backlash, p.Samples, angle)
+	s, err := world.CreateSketch(plane)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create tooth sketch: %w", err)
+	}
+	tooth, err := drawTooth(s, d, left, right, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("tooth section: %w", err)
+	}
+	s.CreateArc(s.Origin(), tooth.rightRoot, tooth.leftRoot)
+	if err := solveVerified(ctx, s); err != nil {
+		return nil, nil, fmt.Errorf("tooth section: %w", err)
+	}
+	profile, err := soleProfile(s)
+	if err != nil {
+		return nil, nil, fmt.Errorf("tooth section: %w", err)
+	}
+	if got := len(profile.Outer); got != 6 {
+		return nil, nil, fmt.Errorf("tooth section has %d boundary curves, want 6", got)
+	}
+	return s, profile, nil
+}
+
+// drawTooth draws one ordinary tooth's two radial lines, two flank splines and
+// tip arc. When prevLeftRoot is not nil, it first joins that point to the new
+// right root with a root arc. The caller closes the section.
+func drawTooth(s *sketch.Sketch, d dimensions, left, right []point,
+	prevLeftRoot *sketch.Point) (toothSketch, error) {
+	center := s.Origin()
+	rightPoints := dimensionRightFlank(s, right)
+	leftPoints := dimensionLeftFlank(s, left, false)
+	last := len(right) - 1
+	leftRootXY := rootContact(left[0], d)
+	leftRoot := sketchcheck.DimensionArcEnd(s, leftRootXY.x, leftRootXY.y)
+	rightRootXY := rootContact(right[0], d)
+	rightRoot := sketchcheck.DimensionPoint(s, rightRootXY.x, rightRootXY.y)
+	if prevLeftRoot != nil {
+		s.CreateArc(center, prevLeftRoot, rightRoot)
+	}
+	s.CreateLine(rightRoot, rightPoints[0])
+	if _, err := s.CreateFitSpline(rightPoints...); err != nil {
+		return toothSketch{}, fmt.Errorf("right flank spline: %w", err)
+	}
+	s.CreateArc(center, rightPoints[last], leftPoints[last])
+	if _, err := s.CreateFitSpline(leftPoints...); err != nil {
+		return toothSketch{}, fmt.Errorf("left flank spline: %w", err)
+	}
+	s.CreateLine(leftPoints[0], leftRoot)
+	return toothSketch{
+		rightRoot:   rightRoot,
+		leftRoot:    leftRoot,
+		rightRootXY: rightRootXY,
+		leftRootXY:  leftRootXY,
+	}, nil
+}
+
+// dimensionRightFlank creates every right-flank point with both coordinate
+// dimensions.
+func dimensionRightFlank(s *sketch.Sketch, pts []point) []*sketch.Point {
+	out := make([]*sketch.Point, len(pts))
+	for i, pt := range pts {
+		out[i] = sketchcheck.DimensionPoint(s, pt.x, pt.y)
+	}
+	return out
+}
+
+// dimensionLeftFlank creates the left-flank points with both coordinate
+// dimensions, except the tip and, when closedBase is set, the first point,
+// which receive one.
+func dimensionLeftFlank(s *sketch.Sketch, pts []point, closedBase bool) []*sketch.Point {
+	out := make([]*sketch.Point, len(pts))
+	for i, pt := range pts {
+		if i == len(pts)-1 || (closedBase && i == 0) {
+			out[i] = sketchcheck.DimensionArcEnd(s, pt.x, pt.y)
+			continue
+		}
+		out[i] = sketchcheck.DimensionPoint(s, pt.x, pt.y)
+	}
+	return out
 }
