@@ -62,14 +62,21 @@ func TestFilletedPinionRootClearsMateTips(t *testing.T) {
 		root := regionMesh(t, pinionMesh, pinionAxis, angle, pinionRoot)
 		tips := regionMesh(t, drivingMesh, drivingAxis, -angle*ratio, drivingTip)
 		// Find the largest clearance the proof reaches, which is a lower bound on the gap.
+		// Read the ladder from the top and stop at the first rung the proof reaches; the result equals the largest gap
+		// over all reaching rungs. In meshgap.Mesh.Exceeds the search order and pruning do not depend on the clearance.
+		// The clearance only sets the whole-box shortcut (box > limit^2) and the early stop (best <= limit^2), both
+		// monotone in it, so a rung that reaches the proof implies every smaller rung does too. A rung that finishes
+		// the search returns sqrt(best) - margin, the same for all such rungs. A smaller rung that takes the shortcut
+		// returns sqrt(box) - margin, which is no larger because the box gap bounds every triangle gap. The largest
+		// reaching rung therefore holds the largest gap, and no rung reaching means lower stays 0, as before.
 		lower := 0.0
-		for _, c := range []float64{0.02, 0.05, 0.08, 0.1, 0.12, 0.15} {
+		for _, c := range []float64{0.15, 0.12, 0.1, 0.08, 0.05, 0.02} {
 			gap, ok, err := root.Exceeds(tips, c)
 			require.NoError(t, err)
-			if !ok {
+			if ok {
+				lower = gap
 				break
 			}
-			lower = max(lower, gap)
 		}
 		t.Logf("pose %d: proven gap at least %.3f mm", k, lower)
 		worst = min(worst, lower)

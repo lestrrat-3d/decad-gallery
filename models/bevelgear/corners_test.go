@@ -26,23 +26,27 @@ import (
 func TestCorners(t *testing.T) {
 	unbored := bevelgear.DefaultParams()
 	unbored.EnableBore = false
-	spiral := spiralDefaults()
-	spiralUnbored := spiral
+	spiralUnbored := spiralDefaults()
 	spiralUnbored.EnableBore = false
+	fresh := func(doc func() *decad.Document, p bevelgear.Params) func(*testing.T) *decad.Body {
+		return func(t *testing.T) *decad.Body {
+			body, err := bevelgear.Build(t.Context(), doc(), p)
+			require.NoError(t, err)
+			return body
+		}
+	}
 	for _, tc := range []struct {
-		name string
-		p    bevelgear.Params
-		doc  func() *decad.Document
+		name  string
+		build func(*testing.T) *decad.Body
 	}{
-		{"straight_bored", bevelgear.DefaultParams(), func() *decad.Document { return decad.New() }},
-		{"straight_unbored", unbored, func() *decad.Document { return decad.New() }},
-		{"spiral_bored", spiral, chainDocument},
-		{"spiral_unbored", spiralUnbored, chainDocument},
+		{"straight_bored", defaultStraightMember},
+		{"straight_unbored", fresh(func() *decad.Document { return decad.New() }, unbored)},
+		{"spiral_bored", defaultSpiralMember},
+		{"spiral_unbored", fresh(chainDocument, spiralUnbored)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			body, err := bevelgear.Build(t.Context(), tc.doc(), tc.p)
-			require.NoError(t, err)
+			body := tc.build(t)
 			axis := r3.Vec{X: 1}
 			// A silent empty list would check nothing, so require a section height.
 			heights, err := cornercheck.MidHeights(body, axis)
@@ -73,19 +77,18 @@ func TestCorners(t *testing.T) {
 func TestToothRootCorners(t *testing.T) {
 	spiral := spiralDefaults()
 	for _, tc := range []struct {
-		name string
-		p    bevelgear.Params
-		doc  func() *decad.Document
+		name  string
+		p     bevelgear.Params
+		build func(*testing.T) *decad.Body
 		// rootTurn is the range of the root corners' turn in degrees across the sections.
 		rootTurnMin, rootTurnMax float64
 	}{
-		{"straight", bevelgear.DefaultParams(), func() *decad.Document { return decad.New() }, 83, 87},
-		{"spiral", spiral, chainDocument, 105, 125},
+		{"straight", bevelgear.DefaultParams(), defaultStraightMember, 83, 87},
+		{"spiral", spiral, defaultSpiralMember, 105, 125},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			body, err := bevelgear.Build(t.Context(), tc.doc(), tc.p)
-			require.NoError(t, err)
+			body := tc.build(t)
 			axis := r3.Vec{X: 1}
 			// Heights from the toe side to the heel side. The tooth tips reach a section only up to about x 14.4.
 			for _, h := range []struct {
