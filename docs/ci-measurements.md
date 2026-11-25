@@ -16,6 +16,9 @@ took 26m 20s. The cycloidal worker started 25m 6s into the first run and 19s int
 dependency sources were the same, and their recorded leaf outcomes matched. Runner availability differed; the
 measurements do not establish a repeatable time saving.
 
+Jobs that run `scripts/ci/run_tests.py` now print a `runner-cpu:` line near the start of their log with the CPU
+model, logical CPU count, and memory. Compare job durations only between runs with the same `runner-cpu:` value.
+
 ## Runs on 19 November 2026
 
 These GitHub Actions runs completed on 19 November 2026. Durations are observations, not forecasts.
