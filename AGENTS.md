@@ -105,6 +105,8 @@
 - Apply [Gear train clearances](docs/model-pipeline.md#gear-train-clearances) to every gear pair in a model.
 - Apply [Split shafts](docs/model-pipeline.md#split-shafts) to every printed shaft, arbor, axle and pin: hardware clamps
   the halves, never glue, and the gallery never models the split.
+- Apply [Thin pins](docs/model-pipeline.md#thin-pins) to every printed pin, including a pin on a larger body: never
+  print a straight cylinder with a radius under 2 mm. Use a cone with a small tip, a split pin or a steel pin.
 - Run `python3 scripts/check_repository.py` after changing repository structure.
 - Run the affected item's focused build and geometry checks once its build exists.
 - Check a reused item through the consuming assembly before claiming the connection works.
