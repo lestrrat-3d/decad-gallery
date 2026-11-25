@@ -11,10 +11,7 @@ import (
 const (
 	NotchFloor    = notchFloor
 	SlotEnd       = slotEnd
-	TonguePinR    = flagPinRadius
-	TongueHullR   = tongueHullR
 	TongueWidth   = tongueWidth
-	TongueTopGap  = tongueTopGap
 	PinAxisZ      = pinAxisZ
 	SliderHeadTop = sliderHeadTop
 	TongueRootR   = tongueRootR
@@ -66,6 +63,31 @@ const (
 	CamBoreRadius    = camBoreRadius
 	CamBoreFlat      = camBoreFlat
 )
+
+// The drive cone's dimensions that are computed from its half angle, and the constants that they come from.
+var (
+	ConeSlope    = coneSlope
+	ConeMouthR   = coneMouthR
+	ConeJoinR    = coneJoinR
+	ConeTipR     = coneTipR
+	ConeLength   = coneLength
+	ConeOffsetW  = coneOffsetW
+	ConeOffsetZ  = coneOffsetZ
+	ConeBaseR    = coneBaseR
+	ConeDiscR    = coneDiscR
+	ConeInsertR  = coneInsertR
+	ConeFit      = coneFit
+	ConePlay     = conePlay
+	ConeSpan     = coneSpan
+	ConeJoin     = coneJoin
+	ConeHalfDeg  = coneHalfAngle
+	ConeChamfer  = coneChamfer
+	ConeEngage   = coneEngage
+	ConeOffsetDg = coneOffsetDeg
+)
+
+// ToAxis returns +1 when the rotor axis lies toward +w from the drive axis in a tongue sketch of a slider along u, else -1.
+func ToAxis(uIsX bool) float64 { return toAxis(uIsX) }
 
 // RaiseOf returns the droop that segment s's pin height has built in.
 func RaiseOf(s Segment) float64 { return raise(s) }

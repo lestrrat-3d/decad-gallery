@@ -39,20 +39,67 @@ func penetration(verts []r3.Vec, solid *crossingGrid, gap meshgap.Mesh, toSolid 
 	return deepest
 }
 
-// pinAndTongue returns the vertices of segment s's slider that lie on its rotor pin and on its tongue: the pin is the part
-// beyond the pin face ue (up to 3.6) above z 79, the tongue the part from the print face ua to ue above z 72.9, away from
-// the blade.
-func pinAndTongue(s sevensegment.Segment, yi float64, m *decad.Mesh) (pin, tongue []r3.Vec) {
+// driveGeometry returns whether segment s's slider runs along X (a, g, d: u is world X) or Y, the u of the tongue's cone face, and
+// the station and height of its drive axis, at the build pose of the slider with station yi.
+func driveGeometry(s sevensegment.Segment, yi float64) (uIsX bool, ue, sc, zp float64) {
+	switch s {
+	case sevensegment.SegA, sevensegment.SegG, sevensegment.SegD:
+		return true, -2.85, yi + sevensegment.PinStationAGD, sevensegment.PinAxisZ
+	case sevensegment.SegE, sevensegment.SegF:
+		return false, yi - 0.3, -sevensegment.PinStationEF, sevensegment.PinAxisZ + sevensegment.RaiseOf(s)
+	}
+	return false, yi - 0.3, sevensegment.PinStationBC, sevensegment.PinAxisZ + sevensegment.RaiseOf(s)
+}
+
+// driveSamples returns points on the surface of segment s's drive cone: the frustum from the base circle (radius coneBaseR about
+// the base centre, on the cone face) to the junction circle, and the right cone from the junction to the tip with its chamfer.
+// A mesh holds a cone only at its end rings, so a distance from the mesh vertices misses the section at the pocket mouth.
+func driveSamples(s sevensegment.Segment, yi float64) []r3.Vec {
+	uIsX, ue, sc, zp := driveGeometry(s, yi)
+	dc, zc := sc+sevensegment.ToAxis(uIsX)*sevensegment.ConeOffsetW, zp+sevensegment.ConeOffsetZ
+	uj := ue + sevensegment.ConeSpan - sevensegment.ConeJoin
+	slope := sevensegment.ConeSlope
+	pt := func(u, w, z float64) r3.Vec {
+		if uIsX {
+			return r3.Vec{X: u, Y: w, Z: z}
+		}
+		return r3.Vec{X: w, Y: u, Z: z}
+	}
+	var out []r3.Vec
+	for i := 0; i <= 40; i++ {
+		f := float64(i) / 40
+		cw, cz := dc+f*(sc-dc), zc+f*(zp-zc)
+		rad := sevensegment.ConeBaseR + f*(sevensegment.ConeJoinR-sevensegment.ConeBaseR)
+		for a := 0; a < 360; a += 4 {
+			ar := float64(a) * math.Pi / 180
+			out = append(out, pt(ue+f*(uj-ue), cw+rad*math.Cos(ar), cz+rad*math.Sin(ar)))
+		}
+	}
+	for i := 0; i <= 80; i++ {
+		x := sevensegment.ConeLength * float64(i) / 80
+		rad := sevensegment.ConeJoinR - x*slope
+		if edge := sevensegment.ConeLength - sevensegment.ConeChamfer; x > edge {
+			rad -= (x - edge) * (1 - slope)
+		}
+		for a := 0; a < 360; a += 4 {
+			ar := float64(a) * math.Pi / 180
+			out = append(out, pt(uj+x, sc+rad*math.Cos(ar), zp+rad*math.Sin(ar)))
+		}
+	}
+	return out
+}
+
+// tongueVertices returns the vertices of segment s's slider that lie on its tongue: the part from the print face ua to the cone
+// face ue above z 72.9, away from the blade.
+func tongueVertices(s sevensegment.Segment, yi float64, m *decad.Mesh) []r3.Vec {
 	_, _, horizontal := segmentCentreOf(s)
+	var tongue []r3.Vec
 	for _, v := range m.Vertices() {
 		if horizontal {
 			if v.Z < sevensegment.SliderHeadTop+0.1 || v.Y < yi-1.5 {
 				continue
 			}
-			switch {
-			case v.X > -2.85+0.05 && v.Z > sevensegment.PinAxisZ-2.775:
-				pin = append(pin, v)
-			case v.X <= -2.85+0.05 && v.X >= -5.25:
+			if v.X <= -2.85+0.05 && v.X >= -5.25 {
 				tongue = append(tongue, v)
 			}
 			continue
@@ -60,14 +107,11 @@ func pinAndTongue(s sevensegment.Segment, yi float64, m *decad.Mesh) (pin, tongu
 		if v.Z < sevensegment.SliderHeadTop+0.1 || math.Abs(v.X) < 18.0 {
 			continue
 		}
-		switch {
-		case v.Y > yi-0.3+0.05 && v.Z > sevensegment.PinAxisZ-2.775:
-			pin = append(pin, v)
-		case v.Y <= yi-0.3+0.05 && v.Y >= yi-sevensegment.StemThickness/2:
+		if v.Y <= yi-0.3+0.05 && v.Y >= yi-sevensegment.StemThickness/2 {
 			tongue = append(tongue, v)
 		}
 	}
-	return pin, tongue
+	return tongue
 }
 
 // segmentCentreOf reports whether segment s lies along X (a, g, d).
@@ -79,7 +123,7 @@ func segmentCentreOf(s sevensegment.Segment) (float64, float64, bool) {
 	return 0, 0, false
 }
 
-// pinDistance is the rotor pin's distance from the stem along x for a b-f slider: 15 for b and c, 18 for e and f.
+// pinDistance is the drive axis's distance from the stem along x for a b-f slider: 22.5 for b and c, 27 for e and f.
 func pinDistance(s sevensegment.Segment) float64 {
 	switch s {
 	case sevensegment.SegB, sevensegment.SegC:

@@ -16,7 +16,7 @@ import (
 
 // TestSevenSegmentCaptive turns the unit over at every digit. Against the settled rest the flags rise 0.5, the sliders 0.8 and
 // the b-f sliders a further 2 raise at the pin (the tilt reverses); settled, the flags sit 0.5 and the sliders 0.4 below
-// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every pin
+// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every drive cone
 // in its pocket and every blade in its tube (the slider does not touch the black body or the plates).
 func TestSevenSegmentCaptive(t *testing.T) {
 	t.Parallel()
@@ -111,6 +111,9 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			if slideraise(s) == 0 {
 				require.True(t, ok, "digit %d: turned over, slider %s and its black body overlap", k, s)
 			}
+			ok, err = yellow.ExceedsClearance(slider, 0)
+			require.NoError(t, err)
+			require.True(t, ok, "digit %d: turned over, slider %s and its yellow body overlap", k, s)
 			// The b-f sliders meet their black body at about zero clearance by design, which a mesh cannot prove separated.
 			// They must not go deeper than the mesh tolerance into it or into their tube roof.
 			turn, err := r3.RotationAround(groove, r3.Vec{Y: 1}, units.Degrees(tilt))
@@ -135,9 +138,11 @@ func TestSevenSegmentCaptive(t *testing.T) {
 	t.Logf("b-f sliders turned over: deepest vertex %.3f into the top plate, %.3f into the black body (tolerance %.2f)", worstTop, worstBlack, meshTolerance)
 }
 
-// TestSevenSegmentSweep poses every flag and slider at each digit and at every ramp's middle, from the modeled pose, and
-// measures the tongue's gap to the black body (T8, at least 0.7) and the pin's gap to the pocket walls (T7, at least 0.2)
-// as point distances from the slider's pin and tongue vertices to the black mesh.
+// TestSevenSegmentSweep poses every flag and slider at each digit and at every ramp's middle, from the modeled pose, with the
+// slider shifted along the rotor axis by -1.0, 0 and +1.0 (its play), and measures the tongue's gap to the black body (T8, at
+// least 0.7) and the drive cone's gap to the pocket walls (T7, at least 0.2) as point distances to the black mesh. The tongue
+// is read from the slider's vertices; the cone from points on its surface, since a mesh holds a cone only at its end rings.
+// The least gaps are logged.
 func TestSevenSegmentSweep(t *testing.T) {
 	t.Parallel()
 	parts := builtDigit0(t)
@@ -145,10 +150,17 @@ func TestSevenSegmentSweep(t *testing.T) {
 	for _, s := range sevensegment.Segments() {
 		slider, _ := meshOf(t, parts.Sliders[s], 0.05)
 		black, _ := meshOf(t, parts.Flags[s].Black, 0.05)
-		pin, tongue := pinAndTongue(s, dm.Station(s), slider)
-		require.NotEmpty(t, pin, "segment %s pin", s)
+		// driveSamples are at the slider's build pose (unlit); the built slider sits at its digit 0 pose, lifted by dm.Lift(s, 0).
+		drive, tongue := driveSamples(s, dm.Station(s)), tongueVertices(s, dm.Station(s), slider)
+		for i := range drive {
+			drive[i].Z += dm.Lift(s, 0)
+		}
 		require.NotEmpty(t, tongue, "segment %s tongue", s)
 		point, axis := segmentAxis(s)
+		worstDrive, worstTongue := map[float64]float64{}, map[float64]float64{}
+		for _, du := range []float64{-1.0, 0, 1.0} {
+			worstDrive[du], worstTongue[du] = math.Inf(1), math.Inf(1)
+		}
 		for k := range 10 {
 			for _, theta := range []float64{36 * float64(k), 36*float64(k) + 18.75} {
 				dz := dm.Lift(s, theta) - dm.Lift(s, 0)
@@ -161,18 +173,26 @@ func TestSevenSegmentSweep(t *testing.T) {
 				}
 				bm, err := meshgap.New(moved, black.Triangles(), black.Bound().Base())
 				require.NoError(t, err)
-				least := func(vs []r3.Vec) float64 {
-					best := math.Inf(1)
-					for _, v := range vs {
-						d, err := bm.PointDistance(v.Add(r3.Vec{Z: dz}))
-						require.NoError(t, err)
-						best = math.Min(best, d)
+				for _, du := range []float64{-1.0, 0, 1.0} {
+					shift := r3.Vec{Z: dz}.Add(axis.Scale(du))
+					least := func(vs []r3.Vec) float64 {
+						best := math.Inf(1)
+						for _, v := range vs {
+							d, err := bm.PointDistance(v.Add(shift))
+							require.NoError(t, err)
+							best = math.Min(best, d)
+						}
+						return best
 					}
-					return best
+					gt, gd := least(tongue), least(drive)
+					worstTongue[du], worstDrive[du] = math.Min(worstTongue[du], gt), math.Min(worstDrive[du], gd)
+					require.GreaterOrEqual(t, gt, 0.7-0.04, "segment %s theta %.2f, u shift %+.1f: tongue (T8)", s, theta, du)
+					require.GreaterOrEqual(t, gd, 0.2-0.04, "segment %s theta %.2f, u shift %+.1f: drive cone (T7)", s, theta, du)
 				}
-				require.GreaterOrEqual(t, least(tongue), 0.7-0.04, "segment %s theta %.2f: tongue (T8)", s, theta)
-				require.GreaterOrEqual(t, least(pin), 0.2-0.04, "segment %s theta %.2f: pin (T7)", s, theta)
 			}
+		}
+		for _, du := range []float64{-1.0, 0, 1.0} {
+			t.Logf("segment %s, u shift %+.1f: least tongue gap to the black body %.3f, least drive cone gap %.3f", s, du, worstTongue[du], worstDrive[du])
 		}
 	}
 }

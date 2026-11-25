@@ -20,7 +20,7 @@ type Flag struct{ Yellow, Black *decad.Body }
 // Rotor dimensions that are not exported, in mm. The rotor is built in a local frame: local x is the rotor's x (the face
 // normal at turn 0 is along it), local y is up, and local z is the axis u.
 //
-// The shells under the faces and the yellow's inset (0.8), the chamfer legs (0.5, 0.7, 0.8) and the pin pocket's play (0.20)
+// The shells under the faces and the yellow's inset (0.8), the chamfer legs (0.5, 0.7, 0.8) and the cone pocket's play (0.20 to 0.481)
 // are print limits and fits: they keep their size in mm.
 const (
 	rotorEdgeRound  = 0.75                                   // long edges; swept radius 4.875*sqrt2 + 0.75 = 7.644
@@ -32,8 +32,8 @@ const (
 	notchApex       = 0.8                                    // apex chamfer leg
 	slotStart       = 1.5                                    //
 	slotEnd         = 4.05                                   //
-	slotRadius      = flagPinRadius + 0.2                    // the pin pocket's radius: the pin's 0.5 plus 0.20
-	pocketFloorR    = 0.9                                    // the pin pocket's floor round
+	slotRadius      = coneInsertR + coneFit                  // the pocket's radius: the cone's section at the mouth at full insertion plus its fit
+	pocketFloorR    = 0.9                                    // the cone pocket's floor round
 	notchMouth      = 0.7                                    // the mouth chamfer of a notch end within 0.8 of the tip slant, on hidden face 315
 	yellowDepth     = 0.8                                    //
 	yellowHalfWidth = RotorHalfWidth - 0.8                   //
@@ -272,7 +272,7 @@ func (r *run) mouthTool(u0 float64) (*decad.Body, error) {
 	return decad.Intersect(r.ctx, p1, p3)
 }
 
-// pocketTool builds a pin pocket's cutter: a stadium along local x from slotStart to slotEnd, radius slotRadius, from local
+// pocketTool builds a cone pocket's cutter: a stadium along local x from slotStart to slotEnd, radius slotRadius, from local
 // z z0 for the given length, its floor rounded 0.5.
 func (r *run) pocketTool(z0, length float64) (*decad.Body, error) {
 	s, err := r.sketchOn(local(r3.Vec{Z: z0}, r3.Vec{X: 1}, r3.Vec{Y: 1}))
@@ -337,7 +337,7 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 		decad.Distance{D: units.Millimeters(42.0), Dir: decad.Along}); err != nil {
 		return Flag{}, wrap("cut flat", err)
 	}
-	// 5 and 6. Each notch, then its pin pocket.
+	// 5 and 6. Each notch, then its cone pocket.
 	for i, n := range rotorNotches(s) {
 		tool, err := r.notchTool(n[0], n[1])
 		if err != nil {

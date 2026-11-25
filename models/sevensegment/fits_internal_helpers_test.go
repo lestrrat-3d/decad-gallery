@@ -69,7 +69,7 @@ func nearCap(loops, cap [][]r3.Vec) [][]r3.Vec {
 }
 
 // bladePoint reports whether the section point p of segment s's slider lies on its blade (not on the tongue or pin): the
-// blade is the thin plate that rises to z 83.55, so at z 81 it is the part away from the rotor pin.
+// blade is the thin plate that rises to z 83.55, so at z 81 it is the part away from the drive cone.
 func bladePoint(s Segment, yi float64, p r3.Vec) (float64, float64, bool) {
 	_, _, horizontal := segmentCentre(s)
 	if horizontal {

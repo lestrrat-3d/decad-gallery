@@ -77,20 +77,45 @@ func (r *run) pin(y0 float64) (*decad.Body, error) {
 const (
 	sliderHeadTop   = pinAxisZ - 12.075      // head or arm top at the build pose (unlit)
 	tongueRootDip   = 0.03                   // how far the tongue's root rounds bottom out inside the head
-	tongueHullR     = flagPinRadius + 0.1    // radius of the hull round about the pin axis
-	flagPinRadius   = 0.75                   // the rotor pin, Ø1.5
-	flagPinLength   = 5.4                    //
 	bladeRidgeZ     = sliderHeadTop + 16.125 // top of the blade's gable
 	bladeShoulderZ  = sliderHeadTop + 15.225 //
 	bladeExtOverlap = 0.1                    //
 	stemChamfer     = wallChamfer            //
 	tongueEndGap    = 1.95                   // the end cutter's lower line lies this far below the head top
-	pinStationAGD   = 2.25                   // the rotor pin's distance from the stem along s, a, g, d
+	pinStationAGD   = 2.25                   // the drive axis's distance from the stem along s, a, g, d
 	pinStationBC    = 22.5                   // along x, b and c
 	pinStationEF    = 27.0                   // along x, e and f
 	tongueWidth     = 2.1                    // the tongue strip's width along s
-	tongueTopGap    = 1.8                    // the tongue's top edge lies this far below the pin axis
-	pinAxisZ        = RotorAxisZ - 2.625     // the rotor pin's axis at the unlit build pose of a, g and d
+	pinAxisZ        = RotorAxisZ - 2.625     // the drive axis at the unlit build pose of a, g and d
+)
+
+// The drive cone's dimensions, in mm. The cone is the rule "Thin pins" form: a base Ø4.0 on the tongue's end disc, and a
+// section that thins to a small tip. Its base lies off the drive axis, toward the rotor axis and down, where the notch has
+// room; a frustum leans it over to the drive axis, where a right cone runs into the rotor pocket.
+const (
+	coneBaseR     = 2.00  // the base's radius on the tongue face
+	coneDiscR     = 2.10  // the end disc that carries the base: 0.10 wider all round
+	coneOffset    = 1.90  // the base centre's distance from the drive axis
+	coneOffsetDeg = 235.0 // its direction in the sweep frame: 180 is toward the rotor axis, 270 down
+	coneDiscRound = 0.5   // the inside rounds where the disc meets the strip's sides
+	coneHalfAngle = 8.0   // the right cone's half angle, degrees
+	conePlay      = 1.0   // the slider's play along the rotor axis, either way: blade 0.35, registration 0.05, yaw 0.36, rotor 0.25
+	coneInsertR   = 0.95  // the section at the pocket mouth at the full insertion (+conePlay)
+	coneFit       = 0.20  // the pocket's clearance round that section
+	coneSpan      = 2.55  // from the tongue face to the pocket mouth
+	coneJoin      = 1.30  // the junction of frustum and right cone lies this far outside the pocket mouth
+	coneEngage    = 2.85  // from the pocket mouth to the tip
+	coneChamfer   = 0.15  // the tip's chamfer
+)
+
+var (
+	coneSlope   = math.Tan(coneHalfAngle * math.Pi / 180)
+	coneMouthR  = coneInsertR - conePlay*coneSlope                  // the section at the mouth at the nominal pose: 0.809
+	coneJoinR   = coneMouthR + coneJoin*coneSlope                   // the section at the junction: 0.992
+	coneTipR    = coneMouthR - coneEngage*coneSlope                 // the section at the tip, before its chamfer: 0.409
+	coneLength  = coneJoin + coneEngage                             // the right cone's length: 4.15
+	coneOffsetW = -coneOffset * math.Cos(coneOffsetDeg*math.Pi/180) // the base centre's distance toward the rotor axis along w: 1.090
+	coneOffsetZ = coneOffset * math.Sin(coneOffsetDeg*math.Pi/180)  // its height from the drive axis: -1.556
 )
 
 // slFrame returns the sketch frame and extrusion direction for a profile drawn in (w, z): w is world Y with the
@@ -109,14 +134,6 @@ func polyLoop(s *sketch.Sketch, v [][2]float64) {
 	polygon(s, v)
 }
 
-// tangentPoint returns the point where a line from p touches the circle (c, rad); side +1 or -1 picks the tangent.
-func tangentPoint(p, c [2]float64, rad, side float64) [2]float64 {
-	dx, dy := p[0]-c[0], p[1]-c[1]
-	d := math.Hypot(dx, dy)
-	a := math.Atan2(dy, dx) + side*math.Acos(rad/d)
-	return [2]float64{c[0] + rad*math.Cos(a), c[1] + rad*math.Sin(a)}
-}
-
 // The tongue's root rounds and the feet where they meet the head.
 const (
 	// Root r 1.05 and feet 1.2, not a root r 1.2 with feet 1.35: decad refuses the 0.5 chamfer of the stem faces
@@ -126,57 +143,71 @@ const (
 	tongueFoot  = 1.2
 )
 
-// tongueOutline draws the tongue's hull in (s, z): feet at the head, 8-chord root rounds of r 0.8 that bottom out inside
-// the head, the strip sides up to the pin, and two hull lines tangent to the circle of radius 0.6 about the pin axis.
-func tongueOutline(s *sketch.Sketch, sL, sR, sc, zp float64) {
+// toAxis is +1 when the rotor axis lies toward +w from the drive axis along the tongue sketch's w coordinate, and -1 when
+// it lies toward -w. A slider of a, g or d has its drive axis at yi + 2.25 and the rotor axis at yi; b and c have x 22.5 and
+// 24.75, e and f have x -27 and -24.75.
+func toAxis(uIsX bool) float64 {
+	if uIsX {
+		return -1
+	}
+	return 1
+}
+
+// tongueOutline draws the tongue in (w, z): the strip [sL, sR] with its feet and r 1.05 root rounds at the head, its two sides
+// up to the end disc of radius coneDiscR about (dc, zc), and the two coneDiscRound inside rounds that join each side to the disc.
+func tongueOutline(s *sketch.Sketch, sL, sR, dc, zc float64) {
 	dp := func(x, y float64) *sketch.Point { return sketchcheck.DimensionPoint(s, x, y) }
-	zt := zp - tongueTopGap
 	zh := sliderHeadTop
-	zc := zh + tongueRootR - tongueRootDip
+	zr := zh + tongueRootR - tongueRootDip
+	big, rf := coneDiscR, coneDiscRound
+	// The inside rounds' centres lie outside the strip's side and outside the disc, rf from the side and big + rf from the disc centre.
+	fR := [2]float64{sR + rf, zc - math.Sqrt((big+rf)*(big+rf)-(sR+rf-dc)*(sR+rf-dc))}
+	fL := [2]float64{sL - rf, zc - math.Sqrt((big+rf)*(big+rf)-(sL-rf-dc)*(sL-rf-dc))}
+	onDisc := func(f [2]float64) [2]float64 {
+		dx, dy := f[0]-dc, f[1]-zc
+		d := math.Hypot(dx, dy)
+		return [2]float64{dc + big*dx/d, zc + big*dy/d}
+	}
+	tR, tL := onDisc(fR), onDisc(fL)
 	var right, left []*sketch.Point
-	right = append(right, dp(sR+tongueFoot, zh-tongueFoot), dp(sR+tongueFoot, zc-tongueRootR))
-	for _, q := range quarterRound(sR+tongueRootR, zc, tongueRootR, 270, 180, 8) {
+	right = append(right, dp(sR+tongueFoot, zh-tongueFoot), dp(sR+tongueFoot, zr-tongueRootR))
+	for _, q := range quarterRound(sR+tongueRootR, zr, tongueRootR, 270, 180, 8) {
 		right = append(right, dp(q[0], q[1]))
 	}
-	right = append(right, dp(sR, zt))
-	for _, q := range quarterRound(sL-tongueRootR, zc, tongueRootR, 0, -90, 8) {
+	for _, q := range quarterRound(sL-tongueRootR, zr, tongueRootR, 0, -90, 8) {
 		left = append(left, dp(q[0], q[1]))
 	}
-	left = append([]*sketch.Point{dp(sL, zt)}, left...)
-	left = append(left, dp(sL-tongueFoot, zc-tongueRootR), dp(sL-tongueFoot, zh-tongueFoot))
-	c := dp(sc, zp)
-	tr1 := tangentPoint([2]float64{sR, zt}, [2]float64{sc, zp}, tongueHullR, 1)
-	tr2 := tangentPoint([2]float64{sR, zt}, [2]float64{sc, zp}, tongueHullR, -1)
-	tR := tr1
-	if tr2[0] > tr1[0] {
-		tR = tr2
-	}
-	tl1 := tangentPoint([2]float64{sL, zt}, [2]float64{sc, zp}, tongueHullR, 1)
-	tl2 := tangentPoint([2]float64{sL, zt}, [2]float64{sc, zp}, tongueHullR, -1)
-	tL := tl1
-	if tl2[0] < tl1[0] {
-		tL = tl2
-	}
+	left = append(left, dp(sL-tongueFoot, zr-tongueRootR), dp(sL-tongueFoot, zh-tongueFoot))
+	sideR := s.CreatePoint(sR, fR[1])
+	sideL := s.CreatePoint(sL, fL[1])
 	pR, pL := s.CreatePoint(tR[0], tR[1]), s.CreatePoint(tL[0], tL[1])
+	cR, cL, cD := s.CreatePoint(fR[0], fR[1]), s.CreatePoint(fL[0], fL[1]), dp(dc, zc)
 	for i := 0; i+1 < len(right); i++ {
 		s.CreateLine(right[i], right[i+1])
 	}
-	lR := s.CreateLine(right[len(right)-1], pR)
-	arc := s.CreateArc(c, pR, pL)
-	lL := s.CreateLine(pL, left[0])
+	lR := s.CreateLine(right[len(right)-1], sideR)
+	aR := s.CreateArc(cR, pR, sideR) // counter-clockwise from the disc to the side: the round turns outward
+	disc := s.CreateArc(cD, pR, pL)
+	aL := s.CreateArc(cL, sideL, pL)
+	lL := s.CreateLine(sideL, left[0])
 	for i := 0; i+1 < len(left); i++ {
 		s.CreateLine(left[i], left[i+1])
 	}
 	s.CreateLine(left[len(left)-1], right[0])
-	s.AddConstraint(sketch.NewRadius(arc, tongueHullR), sketch.NewTangent(lR, arc), sketch.NewTangent(lL, arc))
+	s.AddConstraint(sketch.NewVertical(lR), sketch.NewVertical(lL),
+		sketch.NewRadius(disc, big), sketch.NewRadius(aR, rf), sketch.NewRadius(aL, rf),
+		sketch.NewTangent(lR, aR), sketch.NewTangent(lL, aL),
+		sketch.NewTangentCircles(aR, disc, false), sketch.NewTangentCircles(aL, disc, false))
 }
 
-// rootedTongue builds the tongue and its pin. u is the rotor axis direction (world X when uIsX, else world Y); the tongue runs
-// along +u from ua, the print face, to ue, the pin face; its strip spans [sL, sR] in the other horizontal axis; the pin
-// axis is at (sc, zp). The result has r 0.8 roots on three sides, a sharp pin root (decad item D2) and a Ø1.5 pin 5.4
-// long with a 0.2 tip chamfer.
+// rootedTongue builds the tongue and its drive cone. u is the rotor axis direction (world X when uIsX, else world Y); the
+// tongue runs along +u from ua, the print face, to ue, the cone face; its strip spans [sL, sR] in the other horizontal axis;
+// the drive axis is at (sc, zp). The result has r 1.05 roots on three sides, the end disc, and the cone: a frustum from the
+// base circle on the cone face to the junction circle on the drive axis, and a right cone on the drive axis from there to the
+// tip. The cone's root on the tongue face is sharp (decad item D2).
 func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Body, error) {
-	// 1. The hull prism: the outline in (s, z), extruded along u from ua to ue + 3.8. Its chord runs make its end cap a faceted
+	dc, zc := sc+toAxis(uIsX)*coneOffsetW, zp+coneOffsetZ
+	// 1. The hull prism: the outline in (w, z), extruded along u from ua to ue + 1.6. Its chord runs make its end cap a faceted
 	// face that decad places 0.0027 off the plane it was drawn on, so the prism starts 1.0 early and a box cuts it back to
 	// ua: the end face is then the exact plane of the stem's print face, and the two merge.
 	f1, d1 := slFrame(uIsX, ua-1.0)
@@ -184,13 +215,13 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, err
 	}
-	tongueOutline(s1, sL, sR, sc, zp)
-	p1, err := r.extrude(s1, 0, ue+(flagPinLength+0.2)-ua+1.0, d1)
+	tongueOutline(s1, sL, sR, dc, zc)
+	p1, err := r.extrude(s1, 0, ue+1.6-ua+1.0, d1)
 	if err != nil {
 		return nil, fmt.Errorf("tongue hull prism: %w", err)
 	}
 	fb, _ := slFrame(uIsX, ua-3.0)
-	cutBack, err := r.polyBody(fb, [][2]float64{{sL - 4, sliderStemFrom - 1}, {sR + 4, sliderStemFrom - 1}, {sR + 4, zp + 4}, {sL - 4, zp + 4}},
+	cutBack, err := r.polyBody(fb, [][2]float64{{sL - 6, sliderStemFrom - 1}, {sR + 6, sliderStemFrom - 1}, {sR + 6, zp + 6}, {sL - 6, zp + 6}},
 		decad.Distance{D: units.Millimeters(3.0), Dir: d1})
 	if err != nil {
 		return nil, fmt.Errorf("tongue hull cut-back box: %w", err)
@@ -198,83 +229,104 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if p1, err = decad.Cut(r.ctx, p1, cutBack); err != nil {
 		return nil, fmt.Errorf("tongue hull cut-back: %w", err)
 	}
-	// 2. The end cutter in (u, z), extruded along s over [sL - 1.5, sR + 1.5].
+	// 2. The end cutter in (u, z), extruded along w over the tongue's width: it removes everything past ue except the root
+	// rounds to the head.
+	wLo := math.Min(sL, dc-coneDiscR)
 	var f2 r3.Frame
 	var d2 decad.Direction
 	if uIsX {
-		f2, _ = r3.NewFrame(r3.Vec{Y: sL - 2.25}, r3.Vec{X: 1}, r3.Vec{Z: 1})
+		f2, _ = r3.NewFrame(r3.Vec{Y: wLo - 2.25}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 		d2 = decad.Against
 	} else {
-		f2, _ = r3.NewFrame(r3.Vec{X: sL - 2.25}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+		f2, _ = r3.NewFrame(r3.Vec{X: wLo - 2.25}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 		d2 = decad.Along
 	}
-	ztop := zp + 2.25
+	ztop := zp + 4.5
 	zcE := sliderHeadTop + tongueRootR - tongueRootDip
 	cv := [][2]float64{{ue, ztop}}
 	cv = append(cv, quarterRound(ue+tongueRootR, zcE, tongueRootR, 180, 270, 8)...)
 	cv = append(cv, [2]float64{ue + tongueFoot, zcE - tongueRootR}, [2]float64{ue + tongueFoot, sliderHeadTop - tongueEndGap},
-		[2]float64{ue + (flagPinLength + 0.4), sliderHeadTop - tongueEndGap}, [2]float64{ue + (flagPinLength + 0.4), ztop})
+		[2]float64{ue + 2.0, sliderHeadTop - tongueEndGap}, [2]float64{ue + 2.0, ztop})
 	s2, err := r.sketchOn(f2)
 	if err != nil {
 		return nil, err
 	}
 	polyLoop(s2, cv)
-	cut, err := r.extrude(s2, 0, sR-sL+4.5, d2)
+	cut, err := r.extrude(s2, 0, math.Max(sR, dc+coneDiscR)-wLo+4.5, d2)
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cutter: %w", err)
-	}
-	// 3. The pin: a circle of r 0.50 on the plane u = ue - 0.1 extruded 3.7, its far edge chamfered 0.2.
-	var f r3.Frame
-	if uIsX {
-		f, _ = r3.NewFrame(r3.Vec{X: ue - 0.1}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
-	} else {
-		f, _ = r3.NewFrame(r3.Vec{Y: ue - 0.1}, r3.Vec{Z: 1}, r3.Vec{X: 1}) // U = Z, V = X: normal +Y
-	}
-	cs, err := r.sketchOn(f)
-	if err != nil {
-		return nil, err
-	}
-	var pc *sketch.Point
-	if uIsX {
-		pc = sketchcheck.DimensionPoint(cs, sc, zp)
-	} else {
-		pc = sketchcheck.DimensionPoint(cs, zp, sc)
-	}
-	cs.AddConstraint(sketch.NewRadius(cs.CreateCircle(pc, flagPinRadius), flagPinRadius))
-	pin, err := r.extrude(cs, 0, flagPinLength+0.1, decad.Along)
-	if err != nil {
-		return nil, fmt.Errorf("rotor pin: %w", err)
-	}
-	var tipAt r3.Vec
-	found := false
-	circles, err := decad.Edges(decad.Circular()).SelectEdges(pin)
-	if err != nil {
-		return nil, fmt.Errorf("rotor pin edges: %w", err)
-	}
-	for _, e := range circles {
-		a := e.Start().Position().Value
-		uu := a.X
-		if !uIsX {
-			uu = a.Y
-		}
-		if math.Abs(uu-(ue+flagPinLength)) < 1e-6 {
-			tipAt, found = a, true
-		}
-	}
-	if !found {
-		return nil, fmt.Errorf("rotor pin: no tip edge at u = %g", ue+flagPinLength)
-	}
-	if pin, err = decad.Chamfer(r.ctx, pin, decad.Edges(decad.Circular(), decad.EndpointAt(tipAt)).Exactly(1),
-		units.Millimeters(0.2)); err != nil {
-		return nil, fmt.Errorf("rotor pin tip chamfer: %w", err)
-	}
-	// 4. cutter = cutter - pin; tongue = hull - cutter.
-	if cut, err = decad.Cut(r.ctx, cut, pin); err != nil {
-		return nil, fmt.Errorf("tongue cutter minus pin: %w", err)
 	}
 	tongue, err := decad.Cut(r.ctx, p1, cut)
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cut: %w", err)
+	}
+	// 3. The frustum: a ruled loft from the base circle on u = ue to the junction circle on the drive axis at u = uj.
+	uj := ue + coneSpan - coneJoin
+	plane := func(u float64) r3.Frame {
+		if uIsX {
+			f, _ := r3.NewFrame(r3.Vec{X: u}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+			return f
+		}
+		f, _ := r3.NewFrame(r3.Vec{Y: u}, r3.Vec{Z: 1}, r3.Vec{X: 1}) // U = Z, V = X: normal +Y
+		return f
+	}
+	circle := func(u, w, z, rad float64) (*sketch.Sketch, *sketch.Profile, error) {
+		s, err := r.sketchOn(plane(u))
+		if err != nil {
+			return nil, nil, err
+		}
+		var c *sketch.Point
+		if uIsX {
+			c = sketchcheck.DimensionPoint(s, w, z)
+		} else {
+			c = sketchcheck.DimensionPoint(s, z, w)
+		}
+		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, rad), rad))
+		pr, err := r.profile(s, 0)
+		return s, pr, err
+	}
+	s0, pr0, err := circle(ue, dc, zc, coneBaseR)
+	if err != nil {
+		return nil, fmt.Errorf("cone base circle: %w", err)
+	}
+	sj, prj, err := circle(uj, sc, zp, coneJoinR)
+	if err != nil {
+		return nil, fmt.Errorf("cone junction circle: %w", err)
+	}
+	frustum, err := decad.Loft(r.ctx, r.doc, s0, pr0, sj, prj)
+	if err != nil {
+		return nil, fmt.Errorf("cone frustum: %w", err)
+	}
+	// 4. The right cone: a meridian (along u from uj, radius) revolved about the drive axis. Its first side is the junction
+	// circle's disc, the frustum's top cap.
+	o, axis := r3.Vec{X: uj, Y: sc, Z: zp}, r3.Vec{X: 1}
+	if !uIsX {
+		o, axis = r3.Vec{X: sc, Y: uj, Z: zp}, r3.Vec{Y: 1}
+	}
+	fm, err := r3.NewFrame(o, axis, r3.Vec{Z: 1})
+	if err != nil {
+		return nil, err
+	}
+	sm, err := r.sketchOn(fm)
+	if err != nil {
+		return nil, err
+	}
+	rEnd := coneTipR + coneChamfer*coneSlope // the radius where the chamfer starts, coneChamfer back from the tip
+	polygon(sm, [][2]float64{{0, 0}, {0, coneJoinR}, {coneLength - coneChamfer, rEnd}, {coneLength, rEnd - coneChamfer}, {coneLength, 0}})
+	prm, err := r.profile(sm, 0)
+	if err != nil {
+		return nil, fmt.Errorf("cone meridian: %w", err)
+	}
+	cone, err := decad.Revolve(r.ctx, r.doc, sm, prm, decad.ConstructionAxis{Origin: o, Dir: axis}, decad.FullRevolution{})
+	if err != nil {
+		return nil, fmt.Errorf("cone revolve: %w", err)
+	}
+	drive, err := decad.Union(r.ctx, frustum, cone)
+	if err != nil {
+		return nil, fmt.Errorf("cone frustum and right cone: %w", err)
+	}
+	if tongue, err = decad.Union(r.ctx, tongue, drive); err != nil {
+		return nil, fmt.Errorf("tongue and cone: %w", err)
 	}
 	return tongue, nil
 }

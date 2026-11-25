@@ -20,8 +20,8 @@ func TestSevenSegmentRotor(t *testing.T) {
 		com, beta  float64
 		notchProbe [][2]float64 // local (u, 0) of each notch's empty probe, and of each pocket
 	}{
-		{SegG, 2820.51, 1.029, 92.0, nil},
-		{SegB, 2075.00, 1.2646, 94.0, nil},
+		{SegG, 2810.20, 1.033, 92.4, nil},
+		{SegB, 2054.39, 1.279, 95.2, nil},
 	} {
 		t.Run(tc.seg.String(), func(t *testing.T) {
 			// Before the flat, notches and bores the two bodies hold the rotor: their volumes add up to it.

@@ -32,9 +32,17 @@ func TestSevenSegmentVisibility(t *testing.T) {
 		lit  bool
 		phis []float64
 	}
-	poses := []pose{
-		{"lit", true, []float64{34.55, 45, 56.63}},
-		{"unlit", false, []float64{-59.60, -55, -42.37, -40.12}},
+	// The outer band ends are those of the cone's greatest slot clearance (0.481, its full withdrawal): 62.15 and -64.69 for a,
+	// g, d, 61.68 and -65.08 for b to f. The inner ends are those of the least (0.200).
+	posesOf := func(s sevensegment.Segment) []pose {
+		lit, unlit := 62.15, -64.69
+		if s != sevensegment.SegA && s != sevensegment.SegG && s != sevensegment.SegD {
+			lit, unlit = 61.68, -65.08
+		}
+		return []pose{
+			{"lit", true, []float64{34.55, 45, lit}},
+			{"unlit", false, []float64{unlit, -55, -42.37, -40.12}},
+		}
 	}
 	elevs := []float64{90, 45, 30}
 	litFlag := map[float64]float64{90: 0.90, 45: 0.55, 30: 0.20}
@@ -44,7 +52,7 @@ func TestSevenSegmentVisibility(t *testing.T) {
 		point, axis := segmentAxis(s)
 		sAxis := r3.Vec{Z: 1}.Cross(axis) // s = Z x u
 		uAxis := axis
-		for _, ps := range poses {
+		for _, ps := range posesOf(s) {
 			for _, phi := range ps.phis {
 				turn, err := r3.RotationAround(point, axis, units.Degrees(phi-dm.FlagAngle(s, 0)))
 				require.NoError(t, err)

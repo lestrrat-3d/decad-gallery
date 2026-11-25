@@ -133,8 +133,12 @@ func builtLoads(t *testing.T) flagLoads {
 	return loads
 }
 
-// slotClear is the pin's clearance in its pocket's slot.
-const slotClear = sevensegment.SlotRadius - sevensegment.TonguePinR
+// The cone's clearance in its pocket's slot: the least at the full insertion of the slider's u play, where the cone's section at
+// the mouth is widest, and the greatest at the full withdrawal, where it is narrowest.
+var (
+	slotClearMin = sevensegment.SlotRadius - sevensegment.ConeInsertR
+	slotClearMax = sevensegment.SlotRadius - (sevensegment.ConeInsertR - 2*sevensegment.ConePlay*sevensegment.ConeSlope)
+)
 
 // journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.11).
 const (
@@ -148,7 +152,7 @@ const (
 // across its pins (a further 0.11 of side play). It returns ok false when the drive locks.
 func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool) {
 	const length = 37.5
-	rj, cl, w := sevensegment.JournalRadius, slotClear, sevensegment.SlotRadius
+	rj, cl, w := sevensegment.JournalRadius, slotClearMax, sevensegment.SlotRadius
 	smin := sevensegment.PinOffset - sevensegment.PinLinePlay
 	if across {
 		smin -= journalAcross
@@ -191,26 +195,29 @@ func bias(mu float64, l rotorLoad, phi float64) float64 {
 	return l.e * math.Abs(math.Cos((l.bc+phi)*math.Pi/180)) / (math.Sin(math.Atan(mu)) * sevensegment.JournalRadius)
 }
 
-// sweep returns the least gaps of the slider's tongue and pin to the rotor's notch walls over every pose, for a tongue
-// that spans [-al, ar] about the pin line with its top at -top and a head line at zh below the pin, and slider rises of
-// capU (unlit) and capL (lit), the pin line sitting c below its dwell, and the notch floor `floor` from the rotor axis. It
-// is the sweep of instructions.md ("Tongue, head and notch sweep"), ported from a one-off script that is not in the
-// repository.
-func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pinY float64) {
-	// The rotor, pin and slot dimensions come from the model; slot (the slot's clearance to the pin) and rj (the journal's)
-	// are the Tight fit, and ss is the slider's play along s less the settled journal (0.11), which the rotor carries along.
-	slot, rj := slotClear, sevensegment.JournalRadius-sevensegment.JournalPinR
-	d, s0, rp, hullR := sevensegment.RotorHalfWidth, sevensegment.PinOffset, sevensegment.TonguePinR, sevensegment.TongueHullR
+// sweep returns the least gaps of the slider's tongue to the rotor's notch walls over every pose. The tongue is the strip that
+// spans [-al, ar] about the drive axis with its top at -top, hulled with every circle in discs (centre and radius relative to the
+// drive axis, in the sweep frame: x away from the rotor axis, y up), with a head line at zh below the drive axis. capU and capL
+// are the slider rises (unlit and lit), the drive axis sits c below its dwell, floor is the notch floor's distance from the rotor
+// axis and slot the cone's clearance in the pocket's slot. It is the sweep of instructions.md ("Tongue, head and notch sweep"),
+// ported from a one-off script that is not in the repository.
+func sweep(al, ar, top, zh, capU, capL, c, floor, slot float64, discs [][3]float64) (tongueY, tongueB float64) {
+	// The rotor and slot dimensions come from the model; rj is the journal's clearance (the Tight fit), and ss is the slider's
+	// play along s less the settled journal (0.11), which the rotor carries along.
+	rj := sevensegment.JournalRadius - sevensegment.JournalPinR
+	d, s0 := sevensegment.RotorHalfWidth, sevensegment.PinOffset
 	segEnd, ss := sevensegment.SlotEnd, sevensegment.PinLinePlay-(sevensegment.JournalRadius-sevensegment.JournalPinR)*0.4472135955
 	rr, dip := sevensegment.TongueRootR, sevensegment.TongueRootDip
 	r2 := 1 / math.Sqrt2
 	type pt struct{ x, y float64 }
-	var circle []pt
-	for a := 0; a < 360; a += 2 {
-		r := float64(a) * math.Pi / 180
-		circle = append(circle, pt{hullR * math.Cos(r), hullR * math.Sin(r)})
+	hullIn := []pt{{-al, -top}, {ar, -top}}
+	for _, cc := range discs {
+		for a := 0; a < 360; a += 2 {
+			r := float64(a) * math.Pi / 180
+			hullIn = append(hullIn, pt{cc[0] + cc[2]*math.Cos(r), cc[1] + cc[2]*math.Sin(r)})
+		}
 	}
-	pts := convexHull(append([]pt{{-al, -top}, {ar, -top}}, circle...))
+	pts := convexHull(hullIn)
 	for i := 0; i <= 90; i++ {
 		for _, x := range []float64{-al, ar} {
 			pts = append(pts, pt{x, -top - 13.5*float64(i)/90})
@@ -223,11 +230,6 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 		r := float64(a) * math.Pi / 180
 		pts = append(pts, pt{ar + rr - rr*math.Cos(r), zh + rr - dip - rr*math.Sin(r)},
 			pt{-al - rr + rr*math.Cos(r), zh + rr - dip - rr*math.Sin(r)})
-	}
-	var pin []pt
-	for a := 0; a < 360; a += 3 {
-		r := float64(a) * math.Pi / 180
-		pin = append(pin, pt{rp * math.Cos(r), rp * math.Sin(r)})
 	}
 	type pose struct{ sp, zp, phi float64 }
 	var poses []pose
@@ -266,25 +268,31 @@ func sweep(al, ar, top, zh, capU, capL, c, floor float64) (tongueY, tongueB, pin
 		qa, qb := math.Abs(a)-(d-sevensegment.RotorEdgeR), math.Abs(b)-(d-sevensegment.RotorEdgeR)
 		return (qa <= 0 && qb <= 0) || math.Hypot(math.Max(qa, 0), math.Max(qb, 0)) <= sevensegment.RotorEdgeR
 	}
-	gaps := func(shape []pt) (wy, wb float64) {
-		wy, wb = 9, 9
-		for _, p := range poses {
-			c, s := math.Cos(-p.phi), math.Sin(-p.phi)
-			for _, q := range shape {
-				wx, wz := p.sp+q.x, p.zp+q.y
-				x, y := c*wx-s*wz, s*wx+c*wz
-				if !inside(x, y) {
-					continue
-				}
-				wy = math.Min(wy, floor-(x+y)*r2)
-				wb = math.Min(wb, floor-(y-x)*r2)
+	tongueY, tongueB = 9, 9
+	for _, p := range poses {
+		c, s := math.Cos(-p.phi), math.Sin(-p.phi)
+		for _, q := range pts {
+			wx, wz := p.sp+q.x, p.zp+q.y
+			x, y := c*wx-s*wz, s*wx+c*wz
+			if !inside(x, y) {
+				continue
 			}
+			tongueY = math.Min(tongueY, floor-(x+y)*r2)
+			tongueB = math.Min(tongueB, floor-(y-x)*r2)
 		}
-		return wy, wb
 	}
-	tongueY, tongueB = gaps(pts)
-	pinY, _ = gaps(pin)
-	return tongueY, tongueB, pinY
+	return tongueY, tongueB
+}
+
+// endDisc is the tongue's end disc as a circle for sweep: its centre is coneOffsetW toward the rotor axis (-x) and coneOffsetZ
+// up from the drive axis.
+func endDisc() [3]float64 {
+	return [3]float64{-sevensegment.ConeOffsetW, sevensegment.ConeOffsetZ, sevensegment.ConeDiscR}
+}
+
+// freeSpan returns the circles that bound the cone between the tongue and the pocket mouth: its base and its junction circle.
+func freeSpan() [][3]float64 {
+	return [][3]float64{{-sevensegment.ConeOffsetW, sevensegment.ConeOffsetZ, sevensegment.ConeBaseR}, {0, 0, sevensegment.ConeJoinR}}
 }
 
 // convexHull returns the convex hull of points by Andrew's monotone chain.
