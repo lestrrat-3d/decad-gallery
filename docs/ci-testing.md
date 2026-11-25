@@ -104,6 +104,16 @@ The full planetary suite runs each non-default kit in its own job and requires i
 partition the other planetary tests. The execution inventory requires all three kit variants, and reconciliation
 checks their records with the other full-run artifacts.
 
+On full runs, the planner discovers the reviewed cycloidal subtests under `TestBuildOptions` and
+`TestMeasuredFits`. Four `case-workers` jobs run those subtests, one runs the rest of the package, and one
+checks whether either parent runs any subtest the planner missed. If the cycloidal Go sources differ from the
+reviewed version or the opt-in is missing or invalid, an ordinary package worker runs the whole package.
+
+`records-validation` checks every case receipt against the plan and checks the execution records against both
+their receipt and the assigned tests. On a partial retry, successful case artifacts can come from different
+attempts of the same workflow run. Each attempt must fall between the plan's attempt and the current attempt,
+and the revision, plan, and case must match.
+
 After full-run records pass validation, `records-validation` adds `timing-summary.json` to the
 `ci-validation-summary` artifact. It lists the 20 slowest test and package events separately, including job and
 case identifiers. Each value is one Go test elapsed sample in seconds. Parent test times include subtests, and
