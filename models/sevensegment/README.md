@@ -53,7 +53,7 @@ Rotors b, c, e and f stand on the sides and a, g and d lie across.
 
 A camshaft runs along the digit under the face. It carries seven cams, one for each segment, stacked 16.5 mm apart. Each
 cam has a closed groove cut in its face. A pin on the segment's slider rides in that groove, so the cam pushes the slider
-up and pulls it down: no springs are needed. The slider's tongue sits in a notch of the rotor above it and a pin on the
+up and pulls it down: no springs are needed. The slider's tongue sits in a notch of the rotor above it and a cone on the
 tongue rides in a radial slot of the rotor, so the slider's rise of 4.5 mm turns the rotor by about 90 degrees (89.2 for a, g and d and 90.0 for b, c, e and f; b to f are
 given a small extra lift so their rest angles stay in range). A groove sits at 24.75 mm from the shaft where the segment is unlit
 and 29.25 mm where it is lit, with a smooth ramp between.
@@ -167,7 +167,8 @@ on a printer that changes between two filaments of one polymer (both bodies shar
 polymer, for example PETG, to bond). A pause for a filament change does not work: the yellow takes the first 12 layers
 and the black rim is printed in the same layers, so a pause would turn the rim and the tips yellow. A plate of seven rotors needs
 about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 11.25 mm square and has a 1.8 mm bore
-in each end (a teardrop roof, so it needs no support). Print the 14 pivot blocks on their outer faces with the 1.4 mm pins
+in each end (a teardrop roof, so it needs no support). Each slider's drive cone stands upright in print and needs no support: its steepest
+face leans 35 degrees from the vertical. Print the 14 pivot blocks on their outer faces with the 1.4 mm pins
 up; check the first block against the pocket before printing the rest. The rotors, sliders, pivot pins and pegs print whole, not split, and the instructions say why. A bearing,
 bolt or nut is bought.
 
@@ -208,8 +209,9 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    print. Press the button until all seven entry channels face up (digit 8).
 6. Press the cradle plate onto the guide plate's column pegs through its two registration holes at (18, -67.5), near the front
    edge on the right, and (-20.3, 58.5), near the back edge on the left (the other two holes are for the top plate's pegs).
-7. On the bench, join each rotor to its slider: yellow face up, 2.0 mm along +u from its place (+u as defined above), notch over the tongue, then
-   slide it -u so the pin enters the pocket. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
+7. On the bench, join each rotor to its slider: yellow face up, 3.0 mm along +u from its place (+u as defined above), notch over the tongue, then
+   slide it -u so the cone enters the pocket. Any shift from 2.85 to 3.15 mm works: the cone's tip clears the notch's end wall from 2.85 mm,
+   and the notch's far wall clears the tongue up to 3.15 mm. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
 8. Push a pivot block onto each end of every rotor, its pin into the end bore. Keep the unit level, lower it through its cradle
    passage and guide slot, the groove pin first, into its cam's entry channel, and let the blocks drop into the cradle's open
    half-pockets. Press each block down with a finger until it seats. A block can slip off its pin if the unit tilts before it
@@ -225,8 +227,8 @@ parts is marked with these numbers: the plates carry their own holes, and the st
 
 Turned over, the rotors and sliders are held in place by the plates, but the geometry changes. The rotor's weight bias flips
 by 13.5 degrees. The b to f pins shift by about 1 mm and the b to f rotors turn by 16 to 22 degrees. In that pose the
-calculated tongue gaps to the notch shells are 0.83 mm (yellow shell) and 1.9 mm (black leg) in the worst-case stack of
-tolerances. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
+calculated tongue gaps to the notch shells are 0.73 mm (yellow shell) and 1.9 mm (black leg) in the worst-case stack of
+tolerances with the cone fully pushed in, and 0.45 mm and 1.4 mm with it fully pulled out. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
 adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
 rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
 allows no vertex deeper than 0.07 mm (the mesh tolerance). Do not turn the display over with the button in motion.
@@ -236,8 +238,17 @@ allows no vertex deeper than 0.07 mm (the mesh tolerance). Do not turn the displ
 The face teeth of the rotor, button and housing are listed: their tips are engagement edges, and their roots are retained sharp corners
 (a land of 0.03 mm above the valley), because the 0.5 mm root round of the corner rule does not fit a 26 degree valley at 3.2 mm radius.
 
-Seven kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
+Eight kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
 thick along the long sides and 1.25 mm at the shoulders, above the 0.8 mm minimum, so the window rims need no listing): the inner
 loops of the seam faces of the cradle and the top plate; the inner loops of the cradle plate's bottom face; the root of each
-pin on a slider's tongue; the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
-120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops and the pin roots yet.
+cone on a slider's tongue; the root and tip of the groove pin on the a, g and d sliders, where a section near the edge of the Ø4.5 cylinder reads as a corner (the pin is
+unchanged); the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
+120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops and the cone roots yet.
+
+## Known exceptions
+
+The rule against printed straight pins thinner than 4 mm ("Thin pins" in `docs/model-pipeline.md`) is met by the sliders'
+drive cones: each has a 4.0 mm base and thins to a 0.82 mm tip. It is not yet met by the 14 pivot pins, which are 1.4 mm across
+and 1.25 mm long. Each stands upright on its pivot block and turns in the Ø1.8 end bore of a rotor. A straight pin of 4 mm
+would raise the bore's friction radius from 0.9 to 2.2 mm, and the drive's ratio of drive arm to friction arms would fall from 1.67 to about 1.06 (it needs 1.50), so the pivot
+pins stay as they are until the pivot changes.

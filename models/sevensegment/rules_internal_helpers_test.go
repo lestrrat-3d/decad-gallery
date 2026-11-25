@@ -100,7 +100,8 @@ func partCases() []partCase {
 			up = r3.Vec{X: 1}
 		}
 		cases = append(cases, partCase{name: "slider " + seg.String(), up: up, chamfered: true,
-			build: func(r *run) (*decad.Body, error) { return r.flagSlider(seg) }})
+			build:  func(r *run) (*decad.Body, error) { return r.flagSlider(seg) },
+			exempt: func(r *run) []cornercheck.Exempt { return groovePinExempt(r.dm.Station(seg)) }})
 	}
 	return cases
 }
@@ -225,4 +226,17 @@ func markCount(loops [][]r3.Vec, radius float64) int {
 		}
 	}
 	return n
+}
+
+// groovePinExempt lists the corners of the groove pin of the slider at station yi that "Corners and roots" cannot read: the
+// pin (Ø4.5) lies along Y, so a section across the print axis cuts it as a strip, and at a height near the cylinder's edge the
+// strip's ends read as turns of 50 to 67 degrees at its root and its tip. The straight-pin slider shows the same turns at
+// those heights; the cone's face levels add them to the sampled heights. Listed under "Retained sharp corners" in
+// instructions.md.
+func groovePinExempt(yi float64) []cornercheck.Exempt {
+	from := yi + StemThickness/2
+	return []cornercheck.Exempt{{Reason: "groove pin root and tip: sections near the cylinder's edge", Optional: true,
+		Near: func(q r3.Vec) bool {
+			return q.Y >= from-0.01 && q.Y <= from+PinLength+0.01 && math.Abs(q.Z-sliderPinZ) <= 3.0 && math.Abs(q.X) <= 3.0
+		}}}
 }

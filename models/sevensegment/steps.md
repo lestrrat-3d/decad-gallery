@@ -343,8 +343,9 @@ one-off scratch build before the port, which is not in the repository; a decad r
   constrained pentagon sketch), the 0.9 pocket floor round and the 0.7 mouth chamfer of type B's first notch
   (instructions.md "Rotor"). Then each body is placed in the world with one `placement.Place` of
   the rotor frame `rotorFrame(s)`.
-- `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and pin (`rootedTongue`),
-  the 0.5 stem chamfers and the groove pin.
+- `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and its drive cone
+  (`rootedTongue`: the end disc, the frustum from `decad.Loft` and the right cone from `decad.Revolve`), the 0.5 stem chamfers and
+  the groove pin.
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 4.825, `windowChamfer` 19.525 and
   `windowEnd` 17.544) and `columnGuidePlate()` with `boreTool`, `rootedBox`, `rootedPost`,
   `mouthCone` and `flagSites()`.

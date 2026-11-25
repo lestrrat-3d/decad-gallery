@@ -25,7 +25,8 @@ func sectionAt(t *testing.T, body *decad.Body, y float64) [][]r3.Vec {
 	f, err := r3.NewFrame(r3.Vec{Y: y, Z: ShaftZ}, r3.Vec{X: 1}, r3.Vec{Z: 1})
 	require.NoError(t, err)
 	var out decad.SectionOutline
-	for _, tol := range []float64{0.005, 0.01, 0.02, 0.03} {
+	// 0.035: the slider's faceted cone holds a mesh bound of 0.0316, under which decad refuses the section.
+	for _, tol := range []float64{0.005, 0.01, 0.02, 0.03, 0.035} {
 		out, err = body.SectionOutline(t.Context(), f, units.Millimeters(tol))
 		if err == nil {
 			break
