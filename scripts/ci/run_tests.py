@@ -9,6 +9,8 @@ import sys
 import tempfile
 import uuid
 
+from runner_cpu import print_runner_cpu
+
 
 # Packages whose tests form the renderer group: the CLI and, as they move, per-item render packages and the shared core.
 RENDERER_PACKAGE = re.compile(
@@ -774,6 +776,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentPressWalls", "TestSevenSegmentRotor", "TestSevenSegmentRotorAll",
         "TestSevenSegmentSegmentGrid", "TestSevenSegmentShaft", "TestSevenSegmentSliders",
         "TestSevenSegmentSplitShaft", "TestSevenSegmentStackPlay", "TestSevenSegmentWidthMargins",
+        "TestYellowFirstCountMatchesReference",
     ),
     "assembly": (
         "TestClickerBodies", "TestClickerHeights", "TestClickerPoseClearances",
@@ -1128,6 +1131,7 @@ def run_cycloidal_pr() -> None:
 
 def main() -> None:
     _, suite, mode, *args = sys.argv
+    print_runner_cpu()
     if suite == "fan" and mode == "pr" and len(args) == 1:
         run_fan_pr(args[0])
         return
