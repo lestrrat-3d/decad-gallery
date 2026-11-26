@@ -4,17 +4,12 @@ package planetarygearbox
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 // TestCorners applies "Corners and roots" to every printed part of the default gearbox.
 func TestCorners(t *testing.T) {
-	cornersDefault.once.Do(func() {
-		cornersDefault.box, cornersDefault.err = Build(t.Context(), NewDocument(), DefaultParams())
-	})
-	require.NoError(t, cornersDefault.err)
-	requireCorners(t, cornersDefault.box, DefaultParams())
+	_, box := SharedDefaultBuild(t)
+	requireCorners(t, box, DefaultParams())
 }
 
 func TestCornersPlanet605Shaft608(t *testing.T) { requireCornerKit(t, "planet605-shaft608") }
