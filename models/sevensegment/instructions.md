@@ -41,17 +41,17 @@ its back wall with the button end up. Units are millimetres and degrees. Inputs 
 
 All from the tests:
 
-- Rest bands (`PinLinePlay` 0.469; the cone's slot clearance runs from 0.200 at its full insertion to 0.481 at its full
-  withdrawal, so the inner band ends use 0.200 and the outer ends 0.481): a, g, d design unlit [-64.69, -41.76], lit
-  [37.85, 62.15]; worst case unlit end -41.01, lit start 37.02, drive axis radius 3.832 (limit 4.15 asserted); b to f
-  design unlit [-65.08, -42.37], lit [37.16, 61.68]; worst case -40.12 and 34.55, drive axis radius 3.954 against the
+- Rest bands (`PinLinePlay` 0.490; the cone's slot clearance runs from 0.200 at its full insertion to 0.481 at its full
+  withdrawal, so the inner band ends use 0.200 and the outer ends 0.481): a, g, d design unlit [-65.03, -41.53], lit
+  [37.63, 62.51]; worst case unlit end -40.79, lit start 36.80, drive axis radius 3.85 (limit 4.15 asserted); b to f
+  design unlit [-65.41, -42.14], lit [36.94, 62.05]; worst case -39.89 and 34.34, drive axis radius 3.968 against the
   slot's limit 4.25 (`SlotEnd` plus 0.200).
 - Drive: ratio 1.423 (a, g, d) and 1.186 (b to f) at friction 0.35 (needs 1.40 and 1.17); lock friction 0.426 and 0.385 (needs
   0.42 and 0.38), with the stem's vertical edges chamfered 0.5. Peak shaft torque 201.1 N.mm at step 6 to 7; the cams and sliders load is `followerLoad` 0.226125 N per changing slider.
 - Rotor centre of mass 1.029 (A) and 1.265 (B) from the axis, at the same angles; the rest bias passes at 1.50 (A) and 1.75 (B).
-- Tongue sweep, turned over, at the slot clearance 0.200: tongue to the yellow shell 0.796 (b to f 0.734), to the black leg 2.326
-  (1.945); the cone's free span between the tongue and the pocket mouth to the yellow shell 0.701 (0.690). At the clearance
-  0.481 the same gaps are 0.49 (0.45), 1.78 (1.44) and 0.48 (0.31), all at least 0.25.
+- Tongue sweep, turned over, at the slot clearance 0.200: tongue to the yellow shell 0.759 (b to f 0.719), to the black leg 2.173
+  (1.794); the cone's free span between the tongue and the pocket mouth to the yellow shell 0.696 (0.691). At the clearance
+  0.481 the same gaps are 0.46 (0.42), 1.68 (1.34) and 0.44 (0.31), all at least 0.25.
 - Click indexer: press turn 32.09 degrees, release turn 3.91, timing margin 2.54 against 29.55; ramp rate 4.0625 degrees per mm;
   the press share of the cams on an ideal ramp is 201.1 N.mm x 32.09 degrees / 8.0 mm = 14.1 N, plus the spring's 5.64 to 7.53 N.
   Nobody has measured it, and a printed camshaft's dwell drag, and the torque at which a r 2.5 printed stub breaks, are not known.
@@ -370,26 +370,28 @@ Acceptance tests:
 
 - Ray test on the real meshes (visibility_test.go) at elevations 90, 45 and 30 degrees, azimuths across and along each flag, in
   the physical (clamped, settled) geometry, over the rest bands at the design play, out to the outer band ends that the cone's
-  widest slot clearance gives (lit 62.15 for a, g, d and 61.68 for b to f; unlit -64.69 and -65.08):
+  widest slot clearance gives (lit 62.51 for a, g, d and 62.05 for b to f; unlit -65.03 and -65.41):
   - lit, azimuths across the flag (+-s), rays that enter the window at `|u| <= 14.85` (flag-local u of the entry
     point): yellow is at least 65 % of those whose first hit is a flag body, and the flag is at least 90 / 55 / 20 %
     of them at 90 / 45 / 30 degrees. The values computed on the straight pin were 87 %, 100 / 71 / 42 %, so each threshold had a
     margin of at least 9 points. Azimuths along u and the whole-window share (estimated 59-79 %) are reported, not
     asserted;
   - whole window (`TestSevenSegmentWindowYellow`, rays on a 0.05 grid over the window opening at 90 degrees): the lit
-    yellow share is at least 0.95 at phi 45, 0.82 at the lit band ends 37.85 (a, g, d) and 37.16 (b to f) and 0.76 at the
-    b-f worst-case end 34.55 (the results are in the log of the test; the design computed 0.99, 0.92 and 0.89);
-  - unlit: no ray hits a yellow body at the design-play band end (a, g, d -41.76; b to f -42.37), the worst-case end
-    (-41.01; -40.12) and a 1 degree margin beyond it (-40.01; -39.12), with the rotor centred, 0.16 or 0.25 to either
-    side and 0.30 along the axis either way, from elevations 90, 45 and 30 at four azimuths; at the margin poses with the
+    yellow share is at least 0.95 at phi 45, 0.82 at the lit band ends 37.63 and 36.80 (a, g, d) and 36.94 (b to f) and 0.76 at
+    the b-f worst-case end 34.34 (the results are in the log of the test; the design computed 0.99, 0.91 and 0.89);
+  - unlit: no ray hits a yellow body at the design-play band end (a, g, d -41.53; b to f -42.14), the worst-case end
+    (-40.79; -39.89) and a 1 degree margin beyond it (-39.79; -38.89), with the rotor centred, 0.186 (the journal across,
+    0.136, plus 0.05 of registration) or 0.25 to either side and 0.25 (the pin tips' end play 0.20, plus 0.05) along the
+    axis either way, from elevations 90, 45 and 30 at four azimuths; at the margin poses with the
     0.25 side shift also from elevations 60 and 20 at 24 azimuths, grazing views included. Yellow first shows, for the
-    onset harness (yellow sample points, views facing above 5 degrees or grazing; both give the same onset), at -36.23
-    with the rotor centred, at -34.61 and -33.73 with it 0.16 and 0.25 to the lit side, and at -37.89 and -38.83 with it
-    0.16 and 0.25 to the other side (the worst case; the axial shift changes nothing). The margins from the 0.25 side onset
-    (-38.83) to the worst unlit band end are 1.29 degrees (b to f) and 2.18 (a, g, d).
+    onset harness (yellow sample points, views facing above 5 degrees or grazing; both give the same onset; the table in
+    "Visibility" lists every pose), at -36.26 with the rotor centred, at -34.99 with it 0.25 to the lit side, and at -38.83
+    (b to f) and -38.56 (g, with 0.30 of axial shift) with it 0.25 to the other side (the worst case). The margins from
+    those onsets to the worst unlit band ends are 1.06 degrees (b to f) and 2.23 (a, g, d). Segment b's margin pose
+    (-38.89) keeps 0.06 degrees from its onset, the least of any pose.
 - Drive: at friction 0.5 the true drive arm (the cone on one wall of its slot, at the clearance 0.481 and the pocket radius
   1.15) is at least 1.50 times the friction arms with the rotor settled on its pins and 1.35 with it fully across (computed
-  1.673 and 1.560).
+  1.646 and 1.508).
 - Timing: a press turns the shaft `PressTurn()` 32.09 degrees, 2.54 past the 29.55 by which every cam has finished
   (`TimingMargin()`, derived from the tooth specs in `TestClickerPressTurn`). This is calculated on the built
   dimensions and not measured on a print.
@@ -411,7 +413,7 @@ of scope.
   numbers of layers, so the seam plane, which carries the rotor axis, lies on a layer boundary.
 - Seams S1 are modeled open (0.25) and closed when the bolts are tight. "Physical" means clamped: the cradle sits 0.25
   lower than modeled, the top plate 0.50 lower. The guide plate does not move (G bolts, no seam). Gravity settles each
-  rotor to the bottom of its pivot bores (0.20 round the pins) and each slider onto its groove's inner wall (0.40 below the modeled
+  rotor to the bottom of its pivot bores (0.23 round the cones at the bores' edges) and each slider onto its groove's inner wall (0.40 below the modeled
   pose). Each b-f slider droops to its tilt limit (Kinematics).
 - Printed dimensions hold +-0.05 on radii and +-0.10 on lengths over 10 mm (the basis of the z play row).
 - Known printability risk (geometry unchanged): the black rim of a rotor in layer 1 is about 0.05 mm wide at the sides,
@@ -422,31 +424,32 @@ of scope.
   in layers 1-4, then two small yellow islands per rotor under the facets) and a black rim, so a plate takes about 32
   filament changes (about 8 without the tips).
 - Split shafts: the rule covers printed shafts and pins. These are integral features of larger parts and stay whole:
-  the pivot pins (Ø1.4) of the 14 pivot blocks, the slider groove pins (Ø4.5), and the
+  the slider groove pins (Ø4.5) and the
   registration pegs (Ø4.5) on the top plate and on the guide plate columns. None carries a part, a bearing or torque.
   Splitting any of them means splitting its whole parent part, a slider or a plate, whose layers must run as its own
-  faces set them. So none is split, and each is listed here as a part the split rule does not reach. The Ø1.4 pivot
-  pins are under the 4 mm that the rule's Size item asks for; the pivot pin stands upright in
-  print, on its block, so the layers do not run along it. The Ø4.5 groove pins and registration pegs are over 4 mm, so
+  faces set them. So none is split, and each is listed here as a part the split rule does not reach. The 14 pivot
+  cones are a feature of their blocks too, and each is a cone with a Ø4.0 base (Thin pins), not a thin pin. The Ø4.5 groove pins and registration pegs are over 4 mm, so
   Size does not exempt them: they stay whole only because each is a feature of a larger part, and the rule's written
-  text has no such exemption. Loads: drive cone up to 0.12 N, groove pin up to 2.5 N (Cam follower drive), pivot pins 0.0405 N
-  (up to 0.10 N while the pin lifts the rotor), pegs only locate (the M2 bolts clamp the plates). The rotor itself was
+  text has no such exemption. Loads: drive cone up to 0.13 N, groove pin up to 2.5 N (Cam follower drive), pivot cones 0.0405 N
+  (up to 0.10 N while the cone lifts the rotor), pegs only locate (the M2 bolts clamp the plates). The rotor itself was
   accepted as exempt in review.
-- Pivot pin strength. A pin (Ø1.4) stands upright on its block and bends across the layer bonds: 0.0405 N on a 1.875
-  lever, 0.28 MPa against about 20 MPa layer bond, a factor of 71 (39 at 0.10 N on 1.35), breaking at about 2.9 N of
-  finger force. The pin can lift the rotor while it rises, near phi -30:
-  the drive and slot friction then push up harder than the rotor's weight, so the pin is loaded on every side at some
-  point of the swing (0.047 N on rotor A, 0.044 N on B).
-- Known exceptions (Thin pins). "Thin pins" in docs/model-pipeline.md bars a printed straight cylinder under Ø4. The drive
-  cone of each slider replaces the former Ø1.5 rotor pin and takes the rule's cone form (Ø4.0 base, a section that thins to
-  a Ø0.82 tip). The 14 pivot pins (Ø1.4 x 1.25, `pivotPinRadius` 0.7), one at each end of each rotor, stay as they are:
-  each stands upright on its pivot block and turns in the rotor's Ø1.8 end bore, and a straight r 2.0 pin would raise the
-  journal radius from 0.9 to 2.2 and the journal term of the drive audit's friction arm from 0.45 to 1.10, so the drive
-  would fail (ratio about 1.06 at the pocket radius 1.15). They keep their thin form until the pivot changes.
+- Pivot cone strength. A cone stands upright on its block and bends across the layer bonds. It bears on the bore's edge at
+  u 18.033, where it is Ø1.34, and is Ø1.49 at its junction with the frustum, 0.53 further out. At 0.10 N (the largest load
+  while the cone lifts the rotor) the junction sees `32 x 0.10 N x 0.53 mm / (pi x 1.49^3 mm^3)` = 0.16 MPa against about
+  20 MPa layer bond, a factor of 125 (the former Ø1.4 pin saw about 0.50 MPa at 0.10 N on its 1.35 lever). A finger on the tip
+  breaks the cone at about 2.3 N (the former pin: 2.9 N). The cone can lift the rotor while it rises, near phi -30: the drive
+  and slot friction then push up harder than the rotor's weight, so the cone is loaded on every side at some point of the
+  swing (0.047 N on rotor A, 0.044 N on B).
+- Known exceptions (Thin pins). None. "Thin pins" in docs/model-pipeline.md bars a printed straight cylinder under Ø4. The
+  drive cone of each slider takes the rule's cone form (Ø4.0 base, a section that thins to a Ø0.82 tip), and so does each of
+  the 14 pivot cones, one at each end of each rotor: a Ø4.0 base on the block's face, a 45-degree frustum to Ø1.49, an
+  8-degree cone to an R 0.45 ball tip. A straight r 2.0 pin would raise the journal radius from 0.9 to 2.2 and the drive would
+  fail (ratio about 1.02 settled at the pocket radius 1.15); the cone bears at r 0.67 on the bore's edge instead, and its
+  friction radius is 0.907 (the wedge factor 1.008 at 8 degrees).
 - Cone strength. On every slider the cone stands upright in print, so bending loads the layer bonds. It bears on the pocket
-  wall at the mouth rim, 1.3 from its junction with the frustum (Ø1.98). At 0.120 N (the larger F_x of the drive at
+  wall at the mouth rim, 1.3 from its junction with the frustum (Ø1.98). At 0.132 N (the larger F_x of the drive at
   friction 0.5: rotor B, journal across, clearance 0.481), the bending stress at the junction is
-  `32 x 0.120 N x 1.3 mm / (pi x 1.984^3 mm^3)` = 0.20 MPa against about 20 MPa layer bond: a factor of 100, about 50 with a
+  `32 x 0.132 N x 1.3 mm / (pi x 1.984^3 mm^3)` = 0.22 MPa against about 20 MPa layer bond: a factor of 90, about 45 with a
   sharp root. The cone breaks at the junction at about 12 N of load on the rim (the former pin: 1.2 N). The fix is
   reprinting one slider (about 4.3 g).
 - The unit's sides (x = +-35.1) are open (only the front and rear walls exist), so the b-f arms can be reached from the
@@ -456,8 +459,8 @@ of scope.
 
 Each segment is a square-section two-colour **rotor** (11.25 x 11.25, long edges rounded 0.75, pyramid tips to +-18.375)
 on two printed **pivot blocks**, one at each end. Each block is pressed into a square pocket split between a new
-**cradle plate** and the rewritten **top plate**, and a pin (Ø1.4) on its rotor-side face turns in a bore (Ø1.8) in the
-rotor's end. The rotor's top face shows through a window in the top plate. The yellow is a 0.8 slab on the face that
+**cradle plate** and the rewritten **top plate**, and a stepped cone on its rotor-side face turns in a bore (Ø1.8) in the
+rotor's end; the cone's ball tip rests 0.2 from the bore's floor and stops the rotor along its axis. The rotor's top face shows through a window in the top plate. The yellow is a 0.8 slab on the face that
 continues onto the 45 degree facet at each end (0.8 inside the facet's edges, to `|u| = 17.4`), so it follows the
 window's pointed ends; it is a separate yellow body and the rest is black.
 
@@ -558,24 +561,24 @@ Pin-line play at a rest:
 | blade across its hole (0.25, see "Blade corners") | 0.25 | - |
 | top plate to cradle (pegs, 0.05) | 0.05 | - |
 | yaw (the stem, 10.5 wide in its Tight slot, limits it to 0.048 rad) | 0.08 | - |
-| rotor on its pins, settled (bore r 0.9, pin r 0.7, 0.20 clearance: 0.20 sin(atan 0.5)) | 0.09 | - |
+| rotor on its pins, settled (bore r 0.9, the cone's radial play at the drive 0.246: 0.246 sin(atan 0.5)) | 0.11 | - |
 | cam inner-wall radius, groove-pin radius | - | 0.05 + 0.05 |
 | slider length, groove pin to rotor pin | - | 0.10 |
 | cradle seat (rib top), bore-to-pin clearance's printing error | - | 0.05 + 0.05 |
 | cradle thickness (20 whole layers) | - | 0 |
 | b-f droop limit (fits +-0.05 each, registration +-0.1, over 44.425, at x_pin 27) | - | 0.12 |
-| total used | 0.47 | 0.24 |
+| total used | 0.49 | 0.24 |
 
 Root-sum-square of z: 0.14 (a/g/d), 0.19 (b-f); 0.24 is used. Worst-case sums: 0.30 (a/g/d), 0.42 (b-f).
 
 Rest bands. The drive leaves every rotor at its leading slot wall, and gravity holds it there: the centre of mass sits
 1.033 toward beta 92.4 (A) and 1.279 toward beta 95.2 (B). Its torque is `W_r e |cos(beta_c + phi)|`. Against static
-journal friction at friction 0.5 (`mu' 0.9 W_r`) it is:
+journal friction at friction 0.5 (`mu' 0.907 W_r`: the bore's r 0.9 times the cone's wedge factor 1.008) it is:
 
 | Pose | A | B |
 | --- | ---: | ---: |
-| worst case, a/g/d z 0.30: -41.01 / 37.02 | 1.60 / 1.63 | - |
-| worst case, b-f z 0.42: -40.12 / 34.55 | - | 1.82 / 2.03 |
+| worst case, a/g/d z 0.30: -40.79 / 36.80 | 1.58 / 1.61 | - |
+| worst case, b-f z 0.42: -39.89 / 34.34 | - | 1.80 / 2.01 |
 
 Bands (`bands()` in `flags_test.go`, c 0.15 for a, g, d and 0.20 for b to f). The slot clearance `cl` is the pocket radius 1.15
 less the cone's section at the mouth, which the slider's u play of 1.0 either way changes by `tan 8 deg` per mm: 0.200 at
@@ -584,17 +587,17 @@ the least clearance and its outer end by the greatest:
 
 ```
 lit   phi = atan(z/s) + asin(cl/rho),  unlit phi = atan(z/s) - asin(cl/rho)
-a/g/d design (s 0.47, z 0.24, c 0.15): unlit [-64.69, -41.76], lit [37.85, 62.15], drive axis radius <= 3.79
-a/g/d worst (z 0.30):                  unlit end -41.01, lit from 37.02, drive axis radius <= 3.83
-b-f design (z 0.24, c 0.20):           unlit [-65.08, -42.37], lit [37.16, 61.68]
-b-f worst (z 0.42, c 0.20):            unlit end -40.12, lit from 34.55, drive axis radius <= 3.95 (the slot's limit is 4.25)
+a/g/d design (s 0.49, z 0.24, c 0.15): unlit [-65.03, -41.53], lit [37.63, 62.51], drive axis radius <= 3.81
+a/g/d worst (z 0.30):                  unlit end -40.79, lit from 36.80, drive axis radius <= 3.85
+b-f design (z 0.24, c 0.20):           unlit [-65.41, -42.14], lit [36.94, 62.05]
+b-f worst (z 0.42, c 0.20):            unlit end -39.89, lit from 34.34, drive axis radius <= 3.97 (the slot's limit is 4.25)
 ```
 
-The outer ends moved out from -59.60 / 56.63 (a, g, d) and -60.05 / 56.09 (b to f) with the cone. The drive axis's greatest
-radius is 3.79 (a, g, d) and 3.83 (b to f) at the design play, and 3.83 and 3.95 at the worst cases,
+The outer ends moved out from -59.93 / 56.97 (a, g, d) and -60.37 / 56.43 (b to f) with the cone (the inner clearance 0.200). The drive axis's greatest
+radius is 3.81 (a, g, d) and 3.84 (b to f) at the design play, and 3.85 and 3.97 at the worst cases,
 against the slot's limit of 4.25 (`SlotEnd` 4.05 plus the least clearance 0.20). Even the b-f worst case keeps 0.30
 from it, so the cone never rests on the slot end. The
-visibility test finds no yellow at the b-f worst-case unlit end -40.12 or 1 degree beyond it at -39.12.
+visibility test finds no yellow at the b-f worst-case unlit end -39.89 or 1 degree beyond it at -38.89.
 
 If the bias failed, the rotor could sit at the lagging wall, 8.3 degrees further from the end pose. The design does not
 cover that case; the bias margin above is its guard, and visibility_test.go reports it.
@@ -612,8 +615,8 @@ their operands, so take `decad.Copy` before any operand is used twice.
 | `rotorEdgeRound` | 0.75 | long edges; swept radius `4.875*sqrt2 + 0.75 = 7.644` |
 | `rotorSquareHalf` | 15.0 | square section for `|u| <= 15.0` |
 | `RotorHalfLength` (exported) | 18.375 | end faces 4.5 square; pyramid edges sharp (convex 120 degrees) |
-| `JournalRadius` (exported) | 0.9 | the rotor's end bores, floor at u 16.2, 0.75 round at the floor, teardrop roof, 45-degree mouth to r 1.395 |
-| `pivotPinRadius` | 0.7 | the block's pin; bore less pin 0.20 |
+| `JournalRadius` (exported) | 0.9 | the rotor's end bores, floor at u 15.85 (`pivotBoreFloor`), 0.5 round at the floor, teardrop roof, cylinder to u 18.033 (`pivotContactU`), 45-degree mouth to r 1.242 at the end face |
+| `pivotClear` | 0.2301 | bore radius less the cone's radius at the bore's edge (0.6699): 0.2/cos 8 degrees at the tight end plus the end play times tan 8 degrees |
 | `rotorFlat` | -3.45 | keep `y_r >= -3.45` |
 | `notchFloor` | 4.825 | shells under both faces 0.8; notch end chamfers 0.5; apex chamfer 0.8 |
 | `slotStart`, `slotEnd`, `slotRadius` | 1.5, 4.05, 1.15 | stadium on beta 0; the cone's section at the mouth (0.95 at the full insertion, 0.809 nominal, 0.669 at the full withdrawal) has 0.20 to 0.481 in it; axis limit rho 4.25 |
@@ -661,10 +664,10 @@ Construction, in this order (proven in one-off scratch builds that are not in th
    (pattern `models/handcrankfan/crank.go` `crankArm`). `decad.Fillet` 0.9 on its far-end convex loop (pocket floor). Cut.
 7. Black only, each end's pivot bore (end sgn = +1 for +u, mirrored for -u): cut the revolved bore, then the teardrop
    roof.
-   - Bore: revolve the meridian `(r, u)` `(0, 16.2) (0.15, 16.2)`, a 6-chord quarter round of 0.75 about `(0.15, 16.95)`
-     to `(0.9, 16.95)`, `(0.9, 17.88)` and the 45-degree countersink to `(1.395, 18.375)`, continued to `(1.595, 18.575)`
-     and `(0, 18.575)`. The floor is at u 16.2 and the bore wall is 0.9 in radius.
-   - Roof: a prism along u from 16.2 to 18.575 on a fully constrained sketch in a frame whose V axis is the rotor-local
+   - Bore: revolve the meridian `(r, u)` `(0, 15.85) (0.4, 15.85)`, a 6-chord quarter round of 0.5 about `(0.4, 16.35)`
+     to `(0.9, 16.35)`, `(0.9, 18.033)` (`pivotContactU`, the cone's bearing edge) and the 45-degree mouth to `(1.242, 18.375)`,
+     continued to `(1.442, 18.575)` and `(0, 18.575)`. The floor is at u 15.85 and the bore wall is 0.9 in radius.
+   - Roof: a prism along u from 15.85 to 18.575 on a fully constrained sketch in a frame whose V axis is the rotor-local
      direction `(-1, -1)/sqrt2` (up in print: the rotor prints yellow face down). The section is the pentagon `(0, 0)
      (t, t) (h, 1.00) (-h, 1.00) (-t, t)` with `t = 0.9/sqrt2` and `h = 0.9 sqrt2 - 1.00`: 45-degree sides tangent to
      the bore, cut flat 1.00 from the axis (0.55 wide). Its lower corner is on the axis, so no side lies at the bore's own
@@ -787,16 +790,16 @@ lit, 1.5 below the tube bottom.
 ### Tongue, head and notch sweep (`sweep()` in `flags_test.go`)
 
 `sweep()` (ported from a one-off script; it reads the tongue root radius and dip from the model) covers the head or arm top line and the tongue roots, and the tongue is the hull of its strip and the end disc. Poses: slider s +-0.38 and z
-from 0.24 below rest to `cap` above it, rotor anywhere in its 0.25 journal play, drive axis at either slot wall and within its
+from 0.24 below rest to `cap` above it, rotor anywhere in its 0.20 end play, drive axis at either slot wall and within its
 limit. The cap is the turned-over rise: 0.8 groove clearance + 0.48 tolerance = 1.28 (a/g/d), plus the b-f tilt reversal
 0.6 = 1.88. The slot clearance sets how far the rotor turns about the axis at each pose: raw distances at 0.200 (the least,
 the design's values) and 0.481 (the greatest):
 
 | Pair | cap 1.28, 0.200 | cap 1.88, 0.200 | cap 1.28, 0.481 | cap 1.88, 0.481 |
 | --- | ---: | ---: | ---: | ---: |
-| tongue, roots, head top to yellow leg (a = 4.825) | 0.796 | 0.734 | 0.492 | 0.452 |
-| tongue, roots, head top to black leg (b = 4.825) | 2.326 | 1.945 | 1.779 | 1.440 |
-| free span (the cone's base and junction circle) to yellow leg | 0.701 | 0.690 | 0.476 | 0.313 |
+| tongue, roots, head top to yellow leg (a = 4.825) | 0.759 | 0.719 | 0.455 | 0.416 |
+| tongue, roots, head top to black leg (b = 4.825) | 2.173 | 1.794 | 1.680 | 1.338 |
+| free span (the cone's base and junction circle) to yellow leg | 0.696 | 0.691 | 0.443 | 0.311 |
 
 The former Ø1.5 pin read 0.843 / 0.832 (tongue to yellow leg) and 0.943 / 0.932 (pin to yellow leg) at 0.200.
 
@@ -805,35 +808,61 @@ With the head top 2.0 higher (111.3) the head reaches -0.69 into the black shell
 ### Pivot blocks (`pivot.go`; 14 blocks, one printed part)
 
 One block stands at each rotor end: 14 identical bodies in the `Pivot Blocks` container, indexed by segment and end
-(`Parts.PivotBlocks[seg][0]` at -u, `[1]` at +u). A block cannot serve two rotors: at the corners the pins are perpendicular,
+(`Parts.PivotBlocks[seg][0]` at -u, `[1]` at +u). A block cannot serve two rotors: at the corners the cones are perpendicular,
 and at b-c and e-f they point opposite ways, so only one of them could point up in print.
 
 | Name | Value | Note |
 | --- | ---: | --- |
 | `pivotBlockSide` | 4.8 | across the rotor (s) |
 | `pivotBlockHigh` | 5.9 | along z. The pocket is 6.25 tall as modeled and 6.0 clamped (the seam closes 0.25): 0.05 of press on each face |
-| `pivotBlockFrom`, `pivotBlockLong` | 18.625, 3.0 | u 18.625 (the end wall; the rotor's end face is 0.25 from it) to 21.625 |
-| `pivotPinRadius` | 0.7 | the pin: from u 18.625 to its tip at 16.75 (`pivotPinTip`), a 45-degree root cone of leg 0.25 that stays inside the end gap and a 0.1 tip chamfer |
+| `pivotWall`, `pivotOuter` | 18.625, 21.625 | the plates' end wall (the pocket opens through it) and the block's outer face |
+| `pivotBlockFrom`, `pivotBlockLong` | 19.818, 1.807 | the block's rotor-side face to its outer face: the face stands clear of the rotor's end (18.375) |
+| `pivotEndPlay` | 0.2 | the ball tip's distance from the bore's floor at the modeled pose; the rotor's end play each way (T6) |
+| `pivotBaseR`, `pivotJunctionR` | 2.0, 0.744 | the cone's base on the block's face and its radius at the junction of frustum and cone (u 18.563): Ø4.0 to Ø1.49 |
+| half angle, `pivotTipR` | 8 degrees, 0.45 | the cone, tangent to the ball tip (apex u 16.05, `pivotPinTip`) |
+| `pivotContactU`, `pivotContactR` | 18.033, 0.670 | where the cone bears on the bore's edge (the bore's cylinder meets its mouth), and its radius there (Ø1.34) |
 | `pivotCornerR` | 0.675 | the block's rounds (long edges, and its outer face's corners in plan); the pocket's are 0.725 |
 
-Construction: `roundedPrism` is the intersection of a section prism (the rounded rectangle across the rotor and z) and a
-plan prism (u by s, its far corners rounded), a plain extrusion each, so no fillet is needed. The pin is a revolved meridian
-`(0, 18.725) (1.05, 18.725) (0.7, 18.375) (0.7, 16.85) (0.6, 16.75) (0, 16.75)` unioned to the block (the cone starts inside the
-block). The block is built once and 13 copies are placed through `toSegment`, one `placement.Place` of the
-rotor frame (turned 180 degrees about the local up axis for the -u end).
+The cone is one revolved meridian `(r, u)`: `(0, 19.918) (2.1, 19.918) (0.744, 18.563) (0.4456, 16.437)` and an R 0.45 ball tip in
+8 chords down to `(0, 16.05)`. The frustum is 45 degrees, from r 2.0 at the block's face (u 19.818) to r 0.744 (u 18.563), and
+the cone runs on at 8 degrees. The meridian starts 0.1 inside the block (a cone that starts on the face is refused). The tip
+stands 3.768 from the face and the block prints 5.575 tall. The values are derived in `pivot.go`, not typed: the cone's
+radius at the bore's edge is the bore radius 0.9 less the clearance `pivotClear` (0.2 normal to the cone at the tight end, 0.2/cos 8 degrees radially, plus the
+end play times tan 8 degrees); the frustum keeps 0.2 normal to the mouth with the rotor pushed `pivotEndPlay` toward the block
+and dropped by 0.202 in the worst direction, which puts the block's face at u 19.818 and the junction at 0.744 / 18.563.
+`roundedPrism` is the intersection of a section prism (the rounded rectangle across the rotor and z) and a plan prism (u by
+s, its far corners rounded), a plain extrusion each, so no fillet is needed. The block is built once and 13 copies are placed
+through `toSegment`, one `placement.Place` of the rotor frame (turned 180 degrees about the local up axis for the -u end).
 
-The pin axis is the rotor axis at the clamped seam plane: 123.75 physically (the cradle's 124.0 less 0.25). The pocket in the
+The cone's radial play at the drive (which sits at the pocket mouth, |u| 10.5) is `pivotJournalPlay` 0.2464: the 0.2301 at the
+bore's edge plus 10.5/18.033 of the 0.028 that the end play adds there. Settled, the rotor's side play is 0.110 (was 0.089) and
+fully across a further 0.136 (was 0.111). The cone's contact leans 8 degrees from the bore's radial direction, which raises the
+friction radius by `pivotWedge` 1.0078 (`sqrt(1+mu^2)/sqrt(cos^2 8 + mu^2)` at friction 0.5) to 0.907.
+
+Printing. The block prints on its outer face with the cone up. Every face of the cone faces up: the least `normal . up` on its
+mesh is +0.139 (sin 8 degrees, the cone's flank), so nothing overhangs, the 45-degree frustum meets the block's face with a 45-degree turn
+that needs no round, and the ball tip's R 0.45 is over the 0.4 that "Tips" asks for.
+
+Walls. The bore's floor keeps 1.12 to type B's second pocket (along u at local x 0.6, where the pocket's floor round comes closest;
+3.0 on type A, 1.75 to type B's first notch). The end face keeps 1.008 round the mouth at its flats.
+
+The cone's axis is the rotor axis at the clamped seam plane: 123.75 physically (the cradle's 124.0 less 0.25). The pocket in the
 cradle runs from z 121.0 (1.0 of the cradle under it, 15 layers below the seam) and in the top plate to z 127.25 (15 layers above
 its underside), so the block is held by its 0.05 on both sides and both faces. The seam's extra 0.05 is on the roof, not the
-pin axis: any extra play in z would move the b-f rest band (the b-f worst case unlit end -40.12 would reach -39.47, the pin
-radius 3.954 would grow to 3.990, still inside the slot's limit 4.25). A block that prints small in z and does not grip rests on the pocket floor and its
-pin drops by up to 0.05: check the first print.
+pin axis: any extra play in z would move the b-f rest band (the b-f worst case unlit end -39.89 would reach about -39.2, the drive
+axis radius 3.968 would grow to about 4.00, still inside the slot's limit 4.25). A block that prints small in z and does not grip rests on the pocket floor and its
+cone drops by up to 0.05: check the first print.
 
-Checks (`TestSevenSegmentPivotBlockShape`, `TestSevenSegmentPivotPocketFit`, `TestSevenSegmentPivotPinInBore`,
-`TestSevenSegmentPivotBlocks`, `TestSevenSegmentJournalFit`): bounds and pin on the block; the press (0.05 across, on the
-floor, and 0.05 under the roof once the seam closes) on sections at u 20.125; the pin 0.20 inside its bore, engaged 1.375 at the
-worst end play and 0.30 off the floor at the other; no block overlaps its rotor or the plates in the placed assembly;
-`cornercheck` of the block with the print axis -u finds nothing. The plates' own `cornercheck` reads the pockets.
+Checks (`TestSevenSegmentPivotConstants`, `TestSevenSegmentPivotSketches`, `TestSevenSegmentPivotBlockShape`,
+`TestSevenSegmentPivotPocketFit`, `TestSevenSegmentPivotPinInBore`, `TestSevenSegmentPivotFrustumClearance`,
+`TestSevenSegmentPivotFloorWall`, `TestSevenSegmentPivotBlocks`, `TestSevenSegmentJournalFit`): the derived constants against their
+definitions; every sketch of a block and both rotor types fully constrained; bounds, section radii (edge, junction, base, ball
+tip), the cone's slope and its absence of overhang on the block; the press (0.05 across, on the floor, and 0.05 under the roof
+once the seam closes) on sections at u 20.7; the cone's least section gap to the bore 0.2586 with the rotor 0.2 away from the
+block, 0.2305 at the modeled pose and 0.2024 with it 0.2 toward the block (the tip on its floor), the tip 0.2 off the floor; the
+frustum and the block's face 0.2 from both rotor bodies with the rotor pushed 0.2 toward the block and dropped 0.202 in each of
+8 directions; the floor wall 0.8 or more; no block overlaps its rotor or the plates in the placed assembly; `cornercheck` of the
+block with the print axis -u finds nothing. The plates' own `cornercheck` reads the pockets.
 
 ### Cradle plate (`frame.go`, "Cradle Plate" in `Plates`)
 
@@ -934,7 +963,7 @@ peg engagement 119.75-122.625 (2.875); peg tip to top plate 1.125. The top-plate
 0.52 radial modeled and 0.35 clamped (0.25 normal). Its tip (121.35 clamped) stays in the through hole. Nothing bottoms
 out before the seams close, so the pivot pockets close. The rear column keeps 0.55 (LooseFit) to the rear top
 flange rib (x −24.05 against −24.6) and the front column 2.85; the rear column is 7.45 wide so rotor a's pyramid never
-reaches it (1.05 to its swept envelope with 0.25 end play at the settled axis 123.5, `TestSevenSegmentWidthMargins`).
+reaches it (1.12 to its swept envelope with 0.20 end play at the settled axis 123.5, `TestSevenSegmentWidthMargins`).
 Both stay 7.3 or more from the G nut pockets, and clear of every slider and rotor.
 
 ### Friction audit (every contact; `audit()` in `flags_test.go`)
@@ -945,14 +974,14 @@ wall of its slot, at the mouth rim (the pocket wall is parallel to u, so the con
 angle is the drive axis's polar angle plus or minus `asin(cl/rho)` with `cl` 0.481, the widest clearance (the cone's full
 withdrawal, the worst case for the arm), the contact normal and the imbalance torque follow that angle, and the friction arm
 of the wall is the pocket radius 1.15. The pin line is
-`s = PinOffset - PinLinePlay` = 1.78 settled and 1.67 with the journal fully across (a further 0.11); `z` runs over the
+`s = PinOffset - PinLinePlay` = 1.76 settled and 1.62 with the journal fully across (a further 0.136); `z` runs over the
 stroke and the play, -2.64 to 2.34; the drive axis radius `rho <= 4.25`; the true contact arm is `sqrt(rho^2 - 0.481^2)`.
 
 | # | Contact | Kind | Lever arm / load | Friction effect |
 | ---: | --- | --- | --- | --- |
 | 1 | cone on slot wall | sliding | drive arm `sqrt(rho^2-0.481^2)` | arm 1.15: torque `mu*N*1.15` |
-| 2 | pivot pins in the end bores (2) | rotating | load `W_r + N*sqrt(1+mu^2)` | friction circle `mu'*0.9` (the bore) |
-| 3 | rotor end faces / end walls | sliding thrust | no axial load upright | `mu*W_r*3.2` only on its side |
+| 2 | pivot cones in the end bores (2) | rotating | load `W_r + N*sqrt(1+mu^2)` | friction circle `mu'*0.907` (the bore's 0.9 times the wedge factor) |
+| 3 | pin tips / bore floors | sliding thrust | no axial load upright | none counted: the ball touches the floor on the axis, so it has no friction arm |
 | 4 | rotor imbalance | gravity | `W_r*e*|cos(beta_c + phi)|` | counted always (worst sign) |
 | 5 | blade in its tube | sliding | lateral `H = N(|sin phi| + mu|cos phi|)` | drag `mu*H*(1 + 2*3.0/37.5)` |
 | 6 | offset load couple | sliding | pin 27 (e/f), 22.5 (b/c), 2.25 (a/g/d) from the stem | drag `2*mu*(x/37.5)*V` |
@@ -960,13 +989,12 @@ stroke and the play, -2.64 to 2.34; the drive axis radius `rho <= 4.25`; the tru
 | 8 | groove pin in groove | sliding | r 24.75 to 29.25 on the cam | see Cam follower drive |
 | 9 | tongue, roots, head, cone tip, rotor/bore, tube/rotor, slider/passage | none | gaps > 0 at every pose | - |
 
-Drive balance: `N (sqrt(rho^2 - 0.481^2) - mu*1.15 - mu'*0.9*sqrt(1+mu^2)) = mu'*0.9*W_r + W_r*e*|cos(beta_c + phi)|`.
+Drive balance: `N (sqrt(rho^2 - 0.481^2) - mu*1.15 - mu'*0.907*sqrt(1+mu^2)) = mu'*0.907*W_r + W_r*e*|cos(beta_c + phi)|`.
 Extra cam force per changing slider: `F_x = V(1 + 2 mu x/37.5) + mu H (1 + 6/37.5) + 2 mu W_s x_cg/37.5`, with
 `V = N(|cos phi| + mu|sin phi|)`.
 
-Drive ratio (the drive arm over the friction arms) at friction 0.5: 1.673 settled and 1.560 with the journal fully across
-(`TestSevenSegmentDriveAudit` asserts at least 1.50 and 1.35; the straight pin gave 1.913 and 1.792). F_x at friction 0.5: A
-0.0792 settled and 0.0947 across, B 0.1005 settled and 0.1199 across (the straight pin: 0.0583, 0.0663, 0.0739, 0.0838).
+Drive ratio (the drive arm over the friction arms) at friction 0.5: 1.646 settled and 1.508 with the journal fully across
+(`TestSevenSegmentDriveAudit` asserts at least 1.50 and 1.35; the Ø1.4 straight pin gave 1.673 and 1.560). F_x at friction 0.5: A 0.0823 settled and 0.1042 across, B 0.1043 settled and 0.1317 across (the Ø1.4 straight pin: 0.0792, 0.0947, 0.1005, 0.1199).
 
 The budget takes F_x with the journal fully across (budgetFx). The drive's own force pushes the bore across its pin: a load-set
 model (the bore against its pin along the pin force plus the weight, turned by up to the friction angle) gives a
@@ -976,8 +1004,8 @@ smaller F_x than the across value, so the budget's value is the larger one.
 
 Model: a rigid slider with Coulomb friction. The slider's contacts are the guide plate's underside (z 81.0) and the blade
 ridge (125.425 + lift), the lean that `TestSevenSegmentStackPlay` uses. Each changing slider needs 0.226 N
-(`followerLoad`); the friction audit's largest F_x is 0.1199 N (friction 0.5, journal across) and the heaviest slider
-weighs 0.0420 N, so the two together (0.162 N) stay under it.
+(`followerLoad`); the friction audit's largest F_x is 0.1317 N (friction 0.5, journal across) and the heaviest slider
+weighs 0.0420 N, so the two together (0.174 N) stay under it.
 
 - The groove pin's contact band (groove face 3.25 to the pin's chamfer 5.4 from the stem's centre plane) acts at
   e = 4.325 along +y.
@@ -1028,12 +1056,12 @@ rotor shifted -0.25 / 0 / +0.25 sideways.
 
 | state | phi | 90: flag / yellow of flag | 45 | 30 |
 | --- | ---: | --- | --- | --- |
-| lit | 34.55 (band low end) | 100 % / 83 % | 71 % / 89 % | 46 % / 92 % |
+| lit | 34.55 (band low end; now 34.34) | 100 % / 83 % | 71 % / 89 % | 46 % / 92 % |
 | lit | 45 | 100 % / 96 % | 71 % / 94 % | 50 % / 92 % |
-| lit | 56.63 (the former band high end; now 62.15, see the test) | 99 % / 88 % | 71 % / 89 % | 42 % / 93 % |
-| unlit | -59.60 .. -40.12 (the former outer end; now -64.69 and -65.08, see the test) | no yellow ray | no yellow ray | no yellow ray |
+| lit | 56.63 (the former band high end; now 62.51 and 62.05, see the test) | 99 % / 88 % | 71 % / 89 % | 42 % / 93 % |
+| unlit | -59.60 .. -40.12 (the former outer end; now -65.03 and -65.41, see the test) | no yellow ray | no yellow ray | no yellow ray |
 
-The table is the output of a one-off script that is not in the repository. `TestSevenSegmentVisibility` and
+The table is the output of a one-off script that is not in the repository, run on the straight pins at the former band ends; the tests below read the current ones. `TestSevenSegmentVisibility` and
 `TestSevenSegmentWindowYellow` are the repository's checks. The visibility test thresholds are 90 / 55 / 20 % of the flag
 and 65 % yellow at 90 / 45 / 30 degrees. These shares hold inside `|u| <= 14.85`, across the flag (the test's grid runs
 `|s| <= 4.775`).
@@ -1051,32 +1079,35 @@ The asserted flag grid (inside `|u| <= 14.85`, `|s| <= 4.775`) gives a flag shar
 90 / 45 / 30 degrees and a yellow share of the flag of at least 0.875.
 
 Unlit onset: the smallest phi at which any yellow sample point (each triangle's centroid, vertices and edge midpoints
-pulled 2 % inward) of the turned rotor sees the viewer through the window, over elevations 90 / 60 / 45 / 30 and 16
-azimuths, bisected to 0.05 degrees, with the rotor off centre by the side play 0.16 (pivot 0.11 plus registration 0.05)
-and the axial play 0.30 (end walls 0.25 plus registration 0.05). Segments g and b agree, and views facing the viewer and
-grazing views give the same onset. Onset in degrees:
+pulled 2 % inward) of the turned rotor sees the viewer through the window, over elevations 90 / 60 / 45 / 30 / 20 and 24
+azimuths, every 0.02 degrees, with the rotor shifted sideways by the table's side shift and along the axis by 0 or +-0.30.
+Views facing the viewer and grazing views give the same onset. The side play in the tests is 0.186 (the journal across,
+0.136, plus registration 0.05) and 0.25, and the axial play 0.25 (the tips' end play 0.20 plus 0.05). Onset in degrees, on the
+real meshes with the pivot cones:
 
-| case | onset |
+| side shift | segment g, axial 0 / +-0.30 | segment b, any axial shift |
+| ---: | --- | ---: |
+| -0.25 | -38.31 / -38.56 | -38.83 |
+| -0.22 | -38.00 / -38.23 | -38.52 |
+| -0.20 | -37.78 / -38.04 | -38.31 |
+| -0.18 | -37.57 / -37.82 | -38.09 |
+| -0.16 | -37.37 / -37.63 | -37.89 |
+| 0 | -36.26 | -36.26 |
+| +0.25 | -34.99 | -34.99 |
+
+| margin to the unlit band end | side 0.25 |
 | --- | ---: |
-| centred | -36.23 |
-| side +0.16 / +0.25 | -34.61 / -33.73 |
-| side -0.16, with or without axial +-0.30 | -37.89 |
-| axial +-0.30 | -36.23 |
-| side -0.25, with or without axial +-0.30 | -38.83 |
-
-| margin to the unlit band end | side 0.16 | side 0.25 |
-| --- | ---: | ---: |
-| design-play end (a, g, d -41.76; b to f -42.37) | +3.87 (a, g, d), +4.48 (b to f) | +2.93 (a, g, d), +3.54 (b to f) |
-| a, g, d worst case (-41.01) | +3.12 | +2.18 |
-| b to f worst case (-40.12) | +2.23 | +1.29 |
+| design-play end (a, g, d -41.53; b to f -42.14) | +2.97 (a, g, d, at 0.30 axial), +3.31 (b to f) |
+| a, g, d worst case (-40.79) | +2.23 |
+| b to f worst case (-39.89) | +1.06 |
 
 Yellow shows once `h d > c - W`, where `c` is the rotor's half-size (5.625 on the long part, `20.625 - |u|` on the tips),
 `W` the window's edge, `h` the yellow edge's height above the axis and `d` the turn toward lit. With the window 0.8 inside
 the faces and 1.1 inside the pyramid edges (the long-side inset plus the axial play 0.30, because the chamfers are at
 45 degrees) the tips are no worse than the long sides.
 
-The lit yellow share of the whole window at 90 degrees is 0.92 (a, g, d at 37.85), 0.92 (b to f at 37.16), 0.89 (b to f at
-34.55) and 0.99 at rest at 45 degrees. The unlit rays are cast on grids offset by half a step: a ray in the plane u = -15,
+The lit yellow share of the whole window at 90 degrees is 0.907 (a, g, d at 36.80), 0.917 (b to f at
+36.94) and 0.885 (b to f at 34.34), and 0.99 at rest at 45 degrees (the test logs the shares). The unlit rays are cast on grids offset by half a step: a ray in the plane u = -15,
 where mesh edges of both bodies meet, can slip through a crack between triangles and report a yellow hit that is not
 there. The b-f pins sit 0.05 below their droop to buy the b-f margin.
 
@@ -1099,8 +1130,8 @@ is designed. A lock would not stop the slider's lean from reaching the floor.
 
 ### Captivity and stops
 
-- Rotor: its bores on the pins of two blocks pressed in the plates; u limited by the end walls (0.25), the pin engaged 1.375 at the worst end play and its tip 0.30 off the floor at the other.
-- Pin: engaged 2.85 as modeled and at least 1.85 with the 1.0 u play (0.65 or more from the pocket floor); at the design play it never reaches its radial limit (3.79 for a, g, d and 3.83 for b to f,
+- Rotor: its bores on the cones of two blocks pressed in the plates; u limited by the cone tips on the bore floors (0.2 each way), the cone's tip 2.13 inside the end face at the worst end play, and the block's face never nearer than 1.24 to the rotor's end face.
+- Pin: engaged 2.85 as modeled and at least 1.85 with the 1.0 u play (0.65 or more from the pocket floor); at the design play it never reaches its radial limit (3.81 for a, g, d and 3.84 for b to f,
   against 4.25).
 - Slider: its blade stays at least 8.325 (full width) deep in its tube.
 - Turned over: unlit sliders stop on the groove's outer wall (0.8); lit sliders stop on the groove wall too (0.8). Their blade ridge stays clear of the tube roof: the roof is
@@ -1119,9 +1150,9 @@ is designed. A lock would not stop the slider's lean from reaching the floor.
 | --- | --- | --- | ---: | --- |
 | R1 | groove pin / groove walls | Regular | 0.40 radial | `meshgap` per digit |
 | T3 | stem / guide slot | Tight | 0.25 | section z 84 |
-| T5 | pivot pins / rotor end bores | Tight minimum | 0.20 | section through the pin's middle |
+| T5 | pivot cones / rotor end bores | Tight minimum | 0.230 at the bore's edge (0.202 at the tight end, 0.259 at the loose end) | sections along the cone, every 0.02 |
 | P5 | pivot blocks / pockets | press | 0.05 on four sides (the roof's 0.05 once the seam closes) | sections at u 20.125 |
-| T6 | rotor end faces / end walls | Tight | 0.25 | bounds |
+| T6 | cone tips / bore floors | Tight minimum | 0.20 each way | bounds |
 | T7 | pin / pocket walls | Tight minimum | 0.20 | section normal to u at the pocket middle |
 | T8 | tongue / notch shells | Tight | >= 1.53 | section normal to u at the tongue's middle (to the yellow shell 1.79 to 1.90 for a to f, 1.53 for g; to the black shell 2.13 or more) |
 | T9 | blade / tube | Tight across, 0.35 along (see "Blade corners") | 0.25 across, >= 0.20 at the corners (0.21) | section z 121.6 |
@@ -1139,9 +1170,9 @@ R3 (cap/window) is deleted. R5 at the round (0.326) is under the pipeline's Regu
 `RegularFit` 0.40 is the nominal, not the minimum.
 
 Uncertainty of the Tight-minimum fits. "Part clearances" asks for a lower bound that includes the measurement uncertainty.
-Three fits sit at the Tight minimum 0.2 by their dimensions: the rotor's end bores (bore 0.90 less pin 0.70), the cone in its
+Three fits sit at the Tight minimum 0.2 by their dimensions: the rotor's end bores (0.2 normal to the cone at the tight end), the cone in its
 pocket (1.15 less the cone's section 0.95 at the full insertion; 0.481 at the full withdrawal) and the blade corners (0.21, from the sketch dimensions). `TestSevenSegmentJournalFit` measures the
-pivot on the built bodies (bore against pin, 0.20). T7 and T8 are measured on meshes that carry a
+pivot on the built bodies (bore against cone, 0.229 at the bore's edge). T7 and T8 are measured on meshes that carry a
 tessellation bound of 0.04, so the tests check 0.2 - 0.04 and 0.7 - 0.04 (T8's measured least is 1.53, far above it): they prove a lower bound of 0.16 for T7, not 0.20,
 and the value 0.20 rests on the analytic radii. The blade corners are checked on sections to 0.20 (modeled 0.21). These
 three fits therefore do not reach the Tight class with the uncertainty included; they are accepted at the Tight minimum
@@ -1162,10 +1193,10 @@ outlines.
 3. On the bench, join each rotor to its slider: rotor yellow face up and 3.0 along +u from its place, notch over the
    tongue, then slide it -u so the cone enters the pocket. Type A (one notch) goes to a, g, d; type B (two notches) to
    b, c, e, f.
-4. Push a pivot block onto each end of every unit (its pin into the rotor's end bore). Keep the unit level and lower it
+4. Push a pivot block onto each end of every unit (its cone into the rotor's end bore). Keep the unit level and lower it
    through its cradle passage and guide slot, groove pin first through the slot's pin notch, into its cam's entry
    channel. The blocks drop into the cradle's open half-pockets; press each one down with a finger until it seats. A block
-   can slip off its pin if the unit tilts before it is seated.
+   can slip off its cone if the unit tilts before it is seated.
 5. Lower the top plate, pegs over the cradle's holes at (-18, -67.5) and (21.75, 58.5). The a/g/d blades stand upright. Each
    b-f arm sags by up to about 1 mm at its blade ridge; the blade gable (0.9) and the hole clearance (0.25) catch 1.15.
    Reach in from the open side (b/c from +x, e/f from -x) and lift each b-f arm's outer end until its blade enters its
@@ -1174,7 +1205,7 @@ outlines.
 
 ### Rule tables
 
-- Print orientations: rotors yellow face down; pivot blocks outer face down, pin up; a/g/d sliders -X face down, b-f sliders -Y face down; cradle bottom
+- Print orientations: rotors yellow face down; pivot blocks outer face down, cone up; a/g/d sliders -X face down, b-f sliders -Y face down; cradle bottom
   down, top plate display face down, guide plate bottom down.
 - Retained sharp corners (listed):
   - seam-face inner loops of the cradle and the top plate;
@@ -1188,16 +1219,17 @@ outlines.
   - tube roots and column roots (built-in 45-degree, leg 0.5);
   - peg collars (45-degree, 0.5);
   - window octagon corners (45-degree turns, no round; the rims are retained sharp);
-  - pivot pin roots (45-degree cone, leg 0.25) and tips (chamfer 0.1), the bore countersink (45 degrees) and the notch mouth chamfer of type B (0.7).
+  - the pivot cone's frustum (45 degrees, no root round needed), the bore's mouth (45 degrees) and the notch mouth chamfer of type B (0.7);
+  - the pivot cone's ball tip (R 0.45, over the 0.4 that Tips asks for).
 - Rounded:
   - tongue roots 1.05 (8 chords; three sides);
   - blade roots 0.9, extension root 1.5, arm root 1.875;
-  - pocket floor 0.9, bore cylinder/cone 1.2, the pivot pockets' corners 0.725 (the block's 0.675);
+  - pocket floor 0.9, bore cylinder/cone 1.2, the pivot bores' floor 0.5, the pivot pockets' corners 0.725 (the block's 0.675);
   - passage corners 0.5.
 - Edge finishing: plates as above; rotor faces (337.5 mm^2) and columns: none; the slider stems' large faces
   carry the 0.5 chamfer on their long runs.
-- Split shafts: the shaft only. Pivot pins, groove pins and pegs: see Assumptions. The drive cone is no pin: it is the rule's
-  Thin pins cone form, so no split applies. The pivot pins stay thin: see Known exceptions.
+- Split shafts: the shaft only. Groove pins and pegs: see Assumptions. The drive cone and the pivot cones are no pins: each is the rule's
+  Thin pins cone form, so no split applies.
 
 ### Decad items (report to the decad repo; out of scope here)
 
@@ -1367,7 +1399,7 @@ Clearance adjustment: **Mixed** (fixed custom fits as constants; nominal bearing
 #### Corners and roots
 
 Print orientations (cornercheck axis): walls outer face down (axis ∓Y: front +Y up, rear −Y up); guide plate bottom face down (+Z); top plate display face down (−Z up); cams back face down;
-hub, rotor axis vertical (teeth up); button head down, teeth up; housing bezel face down; sliders -X face down (a, g, d) or -Y face down (b-f); rotors yellow face down; pivot blocks outer face down, pin up (cornercheck axis -u); shaft as split halves.
+hub, rotor axis vertical (teeth up); button head down, teeth up; housing bezel face down; sliders -X face down (a, g, d) or -Y face down (b-f); rotors yellow face down; pivot blocks outer face down, cone up (cornercheck axis -u); shaft as split halves.
 
 Exemptions passed to `cornercheck` (each must match a finding in every case, as onewayclutch `corners_test.go`):
 

@@ -95,14 +95,14 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 	// plate's open downward and reaches z 84.45 (1.6 above its underside); both are 3.3 wide, with the corners rounded 0.5.
 	floor := RotorAxisZ - pivotPocketLow
 	up := pivotPocketHigh - Seam // the roof above the top plate's underside
-	j := r3.Vec{X: pivotBlockFrom + 1.5, Z: RotorAxisZ}
+	j := r3.Vec{X: pivotWall + 1.5, Z: RotorAxisZ}
 	cj := planeSection(t, cradle, j, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	require.False(t, insideLoops(cj, at(0, floor+0.2)), "cradle pocket")
 	require.False(t, insideLoops(cj, at(pivotPocketHalf-0.05, RotorAxisZ-0.4)), "cradle pocket side")
 	require.True(t, insideLoops(cj, at(0, floor-0.1)), "cradle under the pocket")
 	require.True(t, insideLoops(cj, at(pivotPocketHalf+0.05, RotorAxisZ-0.4)), "cradle beside the pocket")
 	require.True(t, insideLoops(cj, at(pivotPocketHalf-0.05, floor+0.05)), "cradle in the pocket's rounded corner")
-	tj := planeSection(t, top, r3.Vec{X: pivotBlockFrom + 1.5, Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
+	tj := planeSection(t, top, r3.Vec{X: pivotWall + 1.5, Z: topFrom}, r3.Vec{Y: 1}, r3.Vec{Z: 1})
 	require.False(t, insideLoops(tj, r3.Vec{X: 0, Y: up - 0.1}), "top plate pocket")
 	require.False(t, insideLoops(tj, r3.Vec{X: pivotPocketHalf - 0.05, Y: 0.5}), "top plate pocket side")
 	require.True(t, insideLoops(tj, r3.Vec{X: 0, Y: up + 0.1}), "top plate over the pocket")

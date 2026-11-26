@@ -234,7 +234,7 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	lo, hi = 0.3, 1.05
 	for hi-lo > 0.002 {
 		m := (lo + hi) / 2
-		if inBody(t, block, r3.Vec{X: m, Z: 18.0}) {
+		if inBody(t, block, r3.Vec{X: m, Z: pivotContactU}) {
 			lo = m
 		} else {
 			hi = m
@@ -243,8 +243,8 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 	pin := (lo + hi) / 2
 	t.Logf("bore radius %.3f, pin radius %.3f, clearance %.3f", bore, pin, bore-pin)
 	require.InDelta(t, JournalRadius, bore, 0.02, "the bore radius")
-	require.InDelta(t, pivotPinRadius, pin, 0.02, "the pin radius")
-	require.InDelta(t, 0.20, bore-pin, 0.03, "the pivot clearance (T5)")
+	require.InDelta(t, pivotContactR, pin, 0.02, "the pin radius at the edge")
+	require.InDelta(t, pivotClear, bore-pin, 0.03, "the pivot clearance (T5)")
 }
 
 // TestSevenSegmentStackPlay bounds the cam stack's play along the shaft (instructions.md "Cam stack, axial play"), read on

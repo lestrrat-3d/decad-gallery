@@ -46,8 +46,8 @@ const (
 	RotorAxisZ      = cradleFrom + cradleThick // modeled height of every rotor axis: the seam plane
 	RotorHalfWidth  = 5.625                    // distance of a rotor face from its axis
 	RotorHalfLength = 18.375
-	JournalRadius   = pivotPinRadius + 0.2 // the rotor's end bore, its turning surface; the pivot pin turns in it with 0.2 to spare
-	PinOffset       = 2.25                 // distance of the slider pin line from the rotor axis, along the rotor's x
+	JournalRadius   = 0.9  // the rotor's end bore, its turning surface; the pivot cone bears on its edge
+	PinOffset       = 2.25 // distance of the slider pin line from the rotor axis, along the rotor's x
 
 	RearCollarRadius = 5.7
 )
@@ -386,8 +386,8 @@ func (d Dimensions) Lift(s Segment, theta float64) float64 {
 // journalSettle is the side play of the rotor on its pivot pins, settled: the clearance (bore less pin) times
 // sin(atan 0.5), the slope at which the settled rotor rests. journalExtra is the extra when it sits fully across.
 const (
-	journalSettle = (JournalRadius - pivotPinRadius) * 0.4472135955
-	journalExtra  = (JournalRadius - pivotPinRadius) - journalSettle
+	journalSettle = pivotJournalPlay * 0.4472135955
+	journalExtra  = pivotJournalPlay - journalSettle
 )
 
 // PinLinePlay is the play of a rotor's pin line along the rotor's x (+-), the sum of its sources: the blade across its hole

@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/decad-gallery/internal/meshgap"
 	"github.com/lestrrat-3d/r3"
+	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,4 +44,38 @@ func placedPivotBlock(t *testing.T, r *run, seg Segment, end int) *decad.Body {
 	b, err := r.toSegment(seg, sgn, proto)
 	require.NoError(t, err)
 	return b
+}
+
+// pivotMesh tessellates body to tolerance tol (mm).
+func pivotMesh(t *testing.T, body *decad.Body, tol float64) *decad.Mesh {
+	t.Helper()
+	m, err := body.Tessellate(t.Context(), units.Millimeters(tol))
+	require.NoError(t, err)
+	return m
+}
+
+// pivotMeshGap returns the lower bound of the distance between the triangles of a that keep accepts (all of them when
+// keep is nil) and the triangles of b moved by shift. keep takes a triangle's centre.
+func pivotMeshGap(t *testing.T, a *decad.Mesh, keep func(c r3.Vec) bool, b *decad.Mesh, shift r3.Vec) float64 {
+	t.Helper()
+	var faces [][3]int
+	vs := a.Vertices()
+	for _, tri := range a.Triangles() {
+		c := vs[tri[0]].Add(vs[tri[1]]).Add(vs[tri[2]]).Scale(1.0 / 3)
+		if keep == nil || keep(c) {
+			faces = append(faces, tri)
+		}
+	}
+	ma, err := meshgap.New(vs, faces, a.Bound().Base())
+	require.NoError(t, err)
+	bv := b.Vertices()
+	moved := make([]r3.Vec, len(bv))
+	for i, v := range bv {
+		moved[i] = v.Add(shift)
+	}
+	mb, err := meshgap.New(moved, b.Triangles(), b.Bound().Base())
+	require.NoError(t, err)
+	g, _, err := ma.Exceeds(mb, 0)
+	require.NoError(t, err)
+	return g + ma.Bound() + mb.Bound()
 }

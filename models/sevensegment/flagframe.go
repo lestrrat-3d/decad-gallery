@@ -111,13 +111,13 @@ func (r *run) boreTool(seg Segment, axisZ float64) (*decad.Body, error) {
 	uc := (boreCone - (boreRadius - boreRound) - math.Sqrt(3)*boreRound) / math.Sqrt2
 	half := quarterRound(rc, uc, boreRound, 0, math.Atan(math.Sqrt2)*180/math.Pi, 8)
 	// The cone ends on the end wall at r 2.461 plus the cone's move, less sqrt2 per mm of the wall's offset from u 12.5.
-	half = append(half, [2]float64{2.461 + boreConeMove - math.Sqrt2*(pivotBlockFrom-12.5), pivotBlockFrom})
-	pts := [][2]float64{{0, -pivotBlockFrom}}
+	half = append(half, [2]float64{2.461 + boreConeMove - math.Sqrt2*(pivotWall-12.5), pivotWall})
+	pts := [][2]float64{{0, -pivotWall}}
 	for i := len(half) - 1; i >= 0; i-- {
 		pts = append(pts, [2]float64{half[i][0], -half[i][1]})
 	}
 	pts = append(pts, half...)
-	pts = append(pts, [2]float64{0, pivotBlockFrom})
+	pts = append(pts, [2]float64{0, pivotWall})
 	b, err := r.meridian(pts)
 	if err != nil {
 		return nil, fmt.Errorf("bore %s: %w", seg, err)
