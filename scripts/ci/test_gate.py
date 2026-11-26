@@ -164,23 +164,22 @@ class GateTest(unittest.TestCase):
     def test_isolated_render_suites_map_to_render_packages(self):
         with mock.patch.object(Path, "is_dir", return_value=True):
             self.assertEqual(gate.isolated_suite("isolated-modelrender-clamparm-TestModel"),
-                             ("models", "clamparm/render", "TestModel", None))
+                             ("models", "clamparm/render", "TestModel"))
             self.assertEqual(gate.isolated_suite("isolated-featurerender-dovetail-TestModel"),
-                             ("features", "dovetail/render", "TestModel", None))
+                             ("features", "dovetail/render", "TestModel"))
             command = gate.commands("isolated-modelrender-clamparm-TestModel")[0]
             self.assertEqual(command[:3], ["go", "test", "./models/clamparm/render"])
 
     def test_isolated_package_dispatch(self):
         cases = (
-            ("isolated-internal-hexnut-TestBuildSizes", "internal/hexnut", None),
-            ("isolated-feature-dovetail-TestBuild", "features/dovetail", None),
-            ("isolated-render-TestGalleryCache", "tools/render", None),
-            ("isolated-tag-coplanar_test-spinningwheel-TestCoplanar", "models/spinningwheel", "coplanar_test"),
+            ("isolated-internal-hexnut-TestBuildSizes", "internal/hexnut"),
+            ("isolated-feature-dovetail-TestBuild", "features/dovetail"),
+            ("isolated-render-TestGalleryCache", "tools/render"),
         )
-        for suite, package, tag in cases:
+        for suite, package in cases:
             with self.subTest(suite=suite):
                 command = gate.commands(suite)[0]
-                self.assertEqual(command[-2:] if tag else command[-1:], ["-tags", tag] if tag else ["-count=1"])
+                self.assertEqual(command[-1:], ["-count=1"])
                 with mock.patch.dict(os.environ, {"SUITE": suite, "CASE": "0"}), \
                         mock.patch.object(gate.sys, "argv", ["gate.py", "run"]), \
                         mock.patch.object(gate, "go_test") as run:
@@ -190,8 +189,6 @@ class GateTest(unittest.TestCase):
                     self.assertNotIn("cwd", run.call_args.kwargs)
                     self.assertEqual(run.call_args.kwargs["module"], "tools/render")
                     self.assertIn("./tools/render", command)
-        with self.assertRaises(ValueError):
-            gate.commands("isolated-tag-coplanar_test-ballbearing-TestBearingCatalog")
         for suite in ("isolated-planetarygearbox-TestKitGearboxes", "isolated-handcrankfan-TestHandCrankFanDefault"):
             command = gate.commands(suite)[0]
             self.assertEqual(command[command.index("-timeout") + 1], "40m")

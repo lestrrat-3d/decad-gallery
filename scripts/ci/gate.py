@@ -85,11 +85,11 @@ PR_RENDER_JOBS = {"planetary-motion", "wheel-motion", "wheel-parts", "fan-motion
 
 
 def isolated_suite(suite):
-    match = re.fullmatch(r"isolated-(?:(tag-coplanar_test)-)?(?:(internal|feature|modelrender|featurerender)-)?"
+    match = re.fullmatch(r"isolated-(?:(internal|feature|modelrender|featurerender)-)?"
                          r"([a-z][a-z0-9]*)-(Test[A-Za-z0-9_]*)", suite)
     if not match:
         return None
-    tag, kind, name, test = match.groups()
+    kind, name, test = match.groups()
     directory = {None: "models", "internal": "internal", "feature": "features",
                  "modelrender": "models", "featurerender": "features"}[kind]
     if kind in ("modelrender", "featurerender"):
@@ -98,9 +98,7 @@ def isolated_suite(suite):
         directory, name = "tools", "render"
     if not (Path(directory) / name).is_dir():
         return None
-    if tag and (directory, name) != ("models", "spinningwheel"):
-        return None
-    return directory, name, test, "coplanar_test" if tag else None
+    return directory, name, test
 
 
 def commands(suite):
@@ -117,14 +115,13 @@ def commands(suite):
                 [["render-package", directory, "rest"]])
     isolated = isolated_suite(suite)
     if isolated:
-        directory, name, test, tag = isolated
+        directory, name, test = isolated
         package = "./" + directory + "/" + name
         timeout = "40m" if directory == "tools" or directory == "models" and (
             (name == "planetarygearbox" and test == "TestKitGearboxes") or
             (name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
         ) else "5m"
-        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", timeout, "-count=1",
-                 *(["-tags", tag] if tag else [])]]
+        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", timeout, "-count=1"]]
     if suite in WORKERS:
         return WORKERS[suite]
     for prefix, directory in (("new-model-", "models"), ("new-package-", "internal"),
@@ -353,7 +350,7 @@ def main():
         elif suite == "renderer-compile":
             subprocess.run(["go", "test", "-run", "^$", *renderer_packages()], check=True)
         elif suite.startswith("isolated-"):
-            directory, name, test, _ = isolated_suite(suite)
+            directory, name, test = isolated_suite(suite)
             package = "github.com/lestrrat-3d/decad-gallery/" + directory + "/" + name
             allowed = frozenset()
             if directory == "models" and name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant") \
