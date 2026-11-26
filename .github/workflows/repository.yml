@@ -349,6 +349,7 @@ jobs:
           - placement-x
           - placement-offset
           - placement-quarter
+          - steps
     name: sevensegment-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4

@@ -798,13 +798,17 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentWindowYellow",
     ),
     "placement": ("TestSevenSegmentPlacement",),
+    # Light build-step tests; the race test runs in its own go test command with -race.
+    "steps": ("TestSevenSegmentRunFieldsAreStepLocal", "TestSevenSegmentStepsDeterministic",
+              "TestSevenSegmentStepsFirstError", "TestSevenSegmentStepsRace"),
 }
+SEVENSEGMENT_RACE_TESTS = ("TestSevenSegmentStepsRace",)
 SEVENSEGMENT_PLACEMENTS = {
     "placement-x": ("100 along X", "100_along_X"),
     "placement-offset": ("offset 10, 20, 30", "offset_10,_20,_30"),
     "placement-quarter": ("quarter turn about Z", "quarter_turn_about_Z"),
 }
-SEVENSEGMENT_CASES = ("parts", "assembly", *SEVENSEGMENT_PLACEMENTS)
+SEVENSEGMENT_CASES = ("parts", "assembly", *SEVENSEGMENT_PLACEMENTS, "steps")
 
 
 def check_sevensegment_coverage() -> None:
@@ -838,6 +842,14 @@ def run_sevensegment(shard: str) -> None:
     if shard in SEVENSEGMENT_PLACEMENTS:
         env["SEVENSEGMENT_PLACEMENTS"] = "|".join(name for name, _ in SEVENSEGMENT_PLACEMENTS.values())
         tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1]]
+    if shard == "steps":
+        race = [test for test in tests if test in SEVENSEGMENT_RACE_TESTS]
+        plain = [test for test in tests if test not in SEVENSEGMENT_RACE_TESTS]
+        go_test(["-race", "./models/sevensegment", "-run", run_pattern(race), "-timeout", "40m", "-count=1"],
+                expected=race, env=env)
+        go_test(["./models/sevensegment", "-run", run_pattern(plain), "-timeout", "40m", "-count=1"],
+                expected=plain, env=env)
+        return
     parallel = ["-parallel", "2"] if shard == "assembly" else []
     go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel],
             expected=tests, env=env)

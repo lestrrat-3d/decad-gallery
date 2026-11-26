@@ -400,13 +400,36 @@ Check: `TestSevenSegmentFasteners`.
 
 ### Pose and placement
 
-1. Build every part in its frame (above).
+`BuildParts` and `Build` run every independent body as one `decad.Step` of one `decad.RunSteps` call on the caller's
+document, with `decad.WithStepWorkers(min(GOMAXPROCS, 4))`. `BuildParts` has 30 steps and `Build` adds 22 hardware
+steps. The steps, in build order:
+
+| Steps | Bodies | Pose before `placement.Place` |
+| --- | --- | --- |
+| `flags` | 14 flag bodies | turn about the segment axis |
+| `pivot blocks` | 14 pivot blocks | `toSegment` |
+| `front wall`, `rear wall`, `guide plate`, `cradle plate`, `top plate`, `housing`, `button` | 1 each | none |
+| `shaft`, `hub`, `rotor`, `spring`, `cam a` to `cam g` | 1 each | camshaft turn |
+| `slider a` to `slider g`, `groove pin a`, `d`, `g` | 1 each | lift where lit |
+| `bearing 1`, `bearing 2` | 1 each | bearing frame and lift |
+| `bolt 1`, `nut 1` to `bolt 10`, `nut 10` | 1 each | site through `placeSite` |
+
+Each step builds on its own `run`, whose `ctx` is the step's context. Pose and placement code takes that `run`. A step
+reaches the document, the context, the parameters and the dimensions only through it.
+
+1. Build the body in its frame (above).
 2. Camshaft group (shaft, cams, hub, rotor, spring): `decad.Transform` by
    `r3.RotationAround((0,0,44.25), (0,1,0), θ)`, θ = 36 · Digit.
 3. Sliders and the a, g, d groove pins: translate +4.5 Z where `Lit(Digit, s)`.
 4. Every printed body and both bearings: `placement.Place(ctx, body, p.Placement)`. Fastener sites are carried
-   through the placement with onewayclutch `placeSite`; bolts and nuts are built from the placed sites with
+   through the placement with `placeSite`; bolts and nuts are built from the placed sites with
    `m2fastener.PlaceBolt`/`PlaceNut` and are not placed again.
+5. After `RunSteps` returns, store every step's result in step order, then fill `Parts.Sketches`, `Dimensions` and
+   `Sites`. Container filing runs after `RunSteps` too, because decad refuses container changes during a run.
+
+The step order equals a serial build's order, so `doc.Bodies()`, the container listings and `Parts.Sketches` keep
+that order. When a step fails, the error of the first failing step in step order is returned unchanged
+(`sevensegment: <part>: ...`). A failed run files nothing, and the caller discards the document.
 
 ### Bodies and containers
 
