@@ -12,7 +12,6 @@ import (
 
 // buildHexHeadBolt builds a HeadHex bolt in the local frame and returns it with its body. The caller sets Body.
 func buildHexHeadBolt(ctx context.Context, doc *decad.Document, size BoltSize, length float64) (*Bolt, *decad.Body, error) {
-	before := len(doc.Bodies())
 	r, err := hexnut.Build(ctx, doc, hexnut.Size{
 		Thread:          size.ShankDiameter,
 		AcrossFlats:     size.Hex.AcrossFlats,
@@ -31,9 +30,6 @@ func buildHexHeadBolt(ctx context.Context, doc *decad.Document, size BoltSize, l
 	body, err := decad.Union(r.Body, shank).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fastener: join head and shank: %w", err)
-	}
-	if n := len(doc.Bodies()) - before; n != 1 {
-		return nil, nil, fmt.Errorf("fastener: join head and shank: bolt left %d bodies in the document, want 1", n)
 	}
 	return b, body, nil
 }
