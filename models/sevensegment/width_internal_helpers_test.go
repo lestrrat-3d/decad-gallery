@@ -2,8 +2,8 @@ package sevensegment
 
 import "math"
 
-// rotorEndPlay is how far a rotor can move along its axis: the bore's end wall stands 0.25 from the rotor's end face.
-const rotorEndPlay = 0.25
+// rotorEndPlay is how far a rotor can move along its axis: the pin tips stand pivotEndPlay from the bore floors.
+const rotorEndPlay = pivotEndPlay
 
 // rotorSettledZ is the rotor axis height settled in its half-holes (instructions.md "Z stack": 82.1 against 82.6).
 const rotorSettledZ = RotorAxisZ - 0.5

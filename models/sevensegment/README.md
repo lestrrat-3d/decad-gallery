@@ -60,16 +60,19 @@ and 29.25 mm where it is lit, with a smooth ramp between.
 
 ![The display cut through the middle: the camshaft, the cams and the sliders, each part in its own color, the cut faces in the same colors](images/cutaway.png)
 
-Each rotor turns on two printed pivot blocks, one at each end. A block is 4.8 x 5.9 x 3.0 mm and carries a 1.4 mm pin.
-The pin stands in a 1.8 mm blind bore in the rotor's end, which leaves 0.20 mm all round, and the block's inner face
-stays 0.25 mm from the rotor's end face. The block is pressed 0.05 mm into a square pocket that the seam between the
-cradle plate and the top plate splits: the pocket's floor lies 3.0 mm under the axis in the cradle, which leaves 1.0 mm of the 4.0 mm cradle under it, and its roof 3.0 mm
-over the seam in the top plate. The view below is a cut through rotor a's axis at its +x end, with every part
-in its own color and the cut faces in the same colors. The block (orange) fills its pocket between the cradle plate
-(below the seam) and the top plate (above it). The pin runs left into the bore, with the 0.20 mm gap above and below it
-and the 0.25 mm end gap between the block's face and the rotor's end. The rotor is on the left, its yellow face on top:
+Each rotor turns on two printed pivot blocks, one at each end. A block is 4.8 x 5.9 x 1.8 mm and carries a stepped cone:
+a 4.0 mm base on the block's face, a 45 degree frustum that narrows to 1.5 mm, and an 8 degree cone that ends in a ball tip of
+0.9 mm. The cone stands in a 1.8 mm blind bore in the rotor's end. It bears on the rim where the bore's cylinder meets its
+45 degree mouth, where the cone is 1.34 mm across and leaves 0.23 mm all round. The ball tip stops 0.20 mm short of the bore's
+floor, so the tips, not the end faces, hold the rotor along its axis: it can slide 0.20 mm either way. The block is pressed
+0.05 mm into a square pocket that the seam between the cradle plate and the top plate splits: the pocket's floor lies 3.0 mm
+under the axis in the cradle, which leaves 1.0 mm of the 4.0 mm cradle under it, and its roof 3.0 mm over the seam in the top plate.
+The view below is a cut through rotor a's axis at its +x end, with every part in its own color and the cut faces in the same
+colors. The block (orange) fills its pocket between the cradle plate (below the seam) and the top plate (above it). The cone
+runs left into the bore, with the 0.23 mm gap above and below it at the bore's rim and the 0.20 mm gap between its tip and the
+bore's floor. The block's face stands clear of the rotor's end. The rotor is on the left, its yellow face on top:
 
-![Rotor a's +x end cut through its axis: the orange pivot block in its pocket between the cradle plate and the top plate, its pin in the rotor's end bore with a 0.20 mm gap round it and a 0.25 mm gap at the rotor's end](images/pivot-section.png)
+![Rotor a's +x end cut through its axis: the orange pivot block in its pocket between the cradle plate and the top plate, its stepped cone in the rotor's end bore with a 0.23 mm gap round it at the bore's rim and a 0.20 mm gap between its tip and the bore's floor](images/pivot-section.png)
 
 The click indexer, on the front end of the shaft, works like the one in a pen. A keyed hub is pressed on the stub of the
 shaft; a rotor slides on the hub and is held up by a spring in a fixed crown with ten notches. The button's ten teeth
@@ -108,11 +111,11 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 ![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
 The pivot of rotor a taken apart: the rotor in the middle, an orange pivot block 4.5 mm out of each end along its axis, so
-each pin is free of its end bore and each block stands level with its own pocket. The cradle plate is pulled down and the
+each cone is free of its end bore and each block stands level with its own pocket. The cradle plate is pulled down and the
 top plate up, so the lower and upper halves of the pockets face the blocks. The plates are cut to a block round the
 rotor; the sliders and the other rotors are left out:
 
-![The pivot of rotor a: the black rotor with a yellow tip in the middle, its end bore facing the orange pivot block on the right; an orange pivot block on each side with its pin toward the rotor, the top plate above with the upper halves of the pockets facing down, the cradle plate below with the lower halves facing up](images/exploded-pivot.png)
+![The pivot of rotor a: the black rotor with a yellow tip in the middle, its end bore facing the orange pivot block on the right; an orange pivot block on each side with its cone toward the rotor, the top plate above with the upper halves of the pockets facing down, the cradle plate below with the lower halves facing up](images/exploded-pivot.png)
 
 The camshaft alone, with the frame left out, its parts pulled off the front end along the shaft. From the rear: the shaft, cam a, f, b, g, c, e and d, the hub, the spring and the rotor:
 
@@ -147,7 +150,7 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/rotor-b.png" alt="Rotor B" width="240"> | Rotor B | 4 | - | For segments b, c, e, f: two notches. Two bodies, listed next. |
 | <img src="images/parts/rotor-b-yellow.png" alt="Rotor B yellow face and tips" width="240"> | Rotor B yellow face and tips | 4 | - | Yellow filament. The face slab continues onto the 45 degree tips. Prints face down. |
 | <img src="images/parts/rotor-b-black.png" alt="Rotor B black body" width="240"> | Rotor B black body | 4 | - | Black filament. |
-| <img src="images/parts/pivot-block.png" alt="Pivot block" width="240"> | Pivot block | 14 | - | Two per rotor, all identical. A 4.8 x 5.9 x 3.0 mm block with a 1.4 mm pin on one face. It is pressed 0.05 mm into a pocket split between the cradle plate and the top plate; the pin turns in the rotor's end bore. Prints on its outer face with the pin up, no support. |
+| <img src="images/parts/pivot-block.png" alt="Pivot block" width="240"> | Pivot block | 14 | - | Two per rotor, all identical. A 4.8 x 5.9 x 1.8 mm block with a stepped cone on one face: a 4.0 mm base, a 45 degree frustum, then an 8 degree cone to a 0.9 mm ball tip. It is pressed 0.05 mm into a pocket split between the cradle plate and the top plate; the cone turns in the rotor's end bore and its tip stops the rotor along its axis. Prints on its outer face with the cone up, no support. |
 | <img src="images/parts/bearing.png" alt="608ZZ bearing" width="240"> | 608ZZ bearing | 2 | - | Bought. |
 | <img src="images/parts/bolt-m2x16.png" alt="M2 x 16 bolt" width="240"> | M2 x 16 bolt | 6 | - | Bought. The top plate's four bolts, heads sunk flush, and the housing's two. |
 | <img src="images/parts/bolt-m2x10.png" alt="M2 x 10 bolt" width="240"> | M2 x 10 bolt | 4 | - | Bought. |
@@ -168,8 +171,8 @@ polymer, for example PETG, to bond). A pause for a filament change does not work
 and the black rim is printed in the same layers, so a pause would turn the rim and the tips yellow. A plate of seven rotors needs
 about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 11.25 mm square and has a 1.8 mm bore
 in each end (a teardrop roof, so it needs no support). Each slider's drive cone stands upright in print and needs no support: its steepest
-face leans 35 degrees from the vertical. Print the 14 pivot blocks on their outer faces with the 1.4 mm pins
-up; check the first block against the pocket before printing the rest. The rotors, sliders, pivot pins and pegs print whole, not split, and the instructions say why. A bearing,
+face leans 35 degrees from the vertical. Print the 14 pivot blocks on their outer faces with the cones
+up (every face of a cone leans at least 8 degrees from the bed, so none overhangs); check the first block against the pocket before printing the rest. The rotors, sliders, pivot cones and pegs print whole, not split, and the instructions say why. A bearing,
 bolt or nut is bought.
 
 ## Bill of materials
@@ -212,9 +215,9 @@ parts is marked with these numbers: the plates carry their own holes, and the st
 7. On the bench, join each rotor to its slider: yellow face up, 3.0 mm along +u from its place (+u as defined above), notch over the tongue, then
    slide it -u so the cone enters the pocket. Any shift from 2.85 to 3.15 mm works: the cone's tip clears the notch's end wall from 2.85 mm,
    and the notch's far wall clears the tongue up to 3.15 mm. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
-8. Push a pivot block onto each end of every rotor, its pin into the end bore. Keep the unit level, lower it through its cradle
+8. Push a pivot block onto each end of every rotor, its cone into the end bore until the tip rests in the bore (the block's face then stands 1.2 mm or more off the rotor's end). Keep the unit level, lower it through its cradle
    passage and guide slot, the groove pin first, into its cam's entry channel, and let the blocks drop into the cradle's open
-   half-pockets. Press each block down with a finger until it seats. A block can slip off its pin if the unit tilts before it
+   half-pockets. Press each block down with a finger until it seats. A block can slip off its cone if the unit tilts before it
    is seated.
 9. Lower the top plate over the cradle's pegs at (-18, -67.5), near the front edge on the left, and (21.75, 58.5), near the back edge on the
    right. The a, g and d blades stand upright. Each b to f
@@ -248,7 +251,5 @@ unchanged); the 45-degree step in the head of the a, g and d sliders; the pyrami
 ## Known exceptions
 
 The rule against printed straight pins thinner than 4 mm ("Thin pins" in `docs/model-pipeline.md`) is met by the sliders'
-drive cones: each has a 4.0 mm base and thins to a 0.82 mm tip. It is not yet met by the 14 pivot pins, which are 1.4 mm across
-and 1.25 mm long. Each stands upright on its pivot block and turns in the Ø1.8 end bore of a rotor. A straight pin of 4 mm
-would raise the bore's friction radius from 0.9 to 2.2 mm, and the drive's ratio of drive arm to friction arms would fall from 1.67 to about 1.06 (it needs 1.50), so the pivot
-pins stay as they are until the pivot changes.
+drive cones, each with a 4.0 mm base thinning to a 0.82 mm tip, and by the 14 pivot cones, each with a 4.0 mm base thinning to a
+0.9 mm ball tip. No pin of the model is a known exception.

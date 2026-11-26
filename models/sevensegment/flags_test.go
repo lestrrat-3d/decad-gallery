@@ -63,28 +63,28 @@ func TestSevenSegmentFlagKinematics(t *testing.T) {
 func TestSevenSegmentFlagRestBand(t *testing.T) {
 	cAGD, cBF := 0.15, 0.15+sevensegment.RaiseBelowDroop
 	um, uw, lw, lm, rmax := bands(sevensegment.PinLinePlay, 0.24, slotClearMin, cAGD)
-	require.InDelta(t, -59.60, um, 0.1)
-	require.InDelta(t, -41.76, uw, 0.1)
-	require.InDelta(t, 37.85, lw, 0.1)
-	require.InDelta(t, 56.63, lm, 0.1)
+	require.InDelta(t, -59.93, um, 0.1)
+	require.InDelta(t, -41.53, uw, 0.1)
+	require.InDelta(t, 37.63, lw, 0.1)
+	require.InDelta(t, 56.97, lm, 0.1)
 	require.LessOrEqual(t, rmax, 4.10)
 	um, _, _, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMax, cAGD)
-	require.InDelta(t, -64.69, um, 0.1)
-	require.InDelta(t, 62.15, lm, 0.1)
+	require.InDelta(t, -65.03, um, 0.1)
+	require.InDelta(t, 62.51, lm, 0.1)
 	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.30, slotClearMin, cAGD) // a, g, d worst case
-	require.InDelta(t, -41.01, uw, 0.1)
-	require.InDelta(t, 37.02, lw, 0.1)
+	require.InDelta(t, -40.79, uw, 0.1)
+	require.InDelta(t, 36.80, lw, 0.1)
 	require.LessOrEqual(t, rmax, 4.15)
 	_, uw, lw, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMin, cBF) // b to f design
-	require.InDelta(t, -42.37, uw, 0.1)
-	require.InDelta(t, 37.16, lw, 0.1)
-	require.InDelta(t, 56.09, lm, 0.1)
+	require.InDelta(t, -42.14, uw, 0.1)
+	require.InDelta(t, 36.94, lw, 0.1)
+	require.InDelta(t, 56.43, lm, 0.1)
 	um, _, _, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMax, cBF)
-	require.InDelta(t, -65.08, um, 0.1)
-	require.InDelta(t, 61.68, lm, 0.1)
+	require.InDelta(t, -65.41, um, 0.1)
+	require.InDelta(t, 62.05, lm, 0.1)
 	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.42, slotClearMin, cBF) // b to f worst case
-	require.InDelta(t, -40.12, uw, 0.1)
-	require.InDelta(t, 34.55, lw, 0.1)
+	require.InDelta(t, -39.89, uw, 0.1)
+	require.InDelta(t, 34.34, lw, 0.1)
 	require.LessOrEqual(t, rmax, sevensegment.SlotEnd+slotClearMin, "the cone's axis stays inside the slot's end")
 }
 
@@ -106,7 +106,7 @@ func TestSevenSegmentRestBias(t *testing.T) {
 
 // TestSevenSegmentDriveAudit audits the drive on the built rotors and sliders with the cone on one wall of its slot, at the
 // slot's greatest clearance (the cone's full withdrawal, the pocket radius 1.15): at friction 0.5 the drive arm is at least
-// 1.50 times the friction arms with the journal settled and 1.35 with it fully across (the computed 1.673 and 1.560). The
+// 1.50 times the friction arms with the journal settled and 1.35 with it fully across (the computed 1.646 and 1.508). The
 // loads are logged.
 func TestSevenSegmentDriveAudit(t *testing.T) {
 	t.Parallel()
@@ -150,7 +150,7 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 		yellow     float64 // the least tongue to yellow shell gap at the least slot clearance, +-0.005
 		black      float64 // the tongue to the black leg
 		span       float64 // the free span to the yellow shell
-	}{{"a, g, d", 1.28, cAGD, 0.796, 2.326, 0.701}, {"b to f", 1.88, cBF, 0.734, 1.945, 0.690}} {
+	}{{"a, g, d", 1.28, cAGD, 0.759, 2.173, 0.696}, {"b to f", 1.88, cBF, 0.719, 1.794, 0.691}} {
 		for _, slot := range []float64{slotClearMin, slotClearMax} {
 			ty, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine, c.cap, c.cap, c.dwell, floor, slot, [][3]float64{endDisc()})
 			fy, _ := sweep(0, 0, 0, headLine, c.cap, c.cap, c.dwell, floor, slot, freeSpan())

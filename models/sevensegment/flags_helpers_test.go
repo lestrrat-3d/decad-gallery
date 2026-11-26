@@ -140,7 +140,7 @@ var (
 	slotClearMax = sevensegment.SlotRadius - (sevensegment.ConeInsertR - 2*sevensegment.ConePlay*sevensegment.ConeSlope)
 )
 
-// journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.11).
+// journalAcross is the extra side play when the rotor sits fully across its pins instead of settled (0.136).
 const (
 	journalAcross = sevensegment.JournalAcross
 )
@@ -149,10 +149,10 @@ const (
 // the pin's poses (the side from smin to 3 - smin, the height over the stroke and the play) and the least ratio of drive
 // arm to friction arms. The rotor's angle is the pin's polar angle plus or minus asin(cl / rho), the contact normal and the
 // imbalance torque follow it, and the friction arm of the slot wall is the pocket radius. across takes the rotor fully
-// across its pins (a further 0.11 of side play). It returns ok false when the drive locks.
+// across its pins (a further 0.136 of side play). It returns ok false when the drive locks.
 func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool) {
 	const length = 37.5
-	rj, cl, w := sevensegment.JournalRadius, slotClearMax, sevensegment.SlotRadius
+	rj, cl, w := sevensegment.JournalFriction, slotClearMax, sevensegment.SlotRadius
 	smin := sevensegment.PinOffset - sevensegment.PinLinePlay
 	if across {
 		smin -= journalAcross
@@ -192,7 +192,7 @@ func audit(mu float64, l rotorLoad, across bool) (fx, minRatio float64, ok bool)
 
 // bias is the ratio of the gravity torque holding a rotor at its end pose to the friction of its end bores on the pins at mu.
 func bias(mu float64, l rotorLoad, phi float64) float64 {
-	return l.e * math.Abs(math.Cos((l.bc+phi)*math.Pi/180)) / (math.Sin(math.Atan(mu)) * sevensegment.JournalRadius)
+	return l.e * math.Abs(math.Cos((l.bc+phi)*math.Pi/180)) / (math.Sin(math.Atan(mu)) * sevensegment.JournalFriction)
 }
 
 // sweep returns the least gaps of the slider's tongue to the rotor's notch walls over every pose. The tongue is the strip that

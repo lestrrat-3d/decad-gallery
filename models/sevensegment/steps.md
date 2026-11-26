@@ -339,7 +339,7 @@ one-off scratch build before the port, which is not in the repository; a decad r
 - `rotors.go`: `flag(seg)` builds the two bodies of one flag in a local frame (axis on local Z): tips by `decad.Intersect` of
   two octagonal prisms, the rounded-square section, the yellow slab and tips (P1 and P2 with `yellowTipK` 19.825,
   `yellowTipInner` 19.825 and `yellowTipEnd` 17.4) split by `Intersect`/`Cut`, the flat, the notches, the pocket stadium
-  sketch, the two end bores (a revolve with a floor round and a countersink) and their teardrop roofs (a prism on a fully
+  sketch, the two end bores (a revolve with a 0.5 floor round at u 15.85 and a 45-degree mouth from the cone's contact edge at u 18.033) and their teardrop roofs (a prism on a fully
   constrained pentagon sketch), the 0.9 pocket floor round and the 0.7 mouth chamfer of type B's first notch
   (instructions.md "Rotor"). Then each body is placed in the world with one `placement.Place` of
   the rotor frame `rotorFrame(s)`.
@@ -349,10 +349,10 @@ one-off scratch build before the port, which is not in the repository; a decad r
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 4.825, `windowChamfer` 19.525 and
   `windowEnd` 17.544) and `columnGuidePlate()` with `boreTool`, `rootedBox`, `rootedPost`,
   `mouthCone` and `flagSites()`.
-- `pivot.go`: `pivotBlock()` (the rounded 4.8 x 5.9 x 3.0 body from `roundedPrism`, unioned with the revolved Ø1.4 pin and its
-  45-degree root, tip chamfered 0.1), `pivotPocketTool(seg, sgn)` (the same `roundedPrism` offset by `PressFit`, cut from
+- `pivot.go`: `pivotBlock()` (the rounded 4.8 x 5.9 x 1.807 body from `roundedPrism`, unioned with the cone of `pivotPinMeridian()`:
+  one revolve of a Ø4.0 base, a 45-degree frustum to Ø1.49, an 8-degree cone and an R 0.45 ball tip in 8 chords), `pivotPocketTool(seg, sgn)` (the same `roundedPrism` offset by `PressFit`, cut from
   the cradle and the top plate by `cutPivotPockets`) and `pivotBlocks()` (the prototype and 13 `decad.Copy`, each placed with one
-  `placement.Place` of its rotor frame at the 14 rotor ends). `boreTool` now ends at the end wall at u 18.625 with no journal hole.
+  `placement.Place` of its rotor frame at the 14 rotor ends). `boreTool` ends at the end wall `pivotWall` (u 18.625) with no journal hole.
 - `params.go`: the exported flag constants and `Dimensions.FlagAngle`.
 
 Checks: `TestSevenSegmentFlag*`, `TestSevenSegmentRotor*`, `TestSevenSegmentSlider*`, `TestSevenSegmentFrame`,

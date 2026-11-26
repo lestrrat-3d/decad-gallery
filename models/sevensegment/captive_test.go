@@ -84,7 +84,7 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			dphi := math.Atan2(zrel, sevensegment.PinOffset)*180/math.Pi - dm.FlagAngle(s, 0)
 			// At the full rise the bore's roof meets the pin by design (gap 0), which a mesh cannot prove separated: the flags
 			// are posed 0.11 low, the mesh bound. The pin axis is 0.25 below the modeled axis once clamped and the bore leaves
-			// 0.2 round the pin, so the roof stands 0.05 under the modeled axis, 0.06 above this pose.
+			// 0.23 round the pin at its edge, so the roof stands 0.02 under the modeled axis, 0.09 above this pose.
 			black := posed(t, blacks[s], point, axis, dphi, -0.11)
 			yellow := posed(t, yellows[s], point, axis, dphi, -0.11)
 			for _, block := range blocks[s] {

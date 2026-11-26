@@ -9,21 +9,23 @@ import (
 
 // Internal dimensions that the physics tests read, so that they follow the model and not copies of its numbers.
 const (
-	NotchFloor    = notchFloor
-	SlotEnd       = slotEnd
-	TongueWidth   = tongueWidth
-	PinAxisZ      = pinAxisZ
-	SliderHeadTop = sliderHeadTop
-	TongueRootR   = tongueRootR
-	TongueRootDip = tongueRootDip
-	RotorEdgeR    = rotorEdgeRound
-	BladeAcross   = bladeAcross
-	SlotRadius    = slotRadius
-	JournalPinR   = pivotPinRadius
-	PinStationAGD = pinStationAGD
-	PinStationBC  = pinStationBC
-	PinStationEF  = pinStationEF
+	NotchFloor      = notchFloor
+	SlotEnd         = slotEnd
+	TongueWidth     = tongueWidth
+	PinAxisZ        = pinAxisZ
+	SliderHeadTop   = sliderHeadTop
+	TongueRootR     = tongueRootR
+	TongueRootDip   = tongueRootDip
+	RotorEdgeR      = rotorEdgeRound
+	BladeAcross     = bladeAcross
+	SlotRadius      = slotRadius
+	JournalPinR     = JournalRadius - pivotJournalPlay
+	JournalFriction = JournalRadius * pivotWedge
+	PinStationAGD   = pinStationAGD
+	PinStationBC    = pinStationBC
+	PinStationEF    = pinStationEF
 
+	PivotEndPlay   = pivotEndPlay
 	PivotPinTip    = pivotPinTip
 	PivotBlockFrom = pivotBlockFrom
 	PivotBlockLong = pivotBlockLong

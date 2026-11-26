@@ -32,16 +32,21 @@ func TestSevenSegmentVisibility(t *testing.T) {
 		lit  bool
 		phis []float64
 	}
-	// The outer band ends are those of the cone's greatest slot clearance (0.481, its full withdrawal): 62.15 and -64.69 for a,
-	// g, d, 61.68 and -65.08 for b to f. The inner ends are those of the least (0.200).
+	// The outer band ends are those of the cone's greatest slot clearance (0.481, its full withdrawal): 62.51 and -65.03 for a,
+	// g, d, 62.05 and -65.41 for b to f. The inner ends are those of the least (0.200). Every end comes from bands, as the
+	// rest band test reads them.
+	cBF := 0.15 + sevensegment.RaiseBelowDroop
+	_, uwDesign, _, _, _ := bands(sevensegment.PinLinePlay, 0.24, slotClearMin, cBF)
+	_, uwWorst, lwWorst, _, _ := bands(sevensegment.PinLinePlay, 0.42, slotClearMin, cBF)
 	posesOf := func(s sevensegment.Segment) []pose {
-		lit, unlit := 62.15, -64.69
+		c := 0.15
 		if s != sevensegment.SegA && s != sevensegment.SegG && s != sevensegment.SegD {
-			lit, unlit = 61.68, -65.08
+			c = cBF
 		}
+		unlit, _, _, lit, _ := bands(sevensegment.PinLinePlay, 0.24, slotClearMax, c)
 		return []pose{
-			{"lit", true, []float64{34.55, 45, lit}},
-			{"unlit", false, []float64{unlit, -55, -42.37, -40.12}},
+			{"lit", true, []float64{lwWorst, 45, lit}},
+			{"unlit", false, []float64{unlit, -55, uwDesign, uwWorst}},
 		}
 	}
 	elevs := []float64{90, 45, 30}
@@ -118,12 +123,12 @@ func TestSevenSegmentWindowLip(t *testing.T) {
 // (segment b) in the model pose (the flag and the plate move together in the physical geometry). The opening is read from
 // the plate mesh on a 0.05 grid over |s| <= 4, offset by half a step, so a wider window shows more.
 //
-// Lit, the yellow fills at least 0.95 of the opening at 90 degrees at phi 45, 0.82 at the lit band ends 34.47 (a, g, d) and
-// 33.41 (b to f) and 0.76 at the b-f worst-case end 29.39 (computed 0.98, 0.85 to 0.87, 0.80).
+// Lit, the yellow fills at least 0.95 of the opening at 90 degrees at phi 45, 0.82 at the lit band ends 37.63 and 36.80 (a, g,
+// d) and 36.94 (b to f) and 0.76 at the b-f worst-case end 34.34 (computed 0.98, 0.91, 0.89).
 //
-// Unlit, no ray hits yellow at the design-play band end (a, g, d -40.33, b to f -41.22), the worst-case end (-39.23, -37.90)
-// and a 1 degree margin beyond it (-38.23, -36.90), with the rotor centred, 0.16 or 0.25 to either side and 0.30 along the
-// axis either way, from elevations 90, 45 and 30 at four azimuths. At the margin poses with the 0.25 side shift the views
+// Unlit, no ray hits yellow at the design-play band end (a, g, d -41.53, b to f -42.14), the worst-case end (-40.79, -39.89)
+// and a 1 degree margin beyond it (-39.79, -38.89), with the rotor centred, 0.186 (the rotor fully across its pins, plus 0.05)
+// or 0.25 to either side and 0.25 (the pin tips' play, plus 0.05) along the axis either way, from elevations 90, 45 and 30 at four azimuths. At the margin poses with the 0.25 side shift the views
 // also include elevations 60 and 20 at 24 azimuths, grazing views included: a yellow face seen edge-on still counts.
 func TestSevenSegmentWindowYellow(t *testing.T) {
 	t.Parallel()
@@ -131,14 +136,24 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 	dm := parts.Dimensions
 	topMesh := rawMeshOf(t, parts.TopPlate, 0.05)
 	plate := trisOf(topMesh, nil, r3.Vec{}, kindPlate)
+	cBF := 0.15 + sevensegment.RaiseBelowDroop
+	// ends returns the unlit design end, the unlit worst-case end and the lit ends, as the rest band test reads them.
+	ends := func(z, c float64) (unlit [3]float64, lit [2]float64) {
+		_, uwDesign, lwDesign, _, _ := bands(sevensegment.PinLinePlay, 0.24, slotClearMin, c)
+		_, uwWorst, lwWorst, _, _ := bands(sevensegment.PinLinePlay, z, slotClearMin, c)
+		return [3]float64{uwDesign, uwWorst, uwWorst + 1}, [2]float64{lwDesign, lwWorst}
+	}
+	unlitG, litG := ends(0.30, 0.15)
+	unlitB, litB := ends(0.42, cBF)
+	sideShift, axialShift := sevensegment.JournalAcross+0.05, sevensegment.PivotEndPlay+0.05
 	for _, c := range []struct {
 		seg    sevensegment.Segment
 		unlit  [3]float64 // design end, worst-case end, 1 degree margin
 		lit    map[float64]float64
 		litEnd string
 	}{
-		{sevensegment.SegG, [3]float64{-41.76, -41.01, -40.01}, map[float64]float64{45: 0.95, 37.85: 0.82, 37.02: 0.82}, "a, g, d"},
-		{sevensegment.SegB, [3]float64{-42.37, -40.12, -39.12}, map[float64]float64{45: 0.95, 37.16: 0.82, 34.55: 0.76}, "b to f"},
+		{sevensegment.SegG, unlitG, map[float64]float64{45: 0.95, litG[0]: 0.82, litG[1]: 0.82}, "a, g, d"},
+		{sevensegment.SegB, unlitB, map[float64]float64{45: 0.95, litB[0]: 0.82, litB[1]: 0.76}, "b to f"},
 	} {
 		s := c.seg
 		yMesh := rawMeshOf(t, parts.Flags[s].Yellow, 0.02)
@@ -185,8 +200,8 @@ func TestSevenSegmentWindowYellow(t *testing.T) {
 		}
 		var jobs []job
 		for pi, phi := range c.unlit {
-			for _, ds := range []float64{0, 0.16, -0.16, 0.25, -0.25} {
-				for _, du := range []float64{0, 0.30, -0.30} {
+			for _, ds := range []float64{0, sideShift, -sideShift, 0.25, -0.25} {
+				for _, du := range []float64{0, axialShift, -axialShift} {
 					jobs = append(jobs, job{phi, ds, du, pi == 2 && math.Abs(ds) == 0.25})
 				}
 			}
