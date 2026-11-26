@@ -11,6 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The worst-case z play of the pin line and the dwell offset of every class. A, g and d add the separate groove pin's sag
+// tolerance 0.132 (hole and pin radii +-0.05 each, times 1 + 2 x 0.55 / 3.45) to their 0.30; b to f keep 0.42. All seven
+// pins are modeled 0.05 below the droop (sevensegment.RaiseBelowDroop), so one dwell offset serves every class.
+const (
+	zPlayAGD = 0.30 + 0.132
+	zPlayBF  = 0.42
+)
+
+var dwellOffset = 0.15 + sevensegment.RaiseBelowDroop
+
 // bands returns the lead-side rest bands of a rotor for slider play s (along the rotor's x) and z, slot clearance cl and
 // dwell offset c: the unlit band [lo, uw] and the lit band [lw, hi], and the greatest pin radius.
 func bands(s, z, cl, c float64) (um, uw, lw, lm, rmax float64) {
@@ -102,11 +112,26 @@ func builtLoads(t *testing.T) flagLoads {
 			if err != nil {
 				return 0, 0, err
 			}
+			vol, centre := v.Value.Base(), c.Value
+			// The separate groove pin of a, g and d rides with its slider: its weight and place count with the slider's.
+			if pin := parts.GroovePins[s]; pin != nil {
+				pv, err := pin.Volume()
+				if err != nil {
+					return 0, 0, err
+				}
+				pc, err := pin.Centroid()
+				if err != nil {
+					return 0, 0, err
+				}
+				total := vol + pv.Value.Base()
+				centre = centre.Scale(vol / total).Add(pc.Value.Scale(pv.Value.Base() / total))
+				vol = total
+			}
 			_, cy, horizontal := segmentCentre(s)
 			if horizontal {
-				return v.Value.Base() * petg, math.Abs(c.Value.Y - cy), nil
+				return vol * petg, math.Abs(centre.Y - cy), nil
 			}
-			return v.Value.Base() * petg, math.Abs(c.Value.X), nil
+			return vol * petg, math.Abs(centre.X), nil
 		}
 		if loads.a, loadsErr = rotor(sevensegment.SegG, sevensegment.PinStationAGD); loadsErr != nil {
 			return

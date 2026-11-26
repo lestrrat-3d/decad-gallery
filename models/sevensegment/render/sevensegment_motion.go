@@ -108,7 +108,7 @@ func motionModels(s partSet, springs map[float64]*decad.Mesh, dm sevensegment.Di
 				return nil, err
 			}
 			src = nest(src, t)
-		case strings.HasPrefix(p.name, "Slider "):
+		case strings.HasPrefix(p.name, "Slider "), strings.HasPrefix(p.name, "Groove Pin "):
 			seg := sevensegment.Segments()[p.name[len(p.name)-1]-'a']
 			built, _ := sevensegment.Lit(dm.Digit, seg)
 			dz := dm.Lift(seg, st.theta)

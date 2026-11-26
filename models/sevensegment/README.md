@@ -108,7 +108,7 @@ The seven cams from behind, a to d on the top row and e to g below, each with it
 
 ![The seven cams in two rows seen from behind, with the letters A, b, C, d, E, F and G engraved in their back faces](images/cams.png)
 
-![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
+![The display taken apart. In the middle the camshaft with its seven cams between the open walls; the front wall, the housing, the button, the rotor, the spring and the hub slid out toward the front along the shaft, and the front bearing dropped below the shaft; the rear wall and its bearing to the back. Above the shaft the guide plate with its two columns, the cradle plate, the seven rotors spread out around the face with their yellow faces up, each with two small orange pivot blocks slid out past its ends along its axis, and the top plate with its four bolts highest. The seven black sliders stand clear on both sides: e and f, one above the other, on the left, and a, g and d on the right, each with its black groove pin drawn out of the hole in its stem, with b and c near the rear wall. Nuts and the remaining bolts beside the parts they hold](images/exploded.png)
 
 The pivot of rotor a taken apart: the rotor in the middle, an orange pivot block 4.5 mm out of each end along its axis, so
 each cone is free of its end bore and each block stands level with its own pocket. The cradle plate is pulled down and the
@@ -141,7 +141,8 @@ The camshaft alone, with the frame left out, its parts pulled off the front end 
 | <img src="images/parts/cam-b.png" alt="Cam b" width="240"> | Cam b | 1 | 2 | Rear cam, the letter b engraved on its back face. |
 | <img src="images/parts/cam-f.png" alt="Cam f" width="240"> | Cam f | 1 | 3 | Rear cam, the letter F engraved on its back face. |
 | <img src="images/parts/cam-a.png" alt="Cam a" width="240"> | Cam a | 1 | 4 | Rear cam, the letter A engraved on its back face. |
-| <img src="images/parts/slider-a-g-d.png" alt="Sliders a, g, d" width="240"> | Sliders a, g, d | 3 | - | The three horizontal segments are identical. They print with the -X face down. |
+| <img src="images/parts/slider-a-g-d.png" alt="Sliders a, g, d" width="240"> | Sliders a, g, d | 3 | - | The three horizontal segments are identical. They print with the -X face down; no face leans more than 45 degrees. A keyed blind hole in the stem's +Y face takes the groove pin. |
+| <img src="images/parts/groove-pin.png" alt="Groove pin of sliders a, g, d" width="240"> | Groove pins a, g, d | 3 | - | A Ø4.5 pin, 7.0 mm long, with two small wings that key it in the slider's hole. Each is one body in the model; print it as two identical halves, each on its flat face, so six halves in all (one part printed six times). No glue and no bolt hold the halves: the closed hole does. |
 | <img src="images/parts/slider-b-c.png" alt="Sliders b, c" width="240"> | Sliders b, c | 2 | - | Identical; they print with the -Y face down. |
 | <img src="images/parts/slider-e-f.png" alt="Sliders e, f" width="240"> | Sliders e, f | 2 | - | Identical; they print with the -Y face down. |
 | <img src="images/parts/rotor-a.png" alt="Rotor A" width="240"> | Rotor A | 3 | - | For segments a, g, d: one notch. Two bodies, listed next. |
@@ -162,7 +163,7 @@ Print each part as the table says. Each cam prints with its back face down, so t
 Print the shaft as two halves split along its axis, each on its cut face. Print the cams with the groove face up, the walls
 with the outer face down, the top plate with the display face down, the cradle plate with its bottom face down, the
 guide plate with its bottom face down, the a, g and d sliders with the -X face
-down, the b, c, e and f sliders with the -Y face down, and the hub and rotor flat with the teeth up, the button with its head down and teeth up, and the housing with its bezel face down and the crown's teeth up.
+down, the a, g and d groove pins as two identical halves on their flat faces (six halves, layers along the pin), the b, c, e and f sliders with the -Y face down, and the hub and rotor flat with the teeth up, the button with its head down and teeth up, and the housing with its bezel face down and the crown's teeth up.
 The teeth need no supports: the teeth print facing up. The 8.0 mm inner teeth have ramps at 52 to 89 degrees to the layers and the 1.6 mm crown teeth have ramps at 12 to 50 degrees. Print the rotor, button and housing at 0.1 mm layers or finer.
 
 Each rotor is two bodies, a yellow body (the face slab and the two tips) and a black body, printed face down in one job
@@ -172,7 +173,7 @@ and the black rim is printed in the same layers, so a pause would turn the rim a
 about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 11.25 mm square and has a 1.8 mm bore
 in each end (a teardrop roof, so it needs no support). Each slider's drive cone stands upright in print and needs no support: its steepest
 face leans 35 degrees from the vertical. Print the 14 pivot blocks on their outer faces with the cones
-up (every face of a cone leans at least 8 degrees from the bed, so none overhangs); check the first block against the pocket before printing the rest. The rotors, sliders, pivot cones and pegs print whole, not split, and the instructions say why. A bearing,
+up (every face of a cone leans at least 8 degrees from the bed, so none overhangs); check the first block against the pocket before printing the rest. The rotors, sliders, pivot cones, pegs and the groove pins of b, c, e and f print whole, not split, and the instructions say why. The a, g and d groove pins are split, held by their closed holes and not by bolts: no M2 bolt fits, and the instructions list this as an exception to the clamping rule. A bearing,
 bolt or nut is bought.
 
 ## Bill of materials
@@ -216,7 +217,8 @@ parts is marked with these numbers: the plates carry their own holes, and the st
    slide it -u so the cone enters the pocket. Any shift from 2.85 to 3.15 mm works: the cone's tip clears the notch's end wall from 2.85 mm,
    and the notch's far wall clears the tongue up to 3.15 mm. Rotor A (one notch) goes to a, g and d; rotor B (two notches) to b, c, e and f.
 8. Push a pivot block onto each end of every rotor, its cone into the end bore until the tip rests in the bore (the block's face then stands 1.2 mm or more off the rotor's end). Keep the unit level, lower it through its cradle
-   passage and guide slot, the groove pin first, into its cam's entry channel, and let the blocks drop into the cradle's open
+   passage and guide slot, the groove pin first, into its cam's entry channel (on a, g and d, first lay the two halves of the groove pin
+   in the slider's hole, flat faces together, and keep the slider level until the pin is in the channel, because nothing grips the halves before that), and let the blocks drop into the cradle's open
    half-pockets. Press each block down with a finger until it seats. A block can slip off its cone if the unit tilts before it
    is seated.
 9. Lower the top plate over the cradle's pegs at (-18, -67.5), near the front edge on the left, and (21.75, 58.5), near the back edge on the
@@ -234,7 +236,9 @@ calculated tongue gaps to the notch shells are 0.73 mm (yellow shell) and 1.9 mm
 tolerances with the cone fully pushed in, and 0.45 mm and 1.4 mm with it fully pulled out. The b to f sliders' contact with the top plate and with their black bodies in the turned-over pose is checked in an
 adjusted pose (a rigid turn about the groove pin and the slot, half the tilt limit, the rise 0.2 mm short of the full
 rise and the flags lowered 0.11 mm), because in that pose the b to f sliders touch by design. `TestSevenSegmentCaptive`
-allows no vertex deeper than 0.07 mm (the mesh tolerance). Do not turn the display over with the button in motion.
+allows no vertex deeper than 0.07 mm (the mesh tolerance). The a, g and d sliders hang on their separate pins in holes with 0.2 mm of clearance:
+upright they sag 0.26 mm, and turned over they rise 0.53 mm further than before (1.81 mm in all against the settled rest, 2.07 mm at the worst tolerance). The
+captive test poses the nominal rise; at the worst tolerance the blade ridge of a, g and d meets the tube roof in some digits, which stops the slider with its blade still in its tube. Do not turn the display over with the button in motion.
 
 ## Listed sharp corners
 
@@ -244,8 +248,7 @@ The face teeth of the rotor, button and housing are listed: their tips are engag
 Eight kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
 thick along the long sides and 1.25 mm at the shoulders, above the 0.8 mm minimum, so the window rims need no listing): the inner
 loops of the seam faces of the cradle and the top plate; the inner loops of the cradle plate's bottom face; the root of each
-cone on a slider's tongue; the root and tip of the groove pin on the a, g and d sliders, where a section near the edge of the Ø4.5 cylinder reads as a corner (the pin is
-unchanged); the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
+cone on a slider's tongue; the root and tip of the integral groove pin on the b, c, e and f sliders, where a section near the edge of the Ø4.5 cylinder reads as a corner; the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
 120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops and the cone roots yet.
 
 ## Known exceptions
@@ -253,3 +256,7 @@ unchanged); the 45-degree step in the head of the a, g and d sliders; the pyrami
 The rule against printed straight pins thinner than 4 mm ("Thin pins" in `docs/model-pipeline.md`) is met by the sliders'
 drive cones, each with a 4.0 mm base thinning to a 0.82 mm tip, and by the 14 pivot cones, each with a 4.0 mm base thinning to a
 0.9 mm ball tip. No pin of the model is a known exception.
+
+The "Split shafts" rule asks M2 cross bolts to clamp the halves of a pin that stands out of its part. The a, g and d groove pins have none: along the stem the bolt's head pocket would leave
+0.5 mm of wall (1.0 mm is required) and no standard M2 length fits, and along the pin Ø4.5 holds neither a head pocket nor a nut cavity. Each pin's closed, keyed hole holds its two halves together
+and against turning, the hole's floor stops it going in, and the cam's groove floor, 0.40 mm from its tip, stops it coming out. This is a listed exception in `instructions.md`.

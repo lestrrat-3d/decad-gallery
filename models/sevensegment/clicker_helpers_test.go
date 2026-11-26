@@ -58,11 +58,13 @@ func movedMesh(t *testing.T, body *decad.Body, tol, turn, drop float64) meshgap.
 }
 
 // partTol is the chord tolerance a part's mesh is read at: the helicoid teeth of the rotor, button and housing tessellate no
-// finer than 0.1 mm.
+// finer than 0.1 mm, and the faceted groove pins no finer than 0.09 mm (their mesh bound is 0.086).
 func partTol(name string) float64 {
 	switch name {
 	case "rotor", "button", "housing":
 		return 0.1
+	case "groove pin a", "groove pin g", "groove pin d":
+		return 0.09
 	}
 	return 0.05
 }

@@ -402,7 +402,9 @@ const JournalAcross = journalExtra
 // by this much, which moves the unlit band end of b to f away from lit).
 const RaiseBelowDroop = 0.05
 
-// raise returns the unlit droop that is built into segment s's pin height: 0 for a, g, d, 0.20 for b, c and 0.25 for e, f.
+// raise returns the unlit droop that is built into segment s's pin height: 0.214 for a, g, d, 0.20 for b, c and 0.25 for e, f.
+// A, g and d hang on a separate pin in a hole with 0.2 of clearance, and sag 0.264 about it (see groovePinRaise); their whole
+// body is built that much higher less the 0.05, as b to f raise only their drive axis.
 // A b-f slider droops 0.254 (b, c) and 0.305 (e, f) at its pin about its groove pin (the blade keeps 0.25 across its hole and
 // the stem 0.25 in its slot: tilt 0.5 / (ridge - 54)); the model's pin sits 0.05 below that droop.
 func raise(s Segment) float64 {
@@ -412,7 +414,7 @@ func raise(s Segment) float64 {
 	case SegE, SegF:
 		return 0.25
 	}
-	return 0
+	return groovePinRaise
 }
 
 // FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta: atan2(Lift(s, theta) - 2.625 +

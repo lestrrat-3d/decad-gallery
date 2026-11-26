@@ -99,9 +99,18 @@ func partCases() []partCase {
 		if _, _, horizontal := segmentCentre(seg); horizontal {
 			up = r3.Vec{X: 1}
 		}
-		cases = append(cases, partCase{name: "slider " + seg.String(), up: up, chamfered: true,
-			build:  func(r *run) (*decad.Body, error) { return r.flagSlider(seg) },
-			exempt: func(r *run) []cornercheck.Exempt { return groovePinExempt(r.dm.Station(seg)) }})
+		c := partCase{name: "slider " + seg.String(), up: up, chamfered: true,
+			build: func(r *run) (*decad.Body, error) { return r.flagSlider(seg) }}
+		if _, _, horizontal := segmentCentre(seg); !horizontal {
+			// Only the integral pin of b to f needs the exemption; the a, g and d sliders have a keyed hole and none.
+			c.exempt = func(r *run) []cornercheck.Exempt { return groovePinExempt(r.dm.Station(seg)) }
+		} else {
+			// The separate groove pin prints as two halves on their seam face (normal +X). cornercheck.Check reads no section of
+			// it; TestSevenSegmentGroovePin runs CheckAt at the split heights.
+			cases = append(cases, partCase{name: "groove pin " + seg.String(), up: r3.Vec{X: 1},
+				build: func(r *run) (*decad.Body, error) { return r.groovePinFor(seg) }})
+		}
+		cases = append(cases, c)
 	}
 	return cases
 }

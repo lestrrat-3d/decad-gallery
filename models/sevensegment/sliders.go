@@ -453,7 +453,8 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 	return r.finishSlider(body, seg, yi)
 }
 
-// finishSlider chamfers the stem's vertical edges and adds the groove pin.
+// finishSlider chamfers the stem's vertical edges and adds the integral groove pin of b to f, or cuts the keyed hole of the
+// separate pin of a, g and d.
 func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Body, error) {
 	// The 0.5 chamfers of "Surface edge finishing" on the stem's two large faces: every long run of their outer loops, the stem's
 	// vertical edges included, so the stem takes these chamfers and no smaller bevel (Fusion cannot chamfer an
@@ -462,6 +463,18 @@ func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Bo
 		edgefinish.Outer, func(*decad.Loop, []*decad.Edge) bool { return false }, wallChamfer)
 	if err != nil {
 		return nil, fmt.Errorf("stem face chamfers: %w", err)
+	}
+	if _, _, horizontal := segmentCentre(seg); horizontal {
+		// A, g and d take a separate pin: a keyed hole whose centre is raise below the pin's axis, and the body then rises by
+		// raise, so the pin on the groove's centreline sits in the middle of the hole's play.
+		if body, err = r.groovePinHole(body, yi+StemThickness/2, sliderPinZ-raise(seg)); err != nil {
+			return nil, err
+		}
+		lift, err := r3.Translation(r3.Vec{Z: raise(seg)})
+		if err != nil {
+			return nil, err
+		}
+		return decad.Transform(r.ctx, body, lift)
 	}
 	gp, err := r.pin(yi + StemThickness/2)
 	if err != nil {

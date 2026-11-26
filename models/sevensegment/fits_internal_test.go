@@ -48,8 +48,8 @@ func TestSevenSegmentFits(t *testing.T) {
 
 	t.Run("R2 pin tip to the groove floor", func(t *testing.T) {
 		_, cam := sharedCam(t, SegD)
-		_, slider := sharedSlider(t, SegD)
-		sbox, err := slider.Bounds()
+		_, pin := sharedGroovePin(t, SegD)
+		sbox, err := pin.Bounds()
 		require.NoError(t, err)
 		face := r.dm.camDiscFace(SegD)
 		floor := face + GrooveDepth
@@ -209,7 +209,12 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 			}
 		}
 		gap := (lo+hi)/2 - (box.Max.Z + Travel)
-		require.InDelta(t, topThick+Seam-0.8-5.925, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
+		// The a, g and d bodies are built groovePinRaise higher than before (the sag of their separate pin in its hole).
+		want := topThick + Seam - 0.8 - 5.925
+		if _, _, horizontal := segmentCentre(seg); horizontal {
+			want -= raise(seg)
+		}
+		require.InDelta(t, want, gap, 0.03, "blade ridge to the tube roof, slider %s", seg)
 	}
 }
 
@@ -251,7 +256,8 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 // the built bodies. Rearward the stack stops where cam a's D chord meets the square end of the shaft's flats, each part
 // PressFit behind the next, so a cam can move back by the gaps behind it (cam d 0.35). Forward nothing but the pin tips
 // stops it. Pushed fully back, with its slider leaned forward as far as the stem slot and the blade hole allow, every groove
-// pin keeps 0.75 or more of engagement in its groove (computed 0.77, cam d unlit).
+// pin keeps 0.75 or more of engagement in its groove (computed 0.77, cam d unlit); the separate pin of a, g and d adds its 0.2 of
+// slide on the hole's floor.
 func TestSevenSegmentStackPlay(t *testing.T) {
 	r := newTestRun(t)
 	_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
@@ -278,13 +284,19 @@ func TestSevenSegmentStackPlay(t *testing.T) {
 		require.NoError(t, err)
 		_, _, horizontal := segmentCentre(seg)
 		blade := bladeAlong
+		tipY, slack, higher := sbox.Max.Y, 0.0, 0.0
 		if horizontal {
-			blade = bladeAcross
+			// A, g and d carry a separate pin: pushed back it rests on its hole's floor, groovePinFloorGap behind its modeled
+			// place, and the body stands raise higher.
+			_, pinBody := sharedGroovePin(t, seg)
+			pbox, err := pinBody.Bounds()
+			require.NoError(t, err)
+			blade, tipY, slack, higher = bladeAcross, pbox.Max.Y, groovePinFloorGap, raise(seg)
 		}
 		for _, lift := range []float64{0, Travel} {
-			pin, ridge := sliderPinZ+lift, bladeRidgeZ+lift
+			pin, ridge := sliderPinZ+lift, bladeRidgeZ+higher+lift
 			lean := TightFit + (TightFit+blade)*(gbox.Min.Z-pin)/(ridge-gbox.Min.Z)
-			engage := sbox.Max.Y - (r.dm.camDiscFace(seg) + rear) - lean
+			engage := tipY - slack - (r.dm.camDiscFace(seg) + rear) - lean
 			t.Logf("cam %s lift %.0f: back %.2f, slider lean %.3f, engagement %.3f", seg, lift, rear, lean, engage)
 			worst = math.Min(worst, engage)
 		}
