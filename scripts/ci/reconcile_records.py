@@ -19,7 +19,7 @@ FULL_JOBS = {
     "bevel-remainder": ("",), "handcrankfan-full": ("default", "flat-three", "steep-three", "rest"), "swisslever-full": ("fork", "rest"),
     "planetary-full": ("planet605-shaft608", "planet608-shaft605", "planet608-shaft608",
                        "rest-0", "rest-1", "rest-2", "rest-3", "rest-4"),
-    "onewayclutch": ("",), "clamparm": ("",), "sevensegment": ("parts", "assembly", "placement-x", "placement-offset", "placement-quarter"), "turbinefan": ("",),
+    "onewayclutch": ("",), "clamparm": ("",), "sevensegment": ("parts", "assembly", "placement-x", "placement-offset", "placement-quarter", "steps"), "turbinefan": ("",),
     "wheel": ("default-verify", "default-linkage", "native", "small-seven-verify",
               "small-seven-linkage", "large-nine-verify", "large-nine-linkage", "twelve",
               "small-seventeen", "rest"),

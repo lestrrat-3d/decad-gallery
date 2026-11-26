@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 
-from run_tests import SEVENSEGMENT_CASES, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
+from run_tests import SEVENSEGMENT_CASES, SEVENSEGMENT_RACE_TESTS, FAN_PR_SHARDS, PLANETARY_PR_SHARDS, finished_tests, go_test, renderer_packages, run_pattern
 
 
 RUNNER = ["python3", "scripts/ci/run_tests.py"]
@@ -121,7 +121,8 @@ def commands(suite):
             (name == "planetarygearbox" and test == "TestKitGearboxes") or
             (name == "handcrankfan" and test in ("TestHandCrankFanDefault", "TestHandCrankFanVariant"))
         ) else "5m"
-        return [["go", "test", package, "-run", "^" + test + "$", "-timeout", timeout, "-count=1"]]
+        race = ["-race"] if directory == "models" and name == "sevensegment" and test in SEVENSEGMENT_RACE_TESTS else []
+        return [["go", "test", *race, package, "-run", "^" + test + "$", "-timeout", timeout, "-count=1"]]
     if suite in WORKERS:
         return WORKERS[suite]
     for prefix, directory in (("new-model-", "models"), ("new-package-", "internal"),

@@ -107,6 +107,12 @@ class GateTest(unittest.TestCase):
             ["./models/ballbearing", "-run", "^TestBearingCatalog$", "-timeout", "5m", "-count=1"],
             ["TestBearingCatalog"], package="github.com/lestrrat-3d/decad-gallery/models/ballbearing")
 
+    def test_isolated_sevensegment_race_test_runs_with_race_detector(self):
+        race = gate.commands("isolated-sevensegment-TestSevenSegmentStepsRace")[0]
+        self.assertEqual(race[:4], ["go", "test", "-race", "./models/sevensegment"])
+        plain = gate.commands("isolated-sevensegment-TestSevenSegmentStepsDeterministic")[0]
+        self.assertNotIn("-race", plain)
+
     def test_render_suites_expand_heavy_tests_and_rest(self):
         with mock.patch.object(Path, "is_dir", return_value=True):
             planetary = gate.commands("render-model-planetarygearbox")

@@ -34,6 +34,17 @@ class SevenSegmentShardsTest(unittest.TestCase):
             self.assertEqual(call.kwargs["env"]["SEVENSEGMENT_PLACEMENTS"],
                              "|".join(value[0] for value in run_tests.SEVENSEGMENT_PLACEMENTS.values()))
 
+    def test_steps_shard_runs_the_race_test_under_the_race_detector(self):
+        with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
+                mock.patch.object(run_tests, "go_test") as execute:
+            run_tests.run_sevensegment("steps")
+        race, plain = execute.call_args_list
+        self.assertEqual(race.args[0][0], "-race")
+        self.assertEqual(race.kwargs["expected"], list(run_tests.SEVENSEGMENT_RACE_TESTS))
+        self.assertNotIn("-race", plain.args[0])
+        self.assertEqual(sorted(race.kwargs["expected"] + plain.kwargs["expected"]),
+                         sorted(run_tests.SEVENSEGMENT_SHARDS["steps"]))
+
 
 class RunPatternTest(unittest.TestCase):
     def test_real_no_test_package_records_skip(self):

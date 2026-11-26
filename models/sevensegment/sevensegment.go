@@ -8,12 +8,10 @@ package sevensegment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/lestrrat-3d/decad"
 	"github.com/lestrrat-3d/decad-gallery/internal/m2fastener"
-	"github.com/lestrrat-3d/decad-gallery/internal/placement"
 	"github.com/lestrrat-3d/decad-gallery/models/ballbearing"
 	"github.com/lestrrat-3d/decad-gallery/models/fastener"
 	"github.com/lestrrat-3d/r3"
@@ -79,119 +77,26 @@ type Model struct {
 // BuildParts adds the printed bodies to doc, posed for p.Digit and placed, and puts them in no container. ctx and doc
 // must not be nil.
 func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
-	if ctx == nil {
-		return nil, errors.New("sevensegment: context must not be nil")
-	}
-	if doc == nil {
-		return nil, errors.New("sevensegment: document must not be nil")
-	}
-	dm, err := p.Derive()
-	if err != nil {
+	out := &Parts{}
+	if err := out.build(ctx, doc, p, partSteps(out)); err != nil {
 		return nil, err
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("sevensegment: before creating geometry: %w", err)
+	return out, nil
+}
+
+// build runs steps, which fill out, and then sets the dimensions, the sketches and the bolt sites.
+func (out *Parts) build(ctx context.Context, doc *decad.Document, p Params, steps []buildStep) error {
+	dm, sketches, err := runSteps(ctx, doc, p, steps, stepWorkers())
+	if err != nil {
+		return err
 	}
-	r := &run{ctx: ctx, doc: doc, p: p, dm: dm}
-	out := &Parts{Dimensions: dm}
-	spin := func(b *decad.Body) (*decad.Body, error) { return decad.Transform(b, r.camshaftTurn()).Do(ctx) }
-	type step struct {
-		name  string
-		build func() (*decad.Body, error)
-		dst   **decad.Body
-		pose  func(*decad.Body) (*decad.Body, error)
-	}
-	steps := []step{
-		{"front wall", func() (*decad.Body, error) { return r.wall(true) }, &out.FrontWall, nil},
-		{"rear wall", func() (*decad.Body, error) { return r.wall(false) }, &out.RearWall, nil},
-		{"guide plate", r.columnGuidePlate, &out.GuidePlate, nil},
-		{"cradle plate", r.cradlePlate, &out.CradlePlate, nil},
-		{"top plate", r.flagTopPlate, &out.TopPlate, nil},
-		{"shaft", r.shaft, &out.Shaft, spin},
-		{"hub", r.hub, &out.Hub, spin},
-		{"rotor", r.rotor, &out.Rotor, spin},
-		{"housing", r.housing, &out.Housing, nil},
-		{"button", r.button, &out.Button, nil},
-		{"spring", func() (*decad.Body, error) { return r.spring(SpringRestLength) }, &out.Spring, spin},
-	}
-	liftIfLit := func(seg Segment) func(*decad.Body) (*decad.Body, error) {
-		return func(b *decad.Body) (*decad.Body, error) {
-			lit, _ := Lit(p.Digit, seg)
-			if !lit {
-				return b, nil
-			}
-			lift, err := r3.Translation(r3.Vec{Z: Travel})
-			if err != nil {
-				return nil, err
-			}
-			return decad.Transform(b, lift).Do(ctx)
-		}
-	}
-	for _, seg := range Segments() {
-		steps = append(steps,
-			step{"cam " + seg.String(), func() (*decad.Body, error) { return r.cam(seg) }, &out.Cams[seg], spin},
-			step{"slider " + seg.String(), func() (*decad.Body, error) { return r.flagSlider(seg) }, &out.Sliders[seg], liftIfLit(seg)})
-		if _, _, horizontal := segmentCentre(seg); horizontal {
-			steps = append(steps, step{"groove pin " + seg.String(), func() (*decad.Body, error) { return r.groovePinFor(seg) },
-				&out.GroovePins[seg], liftIfLit(seg)})
-		}
-	}
-	var prototypes [2]Flag
-	for _, seg := range Segments() {
-		f, err := r.prototypeFlag(seg, &prototypes)
-		if err != nil {
-			return nil, fmt.Errorf("sevensegment: flag %s: %w", seg, err)
-		}
-		cx, cy, horizontal := segmentCentre(seg)
-		axis := r3.Vec{Y: 1}
-		if horizontal {
-			axis = r3.Vec{X: 1}
-		}
-		turn, err := r3.RotationAround(r3.Vec{X: cx, Y: cy, Z: RotorAxisZ}, axis, units.Degrees(dm.FlagAngle(seg, dm.Theta)))
-		if err != nil {
-			return nil, fmt.Errorf("sevensegment: flag %s: turn: %w", seg, err)
-		}
-		for _, b := range []struct {
-			name string
-			in   *decad.Body
-			dst  **decad.Body
-		}{{"yellow face", f.Yellow, &out.Flags[seg].Yellow}, {"black body", f.Black, &out.Flags[seg].Black}} {
-			posed, err := decad.Transform(b.in, turn).Do(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("sevensegment: flag %s %s: turn: %w", seg, b.name, err)
-			}
-			if *b.dst, err = placement.Place(ctx, posed, p.Placement); err != nil {
-				return nil, fmt.Errorf("sevensegment: place flag %s %s: %w", seg, b.name, err)
-			}
-		}
-	}
-	if out.PivotBlocks, err = r.pivotBlocks(); err != nil {
-		return nil, fmt.Errorf("sevensegment: pivot blocks: %w", err)
-	}
-	for _, st := range steps {
-		body, err := st.build()
-		if err != nil {
-			return nil, fmt.Errorf("sevensegment: %s: %w", st.name, err)
-		}
-		if body == nil || !body.IsSolid() {
-			return nil, fmt.Errorf("sevensegment: %s is not a solid", st.name)
-		}
-		if st.pose != nil {
-			if body, err = st.pose(body); err != nil {
-				return nil, fmt.Errorf("sevensegment: pose %s: %w", st.name, err)
-			}
-		}
-		if *st.dst, err = placement.Place(ctx, body, p.Placement); err != nil {
-			return nil, fmt.Errorf("sevensegment: place %s: %w", st.name, err)
-		}
-	}
-	out.Sketches = r.sketches
+	out.Dimensions, out.Sketches = dm, sketches
 	for i, site := range dm.Sites {
 		if out.Sites[i], err = placeSite(site, p.Placement); err != nil {
-			return nil, fmt.Errorf("sevensegment: place bolt %d: %w", i+1, err)
+			return fmt.Errorf("sevensegment: place bolt %d: %w", i+1, err)
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // camshaftTurn is the turn of the camshaft group by theta about the shaft axis, right-handed about +Y.
@@ -202,11 +107,10 @@ func (r *run) camshaftTurn() r3.Transform {
 
 // Build adds every body to doc, each in its container: 78 bodies. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
-	parts, err := BuildParts(ctx, doc, p)
-	if err != nil {
+	m := &Model{}
+	if err := m.build(ctx, doc, p, append(partSteps(&m.Parts), hardwareSteps(m)...)); err != nil {
 		return nil, err
 	}
-	m := &Model{Parts: *parts}
 	root := doc.Root()
 	units3 := map[string]*decad.Container{}
 	unit := func(name string) (*decad.Container, error) {
@@ -242,37 +146,10 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 			files = append(files, filed{"", GroovePinsContainerName, m.GroovePins[seg]})
 		}
 	}
-	for i, f := range []struct {
-		origin, u, v r3.Vec
-	}{
-		{r3.Vec{Y: frontInnerY, Z: ShaftZ}, r3.Vec{X: 1}, r3.Vec{Z: 1}},
-		{r3.Vec{Y: rearInnerY, Z: ShaftZ}, r3.Vec{Z: 1}, r3.Vec{X: 1}},
-	} {
-		frame, err := r3.NewFrame(f.origin, f.u, f.v)
-		if err != nil {
-			return nil, fmt.Errorf("sevensegment: bearing %d frame: %w", i+1, err)
-		}
-		bp := ballbearing.Params608ZZ()
-		bp.Placement = &frame
-		if p.Placement != nil {
-			lift, err := r3.FromFrame(*p.Placement)
-			if err != nil {
-				return nil, fmt.Errorf("sevensegment: bearing %d placement: %w", i+1, err)
-			}
-			bp.Lift = &lift
-		}
-		if m.Bearings[i], err = ballbearing.Build(ctx, doc, bp); err != nil {
-			return nil, fmt.Errorf("sevensegment: bearing %d: %w", i+1, err)
-		}
+	for i := range m.Bearings {
 		files = append(files, filed{"", BearingsContainerName, m.Bearings[i].Body})
 	}
-	for i, site := range m.Sites {
-		if m.Bolts[i], err = m2fastener.PlaceBolt(ctx, doc, site); err != nil {
-			return nil, fmt.Errorf("sevensegment: bolt %d: %w", i+1, err)
-		}
-		if m.Nuts[i], err = m2fastener.PlaceNut(ctx, doc, site); err != nil {
-			return nil, fmt.Errorf("sevensegment: nut %d: %w", i+1, err)
-		}
+	for i := range m.Bolts {
 		files = append(files, filed{"", BoltsContainerName, m.Bolts[i].Body}, filed{"", NutsContainerName, m.Nuts[i].Body})
 	}
 	flags, err := root.NewChild(FlagsContainerName)
