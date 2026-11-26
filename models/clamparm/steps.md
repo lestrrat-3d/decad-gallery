@@ -48,10 +48,10 @@ Idioms, each checked to solve fully constrained with one valid profile and the e
 
 ### Features
 
-- `decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(d), Dir: decad.Along})` goes along the sketch
+- `decad.Extrude(doc, s, profile, decad.Distance{D: units.Millimeters(d), Dir: decad.Along}).Do(ctx)` goes along the sketch
   plane's normal `U x V`; `decad.Against` goes the other way; `decad.Symmetric{D: units.Millimeters(half)}` goes `half`
   each side.
-- Cuts use `decad.Cut(ctx, body, tool)`, one tool at a time, in the order each part lists.
+- Cuts use `decad.Cut(body, tool).Do(ctx)`, one tool at a time, in the order each part lists.
 - Edge finishing uses `internal/edgefinish` with size `edgefinish.MinChamfer` (0.5). `Chamfer(ctx, body, normal, offsets,
   keep, size)` and `ChamferExcept(ctx, body, normal, offsets, keep, skip, size)` chamfer every kept loop of every planar
   face whose normal is `+-normal`, whose plane lies at `offsets[i]` along `normal` from the world origin, and whose net
@@ -263,7 +263,7 @@ Local frame: origin on J1's axis in the swivel's bottom face, +X toward J2, +Z u
    `centre = DimensionPoint(70, 10)`; `arc = CreateArc(centre, b, c)` (through +X) with `NewRadius(arc, 10)`;
    `NewHorizontalDistance(origin, b, 70)` and `(origin, c, 70)`; the lines a-b and c-d horizontal, d-a vertical with
    `NewDistancePointLine(origin, d-a, 11)`. Net area 1777.1. Extrude 22 along the normal: y 11 to -11.
-3. `decad.Intersect(ctx, plan, elevation)`: the swivel's body, 20 thick, round about J1 in plan and about J2 in
+3. `decad.Intersect(plan, elevation).Do(ctx)`: the swivel's body, 20 thick, round about J1 in plan and about J2 in
    elevation.
 4. Edge finishing before the cuts: one call, `edgefinish.ChamferExcept(ctx, body, (0,0,1), []float64{0, 20},
    edgefinish.Outer, skipParallel((0,1,0)), 0.5)`. With the exact cross-plane chain support in decad 5a61e0681424, this
@@ -312,7 +312,7 @@ Local frame: the J4 axis at the origin, +X along the head, +Z up. `PrintUp` is (
    This is before the boss union.
 3. Boss: `fastenertool.RoundedRevolve(ctx, doc, frame((40,0,9), (0,0,1), (1,0,0)), [][2]float64{{0,0}, {0,6}, {1,6}, {3,4},
    {3,0}})`: along the axis from z = 9 (1 mm inside the head) to z = 12, radius 6 at z = 10 narrowing at 45 degrees to
-   radius 4 at z = 12. `decad.Union(ctx, body, boss)`.
+   radius 4 at z = 12. `decad.Union(body, boss).Do(ctx)`.
 4. Cuts, in this order: `tongueCutter(+1)`, `tongueCutter(-1)`, the tongue hole `holeTool(tongueSite(0))`, the stud hole
    `holeTool(studLocal)` (diameter 5.6 along Z at x = 40, through the boss and the head).
 5. Edge finishing after the cuts, the design's call (passes with decad 5a61e0681424): `edgefinish.ChamferExcept(ctx, body, (0,1,0),

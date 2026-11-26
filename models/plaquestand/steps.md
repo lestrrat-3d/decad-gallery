@@ -77,8 +77,8 @@ several). A `Verify` failure is a blocker: add no point-fixing constraint to for
    be nil`.
 2. `p.Derive()`; return its error unchanged.
 3. `ctx.Err()` returns `plaquestand: before creating geometry: %w`.
-4. For each bracket k with `x_k` = 0 and `S - w_b`: `profileSketch(ctx, dm, x_k)`, then `decad.Extrude(ctx, doc, sketch,
-   profile, decad.Distance{D: w_b mm, Dir: decad.Along})`, then `edgefinish.Chamfer(ctx, body, (1, 0, 0), []float64{x_k,
+4. For each bracket k with `x_k` = 0 and `S - w_b`: `profileSketch(ctx, dm, x_k)`, then `decad.Extrude(doc, sketch,
+   profile, decad.Distance{D: w_b mm, Dir: decad.Along}).Do(ctx)`, then `edgefinish.Chamfer(ctx, body, (1, 0, 0), []float64{x_k,
    x_k + w_b}, edgefinish.Outer, ChamferSize)`, then `decad.Cut` of `m2fastener.RoundedHexPocketTool(ctx, doc, site,
    NutCavityHeight + Stock, NutPocketRound)` and of `m2fastener.HoleTool(ctx, doc, site)`. Require `IsSolid()`.
    `RoundedHexPocketTool` is `HexPocketTool` followed by `decad.Fillet` of `decad.Edges(decad.OuterLoopOf(decad.CapStart(
