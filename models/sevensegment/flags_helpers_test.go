@@ -315,9 +315,10 @@ func endDisc() [3]float64 {
 	return [3]float64{-sevensegment.ConeOffsetW, sevensegment.ConeOffsetZ, sevensegment.ConeDiscR}
 }
 
-// freeSpan returns the circles that bound the cone between the tongue and the pocket mouth: its base and its junction circle.
+// freeSpan returns the circles that bound the cone between the tongue and the pocket mouth: the end disc and the junction
+// circle. The buttress is their hull, and so is the tongue's end.
 func freeSpan() [][3]float64 {
-	return [][3]float64{{-sevensegment.ConeOffsetW, sevensegment.ConeOffsetZ, sevensegment.ConeBaseR}, {0, 0, sevensegment.ConeJoinR}}
+	return [][3]float64{endDisc(), {0, 0, sevensegment.ConeJoinR}}
 }
 
 // convexHull returns the convex hull of points by Andrew's monotone chain.

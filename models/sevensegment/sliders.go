@@ -89,12 +89,13 @@ const (
 	pinAxisZ        = RotorAxisZ - 2.625     // the drive axis at the unlit build pose of a, g and d
 )
 
-// The drive cone's dimensions, in mm. The cone is the rule "Thin pins" form: a base Ø4.0 on the tongue's end disc, and a
-// section that thins to a small tip. Its base lies off the drive axis, toward the rotor axis and down, where the notch has
-// room; a frustum leans it over to the drive axis, where a right cone runs into the rotor pocket.
+// The drive cone's dimensions, in mm. The cone is the rule "Thin pins" form: a base 4.2 across on the tongue's end disc, and
+// a section that thins to a small tip. Its base lies off the drive axis, toward the rotor axis and down, where the notch has
+// room. The cone itself stands on the drive axis the whole way down: a buttress, the hull of the junction circle and the
+// end disc, joins them, so its front is a vertical wall and its back a slope, and no face points down.
 const (
-	coneBaseR     = 2.00  // the base's radius on the tongue face
-	coneDiscR     = 2.10  // the end disc that carries the base: 0.10 wider all round
+	coneDiscR     = 2.10  // the end disc that carries the base
+	coneTau       = 0.97  // the buttress's top section is the hull of the junction circle and this fraction of the way to the disc
 	coneOffset    = 1.90  // the base centre's distance from the drive axis
 	coneOffsetDeg = 235.0 // its direction in the sweep frame: 180 is toward the rotor axis, 270 down
 	coneDiscRound = 0.5   // the inside rounds where the disc meets the strip's sides
@@ -103,7 +104,7 @@ const (
 	coneInsertR   = 0.95  // the section at the pocket mouth at the full insertion (+conePlay)
 	coneFit       = 0.20  // the pocket's clearance round that section
 	coneSpan      = 2.55  // from the tongue face to the pocket mouth
-	coneJoin      = 1.30  // the junction of frustum and right cone lies this far outside the pocket mouth
+	coneJoin      = 1.30  // the junction of the buttress and the right cone lies this far outside the pocket mouth
 	coneEngage    = 2.85  // from the pocket mouth to the tip
 	coneChamfer   = 0.15  // the tip's chamfer
 )
@@ -153,9 +154,31 @@ func toAxis(uIsX bool) float64 {
 	return 1
 }
 
+// hullLoop draws, on s in its own (x, y), the hull of circle 1 (centre c1, radius r1) and circle 2 (c2, r2), r1 >= r2: arc 1 on
+// the far side of circle 1, the lower tangent, arc 2 on the far side of circle 2, the upper tangent, all counter-clockwise.
+// Both circles' centres are dimensioned, both arcs carry their radius, and each tangent line touches both arcs.
+func hullLoop(s *sketch.Sketch, c1 [2]float64, r1 float64, c2 [2]float64, r2 float64) {
+	th := math.Atan2(c2[1]-c1[1], c2[0]-c1[0])
+	bt := math.Acos((r1 - r2) / math.Hypot(c2[0]-c1[0], c2[1]-c1[1]))
+	pt := func(c [2]float64, r, a float64) *sketch.Point {
+		return s.CreatePoint(c[0]+r*math.Cos(a), c[1]+r*math.Sin(a))
+	}
+	t1p, t1m := pt(c1, r1, th+bt), pt(c1, r1, th-bt)
+	t2p, t2m := pt(c2, r2, th+bt), pt(c2, r2, th-bt)
+	k1, k2 := sketchcheck.DimensionPoint(s, c1[0], c1[1]), sketchcheck.DimensionPoint(s, c2[0], c2[1])
+	a1 := s.CreateArc(k1, t1p, t1m)
+	l1 := s.CreateLine(t1m, t2m)
+	a2 := s.CreateArc(k2, t2m, t2p)
+	l2 := s.CreateLine(t2p, t1p)
+	s.AddConstraint(sketch.NewRadius(a1, r1), sketch.NewRadius(a2, r2), sketch.NewTangent(l1, a1), sketch.NewTangent(l1, a2),
+		sketch.NewTangent(l2, a2), sketch.NewTangent(l2, a1))
+}
+
 // tongueOutline draws the tongue in (w, z): the strip [sL, sR] with its feet and r 1.05 root rounds at the head, its two sides
-// up to the end disc of radius coneDiscR about (dc, zc), and the two coneDiscRound inside rounds that join each side to the disc.
-func tongueOutline(s *sketch.Sketch, sL, sR, dc, zc float64) {
+// up to the end of radius coneDiscR about (dc, zc), and the two coneDiscRound inside rounds that join each side to it. The end
+// is the hull of that disc and the junction circle of radius coneJoinR about the drive axis (jw, jz): the disc's arc round the
+// back, two tangent lines and the junction circle's arc at the front.
+func tongueOutline(s *sketch.Sketch, sL, sR, dc, zc, jw, jz float64) {
 	dp := func(x, y float64) *sketch.Point { return sketchcheck.DimensionPoint(s, x, y) }
 	zh := sliderHeadTop
 	zr := zh + tongueRootR - tongueRootDip
@@ -187,7 +210,32 @@ func tongueOutline(s *sketch.Sketch, sL, sR, dc, zc float64) {
 	}
 	lR := s.CreateLine(right[len(right)-1], sideR)
 	aR := s.CreateArc(cR, pR, sideR) // counter-clockwise from the disc to the side: the round turns outward
-	disc := s.CreateArc(cD, pR, pL)
+	// The two external tangents of the disc and the junction circle: normals at th +- bt, th the direction from the disc to it.
+	rJ := coneJoinR
+	th := math.Atan2(jz-zc, jw-dc)
+	bt := math.Acos((big - rJ) / math.Hypot(jw-dc, jz-zc))
+	aR0 := math.Atan2(tR[1]-zc, tR[0]-dc)
+	norm := func(a float64) float64 {
+		for a < aR0 {
+			a += 2 * math.Pi
+		}
+		for a >= aR0+2*math.Pi {
+			a -= 2 * math.Pi
+		}
+		return a
+	}
+	n1, n2 := norm(th-bt), norm(th+bt)
+	if n2 < n1 {
+		n1, n2 = n2, n1
+	}
+	pt := func(cw, cz, r, a float64) *sketch.Point { return s.CreatePoint(cw+r*math.Cos(a), cz+r*math.Sin(a)) }
+	tD1, tJ1, tJ2, tD2 := pt(dc, zc, big, n1), pt(jw, jz, rJ, n1), pt(jw, jz, rJ, n2), pt(dc, zc, big, n2)
+	cJ := dp(jw, jz)
+	disc := s.CreateArc(cD, pR, tD1)
+	l1 := s.CreateLine(tD1, tJ1)
+	arcJ := s.CreateArc(cJ, tJ1, tJ2)
+	l2 := s.CreateLine(tJ2, tD2)
+	discB := s.CreateArc(cD, tD2, pL)
 	aL := s.CreateArc(cL, sideL, pL)
 	lL := s.CreateLine(sideL, left[0])
 	for i := 0; i+1 < len(left); i++ {
@@ -197,14 +245,16 @@ func tongueOutline(s *sketch.Sketch, sL, sR, dc, zc float64) {
 	s.AddConstraint(sketch.NewVertical(lR), sketch.NewVertical(lL),
 		sketch.NewRadius(disc, big), sketch.NewRadius(aR, rf), sketch.NewRadius(aL, rf),
 		sketch.NewTangent(lR, aR), sketch.NewTangent(lL, aL),
-		sketch.NewTangentCircles(aR, disc, false), sketch.NewTangentCircles(aL, disc, false))
+		sketch.NewTangentCircles(aR, disc, false), sketch.NewTangentCircles(aL, discB, false),
+		sketch.NewRadius(discB, big), sketch.NewRadius(arcJ, rJ), sketch.NewTangent(l1, disc),
+		sketch.NewTangent(l1, arcJ), sketch.NewTangent(l2, arcJ), sketch.NewTangent(l2, discB))
 }
 
 // rootedTongue builds the tongue and its drive cone. u is the rotor axis direction (world X when uIsX, else world Y); the
 // tongue runs along +u from ua, the print face, to ue, the cone face; its strip spans [sL, sR] in the other horizontal axis;
-// the drive axis is at (sc, zp). The result has r 1.05 roots on three sides, the end disc, and the cone: a frustum from the
-// base circle on the cone face to the junction circle on the drive axis, and a right cone on the drive axis from there to the
-// tip. The cone's root on the tongue face is sharp (decad item D2).
+// the drive axis is at (sc, zp). The result has r 1.05 roots on three sides, the end hull, and the cone: a buttress lofted from
+// the end hull to the junction plane, and a right cone on the drive axis from there to the tip. The buttress is flush with the
+// tongue's end outline, so the cone has no root ring on the tongue face, and no face of the cone points down.
 func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Body, error) {
 	dc, zc := sc+toAxis(uIsX)*coneOffsetW, zp+coneOffsetZ
 	// 1. The hull prism: the outline in (w, z), extruded along u from ua to ue + 1.6. Its chord runs make its end cap a faceted
@@ -215,7 +265,7 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, err
 	}
-	tongueOutline(s1, sL, sR, dc, zc)
+	tongueOutline(s1, sL, sR, dc, zc, sc, zp)
 	p1, err := r.extrude(s1, 0, ue+1.6-ua+1.0, d1)
 	if err != nil {
 		return nil, fmt.Errorf("tongue hull prism: %w", err)
@@ -260,7 +310,8 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cut: %w", err)
 	}
-	// 3. The frustum: a ruled loft from the base circle on u = ue to the junction circle on the drive axis at u = uj.
+	// 3. The buttress: a ruled loft from the end hull on u = ue, flush with the tongue's end outline, to the junction plane
+	// u = uj.
 	uj := ue + coneSpan - coneJoin
 	plane := func(u float64) r3.Frame {
 		if uIsX {
@@ -270,35 +321,40 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 		f, _ := r3.NewFrame(r3.Vec{Y: u}, r3.Vec{Z: 1}, r3.Vec{X: 1}) // U = Z, V = X: normal +Y
 		return f
 	}
-	circle := func(u, w, z, rad float64) (*sketch.Sketch, *sketch.Profile, error) {
+	// hull is the section of the buttress at u: the hull of the junction circle and the circle at fraction t of the way from
+	// the end disc to the junction circle (centre and radius interpolated). Every such circle touches the same two tangent
+	// lines as the end disc does, so the loft's walls are two vertical planes and the junction circle's vertical cylinder.
+	hull := func(u, t float64) (*sketch.Sketch, *sketch.Profile, error) {
 		s, err := r.sketchOn(plane(u))
 		if err != nil {
 			return nil, nil, err
 		}
-		var c *sketch.Point
-		if uIsX {
-			c = sketchcheck.DimensionPoint(s, w, z)
-		} else {
-			c = sketchcheck.DimensionPoint(s, z, w)
+		cw, cz := sc+(1-t)*(dc-sc), zp+(1-t)*(zc-zp)
+		rr := (1-t)*coneDiscR + t*coneJoinR
+		p := func(w, z float64) [2]float64 {
+			if uIsX {
+				return [2]float64{w, z}
+			}
+			return [2]float64{z, w}
 		}
-		s.AddConstraint(sketch.NewRadius(s.CreateCircle(c, rad), rad))
+		hullLoop(s, p(cw, cz), rr, p(sc, zp), coneJoinR)
 		pr, err := r.profile(s, 0)
 		return s, pr, err
 	}
-	s0, pr0, err := circle(ue, dc, zc, coneBaseR)
+	hb, pb, err := hull(ue, 0)
 	if err != nil {
-		return nil, fmt.Errorf("cone base circle: %w", err)
+		return nil, fmt.Errorf("boss base: %w", err)
 	}
-	sj, prj, err := circle(uj, sc, zp, coneJoinR)
+	ht, pt, err := hull(uj, coneTau)
 	if err != nil {
-		return nil, fmt.Errorf("cone junction circle: %w", err)
+		return nil, fmt.Errorf("boss top: %w", err)
 	}
-	frustum, err := decad.Loft(r.ctx, r.doc, s0, pr0, sj, prj)
+	boss, err := decad.Loft(r.ctx, r.doc, hb, pb, ht, pt)
 	if err != nil {
-		return nil, fmt.Errorf("cone frustum: %w", err)
+		return nil, fmt.Errorf("boss loft: %w", err)
 	}
 	// 4. The right cone: a meridian (along u from uj, radius) revolved about the drive axis. Its first side is the junction
-	// circle's disc, the frustum's top cap.
+	// circle's disc, which lies in the buttress's top cap.
 	o, axis := r3.Vec{X: uj, Y: sc, Z: zp}, r3.Vec{X: 1}
 	if !uIsX {
 		o, axis = r3.Vec{X: sc, Y: uj, Z: zp}, r3.Vec{Y: 1}
@@ -321,9 +377,9 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("cone revolve: %w", err)
 	}
-	drive, err := decad.Union(r.ctx, frustum, cone)
+	drive, err := decad.Union(r.ctx, boss, cone)
 	if err != nil {
-		return nil, fmt.Errorf("cone frustum and right cone: %w", err)
+		return nil, fmt.Errorf("boss and right cone: %w", err)
 	}
 	if tongue, err = decad.Union(r.ctx, tongue, drive); err != nil {
 		return nil, fmt.Errorf("tongue and cone: %w", err)

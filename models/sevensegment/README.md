@@ -171,8 +171,8 @@ on a printer that changes between two filaments of one polymer (both bodies shar
 polymer, for example PETG, to bond). A pause for a filament change does not work: the yellow takes the first 12 layers
 and the black rim is printed in the same layers, so a pause would turn the rim and the tips yellow. A plate of seven rotors needs
 about 24 tool changes (about 8 without the tips); a slicer preview shows the time. The rotor is 11.25 mm square and has a 1.8 mm bore
-in each end (a teardrop roof, so it needs no support). Each slider's drive cone stands upright in print and needs no support: its steepest
-face leans 35 degrees from the vertical. Print the 14 pivot blocks on their outer faces with the cones
+in each end (a teardrop roof, so it needs no support). Each slider's drive cone stands upright in print and needs no support: it stands on the drive axis on a buttress with a
+vertical front and a sloped back, so no face points down. Print the 14 pivot blocks on their outer faces with the cones
 up (every face of a cone leans at least 8 degrees from the bed, so none overhangs); check the first block against the pocket before printing the rest. The rotors, sliders, pivot cones, pegs and the groove pins of b, c, e and f print whole, not split, and the instructions say why. The a, g and d groove pins are split, held by their closed holes and not by bolts: no M2 bolt fits, and the instructions list this as an exception to the clamping rule. A bearing,
 bolt or nut is bought.
 
@@ -245,16 +245,15 @@ captive test poses the nominal rise; at the worst tolerance the blade ridge of a
 The face teeth of the rotor, button and housing are listed: their tips are engagement edges, and their roots are retained sharp corners
 (a land of 0.03 mm above the valley), because the 0.5 mm root round of the corner rule does not fit a 26 degree valley at 3.2 mm radius.
 
-Eight kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
+Seven kinds of sharp corner or thin rim stay, and the instructions list each (the plate under the window edge is now 1.51 mm
 thick along the long sides and 1.25 mm at the shoulders, above the 0.8 mm minimum, so the window rims need no listing): the inner
-loops of the seam faces of the cradle and the top plate; the inner loops of the cradle plate's bottom face; the root of each
-cone on a slider's tongue; the root and tip of the integral groove pin on the b, c, e and f sliders, where a section near the edge of the Ø4.5 cylinder reads as a corner; the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
-120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops and the cone roots yet.
+loops of the seam faces of the cradle and the top plate; the inner loops of the cradle plate's bottom face; the root and tip of the integral groove pin on the b, c, e and f sliders, where a section near the edge of the Ø4.5 cylinder reads as a corner; the 45-degree step in the head of the a, g and d sliders; the pyramid edges of the rotors (convex,
+120 degrees); and the corner at the end wall of each rotor bore. The tooling cannot round the cradle loops yet.
 
 ## Known exceptions
 
 The rule against printed straight pins thinner than 4 mm ("Thin pins" in `docs/model-pipeline.md`) is met by the sliders'
-drive cones, each with a 4.0 mm base thinning to a 0.82 mm tip, and by the 14 pivot cones, each with a 4.0 mm base thinning to a
+drive cones, each with a 4.2 x 5.0 mm base thinning to a 0.82 mm tip, and by the 14 pivot cones, each with a 4.0 mm base thinning to a
 0.9 mm ball tip. No pin of the model is a known exception.
 
 The "Split shafts" rule asks M2 cross bolts to clamp the halves of a pin that stands out of its part. The a, g and d groove pins have none: along the stem the bolt's head pocket would leave

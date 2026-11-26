@@ -51,9 +51,12 @@ func driveGeometry(s sevensegment.Segment, yi float64) (uIsX bool, ue, sc, zp fl
 	return false, yi - 0.3, sevensegment.PinStationBC, sevensegment.PinAxisZ + sevensegment.RaiseOf(s)
 }
 
-// driveSamples returns points on the surface of segment s's drive cone: the frustum from the base circle (radius coneBaseR about
-// the base centre, on the cone face) to the junction circle, and the right cone from the junction to the tip with its chamfer.
-// A mesh holds a cone only at its end rings, so a distance from the mesh vertices misses the section at the pocket mouth.
+// driveSamples returns points on the surface of segment s's drive cone: the buttress from the end hull on the cone face to its top
+// section at the junction plane, and the right cone from the junction to the tip with its chamfer. The buttress section at
+// fraction f is the hull of the junction circle and the circle f of the way from the end disc to it; its walls are the junction
+// circle's arc and the two tangent lines every such circle shares, so each section is sampled on the circle and on the two
+// tangent lines. A mesh holds a cone only at its end rings, so a distance from the mesh vertices misses the section at the pocket
+// mouth.
 func driveSamples(s sevensegment.Segment, yi float64) []r3.Vec {
 	uIsX, ue, sc, zp := driveGeometry(s, yi)
 	dc, zc := sc+sevensegment.ToAxis(uIsX)*sevensegment.ConeOffsetW, zp+sevensegment.ConeOffsetZ
@@ -66,13 +69,30 @@ func driveSamples(s sevensegment.Segment, yi float64) []r3.Vec {
 		return r3.Vec{X: w, Y: u, Z: z}
 	}
 	var out []r3.Vec
+	// The two tangent lines' normals, from the end disc to the junction circle.
+	th := math.Atan2(zp-zc, sc-dc)
+	bt := math.Acos((sevensegment.ConeDiscR - sevensegment.ConeJoinR) / math.Hypot(sc-dc, zp-zc))
 	for i := 0; i <= 40; i++ {
 		f := float64(i) / 40
-		cw, cz := dc+f*(sc-dc), zc+f*(zp-zc)
-		rad := sevensegment.ConeBaseR + f*(sevensegment.ConeJoinR-sevensegment.ConeBaseR)
+		u := ue + f*(uj-ue)
+		tf := f * sevensegment.ConeTau
+		cw, cz := dc+tf*(sc-dc), zc+tf*(zp-zc)
+		rad := sevensegment.ConeDiscR + tf*(sevensegment.ConeJoinR-sevensegment.ConeDiscR)
 		for a := 0; a < 360; a += 4 {
 			ar := float64(a) * math.Pi / 180
-			out = append(out, pt(ue+f*(uj-ue), cw+rad*math.Cos(ar), cz+rad*math.Sin(ar)))
+			out = append(out, pt(u, cw+rad*math.Cos(ar), cz+rad*math.Sin(ar)))
+		}
+		for _, n := range []float64{th - bt, th + bt} {
+			for k := 0; k <= 20; k++ {
+				g := float64(k) / 20
+				a1w, a1z := cw+rad*math.Cos(n), cz+rad*math.Sin(n)
+				a2w, a2z := sc+sevensegment.ConeJoinR*math.Cos(n), zp+sevensegment.ConeJoinR*math.Sin(n)
+				out = append(out, pt(u, a1w+g*(a2w-a1w), a1z+g*(a2z-a1z)))
+			}
+		}
+		for a := 0; a < 360; a += 4 { // the junction circle itself: the buttress's vertical wall at the front
+			ar := float64(a) * math.Pi / 180
+			out = append(out, pt(u, sc+sevensegment.ConeJoinR*math.Cos(ar), zp+sevensegment.ConeJoinR*math.Sin(ar)))
 		}
 	}
 	for i := 0; i <= 80; i++ {

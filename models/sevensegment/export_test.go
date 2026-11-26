@@ -75,8 +75,8 @@ var (
 	ConeLength   = coneLength
 	ConeOffsetW  = coneOffsetW
 	ConeOffsetZ  = coneOffsetZ
-	ConeBaseR    = coneBaseR
 	ConeDiscR    = coneDiscR
+	ConeTau      = coneTau
 	ConeInsertR  = coneInsertR
 	ConeFit      = coneFit
 	ConePlay     = conePlay

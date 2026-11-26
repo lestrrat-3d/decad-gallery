@@ -138,17 +138,17 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 	require.InDelta(t, sevensegment.NotchFloor, sevensegment.MeasureNotchFloor(t, sevensegment.SegB), 0.02, "the built notch floor of type B")
 	// The cap is the turned-over rise: 1.808 for a, g, d (1.28 and the separate pin's reversed sag, 0.528) and 1.88 for b to f (the tilt
 	// reverses: twice the droop of about 0.30); a, g, d at the worst sag tolerance rise 2.07.
-	// The strip's top lies 1.8 below the drive axis; the end disc hulls it. The free span is the cone's base and junction circle.
+	// The strip's top lies 1.8 below the drive axis; the end hull (the end disc and the junction circle) hulls it. The free span is the same hull.
 	for _, c := range []struct {
 		name       string
 		cap, dwell float64
 		yellow     float64 // the least tongue to yellow shell gap at the least slot clearance, +-0.005
 		black      float64 // the tongue to the black leg
 		span       float64 // the free span to the yellow shell
-	}{{"a, g, d", 1.808, c, 0.719, 1.861, 0.690}, {"a, g, d at the worst sag tolerance", 2.07, c, 0.714, 1.720, 0.689},
-		{"b to f", 1.88, c, 0.719, 1.794, 0.691}} {
+	}{{"a, g, d", 1.808, c, 0.690, 1.861, 0.690}, {"a, g, d at the worst sag tolerance", 2.07, c, 0.689, 1.720, 0.689},
+		{"b to f", 1.88, c, 0.691, 1.794, 0.691}} {
 		for _, slot := range []float64{slotClearMin, slotClearMax} {
-			ty, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine, c.cap, c.cap, c.dwell, floor, slot, [][3]float64{endDisc()})
+			ty, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine, c.cap, c.cap, c.dwell, floor, slot, freeSpan())
 			fy, _ := sweep(0, 0, 0, headLine, c.cap, c.cap, c.dwell, floor, slot, freeSpan())
 			t.Logf("%s turned over (rise %.2f), slot clearance %.3f: tongue to the yellow shell %.3f, to the black leg %.3f; free span to the yellow shell %.3f",
 				c.name, c.cap, slot, ty, tb, fy)
@@ -164,6 +164,6 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 		}
 	}
 	// With the head line 2.0 higher than it is the black leg is entered.
-	_, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine+2.0, 1.808, 1.808, c, floor, slotClearMin, [][3]float64{endDisc()})
+	_, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine+2.0, 1.808, 1.808, c, floor, slotClearMin, freeSpan())
 	require.Less(t, tb, 0.0)
 }
