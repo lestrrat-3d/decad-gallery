@@ -16,7 +16,9 @@ import (
 
 // TestSevenSegmentCaptive turns the unit over at every digit. Against the settled rest the flags rise 0.5, the sliders 0.8 and
 // the b-f sliders a further 2 raise at the pin (the tilt reverses); settled, the flags sit 0.5 and the sliders 0.4 below
-// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every drive cone
+// the modeled pose, so the flags are at their modeled height and the sliders 0.4 above it. The a, g and d sliders hang on a
+// separate pin in a hole with 0.2 of clearance: upright they sag 0.264 (0.664 below the modeled pose) and turned over the
+// sag reverses, so they rise 0.528 further (groovePinTurnover). Every rotor stays on its pivot pins (the flag touches neither the plates nor the pivot blocks), every drive cone
 // in its pocket and every blade in its tube (the slider does not touch the black body or the plates).
 func TestSevenSegmentCaptive(t *testing.T) {
 	t.Parallel()
@@ -76,11 +78,11 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			}
 			groove := r3.Vec{X: pivotX, Y: dm.Station(s), Z: sevensegment.GuideFrom}
 			tilt *= 0.5
-			slider := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift)
-			sliderPin := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift)
+			slider := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift+groovePinTurnover(s))
+			sliderPin := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift+groovePinTurnover(s))
 			point, axis := segmentAxis(s)
 			// The rotor follows its pin: the pin line is 0.4 higher (and 2 raise more on b-f), which turns the rotor.
-			zrel := dm.Lift(s, 36*float64(k)) - 2.625 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + slideraise(s)/2
+			zrel := dm.Lift(s, 36*float64(k)) - 2.625 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + groovePinTurnover(s) + slideraise(s)/2
 			dphi := math.Atan2(zrel, sevensegment.PinOffset)*180/math.Pi - dm.FlagAngle(s, 0)
 			// At the full rise the bore's roof meets the pin by design (gap 0), which a mesh cannot prove separated: the flags
 			// are posed 0.11 low, the mesh bound. The pin axis is 0.25 below the modeled axis once clamped and the bore leaves
@@ -121,7 +123,7 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			verts := make([]r3.Vec, 0, len(sliders[s].Vertices()))
 			for _, v := range sliders[s].Vertices() {
 				p := turn.Apply(v)
-				p.Z += lift + 0.4 - 0.2 - bladeLift
+				p.Z += lift + 0.4 - 0.2 - bladeLift + groovePinTurnover(s)
 				verts = append(verts, p)
 			}
 			depthTop := penetration(verts, topGrid, plates[0], func(p r3.Vec) r3.Vec { p.Z += 0.5; return p })

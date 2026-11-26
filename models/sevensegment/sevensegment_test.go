@@ -19,7 +19,7 @@ import (
 func TestSevenSegmentDefault(t *testing.T) {
 	t.Parallel()
 	doc, m := builtDefault(t)
-	require.Len(t, doc.Bodies(), 75)
+	require.Len(t, doc.Bodies(), 78)
 	for _, b := range doc.Bodies() {
 		require.True(t, b.IsSolid())
 	}
@@ -103,6 +103,9 @@ func TestSevenSegmentContainers(t *testing.T) {
 		want["cam "+s.String()] = struct{ parent, kind string }{sevensegment.CamshaftContainerName,
 			sevensegment.CamsContainerName}
 		want["slider "+s.String()] = struct{ parent, kind string }{"", sevensegment.SlidersContainerName}
+		if m.GroovePins[s] != nil {
+			want["groove pin "+s.String()] = struct{ parent, kind string }{"", sevensegment.GroovePinsContainerName}
+		}
 	}
 	for name, b := range printed(m) {
 		if strings.HasPrefix(name, "yellow face") || strings.HasPrefix(name, "black body") ||

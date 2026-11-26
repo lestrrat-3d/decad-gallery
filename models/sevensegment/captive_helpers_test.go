@@ -9,11 +9,11 @@ import (
 	"github.com/lestrrat-3d/r3"
 )
 
-// slideraise is the droop a b-f slider settles to about its groove pin: the model's built-in raise plus RaiseBelowDroop (the
+// slideraise is the droop a b-f slider (0 for a, g, d, which sag instead: see groovePinTurnover) settles to about its groove pin: the model's built-in raise plus RaiseBelowDroop (the
 // pin is modeled that much below the droop). It is 0.25 for b and c and 0.30 for e and f.
 func slideraise(s sevensegment.Segment) float64 {
-	if sevensegment.RaiseOf(s) == 0 {
-		return 0
+	if _, _, horizontal := segmentCentreOf(s); horizontal {
+		return 0 // a, g, d hang on a separate pin and sag straight down: they do not tilt
 	}
 	return sevensegment.RaiseOf(s) + sevensegment.RaiseBelowDroop
 }
@@ -44,7 +44,7 @@ func penetration(verts []r3.Vec, solid *crossingGrid, gap meshgap.Mesh, toSolid 
 func driveGeometry(s sevensegment.Segment, yi float64) (uIsX bool, ue, sc, zp float64) {
 	switch s {
 	case sevensegment.SegA, sevensegment.SegG, sevensegment.SegD:
-		return true, -2.85, yi + sevensegment.PinStationAGD, sevensegment.PinAxisZ
+		return true, -2.85, yi + sevensegment.PinStationAGD, sevensegment.PinAxisZ + sevensegment.RaiseOf(s) // the whole body is built RaiseOf higher
 	case sevensegment.SegE, sevensegment.SegF:
 		return false, yi - 0.3, -sevensegment.PinStationEF, sevensegment.PinAxisZ + sevensegment.RaiseOf(s)
 	}
@@ -132,4 +132,14 @@ func pinDistance(s sevensegment.Segment) float64 {
 		return sevensegment.PinStationEF
 	}
 	return 0
+}
+
+// groovePinTurnover is how far a, g and d rise further when the unit is turned over: their separate pin bears on the hole at
+// its mouth and root, so the slider sags 0.264 and the sag reverses (0.528 more travel). The built mesh is already RaiseOf
+// higher than the pose the design's 0.528 is measured from, so the pose takes the difference. It is 0 for b to f.
+func groovePinTurnover(s sevensegment.Segment) float64 {
+	if _, _, horizontal := segmentCentreOf(s); !horizontal {
+		return 0
+	}
+	return 2*0.264 - sevensegment.RaiseOf(s)
 }

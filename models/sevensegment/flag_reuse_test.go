@@ -26,7 +26,7 @@ func TestSevenSegmentFlagReuse(t *testing.T) {
 	doc := NewDocument()
 	model, err := Build(ctx, doc, p)
 	require.NoError(t, err)
-	require.Equal(t, 75, len(doc.Bodies()))
+	require.Equal(t, 78, len(doc.Bodies()))
 	require.NoError(t, doc.VerifyContainers().Err())
 	for i, s := range model.Sketches {
 		report := s.Verify(ctx)

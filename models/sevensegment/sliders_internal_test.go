@@ -19,8 +19,9 @@ func TestSevenSegmentSliders(t *testing.T) {
 	// The volumes with the 0.5 chamfers of "Surface edge finishing" on the stem faces, which remove 23.8 (a, g, d), 34.0 (b, c)
 	// and 34.9 mm3 (e, f) from the same build without them. With the leaning cone in place of the straight pin each is 19.3
 	// mm3 above the earlier build (3301.94, 3301.62, 3349.56), and 0.54 below the prototype that kept a 0.1 ledge at the
-	// cone's junction.
-	want := map[Segment]float64{SegA: 3321.21, SegG: 3321.21, SegD: 3321.21, SegB: 3320.84, SegC: 3320.84, SegE: 3368.79, SegF: 3368.79}
+	// cone's junction. The a, g and d sliders lose their integral pin and gain the keyed hole of the separate groove pin:
+	// 3185.28 mm3, 135.93 less.
+	want := map[Segment]float64{SegA: 3185.28, SegG: 3185.28, SegD: 3185.28, SegB: 3320.84, SegC: 3320.84, SegE: 3368.79, SegF: 3368.79}
 	vols := map[Segment]float64{}
 	for _, seg := range Segments() {
 		t.Run(seg.String(), func(t *testing.T) {
@@ -35,6 +36,11 @@ func TestSevenSegmentSliders(t *testing.T) {
 			_, _, horizontal := segmentCentre(seg)
 			ef := seg == SegE || seg == SegF
 			// Head or arm top 72.8: material just under it and none just over it, away from the blade and tongue.
+			// The a, g and d bodies are built raise higher than the others (the sag of the separate pin in its hole).
+			dz := 0.0
+			if horizontal {
+				dz = raise(seg)
+			}
 			headX, headY := 0.0, yi-6.0
 			if !horizontal {
 				headX, headY = 21.0, yi
@@ -42,10 +48,10 @@ func TestSevenSegmentSliders(t *testing.T) {
 					headX = -21.0
 				}
 			}
-			require.True(t, inBody(t, body, r3.Vec{X: headX, Y: headY, Z: sliderHeadTop - 0.1}), "head top")
-			require.False(t, inBody(t, body, r3.Vec{X: headX, Y: headY, Z: sliderHeadTop + 0.1}), "head top")
+			require.True(t, inBody(t, body, r3.Vec{X: headX, Y: headY, Z: sliderHeadTop + dz - 0.1}), "head top")
+			require.False(t, inBody(t, body, r3.Vec{X: headX, Y: headY, Z: sliderHeadTop + dz + 0.1}), "head top")
 			// Blade: 1.65 thick (its rotor-side face 0.1 back from the old 1.2) and 10.5 (a, g, d) or 7.2 (b-f) long, 10.8 over the head top.
-			bz := sliderHeadTop + 10.8
+			bz := sliderHeadTop + dz + 10.8
 			if horizontal {
 				require.True(t, inBody(t, body, r3.Vec{X: 5.25 - 0.1, Y: yi - 10.8, Z: bz}))
 				require.False(t, inBody(t, body, r3.Vec{X: 5.25 + 0.1, Y: yi - 10.8, Z: bz}))
@@ -68,7 +74,7 @@ func TestSevenSegmentSliders(t *testing.T) {
 			var ue float64
 			switch {
 			case horizontal:
-				centre, along, wdir, ue = r3.Vec{Y: yi + pinStationAGD, Z: pinAxisZ}, r3.Vec{X: 1}, r3.Vec{Y: 1}, -2.85
+				centre, along, wdir, ue = r3.Vec{Y: yi + pinStationAGD, Z: pinAxisZ + raise(seg)}, r3.Vec{X: 1}, r3.Vec{Y: 1}, -2.85
 			case ef:
 				centre, along, wdir, ue = r3.Vec{X: -pinStationEF, Z: pinAxisZ + raise(seg)}, r3.Vec{Y: 1}, r3.Vec{X: 1}, yi-0.3
 			default:
@@ -100,8 +106,11 @@ func TestSevenSegmentSliders(t *testing.T) {
 			if horizontal {
 				up = r3.Vec{X: 1}
 			}
-			// The groove pin's root and tip are listed (groovePinExempt).
-			ex := groovePinExempt(yi)
+			// The integral groove pin's root and tip of b to f are listed (groovePinExempt); a, g and d have no exemption.
+			var ex []cornercheck.Exempt
+			if !horizontal {
+				ex = groovePinExempt(yi)
+			}
 			fs, err := cornercheck.Check(t.Context(), body, up, ex)
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 5))
@@ -176,7 +185,7 @@ func TestSevenSegmentSliderConeOverhang(t *testing.T) {
 		}
 		if horizontal {
 			uval, wz = func(v r3.Vec) float64 { return v.X }, func(v r3.Vec) (float64, float64) { return v.Y, v.Z }
-			up, ue, sc, zp = r3.Vec{X: 1}, -2.85, r.dm.Station(seg)+pinStationAGD, pinAxisZ
+			up, ue, sc, zp = r3.Vec{X: 1}, -2.85, r.dm.Station(seg)+pinStationAGD, pinAxisZ+raise(seg)
 		}
 		worst, seen, steep := 1.0, 0, 0.0
 		vs := mesh.Vertices()

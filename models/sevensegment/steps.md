@@ -60,15 +60,16 @@ func ReleasePose(s float64) (drop, turn float64)
 const (
     FrameContainerName, WallsContainerName, PlatesContainerName, CamshaftContainerName, ShaftContainerName,
     CamsContainerName, ClickerContainerName, HubContainerName, RotorContainerName, HousingContainerName,
-    ButtonContainerName, SpringContainerName, SlidersContainerName, BearingsContainerName,
+    ButtonContainerName, SpringContainerName, SlidersContainerName, GroovePinsContainerName, BearingsContainerName,
     BoltsContainerName, NutsContainerName = "Frame", "Walls", "Plates", "Camshaft", "Shaft", "Cams",
-    "Click Indexer", "Hub", "Rotor", "Housing", "Button", "Spring", "Segment Sliders", "Bearings", "Bolts", "Nuts"
+    "Click Indexer", "Hub", "Rotor", "Housing", "Button", "Spring", "Segment Sliders", "Groove Pins", "Bearings", "Bolts", "Nuts"
 )
 type Parts struct {
     FrontWall, RearWall, GuidePlate, TopPlate *decad.Body
     Shaft                                      *decad.Body
     Hub, Rotor, Housing, Button, Spring        *decad.Body
     Cams, Sliders                                          [7]*decad.Body // indexed by Segment
+    GroovePins                                             [7]*decad.Body // a, g, d only; b to f nil
     Sketches   []*sketch.Sketch
     Dimensions Dimensions
     Sites      [10]m2fastener.Site // placed
@@ -139,10 +140,11 @@ const (
 // Flag is one printed two-colour rotor.
 type Flag struct{ Yellow, Black *decad.Body }
 
-// Parts gains CradlePlate *decad.Body and Flags [7]Flag (indexed by Segment).
+// Parts gains CradlePlate *decad.Body and Flags [7]Flag (indexed by Segment), and GroovePins [7]*decad.Body: the separate
+// groove pins of a, g and d by Segment, nil for b to f. GroovePinsContainerName = "Groove Pins".
 
 // FlagAngle returns segment s's modeled rotor angle in degrees at camshaft angle theta:
-// atan2(Lift(s, theta) - 2.625 + raise_s, PinOffset), raise_s 0 (a, g, d), 0.20 (b, c), 0.25 (e, f).
+// atan2(Lift(s, theta) - 2.625 + raise_s, PinOffset), raise_s 0.214 (a, g, d), 0.20 (b, c), 0.25 (e, f).
 func (d Dimensions) FlagAngle(s Segment, theta float64) float64
 ```
 
@@ -345,7 +347,15 @@ one-off scratch build before the port, which is not in the repository; a decad r
   the rotor frame `rotorFrame(s)`.
 - `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and its drive cone
   (`rootedTongue`: the end disc, the frustum from `decad.Loft` and the right cone from `decad.Revolve`), the 0.5 stem chamfers and
-  the groove pin.
+  the groove pin: the integral pin of b to f, or for a, g and d the keyed hole of the separate pin (below).
+- `groovepin.go`: `groovePin` (a, g, d) is one body: a revolve of the Ø4.5 round (root chamfer 0.55 at 45 degrees, tip chamfer 0.3),
+  a prism of the wing octagon (flats at x = +-2.25, 45 degree flanks `|x| + |z| = 3.082`, closed inside the round) intersected with a
+  revolved envelope (the root's 45 degree cone, a 30 degree cone that meets the round 0.1 inside the stem face), and one `Union`.
+  Axis +Y at x = 0, z 69.0, from y_i - 1.3 to y_i + 5.7. `groovePinHole` cuts the blind keyed hole: a circle r 2.45 with 45 degree V faces
+  (two arcs `NewRadius`/`NewEqualRadius`, four lines `NewTangent` to them at `NewAngle` 45, 135, -135, -45, the centre a `DimensionPoint`),
+  extruded from y_i - 1.5 out past the face, its floor edges rounded 0.75 by `decad.Fillet`, then `Cut` after `edgefinish.ChamferRuns`. The hole's
+  centre is 0.214 (`raise`) below the pin's axis and the whole a, g, d slider body is then translated +0.214 in Z, so the pin sits on the groove's
+  centreline in the middle of the hole's 0.2 play. Every sketch verifies fully constrained.
 - `frame.go`: `cradlePlate()`, `flagTopPlate()` (windows from `windowHalfWidth` 4.825, `windowChamfer` 19.525 and
   `windowEnd` 17.544) and `columnGuidePlate()` with `boreTool`, `rootedBox`, `rootedPost`,
   `mouthCone` and `flagSites()`.
@@ -393,7 +403,7 @@ Check: `TestSevenSegmentFasteners`.
 1. Build every part in its frame (above).
 2. Camshaft group (shaft, cams, hub, rotor, spring): `decad.Transform` by
    `r3.RotationAround((0,0,44.25), (0,1,0), θ)`, θ = 36 · Digit.
-3. Sliders: translate +4.5 Z where `Lit(Digit, s)`.
+3. Sliders and the a, g, d groove pins: translate +4.5 Z where `Lit(Digit, s)`.
 4. Every printed body and both bearings: `placement.Place(ctx, body, p.Placement)`. Fastener sites are carried
    through the placement with onewayclutch `placeSite`; bolts and nuts are built from the placed sites with
    `m2fastener.PlaceBolt`/`PlaceNut` and are not placed again.
@@ -410,12 +420,13 @@ Check: `TestSevenSegmentFasteners`.
 | `Cams` (Camshaft) | 7 cams |
 | `Hub`, `Rotor`, `Housing`, `Button`, `Spring` (Click Indexer) | one body each |
 | `Segment Sliders` (root) | 7 sliders |
+| `Groove Pins` (root) | 3 pins, a, g, d (the export cuts each into two halves on x = 0) |
 | `Flags` (root) | 7 `Flag` units, each with a `Yellow Face` and a `Black Body` |
 | `Bearings` (root) | 2 × 608ZZ |
 | `Bolts` (root) | 6 × M2 × 16, 4 × M2 × 10 |
 | `Nuts` (root) | 10 × M2 nut |
 
-75 bodies, with `Pivot Blocks` (root) holding the 14 blocks. Use `NewChild` for units, `ChildNamed` for kinds, `AddBody`; require `doc.VerifyContainers().Err() == nil`.
+78 bodies, with `Pivot Blocks` (root) holding the 14 blocks. Use `NewChild` for units, `ChildNamed` for kinds, `AddBody`; require `doc.VerifyContainers().Err() == nil`.
 The body set never changes with `Digit`.
 Check: `TestSevenSegmentDefault`, `TestSevenSegmentContainers`,
 `TestSevenSegmentAllDigits`, `TestSevenSegmentPlacement`.

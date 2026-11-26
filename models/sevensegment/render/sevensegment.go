@@ -76,6 +76,8 @@ var sevenExplode = map[string]r3.Vec{
 	"Slider a": {X: 157.5}, "Slider g": {X: 157.5, Z: 67.5}, "Slider d": {X: 157.5, Z: 135.0},
 	"Slider b": {X: 90.0}, "Slider c": {X: 90.0, Z: 67.5},
 	"Slider e": {X: -127.5, Z: 45.0}, "Slider f": {X: -127.5, Z: 150.0}, "Front Wall": {Y: -75.0},
+	// Each groove pin comes out of its slider's keyed hole along +Y, 30 mm past the stem's face.
+	"Groove Pin a": {X: 157.5, Y: 30.0}, "Groove Pin g": {X: 157.5, Y: 30.0, Z: 67.5}, "Groove Pin d": {X: 157.5, Y: 30.0, Z: 135.0},
 	// The click indexer comes off the front end in order, each part past the one before: hub, housing, spring, rotor, button.
 	"Hub": {Y: -93.0}, "Housing": {Y: -120.0}, "Spring": {Y: -150.0}, "Rotor": {Y: -183.0},
 	"Button": {Y: -240.0},
@@ -153,7 +155,7 @@ func sevenFlagMove(seg sevensegment.Segment, dphi float64) (r3.Transform, error)
 // sevenCamshaftOrder lists the parts that slide off the shaft, rear first.
 var sevenCamshaftOrder = []string{"Cam a", "Cam f", "Cam b", "Cam g", "Cam c", "Cam e", "Cam d", "Hub", "Spring", "Rotor"}
 
-// sevenSet builds the default display once and tessellates its 75 bodies.
+// sevenSet builds the default display once and tessellates its 78 bodies.
 func buildSevenSegmentSet(ctx context.Context) (partSet, error) {
 	return buildSevenSegmentSetOpt(ctx, false)
 }
@@ -179,6 +181,9 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 		{"Rear Bearing", m.Bearings[1].Body, sevenHardware},
 	}
 	for _, s := range sevensegment.Segments() {
+		if m.GroovePins[s] != nil {
+			parts = append(parts, named{"Groove Pin " + s.String(), m.GroovePins[s], sevenBlack})
+		}
 		parts = append(parts, named{"Cam " + s.String(), m.Cams[s], sevenCamColor},
 			named{"Slider " + s.String(), m.Sliders[s], sevenBlack},
 			named{sevenFlagName(s, "Yellow"), m.Flags[s].Yellow, sevenYellow},
@@ -213,6 +218,9 @@ func buildSevenSegmentSetOpt(ctx context.Context, _ bool) (partSet, error) {
 		}
 		if strings.HasPrefix(p.name, "Bolt") || strings.HasPrefix(p.name, "Nut") {
 			tol = .01
+		}
+		if strings.HasPrefix(p.name, "Groove Pin") {
+			tol = .09 // the pin's faceted wings hold a mesh bound of 0.086
 		}
 		mesh, err := p.body.Tessellate(ctx, units.Millimeters(tol), decad.WithVerification(decad.VerifyAll))
 		if err != nil {
@@ -547,7 +555,7 @@ func sevenSegmentPreset(name string) func(context.Context) (solidlens.Scene, err
 	}
 }
 
-// sevenPartImages lists the distinct bodies and their images: the printed parts (sliders a, g and d share one image,
+// sevenPartImages lists the distinct bodies and their images: the printed parts (sliders a, g and d share one image, and so do their groove pins,
 // b and c another, e and f a third; rotors a, g and d are type A, b, c, e and f type B), a bearing, a short and a long bolt
 // and a nut. A rotor image holds both bodies, the yellow slab and the black body.
 var sevenPartImages = []struct {
@@ -561,7 +569,7 @@ var sevenPartImages = []struct {
 	{"spring", []string{"Spring"}},
 	{"cam-a", []string{"Cam a"}}, {"cam-b", []string{"Cam b"}}, {"cam-c", []string{"Cam c"}}, {"cam-d", []string{"Cam d"}},
 	{"cam-e", []string{"Cam e"}}, {"cam-f", []string{"Cam f"}}, {"cam-g", []string{"Cam g"}},
-	{"slider-a-g-d", []string{"Slider a"}}, {"slider-b-c", []string{"Slider b"}}, {"slider-e-f", []string{"Slider e"}},
+	{"slider-a-g-d", []string{"Slider a"}}, {"groove-pin", []string{"Groove Pin g"}}, {"slider-b-c", []string{"Slider b"}}, {"slider-e-f", []string{"Slider e"}},
 	{"rotor-a", []string{"Flag a Yellow", "Flag a Black"}}, {"rotor-a-yellow", []string{"Flag a Yellow"}},
 	{"rotor-a-black", []string{"Flag a Black"}}, {"rotor-b", []string{"Flag b Yellow", "Flag b Black"}},
 	{"rotor-b-yellow", []string{"Flag b Yellow"}}, {"rotor-b-black", []string{"Flag b Black"}},

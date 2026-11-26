@@ -75,6 +75,12 @@ func sharedSlider(t *testing.T, s Segment) (*run, *decad.Body) {
 	return sharedBody(t, "slider "+s.String(), func(r *run) (*decad.Body, error) { return r.flagSlider(s) })
 }
 
+// sharedGroovePin is the separate groove pin of the a, g or d slider s, built once.
+func sharedGroovePin(t *testing.T, s Segment) (*run, *decad.Body) {
+	t.Helper()
+	return sharedBody(t, "groove pin "+s.String(), func(r *run) (*decad.Body, error) { return r.groovePinFor(s) })
+}
+
 // sharedWall is the front or rear wall, built once.
 func sharedWall(t *testing.T, front bool) (*run, *decad.Body) {
 	t.Helper()

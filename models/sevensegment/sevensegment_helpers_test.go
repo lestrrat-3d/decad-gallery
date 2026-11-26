@@ -59,6 +59,9 @@ func printed(m *sevensegment.Model) map[string]*decad.Body {
 	for _, s := range sevensegment.Segments() {
 		out["cam "+s.String()] = m.Cams[s]
 		out["slider "+s.String()] = m.Sliders[s]
+		if m.GroovePins[s] != nil {
+			out["groove pin "+s.String()] = m.GroovePins[s]
+		}
 		out["yellow face "+s.String()] = m.Flags[s].Yellow
 		out["black body "+s.String()] = m.Flags[s].Black
 		out["pivot block "+s.String()+" -u"] = m.PivotBlocks[s][0]

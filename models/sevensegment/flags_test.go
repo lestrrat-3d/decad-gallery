@@ -57,45 +57,39 @@ func TestSevenSegmentFlagKinematics(t *testing.T) {
 	}
 }
 
-// TestSevenSegmentFlagRestBand checks the rest bands of a class at its dwell offset c (0.15 for a, g, d; 0.15 plus the lowering of
-// the b-f pins for b to f). The inner band ends (toward the nominal rests) are set at the cone's least slot clearance, 0.200 at
+// TestSevenSegmentFlagRestBand checks the rest bands of a class at its dwell offset c (0.15 plus the 0.05 lowering of the pins,
+// for every class). The inner band ends (toward the nominal rests) are set at the cone's least slot clearance, 0.200 at
 // the slider's full insertion; the outer ends at its greatest, 0.481 at the full withdrawal.
 func TestSevenSegmentFlagRestBand(t *testing.T) {
-	cAGD, cBF := 0.15, 0.15+sevensegment.RaiseBelowDroop
-	um, uw, lw, lm, rmax := bands(sevensegment.PinLinePlay, 0.24, slotClearMin, cAGD)
-	require.InDelta(t, -59.93, um, 0.1)
-	require.InDelta(t, -41.53, uw, 0.1)
-	require.InDelta(t, 37.63, lw, 0.1)
-	require.InDelta(t, 56.97, lm, 0.1)
-	require.LessOrEqual(t, rmax, 4.10)
-	um, _, _, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMax, cAGD)
-	require.InDelta(t, -65.03, um, 0.1)
-	require.InDelta(t, 62.51, lm, 0.1)
-	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.30, slotClearMin, cAGD) // a, g, d worst case
-	require.InDelta(t, -40.79, uw, 0.1)
-	require.InDelta(t, 36.80, lw, 0.1)
-	require.LessOrEqual(t, rmax, 4.15)
-	_, uw, lw, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMin, cBF) // b to f design
+	c := dwellOffset
+	um, uw, lw, lm, rmax := bands(sevensegment.PinLinePlay, 0.24, slotClearMin, c) // design, every class
+	require.InDelta(t, -60.37, um, 0.1)
 	require.InDelta(t, -42.14, uw, 0.1)
 	require.InDelta(t, 36.94, lw, 0.1)
 	require.InDelta(t, 56.43, lm, 0.1)
-	um, _, _, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMax, cBF)
+	require.LessOrEqual(t, rmax, 4.10)
+	um, _, _, lm, _ = bands(sevensegment.PinLinePlay, 0.24, slotClearMax, c)
 	require.InDelta(t, -65.41, um, 0.1)
 	require.InDelta(t, 62.05, lm, 0.1)
-	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, 0.42, slotClearMin, cBF) // b to f worst case
+	// Worst case: a, g, d at z play 0.432 (0.30 and the separate pin's sag tolerance 0.132), b to f at 0.42.
+	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, zPlayAGD, slotClearMin, c)
+	require.InDelta(t, -39.74, uw, 0.1)
+	require.InDelta(t, 34.17, lw, 0.1)
+	require.LessOrEqual(t, rmax, 4.15)
+	_, uw, lw, _, rmax = bands(sevensegment.PinLinePlay, zPlayBF, slotClearMin, c)
 	require.InDelta(t, -39.89, uw, 0.1)
 	require.InDelta(t, 34.34, lw, 0.1)
 	require.LessOrEqual(t, rmax, sevensegment.SlotEnd+slotClearMin, "the cone's axis stays inside the slot's end")
 }
 
 // TestSevenSegmentRestBias checks that gravity holds a rotor at its end pose against its journal friction at friction 0.5:
-// the bias ratio at the worst-case ends of the rest bands (a, g, d at z play 0.30, b to f at 0.42) stays above 1.50 (A) and
-// 1.75 (B). The rotor's weight and centre of mass come from the built bodies.
+// the bias ratio at the worst-case ends of the rest bands (a, g, d at z play 0.432, b to f at 0.42) stays above 1.50 (A) and
+// 1.75 (B): 1.547 and 1.517 for A. The rotor's weight and centre of mass come from the built bodies.
 func TestSevenSegmentRestBias(t *testing.T) {
 	t.Parallel()
 	l := builtLoads(t)
-	_, uwA, lwA, _, _ := bands(sevensegment.PinLinePlay, 0.30, slotClearMin, 0.15)
-	_, uwB, lwB, _, _ := bands(sevensegment.PinLinePlay, 0.42, slotClearMin, 0.15+sevensegment.RaiseBelowDroop)
+	_, uwA, lwA, _, _ := bands(sevensegment.PinLinePlay, zPlayAGD, slotClearMin, dwellOffset)
+	_, uwB, lwB, _, _ := bands(sevensegment.PinLinePlay, zPlayBF, slotClearMin, dwellOffset)
 	for _, phi := range []float64{uwA, lwA} {
 		require.GreaterOrEqual(t, bias(0.5, l.a, phi), 1.50, "A at %.1f", phi)
 	}
@@ -136,13 +130,14 @@ func TestSevenSegmentDriveAudit(t *testing.T) {
 // 0.25 from the yellow shell and the tongue at least 0.7 from the black leg.
 func TestSevenSegmentTongueSweep(t *testing.T) {
 	headLine := sevensegment.SliderHeadTop - sevensegment.PinAxisZ
-	cAGD, cBF := 0.15, 0.15+sevensegment.RaiseBelowDroop
+	c := dwellOffset
 	// The notch floor is measured on the built rotor, and the sweep runs on it: a notch cut shallower than designed shrinks
 	// the gaps below.
 	floor := sevensegment.MeasureNotchFloor(t, sevensegment.SegG)
 	require.InDelta(t, sevensegment.NotchFloor, floor, 0.02, "the built notch floor")
 	require.InDelta(t, sevensegment.NotchFloor, sevensegment.MeasureNotchFloor(t, sevensegment.SegB), 0.02, "the built notch floor of type B")
-	// The cap is the turned-over rise: 1.28 for a, g, d, and 1.88 for b to f (the tilt reverses: twice the droop of about 0.30).
+	// The cap is the turned-over rise: 1.808 for a, g, d (1.28 and the separate pin's reversed sag, 0.528) and 1.88 for b to f (the tilt
+	// reverses: twice the droop of about 0.30); a, g, d at the worst sag tolerance rise 2.07.
 	// The strip's top lies 1.8 below the drive axis; the end disc hulls it. The free span is the cone's base and junction circle.
 	for _, c := range []struct {
 		name       string
@@ -150,7 +145,8 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 		yellow     float64 // the least tongue to yellow shell gap at the least slot clearance, +-0.005
 		black      float64 // the tongue to the black leg
 		span       float64 // the free span to the yellow shell
-	}{{"a, g, d", 1.28, cAGD, 0.759, 2.173, 0.696}, {"b to f", 1.88, cBF, 0.719, 1.794, 0.691}} {
+	}{{"a, g, d", 1.808, c, 0.719, 1.861, 0.690}, {"a, g, d at the worst sag tolerance", 2.07, c, 0.714, 1.720, 0.689},
+		{"b to f", 1.88, c, 0.719, 1.794, 0.691}} {
 		for _, slot := range []float64{slotClearMin, slotClearMax} {
 			ty, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine, c.cap, c.cap, c.dwell, floor, slot, [][3]float64{endDisc()})
 			fy, _ := sweep(0, 0, 0, headLine, c.cap, c.cap, c.dwell, floor, slot, freeSpan())
@@ -168,6 +164,6 @@ func TestSevenSegmentTongueSweep(t *testing.T) {
 		}
 	}
 	// With the head line 2.0 higher than it is the black leg is entered.
-	_, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine+2.0, 1.28, 1.28, cAGD, floor, slotClearMin, [][3]float64{endDisc()})
+	_, tb := sweep(sevensegment.TongueWidth, 0.0, 1.8, headLine+2.0, 1.808, 1.808, c, floor, slotClearMin, [][3]float64{endDisc()})
 	require.Less(t, tb, 0.0)
 }

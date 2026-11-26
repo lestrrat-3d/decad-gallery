@@ -36,6 +36,7 @@ const (
 	ButtonContainerName      = "Button"
 	SpringContainerName      = "Spring"
 	SlidersContainerName     = "Segment Sliders"
+	GroovePinsContainerName  = "Groove Pins"
 	BearingsContainerName    = "Bearings"
 	BoltsContainerName       = "Bolts"
 	NutsContainerName        = "Nuts"
@@ -53,6 +54,9 @@ type Parts struct {
 	// The click indexer: the keyed hub and the rotor turn with the shaft; the housing and the button do not.
 	Hub, Rotor, Housing, Button, Spring *decad.Body
 	Cams, Sliders                       [7]*decad.Body // indexed by Segment
+	// GroovePins are the separate keyed pins of the a, g and d sliders, indexed by Segment; b to f have an integral pin and
+	// their entries are nil. Each is one body that the export cuts into two identical halves on the plane x = 0.
+	GroovePins [7]*decad.Body
 	// Flags are the seven two-colour rotors, indexed by Segment.
 	Flags [7]Flag
 	// PivotBlocks are the 14 pivot blocks, indexed by Segment and then 0 for the rotor's -u end, 1 for its +u end.
@@ -110,21 +114,27 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 		{"button", r.button, &out.Button, nil},
 		{"spring", func() (*decad.Body, error) { return r.spring(SpringRestLength) }, &out.Spring, spin},
 	}
+	liftIfLit := func(seg Segment) func(*decad.Body) (*decad.Body, error) {
+		return func(b *decad.Body) (*decad.Body, error) {
+			lit, _ := Lit(p.Digit, seg)
+			if !lit {
+				return b, nil
+			}
+			lift, err := r3.Translation(r3.Vec{Z: Travel})
+			if err != nil {
+				return nil, err
+			}
+			return decad.Transform(ctx, b, lift)
+		}
+	}
 	for _, seg := range Segments() {
 		steps = append(steps,
 			step{"cam " + seg.String(), func() (*decad.Body, error) { return r.cam(seg) }, &out.Cams[seg], spin},
-			step{"slider " + seg.String(), func() (*decad.Body, error) { return r.flagSlider(seg) }, &out.Sliders[seg],
-				func(b *decad.Body) (*decad.Body, error) {
-					lit, _ := Lit(p.Digit, seg)
-					if !lit {
-						return b, nil
-					}
-					lift, err := r3.Translation(r3.Vec{Z: Travel})
-					if err != nil {
-						return nil, err
-					}
-					return decad.Transform(ctx, b, lift)
-				}})
+			step{"slider " + seg.String(), func() (*decad.Body, error) { return r.flagSlider(seg) }, &out.Sliders[seg], liftIfLit(seg)})
+		if _, _, horizontal := segmentCentre(seg); horizontal {
+			steps = append(steps, step{"groove pin " + seg.String(), func() (*decad.Body, error) { return r.groovePinFor(seg) },
+				&out.GroovePins[seg], liftIfLit(seg)})
+		}
 	}
 	var prototypes [2]Flag
 	for _, seg := range Segments() {
@@ -190,7 +200,7 @@ func (r *run) camshaftTurn() r3.Transform {
 	return t
 }
 
-// Build adds every body to doc, each in its container: 75 bodies. ctx and doc must not be nil.
+// Build adds every body to doc, each in its container: 78 bodies. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	parts, err := BuildParts(ctx, doc, p)
 	if err != nil {
@@ -228,6 +238,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	for _, seg := range Segments() {
 		files = append(files, filed{CamshaftContainerName, CamsContainerName, m.Cams[seg]},
 			filed{"", SlidersContainerName, m.Sliders[seg]})
+		if m.GroovePins[seg] != nil {
+			files = append(files, filed{"", GroovePinsContainerName, m.GroovePins[seg]})
+		}
 	}
 	for i, f := range []struct {
 		origin, u, v r3.Vec
