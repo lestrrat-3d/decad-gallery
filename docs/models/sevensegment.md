@@ -25,7 +25,8 @@ pose the display by angle.
 
 `go test ./models/sevensegment` calculates the truth table, the cam profile and the click indexer's timing margin (from the built dimensions;
 it is not a measurement of a print) and checks that every press turns the shaft far enough for the cams. The geometry tests read each part's corners, edge finishing, fits,
-look-alike marks and split shaft on the built bodies.
+look-alike marks and split shaft on the built bodies. Each slider's drive cone stands on the drive axis on a buttress with a vertical front and a sloped back, and a
+test holds it free of any face that points down.
 
 ## Uses
 

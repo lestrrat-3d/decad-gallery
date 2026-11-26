@@ -346,7 +346,7 @@ one-off scratch build before the port, which is not in the repository; a decad r
   (instructions.md "Rotor"). Then each body is placed in the world with one `placement.Place` of
   the rotor frame `rotorFrame(s)`.
 - `sliders.go`: `flagSlider(seg)` builds the main profile, the b-f blade extension, the tongue and its drive cone
-  (`rootedTongue`: the end disc, the frustum from `decad.Loft` and the right cone from `decad.Revolve`), the 0.5 stem chamfers and
+  (`rootedTongue`: the end hull of the disc and the junction circle, the buttress from `decad.Loft` between two hull sketches, and the right cone from `decad.Revolve`), the 0.5 stem chamfers and
   the groove pin: the integral pin of b to f, or for a, g and d the keyed hole of the separate pin (below).
 - `groovepin.go`: `groovePin` (a, g, d) is one body: a revolve of the Ø4.5 round (root chamfer 0.55 at 45 degrees, tip chamfer 0.3),
   a prism of the wing octagon (flats at x = +-2.25, 45 degree flanks `|x| + |z| = 3.082`, closed inside the round) intersected with a
