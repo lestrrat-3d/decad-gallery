@@ -244,10 +244,8 @@ def isolated_tests(base, tested, changed):
             if not predicate and (b"// CI: isolated-tests" not in old or b"// CI: isolated-tests" not in new):
                 return []
             tagged = any(tag in text for text in (old, new) for tag in (b"//go:build", b"// +build"))
-            if tagged and path != "models/spinningwheel/head_leg_coplanar_test.go":
-                return []
             if tagged:
-                owner = "tag-coplanar_test-" + owner
+                return []
             inputs.append((owner, path, predicate, old, new))
         suites = set()
         Path(".tmp").mkdir(exist_ok=True)
