@@ -408,17 +408,17 @@ Ordinary branch (`d.base >= d.root`):
 
 2. Build the tooth section once, on the lower plane with angle 0 (the Step 5
    construction, without re-validating `p`). Call
-   `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: thickness,
-   Dir: decad.Along})` on it with `thickness` from `doc.Param("thickness")`,
+   `decad.Extrude(doc,s,profile,decad.Distance{D: thickness,
+   Dir: decad.Along}).Do(ctx)` on it with `thickness` from `doc.Param("thickness")`,
    and keep the returned tooth body. Draw no section on the upper plane.
 3. Build the root disc. Create a sketch on the lower plane, call
    `s.CreateCircle(s.Origin(),d.root)`, and add `sketch.NewRadius(circle,d.root)`;
    bind that radius with `s.Bind(radius,world.Params(),"root_radius")`.
    Solve and verify the sketch, require one valid profile, and extrude it
    through `thickness` as for the tooth.
-4. Call `decad.PatternCopies(ctx,tooth,decad.CircularPattern{Center: frame.Origin(),
-   Axis: frame.N(), Count: teeth})` for the other `N-1` teeth. Call
-   `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)` once, with the
+4. Call `decad.PatternCopies(tooth,decad.CircularPattern{Center: frame.Origin(),
+   Axis: frame.N(), Count: teeth}).Do(ctx)` for the other `N-1` teeth. Call
+   `decad.Union(append([]*decad.Body{disc,tooth},copies...)...).Do(ctx)` once, with the
    disc first and the tooth before its copies. Do not draw, rotate, or extrude any other
    tooth, and do not chain `Union(gear,next)`. Require the returned body to be solid.
 5. Save the root contacts for Step 7. For each tooth `k` in ascending order, rotate
@@ -432,7 +432,7 @@ Embedded branch (`d.base < d.root`):
    through `thickness` as in the ordinary branch into one tooth body.
 3. Build the root disc as in the ordinary branch.
 4. Pattern and join exactly as in the ordinary branch (`decad.PatternCopies`
-   once, then one `decad.Union(ctx,disc,append([]*decad.Body{tooth},copies...)...)`).
+   once, then one `decad.Union(append([]*decad.Body{disc,tooth},copies...)...).Do(ctx)`).
    Return no saved root list.
 
 Carry the returned body through Steps 7–9 and return the last body.
@@ -454,7 +454,7 @@ Skip when the derived fillet radius is nonpositive. `radius` is the
 `doc.ParamInt("teeth")`. The private `filletRoots` keeps its float signature for
 the existing tests and wraps its `radius` with `units.Millimeters`. Embedded branch: select
 `decad.Edges(decad.ParallelTo(axis),decad.Concave()).Exactly(2*teeth)` and call
-`decad.Fillet(ctx,body,selection,radius)`; the steps below
+`decad.Fillet(body,selection,radius).Do(ctx)`; the steps below
 are the ordinary branch only. Ordinary branch:
 
 1. Use `axis := placement.N()` and
@@ -473,7 +473,7 @@ are the ordinary branch only. Ordinary branch:
    constructing the selector.
 4. Start with `decad.Edges(decad.ParallelTo(axis),decad.EndpointAt(corners[0]))`.
    Add each remaining conjunction with `.Or(decad.ParallelTo(axis),decad.EndpointAt(corner))`.
-5. Call `decad.Fillet(ctx,body,selection.Exactly(len(corners)),radius)`.
+5. Call `decad.Fillet(body,selection.Exactly(len(corners)),radius).Do(ctx)`.
 
 Use the returned body. Selecting every axial edge also selects flank joints;
 include only edges matched to saved root contacts.
@@ -497,12 +497,12 @@ parameters on the document, then delegates to the same private routine:
    `s.Bind(diameter,world.Params(),"bore_diameter")`. `buildBoreProfile` keeps its
    signature, so it calls `defineParameters(world.Params(), p)` first.
 4. Solve and verify, require exactly one valid profile, and return sketch/profile.
-5. Call `decad.Extrude(ctx,doc,s,profile,decad.Distance{D: length,Dir: decad.Along})`
+5. Call `decad.Extrude(doc,s,profile,decad.Distance{D: length,Dir: decad.Along}).Do(ctx)`
    to produce the tool, with `length` from `doc.Param("bore_tool_length")`.
    The exported wrapper calls `defineParameters(doc.Params(), p)` first, so
    other models can call it with a document that has not defined the table.
    The private routine and `assemble` must not redefine the document table.
-6. Call `decad.Cut(ctx,gear,tool)` and return its body.
+6. Call `decad.Cut(gear,tool).Do(ctx)` and return its body.
 
 ## Step 9 — chamfer outer caps
 
@@ -518,7 +518,7 @@ Its two callers check them first: `assemble` through `begin`, and
 
 1. Select `decad.Edges(decad.OuterLoopOf(decad.CapStart(gear))).Or(
    decad.OuterLoopOf(decad.CapEnd(gear)))`.
-2. Call `decad.Chamfer(ctx,gear,selection,setback)`.
+2. Call `decad.Chamfer(gear,selection,setback).Do(ctx)`.
 3. Return its body, or its error wrapped with `%w` and the stage name.
 
 `assemble` calls `chamferCaps` only when `p.CapChamfer > 0`. It passes the

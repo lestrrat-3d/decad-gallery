@@ -15,7 +15,7 @@ These were measured against the decad branches the gallery builds with. They dec
 | The twisted fitted-edge route needs section planes parallel to world XY with the twist axis at the plane origin, strictly ascending Z, and the same fit-point count in every section | Each ribbon is built in its own frame along +Z and moved onto its gear afterwards. Every section has 11 fit points |
 | The long ribbon takes about 12 s and 1.3 GB | Build the two ribbons one after another. A default build takes about 40 s and a 16-tooth build about 15 s |
 | Booleans with the long ribbon are refused | The ribbons are never operands of a boolean. They are built whole and only moved |
-| `decad.Sweep` with `WithSweepTwist` admits off-axis sections and any twist angle. Earlier it refused 35 to 55 degrees | The bore tool is one sweep with the twist `(sOut − sIn)/Λ` of about 80 degrees |
+| `decad.Sweep` with `.Twist` admits off-axis sections and any twist angle. Earlier it refused 35 to 55 degrees | The bore tool is one sweep with the twist `(sOut − sIn)/Λ` of about 80 degrees |
 | `decad.Cut` of a twisted tool needs the tool to overshoot the wall by at least 0.75 mm each side | The bore cut overshoots by 1 mm at each end (`sIn` and `sOut`) |
 | The six chained cuts on one curved tube need the document tolerance of `WithChainTolerance`, 0.1 mm. A window cut over a bore rim is why | `NewDocument` sets `decad.WithChainTolerance(units.Millimeters(0.1))` and `decad.WithRimSplit()`. `Build` needs a document made by it |
 | `decad.Verify` with clearances took 108 s on the 16-tooth model, found no interference, measured 0.548 ± 0.027 mm between the ribbons, and left both ribbon-versus-cage pairs undecided | Bore checks use `ClosestPoint` on the cage, not `decad.Verify` |
@@ -107,7 +107,7 @@ For gear `g`, with `count = 10·N + 1`, `step = L/(count − 1)` and `first = �
 
 1. Create one `sketch.NewWorld()` for the ribbon. Build the section at `first + i·step` for `i = 0…count−1`, by
    Step 1. The sections are strictly ascending in Z and 10 per tooth pitch.
-2. Call `decad.LoftSections(ctx, doc, sections...)` once. This is one loft through all sections with the twisted
+2. Call `decad.LoftSections(doc, sections...).Do(ctx)` once. This is one loft through all sections with the twisted
    fitted edge. Wrap its error with `loft ribbon`.
 
 Check: `body.IsSolid()`. The volume equals the integral of the section area over the length, within the bound
@@ -143,9 +143,9 @@ gear):
    `(−hw, vHi)`, each turned by `θ(s0)` and created with `DimensionPoint`. Join them with four lines in order.
    Solve and verify. The sketch has one profile.
 4. `decad.NewPath(r3.Vec{}, decad.LineTo{End: (0, 0, s1 − s0)})`.
-5. `decad.Sweep(ctx, doc, sk, profile, path, decad.WithSweepTwist(units.Radians((s1 − s0)/Λ)))`.
+5. `decad.Sweep(doc, sk, profile, path).Twist(units.Radians((s1 − s0)/Λ)).Do(ctx)`.
 6. Move the tool with `r3.NewFrame(g.origin + ez·s0, ex, ey)` as in Step 3.
-7. `decad.Cut(ctx, cage, tool)`, which returns the cage for the next bore.
+7. `decad.Cut(cage, tool).Do(ctx)`, which returns the cage for the next bore.
 
 The tool starts in air at `s0` and ends in air at `s1`, 1 mm past the material. Check: after the four cuts the
 cage is one solid.
@@ -182,7 +182,7 @@ For each window whose `room()` is `""`, in facing order:
    Solve and verify. Require exactly one valid profile.
 3. `decad.Extrude` the profile with `decad.Distance{D: Ro + 1, Dir: decad.Along}`. This pushes the prism toward
    `d`.
-4. `decad.Cut(ctx, cage, tool)`.
+4. `decad.Cut(cage, tool).Do(ctx)`.
 
 After the last window, chamfer both rims of both end faces: `edgefinish.Chamfer(ctx, cage, (0, 0, 1), {-CageRise,
 CageRise}, edgefinish.All, edgefinish.MinChamfer)`. That is 0.5 mm on four edges. Wrap an error with

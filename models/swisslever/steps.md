@@ -136,7 +136,7 @@ less each section's circular segment beyond its flat; `TestSplitShafts`, `TestAr
    `NewDistance(origin, K, 31.5)` and `NewAngle(H→O, H→K, -χ)` (signs chosen so `L` and `K` fall at the `instructions.md`
    points); lines `L–T`, `T–H`, `H–K`, `K–L`. Valid profile: 0 holes. Extrude 3.
 3. `decad.PatternCopies(tooth, decad.CircularPattern{Center: O, Axis: +Z, Count: 15})`; `Union(disc, tooth, copies...)`.
-4. Root fillets: `decad.Fillet(ctx, wheel, decad.Edges(decad.ParallelTo(+Z), decad.Reflex()).Exactly(30), 1.4 mm)`, as
+4. Root fillets: `decad.Fillet(wheel, decad.Edges(decad.ParallelTo(+Z), decad.Reflex()).Exactly(30), 1.4 mm).Do(ctx)`, as
    `models/spurgear` rounds its roots.
 5. D press bore: `dTool` body family (arc `r 3.35`, chord `x 2.60`) at `z 9.60`, length 4.5; cut.
 6. `finish(body, {10.35, 13.35}, keep inner loops of more than 4 edges)` (the five windows).
@@ -173,7 +173,7 @@ a 1.4 round; `TestEscapementAction`.
    (centre `N_c` a polar point, `NewRadius r_n`, running under the centre); lines from `(r_n, K.y)` to `(1.0, 44.0)`, to
    `(-1.0, 44.0)`, to `(-r_n, K.y)`, the upper corners by H/V distance. Valid profile: 0 holes. Extrude 5.0; cut. This
    removes the dart and the filled notch above `z 5.80`.
-3. Dart root: `decad.Fillet(ctx, lever, decad.Edges(decad.Reflex(), decad.Circular()).Exactly(1), 0.5 mm)`: the
+3. Dart root: `decad.Fillet(lever, decad.Edges(decad.Reflex(), decad.Circular()).Exactly(1), 0.5 mm).Do(ctx)`: the
    semicircular edge where the notch wall meets the top of band S at `z 5.80`. The radius is 0.5, not 0.6: the dart's
    tip round has radius 0.6, so a 0.6 root round degenerates. With decad P6 the fillet builds, and the lever builds in
    full (`TestLever`).

@@ -21,12 +21,12 @@ Fail on a missing or ambiguous annulus; do not pass the inner disc to extrusion.
 
 ## 3. Extrude and place
 
-Call decad.Extrude(ctx,doc,s,profile,
-decad.Distance{D:units.Millimeters(p.Width),Dir:decad.Along}).
+Call decad.Extrude(doc,s,profile,
+decad.Distance{D:units.Millimeters(p.Width),Dir:decad.Along}).Do(ctx).
 The result locally spans Z0..Width, is centered on Z, and has an open bore.
 If Lift is nonnil, sketch on world.CreatePlaneFromFrame(*p.Placement) when Placement is nonnil,
-then call decad.Transform(ctx,body,*p.Lift) once.
-Otherwise, if Placement is nonnil, call r3.FromFrame(*p.Placement), then decad.Transform(ctx,body,transform).
+then call decad.Transform(body,*p.Lift).Do(ctx) once.
+Otherwise, if Placement is nonnil, call r3.FromFrame(*p.Placement), then decad.Transform(body,transform).Do(ctx).
 Require the final body solid and return &Model{Body:body,Sketch:s}.
 The completed transformation replaces the unplaced body; no prototype is left in doc.
 Keep all construction state local, return contextual wrapped errors, and do not copy another model's source.

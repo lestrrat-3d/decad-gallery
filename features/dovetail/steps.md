@@ -58,10 +58,10 @@ Check at the boundary: each tool is a solid body.
 
 - Chamfer the tail body's two wide-end edges: the straight edges along V between (+-W/2, s Depth) at V = 0 and
   V = `Length`, in the joint frame. Find each on `tail.Edges()` by its end points, name it with
-  `decad.EndpointAt(start)` and `decad.ParallelTo(direction)`, and call `decad.Chamfer(ctx, tail,
-  query.Exactly(2), units.Millimeters(p.ChamferSize()))`. Check that the result is solid.
-- `decad.Union(ctx, tailHost, tail)`.
-- `decad.Cut(ctx, socketHost, socketCutter)`.
+  `decad.EndpointAt(start)` and `decad.ParallelTo(direction)`, and call `decad.Chamfer(tail,
+  query.Exactly(2), units.Millimeters(p.ChamferSize())).Do(ctx)`. Check that the result is solid.
+- `decad.Union(tailHost, tail).Do(ctx)`.
+- `decad.Cut(socketHost, socketCutter).Do(ctx)`.
 - Chamfer the cut host's two lip edges the same way: the edges along V at (+-w/2, 0), `Exactly(2)`, `p.ChamferSize()`.
   Check that the result is solid.
 The socket cutter is not chamfered, so the socket's floor corners stay sharp, and the tail's root edges stay sharp.

@@ -76,14 +76,14 @@ Wrap every sketch error `spiralspring: <step>: %w` and return before any body is
 Build, in order: nil ctx -> `spiralspring: context must not be nil`; nil doc -> `spiralspring: document must not
 be nil`; `p.Derive()`; `ctx.Err()` wrapped `spiralspring: before creating profile: %w`; `buildProfile`.
 
-`decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(h), Dir: decad.Along})`. The body spans
+`decad.Extrude(doc, s, profile, decad.Distance{D: units.Millimeters(h), Dir: decad.Along}).Do(ctx)`. The body spans
 z from 0 to `h`.
 
 ## 4. Fillet the five concave corners
 
 Selector: OR over the five corners of
 `decad.Edges(decad.Concave(), decad.ParallelTo(r3.Vec{Z: 1}), decad.EndpointAt(corner))`, then `.Exactly(5)`.
-Without `ParallelTo` the query matches 6 edges. `decad.Fillet(ctx, body, sel, units.Millimeters(r_f))`.
+Without `ParallelTo` the query matches 6 edges. `decad.Fillet(body, sel, units.Millimeters(r_f)).Do(ctx)`.
 
 ## 5. Edge finishing
 
