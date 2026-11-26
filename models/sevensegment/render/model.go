@@ -25,6 +25,13 @@ func Model() renderkit.Model {
 				}
 				return renderSevenSegmentEngageMotion(ctx, s, opts.Output, 960, 540)
 			},
+			"print": func(ctx context.Context, opts renderkit.Options) error {
+				s, err := buildSevenSegmentSet(ctx)
+				if err != nil {
+					return err
+				}
+				return renderSevenSegmentPrint(ctx, s, opts.Output)
+			},
 			"motion": func(ctx context.Context, opts renderkit.Options) error {
 				width, height := opts.Width, opts.Height
 				if width == 0 {

@@ -206,6 +206,15 @@ Print the shaft as two halves split along its axis, each on its cut face. Print 
 with the outer face down, the top plate with the display face down, the cradle plate with its bottom face down, the
 guide plate with its bottom face down, the a, g and d sliders on their broad flat side with the drive cone pointing straight up (the -X face down), the a, g and d groove pins as two identical halves on their flat faces (six halves, layers along the pin), the b, c, e and f sliders on their broad flat side with the drive cone pointing straight up (the -Y face down), and the hub and rotor flat with the teeth up, the button with its head down and teeth up, and the housing with its bezel face down and the crown's teeth up.
 Every slider has one correct bed face: the broad flat side from which the tongue and drive cone grow, laid flat so the cone points straight up. The sliders are 61.7 mm tall as exported; stood upright they overhang from about 42 mm up, and on the opposite broad face the cone tip starts in mid-air. Both fail. Check the cone points up in the slicer preview before printing.
+
+These images show each slider on the bed the way it prints, the bed drawn as the grey plate. The broad flat face lies on the
+plate and holds the tongue's flat outline together with the stem's foot; the drive cone stands on the tongue pointing up.
+
+![Sliders a, g and d on the bed: the -X face down, the thin tongue flat on the plate and its cone pointing up](images/print-slider-a-g-d.png)
+
+![Sliders b and c on the bed: the -Y face down, the tongue flat on the plate and its cone pointing up](images/print-slider-b-c.png)
+
+![Sliders e and f on the bed: the -Y face down, the tongue flat on the plate and its cone pointing up](images/print-slider-e-f.png)
 The teeth need no supports: the teeth print facing up. The 8.0 mm inner teeth have ramps at 52 to 89 degrees to the layers and the 1.6 mm crown teeth have ramps at 12 to 50 degrees. Print the rotor, button and housing at 0.1 mm layers or finer.
 
 Each rotor is two bodies, a yellow body (the face slab and the two tips) and a black body, printed face down in one job
