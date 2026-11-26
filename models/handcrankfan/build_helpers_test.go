@@ -375,8 +375,23 @@ func requireNoOverlap(t *testing.T, doc *decad.Document, p handcrankfan.Params, 
 		}
 		return isFinished(x) && isFinished(y) || holder(x) || holder(y)
 	}
-	report, err := doc.Verify(t.Context())
+	// Verify skips every pair this check never reads, so it proves only the pairs asserted below. It must report
+	// exactly those skips, and each skipped pair must be one the check does not read.
+	var skips []decad.VerifyOption
+	bodies := doc.Bodies()
+	for i, a := range bodies {
+		for _, b := range bodies[i+1:] {
+			if !checked(a, b) {
+				skips = append(skips, decad.WithSkippedPair(a, b))
+			}
+		}
+	}
+	report, err := doc.Verify(t.Context(), skips...)
 	require.NoError(t, err)
+	require.Len(t, report.SkippedPairs, len(skips), "Verify skips every unread pair once")
+	for _, pair := range report.SkippedPairs {
+		require.False(t, checked(pair.A, pair.B), "%s and %s are skipped but checked", names[pair.A], names[pair.B])
+	}
 	for _, pair := range report.Interferences {
 		require.False(t, checked(pair.A, pair.B), "%s and %s share material", names[pair.A], names[pair.B])
 	}
@@ -547,24 +562,20 @@ func requireIdenticalBlades(t *testing.T, p handcrankfan.Params, parts map[strin
 	}
 }
 
+// requireGearPlacement checks the bevel heels against the build frame. The drive pose turns about an axis parallel to
+// X and the fan pose about one parallel to Y, so the posed driving gear's X extent and the posed pinion's Y extent
+// are the build frame's, and no transform back is needed. The gear pair meshes at its teeth and leaves the overlap
+// check, so the gears are retired here.
 func requireGearPlacement(t *testing.T, p handcrankfan.Params, parts map[string]handcrankfan.Part) {
-	state, err := handcrankfan.Motion(p)
-	require.NoError(t, err)
-	// Undo the pose to compare with the build frame.
-	back := func(body *decad.Body, axis r3.Vec, angle float64) decad.Box {
-		xf, err := r3.RotationAround(state.Apex, axis, units.Radians(-angle))
+	posed := func(name string) decad.Box {
+		box, err := parts[name].Body.Bounds()
 		require.NoError(t, err)
-		moved, err := decad.Transform(t.Context(), body, xf)
-		require.NoError(t, err)
-		box, err := moved.Bounds()
-		require.NoError(t, err)
-		require.NoError(t, decad.Remove(moved))
 		return box
 	}
-	driving := back(parts["driving-gear"].Body, r3.Vec{X: 1}, state.CrankAngle)
-	require.InDelta(t, 21, driving.Max.X, 0.05)
-	pinion := back(parts["pinion"].Body, r3.Vec{Y: -1}, state.FanAngle)
-	require.InDelta(t, -31.5, pinion.Min.Y, 0.05)
+	require.InDelta(t, 21, posed("driving-gear").Max.X, 0.05)
+	require.InDelta(t, -31.5, posed("pinion").Min.Y, 0.05)
+	require.NoError(t, decad.Remove(parts["driving-gear"].Body))
+	require.NoError(t, decad.Remove(parts["pinion"].Body))
 }
 
 // skipUnlessFull skips a slow check. The default build takes about five minutes and the variants as long again, so
