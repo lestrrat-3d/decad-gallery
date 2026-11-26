@@ -816,9 +816,9 @@ lit, 1.5 below the tube bottom.
 
 ### Separate groove pin (`groovepin.go`; Groove Pins a, g, d)
 
-The a, g, d sliders print on their -X face so the drive cone points up. An integral groove pin (axis +Y) would lie sideways, with a
+The a, g, d sliders print lying on their broad flat side (the -X face; the cone grows from the tongue on it) so the drive cone points straight up. Upright as exported, or on the +X face, they fail: overhangs start about 42 mm up, or the cone tip starts in mid-air. An integral groove pin (axis +Y) would lie sideways, with a
 3.2 mm wide overhang past 45 degrees under it. The a, g, d pin is therefore a separate keyed pin that slides into a blind hole in the
-stem's +Y face; the slider then prints with no face past 45 degrees. The b, c, e, f sliders print on their -Y face, their pin points up,
+stem's +Y face; the slider then prints with no face past 45 degrees. The b, c, e, f sliders print lying on their broad flat -Y face with the drive cone straight up, their pin points up,
 and they keep the integral pin.
 
 The pin is one body per slider (the split is not modeled); the export cuts it into two identical halves on the plane x = 0 (normal
@@ -1297,7 +1297,7 @@ outlines.
 
 ### Rule tables
 
-- Print orientations: rotors yellow face down; pivot blocks outer face down, cone up; a/g/d sliders -X face down, b-f sliders -Y face down; each a/g/d groove pin as two halves on the seam face (normal +X); cradle bottom
+- Print orientations: rotors yellow face down; pivot blocks outer face down, cone up; a/g/d sliders on the broad flat side, cone straight up (-X face down), b-f sliders likewise (-Y face down); each a/g/d groove pin as two halves on the seam face (normal +X); cradle bottom
   down, top plate display face down, guide plate bottom down.
 - Retained sharp corners (listed):
   - seam-face inner loops of the cradle and the top plate;
@@ -1481,7 +1481,7 @@ Clearance adjustment: **Mixed** (fixed custom fits as constants; nominal bearing
 #### Corners and roots
 
 Print orientations (cornercheck axis): walls outer face down (axis ∓Y: front +Y up, rear −Y up); guide plate bottom face down (+Z); top plate display face down (−Z up); cams back face down;
-hub, rotor axis vertical (teeth up); button head down, teeth up; housing bezel face down; sliders -X face down (a, g, d) or -Y face down (b-f); rotors yellow face down; pivot blocks outer face down, cone up (cornercheck axis -u); shaft as split halves.
+hub, rotor axis vertical (teeth up); button head down, teeth up; housing bezel face down; sliders on the broad flat side, drive cone straight up (-X face down for a, g, d; -Y face down for b-f); rotors yellow face down; pivot blocks outer face down, cone up (cornercheck axis -u); shaft as split halves.
 
 Exemptions passed to `cornercheck` (each must match a finding in every case, as onewayclutch `corners_test.go`):
 
