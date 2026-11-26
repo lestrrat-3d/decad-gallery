@@ -78,30 +78,6 @@ func asmBuild(t *testing.T, c asmCase) (*decad.Document, *clamparm.Model) {
 	return b.doc, b.model
 }
 
-var asmFlatCache sync.Map
-
-// asmBuildFlat builds the case again and moves every body to the document root. decad's Intersect refuses operands
-// in different containers, so the overlap checks use this copy; the containers are checked on the shared build.
-func asmBuildFlat(t *testing.T, c asmCase) *clamparm.Model {
-	t.Helper()
-	v, _ := asmFlatCache.LoadOrStore(c.name, &asmBuilt{})
-	b := v.(*asmBuilt)
-	b.once.Do(func() {
-		b.doc = clamparm.NewDocument()
-		b.model, b.err = clamparm.Build(t.Context(), b.doc, c.params)
-		if b.err != nil {
-			return
-		}
-		for _, body := range b.doc.Bodies() {
-			if b.err = b.doc.Root().AddBody(body); b.err != nil {
-				return
-			}
-		}
-	})
-	require.NoError(t, b.err, "case %s", c.name)
-	return b.model
-}
-
 // asmPrinted lists the printed parts in container order with their names.
 func asmPrinted(m *clamparm.Model) ([]string, []clamparm.Part) {
 	names := []string{"frame", "pad", "swivel", "link A", "link B", "head", "adapter", "knob J1", "knob J2", "knob J3",

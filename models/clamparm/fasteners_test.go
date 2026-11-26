@@ -150,14 +150,15 @@ func TestClampArmFastenersBoltNutEngagement(t *testing.T) {
 }
 
 // TestClampArmFastenersNoOverlap requires every hardware body to share no volume with any other body, using decad's
-// Intersect and its BooleanEmpty result. Bodies whose boxes are apart are disjoint without a call. A bolt and its own
-// nut are left out (see TestClampArmFastenersBoltNutEngagement). Every pair must prove empty in one operand order,
-// except the pairs in asmMeshOnly, which decad still refuses in both orders and which asmMeshOverlap checks instead.
+// IntersectionVolume, which runs Intersect's evaluation across containers, and its BooleanEmpty result. Bodies whose
+// boxes are apart are disjoint without a call. A bolt and its own nut are left out (see
+// TestClampArmFastenersBoltNutEngagement). Every pair must prove empty in one operand order, except the pairs in
+// asmMeshOnly, which decad still refuses in both orders and which asmMeshOverlap checks instead.
 func TestClampArmFastenersNoOverlap(t *testing.T) {
 	for _, c := range asmCases(t) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			m := asmBuildFlat(t, c)
+			doc, m := asmBuild(t, c)
 			printedNames, printed := asmPrinted(m)
 			boltNames, bolts := asmBolts(m)
 			nutNames, nuts := asmNuts(m)
@@ -200,7 +201,7 @@ func TestClampArmFastenersNoOverlap(t *testing.T) {
 					}
 					checked++
 					_, meshOnly := asmMeshOnly[asmRefusal{c.name, names[i], names[j]}]
-					if !requireDisjointPair(t, names[i], names[j], bodies[i], bodies[j], axes[i], meshOnly) {
+					if !requireDisjointPair(t, doc, names[i], names[j], bodies[i], bodies[j], axes[i], meshOnly) {
 						fallbacks = append(fallbacks, names[i]+" and "+names[j])
 					}
 				}
@@ -221,7 +222,7 @@ func TestClampArmFastenersNoOverlap(t *testing.T) {
 // A bolt moved 0.1 stays clear. The honest bolt passes the whole proof.
 func TestClampArmFastenersMeshOverlapControl(t *testing.T) {
 	c := asmCases(t)[0]
-	m := asmBuildFlat(t, c)
+	_, m := asmBuild(t, c)
 	site := asmWorldSites(t, c, m.Dimensions)[1]
 	axis := asmAxis{origin: site.head, dir: site.dir, ref: site.corner}
 	side := site.dir.Cross(site.corner)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -144,19 +145,63 @@ func asmBoxesMeet(a, b decad.Box, tol float64) bool {
 		a.Min.Z <= b.Max.Z+tol && b.Min.Z <= a.Max.Z+tol
 }
 
-// requireDisjointPair requires a, a hardware body, and b to share no volume. It asks decad's Intersect with the
-// hardware first, then with the printed part first, and expects BooleanEmpty from one of them, which proves the
-// bodies disjoint. A pair in asmMeshOnly (meshOnly) is the exception: decad refuses it in both orders, so the interim
-// proof asmMeshOverlap, whose axis is the hardware's own, decides it and the function returns false. A pair not in
-// asmMeshOnly that decad refuses fails.
-func requireDisjointPair(t *testing.T, an, bn string, a, b *decad.Body, axis asmAxis, meshOnly bool) bool {
+// asmPairProof is one IntersectionVolume answer for a pair of bodies in one operand order. Cases that build the same
+// pair (a pose moves only the parts past its joint) share it: decad.Document.PairDigest is equal exactly when
+// Intersect, and so IntersectionVolume, gives the same answer, so a pair is evaluated once per distinct digest.
+type asmPairProof struct {
+	once sync.Once
+	err  error
+}
+
+var asmPairProofs sync.Map // decad.Digest -> *asmPairProof
+
+// asmIntersect returns the error IntersectionVolume gives for a and b in that order. The pair is evaluated once per
+// PairDigest across all cases, and every later pair with the same digest reads the stored error.
+func asmIntersect(t *testing.T, doc *decad.Document, a, b *decad.Body) error {
+	t.Helper()
+	digest, err := doc.PairDigest(t.Context(), a, b)
+	require.NoError(t, err)
+	v, _ := asmPairProofs.LoadOrStore(digest, &asmPairProof{})
+	proof := v.(*asmPairProof)
+	proof.once.Do(func() {
+		_, proof.err = doc.IntersectionVolume(t.Context(), a, b)
+	})
+	return proof.err
+}
+
+// asmGapShift returns the displacement bound of the gap shift that decad applied to an operand before it proved the
+// pair empty, or 0 when none applied. A shifted empty result proves the bodies disjoint only after one moved by that
+// much (decad's gap tolerance, 0.01 mm by default).
+func asmGapShift(be *decad.BooleanError) float64 {
+	for _, d := range be.OperationDiagnostics() {
+		if d.Code == decad.OpDiagGapShiftApplied && d.Change != nil {
+			mm, err := d.Change.DisplacementBound.In(units.Millimeter)
+			if err != nil {
+				return math.Inf(1)
+			}
+			return mm
+		}
+	}
+	return 0
+}
+
+// requireDisjointPair requires a, a hardware body, and b to share no volume. It asks decad's IntersectionVolume with
+// the hardware first, then with the printed part first, and expects BooleanEmpty from one of them, which proves the
+// bodies disjoint. An empty result after a gap shift counts only when the shift is within asmPlaneTol, the distance at
+// which the test treats a vertex as on a plane: a bolt head resting on its pocket floor is such a contact. A pair in
+// asmMeshOnly (meshOnly) is the exception: decad refuses it in both orders, so the interim proof asmMeshOverlap, whose
+// axis is the hardware's own, decides it and the function returns false. A pair not in asmMeshOnly that decad refuses
+// fails.
+func requireDisjointPair(t *testing.T, doc *decad.Document, an, bn string, a, b *decad.Body, axis asmAxis,
+	meshOnly bool) bool {
 	t.Helper()
 	var refusal error
 	for _, operands := range [][2]*decad.Body{{a, b}, {b, a}} {
-		_, err := decad.Intersect(operands[0], operands[1]).Do(t.Context())
+		err := asmIntersect(t, doc, operands[0], operands[1])
 		require.Error(t, err, "%s and %s share volume", an, bn)
 		var be *decad.BooleanError
 		if errors.As(err, &be) && be.Code == decad.BooleanEmpty {
+			require.LessOrEqual(t, asmGapShift(be), asmPlaneTol, "%s and %s: the empty result needed a gap shift", an, bn)
 			return true
 		}
 		refusal = err
