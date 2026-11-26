@@ -177,4 +177,3 @@ func TestDefaultRealHelicalGearWithBoreAndCapChamfer(t *testing.T) {
 	require.True(t, mesh.VolumeVerified())
 	require.Equal(t, 0, helicalMeshEuler(mesh), "the chamfered gear retains its through-bore")
 }
-

@@ -73,7 +73,7 @@ func (b *builder) copyOnLift(body *decad.Body, l lift, from, to r3.Vec) *decad.B
 	if b.err != nil {
 		return nil
 	}
-	copied, err := decad.Copy(b.ctx, body, decad.WithCopyLiftTranslation(l.xf, from, to))
+	copied, err := decad.Copy(body).Place(decad.CopyLiftTranslation{Lift: l.xf, From: from, To: to}).Do(b.ctx)
 	b.fail("copy on group lift", err)
 	return copied
 }
@@ -94,7 +94,7 @@ func (b *builder) lifted(body *decad.Body, l lift) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	placed, err := decad.Transform(b.ctx, body, l.xf)
+	placed, err := decad.Transform(body, l.xf).Do(b.ctx)
 	b.fail("place on group lift", err)
 	return placed
 }
@@ -110,7 +110,7 @@ func (b *builder) place(body *decad.Body, f r3.Frame) *decad.Body {
 		return nil
 	}
 
-	placed, err := decad.Transform(b.ctx, body, transform)
+	placed, err := decad.Transform(body, transform).Do(b.ctx)
 	if err != nil {
 		b.fail("transform body", err)
 		return nil

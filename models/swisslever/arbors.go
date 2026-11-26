@@ -169,7 +169,7 @@ func (b *builder) flatRamp(what string, x, y float64, sp flatSpan) (*decad.Body,
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Symmetric{D: units.Millimeters(rampReach)})
+	body, err := decad.Extrude(b.doc, s, p, decad.Symmetric{D: units.Millimeters(rampReach)}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}

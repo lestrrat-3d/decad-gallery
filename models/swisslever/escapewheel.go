@@ -110,7 +110,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	copies, err := decad.PatternCopies(b.ctx, tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis, Count: Teeth})
+	copies, err := decad.PatternCopies(tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis, Count: Teeth}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("escape wheel: pattern teeth: %w", err)
 	}
@@ -119,7 +119,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 		return nil, err
 	}
 	selection := decad.Edges(decad.ParallelTo(zAxis), decad.Reflex()).Exactly(2 * Teeth)
-	if wheel, err = decad.Fillet(b.ctx, wheel, selection, units.Millimeters(toothRootRound)); err != nil {
+	if wheel, err = decad.Fillet(wheel, selection, units.Millimeters(toothRootRound)).Do(b.ctx); err != nil {
 		return nil, fmt.Errorf("escape wheel: root fillet: %w", err)
 	}
 	tool, err := b.dTool("escape wheel bore", 0, 0, wheelLow-wheelBoreReach, BodyBoreRadius, BodyBoreFlat,

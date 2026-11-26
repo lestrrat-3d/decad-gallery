@@ -132,13 +132,13 @@ func cutBore(ctx context.Context, doc *decad.Document, target *decad.Body, f sha
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("bore sketch has %d profiles; want one valid region", len(profiles))
 	}
-	tool, err := decad.Extrude(ctx, doc, s, profiles[0], decad.Distance{
+	tool, err := decad.Extrude(doc, s, profiles[0], decad.Distance{
 		D: units.Millimeters(high - low + 2*margin), Dir: decad.Along,
-	})
+	}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("extrude bore tool: %w", err)
 	}
-	body, err := decad.Cut(ctx, target, tool)
+	body, err := decad.Cut(target, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cut bore: %w", err)
 	}

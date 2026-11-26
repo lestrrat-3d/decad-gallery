@@ -164,8 +164,7 @@ func TestWrongPhaseIsDetected(t *testing.T) {
 	_, box := defaultGearbox(t)
 	planet := box.Stages[0].Planets[0]
 	center := r3.NewVec(21, 0, 0)
-	turned, err := decad.Copy(t.Context(), planet, decad.WithCopyRotation(center, r3.NewVec(0, 0, 1),
-		units.Radians(math.Pi/float64(p.PlanetTeeth))))
+	turned, err := decad.Copy(planet).Place(decad.CopyRotation{Center: center, Axis: r3.NewVec(0, 0, 1), Angle: units.Radians(math.Pi / float64(p.PlanetTeeth))}).Do(t.Context())
 	require.NoError(t, err)
 	require.True(t, hasPenetration(t, turned, box.Stages[0].Sun))
 	require.True(t, hasPenetration(t, turned, box.Ring))

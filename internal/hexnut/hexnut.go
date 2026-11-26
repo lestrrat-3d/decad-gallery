@@ -111,7 +111,7 @@ func Build(ctx context.Context, doc *decad.Document, s Size, o Options, placemen
 		if err != nil {
 			return nil, fmt.Errorf("hexnut: create placement transform: %w", err)
 		}
-		if body, err = decad.Transform(ctx, body, transform); err != nil {
+		if body, err = decad.Transform(body, transform).Do(ctx); err != nil {
 			return nil, fmt.Errorf("hexnut: place nut body: %w", err)
 		}
 	}
@@ -163,7 +163,7 @@ func extrudeHexagon(ctx context.Context, doc *decad.Document, world *sketch.Worl
 	if profile == nil {
 		return nil, fmt.Errorf("hexnut: select hexagon profile: no valid profile with %d holes", holes)
 	}
-	prism, err := decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(size.Thickness), Dir: decad.Along})
+	prism, err := decad.Extrude(doc, s, profile, decad.Distance{D: units.Millimeters(size.Thickness), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("hexnut: extrude hexagon: %w", err)
 	}
@@ -219,11 +219,11 @@ func cutChamfer(ctx context.Context, doc *decad.Document, world *sketch.World, s
 		r.LowerChamfer = s
 	}
 	axis := decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}
-	tool, err := decad.Revolve(ctx, doc, s, profile, axis, decad.FullRevolution{})
+	tool, err := decad.Revolve(doc, s, profile, axis, decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("hexnut: revolve %s chamfer tool: %w", name, err)
 	}
-	if body, err = decad.Cut(ctx, body, tool); err != nil {
+	if body, err = decad.Cut(body, tool).Do(ctx); err != nil {
 		return nil, fmt.Errorf("hexnut: cut %s chamfer: %w", name, err)
 	}
 	return body, nil

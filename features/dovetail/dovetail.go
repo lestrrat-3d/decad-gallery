@@ -264,11 +264,11 @@ func Apply(ctx context.Context, doc *decad.Document, p Params, f r3.Frame, first
 	if err != nil {
 		return nil, err
 	}
-	tailed, err := decad.Union(ctx, tailHost, tail)
+	tailed, err := decad.Union(tailHost, tail).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("dovetail: add tail to its host: %w", err)
 	}
-	cut, err := decad.Cut(ctx, socketHost, socket)
+	cut, err := decad.Cut(socketHost, socket).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("dovetail: cut socket into its host: %w", err)
 	}
@@ -399,7 +399,7 @@ func (p Params) tool(ctx context.Context, doc *decad.Document, f r3.Frame, y0, l
 	if s < 0 {
 		dir = decad.Along
 	}
-	body, err := decad.Extrude(ctx, doc, sk, chosen, decad.Distance{D: units.Millimeters(length), Dir: dir})
+	body, err := decad.Extrude(doc, sk, chosen, decad.Distance{D: units.Millimeters(length), Dir: dir}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dovetail: extrude %s: %w", what, err)
 	}

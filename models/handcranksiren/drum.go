@@ -44,8 +44,8 @@ func (b *builder) ring(body *decad.Body, count int) *decad.Body {
 	if b.err != nil || body == nil {
 		return nil
 	}
-	out, err := decad.Patterned(b.ctx, body, decad.CircularPattern{
-		Center: r3.Vec{Z: rotorHeight}, Axis: r3.Vec{Y: 1}, Count: count})
+	out, err := decad.Patterned(body, decad.CircularPattern{
+		Center: r3.Vec{Z: rotorHeight}, Axis: r3.Vec{Y: 1}, Count: count}).Do(b.ctx)
 	b.fail("pattern about the rotor axis", err)
 	return out
 }

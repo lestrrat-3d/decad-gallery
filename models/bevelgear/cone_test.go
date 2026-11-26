@@ -137,7 +137,7 @@ func TestSpacedSixteenTwelveHeelConeCrossesToeTooth(t *testing.T) {
 	require.NoError(t, err)
 	toeCone, err := bevelgear.BuildToeCone(t.Context(), doc, p)
 	require.NoError(t, err)
-	toeKeeper, err := decad.Cut(t.Context(), tooth, toeCone)
+	toeKeeper, err := decad.Cut(tooth, toeCone).Do(t.Context())
 	require.NoError(t, err)
 	heelCone, err := bevelgear.BuildHeelCone(t.Context(), doc, p)
 	require.NoError(t, err)

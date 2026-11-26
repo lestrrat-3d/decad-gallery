@@ -139,7 +139,7 @@ func (b *builder) tiltBody(body *decad.Body) *decad.Body {
 		b.fail("create head tilt", err)
 		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, xf)
+	body, err = decad.Transform(body, xf).Do(b.ctx)
 	b.fail("apply head tilt", err)
 	return body
 }

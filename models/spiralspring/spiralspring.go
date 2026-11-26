@@ -46,7 +46,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	}
 
 	h := p.Height
-	body, err := decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(h), Dir: decad.Along})
+	body, err := decad.Extrude(doc, s, profile, decad.Distance{D: units.Millimeters(h), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("spiralspring: extrude spring: %w", err)
 	}
@@ -61,7 +61,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 			sel = sel.Or(preds...)
 		}
 	}
-	body, err = decad.Fillet(ctx, body, sel.Exactly(len(corners)), units.Millimeters(dm.FilletRadius))
+	body, err = decad.Fillet(body, sel.Exactly(len(corners)), units.Millimeters(dm.FilletRadius)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("spiralspring: fillet corners: %w", err)
 	}

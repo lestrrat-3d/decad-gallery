@@ -203,7 +203,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	if err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: place ring: %w", err)
 	}
-	if box.Ring, err = decad.Transform(ctx, ring, move); err != nil {
+	if box.Ring, err = decad.Transform(ring, move).Do(ctx); err != nil {
 		return Gearbox{}, fmt.Errorf("planetarygearbox: place ring: %w", err)
 	}
 
@@ -221,7 +221,7 @@ func (r *run) build(ctx context.Context) (Gearbox, error) {
 	// A sun that a link shaft feeds has a countersink in its rear bore, so the build keeps a second master of it.
 	linkedSun := sun
 	if p.Stages > 1 {
-		if linkedSun, err = decad.Copy(ctx, sun); err != nil {
+		if linkedSun, err = decad.Copy(sun).Do(ctx); err != nil {
 			return Gearbox{}, fmt.Errorf("planetarygearbox: copy sun: %w", err)
 		}
 		if linkedSun, err = r.countersinkSun(ctx, linkedSun); err != nil {
@@ -403,7 +403,7 @@ func (r *run) buildHousing(ctx context.Context, box *Gearbox) error {
 	if err != nil {
 		return fmt.Errorf("input shaft pose: %w", err)
 	}
-	if box.InputShaft, err = decad.Transform(ctx, shaft, place); err != nil {
+	if box.InputShaft, err = decad.Transform(shaft, place).Do(ctx); err != nil {
 		return fmt.Errorf("place input shaft: %w", err)
 	}
 

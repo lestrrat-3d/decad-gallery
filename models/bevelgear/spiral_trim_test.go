@@ -63,7 +63,7 @@ func TestSourceDefaultSpiralToothToeCut(t *testing.T) {
 			geometry.BoreDiameter = 0
 			toeCone, err := BuildToeCone(t.Context(), doc, geometry)
 			require.NoError(t, err)
-			toeKeeper, err := decad.Cut(t.Context(), curved, toeCone)
+			toeKeeper, err := decad.Cut(curved, toeCone).Do(t.Context())
 			require.NoError(t, err)
 			require.Len(t, doc.Bodies(), 1)
 			require.True(t, toeKeeper.IsSolid())

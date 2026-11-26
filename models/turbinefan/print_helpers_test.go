@@ -38,7 +38,7 @@ func posedBlade(t *testing.T, d, pitch float64, hand turbinefan.Hand) (*decad.Do
 	tilt, depth, err := turbinefan.RestTilt(t.Context(), blade.Body, sz, pitch, hand)
 	require.NoError(t, err)
 	_, xf := poseTransform(t, sz, pitch, hand, tilt, depth)
-	posed, err := decad.Transform(t.Context(), blade.Body, xf)
+	posed, err := decad.Transform(blade.Body, xf).Do(t.Context())
 	require.NoError(t, err)
 	return doc, posed, tilt, depth
 }

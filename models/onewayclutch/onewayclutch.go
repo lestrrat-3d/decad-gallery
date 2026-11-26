@@ -189,7 +189,7 @@ func (r *run) ring() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("counterbore tool %d: %w", i+1, err)
 		}
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut counterbore %d: %w", i+1, err)
 		}
 	}
@@ -199,7 +199,7 @@ func (r *run) ring() (*decad.Body, error) {
 			return nil, fmt.Errorf("mount nut pocket %d: %w", i+1, err)
 		}
 		r.sketches = append(r.sketches, sk)
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut mount nut pocket %d: %w", i+1, err)
 		}
 	}
@@ -233,7 +233,7 @@ func (r *run) plate(z, length float64, outerZ float64, inner [][2]float64,
 		return nil, err
 	}
 	for _, tool := range append(all, more...) {
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}

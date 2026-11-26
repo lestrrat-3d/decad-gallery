@@ -85,8 +85,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if err != nil {
 		return nil, fmt.Errorf("plaquestand: plaque sketch: %w", err)
 	}
-	if m.Plaque, err = decad.Extrude(ctx, doc, plaqueSk, plaqueProfile,
-		decad.Distance{D: units.Millimeters(p.PlaqueThickness), Dir: decad.Along}); err != nil {
+	if m.Plaque, err = decad.Extrude(doc, plaqueSk, plaqueProfile,
+		decad.Distance{D: units.Millimeters(p.PlaqueThickness), Dir: decad.Along}).Do(ctx); err != nil {
 		return nil, fmt.Errorf("plaquestand: extrude plaque: %w", err)
 	}
 	if !m.Plaque.IsSolid() {
@@ -133,7 +133,7 @@ func buildBracket(ctx context.Context, doc *decad.Document, m *Model, x0 float64
 		return nil, fmt.Errorf("profile sketch: %w", err)
 	}
 	m.Sketches = append(m.Sketches, sk)
-	body, err := decad.Extrude(ctx, doc, sk, profile, decad.Distance{D: units.Millimeters(BracketWidth), Dir: decad.Along})
+	body, err := decad.Extrude(doc, sk, profile, decad.Distance{D: units.Millimeters(BracketWidth), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
@@ -153,7 +153,7 @@ func buildBracket(ctx context.Context, doc *decad.Document, m *Model, x0 float64
 	}
 	m.Sketches = append(m.Sketches, pocketSk, holeSk)
 	for _, tool := range []*decad.Body{pocket, hole} {
-		if body, err = decad.Cut(ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}
@@ -171,7 +171,7 @@ func buildRail(ctx context.Context, doc *decad.Document, m *Model) (*decad.Body,
 		return nil, fmt.Errorf("sketch: %w", err)
 	}
 	m.Sketches = append(m.Sketches, sk)
-	body, err := decad.Extrude(ctx, doc, sk, profile, decad.Distance{D: units.Millimeters(m.Dimensions.Span), Dir: decad.Along})
+	body, err := decad.Extrude(doc, sk, profile, decad.Distance{D: units.Millimeters(m.Dimensions.Span), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
@@ -193,7 +193,7 @@ func buildRail(ctx context.Context, doc *decad.Document, m *Model) (*decad.Body,
 		tools = append(tools, hole)
 	}
 	for _, tool := range tools {
-		if body, err = decad.Cut(ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}

@@ -100,11 +100,11 @@ func TestBladeHarnessVerifyAll(t *testing.T) {
 func TestBladeHarnessSeparate(t *testing.T) {
 	eachCradle(t, func(t *testing.T, c cradleCase, b *builtCradle) {
 		// Intersect retires its operands, so it runs on copies.
-		bladeCopy, err := decad.Copy(t.Context(), b.blade)
+		bladeCopy, err := decad.Copy(b.blade).Do(t.Context())
 		require.NoError(t, err)
-		harnessCopy, err := decad.Copy(t.Context(), b.harness.Body)
+		harnessCopy, err := decad.Copy(b.harness.Body).Do(t.Context())
 		require.NoError(t, err)
-		_, err = decad.Intersect(t.Context(), bladeCopy, harnessCopy)
+		_, err = decad.Intersect(bladeCopy, harnessCopy).Do(t.Context())
 		var be *decad.BooleanError
 		require.True(t, errors.As(err, &be) && be.Code == decad.BooleanEmpty, "intersect: %v", err)
 	})

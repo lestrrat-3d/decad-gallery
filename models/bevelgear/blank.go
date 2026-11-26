@@ -178,7 +178,7 @@ func revolveAxialSectionIn(ctx context.Context, doc *decad.Document, c *decad.Co
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("%s sketch has %d profiles; want one valid region", label, len(profiles))
 	}
-	body, err := decad.Revolve(ctx, doc, s, profiles[0], f.sketchAxis(), decad.FullRevolution{})
+	body, err := decad.Revolve(doc, s, profiles[0], f.sketchAxis(), decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("revolve %s section: %w", label, err)
 	}
@@ -249,7 +249,7 @@ func revolveSharedBlanks(ctx context.Context, doc *decad.Document, c *decad.Cont
 			if !profile.Valid || !profileUses(profile, own[0]) {
 				continue
 			}
-			body, err := decad.Revolve(ctx, doc, s, profile, axis, decad.FullRevolution{})
+			body, err := decad.Revolve(doc, s, profile, axis, decad.FullRevolution{}).Do(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("revolve %s blank: %w", label, err)
 			}

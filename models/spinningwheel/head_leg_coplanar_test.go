@@ -154,7 +154,7 @@ func headLegLimitCases(exact headLegLimits) []struct {
 
 func requireDetachedHeadLeg(t *testing.T, result *decad.Body) *decad.Body {
 	t.Helper()
-	detached, err := decad.Copy(t.Context(), result)
+	detached, err := decad.Copy(result).Do(t.Context())
 	require.NoError(t, err)
 	require.True(t, detached != result, "the verifier must read a separate body identity")
 	mesh, err := detached.Tessellate(t.Context(), units.Millimeters(.12), decad.WithVerification(decad.VerifyAll))

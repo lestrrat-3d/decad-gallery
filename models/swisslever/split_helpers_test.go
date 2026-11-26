@@ -82,7 +82,7 @@ func posedArbors(t *testing.T, phase float64) []posedArbor {
 		require.NoError(t, err)
 		turn, err := r3.RotationAround(r3.NewVec(c.at.X, c.at.Y, 0), r3.Vec{Z: 1}, units.Radians(c.angle))
 		require.NoError(t, err)
-		body, err = decad.Transform(t.Context(), body, turn)
+		body, err = decad.Transform(body, turn).Do(t.Context())
 		require.NoError(t, err)
 		out = append(out, posedArbor{c.name, body, c.at, c.angle, c.rMin, c.exempt})
 	}

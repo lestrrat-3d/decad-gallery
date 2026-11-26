@@ -543,11 +543,11 @@ func requireIdenticalBlades(t *testing.T, p handcrankfan.Params, parts map[strin
 			back := state.FanAngle + 2*math.Pi*float64(k-1)/blades
 			xf, err := r3.RotationAround(state.Apex, r3.Vec{Y: -1}, units.Radians(-back))
 			require.NoError(t, err)
-			moved, err := decad.Transform(t.Context(), parts[fmt.Sprintf("%s%d", kind, k)].Body, xf)
+			moved, err := decad.Transform(parts[fmt.Sprintf("%s%d", kind, k)].Body, xf).Do(t.Context())
 			require.NoError(t, err)
 			box, err := moved.Bounds()
 			require.NoError(t, err)
-			require.NoError(t, decad.Remove(moved))
+			require.NoError(t, decad.Remove(moved).Do(t.Context()))
 			if k == 1 {
 				first = box
 				continue
@@ -574,8 +574,8 @@ func requireGearPlacement(t *testing.T, p handcrankfan.Params, parts map[string]
 	}
 	require.InDelta(t, 21, posed("driving-gear").Max.X, 0.05)
 	require.InDelta(t, -31.5, posed("pinion").Min.Y, 0.05)
-	require.NoError(t, decad.Remove(parts["driving-gear"].Body))
-	require.NoError(t, decad.Remove(parts["pinion"].Body))
+	require.NoError(t, decad.Remove(parts["driving-gear"].Body).Do(t.Context()))
+	require.NoError(t, decad.Remove(parts["pinion"].Body).Do(t.Context()))
 }
 
 // skipUnlessFull skips a slow check. The default build takes about five minutes and the variants as long again, so

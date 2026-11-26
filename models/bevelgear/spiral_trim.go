@@ -31,7 +31,7 @@ func trimSpiralToothBy(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, fmt.Errorf("build spiral toe cone: %w", err)
 	}
-	toeKeeper, err := decad.Cut(ctx, curved, toeCone)
+	toeKeeper, err := decad.Cut(curved, toeCone).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("trim spiral tooth at toe: %w", err)
 	}
@@ -39,7 +39,7 @@ func trimSpiralToothBy(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, fmt.Errorf("build spiral heel cone: %w", err)
 	}
-	trimmed, err := decad.Intersect(ctx, toeKeeper, heelCone)
+	trimmed, err := decad.Intersect(toeKeeper, heelCone).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("trim spiral tooth at heel: %w", err)
 	}

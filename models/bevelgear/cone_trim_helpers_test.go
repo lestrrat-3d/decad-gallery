@@ -16,7 +16,7 @@ func buildToeTrimmedTooth(t *testing.T, p bevelgear.Params) (*decad.Document, *d
 	require.NoError(t, err)
 	cone, err := bevelgear.BuildToeCone(t.Context(), doc, p)
 	require.NoError(t, err)
-	trimmed, err := decad.Cut(t.Context(), tooth, cone)
+	trimmed, err := decad.Cut(tooth, cone).Do(t.Context())
 	require.NoError(t, err)
 	require.True(t, trimmed.IsSolid())
 	return doc, trimmed

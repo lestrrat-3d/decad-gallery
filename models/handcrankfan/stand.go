@@ -43,7 +43,7 @@ func (b *builder) handle() {
 		if b.err != nil {
 			return nil
 		}
-		loft, err := decad.LoftSections(b.ctx, b.doc, sections...)
+		loft, err := decad.LoftSections(b.doc, sections...).Do(b.ctx)
 		if err != nil {
 			b.fail("loft grip", err)
 			return nil
@@ -54,7 +54,7 @@ func (b *builder) handle() {
 			b.fail("create grip placement", err)
 			return nil
 		}
-		if loft, err = decad.Transform(b.ctx, loft, xf); err != nil {
+		if loft, err = decad.Transform(loft, xf).Do(b.ctx); err != nil {
 			b.fail("place grip", err)
 			return nil
 		}
@@ -241,7 +241,7 @@ func (b *builder) gearbox() {
 		if b.err != nil {
 			return nil
 		}
-		shared, err := decad.Copy(b.ctx, whole)
+		shared, err := decad.Copy(whole).Do(b.ctx)
 		b.fail("copy the housing", err)
 		if b.err != nil {
 			return nil
@@ -252,7 +252,7 @@ func (b *builder) gearbox() {
 		}
 		var copies [2]*decad.Body
 		for i := range copies {
-			c, err := decad.Copy(b.ctx, shared)
+			c, err := decad.Copy(shared).Do(b.ctx)
 			b.fail("copy the housing", err)
 			copies[i] = c
 		}

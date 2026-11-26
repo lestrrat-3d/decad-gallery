@@ -76,7 +76,7 @@ func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
 	}
 	// Decad's twisted loft panics for some section tables when the pitch changes the sections, so every pitch
 	// lofts the same sections and the finished loft is turned about the stacking line.
-	loft, err := decad.LoftSections(b.ctx, b.doc, sections...)
+	loft, err := decad.LoftSections(b.doc, sections...).Do(b.ctx)
 	if err != nil {
 		b.fail("loft blade", err)
 		return nil
@@ -90,7 +90,7 @@ func (b *bladeBuilder) bladeBody(pitch float64) *decad.Body {
 			b.fail("create pitch rotation", err)
 			return nil
 		}
-		if loft, err = decad.Transform(b.ctx, loft, xf); err != nil {
+		if loft, err = decad.Transform(loft, xf).Do(b.ctx); err != nil {
 			b.fail("turn blade to pitch", err)
 			return nil
 		}
@@ -408,7 +408,7 @@ func (b *bladeBuilder) extrudeSection(s *sketch.Sketch, length float64) *decad.B
 		b.fail("select section profile", errors.New("no valid profile"))
 		return nil
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	b.fail("extrude section", err)
 	return body
 }
@@ -418,7 +418,7 @@ func (b *bladeBuilder) roundStart(body *decad.Body, radius float64) *decad.Body 
 	if b.err != nil || body == nil {
 		return nil
 	}
-	rounded, err := decad.Fillet(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(radius))
+	rounded, err := decad.Fillet(body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(radius)).Do(b.ctx)
 	b.fail("round start", err)
 	return rounded
 }
@@ -428,7 +428,7 @@ func (b *bladeBuilder) chamferStart(body *decad.Body, size float64) *decad.Body 
 	if b.err != nil || body == nil {
 		return nil
 	}
-	cut, err := decad.Chamfer(b.ctx, body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(size))
+	cut, err := decad.Chamfer(body, decad.Edges(decad.OuterLoopOf(decad.CapStart(body))), units.Millimeters(size)).Do(b.ctx)
 	b.fail("chamfer start", err)
 	return cut
 }
@@ -437,7 +437,7 @@ func (b *bladeBuilder) cut(host, tool *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Cut(b.ctx, host, tool)
+	body, err := decad.Cut(host, tool).Do(b.ctx)
 	b.fail("cut solid", err)
 	return body
 }
@@ -446,7 +446,7 @@ func (b *bladeBuilder) union(a, c *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Union(b.ctx, a, c)
+	body, err := decad.Union(a, c).Do(b.ctx)
 	b.fail("union solid", err)
 	return body
 }

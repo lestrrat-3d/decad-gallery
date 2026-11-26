@@ -32,8 +32,8 @@ func extrude(t *testing.T, s *sketch.Sketch, holes int) *decad.Body {
 		}
 	}
 	require.NotNil(t, chosen)
-	body, err := decad.Extrude(t.Context(), decad.New(), s, chosen,
-		decad.Distance{D: units.Millimeters(plateHeight), Dir: decad.Along})
+	body, err := decad.Extrude(decad.New(), s, chosen,
+		decad.Distance{D: units.Millimeters(plateHeight), Dir: decad.Along}).Do(t.Context())
 	require.NoError(t, err)
 	return body
 }

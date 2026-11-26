@@ -170,7 +170,7 @@ func (ps poser) apply(body *decad.Body, t r3.Transform) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("compose placement: %w", err)
 	}
-	out, err := decad.Transform(ps.ctx, body, placed)
+	out, err := decad.Transform(body, placed).Do(ps.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("move: %w", err)
 	}

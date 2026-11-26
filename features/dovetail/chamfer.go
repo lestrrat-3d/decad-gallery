@@ -64,7 +64,7 @@ func chamferEdges(ctx context.Context, body *decad.Body, size float64, ends [][2
 			query = query.Or(pred...)
 		}
 	}
-	out, err := decad.Chamfer(ctx, body, query.Exactly(len(ends)), units.Millimeters(size))
+	out, err := decad.Chamfer(body, query.Exactly(len(ends)), units.Millimeters(size)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("dovetail: chamfer %s: %w", what, err)
 	}

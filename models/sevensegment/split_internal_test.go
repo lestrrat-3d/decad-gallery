@@ -19,7 +19,7 @@ import (
 func TestSevenSegmentSplitShaft(t *testing.T) {
 	for _, digit := range []int{0, 2} {
 		r, shaft := sharedBodyFor(t, Params{Digit: digit}, "shaft", (*run).shaft)
-		shaft, err := decad.Transform(t.Context(), shaft, r.camshaftTurn())
+		shaft, err := decad.Transform(shaft, r.camshaftTurn()).Do(t.Context())
 		require.NoError(t, err)
 		point, axis := r3.Vec{Z: ShaftZ}, r3.Vec{Y: 1}
 		rep, err := splitcheck.Check(t.Context(), splitcheck.Shaft{Body: shaft, Point: point, Axis: axis}, 0.01)

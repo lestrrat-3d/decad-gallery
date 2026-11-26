@@ -77,12 +77,14 @@ func (r *run) helixTool(ri, ro, z0, h, start, span, rise float64, falling bool) 
 		return nil, fmt.Errorf("tool profile: %w", err)
 	}
 	axis := localAxis
-	var opts []decad.CoilOption
 	if falling {
 		axis = decad.SketchLine{Start: decad.Point2{U: 0, V: 1}, End: decad.Point2{U: 0, V: 0}}
-		opts = append(opts, decad.WithLeftHand())
 	}
-	body, err := decad.Coil(r.ctx, r.doc, s, pr, axis, units.Millimeters(rise*360/span), units.Scalar(span/360), opts...)
+	coil := decad.Coil(r.doc, s, pr, axis, units.Millimeters(rise*360/span), units.Scalar(span/360))
+	if falling {
+		coil = coil.LeftHand()
+	}
+	body, err := coil.Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("coil: %w", err)
 	}
@@ -93,7 +95,7 @@ func (r *run) helixTool(ri, ro, z0, h, start, span, rise float64, falling bool) 
 	if err != nil {
 		return nil, err
 	}
-	return decad.Transform(r.ctx, body, t)
+	return decad.Transform(body, t).Do(r.ctx)
 }
 
 // tooth builds tooth 0: a partial revolve of the blank cut by one rising and one falling tool. The blank's end planes lie
@@ -114,7 +116,7 @@ func (r *run) faceTooth(f faceTeeth) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("blank profile: %w", err)
 	}
-	blank, err := decad.Revolve(r.ctx, r.doc, s, pr, localAxis, decad.AngleExtent{A: units.Degrees(th1 - th0), Dir: decad.Along})
+	blank, err := decad.Revolve(r.doc, s, pr, localAxis, decad.AngleExtent{A: units.Degrees(th1 - th0), Dir: decad.Along}).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("blank: %w", err)
 	}
@@ -122,7 +124,7 @@ func (r *run) faceTooth(f faceTeeth) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if blank, err = decad.Transform(r.ctx, blank, t0); err != nil {
+	if blank, err = decad.Transform(blank, t0).Do(r.ctx); err != nil {
 		return nil, err
 	}
 	ri, ro := f.R0-f.Overhang, f.R1+f.Overhang
@@ -132,7 +134,7 @@ func (r *run) faceTooth(f faceTeeth) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("rising tool: %w", err)
 	}
-	if blank, err = decad.Cut(r.ctx, blank, up); err != nil {
+	if blank, err = decad.Cut(blank, up).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("rising cut: %w", err)
 	}
 	ds, de := f.Rise-2, th1+1
@@ -141,7 +143,7 @@ func (r *run) faceTooth(f faceTeeth) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("falling tool: %w", err)
 	}
-	if blank, err = decad.Cut(r.ctx, blank, dn); err != nil {
+	if blank, err = decad.Cut(blank, dn).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("falling cut: %w", err)
 	}
 	return blank, nil
@@ -158,7 +160,7 @@ func (r *run) faceTeethBodies(f faceTeeth, shift float64) ([]*decad.Body, error)
 	if err != nil {
 		return nil, err
 	}
-	head, err := decad.Transform(r.ctx, tooth, first)
+	head, err := decad.Transform(tooth, first).Do(r.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +170,7 @@ func (r *run) faceTeethBodies(f faceTeeth, shift float64) ([]*decad.Body, error)
 		if err != nil {
 			return nil, err
 		}
-		c, err := decad.Copy(r.ctx, head, decad.WithCopyPlacement(t))
+		c, err := decad.Copy(head).Place(decad.CopyTransform{Transform: t}).Do(r.ctx)
 		if err != nil {
 			return nil, fmt.Errorf("copy %d: %w", k, err)
 		}
@@ -181,7 +183,7 @@ func (r *run) faceTeethBodies(f faceTeeth, shift float64) ([]*decad.Body, error)
 func (r *run) joinTeeth(body *decad.Body, teeth []*decad.Body) (*decad.Body, error) {
 	for k, t := range teeth {
 		var err error
-		if body, err = decad.Union(r.ctx, body, t); err != nil {
+		if body, err = decad.Union(body, t).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("union tooth %d: %w", k+1, err)
 		}
 	}
@@ -206,5 +208,5 @@ func (r *run) localBox(r0, r1, w, z0, z1, angle float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Transform(r.ctx, body, t)
+	return decad.Transform(body, t).Do(r.ctx)
 }

@@ -114,7 +114,7 @@ func (r *run) adapter() (*decad.Body, error) {
 			return nil, fmt.Errorf("head pocket %d: %w", i+1, err)
 		}
 		r.sketches = append(r.sketches, sk)
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut head pocket %d: %w", i+1, err)
 		}
 	}

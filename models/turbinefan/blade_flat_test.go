@@ -66,9 +66,9 @@ func TestStudFlat(t *testing.T) {
 		studArea, _ := loopsArea(section(t, blade.Body, bolt))
 
 		corner, _, _ := turbinefan.PosedEdgePointsAt(sz, c.pitch, c.hand, tilt, depth)
-		copied, err := decad.Copy(t.Context(), blade.Body)
+		copied, err := decad.Copy(blade.Body).Do(t.Context())
 		require.NoError(t, err)
-		posed, err := decad.Transform(t.Context(), copied, xf)
+		posed, err := decad.Transform(copied, xf).Do(t.Context())
 		require.NoError(t, err)
 		total, stud := loopsArea(sectionAt(t, posed, 0.1))
 		flat := 0.0

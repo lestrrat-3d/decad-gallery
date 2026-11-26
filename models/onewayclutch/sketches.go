@@ -70,7 +70,7 @@ func (r *run) extrude(s *sketch.Sketch, holes int, length float64) (*decad.Body,
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	return decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(r.ctx)
 }
 
 // across is the plane z = const of the local frame, with U = +X and V = +Y.
@@ -407,6 +407,6 @@ func (r *run) meridian(vertices [][2]float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }

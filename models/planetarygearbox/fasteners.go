@@ -85,8 +85,8 @@ func (r *run) buildHeadPocketTool(ctx context.Context, z float64) (*decad.Body, 
 	if err != nil {
 		return nil, err
 	}
-	tool, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(m2fastener.BoltSize.HeadHeight + fastenerStock), Dir: decad.Along})
+	tool, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(m2fastener.BoltSize.HeadHeight + fastenerStock), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("head pocket: extrude: %w", err)
 	}
@@ -109,7 +109,7 @@ func cutAt(ctx context.Context, what string, body, tool *decad.Body, at []r3.Vec
 		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	for i, t := range tools {
-		if body, err = decad.Cut(ctx, body, t); err != nil {
+		if body, err = decad.Cut(body, t).Do(ctx); err != nil {
 			return nil, fmt.Errorf("cut %s %d: %w", what, i+1, err)
 		}
 	}
@@ -150,8 +150,8 @@ func (r *run) buildNutTool(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	tool, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(nutCavityHeight()), Dir: decad.Along})
+	tool, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(nutCavityHeight()), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("nut pocket: extrude: %w", err)
 	}
@@ -279,7 +279,7 @@ func (r *run) buildFasteners(ctx context.Context, box *Gearbox) error {
 		return fmt.Errorf("bolts: %w", err)
 	}
 	if p.EarCount > 0 {
-		earNut, err := decad.Copy(ctx, nut.Body)
+		earNut, err := decad.Copy(nut.Body).Do(ctx)
 		if err != nil {
 			return fmt.Errorf("ear nut: %w", err)
 		}

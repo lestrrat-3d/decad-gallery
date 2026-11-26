@@ -75,7 +75,7 @@ func dovetailView(ctx context.Context, name string) (solidlens.Scene, error) {
 			if err != nil {
 				return solidlens.Scene{}, fmt.Errorf("dovetail %s view: move part %d: %w", name, i, err)
 			}
-			if body, err = decad.Transform(ctx, body, move); err != nil {
+			if body, err = decad.Transform(body, move).Do(ctx); err != nil {
 				return solidlens.Scene{}, fmt.Errorf("dovetail %s view: move part %d: %w", name, i, err)
 			}
 		}

@@ -81,11 +81,11 @@ func requireEarFasteners(t *testing.T, box planetarygearbox.Gearbox, p planetary
 // because a boolean consumes its operands.
 func overlapVolume(t *testing.T, a, b *decad.Body) float64 {
 	t.Helper()
-	ca, err := decad.Copy(t.Context(), a)
+	ca, err := decad.Copy(a).Do(t.Context())
 	require.NoError(t, err)
-	cb, err := decad.Copy(t.Context(), b)
+	cb, err := decad.Copy(b).Do(t.Context())
 	require.NoError(t, err)
-	both, err := decad.Intersect(t.Context(), ca, cb)
+	both, err := decad.Intersect(ca, cb).Do(t.Context())
 	if err != nil {
 		return 0
 	}

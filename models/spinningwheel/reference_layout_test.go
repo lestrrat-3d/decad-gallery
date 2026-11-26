@@ -64,11 +64,11 @@ func requireRearRailClearance(t *testing.T, p spinningwheel.Params, a *spinningw
 	require.True(t, legLocation == decad.PointInside, "probe must be inside the structural leg, got %s", legLocation)
 	// The crossarm and the connector block are the treadle parts nearest the leg; the bars lie far left of it.
 	for _, name := range []string{"treadle-rear-crossarm", "treadle-connector-block"} {
-		timber, err := decad.Copy(t.Context(), wheelPart(t, a, name), decad.WithCopyPlacement(xf))
+		timber, err := decad.Copy(wheelPart(t, a, name)).Place(decad.CopyTransform{Transform: xf}).Do(t.Context())
 		require.NoError(t, err)
 		location, err := timber.LocatePoint(t.Context(), probe, units.Millimeters(.02))
 		require.NoError(t, err)
 		require.True(t, location == decad.PointOutside, "%s must clear the leg's interior, got %s", name, location)
-		require.NoError(t, decad.Remove(timber))
+		require.NoError(t, decad.Remove(timber).Do(t.Context()))
 	}
 }

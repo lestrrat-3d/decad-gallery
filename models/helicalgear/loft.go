@@ -106,7 +106,7 @@ func BuildFilletedLoft(ctx context.Context, doc *decad.Document, p Params, plane
 	if len(lowerRoots) != len(upperRoots) {
 		return nil, fmt.Errorf("outlines have %d and %d root contacts", len(lowerRoots), len(upperRoots))
 	}
-	loft, err := decad.Loft(ctx, doc, lowerSketch, lowerProfile, upperSketch, upperProfile)
+	loft, err := decad.Loft(doc, lowerSketch, lowerProfile, upperSketch, upperProfile).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loft helical outline: %w", err)
 	}
@@ -127,7 +127,7 @@ func BuildFilletedLoft(ctx context.Context, doc *decad.Document, p Params, plane
 		}
 		seams.Or(decad.EndpointAt(start), decad.EndpointAt(end))
 	}
-	rounded, err := decad.Fillet(ctx, loft, seams.Exactly(len(lowerRoots)), radius)
+	rounded, err := decad.Fillet(loft, seams.Exactly(len(lowerRoots)), radius).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fillet helical root seams: %w", err)
 	}

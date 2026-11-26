@@ -129,7 +129,7 @@ func (d *Demo) block(ctx context.Context, doc *decad.Document, name string, dir 
 	if chosen == nil {
 		return nil, nil, fmt.Errorf("dovetail demo: select %s block profile: no valid profile", name)
 	}
-	body, err := decad.Extrude(ctx, doc, sk, chosen, decad.Distance{D: units.Millimeters(d.Height), Dir: dir})
+	body, err := decad.Extrude(doc, sk, chosen, decad.Distance{D: units.Millimeters(d.Height), Dir: dir}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dovetail demo: extrude %s block: %w", name, err)
 	}

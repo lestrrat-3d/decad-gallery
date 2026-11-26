@@ -78,12 +78,12 @@ func TestFacetedBody(t *testing.T) {
 		require.NoError(t, sketchcheck.VerifyFullyConstrained(t.Context(), s))
 		_, err := s.Solve(t.Context())
 		require.NoError(t, err)
-		body, err := decad.Extrude(t.Context(), doc, s, s.Profiles()[0],
-			decad.Distance{D: units.Millimeters(plateHeight), Dir: decad.Along})
+		body, err := decad.Extrude(doc, s, s.Profiles()[0],
+			decad.Distance{D: units.Millimeters(plateHeight), Dir: decad.Along}).Do(t.Context())
 		require.NoError(t, err)
 		return body
 	}
-	union, err := decad.Union(t.Context(), box(5, 5, 25, 15), box(5, 5, 15, 25))
+	union, err := decad.Union(box(5, 5, 25, 15), box(5, 5, 15, 25)).Do(t.Context())
 	require.NoError(t, err)
 	// The union's only inside corner is the notch at (15, 15).
 	fs := requireFindings(t, union, cornercheck.Inside, 1)

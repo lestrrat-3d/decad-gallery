@@ -228,11 +228,11 @@ func TestOneWayClutchFreewheelDirection(t *testing.T) {
 			// The hub is turned, not the ring: a ring made by a Boolean is a mesh that Intersect cannot take, and turning the hub
 			// by an angle equals turning the ring by its opposite.
 			rotated := func(angle float64) *decad.Body {
-				hub, err := decad.Copy(t.Context(), parts.Hub)
+				hub, err := decad.Copy(parts.Hub).Do(t.Context())
 				require.NoError(t, err)
 				xf, err := r3.Rotation(r3.Vec{Z: 1}, units.Degrees(angle))
 				require.NoError(t, err)
-				hub, err = decad.Transform(t.Context(), hub, xf)
+				hub, err = decad.Transform(hub, xf).Do(t.Context())
 				require.NoError(t, err)
 				return hub
 			}

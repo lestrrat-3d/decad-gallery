@@ -164,7 +164,7 @@ func (r *run) wallFasteners(body *decad.Body, front bool) (*decad.Body, error) {
 		r.sketches = append(r.sketches, sk)
 		tools = append(tools, pocket)
 		for _, tool := range tools {
-			if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 				return nil, fmt.Errorf("cut %s: %w", j.label, err)
 			}
 		}
@@ -219,7 +219,7 @@ func (r *run) addRibs(body *decad.Body, f r3.Frame, front bool) (*decad.Body, er
 			if err != nil {
 				return nil, fmt.Errorf("rib: %w", err)
 			}
-			if body, err = decad.Union(r.ctx, body, b); err != nil {
+			if body, err = decad.Union(body, b).Do(r.ctx); err != nil {
 				return nil, fmt.Errorf("union rib: %w", err)
 			}
 		}
@@ -267,7 +267,7 @@ func roundRoot(ctx context.Context, body *decad.Body, side, level, innerY float6
 	if n != 4 {
 		return nil, fmt.Errorf("rib root has %d edges, want 4", n)
 	}
-	out, err := decad.Fillet(ctx, body, query.Exactly(n), units.Millimeters(ribRound))
+	out, err := decad.Fillet(body, query.Exactly(n), units.Millimeters(ribRound)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("round the root: %w", err)
 	}
@@ -350,7 +350,7 @@ func (r *run) guidePlate() (*decad.Body, error) {
 			return nil, fmt.Errorf("nut pocket %d: %w", i+1, err)
 		}
 		r.sketches = append(r.sketches, sk)
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut nut pocket %d: %w", i+1, err)
 		}
 	}

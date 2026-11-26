@@ -124,7 +124,7 @@ func (r *run) revolveMeridian(ctx context.Context, what string, pts []vertex) (*
 		return nil, err
 	}
 	axis := decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}
-	body, err := decad.Revolve(ctx, r.doc, s, profile, axis, decad.FullRevolution{})
+	body, err := decad.Revolve(r.doc, s, profile, axis, decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: revolve: %w", what, err)
 	}
@@ -137,7 +137,7 @@ func (r *run) extrudeMeridian(ctx context.Context, what string, pts []vertex, ha
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(ctx, r.doc, s, profile, decad.Symmetric{D: units.Millimeters(half)})
+	body, err := decad.Extrude(r.doc, s, profile, decad.Symmetric{D: units.Millimeters(half)}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}

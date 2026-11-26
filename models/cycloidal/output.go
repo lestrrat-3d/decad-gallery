@@ -47,7 +47,7 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: read output plate thickness: %w", err)
 	}
-	plate, err := decad.Extrude(ctx, r.doc, ps, plateProfile, decad.Distance{D: thickness, Dir: decad.Along})
+	plate, err := decad.Extrude(r.doc, ps, plateProfile, decad.Distance{D: thickness, Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: extrude output plate: %w", err)
 	}
@@ -78,10 +78,10 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error)
 	if seed == nil {
 		return nil, nil, fmt.Errorf("cycloidal: output pin: no region")
 	}
-	pin, err := decad.Extrude(ctx, r.doc, pins, seed, decad.TwoSided{
+	pin, err := decad.Extrude(r.doc, pins, seed, decad.TwoSided{
 		One: decad.DistanceSide{D: thickness},
 		Two: decad.DistanceSide{D: height},
-	})
+	}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: extrude output pin: %w", err)
 	}
@@ -105,9 +105,9 @@ func (r *run) patternPinCircle(s *sketch.Sketch) error {
 // patternPins returns the M output pins, pin k at angle 2πk/M about the drive axis: pin, then its copies from a
 // circular pattern about the placement's axis.
 func (r *run) patternPins(ctx context.Context, pin *decad.Body) ([]*decad.Body, error) {
-	copies, err := decad.PatternCopies(ctx, pin, decad.CircularPattern{
+	copies, err := decad.PatternCopies(pin, decad.CircularPattern{
 		Center: r.frame.Origin(), Axis: r.frame.N(), Count: r.p.OutputPinCount,
-	})
+	}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: pattern output pins: %w", err)
 	}

@@ -342,7 +342,7 @@ func buildStraightMember(ctx context.Context, doc *decad.Document, c *decad.Cont
 			if _, ok := before[b]; ok {
 				continue
 			}
-			if err := decad.Remove(b); err != nil {
+			if err := decad.Remove(b).Do(ctx); err != nil {
 				return nil, fmt.Errorf("remove the refused filleted tooth: %w", err)
 			}
 		}
@@ -367,7 +367,7 @@ func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Contai
 	if err != nil {
 		return nil, fmt.Errorf("build toe cone: %w", err)
 	}
-	toeKeeper, err := decad.Cut(ctx, tooth, toeCone, decad.WithMatchingFaces())
+	toeKeeper, err := decad.Cut(tooth, toeCone).MatchingFaces().Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("trim tooth at toe: %w", err)
 	}
@@ -375,14 +375,14 @@ func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Contai
 	if err != nil {
 		return nil, fmt.Errorf("build heel cone: %w", err)
 	}
-	trimmedTooth, err := decad.Intersect(ctx, toeKeeper, heelCone, decad.WithMatchingFaces())
+	trimmedTooth, err := decad.Intersect(toeKeeper, heelCone).MatchingFaces().Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("trim tooth at heel: %w", err)
 	}
 
-	copies, err := decad.PatternCopies(ctx, trimmedTooth, decad.CircularPattern{
+	copies, err := decad.PatternCopies(trimmedTooth, decad.CircularPattern{
 		Center: r3.Vec{}, Axis: f.axis(), Count: p.Teeth,
-	})
+	}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("pattern teeth: %w", err)
 	}
@@ -395,7 +395,7 @@ func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Contai
 		bound = filletedJoinMeshBound
 	}
 	operands := append([]*decad.Body{blank}, pattern...)
-	joined, err := decad.UnionRefined(ctx, operands, units.Millimeters(bound))
+	joined, err := decad.Union(operands...).RefineTo(units.Millimeters(bound)).Do(ctx)
 	switch {
 	case err == nil:
 		return joined, nil
@@ -405,11 +405,11 @@ func joinStraightTeeth(ctx context.Context, doc *decad.Document, c *decad.Contai
 	default:
 		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
 	}
-	joined, err = decad.Union(ctx, blank, pattern...)
+	joined, err = decad.Union(append([]*decad.Body{blank}, pattern...)...).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("join straight tooth pattern: %w", err)
 	}
-	refined, err := decad.Refine(ctx, joined, units.Millimeters(bound))
+	refined, err := decad.Refine(joined, units.Millimeters(bound)).Do(ctx)
 	switch {
 	case err == nil:
 		joined = refined

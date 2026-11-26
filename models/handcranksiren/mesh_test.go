@@ -86,17 +86,15 @@ func meshSamples(t *testing.T, p handcranksiren.Params, parts map[string]handcra
 		pitch := 2 * math.Pi / stage.driverZ
 		for k := range 5 {
 			theta := float64(k) * pitch / 4
-			driver, err := decad.Copy(t.Context(), parts[stage.driver].Body,
-				decad.WithCopyRotation(axisA, r3.Vec{Y: -1}, units.Radians(theta)))
+			driver, err := decad.Copy(parts[stage.driver].Body).Place(decad.CopyRotation{Center: axisA, Axis: r3.Vec{Y: -1}, Angle: units.Radians(theta)}).Do(t.Context())
 			require.NoError(t, err)
-			driven, err := decad.Copy(t.Context(), parts[stage.driven].Body,
-				decad.WithCopyRotation(axisB, r3.Vec{Y: 1}, units.Radians(theta*stage.driverZ/stage.drivenZ)))
+			driven, err := decad.Copy(parts[stage.driven].Body).Place(decad.CopyRotation{Center: axisB, Axis: r3.Vec{Y: 1}, Angle: units.Radians(theta * stage.driverZ / stage.drivenZ)}).Do(t.Context())
 			require.NoError(t, err)
 			driverOutline := outerOutline(t, driver, plane, axisA)
 			drivenOutline := outerOutline(t, driven, plane, axisB)
 			check(stage, driver, driven, driverOutline, drivenOutline, plane, axisA, axisB, k)
-			require.NoError(t, decad.Remove(driver))
-			require.NoError(t, decad.Remove(driven))
+			require.NoError(t, decad.Remove(driver).Do(t.Context()))
+			require.NoError(t, decad.Remove(driven).Do(t.Context()))
 		}
 	}
 }

@@ -87,7 +87,7 @@ func (r *run) polyBody(f r3.Frame, pts [][2]float64, ext decad.Extent) (*decad.B
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, ext)
+	return decad.Extrude(r.doc, s, pr, ext).Do(r.ctx)
 }
 
 // cutPoly cuts body by the closed polygon on frame f swept by ext, each side held by its direction and its distance from
@@ -102,7 +102,7 @@ func (r *run) cutPoly(body *decad.Body, f r3.Frame, pts [][2]float64, ext decad.
 	if err != nil {
 		return nil, err
 	}
-	return decad.CutExtrude(r.ctx, body, s, []*sketch.Profile{pr}, ext)
+	return decad.CutExtrude(body, s, []*sketch.Profile{pr}, ext).Do(r.ctx)
 }
 
 func symmetric(d float64) decad.Extent {
@@ -135,7 +135,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 	if err != nil {
 		return nil, nil, 0, wrap("prism B", err)
 	}
-	tips, err := decad.Intersect(r.ctx, pa, pb)
+	tips, err := decad.Intersect(pa, pb).Do(r.ctx)
 	if err != nil {
 		return nil, nil, 0, wrap("tips", err)
 	}
@@ -168,7 +168,7 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 	if err != nil {
 		return nil, nil, 0, wrap("section", err)
 	}
-	rotor, err := decad.Intersect(r.ctx, tips, section)
+	rotor, err := decad.Intersect(tips, section).Do(r.ctx)
 	if err != nil {
 		return nil, nil, 0, wrap("rotor", err)
 	}
@@ -192,22 +192,22 @@ func (r *run) rotorSplit() (yellow, black *decad.Body, rotorVolume float64, err 
 	if err != nil {
 		return nil, nil, 0, wrap("P2", err)
 	}
-	slab, err := decad.Intersect(r.ctx, p1, p2)
+	slab, err := decad.Intersect(p1, p2).Do(r.ctx)
 	if err != nil {
 		return nil, nil, 0, wrap("slab", err)
 	}
-	rotorCopy, err := decad.Copy(r.ctx, rotor)
+	rotorCopy, err := decad.Copy(rotor).Do(r.ctx)
 	if err != nil {
 		return nil, nil, 0, wrap("copy rotor", err)
 	}
-	slabCopy, err := decad.Copy(r.ctx, slab)
+	slabCopy, err := decad.Copy(slab).Do(r.ctx)
 	if err != nil {
 		return nil, nil, 0, wrap("copy slab", err)
 	}
-	if yellow, err = decad.Intersect(r.ctx, rotorCopy, slabCopy); err != nil {
+	if yellow, err = decad.Intersect(rotorCopy, slabCopy).Do(r.ctx); err != nil {
 		return nil, nil, 0, wrap("yellow", err)
 	}
-	if black, err = decad.Cut(r.ctx, rotor, slab); err != nil {
+	if black, err = decad.Cut(rotor, slab).Do(r.ctx); err != nil {
 		return nil, nil, 0, wrap("black", err)
 	}
 	return yellow, black, rv.Value.Base(), nil
@@ -225,7 +225,7 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("slant B: %w", err)
 	}
-	tool, err := decad.Intersect(r.ctx, sa, sb)
+	tool, err := decad.Intersect(sa, sb).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("slant A x B: %w", err)
 	}
@@ -236,7 +236,7 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("apex box: %w", err)
 	}
-	if tool, err = decad.Intersect(r.ctx, tool, box); err != nil {
+	if tool, err = decad.Intersect(tool, box).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("apex box: %w", err)
 	}
 	if u0 > -rotorSquareHalf && u0+rotorSquareHalf < 0.8 { // the notch ends within the 0.8 print limit of the tip slant
@@ -244,7 +244,7 @@ func (r *run) notchTool(u0, u1 float64) (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		if tool, err = decad.Union(r.ctx, tool, m); err != nil {
+		if tool, err = decad.Union(tool, m).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("mouth: %w", err)
 		}
 	}
@@ -269,7 +269,7 @@ func (r *run) mouthTool(u0 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mouth taper: %w", err)
 	}
-	return decad.Intersect(r.ctx, p1, p3)
+	return decad.Intersect(p1, p3).Do(r.ctx)
 }
 
 // pocketTool builds a cone pocket's cutter: a stadium along local x from slotStart to slotEnd, radius slotRadius, from local
@@ -318,7 +318,7 @@ func (r *run) pocketTool(z0, length float64) (*decad.Body, error) {
 	if n == 0 {
 		return nil, fmt.Errorf("no pocket floor edge")
 	}
-	if b, err = decad.Fillet(r.ctx, b, sel.Exactly(n), units.Millimeters(pocketFloorR)); err != nil {
+	if b, err = decad.Fillet(b, sel.Exactly(n), units.Millimeters(pocketFloorR)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("round the pocket floor (%d edges): %w", n, err)
 	}
 	return b, nil
@@ -343,14 +343,14 @@ func (r *run) flagBodies(s Segment) (Flag, error) {
 		if err != nil {
 			return Flag{}, wrap(fmt.Sprintf("notch %d tool", i+1), err)
 		}
-		if black, err = decad.Cut(r.ctx, black, tool); err != nil {
+		if black, err = decad.Cut(black, tool).Do(r.ctx); err != nil {
 			return Flag{}, wrap(fmt.Sprintf("cut notch %d", i+1), err)
 		}
 		pocket, err := r.pocketTool(n[1]-0.9, n[2]-n[1]+0.9)
 		if err != nil {
 			return Flag{}, wrap(fmt.Sprintf("pocket %d tool", i+1), err)
 		}
-		if black, err = decad.Cut(r.ctx, black, pocket); err != nil {
+		if black, err = decad.Cut(black, pocket).Do(r.ctx); err != nil {
 			return Flag{}, wrap(fmt.Sprintf("cut pocket %d", i+1), err)
 		}
 	}
@@ -411,11 +411,11 @@ func (r *run) prototypeFlag(seg Segment, prototypes *[2]Flag) (Flag, error) {
 	if seg == last {
 		return r.placeFlag(seg, *proto)
 	}
-	yellow, err := decad.Copy(r.ctx, proto.Yellow)
+	yellow, err := decad.Copy(proto.Yellow).Do(r.ctx)
 	if err != nil {
 		return Flag{}, fmt.Errorf("copy yellow: %w", err)
 	}
-	black, err := decad.Copy(r.ctx, proto.Black)
+	black, err := decad.Copy(proto.Black).Do(r.ctx)
 	if err != nil {
 		return Flag{}, fmt.Errorf("copy black: %w", err)
 	}

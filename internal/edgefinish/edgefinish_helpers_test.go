@@ -49,7 +49,7 @@ func slab(t *testing.T, doc *decad.Document, w, h, holeR, thick float64) *decad.
 		}
 	}
 	require.NotNil(t, chosen)
-	body, err := decad.Extrude(t.Context(), doc, s, chosen, decad.Distance{D: units.Millimeters(thick), Dir: decad.Along})
+	body, err := decad.Extrude(doc, s, chosen, decad.Distance{D: units.Millimeters(thick), Dir: decad.Along}).Do(t.Context())
 	require.NoError(t, err)
 	return body
 }

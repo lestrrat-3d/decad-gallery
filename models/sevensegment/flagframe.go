@@ -132,14 +132,14 @@ func (r *run) boreTool(seg Segment, axisZ float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if b, err = decad.Transform(r.ctx, b, rot); err != nil {
+	if b, err = decad.Transform(b, rot).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("bore %s: turn: %w", seg, err)
 	}
 	tr, err := r3.Translation(r3.Vec{X: cx, Y: cy, Z: axisZ})
 	if err != nil {
 		return nil, err
 	}
-	return decad.Transform(r.ctx, b, tr)
+	return decad.Transform(b, tr).Do(r.ctx)
 }
 
 // rootedBox is a box x [x0, x1], y [y0, y1] from zb up to the face zFace, with a built-in 45 degree root of leg c where it meets
@@ -157,7 +157,7 @@ func (r *run) rootedBox(x0, x1, y0, y1, zb, zFace, ov, c float64) (*decad.Body, 
 	if err != nil {
 		return nil, fmt.Errorf("rooted box y: %w", err)
 	}
-	b, err := decad.Intersect(r.ctx, sx, sy)
+	b, err := decad.Intersect(sx, sy).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("rooted box: %w", err)
 	}
@@ -178,7 +178,7 @@ func (r *run) rootedPost(x0, x1, y0, y1, zFace, ztop, ov, c float64) (*decad.Bod
 	if err != nil {
 		return nil, fmt.Errorf("rooted post y: %w", err)
 	}
-	b, err := decad.Intersect(r.ctx, sx, sy)
+	b, err := decad.Intersect(sx, sy).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("rooted post: %w", err)
 	}
@@ -197,8 +197,7 @@ func (r *run) mouthCone(x, y, z, rh, d float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(d + 0.2), Dir: decad.Against},
-		decad.WithTaper(units.Degrees(45)))
+	return decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(d + 0.2), Dir: decad.Against}).Taper(units.Degrees(45)).Do(r.ctx)
 }
 
 // cradlePassage is the plan footprint of a slider and its tube plus LooseFit: x0, x1, y0, y1.
@@ -244,7 +243,7 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("passage tool %s: %w", seg, err)
 		}
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut passage %s: %w", seg, err)
 		}
 	}
@@ -253,7 +252,7 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		if body, err = decad.Cut(r.ctx, body, b); err != nil {
+		if body, err = decad.Cut(body, b).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut bore %s: %w", seg, err)
 		}
 		if body, err = r.cutPivotPockets(body, seg); err != nil {
@@ -265,7 +264,7 @@ func (r *run) cradlePlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("mouth cone: %w", err)
 		}
-		if body, err = decad.Cut(r.ctx, body, cone); err != nil {
+		if body, err = decad.Cut(body, cone).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut mouth cone: %w", err)
 		}
 	}
@@ -334,7 +333,7 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tube %s: %w", seg, err)
 		}
-		if body, err = decad.Union(r.ctx, body, tube); err != nil {
+		if body, err = decad.Union(body, tube).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("union tube %s: %w", seg, err)
 		}
 	}
@@ -343,7 +342,7 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		if body, err = decad.Cut(r.ctx, body, b); err != nil {
+		if body, err = decad.Cut(body, b).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut bore %s: %w", seg, err)
 		}
 		if body, err = r.cutPivotPockets(body, seg); err != nil {
@@ -363,10 +362,10 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		if peg, err = decad.Transform(r.ctx, peg, tr); err != nil {
+		if peg, err = decad.Transform(peg, tr).Do(r.ctx); err != nil {
 			return nil, err
 		}
-		if body, err = decad.Union(r.ctx, body, peg); err != nil {
+		if body, err = decad.Union(body, peg).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("union peg: %w", err)
 		}
 	}
@@ -383,7 +382,7 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("blade hole %s: %w", seg, err)
 		}
-		if body, err = decad.Cut(r.ctx, body, hole); err != nil {
+		if body, err = decad.Cut(body, hole).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut blade hole %s: %w", seg, err)
 		}
 	}
@@ -397,7 +396,7 @@ func (r *run) flagTopPlate() (*decad.Body, error) {
 			return nil, fmt.Errorf("head pocket %d: %w", i+1, err)
 		}
 		r.sketches = append(r.sketches, sk)
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut head pocket %d: %w", i+1, err)
 		}
 	}
@@ -448,11 +447,11 @@ func (r *run) flagWindows(body *decad.Body) (*decad.Body, error) {
 		if !pr.Valid || len(pr.Holes) != 0 {
 			continue
 		}
-		tool, err := decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(flagFaceZ + 0.75 - windowFrom), Dir: decad.Along})
+		tool, err := decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(flagFaceZ + 0.75 - windowFrom), Dir: decad.Along}).Do(r.ctx)
 		if err != nil {
 			return nil, fmt.Errorf("window tool: %w", err)
 		}
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut window or bolt hole %d: %w", n, err)
 		}
 		n++
@@ -476,7 +475,7 @@ func (r *run) columnGuidePlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("column: %w", err)
 		}
-		if body, err = decad.Union(r.ctx, body, col); err != nil {
+		if body, err = decad.Union(body, col).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("union column: %w", err)
 		}
 		peg, err := r.meridian([][2]float64{{0, -0.1}, {pegRadius + 0.5, -0.1}, {pegRadius + 0.5, 0}, {pegRadius, 0.5},
@@ -488,10 +487,10 @@ func (r *run) columnGuidePlate() (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		if peg, err = decad.Transform(r.ctx, peg, tr); err != nil {
+		if peg, err = decad.Transform(peg, tr).Do(r.ctx); err != nil {
 			return nil, err
 		}
-		if body, err = decad.Union(r.ctx, body, peg); err != nil {
+		if body, err = decad.Union(body, peg).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("union column peg: %w", err)
 		}
 	}

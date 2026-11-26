@@ -43,11 +43,11 @@ func TestStudPad(t *testing.T) {
 		require.GreaterOrEqual(t, d, turbinefan.BrimClearance, "rib clear of the pad's brim")
 
 		// The pad overlaps the blade, so Intersect keeps a volume: the stud flat and the stud's slope over the pad.
-		bladeCopy, err := decad.Copy(t.Context(), b.blade)
+		bladeCopy, err := decad.Copy(b.blade).Do(t.Context())
 		require.NoError(t, err)
-		padCopy, err := decad.Copy(t.Context(), pad)
+		padCopy, err := decad.Copy(pad).Do(t.Context())
 		require.NoError(t, err)
-		overlap, err := decad.Intersect(t.Context(), bladeCopy, padCopy)
+		overlap, err := decad.Intersect(bladeCopy, padCopy).Do(t.Context())
 		require.NoError(t, err, "pad meets the blade")
 		v, err := overlap.Volume()
 		require.NoError(t, err)

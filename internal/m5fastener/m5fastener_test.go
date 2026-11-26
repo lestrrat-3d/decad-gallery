@@ -90,7 +90,7 @@ func TestPocketTools(t *testing.T) {
 
 			host := block(t, doc)
 			before := volume(t, host)
-			cut, err := decad.Cut(ctx, host, cutter)
+			cut, err := decad.Cut(host, cutter).Do(ctx)
 			require.NoError(t, err)
 			require.Greater(t, volume(t, cut), 0.0)
 			removed := before - volume(t, cut)

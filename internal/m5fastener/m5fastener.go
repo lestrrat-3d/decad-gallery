@@ -115,7 +115,7 @@ func pocketTool(ctx context.Context, doc *decad.Document, f r3.Frame, radius, de
 		return nil, nil, err
 	}
 	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(body)))
-	if body, err = decad.Fillet(ctx, body, floor, units.Millimeters(round)); err != nil {
+	if body, err = decad.Fillet(body, floor, units.Millimeters(round)).Do(ctx); err != nil {
 		return nil, nil, fmt.Errorf("round pocket floor: %w", err)
 	}
 	return body, sk, nil

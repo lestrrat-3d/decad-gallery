@@ -171,11 +171,11 @@ func TestHalvesMateExactly(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, both.AddBody(d.TailBlock))
 			require.NoError(t, both.AddBody(d.SocketBlock))
-			_, err = decad.Intersect(t.Context(), d.TailBlock, d.SocketBlock)
+			_, err = decad.Intersect(d.TailBlock, d.SocketBlock).Do(t.Context())
 			var be *decad.BooleanError
 			require.ErrorAs(t, err, &be, "Intersect of the halves must fail as empty")
 			require.True(t, be.Code == decad.BooleanEmpty, "Intersect code %s", be.Code)
-			union, err := decad.Union(t.Context(), d.TailBlock, d.SocketBlock)
+			union, err := decad.Union(d.TailBlock, d.SocketBlock).Do(t.Context())
 			require.NoError(t, err)
 			unionV, err := union.Volume()
 			require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestSlidesApart(t *testing.T) {
 	for name, p := range cases() {
 		t.Run(name, func(t *testing.T) {
 			_, d := build(t, p)
-			moved, err := decad.Transform(t.Context(), d.SocketBlock, mustTranslate(t, r3.Vec{Y: p.Length + 1}))
+			moved, err := decad.Transform(d.SocketBlock, mustTranslate(t, r3.Vec{Y: p.Length + 1})).Do(t.Context())
 			require.NoError(t, err)
 			_, separated, err := meshOf(t, d.TailBlock).Exceeds(meshOf(t, moved), 0.5)
 			require.NoError(t, err)

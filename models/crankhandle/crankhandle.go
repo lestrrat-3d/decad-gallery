@@ -190,14 +190,14 @@ func (r *run) arm() (*decad.Body, error) {
 		return nil, fmt.Errorf("extrude: %w", err)
 	}
 	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(body))).Or(decad.OuterLoopOf(decad.CapEnd(body)))
-	if body, err = decad.Chamfer(r.ctx, body, loops, units.Millimeters(ChamferSize)); err != nil {
+	if body, err = decad.Chamfer(body, loops, units.Millimeters(ChamferSize)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("chamfer faces: %w", err)
 	}
 	relief, err := r.reliefTool()
 	if err != nil {
 		return nil, fmt.Errorf("relief tool: %w", err)
 	}
-	if body, err = decad.Cut(r.ctx, body, relief); err != nil {
+	if body, err = decad.Cut(body, relief).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("cut relief: %w", err)
 	}
 	if body, err = r.chamferOuterFace(body); err != nil {
@@ -229,7 +229,7 @@ func (r *run) arm() (*decad.Body, error) {
 		tools = append(tools, clamp...)
 	}
 	for _, tool := range tools {
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}
@@ -287,11 +287,11 @@ func (r *run) chamferOuterFace(body *decad.Body) (*decad.Body, error) {
 		return nil, fmt.Errorf("outer face: found %d side lines, %d arcs and %d ramp top lines, want 2, 1 and 1",
 			lines, arcs, tops)
 	}
-	body, err := decad.Chamfer(r.ctx, body, edges, units.Millimeters(ChamferSize))
+	body, err := decad.Chamfer(body, edges, units.Millimeters(ChamferSize)).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("chamfer outer face: %w", err)
 	}
-	if body, err = decad.Chamfer(r.ctx, body, top, units.Millimeters(ChamferSize)); err != nil {
+	if body, err = decad.Chamfer(body, top, units.Millimeters(ChamferSize)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("chamfer ramp top: %w", err)
 	}
 	return body, nil
@@ -334,7 +334,7 @@ func (r *run) chamferBoreRim(body *decad.Body) (*decad.Body, error) {
 	if arcs != 2 || lines != wantLines {
 		return nil, fmt.Errorf("bore rim: found %d arcs and %d lines, want 2 and %d", arcs, lines, wantLines)
 	}
-	body, err := decad.Chamfer(r.ctx, body, rim, units.Millimeters(ChamferSize))
+	body, err := decad.Chamfer(body, rim, units.Millimeters(ChamferSize)).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("chamfer bore rim: %w", err)
 	}
@@ -354,7 +354,7 @@ func (r *run) nutPocketCutter(site m2fastener.Site, depth float64) (*decad.Body,
 	}
 	r.sketches = append(r.sketches, sk)
 	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(pocket)))
-	if pocket, err = decad.Fillet(r.ctx, pocket, floor, units.Millimeters(NutPocketRound)); err != nil {
+	if pocket, err = decad.Fillet(pocket, floor, units.Millimeters(NutPocketRound)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("round floor: %w", err)
 	}
 	return pocket, nil
@@ -391,7 +391,7 @@ func (r *run) pin() (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("turned shank: %w", err)
 	}
-	body, err := decad.Union(r.ctx, stub, turned)
+	body, err := decad.Union(stub, turned).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("join: %w", err)
 	}
@@ -433,7 +433,7 @@ func (r *run) pin() (*decad.Body, error) {
 		tools = append(tools, pocket)
 	}
 	for _, tool := range tools {
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}

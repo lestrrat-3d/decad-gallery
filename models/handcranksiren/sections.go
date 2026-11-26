@@ -94,7 +94,7 @@ func (b *builder) extrude(s *sketch.Sketch, holes int, length float64) *decad.Bo
 	if selected == nil {
 		return nil
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, selected, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, selected, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	b.fail("extrude section", err)
 	return body
 }
@@ -105,7 +105,7 @@ func (b *builder) revolve(s *sketch.Sketch, axis decad.ConstructionAxis) *decad.
 	if selected == nil {
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, selected, axis, decad.FullRevolution{})
+	body, err := decad.Revolve(b.doc, s, selected, axis, decad.FullRevolution{}).Do(b.ctx)
 	b.fail("revolve section", err)
 	return body
 }
@@ -164,7 +164,7 @@ func (b *builder) union(parts ...*decad.Body) *decad.Body {
 	var err error
 	body := parts[0]
 	for i, next := range parts[1:] {
-		if body, err = decad.Union(b.ctx, body, next); err != nil {
+		if body, err = decad.Union(body, next).Do(b.ctx); err != nil {
 			b.fail(fmt.Sprintf("union solid %d of %d", i+2, len(parts)), err)
 			return nil
 		}
@@ -176,7 +176,7 @@ func (b *builder) cut(host, tool *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Cut(b.ctx, host, tool)
+	body, err := decad.Cut(host, tool).Do(b.ctx)
 	b.fail("cut solid", err)
 	return body
 }

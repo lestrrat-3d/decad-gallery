@@ -156,9 +156,9 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("compressionspring: expected one wire profile, got %d", len(profiles))
 	}
-	body, err := decad.Coil(ctx, doc, sk, profiles[0], decad.SketchLine{
+	body, err := decad.Coil(doc, sk, profiles[0], decad.SketchLine{
 		Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1},
-	}, units.Millimeters(pitch), units.Scalar(s.TotalTurns))
+	}, units.Millimeters(pitch), units.Scalar(s.TotalTurns)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("compressionspring: build coil: %w", err)
 	}

@@ -290,7 +290,7 @@ func (w ornamentalWheel) faceplate(ctx context.Context, doc *decad.Document, wor
 	}
 	for _, profile := range profiles {
 		if len(profile.Holes) == openings+1 {
-			return decad.Extrude(ctx, doc, s, profile, decad.Distance{D: units.Millimeters(thickness), Dir: decad.Along})
+			return decad.Extrude(doc, s, profile, decad.Distance{D: units.Millimeters(thickness), Dir: decad.Along}).Do(ctx)
 		}
 	}
 	return nil, fmt.Errorf("no profile contains the bore and %d windows", openings)
@@ -349,11 +349,11 @@ func drillRosette(ctx context.Context, doc *decad.Document, world *sketch.World,
 		return nil, fmt.Errorf("drill sketch has %d profiles, expected %d", len(profiles), 2*rosettePetals)
 	}
 	for i, profile := range profiles {
-		tool, err := decad.Extrude(ctx, doc, base, profile, decad.Distance{D: units.Millimeters(height), Dir: decad.Along})
+		tool, err := decad.Extrude(doc, base, profile, decad.Distance{D: units.Millimeters(height), Dir: decad.Along}).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("drill %d: %w", i, err)
 		}
-		gear, err = decad.Cut(ctx, gear, tool)
+		gear, err = decad.Cut(gear, tool).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cut opening %d: %w", i, err)
 		}
@@ -389,7 +389,7 @@ func turnedOrnament(ctx context.Context, doc *decad.Document, world *sketch.Worl
 		return nil, fmt.Errorf("meridian sketch has %d profiles", len(profiles))
 	}
 	axis := decad.SketchLine{Start: decad.Point2{}, End: decad.Point2{V: 1}}
-	return decad.Revolve(ctx, doc, s, profiles[0], axis, decad.FullRevolution{})
+	return decad.Revolve(doc, s, profiles[0], axis, decad.FullRevolution{}).Do(ctx)
 }
 
 func ornamentalProfiles(ctx context.Context, s *sketch.Sketch) ([]*sketch.Profile, error) {

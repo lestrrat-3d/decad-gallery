@@ -93,7 +93,7 @@ func (r *run) extrudeWith(s *sketch.Sketch, holes int, e decad.Extent) (*decad.B
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(r.ctx, r.doc, s, pr, e)
+	body, err := decad.Extrude(r.doc, s, pr, e).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("clamparm: extrude: %w", err)
 	}
@@ -161,7 +161,7 @@ func (r *run) outline(s *sketch.Sketch, pts [][2]float64, radii []float64) error
 func (r *run) cuts(body *decad.Body, tools ...*decad.Body) (*decad.Body, error) {
 	for i, tool := range tools {
 		var err error
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("clamparm: cut %d: %w", i, err)
 		}
 		if !body.IsSolid() {

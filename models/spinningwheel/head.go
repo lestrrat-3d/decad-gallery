@@ -174,9 +174,9 @@ func (b *builder) head() {
 		if b.err != nil {
 			return nil
 		}
-		body, err := decad.Revolve(b.ctx, b.doc, section, profile,
+		body, err := decad.Revolve(b.doc, section, profile,
 			decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
-			decad.AngleExtent{A: units.Radians(2 * half), Dir: decad.Along})
+			decad.AngleExtent{A: units.Radians(2 * half), Dir: decad.Along}).Do(b.ctx)
 		b.fail("revolve bobbin winding label", err)
 		if b.err != nil {
 			return nil

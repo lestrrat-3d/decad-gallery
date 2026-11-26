@@ -49,11 +49,11 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("create mid-body plane: %w", err)
 	}
-	mirrored, err := decad.MirroredCopy(ctx, half, decad.MirrorFrame{Frame: mid})
+	mirrored, err := decad.MirroredCopy(half, decad.MirrorFrame{Frame: mid}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("mirror half gear: %w", err)
 	}
-	gear, err := decad.Union(ctx, half, mirrored)
+	gear, err := decad.Union(half, mirrored).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("join gear halves: %w", err)
 	}
@@ -90,11 +90,11 @@ func chevron(ctx context.Context, in spurgear.ToothInput) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create mid-body plane: %w", err)
 	}
-	mirrored, err := decad.MirroredCopy(ctx, half, decad.MirrorFrame{Frame: mid})
+	mirrored, err := decad.MirroredCopy(half, decad.MirrorFrame{Frame: mid}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("mirror half tooth: %w", err)
 	}
-	tooth, err := decad.Union(ctx, half, mirrored)
+	tooth, err := decad.Union(half, mirrored).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("join tooth halves: %w", err)
 	}

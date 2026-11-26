@@ -63,8 +63,8 @@ func block(t *testing.T, doc *decad.Document) *decad.Body {
 		}
 	}
 	require.NotNil(t, chosen)
-	body, err := decad.Extrude(t.Context(), doc, s, chosen,
-		decad.Distance{D: units.Millimeters(blockSize), Dir: decad.Along})
+	body, err := decad.Extrude(doc, s, chosen,
+		decad.Distance{D: units.Millimeters(blockSize), Dir: decad.Along}).Do(t.Context())
 	require.NoError(t, err)
 	return body
 }

@@ -132,11 +132,9 @@ func requireSpurMesh(t *testing.T, p handcrankfan.Params, parts map[string]handc
 	pitch := 2 * math.Pi / 20
 	for k := range 5 {
 		theta := float64(k) * pitch / 4
-		crank, err := decad.Copy(t.Context(), parts["crank-gear"].Body,
-			decad.WithCopyRotation(state.Crank, r3.Vec{X: -1}, units.Radians(theta)))
+		crank, err := decad.Copy(parts["crank-gear"].Body).Place(decad.CopyRotation{Center: state.Crank, Axis: r3.Vec{X: -1}, Angle: units.Radians(theta)}).Do(t.Context())
 		require.NoError(t, err)
-		drive, err := decad.Copy(t.Context(), parts["drive-gear"].Body,
-			decad.WithCopyRotation(state.Apex, r3.Vec{X: 1}, units.Radians(theta)))
+		drive, err := decad.Copy(parts["drive-gear"].Body).Place(decad.CopyRotation{Center: state.Apex, Axis: r3.Vec{X: 1}, Angle: units.Radians(theta)}).Do(t.Context())
 		require.NoError(t, err)
 
 		crankOutline := outerOutline(t, crank, plane, state.Crank)
@@ -174,8 +172,8 @@ func requireSpurMesh(t *testing.T, p handcrankfan.Params, parts map[string]handc
 		require.GreaterOrEqual(t, sectionGapAt(t, drive, parts["pinion"].Body, plane, bevelTolerance), loose,
 			"sample %d, L3 drive-gear / pinion", k)
 
-		require.NoError(t, decad.Remove(crank))
-		require.NoError(t, decad.Remove(drive))
+		require.NoError(t, decad.Remove(crank).Do(t.Context()))
+		require.NoError(t, decad.Remove(drive).Do(t.Context()))
 	}
 }
 

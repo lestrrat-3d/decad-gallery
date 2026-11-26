@@ -94,7 +94,7 @@ func (b *builder) part(name, group, motion string, create func() *decad.Body) {
 		if b.err != nil {
 			return
 		}
-		body, err = decad.Transform(b.ctx, body, xf)
+		body, err = decad.Transform(body, xf).Do(b.ctx)
 		b.fail("pose body", err)
 		if b.err != nil {
 			return

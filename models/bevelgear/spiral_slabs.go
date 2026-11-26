@@ -90,22 +90,22 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 				}
 				// The planes move monotonically toward the apex. Only the apex-side
 				// piece can meet the next plane; all heel-side pieces stay whole.
-				cut, err = decad.Split(ctx, inner, sheet)
+				cut, err = decad.Split(inner, sheet).Do(ctx)
 				if !errors.Is(err, decad.ErrUnsupported) {
 					break
 				}
-				if removeErr := decad.Remove(sheet); removeErr != nil {
+				if removeErr := decad.Remove(sheet).Do(ctx); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove short slice sheet %d: %w", k, removeErr)
 				}
 			}
 			if errors.Is(err, decad.ErrDegenerate) {
-				if removeErr := decad.Remove(sheet); removeErr != nil {
+				if removeErr := decad.Remove(sheet).Do(ctx); removeErr != nil {
 					return nil, spiralSliceFrame{}, fmt.Errorf("remove missed slice sheet %d: %w", k, removeErr)
 				}
 				continue
 			}
 			if err != nil {
-				_ = decad.Remove(sheet)
+				_ = decad.Remove(sheet).Do(ctx)
 				return nil, spiralSliceFrame{}, fmt.Errorf("split tooth at plane %d: %w", k, err)
 			}
 			if len(cut) != 2 {
@@ -136,7 +136,7 @@ func sliceSpiralPointTooth(ctx context.Context, doc *decad.Document, p Params,
 			ranked[i] = rankedSlab{body: piece, distance: centroid.Value.Dot(coneVec)}
 		}
 		sort.Slice(ranked, func(i, j int) bool { return ranked[i].distance < ranked[j].distance })
-		if err := decad.Remove(ranked[0].body); err != nil {
+		if err := decad.Remove(ranked[0].body).Do(ctx); err != nil {
 			return nil, spiralSliceFrame{}, fmt.Errorf("remove apex scrap: %w", err)
 		}
 		segments := make([]*decad.Body, 0, len(ranked)-1)
@@ -183,8 +183,8 @@ func spiralSliceSheet(ctx context.Context, doc *decad.Document, origin, along r3
 	if len(chains) != 1 {
 		return nil, fmt.Errorf("slice sheet has %d chains; want one", len(chains))
 	}
-	return decad.Extrude(ctx, doc, s, chains[0], decad.TwoSided{
+	return decad.Extrude(doc, s, chains[0], decad.TwoSided{
 		One: decad.DistanceSide{D: units.Millimeters(extent)},
 		Two: decad.DistanceSide{D: units.Millimeters(extent)},
-	})
+	}).Do(ctx)
 }

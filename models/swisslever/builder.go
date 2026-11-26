@@ -102,7 +102,7 @@ func (b *builder) extrude(s *sketch.Sketch, holes int, length float64, what stri
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}
@@ -116,7 +116,7 @@ func (b *builder) revolve(s *sketch.Sketch, what string) (*decad.Body, error) {
 		return nil, err
 	}
 	axis := decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}
-	body, err := decad.Revolve(b.ctx, b.doc, s, p, axis, decad.FullRevolution{})
+	body, err := decad.Revolve(b.doc, s, p, axis, decad.FullRevolution{}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: revolve: %w", what, err)
 	}
@@ -125,7 +125,7 @@ func (b *builder) revolve(s *sketch.Sketch, what string) (*decad.Body, error) {
 
 // cut subtracts tool from body.
 func (b *builder) cut(body, tool *decad.Body, what string) (*decad.Body, error) {
-	out, err := decad.Cut(b.ctx, body, tool)
+	out, err := decad.Cut(body, tool).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: cut: %w", what, err)
 	}
@@ -134,7 +134,7 @@ func (b *builder) cut(body, tool *decad.Body, what string) (*decad.Body, error) 
 
 // union joins the bodies.
 func (b *builder) union(what string, first *decad.Body, rest ...*decad.Body) (*decad.Body, error) {
-	out, err := decad.Union(b.ctx, first, rest...)
+	out, err := decad.Union(append([]*decad.Body{first}, rest...)...).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: union: %w", what, err)
 	}
@@ -145,8 +145,7 @@ func (b *builder) union(what string, first *decad.Body, rest ...*decad.Body) (*d
 // root round of rootRound.
 func (b *builder) boss(body *decad.Body, face decad.FaceSelector, at r3.Vec, diameter, height float64,
 	what string) (*decad.Body, error) {
-	out, err := decad.Boss(b.ctx, body, decad.BossSpec{Face: face, At: at, Diameter: units.Millimeters(diameter),
-		Height: units.Millimeters(height), RootFillet: units.Millimeters(rootRound)})
+	out, err := decad.Boss(body, face, at, units.Millimeters(diameter), units.Millimeters(height)).RootFillet(units.Millimeters(rootRound)).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: boss: %w", what, err)
 	}

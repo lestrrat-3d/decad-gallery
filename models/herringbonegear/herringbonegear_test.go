@@ -170,4 +170,3 @@ func TestDefaultRealHerringboneGearWithBoreAndCapChamfer(t *testing.T) {
 	require.True(t, mesh.VolumeVerified())
 	require.Equal(t, 0, meshEuler(mesh), "the chamfered gear has one through-bore")
 }
-
