@@ -604,6 +604,9 @@ func renderSevenSegmentReadme(ctx context.Context, outputDir string) error {
 			return err
 		}
 	}
+	if err := renderSevenSegmentEngage(ctx, s, outputDir); err != nil {
+		return err
+	}
 	digits, err := sevenSegmentDigits(s)
 	if err != nil {
 		return err

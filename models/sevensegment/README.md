@@ -60,6 +60,48 @@ and 29.25 mm where it is lit, with a smooth ramp between.
 
 ![The display cut through the middle: the camshaft, the cams and the sliders, each part in its own color, the cut faces in the same colors](images/cutaway.png)
 
+### How a slider drives its rotor
+
+The next images are close-ups of one slider and its rotor, cut through the slider's drive cone so the plates in front do not
+hide it. The cone stands 2.1 mm off the rotor's axis. In these images the slider (blue) and the groove pin (red) are
+colored so they read against the black rotor; in the model both are black. The rotor's yellow face shows as a strip, or as
+the wall behind the cut, as the rotor turns. The cradle plate and the top plate are the pale parts at the edges.
+
+Segment a stands for a, g and d. At rest (digit 1, segment off) the slider is low and the rotor lies on its side. The
+cone, the thin tapered tip of the slider's tongue, reaches into the stadium-shaped pocket in the rotor's notch wall:
+
+![Segment a at rest, cut through the drive cone: the blue slider's tongue ends in a thin cone that enters the dark cone pocket of the rotor's notch, with the rotor lying on its side and the yellow wall behind the cut](images/engage-a-rest.png)
+
+Half way up the cam ramp the slider has risen and the cone, still in its pocket, has begun to turn the rotor:
+
+![Segment a half way through its lift: the cone is still in the rotor's pocket, the slider is part way up and the rotor has started to turn](images/engage-a-mid.png)
+
+At the top (digit 2, segment lit) the slider has risen 4.5 mm and the rotor has turned about 90 degrees, its yellow face on
+top under the top plate. The cone is still in the pocket, higher in it:
+
+![Segment a lit, cut through the drive cone: the slider is 4.5 mm higher, the cone is in the rotor's pocket and the rotor stands with its thin yellow face on top](images/engage-a-lit.png)
+
+The same lift as an animation, one digit step with the first and last poses held, with the shaft angle and the slider's
+rise printed on each frame:
+
+![Segment a over one digit step: the cam lifts the slider, the cone in the pocket carries the rotor from lying on its side to yellow face up](images/engage-a-motion.gif)
+
+On a, g and d the groove pin is a separate part. This is the same slider cut through the middle of its stem, seen from the
+side with the cam behind it: the red pin sits in the keyed hole in the stem's face and its tip enters the groove of the cam
+(teal). The pale bars at the top are the guide plate and the cradle plate:
+
+![Slider a's stem cut through the groove pin: the red pin seated in the stem's keyed hole, its tip in the teal cam's groove](images/engage-a-pin.png)
+
+Segments b, c, e and f have two notches in their rotor and the pin is part of the slider. Segment b is shown from the side,
+cut through its drive cone. Here the segment is off (digit 5), with the rotor on its side and the cone in the first notch's
+pocket. The second notch, empty here, is the one that c and f use:
+
+![Segment b at rest, cut through the drive cone: the blue slider's tongue with its cone in the pocket of the rotor's first notch, the second notch empty, the rotor on its side](images/engage-b-rest.png)
+
+And lit (digit 2), the slider 4.5 mm higher and the rotor's yellow face on top:
+
+![Segment b lit: the slider is higher, the cone is in the pocket of the first notch, and the rotor has its yellow face on top](images/engage-b-lit.png)
+
 Each rotor turns on two printed pivot blocks, one at each end. A block is 4.8 x 5.9 x 1.8 mm and carries a stepped cone:
 a 4.0 mm base on the block's face, a 45 degree frustum that narrows to 1.5 mm, and an 8 degree cone that ends in a ball tip of
 0.9 mm. The cone stands in a 1.8 mm blind bore in the rotor's end. It bears on the rim where the bore's cylinder meets its

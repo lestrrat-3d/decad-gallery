@@ -18,6 +18,13 @@ func Model() renderkit.Model {
 			"readme": func(ctx context.Context, opts renderkit.Options) error {
 				return renderSevenSegmentReadme(ctx, opts.Output)
 			},
+			"engage-motion": func(ctx context.Context, opts renderkit.Options) error {
+				s, err := buildSevenSegmentSet(ctx)
+				if err != nil {
+					return err
+				}
+				return renderSevenSegmentEngageMotion(ctx, s, opts.Output, 960, 540)
+			},
 			"motion": func(ctx context.Context, opts renderkit.Options) error {
 				width, height := opts.Width, opts.Height
 				if width == 0 {
@@ -29,6 +36,7 @@ func Model() renderkit.Model {
 				return renderSevenSegmentMotion(ctx, opts.Output, width, height)
 			},
 		},
-		Jobs: []renderkit.Job{{Shot: "readme", Out: "images"}, {Shot: "motion", Out: "images/motion.gif"}},
+		Jobs: []renderkit.Job{{Shot: "readme", Out: "images"}, {Shot: "motion", Out: "images/motion.gif"},
+			{Shot: "engage-motion", Out: "images/engage-a-motion.gif"}},
 	}
 }
