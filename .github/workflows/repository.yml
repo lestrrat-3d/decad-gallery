@@ -35,6 +35,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
+      # Compile every package and test binary once so setup-go saves the build cache before any
+      # matrix job starts. A go.sum change (a decad bump) leaves no cache for the new key, and
+      # parallel jobs would each compile cold. Failures here surface in the jobs that run the tests.
+      - name: Warm Go build cache
+        continue-on-error: true
+        run: go test -run '^$' -vet=off -count=1 ./...
       - id: plan
         env:
           CI_BROAD_OVERRIDE: ${{ vars.CI_BROAD_OVERRIDE }}
