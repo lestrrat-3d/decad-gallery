@@ -50,13 +50,6 @@ func requireCorners(t *testing.T, g Gearbox, p Params) {
 	}
 }
 
-// cornersDefault builds the default gearbox once for TestCorners.
-var cornersDefault struct {
-	once sync.Once
-	box  Gearbox
-	err  error
-}
-
 func requireCornerKit(t *testing.T, name string) {
 	t.Helper()
 	p, err := DefaultParamsFor(name)

@@ -127,6 +127,18 @@ func requireSplitKit(t *testing.T, name string, twoStages bool) {
 	requireSplitVariant(t, p)
 }
 
+// requireSplitKitAlone checks a kit variant that no corner test reads. It builds its own gearbox and leaves the
+// paired corner and shaft fixture in its slot.
+func requireSplitKitAlone(t *testing.T, name string, twoStages bool) {
+	t.Helper()
+	p, err := DefaultParamsFor(name)
+	require.NoError(t, err)
+	if twoStages {
+		p.Stages = 2
+	}
+	requireSplit(t, buildCornerSplitVariant(t, p), p)
+}
+
 func requireSplitVariant(t *testing.T, p Params) {
 	t.Helper()
 	requireSplit(t, cornerSplitVariant(t, p), p)

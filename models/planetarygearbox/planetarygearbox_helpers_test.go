@@ -79,12 +79,12 @@ func (s *sharedBuild) get(t *testing.T, p planetarygearbox.Params) (*decad.Docum
 	return s.doc, s.box
 }
 
-var defaultBuild, twoStageBuild, placedBuild, backlashBuild sharedBuild
+var twoStageBuild, placedBuild, backlashBuild sharedBuild
 
 // defaultGearbox builds the default gearbox once for the tests that read it.
 func defaultGearbox(t *testing.T) (*decad.Document, planetarygearbox.Gearbox) {
 	t.Helper()
-	return defaultBuild.get(t, planetarygearbox.DefaultParams())
+	return planetarygearbox.SharedDefaultBuild(t)
 }
 
 // twoStageParams are the default parameters with two stages.
