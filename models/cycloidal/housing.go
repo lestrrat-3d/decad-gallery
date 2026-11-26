@@ -89,8 +89,8 @@ func (r *run) buildHousing(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	prism, err := decad.Extrude(ctx, r.doc, os, outerProfile,
-		decad.Distance{D: units.Millimeters(stack - bottom), Dir: decad.Along})
+	prism, err := decad.Extrude(r.doc, os, outerProfile,
+		decad.Distance{D: units.Millimeters(stack - bottom), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude housing outer: %w", err)
 	}
@@ -106,13 +106,13 @@ func (r *run) buildHousing(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	if p.PinCount <= MaxChamferedFloorPins {
-		cavity, err = decad.Chamfer(ctx, cavity, decad.Edges(decad.OuterLoopOf(decad.CapStart(cavity))),
-			units.Millimeters(casingFloorChamfer))
+		cavity, err = decad.Chamfer(cavity, decad.Edges(decad.OuterLoopOf(decad.CapStart(cavity))),
+			units.Millimeters(casingFloorChamfer)).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: chamfer casing floor: %w", err)
 		}
 	}
-	walled, err := decad.Cut(ctx, prism, cavity)
+	walled, err := decad.Cut(prism, cavity).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: cut casing cavity: %w", err)
 	}
@@ -136,12 +136,12 @@ func (r *run) buildHousing(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	hole, err := decad.Extrude(ctx, r.doc, hs, holeProfile,
-		decad.Distance{D: units.Millimeters(-bottom + 1), Dir: decad.Along})
+	hole, err := decad.Extrude(r.doc, hs, holeProfile,
+		decad.Distance{D: units.Millimeters(-bottom + 1), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude housing hole: %w", err)
 	}
-	housing, err := decad.Cut(ctx, walled, hole)
+	housing, err := decad.Cut(walled, hole).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: cut housing hole: %w", err)
 	}
@@ -176,8 +176,8 @@ func (r *run) buildCavity(ctx context.Context, stride int) (*decad.Body, error) 
 	if err != nil {
 		return nil, err
 	}
-	cavity, err := decad.Extrude(ctx, r.doc, cs, cavityProfile,
-		decad.Distance{D: units.Millimeters(stack + planeGap + 1), Dir: decad.Along})
+	cavity, err := decad.Extrude(r.doc, cs, cavityProfile,
+		decad.Distance{D: units.Millimeters(stack + planeGap + 1), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude casing cavity: %w", err)
 	}

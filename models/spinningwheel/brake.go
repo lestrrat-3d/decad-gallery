@@ -147,8 +147,8 @@ func (b *builder) brakeEye(radius, wire float64, centre, u, v r3.Vec) *decad.Bod
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, profile,
-		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}}, decad.FullRevolution{})
+	body, err := decad.Revolve(b.doc, s, profile,
+		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}}, decad.FullRevolution{}).Do(b.ctx)
 	b.fail("revolve brake eye", err)
 	return b.place(body, frame(centre, u, v))
 }
@@ -162,7 +162,7 @@ func (b *builder) brakeRotate(body *decad.Body, centre r3.Vec, phase float64) *d
 		b.fail("create brake phase", err)
 		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, xf)
+	body, err = decad.Transform(body, xf).Do(b.ctx)
 	b.fail("place brake phase", err)
 	return body
 }
@@ -176,9 +176,9 @@ func (b *builder) brakeSpring(x, y0, y1, z float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	coil, err := decad.Coil(b.ctx, b.doc, s, profile,
+	coil, err := decad.Coil(b.doc, s, profile,
 		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
-		units.Millimeters((y1-y0-0.8)/6), units.Scalar(6))
+		units.Millimeters((y1-y0-0.8)/6), units.Scalar(6)).Do(b.ctx)
 	b.fail("coil brake spring", err)
 	coil = b.place(coil, frame(r3.Vec{X: x, Y: y0 + 0.4, Z: z},
 		r3.Vec{X: 1}, r3.Vec{Z: -1}))
@@ -200,7 +200,7 @@ func (b *builder) brakeSpringCopy(spring *decad.Body, offset r3.Vec) *decad.Body
 		b.fail("create brake spring offset", err)
 		return nil
 	}
-	copied, err := decad.Copy(b.ctx, spring, decad.WithCopyPlacement(move))
+	copied, err := decad.Copy(spring).Place(decad.CopyTransform{Transform: move}).Do(b.ctx)
 	b.fail("copy brake spring", err)
 	return copied
 }

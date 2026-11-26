@@ -82,7 +82,7 @@ func (r *run) extrudeOutline(s *sketch.Sketch, holes int, length float64) (*deca
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	return decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(r.ctx)
 }
 
 // hubSketch sketches the hub's outline on the back face: the circle of radius Size.HubRadius, the D bore (an arc of radius
@@ -172,8 +172,8 @@ func (r *run) counterboreTool() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Y: -1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Y: -1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }
 
 // setScrewSlotTool is the set screw's nut slot: a hex slot from y = -(f_b + PressWall) to -(f_b + PressWall + 2), open to
@@ -192,7 +192,7 @@ func (r *run) setScrewSlotTool() (*decad.Body, error) {
 		return nil, err
 	}
 	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(tool))).Or(decad.OuterLoopOf(decad.CapEnd(tool)))
-	if tool, err = decad.Fillet(r.ctx, tool, loops, units.Millimeters(NutSlotRound)); err != nil {
+	if tool, err = decad.Fillet(tool, loops, units.Millimeters(NutSlotRound)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("round slot faces: %w", err)
 	}
 	return tool, nil
@@ -250,7 +250,7 @@ func (r *run) slotTool(site m2fastener.Site, u r3.Vec, reach float64) (*decad.Bo
 			query = query.Or(preds...)
 		}
 	}
-	if tool, err = decad.Fillet(r.ctx, tool, query.Exactly(3), units.Millimeters(NutSlotRound)); err != nil {
+	if tool, err = decad.Fillet(tool, query.Exactly(3), units.Millimeters(NutSlotRound)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("round slot corners: %w", err)
 	}
 	return tool, nil

@@ -57,7 +57,7 @@ func (r *run) buildSun(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bored, err := decad.Cut(ctx, sun, tool)
+	bored, err := decad.Cut(sun, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: cut D-shaped bore: %w", err)
 	}
@@ -82,7 +82,7 @@ func (r *run) countersinkSun(ctx context.Context, sun *decad.Body) (*decad.Body,
 	if err != nil {
 		return nil, err
 	}
-	cut, err := decad.Cut(ctx, sun, tool)
+	cut, err := decad.Cut(sun, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("sun gear: cut countersink: %w", err)
 	}
@@ -112,7 +112,7 @@ func (r *run) buildPlanet(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	pocketed, err := decad.Cut(ctx, planet, tool)
+	pocketed, err := decad.Cut(planet, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("planet gear: cut bearing pocket: %w", err)
 	}
@@ -175,7 +175,7 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ring tooth phase: %w", err)
 		}
-		if tool, err = decad.Transform(ctx, tool, turn); err != nil {
+		if tool, err = decad.Transform(tool, turn).Do(ctx); err != nil {
 			return nil, fmt.Errorf("turn ring tooth spaces: %w", err)
 		}
 	}
@@ -186,7 +186,7 @@ func (r *run) buildRing(ctx context.Context) (*decad.Body, error) {
 	if blank, err = r.cutRingPockets(ctx, blank); err != nil {
 		return nil, err
 	}
-	ring, err := decad.Cut(ctx, blank, tool)
+	ring, err := decad.Cut(blank, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cut ring tooth spaces: %w", err)
 	}

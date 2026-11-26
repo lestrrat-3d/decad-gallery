@@ -71,8 +71,8 @@ func (r *run) extrudeDisc(ctx context.Context, c disc) (*decad.Body, error) {
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("%s: expected one valid profile, got %d", c.what, len(profiles))
 	}
-	body, err := decad.Extrude(ctx, r.doc, s, profiles[0],
-		decad.Distance{D: units.Millimeters(c.length), Dir: decad.Along})
+	body, err := decad.Extrude(r.doc, s, profiles[0],
+		decad.Distance{D: units.Millimeters(c.length), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", c.what, err)
 	}
@@ -151,8 +151,8 @@ func (r *run) extrudePlate(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	plate, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(p.CarrierThickness), Dir: decad.Along})
+	plate, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(p.CarrierThickness), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("carrier plate: extrude: %w", err)
 	}
@@ -179,17 +179,17 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	sockets, err := decad.PatternCopies(ctx, socket, decad.CircularPattern{
+	sockets, err := decad.PatternCopies(socket, decad.CircularPattern{
 		Center: r3.NewVec(0, 0, 0), Axis: r3.NewVec(0, 0, 1), Count: p.PlanetCount,
-	})
+	}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("carrier sockets: pattern: %w", err)
 	}
-	tool, err := decad.Union(ctx, socket, sockets...)
+	tool, err := decad.Union(append([]*decad.Body{socket}, sockets...)...).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("carrier: join sockets: %w", err)
 	}
-	carrier, err := decad.Cut(ctx, plate, tool)
+	carrier, err := decad.Cut(plate, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("carrier: cut sockets: %w", err)
 	}
@@ -202,7 +202,7 @@ func (r *run) buildCarrier(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if carrier, err = decad.Cut(ctx, carrier, hole); err != nil {
+	if carrier, err = decad.Cut(carrier, hole).Do(ctx); err != nil {
 		return nil, fmt.Errorf("carrier: cut shaft hole: %w", err)
 	}
 	if !carrier.IsSolid() {
@@ -238,7 +238,7 @@ func (r *run) buildPin(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	pin, err := decad.Union(ctx, rod, thick)
+	pin, err := decad.Union(rod, thick).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("carrier pin: join rod and thick part: %w", err)
 	}
@@ -265,8 +265,8 @@ func (r *run) extrudeShaft(ctx context.Context, what string, rod rod, z, length 
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}
@@ -315,8 +315,8 @@ func (r *run) extrudeDSection(ctx context.Context, c dSection) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(c.length), Dir: decad.Along})
+	body, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(c.length), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", c.what, err)
 	}

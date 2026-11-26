@@ -56,8 +56,8 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		section, err := decad.Extrude(ctx, r.doc, s, profile,
-			decad.Distance{D: units.Millimeters(top - bottom), Dir: decad.Along})
+		section, err := decad.Extrude(r.doc, s, profile,
+			decad.Distance{D: units.Millimeters(top - bottom), Dir: decad.Along}).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: extrude cam section %d: %w", index+1, err)
 		}
@@ -71,7 +71,7 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 		}
 		sections = append(sections, bridge)
 		lower, upper := sections[0], sections[1]
-		cam, err = decad.Union(ctx, lower, sections[1:]...)
+		cam, err = decad.Union(append([]*decad.Body{lower}, sections[1:]...)...).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cycloidal: join cam sections: %w", err)
 		}
@@ -102,11 +102,11 @@ func (r *run) buildCam(ctx context.Context) (*decad.Body, error) {
 		return nil, err
 	}
 	height := float64(p.DiscCount)*p.DiscThickness + float64(p.DiscCount-1)*p.DiscGap + 2*planeGap
-	tool, err := decad.Extrude(ctx, r.doc, s, profile, decad.Distance{D: units.Millimeters(height), Dir: decad.Along})
+	tool, err := decad.Extrude(r.doc, s, profile, decad.Distance{D: units.Millimeters(height), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude input bore: %w", err)
 	}
-	bored, err := decad.Cut(ctx, cam, tool)
+	bored, err := decad.Cut(cam, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: cut input bore: %w", err)
 	}
@@ -128,11 +128,11 @@ func (r *run) finishCamNeck(ctx context.Context, cam, lower, upper *decad.Body) 
 	neck := func(cap decad.FeatureRef) decad.EdgeSelector {
 		return decad.Edges(decad.Concave(), decad.Circular(), decad.CreatedBy(cap)).Exactly(1)
 	}
-	rounded, err := decad.Fillet(ctx, cam, neck(decad.CapEnd(lower)), units.Millimeters(camNeckRound))
+	rounded, err := decad.Fillet(cam, neck(decad.CapEnd(lower)), units.Millimeters(camNeckRound)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: round cam neck: %w", err)
 	}
-	chamfered, err := decad.Chamfer(ctx, rounded, neck(decad.CapStart(upper)), units.Millimeters(camNeckChamfer))
+	chamfered, err := decad.Chamfer(rounded, neck(decad.CapStart(upper)), units.Millimeters(camNeckChamfer)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: chamfer cam neck: %w", err)
 	}
@@ -167,8 +167,8 @@ func (r *run) buildCamBridge(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bridge, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(p.DiscGap + 2*camOverlap), Dir: decad.Along})
+	bridge, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(p.DiscGap + 2*camOverlap), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude cam bridge: %w", err)
 	}

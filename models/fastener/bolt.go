@@ -107,7 +107,7 @@ func BuildBolt(ctx context.Context, doc *decad.Document, p BoltParams) (*Bolt, e
 		if err != nil {
 			return nil, fmt.Errorf("fastener: create placement transform: %w", err)
 		}
-		if body, err = decad.Transform(ctx, body, transform); err != nil {
+		if body, err = decad.Transform(body, transform).Do(ctx); err != nil {
 			return nil, fmt.Errorf("fastener: place bolt body: %w", err)
 		}
 	}

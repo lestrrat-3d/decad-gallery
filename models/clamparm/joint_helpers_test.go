@@ -48,7 +48,7 @@ func place(ctx context.Context, t *testing.T, body *decad.Body, f r3.Frame) *dec
 // builds for this check only.
 func requireDisjoint(t *testing.T, a, b *decad.Body) {
 	t.Helper()
-	_, err := decad.Intersect(t.Context(), a, b)
+	_, err := decad.Intersect(a, b).Do(t.Context())
 	require.Error(t, err)
 	var be *decad.BooleanError
 	require.True(t, errors.As(err, &be), "not a boolean failure: %v", err)

@@ -401,8 +401,8 @@ func (b *builder) liftWrap(l lift, z, radius, wire, angle float64) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, p, decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
-		decad.AngleExtent{A: units.Radians(angle), Dir: decad.Along})
+	body, err := decad.Revolve(b.doc, s, p, decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
+		decad.AngleExtent{A: units.Radians(angle), Dir: decad.Along}).Do(b.ctx)
 	if err != nil {
 		b.fail("revolve band wrap", err)
 		return nil

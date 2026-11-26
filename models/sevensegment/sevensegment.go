@@ -94,7 +94,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 	}
 	r := &run{ctx: ctx, doc: doc, p: p, dm: dm}
 	out := &Parts{Dimensions: dm}
-	spin := func(b *decad.Body) (*decad.Body, error) { return decad.Transform(ctx, b, r.camshaftTurn()) }
+	spin := func(b *decad.Body) (*decad.Body, error) { return decad.Transform(b, r.camshaftTurn()).Do(ctx) }
 	type step struct {
 		name  string
 		build func() (*decad.Body, error)
@@ -124,7 +124,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 			if err != nil {
 				return nil, err
 			}
-			return decad.Transform(ctx, b, lift)
+			return decad.Transform(b, lift).Do(ctx)
 		}
 	}
 	for _, seg := range Segments() {
@@ -156,7 +156,7 @@ func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, err
 			in   *decad.Body
 			dst  **decad.Body
 		}{{"yellow face", f.Yellow, &out.Flags[seg].Yellow}, {"black body", f.Black, &out.Flags[seg].Black}} {
-			posed, err := decad.Transform(ctx, b.in, turn)
+			posed, err := decad.Transform(b.in, turn).Do(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("sevensegment: flag %s %s: turn: %w", seg, b.name, err)
 			}

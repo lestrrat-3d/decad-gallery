@@ -66,7 +66,7 @@ func (r *run) extrude(s *sketch.Sketch, holes int, length float64) (*decad.Body,
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	return decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(r.ctx)
 }
 
 // across is the plane z = const through the point (0, y) of the local frame, with U = +X and V = +Y.
@@ -241,8 +241,8 @@ func (r *run) handle() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }
 
 // turnedPin revolves the pin's turned part about the pin axis at (0, y): a cone of half angle ConeAngle from radius
@@ -276,8 +276,8 @@ func (r *run) turnedPin(y float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: origin, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }
 
 // flatTool cuts one of a cross bolt's double flats: everything beyond CrossFlat from the pin axis at (0, y) on the

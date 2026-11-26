@@ -156,7 +156,7 @@ func RoundedHexPocketTool(ctx context.Context, doc *decad.Document, s Site, dept
 		return nil, nil, err
 	}
 	floor := decad.Edges(decad.OuterLoopOf(decad.CapStart(tool)))
-	if tool, err = decad.Fillet(ctx, tool, floor, units.Millimeters(round)); err != nil {
+	if tool, err = decad.Fillet(tool, floor, units.Millimeters(round)).Do(ctx); err != nil {
 		return nil, nil, fmt.Errorf("round hex pocket floor: %w", err)
 	}
 	return tool, sk, nil

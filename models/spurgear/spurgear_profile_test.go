@@ -124,7 +124,7 @@ func TestOrdinaryJoinMatchesOutlineLoft(t *testing.T) {
 	require.NoError(t, err)
 	upperSketch, upperProfile, _, err := buildGearProfile(ctx, world, upperPlane, p, d)
 	require.NoError(t, err)
-	reference, err := decad.Loft(ctx, decad.New(), lowerSketch, lowerProfile, upperSketch, upperProfile)
+	reference, err := decad.Loft(decad.New(), lowerSketch, lowerProfile, upperSketch, upperProfile).Do(ctx)
 	require.NoError(t, err)
 	frame, err := placement(p)
 	require.NoError(t, err)

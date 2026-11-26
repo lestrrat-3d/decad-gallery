@@ -69,7 +69,7 @@ func (b *builder) liftExtrude(s *sketch.Sketch, holes int, length float64, l lif
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	if err != nil {
 		b.fail("extrude section", err)
 		return nil
@@ -122,8 +122,8 @@ func (b *builder) liftRevolve(l lift, f r3.Frame, xy []point2) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, p,
-		decad.ConstructionAxis{Origin: f.Origin(), Dir: f.V()}, decad.FullRevolution{})
+	body, err := decad.Revolve(b.doc, s, p,
+		decad.ConstructionAxis{Origin: f.Origin(), Dir: f.V()}, decad.FullRevolution{}).Do(b.ctx)
 	if err != nil {
 		b.fail("revolve axial section", err)
 		return nil
@@ -295,12 +295,12 @@ func (b *builder) extrude(s *sketch.Sketch, holes int, length float64, f r3.Fram
 		b.fail("create extrusion placement", err)
 		return nil
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, p, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	if err != nil {
 		b.fail("extrude section", err)
 		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, xf)
+	body, err = decad.Transform(body, xf).Do(b.ctx)
 	b.fail("place extrusion", err)
 	return body
 }
@@ -344,7 +344,7 @@ func (b *builder) cut(host, tool *decad.Body) *decad.Body {
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Cut(b.ctx, host, tool)
+	body, err := decad.Cut(host, tool).Do(b.ctx)
 	b.fail("cut solid", err)
 	return body
 }
@@ -360,14 +360,14 @@ func (b *builder) union(parts ...*decad.Body) *decad.Body {
 	if len(parts) == 1 {
 		return parts[0]
 	}
-	body, err := decad.Union(b.ctx, parts[0], parts[1:]...)
+	body, err := decad.Union(append([]*decad.Body{parts[0]}, parts[1:]...)...).Do(b.ctx)
 	if err != nil && len(parts) > 2 && strings.Contains(err.Error(), "join them two at a time") {
 		// Decad refuses a three-or-more-body Union outside certified prism, axial or
 		// copied-tooth sets and says to join the bodies two at a time. The result is
 		// the same solid, so retry as a left-to-right pair fold.
 		body, err = parts[0], nil
 		for _, next := range parts[1:] {
-			body, err = decad.Union(b.ctx, body, next)
+			body, err = decad.Union(body, next).Do(b.ctx)
 			if err != nil {
 				break
 			}
@@ -401,13 +401,13 @@ func (b *builder) revolve(xy []point2, f r3.Frame) *decad.Body {
 		b.fail("create revolved placement", err)
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, p,
-		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}}, decad.FullRevolution{})
+	body, err := decad.Revolve(b.doc, s, p,
+		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}}, decad.FullRevolution{}).Do(b.ctx)
 	if err != nil {
 		b.fail("revolve axial section", err)
 		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, xf)
+	body, err = decad.Transform(body, xf).Do(b.ctx)
 	b.fail("place revolved section", err)
 	return body
 }
@@ -419,9 +419,9 @@ func (b *builder) torus(radius, wire, start, angle float64, centre r3.Vec) *deca
 	if b.err != nil {
 		return nil
 	}
-	body, err := decad.Revolve(b.ctx, b.doc, s, p,
+	body, err := decad.Revolve(b.doc, s, p,
 		decad.ConstructionAxis{Dir: r3.Vec{Z: 1}},
-		decad.AngleExtent{A: units.Radians(angle), Dir: decad.Along})
+		decad.AngleExtent{A: units.Radians(angle), Dir: decad.Along}).Do(b.ctx)
 	if err != nil {
 		b.fail("revolve circular wrap", err)
 		return nil
@@ -433,7 +433,7 @@ func (b *builder) torus(radius, wire, start, angle float64, centre r3.Vec) *deca
 		b.fail("create circular wrap placement", err)
 		return nil
 	}
-	body, err = decad.Transform(b.ctx, body, xf)
+	body, err = decad.Transform(body, xf).Do(b.ctx)
 	b.fail("place circular wrap", err)
 	return body
 }

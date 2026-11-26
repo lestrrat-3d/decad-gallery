@@ -284,7 +284,7 @@ func chamfer(ctx context.Context, body *decad.Body, normal r3.Vec, offsets []flo
 		if sel.count == 0 {
 			continue
 		}
-		next, err := decad.Chamfer(ctx, out, sel.query.Exactly(sel.count), units.Millimeters(size))
+		next, err := decad.Chamfer(out, sel.query.Exactly(sel.count), units.Millimeters(size)).Do(ctx)
 		if err != nil {
 			return nil, 0, fmt.Errorf("edge finish: chamfer %d edges at %g along %v: %w", sel.count, offsets, normal, err)
 		}

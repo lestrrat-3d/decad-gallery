@@ -287,7 +287,7 @@ func BuildBladePrint(ctx context.Context, doc *decad.Document, p Params) (*Blade
 	if err != nil {
 		return nil, fmt.Errorf("turbinefan: print pose: %w", err)
 	}
-	posed, err := decad.Transform(ctx, blade.Body, xf)
+	posed, err := decad.Transform(blade.Body, xf).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("turbinefan: pose blade: %w", err)
 	}

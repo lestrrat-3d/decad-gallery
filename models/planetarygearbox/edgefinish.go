@@ -81,7 +81,7 @@ func (r *run) finishFacesEdges(ctx context.Context, body *decad.Body, what strin
 	if query == nil {
 		return nil, fmt.Errorf("%s: no loop to chamfer in the planes z=%g", what, zs)
 	}
-	out, err := decad.Chamfer(ctx, body, query.Exactly(count), size)
+	out, err := decad.Chamfer(body, query.Exactly(count), size).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: chamfer %d edges in the planes z=%g: %w", what, count, zs, err)
 	}

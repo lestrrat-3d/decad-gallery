@@ -77,13 +77,13 @@ func poseFlippedAt(frame r3.Transform, x, y, z float64) (r3.Transform, error) {
 func instances(ctx context.Context, master *decad.Body, moves []r3.Transform) ([]*decad.Body, error) {
 	out := make([]*decad.Body, 0, len(moves))
 	for _, move := range moves[:len(moves)-1] {
-		copied, err := decad.Copy(ctx, master, decad.WithCopyPlacement(move))
+		copied, err := decad.Copy(master).Place(decad.CopyTransform{Transform: move}).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("copy: %w", err)
 		}
 		out = append(out, copied)
 	}
-	last, err := decad.Transform(ctx, master, moves[len(moves)-1])
+	last, err := decad.Transform(master, moves[len(moves)-1]).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("move: %w", err)
 	}

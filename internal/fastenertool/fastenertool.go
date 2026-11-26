@@ -76,8 +76,8 @@ func RoundedRevolve(ctx context.Context, doc *decad.Document, f r3.Frame, pts []
 	if err != nil {
 		return nil, nil, err
 	}
-	body, err := decad.Revolve(ctx, doc, sk, chosen, decad.ConstructionAxis{Origin: f.Origin(), Dir: f.U()},
-		decad.FullRevolution{})
+	body, err := decad.Revolve(doc, sk, chosen, decad.ConstructionAxis{Origin: f.Origin(), Dir: f.U()},
+		decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("revolve fastener tool: %w", err)
 	}
@@ -145,7 +145,7 @@ func extrude(ctx context.Context, doc *decad.Document, sk *sketch.Sketch, length
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(ctx, doc, sk, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(doc, sk, chosen, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("extrude fastener tool: %w", err)
 	}

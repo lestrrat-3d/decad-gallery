@@ -173,7 +173,7 @@ func (b *bladeBuilder) harness(blade *decad.Body) *BladeHarness {
 	if b.err != nil {
 		return nil
 	}
-	rib, err := decad.Intersect(b.ctx, wedge, slab)
+	rib, err := decad.Intersect(wedge, slab).Do(b.ctx)
 	b.fail("rib", err)
 	if b.err != nil {
 		return nil
@@ -452,7 +452,7 @@ func (b *bladeBuilder) extrudeProfile(s *sketch.Sketch, holes int, length float6
 	if pr == nil {
 		return nil
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: decad.Along}).Do(b.ctx)
 	b.fail("extrude "+name, err)
 	return body
 }

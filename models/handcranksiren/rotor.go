@@ -35,7 +35,7 @@ func (b *builder) discChamfer(disc *decad.Body) *decad.Body {
 		return nil
 	}
 	loops := decad.Edges(decad.OuterLoopOf(decad.CapStart(disc))).Or(decad.OuterLoopOf(decad.CapEnd(disc)))
-	out, err := decad.Chamfer(b.ctx, disc, loops, units.Millimeters(chamfer))
+	out, err := decad.Chamfer(disc, loops, units.Millimeters(chamfer)).Do(b.ctx)
 	b.fail("chamfer disc caps", err)
 	return out
 }

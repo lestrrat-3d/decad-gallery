@@ -97,8 +97,8 @@ func (r *run) extrudeRingBlank(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	blank, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(d.ringLength), Dir: decad.Along})
+	blank, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(d.ringLength), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ring blank: extrude: %w", err)
 	}
@@ -189,8 +189,8 @@ func (r *run) extrudeCoverFrame(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	frame, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(p.CoverThickness), Dir: decad.Along})
+	frame, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(p.CoverThickness), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cover frame: extrude: %w", err)
 	}
@@ -224,12 +224,12 @@ func (r *run) buildCover(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	boss, err := decad.Extrude(ctx, r.doc, s, profile,
-		decad.Distance{D: units.Millimeters(1 + shaftBearing(p).Width), Dir: decad.Along})
+	boss, err := decad.Extrude(r.doc, s, profile,
+		decad.Distance{D: units.Millimeters(1 + shaftBearing(p).Width), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cover boss: extrude: %w", err)
 	}
-	cover, err := decad.Union(ctx, frame, boss)
+	cover, err := decad.Union(frame, boss).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cover: join frame and bearing boss: %w", err)
 	}
@@ -291,7 +291,7 @@ func (r *run) roundBossRoot(ctx context.Context, body *decad.Body) (*decad.Body,
 		return nil, err
 	}
 	root := decad.Edges(decad.Circular(), decad.EndpointAt(seam)).Exactly(1)
-	out, err := decad.Fillet(ctx, body, root, units.Millimeters(bossRootRound(r.p)))
+	out, err := decad.Fillet(body, root, units.Millimeters(bossRootRound(r.p))).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cover boss root: round: %w", err)
 	}
@@ -318,7 +318,7 @@ func (r *run) chamferSeat(ctx context.Context, body *decad.Body, what string, z,
 		return nil, err
 	}
 	rim := decad.Edges(decad.Circular(), decad.EndpointAt(seam)).Exactly(1)
-	out, err := decad.Chamfer(ctx, body, rim, size)
+	out, err := decad.Chamfer(body, rim, size).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: chamfer entrance: %w", what, err)
 	}

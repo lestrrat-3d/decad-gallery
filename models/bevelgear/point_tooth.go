@@ -27,7 +27,7 @@ func buildPointToothIn(ctx context.Context, doc *decad.Document, c *decad.Contai
 	if err != nil {
 		return nil, fmt.Errorf("build back-cone tooth profile: %w", err)
 	}
-	tooth, err := decad.LoftFromPoint(ctx, doc, r3.NewVec(0, 0, 0), s, profile)
+	tooth, err := decad.LoftFromPoint(doc, r3.NewVec(0, 0, 0), s, profile).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loft tooth from common apex: %w", err)
 	}

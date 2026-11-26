@@ -45,7 +45,7 @@ func (b *builder) brakeCord(left, right, leftEnd, rightEnd, z, radius, phase flo
 	if b.err != nil {
 		return nil
 	}
-	cord, err := decad.Sweep(b.ctx, b.doc, s, p, path)
+	cord, err := decad.Sweep(b.doc, s, p, path).Do(b.ctx)
 	if err != nil {
 		b.fail("sweep brake cord", err)
 		return nil

@@ -164,7 +164,7 @@ func (r *run) chamferedBy(ctx context.Context, body *decad.Body, what string, se
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: read chamfer size: %w", err)
 	}
-	out, err := decad.Chamfer(ctx, body, sel, size)
+	out, err := decad.Chamfer(body, sel, size).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: chamfer %s: %w", what, err)
 	}

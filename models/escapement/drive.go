@@ -66,8 +66,8 @@ func (b *builder) ratchetToolBody() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	copies, err := decad.PatternCopies(b.ctx, tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis,
-		Count: ratchetTeeth})
+	copies, err := decad.PatternCopies(tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis,
+		Count: ratchetTeeth}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ratchet teeth: pattern: %w", err)
 	}

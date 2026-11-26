@@ -127,8 +127,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 	if profile == nil {
 		return nil, fmt.Errorf("pinring: select profile: no valid profile with one hole")
 	}
-	body, err := decad.Extrude(ctx, doc, s, profile,
-		decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along})
+	body, err := decad.Extrude(doc, s, profile,
+		decad.Distance{D: units.Millimeters(p.Thickness), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("pinring: extrude ring: %w", err)
 	}
@@ -137,7 +137,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		if err != nil {
 			return nil, fmt.Errorf("pinring: create placement transform: %w", err)
 		}
-		if body, err = decad.Transform(ctx, body, transform); err != nil {
+		if body, err = decad.Transform(body, transform).Do(ctx); err != nil {
 			return nil, fmt.Errorf("pinring: place ring body: %w", err)
 		}
 	}

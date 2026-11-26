@@ -115,7 +115,7 @@ func TestClampArmJointOverlapCheckDetects(t *testing.T) {
 	site.Head = site.Head.Add(r3.NewVec(0, 4, 0))
 	bolt, err := m5fastener.PlaceBolt(t.Context(), j.link.Document(), site)
 	require.NoError(t, err)
-	shared, err := decad.Intersect(t.Context(), bolt.Body, j.link)
+	shared, err := decad.Intersect(bolt.Body, j.link).Do(t.Context())
 	require.NoError(t, err)
 	require.True(t, shared.IsSolid())
 }

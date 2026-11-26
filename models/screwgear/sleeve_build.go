@@ -26,7 +26,7 @@ func buildSleeve(ctx context.Context, doc *decad.Document, f sleeve) (*decad.Bod
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", b.name, err)
 		}
-		if cage, err = decad.Cut(ctx, cage, tool); err != nil {
+		if cage, err = decad.Cut(cage, tool).Do(ctx); err != nil {
 			return nil, fmt.Errorf("cut %s: %w", b.name, err)
 		}
 	}
@@ -38,7 +38,7 @@ func buildSleeve(ctx context.Context, doc *decad.Document, f sleeve) (*decad.Bod
 		if err != nil {
 			return nil, fmt.Errorf("window facing %v: %w", w.facing, err)
 		}
-		if cage, err = decad.Cut(ctx, cage, tool); err != nil {
+		if cage, err = decad.Cut(cage, tool).Do(ctx); err != nil {
 			return nil, fmt.Errorf("cut window facing %v: %w", w.facing, err)
 		}
 	}
@@ -68,7 +68,7 @@ func (f sleeve) tube(ctx context.Context, doc *decad.Document) (*decad.Body, err
 		if !pr.Valid || len(pr.Holes) != 1 {
 			continue
 		}
-		tube, err := decad.Extrude(ctx, doc, s, pr, decad.Distance{D: units.Millimeters(2 * f.zb), Dir: decad.Along})
+		tube, err := decad.Extrude(doc, s, pr, decad.Distance{D: units.Millimeters(2 * f.zb), Dir: decad.Along}).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("extrude tube: %w", err)
 		}
@@ -76,7 +76,7 @@ func (f sleeve) tube(ctx context.Context, doc *decad.Document) (*decad.Body, err
 		if err != nil {
 			return nil, err
 		}
-		return decad.Transform(ctx, tube, down)
+		return decad.Transform(tube, down).Do(ctx)
 	}
 	return nil, fmt.Errorf("tube: no ring profile")
 }
@@ -107,8 +107,7 @@ func (f sleeve) boreTool(ctx context.Context, doc *decad.Document, b bore) (*dec
 	if err != nil {
 		return nil, fmt.Errorf("bore path: %w", err)
 	}
-	tool, err := decad.Sweep(ctx, doc, sk, sk.Profiles()[0], path,
-		decad.WithSweepTwist(units.Radians((s1-s0)/g.p.Lambda())))
+	tool, err := decad.Sweep(doc, sk, sk.Profiles()[0], path).Twist(units.Radians((s1 - s0) / g.p.Lambda())).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("sweep bore: %w", err)
 	}
@@ -144,5 +143,5 @@ func (f sleeve) windowTool(ctx context.Context, doc *decad.Document, win sleeveW
 	if len(profiles) != 1 || !profiles[0].Valid {
 		return nil, fmt.Errorf("window: want 1 valid profile, got %d", len(profiles))
 	}
-	return decad.Extrude(ctx, doc, sk, profiles[0], decad.Distance{D: units.Millimeters(f.ro + 1), Dir: decad.Along})
+	return decad.Extrude(doc, sk, profiles[0], decad.Distance{D: units.Millimeters(f.ro + 1), Dir: decad.Along}).Do(ctx)
 }

@@ -91,7 +91,7 @@ func BuildPair(ctx context.Context, doc *decad.Document, p Params) (GearPair, er
 		if phaseErr != nil {
 			return GearPair{}, fmt.Errorf("rotate pinion by one tooth: %w", phaseErr)
 		}
-		pinion, err = decad.Transform(ctx, pinion, pinionPhase)
+		pinion, err = decad.Transform(pinion, pinionPhase).Do(ctx)
 		if err != nil {
 			return GearPair{}, fmt.Errorf("phase pinion: %w", err)
 		}
@@ -119,7 +119,7 @@ func buildSpiralPair(ctx context.Context, doc *decad.Document, p, pinionParams P
 		if frameErr != nil {
 			return GearPair{}, fmt.Errorf("create spiral mirror plane: %w", frameErr)
 		}
-		driving, err = decad.MirroredCopy(ctx, pinion, decad.MirrorFrame{Frame: plane})
+		driving, err = decad.MirroredCopy(pinion, decad.MirrorFrame{Frame: plane}).Do(ctx)
 		if err != nil {
 			return GearPair{}, fmt.Errorf("mirror identical spiral driving gear: %w", err)
 		}
@@ -129,7 +129,7 @@ func buildSpiralPair(ctx context.Context, doc *decad.Document, p, pinionParams P
 		if phaseErr != nil {
 			return GearPair{}, fmt.Errorf("rotate pinion by one tooth: %w", phaseErr)
 		}
-		pinion, err = decad.Transform(ctx, pinion, pinionPhase)
+		pinion, err = decad.Transform(pinion, pinionPhase).Do(ctx)
 		if err != nil {
 			return GearPair{}, fmt.Errorf("phase pinion: %w", err)
 		}
@@ -138,7 +138,7 @@ func buildSpiralPair(ctx context.Context, doc *decad.Document, p, pinionParams P
 	if err != nil {
 		return GearPair{}, fmt.Errorf("rotate pinion shaft: %w", err)
 	}
-	pinion, err = decad.Transform(ctx, pinion, pinionTurn)
+	pinion, err = decad.Transform(pinion, pinionTurn).Do(ctx)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place pinion: %w", err)
 	}
@@ -159,7 +159,7 @@ func placePair(ctx context.Context, doc *decad.Document, p Params, containers pa
 	if err != nil {
 		return GearPair{}, fmt.Errorf("rotate driving gear by half a tooth pitch: %w", err)
 	}
-	driving, err = decad.Transform(ctx, driving, drivingTurn)
+	driving, err = decad.Transform(driving, drivingTurn).Do(ctx)
 	if err != nil {
 		return GearPair{}, fmt.Errorf("place driving gear: %w", err)
 	}

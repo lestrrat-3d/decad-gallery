@@ -110,7 +110,7 @@ func revolveBlank(ctx context.Context, doc *decad.Document, b *Bolt, size BoltSi
 		return nil, fmt.Errorf("fastener: select profile: %w", err)
 	}
 	axisLine := decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}
-	body, err := decad.Revolve(ctx, doc, s, profile, axisLine, decad.FullRevolution{})
+	body, err := decad.Revolve(doc, s, profile, axisLine, decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fastener: revolve profile: %w", err)
 	}
@@ -158,8 +158,8 @@ func cutSocket(ctx context.Context, b *Bolt, size BoltSize, body *decad.Body) (*
 	if err != nil {
 		return nil, fmt.Errorf("fastener: select socket profile: %w", err)
 	}
-	body, err = decad.CutExtrude(ctx, body, hexSketch, []*sketch.Profile{hexProfile},
-		decad.Distance{D: units.Millimeters(sc.SocketDepth + socketCutterRise), Dir: decad.Along})
+	body, err = decad.CutExtrude(body, hexSketch, []*sketch.Profile{hexProfile},
+		decad.Distance{D: units.Millimeters(sc.SocketDepth + socketCutterRise), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fastener: cut socket: %w", err)
 	}
@@ -184,7 +184,7 @@ func filletUnderhead(ctx context.Context, blank *decad.Body, size BoltSize) (*de
 		return nil, fmt.Errorf("fastener: select underhead edge: matched %d of %d concave edges", len(corner), len(edges))
 	}
 	selection := decad.Edges(decad.Concave(), decad.EndpointAt(corner[0])).Exactly(1)
-	body, err := decad.Fillet(ctx, blank, selection, units.Millimeters(size.SocketCap.UnderheadRadius))
+	body, err := decad.Fillet(blank, selection, units.Millimeters(size.SocketCap.UnderheadRadius)).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fastener: fillet underhead edge: %w", err)
 	}

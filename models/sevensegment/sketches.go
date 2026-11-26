@@ -70,7 +70,7 @@ func (r *run) extrude(s *sketch.Sketch, holes int, length float64, dir decad.Dir
 	if err != nil {
 		return nil, err
 	}
-	return decad.Extrude(r.ctx, r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: dir})
+	return decad.Extrude(r.doc, s, pr, decad.Distance{D: units.Millimeters(length), Dir: dir}).Do(r.ctx)
 }
 
 // profiles solves s, requires it fully constrained and returns its n valid profiles with the given number of holes.
@@ -100,7 +100,7 @@ func (r *run) cutExtrude(body *decad.Body, s *sketch.Sketch, holes, n int, lengt
 	if err != nil {
 		return nil, err
 	}
-	return decad.CutExtrude(r.ctx, body, s, prs, decad.Distance{D: units.Millimeters(length), Dir: dir})
+	return decad.CutExtrude(body, s, prs, decad.Distance{D: units.Millimeters(length), Dir: dir}).Do(r.ctx)
 }
 
 // across is the plane z = const of a local frame, with U = +X and V = +Y.
@@ -160,8 +160,8 @@ func (r *run) meridianAt(vertices [][2]float64, anchor *[2]float64) (*decad.Body
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: r3.Vec{}, Dir: r3.Vec{Z: 1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }
 
 // cutMeridian cuts body by the full turn about the Z axis of the polygon through the (r, z) vertices. A non-nil at places
@@ -175,7 +175,7 @@ func (r *run) cutMeridian(body *decad.Body, vertices [][2]float64, at *r3.Frame)
 	if at != nil {
 		axis = decad.ConstructionAxis{Origin: at.Origin(), Dir: at.N()}
 	}
-	return decad.CutRevolve(r.ctx, body, s, []*sketch.Profile{pr}, axis, decad.FullRevolution{})
+	return decad.CutRevolve(body, s, []*sketch.Profile{pr}, axis, decad.FullRevolution{}).Do(r.ctx)
 }
 
 // meridianProfile sketches the meridian polygon of meridianAt and returns its one profile.

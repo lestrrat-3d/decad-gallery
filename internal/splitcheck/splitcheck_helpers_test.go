@@ -63,7 +63,7 @@ func (b shafts) extrude(s *sketch.Sketch, d float64) *decad.Body {
 		}
 	}
 	require.NotNil(b.t, chosen)
-	body, err := decad.Extrude(b.t.Context(), b.doc, s, chosen, decad.Distance{D: units.Millimeters(d), Dir: decad.Along})
+	body, err := decad.Extrude(b.doc, s, chosen, decad.Distance{D: units.Millimeters(d), Dir: decad.Along}).Do(b.t.Context())
 	require.NoError(b.t, err)
 	return body
 }
@@ -89,7 +89,7 @@ func (b shafts) box(f r3.Frame, u0, v0, u1, v1, d float64) *decad.Body {
 }
 
 func (b shafts) cut(host, tool *decad.Body) *decad.Body {
-	body, err := decad.Cut(b.t.Context(), host, tool)
+	body, err := decad.Cut(host, tool).Do(b.t.Context())
 	require.NoError(b.t, err)
 	return body
 }

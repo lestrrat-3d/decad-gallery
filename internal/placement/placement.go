@@ -24,7 +24,7 @@ func Place(ctx context.Context, body *decad.Body, f *r3.Frame) (*decad.Body, err
 	if err != nil {
 		return nil, fmt.Errorf("placement frame: %w", err)
 	}
-	placed, err := decad.Transform(ctx, body, move)
+	placed, err := decad.Transform(body, move).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("place gear on the reference plane: %w", err)
 	}

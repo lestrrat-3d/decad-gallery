@@ -124,8 +124,8 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		return nil, fmt.Errorf("ballbearing: select annular profile: no valid profile with one hole")
 	}
 
-	body, err := decad.Extrude(ctx, doc, s, annulus,
-		decad.Distance{D: units.Millimeters(p.Width), Dir: decad.Along})
+	body, err := decad.Extrude(doc, s, annulus,
+		decad.Distance{D: units.Millimeters(p.Width), Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ballbearing: extrude annular section: %w", err)
 	}
@@ -136,7 +136,7 @@ func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
 		} else if transform, err = r3.FromFrame(*p.Placement); err != nil {
 			return nil, fmt.Errorf("ballbearing: create placement transform: %w", err)
 		}
-		body, err = decad.Transform(ctx, body, transform)
+		body, err = decad.Transform(body, transform).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("ballbearing: place envelope body: %w", err)
 		}

@@ -103,7 +103,7 @@ func (r *run) swivelBlank() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Intersect(r.ctx, plan, elevation)
+	body, err := decad.Intersect(plan, elevation).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("clamparm: swivel intersection: %w", err)
 	}
@@ -227,7 +227,7 @@ func buildHead(ctx context.Context, doc *decad.Document, p Params) (*decad.Body,
 		return nil, nil, fmt.Errorf("clamparm: head boss: %w", err)
 	}
 	r.sketches = append(r.sketches, bs)
-	if body, err = decad.Union(ctx, body, boss); err != nil {
+	if body, err = decad.Union(body, boss).Do(ctx); err != nil {
 		return nil, nil, fmt.Errorf("clamparm: head boss union: %w", err)
 	}
 	tongueUp, err := r.tongueCutter(1)

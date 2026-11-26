@@ -82,7 +82,7 @@ func buildSpiralMemberSerialTrace(ctx context.Context, doc *decad.Document,
 			last = err
 			for _, body := range doc.Bodies() {
 				if _, ok := before[body]; !ok {
-					_ = decad.Remove(body)
+					_ = decad.Remove(body).Do(ctx)
 				}
 			}
 			if !errors.Is(err, decad.ErrUnsupported) {
@@ -127,7 +127,7 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 					next = append(next, level[i])
 					continue
 				}
-				combined, unionErr := decad.Union(ctx, level[i], level[i+1])
+				combined, unionErr := decad.Union(level[i], level[i+1]).Do(ctx)
 				if unionErr != nil {
 					return nil, fmt.Errorf("join spiral tooth group at %d: %w", i+1, unionErr)
 				}
@@ -135,7 +135,7 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 			}
 			level = next
 		}
-		joined, err = decad.Union(ctx, joined, level[0])
+		joined, err = decad.Union(joined, level[0]).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("join spiral teeth to the extended blank: %w", err)
 		}
@@ -155,7 +155,7 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 						next = append(next, level[i])
 						continue
 					}
-					combined, unionErr := decad.Union(ctx, level[i], level[i+1])
+					combined, unionErr := decad.Union(level[i], level[i+1]).Do(ctx)
 					if unionErr != nil {
 						return nil, fmt.Errorf("join spiral tooth group at %d: %w", start+i+1, unionErr)
 					}
@@ -163,7 +163,7 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 				}
 				level = next
 			}
-			joined, err = decad.Union(ctx, joined, level[0])
+			joined, err = decad.Union(joined, level[0]).Do(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("join spiral tooth group %d to the extended blank: %w", start/teethPerGroup+1, err)
 			}
@@ -171,24 +171,24 @@ func buildSpiralMemberOvershoot(ctx context.Context, doc *decad.Document,
 	} else if order == joinTeethFirst {
 		combined := pattern[0]
 		for i, instance := range pattern[1:] {
-			combined, err = decad.Union(ctx, combined, instance)
+			combined, err = decad.Union(combined, instance).Do(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("join spiral teeth 1 and %d: %w", i+2, err)
 			}
 		}
-		joined, err = decad.Union(ctx, joined, combined)
+		joined, err = decad.Union(joined, combined).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("join spiral teeth to the extended blank: %w", err)
 		}
 	} else {
 		for i, instance := range pattern {
-			joined, err = decad.Union(ctx, joined, instance)
+			joined, err = decad.Union(joined, instance).Do(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("join spiral tooth %d: %w", i+1, err)
 			}
 		}
 	}
-	trimmed, err := decad.Intersect(ctx, joined, ends.region)
+	trimmed, err := decad.Intersect(joined, ends.region).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("trim spiral member to its caps: %w", err)
 	}
@@ -232,12 +232,12 @@ func buildSpiralTooth(ctx context.Context, doc *decad.Document,
 	if err != nil {
 		return nil, fmt.Errorf("select spiral loft sections: %w", err)
 	}
-	curved, err := decad.LoftFaces(ctx, faces)
+	curved, err := decad.LoftFaces(faces).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loft spiral tooth: %w", err)
 	}
 	for i, slab := range crowned {
-		if err := decad.Remove(slab); err != nil {
+		if err := decad.Remove(slab).Do(ctx); err != nil {
 			return nil, fmt.Errorf("remove spiral slab %d after loft: %w", i, err)
 		}
 	}

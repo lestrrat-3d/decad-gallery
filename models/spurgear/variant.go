@@ -150,7 +150,7 @@ func (v Variant) tooth(ctx context.Context, r *run) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("spurgear: tooth section: %w", err)
 	}
-	tooth, err := decad.Extrude(ctx, r.doc, ts, prof, r.extent)
+	tooth, err := decad.Extrude(r.doc, ts, prof, r.extent).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("spurgear: extrude tooth: %w", err)
 	}

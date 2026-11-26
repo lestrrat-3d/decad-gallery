@@ -108,7 +108,7 @@ func (g gear) ribbonLoft(ctx context.Context, doc *decad.Document) (*decad.Body,
 		}
 		sections[i] = sec
 	}
-	body, err := decad.LoftSections(ctx, doc, sections...)
+	body, err := decad.LoftSections(doc, sections...).Do(ctx)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("loft ribbon: %w", err)
 	}
@@ -131,7 +131,7 @@ func placeOnFrame(ctx context.Context, body *decad.Body, origin, ex, ey r3.Vec) 
 	if err != nil {
 		return nil, fmt.Errorf("frame transform: %w", err)
 	}
-	placed, err := decad.Transform(ctx, body, move)
+	placed, err := decad.Transform(body, move).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("place body: %w", err)
 	}

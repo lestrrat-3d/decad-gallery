@@ -92,7 +92,7 @@ func (b *builder) funnelSeat(host *decad.Body, a shaftAxis, floor, mouth float64
 	if b.err != nil || cone == nil {
 		return nil
 	}
-	chamfered, err := decad.Chamfer(b.ctx, cone, decad.Edges(decad.OuterLoopOf(narrow(cone))), units.Millimeters(depth))
+	chamfered, err := decad.Chamfer(cone, decad.Edges(decad.OuterLoopOf(narrow(cone))), units.Millimeters(depth)).Do(b.ctx)
 	b.fail("chamfer relief cone", err)
 	return b.cut(host, chamfered)
 }

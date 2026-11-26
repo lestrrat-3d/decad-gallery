@@ -69,8 +69,8 @@ func (r *run) pin(y0 float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Revolve(r.ctx, r.doc, s, pr, decad.ConstructionAxis{Origin: f.Origin(), Dir: r3.Vec{Y: 1}},
-		decad.FullRevolution{})
+	return decad.Revolve(r.doc, s, pr, decad.ConstructionAxis{Origin: f.Origin(), Dir: r3.Vec{Y: 1}},
+		decad.FullRevolution{}).Do(r.ctx)
 }
 
 // Flag slider dimensions that are not exported, in mm.
@@ -276,7 +276,7 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("tongue hull cut-back box: %w", err)
 	}
-	if p1, err = decad.Cut(r.ctx, p1, cutBack); err != nil {
+	if p1, err = decad.Cut(p1, cutBack).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("tongue hull cut-back: %w", err)
 	}
 	// 2. The end cutter in (u, z), extruded along w over the tongue's width: it removes everything past ue except the root
@@ -306,7 +306,7 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cutter: %w", err)
 	}
-	tongue, err := decad.Cut(r.ctx, p1, cut)
+	tongue, err := decad.Cut(p1, cut).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("tongue end cut: %w", err)
 	}
@@ -349,7 +349,7 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("boss top: %w", err)
 	}
-	boss, err := decad.Loft(r.ctx, r.doc, hb, pb, ht, pt)
+	boss, err := decad.Loft(r.doc, hb, pb, ht, pt).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("boss loft: %w", err)
 	}
@@ -373,15 +373,15 @@ func (r *run) rootedTongue(uIsX bool, ua, ue, sL, sR, sc, zp float64) (*decad.Bo
 	if err != nil {
 		return nil, fmt.Errorf("cone meridian: %w", err)
 	}
-	cone, err := decad.Revolve(r.ctx, r.doc, sm, prm, decad.ConstructionAxis{Origin: o, Dir: axis}, decad.FullRevolution{})
+	cone, err := decad.Revolve(r.doc, sm, prm, decad.ConstructionAxis{Origin: o, Dir: axis}, decad.FullRevolution{}).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cone revolve: %w", err)
 	}
-	drive, err := decad.Union(r.ctx, boss, cone)
+	drive, err := decad.Union(boss, cone).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("boss and right cone: %w", err)
 	}
-	if tongue, err = decad.Union(r.ctx, tongue, drive); err != nil {
+	if tongue, err = decad.Union(tongue, drive).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("tongue and cone: %w", err)
 	}
 	return tongue, nil
@@ -450,7 +450,7 @@ func (r *run) bfSlider(seg Segment) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("blade extension: %w", err)
 	}
-	if body, err = decad.Union(r.ctx, body, ext); err != nil {
+	if body, err = decad.Union(body, ext).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("union blade extension: %w", err)
 	}
 	// The tongue and pin.
@@ -462,7 +462,7 @@ func (r *run) bfSlider(seg Segment) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if body, err = decad.Union(r.ctx, body, tg); err != nil {
+	if body, err = decad.Union(body, tg).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("union tongue: %w", err)
 	}
 	return r.finishSlider(body, seg, yi)
@@ -503,7 +503,7 @@ func (r *run) agdSlider(seg Segment) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if body, err = decad.Union(r.ctx, body, tg); err != nil {
+	if body, err = decad.Union(body, tg).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("union tongue: %w", err)
 	}
 	return r.finishSlider(body, seg, yi)
@@ -530,13 +530,13 @@ func (r *run) finishSlider(body *decad.Body, seg Segment, yi float64) (*decad.Bo
 		if err != nil {
 			return nil, err
 		}
-		return decad.Transform(r.ctx, body, lift)
+		return decad.Transform(body, lift).Do(r.ctx)
 	}
 	gp, err := r.pin(yi + StemThickness/2)
 	if err != nil {
 		return nil, fmt.Errorf("groove pin: %w", err)
 	}
-	if body, err = decad.Union(r.ctx, body, gp); err != nil {
+	if body, err = decad.Union(body, gp).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("union groove pin: %w", err)
 	}
 	return body, nil

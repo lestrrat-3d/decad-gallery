@@ -154,7 +154,7 @@ func (r *run) radialBox(r0, r1, w, yLow, yHigh, angle float64) (*decad.Body, err
 	if err != nil {
 		return nil, err
 	}
-	return decad.Transform(r.ctx, body, turn)
+	return decad.Transform(body, turn).Do(r.ctx)
 }
 
 // shaftTurn is the rotation by deg degrees about the shaft axis, right-handed about +Y.
@@ -190,7 +190,7 @@ func (r *run) hub() (*decad.Body, error) {
 		keys = append(keys, key)
 	}
 	for _, k := range keys {
-		if body, err = decad.Union(r.ctx, body, k); err != nil {
+		if body, err = decad.Union(body, k).Do(r.ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -291,7 +291,7 @@ func (r *run) housing() (*decad.Body, error) {
 		}
 		r.sketches = append(r.sketches, sk, sk2)
 		for _, tool := range []*decad.Body{hole, pocket} {
-			if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+			if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 				return nil, fmt.Errorf("cut bolt %d: %w", i+1, err)
 			}
 		}
@@ -318,7 +318,7 @@ func (r *run) button() (*decad.Body, error) {
 			if err != nil {
 				return nil, fmt.Errorf("key %d: %w", k+1, err)
 			}
-			if body, err = decad.Union(r.ctx, body, b); err != nil {
+			if body, err = decad.Union(body, b).Do(r.ctx); err != nil {
 				return nil, fmt.Errorf("union key %d: %w", k+1, err)
 			}
 		}
@@ -348,7 +348,7 @@ func (r *run) spring(length float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Transform(r.ctx, m.Body, flip)
+	body, err := decad.Transform(m.Body, flip).Do(r.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +356,7 @@ func (r *run) spring(length float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decad.Transform(r.ctx, body, lift)
+	return decad.Transform(body, lift).Do(r.ctx)
 }
 
 // Clicker is the click indexer's bodies at digit 0 and rest, in the world frame, without the front wall's changes.

@@ -352,15 +352,13 @@ func requireTipRootClearance(t *testing.T, box planetarygearbox.Gearbox, p plane
 		sunAngle := toothPitch * float64(sample) / gearRotationSamples
 		carrierAngle := float64(p.SunTeeth) / float64(p.SunTeeth+p.RingTeeth) * sunAngle
 		planetRelativeAngle := -float64(p.RingTeeth) / float64(p.PlanetTeeth) * carrierAngle
-		sun, err := decad.Copy(t.Context(), box.Stages[0].Sun, decad.WithCopyRotation(
-			r3.Vec{}, r3.NewVec(0, 0, 1), units.Radians(sunAngle)))
+		sun, err := decad.Copy(box.Stages[0].Sun).Place(decad.CopyRotation{Center: r3.Vec{}, Axis: r3.NewVec(0, 0, 1), Angle: units.Radians(sunAngle)}).Do(t.Context())
 		require.NoError(t, err)
-		planet, err := decad.Copy(t.Context(), box.Stages[0].Planets[0], decad.WithCopyRotation(
-			r3.NewVec(orbit, 0, 0), r3.NewVec(0, 0, 1), units.Radians(planetRelativeAngle)))
+		planet, err := decad.Copy(box.Stages[0].Planets[0]).Place(decad.CopyRotation{Center: r3.NewVec(orbit, 0, 0), Axis: r3.NewVec(0, 0, 1), Angle: units.Radians(planetRelativeAngle)}).Do(t.Context())
 		require.NoError(t, err)
 		carrierTurn, err := r3.Rotation(r3.NewVec(0, 0, 1), units.Radians(carrierAngle))
 		require.NoError(t, err)
-		planet, err = decad.Transform(t.Context(), planet, carrierTurn)
+		planet, err = decad.Transform(planet, carrierTurn).Do(t.Context())
 		require.NoError(t, err)
 		planetCenter := r3.NewVec(orbit*math.Cos(carrierAngle), orbit*math.Sin(carrierAngle), 0)
 		sunSpan := sectionRadialSpan(t, sun, r3.Vec{}, z, 0)

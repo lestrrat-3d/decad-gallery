@@ -74,7 +74,7 @@ func TestClampArmInterfaceFloorOverRecess(t *testing.T) {
 	require.NoError(t, err)
 	column, _, err := fastenertool.Cylinder(t.Context(), doc, f, 0.02, 15)
 	require.NoError(t, err)
-	probe, err := decad.Intersect(t.Context(), adapter, column)
+	probe, err := decad.Intersect(adapter, column).Do(t.Context())
 	require.NoError(t, err)
 	box, err := probe.Bounds()
 	require.NoError(t, err)

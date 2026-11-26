@@ -53,7 +53,9 @@ func coneRun(dr float64) float64 { return dr / math.Tan(coneHalfAngle) }
 
 // coneSeat is the axial shift that puts a point offset radially by dr from the small end of a cone at the normal
 // distance gap from the cone's surface. A negative shift moves the point toward the cone's body.
-func coneSeat(dr, gap float64) float64 { return (dr*math.Cos(coneHalfAngle) - gap) / math.Sin(coneHalfAngle) }
+func coneSeat(dr, gap float64) float64 {
+	return (dr*math.Cos(coneHalfAngle) - gap) / math.Sin(coneHalfAngle)
+}
 
 // meridianPoints is a (radius, z) polygon with a point on the axis at each end.
 type meridianPoints [][2]float64
@@ -142,7 +144,7 @@ func (b *builder) flatRamp(what string, x, y float64, sp flatSpan) (*decad.Body,
 	if err != nil {
 		return nil, err
 	}
-	body, err := decad.Extrude(b.ctx, b.doc, s, p, decad.Symmetric{D: units.Millimeters(rampReach)})
+	body, err := decad.Extrude(b.doc, s, p, decad.Symmetric{D: units.Millimeters(rampReach)}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: extrude: %w", what, err)
 	}

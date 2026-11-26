@@ -59,7 +59,7 @@ func TestSevenSegmentFlagReuse(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, part.name, c.Name())
 			require.Equal(t, FlagsContainerName, c.Parent().Parent().Name())
-			posed, err := decad.Transform(ctx, part.want, turn)
+			posed, err := decad.Transform(part.want, turn).Do(ctx)
 			require.NoError(t, err)
 			placed, err := placement.Place(ctx, posed, p.Placement)
 			require.NoError(t, err)

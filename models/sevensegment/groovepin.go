@@ -53,7 +53,7 @@ func (r *run) groovePin(yFace, zc float64) (*decad.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		return decad.Revolve(r.ctx, r.doc, s, pr, axis, decad.FullRevolution{})
+		return decad.Revolve(r.doc, s, pr, axis, decad.FullRevolution{}).Do(r.ctx)
 	}
 	rad := PinRadius
 	round, err := revolve([][2]float64{{0, 0}, {0, rad - groovePinRootCh}, {groovePinRootCh, rad}, {length - groovePinChamfer, rad},
@@ -87,10 +87,10 @@ func (r *run) groovePin(yFace, zc float64) (*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("pin wing envelope: %w", err)
 	}
-	if wings, err = decad.Intersect(r.ctx, wings, env); err != nil {
+	if wings, err = decad.Intersect(wings, env).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("pin wing taper: %w", err)
 	}
-	pin, err := decad.Union(r.ctx, round, wings)
+	pin, err := decad.Union(round, wings).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("pin round and wings: %w", err)
 	}
@@ -156,10 +156,10 @@ func (r *run) groovePinHole(body *decad.Body, yFace, zc float64) (*decad.Body, e
 	if n == 0 {
 		return nil, fmt.Errorf("hole floor edges: none found")
 	}
-	if tool, err = decad.Fillet(r.ctx, tool, sel.Exactly(n), units.Millimeters(groovePinFloorR)); err != nil {
+	if tool, err = decad.Fillet(tool, sel.Exactly(n), units.Millimeters(groovePinFloorR)).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("round the hole floor (%d edges): %w", n, err)
 	}
-	if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+	if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 		return nil, fmt.Errorf("cut the groove pin hole: %w", err)
 	}
 	return body, nil

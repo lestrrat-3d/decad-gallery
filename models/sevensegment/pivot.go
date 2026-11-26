@@ -138,7 +138,7 @@ func (r *run) pivotBlock() (*decad.Body, error) {
 	if err != nil {
 		return nil, wrap("pin", err)
 	}
-	if body, err = decad.Union(r.ctx, body, pin); err != nil {
+	if body, err = decad.Union(body, pin).Do(r.ctx); err != nil {
 		return nil, wrap("union pin", err)
 	}
 	return body, nil
@@ -172,7 +172,7 @@ func (r *run) roundedPrism(half, below, above, rad, u0, u1 float64) (*decad.Body
 	if err != nil {
 		return nil, fmt.Errorf("plan prism: %w", err)
 	}
-	return decad.Intersect(r.ctx, sec, plan)
+	return decad.Intersect(sec, plan).Do(r.ctx)
 }
 
 // pivotPocketTool builds the pocket of segment seg's end sgn in the world: the block's 3.3 square pocket from the bore's
@@ -193,7 +193,7 @@ func (r *run) cutPivotPockets(body *decad.Body, seg Segment) (*decad.Body, error
 		if err != nil {
 			return nil, err
 		}
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut pivot pocket %s: %w", seg, err)
 		}
 	}
@@ -232,7 +232,7 @@ func (r *run) pivotBlocks() ([7][2]*decad.Body, error) {
 			b := proto
 			if seg != SegG || sgn < 0 {
 				var err error
-				if b, err = decad.Copy(r.ctx, proto); err != nil {
+				if b, err = decad.Copy(proto).Do(r.ctx); err != nil {
 					return out, fmt.Errorf("pivot block %s: copy: %w", seg, err)
 				}
 			}

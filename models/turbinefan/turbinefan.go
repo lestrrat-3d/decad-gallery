@@ -254,7 +254,7 @@ func (r *run) hub() (*decad.Body, error) {
 		tools = append(tools, ah, as)
 	}
 	for _, tool := range tools {
-		if body, err = decad.Cut(r.ctx, body, tool); err != nil {
+		if body, err = decad.Cut(body, tool).Do(r.ctx); err != nil {
 			return nil, fmt.Errorf("cut: %w", err)
 		}
 	}
@@ -288,7 +288,7 @@ func (r *run) bladeSlotTool(k int) (*decad.Body, error) {
 
 // ring returns body and its two copies about the shaft axis, 120 and 240 degrees on.
 func (r *run) ring(body *decad.Body) ([]*decad.Body, error) {
-	copies, err := decad.PatternCopies(r.ctx, body, decad.CircularPattern{Axis: r3.Vec{Z: 1}, Count: BladeCount})
+	copies, err := decad.PatternCopies(body, decad.CircularPattern{Axis: r3.Vec{Z: 1}, Count: BladeCount}).Do(r.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (r *run) blades() ([]*decad.Body, error) {
 	if err != nil {
 		return nil, fmt.Errorf("blade frame: %w", err)
 	}
-	body, err := decad.Transform(r.ctx, blade.Body, xf)
+	body, err := decad.Transform(blade.Body, xf).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("place blade: %w", err)
 	}

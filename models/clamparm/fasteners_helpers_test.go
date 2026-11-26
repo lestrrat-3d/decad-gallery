@@ -153,7 +153,7 @@ func requireDisjointPair(t *testing.T, an, bn string, a, b *decad.Body, axis asm
 	t.Helper()
 	var refusal error
 	for _, operands := range [][2]*decad.Body{{a, b}, {b, a}} {
-		_, err := decad.Intersect(t.Context(), operands[0], operands[1])
+		_, err := decad.Intersect(operands[0], operands[1]).Do(t.Context())
 		require.Error(t, err, "%s and %s share volume", an, bn)
 		var be *decad.BooleanError
 		if errors.As(err, &be) && be.Code == decad.BooleanEmpty {

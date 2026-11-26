@@ -190,7 +190,7 @@ func (b *builder) buildLever() (*decad.Body, error) {
 		return nil, err
 	}
 	root := decad.Edges(decad.Reflex(), decad.Circular()).Exactly(1)
-	if lever, err = decad.Fillet(b.ctx, lever, root, units.Millimeters(dartRootRound)); err != nil {
+	if lever, err = decad.Fillet(lever, root, units.Millimeters(dartRootRound)).Do(b.ctx); err != nil {
 		return nil, fmt.Errorf("lever: dart root fillet: %w", err)
 	}
 	tool, err := b.dTool("lever bore", b.g.P.X, b.g.P.Y, leverLow-leverBoreReach, BodyBoreRadius, BodyBoreFlat,

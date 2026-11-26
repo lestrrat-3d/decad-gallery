@@ -399,8 +399,8 @@ func (r *run) inscribe(body *decad.Body, s Segment) (*decad.Body, error) {
 	if len(profiles) != 1 {
 		return nil, fmt.Errorf("lettering has %d profiles, want 1", len(profiles))
 	}
-	out, err := decad.Emboss(r.ctx, body, sk, profiles, decad.Faces(decad.Facing(r3.Vec{Z: -1})), decad.EmbossEngraved,
-		units.Millimeters(inscriptionDepth))
+	out, err := decad.Emboss(body, sk, profiles, decad.Faces(decad.Facing(r3.Vec{Z: -1})), decad.EmbossEngraved,
+		units.Millimeters(inscriptionDepth)).Do(r.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("engrave: %w", err)
 	}

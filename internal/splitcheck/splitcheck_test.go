@@ -17,7 +17,7 @@ func TestCompliantShafts(t *testing.T) {
 	t.Run("d_shaft_with_collar", func(t *testing.T) {
 		b := newShafts(t)
 		shaft := b.dShaft()
-		body, err := decad.Union(t.Context(), shaft, b.cylinder(b.across(10), 5.5, 3))
+		body, err := decad.Union(shaft, b.cylinder(b.across(10), 5.5, 3)).Do(t.Context())
 		require.NoError(t, err)
 		r := b.check(body, r3.Vec{})
 		require.Empty(t, r.Violations)

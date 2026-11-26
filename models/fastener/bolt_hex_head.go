@@ -28,7 +28,7 @@ func buildHexHeadBolt(ctx context.Context, doc *decad.Document, size BoltSize, l
 	if err != nil {
 		return nil, nil, err
 	}
-	body, err := decad.Union(ctx, r.Body, shank)
+	body, err := decad.Union(r.Body, shank).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fastener: join head and shank: %w", err)
 	}
@@ -83,8 +83,8 @@ func buildShank(ctx context.Context, doc *decad.Document, b *Bolt, size BoltSize
 	if err != nil {
 		return nil, fmt.Errorf("fastener: select shank profile: %w", err)
 	}
-	shank, err := decad.Revolve(ctx, doc, s, profile,
-		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}, decad.FullRevolution{})
+	shank, err := decad.Revolve(doc, s, profile,
+		decad.SketchLine{Start: decad.Point2{U: 0, V: 0}, End: decad.Point2{U: 0, V: 1}}, decad.FullRevolution{}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fastener: revolve shank: %w", err)
 	}

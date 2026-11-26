@@ -26,7 +26,7 @@ func (b *builder) refine(body *decad.Body, bound float64) *decad.Body {
 	if b.err != nil || body == nil {
 		return body
 	}
-	refined, err := decad.Refine(b.ctx, body, units.Millimeters(bound))
+	refined, err := decad.Refine(body, units.Millimeters(bound)).Do(b.ctx)
 	b.fail("refine held mesh", err)
 	return refined
 }

@@ -114,7 +114,7 @@ func (b *builder) buildEscapeWheel() (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	copies, err := decad.PatternCopies(b.ctx, tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis, Count: Teeth})
+	copies, err := decad.PatternCopies(tooth, decad.CircularPattern{Center: r3.NewVec(0, 0, 0), Axis: zAxis, Count: Teeth}).Do(b.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("escape wheel: pattern teeth: %w", err)
 	}

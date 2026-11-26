@@ -120,7 +120,7 @@ func (r *run) buildCollarRing(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ring, err = decad.Cut(ctx, ring, bore); err != nil {
+	if ring, err = decad.Cut(ring, bore).Do(ctx); err != nil {
 		return nil, fmt.Errorf("%s: cut D bore: %w", what, err)
 	}
 	tool, err := r.revolveMeridian(ctx, what+" relief", []vertex{
@@ -131,7 +131,7 @@ func (r *run) buildCollarRing(ctx context.Context) (*decad.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ring, err = decad.Cut(ctx, ring, tool); err != nil {
+	if ring, err = decad.Cut(ring, tool).Do(ctx); err != nil {
 		return nil, fmt.Errorf("%s: cut relief: %w", what, err)
 	}
 	if !ring.IsSolid() {
@@ -157,7 +157,7 @@ func (r *run) flatCut(ctx context.Context, what string, body *decad.Body, flats 
 	tool := tools[0]
 	if len(tools) > 1 {
 		var err error
-		if tool, err = decad.Union(ctx, tools[0], tools[1:]...); err != nil {
+		if tool, err = decad.Union(append([]*decad.Body{tools[0]}, tools[1:]...)...).Do(ctx); err != nil {
 			return nil, fmt.Errorf("%s: join flats: %w", what, err)
 		}
 	}
@@ -166,7 +166,7 @@ func (r *run) flatCut(ctx context.Context, what string, body *decad.Body, flats 
 
 // cutShaft cuts tool out of the shaft body and requires a solid.
 func (r *run) cutShaft(ctx context.Context, what string, body, tool *decad.Body) (*decad.Body, error) {
-	cut, err := decad.Cut(ctx, body, tool)
+	cut, err := decad.Cut(body, tool).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: cut flat: %w", what, err)
 	}
@@ -284,7 +284,7 @@ func (r *run) buildOutputShaft(ctx context.Context, thickTop, top float64) (*dec
 	if err != nil {
 		return nil, err
 	}
-	shaft, err := decad.Union(ctx, thick, rod)
+	shaft, err := decad.Union(thick, rod).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: join thick part and rod: %w", what, err)
 	}

@@ -128,9 +128,9 @@ func TestCutThroughBoreVolumeOnBox(t *testing.T) {
 	profiles := s.Profiles()
 	require.Len(t, profiles, 1)
 	require.True(t, profiles[0].Valid)
-	base, err := decad.Extrude(t.Context(), doc, s, profiles[0], decad.Distance{
+	base, err := decad.Extrude(doc, s, profiles[0], decad.Distance{
 		D: units.Millimeters(10), Dir: decad.Along,
-	})
+	}).Do(t.Context())
 	require.NoError(t, err)
 	baseVolume, err := base.Volume()
 	require.NoError(t, err)
