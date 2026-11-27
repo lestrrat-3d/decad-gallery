@@ -434,6 +434,38 @@ result of its own, so the build returns the error of `decad.RunSteps` instead, i
 `sevensegment: build steps: <RunSteps error>`, which carries the panic message and stack. The same form reports a
 run fault that no step reported, such as a step that swallows a refusal. A failed run files nothing, and the caller discards the document.
 
+### Extra poses (`BuildPartsPosed`, `BuildPosed`)
+
+`BuildPartsPosed(ctx, doc, p, extra ...Pose)` is `BuildParts(p)` and also poses the same bodies for each `Pose{Digit,
+Placement}` of `extra`, returning one `*Parts` per extra pose in order. `BuildPosed` is `Build(p)` with the same extra
+poses of the printed parts; the extra sets hold no bearings, bolts or nuts. `BuildParts` and `Build` call them with no
+extra poses and run the same sequence of decad calls as before.
+
+The digit reaches a body only through its pose step (`camshaftTurn`, `liftIfLit`, the flag turn), so every other
+construction step is the same for every digit. A step builds its body once, unposed. An extra pose then makes its body
+as follows, before the step poses and places the main body, which consumes the unposed one:
+
+| Bodies | Extra pose body |
+| --- | --- |
+| Digit independent (walls, plates, housing, button), same placement as the main pose | the main body itself |
+| Digit independent, another placement | `decad.Copy(body).Place(decad.CopyTransform{...})` by the placement |
+| Camshaft group, lit sliders and groove pins | `decad.Copy(body).Place(decad.CopyTransform{...})` by the digit's motion, then `placement.Place` |
+| Unlit slider or groove pin | as digit independent |
+| Pivot blocks | the main blocks when the placement is the same; otherwise built again for that placement |
+| Flags | built again for that pose (own prototypes), turned and placed as `BuildParts` does |
+
+A copy is used for a body of any placement because a copy of an unposed body has the same mesh, volume and volume
+bound as the body that `decad.Transform` poses. The pivot blocks and the flags are built again for a pose that needs new
+bodies, because the last block of a build is its prototype itself and a copy would differ from it in the last bits of
+the volume bound. Each extra pose differs from `p` in `Digit` and `Placement` only, and is checked as `BuildParts`
+checks them.
+
+Extra `Parts` hold bodies of `doc` that are in no container, so `len(doc.Bodies())` is 78 plus those bodies. A caller
+that needs exactly 78 removes them with `decad.Remove`; a removed body still reads the same mesh, volume and bounds,
+but it refuses `Verify`, `ContactPair` and `VerifyMotion`. Every extra `Parts` has the main `Parts.Sketches`: the
+sketches are built in the unposed bodies, so the digit is not a sketch branch, and each is fully constrained as
+before. `Dimensions` and `Sites` are derived per pose.
+
 ### Bodies and containers
 
 | Container (parent) | Bodies |

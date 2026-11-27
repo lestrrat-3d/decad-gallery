@@ -77,26 +77,68 @@ type Model struct {
 // BuildParts adds the printed bodies to doc, posed for p.Digit and placed, and puts them in no container. ctx and doc
 // must not be nil.
 func BuildParts(ctx context.Context, doc *decad.Document, p Params) (*Parts, error) {
-	out := &Parts{}
-	if err := out.build(ctx, doc, p, partSteps(out)); err != nil {
-		return nil, err
-	}
-	return out, nil
+	out, _, err := BuildPartsPosed(ctx, doc, p)
+	return out, err
 }
 
-// build runs steps, which fill out, and then sets the dimensions, the sketches and the bolt sites.
-func (out *Parts) build(ctx context.Context, doc *decad.Document, p Params, steps []buildStep) error {
-	dm, sketches, err := runSteps(ctx, doc, p, steps, stepWorkers())
+// Pose is a camshaft digit and the frame the parts are placed in. A nil Placement leaves the parts where the model's
+// local frame puts them.
+type Pose struct {
+	Digit     int
+	Placement *r3.Frame
+}
+
+// BuildPartsPosed is BuildParts for p. It also poses the same bodies for each of extra, and returns one *Parts per
+// extra pose, in order. Each body is built once, unposed, and the extra poses are copies of it, so an extra pose costs
+// a small fraction of a build. An extra pose's parts are bit for bit those of BuildParts with that digit and
+// placement. A body that the digit does not move and that has the same placement in two poses is the same
+// *decad.Body in both. Every other body of an extra pose is a new body of doc, filed in no container.
+//
+// The extra poses carry the other fields of p, so extra[i] differs from p in Digit and Placement only. An invalid
+// extra pose fails as BuildParts fails for it. Each extra Parts has the main Parts's Sketches. ctx and doc must not be
+// nil.
+func BuildPartsPosed(ctx context.Context, doc *decad.Document, p Params, extra ...Pose) (*Parts, []*Parts, error) {
+	out := &Parts{}
+	extras := make([]*Parts, len(extra))
+	for i := range extras {
+		extras[i] = &Parts{}
+	}
+	if err := out.build(ctx, doc, p, extra, extras, partSteps(out, extras)); err != nil {
+		return nil, nil, err
+	}
+	return out, extras, nil
+}
+
+// build runs steps, which fill out and extras, and then sets the dimensions, the sketches and the bolt sites of each.
+func (out *Parts) build(ctx context.Context, doc *decad.Document, p Params, poses []Pose, extras []*Parts,
+	steps []buildStep) error {
+	dm, poseDims, sketches, err := runPosedSteps(ctx, doc, p, poses, steps, stepWorkers())
 	if err != nil {
 		return err
 	}
 	out.Dimensions, out.Sketches = dm, sketches
-	for i, site := range dm.Sites {
-		if out.Sites[i], err = placeSite(site, p.Placement); err != nil {
-			return fmt.Errorf("sevensegment: place bolt %d: %w", i+1, err)
+	if out.Sites, err = placeSites(dm, p.Placement); err != nil {
+		return err
+	}
+	for i, e := range extras {
+		e.Dimensions, e.Sketches = poseDims[i], sketches
+		if e.Sites, err = placeSites(poseDims[i], poses[i].Placement); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+// placeSites carries every bolt site of dm through the placement f.
+func placeSites(dm Dimensions, f *r3.Frame) ([10]m2fastener.Site, error) {
+	var out [10]m2fastener.Site
+	for i, site := range dm.Sites {
+		var err error
+		if out[i], err = placeSite(site, f); err != nil {
+			return out, fmt.Errorf("sevensegment: place bolt %d: %w", i+1, err)
+		}
+	}
+	return out, nil
 }
 
 // camshaftTurn is the turn of the camshaft group by theta about the shaft axis, right-handed about +Y.
@@ -107,10 +149,31 @@ func (r *run) camshaftTurn() r3.Transform {
 
 // Build adds every body to doc, each in its container: 78 bodies. ctx and doc must not be nil.
 func Build(ctx context.Context, doc *decad.Document, p Params) (*Model, error) {
+	m, _, err := BuildPosed(ctx, doc, p)
+	return m, err
+}
+
+// BuildPosed is Build for p, and also poses the printed parts for each of extra as BuildPartsPosed does. The extra
+// poses hold no bought parts and their bodies are filed in no container, so the 78 bodies and the containers of the
+// returned model are those of Build. ctx and doc must not be nil.
+func BuildPosed(ctx context.Context, doc *decad.Document, p Params, extra ...Pose) (*Model, []*Parts, error) {
 	m := &Model{}
-	if err := m.build(ctx, doc, p, append(partSteps(&m.Parts), hardwareSteps(m)...)); err != nil {
-		return nil, err
+	extras := make([]*Parts, len(extra))
+	for i := range extras {
+		extras[i] = &Parts{}
 	}
+	if err := m.build(ctx, doc, p, extra, extras, append(partSteps(&m.Parts, extras), hardwareSteps(m)...)); err != nil {
+		return nil, nil, err
+	}
+	model, err := m.file(doc)
+	if err != nil {
+		return nil, nil, err
+	}
+	return model, extras, nil
+}
+
+// file puts the bodies of m in their containers in doc.
+func (m *Model) file(doc *decad.Document) (*Model, error) {
 	root := doc.Root()
 	units3 := map[string]*decad.Container{}
 	unit := func(name string) (*decad.Container, error) {
