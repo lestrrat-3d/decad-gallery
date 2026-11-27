@@ -828,6 +828,8 @@ SEVENSEGMENT_POSES = {
     "steps": (),
 }
 SEVENSEGMENT_POSES_ENV = "SEVENSEGMENT_POSES"
+# Trades memory for CPU: about 10 % less CPU per build for about 1.5 times the heap. Race builds keep the default.
+SEVENSEGMENT_GOGC = "200"
 
 
 def sevensegment_poses_env(shard: str) -> str:
@@ -887,8 +889,9 @@ def run_sevensegment(shard: str) -> None:
         go_test(["-race", "./models/sevensegment", "-run", run_pattern(race), "-timeout", "40m", "-count=1"],
                 expected=race, env=env)
         go_test(["./models/sevensegment", "-run", run_pattern(plain), "-timeout", "40m", "-count=1"],
-                expected=plain, env=env)
+                expected=plain, env={**env, "GOGC": SEVENSEGMENT_GOGC})
         return
+    env["GOGC"] = SEVENSEGMENT_GOGC
     parallel = ["-parallel", "4"] if shard == "assembly" else []
     go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel],
             expected=tests, env=env)
