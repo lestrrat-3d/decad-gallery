@@ -3,6 +3,7 @@ package sevensegment
 // CI: isolated-tests
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -62,9 +63,24 @@ func TestSevenSegmentPlates(t *testing.T) {
 // their bores and pivot pockets, the window lip and the blade holes, their walls and their corners.
 func TestSevenSegmentFlagPlates(t *testing.T) {
 	t.Parallel()
-	_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
-	_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
-	r, guide := sharedBody(t, "guide plate", (*run).columnGuidePlate)
+	// The three plates build independently, so they build together: the group returns once all three are cached.
+	var cradle, top, guide *decad.Body
+	var r *run
+	t.Run("build", func(t *testing.T) {
+		t.Run("cradle plate", func(t *testing.T) {
+			t.Parallel()
+			_, cradle = sharedBody(t, "cradle plate", (*run).cradlePlate)
+		})
+		t.Run("top plate", func(t *testing.T) {
+			t.Parallel()
+			_, top = sharedBody(t, "top plate", (*run).flagTopPlate)
+		})
+		t.Run("guide plate", func(t *testing.T) {
+			t.Parallel()
+			r, guide = sharedBody(t, "guide plate", (*run).columnGuidePlate)
+		})
+	})
+	require.False(t, t.Failed(), "the plates build")
 	for name, b := range map[string]*decad.Body{"cradle": cradle, "top": top, "guide": guide} {
 		require.True(t, b.IsSolid(), name)
 	}
@@ -126,11 +142,17 @@ func TestSevenSegmentFlagPlates(t *testing.T) {
 	// Walls of 0.799 or more between holes, at the heights of each plate.
 	for _, off := range []float64{0.02, 0.6, 1.4, 1.85, 2.2, 2.5, 2.58} { // heights over the cradle's underside, as fractions of 2.6 of its thickness
 		h := cradleFrom + off*cradleThick/2.6
-		require.GreaterOrEqual(t, minWall(t, cradle, h, 1.5), 0.799, "cradle z %.2f", h)
+		t.Run(fmt.Sprintf("cradle z %.2f", h), func(t *testing.T) {
+			t.Parallel()
+			require.GreaterOrEqual(t, minWall(t, cradle, h, 1.5), 0.799, "cradle z %.2f", h)
+		})
 	}
 	for _, off := range []float64{0.05, 1.6, 3.6, 5.0, 6.1, 8.1, 9.45, 10.0, 10.8} { // over the tubes' bottom, as fractions of 10.85 of their length to the face
 		h := tubeFrom + off*(flagFaceZ-tubeFrom)/10.85
-		require.GreaterOrEqual(t, minWall(t, top, h, 1.5), 0.799, "top plate z %.2f", h)
+		t.Run(fmt.Sprintf("top plate z %.2f", h), func(t *testing.T) {
+			t.Parallel()
+			require.GreaterOrEqual(t, minWall(t, top, h, 1.5), 0.799, "top plate z %.2f", h)
+		})
 	}
 
 	// Corners: the cradle and the top plate have none; the guide plate only the hex pocket corners.
