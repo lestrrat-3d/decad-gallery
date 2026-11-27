@@ -1,6 +1,6 @@
 # Cube Puzzle construction contract
 
-This draft records the checked prototype. Dimensions are in millimeters. The cube has an outer half-width of 30,
+Dimensions are in millimeters. The cube has an outer half-width of 30,
 a nominal 0.5 gap between layer boundaries, and sixfold symmetry. The hub, 6 centers, 12 edges and 8 corners
 make the mechanism. Each center mount also has a printed disk, an M2 × 25 socket-head bolt, an M2 nut, and two
 machined metal sleeves. The sleeves hold the disk against the hub while the center turns freely between them.

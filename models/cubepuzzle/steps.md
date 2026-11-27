@@ -1,11 +1,13 @@
 # Cube Puzzle Decad steps
 
-These draft steps implement `instructions.md`. Expose `Build(ctx context.Context, doc *decad.Document, params Params) (*Assembly, error)`. Define an empty `Params`
+These steps implement `instructions.md`. Expose `Build(ctx context.Context, doc *decad.Document, params Params)`
+returning `(*Assembly, error)`. Define an empty `Params`
 and `DefaultParams() Params` for the fixed size. Define `Assembly` with `Hub *decad.Body` and slices `Centers`,
 `Edges`, `Corners`, `Disks`, `FlangedSleeves`, `Sleeves`, `Bolts`, and `Nuts`, each holding `*decad.Body`. The
 document owns the named body containers.
 Expose `NewDocument(opts ...decad.DocumentOption) *decad.Document`, applying `decad.WithChainTolerance` of
-0.01 mm before the supplied options. Build uses a document made by this constructor. Return contextual errors. Keep original bodies available with `decad.Copy` before any consuming Boolean operation.
+0.01 mm before the supplied options. Build uses a document made by this constructor. Return contextual errors.
+Keep original bodies available with `decad.Copy` before any consuming Boolean operation.
 Every sketch, including sketches returned by shared tools, must be fully constrained before use. Use the shared
 `internal/sketchcheck`, `internal/fastenertool`, `internal/m2fastener`, and `models/fastener` packages.
 
