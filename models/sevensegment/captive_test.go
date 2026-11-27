@@ -79,7 +79,7 @@ func TestSevenSegmentCaptive(t *testing.T) {
 			groove := r3.Vec{X: pivotX, Y: dm.Station(s), Z: sevensegment.GuideFrom}
 			tilt *= 0.5
 			slider := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift+groovePinTurnover(s))
-			sliderPin := posed(t, sliders[s], groove, r3.Vec{Y: 1}, tilt, lift+0.4-0.2-bladeLift+groovePinTurnover(s))
+			sliderPin := slider // the same pose: a gap mesh is read only
 			point, axis := segmentAxis(s)
 			// The rotor follows its pin: the pin line is 0.4 higher (and 2 raise more on b-f), which turns the rotor.
 			zrel := dm.Lift(s, 36*float64(k)) - 2.625 + sevensegment.RaiseOf(s) + 0.4 - 0.2 - bladeLift + groovePinTurnover(s) + slideraise(s)/2
