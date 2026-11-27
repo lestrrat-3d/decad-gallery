@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 
 ROOT = "github.com/lestrrat-3d/decad-gallery"
-MODELS = set("ballbearing bevelgear clamparm compressionspring crankhandle cycloidal escapement handcrankfan handcranksiren "
+MODELS = set("ballbearing bevelgear clamparm compressionspring crankhandle cubepuzzle cycloidal escapement handcrankfan handcranksiren "
              "fastener helicalgear herringbonegear onewayclutch pinring "
              "planetarygearbox plaquestand screwgear sevensegment spinningwheel spiralspring spurgear swisslever turbinefan".split())
 INTERNAL = set("clamparmcapacity hexnut edgefinish cornercheck m5fastener gearroot fastenertool m2fastener splitcheck meshgap "
