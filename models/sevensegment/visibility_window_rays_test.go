@@ -14,6 +14,7 @@ import (
 // TestYellowFirstCountMatchesReference checks that yellowFirstCount counts the rays the full-grid reference counts, on
 // random, sliver, axis-aligned and coincident triangles of all three kinds.
 func TestYellowFirstCountMatchesReference(t *testing.T) {
+	t.Parallel()
 	rng := rand.New(rand.NewPCG(7, 11))
 	pt := func(scale float64) r3.Vec {
 		return r3.Vec{X: (rng.Float64() - 0.5) * scale, Y: (rng.Float64() - 0.5) * scale, Z: (rng.Float64() - 0.5) * scale}

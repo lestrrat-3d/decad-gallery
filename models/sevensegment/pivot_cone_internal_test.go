@@ -14,6 +14,7 @@ import (
 // TestSevenSegmentPivotConstants checks the pivot's derived constants against their definitions and the values the design
 // measured: the trigonometry of the 8 degree cone, the wedge factor, the block's face and the junction.
 func TestSevenSegmentPivotConstants(t *testing.T) {
+	t.Parallel()
 	a := 8 * math.Pi / 180
 	require.InDelta(t, math.Sin(a), pivotConeSin, 1e-12)
 	require.InDelta(t, math.Cos(a), pivotConeCos, 1e-12)
@@ -47,6 +48,7 @@ func TestSevenSegmentPivotConstants(t *testing.T) {
 // TestSevenSegmentPivotSketches requires every sketch of a pivot block and of both rotor types (their bores and roofs)
 // to be fully constrained: DOF 0, no redundant constraints, no conflicts.
 func TestSevenSegmentPivotSketches(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	_, err := r.pivotBlock()
 	require.NoError(t, err)
@@ -68,6 +70,7 @@ func TestSevenSegmentPivotSketches(t *testing.T) {
 // b at both ends, with the rotor pushed pivotEndPlay toward the block and dropped by pivotTight in each of 8 directions: the
 // gap stays 0.2 or more (the Tight minimum). The block's whole body at the modeled pose keeps 0.2 as well.
 func TestSevenSegmentPivotFrustumClearance(t *testing.T) {
+	t.Parallel()
 	for _, seg := range []Segment{SegG, SegB} {
 		f := sharedFlag(t, seg)
 		r := newTestRun(t)
@@ -99,6 +102,7 @@ func TestSevenSegmentPivotFrustumClearance(t *testing.T) {
 // TestSevenSegmentPivotFloorWall measures the black material under each bore floor along the axis at local x 0.6, where
 // type B's second pocket comes closest: 0.8 or more stays.
 func TestSevenSegmentPivotFloorWall(t *testing.T) {
+	t.Parallel()
 	for _, seg := range []Segment{SegG, SegB} {
 		f := sharedFlag(t, seg)
 		fr := rotorFrame(seg)

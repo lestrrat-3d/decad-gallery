@@ -14,6 +14,7 @@ import (
 // TestSevenSegmentFits measures the fits of "Part fits" that do not need the assembled model: each is read on the part
 // bodies built alone, in the world frame at digit 2 with the camshaft at theta 72 left unposed (theta 0).
 func TestSevenSegmentFits(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	_, shaft := sharedBody(t, "shaft", (*run).shaft)
 
@@ -139,6 +140,7 @@ func TestSevenSegmentFits(t *testing.T) {
 // TestSevenSegmentPressWalls requires 1.6 mm or more of wall round each press-fit bore: the cam hubs and the keyed hub,
 // read at sections through the bore.
 func TestSevenSegmentPressWalls(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	check := func(name string, body *decad.Body, y float64) {
 		loops := sectionAt(t, body, y)
@@ -166,6 +168,7 @@ func TestSevenSegmentPressWalls(t *testing.T) {
 // the pin (radius 1.5 on the groove's centreline at the follower's polar angle, 90 + theta) keeps RegularFit from the
 // groove's walls. The cam is built unrotated; turning it by theta moves the follower to cam-local angle 90 + theta.
 func TestSevenSegmentPinClearance(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	for _, seg := range Segments() {
 		_, cam := sharedCam(t, seg)
@@ -189,6 +192,7 @@ func TestSevenSegmentPinClearance(t *testing.T) {
 // tube's hole in the top plate, both from the built bodies: 1.525 by design (modeled; 1.425 in the physical geometry).
 // A blade built taller than designed closes it.
 func TestSevenSegmentBladeRoof(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
 	for _, seg := range Segments() {
@@ -222,6 +226,7 @@ func TestSevenSegmentBladeRoof(t *testing.T) {
 // black body (found by bisection along the yellow face's normal at u = 17.25, where the bore is a plain cylinder) and the
 // radius of the block's pin (along local x at u = 12.0). Their difference is the Tight minimum 0.20, to the tessellation bound.
 func TestSevenSegmentJournalFit(t *testing.T) {
+	t.Parallel()
 	f := sharedFlag(t, SegG)
 	_, block := sharedBody(t, "pivot block", (*run).pivotBlock)
 	// The bore: void inside the radius, material outside it.
@@ -259,6 +264,7 @@ func TestSevenSegmentJournalFit(t *testing.T) {
 // pin keeps 0.75 or more of engagement in its groove (computed 0.77, cam d unlit); the separate pin of a, g and d adds its 0.2 of
 // slide on the hole's floor.
 func TestSevenSegmentStackPlay(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	_, guide := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 	gbox, err := guide.Bounds()

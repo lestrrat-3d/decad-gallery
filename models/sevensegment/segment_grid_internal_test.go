@@ -14,6 +14,7 @@ import (
 // TestSevenSegmentSegmentGrid checks the grid against nearest on a cam section, the loops loopsGap reads most, at
 // points spread over and around it: the distances agree bit for bit, and a limit only hides distances beyond it.
 func TestSevenSegmentSegmentGrid(t *testing.T) {
+	t.Parallel()
 	r, cam := sharedCam(t, SegA)
 	loops := sectionAt(t, cam, r.dm.camDiscFace(SegA)+1.0)
 	g := newSegmentGrid(loops)

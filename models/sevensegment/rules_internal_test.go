@@ -12,6 +12,7 @@ import (
 // TestSevenSegmentCorners applies "Corners and roots" to every printed part in its print orientation: only the listed
 // exemptions are allowed, and the shaft is read in TestSevenSegmentSplitShaft.
 func TestSevenSegmentCorners(t *testing.T) {
+	t.Parallel()
 	for _, c := range partCases() {
 		t.Run(c.name, func(t *testing.T) {
 			if c.pending != "" {
@@ -34,6 +35,7 @@ func TestSevenSegmentCorners(t *testing.T) {
 // 0.5 - 0.1 = 0.4 at the first, on every side of a plate and all round a cam or the knob. Every other part has no
 // planar face of 400 mm2 or more.
 func TestSevenSegmentEdgeFinishing(t *testing.T) {
+	t.Parallel()
 	specs := chamferSpecs()
 	for _, c := range partCases() {
 		t.Run(c.name, func(t *testing.T) {
@@ -71,6 +73,7 @@ func TestSevenSegmentEdgeFinishing(t *testing.T) {
 
 // TestSevenSegmentLookAlike checks every look-alike set: the counts differ within a set, and each hole goes through.
 func TestSevenSegmentLookAlike(t *testing.T) {
+	t.Parallel()
 	type set struct {
 		name   string
 		parts  []string

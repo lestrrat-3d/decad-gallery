@@ -13,6 +13,7 @@ import (
 )
 
 func TestSevenSegmentFrame(t *testing.T) {
+	t.Parallel()
 	for _, front := range []bool{true, false} {
 		name := "rear"
 		if front {
@@ -40,6 +41,7 @@ func TestSevenSegmentFrame(t *testing.T) {
 
 // TestSevenSegmentPlates checks the guide plate's slots and pin notches.
 func TestSevenSegmentPlates(t *testing.T) {
+	t.Parallel()
 	r, g := sharedBody(t, "slotted guide plate", (*run).guidePlate)
 	require.True(t, g.IsSolid())
 	box, err := g.Bounds()
@@ -59,6 +61,7 @@ func TestSevenSegmentPlates(t *testing.T) {
 // TestSevenSegmentFlagPlates builds the cradle, top plate and guide plate of the flag mechanism and checks their bounds,
 // their bores and pivot pockets, the window lip and the blade holes, their walls and their corners.
 func TestSevenSegmentFlagPlates(t *testing.T) {
+	t.Parallel()
 	_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
 	_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
 	r, guide := sharedBody(t, "guide plate", (*run).columnGuidePlate)
