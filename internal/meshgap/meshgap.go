@@ -392,6 +392,68 @@ func (m Mesh) PointDistance(p r3.Vec) (float64, error) {
 	return math.Sqrt(best), nil
 }
 
+// LeastPointDistance returns the least of the distances from the points to the mesh, each point moved by shift first.
+// The value equals the least of PointDistance over the moved points, because the least of the squared distances does
+// not depend on the visiting order and the square root is monotonic. It carries the best squared distance across the
+// points and visits the nearer child first, so a point that cannot lower the least distance prunes near the root.
+//
+// It returns an error for an empty mesh, an empty point list, a moved point that is not finite, and a least distance
+// that is not finite. A point whose own squared distance overflows or is NaN does not fail the call while another
+// point has a finite distance. The result is bit-identical to the loop over PointDistance whenever every triangle's
+// squared distance is at least its squared box gap and no product overflows, which holds for coordinates between
+// about 1e-3 and 1e12 millimeters. Outside that range the 1e-30 denominator guard of squaredPointTriangle can return
+// 0 for a nonzero distance, and the carried best can then prune a triangle that PointDistance alone would visit. This reads immutable mesh data and may run concurrently on the same Mesh.
+func (m Mesh) LeastPointDistance(points []r3.Vec, shift r3.Vec) (float64, error) {
+	if len(m.triangles) == 0 {
+		return 0, fmt.Errorf("meshgap: empty mesh")
+	}
+	if len(points) == 0 {
+		return 0, fmt.Errorf("meshgap: no query points")
+	}
+	best := math.Inf(1)
+	pending := make([]int, 0, 64)
+	for _, v := range points {
+		p := v.Add(shift)
+		if !finite(p.X) || !finite(p.Y) || !finite(p.Z) {
+			return 0, fmt.Errorf("meshgap: nonfinite query point")
+		}
+		query := triangle{lo: p, hi: p}
+		pending = append(pending[:0], 0)
+		for len(pending) != 0 {
+			n := m.nodes[pending[len(pending)-1]]
+			pending = pending[:len(pending)-1]
+			if squaredBoxGap(query, triangle{lo: n.lo, hi: n.hi}) >= best {
+				continue
+			}
+			if n.left >= 0 {
+				l, r := m.nodes[n.left], m.nodes[n.right]
+				gl := squaredBoxGap(query, triangle{lo: l.lo, hi: l.hi})
+				gr := squaredBoxGap(query, triangle{lo: r.lo, hi: r.hi})
+				if gl <= gr { // push the farther child first so the nearer one pops first
+					pending = append(pending, n.right, n.left)
+				} else {
+					pending = append(pending, n.left, n.right)
+				}
+				continue
+			}
+			for _, t := range m.triangles[n.start:n.end] {
+				if squaredBoxGap(query, t) >= best {
+					continue
+				}
+				// A triangle whose squared distance is NaN (overflowing products) never lowers best, so it cannot
+				// poison the distances of the points that follow.
+				if d := squaredPointTriangle(p, t.p); d < best {
+					best = d
+				}
+			}
+		}
+	}
+	if !finite(best) {
+		return 0, fmt.Errorf("meshgap: point distance is not finite")
+	}
+	return math.Sqrt(best), nil
+}
+
 // Bound returns the displacement bound New was given, in millimeters.
 func (m Mesh) Bound() float64 { return m.bound }
 
