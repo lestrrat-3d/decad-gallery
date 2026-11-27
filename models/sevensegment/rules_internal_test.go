@@ -15,6 +15,7 @@ func TestSevenSegmentCorners(t *testing.T) {
 	t.Parallel()
 	for _, c := range partCases() {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			if c.pending != "" {
 				t.Skip(c.pending)
 			}
@@ -39,6 +40,7 @@ func TestSevenSegmentEdgeFinishing(t *testing.T) {
 	specs := chamferSpecs()
 	for _, c := range partCases() {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			if c.pending != "" {
 				t.Skip(c.pending)
 			}
@@ -97,6 +99,7 @@ func TestSevenSegmentLookAlike(t *testing.T) {
 		for i, name := range s.parts {
 			c := cases[name]
 			t.Run(name, func(t *testing.T) {
+				t.Parallel()
 				if c.pending != "" {
 					t.Skip(c.pending)
 				}
