@@ -805,7 +805,8 @@ SEVENSEGMENT_SHARDS = {
     "steps": ("TestSevenSegmentRunFieldsAreStepLocal", "TestSevenSegmentStepsDeterministic",
               "TestSevenSegmentStepsFirstError", "TestSevenSegmentStepsPanicBeforeError",
               "TestSevenSegmentStepsRace", "TestSevenSegmentStepsRunFault", "TestSevenSegmentPosedLight",
-              "TestSevenSegmentPosedShare", "TestSevenSegmentPosedValidate"),
+              "TestSevenSegmentPosedShare", "TestSevenSegmentPosedValidate",
+              "TestSevenSegmentPoseCoverage", "TestSevenSegmentPoseMissingFails", "TestSevenSegmentPoseSelection"),
 }
 SEVENSEGMENT_RACE_TESTS = ("TestSevenSegmentStepsRace",)
 SEVENSEGMENT_PLACEMENTS = {
@@ -814,6 +815,36 @@ SEVENSEGMENT_PLACEMENTS = {
     "placement-quarter": ("quarter turn about Z", "quarter_turn_about_Z"),
 }
 SEVENSEGMENT_CASES = ("parts", "assembly", *SEVENSEGMENT_PLACEMENTS, "steps")
+# The poses of the shared posed build that each shard's tests read. The fixture in
+# models/sevensegment/sevensegment_helpers_test.go names them: "digit0" and one key per placement case.
+# TestSevenSegmentPoseCoverage derives from the test sources which poses each listed test reads and fails when this
+# table disagrees.
+SEVENSEGMENT_POSES = {
+    "parts": (),
+    "assembly": ("digit0",),
+    "placement-x": ("x",),
+    "placement-offset": ("offset",),
+    "placement-quarter": ("quarter",),
+    "steps": (),
+}
+SEVENSEGMENT_POSES_ENV = "SEVENSEGMENT_POSES"
+
+
+def sevensegment_poses_env(shard: str) -> str:
+    """Return the value of SEVENSEGMENT_POSES for a shard: its comma-separated poses, or "none"."""
+    return ",".join(SEVENSEGMENT_POSES[shard]) or "none"
+
+
+def sevensegment_plan() -> dict:
+    """Return each shard's tests and poses, as the pose coverage test reads them."""
+    plan = {}
+    for shard in SEVENSEGMENT_CASES:
+        tests = list(SEVENSEGMENT_SHARDS["placement" if shard in SEVENSEGMENT_PLACEMENTS else shard])
+        if shard in SEVENSEGMENT_PLACEMENTS:
+            tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1],
+                     *SEVENSEGMENT_SHARDS.get(shard, ())]
+        plan[shard] = {"tests": tests, "poses": list(SEVENSEGMENT_POSES[shard])}
+    return plan
 
 
 def check_sevensegment_coverage() -> None:
@@ -844,6 +875,7 @@ def run_sevensegment(shard: str) -> None:
     check_sevensegment_coverage()
     tests = list(SEVENSEGMENT_SHARDS["placement" if shard in SEVENSEGMENT_PLACEMENTS else shard])
     env = os.environ.copy()
+    env[SEVENSEGMENT_POSES_ENV] = sevensegment_poses_env(shard)
     if shard in SEVENSEGMENT_PLACEMENTS:
         env["SEVENSEGMENT_PLACEMENTS"] = "|".join(name for name, _ in SEVENSEGMENT_PLACEMENTS.values())
         # A placement case may also own whole tests of its own, listed under its name in the shards.
@@ -1191,6 +1223,9 @@ def main() -> None:
         return
     if suite == "sevensegment" and not args and mode in SEVENSEGMENT_CASES:
         run_sevensegment(mode)
+        return
+    if suite == "sevensegment" and not args and mode == "plan":
+        print(json.dumps(sevensegment_plan()))
         return
     if suite == "sevensegment" and not args and mode == "render":
         run_sevensegment_render()
