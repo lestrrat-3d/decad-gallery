@@ -889,7 +889,7 @@ def run_sevensegment(shard: str) -> None:
         go_test(["./models/sevensegment", "-run", run_pattern(plain), "-timeout", "40m", "-count=1"],
                 expected=plain, env=env)
         return
-    parallel = ["-parallel", "2"] if shard == "assembly" else []
+    parallel = ["-parallel", "4"] if shard == "assembly" else []
     go_test(["./models/sevensegment", "-run", run_pattern(tests), "-timeout", "40m", "-count=1", *parallel],
             expected=tests, env=env)
 
