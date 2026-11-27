@@ -47,6 +47,26 @@ class SevenSegmentShardsTest(unittest.TestCase):
             self.assertEqual(call.kwargs["env"]["SEVENSEGMENT_PLACEMENTS"],
                              "|".join(value[0] for value in run_tests.SEVENSEGMENT_PLACEMENTS.values()))
 
+    def test_each_shard_sets_its_poses(self):
+        expected = {"parts": "none", "assembly": "digit0", "placement-x": "x", "placement-offset": "offset",
+                    "placement-quarter": "quarter", "steps": "none"}
+        self.assertEqual(set(expected), set(run_tests.SEVENSEGMENT_CASES))
+        for shard, value in expected.items():
+            with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
+                    mock.patch.object(run_tests, "go_test") as execute:
+                run_tests.run_sevensegment(shard)
+            for call in execute.call_args_list:
+                self.assertEqual(call.kwargs["env"]["SEVENSEGMENT_POSES"], value, shard)
+
+    def test_plan_lists_every_shard_with_its_tests_and_poses(self):
+        plan = run_tests.sevensegment_plan()
+        self.assertEqual(list(plan), list(run_tests.SEVENSEGMENT_CASES))
+        self.assertEqual(plan["assembly"]["poses"], ["digit0"])
+        self.assertEqual(plan["placement-offset"]["tests"],
+                         ["TestSevenSegmentPlacement/offset_10,_20,_30", "TestSevenSegmentFlagReuse"])
+        for shard, entry in plan.items():
+            self.assertEqual(entry["poses"], list(run_tests.SEVENSEGMENT_POSES[shard]))
+
     def test_steps_shard_runs_the_race_test_under_the_race_detector(self):
         with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
                 mock.patch.object(run_tests, "go_test") as execute:

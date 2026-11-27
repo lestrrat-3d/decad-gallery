@@ -2,7 +2,11 @@ package sevensegment_test
 
 import (
 	"context"
+	"fmt"
 	"math"
+	"os"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 
@@ -31,39 +35,105 @@ func (b *build[T]) built(t *testing.T, f func(context.Context) (T, error)) T {
 // placementCase is one placement the placement test moves the display by.
 type placementCase struct {
 	name         string
+	key          string // the pose name in SEVENSEGMENT_POSES
 	origin, u, v r3.Vec
 }
 
 // placementCases are the placements TestSevenSegmentPlacement checks, in the order of the fixture's placed poses.
 var placementCases = []placementCase{
-	{"100 along X", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
-	{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
-	{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
+	{"100 along X", "x", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+	{"offset 10, 20, 30", "offset", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+	{"quarter turn about Z", "quarter", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
 }
 
 // frame returns the placement's frame.
 func (c placementCase) frame() (r3.Frame, error) { return r3.NewFrame(c.origin, c.u, c.v) }
 
+// posesEnv names the environment variable that selects the poses of the shared posed build. Unset, the build makes
+// every pose, so one test run on its own works. A CI shard sets it to the poses its tests read: a comma-separated list
+// of pose names, or "none".
+const posesEnv = "SEVENSEGMENT_POSES"
+
+// digit0Pose is the name of the digit 0 pose. The placed poses are named by placementCase.key.
+const digit0Pose = "digit0"
+
+// allPoseNames lists every pose of the shared build, in build order.
+func allPoseNames() []string {
+	names := []string{digit0Pose}
+	for _, c := range placementCases {
+		names = append(names, c.key)
+	}
+	return names
+}
+
+// selectPoses returns the poses a posesEnv value names, in build order. It reports unset as every pose. It rejects an
+// empty value, an unknown name and a repeated name, so a wrong value fails the build instead of changing it.
+func selectPoses(value string, set bool) ([]string, error) {
+	all := allPoseNames()
+	if !set {
+		return all, nil
+	}
+	if value == "none" {
+		return nil, nil
+	}
+	if value == "" {
+		return nil, fmt.Errorf("%s is set but empty; name poses (%s) or use none", posesEnv, strings.Join(all, ", "))
+	}
+	seen := map[string]struct{}{}
+	for _, name := range strings.Split(value, ",") {
+		if !slices.Contains(all, name) {
+			return nil, fmt.Errorf("%s names unknown pose %q; poses are %s", posesEnv, name, strings.Join(all, ", "))
+		}
+		if _, dup := seen[name]; dup {
+			return nil, fmt.Errorf("%s names pose %q twice", posesEnv, name)
+		}
+		seen[name] = struct{}{}
+	}
+	var out []string
+	for _, name := range all {
+		if _, ok := seen[name]; ok {
+			out = append(out, name)
+		}
+	}
+	return out, nil
+}
+
 // posedModel is the default display, its document, and the printed parts the other tests pose: the digit 0 parts and
 // the parts of the default digit at each placement of placementCases. They all come from one BuildPosed call, so the
-// bodies of the poses are copies of the default display's unposed bodies.
+// bodies of the poses are copies of the default display's unposed bodies. Only the selected poses are built; built
+// lists them.
 type posedModel struct {
 	doc    *decad.Document
 	model  *sevensegment.Model
 	digit0 *sevensegment.Parts
-	placed []*sevensegment.Parts // by placementCases
+	placed map[string]*sevensegment.Parts // by placementCase.key
+	built  []string
 }
 
 var posedBuild build[posedModel]
 
 func buildPosed(ctx context.Context) (posedModel, error) {
-	poses := []sevensegment.Pose{{Digit: 0}}
-	for _, c := range placementCases {
-		frame, err := c.frame()
-		if err != nil {
-			return posedModel{}, err
+	value, set := os.LookupEnv(posesEnv)
+	selected, err := selectPoses(value, set)
+	if err != nil {
+		return posedModel{}, err
+	}
+	var poses []sevensegment.Pose
+	for _, name := range selected {
+		if name == digit0Pose {
+			poses = append(poses, sevensegment.Pose{Digit: 0})
+			continue
 		}
-		poses = append(poses, sevensegment.Pose{Digit: sevensegment.DefaultParams().Digit, Placement: &frame})
+		for _, c := range placementCases {
+			if c.key != name {
+				continue
+			}
+			frame, err := c.frame()
+			if err != nil {
+				return posedModel{}, err
+			}
+			poses = append(poses, sevensegment.Pose{Digit: sevensegment.DefaultParams().Digit, Placement: &frame})
+		}
 	}
 	doc := sevensegment.NewDocument()
 	m, extras, err := sevensegment.BuildPosed(ctx, doc, sevensegment.DefaultParams(), poses...)
@@ -98,7 +168,30 @@ func buildPosed(ctx context.Context) (posedModel, error) {
 			return posedModel{}, err
 		}
 	}
-	return posedModel{doc, m, extras[0], extras[1:]}, nil
+	out := posedModel{doc: doc, model: m, placed: map[string]*sevensegment.Parts{}, built: selected}
+	for i, name := range selected {
+		if name == digit0Pose {
+			out.digit0 = extras[i]
+			continue
+		}
+		out.placed[name] = extras[i]
+	}
+	return out, nil
+}
+
+// poseReporter is the part of *testing.T that requirePose uses.
+type poseReporter interface {
+	require.TestingT
+	Helper()
+}
+
+// requirePose fails the test, naming the pose, when the shared build did not make it.
+func requirePose(t poseReporter, d posedModel, name string) {
+	t.Helper()
+	if !slices.Contains(d.built, name) {
+		require.FailNowf(t, "pose not built", "pose %q was not built: %s selects %v; add %q to the shard's poses in "+
+			"SEVENSEGMENT_POSES of scripts/ci/run_tests.py", name, posesEnv, d.built, name)
+	}
 }
 
 // builtDefault returns the default display, built once and shared: the tests only read it.
@@ -111,7 +204,9 @@ func builtDefault(t *testing.T) (*decad.Document, *sevensegment.Model) {
 // builtPlaced returns the printed parts of the default digit placed by placementCases[i], built once and shared.
 func builtPlaced(t *testing.T, i int) *sevensegment.Parts {
 	t.Helper()
-	return posedBuild.built(t, buildPosed).placed[i]
+	d := posedBuild.built(t, buildPosed)
+	requirePose(t, d, placementCases[i].key)
+	return d.placed[placementCases[i].key]
 }
 
 // printed returns the printed bodies of m by name.
@@ -139,7 +234,9 @@ func printed(m *sevensegment.Model) map[string]*decad.Body {
 // meshes, never the bodies. The bodies the digit does not move are those of the default display.
 func builtDigit0(t *testing.T) *sevensegment.Parts {
 	t.Helper()
-	return posedBuild.built(t, buildPosed).digit0
+	d := posedBuild.built(t, buildPosed)
+	requirePose(t, d, digit0Pose)
+	return d.digit0
 }
 
 // meshKey names one tessellation: a body at a chord tolerance.
