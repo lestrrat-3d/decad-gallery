@@ -67,6 +67,18 @@ class SevenSegmentShardsTest(unittest.TestCase):
         for shard, entry in plan.items():
             self.assertEqual(entry["poses"], list(run_tests.SEVENSEGMENT_POSES[shard]))
 
+    def test_non_race_runs_set_gogc_and_the_race_run_does_not(self):
+        for shard in run_tests.SEVENSEGMENT_CASES:
+            with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
+                    mock.patch.object(run_tests, "go_test") as execute:
+                run_tests.run_sevensegment(shard)
+            for call in execute.call_args_list:
+                gogc = call.kwargs["env"].get("GOGC")
+                if "-race" in call.args[0]:
+                    self.assertNotEqual(gogc, "200", shard)
+                else:
+                    self.assertEqual(gogc, "200", shard)
+
     def test_steps_shard_runs_the_race_test_under_the_race_detector(self):
         with mock.patch.object(run_tests, "check_sevensegment_coverage"), \
                 mock.patch.object(run_tests, "go_test") as execute:
