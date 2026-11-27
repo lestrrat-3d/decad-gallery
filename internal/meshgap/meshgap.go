@@ -215,6 +215,13 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 				// A nearly collapsed triangle can make the point-to-triangle calculation
 				// return zero. Its box gap is an independent lower bound on the distance.
 				distance = max(distance, boxGap)
+				if distance <= limit*limit && (thinTriangle(ta.p) || thinTriangle(tb.p)) {
+					if threshold, valid := clearanceThresholdUpper(clearance, m.bound, other.bound); valid {
+						if lower, separated := subdividedBoxGap(ta.p, tb.p, threshold); separated {
+							distance = max(distance, lower)
+						}
+					}
+				}
 				best = min(best, distance)
 				if best <= limit*limit {
 					// A close pair bounds the minimum from above. Only the whole-mesh
@@ -307,7 +314,12 @@ func (m Mesh) exceedsClearanceThreshold(other Mesh, clearance, limitSquared floa
 					return false, false
 				}
 				if distance <= limitSquared {
-					return false, true
+					if !thinTriangle(ta.p) && !thinTriangle(tb.p) {
+						return false, true
+					}
+					if _, separated := subdividedBoxGap(ta.p, tb.p, threshold); !separated {
+						return false, true
+					}
 				}
 			}
 		}
