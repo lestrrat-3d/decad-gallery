@@ -28,25 +28,90 @@ func (b *build[T]) built(t *testing.T, f func(context.Context) (T, error)) T {
 	return b.val
 }
 
-// defaultModel is the default display and its document.
-type defaultModel struct {
-	doc   *decad.Document
-	model *sevensegment.Model
+// placementCase is one placement the placement test moves the display by.
+type placementCase struct {
+	name         string
+	origin, u, v r3.Vec
 }
 
-var defaultBuild build[defaultModel]
+// placementCases are the placements TestSevenSegmentPlacement checks, in the order of the fixture's placed poses.
+var placementCases = []placementCase{
+	{"100 along X", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+	{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
+	{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
+}
 
-func buildDefault(ctx context.Context) (defaultModel, error) {
+// frame returns the placement's frame.
+func (c placementCase) frame() (r3.Frame, error) { return r3.NewFrame(c.origin, c.u, c.v) }
+
+// posedModel is the default display, its document, and the printed parts the other tests pose: the digit 0 parts and
+// the parts of the default digit at each placement of placementCases. They all come from one BuildPosed call, so the
+// bodies of the poses are copies of the default display's unposed bodies.
+type posedModel struct {
+	doc    *decad.Document
+	model  *sevensegment.Model
+	digit0 *sevensegment.Parts
+	placed []*sevensegment.Parts // by placementCases
+}
+
+var posedBuild build[posedModel]
+
+func buildPosed(ctx context.Context) (posedModel, error) {
+	poses := []sevensegment.Pose{{Digit: 0}}
+	for _, c := range placementCases {
+		frame, err := c.frame()
+		if err != nil {
+			return posedModel{}, err
+		}
+		poses = append(poses, sevensegment.Pose{Digit: sevensegment.DefaultParams().Digit, Placement: &frame})
+	}
 	doc := sevensegment.NewDocument()
-	m, err := sevensegment.Build(ctx, doc, sevensegment.DefaultParams())
-	return defaultModel{doc, m}, err
+	m, extras, err := sevensegment.BuildPosed(ctx, doc, sevensegment.DefaultParams(), poses...)
+	if err != nil {
+		return posedModel{}, err
+	}
+	// The poses' own bodies sit in no container. Take them out of the document so that it holds the model's 78 bodies,
+	// as a plain Build leaves it. A removed body still reads its mesh, volume and bounds, which is all the tests that
+	// use these parts do.
+	// printed lists every printed body but the spring.
+	bodies := func(p *sevensegment.Parts) []*decad.Body {
+		out := []*decad.Body{p.Spring}
+		for _, b := range printed(&sevensegment.Model{Parts: *p}) {
+			out = append(out, b)
+		}
+		return out
+	}
+	model := map[*decad.Body]struct{}{}
+	for _, b := range bodies(&m.Parts) {
+		model[b] = struct{}{}
+	}
+	own := map[*decad.Body]struct{}{}
+	for _, parts := range extras {
+		for _, b := range bodies(parts) {
+			if _, ok := model[b]; !ok {
+				own[b] = struct{}{}
+			}
+		}
+	}
+	for b := range own {
+		if err := decad.Remove(b).Do(ctx); err != nil {
+			return posedModel{}, err
+		}
+	}
+	return posedModel{doc, m, extras[0], extras[1:]}, nil
 }
 
 // builtDefault returns the default display, built once and shared: the tests only read it.
 func builtDefault(t *testing.T) (*decad.Document, *sevensegment.Model) {
 	t.Helper()
-	d := defaultBuild.built(t, buildDefault)
+	d := posedBuild.built(t, buildPosed)
 	return d.doc, d.model
+}
+
+// builtPlaced returns the printed parts of the default digit placed by placementCases[i], built once and shared.
+func builtPlaced(t *testing.T, i int) *sevensegment.Parts {
+	t.Helper()
+	return posedBuild.built(t, buildPosed).placed[i]
 }
 
 // printed returns the printed bodies of m by name.
@@ -70,17 +135,11 @@ func printed(m *sevensegment.Model) map[string]*decad.Body {
 	return out
 }
 
-var digit0Build build[*sevensegment.Parts]
-
-func buildDigit0(ctx context.Context) (*sevensegment.Parts, error) {
-	return sevensegment.BuildParts(ctx, sevensegment.NewDocument(), sevensegment.Params{Digit: 0})
-}
-
 // builtDigit0 returns the printed parts at digit 0, built once and shared: the tests read them and move copies of their
-// meshes, never the bodies.
+// meshes, never the bodies. The bodies the digit does not move are those of the default display.
 func builtDigit0(t *testing.T) *sevensegment.Parts {
 	t.Helper()
-	return digit0Build.built(t, buildDigit0)
+	return posedBuild.built(t, buildPosed).digit0
 }
 
 // meshKey names one tessellation: a body at a chord tolerance.
