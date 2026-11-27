@@ -27,6 +27,7 @@ func TestSevenSegmentRunFieldsAreStepLocal(t *testing.T) {
 		{"p", goreflect.TypeFor[Params]()},
 		{"dm", goreflect.TypeFor[Dimensions]()},
 		{"sketches", goreflect.TypeFor[[]*sketch.Sketch]()},
+		{"poses", goreflect.TypeFor[[]*run]()},
 	}
 	typ := goreflect.TypeFor[run]()
 	require.Equal(t, len(want), typ.NumField())
@@ -34,7 +35,7 @@ func TestSevenSegmentRunFieldsAreStepLocal(t *testing.T) {
 		require.Equal(t, w.name, typ.Field(i).Name)
 		require.Equal(t, w.typ, typ.Field(i).Type, w.name)
 	}
-	require.Equal(t, goreflect.TypeOf(func(*Parts) []buildStep { return nil }), goreflect.TypeOf(partSteps))
+	require.Equal(t, goreflect.TypeOf(func(*Parts, []*Parts) []buildStep { return nil }), goreflect.TypeOf(partSteps))
 	require.Equal(t, goreflect.TypeOf(func(*Model) []buildStep { return nil }), goreflect.TypeOf(hardwareSteps))
 }
 

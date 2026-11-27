@@ -23,6 +23,9 @@ type run struct {
 	p        Params
 	dm       Dimensions
 	sketches []*sketch.Sketch
+	// poses are the runs of the extra poses of a posed build: each has the step's ctx and doc and its own p and dm.
+	// They collect no sketches and have no poses of their own.
+	poses []*run
 }
 
 // sketchOn starts a sketch on the plane f; extrusions run along f's normal U x V.
