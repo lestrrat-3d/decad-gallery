@@ -25,7 +25,7 @@ CORNER_PARTIAL = {"bevelgear", "handcrankfan", "screwgear", "turbinefan"}
 CORNER_UNPRINTED = {"spinningwheel"}
 # Models and features nobody has built and tested as a physical object yet. Remove one once someone has built it, and
 # change its README status line and its models/README.md or features/README.md row in the same change.
-UNBUILT = {"clamparm", "compressionspring", "dovetail", "escapement", "handcrankfan", "handcranksiren", "sevensegment", "spinningwheel", "spiralspring", "swisslever"}
+UNBUILT = {"clamparm", "compressionspring", "cubepuzzle", "dovetail", "escapement", "handcrankfan", "handcranksiren", "sevensegment", "spinningwheel", "spiralspring", "swisslever"}
 
 
 def index_rows(path: Path) -> dict[str, str]:

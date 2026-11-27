@@ -16,6 +16,7 @@ func registry() []renderkit.Model {
 		clamparmModel(),
 		compressionspringModel(),
 		crankhandleModel(),
+		cubePuzzleModel(),
 		cycloidalModel(),
 		dovetailModel(),
 		escapementModel(),
@@ -37,6 +38,14 @@ func registry() []renderkit.Model {
 		swissleverModel(),
 		turbinefanModel(),
 		galleryModel(),
+	}
+}
+
+func cubePuzzleModel() renderkit.Model {
+	return renderkit.Model{
+		Name: "cubepuzzle", Dir: "models/cubepuzzle",
+		Shots: map[string]renderkit.ShotFunc{"readme": readmeShot(renderCubePuzzleReadme)},
+		Jobs:  []renderkit.Job{{Shot: "readme", Out: "images"}},
 	}
 }
 

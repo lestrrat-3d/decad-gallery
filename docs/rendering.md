@@ -477,3 +477,11 @@ sides passes and prints both errors. A job that fails on one side, or writes dif
 the script exits 1. When bytes differ, the script renders the base again. A file that also differs between the two base
 runs is reported as `nondeterministic`: open both images and confirm they look the same. Never regenerate committed
 images to make the check pass. Output goes to `.tmp/render-compare/`.
+
+`cubepuzzle/readme` builds the 60 mm cube puzzle and renders its assembled views, two exploded views, one center
+mount, and the distinct parts. Face colors represent markings applied after printing. The shot also writes the index
+image:
+
+```sh
+go -C tools/render run . -all -model cubepuzzle
+```
