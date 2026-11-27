@@ -32,8 +32,10 @@ func stepWorkers() decad.RunStepsOption {
 	return decad.WithStepWorkers(min(runtime.GOMAXPROCS(0), maxStepWorkers))
 }
 
-// stepResult is what one step leaves for runSteps. Only the step itself writes its entry.
+// stepResult is what one step leaves for runSteps. Only the step itself writes its entry. returned stays false when
+// the step panicked or ended its goroutine, so it never wrote the other fields.
 type stepResult struct {
+	returned bool
 	file     func()
 	sketches []*sketch.Sketch
 	err      error
@@ -63,13 +65,21 @@ func runSteps(ctx context.Context, doc *decad.Document, p Params, steps []buildS
 		list[i] = decad.Step{Name: st.name, Build: func(sctx context.Context) error {
 			r := &run{ctx: sctx, doc: doc, p: p, dm: dm}
 			file, err := st.build(r)
-			results[i] = stepResult{file: file, sketches: r.sketches, err: err}
+			results[i] = stepResult{returned: true, file: file, sketches: r.sketches, err: err}
 			return err
 		}}
 	}
 	runErr := decad.RunSteps(ctx, doc, list, opts...)
-	// Steps are independent, so the first failure in step order is the error a serial build returns.
+	// Steps are independent, so the first failure in step order is the error a serial build returns. A step that
+	// never returned (it panicked or ended its goroutine) is a failure at its place in the order: a serial build
+	// would have stopped there, so a later step's error must not hide it.
 	for _, res := range results {
+		if !res.returned {
+			if runErr == nil {
+				runErr = errors.New("a step did not return")
+			}
+			return Dimensions{}, nil, fmt.Errorf("sevensegment: build steps: %w", runErr)
+		}
 		if res.err != nil {
 			return Dimensions{}, nil, res.err
 		}

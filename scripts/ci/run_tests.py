@@ -800,7 +800,8 @@ SEVENSEGMENT_SHARDS = {
     "placement": ("TestSevenSegmentPlacement",),
     # Light build-step tests; the race test runs in its own go test command with -race.
     "steps": ("TestSevenSegmentRunFieldsAreStepLocal", "TestSevenSegmentStepsDeterministic",
-              "TestSevenSegmentStepsFirstError", "TestSevenSegmentStepsRace"),
+              "TestSevenSegmentStepsFirstError", "TestSevenSegmentStepsPanicBeforeError",
+              "TestSevenSegmentStepsRace", "TestSevenSegmentStepsRunFault"),
 }
 SEVENSEGMENT_RACE_TESTS = ("TestSevenSegmentStepsRace",)
 SEVENSEGMENT_PLACEMENTS = {

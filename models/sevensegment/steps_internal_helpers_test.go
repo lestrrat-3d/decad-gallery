@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
+	"github.com/lestrrat-3d/sketch"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -94,4 +95,14 @@ func firstPrintDiff(want, got []stepPrint) string {
 		}
 	}
 	return ""
+}
+
+// sketchShapes returns one line per sketch, in order: its point, entity and constraint counts. Equal lists mean the
+// same sketches in the same order.
+func sketchShapes(sketches []*sketch.Sketch) []string {
+	out := make([]string, len(sketches))
+	for i, s := range sketches {
+		out[i] = fmt.Sprintf("%d/%d/%d", len(s.Points()), len(s.Entities()), len(s.Constraints()))
+	}
+	return out
 }
