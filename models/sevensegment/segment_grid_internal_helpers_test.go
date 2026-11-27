@@ -60,6 +60,40 @@ func (g *segmentGrid) cellOf(p r3.Vec) (int, int) {
 	return min(max(i, 0), g.nx-1), min(max(j, 0), g.ny-1)
 }
 
+// ringDist returns the distance from p to the nearest segment in the cells on the edge of the block i0..i1, j0..j1,
+// clipped to the grid. Cells inside the block were visited at a smaller ring, so only the two end rows and, in the rows
+// between, the two end columns are walked: a ring costs O(r), not O(r^2).
+func (g *segmentGrid) ringDist(p r3.Vec, i0, i1, j0, j1 int) float64 {
+	best := math.Inf(1)
+	cell := func(i, j int) {
+		for _, k := range g.cells[j*g.nx+i] {
+			best = math.Min(best, segDist(p, g.segs[k][0], g.segs[k][1]))
+		}
+	}
+	ia, ib := max(i0, 0), min(i1, g.nx-1)
+	row := func(j int) {
+		if j < 0 || j >= g.ny {
+			return
+		}
+		for i := ia; i <= ib; i++ {
+			cell(i, j)
+		}
+	}
+	row(j0)
+	if j1 != j0 {
+		row(j1)
+	}
+	for j := max(j0+1, 0); j <= min(j1-1, g.ny-1); j++ {
+		if i0 >= 0 && i0 < g.nx {
+			cell(i0, j)
+		}
+		if i1 != i0 && i1 >= 0 && i1 < g.nx {
+			cell(i1, j)
+		}
+	}
+	return best
+}
+
 // nearestWithin returns the distance from p to the nearest segment, as nearest does, when it is at most limit; when
 // every segment lies farther than limit it may return any value greater than limit.
 func (g *segmentGrid) nearestWithin(p r3.Vec, limit float64) float64 {
@@ -76,16 +110,7 @@ func (g *segmentGrid) nearestWithin(p r3.Vec, limit float64) float64 {
 	ci, cj := g.cellOf(p)
 	for r := 0; ; r++ {
 		i0, i1, j0, j1 := ci-r, ci+r, cj-r, cj+r
-		for j := max(j0, 0); j <= min(j1, g.ny-1); j++ {
-			for i := max(i0, 0); i <= min(i1, g.nx-1); i++ {
-				if j != j0 && j != j1 && i != i0 && i != i1 {
-					continue // inside the ring: visited at a smaller r
-				}
-				for _, k := range g.cells[j*g.nx+i] {
-					best = math.Min(best, segDist(p, g.segs[k][0], g.segs[k][1]))
-				}
-			}
-		}
+		best = math.Min(best, g.ringDist(p, i0, i1, j0, j1))
 		if i0 <= 0 && j0 <= 0 && i1 >= g.nx-1 && j1 >= g.ny-1 {
 			return best // every cell visited
 		}
