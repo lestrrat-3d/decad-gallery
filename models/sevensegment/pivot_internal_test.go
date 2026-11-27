@@ -14,6 +14,7 @@ import (
 // TestSevenSegmentPivotBlockShape reads the block on its own: its bounds, its stepped cone and its corners. It prints on its
 // outer face with the cone up, so the print axis is -u (local -Z).
 func TestSevenSegmentPivotBlockShape(t *testing.T) {
+	t.Parallel()
 	_, block := sharedBody(t, "pivot block", (*run).pivotBlock)
 	require.True(t, block.IsSolid())
 	box, err := block.Bounds()
@@ -73,6 +74,7 @@ func TestSevenSegmentPivotBlockShape(t *testing.T) {
 // sits 0.25 lower than the cradle then). Segments g and b, both ends: the plates' pockets are one tool turned and moved, so
 // these two cover both rotor directions and both ends.
 func TestSevenSegmentPivotPocketFit(t *testing.T) {
+	t.Parallel()
 	_, cradle := sharedBody(t, "cradle plate", (*run).cradlePlate)
 	_, top := sharedBody(t, "top plate", (*run).flagTopPlate)
 	for _, seg := range []Segment{SegG, SegB} {
@@ -119,6 +121,7 @@ func TestSevenSegmentPivotPocketFit(t *testing.T) {
 // the least gap between the cone's and the bore's sections along the engaged length with the rotor 0.2 away from the block,
 // at the modeled pose and 0.2 toward the block (the tip on its floor), the tip's distance from the floor, and the mouth.
 func TestSevenSegmentPivotPinInBore(t *testing.T) {
+	t.Parallel()
 	for _, seg := range []Segment{SegG, SegB} {
 		f := sharedFlag(t, seg)
 		r := newTestRun(t)

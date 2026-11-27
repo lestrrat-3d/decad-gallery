@@ -11,6 +11,7 @@ import (
 )
 
 func TestSevenSegmentCam(t *testing.T) {
+	t.Parallel()
 	for _, seg := range []Segment{SegB, SegE, SegA, SegC, SegD, SegF, SegG} {
 		t.Run(seg.String(), func(t *testing.T) {
 			r, body := sharedCam(t, seg)
@@ -61,6 +62,7 @@ func TestSevenSegmentCam(t *testing.T) {
 // TestSevenSegmentCamInscription checks each cam's engraved letter: it exists at the engraving depth and not below it, it is
 // different on each cam, and it stays clear of the bore, the mark holes and the rim.
 func TestSevenSegmentCamInscription(t *testing.T) {
+	t.Parallel()
 	type shape struct{ area, width, height, loops, offX, offY float64 }
 	shapes := map[Segment]shape{}
 	for _, seg := range Segments() {

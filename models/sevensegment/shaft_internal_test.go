@@ -10,6 +10,7 @@ import (
 )
 
 func TestSevenSegmentShaft(t *testing.T) {
+	t.Parallel()
 	_, b := buildShaft(t)
 	box, err := b.Bounds()
 	require.NoError(t, err)
@@ -50,6 +51,7 @@ func TestSevenSegmentShaft(t *testing.T) {
 }
 
 func TestSevenSegmentCollars(t *testing.T) {
+	t.Parallel()
 	_, b := buildShaft(t)
 	// Front step: the cam section's diameter just behind the step, the journal's just in front of it.
 	maxX, _, _ := extent(sectionAt(t, b, shaftCamFrom+0.25))

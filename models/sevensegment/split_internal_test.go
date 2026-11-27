@@ -17,6 +17,7 @@ import (
 // plane holds the axis and the flats' normal, which turns with the camshaft, and the halves meet the rule's checks. The
 // square steps and flat ends that face a bearing or a D chord are the only exempt corners.
 func TestSevenSegmentSplitShaft(t *testing.T) {
+	t.Parallel()
 	for _, digit := range []int{0, 2} {
 		r, shaft := sharedBodyFor(t, Params{Digit: digit}, "shaft", (*run).shaft)
 		shaft, err := decad.Transform(shaft, r.camshaftTurn()).Do(t.Context())

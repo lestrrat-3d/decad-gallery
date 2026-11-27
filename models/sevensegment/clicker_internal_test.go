@@ -14,6 +14,7 @@ import (
 // builders use. A tip is cut back by Tip and a root stands Plate above its valley, so each pair of mating teeth keeps a gap
 // where tip meets root. Y grows toward the front wall.
 func TestClickerLandGaps(t *testing.T) {
+	t.Parallel()
 	in, out, cr, bt := rotorInnerTeeth(), rotorOuterTeeth(), crownTeeth(), buttonTeeth()
 	rotorPeak := func(f faceTeeth) float64 { return rotorPlateY - f.top() }
 	rotorLand := func(f faceTeeth) float64 { return rotorPlateY - f.Plate }
@@ -41,6 +42,7 @@ func TestClickerLandGaps(t *testing.T) {
 // TestClickerPressTurn derives the press's turn and the timing margin from the tooth specs: the ramp's 32.5 degrees less
 // the turn each land takes, 4.0625 degrees per mm of height (the teeth are 8.0 tall).
 func TestClickerPressTurn(t *testing.T) {
+	t.Parallel()
 	in, bt := rotorInnerTeeth(), buttonTeeth()
 	require.InDelta(t, 36, in.Rise+in.Fall, 1e-12)
 	require.InDelta(t, 36, bt.Rise+bt.Fall, 1e-12)
@@ -59,6 +61,7 @@ func TestClickerPressTurn(t *testing.T) {
 
 // TestClickerPoses walks a press and a release: the rotor drops with the button, then turns, and the release ends one step on.
 func TestClickerPoses(t *testing.T) {
+	t.Parallel()
 	drop, turn := PressPose(0)
 	require.Zero(t, drop)
 	require.Zero(t, turn)
@@ -89,6 +92,7 @@ func TestClickerPoses(t *testing.T) {
 // (Regular 0.35), the rotor's skirt on the spring (at least Tight 0.2), the hub's keys in the skirt's slots (Tight 0.2 a side), the
 // button's head to the crown ring and its lugs in the slots (Loose 0.5).
 func TestClickerRadialFits(t *testing.T) {
+	t.Parallel()
 	springR := compressionspring.KSSC1087().OutsideDiameter / 2
 	for _, c := range []struct {
 		name      string

@@ -13,6 +13,7 @@ import (
 // TestSevenSegmentWidthMargins checks the margins that set the box's width: the bolt sites against the plates, ribs
 // and cams, the columns against the top flange ribs, and the rear column against rotor a.
 func TestSevenSegmentWidthMargins(t *testing.T) {
+	t.Parallel()
 	const slack = 1e-9
 	t.Run("site material", func(t *testing.T) {
 		dm, err := DefaultParams().Derive()

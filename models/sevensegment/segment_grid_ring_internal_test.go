@@ -15,6 +15,7 @@ import (
 // walk over every cell of each ring returns, on random loops of varied extent (many empty cells, so rings grow wide),
 // with points inside, near and far outside the grid, and with finite and infinite limits.
 func TestSevenSegmentSegmentGridRingWalk(t *testing.T) {
+	t.Parallel()
 	rng := rand.New(rand.NewPCG(7, 11))
 	const maxReport = 5
 	mismatches := 0

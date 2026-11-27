@@ -18,6 +18,7 @@ import (
 // face leans past 45 degrees with a half on its seam face, and "Corners and roots" reads no finding on the halves at the split
 // heights. No exemption.
 func TestSevenSegmentGroovePinSplit(t *testing.T) {
+	t.Parallel()
 	for _, seg := range groovePinSegments() {
 		t.Run(seg.String(), func(t *testing.T) {
 			r, pin := sharedGroovePin(t, seg)
@@ -47,6 +48,7 @@ func TestSevenSegmentGroovePinSplit(t *testing.T) {
 // part, the wings' reach 2.397 inside the stem (the flanks' crossing of the 30 degree cone ends 0.1 inside the face) and no
 // wing outside it, and the root and tip against the hole's floor and the groove's floor.
 func TestSevenSegmentGroovePinShape(t *testing.T) {
+	t.Parallel()
 	for _, seg := range groovePinSegments() {
 		t.Run(seg.String(), func(t *testing.T) {
 			r, pin := sharedGroovePin(t, seg)
@@ -76,6 +78,7 @@ func TestSevenSegmentGroovePinShape(t *testing.T) {
 // corner), at least 1.0 of stem material round the hole 1.0 inside the face, and at least 0.8 wherever the stem's 0.5 edge
 // chamfers meet its face.
 func TestSevenSegmentGroovePinFits(t *testing.T) {
+	t.Parallel()
 	for _, seg := range groovePinSegments() {
 		t.Run(seg.String(), func(t *testing.T) {
 			r, slider := sharedSlider(t, seg)
@@ -108,6 +111,7 @@ func TestSevenSegmentGroovePinFits(t *testing.T) {
 // TestSevenSegmentGroovePinSketches requires every sketch of the pin and of the slider with its keyed hole to report
 // sketch.FullyConstrained with DOF 0, no redundant constraint and no conflict.
 func TestSevenSegmentGroovePinSketches(t *testing.T) {
+	t.Parallel()
 	for _, seg := range groovePinSegments() {
 		t.Run(seg.String(), func(t *testing.T) {
 			pr, _ := sharedGroovePin(t, seg)
@@ -128,6 +132,7 @@ func TestSevenSegmentGroovePinSketches(t *testing.T) {
 // leans more than 45 degrees from vertical: the keyed hole's roof is a 45 degree V, its floor is rounded, and nothing
 // is cut by a downward face of more than 0.0 mm2 past 45 degrees.
 func TestSevenSegmentSliderPrintOverhang(t *testing.T) {
+	t.Parallel()
 	for _, seg := range Segments() {
 		t.Run(seg.String(), func(t *testing.T) {
 			_, slider := sharedSlider(t, seg)

@@ -14,6 +14,7 @@ import (
 // TestSevenSegmentRotor builds one rotor of each type and checks its volumes, its split, its centre of mass and its
 // probes. Type A serves a, g, d and type B serves b, c, e, f.
 func TestSevenSegmentRotor(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		seg        Segment
 		total      float64
@@ -92,6 +93,7 @@ func TestSevenSegmentRotor(t *testing.T) {
 
 // TestSevenSegmentRotorAll builds the rotor of every segment: the two types, in their seven placements.
 func TestSevenSegmentRotorAll(t *testing.T) {
+	t.Parallel()
 	for _, s := range Segments() {
 		f := sharedFlag(t, s)
 		require.True(t, f.Yellow.IsSolid() && f.Black.IsSolid(), "segment %s", s)

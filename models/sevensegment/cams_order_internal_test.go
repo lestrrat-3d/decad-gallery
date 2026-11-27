@@ -12,6 +12,7 @@ import (
 // corners, so both builds match each other mesh for mesh, and the pinned counts and volumes; ranging over a map would give each build its own
 // triangulation of the engraving.
 func TestSevenSegmentCamLetteringOrder(t *testing.T) {
+	t.Parallel()
 	want := map[Segment]camPrint{
 		SegA: {Vertices: 8858, Triangles: 17732, Faces: 90, VolumeBits: 0x40d3a77f9f68d8bb},
 		SegB: {Vertices: 8327, Triangles: 16662, Faces: 102, VolumeBits: 0x40d3c4ffe7e6a2a7},
@@ -33,6 +34,7 @@ func TestSevenSegmentCamLetteringOrder(t *testing.T) {
 
 // TestSevenSegmentLetterLoopsOrder checks that letterLoops lists the same loops from the same corners on every call.
 func TestSevenSegmentLetterLoopsOrder(t *testing.T) {
+	t.Parallel()
 	for _, seg := range []Segment{SegA, SegB, SegC, SegD, SegE, SegF, SegG} {
 		t.Run(seg.String(), func(t *testing.T) {
 			want := letterLoops(seg)

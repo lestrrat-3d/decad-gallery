@@ -15,6 +15,7 @@ import (
 // TestSevenSegmentSliders builds the three flag slider types at the unlit pose and checks their volumes, their
 // drive cone, blade and head, and their corners along the print axis (a, g, d: the -X face down; b-f: the -Y face down).
 func TestSevenSegmentSliders(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	// The volumes with the 0.5 chamfers of "Surface edge finishing" on the stem faces (the tongue's end outline, now one 27.75 mm
 	// tangent run, takes them too). The buttressed cone adds its boss to the leaning frustum it replaces: +5.41 mm3 on a, g
@@ -136,6 +137,7 @@ func TestSevenSegmentSliders(t *testing.T) {
 // "Kinematics and play", read from the mesh: the right cone's rings, on the drive axis from the junction to the tip (the buttress's
 // base lies off the axis); a cone built higher or off its line moves the rotor's angles.
 func TestSevenSegmentBuiltKinematics(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	for _, seg := range Segments() {
 		_, body := sharedSlider(t, seg)
@@ -186,6 +188,7 @@ func TestSevenSegmentBuiltKinematics(t *testing.T) {
 // of the buttress and the right cone leaves slivers of the junction circle (under 0.01 mm2 each, a ring about 0.006 wide)
 // that face along -u; they are skipped, and the total area of faces past 45 degrees must stay under 0.05 mm2.
 func TestSevenSegmentSliderConeOverhang(t *testing.T) {
+	t.Parallel()
 	r := newTestRun(t)
 	for _, seg := range Segments() {
 		_, body := sharedSlider(t, seg)
