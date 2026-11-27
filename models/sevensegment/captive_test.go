@@ -178,13 +178,9 @@ func TestSevenSegmentSweep(t *testing.T) {
 				for _, du := range []float64{-1.0, 0, 1.0} {
 					shift := r3.Vec{Z: dz}.Add(axis.Scale(du))
 					least := func(vs []r3.Vec) float64 {
-						best := math.Inf(1)
-						for _, v := range vs {
-							d, err := bm.PointDistance(v.Add(shift))
-							require.NoError(t, err)
-							best = math.Min(best, d)
-						}
-						return best
+						d, err := bm.LeastPointDistance(vs, shift)
+						require.NoError(t, err)
+						return d
 					}
 					gt, gd := least(tongue), least(drive)
 					worstTongue[du], worstDrive[du] = math.Min(worstTongue[du], gt), math.Min(worstDrive[du], gd)
