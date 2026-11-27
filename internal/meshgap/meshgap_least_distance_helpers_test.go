@@ -63,6 +63,7 @@ func leastPointSets(c differentialCase, scale float64, mesh []r3.Vec) [][]r3.Vec
 		random(2),
 		random(17),
 		random(120),
+		random(700),                           // several levels of the point tree
 		{one[0], one[0], one[0]},              // ties: the same point repeated
 		{mesh[0], mesh[len(mesh)-1], mesh[0]}, // distance zero, repeated
 		append(random(5), mesh[:min(5, len(mesh))]...), // random points and mesh vertices
