@@ -155,6 +155,18 @@ def feature_problems(models: Path, features: Path) -> list[str]:
     return problems
 
 
+def workflow_problems(workflows: Path) -> list[str]:
+    """Return workflow files that call actions/setup-go directly instead of the shared setup-go action.
+
+    The shared action gives every job the build-cache key the plan job warms and lets only that job save it.
+    """
+    problems = []
+    for path in sorted(workflows.glob("*.yml")):
+        if re.search(r"^\s*-?\s*uses:\s*actions/setup-go@", path.read_text(), re.MULTILINE):
+            problems.append(f"{path.relative_to(ROOT)}: use ./.github/actions/setup-go, not actions/setup-go")
+    return problems
+
+
 def main() -> int:
     missing = [name for name in REQUIRED if not (ROOT / name).is_file()]
     models = ROOT / "models"
@@ -165,7 +177,7 @@ def main() -> int:
     problems = unbuilt_problems(models, features)
     if models.is_dir():
         problems += corner_problems(models) + build_status_problems(models, ROOT / "models/README.md")
-    problems += feature_problems(models, features)
+    problems += feature_problems(models, features) + workflow_problems(ROOT / ".github/workflows")
     if problems:
         for problem in problems:
             print(problem, file=sys.stderr)

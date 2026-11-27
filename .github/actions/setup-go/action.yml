@@ -1,0 +1,51 @@
+name: Set up Go with the shared build cache
+description: >-
+  Install Go and restore the Go build and module cache that the plan job warms. Every job restores the same
+  key. Only the plan job passes save so that it is the one writer; any other job that saves would race it.
+
+inputs:
+  save:
+    description: Save the cache at the end of the job when the key was a miss. Only the plan job sets this.
+    default: 'false'
+  race:
+    description: >-
+      Also restore, and save on a miss, the compiled -race objects under their own key. Only one job
+      per workflow should set this.
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - id: go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        cache: false
+    - id: dirs
+      shell: bash
+      run: |
+        {
+          echo "build=$(go env GOCACHE)"
+          echo "mod=$(go env GOMODCACHE)"
+        } >> "$GITHUB_OUTPUT"
+    - if: inputs.save == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ steps.dirs.outputs.build }}
+          ${{ steps.dirs.outputs.mod }}
+        key: go-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.sum') }}
+    - if: inputs.save != 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ steps.dirs.outputs.build }}
+          ${{ steps.dirs.outputs.mod }}
+        key: go-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.sum') }}
+    # The -race objects differ from the plain ones, so the plan job's warm step never builds them.
+    # The job that runs -race restores them here and saves them when the key is new.
+    - if: inputs.race == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.dirs.outputs.build }}
+        key: go-race-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.sum') }}

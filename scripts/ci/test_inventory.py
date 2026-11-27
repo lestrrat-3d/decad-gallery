@@ -11,7 +11,7 @@ class InventoryTests(unittest.TestCase):
     def test_workflow_installs_go_before_ci_python_tests(self):
         workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/repository.yml").read_text()
         repository = workflow.split("  repository:\n", 1)[1].split("\n  renderer-full:", 1)[0]
-        self.assertLess(repository.index("actions/setup-go@"), repository.index("test_*.py"))
+        self.assertLess(repository.index(".github/actions/setup-go"), repository.index("test_*.py"))
 
     def test_discover_only_lists_packages_and_tests(self):
         def run(args, **kwargs):
