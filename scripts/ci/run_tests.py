@@ -790,7 +790,7 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentCamProfile", "TestSevenSegmentCaptive", "TestSevenSegmentChannel",
         "TestSevenSegmentContainers", "TestSevenSegmentCrossingGrid",
         "TestSevenSegmentDefault", "TestSevenSegmentDriveAudit",
-        "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFlagReuse", "TestSevenSegmentFollowerDrive",
+        "TestSevenSegmentFasteners", "TestSevenSegmentFlagKinematics", "TestSevenSegmentFollowerDrive",
         "TestSevenSegmentFlagRestBand", "TestSevenSegmentPivotBlocks",
         "TestSevenSegmentRampGeometry",
         "TestSevenSegmentRestBias", "TestSevenSegmentSweep",
@@ -799,10 +799,13 @@ SEVENSEGMENT_SHARDS = {
         "TestSevenSegmentWindowYellow",
     ),
     "placement": ("TestSevenSegmentPlacement",),
+    # Builds the offset placement as a whole model, as the placement-offset job's placement case does, so it runs there.
+    "placement-offset": ("TestSevenSegmentFlagReuse",),
     # Light build-step tests; the race test runs in its own go test command with -race.
     "steps": ("TestSevenSegmentRunFieldsAreStepLocal", "TestSevenSegmentStepsDeterministic",
               "TestSevenSegmentStepsFirstError", "TestSevenSegmentStepsPanicBeforeError",
-              "TestSevenSegmentStepsRace", "TestSevenSegmentStepsRunFault"),
+              "TestSevenSegmentStepsRace", "TestSevenSegmentStepsRunFault", "TestSevenSegmentPosedLight",
+              "TestSevenSegmentPosedShare", "TestSevenSegmentPosedValidate"),
 }
 SEVENSEGMENT_RACE_TESTS = ("TestSevenSegmentStepsRace",)
 SEVENSEGMENT_PLACEMENTS = {
@@ -843,7 +846,9 @@ def run_sevensegment(shard: str) -> None:
     env = os.environ.copy()
     if shard in SEVENSEGMENT_PLACEMENTS:
         env["SEVENSEGMENT_PLACEMENTS"] = "|".join(name for name, _ in SEVENSEGMENT_PLACEMENTS.values())
-        tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1]]
+        # A placement case may also own whole tests of its own, listed under its name in the shards.
+        tests = ["TestSevenSegmentPlacement/" + SEVENSEGMENT_PLACEMENTS[shard][1],
+                 *SEVENSEGMENT_SHARDS.get(shard, ())]
     if shard == "steps":
         race = [test for test in tests if test in SEVENSEGMENT_RACE_TESTS]
         plain = [test for test in tests if test not in SEVENSEGMENT_RACE_TESTS]

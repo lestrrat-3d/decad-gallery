@@ -212,8 +212,10 @@ func yellowFirstCountReference(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 
 // yellowFirstCount returns how many rays from origins along d first hit a yellow triangle, exactly as counting
 // newShadowGrid(tris, d, origins).first(o) == kindYellow does. A ray whose cell holds no yellow triangle that it hits
-// with no distance limit cannot end on yellow: hitTri with a finite best only rejects more. Only the cells of the other
-// rays are filled, with every triangle in index order as newShadowGrid fills them, and those rays run first unchanged.
+// with no distance limit cannot end on yellow: hitTri with a finite best only rejects more. Of the other rays, the
+// nearest yellow hit is found among the yellow triangles of the ray's cell, and the ray ends on yellow unless another
+// triangle of the cell is hit nearer, or at the same distance with a lower index, which the first such triangle shows.
+// Only the cells of the other rays are filled with the non-yellow triangles, in index order.
 func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 	g := newShadowGrid(nil, d, origins)
 	if g.emptyRegion {
@@ -221,14 +223,45 @@ func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 	}
 	g.tris = tris
 	ncell := g.nu * g.nv
-	// Yellow triangles by cell: few triangles, so a map.
-	ycells := map[int32][]int32{}
+	// Yellow triangles by cell, filled in two passes (count, then place) over each triangle's cells, found once.
+	type cellSpan struct{ i0, j0, i1, j1 int }
+	spans := make([]cellSpan, len(tris))
+	ystart := make([]int32, ncell+1)
 	for k := range tris {
 		if tris[k].kind != kindYellow {
 			continue
 		}
-		g.visitCells(&tris[k], func(cell int32) { ycells[cell] = append(ycells[cell], int32(k)) })
+		var ok bool
+		spans[k].i0, spans[k].j0, spans[k].i1, spans[k].j1, ok = g.cellSpan(&tris[k])
+		if !ok {
+			spans[k] = cellSpan{i0: 0, j0: 0, i1: -1, j1: -1}
+			continue
+		}
+		sp := spans[k]
+		for j := sp.j0; j <= sp.j1; j++ {
+			for i := sp.i0; i <= sp.i1; i++ {
+				ystart[j*g.nu+i+1]++
+			}
+		}
 	}
+	for c := range ncell {
+		ystart[c+1] += ystart[c]
+	}
+	yitems := make([]int32, ystart[ncell])
+	yfill := append([]int32(nil), ystart[:ncell]...)
+	for k := range tris {
+		if tris[k].kind != kindYellow {
+			continue
+		}
+		sp := spans[k]
+		for j := sp.j0; j <= sp.j1; j++ {
+			for i := sp.i0; i <= sp.i1; i++ {
+				yitems[yfill[j*g.nu+i]] = int32(k)
+				yfill[j*g.nu+i]++
+			}
+		}
+	}
+	yellowsOf := func(cell int32) []int32 { return yitems[ystart[cell]:ystart[cell+1]] }
 	cellOfRay := make([]int32, len(origins))
 	need := make([]int32, ncell) // 0 not needed, else 1 + dense index
 	var cand []int               // origins that hit a yellow triangle of their cell
@@ -237,7 +270,7 @@ func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 		i, j := g.cellOf(o.Dot(g.bu), o.Dot(g.bv))
 		cell := int32(j*g.nu + i)
 		cellOfRay[n] = cell
-		for _, k := range ycells[cell] {
+		for _, k := range yellowsOf(cell) {
 			if _, ok := hitTri(&tris[k], o, g.d, g.inv, math.Inf(1)); ok {
 				cand = append(cand, n)
 				if need[cell] == 0 {
@@ -251,14 +284,39 @@ func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 	if len(cand) == 0 {
 		return 0
 	}
-	// Fill the needed cells in two passes (count, then place), every triangle in index order.
+	// The needed cells of each row, so that a large triangle visits only the columns between its row's first and last.
+	rowLo, rowHi := make([]int, g.nv), make([]int, g.nv)
+	for j := range g.nv {
+		rowLo[j], rowHi[j] = g.nu, -1
+		for i := range g.nu {
+			if need[j*g.nu+i] != 0 {
+				rowLo[j], rowHi[j] = min(rowLo[j], i), i
+			}
+		}
+	}
+	// Fill the needed cells with the other triangles in two passes (count, then place).
+	visit := func(k int, f func(cell int32)) {
+		sp := spans[k]
+		for j := sp.j0; j <= sp.j1; j++ {
+			for i := max(sp.i0, rowLo[j]); i <= min(sp.i1, rowHi[j]); i++ {
+				if cell := int32(j*g.nu + i); need[cell] != 0 {
+					f(cell)
+				}
+			}
+		}
+	}
 	start := make([]int32, nneed+1)
 	for k := range tris {
-		g.visitCells(&tris[k], func(cell int32) {
-			if id := need[cell]; id != 0 {
-				start[id]++
-			}
-		})
+		if tris[k].kind == kindYellow {
+			continue
+		}
+		var ok bool
+		spans[k].i0, spans[k].j0, spans[k].i1, spans[k].j1, ok = g.cellSpan(&tris[k])
+		if !ok {
+			spans[k] = cellSpan{i0: 0, j0: 0, i1: -1, j1: -1}
+			continue
+		}
+		visit(k, func(cell int32) { start[need[cell]]++ })
 	}
 	for i := int32(1); i <= nneed; i++ {
 		start[i] += start[i-1]
@@ -266,40 +324,69 @@ func yellowFirstCount(tris []rayTri, d r3.Vec, origins []r3.Vec) int {
 	items := make([]int32, start[nneed])
 	fill := append([]int32(nil), start[:nneed]...)
 	for k := range tris {
-		g.visitCells(&tris[k], func(cell int32) {
-			if id := need[cell]; id != 0 {
-				items[fill[id-1]] = int32(k)
-				fill[id-1]++
-			}
+		if tris[k].kind == kindYellow {
+			continue
+		}
+		visit(k, func(cell int32) {
+			id := need[cell]
+			items[fill[id-1]] = int32(k)
+			fill[id-1]++
 		})
 	}
 	yellow := 0
 	for _, n := range cand {
-		id := need[cellOfRay[n]]
-		if g.firstOf(items[start[id-1]:start[id]], origins[n]) == kindYellow {
+		cell := cellOfRay[n]
+		id := need[cell]
+		if g.yellowFirstOf(yellowsOf(cell), items[start[id-1]:start[id]], origins[n]) {
 			yellow++
 		}
 	}
 	return yellow
 }
 
-// visitCells calls f with each cell newShadowGrid would put t in.
-func (g *shadowGrid) visitCells(t *rayTri, f func(int32)) {
+// yellowFirstOf reports whether the nearest triangle that the ray from o hits among the yellow triangles and the others
+// of one cell is yellow, as firstOf over all of them would find, with the first of two hits at one distance winning by
+// index. It finds the nearest yellow hit and stops at the first other triangle that beats it. It reorders others.
+func (g *shadowGrid) yellowFirstOf(yellows, others []int32, o r3.Vec) bool {
+	best, bestIdx := math.Inf(1), int32(math.MaxInt32)
+	for _, k := range yellows {
+		tr := &g.tris[k]
+		if dist, ok := hitTri(tr, o, g.d, g.inv, best); ok && (dist < best || dist == best && tr.idx < bestIdx) {
+			best, bestIdx = dist, tr.idx
+		}
+	}
+	if math.IsInf(best, 1) {
+		return false
+	}
+	// hitTri skips a box that the ray enters beyond its limit. Rounding can put the entry of a triangle that ties the
+	// yellow hit a hair beyond it, so the limit leaves room for the tie and the comparison below decides.
+	limit := best + tieSlack
+	for n, k := range others {
+		tr := &g.tris[k]
+		if dist, ok := hitTri(tr, o, g.d, g.inv, limit); ok && (dist < best || dist == best && tr.idx < bestIdx) {
+			// The rays of a cell tend to meet the same blocker, so it goes first. Whether some triangle beats the
+			// yellow hit does not depend on the order, which others only has to hold in some order.
+			others[0], others[n] = others[n], others[0]
+			return false
+		}
+	}
+	return true
+}
+
+// cellSpan returns the columns i0..i1 and rows j0..j1 of the cells newShadowGrid would put t in, and false when t
+// lies in none.
+func (g *shadowGrid) cellSpan(t *rayTri) (i0, j0, i1, j1 int, ok bool) {
 	b, c := t.a.Add(t.e1), t.a.Add(t.e2)
 	u0, u1, u2 := t.a.Dot(g.bu), b.Dot(g.bu), c.Dot(g.bu)
 	v0, v1, v2 := t.a.Dot(g.bv), b.Dot(g.bv), c.Dot(g.bv)
 	tlu, thu := min(u0, u1, u2)-shadowMargin, max(u0, u1, u2)+shadowMargin
 	tlv, thv := min(v0, v1, v2)-shadowMargin, max(v0, v1, v2)+shadowMargin
 	if thu < g.lou || tlu > g.hiu || thv < g.lov || tlv > g.hiv {
-		return
+		return 0, 0, 0, 0, false
 	}
-	i0, j0 := g.cellOf(tlu, tlv)
-	i1, j1 := g.cellOf(thu, thv)
-	for j := j0; j <= j1; j++ {
-		for i := i0; i <= i1; i++ {
-			f(int32(j*g.nu + i))
-		}
-	}
+	i0, j0 = g.cellOf(tlu, tlv)
+	i1, j1 = g.cellOf(thu, thv)
+	return i0, j0, i1, j1, true
 }
 
 // indexTris numbers tris in their order, as newRayTree does: of two hits at one distance the lower index wins.
@@ -324,6 +411,9 @@ type shadowGrid struct {
 	cells       [][]int32
 	emptyRegion bool
 }
+
+// tieSlack is the distance, in mm, that yellowFirstOf adds to the nearest yellow hit when it looks for a nearer or tied hit.
+const tieSlack = 1e-6
 
 const (
 	shadowMargin = 1e-3 // mm; hitTri's tolerance of 1e-7 strays 1e-5 mm on a 100 mm triangle

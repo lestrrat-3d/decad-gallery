@@ -290,15 +290,7 @@ func TestSevenSegmentBearings(t *testing.T) {
 // about Z. Each part's bounds and each bolt site must follow the placement. Decad builds all three (an earlier note here
 // said it refused slider b for most translations; these and several others build).
 func TestSevenSegmentPlacement(t *testing.T) {
-	type placement struct {
-		name         string
-		origin, u, v r3.Vec
-	}
-	cases := []placement{
-		{"100 along X", r3.Vec{X: 100}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
-		{"offset 10, 20, 30", r3.Vec{X: 10, Y: 20, Z: 30}, r3.Vec{X: 1}, r3.Vec{Y: 1}},
-		{"quarter turn about Z", r3.Vec{}, r3.Vec{Y: 1}, r3.Vec{X: -1}},
-	}
+	cases := placementCases
 	if expected := os.Getenv("SEVENSEGMENT_PLACEMENTS"); expected != "" {
 		names := make([]string, 0, len(cases))
 		for _, c := range cases {
@@ -309,14 +301,11 @@ func TestSevenSegmentPlacement(t *testing.T) {
 	t.Parallel()
 	_, base := builtDefault(t)
 	plain := printed(base)
-	for _, c := range cases {
+	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			frame, err := r3.NewFrame(c.origin, c.u, c.v)
+			frame, err := c.frame()
 			require.NoError(t, err)
-			p := sevensegment.DefaultParams()
-			p.Placement = &frame
-			parts, err := sevensegment.BuildParts(t.Context(), sevensegment.NewDocument(), p)
-			require.NoError(t, err)
+			parts := builtPlaced(t, i)
 			place, err := r3.FromFrame(frame)
 			require.NoError(t, err)
 			for name, b := range printed(&sevensegment.Model{Parts: *parts}) {

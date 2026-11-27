@@ -1,6 +1,7 @@
 package sevensegment
 
 import (
+	"context"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -121,3 +122,13 @@ func SectionAt(t *testing.T, body *decad.Body, y float64) [][]r3.Vec { return se
 
 // LoopsGap returns the least distance between the loops a and b.
 func LoopsGap(a, b [][]r3.Vec) float64 { return loopsGap(a, b) }
+
+// FlagBaseline builds the flag of s for p in a new document, unposed and unplaced, as a standalone build makes it.
+func FlagBaseline(ctx context.Context, p Params, s Segment) (Flag, error) {
+	dm, err := p.Derive()
+	if err != nil {
+		return Flag{}, err
+	}
+	r := &run{ctx: ctx, doc: NewDocument(), p: p, dm: dm}
+	return r.flag(s)
+}
