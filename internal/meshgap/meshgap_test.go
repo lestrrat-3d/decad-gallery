@@ -110,6 +110,38 @@ func TestDegenerateTriangleHasFiniteGap(t *testing.T) {
 	require.InDelta(t, 2, gap, 1e-5)
 }
 
+func TestDistantSliverDoesNotHideClearance(t *testing.T) {
+	// The sliver and the first triangle came from a verified cube hub and nut.
+	// The other triangle makes the whole-mesh boxes overlap in X and Y.
+	a := []r3.Vec{
+		{X: 5.30542337425491, Y: 10.203062423601535},
+		{X: 4.965175051892669, Y: 10.367106543423194, Z: 0.3466101864841946},
+		{X: 5.30542337425491, Y: 10.19736466348172, Z: 0.3409350962925137},
+	}
+	b := []r3.Vec{
+		{X: -8.700000000000001, Y: 1.74, Z: -1.0650903202395404e-16},
+		{X: -9.028743864943385, Y: 2.3094010767585034, Z: 1.831469322699649e-28},
+		{X: -8.700000000000001, Y: 1.74, Z: 1.3799060949475048e-28},
+		{X: 5, Y: 10, Z: 2}, {X: 6, Y: 10, Z: 2}, {X: 5, Y: 11, Z: 2},
+	}
+	first, err := meshgap.New(a, [][3]int{{0, 1, 2}}, .026)
+	require.NoError(t, err)
+	second, err := meshgap.New(b, [][3]int{{0, 1, 2}, {3, 4, 5}}, .0006)
+	require.NoError(t, err)
+	for _, pair := range [][2]meshgap.Mesh{{first, second}, {second, first}} {
+		gap, separated, err := pair[0].Exceeds(pair[1], .05)
+		require.NoError(t, err)
+		require.True(t, separated, "the distant sliver must not hide clearance")
+		require.Greater(t, gap, .05)
+	}
+	copy(b[3:], a)
+	touching, err := meshgap.New(b, [][3]int{{0, 1, 2}, {3, 4, 5}}, .0006)
+	require.NoError(t, err)
+	_, separated, err := first.Exceeds(touching, .05)
+	require.NoError(t, err)
+	require.False(t, separated, "a distant sliver must not hide contact")
+}
+
 func TestPointDistanceToBearingBoundary(t *testing.T) {
 	p := ballbearing.DefaultParams()
 	m := bearingMesh(t, p, r3.Vec{})

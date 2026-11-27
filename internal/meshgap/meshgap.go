@@ -204,13 +204,17 @@ func (m Mesh) Exceeds(other Mesh, clearance float64) (float64, bool, error) {
 				continue
 			}
 			for _, tb := range other.triangles[b.start:b.end] {
-				if squaredBoxGap(ta, tb) >= best {
+				boxGap := squaredBoxGap(ta, tb)
+				if boxGap >= best {
 					continue
 				}
 				distance := squaredTriangleGap(ta.p, tb.p)
 				if !finite(distance) || distance < 0 {
 					return 0, false, fmt.Errorf("meshgap: triangle distance is not finite and nonnegative")
 				}
+				// A nearly collapsed triangle can make the point-to-triangle calculation
+				// return zero. Its box gap is an independent lower bound on the distance.
+				distance = max(distance, boxGap)
 				best = min(best, distance)
 				if best <= limit*limit {
 					// A close pair bounds the minimum from above. Only the whole-mesh
