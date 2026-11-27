@@ -3,7 +3,6 @@ package render
 // CI: isolated-tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/lestrrat-3d/r3"
@@ -13,8 +12,7 @@ import (
 // TestSevenSegmentPrintOrientation checks that each slider lies on the bed in its documented print orientation: its
 // lowest face is on z = 0 and spans the slider's length, and the part stands far lower than the 61.7 mm it is as exported.
 func TestSevenSegmentPrintOrientation(t *testing.T) {
-	s, err := buildSevenSegmentSet(context.Background())
-	require.NoError(t, err)
+	s := sevenSegmentTestSet(t)
 	for i, v := range sevenPrintViews {
 		for _, p := range s {
 			if p.name != v.part {

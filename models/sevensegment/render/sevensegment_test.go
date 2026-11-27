@@ -34,8 +34,7 @@ func TestSevenSegmentPresets(t *testing.T) {
 // TestSevenSegmentColors checks that every part has one fixed colour: digits 1 and 8 draw the same parts in the same
 // colours although the rotors stand at different angles, and the yellow slab is the only yellow body.
 func TestSevenSegmentColors(t *testing.T) {
-	s, err := buildSevenSegmentSet(context.Background())
-	require.NoError(t, err)
+	s := sevenSegmentTestSet(t)
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
 	one, err := sevenDigitModels(s, dm, 1, r3.Vec{})
@@ -56,8 +55,7 @@ func TestSevenSegmentColors(t *testing.T) {
 // TestSevenSegmentMotionColors checks the motion clip's models: every part keeps one colour in every pose of the press cycle,
 // in the face view and in the cut, and only the rotors' yellow bodies are yellow.
 func TestSevenSegmentMotionColors(t *testing.T) {
-	s, err := buildSevenSegmentSet(context.Background())
-	require.NoError(t, err)
+	s := sevenSegmentTestSet(t)
 	dm, err := sevensegment.DefaultParams().Derive()
 	require.NoError(t, err)
 	springs := map[float64]*decad.Mesh{}
