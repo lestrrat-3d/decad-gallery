@@ -45,37 +45,41 @@ func TestSevenSegmentFlagReuse(t *testing.T) {
 	require.Equal(t, len(model.Sketches), len(placedParts.Sketches))
 
 	for _, seg := range sevensegment.Segments() {
-		want, err := sevensegment.FlagBaseline(ctx, p, seg)
-		require.NoError(t, err)
-		cx, cy, horizontal := segmentCentre(seg)
-		axis := r3.Vec{Y: 1}
-		if horizontal {
-			axis = r3.Vec{X: 1}
-		}
-		turn, err := r3.RotationAround(r3.Vec{X: cx, Y: cy, Z: sevensegment.RotorAxisZ}, axis,
-			units.Degrees(dm.FlagAngle(seg, dm.Theta)))
-		require.NoError(t, err)
-		for _, part := range []struct {
-			name             string
-			want, plain, got *decad.Body
-		}{
-			{sevensegment.YellowFaceContainerName, want.Yellow, model.Flags[seg].Yellow, placedParts.Flags[seg].Yellow},
-			{sevensegment.BlackBodyContainerName, want.Black, model.Flags[seg].Black, placedParts.Flags[seg].Black},
-		} {
-			c, err := doc.ContainerOf(part.plain)
+		t.Run(seg.String(), func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			want, err := sevensegment.FlagBaseline(ctx, p, seg)
 			require.NoError(t, err)
-			require.Equal(t, part.name, c.Name())
-			require.Equal(t, sevensegment.FlagsContainerName, c.Parent().Parent().Name())
-			posed, err := decad.Transform(part.want, turn).Do(ctx)
+			cx, cy, horizontal := segmentCentre(seg)
+			axis := r3.Vec{Y: 1}
+			if horizontal {
+				axis = r3.Vec{X: 1}
+			}
+			turn, err := r3.RotationAround(r3.Vec{X: cx, Y: cy, Z: sevensegment.RotorAxisZ}, axis,
+				units.Degrees(dm.FlagAngle(seg, dm.Theta)))
 			require.NoError(t, err)
-			placed, err := placement.Place(ctx, posed, p.Placement)
-			require.NoError(t, err)
-			a, err := placed.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
-			require.NoError(t, err)
-			b, err := part.got.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
-			require.NoError(t, err)
-			require.True(t, goreflect.DeepEqual(a.Vertices(), b.Vertices()), "vertices %s %s", seg, part.name)
-			require.True(t, goreflect.DeepEqual(a.Triangles(), b.Triangles()), "triangles %s %s", seg, part.name)
-		}
+			for _, part := range []struct {
+				name             string
+				want, plain, got *decad.Body
+			}{
+				{sevensegment.YellowFaceContainerName, want.Yellow, model.Flags[seg].Yellow, placedParts.Flags[seg].Yellow},
+				{sevensegment.BlackBodyContainerName, want.Black, model.Flags[seg].Black, placedParts.Flags[seg].Black},
+			} {
+				c, err := doc.ContainerOf(part.plain)
+				require.NoError(t, err)
+				require.Equal(t, part.name, c.Name())
+				require.Equal(t, sevensegment.FlagsContainerName, c.Parent().Parent().Name())
+				posed, err := decad.Transform(part.want, turn).Do(ctx)
+				require.NoError(t, err)
+				placed, err := placement.Place(ctx, posed, p.Placement)
+				require.NoError(t, err)
+				a, err := placed.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
+				require.NoError(t, err)
+				b, err := part.got.Tessellate(ctx, units.Millimeters(0.05), decad.WithVerification(decad.VerifyAll))
+				require.NoError(t, err)
+				require.True(t, goreflect.DeepEqual(a.Vertices(), b.Vertices()), "vertices %s %s", seg, part.name)
+				require.True(t, goreflect.DeepEqual(a.Triangles(), b.Triangles()), "triangles %s %s", seg, part.name)
+			}
+		})
 	}
 }
