@@ -30,14 +30,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: ./.github/actions/setup-go
         with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
-      # Compile every package and test binary once so setup-go saves the build cache before any
-      # matrix job starts. A go.sum change (a decad bump) leaves no cache for the new key, and
-      # parallel jobs would each compile cold. Failures here surface in the jobs that run the tests.
+          save: true
+      # Compile every package and test binary once so the plan job saves the build cache before any
+      # matrix job starts. Every other job restores that key and never saves it. A go.sum change (a decad
+      # bump) leaves no cache for the new key, and parallel jobs would each compile cold. Failures here
+      # surface in the jobs that run the tests.
       - name: Warm Go build cache
         continue-on-error: true
         run: go test -run '^$' -vet=off -count=1 ./...
@@ -70,11 +69,7 @@ jobs:
     timeout-minutes: ${{ matrix.suite == 'renderer-all' && 180 || 75 }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Run selected suite
         env:
           SUITE: ${{ matrix.suite }}
@@ -89,11 +84,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check repository layout
         run: python3 scripts/check_repository.py
       - name: Check clamp arm capacity documentation
@@ -133,9 +124,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Run package shard
         env:
           CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
@@ -160,9 +149,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Run planned cycloidal checks
         env:
           CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
@@ -190,11 +177,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check full renderer suite
         env:
           CI_TEST_RECORDS: renderer-full-${{ matrix.shard }}.jsonl
@@ -214,11 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check planetary gearbox motion
         run: go test -run '^TestPlanetaryGearboxMotion$' -timeout 10m ./tools/render
 
@@ -228,11 +207,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check spinning wheel motion
         run: go test -run '^TestSpinningWheelMotion$' -timeout 30m ./tools/render
 
@@ -243,11 +218,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check spinning wheel parts table
         run: go test -run '^TestSpinningWheelPartsTable$' -timeout 40m ./tools/render
 
@@ -257,11 +228,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check hand-crank fan motion
         run: go test -run '^TestHandCrankFanMotion$' -timeout 20m ./tools/render
 
@@ -272,11 +239,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check Graham escapement
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'escapement.jsonl' || '' }}
@@ -296,11 +259,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check one-way clutch
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'onewayclutch.jsonl' || '' }}
@@ -320,9 +279,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Check clamp arm
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'clamparm.jsonl' || '' }}
@@ -353,9 +310,9 @@ jobs:
     name: sevensegment-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: ./.github/actions/setup-go
         with:
-          go-version-file: go.mod
+          race: ${{ matrix.shard == 'steps' }}
       - name: Check seven-segment display shard
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('sevensegment-{0}.jsonl', matrix.shard) || '' }}
@@ -376,9 +333,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Check seven-segment renderer
         run: python3 scripts/ci/run_tests.py sevensegment render
 
@@ -389,11 +344,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check turbine fan
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && 'turbinefan.jsonl' || '' }}
@@ -413,11 +364,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check escapement exploded view
         run: go test -run '^TestEscapementExploded$' -timeout 15m ./tools/render
 
@@ -443,11 +390,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check spinning wheel
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('wheel-{0}.jsonl', matrix.case) || '' }}
@@ -478,11 +421,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check hand-crank siren
         env:
           CI_TEST_RECORDS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(fromJSON(needs.plan.outputs.plan).suites, 'full')) && format('siren-{0}.jsonl', matrix.case) || '' }}
@@ -513,11 +452,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check representative bevel geometry shards
         run: python3 scripts/ci/run_tests.py bevel pr ${{ matrix.group }}
 
@@ -540,11 +475,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Check full bevel coverage shard
         env:
           CI_TEST_RECORDS: bevel-full-${{ matrix.shard }}.jsonl
@@ -569,9 +500,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Check planetary gearbox
         env:
           CI_TEST_RECORDS: planetary-full-${{ matrix.case }}.jsonl
@@ -592,9 +521,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Run full partition
         env:
           CI_TEST_RECORDS: bevel-remainder.jsonl
@@ -618,9 +545,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Run full partition
         env:
           CI_TEST_RECORDS: handcrankfan-full-${{ matrix.case }}.jsonl
@@ -645,9 +570,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+      - uses: ./.github/actions/setup-go
       - name: Run full partition
         env:
           CI_TEST_RECORDS: swisslever-full-${{ matrix.case }}.jsonl
@@ -669,11 +592,7 @@ jobs:
       CASE_PLAN: ${{ needs.plan.outputs.case_plan }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
+      - uses: ./.github/actions/setup-go
       - name: Discover full test inventory
         run: python3 scripts/ci/inventory.py > inventory.json
       - uses: actions/download-artifact@v4
