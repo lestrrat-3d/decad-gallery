@@ -15,6 +15,8 @@ import (
 // run holds what every construction step of one Build shares.
 type run struct {
 	doc   *decad.Document
+	// world is the run's sketch world. begin's world serves tests that call a builder directly; every build step
+	// uses the world of its own fork.
 	world *sketch.World
 	p     Params
 	d     dimensions
