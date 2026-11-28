@@ -9,16 +9,24 @@ import (
 	"github.com/lestrrat-3d/decad-gallery/internal/sketchcheck"
 	"github.com/lestrrat-3d/r3"
 	"github.com/lestrrat-3d/sketch"
+	"github.com/lestrrat-3d/units"
 )
 
 // run holds what every construction step of one Build shares.
 type run struct {
-	doc   *decad.Document
+	doc *decad.Document
+	// world is the run's sketch world. begin's world serves tests that call a builder directly; every build step
+	// uses the world of its own fork.
 	world *sketch.World
 	p     Params
 	d     dimensions
 	frame r3.Frame
+	vals  paramValues
 }
+
+// paramValues are the document parameters the build steps use. decad refuses doc.Param while steps run, so begin
+// reads each one once and the steps use these values.
+type paramValues struct{ discThickness, chamferSize, plateThickness, plateHeight units.Value }
 
 func placement(p Params) (r3.Frame, error) {
 	if p.Placement != nil {
@@ -52,7 +60,32 @@ func begin(ctx context.Context, doc *decad.Document, p Params) (*run, error) {
 	if err := defineParameters(world.Params(), p); err != nil {
 		return nil, fmt.Errorf("cycloidal: world parameters: %w", err)
 	}
-	return &run{doc: doc, world: world, p: p, d: resolve(p), frame: frame}, nil
+	rn := &run{doc: doc, world: world, p: p, d: resolve(p), frame: frame}
+	for _, v := range []struct {
+		name string
+		dst  *units.Value
+	}{
+		{"disc_thickness", &rn.vals.discThickness},
+		{"chamfer_size", &rn.vals.chamferSize},
+		{"output_plate_thickness", &rn.vals.plateThickness},
+		{"output_plate_height", &rn.vals.plateHeight},
+	} {
+		if *v.dst, err = doc.Param(v.name); err != nil {
+			return nil, fmt.Errorf("cycloidal: read %s: %w", v.name, err)
+		}
+	}
+	return rn, nil
+}
+
+// fork returns a copy of r with a sketch world of its own, so concurrent steps share no mutable sketch state.
+func (r *run) fork() (*run, error) {
+	world := sketch.NewWorld()
+	if err := defineParameters(world.Params(), r.p); err != nil {
+		return nil, fmt.Errorf("cycloidal: world parameters: %w", err)
+	}
+	c := *r
+	c.world = world
+	return &c, nil
 }
 
 // planeAt returns the sketch plane lifted by height along the placement normal.
