@@ -11,8 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// driveFixture builds one drive per test binary for tests that only read it. A test that adds bodies to the
-// document (overlap) or changes it in any other way must build its own drive.
+// driveFixture builds one drive per test binary for tests that only read it. A test that changes the
+// document must build its own drive. overlap adds copies to the document root and removes them again, so it may read
+// a fixture.
 type driveFixture struct {
 	once  sync.Once
 	doc   *decad.Document

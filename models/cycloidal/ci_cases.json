@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "parents": ["TestBuildOptions", "TestMeasuredFits"],
-  "source_sha256": "dd50eebd1b3494aff96ab5e5de138595ab6c3f550204e8f360ad26810d450f6c"
+  "parents": ["TestBuildOptions", "TestCornersVariants", "TestMeasuredFits"],
+  "source_sha256": "38e98048d82df0ddeadc4dba63a5b853cf948bf60b1699ed2b4e16d4df4f3637"
 }

@@ -220,7 +220,7 @@ def verify_execution(directory, inventory_path, revision, run_id, run_attempt, c
         import case_inventory
         manifest = case_plan["manifest"]
         parents = manifest["parents"]
-        if (manifest["package"] != full_partition.CYCLOIDAL or set(parents) != {"TestBuildOptions", "TestMeasuredFits"}
+        if (manifest["package"] != full_partition.CYCLOIDAL or set(parents) != {"TestBuildOptions", "TestCornersVariants", "TestMeasuredFits"}
                 or any(not isinstance(names, list) or len(names) < 2 or len(set(names)) != len(names) or
                        any(not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names)
                        for names in parents.values())

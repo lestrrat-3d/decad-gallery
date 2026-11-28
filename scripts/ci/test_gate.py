@@ -50,7 +50,8 @@ class GateTest(unittest.TestCase):
         needs = needs_for(["broad", "full"])
         outputs = needs["plan"]["outputs"]
         from case_inventory import assignments
-        manifest = {"parents": {"TestBuildOptions": ["first", "second"], "TestMeasuredFits": ["one", "two"]}}
+        manifest = {"parents": {"TestBuildOptions": ["first", "second"], "TestCornersVariants": ["a", "b", "c"],
+                                "TestMeasuredFits": ["one", "two"]}}
         jobs = assignments(manifest)
         outputs["case_plan"] = json.dumps({"version": 1, "manifest": manifest, "jobs": jobs})
         self.assertTrue(gate.check(needs, "push"))

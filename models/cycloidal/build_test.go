@@ -47,9 +47,7 @@ func TestBuildTwoDiscDrive(t *testing.T) {
 
 // Every moving part clears the parts around it at the home pose: disc against housing, cam, and pins.
 func TestDriveClearances(t *testing.T) {
-	doc := chainDocument()
-	p := cycloidal.DefaultParams()
-	drive, err := cycloidal.Build(t.Context(), doc, p)
+	_, drive, err := defaultFixture(t.Context(), cycloidal.DefaultParams())
 	require.NoError(t, err)
 	disc := drive.Discs[0]
 	require.Zero(t, overlap(t, disc, drive.Housing), "the rotor clears the casing")
@@ -62,19 +60,18 @@ func TestDriveClearances(t *testing.T) {
 }
 
 // Each option the add-in offers builds a drive whose bodies all pass 0.1 mm VerifyAll.
+//
+// Four cases that once lived here build the same parameters as cases of TestMeasuredFits, so they run there with the
+// same Problems and VerifyAll checks and one build each: pins_12 and pins_12_chamfered (12 pins, the default
+// ChamferSize of MinChamferSize), two_discs_chamfered (two discs, the default DiscGap of MinCamNeck and
+// ChamferSize of MinChamferSize), and two_discs_pins_20 (two discs, 20 pins, DiscGap MinCamNeck).
 func TestBuildOptions(t *testing.T) {
 	t.Parallel()
 	cases := []ciCase[func(*testing.T, *cycloidal.Params)]{
 		{"solid_cam", func(_ *testing.T, p *cycloidal.Params) { p.InputShaftDiameter = 0 }},
 		{"pin_diameters", func(_ *testing.T, p *cycloidal.Params) { p.PinDiameter, p.OutputPinDiameter = 8, 6 }},
-		{"pins_12", func(_ *testing.T, p *cycloidal.Params) { p.PinCount = 12 }},
 		{"pins_24", func(_ *testing.T, p *cycloidal.Params) { p.PinCount = 24 }},
 		{"output_pins_5", func(_ *testing.T, p *cycloidal.Params) { p.OutputPinCount = 5 }},
-		{"two_discs_pins_20", func(_ *testing.T, p *cycloidal.Params) { p.DiscCount, p.PinCount, p.DiscGap = 2, 20, 1.4 }},
-		{"two_discs_chamfered", func(_ *testing.T, p *cycloidal.Params) {
-			p.DiscCount, p.DiscGap, p.ChamferSize = 2, cycloidal.MinCamNeck, cycloidal.MinChamferSize
-		}},
-		{"pins_12_chamfered", func(_ *testing.T, p *cycloidal.Params) { p.PinCount, p.ChamferSize = 12, 0.5 }},
 		{"pins_20_chamfered", func(_ *testing.T, p *cycloidal.Params) { p.PinCount, p.ChamferSize = 20, 0.5 }},
 		{"clearances_chamfered", func(_ *testing.T, p *cycloidal.Params) {
 			p.DiskClearance, p.BearingClearance, p.ChamferSize = cycloidal.MinClearance, 2*cycloidal.MinClearance, cycloidal.MinChamferSize
@@ -97,12 +94,7 @@ func TestBuildOptions(t *testing.T) {
 		doc := chainDocument()
 		drive, err := cycloidal.Build(t.Context(), doc, p)
 		require.NoError(t, err)
-		for _, nb := range drive.Named() {
-			mesh, err := nb.Body.Tessellate(t.Context(), units.Millimeters(0.1), decad.WithVerification(decad.VerifyAll))
-			require.NoError(t, err, nb.Name)
-			require.True(t, mesh.BoundaryVerified(), nb.Name)
-			require.True(t, mesh.VolumeVerified(), nb.Name)
-		}
+		requireBodiesVerified(t, &drive)
 	})
 }
 
@@ -132,10 +124,9 @@ func TestBuildChamfers(t *testing.T) {
 
 // A two-disc cam is two sections flush with the discs' faces, joined by a bridge across the gap.
 func TestTwoDiscCam(t *testing.T) {
-	p := cycloidal.DefaultParams()
-	p.DiscCount, p.DiscGap = 2, cycloidal.MinCamNeck
+	p := twoDiscParams()
 	require.Empty(t, cycloidal.Problems(p))
-	drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+	_, drive, err := twoDiscFixture(t.Context(), p)
 	require.NoError(t, err)
 	for i, disc := range drive.Discs {
 		require.Zero(t, overlap(t, disc, drive.Cam), "the cam clears disc %d", i+1)

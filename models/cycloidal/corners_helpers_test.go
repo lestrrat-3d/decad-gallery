@@ -1,6 +1,7 @@
 package cycloidal_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -35,19 +36,26 @@ func housingFloorCorner(p cycloidal.Params) []cornercheck.Exempt {
 	}}
 }
 
-// requireCorners applies "Corners and roots" to every printed body of the drive built from p, in its print
-// orientation, axis +Z (the README's Printing section). The rotor discs are checked as built, chamfered. The housing
-// and the cam are also cut by planes through the drive axis, normal to X and to Y, for the "Corners between layers"
-// bullet: the casing floor, and the neck between the two sections of a two-disc cam.
-func requireCorners(t *testing.T, p cycloidal.Params, drive *cycloidal.Drive) {
-	t.Helper()
+// cornerCheck is one check of "Corners and roots" on a drive's bodies: a body cut by horizontal sections, or the
+// housing, cam or plate cut by an axial plane.
+type cornerCheck struct {
+	name string
+	run  func(t require.TestingT, ctx context.Context)
+}
+
+// cornerChecks lists the checks requireCorners makes on the drive built from p, in print orientation, axis +Z (the
+// README's Printing section). The rotor discs are checked as built, chamfered. The housing and the cam are also cut
+// by planes through the drive axis, normal to X and to Y, for the "Corners between layers" bullet: the casing
+// floor, and the neck between the two sections of a two-disc cam.
+func cornerChecks(p cycloidal.Params, drive *cycloidal.Drive) []cornerCheck {
 	z := r3.Vec{Z: 1}
+	var checks []cornerCheck
 	for _, nb := range drive.Named() {
-		t.Run(nb.Name, func(t *testing.T) {
-			fs, err := cornercheck.Check(t.Context(), nb.Body, z, nil)
+		checks = append(checks, cornerCheck{nb.Name, func(t require.TestingT, ctx context.Context) {
+			fs, err := cornercheck.Check(ctx, nb.Body, z, nil)
 			require.NoError(t, err)
 			require.Empty(t, fs, cornercheck.Report(fs, 5))
-		})
+		}})
 	}
 	axial := []struct {
 		name   string
@@ -59,16 +67,45 @@ func requireCorners(t *testing.T, p cycloidal.Params, drive *cycloidal.Drive) {
 	}
 	for _, a := range axial {
 		for _, normal := range []r3.Vec{{X: 1}, {Y: 1}} {
-			t.Run(a.name+" axial", func(t *testing.T) {
+			checks = append(checks, cornerCheck{a.name + " axial", func(t require.TestingT, ctx context.Context) {
 				for _, nb := range drive.Named() {
 					if nb.Name != a.name {
 						continue
 					}
-					fs, err := cornercheck.CheckAt(t.Context(), nb.Body, normal, []float64{0.001}, a.exempt)
+					fs, err := cornercheck.CheckAt(ctx, nb.Body, normal, []float64{0.001}, a.exempt)
 					require.NoError(t, err)
 					require.Empty(t, fs, cornercheck.Report(fs, 5))
 				}
-			})
+			}})
 		}
+	}
+	return checks
+}
+
+// requireCorners applies "Corners and roots" to every printed body of the drive built from p, one subtest per check.
+func requireCorners(t *testing.T, p cycloidal.Params, drive *cycloidal.Drive) {
+	t.Helper()
+	for _, check := range cornerChecks(p, drive) {
+		t.Run(check.name, func(t *testing.T) { check.run(t, t.Context()) })
+	}
+}
+
+// namedT prefixes every failure message with the check's name.
+type namedT struct {
+	*testing.T
+	name string
+}
+
+func (n namedT) Errorf(format string, args ...any) {
+	n.Helper()
+	n.T.Errorf("%s: "+format, append([]any{n.name}, args...)...)
+}
+
+// requireCornersInline makes the same checks as requireCorners in t itself, for a case of a table that the CI case
+// planner runs by name, where a case may not start subtests. A failure names its check, and the first one ends t.
+func requireCornersInline(t *testing.T, p cycloidal.Params, drive *cycloidal.Drive) {
+	t.Helper()
+	for _, check := range cornerChecks(p, drive) {
+		check.run(namedT{t, check.name}, t.Context())
 	}
 }
