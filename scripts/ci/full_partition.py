@@ -124,7 +124,7 @@ def run_package_shard(case):
     env = os.environ.copy()
     env.update(FULL_ENV)
     print_runner_cpu()
-    command = ["go", "test", "-json", "-p=1", "-parallel=1", *packages, "-timeout", "60m", "-count=1"]
+    command = ["go", "test", "-json", "-p=1", "-parallel=4", *packages, "-timeout", "60m", "-count=1"]
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
     outcomes = {}
     audit = {"test": False, "invalid": False, "packages": set(), "outcomes": [], "no_tests": set()}
