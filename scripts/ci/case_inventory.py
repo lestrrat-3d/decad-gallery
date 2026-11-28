@@ -61,7 +61,7 @@ def file_digest(files):
 # To update: diff models/cycloidal since the last pin, confirm the three parents still build a fresh document and
 # parameters per child without the shared drive fixtures, then set this hash and source_sha256 in ci_cases.json.
 # The unit test for stale pins and `case_inventory.py plan` fail when either pin no longer matches.
-CYCLOIDAL_REVIEWED_GO = "ff410d8a8f01ea72c421bb408d557327cf3fb2c89402fe7794f3af1dad0343d4"
+CYCLOIDAL_REVIEWED_GO = "1a783b7a28ca3590c305c4fd9186421434741011ce267843a5af5655c9ddfe26"
 
 
 def reviewed_cases(name, parents):
