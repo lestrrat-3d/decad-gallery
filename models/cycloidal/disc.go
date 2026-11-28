@@ -81,11 +81,7 @@ func (r *run) buildDiscSampled(ctx context.Context, index int, turnLimit float64
 		return nil, fmt.Errorf("cycloidal: disc %d: no valid region with %d holes among %d regions",
 			index+1, 1+p.OutputPinCount, len(s.Profiles()))
 	}
-	thickness, err := r.doc.Param("disc_thickness")
-	if err != nil {
-		return nil, fmt.Errorf("cycloidal: read disc thickness: %w", err)
-	}
-	body, err := decad.Extrude(r.doc, s, profile, decad.Distance{D: thickness, Dir: decad.Along}).Do(ctx)
+	body, err := decad.Extrude(r.doc, s, profile, decad.Distance{D: r.vals.discThickness, Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: extrude disc %d: %w", index+1, err)
 	}

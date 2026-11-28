@@ -65,49 +65,25 @@ func (d Drive) Named() []NamedBody {
 //   - The add-in's four sub-components and its message for skipped chamfers are Fusion-only. Decad has no
 //     component tree, and the gallery reports an unsupported chamfer as an error.
 //
+// The rotor discs, the cam, the housing and the output plate with its pins do not read each other, so they are
+// steps of one decad.RunSteps call and run together. The result does not depend on how many run at once.
+//
 // doc must be made with a chain tolerance:
 //
 //	doc := decad.New(decad.WithChainTolerance(units.Millimeters(0.1)))
 func Build(ctx context.Context, doc *decad.Document, p Params) (Drive, error) {
+	return build(ctx, doc, p, stepWorkers())
+}
+
+// build is Build with the step run options opts. The independent parts are steps of one decad.RunSteps call, so
+// their results never depend on opts.
+func build(ctx context.Context, doc *decad.Document, p Params, opts ...decad.RunStepsOption) (Drive, error) {
 	r, err := begin(ctx, doc, p)
 	if err != nil {
 		return Drive{}, err
 	}
 	var drive Drive
-	for index := range p.DiscCount {
-		disc, err := r.chamferedDisc(ctx, index)
-		if err != nil {
-			return Drive{}, err
-		}
-		drive.Discs = append(drive.Discs, disc)
-	}
-	cam, err := r.buildCam(ctx)
-	if err != nil {
-		return Drive{}, err
-	}
-	if drive.Cam, err = r.chamferedBy(ctx, cam, "cam", r.camOuterCircles()); err != nil {
-		return Drive{}, err
-	}
-	housing, err := r.buildHousing(ctx)
-	if err != nil {
-		return Drive{}, err
-	}
-	if drive.Housing, err = r.chamferedBy(ctx, housing, "housing",
-		r.housingOuterCircles()); err != nil {
-		return Drive{}, err
-	}
-	plate, pin, err := r.buildOutput(ctx)
-	if err != nil {
-		return Drive{}, err
-	}
-	if drive.OutputPlate, err = r.chamfered(ctx, plate, "output plate"); err != nil {
-		return Drive{}, err
-	}
-	// One pin is chamfered and repeated, so the M pins come from one chamfer and one pattern.
-	if pin, err = r.chamfered(ctx, pin, "output pin"); err != nil {
-		return Drive{}, err
-	}
-	if drive.OutputPins, err = r.patternPins(ctx, pin); err != nil {
+	if err := r.runSteps(ctx, driveSteps(&drive, p.DiscCount), opts...); err != nil {
 		return Drive{}, err
 	}
 	if err := placeInContainers(doc, drive); err != nil {
@@ -160,11 +136,7 @@ func (r *run) chamfered(ctx context.Context, body *decad.Body, what string) (*de
 // chamferedBy chamfers the edges sel selects by Params.ChamferSize. The housing comes out of booleans, which leave
 // no cap provenance, so it names its two outer circles instead.
 func (r *run) chamferedBy(ctx context.Context, body *decad.Body, what string, sel decad.EdgeSelector) (*decad.Body, error) {
-	size, err := r.doc.Param("chamfer_size")
-	if err != nil {
-		return nil, fmt.Errorf("cycloidal: read chamfer size: %w", err)
-	}
-	out, err := decad.Chamfer(body, sel, size).Do(ctx)
+	out, err := decad.Chamfer(body, sel, r.vals.chamferSize).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cycloidal: chamfer %s: %w", what, err)
 	}

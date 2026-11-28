@@ -43,10 +43,7 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error)
 	if err != nil {
 		return nil, nil, err
 	}
-	thickness, err := r.doc.Param("output_plate_thickness")
-	if err != nil {
-		return nil, nil, fmt.Errorf("cycloidal: read output plate thickness: %w", err)
-	}
+	thickness, height := r.vals.plateThickness, r.vals.plateHeight
 	plate, err := decad.Extrude(r.doc, ps, plateProfile, decad.Distance{D: thickness, Dir: decad.Along}).Do(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cycloidal: extrude output plate: %w", err)
@@ -63,10 +60,6 @@ func (r *run) buildOutput(ctx context.Context) (*decad.Body, *decad.Body, error)
 	}
 	if err := solveAndVerify(ctx, pins, "cycloidal: output pin"); err != nil {
 		return nil, nil, err
-	}
-	height, err := r.doc.Param("output_plate_height")
-	if err != nil {
-		return nil, nil, fmt.Errorf("cycloidal: read output plate height: %w", err)
 	}
 	var seed *sketch.Profile
 	for _, profile := range pins.Profiles() {

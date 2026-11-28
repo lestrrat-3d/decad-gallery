@@ -4,7 +4,10 @@ These steps implement [instructions.md](instructions.md). Lengths are millimeter
 Params)` returns a `Drive`.
 
 1. Validate `Params` with `Problems` before adding any body, then define every input and derived
-   dimension in the document's parameter table and in a sketch world's table (`defineParameters`).
+   dimension in the document's parameter table and in a sketch world's table (`defineParameters`). Read
+   `disc_thickness`, `chamfer_size`, `output_plate_thickness` and `output_plate_height` once from the document and
+   keep the values, because decad refuses `doc.Param` while build steps run (`ErrStepScope`) and the parts need them
+   inside their steps.
 2. For disc `d` in `0 ..< DiscCount`, lift the sketch plane by `d (DiscThickness + DiscGap)` along the
    placement normal. Trace one lobe of the rotor profile at 2000 steps and keep a point each time the turn
    reaches 5°. Find the two inflection parameters by bisection and split the points there into three runs.
@@ -40,10 +43,19 @@ Params)` returns a `Drive`.
    the outer loop of both faces of each disc, the outer loop of both plate faces and both end loops of each pin.
    Require `ChamferSize` to be at least 0.5 mm per
    [Surface edge finishing](../../docs/model-pipeline.md#surface-edge-finishing).
-10. Check each body is a solid and passes `Tessellate(0.1 mm, VerifyAll)`.
-11. Section each pair of moving parts in the plane through the middle of the disc or plate, and check that the
+10. Build the independent parts as the steps of one `decad.RunSteps` call, in this order: one step per rotor disc
+    (steps 2 to 4 and the chamfer of step 9), the cam (step 5 and its chamfer), the housing (steps 6 and 7 and its
+    chamfer) and the output plate with its pins (step 8 and its chamfers). No part reads another, so a drive has
+    `DiscCount + 3` steps. Run each step on a copy of the run with a sketch world of its own and the step's context,
+    and run at most four at once. A step returns a function that stores its bodies in the `Drive`; call them in step
+    order after every step has finished, then move the bodies into their containers. Report the first failure in
+    step order with its own text, as a serial build would, but report a step that panicked or never returned before
+    any later step's error. Creating a container, reading a parameter or adding a body to a container is refused
+    while steps run, so do those before or after the call.
+11. Check each body is a solid and passes `Tessellate(0.1 mm, VerifyAll)`.
+12. Section each pair of moving parts in the plane through the middle of the disc or plate, and check that the
     gap, less the mesh bound of both sections, is at least 0.35 mm (0.2 mm for the pins in the plate).
     Compare the axial gaps from the body bounds.
-12. Cut every printed body at the middle of each run of layers, and the housing, cam and plate by the planes through
+13. Cut every printed body at the middle of each run of layers, and the housing, cam and plate by the planes through
     the drive axis, with `internal/cornercheck`, and require no finding outside the listed casing floor corner of a
     housing with 21 or more pins. Measure the 1.6 mm walls of the plate and the cam.
