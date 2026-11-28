@@ -303,8 +303,8 @@ def check(needs, event):
             if case_plan is not None:
                 from case_inventory import assignments
                 manifest = case_plan["manifest"]
-                if (case_plan["version"] != 1 or set(manifest["parents"]) != {"TestMeasuredFits", "TestBuildOptions"} or
-                        case_plan["jobs"] != assignments(manifest) or len(case_plan["jobs"]) != 6):
+                if (case_plan["version"] != 1 or set(manifest["parents"]) != {"TestMeasuredFits", "TestBuildOptions", "TestCornersVariants"} or
+                        case_plan["jobs"] != assignments(manifest) or len(case_plan["jobs"]) != 8):
                     raise ValueError("invalid cycloidal case assignments")
                 cases = [job["case"] for job in case_plan["jobs"]]
             if (case_plan is not None and (not cases or len(set(cases)) != len(cases))) or (

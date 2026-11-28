@@ -10,7 +10,7 @@ import case_inventory
 
 class CycloidalIndependenceTest(unittest.TestCase):
     def test_exact_reviewed_model_and_parents(self):
-        parents = ["TestBuildOptions", "TestMeasuredFits"]
+        parents = ["TestBuildOptions", "TestCornersVariants", "TestMeasuredFits"]
         digest = case_inventory.file_digest(Path("models/cycloidal").glob("*.go"))
         with mock.patch.object(case_inventory, "CYCLOIDAL_REVIEWED_GO", digest):
             self.assertTrue(case_inventory.reviewed_cases("cycloidal", parents))
@@ -37,7 +37,7 @@ class CycloidalIndependenceTest(unittest.TestCase):
                 for filename, before, _ in examples:
                     (model / filename).write_text("package cycloidal_test\n" + before + "\n")
                 approved = case_inventory.file_digest(model.glob("*.go"))
-                config = {"version": 1, "parents": ["TestBuildOptions", "TestMeasuredFits"]}
+                config = {"version": 1, "parents": ["TestBuildOptions", "TestCornersVariants", "TestMeasuredFits"]}
                 for filename, before, after in examples:
                     with self.subTest(filename=filename):
                         path = model / filename

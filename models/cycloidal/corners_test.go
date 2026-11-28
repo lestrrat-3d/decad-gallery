@@ -26,22 +26,19 @@ func TestCorners(t *testing.T) {
 	})
 }
 
-// TestCornersVariants runs the cases that change the rotor and casing outlines. The scheduled models job runs it; the
-// pull request job does not.
+// TestCornersVariants runs the cases that change the rotor and casing outlines. Each case builds its own drive, and the
+// CI case planner runs them as separate workers, so a case starts no subtest.
 func TestCornersVariants(t *testing.T) {
-	for name, mod := range map[string]func(p *cycloidal.Params){
-		"pins_12": func(p *cycloidal.Params) { p.PinCount = 12 },
-		"pins_24": func(p *cycloidal.Params) { p.PinCount = 24 },
-		"two_discs_pins_20": func(p *cycloidal.Params) {
-			p.DiscCount, p.PinCount = 2, 20
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			p := cycloidal.DefaultParams()
-			mod(&p)
-			drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
-			require.NoError(t, err)
-			requireCorners(t, p, &drive)
-		})
+	cases := []ciCase[func(p *cycloidal.Params)]{
+		{"pins_12", func(p *cycloidal.Params) { p.PinCount = 12 }},
+		{"pins_24", func(p *cycloidal.Params) { p.PinCount = 24 }},
+		{"two_discs_pins_20", func(p *cycloidal.Params) { p.DiscCount, p.PinCount = 2, 20 }},
 	}
+	ciRunCases(t, cases, func(t *testing.T, mod func(p *cycloidal.Params)) {
+		p := cycloidal.DefaultParams()
+		mod(&p)
+		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
+		require.NoError(t, err)
+		requireCornersInline(t, p, &drive)
+	})
 }

@@ -54,18 +54,18 @@ def file_digest(files):
     return digest.hexdigest()
 
 
-# Both reviewed parents create a document and parameters per child. Their local
+# Every reviewed parent creates a document and parameters per child. Their local
 # helpers do not access defaultDriveFixture or twoDiscDriveFixture. Pin the entire local Go package
 # so changing a parent, helper, or package initializer needs a fresh review.
 # Updating the model's inventory fingerprint alone cannot authorize a split.
-# To update: diff models/cycloidal since the last pin, confirm the two parents still build a fresh document and
+# To update: diff models/cycloidal since the last pin, confirm the three parents still build a fresh document and
 # parameters per child without the shared drive fixtures, then set this hash and source_sha256 in ci_cases.json.
 # The unit test for stale pins and `case_inventory.py plan` fail when either pin no longer matches.
-CYCLOIDAL_REVIEWED_GO = "cc6edafa8333c92fc742e7aad0c1cab7b423b8161f60bc20669365d1edf40ef6"
+CYCLOIDAL_REVIEWED_GO = "96b03e6dc2c41564ad093c277b35e65bba40fa792f21a989b55d5ac689dff165"
 
 
 def reviewed_cases(name, parents):
-    if name != "cycloidal" or parents != ["TestBuildOptions", "TestMeasuredFits"]:
+    if name != "cycloidal" or parents != ["TestBuildOptions", "TestCornersVariants", "TestMeasuredFits"]:
         return False
     files = list(Path("models", name).glob("*.go"))
     return (all(path.is_file() and not path.is_symlink() for path in files) and

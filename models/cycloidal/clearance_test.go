@@ -10,7 +10,9 @@ import (
 )
 
 // Every pair of moving parts clears each other by the fit's minimum at the home pose, over the default and
-// the smallest clearances Problems accepts, with one and two discs.
+// the smallest clearances Problems accepts, with one and two discs. Each case also requires no Problems and every body
+// to pass 0.1 mm VerifyAll, which TestBuildOptions used to check for the same parameters as its pins_12,
+// pins_12_chamfered, two_discs_chamfered and two_discs_pins_20 cases.
 func TestMeasuredFits(t *testing.T) {
 	t.Parallel()
 	cases := []ciCase[func(*cycloidal.Params)]{
@@ -31,8 +33,10 @@ func TestMeasuredFits(t *testing.T) {
 		t.Parallel()
 		p := cycloidal.DefaultParams()
 		mod(&p)
+		require.Empty(t, cycloidal.Problems(p))
 		drive, err := cycloidal.Build(t.Context(), chainDocument(), p)
 		require.NoError(t, err)
+		requireBodiesVerified(t, &drive)
 		const regular, press = 0.35, 0.05
 		// The section measurement of the round pin and socket reads up to 0.03 mm under the nominal gap
 		// (measured 0.025 for a 0.05 nominal), so the press fit must be proven to this bound.

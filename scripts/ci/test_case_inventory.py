@@ -107,7 +107,8 @@ class CasePlanTest(unittest.TestCase):
 
     def test_offline_cli_accepts_same_run_producers_from_two_attempts(self):
         package = reconcile_records.full_partition.CYCLOIDAL
-        parents = {"TestBuildOptions": ["one", "two"], "TestMeasuredFits": ["one", "two"]}
+        parents = {"TestBuildOptions": ["one", "two"], "TestCornersVariants": ["one", "two", "three"],
+                   "TestMeasuredFits": ["one", "two"]}
         manifest = {"package": package, "parents": parents, "tests": sorted([*parents, "TestOther"]),
                     "identity": {"revision": "abc", "run_id": "123", "attempt": "1", "profile": {}}}
         plan = {"version": 1, "manifest": manifest, "jobs": case_inventory.assignments(manifest)}
