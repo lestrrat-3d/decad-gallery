@@ -41,7 +41,7 @@ class FullPartitionTests(unittest.TestCase):
                 partition.run_package_shard("0")
             cpu.assert_called_once_with()
             self.assertIn("-p=1", popen.call_args.args[0])
-            self.assertIn("-parallel=1", popen.call_args.args[0])
+            self.assertIn("-parallel=4", popen.call_args.args[0])
             with mock.patch.object(partition, "discover", return_value={"TestExpected"}), \
                     self.assertRaisesRegex(ValueError, "missing or failed"):
                 partition.run_package_shard("0")
