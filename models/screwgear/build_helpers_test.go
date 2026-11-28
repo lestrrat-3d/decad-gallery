@@ -22,12 +22,18 @@ func build(t *testing.T, p screwgear.Params) (*screwgear.Mechanism, *decad.Docum
 	doc := screwgear.NewDocument()
 	m, err := screwgear.Build(t.Context(), doc, p)
 	require.NoError(t, err)
+	checkBuild(t, doc, m)
+	return m, doc
+}
+
+// checkBuild requires the three solid bodies of a finished build, in their containers.
+func checkBuild(t *testing.T, doc *decad.Document, m *screwgear.Mechanism) {
+	t.Helper()
 	require.Len(t, doc.Bodies(), 3)
 	for name, b := range map[string]*decad.Body{"gear A": m.GearA, "gear B": m.GearB, "cage": m.Cage} {
 		require.True(t, b.IsSolid(), name)
 	}
 	requireContainers(t, doc, m)
-	return m, doc
 }
 
 // requireContainers checks that the gears sit in "Gears" and the sleeve in "Sleeve", and that
