@@ -57,7 +57,10 @@ def file_digest(files):
 # helpers do not access defaultDriveFixture or twoDiscDriveFixture. Pin the entire local Go package
 # so changing a parent, helper, or package initializer needs a fresh review.
 # Updating the model's inventory fingerprint alone cannot authorize a split.
-CYCLOIDAL_REVIEWED_GO = "0cbb7ab252451bfae85e8eb8b1ec8d37dbdcc49f090110e2a4f238c8b3f0e22e"
+# To update: diff models/cycloidal since the last pin, confirm the two parents still build a fresh document and
+# parameters per child without the shared drive fixtures, then set this hash and source_sha256 in ci_cases.json.
+# The unit test for stale pins and `case_inventory.py plan` fail when either pin no longer matches.
+CYCLOIDAL_REVIEWED_GO = "cc6edafa8333c92fc742e7aad0c1cab7b423b8161f60bc20669365d1edf40ef6"
 
 
 def reviewed_cases(name, parents):
@@ -66,6 +69,30 @@ def reviewed_cases(name, parents):
     files = list(Path("models", name).glob("*.go"))
     return (all(path.is_file() and not path.is_symlink() for path in files) and
             file_digest(files) == CYCLOIDAL_REVIEWED_GO)
+
+
+def stale_pins(name):
+    """Return why a model's reviewed pins no longer match its sources, or an empty list when they match.
+
+    This reads files only, so it also works in a checkout with uncommitted changes. A non-empty result means
+    discover() returns None and the case split is off. Review the source change before updating either pin.
+    """
+    config_path = Path("models", name, "ci_cases.json")
+    try:
+        config = json.loads(config_path.read_text())
+        parents, pinned = config["parents"], config["source_sha256"]
+    except (OSError, UnicodeError, ValueError, KeyError, TypeError):
+        return ["models/%s/ci_cases.json is missing or malformed" % name]
+    problems = []
+    go_files = list(Path("models", name).glob("*.go"))
+    if not reviewed_cases(name, parents):
+        problems.append("reviewed parents or Go sources changed: CYCLOIDAL_REVIEWED_GO is %s, sources hash to %s" %
+                        (CYCLOIDAL_REVIEWED_GO, file_digest(go_files)))
+    tests = list(Path("models", name).glob("*_test.go"))
+    if file_digest(tests) != pinned:
+        problems.append("test sources changed: ci_cases.json source_sha256 is %s, tests hash to %s" %
+                        (pinned, file_digest(tests)))
+    return problems
 
 
 def discover(name):
@@ -395,14 +422,24 @@ def audit_undiscovered(manifest):
             raise ValueError("case audit is incomplete")
 
 
+def plan_main():
+    """Write the cycloidal case plan to GITHUB_OUTPUT, or exit with the reason it is unavailable."""
+    manifest = discover("cycloidal")
+    if manifest is None:
+        # A silent null plan once ran cycloidal whole in a package shard for many runs. Fail instead.
+        problems = stale_pins("cycloidal") or ["discovery refused the model; see case_inventory.discover"]
+        sys.exit("case plan for cycloidal is unavailable:\n  " + "\n  ".join(problems) +
+                 "\nReview the source change, then update the pins (see CYCLOIDAL_REVIEWED_GO).")
+    plan = build_plan(manifest)
+    matrix = {"include": [{"case": job["case"]} for job in plan["jobs"]]} if plan else {"include": []}
+    with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+        for name, value in (("plan", plan), ("matrix", matrix)):
+            print(name + "=" + json.dumps(value, separators=(",", ":")), file=output)
+
+
 if __name__ == "__main__":
     if sys.argv[1:] == ["plan"]:
-        manifest = discover("cycloidal")
-        plan = build_plan(manifest) if manifest is not None else None
-        matrix = {"include": [{"case": job["case"]} for job in plan["jobs"]]} if plan else {"include": []}
-        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-            for name, value in (("plan", plan), ("matrix", matrix)):
-                print(name + "=" + json.dumps(value, separators=(",", ":")), file=output)
+        plan_main()
     elif sys.argv[1:] == ["run"]:
         run_planned(json.loads(os.environ["CASE_PLAN"]), os.environ["CI_TEST_CASE"])
     elif len(sys.argv) == 3 and sys.argv[1] == "--fingerprint":
