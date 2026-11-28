@@ -37,7 +37,9 @@ class FullPartitionTests(unittest.TestCase):
                 mock.patch.object(partition, "discover", return_value=set()), \
                 mock.patch.object(partition.subprocess, "Popen", return_value=process) as popen, \
                 mock.patch.object(partition.run_tests, "finished_tests", side_effect=finished):
-            partition.run_package_shard("0")
+            with mock.patch.object(partition, "print_runner_cpu") as cpu:
+                partition.run_package_shard("0")
+            cpu.assert_called_once_with()
             self.assertIn("-p=1", popen.call_args.args[0])
             self.assertIn("-parallel=1", popen.call_args.args[0])
             with mock.patch.object(partition, "discover", return_value={"TestExpected"}), \

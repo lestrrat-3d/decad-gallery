@@ -14,6 +14,27 @@ import reconcile_records
 
 
 class CasePlanTest(unittest.TestCase):
+    def test_cycloidal_pins_match_the_checked_in_sources(self):
+        # A stale pin turns the cycloidal case split off without any failure. Update the pins only after
+        # reviewing the source change (see CYCLOIDAL_REVIEWED_GO).
+        self.assertEqual(case_inventory.stale_pins("cycloidal"), [])
+
+    def test_stale_pins_name_the_mismatched_pin(self):
+        with mock.patch.object(case_inventory, "CYCLOIDAL_REVIEWED_GO", "0" * 64):
+            problems = case_inventory.stale_pins("cycloidal")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("CYCLOIDAL_REVIEWED_GO", problems[0])
+
+    def test_plan_fails_instead_of_writing_a_null_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory, "out")
+            with mock.patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}), \
+                    mock.patch.object(case_inventory, "discover", return_value=None), \
+                    mock.patch.object(case_inventory, "stale_pins", return_value=["pin is stale"]), \
+                    self.assertRaisesRegex(SystemExit, "pin is stale"):
+                case_inventory.plan_main()
+            self.assertFalse(output.exists())
+
     def test_retry_compares_the_original_plan_with_the_current_checkout(self):
         first = {"package": "github.com/lestrrat-3d/decad-gallery/models/cycloidal",
                  "identity": {"revision": "a", "run_id": "bob", "attempt": "1", "profile": {}}}
