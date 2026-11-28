@@ -73,6 +73,16 @@ class CasePlanTest(unittest.TestCase):
                 case_inventory.run_planned(plan, "missing")
         execute.assert_not_called()
 
+    def test_planned_worker_prints_runner_cpu_once_before_running(self):
+        manifest = {"parents": {"TestA": ["one", "two"]}}
+        calls = []
+        with mock.patch.object(case_inventory, "validate_manifest"), \
+                mock.patch.object(case_inventory, "print_runner_cpu", side_effect=lambda: calls.append("cpu")), \
+                mock.patch.object(case_inventory, "run_group", side_effect=lambda *a: calls.append("run")):
+            plan = case_inventory.build_plan(manifest)
+            case_inventory.run_planned(plan, "TestA-0")
+        self.assertEqual(calls, ["cpu", "run"])
+
     def test_strict_worker_rejects_missing_duplicate_and_skipped_children(self):
         package = "example.com/model"
         def event(action, test=None):
