@@ -14,6 +14,7 @@ import (
 )
 
 func TestBuildDefaultMechanism(t *testing.T) {
+	t.Parallel()
 	p := screwgear.DefaultParams()
 	m, _ := sharedDefault(t)
 

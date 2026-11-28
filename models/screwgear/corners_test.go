@@ -25,6 +25,7 @@ import (
 // those corners are listed as exempt, found by their side of the ribbon (u > 0 in the gear's own section). Every
 // other corner of the ribbon passes the check, and the build holds a mesh bound the check may read.
 func TestGearCorners(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name  string
 		p     screwgear.Params
