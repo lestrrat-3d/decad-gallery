@@ -14,7 +14,7 @@ func TestSectionPair(t *testing.T) {
 	t.Parallel()
 	t.Run("default", func(t *testing.T) {
 		t.Parallel()
-		m, _ := build(t, shortParams())
+		m, _ := sharedShort(t)
 		t.Run("cuts-both-ribbons", func(t *testing.T) {
 			t.Parallel()
 			for _, height := range []float64{-0.4, 0, 0.4} {
@@ -65,11 +65,7 @@ func TestSectionPair(t *testing.T) {
 	})
 	t.Run("placed", func(t *testing.T) {
 		t.Parallel()
-		frame, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
-		require.NoError(t, err)
-		p := shortParams()
-		p.Placement = &frame
-		m, _ := build(t, p)
+		m, _ := sharedPlaced(t)
 		section, err := m.SectionPair(t.Context(), 0.4, 0.1)
 		require.NoError(t, err)
 		// U x V = +X is n̂ for this placement, so the plane stands 0.4 mm along +X from the centre.

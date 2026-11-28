@@ -16,7 +16,7 @@ import (
 // The sleeve is built in the pair frame with no placement, so its end faces lie at z = ±CageRise.
 func TestSleeveEndFacesAreChamfered(t *testing.T) {
 	p := shortParams()
-	m, _ := build(t, p)
+	m, _ := sharedShort(t)
 	ends := 0
 	for _, f := range m.Cage.Faces() {
 		plane, ok := f.Surface().(decad.Plane)

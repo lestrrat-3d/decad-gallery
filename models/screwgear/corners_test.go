@@ -26,15 +26,16 @@ import (
 // other corner of the ribbon passes the check, and the build holds a mesh bound the check may read.
 func TestGearCorners(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		p    screwgear.Params
+		name  string
+		p     screwgear.Params
+		build func(*testing.T) (*screwgear.Mechanism, *decad.Document)
 	}{
-		{"default", screwgear.DefaultParams()},
-		{"short", shortParams()},
+		{"default", screwgear.DefaultParams(), sharedDefault},
+		{"short", shortParams(), sharedShort},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			m, _ := build(t, tc.p)
+			m, _ := tc.build(t)
 			gears, _, err := screwgear.PairForTest(tc.p)
 			require.NoError(t, err)
 			for gi, body := range []*decad.Body{m.GearA, m.GearB} {
@@ -91,7 +92,7 @@ func TestGearCorners(t *testing.T) {
 // Rounding them changes these sections, so the change that does it also revisits this test.
 func TestSleeveCornersRecorded(t *testing.T) {
 	t.Parallel()
-	m, _ := build(t, shortParams())
+	m, _ := sharedShort(t)
 	axis := r3.Vec{Z: 1}
 	mid, err := cornercheck.MidHeights(m.Cage, axis)
 	require.NoError(t, err)

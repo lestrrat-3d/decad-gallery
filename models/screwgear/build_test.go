@@ -15,7 +15,7 @@ import (
 
 func TestBuildDefaultMechanism(t *testing.T) {
 	p := screwgear.DefaultParams()
-	m, _ := build(t, p)
+	m, _ := sharedDefault(t)
 
 	for name, b := range map[string]*decad.Body{"gear A": m.GearA, "gear B": m.GearB} {
 		v, err := b.Volume()
@@ -41,11 +41,8 @@ func TestBuildDefaultMechanism(t *testing.T) {
 
 func TestBuildPlacementMovesTheWholeMechanism(t *testing.T) {
 	t.Parallel()
-	frame, err := r3.NewFrame(r3.NewVec(10, -5, 7), r3.NewVec(0, 1, 0), r3.NewVec(0, 0, 1))
-	require.NoError(t, err)
-	p := shortParams()
-	p.Placement = &frame
-	m, _ := build(t, p)
+	p := placedParams(t)
+	m, _ := sharedPlaced(t)
 
 	// U = +Y and V = +Z make the normal U x V = +X, so the tube's axis is world X.
 	box, err := m.Cage.Bounds()
@@ -76,7 +73,7 @@ func TestBuildPlacementMovesTheWholeMechanism(t *testing.T) {
 func TestBuildBoresFollowTheRibbonSurface(t *testing.T) {
 	t.Parallel()
 	p := shortParams()
-	m, _ := build(t, p)
+	m, _ := sharedShort(t)
 	for gi := range 2 {
 		for _, sign := range []float64{-1, 1} {
 			s := sign * p.CageRadius
