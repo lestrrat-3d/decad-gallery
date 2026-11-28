@@ -11,6 +11,7 @@ import sys
 
 import run_tests
 import reconcile_records
+from runner_cpu import print_runner_cpu
 
 
 def execution_identity():
@@ -222,6 +223,7 @@ def run_planned(plan, case):
     if len(jobs) != 1:
         raise ValueError("case is not uniquely assigned")
     job = jobs[0]
+    print_runner_cpu()
     if job["kind"] == "audit":
         audit_undiscovered(plan["manifest"])
     elif job["kind"] == "remainder":
