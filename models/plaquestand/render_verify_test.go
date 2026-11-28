@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
-	"github.com/lestrrat-3d/decad-gallery/models/plaquestand"
 	"github.com/lestrrat-3d/units"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +15,7 @@ import (
 func TestEveryBodyVerifyAll(t *testing.T) {
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
-			m, err := plaquestand.Build(t.Context(), decad.New(), tc.params)
+			_, m, err := sharedBuild(tc.params)
 			require.NoError(t, err)
 			bodies := map[string]*decad.Body{
 				"bracket-1": m.Brackets[0], "bracket-2": m.Brackets[1], "rail": m.Rail, "plaque": m.Plaque,
