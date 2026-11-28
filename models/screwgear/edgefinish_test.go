@@ -15,6 +15,7 @@ import (
 // TestSleeveEndFacesAreChamfered checks that both rims of both sleeve end faces have a 45 degree bevel beside them.
 // The sleeve is built in the pair frame with no placement, so its end faces lie at z = ±CageRise.
 func TestSleeveEndFacesAreChamfered(t *testing.T) {
+	t.Parallel()
 	p := shortParams()
 	m, _ := sharedShort(t)
 	ends := 0

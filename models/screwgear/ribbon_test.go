@@ -19,6 +19,7 @@ import (
 // mesh, the mesh volume, and a rigid motion of the body. The ribbon is the unplaced loft the
 // build places, so the real producer runs into the real consumer.
 func TestRibbonDefaultIsOneVerifiedLoft(t *testing.T) {
+	t.Parallel()
 	p := screwgear.DefaultParams()
 	doc := decad.New()
 	body, sections, step, err := screwgear.RibbonForTest(t.Context(), doc, p, 0)
