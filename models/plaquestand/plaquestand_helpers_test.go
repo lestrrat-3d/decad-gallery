@@ -1,7 +1,9 @@
 package plaquestand_test
 
 import (
+	"context"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/lestrrat-3d/decad"
@@ -21,12 +23,34 @@ func requireFullyConstrained(t *testing.T, s *sketch.Sketch) {
 	require.NoError(t, report.Check())
 }
 
-// requireBuilt builds p into a fresh document and checks what every case shares: eight bodies in their containers, and
-// every sketch fully constrained.
+// builtStand is one parameter set's build, made once and shared by every test that asks for it.
+type builtStand struct {
+	once  sync.Once
+	doc   *decad.Document
+	model *plaquestand.Model
+	err   error
+}
+
+var sharedStands sync.Map // plaquestand.Params -> *builtStand
+
+// sharedBuild returns p's build, made on first use in a document of its own. Tests must treat the document and
+// its bodies as read-only: none may add, cut, move or place anything in it. The build does not use the first
+// caller's context, which ends with that caller's test.
+func sharedBuild(p plaquestand.Params) (*decad.Document, *plaquestand.Model, error) {
+	v, _ := sharedStands.LoadOrStore(p, &builtStand{})
+	b := v.(*builtStand)
+	b.once.Do(func() {
+		b.doc = decad.New()
+		b.model, b.err = plaquestand.Build(context.Background(), b.doc, p)
+	})
+	return b.doc, b.model, b.err
+}
+
+// requireBuilt returns p's shared build and checks what every case shares: eight bodies in their containers, and
+// every sketch fully constrained. The returned document and model are read-only.
 func requireBuilt(t *testing.T, p plaquestand.Params) (*decad.Document, *plaquestand.Model) {
 	t.Helper()
-	doc := decad.New()
-	m, err := plaquestand.Build(t.Context(), doc, p)
+	doc, m, err := sharedBuild(p)
 	require.NoError(t, err)
 	require.Equal(t, 8, len(doc.Bodies()))
 	for _, b := range []*decad.Body{m.Brackets[0], m.Brackets[1], m.Rail, m.Plaque, m.Bolts[0].Body, m.Bolts[1].Body,
